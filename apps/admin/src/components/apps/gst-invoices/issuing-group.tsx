@@ -1,8 +1,8 @@
 'use client'
 
 import { ISSUE_ON } from '@commerce/invoices'
-import { Input } from '@commerce/ui/shadcn/input'
 import { Label } from '@commerce/ui/shadcn/label'
+import DateField from '@/components/fields/date-field'
 import { gstInvoicesContent } from '@/data/gst-invoices'
 import ChoiceField from './choice-field'
 import EditorGroup from './editor-group'
@@ -62,12 +62,10 @@ export default function IssuingGroup({ settings, onChange, errors }: GroupProps)
         ) : null}
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="gst-gstr9">{copy.issuing.gstr9}</Label>
-          <Input
+          <DateField
             id="gst-gstr9"
-            size="lg"
-            type="date"
             value={settings.gstr9FiledOn ?? ''}
-            onChange={(e) => onChange({ ...settings, gstr9FiledOn: e.target.value || null })}
+            onChange={(v) => onChange({ ...settings, gstr9FiledOn: v || null })}
           />
           <span className="text-caption text-muted-foreground">{copy.issuing.gstr9Help}</span>
         </div>

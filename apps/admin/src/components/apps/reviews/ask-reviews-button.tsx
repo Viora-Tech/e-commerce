@@ -11,11 +11,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@commerce/ui/shadcn/dialog'
-import { Input } from '@commerce/ui/shadcn/input'
 import { Label } from '@commerce/ui/shadcn/label'
 import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import DateField from '@/components/fields/date-field'
 import { reviewToolsContent } from '@/data/review-tools'
 import { reviewsContent } from '@/data/reviews'
 import { useCopy } from '@/hooks/use-copy'
@@ -114,23 +114,16 @@ export default function AskReviewsButton() {
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="ask-from">{past.from}</Label>
-              <Input
-                id="ask-from"
-                type="date"
-                value={from}
-                max={to}
-                onChange={(e) => setFrom(e.target.value)}
-              />
+              <DateField id="ask-from" value={from} max={to} onChange={(v) => setFrom(v)} />
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="ask-to">{past.to}</Label>
-              <Input
+              <DateField
                 id="ask-to"
-                type="date"
                 value={to}
                 min={from}
                 max={dayInput(new Date())}
-                onChange={(e) => setTo(e.target.value)}
+                onChange={(v) => setTo(v)}
               />
             </div>
           </div>

@@ -3,10 +3,10 @@
 import { dayKey } from '@commerce/dates'
 import { Eye, ReceiptIcon } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import { Input } from '@commerce/ui/shadcn/input'
 import { SortableList } from '@commerce/ui/sortable'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import DateField from '@/components/fields/date-field'
 import DataCard from '@/components/layout/data-card'
 import { reorderLabels } from '@/data/common'
 import { gstInvoicesContent } from '@/data/gst-invoices'
@@ -112,14 +112,12 @@ export default function ReviewPanel({ rows, onBack, onIssued }: ReviewPanelProps
                     {it.row.buyerName}, {formatPaise(it.row.totalPaise)}
                   </span>
                 </span>
-                <Input
-                  size="lg"
-                  type="date"
+                <DateField
                   aria-label={copy.invoiceDate}
                   className="col-span-2 sm:col-span-1"
                   value={it.day}
                   max={istDay(new Date())}
-                  onChange={(e) => handleDay(i, e.target.value)}
+                  onChange={(v) => handleDay(i, v)}
                 />
                 <span className="col-span-2 font-mono text-caption sm:col-span-1">
                   {numbers?.[it.row.id] ?? '-'}

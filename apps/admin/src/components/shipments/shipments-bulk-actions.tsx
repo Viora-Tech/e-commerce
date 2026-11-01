@@ -7,6 +7,7 @@ import { Field, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import DateField from '@/components/fields/date-field'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
 import { shipmentActionsContent, shipmentsContent } from '@/data/shipments'
 import { useCopy } from '@/hooks/use-copy'
@@ -107,12 +108,7 @@ export default function ShipmentsBulkActions({
         <div className="flex flex-col gap-3">
           <Field>
             <FieldLabel htmlFor="bulk-pickup-date">{actions.date}</FieldLabel>
-            <Input
-              id="bulk-pickup-date"
-              type="date"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-            />
+            <DateField id="bulk-pickup-date" value={date} onChange={(v) => setDate(v)} />
           </Field>
           <Field>
             <FieldLabel htmlFor="bulk-pickup-from">{actions.timeFrom}</FieldLabel>

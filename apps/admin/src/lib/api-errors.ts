@@ -158,23 +158,34 @@ const quoted = (value: string) => `"${value.replace(/["\\]/g, '\\$&')}"`
 /**
  * Puts the cursor in the first field a validation error names (#101). A form marks its inputs
  * with `data-field-path` (the request path, e.g. `boxPresets.0.name`) or a matching `name`;
- * an input whose id is the field's own key also works. Does nothing when none is on screen.
+ * an input whose id is the field's own key also works, and so does the usual `<form>-<field>`
+ * id (`product-title`, `discount-starts-at`). Does nothing when none is on screen.
  */
 export function focusFirstIssue(err: unknown): void {
   if (typeof document === 'undefined') return
   const [first] = validationIssuesOf(err)
   if (!first?.path) return
   const key = first.path.split('.').at(-1) ?? ''
+  const plain = /^[A-Za-z][\w-]*$/.test(key)
+  const kebab = key.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase()
+  const suffixes = plain ? [...new Set([key, kebab])].map((k) => `[id$=${quoted(`-${k}`)}]`) : []
   const selectors = [
     `[data-field-path=${quoted(first.path)}]`,
     `[name=${quoted(first.path)}]`,
-    /^[A-Za-z][\w-]*$/.test(key) ? `#${key}` : null,
+    plain ? `#${key}` : null,
+    plain ? `[name=${quoted(key)}]` : null,
+    ...suffixes,
   ].filter((s): s is string => s !== null)
   for (const selector of selectors) {
     const el = document.querySelector<HTMLElement>(selector)
-    if (!el) continue
+    if (!el || el.closest('[hidden]')) continue
     el.scrollIntoView({ block: 'center', behavior: 'smooth' })
     el.focus({ preventScroll: true })
+    // Red until they change it; a field that is already marked invalid keeps its own state.
+    if (!el.hasAttribute('aria-invalid')) {
+      el.setAttribute('aria-invalid', 'true')
+      el.addEventListener('input', () => el.removeAttribute('aria-invalid'), { once: true })
+    }
     return
   }
 }

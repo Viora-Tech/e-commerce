@@ -11,6 +11,7 @@ import { ExternalLink, RefreshCw } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
+import DateField from '@/components/fields/date-field'
 import OptionSelect from '@/components/landed-cost/option-select'
 import DataCard from '@/components/layout/data-card'
 import { inboundShipmentFormContent } from '@/data/purchasing'
@@ -115,11 +116,10 @@ export default function ShipmentTrackingCard({
         </Field>
         <Field>
           <FieldLabel htmlFor="shipment-expected">{copy.expected}</FieldLabel>
-          <Input
+          <DateField
             id="shipment-expected"
-            type="date"
             value={draft.expectedAt}
-            onChange={(e) => onChange({ expectedAt: e.target.value })}
+            onChange={(v) => onChange({ expectedAt: v })}
           />
           <FieldDescription>
             {trackedAt

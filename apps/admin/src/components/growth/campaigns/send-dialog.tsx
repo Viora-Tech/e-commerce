@@ -10,9 +10,9 @@ import {
   DialogTitle,
 } from '@commerce/ui/shadcn/dialog'
 import { Field, FieldDescription, FieldError, FieldLabel } from '@commerce/ui/shadcn/field'
-import { Input } from '@commerce/ui/shadcn/input'
 import { RadioGroup, RadioGroupItem } from '@commerce/ui/shadcn/radio-group'
 import { useState } from 'react'
+import DateField from '@/components/fields/date-field'
 import { campaignEditorContent } from '@/data/marketing-campaigns'
 
 type SendDialogProps = {
@@ -70,12 +70,7 @@ export default function SendDialog({
         {mode === 'later' ? (
           <Field>
             <FieldLabel htmlFor="send-at">{copy.at}</FieldLabel>
-            <Input
-              id="send-at"
-              type="datetime-local"
-              value={at}
-              onChange={(e) => setAt(e.target.value)}
-            />
+            <DateField mode="datetime" id="send-at" value={at} onChange={(v) => setAt(v)} />
             <FieldDescription>{copy.atHelp}</FieldDescription>
           </Field>
         ) : null}

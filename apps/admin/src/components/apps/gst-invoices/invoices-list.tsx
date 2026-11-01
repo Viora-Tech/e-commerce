@@ -17,6 +17,7 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import CopyButton from '@/components/fields/copy-button'
+import DateField from '@/components/fields/date-field'
 import PageHeader from '@/components/layout/page-header'
 import RelativeTime from '@/components/layout/relative-time'
 import OrderChip from '@/components/orders/order-chip'
@@ -188,19 +189,15 @@ export default function InvoicesList() {
                 setPage(1)
               }}
             />
-            <Input
-              size="lg"
-              type="date"
+            <DateField
               aria-label={copy.from}
               value={range.from}
-              onChange={(e) => setRange((r) => ({ ...r, from: e.target.value }))}
+              onChange={(v) => setRange((r) => ({ ...r, from: v }))}
             />
-            <Input
-              size="lg"
-              type="date"
+            <DateField
               aria-label={copy.to}
               value={range.to}
-              onChange={(e) => setRange((r) => ({ ...r, to: e.target.value }))}
+              onChange={(v) => setRange((r) => ({ ...r, to: v }))}
             />
           </div>
           {anySelected ? (

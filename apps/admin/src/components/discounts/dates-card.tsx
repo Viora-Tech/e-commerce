@@ -8,7 +8,7 @@ import {
   FieldGroup,
   FieldLabel,
 } from '@commerce/ui/shadcn/field'
-import { Input } from '@commerce/ui/shadcn/input'
+import DateField from '@/components/fields/date-field'
 import DataCard from '@/components/layout/data-card'
 import { discountFormContent } from '@/data/discounts'
 import { useCopy } from '@/hooks/use-copy'
@@ -30,24 +30,22 @@ export default function DatesCard({ form, error, onChange }: DatesCardProps) {
         <div className="grid gap-4 md:grid-cols-2">
           <Field>
             <FieldLabel htmlFor="discount-start">{copy.start}</FieldLabel>
-            <Input
-              size="lg"
+            <DateField
+              mode="datetime"
               id="discount-start"
-              type="datetime-local"
               value={form.startsAt}
-              onChange={(e) => onChange({ startsAt: e.target.value })}
+              onChange={(v) => onChange({ startsAt: v })}
             />
           </Field>
           {form.hasEnd ? (
             <Field data-invalid={error ? true : undefined}>
               <FieldLabel htmlFor="discount-end">{copy.end}</FieldLabel>
-              <Input
-                size="lg"
+              <DateField
+                mode="datetime"
                 id="discount-end"
-                type="datetime-local"
                 value={form.endsAt}
                 min={form.startsAt || undefined}
-                onChange={(e) => onChange({ endsAt: e.target.value })}
+                onChange={(v) => onChange({ endsAt: v })}
                 aria-invalid={error ? true : undefined}
               />
               {error ? <FieldError>{error}</FieldError> : null}

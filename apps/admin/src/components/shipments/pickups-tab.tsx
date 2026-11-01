@@ -16,6 +16,7 @@ import {
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import CopyButton from '@/components/fields/copy-button'
+import DateField from '@/components/fields/date-field'
 import DataCard from '@/components/layout/data-card'
 import TableEmptyRow from '@/components/table/table-empty-row'
 import { shipmentsContent } from '@/data/shipments'
@@ -130,13 +131,7 @@ export default function PickupsTab() {
           <div className="grid gap-4 sm:grid-cols-3">
             <Field>
               <FieldLabel htmlFor="pickup-date">{copy.date}</FieldLabel>
-              <Input
-                id="pickup-date"
-                size="lg"
-                type="date"
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-              />
+              <DateField id="pickup-date" value={date} onChange={(v) => setDate(v)} />
             </Field>
             <Field>
               <FieldLabel htmlFor="pickup-from">{copy.timeFrom}</FieldLabel>
