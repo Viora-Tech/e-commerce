@@ -39,6 +39,7 @@ import ExperimentBeacon from '@/components/analytics/experiment-beacon'
 import CartDrawer from '@/components/cart/cart-drawer'
 import StoreChrome from '@/components/checkout/store-chrome'
 import InboxLauncher from '@/components/inbox/inbox-launcher'
+import MarketLinks from '@/components/markets/market-links'
 import MarketSuggestion from '@/components/markets/market-suggestion'
 import ConsentManager from '@/components/privacy/consent-manager'
 import PredictiveSearch from '@/components/search/predictive-search'
@@ -205,6 +206,8 @@ export default async function StoreLayout({ children, params }: Props) {
   const pathname = (await headers()).get('x-pathname') ?? '/'
   // The page's language: its market's (`lib/markets.ts`).
   const lang = (await headers()).get(MARKET_HEADERS.locale) ?? 'en'
+  // A subfolder market (`/ae`): its links and addresses stay under the folder.
+  const marketPrefix = (await headers()).get(MARKET_HEADERS.prefix) ?? ''
   const themeId = preview?.themeId ?? (await liveThemeId(storeId))
   // A market in another currency (`/ae`): every price block shows its prices (Settings → Markets).
   const pricing = await requestMarketPricing(storeId)
@@ -416,6 +419,7 @@ export default async function StoreLayout({ children, params }: Props) {
           <ThemePreviewBridge adminOrigin={adminOrigin} />
           {preview ? null : <ConsentManager {...consent} themeBanner={themedConsent} />}
           {suggestMarket ? <MarketSuggestion /> : null}
+          {marketPrefix ? <MarketLinks prefix={marketPrefix} /> : null}
           {inboxChat ? (
             <InboxLauncher widget={inboxChat} storeName={current.name} logoUrl={chatLogo} />
           ) : null}
@@ -458,6 +462,7 @@ export default async function StoreLayout({ children, params }: Props) {
           <ThemePreviewBridge adminOrigin={adminOrigin} />
           {preview || themedConsent ? null : <ConsentManager {...consent} />}
           {suggestMarket ? <MarketSuggestion /> : null}
+          {marketPrefix ? <MarketLinks prefix={marketPrefix} /> : null}
           <StoreChrome>{footer}</StoreChrome>
           {inboxChat ? (
             <InboxLauncher widget={inboxChat} storeName={current.name} logoUrl={chatLogo} />

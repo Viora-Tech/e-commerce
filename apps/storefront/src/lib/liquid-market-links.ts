@@ -10,7 +10,9 @@ const SHARED = ['/theme-actions', '/cdn', '/_next', '/api', '/assets', '/files',
 
 const LINK = /\b(href|action)=(["'])(\/(?!\/)[^"']*)\2/g
 
-function prefixed(path: string, prefix: string): string {
+/** `path` under `prefix`, unless it is shared by every market or already there. */
+export function marketHref(path: string, prefix: string): string {
+  if (!prefix || prefix === '/' || !path.startsWith('/') || path.startsWith('//')) return path
   if (path === prefix || path.startsWith(`${prefix}/`) || path.startsWith(`${prefix}?`)) return path
   if (SHARED.some((p) => path === p || path.startsWith(`${p}/`))) return path
   return path === '/' ? prefix : `${prefix}${path}`
@@ -20,6 +22,6 @@ function prefixed(path: string, prefix: string): string {
 export function withMarketPrefix(html: string, prefix: string): string {
   if (!prefix || prefix === '/') return html
   return html.replace(LINK, (_, attr: string, quote: string, path: string) => {
-    return `${attr}=${quote}${prefixed(path, prefix)}${quote}`
+    return `${attr}=${quote}${marketHref(path, prefix)}${quote}`
   })
 }
