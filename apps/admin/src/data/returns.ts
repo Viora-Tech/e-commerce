@@ -304,7 +304,7 @@ export const returnCustomReasonsContent = {
   title: 'Your own reasons',
   description: 'Add reasons in your words. Customers see them after the ones above.',
   label: 'New reason',
-  placeholder: 'For example: It did not fit my bike',
+  placeholder: 'For example: It arrived too late',
   add: 'Add',
   remove: (reason: string) => `Remove "${reason}"`,
   duplicate: 'You already have that reason.',

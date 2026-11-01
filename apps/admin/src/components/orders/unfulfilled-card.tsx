@@ -27,7 +27,8 @@ type UnfulfilledCardProps = {
   order: OrderDetail
   /** The card is open for fulfilling (its own button, or the next-step bar's). */
   fulfilling: boolean
-  onFulfil: () => void
+  /** Undefined while fulfilment is on hold (#1011): no Fulfil items until it is released. */
+  onFulfil?: (() => void) | undefined
   onCancel: () => void
   onDone: () => void
 }
@@ -74,7 +75,9 @@ export default function UnfulfilledCard({
     setUnticked(({ [lineId]: _, ...rest }) => (on ? rest : { ...rest, [lineId]: true }))
 
   const handleTickAll = (on: boolean) =>
-    setUnticked(on ? {} : Object.fromEntries(unfulfilledLines(order).map((r) => [r.line.id, true as const])))
+    setUnticked(
+      on ? {} : Object.fromEntries(unfulfilledLines(order).map((r) => [r.line.id, true as const])),
+    )
 
   const handleCancel = () => {
     reset()
@@ -124,10 +127,12 @@ export default function UnfulfilledCard({
         title={copy.unfulfilled.heading}
         icon={<StatusChip tone="attention">{copy.unfulfilled.itemsCount(count)}</StatusChip>}
         action={
-          <Button variant="ghost" size="sm" onClick={onFulfil}>
-            <PackageCheck aria-hidden="true" />
-            {copy.actions.fulfilItems}
-          </Button>
+          onFulfil ? (
+            <Button variant="ghost" size="sm" onClick={onFulfil}>
+              <PackageCheck aria-hidden="true" />
+              {copy.actions.fulfilItems}
+            </Button>
+          ) : undefined
         }
       >
         <OrderLinesTable

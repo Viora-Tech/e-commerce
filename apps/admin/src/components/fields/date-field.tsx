@@ -1,5 +1,6 @@
 'use client'
 
+import { zoneOffsetMs } from '@commerce/dates'
 import { ChevronLeftIcon, ChevronRight, Clock } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
@@ -38,7 +39,14 @@ const TRIGGER =
 const DAY = { day: 'numeric', month: 'short', year: 'numeric' } as const
 const MONTH = { month: 'long', year: 'numeric' } as const
 const MONTH_SHORT = { month: 'short' } as const
-const TIME = { hour: 'numeric', minute: '2-digit', timeZone: 'UTC' } as const
+const TIME = { hour: 'numeric', minute: '2-digit' } as const
+
+/**
+ * A wall time ("13:00") as the instant that reads that time in the store's zone, since the
+ * formatter always prints in that zone (a UTC instant would read 6:30 pm in India).
+ */
+const wallTime = (time: string) =>
+  new Date(Date.parse(`1970-01-01T${time}:00Z`) - zoneOffsetMs(new Date(0)))
 
 const pad = (n: number) => String(n).padStart(2, '0')
 
@@ -128,7 +136,7 @@ export default function DateField({
   // Render logic
   const day = value.slice(0, 10)
   const time = mode === 'datetime' ? timeOf(value) : ''
-  const timeLabel = time ? fmt.pattern(new Date(`1970-01-01T${time}:00Z`), TIME) : ''
+  const timeLabel = time ? fmt.pattern(wallTime(time), TIME) : ''
   const label = !value
     ? (placeholder ?? (mode === 'month' ? copy.pickMonth : copy.pick))
     : mode === 'month'

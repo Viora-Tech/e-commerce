@@ -333,7 +333,7 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
             <UnfulfilledCard
               order={order}
               fulfilling={fulfilling}
-              onFulfil={() => setFulfilling(true)}
+              onFulfil={order.hold ? undefined : () => setFulfilling(true)}
               onCancel={() => setFulfilling(false)}
               onDone={closeAndRefresh(() => setFulfilling(false))}
             />

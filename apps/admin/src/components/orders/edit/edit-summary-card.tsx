@@ -88,7 +88,10 @@ export default function EditSummaryCard({
           {
             label: copy.total,
             strong: true,
-            value: `${fmt.money(totals.totalPaise)} (${copy.totalWas(fmt.money(order.totalPaise))})`,
+            value:
+              totals.totalPaise === order.totalPaise
+                ? fmt.money(totals.totalPaise)
+                : `${fmt.money(totals.totalPaise)} (${copy.totalWas(fmt.money(order.totalPaise))})`,
           },
           { label: copy.paid, value: fmt.money(paid), hidden: !settles },
           {

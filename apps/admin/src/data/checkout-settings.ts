@@ -1,7 +1,7 @@
 /** Settings → Checkout. */
 export const checkoutSettingsContent = {
   title: 'Checkout',
-  subtitle: 'What shoppers fill in when they order, and when cash on delivery is offered.',
+  subtitle: 'What shoppers fill in when they order, and how your checkout looks.',
   contact: {
     heading: 'Contact details',
     phone: 'Mobile number is always asked for',

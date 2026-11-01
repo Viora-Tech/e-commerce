@@ -32,7 +32,7 @@ export const orderHoldRoutes = {
       const ctx = { storeId: context.scope.storeId, tx: context.tx }
       const held = await holdOrderByStaff(ctx, {
         ...input,
-        author: context.session.user.email,
+        author: context.session.user.name?.trim() || context.session.user.email,
       }).catch(refused)
       return { held: held.length }
     }),
@@ -44,7 +44,7 @@ export const orderHoldRoutes = {
       const ctx = { storeId: context.scope.storeId, tx: context.tx }
       const released = await releaseOrderByStaff(ctx, {
         orderId: input.orderId,
-        author: context.session.user.email,
+        author: context.session.user.name?.trim() || context.session.user.email,
       })
       return { released: released.length }
     }),
