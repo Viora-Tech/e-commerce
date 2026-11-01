@@ -211,7 +211,7 @@ export const purchaseOrdersContent = {
     draftCaption: 'Not sent to a supplier yet',
     openCaption: 'Ordered, waiting on stock',
     incomingCaption: 'Still to arrive',
-    receivedCaption: 'Fully received',
+    receivedCaption: 'Arrived, or closed short',
   },
   columns: {
     number: 'Order',

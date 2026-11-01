@@ -181,7 +181,7 @@ export default [
       draftCaption: 'अभी सप्लायर को नहीं भेजा',
       openCaption: 'ऑर्डर हो गया, स्टॉक का इंतज़ार',
       incomingCaption: 'अभी पहुँचना बाकी',
-      receivedCaption: 'पूरी तरह मिल गए',
+      receivedCaption: 'आ गए, या कम आए और बंद किए',
     },
     columns: {
       number: 'ऑर्डर',

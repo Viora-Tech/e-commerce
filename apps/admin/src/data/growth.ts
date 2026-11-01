@@ -105,8 +105,8 @@ export const growthOverviewContent = {
       help: 'Tracked orders divided by sessions.',
     },
     total_sales: {
-      label: 'Total sales',
-      help: 'Every order placed in the range, from any source.',
+      label: 'Revenue',
+      help: 'Order totals of every order placed in the range, from any source. Same as Revenue in Analytics.',
     },
     aov: {
       label: 'Average order value',
