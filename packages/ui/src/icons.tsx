@@ -349,6 +349,7 @@ export const PackageCheck = defineIcon(Huge.PackageDeliveredIcon, 'PackageCheck'
 export const PackageOpen = defineIcon(Huge.PackageOpenIcon, 'PackageOpen')
 export const PackageX = defineIcon(Huge.PackageRemoveIcon, 'PackageX')
 export const Clock = defineIcon(PhClock, 'Clock')
+export const CalendarIcon = defineIcon(Huge.Calendar03Icon, 'CalendarIcon')
 export const DeliveryDelay = defineIcon(Huge.DeliveryDelay01Icon, 'DeliveryDelay') // kit status: Pending
 export const CancelCircle = defineIcon(Huge.CancelCircleIcon, 'CancelCircle') // kit status: Cancelled
 export const QrCodeIcon = defineIcon(QrCode, 'QrCodeIcon')

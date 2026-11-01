@@ -1,7 +1,7 @@
 'use client'
 
 import { zoneOffsetMs } from '@commerce/dates'
-import { ChevronLeftIcon, ChevronRight, Clock } from '@commerce/ui/icons'
+import { CalendarIcon, ChevronLeftIcon, ChevronRight, Clock } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Calendar } from '@commerce/ui/shadcn/calendar'
@@ -161,7 +161,11 @@ export default function DateField({
         aria-invalid={invalid || ariaInvalid || undefined}
         className={cn(TRIGGER, className)}
       >
-        <Clock className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+        {mode === 'datetime' ? (
+          <Clock className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+        ) : (
+          <CalendarIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+        )}
         <span className={cn('min-w-0 flex-1 truncate', !value && 'text-muted-foreground')}>
           {label}
         </span>

@@ -10,8 +10,11 @@ export const cartContent = {
   continueShopping: 'Continue shopping',
   paymentMethods: 'Ways to pay',
   payments: ['UPI', 'Cards', 'Cash on delivery', 'EMI'],
-  /** A market abroad pays online only: no cash on delivery, UPI or EMI there. */
-  paymentsAbroad: ['Cards'],
+  /**
+   * A market abroad pays online: cards, and UPI when the parcel goes to an Indian address (the
+   * checkout follows the address, owner 1 Nov). No cash on delivery or EMI there.
+   */
+  paymentsAbroad: ['Cards', 'UPI for Indian addresses'],
   summary: 'Summary',
   subtotal: 'Subtotal',
   shipping: 'Shipping',
