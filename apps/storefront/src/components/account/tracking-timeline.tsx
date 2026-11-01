@@ -3,15 +3,31 @@ import { accountContent, formatAccountDate, formatAccountDateTime } from '@/data
 
 type TrackingTimelineProps = {
   tracking: ShopperOrderDetail['tracking']
+  /** Says delivered or on its way, not "as soon as it ships", when there is no courier tracking. */
+  fulfillmentStatus?: ShopperOrderDetail['fulfillmentStatus']
   timeZone: string
 }
 
 const copy = accountContent.order
 
+const DELIVERED = new Set(['delivered', 'partially_delivered', 'returned'])
+
 /** The courier's scans, newest first, as a vertical timeline. */
-export default function TrackingTimeline({ tracking, timeZone }: TrackingTimelineProps) {
+export default function TrackingTimeline({
+  tracking,
+  timeZone,
+  fulfillmentStatus,
+}: TrackingTimelineProps) {
   // Early returns
-  if (!tracking) return <p className="text-body text-muted">{copy.noTracking}</p>
+  if (!tracking) {
+    const text =
+      fulfillmentStatus && DELIVERED.has(fulfillmentStatus)
+        ? copy.noTrackingDelivered
+        : fulfillmentStatus && fulfillmentStatus !== 'unfulfilled'
+          ? copy.noTrackingShipped
+          : copy.noTracking
+    return <p className="text-body text-muted">{text}</p>
+  }
 
   // Render logic
   return (

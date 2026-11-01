@@ -112,7 +112,11 @@ export default function OrderDetail({
             <h3 id="order-tracking" className="h4">
               {copy.tracking}
             </h3>
-            <TrackingTimeline tracking={o.tracking} timeZone={timeZone} />
+            <TrackingTimeline
+              tracking={o.tracking}
+              timeZone={timeZone}
+              fulfillmentStatus={o.fulfillmentStatus}
+            />
           </section>
 
           <OrderParcels parcels={shopperParcels(o.parcels)} />
