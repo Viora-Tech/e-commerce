@@ -237,6 +237,7 @@ async function createLiquidContext(
       path: scope.path,
       host,
       origin: scope.origin,
+      marketPrefix: scope.market.market?.prefix ?? '',
       designMode: false,
       postedForm: scope.postedForm,
       listing: listingQuery(scope.listing),

@@ -36,6 +36,12 @@ import {
 } from './resource-drops'
 import { liquidSettings } from './settings-values'
 
+/** A store path under a market subfolder (`/ae`); unchanged without one. */
+function inMarket(prefix: string | undefined, path: string): string {
+  if (!prefix) return path
+  return path === '/' ? prefix : `${prefix}${path}`
+}
+
 /** What a page render knows about the request. */
 export type LiquidRequest = {
   /** `index`, `product`, `collection`... (Shopify's `template.name`). */
@@ -43,6 +49,11 @@ export type LiquidRequest = {
   path: string
   host: string
   origin: string
+  /**
+   * The market's subfolder (`/ae`), or empty. `path` stays the store path the theme matches
+   * links against; only `canonical_url` carries the prefix, so each market's page is its own.
+   */
+  marketPrefix?: string | undefined
   /** True in the editor canvas: themes show placeholders and skip some scripts. */
   designMode: boolean
   /** `?form_posted=<type>` after one of our form handlers redirected back. */
@@ -314,7 +325,7 @@ export async function createPageContext(options: LiquidRenderOptions): Promise<L
     content_for_index: '',
     // Shopify prints "Powered by Shopify" here; our own storefront shows no platform credit.
     powered_by_link: '',
-    canonical_url: `${request.origin}${request.path}`,
+    canonical_url: `${request.origin}${inMarket(request.marketPrefix, request.path)}`,
     page_title: shop.name,
     page_description: shop.description,
     handle: '',

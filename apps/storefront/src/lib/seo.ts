@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { headers } from 'next/headers'
 import { SEO_DESCRIPTION_MAX, seoContent } from '@/data/seo'
+import { MARKET_HEADERS, marketPath } from './markets'
 import { originFromHost } from './store-resolver'
 
 /** The shopper-facing origin of this request, for canonical and JSON-LD URLs. */
@@ -247,6 +248,15 @@ export function collectionGraph(
 /** Every indexable URL is a path on this host; the store never canonicalises elsewhere. */
 export function canonicalPath(path: string, page = 1): string {
   return page > 1 ? `${path}?page=${page}` : path
+}
+
+/**
+ * The canonical path of this request's page in its market: `/ae/products/x` on the UAE
+ * subfolder, so each market's copy is indexed as its own page and not as a copy of India's.
+ */
+export async function marketCanonical(path: string, page = 1): Promise<string> {
+  const prefix = (await headers()).get(MARKET_HEADERS.prefix) ?? ''
+  return canonicalPath(marketPath(prefix, path), page)
 }
 
 /** Robots directive for pages that must never be indexed (cart, checkout, account). */

@@ -6,6 +6,7 @@ import {
   listingSearch,
   PASSWORD_PREFIX,
   primaryRedirect,
+  redirectHostFor,
   routeForAccounts,
   routeForCheckoutHost,
   routeForStore,
@@ -83,6 +84,20 @@ describe('primaryRedirect', () => {
     expect(primaryRedirect({ ...base, pathname: '/_next/static/x.js' })).toBeNull()
     expect(primaryRedirect({ ...base, pathname: '/webhooks/razorpay' })).toBeNull()
     expect(primaryRedirect({ ...base, pathname: `${INTERNAL_PREFIX}/x` })).toBeNull()
+  })
+})
+
+describe('redirectHostFor', () => {
+  const markets = [null, 'waimers.ae']
+  it("sends a market domain's www twin to that domain", () => {
+    expect(redirectHostFor('www.waimers.ae', 'waimers.in', markets)).toBe('waimers.ae')
+  })
+  it('sends the apex to a market on www', () => {
+    expect(redirectHostFor('shop.de', 'waimers.in', ['www.shop.de'])).toBe('www.shop.de')
+  })
+  it('sends every other redirecting domain to the primary', () => {
+    expect(redirectHostFor('www.waimers.in', 'waimers.in', markets)).toBe('waimers.in')
+    expect(redirectHostFor('old-shop.com', 'waimers.in', markets)).toBe('waimers.in')
   })
 })
 

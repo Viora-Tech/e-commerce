@@ -41,7 +41,7 @@ import { MARKET_HEADERS } from '@/lib/markets'
 import { storeOffersEmi, storeUpiDiscount } from '@/lib/payments'
 import { policyPanels } from '@/lib/related'
 import { productReviews } from '@/lib/reviews'
-import { jsonLd, metaDescription, productGraph, requestOrigin } from '@/lib/seo'
+import { jsonLd, marketCanonical, metaDescription, productGraph, requestOrigin } from '@/lib/seo'
 import { estimateDeliveryAction } from '@/lib/shipping-actions'
 import { storeRead } from '@/lib/store-cache'
 import { renderTemplate } from '@/lib/template-render'
@@ -113,7 +113,7 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const found = await loadProduct(storeId, handle)
   if (!found) return {}
   const { product, title, description } = found
-  const url = `/products/${product.handle}`
+  const url = await marketCanonical(`/products/${product.handle}`)
   const images = product.images
     .filter((i) => !i.contentType?.startsWith('video/'))
     .slice(0, 4)
