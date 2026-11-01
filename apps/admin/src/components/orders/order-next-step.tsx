@@ -184,7 +184,9 @@ export default function OrderNextStep({
       : copy.done.titleNoDate
     body = copy.done.body(
       name || copy.transit.fallbackName,
-      order.paymentMethod === 'cod' ? fmt.money(order.totalPaise) : null,
+      order.paymentMethod === 'cod' && order.paymentStatus === 'paid'
+        ? fmt.money(order.totalPaise)
+        : null,
     )
     icon = <CircleCheck aria-hidden />
     actions = (
