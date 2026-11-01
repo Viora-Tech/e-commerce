@@ -193,10 +193,10 @@ export const productFormContent = {
     taxIncludedNo: 'No',
     taxIncludedHelp:
       'Yes means the price already carries GST and the split is extracted on the order.',
-    expiration: 'Expiration',
+    expiration: 'Sale dates',
     expirationStart: 'Start',
     expirationEnd: 'End',
-    expirationHelp: 'When the compare at price applies. Leave empty to run it always.',
+    expirationHelp: 'When the MRP shows struck out next to your price. Leave empty to show it always.',
   },
   inventory: {
     heading: 'Inventory',

@@ -23,6 +23,7 @@ import FormDialog from '@/components/layout/form-dialog'
 import { monthlyExpensesContent } from '@/data/monthly-expenses'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { focusField } from '@/lib/api-errors'
 
 type ExpenseDialogProps = {
   /** The version being changed; null adds a new expense. */
@@ -51,10 +52,12 @@ export default function ExpenseDialog({ expense, month, onClose, onSaved }: Expe
     const amountPaise = parseRupees(amount)
     if (!name.trim()) {
       toast.error(copy.invalidName)
+      focusField('expense-name')
       return
     }
     if (amountPaise === null) {
       toast.error(copy.invalidAmount)
+      focusField('expense-amount')
       return
     }
     const last = repeats ? endsOn || null : startsOn

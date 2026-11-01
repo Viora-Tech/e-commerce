@@ -6,6 +6,7 @@ import FormDialog from '@/components/layout/form-dialog'
 import { locationsContent } from '@/data/inventory'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { focusField } from '@/lib/api-errors'
 import LocationAddressFields, {
   EMPTY_LOCATION_DRAFT,
   type LocationDraft,
@@ -35,6 +36,7 @@ export default function AddLocationDialog({
   const handleSave = async () => {
     if (!pincodeValid(draft)) {
       toast.error(copy.invalidPincode)
+      focusField('location-pincode')
       return
     }
     setBusy(true)

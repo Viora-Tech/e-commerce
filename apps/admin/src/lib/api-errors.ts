@@ -179,13 +179,25 @@ export function focusFirstIssue(err: unknown): void {
   for (const selector of selectors) {
     const el = document.querySelector<HTMLElement>(selector)
     if (!el || el.closest('[hidden]')) continue
-    el.scrollIntoView({ block: 'center', behavior: 'smooth' })
-    el.focus({ preventScroll: true })
-    // Red until they change it; a field that is already marked invalid keeps its own state.
-    if (!el.hasAttribute('aria-invalid')) {
-      el.setAttribute('aria-invalid', 'true')
-      el.addEventListener('input', () => el.removeAttribute('aria-invalid'), { once: true })
-    }
+    markField(el)
     return
   }
+}
+
+/** Scrolls to the field, puts the cursor in it and marks it red until it changes. */
+function markField(el: HTMLElement): void {
+  el.scrollIntoView({ block: 'center', behavior: 'smooth' })
+  el.focus({ preventScroll: true })
+  // A field that is already marked invalid keeps its own state.
+  if (!el.hasAttribute('aria-invalid')) {
+    el.setAttribute('aria-invalid', 'true')
+    el.addEventListener('input', () => el.removeAttribute('aria-invalid'), { once: true })
+  }
+}
+
+/** The same for a form's own check before it calls the server (#101): pass the input's id. */
+export function focusField(id: string): void {
+  if (typeof document === 'undefined') return
+  const el = document.getElementById(id)
+  if (el) markField(el)
 }

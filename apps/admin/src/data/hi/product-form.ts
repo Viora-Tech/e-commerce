@@ -168,10 +168,10 @@ export default [
       taxIncludedYes: 'हाँ',
       taxIncludedNo: 'नहीं',
       taxIncludedHelp: 'हाँ का मतलब है कि कीमत में GST पहले से जुड़ा है, और ऑर्डर पर उसे अलग से निकाला जाएगा।',
-      expiration: 'कब तक',
+      expiration: 'सेल की तारीखें',
       expirationStart: 'शुरू',
       expirationEnd: 'खत्म',
-      expirationHelp: 'MRP कब लागू हो। हमेशा के लिए खाली छोड़ दें।',
+      expirationHelp: 'MRP आपकी कीमत के साथ कटा हुआ कब दिखे। हमेशा दिखाने के लिए खाली छोड़ दें।',
     },
     inventory: {
       heading: 'इन्वेंटरी',

@@ -12,6 +12,7 @@ import FormDialog from '@/components/layout/form-dialog'
 import { locationsContent } from '@/data/inventory'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { focusField } from '@/lib/api-errors'
 
 type EditLocationDialogProps = {
   location: LocationBillingView
@@ -52,6 +53,7 @@ export default function EditLocationDialog({
   const handleSave = async () => {
     if (!pincodeValid(draft)) {
       toast.error(copy.invalidPincode)
+      focusField('location-pincode')
       return
     }
     setBusy(true)

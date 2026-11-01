@@ -28,6 +28,7 @@ import SaveBar from '@/components/layout/save-bar'
 import { supplierFormContent } from '@/data/purchasing'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { focusField } from '@/lib/api-errors'
 import { routes } from '@/lib/routes'
 import SupplierOrdersCard from './supplier-orders-card'
 
@@ -81,6 +82,7 @@ export default function SupplierForm({ supplier }: SupplierFormProps) {
   const handleSave = async () => {
     if (d.name.trim() === '') {
       toast.error(copy.needName)
+      focusField('supplier-name')
       return
     }
     if (d.gstin.trim() !== '' && !validateGstin(d.gstin).ok) {
