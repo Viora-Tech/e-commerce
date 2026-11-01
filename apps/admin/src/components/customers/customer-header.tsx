@@ -16,6 +16,7 @@ import { customerDetailContent, customersContent, VIP_SPEND_PAISE } from '@/data
 import { datesContent } from '@/data/dates'
 import { useCopy, useLocale } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { customerStart } from '@/lib/customer-start'
 import { formatDay } from '@/lib/format-date'
 import { routes } from '@/lib/routes'
 import CustomerAvatar from './customer-avatar'
@@ -68,13 +69,7 @@ export default function CustomerHeader({
   const title = customer.name ?? customer.email ?? customersCopy.unnamed
   const orderCount = customer.totals.orderCount
   const vip = customer.totals.spentPaise >= VIP_SPEND_PAISE
-  // A customer is one from their first order on, even when their record is newer (an import
-  // or a later sign-up made it after they had ordered, audit #43).
-  const first = customer.totals.firstOrderAt
-  const start =
-    first && new Date(first).getTime() < new Date(customer.createdAt).getTime()
-      ? first
-      : customer.createdAt
+  const start = customerStart(customer)
   const created = formatDay(start, new Date(), locale)
   const since =
     created === dates.today

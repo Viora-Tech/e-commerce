@@ -3,6 +3,7 @@
 import StatStrip from '@/components/layout/stat-strip'
 import { customerDetailContent } from '@/data/customers'
 import { useCopy, useLocale } from '@/hooks/use-copy'
+import { customerStart } from '@/lib/customer-start'
 import { formatPaiseWhole } from '@/lib/money'
 import type { CustomerDetail } from './customer-detail-types'
 import { day } from './customer-detail-types'
@@ -39,7 +40,7 @@ export default function CustomerSummaryStrip({ customer }: CustomerSummaryStripP
           value: String(t.orderCount),
           note: t.firstOrderAt ? copy.firstOrder(day(t.firstOrderAt, locale)) : copy.noOrders,
         },
-        { id: 'since', label: copy.since, value: day(customer.createdAt, locale) },
+        { id: 'since', label: copy.since, value: day(customerStart(customer), locale) },
         {
           id: 'last',
           label: copy.lastOrder,
