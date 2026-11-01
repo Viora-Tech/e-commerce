@@ -2,16 +2,13 @@
 
 import { CheckIcon } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@commerce/ui/shadcn/dialog'
+import { Dialog, DialogTitle } from '@commerce/ui/shadcn/dialog'
 import { Field, FieldDescription, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import { useState } from 'react'
+import DialogContent from '@/components/layout/dialog-content'
+import DialogFooter from '@/components/layout/dialog-footer'
+import DialogHeader from '@/components/layout/dialog-header'
 import { productsListContent } from '@/data/products'
 import { useCopy } from '@/hooks/use-copy'
 
@@ -51,7 +48,7 @@ export default function BulkTagDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-sm">
+      <DialogContent>
         <DialogHeader>
           <DialogTitle>{adding ? copy.addTag : copy.removeTag}</DialogTitle>
         </DialogHeader>

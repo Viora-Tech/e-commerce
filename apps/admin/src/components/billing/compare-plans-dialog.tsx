@@ -11,14 +11,10 @@ import {
 import { CheckIcon, MinusIcon } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@commerce/ui/shadcn/dialog'
+import { Dialog, DialogDescription, DialogTitle } from '@commerce/ui/shadcn/dialog'
 import { useState } from 'react'
+import DialogContent from '@/components/layout/dialog-content'
+import DialogHeader from '@/components/layout/dialog-header'
 import PillTabs from '@/components/layout/pill-tabs'
 import { billingContent } from '@/data/billing'
 import { useCopy, useFormat } from '@/hooks/use-copy'
@@ -97,7 +93,7 @@ export default function ComparePlansDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       {/* The shell's own sm:max-w-sm beats a plain max-w-*: four plans need the sm: width. */}
-      <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto sm:max-w-6xl">
+      <DialogContent size="wide">
         <DialogHeader>
           <DialogTitle>{d.title}</DialogTitle>
           <DialogDescription>{d.subtitle}</DialogDescription>

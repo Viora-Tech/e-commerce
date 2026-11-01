@@ -1,15 +1,11 @@
 'use client'
 
 import { Button } from '@commerce/ui/shadcn/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@commerce/ui/shadcn/dialog'
+import { Dialog, DialogDescription, DialogTitle } from '@commerce/ui/shadcn/dialog'
 import { type FormEvent, type ReactNode, useState } from 'react'
+import DialogContent from '@/components/layout/dialog-content'
+import DialogFooter from '@/components/layout/dialog-footer'
+import DialogHeader from '@/components/layout/dialog-header'
 import { dialogContent } from '@/data/common'
 import { useCopy } from '@/hooks/use-copy'
 
@@ -29,18 +25,13 @@ type FormDialogProps = {
   onSubmit: () => void | Promise<void>
   /** The fields, rendered between the header and the footer. */
   children: ReactNode
-  size?: 'default' | 'md' | 'lg'
+  /** Every form is the one standard width now; `wide` only for a dialog that needs room. */
+  size?: 'default' | 'md' | 'lg' | 'wide'
   /** For dialogs rendered inside a clickable row. */
   stopPropagation?: boolean
   /** A quieter action at the far left of the footer ("Remove"). */
   secondaryAction?: ReactNode
 }
-
-const SIZE_CLASS = {
-  default: undefined,
-  md: 'sm:max-w-md',
-  lg: 'sm:max-w-lg',
-} as const
 
 /** The one form popup: a title, the fields, and a cancel + submit footer. */
 export default function FormDialog({
@@ -87,10 +78,10 @@ export default function FormDialog({
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent
-        className={SIZE_CLASS[size]}
+        size={size === 'wide' ? 'wide' : 'standard'}
         onClick={stopPropagation ? (event) => event.stopPropagation() : undefined}
       >
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <form onSubmit={handleSubmit} className="contents">
           <DialogHeader>
             <DialogTitle>{title}</DialogTitle>
             {description ? <DialogDescription>{description}</DialogDescription> : null}

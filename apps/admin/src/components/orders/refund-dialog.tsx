@@ -3,14 +3,7 @@
 import { parseRupees } from '@commerce/money'
 import { RotateCcw } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@commerce/ui/shadcn/dialog'
+import { Dialog, DialogDescription, DialogTitle } from '@commerce/ui/shadcn/dialog'
 import {
   Field,
   FieldContent,
@@ -25,6 +18,9 @@ import { Textarea } from '@commerce/ui/shadcn/textarea'
 import { type FormEvent, useState } from 'react'
 import { toast } from 'sonner'
 import OptionSelect from '@/components/landed-cost/option-select'
+import DialogContent from '@/components/layout/dialog-content'
+import DialogFooter from '@/components/layout/dialog-footer'
+import DialogHeader from '@/components/layout/dialog-header'
 import { orderDetailContent } from '@/data/order-detail'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'

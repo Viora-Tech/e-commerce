@@ -2,15 +2,11 @@
 
 import { Save } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@commerce/ui/shadcn/dialog'
+import { Dialog, DialogDescription, DialogTitle } from '@commerce/ui/shadcn/dialog'
 import { type KeyboardEvent, type PointerEvent, useEffect, useRef, useState } from 'react'
+import DialogContent from '@/components/layout/dialog-content'
+import DialogFooter from '@/components/layout/dialog-footer'
+import DialogHeader from '@/components/layout/dialog-header'
 import { accountContent } from '@/data/account'
 import { useCopy } from '@/hooks/use-copy'
 
@@ -155,7 +151,7 @@ export default function AvatarCropDialog({ file, busy, onCancel, onCrop }: Avata
 
   return (
     <Dialog open={file !== null} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent>
         <DialogHeader>
           <DialogTitle>{copy.title}</DialogTitle>
           <DialogDescription>{copy.body}</DialogDescription>

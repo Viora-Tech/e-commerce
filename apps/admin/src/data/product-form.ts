@@ -196,7 +196,8 @@ export const productFormContent = {
     expiration: 'Sale dates',
     expirationStart: 'Start',
     expirationEnd: 'End',
-    expirationHelp: 'When the MRP shows struck out next to your price. Leave empty to show it always.',
+    expirationHelp:
+      'When the MRP shows struck out next to your price. Leave empty to show it always.',
   },
   inventory: {
     heading: 'Inventory',

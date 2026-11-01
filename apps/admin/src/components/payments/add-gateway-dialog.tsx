@@ -2,17 +2,13 @@
 
 import { PlugConnect, Search } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@commerce/ui/shadcn/dialog'
+import { Dialog, DialogDescription, DialogTitle } from '@commerce/ui/shadcn/dialog'
 import { Input } from '@commerce/ui/shadcn/input'
 import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { ToggleGroup, ToggleGroupItem } from '@commerce/ui/shadcn/toggle-group'
 import { useState } from 'react'
+import DialogContent from '@/components/layout/dialog-content'
+import DialogHeader from '@/components/layout/dialog-header'
 import StatusChip from '@/components/layout/status-chip'
 import {
   gatewayCatalogue,
@@ -72,7 +68,7 @@ export default function AddGatewayDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex max-h-[calc(100dvh-2rem)] flex-col sm:max-w-xl">
+      <DialogContent className="flex flex-col">
         <DialogHeader>
           <DialogTitle>{copy.title}</DialogTitle>
           <DialogDescription>{copy.description}</DialogDescription>

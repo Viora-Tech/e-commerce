@@ -2,13 +2,7 @@
 
 import { CheckIcon, Pencil, RotateCcw, Undo } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@commerce/ui/shadcn/dialog'
+import { Dialog, DialogTitle } from '@commerce/ui/shadcn/dialog'
 import { Field, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import {
@@ -24,6 +18,9 @@ import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import CopyButton from '@/components/fields/copy-button'
 import DataCard from '@/components/layout/data-card'
+import DialogContent from '@/components/layout/dialog-content'
+import DialogFooter from '@/components/layout/dialog-footer'
+import DialogHeader from '@/components/layout/dialog-header'
 import RelativeTime from '@/components/layout/relative-time'
 import LinkRow from '@/components/table/link-row'
 import TableEmptyRow from '@/components/table/table-empty-row'
@@ -147,7 +144,7 @@ export default function NdrTab() {
       </Table>
 
       <Dialog open={dialog !== null} onOpenChange={(open) => !open && setDialog(null)}>
-        <DialogContent className="sm:max-w-sm">
+        <DialogContent>
           <DialogHeader>
             <DialogTitle>{dialog ? copy.actions[dialog.action] : ''}</DialogTitle>
           </DialogHeader>

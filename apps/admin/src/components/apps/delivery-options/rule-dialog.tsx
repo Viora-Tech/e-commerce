@@ -10,13 +10,7 @@ import type {
 import { Save } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Checkbox } from '@commerce/ui/shadcn/checkbox'
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@commerce/ui/shadcn/dialog'
+import { Dialog, DialogTitle } from '@commerce/ui/shadcn/dialog'
 import { Field, FieldError, FieldGroup, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import { Textarea } from '@commerce/ui/shadcn/textarea'
@@ -24,6 +18,9 @@ import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import ChoiceField from '@/components/apps/gst-invoices/choice-field'
 import { itemTabs } from '@/components/discounts/pick-sources'
+import DialogContent from '@/components/layout/dialog-content'
+import DialogFooter from '@/components/layout/dialog-footer'
+import DialogHeader from '@/components/layout/dialog-header'
 import ResourcePickDialog from '@/components/pickers/resource-pick-dialog'
 import SettingsToggleRow from '@/components/settings/settings-toggle-row'
 import { deliveryOptionsContent } from '@/data/delivery-options'
@@ -172,7 +169,7 @@ export default function RuleDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-2xl">
+      <DialogContent size="wide">
         <DialogHeader>
           <DialogTitle>{rule ? d.editTitle : d.addTitle}</DialogTitle>
         </DialogHeader>

@@ -8,10 +8,12 @@ import {
   RefreshCw,
   Truck,
 } from '@commerce/ui/icons'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@commerce/ui/shadcn/dialog'
+import { Dialog, DialogTitle } from '@commerce/ui/shadcn/dialog'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
+import DialogContent from '@/components/layout/dialog-content'
+import DialogHeader from '@/components/layout/dialog-header'
 import RowMenu from '@/components/table/row-menu'
 import { ordersContent } from '@/data/orders'
 import { shipmentActionsContent, shipmentsContent } from '@/data/shipments'
@@ -136,7 +138,6 @@ export default function ShipmentRowMenu({ row, onChanged }: ShipmentRowMenuProps
       {booked ? (
         <Dialog open={showDetails} onOpenChange={setShowDetails}>
           <DialogContent
-            className="max-h-[90dvh] overflow-y-auto sm:max-w-xl"
             // Inside a clickable row: a click in the dialog must not open the row too.
             onClick={(e) => e.stopPropagation()}
           >

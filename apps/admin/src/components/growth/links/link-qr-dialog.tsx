@@ -2,17 +2,13 @@
 
 import { Download } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@commerce/ui/shadcn/dialog'
+import { Dialog, DialogDescription, DialogTitle } from '@commerce/ui/shadcn/dialog'
 import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { toDataURL, toString as toSvg } from 'qrcode'
 import { useEffect, useState } from 'react'
+import DialogContent from '@/components/layout/dialog-content'
+import DialogFooter from '@/components/layout/dialog-footer'
+import DialogHeader from '@/components/layout/dialog-header'
 import { linkQrContent } from '@/data/growth-report'
 import { useCopy } from '@/hooks/use-copy'
 
@@ -70,7 +66,7 @@ export default function LinkQrDialog({ name, slug, url, onClose }: LinkQrDialogP
   // Render logic
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-sm">
+      <DialogContent>
         <DialogHeader>
           <DialogTitle>{copy.title(name)}</DialogTitle>
           <DialogDescription>{copy.body}</DialogDescription>

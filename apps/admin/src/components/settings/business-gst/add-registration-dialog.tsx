@@ -6,21 +6,16 @@ import { gstinStateOf } from '@commerce/core/tax-settings'
 import { CheckIcon, MapPinLineIcon } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Checkbox } from '@commerce/ui/shadcn/checkbox'
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@commerce/ui/shadcn/dialog'
+import { Dialog, DialogClose, DialogDescription, DialogTitle } from '@commerce/ui/shadcn/dialog'
 import { FieldGroup, FieldLegend, FieldSet } from '@commerce/ui/shadcn/field'
 import { Label } from '@commerce/ui/shadcn/label'
 import { useRouter } from 'next/navigation'
 import { type FormEvent, useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import ChoiceField from '@/components/apps/gst-invoices/choice-field'
+import DialogContent from '@/components/layout/dialog-content'
+import DialogFooter from '@/components/layout/dialog-footer'
+import DialogHeader from '@/components/layout/dialog-header'
 import GeneralTextField from '@/components/settings/general-text-field'
 import { businessGstContent } from '@/data/business-gst'
 import { useCopy } from '@/hooks/use-copy'
@@ -144,7 +139,7 @@ export default function AddRegistrationDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex max-h-[90dvh] flex-col sm:max-w-lg">
+      <DialogContent className="flex flex-col">
         {/* Header and footer stay put; only the fields scroll, so Save is always in view (#107). */}
         <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col gap-4">
           <DialogHeader>

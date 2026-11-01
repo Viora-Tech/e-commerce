@@ -3,15 +3,11 @@
 import { formatGiftCardCode } from '@commerce/core/gift-cards'
 import { CheckIcon, Copy } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@commerce/ui/shadcn/dialog'
+import { Dialog, DialogDescription, DialogTitle } from '@commerce/ui/shadcn/dialog'
 import { toast } from 'sonner'
+import DialogContent from '@/components/layout/dialog-content'
+import DialogFooter from '@/components/layout/dialog-footer'
+import DialogHeader from '@/components/layout/dialog-header'
 import { giftCardIssueContent } from '@/data/gift-cards'
 
 export type IssuedCard = {

@@ -3,20 +3,16 @@
 import { Send } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@commerce/ui/shadcn/dialog'
+import { Dialog, DialogDescription, DialogTitle } from '@commerce/ui/shadcn/dialog'
 import { Input } from '@commerce/ui/shadcn/input'
 import { Label } from '@commerce/ui/shadcn/label'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { Textarea } from '@commerce/ui/shadcn/textarea'
 import { useEffect, useState } from 'react'
+import DialogContent from '@/components/layout/dialog-content'
+import DialogFooter from '@/components/layout/dialog-footer'
+import DialogHeader from '@/components/layout/dialog-header'
 import PillTabs from '@/components/layout/pill-tabs'
 import { sendMessageContent } from '@/data/orders'
 import { useCopy } from '@/hooks/use-copy'
@@ -166,7 +162,7 @@ export default function SendMessageDialog({
   return (
     <Dialog open={orderId !== null} onOpenChange={(open) => !open && !sending && onClose()}>
       <DialogContent
-        className="max-h-[calc(100dvh-2rem)] overflow-y-auto sm:max-w-[44rem]"
+        size="wide"
         onClick={stopPropagation ? (event) => event.stopPropagation() : undefined}
       >
         <DialogHeader>

@@ -8,13 +8,7 @@ import {
 } from '@commerce/core/marketing'
 import { Plus, Save } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@commerce/ui/shadcn/dialog'
+import { Dialog, DialogTitle } from '@commerce/ui/shadcn/dialog'
 import { Field, FieldDescription, FieldError, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import {
@@ -27,6 +21,9 @@ import {
 import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import DialogContent from '@/components/layout/dialog-content'
+import DialogFooter from '@/components/layout/dialog-footer'
+import DialogHeader from '@/components/layout/dialog-header'
 import { growthLinksContent, LINK_PLACEMENTS } from '@/data/growth'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -110,7 +107,7 @@ export default function LinkDialog({ link, origin, onClose, onSaved }: LinkDialo
 
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-xl">
+      <DialogContent>
         <DialogHeader>
           <DialogTitle>{link ? copy.editTitle : copy.newTitle}</DialogTitle>
         </DialogHeader>

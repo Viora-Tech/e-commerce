@@ -4,16 +4,12 @@ import { TAG_PREFIX } from '@commerce/core/browse'
 import type { FilterGroupConfig } from '@commerce/core/filter-config'
 import { Plus } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@commerce/ui/shadcn/dialog'
+import { Dialog, DialogDescription, DialogTitle } from '@commerce/ui/shadcn/dialog'
 import { Input } from '@commerce/ui/shadcn/input'
 import { useState } from 'react'
+import DialogContent from '@/components/layout/dialog-content'
+import DialogFooter from '@/components/layout/dialog-footer'
+import DialogHeader from '@/components/layout/dialog-header'
 import { searchFiltersContent } from '@/data/search-filters'
 import { useCopy } from '@/hooks/use-copy'
 import type { FilterChoice } from '@/lib/search-filter-options'
@@ -53,7 +49,7 @@ export default function AddFilterDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent>
         <DialogHeader>
           <DialogTitle>{copy.title}</DialogTitle>
           <DialogDescription>{copy.description}</DialogDescription>

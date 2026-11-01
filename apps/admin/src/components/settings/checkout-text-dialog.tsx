@@ -8,17 +8,13 @@ import {
   type CheckoutTextLanguage,
 } from '@commerce/core/checkout-settings'
 import { Button } from '@commerce/ui/shadcn/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@commerce/ui/shadcn/dialog'
+import { Dialog, DialogDescription, DialogTitle } from '@commerce/ui/shadcn/dialog'
 import { Input } from '@commerce/ui/shadcn/input'
 import { Tabs, TabsList, TabsTrigger } from '@commerce/ui/shadcn/tabs'
 import { useState } from 'react'
+import DialogContent from '@/components/layout/dialog-content'
+import DialogFooter from '@/components/layout/dialog-footer'
+import DialogHeader from '@/components/layout/dialog-header'
 import { checkoutRulesContent } from '@/data/checkout-rules'
 import { useCopy } from '@/hooks/use-copy'
 
@@ -73,7 +69,7 @@ export default function CheckoutTextDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-2xl">
+      <DialogContent size="wide">
         <DialogHeader>
           <DialogTitle>{copy.dialogTitle}</DialogTitle>
           <DialogDescription>{copy.description}</DialogDescription>

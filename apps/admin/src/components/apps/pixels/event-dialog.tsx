@@ -1,15 +1,12 @@
 'use client'
 
 import { Button } from '@commerce/ui/shadcn/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@commerce/ui/shadcn/dialog'
+import { Dialog, DialogTitle } from '@commerce/ui/shadcn/dialog'
 import type { LogRow } from '@/components/apps/pixels/log-columns'
 import { matchedText } from '@/components/apps/pixels/log-columns'
+import DialogContent from '@/components/layout/dialog-content'
+import DialogFooter from '@/components/layout/dialog-footer'
+import DialogHeader from '@/components/layout/dialog-header'
 import RelativeTime from '@/components/layout/relative-time'
 import { pixelsContent } from '@/data/pixels'
 import { useCopy } from '@/hooks/use-copy'

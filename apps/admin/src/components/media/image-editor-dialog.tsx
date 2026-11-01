@@ -3,17 +3,13 @@
 import { AiIcon, RefreshCw, RotateCcw, Save } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@commerce/ui/shadcn/dialog'
+import { Dialog, DialogDescription, DialogTitle } from '@commerce/ui/shadcn/dialog'
 import { useEffect, useState } from 'react'
 import Cropper, { type Area } from 'react-easy-crop'
 import { toast } from 'sonner'
+import DialogContent from '@/components/layout/dialog-content'
+import DialogFooter from '@/components/layout/dialog-footer'
+import DialogHeader from '@/components/layout/dialog-header'
 import type { MediaTileItem } from '@/components/media/media-tile'
 import { imageEditorContent } from '@/data/image-editor'
 import { useCopy } from '@/hooks/use-copy'
@@ -135,7 +131,7 @@ export default function ImageEditorDialog({
 
   return (
     <Dialog open={item !== null} onOpenChange={(open) => !open && !busy && onClose()}>
-      <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-[56rem]">
+      <DialogContent size="wide">
         <DialogHeader>
           <DialogTitle>{copy.title}</DialogTitle>
           <DialogDescription>{copy.description}</DialogDescription>

@@ -2,14 +2,10 @@
 
 import { BadgePercent, Palette, ShoppingCart } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@commerce/ui/shadcn/dialog'
+import { Dialog, DialogDescription, DialogTitle } from '@commerce/ui/shadcn/dialog'
+import DialogContent from '@/components/layout/dialog-content'
+import DialogFooter from '@/components/layout/dialog-footer'
+import DialogHeader from '@/components/layout/dialog-header'
 import StatusChip from '@/components/layout/status-chip'
 import { rolloutsContent } from '@/data/rollouts'
 import { useCopy } from '@/hooks/use-copy'
@@ -50,7 +46,7 @@ export default function AddChangesDialog({
         if (!next) onClose()
       }}
     >
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent>
         <DialogHeader>
           <DialogTitle>{copy.title}</DialogTitle>
           <DialogDescription>{copy.description}</DialogDescription>

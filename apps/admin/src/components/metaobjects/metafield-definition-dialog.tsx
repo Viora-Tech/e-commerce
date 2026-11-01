@@ -13,13 +13,7 @@ import {
 } from '@commerce/core/metaobjects'
 import { Save } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@commerce/ui/shadcn/dialog'
+import { Dialog, DialogTitle } from '@commerce/ui/shadcn/dialog'
 import {
   Field,
   FieldDescription,
@@ -31,6 +25,9 @@ import {
 import { Input } from '@commerce/ui/shadcn/input'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import DialogContent from '@/components/layout/dialog-content'
+import DialogFooter from '@/components/layout/dialog-footer'
+import DialogHeader from '@/components/layout/dialog-header'
 import { customDataContent, fieldDialogContent } from '@/data/metaobjects'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -154,7 +151,7 @@ export default function MetafieldDefinitionDialog({
 
   return (
     <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
+      <DialogContent>
         <DialogHeader>
           <DialogTitle>{definition ? copy.editTitle : copy.addTitle(owner)}</DialogTitle>
         </DialogHeader>

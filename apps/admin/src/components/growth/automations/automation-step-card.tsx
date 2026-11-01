@@ -3,7 +3,7 @@
 import { type AutomationStep, CONDITION_FIELDS } from '@commerce/core/marketing'
 import { Eye, Trash2 } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import { Dialog, DialogContent, DialogTitle } from '@commerce/ui/shadcn/dialog'
+import { Dialog, DialogTitle } from '@commerce/ui/shadcn/dialog'
 import { Field, FieldGroup, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import { useState } from 'react'
@@ -14,6 +14,7 @@ import WhatsappTemplateCard, {
   type TemplatesResult,
 } from '@/components/growth/campaigns/whatsapp-template-card'
 import DataCard from '@/components/layout/data-card'
+import DialogContent from '@/components/layout/dialog-content'
 import { automationEditorContent, durationLabel } from '@/data/marketing-automations'
 
 type AutomationStepCardProps = {
@@ -179,7 +180,7 @@ export default function AutomationStepCard({
             </Button>
           </div>
           <Dialog open={preview} onOpenChange={setPreview}>
-            <DialogContent className="sm:max-w-3xl">
+            <DialogContent size="wide">
               <DialogTitle className="sr-only">{copy.showPreview}</DialogTitle>
               <EmailPreview
                 storeName={storeName}

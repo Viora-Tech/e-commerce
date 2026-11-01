@@ -3,16 +3,12 @@
 import { CheckIcon, CircleCheck, Package, Plus, Store } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@commerce/ui/shadcn/dialog'
+import { Dialog, DialogDescription, DialogTitle } from '@commerce/ui/shadcn/dialog'
 import Link from 'next/link'
 import { useState } from 'react'
+import DialogContent from '@/components/layout/dialog-content'
+import DialogFooter from '@/components/layout/dialog-footer'
+import DialogHeader from '@/components/layout/dialog-header'
 import { createShipmentContent } from '@/data/create-shipment'
 import { useCopy } from '@/hooks/use-copy'
 import { addressLines } from '@/lib/address'
@@ -57,7 +53,7 @@ export default function ChangePickupDialog({
   // Render logic
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-[32.5rem]">
+      <DialogContent>
         <DialogHeader>
           <DialogTitle>{copy.package.pickup}</DialogTitle>
           <DialogDescription>{copy.package.pickupDialogHelp}</DialogDescription>

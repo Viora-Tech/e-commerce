@@ -2,17 +2,14 @@
 
 import { Send } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@commerce/ui/shadcn/dialog'
+import { Dialog, DialogTitle } from '@commerce/ui/shadcn/dialog'
 import { Field, FieldDescription, FieldError, FieldLabel } from '@commerce/ui/shadcn/field'
 import { RadioGroup, RadioGroupItem } from '@commerce/ui/shadcn/radio-group'
 import { useState } from 'react'
 import DateField from '@/components/fields/date-field'
+import DialogContent from '@/components/layout/dialog-content'
+import DialogFooter from '@/components/layout/dialog-footer'
+import DialogHeader from '@/components/layout/dialog-header'
 import { campaignEditorContent } from '@/data/marketing-campaigns'
 
 type SendDialogProps = {

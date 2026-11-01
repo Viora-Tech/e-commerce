@@ -2,19 +2,15 @@
 
 import { Save, Trash2 } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@commerce/ui/shadcn/dialog'
+import { Dialog, DialogDescription, DialogTitle } from '@commerce/ui/shadcn/dialog'
 import { Field, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import type { Editor } from 'grapesjs'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
+import DialogContent from '@/components/layout/dialog-content'
+import DialogHeader from '@/components/layout/dialog-header'
 import { emailBuilderContent } from '@/data/email-builder'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'

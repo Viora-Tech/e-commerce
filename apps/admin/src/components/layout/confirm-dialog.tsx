@@ -81,7 +81,7 @@ export default function ConfirmDialog({
   return (
     <AlertDialog open={open} onOpenChange={handleOpenChange}>
       <AlertDialogContent
-        className="data-[size=default]:sm:max-w-md"
+        className="max-h-[min(85svh,48rem)] overflow-y-auto overscroll-contain data-[size=default]:max-w-[calc(100%-2rem)] data-[size=default]:sm:max-w-[38rem]"
         onClick={stopPropagation ? (event) => event.stopPropagation() : undefined}
       >
         {/* Figma confirm dialogs (e.g. 638:5415) close from the corner too. */}

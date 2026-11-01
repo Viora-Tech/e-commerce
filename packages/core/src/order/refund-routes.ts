@@ -52,11 +52,21 @@ async function heldPayments(ctx: StoreContext, orderId: string): Promise<Held[]>
 }
 
 /** Issues the store credit gift card for a refund of `amountPaise` on the order, to its shopper. */
+/**
+ * How a store credit refund is issued: the settings secret (card codes are stored encrypted), who
+ * issued it, and its last day (YYYY-MM-DD, store time); no date means it never expires.
+ */
+export type StoreCreditIssue = {
+  secret: string
+  createdBy: string | null
+  expiresOn?: string | null | undefined
+}
+
 async function storeCreditCard(
   ctx: StoreContext,
   orderId: string,
   amountPaise: number,
-  storeCredit: { secret: string; createdBy: string | null } | undefined,
+  storeCredit: StoreCreditIssue | undefined,
 ): Promise<string> {
   if (!storeCredit) throw new RefundNotAllowed('Store credit could not be issued', ctx.storeId)
   const [o] = await ctx.tx.select().from(order).where(eq(order.id, orderId))
@@ -74,6 +84,7 @@ async function storeCreditCard(
       note: `Store credit refund for order #${o.number}`,
       createdBy: storeCredit.createdBy,
       orderId: o.id,
+      expiresOn: storeCredit.expiresOn ?? null,
     },
     storeCredit.secret,
   )
@@ -129,7 +140,7 @@ export async function refundOrderAmount(
     reason: string
     providers: readonly PaymentProvider[]
     /** For `store_credit`: the settings secret (card codes are stored encrypted) and who issued it. */
-    storeCredit?: { secret: string; createdBy: string | null } | undefined
+    storeCredit?: StoreCreditIssue | undefined
   },
 ): Promise<string[]> {
   if (input.route === 'none' || input.amountPaise <= 0) return []

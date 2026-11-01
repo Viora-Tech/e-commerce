@@ -2,15 +2,11 @@
 
 import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@commerce/ui/shadcn/dialog'
+import { Dialog, DialogDescription, DialogTitle } from '@commerce/ui/shadcn/dialog'
 import type { ReactNode } from 'react'
+import DialogContent from '@/components/layout/dialog-content'
+import DialogFooter from '@/components/layout/dialog-footer'
+import DialogHeader from '@/components/layout/dialog-header'
 import { salesChannelsContent } from '@/data/sales-channels'
 import { useCopy } from '@/hooks/use-copy'
 
@@ -62,7 +58,7 @@ export default function ConnectSteps({
   const last = at === steps.length - 1
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="gap-5 sm:max-w-lg">
+      <DialogContent className="gap-5">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           {intro ? <DialogDescription>{intro}</DialogDescription> : null}

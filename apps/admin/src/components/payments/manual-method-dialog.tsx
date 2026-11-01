@@ -2,14 +2,7 @@
 
 import type { PaymentAdjustment } from '@commerce/core'
 import { Button } from '@commerce/ui/shadcn/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@commerce/ui/shadcn/dialog'
+import { Dialog, DialogDescription, DialogTitle } from '@commerce/ui/shadcn/dialog'
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import { Spinner } from '@commerce/ui/shadcn/spinner'
@@ -17,6 +10,9 @@ import { Switch } from '@commerce/ui/shadcn/switch'
 import { Textarea } from '@commerce/ui/shadcn/textarea'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import DialogContent from '@/components/layout/dialog-content'
+import DialogFooter from '@/components/layout/dialog-footer'
+import DialogHeader from '@/components/layout/dialog-header'
 import PaymentAdjustmentFields from '@/components/settings/payment-adjustment-fields'
 import { paymentRoutingContent } from '@/data/payment-routing'
 import { useCopy } from '@/hooks/use-copy'
@@ -100,7 +96,7 @@ export default function ManualMethodDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-xl">
+      <DialogContent>
         <DialogHeader>
           <DialogTitle>{kind === 'upi' ? copy.upiTitle : copy.bankTitle}</DialogTitle>
           <DialogDescription>{copy.description}</DialogDescription>
