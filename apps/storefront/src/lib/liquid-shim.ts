@@ -35,6 +35,11 @@
 export type LiquidShimConfig = {
   /** No consent stored yet (or for an older banner version): the theme's banner may ask. */
   askConsent: boolean
+  /**
+   * The market's path prefix (`/ae`), or empty. The theme's links carry it
+   * (`lib/liquid-market-links.ts`), so its calls do too: they are matched without it.
+   */
+  prefix?: string
 }
 
 export function liquidShim(config: LiquidShimConfig): string {
@@ -58,7 +63,12 @@ const SHIM = `(function () {
     marketingAllowed: function () { return false; }
   };
   window.Shopify = window.Shopify || {};
-  window.Shopify.routes = window.Shopify.routes || { root: '/' };
+  var prefix = config.prefix || '';
+  window.Shopify.routes = window.Shopify.routes || { root: prefix + '/' };
+  function unprefixed(pathname) {
+    if (prefix && (pathname === prefix || pathname.indexOf(prefix + '/') === 0)) return pathname.slice(prefix.length) || '/';
+    return pathname;
+  }
   window.Shopify.locale = 'en';
   window.Shopify.country = 'IN';
   window.Shopify.currency = { active: 'INR', rate: '1.0' };
@@ -104,13 +114,13 @@ const SHIM = `(function () {
     return nativeFetch('/theme-actions/cart-add', {
       method: 'POST', body: body, headers: Object.assign(headers, { accept: 'application/json' })
     }).then(function (res) {
-      if (res.ok) { location.href = '/cart'; return pending(); }
+      if (res.ok) { location.href = prefix + '/cart'; return pending(); }
       return res;
     });
   }
   function sectionUrl(url) {
     // \`?sections=a,b\` asks for JSON keyed by every section; \`?section_id=\` for one section's HTML.
-    var q = new URLSearchParams({ path: url.pathname });
+    var q = new URLSearchParams({ path: unprefixed(url.pathname) });
     // The page's own query goes along: a collection's filters, sort and page shape the section
     // (a product finder asks for \`/collections/mice?filter.p.m.custom.grip=Claw&section_id=…\`).
     url.searchParams.forEach(function (value, key) {
@@ -123,11 +133,11 @@ const SHIM = `(function () {
   window.fetch = function (input, init) {
     var url = toUrl(input);
     if (!url || url.origin !== location.origin) return nativeFetch(input, init);
-    var path = url.pathname.replace(/\\/$/, '');
+    var path = unprefixed(url.pathname).replace(/\\/$/, '');
     var method = ((init && init.method) || (input && input.method) || 'GET').toUpperCase();
     if (/^\\/cart\\/add(\\.js)?$/.test(path)) return addToCart(init);
     if (path === '/cart.js') return nativeFetch('/theme-actions/cart', { headers: { accept: 'application/json' } });
-    if (/^\\/cart\\/(change|update|clear)(\\.js)?$/.test(path)) { location.href = '/cart'; return pending(); }
+    if (/^\\/cart\\/(change|update|clear)(\\.js)?$/.test(path)) { location.href = prefix + '/cart'; return pending(); }
     if (/^\\/search\\/suggest/.test(path)) return nativeFetch(input, init);
     if (/^\\/recommendations\\/products/.test(path)) {
       // Our route answers; a failure (unknown product, no such section) reads as an empty row.

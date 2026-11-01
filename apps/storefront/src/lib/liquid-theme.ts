@@ -57,6 +57,7 @@ import { cachedLiquidData } from './liquid-data-cache'
 import { deferThemeScripts } from './liquid-defer'
 import { belowTheFold } from './liquid-fold'
 import { liquidMarketFor } from './liquid-market'
+import { withMarketPrefix } from './liquid-market-links'
 import { requestCatalogId } from './market-catalog'
 import { marketPricingFor, pricingKey } from './market-pricing'
 import { MARKET_HEADERS } from './markets'
@@ -124,6 +125,10 @@ const requestScope = cache(async (storeId: string) => {
 })
 
 type RequestScope = Awaited<ReturnType<typeof requestScope>>
+
+/** Rendered theme HTML for this request: its nonce, and its links under the market prefix. */
+const finish = (html: string, scope: RequestScope) =>
+  withMarketPrefix(withNonce(html, scope.nonce), scope.market.market?.prefix ?? '')
 
 /**
  * The scope of a section rendered for another page (`theme-actions/section?path=`): that page's
@@ -408,7 +413,7 @@ export async function renderLiquidSections(
         () => signedOut(storeId),
       ))
     ) {
-      out.set(p.id, { html: withNonce(hit.html, scope.nonce), ...p.wrapper })
+      out.set(p.id, { html: finish(hit.html, scope), ...p.wrapper })
     } else missing.push(p)
   }
   if (missing.length === 0) return out
@@ -436,7 +441,7 @@ export async function renderLiquidSections(
     return done
   })
   for (const { p, html, trace } of rendered) {
-    out.set(p.id, { html: withNonce(html, scope.nonce), ...p.wrapper })
+    out.set(p.id, { html: finish(html, scope), ...p.wrapper })
     if (p.key && keepable(trace, cart.itemCount === 0, customer !== null)) {
       const entry: CachedLiquid = { html, cart: trace.cart, customer: trace.customer }
       await rememberForStore(storeId, p.key, entry, {
@@ -454,13 +459,13 @@ export type LiquidLayout = Awaited<ReturnType<typeof renderLiquidLayout>> & {
 
 type CachedLayout = { layout: LiquidLayout } & CachedReads
 
-/** `withNonce` over every HTML part of a layout. */
-function layoutWithNonce(layout: LiquidLayout, nonce: string): LiquidLayout {
+/** `finish` over every HTML part of a layout. */
+function layoutWithNonce(layout: LiquidLayout, scope: RequestScope): LiquidLayout {
   return {
     ...layout,
-    head: withNonce(layout.head, nonce),
-    beforeHeader: withNonce(layout.beforeHeader, nonce),
-    afterFooter: withNonce(layout.afterFooter, nonce),
+    head: finish(layout.head, scope),
+    beforeHeader: finish(layout.beforeHeader, scope),
+    afterFooter: finish(layout.afterFooter, scope),
   }
 }
 
@@ -486,7 +491,7 @@ export async function liquidLayoutFor(
       () => signedOut(storeId),
     ))
   ) {
-    return layoutWithNonce(hit.layout, scope.nonce)
+    return layoutWithNonce(hit.layout, scope)
   }
 
   const cart = toLiquidCart(await requestCart(storeId), scope.pricing)
@@ -515,7 +520,7 @@ export async function liquidLayoutFor(
       ttlMs: renderTtl(trace, CACHE_TTL_MS),
     })
   }
-  return layoutWithNonce(layout, scope.nonce)
+  return layoutWithNonce(layout, scope)
 }
 
 /**
@@ -574,7 +579,10 @@ export async function renderStaticLiquidSection(
     location: 'template',
     index: 0,
   }
-  const html = await renderLiquidSection(ctx, section)
+  const html = withMarketPrefix(
+    await renderLiquidSection(ctx, section),
+    (await requestScope(storeId)).market.market?.prefix ?? '',
+  )
   const w = sectionWrapper(ctx.bundle, section)
   return `<${w.tag} id="${w.id}" class="${w.className}">${html}</${w.tag}>`
 }

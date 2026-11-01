@@ -396,7 +396,7 @@ export default async function StoreLayout({ children, params }: Props) {
         </head>
         <body {...reactAttrs(liquid.bodyAttrs)} suppressHydrationWarning>
           <LiquidHtml
-            html={`<script${nonce ? ` nonce="${nonce}"` : ''}>${liquidShim({ askConsent: currentConsent(consent.initial, consent.bannerVersion) === null })}</script>${liquid.head}`}
+            html={`<script${nonce ? ` nonce="${nonce}"` : ''}>${liquidShim({ askConsent: currentConsent(consent.initial, consent.bannerVersion) === null, prefix: (await headers()).get(MARKET_HEADERS.prefix) ?? '' })}</script>${liquid.head}`}
           />
           {previewName && !preview?.inFrame ? <PreviewBar themeName={previewName} /> : null}
           <LiquidHtml html={liquid.beforeHeader} />
