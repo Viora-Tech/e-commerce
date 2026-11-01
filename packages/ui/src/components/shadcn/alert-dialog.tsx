@@ -23,7 +23,8 @@ function AlertDialogOverlay({ className, ...props }: AlertDialogPrimitive.Backdr
     <AlertDialogPrimitive.Backdrop
       data-slot="alert-dialog-overlay"
       className={cn(
-        'fixed inset-0 isolate z-50 bg-black/10 motion-backdrop supports-backdrop-filter:backdrop-blur-xs',
+        // Same scrim as Dialog: confirm dialogs darken the page like every other popup (#106).
+        'glass-scrim fixed inset-0 isolate z-50 motion-backdrop',
         className,
       )}
       {...props}
