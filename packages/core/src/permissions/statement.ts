@@ -26,6 +26,7 @@ export const statement = {
   staff: ['read', 'invite', 'manage'],
   billing: ['manage'],
   approvals: ['manage'],
+  activity: ['read'],
 } as const
 
 export type Resource = keyof typeof statement
@@ -108,6 +109,8 @@ export const permissions = {
    * approval" on a role). Only for permissions the approver holds without that tick.
    */
   APPROVALS_MANAGE: permission('approvals', 'manage'),
+  /** Settings → Activity log: who changed what in the store, and from where. */
+  ACTIVITY_READ: permission('activity', 'read'),
 } as const
 
 type ResourceMeta = { label: string; description: string }
@@ -165,6 +168,10 @@ export const RESOURCE_METADATA: { [R in Resource]: ResourceMeta } = {
   approvals: {
     label: 'Approvals',
     description: "Approve or reject other members' changes that their role sends for approval.",
+  },
+  activity: {
+    label: 'Activity log',
+    description: 'See who changed what in the store, when, and from where.',
   },
 } as const
 

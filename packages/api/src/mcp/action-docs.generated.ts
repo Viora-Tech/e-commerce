@@ -22,6 +22,9 @@ export const ACTION_DOCS: Record<string, string> = {
   'account.stores': 'Every store the member belongs to, with their role and an owner flag.',
   'account.updateNotifications':
     "Saves the member's own alerts for this store, on their own staff row only.",
+  'activityLog.list':
+    'Changes members made to the store, newest first, one page at a time, with the total.',
+  'activityLog.listPeople': 'Everyone who appears in the log, for the Person filter.',
   'affiliates.add': 'The merchant adds someone by hand (a creator they already work with).',
   'affiliates.clearReview':
     '"Looks fine": the merchant checked a needs-review affiliate; their payouts go ahead.',

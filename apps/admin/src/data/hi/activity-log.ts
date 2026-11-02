@@ -1,0 +1,71 @@
+import { siteConfig } from '@commerce/config/site'
+import { activityLogContent } from '@/data/activity-log'
+import { translation } from '@/lib/i18n'
+
+export default [
+  translation(activityLogContent, {
+    title: 'गतिविधि लॉग',
+    intro:
+      'इस स्टोर में हुआ हर बदलाव: किसने किया, कब, और कहाँ से। एक साल तक रखा जाता है। सिर्फ़ देखना दर्ज नहीं होता।',
+    resource: { singular: 'बदलाव', plural: 'बदलाव' },
+    columns: {
+      when: 'कब',
+      who: 'किसने',
+      what: 'क्या',
+      area: 'हिस्सा',
+      source: 'कहाँ से',
+    },
+    filters: {
+      person: 'व्यक्ति',
+      anyPerson: 'कोई भी',
+      area: 'हिस्सा',
+      anyArea: 'कोई भी हिस्सा',
+      source: 'कहाँ से',
+      anySource: 'कहीं से भी',
+      date: 'तारीख',
+      anyDate: 'कोई भी तारीख',
+      dateOptions: { '7d': 'पिछले 7 दिन', '30d': 'पिछले 30 दिन', '90d': 'पिछले 90 दिन' },
+    },
+    system: siteConfig.brand.name,
+    sources: {
+      admin: 'एडमिन',
+      assistant: 'AI असिस्टेंट',
+      mcp: 'AI ऐप (MCP)',
+      api: 'API टोकन',
+      worker: 'बैकग्राउंड काम',
+      storefront: 'स्टोरफ़्रंट',
+    },
+    areas: {
+      products: 'प्रोडक्ट',
+      orders: 'ऑर्डर',
+      customers: 'ग्राहक',
+      inventory: 'स्टॉक',
+      discounts: 'डिस्काउंट',
+      content: 'कंटेंट',
+      analytics: 'एनालिटिक्स',
+      marketing: 'मार्केटिंग',
+      online_store: 'ऑनलाइन स्टोर',
+      settings: 'सेटिंग्स',
+    },
+    empty: 'इन फ़िल्टर से कोई बदलाव नहीं मिला।',
+    emptyAll: 'अभी कोई बदलाव नहीं। अब से होने वाले बदलाव यहाँ दिखेंगे।',
+    failed: 'गतिविधि लॉग लोड नहीं हुआ। फिर कोशिश करें।',
+    noAccess: 'आपका रोल गतिविधि लॉग नहीं देख सकता। स्टोर के मालिक से एक्सेस माँगें।',
+    detail: {
+      title: 'बदलाव की जानकारी',
+      action: 'एक्शन',
+      record: 'रिकॉर्ड',
+      ip: 'IP पता',
+      device: 'ब्राउज़र',
+      changes: 'क्या बदला',
+      field: 'फ़ील्ड',
+      before: 'पहले',
+      after: 'बाद में',
+      value: 'वैल्यू',
+      nothing: 'इस बदलाव की कोई जानकारी दर्ज नहीं हुई।',
+      redactedNote: 'की, पासवर्ड, कोड और संपर्क जानकारी कभी सेव नहीं होती।',
+      none: '—',
+      close: 'बंद करें',
+    },
+  }),
+]

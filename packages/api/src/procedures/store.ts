@@ -18,6 +18,7 @@ import { ORPCError } from '@orpc/server'
 import { approvalKind, isReadPath, kindForInput } from '../mcp/action-catalogue'
 import { setActorName } from '../services/actor.service'
 import { ALREADY_REQUESTED, queueForApprover } from '../services/ai/assistant/service'
+import { activityRecorder, recordChange, recordedPath } from './activity'
 import { mustAsk } from './approval-rules'
 import { memberProcedure, type SessionContext } from './base'
 import { remember } from './request-memo'
@@ -207,7 +208,7 @@ function report(context: SessionContext, storeId: string, error: unknown): never
  * the next request (a page's parallel calls share one read through `context.memo`).
  */
 function storeProcedureWith(required?: Permission | readonly Permission[]) {
-  return memberProcedure.use(async ({ context, next, path }, input) => {
+  return memberProcedure.use(async ({ context, next, path, procedure }, input) => {
     const member = await findMembership(context)
     context.log.set({ storeId: member.storeId })
     // Work that must wait until the transaction has committed (realtime publishes): a
@@ -232,8 +233,16 @@ function storeProcedureWith(required?: Permission | readonly Permission[]) {
       const actor = context.session.user.name?.trim() || context.session.user.email
       await setActorName(tx, actor)
       try {
-        const out = await next({ context: { scope, tx, afterCommit } })
+        const activity = activityRecorder()
+        const out = await next({ context: { scope, tx, afterCommit, activity } })
         await logTokenCall(context, tx, member.storeId, path, required)
+        await recordChange(context, tx, member.storeId, {
+          path,
+          procedure,
+          input,
+          output: out.output,
+          note: activity.read(),
+        })
         return out
       } catch (error) {
         return report(context, member.storeId, error)
@@ -440,7 +449,7 @@ export function canDetached(permission: Permission | readonly Permission[]) {
 export const storeProcedureDetached = detachedWith(undefined)
 
 function detachedWith(permission: Permission | readonly Permission[] | undefined) {
-  return memberProcedure.use(async ({ context, next, path }) => {
+  return memberProcedure.use(async ({ context, next, path, procedure }, input) => {
     const member = await findMembership(context)
     context.log.set({ storeId: member.storeId })
     const scope = await withStore(context.db, member.storeId, (tx: StoreTx) =>
@@ -448,11 +457,23 @@ function detachedWith(permission: Permission | readonly Permission[] | undefined
     )
     context.log.set({ role: scope.roleSlug })
     try {
-      const result = await next({ context: { scope } })
+      const activity = activityRecorder()
+      const result = await next({ context: { scope, activity } })
       if (context.apiPrincipal)
         await withStore(context.db, member.storeId, (tx: StoreTx) =>
           logTokenCall(context, tx, member.storeId, path, permission),
         )
+      // A streamed answer's generator has not run yet; only what the call returned is recorded.
+      if (await recordedPath(path, procedure))
+        await withStore(context.db, member.storeId, (tx: StoreTx) =>
+          recordChange(context, tx, member.storeId, {
+            path,
+            procedure,
+            input,
+            output: result.output,
+            note: activity.read(),
+          }),
+        ).catch((error: unknown) => context.reportError?.(error, { storeId: member.storeId }))
       return result
     } catch (error) {
       return report(context, member.storeId, error)

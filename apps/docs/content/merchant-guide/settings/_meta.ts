@@ -24,6 +24,7 @@ export default {
   'sender-email': 'Send emails from your own address',
   '-- team': { type: 'separator', title: 'Team & advanced' },
   staff: 'Staff',
+  'activity-log': 'Activity log',
   ai: 'AI',
   'mcp-and-api': 'MCP & API',
   'custom-data': 'Custom data',

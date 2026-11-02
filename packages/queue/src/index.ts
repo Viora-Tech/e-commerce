@@ -89,6 +89,8 @@ export const SEARCH_CONSOLE_SWEEP_QUEUE = '{search-console}-sweep'
 export const BILLING_SWEEP_QUEUE = '{billing}-sweep'
 /** Daily: MCP & API activity older than 90 days is deleted. */
 export const API_ACTIVITY_PRUNE_QUEUE = '{api}-activity-prune'
+/** Daily: Settings → Activity log rows older than a year are deleted. */
+export const STORE_ACTIVITY_PRUNE_QUEUE = '{store}-activity-prune'
 /** Daily: the Koomerce Shopify app's non-expiring offline tokens swapped for expiring ones. */
 export const SHOPIFY_TOKEN_SWEEP_QUEUE = '{shopify}-token-sweep'
 /** Every 15 minutes (with a GitHub token): open bug reports re-read from their GitHub issues. */

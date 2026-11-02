@@ -1,0 +1,88 @@
+---
+title: Store activity log (audit trail)
+description: How every successful staff change is recorded in store_activity, scrubbed, listed in Settings → Activity log and pruned after a year.
+---
+
+# Store activity log (audit trail)
+
+`store_activity` (migration `0192_store_activity`) holds one row per successful change a member
+makes to a store: who (`actor_user_id`, `actor_name`, `actor_email`), from where (`source`, `ip`,
+`user_agent`), which procedure (`action`, e.g. `shipping.zones.create`), its `area`, the record
+(`resource_type`, `resource_id`), a `summary` line and `changes` (jsonb). Settings → Activity log
+reads it; the worker deletes rows older than a year.
+
+## Where rows are written
+
+`packages/api/src/procedures/activity.ts`, called from the store procedure middleware
+(`procedures/store.ts`):
+
+- `can`, `canAny`, `storeProcedure`: after the handler resolves, `recordChange` inserts the row in
+  a **savepoint** of the store transaction. The row commits with the change; if the insert fails
+  the savepoint rolls back alone, the change still commits and the error goes to `reportError`.
+- `canDetached`, `storeProcedureDetached`: the same, in its own short `withStore` after the
+  handler returns.
+- A handler that throws writes nothing. A call queued for approval writes nothing (Approvals has
+  its own record); when an approver runs it, the row is written then, as the approver, with
+  "· approved" in the summary.
+
+Only changes are recorded: a path the MCP action catalogue classifies as a read (`isReadPath`)
+is skipped, and so is `NOT_A_CHANGE` in `activity.ts` (previews, AI drafts, test connections,
+read receipts, browser hand-offs) and any procedure whose name starts with `test`. When you add a
+procedure that is named like a change but changes nothing, add it there.
+
+A server-side `call()` has no path; the procedure is looked up in `appRouter` instead (built once,
+lazily), so admin server actions and tests are recorded too.
+
+## Source
+
+| `source` | When |
+| --- | --- |
+| `admin` | a signed-in member in the admin |
+| `assistant` | `ai.approveAction` / `ai.undoAction` (the AI assistant's proposals) |
+| `mcp` | an OAuth (MCP) client's access token |
+| `api` | an access token from Settings → MCP & API |
+| `worker`, `storefront` | reserved; nothing writes them yet |
+
+## What `changes` holds
+
+By default `{ input }`: the procedure's input. A handler can report the record's fields before and
+after instead, and only the fields that differ are kept:
+
+```ts
+const before = await getShippingZone(context.tx, input.id)
+const after = await updateShippingZone(context.tx, storeId, input.id, input.data)
+context.activity.note({ before: zoneFields(before), after: zoneFields(after) })
+```
+
+`context.activity.note` also takes `resourceId` and `label` (the name in the summary), and
+`context.activity.skip()` leaves a call out (a delete that found nothing). Shipping zones
+(`routers/shipping.ts`) are the worked example.
+
+Everything is passed through `scrubAudit` (`@commerce/observability`) first. It uses the same key
+rule as `scrubPii` (the logger and Sentry): emails, phones, addresses, OTPs and any key naming a
+secret, token, password or API key are `[redacted]`, plus payment details (`keyId`, UPI, PAN,
+bank account, IFSC). Inside other strings it redacts emails, JWTs, gateway keys by prefix
+(`rzp_live_…`, `sk_…`, `whsec_…`) and long opaque runs. Dates, prices, handles and ids stay
+readable. Strings are clipped to 500 characters and lists to 50 items.
+
+## Reading it
+
+`activityLog.list` (filters: `actorUserId`, `area`, `source`, `search` over action and summary,
+`from`/`to`, `limit`/`offset`) and `activityLog.listPeople`, both behind the `activity.read`
+permission. Owners hold every permission; the built-in Administrator gets it (seeded for new
+stores, added to existing ones by the migration). MCP and API clients reach it with **Settings**
+read access; both are catalogued as reads.
+
+## Retention
+
+`stores_with_old_store_activity` (SECURITY DEFINER) lists stores with rows older than 365 days;
+the worker's daily `{store}-activity-prune` (`apps/worker/src/store-activity.ts`) deletes them per
+store with `pruneStoreActivity`.
+
+## Tests
+
+`packages/api/test/store-activity.test.ts` (a change writes one row with the right actor, reads
+and failed handlers write nothing, secrets are scrubbed, filters, RLS) and
+`packages/observability/test/scrub-audit.test.ts`. The cross-store leak test exempts
+`store_activity` from "A holds B's ids" and skips `activityLog.list`: the log records the ids a
+probe typed, by design.

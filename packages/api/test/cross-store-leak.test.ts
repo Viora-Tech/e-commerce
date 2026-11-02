@@ -131,9 +131,14 @@ const SKIP: Record<string, string> = {
   'invitations.accept': 'switches the session to another store',
   'staff.removeMember': 'can remove the caller from the store mid-walk',
   'staff.setMemberRole': 'can demote the caller mid-walk',
+  'activityLog.list':
+    'lists the inputs earlier probes typed (store B ids) by design; isolation is in store-activity.test.ts',
   'storeData.deleteStore':
     'deletes the store under test (the walk renames it first); covered by store-data.test.ts',
 }
+
+/** Logs that keep what a call was given (Settings → Activity log), so a probe's store B id is a record of the probe, not a link. */
+const RECORDS_INPUT = new Set(['store_activity'])
 
 const sent: { email: string; otp: string }[] = []
 const auth = createMerchantAuth({
@@ -620,6 +625,7 @@ describe('cross-store leak guardrail', () => {
     const aAfter = await dumpStore(a.storeId)
     const bIds = new Set([b.storeId, ...[...b.ids.values()].flat()])
     for (const [table, text] of Object.entries(aAfter)) {
+      if (RECORDS_INPUT.has(table)) continue
       for (const id of bIds) {
         if (text.includes(id)) findings.push(`store A's ${table} now points at store B's ${id}`)
       }

@@ -51,6 +51,7 @@ export {
   storesWithOldApiActivity,
   storesWithOldAutomationRuns,
   storesWithOldPixelData,
+  storesWithOldStoreActivity,
   storesWithOpenShipments,
   storesWithOrderPushCouriers,
   storesWithPendingCodChecks,
@@ -75,6 +76,7 @@ export * from './search-console-schema'
 export * from './shipping-schema'
 export * from './shopper-login-schema'
 export * from './stock'
+export * from './store-activity-schema'
 export * from './store-data-schema'
 export * from './storefront-cache'
 export * from './theme-schema'

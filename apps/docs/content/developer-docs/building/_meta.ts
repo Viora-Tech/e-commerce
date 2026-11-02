@@ -12,6 +12,7 @@ export default {
   'ai-engine': 'AI engine',
   'ai-assistant': 'AI assistant',
   'mcp-and-api': 'MCP server and API tokens',
+  'activity-log': 'Store activity log (audit trail)',
   'sales-channels': 'Sales channels (Meta, Google, ChatGPT)',
   'platform-apps': 'Platform apps (Meta, Shopify, Google)',
   billing: 'Plans and billing',

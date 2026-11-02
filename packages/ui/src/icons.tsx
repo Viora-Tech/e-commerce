@@ -164,6 +164,7 @@ export { FileText_ as FileText }
 export const FileEdit = defineIcon(Huge.FileEditIcon, 'FileEdit', 'duotone')
 export const FileBarChart = defineIcon(Huge.Analytics02Icon, 'FileBarChart', 'duotone')
 export const ClipboardList = defineIcon(Huge.Task01Icon, 'ClipboardList', 'duotone')
+export const History = defineIcon(Huge.WorkHistoryIcon, 'History', 'duotone')
 export const ListTree = defineIcon(TreeStructure, 'ListTree', 'duotone')
 export const Braces = defineIcon(BracketsCurly, 'Braces', 'duotone')
 export const Workflow = defineIcon(Huge.WorkflowSquare01Icon, 'Workflow', 'duotone')

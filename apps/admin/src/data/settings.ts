@@ -7,6 +7,7 @@ import {
   ClipboardList,
   CreditCard,
   Globe,
+  History,
   Home,
   MapPinLineIcon,
   Palette,
@@ -194,6 +195,12 @@ export const SETTINGS_GROUPS: SettingsGroup[] = [
         title: 'Approvals',
         body: 'Changes waiting for approval from a different member, and your own requests.',
         icon: ShieldCheck,
+      },
+      {
+        href: routes.settings.activityLog(),
+        title: 'Activity log',
+        body: 'Who changed what in the store, when, and from where.',
+        icon: History,
       },
       {
         href: routes.settings.ai(),
