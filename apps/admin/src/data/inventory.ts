@@ -279,6 +279,7 @@ export const purchaseOrderFormContent = {
     lineTotal: 'Total',
     remove: 'Remove',
     noSku: 'No SKU',
+    openProduct: 'Open product in a new tab',
   },
   cost: {
     heading: 'Cost summary',

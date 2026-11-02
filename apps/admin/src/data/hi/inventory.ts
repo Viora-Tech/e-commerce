@@ -242,6 +242,7 @@ export default [
       lineTotal: 'कुल',
       remove: 'हटाएँ',
       noSku: 'कोई SKU नहीं',
+      openProduct: 'प्रोडक्ट नए टैब में खोलें',
     },
     cost: {
       heading: 'लागत का सारांश',
