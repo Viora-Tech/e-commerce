@@ -79,6 +79,8 @@ export default function VisualBuilder({
       onPickImage: setImagePick,
     })
     editorRef.current = editor
+    // A new design opens on the template gallery, so nobody starts from a blank canvas.
+    if (!design) setDialog('templates')
     return () => {
       editorRef.current = null
       editor.destroy()
@@ -189,6 +191,7 @@ export default function VisualBuilder({
         open={dialog === 'templates'}
         onOpenChange={(o) => setDialog(o ? 'templates' : null)}
         getEditor={() => editorRef.current}
+        brand={brand}
       />
       <ConfirmDialog
         open={dialog === 'discard'}

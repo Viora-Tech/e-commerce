@@ -255,11 +255,12 @@ export function productGridMjml(
   const cell = (p: EmailProductCard) => {
     const href = attr(productHref(p.handle))
     const img = p.imageUrl && safeUrl(p.imageUrl)
-    return `<mj-column>${
+    // The Brand look (3 Nov 2026): photo on a soft tile, centred title, price in the brand colour.
+    return `<mj-column padding="0 6px">${
       img
-        ? `<mj-image src="${attr(img)}" alt="${attr(p.title)}" href="${href}" border-radius="8px" padding="0 8px 8px" />`
+        ? `<mj-image src="${attr(img)}" alt="${attr(p.title)}" href="${href}" border-radius="14px" container-background-color="#f6f5f2" padding="0 0 10px" />`
         : ''
-    }<mj-text font-size="15px" font-weight="600" color="${colour(c.text, '#1a1a1a')}" padding="4px 8px 0">${escapeHtml(p.title)}</mj-text><mj-text font-size="14px" color="${colour(c.muted, '#6b6b6b')}" padding="2px 8px 8px">${escapeHtml(p.priceLabel)}</mj-text><mj-button href="${href}" background-color="${colour(c.button, '#1a1a1a')}" color="${colour(c.buttonText, '#ffffff')}" border-radius="6px" font-size="14px" padding="0 8px 16px">${escapeHtml(opts.buttonLabel)}</mj-button></mj-column>`
+    }<mj-text align="center" font-size="14px" font-weight="700" line-height="1.35" color="${colour(c.text, '#161615')}" padding="0 4px">${escapeHtml(p.title)}</mj-text><mj-text align="center" font-size="14px" font-weight="700" color="${colour(c.button, '#161615')}" padding="4px 4px 10px">${escapeHtml(p.priceLabel)}</mj-text><mj-button href="${href}" align="center" background-color="${colour(c.button, '#161615')}" color="${colour(c.buttonText, '#ffffff')}" border-radius="10px" font-size="13px" font-weight="700" inner-padding="10px 18px" padding="0 4px 18px">${escapeHtml(opts.buttonLabel)}</mj-button></mj-column>`
   }
   const rows: string[] = []
   for (let i = 0; i < items.length; i += columns) {

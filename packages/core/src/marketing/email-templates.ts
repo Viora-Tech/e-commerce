@@ -65,3 +65,21 @@ export async function deleteEmailTemplate(tx: StoreTx, id: string): Promise<bool
     .returning({ id: marketingEmailTemplate.id })
   return rows.length > 0
 }
+
+/** Overwrite a saved template's design, its name, or both ("Update template" in the builder). */
+export async function updateEmailTemplate(
+  tx: StoreTx,
+  id: string,
+  input: { name?: string | undefined; design?: EmailDesign | undefined },
+) {
+  const [row] = await tx
+    .update(marketingEmailTemplate)
+    .set({
+      ...(input.name ? { name: input.name } : {}),
+      ...(input.design ? { design: input.design } : {}),
+      updatedAt: new Date(),
+    })
+    .where(eq(marketingEmailTemplate.id, id))
+    .returning({ id: marketingEmailTemplate.id, name: marketingEmailTemplate.name })
+  return row ?? null
+}
