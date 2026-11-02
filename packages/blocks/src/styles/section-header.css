@@ -315,32 +315,28 @@ focus-disclosure {
   max-height: 4rem;
 }
 
-:root[data-theme="dark"] .header__logo:not(:has(.header__logo-image--dark)) .header__logo-image {
+:root[data-theme="dark"] .header__logo:not(:has(.header__logo-image--dark)) .header__logo-image:not(:where(.shopify-section *)) {
   filter: brightness(0) invert(1);
 }
 
-:root[data-theme="dark"] .header__logo:has(.header__logo-image--dark) .header__logo-image--light {
+:root[data-theme="dark"] .header__logo:has(.header__logo-image--dark) .header__logo-image--light:not(:where(.shopify-section *)) {
   display: none;
 }
 
-:root[data-theme="dark"] .header__logo-image--dark {
+:root[data-theme="dark"] .header__logo-image--dark:not(:where(.shopify-section *)) {
   display: inline-block;
 }
 
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"])
-    .header__logo:not(:has(.header__logo-image--dark))
-    .header__logo-image {
+  :root:not([data-theme="light"]) .header__logo:not(:has(.header__logo-image--dark)) .header__logo-image:not(:where(.shopify-section *)) {
     filter: brightness(0) invert(1);
   }
 
-  :root:not([data-theme="light"])
-    .header__logo:has(.header__logo-image--dark)
-    .header__logo-image--light {
+  :root:not([data-theme="light"]) .header__logo:has(.header__logo-image--dark) .header__logo-image--light:not(:where(.shopify-section *)) {
     display: none;
   }
 
-  :root:not([data-theme="light"]) .header__logo-image--dark {
+  :root:not([data-theme="light"]) .header__logo-image--dark:not(:where(.shopify-section *)) {
     display: inline-block;
   }
 }

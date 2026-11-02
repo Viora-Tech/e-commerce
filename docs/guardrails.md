@@ -292,6 +292,14 @@ grows a query helper.
 The brand name (`siteConfig.brand.name`, `packages/config/src/site.ts`) may not appear as a
 literal string or JSX text anywhere else (tests and the docs app excepted). Not allow-listed.
 
+### x. `theme-css-fence` (`scripts/sweeps/theme-css-fence.test.ts`)
+
+Our theme's stylesheets (`packages/blocks/src/styles`) load on every storefront page, an imported
+Shopify theme's too, and share class names with it. Every selector that reads one of our theme
+settings (`:root[data-*]`, `:root:not([data-*])`) must end with `:not(:where(.shopify-section *))`
+so it never reaches an imported section: ours sit at their defaults there and hid the imported
+theme's quick-add buttons and sale badges (#1046). Not allow-listed.
+
 ## `server-only`
 
 The `server-only` npm package throws unconditionally when the bundler resolving it does

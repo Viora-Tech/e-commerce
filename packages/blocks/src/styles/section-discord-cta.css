@@ -45,7 +45,7 @@
 }
 
 /* Dark: the original recipe, which was designed against a dark ground. */
-:root[data-theme='dark'] .discord-cta {
+:root[data-theme='dark'] .discord-cta:not(:where(.shopify-section *)) {
   --discord-glow-a: 78%;
   --discord-glow-a-mid: 45%;
   --discord-glow-b: 62%;
@@ -54,7 +54,7 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme='light']) .discord-cta {
+  :root:not([data-theme='light']) .discord-cta:not(:where(.shopify-section *)) {
     --discord-glow-a: 78%;
     --discord-glow-a-mid: 45%;
     --discord-glow-b: 62%;

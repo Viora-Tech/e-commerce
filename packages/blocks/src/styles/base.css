@@ -552,14 +552,14 @@ h6,
 
 /* Theme setting "outline buttons": the primary button starts as its own hover
    state's outline and fills on hover, the same inversion run the other way. */
-:root[data-button-style="outline"] .btn--primary {
+:root[data-button-style="outline"] .btn--primary:not(:where(.shopify-section *)) {
   background-color: transparent;
   color: var(--btn-bg, var(--color-ink));
   --btn-fill-color: var(--btn-bg, var(--color-ink));
 }
 
 @media (hover: hover) and (pointer: fine) {
-  :root[data-button-style="outline"] .btn--primary:hover {
+  :root[data-button-style="outline"] .btn--primary:hover:not(:where(.shopify-section *)) {
     background-color: var(--btn-bg, var(--color-ink));
     color: var(--btn-text, var(--color-bg));
   }
