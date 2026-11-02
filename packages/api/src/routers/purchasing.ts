@@ -10,10 +10,12 @@ import {
   PurchaseChargeInputSchema,
   PurchaseChargeUpdateSchema,
   permissions,
+  receiveInboundShipment,
   removePurchaseCharge,
   SupplierInputSchema,
   saveInboundShipment,
   saveSupplier,
+  shipmentOutstanding,
   updatePurchaseCharge,
 } from '@commerce/core'
 import { inboundTrackingCourier } from '@commerce/core/inventory'
@@ -134,6 +136,25 @@ export const inboundShipmentsRouter = {
       }
       return id
     }),
+
+  /** What "Mark as delivered" would take in: outstanding units per purchase order (#1065). */
+  outstanding: can(permissions.INVENTORY_READ)
+    .input(byId)
+    .handler(({ context, input }) =>
+      shipmentOutstanding(context.tx, context.scope.storeId, input.id),
+    ),
+
+  /**
+   * "Mark as delivered" (#1065): receives every outstanding unit on the shipment's purchase
+   * orders into stock and marks the shipment delivered.
+   */
+  receive: can(permissions.INVENTORY_WRITE)
+    .input(byId)
+    .handler(({ context, input }) =>
+      friendly(() =>
+        receiveInboundShipment(context.tx, context.scope.storeId, input.id, context.scope.userId),
+      ),
+    ),
 
   /** Read the carrier's expected delivery date now (FedEx, DHL Express, … when connected). */
   track: can(permissions.INVENTORY_WRITE)

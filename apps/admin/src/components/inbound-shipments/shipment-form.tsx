@@ -1,7 +1,7 @@
 'use client'
 
 import { INBOUND_CARRIERS, type InboundCarrier, isInboundCarrier } from '@commerce/core/inventory'
-import { Save, Trash2, Truck } from '@commerce/ui/icons'
+import { PackageCheck, Save, Trash2, Truck } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
@@ -22,6 +22,7 @@ import { inboundShipmentFormContent } from '@/data/purchasing'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
+import MarkDeliveredDialog from './mark-delivered-dialog'
 import ShipmentDetailsCard, { type ShipmentDraft } from './shipment-details-card'
 import ShipmentGlanceCard from './shipment-glance-card'
 import ShipmentOrdersCard from './shipment-orders-card'
@@ -68,6 +69,7 @@ export default function ShipmentForm({ shipment, costs, aiReading }: ShipmentFor
   const [saved, setSaved] = useState(() => JSON.stringify(draftFrom(shipment)))
   const [busy, setBusy] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [delivering, setDelivering] = useState<string | null>(null)
   const [tracking, setTracking] = useState(false)
 
   // Helpers
@@ -166,6 +168,12 @@ export default function ShipmentForm({ shipment, costs, aiReading }: ShipmentFor
         back={{ label: copy.back, href: LIST }}
         actions={
           <>
+            {shipment && shipment.status !== 'delivered' ? (
+              <Button variant="outline" onClick={() => setDelivering(shipment.id)} disabled={busy}>
+                <PackageCheck aria-hidden="true" />
+                {copy.deliver.action}
+              </Button>
+            ) : null}
             {shipment ? (
               <Button
                 variant="ghost"
@@ -232,6 +240,11 @@ export default function ShipmentForm({ shipment, costs, aiReading }: ShipmentFor
             {shipment ? <ShipmentGlanceCard orders={shipment.orders} costs={costs} /> : null}
           </>
         }
+      />
+      <MarkDeliveredDialog
+        shipmentId={delivering}
+        onClose={() => setDelivering(null)}
+        onDone={() => router.refresh()}
       />
       <ConfirmDialog
         open={deleting}

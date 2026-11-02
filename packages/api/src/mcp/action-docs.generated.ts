@@ -295,6 +295,10 @@ export const ACTION_DOCS: Record<string, string> = {
   'inboundShipments.attach': 'Put an order on this shipment (off any other); both are recosted.',
   'inboundShipments.costs':
     'Shared charges, their splits across every order in it, and landed cost per line.',
+  'inboundShipments.outstanding':
+    'What "Mark as delivered" would take in: outstanding units per purchase order (#1065).',
+  'inboundShipments.receive':
+    '"Mark as delivered" (#1065): receives every outstanding unit on the shipment\'s purchase orders into stock and marks the shipment delivered.',
   'inboundShipments.save':
     'Saves; a new tracking number with a connected carrier also reads its expected date.',
   'inboundShipments.track':
