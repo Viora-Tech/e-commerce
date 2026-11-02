@@ -470,11 +470,26 @@ export const transferFormContent = {
 /** The purchase order list's selection bar. */
 export const purchaseOrderBulkContent = {
   downloadPdfs: 'Download PDFs',
+  markOrdered: 'Mark as ordered',
   close: 'Close',
-  confirmClose: {
-    title: (n: number) => `Close ${n} purchase order${n === 1 ? '' : 's'}?`,
-    body: 'Anything not received yet stops showing as incoming. Received stock stays. Drafts and orders that are already finished are skipped.',
-    confirm: 'Close orders',
-    cancel: 'Cancel',
+  cancelOrders: 'Cancel orders',
+  delete: 'Delete',
+  keep: 'Keep',
+  confirm: {
+    close: {
+      title: (n: number) => `Close ${n} purchase order${n === 1 ? '' : 's'}?`,
+      body: 'Anything not received yet stops showing as incoming. Received stock stays. Drafts and orders that are already finished are skipped.',
+      confirm: 'Close orders',
+    },
+    cancel: {
+      title: (n: number) => `Cancel ${n} purchase order${n === 1 ? '' : 's'}?`,
+      body: 'Their stock stops showing as incoming. Orders that already have something received are skipped; close those instead. You can reopen a cancelled order later.',
+      confirm: 'Cancel orders',
+    },
+    delete: {
+      title: (n: number) => `Delete ${n} purchase order${n === 1 ? '' : 's'}?`,
+      body: 'Only drafts and cancelled orders are deleted, and this can’t be undone. Ordered and received orders are skipped.',
+      confirm: 'Delete',
+    },
   },
 } as const
