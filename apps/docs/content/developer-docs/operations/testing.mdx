@@ -6,16 +6,32 @@ title: Testing
 
 ```sh filename="Terminal"
 bun run test              # all packages, via turbo (unchanged packages are cache hits)
-bun run affected          # typecheck + test for packages changed since origin/main
+bun run affected          # typecheck + test for packages changed since origin/dev
 bun run test:coverage
 bun run test:sweeps       # guardrail sweeps — see /developer-docs/core-concepts/guardrails
 ```
 
 One vitest project per package/app that has tests.
 
+## Typecheck: TypeScript 7
+
+Every package's `typecheck` runs `scripts/typecheck.ts`, which calls TypeScript 7 (the native
+compiler, installed as `typescript7`): about 4x faster than 5.9 with the same results. TypeScript
+5.9 (`typescript`) stays installed and keeps the `tsc` command, because Next.js, the sweeps,
+`lint:components` and `gen-mcp-action-docs` use its JavaScript API, which TypeScript 7 no longer
+ships.
+
+## CI
+
+`.github/workflows/ci.yml` runs three jobs side by side: `lint` (lint, then the sweeps),
+`typecheck` (two packages at a time) and `test`, split into four shards by package (`api`, `core`,
+`apps` and `rest`, balanced on CI times; `rest` is everything not named, so a new package is always
+tested). Each job keeps turbo's cache in the GitHub Actions cache, so a package whose inputs did not
+change replays its last result. Pull requests restore `dev`'s entries.
+
 ## Testing fast (read this before running the suite)
 
-- **Test what changed.** `bun run affected` runs `turbo run typecheck test --filter=...[origin/main]`.
+- **Test what changed.** `bun run affected` runs `turbo run typecheck test --filter=...[origin/dev]`.
   For one package: `bun run turbo:shared run typecheck test --filter=@commerce/core`. A change to
   `commerce.config.ts`, `commerce.blocks.config.ts` or a plugin package also affects core and
   everything above it; run `bun run test` then (the cache still skips the rest).

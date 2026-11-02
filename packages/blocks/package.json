@@ -20,7 +20,7 @@
   },
   "scripts": {
     "test": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "bun ../../scripts/typecheck.ts"
   },
   "dependencies": {
     "@commerce/dates": "workspace:*",
