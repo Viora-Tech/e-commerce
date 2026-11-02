@@ -4,7 +4,7 @@ The owner asked "who created the shipping zone 'Kinja' for Bihar?" and nothing c
 the zone had only a timestamp, and evlog request logs reach container stdout only (no drain, 20%
 of successful events sampled in production). Every successful staff change is now recorded.
 
-- **Table** `store_activity` (migration `0192_store_activity`, snapshot chained from 0191): actor
+- **Table** `store_activity` (migration `0219_store_activity`, snapshot chained from 0191): actor
   id, name and email, `source` (admin, assistant, mcp, api; worker and storefront reserved),
   `action` (the procedure path), `area`, `resource_type` / `resource_id`, `summary`, `changes`
   (jsonb), `ip`, `user_agent`. RLS through `apply_store_rls()`; classified ADMIN in

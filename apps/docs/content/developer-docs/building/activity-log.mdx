@@ -5,7 +5,7 @@ description: How every successful staff change is recorded in store_activity, sc
 
 # Store activity log (audit trail)
 
-`store_activity` (migration `0192_store_activity`) holds one row per successful change a member
+`store_activity` (migration `0219_store_activity`) holds one row per successful change a member
 makes to a store: who (`actor_user_id`, `actor_name`, `actor_email`), from where (`source`, `ip`,
 `user_agent`), which procedure (`action`, e.g. `shipping.zones.create`), its `area`, the record
 (`resource_type`, `resource_id`), a `summary` line and `changes` (jsonb). Settings → Activity log

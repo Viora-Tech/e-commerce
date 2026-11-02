@@ -9,11 +9,8 @@ import PageHeader from '@/components/layout/page-header'
 import PageState from '@/components/states/page-state'
 import {
   appliedFromGroups,
-  clearGroups,
   type DateFilterValue,
-  FILTER_PANEL_CLASS,
   type FilterGroup,
-  FilterPanel,
 } from '@/components/table/filter-panel'
 import ResourceTable from '@/components/table/resource-table'
 import { activityLogContent } from '@/data/activity-log'
@@ -202,15 +199,7 @@ export default function ActivityLogPage() {
           query={query}
           onQueryChange={setQuery}
           onClearAll={handleClearAll}
-          filters={(close) => (
-            <FilterPanel
-              groups={groups}
-              onClear={() => clearGroups(groups)}
-              footer={{ label: panelCopy.show(total), onDone: close }}
-            />
-          )}
-          filtersClassName={FILTER_PANEL_CLASS}
-          applied={applied}
+          filterGroups={groups}
           page={page}
           perPage={perPage}
           total={total}

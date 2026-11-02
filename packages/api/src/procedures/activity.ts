@@ -10,11 +10,11 @@
  *        insert never fails the change) and `detachedWith` in its own short transaction.
  *        Settings → Activity log reads it (`routers/activity-log.ts`).
  */
-import { recordStoreActivity } from '@commerce/core'
 import type { StoreActivitySource, StoreTx } from '@commerce/db'
 import { scrubAudit } from '@commerce/observability'
 import type { AnyProcedure } from '@orpc/server'
 import { areaOf, humanName, isReadPath, routerProcedures } from '../mcp/action-catalogue'
+import { recordActivityRow } from '../services/store-activity.service'
 import type { SessionContext } from './base'
 
 /**
@@ -236,7 +236,7 @@ export async function recordChange(
     const path = await recordedPath(call.path, call.procedure)
     if (!path) return
     const entry = entryFor(context, path, call.input, call.output, call.note)
-    await tx.transaction((sp) => recordStoreActivity(sp, storeId, entry))
+    await recordActivityRow(tx, storeId, entry)
   } catch (error) {
     context.reportError?.(error, { storeId })
   }
