@@ -242,6 +242,25 @@ export const inboundShipmentFormContent = {
     confirm: 'Delete shipment',
     cancel: 'Cancel',
   },
+  /** "Mark as delivered" (#1065): receives what is outstanding on its purchase orders. */
+  deliver: {
+    action: 'Mark as delivered',
+    title: 'Mark this shipment delivered?',
+    loading: 'Checking what is still to come in…',
+    body: (units: number, orders: number) =>
+      `${units} ${units === 1 ? 'unit' : 'units'} from ${orders} purchase ${
+        orders === 1 ? 'order' : 'orders'
+      } go into stock at each order's location, and the shipment is marked delivered.`,
+    nothing: 'Everything on its purchase orders is already in. The shipment is marked delivered.',
+    shortHint:
+      'Some units missing or damaged? Receive that order on its own page first, with rejected units; this takes in the rest.',
+    order: (n: number, units: number) => `#PO${n}: ${units} ${units === 1 ? 'unit' : 'units'}`,
+    confirm: 'Receive and mark delivered',
+    cancel: 'Cancel',
+    done: (units: number) =>
+      `Shipment delivered: ${units} ${units === 1 ? 'unit' : 'units'} received`,
+    failed: 'Could not mark the shipment delivered',
+  },
 } as const
 
 export const chargesContent = {

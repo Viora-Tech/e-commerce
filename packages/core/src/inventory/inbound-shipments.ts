@@ -4,11 +4,15 @@
  * billed per consignment, not per order, so the shared cost has to live above the orders.
  */
 import { inboundShipment, newId, purchaseOrder, type StoreTx } from '@commerce/db'
-import { eq, sql } from 'drizzle-orm'
+import { and, eq, inArray, sql } from 'drizzle-orm'
 import { lockCostingGroup, recost } from './costing'
 import { inboundTrackingUrl } from './inbound-tracking'
 import { InventoryError, nextDocumentNumber } from './levels'
+import { loadPurchaseOrder } from './purchase-orders'
+import { receivePurchaseOrder } from './receiving'
 import type { InboundShipmentInput } from './schemas'
+import { syncShipmentArrival } from './shipment-arrival'
+import { remainingOf } from './stock'
 
 export async function saveInboundShipment(
   tx: StoreTx,
@@ -147,4 +151,87 @@ export async function deleteInboundShipment(
     )
   }
   await tx.delete(inboundShipment).where(eq(inboundShipment.id, id))
+}
+
+/** What is still to come in on a shipment, per purchase order (#1065). */
+export type ShipmentOutstanding = {
+  orders: {
+    id: string
+    number: number
+    units: number
+    lines: { lineId: string; outstanding: number }[]
+  }[]
+  units: number
+}
+
+/** Units still outstanding on each receivable purchase order of the shipment. */
+export async function shipmentOutstanding(
+  tx: StoreTx,
+  storeId: string,
+  shipmentId: string,
+): Promise<ShipmentOutstanding> {
+  const pos = await tx
+    .select({ id: purchaseOrder.id, number: purchaseOrder.number })
+    .from(purchaseOrder)
+    .where(
+      and(
+        eq(purchaseOrder.storeId, storeId),
+        eq(purchaseOrder.inboundShipmentId, shipmentId),
+        inArray(purchaseOrder.status, ['ordered', 'partially_received']),
+      ),
+    )
+    .orderBy(purchaseOrder.number)
+  const orders: ShipmentOutstanding['orders'] = []
+  for (const p of pos) {
+    const { lines } = await loadPurchaseOrder(tx, storeId, p.id)
+    const open = lines
+      .map((l) => ({ lineId: l.id, outstanding: remainingOf(l) }))
+      .filter((l) => l.outstanding > 0)
+    if (open.length === 0) continue
+    orders.push({
+      id: p.id,
+      number: p.number,
+      units: open.reduce((n, l) => n + l.outstanding, 0),
+      lines: open,
+    })
+  }
+  return { orders, units: orders.reduce((n, o) => n + o.units, 0) }
+}
+
+/**
+ * "Mark as delivered" (#1065): receives every outstanding unit of every purchase order on the
+ * shipment as accepted, at each order's own location, then marks the shipment delivered. Orders
+ * with a short or damaged delivery are received on the order itself first (accepted and
+ * rejected per line); whatever is left is what this takes in. Returns what it received.
+ */
+export async function receiveInboundShipment(
+  tx: StoreTx,
+  storeId: string,
+  shipmentId: string,
+  receivedBy: string | null = null,
+): Promise<{ orders: number; units: number }> {
+  const [found] = await tx
+    .select({ number: inboundShipment.number })
+    .from(inboundShipment)
+    .where(and(eq(inboundShipment.id, shipmentId), eq(inboundShipment.storeId, storeId)))
+  if (!found)
+    throw new InventoryError('SHIPMENT_NOT_FOUND', 'Inbound shipment not found', { storeId })
+  const { orders } = await shipmentOutstanding(tx, storeId, shipmentId)
+  let units = 0
+  for (const o of orders) {
+    const result = await receivePurchaseOrder(
+      tx,
+      storeId,
+      {
+        id: o.id,
+        receipts: o.lines.map((l) => ({ lineId: l.lineId, accepted: l.outstanding, rejected: 0 })),
+        note: `Inbound shipment #IS${found.number} marked delivered`,
+      },
+      receivedBy,
+    )
+    units += result.units
+  }
+  // Also covers a shipment whose orders were all received already, or that has none left open.
+  await syncShipmentArrival(tx, storeId, shipmentId)
+  return { orders: orders.length, units }
 }
