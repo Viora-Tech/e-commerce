@@ -224,6 +224,38 @@ export const draftEditorContent = {
     cod: 'Cash on delivery',
     razorpay: 'Razorpay',
   },
+  /** "Payment due later" (#1029). Keys match PAYMENT_TERMS in core; '' = paid now. */
+  terms: {
+    label: 'When it is paid',
+    options: {
+      '': 'Paid now',
+      receipt: 'Due on receipt',
+      fulfillment: 'Due on fulfilment',
+      net_7: 'Within 7 days',
+      net_15: 'Within 15 days',
+      net_30: 'Within 30 days',
+      net_45: 'Within 45 days',
+      net_60: 'Within 60 days',
+      net_90: 'Within 90 days',
+      fixed: 'On a date',
+    },
+    dueDate: 'Due date',
+    help: 'The order is placed now and marked unpaid. Record the payment on the order when it comes in.',
+    needsDate: 'Pick the date payment is due',
+  },
+  /** "Reserve items" (#1030). */
+  hold: {
+    heading: 'Reserve items',
+    body: "Hold this draft's stock so no one else can buy it. Prices on a draft stay as saved.",
+    until: 'Hold until',
+    reserve: 'Reserve items',
+    release: 'Release',
+    heldUntil: (date: string) => `Items held until ${date}`,
+    reserved: 'Items reserved',
+    released: 'Items released',
+    failed: 'Could not reserve the items',
+    saveFirst: 'Save the draft first',
+  },
 } as const
 
 /** The abandoned list's tabs after "All" (`?status=`); mirrors ABANDONED_LIST_STATUSES in core. */

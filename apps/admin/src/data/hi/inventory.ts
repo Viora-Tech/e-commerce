@@ -106,6 +106,7 @@ export default [
       decrease: 'एक घटाएँ',
       increase: 'एक बढ़ाएँ',
       label: (name: string) => `${name} के लिए उपलब्ध`,
+      onHandLabel: (name: string) => `${name} के लिए हाथ में स्टॉक`,
       saved: (name: string, available: number) => `${name}: ${available} उपलब्ध`,
       failed: 'स्टॉक अपडेट नहीं हो सका',
       history: 'स्टॉक का इतिहास',

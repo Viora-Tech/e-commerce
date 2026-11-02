@@ -44,6 +44,7 @@ export {
   storesWithChannelConnections,
   storesWithDueAffiliateCommissions,
   storesWithDueReviewRequests,
+  storesWithExpiredDraftHolds,
   storesWithHomeCardsDue,
   storesWithMarketingWork,
   storesWithMemberDailySummaries,

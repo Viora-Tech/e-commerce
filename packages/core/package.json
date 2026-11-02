@@ -96,6 +96,7 @@
     "./preorder-block": "./src/preorder/block.tsx",
     "./order-status": "./src/order/aggregate-status.ts",
     "./draft-number": "./src/order/draft-ref.ts",
+    "./payment-terms": "./src/order/payment-terms.ts",
     "./order-edit-rules": "./src/order/edit-rules.ts",
     "./fulfillment-orders": "./src/order/fulfillment-orders.ts",
     "./returns": "./src/returns/policy.ts",

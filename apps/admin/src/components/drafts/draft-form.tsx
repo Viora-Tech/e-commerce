@@ -22,6 +22,7 @@ import {
   missingAddressParts,
   savedCodeCheck,
 } from '@/components/drafts/draft-form-state'
+import DraftHoldCard from '@/components/drafts/draft-hold-card'
 import DraftProductsCard from '@/components/drafts/draft-products-card'
 import DraftTotalsCard from '@/components/drafts/draft-totals-card'
 import ActionMenu from '@/components/layout/action-menu'
@@ -190,7 +191,9 @@ export default function DraftForm({ draft, invoiceSent = false, initial }: Draft
         ? missingAddressHint(saved)
         : draftIncompleteBilling(saved)
           ? copy.actions.needsBilling
-          : null
+          : form.paymentTerms === 'fixed' && !form.paymentDueDate
+            ? copy.terms.needsDate
+            : null
   const convertButton = (
     <Button disabled={busy || convertHint !== null} onClick={handleConvert}>
       <CircleCheck aria-hidden="true" />
@@ -306,6 +309,14 @@ export default function DraftForm({ draft, invoiceSent = false, initial }: Draft
               hint={convertHint}
               paymentMethod={form.paymentMethod}
               onPaymentMethod={(paymentMethod) => patch({ paymentMethod })}
+              paymentTerms={form.paymentTerms}
+              paymentDueDate={form.paymentDueDate}
+              onTerms={patch}
+            />
+            <DraftHoldCard
+              draftId={id}
+              dirty={dirty}
+              heldUntil={draft?.reservedUntil ? new Date(draft.reservedUntil) : null}
             />
           </>
         }

@@ -440,3 +440,9 @@ export async function storesWithHomeCardsDue(db: Db, now = new Date()): Promise<
   )
   return rows.map((r) => r.id)
 }
+
+/** Store ids with a draft whose stock hold has run out (#1030). SECURITY DEFINER backed. */
+export async function storesWithExpiredDraftHolds(db: Db): Promise<string[]> {
+  const rows = await db.execute<{ id: string }>(sql`select stores_with_expired_draft_holds() as id`)
+  return rows.map((r) => r.id)
+}

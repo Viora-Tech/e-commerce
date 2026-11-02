@@ -11,6 +11,8 @@ type AvailableCellProps = {
   /** At or below this (and above zero) the number turns amber. */
   lowAt: number
   disabled?: boolean
+  /** The input's name for screen readers; defaults to "Available for …" (On hand reuses the cell). */
+  label?: (name: string) => string
   /** Called once the group loses focus with a changed value; resolves when saved. */
   onCommit: (delta: number) => Promise<boolean>
 }
@@ -35,6 +37,7 @@ export default function AvailableCell({
   available,
   lowAt,
   disabled,
+  label = copy.label,
   onCommit,
 }: AvailableCellProps) {
   // Hooks
@@ -76,7 +79,7 @@ export default function AvailableCell({
 
   return (
     <fieldset
-      aria-label={copy.label(name)}
+      aria-label={label(name)}
       className={cn(
         'group mx-auto flex w-fit min-w-0 items-center gap-0.5 rounded-lg border border-line bg-card p-0.5 transition-colors',
         changed && 'border-primary',
@@ -95,7 +98,7 @@ export default function AvailableCell({
       <input
         value={text}
         inputMode="numeric"
-        aria-label={copy.label(name)}
+        aria-label={label(name)}
         disabled={locked}
         onChange={(e) => setText(e.target.value)}
         onKeyDown={(e) => {

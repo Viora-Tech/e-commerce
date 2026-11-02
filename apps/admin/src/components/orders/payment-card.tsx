@@ -1,8 +1,10 @@
+import { paymentOverdue } from '@commerce/core/payment-terms'
 import { CircleCheck, CreditCard, RotateCcw } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import DataCard from '@/components/layout/data-card'
 import KeyValueList from '@/components/layout/key-value-list'
 import RelativeTime from '@/components/layout/relative-time'
+import StatusChip from '@/components/layout/status-chip'
 import StatusLabel from '@/components/status/status-label'
 import { orderDetailContent } from '@/data/order-detail'
 import { paymentRulesContent } from '@/data/payment-rules'
@@ -66,6 +68,10 @@ export default function PaymentCard({
   // Render logic
   const events = order.paymentEvents
   const multipleAttempts = order.payments.filter((p) => p.provider !== 'gift_card').length > 1
+  // Payment due later (#1029): shown while money is still owed.
+  const owed = order.paymentTerms !== null && order.paymentStatus !== 'paid'
+  const dueAt = order.paymentDueAt ? new Date(order.paymentDueAt) : null
+  const overdue = owed && paymentOverdue(dueAt, new Date())
 
   return (
     <DataCard
@@ -80,6 +86,16 @@ export default function PaymentCard({
       }
     >
       <div className="flex flex-col gap-5">
+        {owed ? (
+          <p className="flex items-center gap-2 text-body">
+            {dueAt ? copy.payment.dueOn(fmt.date(dueAt)) : copy.payment.dueOnFulfilment}
+            {overdue ? (
+              <StatusChip tone="attention" variant="outline">
+                {copy.payment.overdue}
+              </StatusChip>
+            ) : null}
+          </p>
+        ) : null}
         {order.depositPaise !== null ? (
           <PreorderBalanceLine order={order} onRequest={onRequestBalance} busy={busy} />
         ) : null}
