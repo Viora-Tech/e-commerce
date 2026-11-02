@@ -40,6 +40,7 @@ fails the moment someone adds a **new** violation that isn't on the list.
 | `turbo-cache-graph` | The cached `test`/`typecheck` tasks see the plugin packages that core reaches through `commerce.config.ts`: the root `//#plugin-graph` task lists exactly what the root configs import, and every package built on core depends on it. |
 | `admin-routes` | No new hardcoded admin path in an `href` or `redirect`/`push`/`replace` under `apps/admin/src`; use `routes` from `lib/routes.ts`. Allow-list is a count per file that may only go down. |
 | `site-config` | The brand name appears only in `siteConfig` (`@commerce/config/site`), never as a literal elsewhere. |
+| `theme-css-fence` | A rule in `packages/blocks/src/styles` that reads one of our theme settings (`:root[data-*]`) ends with `:not(:where(.shopify-section *))`, so it never reaches an imported Shopify theme's sections. |
 
 ## Cross-store leak test
 
