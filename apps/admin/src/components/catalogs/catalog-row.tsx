@@ -24,7 +24,7 @@ export default function CatalogRow({ catalog: c }: CatalogRowProps) {
   const markets = c.markets.map((m) => m.name).join(', ')
 
   return (
-    <SettingsTableRow>
+    <SettingsTableRow href={routes.catalogs.detail(c.id)}>
       <SettingsTableCell>
         <Link
           href={routes.catalogs.detail(c.id)}

@@ -2,13 +2,9 @@
 
 import type { CatalogueView, TriggerView } from '@commerce/core/automations'
 import { Workflow } from '@commerce/ui/icons'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@commerce/ui/shadcn/dialog'
+import { Dialog, DialogDescription, DialogTitle } from '@commerce/ui/shadcn/dialog'
+import DialogContent from '@/components/layout/dialog-content'
+import DialogHeader from '@/components/layout/dialog-header'
 import { automationPiecesContent, automationsContent } from '@/data/automations'
 import { useCopy, useLocale } from '@/hooks/use-copy'
 import { triggerLabel } from '@/lib/automation-labels'
@@ -69,7 +65,7 @@ export default function TriggerPickerDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent>
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           {description ? <DialogDescription>{description}</DialogDescription> : null}

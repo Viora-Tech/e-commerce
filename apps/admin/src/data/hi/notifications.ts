@@ -75,7 +75,7 @@ export default [
         when: 'ग्राहक के ऑर्डर करते ही।',
       },
       payment_received: {
-        name: 'पेमेंट मिल गया',
+        name: 'पेमेंट की रसीद',
         when: 'जब पेमेंट आ जाए या आप ऑर्डर को पेड मार्क करें।',
       },
       order_shipped: {

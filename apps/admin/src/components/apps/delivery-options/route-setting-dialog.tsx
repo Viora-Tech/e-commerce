@@ -4,13 +4,7 @@ import { carrierSettingKey, type RouteSetting } from '@commerce/core/delivery-op
 import { parseRupees } from '@commerce/money'
 import { Save, Trash2 } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@commerce/ui/shadcn/dialog'
+import { Dialog, DialogTitle } from '@commerce/ui/shadcn/dialog'
 import {
   Field,
   FieldDescription,
@@ -22,6 +16,9 @@ import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import ChoiceField from '@/components/apps/gst-invoices/choice-field'
 import MoneyInput from '@/components/fields/money-input'
+import DialogContent from '@/components/layout/dialog-content'
+import DialogFooter from '@/components/layout/dialog-footer'
+import DialogHeader from '@/components/layout/dialog-header'
 import SettingsToggleRow from '@/components/settings/settings-toggle-row'
 import { deliveryOptionsContent } from '@/data/delivery-options'
 import { useCopy } from '@/hooks/use-copy'
@@ -142,7 +139,7 @@ export default function RouteSettingDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-lg">
+      <DialogContent>
         <DialogHeader>
           <DialogTitle>
             {target.kind === 'exact' ? d.editTitle(target.label) : d.addTitle}

@@ -2,17 +2,13 @@
 
 import { Send } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@commerce/ui/shadcn/dialog'
+import { Dialog, DialogDescription, DialogTitle } from '@commerce/ui/shadcn/dialog'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { useEffect, useState } from 'react'
+import DialogContent from '@/components/layout/dialog-content'
+import DialogFooter from '@/components/layout/dialog-footer'
+import DialogHeader from '@/components/layout/dialog-header'
 import PillTabs from '@/components/layout/pill-tabs'
 import { notificationsSettingsContent } from '@/data/notifications'
 import { useCopy } from '@/hooks/use-copy'
@@ -70,7 +66,7 @@ export default function PreviewDialog({ messageId, onClose, onTest, testing }: P
 
   return (
     <Dialog open={messageId !== null} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto sm:max-w-[42rem]">
+      <DialogContent size="wide">
         <DialogHeader>
           <DialogTitle>{name}</DialogTitle>
           <DialogDescription>{copy.help}</DialogDescription>

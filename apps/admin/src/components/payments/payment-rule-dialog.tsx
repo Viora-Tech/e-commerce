@@ -5,14 +5,7 @@ import type { PaymentMethodRule } from '@commerce/core/payment-method-rules'
 import { parseRupees } from '@commerce/money'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Checkbox } from '@commerce/ui/shadcn/checkbox'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@commerce/ui/shadcn/dialog'
+import { Dialog, DialogDescription, DialogTitle } from '@commerce/ui/shadcn/dialog'
 import { Field, FieldDescription, FieldError, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import { NativeSelect, NativeSelectOption } from '@commerce/ui/shadcn/native-select'
@@ -20,6 +13,9 @@ import { Switch } from '@commerce/ui/shadcn/switch'
 import { Textarea } from '@commerce/ui/shadcn/textarea'
 import { useState } from 'react'
 import { itemTabs, loadPicked } from '@/components/discounts/pick-sources'
+import DialogContent from '@/components/layout/dialog-content'
+import DialogFooter from '@/components/layout/dialog-footer'
+import DialogHeader from '@/components/layout/dialog-header'
 import PickedField from '@/components/pickers/picked-field'
 import { discountFormContent } from '@/data/discounts'
 import { paymentRulesContent } from '@/data/payment-rules'
@@ -121,7 +117,7 @@ export default function PaymentRuleDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-xl">
+      <DialogContent>
         <DialogHeader>
           <DialogTitle>{rule ? copy.editTitle : copy.addTitle}</DialogTitle>
           <DialogDescription>{copy.description}</DialogDescription>

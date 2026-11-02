@@ -27,7 +27,7 @@ export default function RolloutRow({ rollout: r }: RolloutRowProps) {
   const markets = r.audience?.marketIds.length ?? 0
 
   return (
-    <SettingsTableRow>
+    <SettingsTableRow href={routes.rollouts.detail(r.id)}>
       <SettingsTableCell>
         <Link
           href={routes.rollouts.detail(r.id)}

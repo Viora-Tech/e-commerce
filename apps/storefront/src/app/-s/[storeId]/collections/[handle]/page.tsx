@@ -17,7 +17,7 @@ import { COLLECTION_PER_PAGE } from '@/data/collections'
 import { listCardProducts } from '@/lib/catalog'
 import { getCollectionByHandle } from '@/lib/collections'
 import { digest } from '@/lib/liquid-cache'
-import { canonicalPath, metaDescription, requestOrigin } from '@/lib/seo'
+import { marketCanonical, metaDescription, requestOrigin } from '@/lib/seo'
 import { storeRead } from '@/lib/store-cache'
 import { renderTemplate } from '@/lib/template-render'
 
@@ -49,7 +49,7 @@ export async function generateMetadata({ params, searchParams }: Params): Promis
   )
   // Filtered and re-sorted views are the same collection: they point at the plain
   // page and stay out of the index, as Shopify's do.
-  const url = canonicalPath(`/collections/${found.handle}`, parsePage(query.page))
+  const url = await marketCanonical(`/collections/${found.handle}`, parsePage(query.page))
   const variant = hasActiveFilters(parseBrowseFilters(query)) || query.sort_by !== undefined
   const image = found.imageUrl ? [{ url: found.imageUrl, alt: found.title }] : undefined
   return {

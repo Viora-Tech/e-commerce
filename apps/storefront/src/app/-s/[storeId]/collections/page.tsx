@@ -4,13 +4,16 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { collectionsContent as copy } from '@/data/collections'
 import { listCollections } from '@/lib/collections'
+import { marketCanonical } from '@/lib/seo'
 import { inStore } from '@/lib/store-context'
 
 type Params = { params: Promise<{ storeId: string }> }
 
-export const metadata: Metadata = {
-  title: copy.indexTitle,
-  alternates: { canonical: '/collections' },
+export async function generateMetadata(): Promise<Metadata> {
+  return {
+    title: copy.indexTitle,
+    alternates: { canonical: await marketCanonical('/collections') },
+  }
 }
 
 export default async function CollectionsIndex({ params }: Params) {

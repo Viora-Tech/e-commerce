@@ -3,17 +3,13 @@
 import { MAX_PINS_PER_TERM, MAX_QUERY_LENGTH } from '@commerce/core/discovery'
 import { Plus } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@commerce/ui/shadcn/dialog'
+import { Dialog, DialogDescription, DialogTitle } from '@commerce/ui/shadcn/dialog'
 import { Field, FieldDescription, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import { useEffect, useId, useState } from 'react'
+import DialogContent from '@/components/layout/dialog-content'
+import DialogFooter from '@/components/layout/dialog-footer'
+import DialogHeader from '@/components/layout/dialog-header'
 import SelectProductsDialog, {
   type PickedProducts,
 } from '@/components/products/select-products-dialog'
@@ -79,7 +75,7 @@ export default function PinDialog({ open, onOpenChange, term, products, onSave }
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent>
           <DialogHeader>
             <DialogTitle>{d.title}</DialogTitle>
             <DialogDescription>{copy.boosts.pins.description}</DialogDescription>

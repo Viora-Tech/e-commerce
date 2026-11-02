@@ -2,14 +2,7 @@
 
 import { Pencil, Save } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@commerce/ui/shadcn/dialog'
+import { Dialog, DialogDescription, DialogTitle } from '@commerce/ui/shadcn/dialog'
 import { Field, FieldGroup, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import { ToggleGroup, ToggleGroupItem } from '@commerce/ui/shadcn/toggle-group'
@@ -17,6 +10,9 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 import MoneyInput from '@/components/fields/money-input'
 import DataCard from '@/components/layout/data-card'
+import DialogContent from '@/components/layout/dialog-content'
+import DialogFooter from '@/components/layout/dialog-footer'
+import DialogHeader from '@/components/layout/dialog-header'
 import { giftCardDetailContent } from '@/data/gift-cards'
 import { api } from '@/lib/api-client'
 import { formatPaise } from '@/lib/money'

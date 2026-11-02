@@ -2,13 +2,7 @@
 
 import { Save } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@commerce/ui/shadcn/dialog'
+import { Dialog, DialogTitle } from '@commerce/ui/shadcn/dialog'
 import {
   Field,
   FieldDescription,
@@ -20,6 +14,9 @@ import { Input } from '@commerce/ui/shadcn/input'
 import { useEffect, useState } from 'react'
 import ChoiceField from '@/components/apps/gst-invoices/choice-field'
 import MoneyInput from '@/components/fields/money-input'
+import DialogContent from '@/components/layout/dialog-content'
+import DialogFooter from '@/components/layout/dialog-footer'
+import DialogHeader from '@/components/layout/dialog-header'
 import { shippingRatesContent } from '@/data/shipping-rates'
 import { useCopy } from '@/hooks/use-copy'
 import { emptyRate, type RateDraft, rateErrors } from './form-state'
@@ -70,7 +67,7 @@ export default function RateDialog({ open, rate, onOpenChange, onDone, cod }: Ra
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-lg">
+      <DialogContent>
         <DialogHeader>
           <DialogTitle>{rate ? copy.editTitle : copy.createTitle}</DialogTitle>
         </DialogHeader>

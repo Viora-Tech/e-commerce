@@ -4,14 +4,7 @@ import { type ApiScopes, TOKEN_EXPIRY_DAYS, type TokenExpiryDays } from '@commer
 import { CheckIcon, Copy } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@commerce/ui/shadcn/dialog'
+import { Dialog, DialogDescription, DialogTitle } from '@commerce/ui/shadcn/dialog'
 import { Input } from '@commerce/ui/shadcn/input'
 import { Label } from '@commerce/ui/shadcn/label'
 import {
@@ -24,6 +17,9 @@ import {
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import DialogContent from '@/components/layout/dialog-content'
+import DialogFooter from '@/components/layout/dialog-footer'
+import DialogHeader from '@/components/layout/dialog-header'
 import FormDialog from '@/components/layout/form-dialog'
 import StatusChip from '@/components/layout/status-chip'
 import { mcpContent } from '@/data/mcp'
@@ -114,7 +110,7 @@ export default function CreateTokenDialog({
     const shown = `${created.token.slice(0, 13)}${'â€¢'.repeat(16)}${created.token.slice(-4)}`
     return (
       <Dialog open={open} onOpenChange={(o) => (o ? null : handleDone())}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent>
           <DialogHeader>
             <DialogTitle>{copy.shown.title}</DialogTitle>
             <DialogDescription>{copy.shown.intro}</DialogDescription>

@@ -8,13 +8,9 @@ import {
   tierAllows,
 } from '@commerce/core/automations'
 import { Clock, Lock, RefreshCw, Search, Send, ShieldCheck, Workflow } from '@commerce/ui/icons'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@commerce/ui/shadcn/dialog'
+import { Dialog, DialogDescription, DialogTitle } from '@commerce/ui/shadcn/dialog'
+import DialogContent from '@/components/layout/dialog-content'
+import DialogHeader from '@/components/layout/dialog-header'
 import StatusChip from '@/components/layout/status-chip'
 import {
   automationEditorContent,
@@ -143,7 +139,7 @@ export default function StepPickerDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent>
         <DialogHeader>
           <DialogTitle>{p.title}</DialogTitle>
           <DialogDescription>{where}</DialogDescription>

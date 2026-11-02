@@ -88,7 +88,7 @@ export const notificationsSettingsContent = {
   messages: {
     order_placed: { name: 'Order confirmation', when: 'Right after a customer places an order.' },
     payment_received: {
-      name: 'Payment received',
+      name: 'Payment receipt',
       when: 'When the payment comes in or you mark the order paid.',
     },
     order_shipped: {

@@ -3,14 +3,7 @@
 import { RETURN_REASONS, type ReturnReason } from '@commerce/core/returns'
 import { Undo } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@commerce/ui/shadcn/dialog'
+import { Dialog, DialogDescription, DialogTitle } from '@commerce/ui/shadcn/dialog'
 import { Field, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import {
@@ -23,6 +16,9 @@ import {
 import { Textarea } from '@commerce/ui/shadcn/textarea'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import DialogContent from '@/components/layout/dialog-content'
+import DialogFooter from '@/components/layout/dialog-footer'
+import DialogHeader from '@/components/layout/dialog-header'
 import { orderReturnsContent, returnDetailContent, returnsContent } from '@/data/returns'
 import { api } from '@/lib/api-client'
 

@@ -12,6 +12,7 @@ import {
   TableRow,
 } from '@commerce/ui/shadcn/table'
 import Link from 'next/link'
+import LinkRow from '@/components/table/link-row'
 import { growthHomeContent } from '@/data/growth-home'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { routes } from '@/lib/routes'
@@ -87,7 +88,7 @@ export default function RecentCampaignsCard({ rows }: RecentCampaignsCardProps) 
             </TableHeader>
             <TableBody>
               {shown.map((r) => (
-                <TableRow key={r.key}>
+                <LinkRow href={r.id ? routes.growth.campaign(r.id) : undefined} key={r.key}>
                   <TableCell className="text-body-strong">
                     {r.id ? (
                       <Link href={routes.growth.campaign(r.id)} className="hover:underline">
@@ -105,7 +106,7 @@ export default function RecentCampaignsCard({ rows }: RecentCampaignsCardProps) 
                   <TableCell className="text-right tabular-nums">
                     {r.salesPaise ? fmt.moneyWhole(r.salesPaise) : dash}
                   </TableCell>
-                </TableRow>
+                </LinkRow>
               ))}
             </TableBody>
           </Table>

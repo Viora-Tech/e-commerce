@@ -35,7 +35,9 @@ export async function cartDiscountView(
   )
   if (!outcome) return codeRejected ? emptyRejected(codeRejected) : null
   return {
-    label: outcome.label,
+    // A code shows as the code the shopper typed; its title is the merchant's own name for it
+    // ("Payment test, delete after…"). An automatic discount has only its title to show.
+    label: outcome.discount.code ?? outcome.label,
     code: outcome.discount.code,
     amountPaise: outcome.amountPaise,
     freeShipping: outcome.freeShipping,

@@ -64,6 +64,8 @@ export const orderEditRoutes = {
         restock: z.boolean(),
         notifyCustomer: z.boolean(),
         refund: refundRoute,
+        /** Store credit's last day (YYYY-MM-DD); left out, it never expires. */
+        storeCreditExpiresOn: z.iso.date().optional(),
       }),
     )
     .handler(async ({ context, input }) => {

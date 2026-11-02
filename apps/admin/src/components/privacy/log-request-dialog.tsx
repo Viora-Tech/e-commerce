@@ -4,19 +4,15 @@ import { type DataRequestKind, STAFF_REQUEST_SOURCES } from '@commerce/core/priv
 import { Plus } from '@commerce/ui/icons'
 import PhoneInput from '@commerce/ui/phone-input'
 import { Button } from '@commerce/ui/shadcn/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@commerce/ui/shadcn/dialog'
+import { Dialog, DialogDescription, DialogTitle } from '@commerce/ui/shadcn/dialog'
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import { Textarea } from '@commerce/ui/shadcn/textarea'
 import { type FormEvent, useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import DialogContent from '@/components/layout/dialog-content'
+import DialogFooter from '@/components/layout/dialog-footer'
+import DialogHeader from '@/components/layout/dialog-header'
 import ChoiceList from '@/components/returns/choice-list'
 import { logRequestContent as copy, SOURCE_LABEL } from '@/data/customer-privacy'
 import { api } from '@/lib/api-client'
@@ -116,7 +112,7 @@ export default function LogRequestDialog({
     <Dialog open={open} onOpenChange={(o) => (!o ? onClose() : undefined)}>
       {/* Wide enough for the email and phone side by side; the default width left the phone box
           about 50px wide (#110). */}
-      <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-xl">
+      <DialogContent>
         <form onSubmit={handleSubmit} className="flex flex-col gap-5">
           <DialogHeader>
             <DialogTitle>{copy.title}</DialogTitle>

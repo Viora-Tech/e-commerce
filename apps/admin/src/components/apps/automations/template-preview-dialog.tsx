@@ -2,14 +2,10 @@
 
 import type { CatalogueView, WorkflowDefinition } from '@commerce/core/automations'
 import { Button } from '@commerce/ui/shadcn/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@commerce/ui/shadcn/dialog'
+import { Dialog, DialogDescription, DialogTitle } from '@commerce/ui/shadcn/dialog'
+import DialogContent from '@/components/layout/dialog-content'
+import DialogFooter from '@/components/layout/dialog-footer'
+import DialogHeader from '@/components/layout/dialog-header'
 import {
   automationEditorContent,
   automationPiecesContent,
@@ -51,7 +47,7 @@ export default function TemplatePreviewDialog({
   // Render logic
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-3xl">
+      <DialogContent size="wide">
         <DialogHeader>
           <DialogTitle>{copy.previewTitle(name)}</DialogTitle>
           <DialogDescription>{description}</DialogDescription>

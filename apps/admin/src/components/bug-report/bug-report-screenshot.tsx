@@ -1,7 +1,8 @@
 'use client'
 
-import { Dialog, DialogContent, DialogTitle } from '@commerce/ui/shadcn/dialog'
+import { Dialog, DialogTitle } from '@commerce/ui/shadcn/dialog'
 import { useState } from 'react'
+import DialogContent from '@/components/layout/dialog-content'
 import { myBugReportsContent } from '@/data/bug-report'
 import { useCopy } from '@/hooks/use-copy'
 
@@ -34,7 +35,7 @@ export default function BugReportScreenshot({ url, title }: BugReportScreenshotP
         />
       </button>
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="sm:max-w-4xl">
+        <DialogContent size="wide">
           <DialogTitle className="pr-8">{copy.screenshot}</DialogTitle>
           {/* biome-ignore lint/performance/noImgElement: a remote screenshot on the store's CDN, shown as is */}
           <img

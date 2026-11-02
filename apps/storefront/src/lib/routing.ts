@@ -123,6 +123,20 @@ export type PrimaryRedirectInput = {
   dev: boolean
 }
 
+/**
+ * Where a redirecting domain sends its visitors: the store's primary, unless it is the www/apex
+ * twin of a market's own domain (`www.waimers.ae` with the UAE market on `waimers.ae`), which
+ * goes to that domain instead, so the shopper stays in their market.
+ */
+export function redirectHostFor(
+  hostname: string,
+  primaryHostname: string | null,
+  marketHosts: readonly (string | null)[],
+): string | null {
+  const twin = hostname.startsWith('www.') ? hostname.slice(4) : `www.${hostname}`
+  return marketHosts.includes(twin) ? twin : primaryHostname
+}
+
 /** Paths that must answer on whichever host they were called on. */
 const NEVER_REDIRECT = ['/api/', '/_next/', '/webhooks/']
 

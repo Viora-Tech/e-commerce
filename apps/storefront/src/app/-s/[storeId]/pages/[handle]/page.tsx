@@ -5,7 +5,7 @@ import { eq } from 'drizzle-orm'
 import type { Metadata } from 'next'
 import { notFound, permanentRedirect } from 'next/navigation'
 import MainPage from '@/components/pages/main-page'
-import { metaDescription, NO_INDEX } from '@/lib/seo'
+import { marketCanonical, metaDescription, NO_INDEX } from '@/lib/seo'
 import { inStore } from '@/lib/store-context'
 import { isThemePreview, renderTemplate } from '@/lib/template-render'
 
@@ -29,7 +29,7 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const description = metaDescription(
     found.seoDescription || richTextToPlainText(parseRichText(found.body)),
   )
-  const url = `/pages/${found.handle}`
+  const url = await marketCanonical(`/pages/${found.handle}`)
   return {
     title,
     description,

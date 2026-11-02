@@ -2,14 +2,16 @@ import { liveThemeSettings, parsePreferences } from '@commerce/core'
 import { store } from '@commerce/db'
 import { eq } from 'drizzle-orm'
 import type { Metadata } from 'next'
-import { jsonLd, requestOrigin, storeGraph } from '@/lib/seo'
+import { jsonLd, marketCanonical, requestOrigin, storeGraph } from '@/lib/seo'
 import { storeRead } from '@/lib/store-cache'
 import { renderTemplate } from '@/lib/template-render'
 
 type Params = { params: Promise<{ storeId: string }> }
 
 // Title, description and social image come from the layout (Online Store > Preferences).
-export const metadata: Metadata = { alternates: { canonical: '/' } }
+export async function generateMetadata(): Promise<Metadata> {
+  return { alternates: { canonical: await marketCanonical('/') } }
+}
 
 export default async function Home({ params }: Params) {
   const { storeId } = await params

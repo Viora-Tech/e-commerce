@@ -2,10 +2,12 @@
 
 import { CheckIcon, Search } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@commerce/ui/shadcn/dialog'
+import { Dialog, DialogTitle } from '@commerce/ui/shadcn/dialog'
 import { Input } from '@commerce/ui/shadcn/input'
 import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { useEffect, useState } from 'react'
+import DialogContent from '@/components/layout/dialog-content'
+import DialogHeader from '@/components/layout/dialog-header'
 import EmptyState from '@/components/layout/empty-state'
 import { fieldInputContent } from '@/data/metaobjects'
 import { useCopy } from '@/hooks/use-copy'
@@ -69,7 +71,7 @@ export default function ReferenceSearchDialog({
   // Render logic
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent>
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
         </DialogHeader>

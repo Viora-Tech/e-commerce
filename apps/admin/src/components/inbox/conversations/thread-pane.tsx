@@ -3,11 +3,13 @@
 import type { InboxConnectionEvent } from '@commerce/core/inbox'
 import { permissions } from '@commerce/core/permissions'
 import { Button } from '@commerce/ui/shadcn/button'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@commerce/ui/shadcn/dialog'
+import { Dialog, DialogTitle } from '@commerce/ui/shadcn/dialog'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
+import DialogContent from '@/components/layout/dialog-content'
+import DialogHeader from '@/components/layout/dialog-header'
 import { inboxConversationsContent } from '@/data/inbox-conversations'
 import { inboxKnowledgeContent } from '@/data/inbox-knowledge'
 import { useCopy } from '@/hooks/use-copy'
@@ -358,7 +360,7 @@ export default function ThreadPane({
         {panel}
       </aside>
       <Dialog open={panelOpen} onOpenChange={setPanelOpen}>
-        <DialogContent className="sm:max-w-md xl:hidden">
+        <DialogContent className="xl:hidden">
           <DialogHeader>
             <DialogTitle>{copy.panel.title}</DialogTitle>
           </DialogHeader>

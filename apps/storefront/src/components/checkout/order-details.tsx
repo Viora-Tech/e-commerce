@@ -14,6 +14,10 @@ type OrderDetailsProps = {
 
 const stateName = (code: string): string => INDIAN_STATES.find(([c]) => c === code)?.[1] ?? code
 
+/** A country's English name (`AE` → United Arab Emirates). */
+const countryName = (code: string): string =>
+  new Intl.DisplayNames(['en'], { type: 'region' }).of(code) ?? code
+
 /**
  * The second card's grid: Contact, Payment (how, and what was paid or is still to pay),
  * Delivering to and Shipping (the rate and its price). Two columns from `sm`.
@@ -50,7 +54,9 @@ export default function OrderDetails({
       [
         shipTo.name,
         [shipTo.line1, shipTo.line2].filter(Boolean).join(', '),
-        `${shipTo.city}, ${stateName(shipTo.stateCode)} ${shipTo.pincode}`,
+        `${shipTo.city}, ${stateName(shipTo.stateCode)} ${shipTo.pincode}`.trim(),
+        // An address abroad names its country; an Indian one never needs to.
+        ...(shipTo.country && shipTo.country !== 'IN' ? [countryName(shipTo.country)] : []),
       ],
     ])
   }

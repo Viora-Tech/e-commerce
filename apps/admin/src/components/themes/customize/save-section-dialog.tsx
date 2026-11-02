@@ -3,19 +3,15 @@
 import { CUSTOM_SECTION_LIMITS, type TemplateSection } from '@commerce/core/theme'
 import { Bookmark } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@commerce/ui/shadcn/dialog'
+import { Dialog, DialogDescription, DialogTitle } from '@commerce/ui/shadcn/dialog'
 import { Field, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { type FormEvent, useState } from 'react'
 import { toast } from 'sonner'
+import DialogContent from '@/components/layout/dialog-content'
+import DialogFooter from '@/components/layout/dialog-footer'
+import DialogHeader from '@/components/layout/dialog-header'
 import { customizeContent } from '@/data/customize'
 import { saveMySection } from '@/lib/customize-my-sections'
 import { useEditingThemeId } from '@/lib/customize-theme-context'
@@ -56,7 +52,7 @@ export default function SaveSectionDialog({ block, defaultName, onClose }: SaveS
   // Render logic
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-[26rem]">
+      <DialogContent>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <DialogHeader>
             <div className="flex items-center gap-2.5">

@@ -39,6 +39,7 @@ import {
   listingSearch,
   PASSWORD_PREFIX,
   primaryRedirect,
+  redirectHostFor,
   routeForAccounts,
   routeForCheckoutHost,
   routeForStore,
@@ -151,14 +152,22 @@ async function routeRequest(request: NextRequest, withNonce: (headers: Headers) 
   }
   const { storeId } = hostRoute
 
-  // Old domains and the www/apex twin send shoppers to the primary domain.
+  // Old domains and the www/apex twin send shoppers to the primary domain; the twin of a
+  // market's own domain sends them to that domain instead.
+  const redirectHost = hostRoute.redirect
+    ? redirectHostFor(
+        hostname,
+        hostRoute.primaryHostname,
+        ((await marketsOf(storeId)) ?? []).filter((m) => m.enabled).map((m) => m.hostname),
+      )
+    : hostRoute.primaryHostname
   const target = primaryRedirect({
     hostname,
     port: host?.split(':')[1] ?? '',
     pathname: request.nextUrl.pathname,
     search: request.nextUrl.search,
     protocol: request.nextUrl.protocol,
-    primaryHostname: hostRoute.primaryHostname,
+    primaryHostname: redirectHost,
     redirect: hostRoute.redirect,
     inFrame: request.headers.get('sec-fetch-dest') === 'iframe',
     previewing: request.nextUrl.searchParams.has(THEME_PREVIEW_PARAM),

@@ -6,6 +6,7 @@ import {
 } from '@commerce/blocks'
 import { loadProductPageExtras } from '@commerce/core'
 import { seoSnippet } from '@commerce/core/catalog'
+import { isAbroad } from '@commerce/core/checkout-address'
 import {
   depositIsNonRefundable,
   type PreorderStoreSettings,
@@ -17,6 +18,7 @@ import { emiOfferFor } from '@commerce/plugin-emi/offer'
 import { parseRichText, richTextToPlainText } from '@commerce/richtext'
 import { eq } from 'drizzle-orm'
 import type { Metadata } from 'next'
+import { headers } from 'next/headers'
 import { notFound } from 'next/navigation'
 import { cache } from 'react'
 import PixelTrack from '@/components/analytics/pixel-track'
@@ -35,10 +37,11 @@ import { backInStockContext } from '@/lib/back-in-stock-context'
 import { addLineAction } from '@/lib/cart-actions'
 import { getProductByHandle, getProductSeo, type ProductDetail } from '@/lib/catalog'
 import { storeEmiOffers } from '@/lib/emi-offers'
+import { MARKET_HEADERS } from '@/lib/markets'
 import { storeOffersEmi, storeUpiDiscount } from '@/lib/payments'
 import { policyPanels } from '@/lib/related'
 import { productReviews } from '@/lib/reviews'
-import { jsonLd, metaDescription, productGraph, requestOrigin } from '@/lib/seo'
+import { jsonLd, marketCanonical, metaDescription, productGraph, requestOrigin } from '@/lib/seo'
 import { estimateDeliveryAction } from '@/lib/shipping-actions'
 import { storeRead } from '@/lib/store-cache'
 import { renderTemplate } from '@/lib/template-render'
@@ -110,7 +113,7 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const found = await loadProduct(storeId, handle)
   if (!found) return {}
   const { product, title, description } = found
-  const url = `/products/${product.handle}`
+  const url = await marketCanonical(`/products/${product.handle}`)
   const images = product.images
     .filter((i) => !i.contentType?.startsWith('video/'))
     .slice(0, 4)
@@ -157,7 +160,16 @@ export default async function ProductPage({ params, searchParams }: Params) {
   const legacyEmi = emiApp.installed
     ? false
     : await storeRead(storeId, 'legacy-emi', (tx) => storeOffersEmi(tx, storeId))
-  const UnderPrice = emiApp.config ? EmiOffers : legacyEmi ? EmiHint : undefined
+  // EMI and UPI are Indian ways to pay: a shopper in a market abroad sees neither the
+  // "EMI from ₹…" line nor a "… with UPI" price (the cart says the same, `paymentsAbroad`).
+  const abroad = isAbroad((await headers()).get(MARKET_HEADERS.country) ?? 'IN')
+  const UnderPrice = abroad
+    ? undefined
+    : emiApp.config
+      ? EmiOffers
+      : legacyEmi
+        ? EmiHint
+        : undefined
   const bis = await storeRead(storeId, 'back-in-stock', (tx) => backInStockContext(tx, storeId))
   const policies = await storeRead(storeId, 'policy-panels', (tx) => policyPanels(tx))
   const variant = defaultVariant(product)
@@ -202,7 +214,7 @@ export default async function ProductPage({ params, searchParams }: Params) {
         launchAt: product.launchAt ?? null,
       },
       deliveryChecker: { estimate: estimateDeliveryAction },
-      emiOffers: emiOfferFor(emiApp.config, variant?.pricePaise ?? 0),
+      emiOffers: abroad ? null : emiOfferFor(emiApp.config, variant?.pricePaise ?? 0),
       reviews: reviews?.widget,
     },
     renderers: {
@@ -213,6 +225,7 @@ export default async function ProductPage({ params, searchParams }: Params) {
             onAddToCart={addLineAction}
             settings={{
               ...mainProductSettings(s),
+              ...(abroad ? { showPaymentSignals: false } : {}),
               ratingValue: rated?.rating ?? 0,
               ratingCount: rated?.count ?? 0,
             }}

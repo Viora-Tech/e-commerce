@@ -3,7 +3,7 @@ import { parseRichText, richTextToPlainText } from '@commerce/richtext'
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import PolicyPage from '@/components/policies/policy-page'
-import { metaDescription, NO_INDEX } from '@/lib/seo'
+import { marketCanonical, metaDescription, NO_INDEX } from '@/lib/seo'
 import { inStore } from '@/lib/store-context'
 import { isThemePreview } from '@/lib/template-render'
 
@@ -22,7 +22,7 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const description = metaDescription(
     found.seoDescription || richTextToPlainText(parseRichText(found.body)),
   )
-  const url = policyPath(type)
+  const url = await marketCanonical(policyPath(type))
   return {
     title,
     description,

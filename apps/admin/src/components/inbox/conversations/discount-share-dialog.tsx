@@ -2,15 +2,11 @@
 
 import { BadgePercent } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@commerce/ui/shadcn/dialog'
+import { Dialog, DialogDescription, DialogTitle } from '@commerce/ui/shadcn/dialog'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { useEffect, useState } from 'react'
+import DialogContent from '@/components/layout/dialog-content'
+import DialogHeader from '@/components/layout/dialog-header'
 import EmptyState from '@/components/layout/empty-state'
 import { inboxConversationsContent } from '@/data/inbox-conversations'
 import { useCopy } from '@/hooks/use-copy'
@@ -65,7 +61,7 @@ export default function DiscountShareDialog({ onClose, onShare }: DiscountShareD
         if (!open) onClose()
       }}
     >
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent>
         <DialogHeader>
           <DialogTitle>{d.title}</DialogTitle>
           <DialogDescription>{d.description}</DialogDescription>

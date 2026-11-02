@@ -28,7 +28,7 @@ export default function PreorderProductRow({ product: p }: PreorderProductRowPro
   const t = copy.products
 
   return (
-    <SettingsTableRow>
+    <SettingsTableRow href={routes.products.detail(p.id)}>
       <SettingsTableCell>
         <Link
           href={routes.products.detail(p.id)}

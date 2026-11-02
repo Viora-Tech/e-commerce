@@ -20,9 +20,15 @@ export const refundRouteContent = {
 } as const
 
 export const orderCancelContent = {
-  title: 'Cancel this order?',
+  title: (number: number) => `Cancel order #${number}?`,
   body: 'The order closes and cannot be reopened. Cancel any booked courier pickup separately.',
-  reason: 'Reason',
+  refundHeading: 'Refund payment',
+  later: 'Later',
+  laterHint: 'Nothing goes back now. You can refund from the payment card any time.',
+  noExpiry: 'No expiry date',
+  addExpiry: 'Add expiry date',
+  expiryLabel: 'Last day the credit can be used',
+  reason: 'Reason for cancellation',
   /** #125: Shopify-style reasons, stored as a code with the optional note. */
   reasons: {
     customer: 'Customer changed their mind',
@@ -31,13 +37,14 @@ export const orderCancelContent = {
     declined: 'Payment declined',
     other: 'Other',
   } satisfies Record<OrderCancelReason, string>,
-  note: 'Note (optional)',
-  reasonPlaceholder: 'Anything staff should know, for example which item ran out',
+  note: 'Staff note',
+  noteHint: 'Only you and your staff can see this note.',
+  reasonPlaceholder: 'For example, which item ran out',
   restock: 'Restock items',
   restockHint: 'Put the unsent items back on sale.',
   restockImported:
     'Off by default for an imported order: its stock came from your old store, which had already taken these items out. Turn it on only if they are back on the shelf and not counted yet.',
-  notify: 'Notify customer',
+  notify: 'Send the customer an email that the order was cancelled',
   notifyHint: 'Email the customer that the order was cancelled.',
   nothingToRefund: 'Nothing was paid, so there is nothing to refund.',
   confirm: 'Cancel order',

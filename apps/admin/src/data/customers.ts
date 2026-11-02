@@ -299,7 +299,7 @@ export const customerDetailContent = {
     empty: 'No messages sent to this customer yet.',
     template: {
       order_placed: 'Order confirmation',
-      payment_received: 'Payment received',
+      payment_received: 'Payment receipt',
       order_shipped: 'Shipping update',
       checkout_recovery: 'Checkout reminder',
       document_copy: 'Invoice copy',

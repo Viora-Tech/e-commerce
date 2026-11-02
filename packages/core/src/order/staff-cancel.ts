@@ -51,6 +51,8 @@ export type StaffCancelInput = {
   author: string
   /** For `store_credit`: the settings secret the gift card code is encrypted with. */
   settingsSecret?: string | undefined
+  /** For `store_credit`: the card's last day (YYYY-MM-DD); none, it never expires. */
+  storeCreditExpiresOn?: string | null | undefined
 }
 
 const ROUTE_WORDS: Record<RefundRoute, string> = {
@@ -142,7 +144,11 @@ export async function cancelOrderByStaff(
     providers,
     storeCredit:
       input.refund === 'store_credit' && input.settingsSecret
-        ? { secret: input.settingsSecret, createdBy: input.author }
+        ? {
+            secret: input.settingsSecret,
+            createdBy: input.author,
+            expiresOn: input.storeCreditExpiresOn ?? null,
+          }
         : undefined,
   })
   await ctx.tx.insert(orderNote).values({

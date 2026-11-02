@@ -10,13 +10,7 @@ import {
 } from '@commerce/plugin-reviews/settings'
 import { Eye } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@commerce/ui/shadcn/dialog'
+import { Dialog, DialogDescription, DialogTitle } from '@commerce/ui/shadcn/dialog'
 import { Input } from '@commerce/ui/shadcn/input'
 import {
   InputGroup,
@@ -35,6 +29,8 @@ import {
 import { Switch } from '@commerce/ui/shadcn/switch'
 import { useState } from 'react'
 import DataCard from '@/components/layout/data-card'
+import DialogContent from '@/components/layout/dialog-content'
+import DialogHeader from '@/components/layout/dialog-header'
 import { reviewToolsContent } from '@/data/review-tools'
 import { reviewsContent } from '@/data/reviews'
 import { useCopy } from '@/hooks/use-copy'

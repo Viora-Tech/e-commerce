@@ -13,7 +13,7 @@ import { notFound } from 'next/navigation'
 import ArticleNeighbours from '@/components/blog/article-neighbours'
 import ShareLinks from '@/components/blog/share-links'
 import { blogContent as copy } from '@/data/blog'
-import { breadcrumbList, jsonLd, requestOrigin } from '@/lib/seo'
+import { breadcrumbList, jsonLd, marketCanonical, requestOrigin } from '@/lib/seo'
 import { inStore } from '@/lib/store-context'
 import { renderTemplate } from '@/lib/template-render'
 
@@ -42,7 +42,7 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   return {
     title,
     description,
-    alternates: { canonical: `/blogs/${blog}/${post.handle}` },
+    alternates: { canonical: await marketCanonical(`/blogs/${blog}/${post.handle}`) },
     openGraph: {
       type: 'article',
       title,

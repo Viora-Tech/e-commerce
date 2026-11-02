@@ -4,19 +4,14 @@ import type { Business } from '@commerce/core'
 import { BusinessInputSchema } from '@commerce/core/gst-registrations'
 import { Save } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@commerce/ui/shadcn/dialog'
+import { Dialog, DialogClose, DialogDescription, DialogTitle } from '@commerce/ui/shadcn/dialog'
 import { FieldGroup } from '@commerce/ui/shadcn/field'
 import { useRouter } from 'next/navigation'
 import { type FormEvent, useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import DialogContent from '@/components/layout/dialog-content'
+import DialogFooter from '@/components/layout/dialog-footer'
+import DialogHeader from '@/components/layout/dialog-header'
 import GeneralTextField from '@/components/settings/general-text-field'
 import { businessGstContent } from '@/data/business-gst'
 import { useCopy } from '@/hooks/use-copy'
@@ -89,7 +84,7 @@ export default function BusinessDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <DialogHeader>
             <DialogTitle>{business ? copy.editTitle : copy.addTitle}</DialogTitle>

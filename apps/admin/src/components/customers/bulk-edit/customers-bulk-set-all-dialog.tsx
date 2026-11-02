@@ -2,14 +2,7 @@
 
 import { CheckIcon } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@commerce/ui/shadcn/dialog'
+import { Dialog, DialogDescription, DialogTitle } from '@commerce/ui/shadcn/dialog'
 import { Field, FieldDescription, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import {
@@ -20,6 +13,9 @@ import {
   SelectValue,
 } from '@commerce/ui/shadcn/select'
 import { useState } from 'react'
+import DialogContent from '@/components/layout/dialog-content'
+import DialogFooter from '@/components/layout/dialog-footer'
+import DialogHeader from '@/components/layout/dialog-header'
 import { customersBulkEditContent } from '@/data/customers-bulk-edit'
 import { useCopy } from '@/hooks/use-copy'
 import {
@@ -81,7 +77,7 @@ export default function CustomersBulkSetAllDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent>
         <DialogHeader>
           <DialogTitle>{copy.setAll.title(count)}</DialogTitle>
           <DialogDescription>{copy.setAll.description}</DialogDescription>

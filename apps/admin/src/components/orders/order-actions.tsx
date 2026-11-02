@@ -171,6 +171,12 @@ export default function OrderActions({
           {editCopy.short}
         </Button>
       ) : null}
+      {refundable ? (
+        <Button variant="outline" disabled={busy} onClick={onRefund}>
+          <RotateCcw aria-hidden="true" />
+          {copy.actions.refund}
+        </Button>
+      ) : null}
       <Button
         variant="outline"
         title={copy.actions.print}
@@ -217,18 +223,22 @@ export default function OrderActions({
             disabled: busy,
             onSelect: onHold,
           },
+          // Next to the fulfilment actions, not at the bottom under the apps (owner, 2 Nov):
+          // Refund is its own button beside Edit, as on Shopify.
           {
-            label: copy.actions.refund,
-            icon: RotateCcw,
-            hidden: !refundable,
+            label: copy.actions.cancel,
+            icon: CancelCircle,
+            destructive: true,
+            hidden: !onCancel,
             disabled: busy,
-            onSelect: onRefund,
+            onSelect: onCancel,
           },
           {
             label: copy.payment.preorder.request,
             icon: Send,
             hidden: !onRequestBalance || readOnly,
             disabled: busy,
+            separatorBefore: true,
             onSelect: onRequestBalance,
           },
           {
@@ -282,15 +292,6 @@ export default function OrderActions({
             ...item,
             heading: i === 0 ? list.row.apps : undefined,
           })),
-          {
-            label: copy.actions.cancel,
-            icon: CancelCircle,
-            destructive: true,
-            hidden: !onCancel,
-            disabled: busy,
-            separatorBefore: true,
-            onSelect: onCancel,
-          },
         ]}
       />
 

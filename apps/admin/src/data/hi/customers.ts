@@ -298,7 +298,7 @@ export default [
       empty: 'इस ग्राहक को अभी कोई मैसेज नहीं भेजा गया।',
       template: {
         order_placed: 'ऑर्डर कन्फ़र्मेशन',
-        payment_received: 'पेमेंट मिल गया',
+        payment_received: 'पेमेंट की रसीद',
         order_shipped: 'शिपिंग अपडेट',
         checkout_recovery: 'चेकआउट रिमाइंडर',
         document_copy: 'इनवॉइस की कॉपी',

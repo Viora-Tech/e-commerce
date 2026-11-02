@@ -18,6 +18,7 @@ import { CELL, HEAD } from '@/components/apps/gst-invoices/table-classes'
 import PageHeader from '@/components/layout/page-header'
 import PillTabs from '@/components/layout/pill-tabs'
 import StatusChip from '@/components/layout/status-chip'
+import LinkRow from '@/components/table/link-row'
 import TableEmptyRow from '@/components/table/table-empty-row'
 import { codRtoContent } from '@/data/cod-rto'
 import { useCopy, useFormat } from '@/hooks/use-copy'
@@ -98,7 +99,7 @@ export default function RiskyOrdersPage() {
               <TableEmptyRow colSpan={7} message={c.empty} />
             ) : null}
             {(data?.items ?? []).map((o) => (
-              <TableRow key={o.id}>
+              <LinkRow href={routes.orders.detail(o.id)} key={o.id}>
                 <TableCell className={`${CELL} font-medium`}>
                   <Link href={routes.orders.detail(o.id)} className="hover:underline">
                     #{o.number}
@@ -133,7 +134,7 @@ export default function RiskyOrdersPage() {
                 <TableCell className={`${CELL} text-muted-foreground`}>
                   {f.date(o.placedAt)}
                 </TableCell>
-              </TableRow>
+              </LinkRow>
             ))}
           </TableBody>
         </Table>

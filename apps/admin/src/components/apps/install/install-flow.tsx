@@ -1,10 +1,11 @@
 'use client'
 
-import { Dialog, DialogContent } from '@commerce/ui/shadcn/dialog'
+import { Dialog } from '@commerce/ui/shadcn/dialog'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import DialogContent from '@/components/layout/dialog-content'
 import { appInstallContent } from '@/data/app-install'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -152,7 +153,7 @@ export default function InstallFlow({ appId, apps, onClose, onInstalled }: Insta
 
   return (
     <Dialog open={app !== null} onOpenChange={(open) => !open && !busy && onClose()}>
-      <DialogContent className="flex flex-col gap-5 sm:max-w-[32.5rem]">
+      <DialogContent className="flex flex-col gap-5">
         {app ? (
           <>
             {step === 'buy' ? null : <InstallSteps steps={steps} current={index} />}
