@@ -618,6 +618,8 @@ export const ACTION_DOCS: Record<string, string> = {
   'purchaseOrders.cancel': 'Call off a draft or an order nothing has arrived on.',
   'purchaseOrders.costs':
     "Charges, their splits and each line's landed cost for this order and its shipment.",
+  'purchaseOrders.duplicate':
+    '"Duplicate" (#1060): a new draft with the order\'s supplier, destination and lines.',
   'purchaseOrders.email':
     "Email the PDF to the supplier through the store's sender email; optionally mark a draft ordered.",
   'purchaseOrders.pdf': 'The purchase order as a PDF for the supplier: print it or save it.',
