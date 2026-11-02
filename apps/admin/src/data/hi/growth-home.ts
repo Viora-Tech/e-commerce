@@ -102,6 +102,16 @@ export default [
       window: '30 दिन की अवधि',
       rule: 'आखिरी नॉन-डायरेक्ट क्लिक',
     },
+    funnel: {
+      title: 'विज़िट से ऑर्डर तक',
+      body: 'इस अवधि में कितने विज़िटर ने कार्ट में डाला, चेकआउट तक पहुंचे और ऑर्डर किया।',
+      visits: 'विज़िट',
+      addedToCart: 'कार्ट में डाला',
+      reachedCheckout: 'चेकआउट तक पहुंचे',
+      ordered: 'ऑर्डर किया',
+      ofPrevious: (pct) => `पिछले चरण का ${pct}`,
+      empty: 'इस अवधि में अभी कोई विज़िट ट्रैक नहीं हुई।',
+    },
   }),
   translation(growthCampaignTabsContent, {
     title: 'कैंपेन',

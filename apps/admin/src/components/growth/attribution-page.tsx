@@ -13,6 +13,7 @@ import { type RangeState, rangeQuery, sameRange } from '@/lib/analytics-range'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
 import BestSourceCallout from './best-source-callout'
+import FunnelCard from './funnel-card'
 import GrowthKpiStrip from './growth-kpi-strip'
 import OutcomesCard from './outcomes-card'
 import AttributedSalesCard from './overview/attributed-sales-card'
@@ -85,6 +86,7 @@ export default function AttributionPage({ initialRange, initial }: AttributionPa
         <span className="text-caption text-muted-foreground">{copy.compare}</span>
       </div>
       <GrowthKpiStrip kpis={data.kpis} loading={loading} />
+      <FunnelCard funnel={data.funnel} />
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <TrafficTypeCard counts={data.trafficTypes} />
         <Card inset={5} gap={3}>

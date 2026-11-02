@@ -10,6 +10,7 @@ import {
 } from '@commerce/core/marketing'
 import {
   automationWorkflow,
+  cart,
   marketingAutomation,
   marketingCampaign,
   marketingSession,
@@ -104,6 +105,42 @@ export type MarketingOverview = {
   campaigns: CampaignRow[]
   /** What marketing earned: campaigns, automations, discounts and links (Figma outcomes). */
   outcomes: GrowthOutcomes
+  /** Visits → added to cart → reached checkout → ordered, for the period (#1023). */
+  funnel: StoreFunnel
+}
+
+export type StoreFunnel = {
+  visits: number
+  addedToCart: number
+  reachedCheckout: number
+  ordered: number
+}
+
+/**
+ * The store's funnel for one period: tracked visits, then carts started in the period, those
+ * that reached checkout (an email or phone given, or paid) and those that became an order.
+ * Carts carry the steps, so each step is a subset of the one before it.
+ */
+async function storeFunnel(
+  tx: StoreTx,
+  from: Date,
+  to: Date,
+  visits: number,
+): Promise<StoreFunnel> {
+  const [row] = await tx
+    .select({
+      carts: sql<number>`count(*)::int`,
+      checkout: sql<number>`count(*) filter (where ${cart.email} is not null or ${cart.phone} is not null or ${cart.status} = 'converted')::int`,
+      ordered: sql<number>`count(*) filter (where ${cart.status} = 'converted')::int`,
+    })
+    .from(cart)
+    .where(and(gte(cart.createdAt, from), lt(cart.createdAt, to)))
+  return {
+    visits,
+    addedToCart: row?.carts ?? 0,
+    reachedCheckout: row?.checkout ?? 0,
+    ordered: row?.ordered ?? 0,
+  }
 }
 
 const TOP_CAMPAIGNS = 10
@@ -508,5 +545,6 @@ export async function marketingOverview(
     trafficTypes: trafficTypes(sessions),
     campaigns: await campaignRows(tx, sessions, orders),
     outcomes: await growthOutcomes(tx, range, opts.now ?? new Date()),
+    funnel: await storeFunnel(tx, range.from, range.to, sessions.length),
   }
 }
