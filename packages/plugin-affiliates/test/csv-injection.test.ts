@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { csvCell as payoutsCell } from '../src/payouts'
-import { csvCell as statsCell } from '../src/stats'
+import { ledgerCsvCell as statsCell } from '../src/stats'
 
 /**
  * Regression: a self-registered affiliate controls free text (e.g. their name) that lands in a
@@ -17,7 +17,8 @@ describe('CSV formula injection neutralisation', () => {
         // The dangerous char must no longer be the first character the spreadsheet parses.
         const inner = out.startsWith('"') ? out.slice(1) : out
         expect(inner.startsWith("'")).toBe(true)
-        expect(/^["'=+\-@]*=/.test(out)).toBe(true) // the '=' survives as data, prefixed by a quote
+        // The value itself survives as data right after the apostrophe.
+        expect(inner.slice(1).startsWith(value.replaceAll('"', '""'))).toBe(true)
       })
     }
   }
@@ -26,6 +27,16 @@ describe('CSV formula injection neutralisation', () => {
     expect(statsCell('Acme Co')).toBe('Acme Co')
     expect(statsCell(123)).toBe('123')
     expect(statsCell(null)).toBe('')
+  })
+
+  it('neutralises a leading tab or carriage return', () => {
+    expect(statsCell('\t=1+1')).toBe("'\t=1+1")
+    expect(statsCell('\r=1+1').startsWith("'\r")).toBe(true)
+  })
+
+  it('keeps plain negative amounts as numbers', () => {
+    expect(statsCell('-12.00')).toBe('-12.00')
+    expect(statsCell(-5)).toBe('-5')
   })
 
   it('still escapes quotes and separators', () => {

@@ -411,7 +411,11 @@ export async function listApiActivity(
   }
 }
 
-const csvCell = (v: string): string => (/[",\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v)
+/** One CSV cell; summaries carry caller text, so a leading formula character gets an apostrophe. */
+const csvCell = (value: string): string => {
+  const v = /^[=+\-@\t\r]/.test(value) ? `'${value}` : value
+  return /[",\r\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v
+}
 
 /** Export CSV: every row of the last 90 days. */
 export async function apiActivityCsv(ctx: StoreContext, now = new Date()): Promise<string> {
