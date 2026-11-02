@@ -118,6 +118,7 @@ export default [
       line2: 'अपार्टमेंट, लैंडमार्क (वैकल्पिक)',
       city: 'शहर',
       state: 'राज्य',
+      statePlaceholder: 'राज्य चुनें',
       pincode: 'पिनकोड',
       phone: 'फ़ोन',
     },

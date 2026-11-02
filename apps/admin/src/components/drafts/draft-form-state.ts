@@ -1,3 +1,4 @@
+import { stateForPincode, stateMatchesPincode } from '@commerce/core/checkout-settings'
 import { validateGstin } from '@commerce/core/gstin'
 import type { PaymentTerms } from '@commerce/core/payment-terms'
 import type { api } from '@/lib/api-client'
@@ -73,7 +74,8 @@ export const EMPTY_ADDRESS: DraftFormState['address'] = {
   line1: '',
   line2: '',
   city: '',
-  stateCode: 'HR',
+  // Blank, not a guess: the merchant picks it, or the PIN code fills it (#1028).
+  stateCode: '',
   pincode: '',
   phone: '',
 }
@@ -119,10 +121,34 @@ export const addressToForm = (a: AddressRow): DraftFormState['address'] => ({
   line1: a.line1,
   line2: a.line2 ?? '',
   city: a.city,
-  stateCode: a.stateCode,
+  stateCode: stateFor(a.pincode, a.stateCode),
   pincode: a.pincode,
   phone: a.phone,
 })
+
+/**
+ * The state an address should show: its own when the PIN code allows it, else the one state the
+ * PIN code belongs to (a saved "Haryana" on a Thane PIN, #1028), else what it had.
+ */
+export function stateFor(pincode: string, stateCode: string | null | undefined): string {
+  const saved = (stateCode ?? '').trim().toUpperCase()
+  if (saved && stateMatchesPincode(pincode, saved)) return saved
+  return stateForPincode(pincode) ?? saved
+}
+
+/**
+ * The phone for the draft's contact field when a customer is picked: their contact phone, else
+ * the mobile on their latest order or saved address (`phoneSuggestion`, unless another customer
+ * already has that number), else the address's.
+ */
+export function contactPhoneFrom(
+  customerPhone: string | null | undefined,
+  found: Pick<Found, 'phoneSuggestion'> | null,
+  address: Partial<DraftFormState>['address'],
+): string {
+  const suggested = found?.phoneSuggestion?.takenBy ? null : found?.phoneSuggestion?.phone
+  return customerPhone || suggested || address?.phone || ''
+}
 
 /**
  * The billing half of the form: the draft's own billing address, else (a GSTIN with no
@@ -398,11 +424,14 @@ export function addressesFrom(found: Found): Partial<DraftFormState> {
 }
 
 /** A new draft for this customer ("Create order" on their page): contact and addresses filled in. */
-export const draftForCustomer = (found: Found): DraftFormState => ({
-  ...emptyDraft(),
-  customerId: found.id,
-  customerName: found.name ?? '',
-  email: found.email ?? '',
-  phone: found.phone ?? '',
-  ...addressesFrom(found),
-})
+export const draftForCustomer = (found: Found): DraftFormState => {
+  const addresses = addressesFrom(found)
+  return {
+    ...emptyDraft(),
+    customerId: found.id,
+    customerName: found.name ?? '',
+    email: found.email ?? '',
+    phone: contactPhoneFrom(found.phone, found, addresses.address),
+    ...addresses,
+  }
+}
