@@ -18,7 +18,7 @@ type Extras = Pick<
 
 const DAY_MS = 86_400_000
 /** "Abandoned a cart" looks back this far. */
-export const ABANDONED_CART_DAYS = 30
+const ABANDONED_CART_DAYS = 30
 
 /**
  * The extra facts for these customers (or every customer when `ids` is null), keyed by id.

@@ -28,6 +28,7 @@ import { shipmentsContent } from '@/data/shipments'
 import { shipmentDetailsContent } from '@/data/shipping'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { routes } from '@/lib/routes'
 
 type NdrRow = Awaited<ReturnType<typeof api.shipments.listNdr>>[number]
 type Action = 'reattempt' | 'change_address' | 'rto'
@@ -104,9 +105,12 @@ export default function NdrTab() {
         <TableBody>
           {rows.length === 0 ? <TableEmptyRow colSpan={5} message={copy.empty} /> : null}
           {rows.map((r) => (
-            <LinkRow href={`/orders/${r.orderId}`} key={r.id}>
+            <LinkRow href={routes.orders.detail(r.orderId)} key={r.id}>
               <TableCell>
-                <Link href={`/orders/${r.orderId}`} className="font-medium hover:underline">
+                <Link
+                  href={routes.orders.detail(r.orderId)}
+                  className="font-medium hover:underline"
+                >
                   #{r.orderNumber}
                 </Link>
               </TableCell>

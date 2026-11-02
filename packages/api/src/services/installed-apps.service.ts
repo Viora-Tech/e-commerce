@@ -48,7 +48,7 @@ type Activity = { at: Date; summary: string | null }
  * An app's last error as a merchant reads it: queue internals ("job stalled more than allowable
  * limit", timeouts) become one plain line; any other message, already written for people, stays.
  */
-export function plainProblem(raw: string | null | undefined): string | null {
+function plainProblem(raw: string | null | undefined): string | null {
   if (!raw) return null
   if (/stalled|timed? ?out|ETIMEDOUT|ECONNRESET/i.test(raw)) {
     return 'The last run stopped before it finished. Run it again.'

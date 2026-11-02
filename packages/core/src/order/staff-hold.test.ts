@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: holdOrderByStaff, releaseOrderByStaff — tests holding, what a hold blocks, releasing, a second hold and cancelled orders */
 import {
   createDb,
   fulfillmentOrder,

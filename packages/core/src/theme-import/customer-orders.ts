@@ -16,7 +16,7 @@ import { and, desc, eq, inArray, ne } from 'drizzle-orm'
 import type { LiquidFulfillmentData, LiquidOrderData } from './drops'
 
 /** As many as Shopify hands `customer.orders` without paginating. */
-export const CUSTOMER_ORDERS_LIMIT = 20
+const CUSTOMER_ORDERS_LIMIT = 20
 
 /**
  * `customerId`'s latest orders: placed ones, cancelled ones too (Shopify lists them, marked
