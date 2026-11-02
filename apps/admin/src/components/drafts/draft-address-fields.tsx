@@ -1,5 +1,6 @@
 'use client'
 
+import { stateForPincode } from '@commerce/core/checkout-settings'
 import { Field, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import {
@@ -42,6 +43,14 @@ export default function DraftAddressFields({
   const set = (key: keyof Address) => (value: string) => onChange({ ...address, [key]: value })
   const id = (key: string) => `${idPrefix}-${key}`
 
+  // Event handlers
+  /* A full PIN code that belongs to one state fills the state in (#1028). */
+  const handlePincode = (value: string) => {
+    const pincode = value.replace(/\D/g, '').slice(0, 6)
+    const state = pincode.length === 6 ? stateForPincode(pincode) : null
+    onChange({ ...address, pincode, ...(state ? { stateCode: state } : {}) })
+  }
+
   // Render logic
   return (
     <>
@@ -83,7 +92,7 @@ export default function DraftAddressFields({
             onValueChange={(code) => code && set('stateCode')(String(code))}
           >
             <SelectTrigger id={id('state')} className="w-full">
-              <SelectValue />
+              <SelectValue placeholder={copy.address.statePlaceholder} />
             </SelectTrigger>
             <SelectContent>
               {stateItems.map((s) => (
@@ -101,7 +110,7 @@ export default function DraftAddressFields({
           id={id('pincode')}
           inputMode="numeric"
           value={address.pincode}
-          onChange={(e) => set('pincode')(e.target.value.replace(/\D/g, '').slice(0, 6))}
+          onChange={(e) => handlePincode(e.target.value)}
         />
       </Field>
       <Field>

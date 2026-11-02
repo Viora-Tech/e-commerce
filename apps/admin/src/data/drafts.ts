@@ -129,6 +129,7 @@ export const draftEditorContent = {
     line2: 'Apartment, landmark (optional)',
     city: 'City',
     state: 'State',
+    statePlaceholder: 'Select state',
     pincode: 'Pincode',
     phone: 'Phone',
   },
