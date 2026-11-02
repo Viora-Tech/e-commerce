@@ -33,13 +33,15 @@ function selectorsOf(css: string): string[] {
 }
 
 /** Selectors reading one of our theme settings that would still reach an imported section. */
-export function unfencedSelectors(css: string): string[] {
+function unfencedSelectors(css: string): string[] {
   return selectorsOf(css).filter((s) => READS_OUR_SETTING.test(s) && !s.endsWith(FENCE))
 }
 
 describe('sweep: theme-css-fence', () => {
   it('finds an unfenced rule and accepts a fenced one', () => {
-    expect(unfencedSelectors(':root[data-x="on"] .a { color: red }')).toEqual([':root[data-x="on"] .a'])
+    expect(unfencedSelectors(':root[data-x="on"] .a { color: red }')).toEqual([
+      ':root[data-x="on"] .a',
+    ])
     expect(unfencedSelectors(`:root[data-x="on"] .a${FENCE} { color: red }`)).toEqual([])
     expect(unfencedSelectors('/* :root[data-x] .a { */ .b { color: red }')).toEqual([])
   })
