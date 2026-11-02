@@ -25,6 +25,7 @@ import {
   detachPurchaseOrder,
   receiveInboundShipment,
   saveInboundShipment,
+  setInboundShipmentStatus,
   shipmentOutstanding,
 } from './inbound-shipments'
 import { adjustStock, defaultLocationId } from './levels'
@@ -450,6 +451,22 @@ describe('shipment arrival (#1062, #1065)', () => {
       orders: 0,
       units: 0,
     })
+  })
+
+  it('moves a shipment between stages, but never back out of delivered (#1045)', async () => {
+    const c = await seedStore()
+    const a = await c.addVariant()
+    const po = await order(c, [{ variantId: a, quantity: 2, unitPriceMinor: 10_000 }])
+    const ship = await run(c, (tx) => saveInboundShipment(tx, c.storeId, { status: 'in_transit' }))
+    await run(c, (tx) => attachPurchaseOrder(tx, c.storeId, ship, po))
+    await run(c, (tx) => setInboundShipmentStatus(tx, c.storeId, ship, 'at_port'))
+    expect((await shipmentOf(ship))?.status).toBe('at_port')
+
+    await run(c, (tx) => receiveInboundShipment(tx, c.storeId, ship))
+    expect((await shipmentOf(ship))?.status).toBe('delivered')
+    await expect(
+      run(c, (tx) => setInboundShipmentStatus(tx, c.storeId, ship, 'cleared')),
+    ).rejects.toMatchObject({ code: 'SHIPMENT_DELIVERED' })
   })
 })
 

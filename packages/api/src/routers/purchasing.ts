@@ -15,6 +15,7 @@ import {
   SupplierInputSchema,
   saveInboundShipment,
   saveSupplier,
+  setInboundShipmentStatus,
   shipmentOutstanding,
   updatePurchaseCharge,
 } from '@commerce/core'
@@ -153,6 +154,20 @@ export const inboundShipmentsRouter = {
     .handler(({ context, input }) =>
       friendly(() =>
         receiveInboundShipment(context.tx, context.scope.storeId, input.id, context.scope.userId),
+      ),
+    ),
+
+  /** Move a shipment to another stage (bulk "Change status", #1045). Delivered goes through receive. */
+  setStatus: can(permissions.INVENTORY_WRITE)
+    .input(
+      z.object({
+        id: z.uuid(),
+        status: z.enum(INBOUND_SHIPMENT_STATUSES).exclude(['delivered']),
+      }),
+    )
+    .handler(({ context, input }) =>
+      friendly(() =>
+        setInboundShipmentStatus(context.tx, context.scope.storeId, input.id, input.status),
       ),
     ),
 

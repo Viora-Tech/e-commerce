@@ -165,6 +165,22 @@ export const inboundShipmentsContent = {
     heading: 'No inbound shipments',
     body: 'An inbound shipment groups the purchase orders that came in one container or Bill of Entry, so their freight and customs split across all of them.',
   },
+  bulk: {
+    deliver: 'Mark as delivered',
+    changeStatus: 'Change status',
+    delete: 'Delete',
+    keep: 'Keep',
+    confirmDeliver: {
+      title: (n: number) => `Mark ${n} shipment${n === 1 ? '' : 's'} as delivered?`,
+      body: 'Everything still to come on their purchase orders is received into stock as accepted, at each order’s location. Shipments already delivered stay as they are.',
+      confirm: 'Mark as delivered',
+    },
+    confirmDelete: {
+      title: (n: number) => `Delete ${n} shipment${n === 1 ? '' : 's'}?`,
+      body: 'Only empty shipments are deleted, and this can’t be undone. Shipments that still carry purchase orders are skipped; remove their orders first.',
+      confirm: 'Delete',
+    },
+  },
 } as const
 
 export const inboundShipmentFormContent = {
