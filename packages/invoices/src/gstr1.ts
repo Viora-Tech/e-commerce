@@ -95,7 +95,8 @@ const pos = (p: Gstr1Invoice['placeOfSupply']) => (p ? `${p.gstCode}-${p.name}` 
 function csv(header: string[], rows: (string | number)[][]): string {
   const cell = (v: string | number) => {
     const s = String(v)
-    return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s
+    const safe = /^[=+\-@]/.test(s) ? `'${s}` : s
+    return /[",\n]/.test(safe) ? `"${safe.replace(/"/g, '""')}"` : safe
   }
   return [header, ...rows].map((r) => r.map(cell).join(',')).join('\n')
 }

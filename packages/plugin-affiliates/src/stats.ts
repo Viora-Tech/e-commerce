@@ -330,9 +330,11 @@ export async function topProducts(
   }))
 }
 
-const csvCell = (v: string | number | null) => {
+/** A CSV cell: leading formula chars neutralised (spreadsheet injection), then quoted if needed. */
+export const csvCell = (v: string | number | null) => {
   const s = v === null ? '' : String(v)
-  return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s
+  const safe = /^[=+\-@]/.test(s) ? `'${s}` : s
+  return /[",\n]/.test(safe) ? `"${safe.replace(/"/g, '""')}"` : safe
 }
 
 /** The commissions ledger as CSV (rupees with two decimals), for the merchant's books. */
