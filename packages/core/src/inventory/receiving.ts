@@ -20,6 +20,7 @@ import { weightedAverageCost } from './landed-cost'
 import { adjustIncoming, adjustStock, InventoryError } from './levels'
 import { loadPurchaseOrder } from './purchase-orders'
 import type { Receipt } from './schemas'
+import { syncShipmentArrival } from './shipment-arrival'
 import { clampReceipt, purchaseOrderStatus } from './stock'
 
 export type ReceivedLine = {
@@ -153,6 +154,8 @@ export async function receivePurchaseOrder(
     .update(purchaseOrder)
     .set({ status, updatedAt: new Date() })
     .where(eq(purchaseOrder.id, po.id))
+  // The last order on a shipment to come in marks the shipment delivered (#1062).
+  if (po.inboundShipmentId) await syncShipmentArrival(tx, storeId, po.inboundShipmentId)
   return {
     units: done.reduce((n, d) => n + d.accepted, 0),
     rejected: done.reduce((n, d) => n + d.rejected, 0),

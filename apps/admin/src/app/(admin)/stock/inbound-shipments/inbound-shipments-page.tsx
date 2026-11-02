@@ -1,11 +1,12 @@
 'use client'
 
 import { siteConfig } from '@commerce/config/site'
-import { Plus } from '@commerce/ui/icons'
+import { PackageCheck, Plus } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
 import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } from 'nuqs'
 import { Suspense, useEffect, useRef, useState } from 'react'
+import MarkDeliveredDialog from '@/components/inbound-shipments/mark-delivered-dialog'
 import { inboundShipmentColumns } from '@/components/inbound-shipments/shipment-columns'
 import ProoflyListPage from '@/components/layout/proofly-list-page'
 import DeleteRowMenu from '@/components/table/delete-row-menu'
@@ -80,6 +81,7 @@ function InboundShipmentsContent({ initial }: { initial: InboundShipmentsInitial
   )
   const [result, setResult] = useState(initial.result)
   const [loading, setLoading] = useState(false)
+  const [delivering, setDelivering] = useState<string | null>(null)
 
   const hydrated = useRef(false)
 
@@ -140,6 +142,17 @@ function InboundShipmentsContent({ initial }: { initial: InboundShipmentsInitial
             failed={form.deleteFailed}
             onDelete={() => api.inboundShipments.delete({ id: r.id })}
             onChanged={() => void refresh()}
+            before={
+              r.status === 'delivered'
+                ? []
+                : [
+                    {
+                      label: form.deliver.action,
+                      icon: PackageCheck,
+                      onSelect: () => setDelivering(r.id),
+                    },
+                  ]
+            }
           />
         )}
         loading={loading}
@@ -170,6 +183,11 @@ function InboundShipmentsContent({ initial }: { initial: InboundShipmentsInitial
             ? copy.noResults
             : { heading: copy.empty.heading, body: copy.empty.body, action: createButton }
         }
+      />
+      <MarkDeliveredDialog
+        shipmentId={delivering}
+        onClose={() => setDelivering(null)}
+        onDone={() => void refresh()}
       />
     </ProoflyListPage>
   )

@@ -1,6 +1,7 @@
 /** SOURCE OF TRUTH: tests for landed cost on real rows: receipts, WAC, late charges, shipments */
 import {
   createDb,
+  inboundShipment,
   inventoryLevel,
   newId,
   product,
@@ -22,7 +23,9 @@ import {
   attachPurchaseOrder,
   deleteInboundShipment,
   detachPurchaseOrder,
+  receiveInboundShipment,
   saveInboundShipment,
+  shipmentOutstanding,
 } from './inbound-shipments'
 import { adjustStock, defaultLocationId } from './levels'
 import {
@@ -384,6 +387,69 @@ describe('inbound shipments', () => {
     expect((await lineFor(po1, a)).landedUnitCostPaise).toBe(12_000)
     const splits = await owner.select().from(purchaseChargeSplit)
     expect(splits.map((s) => s.amountPaise)).toEqual([2000])
+  })
+})
+
+describe('shipment arrival (#1062, #1065)', () => {
+  const shipmentOf = async (id: string) =>
+    (await owner.select().from(inboundShipment).where(eq(inboundShipment.id, id)))[0]
+  const onHandOf = async (variantId: string) =>
+    (
+      await owner
+        .select({ n: inventoryLevel.onHand })
+        .from(inventoryLevel)
+        .where(eq(inventoryLevel.variantId, variantId))
+    )[0]?.n
+
+  it('marks the shipment delivered once its last order is fully received', async () => {
+    const c = await seedStore()
+    const a = await c.addVariant()
+    const b = await c.addVariant()
+    const po1 = await order(c, [{ variantId: a, quantity: 4, unitPriceMinor: 10_000 }])
+    const po2 = await order(c, [{ variantId: b, quantity: 2, unitPriceMinor: 10_000 }])
+    const ship = await run(c, (tx) => saveInboundShipment(tx, c.storeId, { status: 'in_transit' }))
+    await run(c, (tx) => attachPurchaseOrder(tx, c.storeId, ship, po1))
+    await run(c, (tx) => attachPurchaseOrder(tx, c.storeId, ship, po2))
+
+    await receive(c, po1, [{ lineId: (await lineFor(po1, a)).id, accepted: 4 }])
+    await receive(c, po2, [{ lineId: (await lineFor(po2, b)).id, accepted: 1 }])
+    expect(await shipmentOf(ship)).toMatchObject({ status: 'in_transit', arrivedAt: null })
+
+    // The last unit is refused: nothing is left to come in, so the shipment has arrived.
+    await receive(c, po2, [{ lineId: (await lineFor(po2, b)).id, accepted: 0, rejected: 1 }])
+    const after = await shipmentOf(ship)
+    expect(after?.status).toBe('delivered')
+    expect(after?.arrivedAt).toBeInstanceOf(Date)
+  })
+
+  it('"Mark as delivered" receives what is outstanding on every order and marks it delivered', async () => {
+    const c = await seedStore()
+    const a = await c.addVariant({ onHand: 2 })
+    const b = await c.addVariant()
+    const po1 = await order(c, [{ variantId: a, quantity: 10, unitPriceMinor: 10_000 }])
+    const po2 = await order(c, [{ variantId: b, quantity: 5, unitPriceMinor: 10_000 }])
+    const ship = await run(c, (tx) => saveInboundShipment(tx, c.storeId, { status: 'cleared' }))
+    await run(c, (tx) => attachPurchaseOrder(tx, c.storeId, ship, po1))
+    await run(c, (tx) => attachPurchaseOrder(tx, c.storeId, ship, po2))
+    // Part of the first order came in early, one unit damaged.
+    await receive(c, po1, [{ lineId: (await lineFor(po1, a)).id, accepted: 3, rejected: 1 }])
+
+    const before = await run(c, (tx) => shipmentOutstanding(tx, c.storeId, ship))
+    expect(before.units).toBe(11)
+    expect(before.orders.map((o) => o.units)).toEqual([6, 5])
+
+    const done = await run(c, (tx) => receiveInboundShipment(tx, c.storeId, ship, 'user-1'))
+    expect(done).toEqual({ orders: 2, units: 11 })
+    expect(await onHandOf(a)).toBe(2 + 3 + 6)
+    expect(await onHandOf(b)).toBe(5)
+    expect((await shipmentOf(ship))?.status).toBe('delivered')
+    expect((await run(c, (tx) => shipmentOutstanding(tx, c.storeId, ship))).units).toBe(0)
+
+    // Again: nothing left, nothing received, still delivered.
+    expect(await run(c, (tx) => receiveInboundShipment(tx, c.storeId, ship))).toEqual({
+      orders: 0,
+      units: 0,
+    })
   })
 })
 
