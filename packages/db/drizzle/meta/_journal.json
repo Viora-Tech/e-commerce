@@ -1422,6 +1422,13 @@
       "when": 1793549003262,
       "tag": "0218_draft_reserve",
       "breakpoints": true
+    },
+    {
+      "idx": 203,
+      "version": "7",
+      "when": 1793549063262,
+      "tag": "0219_store_activity",
+      "breakpoints": true
     }
   ]
 }

@@ -26,6 +26,19 @@ const notFound = (err: unknown): never => {
   throw err
 }
 
+type Zone = Awaited<ReturnType<typeof getShippingZone>>
+
+/** What Settings → Activity log compares before and after a zone changes. */
+function zoneFields(zone: Zone): Record<string, unknown> {
+  if (!zone) return {}
+  const { name, stateCodes, pincodeRules, rates } = zone
+  // Rate rows are rewritten on every save: compare what they say, not their ids or times.
+  const said = rates.map(
+    ({ id: _id, zoneId: _zone, storeId: _store, createdAt: _c, updatedAt: _u, ...rate }) => rate,
+  )
+  return { name, stateCodes, pincodeRules, rates: said }
+}
+
 /**
  * Settings → Shipping → Shipping rates: shipping profiles (General and custom ones with
  * their products), their zones (states and PIN code rules) and the rates offered in each.
@@ -85,14 +98,34 @@ export const shippingRouter = {
 
     update: can(permissions.SETTINGS_MANAGE)
       .input(z.object({ id: z.uuid(), data: ShippingZoneWriteSchema }))
-      .handler(({ context, input }) =>
-        updateShippingZone(context.tx, context.scope.storeId, input.id, input.data).catch(notFound),
-      ),
+      .handler(async ({ context, input }) => {
+        try {
+          const before = await getShippingZone(context.tx, input.id)
+          const after = await updateShippingZone(
+            context.tx,
+            context.scope.storeId,
+            input.id,
+            input.data,
+          )
+          context.activity.note({ before: zoneFields(before), after: zoneFields(after) })
+          return after
+        } catch (err) {
+          if (err instanceof CommerceError && err.code === 'NOT_FOUND') {
+            throw new ORPCError('NOT_FOUND', { message: err.message })
+          }
+          throw err
+        }
+      }),
 
     delete: can(permissions.SETTINGS_MANAGE)
       .input(z.object({ id: z.uuid() }))
-      .handler(async ({ context, input }) => ({
-        deleted: await deleteShippingZone(context.tx, input.id),
-      })),
+      .handler(async ({ context, input }) => {
+        const before = await getShippingZone(context.tx, input.id)
+        const deleted = await deleteShippingZone(context.tx, input.id)
+        if (deleted && before) {
+          context.activity.note({ before: zoneFields(before), after: {}, label: before.name })
+        } else context.activity.skip()
+        return { deleted }
+      }),
   },
 }

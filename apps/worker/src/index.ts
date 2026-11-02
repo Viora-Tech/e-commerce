@@ -54,6 +54,7 @@ import { createSenderEmailPoller, SENDER_CHECK_EVERY_MS } from './sender-email'
 import { shipmentWebhooks } from './shipments-webhook'
 import { createShippingTracker, TRACK_EVERY_MS } from './shipping'
 import { createShopifyTokenSweep, SHOPIFY_TOKEN_SWEEP_EVERY_MS } from './shopify-token-sweep'
+import { createStoreActivityPrune, STORE_ACTIVITY_PRUNE_EVERY_MS } from './store-activity'
 import { createStoreExportWorker } from './store-export'
 import { createThemeScreenshotWorker } from './theme-screenshot'
 
@@ -157,6 +158,7 @@ const billing = createBillingSweep(redis, db, {
   storefrontUrl: env.STOREFRONT_URL,
 })
 const apiActivityPrune = createApiActivityPrune(redis, db)
+const storeActivityPrune = createStoreActivityPrune(redis, db)
 const shopifyTokenSweep = createShopifyTokenSweep(redis, db, {
   settingsSecret: env.SETTINGS_SECRET,
 })
@@ -229,6 +231,7 @@ const watched = [
   [searchConsole.worker, 'search-console-sweep'],
   [billing.worker, 'billing-sweep'],
   [apiActivityPrune.worker, 'api-activity-prune'],
+  [storeActivityPrune.worker, 'store-activity-prune'],
   [shopifyTokenSweep.worker, 'shopify-token-sweep'],
   [automationsPrune.worker, 'automations-prune'],
   [retentionPrune.worker, 'retention-prune'],
@@ -368,6 +371,11 @@ await apiActivityPrune.queue.upsertJobScheduler(
   { every: API_ACTIVITY_PRUNE_EVERY_MS },
   { name: 'prune' },
 )
+await storeActivityPrune.queue.upsertJobScheduler(
+  'store-activity-prune',
+  { every: STORE_ACTIVITY_PRUNE_EVERY_MS },
+  { name: 'prune' },
+)
 await shopifyTokenSweep.queue.upsertJobScheduler(
   'shopify-token-sweep',
   { every: SHOPIFY_TOKEN_SWEEP_EVERY_MS },
@@ -497,6 +505,8 @@ const shutdown = async () => {
   await billing.queue.close()
   await apiActivityPrune.worker.close()
   await apiActivityPrune.queue.close()
+  await storeActivityPrune.worker.close()
+  await storeActivityPrune.queue.close()
   await shopifyTokenSweep.worker.close()
   await shopifyTokenSweep.queue.close()
   await bugReportSync?.close()

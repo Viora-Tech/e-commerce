@@ -232,6 +232,8 @@ export const STOREFRONT_CACHE_EXEMPT: Record<string, string> = {
   shopify_import_run: ADMIN,
   short_link: 'short links redirect before any page renders',
   short_link_click_day: LOG,
+  // Settings → Activity log (0192): who changed what; the storefront never reads it.
+  store_activity: ADMIN,
   store_counter: 'running numbers (the next order number); no page shows them',
   store_export: ADMIN,
   store_plan: ADMIN,

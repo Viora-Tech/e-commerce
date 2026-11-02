@@ -331,6 +331,8 @@ export const routes = {
     ai: () => '/settings/ai',
     /** Changes waiting for a different member's approval, and your own requests. */
     approvals: () => '/settings/approvals',
+    /** Who changed what in the store (Settings → Activity log). */
+    activityLog: () => '/settings/activity',
     appearance: () => '/settings/appearance',
     billing: () => '/settings/billing',
     /** Settings → MCP & API; `activity` is its full activity log. */
