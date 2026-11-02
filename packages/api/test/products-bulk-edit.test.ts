@@ -137,7 +137,9 @@ describe('products.bulkEdit', () => {
       .select()
       .from(inventoryAdjustment)
       .where(eq(inventoryAdjustment.variantId, r1?.variantId as string))
-    expect(ledger.some((l) => l.delta === 4 && l.note === 'Bulk edit')).toBe(true)
+    expect(
+      ledger.some((l) => l.delta === 4 && l.note === 'Bulk edit' && l.reason === 'correction'),
+    ).toBe(true)
 
     if (!saved.ok) throw new Error('unreachable')
     const undone = await call(appRouter.products.bulkEdit, { rows: saved.undo }, { context: a.ctx })
@@ -155,6 +157,24 @@ describe('products.bulkEdit', () => {
       sku: 'PAD-1',
       stock: { [loc]: 5 },
     })
+  })
+
+  it('logs stock changes with the reason the Inventory page passed (#1033)', async () => {
+    const a = await merchant('be-r@example.com', 'be-r')
+    const { sheet } = await seedProduct(a.ctx, 'Restock', ['RS-1'])
+    const loc = sheet.locations[0]?.id as string
+    const variantId = sheet.rows[0]?.variantId as string
+    const saved = await call(
+      appRouter.products.bulkEdit,
+      { rows: [{ variantId, stock: { [loc]: 40 } }], stockReason: 'received' },
+      { context: a.ctx },
+    )
+    expect(saved).toMatchObject({ ok: true })
+    const ledger = await owner
+      .select()
+      .from(inventoryAdjustment)
+      .where(eq(inventoryAdjustment.variantId, variantId))
+    expect(ledger.some((l) => l.reason === 'received' && l.note === 'Bulk edit')).toBe(true)
   })
 
   it('writes nothing and names every bad cell when any row is invalid', async () => {

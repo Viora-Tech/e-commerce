@@ -92,7 +92,11 @@ export const routes = {
   products: {
     list: () => '/products',
     new: () => '/products/new',
-    bulkEdit: (productIds: string[]) => `/products/bulk-edit?ids=${productIds.map(id).join(',')}`,
+    /** The bulk editor for `productIds`; `focus: 'stock'` opens on the stock columns (#1033). */
+    bulkEdit: (productIds: string[], stock?: { reason: string }) =>
+      `/products/bulk-edit?ids=${productIds.map(id).join(',')}${
+        stock ? `&focus=stock&reason=${encodeURIComponent(stock.reason)}` : ''
+      }`,
     /** Write with AI for many products: a new run for `ids`, or the run `job`. */
     bulkWrite: ({ ids, job, fields, from }: BulkWriteTarget) => {
       const q = new URLSearchParams()

@@ -1,4 +1,5 @@
 import { BULK_EDIT_MAX } from '@commerce/core/catalog'
+import { ManualReasonSchema } from '@commerce/core/inventory'
 import { LayoutGrid } from '@commerce/ui/icons'
 import type { Metadata } from 'next'
 import { z } from 'zod'
@@ -13,8 +14,12 @@ export const metadata: Metadata = { title: bulkEditContent.title }
 
 type Props = { searchParams: Promise<SearchParams> }
 
+/** The first value of a query parameter that may repeat. */
+const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v)
+
 export default async function Page({ searchParams }: Props) {
-  const raw = (await searchParams).ids
+  const query = await searchParams
+  const raw = query.ids
   const list = (Array.isArray(raw) ? raw[0] : raw)?.split(',') ?? []
   const ids = [...new Set(list.filter((id) => z.uuid().safeParse(id).success))].slice(
     0,
@@ -33,5 +38,11 @@ export default async function Page({ searchParams }: Props) {
   }
   const context = await serverContext()
   const sheet = await call(appRouter.products.bulkEditSheet, { ids }, { context })
-  return <BulkEditor sheet={sheet} productIds={ids} />
+  /* Opened from Inventory's "Bulk edit" (#1033): stock columns, with the page's reason for edits. */
+  const reason = ManualReasonSchema.safeParse(one(query.reason))
+  const stockFocus =
+    one(query.focus) === 'stock'
+      ? { reason: reason.success ? reason.data : 'correction' }
+      : undefined
+  return <BulkEditor sheet={sheet} productIds={ids} stockFocus={stockFocus} />
 }

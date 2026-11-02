@@ -72,6 +72,12 @@ export const STOCK_GROUP_KEY = 'stock'
 /** Columns shown until the person changes it. */
 export const DEFAULT_HIDDEN = COLUMN_DEFS.filter((d) => d.hiddenByDefault).map((d) => d.key)
 
+/** Opened from Inventory for a restock (#1033): the product, variant and SKU, then stock. */
+const STOCK_FOCUS_SHOWN = new Set(['title', 'variantTitle', 'sku'])
+export const STOCK_FOCUS_HIDDEN = COLUMN_DEFS.filter((d) => !STOCK_FOCUS_SHOWN.has(d.key)).map(
+  (d) => d.key,
+)
+
 const NUMERIC = new Set([
   'price',
   'mrp',
