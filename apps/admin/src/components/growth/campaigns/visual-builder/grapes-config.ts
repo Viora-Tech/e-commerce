@@ -171,6 +171,17 @@ const SOCIAL_NETWORKS = [
   'web',
 ] as const
 
+/**
+ * The width the image really gets: its own width when set, else what the canvas drew it at, so an
+ * image in a 3-column row is squared at its column's width, not the whole email's.
+ */
+function shapeWidth(component: Component, attrs: Record<string, unknown>): number {
+  const own = Number.parseInt(String(attrs.width ?? ''), 10)
+  if (own) return own
+  const drawn = component.getEl()?.getBoundingClientRect().width ?? 0
+  return drawn > 0 ? Math.min(Math.round(drawn), CONTENT_WIDTH) : CONTENT_WIDTH
+}
+
 /** A fixed shape is a fixed height for the image's width, cropped to fill (`object-fit`). */
 function applyShape(component: Component) {
   const ratio = Number(component.get('k-shape') || 0)
@@ -180,7 +191,7 @@ function applyShape(component: Component) {
     component.setAttributes(rest)
     return
   }
-  const width = Number.parseInt(String(attrs.width ?? ''), 10) || CONTENT_WIDTH
+  const width = shapeWidth(component, attrs)
   component.addAttributes({
     height: `${Math.round(width * ratio)}px`,
     'css-class': FIT_CLASS,

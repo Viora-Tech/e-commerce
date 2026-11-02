@@ -80,6 +80,7 @@ export default function BuilderLinkDialog({ open, onDone }: BuilderLinkDialogPro
       selected={{ tab: 'products', ids: [] }}
       onClose={() => onDone(null)}
       onDone={handleDone}
+      single
     />
   )
 }

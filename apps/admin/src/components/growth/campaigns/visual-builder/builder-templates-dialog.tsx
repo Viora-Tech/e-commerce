@@ -45,7 +45,8 @@ function Thumb({ html, title }: { html: string; title: string }) {
         sandbox=""
         srcDoc={html}
         tabIndex={-1}
-        className="absolute top-0 left-0 h-[160%] w-[37.5rem] origin-top-left scale-[0.4] border-0 bg-background"
+        scrolling="no"
+        className="absolute top-0 left-1/2 h-[38.25rem] w-[37.5rem] origin-top -translate-x-1/2 scale-[0.42] border-0 bg-background"
       />
     </div>
   )
