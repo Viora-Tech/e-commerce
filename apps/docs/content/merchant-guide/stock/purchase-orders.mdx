@@ -86,6 +86,11 @@ Splits are worked out in whole paise and always add up to the charge exactly.
 
 One container can carry several purchase orders. See [Inbound shipments](/merchant-guide/stock/inbound-shipments).
 
+An order on a shipment can still change (add or remove products, change quantities or prices)
+until goods on it start arriving. When you save, the shipment's shared charges split again
+across every order on it. Once something has arrived, its products, quantities and prices are
+fixed.
+
 ## Upload bills and let Koomerce read them
 
 Instead of typing every line, upload the bill and let Koomerce read it for you. You always check
@@ -187,6 +192,8 @@ back the same way.
   stops sharing any shipment's charges.
 - **Close**: stop waiting for the rest of a partly received order.
 - **Reopen**: undo a close (if something is still outstanding) or a cancel.
+- **Duplicate** (in the **⋯** menu): a new draft with the same supplier, destination, currency,
+  exchange rate and products, for a restock that repeats. Change what you need and send it.
 
 ## Good to know
 

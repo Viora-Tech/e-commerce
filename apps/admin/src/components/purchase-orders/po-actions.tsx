@@ -24,6 +24,7 @@ type PoActionsProps = {
   onPrint: () => void
   onDownload: () => void
   onEmail: () => void
+  onDuplicate: () => void
 }
 
 /**
@@ -45,6 +46,7 @@ export default function PoActions({
   onPrint,
   onDownload,
   onEmail,
+  onDuplicate,
 }: PoActionsProps) {
   // Hooks
   const copy = useCopy(purchaseOrderFormContent)
@@ -52,7 +54,13 @@ export default function PoActions({
   // Early returns
   const menu =
     status === null || status === 'cancelled' ? null : (
-      <PoMoreMenu busy={busy} onPrint={onPrint} onDownload={onDownload} onEmail={onEmail} />
+      <PoMoreMenu
+        busy={busy}
+        onPrint={onPrint}
+        onDownload={onDownload}
+        onEmail={onEmail}
+        onDuplicate={onDuplicate}
+      />
     )
   if (status === 'received' || status === 'closed' || status === 'cancelled') {
     return (

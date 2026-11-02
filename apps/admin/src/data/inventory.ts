@@ -313,7 +313,9 @@ export const purchaseOrderFormContent = {
   correctOnly:
     'The goods have arrived, so products and quantities are fixed. Unit prices and the exchange rate can still be corrected; received stock is revalued.',
   inShipment: (n: number) =>
-    `This order is on inbound shipment #IS${n}. Remove it from the shipment to change products, quantities or prices.`,
+    `This order is on inbound shipment #IS${n} and goods have started arriving, so products, quantities and prices are fixed.`,
+  inShipmentEditable: (n: number) =>
+    `This order is on inbound shipment #IS${n}. Products, quantities and prices can change until goods arrive; the shipment's shared charges split again when you save.`,
   cancel: 'Cancel order',
   cancelled: 'Purchase order cancelled',
   reopen: 'Reopen',
@@ -322,6 +324,9 @@ export const purchaseOrderFormContent = {
   print: 'Print',
   download: 'Download PDF',
   emailSupplier: 'Email to supplier',
+  duplicate: 'Duplicate',
+  duplicated: 'Copied to a new draft',
+  duplicateFailed: 'Could not duplicate this purchase order',
   email: {
     title: 'Email to supplier',
     body: 'The purchase order goes as a PDF from your store’s email address. Replies come back to you.',

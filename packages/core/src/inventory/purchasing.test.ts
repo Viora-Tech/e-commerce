@@ -29,6 +29,7 @@ import {
   cancelPurchaseOrder,
   closePurchaseOrder,
   deletePurchaseOrder,
+  duplicatePurchaseOrder,
   reopenPurchaseOrder,
   savePurchaseOrder,
 } from './purchase-orders'
@@ -387,6 +388,75 @@ describe('inbound shipments', () => {
   })
 })
 
+describe('orders on a shipment, and duplicates (#1059, #1060)', () => {
+  const edit = (
+    c: Ctx,
+    id: string,
+    lines: { variantId: string; quantity: number; unitPriceMinor: number }[],
+  ) =>
+    run(c, (tx) =>
+      savePurchaseOrder(tx, c.storeId, {
+        id,
+        supplierName: 'Shenzhen Pads',
+        locationId: c.loc,
+        currency: 'INR',
+        fxRate: '1',
+        lines,
+      }),
+    )
+
+  it('lets an order on a shipment change until goods arrive, re-splitting shared freight', async () => {
+    const c = await seedStore()
+    const a = await c.addVariant({ weightGrams: 1000 })
+    const b = await c.addVariant({ weightGrams: 1000 })
+    const po1 = await order(c, [{ variantId: a, quantity: 10, unitPriceMinor: 10_000 }])
+    const po2 = await order(c, [{ variantId: b, quantity: 10, unitPriceMinor: 10_000 }])
+    const ship = await run(c, (tx) => saveInboundShipment(tx, c.storeId, { status: 'in_transit' }))
+    await run(c, (tx) => attachPurchaseOrder(tx, c.storeId, ship, po1))
+    await run(c, (tx) => attachPurchaseOrder(tx, c.storeId, ship, po2))
+    // ₹2,000 freight over 10 kg + 10 kg: ₹100 a unit each.
+    await charge(c, { inboundShipmentId: ship, kind: 'freight_insurance', amountMinor: 200_000 })
+    expect((await lineFor(po1, a)).landedUnitCostPaise).toBe(20_000)
+
+    // The supplier sends 30 of the first product: 30 kg + 10 kg now share the ₹2,000.
+    await edit(c, po1, [{ variantId: a, quantity: 30, unitPriceMinor: 10_000 }])
+    expect((await lineFor(po1, a)).quantity).toBe(30)
+    expect((await lineFor(po1, a)).landedUnitCostPaise).toBe(15_000)
+    expect((await lineFor(po2, b)).landedUnitCostPaise).toBe(15_000)
+
+    // Once something arrives on it, the lines are fixed.
+    await receive(c, po1, [{ lineId: (await lineFor(po1, a)).id, accepted: 1 }])
+    await expect(
+      edit(c, po1, [{ variantId: a, quantity: 40, unitPriceMinor: 10_000 }]),
+    ).rejects.toMatchObject({ code: 'PO_IN_SHIPMENT' })
+  })
+
+  it('duplicates an order into a new draft with its supplier and lines, nothing received', async () => {
+    const c = await seedStore()
+    const a = await c.addVariant()
+    const po = await order(c, [{ variantId: a, quantity: 6, unitPriceMinor: 4_500 }], {
+      name: 'Diwali restock',
+      currency: 'USD',
+      fxRate: '83.5',
+    })
+    await receive(c, po, [{ lineId: (await lineFor(po, a)).id, accepted: 6 }])
+    const copy = await run(c, (tx) => duplicatePurchaseOrder(tx, c.storeId, po))
+    expect(copy).not.toBe(po)
+    const [row] = await owner.select().from(purchaseOrder).where(eq(purchaseOrder.id, copy))
+    expect(row).toMatchObject({
+      status: 'draft',
+      name: 'Diwali restock',
+      supplierName: 'Shenzhen Pads',
+      currency: 'USD',
+      inboundShipmentId: null,
+    })
+    expect(Number(row?.fxRate)).toBe(83.5)
+    expect(await linesOf(copy)).toMatchObject([
+      { variantId: a, quantity: 6, unitPriceMinor: 4_500, received: 0, rejected: 0 },
+    ])
+  })
+})
+
 describe('cancel and reopen', () => {
   it('cancels an order with nothing received and reopens it as ordered', async () => {
     const c = await seedStore()
@@ -501,18 +571,18 @@ describe('editing a sent order', () => {
     expect(after?.status).toBe('received')
   })
 
-  it('refuses line changes while the order is on an inbound shipment', async () => {
+  it('changes an order on an inbound shipment until goods arrive, then refuses (#1059)', async () => {
     const c = await seedStore()
     const a = await c.addVariant()
     const id = await order(c, [{ variantId: a, quantity: 5, unitPriceMinor: 100 }])
     const ship = await run(c, (tx) => saveInboundShipment(tx, c.storeId, { status: 'in_transit' }))
     await run(c, (tx) => attachPurchaseOrder(tx, c.storeId, ship, id))
-    await expect(
-      edit(c, id, [{ variantId: a, quantity: 6, unitPriceMinor: 100 }]),
-    ).rejects.toMatchObject({ code: 'PO_IN_SHIPMENT' })
-    await run(c, (tx) => detachPurchaseOrder(tx, c.storeId, id))
     await edit(c, id, [{ variantId: a, quantity: 6, unitPriceMinor: 100 }])
     expect(await incomingOf(a)).toBe(6)
+    await receive(c, id, [{ lineId: (await lineFor(id, a)).id, accepted: 1 }])
+    await expect(
+      edit(c, id, [{ variantId: a, quantity: 7, unitPriceMinor: 100 }]),
+    ).rejects.toMatchObject({ code: 'PO_IN_SHIPMENT' })
   })
 
   it('corrects the price of a received order and revalues the stock', async () => {

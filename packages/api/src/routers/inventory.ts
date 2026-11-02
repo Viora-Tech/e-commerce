@@ -8,6 +8,7 @@ import {
   createLocation,
   deletePurchaseOrder,
   deleteTransfer,
+  duplicatePurchaseOrder,
   EmailPurchaseOrderSchema,
   emailPurchaseOrder,
   InventoryError,
@@ -264,6 +265,13 @@ export const purchaseOrdersRouter = {
     .input(z.object({ id: z.uuid() }))
     .handler(({ context, input }) =>
       friendly(() => closePurchaseOrder(context.tx, context.scope.storeId, input.id)),
+    ),
+
+  /** "Duplicate" (#1060): a new draft with the order's supplier, destination and lines. */
+  duplicate: can(permissions.INVENTORY_WRITE)
+    .input(z.object({ id: z.uuid() }))
+    .handler(({ context, input }) =>
+      friendly(() => duplicatePurchaseOrder(context.tx, context.scope.storeId, input.id)),
     ),
 
   /** Call off a draft or an order nothing has arrived on. */

@@ -205,6 +205,21 @@ export default function PurchaseOrderForm({
       saveFile(await api.purchaseOrders.pdf({ id: po.id }), mode)
     })
 
+  /* "Duplicate" (#1060): a new draft with this order's supplier and lines, opened at once. */
+  const handleDuplicate = async () => {
+    if (!po) return
+    setBusy(true)
+    try {
+      const id = await api.purchaseOrders.duplicate({ id: po.id })
+      toast.success(copy.duplicated)
+      router.push(routes.stock.purchaseOrder(id))
+    } catch (err) {
+      toast.error(err instanceof Error && err.message ? err.message : copy.duplicateFailed)
+    } finally {
+      setBusy(false)
+    }
+  }
+
   const handleEmail = (request: EmailPoRequest) =>
     run(async () => {
       if (!po || !(await saveFirst())) return
@@ -220,12 +235,17 @@ export default function PurchaseOrderForm({
   const draft = status === null || status === 'draft'
   const arrivedAll = hasArrived(status)
   const shipmentNumber = !draft && !arrivedAll ? (po?.shipment?.number ?? null) : null
+  /* On a shipment, lines stay editable until goods start arriving (#1059). */
+  const shipmentLocked =
+    shipmentNumber !== null && (po?.lines ?? []).some((l) => l.received + l.rejected > 0)
   const notice = finished
     ? copy.locked
     : arrivedAll
       ? copy.correctOnly
       : shipmentNumber !== null
-        ? copy.inShipment(shipmentNumber)
+        ? shipmentLocked
+          ? copy.inShipment(shipmentNumber)
+          : copy.inShipmentEditable(shipmentNumber)
         : draft
           ? null
           : copy.headerOnly
@@ -281,6 +301,7 @@ export default function PurchaseOrderForm({
             onPrint={() => handlePdf('open')}
             onDownload={() => handlePdf('download')}
             onEmail={() => setDialog('email')}
+            onDuplicate={handleDuplicate}
           />
         }
       />
@@ -300,8 +321,8 @@ export default function PurchaseOrderForm({
             <PoLinesCard
               lines={form.lines}
               currency={form.currency}
-              locked={finished || arrivedAll || shipmentNumber !== null}
-              pricesLocked={finished || shipmentNumber !== null}
+              locked={finished || arrivedAll || shipmentLocked}
+              pricesLocked={finished || shipmentLocked}
               hsnLocked={finished}
               showReceived={!draft}
               onChange={(lines) => patch({ lines })}
