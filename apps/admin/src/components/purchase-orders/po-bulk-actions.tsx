@@ -1,6 +1,6 @@
 'use client'
 
-import { CircleCheck, Download } from '@commerce/ui/icons'
+import { CircleCheck, Download, Send, Trash2, X } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { useState } from 'react'
 import { saveFile } from '@/components/apps/gst-invoices/save-file'
@@ -17,13 +17,21 @@ type PoBulkActionsProps = {
   onDone: () => void
 }
 
-/** The purchase order list's selection bar: each order's PDF, or close them all. */
+type Confirming = 'close' | 'cancel' | 'delete' | null
+
+/**
+ * The purchase order list's selection bar: each order's PDF, mark drafts as ordered, close,
+ * cancel or delete them. Every action runs per order through the same API the order page uses,
+ * so an order the action does not fit (a draft can't close, a received order can't cancel) is
+ * refused by the server and counted as failed in the summary toast (#1061).
+ */
 export default function PoBulkActions({ ids, onDone }: PoBulkActionsProps) {
   // Hooks
   const copy = useCopy(purchaseOrderBulkContent)
   const shared = useCopy(bulkActionsContent)
-  const [closing, setClosing] = useState(false)
+  const [confirming, setConfirming] = useState<Confirming>(null)
   const [downloading, setDownloading] = useState(false)
+  const [ordering, setOrdering] = useState(false)
 
   // Event handlers
   const handleDownload = async () => {
@@ -35,12 +43,29 @@ export default function PoBulkActions({ ids, onDone }: PoBulkActionsProps) {
     toastOutcome(outcome, shared.summary)
   }
 
-  /* Drafts and finished orders refuse to close; they count as failed in the summary. */
-  const handleClose = async () => {
-    const outcome = await runBatched(ids, (id) => api.purchaseOrders.close({ id }))
+  /* Only drafts with lines can be marked ordered; the rest count as failed. */
+  const handleMarkOrdered = async () => {
+    setOrdering(true)
+    const outcome = await runBatched(ids, (id) => api.purchaseOrders.markOrdered({ id }))
+    setOrdering(false)
     toastOutcome(outcome, shared.summary)
     onDone()
   }
+
+  const handleConfirm = async () => {
+    if (!confirming) return
+    const call = {
+      close: api.purchaseOrders.close,
+      cancel: api.purchaseOrders.cancel,
+      delete: api.purchaseOrders.delete,
+    }[confirming]
+    const outcome = await runBatched(ids, (id) => call({ id }))
+    toastOutcome(outcome, shared.summary)
+    onDone()
+  }
+
+  // Render logic
+  const dialog = confirming ? copy.confirm[confirming] : null
 
   return (
     <>
@@ -48,19 +73,31 @@ export default function PoBulkActions({ ids, onDone }: PoBulkActionsProps) {
         <Download aria-hidden="true" />
         {copy.downloadPdfs}
       </Button>
-      <Button variant="outline" size="sm" onClick={() => setClosing(true)}>
+      <Button variant="outline" size="sm" loading={ordering} onClick={handleMarkOrdered}>
+        <Send aria-hidden="true" />
+        {copy.markOrdered}
+      </Button>
+      <Button variant="outline" size="sm" onClick={() => setConfirming('close')}>
         <CircleCheck aria-hidden="true" />
         {copy.close}
       </Button>
+      <Button variant="outline" size="sm" onClick={() => setConfirming('cancel')}>
+        <X aria-hidden="true" />
+        {copy.cancelOrders}
+      </Button>
+      <Button variant="outline" size="sm" onClick={() => setConfirming('delete')}>
+        <Trash2 aria-hidden="true" />
+        {copy.delete}
+      </Button>
       <ConfirmDialog
-        open={closing}
-        onOpenChange={setClosing}
-        title={copy.confirmClose.title(ids.length)}
-        body={copy.confirmClose.body}
-        confirmLabel={copy.confirmClose.confirm}
-        cancelLabel={copy.confirmClose.cancel}
-        tone="default"
-        onConfirm={handleClose}
+        open={dialog !== null}
+        onOpenChange={(open) => !open && setConfirming(null)}
+        title={dialog?.title(ids.length) ?? ''}
+        body={dialog?.body ?? ''}
+        confirmLabel={dialog?.confirm ?? ''}
+        cancelLabel={copy.keep}
+        tone={confirming === 'close' ? 'default' : 'destructive'}
+        onConfirm={handleConfirm}
       />
     </>
   )
