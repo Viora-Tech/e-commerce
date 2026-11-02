@@ -48,7 +48,7 @@ export async function reserveDraft(ctx: StoreContext, id: string, until: Date, n
     .from(order)
     .where(eq(order.id, id))
     .for('update')
-  if (!o || o.status !== 'draft') return null
+  if (o?.status !== 'draft') return null
   await releaseDraftHold(ctx, o)
   const lines = await ctx.tx.select().from(orderLine).where(eq(orderLine.orderId, id))
   const [shipTo] = o.shippingAddressId
@@ -87,7 +87,7 @@ export async function releaseDraft(ctx: StoreContext, id: string): Promise<boole
     .from(order)
     .where(eq(order.id, id))
     .for('update')
-  if (!o || o.status !== 'draft') return false
+  if (o?.status !== 'draft') return false
   await releaseDraftHold(ctx, o)
   return true
 }
