@@ -9,8 +9,8 @@ This page summarises the guardrail sweeps. The source of truth stays at
 in the repo, next to the sweep source it documents.
 
 `bun run test:sweeps` runs a set of vitest "sweeps" over the whole repo — static checks
-that catch drift across 1,400+ files, cheaper than a code review. CI runs them after
-`bun run lint` and `bun run typecheck`, before `bun run test`.
+that catch drift across 1,400+ files, cheaper than a code review. CI runs them in its `lint`
+job, right after `bun run lint`, alongside the `typecheck` and `test` jobs.
 
 ## The ratchet pattern
 

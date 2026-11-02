@@ -9,7 +9,7 @@
     "./editor.css": "./src/editor.css"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit"
+    "typecheck": "bun ../../scripts/typecheck.ts"
   },
   "dependencies": {
     "@commerce/richtext": "workspace:*",

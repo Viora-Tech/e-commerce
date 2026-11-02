@@ -24,7 +24,7 @@
     "seed:demo:marketing": "bun run --env-file=../../.env src/seed-demo-marketing.ts",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "bun ../../scripts/typecheck.ts"
   },
   "dependencies": {
     "@commerce/config": "workspace:*",

@@ -13,7 +13,7 @@
     "build:docs": "turbo run build --filter=@commerce/docs",
     "test": "bun scripts/turbo.ts run test",
     "test:coverage": "bun scripts/turbo.ts run test:coverage",
-    "affected": "bun scripts/turbo.ts run typecheck test --filter=...[origin/main]",
+    "affected": "bun scripts/turbo.ts run typecheck test --filter=...[origin/dev]",
     "check:changed": "bun scripts/check-changed.ts",
     "turbo:shared": "bun scripts/turbo.ts",
     "lint": "biome check --error-on-warnings . && bun run lint:components",
@@ -51,6 +51,7 @@
     "playwright": "1.63.0",
     "turbo": "^2.11.2",
     "typescript": "~5.9.3",
+    "typescript7": "npm:typescript@7.0.2",
     "vitest": "^4.1.11"
   },
   "dependencies": {

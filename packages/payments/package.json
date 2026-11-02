@@ -10,7 +10,7 @@
     "./testing": "./src/testing.ts"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit"
+    "typecheck": "bun ../../scripts/typecheck.ts"
   },
   "devDependencies": {
     "@commerce/config": "workspace:*",
