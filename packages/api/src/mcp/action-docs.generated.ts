@@ -383,6 +383,8 @@ export const ACTION_DOCS: Record<string, string> = {
   'marketing.overview': 'Sessions, attributed sales, channels and top campaigns for one range.',
   'marketing.recommendations':
     'Growth overview recommendations: up to three rule-based next steps with their numbers.',
+  'marketing.searchSummary':
+    "Google Search for the Growth page (#1022): Search Console's last 28 days against the 28 before and the top searches, or which setup step is missing.",
   'marketing.setup': 'Which channels can carry marketing for this store.',
   'markets.create':
     'Add a market: its countries, currency, languages, prices and how shoppers reach it.',

@@ -92,6 +92,31 @@ export const growthHomeContent = {
     empty: 'No campaigns yet. Create one, or tag a tracking link with a campaign name.',
     create: 'Create campaign',
   },
+  /** Growth's Google Search card (#1022), from the Google Search Console app. */
+  google: {
+    title: 'Google Search',
+    summary: 'How shoppers find your store on Google: clicks, views and the searches they used.',
+    window: (days: number) => `Last ${days} days Google has, compared with the ${days} before`,
+    open: 'Open Search Console',
+    setup: {
+      'not-installed': {
+        body: 'Install the Google Search Console app to see your Google clicks and searches here.',
+        action: 'Install app',
+      },
+      'not-connected': {
+        body: 'Connect your Google account to see your Google clicks and searches here.',
+        action: 'Connect Google',
+      },
+      'no-property': {
+        body: 'Pick which Search Console property is your store to see its numbers here.',
+        action: 'Pick property',
+      },
+      pending: {
+        body: 'Google is sending your numbers. The first sync can take a few minutes.',
+        action: 'Open Search Console',
+      },
+    },
+  },
 } as const
 
 export const growthAttributionContent = {

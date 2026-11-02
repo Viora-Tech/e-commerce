@@ -90,6 +90,30 @@ export default [
       empty: 'अभी कोई कैंपेन नहीं। नया बनाएं, या किसी ट्रैकिंग लिंक पर कैंपेन का नाम लगाएं।',
       create: 'कैंपेन बनाएं',
     },
+    google: {
+      title: 'Google सर्च',
+      summary: 'ग्राहक Google पर आपका स्टोर कैसे ढूंढते हैं: क्लिक, व्यू और उनकी खोजें।',
+      window: (days: number) => `Google के पास मौजूद पिछले ${days} दिन, उससे पहले के ${days} दिनों से तुलना`,
+      open: 'Search Console खोलें',
+      setup: {
+        'not-installed': {
+          body: 'अपने Google क्लिक और खोजें यहां देखने के लिए Google Search Console ऐप इंस्टॉल करें।',
+          action: 'ऐप इंस्टॉल करें',
+        },
+        'not-connected': {
+          body: 'अपने Google क्लिक और खोजें यहां देखने के लिए अपना Google अकाउंट जोड़ें।',
+          action: 'Google जोड़ें',
+        },
+        'no-property': {
+          body: 'यहां नंबर देखने के लिए चुनें कि कौन-सी Search Console प्रॉपर्टी आपका स्टोर है।',
+          action: 'प्रॉपर्टी चुनें',
+        },
+        pending: {
+          body: 'Google आपके नंबर भेज रहा है। पहली सिंक में कुछ मिनट लग सकते हैं।',
+          action: 'Search Console खोलें',
+        },
+      },
+    },
   }),
   translation(growthAttributionContent, {
     title: 'एट्रिब्यूशन',
