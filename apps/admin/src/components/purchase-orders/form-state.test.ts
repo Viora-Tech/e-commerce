@@ -6,6 +6,7 @@ const product = (
   title: string,
   variants: { id: string; title: string; costPaise?: number | null }[],
 ) => ({
+  id: `p-${title}`,
   title,
   imageUrl: `https://cdn.example/${title}.jpg`,
   variants: variants.map((v) => ({
@@ -18,6 +19,7 @@ const product = (
 
 const existing: PoLine = {
   variantId: 'a1',
+  productId: 'p-Pad',
   productTitle: 'Pad',
   variantTitle: 'Black',
   sku: 'SKU-a1',

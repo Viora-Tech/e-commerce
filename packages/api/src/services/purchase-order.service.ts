@@ -183,12 +183,24 @@ export async function lineDetails(
 ): Promise<
   Map<
     string,
-    { productTitle: string; variantTitle: string; sku: string | null; imageUrl: string | null }
+    {
+      productId: string
+      productTitle: string
+      variantTitle: string
+      sku: string | null
+      imageUrl: string | null
+    }
   >
 > {
   const out = new Map<
     string,
-    { productTitle: string; variantTitle: string; sku: string | null; imageUrl: string | null }
+    {
+      productId: string
+      productTitle: string
+      variantTitle: string
+      sku: string | null
+      imageUrl: string | null
+    }
   >()
   if (variantIds.length === 0) return out
   const rows = await tx
@@ -215,6 +227,7 @@ export async function lineDetails(
   const cover = new Map(covers.map((c) => [c.productId, c.url]))
   for (const r of rows) {
     out.set(r.id, {
+      productId: r.productId,
       productTitle: r.productTitle,
       variantTitle: r.variantTitle,
       sku: r.sku,
@@ -259,6 +272,7 @@ export async function getPurchaseOrder(tx: StoreTx, id: string) {
     shipment: shipment ?? null,
     lines: lines.map((l) => ({
       ...l,
+      productId: details.get(l.variantId)?.productId ?? null,
       productTitle: details.get(l.variantId)?.productTitle ?? '',
       variantTitle: details.get(l.variantId)?.variantTitle ?? '',
       sku: details.get(l.variantId)?.sku ?? null,
