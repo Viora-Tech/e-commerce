@@ -16,6 +16,7 @@ import { routes } from '@/lib/routes'
 import GrowthKpiStrip from './growth-kpi-strip'
 import AutopilotHero from './overview/autopilot-hero'
 import AutopilotStrip from './overview/autopilot-strip'
+import GoogleSearchCard from './overview/google-search-card'
 import RecentCampaignsCard from './overview/recent-campaigns-card'
 import TopSourceCards from './overview/top-source-cards'
 import RecommendationsCard from './recommendations-card'
@@ -25,6 +26,8 @@ type GrowthOverviewPageProps = {
   initial: MarketingOverview
   recommendations: GrowthRecommendation[]
   campaigns: CampaignPerformanceRow[]
+  /** Google Search Console's numbers for the Google Search card (#1022). */
+  search: Awaited<ReturnType<typeof api.marketing.searchSummary>>
   autopilot: { enabled: boolean; waiting: number }
 }
 
@@ -38,6 +41,7 @@ export default function GrowthOverviewPage({
   initial,
   recommendations,
   campaigns,
+  search,
   autopilot,
 }: GrowthOverviewPageProps) {
   // Hooks
@@ -98,6 +102,7 @@ export default function GrowthOverviewPage({
           </Link>
         </p>
       </section>
+      <GoogleSearchCard summary={search} />
       <RecommendationsCard initial={recommendations} />
       <AutopilotStrip enabled={autopilot.enabled} waiting={autopilot.waiting} />
       <RecentCampaignsCard rows={campaigns} />

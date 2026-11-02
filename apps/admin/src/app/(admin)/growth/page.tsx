@@ -11,11 +11,12 @@ type Props = { searchParams: Promise<SearchParams> }
 export default async function Page({ searchParams }: Props) {
   const range = parseRange(await searchParams)
   const context = await serverContext()
-  const [overview, recommendations, campaigns, autopilot] = await Promise.all([
+  const [overview, recommendations, campaigns, autopilot, search] = await Promise.all([
     call(appRouter.marketing.overview, { range }, { context }),
     call(appRouter.marketing.recommendations, undefined, { context }),
     call(appRouter.marketing.campaignPerformance, undefined, { context }),
     call(appRouter.marketing.autopilot.get, undefined, { context }),
+    call(appRouter.marketing.searchSummary, undefined, { context }),
   ])
   return (
     <GrowthOverviewPage
@@ -23,6 +24,7 @@ export default async function Page({ searchParams }: Props) {
       initial={overview}
       recommendations={recommendations}
       campaigns={campaigns}
+      search={search}
       autopilot={{
         enabled: autopilot.settings.enabled,
         waiting: autopilot.proposals.filter((p) => p.status === 'proposed').length,

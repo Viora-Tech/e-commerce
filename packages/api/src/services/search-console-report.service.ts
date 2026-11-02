@@ -6,6 +6,7 @@ import {
   loadSearchConsoleRows,
   losingTraffic,
   percentChange,
+  SEARCH_PERIOD_DAYS,
   type SearchCompare,
   type SearchItem,
   type SearchRow,
@@ -202,5 +203,57 @@ export async function productSearchCard(
     stats,
     clickChange: percentChange(stats.current.clicks, stats.previous.clicks),
     syncedAt: settings.syncedAt || null,
+  }
+}
+
+/** How many searches the Growth page's Google Search card lists. */
+const SUMMARY_QUERIES = 5
+
+export type SearchConsoleSummary =
+  | Exclude<SearchConsoleReport, { state: 'ready' }>
+  | {
+      state: 'ready'
+      /** The stored window: the latest 28 final days Google has (about 3 days behind). */
+      days: number
+      syncedAt: string | null
+      totals: { current: SearchStats; previous: SearchStats }
+      clickChange: number | null
+      impressionChange: number | null
+      queries: SearchEntry[]
+    }
+
+/**
+ * The Growth page's Google Search card (#1022): Search Console's totals for the stored 28 days
+ * against the 28 before, and the top searches by clicks. Same stored rows and setup states as
+ * the app's own report; never a call to Google.
+ */
+export async function searchConsoleSummary(
+  tx: StoreTx,
+  storeId: string,
+  env: SearchConsoleEnv,
+): Promise<SearchConsoleSummary> {
+  const entryRow = await loadSearchConsoleEntry(tx, storeId)
+  if (!entryRow.installed) return { state: 'not-installed' }
+  const settings = parseSearchConsoleSettings(entryRow.settings)
+  if (!settings.refreshToken) return { state: 'not-connected', available: env.app !== null }
+  if (!settings.property) return { state: 'no-property', reconnect: settings.reconnect }
+  const rows = await loadSearchConsoleRows(tx, storeId, ['total', 'query'])
+  if (rows.length === 0) {
+    return { state: 'pending', lastError: settings.lastError, reconnect: settings.reconnect }
+  }
+  const current = sumStats(of(rows, 'total', 'current'))
+  const previous = sumStats(of(rows, 'total', 'previous'))
+  const byQuery = (period: SearchRow['period']) =>
+    statsBy(of(rows, 'query', period), (r) => r.query)
+  return {
+    state: 'ready',
+    days: SEARCH_PERIOD_DAYS,
+    syncedAt: searchConsoleView(settings, env.app !== null).syncedAt,
+    totals: { current, previous },
+    clickChange: percentChange(current.clicks, previous.clicks),
+    impressionChange: percentChange(current.impressions, previous.impressions),
+    queries: compareStats(byQuery('current'), byQuery('previous'))
+      .slice(0, SUMMARY_QUERIES)
+      .map(entry),
   }
 }
