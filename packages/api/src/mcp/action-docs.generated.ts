@@ -301,6 +301,7 @@ export const ACTION_DOCS: Record<string, string> = {
     '"Mark as delivered" (#1065): receives every outstanding unit on the shipment\'s purchase orders into stock and marks the shipment delivered.',
   'inboundShipments.save':
     'Saves; a new tracking number with a connected carrier also reads its expected date.',
+  'inboundShipments.setStatus': 'Move a shipment to another stage (bulk "Change status", #1045).',
   'inboundShipments.track':
     "Read the carrier's expected delivery date now (FedEx, DHL Express, … when connected).",
   'inbox.aiAvailable':

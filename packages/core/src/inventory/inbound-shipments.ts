@@ -235,3 +235,31 @@ export async function receiveInboundShipment(
   await syncShipmentArrival(tx, storeId, shipmentId)
   return { orders: orders.length, units }
 }
+
+/** The stages a shipment can be moved to by hand; "delivered" goes through receiving instead. */
+export type ShipmentStage = Exclude<InboundShipmentInput['status'], 'delivered'>
+
+/**
+ * Move a shipment to another stage on its way (#1045, #1055: bulk "Change status"), keeping every
+ * other field. A delivered shipment stays delivered: its stock is already in, so it can't go back
+ * on the water.
+ */
+export async function setInboundShipmentStatus(
+  tx: StoreTx,
+  storeId: string,
+  shipmentId: string,
+  status: ShipmentStage,
+): Promise<void> {
+  const [found] = await tx
+    .select({ status: inboundShipment.status })
+    .from(inboundShipment)
+    .where(and(eq(inboundShipment.id, shipmentId), eq(inboundShipment.storeId, storeId)))
+  if (!found)
+    throw new InventoryError('SHIPMENT_NOT_FOUND', 'Inbound shipment not found', { storeId })
+  if (found.status === 'delivered')
+    throw new InventoryError('SHIPMENT_DELIVERED', 'This shipment has already arrived', { storeId })
+  await tx
+    .update(inboundShipment)
+    .set({ status, updatedAt: new Date() })
+    .where(and(eq(inboundShipment.id, shipmentId), eq(inboundShipment.storeId, storeId)))
+}

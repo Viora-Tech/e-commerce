@@ -7,6 +7,7 @@ import Link from 'next/link'
 import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } from 'nuqs'
 import { Suspense, useEffect, useRef, useState } from 'react'
 import MarkDeliveredDialog from '@/components/inbound-shipments/mark-delivered-dialog'
+import ShipmentBulkActions from '@/components/inbound-shipments/shipment-bulk-actions'
 import { inboundShipmentColumns } from '@/components/inbound-shipments/shipment-columns'
 import ProoflyListPage from '@/components/layout/proofly-list-page'
 import DeleteRowMenu from '@/components/table/delete-row-menu'
@@ -156,7 +157,15 @@ function InboundShipmentsContent({ initial }: { initial: InboundShipmentsInitial
           />
         )}
         loading={loading}
-        selectable={false}
+        bulkActions={(ids, clear) => (
+          <ShipmentBulkActions
+            ids={ids}
+            onDone={() => {
+              clear()
+              void refresh()
+            }}
+          />
+        )}
         query={state.query}
         onQueryChange={(query) => setState({ query, page: 1 })}
         onClearAll={() =>
