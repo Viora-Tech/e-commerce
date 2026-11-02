@@ -189,7 +189,9 @@ export const productsRouter = {
       if (input.rows.some((r) => r.stock) && !context.scope.can(permissions.INVENTORY_WRITE)) {
         throw new ORPCError('FORBIDDEN', { message: 'Your role cannot change stock.' })
       }
-      return bulkEdit(context.tx, context.scope.storeId, input.rows).then(async (result) => {
+      return bulkEdit(context.tx, context.scope.storeId, input.rows, {
+        stockReason: input.stockReason,
+      }).then(async (result) => {
         /* A title, type, vendor, tag or price edit can move a product in or out of an automatic collection. */
         if (result.ok) await syncAutomaticCollections(context.tx, context.scope.storeId)
         return result

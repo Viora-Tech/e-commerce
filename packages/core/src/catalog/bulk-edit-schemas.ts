@@ -4,6 +4,7 @@
  * the transaction is `bulk-edit.ts`.
  */
 import { z } from 'zod'
+import { ManualReasonSchema } from '../inventory/schemas'
 import { HandleSchema, ProductStatusSchema } from './schemas'
 
 /** Most variant rows one bulk-edit save may carry. */
@@ -75,6 +76,8 @@ export type BulkEditRow = z.infer<typeof BulkEditRowSchema>
 
 export const BulkEditInputSchema = z.object({
   rows: z.array(BulkEditRowSchema).min(1).max(BULK_EDIT_MAX),
+  /** The stock history reason for on-hand changes (a restock opened from Inventory: `received`). */
+  stockReason: ManualReasonSchema.optional(),
 })
 
 /** Which cell is wrong: `title`, `pricePaise`, `stock:<locationId>` and so on. */

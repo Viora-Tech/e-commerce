@@ -1,5 +1,6 @@
 'use client'
 
+import type { ManualReason } from '@commerce/core/inventory'
 import { ChevronsUpDown, CircleAlert, Layers, Pencil, Save, Trash2 } from '@commerce/ui/icons'
 import { Alert, AlertDescription, AlertTitle } from '@commerce/ui/shadcn/alert'
 import { Button } from '@commerce/ui/shadcn/button'
@@ -14,7 +15,7 @@ import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
 import BulkColumnsMenu from './bulk-columns-menu'
-import { columnKeys, isEditableKey } from './bulk-edit-columns'
+import { columnKeys, isEditableKey, STOCK_FOCUS_HIDDEN } from './bulk-edit-columns'
 import BulkEditGrid from './bulk-edit-grid'
 import {
   type CellErrors,
@@ -49,16 +50,21 @@ type BulkEditorProps = {
   sheet: BulkEditSheet
   /** The product ids the sheet was loaded for, to reload it after an undo. */
   productIds: string[]
+  /** Opened from Inventory: stock columns only, and on-hand changes logged with this reason. */
+  stockFocus?: { reason: ManualReason } | undefined
 }
 
 const SHOWN_ERRORS = 5
+
+/** The stock-focused sheet remembers its own columns, apart from the full products sheet's. */
+const STOCK_FOCUS_STORAGE_KEY = 'inventory-bulk-edit:hidden-columns'
 
 const locationIdsOf = (sheet: BulkEditSheet) => sheet.locations.map((l) => l.id)
 
 const baseOf = (rows: GridRow[]) => new Map(rows.map((r) => [r.variantId, r]))
 
 /** Content of `/products/bulk-edit`: header, error summary and the grid; one Save sends it all. */
-export default function BulkEditor({ sheet, productIds }: BulkEditorProps) {
+export default function BulkEditor({ sheet, productIds, stockFocus }: BulkEditorProps) {
   // Hooks
   const copy = useCopy(bulkEditContent)
   const [initial, setInitial] = useState(() =>
@@ -69,7 +75,10 @@ export default function BulkEditor({ sheet, productIds }: BulkEditorProps) {
   const [serverErrors, setServerErrors] = useState<CellErrors>(new Map())
   const [attempted, setAttempted] = useState(false)
   const [saving, setSaving] = useState(false)
-  const { hidden, toggle } = useHiddenColumns()
+  const { hidden, toggle } = useHiddenColumns(
+    stockFocus ? STOCK_FOCUS_STORAGE_KEY : undefined,
+    stockFocus ? STOCK_FOCUS_HIDDEN : undefined,
+  )
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [confirmingRemove, setConfirmingRemove] = useState(false)
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
@@ -150,7 +159,10 @@ export default function BulkEditor({ sheet, productIds }: BulkEditorProps) {
     if (payload.length === 0) return
     setSaving(true)
     try {
-      const result = await api.products.bulkEdit({ rows: payload })
+      const result = await api.products.bulkEdit({
+        rows: payload,
+        ...(stockFocus ? { stockReason: stockFocus.reason } : {}),
+      })
       if (!result.ok) {
         setServerErrors(
           new Map(

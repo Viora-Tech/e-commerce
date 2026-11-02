@@ -786,7 +786,7 @@ const ALLOWLIST: AllowEntry[] = [
   },
   {
     file: 'packages/core/src/inventory/schemas.ts',
-    names: ['ManualReasonSchema', 'PurchaseOrderLineInputSchema'],
+    names: ['PurchaseOrderLineInputSchema'],
     reason: 'no external importer today — investigate before removing',
   },
   {

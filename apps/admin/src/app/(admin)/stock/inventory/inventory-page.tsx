@@ -5,6 +5,7 @@ import { permissions } from '@commerce/core/permissions'
 import { Clock, Download, Plus } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import {
   parseAsArrayOf,
   parseAsInteger,
@@ -136,6 +137,7 @@ function InventoryContent({ initial }: { initial: InventoryInitial }) {
   const [total, setTotal] = useState(initial.result.total)
   const [stats, setStats] = useState(initial.stats)
   const [loading, setLoading] = useState(false)
+  const router = useRouter()
   const [busy, setBusy] = useState(false)
   const [reason, setReason] = useState<ManualReasonValue>('correction')
   const [bulk, setBulk] = useState<{ mode: 'adjust' | 'set'; ids: string[]; clear: () => void }>()
@@ -209,6 +211,20 @@ function InventoryContent({ initial }: { initial: InventoryInitial }) {
     } finally {
       setBusy(false)
     }
+  }
+
+  /* The selected SKUs' products in the bulk editor, on the stock columns, for a restock (#1033). */
+  const handleBulkEditor = (ids: string[]) => {
+    const productIds = new Set<string>()
+    for (const id of ids) {
+      if (id.startsWith('product:')) productIds.add(id.slice('product:'.length))
+      else {
+        const row = rows.find((r) => r.variantId === id)
+        if (row) productIds.add(row.productId)
+      }
+    }
+    if (productIds.size === 0) return
+    router.push(routes.products.bulkEdit([...productIds], { reason }))
   }
 
   const handleExport = async () => {
@@ -400,7 +416,11 @@ function InventoryContent({ initial }: { initial: InventoryInitial }) {
         onPageChange={(page) => setQ({ page })}
         selectable={canEdit}
         bulkActions={(ids, clear) => (
-          <InventoryBulkActions busy={busy} onPick={(mode) => setBulk({ mode, ids, clear })} />
+          <InventoryBulkActions
+            busy={busy}
+            onPick={(mode) => setBulk({ mode, ids, clear })}
+            onBulkEdit={() => handleBulkEditor(ids)}
+          />
         )}
         empty={filtered ? { heading: copy.noMatch } : emptyState(copy)}
       />

@@ -117,6 +117,7 @@ export default [
       modes: { set: 'इतना करें', adjust: 'इतना बदलें' },
       adjust: 'इतना बदलें',
       set: 'हाथ में स्टॉक इतना करें',
+      editor: 'बल्क एडिट',
       title: (mode: 'adjust' | 'set', n: number) =>
         `${n} SKU का स्टॉक ${mode === 'adjust' ? 'बदलें' : 'तय करें'}`,
       quantity: 'मात्रा',

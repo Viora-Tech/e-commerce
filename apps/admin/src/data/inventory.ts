@@ -117,6 +117,8 @@ export const inventoryContent = {
     modes: { set: 'Set to', adjust: 'Adjust by' },
     adjust: 'Adjust by',
     set: 'Set on hand to',
+    /** Opens the bulk editor on the stock columns: a different count per SKU, saved at once. */
+    editor: 'Bulk edit',
     title: (mode: 'adjust' | 'set', n: number) =>
       `${mode === 'adjust' ? 'Adjust' : 'Set'} stock for ${n} ${n === 1 ? 'SKU' : 'SKUs'}`,
     quantity: 'Quantity',
