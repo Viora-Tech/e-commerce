@@ -1,4 +1,9 @@
-import { evaluateSegment, type SegmentCustomer } from '@commerce/core'
+import {
+  evaluateSegment,
+  needsSegmentExtras,
+  type SegmentCustomer,
+  segmentExtras,
+} from '@commerce/core'
 import type { CustomerSegmentRules, StoreTx } from '@commerce/db'
 import { customerSegment } from '@commerce/db'
 import { asc, eq } from 'drizzle-orm'
@@ -6,8 +11,11 @@ import { type CustomerListItem, listAllCustomers } from './customer.service'
 
 /* Saved customer segments: rule sets evaluated over the customer list. */
 
-function toSegmentCustomer(item: CustomerListItem): SegmentCustomer {
+type Extras = Awaited<ReturnType<typeof segmentExtras>>
+
+function toSegmentCustomer(item: CustomerListItem, extras?: Extras): SegmentCustomer {
   return {
+    ...extras?.get(item.id),
     spentPaise: item.spentPaise,
     orderCount: item.orderCount,
     stateCode: item.stateCode,
@@ -23,10 +31,15 @@ export async function listSegments(tx: StoreTx, secret: string, now = new Date()
     tx.select().from(customerSegment).orderBy(asc(customerSegment.name)),
     listAllCustomers(tx, {}, secret, now),
   ])
+  // The newer filters' facts are loaded once, only when some segment uses one (#1020).
+  const extras = needsSegmentExtras(segments.map((s) => s.rules))
+    ? await segmentExtras(tx, null, now)
+    : undefined
   return segments.map((s) => ({
     ...s,
-    customerCount: everyone.filter((cu) => evaluateSegment(toSegmentCustomer(cu), s.rules, now))
-      .length,
+    customerCount: everyone.filter((cu) =>
+      evaluateSegment(toSegmentCustomer(cu, extras), s.rules, now),
+    ).length,
   }))
 }
 
@@ -66,5 +79,6 @@ export async function listSegmentCustomers(
   now = new Date(),
 ) {
   const everyone = await listAllCustomers(tx, {}, secret, now)
-  return everyone.filter((cu) => evaluateSegment(toSegmentCustomer(cu), rules, now))
+  const extras = needsSegmentExtras(rules) ? await segmentExtras(tx, null, now) : undefined
+  return everyone.filter((cu) => evaluateSegment(toSegmentCustomer(cu, extras), rules, now))
 }

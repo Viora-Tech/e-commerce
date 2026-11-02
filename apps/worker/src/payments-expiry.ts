@@ -3,6 +3,7 @@ import {
   parsePaymentSettings,
   queuePaymentPendingNudges,
   refreshPaymentCredentials,
+  releaseExpiredDraftHolds,
   resolvePaymentProviders,
   runCodConfirmationSweep,
   runManualFollowUp,
@@ -11,6 +12,7 @@ import { registriesForStore } from '@commerce/core/registries'
 import {
   type Db,
   store,
+  storesWithExpiredDraftHolds,
   storesWithPendingCodChecks,
   storesWithPendingManualOrders,
   storesWithUnpaidOnlineOrders,
@@ -97,11 +99,34 @@ export function createUnpaidOrderExpiry(
       if (nudged) logger.info('payment pending nudges queued', { nudged })
       const transfers = await followUpManualTransfers(db)
       const cod = await sweepCodConfirmations(db)
-      return { stores: storeIds.length, cancelled, paid, nudged, ...transfers, ...cod }
+      const draftHoldsReleased = await releaseDraftHolds(db)
+      return {
+        stores: storeIds.length,
+        cancelled,
+        paid,
+        nudged,
+        ...transfers,
+        ...cod,
+        draftHoldsReleased,
+      }
     },
     { connection, ...KEEP_FINISHED },
   )
   return { queue, worker }
+}
+
+/** Drafts whose "reserve items" date passed (#1030) put their stock back on sale. */
+async function releaseDraftHolds(db: Db) {
+  let released = 0
+  for (const storeId of await storesWithExpiredDraftHolds(db)) {
+    try {
+      released += await withStore(db, storeId, (tx) => releaseExpiredDraftHolds({ storeId, tx }))
+    } catch (err) {
+      logger.warn('draft hold release failed', { storeId, error: err })
+    }
+  }
+  if (released) logger.info('draft holds released', { released })
+  return released
 }
 
 /** COD orders past the store's confirmation deadlines: flagged, or cancelled when opted in. */

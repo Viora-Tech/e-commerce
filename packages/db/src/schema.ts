@@ -1028,6 +1028,14 @@ export const customer = pgTable(
 )
 
 export type CustomerSegmentField =
+  | 'aov'
+  | 'city'
+  | 'customer_days'
+  | 'first_order_days'
+  | 'product'
+  | 'cod_orders'
+  | 'rto_orders'
+  | 'abandoned_cart'
   | 'spend'
   | 'orders'
   | 'state'
@@ -1035,7 +1043,7 @@ export type CustomerSegmentField =
   | 'last_order_days'
   | 'marketing'
   | 'business'
-export type CustomerSegmentOp = 'gte' | 'lte' | 'eq' | 'neq' | 'contains'
+export type CustomerSegmentOp = 'gte' | 'lte' | 'eq' | 'neq' | 'contains' | 'between'
 export type CustomerSegmentCondition = {
   field: CustomerSegmentField
   op: CustomerSegmentOp
@@ -1303,6 +1311,18 @@ export const order = pgTable(
      */
     billingAddressId: uuid('billing_address_id').references(() => address.id),
     paymentMethod: text('payment_method'),
+    /** "Payment due later" (#1029): 'receipt', 'fulfillment', 'net_7'…'net_90' or 'fixed'; null = paid now. */
+    paymentTerms: text('payment_terms'),
+    /** When the money is due under those terms; null until fulfilment for 'fulfillment'. */
+    paymentDueAt: timestamp('payment_due_at', { withTimezone: true }),
+    /** A draft's held stock (#1030): what `routeAndReserve` reserved, released on convert,
+     *  delete or expiry. Null when the draft holds nothing. */
+    draftReserved:
+      jsonb('draft_reserved').$type<
+        { variantId: string; locationId: string; quantity: number }[]
+      >(),
+    /** When a draft's held stock goes back on sale. */
+    reservedUntil: timestamp('reserved_until', { withTimezone: true }),
     /**
      * Paid through a gateway running on its test keys (Settings → Payments,
      * Live/Test): no real money moved. Test orders are left out of analytics,

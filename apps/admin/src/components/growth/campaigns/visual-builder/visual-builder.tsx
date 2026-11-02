@@ -15,6 +15,7 @@ import { emailBuilderContent } from '@/data/email-builder'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import BuilderDiscountDialog from './builder-discount-dialog'
+import BuilderLinkDialog from './builder-link-dialog'
 import BuilderProductsDialog, { type BuilderProducts } from './builder-products-dialog'
 import BuilderTemplatesDialog from './builder-templates-dialog'
 import {
@@ -79,6 +80,8 @@ export default function VisualBuilder({
       onPickImage: setImagePick,
     })
     editorRef.current = editor
+    // A new design opens on the template gallery, so nobody starts from a blank canvas.
+    if (!design) setDialog('templates')
     return () => {
       editorRef.current = null
       editor.destroy()
@@ -118,6 +121,15 @@ export default function VisualBuilder({
   const handleDiscount = (picked: { code: string; heading: string; note: string } | null) => {
     if (pick?.kind === 'discount' && picked && brand) {
       replacePlaceholder(pick.component, discountMjml(picked, brand))
+    }
+    setPick(null)
+  }
+
+  const handleLink = (path: string | null) => {
+    if (pick?.kind === 'link' && path) {
+      // `{shop_url}` follows the store's own domain at send time.
+      pick.component.addAttributes({ href: `{shop_url}${path}` })
+      toast.success(copy.link.linked)
     }
     setPick(null)
   }
@@ -178,6 +190,7 @@ export default function VisualBuilder({
         onDone={handleProducts}
       />
       <BuilderDiscountDialog open={pick?.kind === 'discount'} onDone={handleDiscount} />
+      <BuilderLinkDialog open={pick?.kind === 'link'} onDone={handleLink} />
       <MediaPickDialog
         open={imagePick !== null}
         title={copy.image.title}
@@ -189,6 +202,7 @@ export default function VisualBuilder({
         open={dialog === 'templates'}
         onOpenChange={(o) => setDialog(o ? 'templates' : null)}
         getEditor={() => editorRef.current}
+        brand={brand}
       />
       <ConfirmDialog
         open={dialog === 'discard'}

@@ -12,10 +12,14 @@ import {
   storefrontOriginFor,
   storeSender,
 } from '@commerce/core'
+import { compileEmailDesign } from '@commerce/core/email-design-compile'
+import { productCards } from '@commerce/core/inbox/server'
+import { type EmailProductCard, emailStarters, type StarterContext } from '@commerce/core/marketing'
 import { registriesForStore } from '@commerce/core/registries'
-import { customerSegment, type StoreTx } from '@commerce/db'
+import { customerSegment, product, type StoreTx } from '@commerce/db'
+import { formatMoney } from '@commerce/money'
 import type { ChannelTemplate } from '@commerce/notifications'
-import { asc, eq } from 'drizzle-orm'
+import { asc, desc, eq } from 'drizzle-orm'
 import { type CampaignReport, campaignReport } from './growth-report.service'
 
 export async function marketingDeps(
@@ -150,3 +154,47 @@ export async function whatsappTemplates(
 }
 
 export { audienceSize }
+
+/** The newest active products with a photo, as builder product cards, for the ready-made templates. */
+async function starterProducts(tx: StoreTx, origin: string): Promise<EmailProductCard[]> {
+  const rows = await tx
+    .select({ id: product.id })
+    .from(product)
+    .where(eq(product.status, 'active'))
+    .orderBy(desc(product.createdAt))
+    .limit(12)
+  const cards = await productCards(
+    tx,
+    rows.map((r) => r.id),
+  )
+  return rows
+    .map((r) => cards[r.id])
+    .filter((c): c is NonNullable<typeof c> => Boolean(c?.imageUrl))
+    .slice(0, 6)
+    .map((c) => ({
+      title: c.title,
+      handle: c.handle,
+      imageUrl: absolute(c.imageUrl, origin),
+      priceLabel: c.minPricePaise == null ? '' : formatMoney(c.minPricePaise),
+    }))
+}
+
+/**
+ * Every ready-made template built for this store (its logo, colour and newest products), with
+ * the compiled HTML for the gallery's thumbnails. The builder opens a pick from its MJML.
+ */
+export async function emailStarterGallery(
+  tx: StoreTx,
+  storeId: string,
+  storefrontUrl: string,
+  labels: StarterContext['labels'],
+) {
+  const [brand, items] = await Promise.all([
+    emailBrand(tx, storeId, storefrontUrl),
+    starterProducts(tx, storefrontUrl),
+  ])
+  const starters = emailStarters({ brand, products: items, labels })
+  return Promise.all(
+    starters.map(async (s) => ({ ...s, html: (await compileEmailDesign(s.mjml)).html })),
+  )
+}

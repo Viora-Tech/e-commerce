@@ -106,6 +106,7 @@ export const inventoryContent = {
     decrease: 'Remove one',
     increase: 'Add one',
     label: (name: string) => `Available for ${name}`,
+    onHandLabel: (name: string) => `On hand for ${name}`,
     saved: (name: string, available: number) => `${name}: ${available} available`,
     failed: 'Could not update stock',
     history: 'Stock history',

@@ -18,6 +18,12 @@ import { OutOfStock } from '../errors'
 import { DraftInvalidGstin } from './draft-billing'
 import { listDrafts } from './draft-list'
 import {
+  DraftHoldInPast,
+  releaseDraft,
+  releaseExpiredDraftHolds,
+  reserveDraft,
+} from './draft-reserve'
+import {
   convertDraft,
   createDraft,
   DraftNeedsShippingAddress,
@@ -168,6 +174,105 @@ describe('draft orders', () => {
       .from(inventoryLevel)
       .where(eq(inventoryLevel.variantId, variantId))
     expect(level?.reserved).toBe(2)
+  })
+
+  it('places a "payment due later" draft with its due date (#1029)', async () => {
+    const { storeId, variantId } = await seed()
+    const result = await withStore(app, storeId, async (tx) => {
+      const ctx = { storeId, tx }
+      const net = await createDraft(ctx, {
+        email: 'aarav@example.in',
+        shipping,
+        lines: [{ variantId, quantity: 1 }],
+        discountPaise: 0,
+        shippingPaise: 0,
+        paymentTerms: 'net_15',
+      })
+      const fixed = await createDraft(ctx, {
+        email: 'aarav@example.in',
+        shipping,
+        lines: [{ variantId, quantity: 1 }],
+        discountPaise: 0,
+        shippingPaise: 0,
+        paymentTerms: 'fixed',
+        paymentDueDate: '2027-01-15',
+      })
+      return {
+        net: await convertDraft(ctx, net.id),
+        fixed: await convertDraft(ctx, fixed.id),
+      }
+    })
+    expect(result.net?.paymentTerms).toBe('net_15')
+    const placed = result.net?.placedAt?.getTime() ?? 0
+    expect(result.net?.paymentDueAt?.getTime()).toBe(placed + 15 * 24 * 60 * 60 * 1000)
+    expect(result.fixed?.paymentDueAt?.toISOString()).toBe('2027-01-15T00:00:00.000Z')
+  })
+
+  it("holds a draft's stock until a date, and gives it back on release, delete and expiry (#1030)", async () => {
+    const { storeId, variantId } = await seed(5)
+    const reserved = async () =>
+      (await owner.select().from(inventoryLevel).where(eq(inventoryLevel.variantId, variantId)))[0]
+        ?.reserved
+    const now = new Date('2026-11-03T10:00:00Z')
+    const later = new Date('2026-11-10T10:00:00Z')
+    const draft = (quantity: number) => ({
+      email: 'aarav@example.in',
+      shipping,
+      lines: [{ variantId, quantity }],
+      discountPaise: 0,
+      shippingPaise: 0,
+    })
+
+    // Hold, then release by hand.
+    const a = await withStore(app, storeId, async (tx) => {
+      const ctx = { storeId, tx }
+      const d = await createDraft(ctx, draft(2))
+      await reserveDraft(ctx, d.id, later, now)
+      return d
+    })
+    expect(await reserved()).toBe(2)
+    await withStore(app, storeId, (tx) => releaseDraft({ storeId, tx }, a.id))
+    expect(await reserved()).toBe(0)
+
+    // A past date is refused; more than is on hand is refused and holds nothing.
+    await expect(
+      withStore(app, storeId, (tx) => reserveDraft({ storeId, tx }, a.id, now, later)),
+    ).rejects.toBeInstanceOf(DraftHoldInPast)
+    const big = await withStore(app, storeId, (tx) => createDraft({ storeId, tx }, draft(9)))
+    await expect(
+      withStore(app, storeId, (tx) => reserveDraft({ storeId, tx }, big.id, later, now)),
+    ).rejects.toBeInstanceOf(OutOfStock)
+    expect(await reserved()).toBe(0)
+
+    // Converting a held draft holds the stock once, for the order.
+    await withStore(app, storeId, async (tx) => {
+      const ctx = { storeId, tx }
+      await reserveDraft(ctx, a.id, later, now)
+      await convertDraft(ctx, a.id)
+    })
+    expect(await reserved()).toBe(2)
+
+    // Deleting a held draft, and a hold running out, both give the stock back.
+    const b = await withStore(app, storeId, async (tx) => {
+      const ctx = { storeId, tx }
+      const d = await createDraft(ctx, draft(1))
+      await reserveDraft(ctx, d.id, later, now)
+      return d
+    })
+    expect(await reserved()).toBe(3)
+    await withStore(app, storeId, (tx) => deleteDraft({ storeId, tx }, b.id))
+    expect(await reserved()).toBe(2)
+    await withStore(app, storeId, async (tx) => {
+      const ctx = { storeId, tx }
+      const d = await createDraft(ctx, draft(1))
+      await reserveDraft(ctx, d.id, later, now)
+    })
+    expect(await reserved()).toBe(3)
+    const released = await withStore(app, storeId, (tx) =>
+      releaseExpiredDraftHolds({ storeId, tx }, new Date('2026-11-11T00:00:00Z')),
+    )
+    expect(released).toBe(1)
+    expect(await reserved()).toBe(2)
   })
 
   it('refuses to convert more stock than is on hand', async () => {

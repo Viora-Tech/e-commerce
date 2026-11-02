@@ -88,6 +88,7 @@ export type {
   OverviewChannel,
   SourceKey,
   SourceRow,
+  StoreFunnel,
 } from './services/marketing-overview.service'
 export {
   normalizeSource,

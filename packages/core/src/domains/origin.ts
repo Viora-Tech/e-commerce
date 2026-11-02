@@ -47,7 +47,7 @@ export async function checkoutOriginFor(
 }
 
 /** The store's primary domain when it is live (`is_primary AND status = 'active'`), else null. */
-async function primaryStoreHostname(tx: StoreTx, storeId: string): Promise<string | null> {
+export async function primaryStoreHostname(tx: StoreTx, storeId: string): Promise<string | null> {
   const [row] = await tx
     .select({ hostname: storeDomain.hostname })
     .from(storeDomain)

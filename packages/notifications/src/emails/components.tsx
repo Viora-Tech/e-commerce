@@ -3,17 +3,243 @@ import type { ReactNode } from 'react'
 import type { TemplateData } from '../types'
 import { theme } from './theme'
 
-/** Small uppercase label above a heading, e.g. "ORDER #42". */
-export function Eyebrow({ children }: { children: string }) {
+type Colours = { bg: string; fg: string }
+
+/** What sits on the hero's right: a code, an amount, or the first product's photo. */
+export type HeroShot =
+  | { kind: 'code'; value: string; caption?: string | undefined }
+  | { kind: 'amount'; value: string; caption?: string | undefined }
+  | { kind: 'image'; url: string; alt: string }
+
+const MONO = "ui-monospace, SFMono-Regular, Menlo, Consolas, 'Courier New', monospace"
+
+function ShotCard({ shot }: { shot: HeroShot }) {
+  if (shot.kind === 'image') {
+    return (
+      <Section
+        style={{
+          backgroundColor: '#ffffff',
+          borderRadius: '18px',
+          padding: '18px',
+          textAlign: 'center',
+        }}
+      >
+        <Img
+          src={shot.url}
+          alt={shot.alt}
+          width="160"
+          style={{ margin: '0 auto', maxWidth: '100%', height: 'auto', borderRadius: '10px' }}
+        />
+      </Section>
+    )
+  }
+  return (
+    <Section
+      style={{
+        backgroundColor: '#ffffff',
+        borderRadius: '18px',
+        padding: '26px 14px',
+        textAlign: 'center',
+      }}
+    >
+      <Text
+        style={{
+          margin: 0,
+          fontSize: shot.kind === 'code' ? '30px' : '32px',
+          lineHeight: '36px',
+          fontWeight: 800,
+          letterSpacing: shot.kind === 'code' ? '0.14em' : '-0.02em',
+          fontFamily: shot.kind === 'code' ? MONO : undefined,
+          color: theme.ink,
+        }}
+      >
+        {shot.value}
+      </Text>
+      {shot.caption ? (
+        <Text
+          style={{ margin: '8px 0 0', fontSize: '12px', lineHeight: '17px', color: theme.muted }}
+        >
+          {shot.caption}
+        </Text>
+      ) : null}
+    </Section>
+  )
+}
+
+/** The full-colour opener: a small label, a big uppercase headline, one line, and the shot. */
+export function Hero({
+  colours,
+  eyebrow,
+  title,
+  line,
+  shot,
+}: {
+  colours: Colours
+  eyebrow: string
+  title: string
+  line?: string | undefined
+  shot?: HeroShot | undefined
+}) {
+  const words = (
+    <>
+      <Text
+        style={{
+          margin: '0 0 12px',
+          fontSize: '11.5px',
+          fontWeight: 700,
+          letterSpacing: '0.16em',
+          textTransform: 'uppercase',
+          color: colours.fg,
+          opacity: 0.8,
+        }}
+      >
+        {eyebrow}
+      </Text>
+      <Text
+        className="k-hero-title"
+        style={{
+          margin: '0 0 12px',
+          fontSize: '36px',
+          lineHeight: '38px',
+          fontWeight: 800,
+          letterSpacing: '-0.03em',
+          textTransform: 'uppercase',
+          color: colours.fg,
+        }}
+      >
+        {title}
+      </Text>
+      {line ? (
+        <Text
+          style={{
+            margin: 0,
+            fontSize: '14.5px',
+            lineHeight: '22px',
+            color: colours.fg,
+            opacity: 0.88,
+          }}
+        >
+          {line}
+        </Text>
+      ) : null}
+    </>
+  )
+  return (
+    <Section style={{ padding: '24px 24px 0' }}>
+      <Section
+        className="k-pad"
+        style={{ backgroundColor: colours.bg, borderRadius: '22px', padding: '36px 32px' }}
+      >
+        {shot ? (
+          <Row>
+            <Column
+              className="k-stack"
+              style={{ width: '56%', verticalAlign: 'middle', paddingRight: '16px' }}
+            >
+              {words}
+            </Column>
+            <Column className="k-stack" style={{ width: '44%', verticalAlign: 'middle' }}>
+              <ShotCard shot={shot} />
+            </Column>
+          </Row>
+        ) : (
+          words
+        )}
+      </Section>
+    </Section>
+  )
+}
+
+/** Four steps with the done ones filled in brand colour, e.g. Confirmed → Delivered. */
+export function Steps({
+  colours,
+  labels,
+  current,
+}: {
+  colours: Colours
+  labels: string[]
+  current: number
+}) {
+  return (
+    <Section style={{ padding: '28px 24px 0' }}>
+      <Row>
+        {labels.map((label, i) => {
+          const done = i <= current
+          return (
+            <Column
+              key={label}
+              style={{ width: `${100 / labels.length}%`, padding: '0 3px', verticalAlign: 'top' }}
+            >
+              <div
+                style={{
+                  height: '4px',
+                  borderRadius: '4px',
+                  backgroundColor: done ? colours.bg : theme.border,
+                  fontSize: '1px',
+                  lineHeight: '4px',
+                }}
+              >
+                &nbsp;
+              </div>
+              <Text
+                style={{
+                  margin: '10px 0 0',
+                  fontSize: '12px',
+                  lineHeight: '16px',
+                  fontWeight: i === current ? 800 : 600,
+                  color: i === current ? colours.bg : done ? theme.ink : theme.faint,
+                }}
+              >
+                {label}
+              </Text>
+            </Column>
+          )
+        })}
+      </Row>
+    </Section>
+  )
+}
+
+/** The message under the hero: a short heading and the text, centred. */
+export function Intro({ heading, children }: { heading: string; children?: ReactNode }) {
+  return (
+    <Section className="k-pad" style={{ padding: '30px 40px 0', textAlign: 'center' }}>
+      <Text
+        style={{
+          margin: '0 0 10px',
+          fontSize: '22px',
+          lineHeight: '28px',
+          fontWeight: 700,
+          letterSpacing: '-0.02em',
+          color: theme.ink,
+        }}
+      >
+        {heading}
+      </Text>
+      {children}
+    </Section>
+  )
+}
+
+export function Body({
+  children,
+  align = 'center',
+}: {
+  children: ReactNode
+  align?: 'center' | 'left'
+}) {
   return (
     <Text
       style={{
-        fontSize: '11px',
-        fontWeight: 600,
-        letterSpacing: '0.08em',
-        textTransform: 'uppercase',
-        color: theme.muted,
-        margin: '0 0 8px',
+        fontSize: '15px',
+        lineHeight: '24px',
+        color: theme.body,
+        margin: '0 0 14px',
+        textAlign: align,
+        whiteSpace: 'pre-line',
+        // Long links and addresses wrap instead of widening the email past the screen.
+        wordBreak: 'break-word',
+        overflowWrap: 'anywhere',
       }}
     >
       {children}
@@ -21,45 +247,31 @@ export function Eyebrow({ children }: { children: string }) {
   )
 }
 
-export function Heading({ children }: { children: string }) {
+/** The one button style every email uses: brand colour, always centred (owner rule). */
+export function PrimaryButton({
+  href,
+  children,
+  colours,
+}: {
+  href: string
+  children: string
+  colours: Colours
+}) {
   return (
-    <Text
-      style={{
-        fontSize: '22px',
-        fontWeight: 700,
-        color: theme.ink,
-        margin: '0 0 16px',
-        letterSpacing: '-0.01em',
-      }}
-    >
-      {children}
-    </Text>
-  )
-}
-
-export function Body({ children }: { children: ReactNode }) {
-  return (
-    <Text style={{ fontSize: '14px', lineHeight: '22px', color: theme.ink, margin: '0 0 16px' }}>
-      {children}
-    </Text>
-  )
-}
-
-/** The one button style every email uses: solid ink, white text. */
-export function PrimaryButton({ href, children }: { href: string; children: string }) {
-  return (
-    <Section style={{ margin: '8px 0 24px' }}>
+    <Section style={{ padding: '10px 24px 4px', textAlign: 'center' }}>
       <Button
         href={href}
         style={{
-          backgroundColor: theme.ink,
-          color: '#ffffff',
-          fontSize: '14px',
-          fontWeight: 600,
-          padding: '12px 24px',
-          borderRadius: '10px',
+          backgroundColor: colours.bg,
+          color: colours.fg,
+          fontSize: '15px',
+          fontWeight: 700,
+          padding: '16px 30px',
+          borderRadius: '12px',
           textDecoration: 'none',
           display: 'inline-block',
+          minWidth: '180px',
+          textAlign: 'center',
         }}
       >
         {children}
@@ -68,121 +280,159 @@ export function PrimaryButton({ href, children }: { href: string; children: stri
   )
 }
 
-type Line = TemplateData['lines'][number] & { imageUrl?: string | undefined }
-
-/** Line-item table with an optional product thumbnail per row. */
-export function ItemsTable({ lines }: { lines: Line[] }) {
-  if (lines.length === 0) return null
-  return (
-    <Section style={{ margin: '0 0 16px' }}>
-      <Eyebrow>Items</Eyebrow>
-      {lines.map((line, i) => (
-        <Row
-          key={`${line.title}-${line.quantity}-${line.priceLabel}`}
-          style={{ borderTop: i === 0 ? 'none' : `1px solid ${theme.border}`, padding: '10px 0' }}
-        >
-          <Column style={{ width: '44px', verticalAlign: 'top' }}>
-            {line.imageUrl ? (
-              <Img
-                src={line.imageUrl}
-                width="40"
-                height="40"
-                alt={line.title}
-                style={{
-                  borderRadius: '8px',
-                  objectFit: 'cover',
-                  border: `1px solid ${theme.border}`,
-                }}
-              />
-            ) : (
-              <div
-                style={{
-                  width: '40px',
-                  height: '40px',
-                  borderRadius: '8px',
-                  backgroundColor: theme.bg,
-                  border: `1px solid ${theme.border}`,
-                }}
-              />
-            )}
-          </Column>
-          <Column style={{ verticalAlign: 'top', paddingLeft: '12px' }}>
-            <Text style={{ fontSize: '13px', color: theme.ink, margin: 0, fontWeight: 500 }}>
-              {line.title}
-            </Text>
-            <Text style={{ fontSize: '12px', color: theme.muted, margin: '2px 0 0' }}>
-              Qty {line.quantity}
-            </Text>
-            {line.note ? (
-              <Text
-                style={{
-                  fontSize: '12px',
-                  color: theme.muted,
-                  margin: '4px 0 0',
-                  whiteSpace: 'pre-line',
-                }}
-              >
-                {line.note}
-              </Text>
-            ) : null}
-          </Column>
-          <Column style={{ verticalAlign: 'top', textAlign: 'right', width: '90px' }}>
-            <Text style={{ fontSize: '13px', color: theme.ink, margin: 0 }}>{line.priceLabel}</Text>
-          </Column>
-        </Row>
-      ))}
-    </Section>
-  )
-}
-
+type Line = TemplateData['lines'][number]
 export type TaxLine = { label: string; amount: string }
 
-/**
- * Totals block: shipping above the bold grand total, and the GST inside the prices as one small
- * "Includes GST" line under it. Rows above the total read as tax added on top (audit #189).
- */
-export function TotalsBlock({
+/** The order panel: product photos, titles, prices, then shipping, the total and the GST inside. */
+export function ItemsPanel({
+  title,
+  lines,
+  colours,
+  totalHeading,
   totalLabel,
   shipping,
   taxBreakdown,
+  qty,
 }: {
-  totalLabel: string
+  title: string
+  lines: Line[]
+  colours: Colours
+  totalHeading: string
+  totalLabel?: string | undefined
   shipping?: TaxLine | undefined
   taxBreakdown?: TaxLine[] | undefined
+  qty: (n: number) => string
 }) {
+  if (lines.length === 0) return null
   return (
-    <Section
-      style={{ margin: '0 0 8px', paddingTop: '8px', borderTop: `1px solid ${theme.border}` }}
-    >
-      {(shipping ? [shipping] : []).map((t) => (
-        <Row key={t.label} style={{ padding: '2px 0' }}>
-          <Column>
-            <Text style={{ fontSize: '12px', color: theme.muted, margin: 0 }}>{t.label}</Text>
-          </Column>
-          <Column style={{ textAlign: 'right' }}>
-            <Text style={{ fontSize: '12px', color: theme.muted, margin: 0 }}>{t.amount}</Text>
-          </Column>
-        </Row>
-      ))}
-      <Row style={{ padding: '6px 0 0' }}>
-        <Column>
-          <Text style={{ fontSize: '14px', fontWeight: 700, color: theme.ink, margin: 0 }}>
-            Total
-          </Text>
-        </Column>
-        <Column style={{ textAlign: 'right' }}>
-          <Text style={{ fontSize: '14px', fontWeight: 700, color: theme.ink, margin: 0 }}>
-            {totalLabel}
-          </Text>
-        </Column>
-      </Row>
-      {taxBreakdown?.length ? (
-        <Text
-          style={{ fontSize: '12px', color: theme.muted, margin: '4px 0 0', textAlign: 'right' }}
-        >
-          Includes GST: {taxBreakdown.map((t) => `${t.label} ${t.amount}`).join(' · ')}
+    <Section style={{ padding: '30px 24px 0' }}>
+      <Section
+        style={{ backgroundColor: theme.panel, borderRadius: '20px', padding: '24px 24px 20px' }}
+      >
+        <Text style={{ margin: '0 0 8px', fontSize: '17px', fontWeight: 700, color: theme.ink }}>
+          {title}
         </Text>
-      ) : null}
+        {lines.map((line, i) => (
+          <Row
+            key={`${line.title}-${line.quantity}-${line.priceLabel}`}
+            style={{ borderTop: i === 0 ? 'none' : '1px solid #e7e5e0' }}
+          >
+            <Column style={{ width: '84px', padding: '12px 0', verticalAlign: 'top' }}>
+              {line.imageUrl ? (
+                <Img
+                  src={line.imageUrl}
+                  width="72"
+                  height="72"
+                  alt={line.title}
+                  style={{ borderRadius: '12px', backgroundColor: '#ffffff', objectFit: 'contain' }}
+                />
+              ) : (
+                <div
+                  style={{
+                    width: '72px',
+                    height: '72px',
+                    borderRadius: '12px',
+                    backgroundColor: '#ffffff',
+                  }}
+                />
+              )}
+            </Column>
+            <Column style={{ padding: '14px 8px 12px 6px', verticalAlign: 'top' }}>
+              <Text
+                style={{
+                  margin: '0 0 4px',
+                  fontSize: '14.5px',
+                  lineHeight: '20px',
+                  fontWeight: 700,
+                  color: theme.ink,
+                }}
+              >
+                {line.title}
+              </Text>
+              <Text
+                style={{
+                  margin: 0,
+                  fontSize: '11.5px',
+                  letterSpacing: '0.06em',
+                  textTransform: 'uppercase',
+                  color: theme.muted,
+                }}
+              >
+                {qty(line.quantity)}
+              </Text>
+              {line.note ? (
+                <Text
+                  style={{
+                    margin: '6px 0 0',
+                    fontSize: '12.5px',
+                    lineHeight: '18px',
+                    color: theme.muted,
+                    whiteSpace: 'pre-line',
+                  }}
+                >
+                  {line.note}
+                </Text>
+              ) : null}
+            </Column>
+            <Column
+              style={{
+                width: '116px',
+                padding: '14px 0 12px',
+                verticalAlign: 'top',
+                textAlign: 'right',
+              }}
+            >
+              <Text style={{ margin: 0, fontSize: '14.5px', fontWeight: 700, color: colours.bg }}>
+                {line.priceLabel}
+              </Text>
+            </Column>
+          </Row>
+        ))}
+        {totalLabel ? (
+          <Section
+            style={{ borderTop: '1px dashed #d9d6cf', marginTop: '6px', paddingTop: '14px' }}
+          >
+            {shipping ? (
+              <Row>
+                <Column>
+                  <Text style={{ margin: '0 0 6px', fontSize: '13.5px', color: theme.body }}>
+                    {shipping.label}
+                  </Text>
+                </Column>
+                <Column style={{ textAlign: 'right' }}>
+                  <Text style={{ margin: '0 0 6px', fontSize: '13.5px', color: theme.body }}>
+                    {shipping.amount}
+                  </Text>
+                </Column>
+              </Row>
+            ) : null}
+            <Row>
+              <Column>
+                <Text style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: theme.ink }}>
+                  {totalHeading}
+                </Text>
+              </Column>
+              <Column style={{ textAlign: 'right' }}>
+                <Text style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: theme.ink }}>
+                  {totalLabel}
+                </Text>
+              </Column>
+            </Row>
+            {taxBreakdown?.length ? (
+              <Text
+                style={{
+                  margin: '6px 0 0',
+                  fontSize: '12px',
+                  color: theme.faint,
+                  textAlign: 'right',
+                }}
+              >
+                Includes GST: {taxBreakdown.map((t) => `${t.label} ${t.amount}`).join(' · ')}
+              </Text>
+            ) : null}
+          </Section>
+        ) : null}
+      </Section>
     </Section>
   )
 }
@@ -196,84 +446,117 @@ export type ParcelsBlockProps = {
 /** "Ships in 2 parcels": each parcel's origin, items and expected dates. */
 export function ParcelsBlock({ title, note, parcels }: ParcelsBlockProps) {
   return (
-    <Section
-      style={{
-        margin: '8px 0 16px',
-        padding: '16px',
-        border: `1px solid ${theme.border}`,
-        borderRadius: '10px',
-      }}
-    >
-      <Text style={{ fontSize: '14px', fontWeight: 700, color: theme.ink, margin: '0 0 4px' }}>
-        {title}
-      </Text>
-      <Text style={{ fontSize: '12px', lineHeight: '18px', color: theme.muted, margin: '0 0 8px' }}>
-        {note}
-      </Text>
-      {parcels.map((p) => (
-        <Section
-          key={p.heading}
-          style={{ padding: '8px 0 0', borderTop: `1px solid ${theme.border}` }}
+    <Section style={{ padding: '20px 24px 0' }}>
+      <Section
+        style={{
+          border: `1.5px solid ${theme.border}`,
+          borderRadius: '18px',
+          padding: '20px 22px',
+        }}
+      >
+        <Text style={{ fontSize: '15px', fontWeight: 700, color: theme.ink, margin: '0 0 4px' }}>
+          {title}
+        </Text>
+        <Text
+          style={{ fontSize: '12.5px', lineHeight: '19px', color: theme.muted, margin: '0 0 8px' }}
         >
-          <Text style={{ fontSize: '13px', fontWeight: 600, color: theme.ink, margin: '0 0 2px' }}>
-            {p.heading}
-          </Text>
-          {p.items.map((item) => (
-            <Text key={item} style={{ fontSize: '13px', color: theme.ink, margin: 0 }}>
-              {item}
+          {note}
+        </Text>
+        {parcels.map((p) => (
+          <Section
+            key={p.heading}
+            style={{ padding: '10px 0 0', borderTop: `1px solid ${theme.border}` }}
+          >
+            <Text
+              style={{ fontSize: '13.5px', fontWeight: 700, color: theme.ink, margin: '0 0 2px' }}
+            >
+              {p.heading}
             </Text>
-          ))}
-          {p.when ? (
-            <Text style={{ fontSize: '12px', color: theme.muted, margin: '2px 0 8px' }}>
-              {p.when}
-            </Text>
-          ) : null}
-        </Section>
-      ))}
+            {p.items.map((item) => (
+              <Text key={item} style={{ fontSize: '13px', color: theme.body, margin: 0 }}>
+                {item}
+              </Text>
+            ))}
+            {p.when ? (
+              <Text style={{ fontSize: '12px', color: theme.muted, margin: '2px 0 8px' }}>
+                {p.when}
+              </Text>
+            ) : null}
+          </Section>
+        ))}
+      </Section>
     </Section>
   )
 }
 
-export function GiftCardBlock({
+/** A dashed box for a code the shopper keeps: a gift card, or a coupon. */
+export function CodeBox({
+  colours,
+  label,
   code,
-  balanceLabel,
-  message,
+  lines,
 }: {
+  colours: Colours
+  label: string
   code: string
-  balanceLabel: string
-  message?: string | undefined
+  lines?: (string | undefined)[] | undefined
 }) {
   return (
-    <Section
-      style={{
-        backgroundColor: theme.bg,
-        borderRadius: '12px',
-        padding: '20px',
-        margin: '0 0 16px',
-        textAlign: 'center',
-      }}
-    >
-      <Eyebrow>Gift card code</Eyebrow>
-      <Text
+    <Section style={{ padding: '24px 24px 0' }}>
+      <Section
         style={{
-          fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
-          fontSize: '22px',
-          fontWeight: 700,
-          letterSpacing: '0.12em',
-          color: theme.ink,
-          margin: '0 0 8px',
+          border: `2px dashed ${colours.bg}`,
+          borderRadius: '18px',
+          padding: '22px',
+          textAlign: 'center',
         }}
       >
-        {code}
-      </Text>
-      <Text style={{ fontSize: '13px', color: theme.ink, margin: 0 }}>Balance: {balanceLabel}</Text>
-      {message ? (
+        <Text style={{ margin: '0 0 6px', fontSize: '12.5px', color: theme.muted }}>{label}</Text>
         <Text
-          style={{ fontSize: '13px', color: theme.muted, margin: '8px 0 0', fontStyle: 'italic' }}
+          style={{
+            margin: 0,
+            fontSize: '26px',
+            fontWeight: 800,
+            letterSpacing: '0.12em',
+            color: colours.bg,
+            fontFamily: MONO,
+          }}
         >
-          {message}
+          {code}
         </Text>
-      ) : null}
+        {(lines ?? []).filter(Boolean).map((l) => (
+          <Text key={l} style={{ margin: '8px 0 0', fontSize: '13px', color: theme.body }}>
+            {l}
+          </Text>
+        ))}
+      </Section>
+    </Section>
+  )
+}
+
+/** Small grey pills under the button: "AWB 1490…", "Paid by UPI". */
+export function MetaPills({ items }: { items: string[] }) {
+  if (items.length === 0) return null
+  return (
+    <Section style={{ padding: '12px 24px 0', textAlign: 'center' }}>
+      <Text style={{ margin: 0 }}>
+        {items.map((m) => (
+          <span
+            key={m}
+            style={{
+              display: 'inline-block',
+              margin: '3px',
+              padding: '6px 12px',
+              borderRadius: '999px',
+              backgroundColor: theme.panel,
+              fontSize: '12.5px',
+              color: theme.body,
+            }}
+          >
+            {m}
+          </span>
+        ))}
+      </Text>
     </Section>
   )
 }
@@ -281,38 +564,19 @@ export function GiftCardBlock({
 /** A labelled link line, for document/app links that aren't the primary button. */
 export function LinkLine({ label, href }: { label: string; href: string }) {
   return (
-    <Text style={{ fontSize: '14px', lineHeight: '22px', color: theme.ink, margin: '0 0 8px' }}>
-      <Link href={href} style={{ color: theme.ink, textDecoration: 'underline' }}>
+    <Text
+      style={{
+        fontSize: '14px',
+        lineHeight: '22px',
+        margin: '0 0 6px',
+        textAlign: 'center',
+        wordBreak: 'break-word',
+        overflowWrap: 'anywhere',
+      }}
+    >
+      <Link href={href} style={{ color: theme.ink, fontWeight: 600, textDecoration: 'underline' }}>
         {label}
       </Link>
     </Text>
-  )
-}
-
-/** Big monospace one-time code, for login_code. */
-export function CodeBlock({ code }: { code: string }) {
-  return (
-    <Section
-      style={{
-        backgroundColor: theme.bg,
-        borderRadius: '12px',
-        padding: '20px',
-        margin: '0 0 16px',
-        textAlign: 'center',
-      }}
-    >
-      <Text
-        style={{
-          fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
-          fontSize: '28px',
-          fontWeight: 700,
-          letterSpacing: '0.2em',
-          color: theme.ink,
-          margin: 0,
-        }}
-      >
-        {code}
-      </Text>
-    </Section>
   )
 }

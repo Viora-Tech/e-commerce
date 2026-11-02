@@ -105,6 +105,16 @@ export const growthAttributionContent = {
     window: '30-day window',
     rule: 'Last non-direct click',
   },
+  funnel: {
+    title: 'From visit to order',
+    body: 'How many visitors added to cart, reached checkout and ordered in this period.',
+    visits: 'Visits',
+    addedToCart: 'Added to cart',
+    reachedCheckout: 'Reached checkout',
+    ordered: 'Ordered',
+    ofPrevious: (pct: string) => `${pct} of the step before`,
+    empty: 'No visits tracked in this period yet.',
+  },
 } as const
 
 export const growthCampaignTabsContent = {

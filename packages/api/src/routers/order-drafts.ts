@@ -6,6 +6,8 @@ import {
   DraftInputSchema,
   insertOutboxEvent,
   permissions,
+  releaseDraft,
+  reserveDraft,
 } from '@commerce/core'
 import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
@@ -168,6 +170,29 @@ export const draftAndAbandonedRoutes = {
       }
       return { sent, skipped }
     }),
+
+  /**
+   * Reserve items (#1030): hold the saved draft's stock until a date, so no one else can buy it.
+   * Converting or deleting the draft, or the date passing, gives it back.
+   */
+  reserveDraft: can(permissions.DRAFTS_WRITE)
+    .input(z.object({ id: z.uuid(), until: z.iso.datetime({ offset: true }) }))
+    .handler(async ({ context, input }) => {
+      const held = await reserveDraft(
+        { storeId: context.scope.storeId, tx: context.tx },
+        input.id,
+        new Date(input.until),
+      )
+      if (!held) throw new ORPCError('NOT_FOUND', { message: 'Draft not found' })
+      return held
+    }),
+
+  /** Stop holding a draft's items; they go back on sale. */
+  releaseDraft: can(permissions.DRAFTS_WRITE)
+    .input(z.object({ id: z.uuid() }))
+    .handler(async ({ context, input }) => ({
+      released: await releaseDraft({ storeId: context.scope.storeId, tx: context.tx }, input.id),
+    })),
 
   /** Place a draft as a real order: holds stock and records a pending payment for the chosen method. */
   convertDraft: can(permissions.DRAFTS_WRITE)

@@ -23,11 +23,13 @@ import { CustomItemSchema, ensureCustomItemVariant } from './custom-item'
 import { DraftAddressSchema, DraftBillingSchema, writeAddress, writeBilling } from './draft-billing'
 import { draftMoney } from './draft-discount'
 import { draftPlaceholder, isDraftPlaceholder } from './draft-ref'
+import { releaseDraftHold, reserveDraft } from './draft-reserve'
 import { createFulfillmentOrders } from './fulfillment-orders'
 import { takeDraftNumber, takeOrderNumber } from './order-number'
 import { taxParcels } from './parcel-tax'
+import { PaymentTermsSchema, paymentDueAt } from './payment-terms'
 import { recomputeOrderStatuses } from './recompute'
-import { routeAndReserve } from './routing-service'
+import { releaseReserved, routeAndReserve } from './routing-service'
 
 /**
  * Draft orders: an order a merchant builds by hand (phone order, WhatsApp
@@ -90,10 +92,26 @@ export const DraftInputSchema = z.object({
   discountCode: z.string().trim().max(60).nullish(),
   shippingPaise: z.number().int().min(0).default(0),
   paymentMethod: z.string().trim().max(60).nullish(),
+  /** "Payment due later" (#1029): place the order now, collect by these terms. */
+  paymentTerms: PaymentTermsSchema.nullish(),
+  /** The due date for 'fixed' terms (YYYY-MM-DD). */
+  paymentDueDate: z.iso.date().nullish(),
   note: z.string().trim().max(2000).nullish(),
 })
 
 export type DraftInput = z.infer<typeof DraftInputSchema>
+
+/** A draft keeps its terms, and a fixed date as its due date until it converts. */
+function draftTerms(input: DraftInput) {
+  const terms = input.paymentTerms ?? null
+  return {
+    paymentTerms: terms,
+    paymentDueAt:
+      terms === 'fixed' && input.paymentDueDate
+        ? new Date(`${input.paymentDueDate}T00:00:00Z`)
+        : null,
+  }
+}
 
 export type DraftListItem = {
   id: string
@@ -208,6 +226,7 @@ export async function createDraft(ctx: StoreContext, input: DraftInput) {
       shippingAddressId,
       ...billing,
       paymentMethod: input.paymentMethod ?? null,
+      ...draftTerms(input),
       subtotalPaise: 0,
       shippingPaise: input.shippingPaise,
       discountLabel: input.discountLabel ?? null,
@@ -245,11 +264,18 @@ export async function updateDraft(ctx: StoreContext, id: string, input: DraftInp
       shippingAddressId,
       ...billing,
       paymentMethod: input.paymentMethod ?? null,
+      ...draftTerms(input),
       ...t,
     })
     .where(eq(order.id, id))
     .returning({ id: order.id })
   if (input.note !== undefined) await setDraftNote(ctx, id, input.note ?? '')
+  // A held draft (#1030) holds its new lines; a hold that already ran out is just let go.
+  if (existing.reservedUntil && existing.reservedUntil.getTime() > Date.now()) {
+    await reserveDraft(ctx, id, existing.reservedUntil)
+  } else {
+    await releaseDraftHold(ctx, existing)
+  }
   return o ?? null
 }
 
@@ -280,12 +306,14 @@ export async function deleteDrafts(ctx: StoreContext, ids: readonly string[]) {
   if (ids.length === 0) return 0
   // Locked so a conversion running at the same time waits, then finds the row gone.
   const rows = await ctx.tx
-    .select({ id: order.id })
+    .select({ id: order.id, draftReserved: order.draftReserved })
     .from(order)
     .where(and(inArray(order.id, [...ids]), eq(order.status, 'draft')))
     .for('update')
   const draftIds = rows.map((r) => r.id)
   if (draftIds.length === 0) return 0
+  // Held stock (#1030) goes back on sale with the draft.
+  for (const r of rows) if (r.draftReserved?.length) await releaseReserved(ctx, r.draftReserved)
   await ctx.tx.delete(notification).where(inArray(notification.orderId, draftIds))
   await ctx.tx.delete(orderNote).where(inArray(orderNote.orderId, draftIds))
   await ctx.tx.delete(orderLine).where(inArray(orderLine.orderId, draftIds))
@@ -354,6 +382,8 @@ export async function convertDraft(
     })
   }
 
+  // Its own hold (#1030) is given back first, so the stock below is held once, for the order.
+  await releaseDraftHold(ctx, o)
   /* Routed and held like a checkout (order/routing.ts), to the draft's shipping state; the
      stock guard queues two conversions, so they cannot oversell. Drafts never pre-order. */
   const [shipTo] = o.shippingAddressId
@@ -424,6 +454,10 @@ export async function convertDraft(
     .where(and(eq(orderLine.orderId, id), eq(orderLine.giftCard, false)))
 
   const method = opts.paymentMethod ?? o.paymentMethod ?? 'manual'
+  const placedAt = new Date()
+  /* Payment due later (#1029): the clock starts now; a fixed date stays as chosen. */
+  const terms = PaymentTermsSchema.safeParse(o.paymentTerms)
+  const dueAt = terms.success ? paymentDueAt(terms.data, placedAt, o.paymentDueAt) : null
   /* The order number is taken only now; a draft from before 0200 keeps the one it reserved. */
   const number = isDraftPlaceholder(o.number)
     ? await takeOrderNumber(ctx.tx, ctx.storeId)
@@ -434,7 +468,8 @@ export async function convertDraft(
       number,
       status: 'open',
       paymentMethod: method,
-      placedAt: new Date(),
+      placedAt,
+      paymentDueAt: dueAt,
       ...(billed.tax
         ? {
             taxPaise: billed.tax.taxPaise,

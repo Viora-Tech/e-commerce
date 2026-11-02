@@ -147,6 +147,8 @@ export const campaignEditorContent = {
     alignLeft: 'Left',
     alignCenter: 'Centre',
     imageUrl: 'Image URL',
+    chooseImage: 'Choose or upload image',
+    chooseImageBody: 'Pick a photo from your files or upload a new one.',
     alt: 'Alt text',
     link: 'Link (optional)',
     label: 'Button label',

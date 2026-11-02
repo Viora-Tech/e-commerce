@@ -1,9 +1,11 @@
 import { ChevronRight } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@commerce/ui/shadcn/tooltip'
+import Link from 'next/link'
 import StatusChip from '@/components/layout/status-chip'
 import ProductThumb from '@/components/products/product-thumb'
 import type { inventoryContent } from '@/data/inventory'
+import { routes } from '@/lib/routes'
 import type { InventoryLine } from './inventory-tree'
 
 type ProductLineCellProps = {
@@ -18,7 +20,8 @@ const TOGGLE = 'flex size-6 shrink-0 items-center justify-center rounded-md'
 
 /**
  * The Product cell. In the Products view a product with several SKUs gets a chevron that
- * folds them, the SKUs under it are indented, and a single-SKU product reads like a SKU.
+ * folds them, the SKUs under it are indented, and a single-SKU product reads like a SKU. The name
+ * opens the product, where its details and variants are edited (#1031).
  */
 export default function ProductLineCell({ line, copy, tree }: ProductLineCellProps) {
   // Render logic
@@ -65,14 +68,16 @@ export default function ProductLineCell({ line, copy, tree }: ProductLineCellPro
       <ProductThumb url={line.imageUrl} />
       <span className="flex min-w-0 flex-col pl-1">
         <span className="flex min-w-0 items-center gap-2">
-          <span
+          <Link
+            href={routes.products.detail(line.productId)}
+            onClick={(e) => e.stopPropagation()}
             className={cn(
-              'line-clamp-2 text-body',
+              'line-clamp-2 text-body underline-offset-4 hover:underline focus-visible:underline focus-visible:outline-none',
               line.nested ? 'text-foreground' : 'text-ink-strong',
             )}
           >
             {line.nested ? line.variantTitle : line.productTitle}
-          </span>
+          </Link>
           {line.hiddenOnStore ? (
             <Tooltip>
               <TooltipTrigger

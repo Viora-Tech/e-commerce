@@ -31,6 +31,7 @@ import {
   setGrowthAutomationStatus,
   testSendCampaignEmail,
   updateCampaign,
+  updateEmailTemplate,
   updateGrowthAutomation,
 } from '@commerce/core'
 import { compileEmailDesign } from '@commerce/core/email-design-compile'
@@ -53,6 +54,7 @@ import {
   audienceSize,
   campaignDetail,
   emailBrand,
+  emailStarterGallery,
   marketingDeps,
   marketingSetup,
   whatsappTemplates,
@@ -127,6 +129,43 @@ const emailTemplatesRouter = {
   delete: can(permissions.MARKETING_WRITE)
     .input(id)
     .handler(({ context, input }) => deleteEmailTemplate(context.tx, input.id)),
+
+  /** Save over a template the merchant opened, or rename it. */
+  update: can(permissions.MARKETING_WRITE)
+    .input(
+      z.object({
+        id: z.uuid(),
+        name: z.string().trim().min(1).max(120).optional(),
+        design: EmailTemplateInputSchema.shape.design.optional(),
+      }),
+    )
+    .handler(async ({ context, input }) =>
+      updateEmailTemplate(context.tx, input.id, {
+        name: input.name,
+        design: input.design ? await compiled(input.design) : undefined,
+      }),
+    ),
+
+  /** The ready-made templates in this store's logo, colour and newest products, with thumbnails. */
+  starters: can(permissions.MARKETING_READ)
+    .input(
+      z.object({
+        labels: z.object({
+          reason: z.string().max(300),
+          unsubscribe: z.string().max(60),
+          shopNow: z.string().max(60),
+        }),
+      }),
+    )
+    .handler(async ({ context, input }) => {
+      const deps = await marketingDeps(context.tx, context.scope.storeId, env())
+      return emailStarterGallery(
+        context.tx,
+        context.scope.storeId,
+        deps.storefrontUrl,
+        input.labels,
+      )
+    }),
 }
 
 /** Growth → Automations; legacy tables or the Automations engine, per store (`growth-automations.ts`). */

@@ -1,5 +1,6 @@
 import { render } from '@react-email/render'
 import { createElement } from 'react'
+import type { HeroShot } from '../emails/components'
 import { TransactionalEmail } from '../emails/transactional-email'
 import type { TemplateData, TemplateId } from '../types'
 import { sharedContent as shared, templateContent } from './content'
@@ -316,6 +317,70 @@ function parcelsBlock(d: TemplateData) {
   }
 }
 
+/** Team alerts and platform mail: a plainer email with no store menu or help block. */
+const INTERNAL: ReadonlySet<TemplateId> = new Set<TemplateId>([
+  'staff_new_order',
+  'staff_daily_summary',
+  'contact_message',
+  'question_asked',
+  'affiliate_application',
+  'unpaid_cancel_notice',
+  'purchase_order',
+  ...PLATFORM_TEMPLATE_IDS,
+])
+
+const DELIVERY_STEP: Partial<Record<TemplateId, number>> = {
+  order_placed: 0,
+  payment_received: 0,
+  order_shipped: 1,
+  shipping_update: 1,
+  out_for_delivery: 2,
+  delivered: 3,
+}
+
+const RETURN_STEP: Partial<Record<TemplateId, number>> = {
+  return_requested: 0,
+  return_approved: 1,
+  return_received: 2,
+  return_refunded: 3,
+}
+
+function stepsFor(template: TemplateId) {
+  const delivery = DELIVERY_STEP[template]
+  if (delivery !== undefined) return { labels: [...shared.deliverySteps], current: delivery }
+  const ret = RETURN_STEP[template]
+  if (ret !== undefined) return { labels: [...shared.returnSteps], current: ret }
+  return undefined
+}
+
+/** The card on the hero's right: the code, the amount that matters, or the first product photo. */
+function shotFor(template: TemplateId, d: TemplateData): HeroShot | undefined {
+  // A six-digit code reads as two groups ("482 913"); the text part keeps it whole for copying.
+  if (d.code) return { kind: 'code', value: d.code.replace(/^(\d{3})(\d{3})$/, '$1 $2') }
+  if (d.refund && (template === 'refund_issued' || template === 'return_refunded')) {
+    return { kind: 'amount', value: d.refund.amountLabel, caption: d.refund.methodLabel }
+  }
+  if (d.balance && (template === 'balance_request' || template === 'balance_reminder')) {
+    return { kind: 'amount', value: d.balance.dueLabel, caption: d.balance.payByLabel }
+  }
+  if (d.giftCard) return { kind: 'amount', value: d.giftCard.balanceLabel }
+  if (template === 'staff_new_order' && d.totalLabel) {
+    return { kind: 'amount', value: d.totalLabel, caption: d.paymentMethodLabel || undefined }
+  }
+  const photo = d.lines.find((l) => l.imageUrl)
+  return photo?.imageUrl ? { kind: 'image', url: photo.imageUrl, alt: photo.title } : undefined
+}
+
+function metaFor(template: TemplateId, d: TemplateData): string[] {
+  const meta: string[] = []
+  if (d.waybill && DELIVERY_STEP[template] !== undefined)
+    meta.push(shared.awb(d.courierLabel, d.waybill))
+  if ((template === 'order_placed' || template === 'payment_received') && d.paymentMethodLabel) {
+    meta.push(d.paymentMethodLabel)
+  }
+  return meta
+}
+
 export async function renderEmail(template: TemplateId, d: TemplateData): Promise<EmailBody> {
   const c = templateContent[template]
   const lines = d.lines.map(shared.lineText)
@@ -364,21 +429,36 @@ export async function renderEmail(template: TemplateId, d: TemplateData): Promis
     createElement(TransactionalEmail, {
       storeName: d.storeName,
       storeAddress: d.storeAddress,
+      brand: d.brand,
       previewText: subject,
       eyebrow: eyebrowFor(template, d),
+      heroTitle: shared.heroTitles[template],
+      shot: shotFor(template, d),
+      steps: stepsFor(template),
       heading: c.heading(d),
       intro: c.intro(d),
       note,
       outro: c.outro(d),
       lines: gc ? [] : d.lines,
+      itemsTitle: shared.itemsTitle,
+      totalHeading: shared.totalLabel,
+      qty: shared.qty,
       totalLabel: gc ? undefined : d.totalLabel,
       shipping: gc ? undefined : d.shipping,
       taxBreakdown: gc ? undefined : d.taxBreakdown,
       parcels: gc ? undefined : parcelsBlock(d),
-      giftCard: gc,
-      code: d.code,
+      giftCard: gc
+        ? {
+            label: shared.giftCardLabel,
+            code: gc.code,
+            lines: [`${shared.giftCardBalance}: ${gc.balanceLabel}`, gc.message],
+          }
+        : undefined,
       primaryAction,
+      meta: metaFor(template, d),
       extraLinks,
+      internal: INTERNAL.has(template),
+      labels: shared.layout,
       footerNote: shared.footer(d),
     }),
   )

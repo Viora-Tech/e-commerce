@@ -228,6 +228,10 @@ export const orderDetailContent = {
     heading: 'Payment',
     /** The gateway transactions card (the money side is the Payment card above it). */
     transactions: 'Transactions',
+    /** "Payment due later" terms from the draft (#1029). */
+    dueOn: (date: string) => `Payment due ${date}`,
+    dueOnFulfilment: 'Payment due on fulfilment',
+    overdue: 'Overdue',
     method: {
       cod: 'Cash on delivery',
       manual: 'UPI to your own ID — you confirm it',

@@ -163,6 +163,8 @@ export const NAV_GROUPS: NavGroup[] = [
           { href: routes.growth.attribution(), label: 'Attribution' },
           { href: routes.growth.autopilot(), label: 'Autopilot' },
           { href: routes.growth.campaigns(), label: 'Campaigns' },
+          // Tracking links live as a tab of Campaigns; the menu still names them (#1024).
+          { href: routes.growth.links(), label: 'Tracking links' },
         ],
       },
       {

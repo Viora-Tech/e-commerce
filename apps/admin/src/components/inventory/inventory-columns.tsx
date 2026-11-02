@@ -123,7 +123,21 @@ export function inventoryColumns({
       align: 'center',
       title: copy.columns.onHand,
       sortValue: (r) => r.onHand,
-      render: (r) => total(r.onHand),
+      className: 'w-44',
+      // Editable like Available (#1032): either moves on-hand stock by the same amount.
+      render: (r) =>
+        r.variants ? (
+          total(r.onHand)
+        ) : (
+          <AvailableCell
+            name={rowName(r)}
+            available={r.onHand}
+            lowAt={0}
+            label={copy.cell.onHandLabel}
+            disabled={!canEdit}
+            onCommit={(delta) => onCommit(r, delta)}
+          />
+        ),
     },
   ]
 }

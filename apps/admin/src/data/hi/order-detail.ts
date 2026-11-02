@@ -210,6 +210,9 @@ export default [
       heading: 'पेमेंट',
       /** The gateway transactions card (the money side is the Payment card above it). */
       transactions: 'लेन-देन',
+      dueOn: (date: string) => `पेमेंट ${date} तक देय`,
+      dueOnFulfilment: 'डिलीवरी भेजने पर पेमेंट देय',
+      overdue: 'देर हो गई',
       method: {
         cod: 'कैश ऑन डिलीवरी (COD)',
         manual: 'आपकी अपनी UPI ID पर, आप कन्फ़र्म करते हैं',

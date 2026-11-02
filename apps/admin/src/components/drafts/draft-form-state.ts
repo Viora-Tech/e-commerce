@@ -1,4 +1,5 @@
 import { validateGstin } from '@commerce/core/gstin'
+import type { PaymentTerms } from '@commerce/core/payment-terms'
 import type { api } from '@/lib/api-client'
 
 type Draft = NonNullable<Awaited<ReturnType<typeof api.orders.getDraft>>>
@@ -60,6 +61,10 @@ export type DraftFormState = {
   discountCode: string
   shippingPaise: number
   paymentMethod: string
+  /** "Payment due later" terms (#1029); '' = paid now. */
+  paymentTerms: string
+  /** The due date for fixed terms, YYYY-MM-DD. */
+  paymentDueDate: string
   note: string
 }
 
@@ -93,6 +98,8 @@ export const emptyDraft = (): DraftFormState => ({
   discountCode: '',
   shippingPaise: 0,
   paymentMethod: 'manual',
+  paymentTerms: '',
+  paymentDueDate: '',
   note: '',
 })
 
@@ -173,6 +180,8 @@ export function draftToForm(d: Draft): DraftFormState {
     discountCode: d.discountCode ?? '',
     shippingPaise: d.shippingPaise,
     paymentMethod: d.paymentMethod ?? 'manual',
+    paymentTerms: d.paymentTerms ?? '',
+    paymentDueDate: d.paymentDueAt ? new Date(d.paymentDueAt).toISOString().slice(0, 10) : '',
     note: d.note,
   }
 }
@@ -270,6 +279,8 @@ export function formToDraft(f: DraftFormState) {
     discountCode: f.discountCode || null,
     shippingPaise: f.shippingPaise,
     paymentMethod: f.paymentMethod || null,
+    paymentTerms: (f.paymentTerms || null) as PaymentTerms | null,
+    paymentDueDate: f.paymentTerms === 'fixed' && f.paymentDueDate ? f.paymentDueDate : null,
     note: f.note || null,
   }
 }
