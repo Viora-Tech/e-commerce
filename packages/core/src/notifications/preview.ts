@@ -12,6 +12,7 @@ import { storefrontOriginFor } from '../domains/origin'
 import { balanceOwed } from '../preorder/balance'
 import { balanceUrl, invoiceUrl } from '../preorder/balance-link'
 import { buildCartTemplateData, buildTemplateData, messageOn } from './deliver'
+import { storeEmailBrand } from './email-brand'
 import { messageDef } from './messages'
 
 /** The messages an admin sends by hand from an order, previewed before they go. */
@@ -60,6 +61,7 @@ export async function previewOrderMessage(
   }
   const data = {
     ...built.data,
+    brand: await storeEmailBrand(ctx.tx, ctx.storeId),
     ...(actionUrl ? { actionUrl } : {}),
     ...(reminder ? { reminder: true } : {}),
     ...(input.custom ? { custom: input.custom } : {}),
@@ -102,7 +104,8 @@ export async function previewCartRecovery(
   const template = 'checkout_recovery' as const
   const built = await buildCartTemplateData(ctx, input.cartId, opts.actionUrl)
   if (!built) return null
-  const data = input.custom ? { ...built.data, custom: input.custom } : built.data
+  const brand = await storeEmailBrand(ctx.tx, ctx.storeId)
+  const data = { ...built.data, brand, ...(input.custom ? { custom: input.custom } : {}) }
   const email = await renderEmail(template, data)
   const defaultSubject = input.custom?.subject
     ? (await renderEmail(template, built.data)).subject

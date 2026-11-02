@@ -158,12 +158,35 @@ export type EmailParcel = {
   onHold: boolean
 }
 
-/** Everything a template needs; built by the worker from the order row. */
 /** The merchant's own subject and note for a hand-sent message ("Review email" dialog). */
 export type CustomMessage = { subject?: string | undefined; message?: string | undefined }
 
+/**
+ * The store's own look for its emails: logo, brand colour, socials and how to reach it. Filled in
+ * once per send by the store's channels (`storeNotificationChannels`), so no caller builds it.
+ * Absent (platform emails, tests) means the neutral ink look.
+ */
+export type EmailBrandInfo = {
+  logoUrl?: string | null | undefined
+  /** Logo width in px as the theme sets it (60-320). */
+  logoWidth?: number | undefined
+  /** The theme's button colour and the text drawn on it, as `#rrggbb`. */
+  colour?: string | undefined
+  onColour?: string | undefined
+  /** `https://<primary domain>`, for the menu row and footer links. */
+  shopUrl?: string | null | undefined
+  supportEmail?: string | null | undefined
+  supportPhone?: string | null | undefined
+  /** One line: "12 MG Road, Pune 411001". */
+  address?: string | null | undefined
+  social?: { platform: string; url: string }[] | undefined
+}
+
+/** Everything a template needs; built by the worker from the order row. */
 export type TemplateData = {
   storeName: string
+  /** The store's look (logo, colour, socials, support contact); see `EmailBrandInfo`. */
+  brand?: EmailBrandInfo | undefined
   /** Set when the merchant edited the subject or added a note before sending. */
   custom?: CustomMessage | undefined
   /** Absent for messages about a cart that is not an order yet. */

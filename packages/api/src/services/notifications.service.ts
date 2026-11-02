@@ -6,6 +6,7 @@ import {
   messageSwitchable,
   parseAppsSettings,
   parseNotificationSettings,
+  storeEmailBrand,
   storeNotificationChannels,
   withMessage,
 } from '@commerce/core'
@@ -126,7 +127,8 @@ function sampleFor(template: TemplateId, storeName: string | undefined): Templat
 /** The email (and WhatsApp text) a customer would get, filled with a sample order. */
 export async function previewMessage(tx: StoreTx, storeId: string, template: TemplateId) {
   const s = await getStore(tx, storeId)
-  const data = sampleFor(template, s?.name)
+  // The store's own logo, colour and contact, so the preview matches what customers get.
+  const data = { ...sampleFor(template, s?.name), brand: await storeEmailBrand(tx, storeId) }
   const email = await renderEmail(template, data)
   const def = messageDef(template)
   return {

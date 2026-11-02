@@ -2,6 +2,7 @@
 import { type StoreTx, senderEmail, store } from '@commerce/db'
 import type { NotificationChannel, NotificationRegistry } from '@commerce/notifications'
 import { eq } from 'drizzle-orm'
+import { storeEmailBrand, withEmailBrand } from '../notifications/email-brand'
 import { parseNotificationSettings, resolveNotificationChannels } from '../notifications/settings'
 import { LogNotificationChannel } from '../providers/log-channel'
 import { type ChosenSender, chooseSender } from './client'
@@ -62,12 +63,15 @@ export async function storeNotificationChannels(
     deps.settingsSecret,
     deps.previousSecrets,
   )
+  // Every email this store sends carries its own logo, colour and contact (loaded on first send).
+  const branded = (list: NotificationChannel[]) =>
+    withEmailBrand(list, () => storeEmailBrand(tx, storeId))
   const transport = (deps.platform ?? getPlatformEmail()).transport
   // Development without the platform account: print emails to the worker log rather than
   // refusing every send ("enable an email channel"), so hand-sent messages can be tried locally.
   if (!transport && !channels.some((c) => c.requires === 'email') && devFallback()) {
-    return [...channels, new LogNotificationChannel()]
+    return branded([...channels, new LogNotificationChannel()])
   }
-  if (!transport || ownsEmail(channels)) return channels
-  return [...channels, transport.channel(await platformSenderFor(tx, storeId, transport))]
+  if (!transport || ownsEmail(channels)) return branded(channels)
+  return branded([...channels, transport.channel(await platformSenderFor(tx, storeId, transport))])
 }
