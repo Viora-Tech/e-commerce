@@ -27,6 +27,8 @@ type Copy = typeof emailBuilderContent
 export type PickRequest =
   | { kind: 'products'; component: Component; columns: 1 | 2 | 3 }
   | { kind: 'discount'; component: Component }
+  /** An image or button asked to link to a product or collection page. */
+  | { kind: 'link'; component: Component }
 
 export type EmailEditorOptions = {
   container: HTMLElement
@@ -150,6 +152,132 @@ function addStoreBlocks(editor: Editor, brand: EmailBrand, copy: Copy) {
   })
 }
 
+/** The email's inner width (600px less the usual 24px padding each side), for shape heights. */
+const CONTENT_WIDTH = 552
+
+/** Height ÷ width for each shape; '' keeps the photo's own proportions. */
+const SHAPES = ['', '1', '0.75', '0.5625', '1.25'] as const
+
+/** The class the server turns into `object-fit: cover` (see `compileEmailDesign`). */
+export const FIT_CLASS = 'k-fit'
+
+const SOCIAL_NETWORKS = [
+  'instagram',
+  'facebook',
+  'youtube',
+  'x',
+  'linkedin',
+  'pinterest',
+  'web',
+] as const
+
+/** A fixed shape is a fixed height for the image's width, cropped to fill (`object-fit`). */
+function applyShape(component: Component) {
+  const ratio = Number(component.get('k-shape') || 0)
+  const attrs = component.getAttributes()
+  if (!ratio) {
+    const { height: _h, 'css-class': _c, ...rest } = attrs
+    component.setAttributes(rest)
+    return
+  }
+  const width = Number.parseInt(String(attrs.width ?? ''), 10) || CONTENT_WIDTH
+  component.addAttributes({
+    height: `${Math.round(width * ratio)}px`,
+    'css-class': FIT_CLASS,
+  })
+}
+
+/**
+ * Plain-language settings on the pieces merchants change most (owner feedback, 3 Nov 2026):
+ * an image's link, size, shape, corners and alignment; a button's link; each social icon's own
+ * network and link. "Link to a product or collection" opens the store picker.
+ */
+function addFriendlyTraits(editor: Editor, copy: Copy, onPick: (r: PickRequest) => void) {
+  const t = copy.traits
+  editor.TraitManager.addType('store-link', {
+    noLabel: true,
+    createInput({ component }: { component: Component }) {
+      const button = document.createElement('button')
+      button.type = 'button'
+      button.className = 'gjs-btn-prim'
+      button.style.width = '100%'
+      button.textContent = t.pickLink
+      button.addEventListener('click', () => onPick({ kind: 'link', component }))
+      return button
+    },
+  })
+
+  const ensure = (component: Component, traits: Record<string, unknown>[]) => {
+    const missing = traits.filter((tr) => !component.getTrait(String(tr.name)))
+    if (missing.length) component.addTrait(missing as never)
+  }
+
+  editor.on('component:selected', (component: Component) => {
+    const type = component.get('type')
+    if (type === 'mj-image') {
+      ensure(component, [
+        { type: 'store-link', name: 'k-link' },
+        {
+          type: 'select',
+          name: 'width',
+          label: t.width,
+          options: [
+            { id: '', label: t.widthFull },
+            ...['480px', '400px', '320px', '240px', '160px'].map((w) => ({ id: w, label: w })),
+          ],
+        },
+        {
+          type: 'select',
+          name: 'k-shape',
+          label: t.shape,
+          changeProp: true,
+          options: SHAPES.map((id, i) => ({ id, label: t.shapes[i] ?? id })),
+        },
+        {
+          type: 'select',
+          name: 'border-radius',
+          label: t.corners,
+          options: [
+            { id: '0px', label: t.cornersNone },
+            { id: '8px', label: t.cornersSmall },
+            { id: '16px', label: t.cornersLarge },
+          ],
+        },
+        {
+          type: 'select',
+          name: 'align',
+          label: t.align,
+          options: [
+            { id: 'left', label: t.left },
+            { id: 'center', label: t.center },
+            { id: 'right', label: t.right },
+          ],
+        },
+      ])
+      if (!component.get('k-shape-wired')) {
+        component.set('k-shape-wired', true)
+        component.on('change:k-shape', () => applyShape(component))
+        component.on(
+          'change:attributes:width',
+          () => component.get('k-shape') && applyShape(component),
+        )
+      }
+    }
+    if (type === 'mj-button') ensure(component, [{ type: 'store-link', name: 'k-link' }])
+    if (type === 'mj-social-element') {
+      // Our icons link straight to the profile ("-noshare"), which MJML's own list does not
+      // show; offer those so each icon's network and link can be changed on its own.
+      component.getTrait('name')?.set(
+        'options',
+        SOCIAL_NETWORKS.map((n) => ({ id: `${n}-noshare`, label: t.networks[n] })),
+      )
+    }
+    if (type && ['mj-image', 'mj-button', 'mj-social-element'].includes(type)) {
+      editor.Panels.getButton('views', 'open-tm')?.set('active', true)
+    }
+  })
+}
+
 /** A ready editor on `container`, showing the saved design or a brand starter. */
 export function createEmailEditor(opts: EmailEditorOptions): Editor {
   const { brand, copy } = opts
@@ -177,6 +305,7 @@ export function createEmailEditor(opts: EmailEditorOptions): Editor {
   })
 
   addStoreBlocks(editor, brand, copy)
+  addFriendlyTraits(editor, copy, opts.onPick)
 
   editor.RichTextEditor.add('merge-tag', {
     name: 'merge-tag',

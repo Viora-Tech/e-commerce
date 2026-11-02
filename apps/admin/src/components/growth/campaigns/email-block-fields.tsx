@@ -8,6 +8,7 @@ import { Textarea } from '@commerce/ui/shadcn/textarea'
 import { ToggleGroup, ToggleGroupItem } from '@commerce/ui/shadcn/toggle-group'
 import { campaignEditorContent } from '@/data/marketing-campaigns'
 import DiscountCodeField from './discount-code-field'
+import EmailImageField from './email-image-field'
 import EmailProductsPicker from './email-products-picker'
 
 type EmailBlockFieldsProps = {
@@ -127,10 +128,8 @@ export default function EmailBlockFields({ block, onChange }: EmailBlockFieldsPr
     case 'image':
       return (
         <FieldGroup>
-          <TextField
+          <EmailImageField
             id={id('url')}
-            label={copy.imageUrl}
-            placeholder="https://"
             value={block.url}
             onChange={(url) => onChange({ ...block, url })}
           />

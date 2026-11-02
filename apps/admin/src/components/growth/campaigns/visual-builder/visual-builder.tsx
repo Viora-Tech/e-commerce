@@ -15,6 +15,7 @@ import { emailBuilderContent } from '@/data/email-builder'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import BuilderDiscountDialog from './builder-discount-dialog'
+import BuilderLinkDialog from './builder-link-dialog'
 import BuilderProductsDialog, { type BuilderProducts } from './builder-products-dialog'
 import BuilderTemplatesDialog from './builder-templates-dialog'
 import {
@@ -124,6 +125,15 @@ export default function VisualBuilder({
     setPick(null)
   }
 
+  const handleLink = (path: string | null) => {
+    if (pick?.kind === 'link' && path) {
+      // `{shop_url}` follows the store's own domain at send time.
+      pick.component.addAttributes({ href: `{shop_url}${path}` })
+      toast.success(copy.link.linked)
+    }
+    setPick(null)
+  }
+
   const handleImage = (media: PickedMedia | null) => {
     const data = imagePick
     setImagePick(null)
@@ -180,6 +190,7 @@ export default function VisualBuilder({
         onDone={handleProducts}
       />
       <BuilderDiscountDialog open={pick?.kind === 'discount'} onDone={handleDiscount} />
+      <BuilderLinkDialog open={pick?.kind === 'link'} onDone={handleLink} />
       <MediaPickDialog
         open={imagePick !== null}
         title={copy.image.title}
