@@ -123,7 +123,10 @@ const amount = (p: number) => (p / 100).toFixed(2)
 
 function csv(rows: (string | number)[][]): string {
   const cell = (v: string | number) => {
-    const s = String(v)
+    let s = String(v)
+    // A leading = + - @ tab or CR would run as a spreadsheet formula: prefix an apostrophe.
+    // Plain numbers (a negative amount like -12.00) stay numbers.
+    if (/^[=+\-@\t\r]/.test(s) && !/^-?\d+(\.\d+)?$/.test(s)) s = `'${s}`
     return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s
   }
   return rows.map((r) => r.map(cell).join(',')).join('\n')
