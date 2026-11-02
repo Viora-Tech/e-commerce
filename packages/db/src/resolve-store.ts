@@ -387,6 +387,14 @@ export async function storesWithOldApiActivity(db: Db, now = new Date()): Promis
   return rows.map((r) => r.id)
 }
 
+/** Stores whose activity log (Settings → Activity log) has rows past the year it keeps. */
+export async function storesWithOldStoreActivity(db: Db, now = new Date()): Promise<string[]> {
+  const rows = await db.execute<{ id: string }>(
+    sql`select stores_with_old_store_activity(${now.toISOString()}::timestamptz) as id`,
+  )
+  return rows.map((r) => r.id)
+}
+
 /** Stores with a Meta, Google or OpenAI channel connection, for the catalog sync sweep. */
 export async function storesWithChannelConnections(db: Db): Promise<string[]> {
   const rows = await db.execute<{ id: string }>(sql`select stores_with_channel_connections() as id`)

@@ -17,8 +17,8 @@ describe('CSV formula injection neutralisation', () => {
         // The dangerous char must no longer be the first character the spreadsheet parses.
         const inner = out.startsWith('"') ? out.slice(1) : out
         expect(inner.startsWith("'")).toBe(true)
-        // The value itself survives as data right after the apostrophe.
-        expect(inner.slice(1).startsWith(value.replaceAll('"', '""'))).toBe(true)
+        // The value itself survives as data (inner quotes doubled), just behind the leading quote.
+        expect(out).toContain(`'${value.replace(/"/g, '""')}`)
       })
     }
   }

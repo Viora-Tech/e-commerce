@@ -29,6 +29,7 @@ export default defineConfig({
     './src/returns-schema.ts',
     './src/search-console-schema.ts',
     './src/shopper-login-schema.ts',
+    './src/store-activity-schema.ts',
     './src/store-data-schema.ts',
     './src/theme-schema.ts',
     // Installable apps that own tables. Their migrations join the one chain here.

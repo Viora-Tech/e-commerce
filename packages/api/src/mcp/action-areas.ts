@@ -29,6 +29,7 @@ export const NAMESPACE_AREA: Record<string, ApiArea> = {
   analytics: 'analytics',
   dashboard: 'analytics',
   activity: 'analytics',
+  activityLog: 'settings',
   seo: 'analytics',
   marketing: 'marketing',
   automations: 'settings',

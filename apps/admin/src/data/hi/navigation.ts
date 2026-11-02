@@ -147,6 +147,10 @@ export const hindiPageNames: Record<string, { title: string; body?: string }> = 
     title: 'मंज़ूरियाँ',
     body: 'किसी दूसरे मेंबर की मंज़ूरी का इंतज़ार कर रहे बदलाव, और आपके अपने अनुरोध।',
   },
+  '/settings/activity': {
+    title: 'गतिविधि लॉग',
+    body: 'स्टोर में किसने क्या बदला, कब, और कहाँ से।',
+  },
   '/settings/ai': {
     title: 'AI',
     body: 'AI से लिखें और अपने स्टोर से पूछें: इस महीने कितना इस्तेमाल हुआ, और इन्हें चालू करना।',
