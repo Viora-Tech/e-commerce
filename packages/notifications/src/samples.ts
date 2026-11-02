@@ -1,4 +1,5 @@
 import { siteConfig } from '@commerce/config/site'
+import { formatInZone } from '@commerce/dates'
 import type { TemplateData, TemplateId } from './types'
 
 /** Sample order used by the conformance suite, the dev preview and the admin's message preview. */
@@ -438,11 +439,11 @@ const DAY = 86_400_000
 
 /** "10 Oct 2026" (or "30 November 2026" with `long`), the way the templates print dates. */
 function dateLabel(now: Date, days: number, long = false): string {
-  return new Date(now.getTime() + days * DAY).toLocaleDateString('en-GB', {
-    day: 'numeric',
-    month: long ? 'long' : 'short',
-    year: 'numeric',
-  })
+  return formatInZone(
+    now.getTime() + days * DAY,
+    { day: 'numeric', month: long ? 'long' : 'short', year: 'numeric' },
+    { locale: 'en-GB' },
+  )
 }
 
 /**

@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: draft reserve items — WHAT: hold, release and expire a draft's reserved stock / WHY: one place decides when a draft's items are off sale (#1030) */
 import { address, order, orderLine } from '@commerce/db'
 import { and, eq, isNotNull, lt } from 'drizzle-orm'
 import type { StoreContext } from '../context'

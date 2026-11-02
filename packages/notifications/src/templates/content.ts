@@ -1,3 +1,4 @@
+import { siteConfig } from '@commerce/config/site'
 import type { TemplateData, TemplateId } from '../types'
 import {
   backInStockTemplates,
@@ -333,7 +334,7 @@ export const sharedContent = {
     helpTitle: 'Need help?',
     helpBody: 'Reply to this email or reach us here. We usually answer within a few hours.',
     whatsapp: 'WhatsApp',
-    poweredBy: 'Powered by Koomerce',
+    poweredBy: `Powered by ${siteConfig.brand.name}`,
     unsubscribe: 'Unsubscribe',
   },
   deliverySteps: ['Confirmed', 'Shipped', 'Out for delivery', 'Delivered'],

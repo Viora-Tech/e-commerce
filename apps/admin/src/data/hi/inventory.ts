@@ -1,3 +1,4 @@
+import { siteConfig } from '@commerce/config/site'
 import {
   inventoryContent,
   locationsContent,
@@ -134,7 +135,7 @@ export default [
       empty: 'अभी तक स्टॉक में कोई बदलाव दर्ज नहीं हुआ।',
       failed: 'इतिहास लोड नहीं हो सका',
       by: (name: string) => `${name} द्वारा`,
-      bySystem: 'Koomerce द्वारा',
+      bySystem: `${siteConfig.brand.name} द्वारा`,
     },
     exporting: {
       filename: 'inventory.csv',

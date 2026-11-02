@@ -377,6 +377,9 @@ export const ACTION_DOCS: Record<string, string> = {
     'Hides one recommendation for the whole store and returns the cards left to show.',
   'marketing.emailBrand':
     'Logo, colours and social links from the live theme, for the visual email builder.',
+  'marketing.emailTemplates.starters':
+    "The ready-made templates in this store's logo, colour and newest products, with thumbnails.",
+  'marketing.emailTemplates.update': 'Save over a template the merchant opened, or rename it.',
   'marketing.overview': 'Sessions, attributed sales, channels and top campaigns for one range.',
   'marketing.recommendations':
     'Growth overview recommendations: up to three rule-based next steps with their numbers.',
@@ -506,10 +509,13 @@ export const ACTION_DOCS: Record<string, string> = {
     'Send money back through the gateway (or record a cash/UPI refund); partial amounts allowed.',
   'orders.refundOptions':
     'How a refund on this order can go back: how much is left, and to the original payment or not.',
+  'orders.releaseDraft': "Stop holding a draft's items; they go back on sale.",
   'orders.releaseFulfillment':
     'Release the hold: the order goes back to where it was (to pack, or partly shipped).',
   'orders.requestBalance':
     "Ask the shopper for a deposit pre-order's balance: email and WhatsApp (when set up) with a signed pay link.",
+  'orders.reserveDraft':
+    "Reserve items (#1030): hold the saved draft's stock until a date, so no one else can buy it.",
   'orders.retryCourierPush':
     "Send the order to a courier's panel again after it refused (order push).",
   'orders.saveDraft':
