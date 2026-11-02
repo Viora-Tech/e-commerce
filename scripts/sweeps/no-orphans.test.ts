@@ -18,6 +18,11 @@ type AllowEntry = { file: string; names: string[]; reason: string }
 
 const ALLOWLIST: AllowEntry[] = [
   {
+    file: 'packages/plugin-affiliates/src/stats.ts',
+    names: ['ledgerCsvCell'],
+    reason: 'used by ledgerCsv in the module and asserted directly by csv-injection.test.ts',
+  },
+  {
     file: 'packages/core/src/catalog/variants.ts',
     names: ['priceRange'],
     reason: 'used in the module and asserted directly by variants.test.ts',

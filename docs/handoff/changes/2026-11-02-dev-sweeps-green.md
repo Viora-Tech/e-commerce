@@ -14,7 +14,7 @@
   the `payment-terms` / `staff-hold` tests.
 - **no-orphans:** five in-file-only exports are no longer exported; the unused
   `EMAIL_STARTER_IDS` and `emailStarter` are deleted; `priceRange`, `DraftHoldInPast` and
-  `OrderNotHoldable` (used by tests) are allow-listed with reasons.
+  `OrderNotHoldable` (used by tests) are allow-listed with reasons, and so is `ledgerCsvCell` (#1036).
 - **file-size:** allow-listed, not split: six new modules just over 500 lines, and the recorded
   sizes of `liquid-theme.ts` (560 → 669) and `db/src/schema.ts` (2549 → 2630) raised. Each is a
   "split when it next changes" candidate.
