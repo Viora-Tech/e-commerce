@@ -1,7 +1,8 @@
 import { customer, customerSegment, type StoreTx } from '@commerce/db'
 import { and, eq, isNull, sql } from 'drizzle-orm'
 import { decryptCustomerPhone } from '../customers/phone-crypto'
-import { evaluateSegment, type SegmentRules } from '../customers/segments'
+import { segmentExtras } from '../customers/segment-extras'
+import { evaluateSegment, needsSegmentExtras, type SegmentRules } from '../customers/segments'
 import { customerSpentSql } from '../customers/spent'
 
 export type AudienceMember = {
@@ -72,6 +73,15 @@ export async function campaignAudience(
     .from(customer)
     .where(and(consent, isNull(customer.unsubscribedAt)))
   const now = input.now ?? new Date()
+  // The newer filters' facts (#1020), loaded once for the whole audience when a rule uses one.
+  const extras =
+    rules && needsSegmentExtras(rules)
+      ? await segmentExtras(
+          tx,
+          rows.map((r) => r.id),
+          now,
+        )
+      : undefined
   const seen = new Set<string>()
   const out: AudienceMember[] = []
   for (const r of rows) {
@@ -79,6 +89,7 @@ export async function campaignAudience(
       rules &&
       !evaluateSegment(
         {
+          ...extras?.get(r.id),
           spentPaise: r.spent,
           orderCount: r.orderCount,
           stateCode: r.stateCode,

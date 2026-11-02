@@ -11,6 +11,7 @@ import {
   permissions,
   recordCustomerChange,
   SEGMENT_FIELDS,
+  SEGMENT_OPS,
   setDefaultAddress,
   setDefaultBillingAddress,
   setMarketingConsent,
@@ -76,7 +77,7 @@ const RulesSchema = z.object({
     .array(
       z.object({
         field: z.enum(SEGMENT_FIELDS),
-        op: z.enum(['gte', 'lte', 'eq', 'neq', 'contains']),
+        op: z.enum(SEGMENT_OPS),
         value: z.string().trim().max(100),
       }),
     )

@@ -1028,6 +1028,14 @@ export const customer = pgTable(
 )
 
 export type CustomerSegmentField =
+  | 'aov'
+  | 'city'
+  | 'customer_days'
+  | 'first_order_days'
+  | 'product'
+  | 'cod_orders'
+  | 'rto_orders'
+  | 'abandoned_cart'
   | 'spend'
   | 'orders'
   | 'state'
@@ -1035,7 +1043,7 @@ export type CustomerSegmentField =
   | 'last_order_days'
   | 'marketing'
   | 'business'
-export type CustomerSegmentOp = 'gte' | 'lte' | 'eq' | 'neq' | 'contains'
+export type CustomerSegmentOp = 'gte' | 'lte' | 'eq' | 'neq' | 'contains' | 'between'
 export type CustomerSegmentCondition = {
   field: CustomerSegmentField
   op: CustomerSegmentOp

@@ -19,6 +19,8 @@ import MoneyInput from '@/components/fields/money-input'
 import KitIconButton from '@/components/kit/kit-icon-button'
 import { segmentsContent as copy } from '@/data/customers'
 import { INDIAN_STATES } from '@/data/india'
+import SegmentProductField from './segment-product-field'
+import SegmentRangeField from './segment-range-field'
 
 type ConditionRowProps = {
   condition: SegmentCondition
@@ -32,6 +34,13 @@ const marketingItems = [
   { value: 'true', label: copy.marketingValues.true ?? 'Subscribed' },
   { value: 'false', label: copy.marketingValues.false ?? 'Not subscribed' },
 ]
+const abandonedItems = [
+  { value: 'true', label: copy.abandonedValues.true ?? 'Yes' },
+  { value: 'false', label: copy.abandonedValues.false ?? 'No' },
+]
+/** Rupee fields: rupees in the box, paise in the rule. */
+const MONEY_FIELDS = new Set<SegmentField>(['spend', 'aov'])
+const TEXT_FIELDS = new Set<SegmentField>(['tag', 'city'])
 const businessItems = [
   { value: 'true', label: copy.businessValues.true ?? 'Business' },
   { value: 'false', label: copy.businessValues.false ?? 'Individual' },
@@ -58,7 +67,10 @@ export default function ConditionRow({ condition, fields, onChange, onRemove }: 
   }
 
   const handleOp = (value: unknown) => {
-    onChange({ ...condition, op: String(value) as SegmentCondition['op'] })
+    const op = String(value) as SegmentCondition['op']
+    // Switching in or out of "is between" changes the value's shape ("min,max").
+    const reshape = (op === 'between') !== (condition.op === 'between')
+    onChange({ ...condition, op, value: reshape ? '' : condition.value })
   }
 
   const handleValue = (value: string) => {
@@ -68,8 +80,17 @@ export default function ConditionRow({ condition, fields, onChange, onRemove }: 
   // Render logic
   const ops = OPS_BY_FIELD[condition.field]
   const fieldItems = fields.map((f) => ({ value: f, label: copy.fields[f] ?? f }))
-  const opItems = ops.map((o) => ({ value: o, label: copy.ops[o] ?? o }))
-  const flagItems = condition.field === 'business' ? businessItems : marketingItems
+  const opItems = ops.map((o) => ({
+    value: o,
+    label: (condition.field === 'product' ? copy.productOps[o] : undefined) ?? copy.ops[o] ?? o,
+  }))
+  const flagItems =
+    condition.field === 'business'
+      ? businessItems
+      : condition.field === 'abandoned_cart'
+        ? abandonedItems
+        : marketingItems
+  const label = copy.fields[condition.field] ?? condition.field
 
   return (
     <div className="flex flex-wrap items-center gap-2">
@@ -99,7 +120,16 @@ export default function ConditionRow({ condition, fields, onChange, onRemove }: 
         </SelectContent>
       </Select>
 
-      {condition.field === 'state' ? (
+      {condition.op === 'between' ? (
+        <SegmentRangeField
+          value={condition.value}
+          money={MONEY_FIELDS.has(condition.field)}
+          label={label}
+          onChange={handleValue}
+        />
+      ) : condition.field === 'product' ? (
+        <SegmentProductField value={condition.value} onChange={handleValue} />
+      ) : condition.field === 'state' ? (
         <Select
           items={stateItems}
           value={condition.value}
@@ -133,20 +163,20 @@ export default function ConditionRow({ condition, fields, onChange, onRemove }: 
             ))}
           </SelectContent>
         </Select>
-      ) : condition.field === 'spend' ? (
+      ) : MONEY_FIELDS.has(condition.field) ? (
         <div className="w-40">
           <MoneyInput
-            aria-label={copy.fields.spend}
+            aria-label={label}
             value={paiseToRupees(condition.value)}
             onChange={(v) => handleValue(rupeesToPaise(v))}
-            placeholder={copy.valuePlaceholder.spend}
+            placeholder={copy.valuePlaceholder[condition.field]}
           />
         </div>
       ) : (
         <Input
           className="w-40"
-          inputMode={condition.field === 'tag' ? 'text' : 'numeric'}
-          aria-label={copy.fields[condition.field] ?? condition.field}
+          inputMode={TEXT_FIELDS.has(condition.field) ? 'text' : 'numeric'}
+          aria-label={label}
           value={condition.value}
           onChange={(e) => handleValue(e.target.value)}
           placeholder={copy.valuePlaceholder[condition.field] ?? ''}

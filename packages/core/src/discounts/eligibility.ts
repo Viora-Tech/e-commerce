@@ -1,7 +1,8 @@
 /** SOURCE OF TRUTH: discount customer eligibility lookup — WHAT: who the shopper is (customer id by email) and which of the discounts' segments they are in, and whether they ordered before (first-time buyers) / WHY: Shopify's "Customer eligibility" (specific segments or customers); the pure evaluator only compares ids, this reads them */
 import { customer, customerSegment, order, type StoreTx } from '@commerce/db'
 import { and, eq, inArray, ne, notInArray, or, type SQL, sql } from 'drizzle-orm'
-import { evaluateSegment, type SegmentRules } from '../customers/segments'
+import { segmentExtras } from '../customers/segment-extras'
+import { evaluateSegment, needsSegmentExtras, type SegmentRules } from '../customers/segments'
 import { customerSpentSql } from '../customers/spent'
 import type { DiscountContext, DiscountRule } from './evaluate'
 
@@ -55,7 +56,12 @@ export async function shopperFor(
     .select({ id: customerSegment.id, rules: customerSegment.rules })
     .from(customerSegment)
     .where(inArray(customerSegment.id, segmentIds))
+  const rulesList = segments.map((s) => s.rules as SegmentRules)
+  const extras = needsSegmentExtras(rulesList)
+    ? (await segmentExtras(tx, [row.id], now)).get(row.id)
+    : undefined
   const facts = {
+    ...extras,
     spentPaise: row.spent,
     orderCount: row.orderCount,
     stateCode: row.stateCode,

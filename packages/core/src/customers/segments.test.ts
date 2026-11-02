@@ -3,6 +3,7 @@ import {
   defaultCondition,
   evaluateSegment,
   matchesCondition,
+  needsSegmentExtras,
   OPS_BY_FIELD,
   type SegmentCustomer,
   type SegmentRules,
@@ -136,5 +137,66 @@ describe('defaultCondition', () => {
 
   it('defaults business to true, so the row reads "business customers"', () => {
     expect(defaultCondition('business')).toEqual({ field: 'business', op: 'eq', value: 'true' })
+  })
+})
+
+describe('newer filters (#1020)', () => {
+  const full: SegmentCustomer = {
+    ...buyer,
+    city: 'Pune',
+    createdAt: new Date('2026-08-23T12:00:00.000Z'),
+    firstOrderAt: new Date('2026-09-02T12:00:00.000Z'),
+    productIds: ['p-1', 'p-2'],
+    codOrders: 2,
+    rtoOrders: 1,
+    abandonedCart: true,
+  }
+  const m = (c: Parameters<typeof matchesCondition>[1], who: SegmentCustomer = full) =>
+    matchesCondition(who, c, now)
+
+  it('reads "is between" as an inclusive range, open on an empty side', () => {
+    expect(m({ field: 'spend', op: 'between', value: '400000,500000' })).toBe(true)
+    expect(m({ field: 'spend', op: 'between', value: '500001,900000' })).toBe(false)
+    expect(m({ field: 'orders', op: 'between', value: ',4' })).toBe(true)
+    expect(m({ field: 'orders', op: 'between', value: '5,' })).toBe(false)
+  })
+
+  it('works out the average order value in paise', () => {
+    expect(m({ field: 'aov', op: 'gte', value: '125000' })).toBe(true)
+    expect(m({ field: 'aov', op: 'gte', value: '125001' })).toBe(false)
+    expect(m({ field: 'aov', op: 'gte', value: '0' }, { ...full, orderCount: 0 })).toBe(false)
+  })
+
+  it('matches city, days as a customer and days since the first order', () => {
+    expect(m({ field: 'city', op: 'eq', value: 'pune' })).toBe(true)
+    expect(m({ field: 'customer_days', op: 'gte', value: '30' })).toBe(true)
+    expect(m({ field: 'first_order_days', op: 'between', value: '15,25' })).toBe(true)
+  })
+
+  it('reads bought / did not buy a product', () => {
+    expect(m({ field: 'product', op: 'eq', value: 'p-2' })).toBe(true)
+    expect(m({ field: 'product', op: 'neq', value: 'p-2' })).toBe(false)
+    expect(m({ field: 'product', op: 'neq', value: 'p-9' })).toBe(true)
+  })
+
+  it('counts COD orders and RTOs, and flags an abandoned cart', () => {
+    expect(m({ field: 'cod_orders', op: 'gte', value: '2' })).toBe(true)
+    expect(m({ field: 'rto_orders', op: 'eq', value: '0' })).toBe(false)
+    expect(m({ field: 'abandoned_cart', op: 'eq', value: 'true' })).toBe(true)
+  })
+
+  it('never matches a fact that was not loaded', () => {
+    expect(m({ field: 'city', op: 'neq', value: 'Delhi' }, buyer)).toBe(false)
+    expect(m({ field: 'product', op: 'neq', value: 'p-9' }, buyer)).toBe(false)
+    expect(m({ field: 'abandoned_cart', op: 'eq', value: 'false' }, buyer)).toBe(false)
+  })
+
+  it('knows which rules need the extra facts', () => {
+    expect(
+      needsSegmentExtras(rules({ conditions: [{ field: 'spend', op: 'gte', value: '1' }] })),
+    ).toBe(false)
+    expect(
+      needsSegmentExtras(rules({ conditions: [{ field: 'city', op: 'eq', value: 'Pune' }] })),
+    ).toBe(true)
   })
 })
