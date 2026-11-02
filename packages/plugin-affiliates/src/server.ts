@@ -11,6 +11,8 @@ export * from './fraud'
 export * from './gst'
 export * from './hold'
 export * from './payouts'
+// payouts and stats both export a csvCell; the package exposes the payouts one (always quoted).
+export { csvCell } from './payouts'
 export * from './plugin'
 export * from './portal'
 export * from './programs'
