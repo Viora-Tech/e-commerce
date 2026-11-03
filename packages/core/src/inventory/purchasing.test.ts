@@ -527,7 +527,8 @@ describe('shipment arrival (#1062, #1065)', () => {
     const c = await seedStore()
     const a = await c.addVariant()
     const po = await order(c, [{ variantId: a, quantity: 2, unitPriceMinor: 10_000 }])
-    const ship = await run(c, (tx) => saveInboundShipment(tx, c.storeId, { status: 'in_transit' }))
+    // Planned is the first stage (#1056): booked, not shipped yet.
+    const ship = await run(c, (tx) => saveInboundShipment(tx, c.storeId, { status: 'planned' }))
     await run(c, (tx) => attachPurchaseOrder(tx, c.storeId, ship, po))
     await run(c, (tx) => setInboundShipmentStatus(tx, c.storeId, ship, 'at_port'))
     expect((await shipmentOf(ship))?.status).toBe('at_port')

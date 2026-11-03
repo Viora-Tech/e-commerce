@@ -144,7 +144,7 @@ function InboundShipmentsContent({ initial }: { initial: InboundShipmentsInitial
             onDelete={() => api.inboundShipments.delete({ id: r.id })}
             onChanged={() => void refresh()}
             before={
-              r.status === 'delivered'
+              r.status === 'delivered' || r.status === 'cancelled'
                 ? []
                 : [
                     {

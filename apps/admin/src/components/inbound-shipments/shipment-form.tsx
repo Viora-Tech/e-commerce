@@ -52,7 +52,7 @@ function draftFrom(s: LoadedShipment | null): ShipmentDraft {
     billOfEntryDate: s?.billOfEntryDate ?? '',
     port: s?.port ?? '',
     arrivedAt: day(s?.arrivedAt ?? null),
-    status: s?.status ?? 'in_transit',
+    status: s?.status ?? 'planned',
     note: s?.note ?? '',
   }
 }
@@ -168,7 +168,7 @@ export default function ShipmentForm({ shipment, costs, aiReading }: ShipmentFor
         back={{ label: copy.back, href: LIST }}
         actions={
           <>
-            {shipment && shipment.status !== 'delivered' ? (
+            {shipment && shipment.status !== 'delivered' && shipment.status !== 'cancelled' ? (
               <Button variant="outline" onClick={() => setDelivering(shipment.id)} disabled={busy}>
                 <PackageCheck aria-hidden="true" />
                 {copy.deliver.action}
