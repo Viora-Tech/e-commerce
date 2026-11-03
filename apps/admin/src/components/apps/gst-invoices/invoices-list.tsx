@@ -181,7 +181,8 @@ export default function InvoicesList() {
             />
             <ChoiceField
               id="inv-kind"
-              label={copy.all}
+              label={copy.kindFilter}
+              hideLabel
               value={kind}
               options={KIND_OPTIONS}
               onChange={(v) => {

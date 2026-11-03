@@ -1,5 +1,6 @@
 'use client'
 
+import type { IssueOn } from '@commerce/invoices'
 import { Eye, Plus, Trash2 } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Checkbox } from '@commerce/ui/shadcn/checkbox'
@@ -19,12 +20,12 @@ import SetupChecklist from '@/components/apps/setup-checklist'
 import DateField from '@/components/fields/date-field'
 import PageHeader from '@/components/layout/page-header'
 import RelativeTime from '@/components/layout/relative-time'
-import TableEmptyRow from '@/components/table/table-empty-row'
 import { gstInvoicesContent } from '@/data/gst-invoices'
 import { api } from '@/lib/api-client'
 import { formatPaise } from '@/lib/money'
 import { routes } from '@/lib/routes'
 import GstNumberPicker from './gst-number-picker'
+import QueueEmpty from './queue-empty'
 import ReviewPanel from './review-panel'
 import { CELL, HEAD } from './table-classes'
 
@@ -54,11 +55,15 @@ export default function QueuePage() {
   const [busy, setBusy] = useState(false)
   const [gstin, setGstin] = useState<string | null | undefined>(undefined)
   const [gst, setGst] = useState<string | undefined>(undefined)
+  const [issueOn, setIssueOn] = useState<IssueOn | null>(null)
 
   useEffect(() => {
     api.gstInvoices.settings
       .get()
-      .then((s) => setGstin(s.settings.seller.gstin || null))
+      .then((s) => {
+        setGstin(s.settings.seller.gstin || null)
+        setIssueOn(s.settings.issueOn)
+      })
       .catch(() => setGstin(null))
   }, [])
 
@@ -138,6 +143,7 @@ export default function QueuePage() {
 
   // Render logic
   const list = rows ?? []
+  const empty = rows !== null && list.length === 0
   const allOn = list.length > 0 && list.every((r) => picked.has(r.id))
 
   return (
@@ -206,60 +212,65 @@ export default function QueuePage() {
             </div>
           ) : null}
         </div>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className={`${HEAD} w-10`}>
-                <Checkbox
-                  checked={allOn}
-                  aria-label={copy.review}
-                  onCheckedChange={(v) => setPicked(v ? new Set(list.map((r) => r.id)) : new Set())}
-                />
-              </TableHead>
-              <TableHead className={HEAD}>{copy.columns.order}</TableHead>
-              <TableHead className={HEAD}>{copy.columns.buyer}</TableHead>
-              <TableHead className={HEAD}>{copy.columns.eligible}</TableHead>
-              <TableHead className={HEAD}>{copy.columns.dispatched}</TableHead>
-              <TableHead className={`${HEAD} text-right`}>{copy.columns.total}</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {rows && list.length === 0 ? <TableEmptyRow colSpan={6} message={copy.empty} /> : null}
-            {list.map((r) => (
-              <TableRow key={r.id}>
-                <TableCell className={CELL}>
+        {empty ? (
+          <QueueEmpty issueOn={issueOn} filtered={Boolean(range.from || range.to)} />
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className={`${HEAD} w-10`}>
                   <Checkbox
-                    checked={picked.has(r.id)}
-                    aria-label={r.orderName}
-                    onCheckedChange={(v) => handleToggle(r.id, Boolean(v))}
+                    checked={allOn}
+                    aria-label={copy.review}
+                    onCheckedChange={(v) =>
+                      setPicked(v ? new Set(list.map((r) => r.id)) : new Set())
+                    }
                   />
-                </TableCell>
-                <TableCell className={`${CELL} font-medium`}>
-                  <Link href={routes.orders.detail(r.orderId)} className="hover:underline">
-                    {r.orderName}
-                  </Link>
-                </TableCell>
-                <TableCell className={CELL}>
-                  <span className="flex flex-col">
-                    {r.buyerName}
-                    <span className="text-caption text-muted-foreground">
-                      {r.export ? copy.export(r.export) : (r.buyerGstin ?? '')}
-                    </span>
-                  </span>
-                </TableCell>
-                <TableCell className={CELL}>
-                  {r.eligibleAt ? <RelativeTime value={r.eligibleAt} /> : '-'}
-                </TableCell>
-                <TableCell className={CELL}>
-                  {r.dispatchedAt ? <RelativeTime value={r.dispatchedAt} /> : '-'}
-                </TableCell>
-                <TableCell className={`${CELL} text-right tabular-nums`}>
-                  {formatPaise(r.totalPaise)}
-                </TableCell>
+                </TableHead>
+                <TableHead className={HEAD}>{copy.columns.order}</TableHead>
+                <TableHead className={HEAD}>{copy.columns.buyer}</TableHead>
+                <TableHead className={HEAD}>{copy.columns.eligible}</TableHead>
+                <TableHead className={HEAD}>{copy.columns.dispatched}</TableHead>
+                <TableHead className={`${HEAD} text-right`}>{copy.columns.total}</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {list.map((r) => (
+                <TableRow key={r.id}>
+                  <TableCell className={CELL}>
+                    <Checkbox
+                      checked={picked.has(r.id)}
+                      aria-label={r.orderName}
+                      onCheckedChange={(v) => handleToggle(r.id, Boolean(v))}
+                    />
+                  </TableCell>
+                  <TableCell className={`${CELL} font-medium`}>
+                    <Link href={routes.orders.detail(r.orderId)} className="hover:underline">
+                      {r.orderName}
+                    </Link>
+                  </TableCell>
+                  <TableCell className={CELL}>
+                    <span className="flex flex-col">
+                      {r.buyerName}
+                      <span className="text-caption text-muted-foreground">
+                        {r.export ? copy.export(r.export) : (r.buyerGstin ?? '')}
+                      </span>
+                    </span>
+                  </TableCell>
+                  <TableCell className={CELL}>
+                    {r.eligibleAt ? <RelativeTime value={r.eligibleAt} /> : '-'}
+                  </TableCell>
+                  <TableCell className={CELL}>
+                    {r.dispatchedAt ? <RelativeTime value={r.dispatchedAt} /> : '-'}
+                  </TableCell>
+                  <TableCell className={`${CELL} text-right tabular-nums`}>
+                    {formatPaise(r.totalPaise)}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
       </div>
     </div>
   )

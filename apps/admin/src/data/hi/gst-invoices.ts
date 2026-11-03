@@ -1,7 +1,24 @@
-import { gstNumberPickerContent, gstReturnsContent } from '@/data/gst-invoices'
+import {
+  gstNumberPickerContent,
+  gstQueueEmptyContent,
+  gstReturnsContent,
+} from '@/data/gst-invoices'
 import { translation } from '@/lib/i18n'
 
 export default [
+  translation(gstQueueEmptyContent, {
+    heading: 'इनवॉइस के लिए कोई ऑर्डर बाकी नहीं',
+    body: 'इस कतार में वे ऑर्डर रहते हैं जो टैक्स इनवॉइस के लिए तैयार हैं पर अभी जारी नहीं हुए। तारीख़ें जाँचें, फिर उन्हें एक साथ जारी करें; नंबर तभी दिए जाते हैं।',
+    when: {
+      payment: 'भुगतान मिलते ही ऑर्डर यहाँ जुड़ते हैं।',
+      fulfilment: 'ऑर्डर शिप होते ही यहाँ जुड़ते हैं।',
+      manual: 'ऑर्डर यहाँ तभी जुड़ते हैं जब आप ऊपर उनका नंबर डालकर जोड़ें।',
+    },
+    next: 'किसी ऑर्डर का इनवॉइस अभी बनाने के लिए ऊपर उसका नंबर लिखें और Add orders चुनें।',
+    settings: 'ऑर्डर कब जुड़ें, बदलें',
+    orders: 'ऑर्डर देखें',
+    filtered: 'इन तारीख़ों के बीच कुछ बाकी नहीं। पूरी कतार देखने के लिए तारीख़ें हटाएँ।',
+  }),
   translation(gstNumberPickerContent, {
     label: 'GST नंबर',
     all: 'सभी GST नंबर',
