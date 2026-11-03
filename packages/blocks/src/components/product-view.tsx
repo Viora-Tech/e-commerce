@@ -37,9 +37,9 @@ type ProductViewProps = {
   /** Shipping and Returns panels from the store's published policies (`showPolicyPanels`). */
   policyPanels?: PolicyPanel[] | undefined
   onAddToCart?: AddToCart | undefined
-  /** Rendered below the price with the selected variant's price (EMI hint, offers). */
+  /** Rendered below the price with the selected variant's price (EMI hint, offers; `showEmiHint`). */
   UnderPrice?: ComponentType<{ pricePaise: number }> | undefined
-  /** Rendered under the buy buttons (delivery estimate). */
+  /** Rendered under the buy buttons (the PIN code delivery check; `showDeliveryEstimate`). */
   belowBuy?: ReactNode
   /**
    * The back-in-stock "notify me" form, shown only for the selected variant
@@ -170,12 +170,13 @@ export default function ProductView({
                 mrpPaise={variant.mrpPaise}
                 variantId={variant.id}
                 percentBadge
+                showSaving={s.showSaving}
               />
               {/* Indian GST is inside rupee prices; an export price abroad carries none (#210). */}
-              {abroadPrices ? null : (
+              {s.showTaxNote && !abroadPrices ? (
                 <p className="product-info__tax-note">{copy.ui.inclusiveOfTaxes}</p>
-              )}
-              {UnderPrice && variant.pricePaise != null ? (
+              ) : null}
+              {s.showEmiHint && UnderPrice && variant.pricePaise != null ? (
                 <UnderPrice pricePaise={variant.pricePaise} />
               ) : null}
             </div>
@@ -188,6 +189,7 @@ export default function ProductView({
               note={s.paymentNote}
               pricePaise={variant.pricePaise}
               upiPercent={s.upiPercent}
+              upiPrice={s.showUpiPrice}
               heading={s.offerHeading}
               body={s.offerBody}
               supportLabel={s.offerSupportLabel}
@@ -217,8 +219,10 @@ export default function ProductView({
           />
           {noDispatch ? null : (
             <>
-              <ProductNoteLine icon="delivery" text={s.deliveryText} />
-              {belowBuy}
+              {s.showDispatchLine ? (
+                <ProductNoteLine icon="delivery" text={s.deliveryText} />
+              ) : null}
+              {s.showDeliveryEstimate ? belowBuy : null}
             </>
           )}
           {s.showSpecs ? <ProductSpecGrid fields={product.fields} spec={s.specFields} /> : null}

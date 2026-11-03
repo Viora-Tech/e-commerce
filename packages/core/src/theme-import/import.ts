@@ -1,6 +1,7 @@
 /** SOURCE OF TRUTH: importing a Shopify theme — WHAT: zip → a NEW unpublished theme "<name> (imported)": its files stored, its Shopify-hosted images copied into Files (SSRF-safe), the home page, the product, collection and page templates (with alternates; our own main section in place of the theme's) and the header/footer groups turned into `LiquidSection` templates, and the import report / WHY: merchants moving from Shopify keep their look; nothing touches the live theme, and the report says in plain words what now runs on our features */
 
 import { createHash } from 'node:crypto'
+import { withImportedDefaults } from '@commerce/blocks/imported-defaults'
 import { newId, type StoreTx, theme, themeFile, themeImport, themeTemplate } from '@commerce/db'
 import type { StorageProvider } from '@commerce/storage'
 import { eq, sql } from 'drizzle-orm'
@@ -130,12 +131,15 @@ function storedSettings(
 /**
  * Our own main section for a resource template (`MainProduct`…), as a fresh template starts
  * it. A theme's main section (`main-product`, Dawn's `main-collection-banner` +
- * `main-collection-product-grid`…) draws the part shoppers act on, which runs on ours.
+ * `main-collection-product-grid`…) draws the part shoppers act on, which runs on ours. It
+ * opens with the imported-theme defaults written out (our product-page extras off, #1049), so
+ * Customize shows each switch as it renders.
  */
 function ourMainSection(key: TemplateKey): TemplateSection | null {
   const type = (MAIN_SECTION as Partial<Record<string, string>>)[key]
   if (!type) return null
-  return defaultTemplate(key).content.find((s) => s.type === type) ?? null
+  const main = defaultTemplate(key).content.find((s) => s.type === type)
+  return main ? withImportedDefaults(main) : null
 }
 
 /**

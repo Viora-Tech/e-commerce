@@ -231,8 +231,9 @@ export default async function ProductPage({ params, searchParams }: Params) {
             }}
             upiDiscount={upiDiscount}
             policyPanels={policies}
-            UnderPrice={s.showEmiHint !== false ? UnderPrice : undefined}
-            belowBuy={s.showDeliveryEstimate === false ? undefined : <DeliveryEstimateWidget />}
+            // Drawn as `showEmiHint` / `showDeliveryEstimate` say (off on an imported theme, #1049).
+            UnderPrice={UnderPrice}
+            belowBuy={<DeliveryEstimateWidget />}
             NotifyMe={bis.installed ? NotifyMeForm : undefined}
             notifyMeProps={bis.installed ? { whatsappEnabled: bis.whatsappEnabled } : undefined}
           />

@@ -60,4 +60,30 @@ describe('normalizeDoc', () => {
     }
     expect(normalizeDoc(doc, createCustomizeConfig()).content[0]?.props.body).toBe('<p>Already</p>')
   })
+
+  // #1049: an imported theme saved before the switches existed shows our extras off.
+  const product = (props: Record<string, unknown>): CustomizeDoc => ({
+    root: { props: {} },
+    content: [{ type: 'MainProduct', props: { id: 'mp', ...props } }],
+    zones: {},
+  })
+
+  it('starts our product-page extras off on an imported theme, keeping what was saved', () => {
+    const out = normalizeDoc(product({ showTaxNote: true }), createCustomizeConfig(), true)
+    expect(out.content[0]?.props).toMatchObject({
+      showEmiHint: false,
+      showTaxNote: true,
+      showSaving: false,
+      showUpiPrice: false,
+      showDispatchLine: false,
+      showDeliveryEstimate: false,
+      // Everything else still takes the section's own defaults.
+      showStockBar: true,
+    })
+  })
+
+  it('keeps them on for our own themes', () => {
+    const out = normalizeDoc(product({}), createCustomizeConfig())
+    expect(out.content[0]?.props).toMatchObject({ showEmiHint: true, showSaving: true })
+  })
 })

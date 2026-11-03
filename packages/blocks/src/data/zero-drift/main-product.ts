@@ -13,7 +13,9 @@ export const mainProductContent = {
   /** Section-level setting labels for the Customize sidebar. */
   fields: {
     showEmiHint: 'EMI hint under the price',
-    showDeliveryEstimate: 'Delivery estimate',
+    showTaxNote: '"Inclusive of all taxes" under the price',
+    showSaving: '"Save" amount beside the MRP',
+    showDeliveryEstimate: 'PIN code delivery check',
     galleryLayout: 'Gallery layout',
     lensZoom: 'Magnify the image under the pointer (desktop)',
     showVendor: 'Brand name above the title',
@@ -22,6 +24,7 @@ export const mainProductContent = {
     ratingCount: 'Number of reviews',
     showPaymentSignals: 'Payment offer note',
     paymentNote: 'Offer note',
+    showUpiPrice: 'Offer note shows the price after your UPI discount (Settings › Payments)',
     upiPercent: 'UPI discount % (0 shows the note as written)',
     offerHeading: 'Offer panel heading',
     offerBody: 'Offer panel steps',
@@ -31,6 +34,7 @@ export const mainProductContent = {
     stockThreshold: 'Show the stock bar at or below this many units',
     showPreorderLink: 'Pre-order updates link',
     preorderLinkUrl: 'Pre-order updates page',
+    showDispatchLine: 'Dispatch line',
     deliveryText: 'Dispatch line above the PIN code check',
     showDescription: 'Product description',
     showAccordions: 'Accordions',
@@ -77,8 +81,13 @@ export const mainProductContent = {
   newAccordion: { title: 'New accordion', body: '', metafieldKey: '' },
   newBadge: { icon: 'check', label: 'New badge' },
 
+  /** Our own themes' defaults; an imported theme starts our extras off (sections/imported-defaults.ts). */
   defaults: {
     showEmiHint: true,
+    showTaxNote: true,
+    showSaving: true,
+    showUpiPrice: true,
+    showDispatchLine: true,
     showDeliveryEstimate: true,
     galleryLayout: 'rail',
     lensZoom: true,

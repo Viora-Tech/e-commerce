@@ -129,10 +129,26 @@ describe('variant swatches', () => {
 
 describe('UPI price', () => {
   it('applies the store’s discount the way checkout does', () => {
-    // −3% (−300 basis points) of ₹6,499 is −₹194.97, rounded to −₹195.
-    expect(upiPricePaise(649_900, { type: 'percent', value: -300 })).toBe(630_403)
+    // −3% (−300 basis points) of ₹6,499 is −₹194.97: a whole −₹195, so ₹6,304.
+    expect(upiPricePaise(649_900, { type: 'percent', value: -300 })).toBe(630_400)
+    // The issue's case (#1049): −2% of ₹2,699 is −₹53.98, so ₹2,645, not ₹2,645.02.
+    expect(upiPricePaise(269_900, { type: 'percent', value: -200 })).toBe(264_500)
+    // Half a rupee rounds away from zero: −2% of ₹1,025 is −₹20.50 → −₹21.
+    expect(upiPricePaise(102_500, { type: 'percent', value: -200 })).toBe(100_400)
     expect(upiPricePaise(649_900, { type: 'fixed', value: -5_000 })).toBe(644_900)
     expect(upiPricePaise(1_000, { type: 'fixed', value: -5_000 })).toBe(0)
+  })
+
+  it('matches checkout to the paisa on a table of prices and rates', () => {
+    // Same table as core's adjustment-math test (`paymentAdjustmentPaise`), which checkout runs.
+    const cases: [number, number, number][] = [
+      [269_900, -200, 264_500],
+      [649_900, -300, 630_400],
+      [99_999, -200, 97_999],
+      [1_000, -200, 1_000],
+    ]
+    for (const [price, bp, expected] of cases)
+      expect(upiPricePaise(price, { type: 'percent', value: bp })).toBe(expected)
   })
 
   const inStock = {
@@ -151,6 +167,20 @@ describe('UPI price', () => {
     )
     expect(out).toContain('offer-note--inline')
     expect(out).toContain('6,304')
+    expect(out).not.toContain('6,304.03')
+  })
+
+  it('keeps the note as written with the UPI price switched off', () => {
+    const out = html(
+      createElement(ProductView, {
+        product: inStock,
+        settings: { ...settings, showUpiPrice: false },
+        upiDiscount: { type: 'percent', value: -300 },
+      }),
+    )
+    expect(out).toContain('offer-note')
+    expect(out).not.toContain('offer-note--inline')
+    expect(out).toContain('Extra 3% off on UPI')
   })
 
   it('hides a UPI price note when the store has no UPI discount', () => {
