@@ -59,7 +59,22 @@ export const mainProductContent = {
     whatsappMessage: 'WhatsApp message ([product] becomes the product name)',
     showShare: 'Share buttons',
     shareLabel: 'Share label',
+    uppercaseTitle: 'Title and option names',
+    addToCartStyle: 'Add to cart button',
+    trustBadgesLayout: 'Trust badges layout',
   },
+  titleCases: [
+    { label: 'As written', value: false },
+    { label: 'Capitals', value: true },
+  ],
+  addToCartStyles: [
+    { label: 'Outline, beside the quantity', value: 'outline' },
+    { label: 'Filled, with a cart icon', value: 'solid' },
+  ],
+  trustBadgesLayouts: [
+    { label: 'Row of chips', value: 'chips' },
+    { label: 'Grid of cells', value: 'grid' },
+  ],
   galleryLayouts: [
     { label: 'Main image with thumbnails', value: 'rail' },
     { label: 'Stacked images', value: 'stacked' },
@@ -135,6 +150,9 @@ export const mainProductContent = {
     whatsappMessage: 'Hi, I have a question about the [product]:',
     showShare: false,
     shareLabel: 'Share',
+    uppercaseTitle: false,
+    addToCartStyle: 'outline',
+    trustBadgesLayout: 'chips',
   },
 
   /** Fixed strings drawn by the components (the theme's locales/en.default.json). */

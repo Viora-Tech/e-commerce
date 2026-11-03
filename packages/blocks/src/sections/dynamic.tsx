@@ -111,6 +111,8 @@ const SETTINGS_KIND: Partial<Record<DynamicSection, Exclude<SettingsKind, 'secti
   RecentlyViewed: 'flow',
 }
 
+const mc = sectionsContent.mainCollection
+
 /** No padding and the default scheme: the look these sections had before settings. */
 const FLOW_SETTINGS = defaultSectionSettings({ padTop: 0, padBottom: 0 })
 
@@ -132,8 +134,37 @@ const DEFS: Record<DynamicSection, Def> = {
       showDescription: yesNo('Collection description'),
       showFilters: yesNo('Filtering'),
       showSort: yesNo('Sorting'),
+      showBreadcrumbs: yesNo(mc.showBreadcrumbs),
+      uppercaseTitle: {
+        type: 'radio',
+        label: mc.uppercaseTitle,
+        options: [
+          { label: mc.asWritten, value: false },
+          { label: mc.capitals, value: true },
+        ],
+      },
+      // 0: the grid's own rhythm (three beside the filters, four without).
+      columns: {
+        type: 'select',
+        label: mc.columns,
+        options: [0, 2, 3, 4, 5, 6].map((n) => ({ label: n ? String(n) : mc.automatic, value: n })),
+      },
+      columnsMobile: {
+        type: 'select',
+        label: mc.columnsMobile,
+        options: [0, 1, 2].map((n) => ({ label: n ? String(n) : mc.automatic, value: n })),
+      },
     },
-    defaultProps: { showImage: false, showDescription: true, showFilters: true, showSort: true },
+    defaultProps: {
+      showImage: false,
+      showDescription: true,
+      showFilters: true,
+      showSort: true,
+      showBreadcrumbs: true,
+      uppercaseTitle: false,
+      columns: 0,
+      columnsMobile: 0,
+    },
   },
   MainPage: {
     label: 'Page',

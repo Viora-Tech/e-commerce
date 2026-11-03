@@ -108,10 +108,11 @@ export function previewMetadata({
         ) : (
           pickFirst(copy.templates.names.product)
         ),
-      MainCollection: () =>
+      MainCollection: (s) =>
         resource?.kind === 'collection' ? (
           <SectionFrame padTop={32} padBottom={48}>
             <TabbedProducts
+              columns={typeof s.columns === 'number' && s.columns > 0 ? s.columns : undefined}
               heading={resource.title}
               tabs={[{ label: resource.title, products: resource.cards }]}
             />

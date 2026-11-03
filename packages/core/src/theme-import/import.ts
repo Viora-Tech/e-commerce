@@ -40,7 +40,7 @@ import {
   takeMedia,
 } from './import-media'
 import { buildReport, collectHandles, missingHandles, type Wanted } from './import-report'
-import { mainProductProps } from './main-product-props'
+import { themeMainProps } from './main-collection-props'
 import { type ImportReport, isMainSection } from './report'
 import {
   extractSchema,
@@ -53,6 +53,7 @@ import {
   type ShopifyTemplateBlock,
 } from './schema'
 import { shopifyUrlToPath } from './settings-values'
+import { type ThemeLook, themeLook } from './theme-look'
 
 export class ThemeImportError extends ThemeLibraryError {}
 
@@ -181,21 +182,25 @@ function toTemplateData(
   schemaLocale: Record<string, unknown>,
   hosted: Hosted,
   key: TemplateKey,
+  theme: { look: ThemeLook; settings: Record<string, unknown> },
 ): TemplateData {
   const main = key === 'page' ? null : ourMainSection(key)
   let mainPlaced = false
+  // Ours opens with what the theme's main section(s) were set to show.
+  const stored = (type: string, values: Record<string, unknown> | undefined) =>
+    storedSettings(schemas.get(type)?.settings, values, hosted)
+  const fromTheme = (s: ShopifyJsonTemplate['sections'][string]) =>
+    themeMainProps(key, tpl, s, stored, theme)
   const content = tpl.order.flatMap((sectionKey): TemplateSection[] => {
     const s = tpl.sections[sectionKey]
     if (!s) return []
     if (main && isMainSection(s.type)) {
       if (mainPlaced) return []
       mainPlaced = true
-      // Ours opens with what the theme's product section was set to show (./main-product-props).
-      const fromTheme = key === 'product' ? mainProductProps(s) : {}
       return [
         {
           ...main,
-          props: { ...main.props, ...fromTheme, ...(s.disabled ? { _hidden: true } : {}) },
+          props: { ...main.props, ...fromTheme(s), ...(s.disabled ? { _hidden: true } : {}) },
         },
       ]
     }
@@ -436,6 +441,8 @@ export async function importShopifyTheme(
 
   // Home, header, footer, product, collection and page templates (with alternates) as ours.
   const schemas = new Map([...sections].map(([type, s]) => [type, s.schema]))
+  // Titles in capitals, trust badges grid, filled Add to cart: the theme's CSS and markup.
+  const look = themeLook(archive)
   for (const [key, suffix, source] of pages) {
     const tpl = templates.get(source)
     if (!tpl) continue
@@ -445,7 +452,7 @@ export async function importShopifyTheme(
       themeId,
       template: key,
       suffix,
-      sections: toTemplateData(tpl, schemas, schemaLocale, hosted, key),
+      sections: toTemplateData(tpl, schemas, schemaLocale, hosted, key, { look, settings }),
     })
   }
 

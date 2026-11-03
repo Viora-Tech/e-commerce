@@ -525,7 +525,7 @@ const ALLOWLIST: AllowEntry[] = [
   },
   {
     file: 'packages/core/src/theme-import/fields.ts',
-    names: ['settingsFromProps', 'shopifySectionId'],
+    names: ['settingsFromProps'],
     reason: 'the parts of liquidPlacement (props to engine input), exported for their unit tests',
   },
   {

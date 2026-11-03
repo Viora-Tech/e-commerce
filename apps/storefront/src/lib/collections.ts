@@ -86,7 +86,8 @@ export async function listCollections(tx: StoreTx): Promise<CollectionCard[]> {
 
 /**
  * Shopify's built-in `all` collection: every active product. It has no row, so its `id` is
- * empty and callers browse without a collection. A store's own `all` collection wins.
+ * empty and callers browse without a collection. A store's own `all` collection wins. It sorts
+ * A to Z by default, as Shopify's `/collections/all` does (#1048).
  */
 const ALL_PRODUCTS: CollectionDetail = {
   id: '',
@@ -96,7 +97,7 @@ const ALL_PRODUCTS: CollectionDetail = {
   imageUrl: null,
   seoTitle: null,
   seoDescription: null,
-  sortOrder: 'created_desc',
+  sortOrder: 'title_asc',
   templateSuffix: null,
 }
 

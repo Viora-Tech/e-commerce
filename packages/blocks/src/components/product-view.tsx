@@ -127,7 +127,9 @@ export default function ProductView({
   const images = galleryForVariant(product.images, variant)
 
   return (
-    <section className="section-product page-width">
+    <section
+      className={`section-product page-width${s.uppercaseTitle ? ' section-product--caps' : ''}`}
+    >
       <Breadcrumbs
         items={[
           ...(product.collection
@@ -214,6 +216,7 @@ export default function ProductView({
             notifyMeProps={notifyMeProps}
             stockBarShown={stockBar}
             preorderLink={s.showPreorderLink ? s.preorderLinkUrl : null}
+            solid={s.addToCartStyle === 'solid'}
           />
           {noDispatch ? null : (
             <>
@@ -228,6 +231,7 @@ export default function ProductView({
               noDispatch={noDispatch}
               whatsappHref={wa}
               whatsappLabel={s.trustWhatsappLabel}
+              layout={s.trustBadgesLayout}
             />
           ) : null}
           {s.showAssurance ? (

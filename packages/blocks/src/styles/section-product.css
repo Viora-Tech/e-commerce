@@ -1938,7 +1938,7 @@ html:not(.has-cursor-fill) .share-row__copy:hover {
   text-underline-offset: 3px;
 }
 
-.trust-badges:not(:where(.shopify-section *)) {
+.trust-badges:where(:not(.trust-badges--grid)):not(:where(.shopify-section *)) {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-2);
@@ -1947,11 +1947,11 @@ html:not(.has-cursor-fill) .share-row__copy:hover {
   overflow: visible;
 }
 
-.trust-badges__item:not(:where(.shopify-section *)),
-.trust-badges__item:nth-child(2n):not(:where(.shopify-section *)),
-.trust-badges__item:last-child:not(:where(.shopify-section *)),
-.trust-badges__item:nth-last-child(2):nth-child(odd):not(:where(.shopify-section *)),
-.trust-badges__item:last-child:nth-child(odd):not(:where(.shopify-section *)) {
+:where(.trust-badges:not(.trust-badges--grid)) .trust-badges__item:not(:where(.shopify-section *)),
+:where(.trust-badges:not(.trust-badges--grid)) .trust-badges__item:nth-child(2n):not(:where(.shopify-section *)),
+:where(.trust-badges:not(.trust-badges--grid)) .trust-badges__item:last-child:not(:where(.shopify-section *)),
+:where(.trust-badges:not(.trust-badges--grid)) .trust-badges__item:nth-last-child(2):nth-child(odd):not(:where(.shopify-section *)),
+:where(.trust-badges:not(.trust-badges--grid)) .trust-badges__item:last-child:nth-child(odd):not(:where(.shopify-section *)) {
   grid-column: auto;
   gap: 6px;
   padding: 4px 10px;
@@ -1963,11 +1963,11 @@ html:not(.has-cursor-fill) .share-row__copy:hover {
   line-height: 1.4;
 }
 
-.trust-badges__icon:not(:where(.shopify-section *)) {
+:where(.trust-badges:not(.trust-badges--grid)) .trust-badges__icon:not(:where(.shopify-section *)) {
   color: inherit;
 }
 
-.trust-badges__icon svg:not(:where(.shopify-section *)) {
+:where(.trust-badges:not(.trust-badges--grid)) .trust-badges__icon svg:not(:where(.shopify-section *)) {
   width: 14px;
   height: 14px;
 }
@@ -2041,4 +2041,11 @@ html:not(.has-cursor-fill) .share-row__copy:hover {
   font-size: 12px;
   text-decoration: underline;
   cursor: pointer;
+}
+
+/* An imported theme that sets its headings in capitals (MainProduct "Title and option names",
+   read from the theme's h1 rule on import, #1048): the title and option names follow it. */
+.section-product--caps .product-info__title,
+.section-product--caps .variant-picker__option-name {
+  text-transform: uppercase;
 }

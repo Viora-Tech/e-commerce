@@ -9,6 +9,8 @@ type ProductTrustBadgesProps = {
   /** wa.me link for the "Ask us" cell; null leaves the cell out. */
   whatsappHref: string | null
   whatsappLabel: ReactNode
+  /** `grid`: the theme's ruled two-column grid; `chips` (default): Figma's row of chips. */
+  layout?: 'chips' | 'grid' | undefined
 }
 
 /** Free-text badges are matched on the words a same-day-dispatch badge is written with. */
@@ -24,13 +26,14 @@ export default function ProductTrustBadges({
   noDispatch,
   whatsappHref,
   whatsappLabel,
+  layout = 'chips',
 }: ProductTrustBadgesProps) {
   // Early returns
   const visible = badges.filter((b) => shown(b.label, noDispatch))
   if (visible.length === 0 && !whatsappHref) return null
 
   return (
-    <div className="trust-badges">
+    <div className={`trust-badges${layout === 'grid' ? ' trust-badges--grid' : ''}`}>
       {visible.map((b, i) => (
         // Labels may be editor nodes, so the position keys the cell.
         // biome-ignore lint/suspicious/noArrayIndexKey: badges are an ordered settings list.

@@ -99,7 +99,7 @@ export function liquidTemplateFor(path: string): string {
 }
 
 /** What this request renders Liquid for: from the headers the proxy set, once per request. */
-const requestScope = cache(async (storeId: string) => {
+export const requestScope = cache(async (storeId: string) => {
   const h = await headers()
   const path = h.get('x-pathname') ?? '/'
   const template = liquidTemplateFor(path)
@@ -127,7 +127,7 @@ const requestScope = cache(async (storeId: string) => {
 type RequestScope = Awaited<ReturnType<typeof requestScope>>
 
 /** Rendered theme HTML for this request: its nonce, and its links under the market prefix. */
-const finish = (html: string, scope: RequestScope) =>
+export const finish = (html: string, scope: RequestScope) =>
   withMarketPrefix(withNonce(html, scope.nonce), scope.market.market?.prefix ?? '')
 
 /**
@@ -144,7 +144,7 @@ async function scopeAt(scope: RequestScope, path: string): Promise<RequestScope>
 }
 
 /** True when nobody is signed in; needs no query without a session cookie. */
-async function signedOut(storeId: string): Promise<boolean> {
+export async function signedOut(storeId: string): Promise<boolean> {
   return (await currentCustomer(storeId)) === null
 }
 
@@ -267,7 +267,7 @@ async function createLiquidContext(
  * the nonce placeholder so its output can be cached. `start()` begins a new trace for the next
  * render.
  */
-async function tracedContext(
+export async function tracedContext(
   tx: StoreTx,
   storeId: string,
   themeId: string,
@@ -332,7 +332,7 @@ const LOCATION: Record<string, string> = { header: 'header-group', footer: 'foot
 export type LiquidSectionHtml = { html: string; tag: string; id: string; className: string }
 
 /** What the cache keys a render by, or null when nothing may be cached (a theme preview). */
-function cacheScope(
+export function cacheScope(
   scope: RequestScope,
   themeId: string,
   bundle: ThemeBundle,
