@@ -191,7 +191,10 @@ export type OrderTiles = {
   salesWeek: { paise: number; previousPaise: number }
 }
 
-/** Open orders nobody has shipped yet that are paid, or cash on delivery: "Ready to ship". */
+/**
+ * Open orders nobody has shipped yet that are paid, authorised (the card is approved and the
+ * money is captured on shipping, as Shopify counts them), or cash on delivery: "Ready to ship".
+ */
 const readyToShipWhere = () =>
   and(
     eq(order.status, 'open'),
@@ -199,6 +202,7 @@ const readyToShipWhere = () =>
     inArray(order.fulfillmentStatus, [...UNFULFILLED_STATUSES]),
     or(
       notInArray(order.paymentStatus, [...UNPAID_PAYMENT_STATUSES]),
+      eq(order.paymentStatus, 'authorized'),
       eq(order.paymentMethod, 'cod'),
     ),
   )
