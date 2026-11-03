@@ -203,7 +203,8 @@ export function orderColumns(
         if (
           o.status === 'open' &&
           o.fulfillmentStatus === 'unfulfilled' &&
-          o.paymentStatus === 'paid'
+          // Authorised: the money is held and taken on shipping; Payment shows "Authorised".
+          (o.paymentStatus === 'paid' || o.paymentStatus === 'authorized')
         )
           return <StatusChip tone="info">{copy.toShip}</StatusChip>
         const stage = orderStage(o)
