@@ -100,6 +100,7 @@ export default [
     resource: { singular: 'ऑर्डर', plural: 'ऑर्डर' },
     viewLabel: 'ऑर्डर व्यू',
     toShip: 'भेजना है',
+    deliveryStage: { fulfilled: 'पिकअप बाकी', shipped: 'रास्ते में' },
     testChip: 'टेस्ट',
     holdChip: 'रुका हुआ',
     testChipHint:
@@ -230,7 +231,7 @@ export default [
       total: 'कीमत',
       payment: 'पेमेंट',
       fulfilment: 'भेजने की स्थिति',
-      status: 'स्थिति',
+      status: 'डिलीवरी की स्थिति',
       channel: 'चैनल',
       tags: 'टैग',
       items: 'आइटम',

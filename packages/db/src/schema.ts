@@ -1560,6 +1560,8 @@ export type OrderImportMeta = {
   sourceId?: string | null
   financialStatus?: string | null
   fulfillmentStatus?: string | null
+  /** Each parcel's delivery stage on the source ("label_printed", "in_transit", "delivered"). */
+  deliveryStatuses?: string[] | null
   paymentMethod?: string | null
   cancelledAt?: string | null
   refundedPaise?: number | null

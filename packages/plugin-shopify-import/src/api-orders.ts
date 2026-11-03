@@ -10,6 +10,7 @@ const ORDERS_QUERY = `query Orders($cursor: String, $query: String) {
     ${PAGE_INFO}
     nodes {
       id name email phone createdAt cancelledAt displayFinancialStatus displayFulfillmentStatus
+      fulfillments(first: 20) { displayStatus }
       currencyCode tags note paymentGatewayNames discountCodes
       subtotalPriceSet { shopMoney { amount } }
       totalShippingPriceSet { shopMoney { amount } }
@@ -39,6 +40,8 @@ type GOrder = {
   cancelledAt: string | null
   displayFinancialStatus: string | null
   displayFulfillmentStatus: string | null
+  /** Each parcel's delivery stage ("LABEL_PRINTED", "IN_TRANSIT", "DELIVERED"…). */
+  fulfillments?: { displayStatus: string | null }[] | null
   currencyCode: string | null
   tags: string[]
   note: string | null
@@ -119,6 +122,9 @@ function mapOrder(o: GOrder): NOrder {
       : (o.shippingAddress?.name ?? null),
     financialStatus: o.displayFinancialStatus?.toLowerCase() ?? null,
     fulfillmentStatus: o.displayFulfillmentStatus?.toLowerCase() ?? null,
+    deliveryStatuses: o.fulfillments
+      ? o.fulfillments.flatMap((f) => (f.displayStatus ? [f.displayStatus.toLowerCase()] : []))
+      : undefined,
     currency: o.currencyCode,
     subtotalPaise: subtotalBeforeDiscounts(o),
     shippingPaise: money(o.totalShippingPriceSet),
@@ -155,6 +161,7 @@ const ORDERS_BULK_QUERY = `{
     edges {
       node {
         id name email phone createdAt cancelledAt displayFinancialStatus displayFulfillmentStatus
+        fulfillments { displayStatus }
         currencyCode tags note paymentGatewayNames discountCodes
         subtotalPriceSet { shopMoney { amount } }
         totalShippingPriceSet { shopMoney { amount } }

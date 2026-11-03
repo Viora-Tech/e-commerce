@@ -213,4 +213,44 @@ describe('importedOrderStatuses', () => {
       importedOrderStatuses({ financialStatus: 'voided', fulfillmentStatus: 'restocked' }),
     ).toEqual({ status: 'open', paymentStatus: 'unpaid', fulfillmentStatus: 'returned' })
   })
+
+  it("completes a Shopify order only once its parcels are delivered, not when it's labelled", () => {
+    const paid = (deliveryStatuses: string[]) =>
+      importedOrderStatuses({
+        financialStatus: 'paid',
+        fulfillmentStatus: 'fulfilled',
+        deliveryStatuses,
+      })
+    // "Tracking added" on Shopify: packed, waiting for the courier to collect it.
+    expect(paid(['label_printed'])).toEqual({
+      status: 'open',
+      paymentStatus: 'paid',
+      fulfillmentStatus: 'fulfilled',
+    })
+    expect(paid(['confirmed'])).toMatchObject({ status: 'open', fulfillmentStatus: 'fulfilled' })
+    expect(paid(['in_transit'])).toMatchObject({ status: 'open', fulfillmentStatus: 'shipped' })
+    expect(paid(['delivered', 'in_transit'])).toMatchObject({
+      status: 'open',
+      fulfillmentStatus: 'partially_delivered',
+    })
+    expect(paid(['delivered', 'canceled'])).toMatchObject({
+      status: 'completed',
+      fulfillmentStatus: 'delivered',
+    })
+    // Delivered but not paid (COD still to settle) stays open.
+    expect(
+      importedOrderStatuses({
+        financialStatus: 'pending',
+        fulfillmentStatus: 'fulfilled',
+        deliveryStatuses: ['delivered'],
+      }),
+    ).toMatchObject({ status: 'open', fulfillmentStatus: 'delivered' })
+    expect(
+      importedOrderStatuses({
+        financialStatus: 'paid',
+        fulfillmentStatus: 'partial',
+        deliveryStatuses: ['delivered'],
+      }),
+    ).toMatchObject({ status: 'open', fulfillmentStatus: 'partially_delivered' })
+  })
 })

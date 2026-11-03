@@ -101,6 +101,11 @@ export const ordersContent = {
   viewLabel: 'Order view',
   /** Status column for a paid order nobody has shipped yet (Figma: blue "To ship"). */
   toShip: 'To ship',
+  /**
+   * The Delivery status column's words for where a packed order is, as Shopify's Delivery status
+   * shows them: packed with a label but not collected yet, then with the courier.
+   */
+  deliveryStage: { fulfilled: 'To be picked up', shipped: 'In transit' },
   /** Chip on an order paid with the payment gateway in test mode (no real money). */
   testChip: 'Test',
   /** Fulfilment held (#1011), in the Status column. */
@@ -230,7 +235,7 @@ export const ordersContent = {
     total: 'Total',
     payment: 'Payment',
     fulfilment: 'Fulfilment',
-    status: 'Status',
+    status: 'Delivery status',
     channel: 'Channel',
     tags: 'Tags',
     items: 'Items',
