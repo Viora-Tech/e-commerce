@@ -30,6 +30,7 @@ import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { focusField } from '@/lib/api-errors'
 import { routes } from '@/lib/routes'
+import SupplierContactsField, { type ContactDraft } from './supplier-contacts-field'
 import SupplierOrdersCard from './supplier-orders-card'
 
 export type LoadedSupplier = Awaited<ReturnType<typeof api.suppliers.get>>
@@ -44,6 +45,7 @@ type Draft = {
   email: string
   phone: string
   address: string
+  contacts: ContactDraft[]
   paymentTerms: string
   notes: string
 }
@@ -57,6 +59,11 @@ function draftFrom(s: LoadedSupplier | null): Draft {
     email: s?.email ?? '',
     phone: s?.phone ?? '',
     address: s?.address ?? '',
+    contacts: (s?.contacts ?? []).map((c) => ({
+      kind: c.kind as ContactDraft['kind'],
+      value: c.value,
+      label: c.label ?? '',
+    })),
     paymentTerms: s?.paymentTerms ?? '',
     notes: s?.notes ?? '',
   }
@@ -101,6 +108,13 @@ export default function SupplierForm({ supplier }: SupplierFormProps) {
         email: d.email.trim(),
         phone: d.phone.trim() || undefined,
         address: d.address.trim() || undefined,
+        contacts: d.contacts
+          .filter((c) => c.value.trim() !== '')
+          .map((c) => ({
+            kind: c.kind,
+            value: c.value.trim(),
+            label: c.label.trim() || undefined,
+          })),
         paymentTerms: d.paymentTerms.trim() || undefined,
         notes: d.notes.trim() || undefined,
       })
@@ -261,6 +275,10 @@ export default function SupplierForm({ supplier }: SupplierFormProps) {
                     onChange={(e) => patch({ address: e.target.value })}
                   />
                 </Field>
+                <SupplierContactsField
+                  contacts={d.contacts}
+                  onChange={(contacts) => patch({ contacts })}
+                />
               </FieldGroup>
             </DataCard>
           </>

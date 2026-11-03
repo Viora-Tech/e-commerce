@@ -124,6 +124,23 @@ export const ReceiptSchema = z.object({
 })
 export type Receipt = z.infer<typeof ReceiptSchema>
 
+/** More ways to reach a supplier (#1064), beyond the main email and phone. */
+export const SUPPLIER_CONTACT_KINDS = [
+  'whatsapp',
+  'wechat',
+  'phone',
+  'email',
+  'website',
+  'other',
+] as const
+export type SupplierContactKind = (typeof SUPPLIER_CONTACT_KINDS)[number]
+
+const SupplierContactSchema = z.object({
+  kind: z.enum(SUPPLIER_CONTACT_KINDS),
+  value: z.string().trim().min(1).max(200),
+  label: optionalText(60),
+})
+
 export const SupplierInputSchema = z.object({
   id: z.string().uuid().optional(),
   name: z.string().trim().min(1).max(120),
@@ -144,10 +161,27 @@ export const SupplierInputSchema = z.object({
   email: z.string().trim().email().optional().or(z.literal('')),
   phone: lenientPhone(20).optional(),
   address: optionalText(500),
+  /** Left out: the supplier keeps the ones it has (the quick-add dialog doesn't send them). */
+  contacts: z.array(SupplierContactSchema).max(10).optional(),
   paymentTerms: optionalText(200),
   notes: optionalText(2000),
 })
 export type SupplierInput = z.infer<typeof SupplierInputSchema>
+
+/** Bulk edit on the suppliers list (#1064): only the fields given change. */
+export const SupplierBulkUpdateSchema = z.object({
+  ids: z.array(z.string().uuid()).min(1).max(500),
+  currency: PurchaseCurrencySchema.optional(),
+  country: z
+    .string()
+    .trim()
+    .toUpperCase()
+    .regex(/^[A-Z]{2}$/)
+    .optional(),
+  /** An empty string clears the terms. */
+  paymentTerms: z.string().trim().max(200).optional(),
+})
+export type SupplierBulkUpdate = z.infer<typeof SupplierBulkUpdateSchema>
 
 export const InboundShipmentInputSchema = z.object({
   id: z.string().uuid().optional(),

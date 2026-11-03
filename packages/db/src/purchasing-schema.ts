@@ -64,6 +64,14 @@ export const SPLIT_METHOD_VALUES = [
 ] as const
 
 /** Someone the store buys stock from. Purchase orders copy the name, email and phone. */
+/** One more way to reach a supplier; `kind` is one of core's `SUPPLIER_CONTACT_KINDS`. */
+export type SupplierContact = {
+  kind: string
+  value: string
+  /** Who or what it is, e.g. "Sales, Lily"; optional. */
+  label?: string
+}
+
 export const supplier = pgTable(
   'supplier',
   {
@@ -78,6 +86,8 @@ export const supplier = pgTable(
     email: text('email'),
     phone: text('phone'),
     address: text('address'),
+    /** More ways to reach them beyond email and phone (#1064): WhatsApp, WeChat, a second number, … */
+    contacts: jsonb('contacts').$type<SupplierContact[]>().notNull().default([]),
     paymentTerms: text('payment_terms'),
     notes: text('notes'),
     createdAt: createdAt(),

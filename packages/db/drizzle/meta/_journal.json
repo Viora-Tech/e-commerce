@@ -1436,6 +1436,13 @@
       "when": 1793549123262,
       "tag": "0220_shipment_stages",
       "breakpoints": true
+    },
+    {
+      "idx": 205,
+      "version": "7",
+      "when": 1793549183262,
+      "tag": "0221_supplier_contacts",
+      "breakpoints": true
     }
   ]
 }
