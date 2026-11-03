@@ -189,6 +189,7 @@ export async function lineDetails(
       variantTitle: string
       sku: string | null
       imageUrl: string | null
+      weightGrams: number | null
     }
   >
 > {
@@ -200,6 +201,7 @@ export async function lineDetails(
       variantTitle: string
       sku: string | null
       imageUrl: string | null
+      weightGrams: number | null
     }
   >()
   if (variantIds.length === 0) return out
@@ -210,6 +212,7 @@ export async function lineDetails(
       productTitle: product.title,
       variantTitle: variant.title,
       sku: variant.sku,
+      weightGrams: variant.weightGrams,
     })
     .from(variant)
     .innerJoin(product, eq(product.id, variant.productId))
@@ -232,6 +235,7 @@ export async function lineDetails(
       variantTitle: r.variantTitle,
       sku: r.sku,
       imageUrl: cover.get(r.productId) ?? null,
+      weightGrams: r.weightGrams,
     })
   }
   return out
@@ -277,6 +281,7 @@ export async function getPurchaseOrder(tx: StoreTx, id: string) {
       variantTitle: details.get(l.variantId)?.variantTitle ?? '',
       sku: details.get(l.variantId)?.sku ?? null,
       imageUrl: details.get(l.variantId)?.imageUrl ?? null,
+      weightGrams: details.get(l.variantId)?.weightGrams ?? null,
     })),
     totals: purchaseOrderTotals(
       lines.map((l) => ({ ...l, goodsPaise: goodsOf(po, l) })),

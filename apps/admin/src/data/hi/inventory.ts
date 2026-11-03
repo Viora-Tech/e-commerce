@@ -243,6 +243,13 @@ export default [
       remove: 'हटाएँ',
       noSku: 'कोई SKU नहीं',
       openProduct: 'प्रोडक्ट नए टैब में खोलें',
+      weight: 'वज़न (g)',
+      weightPlaceholder: 'g',
+      weightHint: 'एक यूनिट का वज़न, पैकिंग लिस्ट से। यह प्रोडक्ट पर सेव होता है और फ़्रेट को वज़न के हिसाब से बाँटने में काम आता है।',
+      weightSaveFirst: 'वज़न डालने के लिए पहले ऑर्डर सेव करें।',
+      weightSaved: 'वज़न प्रोडक्ट पर सेव हो गया',
+      weightFailed: 'वज़न सेव नहीं हो सका',
+      weightInvalid: 'वज़न पूरे ग्राम में डालें',
     },
     cost: {
       heading: 'लागत का सारांश',

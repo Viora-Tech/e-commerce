@@ -234,6 +234,7 @@ export default function PurchaseOrderForm({
   const finished = isFinished(status)
   const draft = status === null || status === 'draft'
   const arrivedAll = hasArrived(status)
+  const weights = Object.fromEntries((po?.lines ?? []).map((l) => [l.variantId, l.weightGrams]))
   const shipmentNumber = !draft && !arrivedAll ? (po?.shipment?.number ?? null) : null
   /* On a shipment, lines stay editable until goods start arriving (#1059). */
   const shipmentLocked =
@@ -325,6 +326,8 @@ export default function PurchaseOrderForm({
               pricesLocked={finished || shipmentLocked}
               hsnLocked={finished}
               showReceived={!draft}
+              purchaseOrderId={po?.id ?? null}
+              weights={weights}
               onChange={(lines) => patch({ lines })}
             />
             <ChargesCard

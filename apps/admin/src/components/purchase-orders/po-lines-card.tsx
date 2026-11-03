@@ -19,6 +19,7 @@ import { useCopy } from '@/hooks/use-copy'
 import { formatMinor } from '@/lib/money'
 import { routes } from '@/lib/routes'
 import { addPickedLines, type PoLine, toCount } from './form-state'
+import LineWeightInput from './line-weight-input'
 
 type PoLinesCardProps = {
   lines: PoLine[]
@@ -31,10 +32,14 @@ type PoLinesCardProps = {
   hsnLocked: boolean
   /** Show how much of each line has arrived. */
   showReceived: boolean
+  /** The saved order, for saving weights; null while creating. */
+  purchaseOrderId: string | null
+  /** Each product's weight per unit in grams, by variant (from the saved order). */
+  weights: Record<string, number | null>
   onChange: (lines: PoLine[]) => void
 }
 
-const ROW = 'grid-cols-[minmax(0,1fr)_4.5rem_6.5rem_6rem_6.5rem_2.5rem]'
+const ROW = 'grid-cols-[minmax(0,1fr)_4.5rem_6.5rem_5.5rem_6rem_6.5rem_2.5rem]'
 
 function arrived(line: PoLine): string {
   const base = `${line.received} / ${toCount(line.quantity)}`
@@ -56,6 +61,8 @@ export default function PoLinesCard({
   pricesLocked,
   hsnLocked,
   showReceived,
+  purchaseOrderId,
+  weights,
   onChange,
 }: PoLinesCardProps) {
   // Hooks
@@ -109,6 +116,7 @@ export default function PoLinesCard({
             <span className="text-right">
               {copy.cost} ({currency})
             </span>
+            <span className="text-right">{copy.weight}</span>
             <span>{copy.hsn}</span>
             <span className="text-right">{showReceived ? copy.received : copy.lineTotal}</span>
             <span />
@@ -165,6 +173,11 @@ export default function PoLinesCard({
                 aria-invalid={badPrice(line, currency) || undefined}
                 className="text-right tabular-nums"
                 onChange={(e) => patchLine(i, { unitPrice: e.target.value })}
+              />
+              <LineWeightInput
+                purchaseOrderId={purchaseOrderId}
+                variantId={line.variantId}
+                grams={weights[line.variantId] ?? null}
               />
               <Input
                 aria-label={copy.hsn}
