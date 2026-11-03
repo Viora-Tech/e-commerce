@@ -180,7 +180,6 @@ export const gstInvoicesContent = {
     },
     from: 'From',
     to: 'To',
-    empty: 'Nothing waiting to be invoiced.',
     addPlaceholder: 'Order numbers to add, e.g. 1042, 1043',
     add: 'Add orders',
     added: (n: number) => (n === 1 ? '1 order added' : `${n} orders added`),
@@ -281,6 +280,7 @@ export const gstInvoicesContent = {
     from: 'From',
     to: 'To',
     all: 'All documents',
+    kindFilter: 'Document type',
     columns: {
       number: 'Number',
       kind: 'Type',
@@ -306,6 +306,24 @@ export const gstInvoicesContent = {
     previous: 'Previous',
     next: 'Next',
   },
+} as const
+
+/**
+ * The invoice queue with nothing in it: what the queue is and how orders get there. `when`
+ * follows the store's "Queue orders" setting.
+ */
+export const gstQueueEmptyContent = {
+  heading: 'No orders waiting for an invoice',
+  body: 'This queue holds orders that are ready for a tax invoice but not yet issued. Check the dates, then issue them together; numbers are given only then.',
+  when: {
+    payment: 'Orders join here when their payment is received.',
+    fulfilment: 'Orders join here when they ship.',
+    manual: 'Orders join here only when you add them by number above.',
+  },
+  next: 'To invoice an order now, type its number above and choose Add orders.',
+  settings: 'Change when orders join',
+  orders: 'View orders',
+  filtered: 'Nothing waiting between these dates. Clear the dates to see the whole queue.',
 } as const
 
 /**

@@ -3,6 +3,7 @@ import { withSentryConfig } from '@sentry/nextjs/config'
 import type { NextConfig } from 'next'
 import { ADMIN_FRAME_ANCESTORS } from './src/lib/csp'
 import { SETTINGS_REDIRECTS } from './src/lib/settings-redirects'
+import { TRACED_RUNTIME_FILES } from './src/lib/traced-files'
 
 // Monorepo root, two levels up from apps/admin — lets `output: 'standalone'`
 // trace workspace packages (packages/*) correctly instead of only this app's
@@ -31,8 +32,11 @@ const config: NextConfig = {
   output: 'standalone',
   outputFileTracingRoot: monorepoRoot,
   // The PIN code directory is read by path at run time (`@commerce/shipping/pincode-directory`),
-  // which tracing cannot see; without this the image has no City/State autofill.
-  outputFileTracingIncludes: { '/**': ['../../packages/shipping/data/pincode-directory.json.gz'] },
+  // which tracing cannot see; without this the image has no City/State autofill. The invoice
+  // fonts are the same case: the GST settings preview loads them from
+  // `/api/apps/gst-invoices/fonts`, which reads `packages/invoices/fonts` by path, and without
+  // them every preview render fails ("The preview could not be drawn").
+  outputFileTracingIncludes: { '/**': [...TRACED_RUNTIME_FILES] },
   // Marketing was renamed to Growth; old links (bookmarks, emails, other apps) keep working.
   async redirects() {
     return [

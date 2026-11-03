@@ -593,13 +593,13 @@
       "name": "@commerce/notifications",
       "version": "0.0.0",
       "dependencies": {
+        "@commerce/dates": "workspace:*",
         "@react-email/components": "^1.0.12",
         "@react-email/render": "^2.1.0",
         "react": "^19.2.0",
       },
       "devDependencies": {
         "@commerce/config": "workspace:*",
-        "@commerce/dates": "workspace:*",
         "@types/node": "^22.20.4",
         "@types/react": "^19.2.8",
         "typescript": "~5.9.3",
