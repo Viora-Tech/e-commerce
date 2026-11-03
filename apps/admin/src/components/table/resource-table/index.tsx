@@ -99,6 +99,8 @@ export type ResourceTableProps<T extends RowData> = {
    * propagation: a table with `href` navigates from a click anywhere in the row.
    */
   rowActions?: (item: T) => ReactNode
+  /** Rows with nothing left to do, drawn dimmed (Shopify's greyed rows). Still clickable. */
+  rowMuted?: (item: T) => boolean
   /**
    * Row-end icon cells (Saleor datagrid): square icon buttons flush to the row edge, split by
    * vertical dividers. Use `RowIconCells` for the content; the value is how many cells it draws.
@@ -426,6 +428,7 @@ export default function ResourceTable<T extends RowData>(props: ResourceTablePro
                         className={cn(
                           'group/row border-0 tabular-nums transition-colors duration-150 hover:bg-row-hover data-[state=selected]:bg-primary-soft motion-reduce:transition-none',
                           (target || folds) && 'cursor-pointer',
+                          props.rowMuted?.(row.original) && 'bg-muted/40 [&>td]:opacity-60',
                         )}
                         onClick={
                           target

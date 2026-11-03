@@ -15,6 +15,7 @@ import type { OrderActionGroup } from '@/apps/order-actions'
 import ProoflyListPage from '@/components/layout/proofly-list-page'
 import DeleteTestOrdersDialog from '@/components/orders/delete-test-orders-dialog'
 import OrderRowMenu from '@/components/orders/order-row-menu'
+import { orderRowDone } from '@/components/orders/order-stage'
 import OrdersBulkActions from '@/components/orders/orders-bulk-actions'
 import OrdersBulkDialogs, { type OrdersBulkRequest } from '@/components/orders/orders-bulk-dialogs'
 import OrdersHeaderActions from '@/components/orders/orders-header-actions'
@@ -295,6 +296,7 @@ function OrdersContent({ initial }: { initial: OrdersInitial }) {
         items={items}
         getId={(o) => o.id}
         href={(o) => routes.orders.detail(o.id)}
+        rowMuted={orderRowDone}
         rowActions={(o) => (
           <OrderRowMenu
             order={o}

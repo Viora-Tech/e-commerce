@@ -236,6 +236,12 @@ export function importedOrderStatuses(meta: {
   financialStatus?: string | null | undefined
   fulfillmentStatus?: string | null | undefined
   cancelledAt?: string | null | undefined
+  /**
+   * Each parcel's delivery stage on the source platform (Shopify's fulfillment
+   * `displayStatus`, lowercase). Shopify calls an order "fulfilled" once a label exists, so
+   * without these it would complete before the courier even collected it.
+   */
+  deliveryStatuses?: readonly string[] | null | undefined
 }): {
   status: OrderLifecycleStatus
   paymentStatus: OrderPaymentStatus
@@ -259,10 +265,49 @@ export function importedOrderStatuses(meta: {
         : fulfilment === 'restocked'
           ? 'returned'
           : 'unfulfilled'
+  const stage = meta.deliveryStatuses
+    ? deliveryStageOf(fulfillmentStatus, meta.deliveryStatuses)
+    : fulfillmentStatus
+  const settled = SETTLED_PAYMENT_STATUSES.includes(paymentStatus)
+  // Without parcel stages (a CSV file) Shopify's "fulfilled" is all there is to go on.
+  const done = meta.deliveryStatuses ? stage === 'delivered' : stage === 'fulfilled'
   const status: OrderLifecycleStatus = meta.cancelledAt
     ? 'cancelled'
-    : fulfillmentStatus === 'fulfilled' && SETTLED_PAYMENT_STATUSES.includes(paymentStatus)
+    : settled && done
       ? 'completed'
       : 'open'
-  return { status, paymentStatus, fulfillmentStatus }
+  return { status, paymentStatus, fulfillmentStatus: stage }
+}
+
+/** Parcel stages that mean the courier has it (Shopify's FulfillmentDisplayStatus). */
+const SOURCE_MOVING = new Set([
+  'picked_up',
+  'in_transit',
+  'out_for_delivery',
+  'attempted_delivery',
+  'not_delivered',
+  'failure',
+])
+/** Parcels that no longer count: cancelled, or a label thrown away. */
+const SOURCE_DROPPED = new Set(['canceled', 'cancelled', 'label_voided'])
+
+/**
+ * Where an imported order's goods are, from each parcel's stage: every parcel delivered is
+ * delivered, any with the courier is shipped, otherwise packed and waiting for pickup. A
+ * partly packed order stays partly fulfilled unless a parcel already arrived.
+ */
+function deliveryStageOf(
+  fulfilment: OrderFulfillmentStatus,
+  statuses: readonly string[],
+): OrderFulfillmentStatus {
+  const live = statuses.filter((s) => !SOURCE_DROPPED.has(s))
+  const delivered = live.filter((s) => s === 'delivered').length
+  if (fulfilment === 'partially_fulfilled') {
+    return delivered > 0 ? 'partially_delivered' : fulfilment
+  }
+  if (fulfilment !== 'fulfilled' || live.length === 0) return fulfilment
+  if (delivered === live.length) return 'delivered'
+  if (delivered > 0) return 'partially_delivered'
+  if (live.some((s) => SOURCE_MOVING.has(s))) return 'shipped'
+  return 'fulfilled'
 }

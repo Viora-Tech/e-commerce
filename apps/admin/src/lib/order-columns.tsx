@@ -207,7 +207,12 @@ export function orderColumns(
         )
           return <StatusChip tone="info">{copy.toShip}</StatusChip>
         const stage = orderStage(o)
-        return <OrderChip kind={stage.kind} value={stage.value} />
+        // Shopify's Delivery status words for a packed order: label made, then with the courier.
+        const label =
+          stage.kind === 'fulfilment' && (stage.value === 'fulfilled' || stage.value === 'shipped')
+            ? copy.deliveryStage[stage.value]
+            : undefined
+        return <OrderChip kind={stage.kind} value={stage.value} label={label} />
       },
     },
     {
