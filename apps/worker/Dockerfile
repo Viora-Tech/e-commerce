@@ -52,17 +52,26 @@ COPY --from=pruner /repo/commerce.config.ts ./commerce.config.ts
 #   bun ops/platform-unlimited.ts <slug>           unlimited plan for Koomerce's own store (--off)
 COPY --from=pruner /repo/scripts/reset-store-data.ts ./apps/worker/ops/reset-store-data.ts
 COPY --from=pruner /repo/scripts/platform-unlimited.ts ./apps/worker/ops/platform-unlimited.ts
+# Trim what production never loads (worker/ops/prune-image.sh lists each group and why):
+# build and test tools that arrive as optional peers (better-auth → drizzle-kit/vitest, evlog →
+# vite), glibc-only native binaries that cannot load on Alpine, and drizzle's schema snapshots
+# (the migrator reads only meta/_journal.json and the .sql files).
+COPY apps/worker/ops/prune-image.sh /tmp/prune-image.sh
+RUN sh /tmp/prune-image.sh /repo && rm /tmp/prune-image.sh
 
 # --- Minimal runtime image -------------------------------------------------------------------
-FROM installer AS runner
+# A fresh stage: copying the pruned tree across leaves the deleted files behind in the
+# installer's layers instead of shipping them (a delete in a later layer frees nothing).
+FROM base AS runner
+RUN addgroup -S bunapp && adduser -S worker -G bunapp
+COPY --from=installer /repo /repo
 # Theme pictures for the Themes page (`src/theme-screenshot.ts`): opt in with
 # `--build-arg THEME_SCREENSHOTS=1`, which adds Alpine's Chromium (~150 MB on disk) and needs the
 # worker's mem_limit raised to at least 768m. Without it the screenshot jobs are skipped.
 ARG THEME_SCREENSHOTS=
 RUN if [ "$THEME_SCREENSHOTS" = "1" ]; then apk add --no-cache chromium nss freetype harfbuzz ttf-freefont font-noto-emoji; fi
 ENV THEME_SCREENSHOT_CHROMIUM=${THEME_SCREENSHOTS:+/usr/bin/chromium-browser}
-RUN addgroup -S bunapp && adduser -S worker -G bunapp \
-  && chown -R worker:bunapp /repo/apps/worker
+RUN chown -R worker:bunapp /repo/apps/worker
 ENV WORKER_PORT=4100
 # Best-effort on bun (V8 heap flag semantics differ slightly); matches this service's
 # mem_limit in deploy/docker-compose.prod.yml with headroom for BullMQ/ioredis buffers.

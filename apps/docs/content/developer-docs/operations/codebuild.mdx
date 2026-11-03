@@ -73,12 +73,14 @@ secrets stay in Dokploy's environment, never in an image.
 Do this off-hours, worker first, and only after one `SKIP_DEPLOY=1` build has pushed images.
 
 1. For the app, Dokploy, Provider tab: choose **Docker**. Image `<ecr>/vextro/<app>:dev-latest`.
-2. Registry: leave the credentials empty. `deploy-dokploy.mjs` writes a fresh ECR login on every
-   deploy (username `AWS`, password from `aws ecr get-login-password`). Tokens last 12 hours,
-   which only matters for a manual Redeploy that must pull a new layer; the image stays cached on
-   the server. This is safer than a long-lived IAM user key stored in Dokploy. If you later need
-   hands-off manual pulls, create an IAM user with read-only ECR on these repos instead and put its
-   key in Dokploy (it never expires, so rotate it).
+2. Registry: leave the URL, username and password **empty**. The app server pulls from ECR
+   through `amazon-ecr-credential-helper` (`credHelpers` for the ECR registry in
+   `/root/.docker/config.json`) with its instance role, so no login is stored and nothing
+   expires; `deploy-dokploy.mjs` saves the provider with the credentials cleared for the same
+   reason. Never paste an `aws ecr get-login-password` token here: it lasts 12 hours, and every
+   later redeploy then fails with 403. Set up on the app server on 2026-10-18 (launch checklist).
+   Paste the image with no space before or after it: a leading space fails the pull with
+   `invalid reference format`.
 3. Keep the app's environment, domains and ports as they are. The container port stays the same
    (admin 3200, storefront 3100, worker 4100).
 4. Deploy once from the dashboard, check the app is healthy, then do the next app.
