@@ -1,6 +1,7 @@
 /** SOURCE OF TRUTH: GitHub → bug report mapping tests — the webhook signature check, every event the webhook reads, the status rules and which comments the reporter may see */
 import { createHmac } from 'node:crypto'
 import { describe, expect, it } from 'vitest'
+import { issuesArePublic } from './client'
 import {
   latestVisibleReply,
   nextBugReportStatus,
@@ -76,6 +77,34 @@ describe('readGithubEvent: issues', () => {
       REPO,
     )
     expect(change).toEqual({ kind: 'ignore', reason: 'another repository' })
+  })
+
+  it('with a separate public issues repository, takes issues from it and releases from the code', () => {
+    const repos = { issues: 'Viora-Tech/koomerce-issues', code: REPO }
+    const closed = (fullName: string) =>
+      readGithubEvent(
+        'issues',
+        { action: 'closed', issue: { number: 7 }, repository: { full_name: fullName } },
+        repos,
+      ).kind
+    expect(closed('viora-tech/koomerce-issues')).toBe('issue_status')
+    expect(closed(REPO)).toBe('ignore')
+    const push = (fullName: string) =>
+      readGithubEvent(
+        'push',
+        { ref: 'refs/heads/main', after: 'abc', repository: { full_name: fullName } },
+        repos,
+      ).kind
+    expect(push(REPO)).toBe('release')
+    expect(push('Viora-Tech/koomerce-issues')).toBe('ignore')
+  })
+})
+
+describe('issuesArePublic', () => {
+  it('is true only when issues go to a repository other than the code', () => {
+    expect(issuesArePublic({ issues: REPO, code: REPO })).toBe(false)
+    expect(issuesArePublic({ issues: 'viora-tech/E-COMMERCE', code: REPO })).toBe(false)
+    expect(issuesArePublic({ issues: 'Viora-Tech/koomerce-issues', code: REPO })).toBe(true)
   })
 })
 

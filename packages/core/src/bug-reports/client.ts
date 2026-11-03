@@ -3,6 +3,17 @@ import type { BugReportStatus } from '@commerce/db'
 
 export type { BugReportStatus }
 
+/**
+ * Where reports go and where the code is. They can be one repository (private: issues carry the
+ * store, reporter and screenshot) or two (a public issues repository beside the private code).
+ */
+export type GithubRepos = { issues: string; code: string }
+
+/** Reports filed outside the code's repository are public, so they carry no private details. */
+export function issuesArePublic(repos: GithubRepos): boolean {
+  return repos.issues.toLowerCase() !== repos.code.toLowerCase()
+}
+
 /** In the order a report moves through them; `wont_fix` is the other way out. */
 export const BUG_REPORT_STATUSES = [
   'received',
