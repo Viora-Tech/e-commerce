@@ -1,6 +1,6 @@
 /** SOURCE OF TRUTH: GitHub → bug report mapping — WHAT: checks a webhook's X-Hub-Signature-256, reads the Issues / Issue comment / Push / Pull request payloads into one small change, and decides a report's next status and visible reply / WHY: pure, so the webhook, the worker's poll and the tests agree on every rule */
 import { createHmac, timingSafeEqual } from 'node:crypto'
-import type { BugReportStatus } from './client'
+import type { BugReportStatus, GithubRepos } from './client'
 import { scrubSecrets } from './scrub'
 
 /** The label that marks an issue as being worked on, and the one that marks it won't-fix. */
@@ -33,6 +33,8 @@ export function verifyGithubSignature(
   const want = createHmac('sha256', secret).update(rawBody, 'utf8').digest()
   return got.length === want.length && timingSafeEqual(got, want)
 }
+
+const sameRepo = (a: string, b: string) => a.toLowerCase() === b.toLowerCase()
 
 /** What one webhook delivery means for bug reports. */
 export type GithubChange =
@@ -80,13 +82,20 @@ function visibleReply(body: string, authorAssociation: string): string | null {
 }
 
 /**
- * Reads one delivery (`X-GitHub-Event` + parsed JSON) into a change. `repo` is the repository
- * reports are filed in: deliveries from anywhere else are ignored.
+ * Reads one delivery (`X-GitHub-Event` + parsed JSON) into a change. Issue and comment events
+ * count only from the issues repository, pushes and pull requests only from the code's (one
+ * string: both are that repository); anything else is ignored.
  */
-export function readGithubEvent(event: string, payload: unknown, repo: string): GithubChange {
+export function readGithubEvent(
+  event: string,
+  payload: unknown,
+  repos: string | GithubRepos,
+): GithubChange {
   const p = obj(payload)
+  const { issues, code } = typeof repos === 'string' ? { issues: repos, code: repos } : repos
   const fullName = str(obj(p.repository).full_name)
-  if (fullName && fullName.toLowerCase() !== repo.toLowerCase()) {
+  const from = event === 'push' || event === 'pull_request' ? code : issues
+  if (fullName && !sameRepo(fullName, from)) {
     return { kind: 'ignore', reason: 'another repository' }
   }
   const action = str(p.action)

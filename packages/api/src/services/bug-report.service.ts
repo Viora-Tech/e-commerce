@@ -48,6 +48,12 @@ export type BugReportContext = {
   commit: string
   at: Date
   screenshotUrl: string | null
+  /**
+   * The issues repository is public (`issuesArePublic`): the store, the reporter and the
+   * screenshot stay out of the issue (they are kept with the report in the admin), and ids in
+   * the page address are hidden.
+   */
+  public?: boolean
 }
 
 export type BugIssue = { title: string; body: string }
@@ -77,6 +83,14 @@ function fenced(lines: string[]): string {
   return `${fence}text\n${lines.join('\n')}\n${fence}`
 }
 
+/** Ids in a page address (`/orders/<uuid>`, `/products/1234`) become `:id` in a public issue. */
+function withoutIds(path: string): string {
+  return path
+    .replace(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi, ':id')
+    .replace(/\/\d{3,}(?=[/?#]|$)/g, '/:id')
+    .replace(/\?.*$/, '')
+}
+
 /** The issue title and markdown body. Everything the member or the page supplied is scrubbed. */
 export function buildBugIssue(input: BugReportInput, ctx: BugReportContext): BugIssue {
   const summary = scrubSecrets(input.summary.trim())
@@ -91,6 +105,21 @@ export function buildBugIssue(input: BugReportInput, ctx: BugReportContext): Bug
     hour12: true,
   })
   const { reporter } = ctx
+  const page = scrubSecrets(input.path)
+
+  const screenshot = ctx.public
+    ? []
+    : [
+        '### Screenshot',
+        ctx.screenshotUrl ? `![Screenshot of the page](${ctx.screenshotUrl})` : '_No screenshot._',
+        '',
+      ]
+  const who = ctx.public
+    ? []
+    : [
+        `| Store | ${cell(ctx.storeName)} (${code(ctx.storeId)}) |`,
+        `| Reported by | ${cell(reporter.name)} (${cell(reporter.email)}), ${cell(reporter.role)} |`,
+      ]
 
   const body = [
     '### What went wrong',
@@ -99,15 +128,12 @@ export function buildBugIssue(input: BugReportInput, ctx: BugReportContext): Bug
     '### What they were doing just before',
     details ? noMentions(details) : '_Not given._',
     '',
-    '### Screenshot',
-    ctx.screenshotUrl ? `![Screenshot of the page](${ctx.screenshotUrl})` : '_No screenshot._',
-    '',
-    '### Where and who',
+    ...screenshot,
+    ctx.public ? '### Where' : '### Where and who',
     '| | |',
     '| --- | --- |',
-    `| Page | ${code(scrubSecrets(input.path))} |`,
-    `| Store | ${cell(ctx.storeName)} (${code(ctx.storeId)}) |`,
-    `| Reported by | ${cell(reporter.name)} (${cell(reporter.email)}), ${cell(reporter.role)} |`,
+    `| Page | ${code(ctx.public ? withoutIds(page) : page)} |`,
+    ...who,
     `| Screen | ${cell(scrubSecrets(input.viewport))} |`,
     `| Browser | ${cell(scrubSecrets(input.userAgent))} |`,
     `| Commit | ${code(ctx.commit)} |`,
@@ -116,7 +142,9 @@ export function buildBugIssue(input: BugReportInput, ctx: BugReportContext): Bug
     `### Recent errors in the browser (${errors.length})`,
     errors.length ? fenced(errors) : '_None since the page loaded._',
     '',
-    '<sub>Sent with the admin\'s "Report a bug" button. Tokens, codes and secrets were removed from the text before sending.</sub>',
+    ctx.public
+      ? '<sub>Sent with the admin\'s "Report a bug" button. The store, who reported it and any screenshot stay private with the team. Tokens, codes and secrets were removed from the text before sending.</sub>'
+      : '<sub>Sent with the admin\'s "Report a bug" button. Tokens, codes and secrets were removed from the text before sending.</sub>',
   ].join('\n')
 
   return { title: summary, body }

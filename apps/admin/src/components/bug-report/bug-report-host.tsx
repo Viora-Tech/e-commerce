@@ -16,6 +16,8 @@ type BugReportHostProps = {
    * window's bottom-right, for full-screen tools without the shell (theme editor, onboarding).
    */
   placement?: 'frame' | 'screen'
+  /** Reports go to a public issue tracker (`issuesArePublic`). */
+  publicIssues?: boolean | undefined
 }
 
 /** Floating button classes per placement; the shared look comes from BUTTON_LOOK. */
@@ -58,7 +60,10 @@ async function captureThenOpen(flow: Flow): Promise<void> {
  * account menu opens the same flow through `openBugReport()`. The button is left out of the
  * screenshot.
  */
-export default function BugReportHost({ placement = 'frame' }: BugReportHostProps) {
+export default function BugReportHost({
+  placement = 'frame',
+  publicIssues = false,
+}: BugReportHostProps) {
   // Hooks
   const copy = useCopy(bugReportContent)
   const [open, setOpen] = useState(false)
@@ -96,7 +101,12 @@ export default function BugReportHost({ placement = 'frame' }: BugReportHostProp
           {copy.open}
         </TooltipContent>
       </Tooltip>
-      <BugReportDialog open={open} onOpenChange={handleOpenChange} screenshot={screenshot} />
+      <BugReportDialog
+        open={open}
+        onOpenChange={handleOpenChange}
+        screenshot={screenshot}
+        publicIssues={publicIssues}
+      />
     </>
   )
 }

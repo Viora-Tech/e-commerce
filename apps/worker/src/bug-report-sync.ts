@@ -26,6 +26,7 @@ export async function createBugReportSync(
   env: {
     GITHUB_ISSUES_TOKEN?: string | undefined
     GITHUB_ISSUES_REPO: string
+    GITHUB_CODE_REPO: string
     ADMIN_URL?: string | undefined
     SETTINGS_SECRET: string
   },
@@ -33,6 +34,7 @@ export async function createBugReportSync(
   const deps = bugReportSyncDeps({
     token: env.GITHUB_ISSUES_TOKEN,
     repo: env.GITHUB_ISSUES_REPO,
+    codeRepo: env.GITHUB_CODE_REPO,
     adminUrl: env.ADMIN_URL,
     // The reporter's WhatsApp goes through the store's own WhatsApp channel.
     storeChannels: async (tx, storeId) =>

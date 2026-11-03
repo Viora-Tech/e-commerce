@@ -1,5 +1,6 @@
 import { loadEnv } from '@commerce/config'
 import { nextPlanUp } from '@commerce/core/billing'
+import { issuesArePublic } from '@commerce/core/bug-reports'
 import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import type { ReactNode } from 'react'
@@ -101,6 +102,10 @@ export default async function AdminLayout({ children }: { children: ReactNode })
         }
         // Test server only. A report is filed against a store, so none before one is picked.
         bugReports={loadEnv(process.env).BUG_REPORTS_ENABLED && active !== null}
+        bugReportsPublic={issuesArePublic({
+          issues: loadEnv(process.env).GITHUB_ISSUES_REPO,
+          code: loadEnv(process.env).GITHUB_CODE_REPO,
+        })}
       >
         {/* No active org yet: auto-pick it when the member belongs to exactly one store, else
             show the picker instead of letting every page below throw "Pick a store first". */}

@@ -94,6 +94,14 @@ const bugReportShape = {
     .regex(/^[\w.-]+\/[\w.-]+$/)
     .default('Viora-Tech/e-commerce'),
   /**
+   * `owner/name` of the code (fix commits, releases to main). When it differs from
+   * GITHUB_ISSUES_REPO, issues are public: no store, reporter or screenshot goes in them.
+   */
+  GITHUB_CODE_REPO: z
+    .string()
+    .regex(/^[\w.-]+\/[\w.-]+$/)
+    .default('Viora-Tech/e-commerce'),
+  /**
    * The secret of the repository's webhook (`<ADMIN_URL>/api/github/webhook`; events: Issues,
    * Issue comments, Pushes, Pull requests). Each delivery's `X-Hub-Signature-256` is checked
    * with it; unset, the route answers 404 and only the worker's poll moves report statuses.

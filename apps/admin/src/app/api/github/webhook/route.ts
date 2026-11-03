@@ -48,10 +48,12 @@ export async function POST(request: Request) {
     { event, rawBody, signature: request.headers.get('x-hub-signature-256') },
     {
       secret: env.GITHUB_WEBHOOK_SECRET,
-      repo: env.GITHUB_ISSUES_REPO,
+      // One webhook on each repository when they differ: issues from one, releases from the other.
+      repo: { issues: env.GITHUB_ISSUES_REPO, code: env.GITHUB_CODE_REPO },
       deps: bugReportSyncDeps({
         token: env.GITHUB_ISSUES_TOKEN,
         repo: env.GITHUB_ISSUES_REPO,
+        codeRepo: env.GITHUB_CODE_REPO,
         adminUrl: env.ADMIN_URL,
         // The reporter's WhatsApp goes through the store's own WhatsApp channel.
         storeChannels: async (tx, storeId) =>
