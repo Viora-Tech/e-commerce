@@ -1,6 +1,7 @@
 /** SOURCE OF TRUTH: the theme's product section → our MainProduct settings — WHAT: reads an imported theme's `main-product` section (its blocks in order and their settings) into the `MainProduct` section's settings: rating, UPI offer note, stock bar, spec cells, trust badges, assurance, accordions (merchant text or a product metafield), returns line, WhatsApp, share, description / WHY: on import our MainProduct replaces the theme's main section (checkout runs on ours), and without this it opened with our defaults, so the buy box lost everything the merchant had set up in the theme */
 
 import type { ShopifyTemplateBlock, ShopifyTemplateSection } from './schema'
+import type { ThemeLook } from './theme-look'
 
 type Props = Record<string, unknown>
 
@@ -57,9 +58,27 @@ function whatsapp(out: Props, number: unknown, message: unknown) {
  * share, description, vendor) switch off, so the page reads as it did on Shopify. A section
  * with no buy box blocks says nothing about ours: no settings at all.
  */
-export function mainProductProps(section: ShopifyTemplateSection): Props {
+export function mainProductProps(section: ShopifyTemplateSection, look?: ThemeLook): Props {
   const blocks = blocksOf(section)
   if (!blocks.some((b) => BUY_BOX_BLOCKS.has(b.type))) return {}
+  return { ...buyBoxProps(section, blocks), ...lookProps(blocks, look) }
+}
+
+/**
+ * What the theme's stylesheet and markup decide (`./theme-look.ts`): capital titles, a filled
+ * Add to cart (also Dawn's buy buttons without the dynamic checkout button, where Add to cart is
+ * the primary button), the trust badges as a grid.
+ */
+function lookProps(blocks: { type: string; s: Props }[], look: ThemeLook | undefined): Props {
+  const out: Props = {}
+  if (look?.uppercaseTitles) out.uppercaseTitle = true
+  const buy = blocks.find((b) => b.type === 'buy_buttons')
+  if (look?.solidAddToCart || buy?.s.show_dynamic_checkout === false) out.addToCartStyle = 'solid'
+  if (look?.trustBadgesGrid) out.trustBadgesLayout = 'grid'
+  return out
+}
+
+function buyBoxProps(section: ShopifyTemplateSection, blocks: { type: string; s: Props }[]): Props {
   const out: Props = {
     showRating: false,
     showVendor: false,

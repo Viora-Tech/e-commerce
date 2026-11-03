@@ -3,10 +3,17 @@ import { appBlockHtml } from './app-blocks'
 import { parsed, type ThemeBundle } from './bundle'
 import type { FontDrop } from './drops'
 import { BLOCK_SCOPE, type EngineRuntime, renderBounded } from './engine'
+import { shopifySectionId } from './fields'
 import { escapeAttr } from './filters'
 import type { LiquidBlockInput, LiquidPageContext, LiquidSectionInput } from './page-context'
 import type { ShopifySectionSchema } from './schema'
 import { liquidSettings } from './settings-values'
+import {
+  CARD_HANDLES,
+  splitThemeCards,
+  type ThemeCardSection,
+  themeCardTemplate,
+} from './theme-cards'
 
 /** Liquid-ready blocks: settings typed by the block schema, disabled ones left out, nested ones kept. */
 function sectionBlocks(
@@ -111,6 +118,46 @@ export async function renderLiquidSection(
   } catch (err) {
     onError?.(err)
     return `<!-- section ${escapeAttr(section.type)} could not render -->`
+  }
+}
+
+/**
+ * The theme's own product card for each handle, in order (`./theme-cards.ts`), with the
+ * stylesheets its section loads as `head`; a product the data has not got draws ''. Null when
+ * the theme has no card snippet we can find, or the render fails (`onError` hears why): the
+ * caller draws our own cards then.
+ */
+export async function renderThemeCards(
+  ctx: LiquidPageContext,
+  input: { handles: string[]; sections?: ThemeCardSection[] | undefined },
+  onError?: (err: unknown) => void,
+): Promise<{ head: string; cards: string[] } | null> {
+  const card = themeCardTemplate(ctx.bundle, input.sections)
+  if (!card || input.handles.length === 0) return null
+  try {
+    const tpl = parsed(ctx.entry, card.cacheKey, card.source)
+    const section = {
+      id: shopifySectionId(card.section.key, 'template'),
+      type: card.section.type,
+      settings: card.section.settings,
+      blocks: [],
+      location: 'template',
+      index: 0,
+    }
+    const runtime = withHooks(ctx)
+    const html = await renderUntilComplete(ctx, () =>
+      renderBounded(
+        ctx.entry.engine,
+        ctx.budget,
+        tpl,
+        { section: sectionObject(ctx, section), [CARD_HANDLES]: input.handles },
+        renderGlobals(ctx, runtime),
+      ),
+    )
+    return splitThemeCards(html, input.handles.length)
+  } catch (err) {
+    onError?.(err)
+    return null
   }
 }
 

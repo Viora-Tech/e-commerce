@@ -79,6 +79,11 @@ export type MainProductSettings = {
   whatsappMessage: string
   showShare: boolean
   shareLabel: Copy
+  /** The title and option names in capitals, as the imported theme sets its headings. */
+  uppercaseTitle: boolean
+  /** `outline`: Figma's outline button beside the quantity. `solid`: the theme's filled one. */
+  addToCartStyle: 'outline' | 'solid'
+  trustBadgesLayout: 'chips' | 'grid'
 }
 
 const f = copy.fields
@@ -165,6 +170,13 @@ export const mainProductFields: Fields = {
   whatsappMessage: { type: 'text', label: f.whatsappMessage },
   showShare: showHide(f.showShare),
   shareLabel: inlineText(f.shareLabel),
+  uppercaseTitle: { type: 'radio', label: f.uppercaseTitle, options: copy.titleCases },
+  addToCartStyle: { type: 'select', label: f.addToCartStyle, options: copy.addToCartStyles },
+  trustBadgesLayout: {
+    type: 'select',
+    label: f.trustBadgesLayout,
+    options: copy.trustBadgesLayouts,
+  },
 }
 
 const d = copy.defaults
@@ -247,6 +259,9 @@ export function mainProductSettings(raw: Record<string, unknown> = {}): MainProd
     whatsappMessage: str(raw.whatsappMessage, d.whatsappMessage),
     showShare: bool(raw.showShare, d.showShare),
     shareLabel: text(raw.shareLabel, d.shareLabel),
+    uppercaseTitle: bool(raw.uppercaseTitle, d.uppercaseTitle),
+    addToCartStyle: raw.addToCartStyle === 'solid' ? 'solid' : 'outline',
+    trustBadgesLayout: raw.trustBadgesLayout === 'grid' ? 'grid' : 'chips',
   }
 }
 

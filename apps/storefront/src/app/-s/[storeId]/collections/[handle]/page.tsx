@@ -101,6 +101,7 @@ export default async function CollectionPage({ params, searchParams }: Params) {
     renderers: {
       MainCollection: (settings) => (
         <MainCollection
+          storeId={storeId}
           origin={origin}
           collection={data.collection}
           products={data.products}
