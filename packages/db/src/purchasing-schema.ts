@@ -36,10 +36,12 @@ const fxRate = () => numeric('fx_rate', { precision: 18, scale: 6 }).notNull().d
 const oneOf = (values: readonly string[]) => sql.raw(values.map((v) => `'${v}'`).join(', '))
 
 export const INBOUND_SHIPMENT_STATUS_VALUES = [
+  'planned',
   'in_transit',
   'at_port',
   'cleared',
   'delivered',
+  'cancelled',
 ] as const
 export const PURCHASE_CHARGE_KIND_VALUES = [
   'goods_adjustment',

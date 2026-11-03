@@ -5,6 +5,7 @@ import {
   landedCostContent,
   poCurrencyContent,
   poShipmentContent,
+  purchaseOrderBulkContent,
   supplierFormContent,
   supplierPickerContent,
   suppliersContent,
@@ -125,10 +126,12 @@ export default [
     create: 'आने वाली खेप बनाएँ',
     number: (n: number) => `#IS${n}`,
     status: {
-      in_transit: 'रास्ते में',
+      planned: 'योजना में',
+      in_transit: 'भेजी गई',
       at_port: 'पोर्ट पर',
       cleared: 'कस्टम क्लियर',
       delivered: 'पहुँच गई',
+      cancelled: 'रद्द',
     },
     tabs: { all: 'सभी' },
     columns: {
@@ -363,5 +366,30 @@ export default [
     },
     notSet: 'तय नहीं',
     empty: 'प्रोडक्ट जोड़ें, फिर उनकी असली लागत यहाँ दिखेगी।',
+  }),
+  translation(purchaseOrderBulkContent, {
+    downloadPdfs: 'PDF डाउनलोड करें',
+    markOrdered: 'ऑर्डर किया गया मार्क करें',
+    close: 'बंद करें',
+    cancelOrders: 'ऑर्डर रद्द करें',
+    delete: 'मिटाएं',
+    keep: 'रहने दें',
+    confirm: {
+      close: {
+        title: (n) => `${n} परचेज़ ऑर्डर बंद करें?`,
+        body: 'जो माल अभी नहीं आया वह आने वाले स्टॉक में नहीं दिखेगा। आया हुआ स्टॉक बना रहेगा। ड्राफ़्ट और पहले से पूरे हो चुके ऑर्डर छोड़ दिए जाएंगे।',
+        confirm: 'ऑर्डर बंद करें',
+      },
+      cancel: {
+        title: (n) => `${n} परचेज़ ऑर्डर रद्द करें?`,
+        body: 'इनका स्टॉक आने वाले स्टॉक में नहीं दिखेगा। जिन ऑर्डर में कुछ माल आ चुका है वे छोड़ दिए जाएंगे; उन्हें बंद करें। रद्द ऑर्डर बाद में फिर खोला जा सकता है।',
+        confirm: 'ऑर्डर रद्द करें',
+      },
+      delete: {
+        title: (n) => `${n} परचेज़ ऑर्डर मिटाएं?`,
+        body: 'सिर्फ़ ड्राफ़्ट और रद्द ऑर्डर मिटेंगे, और यह वापस नहीं होगा। ऑर्डर किए और आए हुए ऑर्डर छोड़ दिए जाएंगे।',
+        confirm: 'मिटाएं',
+      },
+    },
   }),
 ]

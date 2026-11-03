@@ -10,6 +10,14 @@ from different suppliers. Create it under **Stock › Inbound shipments**, add t
 orders that came in it, and put the container's freight and customs on the shipment as
 **shared charges**. They are split across every product in every order on it.
 
+## Stages
+
+A shipment moves through **Planned** (booked, not shipped yet) → **Shipped** → **At the port**
+→ **Customs cleared** → **Delivered**, or it can be **Cancelled**. Change the stage on the
+shipment, or select several in the list and use **Change status**. Delivered is set by
+receiving (below), so stock and the shipment always agree, and a delivered shipment can't be
+moved back.
+
 ## When the goods arrive
 
 - **Receive each order as usual.** Once every purchase order on the shipment has nothing left

@@ -2,7 +2,6 @@ import { siteConfig } from '@commerce/config/site'
 import {
   inventoryContent,
   locationsContent,
-  purchaseOrderBulkContent,
   purchaseOrderFormContent,
   purchaseOrdersContent,
   transfersContent,
@@ -344,31 +343,6 @@ export default [
       doneRejected: (n: number, r: number) => `${n} यूनिट रिसीव हुईं, ${r} रिजेक्ट`,
       nothing: 'कम से कम एक मात्रा डालें',
       failed: 'माल रिसीव नहीं हो सका',
-    },
-  }),
-  translation(purchaseOrderBulkContent, {
-    downloadPdfs: 'PDF डाउनलोड करें',
-    markOrdered: 'ऑर्डर किया गया मार्क करें',
-    close: 'बंद करें',
-    cancelOrders: 'ऑर्डर रद्द करें',
-    delete: 'मिटाएं',
-    keep: 'रहने दें',
-    confirm: {
-      close: {
-        title: (n) => `${n} परचेज़ ऑर्डर बंद करें?`,
-        body: 'जो माल अभी नहीं आया वह आने वाले स्टॉक में नहीं दिखेगा। आया हुआ स्टॉक बना रहेगा। ड्राफ़्ट और पहले से पूरे हो चुके ऑर्डर छोड़ दिए जाएंगे।',
-        confirm: 'ऑर्डर बंद करें',
-      },
-      cancel: {
-        title: (n) => `${n} परचेज़ ऑर्डर रद्द करें?`,
-        body: 'इनका स्टॉक आने वाले स्टॉक में नहीं दिखेगा। जिन ऑर्डर में कुछ माल आ चुका है वे छोड़ दिए जाएंगे; उन्हें बंद करें। रद्द ऑर्डर बाद में फिर खोला जा सकता है।',
-        confirm: 'ऑर्डर रद्द करें',
-      },
-      delete: {
-        title: (n) => `${n} परचेज़ ऑर्डर मिटाएं?`,
-        body: 'सिर्फ़ ड्राफ़्ट और रद्द ऑर्डर मिटेंगे, और यह वापस नहीं होगा। ऑर्डर किए और आए हुए ऑर्डर छोड़ दिए जाएंगे।',
-        confirm: 'मिटाएं',
-      },
     },
   }),
   translation(transfersContent, {
