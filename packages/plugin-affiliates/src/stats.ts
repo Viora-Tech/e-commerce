@@ -330,8 +330,12 @@ export async function topProducts(
   }))
 }
 
-const csvCell = (v: string | number | null) => {
-  const s = v === null ? '' : String(v)
+/** A CSV cell: leading formula chars neutralised (spreadsheet injection), then quoted if needed. */
+export const ledgerCsvCell = (v: string | number | null) => {
+  let s = v === null ? '' : String(v)
+  // A leading = + - @ tab or CR would run as a spreadsheet formula: prefix an apostrophe.
+  // Plain numbers (a negative amount like -12.00) stay numbers.
+  if (/^[=+\-@\t\r]/.test(s) && !/^-?\d+(\.\d+)?$/.test(s)) s = `'${s}`
   return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s
 }
 
@@ -367,5 +371,5 @@ export async function ledgerCsv(tx: StoreTx): Promise<string> {
       r.reversedReason,
     ]),
   ]
-  return lines.map((l) => l.map(csvCell).join(',')).join('\n')
+  return lines.map((l) => l.map(ledgerCsvCell).join(',')).join('\n')
 }

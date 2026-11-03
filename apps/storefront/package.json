@@ -8,7 +8,7 @@
     "build": "next build",
     "start": "bun run --env-file=../../.env next start --port 3100",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "bun ../../scripts/typecheck.ts"
   },
   "dependencies": {
     "@commerce/blocks": "workspace:*",

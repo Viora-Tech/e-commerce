@@ -3,6 +3,9 @@ export const bugReportContent = {
   open: 'Report a bug',
   title: 'Report a bug',
   intro: 'Tell us what went wrong. We also send the page you are on and any recent errors.',
+  /** Shown after the intro when reports go to the public issue tracker. */
+  publicNotice:
+    'Reports are posted on our public issue tracker. Your name, email, store and screenshot are not posted.',
   summaryLabel: 'What went wrong?',
   summaryPlaceholder: 'For example: Save does nothing',
   detailsLabel: 'What were you doing just before?',

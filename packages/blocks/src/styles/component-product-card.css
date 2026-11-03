@@ -709,12 +709,12 @@
 
 /* "Natural" ratio: the primary image sets the height instead of a fixed box,
    so it leaves the absolute stack; the hover image still overlays it. */
-:root[data-card-ratio="natural"] .product-card__image--primary {
+:root[data-card-ratio="natural"] .product-card__image--primary:not(:where(.shopify-section *)) {
   position: static;
   height: auto;
 }
 
-:root[data-card-hover="off"] .product-card__image--hover {
+:root[data-card-hover="off"] .product-card__image--hover:not(:where(.shopify-section *)) {
   display: none;
 }
 
@@ -726,11 +726,11 @@
   text-transform: uppercase;
 }
 
-:root:not([data-card-vendor="on"]) .product-card__vendor {
+:root:not([data-card-vendor="on"]) .product-card__vendor:not(:where(.shopify-section *)) {
   display: none;
 }
 
-:root:not([data-card-sale-badge="on"]) .product-card__badge--sale {
+:root:not([data-card-sale-badge="on"]) .product-card__badge--sale:not(:where(.shopify-section *)) {
   display: none;
 }
 
@@ -811,21 +811,21 @@
 .product-card__rating-count:not(:where(.shopify-section *)) {
   color: var(--color-ink-muted, currentColor);
 }
-:root[data-card-rating="off"] .product-card__rating {
+:root[data-card-rating="off"] .product-card__rating:not(:where(.shopify-section *)) {
   display: none;
 }
-:root:not([data-card-quick-add="on"]) .product-card:not(.product-card--quick-add) .product-card__quick-add {
+:root:not([data-card-quick-add="on"]) .product-card:not(.product-card--quick-add) .product-card__quick-add:not(:where(.shopify-section *)) {
   display: none;
 }
-:root[data-card-wishlist="off"] .product-card__wishlist {
+:root[data-card-wishlist="off"] .product-card__wishlist:not(:where(.shopify-section *)) {
   display: none;
 }
-:root[data-card-style="minimal"] .product-card__media {
+:root[data-card-style="minimal"] .product-card__media:not(:where(.shopify-section *)) {
   border: 0;
   box-shadow: none;
   background: transparent;
 }
-:root[data-card-style="minimal"] .product-card__info {
+:root[data-card-style="minimal"] .product-card__info:not(:where(.shopify-section *)) {
   padding-inline: 0;
   gap: 0.125rem;
 }

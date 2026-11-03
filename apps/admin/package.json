@@ -7,7 +7,7 @@
     "dev": "bun run --env-file=../../.env next dev --port 3200",
     "build": "next build",
     "start": "bun run --env-file=../../.env next start --port 3200",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "bun ../../scripts/typecheck.ts",
     "section-previews": "bun run scripts/section-previews/run.ts",
     "test": "vitest run"
   },

@@ -3,6 +3,7 @@ import {
   checkRateLimit,
   countUnreadBugReports,
   createMemoryRateLimitStore,
+  issuesArePublic,
   listBugReports,
   markBugReportsSeen,
   rateLimitKey,
@@ -94,6 +95,7 @@ export const bugReportsRouter = {
       commit: appCommit(env),
       at: new Date(),
       screenshotUrl,
+      public: issuesArePublic({ issues: env.GITHUB_ISSUES_REPO, code: env.GITHUB_CODE_REPO }),
     })
 
     const save = (filed: { number: number; url: string } | null) =>

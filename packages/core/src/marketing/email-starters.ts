@@ -442,16 +442,9 @@ const STARTERS: Starter[] = [
   },
 ]
 
-export const EMAIL_STARTER_IDS = STARTERS.map((s) => s.id)
-
 /** Every ready-made template, built for this store. */
 export function emailStarters(
   ctx: StarterContext,
 ): { id: string; category: EmailStarterCategory; mjml: string }[] {
   return STARTERS.map((s) => ({ id: s.id, category: s.category, mjml: s.build(ctx) }))
-}
-
-/** One ready-made template, or null for an unknown id. */
-export function emailStarter(id: string, ctx: StarterContext): string | null {
-  return STARTERS.find((s) => s.id === id)?.build(ctx) ?? null
 }

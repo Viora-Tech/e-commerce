@@ -16,6 +16,7 @@ import {
 } from '@commerce/db'
 import { and, eq, inArray, isNull, notInArray, or } from 'drizzle-orm'
 import { setStock } from '../inventory/levels'
+import type { ManualReason } from '../inventory/schemas'
 import { onHandleChange } from '../redirects/handle-change'
 import {
   type BulkEditError,
@@ -102,6 +103,7 @@ export async function bulkEdit(
   tx: StoreTx,
   storeId: string,
   rows: BulkEditRow[],
+  options: { stockReason?: ManualReason | undefined } = {},
 ): Promise<BulkEditResult> {
   const errors: BulkEditError[] = []
   const fail = (variantId: string, field: string, message: string) =>
@@ -411,7 +413,7 @@ export async function bulkEdit(
         variantId: r.variantId,
         locationId,
         onHand: count,
-        reason: 'correction',
+        reason: options.stockReason ?? 'correction',
         note: 'Bulk edit',
       })
       stockChanges += 1

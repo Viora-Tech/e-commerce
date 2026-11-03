@@ -15,12 +15,13 @@
     "./element-style": "./src/element-style.ts",
     "./editor-selection": "./src/editor-selection.ts",
     "./section-presets": "./src/section-presets.ts",
+    "./imported-defaults": "./src/sections/imported-defaults.ts",
     "./phone-input": "./src/components/store-phone-input.tsx",
     "./phone-input-lazy": "./src/components/store-phone-input-lazy.tsx"
   },
   "scripts": {
     "test": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "bun ../../scripts/typecheck.ts"
   },
   "dependencies": {
     "@commerce/dates": "workspace:*",

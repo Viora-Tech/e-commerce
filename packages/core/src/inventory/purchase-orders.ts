@@ -1,4 +1,4 @@
-import { newId, purchaseOrder, purchaseOrderLine, type StoreTx } from '@commerce/db'
+import { newId, purchaseOrder, purchaseOrderLine, type StoreTx, variant } from '@commerce/db'
 import { asc, eq, inArray, sql } from 'drizzle-orm'
 import { lockCostingGroup, recost } from './costing'
 import {
@@ -126,13 +126,20 @@ async function writeOrder(tx: StoreTx, storeId: string, input: PurchaseOrderInpu
       )
     }
     const linesChanged = lineSignature(input.lines) !== lineSignature(lines)
-    if (linesChanged && po.inboundShipmentId) {
+    const arrived = lines.some((l) => l.received + (l.rejected ?? 0) > 0)
+    // On a shipment, its shared charges split across every order's lines. Until goods start
+    // arriving, an edit just re-splits them (below); after that their cost is in stock (#1059).
+    if (linesChanged && po.inboundShipmentId && arrived) {
       throw new InventoryError(
         'PO_IN_SHIPMENT',
-        'This order is on an inbound shipment. Remove it from the shipment first, then change its products, quantities or prices',
+        'Goods on this order have started arriving on its inbound shipment, so its products, quantities and prices are fixed',
         { storeId },
       )
     }
+    const shipmentGroup =
+      linesChanged && po.inboundShipmentId
+        ? await lockCostingGroup(tx, storeId, { inboundShipmentId: po.inboundShipmentId })
+        : null
     if (po.status === 'received' || po.status === 'closed') {
       if (quantitySignature(input.lines) !== quantitySignature(lines)) {
         throw new InventoryError(
@@ -155,6 +162,7 @@ async function writeOrder(tx: StoreTx, storeId: string, input: PurchaseOrderInpu
       .update(purchaseOrder)
       .set({ status: purchaseOrderStatus(after, po.status) })
       .where(eq(purchaseOrder.id, po.id))
+    if (shipmentGroup) await recost(tx, storeId, shipmentGroup)
     return po.id
   }
   await tx
@@ -374,4 +382,53 @@ export async function deletePurchaseOrder(tx: StoreTx, storeId: string, id: stri
       await lockCostingGroup(tx, storeId, { inboundShipmentId: group.shipmentId }),
     )
   }
+}
+
+/**
+ * "Duplicate" (#1060): a new draft with the order's supplier, destination, currency, rate, name,
+ * note and lines (quantities, prices, HSN), for a restock that repeats. No shipment, receipts,
+ * charges or expected date carry over; the new draft gets its own number. Products deleted
+ * since are left out.
+ */
+export async function duplicatePurchaseOrder(
+  tx: StoreTx,
+  storeId: string,
+  id: string,
+): Promise<string> {
+  const { po, lines } = await loadPurchaseOrder(tx, storeId, id)
+  const live = lines.length
+    ? new Set(
+        (
+          await tx
+            .select({ id: variant.id })
+            .from(variant)
+            .where(
+              inArray(
+                variant.id,
+                lines.map((l) => l.variantId),
+              ),
+            )
+        ).map((v) => v.id),
+      )
+    : new Set<string>()
+  return savePurchaseOrder(tx, storeId, {
+    supplierId: po.supplierId,
+    supplierName: po.supplierName,
+    name: po.name ?? undefined,
+    supplierEmail: po.supplierEmail ?? '',
+    supplierPhone: po.supplierPhone ?? undefined,
+    locationId: po.locationId,
+    expectedAt: null,
+    currency: po.currency as PurchaseOrderInput['currency'],
+    fxRate: String(po.fxRate) as PurchaseOrderInput['fxRate'],
+    note: po.note ?? undefined,
+    lines: lines
+      .filter((l) => live.has(l.variantId))
+      .map((l) => ({
+        variantId: l.variantId,
+        quantity: l.quantity,
+        unitPriceMinor: l.unitPriceMinor,
+        hsnCode: l.hsnCode ?? undefined,
+      })),
+  })
 }

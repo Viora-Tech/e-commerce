@@ -1,6 +1,7 @@
 import { protectedProcedure } from '../procedures'
 import { accountRouter } from './account'
 import { activityRouter } from './activity'
+import { activityLogRouter } from './activity-log'
 import { affiliatesRouter } from './affiliates'
 import { aiRouter } from './ai'
 import { analyticsRouter } from './analytics'
@@ -78,6 +79,7 @@ import { umamiRouter } from './umami'
 
 export const appRouter = {
   activity: activityRouter,
+  activityLog: activityLogRouter,
   me: protectedProcedure.handler(({ context }) => context.session),
   account: accountRouter,
   reauth: reauthRouter,

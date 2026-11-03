@@ -11,7 +11,8 @@ import { inlineRichtext, inlineText } from './inline-fields'
  *        text fields on the one section (no nested blocks), in the theme's block order. The
  *        storefront route and the admin canvas both hand the raw saved settings to
  *        `mainProductSettings`, so a missing or legacy value (old docs saved only
- *        `showEmiHint`/`showDeliveryEstimate`) reads as its default in both places.
+ *        `showEmiHint`/`showDeliveryEstimate`) reads as its default in both places. On an
+ *        imported theme our extras default off instead (`./imported-defaults.ts`, #1049).
  * WHERE: Fields registered in `./dynamic.tsx`; drawn by `../components/product-view.tsx`.
  */
 
@@ -23,7 +24,17 @@ export type MainProductAccordion = { title: Copy; body: Copy; metafieldKey: stri
 export type MainProductBadge = { icon: string; label: Copy }
 
 export type MainProductSettings = {
+  /** Our extras (off on an imported theme, `./imported-defaults.ts`): the EMI line under the price. */
   showEmiHint: boolean
+  /** "Inclusive of all taxes" under the price. */
+  showTaxNote: boolean
+  /** "Save ₹N" beside the struck-through MRP. */
+  showSaving: boolean
+  /** The offer note reads "₹X with UPI" at the store's UPI / bank transfer discount. */
+  showUpiPrice: boolean
+  /** The dispatch line (`deliveryText`) above the PIN code check. */
+  showDispatchLine: boolean
+  /** The PIN code delivery check under the buy buttons. */
   showDeliveryEstimate: boolean
   galleryLayout: 'rail' | 'stacked'
   lensZoom: boolean
@@ -68,6 +79,11 @@ export type MainProductSettings = {
   whatsappMessage: string
   showShare: boolean
   shareLabel: Copy
+  /** The title and option names in capitals, as the imported theme sets its headings. */
+  uppercaseTitle: boolean
+  /** `outline`: Figma's outline button beside the quantity. `solid`: the theme's filled one. */
+  addToCartStyle: 'outline' | 'solid'
+  trustBadgesLayout: 'chips' | 'grid'
 }
 
 const f = copy.fields
@@ -86,6 +102,8 @@ export const showHide = (label: string) =>
 /** The section's Customize fields, in the theme's block order. */
 export const mainProductFields: Fields = {
   showEmiHint: showHide(f.showEmiHint),
+  showTaxNote: showHide(f.showTaxNote),
+  showSaving: showHide(f.showSaving),
   showDeliveryEstimate: showHide(f.showDeliveryEstimate),
   galleryLayout: { type: 'select', label: f.galleryLayout, options: copy.galleryLayouts },
   lensZoom: showHide(f.lensZoom),
@@ -95,6 +113,7 @@ export const mainProductFields: Fields = {
   ratingCount: { type: 'number', label: f.ratingCount, min: 0 },
   showPaymentSignals: showHide(f.showPaymentSignals),
   paymentNote: inlineText(f.paymentNote),
+  showUpiPrice: showHide(f.showUpiPrice),
   upiPercent: { type: 'number', label: f.upiPercent, min: 0, max: 50 },
   offerHeading: { type: 'text', label: f.offerHeading },
   offerBody: { type: 'richtext', label: f.offerBody },
@@ -104,6 +123,7 @@ export const mainProductFields: Fields = {
   stockThreshold: { type: 'number', label: f.stockThreshold, min: 1, max: 100 },
   showPreorderLink: showHide(f.showPreorderLink),
   preorderLinkUrl: { type: 'text', label: f.preorderLinkUrl },
+  showDispatchLine: showHide(f.showDispatchLine),
   deliveryText: inlineText(f.deliveryText),
   showSpecs: showHide(f.showSpecs),
   specFields: { type: 'textarea', label: f.specFields },
@@ -150,6 +170,13 @@ export const mainProductFields: Fields = {
   whatsappMessage: { type: 'text', label: f.whatsappMessage },
   showShare: showHide(f.showShare),
   shareLabel: inlineText(f.shareLabel),
+  uppercaseTitle: { type: 'radio', label: f.uppercaseTitle, options: copy.titleCases },
+  addToCartStyle: { type: 'select', label: f.addToCartStyle, options: copy.addToCartStyles },
+  trustBadgesLayout: {
+    type: 'select',
+    label: f.trustBadgesLayout,
+    options: copy.trustBadgesLayouts,
+  },
 }
 
 const d = copy.defaults
@@ -180,6 +207,10 @@ export function mainProductSettings(raw: Record<string, unknown> = {}): MainProd
   const badges = items(raw.trustBadges)
   return {
     showEmiHint: bool(raw.showEmiHint, d.showEmiHint),
+    showTaxNote: bool(raw.showTaxNote, d.showTaxNote),
+    showSaving: bool(raw.showSaving, d.showSaving),
+    showUpiPrice: bool(raw.showUpiPrice, d.showUpiPrice),
+    showDispatchLine: bool(raw.showDispatchLine, d.showDispatchLine),
     showDeliveryEstimate: bool(raw.showDeliveryEstimate, d.showDeliveryEstimate),
     galleryLayout: raw.galleryLayout === 'stacked' ? 'stacked' : 'rail',
     lensZoom: bool(raw.lensZoom, d.lensZoom),
@@ -228,6 +259,9 @@ export function mainProductSettings(raw: Record<string, unknown> = {}): MainProd
     whatsappMessage: str(raw.whatsappMessage, d.whatsappMessage),
     showShare: bool(raw.showShare, d.showShare),
     shareLabel: text(raw.shareLabel, d.shareLabel),
+    uppercaseTitle: bool(raw.uppercaseTitle, d.uppercaseTitle),
+    addToCartStyle: raw.addToCartStyle === 'solid' ? 'solid' : 'outline',
+    trustBadgesLayout: raw.trustBadgesLayout === 'grid' ? 'grid' : 'chips',
   }
 }
 

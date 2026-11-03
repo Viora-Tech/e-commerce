@@ -9,7 +9,7 @@ import type { FulfillmentHoldReason } from './edit-rules'
 const SHIPPABLE = ['open', 'on_hold'] as const
 
 /** The staff reasons in words, for the timeline and refusals (the admin has its own copy). */
-export const HOLD_REASON_WORDS: Record<FulfillmentHoldReason, string> = {
+const HOLD_REASON_WORDS: Record<FulfillmentHoldReason, string> = {
   awaiting_stock: 'Awaiting stock',
   address_check: 'Address check',
   payment_check: 'Payment check',

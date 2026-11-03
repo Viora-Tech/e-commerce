@@ -4,6 +4,7 @@ import type {
   InboundShipmentStatus,
   PurchaseChargeKind,
   SplitMethod,
+  SupplierContactKind,
 } from '@commerce/core/inventory'
 
 export {
@@ -42,6 +43,28 @@ export const suppliersContent = {
     heading: 'No suppliers yet',
     body: 'Save the people you buy stock from once, then pick them on every purchase order.',
   },
+  bulk: {
+    edit: 'Bulk edit',
+    delete: 'Delete',
+    title: (n: number) => `Edit ${n} supplier${n === 1 ? '' : 's'}`,
+    body: 'Tick what to change. Everything else stays as it is on each supplier.',
+    currency: 'Bills in',
+    country: 'Country',
+    paymentTerms: 'Payment terms',
+    paymentTermsHint: 'Leave empty to clear the terms.',
+    apply: 'Apply',
+    applying: 'Applying…',
+    cancel: 'Cancel',
+    nothing: 'Tick at least one thing to change',
+    updated: (n: number) => `${n} supplier${n === 1 ? '' : 's'} updated`,
+    failed: 'Couldn’t update the suppliers',
+    confirmDelete: {
+      title: (n: number) => `Delete ${n} supplier${n === 1 ? '' : 's'}?`,
+      body: 'Purchase orders keep the supplier name; they just stop pointing at these records. This can’t be undone.',
+      confirm: 'Delete',
+      cancel: 'Keep',
+    },
+  },
 } as const
 
 export const supplierFormContent = {
@@ -57,7 +80,27 @@ export const supplierFormContent = {
     country: 'Country code',
     currency: 'Bills in',
   },
-  contact: { heading: 'Contact', email: 'Email', phone: 'Phone', address: 'Address' },
+  contact: {
+    heading: 'Contact',
+    email: 'Email',
+    phone: 'Phone',
+    address: 'Address',
+    more: 'Other ways to reach them',
+    add: 'Add a contact',
+    kind: 'Type',
+    value: 'Number, ID or link',
+    label: 'Who (optional)',
+    labelPlaceholder: 'Sales, Lily',
+    remove: 'Remove contact',
+    kinds: {
+      whatsapp: 'WhatsApp',
+      wechat: 'WeChat',
+      phone: 'Phone',
+      email: 'Email',
+      website: 'Website',
+      other: 'Other',
+    } satisfies Record<SupplierContactKind, string>,
+  },
   terms: {
     heading: 'Terms and notes',
     paymentTerms: 'Payment terms',
@@ -135,10 +178,12 @@ export const inboundShipmentsContent = {
   create: 'Create inbound shipment',
   number: (n: number) => `#IS${n}`,
   status: {
-    in_transit: 'On the way',
+    planned: 'Planned',
+    in_transit: 'Shipped',
     at_port: 'At the port',
     cleared: 'Customs cleared',
     delivered: 'Delivered',
+    cancelled: 'Cancelled',
   } satisfies Record<InboundShipmentStatus, string>,
   tabs: { all: 'All' },
   columns: {
@@ -164,6 +209,22 @@ export const inboundShipmentsContent = {
   empty: {
     heading: 'No inbound shipments',
     body: 'An inbound shipment groups the purchase orders that came in one container or Bill of Entry, so their freight and customs split across all of them.',
+  },
+  bulk: {
+    deliver: 'Mark as delivered',
+    changeStatus: 'Change status',
+    delete: 'Delete',
+    keep: 'Keep',
+    confirmDeliver: {
+      title: (n: number) => `Mark ${n} shipment${n === 1 ? '' : 's'} as delivered?`,
+      body: 'Everything still to come on their purchase orders is received into stock as accepted, at each order’s location. Shipments already delivered stay as they are.',
+      confirm: 'Mark as delivered',
+    },
+    confirmDelete: {
+      title: (n: number) => `Delete ${n} shipment${n === 1 ? '' : 's'}?`,
+      body: 'Only empty shipments are deleted, and this can’t be undone. Shipments that still carry purchase orders are skipped; remove their orders first.',
+      confirm: 'Delete',
+    },
   },
 } as const
 
@@ -241,6 +302,25 @@ export const inboundShipmentFormContent = {
     blocked: 'This shipment still has purchase orders. Remove them first, then delete it.',
     confirm: 'Delete shipment',
     cancel: 'Cancel',
+  },
+  /** "Mark as delivered" (#1065): receives what is outstanding on its purchase orders. */
+  deliver: {
+    action: 'Mark as delivered',
+    title: 'Mark this shipment delivered?',
+    loading: 'Checking what is still to come in…',
+    body: (units: number, orders: number) =>
+      `${units} ${units === 1 ? 'unit' : 'units'} from ${orders} purchase ${
+        orders === 1 ? 'order' : 'orders'
+      } go into stock at each order's location, and the shipment is marked delivered.`,
+    nothing: 'Everything on its purchase orders is already in. The shipment is marked delivered.',
+    shortHint:
+      'Some units missing or damaged? Receive that order on its own page first, with rejected units; this takes in the rest.',
+    order: (n: number, units: number) => `#PO${n}: ${units} ${units === 1 ? 'unit' : 'units'}`,
+    confirm: 'Receive and mark delivered',
+    cancel: 'Cancel',
+    done: (units: number) =>
+      `Shipment delivered: ${units} ${units === 1 ? 'unit' : 'units'} received`,
+    failed: 'Could not mark the shipment delivered',
   },
 } as const
 
@@ -354,4 +434,31 @@ export const landedCostContent = {
   },
   notSet: 'Not set',
   empty: 'Add products to see what they land at.',
+} as const
+
+/** The purchase order list's selection bar. */
+export const purchaseOrderBulkContent = {
+  downloadPdfs: 'Download PDFs',
+  markOrdered: 'Mark as ordered',
+  close: 'Close',
+  cancelOrders: 'Cancel orders',
+  delete: 'Delete',
+  keep: 'Keep',
+  confirm: {
+    close: {
+      title: (n: number) => `Close ${n} purchase order${n === 1 ? '' : 's'}?`,
+      body: 'Anything not received yet stops showing as incoming. Received stock stays. Drafts and orders that are already finished are skipped.',
+      confirm: 'Close orders',
+    },
+    cancel: {
+      title: (n: number) => `Cancel ${n} purchase order${n === 1 ? '' : 's'}?`,
+      body: 'Their stock stops showing as incoming. Orders that already have something received are skipped; close those instead. You can reopen a cancelled order later.',
+      confirm: 'Cancel orders',
+    },
+    delete: {
+      title: (n: number) => `Delete ${n} purchase order${n === 1 ? '' : 's'}?`,
+      body: 'Only drafts and cancelled orders are deleted, and this can’t be undone. Ordered and received orders are skipped.',
+      confirm: 'Delete',
+    },
+  },
 } as const

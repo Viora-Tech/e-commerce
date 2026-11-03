@@ -1,3 +1,4 @@
+import { siteConfig } from '@commerce/config/site'
 import { productVariantsContent } from './product-form-variants'
 /** Every string the product form shows. Change copy here, never in a component. */
 export const productFormContent = {
@@ -366,7 +367,7 @@ export const productFormContent = {
     failed: 'Could not load stock history',
     /** Who made a change; system rows (orders, imports) have no member (audit #139). */
     by: (name: string) => `by ${name}`,
-    bySystem: 'by Koomerce',
+    bySystem: `by ${siteConfig.brand.name}`,
   },
   duplicate: {
     action: 'Duplicate',

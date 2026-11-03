@@ -10,10 +10,11 @@
   },
   "scripts": {
     "test": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "bun ../../scripts/typecheck.ts"
   },
   "devDependencies": {
     "@commerce/config": "workspace:*",
+    "@commerce/dates": "workspace:*",
     "@types/node": "^22.20.4",
     "@types/react": "^19.2.8",
     "typescript": "~5.9.3",

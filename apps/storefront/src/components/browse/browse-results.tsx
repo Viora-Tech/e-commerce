@@ -11,6 +11,7 @@ import {
 } from '@commerce/core/browse'
 import { type StorefrontFilterConfig, tagValueLabel } from '@commerce/core/filter-config'
 import Link from 'next/link'
+import type { ComponentProps } from 'react'
 import CollectionGrid from '@/components/collections/collection-grid'
 import { browseContent as copy } from '@/data/browse'
 import DrawerClose from './drawer-close'
@@ -37,6 +38,8 @@ type BrowseResultsProps = {
   showSort: boolean
   /** The count over the grid; a collection page shows it in its header instead. */
   showCount?: boolean | undefined
+  /** The grid's products per row and an imported theme's own cards (`CollectionGrid`). */
+  grid?: Omit<ComponentProps<typeof CollectionGrid>, 'products'> | undefined
 }
 
 function chipLabel(kind: string, value: string, f: BrowseFilters, facets: BrowseFacets): string {
@@ -76,6 +79,7 @@ export default function BrowseResults({
   showFilters,
   showSort,
   showCount = true,
+  grid,
 }: BrowseResultsProps) {
   // Helpers
   const sortParam = () => (sort === defaultSort ? null : sort)
@@ -197,7 +201,7 @@ export default function BrowseResults({
             </Link>
           </div>
         ) : (
-          <CollectionGrid products={products} />
+          <CollectionGrid products={products} {...grid} />
         )}
 
         <Pagination page={page} pages={pages} hrefFor={(n) => href({ page: n })} />

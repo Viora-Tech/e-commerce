@@ -65,4 +65,14 @@ export const sectionsContent = {
   },
   related: { heading: 'You may also like' },
   recentlyViewed: { heading: 'Recently viewed' },
+  /** The collection page's main section (`MainCollection`) settings in Customize. */
+  mainCollection: {
+    columns: 'Products per row (desktop)',
+    columnsMobile: 'Products per row (phone)',
+    automatic: 'Automatic',
+    showBreadcrumbs: 'Breadcrumbs',
+    uppercaseTitle: 'Collection title',
+    asWritten: 'As written',
+    capitals: 'Capitals',
+  },
 } as const

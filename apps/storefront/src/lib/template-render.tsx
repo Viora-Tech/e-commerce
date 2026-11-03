@@ -1,5 +1,6 @@
 import 'server-only'
 import { Reveal, sectionExperimentGate } from '@commerce/blocks'
+import { withImportedDefaults } from '@commerce/blocks/imported-defaults'
 import { createBlocksConfig, type PageData, type SectionMetadata } from '@commerce/blocks/puck'
 import { renderBlock } from '@commerce/blocks/slots'
 import {
@@ -281,7 +282,13 @@ export async function renderTemplate(
     productActions: options.productActions,
     newsletterAction: subscribeAction,
   }
-  const resolved = await resolveAllData(visible as unknown as PageData, config, metadata)
+  // An imported theme (`liquidHtml` is null only for our own): our sections read the imported
+  // defaults where nothing is saved, so a theme imported before #1049 keeps our product-page
+  // extras off, as a fresh import writes them.
+  const page = liquidHtml
+    ? { ...visible, content: visible.content.map((s) => withImportedDefaults(s)) }
+    : visible
+  const resolved = await resolveAllData(page as unknown as PageData, config, metadata)
   // Imported sections also report their theme type (`LiquidSection:cookie-banner`).
   options.onSections?.(
     new Set(

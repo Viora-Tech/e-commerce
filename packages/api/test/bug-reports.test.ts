@@ -120,7 +120,12 @@ const report = {
 const PNG_1PX =
   'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='
 
-const ENV_KEYS = ['BUG_REPORTS_ENABLED', 'GITHUB_ISSUES_TOKEN', 'GITHUB_ISSUES_REPO'] as const
+const ENV_KEYS = [
+  'BUG_REPORTS_ENABLED',
+  'GITHUB_ISSUES_TOKEN',
+  'GITHUB_ISSUES_REPO',
+  'GITHUB_CODE_REPO',
+] as const
 const saved = Object.fromEntries(ENV_KEYS.map((k) => [k, process.env[k]]))
 
 function enable(token: string | null = 'github_pat_test_only') {
@@ -128,6 +133,7 @@ function enable(token: string | null = 'github_pat_test_only') {
   if (token) process.env.GITHUB_ISSUES_TOKEN = token
   else delete process.env.GITHUB_ISSUES_TOKEN
   delete process.env.GITHUB_ISSUES_REPO
+  delete process.env.GITHUB_CODE_REPO
 }
 
 function sentIssue(i = 0) {
@@ -210,6 +216,35 @@ describe('bugReports.create', () => {
     const a = await merchant('owner@example.com', 'bugs-a')
     await call(appRouter.bugReports.create, report, { context: ctx(a.headers) })
     expect(sentIssue().url).toBe('https://api.github.com/repos/someone/elsewhere/issues')
+  })
+
+  it('in a public issues repository, leaves out the store, the reporter, the screenshot and ids', async () => {
+    enable()
+    process.env.GITHUB_ISSUES_REPO = 'Viora-Tech/koomerce-issues'
+    const a = await merchant('owner@example.com', 'bugs-a')
+    const orderId = '3f1c2b9a-0d4e-4c8b-9a71-2e5f6a7b8c9d'
+    await call(
+      appRouter.bugReports.create,
+      { ...report, path: `/orders/${orderId}?tab=items`, screenshot: PNG_1PX },
+      { context: ctx(a.headers) },
+    )
+    const { url, body } = sentIssue()
+    expect(url).toBe('https://api.github.com/repos/Viora-Tech/koomerce-issues/issues')
+    expect(body.title).toBe('Save button does nothing')
+    expect(body.body).toContain('I changed the price and pressed Save')
+    expect(body.body).toContain('`/orders/:id`')
+    expect(body.body).toContain('Chrome/141')
+    for (const secret of [orderId, 'tab=items', a.storeId, 'Waimers Test', 'owner@example.com']) {
+      expect(body.body).not.toContain(secret)
+    }
+    expect(body.body).not.toMatch(/!\[[^\]]*\]\(/)
+    // The screenshot is still kept with the report, for My reports.
+    const mine = await call(
+      appRouter.bugReports.list,
+      { scope: 'mine' },
+      { context: ctx(a.headers) },
+    )
+    expect(mine.reports[0]?.screenshotUrl).toBeTruthy()
   })
 
   it('lets staff without settings.read report too', async () => {

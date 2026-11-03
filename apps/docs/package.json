@@ -10,7 +10,7 @@
     "deploy": "bun run build && wrangler deploy",
     "check:redirects": "node scripts/check-redirects.mjs",
     "check:links": "node scripts/check-links.mjs",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "bun ../../scripts/typecheck.ts"
   },
   "dependencies": {
     "@commerce/config": "workspace:*",

@@ -24,6 +24,8 @@ type ProductBuyButtonsProps = {
   stockBarShown: boolean
   /** The pre-order updates page, linked under the button on a pre-order; null hides it. */
   preorderLink: string | null
+  /** The imported theme's look: Add to cart filled with a cart icon, Buy it now in outline. */
+  solid?: boolean | undefined
 }
 
 const ui = copy.ui
@@ -43,6 +45,7 @@ export default function ProductBuyButtons({
   notifyMeProps,
   stockBarShown,
   preorderLink,
+  solid = false,
 }: ProductBuyButtonsProps) {
   // Hooks
   const formatPaise = useFormatPaise()
@@ -282,18 +285,19 @@ export default function ProductBuyButtons({
             ) : null}
             <button
               type="button"
-              className={`btn ${buyable ? 'btn--secondary' : 'btn--primary'} buy-buttons__submit${pending ? ' is-loading' : ''}${isPreorder ? ' buy-buttons__submit--preorder' : ''} ${buttonColourClass}`}
+              className={`btn ${buyable && !solid ? 'btn--secondary' : 'btn--primary'} buy-buttons__submit${pending ? ' is-loading' : ''}${isPreorder ? ' buy-buttons__submit--preorder' : ''} ${buttonColourClass}`}
               style={buttonStyle}
               disabled={!variant?.purchasable || unpriced || launching || pending || !onAddToCart}
               onClick={handleAdd}
             >
+              {solid ? <Icon name="cart" size={18} /> : null}
               <span className="btn__label">{buyLabel}</span>
             </button>
           </div>
           {buyable ? (
             <button
               type="button"
-              className="btn btn--primary buy-buttons__buy-now"
+              className={`btn ${solid ? 'btn--secondary' : 'btn--primary'} buy-buttons__buy-now`}
               disabled={pending || leaving || !onAddToCart}
               onClick={handleBuyNow}
             >

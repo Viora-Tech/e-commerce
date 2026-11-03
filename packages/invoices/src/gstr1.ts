@@ -94,7 +94,10 @@ const pos = (p: Gstr1Invoice['placeOfSupply']) => (p ? `${p.gstCode}-${p.name}` 
 
 function csv(header: string[], rows: (string | number)[][]): string {
   const cell = (v: string | number) => {
-    const s = String(v)
+    let s = String(v)
+    // A leading = + - @ tab or CR would run as a spreadsheet formula: prefix an apostrophe.
+    // Plain numbers (a negative amount like -12.00) stay numbers.
+    if (/^[=+\-@\t\r]/.test(s) && !/^-?\d+(\.\d+)?$/.test(s)) s = `'${s}`
     return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s
   }
   return [header, ...rows].map((r) => r.map(cell).join(',')).join('\n')

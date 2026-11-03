@@ -1,4 +1,5 @@
 /** Copy for Products > Inventory, Purchase orders and Transfers. */
+import { siteConfig } from '@commerce/config/site'
 import type { StockFilter } from '@commerce/core/catalog'
 import {
   PURCHASE_ORDER_STATUSES,
@@ -116,6 +117,8 @@ export const inventoryContent = {
     modes: { set: 'Set to', adjust: 'Adjust by' },
     adjust: 'Adjust by',
     set: 'Set on hand to',
+    /** Opens the bulk editor on the stock columns: a different count per SKU, saved at once. */
+    editor: 'Bulk edit',
     title: (mode: 'adjust' | 'set', n: number) =>
       `${mode === 'adjust' ? 'Adjust' : 'Set'} stock for ${n} ${n === 1 ? 'SKU' : 'SKUs'}`,
     quantity: 'Quantity',
@@ -136,7 +139,7 @@ export const inventoryContent = {
     failed: 'Could not load history',
     /** Who made a change; system rows (orders, imports) have no member (audit #139). */
     by: (name: string) => `by ${name}`,
-    bySystem: 'by Koomerce',
+    bySystem: `by ${siteConfig.brand.name}`,
   },
   exporting: {
     filename: 'inventory.csv',
@@ -278,6 +281,15 @@ export const purchaseOrderFormContent = {
     lineTotal: 'Total',
     remove: 'Remove',
     noSku: 'No SKU',
+    openProduct: 'Open product in a new tab',
+    weight: 'Weight (g)',
+    weightPlaceholder: 'g',
+    weightHint:
+      'Weight of one unit, from the packing list. Saved on the product and used to split freight by weight.',
+    weightSaveFirst: 'Save the order first to set weights.',
+    weightSaved: 'Weight saved on the product',
+    weightFailed: 'Couldn’t save the weight',
+    weightInvalid: 'Enter the weight in whole grams',
   },
   cost: {
     heading: 'Cost summary',
@@ -309,7 +321,9 @@ export const purchaseOrderFormContent = {
   correctOnly:
     'The goods have arrived, so products and quantities are fixed. Unit prices and the exchange rate can still be corrected; received stock is revalued.',
   inShipment: (n: number) =>
-    `This order is on inbound shipment #IS${n}. Remove it from the shipment to change products, quantities or prices.`,
+    `This order is on inbound shipment #IS${n} and goods have started arriving, so products, quantities and prices are fixed.`,
+  inShipmentEditable: (n: number) =>
+    `This order is on inbound shipment #IS${n}. Products, quantities and prices can change until goods arrive; the shipment's shared charges split again when you save.`,
   cancel: 'Cancel order',
   cancelled: 'Purchase order cancelled',
   reopen: 'Reopen',
@@ -318,6 +332,9 @@ export const purchaseOrderFormContent = {
   print: 'Print',
   download: 'Download PDF',
   emailSupplier: 'Email to supplier',
+  duplicate: 'Duplicate',
+  duplicated: 'Copied to a new draft',
+  duplicateFailed: 'Could not duplicate this purchase order',
   email: {
     title: 'Email to supplier',
     body: 'The purchase order goes as a PDF from your store’s email address. Replies come back to you.',
@@ -459,18 +476,6 @@ export const transferFormContent = {
     title: 'Delete this draft?',
     body: 'The draft is removed. Stock is not affected.',
     confirm: 'Delete draft',
-    cancel: 'Cancel',
-  },
-} as const
-
-/** The purchase order list's selection bar. */
-export const purchaseOrderBulkContent = {
-  downloadPdfs: 'Download PDFs',
-  close: 'Close',
-  confirmClose: {
-    title: (n: number) => `Close ${n} purchase order${n === 1 ? '' : 's'}?`,
-    body: 'Anything not received yet stops showing as incoming. Received stock stays. Drafts and orders that are already finished are skipped.',
-    confirm: 'Close orders',
     cancel: 'Cancel',
   },
 } as const

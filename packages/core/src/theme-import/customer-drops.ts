@@ -88,7 +88,7 @@ function fulfillmentDrop(
 }
 
 /** Shopify's `order` (in `customer.orders`), linking to the shopper's own order page. */
-export function orderDrop(o: LiquidOrderData): Record<string, unknown> {
+function orderDrop(o: LiquidOrderData): Record<string, unknown> {
   const url = `/account/orders/${o.number}`
   const financial = FINANCIAL_STATUS[o.paymentStatus] ?? 'pending'
   // One drop per consignment, shared by every line it carries (themes group lines by it).

@@ -6,7 +6,7 @@
   "scripts": {
     "deploy": "wrangler deploy",
     "types": "wrangler types",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "bun ../../scripts/typecheck.ts",
     "test": "vitest run"
   },
   "dependencies": {

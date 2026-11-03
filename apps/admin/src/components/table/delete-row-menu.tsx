@@ -3,6 +3,7 @@
 import { Trash2 } from '@commerce/ui/icons'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import type { ActionItem } from '@/components/layout/action-menu'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
 import RowMenu from './row-menu'
 
@@ -18,9 +19,11 @@ type DeleteRowMenuProps = {
   onDelete: () => Promise<unknown>
   /** The list re-reads its rows after the delete. */
   onChanged: () => void
+  /** Other actions listed above Delete (an inbound shipment's "Mark as delivered"). */
+  before?: ActionItem[]
 }
 
-/** A row ⋯ menu whose only action is Delete, asked first (suppliers, inbound shipments). */
+/** A row ⋯ menu ending in Delete, asked first (suppliers, inbound shipments). */
 export default function DeleteRowMenu({
   label,
   confirm,
@@ -28,6 +31,7 @@ export default function DeleteRowMenu({
   failed,
   onDelete,
   onChanged,
+  before = [],
 }: DeleteRowMenuProps) {
   // Hooks
   const [open, setOpen] = useState(false)
@@ -47,7 +51,10 @@ export default function DeleteRowMenu({
   return (
     <>
       <RowMenu
-        items={[{ label, icon: Trash2, destructive: true, onSelect: () => setOpen(true) }]}
+        items={[
+          ...before,
+          { label, icon: Trash2, destructive: true, onSelect: () => setOpen(true) },
+        ]}
       />
       <ConfirmDialog
         open={open}

@@ -2,8 +2,8 @@
 
 `bun run test:sweeps` runs a set of vitest "sweeps" over the whole repo — static checks
 that are cheaper than a code review and catch drift a human won't notice across 1,400+
-files. They run in CI (`.github/workflows/ci.yml`) after `bun run lint` and
-`bun run typecheck`, before `bun run test`.
+files. They run in CI (`.github/workflows/ci.yml`) in the `lint` job, right after `bun run lint`,
+alongside the `typecheck` and `test` jobs.
 
 Shared walking/parsing code lives in `scripts/sweeps/walk.ts` (lists `.ts`/`.tsx` files
 under given repo-relative roots, parses imports/exports with the TypeScript compiler
@@ -292,6 +292,14 @@ grows a query helper.
 The brand name (`siteConfig.brand.name`, `packages/config/src/site.ts`) may not appear as a
 literal string or JSX text anywhere else (tests and the docs app excepted). Not allow-listed.
 
+### x. `theme-css-fence` (`scripts/sweeps/theme-css-fence.test.ts`)
+
+Our theme's stylesheets (`packages/blocks/src/styles`) load on every storefront page, an imported
+Shopify theme's too, and share class names with it. Every selector that reads one of our theme
+settings (`:root[data-*]`, `:root:not([data-*])`) must end with `:not(:where(.shopify-section *))`
+so it never reaches an imported section: ours sit at their defaults there and hid the imported
+theme's quick-add buttons and sale badges (#1046). Not allow-listed.
+
 ## `server-only`
 
 The `server-only` npm package throws unconditionally when the bundler resolving it does
@@ -384,12 +392,12 @@ Coding is quick; the test loop is what agents wait on. Four things keep it short
 let turbo skip what hasn't changed, or filter to the packages your branch touched:
 
 ```sh
-bun run affected        # typecheck + test: packages changed since origin/main, plus dependents
+bun run affected        # typecheck + test: packages changed since origin/dev, plus dependents
 bun run turbo:shared run typecheck test --filter=@commerce/core   # one package
 bun run test            # everything; unchanged packages are cache hits
 ```
 
-`bun run affected` is `turbo run typecheck test --filter=...[origin/main]` on the shared cache.
+`bun run affected` is `turbo run typecheck test --filter=...[origin/dev]` on the shared cache.
 The filter follows package.json dependencies, so a change to `commerce.config.ts`,
 `commerce.blocks.config.ts` or a plugin package (which core and everything above it import
 through those files) is only fully covered by `bun run test`; there the cache hash does see it.

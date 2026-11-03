@@ -60,6 +60,8 @@ import {
   whatsappTemplates,
 } from '../services/marketing-campaigns.service'
 import { marketingOverview } from '../services/marketing-overview.service'
+import { searchConsoleSummary } from '../services/search-console-report.service'
+import { searchConsoleEnv } from './search-console'
 
 const rangeInput = z.object({
   key: z.enum(['today', '7d', '30d', '90d', 'custom']).default('30d'),
@@ -280,6 +282,15 @@ export const marketingRouter = {
   overview: can(permissions.MARKETING_READ)
     .input(z.object({ range: rangeInput.default({ key: '30d' }) }))
     .handler(({ context, input }) => marketingOverview(context.tx, { range: input.range })),
+
+  /**
+   * Google Search for the Growth page (#1022): Search Console's last 28 days against the 28
+   * before and the top searches, or which setup step is missing. Growth's own permission, so a
+   * marketer sees it without online-store access.
+   */
+  searchSummary: can(permissions.MARKETING_READ).handler(({ context }) =>
+    searchConsoleSummary(context.tx, context.scope.storeId, searchConsoleEnv()),
+  ),
 
   /** Every campaign (our sends and tracking-link campaigns) with sessions and sales this year. */
   campaignPerformance: can(permissions.MARKETING_READ).handler(({ context }) =>

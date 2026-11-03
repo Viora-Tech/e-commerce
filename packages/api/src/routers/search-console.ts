@@ -17,7 +17,8 @@ import {
 } from '../services/search-console.service'
 import { productSearchCard, searchConsoleReport } from '../services/search-console-report.service'
 
-function searchConsoleEnv(): SearchConsoleEnv {
+/** The Search Console OAuth client and URLs; the Growth card reads it too. */
+export function searchConsoleEnv(): SearchConsoleEnv {
   const env = loadEnv(process.env)
   return {
     secret: env.SETTINGS_SECRET,

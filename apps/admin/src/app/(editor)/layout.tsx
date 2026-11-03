@@ -1,4 +1,5 @@
 import { loadEnv } from '@commerce/config'
+import { issuesArePublic } from '@commerce/core/bug-reports'
 import { Toaster } from '@commerce/ui/shadcn/sonner'
 import { redirect } from 'next/navigation'
 import type { ReactNode } from 'react'
@@ -22,7 +23,13 @@ export default async function EditorLayout({ children }: { children: ReactNode }
       {children}
       {/* Testers report from the editor too (bottom-right, clear of the left rail). */}
       {loadEnv(process.env).BUG_REPORTS_ENABLED && activeOrganizationId ? (
-        <BugReportHost placement="screen" />
+        <BugReportHost
+          placement="screen"
+          publicIssues={issuesArePublic({
+            issues: loadEnv(process.env).GITHUB_ISSUES_REPO,
+            code: loadEnv(process.env).GITHUB_CODE_REPO,
+          })}
+        />
       ) : null}
       <Toaster />
     </>

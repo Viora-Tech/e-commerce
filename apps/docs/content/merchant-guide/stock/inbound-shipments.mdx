@@ -9,3 +9,22 @@ One container, air shipment or Bill of Entry often carries **several purchase or
 from different suppliers. Create it under **Stock › Inbound shipments**, add the purchase
 orders that came in it, and put the container's freight and customs on the shipment as
 **shared charges**. They are split across every product in every order on it.
+
+## Stages
+
+A shipment moves through **Planned** (booked, not shipped yet) → **Shipped** → **At the port**
+→ **Customs cleared** → **Delivered**, or it can be **Cancelled**. Change the stage on the
+shipment, or select several in the list and use **Change status**. Delivered is set by
+receiving (below), so stock and the shipment always agree, and a delivered shipment can't be
+moved back.
+
+## When the goods arrive
+
+- **Receive each order as usual.** Once every purchase order on the shipment has nothing left
+  to come in (received, or refused as damaged), the shipment turns **Delivered** and its
+  **Arrived on** date is set to that day, unless you had already filled it in.
+- **Or mark the whole shipment delivered.** Choose **Mark as delivered** on the shipment, or in
+  the **⋯** menu of its row in the list. Koomerce shows how many units are still to come in on
+  each order; confirm, and all of them go into stock at each order's own location.
+- **Some units missing or damaged?** Receive that order on its own page first, with the refused
+  units, then mark the shipment delivered to take in the rest.

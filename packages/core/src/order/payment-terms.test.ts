@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: draft payment terms — tests due dates for each term and the overdue check */
 import { describe, expect, it } from 'vitest'
 import { paymentDueAt, paymentOverdue } from './payment-terms'
 

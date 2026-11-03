@@ -32,6 +32,8 @@ type AdminFrameProps = {
   logoUrl: string | null
   /** The test server's "Report a bug" button and menu item (`BUG_REPORTS_ENABLED`). */
   bugReports: boolean
+  /** Reports go to a public issue tracker: the dialog says what is and is not posted. */
+  bugReportsPublic?: boolean | undefined
   /** Count pills on sidebar rows, by the row's href (Orders: orders waiting to ship). */
   navCounts: Record<string, number>
   /** "Orders this month · 142 of 200" above the user row; left out when unknown. */
@@ -54,6 +56,7 @@ export default function AdminFrame({
   channels,
   logoUrl,
   bugReports,
+  bugReportsPublic = false,
   navCounts,
   usage,
 }: AdminFrameProps) {
@@ -125,7 +128,7 @@ export default function AdminFrame({
         </main>
         <Toaster duration={siteConfig.ui.toastMs.default} />
         <PaletteHost />
-        {bugReports ? <BugReportHost /> : null}
+        {bugReports ? <BugReportHost publicIssues={bugReportsPublic} /> : null}
       </SidebarInset>
       {/* The AI panel docks to the right of everything, top bar included, full window height. */}
       <AssistantHost storeId={activeStoreId} />

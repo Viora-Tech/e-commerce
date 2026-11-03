@@ -6,7 +6,11 @@ import { Field, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import { addressesFrom, type DraftFormState } from '@/components/drafts/draft-form-state'
+import {
+  addressesFrom,
+  contactPhoneFrom,
+  type DraftFormState,
+} from '@/components/drafts/draft-form-state'
 import DataCard from '@/components/layout/data-card'
 import { draftEditorContent } from '@/data/drafts'
 import { useCopy } from '@/hooks/use-copy'
@@ -57,7 +61,9 @@ export default function DraftCustomerCard({ form, onChange }: DraftCustomerCardP
     setResults([])
     // Their saved addresses follow; a failed lookup leaves the address cards as they were.
     const found = await api.customers.get({ id: c.id }).catch(() => null)
-    if (found) onChange(addressesFrom(found))
+    if (!found) return
+    const addresses = addressesFrom(found)
+    onChange({ ...addresses, phone: contactPhoneFrom(c.phone, found, addresses.address) })
   }
 
   /* An email typed by hand that belongs to a saved customer links them (issue 916): blank name
@@ -74,9 +80,11 @@ export default function DraftCustomerCard({ form, onChange }: DraftCustomerCardP
       phone: form.phone.trim() || (c.phone ?? ''),
     })
     toast.success(copy.customer.matched(c.name ?? c.email ?? email))
-    if (form.address.line1.trim()) return
     const found = await api.customers.get({ id: c.id }).catch(() => null)
-    if (found) onChange(addressesFrom(found))
+    if (!found) return
+    const addresses = form.address.line1.trim() ? {} : addressesFrom(found)
+    const phone = form.phone.trim() || contactPhoneFrom(c.phone, found, addresses.address)
+    onChange({ ...addresses, phone })
   }
 
   const handleClear = () => {

@@ -23,6 +23,8 @@ type BugReportDialogProps = {
   onOpenChange: (open: boolean) => void
   /** The page as it looked before the dialog opened; null when it could not be taken. */
   screenshot: string | null
+  /** The issue is posted publicly: say so, and that the private details stay out of it. */
+  publicIssues: boolean
 }
 
 const SUMMARY_MAX = 200
@@ -37,7 +39,12 @@ function currentPath(): string {
  * "Report a bug" (test server only): what went wrong, what they did just before, and an
  * optional screenshot taken before this opened. Sends one GitHub issue (`bugReports.create`).
  */
-export default function BugReportDialog({ open, onOpenChange, screenshot }: BugReportDialogProps) {
+export default function BugReportDialog({
+  open,
+  onOpenChange,
+  screenshot,
+  publicIssues,
+}: BugReportDialogProps) {
   // Hooks
   const copy = useCopy(bugReportContent)
   const [summary, setSummary] = useState('')
@@ -93,7 +100,10 @@ export default function BugReportDialog({ open, onOpenChange, screenshot }: BugR
         <form onSubmit={handleSubmit} className="flex flex-col gap-5">
           <DialogHeader>
             <DialogTitle>{copy.title}</DialogTitle>
-            <DialogDescription>{copy.intro}</DialogDescription>
+            <DialogDescription>
+              {copy.intro}
+              {publicIssues ? ` ${copy.publicNotice}` : null}
+            </DialogDescription>
           </DialogHeader>
 
           <Field>

@@ -22,6 +22,9 @@ export const ACTION_DOCS: Record<string, string> = {
   'account.stores': 'Every store the member belongs to, with their role and an owner flag.',
   'account.updateNotifications':
     "Saves the member's own alerts for this store, on their own staff row only.",
+  'activityLog.list':
+    'Changes members made to the store, newest first, one page at a time, with the total.',
+  'activityLog.listPeople': 'Everyone who appears in the log, for the Person filter.',
   'affiliates.add': 'The merchant adds someone by hand (a creator they already work with).',
   'affiliates.clearReview':
     '"Looks fine": the merchant checked a needs-review affiliate; their payouts go ahead.',
@@ -292,8 +295,13 @@ export const ACTION_DOCS: Record<string, string> = {
   'inboundShipments.attach': 'Put an order on this shipment (off any other); both are recosted.',
   'inboundShipments.costs':
     'Shared charges, their splits across every order in it, and landed cost per line.',
+  'inboundShipments.outstanding':
+    'What "Mark as delivered" would take in: outstanding units per purchase order (#1065).',
+  'inboundShipments.receive':
+    '"Mark as delivered" (#1065): receives every outstanding unit on the shipment\'s purchase orders into stock and marks the shipment delivered.',
   'inboundShipments.save':
     'Saves; a new tracking number with a connected carrier also reads its expected date.',
+  'inboundShipments.setStatus': 'Move a shipment to another stage (bulk "Change status", #1045).',
   'inboundShipments.track':
     "Read the carrier's expected delivery date now (FedEx, DHL Express, … when connected).",
   'inbox.aiAvailable':
@@ -374,9 +382,14 @@ export const ACTION_DOCS: Record<string, string> = {
     'Hides one recommendation for the whole store and returns the cards left to show.',
   'marketing.emailBrand':
     'Logo, colours and social links from the live theme, for the visual email builder.',
+  'marketing.emailTemplates.starters':
+    "The ready-made templates in this store's logo, colour and newest products, with thumbnails.",
+  'marketing.emailTemplates.update': 'Save over a template the merchant opened, or rename it.',
   'marketing.overview': 'Sessions, attributed sales, channels and top campaigns for one range.',
   'marketing.recommendations':
     'Growth overview recommendations: up to three rule-based next steps with their numbers.',
+  'marketing.searchSummary':
+    "Google Search for the Growth page (#1022): Search Console's last 28 days against the 28 before and the top searches, or which setup step is missing.",
   'marketing.setup': 'Which channels can carry marketing for this store.',
   'markets.create':
     'Add a market: its countries, currency, languages, prices and how shoppers reach it.',
@@ -503,10 +516,13 @@ export const ACTION_DOCS: Record<string, string> = {
     'Send money back through the gateway (or record a cash/UPI refund); partial amounts allowed.',
   'orders.refundOptions':
     'How a refund on this order can go back: how much is left, and to the original payment or not.',
+  'orders.releaseDraft': "Stop holding a draft's items; they go back on sale.",
   'orders.releaseFulfillment':
     'Release the hold: the order goes back to where it was (to pack, or partly shipped).',
   'orders.requestBalance':
     "Ask the shopper for a deposit pre-order's balance: email and WhatsApp (when set up) with a signed pay link.",
+  'orders.reserveDraft':
+    "Reserve items (#1030): hold the saved draft's stock until a date, so no one else can buy it.",
   'orders.retryCourierPush':
     "Send the order to a courier's panel again after it refused (order push).",
   'orders.saveDraft':
@@ -603,10 +619,14 @@ export const ACTION_DOCS: Record<string, string> = {
   'purchaseOrders.cancel': 'Call off a draft or an order nothing has arrived on.',
   'purchaseOrders.costs':
     "Charges, their splits and each line's landed cost for this order and its shipment.",
+  'purchaseOrders.duplicate':
+    '"Duplicate" (#1060): a new draft with the order\'s supplier, destination and lines.',
   'purchaseOrders.email':
     "Email the PDF to the supplier through the store's sender email; optionally mark a draft ordered.",
   'purchaseOrders.pdf': 'The purchase order as a PDF for the supplier: print it or save it.',
   'purchaseOrders.reopen': 'Undo a close or a cancel.',
+  'purchaseOrders.setLineWeight':
+    "A product's weight from the packing list, set on its line (#1054).",
   'reauth.passkeyOptions':
     'WebAuthn options for a passkey step-up; the challenge is kept server-side on the session.',
   'reauth.sendOtp': "Mail a fresh step-up code to the member's own address.",
@@ -784,6 +804,8 @@ export const ACTION_DOCS: Record<string, string> = {
   'store.updatePreorderNote':
     "The store's default pre-order note (#936), for pre-order products without their own.",
   'store.updateTheme': "Saves the live theme's settings.",
+  'suppliers.bulkUpdate':
+    'Bulk edit on the suppliers list (#1064): currency, country or payment terms for many.',
   'suppliers.facets': "The countries and currencies in use, for the list's filter pickers.",
   'themes.createBlank':
     '"Start from scratch": base settings and empty templates, nothing from the live theme.',

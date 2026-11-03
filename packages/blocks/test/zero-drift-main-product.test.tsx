@@ -3,6 +3,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 import ProductView from '../src/components/product-view'
 import { createBlocksConfig, type SectionMetadata } from '../src/puck-config'
+import { withImportedDefaults } from '../src/sections/imported-defaults'
 import { mainProductSettings } from '../src/sections/main-product-settings'
 import type { ProductDetail } from '../src/types'
 
@@ -146,6 +147,65 @@ describe('MainProduct (ProductView)', () => {
       trustBadges: [{ icon: 'shipping', label: node }],
     })
     expect(html(createElement(ProductView, { product, settings }))).toContain('data-inline')
+  })
+})
+
+describe('product-page extras on an imported theme (#1049)', () => {
+  const UnderPrice = () => createElement('p', null, 'EMI-LINE')
+  const extras = { UnderPrice, belowBuy: 'PINCODE' }
+  const dispatch = { deliveryText: 'Ships within 24-48 business hours' }
+
+  it('keeps every extra on for our own themes', () => {
+    const settings = mainProductSettings(dispatch)
+    const out = html(createElement(ProductView, { product, settings, ...extras }))
+    expect(out).toContain('Inclusive of all taxes')
+    expect(out).toContain('price__save')
+    expect(out).toContain('EMI-LINE')
+    expect(out).toContain('Ships within 24-48 business hours')
+    expect(out).toContain('PINCODE')
+  })
+
+  it('reads a section saved without the switches as off on an imported theme', () => {
+    const saved = withImportedDefaults({ type: 'MainProduct', props: { id: 'm', ...dispatch } })
+    const settings = mainProductSettings(saved.props)
+    expect(settings).toMatchObject({
+      showEmiHint: false,
+      showTaxNote: false,
+      showSaving: false,
+      showUpiPrice: false,
+      showDispatchLine: false,
+      showDeliveryEstimate: false,
+    })
+    const out = html(createElement(ProductView, { product, settings, ...extras }))
+    expect(out).not.toContain('Inclusive of all taxes')
+    expect(out).not.toContain('price__save')
+    expect(out).not.toContain('EMI-LINE')
+    expect(out).not.toContain('Ships within 24-48 business hours')
+    expect(out).not.toContain('PINCODE')
+    // The price itself and the MRP stay.
+    expect(out).toContain('price__compare')
+  })
+
+  it('lets the merchant switch each one back on', () => {
+    const saved = withImportedDefaults({
+      type: 'MainProduct',
+      props: { id: 'm', showTaxNote: true, showDeliveryEstimate: true },
+    })
+    const out = html(
+      createElement(ProductView, {
+        product,
+        settings: mainProductSettings(saved.props),
+        ...extras,
+      }),
+    )
+    expect(out).toContain('Inclusive of all taxes')
+    expect(out).toContain('PINCODE')
+    expect(out).not.toContain('EMI-LINE')
+  })
+
+  it('leaves other sections and our own section types alone', () => {
+    const other = { type: 'RichText', props: { id: 'r' } }
+    expect(withImportedDefaults(other)).toBe(other)
   })
 })
 

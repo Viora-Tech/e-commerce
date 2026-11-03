@@ -52,7 +52,14 @@ export const SPLIT_METHODS = [
 export type SplitMethod = (typeof SPLIT_METHODS)[number]
 
 /** Same values as `inbound_shipment.status`, in order. */
-export const INBOUND_SHIPMENT_STATUSES = ['in_transit', 'at_port', 'cleared', 'delivered'] as const
+export const INBOUND_SHIPMENT_STATUSES = [
+  'planned',
+  'in_transit',
+  'at_port',
+  'cleared',
+  'delivered',
+  'cancelled',
+] as const
 export type InboundShipmentStatus = (typeof INBOUND_SHIPMENT_STATUSES)[number]
 
 /** Freight and insurance follow weight; everything else follows value until changed. */

@@ -175,13 +175,14 @@ describe('placeOrder', () => {
     const [o2] = await owner.select().from(order).where(eq(order.id, r2.orderId))
     expect(o2).toMatchObject({
       subtotalPaise: 499900,
-      paymentAdjustmentPaise: -9998,
+      // −2% of ₹4,999 is −₹99.98: a whole −₹100, so a round ₹4,899 (#1049).
+      paymentAdjustmentPaise: -10000,
       paymentAdjustmentLabel: 'UPI discount',
-      totalPaise: 489902,
+      totalPaise: 489900,
     })
     const [p2] = await owner.select().from(payment).where(eq(payment.orderId, r2.orderId))
-    expect(p2?.amountPaise).toBe(489902)
-    expect(upi.calls).toEqual([`createPayment:${r2.orderId}:489902`])
+    expect(p2?.amountPaise).toBe(489900)
+    expect(upi.calls).toEqual([`createPayment:${r2.orderId}:489900`])
   })
 
   it('applies a discount code from the cart, records usage and refuses a used-up code', async () => {

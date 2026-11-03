@@ -2,10 +2,13 @@ import { parseRupees } from '@commerce/money'
 import { describe, expect, it } from 'vitest'
 import {
   type CustomItemFields,
+  contactPhoneFrom,
   customItemErrors,
   customItemLine,
+  EMPTY_ADDRESS,
   emptyDraft,
   formToDraft,
+  stateFor,
 } from './draft-form-state'
 
 const fields = (over: Partial<CustomItemFields> = {}): CustomItemFields => ({
@@ -46,5 +49,40 @@ describe('custom item lines', () => {
         unitPricePaise: 4900,
       },
     ])
+  })
+})
+
+describe('picking a customer fills state and phone (#1028)', () => {
+  it('a new address starts with no state instead of guessing Haryana', () => {
+    expect(EMPTY_ADDRESS.stateCode).toBe('')
+  })
+
+  it('keeps a saved state that agrees with the PIN code', () => {
+    expect(stateFor('421204', 'MH')).toBe('MH')
+    expect(stateFor('403001', 'GA')).toBe('GA')
+  })
+
+  it('takes the PIN code state when the saved one cannot be right', () => {
+    expect(stateFor('110001', 'HR')).toBe('DL')
+    expect(stateFor('560001', '')).toBe('KA')
+  })
+
+  it("fixes the issue's case: Haryana saved on a Thane PIN code shows Maharashtra", () => {
+    expect(stateFor('421204', 'HR')).toBe('MH')
+  })
+
+  it("uses the customer's phone, else the suggested mobile, else the address's", () => {
+    const suggestion = {
+      phoneSuggestion: { phone: '9876543210', source: 'order' as const, takenBy: null },
+    }
+    const taken = {
+      phoneSuggestion: { phone: '9876543210', source: 'order' as const, takenBy: 'Asha' },
+    }
+    const address = { ...EMPTY_ADDRESS, phone: '9123456780' }
+    expect(contactPhoneFrom('9000000000', suggestion, address)).toBe('9000000000')
+    expect(contactPhoneFrom(null, suggestion, address)).toBe('9876543210')
+    expect(contactPhoneFrom('', { phoneSuggestion: null }, address)).toBe('9123456780')
+    expect(contactPhoneFrom(null, taken, address)).toBe('9123456780')
+    expect(contactPhoneFrom(null, null, undefined)).toBe('')
   })
 })

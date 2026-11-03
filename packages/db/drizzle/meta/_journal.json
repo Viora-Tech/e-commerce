@@ -1422,6 +1422,27 @@
       "when": 1793549003262,
       "tag": "0218_draft_reserve",
       "breakpoints": true
+    },
+    {
+      "idx": 203,
+      "version": "7",
+      "when": 1793549063262,
+      "tag": "0219_store_activity",
+      "breakpoints": true
+    },
+    {
+      "idx": 204,
+      "version": "7",
+      "when": 1793549123262,
+      "tag": "0220_shipment_stages",
+      "breakpoints": true
+    },
+    {
+      "idx": 205,
+      "version": "7",
+      "when": 1793549183262,
+      "tag": "0221_supplier_contacts",
+      "breakpoints": true
     }
   ]
 }

@@ -1,9 +1,10 @@
 'use client'
 
 import { type PurchaseCurrency, parseAmountMinor } from '@commerce/core/inventory'
-import { Plus, Trash2 } from '@commerce/ui/icons'
+import { ExternalLink, Plus, Trash2 } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Input } from '@commerce/ui/shadcn/input'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@commerce/ui/shadcn/tooltip'
 import { useState } from 'react'
 import { variantLabel } from '@/components/inventory/variant-picker'
 import KitIconButton from '@/components/kit/kit-icon-button'
@@ -16,7 +17,9 @@ import SelectProductsDialog, {
 import { purchaseOrderFormContent } from '@/data/inventory'
 import { useCopy } from '@/hooks/use-copy'
 import { formatMinor } from '@/lib/money'
+import { routes } from '@/lib/routes'
 import { addPickedLines, type PoLine, toCount } from './form-state'
+import LineWeightInput from './line-weight-input'
 
 type PoLinesCardProps = {
   lines: PoLine[]
@@ -29,10 +32,14 @@ type PoLinesCardProps = {
   hsnLocked: boolean
   /** Show how much of each line has arrived. */
   showReceived: boolean
+  /** The saved order, for saving weights; null while creating. */
+  purchaseOrderId: string | null
+  /** Each product's weight per unit in grams, by variant (from the saved order). */
+  weights: Record<string, number | null>
   onChange: (lines: PoLine[]) => void
 }
 
-const ROW = 'grid-cols-[minmax(0,1fr)_4.5rem_6.5rem_6rem_6.5rem_2.5rem]'
+const ROW = 'grid-cols-[minmax(0,1fr)_4.5rem_6.5rem_5.5rem_6rem_6.5rem_2.5rem]'
 
 function arrived(line: PoLine): string {
   const base = `${line.received} / ${toCount(line.quantity)}`
@@ -54,6 +61,8 @@ export default function PoLinesCard({
   pricesLocked,
   hsnLocked,
   showReceived,
+  purchaseOrderId,
+  weights,
   onChange,
 }: PoLinesCardProps) {
   // Hooks
@@ -107,6 +116,7 @@ export default function PoLinesCard({
             <span className="text-right">
               {copy.cost} ({currency})
             </span>
+            <span className="text-right">{copy.weight}</span>
             <span>{copy.hsn}</span>
             <span className="text-right">{showReceived ? copy.received : copy.lineTotal}</span>
             <span />
@@ -119,7 +129,28 @@ export default function PoLinesCard({
               <span className="flex min-w-0 items-center gap-3">
                 <KitThumb src={line.imageUrl} alt="" />
                 <span className="flex min-w-0 flex-col">
-                  <span className="truncate text-body">{variantLabel(line)}</span>
+                  <Tooltip>
+                    <TooltipTrigger render={<span className="flex min-w-0 text-body" />}>
+                      {line.productId ? (
+                        <a
+                          href={routes.products.detail(line.productId)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="group/title flex min-w-0 items-center gap-1 hover:underline"
+                        >
+                          <span className="truncate">{variantLabel(line)}</span>
+                          <ExternalLink
+                            aria-hidden="true"
+                            className="size-3.5 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover/title:opacity-100 group-focus-visible/title:opacity-100"
+                          />
+                          <span className="sr-only">{copy.openProduct}</span>
+                        </a>
+                      ) : (
+                        <span className="truncate">{variantLabel(line)}</span>
+                      )}
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-sm">{variantLabel(line)}</TooltipContent>
+                  </Tooltip>
                   <span className="truncate text-caption text-muted-foreground">
                     {line.sku ?? copy.noSku}
                   </span>
@@ -142,6 +173,11 @@ export default function PoLinesCard({
                 aria-invalid={badPrice(line, currency) || undefined}
                 className="text-right tabular-nums"
                 onChange={(e) => patchLine(i, { unitPrice: e.target.value })}
+              />
+              <LineWeightInput
+                purchaseOrderId={purchaseOrderId}
+                variantId={line.variantId}
+                grams={weights[line.variantId] ?? null}
               />
               <Input
                 aria-label={copy.hsn}

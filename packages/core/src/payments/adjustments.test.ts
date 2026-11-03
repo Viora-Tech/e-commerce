@@ -21,6 +21,30 @@ describe('paymentAdjustmentPaise', () => {
     expect(paymentAdjustmentPaise(9999, { type: 'percent', value: -200 })).toBe(-200)
     expect(paymentAdjustmentPaise(12345, { type: 'percent', value: 150 })).toBe(185)
   })
+
+  it('takes a percent discount off in whole rupees, half away from zero (#1049)', () => {
+    // −2% of ₹2,699 is −₹53.98: −₹54, so the shopper pays ₹2,645, not ₹2,645.02.
+    expect(paymentAdjustmentPaise(269_900, { type: 'percent', value: -200 })).toBe(-5_400)
+    expect(applyPaymentAdjustment(269_900, { type: 'percent', value: -200 }).totalPaise).toBe(
+      264_500,
+    )
+    // −2% of ₹1,025 is −₹20.50 → −₹21; −2% of ₹10 is 20 paise → nothing (not −0).
+    expect(paymentAdjustmentPaise(102_500, { type: 'percent', value: -200 })).toBe(-2_100)
+    expect(paymentAdjustmentPaise(1_000, { type: 'percent', value: -200 })).toBe(0)
+  })
+
+  it('agrees with the product page’s "₹X with UPI" table (blocks product-page-parity test)', () => {
+    const cases: [number, number, number][] = [
+      [269_900, -200, 264_500],
+      [649_900, -300, 630_400],
+      [99_999, -200, 97_999],
+      [1_000, -200, 1_000],
+    ]
+    for (const [price, bp, expected] of cases)
+      expect(applyPaymentAdjustment(price, { type: 'percent', value: bp }).totalPaise).toBe(
+        expected,
+      )
+  })
 })
 
 describe('applyPaymentAdjustment', () => {

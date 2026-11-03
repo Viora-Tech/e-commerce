@@ -65,6 +65,7 @@ Set on the **admin** app in Dokploy (add one key at a time; never paste a whole 
 | `BUG_REPORTS_ENABLED` | `true` (default `false`) |
 | `GITHUB_ISSUES_TOKEN` | the fine-grained token below |
 | `GITHUB_ISSUES_REPO` | optional, default `Viora-Tech/e-commerce` |
+| `GITHUB_CODE_REPO` | optional, default `Viora-Tech/e-commerce`; see [Public issues](#public-issues) |
 | `SOURCE_COMMIT` | optional, the deployed commit; else `SENTRY_RELEASE`, else "unknown" |
 
 A blank value counts as unset. With `BUG_REPORTS_ENABLED=true` and no token, **production refuses
@@ -84,12 +85,30 @@ GitHub → Settings → Developer settings → Fine-grained tokens → Generate:
 
 Only the labels `bug` and `test-server` are sent: GitHub refuses a label that does not exist.
 
+## Public issues
+
+Reports can go to a **public** issues repository while the code stays private: set
+`GITHUB_ISSUES_REPO=Viora-Tech/koomerce-issues` and leave `GITHUB_CODE_REPO` at the code's
+repository. Whenever the two differ (`issuesArePublic`, `packages/core/src/bug-reports/client.ts`):
+
+- The issue leaves out the **store**, the **reporter** (name, email, role) and the
+  **screenshot**, and the page address loses its query string and ids (`/orders/:id`). All of it
+  is still saved with the report, so My reports and the team see it in the admin.
+- The dialog tells the member the report is posted publicly and what is not posted.
+- Fix commits and releases are read from `GITHUB_CODE_REPO`: the token needs **Issues: Read and
+  write** on the issues repository and **Contents: Read** on the code repository (one
+  fine-grained token can cover both).
+- A fix PR closes the public issue with the full reference: `Fixes Viora-Tech/koomerce-issues#12`.
+- Add the webhook (below) to **both** repositories with the same secret: issue and comment
+  events count only from the issues repository, pushes and pull requests only from the code's.
+- Create the labels `bug` and `test-server` on the issues repository first.
+
 ## Privacy
 
 Screenshots can show store data: customer names, order totals, addresses. That is why the button
 is for the **test server only** (keep `BUG_REPORTS_ENABLED` off on the live server) and the dialog
 says "It may show store details". The screenshot link is unguessable but public to anyone who has
-it, and the issue lives in a private repository. Members can untick the screenshot before sending.
+it, and it is linked only from issues in a private repository (never a [public](#public-issues) one). Members can untick the screenshot before sending.
 
 ## Report status (Account → My reports)
 
@@ -131,8 +150,9 @@ flowchart LR
 - **Webhook** (`apps/admin/src/app/api/github/webhook/route.ts`): every delivery's
   `X-Hub-Signature-256` is an HMAC-SHA256 of the raw body with `GITHUB_WEBHOOK_SECRET`, compared
   in constant time; a missing or wrong signature gets 401 and changes nothing. With no secret set
-  the route answers 404. Deliveries from any repository other than `GITHUB_ISSUES_REPO` are
-  ignored, repeats of a delivery id are skipped, and the route is rate limited.
+  the route answers 404. Issue and comment deliveries from any repository other than
+  `GITHUB_ISSUES_REPO`, and push or pull request deliveries from any other than
+  `GITHUB_CODE_REPO`, are ignored, repeats of a delivery id are skipped, and the route is rate limited.
 - **Poll** (`apps/worker/src/bug-report-sync.ts`): only with `GITHUB_ISSUES_TOKEN`. Every 15
   minutes it re-reads up to 40 open reports' issues that were not synced in the last 10 minutes,
   so a missed webhook catches up. A 401 or 403 stops the run.
@@ -175,7 +195,8 @@ the whole store's (`bugReports.list` with `scope: 'store'`).
 1. Make a secret: `openssl rand -hex 32`. Set it as `GITHUB_WEBHOOK_SECRET` on the **admin** app
    in Dokploy (one key at a time). Set `ADMIN_URL` there and on the worker too, for the email's
    button.
-2. GitHub → the repository → Settings → Webhooks → Add webhook:
+2. GitHub → the repository (both, with [public issues](#public-issues)) → Settings → Webhooks →
+   Add webhook:
    - **Payload URL**: `<ADMIN_URL>/api/github/webhook`
    - **Content type**: `application/json`
    - **Secret**: the same value
@@ -184,7 +205,8 @@ the whole store's (`bugReports.list` with `scope: 'store'`).
 3. GitHub sends a ping; the route answers `ok` with change `ignore`. "Recent Deliveries" shows a
    401 if the secrets differ.
 
-The worker needs `GITHUB_ISSUES_TOKEN` (and `GITHUB_ISSUES_REPO` if not the default) for the poll.
+The worker needs `GITHUB_ISSUES_TOKEN` (and `GITHUB_ISSUES_REPO` and `GITHUB_CODE_REPO` if not the
+default) for the poll.
 
 ### Not built yet
 

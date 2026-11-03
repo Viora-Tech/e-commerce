@@ -1,3 +1,4 @@
+import { siteConfig } from '@commerce/config/site'
 import { productFormContent } from '@/data/product-form'
 import { translation } from '@/lib/i18n'
 
@@ -423,7 +424,7 @@ export default [
       columns: { when: 'कब', variant: 'वेरिएंट', change: 'बदलाव', reason: 'वजह' },
       failed: 'स्टॉक हिस्ट्री लोड नहीं हो पाई',
       by: (name: string) => `${name} द्वारा`,
-      bySystem: 'Koomerce द्वारा',
+      bySystem: `${siteConfig.brand.name} द्वारा`,
     },
     duplicate: {
       action: 'कॉपी बनाएं',

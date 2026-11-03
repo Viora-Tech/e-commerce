@@ -21,7 +21,7 @@
     "./sortable/tree": "./src/components/sortable/tree.ts"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit",
+    "typecheck": "bun ../../scripts/typecheck.ts",
     "test": "vitest run"
   },
   "dependencies": {

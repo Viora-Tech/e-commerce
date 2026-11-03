@@ -15,8 +15,10 @@ export class GithubApiError extends CommerceError {
 export type GithubClientOptions = {
   fetch: typeof fetch
   token: string
-  /** `owner/name`. */
+  /** `owner/name` of the issues. */
   repo: string
+  /** `owner/name` of the code, when it is another repository (`contains` asks there). */
+  codeRepo?: string | undefined
 }
 
 export type GithubIssueState = {
@@ -45,11 +47,15 @@ export type GithubClient = ReturnType<typeof githubClient>
 /** The calls, bound to one token and repository. */
 export function githubClient(opts: GithubClientOptions) {
   const base = `https://api.github.com/repos/${opts.repo}`
+  const codeBase = `https://api.github.com/repos/${opts.codeRepo ?? opts.repo}`
 
-  const request = async (path: string, init: { method?: string; body?: unknown } = {}) => {
+  const request = async (
+    path: string,
+    init: { method?: string; body?: unknown; root?: string } = {},
+  ) => {
     let res: Response
     try {
-      res = await opts.fetch(`${base}${path}`, {
+      res = await opts.fetch(`${init.root ?? base}${path}`, {
         method: init.method ?? 'GET',
         headers: {
           Authorization: `Bearer ${opts.token}`,
@@ -115,9 +121,9 @@ export function githubClient(opts: GithubClientOptions) {
 
     /** True when `sha` is in `ref`'s history (compare says `ref` is ahead of it, or the same). */
     async contains(ref: string, sha: string): Promise<boolean> {
-      const j = (await request(
-        `/compare/${encodeURIComponent(sha)}...${encodeURIComponent(ref)}`,
-      )) as { status?: string }
+      const j = (await request(`/compare/${encodeURIComponent(sha)}...${encodeURIComponent(ref)}`, {
+        root: codeBase,
+      })) as { status?: string }
       return j.status === 'ahead' || j.status === 'identical'
     },
   }

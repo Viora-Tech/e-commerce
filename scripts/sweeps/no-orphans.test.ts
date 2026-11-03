@@ -18,6 +18,26 @@ type AllowEntry = { file: string; names: string[]; reason: string }
 
 const ALLOWLIST: AllowEntry[] = [
   {
+    file: 'packages/plugin-affiliates/src/stats.ts',
+    names: ['ledgerCsvCell'],
+    reason: 'used by ledgerCsv in the module and asserted directly by csv-injection.test.ts',
+  },
+  {
+    file: 'packages/core/src/catalog/variants.ts',
+    names: ['priceRange'],
+    reason: 'used in the module and asserted directly by variants.test.ts',
+  },
+  {
+    file: 'packages/core/src/order/draft-reserve.ts',
+    names: ['DraftHoldInPast'],
+    reason: 'error class: callers read its code, drafts.test.ts asserts the class',
+  },
+  {
+    file: 'packages/core/src/order/staff-hold.ts',
+    names: ['OrderNotHoldable'],
+    reason: 'error class: callers read its code, staff-hold.test.ts asserts the class',
+  },
+  {
     file: 'packages/money/src/presentment.ts',
     names: ['presentmentLineMinor', 'presentmentCartMinor'],
     reason:
@@ -505,7 +525,7 @@ const ALLOWLIST: AllowEntry[] = [
   },
   {
     file: 'packages/core/src/theme-import/fields.ts',
-    names: ['settingsFromProps', 'shopifySectionId'],
+    names: ['settingsFromProps'],
     reason: 'the parts of liquidPlacement (props to engine input), exported for their unit tests',
   },
   {
@@ -766,7 +786,7 @@ const ALLOWLIST: AllowEntry[] = [
   },
   {
     file: 'packages/core/src/inventory/schemas.ts',
-    names: ['ManualReasonSchema', 'PurchaseOrderLineInputSchema'],
+    names: ['PurchaseOrderLineInputSchema'],
     reason: 'no external importer today — investigate before removing',
   },
   {

@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: draft payment terms — WHAT: the terms list, due dates and overdue check / WHY: "payment due later" orders all compute their due date the same way (#1029) */
 import { z } from 'zod'
 
 /**

@@ -1,7 +1,7 @@
+import { siteConfig } from '@commerce/config/site'
 import {
   inventoryContent,
   locationsContent,
-  purchaseOrderBulkContent,
   purchaseOrderFormContent,
   purchaseOrdersContent,
   transfersContent,
@@ -116,6 +116,7 @@ export default [
       modes: { set: 'इतना करें', adjust: 'इतना बदलें' },
       adjust: 'इतना बदलें',
       set: 'हाथ में स्टॉक इतना करें',
+      editor: 'बल्क एडिट',
       title: (mode: 'adjust' | 'set', n: number) =>
         `${n} SKU का स्टॉक ${mode === 'adjust' ? 'बदलें' : 'तय करें'}`,
       quantity: 'मात्रा',
@@ -134,7 +135,7 @@ export default [
       empty: 'अभी तक स्टॉक में कोई बदलाव दर्ज नहीं हुआ।',
       failed: 'इतिहास लोड नहीं हो सका',
       by: (name: string) => `${name} द्वारा`,
-      bySystem: 'Koomerce द्वारा',
+      bySystem: `${siteConfig.brand.name} द्वारा`,
     },
     exporting: {
       filename: 'inventory.csv',
@@ -241,6 +242,15 @@ export default [
       lineTotal: 'कुल',
       remove: 'हटाएँ',
       noSku: 'कोई SKU नहीं',
+      openProduct: 'प्रोडक्ट नए टैब में खोलें',
+      weight: 'वज़न (g)',
+      weightPlaceholder: 'g',
+      weightHint:
+        'एक यूनिट का वज़न, पैकिंग लिस्ट से। यह प्रोडक्ट पर सेव होता है और फ़्रेट को वज़न के हिसाब से बाँटने में काम आता है।',
+      weightSaveFirst: 'वज़न डालने के लिए पहले ऑर्डर सेव करें।',
+      weightSaved: 'वज़न प्रोडक्ट पर सेव हो गया',
+      weightFailed: 'वज़न सेव नहीं हो सका',
+      weightInvalid: 'वज़न पूरे ग्राम में डालें',
     },
     cost: {
       heading: 'लागत का सारांश',
@@ -272,7 +282,9 @@ export default [
     correctOnly:
       'माल आ चुका है, इसलिए प्रोडक्ट और मात्रा तय हैं। यूनिट कीमत और एक्सचेंज रेट अब भी ठीक कर सकते हैं; मिले स्टॉक की कीमत दोबारा लगेगी।',
     inShipment: (n: number) =>
-      `यह ऑर्डर इनबाउंड शिपमेंट #IS${n} में है। प्रोडक्ट, मात्रा या कीमत बदलने के लिए पहले इसे शिपमेंट से हटाएं।`,
+      `यह ऑर्डर इनबाउंड शिपमेंट #IS${n} में है और सामान आना शुरू हो गया है, इसलिए प्रोडक्ट, मात्रा और कीमत तय हैं।`,
+    inShipmentEditable: (n: number) =>
+      `यह ऑर्डर इनबाउंड शिपमेंट #IS${n} में है। सामान आने तक प्रोडक्ट, मात्रा और कीमत बदल सकते हैं; सेव करने पर शिपमेंट के साझा चार्ज फिर से बँटेंगे।`,
     name: {
       label: 'ऑर्डर का नाम (वैकल्पिक)',
       placeholder: 'दिवाली रीस्टॉक',
@@ -286,6 +298,9 @@ export default [
     print: 'प्रिंट करें',
     download: 'PDF डाउनलोड करें',
     emailSupplier: 'सप्लायर को ईमेल करें',
+    duplicate: 'कॉपी बनाएँ',
+    duplicated: 'नए ड्राफ़्ट में कॉपी हो गया',
+    duplicateFailed: 'इस परचेज़ ऑर्डर की कॉपी नहीं बन सकी',
     email: {
       title: 'सप्लायर को ईमेल करें',
       body: 'परचेज़ ऑर्डर आपके स्टोर के ईमेल पते से PDF के रूप में जाता है। जवाब आपके पास आते हैं।',
@@ -336,16 +351,6 @@ export default [
       doneRejected: (n: number, r: number) => `${n} यूनिट रिसीव हुईं, ${r} रिजेक्ट`,
       nothing: 'कम से कम एक मात्रा डालें',
       failed: 'माल रिसीव नहीं हो सका',
-    },
-  }),
-  translation(purchaseOrderBulkContent, {
-    downloadPdfs: 'PDF डाउनलोड करें',
-    close: 'बंद करें',
-    confirmClose: {
-      title: (n) => `${n} परचेज़ ऑर्डर बंद करें?`,
-      body: 'जो माल अभी नहीं आया वह आने वाले स्टॉक में नहीं दिखेगा। आया हुआ स्टॉक बना रहेगा। ड्राफ़्ट और पहले से पूरे हो चुके ऑर्डर छोड़ दिए जाएंगे।',
-      confirm: 'ऑर्डर बंद करें',
-      cancel: 'रहने दें',
     },
   }),
   translation(transfersContent, {

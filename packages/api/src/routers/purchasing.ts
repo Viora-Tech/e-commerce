@@ -10,11 +10,16 @@ import {
   PurchaseChargeInputSchema,
   PurchaseChargeUpdateSchema,
   permissions,
+  receiveInboundShipment,
   removePurchaseCharge,
+  SupplierBulkUpdateSchema,
   SupplierInputSchema,
   saveInboundShipment,
   saveSupplier,
+  setInboundShipmentStatus,
+  shipmentOutstanding,
   updatePurchaseCharge,
+  updateSuppliers,
 } from '@commerce/core'
 import { inboundTrackingCourier } from '@commerce/core/inventory'
 import { ORPCError } from '@orpc/server'
@@ -75,6 +80,13 @@ export const suppliersRouter = {
     .handler(({ context, input }) =>
       friendly(() => deleteSupplier(context.tx, context.scope.storeId, input.id)),
     ),
+
+  /** Bulk edit on the suppliers list (#1064): currency, country or payment terms for many. */
+  bulkUpdate: can(permissions.INVENTORY_WRITE)
+    .input(SupplierBulkUpdateSchema)
+    .handler(({ context, input }) =>
+      friendly(() => updateSuppliers(context.tx, context.scope.storeId, input)),
+    ),
 }
 
 export const inboundShipmentsRouter = {
@@ -134,6 +146,39 @@ export const inboundShipmentsRouter = {
       }
       return id
     }),
+
+  /** What "Mark as delivered" would take in: outstanding units per purchase order (#1065). */
+  outstanding: can(permissions.INVENTORY_READ)
+    .input(byId)
+    .handler(({ context, input }) =>
+      shipmentOutstanding(context.tx, context.scope.storeId, input.id),
+    ),
+
+  /**
+   * "Mark as delivered" (#1065): receives every outstanding unit on the shipment's purchase
+   * orders into stock and marks the shipment delivered.
+   */
+  receive: can(permissions.INVENTORY_WRITE)
+    .input(byId)
+    .handler(({ context, input }) =>
+      friendly(() =>
+        receiveInboundShipment(context.tx, context.scope.storeId, input.id, context.scope.userId),
+      ),
+    ),
+
+  /** Move a shipment to another stage (bulk "Change status", #1045). Delivered goes through receive. */
+  setStatus: can(permissions.INVENTORY_WRITE)
+    .input(
+      z.object({
+        id: z.uuid(),
+        status: z.enum(INBOUND_SHIPMENT_STATUSES).exclude(['delivered']),
+      }),
+    )
+    .handler(({ context, input }) =>
+      friendly(() =>
+        setInboundShipmentStatus(context.tx, context.scope.storeId, input.id, input.status),
+      ),
+    ),
 
   /** Read the carrier's expected delivery date now (FedEx, DHL Express, … when connected). */
   track: can(permissions.INVENTORY_WRITE)

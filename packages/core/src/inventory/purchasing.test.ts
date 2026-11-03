@@ -1,6 +1,7 @@
 /** SOURCE OF TRUTH: tests for landed cost on real rows: receipts, WAC, late charges, shipments */
 import {
   createDb,
+  inboundShipment,
   inventoryLevel,
   newId,
   product,
@@ -10,6 +11,7 @@ import {
   purchaseOrderReceiptLine,
   type StoreTx,
   store,
+  supplier,
   variant,
   withStore,
 } from '@commerce/db'
@@ -22,19 +24,24 @@ import {
   attachPurchaseOrder,
   deleteInboundShipment,
   detachPurchaseOrder,
+  receiveInboundShipment,
   saveInboundShipment,
+  setInboundShipmentStatus,
+  shipmentOutstanding,
 } from './inbound-shipments'
 import { adjustStock, defaultLocationId } from './levels'
+import { setPurchaseLineWeight } from './line-weight'
 import {
   cancelPurchaseOrder,
   closePurchaseOrder,
   deletePurchaseOrder,
+  duplicatePurchaseOrder,
   reopenPurchaseOrder,
   savePurchaseOrder,
 } from './purchase-orders'
 import { receivePurchaseOrder } from './receiving'
 import type { PurchaseChargeInput, PurchaseOrderInput } from './schemas'
-import { saveSupplier } from './suppliers'
+import { saveSupplier, updateSuppliers } from './suppliers'
 
 const owner = createDb(process.env.DATABASE_URL_OWNER as string)
 const app = createDb(process.env.DATABASE_URL as string)
@@ -387,6 +394,155 @@ describe('inbound shipments', () => {
   })
 })
 
+describe('orders on a shipment, and duplicates (#1059, #1060)', () => {
+  const edit = (
+    c: Ctx,
+    id: string,
+    lines: { variantId: string; quantity: number; unitPriceMinor: number }[],
+  ) =>
+    run(c, (tx) =>
+      savePurchaseOrder(tx, c.storeId, {
+        id,
+        supplierName: 'Shenzhen Pads',
+        locationId: c.loc,
+        currency: 'INR',
+        fxRate: '1',
+        lines,
+      }),
+    )
+
+  it('lets an order on a shipment change until goods arrive, re-splitting shared freight', async () => {
+    const c = await seedStore()
+    const a = await c.addVariant({ weightGrams: 1000 })
+    const b = await c.addVariant({ weightGrams: 1000 })
+    const po1 = await order(c, [{ variantId: a, quantity: 10, unitPriceMinor: 10_000 }])
+    const po2 = await order(c, [{ variantId: b, quantity: 10, unitPriceMinor: 10_000 }])
+    const ship = await run(c, (tx) => saveInboundShipment(tx, c.storeId, { status: 'in_transit' }))
+    await run(c, (tx) => attachPurchaseOrder(tx, c.storeId, ship, po1))
+    await run(c, (tx) => attachPurchaseOrder(tx, c.storeId, ship, po2))
+    // ₹2,000 freight over 10 kg + 10 kg: ₹100 a unit each.
+    await charge(c, { inboundShipmentId: ship, kind: 'freight_insurance', amountMinor: 200_000 })
+    expect((await lineFor(po1, a)).landedUnitCostPaise).toBe(20_000)
+
+    // The supplier sends 30 of the first product: 30 kg + 10 kg now share the ₹2,000.
+    await edit(c, po1, [{ variantId: a, quantity: 30, unitPriceMinor: 10_000 }])
+    expect((await lineFor(po1, a)).quantity).toBe(30)
+    expect((await lineFor(po1, a)).landedUnitCostPaise).toBe(15_000)
+    expect((await lineFor(po2, b)).landedUnitCostPaise).toBe(15_000)
+
+    // Once something arrives on it, the lines are fixed.
+    await receive(c, po1, [{ lineId: (await lineFor(po1, a)).id, accepted: 1 }])
+    await expect(
+      edit(c, po1, [{ variantId: a, quantity: 40, unitPriceMinor: 10_000 }]),
+    ).rejects.toMatchObject({ code: 'PO_IN_SHIPMENT' })
+  })
+
+  it('duplicates an order into a new draft with its supplier and lines, nothing received', async () => {
+    const c = await seedStore()
+    const a = await c.addVariant()
+    const po = await order(c, [{ variantId: a, quantity: 6, unitPriceMinor: 4_500 }], {
+      name: 'Diwali restock',
+      currency: 'USD',
+      fxRate: '83.5',
+    })
+    await receive(c, po, [{ lineId: (await lineFor(po, a)).id, accepted: 6 }])
+    const copy = await run(c, (tx) => duplicatePurchaseOrder(tx, c.storeId, po))
+    expect(copy).not.toBe(po)
+    const [row] = await owner.select().from(purchaseOrder).where(eq(purchaseOrder.id, copy))
+    expect(row).toMatchObject({
+      status: 'draft',
+      name: 'Diwali restock',
+      supplierName: 'Shenzhen Pads',
+      currency: 'USD',
+      inboundShipmentId: null,
+    })
+    expect(Number(row?.fxRate)).toBe(83.5)
+    expect(await linesOf(copy)).toMatchObject([
+      { variantId: a, quantity: 6, unitPriceMinor: 4_500, received: 0, rejected: 0 },
+    ])
+  })
+})
+
+describe('shipment arrival (#1062, #1065)', () => {
+  const shipmentOf = async (id: string) =>
+    (await owner.select().from(inboundShipment).where(eq(inboundShipment.id, id)))[0]
+  const onHandOf = async (variantId: string) =>
+    (
+      await owner
+        .select({ n: inventoryLevel.onHand })
+        .from(inventoryLevel)
+        .where(eq(inventoryLevel.variantId, variantId))
+    )[0]?.n
+
+  it('marks the shipment delivered once its last order is fully received', async () => {
+    const c = await seedStore()
+    const a = await c.addVariant()
+    const b = await c.addVariant()
+    const po1 = await order(c, [{ variantId: a, quantity: 4, unitPriceMinor: 10_000 }])
+    const po2 = await order(c, [{ variantId: b, quantity: 2, unitPriceMinor: 10_000 }])
+    const ship = await run(c, (tx) => saveInboundShipment(tx, c.storeId, { status: 'in_transit' }))
+    await run(c, (tx) => attachPurchaseOrder(tx, c.storeId, ship, po1))
+    await run(c, (tx) => attachPurchaseOrder(tx, c.storeId, ship, po2))
+
+    await receive(c, po1, [{ lineId: (await lineFor(po1, a)).id, accepted: 4 }])
+    await receive(c, po2, [{ lineId: (await lineFor(po2, b)).id, accepted: 1 }])
+    expect(await shipmentOf(ship)).toMatchObject({ status: 'in_transit', arrivedAt: null })
+
+    // The last unit is refused: nothing is left to come in, so the shipment has arrived.
+    await receive(c, po2, [{ lineId: (await lineFor(po2, b)).id, accepted: 0, rejected: 1 }])
+    const after = await shipmentOf(ship)
+    expect(after?.status).toBe('delivered')
+    expect(after?.arrivedAt).toBeInstanceOf(Date)
+  })
+
+  it('"Mark as delivered" receives what is outstanding on every order and marks it delivered', async () => {
+    const c = await seedStore()
+    const a = await c.addVariant({ onHand: 2 })
+    const b = await c.addVariant()
+    const po1 = await order(c, [{ variantId: a, quantity: 10, unitPriceMinor: 10_000 }])
+    const po2 = await order(c, [{ variantId: b, quantity: 5, unitPriceMinor: 10_000 }])
+    const ship = await run(c, (tx) => saveInboundShipment(tx, c.storeId, { status: 'cleared' }))
+    await run(c, (tx) => attachPurchaseOrder(tx, c.storeId, ship, po1))
+    await run(c, (tx) => attachPurchaseOrder(tx, c.storeId, ship, po2))
+    // Part of the first order came in early, one unit damaged.
+    await receive(c, po1, [{ lineId: (await lineFor(po1, a)).id, accepted: 3, rejected: 1 }])
+
+    const before = await run(c, (tx) => shipmentOutstanding(tx, c.storeId, ship))
+    expect(before.units).toBe(11)
+    expect(before.orders.map((o) => o.units)).toEqual([6, 5])
+
+    const done = await run(c, (tx) => receiveInboundShipment(tx, c.storeId, ship, 'user-1'))
+    expect(done).toEqual({ orders: 2, units: 11 })
+    expect(await onHandOf(a)).toBe(2 + 3 + 6)
+    expect(await onHandOf(b)).toBe(5)
+    expect((await shipmentOf(ship))?.status).toBe('delivered')
+    expect((await run(c, (tx) => shipmentOutstanding(tx, c.storeId, ship))).units).toBe(0)
+
+    // Again: nothing left, nothing received, still delivered.
+    expect(await run(c, (tx) => receiveInboundShipment(tx, c.storeId, ship))).toEqual({
+      orders: 0,
+      units: 0,
+    })
+  })
+
+  it('moves a shipment between stages, but never back out of delivered (#1045)', async () => {
+    const c = await seedStore()
+    const a = await c.addVariant()
+    const po = await order(c, [{ variantId: a, quantity: 2, unitPriceMinor: 10_000 }])
+    // Planned is the first stage (#1056): booked, not shipped yet.
+    const ship = await run(c, (tx) => saveInboundShipment(tx, c.storeId, { status: 'planned' }))
+    await run(c, (tx) => attachPurchaseOrder(tx, c.storeId, ship, po))
+    await run(c, (tx) => setInboundShipmentStatus(tx, c.storeId, ship, 'at_port'))
+    expect((await shipmentOf(ship))?.status).toBe('at_port')
+
+    await run(c, (tx) => receiveInboundShipment(tx, c.storeId, ship))
+    expect((await shipmentOf(ship))?.status).toBe('delivered')
+    await expect(
+      run(c, (tx) => setInboundShipmentStatus(tx, c.storeId, ship, 'cleared')),
+    ).rejects.toMatchObject({ code: 'SHIPMENT_DELIVERED' })
+  })
+})
+
 describe('cancel and reopen', () => {
   it('cancels an order with nothing received and reopens it as ordered', async () => {
     const c = await seedStore()
@@ -501,18 +657,18 @@ describe('editing a sent order', () => {
     expect(after?.status).toBe('received')
   })
 
-  it('refuses line changes while the order is on an inbound shipment', async () => {
+  it('changes an order on an inbound shipment until goods arrive, then refuses (#1059)', async () => {
     const c = await seedStore()
     const a = await c.addVariant()
     const id = await order(c, [{ variantId: a, quantity: 5, unitPriceMinor: 100 }])
     const ship = await run(c, (tx) => saveInboundShipment(tx, c.storeId, { status: 'in_transit' }))
     await run(c, (tx) => attachPurchaseOrder(tx, c.storeId, ship, id))
-    await expect(
-      edit(c, id, [{ variantId: a, quantity: 6, unitPriceMinor: 100 }]),
-    ).rejects.toMatchObject({ code: 'PO_IN_SHIPMENT' })
-    await run(c, (tx) => detachPurchaseOrder(tx, c.storeId, id))
     await edit(c, id, [{ variantId: a, quantity: 6, unitPriceMinor: 100 }])
     expect(await incomingOf(a)).toBe(6)
+    await receive(c, id, [{ lineId: (await lineFor(id, a)).id, accepted: 1 }])
+    await expect(
+      edit(c, id, [{ variantId: a, quantity: 7, unitPriceMinor: 100 }]),
+    ).rejects.toMatchObject({ code: 'PO_IN_SHIPMENT' })
   })
 
   it('corrects the price of a received order and revalues the stock', async () => {
@@ -565,5 +721,101 @@ describe('store isolation', () => {
     await expect(
       run(mine, (tx) => attachPurchaseOrder(tx, mine.storeId, ship, theirPo)),
     ).rejects.toMatchObject({ code: 'PO_NOT_FOUND' })
+  })
+})
+
+describe('weights from the packing list (#1054)', () => {
+  const weightOf = async (variantId: string) =>
+    (
+      await owner.select({ w: variant.weightGrams }).from(variant).where(eq(variant.id, variantId))
+    )[0]?.w
+
+  it('saves the weight on the product and re-splits freight by weight', async () => {
+    const c = await seedStore()
+    const a = await c.addVariant({ weightGrams: null })
+    const b = await c.addVariant({ weightGrams: 1000 })
+    const po1 = await order(c, [{ variantId: a, quantity: 10, unitPriceMinor: 10_000 }])
+    const po2 = await order(c, [{ variantId: b, quantity: 10, unitPriceMinor: 10_000 }])
+    const ship = await run(c, (tx) => saveInboundShipment(tx, c.storeId, { status: 'in_transit' }))
+    await run(c, (tx) => attachPurchaseOrder(tx, c.storeId, ship, po1))
+    await run(c, (tx) => attachPurchaseOrder(tx, c.storeId, ship, po2))
+    await charge(c, { inboundShipmentId: ship, kind: 'freight_insurance', amountMinor: 200_000 })
+
+    // The packing list says 1 kg each: 10 kg + 10 kg now share the ₹2,000, ₹100 a unit.
+    await run(c, (tx) => setPurchaseLineWeight(tx, c.storeId, po1, a, 1000))
+    expect(await weightOf(a)).toBe(1000)
+    expect((await lineFor(po1, a)).landedUnitCostPaise).toBe(20_000)
+    expect((await lineFor(po2, b)).landedUnitCostPaise).toBe(20_000)
+  })
+
+  it('only sets weights for products on the order', async () => {
+    const c = await seedStore()
+    const a = await c.addVariant()
+    const other = await c.addVariant()
+    const po = await order(c, [{ variantId: a, quantity: 1, unitPriceMinor: 10_000 }])
+    await expect(
+      run(c, (tx) => setPurchaseLineWeight(tx, c.storeId, po, other, 250)),
+    ).rejects.toMatchObject({ code: 'PO_LINE_NOT_FOUND' })
+    expect(await weightOf(other)).toBe(500)
+  })
+})
+
+describe('supplier contacts and bulk edit (#1064)', () => {
+  const supplierRow = async (id: string) =>
+    (await owner.select().from(supplier).where(eq(supplier.id, id)))[0]
+
+  it('keeps extra contacts, and a save without them leaves them alone', async () => {
+    const c = await seedStore()
+    const id = await run(c, (tx) =>
+      saveSupplier(tx, c.storeId, {
+        name: 'Uncle Panda',
+        country: 'CN',
+        currency: 'USD',
+        contacts: [
+          { kind: 'wechat', value: 'panda88', label: 'Lily' },
+          { kind: 'whatsapp', value: '+86 138 0000 0000' },
+        ],
+      }),
+    )
+    expect((await supplierRow(id))?.contacts).toEqual([
+      { kind: 'wechat', value: 'panda88', label: 'Lily' },
+      { kind: 'whatsapp', value: '+86 138 0000 0000' },
+    ])
+    // The quick-add dialog and bill reading don't send contacts: they must survive.
+    await run(c, (tx) =>
+      saveSupplier(tx, c.storeId, { id, name: 'Uncle Panda', country: 'CN', currency: 'USD' }),
+    )
+    expect((await supplierRow(id))?.contacts).toHaveLength(2)
+  })
+
+  it('bulk edits only what is given, and only this store’s suppliers', async () => {
+    const mine = await seedStore('mine')
+    const theirs = await seedStore('theirs')
+    const save = (c: Ctx, name: string) =>
+      run(c, (tx) =>
+        saveSupplier(tx, c.storeId, {
+          name,
+          country: 'IN',
+          currency: 'INR',
+          paymentTerms: '30% advance',
+        }),
+      )
+    const a = await save(mine, 'A')
+    const b = await save(mine, 'B')
+    const t = await save(theirs, 'T')
+
+    const n = await run(mine, (tx) =>
+      updateSuppliers(tx, mine.storeId, { ids: [a, b, t], currency: 'USD', country: 'CN' }),
+    )
+    expect(n).toBe(2)
+    expect(await supplierRow(a)).toMatchObject({
+      currency: 'USD',
+      country: 'CN',
+      paymentTerms: '30% advance',
+    })
+    expect(await supplierRow(t)).toMatchObject({ currency: 'INR', country: 'IN' })
+
+    await run(mine, (tx) => updateSuppliers(tx, mine.storeId, { ids: [b], paymentTerms: '' }))
+    expect((await supplierRow(b))?.paymentTerms).toBeNull()
   })
 })

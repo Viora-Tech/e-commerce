@@ -12,6 +12,8 @@ export type LoadedPurchaseOrder = NonNullable<Awaited<ReturnType<typeof api.purc
 
 export type PoLine = {
   variantId: string
+  /** For the "open product" link; null when the product is gone. */
+  productId: string | null
   productTitle: string
   variantTitle: string
   sku: string | null
@@ -83,6 +85,7 @@ export function fromPurchaseOrder(po: LoadedPurchaseOrder): PoForm {
     note: po.note ?? '',
     lines: po.lines.map((l) => ({
       variantId: l.variantId,
+      productId: l.productId,
       productTitle: l.productTitle,
       variantTitle: l.variantTitle,
       sku: l.sku,
@@ -160,6 +163,7 @@ export function toInput(
 /** What the Select products dialog hands back, cut down to what a purchase order line needs. */
 export type PickedForPo = {
   product: {
+    id: string
     title: string
     imageUrl: string | null
     variants: { id: string; title: string; sku: string | null; costPaise: number | null }[]
@@ -185,6 +189,7 @@ export function addPickedLines(
       have.add(v.id)
       added.push({
         variantId: v.id,
+        productId: product.id,
         productTitle: product.title,
         variantTitle: v.title,
         sku: v.sku,

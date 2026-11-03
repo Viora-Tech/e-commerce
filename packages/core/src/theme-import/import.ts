@@ -1,6 +1,7 @@
 /** SOURCE OF TRUTH: importing a Shopify theme — WHAT: zip → a NEW unpublished theme "<name> (imported)": its files stored, its Shopify-hosted images copied into Files (SSRF-safe), the home page, the product, collection and page templates (with alternates; our own main section in place of the theme's) and the header/footer groups turned into `LiquidSection` templates, and the import report / WHY: merchants moving from Shopify keep their look; nothing touches the live theme, and the report says in plain words what now runs on our features */
 
 import { createHash } from 'node:crypto'
+import { withImportedDefaults } from '@commerce/blocks/imported-defaults'
 import { newId, type StoreTx, theme, themeFile, themeImport, themeTemplate } from '@commerce/db'
 import type { StorageProvider } from '@commerce/storage'
 import { eq, sql } from 'drizzle-orm'
@@ -17,13 +18,7 @@ import {
 } from '../theme/templates-data'
 import { withOwnThemePacks } from '../theme/theme-packs'
 import { archiveText, readThemeArchive, type ThemeArchive, ThemeArchiveProblem } from './archive'
-import {
-  LIQUID_SECTION,
-  type LiquidBlockItem,
-  liquidSectionId,
-  schemaText,
-  settingsToProps,
-} from './fields'
+import { LIQUID_SECTION, liquidSectionId, schemaText, settingsToProps } from './fields'
 import {
   collectShopImages,
   collectShopVideos,
@@ -35,24 +30,21 @@ import {
   inBatches,
   livePage,
   newMediaBudget,
-  SHOP_IMAGE,
-  SHOP_VIDEO,
   takeMedia,
 } from './import-media'
 import { buildReport, collectHandles, missingHandles, type Wanted } from './import-report'
-import { mainProductProps } from './main-product-props'
+import { themeMainProps } from './main-collection-props'
 import { type ImportReport, isMainSection } from './report'
 import {
   extractSchema,
-  MAX_BLOCK_DEPTH,
   parseJsonTemplate,
   parseThemeJson,
   type ShopifyJsonTemplate,
   type ShopifySectionSchema,
   type ShopifySetting,
-  type ShopifyTemplateBlock,
 } from './schema'
-import { shopifyUrlToPath } from './settings-values'
+import { storedSettings, templateBlocks } from './stored-settings'
+import { type ThemeLook, themeLook } from './theme-look'
 
 export class ThemeImportError extends ThemeLibraryError {}
 
@@ -86,85 +78,17 @@ const checksum = (bytes: Uint8Array) =>
   createHash('sha256').update(bytes).digest('hex').slice(0, 16)
 
 /**
- * A stored setting value: image settings become `{ url, alt }` pointing at Files,
- * Shopify resource links become our paths. Product, collection and menu settings keep
- * their handles (ours match, since the catalogue import keeps Shopify's handles).
- */
-function storedValue(setting: ShopifySetting | undefined, value: unknown, hosted: Hosted): unknown {
-  if (typeof value === 'string') {
-    const video = SHOP_VIDEO.exec(value)
-    if (video?.[1]) {
-      const v = hosted.videos.get(video[1])
-      return v ? { url: v.url, poster: v.poster, mobileUrl: v.mobileUrl } : ''
-    }
-    const m = SHOP_IMAGE.exec(value)
-    if (m?.[1]) {
-      const h = hosted.images.get(m[1])
-      if (setting && setting.type !== 'image_picker') return h?.url ?? ''
-      return h ? { url: h.url, alt: '', width: h.width, height: h.height } : { url: '', alt: '' }
-    }
-    if (value.startsWith('shopify://')) return shopifyUrlToPath(value)
-    if (setting?.type === 'image_picker')
-      return value ? { url: value, alt: '' } : { url: '', alt: '' }
-  }
-  if (setting?.type === 'image_picker' && (value === null || value === undefined)) {
-    return { url: '', alt: '' }
-  }
-  return value
-}
-
-function storedSettings(
-  schema: ShopifySetting[] | undefined,
-  values: Record<string, unknown> | undefined,
-  hosted: Hosted,
-): Record<string, unknown> {
-  const byId = new Map((schema ?? []).flatMap((s) => (s.id ? [[s.id, s] as const] : [])))
-  const out: Record<string, unknown> = {}
-  for (const [k, v] of Object.entries(values ?? {})) out[k] = storedValue(byId.get(k), v, hosted)
-  for (const s of schema ?? []) {
-    if (s.id && s.type === 'image_picker' && !(s.id in out)) out[s.id] = { url: '', alt: '' }
-  }
-  return out
-}
-
-/**
  * Our own main section for a resource template (`MainProduct`…), as a fresh template starts
  * it. A theme's main section (`main-product`, Dawn's `main-collection-banner` +
- * `main-collection-product-grid`…) draws the part shoppers act on, which runs on ours.
+ * `main-collection-product-grid`…) draws the part shoppers act on, which runs on ours. It
+ * opens with the imported-theme defaults written out (our product-page extras off, #1049), so
+ * Customize shows each switch as it renders.
  */
 function ourMainSection(key: TemplateKey): TemplateSection | null {
   const type = (MAIN_SECTION as Partial<Record<string, string>>)[key]
   if (!type) return null
-  return defaultTemplate(key).content.find((s) => s.type === type) ?? null
-}
-
-/**
- * A section's (or block's) blocks in order, nested ones included: a product-tabs section's
- * tabs hold the theme blocks shown inside each tab.
- */
-function templateBlocks(
-  parent: Pick<ShopifyTemplateBlock, 'blocks' | 'block_order'>,
-  schema: ShopifySectionSchema | null,
-  hosted: Hosted,
-  depth: number,
-): LiquidBlockItem[] {
-  if (depth >= MAX_BLOCK_DEPTH) return []
-  const order = parent.block_order ?? Object.keys(parent.blocks ?? {})
-  return order.flatMap((id) => {
-    const b = parent.blocks?.[id]
-    if (!b) return []
-    const blockSchema = schema?.blocks?.find((x) => x.type === b.type)
-    const nested = templateBlocks(b, schema, hosted, depth + 1)
-    return [
-      {
-        id,
-        type: b.type,
-        ...(b.disabled ? { disabled: true } : {}),
-        settings: storedSettings(blockSchema?.settings, b.settings, hosted),
-        ...(nested.length ? { blocks: nested } : {}),
-      },
-    ]
-  })
+  const main = defaultTemplate(key).content.find((s) => s.type === type)
+  return main ? withImportedDefaults(main) : null
 }
 
 /**
@@ -181,21 +105,25 @@ function toTemplateData(
   schemaLocale: Record<string, unknown>,
   hosted: Hosted,
   key: TemplateKey,
+  theme: { look: ThemeLook; settings: Record<string, unknown> },
 ): TemplateData {
   const main = key === 'page' ? null : ourMainSection(key)
   let mainPlaced = false
+  // Ours opens with what the theme's main section(s) were set to show.
+  const stored = (type: string, values: Record<string, unknown> | undefined) =>
+    storedSettings(schemas.get(type)?.settings, values, hosted)
+  const fromTheme = (s: ShopifyJsonTemplate['sections'][string]) =>
+    themeMainProps(key, tpl, s, stored, theme)
   const content = tpl.order.flatMap((sectionKey): TemplateSection[] => {
     const s = tpl.sections[sectionKey]
     if (!s) return []
     if (main && isMainSection(s.type)) {
       if (mainPlaced) return []
       mainPlaced = true
-      // Ours opens with what the theme's product section was set to show (./main-product-props).
-      const fromTheme = key === 'product' ? mainProductProps(s) : {}
       return [
         {
           ...main,
-          props: { ...main.props, ...fromTheme, ...(s.disabled ? { _hidden: true } : {}) },
+          props: { ...main.props, ...fromTheme(s), ...(s.disabled ? { _hidden: true } : {}) },
         },
       ]
     }
@@ -436,6 +364,8 @@ export async function importShopifyTheme(
 
   // Home, header, footer, product, collection and page templates (with alternates) as ours.
   const schemas = new Map([...sections].map(([type, s]) => [type, s.schema]))
+  // Titles in capitals, trust badges grid, filled Add to cart: the theme's CSS and markup.
+  const look = themeLook(archive)
   for (const [key, suffix, source] of pages) {
     const tpl = templates.get(source)
     if (!tpl) continue
@@ -445,7 +375,7 @@ export async function importShopifyTheme(
       themeId,
       template: key,
       suffix,
-      sections: toTemplateData(tpl, schemas, schemaLocale, hosted, key),
+      sections: toTemplateData(tpl, schemas, schemaLocale, hosted, key, { look, settings }),
     })
   }
 

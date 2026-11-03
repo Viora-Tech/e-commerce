@@ -1,5 +1,6 @@
 /** SOURCE OF TRUTH: bug report sync with GitHub — WHAT: applies a webhook delivery to the reports filed as that issue (in whichever store), marks fixed reports live once their fix reaches main, and polls open issues as a fallback / WHY: GitHub is where the team works; the reporter reads the result in the admin. Every step is idempotent (same status twice is a no-op), so retried deliveries and the poll never double-notify */
 import { bugReportStoresForIssue, type Db, storesWithBugReports, withStore } from '@commerce/db'
+import type { GithubRepos } from './client'
 import { GithubApiError, type GithubClient, githubClient } from './github'
 import {
   type BugReportNotifyOptions,
@@ -35,13 +36,20 @@ export type BugReportSyncDeps = {
 export function bugReportSyncDeps(cfg: {
   token: string | undefined
   repo: string
+  /** The code's repository, when reports are filed elsewhere (fix commits are checked there). */
+  codeRepo?: string | undefined
   adminUrl: string | undefined
   storeChannels?: BugReportNotifyOptions['storeChannels']
   fetch?: typeof fetch
 }): BugReportSyncDeps {
   return {
     github: cfg.token
-      ? githubClient({ fetch: cfg.fetch ?? fetch, token: cfg.token, repo: cfg.repo })
+      ? githubClient({
+          fetch: cfg.fetch ?? fetch,
+          token: cfg.token,
+          repo: cfg.repo,
+          codeRepo: cfg.codeRepo,
+        })
       : null,
     notify: cfg.adminUrl ? { adminUrl: cfg.adminUrl, storeChannels: cfg.storeChannels } : null,
   }
@@ -294,7 +302,7 @@ export type GithubWebhookOutcome =
 export async function handleGithubWebhook(
   db: Db,
   delivery: { event: string; rawBody: string; signature: string | null },
-  cfg: { secret: string; repo: string; deps: BugReportSyncDeps },
+  cfg: { secret: string; repo: string | GithubRepos; deps: BugReportSyncDeps },
 ): Promise<GithubWebhookOutcome> {
   if (!verifyGithubSignature(cfg.secret, delivery.rawBody, delivery.signature)) {
     return { ok: false, reason: 'bad_signature' }
