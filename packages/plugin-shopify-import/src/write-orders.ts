@@ -52,7 +52,7 @@ export const orderSourceId = (o: Pick<NOrder, 'sourceId' | 'name'>) =>
  * recompute so both read the source the same way).
  */
 export function statusFor(
-  o: Pick<NOrder, 'cancelledAt' | 'financialStatus' | 'fulfillmentStatus'>,
+  o: Pick<NOrder, 'cancelledAt' | 'financialStatus' | 'fulfillmentStatus' | 'deliveryStatuses'>,
 ): ReturnType<typeof importedOrderStatuses> {
   return importedOrderStatuses(o)
 }
@@ -274,6 +274,7 @@ async function applyOrder(
     sourceId: o.sourceId,
     financialStatus: o.financialStatus,
     fulfillmentStatus: o.fulfillmentStatus,
+    ...(o.deliveryStatuses ? { deliveryStatuses: o.deliveryStatuses } : {}),
     paymentMethod: o.paymentMethod,
     cancelledAt: o.cancelledAt,
     refundedPaise: o.refundedPaise || null,

@@ -127,6 +127,12 @@ export type NOrder = {
   customerName: string | null
   financialStatus: string | null
   fulfillmentStatus: string | null
+  /**
+   * Each Shopify parcel's delivery stage, lowercase ("label_printed", "in_transit",
+   * "delivered"…). Absent from CSV files and older previews: the order then completes on
+   * Shopify's "fulfilled" alone, as before.
+   */
+  deliveryStatuses?: string[] | undefined
   currency: string | null
   subtotalPaise: number
   shippingPaise: number
