@@ -29,6 +29,7 @@ import {
   shipmentOutstanding,
 } from './inbound-shipments'
 import { adjustStock, defaultLocationId } from './levels'
+import { setPurchaseLineWeight } from './line-weight'
 import {
   cancelPurchaseOrder,
   closePurchaseOrder,
@@ -719,5 +720,41 @@ describe('store isolation', () => {
     await expect(
       run(mine, (tx) => attachPurchaseOrder(tx, mine.storeId, ship, theirPo)),
     ).rejects.toMatchObject({ code: 'PO_NOT_FOUND' })
+  })
+})
+
+describe('weights from the packing list (#1054)', () => {
+  const weightOf = async (variantId: string) =>
+    (
+      await owner.select({ w: variant.weightGrams }).from(variant).where(eq(variant.id, variantId))
+    )[0]?.w
+
+  it('saves the weight on the product and re-splits freight by weight', async () => {
+    const c = await seedStore()
+    const a = await c.addVariant({ weightGrams: null })
+    const b = await c.addVariant({ weightGrams: 1000 })
+    const po1 = await order(c, [{ variantId: a, quantity: 10, unitPriceMinor: 10_000 }])
+    const po2 = await order(c, [{ variantId: b, quantity: 10, unitPriceMinor: 10_000 }])
+    const ship = await run(c, (tx) => saveInboundShipment(tx, c.storeId, { status: 'in_transit' }))
+    await run(c, (tx) => attachPurchaseOrder(tx, c.storeId, ship, po1))
+    await run(c, (tx) => attachPurchaseOrder(tx, c.storeId, ship, po2))
+    await charge(c, { inboundShipmentId: ship, kind: 'freight_insurance', amountMinor: 200_000 })
+
+    // The packing list says 1 kg each: 10 kg + 10 kg now share the ₹2,000, ₹100 a unit.
+    await run(c, (tx) => setPurchaseLineWeight(tx, c.storeId, po1, a, 1000))
+    expect(await weightOf(a)).toBe(1000)
+    expect((await lineFor(po1, a)).landedUnitCostPaise).toBe(20_000)
+    expect((await lineFor(po2, b)).landedUnitCostPaise).toBe(20_000)
+  })
+
+  it('only sets weights for products on the order', async () => {
+    const c = await seedStore()
+    const a = await c.addVariant()
+    const other = await c.addVariant()
+    const po = await order(c, [{ variantId: a, quantity: 1, unitPriceMinor: 10_000 }])
+    await expect(
+      run(c, (tx) => setPurchaseLineWeight(tx, c.storeId, po, other, 250)),
+    ).rejects.toMatchObject({ code: 'PO_LINE_NOT_FOUND' })
+    expect(await weightOf(other)).toBe(500)
   })
 })

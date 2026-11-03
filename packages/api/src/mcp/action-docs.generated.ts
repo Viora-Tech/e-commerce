@@ -625,6 +625,8 @@ export const ACTION_DOCS: Record<string, string> = {
     "Email the PDF to the supplier through the store's sender email; optionally mark a draft ordered.",
   'purchaseOrders.pdf': 'The purchase order as a PDF for the supplier: print it or save it.',
   'purchaseOrders.reopen': 'Undo a close or a cancel.',
+  'purchaseOrders.setLineWeight':
+    "A product's weight from the packing list, set on its line (#1054).",
   'reauth.passkeyOptions':
     'WebAuthn options for a passkey step-up; the challenge is kept server-side on the session.',
   'reauth.sendOtp': "Mail a fresh step-up code to the member's own address.",

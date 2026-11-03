@@ -16,6 +16,7 @@ import {
   LocationUpdateSchema,
   listLocations,
   loadPurchaseOrderSheet,
+  MAX_LINE_WEIGHT_GRAMS,
   markOrdered,
   PURCHASE_ORDER_STATUSES,
   PurchaseOrderInputSchema,
@@ -29,6 +30,7 @@ import {
   StockEditSchema,
   savePurchaseOrder,
   saveTransfer,
+  setPurchaseLineWeight,
   setStock,
   shipTransfer,
   storeNotificationChannels,
@@ -272,6 +274,27 @@ export const purchaseOrdersRouter = {
     .input(z.object({ id: z.uuid() }))
     .handler(({ context, input }) =>
       friendly(() => duplicatePurchaseOrder(context.tx, context.scope.storeId, input.id)),
+    ),
+
+  /** A product's weight from the packing list, set on its line (#1054). Saves onto the product. */
+  setLineWeight: can(permissions.INVENTORY_WRITE)
+    .input(
+      z.object({
+        id: z.uuid(),
+        variantId: z.uuid(),
+        weightGrams: z.number().int().min(0).max(MAX_LINE_WEIGHT_GRAMS).nullable(),
+      }),
+    )
+    .handler(({ context, input }) =>
+      friendly(() =>
+        setPurchaseLineWeight(
+          context.tx,
+          context.scope.storeId,
+          input.id,
+          input.variantId,
+          input.weightGrams,
+        ),
+      ),
     ),
 
   /** Call off a draft or an order nothing has arrived on. */

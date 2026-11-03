@@ -282,6 +282,13 @@ export const purchaseOrderFormContent = {
     remove: 'Remove',
     noSku: 'No SKU',
     openProduct: 'Open product in a new tab',
+    weight: 'Weight (g)',
+    weightPlaceholder: 'g',
+    weightHint: 'Weight of one unit, from the packing list. Saved on the product and used to split freight by weight.',
+    weightSaveFirst: 'Save the order first to set weights.',
+    weightSaved: 'Weight saved on the product',
+    weightFailed: 'Couldn’t save the weight',
+    weightInvalid: 'Enter the weight in whole grams',
   },
   cost: {
     heading: 'Cost summary',
