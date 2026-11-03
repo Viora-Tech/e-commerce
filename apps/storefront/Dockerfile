@@ -53,9 +53,17 @@ ENV NODE_OPTIONS=--max-old-space-size=3072
 ARG TARGETPLATFORM
 RUN --mount=type=cache,id=commerce-storefront-next-cache-$TARGETPLATFORM,sharing=locked,target=/repo/apps/storefront/.next/cache \
   bun run build --filter=@commerce/storefront
+# Drop from the traced server what can never load: glibc builds of sharp (the image is musl,
+# the linuxmusl build beside them is used) and TypeScript (traced from Next's config loader;
+# the standalone server reads the saved config, never next.config.ts).
+RUN cd /repo/apps/storefront/.next/standalone/node_modules/.bun \
+  && rm -rf typescript@* @img+sharp-libvips-linux-x64@* @img+sharp-linux-x64@* \
+  && find /repo/apps/storefront/.next/standalone -type l ! -exec test -e {} \; -delete
 
 # --- Minimal runtime image ------------------------------------------------------------------
-FROM base AS runner
+# Plain Alpine (the release the bun image is built on): the server runs on Node, so the bun
+# binary that `base` carries (~90 MB) has no job here.
+FROM alpine:3.22 AS runner
 # The standalone Next server runs on Node: Bun 1.3.11 fails to load Next's compiled
 # server runtime ("Expected CommonJS module to have a function wrapper").
 # Node comes from the official image, not Alpine's package: Alpine's nodejs lags security
