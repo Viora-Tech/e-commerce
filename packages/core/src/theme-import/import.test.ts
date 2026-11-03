@@ -278,6 +278,15 @@ describe('importShopifyTheme', () => {
     // The theme's main section becomes ours (once); the others stay the theme's.
     const productTpl = await inStore(storeId, (tx) => loadTemplate(tx, themeId, 'product'))
     expect(productTpl.data.content.map((s) => s.type)).toEqual(['MainProduct', LIQUID_SECTION])
+    // Our product-page extras the theme never had start off, each with its switch (#1049).
+    expect(productTpl.data.content[0]?.props).toMatchObject({
+      showEmiHint: false,
+      showTaxNote: false,
+      showSaving: false,
+      showUpiPrice: false,
+      showDispatchLine: false,
+      showDeliveryEstimate: false,
+    })
     expect(productTpl.data.content[1]?.props).toMatchObject({ sectionType: 'specs', _hidden: true })
     // No main section in the theme's collection template: ours opens the page anyway.
     const collectionTpl = await inStore(storeId, (tx) => loadTemplate(tx, themeId, 'collection'))

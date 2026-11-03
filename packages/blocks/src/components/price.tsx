@@ -10,6 +10,7 @@ export default function Price({
   pricePaise,
   mrpPaise,
   percentBadge = false,
+  showSaving = true,
   variantId,
   variants,
 }: {
@@ -18,6 +19,8 @@ export default function Price({
   mrpPaise: number | null
   /** The product page's "−17%" tag after the saving. */
   percentBadge?: boolean | undefined
+  /** "Save ₹N" after the MRP; the product page's `showSaving` setting can turn it off. */
+  showSaving?: boolean | undefined
   /** The variant priced: a market catalog's fixed price for it wins (Markets › Catalogs). */
   variantId?: string | null | undefined
   /**
@@ -58,7 +61,9 @@ export default function Price({
           <span className="price__compare">
             <s>{formatPaise(mrpPaise)}</s>
           </span>
-          <span className="price__save">Save {formatSaving(mrpPaise, pricePaise)}</span>
+          {showSaving ? (
+            <span className="price__save">{copy.save(formatSaving(mrpPaise, pricePaise))}</span>
+          ) : null}
           {percentBadge ? (
             <span className="badge badge--sale price__badge">
               {`−${Math.round((1 - pricePaise / mrpPaise) * 100)}%`}

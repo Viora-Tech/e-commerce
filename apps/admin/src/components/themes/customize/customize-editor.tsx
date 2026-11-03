@@ -152,10 +152,8 @@ export default function CustomizeEditor({
       ([header, main, footer]) => {
         if (!active) return
         window.clearTimeout(timer)
-        const doc = normalizeDoc(
-          composeDoc({ header: header.data, main: main.data, footer: footer.data }),
-          config,
-        )
+        const parts = { header: header.data, main: main.data, footer: footer.data }
+        const doc = normalizeDoc(composeDoc(parts), config, record.imported)
         drafts.prime(partsOf(ref, doc))
         setTemplatesDirty(leftoverDrafts([header, main, footer], loaded === null, handleDiscard))
         setLoaded({ ref, doc, nonce })

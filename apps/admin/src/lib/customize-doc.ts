@@ -1,3 +1,4 @@
+import { withImportedDefaults } from '@commerce/blocks/imported-defaults'
 import { migrateSectionSettings, richtextFromLexical } from '@commerce/blocks/puck'
 import type { TemplateData, TemplateSection } from '@commerce/core/theme'
 import type { Config } from '@puckeditor/core'
@@ -61,8 +62,15 @@ export function locateSection(
   return null
 }
 
-const withDefaults = (sections: TemplateSection[], config: Config): TemplateSection[] =>
-  sections.map((stored) => {
+const withDefaults = (
+  sections: TemplateSection[],
+  config: Config,
+  imported: boolean,
+): TemplateSection[] =>
+  sections.map((saved) => {
+    // An imported theme's sections take its own defaults first (our product-page extras
+    // off, #1049), so one imported before those switches existed shows them off, as it renders.
+    const stored = imported ? withImportedDefaults(saved) : saved
     // Body copy saved by the retired Lexical field becomes the HTML Puck's richtext field
     // edits (slots included), so the next save stores HTML (`@commerce/blocks` lexical-html).
     const s = { ...stored, props: richtextFromLexical(stored.props) }
@@ -92,14 +100,18 @@ const withDefaults = (sections: TemplateSection[], config: Config): TemplateSect
  * empty, and the very first `onChange` (Puck resolving that same merge into
  * its live state) fired a diff against nothing edited, so "Unsaved changes"
  * lit up on load. Normalising here means what's primed as "saved" already
- * matches what Puck's live state will always look like.
+ * matches what Puck's live state will always look like. `imported`: the theme came from a
+ * Shopify zip, whose sections default as `@commerce/blocks/imported-defaults` says.
  */
-export function normalizeDoc(doc: CustomizeDoc, config: Config): CustomizeDoc {
+export function normalizeDoc(doc: CustomizeDoc, config: Config, imported = false): CustomizeDoc {
   return {
     ...doc,
-    content: withDefaults(doc.content, config),
+    content: withDefaults(doc.content, config, imported),
     zones: Object.fromEntries(
-      Object.entries(doc.zones).map(([zone, sections]) => [zone, withDefaults(sections, config)]),
+      Object.entries(doc.zones).map(([zone, sections]) => [
+        zone,
+        withDefaults(sections, config, imported),
+      ]),
     ),
   }
 }

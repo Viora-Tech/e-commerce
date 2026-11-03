@@ -12,16 +12,24 @@ export type PaymentAdjustmentValue = {
   label?: string | undefined
 }
 
-/** Round half away from zero so a −2% discount on ₹99.99 is −₹2.00, not −₹1.99. */
-const roundHalfUp = (n: number): number => Math.sign(n) * Math.round(Math.abs(n))
+/** Round half away from zero so a −2% discount on ₹99.99 is −₹2.00, not −₹1.99 (never −0). */
+const roundHalfUp = (n: number): number => Math.sign(n) * Math.round(Math.abs(n)) || 0
 
+/**
+ * The paise a payment method adds (a fee) or takes off (a discount). A percent discount comes
+ * off in whole rupees, half away from zero (#1049): a shopper paying by UPI or bank transfer
+ * types the amount, and the product page's "₹X with UPI" price (`@commerce/blocks`
+ * product-payment-signals `upiPricePaise`, which mirrors this) shows ₹2,645 for a ₹2,699 item
+ * at −2%, never ₹2,645.02. A percent fee keeps its paise.
+ */
 export function paymentAdjustmentPaise(
   subtotalPaise: number,
   adj: PaymentAdjustmentValue | null | undefined,
 ): number {
   if (!adj || adj.value === 0) return 0
   if (adj.type === 'fixed') return adj.value
-  return roundHalfUp((subtotalPaise * adj.value) / 10_000)
+  const raw = (subtotalPaise * adj.value) / 10_000
+  return adj.value < 0 ? roundHalfUp(raw / 100) * 100 : roundHalfUp(raw)
 }
 
 export function applyPaymentAdjustment(

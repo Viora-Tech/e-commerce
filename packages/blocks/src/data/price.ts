@@ -4,4 +4,6 @@ export const priceContent = {
   comingSoon: 'Price coming soon',
   /** A card whose variants cost different amounts: the lowest (Markets › Catalogs). */
   from: (price: string) => `From ${price}`,
+  /** The saving beside the struck-through MRP. */
+  save: (amount: string) => `Save ${amount}`,
 } as const

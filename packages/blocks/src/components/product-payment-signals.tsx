@@ -13,6 +13,8 @@ type ProductPaymentSignalsProps = {
   /** Selected variant's price; with `upiPercent` the note becomes "₹X with UPI". */
   pricePaise: number
   upiPercent: number
+  /** The `showUpiPrice` setting: false keeps the note as written, without a "₹X with UPI" price. */
+  upiPrice: boolean
   heading: string
   /** Steps shown in the panel (richtext HTML). */
   body: string
@@ -34,10 +36,22 @@ const ui = copy.ui
 const previewPaise = (pricePaise: number, percent: number) =>
   Math.floor((pricePaise * (100 - percent)) / 100 / 100) * 100
 
-/** The price after the store's UPI discount, the way checkout applies it (half away from zero). */
+/** Half away from zero, never −0. */
+const roundHalfUp = (n: number): number => Math.sign(n) * Math.round(Math.abs(n)) || 0
+
+/**
+ * The price after the store's UPI discount, exactly as checkout charges it
+ * (`@commerce/core/adjustment-math` `paymentAdjustmentPaise`, which this mirrors: blocks does
+ * not depend on core). A percent discount comes off in whole rupees, half away from zero, so
+ * a ₹2,699 item at −2% reads (and charges) ₹2,645, never ₹2,645.02.
+ */
 export function upiPricePaise(pricePaise: number, d: UpiDiscount): number {
-  const raw = d.type === 'fixed' ? d.value : (pricePaise * d.value) / 10_000
-  const off = Math.sign(raw) * Math.round(Math.abs(raw))
+  const off =
+    d.type === 'fixed'
+      ? d.value
+      : d.value < 0
+        ? roundHalfUp((pricePaise * d.value) / 10_000 / 100) * 100
+        : roundHalfUp((pricePaise * d.value) / 10_000)
   return Math.max(0, pricePaise + off)
 }
 
@@ -48,6 +62,7 @@ export default function ProductPaymentSignals({
   note,
   pricePaise,
   upiPercent,
+  upiPrice,
   heading,
   body,
   supportLabel,
@@ -68,12 +83,15 @@ export default function ProductPaymentSignals({
   if (upiDiscount !== undefined && !storeDiscount && upiPercent > 0) return null
 
   // Render logic
-  const upiPaise = storeDiscount
-    ? upiPricePaise(pricePaise, storeDiscount)
-    : upiDiscount === undefined && upiPercent > 0
-      ? previewPaise(pricePaise, upiPercent)
-      : null
-  const inline = upiPaise !== null && pricePaise > 0
+  const upiPaise = !upiPrice
+    ? null
+    : storeDiscount
+      ? upiPricePaise(pricePaise, storeDiscount)
+      : upiDiscount === undefined && upiPercent > 0
+        ? previewPaise(pricePaise, upiPercent)
+        : null
+  // A discount too small to reach a rupee leaves the price as it is: the note says it instead.
+  const inline = upiPaise !== null && pricePaise > 0 && upiPaise < pricePaise
   const support = supportLabel ? safeHref(supportUrl) : null
   const hasPanel = Boolean(body.trim() || support)
   const shown = inline ? (
