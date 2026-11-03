@@ -3,9 +3,15 @@
  * a supplier instead of retyping one, and starts in the supplier's currency.
  */
 import { newId, type StoreTx, supplier } from '@commerce/db'
-import { and, eq, ne, sql } from 'drizzle-orm'
+import { and, eq, inArray, ne, sql } from 'drizzle-orm'
 import { InventoryError } from './levels'
-import type { SupplierInput } from './schemas'
+import type { SupplierBulkUpdate, SupplierInput } from './schemas'
+
+type ContactInput = NonNullable<SupplierInput['contacts']>[number]
+
+/** Store a contact without empty labels, so a saved supplier compares equal to its form. */
+const cleanContact = (c: ContactInput) =>
+  c.label ? { kind: c.kind, value: c.value, label: c.label } : { kind: c.kind, value: c.value }
 
 export async function saveSupplier(
   tx: StoreTx,
@@ -20,6 +26,7 @@ export async function saveSupplier(
     email: input.email || null,
     phone: input.phone || null,
     address: input.address || null,
+    ...(input.contacts ? { contacts: input.contacts.map(cleanContact) } : {}),
     paymentTerms: input.paymentTerms || null,
     notes: input.notes || null,
     updatedAt: new Date(),
@@ -65,4 +72,27 @@ export async function deleteSupplier(tx: StoreTx, storeId: string, id: string): 
 export async function assertSupplier(tx: StoreTx, storeId: string, id: string): Promise<void> {
   const [row] = await tx.select({ id: supplier.id }).from(supplier).where(eq(supplier.id, id))
   if (!row) throw new InventoryError('SUPPLIER_NOT_FOUND', 'Supplier not found', { storeId })
+}
+
+/**
+ * Set the billing currency, country or payment terms on many suppliers at once (#1064, bulk edit
+ * on the suppliers list). Only the fields given change; returns how many suppliers were updated.
+ */
+export async function updateSuppliers(
+  tx: StoreTx,
+  storeId: string,
+  input: SupplierBulkUpdate,
+): Promise<number> {
+  const patch = {
+    ...(input.currency ? { currency: input.currency } : {}),
+    ...(input.country ? { country: input.country } : {}),
+    ...(input.paymentTerms !== undefined ? { paymentTerms: input.paymentTerms || null } : {}),
+  }
+  if (Object.keys(patch).length === 0) return 0
+  const rows = await tx
+    .update(supplier)
+    .set({ ...patch, updatedAt: new Date() })
+    .where(and(eq(supplier.storeId, storeId), inArray(supplier.id, input.ids)))
+    .returning({ id: supplier.id })
+  return rows.length
 }

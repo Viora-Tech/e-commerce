@@ -4,6 +4,7 @@ import type {
   InboundShipmentStatus,
   PurchaseChargeKind,
   SplitMethod,
+  SupplierContactKind,
 } from '@commerce/core/inventory'
 
 export {
@@ -42,6 +43,28 @@ export const suppliersContent = {
     heading: 'No suppliers yet',
     body: 'Save the people you buy stock from once, then pick them on every purchase order.',
   },
+  bulk: {
+    edit: 'Bulk edit',
+    delete: 'Delete',
+    title: (n: number) => `Edit ${n} supplier${n === 1 ? '' : 's'}`,
+    body: 'Tick what to change. Everything else stays as it is on each supplier.',
+    currency: 'Bills in',
+    country: 'Country',
+    paymentTerms: 'Payment terms',
+    paymentTermsHint: 'Leave empty to clear the terms.',
+    apply: 'Apply',
+    applying: 'Applying…',
+    cancel: 'Cancel',
+    nothing: 'Tick at least one thing to change',
+    updated: (n: number) => `${n} supplier${n === 1 ? '' : 's'} updated`,
+    failed: 'Couldn’t update the suppliers',
+    confirmDelete: {
+      title: (n: number) => `Delete ${n} supplier${n === 1 ? '' : 's'}?`,
+      body: 'Purchase orders keep the supplier name; they just stop pointing at these records. This can’t be undone.',
+      confirm: 'Delete',
+      cancel: 'Keep',
+    },
+  },
 } as const
 
 export const supplierFormContent = {
@@ -57,7 +80,27 @@ export const supplierFormContent = {
     country: 'Country code',
     currency: 'Bills in',
   },
-  contact: { heading: 'Contact', email: 'Email', phone: 'Phone', address: 'Address' },
+  contact: {
+    heading: 'Contact',
+    email: 'Email',
+    phone: 'Phone',
+    address: 'Address',
+    more: 'Other ways to reach them',
+    add: 'Add a contact',
+    kind: 'Type',
+    value: 'Number, ID or link',
+    label: 'Who (optional)',
+    labelPlaceholder: 'Sales, Lily',
+    remove: 'Remove contact',
+    kinds: {
+      whatsapp: 'WhatsApp',
+      wechat: 'WeChat',
+      phone: 'Phone',
+      email: 'Email',
+      website: 'Website',
+      other: 'Other',
+    } satisfies Record<SupplierContactKind, string>,
+  },
   terms: {
     heading: 'Terms and notes',
     paymentTerms: 'Payment terms',

@@ -12,12 +12,14 @@ import {
   permissions,
   receiveInboundShipment,
   removePurchaseCharge,
+  SupplierBulkUpdateSchema,
   SupplierInputSchema,
   saveInboundShipment,
   saveSupplier,
   setInboundShipmentStatus,
   shipmentOutstanding,
   updatePurchaseCharge,
+  updateSuppliers,
 } from '@commerce/core'
 import { inboundTrackingCourier } from '@commerce/core/inventory'
 import { ORPCError } from '@orpc/server'
@@ -77,6 +79,13 @@ export const suppliersRouter = {
     .input(byId)
     .handler(({ context, input }) =>
       friendly(() => deleteSupplier(context.tx, context.scope.storeId, input.id)),
+    ),
+
+  /** Bulk edit on the suppliers list (#1064): currency, country or payment terms for many. */
+  bulkUpdate: can(permissions.INVENTORY_WRITE)
+    .input(SupplierBulkUpdateSchema)
+    .handler(({ context, input }) =>
+      friendly(() => updateSuppliers(context.tx, context.scope.storeId, input)),
     ),
 }
 

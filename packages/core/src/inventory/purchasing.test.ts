@@ -11,6 +11,7 @@ import {
   purchaseOrderReceiptLine,
   type StoreTx,
   store,
+  supplier,
   variant,
   withStore,
 } from '@commerce/db'
@@ -40,7 +41,7 @@ import {
 } from './purchase-orders'
 import { receivePurchaseOrder } from './receiving'
 import type { PurchaseChargeInput, PurchaseOrderInput } from './schemas'
-import { saveSupplier } from './suppliers'
+import { saveSupplier, updateSuppliers } from './suppliers'
 
 const owner = createDb(process.env.DATABASE_URL_OWNER as string)
 const app = createDb(process.env.DATABASE_URL as string)
@@ -756,5 +757,65 @@ describe('weights from the packing list (#1054)', () => {
       run(c, (tx) => setPurchaseLineWeight(tx, c.storeId, po, other, 250)),
     ).rejects.toMatchObject({ code: 'PO_LINE_NOT_FOUND' })
     expect(await weightOf(other)).toBe(500)
+  })
+})
+
+describe('supplier contacts and bulk edit (#1064)', () => {
+  const supplierRow = async (id: string) =>
+    (await owner.select().from(supplier).where(eq(supplier.id, id)))[0]
+
+  it('keeps extra contacts, and a save without them leaves them alone', async () => {
+    const c = await seedStore()
+    const id = await run(c, (tx) =>
+      saveSupplier(tx, c.storeId, {
+        name: 'Uncle Panda',
+        country: 'CN',
+        currency: 'USD',
+        contacts: [
+          { kind: 'wechat', value: 'panda88', label: 'Lily' },
+          { kind: 'whatsapp', value: '+86 138 0000 0000' },
+        ],
+      }),
+    )
+    expect((await supplierRow(id))?.contacts).toEqual([
+      { kind: 'wechat', value: 'panda88', label: 'Lily' },
+      { kind: 'whatsapp', value: '+86 138 0000 0000' },
+    ])
+    // The quick-add dialog and bill reading don't send contacts: they must survive.
+    await run(c, (tx) =>
+      saveSupplier(tx, c.storeId, { id, name: 'Uncle Panda', country: 'CN', currency: 'USD' }),
+    )
+    expect((await supplierRow(id))?.contacts).toHaveLength(2)
+  })
+
+  it('bulk edits only what is given, and only this store’s suppliers', async () => {
+    const mine = await seedStore('mine')
+    const theirs = await seedStore('theirs')
+    const save = (c: Ctx, name: string) =>
+      run(c, (tx) =>
+        saveSupplier(tx, c.storeId, {
+          name,
+          country: 'IN',
+          currency: 'INR',
+          paymentTerms: '30% advance',
+        }),
+      )
+    const a = await save(mine, 'A')
+    const b = await save(mine, 'B')
+    const t = await save(theirs, 'T')
+
+    const n = await run(mine, (tx) =>
+      updateSuppliers(tx, mine.storeId, { ids: [a, b, t], currency: 'USD', country: 'CN' }),
+    )
+    expect(n).toBe(2)
+    expect(await supplierRow(a)).toMatchObject({
+      currency: 'USD',
+      country: 'CN',
+      paymentTerms: '30% advance',
+    })
+    expect(await supplierRow(t)).toMatchObject({ currency: 'INR', country: 'IN' })
+
+    await run(mine, (tx) => updateSuppliers(tx, mine.storeId, { ids: [b], paymentTerms: '' }))
+    expect((await supplierRow(b))?.paymentTerms).toBeNull()
   })
 })

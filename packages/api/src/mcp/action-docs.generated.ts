@@ -804,6 +804,8 @@ export const ACTION_DOCS: Record<string, string> = {
   'store.updatePreorderNote':
     "The store's default pre-order note (#936), for pre-order products without their own.",
   'store.updateTheme': "Saves the live theme's settings.",
+  'suppliers.bulkUpdate':
+    'Bulk edit on the suppliers list (#1064): currency, country or payment terms for many.',
   'suppliers.facets': "The countries and currencies in use, for the list's filter pickers.",
   'themes.createBlank':
     '"Start from scratch": base settings and empty templates, nothing from the live theme.',

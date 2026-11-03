@@ -7,6 +7,7 @@ import Link from 'next/link'
 import { parseAsInteger, parseAsString, useQueryStates } from 'nuqs'
 import { Suspense, useEffect, useState } from 'react'
 import ProoflyListPage from '@/components/layout/proofly-list-page'
+import SupplierBulkActions from '@/components/suppliers/supplier-bulk-actions'
 import { supplierColumns } from '@/components/suppliers/supplier-columns'
 import DeleteRowMenu from '@/components/table/delete-row-menu'
 import { appliedFromGroups } from '@/components/table/filter-panel'
@@ -124,7 +125,15 @@ function SuppliersContent({ initial }: { initial: SuppliersInitial }) {
           />
         )}
         loading={loading}
-        selectable={false}
+        bulkActions={(ids, clear) => (
+          <SupplierBulkActions
+            ids={ids}
+            onDone={() => {
+              clear()
+              void refresh()
+            }}
+          />
+        )}
         query={state.query}
         onQueryChange={(query) => setState({ query, page: 1 })}
         onClearAll={() => setState({ ...CLEAR_SUPPLIER_FILTERS, query: '', page: 1 })}
