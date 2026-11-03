@@ -92,7 +92,7 @@ export default function SettingsSearch() {
         className="h-9 pl-9"
       />
       {showList ? (
-        <div className="absolute top-full right-0 left-0 z-30 mt-1 overflow-hidden rounded-lg border border-border bg-popover shadow-dialog md:w-[20rem]">
+        <div className="absolute top-full right-0 left-0 z-30 mt-1 overflow-hidden rounded-lg border border-border bg-popover shadow-dialog">
           {results.length === 0 ? (
             <p className="p-3 text-caption text-muted-foreground">{copy.empty(query.trim())}</p>
           ) : (
@@ -111,7 +111,7 @@ export default function SettingsSearch() {
                     onClick={() => go(r.href)}
                     onMouseEnter={() => setActive(i)}
                     className={cn(
-                      'flex cursor-pointer flex-col rounded-md px-3 py-2 text-left',
+                      'flex min-w-0 cursor-pointer flex-col rounded-md px-3 py-2 text-left break-words',
                       i === active && 'bg-accent',
                     )}
                   >
