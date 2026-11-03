@@ -135,11 +135,16 @@ export type AdjustStockInput = {
   delta: number
   reason: InventoryReason
   note?: string | undefined
+  /**
+   * Let a tracked variant go below zero. Only the Shopify import sets it: Shopify's -7 means 7
+   * units sold beyond stock (pre-orders owed), kept as is (#53, e6c733831).
+   */
+  allowNegative?: boolean | undefined
 }
 
 /**
  * Change on-hand stock at one location and log why. Tracked variants never go
- * below zero; variants that sell regardless of stock may.
+ * below zero (unless `allowNegative`); variants that sell regardless of stock may.
  */
 export async function adjustStock(tx: StoreTx, input: AdjustStockInput): Promise<number> {
   if (input.delta === 0) return changeStock(tx, input)
@@ -157,7 +162,11 @@ async function changeStock(tx: StoreTx, input: AdjustStockInput): Promise<number
     .where(eq(variant.id, input.variantId))
   let next: number
   try {
-    next = nextOnHand(level.onHand, input.delta, v ? !v.trackInventory : false)
+    next = nextOnHand(
+      level.onHand,
+      input.delta,
+      input.allowNegative === true || (v ? !v.trackInventory : false),
+    )
   } catch (err) {
     if (err instanceof NegativeStockError) {
       throw new InventoryError('NEGATIVE_STOCK', 'Stock cannot go below zero', {

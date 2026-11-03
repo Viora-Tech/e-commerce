@@ -95,6 +95,7 @@ export async function createProduct(
     write.options,
     withKnownMedia(write.variants, known),
     write.inventoryReason,
+    { allowNegative: opts.imported === true },
   )
   if (write.mediaIds) await setProductMedia(tx, storeId, id, write.mediaIds)
   await noteProductsChanged(tx, [id], storeId)
@@ -132,6 +133,7 @@ export async function updateProduct(
     write.options,
     withKnownMedia(write.variants, known),
     write.inventoryReason,
+    { allowNegative: opts.imported === true },
   )
   if (write.mediaIds) await setProductMedia(tx, storeId, id, write.mediaIds)
   await noteProductsChanged(tx, [id], storeId)
@@ -150,6 +152,8 @@ export async function setOptionsAndVariants(
   options: OptionInput[],
   variants: VariantInput[],
   reason: InventoryReason = 'correction',
+  /** Imports keep Shopify's oversold (negative) stock; everyone else stops at zero. */
+  stock: { allowNegative?: boolean } = {},
 ) {
   const valueIds = await syncOptions(tx, storeId, productId, options)
 
@@ -188,7 +192,7 @@ export async function setOptionsAndVariants(
       const current = images.get(upd.id) ?? []
       await writeVariantMedia(tx, storeId, upd.id, nextVariantMedia(input, current), current)
       if (input.onHand !== undefined) {
-        await setOnHand(tx, storeId, upd.id, input.onHand, reason)
+        await setOnHand(tx, storeId, upd.id, input.onHand, reason, undefined, stock.allowNegative)
       }
       continue
     }
@@ -204,7 +208,8 @@ export async function setOptionsAndVariants(
     await tx.insert(inventoryLevel).values({ id: newId(), storeId, variantId: id, onHand: 0 })
     await link(id, input)
     await writeVariantMedia(tx, storeId, id, nextVariantMedia(input, []), [])
-    if (input.onHand) await setOnHand(tx, storeId, id, input.onHand, 'received')
+    if (input.onHand)
+      await setOnHand(tx, storeId, id, input.onHand, 'received', undefined, stock.allowNegative)
   }
 
   if (diff.remove.length)
@@ -389,8 +394,9 @@ export async function setOnHand(
   onHand: number,
   reason: InventoryReason,
   note?: string,
+  allowNegative?: boolean,
 ) {
-  await setStock(tx, { storeId, variantId, onHand, reason, note })
+  await setStock(tx, { storeId, variantId, onHand, reason, note, allowNegative })
 }
 
 /** Change on-hand stock at the default location and log why. */

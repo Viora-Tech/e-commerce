@@ -229,6 +229,22 @@ describe('inventory + delete', () => {
     expect(levels.find((l) => l.variantId === v.id)?.onHand).toBe(2)
   })
 
+  it("keeps an import's oversold (negative) stock; a merchant's own save still stops at zero", async () => {
+    const storeId = await seedStore()
+    const oversold = { ...write, variants: write.variants.map((v) => ({ ...v, onHand: -7 })) }
+    const id = await withStore(app, storeId, (tx) =>
+      createProduct(tx, storeId, oversold, { imported: true }),
+    )
+    const { levels } = await load(storeId, id)
+    expect(levels.map((l) => l.onHand)).toEqual(levels.map(() => -7))
+    await withStore(app, storeId, (tx) =>
+      updateProduct(tx, storeId, id, oversold, { imported: true }),
+    )
+    await expect(
+      withStore(app, storeId, (tx) => createProduct(tx, storeId, oversold)),
+    ).rejects.toMatchObject({ code: 'NEGATIVE_STOCK' })
+  })
+
   it('deletes an unordered product and archives an ordered one', async () => {
     const storeId = await seedStore()
     const a = await withStore(app, storeId, (tx) => createProduct(tx, storeId, write))
