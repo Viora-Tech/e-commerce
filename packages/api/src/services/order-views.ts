@@ -1,7 +1,14 @@
 /** SOURCE OF TRUTH: the Orders list's tabs — WHAT: which orders each tab (and Home's to-do counts) shows / WHY: one rule for the list, its counts and the dashboard */
-import { UNFULFILLED_STATUSES, UNPAID_PAYMENT_STATUSES } from '@commerce/core'
+import {
+  paymentFinished,
+  paymentNotFinished,
+  UNFULFILLED_STATUSES,
+  UNPAID_PAYMENT_STATUSES,
+} from '@commerce/core'
 import { order } from '@commerce/db'
-import { and, eq, gt, inArray, isNotNull, isNull, ne, type SQL, sql } from 'drizzle-orm'
+import { and, eq, gt, inArray, isNotNull, isNull, ne, type SQL } from 'drizzle-orm'
+
+export { paymentFinished, paymentNotFinished }
 
 /** The tabs above the order list. */
 export const ORDER_VIEWS = [
@@ -16,17 +23,6 @@ export const ORDER_VIEWS = [
   'archived',
 ] as const
 export type OrderView = (typeof ORDER_VIEWS)[number]
-
-/**
- * A storefront checkout whose online payment was never finished (the shopper closed the
- * gateway): open until the unpaid-order expiry cancels it. They stay out of Unpaid and
- * Unfulfilled (work to do; Home's counts) and have their own tab (#849). All and Cancelled show
- * them as unpaid orders, so an order the customer page lists is never missing from All Orders
- * (#1001, #997). COD and manual UPI orders are real orders. Every part is non-null, so `not`
- * of it is never null.
- */
-export const paymentNotFinished = sql`(${order.cartId} is not null and ${order.checkoutPaidAt} is null and ${order.importedFrom} is null and coalesce(${order.paymentMethod}, 'manual') not in ('cod', 'manual') and ${order.status} in ('open', 'cancelled'))`
-export const paymentFinished = sql`not ${paymentNotFinished}`
 
 /**
  * What each tab shows. Unpaid and Unfulfilled are work still to do, so only
@@ -76,10 +72,10 @@ function tabFilter(view: Exclude<OrderView, 'archived'>): SQL | undefined {
     case 'completed':
       return eq(order.status, 'completed')
     case 'cancelled':
-      return eq(order.status, 'cancelled')
+      return and(eq(order.status, 'cancelled'), paymentFinished)
     case 'payment_not_finished':
       return paymentNotFinished
     default:
-      return undefined
+      return paymentFinished
   }
 }
