@@ -10,7 +10,7 @@ import { cartContent as content } from '@/data/cart'
 import { readCartId } from '@/lib/cart-cookie'
 import { cartDiscountView } from '@/lib/discount-view'
 import { MARKET_HEADERS, marketPath } from '@/lib/markets'
-import { storeUpiDiscount } from '@/lib/payments'
+import { storeCartMethods, storeUpiDiscount } from '@/lib/payments'
 import { cartShippingHint } from '@/lib/shipping'
 import { storeRead } from '@/lib/store-cache'
 import { inStore } from '@/lib/store-context'
@@ -71,6 +71,10 @@ export default async function CartContents({ storeId, reorderSkipped }: CartCont
     ? null
     : await storeRead(storeId, 'upi-discount', (tx) => storeUpiDiscount(tx, storeId))
   const upi = applyPaymentAdjustment(total, upiDiscount)
+  const methods = await storeRead(storeId, 'cart-methods', (tx) => storeCartMethods(tx, storeId))
+  const paymentLabels = abroad
+    ? content.paymentsAbroad
+    : methods.flatMap((id) => content.payments[id] ?? [])
   // Subtotal and total agree with the lines' fixed catalog prices in a market (Markets › Catalogs).
   const priced = {
     lines: lines.map((l) => ({
@@ -164,7 +168,7 @@ export default async function CartContents({ storeId, reorderSkipped }: CartCont
               <Icon name="arrow-right" size={16} />
             </CartCheckoutLink>
             <ul className="cart-summary__methods" aria-label={content.paymentMethods}>
-              {(abroad ? content.paymentsAbroad : content.payments).map((p) => (
+              {paymentLabels.map((p) => (
                 <li key={p} className="cart-summary__method">
                   {p}
                 </li>

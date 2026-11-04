@@ -10,7 +10,11 @@ export const cartContent = {
     'Pre-orders ship on their own. Check out your cart first, or remove the in-stock items, then add this.',
   continueShopping: 'Continue shopping',
   paymentMethods: 'Ways to pay',
-  payments: ['UPI', 'Cards', 'Cash on delivery', 'EMI'],
+  /** A store's ways to pay by method id; a method not named here stays out of the row. */
+  payments: { upi: 'UPI', card: 'Cards', cod: 'Cash on delivery', emi: 'EMI' } as Record<
+    string,
+    string
+  >,
   /**
    * A market abroad pays online: cards, and UPI when the parcel goes to an Indian address (the
    * checkout follows the address, owner 1 Nov). No cash on delivery or EMI there.
@@ -37,7 +41,7 @@ export const cartContent = {
     more: (n: number) => (n === 1 ? 'and 1 more' : `and ${n} more`),
   },
   taxes: 'Inclusive of all taxes.',
-  taxesAtCheckout: 'Taxes included. Shipping and COD fee calculated at checkout.',
+  taxesAtCheckout: 'Taxes included. Shipping calculated at checkout.',
   taxesAtCheckoutAbroad: 'Shipping calculated at checkout.',
   checkout: 'Check out',
   drawer: {
