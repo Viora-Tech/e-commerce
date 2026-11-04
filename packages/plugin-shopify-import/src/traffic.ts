@@ -1,6 +1,5 @@
 /** SOURCE OF TRUTH: Shopify's traffic history — WHAT: reads daily sessions and visitors through `shopifyqlQuery` and saves them per day / WHY: reports read imported orders from day one, but sessions and conversion would start from zero after a move, and this history stays in Shopify's reports otherwise. Shopify only gives totals, never single visits, so it is a table of days, apart from `marketing_session` */
 import { importedTrafficDay, type StoreTx } from '@commerce/db'
-import { sql } from 'drizzle-orm'
 import { clientFor } from './connection'
 import { ImportError } from './service'
 import { type ShopifyClient, ShopifyError } from './shopify-client'
@@ -8,8 +7,8 @@ import { type ShopifyClient, ShopifyError } from './shopify-client'
 /** Two years of days: ShopifyQL answers a table of up to 1,000 rows by default. */
 const TRAFFIC_DAYS = 730
 
-/** Yesterday is the last whole day. */
-const TRAFFIC_QUERY = `FROM sessions SHOW sessions, online_store_visitors TIMESERIES day SINCE -${TRAFFIC_DAYS}d UNTIL yesterday ORDER BY day ASC`
+/** Real shoppers only, without bots. Yesterday is the last whole day. */
+export const TRAFFIC_QUERY = `FROM sessions SHOW sessions, online_store_visitors WHERE human_or_bot_session = 'human' TIMESERIES day SINCE -${TRAFFIC_DAYS}d UNTIL yesterday ORDER BY day ASC`
 
 const GRAPHQL = `query TrafficHistory($query: String!) {
   shopifyqlQuery(query: $query) { tableData { rows } parseErrors }
@@ -69,7 +68,7 @@ export async function fetchTrafficDays(client: ShopifyClient): Promise<TrafficDa
   return parseTrafficRows(tableData?.rows)
 }
 
-/** Save Shopify's days. Running it again replaces them, so it never counts a day twice. */
+/** Save Shopify's days. Running it again replaces them all, so no old day stays behind. */
 export async function importTraffic(
   tx: StoreTx,
   storeId: string,
@@ -78,18 +77,11 @@ export async function importTraffic(
   const client = await clientFor(tx, secret)
   if (!client) throw new ImportError(NOT_CONNECTED)
   const days = await fetchTrafficDays(client)
+  await tx.delete(importedTrafficDay)
   for (let i = 0; i < days.length; i += WRITE_BATCH) {
     await tx
       .insert(importedTrafficDay)
       .values(days.slice(i, i + WRITE_BATCH).map((d) => ({ ...d, storeId })))
-      .onConflictDoUpdate({
-        target: [importedTrafficDay.storeId, importedTrafficDay.day],
-        set: {
-          sessions: sql`excluded.sessions`,
-          visitors: sql`excluded.visitors`,
-          importedAt: sql`now()`,
-        },
-      })
   }
   return {
     days: days.length,
