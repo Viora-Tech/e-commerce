@@ -113,6 +113,14 @@
 :root[data-theme="dark"] .ck-logo-light {
   display: none;
 }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) .ck-logo-dark {
+    display: block;
+  }
+  :root:not([data-theme]) .ck-logo-light {
+    display: none;
+  }
+}
 
 :root[data-theme="dark"] .ck {
   --ck-bg: #121214;
