@@ -7,6 +7,7 @@ import {
   integer,
   jsonb,
   pgTable,
+  primaryKey,
   text,
   timestamp,
   uniqueIndex,
@@ -26,6 +27,23 @@ const storeId = () =>
     .notNull()
     .references(() => store.id)
 const createdAt = () => timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
+
+/**
+ * Sessions and visitors one day had on the store's old platform. Shopify only gives daily
+ * totals, never single visits, so these sit beside `marketing_session` and are added to it
+ * when sessions are counted.
+ */
+export const importedTrafficDay = pgTable(
+  'imported_traffic_day',
+  {
+    storeId: storeId(),
+    day: date('day').notNull(),
+    sessions: integer('sessions').notNull(),
+    visitors: integer('visitors').notNull().default(0),
+    importedAt: timestamp('imported_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.storeId, t.day] })],
+)
 
 /**
  * One storefront session (30 minutes of inactivity ends it), written when it

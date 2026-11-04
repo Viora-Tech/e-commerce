@@ -231,6 +231,8 @@ export const ALL_SCOPE_HANDLES = [
   'read_inventory_purchase_orders',
   /** Store settings: transfers between locations. Optional. */
   'read_inventory_transfers',
+  /** Traffic history: sessions and visitors by day. Optional. */
+  'read_reports',
 ] as const
 export type ScopeHandle = (typeof ALL_SCOPE_HANDLES)[number]
 

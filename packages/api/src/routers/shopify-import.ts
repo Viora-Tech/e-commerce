@@ -28,6 +28,7 @@ import {
   IMPORT_RESOURCES,
   ImportError,
   importStoreSettings,
+  importTraffic,
   issueGroups,
   LAUNCH_STORE,
   listIssues,
@@ -386,6 +387,14 @@ export const shopifyImportRouter = {
     await requireInstalled(context)
     return remainingStatus(context.tx, context.scope.storeId, settingsSecret())
   }),
+
+  /** Shopify's daily sessions and visitors. Running it again replaces the same days. */
+  importTraffic: can(permissions.APPS_MANAGE)
+    .use(heavy('import'))
+    .handler(async ({ context }) => {
+      await requireInstalled(context)
+      return importTraffic(context.tx, context.scope.storeId, settingsSecret()).catch(asOrpc)
+    }),
 
   /** "Import remaining": one import that writes only what is missing, for these resources. */
   importRemaining: can(permissions.APPS_MANAGE)

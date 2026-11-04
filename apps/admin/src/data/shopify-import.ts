@@ -45,6 +45,16 @@ export const shopifyImportContent = {
     cancelled: 'Stopped',
   } satisfies Record<RunStatus, string>,
 
+  traffic: {
+    title: 'Traffic history',
+    body: 'Bring your daily sessions and visitors from the last two years, so reports and conversion carry on from Shopify.',
+    action: 'Import traffic',
+    working: 'Importing',
+    done: (days: number, sessions: number) =>
+      `Imported ${days.toLocaleString('en-IN')} days and ${sessions.toLocaleString('en-IN')} sessions`,
+    none: 'Shopify has no traffic to bring over yet',
+    failed: 'Could not import traffic',
+  },
   home: {
     title: 'Import from Shopify',
     subtitle:
@@ -233,6 +243,7 @@ export const shopifyImportContent = {
       read_markets: 'Read markets',
       read_inventory_purchase_orders: 'Read purchase orders',
       read_inventory_transfers: 'Read transfers',
+      read_reports: 'Read traffic reports (sessions and visitors)',
     } satisfies Record<ScopeHandle, string>,
     chooseHeading: 'What to import',
     chooseHelp:

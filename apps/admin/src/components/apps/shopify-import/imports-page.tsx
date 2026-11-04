@@ -17,6 +17,7 @@ import type { Formatters } from '@/lib/format'
 import RemainingCard from './remaining-card'
 import RunStatusLabel from './run-status-label'
 import StorageNotice from './storage-notice'
+import TrafficCard from './traffic-card'
 import { type RunListItem, totals } from './types'
 
 const base = shopifyImportContent.base
@@ -185,6 +186,7 @@ export default function ImportsPage() {
             </CardContent>
           </Card>
         ))}
+        <TrafficCard />
       </div>
       <h2 className="mt-2 font-semibold text-ink-strong">{copy.historyTitle}</h2>
       <ResourceTable
