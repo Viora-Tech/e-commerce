@@ -138,7 +138,8 @@ export async function expireUnpaidOrder(
       const reason = o?.checkoutPaidAt ? 'paid' : (o?.status ?? 'missing')
       return { orderId, result: 'skipped' as const, reason }
     }
-    await cancelOrder(ctx, orderId)
+    // The shopper closed the payment window: nothing was bought, so no "order cancelled" email.
+    await cancelOrder(ctx, orderId, { notifyCustomer: false })
     await tx
       .update(payment)
       .set({ status: 'cancelled', error: 'Order expired unpaid' })

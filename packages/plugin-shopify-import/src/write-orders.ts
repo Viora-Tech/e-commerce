@@ -10,6 +10,7 @@ import {
   deleteFulfillmentOrders,
   encryptCustomerPhone,
   importedOrderStatuses,
+  paymentNotFinished,
   phoneBlindIndex,
   recomputeOrderStatuses,
   SETTLED_PAYMENT_STATUSES,
@@ -202,7 +203,12 @@ async function customerFor(
 
 type Existing = { id: string; importedFrom: string | null } | null
 
-async function existingOrder(tx: StoreTx, o: NOrder): Promise<Existing> {
+async function existingOrder(
+  tx: StoreTx,
+  storeId: string,
+  o: NOrder,
+  dryRun: boolean,
+): Promise<Existing> {
   const mapped = await findMapping(tx, 'orders', orderSourceId(o))
   if (mapped) {
     const [row] = await tx
@@ -213,10 +219,23 @@ async function existingOrder(tx: StoreTx, o: NOrder): Promise<Existing> {
   }
   if (o.number === null) return null
   const [byNumber] = await tx
-    .select({ id: order.id, importedFrom: order.importedFrom })
+    .select({
+      id: order.id,
+      importedFrom: order.importedFrom,
+      abandoned: sql<boolean>`${paymentNotFinished}`,
+    })
     .from(order)
     .where(eq(order.number, o.number))
-  return byNumber ?? null
+  if (!byNumber?.abandoned) return byNumber ?? null
+  // A closed payment window is not a sale: Shopify's real order takes the number, and the
+  // abandoned checkout moves to the next one instead of the real order being skipped. A
+  // preview changes nothing: it only reports the real order as new.
+  if (dryRun) return null
+  await tx
+    .update(order)
+    .set({ number: await nextNumber(tx, storeId) })
+    .where(eq(order.id, byNumber.id))
+  return null
 }
 
 /** The store's next order number (`store_counter`, shared with checkout and drafts). */
@@ -244,7 +263,7 @@ async function applyOrder(
   cache: Map<string, string>,
   mappings?: MappingRow[],
 ): Promise<Outcome> {
-  const existing = await existingOrder(tx, o)
+  const existing = await existingOrder(tx, ctx.storeId, o, ctx.dryRun)
   if (existing && !existing.importedFrom) return { outcome: 'skipped', id: null, existing }
   if (ctx.dryRun) {
     return { outcome: existing ? 'updated' : 'created', id: existing?.id ?? null, existing }
