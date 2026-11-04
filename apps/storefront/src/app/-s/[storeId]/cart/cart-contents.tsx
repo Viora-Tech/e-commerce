@@ -1,5 +1,6 @@
 import { EmptyState, Icon, Money } from '@commerce/blocks'
 import { getCart } from '@commerce/core'
+import { applyPaymentAdjustment } from '@commerce/core/adjustment-math'
 import { isAbroad } from '@commerce/core/checkout-address'
 import { headers } from 'next/headers'
 import CartCheckoutLink from '@/components/cart/cart-checkout-link'
@@ -9,7 +10,9 @@ import { cartContent as content } from '@/data/cart'
 import { readCartId } from '@/lib/cart-cookie'
 import { cartDiscountView } from '@/lib/discount-view'
 import { MARKET_HEADERS, marketPath } from '@/lib/markets'
+import { storeUpiDiscount } from '@/lib/payments'
 import { cartShippingHint } from '@/lib/shipping'
+import { storeRead } from '@/lib/store-cache'
 import { inStore } from '@/lib/store-context'
 import CartLines from './cart-lines'
 
@@ -41,7 +44,7 @@ export default async function CartContents({ storeId, reorderSkipped }: CartCont
   if (!cart || lines.length === 0) {
     return (
       <section className="section-cart page-width">
-        <h1 className="cart-page__title">{content.title}</h1>
+        <h1 className="cart-page__title">{content.heading}</h1>
         <EmptyState
           icon="bag"
           title={content.empty.heading}
@@ -62,6 +65,12 @@ export default async function CartContents({ storeId, reorderSkipped }: CartCont
   const hint = abroad ? { charged: true, freeAbovePaise: null } : india
   const threshold = discount?.freeShipping ? null : hint.freeAbovePaise
   const freeNow = discount?.freeShipping === true || (threshold !== null && total >= threshold)
+  // The price checkout charges by UPI, in whole rupees for whatever percent the store sets. A
+  // shopper abroad sees none, as on the product page.
+  const upiDiscount = abroad
+    ? null
+    : await storeRead(storeId, 'upi-discount', (tx) => storeUpiDiscount(tx, storeId))
+  const upi = applyPaymentAdjustment(total, upiDiscount)
   // Subtotal and total agree with the lines' fixed catalog prices in a market (Markets › Catalogs).
   const priced = {
     lines: lines.map((l) => ({
@@ -76,7 +85,7 @@ export default async function CartContents({ storeId, reorderSkipped }: CartCont
   return (
     <section className="section-cart page-width">
       <h1 className="cart-page__title">
-        {content.title}
+        {content.heading}
         <span className="cart-page__count">
           {content.itemCount(lines.reduce((n, l) => n + l.quantity, 0))}
         </span>
@@ -136,6 +145,16 @@ export default async function CartContents({ storeId, reorderSkipped }: CartCont
                 <Money paise={total} cart={priced} />
               </span>
             </div>
+            {upi.adjustmentPaise < 0 ? (
+              <div className="cart-summary__upi">
+                <span>
+                  {content.upiPay} <Money paise={upi.totalPaise} /> {content.upiWith}
+                </span>
+                <span className="cart-summary__upi-save">
+                  {content.upiSave} <Money paise={-upi.adjustmentPaise} />
+                </span>
+              </div>
+            ) : null}
             <p className="text-caption">
               {abroad ? content.taxesAtCheckoutAbroad : content.taxesAtCheckout}
             </p>

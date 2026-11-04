@@ -1,6 +1,7 @@
 /** Copy for the cart page and the discount code field shared with checkout. */
 export const cartContent = {
   title: 'Your cart',
+  heading: 'Cart',
   itemCount: (n: number) => `${n} ${n === 1 ? 'item' : 'items'}`,
   remove: 'Remove',
   preorder: 'Pre-order',
@@ -15,7 +16,10 @@ export const cartContent = {
    * checkout follows the address, owner 1 Nov). No cash on delivery or EMI there.
    */
   paymentsAbroad: ['Cards', 'UPI for Indian addresses'],
-  summary: 'Summary',
+  summary: 'Order summary',
+  upiPay: 'Pay',
+  upiWith: 'with UPI',
+  upiSave: 'Save',
   subtotal: 'Subtotal',
   shipping: 'Shipping',
   shippingFree: 'Free',
