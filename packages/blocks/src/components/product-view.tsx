@@ -158,7 +158,7 @@ export default function ProductView({
           {s.showVendor && product.vendor ? (
             <p className="product-info__vendor">{product.vendor}</p>
           ) : null}
-          <h1 className="product-info__title">
+          <h1 className={`product-info__title${s.uppercaseTitle ? ' h2' : ''}`}>
             {product.title}
             {isPreorder && s.showPreorderBadge ? (
               <span className="product-info__preorder-badge">{copy.ui.preorderBadge}</span>
