@@ -1,6 +1,7 @@
 import 'server-only'
 import { settingsSecret } from '@commerce/config'
 import {
+  checkoutMethodsOf,
   type FallbackTry,
   fallbackChain,
   type GatewaySupports,
@@ -128,6 +129,17 @@ export async function storePaymentFallbacks(
   return fallbackChain(settings, providerId, offered, supports).flatMap((step) => {
     const provider = providers.find((p) => p.id === step.gatewayId)
     return provider ? [{ provider, methods: step.methods }] : []
+  })
+}
+
+/** The methods the cart names, from the store's own row, so it never lists one checkout lacks. */
+export async function storeCartMethods(tx: StoreTx, storeId: string): Promise<string[]> {
+  const settings = await loadSettings(tx, storeId)
+  const on = checkoutMethodsOf(settings).filter((m) => m.on)
+  const gateway = settings.enabled.some(isGatewayProvider)
+  return on.flatMap((m) => {
+    if (m.id === 'cod') return settings.enabled.includes('cod') ? [m.id] : []
+    return gateway ? [m.id] : []
   })
 }
 
