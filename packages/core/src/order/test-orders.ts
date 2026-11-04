@@ -21,7 +21,20 @@ import { deleteFulfillmentOrders } from './fulfillment-orders'
 import { cancelOrder } from './status'
 
 /** Where-clause fragment: true for real orders, false for test-mode ones. */
-export const notTestOrder: SQL = eq(order.isTest, false)
+/**
+ * A storefront checkout whose online payment never finished: the shopper closed Razorpay or
+ * Cashfree. We create the order before the gateway opens, Shopify after it pays, so until it
+ * pays it is not a sale: it sits under the Orders list's "Payment pending" tab until the expiry
+ * cancels it. COD and manual UPI or bank orders are real orders and stay out of this, as does an
+ * authorised card (manual capture). Every part is non-null, so `not` of it is never null.
+ */
+export const paymentNotFinished = sql`(${order.cartId} is not null and ${order.checkoutPaidAt} is null and ${order.importedFrom} is null and coalesce(${order.paymentMethod}, 'manual') not in ('cod', 'manual') and ${order.paymentStatus} <> 'authorized' and ${order.status} in ('open', 'cancelled'))`
+export const paymentFinished = sql`not ${paymentNotFinished}`
+
+const notTest: SQL = eq(order.isTest, false)
+
+/** Orders that count as sales and history: real money, not test keys or an abandoned checkout. */
+export const notTestOrder = and(notTest, paymentFinished) as SQL
 
 /**
  * How many uses each discount gets back when its usage rows go: one per row,

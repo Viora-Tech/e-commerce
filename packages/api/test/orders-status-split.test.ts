@@ -1,6 +1,7 @@
 import { createMerchantAuth } from '@commerce/auth'
 import {
   address,
+  cart,
   createDb,
   order,
   orderLine,
@@ -116,6 +117,32 @@ describe('order list tabs and filters on the split statuses', () => {
     expect(await numbers(m, { view: 'pending_upi' })).toEqual([3])
     expect(await numbers(m, { view: 'completed' })).toEqual([4])
     expect(await numbers(m, { view: 'cancelled' })).toEqual([5])
+  })
+
+  it('keeps a gateway checkout nobody paid out of the list and sales, until it is paid', async () => {
+    const m = await merchant('abandoned@example.com', 'abandoned')
+    await seedOrders(m.storeId)
+    const carts = await owner
+      .insert(cart)
+      .values(Array(4).fill({ storeId: m.storeId }))
+      .returning()
+    const base = { storeId: m.storeId, subtotalPaise: 1000, totalPaise: 1000 }
+    const placedAt = new Date()
+    const closed = { ...base, paymentMethod: 'razorpay', status: 'open' as const, placedAt }
+    await owner.insert(order).values([
+      { ...closed, number: 20, cartId: carts[0]?.id },
+      { ...closed, number: 21, status: 'cancelled' as const, cartId: carts[1]?.id },
+      { ...closed, number: 22, paymentMethod: 'manual', cartId: carts[2]?.id },
+      { ...closed, number: 23, paymentStatus: 'authorized' as const, cartId: carts[3]?.id },
+    ])
+    const all = await numbers(m, {})
+    expect(all).not.toContain(20)
+    expect(all).not.toContain(21)
+    expect(all).toContain(22)
+    expect(all).toContain(23)
+    expect(await numbers(m, { view: 'cancelled' })).toEqual([5])
+    expect(await numbers(m, { view: 'payment_not_finished' })).toEqual([20, 21])
+    expect(await numbers(m, { search: '20' })).toContain(20)
   })
 
   it('filters by payment and fulfilment status, combined with a tab', async () => {
