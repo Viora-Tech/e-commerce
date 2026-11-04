@@ -68,9 +68,9 @@ describe('PaymentMethods', () => {
     const at = (id: string) => html.indexOf(`value="${id}"`)
     expect(at('razorpay')).toBeLessThan(at('cashfree'))
     expect(at('cashfree')).toBeLessThan(at('cod'))
-    expect(html).toContain('>Razorpay<')
+    expect(html).toContain('>Razorpay Secure<')
     expect(html).toContain('UPI · Cards · Netbanking · EMI and pay later')
-    expect(html).toContain('>Cashfree<')
+    expect(html).toContain('>Cashfree Secure<')
     expect(html).toContain('Cash on delivery')
   })
 

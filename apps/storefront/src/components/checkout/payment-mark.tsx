@@ -5,7 +5,7 @@ type PaymentMarkProps = {
   size?: 'word' | 'chip'
 }
 
-export type PaymentMarkName = 'GPay' | 'PhonePe' | 'Paytm' | 'UPI' | 'VISA' | 'RuPay'
+export type PaymentMarkName = 'GPay' | 'PhonePe' | 'Paytm' | 'UPI' | 'VISA' | 'RuPay' | 'Mastercard'
 
 type ChipLook = { bg: string; fg: string; border: boolean; italic?: boolean }
 
@@ -21,6 +21,7 @@ const CHIPS: Record<PaymentMarkName, ChipLook> = {
   UPI: { bg: '#FFFFFF', fg: '#097A44', border: true },
   VISA: { bg: '#1A1F71', fg: '#FFFFFF', border: false, italic: true },
   RuPay: { bg: '#FFFFFF', fg: '#097A44', border: true },
+  Mastercard: { bg: '#1F1F1F', fg: '#FFFFFF', border: false },
 }
 
 /** "Google" in its four colours, each letter with a stable key. */
@@ -40,12 +41,28 @@ const GOOGLE: { key: string; letter: string; colour: string }[] = [
  */
 export default function PaymentMark({ mark, size = 'chip' }: PaymentMarkProps) {
   // Early returns
+  if (mark === 'Mastercard') {
+    return (
+      <span
+        role="img"
+        aria-label={mark}
+        style={{ backgroundColor: CHIPS.Mastercard.bg }}
+        className="inline-flex h-6 items-center rounded-[0.25rem] px-1.5"
+      >
+        <span style={{ backgroundColor: '#EB001B' }} className="size-3 rounded-full" />
+        <span
+          style={{ backgroundColor: '#F79E1B' }}
+          className="-ml-1 size-3 rounded-full opacity-90"
+        />
+      </span>
+    )
+  }
   if (size === 'chip') {
     const look = CHIPS[mark]
     return (
       <span
         style={{ backgroundColor: look.bg, color: look.fg }}
-        className={`inline-flex h-5 items-center rounded-[0.25rem] px-1.5 text-[0.5625rem] leading-none font-extrabold tracking-[0.02em] sm:h-[1.375rem] sm:text-[0.625rem] ${look.border ? 'border border-ck-line' : ''} ${look.italic ? 'italic' : ''}`}
+        className={`inline-flex h-6 items-center rounded-[0.25rem] px-2 text-[0.625rem] leading-none font-extrabold tracking-[0.02em] sm:h-[1.375rem] sm:text-[0.625rem] ${look.border ? 'border border-ck-line' : ''} ${look.italic ? 'italic' : ''}`}
       >
         {mark}
       </span>

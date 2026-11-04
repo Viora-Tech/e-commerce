@@ -1,5 +1,6 @@
 import 'server-only'
 import {
+  liquidThemeDarkLogoUrl,
   liquidThemeLogoUrl,
   loadTemplate,
   mainThemeId,
@@ -32,6 +33,21 @@ async function liquidLogo(storeId: string, themeId: string): Promise<string | nu
   )
   const content = Array.isArray(header.data.content) ? header.data.content : []
   return liquidThemeLogoUrl(
+    content as { type: string; props: Record<string, unknown> }[],
+    theme.bundle,
+  )
+}
+
+/** The live imported theme's logo for dark backgrounds, else null. */
+export async function liveLiquidDarkLogoUrl(storeId: string): Promise<string | null> {
+  const themeId = await storeRead(storeId, 'main-theme', (tx) => mainThemeId(tx))
+  const theme = themeId ? await importedTheme(storeId, themeId) : null
+  if (!themeId || !theme) return null
+  const header = await storeRead(storeId, `template|${themeId}|header|`, (tx) =>
+    loadTemplate(tx, themeId, 'header', ''),
+  )
+  const content = Array.isArray(header.data.content) ? header.data.content : []
+  return liquidThemeDarkLogoUrl(
     content as { type: string; props: Record<string, unknown> }[],
     theme.bundle,
   )

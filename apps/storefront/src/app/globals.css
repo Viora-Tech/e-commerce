@@ -103,6 +103,17 @@
   color-scheme: light;
 }
 
+/* Dark checkout: one clean page, no boxes inside boxes, and the theme's logo for dark. */
+.ck-logo-dark {
+  display: none;
+}
+:root[data-theme="dark"] .ck-logo-dark {
+  display: block;
+}
+:root[data-theme="dark"] .ck-logo-light {
+  display: none;
+}
+
 :root[data-theme="dark"] .ck {
   --ck-bg: #121214;
   --ck-ink: #ededee;
@@ -116,7 +127,7 @@
   --ck-summary: color-mix(in oklab, var(--ck-summary-light) 8%, #0b0b0d);
   --ck-summary-ink: #ededee;
   --ck-card-shadow: none;
-  --ck-section-shadow: 0 0 0 1px var(--ck-line);
+  --ck-section-shadow: none;
   color-scheme: dark;
 }
 
@@ -176,7 +187,7 @@ body:has(.ck) {
     --ck-summary: color-mix(in oklab, var(--ck-summary-light) 8%, #0b0b0d);
     --ck-summary-ink: #ededee;
     --ck-card-shadow: none;
-    --ck-section-shadow: 0 0 0 1px var(--ck-line);
+    --ck-section-shadow: none;
     color-scheme: dark;
   }
 }
