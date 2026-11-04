@@ -111,7 +111,9 @@ export default function CheckoutSummary({
       </div>
 
       <section aria-label={words.summary} className="flex flex-col gap-4">
-        <ul className="flex flex-col gap-4">
+        {/* A long order scrolls here, so the code fields, totals and Pay stay on screen. The
+            padding keeps each thumbnail's quantity badge from being clipped. */}
+        <ul className="flex flex-col gap-4 lg:-mr-2 lg:max-h-[min(17rem,34dvh)] lg:overflow-y-auto lg:overscroll-contain lg:pt-2 lg:pr-3 lg:[scrollbar-width:thin]">
           {cart.lines.map((l) => (
             <SummaryLine
               key={l.id}
