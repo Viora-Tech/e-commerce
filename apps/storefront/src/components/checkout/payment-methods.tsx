@@ -22,6 +22,16 @@ type PaymentMethodsProps = {
 
 const panel = content.methodPanel
 
+/** Each gateway's own colour for its name chip; anything else wears the checkout's ink. */
+const BRAND_COLOURS: Record<string, string> = {
+  Razorpay: '#072654',
+  Cashfree: '#5B3DF5',
+  Decentro: '#0B0B12',
+  PhonePe: '#5F259F',
+  PayU: '#3A8D2F',
+  Paytm: '#002E6E',
+}
+
 /** The small marks under a way to pay: the UPI apps, or what a gateway takes. */
 function marksFor(m: CheckoutMethod): readonly PaymentMarkName[] {
   if (m.id === 'decentro') return panel.upiApps
@@ -68,6 +78,8 @@ export default function PaymentMethods({
           const saving = (m.adjustment?.value ?? 0) < 0
           const marks = marksFor(m)
           const detail = detailFor(m, amountLabel)
+          // A gateway's chip already says its name; UPI keeps its own title beside the chip.
+          const titleHidden = view.brand !== null && view.brand === view.title
           return (
             <div
               key={m.id}
@@ -89,7 +101,16 @@ export default function PaymentMethods({
                 <RadioDot checked={checked} />
                 <span className="flex min-w-0 flex-1 flex-col gap-1.5">
                   <span className="flex flex-wrap items-center gap-1.5 text-[0.8125rem] leading-snug font-semibold text-ck-ink sm:gap-2 sm:text-[0.875rem]">
-                    <span>{view.brand ? panel.secure(view.brand) : view.title}</span>
+                    {view.brand ? (
+                      <span
+                        aria-hidden="true"
+                        style={{ backgroundColor: BRAND_COLOURS[view.brand] ?? 'var(--ck-ink)' }}
+                        className="inline-flex h-5 shrink-0 items-center rounded-[0.3125rem] px-1.5 text-[0.5625rem] font-extrabold tracking-[0.04em] text-white sm:h-[1.375rem] sm:px-[0.4375rem] sm:text-[0.625rem]"
+                      >
+                        {view.brand}
+                      </span>
+                    ) : null}
+                    <span className={titleHidden ? 'sr-only' : undefined}>{view.title}</span>
                     {m.test ? (
                       <span
                         title={content.testModeHint}
@@ -99,6 +120,13 @@ export default function PaymentMethods({
                       </span>
                     ) : null}
                   </span>
+                  {marks.length > 0 ? (
+                    <span aria-hidden="true" className="flex flex-wrap items-center gap-1">
+                      {marks.map((mark) => (
+                        <PaymentMark key={mark} mark={mark} />
+                      ))}
+                    </span>
+                  ) : null}
                   {m.id === 'cod' && codNote ? (
                     <span
                       className={`text-[0.75rem] leading-snug ${blocked ? 'text-ck-danger' : 'text-ck-muted'}`}
@@ -107,13 +135,6 @@ export default function PaymentMethods({
                     </span>
                   ) : null}
                 </span>
-                {marks.length > 0 ? (
-                  <span aria-hidden="true" className="flex shrink-0 items-center gap-1">
-                    {marks.map((mark) => (
-                      <PaymentMark key={mark} mark={mark} />
-                    ))}
-                  </span>
-                ) : null}
                 {adjustment ? (
                   <span
                     className={`flex h-[1.375rem] shrink-0 items-center rounded-[0.375rem] px-[0.4375rem] text-[0.6875rem] font-semibold tabular-nums sm:h-6 sm:px-2 sm:text-[0.75rem] ${saving ? 'bg-ck-success/12 text-ck-success' : 'bg-ck-soft text-ck-muted'}`}
