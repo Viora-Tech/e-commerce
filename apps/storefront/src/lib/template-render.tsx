@@ -319,6 +319,15 @@ export async function renderTemplate(
       puck,
     )
     if (!section) return null
+    // Our product section stands in for the theme's. Inside `.shopify-section` our own look
+    // (every `:not(:where(.shopify-section *))` rule) drops away and the theme's shows.
+    if (liquidHtml && item.type === 'MainProduct') {
+      return (
+        <div key={item.props.id} className="shopify-section">
+          {section}
+        </div>
+      )
+    }
     return (
       <Fragment key={item.props.id}>
         {reveals && index > 0 ? <Reveal>{section}</Reveal> : section}
