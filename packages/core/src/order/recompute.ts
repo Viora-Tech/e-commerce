@@ -20,6 +20,7 @@ import {
   type OrderFulfillmentStatus,
   type OrderLifecycleStatus,
   type OrderPaymentStatus,
+  paysOnlineAtCheckout,
   UNFULFILLED_STATUSES,
 } from './aggregate-status'
 
@@ -164,6 +165,8 @@ export async function recomputeOrderStatuses(
   if (changed) await ctx.tx.update(order).set(after).where(eq(order.id, orderId))
 
   const live = status === 'open' || status === 'completed'
+  // The first money on a gateway checkout, captured or authorised, is when it becomes an order.
+  const held = paysOnlineAtCheckout(o) && before.paymentStatus !== 'authorized'
   let becamePaid = false
   if (live && !o.checkoutPaidAt && isCheckoutSettled(o, payments)) {
     const [marked] = await ctx.tx
@@ -173,8 +176,15 @@ export async function recomputeOrderStatuses(
       .returning({ id: order.id })
     if (marked) {
       becamePaid = true
-      await insertOutboxEvent(ctx.tx, ctx.storeId, 'order.paid', { orderId })
+      // `order.placed` below tells the shopper; one confirmation is enough.
+      await insertOutboxEvent(ctx.tx, ctx.storeId, 'order.paid', {
+        orderId,
+        ...(held ? { notifyCustomer: false } : {}),
+      })
     }
+  }
+  if (held && live && (becamePaid || paymentStatus === 'authorized')) {
+    await insertOutboxEvent(ctx.tx, ctx.storeId, 'order.placed', { orderId })
   }
 
   const fullyPacked = lines.length > 0 && lines.every((l) => l.fulfilledQuantity >= l.quantity)

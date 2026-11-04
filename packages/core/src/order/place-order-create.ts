@@ -23,6 +23,7 @@ import { primaryRateId } from '../shipping/profiles'
 import { computeOrderGst } from '../tax/gst'
 import { parseStoreTax } from '../tax/settings'
 import type { WorkflowStep } from '../workflow/run'
+import { paysOnlineAtCheckout } from './aggregate-status'
 import { upsertCheckoutCustomer } from './checkout-customer'
 import { createFulfillmentOrders, deleteFulfillmentOrders } from './fulfillment-orders'
 import { takeOrderNumber } from './order-number'
@@ -241,8 +242,18 @@ export const createOrder: WorkflowStep<State> = {
     if (!o) throw new Error('order insert returned nothing')
     // In the same transaction as the insert: if a later step throws, the
     // workflow's compensation (below) deletes the order and the whole
-    // transaction rolls back, taking this row with it.
-    await insertOutboxEvent(ctx.tx, ctx.storeId, 'order.placed', { orderId: o.id })
+    // transaction rolls back, taking this row with it. A gateway checkout with money
+    // to collect waits: recomputeOrderStatuses writes it when the money arrives.
+    const waitsForMoney =
+      totalPaise > 0 &&
+      paysOnlineAtCheckout({
+        cartId: input.cartId,
+        importedFrom: null,
+        paymentMethod: input.paymentProvider.id,
+      })
+    if (!waitsForMoney) {
+      await insertOutboxEvent(ctx.tx, ctx.storeId, 'order.placed', { orderId: o.id })
+    }
     if (risk?.verify) await requestCodConfirmation(ctx, o.id)
     const lineIds = lines.map(() => newId())
     await ctx.tx.insert(orderLine).values(

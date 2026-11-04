@@ -1,7 +1,8 @@
 import { createHmac, timingSafeEqual } from 'node:crypto'
-import { cart, cartLine } from '@commerce/db'
+import { cart, cartLine, order } from '@commerce/db'
 import { and, desc, eq, gte, isNotNull, isNull, lt, or, type SQL, sql } from 'drizzle-orm'
 import type { StoreContext } from '../context'
+import { paymentNotFinished } from '../order/test-orders'
 import { notTestCartContact } from './test-contact'
 
 /**
@@ -76,6 +77,12 @@ export type AbandonedListFilters = {
   contact?: AbandonedContact | undefined
 }
 
+/**
+ * The checkout became an order that got its money. Pressing Pay converts the cart before the
+ * gateway opens, so a closed payment window is still an abandoned checkout, not a sale.
+ */
+export const convertedToSale = sql<boolean>`(${cart.status} = 'converted' and not exists (select 1 from ${order} where ${order.cartId} = "cart"."id" and ${paymentNotFinished}))`
+
 /** Carts with a contact, at least one line and no activity for the grace period. */
 function abandonedWhere(now: Date, since: Date) {
   return and(
@@ -86,7 +93,7 @@ function abandonedWhere(now: Date, since: Date) {
     sql`${lineCount} > 0`,
     // A cart that became an order with no reminder was never abandoned: the shopper simply
     // checked out. Counting it as "recovered" inflated the recovery rate (audit #187).
-    or(sql`${cart.status} <> 'converted'`, isNotNull(cart.recoverySentAt)),
+    or(sql`not ${convertedToSale}`, isNotNull(cart.recoverySentAt)),
   )
 }
 
@@ -114,10 +121,10 @@ export async function listAbandoned(
   const where = and(
     abandonedWhere(now, since),
     ...abandonedFilterWhere(input),
-    input.status === 'recovered' ? eq(cart.status, 'converted') : undefined,
-    input.status === 'not_recovered' ? sql`${cart.status} <> 'converted'` : undefined,
+    input.status === 'recovered' ? convertedToSale : undefined,
+    input.status === 'not_recovered' ? sql`not ${convertedToSale}` : undefined,
     input.status === 'reminder_sent'
-      ? and(sql`${cart.status} <> 'converted'`, isNotNull(cart.recoverySentAt))
+      ? and(sql`not ${convertedToSale}`, isNotNull(cart.recoverySentAt))
       : undefined,
     search
       ? sql`(${cart.email} ilike ${`%${search}%`} or ${cart.phone} ilike ${`%${search}%`} or ${cart.customerName} ilike ${`%${search}%`})`
@@ -133,7 +140,7 @@ export async function listAbandoned(
       email: cart.email,
       phone: cart.phone,
       customerName: cart.customerName,
-      status: cart.status,
+      recovered: convertedToSale,
       updatedAt: cart.updatedAt,
       recoverySentAt: cart.recoverySentAt,
       firstTitle,
@@ -146,7 +153,7 @@ export async function listAbandoned(
     .limit(input.perPage)
     .offset((input.page - 1) * input.perPage)
   return {
-    items: rows.map(({ status, ...r }) => ({ ...r, recovered: status === 'converted' })),
+    items: rows,
     total: countRow?.total ?? 0,
   }
 }
@@ -158,15 +165,13 @@ export async function abandonedStats(
   const now = opts.now ?? new Date()
   const since = new Date(now.getTime() - (opts.days ?? 7) * 86_400_000)
   const rows = await ctx.tx
-    .select({ status: cart.status, subtotalPaise: subtotal, sentAt: cart.recoverySentAt })
+    .select({ recovered: convertedToSale, subtotalPaise: subtotal, sentAt: cart.recoverySentAt })
     .from(cart)
     .where(abandonedWhere(now, since))
-  const recovered = rows.filter((r) => r.status === 'converted').length
+  const recovered = rows.filter((r) => r.recovered).length
   return {
     carts: rows.length,
-    valuePaise: rows
-      .filter((r) => r.status !== 'converted')
-      .reduce((sum, r) => sum + r.subtotalPaise, 0),
+    valuePaise: rows.filter((r) => !r.recovered).reduce((sum, r) => sum + r.subtotalPaise, 0),
     recovered,
     recoveryRate: rows.length === 0 ? 0 : recovered / rows.length,
     notRecovered: rows.length - recovered,

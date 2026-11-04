@@ -7,6 +7,7 @@ import {
   captureCartContact,
   checkDraftDiscountCode,
   convertDraft,
+  convertedToSale,
   createDraft,
   DiscountCodeRefused,
   DiscountUnavailable,
@@ -339,8 +340,12 @@ export async function getStoreAbandoned(
   cartId: string,
   link: { settingsSecret: string; storefrontUrl: string },
 ) {
-  const [row] = await tx.select().from(cart).where(eq(cart.id, cartId))
-  if (!row) throw new ORPCError('NOT_FOUND', { message: 'Checkout not found' })
+  const [found] = await tx
+    .select({ row: cart, recovered: convertedToSale })
+    .from(cart)
+    .where(eq(cart.id, cartId))
+  if (!found) throw new ORPCError('NOT_FOUND', { message: 'Checkout not found' })
+  const { row, recovered } = found
   const lines = await tx
     .select({
       id: cartLine.id,
@@ -359,7 +364,6 @@ export async function getStoreAbandoned(
     .where(eq(cartLine.cartId, cartId))
     .orderBy(asc(cartLine.id))
   const origin = await storefrontOriginFor(tx, storeId, link.storefrontUrl)
-  const recovered = row.status === 'converted'
   return {
     id: row.id,
     email: row.email,
