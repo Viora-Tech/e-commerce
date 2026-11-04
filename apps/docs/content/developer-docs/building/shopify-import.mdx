@@ -414,3 +414,12 @@ of 2,000 customers and 500 orders (`SHOPIFY_IMPORT_BENCH=1`).
 By default the Files step copies a picture or video only when something imported uses it (`FileUsage` in `file-usage.ts`). While products, collections, pages and articles are read, the file names in their images and HTML are noted; a file whose name was noted, or that an earlier import already copied, is copied. The rest are skipped with the left-behind reason `unused_file`. "Also import unused files" on the connect page sets `shopify_import_run.include_unused_files` (migration 0112) and copies everything. A run that reads none of products, collections, pages or articles cannot tell what is used and copies every file it is given. Extra-field and content-entry links to files are still copied on demand by the reference resolver, and videos used only by a theme are copied by the theme import.
 
 The Files step ends with `progress.files.estimate` (`FilesEstimate`): counts of pictures, videos, other files and unused files, and the size they take **after optimizing**. A picture is its master (long edge capped at 2560 px, bytes scaled by area) plus an AVIF and a WebP at each of `VARIANT_WIDTHS` up to the master's width (about 0.8 of the master in all); a video is its chosen mp4, the phone copy and a 200 KB poster. The preview shows it as "N pictures · N videos, about X GB after optimizing". It is an estimate, not a promise.
+
+## Traffic history
+
+The **Traffic history** card (`importTraffic`, `src/traffic.ts`) reads two years of daily
+`sessions` and `online_store_visitors` through `shopifyqlQuery`, which needs `read_reports` and
+Level 2 customer data access. Shopify gives totals, never single visits, so they go in
+`imported_traffic_day`, not `marketing_session`. `countSessions` and `totalSessions` add them to
+daily counts and totals; the hourly view has no imported data, and the Marketing overview's
+channel and source tables do not read them. Running it again replaces the same days.

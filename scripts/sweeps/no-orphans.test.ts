@@ -141,6 +141,11 @@ const ALLOWLIST: AllowEntry[] = [
     reason: 'Shopify zone to delivery coverage; exported for settings-plan.test.ts',
   },
   {
+    file: 'packages/plugin-shopify-import/src/traffic.ts',
+    names: ['parseTrafficRows', 'fetchTrafficDays'],
+    reason: "Shopify's traffic report as days; exported for traffic.test.ts",
+  },
+  {
     file: 'packages/plugin-shopify-import/src/status.ts',
     names: ['cachedCounts', 'activeRun'],
     reason:

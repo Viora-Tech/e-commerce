@@ -321,6 +321,7 @@ const ALLOWLIST: AllowEntry[] = [
   { path: 'packages/plugin-shopify-import/src/write-gift-cards.ts', exact: true, reason: PLUGIN },
   { path: 'packages/plugin-shopify-import/src/write-metaobjects.ts', exact: true, reason: PLUGIN },
   { path: 'packages/plugin-shopify-import/src/run.ts', exact: true, reason: PLUGIN },
+  { path: 'packages/plugin-shopify-import/src/traffic.ts', exact: true, reason: PLUGIN },
   { path: 'packages/plugin-shopify-import/src/runtime.ts', exact: true, reason: PLUGIN },
   { path: 'packages/plugin-shopify-import/src/schema.ts', exact: true, reason: PLUGIN },
   { path: 'packages/plugin-shopify-import/src/service.ts', exact: true, reason: PLUGIN },
