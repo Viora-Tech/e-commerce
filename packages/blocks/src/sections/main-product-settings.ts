@@ -40,6 +40,10 @@ export type MainProductSettings = {
   lensZoom: boolean
   showVendor: boolean
   showRating: boolean
+  /** No reviews yet: empty stars and "Be the first to review", as an imported theme draws them. */
+  showRatingInvite: boolean
+  /** The Pre-order pill beside the title. */
+  showPreorderBadge: boolean
   ratingValue: number
   ratingCount: number
   showPaymentSignals: boolean
@@ -109,6 +113,8 @@ export const mainProductFields: Fields = {
   lensZoom: showHide(f.lensZoom),
   showVendor: showHide(f.showVendor),
   showRating: showHide(f.showRating),
+  showRatingInvite: showHide(f.showRatingInvite),
+  showPreorderBadge: showHide(f.showPreorderBadge),
   ratingValue: { type: 'number', label: f.ratingValue, min: 0, max: 5, step: 0.1 },
   ratingCount: { type: 'number', label: f.ratingCount, min: 0 },
   showPaymentSignals: showHide(f.showPaymentSignals),
@@ -216,6 +222,8 @@ export function mainProductSettings(raw: Record<string, unknown> = {}): MainProd
     lensZoom: bool(raw.lensZoom, d.lensZoom),
     showVendor: bool(raw.showVendor, d.showVendor),
     showRating: bool(raw.showRating, d.showRating),
+    showRatingInvite: bool(raw.showRatingInvite, d.showRatingInvite),
+    showPreorderBadge: bool(raw.showPreorderBadge, d.showPreorderBadge),
     ratingValue: Math.min(5, Math.max(0, num(raw.ratingValue, d.ratingValue))),
     ratingCount: Math.max(0, Math.round(num(raw.ratingCount, d.ratingCount))),
     showPaymentSignals: bool(raw.showPaymentSignals, d.showPaymentSignals),

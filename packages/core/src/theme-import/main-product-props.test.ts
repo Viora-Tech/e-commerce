@@ -92,6 +92,7 @@ describe('mainProductProps', () => {
       showPaymentSignals: true,
       paymentNote: 'Extra 3% off on UPI & bank transfer',
       upiPercent: 3,
+      showUpiPrice: true,
       offerHeading: 'Extra 3% off on UPI & bank transfer',
       offerBody: '<p>Pay by UPI.</p>',
       deliveryText: 'Ships within 24-48 business hours',

@@ -88,6 +88,17 @@ function sectionAssets(source: string): string[] {
   return out
 }
 
+/**
+ * The theme's own stylesheets for the product section ours replaces (`section-product.css`…).
+ * Its class names are ours, so the page keeps the theme's look; they are only ever linked by
+ * that section, which never renders here. Files the theme does not hold are left out.
+ */
+export function mainProductStylesheets(bundle: ThemeBundle): string[] {
+  const source = bundle.sections.get('main-product')?.source ?? ''
+  const names = sectionAssets(source).flatMap((tag) => tag.match(/[\w.-]+\.css/g) ?? [])
+  return [...new Set(names)].filter((file) => bundle.assets.has(file))
+}
+
 /** The main collection sections to look in: the ones the import kept, then the theme's own. */
 function candidates(bundle: ThemeBundle, kept: ThemeCardSection[]): ThemeCardSection[] {
   const own = [...bundle.sections.keys()]

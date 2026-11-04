@@ -123,7 +123,10 @@ function buyBoxProps(section: ShopifyTemplateSection, blocks: { type: string; s:
         out.showPaymentSignals = true
         if (plainText(s.text)) out.paymentNote = plainText(s.text)
         const percent = num(s.upi_percent)
-        if (percent !== null) out.upiPercent = Math.min(50, Math.max(0, percent))
+        if (percent !== null) {
+          out.upiPercent = Math.min(50, Math.max(0, percent))
+          out.showUpiPrice = true
+        }
         if (plainText(s.offer_heading)) out.offerHeading = plainText(s.offer_heading)
         if (str(s.offer_body)) out.offerBody = str(s.offer_body)
         out.offerSupportLabel = plainText(s.offer_support_label)

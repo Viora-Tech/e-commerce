@@ -2,6 +2,7 @@ import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 import { upiPricePaise } from '../src/components/product-payment-signals'
+import ProductRating from '../src/components/product-rating'
 import { swatchImages } from '../src/components/product-variant-picker'
 import ProductView from '../src/components/product-view'
 import { specCells, specRows, specTable } from '../src/product-specs'
@@ -279,5 +280,20 @@ describe('buy box parity', () => {
     expect(html(createElement(ProductView, { product, settings: none }))).not.toContain(
       'product-info__rating',
     )
+  })
+})
+
+describe('product rating invite (imported themes)', () => {
+  it('draws empty stars and the invite only when asked, and a real rating wins', () => {
+    expect(renderToStaticMarkup(createElement(ProductRating, { value: 0, count: 0 }))).toBe('')
+    const invite = renderToStaticMarkup(
+      createElement(ProductRating, { value: 0, count: 0, invite: true }),
+    )
+    expect(invite).toContain('Be the first to review')
+    expect(invite).toContain('href="#reviews"')
+    const rated = renderToStaticMarkup(
+      createElement(ProductRating, { value: 4, count: 2, invite: true }),
+    )
+    expect(rated).not.toContain('Be the first to review')
   })
 })

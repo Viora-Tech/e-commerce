@@ -37,7 +37,7 @@ import { collectionCards, listCollections } from './collections'
 import { requestExperiments } from './experiments'
 import { digest } from './liquid-cache'
 import { liquidSplit, STREAM_GRACE_MS, settlesWithin } from './liquid-split'
-import { renderLiquidSections } from './liquid-theme'
+import { mainProductStylesheetUrls, renderLiquidSections } from './liquid-theme'
 import { attachImageMedia } from './media-lookup'
 import { subscribeAction } from './newsletter-actions'
 import { abThemeId } from './rollout-ab'
@@ -327,9 +327,16 @@ export async function renderTemplate(
   })
   // Past the split, one boundary: its sections arrive later in the same response.
   const streamFrom = streamed ? split.streamFrom : sections.length
+  const themeSheets =
+    themeId && liquidHtml && key.split('.')[0] === 'product'
+      ? await mainProductStylesheetUrls(storeId, themeId)
+      : []
 
   return (
     <>
+      {themeSheets.map((href) => (
+        <link key={href} rel="stylesheet" href={href} />
+      ))}
       {tested.seen.length ? <ExperimentBeacon seen={tested.seen} /> : null}
       {sections.slice(0, streamFrom)}
       {streamFrom < sections.length ? (
