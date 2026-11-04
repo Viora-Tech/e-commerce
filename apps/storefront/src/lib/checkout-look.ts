@@ -1,6 +1,6 @@
 import 'server-only'
 import type { CheckoutLook } from '@commerce/core'
-import { liveLiquidLogoUrl } from './inbox-logo'
+import { liveLiquidDarkLogoUrl, liveLiquidLogoUrl } from './inbox-logo'
 
 /**
  * The checkout's look with the store's logo: Settings → Checkout → Branding's, then our theme's
@@ -9,5 +9,9 @@ import { liveLiquidLogoUrl } from './inbox-logo'
  */
 export async function withThemeLogo(storeId: string, look: CheckoutLook): Promise<CheckoutLook> {
   if (look.logoUrl) return look
-  return { ...look, logoUrl: await liveLiquidLogoUrl(storeId) }
+  const [logoUrl, logoDarkUrl] = await Promise.all([
+    liveLiquidLogoUrl(storeId),
+    liveLiquidDarkLogoUrl(storeId),
+  ])
+  return { ...look, logoUrl, logoDarkUrl }
 }

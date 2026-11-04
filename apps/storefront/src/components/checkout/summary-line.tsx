@@ -32,7 +32,7 @@ export default function SummaryLine({
   price,
 }: SummaryLineProps) {
   return (
-    <li className="flex items-center gap-3 lg:gap-3.5">
+    <li className="flex flex-wrap items-center gap-3 lg:gap-3.5">
       <div className="relative size-13 shrink-0 lg:size-16">
         <div className="absolute inset-0 overflow-hidden rounded-ck border border-ck-summary-line bg-ck-bg">
           {imageUrl ? (
@@ -67,15 +67,15 @@ export default function SummaryLine({
             </span>
           ) : null}
         </p>
-        {preorderNote ? (
-          <p className="text-[0.75rem] leading-snug whitespace-pre-line text-ck-summary-muted">
-            {preorderNote}
-          </p>
-        ) : null}
       </div>
       <p className="shrink-0 text-[0.8125rem] font-semibold tabular-nums lg:text-[0.875rem]">
         {price ?? format(linePaise)}
       </p>
+      {preorderNote ? (
+        <p className="basis-full text-[0.75rem] leading-snug whitespace-pre-line text-ck-summary-muted">
+          {preorderNote}
+        </p>
+      ) : null}
     </li>
   )
 }

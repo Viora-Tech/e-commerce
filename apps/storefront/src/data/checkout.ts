@@ -299,11 +299,11 @@ export const checkoutContent = {
     gatewayNoUpi: 'Cards and netbanking',
     cod: 'Cash on delivery',
     codHint: 'Pay in cash when your order arrives',
-    manual: 'UPI or bank transfer to the shop',
+    manual: 'UPI ID or bank deposit',
     /** Only the shop's UPI ID is on. */
-    manualUpi: 'UPI to the shop',
+    manualUpi: 'UPI ID',
     /** Only bank transfer is on. */
-    manualBank: 'Bank transfer / deposit',
+    manualBank: 'Bank deposit',
     manualHint: 'We confirm your order once the money arrives',
   },
   /** What opens under the picked way to pay. */
@@ -313,8 +313,10 @@ export const checkoutContent = {
     gateway: (takes: string, brand: string) => `${takes}. You finish on ${brand}'s secure screen.`,
     /** The small marks under each way to pay. */
     upiApps: ['GPay', 'PhonePe', 'Paytm'],
-    cardMarks: ['VISA', 'RuPay'],
+    cardMarks: ['VISA', 'Mastercard', 'RuPay'],
     upiMark: 'UPI',
+    /** A gateway's row: "Razorpay Secure". */
+    secure: (gateway: string) => `${gateway} Secure`,
   },
   /** Under the Pay button: the gateways that handle the money. */
   processors: (names: string[]) => `Payments processed by ${names.join(' · ')}`,
