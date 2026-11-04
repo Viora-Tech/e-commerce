@@ -80,7 +80,7 @@ export const ordersContent = {
   /** The four stat cards above the list. */
   tiles: {
     newToday: { label: 'New orders today', trendNote: 'vs yesterday' },
-    ready: { label: 'Ready to ship', note: 'Paid and waiting on a courier' },
+    ready: { label: 'Ready to ship', note: 'Paid or authorised, waiting on a courier' },
     pendingUpi: { label: 'Pending UPI', note: 'Awaiting the transfer' },
     sales: { label: 'Sales this week', trendNote: 'vs last week' },
   },
