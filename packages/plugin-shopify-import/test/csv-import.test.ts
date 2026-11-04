@@ -5,6 +5,7 @@ import {
   phoneBlindIndex,
 } from '@commerce/core'
 import {
+  cart,
   customer,
   inventoryLevel,
   media,
@@ -462,6 +463,33 @@ describe('CSV import runs', () => {
     ])
     const issues = await owner.select().from(importIssue).where(eq(importIssue.runId, runId))
     expect(issues.some((i) => i.ref === '#1001' && /already belongs/.test(i.message))).toBe(true)
+  })
+
+  it("moves an abandoned checkout off a number Shopify's real order needs", async () => {
+    const storeId = await seedStore()
+    const storage = new MemoryStorageProvider()
+    const [c] = await owner.insert(cart).values({ storeId }).returning()
+    await owner.insert(order).values({
+      storeId,
+      number: 1001,
+      subtotalPaise: 100,
+      totalPaise: 100,
+      status: 'cancelled',
+      paymentMethod: 'razorpay',
+      cartId: c?.id,
+    })
+    const runId = await csvRun(storeId, storage, 'orders', 'orders.csv')
+    await executeRun(deps(storeId, storage), runId)
+    const [previewed] = await owner.select().from(order)
+    expect(previewed?.number).toBe(1001)
+    await withStore(app, storeId, (tx) => startRun(tx, runId))
+    await executeRun(deps(storeId, storage), runId)
+    const orders = await owner.select().from(order).orderBy(asc(order.number))
+    const imported = orders.filter((o) => o.importedFrom === 'shopify').map((o) => o.number)
+    expect(imported).toEqual([1001, 1002])
+    const moved = orders.find((o) => o.importedFrom === null)
+    expect([1001, 1002]).not.toContain(moved?.number)
+    expect(new Set(orders.map((o) => o.number)).size).toBe(orders.length)
   })
 
   it('fails the run with a reason when the file is gone', async () => {
