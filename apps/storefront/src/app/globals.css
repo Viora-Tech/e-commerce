@@ -103,7 +103,7 @@
   color-scheme: light;
 }
 
-/* Dark checkout: one clean page, no boxes inside boxes, and the theme's logo for dark. */
+/* The theme's logo for dark backgrounds on a dark checkout. */
 .ck-logo-dark {
   display: none;
 }
@@ -112,6 +112,14 @@
 }
 :root[data-theme="dark"] .ck-logo-light {
   display: none;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) .ck-logo-dark {
+    display: block;
+  }
+  :root:not([data-theme]) .ck-logo-light {
+    display: none;
+  }
 }
 
 :root[data-theme="dark"] .ck {
@@ -127,7 +135,7 @@
   --ck-summary: color-mix(in oklab, var(--ck-summary-light) 8%, #0b0b0d);
   --ck-summary-ink: #ededee;
   --ck-card-shadow: none;
-  --ck-section-shadow: none;
+  --ck-section-shadow: 0 0 0 1px var(--ck-line);
   color-scheme: dark;
 }
 
@@ -187,7 +195,7 @@ body:has(.ck) {
     --ck-summary: color-mix(in oklab, var(--ck-summary-light) 8%, #0b0b0d);
     --ck-summary-ink: #ededee;
     --ck-card-shadow: none;
-    --ck-section-shadow: none;
+    --ck-section-shadow: 0 0 0 1px var(--ck-line);
     color-scheme: dark;
   }
 }
@@ -395,6 +403,31 @@ h3 {
 .cart-page__title,
 .cart-summary__heading {
   text-transform: uppercase;
+}
+.cart-page__head {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-block: 1.25rem 1.5rem;
+}
+.cart-page__head .cart-page__title {
+  margin-block: 0;
+}
+.cart-page__back {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border: 1px solid var(--color-line);
+  border-radius: 999px;
+  color: var(--color-ink);
+}
+.cart-page__back:hover {
+  border-color: var(--color-ink);
+}
+.cart-page__back svg {
+  rotate: 90deg;
 }
 .cart-summary__upi {
   display: flex;
