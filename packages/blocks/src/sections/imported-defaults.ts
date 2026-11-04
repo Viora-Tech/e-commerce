@@ -20,10 +20,14 @@ const MAIN_PRODUCT_EXTRAS = [
   'showUpiPrice',
   'showDispatchLine',
   'showDeliveryEstimate',
+  'showPreorderBadge',
 ] as const
 
 const IMPORTED_DEFAULTS: Partial<Record<string, Record<string, unknown>>> = {
-  MainProduct: Object.fromEntries(MAIN_PRODUCT_EXTRAS.map((key) => [key, false])),
+  MainProduct: {
+    ...Object.fromEntries(MAIN_PRODUCT_EXTRAS.map((key) => [key, false])),
+    showRatingInvite: true,
+  },
 }
 
 /**

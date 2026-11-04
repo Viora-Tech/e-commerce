@@ -287,6 +287,12 @@ describe('merchant method row', () => {
     expect(c.display.sequence).toEqual(['block.card', 'block.upi', 'block.emi'])
     expect(Object.keys(c.display.blocks)).toEqual(['card', 'upi', 'emi'])
     expect(c.display.blocks.upi?.instruments).toEqual([{ method: 'upi' }])
+    expect(c.display.blocks.emi?.instruments).toEqual([
+      { method: 'cardless_emi', providers: ['snapmint'] },
+      { method: 'emi' },
+      { method: 'cardless_emi' },
+      { method: 'paylater' },
+    ])
     expect(c.display.preferences.show_default_blocks).toBe(false)
   })
 
@@ -300,6 +306,21 @@ describe('merchant method row', () => {
     expect((options.config as { display: { sequence: string[] } }).display.sequence).toEqual([
       'block.netbanking',
     ])
+  })
+
+  it("keeps Razorpay's own window and the store's name when every method is on", async () => {
+    const p = new RazorpayProvider({ ...config, displayName: undefined })
+    const create = vi.fn(async () => ({ id: 'order_m3' }))
+    const client = (p as unknown as { client: { orders: { create: typeof create } } }).client
+    client.orders.create = create
+    const r = await p.createPayment({
+      ...base,
+      merchantName: 'Waimers',
+      methods: ['upi', 'card', 'netbanking', 'wallet', 'emi'],
+    })
+    const options = r.session.kind === 'client' ? r.session.options : {}
+    expect(options.name).toBe('Waimers')
+    expect(options.config).toEqual({ display: { preferences: { show_default_blocks: true } } })
   })
 
   it('reads test or live from the key id', () => {

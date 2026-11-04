@@ -162,6 +162,7 @@ async function claimAttempt(
       quantity: l.quantity,
       unitPricePaise: l.unitPricePaise,
     })),
+    merchantName: gateway?.merchantName,
     methods,
     ...(capture ? { capture } : {}),
   }
@@ -174,12 +175,13 @@ async function claimAttempt(
  */
 async function gatewayOptions(ctx: StoreContext, gatewayId: string) {
   const [s] = await ctx.tx
-    .select({ payments: store.payments })
+    .select({ name: store.name, payments: store.payments })
     .from(store)
     .where(eq(store.id, ctx.storeId))
   const settings = parsePaymentSettings(s?.payments)
   const on = methodsForGateway(settings, gatewayId)
   return {
+    merchantName: s?.name,
     methods: on?.length ? on : undefined,
     capture: captureModeFor(settings, gatewayId),
   }

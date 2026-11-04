@@ -6,7 +6,12 @@
  * theme's sections: the merchant set the imported theme's own settings, not ours, so ours sit
  * at their defaults and hid, for example, every imported product card's quick-add button (#1046).
  *
- * Rule: every selector that reads a `:root[data-*]` / `:root:not([data-*])` attribute ends with
+ * The same goes for a rule keyed on an attribute only OUR markup sets
+ * (`.product-tabs__panel:not([data-current])`): the theme's copy of that element never has it, so
+ * the rule hid every panel of an imported theme's product tabs.
+ *
+ * Rule: every selector that reads a `:root[data-*]` / `:root:not([data-*])` attribute, or matches
+ * a missing `[data-*]`, ends with
  * `:not(:where(.shopify-section *))`, the same fence the plain rules use (`.shopify-section` is
  * the wrapper the Liquid renderer puts round each imported section, theme-import/render.ts).
  * Not a ratchet: there is no allow-list, so a new unfenced rule fails.
@@ -18,7 +23,7 @@ import { ROOT } from './walk'
 
 const STYLES = path.join(ROOT, 'packages/blocks/src/styles')
 const FENCE = ':not(:where(.shopify-section *))'
-const READS_OUR_SETTING = /:root(\[data-|:not\(\[data-)/
+const READS_OUR_SETTING = /:root(\[data-|:not\(\[data-)|\.[\w-]+:not\(\[data-/
 
 /** Each rule's selector list in a stylesheet, comments removed, nested at-rules flattened. */
 function selectorsOf(css: string): string[] {
@@ -44,6 +49,7 @@ describe('sweep: theme-css-fence', () => {
     ])
     expect(unfencedSelectors(`:root[data-x="on"] .a${FENCE} { color: red }`)).toEqual([])
     expect(unfencedSelectors('/* :root[data-x] .a { */ .b { color: red }')).toEqual([])
+    expect(unfencedSelectors('.a:not([data-on]) { display: none }')).toEqual(['.a:not([data-on])'])
   })
 
   it('every rule reading our theme settings is fenced off imported Shopify sections', () => {

@@ -5,6 +5,8 @@ type ProductRatingProps = {
   /** Out of 5; 0 draws nothing (a product with no reviews shows no stars). */
   value: number
   count: number
+  /** With no rating, draw the theme's empty stars and its invite, linked to the reviews tab. */
+  invite?: boolean | undefined
 }
 
 const STARS = [1, 2, 3, 4, 5]
@@ -12,9 +14,21 @@ const STARS = [1, 2, 3, 4, 5]
 // The `rating` block of sections/main-product.liquid (snippets/rating-stars): stars, the
 // average and the count. On the store the figure is the product's real one (the Reviews
 // app, else the rating imported from Shopify); with none there are no stars.
-export default function ProductRating({ value, count }: ProductRatingProps) {
+export default function ProductRating({ value, count, invite }: ProductRatingProps) {
   // Early returns
-  if (value <= 0) return null
+  if (value <= 0 && !invite) return null
+  if (value <= 0) {
+    return (
+      <a className="product-info__rating product-info__rating--invite" href="#reviews">
+        <span className="product-info__rating-empty" aria-hidden="true">
+          {STARS.map((n) => (
+            <Icon key={n} name="star" size={16} />
+          ))}
+        </span>
+        <span className="product-info__rating-invite">{copy.ui.ratingInvite}</span>
+      </a>
+    )
+  }
 
   // Render logic
   const filled = Math.round(value)

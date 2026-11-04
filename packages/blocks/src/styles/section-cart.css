@@ -1025,8 +1025,8 @@
   margin: 2px 0;
   padding: 2px 8px;
   border-radius: 999px;
-  background: var(--color-accent, var(--color-ink));
-  color: var(--color-paper, #fff);
+  background: var(--color-brand);
+  color: var(--color-on-brand);
   font-size: 11px;
   font-weight: 600;
   width: fit-content;
