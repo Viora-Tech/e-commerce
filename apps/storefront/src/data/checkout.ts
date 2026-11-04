@@ -313,10 +313,8 @@ export const checkoutContent = {
     gateway: (takes: string, brand: string) => `${takes}. You finish on ${brand}'s secure screen.`,
     /** The small marks under each way to pay. */
     upiApps: ['GPay', 'PhonePe', 'Paytm'],
-    cardMarks: ['VISA', 'Mastercard', 'RuPay'],
+    cardMarks: ['VISA', 'RuPay'],
     upiMark: 'UPI',
-    /** A gateway's row: "Razorpay Secure". */
-    secure: (gateway: string) => `${gateway} Secure`,
   },
   /** Under the Pay button: the gateways that handle the money. */
   processors: (names: string[]) => `Payments processed by ${names.join(' · ')}`,

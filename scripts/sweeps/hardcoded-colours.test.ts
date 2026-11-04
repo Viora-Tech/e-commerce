@@ -35,6 +35,11 @@ type AllowEntry = { file: string; reason: string }
 
 const ALLOWLIST: AllowEntry[] = [
   {
+    file: 'apps/storefront/src/components/checkout/payment-methods.tsx',
+    reason:
+      "payment gateway name chips (Razorpay, Cashfree, PhonePe…) in each gateway's own brand colour, which the merchant's checkout branding should not restyle",
+  },
+  {
     file: 'apps/storefront/src/components/checkout/payment-mark.tsx',
     reason:
       "UPI app and card network marks (Google Pay, PhonePe, Paytm, UPI, VISA, RuPay) on the checkout's Express buttons and payment cards, in each brand's own colours so shoppers recognise them; the merchant's checkout branding must not restyle them",
