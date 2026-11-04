@@ -1,4 +1,5 @@
 import { importedMethod, notTestOrder } from '@commerce/core'
+import { dayKey } from '@commerce/dates'
 import type { StoreTx } from '@commerce/db'
 import {
   address,
@@ -30,7 +31,7 @@ import {
   toWeeklyPoints,
 } from './analytics-buckets'
 import { breakdownLines, type SalesBreakdownLine, salesBreakdownSums } from './sales-breakdown'
-import { countSessions, totalSessions } from './sessions'
+import { countSessions, importedTrafficDays, totalSessions } from './sessions'
 
 /** Drafts are not orders: they never reach revenue, counts or the funnel. */
 /** Test-mode orders (gateway test keys, no real money) are left out too. */
@@ -189,10 +190,17 @@ export async function analyticsOverview(
     current.map((r) => ({ at: r.placedAt })),
     range.days,
   )
-  // Sessions are only counted on this storefront, so only orders placed through one convert
-  // them: imported history (101 orders vs 19 sessions) read as "100% conversion" (audit #95).
-  const trackedNow = current.filter((r) => r.tracked)
-  const trackedPrev = previous.filter((r) => r.tracked).length
+  // Only orders with sessions behind them convert: one placed through this storefront, or an
+  // imported one on a day with imported traffic. Other imported history (101 orders vs 19
+  // sessions) read as "100% conversion" (audit #95).
+  const [importedNow, importedPrev] = await Promise.all([
+    importedTrafficDays(tx, range.from, range.to),
+    importedTrafficDays(tx, range.previousFrom, range.previousTo),
+  ])
+  const convertsIn = (days: Set<string>) => (r: { tracked: boolean; placedAt: Date }) =>
+    r.tracked || days.has(dayKey(r.placedAt))
+  const trackedNow = current.filter(convertsIn(importedNow))
+  const trackedPrev = previous.filter(convertsIn(importedPrev)).length
   const trackedByDay = bucketByDay(
     trackedNow.map((r) => ({ at: r.placedAt })),
     range.days,

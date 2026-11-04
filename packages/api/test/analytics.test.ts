@@ -1,10 +1,12 @@
 import { createMerchantAuth } from '@commerce/auth'
 import { importedMethod } from '@commerce/core'
+import { dayKey } from '@commerce/dates'
 import {
   address,
   cart,
   createDb,
   customer,
+  importedTrafficDay,
   inventoryAdjustment,
   inventoryLevel,
   marketingSession,
@@ -202,6 +204,34 @@ describe('analytics.overview', () => {
     expect(kpiValue(month, 'revenue')).toBe(185000)
     expect(month.salesOverTime.day).toHaveLength(30)
     expect(month.salesOverTime.week.length).toBeLessThan(month.salesOverTime.day.length)
+  })
+
+  it('counts imported orders as conversions only on days with imported traffic', async () => {
+    const a = await merchant('traffic@example.com', 'store-traffic')
+    const base = {
+      storeId: a.storeId,
+      subtotalPaise: 100000,
+      totalPaise: 100000,
+      status: 'open' as const,
+      paymentStatus: 'paid' as const,
+    }
+    await owner.insert(order).values([
+      { ...base, number: 1, placedAt: daysAgo(2) },
+      { ...base, number: 2, placedAt: daysAgo(3) },
+    ])
+    await owner
+      .insert(importedTrafficDay)
+      .values({ storeId: a.storeId, day: dayKey(daysAgo(2)), sessions: 100, visitors: 80 })
+
+    const week = await call(
+      appRouter.analytics.overview,
+      { range: { key: '7d' } },
+      { context: a.ctx },
+    )
+    const kpi = (id: string) => week.kpis.find((k) => k.id === id)
+    expect(kpi('orders')?.value).toBe(2)
+    expect(kpi('sessions')?.value).toBe(100)
+    expect(kpi('conversion')?.value).toBeCloseTo(1 / 100)
   })
 
   it('keeps one store out of the other store numbers', async () => {

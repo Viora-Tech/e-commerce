@@ -43,6 +43,15 @@ async function importedByDay(tx: StoreTx, days: string[]): Promise<Map<string, n
   return new Map(rows.map((r) => [r.day, r.n]))
 }
 
+/** The days in [from, to) with imported traffic: their imported orders can convert sessions. */
+export async function importedTrafficDays(tx: StoreTx, from: Date, to: Date): Promise<Set<string>> {
+  const rows = await tx
+    .select({ day: importedTrafficDay.day })
+    .from(importedTrafficDay)
+    .where(and(gte(importedTrafficDay.day, dayKey(from)), lt(importedTrafficDay.day, dayKey(to))))
+  return new Set(rows.map((r) => r.day))
+}
+
 /** Sessions started in [from, to). */
 export async function totalSessions(tx: StoreTx, from: Date, to: Date): Promise<number> {
   const [row] = await tx
