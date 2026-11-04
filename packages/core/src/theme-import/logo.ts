@@ -35,6 +35,22 @@ export function liquidThemeLogoUrl(
   header: HeaderItem[],
   bundle: Pick<ThemeBundle, 'sections' | 'settings' | 'settingsSchema'>,
 ): string | null {
+  const found = themeLogos(header, bundle)
+  return (found.find((f) => !VARIANT_ID.test(f.id)) ?? found[0])?.url ?? null
+}
+
+/** The logo the theme keeps for dark backgrounds (`logo_dark`), or null when it has none. */
+export function liquidThemeDarkLogoUrl(
+  header: HeaderItem[],
+  bundle: Pick<ThemeBundle, 'sections' | 'settings' | 'settingsSchema'>,
+): string | null {
+  return themeLogos(header, bundle).find((f) => /dark/i.test(f.id))?.url ?? null
+}
+
+function themeLogos(
+  header: HeaderItem[],
+  bundle: Pick<ThemeBundle, 'sections' | 'settings' | 'settingsSchema'>,
+): { id: string; url: string }[] {
   const found: { id: string; url: string }[] = []
   for (const item of header) {
     const type = item.props.sectionType
@@ -52,5 +68,5 @@ export function liquidThemeLogoUrl(
       if (url) found.push({ id: s.id, url })
     }
   }
-  return (found.find((f) => !VARIANT_ID.test(f.id)) ?? found[0])?.url ?? null
+  return found
 }

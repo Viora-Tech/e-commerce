@@ -99,6 +99,8 @@ export type CheckoutLook = {
   storeName: string
   /** Settings → Checkout → Branding's logo, else the live theme's, else null (the name shows). */
   logoUrl: string | null
+  /** The imported theme's logo for dark backgrounds; a dark checkout shows it instead. */
+  logoDarkUrl?: string | null | undefined
   /** The store's contact number (Settings → Store details), for "Need help? WhatsApp us". */
   contactPhone: string | null
 }
