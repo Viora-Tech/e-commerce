@@ -84,12 +84,17 @@ export default async function CartContents({ storeId, reorderSkipped }: CartCont
 
   return (
     <section className="section-cart page-width">
-      <h1 className="cart-page__title">
-        {content.heading}
-        <span className="cart-page__count">
-          {content.itemCount(lines.reduce((n, l) => n + l.quantity, 0))}
-        </span>
-      </h1>
+      <div className="cart-page__head">
+        <a href={collectionsHref} className="cart-page__back" aria-label={content.continueShopping}>
+          <Icon name="chevron-down" size={18} />
+        </a>
+        <h1 className="cart-page__title">
+          {content.heading}
+          <span className="cart-page__count">
+            {content.itemCount(lines.reduce((n, l) => n + l.quantity, 0))}
+          </span>
+        </h1>
+      </div>
       {reorderSkipped && reorderSkipped.titles.length > 0 ? (
         <div
           role="status"
@@ -109,10 +114,6 @@ export default async function CartContents({ storeId, reorderSkipped }: CartCont
       <div className="cart-layout">
         <div className="cart-layout__lines">
           <CartLines lines={lines} />
-          <a href={collectionsHref} className="cart-page__continue">
-            <Icon name="arrow-right" size={16} />
-            {content.continueShopping}
-          </a>
         </div>
         <aside className="cart-layout__summary">
           <div className="cart-summary">
