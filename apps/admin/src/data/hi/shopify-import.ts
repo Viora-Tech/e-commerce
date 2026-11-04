@@ -34,6 +34,16 @@ const hi = {
     cancelled: 'रोका गया',
   },
 
+  traffic: {
+    title: 'ट्रैफ़िक का इतिहास',
+    body: 'पिछले दो साल के रोज़ के सेशन और विज़िटर लाएँ, ताकि रिपोर्ट और कन्वर्ज़न Shopify से आगे जारी रहें।',
+    action: 'ट्रैफ़िक इंपोर्ट करें',
+    working: 'इंपोर्ट हो रहा है',
+    done: (days, sessions) =>
+      `${days.toLocaleString('en-IN')} दिन और ${sessions.toLocaleString('en-IN')} सेशन इंपोर्ट हुए`,
+    none: 'Shopify में लाने के लिए अभी कोई ट्रैफ़िक नहीं है',
+    failed: 'ट्रैफ़िक इंपोर्ट नहीं हो सका',
+  },
   home: {
     title: 'Shopify से इंपोर्ट करें',
     subtitle:
@@ -215,6 +225,7 @@ const hi = {
       read_markets: 'मार्केट पढ़ना',
       read_inventory_purchase_orders: 'परचेज़ ऑर्डर पढ़ना',
       read_inventory_transfers: 'ट्रांसफ़र पढ़ना',
+      read_reports: 'ट्रैफ़िक रिपोर्ट पढ़ना (सेशन और विज़िटर)',
     },
     chooseHeading: 'क्या इंपोर्ट करना है',
     chooseHelp: 'प्रोडक्ट पहले आते हैं ताकि कलेक्शन, ऑर्डर, डिस्काउंट और एक्स्ट्रा फ़ील्ड उनसे जुड़ सकें।',

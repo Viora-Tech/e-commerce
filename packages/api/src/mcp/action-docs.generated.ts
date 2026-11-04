@@ -742,6 +742,7 @@ export const ACTION_DOCS: Record<string, string> = {
   'shopifyImport.importRemaining':
     '"Import remaining": one import that writes only what is missing, for these resources.',
   'shopifyImport.importSettings': 'Import the chosen store settings parts.',
+  'shopifyImport.importTraffic': "Shopify's daily sessions and visitors.",
   'shopifyImport.issueGroups': "A run's problems grouped by cause, each with its fix.",
   'shopifyImport.preflight':
     '"Before you import": file storage, Shopify scopes per chosen resource, and what the chosen resources depend on.',

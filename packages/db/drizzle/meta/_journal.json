@@ -1443,6 +1443,13 @@
       "when": 1793549183262,
       "tag": "0221_supplier_contacts",
       "breakpoints": true
+    },
+    {
+      "idx": 206,
+      "version": "7",
+      "when": 1793549184262,
+      "tag": "0222_imported_traffic_day",
+      "breakpoints": true
     }
   ]
 }
