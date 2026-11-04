@@ -2049,3 +2049,22 @@ html:not(.has-cursor-fill) .share-row__copy:hover {
 .section-product--caps .variant-picker__option-name {
   text-transform: uppercase;
 }
+
+/* ------------------------------------------------------------------ */
+/* Our product section on an imported theme (wrapped in .shopify-section, */
+/* storefront lib/template-render.tsx): what the theme's section and its  */
+/* pre-order app set around the buy box.                                  */
+/* ------------------------------------------------------------------ */
+.shopify-section > .section-product {
+  padding-top: 2rem;
+}
+
+.shopify-section .buy-buttons__submit--preorder {
+  min-height: 3rem;
+  height: 3rem;
+}
+
+/* The note sits under the button, past the quantity (7.625rem wide) and the row's gap. */
+.shopify-section .product-info__preorder-note {
+  margin-left: 8.375rem;
+}
