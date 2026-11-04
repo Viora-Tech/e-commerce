@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { ImportError } from '../src/service'
 import type { ShopifyClient } from '../src/shopify-client'
 import { ShopifyError } from '../src/shopify-client'
-import { fetchTrafficDays, parseTrafficRows } from '../src/traffic'
+import { fetchTrafficDays, parseTrafficRows, TRAFFIC_QUERY } from '../src/traffic'
 
 const clientAnswering = (answer: () => Promise<unknown>) =>
   ({ query: answer }) as unknown as ShopifyClient
@@ -38,6 +38,10 @@ describe('parseTrafficRows', () => {
 })
 
 describe('fetchTrafficDays', () => {
+  it('asks only for real shoppers', () => {
+    expect(TRAFFIC_QUERY).toContain("WHERE human_or_bot_session = 'human'")
+  })
+
   it('says what access is missing when Shopify refuses', async () => {
     const client = clientAnswering(() => Promise.reject(new ShopifyError('Access denied', 'scope')))
     await expect(fetchTrafficDays(client)).rejects.toThrow(/read_reports/)

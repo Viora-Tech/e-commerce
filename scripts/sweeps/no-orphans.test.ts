@@ -142,7 +142,7 @@ const ALLOWLIST: AllowEntry[] = [
   },
   {
     file: 'packages/plugin-shopify-import/src/traffic.ts',
-    names: ['parseTrafficRows', 'fetchTrafficDays'],
+    names: ['parseTrafficRows', 'fetchTrafficDays', 'TRAFFIC_QUERY'],
     reason: "Shopify's traffic report as days; exported for traffic.test.ts",
   },
   {
