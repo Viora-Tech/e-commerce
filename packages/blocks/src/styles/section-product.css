@@ -2068,3 +2068,9 @@ html:not(.has-cursor-fill) .share-row__copy:hover {
 .shopify-section .product-info__preorder-note {
   margin-left: 8.375rem;
 }
+
+/* The theme draws this h1 at its .h2 size. */
+.shopify-section .product-info__title {
+  font-size: calc(2rem * var(--font-heading-scale, 1));
+  line-height: 1.15;
+}
