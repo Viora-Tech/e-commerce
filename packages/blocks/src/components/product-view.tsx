@@ -160,11 +160,17 @@ export default function ProductView({
           ) : null}
           <h1 className="product-info__title">
             {product.title}
-            {isPreorder ? (
+            {isPreorder && s.showPreorderBadge ? (
               <span className="product-info__preorder-badge">{copy.ui.preorderBadge}</span>
             ) : null}
           </h1>
-          {s.showRating ? <ProductRating value={s.ratingValue} count={s.ratingCount} /> : null}
+          {s.showRating ? (
+            <ProductRating
+              value={s.ratingValue}
+              count={s.ratingCount}
+              invite={s.showRatingInvite}
+            />
+          ) : null}
           {variant ? (
             <div className="product-info__price product-info__price--large">
               <Price

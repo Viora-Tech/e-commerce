@@ -26,6 +26,8 @@ export type CreatePaymentInput = {
   amountPaise: number
   currency: 'INR'
   customer: PaymentCustomer
+  /** The store's name, shown on the gateway's page unless the gateway has its own name set. */
+  merchantName?: string | undefined
   /** Where the gateway should send the shopper afterwards, for redirect flows. */
   returnUrl?: string | undefined
   /** Delivery address; EMI/BNPL providers use it for risk checks. */

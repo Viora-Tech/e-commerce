@@ -2,11 +2,12 @@
 import { describe, expect, it } from 'vitest'
 import { fakeDataSource, fixtureThemeZip } from '../../test/theme-import-fixture'
 import { readThemeArchive } from './archive'
-import { buildThemeBundle } from './bundle'
+import { buildThemeBundle, type ThemeBundle } from './bundle'
 import { themeMainProps } from './main-collection-props'
 import { createPageContext } from './page-context'
 import { renderThemeCards } from './render'
 import { parseJsonTemplate } from './schema'
+import { mainProductStylesheets } from './theme-cards'
 import { themeLook } from './theme-look'
 
 /** Zero Drift's `main-collection`, trimmed: the card call reads the section's own assigns. */
@@ -215,5 +216,26 @@ describe('themeMainProps', () => {
       trustBadgesLayout: 'grid',
     })
     expect(themeMainProps('page', tpl, section, stored, { look, settings: {} })).toEqual({})
+  })
+})
+
+describe('mainProductStylesheets', () => {
+  it("reads the replaced section's stylesheets and skips files the theme does not hold", () => {
+    const bundle = {
+      sections: new Map([
+        [
+          'main-product',
+          {
+            source: `{{ 'section-product.css' | asset_url | stylesheet_tag }}
+              {{ 'section-product.css' | asset_url | stylesheet_tag }}
+              {{ 'missing.css' | asset_url | stylesheet_tag }}`,
+            schema: null,
+          },
+        ],
+      ]),
+      assets: new Map([['section-product.css', 'abc']]),
+    } as unknown as ThemeBundle
+    expect(mainProductStylesheets(bundle)).toEqual(['section-product.css'])
+    expect(mainProductStylesheets({ ...bundle, sections: new Map() })).toEqual([])
   })
 })

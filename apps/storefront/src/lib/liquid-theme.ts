@@ -12,6 +12,7 @@ import {
   loadTemplate,
   loadThemeBundle,
   loadThemeDraftBundle,
+  mainProductStylesheets,
   mainThemeId,
   ProductDrop,
   peekThemeBundle,
@@ -369,6 +370,15 @@ export const WHOLE_TEMPLATE: LiquidPart = { start: 0, end: Infinity, fold: Infin
  * rendered now (all the missing ones in one transaction). Null when `themeId` is not an
  * imported theme.
  */
+/** Links for the theme stylesheets of the product section `MainProduct` replaces. */
+export async function mainProductStylesheetUrls(storeId: string, themeId: string) {
+  const theme = await importedTheme(storeId, themeId)
+  if (!theme) return []
+  return mainProductStylesheets(theme.bundle).map(
+    (file) => `/theme-assets/${themeId}/${file}?v=${theme.bundle.assets.get(file)}`,
+  )
+}
+
 export async function renderLiquidSections(
   storeId: string,
   themeId: string,

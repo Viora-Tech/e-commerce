@@ -102,7 +102,10 @@ export function buildReceipt(input: CreatePaymentInput): string {
   return receipt.slice(0, RECEIPT_MAX_LEN)
 }
 
-/** Checkout blocks for each merchant-facing method; EMI also carries Snapmint cardless EMI. */
+/**
+ * Checkout blocks for each merchant-facing method. EMI leads with Snapmint, then card EMI, every
+ * other cardless lender and pay later: with default blocks off, whatever is not listed never shows.
+ */
 const METHOD_BLOCKS: Record<
   PaymentMethodKind,
   { name: string; instruments: Record<string, unknown>[] }
@@ -113,7 +116,12 @@ const METHOD_BLOCKS: Record<
   wallet: { name: 'Wallets', instruments: [{ method: 'wallet' }] },
   emi: {
     name: 'Pay in EMIs',
-    instruments: [{ method: 'cardless_emi', providers: [SNAPMINT_PROVIDER] }, { method: 'emi' }],
+    instruments: [
+      { method: 'cardless_emi', providers: [SNAPMINT_PROVIDER] },
+      { method: 'emi' },
+      { method: 'cardless_emi' },
+      { method: 'paylater' },
+    ],
   },
 }
 
@@ -157,6 +165,19 @@ export function buildDisplayConfig(enableEmi: boolean | undefined): Record<strin
       preferences: { show_default_blocks: true },
     },
   }
+}
+
+/**
+ * Every method on leaves Razorpay's own window alone, with its logos, offers, live UPI QR and EMI
+ * in Razorpay's position. Custom blocks render as plain rows, so they are only for hiding methods.
+ */
+function checkoutConfig(
+  methods: PaymentMethodKind[] | undefined,
+  enableEmi: boolean | undefined,
+): Record<string, unknown> {
+  if (!methods?.length) return buildDisplayConfig(enableEmi)
+  const all = (Object.keys(METHOD_BLOCKS) as PaymentMethodKind[]).every((m) => methods.includes(m))
+  return all ? buildDisplayConfig(false) : buildMethodDisplayConfig(methods)
 }
 
 const RAZORPAY_STATUS: Record<string, PaymentStatus> = {
@@ -214,16 +235,14 @@ export class RazorpayProvider implements PaymentProvider {
           order_id: order.id,
           amount: input.amountPaise,
           currency: input.currency,
-          name: this.config.displayName ?? 'Checkout',
+          name: this.config.displayName ?? input.merchantName ?? 'Checkout',
           prefill: {
             email: input.customer.email,
             contact: input.customer.phone,
             name: input.customer.name,
           },
           // UPI intent on mobile, dynamic QR on desktop; Checkout decides by device.
-          config: input.methods?.length
-            ? buildMethodDisplayConfig(input.methods)
-            : buildDisplayConfig(this.config.enableEmi),
+          config: checkoutConfig(input.methods, this.config.enableEmi),
         },
       },
     }

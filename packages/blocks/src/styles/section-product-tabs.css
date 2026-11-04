@@ -130,7 +130,7 @@
   gap: var(--space-5);
 }
 
-.product-tabs__panel:not([data-current]) {
+.product-tabs__panel:not([data-current]):not(:where(.shopify-section *)) {
   display: none;
 }
 
@@ -157,7 +157,8 @@
     padding-bottom: var(--space-5);
   }
 
-  .product-tabs:not(.product-tabs--stacked) .product-tabs__panel:not([data-expanded]) {
+  .product-tabs:not(.product-tabs--stacked)
+    .product-tabs__panel:not([data-expanded]):not(:where(.shopify-section *)) {
     display: none;
   }
 }
