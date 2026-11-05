@@ -51,7 +51,7 @@ export default function ProductQuestions({
     try {
       const res = await fetch('/reviews/question', { method: 'POST', body })
       const data = (await res.json().catch(() => null)) as Result | null
-      if (data?.ok) setSent(true)
+      if (res.ok && data?.ok) setSent(true)
       else setError(errorText(data?.error))
     } catch {
       setError(copy.questions.errors.generic)

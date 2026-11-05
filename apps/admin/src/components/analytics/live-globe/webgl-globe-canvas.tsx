@@ -171,12 +171,16 @@ export default function WebglGlobeCanvas({
       if (borderPointsRequested) return
       borderPointsRequested = true
       fetch(BORDERS_SRC)
-        .then((res) => res.arrayBuffer())
+        .then((res) => {
+          if (!res.ok) throw new Error(`Globe borders: HTTP ${res.status}`)
+          return res.arrayBuffer()
+        })
         .then((buffer) => {
           if (alive) borderPoints = decodeBorderPoints(buffer)
         })
-        .catch(() => {
+        .catch((err) => {
           // No border dashes this session; the solid border (if on) still draws.
+          console.warn(err)
         })
     }
 

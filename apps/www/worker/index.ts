@@ -93,6 +93,11 @@ async function turnstileOk(env: Env, token: string, ip: string | null, action: K
     method: 'POST',
     body: form,
   })
+  // Cloudflare's outage, not a bad token: say so in the logs, the visitor sees "try again".
+  if (!res.ok) {
+    console.error('turnstile check failed', res.status)
+    return false
+  }
   const out = (await res.json()) as { success?: boolean; action?: string }
   return out.success === true && out.action === action
 }

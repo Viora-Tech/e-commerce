@@ -26,6 +26,7 @@ export const reviewsWidgetContent = {
   replyFrom: (store: string) => `Reply from ${store}`,
   helpful: 'Was this helpful?',
   helpfulThanks: 'Thanks!',
+  helpfulFailed: 'Your vote did not go through. Please try again in a moment.',
   helpfulCount: (n: number) => `${n}`,
   more: 'Show more reviews',
   photoAlt: (name: string) => `Photo from ${name}'s review`,
