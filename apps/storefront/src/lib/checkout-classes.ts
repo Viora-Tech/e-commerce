@@ -57,4 +57,4 @@ export const CK_BUTTON_SECONDARY =
 
 /** Inline text actions: Add discount code, Sign in, Remove. */
 export const CK_LINK =
-  'cursor-pointer rounded-sm bg-transparent! p-0! text-[0.875rem]! font-medium! text-ck-accent! underline-offset-4 outline-none hover:underline focus-visible:[box-shadow:0_0_0_3px_var(--ck-ring)]'
+  'cursor-pointer rounded-sm bg-transparent! p-0! text-[0.875rem]! font-medium! text-ck-muted! underline underline-offset-2 outline-none hover:text-ck-ink! focus-visible:[box-shadow:0_0_0_3px_var(--ck-ring)]'

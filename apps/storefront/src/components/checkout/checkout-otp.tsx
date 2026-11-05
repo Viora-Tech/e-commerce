@@ -1,7 +1,9 @@
 'use client'
 
 import type { LoginMethod } from '@commerce/core/customer-accounts'
+import { OTPInput, REGEXP_ONLY_DIGITS } from 'input-otp'
 import { useEffect, useRef, useState, useTransition } from 'react'
+import CheckoutCodeSlot from '@/components/checkout/checkout-code-slot'
 import CheckoutIcon from '@/components/checkout/checkout-icon'
 import { accountContent } from '@/data/account'
 import { checkoutContent as content } from '@/data/checkout'
@@ -50,6 +52,7 @@ const login = accountContent.login
 const otp = content.otp
 const isPhoneMethod = (m: LoginMethod): m is PhoneMethod => m !== 'email'
 const CODE_ID = 'checkout-otp-code'
+const SLOTS = [0, 1, 2, 3, 4, 5]
 
 /**
  * Contact, phone first: the store's own sign-in codes (SMS or WhatsApp, or email) through
@@ -115,8 +118,7 @@ export default function CheckoutOtp({
 
   // Event handlers
   const handlePrimary = () => (sentTo ? verify() : send())
-  const handleCode = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const next = e.target.value.replace(/\D/g, '').slice(0, 6)
+  const handleCode = (next: string) => {
     setCode(next)
     // The sixth digit (typed or pasted) sends the code: no extra tap on Verify.
     if (next.length === 6 && code.length < 6 && !pending) verify(next)
@@ -164,18 +166,23 @@ export default function CheckoutOtp({
             <label htmlFor={CODE_ID} className={CK_LABEL}>
               {otp.codeLabel}
             </label>
-            <input
+            <OTPInput
               ref={codeRef}
               id={CODE_ID}
-              className={`${CK_INPUT} ${CK_INPUT_HEIGHT} text-center! tracking-[0.5em] tabular-nums`}
+              maxLength={6}
+              pattern={REGEXP_ONLY_DIGITS}
               inputMode="numeric"
               autoComplete="one-time-code"
-              maxLength={6}
               value={code}
               onChange={handleCode}
+              containerClassName="flex items-center gap-2"
               aria-invalid={error ? true : undefined}
               aria-describedby={error ? 'checkout-otp-error' : undefined}
-            />
+            >
+              {SLOTS.map((index) => (
+                <CheckoutCodeSlot key={index} index={index} />
+              ))}
+            </OTPInput>
           </div>
         </div>
       ) : (
@@ -251,8 +258,9 @@ export default function CheckoutOtp({
           <button type="button" onClick={send} disabled={pending} className={CK_LINK}>
             {otp.resend}
           </button>
-        ) : onGuest ? (
-          <>
+        ) : null}
+        {onGuest ? (
+          <span className={`flex items-center gap-2 ${sentTo ? 'ms-auto' : ''}`}>
             <CheckoutIcon name="key" className="size-4" />
             {otp.guestLead}
             <button
@@ -262,7 +270,7 @@ export default function CheckoutOtp({
             >
               {otp.guest}
             </button>
-          </>
+          </span>
         ) : null}
       </div>
       {note ? <p className="text-[0.8125rem] text-ck-muted">{note}</p> : null}
