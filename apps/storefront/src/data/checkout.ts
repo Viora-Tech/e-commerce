@@ -245,6 +245,7 @@ export const checkoutContent = {
     verify: 'Verify and continue',
     verifying: 'Verifying…',
     resend: 'Send a new code',
+    cart: 'Cart',
     change: 'Change',
     guest: 'Check out as guest instead',
     signInInstead: 'Sign in with a code instead',
@@ -353,15 +354,32 @@ export const checkoutContent = {
   pay: (amount: string) => `Pay ${amount}`,
   placeOrderAmount: (amount: string) => `Place order · ${amount}`,
   processing: 'Processing…',
-  help: { label: 'Need help?', short: 'Help', aria: 'Need help? WhatsApp us' },
-  /** A card that arrives filled in reads as rows until the shopper edits it. */
-  filled: {
-    mobile: 'Mobile',
-    email: 'Email',
+  help: { label: 'Need help? WhatsApp us', short: 'Help', aria: 'Need help? WhatsApp us' },
+  /** The finished steps above the current one. */
+  review: {
+    contact: 'Contact',
     shipTo: 'Ship to',
-    edit: 'Edit',
-    editLabel: (label: string) => `Edit ${label.toLowerCase()}`,
+    delivery: 'Delivery',
+    cart: 'Cart',
+    change: 'Change',
+    changeLabel: (label: string) => `Change ${label.toLowerCase()}`,
   },
+  /** The heading and line each step opens with. */
+  stepIntro: {
+    contact: { title: 'Your contact details', body: 'The courier calls this number on delivery.' },
+    address: { title: 'Where should we deliver?', body: 'Choose an address or add a new one.' },
+    shipping: { title: 'How would you like it delivered?', body: 'Pick what suits you.' },
+    payment: {
+      title: 'How would you like to pay?',
+      body: 'All payments are encrypted. Pick the way that is easiest for you.',
+    },
+  },
+  stepsLabel: 'Checkout steps',
+  stepsBackTo: (label: string) => `Back to ${label.toLowerCase()}`,
+  backTo: (label: string) => `Back to ${label}`,
+  continueTo: (label: string) => `Continue to ${label.toLowerCase()}`,
+  completeSteps: 'Complete all steps to pay',
+  backToCartCount: (count: number) => `Back to cart · ${count} ${count === 1 ? 'item' : 'items'}`,
   /** Under the Pay button: "Secured by Razorpay", or the plain line when no gateway is named. */
   payNote: { by: 'Secured by', plain: 'Secure checkout' },
   /** The summary's delivery box: "Delivers to 122001 by Thu, 29 Oct". */

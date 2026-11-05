@@ -26,7 +26,9 @@ import {
 import { readRemembered, writeRemembered } from '@/lib/checkout-remember'
 import { bringIntoView, followLegacyStep } from '@/lib/checkout-scroll'
 import {
+  type CheckoutSection,
   firstOpenSection,
+  nextSection,
   type SectionGates,
   sectionDomId,
   sectionsFor,
@@ -90,6 +92,8 @@ export function useCheckoutForm(input: CheckoutFormInput) {
   const [touched, setTouched] = useState<Partial<Record<CheckoutFieldKey, true>>>({})
   const [attempted, setAttempted] = useState(false)
   const [expressNote, setExpressNote] = useState<string | null>(null)
+  /** The step the shopper chose; until then, the first one that still needs something. */
+  const [pickedStep, setPickedStep] = useState<CheckoutSection | null>(null)
   /**
    * Checking out as a guest (the plain contact fields) unless the store needs an account;
    * "Sign in" in the Contact card switches to the code.
@@ -206,6 +210,7 @@ export function useCheckoutForm(input: CheckoutFormInput) {
     shipping: ship.gate,
   }
   const sections = sectionsFor(digitalOnly)
+  const step = pickedStep ?? firstOpenSection(gates, sections) ?? 'payment'
   /** Each card's own work, for the tick on its number; Delivery does not wait on Contact. */
   const done = {
     contact: gates.contact === 'ok',
@@ -221,8 +226,8 @@ export function useCheckoutForm(input: CheckoutFormInput) {
     setTouched((prev) => (prev[k] ? prev : { ...prev, [k]: true }))
   /**
    * Point at what stops the order: signing in (the mobile number, then Send code), the first
-   * wrong field, or an address still being edited. Everything is on one page, so this only
-   * scrolls to it and focuses it.
+   * wrong field, or an address still being edited. Opens its step, then scrolls to it and
+   * focuses it once the step is on screen.
    */
   const showFirstWrong = (): void => {
     setAttempted(true)
@@ -236,7 +241,26 @@ export function useCheckoutForm(input: CheckoutFormInput) {
         : editingId
           ? SAVE_ADDRESS_ID
           : null
-    if (target) bringIntoView(target)
+    const home = signInFirst || (first && CONTACT_KEYS.includes(first)) ? 'contact' : 'address'
+    setPickedStep(home)
+    if (target) requestAnimationFrame(() => bringIntoView(target))
+  }
+  /** Hold the step on screen: the first time a field is touched it must not move on by itself. */
+  const handleStayOnStep = () => setPickedStep((picked) => picked ?? step)
+  /** Move on when this step is finished, or point at what it still needs. */
+  const handleContinue = () => {
+    if (step === 'shipping' && gates.shipping !== 'ok') {
+      if (gates.shipping === 'blocked') setError(content.errors.pickShipping)
+      return
+    }
+    if ((step === 'contact' && !done.contact) || (step === 'address' && !done.address)) {
+      showFirstWrong()
+      return
+    }
+    setError(null)
+    const next = nextSection(step, sections)
+    if (next) setPickedStep(next)
+    window.scrollTo({ top: 0 })
   }
   /** Place the order with this way to pay, or point at the first field that needs fixing. */
   const submit = (paymentId: string): boolean => {
@@ -248,7 +272,8 @@ export function useCheckoutForm(input: CheckoutFormInput) {
     // waits until there is one (the courier is still quoting, or nothing covers the address).
     if (firstOpenSection(gates, sections) === 'shipping') {
       if (gates.shipping === 'blocked') setError(content.errors.pickShipping)
-      bringIntoView(sectionDomId('shipping'))
+      setPickedStep('shipping')
+      requestAnimationFrame(() => bringIntoView(sectionDomId('shipping')))
       return false
     }
     setError(null)
@@ -376,7 +401,7 @@ export function useCheckoutForm(input: CheckoutFormInput) {
   const handleLabel = (label: string) => setForm((prev) => ({ ...prev, label }))
   const handlePayment = (id: string) => setForm((prev) => ({ ...prev, payment: id }))
   const handlePhone = (phone: string) => setForm((prev) => ({ ...prev, phone }))
-  /* Enter in a field pays, like the Pay button. One form for the whole checkout. */
+  /* Enter in a field moves on or pays, like the button. One form for the whole checkout. */
   // A code typed but never applied is applied first; the shopper checks the new total (pending-code.ts).
   const applyTypedCode = () =>
     applyPendingDiscountCode((code) => setError(content.errors.discountNotApplied(code)))
@@ -384,6 +409,10 @@ export function useCheckoutForm(input: CheckoutFormInput) {
     e.preventDefault()
     setExpressNote(null)
     if (applyTypedCode()) return
+    if (step !== 'payment') {
+      handleContinue()
+      return
+    }
     submit(payment)
   }
   /*
@@ -466,6 +495,7 @@ export function useCheckoutForm(input: CheckoutFormInput) {
     deliveryBy: deliveryBy(shipping, rate),
     upi: offered.find(takesUpi) ?? null,
     sections,
+    step,
     gates,
     done,
     countries,
@@ -491,6 +521,8 @@ export function useCheckoutForm(input: CheckoutFormInput) {
     handleLabel,
     handleRate: setRateId,
     handleSubmit,
+    handleStep: setPickedStep,
+    handleStayOnStep,
     handleExpress,
     handleGiftCardApply,
     handleGiftCardRemove,

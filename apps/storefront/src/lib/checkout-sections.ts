@@ -1,9 +1,9 @@
 /*
- * The one-page checkout's sections (design: checkout-design Main/Mobile): Contact, Delivery,
- * Shipping and Payment as numbered cards, all on screen at once. Pure, so it is tested on its
- * own. There is no step machine any more: a section is "done" when its gate is open, and Pay
- * points at the first section that still needs something. Nothing here is trusted:
- * `checkoutAction` and `placeOrder` re-check every field, rate and amount on the server.
+ * The checkout's steps (Figma: Checkout · Polish): Contact, Delivery, Shipping and Payment, one
+ * on screen at a time inside the one form, so every field still goes with the order. Pure, so
+ * it is tested on its own. A step is finished when its gate is open, and Pay points at the first
+ * step that still needs something. Nothing here is trusted: `checkoutAction` and `placeOrder`
+ * re-check every field, rate and amount on the server.
  */
 
 export const CHECKOUT_SECTIONS = ['contact', 'address', 'shipping', 'payment'] as const
@@ -24,14 +24,12 @@ const DIGITAL_SECTIONS: readonly CheckoutSection[] = ['contact', 'address', 'pay
 export const sectionsFor = (digitalOnly: boolean): readonly CheckoutSection[] =>
   digitalOnly ? DIGITAL_SECTIONS : CHECKOUT_SECTIONS
 
-/** The query parameter the old stepped checkout kept its step in (`?step=payment`). */
+/** The query parameter a link keeps its step in (`?step=payment`). */
 export const LEGACY_STEP_PARAM = 'step'
 
 /**
- * The section an old `?step=` link points at, or null. Links from the stepped checkout
- * (bookmarks, recovery emails, a reload mid-way) still open the one page: a known step
- * scrolls to its section, anything else (unknown, empty, a section this basket has not got)
- * is ignored. It never decides what the shopper may do.
+ * The section a `?step=` link points at, or null. Anything else (unknown, empty, a section this
+ * basket has not got) is ignored. It never decides what the shopper may do.
  */
 export function sectionFromParam(
   raw: string | null | undefined,
@@ -57,4 +55,12 @@ export function firstOpenSection(
     if (s !== 'payment' && gates[s] !== 'ok') return s
   }
   return null
+}
+
+/** The step after this one; null on the last. */
+export function nextSection(
+  section: CheckoutSection,
+  sections: readonly CheckoutSection[],
+): CheckoutSection | null {
+  return sections[sections.indexOf(section) + 1] ?? null
 }

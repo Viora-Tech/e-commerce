@@ -44,7 +44,7 @@ export default function StatusMark({ tone }: StatusMarkProps) {
   return (
     <span
       aria-hidden="true"
-      className={`flex size-14 items-center justify-center rounded-full border ${SETTLE} ${t.ring}`}
+      className={`flex size-11 shrink-0 items-center justify-center rounded-full border ${SETTLE} ${t.ring}`}
     >
       {t.icon === 'check' ? (
         <svg

@@ -30,6 +30,7 @@ vi.mock('@/lib/privacy-actions', () => ({
 }))
 vi.mock('@/lib/login-actions', () => ({}))
 const { default: CheckoutForm } = await import('./checkout-form')
+const { default: CheckoutPayNote } = await import('./checkout-pay-note')
 
 const cart: CartView = {
   id: 'c',
@@ -116,7 +117,7 @@ describe('CheckoutForm', () => {
     expect(html.match(/<form/g)).toHaveLength(1)
   })
 
-  it('lays every card out on one page, in the order of the design', () => {
+  it('keeps every step in the one form, in order, with only the first on screen', () => {
     const at = (text: string) => html.indexOf(text)
     for (const id of ['contact', 'address', 'shipping', 'payment']) {
       expect(html).toContain(`id="checkout-section-${id}"`)
@@ -126,13 +127,17 @@ describe('CheckoutForm', () => {
     expect(at('id="checkout-section-contact"')).toBeLessThan(at('id="checkout-section-address"'))
     expect(at('id="checkout-section-address"')).toBeLessThan(at('id="checkout-section-shipping"'))
     expect(at('id="checkout-section-shipping"')).toBeLessThan(at('id="checkout-section-payment"'))
-    for (const heading of ['Contact', 'Delivery', 'Shipping', 'Payment']) {
-      expect(html).toContain(`>${heading}</h2>`)
-    }
-    // The stepped checkout's wizard is gone: no step headings, no Continue or Back.
-    expect(html).not.toContain('Where should we deliver?')
-    expect(html).not.toContain('aria-current="step"')
-    expect(html).not.toContain('Continue to delivery')
+    expect(html.match(/aria-current="step"/g)).toHaveLength(1)
+    expect(html).toMatch(/id="checkout-section-contact"[^>]*class="flex /)
+    expect(html).toMatch(/id="checkout-section-payment"[^>]*class="hidden /)
+    expect(html).toContain('Continue to delivery')
+  })
+
+  it('holds Pay until the last step', () => {
+    expect(html).toContain('Complete all steps to pay')
+    expect(html).toMatch(
+      /form="checkout-form"[^>]*disabled=""|disabled=""[^>]*form="checkout-form"/,
+    )
   })
 
   it('gives a guest the plain contact fields, with Sign in in the card heading', () => {
@@ -191,7 +196,7 @@ describe('CheckoutForm', () => {
     expect(page).not.toContain('Express checkout')
   })
 
-  it('opens the one page for old ?step= links, whatever they say', () => {
+  it('opens the one form for ?step= links, whatever they say', () => {
     for (const at of [
       '?step=payment',
       '?step=shipping',
@@ -212,14 +217,13 @@ describe('CheckoutForm', () => {
     expect(pay.match(/Pay ₹7,499/g)?.length).toBeGreaterThanOrEqual(2)
     expect(
       pay.match(/type="submit"[^>]*form="checkout-form"|form="checkout-form"[^>]*type="submit"/g),
-    ).toHaveLength(2)
+    ).toHaveLength(3)
     expect(pay.indexOf('value="decentro"')).toBeLessThan(pay.indexOf('value="cod"'))
   })
 
-  it('names the gateways that process the payment under Pay', () => {
+  it('lists the gateways in the Payment step', () => {
     const methods = [...props.methods, { id: 'razorpay', label: 'Razorpay', methods: ['upi'] }]
     const pay = render('', { customer, addresses: [address], methods })
-    expect(pay).toMatch(/Secured by.*Razorpay/)
     expect(pay.indexOf('value="decentro"')).toBeLessThan(pay.indexOf('value="razorpay"'))
     expect(pay.indexOf('value="razorpay"')).toBeLessThan(pay.indexOf('value="cod"'))
   })
@@ -246,5 +250,12 @@ describe('CheckoutForm', () => {
   it('carries the branding as --ck-* properties, not the theme', () => {
     expect(html).toContain('--ck-accent:#171717')
     expect(html).toContain('class="ck ')
+  })
+})
+
+describe('CheckoutPayNote', () => {
+  it('names the gateways that process the payment', () => {
+    const note = renderToStaticMarkup(createElement(CheckoutPayNote, { names: ['Razorpay'] }))
+    expect(note).toMatch(/Secured by.*Razorpay/)
   })
 })

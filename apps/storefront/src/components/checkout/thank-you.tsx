@@ -168,13 +168,13 @@ export default function ThankYouTemplate({
       }
     >
       <div className="flex flex-col gap-6">
-        <div className="flex flex-col gap-4">
-          <StatusMark tone={failed ? 'failed' : awaiting ? 'pending' : 'confirmed'} />
-          <div className={`flex flex-col gap-1 ${ENTER[0]}`}>
-            <p className="text-[0.875rem] font-medium text-ck-muted tabular-nums">
-              {content.orderNumber(o.number)}
-            </p>
-            <h1 className={`${CK_HEADING} text-[1.75rem]! text-balance sm:text-[2rem]!`}>
+        <div className={`flex flex-col gap-2 ${ENTER[0]}`}>
+          <p className="text-[0.875rem] font-medium text-ck-muted tabular-nums">
+            {content.orderNumber(o.number)}
+          </p>
+          <div className="flex items-center gap-3.5">
+            <StatusMark tone={failed ? 'failed' : awaiting ? 'pending' : 'confirmed'} />
+            <h1 className={`${CK_HEADING} text-[1.375rem]! text-balance sm:text-[1.875rem]!`}>
               {settled
                 ? content.thanks(firstName(shipTo?.name))
                 : failed

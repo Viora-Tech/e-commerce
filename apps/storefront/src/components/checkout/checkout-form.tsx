@@ -5,24 +5,30 @@ import CheckoutAddressBook from '@/components/checkout/checkout-address-book'
 import CheckoutAgreement from '@/components/checkout/checkout-agreement'
 import CheckoutCard from '@/components/checkout/checkout-card'
 import CheckoutContact from '@/components/checkout/checkout-contact'
-import CheckoutFilledRows from '@/components/checkout/checkout-filled-rows'
 import CheckoutIcon from '@/components/checkout/checkout-icon'
 import CheckoutPageShell from '@/components/checkout/checkout-page-shell'
 import CheckoutPayButton from '@/components/checkout/checkout-pay-button'
 import CheckoutPayNote from '@/components/checkout/checkout-pay-note'
 import CheckoutPaymentStep from '@/components/checkout/checkout-payment-step'
+import CheckoutReview from '@/components/checkout/checkout-review'
+import CheckoutStepper from '@/components/checkout/checkout-stepper'
 import CheckoutSummary from '@/components/checkout/checkout-summary'
 import DeliveryMethod from '@/components/checkout/delivery-method'
 // Express checkout is off for now: see the comment above the Contact card.
 // import ExpressPay from '@/components/checkout/express-pay'
 import SummaryDisclosure from '@/components/checkout/summary-disclosure'
 import { checkoutContent as content } from '@/data/checkout'
-import { CK_LINK } from '@/lib/checkout-classes'
+import { CK_BUTTON_PRIMARY, CK_LINK } from '@/lib/checkout-classes'
 import { countryName } from '@/lib/checkout-countries'
-import { addressRows, contactRows } from '@/lib/checkout-filled-rows'
+import { reviewRows } from '@/lib/checkout-filled-rows'
 import type { CheckoutFormInput } from '@/lib/checkout-form-input'
 import { processorNames, shippingRow } from '@/lib/checkout-preview'
-import { type CheckoutSection, sectionDomId, sectionHeadingId } from '@/lib/checkout-sections'
+import {
+  type CheckoutSection,
+  nextSection,
+  sectionDomId,
+  sectionHeadingId,
+} from '@/lib/checkout-sections'
 import { cleanPincode } from '@/lib/checkout-validation'
 import { useCheckoutForm } from '@/lib/use-checkout-form'
 import { useCheckoutGst } from '@/lib/use-checkout-gst'
@@ -31,18 +37,13 @@ type CheckoutFormProps = CheckoutFormInput
 
 const FORM_ID = 'checkout-form'
 
-/** A card's number on this page: 1 Contact, 2 Delivery, then Shipping when there is one. */
-const numberIn = (sections: readonly CheckoutSection[], s: CheckoutSection): number =>
-  sections.indexOf(s) + 1
-
 /**
- * The checkout on one page (design: checkout-design Main.dc.html and Mobile.dc.html): Express
- * checkout at the top, then numbered cards, 1 Contact, 2 Delivery, 3 Shipping, 4 Payment, all
- * open at once, with the order summary on the right from `lg` (a fold-out card at the top on
- * a phone) and Pay in the summary card on a computer or in a bar stuck to the bottom of a
- * phone. Each card's number turns into a tick once its part is filled in. One form for the
- * whole checkout (#224); the logic is `useCheckoutForm`, and the server re-checks and
- * re-prices everything on Pay.
+ * The checkout (Figma: Checkout · Polish): one step on screen at a time, Contact, Delivery,
+ * Shipping, Payment, with what is already done as rows above it and the order summary on the
+ * right from `lg` (a fold-out card at the top on a phone). Pay sits in the summary card and waits
+ * for the last step; on a phone the bottom bar carries Continue, then Pay. One form for the whole
+ * checkout (#224): the hidden steps stay mounted, so every field goes with the order. The logic
+ * is `useCheckoutForm`, and the server re-checks and re-prices everything on Pay.
  */
 export default function CheckoutForm(props: CheckoutFormProps) {
   // Hooks
@@ -54,11 +55,17 @@ export default function CheckoutForm(props: CheckoutFormProps) {
     abroad: ck.abroad,
   })
 
+  // Helpers
+  const stepLabel = (s: CheckoutSection): string =>
+    s === 'address' && ck.totals.digitalOnly
+      ? ck.copy.sections.detailsLabel
+      : ck.copy.sections.label[s]
+
   // Render logic
   // The store's own wording over ours (#158).
   const copy = ck.copy.sections
   // const express = ck.copy.express
-  const { totals, deposit, look, shipping, rate, done, sections } = ck
+  const { totals, deposit, look, shipping, rate, sections, step } = ck
   const { digitalOnly } = totals
   const pincode = cleanPincode(ck.form.pincode)
   // Abroad there is no PIN code line: Shipping names the country instead.
@@ -114,15 +121,29 @@ export default function CheckoutForm(props: CheckoutFormProps) {
       {shortfall}
     </p>
   ) : null
+  const previous = sections[sections.indexOf(step) - 1]
+  const next = nextSection(step, sections)
+  const shippingValue = shippingRow(digitalOnly, shipping, rate, ck.totals.payment)
+  const shippingLine = rate
+    ? `${rate.name || content.delivery.standard} · ${rate.pricePaise === 0 ? content.shippingFree : formatPaise(rate.pricePaise)}`
+    : shippingValue?.kind === 'pending'
+      ? null
+      : content.shippingFree
   const pay = (
     <CheckoutPayButton
       form={FORM_ID}
       label={ck.payLabel}
       pending={ck.pending}
       updating={ck.updating}
-      disabled={payDisabled}
+      disabled={payDisabled || step !== 'payment'}
     />
   )
+  const continueButton = next ? (
+    <button type="submit" form={FORM_ID} disabled={ck.pending} className={CK_BUTTON_PRIMARY}>
+      {content.continueTo(stepLabel(next))}
+      <CheckoutIcon name="chevron" className="size-4 -rotate-90" />
+    </button>
+  ) : null
   const signInLink =
     ck.customer === null && ck.guest && !ck.accountRequired ? (
       <button
@@ -139,6 +160,8 @@ export default function CheckoutForm(props: CheckoutFormProps) {
       look={look}
       backHref="/cart"
       backLabel={content.backToCart}
+      cartLabel={content.backToCartCount(ck.cart.itemCount)}
+      cartShort={`${content.review.cart} · ${ck.cart.itemCount}`}
       policies={ck.policies ?? []}
       summary={
         <SummaryDisclosure totalLabel={ck.payNow} updating={ck.updating}>
@@ -185,14 +208,20 @@ export default function CheckoutForm(props: CheckoutFormProps) {
           ) : null}
           {shortfallNote}
           {pay}
-          {showPayNote ? <CheckoutPayNote names={payNoteNames} inSummary /> : null}
+          {step !== 'payment' ? (
+            <p className="text-center text-[0.8125rem] text-ck-summary-muted">
+              {content.completeSteps}
+            </p>
+          ) : showPayNote ? (
+            <CheckoutPayNote names={payNoteNames} inSummary />
+          ) : null}
         </>
       }
       bottomBar={
         <>
           {shortfallNote}
-          {pay}
-          {showPayNote ? <CheckoutPayNote names={payNoteNames} /> : null}
+          {continueButton ?? pay}
+          {!continueButton && showPayNote ? <CheckoutPayNote names={payNoteNames} /> : null}
         </>
       }
     >
@@ -200,9 +229,32 @@ export default function CheckoutForm(props: CheckoutFormProps) {
         id={FORM_ID}
         noValidate
         onSubmit={ck.handleSubmit}
-        className="flex flex-col gap-3 sm:gap-4"
+        onFocusCapture={ck.handleStayOnStep}
+        className="flex flex-col gap-6"
       >
         <h1 className="sr-only">{content.title}</h1>
+        <div className="flex flex-col gap-1">
+          {previous ? (
+            <button
+              type="button"
+              onClick={() => ck.handleStep(previous)}
+              className="flex min-h-11 w-fit cursor-pointer items-center gap-1.5 rounded-ck text-[0.8125rem] font-medium text-ck-muted outline-none transition-colors duration-150 hover:text-ck-ink focus-visible:[box-shadow:0_0_0_3px_var(--ck-ring)] motion-reduce:transition-none"
+            >
+              <CheckoutIcon name="back" className="size-4" />
+              {content.backTo(stepLabel(previous))}
+            </button>
+          ) : null}
+          <CheckoutStepper
+            sections={sections}
+            current={step}
+            label={stepLabel}
+            onPick={ck.handleStep}
+          />
+        </div>
+        <CheckoutReview
+          rows={reviewRows(sections, step, ck.form, shippingLine)}
+          onChange={ck.handleStep}
+        />
         {/* Express checkout is off for now. To bring it back, restore this block and the
             import, `express`, `expressLine` and `showExpress` above.
         {showExpress ? (
@@ -219,33 +271,29 @@ export default function CheckoutForm(props: CheckoutFormProps) {
         <CheckoutCard
           id={sectionDomId('contact')}
           headingId={sectionHeadingId('contact')}
-          number={numberIn(sections, 'contact')}
-          title={copy.label.contact}
-          done={done.contact}
+          title={content.stepIntro.contact.title}
+          body={content.stepIntro.contact.body}
+          active={step === 'contact'}
           aside={signInLink}
         >
-          <CheckoutFilledRows done={done.contact} rows={contactRows(ck.form)}>
-            <CheckoutContact ck={ck} />
-          </CheckoutFilledRows>
+          <CheckoutContact ck={ck} />
         </CheckoutCard>
         <CheckoutCard
           id={sectionDomId('address')}
           headingId={sectionHeadingId('address')}
-          number={numberIn(sections, 'address')}
-          title={digitalOnly ? copy.detailsLabel : copy.label.address}
-          done={done.address}
+          title={digitalOnly ? copy.detailsLabel : content.stepIntro.address.title}
+          body={digitalOnly ? undefined : content.stepIntro.address.body}
+          active={step === 'address'}
         >
-          <CheckoutFilledRows done={done.address} rows={addressRows(ck.form)}>
-            <CheckoutAddressBook ck={ck} />
-          </CheckoutFilledRows>
+          <CheckoutAddressBook ck={ck} />
         </CheckoutCard>
         {digitalOnly ? null : (
           <CheckoutCard
             id={sectionDomId('shipping')}
             headingId={sectionHeadingId('shipping')}
-            number={numberIn(sections, 'shipping')}
-            title={copy.label.shipping}
-            done={done.shipping}
+            title={content.stepIntro.shipping.title}
+            body={content.stepIntro.shipping.body}
+            active={step === 'shipping'}
             aside={
               shippingAside ? (
                 <span className="text-[0.75rem] text-ck-muted">{shippingAside}</span>
@@ -271,8 +319,9 @@ export default function CheckoutForm(props: CheckoutFormProps) {
         <CheckoutCard
           id={sectionDomId('payment')}
           headingId={sectionHeadingId('payment')}
-          number={numberIn(sections, 'payment')}
-          title={copy.label.payment}
+          title={content.stepIntro.payment.title}
+          body={content.stepIntro.payment.body}
+          active={step === 'payment'}
           aside={<span className="text-[0.75rem] text-ck-muted">{copy.paymentNote}</span>}
         >
           <CheckoutPaymentStep ck={ck} />
@@ -289,7 +338,8 @@ export default function CheckoutForm(props: CheckoutFormProps) {
             </p>
           ) : null}
         </div>
-        <CheckoutAgreement policies={ck.policies ?? []} />
+        {continueButton ? <div className="hidden lg:block">{continueButton}</div> : null}
+        {step === 'payment' ? <CheckoutAgreement policies={ck.policies ?? []} /> : null}
       </form>
     </CheckoutPageShell>
   )

@@ -13,12 +13,12 @@ const hex = z.string().regex(/^#[0-9a-fA-F]{6}$/, 'hex colour like #1F1F21')
 
 /** One calm typeface for the whole checkout, from faces the storefront already self-hosts. */
 export const CHECKOUT_FONT_IDS = [
+  'plus-jakarta-sans',
   'geist',
   'inter',
   'figtree',
   'manrope',
   'dm-sans',
-  'plus-jakarta-sans',
   'ibm-plex-sans',
 ] as const satisfies readonly ThemeFontId[]
 export type CheckoutFontId = (typeof CHECKOUT_FONT_IDS)[number]
@@ -40,7 +40,7 @@ export const CheckoutBrandingSchema = z.object({
   accent: hex.default(DEFAULT_CHECKOUT_COLOURS.accent),
   /** The Pay button. Its text turns white or near-black, whichever reads better. */
   button: hex.default(DEFAULT_CHECKOUT_COLOURS.button),
-  font: z.enum(CHECKOUT_FONT_IDS).default('geist'),
+  font: z.enum(CHECKOUT_FONT_IDS).default('plus-jakarta-sans'),
   corners: z.enum(CHECKOUT_CORNERS).default('soft'),
   /** The order summary column: a solid colour, or an image under a wash of that colour. */
   summary: z
