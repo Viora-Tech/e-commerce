@@ -49,6 +49,7 @@ import {
 } from '@/lib/checkout-validation'
 import type { AppliedGiftCard } from '@/lib/gift-card-actions'
 import { isQuotable, useCheckoutShipping } from '@/lib/use-checkout-shipping'
+import { useHeldStep } from '@/lib/use-held-step'
 import {
   type ChangeHandler,
   type CheckoutFormInput,
@@ -198,7 +199,11 @@ export function useCheckoutForm(input: CheckoutFormInput) {
     shipping: ship.gate,
   }
   const sections = sectionsFor(digitalOnly)
-  const step = pickedStep ?? firstOpenSection(gates, sections) ?? 'payment'
+  const openStep = useHeldStep(
+    firstOpenSection(gates, sections) ?? 'payment',
+    gates.shipping === 'pending',
+  )
+  const step = pickedStep ?? openStep
   /** Each card's own work, for the tick on its number; Delivery does not wait on Contact. */
   const done = {
     contact: gates.contact === 'ok',
