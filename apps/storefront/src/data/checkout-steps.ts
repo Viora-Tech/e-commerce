@@ -11,7 +11,7 @@ export const checkoutStepsContent = {
   },
   /** The heading and line each step opens with. */
   stepIntro: {
-    contact: { title: 'Your contact details', body: 'The courier calls this number on delivery.' },
+    contact: { title: 'Your contact details', body: 'We send your order updates here.' },
     address: { title: 'Where should we deliver?', body: 'Choose an address or add a new one.' },
     shipping: { title: 'How would you like it delivered?', body: 'Pick what suits you.' },
     payment: {
@@ -19,9 +19,16 @@ export const checkoutStepsContent = {
       body: 'All payments are encrypted. Pick the way that is easiest for you.',
     },
   },
+  /** Under the summary card. */
+  trustBlock: {
+    secure: { title: 'Secure payment', body: '256-bit encrypted. We never see your card details.' },
+    returns: { title: 'Easy returns', body: 'Read our refund policy' },
+    processedBy: 'Payments processed by',
+  },
   stepsLabel: 'Checkout steps',
   stepsBackTo: (label: string) => `Back to ${label.toLowerCase()}`,
   backTo: (label: string) => `Back to ${label}`,
+  continueLabel: 'Continue',
   continueTo: (label: string) => `Continue to ${label.toLowerCase()}`,
   completeSteps: 'Complete all steps to pay',
   backToCartCount: (count: number) => `Back to cart · ${count} ${count === 1 ? 'item' : 'items'}`,

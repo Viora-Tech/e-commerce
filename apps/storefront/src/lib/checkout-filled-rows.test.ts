@@ -20,6 +20,11 @@ describe('reviewRows', () => {
     ])
   })
 
+  it('reads a stored +91 number the same way', () => {
+    const stored = { ...form, phone: '+919876543210' }
+    expect(reviewRows(CHECKOUT_SECTIONS, 'address', stored, null)[0]?.value).toBe('+91 98765 43210')
+  })
+
   it('joins the address and carries the shipping line', () => {
     const rows = reviewRows(CHECKOUT_SECTIONS, 'payment', form, 'Delhivery · Free')
     expect(rows.map((r) => r.section)).toEqual(['contact', 'address', 'shipping'])

@@ -220,7 +220,7 @@ export const checkoutContent = {
   testModeHint: 'No real money is charged.',
   /** The one page's numbered cards (design: checkout-design Main and Mobile). */
   sections: {
-    label: { contact: 'Contact', address: 'Delivery', shipping: 'Shipping', payment: 'Payment' },
+    label: { contact: 'Contact', address: 'Address', shipping: 'Delivery', payment: 'Payment' },
     /** Gift cards are emailed: the second card only asks for billing details. */
     detailsLabel: 'Billing',
     /** Read after a card's heading once its part is filled in. */

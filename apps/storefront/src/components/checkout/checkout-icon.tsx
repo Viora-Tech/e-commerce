@@ -25,6 +25,7 @@ export type CheckoutIconName =
   | 'shield'
   | 'bag'
   | 'whatsapp'
+  | 'refresh'
 
 type CheckoutIconProps = {
   name: CheckoutIconName
@@ -49,6 +50,9 @@ const PATHS: Record<CheckoutIconName, ReactNode> = {
     </>
   ),
   check: <path d="M5 12.5l4.5 4.5L19 7.5" />,
+  refresh: (
+    <path d="M4 12a8 8 0 0 1 13.7-5.6L20 8.5M20 4v4.5h-4.5M20 12a8 8 0 0 1-13.7 5.6L4 15.5M4 20v-4.5h4.5" />
+  ),
   chat: <path d="M4 12a8 8 0 1 1 3.1 6.3L4 19.5l1.1-3.3A7.9 7.9 0 0 1 4 12Z" />,
   alert: (
     <>

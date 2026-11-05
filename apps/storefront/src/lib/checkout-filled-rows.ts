@@ -9,7 +9,7 @@ const review = content.review
 
 /** India's ten digits read "+91 94168 74123"; abroad the field already holds the whole number. */
 function readablePhone(phone: string): string {
-  const digits = phone.replace(/\D/g, '')
+  const digits = phone.replace(/\D/g, '').replace(/^91(?=\d{10}$)/, '')
   return digits.length === 10 ? `+91 ${digits.slice(0, 5)} ${digits.slice(5)}` : phone
 }
 

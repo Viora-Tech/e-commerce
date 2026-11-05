@@ -18,3 +18,10 @@ export function stepMove({ step, sections, done, shipping }: StepMove) {
   }
   return { kind: 'next' as const, to: nextSection(step, sections) }
 }
+
+/** How many wrong fields this step shows: the other steps' are not on screen. */
+export const fieldsOnStep = <Key extends string>(
+  wrong: readonly Key[],
+  contactKeys: readonly Key[],
+  step: CheckoutSection,
+): number => wrong.filter((key) => contactKeys.includes(key) === (step === 'contact')).length

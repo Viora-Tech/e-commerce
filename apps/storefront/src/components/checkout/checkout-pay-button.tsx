@@ -12,6 +12,8 @@ type CheckoutPayButtonProps = {
   /** The amount is being re-quoted: a shimmer stands in, the button waits. */
   updating: boolean
   disabled: boolean
+  /** Waiting for the earlier steps: quiet grey, with the amount still readable. */
+  locked?: boolean
 }
 
 /**
@@ -24,6 +26,7 @@ export default function CheckoutPayButton({
   pending,
   updating,
   disabled,
+  locked = false,
 }: CheckoutPayButtonProps) {
   return (
     <button
@@ -31,7 +34,7 @@ export default function CheckoutPayButton({
       form={form}
       disabled={disabled || pending || updating}
       aria-busy={pending || updating}
-      className={`${CK_BUTTON_PRIMARY} lg:h-12`}
+      className={`${CK_BUTTON_PRIMARY} lg:h-12 ${locked ? 'bg-ck-soft! text-ck-muted! opacity-100! [box-shadow:none]!' : ''}`}
     >
       {pending ? (
         <>

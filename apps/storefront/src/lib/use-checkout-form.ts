@@ -39,7 +39,7 @@ import {
   sectionDomId,
   sectionsFor,
 } from '@/lib/checkout-sections'
-import { stepMove } from '@/lib/checkout-step-move'
+import { fieldsOnStep, stepMove } from '@/lib/checkout-step-move'
 import {
   type CheckoutFieldKey,
   checkoutFieldErrors,
@@ -116,8 +116,7 @@ export function useCheckoutForm(input: CheckoutFormInput) {
   const ship = useCheckoutShipping(cart, () => setForm((prev) => offCod(prev, methods)))
   const { checking, shipping, rates, rate, rateId, setRateId, unserviceable, checkPincode } = ship
 
-  // Read back this tab's draft (a reload keeps the details), then quote the
-  // address the page opened with: the draft's, or the account's prefilled one.
+  // Read back this tab's draft, then quote the address the page opened with.
   // biome-ignore lint/correctness/useExhaustiveDependencies: once, on mount.
   useEffect(() => {
     const stored = readDraft(cart.id)
@@ -245,8 +244,9 @@ export function useCheckoutForm(input: CheckoutFormInput) {
     if (move.kind === 'fix') showFirstWrong()
     if (move.kind !== 'next') return
     setError(null)
+    setAttempted(false)
     if (move.to) setPickedStep(move.to)
-    window.scrollTo({ top: 0 })
+    requestAnimationFrame(() => window.scrollTo({ top: 0 }))
   }
   /** Place the order with this way to pay, or point at the first field that needs fixing. */
   const submit = (paymentId: string): boolean => {
@@ -450,7 +450,7 @@ export function useCheckoutForm(input: CheckoutFormInput) {
     addressError,
     giftCards,
     shownErrors,
-    toFix: attempted && contactReady ? wrongFields.length : 0,
+    toFix: attempted && contactReady ? fieldsOnStep(wrongFields, CONTACT_KEYS, step) : 0,
     /** Pay was pressed before the contact was settled (signed in, or a guest). */
     needsContact: attempted && !contactReady,
     totals,

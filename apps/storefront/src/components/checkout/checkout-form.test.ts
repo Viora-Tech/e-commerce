@@ -130,7 +130,7 @@ describe('CheckoutForm', () => {
     expect(html.match(/aria-current="step"/g)).toHaveLength(1)
     expect(html).toMatch(/id="checkout-section-contact"[^>]*class="flex /)
     expect(html).toMatch(/id="checkout-section-payment"[^>]*class="hidden /)
-    expect(html).toContain('Continue to delivery')
+    expect(html).toContain('Continue')
   })
 
   it('holds Pay until the last step', () => {

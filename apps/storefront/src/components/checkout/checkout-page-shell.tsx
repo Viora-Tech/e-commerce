@@ -20,6 +20,8 @@ type CheckoutPageShellProps = {
   summaryEnd?: ReactNode
   /** Published policies, linked under the cards. */
   policies?: PolicyLink[]
+  /** Under the summary card on a computer: the trust lines. */
+  summaryAfter?: ReactNode
   /** Fixed to the bottom of a phone screen (the Pay bar); gone from `lg`, where `summaryEnd` has it. */
   bottomBar?: ReactNode
   /** "Back to cart · 3 items" on a computer; the phone shows the short form. */
@@ -49,6 +51,7 @@ export default function CheckoutPageShell({
   backLabel,
   summary,
   summaryEnd = null,
+  summaryAfter = null,
   policies = [],
   bottomBar = null,
   cartLabel,
@@ -108,7 +111,7 @@ export default function CheckoutPageShell({
           </div>
         </header>
         <div
-          className={`mx-auto! grid w-full max-w-[70rem] flex-1 content-start gap-3 px-3 pt-3 sm:px-6 sm:pt-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,24rem)] lg:gap-6 lg:pt-8 lg:pb-16 ${bottomBar ? 'pb-40' : 'pb-8'}`}
+          className={`mx-auto! grid w-full max-w-[70rem] flex-1 content-start gap-3 px-3 pt-3 sm:px-6 sm:pt-6 lg:grid-cols-[minmax(0,1fr)_24.75rem] pb-8 lg:gap-12 lg:pt-10 lg:pb-14`}
         >
           <aside className="lg:sticky lg:top-6 lg:col-start-2 lg:row-start-1 lg:self-start">
             <div
@@ -127,28 +130,29 @@ export default function CheckoutPageShell({
                 <div className="hidden flex-col gap-2.5 pt-5 lg:flex">{summaryEnd}</div>
               ) : null}
             </div>
+            {summaryAfter ? <div className="hidden pt-4 lg:block">{summaryAfter}</div> : null}
           </aside>
           <div className="flex min-w-0 flex-col gap-3 sm:gap-4 lg:col-start-1 lg:row-start-1">
             {children}
-            <nav
-              aria-label={content.policiesLabel}
-              className="flex flex-wrap justify-center gap-x-5 gap-y-2 pt-3 text-[0.75rem] text-ck-muted"
-            >
-              {policies.map((p) => (
-                <a
-                  key={p.type}
-                  href={p.href}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-ck-muted! no-underline outline-none transition-colors duration-150 hover:text-ck-ink! focus-visible:[box-shadow:0_0_0_3px_var(--ck-ring)] motion-reduce:transition-none"
-                >
-                  {p.title}
-                </a>
-              ))}
-              <span>&copy; {look.storeName}</span>
-            </nav>
           </div>
         </div>
+        <nav
+          aria-label={content.policiesLabel}
+          className={`mx-auto! flex w-full max-w-[70rem] flex-wrap gap-x-5 gap-y-2 px-4 pt-4 text-[0.75rem] text-ck-muted sm:px-6 ${bottomBar ? 'pb-40 lg:pb-5' : 'pb-5'}`}
+        >
+          {policies.map((p) => (
+            <a
+              key={p.type}
+              href={p.href}
+              target="_blank"
+              rel="noreferrer"
+              className="text-ck-muted! no-underline outline-none transition-colors duration-150 hover:text-ck-ink! focus-visible:[box-shadow:0_0_0_3px_var(--ck-ring)] motion-reduce:transition-none"
+            >
+              {p.title}
+            </a>
+          ))}
+          <span>&copy; {look.storeName}</span>
+        </nav>
         {bottomBar ? (
           <div className="fixed inset-x-0 bottom-0 z-20 flex flex-col gap-1.5 border-t border-ck-line bg-ck-bg px-4 pt-3 pb-[max(1.125rem,env(safe-area-inset-bottom))] [box-shadow:0_-8px_24px_rgb(0_0_0/0.06)] lg:hidden">
             {bottomBar}

@@ -13,6 +13,7 @@ import CheckoutPaymentStep from '@/components/checkout/checkout-payment-step'
 import CheckoutReview from '@/components/checkout/checkout-review'
 import CheckoutStepper from '@/components/checkout/checkout-stepper'
 import CheckoutSummary from '@/components/checkout/checkout-summary'
+import CheckoutTrust from '@/components/checkout/checkout-trust'
 import DeliveryMethod from '@/components/checkout/delivery-method'
 // Express checkout is off for now: see the comment above the Contact card.
 // import ExpressPay from '@/components/checkout/express-pay'
@@ -136,12 +137,18 @@ export default function CheckoutForm(props: CheckoutFormProps) {
       pending={ck.pending}
       updating={ck.updating}
       disabled={payDisabled || step !== 'payment'}
+      locked={step !== 'payment'}
     />
   )
   const continueButton = next ? (
-    <button type="submit" form={FORM_ID} disabled={ck.pending} className={CK_BUTTON_PRIMARY}>
-      {content.continueTo(stepLabel(next))}
-      <CheckoutIcon name="chevron" className="size-4 -rotate-90" />
+    <button
+      type="submit"
+      form={FORM_ID}
+      disabled={ck.pending}
+      className={`${CK_BUTTON_PRIMARY} lg:h-12 ${step === 'contact' ? 'lg:w-auto' : ''}`}
+    >
+      {step === 'contact' ? content.continueLabel : content.continueTo(stepLabel(next))}
+      {step === 'contact' ? null : <CheckoutIcon name="chevron" className="size-4 -rotate-90" />}
     </button>
   ) : null
   const signInLink =
@@ -194,6 +201,11 @@ export default function CheckoutForm(props: CheckoutFormProps) {
             abroad={ck.abroad}
           />
         </SummaryDisclosure>
+      }
+      summaryAfter={
+        look.branding.trustBadges ? (
+          <CheckoutTrust names={payNoteNames} policies={ck.policies ?? []} />
+        ) : null
       }
       summaryEnd={
         <>
@@ -338,7 +350,11 @@ export default function CheckoutForm(props: CheckoutFormProps) {
             </p>
           ) : null}
         </div>
-        {continueButton ? <div className="hidden lg:block">{continueButton}</div> : null}
+        {continueButton ? (
+          <div className={`hidden lg:flex ${step === 'contact' ? 'justify-end' : ''}`}>
+            {continueButton}
+          </div>
+        ) : null}
         {step === 'payment' ? <CheckoutAgreement policies={ck.policies ?? []} /> : null}
       </form>
     </CheckoutPageShell>
