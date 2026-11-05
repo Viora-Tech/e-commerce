@@ -92,13 +92,11 @@ export default function CheckoutAddressBook({ ck }: CheckoutAddressBookProps) {
       onPlace={ck.handlePlace}
     />
   )
-  const form = picker ? (
+  const form = (
     <div className={`${CK_PANEL} flex flex-col gap-4 p-5`}>
       {picker}
       {fields}
     </div>
-  ) : (
-    fields
   )
   // Early returns
   if (!cards) return form
