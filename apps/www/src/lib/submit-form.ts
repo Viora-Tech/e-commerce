@@ -23,6 +23,7 @@ export async function submitForm(
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ kind, fields, token }),
     })
+    if (!res.ok) return 'error'
     const body = (await res.json().catch(() => ({}))) as { status?: string }
     if (body.status === 'ok') return 'ok'
     if (body.status === 'duplicate') return 'duplicate'

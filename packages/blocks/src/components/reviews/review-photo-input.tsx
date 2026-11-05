@@ -60,7 +60,7 @@ export default function ReviewPhotoInput({
       | { ok: true; token: string; url: string }
       | { ok: false; error?: string }
       | null
-    return data?.ok ? { token: data.token, url: data.url } : null
+    return res.ok && data?.ok ? { token: data.token, url: data.url } : null
   }
 
   // Event handlers

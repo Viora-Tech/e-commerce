@@ -16,11 +16,20 @@ export default function ReviewCard({ review, storeName, showPhotos }: ReviewCard
   // Hooks
   const [helpful, setHelpful] = useState(review.helpful)
   const [voted, setVoted] = useState(false)
+  const [voteFailed, setVoteFailed] = useState(false)
+
+  // Helpers
+  const undoVote = () => {
+    setVoted(false)
+    setHelpful((n) => n - 1)
+    setVoteFailed(true)
+  }
 
   // Event handlers
   const handleHelpful = async () => {
     if (voted) return
     setVoted(true)
+    setVoteFailed(false)
     setHelpful((n) => n + 1)
     try {
       const res = await fetch('/reviews/helpful', {
@@ -29,9 +38,10 @@ export default function ReviewCard({ review, storeName, showPhotos }: ReviewCard
         body: JSON.stringify({ id: review.id }),
       })
       const data = (await res.json().catch(() => null)) as { ok: boolean; count?: number } | null
-      if (data?.ok && typeof data.count === 'number') setHelpful(data.count)
+      if (res.ok && data?.ok && typeof data.count === 'number') setHelpful(data.count)
+      else undoVote()
     } catch {
-      // The vote stays counted on this page; a failed one is not worth an error message.
+      undoVote()
     }
   }
 
@@ -87,7 +97,7 @@ export default function ReviewCard({ review, storeName, showPhotos }: ReviewCard
           <p className="m-0 mt-1 whitespace-pre-line text-sm text-muted">{review.reply}</p>
         </div>
       ) : null}
-      <footer className="flex items-center gap-2 text-xs text-muted">
+      <footer className="flex flex-wrap items-center gap-2 text-xs text-muted">
         <span>{copy.helpful}</span>
         <button
           type="button"
@@ -99,6 +109,7 @@ export default function ReviewCard({ review, storeName, showPhotos }: ReviewCard
           <span aria-hidden="true">{'\u{1F44D}'}</span>
           {voted ? copy.helpfulThanks : null} {copy.helpfulCount(helpful)}
         </button>
+        {voteFailed ? <span role="status">{copy.helpfulFailed}</span> : null}
       </footer>
     </article>
   )
