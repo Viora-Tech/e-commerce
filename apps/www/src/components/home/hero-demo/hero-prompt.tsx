@@ -28,6 +28,9 @@ export default function HeroPrompt() {
   const runDemo = useEffectEvent(run)
   const debounce = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
 
+  // A debounced run still waiting when the page is left must not start the demo.
+  useEffect(() => () => clearTimeout(debounce.current), [])
+
   useEffect(() => {
     if (reducedMotion || value || focused) return
     const timer = setInterval(
