@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: sized images on imported themes — WHAT: image_url and image_tag pick the right copy; HOW: pure filter tests with no database. */
 import { describe, expect, it } from 'vitest'
 import { ImageDrop } from './drops'
 import { imageTag, imageUrl } from './filter-values'
