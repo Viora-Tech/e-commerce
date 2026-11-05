@@ -1,15 +1,10 @@
 'use client'
 
 import type { DashboardChartsData } from '@commerce/api'
-import {
-  type ChartConfig,
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-} from '@commerce/ui/shadcn/chart'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
+import dynamic from 'next/dynamic'
 import { useState } from 'react'
-import { Area, Bar, CartesianGrid, ComposedChart, Line, XAxis, YAxis } from 'recharts'
+import ChartLoading from '@/components/layout/chart-loading'
 import DataCard from '@/components/layout/data-card'
 import PillTabs from '@/components/layout/pill-tabs'
 import { homeContent } from '@/data/home'
@@ -23,7 +18,12 @@ type SalesOrdersChartProps = {
 
 type Metric = 'sales' | 'orders'
 
-const AXIS_TICK = { fontSize: 12, fill: 'var(--muted-foreground)' }
+/* recharts is large: it loads only where a chart is drawn. */
+const SalesOrdersPlot = dynamic(() => import('./sales-orders-plot'), {
+  ssr: false,
+  loading: () => <ChartLoading />,
+})
+
 const SHORT_DATE_OPTIONS = { day: 'numeric', month: 'short' } as const
 const SHORT_DATE: Record<Locale, Intl.DateTimeFormat> = {
   en: new Intl.DateTimeFormat(INTL_LOCALE.en, SHORT_DATE_OPTIONS),
@@ -70,11 +70,6 @@ export default function SalesOrdersChart({ data, loading }: SalesOrdersChartProp
     ? data.previousSalesPaise.reduce((n, v) => n + v, 0)
     : null
   const line = changeLine({ current: totalSales, previous: previousTotalSales }, c)
-  const config = {
-    sales: { label: c.salesToggle, color: 'var(--chart-1)' },
-    orders: { label: c.ordersToggle, color: 'var(--chart-2)' },
-    previousSales: { label: c.previous, color: 'var(--chart-5)' },
-  } satisfies ChartConfig
   const hasData = totalSales > 0 || data.orders.some((n) => n > 0)
 
   return (
@@ -98,87 +93,13 @@ export default function SalesOrdersChart({ data, loading }: SalesOrdersChartProp
         <p className="text-body text-muted-foreground">{c.salesEmpty}</p>
       ) : (
         <div className="flex flex-col gap-3">
-          <ChartContainer config={config} className="aspect-auto h-64 w-full">
-            <ComposedChart data={points} margin={{ left: 0, right: 12, top: 8, bottom: 0 }}>
-              <defs>
-                <linearGradient id="home-sales-fill" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="var(--chart-1)" stopOpacity={0.18} />
-                  <stop offset="100%" stopColor="var(--chart-1)" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid vertical={false} stroke="var(--border-soft)" />
-              <XAxis
-                dataKey="label"
-                tickLine={false}
-                axisLine={false}
-                tickMargin={12}
-                tick={AXIS_TICK}
-                minTickGap={24}
-              />
-              <YAxis
-                tickLine={false}
-                axisLine={false}
-                width={56}
-                tick={AXIS_TICK}
-                tickFormatter={(v: number) =>
-                  metric === 'sales' ? fmt.moneyCompact(v) : String(v)
-                }
-              />
-              <ChartTooltip
-                cursor={{ stroke: 'var(--chart-1)', strokeDasharray: '4 4' }}
-                content={
-                  <ChartTooltipContent
-                    formatter={(v, name) => (
-                      <span className="flex w-full items-center justify-between gap-3">
-                        <span className="text-muted-foreground">
-                          {name === 'previousSales'
-                            ? c.previous
-                            : name === 'orders'
-                              ? c.ordersToggle
-                              : c.salesToggle}
-                        </span>
-                        <span className="font-bold tabular-nums">
-                          {name === 'orders' ? String(v) : fmt.money(Number(v))}
-                        </span>
-                      </span>
-                    )}
-                  />
-                }
-              />
-              {metric === 'sales' ? (
-                <>
-                  {data.previousSalesPaise ? (
-                    <Line
-                      dataKey="previousSales"
-                      type="monotone"
-                      stroke="var(--chart-5)"
-                      strokeDasharray="4 4"
-                      strokeWidth={1.5}
-                      dot={false}
-                      isAnimationActive={false}
-                    />
-                  ) : null}
-                  <Area
-                    dataKey="sales"
-                    type="monotone"
-                    stroke="var(--chart-1)"
-                    strokeWidth={2}
-                    fill="url(#home-sales-fill)"
-                    isAnimationActive={false}
-                    connectNulls
-                  />
-                </>
-              ) : (
-                <Bar
-                  dataKey="orders"
-                  fill="var(--chart-2)"
-                  radius={4}
-                  maxBarSize={32}
-                  isAnimationActive={false}
-                />
-              )}
-            </ComposedChart>
-          </ChartContainer>
+          <div className="h-64 w-full">
+            <SalesOrdersPlot
+              points={points}
+              metric={metric}
+              hasPrevious={Boolean(data.previousSalesPaise)}
+            />
+          </div>
           {line ? <p className="text-caption text-muted-foreground">{line}</p> : null}
         </div>
       )}
