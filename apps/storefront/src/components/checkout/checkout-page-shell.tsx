@@ -100,7 +100,7 @@ export default function CheckoutPageShell({
         >
           <aside className="lg:sticky lg:top-6 lg:col-start-2 lg:row-start-1 lg:self-start">
             <div
-              className={`${CK_CARD} relative isolate bg-ck-summary! bg-[image:var(--ck-summary-image)] bg-cover bg-center text-ck-summary-ink lg:max-h-[calc(100dvh-3rem)] lg:overflow-y-auto lg:overscroll-contain lg:rounded-[calc(var(--ck-radius)*1.6)] lg:p-5`}
+              className={`${CK_CARD} relative isolate bg-ck-summary! bg-[image:var(--ck-summary-image)] bg-cover bg-center text-ck-summary-ink lg:max-h-[calc(100dvh-3rem)] lg:overflow-y-auto lg:overscroll-contain lg:[scrollbar-width:none] lg:[&::-webkit-scrollbar]:hidden lg:rounded-[calc(var(--ck-radius)*1.6)] lg:p-5`}
             >
               {image ? (
                 <div
