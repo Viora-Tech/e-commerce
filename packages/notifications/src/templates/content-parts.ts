@@ -327,14 +327,14 @@ export const orderUpdateTemplates = {
       `${d.storeName}: order #${d.orderNumber} was updated. New total ${d.totalLabel}.${d.orderUrl ? ` See it: ${d.orderUrl}` : ''}`,
   },
   payment_pending: {
-    subject: (d) => `${d.storeName}: your payment for order #${d.orderNumber} did not go through`,
+    subject: (d) => `${d.storeName}: your order #${d.orderNumber} is waiting for payment`,
     heading: (d) => `Hi ${d.customerName}, your payment is not finished`,
     intro: (d) =>
       `We could not confirm the ${d.totalLabel} payment for order #${d.orderNumber}. If the payment failed or the page closed, you can try again. We are holding your items for now.`,
     outro: (d) =>
       `${d.orderUrl ? `Retry your payment here: ${d.orderUrl}. ` : ''}If money left your account, it is not lost: it either confirms the order or goes back to you by itself.`,
     whatsapp: (d) =>
-      `${d.storeName}: the ${d.totalLabel} payment for order #${d.orderNumber} did not go through.${d.orderUrl ? ` Retry: ${d.orderUrl}` : ''}`,
+      `${d.storeName}: your order #${d.orderNumber} is waiting for payment of ${d.totalLabel}.${d.orderUrl ? ` Retry: ${d.orderUrl}` : ''}`,
   },
   shipping_update: {
     subject: (d) => `${d.storeName}: new tracking details for order #${d.orderNumber}`,
