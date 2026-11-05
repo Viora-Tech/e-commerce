@@ -1,8 +1,10 @@
 /** SOURCE OF TRUTH: payOnlineInstead — WHAT: a transfer order's shopper switches to a gateway, under the order's row lock / WHY: one attempt per switch, and the merchant's reminders keep working */
 import { type Db, order, orderNote, payment, withStore } from '@commerce/db'
+import { formatMoney } from '@commerce/money'
 import type { PaymentProvider } from '@commerce/payments'
 import { eq } from 'drizzle-orm'
 import type { StoreContext } from '../context'
+import { retaxOrder } from '../order/edit-stock'
 import { recomputeOrderStatuses } from '../order/recompute'
 import {
   attemptSnapshot,
@@ -24,12 +26,21 @@ import { OPEN_ATTEMPT_STATUSES } from './transitions'
  * attempt. The order keeps `payment_method = 'manual'`, so it stays out of the online orders'
  * unpaid expiry (an old transfer order would otherwise be cancelled on the next sweep) and the
  * merchant's reminders keep working; a timeline note records the switch.
+ *
+ * A discount for paying by transfer goes with the transfer: it exists because the money skips
+ * the gateway's fee, and this payment no longer does. The total, the GST and the parcels are
+ * worked out again without it, and the gateway attempt asks for the higher amount. A fee on the
+ * way to pay stays, since it is not a reward for avoiding the gateway.
  */
 
 const OPEN: readonly string[] = OPEN_ATTEMPT_STATUSES
 
-const PAY_ONLINE_NOTE = (gateway: string) =>
-  `The customer chose to pay online with ${gateway} instead of a transfer.`
+const PAY_ONLINE_NOTE = (gateway: string, removedPaise: number) =>
+  `The customer chose to pay online with ${gateway} instead of a transfer.${
+    removedPaise > 0
+      ? ` The transfer discount of ${formatMoney(removedPaise, 'INR')} was removed.`
+      : ''
+  }`
 
 /**
  * Switch a transfer order's open attempt to `providerId`, under the order's row lock. Two taps
@@ -56,23 +67,36 @@ async function switchToOnlinePayment(
   if (latest.provider === provider.id && OPEN.includes(latest.status)) {
     return { attempt: latest, created: false }
   }
+  let removedPaise = 0
   if (latest.provider === MANUAL_METHOD && OPEN.includes(latest.status)) {
     // As the unpaid expiry ends an attempt; the gateway attempt below keeps the order open.
     await ctx.tx
       .update(payment)
       .set({ status: 'cancelled', error: 'Customer chose to pay online' })
       .where(eq(payment.id, latest.id))
+    removedPaise = Math.max(0, -o.paymentAdjustmentPaise)
+    if (removedPaise > 0) {
+      await ctx.tx
+        .update(order)
+        .set({
+          paymentAdjustmentPaise: 0,
+          paymentAdjustmentLabel: null,
+          totalPaise: o.totalPaise + removedPaise,
+        })
+        .where(eq(order.id, orderId))
+      await retaxOrder(ctx, orderId)
+    }
   }
   const attempt = await createPaymentAttempt(ctx, {
     orderId,
     provider: provider.id,
-    amountPaise: latest.amountPaise,
+    amountPaise: latest.amountPaise + removedPaise,
   })
   await recomputeOrderStatuses(ctx, orderId)
   await ctx.tx.insert(orderNote).values({
     storeId: ctx.storeId,
     orderId,
-    body: PAY_ONLINE_NOTE(provider.label),
+    body: PAY_ONLINE_NOTE(provider.label, removedPaise),
     author: 'system',
   })
   return { attempt, created: true }

@@ -136,6 +136,9 @@ export const thankYouContent = {
   payOnline: {
     heading: 'Or pay online',
     body: 'Pay now with UPI, card or netbanking and your order is confirmed straight away.',
+    /** Paying online gives up the transfer's discount: it exists because a transfer has no fee. */
+    noDiscount: (label: string, saved: string, total: string) =>
+      `The ${label} of ${saved} is only for this direct payment. Paying online costs ${total}.`,
     action: 'Pay online now',
     alreadySent: 'Already sent the transfer? You do not need to pay again; we will confirm it.',
   },

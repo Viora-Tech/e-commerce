@@ -274,6 +274,18 @@ export default function ThankYouTemplate({
                     <p className="text-[0.875rem] leading-5 text-pretty text-ck-muted">
                       {content.payOnline.body}
                     </p>
+                    {o.paymentAdjustmentPaise < 0 ? (
+                      <p className="text-[0.875rem] leading-5 font-medium text-pretty text-ck-warn">
+                        {content.payOnline.noDiscount(
+                          o.paymentAdjustmentLabel ??
+                            content.adjustmentFallback(o.paymentAdjustmentPaise),
+                          formatPaise(-o.paymentAdjustmentPaise),
+                          formatPaise(
+                            (pay?.amountPaise ?? o.totalPaise) - o.paymentAdjustmentPaise,
+                          ),
+                        )}
+                      </p>
+                    ) : null}
                     <button type="submit" className={CK_BUTTON_PRIMARY}>
                       {content.payOnline.action}
                     </button>
