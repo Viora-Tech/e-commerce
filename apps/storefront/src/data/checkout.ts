@@ -354,6 +354,14 @@ export const checkoutContent = {
   placeOrderAmount: (amount: string) => `Place order · ${amount}`,
   processing: 'Processing…',
   help: { label: 'Need help?', short: 'Help', aria: 'Need help? WhatsApp us' },
+  /** A card that arrives filled in reads as rows until the shopper edits it. */
+  filled: {
+    mobile: 'Mobile',
+    email: 'Email',
+    shipTo: 'Ship to',
+    edit: 'Edit',
+    editLabel: (label: string) => `Edit ${label.toLowerCase()}`,
+  },
   /** Under the Pay button: "Secured by Razorpay", or the plain line when no gateway is named. */
   payNote: { by: 'Secured by', plain: 'Secure checkout' },
   /** The summary's delivery box: "Delivers to 122001 by Thu, 29 Oct". */

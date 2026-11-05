@@ -37,7 +37,7 @@ export default function CheckoutCard({
       id={id}
       aria-labelledby={headingId}
       tabIndex={-1}
-      className={`${CK_CARD} flex scroll-mt-4 flex-col gap-3 p-4 outline-none sm:gap-3.5 sm:p-5`}
+      className={`${CK_CARD} flex scroll-mt-4 bg-[image:var(--ck-card-surface)] flex-col gap-3 p-4 outline-none sm:gap-3.5 sm:p-5`}
     >
       <div className="flex min-h-6 items-center justify-between gap-4">
         <h2

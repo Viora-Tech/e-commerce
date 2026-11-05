@@ -5,6 +5,7 @@ import type { CSSProperties, ReactNode } from 'react'
 import CheckoutBrand from '@/components/checkout/checkout-brand'
 import CheckoutIcon from '@/components/checkout/checkout-icon'
 import CheckoutMoney from '@/components/checkout/checkout-money'
+import SummaryGlass from '@/components/checkout/summary-glass'
 import { checkoutContent as content } from '@/data/checkout'
 import { CK_CARD } from '@/lib/checkout-classes'
 
@@ -105,14 +106,16 @@ export default function CheckoutPageShell({
         >
           <aside className="lg:sticky lg:top-6 lg:col-start-2 lg:row-start-1 lg:self-start">
             <div
-              className={`${CK_CARD} relative isolate bg-ck-summary! bg-[image:var(--ck-summary-image)] bg-cover bg-center text-ck-summary-ink lg:max-h-[calc(100dvh-3rem)] lg:overflow-y-auto lg:overscroll-contain lg:[scrollbar-width:none] lg:[&::-webkit-scrollbar]:hidden lg:rounded-[calc(var(--ck-radius)*1.6)] lg:p-5`}
+              className={`${CK_CARD} relative isolate overflow-hidden bg-ck-summary! bg-[image:var(--ck-summary-image)] bg-cover bg-center text-ck-summary-ink [box-shadow:var(--ck-card-shadow)]! lg:max-h-[calc(100dvh-3rem)] lg:overflow-y-auto lg:overscroll-contain lg:[scrollbar-width:none] lg:[&::-webkit-scrollbar]:hidden lg:rounded-[calc(var(--ck-radius)*1.6)] lg:p-5`}
             >
               {image ? (
                 <div
                   aria-hidden="true"
                   className="absolute inset-0 -z-10 rounded-[inherit] bg-ck-summary-wash"
                 />
-              ) : null}
+              ) : (
+                <SummaryGlass />
+              )}
               {summary}
               {summaryEnd ? (
                 <div className="hidden flex-col gap-2.5 pt-5 lg:flex">{summaryEnd}</div>
