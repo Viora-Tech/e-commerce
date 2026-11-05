@@ -228,10 +228,10 @@ describe('CheckoutForm', () => {
     expect(pay.indexOf('value="razorpay"')).toBeLessThan(pay.indexOf('value="cod"'))
   })
 
-  it('keeps the GST invoice box in the Payment card', () => {
-    expect(html.indexOf('Get a GST invoice for my business')).toBeGreaterThan(
-      html.indexOf('id="checkout-section-payment"'),
-    )
+  it('asks for the business GST details with the address', () => {
+    const at = html.indexOf('This is a business address')
+    expect(at).toBeGreaterThan(html.indexOf('id="checkout-section-address"'))
+    expect(at).toBeLessThan(html.indexOf('id="checkout-section-payment"'))
   })
 
   it('shows the order summary', () => {

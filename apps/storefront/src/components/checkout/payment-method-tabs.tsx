@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import PaymentMark from '@/components/checkout/payment-mark'
 import { checkoutContent } from '@/data/checkout'
-import { CK_HEADING } from '@/lib/checkout-classes'
+import { CK_HEADING, CK_LIFT } from '@/lib/checkout-classes'
 import { rememberPickedMethod } from '@/lib/razorpay-picked-method'
 
 type PaymentMethodTabsProps = {
@@ -48,7 +48,7 @@ export default function PaymentMethodTabs({ tabs, brand }: PaymentMethodTabsProp
         ))}
       </div>
       {picked === 'upi' ? (
-        <div className="flex flex-col gap-3">
+        <div key={picked} className={`flex flex-col gap-3 ${CK_LIFT}`}>
           <h3 className={`${CK_HEADING} text-[1rem]! leading-[1.4375rem]!`}>
             {content.upiHeading}
           </h3>
@@ -60,7 +60,9 @@ export default function PaymentMethodTabs({ tabs, brand }: PaymentMethodTabsProp
           </span>
         </div>
       ) : (
-        <p className="text-[0.875rem] leading-5 text-ck-muted">{hint}</p>
+        <p key={picked} className={`text-[0.875rem] leading-5 text-ck-muted ${CK_LIFT}`}>
+          {hint}
+        </p>
       )}
       <p className="text-[0.75rem] leading-[1.0625rem] text-ck-faint">
         {content.processedBy(brand)}

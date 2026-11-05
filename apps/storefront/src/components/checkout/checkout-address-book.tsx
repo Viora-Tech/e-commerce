@@ -4,6 +4,7 @@ import type { ReactNode } from 'react'
 import CheckoutAbroadFields from '@/components/checkout/checkout-abroad-fields'
 import CheckoutAddressFields from '@/components/checkout/checkout-address-fields'
 import CheckoutCountrySelect from '@/components/checkout/checkout-country-select'
+import CheckoutGstFields from '@/components/checkout/checkout-gst-fields'
 import CheckoutIcon from '@/components/checkout/checkout-icon'
 import SavedAddressCard from '@/components/checkout/saved-address-card'
 import { checkoutContent as content } from '@/data/checkout'
@@ -91,6 +92,18 @@ export default function CheckoutAddressBook({ ck }: CheckoutAddressBookProps) {
       onPlace={ck.handlePlace}
     />
   )
+  const gst = ck.settings.gstin ? (
+    <CheckoutGstFields
+      values={ck.form}
+      errors={ck.shownErrors}
+      business={ck.business}
+      companyShown={ck.settings.fields.company !== 'hidden'}
+      copy={ck.copy}
+      onBusiness={ck.handleBusiness}
+      onField={ck.set}
+      onLeave={ck.handleLeave}
+    />
+  ) : null
   const form = (
     <>
       {picker}
@@ -98,7 +111,14 @@ export default function CheckoutAddressBook({ ck }: CheckoutAddressBookProps) {
     </>
   )
   // Early returns
-  if (!cards) return <div className={`${CK_PANEL} flex flex-col gap-4 p-5`}>{form}</div>
+  if (!cards) {
+    return (
+      <div className="flex flex-col gap-4">
+        <div className={`${CK_PANEL} flex flex-col gap-4 p-5`}>{form}</div>
+        {gst}
+      </div>
+    )
+  }
 
   return (
     <div className="flex flex-col gap-3">
@@ -137,6 +157,7 @@ export default function CheckoutAddressBook({ ck }: CheckoutAddressBookProps) {
           {book.add}
         </button>
       )}
+      {gst}
     </div>
   )
 }

@@ -1,4 +1,5 @@
 import { checkoutContent as content } from '@/data/checkout'
+import { CK_LIFT } from '@/lib/checkout-classes'
 import type { ReviewRow } from '@/lib/checkout-filled-rows'
 import type { CheckoutSection } from '@/lib/checkout-sections'
 
@@ -19,7 +20,7 @@ export default function CheckoutReview({ rows, onChange }: CheckoutReviewProps) 
       {rows.map((row) => (
         <div
           key={row.section}
-          className="grid grid-cols-[4.5rem_minmax(0,1fr)_auto] items-start gap-3 px-4 py-3.5 text-[0.875rem] leading-5"
+          className={`grid grid-cols-[4.5rem_minmax(0,1fr)_auto] items-start gap-3 px-4 py-3.5 text-[0.875rem] leading-5 ${CK_LIFT}`}
         >
           <dt className="text-[0.8125rem] leading-[1.1875rem] text-ck-faint">{row.label}</dt>
           <dd className="m-0! break-words text-ck-ink">{row.value}</dd>

@@ -20,6 +20,10 @@ export const CK_CARD =
 export const CK_PANEL =
   'rounded-[calc(var(--ck-radius)*1.2)] bg-ck-bg [--ck-field:var(--ck-canvas)] [box-shadow:var(--ck-section-shadow)]'
 
+/** Arriving on screen: rises and fades in, a fade alone with reduced motion. */
+export const CK_LIFT =
+  'motion-safe:animate-[ck-lift_280ms_var(--ease-out)_both] motion-reduce:animate-[sf-fade_200ms_var(--ease-out)_both]'
+
 /** A picked radio card (shipping option, way to pay): the accent ring, a soft fill. */
 export const CK_PICKED =
   'border-ck-accent-lift bg-ck-accent-soft [box-shadow:inset_0_0_0_1px_var(--ck-accent-lift)]'
