@@ -121,7 +121,7 @@ export const notificationsSettingsContent = {
     },
     payment_pending: {
       name: 'Payment not finished',
-      when: 'Once, about 10 minutes after an online payment fails or is left unfinished. Links to retry the payment.',
+      when: 'Once, about 30 minutes after an online payment fails or is left unfinished. Links to retry the payment.',
     },
     shipping_update: {
       name: 'Shipping update',

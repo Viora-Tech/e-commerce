@@ -102,6 +102,7 @@ export const thankYouContent = {
   orderNumber: (number: number) => `Order #${number}`,
   status: {
     awaiting: (total: string) => `We are confirming your payment of ${total}.`,
+    unpaid: (total: string) => `Your order is saved. Pay ${total} to confirm it.`,
     manual: 'Your order is reserved until we receive your transfer.',
     upiQr: (total: string) =>
       `Pay ${total} with any UPI app. This page updates on its own once it is paid.`,

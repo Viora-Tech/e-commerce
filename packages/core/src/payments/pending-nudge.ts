@@ -7,8 +7,11 @@ import { insertOutboxEvent } from '../outbox/write'
 import { EXPIRY_EXEMPT_METHODS } from './expiry'
 import { parsePaymentSettings } from './settings'
 
-/** How long after checkout the shopper is nudged, unless the store's expiry is sooner. */
-const PAYMENT_PENDING_AFTER_MINUTES = 10
+/**
+ * How long after checkout the shopper is nudged, unless the store's expiry is sooner. Long
+ * enough that nobody hears from us while the gateway's window, and its QR, are still open.
+ */
+const PAYMENT_PENDING_AFTER_MINUTES = 30
 
 /** Orders older than this are never nudged: the scan stays small and outbox rows outlive it. */
 const NUDGE_WINDOW_MS = 86_400_000
@@ -17,7 +20,7 @@ const NUDGE_WINDOW_MS = 86_400_000
 const BATCH = 50
 
 /**
- * Minutes after checkout to nudge: ten, or half the store's "cancel unpaid orders after"
+ * Minutes after checkout to nudge: thirty, or half the store's "cancel unpaid orders after"
  * window when that is shorter, so the retry link still works when the message lands.
  */
 function paymentNudgeAfterMinutes(expireAfterMinutes: number): number {
