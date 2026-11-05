@@ -83,7 +83,7 @@
   --ck-line: #e5e5e5;
   --ck-field: #ffffff;
   --ck-soft: #f5f5f5;
-  /* The page behind the checkout's cards: the admin's light grey in light, the page itself in dark. */
+  /* The page behind the checkout's cards: the admin's light grey in light, a shade under the cards in dark. */
   --ck-canvas: #fafafa;
   --ck-danger: #c23a2b;
   --ck-success: #1d8a50;
@@ -94,7 +94,7 @@
   /* Focus rings as real properties: arbitrary box-shadow values cannot read @theme inline names. */
   --ck-ring: color-mix(in oklab, var(--ck-accent) 24%, transparent);
   --ck-danger-ring: color-mix(in oklab, var(--ck-danger) 14%, transparent);
-  /* The summary card: a hairline lift in light mode, flat in dark. */
+  /* The summary card: a hairline lift in light mode, lit from above in dark. */
   --ck-card-shadow:
     0 0 0 1px rgb(0 0 0 / 0.06), 0 1px 2px rgb(0 0 0 / 0.06), 0 8px 24px rgb(0 0 0 / 0.06);
   /* The one-page checkout's cards (Contact, Delivery, Shipping, Payment). */
@@ -123,19 +123,23 @@
 }
 
 :root[data-theme="dark"] .ck {
-  --ck-bg: #121214;
+  --ck-bg: #141416;
   --ck-ink: #ededee;
   --ck-muted: #9a9aa1;
-  --ck-line: #2c2c31;
-  --ck-field: #18181b;
+  --ck-line: rgb(255 255 255 / 0.09);
+  --ck-field: #101012;
   --ck-soft: #1b1b1f;
-  --ck-canvas: var(--ck-bg);
+  --ck-canvas: #0a0a0b;
   --ck-danger: #f0776a;
   --ck-success: #4cc488;
   --ck-summary: color-mix(in oklab, var(--ck-summary-light) 8%, #0b0b0d);
   --ck-summary-ink: #ededee;
-  --ck-card-shadow: none;
-  --ck-section-shadow: 0 0 0 1px var(--ck-line);
+  --ck-card-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.08), 0 0 0 1px var(--ck-line), 0 1px 2px rgb(0 0 0 / 0.5),
+    0 12px 28px -12px rgb(0 0 0 / 0.7);
+  --ck-section-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.08), 0 0 0 1px var(--ck-line), 0 1px 2px rgb(0 0 0 / 0.5),
+    0 12px 28px -12px rgb(0 0 0 / 0.7);
   color-scheme: dark;
 }
 
@@ -183,19 +187,23 @@ body:has(.ck) {
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme]) .ck {
-    --ck-bg: #121214;
+    --ck-bg: #141416;
     --ck-ink: #ededee;
     --ck-muted: #9a9aa1;
-    --ck-line: #2c2c31;
-    --ck-field: #18181b;
+    --ck-line: rgb(255 255 255 / 0.09);
+    --ck-field: #101012;
     --ck-soft: #1b1b1f;
-    --ck-canvas: var(--ck-bg);
+    --ck-canvas: #0a0a0b;
     --ck-danger: #f0776a;
     --ck-success: #4cc488;
     --ck-summary: color-mix(in oklab, var(--ck-summary-light) 8%, #0b0b0d);
     --ck-summary-ink: #ededee;
-    --ck-card-shadow: none;
-    --ck-section-shadow: 0 0 0 1px var(--ck-line);
+    --ck-card-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.08), 0 0 0 1px var(--ck-line), 0 1px 2px rgb(0 0 0 / 0.5),
+      0 12px 28px -12px rgb(0 0 0 / 0.7);
+    --ck-section-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.08), 0 0 0 1px var(--ck-line), 0 1px 2px rgb(0 0 0 / 0.5),
+      0 12px 28px -12px rgb(0 0 0 / 0.7);
     color-scheme: dark;
   }
 }

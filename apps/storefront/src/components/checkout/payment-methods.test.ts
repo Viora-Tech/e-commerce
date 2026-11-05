@@ -104,14 +104,14 @@ describe('PaymentMethods', () => {
     const upi = offeredMethods(cart as never, [{ id: 'decentro', label: 'UPI' }, ...methods])
     const html = render({ methods: upi, selected: 'decentro' })
     expect(html).not.toMatch(/UPI ID|@bank|yourname/i)
-    for (const app of ['GPay', 'PhonePe', 'Paytm', 'Decentro']) expect(html).toContain(app)
+    for (const app of ['GPay', 'PhonePe', 'Paytm']) expect(html).toContain(app)
     expect(cardOf(html, 'decentro')).toContain('Pay ₹1,000 straight from your bank')
   })
 
-  it('shows a discount for a way to pay as a chip', () => {
+  it('shows a discount for a way to pay as a pill', () => {
     const upi = { id: 'decentro', label: 'UPI', adjustment: { type: 'percent', value: -200 } }
     const html = render({ methods: [upi as CheckoutMethod, ...methods], selected: 'decentro' })
-    expect(cardOf(html, 'decentro')).toContain('−2%')
+    expect(cardOf(html, 'decentro')).toContain('2% off')
   })
 
   it('keeps blocked cash on delivery visible, disabled, with the reason', () => {

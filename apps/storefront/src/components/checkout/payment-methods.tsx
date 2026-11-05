@@ -1,11 +1,12 @@
 'use client'
 
 import { formatPaymentAdjustment } from '@commerce/core/adjustment-math'
+import CheckoutIcon from '@/components/checkout/checkout-icon'
 import PaymentMark, { type PaymentMarkName } from '@/components/checkout/payment-mark'
 import RadioDot from '@/components/checkout/radio-dot'
 import { checkoutContent as content } from '@/data/checkout'
-import { CK_PICKED, CK_UNPICKED } from '@/lib/checkout-classes'
 import { methodView, takesUpi } from '@/lib/checkout-preview'
+import { PAYMENT_LOGOS, type PaymentLogoName } from '@/lib/payment-logos'
 import type { CheckoutMethod } from '@/lib/payments'
 
 type PaymentMethodsProps = {
@@ -22,16 +23,6 @@ type PaymentMethodsProps = {
 
 const panel = content.methodPanel
 
-/** Each gateway's own colour for its name chip; anything else wears the checkout's ink. */
-const BRAND_COLOURS: Record<string, string> = {
-  Razorpay: '#072654',
-  Cashfree: '#5B3DF5',
-  Decentro: '#0B0B12',
-  PhonePe: '#5F259F',
-  PayU: '#3A8D2F',
-  Paytm: '#002E6E',
-}
-
 /** The small marks under a way to pay: the UPI apps, or what a gateway takes. */
 function marksFor(m: CheckoutMethod): readonly PaymentMarkName[] {
   if (m.id === 'decentro') return panel.upiApps
@@ -40,20 +31,26 @@ function marksFor(m: CheckoutMethod): readonly PaymentMarkName[] {
   return [...(takesUpi(m) ? [panel.upiMark] : []), ...(cards ? panel.cardMarks : [])]
 }
 
+/** The real logo on a way to pay's tile, when it has one. */
+function logoFor(m: CheckoutMethod): PaymentLogoName | null {
+  if (m.id === 'razorpay') return 'razorpay'
+  if (m.id === 'decentro') return 'upi'
+  if (m.id === 'manual' && m.manualKinds?.length === 1 && m.manualKinds[0] === 'upi') return 'upi'
+  return null
+}
+
 /** What opens under the picked way to pay: how it goes once Pay is tapped. */
 function detailFor(m: CheckoutMethod, amountLabel: string): string | null {
   const view = methodView(m)
   if (m.id === 'decentro') return panel.upi(amountLabel)
-  if (m.id === 'cod' || m.id === 'manual') return view.hint
-  if (view.brand && view.hint) return panel.gateway(view.hint, view.brand)
-  return view.hint
+  return view.brand ? panel.gateway(view.brand) : null
 }
 
 /**
- * The Payment card (design: checkout-design Main/Mobile): one radio card per way to pay, UPI
- * first. A gateway shows its name chip in its own colour and the marks of what it takes; a
- * discount for a method (UPI −2%) is a green chip on the right. The picked card opens onto
- * what happens next: its detail grows open (grid rows and opacity, 200ms ease-out) and the
+ * The Payment card, grouped like the admin's settings lists: one row per way to pay, UPI first,
+ * each with its logo on a tile, its name and what it takes, and the real marks of what it
+ * accepts. A discount for a method (UPI −2%) is a green pill on the right. The picked row wears
+ * the store's accent and opens onto what happens next: its detail grows open (grid rows and opacity, 200ms ease-out) and the
  * last one folds away, so switching reads as one movement. Native radios, so arrow keys
  * move the pick. The QR and the app links only exist once the order is placed.
  */
@@ -68,7 +65,7 @@ export default function PaymentMethods({
   return (
     <fieldset className="border-0! p-0!">
       <legend className="sr-only">{content.payment}</legend>
-      <div className="flex flex-col gap-2">
+      <div className="divide-y divide-ck-line overflow-hidden rounded-[calc(var(--ck-radius)*1.2)] border border-ck-line">
         {methods.map((m) => {
           const view = methodView(m)
           const checked = selected === m.id
@@ -77,17 +74,16 @@ export default function PaymentMethods({
             m.adjustment && m.adjustment.value !== 0 ? formatPaymentAdjustment(m.adjustment) : null
           const saving = (m.adjustment?.value ?? 0) < 0
           const marks = marksFor(m)
+          const logo = logoFor(m)
           const detail = detailFor(m, amountLabel)
-          // A gateway's chip already says its name; UPI keeps its own title beside the chip.
-          const titleHidden = view.brand !== null && view.brand === view.title
           return (
             <div
               key={m.id}
               data-method={m.id}
-              className={`rounded-ck border transition-[border-color,box-shadow,background-color] duration-150 ease-out motion-reduce:transition-none ${checked ? CK_PICKED : CK_UNPICKED}`}
+              className={`transition-[box-shadow,background-color] duration-150 ease-out motion-reduce:transition-none ${checked ? 'bg-ck-accent-soft [box-shadow:inset_0.1875rem_0_0_var(--ck-accent)]' : 'hover:bg-ck-soft'}`}
             >
               <label
-                className={`flex items-center gap-2.5 rounded-ck px-3.5 py-3 has-[:focus-visible]:[box-shadow:inset_0_0_0_2px_var(--ck-accent)] sm:gap-3 sm:px-4 sm:py-3.5 ${blocked ? 'cursor-not-allowed opacity-55' : 'cursor-pointer'}`}
+                className={`flex flex-wrap items-center gap-x-3 gap-y-2 px-3.5 py-3 has-[:focus-visible]:[box-shadow:inset_0_0_0_2px_var(--ck-accent)] sm:flex-nowrap sm:px-4 ${blocked ? 'cursor-not-allowed opacity-55' : 'cursor-pointer'}`}
               >
                 <input
                   type="radio"
@@ -99,18 +95,21 @@ export default function PaymentMethods({
                   className="peer sr-only"
                 />
                 <RadioDot checked={checked} />
-                <span className="flex min-w-0 flex-1 flex-col gap-1.5">
-                  <span className="flex flex-wrap items-center gap-1.5 text-[0.8125rem] leading-snug font-semibold text-ck-ink sm:gap-2 sm:text-[0.875rem]">
-                    {view.brand ? (
-                      <span
-                        aria-hidden="true"
-                        style={{ backgroundColor: BRAND_COLOURS[view.brand] ?? 'var(--ck-ink)' }}
-                        className="inline-flex h-5 shrink-0 items-center rounded-[0.3125rem] px-1.5 text-[0.5625rem] font-extrabold tracking-[0.04em] text-white sm:h-[1.375rem] sm:px-[0.4375rem] sm:text-[0.625rem]"
-                      >
-                        {view.brand}
-                      </span>
-                    ) : null}
-                    <span className={titleHidden ? 'sr-only' : undefined}>{view.title}</span>
+                <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-ck-qr [box-shadow:inset_0_0_0_1px_rgb(0_0_0/0.06)]">
+                  {logo ? (
+                    // biome-ignore lint/performance/noImgElement: inline data URI, nothing to optimise.
+                    <img
+                      src={PAYMENT_LOGOS[logo]}
+                      alt=""
+                      className="block h-auto! max-h-6 w-auto! max-w-7.5"
+                    />
+                  ) : (
+                    <CheckoutIcon name={view.icon} className="size-5 text-ck-accent" />
+                  )}
+                </span>
+                <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                  <span className="flex flex-wrap items-center gap-2 text-[0.9375rem] leading-snug font-semibold text-ck-ink">
+                    {view.title}
                     {m.test ? (
                       <span
                         title={content.testModeHint}
@@ -120,12 +119,8 @@ export default function PaymentMethods({
                       </span>
                     ) : null}
                   </span>
-                  {marks.length > 0 ? (
-                    <span aria-hidden="true" className="flex flex-wrap items-center gap-1">
-                      {marks.map((mark) => (
-                        <PaymentMark key={mark} mark={mark} />
-                      ))}
-                    </span>
+                  {view.hint ? (
+                    <span className="text-[0.8125rem] leading-snug text-ck-muted">{view.hint}</span>
                   ) : null}
                   {m.id === 'cod' && codNote ? (
                     <span
@@ -135,11 +130,21 @@ export default function PaymentMethods({
                     </span>
                   ) : null}
                 </span>
+                {marks.length > 0 ? (
+                  <span
+                    aria-hidden="true"
+                    className="flex w-full shrink-0 flex-wrap items-center gap-1 ps-[5.625rem] sm:w-auto sm:ps-0"
+                  >
+                    {marks.map((mark) => (
+                      <PaymentMark key={mark} mark={mark} />
+                    ))}
+                  </span>
+                ) : null}
                 {adjustment ? (
                   <span
-                    className={`flex h-[1.375rem] shrink-0 items-center rounded-[0.375rem] px-[0.4375rem] text-[0.6875rem] font-semibold tabular-nums sm:h-6 sm:px-2 sm:text-[0.75rem] ${saving ? 'bg-ck-success/12 text-ck-success' : 'bg-ck-soft text-ck-muted'}`}
+                    className={`flex h-6 shrink-0 items-center rounded-full border px-2.5 text-[0.75rem] font-semibold tabular-nums ${saving ? 'border-ck-success/30 bg-ck-success/12 text-ck-success' : 'border-ck-line bg-ck-soft text-ck-muted'}`}
                   >
-                    {adjustment}
+                    {saving ? panel.saving(adjustment) : adjustment}
                   </span>
                 ) : null}
               </label>
@@ -149,7 +154,7 @@ export default function PaymentMethods({
                   className={`grid transition-[grid-template-rows,opacity] duration-200 ease-out motion-reduce:transition-[opacity] ${checked ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}
                 >
                   <div className="min-h-0 overflow-hidden">
-                    <p className="ps-[2.625rem] pe-3.5 pb-3.5 text-[0.75rem] leading-[1.55] text-ck-muted sm:ps-[2.75rem] sm:pe-4 sm:pb-4 sm:text-[0.8125rem]">
+                    <p className="ps-[6.0625rem] pe-3.5 pb-3 text-[0.8125rem] leading-[1.55] text-ck-muted sm:ps-[6.125rem] sm:pe-4">
                       {detail}
                     </p>
                   </div>

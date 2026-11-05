@@ -310,10 +310,12 @@ export const checkoutContent = {
   methodPanel: {
     upi: (amount: string) =>
       `Pay ${amount} straight from your bank with any UPI app. On a phone your app opens; on a computer you scan a QR code.`,
-    gateway: (takes: string, brand: string) => `${takes}. You finish on ${brand}'s secure screen.`,
+    gateway: (brand: string) => `You finish on ${brand}'s secure screen.`,
+    /** A method's discount: "2% off". */
+    saving: (amount: string) => `${amount.replace('−', '')} off`,
     /** The small marks under each way to pay. */
     upiApps: ['GPay', 'PhonePe', 'Paytm'],
-    cardMarks: ['VISA', 'RuPay'],
+    cardMarks: ['VISA', 'Mastercard', 'RuPay'],
     upiMark: 'UPI',
   },
   /** Under the Pay button: the gateways that handle the money. */

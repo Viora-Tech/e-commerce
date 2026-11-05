@@ -1,3 +1,5 @@
+import { PAYMENT_LOGOS, type PaymentLogoName } from '@/lib/payment-logos'
+
 type PaymentMarkProps = {
   /** A wordmark for an Express button, or a small chip for the row under a way to pay. */
   mark: PaymentMarkName
@@ -5,7 +7,15 @@ type PaymentMarkProps = {
   size?: 'word' | 'chip'
 }
 
-export type PaymentMarkName = 'GPay' | 'PhonePe' | 'Paytm' | 'UPI' | 'VISA' | 'RuPay'
+export type PaymentMarkName = 'GPay' | 'PhonePe' | 'Paytm' | 'UPI' | 'VISA' | 'Mastercard' | 'RuPay'
+
+/** The marks with a real logo file; the others stay drawn in type. */
+const LOGOS: Partial<Record<PaymentMarkName, PaymentLogoName>> = {
+  UPI: 'upi',
+  VISA: 'visa',
+  Mastercard: 'mastercard',
+  RuPay: 'rupay',
+}
 
 type ChipLook = { bg: string; fg: string; border: boolean; italic?: boolean }
 
@@ -20,6 +30,7 @@ const CHIPS: Record<PaymentMarkName, ChipLook> = {
   Paytm: { bg: '#FFFFFF', fg: '#00B9F1', border: true },
   UPI: { bg: '#FFFFFF', fg: '#097A44', border: true },
   VISA: { bg: '#1A1F71', fg: '#FFFFFF', border: false, italic: true },
+  Mastercard: { bg: '#FFFFFF', fg: '#3C4043', border: true },
   RuPay: { bg: '#FFFFFF', fg: '#097A44', border: true },
 }
 
@@ -41,6 +52,15 @@ const GOOGLE: { key: string; letter: string; colour: string }[] = [
 export default function PaymentMark({ mark, size = 'chip' }: PaymentMarkProps) {
   // Early returns
   if (size === 'chip') {
+    const logo = LOGOS[mark]
+    if (logo) {
+      return (
+        <span className="inline-flex h-6.5 w-10 items-center justify-center rounded-[0.3125rem] bg-ck-qr">
+          {/* biome-ignore lint/performance/noImgElement: inline data URI, nothing to optimise. */}
+          <img src={PAYMENT_LOGOS[logo]} alt="" className="block h-auto! max-h-4 w-auto! max-w-8" />
+        </span>
+      )
+    }
     const look = CHIPS[mark]
     return (
       <span
