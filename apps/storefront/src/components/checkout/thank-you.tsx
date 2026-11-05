@@ -142,7 +142,11 @@ export default function ThankYouTemplate({
         ? content.headline.pending
         : content.card.confirmed
   const statusLines = !settled
-    ? [pendingLine(failed, manual !== null, qr !== null, due)]
+    ? [
+        payClient
+          ? content.status.unpaid(due)
+          : pendingLine(failed, manual !== null, qr !== null, due),
+      ]
     : progress.end
       ? []
       : boughtCards
