@@ -31,7 +31,7 @@ import {
   takesUpi,
 } from '@/lib/checkout-preview'
 import { readRemembered, writeRemembered } from '@/lib/checkout-remember'
-import { bringIntoView, followLegacyStep } from '@/lib/checkout-scroll'
+import { bringIntoView, followLegacyStep, pressSendCode } from '@/lib/checkout-scroll'
 import {
   type CheckoutSection,
   firstOpenSection,
@@ -102,10 +102,10 @@ export function useCheckoutForm(input: CheckoutFormInput) {
   /** The step the shopper chose; until then, the first one that still needs something. */
   const [pickedStep, setPickedStep] = useState<CheckoutSection | null>(null)
   /**
-   * Checking out as a guest (the plain contact fields) unless the store needs an account;
-   * "Sign in" in the Contact card switches to the code.
+   * Signing in with a code comes first; a guest link leads to the plain contact fields,
+   * and a shopper who already checked out as a guest goes straight to them.
    */
-  const [guest, setGuest] = useState(signIn.checkout !== 'account_required')
+  const [guest, setGuest] = useState(false)
   /** The saved address being edited in place, or null. */
   const [editingId, setEditingId] = useState<string | null>(null)
   const [addressError, setAddressError] = useState<string | null>(null)
@@ -241,7 +241,7 @@ export function useCheckoutForm(input: CheckoutFormInput) {
   const handleContinue = () => {
     const move = stepMove({ step, sections, done, shipping: gates.shipping })
     if (move.kind === 'pick-shipping') setError(content.errors.pickShipping)
-    if (move.kind === 'fix') showFirstWrong()
+    if (move.kind === 'fix' && (contactReady || !pressSendCode(SEND_CODE_ID))) showFirstWrong()
     if (move.kind !== 'next') return
     setError(null)
     setAttempted(false)

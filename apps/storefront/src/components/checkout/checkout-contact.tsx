@@ -4,7 +4,6 @@ import CheckoutContactFields from '@/components/checkout/checkout-contact-fields
 import CheckoutOtp from '@/components/checkout/checkout-otp'
 import CheckoutQuickSignIn from '@/components/checkout/checkout-quick-sign-in'
 import { checkoutContent as content } from '@/data/checkout'
-import { CK_BUTTON_SECONDARY } from '@/lib/checkout-classes'
 import type { CheckoutFormModel } from '@/lib/use-checkout-form'
 
 type CheckoutContactProps = { ck: CheckoutFormModel }
@@ -67,25 +66,17 @@ export default function CheckoutContact({ ck }: CheckoutContactProps) {
   if (ck.guest && !accountRequired) return withOptIn
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-6">
       <CheckoutOtp
         phone={ck.form.phone}
         email={ck.form.email}
         methods={signIn.methods}
         onPhone={ck.handlePhone}
         onEmail={ck.set('email')}
-        note={accountRequired ? otp.required : otp.optional}
+        note={accountRequired ? otp.required : null}
+        onGuest={accountRequired ? undefined : () => ck.handleGuest(true)}
       />
       {signIn.options ? <CheckoutQuickSignIn options={signIn.options} /> : null}
-      {accountRequired ? null : (
-        <button
-          type="button"
-          onClick={() => ck.handleGuest(true)}
-          className={`${CK_BUTTON_SECONDARY} w-full`}
-        >
-          {otp.guest}
-        </button>
-      )}
     </div>
   )
 }

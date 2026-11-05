@@ -140,11 +140,11 @@ describe('CheckoutForm', () => {
     )
   })
 
-  it('gives a guest the plain contact fields, with Sign in in the card heading', () => {
-    expect(html).toContain('for="checkout-phone"')
+  it('opens on signing in, with a way through as a guest', () => {
+    expect(html).toContain('Sign in or create your account')
+    expect(html).toContain('id="checkout-send-code"')
     expect(html).toContain('for="checkout-email"')
-    expect(html).toContain('>Sign in</button>')
-    expect(html).not.toContain('id="checkout-send-code"')
+    expect(html).toContain('>Check out as guest</button>')
     // The PIN code comes first in Delivery, City and State after it.
     expect(html.indexOf('for="checkout-pincode"')).toBeLessThan(html.indexOf('for="checkout-name"'))
     expect(html.indexOf('for="checkout-name"')).toBeLessThan(html.indexOf('for="checkout-city"'))
@@ -242,7 +242,7 @@ describe('CheckoutForm', () => {
 
   it('labels every field and leaves validation to the inline checks', () => {
     expect(html).toMatch(/novalidate/i)
-    for (const id of ['checkout-email', 'checkout-phone', 'checkout-pincode', 'checkout-name']) {
+    for (const id of ['checkout-email', 'checkout-pincode', 'checkout-name']) {
       expect(html).toContain(`for="${id}"`)
     }
   })

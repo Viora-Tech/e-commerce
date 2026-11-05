@@ -236,9 +236,7 @@ export const checkoutContent = {
    * creates the account. Settings → Customer accounts decides whether a guest may skip it.
    */
   otp: {
-    intro: 'Enter your mobile number and we will send you a code. No password needed.',
-    introEmail: 'Enter your email and we will send you a code. No password needed.',
-    sendCode: 'Send code',
+    sendCode: 'Continue',
     sending: 'Sending code…',
     codeLabel: 'Six digit code',
     sentTo: (to: string, by: string) => `We sent a code to ${to} by ${by}.`,
@@ -246,9 +244,10 @@ export const checkoutContent = {
     verify: 'Verify and continue',
     verifying: 'Verifying…',
     resend: 'Send a new code',
-    cart: 'Cart',
     change: 'Change',
-    guest: 'Check out as guest instead',
+    emailLabel: 'Email',
+    guestLead: 'Just buying once?',
+    guest: 'Check out as guest',
     signInInstead: 'Sign in with a code instead',
     required: 'This shop needs an account to check out. Signing in creates one.',
     optional: 'Signing in fills in your saved addresses. New here? It creates your account.',

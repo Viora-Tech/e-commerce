@@ -123,6 +123,15 @@ export default function CheckoutForm(props: CheckoutFormProps) {
     </p>
   ) : null
   const previous = sections[sections.indexOf(step) - 1]
+  const signingIn = ck.customer === null && (!ck.guest || ck.accountRequired)
+  const phoneCode = ck.signIn.methods.some((m) => m !== 'email')
+  const emailCode = ck.signIn.methods.includes('email')
+  const signInBody =
+    phoneCode && emailCode
+      ? content.stepIntro.signIn.both
+      : phoneCode
+        ? content.stepIntro.signIn.phone
+        : content.stepIntro.signIn.email
   const next = nextSection(step, sections)
   const shippingValue = shippingRow(digitalOnly, shipping, rate, ck.totals.payment)
   const shippingLine = rate
@@ -274,8 +283,8 @@ export default function CheckoutForm(props: CheckoutFormProps) {
         <CheckoutCard
           id={sectionDomId('contact')}
           headingId={sectionHeadingId('contact')}
-          title={content.stepIntro.contact.title}
-          body={content.stepIntro.contact.body}
+          title={signingIn ? content.stepIntro.signIn.title : content.stepIntro.contact.title}
+          body={signingIn ? signInBody : content.stepIntro.contact.body}
           active={step === 'contact'}
           aside={signInLink}
         >
@@ -341,7 +350,7 @@ export default function CheckoutForm(props: CheckoutFormProps) {
             </p>
           ) : null}
         </div>
-        {continueButton ? (
+        {continueButton && !(step === 'contact' && signingIn) ? (
           <div className={`hidden lg:flex ${step === 'contact' ? 'justify-end' : ''}`}>
             {continueButton}
           </div>

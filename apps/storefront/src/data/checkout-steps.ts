@@ -11,6 +11,12 @@ export const checkoutStepsContent = {
   },
   /** The heading and line each step opens with. */
   stepIntro: {
+    signIn: {
+      title: 'Sign in or create your account',
+      phone: 'Use your phone number. We will send you a code. No password needed.',
+      email: 'Use your email. We will send you a code. No password needed.',
+      both: 'Use your phone number or email. We will send you a code. No password needed.',
+    },
     contact: { title: 'Your contact details', body: 'We send your order updates here.' },
     address: { title: 'Where should we deliver?', body: 'Choose an address or add a new one.' },
     shipping: { title: 'How would you like it delivered?', body: 'Pick what suits you.' },

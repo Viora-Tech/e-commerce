@@ -35,8 +35,10 @@ type CheckoutOtpProps = {
   methods: LoginMethod[]
   onPhone: (value: string) => void
   onEmail: (e: React.ChangeEvent<HTMLInputElement>) => void
-  /** Why to sign in here: required by the store, or a shortcut to saved addresses. */
-  note: string
+  /** Why this store needs an account; null when guests may buy. */
+  note: string | null
+  /** The way past signing in, when the store allows guests. */
+  onGuest?: (() => void) | undefined
 }
 
 /** The store's own sign-in actions, as on the account page. */
@@ -67,6 +69,7 @@ export default function CheckoutOtp({
   onPhone,
   onEmail,
   note,
+  onGuest,
 }: CheckoutOtpProps) {
   // Hooks
   const [pending, start] = useTransition()
@@ -142,10 +145,7 @@ export default function CheckoutOtp({
       : otp.sendCode
 
   return (
-    <div className="flex flex-col gap-4">
-      <p className="text-[0.875rem] text-ck-muted">
-        {channel === 'phone' ? otp.intro : otp.introEmail}
-      </p>
+    <div className="flex flex-col gap-6">
       {sentTo ? (
         <div className="flex flex-col gap-3">
           <p className="flex flex-wrap items-center gap-x-2 text-[0.875rem] text-ck-ink">
@@ -218,7 +218,7 @@ export default function CheckoutOtp({
       ) : (
         <CheckoutField
           id={fieldId('email')}
-          label={content.fields.email}
+          label={otp.emailLabel}
           type="email"
           inputMode="email"
           autoComplete="email"
@@ -227,7 +227,7 @@ export default function CheckoutOtp({
           onChange={onEmail}
         />
       )}
-      <div aria-live="polite">
+      <div aria-live="polite" className="empty:hidden">
         {error ? (
           <p
             id="checkout-otp-error"
@@ -238,33 +238,44 @@ export default function CheckoutOtp({
           </p>
         ) : null}
       </div>
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[0.875rem] text-ck-muted">
+        {sentTo ? (
+          <button type="button" onClick={send} disabled={pending} className={CK_LINK}>
+            {otp.resend}
+          </button>
+        ) : onGuest ? (
+          <>
+            <CheckoutIcon name="key" className="size-4" />
+            {otp.guestLead}
+            <button
+              type="button"
+              onClick={onGuest}
+              className="font-semibold text-ck-ink underline underline-offset-2"
+            >
+              {otp.guest}
+            </button>
+          </>
+        ) : null}
+        {!sentTo && both ? (
+          <button type="button" onClick={handleChannel} className={`${CK_LINK} ms-auto!`}>
+            {channel === 'phone' ? login.useEmail : login.usePhone}
+          </button>
+        ) : null}
+      </div>
+      {note ? <p className="text-[0.8125rem] text-ck-muted">{note}</p> : null}
       <button
         id={SEND_CODE_ID}
         type="button"
         onClick={handlePrimary}
         disabled={pending}
         aria-busy={pending}
-        className={`${CK_BUTTON_PRIMARY} h-12!`}
+        className={`${CK_BUTTON_PRIMARY} self-end max-lg:absolute! max-lg:size-px! max-lg:overflow-hidden max-lg:p-0! max-lg:opacity-0 lg:w-auto!`}
       >
         {pending ? (
           <CheckoutIcon name="spinner" className="size-4 animate-spin motion-reduce:animate-none" />
         ) : null}
         {label}
       </button>
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        {sentTo ? (
-          <button type="button" onClick={send} disabled={pending} className={CK_LINK}>
-            {otp.resend}
-          </button>
-        ) : both ? (
-          <button type="button" onClick={handleChannel} className={CK_LINK}>
-            {channel === 'phone' ? login.useEmail : login.usePhone}
-          </button>
-        ) : (
-          <span />
-        )}
-      </div>
-      <p className="text-[0.8125rem] text-ck-muted">{note}</p>
     </div>
   )
 }
