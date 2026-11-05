@@ -101,7 +101,7 @@ export default function PaymentMethods({
                     <img
                       src={PAYMENT_LOGOS[logo]}
                       alt=""
-                      className="block h-auto! max-h-6 w-auto! max-w-7.5"
+                      className="block h-auto! max-h-6! w-auto! max-w-7.5!"
                     />
                   ) : (
                     <CheckoutIcon name={view.icon} className="size-5 text-ck-accent" />
@@ -133,7 +133,7 @@ export default function PaymentMethods({
                 {marks.length > 0 ? (
                   <span
                     aria-hidden="true"
-                    className="flex w-full shrink-0 flex-wrap items-center gap-1 ps-[5.625rem] sm:w-auto sm:ps-0"
+                    className="flex w-full shrink-0 flex-wrap items-center gap-1 ps-[5rem] sm:w-auto sm:ps-0"
                   >
                     {marks.map((mark) => (
                       <PaymentMark key={mark} mark={mark} />
@@ -154,7 +154,7 @@ export default function PaymentMethods({
                   className={`grid transition-[grid-template-rows,opacity] duration-200 ease-out motion-reduce:transition-[opacity] ${checked ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}
                 >
                   <div className="min-h-0 overflow-hidden">
-                    <p className="ps-[6.0625rem] pe-3.5 pb-3 text-[0.8125rem] leading-[1.55] text-ck-muted sm:ps-[6.125rem] sm:pe-4">
+                    <p className="ps-[5.875rem] pe-3.5 pb-3 text-[0.8125rem] leading-[1.55] text-ck-muted sm:ps-[6rem] sm:pe-4">
                       {detail}
                     </p>
                   </div>

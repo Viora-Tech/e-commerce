@@ -57,7 +57,7 @@ export default function PaymentMark({ mark, size = 'chip' }: PaymentMarkProps) {
       return (
         <span className="inline-flex h-6.5 w-10 items-center justify-center rounded-[0.3125rem] bg-ck-qr">
           {/* biome-ignore lint/performance/noImgElement: inline data URI, nothing to optimise. */}
-          <img src={PAYMENT_LOGOS[logo]} alt="" className="block h-auto! max-h-4 w-auto! max-w-8" />
+          <img src={PAYMENT_LOGOS[logo]} alt="" className="block h-auto! max-h-4! w-auto! max-w-8!" />
         </span>
       )
     }
