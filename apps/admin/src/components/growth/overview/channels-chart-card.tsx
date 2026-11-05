@@ -2,14 +2,9 @@
 
 import type { ChannelRow, OverviewChannel } from '@commerce/api'
 import { Card } from '@commerce/ui/shadcn/card'
-import {
-  type ChartConfig,
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-} from '@commerce/ui/shadcn/chart'
+import dynamic from 'next/dynamic'
 import { useState } from 'react'
-import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts'
+import ChartLoading from '@/components/layout/chart-loading'
 import PillTabs from '@/components/layout/pill-tabs'
 import { CHANNEL_LABELS } from '@/data/growth'
 import { growthHomeContent } from '@/data/growth-home'
@@ -34,7 +29,12 @@ const PLACEHOLDER: OverviewChannel[] = [
   'whatsapp',
   'paid_social',
 ]
-const AXIS_TICK = { fontSize: 12, fill: 'var(--muted-foreground)' }
+
+/* recharts is large: it loads only where a chart is drawn. */
+const ChannelsChartPlot = dynamic(() => import('./channels-chart-plot'), {
+  ssr: false,
+  loading: () => <ChartLoading />,
+})
 
 function metricValue(row: ChannelRow, metric: Metric): number {
   return metric === 'sales' ? row.salesPaise : row.sessions
@@ -60,9 +60,6 @@ export default function ChannelsChartCard({ channels, detailed = false }: Channe
     ? PLACEHOLDER.map((c) => ({ label: CHANNEL_LABELS[c], value: 0 }))
     : active.map((c) => ({ label: CHANNEL_LABELS[c.channel], value: metricValue(c, metric) }))
   const format = metric === 'sales' ? fmt.moneyCompact : fmt.compact
-  const config = {
-    value: { label: copy.metrics[metric], color: 'var(--chart-1)' },
-  } satisfies ChartConfig
 
   return (
     <Card inset={5} gap={3} className="min-w-0">
@@ -81,56 +78,12 @@ export default function ChannelsChartCard({ channels, detailed = false }: Channe
         />
       </div>
       <div className={detailed ? 'relative h-72 w-full' : 'relative h-56 w-full'}>
-        <ChartContainer config={config} className="aspect-auto size-full">
-          <BarChart
-            data={points}
-            layout="vertical"
-            margin={{ left: 0, right: 12, top: 4, bottom: 0 }}
-          >
-            <CartesianGrid horizontal={false} stroke="var(--border-soft)" />
-            <XAxis
-              type="number"
-              tickLine={false}
-              axisLine={{ stroke: 'var(--border)' }}
-              allowDecimals={false}
-              tick={AXIS_TICK}
-              domain={flat ? [0, 1] : [0, 'auto']}
-              ticks={flat ? [0] : undefined}
-              tickFormatter={(v: number) => format(v)}
-            />
-            <YAxis
-              type="category"
-              dataKey="label"
-              tickLine={false}
-              axisLine={false}
-              width={104}
-              tick={AXIS_TICK}
-            />
-            {flat ? null : (
-              <ChartTooltip
-                cursor={{ fill: 'var(--muted)' }}
-                content={
-                  <ChartTooltipContent
-                    hideIndicator
-                    formatter={(v) => (
-                      <span className="flex w-full items-center justify-between gap-3">
-                        <span className="text-muted-foreground">{copy.metrics[metric]}</span>
-                        <span className="font-semibold tabular-nums">{format(Number(v))}</span>
-                      </span>
-                    )}
-                  />
-                }
-              />
-            )}
-            <Bar
-              dataKey="value"
-              fill="var(--chart-1)"
-              radius={4}
-              maxBarSize={22}
-              isAnimationActive={false}
-            />
-          </BarChart>
-        </ChartContainer>
+        <ChannelsChartPlot
+          points={points}
+          flat={flat}
+          label={copy.metrics[metric]}
+          format={format}
+        />
         {flat ? (
           <p className="pointer-events-none absolute inset-x-0 top-1/3 flex justify-center px-4">
             <span className="rounded-md bg-card px-2 py-1 text-center text-caption text-muted-foreground">

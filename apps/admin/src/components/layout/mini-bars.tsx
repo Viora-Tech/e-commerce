@@ -1,25 +1,23 @@
 'use client'
 
 import { cn } from '@commerce/ui/lib/utils'
-import { ChartContainer } from '@commerce/ui/shadcn/chart'
-import { Bar, BarChart } from 'recharts'
-import { type ChartPoint, chartConfig } from './chart-config'
+import dynamic from 'next/dynamic'
+import type { ChartPoint } from './chart-config'
+import ChartLoading from './chart-loading'
 
 type MiniBarsProps = { data: ChartPoint[]; className?: string }
+
+/* recharts is large: it loads only where a chart is drawn. */
+const MiniBarsPlot = dynamic(() => import('./mini-bars-plot'), {
+  ssr: false,
+  loading: () => <ChartLoading />,
+})
 
 /** 5:1620 "bargraph": 35px strip of 8px green bars, 3px apart, no axes. */
 export default function MiniBars({ data, className }: MiniBarsProps) {
   return (
-    <ChartContainer config={chartConfig} className={cn('aspect-auto h-8 w-full', className)}>
-      <BarChart data={data} margin={{ left: 0, right: 0, top: 0, bottom: 0 }} barCategoryGap={3}>
-        <Bar
-          dataKey="value"
-          fill="var(--chart-1)"
-          radius={2}
-          minPointSize={4}
-          isAnimationActive={false}
-        />
-      </BarChart>
-    </ChartContainer>
+    <div className={cn('h-8 w-full', className)}>
+      <MiniBarsPlot data={data} />
+    </div>
   )
 }

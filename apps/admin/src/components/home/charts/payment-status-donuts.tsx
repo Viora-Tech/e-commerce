@@ -1,16 +1,12 @@
 'use client'
 
 import type { DashboardSummary } from '@commerce/api'
-import {
-  type ChartConfig,
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-} from '@commerce/ui/shadcn/chart'
-import { Cell, Pie, PieChart } from 'recharts'
+import dynamic from 'next/dynamic'
+import ChartLoading from '@/components/layout/chart-loading'
 import DataCard from '@/components/layout/data-card'
 import { homeContent } from '@/data/home'
 import { useCopy } from '@/hooks/use-copy'
+import type { DonutSlice as Slice } from './donut-plot'
 
 type PaymentStatusDonutsProps = {
   paymentMix: DashboardSummary['paymentMix']
@@ -25,11 +21,13 @@ const SLICE_COLORS = [
   'var(--chart-5)',
 ] as const
 
-const config = {} satisfies ChartConfig
-
-type Slice = { key: string; label: string; count: number }
-
 type DonutProps = { title: string; slices: Slice[]; line: string | null; empty: string }
+
+/* recharts is large: it loads only where a chart is drawn. */
+const DonutPlot = dynamic(() => import('./donut-plot'), {
+  ssr: false,
+  loading: () => <ChartLoading className="rounded-full" />,
+})
 
 /** Two small donuts side by side: how customers pay, and where orders sit right now. */
 export default function PaymentStatusDonuts({ paymentMix, statusMix }: PaymentStatusDonutsProps) {
@@ -90,39 +88,9 @@ function Donut({ title, slices, line, empty }: DonutProps) {
         <p className="text-body text-muted-foreground">{empty}</p>
       ) : (
         <div className="flex items-center gap-4">
-          <ChartContainer config={config} className="aspect-square h-32 w-32 shrink-0">
-            <PieChart>
-              <ChartTooltip
-                content={
-                  <ChartTooltipContent
-                    hideLabel
-                    formatter={(v, _name, item) => (
-                      <span className="flex w-full items-center justify-between gap-3">
-                        <span className="text-muted-foreground">
-                          {(item.payload as Slice).label}
-                        </span>
-                        <span className="font-bold tabular-nums">
-                          {Math.round((Number(v) / total) * 100)}%
-                        </span>
-                      </span>
-                    )}
-                  />
-                }
-              />
-              <Pie
-                data={slices}
-                dataKey="count"
-                nameKey="label"
-                innerRadius={32}
-                outerRadius={56}
-                strokeWidth={2}
-              >
-                {slices.map((s, i) => (
-                  <Cell key={s.key} fill={SLICE_COLORS[i % SLICE_COLORS.length]} />
-                ))}
-              </Pie>
-            </PieChart>
-          </ChartContainer>
+          <div className="size-32 shrink-0">
+            <DonutPlot slices={slices} colors={SLICE_COLORS} total={total} />
+          </div>
           <div className="flex min-w-0 flex-1 flex-col gap-2">
             <ul className="flex flex-col gap-1.5">
               {slices.map((s, i) => (
