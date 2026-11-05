@@ -22,10 +22,10 @@ export const CK_PANEL =
 
 /** A picked radio card (shipping option, way to pay): the accent ring, a soft fill. */
 export const CK_PICKED =
-  'border-ck-accent-lift bg-ck-accent-soft [box-shadow:0_0_0_1px_var(--ck-accent-lift)]'
+  'border-ck-accent-lift bg-ck-accent-soft [box-shadow:inset_0_0_0_1px_var(--ck-accent-lift)]'
 
 /** A radio card not picked. */
-export const CK_UNPICKED = 'border-ck-line bg-ck-bg hover:border-ck-muted/50'
+export const CK_UNPICKED = 'border-ck-line-strong bg-ck-bg hover:border-ck-muted/50'
 
 /** Labels above inputs. */
 export const CK_LABEL = 'text-[0.8125rem] font-medium text-ck-ink'

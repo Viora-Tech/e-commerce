@@ -132,7 +132,7 @@ export default function CheckoutAddressBook({ ck }: CheckoutAddressBookProps) {
         <button
           type="button"
           onClick={() => ck.handlePickAddress(NEW_ADDRESS)}
-          className="flex min-h-14 w-full cursor-pointer items-center justify-center gap-2 rounded-ck border border-dashed border-ck-muted/40 bg-transparent! text-[0.9375rem] font-medium text-ck-ink outline-none transition-colors duration-150 hover:border-ck-muted/60 hover:bg-ck-field! focus-visible:[box-shadow:0_0_0_3px_var(--ck-ring)] motion-reduce:transition-none"
+          className="flex min-h-14 w-full cursor-pointer items-center justify-center gap-2 rounded-ck border border-dashed border-ck-line-strong bg-transparent! text-[0.9375rem] font-semibold text-ck-ink outline-none transition-colors duration-150 hover:border-ck-muted/60 hover:bg-ck-field! focus-visible:[box-shadow:0_0_0_3px_var(--ck-ring)] motion-reduce:transition-none"
         >
           <CheckoutIcon name="plus" className="size-4" />
           {book.add}
