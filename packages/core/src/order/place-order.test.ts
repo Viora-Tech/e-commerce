@@ -698,8 +698,9 @@ describe('placeOrder lock and replay', () => {
 describe('placeOrder outbox', () => {
   it('writes exactly one order.placed row, in the same transaction as the order', async () => {
     const { storeId, cartId } = await seed({ onHand: 5, quantity: 1 })
+    const cod = new FakePaymentProvider({ mode: 'capture', id: 'cod' })
     const { orderId } = await withStore(app, storeId, (tx) =>
-      placeOrder({ storeId, tx }, { cartId, paymentProvider: new FakePaymentProvider() }),
+      placeOrder({ storeId, tx }, { cartId, paymentProvider: cod }),
     )
     const rows = await owner.select().from(outboxEvent).where(eq(outboxEvent.storeId, storeId))
     expect(rows).toHaveLength(1)
@@ -712,10 +713,9 @@ describe('placeOrder outbox', () => {
 
   it('a replayed submit of the same cart writes no second row', async () => {
     const { storeId, cartId } = await seed({ onHand: 5, quantity: 1 })
+    const cod = new FakePaymentProvider({ mode: 'capture', id: 'cod' })
     const submit = () =>
-      withStore(app, storeId, (tx) =>
-        placeOrder({ storeId, tx }, { cartId, paymentProvider: new FakePaymentProvider() }),
-      )
+      withStore(app, storeId, (tx) => placeOrder({ storeId, tx }, { cartId, paymentProvider: cod }))
     const first = await submit()
     const second = await submit()
 
@@ -749,7 +749,21 @@ describe('placeOrder outbox', () => {
       .from(outboxEvent)
       .where(eq(outboxEvent.storeId, storeId))
     expect(rows.map((r) => r.type).sort()).toEqual(['order.paid', 'order.placed'])
-    for (const r of rows) expect(r.payload).toEqual({ orderId })
+    // One confirmation: the shopper hears from order.placed, not from order.paid as well.
+    expect(rows.find((r) => r.type === 'order.placed')?.payload).toEqual({ orderId })
+    expect(rows.find((r) => r.type === 'order.paid')?.payload).toEqual({
+      orderId,
+      notifyCustomer: false,
+    })
+  })
+
+  it('tells nobody about a gateway checkout whose payment window was closed', async () => {
+    const { storeId, cartId } = await seed({ onHand: 5, quantity: 1 })
+    await withStore(app, storeId, (tx) =>
+      placeOrder({ storeId, tx }, { cartId, paymentProvider: new FakePaymentProvider() }),
+    )
+    const rows = await owner.select().from(outboxEvent).where(eq(outboxEvent.storeId, storeId))
+    expect(rows).toHaveLength(0)
   })
 })
 
