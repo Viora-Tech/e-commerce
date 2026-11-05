@@ -2,18 +2,17 @@ import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 import { addressRows, contactRows } from '@/lib/checkout-filled-rows'
-import { EMPTY_FORM } from '@/lib/checkout-form-state'
+import type { CheckoutFormState } from '@/lib/checkout-form-state'
 import CheckoutFilledRows from './checkout-filled-rows'
 
 const form = {
-  ...EMPTY_FORM,
   name: 'Asha Rao',
   phone: '9876543210',
   email: 'asha@example.com',
   line1: '12 Lake Road',
   city: 'Sonipat',
   pincode: '131001',
-}
+} as CheckoutFormState
 
 const render = (done: boolean) =>
   renderToStaticMarkup(
