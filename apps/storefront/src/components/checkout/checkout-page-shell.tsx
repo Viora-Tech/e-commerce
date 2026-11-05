@@ -26,6 +26,10 @@ type CheckoutPageShellProps = {
   children: ReactNode
 }
 
+/** The help link and the bag: one outlined shape at one height, so they read as a pair. */
+const HEADER_ACTION =
+  'inline-flex h-10 items-center rounded-full border border-ck-line outline-none transition-colors duration-150 hover:border-ck-muted/50 hover:bg-ck-soft focus-visible:[box-shadow:0_0_0_3px_var(--ck-ring)] motion-reduce:transition-none'
+
 /**
  * The checkout's frame (design: checkout-design Main/Mobile). A quiet white header with the
  * store's name (or logo) and a bag back to the cart, over the #FAFAFA canvas; the cards on
@@ -68,15 +72,16 @@ export default function CheckoutPageShell({
               href={backHref}
               label={backLabel}
             />
-            <div className="flex shrink-0 items-center gap-4 text-[0.75rem] font-medium text-ck-muted">
+            <div className="flex shrink-0 items-center gap-2">
               {help ? (
                 <a
                   href={help}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="-my-2! flex min-h-11 items-center gap-1.5 text-ck-muted! no-underline outline-none transition-colors duration-150 hover:text-ck-ink! focus-visible:[box-shadow:0_0_0_3px_var(--ck-ring)] motion-reduce:transition-none"
+                  aria-label={content.help.aria}
+                  className={`${HEADER_ACTION} gap-2 px-3.5 text-[0.8125rem] font-medium text-ck-ink! no-underline`}
                 >
-                  <CheckoutIcon name="chat" className="size-3.5" />
+                  <CheckoutIcon name="whatsapp" className="size-4 text-ck-success" />
                   <span className="sm:hidden">{content.help.short}</span>
                   <span className="hidden sm:inline">{content.help.label}</span>
                 </a>
@@ -87,9 +92,9 @@ export default function CheckoutPageShell({
                   href={backHref}
                   aria-label={backLabel}
                   title={backLabel}
-                  className="-my-2! grid size-11 place-items-center rounded-full text-ck-ink! outline-none transition-colors duration-150 hover:bg-ck-soft focus-visible:[box-shadow:0_0_0_3px_var(--ck-ring)] motion-reduce:transition-none"
+                  className={`${HEADER_ACTION} w-10 justify-center text-ck-ink!`}
                 >
-                  <CheckoutIcon name="bag" className="size-5" />
+                  <CheckoutIcon name="bag" className="size-[1.125rem]" />
                 </a>
               )}
             </div>

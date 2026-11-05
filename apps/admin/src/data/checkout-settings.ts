@@ -160,7 +160,7 @@ export const checkoutBrandingContent = {
     note: 'Order note (optional)',
     notePlaceholder: 'For example, please call before delivery',
     pay: 'Pay ₹7,548',
-    footnote: 'Payments by Razorpay · We never see your card or UPI PIN',
+    footnote: 'Secured by Razorpay',
     deliversTo: 'Delivers to 122001 by Thu, 29 Oct',
     summary: 'Order summary',
     itemCount: '2 items',
