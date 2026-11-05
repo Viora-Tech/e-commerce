@@ -116,8 +116,8 @@ describe('quoteProfiles', () => {
     const quote = quoteProfiles([both, heavy], [part('general', 1), part('skates', 1)], to)
     if (quote.kind !== 'rates') throw new Error(quote.kind)
     expect(quote.options.map((o) => [o.rateId, o.name, o.pricePaise])).toEqual([
-      ['g-std+s-std', 'Standard', 14_800],
-      ['g-exp+s-exp', 'Express', 29_800],
+      ['g-std+s-std', 'Standard', 9900],
+      ['g-exp+s-exp', 'Express', 19_900],
     ])
   })
 

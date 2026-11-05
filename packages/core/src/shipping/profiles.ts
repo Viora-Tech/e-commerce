@@ -22,7 +22,7 @@ import {
  * 3. One profile in the cart: its rates are the options, unchanged (every store before
  *    profiles, and every cart of General products only).
  * 4. Several profiles: the shopper still picks one option, which is one rate per profile,
- *    summed. The options are "cheapest of each", plus, for each rate name any profile offers,
+ *    charged once at the highest of those rates, as one parcel. The options are "cheapest of each", plus, for each rate name any profile offers,
  *    that name in every profile that has it and the cheapest elsewhere ("Express" picks
  *    Express wherever it exists). Same set of rates twice is one option; cheapest first.
  * 5. A profile in the cart that has no rate for the address (or no zones at all) means the
@@ -92,8 +92,9 @@ function combine(
     name: names.join(' + '),
     zoneId: lead.option.zoneId,
     zoneName: lead.option.zoneName,
-    listPricePaise: parts.reduce((sum, p) => sum + p.listPricePaise, 0),
-    pricePaise: parts.reduce((sum, p) => sum + p.pricePaise, 0),
+    // One delivery charge for the order: the dearest profile's, never the profiles added up.
+    listPricePaise: Math.max(...parts.map((p) => p.listPricePaise)),
+    pricePaise: Math.max(...parts.map((p) => p.pricePaise)),
     // The highest COD fee any parcel sets; the parcels arrive when the slowest does.
     codSurchargePaise: maxOrNull(picked.map((p) => p.option.codSurchargePaise)),
     minTransitDays: maxOrNull(picked.map((p) => p.option.minTransitDays)),

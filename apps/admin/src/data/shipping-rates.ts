@@ -24,7 +24,7 @@ export const shippingRatesContent = {
   },
   profiles: {
     heading: 'Shipping profiles',
-    meta: 'Give some products their own delivery prices. In a cart with products from several profiles, each profile charges its price and the prices add up.',
+    meta: 'Give some products their own delivery prices. In a cart with products from several profiles, the shopper pays the highest delivery price once.',
     create: 'Create profile',
     columns: { profile: 'Profile', products: 'Products', areas: 'Areas and prices' },
     allOtherProducts: 'All products not in another profile',
@@ -38,7 +38,7 @@ export const shippingRatesContent = {
     newTitle: 'Create shipping profile',
     backLabel: 'Shipping',
     generalMeta: 'Every product not placed in another profile ships at these prices.',
-    meta: "These products ship at this profile's prices, added to the other profiles' prices in a mixed cart.",
+    meta: "These products ship at this profile's prices. In a mixed cart the shopper pays the highest profile's price once.",
     details: {
       heading: 'Profile',
       name: 'Profile name',
