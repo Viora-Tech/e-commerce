@@ -27,7 +27,7 @@ export default function CheckoutSelect({
   filled = false,
 }: CheckoutSelectProps) {
   return (
-    <div className="flex min-w-0 flex-col gap-1.5">
+    <div className="flex min-w-0 flex-col gap-2">
       <label htmlFor={id} className={CK_LABEL}>
         {label}
       </label>

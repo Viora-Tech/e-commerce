@@ -68,7 +68,7 @@ function readableInk(background: string): string {
 /** Field and card radius, then button radius, per corner style. */
 const RADII: Record<CheckoutCorners, [string, string]> = {
   sharp: ['0.25rem', '0.25rem'],
-  soft: ['0.625rem', '0.625rem'],
+  soft: ['0.625rem', '0.75rem'],
   round: ['0.875rem', '62.5rem'],
 }
 

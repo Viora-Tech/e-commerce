@@ -72,8 +72,8 @@ export default function CheckoutPageShell({
         className="ck flex min-h-dvh flex-col bg-ck-canvas font-ck text-[0.9375rem] leading-normal text-ck-ink antialiased [font-feature-settings:'cv11','ss01'] [text-rendering:optimizeLegibility]"
         style={vars}
       >
-        <header className="border-b border-ck-line bg-ck-bg">
-          <div className="mx-auto! flex w-full max-w-[70rem] items-center justify-between gap-4 px-4 py-3.5 sm:px-6 [--ck-summary-ink:var(--ck-ink)]">
+        <header className="border-b border-ck-line bg-ck-canvas">
+          <div className="mx-auto! flex min-h-14 w-full max-w-[70rem] items-center justify-between gap-4 px-4 sm:px-6 lg:h-18 xl:px-0 [--ck-summary-ink:var(--ck-ink)]">
             <CheckoutBrand
               storeName={look.storeName}
               logoUrl={look.logoUrl}
@@ -111,7 +111,7 @@ export default function CheckoutPageShell({
           </div>
         </header>
         <div
-          className={`mx-auto! grid w-full max-w-[70rem] flex-1 content-start gap-3 px-3 pt-3 sm:px-6 sm:pt-6 lg:grid-cols-[minmax(0,1fr)_24.75rem] pb-8 lg:gap-12 lg:pt-10 lg:pb-14`}
+          className={`mx-auto! grid w-full max-w-[70rem] flex-1 content-start gap-3 px-3 pt-3 sm:px-6 sm:pt-6 lg:grid-cols-[minmax(0,41.25rem)_24.75rem] xl:px-0 pb-8 lg:gap-12 lg:pt-10 lg:pb-14`}
         >
           <aside className="lg:sticky lg:top-6 lg:col-start-2 lg:row-start-1 lg:self-start">
             <div
@@ -127,7 +127,7 @@ export default function CheckoutPageShell({
               )}
               {summary}
               {summaryEnd ? (
-                <div className="hidden flex-col gap-2.5 pt-5 lg:flex">{summaryEnd}</div>
+                <div className="hidden flex-col gap-4 pt-4 lg:flex">{summaryEnd}</div>
               ) : null}
             </div>
             {summaryAfter ? <div className="hidden pt-4 lg:block">{summaryAfter}</div> : null}
@@ -138,7 +138,7 @@ export default function CheckoutPageShell({
         </div>
         <nav
           aria-label={content.policiesLabel}
-          className={`mx-auto! flex w-full max-w-[70rem] flex-wrap gap-x-5 gap-y-2 px-4 pt-4 text-[0.75rem] text-ck-muted sm:px-6 ${bottomBar ? 'pb-40 lg:pb-5' : 'pb-5'}`}
+          className={`mx-auto! flex w-full max-w-[70rem] flex-wrap gap-x-5 gap-y-2 px-4 py-5 text-[0.75rem] text-ck-faint sm:px-6 xl:px-0 ${bottomBar ? 'pb-40 lg:pb-5' : 'pb-5'}`}
         >
           {policies.map((p) => (
             <a
@@ -146,7 +146,7 @@ export default function CheckoutPageShell({
               href={p.href}
               target="_blank"
               rel="noreferrer"
-              className="text-ck-muted! no-underline outline-none transition-colors duration-150 hover:text-ck-ink! focus-visible:[box-shadow:0_0_0_3px_var(--ck-ring)] motion-reduce:transition-none"
+              className="text-ck-faint! no-underline outline-none transition-colors duration-150 hover:text-ck-ink! focus-visible:[box-shadow:0_0_0_3px_var(--ck-ring)] motion-reduce:transition-none"
             >
               {p.title}
             </a>

@@ -145,7 +145,7 @@ export default function CheckoutForm(props: CheckoutFormProps) {
       type="submit"
       form={FORM_ID}
       disabled={ck.pending}
-      className={`${CK_BUTTON_PRIMARY} lg:h-12 ${step === 'contact' ? 'lg:w-auto' : ''}`}
+      className={`${CK_BUTTON_PRIMARY} ${step === 'contact' ? 'lg:w-auto' : ''}`}
     >
       {step === 'contact' ? content.continueLabel : content.continueTo(stepLabel(next))}
       {step === 'contact' ? null : <CheckoutIcon name="chevron" className="size-4 -rotate-90" />}
@@ -209,15 +209,6 @@ export default function CheckoutForm(props: CheckoutFormProps) {
       }
       summaryEnd={
         <>
-          {!digitalOnly && fullPincode && ck.deliveryBy ? (
-            <p className="flex items-center gap-2.5 rounded-ck bg-ck-summary-line p-3 text-[0.75rem] transition-[opacity,translate] duration-200 ease-out starting:translate-y-1 starting:opacity-0 motion-reduce:starting:translate-y-0">
-              <CheckoutIcon name="truck" className="size-[1.125rem] shrink-0" />
-              <span>
-                {content.deliversTo.to} <strong className="font-semibold">{pincode}</strong>{' '}
-                {content.deliversTo.by} <strong className="font-semibold">{ck.deliveryBy}</strong>
-              </span>
-            </p>
-          ) : null}
           {shortfallNote}
           {pay}
           {step !== 'payment' ? (

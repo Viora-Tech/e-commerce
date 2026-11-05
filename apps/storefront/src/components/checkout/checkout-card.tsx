@@ -1,5 +1,4 @@
 import type { ReactNode } from 'react'
-import { CK_HEADING } from '@/lib/checkout-classes'
 
 type CheckoutCardProps = {
   /** The DOM id Pay scrolls to (`sectionDomId`). */
@@ -29,17 +28,19 @@ export default function CheckoutCard({
       id={id}
       aria-labelledby={headingId}
       tabIndex={-1}
-      className={`${active ? 'flex' : 'hidden'} scroll-mt-4 flex-col gap-4 outline-none`}
+      className={`${active ? 'flex' : 'hidden'} scroll-mt-4 flex-col gap-6 outline-none`}
     >
       <div className="flex items-start justify-between gap-4">
         <div className="flex min-w-0 flex-col gap-1">
           <h2
             id={headingId}
-            className={`${CK_HEADING} text-[1.5rem]! tracking-[-0.02em]! sm:text-[1.75rem]!`}
+            className="font-ck! text-[1.5rem]! leading-[1.2]! font-bold! tracking-[-0.02em]! normal-case! lg:text-[1.875rem]!"
           >
             {title}
           </h2>
-          {body ? <p className="text-[0.875rem] text-ck-muted">{body}</p> : null}
+          {body ? (
+            <p className="text-[0.9375rem] leading-[1.375rem] text-ck-muted">{body}</p>
+          ) : null}
         </div>
         {aside}
       </div>

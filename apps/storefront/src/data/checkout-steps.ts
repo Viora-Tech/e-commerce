@@ -25,6 +25,7 @@ export const checkoutStepsContent = {
     returns: { title: 'Easy returns', body: 'Read our refund policy' },
     processedBy: 'Payments processed by',
   },
+  totalCurrency: 'INR',
   stepsLabel: 'Checkout steps',
   stepsBackTo: (label: string) => `Back to ${label.toLowerCase()}`,
   backTo: (label: string) => `Back to ${label}`,

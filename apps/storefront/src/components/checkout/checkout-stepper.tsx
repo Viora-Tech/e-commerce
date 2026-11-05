@@ -37,12 +37,12 @@ export default function CheckoutStepper({
           const mark = (
             <>
               <span
-                className={`grid size-6 shrink-0 place-items-center rounded-full text-[0.6875rem] font-semibold tabular-nums ${done || here ? 'bg-ck-accent text-ck-accent-ink' : 'border border-ck-line text-ck-muted'}`}
+                className={`grid size-6 shrink-0 place-items-center rounded-full text-[0.6875rem] font-semibold tabular-nums ${done || here ? 'bg-ck-accent-lift text-ck-accent-ink' : 'border border-ck-line-strong text-ck-faint'}`}
               >
                 {done ? <CheckoutIcon name="check" className="size-3.5" /> : i + 1}
               </span>
               <span
-                className={`text-[0.8125rem] whitespace-nowrap ${here ? 'font-semibold text-ck-ink' : 'hidden font-medium lg:inline'} ${done ? 'text-ck-muted' : ''} ${!done && !here ? 'text-ck-muted/70' : ''}`}
+                className={`text-[0.8125rem] whitespace-nowrap ${here ? 'font-semibold text-ck-ink' : 'hidden font-medium lg:inline'} ${done ? 'text-ck-muted' : ''} ${!done && !here ? 'text-ck-faint' : ''}`}
               >
                 {label(section)}
               </span>
@@ -57,18 +57,18 @@ export default function CheckoutStepper({
                     type="button"
                     onClick={() => onPick(section)}
                     aria-label={content.stepsBackTo(label(section))}
-                    className="flex min-h-11 cursor-pointer items-center gap-2 rounded-ck outline-none focus-visible:[box-shadow:0_0_0_3px_var(--ck-ring)]"
+                    className="-my-2.5 flex min-h-11 cursor-pointer items-center gap-2 rounded-ck outline-none focus-visible:[box-shadow:0_0_0_3px_var(--ck-ring)]"
                   >
                     {mark}
                   </button>
                 ) : (
-                  <span className="flex min-h-11 items-center gap-2">{mark}</span>
+                  <span className="flex items-center gap-2">{mark}</span>
                 )}
               </li>
               {i < last ? (
                 <li
                   aria-hidden="true"
-                  className={`h-0.5 min-w-2.5 basis-2.5 rounded-full transition-[flex-grow] duration-300 ease-out motion-reduce:transition-none lg:min-w-3.5 lg:basis-3.5 ${i === longLine ? 'grow' : 'grow-0'} ${i < at ? 'bg-ck-accent' : i === longLine ? 'bg-linear-to-r from-ck-accent to-ck-line' : 'bg-ck-line'}`}
+                  className={`h-0.5 min-w-2.5 basis-2.5 rounded-full transition-[flex-grow] duration-300 ease-out motion-reduce:transition-none lg:min-w-3.5 lg:basis-3.5 ${i === longLine ? 'grow' : 'grow-0'} ${i < at ? 'bg-ck-accent-lift' : i === longLine ? 'bg-linear-to-r from-ck-accent-lift to-ck-line-strong' : 'bg-ck-line-strong'}`}
                 />
               ) : null}
             </Fragment>

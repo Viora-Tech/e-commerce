@@ -17,24 +17,24 @@ export default function CheckoutTrust({ names, policies }: CheckoutTrustProps) {
   const refund = policies.find((p) => p.type === 'refund-policy')
 
   return (
-    <div className="flex flex-col gap-3 px-1 text-[0.8125rem] leading-snug">
+    <div className="flex flex-col gap-3 px-1 pt-1 text-[0.8125rem] leading-[1.1875rem]">
       <p className="flex items-start gap-2.5">
-        <CheckoutIcon name="shield" className="mt-0.5! size-4 text-ck-ink" />
+        <CheckoutIcon name="shield" className="size-[1.125rem] text-ck-ink" />
         <span>
-          <strong className="block font-medium text-ck-ink">{copy.secure.title}</strong>
-          <span className="text-ck-muted">{copy.secure.body}</span>
+          <strong className="block font-semibold text-ck-ink">{copy.secure.title}</strong>
+          <span className="text-ck-faint">{copy.secure.body}</span>
         </span>
       </p>
       {refund ? (
         <p className="flex items-start gap-2.5">
-          <CheckoutIcon name="refresh" className="mt-0.5! size-4 text-ck-ink" />
+          <CheckoutIcon name="refresh" className="size-[1.125rem] text-ck-ink" />
           <span>
-            <strong className="block font-medium text-ck-ink">{copy.returns.title}</strong>
+            <strong className="block font-semibold text-ck-ink">{copy.returns.title}</strong>
             <a
               href={refund.href}
               target="_blank"
               rel="noreferrer"
-              className="text-ck-muted! underline-offset-2 hover:text-ck-ink!"
+              className="text-ck-faint! underline-offset-2 hover:text-ck-ink!"
             >
               {copy.returns.body}
             </a>
@@ -42,15 +42,15 @@ export default function CheckoutTrust({ names, policies }: CheckoutTrustProps) {
         </p>
       ) : null}
       {names.length > 0 ? (
-        <p className="flex items-center gap-2 text-[0.75rem] text-ck-muted">
+        <p className="flex items-center gap-2 text-[0.75rem] text-ck-faint">
           {copy.processedBy}
           {names.includes('Razorpay') ? (
-            <span className="grid size-4.5 place-items-center rounded-[0.25rem] bg-ck-qr">
+            <span className="grid size-[1.125rem] place-items-center rounded-[0.25rem] bg-ck-qr">
               {/* biome-ignore lint/performance/noImgElement: inline data URI, nothing to optimise. */}
               <img src={PAYMENT_LOGOS.razorpay} alt="" className="block h-auto! max-h-3! w-auto!" />
             </span>
           ) : null}
-          <strong className="font-medium text-ck-ink">{names.join(' · ')}</strong>
+          <strong className="font-semibold text-ck-muted">{names.join(' · ')}</strong>
         </p>
       ) : null}
     </div>

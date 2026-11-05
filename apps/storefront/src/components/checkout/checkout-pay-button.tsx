@@ -34,7 +34,7 @@ export default function CheckoutPayButton({
       form={form}
       disabled={disabled || pending || updating}
       aria-busy={pending || updating}
-      className={`${CK_BUTTON_PRIMARY} lg:h-12 ${locked ? 'bg-ck-soft! text-ck-muted! opacity-100! [box-shadow:none]!' : ''}`}
+      className={`${CK_BUTTON_PRIMARY} ${locked ? 'bg-ck-soft! text-ck-muted! opacity-100! [box-shadow:none]!' : ''}`}
     >
       {pending ? (
         <>

@@ -52,6 +52,9 @@
   --color-ck-bg: var(--ck-bg);
   --color-ck-ink: var(--ck-ink);
   --color-ck-muted: var(--ck-muted);
+  --color-ck-faint: var(--ck-faint);
+  --color-ck-line-strong: var(--ck-line-strong);
+  --color-ck-accent-lift: var(--ck-accent-lift);
   --color-ck-line: var(--ck-line);
   --color-ck-field: var(--ck-field);
   --color-ck-soft: var(--ck-soft);
@@ -83,6 +86,9 @@
   --ck-bg: #ffffff;
   --ck-ink: #0a0a0a;
   --ck-muted: #737373;
+  --ck-faint: #8a8a8a;
+  --ck-line-strong: #d4d4d4;
+  --ck-accent-lift: var(--ck-accent);
   --ck-line: #e5e5e5;
   --ck-field: #ffffff;
   --ck-soft: #f5f5f5;
@@ -132,16 +138,19 @@
 
 :root[data-theme="dark"] .ck {
   --ck-bg: #171717;
-  --ck-ink: #ededee;
-  --ck-muted: #9a9aa1;
-  --ck-line: rgb(255 255 255 / 0.1);
-  --ck-field: #101012;
+  --ck-ink: #fafafa;
+  --ck-muted: #a1a1a1;
+  --ck-faint: #737373;
+  --ck-line-strong: rgb(255 255 255 / 0.15);
+  --ck-accent-lift: color-mix(in oklab, var(--ck-accent) 58%, white);
+  --ck-line: rgb(255 255 255 / 0.08);
+  --ck-field: #171717;
   --ck-soft: #1b1b1f;
   --ck-canvas: #0a0a0a;
   --ck-danger: #f0776a;
   --ck-success: #4cc488;
-  --ck-summary: color-mix(in oklab, var(--ck-summary-light) 4%, #171717);
-  --ck-summary-ink: #ededee;
+  --ck-summary: #171717;
+  --ck-summary-ink: #fafafa;
   --ck-card-shadow:
     inset 0 1px 0 rgb(255 255 255 / 0.08), 0 0 0 1px var(--ck-line), 0 1px 2px rgb(0 0 0 / 0.5),
     0 12px 28px -12px rgb(0 0 0 / 0.7);
@@ -196,16 +205,19 @@ body:has(.ck) {
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme]) .ck {
     --ck-bg: #171717;
-    --ck-ink: #ededee;
-    --ck-muted: #9a9aa1;
-    --ck-line: rgb(255 255 255 / 0.1);
-    --ck-field: #101012;
+    --ck-ink: #fafafa;
+    --ck-muted: #a1a1a1;
+    --ck-faint: #737373;
+    --ck-line-strong: rgb(255 255 255 / 0.15);
+    --ck-accent-lift: color-mix(in oklab, var(--ck-accent) 58%, white);
+    --ck-line: rgb(255 255 255 / 0.08);
+    --ck-field: #171717;
     --ck-soft: #1b1b1f;
     --ck-canvas: #0a0a0a;
     --ck-danger: #f0776a;
     --ck-success: #4cc488;
-    --ck-summary: color-mix(in oklab, var(--ck-summary-light) 4%, #171717);
-    --ck-summary-ink: #ededee;
+    --ck-summary: #171717;
+    --ck-summary-ink: #fafafa;
     --ck-card-shadow:
       inset 1px 1px 0 rgb(255 255 255 / 0.18), inset -1px -1px 0 rgb(0 0 0 / 0.55),
       inset 0 0 2.5rem rgb(255 255 255 / 0.05), 0 0 0 1px rgb(255 255 255 / 0.08),
