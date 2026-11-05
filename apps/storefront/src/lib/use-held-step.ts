@@ -1,13 +1,19 @@
 import { useState } from 'react'
-import type { CheckoutSection } from './checkout-sections'
+import { type CheckoutSection, firstOpenSection, type SectionGates } from './checkout-sections'
 
 /**
- * The step the checkout opens on. A fresh delivery quote reads as pending for a moment, which
- * would send a shopper with saved details from Payment back to Delivery: while a quote runs the
- * last step holds, and it moves again once the answer is in.
+ * The step on screen: the one the shopper picked, else the first still open. A fresh delivery
+ * quote reads as pending for a moment, which would send a shopper with saved details from
+ * Payment back to Delivery: while a quote runs the last step holds.
  */
-export function useHeldStep(open: CheckoutSection, quoting: boolean): CheckoutSection {
+export function useHeldStep(
+  picked: CheckoutSection | null,
+  gates: SectionGates,
+  sections: readonly CheckoutSection[],
+): CheckoutSection {
+  const open = firstOpenSection(gates, sections) ?? 'payment'
+  const quoting = gates.shipping === 'pending'
   const [held, setHeld] = useState(open)
   if (!quoting && held !== open) setHeld(open)
-  return quoting ? held : open
+  return picked ?? (quoting ? held : open)
 }

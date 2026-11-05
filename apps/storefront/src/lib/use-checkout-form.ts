@@ -199,11 +199,7 @@ export function useCheckoutForm(input: CheckoutFormInput) {
     shipping: ship.gate,
   }
   const sections = sectionsFor(digitalOnly)
-  const openStep = useHeldStep(
-    firstOpenSection(gates, sections) ?? 'payment',
-    gates.shipping === 'pending',
-  )
-  const step = pickedStep ?? openStep
+  const step = useHeldStep(pickedStep, gates, sections)
   /** Each card's own work, for the tick on its number; Delivery does not wait on Contact. */
   const done = {
     contact: gates.contact === 'ok',
