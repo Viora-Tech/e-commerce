@@ -56,7 +56,7 @@ export default function CheckoutPaymentStep({ ck }: CheckoutPaymentStepProps) {
   const { totals } = ck
 
   return (
-    <div className="flex flex-col gap-3.5">
+    <div className="flex flex-col gap-4">
       {pricing && !totals.coveredByCards ? (
         <p className="rounded-ck border border-ck-line bg-ck-canvas px-4 py-3 text-[0.8125rem] text-ck-ink">
           {content.chargedInRupees(ck.payNow, money(totals.payNowPaise))}

@@ -3,6 +3,7 @@
 import { formatPaymentAdjustment } from '@commerce/core/adjustment-math'
 import CheckoutIcon from '@/components/checkout/checkout-icon'
 import PaymentMark, { type PaymentMarkName } from '@/components/checkout/payment-mark'
+import PaymentMethodTabs from '@/components/checkout/payment-method-tabs'
 import RadioDot from '@/components/checkout/radio-dot'
 import { checkoutContent as content } from '@/data/checkout'
 import { methodView, takesUpi } from '@/lib/checkout-preview'
@@ -23,6 +24,8 @@ type PaymentMethodsProps = {
 
 const panel = content.methodPanel
 
+const TAB_ORDER = ['upi', 'card', 'netbanking', 'emi']
+
 /** The small marks under a way to pay: the UPI apps, or what a gateway takes. */
 function marksFor(m: CheckoutMethod): readonly PaymentMarkName[] {
   if (m.id === 'decentro') return panel.upiApps
@@ -37,6 +40,14 @@ function logoFor(m: CheckoutMethod): PaymentLogoName | null {
   if (m.id === 'decentro') return 'upi'
   if (m.id === 'manual' && m.manualKinds?.length === 1 && m.manualKinds[0] === 'upi') return 'upi'
   return null
+}
+
+/** The tabs under Razorpay, in the design's order; none when it takes one method or fewer. */
+function tabsFor(m: CheckoutMethod): readonly string[] {
+  if (m.id !== 'razorpay') return []
+  const taken = m.methods ?? TAB_ORDER.slice(0, 3)
+  const tabs = TAB_ORDER.filter((id) => (taken as readonly string[]).includes(id))
+  return tabs.length > 1 ? tabs : []
 }
 
 /** What opens under the picked way to pay: how it goes once Pay is tapped. */
@@ -65,8 +76,9 @@ export default function PaymentMethods({
   return (
     <fieldset className="border-0! p-0!">
       <legend className="sr-only">{content.payment}</legend>
-      <div className="divide-y divide-ck-line overflow-hidden rounded-[calc(var(--ck-radius)*1.2)] border border-ck-line">
-        {methods.map((m) => {
+      <div className="divide-y divide-ck-line overflow-hidden rounded-[calc(var(--ck-radius)*1.6)] bg-ck-bg [box-shadow:var(--ck-section-shadow)]">
+        {methods.map((m, index) => {
+          const recommended = index === 0 && methods.length > 1 && m.id !== 'cod'
           const view = methodView(m)
           const checked = selected === m.id
           const blocked = m.id === 'cod' && codBlocked
@@ -75,15 +87,16 @@ export default function PaymentMethods({
           const saving = (m.adjustment?.value ?? 0) < 0
           const marks = marksFor(m)
           const logo = logoFor(m)
-          const detail = detailFor(m, amountLabel)
+          const tabs = tabsFor(m)
+          const detail = tabs.length > 0 ? null : detailFor(m, amountLabel)
           return (
             <div
               key={m.id}
               data-method={m.id}
-              className={`transition-[box-shadow,background-color] duration-150 ease-out motion-reduce:transition-none ${checked ? 'bg-ck-soft [box-shadow:inset_0.1875rem_0_0_var(--ck-accent)]' : 'hover:bg-ck-soft'}`}
+              className={`transition-[box-shadow,background-color] duration-150 ease-out motion-reduce:transition-none ${checked ? 'bg-ck-accent-soft' : 'hover:bg-ck-soft'}`}
             >
               <label
-                className={`flex flex-wrap items-center gap-x-3 gap-y-2 px-3.5 py-3 has-[:focus-visible]:[box-shadow:inset_0_0_0_2px_var(--ck-accent)] sm:flex-nowrap sm:px-4 ${blocked ? 'cursor-not-allowed opacity-55' : 'cursor-pointer'}`}
+                className={`flex items-start gap-3 p-4 has-[:focus-visible]:[box-shadow:inset_0_0_0_2px_var(--ck-accent)] ${blocked ? 'cursor-not-allowed opacity-55' : 'cursor-pointer'}`}
               >
                 <input
                   type="radio"
@@ -94,22 +107,29 @@ export default function PaymentMethods({
                   onChange={() => onSelect(m.id)}
                   className="peer sr-only"
                 />
-                <RadioDot checked={checked} />
-                <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-ck-qr [box-shadow:inset_0_0_0_1px_rgb(0_0_0/0.06)]">
+                <span className="flex h-9 shrink-0 items-center">
+                  <RadioDot checked={checked} />
+                </span>
+                <span className="grid size-9 shrink-0 place-items-center rounded-full bg-ck-qr">
                   {logo ? (
                     // biome-ignore lint/performance/noImgElement: inline data URI, nothing to optimise.
                     <img
                       src={PAYMENT_LOGOS[logo]}
                       alt=""
-                      className="block h-auto! max-h-6! w-auto! max-w-7.5!"
+                      className="block h-auto! max-h-5! w-auto! max-w-6.5!"
                     />
                   ) : (
                     <CheckoutIcon name={view.icon} className="size-5 text-ck-accent" />
                   )}
                 </span>
-                <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                <span className="flex min-w-0 flex-1 flex-col gap-1">
                   <span className="flex flex-wrap items-center gap-2 text-[0.9375rem] leading-snug font-semibold text-ck-ink">
                     {view.title}
+                    {recommended ? (
+                      <span className="flex h-6 items-center rounded-[0.375rem] bg-ck-accent-lift px-2 text-[0.75rem] font-semibold text-ck-accent-ink">
+                        {panel.recommended}
+                      </span>
+                    ) : null}
                     {m.test ? (
                       <span
                         title={content.testModeHint}
@@ -120,7 +140,28 @@ export default function PaymentMethods({
                     ) : null}
                   </span>
                   {view.hint ? (
-                    <span className="text-[0.8125rem] leading-snug text-ck-muted">{view.hint}</span>
+                    <span
+                      className={
+                        m.id === 'cod'
+                          ? 'text-[0.8125rem] leading-[1.1875rem] text-ck-muted'
+                          : 'text-[0.75rem] leading-[1.0625rem] text-ck-faint'
+                      }
+                    >
+                      {view.hint}
+                    </span>
+                  ) : null}
+                  {marks.length > 0 ? (
+                    <span aria-hidden="true" className="flex flex-wrap items-center gap-1 pt-1">
+                      {marks.map((mark) => (
+                        <PaymentMark key={mark} mark={mark} />
+                      ))}
+                    </span>
+                  ) : null}
+                  {adjustment && saving ? (
+                    <span className="flex items-center gap-1.5 text-[0.8125rem] leading-[1.1875rem] font-medium text-ck-success">
+                      <CheckoutIcon name="tag" className="size-[0.8125rem]" />
+                      {panel.saving(adjustment)}
+                    </span>
                   ) : null}
                   {m.id === 'cod' && codNote ? (
                     <span
@@ -130,31 +171,24 @@ export default function PaymentMethods({
                     </span>
                   ) : null}
                 </span>
-                {marks.length > 0 ? (
-                  <span
-                    aria-hidden="true"
-                    className="flex w-full shrink-0 flex-wrap items-center gap-1 ps-[5rem] sm:w-auto sm:ps-0"
-                  >
-                    {marks.map((mark) => (
-                      <PaymentMark key={mark} mark={mark} />
-                    ))}
-                  </span>
-                ) : null}
-                {adjustment ? (
+                {adjustment && !saving ? (
                   <span
                     className={`flex h-6 shrink-0 items-center rounded-full border px-2.5 text-[0.75rem] font-semibold tabular-nums ${saving ? 'border-ck-success/30 bg-ck-success/12 text-ck-success' : 'border-ck-line bg-ck-soft text-ck-muted'}`}
                   >
-                    {saving ? panel.saving(adjustment) : adjustment}
+                    {adjustment}
                   </span>
                 ) : null}
               </label>
+              {tabs.length > 0 && checked ? (
+                <PaymentMethodTabs tabs={tabs} brand={view.brand ?? view.title} />
+              ) : null}
               {detail ? (
                 <div
                   inert={!checked}
                   className={`grid transition-[grid-template-rows,opacity] duration-200 ease-out motion-reduce:transition-[opacity] ${checked ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}
                 >
                   <div className="min-h-0 overflow-hidden">
-                    <p className="ps-[5.875rem] pe-3.5 pb-3 text-[0.8125rem] leading-[1.55] text-ck-muted sm:ps-[6rem] sm:pe-4">
+                    <p className="ps-[5.25rem] pe-4 pb-4 text-[0.75rem] leading-[1.0625rem] text-ck-faint">
                       {detail}
                     </p>
                   </div>

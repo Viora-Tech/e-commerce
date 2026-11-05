@@ -33,8 +33,8 @@ export default function SummaryLine({
 }: SummaryLineProps) {
   return (
     <li className="flex flex-wrap items-center gap-3 lg:gap-3.5">
-      <div className="relative size-13 shrink-0 lg:size-16">
-        <div className="absolute inset-0 overflow-hidden rounded-ck border border-ck-summary-line bg-ck-bg">
+      <div className="relative size-13 shrink-0 lg:size-14">
+        <div className="absolute inset-0 overflow-hidden rounded-[0.75rem] border border-ck-summary-line bg-ck-bg">
           {imageUrl ? (
             // biome-ignore lint/performance/noImgElement: cart thumbnails come pre-sized from the media pipeline.
             <img src={imageUrl} alt="" loading="lazy" className="size-full! object-cover" />
@@ -49,13 +49,13 @@ export default function SummaryLine({
         </div>
         <span
           aria-hidden="true"
-          className="absolute -top-[0.4375rem] -right-[0.4375rem] flex h-5 min-w-5 items-center justify-center rounded-[0.375rem] bg-ck-summary-ink px-1 text-[0.6875rem] font-semibold text-ck-summary tabular-nums"
+          className="absolute -top-[0.4375rem] -right-[0.4375rem] flex h-5 min-w-5 items-center justify-center rounded-full bg-ck-muted text-[0.6875rem] font-semibold text-ck-bg"
         >
           {quantity}
         </span>
       </div>
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <p className="line-clamp-2 text-[0.8125rem] leading-snug font-semibold lg:text-[0.875rem]">
+        <p className="line-clamp-2 text-[0.8125rem] leading-snug font-medium lg:text-[0.875rem]">
           {title}
         </p>
         <p className="flex flex-wrap items-center gap-x-2 text-[0.8125rem] text-ck-summary-muted">
@@ -68,7 +68,7 @@ export default function SummaryLine({
           ) : null}
         </p>
       </div>
-      <p className="shrink-0 text-[0.8125rem] font-semibold tabular-nums lg:text-[0.875rem]">
+      <p className="shrink-0 text-[0.8125rem] font-medium tabular-nums lg:text-[0.875rem]">
         {price ?? format(linePaise)}
       </p>
       {preorderNote ? (

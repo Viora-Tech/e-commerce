@@ -57,9 +57,14 @@ export default function CheckoutField({
   const note = error ? `${id}-error` : hint ? `${id}-hint` : undefined
 
   return (
-    <div className="flex min-w-0 flex-col gap-1.5">
+    <div className="flex min-w-0 flex-col gap-2">
       <label htmlFor={id} className={CK_LABEL}>
         {label}
+        {required ? (
+          <span aria-hidden="true" className="ms-0.5 text-ck-danger">
+            *
+          </span>
+        ) : null}
       </label>
       <div className="relative">
         {control ?? null}

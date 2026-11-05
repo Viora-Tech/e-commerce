@@ -1,4 +1,4 @@
-import { cleanPostalCode, isAbroad } from '@commerce/core/checkout-address'
+import { isAbroad } from '@commerce/core/checkout-address'
 import { applyCheckoutText, stateForPincode } from '@commerce/core/checkout-settings'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState, useTransition } from 'react'
@@ -15,6 +15,13 @@ import {
   prefillCheckout,
 } from '@/lib/checkout-form-state'
 import {
+  newAddressForm,
+  offCod,
+  openFromDraft,
+  openFromRemembered,
+  orderDetails,
+} from '@/lib/checkout-opening'
+import {
   checkoutTotals,
   deliveryBy,
   deliveryLine,
@@ -24,13 +31,15 @@ import {
   takesUpi,
 } from '@/lib/checkout-preview'
 import { readRemembered, writeRemembered } from '@/lib/checkout-remember'
-import { bringIntoView, followLegacyStep } from '@/lib/checkout-scroll'
+import { bringIntoView, followLegacyStep, pressSendCode } from '@/lib/checkout-scroll'
 import {
+  type CheckoutSection,
   firstOpenSection,
   type SectionGates,
   sectionDomId,
   sectionsFor,
 } from '@/lib/checkout-sections'
+import { fieldsOnStep, stepMove } from '@/lib/checkout-step-move'
 import {
   type CheckoutFieldKey,
   checkoutFieldErrors,
@@ -90,11 +99,12 @@ export function useCheckoutForm(input: CheckoutFormInput) {
   const [touched, setTouched] = useState<Partial<Record<CheckoutFieldKey, true>>>({})
   const [attempted, setAttempted] = useState(false)
   const [expressNote, setExpressNote] = useState<string | null>(null)
+  /** The step the shopper chose; until then, the first one that still needs something. */
+  const [pickedStep, setPickedStep] = useState<CheckoutSection | null>(null)
   /**
-   * Checking out as a guest (the plain contact fields) unless the store needs an account;
-   * "Sign in" in the Contact card switches to the code.
+   * Signing in with a code comes first, every time; a guest link leads to the contact fields.
    */
-  const [guest, setGuest] = useState(signIn.checkout !== 'account_required')
+  const [guest, setGuest] = useState(false)
   /** The saved address being edited in place, or null. */
   const [editingId, setEditingId] = useState<string | null>(null)
   const [addressError, setAddressError] = useState<string | null>(null)
@@ -102,35 +112,23 @@ export function useCheckoutForm(input: CheckoutFormInput) {
   const [settled, setSettled] = useState(false)
 
   // The courier cannot collect cash here: move off cash on delivery to the first online method.
-  const ship = useCheckoutShipping(cart, () =>
-    setForm((prev) =>
-      prev.payment === 'cod'
-        ? { ...prev, payment: methods.find((m) => m.id !== 'cod')?.id ?? prev.payment }
-        : prev,
-    ),
-  )
+  const ship = useCheckoutShipping(cart, () => setForm((prev) => offCod(prev, methods)))
   const { checking, shipping, rates, rate, rateId, setRateId, unserviceable, checkPincode } = ship
 
-  // Read back this tab's draft (a reload keeps the details), then quote the
-  // address the page opened with: the draft's, or the account's prefilled one.
+  // Read back this tab's draft, then quote the address the page opened with.
   // biome-ignore lint/correctness/useExhaustiveDependencies: once, on mount.
   useEffect(() => {
     const stored = readDraft(cart.id)
     // Just signed in with nothing typed yet: the account's own address wins over the empty draft.
     const draft =
       stored && customer && addresses.length > 0 && !stored.form.line1.trim() ? null : stored
-    if (stored) setGuest(stored.guest)
     let opened = form
     if (draft) {
-      opened = {
-        ...draft.form,
+      opened = openFromDraft(draft.form, form, {
+        email: customer?.email,
         countryCode: offeredCountry(draft.form.countryCode),
-        // A signed-in shopper's email is theirs; the payment pick must still be on offer.
-        email: customer?.email ?? draft.form.email,
-        payment: methods.some((m) => m.id === draft.form.payment)
-          ? draft.form.payment
-          : form.payment,
-      }
+        payments: methods.map((m) => m.id),
+      })
       setForm(opened)
       setSavedId(addresses.some((a) => a.id === draft.savedId) ? draft.savedId : NEW_ADDRESS)
       setBusiness(draft.business)
@@ -139,14 +137,8 @@ export function useCheckoutForm(input: CheckoutFormInput) {
       // A guest back on the same browser: start from the details they used last time.
       const remembered = readRemembered()
       if (remembered) {
-        const country = offeredCountry(remembered.countryCode)
-        // An address remembered in a country the store no longer ships to starts over.
-        opened =
-          country === (remembered.countryCode ?? 'IN')
-            ? { ...form, ...remembered, countryCode: country }
-            : { ...form, ...remembered, ...addressForCountry(country) }
+        opened = openFromRemembered(remembered, form, offeredCountry(remembered.countryCode))
         setForm(opened)
-        setGuest(true)
       }
     }
     if (isQuotable(opened.pincode, opened.countryCode)) {
@@ -206,6 +198,7 @@ export function useCheckoutForm(input: CheckoutFormInput) {
     shipping: ship.gate,
   }
   const sections = sectionsFor(digitalOnly)
+  const step = pickedStep ?? firstOpenSection(gates, sections) ?? 'payment'
   /** Each card's own work, for the tick on its number; Delivery does not wait on Contact. */
   const done = {
     contact: gates.contact === 'ok',
@@ -221,8 +214,8 @@ export function useCheckoutForm(input: CheckoutFormInput) {
     setTouched((prev) => (prev[k] ? prev : { ...prev, [k]: true }))
   /**
    * Point at what stops the order: signing in (the mobile number, then Send code), the first
-   * wrong field, or an address still being edited. Everything is on one page, so this only
-   * scrolls to it and focuses it.
+   * wrong field, or an address still being edited. Opens its step, then scrolls to it and
+   * focuses it once the step is on screen.
    */
   const showFirstWrong = (): void => {
     setAttempted(true)
@@ -236,7 +229,21 @@ export function useCheckoutForm(input: CheckoutFormInput) {
         : editingId
           ? SAVE_ADDRESS_ID
           : null
-    if (target) bringIntoView(target)
+    const home = signInFirst || (first && CONTACT_KEYS.includes(first)) ? 'contact' : 'address'
+    setPickedStep(home)
+    if (target) requestAnimationFrame(() => bringIntoView(target))
+  }
+  /** The first touch of a field holds the step, so it never moves on by itself. */
+  const handleStayOnStep = () => setPickedStep((picked) => picked ?? step)
+  const handleContinue = () => {
+    const move = stepMove({ step, sections, done, shipping: gates.shipping })
+    if (move.kind === 'pick-shipping') setError(content.errors.pickShipping)
+    if (move.kind === 'fix' && (contactReady || !pressSendCode(SEND_CODE_ID))) showFirstWrong()
+    if (move.kind !== 'next') return
+    setError(null)
+    setAttempted(false)
+    if (move.to) setPickedStep(move.to)
+    requestAnimationFrame(() => window.scrollTo({ top: 0 }))
   }
   /** Place the order with this way to pay, or point at the first field that needs fixing. */
   const submit = (paymentId: string): boolean => {
@@ -248,20 +255,14 @@ export function useCheckoutForm(input: CheckoutFormInput) {
     // waits until there is one (the courier is still quoting, or nothing covers the address).
     if (firstOpenSection(gates, sections) === 'shipping') {
       if (gates.shipping === 'blocked') setError(content.errors.pickShipping)
-      bringIntoView(sectionDomId('shipping'))
+      setPickedStep('shipping')
+      requestAnimationFrame(() => bringIntoView(sectionDomId('shipping')))
       return false
     }
     setError(null)
-    const { label, lastName, ...details } = form
     start(async () => {
       const r = await checkoutAction({
-        ...details,
-        ...(label ? { label } : {}),
-        // Settings → Checkout splits the name (#154): the full name, and its parts for the check.
-        ...(splitName
-          ? { name: fullNameOf(form), firstName: form.name, lastName: lastName ?? '' }
-          : {}),
-        pincode: abroad ? cleanPostalCode(form.pincode) : cleanPincode(form.pincode),
+        ...orderDetails(form, { splitName, abroad }),
         payment: paymentId,
         giftCards: giftCards.map((c) => c.code),
         ...ship.formFields,
@@ -320,15 +321,10 @@ export function useCheckoutForm(input: CheckoutFormInput) {
     setEditingId(null)
     setAddressError(null)
     const picked = addresses.find((a) => a.id === id)
+    const blank = prefillCheckout(customer, undefined, settings.fields.name, startCountry)
     const next = picked
       ? prefillCheckout(customer, picked, settings.fields.name)
-      : {
-          // A new address opens in the market's country, not the saved (Indian) one it replaces.
-          ...prefillCheckout(customer, undefined, settings.fields.name, startCountry),
-          name: form.name,
-          ...(splitName ? { lastName: form.lastName ?? '' } : {}),
-          phone: phoneForCountry(form.phone, startCountry),
-        }
+      : newAddressForm(blank, form, { splitName, country: startCountry })
     setForm((prev) => ({ ...prev, ...next }))
     checkPincode(next.pincode, next.stateCode, next.countryCode)
   }
@@ -376,7 +372,7 @@ export function useCheckoutForm(input: CheckoutFormInput) {
   const handleLabel = (label: string) => setForm((prev) => ({ ...prev, label }))
   const handlePayment = (id: string) => setForm((prev) => ({ ...prev, payment: id }))
   const handlePhone = (phone: string) => setForm((prev) => ({ ...prev, phone }))
-  /* Enter in a field pays, like the Pay button. One form for the whole checkout. */
+  /* Enter in a field moves on or pays, like the button. One form for the whole checkout. */
   // A code typed but never applied is applied first; the shopper checks the new total (pending-code.ts).
   const applyTypedCode = () =>
     applyPendingDiscountCode((code) => setError(content.errors.discountNotApplied(code)))
@@ -384,6 +380,10 @@ export function useCheckoutForm(input: CheckoutFormInput) {
     e.preventDefault()
     setExpressNote(null)
     if (applyTypedCode()) return
+    if (step !== 'payment') {
+      handleContinue()
+      return
+    }
     submit(payment)
   }
   /*
@@ -406,15 +406,10 @@ export function useCheckoutForm(input: CheckoutFormInput) {
   /* COD cannot collect what a gift card leaves; move to the first online method. */
   const handleGiftCardApply = (card: AppliedGiftCard) => {
     setGiftCards((prev) => [...prev, card])
-    setForm((prev) =>
-      prev.payment === 'cod'
-        ? { ...prev, payment: methods.find((m) => m.id !== 'cod')?.id ?? prev.payment }
-        : prev,
-    )
+    setForm((prev) => offCod(prev, methods))
   }
-  const handleGiftCardRemove = (code: string) => {
+  const handleGiftCardRemove = (code: string) =>
     setGiftCards((prev) => prev.filter((c) => c.code !== code))
-  }
 
   const shortfall = totals.shortfallPaise
   const updating = checking && !digitalOnly
@@ -452,7 +447,7 @@ export function useCheckoutForm(input: CheckoutFormInput) {
     addressError,
     giftCards,
     shownErrors,
-    toFix: attempted && contactReady ? wrongFields.length : 0,
+    toFix: attempted && contactReady ? fieldsOnStep(wrongFields, CONTACT_KEYS, step) : 0,
     /** Pay was pressed before the contact was settled (signed in, or a guest). */
     needsContact: attempted && !contactReady,
     totals,
@@ -466,6 +461,7 @@ export function useCheckoutForm(input: CheckoutFormInput) {
     deliveryBy: deliveryBy(shipping, rate),
     upi: offered.find(takesUpi) ?? null,
     sections,
+    step,
     gates,
     done,
     countries,
@@ -491,6 +487,8 @@ export function useCheckoutForm(input: CheckoutFormInput) {
     handleLabel,
     handleRate: setRateId,
     handleSubmit,
+    handleStep: setPickedStep,
+    handleStayOnStep,
     handleExpress,
     handleGiftCardApply,
     handleGiftCardRemove,

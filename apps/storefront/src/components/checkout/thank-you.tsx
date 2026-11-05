@@ -4,21 +4,25 @@ import { OPEN_ATTEMPT_STATUSES } from '@commerce/core/order-status'
 import type { address, order, orderLine, payment } from '@commerce/db'
 import type { CheckoutSession } from '@commerce/payments'
 import type { ReactNode } from 'react'
+import CheckoutIcon from '@/components/checkout/checkout-icon'
 import CheckoutPageShell from '@/components/checkout/checkout-page-shell'
 import CheckoutParcels from '@/components/checkout/checkout-parcels'
 import OrderDetails from '@/components/checkout/order-details'
-import OrderProgress from '@/components/checkout/order-progress'
 import OrderSummary from '@/components/checkout/order-summary'
 import StatusMark from '@/components/checkout/status-mark'
 import SummaryDisclosure from '@/components/checkout/summary-disclosure'
 import ThankYouCard from '@/components/checkout/thank-you-card'
+import ThankYouConfirming from '@/components/checkout/thank-you-confirming'
+import ThankYouDelivery from '@/components/checkout/thank-you-delivery'
+import ThankYouFailed from '@/components/checkout/thank-you-failed'
 import TransferInstructions from '@/components/checkout/transfer-instructions'
 import UpiQrPayment from '@/components/checkout/upi-qr-payment'
 import { thankYouContent as content } from '@/data/checkout'
-import { CK_BUTTON_PRIMARY, CK_BUTTON_SECONDARY, CK_HEADING } from '@/lib/checkout-classes'
+import { CK_BUTTON_PRIMARY, CK_BUTTON_SECONDARY, CK_CARD, CK_HEADING } from '@/lib/checkout-classes'
 import type { ShopperParcel } from '@/lib/parcels'
 import { payOnlineAction, retryPaymentAction } from '@/lib/payment-actions'
-import { deliveryWindow, firstName, thankYouProgress } from '@/lib/thank-you'
+import { deliveryWindow, thankYouProgress } from '@/lib/thank-you'
+import { whatsAppHelp } from '@/lib/whatsapp-help'
 
 type ThankYouTemplateProps = {
   order: typeof order.$inferSelect
@@ -65,7 +69,7 @@ const ENTER = [
   'motion-safe:animate-[sf-rise_260ms_var(--ease-out)_240ms_both] motion-reduce:animate-[sf-fade_200ms_var(--ease-out)_240ms_both]',
 ] as const
 
-/** The first card's line while the order still waits on its payment. */
+/** The line under the headline while the order still waits on its payment. */
 function pendingLine(failed: boolean, manual: boolean, qr: boolean, total: string): string {
   if (failed) return content.status.failed(total)
   if (manual) return content.status.manual
@@ -74,13 +78,11 @@ function pendingLine(failed: boolean, manual: boolean, qr: boolean, total: strin
 }
 
 /**
- * The thank-you page (Figma Checkout v2 / Thank you), in the one-page checkout's frame. A tick
- * in the accent, "Order #1001" and "Thank you, Asha!", then two white cards: where the order
- * stands (the updates line, the delivery window when one was worked out, and Confirmed /
- * Packed / Shipped / Delivered), and its details (contact, payment, address, shipping) with
- * "Track your order" and the apps' downloads. While the payment is still open the first card
- * holds what the shopper has to do instead: scan the UPI QR, make the transfer, pay now or
- * retry a failed payment. The order summary stays on the right, folded on a phone.
+ * The result page (Figma Checkout · Polish): the status and what it means, the order number,
+ * then what the moment needs. Waiting on a payment that means the UPI QR, the transfer details
+ * or Pay now; just paid, "Confirming your payment…"; failed, what was tried and how to go again.
+ * Once placed, the Delivery card with its progress and the actions. Order details keep the
+ * contact, the payment and the apps' downloads. The summary stays on the right, folded on a phone.
  */
 export default function ThankYouTemplate({
   order: o,
@@ -127,26 +129,59 @@ export default function ThankYouTemplate({
     progress.reached !== null && progress.reached < 3
       ? deliveryWindow(parcels.filter((p) => !p.onHold).map((p) => p.estimate))
       : null
-  const cardTitle = progress.end
-    ? content.card[progress.end]
-    : failed
-      ? content.card.failed
-      : awaiting
-        ? content.card.pending
-        : content.card.confirmed
-  const line = !settled
-    ? pendingLine(failed, manual !== null, qr !== null, due)
-    : progress.end
-      ? null
-      : boughtCards
-        ? content.status.giftCardEmail(o.email)
-        : [content.updates(o.email ?? o.phone), arrival ? content.arrives(arrival) : null]
-            .filter(Boolean)
-            .join(' ')
-  const retry = failed || notStarted
   const payClient = awaiting && session?.kind === 'client'
   const payOnline = manual !== null && canPayOnline
+  const retry = failed || notStarted
+  // Paid and not yet answered: nothing for the shopper to do but wait.
+  const confirming = awaiting && manual === null && qr === null && !payClient
+  const headline = progress.end
+    ? content.card[progress.end]
+    : failed
+      ? content.headline.failed
+      : awaiting || notStarted
+        ? content.headline.pending
+        : content.card.confirmed
+  const statusLines = !settled
+    ? [pendingLine(failed, manual !== null, qr !== null, due)]
+    : progress.end
+      ? []
+      : boughtCards
+        ? [content.status.giftCardEmail(o.email)]
+        : [
+            ...(o.paymentMethod === 'cod' && !o.checkoutPaidAt ? [content.codDue(due)] : []),
+            content.updates(o.email ?? o.phone),
+          ]
   const trackLink = settled && !progress.end ? track : null
+  const number = `#${o.number}`
+  const method = o.paymentMethod
+    ? (content.methods[o.paymentMethod] ?? content.methods.online ?? '')
+    : (content.methods.online ?? '')
+  const showDelivery = shipTo !== null && !failed && !progress.end && !confirming
+  const deliveryAddress = shipTo
+    ? [shipTo.name, shipTo.line1, shipTo.line2, shipTo.city, shipTo.pincode]
+        .filter(Boolean)
+        .join(', ')
+    : ''
+  const continueLink = (
+    <a href="/" className={`${CK_BUTTON_SECONDARY} h-13! no-underline`}>
+      {content.continueShopping}
+    </a>
+  )
+  const retryButton = retry ? (
+    <form
+      action={retryPaymentAction.bind(null, o.number, viewToken)}
+      className={failed ? 'min-w-0 flex-1' : ''}
+    >
+      <button type="submit" className={CK_BUTTON_PRIMARY}>
+        {failed ? <CheckoutIcon name="refresh" className="size-[1.125rem]" /> : null}
+        {notStarted
+          ? content.payNow
+          : session?.kind === 'upi_qr'
+            ? content.newQr
+            : content.retryPayment}
+      </button>
+    </form>
+  ) : null
 
   return (
     <CheckoutPageShell
@@ -167,92 +202,158 @@ export default function ThankYouTemplate({
         </SummaryDisclosure>
       }
     >
-      <div className="flex flex-col gap-6">
-        <div className="flex flex-col gap-4">
-          <StatusMark tone={failed ? 'failed' : awaiting ? 'pending' : 'confirmed'} />
-          <div className={`flex flex-col gap-1 ${ENTER[0]}`}>
-            <p className="text-[0.875rem] font-medium text-ck-muted tabular-nums">
-              {content.orderNumber(o.number)}
-            </p>
-            <h1 className={`${CK_HEADING} text-[1.75rem]! text-balance sm:text-[2rem]!`}>
-              {settled
-                ? content.thanks(firstName(shipTo?.name))
-                : failed
-                  ? content.headline.failed
-                  : content.headline.pending}
-            </h1>
+      <div className="flex flex-col gap-6 max-lg:pt-2">
+        {confirming ? (
+          <div className={`flex flex-col gap-6 ${ENTER[0]}`}>
+            <ThankYouConfirming
+              rows={[
+                [content.confirming.amount, due],
+                [content.confirming.paidWith, method],
+                [content.confirming.order, content.confirming.held(number)],
+              ]}
+            />
           </div>
-        </div>
-
-        <ThankYouCard id="order-status-heading" title={cardTitle} className={ENTER[1]}>
-          {line ? <p className="text-[0.9375rem] text-pretty text-ck-muted">{line}</p> : null}
-          {settled && shipTo && progress.reached !== null ? (
-            <OrderProgress reached={progress.reached} />
-          ) : null}
-          {manual ? <TransferInstructions instructions={manual} amountLabel={due} /> : null}
-          {payOnline ? (
-            <form
-              action={payOnlineAction.bind(null, o.number, viewToken)}
-              className="flex flex-col gap-3 border-t border-ck-line pt-5"
-            >
-              <h2 className={`${CK_HEADING} text-[1rem]!`}>{content.payOnline.heading}</h2>
-              <p className="text-[0.9375rem] text-pretty text-ck-muted">{content.payOnline.body}</p>
-              <button type="submit" className={CK_BUTTON_PRIMARY}>
-                {content.payOnline.action}
-              </button>
-              <p className="text-[0.875rem] text-pretty text-ck-muted">
-                {content.payOnline.alreadySent}
-              </p>
-            </form>
-          ) : null}
-          {qr ? (
-            <UpiQrPayment orderNumber={o.number} viewToken={viewToken} qr={qr} amountLabel={due} />
-          ) : null}
-          {balance}
-          {retry ? (
-            <form action={retryPaymentAction.bind(null, o.number, viewToken)}>
-              <button type="submit" className={CK_BUTTON_PRIMARY}>
-                {notStarted
-                  ? content.payNow
-                  : session?.kind === 'upi_qr'
-                    ? content.newQr
-                    : content.retryPayment}
-              </button>
-            </form>
-          ) : null}
-          {payClient ? (
-            <a href={payPath} className={`${CK_BUTTON_PRIMARY} no-underline`}>
-              {content.payNow}
-            </a>
-          ) : null}
-        </ThankYouCard>
-
-        <ThankYouCard
-          id="order-details-heading"
-          title={content.details.heading}
-          className={ENTER[2]}
-        >
-          <OrderDetails order={o} shipTo={shipTo} payment={pay} giftCards={giftCards} />
-          <CheckoutParcels parcels={parcels} />
-          {trackLink || links.length > 0 ? (
-            <div className="flex flex-col gap-3 border-t border-ck-line pt-5 sm:flex-row sm:flex-wrap">
-              {trackLink ? (
-                <a
-                  href={trackLink.href}
-                  {...(trackLink.external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
-                  className={`${CK_BUTTON_PRIMARY} h-11! text-[0.9375rem]! no-underline sm:w-auto`}
+        ) : (
+          <>
+            <div className={`flex flex-col gap-3.5 ${ENTER[0]}`}>
+              <div className="flex items-center gap-3.5">
+                <StatusMark
+                  tone={failed ? 'failed' : awaiting || notStarted ? 'pending' : 'success'}
+                />
+                <h1
+                  className={`${CK_HEADING} text-[1.375rem]! font-bold! text-balance sm:text-[1.875rem]!`}
                 >
-                  {content.trackOrder}
-                </a>
-              ) : null}
-              {links.map((l) => (
-                <a key={l.url} href={l.url} className={`${CK_BUTTON_SECONDARY} w-full sm:w-auto`}>
-                  {l.label}
-                </a>
+                  {headline}
+                </h1>
+              </div>
+              {statusLines.map((text) => (
+                <p
+                  key={text}
+                  className="text-[0.9375rem] leading-[1.375rem] text-pretty text-ck-muted"
+                >
+                  {text}
+                </p>
               ))}
             </div>
-          ) : null}
-        </ThankYouCard>
+            {failed ? (
+              <div className={`flex flex-col gap-6 ${ENTER[1]}`}>
+                <ThankYouFailed
+                  rows={[
+                    [content.confirming.amount, due],
+                    [content.confirming.paidWith, method],
+                    [content.confirming.order, number],
+                  ]}
+                  help={whatsAppHelp(look.contactPhone)}
+                  actions={
+                    <div className="flex flex-col-reverse gap-3 sm:flex-row">
+                      {continueLink}
+                      {retryButton}
+                    </div>
+                  }
+                />
+              </div>
+            ) : (
+              <div className={`flex flex-col gap-6 ${ENTER[1]}`}>
+                <div className={`${CK_CARD} flex h-15 items-center justify-between gap-4 px-4`}>
+                  <span className="text-[0.875rem] leading-5 text-ck-muted">
+                    {content.orderNumberLabel}
+                  </span>
+                  <span className="text-[1.25rem] leading-6 font-bold text-ck-ink tabular-nums">
+                    {number}
+                  </span>
+                </div>
+                {manual ? <TransferInstructions instructions={manual} amountLabel={due} /> : null}
+                {payOnline ? (
+                  <form
+                    action={payOnlineAction.bind(null, o.number, viewToken)}
+                    className={`${CK_CARD} flex flex-col gap-3 p-5`}
+                  >
+                    <h2 className={`${CK_HEADING} text-[1.0625rem]!`}>
+                      {content.payOnline.heading}
+                    </h2>
+                    <p className="text-[0.875rem] leading-5 text-pretty text-ck-muted">
+                      {content.payOnline.body}
+                    </p>
+                    <button type="submit" className={CK_BUTTON_PRIMARY}>
+                      {content.payOnline.action}
+                    </button>
+                    <p className="text-[0.8125rem] leading-[1.1875rem] text-pretty text-ck-muted">
+                      {content.payOnline.alreadySent}
+                    </p>
+                  </form>
+                ) : null}
+                {qr ? (
+                  <UpiQrPayment
+                    orderNumber={o.number}
+                    viewToken={viewToken}
+                    qr={qr}
+                    amountLabel={due}
+                  />
+                ) : null}
+                {balance ? <div className={`${CK_CARD} p-5`}>{balance}</div> : null}
+                {retryButton}
+                {payClient ? (
+                  <a href={payPath} className={`${CK_BUTTON_PRIMARY} no-underline`}>
+                    {content.payNow}
+                  </a>
+                ) : null}
+              </div>
+            )}
+          </>
+        )}
+
+        {showDelivery ? (
+          <div className={ENTER[2]}>
+            <ThankYouDelivery
+              heading={arrival ? content.delivery.arriving(arrival) : content.delivery.soon}
+              body={content.delivery.body(o.shippingRateName)}
+              address={deliveryAddress}
+              reached={settled ? (progress.reached ?? -1) : -1}
+            />
+          </div>
+        ) : null}
+
+        {failed || confirming ? null : (
+          <ThankYouCard
+            id="order-details-heading"
+            title={content.details.heading}
+            className={ENTER[2]}
+          >
+            <OrderDetails
+              order={o}
+              shipTo={shipTo}
+              payment={pay}
+              giftCards={giftCards}
+              compact={showDelivery}
+            />
+            <CheckoutParcels parcels={parcels} />
+            {links.length > 0 ? (
+              <div className="flex flex-col gap-3 border-t border-ck-line pt-5 sm:flex-row sm:flex-wrap">
+                {links.map((l) => (
+                  <a key={l.url} href={l.url} className={`${CK_BUTTON_SECONDARY} w-full sm:w-auto`}>
+                    {l.label}
+                  </a>
+                ))}
+              </div>
+            ) : null}
+          </ThankYouCard>
+        )}
+
+        {failed || confirming ? null : (
+          <div className={`flex flex-col-reverse gap-3 sm:flex-row ${ENTER[2]}`}>
+            {continueLink}
+            {trackLink ? (
+              <a
+                href={trackLink.href}
+                {...(trackLink.external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
+                className={`${CK_BUTTON_PRIMARY} min-w-0 flex-1 no-underline`}
+              >
+                {content.trackOrder}
+                <CheckoutIcon name="chevron" className="size-[1.125rem] -rotate-90" />
+              </a>
+            ) : null}
+          </div>
+        )}
       </div>
     </CheckoutPageShell>
   )

@@ -3,11 +3,16 @@
 import type { ReactNode } from 'react'
 import CheckoutAbroadFields from '@/components/checkout/checkout-abroad-fields'
 import CheckoutAddressFields from '@/components/checkout/checkout-address-fields'
+import CheckoutCountrySelect from '@/components/checkout/checkout-country-select'
 import CheckoutIcon from '@/components/checkout/checkout-icon'
-import CheckoutSelect from '@/components/checkout/checkout-select'
 import SavedAddressCard from '@/components/checkout/saved-address-card'
 import { checkoutContent as content } from '@/data/checkout'
-import { CK_BUTTON_PRIMARY, CK_BUTTON_SECONDARY, CK_HEADING } from '@/lib/checkout-classes'
+import {
+  CK_BUTTON_PRIMARY,
+  CK_BUTTON_SECONDARY,
+  CK_HEADING,
+  CK_PANEL,
+} from '@/lib/checkout-classes'
 import { countryOptions } from '@/lib/checkout-countries'
 import { SAVE_ADDRESS_ID } from '@/lib/checkout-form-input'
 import { NEW_ADDRESS } from '@/lib/checkout-form-state'
@@ -47,12 +52,11 @@ export default function CheckoutAddressBook({ ck }: CheckoutAddressBookProps) {
   // address is being edited or for gift cards, which are emailed.
   const picker =
     ck.countries.length > 1 && !totals.digitalOnly && ck.editingId === null ? (
-      <CheckoutSelect
+      <CheckoutCountrySelect
         id={COUNTRY_ID}
         label={content.abroad.country}
         value={ck.form.countryCode}
         options={countryOptions(ck.countries)}
-        autoComplete="country"
         onChange={ck.handleCountry}
       />
     ) : null
@@ -87,16 +91,14 @@ export default function CheckoutAddressBook({ ck }: CheckoutAddressBookProps) {
       onPlace={ck.handlePlace}
     />
   )
-  const form = picker ? (
-    <div className="flex flex-col gap-3 sm:gap-3.5">
+  const form = (
+    <>
       {picker}
       {fields}
-    </div>
-  ) : (
-    fields
+    </>
   )
   // Early returns
-  if (!cards) return form
+  if (!cards) return <div className={`${CK_PANEL} flex flex-col gap-4 p-5`}>{form}</div>
 
   return (
     <div className="flex flex-col gap-3">
@@ -129,7 +131,7 @@ export default function CheckoutAddressBook({ ck }: CheckoutAddressBookProps) {
         <button
           type="button"
           onClick={() => ck.handlePickAddress(NEW_ADDRESS)}
-          className="flex min-h-14 w-full cursor-pointer items-center justify-center gap-2 rounded-ck border border-dashed border-ck-muted/40 bg-transparent! text-[0.9375rem] font-medium text-ck-ink outline-none transition-colors duration-150 hover:border-ck-muted/60 hover:bg-ck-field! focus-visible:[box-shadow:0_0_0_3px_var(--ck-ring)] motion-reduce:transition-none"
+          className="flex min-h-14 w-full cursor-pointer items-center justify-center gap-2 rounded-ck border! border-dashed! border-ck-line-strong! bg-transparent! text-[0.9375rem] font-semibold text-ck-ink outline-none transition-colors duration-150 hover:border-ck-muted/60 hover:bg-ck-field! focus-visible:[box-shadow:0_0_0_3px_var(--ck-ring)] motion-reduce:transition-none"
         >
           <CheckoutIcon name="plus" className="size-4" />
           {book.add}
@@ -142,7 +144,7 @@ export default function CheckoutAddressBook({ ck }: CheckoutAddressBookProps) {
 /** The PIN-first form in a panel: a new address (Cancel), or a saved one being edited (Save). */
 function AddressPanel({ ck, heading, editing, children }: AddressPanelProps) {
   return (
-    <div className="flex flex-col gap-5 rounded-ck border border-ck-line bg-ck-bg p-4 sm:p-5">
+    <div className="flex flex-col gap-5 rounded-[calc(var(--ck-radius)*1.2)] bg-ck-bg p-5 [--ck-field:var(--ck-canvas)] [box-shadow:var(--ck-section-shadow)]">
       <h4 className={`${CK_HEADING} text-[0.9375rem]!`}>{heading}</h4>
       {children}
       {ck.addressError ? (

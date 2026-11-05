@@ -2,6 +2,7 @@ import { checkoutAbroadContent } from './checkout-abroad'
 import { checkoutErrorsContent } from './checkout-errors'
 import { checkoutExpressContent } from './checkout-express'
 import { checkoutFieldsContent } from './checkout-fields'
+import { checkoutStepsContent } from './checkout-steps'
 /**
  * Every string the checkout, payment and thank-you screens show. Change copy here,
  * never inside a component.
@@ -42,27 +43,49 @@ export const invoiceContent = {
   back: 'Back to the shop',
 } as const
 
+export { manualPaymentContent, UPI_QR_SIZE, upiQrContent } from '@/data/checkout-payment'
+
 export const thankYouContent = {
   /** The headline while the order still waits on its payment. */
   headline: {
     pending: 'Complete your payment',
     failed: 'Your payment did not go through',
   },
-  /** The headline once the order is placed: "Thank you, Asha!". */
-  thanks: (name: string | null) => (name ? `Thank you, ${name}!` : 'Thank you!'),
-  /** The first card's heading, by where the order stands. */
+  /** The headline by where the order stands. */
   card: {
     confirmed: 'Your order is confirmed',
-    pending: 'Waiting for your payment',
-    failed: 'Payment not received',
     cancelled: 'This order was cancelled',
     refunded: 'This order was refunded',
     returning: 'This order is on its way back to us',
   },
   /** Where order updates go: the contacts the order was placed with. */
   updates: (contact: string | null) =>
-    contact ? `We will send updates to ${contact}.` : 'We will be in touch about delivery.',
-  arrives: (range: string) => `Expected delivery ${range}.`,
+    contact ? `A confirmation is on its way to ${contact}.` : 'We will be in touch about delivery.',
+  /** The Delivery card. */
+  delivery: {
+    arriving: (range: string) => `Arriving ${range}`,
+    soon: 'We will get it to you soon',
+    body: (rate: string | null) => `${rate ? `${rate}. ` : ''}We will send tracking once it ships.`,
+  },
+  orderNumberLabel: 'Order number',
+  /** The paying moment, while the gateway has not answered yet. */
+  confirming: {
+    heading: 'Confirming your payment…',
+    body: 'Please do not close this page or press back. This usually takes less than a minute.',
+    reassurance:
+      'If money is taken from your account, we will confirm by SMS and WhatsApp, even if you close this page.',
+    amount: 'Amount',
+    paidWith: 'Paid with',
+    order: 'Order',
+    held: (number: string) => `${number} (held for you)`,
+  },
+  failed: {
+    safeHeading: 'No money was taken',
+    safeBody:
+      'If any amount shows as deducted, it goes back to your account within 3 to 5 working days. You do not need to do anything.',
+    help: 'Still stuck? Chat with us on WhatsApp',
+  },
+  codDue: (amount: string) => `Pay ${amount} in cash when it arrives.`,
   /** The four-step progress bar under the first card's line. */
   progress: {
     label: 'Order progress',
@@ -75,7 +98,7 @@ export const thankYouContent = {
   giftCardLine: (last: string, amount: string) => `Gift card •••• ${last} · ${amount}`,
   /** The Shipping cell: "Standard · Free". */
   shippingLine: (rate: string, price: string) => `${rate} · ${price}`,
-  trackOrder: 'Track your order',
+  trackOrder: 'Track order',
   orderNumber: (number: number) => `Order #${number}`,
   status: {
     awaiting: (total: string) => `We are confirming your payment of ${total}.`,
@@ -132,49 +155,6 @@ export const thankYouContent = {
   variantTitle: (variant: string | null) => (variant && variant !== 'Default' ? variant : null),
 } as const
 
-export const manualPaymentContent = {
-  intro: (total: string, reference: string) =>
-    `Pay ${total} and quote ${reference} so we can match it. We confirm the order once the money arrives.`,
-  upi: {
-    heading: 'UPI',
-    idLabel: 'UPI ID',
-    open: 'Open UPI app',
-    qrAlt: (upiId: string) => `UPI QR for ${upiId}`,
-  },
-  bank: {
-    heading: 'Bank transfer',
-    rows: {
-      bankName: 'Bank',
-      accountName: 'Account name',
-      accountNumber: 'Account number',
-      ifsc: 'IFSC',
-      reference: 'Reference',
-    },
-  },
-} as const
-
-/** "UPI — confirmed automatically": the Razorpay UPI QR on the thank-you page. */
-export const upiQrContent = {
-  heading: (amount: string) => `Pay ${amount} by UPI`,
-  qrAlt: (amount: string) => `UPI QR code for ${amount}`,
-  closesIn: (clock: string) => `This QR closes in ${clock}.`,
-  help: 'Scan with Google Pay, PhonePe, Paytm or any UPI app. The amount is filled in for you.',
-  open: 'Open in UPI app',
-  /** Phone buttons, one per app Decentro-style gateways return a link for. */
-  payWith: 'Pay with',
-  apps: { gpay: 'Google Pay', phonepe: 'PhonePe', paytm: 'Paytm', cred: 'CRED' },
-  otherApp: 'Other UPI app',
-  paid: "I've paid",
-  checking: 'Checking…',
-  notYet: 'Not received yet. It can take a minute; this page updates on its own.',
-  expired: 'This QR has closed. Your order is still saved; get a new QR to pay.',
-  renew: 'Get a new QR',
-  waiting: 'Waiting for your payment',
-} as const
-
-/** Pixel size of the rendered UPI QR on the thank-you page. */
-export const UPI_QR_SIZE = 220
-
 /** The page that opens Razorpay or Cashfree's own payment window. */
 export const payClientContent = {
   heading: (number: number) => `Order #${number}`,
@@ -219,14 +199,13 @@ export const checkoutContent = {
   testModeHint: 'No real money is charged.',
   /** The one page's numbered cards (design: checkout-design Main and Mobile). */
   sections: {
-    label: { contact: 'Contact', address: 'Delivery', shipping: 'Shipping', payment: 'Payment' },
+    label: { contact: 'Contact', address: 'Address', shipping: 'Delivery', payment: 'Payment' },
     /** Gift cards are emailed: the second card only asks for billing details. */
     detailsLabel: 'Billing',
     /** Read after a card's heading once its part is filled in. */
     done: 'Complete',
     signIn: 'Sign in',
     /** Beside the Shipping heading: the PIN code the options are for. */
-    shippingTo: (pincode: string) => `To ${pincode}`,
     paymentNote: 'Encrypted and secure',
   },
   /**
@@ -235,9 +214,7 @@ export const checkoutContent = {
    * creates the account. Settings → Customer accounts decides whether a guest may skip it.
    */
   otp: {
-    intro: 'Enter your mobile number and we will send you a code. No password needed.',
-    introEmail: 'Enter your email and we will send you a code. No password needed.',
-    sendCode: 'Send code',
+    sendCode: 'Continue',
     sending: 'Sending code…',
     codeLabel: 'Six digit code',
     sentTo: (to: string, by: string) => `We sent a code to ${to} by ${by}.`,
@@ -246,7 +223,11 @@ export const checkoutContent = {
     verifying: 'Verifying…',
     resend: 'Send a new code',
     change: 'Change',
-    guest: 'Check out as guest instead',
+    emailLabel: 'Email',
+    contactLabel: 'Phone number or email',
+    countryCode: '+91',
+    guestLead: 'Just buying once?',
+    guest: 'Check out as guest',
     signInInstead: 'Sign in with a code instead',
     required: 'This shop needs an account to check out. Signing in creates one.',
     optional: 'Signing in fills in your saved addresses. New here? It creates your account.',
@@ -308,6 +289,20 @@ export const checkoutContent = {
   },
   /** What opens under the picked way to pay. */
   methodPanel: {
+    recommended: 'Recommended',
+    tabNames: { upi: 'UPI', card: 'Card', netbanking: 'Net banking', emi: 'EMI' } as Record<
+      string,
+      string
+    >,
+    tabHints: {
+      card: 'Enter your card details in the secure window after you press Pay.',
+      netbanking: 'Choose your bank in the secure window after you press Pay.',
+      emi: 'Choose your EMI plan in the secure window after you press Pay.',
+    } as Record<string, string>,
+    upiHeading: 'Pay with any UPI app',
+    upiBody:
+      'Press Pay to get your QR code. Open GPay, PhonePe, Paytm or any UPI app, scan it and approve.',
+    processedBy: (brand: string) => `Processed by ${brand}`,
     upi: (amount: string) =>
       `Pay ${amount} straight from your bank with any UPI app. On a phone your app opens; on a computer you scan a QR code.`,
     gateway: (brand: string) => `You finish on ${brand}'s secure screen.`,
@@ -331,6 +326,20 @@ export const checkoutContent = {
   discount: 'Discount',
   shipping: 'Shipping',
   shippingFree: 'Free',
+  countryPicker: { search: 'Search countries', empty: 'No country matches that.' },
+  soldOut: {
+    heading: (count: number) =>
+      count === 1 ? 'One item just sold out' : `${count} items just sold out`,
+    body: 'This happened while you were checking out. You have not been charged.',
+    chip: 'Sold out',
+    remove: 'Remove from my order',
+    notify: 'Notify me when it is back',
+    notified: 'We will let you know',
+    others: (count: number) =>
+      count === 1
+        ? 'Your other item is still held for you'
+        : `Your other ${count} items are still held for you`,
+  },
   /** Summary row before an address has been checked. */
   shippingPending: 'Enter your PIN code',
   /** Abroad there is no PIN code: the address decides the options (#64). */
@@ -353,15 +362,8 @@ export const checkoutContent = {
   pay: (amount: string) => `Pay ${amount}`,
   placeOrderAmount: (amount: string) => `Place order · ${amount}`,
   processing: 'Processing…',
-  help: { label: 'Need help?', short: 'Help', aria: 'Need help? WhatsApp us' },
-  /** A card that arrives filled in reads as rows until the shopper edits it. */
-  filled: {
-    mobile: 'Mobile',
-    email: 'Email',
-    shipTo: 'Ship to',
-    edit: 'Edit',
-    editLabel: (label: string) => `Edit ${label.toLowerCase()}`,
-  },
+  help: { label: 'Need help? WhatsApp us', short: 'Help', aria: 'Need help? WhatsApp us' },
+  ...checkoutStepsContent,
   /** Under the Pay button: "Secured by Razorpay", or the plain line when no gateway is named. */
   payNote: { by: 'Secured by', plain: 'Secure checkout' },
   /** The summary's delivery box: "Delivers to 122001 by Thu, 29 Oct". */

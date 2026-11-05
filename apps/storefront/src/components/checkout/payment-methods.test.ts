@@ -76,7 +76,7 @@ describe('PaymentMethods', () => {
 
   it('opens the picked method only, and switches with the pick', () => {
     const upi = render()
-    expect(cardOf(upi, 'razorpay')).toContain('You finish on Razorpay')
+    expect(cardOf(upi, 'razorpay')).toContain('Pay with any UPI app')
     expect(cardOf(upi, 'razorpay')).not.toContain('inert')
     expect(cardOf(upi, 'cashfree')).toContain('inert')
     expect(upi.match(/checked=""/g)).toHaveLength(1)
@@ -84,7 +84,7 @@ describe('PaymentMethods', () => {
     const cards = render({ selected: 'cashfree' })
     expect(cardOf(cards, 'cashfree')).not.toContain('inert')
     expect(cardOf(cards, 'cashfree')).toContain('You finish on Cashfree')
-    expect(cardOf(cards, 'razorpay')).toContain('inert')
+    expect(cardOf(cards, 'razorpay')).not.toContain('Pay with any UPI app')
 
     const cash = render({ selected: 'cod' })
     expect(cardOf(cash, 'cod')).toContain('Pay in cash when your order arrives')

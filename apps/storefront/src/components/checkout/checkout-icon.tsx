@@ -19,12 +19,17 @@ export type CheckoutIconName =
   | 'trash'
   | 'plus'
   | 'user'
-  | 'bolt'
+  | 'plane'
+  | 'copy'
+  | 'pin'
+  | 'search'
   | 'spinner'
   | 'chat'
   | 'shield'
   | 'bag'
   | 'whatsapp'
+  | 'refresh'
+  | 'key'
 
 type CheckoutIconProps = {
   name: CheckoutIconName
@@ -49,6 +54,15 @@ const PATHS: Record<CheckoutIconName, ReactNode> = {
     </>
   ),
   check: <path d="M5 12.5l4.5 4.5L19 7.5" />,
+  key: (
+    <>
+      <circle cx="8" cy="15" r="4.5" />
+      <path d="M11.3 11.7 20 3M16.5 6.5l3 3M13.5 9.5l2 2" />
+    </>
+  ),
+  refresh: (
+    <path d="M4 12a8 8 0 0 1 13.7-5.6L20 8.5M20 4v4.5h-4.5M20 12a8 8 0 0 1-13.7 5.6L4 15.5M4 20v-4.5h4.5" />
+  ),
   chat: <path d="M4 12a8 8 0 1 1 3.1 6.3L4 19.5l1.1-3.3A7.9 7.9 0 0 1 4 12Z" />,
   alert: (
     <>
@@ -130,7 +144,27 @@ const PATHS: Record<CheckoutIconName, ReactNode> = {
       <path d="M9 10V7a3 3 0 0 1 6 0v3" />
     </>
   ),
-  bolt: <path d="M13 3.5L5.5 13.5H12l-1 7 7.5-10H12z" />,
+  plane: (
+    <path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z" />
+  ),
+  copy: (
+    <>
+      <rect x="9" y="9" width="11.5" height="11.5" rx="2" />
+      <path d="M5.5 15H5a1.5 1.5 0 0 1-1.5-1.5V5A1.5 1.5 0 0 1 5 3.5h8.5A1.5 1.5 0 0 1 15 5v.5" />
+    </>
+  ),
+  pin: (
+    <>
+      <path d="M12 21s7-6.1 7-11.5a7 7 0 1 0-14 0C5 14.9 12 21 12 21z" />
+      <circle cx="12" cy="9.5" r="2.5" />
+    </>
+  ),
+  search: (
+    <>
+      <circle cx="11" cy="11" r="6.5" />
+      <path d="M16 16l4.5 4.5" />
+    </>
+  ),
   spinner: <path d="M12 3.5a8.5 8.5 0 1 1-8.5 8.5" />,
 }
 

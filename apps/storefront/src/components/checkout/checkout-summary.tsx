@@ -8,7 +8,6 @@ import SummaryItems from '@/components/checkout/summary-items'
 import SummaryLine from '@/components/checkout/summary-line'
 import SummaryRow from '@/components/checkout/summary-row'
 import { type CheckoutCopy, checkoutContent as content } from '@/data/checkout'
-import { CK_HEADING } from '@/lib/checkout-classes'
 import type { ShippingRow } from '@/lib/checkout-preview'
 import type { CartDiscountView } from '@/lib/discount-view'
 import type { AppliedGiftCard } from '@/lib/gift-card-actions'
@@ -103,12 +102,12 @@ export default function CheckoutSummary({
   )
 
   return (
-    <div className="flex flex-col gap-4.5">
+    <div className="flex flex-col gap-4">
       <div className="hidden items-center justify-between gap-4 lg:flex">
-        <h2 className={`${CK_HEADING} text-[1.0625rem]!`}>{words.summary}</h2>
-        <p className="flex h-6 items-center rounded-[0.5rem] bg-ck-summary-line px-2 text-[0.75rem] font-medium text-ck-summary-muted tabular-nums">
-          {content.itemCount(itemCount)}
-        </p>
+        <h2 className={'font-ck! text-[1.125rem]! leading-snug! font-bold! normal-case!'}>
+          {words.summary}
+        </h2>
+        <p className="text-[0.8125rem] text-ck-faint">{content.itemCount(itemCount)}</p>
       </div>
 
       <section aria-label={words.summary} className="flex flex-col gap-4">
@@ -140,7 +139,7 @@ export default function CheckoutSummary({
           </div>
         )}
 
-        <dl className="flex flex-col gap-2 border-t border-ck-summary-line pt-4">
+        <dl className="flex flex-col gap-2.5 border-t border-ck-summary-line pt-4">
           <SummaryRow label={content.subtotal} value={onCart(cart.subtotalPaise)} />
           {discount?.label && discountPaise > 0 ? (
             <SummaryRow tone="saving" label={discount.label} value={`−${money(discountPaise)}`} />
@@ -161,18 +160,25 @@ export default function CheckoutSummary({
               value={`${adjustmentPaise < 0 ? '−' : '+'}${money(Math.abs(adjustmentPaise))}`}
             />
           ) : null}
-          <div className="mt-1! border-t border-ck-summary-line pt-3">
+          <div className="mt-1.5! border-t border-ck-summary-line pt-4">
             <SummaryRow
               tone="total"
               label={
                 <span className="flex flex-col gap-0.5">
-                  {content.total}
+                  <span className="flex items-baseline gap-1.5">
+                    {content.total}
+                    {pricing ? null : (
+                      <span className="text-[0.75rem] font-normal text-ck-faint">
+                        {content.totalCurrency}
+                      </span>
+                    )}
+                  </span>
                   {gstPaise && gstPaise > 0 && !updating ? (
-                    <span className="text-[0.75rem] font-normal text-ck-summary-muted">
+                    <span className="text-[0.8125rem] font-normal text-ck-faint">
                       {content.taxesIncluded(money(gstPaise))}
                     </span>
                   ) : abroad ? null : (
-                    <span className="text-[0.75rem] font-normal text-ck-summary-muted">
+                    <span className="text-[0.8125rem] font-normal text-ck-faint">
                       {words.taxes}
                     </span>
                   )}
@@ -182,7 +188,7 @@ export default function CheckoutSummary({
                 <span
                   key={updating ? 'updating' : totalPaise}
                   aria-live="polite"
-                  className="inline-block text-[1.375rem] font-semibold tracking-[-0.025em] tabular-nums transition-[opacity,translate] duration-200 ease-out starting:translate-y-0.5 starting:opacity-0 motion-reduce:starting:translate-y-0 lg:text-[1.5rem]"
+                  className="inline-block text-[1.75rem] leading-[2.125rem] font-bold tabular-nums transition-[opacity,translate] duration-200 ease-out starting:translate-y-0.5 starting:opacity-0 motion-reduce:starting:translate-y-0 lg:text-[1.5rem]"
                 >
                   {updating ? shimmer : onCart(totalPaise)}
                 </span>
