@@ -73,7 +73,7 @@ export const thankYouContent = {
     heading: 'Confirming your payment…',
     body: 'Please do not close this page or press back. This usually takes less than a minute.',
     reassurance:
-      'If money is taken from your account, we will confirm by SMS and WhatsApp, even if you close this page.',
+      'If money is taken from your account, we will still confirm your order, even if you close this page.',
     amount: 'Amount',
     paidWith: 'Paid with',
     order: 'Order',
