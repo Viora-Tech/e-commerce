@@ -245,12 +245,12 @@ export default function CheckoutForm(props: CheckoutFormProps) {
         className="flex flex-col gap-6"
       >
         <h1 className="sr-only">{content.title}</h1>
-        <div className="flex flex-col gap-1">
+        <div className="flex flex-col gap-3">
           {previous ? (
             <button
               type="button"
               onClick={() => ck.handleStep(previous)}
-              className="flex min-h-11 w-fit cursor-pointer items-center gap-1.5 rounded-ck text-[0.8125rem] font-medium text-ck-muted outline-none transition-colors duration-150 hover:text-ck-ink focus-visible:[box-shadow:0_0_0_3px_var(--ck-ring)] motion-reduce:transition-none"
+              className="-my-1 flex min-h-11 w-fit cursor-pointer items-center gap-1.5 rounded-ck text-[0.8125rem]! font-medium text-ck-muted outline-none transition-colors duration-150 hover:text-ck-ink focus-visible:[box-shadow:0_0_0_3px_var(--ck-ring)] motion-reduce:transition-none"
             >
               <CheckoutIcon name="back" className="size-4" />
               {content.backTo(stepLabel(previous))}

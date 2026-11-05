@@ -34,7 +34,7 @@ export default function CheckoutCard({
         <div className="flex min-w-0 flex-col gap-1">
           <h2
             id={headingId}
-            className="font-ck! text-[1.5rem]! leading-[1.2]! font-bold! tracking-[-0.02em]! normal-case! lg:text-[1.875rem]!"
+            className="font-ck! text-[1.5rem]! leading-[1.2]! font-bold! tracking-normal! normal-case! lg:text-[1.875rem]!"
           >
             {title}
           </h2>

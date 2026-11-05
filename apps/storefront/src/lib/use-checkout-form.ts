@@ -102,8 +102,7 @@ export function useCheckoutForm(input: CheckoutFormInput) {
   /** The step the shopper chose; until then, the first one that still needs something. */
   const [pickedStep, setPickedStep] = useState<CheckoutSection | null>(null)
   /**
-   * Signing in with a code comes first; a guest link leads to the plain contact fields,
-   * and a shopper who already checked out as a guest goes straight to them.
+   * Signing in with a code comes first, every time; a guest link leads to the contact fields.
    */
   const [guest, setGuest] = useState(false)
   /** The saved address being edited in place, or null. */
@@ -123,7 +122,6 @@ export function useCheckoutForm(input: CheckoutFormInput) {
     // Just signed in with nothing typed yet: the account's own address wins over the empty draft.
     const draft =
       stored && customer && addresses.length > 0 && !stored.form.line1.trim() ? null : stored
-    if (stored) setGuest(stored.guest)
     let opened = form
     if (draft) {
       opened = openFromDraft(draft.form, form, {
@@ -141,7 +139,6 @@ export function useCheckoutForm(input: CheckoutFormInput) {
       if (remembered) {
         opened = openFromRemembered(remembered, form, offeredCountry(remembered.countryCode))
         setForm(opened)
-        setGuest(true)
       }
     }
     if (isQuotable(opened.pincode, opened.countryCode)) {

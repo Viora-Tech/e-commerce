@@ -142,7 +142,7 @@
   --ck-muted: #a1a1a1;
   --ck-faint: #737373;
   --ck-line-strong: rgb(255 255 255 / 0.15);
-  --ck-accent-lift: color-mix(in oklab, var(--ck-accent) 58%, white);
+  --ck-accent-lift: color-mix(in oklab, var(--ck-accent) 74%, white);
   --ck-line: rgb(255 255 255 / 0.08);
   --ck-field: #171717;
   --ck-soft: #1b1b1f;
@@ -209,7 +209,7 @@ body:has(.ck) {
     --ck-muted: #a1a1a1;
     --ck-faint: #737373;
     --ck-line-strong: rgb(255 255 255 / 0.15);
-    --ck-accent-lift: color-mix(in oklab, var(--ck-accent) 58%, white);
+    --ck-accent-lift: color-mix(in oklab, var(--ck-accent) 74%, white);
     --ck-line: rgb(255 255 255 / 0.08);
     --ck-field: #171717;
     --ck-soft: #1b1b1f;

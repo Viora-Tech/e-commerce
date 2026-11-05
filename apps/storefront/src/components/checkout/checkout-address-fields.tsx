@@ -125,11 +125,11 @@ export default function CheckoutAddressFields({
             : null
 
   return (
-    <div className="flex flex-col gap-3 sm:gap-3.5">
+    <div className="flex flex-col gap-4">
       {digitalOnly ? (
         <p className="text-[0.8125rem] text-ck-muted">{content.giftCardDelivery}</p>
       ) : null}
-      <div className="grid gap-3 sm:grid-cols-2 sm:items-end">
+      <div className="grid gap-4 sm:grid-cols-2 sm:items-end">
         <CheckoutField
           id={fieldId('pincode')}
           label={f.pincode}
@@ -153,7 +153,7 @@ export default function CheckoutAddressFields({
         />
         <div
           aria-live="polite"
-          className="-mt-1 empty:hidden sm:mt-0 sm:flex sm:h-11 sm:items-center"
+          className="-mt-1 empty:hidden sm:mt-0 sm:flex sm:h-13 sm:items-center"
         >
           {status ? (
             <p
@@ -189,7 +189,7 @@ export default function CheckoutAddressFields({
         error={errors.line1}
       />
       <div
-        className={`grid grid-cols-2 gap-2 sm:gap-3 ${fields.line2 === 'hidden' ? '' : 'sm:grid-cols-3'}`}
+        className={`grid grid-cols-2 gap-3 sm:gap-4 ${fields.line2 === 'hidden' ? '' : 'sm:grid-cols-3'}`}
       >
         {fields.line2 === 'hidden' ? null : (
           <div className="col-span-2 sm:col-span-1">

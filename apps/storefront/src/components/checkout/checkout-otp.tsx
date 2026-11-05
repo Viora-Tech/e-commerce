@@ -1,9 +1,7 @@
 'use client'
 
-import PhoneInput from '@commerce/blocks/phone-input-lazy'
 import type { LoginMethod } from '@commerce/core/customer-accounts'
 import { useEffect, useRef, useState, useTransition } from 'react'
-import CheckoutField from '@/components/checkout/checkout-field'
 import CheckoutIcon from '@/components/checkout/checkout-icon'
 import { accountContent } from '@/data/account'
 import { checkoutContent as content } from '@/data/checkout'
@@ -113,6 +111,8 @@ export default function CheckoutOtp({
     })
   }
 
+  const canBoth = methods.includes('email') && methods.some(isPhoneMethod)
+
   // Event handlers
   const handlePrimary = () => (sentTo ? verify() : send())
   const handleCode = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -126,9 +126,13 @@ export default function CheckoutOtp({
     setCode('')
     setError(null)
   }
-  const handleChannel = () => {
-    setChannel((c) => (c === 'phone' ? 'email' : 'phone'))
-    handleRestart()
+  /** A letter or an @ means an email; digits stay a phone number. */
+  const handleContact = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value
+    const asEmail = canBoth ? /[a-z@]/i.test(value) : channel === 'email'
+    setChannel(asEmail ? 'email' : 'phone')
+    if (asEmail) onEmail(e)
+    else onPhone(value)
   }
 
   // Render logic
@@ -174,29 +178,44 @@ export default function CheckoutOtp({
             />
           </div>
         </div>
-      ) : channel === 'phone' ? (
+      ) : (
         <div className="flex flex-col gap-3">
-          <CheckoutField
-            id={fieldId('phone')}
-            label={content.fields.phone}
-            control={
-              <PhoneInput
-                id={fieldId('phone')}
-                countries={['IN']}
-                required
-                autoComplete="tel-national"
-                placeholder={content.fields.phonePlaceholder}
-                value={phone}
-                onChange={onPhone}
+          <div className="flex flex-col gap-2">
+            <label htmlFor={fieldId(channel)} className={CK_LABEL}>
+              {both
+                ? otp.contactLabel
+                : channel === 'phone'
+                  ? content.fields.phone
+                  : otp.emailLabel}
+            </label>
+            <div className={`${CK_INPUT} ${CK_INPUT_HEIGHT} flex items-center gap-2.5`}>
+              {channel === 'phone' ? (
+                <>
+                  <span className="text-[0.9375rem] font-medium text-ck-muted">
+                    {otp.countryCode}
+                  </span>
+                  <span aria-hidden="true" className="h-5.5 w-px bg-ck-line" />
+                </>
+              ) : null}
+              <input
+                id={fieldId(channel)}
+                className="min-w-0 flex-1 border-0! bg-transparent! p-0! text-[1rem]! text-ck-ink! outline-none placeholder:text-ck-muted/70 lg:text-[0.9375rem]!"
+                type="text"
+                inputMode={both ? 'text' : channel === 'phone' ? 'tel' : 'email'}
+                autoComplete={channel === 'phone' ? 'tel-national' : 'email'}
+                placeholder={
+                  channel === 'phone'
+                    ? content.fields.phonePlaceholder
+                    : content.fields.emailPlaceholder
+                }
+                value={channel === 'phone' ? phone : email}
+                onChange={handleContact}
                 aria-invalid={error ? true : undefined}
                 aria-describedby={error ? 'checkout-otp-error' : undefined}
-                className="rounded-ck"
-                inputClassName={`${CK_INPUT} ${CK_INPUT_HEIGHT} rounded-s-none!`}
-                triggerClassName={`${CK_INPUT} ${CK_INPUT_HEIGHT} flex! w-auto! gap-1.5 rounded-e-none! border-e-0!`}
               />
-            }
-          />
-          {phoneMethods.length > 1 ? (
+            </div>
+          </div>
+          {channel === 'phone' && phoneMethods.length > 1 ? (
             <fieldset className="flex flex-wrap items-center gap-x-5 gap-y-2 border-0! p-0!">
               <legend className={`${CK_LABEL} mb-2!`}>{login.sendBy}</legend>
               {phoneMethods.map((m) => (
@@ -215,17 +234,6 @@ export default function CheckoutOtp({
             </fieldset>
           ) : null}
         </div>
-      ) : (
-        <CheckoutField
-          id={fieldId('email')}
-          label={otp.emailLabel}
-          type="email"
-          inputMode="email"
-          autoComplete="email"
-          placeholder={content.fields.emailPlaceholder}
-          value={email}
-          onChange={onEmail}
-        />
       )}
       <div aria-live="polite" className="empty:hidden">
         {error ? (
@@ -255,11 +263,6 @@ export default function CheckoutOtp({
               {otp.guest}
             </button>
           </>
-        ) : null}
-        {!sentTo && both ? (
-          <button type="button" onClick={handleChannel} className={`${CK_LINK} ms-auto!`}>
-            {channel === 'phone' ? login.useEmail : login.usePhone}
-          </button>
         ) : null}
       </div>
       {note ? <p className="text-[0.8125rem] text-ck-muted">{note}</p> : null}

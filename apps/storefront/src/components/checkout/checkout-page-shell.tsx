@@ -69,7 +69,7 @@ export default function CheckoutPageShell({
   return (
     <CheckoutMoney>
       <div
-        className="ck flex min-h-dvh flex-col bg-ck-canvas font-ck text-[0.9375rem] leading-normal text-ck-ink antialiased [font-feature-settings:'cv11','ss01'] [text-rendering:optimizeLegibility]"
+        className="ck flex min-h-dvh flex-col bg-ck-canvas font-ck text-[0.9375rem] leading-normal text-ck-ink antialiased"
         style={vars}
       >
         <header className="border-b border-ck-line bg-ck-canvas">

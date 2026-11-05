@@ -9,10 +9,10 @@ export default function RadioDot({ checked }: RadioDotProps) {
   return (
     <span
       aria-hidden="true"
-      className={`grid size-4 shrink-0 place-items-center rounded-full border-[1.5px] transition-[background-color,border-color] duration-150 ease-out motion-reduce:transition-none ${checked ? 'border-ck-accent bg-ck-accent' : 'border-ck-muted/45 bg-ck-bg'}`}
+      className={`grid size-5 shrink-0 place-items-center rounded-full border-2 transition-[background-color,border-color] duration-150 ease-out motion-reduce:transition-none ${checked ? 'border-ck-accent-lift bg-transparent' : 'border-ck-muted/45 bg-ck-bg'}`}
     >
       <span
-        className={`size-1.5 rounded-full bg-ck-bg transition-[opacity,scale] duration-150 ease-out motion-reduce:scale-100 ${checked ? 'scale-100 opacity-100' : 'scale-50 opacity-0'}`}
+        className={`size-2.5 rounded-full bg-ck-accent-lift transition-[opacity,scale] duration-150 ease-out motion-reduce:scale-100 ${checked ? 'scale-100 opacity-100' : 'scale-50 opacity-0'}`}
       />
     </span>
   )

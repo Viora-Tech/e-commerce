@@ -19,15 +19,15 @@ export default function CheckoutReview({ rows, onChange }: CheckoutReviewProps) 
       {rows.map((row) => (
         <div
           key={row.section}
-          className="grid grid-cols-[4.5rem_minmax(0,1fr)_auto] items-center gap-3 px-4 py-3 text-[0.875rem] sm:grid-cols-[6rem_minmax(0,1fr)_auto]"
+          className="grid grid-cols-[4.5rem_minmax(0,1fr)_auto] items-center gap-3 px-4 py-3.5 text-[0.875rem] sm:grid-cols-[6rem_minmax(0,1fr)_auto]"
         >
           <dt className="text-ck-muted">{row.label}</dt>
-          <dd className="m-0! font-medium break-words text-ck-ink">{row.value}</dd>
+          <dd className="m-0! break-words text-ck-ink">{row.value}</dd>
           <button
             type="button"
             onClick={() => onChange(row.section)}
             aria-label={content.review.changeLabel(row.label)}
-            className="min-h-11 cursor-pointer rounded-sm text-[0.8125rem] text-ck-muted underline underline-offset-2 outline-none transition-colors duration-150 hover:text-ck-ink focus-visible:[box-shadow:0_0_0_3px_var(--ck-ring)] motion-reduce:transition-none"
+            className="-my-3 min-h-11 cursor-pointer rounded-sm text-[0.8125rem]! font-semibold text-ck-muted underline underline-offset-2 outline-none transition-colors duration-150 hover:text-ck-ink focus-visible:[box-shadow:0_0_0_3px_var(--ck-ring)] motion-reduce:transition-none"
           >
             {content.review.change}
           </button>

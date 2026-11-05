@@ -7,7 +7,12 @@ import CheckoutIcon from '@/components/checkout/checkout-icon'
 import CheckoutSelect from '@/components/checkout/checkout-select'
 import SavedAddressCard from '@/components/checkout/saved-address-card'
 import { checkoutContent as content } from '@/data/checkout'
-import { CK_BUTTON_PRIMARY, CK_BUTTON_SECONDARY, CK_HEADING } from '@/lib/checkout-classes'
+import {
+  CK_BUTTON_PRIMARY,
+  CK_BUTTON_SECONDARY,
+  CK_HEADING,
+  CK_PANEL,
+} from '@/lib/checkout-classes'
 import { countryOptions } from '@/lib/checkout-countries'
 import { SAVE_ADDRESS_ID } from '@/lib/checkout-form-input'
 import { NEW_ADDRESS } from '@/lib/checkout-form-state'
@@ -88,7 +93,7 @@ export default function CheckoutAddressBook({ ck }: CheckoutAddressBookProps) {
     />
   )
   const form = picker ? (
-    <div className="flex flex-col gap-3 sm:gap-3.5">
+    <div className={`${CK_PANEL} flex flex-col gap-4 p-5`}>
       {picker}
       {fields}
     </div>
@@ -142,7 +147,7 @@ export default function CheckoutAddressBook({ ck }: CheckoutAddressBookProps) {
 /** The PIN-first form in a panel: a new address (Cancel), or a saved one being edited (Save). */
 function AddressPanel({ ck, heading, editing, children }: AddressPanelProps) {
   return (
-    <div className="flex flex-col gap-5 rounded-ck border border-ck-line bg-ck-bg p-4 sm:p-5">
+    <div className="flex flex-col gap-5 rounded-[calc(var(--ck-radius)*1.2)] bg-ck-bg p-5 [--ck-field:var(--ck-canvas)] [box-shadow:var(--ck-section-shadow)]">
       <h4 className={`${CK_HEADING} text-[0.9375rem]!`}>{heading}</h4>
       {children}
       {ck.addressError ? (

@@ -188,7 +188,7 @@ export default function CheckoutSummary({
                 <span
                   key={updating ? 'updating' : totalPaise}
                   aria-live="polite"
-                  className="inline-block text-[1.75rem] leading-[2.125rem] font-bold tracking-[-0.025em] tabular-nums transition-[opacity,translate] duration-200 ease-out starting:translate-y-0.5 starting:opacity-0 motion-reduce:starting:translate-y-0 lg:text-[1.5rem]"
+                  className="inline-block text-[1.75rem] leading-[2.125rem] font-bold tabular-nums transition-[opacity,translate] duration-200 ease-out starting:translate-y-0.5 starting:opacity-0 motion-reduce:starting:translate-y-0 lg:text-[1.5rem]"
                 >
                   {updating ? shimmer : onCart(totalPaise)}
                 </span>

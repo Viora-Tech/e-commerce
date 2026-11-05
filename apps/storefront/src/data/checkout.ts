@@ -246,6 +246,8 @@ export const checkoutContent = {
     resend: 'Send a new code',
     change: 'Change',
     emailLabel: 'Email',
+    contactLabel: 'Phone number or email',
+    countryCode: '+91',
     guestLead: 'Just buying once?',
     guest: 'Check out as guest',
     signInInstead: 'Sign in with a code instead',
