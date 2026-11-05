@@ -11,7 +11,8 @@ import CheckoutPayButton from '@/components/checkout/checkout-pay-button'
 import CheckoutPaymentStep from '@/components/checkout/checkout-payment-step'
 import CheckoutSummary from '@/components/checkout/checkout-summary'
 import DeliveryMethod from '@/components/checkout/delivery-method'
-import ExpressPay from '@/components/checkout/express-pay'
+// Express checkout is off for now: see the comment above the Contact card.
+// import ExpressPay from '@/components/checkout/express-pay'
 import SummaryDisclosure from '@/components/checkout/summary-disclosure'
 import { checkoutContent as content } from '@/data/checkout'
 import { CK_LINK } from '@/lib/checkout-classes'
@@ -53,7 +54,7 @@ export default function CheckoutForm(props: CheckoutFormProps) {
   // Render logic
   // The store's own wording over ours (#158).
   const copy = ck.copy.sections
-  const express = ck.copy.express
+  // const express = ck.copy.express
   const { totals, deposit, look, shipping, rate, done, sections } = ck
   const { digitalOnly } = totals
   const pincode = cleanPincode(ck.form.pincode)
@@ -77,6 +78,7 @@ export default function CheckoutForm(props: CheckoutFormProps) {
       : ck.toFix > 0
         ? content.validation.fixFields(ck.toFix)
         : null)
+  /* Express checkout is off for now.
   // Express pays with the option picked in Shipping, so its line names that option and price.
   const expressLine = digitalOnly
     ? express.totalOnly(ck.payNow)
@@ -92,6 +94,7 @@ export default function CheckoutForm(props: CheckoutFormProps) {
           )
         : express.noShippingYet
   const showExpress = ck.upi !== null && !totals.coveredByCards
+  */
   // No way to pay left (a payment rule hid the only one): nothing for Place order to do.
   const noWayToPay = !totals.coveredByCards && totals.offered.length === 0
   const payDisabled = ck.unserviceable || ck.shortfall > 0 || noWayToPay
@@ -203,6 +206,8 @@ export default function CheckoutForm(props: CheckoutFormProps) {
         className="flex flex-col gap-3 sm:gap-4"
       >
         <h1 className="sr-only">{content.title}</h1>
+        {/* Express checkout is off for now. To bring it back, restore this block and the
+            import, `express`, `expressLine` and `showExpress` above.
         {showExpress ? (
           <ExpressPay
             heading={express.heading}
@@ -213,6 +218,7 @@ export default function CheckoutForm(props: CheckoutFormProps) {
             onPay={ck.handleExpress}
           />
         ) : null}
+        */}
         <CheckoutCard
           id={sectionDomId('contact')}
           headingId={sectionHeadingId('contact')}

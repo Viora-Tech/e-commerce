@@ -121,8 +121,8 @@ describe('CheckoutForm', () => {
     for (const id of ['contact', 'address', 'shipping', 'payment']) {
       expect(html).toContain(`id="checkout-section-${id}"`)
     }
-    expect(at('Express checkout')).toBeGreaterThan(-1)
-    expect(at('Express checkout')).toBeLessThan(at('id="checkout-section-contact"'))
+    // Express checkout is off for now (checkout-form.tsx).
+    expect(at('Express checkout')).toBe(-1)
     expect(at('id="checkout-section-contact"')).toBeLessThan(at('id="checkout-section-address"'))
     expect(at('id="checkout-section-address"')).toBeLessThan(at('id="checkout-section-shipping"'))
     expect(at('id="checkout-section-shipping"')).toBeLessThan(at('id="checkout-section-payment"'))
@@ -173,7 +173,8 @@ describe('CheckoutForm', () => {
     expect(page).toContain('Save this address as')
   })
 
-  it('puts express UPI in its own card, waiting for the shipping option it will charge', () => {
+  // Express checkout is off for now: bring this back with it (checkout-form.tsx).
+  it.skip('puts express UPI in its own card, waiting for the shipping option it will charge', () => {
     expect(html).toContain('aria-label="Pay with Google Pay"')
     expect(html).toContain('aria-label="Pay with PhonePe"')
     expect(html).toContain('aria-label="Pay with Paytm"')
