@@ -4,6 +4,7 @@ import { formatPaise, useFormatCart, useFormatPaise, useMarketPricing } from '@c
 import type { CartView } from '@commerce/core'
 import CheckoutDiscount from '@/components/checkout/checkout-discount'
 import GiftCardField from '@/components/checkout/gift-card-field'
+import SummaryItems from '@/components/checkout/summary-items'
 import SummaryLine from '@/components/checkout/summary-line'
 import SummaryRow from '@/components/checkout/summary-row'
 import { type CheckoutCopy, checkoutContent as content } from '@/data/checkout'
@@ -111,9 +112,7 @@ export default function CheckoutSummary({
       </div>
 
       <section aria-label={words.summary} className="flex flex-col gap-4">
-        {/* A long order scrolls here, so the code fields, totals and Pay stay on screen. The
-            padding keeps each thumbnail's quantity badge from being clipped. */}
-        <ul className="flex flex-col gap-4 lg:-mr-2 lg:max-h-[min(17rem,34dvh)] lg:overflow-y-auto lg:overscroll-contain lg:pt-2 lg:pr-3 lg:[scrollbar-width:thin]">
+        <SummaryItems>
           {cart.lines.map((l) => (
             <SummaryLine
               key={l.id}
@@ -128,7 +127,7 @@ export default function CheckoutSummary({
               price={cartMoney.line(l)}
             />
           ))}
-        </ul>
+        </SummaryItems>
 
         {digitalOnly ? null : (
           <div className="flex flex-col gap-2 border-t border-ck-summary-line pt-4">
