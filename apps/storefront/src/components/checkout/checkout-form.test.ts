@@ -219,7 +219,7 @@ describe('CheckoutForm', () => {
   it('names the gateways that process the payment under Pay', () => {
     const methods = [...props.methods, { id: 'razorpay', label: 'Razorpay', methods: ['upi'] }]
     const pay = render('', { customer, addresses: [address], methods })
-    expect(pay).toContain('Payments by Razorpay')
+    expect(pay).toMatch(/Secured by.*Razorpay/)
     expect(pay.indexOf('value="decentro"')).toBeLessThan(pay.indexOf('value="razorpay"'))
     expect(pay.indexOf('value="razorpay"')).toBeLessThan(pay.indexOf('value="cod"'))
   })

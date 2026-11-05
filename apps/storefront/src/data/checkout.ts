@@ -351,12 +351,9 @@ export const checkoutContent = {
   pay: (amount: string) => `Pay ${amount}`,
   placeOrderAmount: (amount: string) => `Place order · ${amount}`,
   processing: 'Processing…',
-  help: { label: 'Need help? WhatsApp us', short: 'Help' },
-  /** Under the Pay button. */
-  payFootnote: (names: string[]) =>
-    names.length > 0
-      ? `Payments by ${names.join(' · ')} · We never see your card or UPI PIN`
-      : 'Payments by the store’s gateway · We never see your card or UPI PIN',
+  help: { label: 'Need help?', short: 'Help', aria: 'Need help? WhatsApp us' },
+  /** Under the Pay button: "Secured by Razorpay", or the plain line when no gateway is named. */
+  payNote: { by: 'Secured by', plain: 'Secure checkout' },
   /** The summary's delivery box: "Delivers to 122001 by Thu, 29 Oct". */
   deliversTo: { to: 'Delivers to', by: 'by' },
   assurance: {

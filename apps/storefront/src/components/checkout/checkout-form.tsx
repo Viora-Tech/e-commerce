@@ -8,6 +8,7 @@ import CheckoutContact from '@/components/checkout/checkout-contact'
 import CheckoutIcon from '@/components/checkout/checkout-icon'
 import CheckoutPageShell from '@/components/checkout/checkout-page-shell'
 import CheckoutPayButton from '@/components/checkout/checkout-pay-button'
+import CheckoutPayNote from '@/components/checkout/checkout-pay-note'
 import CheckoutPaymentStep from '@/components/checkout/checkout-payment-step'
 import CheckoutSummary from '@/components/checkout/checkout-summary'
 import DeliveryMethod from '@/components/checkout/delivery-method'
@@ -100,10 +101,8 @@ export default function CheckoutForm(props: CheckoutFormProps) {
   const payDisabled = ck.unserviceable || ck.shortfall > 0 || noWayToPay
   // Cash on delivery or a transfer to the shop: no gateway takes a card or UPI PIN, so no note.
   const offline = totals.offered.every((m) => m.id === 'cod' || m.id === 'manual')
-  const footnote =
-    look.branding.trustBadges && !(offline && !totals.coveredByCards)
-      ? content.payFootnote(totals.coveredByCards ? [] : processorNames(totals.offered))
-      : null
+  const showPayNote = look.branding.trustBadges && !(offline && !totals.coveredByCards)
+  const payNoteNames = totals.coveredByCards ? [] : processorNames(totals.offered)
   // The minimum-order line sits right above the Place order button it keeps off (#96).
   const shortfallNote = shortfall ? (
     <p
@@ -184,18 +183,14 @@ export default function CheckoutForm(props: CheckoutFormProps) {
           ) : null}
           {shortfallNote}
           {pay}
-          {footnote ? (
-            <p className="text-center text-[0.75rem] text-ck-summary-muted">{footnote}</p>
-          ) : null}
+          {showPayNote ? <CheckoutPayNote names={payNoteNames} inSummary /> : null}
         </>
       }
       bottomBar={
         <>
           {shortfallNote}
           {pay}
-          {footnote ? (
-            <p className="text-center text-[0.6875rem] text-ck-muted">{footnote}</p>
-          ) : null}
+          {showPayNote ? <CheckoutPayNote names={payNoteNames} /> : null}
         </>
       }
     >
