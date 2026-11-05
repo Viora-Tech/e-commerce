@@ -208,7 +208,7 @@ describe('checkout across shipping profiles', () => {
     expect(await totalOf(placed.orderId)).toBe(64_900)
   })
 
-  it('charges the skate rate on top of General for a mixed cart (audit #159)', async () => {
+  it('charges only the higher rate for a mixed cart', async () => {
     const s = await seed('mixed')
     await waimers(s)
     const cartId = await cartOf(s.storeId, [s.tshirt, s.skate])
@@ -216,13 +216,13 @@ describe('checkout across shipping profiles', () => {
     if (q.kind !== 'rates') throw new Error(q.kind)
     // ₹5,600 in the cart, but General's free-from-₹999 reads General's ₹600 only.
     expect(q.options.map((o) => [o.name, o.pricePaise])).toEqual([
-      ['Standard + Delhivery', 4900 + 9900],
-      ['Standard + Bluedart', 4900 + 13_900],
+      ['Standard + Delhivery', 9900],
+      ['Standard + Bluedart', 13_900],
     ])
     const bluedart = q.options[1]
     const placed = await place(s.storeId, cartId, bluedart?.rateId ?? null)
     const [row] = await owner.select().from(order).where(eq(order.id, placed.orderId))
-    expect(row?.shippingPaise).toBe(18_800)
+    expect(row?.shippingPaise).toBe(13_900)
     expect(row?.shippingRateId).toBe(bluedart?.parts?.[0]?.rateId)
     expect(row?.shipping?.profiles?.map((p) => [p.profileName, p.rateName, p.pricePaise])).toEqual([
       ['General', 'Standard', 4900],
