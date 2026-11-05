@@ -357,7 +357,7 @@ export async function quoteCartShipping(
     options: quote.options.map((o) => ({
       ...o,
       pricePaise: applyDiscount(0, o.pricePaise, outcome).shippingPaise,
-      // The parts follow the free shipping too, so they still add up to the option.
+      // The parts follow the free shipping too, so the highest part is still the option's price.
       ...(o.parts
         ? {
             parts: o.parts.map((p) => ({
