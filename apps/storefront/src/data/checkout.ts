@@ -73,7 +73,7 @@ export const thankYouContent = {
     heading: 'Confirming your payment…',
     body: 'Please do not close this page or press back. This usually takes less than a minute.',
     reassurance:
-      'If money is taken from your account, we will confirm by SMS and WhatsApp, even if you close this page.',
+      'If money is taken from your account, we will still confirm your order, even if you close this page.',
     amount: 'Amount',
     paidWith: 'Paid with',
     order: 'Order',
@@ -136,6 +136,9 @@ export const thankYouContent = {
   payOnline: {
     heading: 'Or pay online',
     body: 'Pay now with UPI, card or netbanking and your order is confirmed straight away.',
+    /** Paying online gives up the transfer's discount: it exists because a transfer has no fee. */
+    noDiscount: (label: string, saved: string, total: string) =>
+      `The ${label} of ${saved} is only for this direct payment. Paying online costs ${total}.`,
     action: 'Pay online now',
     alreadySent: 'Already sent the transfer? You do not need to pay again; we will confirm it.',
   },
@@ -403,7 +406,7 @@ export const checkoutContent = {
     found: (city: string, state: string) => `${city}, ${state}`,
     foundBy: (city: string, state: string, by: string) => `${city}, ${state} · by ${by}`,
   },
-  business: 'Get a GST invoice for my business',
+  business: 'This is a business address (add GST)',
   minimumOrder: (min: string, missing: string) =>
     `The minimum order is ${min}. Add ${missing} more to check out.`,
   codRules: {

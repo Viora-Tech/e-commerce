@@ -133,16 +133,24 @@ export default async function ProductPage({ params, searchParams }: Params) {
   const found = await loadProduct(storeId, handle)
   if (!found) notFound()
   const { product } = found
-  // Reviews app: the widget's data, and the real rating for the stars under the title.
-  const reviews = await productReviews(storeId, product, {
-    requestToken: typeof review === 'string' ? review : null,
-    // A review QR card's link (`?write=1`) opens the form straight away.
-    openForm: write === '1',
-    storeName: found.storeName,
-  })
-  const extras = await storeRead(storeId, `product-extras|${product.id}`, (tx) =>
-    loadProductPageExtras(tx, product.id),
-  )
+  // None of these reads needs another's result and each opens its own short transaction (only on
+  // a cache miss), so they run together.
+  const [reviews, extras, upiDiscount, emiApp, bis, policies] = await Promise.all([
+    // Reviews app: the widget's data, and the real rating for the stars under the title.
+    productReviews(storeId, product, {
+      requestToken: typeof review === 'string' ? review : null,
+      // A review QR card's link (`?write=1`) opens the form straight away.
+      openForm: write === '1',
+      storeName: found.storeName,
+    }),
+    storeRead(storeId, `product-extras|${product.id}`, (tx) =>
+      loadProductPageExtras(tx, product.id),
+    ),
+    storeRead(storeId, 'upi-discount', (tx) => storeUpiDiscount(tx, storeId)),
+    storeRead(storeId, 'emi-offers', (tx) => storeEmiOffers(tx, storeId)),
+    storeRead(storeId, 'back-in-stock', (tx) => backInStockContext(tx, storeId)),
+    storeRead(storeId, 'policy-panels', (tx) => policyPanels(tx)),
+  ])
   // The stars are the product's real figure: the Reviews app's, else the rating imported
   // from Shopify's review app; never a typed one.
   const rated =
@@ -151,11 +159,7 @@ export default async function ProductPage({ params, searchParams }: Params) {
       : extras.rating
         ? { rating: extras.rating.value, count: extras.rating.count }
         : null
-  const upiDiscount = await storeRead(storeId, 'upi-discount', (tx) =>
-    storeUpiDiscount(tx, storeId),
-  )
   const shown = { ...product, fields: extras.fields, collection: extras.collection }
-  const emiApp = await storeRead(storeId, 'emi-offers', (tx) => storeEmiOffers(tx, storeId))
   // Before the EMI & pay later app is installed, the older built-in hint still shows.
   const legacyEmi = emiApp.installed
     ? false
@@ -170,8 +174,6 @@ export default async function ProductPage({ params, searchParams }: Params) {
       : legacyEmi
         ? EmiHint
         : undefined
-  const bis = await storeRead(storeId, 'back-in-stock', (tx) => backInStockContext(tx, storeId))
-  const policies = await storeRead(storeId, 'policy-panels', (tx) => policyPanels(tx))
   const variant = defaultVariant(product)
   const isPreorder = variantOnPreorder(product, variant)
   const schema = productGraph(

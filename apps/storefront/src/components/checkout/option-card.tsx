@@ -39,7 +39,7 @@ export default function OptionCard({
 }: OptionCardProps) {
   return (
     <label
-      className={`relative flex items-start gap-3.5 rounded-ck border p-[1.125rem] transition-[border-color,background-color,box-shadow] duration-150 ease-out motion-reduce:transition-none has-[:focus-visible]:[box-shadow:0_0_0_3px_var(--ck-ring),0_0_0_1px_var(--ck-accent)] sm:gap-3 sm:px-4 sm:py-3.5 ${checked ? CK_PICKED : CK_UNPICKED} ${disabled ? 'cursor-not-allowed opacity-55' : 'cursor-pointer'}`}
+      className={`relative flex items-start gap-3.5 rounded-ck border p-[1.125rem] transition-[border-color,background-color,box-shadow,scale] active:scale-[0.995] motion-reduce:active:scale-100 duration-150 ease-out motion-reduce:transition-none has-[:focus-visible]:[box-shadow:0_0_0_3px_var(--ck-ring),0_0_0_1px_var(--ck-accent)] sm:gap-3 sm:px-4 sm:py-3.5 ${checked ? CK_PICKED : CK_UNPICKED} ${disabled ? 'cursor-not-allowed opacity-55' : 'cursor-pointer'}`}
     >
       <input
         type="radio"

@@ -51,8 +51,8 @@ export default function ReviewForm({ context, onClose }: ReviewFormProps) {
     try {
       const res = await fetch('/reviews/submit', { method: 'POST', body })
       const data = (await res.json().catch(() => null)) as Result | null
-      if (data?.ok) setDone(data.status)
-      else setError(errorText(data?.error))
+      if (res.ok && data?.ok) setDone(data.status)
+      else setError(errorText(data?.ok === false ? data.error : undefined))
     } catch {
       setError(copy.form.errors.generic)
     } finally {

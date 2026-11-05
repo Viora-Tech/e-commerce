@@ -4,7 +4,6 @@ import { trackCommerce, useFormatPaise, useMarketPricing } from '@commerce/block
 import type { CartView } from '@commerce/core'
 import { CHECKOUT_LIMITS } from '@commerce/core/checkout-settings'
 import { addPaymentInfoEventId } from '@commerce/core/pixels'
-import CheckoutGstFields from '@/components/checkout/checkout-gst-fields'
 import PaymentMethods from '@/components/checkout/payment-methods'
 import { checkoutContent as content } from '@/data/checkout'
 import { CK_INPUT, CK_LABEL } from '@/lib/checkout-classes'
@@ -35,8 +34,8 @@ function trackPaymentInfo(cart: CartView, methodId: string): void {
 
 /**
  * The Payment card's body (design): the ways to pay as radio cards (UPI first, cash on
- * delivery last), the picked one opening onto what happens next, the order note when the
- * store takes one, and "Get a GST invoice" when Settings → Checkout allows a GSTIN. Paying
+ * delivery last), the picked one opening onto what happens next, and the order note when the
+ * store takes one. Paying
  * opens the provider's own window or the UPI QR, as before.
  */
 export default function CheckoutPaymentStep({ ck }: CheckoutPaymentStepProps) {
@@ -99,18 +98,6 @@ export default function CheckoutPaymentStep({ ck }: CheckoutPaymentStepProps) {
             onChange={ck.set('note')}
           />
         </div>
-      ) : null}
-      {ck.settings.gstin ? (
-        <CheckoutGstFields
-          values={ck.form}
-          errors={ck.shownErrors}
-          business={ck.business}
-          companyShown={ck.settings.fields.company !== 'hidden'}
-          copy={ck.copy}
-          onBusiness={ck.handleBusiness}
-          onField={ck.set}
-          onLeave={ck.handleLeave}
-        />
       ) : null}
     </div>
   )

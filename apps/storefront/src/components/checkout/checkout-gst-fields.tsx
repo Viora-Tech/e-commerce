@@ -21,7 +21,7 @@ type CheckoutGstFieldsProps = {
 }
 
 /**
- * "Get a GST invoice for my business" at the foot of the Payment card (design), opening onto
+ * "This is a business address" under the address, opening onto
  * GSTIN and business name. The fields slide in from just above (200ms ease-out, opacity and
  * a 4px rise; a fade only with reduced motion).
  */

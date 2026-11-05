@@ -269,7 +269,7 @@ export default function ChatWidget({
       form.set('photo', file)
       const res = await fetch('/inbox/photo', { method: 'POST', body: form })
       const body = (await res.json()) as { ok: boolean; token?: string }
-      if (body.ok && body.token) await send({ photoToken: body.token })
+      if (res.ok && body.ok && body.token) await send({ photoToken: body.token })
       else setNotice(copy.failed)
     } catch {
       setNotice(copy.failed)

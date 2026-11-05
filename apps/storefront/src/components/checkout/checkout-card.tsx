@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { CK_LIFT } from '@/lib/checkout-classes'
 
 type CheckoutCardProps = {
   /** The DOM id Pay scrolls to (`sectionDomId`). */
@@ -28,7 +29,7 @@ export default function CheckoutCard({
       id={id}
       aria-labelledby={headingId}
       tabIndex={-1}
-      className={`${active ? 'flex' : 'hidden'} scroll-mt-4 flex-col gap-6 outline-none`}
+      className={`${active ? `flex ${CK_LIFT}` : 'hidden'} scroll-mt-4 flex-col gap-6 outline-none`}
     >
       <div className="flex items-start justify-between gap-4">
         <div className="flex min-w-0 flex-col gap-1">
