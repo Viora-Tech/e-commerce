@@ -1,5 +1,14 @@
 import { createHmac } from 'node:crypto'
-import { cart, createDb, inventoryLevel, product, store, variant, withStore } from '@commerce/db'
+import {
+  cart,
+  createDb,
+  inventoryLevel,
+  order,
+  product,
+  store,
+  variant,
+  withStore,
+} from '@commerce/db'
 import { resetDb } from '@commerce/db/test'
 import { eq } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
@@ -172,6 +181,46 @@ describe('abandoned carts', () => {
     /* Only the basket still lost counts as money left behind. */
     expect(stats.valuePaise).toBe(100000)
     expect(lost).toBeTruthy()
+  })
+
+  it('lists a checkout whose gateway payment never finished, and drops it once paid', async () => {
+    const { storeId, variantId } = await seed()
+    const cartId = await quietCart(storeId, variantId, 180)
+    const orderFor = { storeId, cartId, number: 1, subtotalPaise: 100000, totalPaise: 100000 }
+    await owner.update(cart).set({ status: 'converted' }).where(eq(cart.id, cartId))
+    const [placed] = await owner
+      .insert(order)
+      .values({ ...orderFor, status: 'open', paymentMethod: 'razorpay' })
+      .returning()
+    const list = () =>
+      withStore(app, storeId, (tx) => listAbandoned({ storeId, tx }, { page: 1, perPage: 10 }))
+
+    expect((await list()).items).toMatchObject([{ id: cartId, recovered: false }])
+
+    await owner
+      .update(order)
+      .set({ checkoutPaidAt: new Date(), paymentStatus: 'paid' })
+      .where(eq(order.id, placed?.id as string))
+    expect((await list()).items).toEqual([])
+  })
+
+  it('leaves out a manual UPI or bank order: it is a real order from the moment of Pay', async () => {
+    const { storeId, variantId } = await seed()
+    const cartId = await quietCart(storeId, variantId, 180)
+    await owner.update(cart).set({ status: 'converted' }).where(eq(cart.id, cartId))
+    await owner.insert(order).values({
+      storeId,
+      cartId,
+      number: 1,
+      subtotalPaise: 100000,
+      totalPaise: 100000,
+      status: 'open',
+      paymentMethod: 'manual',
+    })
+    const { items } = await withStore(app, storeId, (tx) =>
+      listAbandoned({ storeId, tx }, { page: 1, perPage: 10 }),
+    )
+    expect(items).toEqual([])
   })
 
   it('offers a cart for the automatic nudge once, then never again', async () => {

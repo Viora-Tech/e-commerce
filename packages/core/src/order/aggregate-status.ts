@@ -147,6 +147,20 @@ export function checkoutDuePaise(o: CheckoutDueInput): number {
   return o.totalPaise - deferred
 }
 
+/**
+ * A storefront checkout paid through a gateway. The order exists before the gateway opens, so
+ * until the money arrives nothing is sold: `order.placed` waits for it (recompute.ts). Cash on
+ * delivery and manual UPI or bank orders are real orders from the start.
+ */
+export function paysOnlineAtCheckout(o: {
+  cartId: string | null
+  importedFrom: string | null
+  paymentMethod: string | null
+}): boolean {
+  const method = o.paymentMethod ?? 'manual'
+  return o.cartId !== null && o.importedFrom === null && method !== 'cod' && method !== 'manual'
+}
+
 /** True once the money due at checkout is in: the moment an order counts as "paid" for `order.paid`. */
 export function isCheckoutSettled(o: CheckoutDueInput, payments: readonly PaymentFacts[]): boolean {
   const captured = capturedPaise(payments)
