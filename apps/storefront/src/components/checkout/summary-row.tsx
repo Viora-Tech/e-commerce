@@ -10,7 +10,7 @@ type SummaryRowProps = {
 const TONES: Record<NonNullable<SummaryRowProps['tone']>, string> = {
   default: 'text-[0.875rem]',
   saving: 'text-[0.875rem]',
-  total: 'text-[1rem] font-semibold',
+  total: 'text-[0.9375rem] font-semibold',
   muted: 'text-[0.8125rem] text-ck-summary-muted',
 }
 

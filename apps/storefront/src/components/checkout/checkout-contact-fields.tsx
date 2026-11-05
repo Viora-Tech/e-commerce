@@ -63,6 +63,7 @@ export default function CheckoutContactFields({
       <CheckoutField
         id={fieldId('phone')}
         label={abroad ? content.abroad.phone : f.phone}
+        required
         error={errors.phone}
         hint={abroad ? content.abroad.phoneHint : f.phoneHint}
         control={

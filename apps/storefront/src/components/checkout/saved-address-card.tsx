@@ -23,7 +23,7 @@ type SavedAddressCardProps = {
 
 const book = content.addressBook
 const ICON_BUTTON =
-  'flex size-9 cursor-pointer items-center justify-center rounded-ck bg-transparent! p-0! text-ck-muted outline-none transition-colors duration-150 hover:bg-ck-soft! hover:text-ck-ink focus-visible:[box-shadow:0_0_0_3px_var(--ck-ring)] disabled:cursor-not-allowed disabled:opacity-50 motion-reduce:transition-none'
+  'flex size-10 cursor-pointer items-center justify-center rounded-ck bg-transparent! p-0! text-ck-muted outline-none transition-colors duration-150 hover:bg-ck-soft! hover:text-ck-ink focus-visible:[box-shadow:0_0_0_3px_var(--ck-ring)] disabled:cursor-not-allowed disabled:opacity-50 motion-reduce:transition-none'
 
 const stateName = (code: string): string => INDIAN_STATES.find(([c]) => c === code)?.[1] ?? code
 
@@ -67,7 +67,7 @@ export default function SavedAddressCard({
     <div
       className={`relative rounded-ck border transition-[border-color,background-color,box-shadow] duration-150 ease-out has-[:focus-visible]:[box-shadow:0_0_0_3px_var(--ck-ring)] motion-reduce:transition-none ${checked ? CK_PICKED : CK_UNPICKED}`}
     >
-      <label className="flex cursor-pointer items-start gap-3 py-3.5 ps-4 pe-24">
+      <label className="flex cursor-pointer items-start gap-3.5 p-[1.125rem] pe-26">
         <input
           type="radio"
           name="saved-address"
@@ -81,19 +81,19 @@ export default function SavedAddressCard({
         </span>
         <span className="flex min-w-0 flex-1 flex-col gap-1">
           <span className="flex flex-wrap items-center gap-2">
-            <span className="text-[0.875rem] leading-snug font-semibold text-ck-ink">
+            <span className="text-[0.9375rem] leading-[1.375rem] font-semibold text-ck-ink">
               {address.name}
             </span>
             {tag ? (
-              <span className="rounded-full bg-ck-ink px-2 text-[0.75rem] leading-5 font-medium text-ck-bg">
+              <span className="flex h-6 items-center rounded-[0.375rem] bg-ck-accent-lift px-2 text-[0.75rem] font-semibold text-ck-accent-ink uppercase">
                 {tag}
               </span>
             ) : null}
           </span>
-          <span className="text-[0.8125rem] leading-snug text-ck-muted [overflow-wrap:anywhere]">
+          <span className="text-[0.875rem] leading-5 text-ck-muted [overflow-wrap:anywhere]">
             {oneLine(address)}
           </span>
-          <span className="text-[0.8125rem] text-ck-muted tabular-nums">
+          <span className="text-[0.8125rem] text-ck-faint tabular-nums">
             {displayPhone(`+91${address.phone}`)}
           </span>
           {checked && status ? (
@@ -124,7 +124,7 @@ export default function SavedAddressCard({
           </button>
         </div>
       ) : null}
-      <div className="absolute top-3 right-3 flex items-center gap-1">
+      <div className="absolute top-3.5 right-3.5 flex items-center">
         <button
           type="button"
           onClick={onEdit}
@@ -133,7 +133,7 @@ export default function SavedAddressCard({
           title={book.edit(address.name)}
           className={ICON_BUTTON}
         >
-          <CheckoutIcon name="edit" className="size-4" />
+          <CheckoutIcon name="edit" className="size-[1.125rem]" />
         </button>
         <button
           type="button"
@@ -143,7 +143,7 @@ export default function SavedAddressCard({
           title={book.remove(address.name)}
           className={ICON_BUTTON}
         >
-          <CheckoutIcon name="trash" className="size-4" />
+          <CheckoutIcon name="trash" className="size-[1.125rem]" />
         </button>
       </div>
     </div>

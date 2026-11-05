@@ -10,6 +10,7 @@ type CheckoutSelectProps = {
   onBlur?: () => void
   error?: string | null | undefined
   autoComplete?: string
+  required?: boolean
   /** Filled in by the checkout (State from the PIN code): soft grey with a brief highlight. */
   filled?: boolean
 }
@@ -24,12 +25,18 @@ export default function CheckoutSelect({
   onBlur,
   error,
   autoComplete,
+  required,
   filled = false,
 }: CheckoutSelectProps) {
   return (
-    <div className="flex min-w-0 flex-col gap-1.5">
+    <div className="flex min-w-0 flex-col gap-2">
       <label htmlFor={id} className={CK_LABEL}>
         {label}
+        {required ? (
+          <span aria-hidden="true" className="ms-0.5 text-ck-danger">
+            *
+          </span>
+        ) : null}
       </label>
       <div className="relative">
         <select

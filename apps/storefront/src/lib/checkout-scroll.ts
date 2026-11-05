@@ -38,3 +38,10 @@ export function followLegacyStep(sections: readonly CheckoutSection[]): void {
     document.getElementById(sectionDomId(section))?.scrollIntoView({ block: 'start' })
   }
 }
+
+/** Press the code button: on a phone the bottom bar stands in for it. False when it is not there. */
+export function pressSendCode(id: string): boolean {
+  const button = document.getElementById(id)
+  button?.click()
+  return button !== null
+}

@@ -10,25 +10,29 @@
  */
 
 /** Headings inside the checkout: one typeface, sentence case, never the theme's scale. */
-export const CK_HEADING = 'font-ck! normal-case! tracking-[-0.011em]! font-semibold! leading-snug!'
+export const CK_HEADING = 'font-ck! normal-case! tracking-normal! font-semibold! leading-snug!'
 
 /** A card of the one-page checkout: white on the canvas, a hairline ring and a soft lift. */
 export const CK_CARD =
   'rounded-[calc(var(--ck-radius)*1.2)] bg-ck-bg [box-shadow:var(--ck-section-shadow)]'
 
+/** A filled panel of fields: a lit card, with its inputs a shade darker so they read as wells. */
+export const CK_PANEL =
+  'rounded-[calc(var(--ck-radius)*1.2)] bg-ck-bg [--ck-field:var(--ck-canvas)] [box-shadow:var(--ck-section-shadow)]'
+
 /** A picked radio card (shipping option, way to pay): the accent ring, a soft fill. */
 export const CK_PICKED =
-  'border-ck-accent bg-ck-accent-soft [box-shadow:0_0_0_1px_var(--ck-accent)]'
+  'border-ck-accent-lift bg-ck-accent-soft [box-shadow:inset_0_0_0_1px_var(--ck-accent-lift)]'
 
 /** A radio card not picked. */
-export const CK_UNPICKED = 'border-ck-line bg-ck-bg hover:border-ck-muted/50'
+export const CK_UNPICKED = 'border-ck-line-strong bg-ck-bg hover:border-ck-muted/50'
 
 /** Labels above inputs. */
-export const CK_LABEL = 'text-[0.75rem] font-medium text-ck-ink/80 sm:text-[0.8125rem]'
+export const CK_LABEL = 'text-[0.8125rem] font-medium text-ck-ink'
 
 /** The box every input, select and textarea draws. */
 export const CK_INPUT =
-  'block w-full rounded-ck border border-ck-line bg-ck-field px-3.5 text-[1rem]! text-ck-ink! [box-shadow:0_1px_1px_rgb(0_0_0/0.03)] outline-none transition-[border-color,box-shadow] duration-150 placeholder:text-ck-muted/70 hover:border-ck-muted/50 focus:border-ck-accent focus:[box-shadow:0_0_0_3px_var(--ck-ring)] disabled:opacity-60 motion-reduce:transition-none aria-invalid:border-ck-danger aria-invalid:focus:[box-shadow:0_0_0_3px_var(--ck-danger-ring)] [&:is(input):read-only]:bg-ck-soft [&:is(input):read-only]:text-ck-muted!'
+  'block w-full rounded-ck border border-ck-line bg-ck-field px-3.5 text-[1rem]! text-ck-ink! outline-none lg:text-[0.9375rem]! transition-[border-color,box-shadow] duration-150 placeholder:text-ck-muted/70 hover:border-ck-muted/50 focus:border-ck-accent-lift focus:[box-shadow:0_0_0_1px_var(--ck-accent-lift)] focus-within:border-ck-accent-lift focus-within:[box-shadow:0_0_0_1px_var(--ck-accent-lift)] disabled:opacity-60 motion-reduce:transition-none aria-invalid:border-ck-danger aria-invalid:focus:[box-shadow:0_0_0_3px_var(--ck-danger-ring)] [&:is(input):read-only]:bg-ck-soft [&:is(input):read-only]:text-ck-muted!'
 
 /**
  * A field the checkout filled in for the shopper (City and State from the PIN code): the soft
@@ -38,14 +42,14 @@ export const CK_INPUT =
 export const CK_INPUT_FILLED = `${CK_INPUT.replace('bg-ck-field', 'bg-ck-soft')} animate-[ck-filled_600ms_var(--ease-out)]`
 
 /** Single-line inputs and selects share one height, comfortable to tap. */
-export const CK_INPUT_HEIGHT = 'h-11'
+export const CK_INPUT_HEIGHT = 'h-13'
 
 /**
  * The main call to action: Pay, Retry payment, Get a new QR. Pressed it settles to
  * `--motion-press-scale` (0.97, 1 under reduced motion) in 140ms ease-out.
  */
 export const CK_BUTTON_PRIMARY =
-  'inline-flex h-13 w-full items-center justify-center gap-2 rounded-ck-button! bg-ck-button! px-5 text-[1rem]! font-semibold! tracking-[-0.006em]! text-ck-button-ink! [box-shadow:0_1px_2px_rgb(0_0_0/0.3),inset_0_1px_0_rgb(255_255_255/0.2)] outline-none touch-manipulation transition-[filter,scale,box-shadow] duration-(--duration-press) ease-out hover:brightness-[1.08] active:scale-(--motion-press-scale) focus-visible:[box-shadow:0_0_0_3px_var(--ck-ring)] disabled:cursor-not-allowed disabled:opacity-55 disabled:hover:brightness-100 disabled:active:scale-100'
+  'inline-flex h-13 w-full items-center justify-center gap-2 rounded-ck-button! bg-ck-button! px-6 text-[0.9375rem]! font-semibold! tracking-normal! text-ck-button-ink! [box-shadow:0_1px_2px_rgb(0_0_0/0.3),inset_0_1px_0_rgb(255_255_255/0.2)] outline-none touch-manipulation transition-[filter,scale,box-shadow] duration-(--duration-press) ease-out hover:brightness-[1.08] active:scale-(--motion-press-scale) focus-visible:[box-shadow:0_0_0_3px_var(--ck-ring)] disabled:cursor-not-allowed disabled:opacity-55 disabled:hover:brightness-100 disabled:active:scale-100'
 
 /** Quieter actions: Continue shopping, Download invoice, Other UPI app. */
 export const CK_BUTTON_SECONDARY =
@@ -53,4 +57,4 @@ export const CK_BUTTON_SECONDARY =
 
 /** Inline text actions: Add discount code, Sign in, Remove. */
 export const CK_LINK =
-  'cursor-pointer rounded-sm bg-transparent! p-0! text-[0.875rem]! font-medium! text-ck-accent! underline-offset-4 outline-none hover:underline focus-visible:[box-shadow:0_0_0_3px_var(--ck-ring)]'
+  'cursor-pointer rounded-sm bg-transparent! p-0! text-[0.875rem]! font-medium! text-ck-muted! underline underline-offset-2 outline-none hover:text-ck-ink! focus-visible:[box-shadow:0_0_0_3px_var(--ck-ring)]'

@@ -71,7 +71,7 @@ export default function DeliveryMethod({
   // Early returns
   if (checking || !shipping) {
     return (
-      <div className="flex min-h-16 items-center gap-3 rounded-ck border border-dashed border-ck-line bg-ck-field px-4 text-[0.875rem] text-ck-muted">
+      <div className="flex min-h-16 items-center gap-3 rounded-ck border border-dashed border-ck-line-strong bg-ck-bg px-4 text-[0.875rem] text-ck-muted">
         {checking ? (
           <>
             <CheckoutIcon
@@ -105,8 +105,8 @@ export default function DeliveryMethod({
   const free = shipping.rates.kind === 'free'
 
   return (
-    <div className="flex flex-col gap-2">
-      <fieldset className="flex flex-col gap-2 border-0! p-0!">
+    <div className="flex flex-col gap-3">
+      <fieldset className="flex flex-col gap-3 border-0! p-0!">
         <legend className="sr-only">{content.deliveryMethod}</legend>
         {free ? (
           <OptionCard
@@ -115,6 +115,7 @@ export default function DeliveryMethod({
             checked
             onChange={() => undefined}
             title={content.delivery.free}
+            icon="truck"
             description={shipping.arrives}
             meta={content.shippingFree}
           />
@@ -129,6 +130,7 @@ export default function DeliveryMethod({
                   name="shipping-rate"
                   value={o.id}
                   checked={picked}
+                  icon={o.fastest ? 'plane' : 'truck'}
                   onChange={() => onSelect(o.id)}
                   title={
                     <span className="flex flex-wrap items-center gap-2">
