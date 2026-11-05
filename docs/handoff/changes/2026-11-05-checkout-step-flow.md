@@ -16,4 +16,5 @@ admin's real font. Payment rows, the copyable transfer details and the UPI QR ca
 - `checkout-sold-out.tsx`: a line with `available < 1` (not pre-order, not gift card) holds the steps and locks Pay until it is removed. "Notify me" uses the back-in-stock list with the contact already entered.
 - `checkout-country-select.tsx`: searchable Country field. Flags are the `country-flag-icons` 3x2 SVGs copied to `apps/storefront/public/flags`, so `flags/` is excluded from the proxy matcher.
 - Checkout shadow tokens are in rem. New tokens: `--ck-warn`, `success-soft`, `warn-soft`.
-- Not built, on purpose: inline gateway tabs and QR on Payment (Razorpay keeps its own window), Choose a delivery day, Account ready, Pay another way, payment failure reason, holding timer.
+- Payment tabs (`payment-method-tabs.tsx`): Razorpay only. The pick goes through session storage to `pay-client.tsx`, and `lib/razorpay-picked-method.ts` puts that method first in Razorpay's window without bringing back a hidden one. No card or UPI ID is entered on our page.
+- Not built, on purpose: a QR on the Payment step (it needs an order first), Verify and the UPI ID box (UPI Collect is gone), Choose a delivery day, Account ready, Pay another way, payment failure reason, holding timer.

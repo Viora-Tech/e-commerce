@@ -3,6 +3,7 @@
 import { formatPaymentAdjustment } from '@commerce/core/adjustment-math'
 import CheckoutIcon from '@/components/checkout/checkout-icon'
 import PaymentMark, { type PaymentMarkName } from '@/components/checkout/payment-mark'
+import PaymentMethodTabs from '@/components/checkout/payment-method-tabs'
 import RadioDot from '@/components/checkout/radio-dot'
 import { checkoutContent as content } from '@/data/checkout'
 import { methodView, takesUpi } from '@/lib/checkout-preview'
@@ -23,6 +24,8 @@ type PaymentMethodsProps = {
 
 const panel = content.methodPanel
 
+const TAB_ORDER = ['upi', 'card', 'netbanking', 'emi']
+
 /** The small marks under a way to pay: the UPI apps, or what a gateway takes. */
 function marksFor(m: CheckoutMethod): readonly PaymentMarkName[] {
   if (m.id === 'decentro') return panel.upiApps
@@ -37,6 +40,14 @@ function logoFor(m: CheckoutMethod): PaymentLogoName | null {
   if (m.id === 'decentro') return 'upi'
   if (m.id === 'manual' && m.manualKinds?.length === 1 && m.manualKinds[0] === 'upi') return 'upi'
   return null
+}
+
+/** The tabs under Razorpay, in the design's order; none when it takes one method or fewer. */
+function tabsFor(m: CheckoutMethod): readonly string[] {
+  if (m.id !== 'razorpay') return []
+  const taken = m.methods ?? TAB_ORDER.slice(0, 3)
+  const tabs = TAB_ORDER.filter((id) => (taken as readonly string[]).includes(id))
+  return tabs.length > 1 ? tabs : []
 }
 
 /** What opens under the picked way to pay: how it goes once Pay is tapped. */
@@ -76,7 +87,8 @@ export default function PaymentMethods({
           const saving = (m.adjustment?.value ?? 0) < 0
           const marks = marksFor(m)
           const logo = logoFor(m)
-          const detail = detailFor(m, amountLabel)
+          const tabs = tabsFor(m)
+          const detail = tabs.length > 0 ? null : detailFor(m, amountLabel)
           return (
             <div
               key={m.id}
@@ -167,6 +179,9 @@ export default function PaymentMethods({
                   </span>
                 ) : null}
               </label>
+              {tabs.length > 0 && checked ? (
+                <PaymentMethodTabs tabs={tabs} brand={view.brand ?? view.title} />
+              ) : null}
               {detail ? (
                 <div
                   inert={!checked}

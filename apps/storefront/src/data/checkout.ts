@@ -290,6 +290,19 @@ export const checkoutContent = {
   /** What opens under the picked way to pay. */
   methodPanel: {
     recommended: 'Recommended',
+    tabNames: { upi: 'UPI', card: 'Card', netbanking: 'Net banking', emi: 'EMI' } as Record<
+      string,
+      string
+    >,
+    tabHints: {
+      card: 'Enter your card details in the secure window after you press Pay.',
+      netbanking: 'Choose your bank in the secure window after you press Pay.',
+      emi: 'Choose your EMI plan in the secure window after you press Pay.',
+    } as Record<string, string>,
+    upiHeading: 'Pay with any UPI app',
+    upiBody:
+      'Press Pay to get your QR code. Open GPay, PhonePe, Paytm or any UPI app, scan it and approve.',
+    processedBy: (brand: string) => `Processed by ${brand}`,
     upi: (amount: string) =>
       `Pay ${amount} straight from your bank with any UPI app. On a phone your app opens; on a computer you scan a QR code.`,
     gateway: (brand: string) => `You finish on ${brand}'s secure screen.`,

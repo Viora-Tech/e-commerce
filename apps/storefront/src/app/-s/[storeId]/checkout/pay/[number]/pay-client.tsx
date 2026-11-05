@@ -9,6 +9,7 @@ import StatusMark from '@/components/checkout/status-mark'
 import { payClientContent as content } from '@/data/checkout'
 import { CK_BUTTON_PRIMARY, CK_BUTTON_SECONDARY, CK_HEADING } from '@/lib/checkout-classes'
 import { confirmPaymentAction } from '@/lib/payment-actions'
+import { takePickedMethod, withPickedMethod } from '@/lib/razorpay-picked-method'
 
 type RazorpayCheckout = new (
   options: Record<string, unknown>,
@@ -119,7 +120,7 @@ export default function PayClient({
     if (!Rzp) return
     setState('ready')
     const checkout = new Rzp({
-      ...session.options,
+      ...withPickedMethod(session.options, takePickedMethod()),
       handler: confirm,
       modal: {
         ondismiss: () => {
