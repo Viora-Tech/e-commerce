@@ -31,6 +31,18 @@ function Flag({ code }: { code: string }) {
   )
 }
 
+/** The countries a search keeps: by name, or by exact code. */
+function matching(
+  options: CheckoutCountrySelectProps['options'],
+  query: string,
+): CheckoutCountrySelectProps['options'] {
+  const needle = query.trim().toLowerCase()
+  if (!needle) return options
+  return options.filter(
+    ([code, name]) => name.toLowerCase().includes(needle) || code.toLowerCase() === needle,
+  )
+}
+
 /**
  * The Country field: a button that opens a searchable list, each country with its flag. Type to narrow it, arrows to move, Enter to pick, Escape to close. A hidden native
  * select stays in the page so the browser can still autofill the country.
@@ -60,15 +72,6 @@ export default function CheckoutCountrySelect({
     return () => document.removeEventListener('pointerdown', close)
   }, [open])
 
-  // Derived
-  const needle = query.trim().toLowerCase()
-  const shown = needle
-    ? options.filter(
-        ([code, name]) => name.toLowerCase().includes(needle) || code.toLowerCase() === needle,
-      )
-    : options
-  const current = options.find(([code]) => code === value)
-
   // Event handlers
   const handleOpen = () => {
     setQuery('')
@@ -92,19 +95,22 @@ export default function CheckoutCountrySelect({
       trigger.current?.focus()
     } else if (e.key === 'ArrowDown') {
       e.preventDefault()
-      setActive((i) => Math.min(i + 1, shown.length - 1))
+      setActive((i) => Math.min(i + 1, matching(options, query).length - 1))
     } else if (e.key === 'ArrowUp') {
       e.preventDefault()
       setActive((i) => Math.max(i - 1, 0))
     } else if (e.key === 'Enter') {
       // The list sits inside the checkout's form: Enter picks, it never submits.
       e.preventDefault()
-      const pick = shown[active]
+      const pick = matching(options, query)[active]
       if (pick) handlePick(pick[0])
     }
   }
 
   // Render logic
+  const shown = matching(options, query)
+  const current = options.find(([code]) => code === value)
+
   return (
     <div ref={root} className="relative flex min-w-0 flex-col gap-2">
       <span id={`${id}-label`} className={CK_LABEL}>

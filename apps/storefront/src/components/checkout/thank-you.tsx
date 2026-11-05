@@ -202,7 +202,7 @@ export default function ThankYouTemplate({
         </SummaryDisclosure>
       }
     >
-      <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-6 max-lg:pt-2">
         {confirming ? (
           <div className={`flex flex-col gap-6 ${ENTER[0]}`}>
             <ThankYouConfirming

@@ -114,8 +114,6 @@ export default function CheckoutOtp({
     })
   }
 
-  const canBoth = methods.includes('email') && methods.some(isPhoneMethod)
-
   // Event handlers
   const handlePrimary = () => (sentTo ? verify() : send())
   const handleCode = (next: string) => {
@@ -138,6 +136,7 @@ export default function CheckoutOtp({
   }
 
   // Render logic
+  const canBoth = methods.includes('email') && methods.some(isPhoneMethod)
   const phoneMethods = methods.filter(isPhoneMethod)
   const both = methods.includes('email') && phoneMethods.length > 0
   // Phone codes go to the ten-digit number; show it the way the shopper typed it.

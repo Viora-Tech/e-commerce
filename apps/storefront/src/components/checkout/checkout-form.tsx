@@ -343,7 +343,9 @@ export default function CheckoutForm(props: CheckoutFormProps) {
           title={content.stepIntro.payment.title}
           body={content.stepIntro.payment.body}
           active={step === 'payment'}
-          aside={<span className="text-[0.75rem] text-ck-muted">{copy.paymentNote}</span>}
+          aside={
+            <span className="text-[0.75rem] text-ck-muted max-sm:hidden">{copy.paymentNote}</span>
+          }
         >
           <CheckoutPaymentStep ck={ck} />
         </CheckoutCard>

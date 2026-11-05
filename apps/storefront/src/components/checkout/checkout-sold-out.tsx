@@ -78,7 +78,7 @@ export default function CheckoutSoldOut({ lines, others, email, phone }: Checkou
               <p className="text-[0.9375rem] leading-[1.375rem] font-semibold text-ck-ink">
                 {line.productTitle}
               </p>
-              {line.variantTitle ? (
+              {line.variantTitle && !/^default/i.test(line.variantTitle) ? (
                 <p className="text-[0.8125rem] leading-[1.1875rem] text-ck-muted">
                   {line.variantTitle}
                 </p>
