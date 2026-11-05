@@ -1,0 +1,28 @@
+/** The checkout's step copy: the stepper, the finished rows and each step's heading. */
+export const checkoutStepsContent = {
+  /** The finished steps above the current one. */
+  review: {
+    contact: 'Contact',
+    shipTo: 'Ship to',
+    delivery: 'Delivery',
+    cart: 'Cart',
+    change: 'Change',
+    changeLabel: (label: string) => `Change ${label.toLowerCase()}`,
+  },
+  /** The heading and line each step opens with. */
+  stepIntro: {
+    contact: { title: 'Your contact details', body: 'The courier calls this number on delivery.' },
+    address: { title: 'Where should we deliver?', body: 'Choose an address or add a new one.' },
+    shipping: { title: 'How would you like it delivered?', body: 'Pick what suits you.' },
+    payment: {
+      title: 'How would you like to pay?',
+      body: 'All payments are encrypted. Pick the way that is easiest for you.',
+    },
+  },
+  stepsLabel: 'Checkout steps',
+  stepsBackTo: (label: string) => `Back to ${label.toLowerCase()}`,
+  backTo: (label: string) => `Back to ${label}`,
+  continueTo: (label: string) => `Continue to ${label.toLowerCase()}`,
+  completeSteps: 'Complete all steps to pay',
+  backToCartCount: (count: number) => `Back to cart · ${count} ${count === 1 ? 'item' : 'items'}`,
+}

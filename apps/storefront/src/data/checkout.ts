@@ -2,6 +2,7 @@ import { checkoutAbroadContent } from './checkout-abroad'
 import { checkoutErrorsContent } from './checkout-errors'
 import { checkoutExpressContent } from './checkout-express'
 import { checkoutFieldsContent } from './checkout-fields'
+import { checkoutStepsContent } from './checkout-steps'
 /**
  * Every string the checkout, payment and thank-you screens show. Change copy here,
  * never inside a component.
@@ -355,31 +356,7 @@ export const checkoutContent = {
   placeOrderAmount: (amount: string) => `Place order · ${amount}`,
   processing: 'Processing…',
   help: { label: 'Need help? WhatsApp us', short: 'Help', aria: 'Need help? WhatsApp us' },
-  /** The finished steps above the current one. */
-  review: {
-    contact: 'Contact',
-    shipTo: 'Ship to',
-    delivery: 'Delivery',
-    cart: 'Cart',
-    change: 'Change',
-    changeLabel: (label: string) => `Change ${label.toLowerCase()}`,
-  },
-  /** The heading and line each step opens with. */
-  stepIntro: {
-    contact: { title: 'Your contact details', body: 'The courier calls this number on delivery.' },
-    address: { title: 'Where should we deliver?', body: 'Choose an address or add a new one.' },
-    shipping: { title: 'How would you like it delivered?', body: 'Pick what suits you.' },
-    payment: {
-      title: 'How would you like to pay?',
-      body: 'All payments are encrypted. Pick the way that is easiest for you.',
-    },
-  },
-  stepsLabel: 'Checkout steps',
-  stepsBackTo: (label: string) => `Back to ${label.toLowerCase()}`,
-  backTo: (label: string) => `Back to ${label}`,
-  continueTo: (label: string) => `Continue to ${label.toLowerCase()}`,
-  completeSteps: 'Complete all steps to pay',
-  backToCartCount: (count: number) => `Back to cart · ${count} ${count === 1 ? 'item' : 'items'}`,
+  ...checkoutStepsContent,
   /** Under the Pay button: "Secured by Razorpay", or the plain line when no gateway is named. */
   payNote: { by: 'Secured by', plain: 'Secure checkout' },
   /** The summary's delivery box: "Delivers to 122001 by Thu, 29 Oct". */
