@@ -9,3 +9,6 @@ Colour stays the merchant's: accent, button, radius and font still come from Che
 Only neutrals changed, in dark mode: a darker canvas and softly lit cards, after the deploy
 platform. The picked row, picked radio cards and Pay's glow all read `--ck-accent` / `--ck-button`.
 Courier logos are not in yet: shipping options are free text, so a name-to-logo match needs a design.
+
+Follow-up: the theme's unlayered `img` rule beat the logo size limits, so they carry `!`, and the
+open detail line and the phone's marks now line up with the row's text.
