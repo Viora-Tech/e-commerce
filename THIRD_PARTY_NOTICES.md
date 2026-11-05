@@ -198,6 +198,9 @@ Candidate projects, with verified licences and what to take from each: [`docs/op
 
 ## Third-party app logos (trademarks)
 
+- Used in: `apps/storefront/src/lib/payment-logos.ts` (checkout): Razorpay from the app logos below;
+  UPI, Visa, Mastercard and RuPay from Wikimedia Commons. They only show which ways to pay are accepted.
+
 - Used in: `apps/admin/public/app-logos/` (Apps page, install step): Cashfree, Decentro, Delhivery,
   RapidShyp, Razorpay and Shiprocket logos.
 - These are trademarks of their owners, shown only to identify the integration. No endorsement is
