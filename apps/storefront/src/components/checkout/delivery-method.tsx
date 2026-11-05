@@ -130,7 +130,7 @@ export default function DeliveryMethod({
                   name="shipping-rate"
                   value={o.id}
                   checked={picked}
-                  icon={o.fastest ? 'bolt' : 'truck'}
+                  icon={o.fastest ? 'plane' : 'truck'}
                   onChange={() => onSelect(o.id)}
                   title={
                     <span className="flex flex-wrap items-center gap-2">

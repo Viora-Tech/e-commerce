@@ -19,7 +19,11 @@ export const checkoutStepsContent = {
     },
     contact: { title: 'Your contact details', body: 'We send your order updates here.' },
     address: { title: 'Where should we deliver?', body: 'Choose an address or add a new one.' },
-    shipping: { title: 'How would you like it delivered?', body: 'Pick what suits you.' },
+    shipping: {
+      title: 'How would you like it delivered?',
+      body: 'Pick what suits you.',
+      datesFor: (place: string) => `Dates shown are for ${place}.`,
+    },
     payment: {
       title: 'How would you like to pay?',
       body: 'All payments are encrypted. Pick the way that is easiest for you.',

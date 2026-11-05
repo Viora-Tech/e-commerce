@@ -71,10 +71,10 @@ export default function CheckoutForm(props: CheckoutFormProps) {
   const pincode = cleanPincode(ck.form.pincode)
   // Abroad there is no PIN code line: Shipping names the country instead.
   const fullPincode = !ck.abroad && /^[1-9]\d{5}$/.test(pincode)
-  const shippingAside = ck.abroad
+  const shippingPlace = ck.abroad
     ? countryName(ck.form.countryCode)
     : fullPincode
-      ? copy.shippingTo(pincode)
+      ? [pincode, ck.form.city.trim()].filter(Boolean).join(', ')
       : null
   const shortfall =
     ck.shortfall > 0
@@ -304,13 +304,12 @@ export default function CheckoutForm(props: CheckoutFormProps) {
             id={sectionDomId('shipping')}
             headingId={sectionHeadingId('shipping')}
             title={content.stepIntro.shipping.title}
-            body={content.stepIntro.shipping.body}
-            active={step === 'shipping'}
-            aside={
-              shippingAside ? (
-                <span className="text-[0.75rem] text-ck-muted">{shippingAside}</span>
-              ) : null
+            body={
+              shippingPlace
+                ? content.stepIntro.shipping.datesFor(shippingPlace)
+                : content.stepIntro.shipping.body
             }
+            active={step === 'shipping'}
           >
             <DeliveryMethod
               shipping={shipping}

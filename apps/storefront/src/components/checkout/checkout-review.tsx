@@ -27,7 +27,7 @@ export default function CheckoutReview({ rows, onChange }: CheckoutReviewProps) 
             type="button"
             onClick={() => onChange(row.section)}
             aria-label={content.review.changeLabel(row.label)}
-            className="-my-3 min-h-11 cursor-pointer leading-[1.1875rem] rounded-sm text-[0.8125rem]! font-semibold text-ck-muted underline underline-offset-2 outline-none transition-colors duration-150 hover:text-ck-ink focus-visible:[box-shadow:0_0_0_3px_var(--ck-ring)] motion-reduce:transition-none"
+            className="relative cursor-pointer leading-[1.1875rem] after:absolute after:-inset-3 rounded-sm text-[0.8125rem]! font-semibold text-ck-muted underline underline-offset-2 outline-none transition-colors duration-150 hover:text-ck-ink focus-visible:[box-shadow:0_0_0_3px_var(--ck-ring)] motion-reduce:transition-none"
           >
             {content.review.change}
           </button>

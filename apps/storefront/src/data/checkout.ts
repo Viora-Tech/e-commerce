@@ -227,7 +227,6 @@ export const checkoutContent = {
     done: 'Complete',
     signIn: 'Sign in',
     /** Beside the Shipping heading: the PIN code the options are for. */
-    shippingTo: (pincode: string) => `To ${pincode}`,
     paymentNote: 'Encrypted and secure',
   },
   /**
