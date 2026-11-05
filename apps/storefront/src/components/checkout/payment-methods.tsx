@@ -80,7 +80,7 @@ export default function PaymentMethods({
             <div
               key={m.id}
               data-method={m.id}
-              className={`transition-[box-shadow,background-color] duration-150 ease-out motion-reduce:transition-none ${checked ? 'bg-ck-accent-soft [box-shadow:inset_0.1875rem_0_0_var(--ck-accent)]' : 'hover:bg-ck-soft'}`}
+              className={`transition-[box-shadow,background-color] duration-150 ease-out motion-reduce:transition-none ${checked ? 'bg-ck-soft [box-shadow:inset_0.1875rem_0_0_var(--ck-accent)]' : 'hover:bg-ck-soft'}`}
             >
               <label
                 className={`flex flex-wrap items-center gap-x-3 gap-y-2 px-3.5 py-3 has-[:focus-visible]:[box-shadow:inset_0_0_0_2px_var(--ck-accent)] sm:flex-nowrap sm:px-4 ${blocked ? 'cursor-not-allowed opacity-55' : 'cursor-pointer'}`}

@@ -6,6 +6,7 @@
 export const THEME_FONT_IDS = [
   'archivo',
   'figtree',
+  'geist',
   'inter',
   'manrope',
   'dm-sans',
@@ -34,6 +35,7 @@ export type ThemeFont = {
 export const THEME_FONTS: Record<ThemeFontId, ThemeFont> = {
   archivo: { label: 'Archivo', category: 'sans', google: 'Archivo:wght@400;500;600;700' },
   figtree: { label: 'Figtree', category: 'sans', google: 'Figtree:wght@400;500;600;700' },
+  geist: { label: 'Geist', category: 'sans', google: 'Geist:wght@400;500;600;700' },
   inter: { label: 'Inter', category: 'sans', google: 'Inter:wght@400;500;600;700' },
   manrope: { label: 'Manrope', category: 'sans', google: 'Manrope:wght@400;500;600;700' },
   'dm-sans': { label: 'DM Sans', category: 'sans', google: 'DM+Sans:wght@400;500;600;700' },

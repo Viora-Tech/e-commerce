@@ -5,6 +5,7 @@ import CheckoutAddressBook from '@/components/checkout/checkout-address-book'
 import CheckoutAgreement from '@/components/checkout/checkout-agreement'
 import CheckoutCard from '@/components/checkout/checkout-card'
 import CheckoutContact from '@/components/checkout/checkout-contact'
+import CheckoutFilledRows from '@/components/checkout/checkout-filled-rows'
 import CheckoutIcon from '@/components/checkout/checkout-icon'
 import CheckoutPageShell from '@/components/checkout/checkout-page-shell'
 import CheckoutPayButton from '@/components/checkout/checkout-pay-button'
@@ -18,6 +19,7 @@ import SummaryDisclosure from '@/components/checkout/summary-disclosure'
 import { checkoutContent as content } from '@/data/checkout'
 import { CK_LINK } from '@/lib/checkout-classes'
 import { countryName } from '@/lib/checkout-countries'
+import { addressRows, contactRows } from '@/lib/checkout-filled-rows'
 import type { CheckoutFormInput } from '@/lib/checkout-form-input'
 import { processorNames, shippingRow } from '@/lib/checkout-preview'
 import { type CheckoutSection, sectionDomId, sectionHeadingId } from '@/lib/checkout-sections'
@@ -222,7 +224,9 @@ export default function CheckoutForm(props: CheckoutFormProps) {
           done={done.contact}
           aside={signInLink}
         >
-          <CheckoutContact ck={ck} />
+          <CheckoutFilledRows done={done.contact} rows={contactRows(ck.form)}>
+            <CheckoutContact ck={ck} />
+          </CheckoutFilledRows>
         </CheckoutCard>
         <CheckoutCard
           id={sectionDomId('address')}
@@ -231,7 +235,9 @@ export default function CheckoutForm(props: CheckoutFormProps) {
           title={digitalOnly ? copy.detailsLabel : copy.label.address}
           done={done.address}
         >
-          <CheckoutAddressBook ck={ck} />
+          <CheckoutFilledRows done={done.address} rows={addressRows(ck.form)}>
+            <CheckoutAddressBook ck={ck} />
+          </CheckoutFilledRows>
         </CheckoutCard>
         {digitalOnly ? null : (
           <CheckoutCard
