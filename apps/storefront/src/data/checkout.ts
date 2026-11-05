@@ -80,9 +80,9 @@ export const thankYouContent = {
     held: (number: string) => `${number} (held for you)`,
   },
   failed: {
-    safeHeading: 'No money was taken',
+    safeHeading: 'Your money is safe',
     safeBody:
-      'If any amount shows as deducted, it goes back to your account within 3 to 5 working days. You do not need to do anything.',
+      'If any amount was deducted, it goes back to your account within 3 to 5 working days. You do not need to do anything.',
     help: 'Still stuck? Chat with us on WhatsApp',
   },
   codDue: (amount: string) => `Pay ${amount} in cash when it arrives.`,
