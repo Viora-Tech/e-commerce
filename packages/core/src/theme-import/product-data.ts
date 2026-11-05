@@ -16,6 +16,7 @@ import {
 import { and, asc, eq, inArray, isNull, sql } from 'drizzle-orm'
 import { soldInRequestCatalog } from '../markets/catalog-rules'
 import { type MarketPricing, presentmentCents } from '../markets/presentment'
+import type { MediaVariants } from '../media/loader'
 import { variantAllowsPreorder } from '../preorder/settings'
 import type { LiquidImageData, LiquidProductData } from './drops'
 import { richTextHtml } from './rich-html'
@@ -57,6 +58,7 @@ export async function loadProducts(
         reserved: sellableStock.reserved,
         mediaId: variant.mediaId,
         imageUrl: media.url,
+        imageVariants: media.variants,
         position: variant.position,
         preorder: variant.preorderOverride,
       })
@@ -80,6 +82,7 @@ export async function loadProducts(
         width: media.width,
         height: media.height,
         contentType: media.contentType,
+        variants: media.variants,
       })
       .from(productMedia)
       .innerJoin(media, eq(media.id, productMedia.mediaId))
@@ -146,6 +149,7 @@ export async function loadProducts(
         alt: i.alt ?? p.title,
         width: i.width,
         height: i.height,
+        variants: i.variants as MediaVariants,
       }))
     const productVariants = variants.filter((v) => v.productId === id)
     // A value only hidden variants use (#934) is not offered; a product whose variants carry no
@@ -219,6 +223,7 @@ export async function loadProducts(
                   id: v.mediaId ?? undefined,
                   url: v.imageUrl,
                   alt: p.title,
+                  variants: v.imageVariants as MediaVariants,
                 })
               : null,
             media: listOf(v).flatMap((mediaId) => imageById.get(mediaId) ?? []),
