@@ -3,8 +3,8 @@
 import type { ReactNode } from 'react'
 import CheckoutAbroadFields from '@/components/checkout/checkout-abroad-fields'
 import CheckoutAddressFields from '@/components/checkout/checkout-address-fields'
+import CheckoutCountrySelect from '@/components/checkout/checkout-country-select'
 import CheckoutIcon from '@/components/checkout/checkout-icon'
-import CheckoutSelect from '@/components/checkout/checkout-select'
 import SavedAddressCard from '@/components/checkout/saved-address-card'
 import { checkoutContent as content } from '@/data/checkout'
 import {
@@ -52,12 +52,11 @@ export default function CheckoutAddressBook({ ck }: CheckoutAddressBookProps) {
   // address is being edited or for gift cards, which are emailed.
   const picker =
     ck.countries.length > 1 && !totals.digitalOnly && ck.editingId === null ? (
-      <CheckoutSelect
+      <CheckoutCountrySelect
         id={COUNTRY_ID}
         label={content.abroad.country}
         value={ck.form.countryCode}
         options={countryOptions(ck.countries)}
-        autoComplete="country"
         onChange={ck.handleCountry}
       />
     ) : null

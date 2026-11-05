@@ -1,17 +1,21 @@
 import type { ManualInstructions } from '@commerce/payments'
 import { toDataURL } from 'qrcode'
+import CopyButton from '@/components/checkout/copy-button'
+import PaymentMark from '@/components/checkout/payment-mark'
 import { manualPaymentContent as content, UPI_QR_SIZE } from '@/data/checkout'
-import { CK_BUTTON_PRIMARY, CK_HEADING } from '@/lib/checkout-classes'
+import { CK_BUTTON_PRIMARY, CK_CARD, CK_HEADING } from '@/lib/checkout-classes'
 
 type TransferInstructionsProps = {
   instructions: ManualInstructions
   amountLabel: string
 }
 
+const HEADING = `${CK_HEADING} text-[1.0625rem]! leading-[1.5625rem]!`
+
 /**
- * "UPI or bank transfer to the shop", in the checkout's look: the shop's UPI QR (drawn
- * here on the server, nothing runs in the browser) and its bank details, with the
- * reference the shopper quotes so the merchant can match the money to the order.
+ * "UPI or bank transfer to the shop", in the checkout's look: the shop's UPI QR beside what to
+ * pay and where, then its bank details, each with Copy so nothing is retyped. Drawn on the
+ * server; the reference is what the merchant matches the money to the order with.
  */
 export default async function TransferInstructions({
   instructions,
@@ -19,7 +23,14 @@ export default async function TransferInstructions({
 }: TransferInstructionsProps) {
   const { upi, bank, reference, note } = instructions
   const qr = upi ? await toDataURL(upi.deepLink, { margin: 1, width: UPI_QR_SIZE }) : null
-  const rows: [string, string, boolean][] = bank
+  const payRows: [string, string][] = upi
+    ? [
+        [content.upi.idLabel, upi.id],
+        [content.upi.amount, amountLabel],
+        [content.upi.note, reference],
+      ]
+    : []
+  const bankRows: [string, string, boolean][] = bank
     ? [
         [content.bank.rows.bankName, bank.bankName, false],
         [content.bank.rows.accountName, bank.accountName, false],
@@ -30,12 +41,14 @@ export default async function TransferInstructions({
     : []
 
   return (
-    <div className="flex flex-col gap-4">
-      <p className="text-[0.9375rem] leading-relaxed text-ck-ink">
+    <>
+      <p className="text-[0.875rem] leading-5 text-pretty text-ck-muted">
         {content.intro(amountLabel, reference)}
       </p>
       {upi ? (
-        <div className="flex flex-col items-center gap-4 rounded-ck border border-ck-line bg-ck-field p-5 sm:flex-row sm:items-center">
+        <section
+          className={`${CK_CARD} flex flex-col items-center gap-6 p-5 sm:flex-row sm:items-start`}
+        >
           {qr ? (
             // biome-ignore lint/performance/noImgElement: inline data URI, nothing to optimise.
             <img
@@ -43,35 +56,55 @@ export default async function TransferInstructions({
               alt={content.upi.qrAlt(upi.id)}
               width={UPI_QR_SIZE}
               height={UPI_QR_SIZE}
-              className="size-40! shrink-0 rounded-ck bg-ck-qr p-2"
+              className="size-40! shrink-0 rounded-lg bg-ck-qr"
             />
           ) : null}
-          <div className="flex w-full flex-col gap-3">
-            <h2 className={`${CK_HEADING} text-[1rem]!`}>{content.upi.heading}</h2>
-            <p className="flex flex-col gap-0.5 text-[0.875rem]">
-              <span className="text-ck-muted">{content.upi.idLabel}</span>
-              <code className="font-mono text-[0.9375rem] break-all">{upi.id}</code>
-            </p>
-            <a href={upi.deepLink} className={`${CK_BUTTON_PRIMARY} h-11! no-underline lg:hidden`}>
+          <div className="flex w-full min-w-0 flex-col gap-3.5">
+            <div className="flex flex-col gap-0.5">
+              <h2 className={HEADING}>{content.upi.heading(amountLabel)}</h2>
+              <p className="text-[0.8125rem] leading-[1.1875rem] text-ck-muted">
+                {content.upi.help}
+              </p>
+            </div>
+            <div className="divide-y divide-ck-line rounded-ck bg-ck-soft">
+              {payRows.map(([label, value]) => (
+                <div key={label} className="flex items-center gap-2.5 px-3 py-2.5">
+                  <span className="w-16 shrink-0 text-[0.8125rem] text-ck-faint">{label}</span>
+                  <span className="min-w-0 flex-1 text-[0.875rem] font-medium text-ck-ink [overflow-wrap:anywhere]">
+                    {value}
+                  </span>
+                  <CopyButton value={value} label={label} />
+                </div>
+              ))}
+            </div>
+            <span aria-hidden="true" className="flex items-center gap-1.5">
+              <PaymentMark mark="GPay" />
+              <PaymentMark mark="PhonePe" />
+              <PaymentMark mark="Paytm" />
+            </span>
+            <a href={upi.deepLink} className={`${CK_BUTTON_PRIMARY} no-underline lg:hidden`}>
               {content.upi.open}
             </a>
           </div>
-        </div>
+        </section>
       ) : null}
       {bank ? (
-        <div className="flex flex-col gap-3 rounded-ck border border-ck-line bg-ck-field p-5">
-          <h2 className={`${CK_HEADING} text-[1rem]!`}>{content.bank.heading}</h2>
-          <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 text-[0.875rem]">
-            {rows.map(([label, value, mono]) => (
-              <div key={label} className="contents">
-                <dt className="text-ck-muted">{label}</dt>
-                <dd className={mono ? 'font-mono break-all' : ''}>{value}</dd>
+        <section className={`${CK_CARD} flex flex-col gap-2.5 p-5`}>
+          <h2 className={HEADING}>{content.bank.heading}</h2>
+          <dl className="m-0! divide-y divide-ck-line">
+            {bankRows.map(([label, value, copy]) => (
+              <div key={label} className="flex items-center gap-3 py-2.5 sm:gap-6">
+                <dt className="w-28 shrink-0 text-[0.75rem] font-medium text-ck-faint">{label}</dt>
+                <dd className="m-0! min-w-0 flex-1 text-[0.875rem] text-ck-ink [overflow-wrap:anywhere]">
+                  {value}
+                </dd>
+                {copy ? <CopyButton value={value} label={label} /> : null}
               </div>
             ))}
           </dl>
-        </div>
+        </section>
       ) : null}
       {note ? <p className="text-[0.8125rem] whitespace-pre-line text-ck-muted">{note}</p> : null}
-    </div>
+    </>
   )
 }

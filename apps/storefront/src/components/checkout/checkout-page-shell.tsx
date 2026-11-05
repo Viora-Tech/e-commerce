@@ -8,6 +8,7 @@ import CheckoutMoney from '@/components/checkout/checkout-money'
 import SummaryGlass from '@/components/checkout/summary-glass'
 import { checkoutContent as content } from '@/data/checkout'
 import { CK_CARD } from '@/lib/checkout-classes'
+import { whatsAppHelp } from '@/lib/thank-you'
 
 type CheckoutPageShellProps = {
   look: CheckoutLook
@@ -62,9 +63,7 @@ export default function CheckoutPageShell({
   // Render logic
   const vars = checkoutBrandingVars(look.branding) as CSSProperties
   const image = look.branding.summary.kind === 'image' && look.branding.summary.image !== null
-  const digits = look.contactPhone?.replace(/\D/g, '') ?? ''
-  const help =
-    digits.length >= 10 ? `https://wa.me/${digits.length === 10 ? `91${digits}` : digits}` : null
+  const help = whatsAppHelp(look.contactPhone)
 
   return (
     <CheckoutMoney>

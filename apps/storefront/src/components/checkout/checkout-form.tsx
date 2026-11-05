@@ -11,6 +11,7 @@ import CheckoutPayButton from '@/components/checkout/checkout-pay-button'
 import CheckoutPayNote from '@/components/checkout/checkout-pay-note'
 import CheckoutPaymentStep from '@/components/checkout/checkout-payment-step'
 import CheckoutReview from '@/components/checkout/checkout-review'
+import CheckoutSoldOut from '@/components/checkout/checkout-sold-out'
 import CheckoutStepper from '@/components/checkout/checkout-stepper'
 import CheckoutSummary from '@/components/checkout/checkout-summary'
 import CheckoutTrust from '@/components/checkout/checkout-trust'
@@ -71,6 +72,7 @@ export default function CheckoutForm(props: CheckoutFormProps) {
   const pincode = cleanPincode(ck.form.pincode)
   // Abroad there is no PIN code line: Shipping names the country instead.
   const fullPincode = !ck.abroad && /^[1-9]\d{5}$/.test(pincode)
+  const soldOut = ck.cart.lines.filter((l) => !l.preorder && !l.giftCard && l.available < 1)
   const shippingPlace = ck.abroad
     ? countryName(ck.form.countryCode)
     : fullPincode
@@ -146,7 +148,7 @@ export default function CheckoutForm(props: CheckoutFormProps) {
       pending={ck.pending}
       updating={ck.updating}
       disabled={payDisabled || step !== 'payment'}
-      locked={step !== 'payment'}
+      locked={step !== 'payment' || soldOut.length > 0}
     />
   )
   const continueButton = next ? (
@@ -242,9 +244,17 @@ export default function CheckoutForm(props: CheckoutFormProps) {
         noValidate
         onSubmit={ck.handleSubmit}
         onFocusCapture={ck.handleStayOnStep}
-        className="flex flex-col gap-6"
+        className={`flex flex-col gap-6 ${soldOut.length > 0 ? '[&>*:not([data-sold-out]):not(h1)]:hidden!' : ''}`}
       >
         <h1 className="sr-only">{content.title}</h1>
+        {soldOut.length > 0 ? (
+          <CheckoutSoldOut
+            lines={soldOut}
+            others={ck.cart.lines.length - soldOut.length}
+            email={ck.form.email}
+            phone={ck.form.phone}
+          />
+        ) : null}
         <div className="flex flex-col gap-3">
           {previous ? (
             <button

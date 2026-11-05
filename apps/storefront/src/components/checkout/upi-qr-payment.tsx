@@ -6,7 +6,7 @@ import { toDataURL } from 'qrcode'
 import { useEffect, useState, useTransition } from 'react'
 import CheckoutIcon from '@/components/checkout/checkout-icon'
 import { upiQrContent as content, UPI_QR_SIZE } from '@/data/checkout'
-import { CK_BUTTON_PRIMARY, CK_BUTTON_SECONDARY, CK_HEADING } from '@/lib/checkout-classes'
+import { CK_BUTTON_PRIMARY, CK_BUTTON_SECONDARY, CK_CARD, CK_HEADING } from '@/lib/checkout-classes'
 import { checkQrPaymentAction, retryPaymentAction } from '@/lib/payment-actions'
 
 type UpiQrPaymentProps = {
@@ -106,15 +106,17 @@ export default function UpiQrPayment({
   const qrClass = qr.upiUri ? 'hidden lg:flex' : 'flex'
 
   return (
-    <div className="flex flex-col gap-5 rounded-ck border border-ck-line bg-ck-field p-5 sm:p-6">
+    <section className={`${CK_CARD} flex flex-col gap-5 p-5 sm:p-6`}>
       <div className="flex items-start justify-between gap-4">
         <div className="flex flex-col gap-1">
-          <h2 className={`${CK_HEADING} text-[1.0625rem]!`}>{content.heading(amountLabel)}</h2>
-          <p className="text-[0.8125rem] text-ck-muted">{content.help}</p>
+          <h2 className={`${CK_HEADING} text-[1.0625rem]! leading-[1.5625rem]!`}>
+            {content.heading(amountLabel)}
+          </h2>
+          <p className="text-[0.875rem] leading-5 text-ck-muted">{content.help}</p>
         </div>
         {left === null || expired ? null : (
           <span
-            className="shrink-0 rounded-full bg-ck-soft px-2.5 py-1 text-[0.75rem] font-medium tabular-nums text-ck-muted"
+            className="shrink-0 rounded-full bg-ck-soft px-2.5 py-1 text-[0.75rem] font-medium tabular-nums text-ck-faint"
             title={content.closesIn(clock(left))}
           >
             <span className="sr-only">{content.closesIn(clock(left))}</span>
@@ -124,7 +126,7 @@ export default function UpiQrPayment({
       </div>
       {expired ? (
         <div className="flex flex-col gap-4">
-          <p className="text-[0.9375rem] text-ck-ink">{content.expired}</p>
+          <p className="text-[0.875rem] leading-5 text-ck-muted">{content.expired}</p>
           <form action={retryPaymentAction.bind(null, orderNumber, viewToken)}>
             <button type="submit" className={CK_BUTTON_PRIMARY}>
               {content.renew}
@@ -151,11 +153,11 @@ export default function UpiQrPayment({
               </div>
             </div>
           ) : null}
-          <div className={`${qrClass} flex-col items-center gap-3 rounded-ck bg-ck-soft p-5`}>
+          <div className={`${qrClass} flex-col items-center rounded-[0.75rem] bg-ck-soft p-5`}>
             {src ? (
               // biome-ignore lint/performance/noImgElement: gateway image or inline data URI, nothing to optimise.
               <img
-                className="size-[13.75rem]! rounded-ck bg-ck-qr p-2.5 [box-shadow:0_1px_3px_rgb(0_0_0/0.08)]"
+                className="size-[13.75rem]! rounded-[0.75rem] bg-ck-qr p-2.5"
                 src={src}
                 alt={content.qrAlt(amountLabel)}
                 width={UPI_QR_SIZE}
@@ -168,17 +170,20 @@ export default function UpiQrPayment({
               />
             )}
           </div>
-          <div className="flex flex-col gap-2.5">
-            <p role="status" className="flex items-center gap-2 text-[0.8125rem] text-ck-muted">
+          <div className="flex flex-col gap-5">
+            <p
+              role="status"
+              className="flex items-center justify-center gap-2 text-[0.75rem] leading-[1.0625rem] font-medium text-ck-faint"
+            >
               <CheckoutIcon
                 name="spinner"
-                className="size-3.5 animate-spin motion-reduce:animate-none"
+                className="size-3.5 animate-spin text-ck-accent-lift motion-reduce:animate-none"
               />
               {notYet && !checking ? content.notYet : content.waiting}
             </p>
             <button
               type="button"
-              className={`${CK_BUTTON_SECONDARY} w-full`}
+              className={`${CK_BUTTON_SECONDARY} h-13! w-full`}
               onClick={handlePaid}
               disabled={checking}
             >
@@ -187,6 +192,6 @@ export default function UpiQrPayment({
           </div>
         </>
       )}
-    </div>
+    </section>
   )
 }

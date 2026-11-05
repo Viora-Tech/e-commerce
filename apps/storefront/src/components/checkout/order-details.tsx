@@ -10,6 +10,8 @@ type OrderDetailsProps = {
   /** The latest gateway, COD or transfer attempt; undefined when gift cards paid everything. */
   payment: typeof payment.$inferSelect | undefined
   giftCards: { id: string; last: string; amountPaise: number }[]
+  /** The Delivery card already says where it goes: leave the address and shipping out. */
+  compact?: boolean
 }
 
 const stateName = (code: string): string => INDIAN_STATES.find(([c]) => c === code)?.[1] ?? code
@@ -27,6 +29,7 @@ export default function OrderDetails({
   shipTo,
   payment: pay,
   giftCards,
+  compact = false,
 }: OrderDetailsProps) {
   // Render logic
   const contact = [o.email, o.phone].filter((v): v is string => Boolean(v))
@@ -48,7 +51,7 @@ export default function OrderDetails({
   const rows: [string, string[]][] = []
   if (contact.length > 0) rows.push([content.details.contact, contact])
   if (payLines.length > 0) rows.push([content.details.payment, payLines])
-  if (shipTo) {
+  if (shipTo && !compact) {
     rows.push([
       content.details.shipTo,
       [
@@ -60,7 +63,7 @@ export default function OrderDetails({
       ],
     ])
   }
-  if (shipTo && o.shippingRateName) {
+  if (shipTo && o.shippingRateName && !compact) {
     rows.push([
       content.details.delivery,
       [

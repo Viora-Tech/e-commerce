@@ -49,21 +49,41 @@ export const thankYouContent = {
     pending: 'Complete your payment',
     failed: 'Your payment did not go through',
   },
-  /** The headline once the order is placed: "Thank you, Asha!". */
-  thanks: (name: string | null) => (name ? `Thank you, ${name}!` : 'Thank you!'),
-  /** The first card's heading, by where the order stands. */
+  /** The headline by where the order stands. */
   card: {
     confirmed: 'Your order is confirmed',
-    pending: 'Waiting for your payment',
-    failed: 'Payment not received',
     cancelled: 'This order was cancelled',
     refunded: 'This order was refunded',
     returning: 'This order is on its way back to us',
   },
   /** Where order updates go: the contacts the order was placed with. */
   updates: (contact: string | null) =>
-    contact ? `We will send updates to ${contact}.` : 'We will be in touch about delivery.',
-  arrives: (range: string) => `Expected delivery ${range}.`,
+    contact ? `A confirmation is on its way to ${contact}.` : 'We will be in touch about delivery.',
+  /** The Delivery card. */
+  delivery: {
+    arriving: (range: string) => `Arriving ${range}`,
+    soon: 'We will get it to you soon',
+    body: (rate: string | null) => `${rate ? `${rate}. ` : ''}We will send tracking once it ships.`,
+  },
+  orderNumberLabel: 'Order number',
+  /** The paying moment, while the gateway has not answered yet. */
+  confirming: {
+    heading: 'Confirming your payment…',
+    body: 'Please do not close this page or press back. This usually takes less than a minute.',
+    reassurance:
+      'If money is taken from your account, we will confirm by SMS and WhatsApp, even if you close this page.',
+    amount: 'Amount',
+    paidWith: 'Paid with',
+    order: 'Order',
+    held: (number: string) => `${number} (held for you)`,
+  },
+  failed: {
+    safeHeading: 'No money was taken',
+    safeBody:
+      'If any amount shows as deducted, it goes back to your account within 3 to 5 working days. You do not need to do anything.',
+    help: 'Still stuck? Chat with us on WhatsApp',
+  },
+  codDue: (amount: string) => `Pay ${amount} in cash when it arrives.`,
   /** The four-step progress bar under the first card's line. */
   progress: {
     label: 'Order progress',
@@ -76,7 +96,7 @@ export const thankYouContent = {
   giftCardLine: (last: string, amount: string) => `Gift card •••• ${last} · ${amount}`,
   /** The Shipping cell: "Standard · Free". */
   shippingLine: (rate: string, price: string) => `${rate} · ${price}`,
-  trackOrder: 'Track your order',
+  trackOrder: 'Track order',
   orderNumber: (number: number) => `Order #${number}`,
   status: {
     awaiting: (total: string) => `We are confirming your payment of ${total}.`,
@@ -136,9 +156,16 @@ export const thankYouContent = {
 export const manualPaymentContent = {
   intro: (total: string, reference: string) =>
     `Pay ${total} and quote ${reference} so we can match it. We confirm the order once the money arrives.`,
+  copy: 'Copy',
+  copied: 'Copied',
+  copyLabel: (what: string) => `Copy ${what}`,
   upi: {
-    heading: 'UPI',
+    title: 'UPI',
+    heading: (amount: string) => `Scan to pay ${amount}`,
+    help: 'Scan with any UPI app, or pay to the UPI ID below.',
     idLabel: 'UPI ID',
+    amount: 'Amount',
+    note: 'Note',
     open: 'Open UPI app',
     qrAlt: (upiId: string) => `UPI QR for ${upiId}`,
   },
@@ -310,6 +337,7 @@ export const checkoutContent = {
   },
   /** What opens under the picked way to pay. */
   methodPanel: {
+    recommended: 'Recommended',
     upi: (amount: string) =>
       `Pay ${amount} straight from your bank with any UPI app. On a phone your app opens; on a computer you scan a QR code.`,
     gateway: (brand: string) => `You finish on ${brand}'s secure screen.`,
@@ -333,6 +361,20 @@ export const checkoutContent = {
   discount: 'Discount',
   shipping: 'Shipping',
   shippingFree: 'Free',
+  countryPicker: { search: 'Search countries', empty: 'No country matches that.' },
+  soldOut: {
+    heading: (count: number) =>
+      count === 1 ? 'One item just sold out' : `${count} items just sold out`,
+    body: 'This happened while you were checking out. You have not been charged.',
+    chip: 'Sold out',
+    remove: 'Remove from my order',
+    notify: 'Notify me when it is back',
+    notified: 'We will let you know',
+    others: (count: number) =>
+      count === 1
+        ? 'Your other item is still held for you'
+        : `Your other ${count} items are still held for you`,
+  },
   /** Summary row before an address has been checked. */
   shippingPending: 'Enter your PIN code',
   /** Abroad there is no PIN code: the address decides the options (#64). */

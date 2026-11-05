@@ -33,7 +33,7 @@ export default async function ManualPaymentInstructions({
       <div className="manual-pay__grid">
         {upi ? (
           <div className="manual-pay__card">
-            <h3 className="h4">{content.upi.heading}</h3>
+            <h3 className="h4">{content.upi.title}</h3>
             {qr ? (
               // biome-ignore lint/performance/noImgElement: inline data URI, nothing to optimise.
               <img

@@ -8,19 +8,19 @@ type StatusMarkProps = {
 const TONES: Record<StatusMarkProps['tone'], { ring: string; icon: 'check' | 'clock' | 'alert' }> =
   {
     confirmed: {
-      ring: 'bg-ck-accent text-ck-accent-ink border-ck-accent [box-shadow:0_0_0_6px_color-mix(in_oklab,var(--ck-accent)_8%,transparent)]',
+      ring: 'bg-ck-success-soft text-ck-success',
       icon: 'check',
     },
     success: {
-      ring: 'bg-ck-success/12 text-ck-success border-ck-success/25 [box-shadow:0_0_0_6px_color-mix(in_oklab,var(--ck-success)_6%,transparent)]',
+      ring: 'bg-ck-success-soft text-ck-success',
       icon: 'check',
     },
     pending: {
-      ring: 'bg-ck-accent-soft text-ck-accent border-ck-accent/25 [box-shadow:0_0_0_6px_color-mix(in_oklab,var(--ck-accent)_5%,transparent)]',
+      ring: 'bg-ck-warn-soft text-ck-warn',
       icon: 'clock',
     },
     failed: {
-      ring: 'bg-ck-danger-soft text-ck-danger border-ck-danger/25 [box-shadow:0_0_0_6px_color-mix(in_oklab,var(--ck-danger)_5%,transparent)]',
+      ring: 'bg-ck-danger-soft text-ck-danger',
       icon: 'alert',
     },
   }
@@ -33,8 +33,8 @@ const SETTLE =
 const DRAW = 'motion-safe:animate-[ck-draw_260ms_var(--ease-out)_140ms_both]'
 
 /**
- * The round mark at the top of the thank-you page: a tick, a clock or a warning, inside a faint
- * halo. A rare moment, so it gets the one celebratory touch: the circle settles in and the tick
+ * The round mark at the top of the thank-you page: a tick, a clock or a warning on a soft
+ * tile. A rare moment, so it gets the one celebratory touch: the circle settles in and the tick
  * draws itself, once, when the page mounts (CSS animations do not replay on a re-render).
  */
 export default function StatusMark({ tone }: StatusMarkProps) {
@@ -44,7 +44,7 @@ export default function StatusMark({ tone }: StatusMarkProps) {
   return (
     <span
       aria-hidden="true"
-      className={`flex size-11 shrink-0 items-center justify-center rounded-full border ${SETTLE} ${t.ring}`}
+      className={`flex size-11 shrink-0 items-center justify-center rounded-full ${SETTLE} ${t.ring}`}
     >
       {t.icon === 'check' ? (
         <svg
@@ -56,12 +56,12 @@ export default function StatusMark({ tone }: StatusMarkProps) {
           strokeLinejoin="round"
           aria-hidden="true"
           focusable="false"
-          className="size-7"
+          className="size-5"
         >
           <path d="M5 12.5l4.5 4.5L19 7.5" pathLength={1} strokeDasharray={1} className={DRAW} />
         </svg>
       ) : (
-        <CheckoutIcon name={t.icon} className="size-7" />
+        <CheckoutIcon name={t.icon} className="size-5" />
       )}
     </span>
   )

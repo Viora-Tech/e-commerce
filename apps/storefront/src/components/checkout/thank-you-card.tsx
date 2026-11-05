@@ -18,9 +18,9 @@ export default function ThankYouCard({ id, title, className = '', children }: Th
   return (
     <section
       aria-labelledby={id}
-      className={`flex flex-col gap-5 rounded-[calc(var(--ck-radius)*1.25)] bg-ck-bg p-5 [box-shadow:var(--ck-card-shadow)] sm:p-6 dark:[box-shadow:0_0_0_1px_var(--ck-line)] ${className}`}
+      className={`flex flex-col gap-5 rounded-[calc(var(--ck-radius)*1.6)] bg-ck-bg p-5 [box-shadow:var(--ck-card-shadow)] sm:p-6 dark:[box-shadow:0_0_0_1px_var(--ck-line)] ${className}`}
     >
-      <h2 id={id} className={`${CK_HEADING} text-[1.125rem]! sm:text-[1.25rem]!`}>
+      <h2 id={id} className={`${CK_HEADING} text-[1.0625rem]!`}>
         {title}
       </h2>
       {children}

@@ -66,7 +66,8 @@ export default function PaymentMethods({
     <fieldset className="border-0! p-0!">
       <legend className="sr-only">{content.payment}</legend>
       <div className="divide-y divide-ck-line overflow-hidden rounded-[calc(var(--ck-radius)*1.6)] bg-ck-bg [box-shadow:var(--ck-section-shadow)]">
-        {methods.map((m) => {
+        {methods.map((m, index) => {
+          const recommended = index === 0 && methods.length > 1 && m.id !== 'cod'
           const view = methodView(m)
           const checked = selected === m.id
           const blocked = m.id === 'cod' && codBlocked
@@ -112,6 +113,11 @@ export default function PaymentMethods({
                 <span className="flex min-w-0 flex-1 flex-col gap-1">
                   <span className="flex flex-wrap items-center gap-2 text-[0.9375rem] leading-snug font-semibold text-ck-ink">
                     {view.title}
+                    {recommended ? (
+                      <span className="flex h-6 items-center rounded-[0.375rem] bg-ck-accent-lift px-2 text-[0.75rem] font-semibold text-ck-accent-ink">
+                        {panel.recommended}
+                      </span>
+                    ) : null}
                     {m.test ? (
                       <span
                         title={content.testModeHint}
@@ -122,7 +128,13 @@ export default function PaymentMethods({
                     ) : null}
                   </span>
                   {view.hint ? (
-                    <span className="text-[0.8125rem] leading-[1.1875rem] text-ck-muted">
+                    <span
+                      className={
+                        m.id === 'cod'
+                          ? 'text-[0.8125rem] leading-[1.1875rem] text-ck-muted'
+                          : 'text-[0.75rem] leading-[1.0625rem] text-ck-faint'
+                      }
+                    >
                       {view.hint}
                     </span>
                   ) : null}
@@ -133,6 +145,12 @@ export default function PaymentMethods({
                       ))}
                     </span>
                   ) : null}
+                  {adjustment && saving ? (
+                    <span className="flex items-center gap-1.5 text-[0.8125rem] leading-[1.1875rem] font-medium text-ck-success">
+                      <CheckoutIcon name="tag" className="size-[0.8125rem]" />
+                      {panel.saving(adjustment)}
+                    </span>
+                  ) : null}
                   {m.id === 'cod' && codNote ? (
                     <span
                       className={`text-[0.75rem] leading-snug ${blocked ? 'text-ck-danger' : 'text-ck-muted'}`}
@@ -141,11 +159,11 @@ export default function PaymentMethods({
                     </span>
                   ) : null}
                 </span>
-                {adjustment ? (
+                {adjustment && !saving ? (
                   <span
                     className={`flex h-6 shrink-0 items-center rounded-full border px-2.5 text-[0.75rem] font-semibold tabular-nums ${saving ? 'border-ck-success/30 bg-ck-success/12 text-ck-success' : 'border-ck-line bg-ck-soft text-ck-muted'}`}
                   >
-                    {saving ? panel.saving(adjustment) : adjustment}
+                    {adjustment}
                   </span>
                 ) : null}
               </label>
@@ -155,7 +173,7 @@ export default function PaymentMethods({
                   className={`grid transition-[grid-template-rows,opacity] duration-200 ease-out motion-reduce:transition-[opacity] ${checked ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}
                 >
                   <div className="min-h-0 overflow-hidden">
-                    <p className="ps-[5.25rem] pe-4 pb-4 text-[0.8125rem] leading-[1.55] text-ck-muted">
+                    <p className="ps-[5.25rem] pe-4 pb-4 text-[0.75rem] leading-[1.0625rem] text-ck-faint">
                       {detail}
                     </p>
                   </div>
