@@ -1,8 +1,10 @@
 /** SOURCE OF TRUTH: our data and Shopify's basic Liquid objects — WHAT: the plain data an imported theme reads (`LiquidData*` types the store loader fills, extra fields and content entries included) and the small objects every theme prints: images, videos, colours, colour schemes, fonts / WHY: a theme's markup reads Shopify's objects; these shapes are what lets a theme LOOK the same while every value comes from our store */
+
 import { Drop } from 'liquidjs'
 import type { BrowseFacets } from '../catalog/browse'
 import type { BrowseFilters, BrowseSort } from '../catalog/browse-params'
 import type { StorefrontFilterConfig } from '../catalog/filter-config'
+import type { MediaVariants } from '../media/loader'
 import type { FieldType, MeasureKind } from '../metaobjects/schemas'
 import { numericId } from './numeric-id'
 
@@ -13,6 +15,8 @@ export type LiquidImageData = {
   width?: number | null | undefined
   height?: number | null | undefined
   id?: string | undefined
+  /** The sized copies the media pipeline made; none on legacy or unprocessed files. */
+  variants?: MediaVariants | undefined
 }
 
 export type LiquidVariantData = {
@@ -370,8 +374,14 @@ export class ImageDrop extends Drop {
   readonly id: number | string
   readonly media_type = 'image'
   readonly presentation = { focal_point: '50.0% 50.0%' }
+  /** Private, so a theme's `| json` never prints the whole map. */
+  readonly #sized: readonly (readonly [number, string])[]
   constructor(image: LiquidImageData) {
     super()
+    this.#sized = Object.entries(image.variants ?? {})
+      .map(([width, files]) => [Number(width), files.webp] as const)
+      .filter(([width, file]) => Number.isFinite(width) && Boolean(file))
+      .sort((a, b) => a[0] - b[0])
     this.src = image.url
     this.url = image.url
     this.alt = image.alt ?? ''
@@ -384,6 +394,20 @@ export class ImageDrop extends Drop {
   }
   get preview_image(): ImageDrop {
     return this
+  }
+  /**
+   * The file for a wanted width: the smallest copy at least that wide. Past the largest copy
+   * the original is sharper, unless the original is no bigger than that copy anyway.
+   */
+  urlFor(width: number): string {
+    const fits = this.#sized.find(([w]) => w >= width)
+    if (fits) return fits[1]
+    const largest = this.#sized.at(-1)
+    return largest && largest[0] >= this.width ? largest[1] : this.src
+  }
+  /** `url 320w, url 640w`; empty when there are no sized copies. */
+  get srcset(): string {
+    return this.#sized.map(([width, file]) => `${file} ${width}w`).join(', ')
   }
   override valueOf(): string {
     return this.src

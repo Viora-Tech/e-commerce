@@ -1,4 +1,5 @@
 /** SOURCE OF TRUTH: theme setting values for Liquid — WHAT: a stored setting turned into what the theme reads by its schema type (images, products, collections, menus, colours, schemes, fonts, videos, links) / WHY: themes read `section.settings.x` as Shopify's objects; this is the one place stored values become them */
+import type { MediaVariants } from '../media/loader'
 import type { LiquidDataCache } from './cache'
 import {
   ColorDrop,
@@ -67,13 +68,20 @@ export function liquidSettingValue(
   switch (setting.type) {
     case 'image_picker': {
       if (value && typeof value === 'object' && 'url' in value) {
-        const v = value as { url: unknown; alt?: unknown; width?: unknown; height?: unknown }
+        const v = value as {
+          url: unknown
+          alt?: unknown
+          width?: unknown
+          height?: unknown
+          variants?: MediaVariants
+        }
         return typeof v.url === 'string' && v.url && !v.url.startsWith('shopify://')
           ? imageDrop({
               url: v.url,
               alt: typeof v.alt === 'string' ? v.alt : '',
               width: typeof v.width === 'number' ? v.width : null,
               height: typeof v.height === 'number' ? v.height : null,
+              variants: v.variants ?? undefined,
             })
           : null
       }

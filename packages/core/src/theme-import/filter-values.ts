@@ -166,7 +166,8 @@ export function imageUrl(value: unknown, named: Named): ImageUrl | string {
   if (!src) return ''
   const width = named.width ? Number(named.width) : null
   const height = named.height ? Number(named.height) : null
-  return new ImageUrl(src, imageOf(value), width, height)
+  const image = imageOf(value)
+  return new ImageUrl(width && image ? image.urlFor(width) : src, image, width, height)
 }
 
 /** Attributes Shopify's `image_tag` writes itself; anything else passes through. */
@@ -198,6 +199,8 @@ export function imageTag(value: unknown, named: Named): string {
     if (v === null || v === undefined || v === false) continue
     attrs[k] = v
   }
+  // Without `sizes` a browser assumes the full window and would fetch far too much.
+  if (named.sizes && named.srcset !== false && image?.srcset) attrs.srcset = image.srcset
   if (named.preload) attrs.fetchpriority ??= 'high'
   return `<img ${Object.entries(attrs)
     .map(([k, v]) => `${k}="${escapeAttr(str(v))}"`)
