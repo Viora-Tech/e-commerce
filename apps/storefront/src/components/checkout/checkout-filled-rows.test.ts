@@ -17,11 +17,11 @@ const form = {
 
 const render = (done: boolean) =>
   renderToStaticMarkup(
-    createElement(
-      CheckoutFilledRows,
-      { done, rows: contactRows(form) },
-      createElement('input', { name: 'phone' }),
-    ),
+    createElement(CheckoutFilledRows, {
+      done,
+      rows: contactRows(form),
+      children: createElement('input', { name: 'phone' }),
+    }),
   )
 
 describe('CheckoutFilledRows', () => {
