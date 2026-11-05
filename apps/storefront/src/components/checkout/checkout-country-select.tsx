@@ -1,5 +1,6 @@
 'use client'
 
+import Image from 'next/image'
 import { type KeyboardEvent, useEffect, useRef, useState } from 'react'
 import CheckoutIcon from '@/components/checkout/checkout-icon'
 import { checkoutContent } from '@/data/checkout'
@@ -16,18 +17,22 @@ type CheckoutCountrySelectProps = {
 const content = checkoutContent.countryPicker
 const LIST_ID = 'checkout-country-list'
 
-/** The two-letter code on its tile: the same look in the field and in the list. */
-function CodeTile({ code }: { code: string }) {
+/** The country's flag: a small file per country, so only the flags on screen ever load. */
+function Flag({ code }: { code: string }) {
   return (
-    <span className="grid h-6 w-8 shrink-0 place-items-center rounded-[0.375rem] bg-ck-soft text-[0.6875rem] font-semibold text-ck-muted">
-      {code}
-    </span>
+    <Image
+      src={`/flags/${code}.svg`}
+      alt=""
+      width={24}
+      height={16}
+      unoptimized
+      className="block h-4! w-6! shrink-0 rounded-[0.1875rem] [box-shadow:0_0_0_0.0625rem_var(--ck-line)]"
+    />
   )
 }
 
 /**
- * The Country field: a button that opens a searchable list, each country with its code on a
- * tile. Type to narrow it, arrows to move, Enter to pick, Escape to close. A hidden native
+ * The Country field: a button that opens a searchable list, each country with its flag. Type to narrow it, arrows to move, Enter to pick, Escape to close. A hidden native
  * select stays in the page so the browser can still autofill the country.
  */
 export default function CheckoutCountrySelect({
@@ -128,11 +133,11 @@ export default function CheckoutCountrySelect({
         aria-expanded={open}
         aria-labelledby={`${id}-label ${id}`}
         onClick={handleOpen}
-        className={`${CK_INPUT} ${CK_INPUT_HEIGHT} flex cursor-pointer items-center gap-2.5 text-left`}
+        className={`${CK_INPUT} ${CK_INPUT_HEIGHT} flex cursor-pointer items-center gap-2.5 border! border-ck-line! bg-ck-field! text-left`}
       >
-        <CodeTile code={value} />
+        <Flag code={value} />
         <span className="min-w-0 flex-1 truncate">{current?.[1] ?? value}</span>
-        <CheckoutIcon name="chevron" className="size-4 shrink-0 rotate-90 text-ck-muted" />
+        <CheckoutIcon name="chevron" className="size-4 shrink-0 text-ck-muted" />
       </button>
       {open ? (
         <div className="absolute inset-x-0 top-full z-20 mt-1 flex flex-col overflow-hidden rounded-ck bg-ck-bg [box-shadow:var(--ck-section-shadow)]">
@@ -175,7 +180,7 @@ export default function CheckoutCountrySelect({
                 onKeyDown={undefined}
                 className={`flex min-h-11 cursor-pointer items-center gap-2.5 rounded-[0.5rem] px-2.5 text-[0.9375rem] text-ck-ink ${i === active ? 'bg-ck-soft' : ''}`}
               >
-                <CodeTile code={code} />
+                <Flag code={code} />
                 <span className="min-w-0 flex-1 truncate">{name}</span>
                 {code === value ? (
                   <CheckoutIcon name="check" className="size-4 shrink-0 text-ck-accent-lift" />

@@ -8,7 +8,7 @@ import CheckoutMoney from '@/components/checkout/checkout-money'
 import SummaryGlass from '@/components/checkout/summary-glass'
 import { checkoutContent as content } from '@/data/checkout'
 import { CK_CARD } from '@/lib/checkout-classes'
-import { whatsAppHelp } from '@/lib/thank-you'
+import { whatsAppHelp } from '@/lib/whatsapp-help'
 
 type CheckoutPageShellProps = {
   look: CheckoutLook

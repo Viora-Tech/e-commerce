@@ -21,7 +21,8 @@ import { thankYouContent as content } from '@/data/checkout'
 import { CK_BUTTON_PRIMARY, CK_BUTTON_SECONDARY, CK_CARD, CK_HEADING } from '@/lib/checkout-classes'
 import type { ShopperParcel } from '@/lib/parcels'
 import { payOnlineAction, retryPaymentAction } from '@/lib/payment-actions'
-import { deliveryWindow, thankYouProgress, whatsAppHelp } from '@/lib/thank-you'
+import { deliveryWindow, thankYouProgress } from '@/lib/thank-you'
+import { whatsAppHelp } from '@/lib/whatsapp-help'
 
 type ThankYouTemplateProps = {
   order: typeof order.$inferSelect
@@ -348,7 +349,7 @@ export default function ThankYouTemplate({
                 className={`${CK_BUTTON_PRIMARY} min-w-0 flex-1 no-underline`}
               >
                 {content.trackOrder}
-                <CheckoutIcon name="chevron" className="size-[1.125rem]" />
+                <CheckoutIcon name="chevron" className="size-[1.125rem] -rotate-90" />
               </a>
             ) : null}
           </div>

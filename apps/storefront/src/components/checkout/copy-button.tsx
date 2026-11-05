@@ -44,7 +44,7 @@ export default function CopyButton({ value, label }: CopyButtonProps) {
       type="button"
       onClick={handleCopy}
       aria-label={content.copyLabel(label)}
-      className="relative flex shrink-0 cursor-pointer items-center gap-1 bg-transparent! p-0! text-[0.75rem] font-medium text-ck-muted outline-none transition-colors duration-150 after:absolute after:-inset-3 hover:text-ck-ink focus-visible:text-ck-ink"
+      className="relative flex shrink-0 cursor-pointer items-center gap-1 bg-transparent! p-0! text-[0.75rem]! font-medium! text-ck-muted! outline-none transition-colors duration-150 after:absolute after:-inset-3 hover:text-ck-ink! focus-visible:text-ck-ink!"
     >
       <CheckoutIcon name={copied ? 'check' : 'copy'} className="size-3.5" />
       <span aria-live="polite">{copied ? content.copied : content.copy}</span>

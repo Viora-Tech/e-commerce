@@ -380,5 +380,5 @@ export const config = {
   // deploy/docker-compose.prod.yml), not tied to any store's host, so it must answer even
   // when the request's Host header ("localhost" inside the container, no store configured
   // for it) would otherwise 404 here.
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|api/health).*)'],
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|flags/|api/health).*)'],
 }
