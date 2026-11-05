@@ -1,4 +1,5 @@
 /** SOURCE OF TRUTH: the store data an imported theme reads — WHAT: a per-request `LiquidDataSource` over our database (products with variants, options and images; collections and their products; menus; blogs; pages; the shop; extra fields and content entries through `custom-data.ts`), cached within the request / WHY: imported Liquid asks for Shopify objects by handle; this answers from our catalogue under the store's RLS, so the theme shows our live data */
+
 import {
   article,
   blog,
@@ -26,6 +27,7 @@ import {
 import { pickedRecommendationIdsFor } from '../discovery/recommendations'
 import { soldInRequestCatalog } from '../markets/catalog-rules'
 import type { MarketPricing } from '../markets/presentment'
+import type { MediaVariants } from '../media/loader'
 import { keyFromName } from '../metaobjects/validate'
 import { toNavLinks } from '../navigation/resolve'
 import { publishedPolicyLinks } from '../policies/service'
@@ -192,6 +194,7 @@ export async function storeLiquidData(
           description: collection.description,
           imageUrl: media.url,
           imageAlt: media.alt,
+          imageVariants: media.variants,
           width: media.width,
           height: media.height,
           count: sql<number>`(select count(*) from ${collectionProduct} cp join ${product} p on p.id = cp.product_id where cp.collection_id = ${collection.id} and p.status = 'active' and ${soldInRequestCatalog(sql`p.id`)})`,
@@ -206,7 +209,13 @@ export async function storeLiquidData(
         title: r.title,
         descriptionHtml: toHtml(r.description),
         image: r.imageUrl
-          ? { url: r.imageUrl, alt: r.imageAlt ?? r.title, width: r.width, height: r.height }
+          ? {
+              variants: r.imageVariants as MediaVariants,
+              url: r.imageUrl,
+              alt: r.imageAlt ?? r.title,
+              width: r.width,
+              height: r.height,
+            }
           : null,
         productsCount: Number(r.count),
       }))
@@ -332,6 +341,7 @@ export async function storeLiquidData(
             tags: article.tags,
             publishedAt: article.publishedAt,
             imageUrl: media.url,
+            imageVariants: media.variants,
             imageAlt: article.imageAlt,
           })
           .from(article)
@@ -352,7 +362,13 @@ export async function storeLiquidData(
             author: a.author,
             excerptHtml: excerptHtml(a.excerpt),
             contentHtml: toHtml(a.body),
-            image: a.imageUrl ? { url: a.imageUrl, alt: a.imageAlt ?? a.title } : null,
+            image: a.imageUrl
+              ? {
+                  url: a.imageUrl,
+                  alt: a.imageAlt ?? a.title,
+                  variants: a.imageVariants as MediaVariants,
+                }
+              : null,
             tags: a.tags,
             publishedAt: a.publishedAt,
           })),
