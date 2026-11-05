@@ -403,7 +403,7 @@ export const checkoutContent = {
     found: (city: string, state: string) => `${city}, ${state}`,
     foundBy: (city: string, state: string, by: string) => `${city}, ${state} · by ${by}`,
   },
-  business: 'Get a GST invoice for my business',
+  business: 'This is a business address (add GST)',
   minimumOrder: (min: string, missing: string) =>
     `The minimum order is ${min}. Add ${missing} more to check out.`,
   codRules: {
