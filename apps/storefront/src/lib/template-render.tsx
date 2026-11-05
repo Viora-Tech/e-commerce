@@ -231,12 +231,14 @@ export async function renderTemplate(
     : shown
   // Section images are saved as bare URLs; one lookup gives <Picture> their AVIF/WebP
   // variants and ThumbHash, so a banner never ships the full-size original.
-  const visible = await attachImageMedia(storeId, bound, preview)
-  const config = await blocksConfig(storeId, read)
+  const [visible, config, split] = await Promise.all([
+    attachImageMedia(storeId, bound, preview),
+    blocksConfig(storeId, read),
+    liquidSplit(key, preview),
+  ])
   // An imported Shopify theme: its sections come from the render cache or the Liquid engine
   // now; the LiquidSection renderer below only places the HTML. Past the split, the rest are
   // rendered after the first ones and stream in (`DeferredLiquid`).
-  const split = await liquidSplit(key, preview)
   const liquidHtml = themeId
     ? await renderLiquidSections(storeId, themeId, key, visible.content, {
         ...split,
