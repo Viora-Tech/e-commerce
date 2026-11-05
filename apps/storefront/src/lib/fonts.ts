@@ -3,6 +3,7 @@ import {
   DM_Sans,
   Figtree,
   Fraunces,
+  Geist,
   IBM_Plex_Sans,
   Instrument_Serif,
   Inter,
@@ -79,6 +80,12 @@ const dmSans = DM_Sans({
   display: 'swap',
   preload: false,
 })
+const geist = Geist({
+  subsets: ['latin'],
+  variable: '--font-geist',
+  display: 'swap',
+  preload: false,
+})
 const plusJakartaSans = Plus_Jakarta_Sans({
   subsets: ['latin'],
   variable: '--font-plus-jakarta-sans',
@@ -146,6 +153,7 @@ export const themeFontVariables = [
   inter,
   manrope,
   dmSans,
+  geist,
   plusJakartaSans,
   spaceGrotesk,
   sora,
