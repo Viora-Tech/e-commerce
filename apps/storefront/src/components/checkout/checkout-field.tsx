@@ -60,6 +60,11 @@ export default function CheckoutField({
     <div className="flex min-w-0 flex-col gap-2">
       <label htmlFor={id} className={CK_LABEL}>
         {label}
+        {required ? (
+          <span aria-hidden="true" className="ms-0.5 text-ck-danger">
+            *
+          </span>
+        ) : null}
       </label>
       <div className="relative">
         {control ?? null}

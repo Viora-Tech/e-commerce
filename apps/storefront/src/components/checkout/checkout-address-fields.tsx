@@ -220,6 +220,7 @@ export default function CheckoutAddressFields({
         <CheckoutSelect
           id={fieldId('stateCode')}
           label={f.state}
+          required
           value={values.stateCode}
           options={INDIAN_STATES}
           autoComplete="address-level1"
