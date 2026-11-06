@@ -25,6 +25,15 @@ import {
   videoTag,
 } from './filter-values'
 
+/** A filter's input as a list: nothing is empty, one object is a list of one. */
+function listOf(value: unknown): unknown[] {
+  if (value === null || value === undefined || value === '') return []
+  if (Array.isArray(value)) return value
+  if (typeof value === 'object' && Symbol.iterator in value)
+    return [...(value as Iterable<unknown>)]
+  return [value]
+}
+
 /** What `form.errors | default_errors` prints after a post we rejected. */
 const FORM_ERRORS_HTML =
   '<ul class="errors" role="alert"><li>Please check your details and try again.</li></ul>'
@@ -61,6 +70,19 @@ export function registerShopifyFilters(engine: Liquid): void {
     return host ? `https://${host}/cdn/shop/files/${encodeURIComponent(str(file))}` : ''
   })
   engine.registerFilter('file_img_url', engine.filters.file_url as FilterImplOptions)
+  // Shopify treats one object as a list of one (`product.featured_media | concat: others`);
+  // LiquidJS would split it into its fields.
+  add('concat', (value: unknown, other: unknown) => [...listOf(value), ...listOf(other)])
+  // `reject: 'src', product.featured_media` compares with the object's own `src`.
+  const reject = engine.filters.reject as (...args: unknown[]) => unknown
+  add('reject', function (this: unknown, list: unknown, key: unknown, ...rest: unknown[]) {
+    const expected = rest[0]
+    const own =
+      expected && typeof expected === 'object'
+        ? (expected as Record<string, unknown>)[String(key)]
+        : undefined
+    return reject.call(this, list, key, ...(own === undefined ? rest : [own]))
+  } as FilterImplOptions)
   add('global_asset_url', () => '')
   add('shopify_asset_url', () => '')
 

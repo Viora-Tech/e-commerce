@@ -97,6 +97,7 @@ export type LiquidBlockInput = {
   type: string
   settings: Record<string, unknown>
   disabled?: boolean | undefined
+  static?: boolean | undefined
   blocks?: LiquidBlockInput[] | undefined
 }
 

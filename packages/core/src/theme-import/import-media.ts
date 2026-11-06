@@ -210,13 +210,22 @@ export function liveVideosIn(html: string, sectionKey: string): LiveVideo[] {
   return out
 }
 
+/**
+ * Whether a section shows this video setting. Horizon's hero keeps `video_1` beside
+ * `media_type_1`: a video left there after switching the slide to an image is not on the page,
+ * and counting it would pair the live page's videos with the wrong names.
+ */
+function videoShown(settings: Record<string, unknown>, key: string): boolean {
+  return settings[key.replace(/^video/, 'media_type')] !== 'image'
+}
+
 /** Video setting values of a section in render order: its own settings, then enabled blocks. */
-function videoNamesOf(section: ShopifyJsonTemplate['sections'][string]): string[] {
+export function videoNamesOf(section: ShopifyJsonTemplate['sections'][string]): string[] {
   const names: string[] = []
   const take = (settings: Record<string, unknown> | undefined) => {
-    for (const v of Object.values(settings ?? {})) {
+    for (const [key, v] of Object.entries(settings ?? {})) {
       const m = typeof v === 'string' ? /^shopify:\/\/files\/videos\/(.+)$/.exec(v) : null
-      if (m?.[1]) names.push(m[1])
+      if (m?.[1] && videoShown(settings ?? {}, key)) names.push(m[1])
     }
   }
   take(section.settings)

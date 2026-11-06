@@ -27,6 +27,8 @@ export type LiquidBlockItem = {
   id: string
   type: string
   disabled?: boolean | undefined
+  /** Placed by the theme's code (`content_for 'block'`), not listed with the others. */
+  static?: boolean | undefined
   settings: Record<string, unknown>
   /** Nested theme blocks (a tab's contents), what `{% content_for 'blocks' %}` lists inside this block. */
   blocks?: LiquidBlockItem[] | undefined
@@ -81,6 +83,7 @@ function blockItems(raw: unknown, depth: number): LiquidBlockItem[] {
         id: typeof item.id === 'string' && item.id ? item.id : `block_${i}`,
         type: item.type,
         disabled: item.disabled === true,
+        ...(item.static === true ? { static: true } : {}),
         settings: item.settings && typeof item.settings === 'object' ? item.settings : {},
         ...(nested.length ? { blocks: nested } : {}),
       },
