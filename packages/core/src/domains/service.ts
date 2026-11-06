@@ -8,7 +8,7 @@ import {
   storesWithUnroutedPlatformDomains,
   withStore,
 } from '@commerce/db'
-import { and, asc, desc, eq, inArray, or } from 'drizzle-orm'
+import { and, asc, desc, eq, inArray, isNull, or } from 'drizzle-orm'
 import { CommerceError } from '../errors'
 import { insertOutboxEvent } from '../outbox/write'
 import { type CertReason, reasonOf } from './certificate'
@@ -391,7 +391,9 @@ export async function pollPendingDomains(
 /**
  * Store addresses (`<slug>.<PLATFORM_STORE_DOMAIN>`) whose route was never asked for: a store
  * made before routes were automatic, or while the admin could not ask. Each gets its route
- * queued once; the route job adds it in Dokploy. Returns how many were queued.
+ * queued once; the route job adds it in Dokploy. A refused hostname goes back to `none` with its
+ * request time kept, so it stays refused: asking again would rewrite the row on every poll, and
+ * each write clears the store's page cache (#1183). Returns how many were queued.
  */
 async function requestMissingPlatformRoutes(
   db: Db,
@@ -404,7 +406,13 @@ async function requestMissingPlatformRoutes(
         const rows = await tx
           .select({ id: storeDomain.id })
           .from(storeDomain)
-          .where(and(eq(storeDomain.kind, 'platform'), eq(storeDomain.routeStatus, 'none')))
+          .where(
+            and(
+              eq(storeDomain.kind, 'platform'),
+              eq(storeDomain.routeStatus, 'none'),
+              isNull(storeDomain.routeRequestedAt),
+            ),
+          )
         const now = deps.now ?? new Date()
         for (const row of rows) {
           await tx
