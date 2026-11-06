@@ -3,6 +3,7 @@ import {
   anonymiseCustomer,
   askConsentAgain,
   CONSENT_CHANNELS,
+  cookieBannerShown,
   cookieConsentSummary,
   createDataRequest,
   customerMarketingConsent,
@@ -79,6 +80,7 @@ export const customerPrivacyRouter = {
       grievanceOfficer: (await loadPolicySettings(ctx)).grievanceOfficer,
       requests: await dataRequestCounts(ctx),
       consent30Days: await cookieConsentSummary(ctx, new Date(Date.now() - 30 * DAY_MS)),
+      bannerShown30Days: await cookieBannerShown(ctx, new Date(Date.now() - 30 * DAY_MS)),
     }
   }),
 
