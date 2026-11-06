@@ -115,6 +115,40 @@ export function storageDefaultsFromEnv(env: Record<string, string | undefined>):
     : defaultStorageSettings
 }
 
+/**
+ * What a store really uses: its saved choice, or the deployment's default when it has none.
+ * Saved settings with nothing enabled count as no choice, so turning a merchant's own bucket
+ * off returns the store to the platform bucket, not the server's disk.
+ */
+export function effectiveStorageSettings(
+  raw: unknown,
+  env: Record<string, string | undefined>,
+): StorageSettings {
+  const saved = raw ? parseStorageSettings(raw) : null
+  if (saved && saved.enabled.length > 0) return saved
+  return { ...storageDefaultsFromEnv(env), migration: saved?.migration ?? null }
+}
+
+/**
+ * The registry a store's files resolve against. The platform bucket needs no app, so a store on
+ * it gets every provider; a store on anything else keeps only what it installed.
+ */
+export function storageRegistryFor(
+  raw: unknown,
+  env: Record<string, string | undefined>,
+  installed: StorageRegistry,
+  all: StorageRegistry,
+): StorageRegistry {
+  const settings = effectiveStorageSettings(raw, env)
+  const id = settings.enabled[0]
+  const platform = storageDefaultsFromEnv(env)
+  const onPlatform =
+    id !== undefined &&
+    id === platform.enabled[0] &&
+    settings.providers[id]?.bucket === platform.providers[id]?.bucket
+  return onPlatform ? all : installed
+}
+
 export { StorageRegistry }
 
 /** Merges a migration progress patch into the store's saved storage settings. */
@@ -139,8 +173,7 @@ export async function loadStoreStorageSettings(
   storeId: string,
 ): Promise<StorageSettings> {
   const [s] = await tx.select({ storage: store.storage }).from(store).where(eq(store.id, storeId))
-  if (s?.storage) return parseStorageSettings(s.storage)
-  return storageDefaultsFromEnv(process.env)
+  return effectiveStorageSettings(s?.storage, process.env)
 }
 
 /** The provider a store writes to right now; the local folder is the floor. */
