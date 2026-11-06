@@ -9,6 +9,7 @@ import {
   matchedOf,
   sendMetaEvents,
   verifyMetaToken,
+  verifyPixelToken,
 } from './meta'
 
 // Never the real Graph API: every call goes through a fake fetch.
@@ -202,5 +203,52 @@ describe('verifyMetaToken', () => {
     const { fn } = fakeFetch(400, { error: { message: 'Unsupported get request', code: 100 } })
     const res = await verifyMetaToken({ pixelId: '1234567890', token: FAKE_TOKEN, fetch: fn })
     expect(res).toMatchObject({ ok: false, kind: 'fail', code: 100 })
+  })
+})
+
+describe('verifyPixelToken', () => {
+  const answers = (...list: { status: number; body: unknown }[]) => {
+    const calls: { url: string; init: RequestInit }[] = []
+    const fn: FetchLike = async (url, init) => {
+      calls.push({ url, init })
+      const next = list[calls.length - 1]
+      return new Response(JSON.stringify(next?.body ?? {}), { status: next?.status ?? 500 })
+    }
+    return { fn, calls }
+  }
+  const missing = { status: 400, body: { error: { message: 'Missing Permission', code: 100 } } }
+
+  it('keeps the name when the token can read the pixel', async () => {
+    const { fn, calls } = answers({ status: 200, body: { id: '1234567890', name: 'Waimers' } })
+    const res = await verifyPixelToken({ pixelId: '1234567890', token: FAKE_TOKEN, fetch: fn })
+    expect(res).toEqual({ ok: true, name: 'Waimers' })
+    expect(calls).toHaveLength(1)
+  })
+
+  it('accepts a send-only token with one test event', async () => {
+    const { fn, calls } = answers(missing, { status: 200, body: { events_received: 1 } })
+    const res = await verifyPixelToken({ pixelId: '1234567890', token: FAKE_TOKEN, fetch: fn })
+    expect(res).toEqual({ ok: true, name: null })
+    expect(calls[1]?.url).toBe('https://graph.facebook.com/v26.0/1234567890/events')
+    expect(JSON.parse(String(calls[1]?.init.body)).test_event_code).toBe('TOKENCHECK')
+  })
+
+  it('refuses a token that cannot send either', async () => {
+    const { fn } = answers(missing, {
+      status: 400,
+      body: { error: { message: 'Invalid OAuth access token', code: 190 } },
+    })
+    const res = await verifyPixelToken({ pixelId: '1234567890', token: FAKE_TOKEN, fetch: fn })
+    expect(res).toMatchObject({ ok: false, code: 190 })
+  })
+
+  it('does not send an event for any other refusal', async () => {
+    const { fn, calls } = answers({
+      status: 400,
+      body: { error: { message: 'Invalid OAuth access token', code: 190 } },
+    })
+    const res = await verifyPixelToken({ pixelId: '1234567890', token: FAKE_TOKEN, fetch: fn })
+    expect(res).toMatchObject({ ok: false, code: 190 })
+    expect(calls).toHaveLength(1)
   })
 })
