@@ -251,6 +251,23 @@ describe('the poll asks for routes', () => {
     expect(again.routes).toBe(0)
   })
 
+  it('does not ask again for a refused store address, so the row is not rewritten', async () => {
+    const storeId = await seedStore('old', { unrouted: true })
+    await pollPendingDomains(app, { provider, targets, now: t0, requestRoutes: true })
+    await relayRouteJobs(storeId)
+    // The route job refused the hostname: `none`, with the request time kept.
+    await owner
+      .update(storeDomain)
+      .set({ routeStatus: 'none' })
+      .where(eq(storeDomain.storeId, storeId))
+
+    const later = new Date(t0.getTime() + 2 * 60_000)
+    const r = await pollPendingDomains(app, { provider, targets, now: later, requestRoutes: true })
+    expect(r.routes).toBe(0)
+    const [row] = await owner.select().from(storeDomain).where(eq(storeDomain.storeId, storeId))
+    expect(row).toMatchObject({ routeStatus: 'none', routeRequestedAt: t0 })
+  })
+
   it('leaves store addresses alone when routing is off', async () => {
     await seedStore('old', { unrouted: true })
     const r = await pollPendingDomains(app, { provider, targets, now: t0 })
