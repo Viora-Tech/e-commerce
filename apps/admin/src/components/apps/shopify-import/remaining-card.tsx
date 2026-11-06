@@ -98,6 +98,10 @@ function rowsOf(status: ImportStatus, labels: Record<ImportResource, string>, im
   return rows
 }
 
+/** The table runs edge to edge: its first and last columns line up with the card's own padding. */
+const TABLE_EDGES =
+  '[&_tr>*:first-child]:pl-5 [&_tr>*:last-child]:pr-5 in-data-[layout=sections]:[&_tr>*:first-child]:pl-4 in-data-[layout=sections]:[&_tr>*:last-child]:pr-4 md:in-data-[layout=sections]:[&_tr>*:first-child]:pl-6 md:in-data-[layout=sections]:[&_tr>*:last-child]:pr-6'
+
 /**
  * "What's left to import": per type, Shopify's count next to what is here and
  * what is missing, with a button for each and one "Import remaining" for all.
@@ -285,7 +289,7 @@ export default function RemainingCard({ connected }: RemainingCardProps) {
           ))}
         </ul>
       </div>
-      <Table>
+      <Table className={TABLE_EDGES}>
         <TableHeader>
           <TableRow>
             <TableHead>{copy.columns.what}</TableHead>
@@ -309,7 +313,7 @@ export default function RemainingCard({ connected }: RemainingCardProps) {
               ))
             : rows.map((row) => (
                 <TableRow key={row.key}>
-                  <TableCell className={row.key === 'images' ? 'pl-6' : undefined}>
+                  <TableCell className={row.key === 'images' ? 'pl-9!' : undefined}>
                     <span
                       className={
                         row.key === 'images'
