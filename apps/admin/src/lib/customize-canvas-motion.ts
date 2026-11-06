@@ -319,8 +319,12 @@ export function scrollToSection(id: string, reducedMotion: boolean): void {
   const attempt = () => {
     const frame = document.querySelector<HTMLIFrameElement>('#main iframe')
     const el = frame?.contentDocument?.querySelector<HTMLElement>(`[data-puck-component="${id}"]`)
-    if (el) {
-      el.scrollIntoView({ behavior: reducedMotion ? 'auto' : 'smooth', block: 'start' })
+    const view = frame?.contentWindow
+    if (el && view) {
+      // Not `scrollIntoView`: it also scrolls the admin boxes around the iframe, and near the page's
+      // end that slid the whole preview up (#1187).
+      const top = el.getBoundingClientRect().top + view.scrollY
+      view.scrollTo({ top, behavior: reducedMotion ? 'auto' : 'smooth' })
       return
     }
     frames += 1
