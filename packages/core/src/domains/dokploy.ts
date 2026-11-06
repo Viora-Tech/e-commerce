@@ -4,7 +4,9 @@
  * Endpoints (Dokploy `domain` router, checked against Dokploy's source 2026-10-07):
  * - `GET  /api/domain.byApplicationId?applicationId=` → the app's domains
  * - `POST /api/domain.create` (JSON) → the new domain; for an application Dokploy writes the
- *   Traefik config straight away (`manageDomain`), no redeploy
+ *   Traefik config straight away (`manageDomain`), no redeploy. `middlewares` (names, added to
+ *   the HTTPS router) exists from Dokploy 0.29.0; older releases drop the field silently, so a
+ *   create that asked for one checks the answer has it (`createDomain` below)
  * - `POST /api/domain.delete` `{ domainId }` → removes it and its Traefik config
  * Auth: `x-api-key` header (Dokploy → Settings → Profile → API/CLI).
  *
@@ -21,18 +23,23 @@ export type DokployConfig = {
   applicationId: string
   /** The port the storefront container listens on. */
   port: number
+  /** Traefik middleware that sends an apex to its www; set when an apex is redirect-only. */
+  apexMiddleware?: string | undefined
 }
 
 /** The fields we read from a Dokploy domain; it has more. */
 export type DokployDomain = {
   domainId: string
   host: string
+  middlewares?: string[] | undefined
 }
 
 export type DokployClient = {
   listDomains(): Promise<DokployDomain[]>
-  createDomain(host: string): Promise<DokployDomain>
+  createDomain(host: string, opts?: { middlewares?: string[] | undefined }): Promise<DokployDomain>
   deleteDomain(domainId: string): Promise<void>
+  /** Set when an apex only redirects; `routes.ts` puts it on those routes. */
+  apexMiddleware?: string | undefined
 }
 
 /** A Dokploy call that failed: network, timeout or a non-2xx answer. Retry later. */
@@ -47,6 +54,12 @@ class DokployError extends CommerceError {
 
 const TIMEOUT_MS = 10_000
 
+/**
+ * The one Traefik middleware every redirect-only apex route references. It lives in a file on
+ * the server (developer docs, Custom domains), not in Dokploy.
+ */
+const APEX_REDIRECT_MIDDLEWARE = 'apex-to-www@file'
+
 type Fetch = (input: string, init: RequestInit) => Promise<Response>
 
 /**
@@ -58,6 +71,7 @@ export function dokployConfigFrom(env: {
   DOKPLOY_API_KEY?: string | undefined
   DOKPLOY_STOREFRONT_APPLICATION_ID?: string | undefined
   DOKPLOY_STOREFRONT_PORT: number
+  DOMAIN_PROVIDER?: string | undefined
 }): DokployConfig | null {
   if (!env.DOKPLOY_URL || !env.DOKPLOY_API_KEY || !env.DOKPLOY_STOREFRONT_APPLICATION_ID) {
     return null
@@ -67,6 +81,7 @@ export function dokployConfigFrom(env: {
     apiKey: env.DOKPLOY_API_KEY,
     applicationId: env.DOKPLOY_STOREFRONT_APPLICATION_ID,
     port: env.DOKPLOY_STOREFRONT_PORT,
+    ...(env.DOMAIN_PROVIDER === 'cloudflare' ? { apexMiddleware: APEX_REDIRECT_MIDDLEWARE } : {}),
   }
 }
 
@@ -75,9 +90,12 @@ function apiBase(url: string): string {
 }
 
 function asDomain(value: unknown): DokployDomain | null {
-  const v = value as { domainId?: unknown; host?: unknown } | null
+  const v = value as { domainId?: unknown; host?: unknown; middlewares?: unknown } | null
   if (!v || typeof v.domainId !== 'string' || typeof v.host !== 'string') return null
-  return { domainId: v.domainId, host: v.host }
+  const domain = { domainId: v.domainId, host: v.host }
+  return Array.isArray(v.middlewares)
+    ? { ...domain, middlewares: v.middlewares.filter((m) => typeof m === 'string') }
+    : domain
 }
 
 export function createDokployClient(
@@ -129,6 +147,8 @@ export function createDokployClient(
   }
 
   return {
+    apexMiddleware: config.apexMiddleware,
+
     async listDomains() {
       const body = await call('domain.byApplicationId', {
         method: 'GET',
@@ -140,7 +160,8 @@ export function createDokployClient(
       return body.map(asDomain).filter((d): d is DokployDomain => d !== null)
     },
 
-    async createDomain(host) {
+    async createDomain(host, createOpts = {}) {
+      const middlewares = createOpts.middlewares ?? []
       const body = await call('domain.create', {
         method: 'POST',
         body: {
@@ -153,10 +174,19 @@ export function createDokployClient(
           certificateType: 'letsencrypt',
           applicationId: config.applicationId,
           domainType: 'application',
+          ...(middlewares.length > 0 ? { middlewares } : {}),
         },
       })
       const created = asDomain(body)
       if (!created) throw new DokployError('Dokploy domain.create answered without a domain', null)
+      if (middlewares.some((m) => !created.middlewares?.includes(m))) {
+        // A redirect-only host must never be left serving the storefront.
+        await call('domain.delete', { method: 'POST', body: { domainId: created.domainId } })
+        throw new DokployError(
+          'Dokploy ignored middlewares: it needs version 0.29.0 or later',
+          null,
+        )
+      }
       return created
     },
 

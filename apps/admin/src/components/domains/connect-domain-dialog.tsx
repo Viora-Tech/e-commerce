@@ -1,6 +1,6 @@
 'use client'
 
-import { normaliseHostname, wwwCounterpart } from '@commerce/core/domains'
+import { isApex, normaliseHostname, wwwCounterpart } from '@commerce/core/domains'
 import { Checkbox } from '@commerce/ui/shadcn/checkbox'
 import { Input } from '@commerce/ui/shadcn/input'
 import { Label } from '@commerce/ui/shadcn/label'
@@ -8,7 +8,8 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import FormDialog from '@/components/layout/form-dialog'
-import { domainsContent as copy } from '@/data/domains'
+import { domainsContent as copy, domainEdgeContent } from '@/data/domains'
+import { useCopy } from '@/hooks/use-copy'
 import { useSetupNext } from '@/hooks/use-setup-next'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
@@ -16,12 +17,19 @@ import { routes } from '@/lib/routes'
 type ConnectDomainDialogProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
+  /** An apex only redirects on this server: its www always comes with it. */
+  apexRedirectOnly: boolean
 }
 
 /** Step one of connecting: the hostname, then on to its DNS records. */
-export default function ConnectDomainDialog({ open, onOpenChange }: ConnectDomainDialogProps) {
+export default function ConnectDomainDialog({
+  open,
+  onOpenChange,
+  apexRedirectOnly,
+}: ConnectDomainDialogProps) {
   // Hooks
   const announceSetup = useSetupNext()
+  const edge = useCopy(domainEdgeContent)
   const router = useRouter()
   const [value, setValue] = useState('')
   const [includeTwin, setIncludeTwin] = useState(true)
@@ -69,6 +77,7 @@ export default function ConnectDomainDialog({ open, onOpenChange }: ConnectDomai
   // Render logic
   const parsed = normaliseHostname(value)
   const twin = parsed.ok ? wwwCounterpart(parsed.hostname) : null
+  const twinRequired = apexRedirectOnly && parsed.ok && isApex(parsed.hostname)
   const error = touched && !parsed.ok ? parsed.error : null
 
   return (
@@ -99,7 +108,9 @@ export default function ConnectDomainDialog({ open, onOpenChange }: ConnectDomai
         />
         {error ? <p className="text-caption text-destructive">{error}</p> : null}
       </div>
-      {twin ? (
+      {twin && twinRequired ? (
+        <p className="text-body text-muted-foreground">{edge.apexDialog(twin)}</p>
+      ) : twin ? (
         <Label className="flex items-start gap-2 font-normal text-body">
           <Checkbox
             checked={includeTwin}

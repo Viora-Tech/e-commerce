@@ -1,6 +1,8 @@
 import * as dns from 'node:dns/promises'
 import {
   type CertificateDeps,
+  type CloudflareConfig,
+  createCloudflareClient,
   createDokployClient,
   createDomainProvider,
   type DokployConfig,
@@ -41,10 +43,18 @@ export const VERIFY_EVERY_MS = 2 * 60_000
 export function createDomainPoller(
   connection: IORedis,
   db: Db,
-  opts: { provider: string; targets: DomainTargets; requestRoutes: boolean },
+  opts: {
+    provider: string
+    cloudflare: CloudflareConfig | null
+    targets: DomainTargets
+    requestRoutes: boolean
+  },
 ) {
   const queue = new Queue(DOMAIN_VERIFY_QUEUE, { connection })
-  const provider = createDomainProvider(opts.provider)
+  const provider = createDomainProvider(opts.provider, {
+    cloudflare: opts.cloudflare,
+    log: (m) => logger.warn(m, { area: 'domains' }),
+  })
   const worker = new Worker(
     DOMAIN_VERIFY_QUEUE,
     async () => {
@@ -66,19 +76,31 @@ export function createDomainPoller(
  * Adds and deletes custom domains' HTTPS routes on the storefront app in Dokploy, one job
  * at a time (`runDomainRouteJob`). Jobs come from the outbox relay with retries; a job that
  * uses them all marks its domain `failed` and the poll asks again later. `dokploy` null
- * (env unset): every job is a no-op.
+ * (env unset): every job is a no-op. `cloudflare` set: a removed domain also leaves Cloudflare.
  */
 export function createDomainRouteWorker(
   connection: IORedis,
   db: Db,
-  opts: { dokploy: DokployConfig | null; guard: RouteGuard; targets: DomainTargets },
+  opts: {
+    dokploy: DokployConfig | null
+    cloudflare: CloudflareConfig | null
+    guard: RouteGuard
+    targets: DomainTargets
+  },
 ) {
   const queue = new Queue<DomainRouteJob>(DOMAIN_ROUTE_QUEUE, { connection })
   const client = opts.dokploy ? createDokployClient(opts.dokploy) : null
+  const hostnames = opts.cloudflare ? createCloudflareClient(opts.cloudflare) : null
   const certificate = certificateDeps(db, client, opts)
   const deps = {
     db,
     client,
+    releaseEdgeHostname: hostnames
+      ? async (hostname: string) => {
+          const found = await hostnames.find(hostname)
+          if (found) await hostnames.remove(found.id)
+        }
+      : undefined,
     guard: opts.guard,
     log: (m: string) => logger.info(m, { area: 'domains' }),
     // "Retry certificate": after the forced re-register, wait for Traefik and record the result.
@@ -129,8 +151,8 @@ function certificateDeps(
 /**
  * One repeat job checks every registered store address and custom domain over TLS: a host that
  * still has Traefik's default certificate is re-registered in Dokploy once its DNS points here,
- * on a backoff (`runCertificateSweep`). Only worth running with the real DNS provider; without
- * it there is no real network to ask.
+ * on a backoff (`runCertificateSweep`). Only worth running with a real provider; without one
+ * there is no real network to ask. Rows Cloudflare took on are skipped row by row.
  */
 export function createCertificateSweep(
   connection: IORedis,

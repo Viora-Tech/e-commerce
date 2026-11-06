@@ -10,7 +10,9 @@
  *                                            a pause; still none -> ssl `failed`, "Certificate pending"
  * `runCertificateSweep` runs this for every due row (schedule in certificate.ts). The merchant's
  * button queues the same thing through the route job with `reregister`, so the Dokploy keys stay
- * in the worker. A host that already has a certificate is never touched.
+ * in the worker. A host that already has a certificate is never touched. A row the edge provider
+ * took on (`edgeRecords` set) is skipped: its certificate is Cloudflare's, and a handshake that
+ * passes there proves nothing about who serves the name.
  */
 import {
   type Db,
@@ -39,6 +41,7 @@ import {
   type RouteGuard,
   removeRoute,
   requestDomainRoute,
+  routeMiddlewares,
 } from './routes'
 import { DomainError } from './service'
 
@@ -111,7 +114,7 @@ export async function checkCertificate(
   row: DomainRow,
   opts: { force?: boolean; register?: boolean } = {},
 ): Promise<CertOutcome> {
-  if (!routable(row, deps.guard)) return 'skipped'
+  if (!routable(row, deps.guard) || row.edgeRecords !== null) return 'skipped'
   const now = deps.now ?? new Date()
   const seen = await look(deps, row)
 
@@ -139,7 +142,7 @@ export async function checkCertificate(
     (opts.force === true || (waiting >= REREGISTER_AFTER_MS && sinceRegister >= REREGISTER_GAP_MS))
   if (canRegister && deps.client) {
     await removeRoute(deps.client, row.hostname)
-    await ensureRoute(deps.client, row.hostname)
+    await ensureRoute(deps.client, row.hostname, routeMiddlewares(deps.client, row))
     deps.log?.(`[domains] re-registered ${row.hostname} to retry its certificate`)
     await patch(deps, row, {
       sslStatus: 'issuing',
@@ -268,6 +271,9 @@ export async function requestCertificateRetry(
   }
   if (row.sslStatus === 'active') {
     throw new DomainError('This domain already has an active certificate', storeId)
+  }
+  if (row.edgeRecords !== null) {
+    throw new DomainError('Press Verify connection to check this domain again', storeId)
   }
   if (
     row.routeRequestedAt &&

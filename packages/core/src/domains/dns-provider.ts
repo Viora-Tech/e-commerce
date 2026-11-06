@@ -62,9 +62,9 @@ function inRange(ip: string, cidr: string): boolean {
 
 export const isCloudflare = (ip: string) => CLOUDFLARE_V4.some((cidr) => inRange(ip, cidr))
 
-const normHost = (h: string) => h.trim().toLowerCase().replace(/\.$/, '')
+export const normHost = (h: string) => h.trim().toLowerCase().replace(/\.$/, '')
 
-const normTxt = (v: string) => v.trim().replace(/^"|"$/g, '')
+export const normTxt = (v: string) => v.trim().replace(/^"|"$/g, '')
 
 function errorCode(err: unknown): string {
   const code = (err as { code?: unknown } | null)?.code

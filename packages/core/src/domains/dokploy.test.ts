@@ -42,6 +42,22 @@ describe('dokployConfigFrom', () => {
   })
 })
 
+describe('apex middleware', () => {
+  const keys = {
+    DOKPLOY_STOREFRONT_PORT: 3100,
+    DOKPLOY_URL: 'https://d',
+    DOKPLOY_API_KEY: 'k',
+    DOKPLOY_STOREFRONT_APPLICATION_ID: 'a',
+  }
+
+  it('is set only on the cloudflare provider', () => {
+    expect(dokployConfigFrom({ ...keys, DOMAIN_PROVIDER: 'cloudflare' })?.apexMiddleware).toBe(
+      'apex-to-www@file',
+    )
+    expect(dokployConfigFrom({ ...keys, DOMAIN_PROVIDER: 'dns' })?.apexMiddleware).toBeUndefined()
+  })
+})
+
 describe('createDokployClient', () => {
   it('lists the storefront app domains with the key in the x-api-key header only', async () => {
     const f = fakeFetch(() =>
@@ -96,6 +112,42 @@ describe('createDokployClient', () => {
       applicationId: 'app_1',
       domainType: 'application',
     })
+  })
+
+  it('sends middlewares only when asked, and keeps them from the answer', async () => {
+    const f = fakeFetch(() =>
+      json({ domainId: 'd9', host: 'brand.in', middlewares: ['apex-to-www@file'] }),
+    )
+    const client = createDokployClient(config, { fetch: f.fetch })
+    expect(await client.createDomain('brand.in', { middlewares: ['apex-to-www@file'] })).toEqual({
+      domainId: 'd9',
+      host: 'brand.in',
+      middlewares: ['apex-to-www@file'],
+    })
+    expect(JSON.parse(f.calls[0]?.init.body as string)).toMatchObject({
+      middlewares: ['apex-to-www@file'],
+    })
+  })
+
+  it('takes the domain back and fails when Dokploy drops the middleware (before 0.29.0)', async () => {
+    const f = fakeFetch(() => json({ domainId: 'd9', host: 'brand.in' }))
+    const client = createDokployClient(config, { fetch: f.fetch })
+    await expect(
+      client.createDomain('brand.in', { middlewares: ['apex-to-www@file'] }),
+    ).rejects.toThrow(/0\.29\.0/)
+    expect(f.calls.map((c) => c.url)).toEqual([
+      'https://dokploy.example.com/api/domain.create',
+      'https://dokploy.example.com/api/domain.delete',
+    ])
+  })
+
+  it('reads middlewares from the list', async () => {
+    const f = fakeFetch(() =>
+      json([{ domainId: 'd1', host: 'brand.in', middlewares: ['apex-to-www@file', 7] }]),
+    )
+    expect(await createDokployClient(config, { fetch: f.fetch }).listDomains()).toEqual([
+      { domainId: 'd1', host: 'brand.in', middlewares: ['apex-to-www@file'] },
+    ])
   })
 
   it('deletes by domain id', async () => {

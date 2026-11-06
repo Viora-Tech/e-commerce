@@ -17,6 +17,7 @@ import {
   ROUTE_RETRY_MS,
   removeRoute,
   requestDomainRoute,
+  routeMiddlewares,
   runDomainRouteJob,
 } from './routes'
 import { connectDomain, type DomainRow, pollPendingDomains, removeDomain } from './service'
@@ -52,10 +53,11 @@ function fakeDokploy(initial: DokployDomain[] = []) {
       guardDown()
       return [...domains]
     },
-    async createDomain(host) {
+    async createDomain(host, opts = {}) {
       calls.push(`create ${host}`)
       guardDown()
-      const d = { domainId: `d${next++}`, host }
+      const middlewares = opts.middlewares ?? []
+      const d = { domainId: `d${next++}`, host, ...(middlewares.length ? { middlewares } : {}) }
       domains.push(d)
       return d
     },
@@ -519,5 +521,164 @@ describe('route request with reregister', () => {
       { action: 'add', storeId, domainId: a?.id, reregister: true },
       { action: 'add', storeId, domainId: b?.id },
     ])
+  })
+})
+
+describe('redirect-only apex routes', () => {
+  const MIDDLEWARE = 'apex-to-www@file'
+
+  async function liveRow(hostname: string, over: Partial<typeof storeDomain.$inferInsert> = {}) {
+    const storeId = await seedStore(hostname.replace(/\W/g, '-'))
+    const [row] = await withStore(app, storeId, (tx) =>
+      tx
+        .insert(storeDomain)
+        .values({
+          storeId,
+          hostname,
+          kind: 'custom',
+          status: 'active',
+          sslStatus: 'issuing',
+          routeStatus: 'pending',
+          ...over,
+        })
+        .returning(),
+    )
+    const job: DomainRouteJob = { action: 'add', storeId, domainId: row?.id as string }
+    return { job, row: row as DomainRow }
+  }
+  const redirecting = (initial: DokployDomain[] = []) => {
+    const d = fakeDokploy(initial)
+    d.client.apexMiddleware = MIDDLEWARE
+    return d
+  }
+  const run = (d: ReturnType<typeof fakeDokploy>, job: DomainRouteJob) =>
+    runDomainRouteJob({ db: app, client: d.client, guard }, job)
+
+  it('puts the redirect on an apex, and never on a www, a primary or a store address', async () => {
+    const client = { apexMiddleware: MIDDLEWARE }
+    const row = { kind: 'custom', isPrimary: false, hostname: 'brand.in' } as const
+    expect(routeMiddlewares(client, row)).toEqual([MIDDLEWARE])
+    expect(routeMiddlewares(client, { ...row, hostname: 'brand.co.in' })).toEqual([MIDDLEWARE])
+    expect(routeMiddlewares(client, { ...row, hostname: 'www.brand.in' })).toEqual([])
+    expect(routeMiddlewares(client, { ...row, isPrimary: true })).toEqual([])
+    expect(routeMiddlewares(client, { ...row, kind: 'platform' })).toEqual([])
+    expect(routeMiddlewares({}, row)).toEqual([])
+  })
+
+  it('creates the apex route with the middleware', async () => {
+    const { job } = await liveRow('brand.in')
+    const d = redirecting()
+    expect(await run(d, job)).toBe('created')
+    expect(d.domains).toEqual([{ domainId: 'd1', host: 'brand.in', middlewares: [MIDDLEWARE] }])
+  })
+
+  it('adds the www route with no middleware, so the tunnel reaches the storefront', async () => {
+    const { job } = await liveRow('www.brand.in')
+    const d = redirecting()
+    await run(d, job)
+    expect(d.domains).toEqual([{ domainId: 'd1', host: 'www.brand.in' }])
+  })
+
+  it('replaces an apex route that would serve the storefront', async () => {
+    const { job } = await liveRow('brand.in')
+    const d = redirecting([{ domainId: 'old', host: 'brand.in' }])
+    expect(await run(d, job)).toBe('created')
+    expect(d.calls).toContain('delete old')
+    expect(d.domains).toEqual([{ domainId: 'd1', host: 'brand.in', middlewares: [MIDDLEWARE] }])
+  })
+
+  it('leaves an apex route that already redirects', async () => {
+    const { job } = await liveRow('brand.in')
+    const d = redirecting([{ domainId: 'x', host: 'brand.in', middlewares: [MIDDLEWARE] }])
+    expect(await run(d, job)).toBe('exists')
+    expect(d.calls).toEqual(['list'])
+  })
+
+  it('never adds a redirect to an apex that is still primary', async () => {
+    const { job } = await liveRow('brand.in', { isPrimary: false })
+    await owner
+      .update(storeDomain)
+      .set({ isPrimary: false })
+      .where(eq(storeDomain.storeId, job.storeId))
+    await owner
+      .update(storeDomain)
+      .set({ isPrimary: true })
+      .where(eq(storeDomain.hostname, 'brand.in'))
+    const d = redirecting([{ domainId: 'x', host: 'brand.in' }])
+    expect(await run(d, job)).toBe('exists')
+  })
+})
+
+describe('removing a domain from Cloudflare', () => {
+  it('queues the removal for a row Cloudflare took on, even with no route', async () => {
+    const storeId = await seedStore('w')
+    const [d] = await connect(storeId, 'www.brand.in')
+    await owner
+      .update(storeDomain)
+      .set({ edgeRecords: [] })
+      .where(eq(storeDomain.id, d?.id as string))
+    await withStore(app, storeId, (tx) => removeDomain(tx, storeId, d?.id as string))
+    const [job] = await relayRouteJobs(storeId)
+    expect(job).toEqual({ action: 'remove', storeId, hostname: 'www.brand.in' })
+  })
+
+  it('releases the hostname even when Dokploy is not configured', async () => {
+    const storeId = await seedStore('w')
+    const released: string[] = []
+    const out = await runDomainRouteJob(
+      {
+        db: app,
+        client: null,
+        guard,
+        releaseEdgeHostname: async (host) => {
+          released.push(host)
+        },
+      },
+      { action: 'remove', storeId, hostname: 'www.brand.in' },
+    )
+    expect(out).toBe('absent')
+    expect(released).toEqual(['www.brand.in'])
+  })
+
+  it('releases it alongside the route, and retries when Cloudflare fails', async () => {
+    const storeId = await seedStore('w')
+    const dokploy = fakeDokploy([{ domainId: 'x', host: 'www.brand.in' }])
+    const job = { action: 'remove', storeId, hostname: 'www.brand.in' } as const
+    const failing = {
+      db: app,
+      client: dokploy.client,
+      guard,
+      releaseEdgeHostname: async () => {
+        throw new Error('Cloudflare custom_hostnames.delete answered 500')
+      },
+    }
+    await expect(runDomainRouteJob(failing, job)).rejects.toThrow('answered 500')
+    const working = { ...failing, releaseEdgeHostname: async () => undefined }
+    expect(await runDomainRouteJob(working, job)).toBe('removed')
+  })
+
+  it('never releases a platform hostname or one that is live again', async () => {
+    const storeId = await seedStore('w')
+    await connect(storeId, 'brand.test')
+    await pollPendingDomains(app, { provider, targets, now: t0 })
+    const released: string[] = []
+    const deps = {
+      db: app,
+      client: null,
+      guard,
+      releaseEdgeHostname: async (host: string) => {
+        released.push(host)
+      },
+    }
+    await runDomainRouteJob(deps, { action: 'remove', storeId, hostname: 'w.localhost' })
+    await runDomainRouteJob(deps, { action: 'remove', storeId, hostname: 'brand.test' })
+    expect(released).toEqual([])
+  })
+
+  it('still skips an add job with no Dokploy client', async () => {
+    const deps = { db: app, client: null, guard, releaseEdgeHostname: async () => undefined }
+    expect(await runDomainRouteJob(deps, { action: 'add', storeId: 's', domainId: 'd' })).toBe(
+      'skipped',
+    )
   })
 })

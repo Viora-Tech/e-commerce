@@ -141,6 +141,8 @@ const DEV_SETTINGS_SECRET = 'dev-only-settings-secret'
 
 /** RFC 5737 documentation address: the offline default, never a real server. */
 const DOC_A_RECORD = '192.0.2.10'
+/** The default CNAME target, for local work only. */
+const DOC_CNAME_TARGET = 'shops.waimers.localhost'
 
 const shape = z.object({
   DATABASE_URL: z.string().url(),
@@ -255,16 +257,25 @@ const shape = z.object({
   RAZORPAY_OAUTH_CLIENT_SECRET: z.string().min(1).optional(),
   /**
    * Checks custom domains' DNS and certificates. `dev` decides from the hostname, offline;
-   * `dns` asks real DNS and does a TLS handshake (needs a real STOREFRONT_A_RECORD).
+   * `dns` asks real DNS and does a TLS handshake (needs a real STOREFRONT_A_RECORD);
+   * `cloudflare` asks Cloudflare for SaaS about each hostname (needs real STOREFRONT_* targets,
+   * CLOUDFLARE_ZONE_ID and, on the admin and worker, CLOUDFLARE_API_TOKEN).
    */
-  DOMAIN_PROVIDER: z.enum(['dev', 'dns']).default('dev'),
+  DOMAIN_PROVIDER: z.enum(['dev', 'dns', 'cloudflare']).default('dev'),
+  /**
+   * Cloudflare API token ("SSL and Certificates: Edit" on the SaaS zone, nothing else). Secret:
+   * admin and worker only, so `createDomainProvider`, not this schema, refuses a missing one.
+   */
+  CLOUDFLARE_API_TOKEN: optionalOrBlank(z.string().min(1)),
+  /** The id of the zone with Cloudflare for SaaS turned on. Not a secret. */
+  CLOUDFLARE_ZONE_ID: optionalOrBlank(z.string().regex(/^[a-f0-9]{32}$/)),
   /**
    * The storefront server's public IPv4: an apex custom domain's A record must point at it
    * (a subdomain may too, instead of the CNAME). Default is a documentation address.
    */
   STOREFRONT_A_RECORD: z.ipv4().default(DOC_A_RECORD),
   /** Hostname a subdomain's CNAME must point at. */
-  STOREFRONT_CNAME_TARGET: z.string().min(3).default('shops.waimers.localhost'),
+  STOREFRONT_CNAME_TARGET: z.string().min(3).default(DOC_CNAME_TARGET),
   PLATFORM_DOMAINS: platformDomains,
   PLATFORM_ADMIN_EMAILS: platformAdminEmails,
   /**
@@ -426,6 +437,19 @@ const schema = shape
     path: ['STOREFRONT_A_RECORD'],
   })
   .refine(
+    (e) =>
+      e.DOMAIN_PROVIDER !== 'cloudflare' ||
+      (e.STOREFRONT_A_RECORD !== DOC_A_RECORD &&
+        e.STOREFRONT_CNAME_TARGET !== DOC_CNAME_TARGET &&
+        e.CLOUDFLARE_ZONE_ID !== undefined),
+    {
+      // Not the token: the storefront loads this schema too and must never hold it.
+      message:
+        'DOMAIN_PROVIDER=cloudflare needs a real STOREFRONT_A_RECORD and STOREFRONT_CNAME_TARGET, and CLOUDFLARE_ZONE_ID',
+      path: ['DOMAIN_PROVIDER'],
+    },
+  )
+  .refine(
     (e) => !(e.BUG_REPORTS_ENABLED && !e.GITHUB_ISSUES_TOKEN && e.NODE_ENV === 'production'),
     {
       // In production a report must reach GitHub; a console line nobody reads would lose it.
@@ -477,29 +501,7 @@ export function settingsSecret(): string {
   return loadEnv(process.env).SETTINGS_SECRET
 }
 
-/**
- * The app-store reviewer's password sign-in, or null when either key is unset: the admin then
- * leaves the endpoint out of Better Auth and hides "Sign in with a password".
- */
-export function reviewerSignIn(
-  env: Pick<Env, 'REVIEWER_LOGIN_EMAIL' | 'REVIEWER_LOGIN_PASSWORD'>,
-): { email: string; password: string } | null {
-  const email = env.REVIEWER_LOGIN_EMAIL
-  const password = env.REVIEWER_LOGIN_PASSWORD
-  return email && password ? { email: email.toLowerCase(), password } : null
-}
-
-/**
- * The merchant Google sign-in client, or null when either key is unset: the admin then leaves
- * the provider out of Better Auth and hides "Continue with Google".
- */
-export function merchantGoogleSignIn(
-  env: Pick<Env, 'MERCHANT_GOOGLE_CLIENT_ID' | 'MERCHANT_GOOGLE_CLIENT_SECRET'>,
-): { clientId: string; clientSecret: string } | null {
-  const clientId = env.MERCHANT_GOOGLE_CLIENT_ID
-  const clientSecret = env.MERCHANT_GOOGLE_CLIENT_SECRET
-  return clientId && clientSecret ? { clientId, clientSecret } : null
-}
+export { merchantGoogleSignIn, reviewerSignIn } from './env-sign-in'
 
 const platformEmailSchema = z.object({ ...platformEmailShape, PLATFORM_DOMAINS: platformDomains })
 

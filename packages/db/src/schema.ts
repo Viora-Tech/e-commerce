@@ -2217,6 +2217,13 @@ export type DomainKind = 'platform' | 'custom'
 export type DomainStatus = 'pending' | 'active' | 'failed'
 export type DomainSslStatus = 'pending' | 'issuing' | 'active' | 'failed'
 export type DomainRouteStatus = 'none' | 'pending' | 'ready' | 'failed'
+/** A DNS record the edge provider asks for, as the merchant types it at their registrar. */
+export type DomainEdgeRecord = {
+  type: 'A' | 'CNAME' | 'TXT'
+  name: string
+  value: string
+  purpose: 'routing' | 'verification'
+}
 
 /**
  * Hostnames that serve a store. `platform` domains come with the store and
@@ -2259,6 +2266,12 @@ export const storeDomain = pgTable(
     sslStartedAt: timestamp('ssl_started_at', { withTimezone: true }),
     /** When the certificate was last looked at over TLS by the sweep (separate from the DNS poll's `lastCheckedAt`). */
     sslCheckedAt: timestamp('ssl_checked_at', { withTimezone: true }),
+    /**
+     * Extra records the edge provider (`DOMAIN_PROVIDER=cloudflare`) wants for this hostname,
+     * shown beside `dnsRecordsFor`'s. Null: the edge provider has not taken this row on, so
+     * Traefik's certificate checks still apply to it. See `domains/cloudflare-provider.ts`.
+     */
+    edgeRecords: jsonb('edge_records').$type<DomainEdgeRecord[]>(),
     createdAt: createdAt(),
   },
   (t) => [

@@ -19,9 +19,17 @@ Open **Settings → Domains** to see every address and its status.
 | **Issuing SSL** | We are getting the certificate. Usually a minute or two. | Wait. The page refreshes by itself. |
 | **Waiting for DNS** | The address does not point at our server yet, so no certificate can be issued. | Add or fix the DNS record at the company where you bought the domain (see the records on the domain's page). We keep checking on our own. |
 | **Certificate failed** | The address points at us, but the certificate was not issued yet. | Press **Retry certificate**. We also keep trying on our own for three days. |
+| **Held by another host** | Your old store or website host still has this domain connected, so we cannot take it over. | Remove the domain from your old host, wait a few minutes, then press **Verify connection**. |
 
 The reason is written under the address, for example **DNS not pointing here yet** or
 **Certificate pending**.
+
+## Your main domain and www
+
+On some servers your store runs on the `www` address (`www.yourshop.in`), and the address without
+`www` (`yourshop.in`) only sends visitors there, keeping the page they asked for. When you connect
+`yourshop.in`, we connect `www.yourshop.in` with it. Add the records for both, and make the `www`
+address your primary domain.
 
 ## Retry certificate
 

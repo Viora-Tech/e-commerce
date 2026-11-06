@@ -1,4 +1,4 @@
-import { domainCertificateContent } from '@/data/domains'
+import { domainCertificateContent, domainEdgeContent } from '@/data/domains'
 import { translation } from '@/lib/i18n'
 
 export default [
@@ -16,5 +16,14 @@ export default [
     issuing: 'आपका सुरक्षा सर्टिफ़िकेट बन रहा है। इसमें कुछ मिनट लग सकते हैं।',
     retrying:
       'सुरक्षा सर्टिफ़िकेट बनने में सामान्य से ज़्यादा समय लग रहा है। हम अपने आप कोशिश करते रहेंगे। अगर एक घंटे में न हो, तो सपोर्ट से संपर्क करें।',
+  }),
+  translation(domainEdgeContent, {
+    badgeHeld: 'किसी दूसरे होस्ट के पास है',
+    held: 'यह डोमेन अभी भी किसी दूसरे होस्ट से जुड़ा है। इसे अपने पुराने स्टोर या वेबसाइट होस्ट से हटाएँ, कुछ मिनट रुकें, फिर "Verify connection" दबाएँ।',
+    settling: 'हम अभी इस डोमेन की पुष्टि कर रहे हैं। हम हर कुछ मिनट में जाँचते हैं।',
+    apexRedirects: (www: string) =>
+      `यह पता विज़िटर को वही पेज रखते हुए ${www} पर भेजता है। ${www} को अपने स्टोर से जोड़ें और उसे अपना मुख्य डोमेन बनाएँ।`,
+    apexDialog: (www: string) =>
+      `हम ${www} को भी जोड़ेंगे। आपका स्टोर उसी पते पर चलता है, और यह पता विज़िटर को वहाँ भेजता है।`,
   }),
 ]
