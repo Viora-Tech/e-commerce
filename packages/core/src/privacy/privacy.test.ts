@@ -53,7 +53,9 @@ import {
 } from './requests'
 import {
   askConsentAgain,
+  cookieBannerShown,
   loadCustomerPrivacySettings,
+  recordCookieBannerShown,
   recordCookieConsent,
   saveCustomerPrivacySettings,
 } from './service'
@@ -836,5 +838,20 @@ describe('send path consent gate', () => {
     )
     expect(r4.ok).toBe(true)
     expect(sent.map((m) => m.kind)).toEqual(['email', 'whatsapp_template'])
+  })
+})
+
+describe('cookie banner shown count', () => {
+  it('adds up per day and only counts the days asked for', async () => {
+    const [s] = await owner.insert(store).values({ slug: 'shown', name: 'Shown' }).returning()
+    if (!s) throw new Error('seed failed')
+    const total = await withStore(app, s.id, async (tx) => {
+      const ctx = { tx, storeId: s.id }
+      await recordCookieBannerShown(ctx, new Date('2026-11-01T06:00:00Z'))
+      await recordCookieBannerShown(ctx, new Date('2026-11-06T06:00:00Z'))
+      await recordCookieBannerShown(ctx, new Date('2026-11-06T07:00:00Z'))
+      return cookieBannerShown(ctx, new Date('2026-11-05T06:00:00Z'))
+    })
+    expect(total).toBe(2)
   })
 })

@@ -1,5 +1,6 @@
 /** SOURCE OF TRUTH: customer privacy settings and cookie consent records — WHAT: read and save `store.preferences.customerPrivacy` (banner text, banner version, data request window), "ask everyone again", and the proof row written each time a shopper answers the cookie banner / WHY: Settings → Customer privacy, the storefront banner and the consent API share one reader and writer */
-import { cookieConsent, store } from '@commerce/db'
+import { dayKey } from '@commerce/dates'
+import { cookieBannerDay, cookieConsent, store } from '@commerce/db'
 import { eq, sql } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 import { type PrivacyActor, recordPrivacyEvent } from './audit'
@@ -95,6 +96,28 @@ export async function recordCookieConsent(ctx: StoreContext, choice: CookieChoic
     })
     .returning({ id: cookieConsent.id, createdAt: cookieConsent.createdAt })
   return row
+}
+
+/** The cookie banner was shown once: today's count goes up by one. */
+export async function recordCookieBannerShown(ctx: StoreContext, at = new Date()): Promise<void> {
+  await ctx.tx
+    .insert(cookieBannerDay)
+    .values({ storeId: ctx.storeId, day: dayKey(at), shown: 1 })
+    .onConflictDoUpdate({
+      target: [cookieBannerDay.storeId, cookieBannerDay.day],
+      set: { shown: sql`${cookieBannerDay.shown} + 1` },
+    })
+}
+
+/** How often the banner was shown since `since`. */
+export async function cookieBannerShown(ctx: StoreContext, since: Date): Promise<number> {
+  const [row] = await ctx.tx
+    .select({ shown: sql<number>`coalesce(sum(${cookieBannerDay.shown}), 0)::int` })
+    .from(cookieBannerDay)
+    .where(
+      sql`${cookieBannerDay.storeId} = ${ctx.storeId} and ${cookieBannerDay.day} >= ${dayKey(since)}`,
+    )
+  return row?.shown ?? 0
 }
 
 /** How shoppers answered the banner, for the Customer privacy page. */

@@ -31,6 +31,8 @@ export const customerPrivacyContent = {
       'Every shopper is asked again on their next visit. Until they answer, analytics and marketing tags stay off for them.',
     askAgainConfirm: 'Ask everyone again',
     askedAgain: 'Everyone will see the banner again',
+    shown: (n: number) =>
+      n === 0 ? '' : n === 1 ? 'The banner was shown once.' : `The banner was shown ${n} times.`,
     stats: (total: number, analytics: number, marketing: number) =>
       total === 0
         ? 'No answers in the last 30 days yet.'
