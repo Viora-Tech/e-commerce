@@ -1,4 +1,5 @@
 /** SOURCE OF TRUTH: theme setting values for Liquid — WHAT: a stored setting turned into what the theme reads by its schema type (images, products, collections, menus, colours, schemes, fonts, videos, links) / WHY: themes read `section.settings.x` as Shopify's objects; this is the one place stored values become them */
+import type { Context, Liquid } from 'liquidjs'
 import type { MediaVariants } from '../media/loader'
 import type { LiquidDataCache } from './cache'
 import {
@@ -171,6 +172,35 @@ export function liquidSettingValue(
   }
 }
 
+/**
+ * A setting connected to a resource, as Shopify's dynamic sources store it:
+ * `{{ closest.product }}`, or `{{ closest.product.title }}` inside text.
+ */
+const DYNAMIC_SOURCE = /\{\{\s*(?:closest|product|collection|article|blog|page)\b/
+const WHOLE_SOURCE = /^\s*\{\{\s*([^{}]+?)\s*\}\}\s*$/
+
+export function isDynamicSource(value: unknown): value is string {
+  return typeof value === 'string' && DYNAMIC_SOURCE.test(value) && !value.includes('{%')
+}
+
+/**
+ * A block's settings with dynamic sources filled in for this render: a whole
+ * `{{ closest.product }}` gives the resource itself, text with one inside gives text.
+ */
+export function dynamicSettings(
+  settings: Record<string, unknown>,
+  engine: Liquid,
+  ctx: Context,
+): Record<string, unknown> {
+  const out = { ...settings }
+  for (const [key, value] of Object.entries(settings)) {
+    if (!isDynamicSource(value)) continue
+    const whole = WHOLE_SOURCE.exec(value)?.[1]
+    out[key] = whole ? engine.evalValueSync(whole, ctx) : engine.parseAndRenderSync(value, ctx)
+  }
+  return out
+}
+
 /** Every setting a schema declares, defaults filled in, values typed for Liquid. */
 export function liquidSettings(
   schema: ShopifySetting[] | undefined,
@@ -181,7 +211,9 @@ export function liquidSettings(
   const merged = { ...settingDefaults(schema), ...values }
   const out: Record<string, unknown> = { ...merged }
   for (const s of (schema ?? []).filter(isValueSetting)) {
-    out[s.id] = liquidSettingValue(s, merged[s.id], data, themeSettings)
+    const value = merged[s.id]
+    // Filled in per render (`dynamicSettings`): a product card reads its own product.
+    if (!isDynamicSource(value)) out[s.id] = liquidSettingValue(s, value, data, themeSettings)
   }
   return out
 }
