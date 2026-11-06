@@ -127,3 +127,17 @@ export const domainCertificateContent = {
   retrying:
     'Getting your security certificate is taking longer than usual. We keep trying on our own. If it is not done in an hour, contact support.',
 } as const
+
+/**
+ * Domains on Cloudflare for SaaS (`DOMAIN_PROVIDER=cloudflare`): another host still holding the
+ * name, and an apex that only redirects. Translated in `data/hi/domains.ts`.
+ */
+export const domainEdgeContent = {
+  badgeHeld: 'Held by another host',
+  held: 'This domain is still connected to another host. Remove it from your old store or website host, wait a few minutes, then press Verify connection.',
+  settling: 'We are still confirming this domain. We check every few minutes.',
+  apexRedirects: (www: string) =>
+    `This address only sends visitors to ${www}, keeping the page they asked for. Point ${www} at your store and make that your primary domain.`,
+  apexDialog: (www: string) =>
+    `We connect ${www} as well. That is the address your store runs on, and this one sends visitors there.`,
+} as const

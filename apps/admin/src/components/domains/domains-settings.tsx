@@ -12,7 +12,8 @@ import StatusChip from '@/components/layout/status-chip'
 import SettingsCard from '@/components/settings/settings-card'
 import SettingsLinkRow from '@/components/settings/settings-link-row'
 import SettingsList from '@/components/settings/settings-list'
-import { domainsContent as copy } from '@/data/domains'
+import { domainsContent as copy, domainEdgeContent } from '@/data/domains'
+import { useCopy } from '@/hooks/use-copy'
 import { usePermissions } from '@/hooks/use-permissions'
 import { routes } from '@/lib/routes'
 import ChangePrimaryDialog from './change-primary-dialog'
@@ -21,6 +22,8 @@ import DomainStatusBadge from './domain-status-badge'
 
 type DomainsSettingsProps = {
   domains: DomainView[]
+  /** An apex only redirects to its www on this server, so connecting one brings the www. */
+  apexRedirectOnly: boolean
 }
 
 function trafficLabel(d: DomainView): string {
@@ -40,9 +43,10 @@ function domainLine(d: DomainView): string {
 }
 
 /** Settings → Domains: the primary domain, every hostname, and connecting a new one. */
-export default function DomainsSettings({ domains }: DomainsSettingsProps) {
+export default function DomainsSettings({ domains, apexRedirectOnly }: DomainsSettingsProps) {
   // Hooks
   const { hasPermission } = usePermissions()
+  const edge = useCopy(domainEdgeContent)
   const [connectOpen, setConnectOpen] = useState(false)
   const [primaryOpen, setPrimaryOpen] = useState(false)
 
@@ -50,7 +54,9 @@ export default function DomainsSettings({ domains }: DomainsSettingsProps) {
   const canManage = hasPermission(permissions.SETTINGS_MANAGE)
   const primary = domains.find((d) => d.isPrimary) ?? null
   const hasCustom = domains.some((d) => d.kind === 'custom')
-  const eligible = domains.filter((d) => d.status === 'active' && d.sslStatus === 'active')
+  const eligible = domains.filter(
+    (d) => d.status === 'active' && d.sslStatus === 'active' && !d.redirectOnly,
+  )
 
   return (
     <div className="flex flex-col gap-4">
@@ -122,7 +128,9 @@ export default function DomainsSettings({ domains }: DomainsSettingsProps) {
                 </>
               }
               description={
-                d.sslStatus === 'failed' && d.error ? (
+                d.heldElsewhere ? (
+                  <span className="text-destructive">{edge.held}</span>
+                ) : d.sslStatus === 'failed' && d.error ? (
                   <span className="text-destructive">{d.error}</span>
                 ) : (
                   domainLine(d) || undefined
@@ -134,7 +142,11 @@ export default function DomainsSettings({ domains }: DomainsSettingsProps) {
         ))}
       </SettingsList>
 
-      <ConnectDomainDialog open={connectOpen} onOpenChange={setConnectOpen} />
+      <ConnectDomainDialog
+        open={connectOpen}
+        onOpenChange={setConnectOpen}
+        apexRedirectOnly={apexRedirectOnly}
+      />
       <ChangePrimaryDialog
         open={primaryOpen}
         onOpenChange={setPrimaryOpen}

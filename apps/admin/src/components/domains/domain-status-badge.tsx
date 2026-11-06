@@ -1,10 +1,10 @@
 import type { DomainView } from '@commerce/core'
 import StatusChip from '@/components/layout/status-chip'
-import { domainsContent as copy, domainCertificateContent } from '@/data/domains'
+import { domainsContent as copy, domainCertificateContent, domainEdgeContent } from '@/data/domains'
 import { useCopy } from '@/hooks/use-copy'
 
 type DomainStatusBadgeProps = {
-  domain: Pick<DomainView, 'status' | 'sslStatus' | 'sslReason'>
+  domain: Pick<DomainView, 'status' | 'sslStatus' | 'sslReason' | 'heldElsewhere'>
 }
 
 type Tone = 'success' | 'attention' | 'danger' | 'info'
@@ -13,7 +13,9 @@ type Tone = 'success' | 'attention' | 'danger' | 'info'
 export function domainStatus(
   d: DomainStatusBadgeProps['domain'],
   certificate: typeof domainCertificateContent,
+  edge: typeof domainEdgeContent,
 ): { label: string; tone: Tone } {
+  if (d.heldElsewhere) return { label: edge.badgeHeld, tone: 'danger' }
   if (d.status === 'failed') return { label: copy.status.failed, tone: 'danger' }
   if (d.status === 'pending') return { label: copy.status.pending, tone: 'attention' }
   if (d.sslStatus === 'failed') {
@@ -30,9 +32,10 @@ export function domainStatus(
 export default function DomainStatusBadge({ domain }: DomainStatusBadgeProps) {
   // Hooks
   const certificate = useCopy(domainCertificateContent)
+  const edge = useCopy(domainEdgeContent)
 
   // Render logic
-  const { label, tone } = domainStatus(domain, certificate)
+  const { label, tone } = domainStatus(domain, certificate, edge)
 
   return <StatusChip tone={tone}>{label}</StatusChip>
 }
