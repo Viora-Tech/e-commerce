@@ -1,6 +1,11 @@
 import { resolve } from 'node:path'
 import { loadEnv } from '@commerce/config'
-import { createRedisRateLimitStore, dokployConfigFrom, platformRoots } from '@commerce/core'
+import {
+  cloudflareConfigFrom,
+  createRedisRateLimitStore,
+  dokployConfigFrom,
+  platformRoots,
+} from '@commerce/core'
 import { createDb } from '@commerce/db'
 import { reportWorkerFailures } from '@commerce/observability'
 import { flushLogs, initLogging, logger, logWorkerJobs } from '@commerce/observability/logging'
@@ -99,6 +104,7 @@ const tracker = createShippingTracker(redis, db, { settingsSecret: env.SETTINGS_
 const orderPusher = createOrderPusher(redis, db, { settingsSecret: env.SETTINGS_SECRET })
 // Unset Dokploy keys: no routes are asked for and every route job is a no-op (added by hand).
 const dokploy = dokployConfigFrom(env)
+const cloudflare = env.DOMAIN_PROVIDER === 'cloudflare' ? cloudflareConfigFrom(env) : null
 const domainTargets = { aRecord: env.STOREFRONT_A_RECORD, cnameTarget: env.STOREFRONT_CNAME_TARGET }
 const domainGuard = {
   platformRoots: platformRoots(env),
@@ -107,11 +113,13 @@ const domainGuard = {
 }
 const domains = createDomainPoller(redis, db, {
   provider: env.DOMAIN_PROVIDER,
+  cloudflare,
   targets: domainTargets,
   requestRoutes: dokploy !== null,
 })
 const domainRoutes = createDomainRouteWorker(redis, db, {
   dokploy,
+  cloudflare,
   guard: domainGuard,
   targets: domainTargets,
 })
@@ -287,7 +295,7 @@ await domains.queue.upsertJobScheduler(
   { name: 'verify' },
 )
 // Real network checks only: with the dev provider there is nothing to ask.
-if (env.DOMAIN_PROVIDER === 'dns') {
+if (env.DOMAIN_PROVIDER !== 'dev') {
   await certificates.queue.upsertJobScheduler(
     'check-domain-certificates',
     { every: CERTIFICATE_EVERY_MS },

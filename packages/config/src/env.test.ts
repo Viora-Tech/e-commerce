@@ -107,9 +107,54 @@ describe('loadEnv', () => {
     expect(env).toMatchObject({ DOMAIN_PROVIDER: 'dns', STOREFRONT_A_RECORD: '15.206.197.145' })
   })
 
+  describe('cloudflare provider', () => {
+    const cloudflare = {
+      ...valid,
+      DOMAIN_PROVIDER: 'cloudflare',
+      STOREFRONT_A_RECORD: '15.206.197.145',
+      STOREFRONT_CNAME_TARGET: 'shops.koomerce.app',
+      CLOUDFLARE_ZONE_ID: '023e105f4ecef8ad9ca31a8372d0c353',
+    }
+
+    it('accepts real targets and a zone, without the token the storefront never holds', () => {
+      expect(loadEnv(cloudflare)).toMatchObject({ DOMAIN_PROVIDER: 'cloudflare' })
+      expect(loadEnv(cloudflare).CLOUDFLARE_API_TOKEN).toBeUndefined()
+    })
+
+    it('refuses a documentation address, the default target or no zone', () => {
+      const message = /DOMAIN_PROVIDER=cloudflare needs/
+      const { STOREFRONT_A_RECORD: _a, ...noAddress } = cloudflare
+      const { STOREFRONT_CNAME_TARGET: _c, ...noTarget } = cloudflare
+      const { CLOUDFLARE_ZONE_ID: _z, ...noZone } = cloudflare
+      expect(() => loadEnv(noAddress)).toThrow(message)
+      expect(() => loadEnv(noTarget)).toThrow(message)
+      expect(() => loadEnv(noZone)).toThrow(message)
+    })
+
+    it('refuses a malformed zone id, without echoing it', () => {
+      expect(() => loadEnv({ ...cloudflare, CLOUDFLARE_ZONE_ID: 'not-a-zone' })).toThrow(
+        /CLOUDFLARE_ZONE_ID/,
+      )
+      expect(() => loadEnv({ ...cloudflare, CLOUDFLARE_ZONE_ID: 'not-a-zone' })).not.toThrow(
+        /not-a-zone/,
+      )
+    })
+
+    it('treats blank keys as unset, and leaves the other providers alone', () => {
+      expect(() => loadEnv({ ...cloudflare, CLOUDFLARE_ZONE_ID: '' })).toThrow(
+        /DOMAIN_PROVIDER=cloudflare needs/,
+      )
+      expect(loadEnv({ ...valid, CLOUDFLARE_API_TOKEN: '', CLOUDFLARE_ZONE_ID: '' })).toMatchObject(
+        {
+          DOMAIN_PROVIDER: 'dev',
+        },
+      )
+    })
+  })
+
   it('refuses the dns provider without a real server address', () => {
     expect(() => loadEnv({ ...valid, DOMAIN_PROVIDER: 'dns' })).toThrow(/STOREFRONT_A_RECORD/)
-    expect(() => loadEnv({ ...valid, DOMAIN_PROVIDER: 'cloudflare' })).toThrow(/DOMAIN_PROVIDER/)
+    expect(() => loadEnv({ ...valid, DOMAIN_PROVIDER: 'edge' })).toThrow(/DOMAIN_PROVIDER/)
   })
 })
 
