@@ -293,7 +293,7 @@ export default function CustomizeLayout({
                   <div
                     style={{ width: devicePx * zoom, height: room.height }}
                     className={cn(
-                      'mx-auto shrink-0 overflow-hidden bg-card',
+                      'mx-auto shrink-0 overflow-clip bg-card',
                       !fullBleed && 'rounded-[0.625rem] shadow-popover',
                       resize && `transition-[width] ${resize}`,
                       room.width === 0 && 'invisible',
