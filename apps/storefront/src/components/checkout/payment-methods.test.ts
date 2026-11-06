@@ -39,6 +39,7 @@ const props = {
   codBlocked: false,
   codNote: null,
   amountLabel: '₹1,000',
+  recommendedId: null,
   onSelect: vi.fn(),
 }
 /** The markup of one method's card. */

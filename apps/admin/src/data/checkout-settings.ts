@@ -22,6 +22,17 @@ export const checkoutSettingsContent = {
     directoryMissing:
       'PIN code lookup data is not installed on this server yet, so shoppers type city and state themselves for now.',
   },
+  recommended: {
+    title: 'Recommended way to pay',
+    hint: 'Shows a Recommended badge at checkout. Automatic uses the first way to pay.',
+    options: {
+      '': 'Automatic',
+      manual: 'UPI ID or bank transfer',
+      razorpay: 'Razorpay',
+      cashfree: 'Cashfree',
+      decentro: 'Decentro UPI',
+    },
+  },
   gstin: {
     heading: 'Business buyers',
     toggle: 'Let buyers add a GSTIN',

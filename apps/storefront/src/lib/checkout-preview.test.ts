@@ -1,11 +1,13 @@
 import type { CartView } from '@commerce/core'
 import { defaultCheckoutSettings } from '@commerce/core/checkout-settings'
 import { describe, expect, it } from 'vitest'
+import type { CheckoutMethod } from '@/lib/payments'
 import {
   checkoutTotals,
   methodView,
   offeredMethods,
   processorNames,
+  recommendedMethodId,
   takesUpi,
   trustMethodNames,
 } from './checkout-preview'
@@ -198,5 +200,23 @@ describe('checkoutTotals with the Delivery options app', () => {
     expect(checkoutTotals({ ...base, rate: card(), picked: 'decentro' }).totalPaise).toBe(
       499_900 + 6000,
     )
+  })
+})
+
+describe('recommendedMethodId', () => {
+  const method = (id: string) => ({ id }) as CheckoutMethod
+
+  it('uses the store choice when it is on offer', () => {
+    expect(recommendedMethodId([method('razorpay'), method('manual')], 'manual')).toBe('manual')
+  })
+
+  it('falls back to the first way to pay', () => {
+    expect(recommendedMethodId([method('razorpay'), method('manual')], '')).toBe('razorpay')
+    expect(recommendedMethodId([method('razorpay'), method('manual')], 'cashfree')).toBe('razorpay')
+  })
+
+  it('never picks cash on delivery by itself, and needs a choice to make', () => {
+    expect(recommendedMethodId([method('cod'), method('manual')], '')).toBeNull()
+    expect(recommendedMethodId([method('manual')], 'manual')).toBeNull()
   })
 })
