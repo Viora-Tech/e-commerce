@@ -992,7 +992,7 @@ html.has-cursor-fill [data-icon-close]:hover {
 /* ------------------------------------------------------------------ */
 /* Rich text (page.content, article.content, richtext settings)        */
 /* ------------------------------------------------------------------ */
-.rte:not(:where(.shopify-section *)) {
+.rte:not(rte-formatter) {
   font-family: var(--font-body);
   font-size: 16px;
   line-height: 1.6;
