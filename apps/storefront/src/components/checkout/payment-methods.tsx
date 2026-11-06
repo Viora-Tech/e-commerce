@@ -19,6 +19,8 @@ type PaymentMethodsProps = {
   codNote: string | null
   /** What Pay charges now ("₹648"), for the UPI detail. */
   amountLabel: string
+  /** The way to pay that wears Recommended, if any. */
+  recommendedId: string | null
   onSelect: (id: string) => void
 }
 
@@ -71,14 +73,15 @@ export default function PaymentMethods({
   codBlocked,
   codNote,
   amountLabel,
+  recommendedId,
   onSelect,
 }: PaymentMethodsProps) {
   return (
     <fieldset className="border-0! p-0!">
       <legend className="sr-only">{content.payment}</legend>
       <div className="divide-y divide-ck-line overflow-hidden rounded-[calc(var(--ck-radius)*1.6)] bg-ck-bg [box-shadow:var(--ck-section-shadow)]">
-        {methods.map((m, index) => {
-          const recommended = index === 0 && methods.length > 1 && m.id !== 'cod'
+        {methods.map((m) => {
+          const recommended = m.id === recommendedId
           const view = methodView(m)
           const checked = selected === m.id
           const blocked = m.id === 'cod' && codBlocked

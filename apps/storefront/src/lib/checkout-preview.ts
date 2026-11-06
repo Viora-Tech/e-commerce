@@ -74,6 +74,17 @@ export function offeredMethods(cart: CartView, methods: CheckoutMethod[]): Check
     .map(({ m }) => m)
 }
 
+/**
+ * Which way to pay wears Recommended: the store's choice when it is on offer here, else the first
+ * one. Never cash on delivery by default, and none when there is nothing to choose between.
+ */
+export function recommendedMethodId(methods: CheckoutMethod[], chosen: string): string | null {
+  if (methods.length < 2) return null
+  if (methods.some((m) => m.id === chosen)) return chosen
+  const first = methods[0]
+  return first && first.id !== 'cod' ? first.id : null
+}
+
 export type MethodView = {
   title: string
   hint: string | null
