@@ -42,6 +42,15 @@ export default function SelectProductsRow({
   const fmt = useFormat()
   const [open, setOpen] = useState(false)
 
+  // Event handlers
+  /** A click anywhere on a row does what its tick box does; the box itself stays for keyboards. */
+  const handleRow = () => {
+    if (!added) onToggleProduct(row, !checked)
+  }
+  const handleVariantRow = (variantId: string) => {
+    if (!added) onToggleVariant(row, variantId, !picked.has(variantId))
+  }
+
   // Render logic
   const multi = row.variants.length > 1
   const all = row.variants.length > 0 && picked.size === row.variants.length
@@ -58,7 +67,16 @@ export default function SelectProductsRow({
 
   return (
     <li className={cn(added && 'opacity-60')}>
-      <div className={cn(ROW, checked || some ? 'bg-primary-soft' : 'hover:bg-muted/40')}>
+      {/* biome-ignore lint/a11y/noStaticElementInteractions: a mouse shortcut; the checkbox inside is the keyboard control. */}
+      {/* biome-ignore lint/a11y/useKeyWithClickEvents: the checkbox inside handles the keyboard. */}
+      <div
+        onClick={handleRow}
+        className={cn(
+          ROW,
+          !added && 'cursor-pointer',
+          checked || some ? 'bg-primary-soft' : 'hover:bg-muted/40',
+        )}
+      >
         <SelectProductsCheckbox
           label={row.title}
           checked={checked}
@@ -87,7 +105,10 @@ export default function SelectProductsRow({
             type="button"
             aria-label={open ? copy.collapse : copy.expand}
             aria-expanded={open}
-            onClick={() => setOpen((v) => !v)}
+            onClick={(e) => {
+              e.stopPropagation()
+              setOpen((v) => !v)
+            }}
             className="flex size-6 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <ChevronRight
@@ -102,9 +123,14 @@ export default function SelectProductsRow({
       {multi && open ? (
         <ul className="bg-muted/30">
           {row.variants.map((v) => (
+            // biome-ignore lint/a11y/useKeyWithClickEvents: the checkbox inside handles the keyboard.
             <li
               key={v.id}
-              className="flex items-center gap-3 border-line border-b py-2 pr-4 pl-14 text-caption"
+              onClick={() => handleVariantRow(v.id)}
+              className={cn(
+                'flex items-center gap-3 border-line border-b py-2 pr-4 pl-14 text-caption',
+                !added && 'cursor-pointer hover:bg-muted/40',
+              )}
             >
               <SelectProductsCheckbox
                 label={v.title}
