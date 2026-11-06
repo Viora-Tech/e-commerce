@@ -1,6 +1,6 @@
 ---
 title: Custom domains
-description: How a merchant's own domain goes from pending to live — the records we ask for, the dev and dns providers, the worker's re-check, and the HTTPS route the worker adds in Dokploy.
+description: How a merchant's own domain goes from pending to live — the records we ask for, the dev, dns and cloudflare providers, the worker's re-check, and the HTTPS route the worker adds in Dokploy.
 ---
 
 # Custom domains
@@ -12,8 +12,9 @@ happens.
 
 Code: `packages/core/src/domains/` (`service.ts` for connect / verify / poll, `records.ts` for
 the records we show, `provider.ts` for the provider contract, `dev-provider.ts` and
-`dns-provider.ts` for the two providers, `routes.ts` and `dokploy.ts` for the automatic HTTPS
-route). Admin: `apps/admin/src/components/domains/`.
+`dns-provider.ts` and `cloudflare-provider.ts` for the providers, `cloudflare.ts` for Cloudflare's
+API, `routes.ts` and `dokploy.ts` for the automatic HTTPS route). Admin:
+`apps/admin/src/components/domains/`.
 
 ## The records we ask for
 
@@ -23,6 +24,11 @@ route). Admin: `apps/admin/src/components/domains/`.
 | `www.brand.in` (subdomain) | `CNAME www → STOREFRONT_CNAME_TARGET` | `TXT _waimers-verify.www → waimers-verify=<token>` |
 
 The token is made when the domain is connected and never changes for that row.
+
+With `DOMAIN_PROVIDER=cloudflare` the table also shows the TXT record Cloudflare returns
+(`_cf-custom-hostname.www`), until it says the hostname is active. It is stored in
+`store_domain.edge_records` because its value is per hostname and the admin must not call
+Cloudflare to draw a page.
 
 ## Providers
 
@@ -59,6 +65,65 @@ SSL state `active`; anything else is `issuing` and the next check tries again.
 storefront starts answering) and copies the SSL state. A live domain never drops back to
 pending over a failed check. The resolver and the TLS checker are function parameters, so
 tests (`dns-provider.test.ts`) never touch the network.
+
+### `cloudflare` (Cloudflare for SaaS)
+
+`createCloudflareDomainProvider` in `cloudflare-provider.ts`, over the custom hostnames API
+(`cloudflare.ts`). Shoppers on `*.koomerce.app` arrive through Cloudflare and the tunnel; a merchant
+domain with a direct A record skips both, which loses attack protection, leaves
+`cf-connecting-ip` unset, and keeps the origin open. In this mode a subdomain goes through
+Cloudflare like a store address does.
+
+A subdomain (`www.brand.in`) is `verified` only when **all** of these hold.
+
+| Check | Why it is not enough alone |
+| --- | --- |
+| Cloudflare's own `status` is `active` (or `active_redeploying`) | A TXT-validated hostname turns active before its DNS moves |
+| A CNAME to `STOREFRONT_CNAME_TARGET`. A direct A record is refused | Cloudflare's docs ask for this too: active status, active certificate, DNS on the target |
+| Our `_waimers-verify` TXT | The CNAME says nothing about which store. Without this, a CNAME left behind by a store that moved away could be claimed by another |
+
+The custom hostname is created once our TXT is in place, not at connect. Each one is billed past
+the included 100 and a pending row is polled for good, so creating on sight would let any merchant
+run up the bill with names they do not own. `edge_records` stays null until then.
+
+The certificate is `active` only when Cloudflare's `ssl.status` is `active` **and** Traefik has the
+route (`route_status = 'ready'`): the tunnel ends at Traefik, and Traefik answers 404 for a
+hostname it does not know. Until then it reads `issuing`, which also keeps the poll asking for the
+route. No TLS handshake is involved: a padlock only shows that someone has a certificate.
+
+| Cloudflare says | Row | Merchant sees |
+| --- | --- | --- |
+| `blocked`, `pending_blocked`, `test_blocked`, or a held-zone error | `failed` (live rows keep `active`, SSL `failed`) | "This domain is still connected to another host…" (translated; `heldElsewhere` on the view) |
+| Anything else not active, DNS right | `pending`, and a no-change PATCH asks Cloudflare to look now | "Your records look right. We are waiting for Cloudflare…" |
+| `moved` or `deleted`, DNS wrong | `failed` | The record to fix. The PATCH that revives it comes when DNS is right again |
+| Certificate timed out or expired | `verified`, SSL `issuing`, and the same PATCH | "Getting your security certificate" |
+| A CAA error in `ssl.validation_errors` | As above | Which record blocks the certificate |
+
+`blocked` is terminal at Cloudflare until someone asks again, so a check does (the same PATCH), and
+those rows are not polled, so only **Verify connection** repeats it. A rate limit, an auth failure,
+an outage, or a failed DNS lookup returns the previous state with a "try again" message, as `dns`
+does for a lookup timeout. The call is logged by status, never with the token or Cloudflare's text.
+
+Removing a domain deletes its custom hostname through the `domain.route_removed` job, otherwise it
+would stay claimed on our zone, which is exactly the trap Shopify's leftover hostname set.
+
+The certificate sweep and **Retry certificate** skip rows with `edge_records` set: their
+certificate is Cloudflare's, and the sweep's handshake would pass on a padlock alone.
+
+#### An apex is redirect-only
+
+Most registrars cannot CNAME an apex, and Cloudflare's apex proxying is Enterprise only. So:
+
+- `brand.in` keeps the `A @ → STOREFRONT_A_RECORD` record and the TXT. It uses the `dns` rules, with
+  one difference: a proxied apex does not count, because only our own address proves the request
+  reaches Traefik. Cloudflare's API is not called.
+- Its Dokploy route carries one Traefik middleware, `apex-to-www@file`, which redirects to
+  `https://www.<apex>/<path>` before the request reaches the storefront (see the rollout below).
+- Connecting an apex always brings its www, which is the domain that serves; a www held by another
+  store refuses the connect. `domains.setPrimary` refuses an apex. Copy: "brand.in can only
+  redirect, so it cannot be primary. Make www.brand.in your primary domain instead."
+- An apex that is already primary keeps serving and gets no middleware. Existing rows are not
+  migrated or edited.
 
 ## Re-checks
 
@@ -150,7 +215,8 @@ Other things that keep a certificate from issuing:
 
 - **Cloudflare proxy (orange cloud)**: the handshake reaches Cloudflare, not us, so SSL turns
   `active` as soon as Cloudflare serves its own certificate. Set Cloudflare's SSL mode to
-  **Full (strict)** so it also checks our origin certificate.
+  **Full (strict)** so it also checks our origin certificate. This is the `dns` provider's blind
+  spot; `cloudflare` does not rely on a handshake.
 - **An extra AAAA (IPv6) record** pointing at the old host: Let's Encrypt prefers IPv6, so the
   challenge goes there and fails. Ask the merchant to delete it.
 - **Origin locked to Cloudflare's ranges** ([Deployment](/developer-docs/operations/deployment), "Lock the
@@ -160,6 +226,105 @@ Other things that keep a certificate from issuing:
 - **The check runs from the server itself** (admin and worker containers connect to
   `host:443`). The firewall / security group must let the server reach its own public address
   on 443, or every domain stays `issuing`.
+
+## Rolling out Cloudflare for SaaS
+
+Everything below is **unverified against the real account**: it comes from Cloudflare's, Dokploy's
+and Traefik's documentation and source. Items marked **Confirm** are the ones that could turn out
+differently. Do them on a test domain before `DOMAIN_PROVIDER=cloudflare` reaches production.
+
+Order matters: the provider starts creating hostnames (and counting towards the bill) as soon as
+it is on.
+
+### On Cloudflare (`koomerce.app`)
+
+1. **Turn on Cloudflare for SaaS** on the zone (SSL/TLS → Custom Hostnames). 100 hostnames are
+   included on Free, Pro and Business, then $0.10 each per month. A www counts from the moment its
+   TXT is seen, finished or not. Apex rows do not count. **Confirm** the plan and billing.
+2. **Fallback origin:** a proxied CNAME, for example `fallback.koomerce.app`, to
+   `<tunnel-id>.cfargotunnel.com`. Set it as the fallback origin and wait for **Active**. Without it
+   every hostname fails validation.
+3. **CNAME target:** `STOREFRONT_CNAME_TARGET` must be a proxied record on this zone. Point it at
+   the fallback origin. **Confirm** that `shops.koomerce.app` can move without disturbing what it
+   serves today.
+4. **Tunnel:** keep the catch-all ingress to Traefik and do **not** set an HTTP host header on it:
+   Traefik routes by the merchant's hostname, so it must arrive unchanged. **Confirm** with a test
+   hostname that the Host header survives the fallback, and that Traefik's answer over the tunnel
+   works (`noTLSVerify`, no SNI for that hostname).
+5. **API token:** My Profile → API Tokens, scoped to this zone only, permission **Zone → SSL and
+   Certificates → Edit**. Nothing else. **Confirm** the dashboard's label matches.
+
+### On the server
+
+6. **Dokploy 0.29.0 or later.** `middlewares` on `domain.create` first appears in that release.
+   Older releases drop the field silently, so the client checks the answer, deletes the domain and
+   fails the job: an apex is never left serving the storefront. **Confirm** the running version.
+7. **The Traefik middleware.** Create `/etc/dokploy/traefik/dynamic/apex-to-www.yml` (its own file,
+   so Dokploy's writes to `middlewares.yml` never touch it). Traefik watches that folder, so no
+   restart is needed. Every apex route shares it, and the router's exact `Host()` rule means the
+   first group can only ever be that apex.
+
+   ```yaml
+   http:
+     middlewares:
+       apex-to-www:
+         redirectRegex:
+           regex: '^https?://([^/:]+)(?::[0-9]+)?(/.*)?$'
+           replacement: 'https://www.${1}${2}'
+           permanent: true
+   ```
+
+   Port 80 is untouched: Let's Encrypt's challenge is answered first, and everything else hits
+   `redirect-to-https`, then this. **Confirm** with `curl -I` that the path and query survive and
+   that the storefront's logs show nothing.
+8. **Environment.** On the **admin and worker**: `DOMAIN_PROVIDER=cloudflare`,
+   `CLOUDFLARE_ZONE_ID`, `CLOUDFLARE_API_TOKEN`, real `STOREFRONT_A_RECORD` and
+   `STOREFRONT_CNAME_TARGET`. The storefront must not get the token. The four `DOKPLOY_*` keys are
+   needed on the worker: without them nothing adds the Traefik route, so a domain stays `issuing`.
+   `loadEnv` refuses a missing zone or the default targets. It cannot refuse a missing token,
+   because the storefront loads the same schema, so `createDomainProvider` does: the worker will
+   not start without it, and the admin's "Verify connection" reports it.
+9. **Migration** `0223_store_domain_edge_records` runs with the deploy. It adds one nullable column
+   and touches no rows.
+
+### First domain
+
+10. Connect a test `www` and add the records. Check the custom hostname appears on Cloudflare once
+    the TXT is in, and watch it reach Connected. **Confirm** real responses match what the provider reads: the status
+    values, `ownership_verification`, `verification_errors` and the `ssl.status` values.
+11. **The case that started this.** Connect a hostname another SaaS still holds, with the CNAME
+    pointing at us. Cloudflare's docs do not say what happens when two SaaS providers hold the same
+    exact hostname. The provider handles `blocked`, a held-zone error, and a hostname that stays
+    pending. If Cloudflare reports **active** while the other provider keeps the traffic, this
+    provider cannot see it, and it would say Connected. **Confirm this before trusting the badge.**
+    If it happens, add a check that fetches the hostname and looks for a storefront-only response.
+12. Connect a test apex. Check `https://<apex>/some/path?a=1` answers 301 to the www with the path
+    and query, and that its route in Dokploy shows the middleware.
+
+### Existing domains
+
+Nothing moves on its own. A row that is `active` with SSL `active` is not polled, so it keeps its
+direct DNS until the merchant changes it. For each one: change the record to the CNAME, then press
+**Verify connection**. That first check puts the row on Cloudflare.
+
+A row wrongly marked connected (a false positive from a padlock) needs the same press: it stays
+live, because a domain never drops back, but the page then tells the merchant what is wrong. A
+primary apex must move to its www first. After that its route still serves the storefront until
+someone adds the middleware to it in Dokploy, or removes and reconnects the domain.
+
+### The firewall: this design cannot fully close the origin
+
+An apex's A record points at `STOREFRONT_A_RECORD`, so that address must answer 80 and 443 for
+everyone: visitors for the redirect, and Let's Encrypt for the certificate. If the same machine is
+locked to Cloudflare's ranges, every apex stops working, and if it stays open, anyone who finds the
+address can still reach the storefront directly and send a made-up `cf-connecting-ip`.
+
+So "close the origin" is only possible once the apex redirect has its own address. The smallest way:
+a second small server or static IP running only Traefik with this middleware, with
+`STOREFRONT_A_RECORD` pointing there and the main origin closed (the security audit's plan of never
+opening inbound 80/443 on the new origin). That needs a Dokploy application on that server for
+apex routes, which is not built. Until then, leave 80/443 open and treat `TRUSTED_PROXY=cloudflare`
+as not bypass-proof.
 
 ## Store links use the primary domain
 
@@ -203,8 +368,8 @@ platform addresses and custom domains alike.
 - **The check** (`tlsCertState`): a TLS connection to `host:443` without rejecting untrusted
   certificates, then inspecting what came back: the default certificate, a chain the system
   does not trust or a name mismatch, nothing, or a certificate trusted for that host (`valid`).
-- **The job:** a repeat job on `{domains}-certificate` every minute, scheduled only when
-  `DOMAIN_PROVIDER=dns`. It looks at rows with `status = 'active'` and `route_status = 'ready'`
+- **The job:** a repeat job on `{domains}-certificate` every minute, scheduled unless
+  `DOMAIN_PROVIDER=dev`. It looks at rows with `status = 'active'` and `route_status = 'ready'`
   that are due (`certCheckDue`; `stores_with_certificate_checks()` finds the stores). Waiting
   rows follow a backoff counted from `ssl_started_at`: every minute for 5 minutes, then every
   5 minutes up to 30 minutes, every 15 minutes up to 2 hours, hourly up to 6 hours, then every
