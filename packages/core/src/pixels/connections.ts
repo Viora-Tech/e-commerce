@@ -19,7 +19,7 @@ import { isMetaPixelId, MAX_PIXELS_PER_STORE, PIXEL_EVENTS, PURCHASE_TRIGGERS } 
 import { hashUserData } from './hash'
 import { PIXELS_APP_ID } from './jobs'
 import { bumpDay, upsertLogRow } from './log'
-import { buildMetaEvent, type FetchLike, matchedOf, sendMetaEvents, verifyMetaToken } from './meta'
+import { buildMetaEvent, type FetchLike, matchedOf, sendMetaEvents, verifyPixelToken } from './meta'
 
 class PixelError extends CommerceError {}
 
@@ -122,7 +122,7 @@ export async function getPixel(tx: StoreTx, id: string): Promise<PublicPixel> {
 const hint = (token: string) => token.slice(-4)
 
 async function checkedToken(pixelId: string, token: string, deps: PixelDeps) {
-  const r = await verifyMetaToken({ pixelId, token, fetch: deps.fetch })
+  const r = await verifyPixelToken({ pixelId, token, fetch: deps.fetch })
   if (!r.ok) {
     throw new PixelError(
       'PIXEL_TOKEN_REFUSED',

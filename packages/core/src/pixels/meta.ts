@@ -1,7 +1,7 @@
 /** SOURCE OF TRUTH: Meta Conversions API client — WHAT: builds a server event, POSTs it to `/<pixel>/events`, checks a pasted token and sorts Meta's errors into retry / auth / fail / WHY: one place that talks to graph.facebook.com for pixels, so the token handling and error rules cannot drift */
 import type { PixelEventName, PixelMatched } from '@commerce/db'
 import { META_GRAPH_VERSION } from '../sales-channels/providers'
-import type { HashedUserData } from './hash'
+import { type HashedUserData, hashUserData } from './hash'
 
 /*
  * One event per call in v1 (Meta takes up to 1000). The token goes in the request body, never
@@ -262,4 +262,37 @@ export async function verifyMetaToken(input: {
     return { ok: true, name: res.body.name ?? null }
   }
   return failure(res.status, res.body, input.token)
+}
+
+/** Test events only: Meta keeps them out of reporting, so the check never counts as a visit. */
+const TOKEN_CHECK_CODE = 'TOKENCHECK'
+
+/**
+ * A token from "Generate access token" on a dataset can send events but cannot read the pixel,
+ * and sending is all we use it for. So when the read is refused for permission (#100), one test
+ * event decides. Anything else keeps the read's answer.
+ */
+export async function verifyPixelToken(input: {
+  pixelId: string
+  token: string
+  fetch?: FetchLike | undefined
+}): Promise<VerifyMetaTokenResult> {
+  const read = await verifyMetaToken(input)
+  if (read.ok || read.kind !== 'fail' || read.code !== 100) return read
+  const sent = await sendMetaEvents({
+    pixelId: input.pixelId,
+    token: input.token,
+    events: [
+      buildMetaEvent({
+        name: 'PageView',
+        eventId: crypto.randomUUID(),
+        at: new Date(),
+        user: hashUserData({ email: 'token-check@koomerce.app' }),
+      }),
+    ],
+    testEventCode: TOKEN_CHECK_CODE,
+    fetch: input.fetch,
+    timeoutMs: 10_000,
+  })
+  return sent.ok ? { ok: true, name: null } : sent
 }
