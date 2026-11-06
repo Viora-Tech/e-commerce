@@ -222,14 +222,15 @@ async function existingOrder(
     .select({
       id: order.id,
       importedFrom: order.importedFrom,
-      abandoned: sql<boolean>`${paymentNotFinished}`,
+      givesUpNumber: sql<boolean>`${paymentNotFinished} or (${order.status} = 'cancelled' and ${order.importedFrom} is null)`,
     })
     .from(order)
     .where(eq(order.number, o.number))
-  if (!byNumber?.abandoned) return byNumber ?? null
-  // A closed payment window is not a sale: Shopify's real order takes the number, and the
-  // abandoned checkout moves to the next one instead of the real order being skipped. A
-  // preview changes nothing: it only reports the real order as new.
+  if (!byNumber?.givesUpNumber) return byNumber ?? null
+  // A closed payment window is not a sale, and an order cancelled in this store, even a paid
+  // one, no longer needs its number: Shopify's real order takes the number, and the local
+  // order moves to the next one instead of the real order being skipped. Only the number
+  // changes. A preview changes nothing: it only reports the real order as new.
   if (dryRun) return null
   await tx
     .update(order)

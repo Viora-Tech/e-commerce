@@ -492,6 +492,173 @@ describe('CSV import runs', () => {
     expect(new Set(orders.map((o) => o.number)).size).toBe(orders.length)
   })
 
+  it("moves a cancelled local order off a number Shopify's real order needs", async () => {
+    const storeId = await seedStore()
+    const storage = new MemoryStorageProvider()
+    await owner.insert(order).values({
+      storeId,
+      number: 1001,
+      subtotalPaise: 100,
+      totalPaise: 100,
+      status: 'cancelled',
+      paymentMethod: 'manual',
+    })
+    const runId = await csvRun(storeId, storage, 'orders', 'orders.csv')
+    await executeRun(deps(storeId, storage), runId)
+    await withStore(app, storeId, (tx) => startRun(tx, runId))
+    await executeRun(deps(storeId, storage), runId)
+    const orders = await owner.select().from(order).orderBy(asc(order.number))
+    const imported = orders.filter((o) => o.importedFrom === 'shopify').map((o) => o.number)
+    expect(imported).toEqual([1001, 1002])
+    const moved = orders.find((o) => o.importedFrom === null)
+    expect([1001, 1002]).not.toContain(moved?.number)
+    expect(new Set(orders.map((o) => o.number)).size).toBe(orders.length)
+    const issues = await owner.select().from(importIssue).where(eq(importIssue.runId, runId))
+    expect(issues.some((i) => /already belongs/.test(i.message))).toBe(false)
+  })
+
+  it('moves only the number of a cancelled paid local order, never its payments', async () => {
+    const storeId = await seedStore()
+    const storage = new MemoryStorageProvider()
+    const [local] = await owner
+      .insert(order)
+      .values({
+        storeId,
+        number: 1001,
+        subtotalPaise: 100,
+        totalPaise: 100,
+        status: 'cancelled',
+        paymentStatus: 'paid',
+        paymentMethod: 'razorpay',
+        checkoutPaidAt: new Date('2026-11-01T10:00:00Z'),
+      })
+      .returning()
+    if (!local) throw new Error('seed')
+    const [paid] = await owner
+      .insert(payment)
+      .values({
+        storeId,
+        orderId: local.id,
+        provider: 'razorpay',
+        providerRef: 'pay_local',
+        status: 'captured',
+        amountPaise: 100,
+      })
+      .returning()
+    const runId = await csvRun(storeId, storage, 'orders', 'orders.csv')
+    await executeRun(deps(storeId, storage), runId)
+    await withStore(app, storeId, (tx) => startRun(tx, runId))
+    await executeRun(deps(storeId, storage), runId)
+    const [after] = await owner.select().from(order).where(eq(order.id, local.id))
+    expect(after).toEqual({ ...local, number: after?.number, updatedAt: after?.updatedAt })
+    expect([1001, 1002]).not.toContain(after?.number)
+    expect(await owner.select().from(payment).where(eq(payment.orderId, local.id))).toEqual([paid])
+  })
+
+  it('leaves an open direct UPI order on its number and skips the Shopify order', async () => {
+    const storeId = await seedStore()
+    const storage = new MemoryStorageProvider()
+    await owner.insert(order).values({
+      storeId,
+      number: 1001,
+      subtotalPaise: 100,
+      totalPaise: 100,
+      status: 'open',
+      paymentMethod: 'manual',
+    })
+    const runId = await csvRun(storeId, storage, 'orders', 'orders.csv')
+    await executeRun(deps(storeId, storage), runId)
+    await withStore(app, storeId, (tx) => startRun(tx, runId))
+    await executeRun(deps(storeId, storage), runId)
+    const orders = await owner.select().from(order).orderBy(asc(order.number))
+    expect(orders.map((o) => [o.number, o.importedFrom, o.totalPaise])).toEqual([
+      [1001, null, 100],
+      [1002, 'shopify', 259800],
+    ])
+    const issues = await owner.select().from(importIssue).where(eq(importIssue.runId, runId))
+    expect(issues.some((i) => i.ref === '#1001' && /already belongs/.test(i.message))).toBe(true)
+  })
+
+  it('updates a cancelled order that came from Shopify in place, keeping its number', async () => {
+    const storeId = await seedStore()
+    const storage = new MemoryStorageProvider()
+    const [earlier] = await owner
+      .insert(order)
+      .values({
+        storeId,
+        number: 1001,
+        subtotalPaise: 100,
+        totalPaise: 100,
+        status: 'cancelled',
+        importedFrom: 'shopify',
+      })
+      .returning()
+    const runId = await csvRun(storeId, storage, 'orders', 'orders.csv')
+    await executeRun(deps(storeId, storage), runId)
+    await withStore(app, storeId, (tx) => startRun(tx, runId))
+    await executeRun(deps(storeId, storage), runId)
+    const orders = await owner.select().from(order).orderBy(asc(order.number))
+    expect(orders.map((o) => [o.number, o.importedFrom])).toEqual([
+      [1001, 'shopify'],
+      [1002, 'shopify'],
+    ])
+    expect(orders[0]?.id).toBe(earlier?.id)
+  })
+
+  it('finds an order already mapped to the Shopify order before any number clash', async () => {
+    const storeId = await seedStore()
+    const storage = new MemoryStorageProvider()
+    const [mapped] = await owner
+      .insert(order)
+      .values({
+        storeId,
+        number: 1001,
+        subtotalPaise: 100,
+        totalPaise: 100,
+        status: 'cancelled',
+      })
+      .returning()
+    if (!mapped) throw new Error('seed')
+    await owner
+      .insert(importMapping)
+      .values({ storeId, resource: 'orders', sourceId: '5550001', localId: mapped.id })
+    const runId = await csvRun(storeId, storage, 'orders', 'orders.csv')
+    await executeRun(deps(storeId, storage), runId)
+    await withStore(app, storeId, (tx) => startRun(tx, runId))
+    await executeRun(deps(storeId, storage), runId)
+    const orders = await owner.select().from(order).orderBy(asc(order.number))
+    expect(orders.map((o) => [o.number, o.importedFrom])).toEqual([
+      [1001, null],
+      [1002, 'shopify'],
+    ])
+  })
+
+  it('moves nothing on a dry run and reports the real order as new', async () => {
+    const storeId = await seedStore()
+    const storage = new MemoryStorageProvider()
+    const [local] = await owner
+      .insert(order)
+      .values({
+        storeId,
+        number: 1001,
+        subtotalPaise: 100,
+        totalPaise: 100,
+        status: 'cancelled',
+        paymentMethod: 'cod',
+      })
+      .returning()
+    const counterBefore = await owner.select().from(storeCounter)
+    const runId = await csvRun(storeId, storage, 'orders', 'orders.csv')
+    await executeRun(deps(storeId, storage), runId)
+    expect(await owner.select().from(order)).toEqual([local])
+    expect(await owner.select().from(storeCounter)).toEqual(counterBefore)
+    const [run] = await owner.select().from(importRun).where(eq(importRun.id, runId))
+    expect(run?.dryRun).toBe(true)
+    const issues = await owner.select().from(importIssue).where(eq(importIssue.runId, runId))
+    expect(issues.some((i) => /already belongs/.test(i.message))).toBe(false)
+    expect(run?.preview.find((s) => s.key === '#1001')?.action).toBe('create')
+  })
+
   it('fails the run with a reason when the file is gone', async () => {
     const storeId = await seedStore()
     const storage = new MemoryStorageProvider()
