@@ -45,10 +45,6 @@ export default function ZoomMenu() {
           'flex h-8 shrink-0 items-center gap-1.5 rounded-lg px-2 text-caption text-muted-foreground tabular-nums transition-colors duration-150 hover:bg-muted/60 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/70 focus-visible:outline-none data-[popup-open]:bg-muted/60 data-[popup-open]:text-foreground motion-reduce:transition-none',
         )}
       >
-        <span className="hidden xl:inline">{copy.px(devicePx)}</span>
-        <span aria-hidden className="hidden xl:inline">
-          /
-        </span>
         <span>{pct}</span>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="center" className="min-w-40">

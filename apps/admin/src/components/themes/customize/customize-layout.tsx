@@ -55,7 +55,6 @@ type CustomizeLayoutProps = {
   /** The App embeds panel: installed apps' site-wide widgets (`AppsPanel`). */
   apps: ReactNode
   /** Floating controls over the bottom of the canvas. */
-  dock: ReactNode
   device: PreviewDevice
   loading: boolean
   /** The store, for the rail's tile and the left panel's "<Store> · <Template>" heading. */
@@ -82,7 +81,6 @@ export default function CustomizeLayout({
   settings,
   pages,
   apps,
-  dock,
   device,
   loading,
   store,
@@ -197,7 +195,9 @@ export default function CustomizeLayout({
   // Full view at desktop width lays the page out at the window's own width, edge to edge;
   // tablet and phone keep their width, centred.
   const fullBleed = view.full && device === 'desktop' && room.width > 0
-  const devicePx = fullBleed ? room.width : DEVICE_PX[device]
+  // At Fit, a desktop page also takes any width past its 1440 px, so the canvas fills the space.
+  const fills = device === 'desktop' && zoomMode === 'fit' && room.width > DEVICE_PX.desktop
+  const devicePx = fullBleed || fills ? room.width : DEVICE_PX[device]
   const fit = fitZoom(devicePx, room.width)
   const zoom = fullBleed ? 1 : zoomMode === 'fit' ? fit : zoomMode
   const zoomState = { zoom, mode: zoomMode, fit, devicePx, setMode: setZoomMode }
@@ -287,7 +287,7 @@ export default function CustomizeLayout({
                   data-canvas-stage=""
                   className={cn(
                     'flex min-h-0 min-w-0 flex-1 overflow-x-auto overflow-y-hidden',
-                    !view.full && 'px-6 pt-8 pb-16',
+                    !view.full && 'p-3 px-6',
                   )}
                 >
                   <div
@@ -317,7 +317,6 @@ export default function CustomizeLayout({
                 </div>
                 {view.full ? null : (
                   <>
-                    {dock}
                     <PanelToggle side="left" />
                     <PanelToggle side="right" />
                   </>
