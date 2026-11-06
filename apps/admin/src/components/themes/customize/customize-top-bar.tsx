@@ -17,7 +17,10 @@ import { Button } from '@commerce/ui/shadcn/button'
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@commerce/ui/shadcn/dropdown-menu'
 import { Spinner } from '@commerce/ui/shadcn/spinner'
@@ -52,6 +55,8 @@ type CustomizeTopBarProps = {
   codeHref: string
   /** Template and resource pickers. */
   pickers: ReactNode
+  /** The light and dark preview switch, beside the device switch. */
+  modeSwitch: ReactNode
   /** An AI gateway is set up: the green "AI connected" chip shows. */
   aiConnected: boolean
   /** The signed-in member, for the avatar and its menu at the far right. */
@@ -92,6 +97,7 @@ export default function CustomizeTopBar({
   previewHref,
   codeHref,
   pickers,
+  modeSwitch,
   aiConnected,
   user,
   onDevice,
@@ -167,13 +173,9 @@ export default function CustomizeTopBar({
             </button>
           ))}
         </fieldset>
+        {modeSwitch}
         <ZoomMenu />
         <FullViewButton className={ICON_BUTTON} />
-        {aiConnected ? (
-          <StatusChip tone="success" className="hidden shrink-0 xl:inline-flex">
-            {copy.aiConnected}
-          </StatusChip>
-        ) : null}
         <button
           type="button"
           onClick={history.back}
@@ -225,6 +227,16 @@ export default function CustomizeTopBar({
             <DropdownMenuItem disabled={!dirty || saving} onClick={onDiscard}>
               {copy.discard}
             </DropdownMenuItem>
+            {aiConnected ? (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuGroup>
+                  <DropdownMenuLabel className="text-xs font-medium text-muted-foreground">
+                    {copy.aiConnected}
+                  </DropdownMenuLabel>
+                </DropdownMenuGroup>
+              </>
+            ) : null}
           </DropdownMenuContent>
         </DropdownMenu>
         {!live && dirty ? (

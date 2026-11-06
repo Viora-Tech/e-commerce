@@ -194,6 +194,26 @@ function collectionRow(write: CollectionWrite) {
   }
 }
 
+/**
+ * A save changes only what it sends: a left-out field keeps its value, and `null` clears it.
+ * Sent with `title` and `kind` alone, the row used to lose its image and description (#1186).
+ */
+function collectionPatch(write: CollectionWrite) {
+  const row = collectionRow(write)
+  return {
+    title: row.title,
+    kind: row.kind,
+    ...(write.description === undefined ? {} : { description: row.description }),
+    ...(write.imageMediaId === undefined ? {} : { imageMediaId: row.imageMediaId }),
+    ...(write.rules === undefined ? {} : { rules: row.rules }),
+    ...(write.sortOrder === undefined ? {} : { sortOrder: row.sortOrder }),
+    ...(write.seoTitle === undefined ? {} : { seoTitle: row.seoTitle }),
+    ...(write.seoDescription === undefined ? {} : { seoDescription: row.seoDescription }),
+    ...(write.templateSuffix === undefined ? {} : { templateSuffix: row.templateSuffix }),
+    ...(write.status === undefined ? {} : { status: row.status }),
+  }
+}
+
 export async function createCollection(
   tx: StoreTx,
   storeId: string,
@@ -221,7 +241,7 @@ export async function updateCollection(
   const handle = write.handle ? await uniqueCollectionHandle(tx, write.handle, id) : before
   await tx
     .update(collection)
-    .set({ ...collectionRow(write), handle, updatedAt: new Date() })
+    .set({ ...collectionPatch(write), handle, updatedAt: new Date() })
     .where(eq(collection.id, id))
   await onHandleChange(tx, storeId, 'collection', before, handle)
   if (write.kind === 'automatic') await syncAutomaticCollection(tx, storeId, id)

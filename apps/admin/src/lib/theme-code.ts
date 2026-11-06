@@ -118,3 +118,15 @@ export function openFileProblems(
   }
   return out
 }
+
+/** Files named in full before the rest are only counted. */
+const NAMED_FILES = 5
+
+/** The saved, unpublished files: their names joined, and how many more there are. */
+export function unpublishedNames(files: readonly CodeFileEntry[]): { names: string; more: number } {
+  const drafts = files.filter((f) => f.draft).map((f) => codeFileName(f.path))
+  return {
+    names: drafts.slice(0, NAMED_FILES).join(', '),
+    more: Math.max(0, drafts.length - NAMED_FILES),
+  }
+}

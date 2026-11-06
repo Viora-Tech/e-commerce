@@ -2,10 +2,12 @@ import { sql } from 'drizzle-orm'
 import {
   boolean,
   check,
+  date,
   index,
   integer,
   jsonb,
   pgTable,
+  primaryKey,
   text,
   timestamp,
   uniqueIndex,
@@ -51,6 +53,20 @@ export const cookieConsent = pgTable(
     index('cookie_consent_store_created').on(t.storeId, t.createdAt),
     index('cookie_consent_customer').on(t.customerId),
   ],
+)
+
+/**
+ * How often the cookie banner was shown each day. A plain count with no visitor or cookie, so
+ * set beside `cookie_consent` it shows how many shoppers never answer.
+ */
+export const cookieBannerDay = pgTable(
+  'cookie_banner_day',
+  {
+    storeId: storeId(),
+    day: date('day').notNull(),
+    shown: integer('shown').notNull().default(0),
+  },
+  (t) => [primaryKey({ columns: [t.storeId, t.day] })],
 )
 
 const MARKETING_CONSENT_CHANNELS = ['email', 'whatsapp', 'sms'] as const

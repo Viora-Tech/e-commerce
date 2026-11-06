@@ -29,6 +29,7 @@ type Overview = {
   grievanceOfficer: GrievanceOfficer
   requests: { open: number; overdue: number }
   consent30Days: { total: number; analytics: number; marketing: number }
+  bannerShown30Days: number
 }
 
 type Form = { bannerMessage: string; requestDueDays: number }
@@ -176,7 +177,8 @@ export default function CustomerPrivacySettings() {
                       overview.consent30Days.total,
                       overview.consent30Days.analytics,
                       overview.consent30Days.marketing,
-                    )}
+                    )}{' '}
+                    {copy.banner.shown(overview.bannerShown30Days)}
                   </p>
                 </SettingsRow>
                 <div className="flex flex-col gap-2 pt-5 sm:flex-row sm:items-center sm:justify-between">

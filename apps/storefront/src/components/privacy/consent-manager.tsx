@@ -17,7 +17,7 @@ import {
   chatwootAllowed,
 } from '@commerce/plugin-chatwoot/widget'
 import { type UmamiTracker, umamiAllowed } from '@commerce/plugin-umami/settings'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import DiscoveryTracker from '@/components/analytics/discovery-tracker'
 import PixelEvents from '@/components/analytics/pixel-events'
 import TrackingTags from '@/components/analytics/tracking-tags'
@@ -77,6 +77,19 @@ function remember(consent: Consent, version: number): void {
   document.cookie = `${CONSENT_COOKIE}=${encodeConsent(consent, version, new Date())}; path=/; max-age=${CONSENT_MAX_AGE}; samesite=lax${secure}`
 }
 
+const SHOWN_KEY = 'wc_banner_shown'
+
+/** Counts the banner once per tab: `/api/consent-shown` keeps a plain daily number. */
+function reportBannerShown(): void {
+  try {
+    if (sessionStorage.getItem(SHOWN_KEY)) return
+    sessionStorage.setItem(SHOWN_KEY, '1')
+    navigator.sendBeacon('/api/consent-shown')
+  } catch {
+    // Blocked storage: this visit goes uncounted.
+  }
+}
+
 /**
  * The cookie banner (DPDP: necessary always on, analytics and marketing only
  * after a yes) and everything it gates: our own visit beacon, GA4, Tag Manager and
@@ -102,6 +115,7 @@ export default function ConsentManager({
   // Hooks
   const [consent, setConsent] = useState<Consent | null>(currentConsent(initial, bannerVersion))
   const [reopened, setReopened] = useState(false)
+  const initialUnanswered = useRef(consent === null)
 
   useEffect(() => {
     const check = () => {
@@ -113,6 +127,10 @@ export default function ConsentManager({
     check()
     window.addEventListener('hashchange', check)
     return () => window.removeEventListener('hashchange', check)
+  }, [])
+
+  useEffect(() => {
+    if (initialUnanswered.current) reportBannerShown()
   }, [])
 
   useEffect(() => {

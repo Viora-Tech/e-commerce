@@ -30,6 +30,8 @@ type CodeFileTreeProps = {
   /** Paths with unsaved edits (amber dot) and with problems (red dot). */
   dirty: ReadonlySet<string>
   broken: ReadonlySet<string>
+  /** Paths the last Publish put live (green dot). */
+  justPublished: ReadonlySet<string>
   canAdd: boolean
   onOpen: (path: string) => void
   onAdd: () => void
@@ -50,7 +52,8 @@ function iconFor(path: string) {
 
 /**
  * Files (Figma 699:93624): folders that open in place, Shopify's order, the open file on a
- * soft fill, an amber dot on unsaved files and a red one on files with a problem. Native
+ * soft fill, an amber dot on unsaved files, a red one on files with a problem, a blue one on
+ * saved files not yet published and a green one on files just published. Native
  * themes end with the Koomerce library, locked.
  */
 export default function CodeFileTree({
@@ -59,6 +62,7 @@ export default function CodeFileTree({
   active,
   dirty,
   broken,
+  justPublished,
   canAdd,
   onOpen,
   onAdd,
@@ -78,7 +82,7 @@ export default function CodeFileTree({
     })
 
   // Helpers
-  const fileRow = (path: string, label: string, locked = false) => {
+  const fileRow = (path: string, label: string, locked = false, draft = false) => {
     const Icon = locked ? Lock : iconFor(path)
     const selected = path === active
     return (
@@ -106,6 +110,20 @@ export default function CodeFileTree({
               role="img"
               aria-label={copy.unsaved}
               className="size-1.5 rounded-full bg-warning"
+            />
+          ) : draft ? (
+            <span
+              role="img"
+              aria-label={copy.unpublished}
+              title={copy.unpublished}
+              className="size-1.5 rounded-full bg-primary"
+            />
+          ) : justPublished.has(path) ? (
+            <span
+              role="img"
+              aria-label={copy.justPublished}
+              title={copy.justPublished}
+              className="size-1.5 rounded-full bg-success"
             />
           ) : null}
         </button>
@@ -170,7 +188,9 @@ export default function CodeFileTree({
             <li key={folder.name}>
               {folderHead(folder.name, copy.folders[folder.name] ?? folder.name, open)}
               {open ? (
-                <ul>{folder.files.map((f) => fileRow(f.path, codeFileName(f.path)))}</ul>
+                <ul>
+                  {folder.files.map((f) => fileRow(f.path, codeFileName(f.path), false, f.draft))}
+                </ul>
               ) : null}
             </li>
           )

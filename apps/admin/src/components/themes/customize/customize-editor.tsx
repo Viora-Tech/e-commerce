@@ -347,6 +347,9 @@ export default function CustomizeEditor({
       codeHref={routes.onlineStore.themeCode(record.id)}
       aiConnected={ai.connected}
       user={user}
+      modeSwitch={
+        <CanvasDock mode={mode} darkMode={settings.darkMode.enabled} onMode={setModePick} />
+      }
       onDevice={setDevice}
       onDiscard={handleDiscard}
       onSave={handleSave}
@@ -431,13 +434,6 @@ export default function CustomizeEditor({
                             onPick={handleTemplate}
                             onCreate={handleCreateFor}
                             onManaged={handleManaged}
-                          />
-                        }
-                        dock={
-                          <CanvasDock
-                            mode={mode}
-                            darkMode={settings.darkMode.enabled}
-                            onMode={setModePick}
                           />
                         }
                         device={device}

@@ -1,8 +1,9 @@
-import { sql } from 'drizzle-orm'
+import { eq, sql } from 'drizzle-orm'
 import postgres from 'postgres'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import { createDb } from '../src/client'
 import { navigationMenu } from '../src/content-schema'
+import { pixelConnection } from '../src/pixel-schema'
 import { store } from '../src/schema'
 import {
   listenStorefrontCache,
@@ -90,6 +91,28 @@ describe('storefront cache notifications', () => {
     )
     expect(got).toEqual([storeId])
     expect(parseStorefrontCachePayload(got[0] as string)).toEqual({ storeId, soft: false })
+  })
+
+  it('sending a pixel event notifies nobody, changing the pixel does', async () => {
+    const [pixel] = await owner
+      .insert(pixelConnection)
+      .values({ storeId, pixelId: '1234567890' })
+      .returning()
+    if (!pixel) throw new Error('seed failed')
+    const sent = await notificationsDuring(() =>
+      owner
+        .update(pixelConnection)
+        .set({ lastSentAt: new Date(), lastError: null, lastErrorAt: null })
+        .where(eq(pixelConnection.id, pixel.id)),
+    )
+    expect(sent).toEqual([])
+    const changed = await notificationsDuring(() =>
+      owner
+        .update(pixelConnection)
+        .set({ status: 'paused' })
+        .where(eq(pixelConnection.id, pixel.id)),
+    )
+    expect(changed).toEqual([storeId])
   })
 
   it('a rolled-back write notifies nobody', async () => {

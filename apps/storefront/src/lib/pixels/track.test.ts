@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { type BrowserPixel, fbqData, sendPixelEvent } from './track'
+import { type BrowserPixel, fbqData, matchData, sendPixelEvent } from './track'
 
 const fbq = vi.fn()
 const beacons: string[] = []
@@ -80,6 +80,32 @@ describe('pixel events in the browser', () => {
       { value: 998, currency: 'INR', content_ids: ['v1'], content_type: 'product', num_items: 2 },
       { eventID: 'atc_v1_1' },
     )
+  })
+
+  it('adds advanced matching for the pixel, never for our own collector', async () => {
+    const pay: BrowserPixel = {
+      id: '5555555555',
+      events: ['AddPaymentInfo'],
+      browserPurchase: true,
+    }
+    sendPixelEvent([pay], {
+      name: 'AddPaymentInfo',
+      eventId: 'api_c1_upi',
+      match: { email: ' A@B.in ', phone: '98765 43210' },
+    })
+    expect(fbq).toHaveBeenNthCalledWith(1, 'init', '5555555555', {
+      em: 'a@b.in',
+      ph: '919876543210',
+    })
+    expect(fbq.mock.calls[1]?.[0]).toBe('trackSingle')
+    await new Promise((r) => setTimeout(r, 0))
+    expect(beacons[0]).not.toContain('a@b.in')
+    expect(beacons[0]).not.toContain('9876543210')
+  })
+
+  it('skips matching when nothing usable was typed', () => {
+    expect(matchData({ email: 'nope', phone: '123' })).toBeNull()
+    expect(matchData(undefined)).toBeNull()
   })
 
   it('sends nothing from sign-in pages', () => {

@@ -1,7 +1,7 @@
 'use client'
 
 import { appStoreUrl } from '@commerce/config/site'
-import { ChevronsUpDown, ExternalLink, Globe, Store } from '@commerce/ui/icons'
+import { CheckIcon, ChevronsUpDown, ExternalLink, Globe, Store } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import {
   DropdownMenu,
@@ -204,12 +204,21 @@ export default function AdminSidebar({
             {stores.map((s) => (
               <DropdownMenuItem
                 key={s.id}
+                aria-current={s.id === activeStoreId ? 'true' : undefined}
                 disabled={switchingId !== null || s.id === activeStoreId}
                 onClick={() => handleSwitchStore(s.id)}
+                // The open store is marked, not dimmed: dimmed, the other store looked picked.
+                className={cn(
+                  s.id === activeStoreId &&
+                    'bg-accent font-medium text-accent-foreground data-disabled:opacity-100',
+                )}
               >
                 {/* Figma "State · Switching store": the picked store spins until Home reloads. */}
                 {switchingId === s.id ? <Spinner /> : <Store className="size-4" />}
-                {s.name}
+                <span className="min-w-0 flex-1 truncate">{s.name}</span>
+                {s.id === activeStoreId ? (
+                  <CheckIcon aria-hidden className="size-4 shrink-0" />
+                ) : null}
               </DropdownMenuItem>
             ))}
             <DropdownMenuSeparator />

@@ -36,6 +36,7 @@ function setup(props: Partial<ComponentProps<typeof CustomizeTopBar>>) {
       device="desktop"
       previewHref="/preview"
       codeHref="/code"
+      modeSwitch={null}
       pickers={null}
       aiConnected={false}
       user={{ name: 'Owner', email: 'owner@example.com' }}
