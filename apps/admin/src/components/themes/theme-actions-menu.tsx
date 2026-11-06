@@ -1,10 +1,27 @@
 'use client'
 
+import {
+  Braces,
+  Copy,
+  Download,
+  History,
+  type IconComponent,
+  Palette,
+  Pencil,
+  Trash2,
+} from '@commerce/ui/icons'
 import ActionMenu from '@/components/layout/action-menu'
 import { themesContent } from '@/data/themes'
 import { useCopy } from '@/hooks/use-copy'
 
 export type ThemeAction = 'rename' | 'duplicate' | 'versions' | 'download' | 'delete'
+
+const ACTION_ICONS: Record<Exclude<ThemeAction, 'delete'>, IconComponent> = {
+  rename: Pencil,
+  duplicate: Copy,
+  versions: History,
+  download: Download,
+}
 
 type ThemeActionsMenuProps = {
   actions: readonly ThemeAction[]
@@ -31,7 +48,7 @@ export default function ThemeActionsMenu({
   const labels = useCopy(themesContent.library)
 
   // Render logic
-  const safe = actions.filter((a) => a !== 'delete')
+  const safe = actions.filter((a): a is Exclude<ThemeAction, 'delete'> => a !== 'delete')
   const canDelete = actions.includes('delete')
 
   return (
@@ -42,11 +59,16 @@ export default function ThemeActionsMenu({
       align="start"
       disabled={disabled}
       items={[
-        { label: labels.customize, href: customizeHref, hidden: !customizeHref },
-        { label: labels.editCode, href: codeHref, hidden: !codeHref },
-        ...safe.map((a) => ({ label: labels[a], onSelect: () => onAction(a) })),
+        { label: labels.customize, icon: Palette, href: customizeHref, hidden: !customizeHref },
+        { label: labels.editCode, icon: Braces, href: codeHref, hidden: !codeHref },
+        ...safe.map((a) => ({
+          label: labels[a],
+          icon: ACTION_ICONS[a],
+          onSelect: () => onAction(a),
+        })),
         {
           label: labels.delete,
+          icon: Trash2,
           destructive: true,
           hidden: !canDelete,
           onSelect: () => onAction('delete'),
