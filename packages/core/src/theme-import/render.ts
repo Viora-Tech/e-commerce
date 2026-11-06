@@ -109,15 +109,28 @@ export async function renderLiquidSection(
   try {
     const runtime = withHooks(ctx)
     const tpl = parsed(ctx.entry, `sections/${section.type}.liquid`, def.source)
-    return await renderUntilComplete(ctx, () =>
-      renderBounded(
+    return await renderUntilComplete(ctx, () => {
+      const globals = renderGlobals(ctx, runtime)
+      const placed = sectionObject(ctx, section)
+      // A section's own dynamic sources read the page's resource: Horizon's "You may also like"
+      // is set to `{{ closest.product }}`, and shows placeholders without a product.
+      const settings = dynamicSettings(placed.settings, ctx.entry.engine, {
+        closest: {
+          product: globals.product,
+          collection: globals.collection,
+          article: globals.article,
+          blog: globals.blog,
+          page: globals.page,
+        },
+      })
+      return renderBounded(
         ctx.entry.engine,
         ctx.budget,
         tpl,
-        { section: sectionObject(ctx, section) },
-        renderGlobals(ctx, runtime),
-      ),
-    )
+        { section: { ...placed, settings } },
+        globals,
+      )
+    })
   } catch (err) {
     onError?.(err)
     return `<!-- section ${escapeAttr(section.type)} could not render -->`
@@ -232,13 +245,13 @@ function withHooks(ctx: LiquidPageContext): EngineRuntime {
       // Shopify's `block`, `section` and `closest` reach the block's snippets too (Horizon's
       // product card reads `closest.product` inside `card-gallery`), and `render` keeps only
       // what is global.
-      const { closest } = extras
-      return renderBounded(ctx.entry.engine, ctx.budget, tpl, blockScope, {
-        ...liquidCtx.globals,
-        block: own,
-        section,
-        closest,
-      })
+      // Copied by descriptor: reading `customer` marks a page as per-customer, and a spread reads it.
+      const globals = Object.defineProperties(
+        {},
+        Object.getOwnPropertyDescriptors(liquidCtx.globals),
+      ) as Record<string, unknown>
+      Object.assign(globals, { block: own, section, closest: extras.closest })
+      return renderBounded(ctx.entry.engine, ctx.budget, tpl, blockScope, globals)
     },
   }
 }

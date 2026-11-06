@@ -992,7 +992,7 @@ html.has-cursor-fill [data-icon-close]:hover {
 /* ------------------------------------------------------------------ */
 /* Rich text (page.content, article.content, richtext settings)        */
 /* ------------------------------------------------------------------ */
-.rte {
+.rte:not(:where(.shopify-section *)) {
   font-family: var(--font-body);
   font-size: 16px;
   line-height: 1.6;
@@ -1695,6 +1695,20 @@ main#MainContent {
   background-color: var(--color-bg);
   border-start-start-radius: var(--section-radius);
   border-start-end-radius: var(--section-radius);
+}
+
+/* An imported theme that paints its own section grounds behind the content (Horizon: a
+   `.section-background` at a negative z-index). A filled page would cover them, and the
+   theme's white text would sit on white. */
+main#MainContent:has(.section-background) {
+  background-color: transparent;
+}
+
+/* Our own sections inside such a theme (the product page) take its colours: its scheme can be
+   dark, and our ink on its ground would hide the price and the buttons. */
+main#MainContent:has(.section-background) .shopify-section {
+  --color-ink: var(--color-foreground);
+  --color-bg: var(--color-background);
 }
 
 /* Settled by scrolling the live reference and photographing the boundary:

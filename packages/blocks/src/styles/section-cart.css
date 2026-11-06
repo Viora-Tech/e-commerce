@@ -436,7 +436,7 @@
 /* ------------------------------------------------------------------ */
 /* The drawer's scroll lock is `html.overlay-open` in base.css, shared with
    every other overlay - see ThemeOverlay.lockScroll. */
-.cart-drawer {
+.cart-drawer:not(:where(.shopify-section *)) {
   position: fixed;
   inset-block: 0;
   /* inset-inline-start must be pinned explicitly: <dialog>'s UA stylesheet
@@ -488,33 +488,33 @@
  * transition to finish before calling dialog.close().
  */
 @media (prefers-reduced-motion: no-preference) {
-  .cart-drawer {
+  .cart-drawer:not(:where(.shopify-section *)) {
     transition: transform var(--motion-overlay) var(--motion-overlay-ease);
   }
 }
 
-.cart-drawer::backdrop {
+.cart-drawer:not(:where(.shopify-section *))::backdrop {
   /* Same raw scrim value as .header-drawer__scrim (section-header.css) -
      the theme's established neutral-overlay precedent; not tokenized. */
   background-color: rgb(0 0 0 / 40%);
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .cart-drawer::backdrop {
+  .cart-drawer:not(:where(.shopify-section *))::backdrop {
     opacity: 0;
     transition: opacity var(--motion-scrim) ease;
   }
 }
 
-.cart-drawer[open] {
+.cart-drawer:not(:where(.shopify-section *))[open] {
   display: flex;
 }
 
-.cart-drawer[open].is-visible {
+.cart-drawer:not(:where(.shopify-section *))[open].is-visible {
   transform: translateX(0);
 }
 
-.cart-drawer[open].is-visible::backdrop {
+.cart-drawer:not(:where(.shopify-section *))[open].is-visible::backdrop {
   opacity: 1;
 }
 

@@ -4,6 +4,7 @@ import { buildThemeBundle } from './bundle'
 import { videoNamesOf } from './import-media'
 import { createPageContext, type LiquidBlockInput } from './page-context'
 import { renderLiquidLayout, renderLiquidSection } from './render'
+import { dynamicSettings } from './settings-values'
 
 let themes = 0
 
@@ -148,6 +149,43 @@ describe('closest', () => {
   it('leaves text that only looks like a source alone', async () => {
     const html = await render(card, nested('title', { text: 'Use {{ code }} today' }))
     expect(html).toContain('TITLE[Use {{ code }} today]')
+  })
+})
+
+describe('dynamic sources in section settings', () => {
+  it('reads the page resource through closest', async () => {
+    const ctx = await contextFor({})
+    const product = { handle: 'mouse' }
+    const settings = dynamicSettings(
+      { product: '{{ closest.product }}', title: 'Plain' },
+      ctx.entry.engine,
+      {
+        closest: { product },
+      },
+    )
+    expect(settings).toEqual({ product, title: 'Plain' })
+  })
+})
+
+describe('per-customer tracking', () => {
+  it('does not mark a page as per-customer for rendering a block', async () => {
+    const ctx = await contextFor({
+      'sections/s.liquid': `{% content_for 'block', type: '_m', id: 'menu' %}${schema({ name: 's' })}`,
+      'blocks/_m.liquid': `MENU${MENU_SCHEMA}`,
+    })
+    let read = 0
+    ctx.runtime.onCustomer = () => {
+      read += 1
+    }
+    await renderLiquidSection(ctx, {
+      id: 's',
+      type: 's',
+      settings: {},
+      blocks: [],
+      location: 'template',
+      index: 0,
+    })
+    expect(read).toBe(0)
   })
 })
 
