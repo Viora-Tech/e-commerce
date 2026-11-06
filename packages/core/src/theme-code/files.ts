@@ -47,7 +47,8 @@ import {
 const CODE_VERSIONS_KEPT = 30
 
 /** An imported theme's files that only fed the import: the theme editor owns what they held. */
-const IMPORT_ONLY = /^(templates\/.+\.json|config\/settings_data\.json)$/
+const IMPORT_ONLY =
+  /^(templates\/.+\.json|sections\/(?:header|footer)-group\.json|config\/settings_data\.json)$/
 
 export type CodeThemeKind = 'imported' | 'native'
 

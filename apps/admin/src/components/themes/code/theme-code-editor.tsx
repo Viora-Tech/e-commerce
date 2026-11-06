@@ -12,7 +12,13 @@ import { isDirty, useCodeBuffers } from '@/hooks/use-code-buffers'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
-import { codeFileName, libraryTypeOf, openFileProblems, sectionTypeSlug } from '@/lib/theme-code'
+import {
+  codeFileName,
+  libraryTypeOf,
+  openFileProblems,
+  sectionTypeSlug,
+  unpublishedNames,
+} from '@/lib/theme-code'
 import { previewUrl } from '../theme-types'
 import CodeAddFileDialog from './code-add-file-dialog'
 import CodeFileTree from './code-file-tree'
@@ -164,6 +170,10 @@ export default function ThemeCodeEditor({ theme, origin, me, initialFile }: Them
   const activeProblems = active ? (problems.get(active) ?? []) : []
 
   const kind = code.list?.kind ?? 'native'
+  const unpublished = unpublishedNames(code.list?.files ?? [])
+  const publishNames = unpublished.more
+    ? copy.drafts.moreFiles(unpublished.names, unpublished.more)
+    : unpublished.names
   const library = Object.keys(code.list?.libraryUse ?? {}).sort()
   const realPaths = (code.list?.files ?? []).map((f) => f.path)
   const broken = new Set([...problems.entries()].filter(([, p]) => p.length).map(([path]) => path))
@@ -217,6 +227,7 @@ export default function ThemeCodeEditor({ theme, origin, me, initialFile }: Them
           active={active}
           dirty={dirtyPaths}
           broken={broken}
+          justPublished={code.justPublished}
           canAdd={!!code.list}
           onOpen={handleOpen}
           onAdd={() => setAddOpen(true)}
@@ -285,7 +296,7 @@ export default function ThemeCodeEditor({ theme, origin, me, initialFile }: Them
         body={
           confirming === 'discard'
             ? copy.drafts.discardDialog.body
-            : copy.drafts.publishDialog.body(code.list?.drafts ?? 0)
+            : `${copy.drafts.publishDialog.body(code.list?.drafts ?? 0)} ${copy.drafts.publishDialog.files(publishNames)}`
         }
         confirmLabel={
           confirming === 'discard'
