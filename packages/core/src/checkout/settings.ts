@@ -58,6 +58,8 @@ export const CheckoutSettingsSchema = z.object({
   gstin: z.boolean().default(false),
   /** Let shoppers leave a note with their order. */
   orderNotes: z.boolean().default(false),
+  /** Which way to pay wears Recommended (a method id); empty means the first one on offer. */
+  recommendedMethod: z.string().trim().max(40).default(''),
   /** Smallest order (items after discount, before shipping) the store accepts; 0 means none. */
   minimumOrderPaise: z.number().int().min(0).default(0),
   cod: CodRulesSchema.prefault({}),

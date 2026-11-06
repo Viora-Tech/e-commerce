@@ -7,6 +7,7 @@ import { addPaymentInfoEventId } from '@commerce/core/pixels'
 import PaymentMethods from '@/components/checkout/payment-methods'
 import { checkoutContent as content } from '@/data/checkout'
 import { CK_INPUT, CK_LABEL } from '@/lib/checkout-classes'
+import { recommendedMethodId } from '@/lib/checkout-preview'
 import type { CheckoutFormModel } from '@/lib/use-checkout-form'
 
 type CheckoutPaymentStepProps = { ck: CheckoutFormModel }
@@ -85,6 +86,7 @@ export default function CheckoutPaymentStep({ ck }: CheckoutPaymentStepProps) {
           codBlocked={totals.codBlocked}
           codNote={totals.codNote}
           amountLabel={ck.payNow}
+          recommendedId={recommendedMethodId(totals.offered, ck.settings.recommendedMethod)}
           onSelect={handleSelect}
         />
       )}

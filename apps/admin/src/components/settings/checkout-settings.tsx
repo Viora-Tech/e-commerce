@@ -4,6 +4,7 @@ import type { CheckoutSettingsView, PaymentAdjustment, RolloutHold } from '@comm
 import type { CheckoutSettings as Settings } from '@commerce/core/checkout-settings'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Field, FieldLabel } from '@commerce/ui/shadcn/field'
+import { NativeSelect, NativeSelectOption } from '@commerce/ui/shadcn/native-select'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { Switch } from '@commerce/ui/shadcn/switch'
 import Link from 'next/link'
@@ -31,6 +32,9 @@ import SettingsCard from './settings-card'
 type Form = { settings: Settings; codFee: PaymentAdjustment | null }
 
 type Loaded = CheckoutSettingsView & { pincodeDirectory: boolean }
+
+/** The ways to pay a store can recommend; empty is automatic. */
+const RECOMMENDED_METHODS = ['', 'manual', 'razorpay', 'cashfree', 'decentro'] as const
 
 const formOf = (v: Loaded): Form => ({ settings: v.settings, codFee: v.codFee })
 
@@ -143,6 +147,25 @@ export default function CheckoutSettings() {
             ),
           },
           { id: 'cod', title: r.cod, value: loaded.codEnabled ? r.codOn : r.codOff },
+          {
+            // One choice: in the row itself, like the PIN code switch.
+            id: 'recommended',
+            title: copy.recommended.title,
+            value: copy.recommended.hint,
+            control: (
+              <NativeSelect
+                aria-label={copy.recommended.title}
+                value={s.recommendedMethod}
+                onChange={(e) => patch({ recommendedMethod: e.target.value })}
+              >
+                {RECOMMENDED_METHODS.map((id) => (
+                  <NativeSelectOption key={id} value={id}>
+                    {copy.recommended.options[id]}
+                  </NativeSelectOption>
+                ))}
+              </NativeSelect>
+            ),
+          },
           {
             id: 'cart-limit',
             title: rules.rows.cartLimit,

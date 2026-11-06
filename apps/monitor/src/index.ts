@@ -40,7 +40,7 @@ type Env = {
 }
 
 const FROM = 'monitor@koomerce.app'
-const TO = 'vioramice@gmail.com'
+const TO = 'kuldeepsaini02311@gmail.com'
 const MAX_BODY_BYTES = 32_768
 const CPU_KEY = 'server:cpu'
 

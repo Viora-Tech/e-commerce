@@ -1,11 +1,10 @@
 import { loadEnv } from '@commerce/config'
 import {
   decryptStorageSettings,
+  effectiveStorageSettings,
   mergeMaskedSecrets,
-  parseStorageSettings,
   resolveStorageProvider,
   type StorageSettings,
-  storageDefaultsFromEnv,
 } from '@commerce/core'
 import type { StoreTx } from '@commerce/db'
 import { store } from '@commerce/db'
@@ -25,8 +24,7 @@ export async function updateStoreStorage(tx: StoreTx, storeId: string, storage: 
  */
 export async function loadStorageSettings(tx: StoreTx, storeId: string): Promise<StorageSettings> {
   const [s] = await tx.select({ storage: store.storage }).from(store).where(eq(store.id, storeId))
-  if (s?.storage) return parseStorageSettings(s.storage)
-  return storageDefaultsFromEnv(process.env)
+  return effectiveStorageSettings(s?.storage, process.env)
 }
 
 /** The provider this store uploads to right now (never null: the local folder is the floor). */

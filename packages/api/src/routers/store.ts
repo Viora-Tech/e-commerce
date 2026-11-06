@@ -33,6 +33,7 @@ import {
   ThemeSchema,
   updateThemeSettings,
 } from '@commerce/core'
+import { installedStorage } from '@commerce/core/registries'
 import { CORE_PLUGIN_ID } from '@commerce/plugins'
 import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
@@ -454,7 +455,7 @@ export const storeRouter = {
 
   /** Storage settings with secrets masked, plus the providers this deployment can offer. */
   getStorage: can(permissions.SETTINGS_READ).handler(async ({ context }) => {
-    const { storage } = await storeRegistries(context.tx, context.scope.storeId)
+    const storage = await installedStorage(context.tx, context.scope.storeId)
     return {
       settings: presentProviderSettings(
         await loadStorageSettings(context.tx, context.scope.storeId),
@@ -470,7 +471,7 @@ export const storeRouter = {
     .input(StorageSettingsSchema)
     .handler(async ({ context, input }) => {
       const current = await loadStorageSettings(context.tx, context.scope.storeId)
-      const { storage } = await storeRegistries(context.tx, context.scope.storeId)
+      const storage = await installedStorage(context.tx, context.scope.storeId)
       const next = prepareProviderSettings(
         input,
         current,
@@ -512,7 +513,7 @@ export const storeRouter = {
           message: `Too many attempts. Try again in about ${Math.ceil(retryAfterSeconds(limit) / 60)} minute(s).`,
         })
       }
-      const { storage } = await storeRegistries(context.tx, context.scope.storeId)
+      const storage = await installedStorage(context.tx, context.scope.storeId)
       return testStorageConnection(
         context.tx,
         context.scope.storeId,
@@ -527,7 +528,7 @@ export const storeRouter = {
   migrateStorage: can(permissions.SETTINGS_MANAGE)
     .input(z.object({ targetProviderId: z.string().min(1) }))
     .handler(async ({ context, input }) => {
-      const { storage } = await storeRegistries(context.tx, context.scope.storeId)
+      const storage = await installedStorage(context.tx, context.scope.storeId)
       if (!storage.get(input.targetProviderId)) {
         throw new ORPCError('BAD_REQUEST', {
           message: `Unknown storage provider "${input.targetProviderId}"`,
