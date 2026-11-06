@@ -7,7 +7,7 @@ import { shopifySectionId } from './fields'
 import { escapeAttr } from './filters'
 import type { LiquidBlockInput, LiquidPageContext, LiquidSectionInput } from './page-context'
 import type { ShopifySectionSchema } from './schema'
-import { liquidSettings } from './settings-values'
+import { dynamicSettings, liquidSettings } from './settings-values'
 import {
   CARD_HANDLES,
   splitThemeCards,
@@ -22,7 +22,8 @@ function sectionBlocks(
   blocks: LiquidBlockInput[],
 ): Record<string, unknown>[] {
   const themeSettings = ctx.bundle.settings
-  const shown = blocks.filter((b) => !b.disabled && !b.type.startsWith('@app'))
+  // A disabled static block stays listed: its place in the theme's code has to show nothing.
+  const shown = blocks.filter((b) => (b.static || !b.disabled) && !b.type.startsWith('@app'))
   return shown.map((b) => {
     const local = schema?.blocks?.find((s) => s.type === b.type)
     const themeBlock = ctx.bundle.blocks.get(b.type)?.schema
@@ -32,6 +33,8 @@ function sectionBlocks(
       type: b.type,
       settings: liquidSettings(blockSchema, b.settings, ctx.cache, themeSettings),
       shopify_attributes: `data-block-id="${escapeAttr(b.id)}"`,
+      static: b.static === true,
+      disabled: b.disabled === true,
       blocks: sectionBlocks(ctx, schema, b.blocks ?? []),
     }
   })
@@ -207,15 +210,35 @@ function withHooks(ctx: LiquidPageContext): EngineRuntime {
       )
       return `<${wrapper.tag} id="${wrapper.id}" class="${wrapper.className}">${html}</${wrapper.tag}>`
     },
-    renderThemeBlock: (block, section, liquidCtx, depth) => {
-      const b = block as { type?: string }
+    renderThemeBlock: (block, section, liquidCtx, depth, extras) => {
+      const b = block as {
+        type?: string
+        settings?: Record<string, unknown>
+        unplaced?: boolean
+      }
       const def = b.type ? ctx.bundle.blocks.get(b.type) : undefined
       // An app block (`shopify://apps/…`) is not theme code: one of our apps may draw it.
       if (!def || !b.type) return appBlockHtml(ctx, b)
       const tpl = parsed(ctx.entry, `blocks/${b.type}.liquid`, def.source)
       // The block's own scope: its `content_for 'blocks'` lists its children, one level deeper.
-      const scope = { block, section, [BLOCK_SCOPE.parent]: block, [BLOCK_SCOPE.depth]: depth }
-      return renderBounded(ctx.entry.engine, ctx.budget, tpl, scope, liquidCtx.globals)
+      const scope = { ...extras, section, [BLOCK_SCOPE.depth]: depth }
+      // A static block the template never saved runs on its schema's defaults.
+      const stored = b.unplaced
+        ? liquidSettings(def.schema?.settings, {}, ctx.cache, ctx.bundle.settings)
+        : (b.settings ?? {})
+      const settings = dynamicSettings(stored, ctx.entry.engine, liquidCtx.spawn(scope))
+      const own = { ...(block as object), settings }
+      const blockScope = { ...scope, block: own, [BLOCK_SCOPE.parent]: own }
+      // Shopify's `block`, `section` and `closest` reach the block's snippets too (Horizon's
+      // product card reads `closest.product` inside `card-gallery`), and `render` keeps only
+      // what is global.
+      const { closest } = extras
+      return renderBounded(ctx.entry.engine, ctx.budget, tpl, blockScope, {
+        ...liquidCtx.globals,
+        block: own,
+        section,
+        closest,
+      })
     },
   }
 }
@@ -246,6 +269,8 @@ export type LiquidLayoutParts = {
   bodyAttrs: Record<string, string>
   /** Body markup before the header group (icon sprites, skip link). */
   beforeHeader: string
+  /** The element the theme wraps its header group in (`<div id="header-group">`), if any. */
+  headerWrapper: { tag: string; attrs: Record<string, string> } | null
   /** Body markup after the footer group (cart drawer, scripts). */
   afterFooter: string
   /** `<main>` attributes the theme sets. */
@@ -351,6 +376,27 @@ function withoutOwnHead(head: string): string {
   return out + head.slice(at)
 }
 
+/**
+ * The element around the header group, when the theme has one: it opens just before the group
+ * and closes just after. Left in `beforeHeader` it would open in one slot of the page and close
+ * in another, the browser would nest the rest of the page in that slot, and hydration would
+ * fail and draw the page twice (Horizon's `<div id="header-group">`).
+ */
+function wrapperAround(
+  before: string,
+  after: string,
+): { tag: string; attrs: Record<string, string>; start: number } | null {
+  const trimmed = before.trimEnd()
+  if (!trimmed.endsWith('>')) return null
+  const start = trimmed.lastIndexOf('<')
+  const inner = trimmed.slice(start + 1, -1)
+  const nameEnd = inner.search(/[\s/]/)
+  const name = (nameEnd === -1 ? inner : inner.slice(0, nameEnd)).toLowerCase()
+  if (!/^[a-z][a-z0-9-]*$/.test(name) || inner.endsWith('/')) return null
+  if (!after.trimStart().toLowerCase().startsWith(`</${name}>`)) return null
+  return { tag: name, attrs: attrsOf(inner.slice(name.length)), start }
+}
+
 /** Renders `layout/theme.liquid` around markers and splits it into the parts around `<main>`. */
 export async function renderLiquidLayout(
   ctx: LiquidPageContext,
@@ -361,6 +407,7 @@ export async function renderLiquidLayout(
     htmlAttrs: {},
     bodyAttrs: {},
     beforeHeader: '',
+    headerWrapper: null,
     afterFooter: '',
     mainAttrs: {},
     fonts: [],
@@ -400,11 +447,16 @@ export async function renderLiquidLayout(
   const headerAt = body.indexOf(MARK.header)
   const footerAt = body.indexOf(MARK.footer)
   const mainTag = openTag(body, 'main')
+  const wrapper =
+    headerAt >= 0
+      ? wrapperAround(body.slice(0, headerAt), body.slice(headerAt + MARK.header.length))
+      : null
   return {
     head: withoutOwnHead(head),
     htmlAttrs: attrsOf(htmlTag?.attrs ?? ''),
     bodyAttrs: attrsOf(bodyTag?.attrs ?? ''),
-    beforeHeader: headerAt >= 0 ? body.slice(0, headerAt) : '',
+    beforeHeader: headerAt >= 0 ? body.slice(0, wrapper?.start ?? headerAt) : '',
+    headerWrapper: wrapper && { tag: wrapper.tag, attrs: wrapper.attrs },
     afterFooter: footerAt >= 0 ? body.slice(footerAt + MARK.footer.length) : '',
     mainAttrs: attrsOf(mainTag?.attrs ?? ''),
     fonts: [...ctx.runtime.fonts.values(), ...runtime.fonts.values()],

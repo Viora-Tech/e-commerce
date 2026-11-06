@@ -7,7 +7,7 @@ import {
   type ShopifySetting,
   type ShopifyTemplateBlock,
 } from './schema'
-import { shopifyUrlToPath } from './settings-values'
+import { isDynamicSource, shopifyUrlToPath } from './settings-values'
 
 /**
  * A stored setting value: image settings become `{ url, alt }` pointing at Files,
@@ -15,6 +15,7 @@ import { shopifyUrlToPath } from './settings-values'
  * their handles (ours match, since the catalogue import keeps Shopify's handles).
  */
 function storedValue(setting: ShopifySetting | undefined, value: unknown, hosted: Hosted): unknown {
+  if (isDynamicSource(value)) return value
   if (typeof value === 'string') {
     const video = SHOP_VIDEO.exec(value)
     if (video?.[1]) {
@@ -62,7 +63,12 @@ export function templateBlocks(
   depth: number,
 ): LiquidBlockItem[] {
   if (depth >= MAX_BLOCK_DEPTH) return []
-  const order = parent.block_order ?? Object.keys(parent.blocks ?? {})
+  // `block_order` leaves static blocks out; the theme's code places them by id.
+  const placed = parent.block_order ?? []
+  const rest = Object.keys(parent.blocks ?? {}).filter((id) => !placed.includes(id))
+  const order = parent.block_order
+    ? [...placed, ...rest.filter((id) => parent.blocks?.[id]?.static)]
+    : rest
   return order.flatMap((id) => {
     const b = parent.blocks?.[id]
     if (!b) return []
@@ -73,6 +79,7 @@ export function templateBlocks(
         id,
         type: b.type,
         ...(b.disabled ? { disabled: true } : {}),
+        ...(b.static ? { static: true } : {}),
         settings: storedSettings(blockSchema?.settings, b.settings, hosted),
         ...(nested.length ? { blocks: nested } : {}),
       },

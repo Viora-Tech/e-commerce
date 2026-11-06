@@ -9,7 +9,7 @@ import {
   Tag,
   type TagToken,
   type Template,
-  type Tokenizer,
+  Tokenizer,
   type TopLevelToken,
   TypeGuards,
   toValueSync,
@@ -37,7 +37,13 @@ export type LiquidHooks = {
   renderGroup?: ((name: string) => string) | undefined
   /** `{% content_for 'blocks' %}` and `{% content_for 'block' %}`: theme blocks. */
   renderThemeBlock?:
-    | ((block: unknown, section: unknown, ctx: Context, depth: number) => string)
+    | ((
+        block: unknown,
+        section: unknown,
+        ctx: Context,
+        depth: number,
+        extras: Record<string, unknown>,
+      ) => string)
     | undefined
   /** `?form_posted=<type>` on the request, so `form.posted_successfully?` is true after a post. */
   postedForm?: string | null | undefined
@@ -293,16 +299,51 @@ export const BLOCK_SCOPE = {
   depth: 'commerce_block_depth',
 } as const
 
-type BlockOwner = { blocks?: { id?: string; type?: string }[] } | null | undefined
+type BlockOwner =
+  | { blocks?: { id?: string; type?: string; static?: boolean; disabled?: boolean }[] }
+  | null
+  | undefined
 
-/** `{% content_for 'blocks' %}` (the section's theme blocks) and `{% content_for 'block', type: 'x', id: 'y' %}`. */
+/** The resources `closest.x` reaches when no parent set one: the page's own. */
+const CLOSEST_RESOURCES = ['product', 'collection', 'article', 'blog', 'page'] as const
+
+/** LiquidJS hash keys stop at a dot, so `closest.product: x` is read under this key instead. */
+const CLOSEST_KEY = 'closest__'
+const CLOSEST_ARG = /\bclosest\.(\w+)\s*:/g
+
+/**
+ * `{% content_for 'blocks' %}` (the section's theme blocks) and
+ * `{% content_for 'block', type: 'x', id: 'y' %}` (one static block). Other arguments
+ * (`variant: 'mobile'`) are variables in the block, and `closest.product: p` is what the
+ * block and everything inside it read as `closest.product`.
+ */
 class ContentForTag extends Tag {
   kind: ValueToken | undefined
   hash: Hash
   constructor(token: TagToken, remain: TopLevelToken[], liquid: Liquid) {
     super(token, remain, liquid)
+    this.tokenizer = new Tokenizer(
+      token.args.replace(CLOSEST_ARG, `${CLOSEST_KEY}$1:`),
+      liquid.options.operators,
+    )
     this.kind = this.tokenizer.readValue()
     this.hash = new Hash(this.tokenizer)
+  }
+  /** The variables a block gets from this tag, `closest` carried down from its parent. */
+  *extras(
+    ctx: Context,
+    args: Record<string, unknown>,
+  ): Generator<unknown, Record<string, unknown>, unknown> {
+    const closest: Record<string, unknown> = {}
+    const parent = (yield ctx._get(['closest'])) as Record<string, unknown> | undefined
+    if (parent) Object.assign(closest, parent)
+    else for (const key of CLOSEST_RESOURCES) closest[key] = yield ctx._get([key])
+    const extras: Record<string, unknown> = {}
+    for (const [key, value] of Object.entries(args)) {
+      if (key.startsWith(CLOSEST_KEY)) closest[key.slice(CLOSEST_KEY.length)] = value
+      else if (key !== 'type' && key !== 'id') extras[key] = value
+    }
+    return { ...extras, closest }
   }
   *render(ctx: Context, emitter: Emitter): Generator<unknown, void, unknown> {
     const kind = this.kind ? stringifyLiquid(yield evalToken(this.kind, ctx)) : ''
@@ -315,20 +356,28 @@ class ContentForTag extends Tag {
     const depth = Number(yield ctx._get([BLOCK_SCOPE.depth])) || 0
     if (depth >= MAX_BLOCK_DEPTH) return
     const blocks = ((parent ?? section) as BlockOwner)?.blocks ?? []
+    const hash = (yield this.hash.render(ctx)) as Record<string, unknown>
+    const extras = (yield* this.extras(ctx, hash)) as Record<string, unknown>
     if (kind === 'blocks') {
-      for (const block of blocks) emitter.write(render(block, section, ctx, depth + 1))
+      // Static blocks are placed by the theme's code, never listed with the merchant's.
+      for (const block of blocks) {
+        if (!block.static) emitter.write(render(block, section, ctx, depth + 1, extras))
+      }
       return
     }
     if (kind === 'block') {
-      const hash = (yield this.hash.render(ctx)) as Record<string, unknown>
       const id = stringifyLiquid(hash.id)
-      const found = blocks.find((b) => b.id === id) ?? {
+      const placed = blocks.find((b) => b.id === id)
+      // A static block the merchant turned off shows nothing (Claw Gears hides its header menu).
+      if (placed?.disabled) return
+      const found = placed ?? {
         id,
         type: stringifyLiquid(hash.type),
         settings: {},
         shopify_attributes: '',
+        unplaced: true,
       }
-      emitter.write(render(found, section, ctx, depth + 1))
+      emitter.write(render(found, section, ctx, depth + 1, extras))
     }
   }
 }

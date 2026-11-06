@@ -20,6 +20,7 @@ import {
   type ShopifySetting,
   withoutSchema,
 } from './schema'
+import { isDynamicSource } from './settings-values'
 import { type SwapKey, swapsIn } from './swap'
 
 /** Where each section type is placed, by template or group. */
@@ -141,7 +142,7 @@ export function collectHandles(
       const v = s.id ? values?.[s.id] : undefined
       const list = Array.isArray(v) ? v : [v]
       for (const h of list) {
-        if (typeof h !== 'string' || !h) continue
+        if (typeof h !== 'string' || !h || isDynamicSource(h)) continue
         if (s.type === 'link_list') into.menus.add(h)
         if (s.type === 'collection' || s.type === 'collection_list') into.collections.add(h)
         if (s.type === 'product' || s.type === 'product_list') into.products.add(h)

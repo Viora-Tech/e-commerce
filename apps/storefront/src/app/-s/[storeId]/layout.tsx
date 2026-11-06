@@ -34,7 +34,7 @@ import { eq } from 'drizzle-orm'
 import type { Metadata, Viewport } from 'next'
 import { cookies, headers } from 'next/headers'
 import { notFound } from 'next/navigation'
-import { type ReactNode, Suspense } from 'react'
+import { createElement, type ReactNode, Suspense } from 'react'
 import ExperimentBeacon from '@/components/analytics/experiment-beacon'
 import CartDrawer from '@/components/cart/cart-drawer'
 import StoreChrome from '@/components/checkout/store-chrome'
@@ -405,7 +405,13 @@ export default async function StoreLayout({ children, params }: Props) {
           <LiquidHtml html={liquid.beforeHeader} />
           {/* React sections inside the theme (cards, product, search) read the store's price format. */}
           <MoneyFormatProvider format={current.moneyFormat} pricing={pricing}>
-            {header}
+            {liquid.headerWrapper
+              ? createElement(
+                  liquid.headerWrapper.tag,
+                  reactAttrs(liquid.headerWrapper.attrs),
+                  header,
+                )
+              : header}
             <main id="MainContent" tabIndex={-1} {...reactAttrs(liquid.mainAttrs)}>
               {page}
             </main>
