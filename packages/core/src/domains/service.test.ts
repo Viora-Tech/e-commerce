@@ -2,6 +2,7 @@ import { createDb, resolveHost, store, storeDomain, withStore } from '@commerce/
 import { resetDb } from '@commerce/db/test'
 import { eq } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
+import { DOMAIN_HELD_ERROR } from './cloudflare-provider'
 import { createDevDomainProvider, DEV_SSL_ISSUE_MS } from './dev-provider'
 import { createDnsDomainProvider } from './dns-provider'
 import {
@@ -298,5 +299,195 @@ describe('pollPendingDomains', () => {
     })
     expect(r).toEqual({ stores: 1, checked: 0, failed: 1, routes: 0 })
     expect(logs[0]).toMatch(/provider down/)
+  })
+})
+
+describe('cloudflare mode', () => {
+  const edgeOpts = { ...opts, apexRedirectOnly: true }
+  const connectEdge = (storeId: string, hostname: string, extra: object = {}) =>
+    withStore(app, storeId, (tx) => connectDomain(tx, storeId, { hostname, ...extra }, edgeOpts))
+  const live = { status: 'active', sslStatus: 'active' } as const
+
+  it('connecting an apex brings its www first, the apex redirecting and the www serving', async () => {
+    const storeId = await seedStore('w')
+    const rows = await connectEdge(storeId, 'brand.in')
+    expect(rows.map((r) => [r.hostname, r.redirectToPrimary])).toEqual([
+      ['www.brand.in', false],
+      ['brand.in', true],
+    ])
+  })
+
+  it('connecting a www leaves the apex out unless asked for', async () => {
+    const storeId = await seedStore('w')
+    expect((await connectEdge(storeId, 'www.brand.in')).map((r) => r.hostname)).toEqual([
+      'www.brand.in',
+    ])
+    const other = await seedStore('x')
+    const rows = await connectEdge(other, 'www.other.in', { includeWwwTwin: true })
+    expect(rows.map((r) => [r.hostname, r.redirectToPrimary])).toEqual([
+      ['www.other.in', false],
+      ['other.in', true],
+    ])
+  })
+
+  it('refuses the whole connect when another store holds the www', async () => {
+    const a = await seedStore('a')
+    const b = await seedStore('b')
+    await connectEdge(a, 'www.brand.in')
+    await expect(connectEdge(b, 'brand.in')).rejects.toThrow(
+      'www.brand.in is connected to another store',
+    )
+    expect(await withStore(app, b, (tx) => listDomains(tx))).toHaveLength(1)
+  })
+
+  it('keeps an existing www and adds only the apex', async () => {
+    const storeId = await seedStore('w')
+    await connectEdge(storeId, 'www.brand.in')
+    const rows = await connectEdge(storeId, 'brand.in')
+    expect(rows.map((r) => r.hostname)).toEqual(['brand.in'])
+  })
+
+  it('still skips a clashing twin quietly outside this mode', async () => {
+    const a = await seedStore('a')
+    const b = await seedStore('b')
+    await connect(a, 'www.brand.in')
+    const rows = await connect(b, 'brand.in', { includeWwwTwin: true })
+    expect(rows.map((r) => r.hostname)).toEqual(['brand.in'])
+  })
+
+  it('refuses an apex as primary with clear copy, and takes its www', async () => {
+    const storeId = await seedStore('w')
+    const [www, apex] = await connectEdge(storeId, 'brand.in')
+    await owner.update(storeDomain).set(live).where(eq(storeDomain.storeId, storeId))
+    const setPrimary = (id: string, o = {}) =>
+      withStore(app, storeId, (tx) => setPrimaryDomain(tx, storeId, id, o))
+    await expect(setPrimary(apex?.id as string, { apexRedirectOnly: true })).rejects.toThrow(
+      'brand.in can only redirect, so it cannot be primary. Make www.brand.in your primary domain instead.',
+    )
+    const row = await setPrimary(www?.id as string, { apexRedirectOnly: true })
+    expect(row.isPrimary).toBe(true)
+    expect(await setPrimary(apex?.id as string).then((r) => r.isPrimary)).toBe(true)
+  })
+
+  it('leaves an apex that is already primary serving, and does not touch the row', async () => {
+    const storeId = await seedStore('w')
+    const [apex] = await connect(storeId, 'brand.in')
+    await owner
+      .update(storeDomain)
+      .set(live)
+      .where(eq(storeDomain.id, apex?.id as string))
+    const row = await withStore(app, storeId, (tx) =>
+      setPrimaryDomain(tx, storeId, apex?.id as string),
+    )
+    const same = await withStore(app, storeId, (tx) =>
+      setPrimaryDomain(tx, storeId, apex?.id as string, { apexRedirectOnly: true }),
+    )
+    expect(same.isPrimary).toBe(true)
+    expect(domainView(row, targets, { apexRedirectOnly: true }).redirectOnly).toBe(false)
+  })
+
+  it('marks only a custom apex that is not primary as redirect-only', async () => {
+    const storeId = await seedStore('w')
+    const [www, apex] = await connectEdge(storeId, 'brand.in')
+    const view = (r: unknown, o = { apexRedirectOnly: true }) =>
+      domainView(r as Parameters<typeof domainView>[0], targets, o)
+    expect(view(apex).redirectOnly).toBe(true)
+    expect(view(www).redirectOnly).toBe(false)
+    expect(view(apex, { apexRedirectOnly: false }).redirectOnly).toBe(false)
+  })
+
+  it('needs a Cloudflare config, and never prints one', () => {
+    expect(() => createDomainProvider('cloudflare')).toThrow(
+      'DOMAIN_PROVIDER=cloudflare needs CLOUDFLARE_API_TOKEN and CLOUDFLARE_ZONE_ID',
+    )
+    expect(
+      createDomainProvider('cloudflare', { cloudflare: { apiToken: 't', zoneId: 'z' } }).id,
+    ).toBe('cloudflare')
+  })
+
+  it('stores what the provider wants added, shows it, and clears it on another provider', async () => {
+    const storeId = await seedStore('w')
+    const [row] = await connectEdge(storeId, 'www.brand.in')
+    const record = {
+      type: 'TXT' as const,
+      name: '_cf-custom-hostname.www',
+      value: 'uuid',
+      purpose: 'verification' as const,
+    }
+    const edge = {
+      id: 'cloudflare',
+      check: async () => ({
+        dns: 'pending' as const,
+        ssl: 'pending' as const,
+        observed: [],
+        error: 'waiting',
+        edgeRecords: [record],
+      }),
+    }
+    const id = row?.id as string
+    const seen = await withStore(app, storeId, (tx) =>
+      verifyDomain(tx, id, { provider: edge, targets, now: t0 }),
+    )
+    expect(seen.edgeRecords).toEqual([record])
+    expect(domainView(seen, targets).records).toContainEqual(record)
+    expect(domainView(seen, targets).records).toHaveLength(3)
+    const back = await withStore(app, storeId, (tx) =>
+      verifyDomain(tx, id, { provider, targets, now: t0 }),
+    )
+    expect(back.edgeRecords).toBeNull()
+  })
+
+  it('hands the provider the route state and the stored records', async () => {
+    const storeId = await seedStore('w')
+    const [row] = await connectEdge(storeId, 'www.brand.in')
+    const id = row?.id as string
+    await owner
+      .update(storeDomain)
+      .set({ routeStatus: 'ready', edgeRecords: [] })
+      .where(eq(storeDomain.id, id))
+    let seen: unknown
+    const edge = {
+      id: 'cloudflare',
+      check: async (input: unknown) => {
+        seen = input
+        return { dns: 'pending' as const, ssl: 'pending' as const, observed: [], error: null }
+      },
+    }
+    await withStore(app, storeId, (tx) =>
+      verifyDomain(tx, id, { provider: edge, targets, now: t0 }),
+    )
+    expect(seen).toMatchObject({ routeReady: true, previous: { edgeRecords: [] } })
+  })
+
+  it('a live row Cloudflare stops confirming stays up and is polled again', async () => {
+    const storeId = await seedStore('w')
+    const [row] = await connectEdge(storeId, 'www.brand.in')
+    const id = row?.id as string
+    await owner.update(storeDomain).set(live).where(eq(storeDomain.id, id))
+    const held = {
+      id: 'cloudflare',
+      check: async () => ({
+        dns: 'pending' as const,
+        ssl: 'issuing' as const,
+        observed: [],
+        error: 'waiting',
+        edgeRecords: [],
+      }),
+    }
+    const r = await withStore(app, storeId, (tx) =>
+      verifyDomain(tx, id, { provider: held, targets, now: t0 }),
+    )
+    expect(r).toMatchObject({ status: 'active', sslStatus: 'issuing', error: 'waiting' })
+    expect(await pollPendingDomains(app, { provider: held, targets, now: t0 })).toMatchObject({
+      checked: 1,
+    })
+  })
+
+  it('flags a held hostname for the admin', async () => {
+    const storeId = await seedStore('w')
+    const [row] = await connectEdge(storeId, 'www.brand.in')
+    const held = { ...(row as NonNullable<typeof row>), error: DOMAIN_HELD_ERROR }
+    expect(domainView(held, targets).heldElsewhere).toBe(true)
+    expect(domainView(row as NonNullable<typeof row>, targets).heldElsewhere).toBe(false)
   })
 })

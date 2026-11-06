@@ -1,10 +1,12 @@
 import { loadEnv } from '@commerce/config'
 import {
+  apexRedirectOnly,
+  cloudflareConfigFrom,
   connectDomain,
   createDomainProvider,
   DomainError,
+  type DomainRow,
   type DomainTargets,
-  domainView,
   getDomain,
   listDomains,
   permissions,
@@ -14,7 +16,9 @@ import {
   setDomainRedirect,
   setPrimaryDomain,
   verifyDomain,
+  domainView as viewOf,
 } from '@commerce/core'
+import { logger } from '@commerce/observability/logging'
 import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
 import { can } from '../procedures'
@@ -24,6 +28,9 @@ const targets = (): DomainTargets => ({
   aRecord: env().STOREFRONT_A_RECORD,
   cnameTarget: env().STOREFRONT_CNAME_TARGET,
 })
+const redirectOnly = () => apexRedirectOnly(env().DOMAIN_PROVIDER)
+const domainView = (d: DomainRow, t: DomainTargets) =>
+  viewOf(d, t, { apexRedirectOnly: redirectOnly() })
 
 async function domainErrorsToBadRequest<T>(fn: () => Promise<T>): Promise<T> {
   try {
@@ -68,6 +75,7 @@ export const domainsRouter = {
         const rows = await connectDomain(context.tx, context.scope.storeId, input, {
           platformRoots: platformRoots(env()),
           targets: t,
+          apexRedirectOnly: redirectOnly(),
         })
         return rows.map((d) => domainView(d, t))
       }),
@@ -80,7 +88,10 @@ export const domainsRouter = {
       domainErrorsToBadRequest(async () => {
         const t = targets()
         const d = await verifyDomain(context.tx, input.id, {
-          provider: createDomainProvider(env().DOMAIN_PROVIDER),
+          provider: createDomainProvider(env().DOMAIN_PROVIDER, {
+            cloudflare: cloudflareConfigFrom(env()),
+            log: (m) => logger.warn(m, { area: 'domains' }),
+          }),
           targets: t,
         })
         return domainView(d, t)
@@ -106,7 +117,12 @@ export const domainsRouter = {
     .input(byId)
     .handler(({ context, input }) =>
       domainErrorsToBadRequest(async () =>
-        domainView(await setPrimaryDomain(context.tx, context.scope.storeId, input.id), targets()),
+        domainView(
+          await setPrimaryDomain(context.tx, context.scope.storeId, input.id, {
+            apexRedirectOnly: redirectOnly(),
+          }),
+          targets(),
+        ),
       ),
     ),
 

@@ -14,7 +14,7 @@ import { type Db, resolveStore, type StoreTx, storeDomain, withStore } from '@co
 import { and, eq } from 'drizzle-orm'
 import { insertOutboxEvent } from '../outbox/write'
 import type { DokployClient } from './dokploy'
-import { isPlatformHostname, normaliseHostname } from './hostname'
+import { isApex, isPlatformHostname, normaliseHostname } from './hostname'
 
 type DomainRow = typeof storeDomain.$inferSelect
 
@@ -82,14 +82,33 @@ export function isStoreAddressHostname(hostname: string, guard: RouteGuard): boo
 
 const sameHost = (a: string, b: string) => a.trim().toLowerCase().replace(/\.$/, '') === b
 
-/** Add the Dokploy domain for `hostname` unless one is already there. */
+/**
+ * The middlewares a row's route carries: a redirect-only apex gets the redirect to www. A primary
+ * apex is left out, because it still serves the store (kept from before; never edited here).
+ */
+export function routeMiddlewares(
+  client: Pick<DokployClient, 'apexMiddleware'>,
+  row: Pick<DomainRow, 'hostname' | 'kind' | 'isPrimary'>,
+): string[] {
+  if (!client.apexMiddleware || row.kind !== 'custom' || row.isPrimary) return []
+  return isApex(row.hostname) ? [client.apexMiddleware] : []
+}
+
+/**
+ * Add the Dokploy domain for `hostname` unless one is already there. One that lacks a wanted
+ * middleware is replaced: left alone, a redirect-only apex would serve the storefront.
+ */
 export async function ensureRoute(
   client: DokployClient,
   hostname: string,
+  middlewares: string[] = [],
 ): Promise<{ created: boolean; domainId: string }> {
   const existing = (await client.listDomains()).find((d) => sameHost(d.host, hostname))
-  if (existing) return { created: false, domainId: existing.domainId }
-  const created = await client.createDomain(hostname)
+  if (existing && middlewares.every((m) => existing.middlewares?.includes(m))) {
+    return { created: false, domainId: existing.domainId }
+  }
+  if (existing) await client.deleteDomain(existing.domainId)
+  const created = await client.createDomain(hostname, { middlewares })
   return { created: true, domainId: created.domainId }
 }
 
@@ -138,6 +157,8 @@ export type DomainRouteDeps = {
   db: Db
   /** Null when the Dokploy env keys are unset: every job is skipped. */
   client: DokployClient | null
+  /** Deletes the hostname at the edge provider too, when one is in use. */
+  releaseEdgeHostname?: ((hostname: string) => Promise<void>) | undefined
   guard: RouteGuard
   log?: ((message: string) => void) | undefined
   /** After a forced re-register: wait for the certificate and record the result (certificate-retry.ts). */
@@ -155,7 +176,7 @@ export async function runDomainRouteJob(
   job: DomainRouteJob,
 ): Promise<RouteJobOutcome> {
   const { client } = deps
-  if (!client) return 'skipped'
+  if (!client && !(job.action === 'remove' && deps.releaseEdgeHostname)) return 'skipped'
 
   if (job.action === 'remove') {
     if (!isRoutableHostname(job.hostname, deps.guard)) {
@@ -164,8 +185,11 @@ export async function runDomainRouteJob(
     }
     // The hostname may already be live again (reconnected, here or in another store).
     if (await resolveStore(deps.db, job.hostname)) return 'skipped'
+    await deps.releaseEdgeHostname?.(job.hostname)
+    if (!client) return 'absent'
     return (await removeRoute(client, job.hostname)) > 0 ? 'removed' : 'absent'
   }
+  if (!client) return 'skipped'
 
   const row = await withStore(deps.db, job.storeId, async (tx) => {
     const [d] = await tx.select().from(storeDomain).where(eq(storeDomain.id, job.domainId))
@@ -182,7 +206,7 @@ export async function runDomainRouteJob(
     return 'skipped'
   }
   if (job.reregister) await removeRoute(client, row.hostname)
-  const r = await ensureRoute(client, row.hostname)
+  const r = await ensureRoute(client, row.hostname, routeMiddlewares(client, row))
   await setRouteStatus(deps.db, job, row, job.reregister === true)
   if (r.created) deps.log?.(`[domains] added the HTTPS route for ${row.hostname}`)
   if (job.reregister) await deps.afterReregister?.(job.storeId, job.domainId)

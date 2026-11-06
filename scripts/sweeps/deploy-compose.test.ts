@@ -28,6 +28,8 @@ const NOT_FOR_APPS: Record<string, string> = {
   DOKPLOY_API_KEY: 'worker only (its own environment block), kept out of admin and storefront',
   DOKPLOY_STOREFRONT_APPLICATION_ID: 'worker only (its own environment block)',
   DOKPLOY_STOREFRONT_PORT: 'worker only (its own environment block)',
+  CLOUDFLARE_API_TOKEN:
+    'admin and worker only (their own environment blocks), kept out of storefront',
   THEME_SCREENSHOT_CHROMIUM:
     'set inside the worker image (Dockerfile ENV from the THEME_SCREENSHOTS build arg); an x-app-env entry would blank it',
 }

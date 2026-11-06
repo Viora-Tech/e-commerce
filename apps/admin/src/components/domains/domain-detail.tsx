@@ -13,7 +13,8 @@ import ConfirmDialog from '@/components/layout/confirm-dialog'
 import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
 import SettingsCard from '@/components/settings/settings-card'
-import { domainsContent } from '@/data/domains'
+import { domainEdgeContent, domainsContent } from '@/data/domains'
+import { useCopy } from '@/hooks/use-copy'
 import { usePermissions } from '@/hooks/use-permissions'
 import { api } from '@/lib/api-client'
 import { formatDateTime } from '@/lib/format-date'
@@ -35,7 +36,13 @@ const settling = (d: DomainView) =>
   (d.kind === 'custom' && d.status === 'pending') ||
   (d.status === 'active' && (d.sslStatus === 'pending' || d.sslStatus === 'issuing'))
 
-function connectionText(d: DomainView): string {
+/** A live row Cloudflare has not confirmed: it still answers, but it is not connected yet. */
+const edgeUnconfirmed = (d: DomainView) =>
+  d.status === 'active' && d.edgeRecords !== null && d.sslStatus !== 'active'
+
+function connectionText(d: DomainView, edge: typeof domainEdgeContent): string {
+  if (d.heldElsewhere) return edge.held
+  if (edgeUnconfirmed(d)) return d.error ?? edge.settling
   if (d.status === 'active') return copy.verification.connected
   if (d.status === 'failed') return d.error ?? copy.verification.failed
   return copy.verification.pending
@@ -45,6 +52,7 @@ function connectionText(d: DomainView): string {
 export default function DomainDetail({ initial, primaryHostname }: DomainDetailProps) {
   // Hooks
   const { hasPermission } = usePermissions()
+  const edge = useCopy(domainEdgeContent)
   const router = useRouter()
   const [domain, setDomain] = useState(initial)
   const [checking, setChecking] = useState(false)
@@ -84,7 +92,9 @@ export default function DomainDetail({ initial, primaryHostname }: DomainDetailP
     try {
       const next = await api.domains.verify({ id: domain.id })
       setDomain(next)
-      if (next.status === 'active') toast.success(copy.verification.verified)
+      if (next.heldElsewhere) toast.error(edge.held)
+      else if (edgeUnconfirmed(next)) toast.info(connectionText(next, edge))
+      else if (next.status === 'active') toast.success(copy.verification.verified)
       else if (next.status === 'pending') toast.info(copy.verification.stillPending)
       else toast.error(next.error ?? copy.verification.failed)
     } catch (err) {
@@ -165,9 +175,9 @@ export default function DomainDetail({ initial, primaryHostname }: DomainDetailP
       {isCustom ? (
         <SettingsCard title={copy.verification.heading} bodyClassName="flex flex-col gap-3">
           <p
-            className={`text-body ${domain.status === 'failed' ? 'text-destructive' : 'text-foreground'}`}
+            className={`text-body ${domain.status === 'failed' || domain.heldElsewhere ? 'text-destructive' : 'text-foreground'}`}
           >
-            {connectionText(domain)}
+            {connectionText(domain, edge)}
           </p>
           <div className="flex flex-wrap items-center justify-between gap-3">
             <span className="text-caption text-muted-foreground">{lastChecked}</span>
@@ -191,6 +201,10 @@ export default function DomainDetail({ initial, primaryHostname }: DomainDetailP
       <SettingsCard title={copy.traffic.heading} bodyClassName="flex flex-col gap-4">
         {domain.isPrimary ? (
           <p className="text-body text-muted-foreground">{copy.traffic.primaryHelp}</p>
+        ) : domain.redirectOnly ? (
+          <p className="text-body text-muted-foreground">
+            {edge.apexRedirects(`www.${domain.hostname}`)}
+          </p>
         ) : (
           <div className="flex items-start justify-between gap-4">
             <div className="flex flex-col gap-1">
@@ -207,7 +221,7 @@ export default function DomainDetail({ initial, primaryHostname }: DomainDetailP
             />
           </div>
         )}
-        {!domain.isPrimary && canManage ? (
+        {!domain.isPrimary && !domain.redirectOnly && canManage ? (
           <div className="border-border flex flex-wrap items-center justify-between gap-3 border-t pt-4">
             <p className="text-caption text-muted-foreground">
               {canBePrimary ? copy.primaryHelpShort : copy.primaryBlocked}

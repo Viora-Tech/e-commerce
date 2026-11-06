@@ -261,6 +261,11 @@ its own HTTPS route on the storefront app in Dokploy. Set `DOKPLOY_URL`, `DOKPLO
 and it adds and removes those routes itself; unset, add each domain by hand. How to create the
 key and find the id, plus troubleshooting: [Custom domains](/developer-docs/building/custom-domains).
 
+`DOMAIN_PROVIDER=cloudflare` puts merchant subdomains on Cloudflare for SaaS instead, so they arrive
+through Cloudflare and the tunnel, and makes an apex redirect-only. It needs Cloudflare and server
+setup before it is turned on, and Dokploy 0.29.0 or later:
+[Rolling out Cloudflare for SaaS](/developer-docs/building/custom-domains#rolling-out-cloudflare-for-saas).
+
 ### Lock the origin to Cloudflare (required)
 
 Per-IP rate limits (sign-in codes, checkout, gift card checks, newsletter, webhooks) key on the
@@ -272,6 +277,11 @@ server directly can send that header with any value and get a fresh limit per re
    `ips-v6`). Keep 22 for your own IP. Recheck the list when Cloudflare announces changes.
 2. Set `TRUSTED_PROXY=cloudflare` in the environment (it is in
    `deploy/env.production.example`). The apps then read `cf-connecting-ip` and nothing else.
+
+Step 1 is not possible while merchant domains reach this server directly: a direct A record needs
+80 and 443 open to everyone, and that includes the redirect-only apex of
+`DOMAIN_PROVIDER=cloudflare`. See
+[the firewall note](/developer-docs/building/custom-domains#the-firewall-this-design-cannot-fully-close-the-origin).
 
 To let Cloudflare cache store pages as well, add the cache rule in
 [Storefront performance → Cloudflare in front](/developer-docs/building/performance#cloudflare-in-front).

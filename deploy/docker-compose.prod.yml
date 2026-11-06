@@ -40,6 +40,7 @@ x-app-env: &app-env
   DOMAIN_PROVIDER: ${DOMAIN_PROVIDER:-dev}
   STOREFRONT_A_RECORD: ${STOREFRONT_A_RECORD:-}
   STOREFRONT_CNAME_TARGET: ${STOREFRONT_CNAME_TARGET:-}
+  CLOUDFLARE_ZONE_ID: ${CLOUDFLARE_ZONE_ID:-}
   PLATFORM_DOMAINS: ${PLATFORM_DOMAINS:-}
   PLATFORM_STORE_DOMAIN: ${PLATFORM_STORE_DOMAIN:-}
   # Worker image jobs at once, and per store; blank uses the defaults (3 and 3). Near the vCPU count.
@@ -249,7 +250,11 @@ services:
     image: ghcr.io/viora-tech/admin:${IMAGE_TAG:-latest}
     pull_policy: always
     restart: unless-stopped
-    environment: *app-env
+    environment:
+      <<: *app-env
+      # Cloudflare custom hostnames API ("Verify connection"). Admin and worker only: the
+      # storefront never calls it, so the token stays out of its environment.
+      CLOUDFLARE_API_TOKEN: ${CLOUDFLARE_API_TOKEN:-}
     depends_on:
       migrate:
         condition: service_completed_successfully
@@ -344,6 +349,8 @@ services:
       DOKPLOY_API_KEY: ${DOKPLOY_API_KEY:-}
       DOKPLOY_STOREFRONT_APPLICATION_ID: ${DOKPLOY_STOREFRONT_APPLICATION_ID:-}
       DOKPLOY_STOREFRONT_PORT: ${DOKPLOY_STOREFRONT_PORT:-3100}
+      # Cloudflare custom hostnames API (the domain poll and removals). Admin and worker only.
+      CLOUDFLARE_API_TOKEN: ${CLOUDFLARE_API_TOKEN:-}
     depends_on:
       migrate:
         condition: service_completed_successfully

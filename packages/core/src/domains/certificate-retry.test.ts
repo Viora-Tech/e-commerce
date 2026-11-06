@@ -308,3 +308,63 @@ describe('domainView', () => {
     expect(domainView(fine, targets).sslReason).toBeNull()
   })
 })
+
+describe('rows Cloudflare took on', () => {
+  it('a passing handshake never turns the certificate active', async () => {
+    const row = await seed('www.brand.in', {
+      kind: 'custom',
+      status: 'active',
+      sslStatus: 'issuing',
+      routeStatus: 'ready',
+      edgeRecords: [],
+    })
+    const w = world({ 'www.brand.in': 'valid' })
+    expect(await checkCertificate(w.deps(), row)).toBe('skipped')
+    const [after] = await owner.select().from(storeDomain).where(eq(storeDomain.id, row.id))
+    expect(after?.sslStatus).toBe('issuing')
+    expect(w.d.calls).toEqual([])
+  })
+
+  it('a pre-existing row with no edge records is checked as before', async () => {
+    const row = await seed('www.brand.in', {
+      kind: 'custom',
+      status: 'active',
+      sslStatus: 'issuing',
+      routeStatus: 'ready',
+    })
+    expect(await checkCertificate(world({ 'www.brand.in': 'valid' }).deps(), row)).toBe('active')
+  })
+
+  it('the sweep keeps the apex redirect when it re-registers a route', async () => {
+    const row = await seed('brand.in', {
+      kind: 'custom',
+      status: 'active',
+      sslStatus: 'issuing',
+      routeStatus: 'ready',
+      sslStartedAt: ago(10 * MIN),
+    })
+    const d = fakeDokploy()
+    d.client.apexMiddleware = 'apex-to-www@file'
+    const created: unknown[] = []
+    const create = d.client.createDomain
+    d.client.createDomain = (host, opts) => {
+      created.push(opts)
+      return create(host, opts)
+    }
+    const w = world({}, { 'brand.in': [SERVER_IP] }, d)
+    expect(await checkCertificate(w.deps(), row)).toBe('reregistered')
+    expect(created).toEqual([{ middlewares: ['apex-to-www@file'] }])
+  })
+
+  it('the merchant button points at Verify connection instead', async () => {
+    const row = await seed('www.brand.in', {
+      kind: 'custom',
+      status: 'active',
+      sslStatus: 'issuing',
+      edgeRecords: [],
+    })
+    await expect(
+      withStore(app, row.storeId, (tx) => requestCertificateRetry(tx, row.storeId, row.id, t0)),
+    ).rejects.toThrow('Press Verify connection')
+  })
+})
