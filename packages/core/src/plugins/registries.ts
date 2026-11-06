@@ -7,9 +7,11 @@ import type { AppBlockSource } from '@commerce/blocks/app-blocks'
 import type { StoreTx } from '@commerce/db'
 import { store } from '@commerce/db'
 import { CORE_PLUGIN_ID, type LoadedPlugins, loadPlugins, type Registries } from '@commerce/plugins'
+import type { StorageRegistry } from '@commerce/storage'
 import { eq } from 'drizzle-orm'
 import commerceConfig from '../../../../commerce.config'
 import { parseAppsSettings } from '../apps/settings'
+import { storageRegistryFor } from '../media/settings'
 import { type AppEmbedSource, appEmbedSources } from '../theme/app-embeds'
 import { corePlugin } from './core-plugin'
 
@@ -29,11 +31,27 @@ export function getRegistries(): LoadedPlugins {
 /**
  * Registries limited to what one store installed (Admin → Apps). Every
  * provider lookup for a store goes through here, so an app the merchant
- * never installed cannot be enabled, charged through or shipped with.
+ * never installed cannot be enabled, charged through or shipped with. Storage is the exception:
+ * the platform bucket needs no app (see `storageRegistryFor`).
  */
 export async function registriesForStore(tx: StoreTx, storeId: string): Promise<Registries> {
+  const [s] = await tx
+    .select({ apps: store.apps, storage: store.storage })
+    .from(store)
+    .where(eq(store.id, storeId))
+  const all = getRegistries()
+  const installed = all.forStore(parseAppsSettings(s?.apps).installed)
+  const storage = storageRegistryFor(s?.storage, process.env, installed.storage, all.storage)
+  return { ...installed, storage }
+}
+
+/**
+ * The storage providers a merchant can choose and configure: installed apps only. Settings use
+ * this, so the platform's own bucket details are never offered as a form.
+ */
+export async function installedStorage(tx: StoreTx, storeId: string): Promise<StorageRegistry> {
   const [s] = await tx.select({ apps: store.apps }).from(store).where(eq(store.id, storeId))
-  return getRegistries().forStore(parseAppsSettings(s?.apps).installed)
+  return getRegistries().forStore(parseAppsSettings(s?.apps).installed).storage
 }
 
 /**
