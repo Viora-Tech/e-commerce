@@ -8,11 +8,9 @@ export type Check = { id: string; name: string; url: string }
 export const CHECKS: Check[] = [
   { id: 'api', name: 'API (worker)', url: 'https://api.koomerce.app/health' },
   { id: 'admin', name: 'Admin', url: 'https://admin.koomerce.app/login' },
-  {
-    id: 'storefront',
-    name: 'Storefront (Waimers)',
-    url: 'https://waimers.vioratech.in/api/health',
-  },
+  { id: 'storefront', name: 'Storefront (Waimers)', url: 'https://www.waimers.in/api/health' },
+  // The health route skips the store's pages, so a shopper's first page is checked too.
+  { id: 'waimers-home', name: 'Waimers home page', url: 'https://www.waimers.in/' },
   { id: 'www', name: 'Landing site', url: 'https://koomerce.app/' },
   { id: 'docs', name: 'Docs', url: 'https://docs.koomerce.app/' },
 ]
