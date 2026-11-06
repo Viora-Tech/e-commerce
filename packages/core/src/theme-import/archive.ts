@@ -137,6 +137,33 @@ type ZipEntry = {
 
 const u16 = (b: Uint8Array, at: number) => (b[at] ?? 0) | ((b[at + 1] ?? 0) << 8)
 const u32 = (b: Uint8Array, at: number) => (u16(b, at) | (u16(b, at + 2) << 16)) >>> 0
+const u64 = (b: Uint8Array, at: number) => u32(b, at) + u32(b, at + 4) * 2 ** 32
+
+/** A size or offset too big for its 32-bit field, with the real value in the ZIP64 extra. */
+const IN_ZIP64 = 0xffffffff
+const ZIP64_EXTRA = 0x0001
+
+type ZipSizes = Pick<ZipEntry, 'compressedSize' | 'declaredSize' | 'localOffset'>
+
+/**
+ * The real sizes of one entry. Shopify's exports keep them in a ZIP64 extra field even for small
+ * files. The field lists only the values marked `IN_ZIP64`, in this fixed order.
+ */
+function zip64Sizes(zip: Uint8Array, start: number, end: number, sizes: ZipSizes): ZipSizes {
+  const real = { ...sizes }
+  for (let at = start; at + 4 <= end; at += 4 + u16(zip, at + 2)) {
+    if (u16(zip, at) !== ZIP64_EXTRA) continue
+    const fieldEnd = Math.min(at + 4 + u16(zip, at + 2), end)
+    let value = at + 4
+    for (const key of ['declaredSize', 'compressedSize', 'localOffset'] as const) {
+      if (real[key] !== IN_ZIP64 || value + 8 > fieldEnd) continue
+      real[key] = u64(zip, value)
+      value += 8
+    }
+    break
+  }
+  return real
+}
 
 /** The central directory (the zip's own table of contents), bounds-checked. */
 function zipEntries(zip: Uint8Array): ZipEntry[] {
@@ -160,14 +187,18 @@ function zipEntries(zip: Uint8Array): ZipEntry[] {
       throw new ThemeArchiveProblem(NOT_A_ZIP)
     }
     const nameLength = u16(zip, at + 28)
-    const next = at + 46 + nameLength + u16(zip, at + 30) + u16(zip, at + 32)
+    const extraStart = at + 46 + nameLength
+    const extraEnd = extraStart + u16(zip, at + 30)
+    const next = extraEnd + u16(zip, at + 32)
     if (next > zip.length) throw new ThemeArchiveProblem(NOT_A_ZIP)
     entries.push({
       flags: u16(zip, at + 8),
       method: u16(zip, at + 10),
-      compressedSize: u32(zip, at + 20),
-      declaredSize: u32(zip, at + 24),
-      localOffset: u32(zip, at + 42),
+      ...zip64Sizes(zip, extraStart, extraEnd, {
+        compressedSize: u32(zip, at + 20),
+        declaredSize: u32(zip, at + 24),
+        localOffset: u32(zip, at + 42),
+      }),
       name: names.decode(zip.subarray(at + 46, at + 46 + nameLength)),
     })
     at = next
