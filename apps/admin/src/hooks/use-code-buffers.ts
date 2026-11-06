@@ -4,7 +4,13 @@ import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { themeCodeContent } from '@/data/theme-code'
 import { api } from '@/lib/api-client'
-import { type CodeFile, type CodeFileList, codeFileName, editorText } from '@/lib/theme-code'
+import {
+  type CodeFile,
+  type CodeFileList,
+  codeFileName,
+  editorText,
+  unpublishedNames,
+} from '@/lib/theme-code'
 
 /** An open file: what is saved, what is in the editor, and the edits to undo. */
 export type CodeBuffer = { file: CodeFile; saved: string; text: string; past: string[] }
@@ -29,6 +35,8 @@ export function useCodeBuffers(themeId: string) {
   const [failed, setFailed] = useState<ReadonlySet<string>>(new Set())
   const [saving, setSaving] = useState(false)
   const [publishing, setPublishing] = useState(false)
+  /** Files the last Publish put live, until the page is left. */
+  const [justPublished, setJustPublished] = useState<ReadonlySet<string>>(new Set())
 
   const loadList = async () => {
     setListFailed(false)
@@ -125,8 +133,13 @@ export function useCodeBuffers(themeId: string) {
   const publish = async () => {
     setPublishing(true)
     try {
+      const changed = list?.files.filter((f) => f.draft) ?? []
       const { published } = await api.themes.code.publish({ themeId })
-      toast.success(copy.drafts.published(published))
+      const { names, more } = unpublishedNames(changed)
+      toast.success(copy.drafts.published(published), {
+        description: more ? copy.drafts.moreFiles(names, more) : names,
+      })
+      setJustPublished(new Set(changed.map((f) => f.path)))
       await loadList()
     } catch (err) {
       toast.error(err instanceof Error ? err.message : copy.drafts.publishFailed)
@@ -159,6 +172,7 @@ export function useCodeBuffers(themeId: string) {
     failed,
     saving,
     publishing,
+    justPublished,
     loadList,
     open,
     edit,
