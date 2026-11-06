@@ -83,6 +83,18 @@ export function fbqData(detail: CommerceTrackDetail): Record<string, unknown> {
   return data
 }
 
+/** Meta's advanced matching fields: lower-case email, phone as digits with the country code. */
+export function matchData(match: CommerceTrackDetail['match']): Record<string, string> | null {
+  const email = match?.email?.trim().toLowerCase()
+  const digits = match?.phone?.replace(/[^0-9]/g, '') ?? ''
+  const phone = digits.length === 10 ? `91${digits}` : digits
+  const data = {
+    ...(email?.includes('@') ? { em: email } : {}),
+    ...(phone.length >= 11 ? { ph: phone } : {}),
+  }
+  return Object.keys(data).length ? data : null
+}
+
 function beacon(body: Record<string, unknown>): void {
   const json = JSON.stringify(body)
   if (navigator.sendBeacon) {
@@ -106,10 +118,13 @@ export function sendPixelEvent(pixels: BrowserPixel[], detail: CommerceTrackDeta
   const name = detail.name
   const eventId = eventIdFor(detail)
   const data = fbqData(detail)
+  const match = matchData(detail.match)
   for (const p of pixels) {
     if (!p.events.includes(name)) continue
     // A paid or delivered server Purchase can arrive after Meta's 48 h dedup window.
     if (name === 'Purchase' && !p.browserPurchase) continue
+    // fbevents.js hashes these in the browser before anything leaves it.
+    if (match) fbq('init', p.id, match)
     fbq('trackSingle', p.id, name, data, { eventID: eventId })
   }
   beacon({
