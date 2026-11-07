@@ -25,6 +25,8 @@ export const ordersBulkContent = {
   printTooMany: (max: number) => `Print up to ${max} packing slips at a time`,
   printPickList: 'Print pick list',
   printInvoices: 'Print invoices',
+  printIssuedInvoices: (n: number) => `Print ${n} ${n === 1 ? 'invoice' : 'invoices'}`,
+  printFailed: 'Could not print the invoices',
   /** #1007: off the working tabs (All, Unfulfilled…) into Archived, or back. */
   archive: 'Archive orders',
   unarchive: 'Unarchive orders',

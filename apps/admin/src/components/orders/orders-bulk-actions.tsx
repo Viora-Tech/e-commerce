@@ -12,6 +12,7 @@ import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import type { OrderActionGroup } from '@/apps/order-actions'
+import { saveFile } from '@/components/apps/gst-invoices/save-file'
 import RunAutomationDialog from '@/components/automations/records/run-automation-dialog'
 import { useRunAutomation } from '@/components/automations/records/use-run-automation'
 import ActionMenu, { type ActionItem } from '@/components/layout/action-menu'
@@ -22,9 +23,11 @@ import { ORDER_MARKS, type OrderMark, ordersContent } from '@/data/orders'
 import { ordersBulkContent } from '@/data/orders-bulk'
 import { BULK_EDIT_IDS_KEY } from '@/data/orders-bulk-edit'
 import { useCopy } from '@/hooks/use-copy'
+import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
 import type { OrdersBulkRequest } from './orders-bulk-dialogs'
 import { useOrderAppActions } from './use-order-app-actions'
+import { useOrderInvoices } from './use-order-invoices'
 import { useOrdersExport } from './use-orders-export'
 
 type OrdersBulkActionsProps = {
@@ -71,6 +74,8 @@ export default function OrdersBulkActions({
   const [booked, setBooked] = useState(false)
   const [confirmCancel, setConfirmCancel] = useState(false)
   const { exporting, exportOrders } = useOrdersExport()
+  const invoiceIds = useOrderInvoices(ids)
+  const [printing, setPrinting] = useState(false)
 
   // Event handlers
   /* Thousands of ids don't fit in a URL: hand them to the sheet through sessionStorage. */
@@ -87,6 +92,17 @@ export default function OrdersBulkActions({
   const handlePrint = (kind: 'packing_slip' | 'pick_list' | 'invoice') => {
     if (ids.length > PRINT_MAX) return void toast.error(bulkCopy.printTooMany(PRINT_MAX))
     window.open(routes.orders.printDocuments(kind, ids), '_blank', 'noopener')
+  }
+  /* With the GST invoices app: one PDF of the issued invoices, as its Invoices page prints. */
+  const handlePrintIssued = async (docIds: string[]) => {
+    setPrinting(true)
+    try {
+      saveFile(await api.gstInvoices.bulkPrint({ ids: docIds }), 'open')
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : bulkCopy.printFailed)
+    } finally {
+      setPrinting(false)
+    }
   }
   const handleShippingClosed = () => {
     apps.closeShipping()
@@ -110,7 +126,19 @@ export default function OrdersBulkActions({
     { label: bulkCopy.export, icon: Download, disabled: exporting, onSelect: handleExport },
     { label: bulkCopy.print, icon: Printer, onSelect: () => handlePrint('packing_slip') },
     { label: bulkCopy.printPickList, icon: Printer, onSelect: () => handlePrint('pick_list') },
-    { label: bulkCopy.printInvoices, icon: Printer, onSelect: () => handlePrint('invoice') },
+    // Only orders with an issued invoice print one; with no GST app, the store's template.
+    ...(invoiceIds === null
+      ? [{ label: bulkCopy.printInvoices, icon: Printer, onSelect: () => handlePrint('invoice') }]
+      : invoiceIds.length > 0
+        ? [
+            {
+              label: bulkCopy.printIssuedInvoices(invoiceIds.length),
+              icon: Printer,
+              disabled: printing,
+              onSelect: () => void handlePrintIssued(invoiceIds),
+            },
+          ]
+        : []),
     ...[...automation.items(ids), ...appItems].map((item, i) =>
       i === 0 ? { ...item, separatorBefore: true } : item,
     ),
@@ -147,9 +175,9 @@ export default function OrdersBulkActions({
         items={moreItems}
         disabled={apps.busy}
         triggerClassName="h-8 rounded-sm px-3"
-        // Wide enough that "Send payment reminders" fits on one line, and tall enough not to
-        // scroll inside itself (audit #9).
-        contentClassName="min-w-64 max-h-none"
+        // Wide enough that "Send payment reminders" fits on one line. Its height stays the
+        // menu's own cap so a long list scrolls rather than running off the screen.
+        contentClassName="min-w-64"
       />
       <ConfirmDialog
         open={confirmCancel}

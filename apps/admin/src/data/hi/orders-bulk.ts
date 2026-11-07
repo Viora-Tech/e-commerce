@@ -28,6 +28,8 @@ export default [
     printTooMany: (max) => `एक बार में ज़्यादा से ज़्यादा ${max} पैकिंग स्लिप प्रिंट करें`,
     printPickList: 'पिक लिस्ट प्रिंट करें',
     printInvoices: 'इनवॉइस प्रिंट करें',
+    printIssuedInvoices: (n) => `${n} इनवॉइस प्रिंट करें`,
+    printFailed: 'इनवॉइस प्रिंट नहीं हो सके',
     archive: 'ऑर्डर आर्काइव करें',
     unarchive: 'ऑर्डर आर्काइव से निकालें',
     archived: (n, skipped) =>

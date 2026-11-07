@@ -9,11 +9,12 @@ import {
   enqueueOrderParcels,
   GST_INVOICES_ID,
   issueDrafts,
+  issuedInvoiceIds,
   isTestOrder,
   soldOnlyGiftCards,
 } from '@commerce/plugin-gst-invoices/server'
 import { z } from 'zod'
-import { can } from '../procedures'
+import { BULK_MAX, can } from '../procedures'
 import { orderIdsByNumber } from '../services/gst-invoices.service'
 import { asOrpc, requireInstalled } from './gst-invoices-context'
 
@@ -114,4 +115,12 @@ export const generateInvoice = can(permissions.ORDERS_WRITE)
     } catch (err) {
       asOrpc(err)
     }
+  })
+
+/** The issued tax invoices of the orders selected in Orders, for its bulk Print invoices. */
+export const invoicesForOrders = can(permissions.ORDERS_READ)
+  .input(z.object({ orderIds: z.array(z.uuid()).min(1).max(BULK_MAX) }))
+  .handler(async ({ context, input }) => {
+    await requireInstalled(context)
+    return { ids: await issuedInvoiceIds(context.tx, input.orderIds) }
   })
