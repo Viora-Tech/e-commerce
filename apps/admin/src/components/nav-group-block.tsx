@@ -61,6 +61,7 @@ export default function NavGroupBlock({ label, items, pathname, counts = {} }: N
             item={item}
             pathname={pathname}
             count={counts[item.href] ?? 0}
+            counts={counts}
           />
         ))}
       </ul>

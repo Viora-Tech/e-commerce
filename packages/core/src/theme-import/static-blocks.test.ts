@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: static theme block tests — blocks the theme's code places, including ones the merchant turned off */
 import { describe, expect, it } from 'vitest'
 import { FIXTURE_PRODUCT, fakeDataSource } from '../../test/theme-import-fixture'
 import { buildThemeBundle } from './bundle'

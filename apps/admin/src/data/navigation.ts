@@ -97,6 +97,16 @@ export const NAV_GROUPS: NavGroup[] = [
             label: 'Shipments',
             permission: permissions.ORDERS_READ,
           },
+          {
+            href: routes.orders.shipmentsTab('toBook'),
+            label: 'Ready to ship',
+            permission: permissions.ORDERS_READ,
+          },
+          {
+            href: routes.orders.shipmentsTab('booked'),
+            label: 'Ready for pickup',
+            permission: permissions.ORDERS_READ,
+          },
           { href: routes.orders.returns(), label: 'Returns', permission: permissions.ORDERS_READ },
         ],
       },

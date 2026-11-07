@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: render API input tests — the canvas's section shape keeps what the engine reads */
 import { describe, expect, it } from 'vitest'
 import { LiquidSectionPlacementSchema } from './fields'
 

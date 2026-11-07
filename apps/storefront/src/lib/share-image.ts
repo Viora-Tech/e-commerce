@@ -1,6 +1,5 @@
-import { liveThemeSettings, parsePreferences } from '@commerce/core'
-import { store } from '@commerce/db'
-import { eq } from 'drizzle-orm'
+import 'server-only'
+import { liveThemeSettings, storeShareSettings } from '@commerce/core'
 import { liveLiquidLogoUrl } from './inbox-logo'
 import { storeRead } from './store-cache'
 
@@ -40,12 +39,9 @@ export async function storeShareImages(storeId: string): Promise<ShareImage[] | 
   // An imported theme keeps its logo in its header, not in our brand settings.
   const liquidLogo = await liveLiquidLogoUrl(storeId)
   return storeRead(storeId, `share-images|${liquidLogo ?? ''}`, async (tx) => {
-    const [s] = await tx
-      .select({ name: store.name, preferences: store.preferences })
-      .from(store)
-      .where(eq(store.id, storeId))
+    const s = await storeShareSettings(tx, storeId)
     if (!s) return undefined
     const logo = liquidLogo ?? (await liveThemeSettings(tx, storeId)).brand.logo?.url
-    return pickShareImage(parsePreferences(s.preferences).seo, logo, s.name)
+    return pickShareImage(s.seo, logo, s.name)
   })
 }

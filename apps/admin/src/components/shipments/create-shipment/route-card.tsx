@@ -151,7 +151,17 @@ export default function RouteCard({
         <Side
           label={copy.shipFrom}
           place={origin}
-          empty={<AddPickupLink />}
+          empty={
+            <div className="flex flex-col gap-2">
+              {from?.name ? (
+                <p className="text-body font-medium text-ink-strong">{from.name}</p>
+              ) : null}
+              {from?.pincode ? (
+                <p className="text-muted-foreground">{copy.pickupPin(from.pincode)}</p>
+              ) : null}
+              <AddPickupLink />
+            </div>
+          }
           chip={isDefault ? <StatusChip variant="outline">{copy.defaultPickup}</StatusChip> : null}
           actions={
             <>

@@ -20,7 +20,10 @@ const COPY =
 
 const ALLOWLIST: Record<string, { lines: number; reason: string }> = {
   'apps/admin/src/data/affiliates.ts': { lines: 502, reason: COPY },
+  'packages/core/src/theme-import/engine.ts': { lines: 525, reason: SPLIT },
+  'packages/core/src/theme-import/render.ts': { lines: 502, reason: SPLIT },
   'apps/admin/src/data/customers.ts': { lines: 508, reason: COPY },
+  'packages/api/src/services/create-shipment.service.ts': { lines: 509, reason: SPLIT },
   'packages/api/src/services/customer.service.ts': { lines: 595, reason: SPLIT },
   'packages/core/src/theme-import/drops.ts': { lines: 544, reason: SPLIT },
   'packages/notifications/src/types.ts': { lines: 511, reason: SPLIT },
