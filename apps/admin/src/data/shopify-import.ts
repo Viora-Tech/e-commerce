@@ -244,6 +244,7 @@ export const shopifyImportContent = {
       read_inventory_purchase_orders: 'Read purchase orders',
       read_inventory_transfers: 'Read transfers',
       read_reports: 'Read traffic reports (sessions and visitors)',
+      read_store_credit_accounts: 'Read store credit balances',
     } satisfies Record<ScopeHandle, string>,
     chooseHeading: 'What to import',
     chooseHelp:
