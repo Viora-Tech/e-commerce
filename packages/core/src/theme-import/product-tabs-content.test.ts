@@ -139,6 +139,12 @@ describe('app blocks in a product tab', () => {
     expect(appBlockSlot('shopify://apps/judge-me-reviews/blocks/preview_badge/1')).toBeNull()
     expect(appBlockSlot('_tab')).toBeNull()
   })
+
+  it("names Judge.me's cards carousel", () => {
+    expect(appBlockSlot('shopify://apps/judge-me-reviews/blocks/cards_carousel/1')).toBe(
+      'reviews-carousel',
+    )
+  })
 })
 
 describe('firstAvailable', () => {
