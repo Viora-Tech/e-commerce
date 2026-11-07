@@ -50,6 +50,7 @@ import GrowthbookExperimentsPage from '@/components/apps/growthbook/experiments-
 import InvoiceDetail from '@/components/apps/gst-invoices/invoice-detail'
 import InvoicesList from '@/components/apps/gst-invoices/invoices-list'
 import GstOrderCard from '@/components/apps/gst-invoices/order-card'
+import ProductsTaxPage from '@/components/apps/gst-invoices/products-tax-page'
 import QueuePage from '@/components/apps/gst-invoices/queue-page'
 import ReturnsPage from '@/components/apps/gst-invoices/returns-page'
 import GstSettingsEditor from '@/components/apps/gst-invoices/settings-editor'
@@ -287,6 +288,7 @@ export const ADMIN_APPS: Record<string, AdminApp> = {
       invoices: InvoicesList,
       'invoices/[id]': InvoiceDetail,
       reports: ReturnsPage,
+      products: ProductsTaxPage,
       settings: GstSettingsEditor,
     },
     OrderCard: GstOrderCard,

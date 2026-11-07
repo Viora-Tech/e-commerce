@@ -1077,7 +1077,7 @@ export const APP_CATALOGUE_DATA: CatalogueEntry[] = [
       ],
       shares: [],
     },
-    adminPages: ['Queue', 'Invoices', 'Returns', 'Settings'],
+    adminPages: ['Queue', 'Invoices', 'Returns', 'Products', 'Settings'],
     themeBlocks: [],
     credits: [
       {
