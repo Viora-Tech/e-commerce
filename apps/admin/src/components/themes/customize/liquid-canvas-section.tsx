@@ -4,6 +4,7 @@ import type { LiquidSectionPlacement } from '@commerce/core/theme-import'
 import { useEffect, useRef, useState } from 'react'
 import { useLiquidThemeSettings } from '@/lib/customize-theme-context'
 import { renderLiquidCanvas } from '@/lib/liquid-canvas'
+import CanvasAppBlocks from './canvas-app-blocks'
 
 type LiquidCanvasSectionProps = {
   themeId: string
@@ -88,6 +89,11 @@ export default function LiquidCanvasSection({ themeId, section }: LiquidCanvasSe
   if (html === null) return <div className="min-h-24" aria-busy="true" />
 
   // Render logic
-  // biome-ignore lint/security/noDangerouslySetInnerHtml: server-rendered Liquid of the merchant's own imported theme, scripts and inline handlers stripped by the API (`theme-import.service.ts`).
-  return <div ref={box} dangerouslySetInnerHTML={{ __html: html }} />
+  return (
+    <>
+      {/* biome-ignore lint/security/noDangerouslySetInnerHtml: server-rendered Liquid of the merchant's own imported theme, scripts and inline handlers stripped by the API (`theme-import.service.ts`). */}
+      <div ref={box} dangerouslySetInnerHTML={{ __html: html }} />
+      <CanvasAppBlocks box={box} html={html} />
+    </>
+  )
 }
