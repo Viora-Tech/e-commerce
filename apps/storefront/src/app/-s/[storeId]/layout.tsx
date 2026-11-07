@@ -73,6 +73,7 @@ import { requestCart } from '@/lib/request-cart'
 import { abThemeId } from '@/lib/rollout-ab'
 import { heightForWidth } from '@/lib/section-images'
 import { requestOrigin, verificationMeta } from '@/lib/seo'
+import { storeShareImages } from '@/lib/share-image'
 import { menuLinks, starterFooterColumns } from '@/lib/starter-menus'
 import { storeRead } from '@/lib/store-cache'
 import { inStore } from '@/lib/store-context'
@@ -160,7 +161,7 @@ export async function generateMetadata({ params }: Pick<Props, 'params'>): Promi
   const { seo } = prefs
   const title = seo.title || s.name
   const description = seo.description || undefined
-  const images = seo.image ? [{ url: seo.image.url, alt: seo.imageAlt || title }] : undefined
+  const images = await storeShareImages(storeId)
   return {
     // Preferences › Search engine visibility: ownership tags for the search consoles and Meta.
     verification: verificationMeta(prefs.verification),
