@@ -449,6 +449,8 @@ export class DelhiveryProvider implements ShippingProvider {
           cod_amount: input.paymentMode === 'cod' ? rupees(input.codAmountPaise) : '0',
           weight: input.weightGrams,
           quantity: input.lines.reduce((n, l) => n + l.quantity, 0),
+          // The invoice value Delhivery prints on the label; without it the label says Rs 0.
+          total_amount: rupees(input.valuePaise),
           commodity_value: rupees(input.valuePaise),
           products_desc: input.lines
             .map((l) => `${l.title} x${l.quantity}`)
@@ -542,6 +544,8 @@ export class DelhiveryProvider implements ShippingProvider {
           cod_amount: '0',
           weight: input.weightGrams,
           quantity: input.lines.reduce((n, l) => n + l.quantity, 0),
+          // The invoice value Delhivery prints on the label; without it the label says Rs 0.
+          total_amount: rupees(input.valuePaise),
           commodity_value: rupees(input.valuePaise),
           products_desc: input.lines
             .map((l) => `${l.title} x${l.quantity}`)
