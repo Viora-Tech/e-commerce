@@ -13,7 +13,7 @@ accepts terms or submits anything.
 
 | App | State | Next |
 |---|---|---|
-| Shopify "Koomerce Migration" | Submitted for review; all automated checks pass | Answer reviewer feedback |
+| Shopify "Koomerce Migration" | **Paused** 3 Nov (ref 145463): 1.2.1 billing, 4.5.5 reviewer login, 3.2.1 `read_all_orders`. Version 5 (store credit scope) released 7 Nov | Fix and resubmit: see 3.7 |
 | Google (project `sellverse`, named Koomerce) | Branding verified; Merchant API registered (2.4); data access **submitted** with video https://youtu.be/0G6ZNX3o4HU | Answer questions sent to vioratech907@gmail.com |
 | Meta (app `2698025377367158`) | Published; **Tech Provider** (permanent); App Review draft `2698025430700486` for `catalog_management`, `business_management`, `public_profile` fully filled | Submit once business_management shows "1 of 1 API call" (1.7) |
 | Meta WhatsApp (`whatsapp_business_management`, `whatsapp_business_messaging`) | Not requested yet | Separate submission with videos B and C (1.8) and a test number |
@@ -555,6 +555,39 @@ Feature image (if asked): 1600×900, the icon on #151515 with "Koomerce Migratio
 > 6. Uninstall the app in your Shopify admin; the Connect page in Koomerce shows "not
 >    connected". The app has no screens inside Shopify admin (not embedded) and never writes
 >    to Shopify.
+
+### 3.7 Resubmission after the 3 Nov pause (ref 145463)
+
+Shopify paused the review; it does not restart on its own. Before resubmitting:
+
+1. **IP allowlist** (required for public apps; bulk operations fail from 12 Nov 2026, delisting
+   from 20 Nov): Dev Dashboard → Koomerce Migration → Settings → IP allowlist → Manage → add the
+   production server `13.232.151.16` (AWS Lightsail Mumbai; must be a static IP) (the admin and worker call the Admin API from it) → Run
+   test → Enforcement on → Save. Re-add if the server changes.
+2. **4.5.5 reviewer login**: fixed in #1260 (deployed with release `029ab5e4e`). Typing the
+   reviewer email opens the password step; no code is sent. Check it on
+   https://admin.koomerce.app/login before resubmitting.
+3. **1.2.1 billing**: the app is free (listing Pricing: Free) and charges nothing through
+   Shopify or elsewhere. Reply text below.
+4. **3.2.1 `read_all_orders`**: keep it; moving the whole order history is the app's purpose.
+   Show an order older than 60 days arriving in Koomerce in the screencast (3.6).
+5. Resubmit from the Partner Dashboard with the reply below in the reviewer notes.
+
+Reply to the reviewer:
+
+> Thank you for the review. Koomerce Migration is free: it has no plans, charges or usage
+> fees, and nothing is billed for it through Shopify or anywhere else. The Billing page you
+> reached is Koomerce's own subscription for the merchant's separate Koomerce store; it is not
+> part of this app and is not needed to use it (the reviewer store is already set up). The
+> importer itself is Apps → Shopify importer.
+>
+> Sign-in: on https://admin.koomerce.app/login type the reviewer email and press Continue; the
+> password field opens (no verification code). The "Sign in with a password" link does the same.
+>
+> read_all_orders: the app copies the merchant's complete order history into their Koomerce
+> store, so customers keep their past orders and the merchant keeps their sales records and
+> GST history. Without it Shopify shares only the last 60 days. The screencast shows an order
+> older than 60 days being imported.
 
 ### 3.6 Screencast (~2.5 min; English; development store)
 
