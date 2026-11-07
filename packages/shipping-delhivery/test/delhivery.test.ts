@@ -155,6 +155,7 @@ describe('DelhiveryProvider', () => {
       pin: sampleShipment.to.pincode,
       return_name: sampleShipment.from.name,
       return_pin: sampleShipment.from.pincode,
+      total_amount: '1999.00',
       commodity_value: '1999.00',
       weight: 400,
     })

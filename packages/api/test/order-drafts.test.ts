@@ -1,5 +1,5 @@
 import { createMerchantAuth } from '@commerce/auth'
-import { createDb, inventoryLevel, order, product, store, variant } from '@commerce/db'
+import { createDb, inventoryLevel, order, orderLine, product, store, variant } from '@commerce/db'
 import { resetDb } from '@commerce/db/test'
 import { call } from '@orpc/server'
 import { eq } from 'drizzle-orm'
@@ -138,6 +138,53 @@ describe('draft orders router', () => {
     })
     const [o] = await owner.select().from(order).where(eq(order.id, id))
     expect(o?.status).toBe('draft')
+  })
+
+  it('converts a pre-order item with no stock, and marks the line as a pre-order', async () => {
+    const m = await merchant('p@example.com', 'drafts-preorder')
+    const variantId = await seedVariant(m.storeId, 0)
+    await owner.update(product).set({ preorderEnabled: true }).where(eq(product.storeId, m.storeId))
+    const { id } = await call(
+      appRouter.orders.saveDraft,
+      { draft: draftOf(variantId) },
+      { context: m.ctx },
+    )
+    await call(appRouter.orders.convertDraft, { id }, { context: m.ctx })
+    const [o] = await owner.select().from(order).where(eq(order.id, id))
+    expect(o?.status).toBe('open')
+    const [line] = await owner.select().from(orderLine).where(eq(orderLine.orderId, id))
+    expect(line?.preorder).toBe(true)
+  })
+
+  it('keeps a pre-order product in stock as a normal line', async () => {
+    const m = await merchant('s@example.com', 'drafts-instock')
+    const variantId = await seedVariant(m.storeId, 5)
+    await owner.update(product).set({ preorderEnabled: true }).where(eq(product.storeId, m.storeId))
+    const { id } = await call(
+      appRouter.orders.saveDraft,
+      { draft: draftOf(variantId) },
+      { context: m.ctx },
+    )
+    await call(appRouter.orders.convertDraft, { id }, { context: m.ctx })
+    const [line] = await owner.select().from(orderLine).where(eq(orderLine.orderId, id))
+    expect(line?.preorder).toBe(false)
+  })
+
+  it('still refuses past the pre-order limit', async () => {
+    const m = await merchant('l@example.com', 'drafts-limit')
+    const variantId = await seedVariant(m.storeId, 0)
+    await owner
+      .update(product)
+      .set({ preorderEnabled: true, preorderLimit: 0 })
+      .where(eq(product.storeId, m.storeId))
+    const { id } = await call(
+      appRouter.orders.saveDraft,
+      { draft: draftOf(variantId) },
+      { context: m.ctx },
+    )
+    await expect(
+      call(appRouter.orders.convertDraft, { id }, { context: m.ctx }),
+    ).rejects.toMatchObject({ code: 'BAD_REQUEST' })
   })
 
   it('refuses to delete a draft that was already converted', async () => {
