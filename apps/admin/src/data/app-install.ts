@@ -23,6 +23,8 @@ export const appInstallContent = {
     testing: 'Testing…',
     testHint: (name: string) => `Checks that ${name} accepts these details.`,
     testFailed: 'Could not test the connection',
+    generate: 'Generate',
+    generateLabel: (field: string) => `Generate a ${field.toLowerCase()}`,
     cancel: 'Cancel',
     continue: 'Continue',
     loadFailed: 'Could not load the account fields. Try again in a minute.',
