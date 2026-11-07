@@ -49,7 +49,8 @@ export default function CollectPaymentDialog({
   // Hooks
   const copy = useCopy(orderDetailContent)
   const fmt = useFormat()
-  const [amount, setAmount] = useState('')
+  // Null until the merchant types: the field shows the full balance, ready to confirm.
+  const [amount, setAmount] = useState<string | null>(null)
   const [method, setMethod] = useState<ManualPaymentMethod | null>(null)
   const [reference, setReference] = useState('')
   const [receivedOn, setReceivedOn] = useState('')
@@ -57,7 +58,7 @@ export default function CollectPaymentDialog({
 
   // Helpers
   const reset = () => {
-    setAmount('')
+    setAmount(null)
     setMethod(null)
     setReference('')
     setReceivedOn('')
@@ -92,7 +93,8 @@ export default function CollectPaymentDialog({
   }
 
   // Render logic
-  const paise = amount.trim() === '' ? balancePaise : parseRupees(amount)
+  const shown = amount ?? String(balancePaise / 100)
+  const paise = shown.trim() === '' ? null : parseRupees(shown)
   const paidWith = method ?? likelyMethod(order)
   const day = receivedOn || todayKey()
   const valid = paise !== null && paise > 0 && day <= todayKey()
@@ -117,9 +119,8 @@ export default function CollectPaymentDialog({
               type="number"
               inputMode="decimal"
               min="1"
-              step="1"
-              placeholder={String(balancePaise / 100)}
-              value={amount}
+              step="0.01"
+              value={shown}
               onChange={(e) => setAmount(e.target.value)}
               autoFocus
             />
