@@ -82,6 +82,8 @@ export const appsContent = {
     title: (app: string) => `Install ${app} in which store?`,
     intro: 'You belong to more than one store. Pick the one to add this app to.',
     choose: (store: string) => `Install in ${store}`,
+    installed: 'Installed',
+    openIn: (store: string) => `Open in ${store}`,
     current: 'Open now',
     failed: 'Could not switch stores. Try again.',
   },
