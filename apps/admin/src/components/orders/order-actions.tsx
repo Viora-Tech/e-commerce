@@ -210,13 +210,6 @@ export default function OrderActions({
             onSelect: onShip,
           },
           {
-            label: list.row.cancelShipment,
-            icon: CancelCircle,
-            hidden: !onCancelShipment || readOnly,
-            disabled: busy,
-            onSelect: () => setConfirm('cancelShipment'),
-          },
-          {
             label: holdCopy.action,
             icon: Pause,
             hidden: !onHold || readOnly,
@@ -260,6 +253,14 @@ export default function OrderActions({
             icon: ExternalLink,
             hidden: !onViewStatusPage,
             onSelect: onViewStatusPage,
+          },
+          {
+            label: list.row.cancelShipment,
+            icon: CancelCircle,
+            destructive: true,
+            hidden: !onCancelShipment || readOnly,
+            disabled: busy,
+            onSelect: () => setConfirm('cancelShipment'),
           },
           {
             label: copy.duplicate.action,

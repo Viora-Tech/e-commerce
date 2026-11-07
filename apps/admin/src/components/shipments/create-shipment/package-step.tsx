@@ -7,6 +7,7 @@ import { Input } from '@commerce/ui/shadcn/input'
 import ChoiceField from '@/components/apps/gst-invoices/choice-field'
 import ChoiceCard from '@/components/layout/choice-card'
 import PillTabs from '@/components/layout/pill-tabs'
+import ProductThumb from '@/components/products/product-thumb'
 import { createShipmentContent } from '@/data/create-shipment'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import BoxSelect from './box-select'
@@ -113,9 +114,28 @@ export default function PackageStep({
     return (
       <div className="flex flex-col gap-5">
         {parcelPicker}
-        <p className="text-body text-muted-foreground">
-          {parcel.lines.map((l) => copy.lineItem(l.title, l.quantity)).join(' · ')}
-        </p>
+        <ul className="flex flex-col gap-3">
+          {parcel.lines.map((l) => (
+            <li key={l.id} className="flex items-center gap-3">
+              <ProductThumb url={l.imageUrl} alt={l.title} className="size-10" />
+              <div className="flex min-w-0 flex-1 flex-col">
+                <span className="truncate text-body font-medium text-ink-strong">{l.title}</span>
+                <span className="truncate text-caption text-muted-foreground">
+                  {[
+                    l.sku ? copy.sku(l.sku) : null,
+                    fmt.money(l.unitPricePaise),
+                    l.weightGrams ? copy.unitWeight(fmt.number(l.weightGrams)) : null,
+                  ]
+                    .filter(Boolean)
+                    .join(' · ')}
+                </span>
+              </div>
+              <span className="shrink-0 tabular-nums text-body text-muted-foreground">
+                × {l.quantity}
+              </span>
+            </li>
+          ))}
+        </ul>
         <BoxSelect
           id="ship-box"
           boxes={draft.boxes}

@@ -22,7 +22,17 @@ const order: DraftOrder = {
       id: 'p1',
       position: 1,
       locationName: 'Jaipur warehouse',
-      lines: [{ id: 'l1', title: 'Kurta / M', quantity: 2 }],
+      lines: [
+        {
+          id: 'l1',
+          title: 'Kurta / M',
+          quantity: 2,
+          imageUrl: null,
+          sku: null,
+          unitPricePaise: 0,
+          weightGrams: null,
+        },
+      ],
       valuePaise: 149900,
       weightGrams: 700,
       dimensionsCm: null,
