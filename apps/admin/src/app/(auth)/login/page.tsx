@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto'
 import { loadEnv, merchantGoogleSignIn, reviewerSignIn } from '@commerce/config'
 import { redirect } from 'next/navigation'
 import { connection } from 'next/server'
@@ -19,12 +20,14 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   if (await getSession()) redirect(next ?? routes.home())
   const env = loadEnv(process.env)
   const google = merchantGoogleSignIn(env) !== null
-  const password = reviewerSignIn(env) !== null
+  const reviewer = reviewerSignIn(env)
+  // Only a hash leaves the server: the form spots the reviewer's address without learning it.
+  const reviewerHash = reviewer ? createHash('sha256').update(reviewer.email).digest('hex') : null
   return (
     <LoginScreen
       google={google}
       googleError={typeof error === 'string' ? error : null}
-      password={password}
+      reviewerHash={reviewerHash}
       next={next}
     />
   )

@@ -19,8 +19,11 @@ type LoginFormProps = {
   google: boolean
   /** `?error=` from a refused Google sign-in. */
   googleError: string | null
-  /** The app-store reviewer's password sign-in is on (REVIEWER_LOGIN_*): show its link. */
-  password: boolean
+  /**
+   * SHA-256 of the app-store reviewer's email when their password sign-in is on
+   * (REVIEWER_LOGIN_*): shows its link, and that address goes to the password step, not a code.
+   */
+  reviewerHash: string | null
   /** Where to go after signing in; the admin home when null. */
   next: string | null
 }
@@ -30,11 +33,18 @@ type Mode = 'sign-in' | 'sign-up'
 
 const RESEND_SECONDS = 30
 
+/** Hex SHA-256 of the trimmed, lower-cased address, as the login page hashes the reviewer's. */
+async function emailHash(email: string): Promise<string> {
+  const bytes = new TextEncoder().encode(email.trim().toLowerCase())
+  const digest = await crypto.subtle.digest('SHA-256', bytes)
+  return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, '0')).join('')
+}
+
 function clock(seconds: number): string {
   return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`
 }
 
-export default function LoginForm({ google, googleError, password, next }: LoginFormProps) {
+export default function LoginForm({ google, googleError, reviewerHash, next }: LoginFormProps) {
   // Hooks
   const copy = useCopy(loginContent)
   const router = useRouter()
@@ -70,6 +80,13 @@ export default function LoginForm({ google, googleError, password, next }: Login
   // Event handlers
   const handleSendCode = async (e: FormEvent) => {
     e.preventDefault()
+    // App-store reviewers cannot read a code (Shopify paused review over it): their address
+    // asks for the password instead, whichever way they start.
+    if (reviewerHash && (await emailHash(email)) === reviewerHash) {
+      setStep('password')
+      setError(null)
+      return
+    }
     if (await sendCode()) setStep('otp')
   }
 
@@ -263,7 +280,7 @@ export default function LoginForm({ google, googleError, password, next }: Login
         </Button>
       </form>
       {mode === 'sign-in' ? <PasskeySignIn next={next} /> : null}
-      {password && mode === 'sign-in' ? (
+      {reviewerHash && mode === 'sign-in' ? (
         <button
           type="button"
           onClick={handleShowPassword}
