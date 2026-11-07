@@ -992,7 +992,7 @@ html.has-cursor-fill [data-icon-close]:hover {
 /* ------------------------------------------------------------------ */
 /* Rich text (page.content, article.content, richtext settings)        */
 /* ------------------------------------------------------------------ */
-.rte {
+.rte:not(:where(rte-formatter)) {
   font-family: var(--font-body);
   font-size: 16px;
   line-height: 1.6;
@@ -1695,6 +1695,22 @@ main#MainContent {
   background-color: var(--color-bg);
   border-start-start-radius: var(--section-radius);
   border-start-end-radius: var(--section-radius);
+}
+
+/* Horizon, the layout that wraps its header in `#header-group`, paints section grounds at a
+   negative z-index. A filled page would cover them, and its white text would sit on white. */
+:root:has(#header-group) main#MainContent {
+  background-color: transparent;
+}
+
+/* Our own sections inside such a theme (the product page) take its colours: its scheme can be
+   dark, and our ink on its ground would hide the price and the buttons. */
+:root:has(#header-group) main#MainContent {
+  --color-ink: var(--color-foreground);
+  --color-bg: var(--color-background);
+  --color-muted: color-mix(in srgb, var(--color-foreground) 65%, transparent);
+  --color-line: color-mix(in srgb, var(--color-foreground) 15%, transparent);
+  --color-surface: color-mix(in srgb, var(--color-foreground) 6%, transparent);
 }
 
 /* Settled by scrolling the live reference and photographing the boundary:

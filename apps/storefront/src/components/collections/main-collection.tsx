@@ -47,6 +47,7 @@ function themeSections(value: unknown): ThemeCardSection[] {
             type: v.type,
             key: v.key,
             settings: v.settings && typeof v.settings === 'object' ? v.settings : {},
+            ...(Array.isArray(v.blocks) ? { blocks: v.blocks } : {}),
           },
         ]
       : [],

@@ -1,5 +1,5 @@
 import 'server-only'
-import { renderThemeCards, type ThemeCardSection } from '@commerce/core'
+import { loadTemplate, renderThemeCards, type ThemeCardSection } from '@commerce/core'
 import { logger } from '@commerce/observability/logging'
 import { headers } from 'next/headers'
 import { currentCustomer } from './customer-session'
@@ -93,4 +93,24 @@ export async function themeCardsFor(
   const preview = readPreview(storeId, (await headers()).get('x-theme-preview'))
   const themeId = preview?.themeId ?? (await liveThemeId(storeId))
   return themeId ? renderLiquidCards(storeId, themeId, input) : null
+}
+
+/**
+ * Theme cards for a list outside a collection page (search). Only for a theme whose card is built
+ * from blocks (Horizon), whose CSS breaks our card; those blocks live on the collection template.
+ * Other themes keep our card here.
+ */
+export async function blockCardsFor(
+  storeId: string,
+  handles: string[],
+): Promise<LiquidCards | null> {
+  const preview = readPreview(storeId, (await headers()).get('x-theme-preview'))
+  const themeId = preview?.themeId ?? (await liveThemeId(storeId))
+  if (!themeId || handles.length === 0) return null
+  const collection = await inStore(storeId, (tx) => loadTemplate(tx, themeId, 'collection', ''))
+  const sections = collection.data.content.flatMap((item) => {
+    const kept = (item.props as { _themeSections?: ThemeCardSection[] })._themeSections
+    return Array.isArray(kept) ? kept.filter((s) => s.blocks?.length) : []
+  })
+  return sections.length ? renderLiquidCards(storeId, themeId, { handles, sections }) : null
 }

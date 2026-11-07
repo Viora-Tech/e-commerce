@@ -94,5 +94,6 @@ export const IMPORTED_TEMPLATES = new Set([
 export const isImportedTemplate = (name: string): boolean =>
   IMPORTED_TEMPLATES.has(name.split('.')[0] ?? name)
 
-/** Sections that draw a resource page's main content (product, collection, cart...). */
-export const isMainSection = (type: string): boolean => type.startsWith('main-') || type === 'main'
+/** Sections that draw a resource page's main content (product, collection, cart...). Horizon's product section is `product-information`. */
+export const isMainSection = (type: string): boolean =>
+  type.startsWith('main-') || type === 'main' || type === 'product-information'
