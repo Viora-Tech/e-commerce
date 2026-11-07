@@ -6,6 +6,7 @@ import type { Metadata } from 'next'
 import { notFound, permanentRedirect } from 'next/navigation'
 import MainPage from '@/components/pages/main-page'
 import { marketCanonical, metaDescription, NO_INDEX } from '@/lib/seo'
+import { storeShareImages } from '@/lib/share-image'
 import { inStore } from '@/lib/store-context'
 import { isThemePreview, renderTemplate } from '@/lib/template-render'
 
@@ -30,13 +31,14 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
     found.seoDescription || richTextToPlainText(parseRichText(found.body)),
   )
   const url = await marketCanonical(`/pages/${found.handle}`)
+  const images = await storeShareImages(storeId)
   return {
     title,
     description,
     alternates: { canonical: url },
     // An unpublished page only renders in a theme preview.
     ...(found.publishedAt ? {} : { robots: NO_INDEX }),
-    openGraph: { type: 'website', url, title, description },
+    openGraph: { type: 'website', url, title, description, images },
   }
 }
 

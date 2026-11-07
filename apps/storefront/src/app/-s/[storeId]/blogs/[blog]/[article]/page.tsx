@@ -14,6 +14,7 @@ import ArticleNeighbours from '@/components/blog/article-neighbours'
 import ShareLinks from '@/components/blog/share-links'
 import { blogContent as copy } from '@/data/blog'
 import { breadcrumbList, jsonLd, marketCanonical, requestOrigin } from '@/lib/seo'
+import { storeShareImages } from '@/lib/share-image'
 import { inStore } from '@/lib/store-context'
 import { renderTemplate } from '@/lib/template-render'
 
@@ -52,7 +53,7 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
       tags: post.tags,
       images: post.imageUrl
         ? [{ url: post.imageUrl, alt: post.imageAlt ?? post.title }]
-        : undefined,
+        : await storeShareImages(storeId),
     },
     twitter: { card: post.imageUrl ? 'summary_large_image' : 'summary', title, description },
   }

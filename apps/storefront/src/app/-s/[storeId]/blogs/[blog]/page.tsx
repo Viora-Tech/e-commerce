@@ -6,6 +6,7 @@ import BlogPagination from '@/components/blog/blog-pagination'
 import TagFilter from '@/components/blog/tag-filter'
 import { BLOG_PER_PAGE, blogContent as copy } from '@/data/blog'
 import { breadcrumbList, jsonLd, marketCanonical, requestOrigin } from '@/lib/seo'
+import { storeShareImages } from '@/lib/share-image'
 import { inStore } from '@/lib/store-context'
 import { renderTemplate } from '@/lib/template-render'
 
@@ -25,7 +26,7 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
     title,
     description,
     alternates: { canonical: await marketCanonical(`/blogs/${found.handle}`) },
-    openGraph: { type: 'website', title, description },
+    openGraph: { type: 'website', title, description, images: await storeShareImages(storeId) },
   }
 }
 
