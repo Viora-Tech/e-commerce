@@ -76,6 +76,7 @@ function tabFilter(view: Exclude<OrderView, 'archived'>): SQL | undefined {
     case 'payment_not_finished':
       return paymentNotFinished
     default:
-      return paymentFinished
+      // Every order, so the numbers run without gaps: a failed payment still took one.
+      return undefined
   }
 }
