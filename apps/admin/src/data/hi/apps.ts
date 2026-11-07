@@ -79,6 +79,8 @@ export default [
       title: (app: string) => `${app} किस स्टोर में इंस्टॉल करें?`,
       intro: 'आप एक से ज़्यादा स्टोर में हैं। वह स्टोर चुनें जिसमें यह ऐप जोड़ना है।',
       choose: (store: string) => `${store} में इंस्टॉल करें`,
+      installed: 'इंस्टॉल है',
+      openIn: (store: string) => `${store} में खोलें`,
       current: 'अभी खुला है',
       failed: 'स्टोर नहीं बदल सका। फिर से कोशिश करें।',
     },

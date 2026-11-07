@@ -15,6 +15,13 @@ export const listStores = cache(async () =>
   auth().api.listOrganizations({ headers: await headers() }),
 )
 
+/** The member's stores that already have this app; none when it cannot be read. */
+export const storesWithApp = cache(async (appId: string) =>
+  call(appRouter.account.storesWithApp, { appId }, { context: await serverContext() }).catch(
+    (): string[] => [],
+  ),
+)
+
 /** The active store's apps (installed and not); rejects without a store or permission. */
 export const listApps = cache(async () =>
   call(appRouter.apps.list, undefined, { context: await serverContext() }),
