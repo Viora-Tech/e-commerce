@@ -1725,8 +1725,8 @@ main#MainContent {
 /* A theme's own CSS sits outside any layer, so it beats our Tailwind classes, which sit in one:
    Horizon's `.grid` split the reviews widget into 14 columns, its `h3` made a review title 2rem
    and its `img` stretched a review photo across the card. `revert-layer` hands those properties
-   back to Tailwind, inside our widgets only. */
-.commerce-app-block :is(.grid, .flex) {
+   back to Tailwind, inside our widgets on such themes only. */
+:root:has(#header-group) .commerce-app-block :is(.grid, .flex) {
   display: revert-layer;
   flex-direction: revert-layer;
   gap: revert-layer;
@@ -1734,24 +1734,24 @@ main#MainContent {
   grid-template-areas: revert-layer;
 }
 
-.commerce-app-block :is(h1, h2, h3, h4, h5, h6)[class*="text-"] {
+:root:has(#header-group) .commerce-app-block :is(h1, h2, h3, h4, h5, h6)[class*="text-"] {
   font-size: revert-layer;
   line-height: revert-layer;
 }
 
-.commerce-app-block img {
+:root:has(#header-group) .commerce-app-block img {
   width: revert-layer;
   height: revert-layer;
   max-width: revert-layer;
 }
 
 /* The theme's section below has no gap of its own to keep. */
-.commerce-app-block--reviews {
+:root:has(#header-group) .commerce-app-block--reviews {
   padding-block-end: 3rem;
 }
 
 /* A theme's page heading is far too big over a row of small cards. */
-.commerce-app-block--reviews-carousel .section-heading__title.h2 {
+:root:has(#header-group) .commerce-app-block--reviews-carousel .section-heading__title.h2 {
   font-size: min(var(--font-h3--size, 2rem), 2rem);
   line-height: 1.2;
 }
