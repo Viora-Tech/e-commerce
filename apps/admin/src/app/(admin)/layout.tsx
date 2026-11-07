@@ -22,7 +22,6 @@ import {
   ordersToShipCount,
   paymentsTestMode,
   planUsageSummary,
-  readyForPickupCount,
 } from '@/lib/shell-data'
 import { storefrontOrigin } from '@/lib/storefront-origin'
 import SelectStore from './select-store/select-store'
@@ -40,18 +39,16 @@ export default async function AdminLayout({ children }: { children: ReactNode })
   // Everything else needs only the session, so it is read at once rather than one after
   // another. Store calls for a stale active id answer "no store" on their own and are dropped
   // below unless that store is one of the member's.
-  const [orgs, apps, logo, storefrontUrl, toShip, toCollect, plan, testMode, approvals] =
-    await Promise.all([
-      listStores(),
-      activeId ? listApps().catch(() => []) : [],
-      activeId ? liveLogoUrl() : null,
-      storefrontOrigin(),
-      activeId ? ordersToShipCount() : null,
-      activeId ? readyForPickupCount() : null,
-      activeId ? planUsageSummary() : null,
-      activeId ? paymentsTestMode() : false,
-      activeId ? approvalsBadgeCount() : null,
-    ])
+  const [orgs, apps, logo, storefrontUrl, toShip, plan, testMode, approvals] = await Promise.all([
+    listStores(),
+    activeId ? listApps().catch(() => []) : [],
+    activeId ? liveLogoUrl() : null,
+    storefrontOrigin(),
+    activeId ? ordersToShipCount() : null,
+    activeId ? planUsageSummary() : null,
+    activeId ? paymentsTestMode() : false,
+    activeId ? approvalsBadgeCount() : null,
+  ])
   // No store at all yet: send them to create one, which shows the invite-only
   // screen instead of the wizard when they are not allowed to sign up.
   if (orgs.length === 0) redirect(routes.onboarding())
@@ -66,9 +63,8 @@ export default async function AdminLayout({ children }: { children: ReactNode })
   const inboxUnread = channels.includes('inbox') ? await inboxUnreadCount() : null
   const navCounts: Record<string, number> = {
     ...(active && toShip
-      ? { [routes.orders.list()]: toShip, [routes.orders.shipmentsTab('toBook')]: toShip }
+      ? { [routes.orders.list()]: toShip, [routes.orders.shipments()]: toShip }
       : {}),
-    ...(active && toCollect ? { [routes.orders.shipmentsTab('booked')]: toCollect } : {}),
     ...(inboxUnread ? { [routes.salesChannels.inboxConversations()]: inboxUnread } : {}),
     // Waiting approvals and unseen outcomes of the member's own requests.
     ...(active && approvals ? { [routes.settings.home()]: approvals } : {}),
