@@ -135,6 +135,7 @@ export function loadPlugins(plugins: PluginManifest[]): LoadedPlugins {
         kind: p.kind,
         category: p.category ?? null,
         company: p.company ?? null,
+        tested: p.tested === true,
         hooks: Object.keys(p.hooks ?? {}) as AppEvent[],
         productFields: p.productFields ?? [],
         credits: (p.credits ?? []).map((c) => ({ ...c })),

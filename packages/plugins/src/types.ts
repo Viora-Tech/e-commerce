@@ -372,6 +372,8 @@ export type PluginManifest = {
   category?: string | undefined
   /** The outside company behind a `connection` plugin, e.g. `Cloudflare`, `Razorpay`, `Meta`. Shown as "by <company>". */
   company?: string | undefined
+  /** We have run it end to end on a live store. Apps without it show an "Untested" badge. */
+  tested?: boolean | undefined
   provides: PluginProvides
   hooks?: Partial<Record<AppEvent, AppHook>> | undefined
   /** Links added to the shopper's order page and order emails. Must be cheap: runs per render. */
@@ -423,6 +425,8 @@ export type PluginSummary = {
   kind: PluginKind
   category: string | null
   company: string | null
+  /** Run end to end on a live store; false shows "Untested". */
+  tested: boolean
   provides: Record<ProviderKind, { id: string; label: string }[]>
   /** Lifecycle events the app subscribes to. */
   hooks: AppEvent[]

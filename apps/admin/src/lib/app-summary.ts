@@ -13,6 +13,8 @@ export type AppSummary = {
   kind: 'builtin' | 'connection'
   /** The outside company behind a `connection` plugin, e.g. `Cloudflare`. Null for `builtin`. */
   company: string | null
+  /** Run end to end on a live store; false shows an "Untested" badge. */
+  tested: boolean
   installed: boolean
   /** For a `connection`: installed AND the merchant has saved working credentials for it. */
   connected: boolean

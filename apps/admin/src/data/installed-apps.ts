@@ -21,6 +21,7 @@ export const installedAppsContent = {
   },
   sort: { newest: 'Newest first', oldest: 'Oldest first', az: 'A to Z', za: 'Z to A' },
   byCompany: (company: string) => `by ${company}`,
+  untested: 'Untested',
   builtBy: (brand: string) => `Built by ${brand}`,
   status: { connected: 'Connected', needsSetup: 'Needs setup', error: 'Error' },
   /** Store resources an app declares, by `AppResource`. */

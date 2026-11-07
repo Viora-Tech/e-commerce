@@ -23,6 +23,7 @@ export default [
     },
     sort: { newest: 'नए पहले', oldest: 'पुराने पहले', az: 'A से Z', za: 'Z से A' },
     byCompany: (company: string) => `${company} का`,
+    untested: 'टेस्ट नहीं हुआ',
     builtBy: (brand: string) => `${brand} का बनाया`,
     status: { connected: 'जुड़ा है', needsSetup: 'सेटअप चाहिए', error: 'गड़बड़ी' },
     resources: {

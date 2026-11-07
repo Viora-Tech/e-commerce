@@ -16,6 +16,7 @@ export const delhiveryPlugin = definePlugin({
   kind: 'connection',
   category: 'shipping',
   company: 'Delhivery',
+  tested: true,
   description:
     'Serviceability, delivery estimates, waybills, pickups, tracking and NDR on your Delhivery account.',
   listing: {

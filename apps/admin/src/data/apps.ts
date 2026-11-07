@@ -117,6 +117,9 @@ export const appsContent = {
   builtByPlatform: `${siteConfig.brand.name} app`,
   /** Shown on a `kind: 'connection'` card: which outside company this links to. */
   byCompany: (company: string) => `by ${company}`,
+  /** Shown on apps we have not yet run end to end on a live store. */
+  untested: 'Untested',
+  untestedHint: 'Not yet tried end to end on a live store. Test it before relying on it.',
   connection: {
     connected: 'Connected',
     notConnected: 'Not connected',

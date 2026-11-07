@@ -112,6 +112,8 @@ export default [
     configure: (kind: string) => `${kind} में सेटअप करें`,
     builtByPlatform: `${siteConfig.brand.name} ऐप`,
     byCompany: (company: string) => `${company} की ओर से`,
+    untested: 'टेस्ट नहीं हुआ',
+    untestedHint: 'अभी किसी लाइव स्टोर पर पूरी तरह आज़माया नहीं गया। भरोसा करने से पहले टेस्ट करें।',
     connection: { connected: 'जुड़ा है', notConnected: 'जुड़ा नहीं है' },
     gallery: {
       categories: {

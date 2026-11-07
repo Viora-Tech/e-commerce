@@ -50,7 +50,14 @@ export function installedColumns(
         <div className="flex min-w-0 items-center gap-3">
           <AppLogo id={a.id} icon={a.admin.icon} size={44} className="size-9 rounded-lg" />
           <div className={TWO_LINES}>
-            <span className={MAIN}>{a.name}</span>
+            <span className="flex min-w-0 items-center gap-1.5">
+              <span className={MAIN}>{a.name}</span>
+              {a.tested ? null : (
+                <StatusChip tone="attention" className="h-4.5 shrink-0 text-xs">
+                  {copy.untested}
+                </StatusChip>
+              )}
+            </span>
             <span className={SUB}>{byline(a)}</span>
           </div>
         </div>
