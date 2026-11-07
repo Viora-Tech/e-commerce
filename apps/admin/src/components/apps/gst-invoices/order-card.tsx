@@ -160,52 +160,56 @@ export default function OrderCard({ orderId }: OrderCardProps) {
         {issued.map((d) => (
           <div
             key={d.id}
-            className="flex items-center gap-3 rounded-[0.5rem] border border-border p-2.5"
+            className="flex flex-col gap-2.5 rounded-[0.5rem] border border-border p-2.5"
           >
-            <FileText className="size-4 shrink-0 text-muted-foreground" />
-            <div className="flex min-w-0 flex-1 flex-col">
-              <Link
-                href={`${APP}/invoices/${d.id}`}
-                className="truncate text-body font-medium hover:underline"
-              >
-                {d.number ?? copy.kinds[d.kind]}
-              </Link>
-              <span className="text-caption text-muted-foreground">
-                {copy.kinds[d.kind]}, {formatDay(d.invoiceDate ?? d.issuedAt)},{' '}
-                {formatPaise(d.totalPaise)}
-                {d.status === 'cancelled' ? `, ${copy.statuses.cancelled}` : ''}
-                {d.pdfStatus === 'failed' ? `, ${copy.pdfFailed}` : ''}
-              </span>
+            <div className="flex items-start gap-3">
+              <FileText className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+              <div className="flex min-w-0 flex-1 flex-col">
+                <Link
+                  href={`${APP}/invoices/${d.id}`}
+                  className="truncate text-body font-medium hover:underline"
+                >
+                  {d.number ?? copy.kinds[d.kind]}
+                </Link>
+                <span className="text-caption text-muted-foreground">
+                  {copy.kinds[d.kind]}, {formatDay(d.invoiceDate ?? d.issuedAt)},{' '}
+                  {formatPaise(d.totalPaise)}
+                  {d.status === 'cancelled' ? `, ${copy.statuses.cancelled}` : ''}
+                  {d.pdfStatus === 'failed' ? `, ${copy.pdfFailed}` : ''}
+                </span>
+              </div>
             </div>
-            {d.kind === 'tax_invoice' && d.status === 'issued' && !d.reportedPeriod ? (
+            <div className="flex items-center justify-end gap-2">
+              {d.kind === 'tax_invoice' && d.status === 'issued' && !d.reportedPeriod ? (
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label={copy.regenerate}
+                  disabled={busy !== null}
+                  onClick={() => handleRegenerate(d.id)}
+                >
+                  <RefreshCw />
+                </Button>
+              ) : null}
               <Button
                 variant="ghost"
-                size="icon-sm"
-                aria-label={copy.regenerate}
+                size="sm"
                 disabled={busy !== null}
-                onClick={() => handleRegenerate(d.id)}
+                onClick={() => handleView(d.id)}
               >
-                <RefreshCw />
+                <Eye />
+                {copy.view}
               </Button>
-            ) : null}
-            <Button
-              variant="ghost"
-              size="sm"
-              disabled={busy !== null}
-              onClick={() => handleView(d.id)}
-            >
-              <Eye />
-              {copy.view}
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={busy !== null}
-              onClick={() => handleDownload(d.id)}
-            >
-              <Download />
-              {copy.download}
-            </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={busy !== null}
+                onClick={() => handleDownload(d.id)}
+              >
+                <Download />
+                {copy.download}
+              </Button>
+            </div>
           </div>
         ))}
         {invoice?.status === 'issued' ? (

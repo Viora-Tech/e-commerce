@@ -22,6 +22,7 @@ import { chargedGstRate, parseStoreTax } from '../tax/settings'
 import { CustomItemSchema, ensureCustomItemVariant } from './custom-item'
 import { DraftAddressSchema, DraftBillingSchema, writeAddress, writeBilling } from './draft-billing'
 import { draftMoney } from './draft-discount'
+import { draftPreorders, markPreorderLines, routingPreorder } from './draft-preorder'
 import { draftPlaceholder, isDraftPlaceholder } from './draft-ref'
 import { releaseDraftHold, reserveDraft } from './draft-reserve'
 import { createFulfillmentOrders } from './fulfillment-orders'
@@ -343,8 +344,8 @@ async function draftNeedsShipping(ctx: StoreContext, orderId: string): Promise<b
 }
 
 /**
- * Turn the draft into a real order: hold the stock, record a pending payment
- * for the chosen method and flip the status. The stock guard is the same
+ * Turn the draft into a real order: hold the stock, record a pending payment for
+ * the chosen method and flip the status. The stock guard is the same
  * conditional update placeOrder uses, so two conversions cannot oversell. A draft with a line
  * to ship needs a shipping address first (DraftNeedsShippingAddress).
  */
@@ -384,26 +385,29 @@ export async function convertDraft(
 
   // Its own hold (#1030) is given back first, so the stock below is held once, for the order.
   await releaseDraftHold(ctx, o)
-  /* Routed and held like a checkout (order/routing.ts), to the draft's shipping state; the
-     stock guard queues two conversions, so they cannot oversell. Drafts never pre-order. */
+  // Routed and held like a checkout (order/routing.ts); its stock guard stops an oversell.
   const [shipTo] = o.shippingAddressId
     ? await ctx.tx
         .select({ stateCode: address.stateCode })
         .from(address)
         .where(eq(address.id, o.shippingAddressId))
     : []
+  const preorders = await draftPreorders(
+    ctx,
+    lines.map((l) => l.variantId),
+  )
   const { parcels } = await routeAndReserve(ctx, {
     lines: lines.map((l) => ({
       key: l.id,
       variantId: l.variantId,
       quantity: l.quantity,
       giftCard: l.giftCard,
-      preorder: null,
+      preorder: l.giftCard ? null : routingPreorder(preorders.get(l.variantId)),
     })),
     buyerState: shipTo?.stateCode ?? null,
   })
-  /* Billed like a checkout: each parcel's GST from its own GSTIN, the order's their sum. A
-     draft with no shipping state is split as IGST (it cannot be proven local). */
+  await markPreorderLines(ctx, lines, parcels, preorders)
+  // Billed like a checkout, per parcel GSTIN; with no shipping state it is IGST.
   const [s] = await ctx.tx
     .select({ address: store.address, gstRatePercent: store.gstRatePercent, apps: store.apps })
     .from(store)

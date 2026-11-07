@@ -3,6 +3,7 @@ import { address, order, orderLine } from '@commerce/db'
 import { and, eq, isNotNull, lt } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 import { CommerceError } from '../errors'
+import { draftPreorders, routingPreorder } from './draft-preorder'
 import { releaseReserved, routeAndReserve } from './routing-service'
 
 /**
@@ -58,6 +59,10 @@ export async function reserveDraft(ctx: StoreContext, id: string, until: Date, n
         .from(address)
         .where(eq(address.id, o.shippingAddressId))
     : []
+  const preorders = await draftPreorders(
+    ctx,
+    lines.flatMap((l) => (l.variantId ? [l.variantId] : [])),
+  )
   const { reserved } = await routeAndReserve(ctx, {
     lines: lines.flatMap((l) =>
       l.variantId
@@ -67,7 +72,7 @@ export async function reserveDraft(ctx: StoreContext, id: string, until: Date, n
               variantId: l.variantId,
               quantity: l.quantity,
               giftCard: l.giftCard,
-              preorder: null,
+              preorder: routingPreorder(preorders.get(l.variantId)),
             },
           ]
         : [],
