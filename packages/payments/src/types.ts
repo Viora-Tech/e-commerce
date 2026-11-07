@@ -356,6 +356,9 @@ export type ProviderField = {
   /** Encrypted at rest and masked in the UI. */
   secret?: boolean
   required?: boolean
+  /** Asked for in the install's Connect step though not required: a key a gateway's OAuth
+   *  connection does without (Razorpay's key secret). */
+  connect?: boolean
   multiline?: boolean
   /** `boolean` renders a checkbox and stores 'true' | 'false'. Defaults to text. */
   type?: 'text' | 'boolean'

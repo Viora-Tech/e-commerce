@@ -50,7 +50,7 @@ export default function InstallConnectStep({
     <>
       <div className="flex flex-col gap-1.5">
         <DialogTitle>{copy.connect.title(appName)}</DialogTitle>
-        <DialogDescription>{copy.connect.intro(appName)}</DialogDescription>
+        <DialogDescription>{copy.connect.intro(appName, form.kind)}</DialogDescription>
       </div>
       <FieldGroup className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         {form.fields.map((f, i) => (
