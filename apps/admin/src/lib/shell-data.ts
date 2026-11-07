@@ -34,6 +34,13 @@ export const ordersToShipCount = cache(async () =>
   ),
 )
 
+/** Booked parcels the courier has not collected, for the sidebar; null without permission. */
+export const readyForPickupCount = cache(async () =>
+  call(appRouter.shipments.counts, undefined, { context: await serverContext() })
+    .then((c) => c.booked)
+    .catch(() => null),
+)
+
 /**
  * Settings → Approvals, for the sidebar count: changes waiting for this member's approval plus
  * decisions on their own requests they have not opened yet; null when it cannot be read.

@@ -32,6 +32,8 @@ type NavSectionProps = {
   pathname: string
   /** The count pill (Figma "Sidebar menu button" › Count); hidden at 0. */
   count?: number | undefined
+  /** Counts by href, for the section's sub-pages. */
+  counts?: Record<string, number> | undefined
 }
 
 /** A manual open/closed choice only holds for the route it was made on. */
@@ -53,11 +55,23 @@ const CHILD = `relative isolate flex h-7 w-full min-w-0 items-center rounded-[0.
 const CHILD_ACTIVE =
   'font-medium text-sidebar-foreground hover:bg-transparent before:absolute before:inset-y-1 before:-left-2.5 before:w-0.5 before:rounded-full before:bg-sidebar-foreground'
 
+/** The count on a row (Figma "Sidebar menu button" › Count). */
+function CountPill({ count, title }: { count: number; title: string }) {
+  return (
+    <span
+      title={title}
+      className="flex h-4.5 min-w-5 shrink-0 items-center justify-center rounded-full bg-badge-count px-1.5 text-[0.6875rem] leading-3.5 font-semibold text-foreground tabular-nums group-data-[collapsible=icon]:hidden"
+    >
+      {count > 99 ? '99+' : count}
+    </span>
+  )
+}
+
 /** A child that leaves the admin (the App Store website) opens in a new tab. */
 const EXTERNAL = { target: '_blank', rel: 'noopener noreferrer' } as const
 
 /** One rail entry: the section link, a chevron toggle when it has sub-pages, and the guided child list. */
-export default function NavSection({ item, pathname, count = 0 }: NavSectionProps) {
+export default function NavSection({ item, pathname, count = 0, counts = {} }: NavSectionProps) {
   // Hooks
   const copy = useCopy(navigationContent)
   const reduced = useReducedMotion()
@@ -106,14 +120,7 @@ export default function NavSection({ item, pathname, count = 0 }: NavSectionProp
       ) : null}
       <item.icon className={item.iconClassName} />
       <span className={cn('min-w-0 flex-1 truncate', SIDEBAR_LABEL)}>{item.label}</span>
-      {count > 0 ? (
-        <span
-          title={copy.countHint(count)}
-          className="flex h-4.5 min-w-5 shrink-0 items-center justify-center rounded-full bg-badge-count px-1.5 text-[0.6875rem] leading-3.5 font-semibold text-foreground tabular-nums group-data-[collapsible=icon]:hidden"
-        >
-          {count > 99 ? '99+' : count}
-        </span>
-      ) : null}
+      {count > 0 ? <CountPill count={count} title={copy.countHint(count)} /> : null}
     </Link>
   )
 
@@ -194,6 +201,7 @@ export default function NavSection({ item, pathname, count = 0 }: NavSectionProp
           >
             {children.map((child) => {
               const active = child.href === activeHref
+              const childCount = counts[child.href] ?? 0
               return (
                 <li key={child.href}>
                   <Link
@@ -211,6 +219,9 @@ export default function NavSection({ item, pathname, count = 0 }: NavSectionProp
                       />
                     ) : null}
                     <span className="min-w-0 flex-1 truncate">{child.label}</span>
+                    {childCount > 0 ? (
+                      <CountPill count={childCount} title={copy.countHint(childCount)} />
+                    ) : null}
                     {child.external ? (
                       <ExternalLink aria-hidden="true" className="size-3.5 shrink-0" />
                     ) : null}
