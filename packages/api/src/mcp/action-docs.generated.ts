@@ -294,6 +294,8 @@ export const ACTION_DOCS: Record<string, string> = {
   'gstInvoices.seriesNext':
     'The next number each series will print this financial year, for the settings preview.',
   'gstInvoices.snapshot': 'Snapshot of a document, for the admin to show what was printed.',
+  'gstInvoicesProducts.update':
+    'One product, the selected ones, or every product the filter matches.',
   'inboundShipments.attach': 'Put an order on this shipment (off any other); both are recosted.',
   'inboundShipments.costs':
     'Shared charges, their splits across every order in it, and landed cost per line.',

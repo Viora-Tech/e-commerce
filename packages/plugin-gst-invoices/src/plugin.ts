@@ -341,6 +341,7 @@ export const gstInvoicesPlugin = definePlugin({
       { path: '', title: 'Invoice queue', navLabel: 'Queue', icon: 'Inbox' },
       { path: 'invoices', title: 'Invoices', navLabel: 'Invoices', icon: 'FileText' },
       { path: 'reports', title: 'Returns', navLabel: 'Returns', icon: 'FileBarChart' },
+      { path: 'products', title: 'Products', navLabel: 'Products', icon: 'Package' },
       { path: 'settings', title: 'Settings', navLabel: 'Settings', icon: 'Settings' },
       { path: 'invoices/[id]', title: 'Invoice' },
     ],

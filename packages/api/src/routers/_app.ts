@@ -33,6 +33,7 @@ import { formsRouter } from './forms'
 import { giftCardsRouter } from './gift-cards'
 import { growthbookRouter } from './growthbook'
 import { gstInvoicesRouter } from './gst-invoices'
+import { gstInvoicesProductsRouter } from './gst-invoices-products'
 import { inboxRouter } from './inbox'
 import { inventoryRouter, purchaseOrdersRouter, transfersRouter } from './inventory'
 import { invitationsRouter } from './invitations'
@@ -125,6 +126,7 @@ export const appRouter = {
   preorders: preordersRouter,
   apps: appsRouter,
   gstInvoices: gstInvoicesRouter,
+  gstInvoicesProducts: gstInvoicesProductsRouter,
   taxes: taxesRouter,
   businessGst: businessGstRouter,
   profitCosts: profitCostsRouter,
