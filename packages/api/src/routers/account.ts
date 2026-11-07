@@ -30,6 +30,7 @@ import {
   LeaveStoreRefused,
   memberProfile,
   memberStores,
+  memberStoresWithApp,
   ownedStoreNames,
   recentSignIns,
   removeMemberAvatar,
@@ -155,6 +156,13 @@ export const accountRouter = {
   stores: protectedProcedure.handler(({ context }) =>
     memberStores(context.db, context.session.user.id, context.session.activeOrganizationId),
   ),
+
+  /** Which of the member's stores already have an app, for the install store picker. */
+  storesWithApp: protectedProcedure
+    .input(z.object({ appId: z.string().min(1).max(200) }))
+    .handler(({ context, input }) =>
+      memberStoresWithApp(context.db, context.session.user.id, input.appId),
+    ),
 
   /**
    * Leaves a store: Better Auth drops the membership (and clears it as the active store),

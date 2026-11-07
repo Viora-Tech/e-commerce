@@ -4,6 +4,7 @@ import {
   CommerceError,
   type DeviceDescription,
   describeUserAgent,
+  installedApps,
   isOwnAvatarKey,
   memberAccess,
   processAvatar,
@@ -210,6 +211,27 @@ export async function memberStores(
       }
     }),
   )
+}
+
+/** The organizations of this member's stores that have the app installed. */
+export async function memberStoresWithApp(
+  db: Db,
+  userId: string,
+  appId: string,
+): Promise<string[]> {
+  const rows = await db
+    .select({ organizationId: authSchema.member.organizationId })
+    .from(authSchema.member)
+    .where(eq(authSchema.member.userId, userId))
+
+  const found = await Promise.all(
+    rows.map(async ({ organizationId }) => {
+      const storeId = await resolveStoreForOrganization(db, organizationId)
+      if (!storeId) return null
+      return (await installedApps(db, storeId)).includes(appId) ? organizationId : null
+    }),
+  )
+  return found.filter((id) => id !== null)
 }
 
 export class LeaveStoreRefused extends CommerceError {
