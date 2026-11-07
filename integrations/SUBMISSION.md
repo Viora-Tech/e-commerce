@@ -562,7 +562,7 @@ Shopify paused the review; it does not restart on its own. Before resubmitting:
 
 1. **IP allowlist** (required for public apps; bulk operations fail from 12 Nov 2026, delisting
    from 20 Nov): Dev Dashboard → Koomerce Migration → Settings → IP allowlist → Manage → add the
-   production server `128.140.66.227` (the admin and worker call the Admin API from it) → Run
+   production server `13.232.151.16` (AWS Lightsail Mumbai; must be a static IP) (the admin and worker call the Admin API from it) → Run
    test → Enforcement on → Save. Re-add if the server changes.
 2. **4.5.5 reviewer login**: fixed in #1260 (deployed with release `029ab5e4e`). Typing the
    reviewer email opens the password step; no code is sent. Check it on
