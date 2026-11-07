@@ -25,6 +25,8 @@ export default [
       testing: 'जाँच हो रही है…',
       testHint: (name: string) => `जाँचता है कि ${name} यह जानकारी मानता है।`,
       testFailed: 'कनेक्शन की जाँच नहीं हो सकी',
+      generate: 'बनाएँ',
+      generateLabel: (field: string) => `${field} बनाएँ`,
       cancel: 'रद्द करें',
       continue: 'आगे बढ़ें',
       loadFailed: 'अकाउंट के फ़ील्ड लोड नहीं हो सके। एक मिनट बाद फिर कोशिश करें।',

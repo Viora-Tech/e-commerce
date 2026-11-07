@@ -25,7 +25,7 @@ export type ConnectForm = {
   kind: ConnectKind
   label: string
   /** The fields the merchant must fill to connect; the optional ones stay on the app's page. */
-  fields: Pick<ProviderField, 'key' | 'label' | 'secret' | 'help'>[]
+  fields: Pick<ProviderField, 'key' | 'label' | 'secret' | 'help' | 'generate'>[]
 }
 
 /** Gateways that connect with pasted keys (Razorpay also offers OAuth on its own page). */
@@ -48,6 +48,7 @@ export function connectFormFor(plugin: PluginManifest): ConnectForm | null {
         label: x.label,
         ...(x.secret ? { secret: true } : {}),
         ...(x.help ? { help: x.help } : {}),
+        ...(x.generate ? { generate: true } : {}),
       })),
   })
   const shipping = plugin.provides.shipping ?? []

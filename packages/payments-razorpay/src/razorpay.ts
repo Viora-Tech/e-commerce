@@ -373,7 +373,8 @@ export const razorpayFactory: PaymentProviderFactory<RazorpayConfig> = {
       label: 'Webhook secret',
       secret: true,
       required: true,
-      help: 'Set the same value in the Razorpay dashboard webhook.',
+      generate: true,
+      help: 'Generate one, then paste the same value as the secret of your Razorpay dashboard webhook.',
     },
     { key: 'displayName', label: 'Name shown in checkout' },
     {
