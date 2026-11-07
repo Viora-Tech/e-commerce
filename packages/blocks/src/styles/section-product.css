@@ -1682,7 +1682,8 @@ html:not(.has-cursor-fill) .share-row__copy:hover {
   text-decoration: none;
 }
 
-.product-info__rating-stars {
+.product-info__rating-stars,
+.product-info__rating-empty {
   display: inline-flex;
   gap: 0.125rem;
   color: var(--color-ink);
