@@ -1,5 +1,6 @@
 /** SOURCE OF TRUTH: an imported theme's own product card on our collection grid — WHAT: finds, in the theme's main collection section, the `{% render %}` call that draws each product of `collection.products` (`card-product`, `product-card`…) with the section's own `assign`s it reads, and builds one template that draws that card for a list of product handles, split per card / WHY: our main collection section replaces the theme's (filters, sort and paging run on ours), but its cards must be the theme's: its rating, sale pill, quick add, compare and image dots. The card's forms post to our cart like every other theme form (swap.ts `cart_add`) */
 import type { ThemeBundle } from './bundle'
+import type { LiquidBlockItem } from './fields'
 
 /** A main collection section as the import kept it on our `MainCollection` (`_themeSections`). */
 export type ThemeCardSection = {
@@ -9,6 +10,8 @@ export type ThemeCardSection = {
   key: string
   /** Its saved settings, as the import stored them. */
   settings: Record<string, unknown>
+  /** Its theme blocks: Horizon's card is one, with the gallery, title and price inside. */
+  blocks?: LiquidBlockItem[] | undefined
 }
 
 /** What the card render needs: the section it comes from and the template drawing the cards. */
@@ -108,6 +111,23 @@ function candidates(bundle: ThemeBundle, kept: ThemeCardSection[]): ThemeCardSec
   return [...kept, ...own]
 }
 
+/** Horizon's card: `{% content_for 'block', type: '_product-card', id: 'x', closest.product: p %}`. */
+function blockCardCall(source: string, from: number, loopVar: string): string | null {
+  const at = source.indexOf('content_for', from)
+  if (at === -1) return null
+  const end = source.indexOf('%}', at)
+  if (end === -1 || end - at > TAG_MAX) return null
+  const call = source.slice(at, end).replace(/-\s*$/, '').replace(/\s+/g, ' ').trim()
+  return call.includes(`closest.product: ${loopVar}`) ? call : null
+}
+
+/**
+ * Whether a card snippet draws a card by itself. Horizon's `product-card` only wraps the
+ * `children` its theme blocks fill in, so on its own it draws nothing, and our card stays.
+ */
+const drawsCard = (source: string | undefined): boolean =>
+  source !== undefined && !source.includes('{{ children }}') && !source.includes('{{- children')
+
 /**
  * The template that draws the theme's product card for `CARD_HANDLES`, each card after a
  * `CARD_MARK`; null when the theme draws no card we can find (our own card stays).
@@ -121,15 +141,27 @@ export function themeCardTemplate(
     if (!source) continue
     const loop = PRODUCT_LOOP.exec(source)
     if (!loop?.[1]) continue
+    const blockCall = blockCardCall(source, loop.index, loop[1])
+    if (blockCall) {
+      // Without the template's blocks the card would be empty: ours stays.
+      if (!section.blocks?.length) continue
+      return {
+        section,
+        cacheKey: `theme-cards/${section.type}`,
+        source: build(sectionAssets(source), settingAssigns(source), loop[1], blockCall),
+      }
+    }
     const call = renderCall(source, loop.index, loop[1], bundle.snippets)
     if (!call) continue
+    const name = /\brender\s+['"]([\w.-]+)/.exec(call)?.[1]
+    if (name && !drawsCard(bundle.snippets.get(name))) continue
     return {
       section,
       cacheKey: `theme-cards/${section.type}`,
       source: build(sectionAssets(source), settingAssigns(source), loop[1], call),
     }
   }
-  const snippet = FALLBACK_SNIPPETS.find((s) => bundle.snippets.has(s))
+  const snippet = FALLBACK_SNIPPETS.find((s) => drawsCard(bundle.snippets.get(s)))
   if (!snippet) return null
   const call = `render '${snippet}', card_product: product, product: product, show_quick_add: true, quick_add: 'standard', show_rating: true`
   return {

@@ -190,7 +190,7 @@ export function isDynamicSource(value: unknown): value is string {
 export function dynamicSettings(
   settings: Record<string, unknown>,
   engine: Liquid,
-  ctx: Context,
+  ctx: Context | Record<string, unknown>,
 ): Record<string, unknown> {
   const out = { ...settings }
   for (const [key, value] of Object.entries(settings)) {

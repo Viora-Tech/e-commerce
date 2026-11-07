@@ -68,6 +68,7 @@ export default async function SearchPage({ params, searchParams }: Params) {
     renderers: {
       MainSearch: (settings) => (
         <MainSearch
+          storeId={storeId}
           query={q}
           products={products}
           result={result}

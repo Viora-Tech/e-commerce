@@ -113,7 +113,10 @@ function toTemplateData(
   const stored = (type: string, values: Record<string, unknown> | undefined) =>
     storedSettings(schemas.get(type)?.settings, values, hosted)
   const fromTheme = (s: ShopifyJsonTemplate['sections'][string]) =>
-    themeMainProps(key, tpl, s, stored, theme)
+    themeMainProps(key, tpl, s, stored, {
+      ...theme,
+      blocksOf: (section) => templateBlocks(section, schemas.get(section.type) ?? null, hosted, 0),
+    })
   const content = tpl.order.flatMap((sectionKey): TemplateSection[] => {
     const s = tpl.sections[sectionKey]
     if (!s) return []
