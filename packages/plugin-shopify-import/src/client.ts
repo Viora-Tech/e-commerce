@@ -233,6 +233,8 @@ export const ALL_SCOPE_HANDLES = [
   'read_inventory_transfers',
   /** Traffic history: sessions and visitors by day. Optional. */
   'read_reports',
+  /** Customers' store credit balances (issue #1227). Optional. */
+  'read_store_credit_accounts',
 ] as const
 export type ScopeHandle = (typeof ALL_SCOPE_HANDLES)[number]
 

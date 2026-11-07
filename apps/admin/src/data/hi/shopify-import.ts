@@ -226,6 +226,7 @@ const hi = {
       read_inventory_purchase_orders: 'परचेज़ ऑर्डर पढ़ना',
       read_inventory_transfers: 'ट्रांसफ़र पढ़ना',
       read_reports: 'ट्रैफ़िक रिपोर्ट पढ़ना (सेशन और विज़िटर)',
+      read_store_credit_accounts: 'स्टोर क्रेडिट बैलेंस पढ़ना',
     },
     chooseHeading: 'क्या इंपोर्ट करना है',
     chooseHelp: 'प्रोडक्ट पहले आते हैं ताकि कलेक्शन, ऑर्डर, डिस्काउंट और एक्स्ट्रा फ़ील्ड उनसे जुड़ सकें।',
