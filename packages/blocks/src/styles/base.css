@@ -1705,12 +1705,21 @@ main#MainContent {
 
 /* Our own sections inside such a theme (the product page) take its colours: its scheme can be
    dark, and our ink on its ground would hide the price and the buttons. */
-:root:has(#header-group) main#MainContent {
+:root:has(#header-group) :is(main#MainContent, .commerce-app-block) {
   --color-ink: var(--color-foreground);
   --color-bg: var(--color-background);
   --color-muted: color-mix(in srgb, var(--color-foreground) 65%, transparent);
   --color-line: color-mix(in srgb, var(--color-foreground) 15%, transparent);
   --color-surface: color-mix(in srgb, var(--color-foreground) 6%, transparent);
+  --color-brand: var(--color-foreground);
+  --color-sale: var(--color-foreground);
+  --color-accent: var(--color-foreground);
+}
+
+/* Our reset takes away a dialog's centring, which Horizon's search panel relies on. Only the
+   sides, at the lowest priority: the theme sets its own top margin and drawer sides. */
+:where(:root:has(#header-group)) dialog {
+  margin-inline: auto;
 }
 
 /* Settled by scrolling the live reference and photographing the boundary:

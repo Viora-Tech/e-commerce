@@ -42,6 +42,7 @@ import { storeOffersEmi, storeUpiDiscount } from '@/lib/payments'
 import { policyPanels } from '@/lib/related'
 import { productReviews } from '@/lib/reviews'
 import { jsonLd, marketCanonical, metaDescription, productGraph, requestOrigin } from '@/lib/seo'
+import { shareImageUrl } from '@/lib/share-image'
 import { estimateDeliveryAction } from '@/lib/shipping-actions'
 import { storeRead } from '@/lib/store-cache'
 import { renderTemplate } from '@/lib/template-render'
@@ -117,7 +118,7 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const images = product.images
     .filter((i) => !i.contentType?.startsWith('video/'))
     .slice(0, 4)
-    .map((i) => ({ url: i.url, alt: i.alt ?? product.title }))
+    .map((i) => ({ url: shareImageUrl(i), alt: i.alt ?? product.title }))
   return {
     title,
     description,

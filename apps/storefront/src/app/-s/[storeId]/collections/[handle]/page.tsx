@@ -18,6 +18,7 @@ import { listCardProducts } from '@/lib/catalog'
 import { getCollectionByHandle } from '@/lib/collections'
 import { digest } from '@/lib/liquid-cache'
 import { marketCanonical, metaDescription, requestOrigin } from '@/lib/seo'
+import { storeShareImages } from '@/lib/share-image'
 import { storeRead } from '@/lib/store-cache'
 import { renderTemplate } from '@/lib/template-render'
 
@@ -56,7 +57,13 @@ export async function generateMetadata({ params, searchParams }: Params): Promis
     title,
     description,
     alternates: { canonical: url },
-    openGraph: { type: 'website', url, title, description, images: image },
+    openGraph: {
+      type: 'website',
+      url,
+      title,
+      description,
+      images: image ?? (await storeShareImages(storeId)),
+    },
     twitter: { card: image ? 'summary_large_image' : 'summary', title, description },
     ...(variant ? { robots: { index: false, follow: true } } : {}),
   }

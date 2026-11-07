@@ -161,12 +161,11 @@ export default function ImportThemeScreen() {
             />
             <FieldDescription>{copy.hostHint}</FieldDescription>
           </Field>
-          <Field orientation="horizontal" className="items-start">
+          <Field orientation="horizontal" className="items-center">
             <Checkbox
               id="theme-owned"
               checked={owned}
               onCheckedChange={(v) => setOwned(v === true)}
-              className="mt-0.5"
             />
             <FieldLabel htmlFor="theme-owned">{copy.licenceConfirm}</FieldLabel>
           </Field>

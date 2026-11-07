@@ -14,7 +14,7 @@ export function appBlockHtml(
   block: { type?: unknown; shopify_attributes?: unknown },
 ): string {
   const slot = typeof block.type === 'string' ? appBlockSlot(block.type) : null
-  if (slot !== 'reviews' || !ctx.cache.judgeme()) return ''
+  if (!slot || !ctx.cache.judgeme()) return ''
   const attrs = typeof block.shopify_attributes === 'string' ? ` ${block.shopify_attributes}` : ''
-  return `<div class="commerce-app-block commerce-app-block--${slot}" ${APP_BLOCK_SLOT_ATTR}="${escapeAttr(slot)}"${attrs}><h2 class="commerce-app-block__heading h4">Customer reviews</h2></div>`
+  return `<div class="commerce-app-block commerce-app-block--${slot}" ${APP_BLOCK_SLOT_ATTR}="${escapeAttr(slot)}"${attrs}>${slot === 'reviews' ? '<h2 class="commerce-app-block__heading h4">Customer reviews</h2>' : ''}</div>`
 }
