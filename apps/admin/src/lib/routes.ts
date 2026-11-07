@@ -81,6 +81,8 @@ export const routes = {
     abandonedCheckouts: () => '/orders/abandoned-checkouts',
     abandonedCheckout: (cartId: string) => `/orders/abandoned-checkouts/${id(cartId)}`,
     shipments: () => '/orders/shipments',
+    /** Orders waiting for a courier, or booked parcels the courier has not collected. */
+    shipmentsTab: (tab: 'toBook' | 'booked') => `/orders/shipments?tab=${tab}`,
     /** Pickups and manifests for booked parcels. */
     shipmentPickups: () => '/orders/shipments/pickups',
     /** Deliveries the courier could not make (NDR). */
