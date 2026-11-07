@@ -17,6 +17,8 @@ export const createShipmentContent = {
     items: 'In this parcel',
     lineItem: (title: string, quantity: number) => `${title} × ${quantity}`,
     itemCount: (n: number) => `${n} ${n === 1 ? 'item' : 'items'}`,
+    sku: (sku: string) => `SKU ${sku}`,
+    unitWeight: (grams: string) => `${grams} g each`,
     pickup: 'Pick up from',
     pickupHelp: 'Where the courier collects the parcel.',
     /** The "Change" dialog (Figma 623:18048). */
@@ -195,6 +197,7 @@ export const createShipmentContent = {
     shipTo: 'Ship to',
     /** #17: the store has no pickup address yet, only a PIN code. */
     addPickupAddress: 'Add your pickup address',
+    pickupPin: (pin: string) => `PIN ${pin}`,
     package: 'Package',
     summary: 'Summary',
     route: 'Route',

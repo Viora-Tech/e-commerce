@@ -21,6 +21,7 @@ import type { StoreTx } from '@commerce/db'
 import { address, customer, location, order, orderLine, store, variant } from '@commerce/db'
 import { ASSUMED_WEIGHT_GRAMS } from '@commerce/shipping'
 import { eq, inArray, isNotNull, sql } from 'drizzle-orm'
+import { withThumbnails } from './order-detail.service'
 import { loadShippingSettings } from './shipping.service'
 
 /**
@@ -52,7 +53,17 @@ export type DraftParcel = {
   position: number
   locationName: string | null
   /** The units still to send, per order line. */
-  lines: Array<{ id: string; title: string; quantity: number }>
+  lines: Array<{
+    id: string
+    title: string
+    quantity: number
+    /** For telling the items apart while packing. */
+    imageUrl: string | null
+    sku: string | null
+    unitPricePaise: number
+    /** One unit's weight from its variant; null when the product has none. */
+    weightGrams: number | null
+  }>
   /** Declared value: the parcel's share of the order, or the order total when it ships whole. */
   valuePaise: number
   /** From the products' weights, else the default box (what booking would use). */
@@ -175,13 +186,14 @@ export async function prepareShipments(
           .leftJoin(address, eq(address.id, order.shippingAddressId))
           .leftJoin(customer, eq(customer.id, order.customerId))
           .where(inArray(order.id, orderIds))
-  const lines =
+  const orderLines =
     orders.length === 0
       ? []
       : await tx
           .select({
             id: orderLine.id,
             orderId: orderLine.orderId,
+            variantId: orderLine.variantId,
             title: orderLine.title,
             variantTitle: orderLine.variantTitle,
             quantity: orderLine.quantity,
@@ -202,6 +214,7 @@ export async function prepareShipments(
               orders.map((o) => o.id),
             ),
           )
+  const lines = await withThumbnails(tx, orderLines)
 
   type Line = (typeof lines)[number]
   const draftParcel = (
@@ -217,6 +230,10 @@ export async function prepareShipments(
         id: p.line.id,
         title: lineTitle(p.line.title, p.line.variantTitle),
         quantity: p.quantity,
+        imageUrl: p.line.imageUrl,
+        sku: p.line.sku,
+        unitPricePaise: p.line.unitPricePaise,
+        weightGrams: p.line.variantWeightGrams,
       })),
       valuePaise:
         valuePaise ?? picked.reduce((sum, p) => sum + p.line.unitPricePaise * p.quantity, 0),

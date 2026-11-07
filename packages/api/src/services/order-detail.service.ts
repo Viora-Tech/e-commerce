@@ -28,7 +28,7 @@ export type { OrderStatus }
 type Line = typeof orderLine.$inferSelect
 
 /** Variant image, else the product's first image, else nothing. */
-export async function withThumbnails(tx: StoreTx, lines: Line[]) {
+export async function withThumbnails<L extends Pick<Line, 'variantId'>>(tx: StoreTx, lines: L[]) {
   if (lines.length === 0) return []
   const ids = lines.map((l) => l.variantId)
   const rows = await tx

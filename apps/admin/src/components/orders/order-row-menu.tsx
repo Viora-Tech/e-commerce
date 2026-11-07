@@ -217,6 +217,8 @@ export default function OrderRowMenu({
           },
           {
             label: list.row.cancelShipment,
+            icon: CancelCircle,
+            destructive: true,
             hidden: !canCancelShipment,
             onSelect: () => setDialog('cancelShipment'),
           },
