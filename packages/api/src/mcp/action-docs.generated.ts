@@ -20,6 +20,8 @@ export const ACTION_DOCS: Record<string, string> = {
   'account.sessions': 'Every browser signed in as this member, this one first.',
   'account.setAvatar': 'The cropped photo as a data URL.',
   'account.stores': 'Every store the member belongs to, with their role and an owner flag.',
+  'account.storesWithApp':
+    "Which of the member's stores already have an app, for the install store picker.",
   'account.updateNotifications':
     "Saves the member's own alerts for this store, on their own staff row only.",
   'activityLog.list':
