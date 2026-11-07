@@ -17,8 +17,8 @@ export const appInstallContent = {
   close: 'Close',
   connect: {
     title: (name: string) => `Connect ${name}`,
-    intro: (name: string) =>
-      `Paste your account details from ${name}. Nothing is booked or charged while testing.`,
+    intro: (name: string, kind: 'payments' | 'shipping') =>
+      `Paste your account details from ${name}. ${kind === 'payments' ? 'Testing charges nothing.' : 'Testing books nothing.'}`,
     test: 'Test connection',
     testing: 'Testing…',
     testHint: (name: string) => `Checks that ${name} accepts these details.`,

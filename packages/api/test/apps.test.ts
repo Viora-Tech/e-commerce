@@ -147,6 +147,13 @@ describe('installed apps', () => {
     expect(shipping.providers.delhivery?.apiToken).not.toBe('token-value-1234')
   })
 
+  it("asks for Razorpay's key secret, which pasted keys need", async () => {
+    const m = await merchant('r@example.com', 'store-r')
+    const form = await call(appRouter.apps.connectForm, { id: 'razorpay' }, { context: m.ctx })
+    expect(form?.kind).toBe('payments')
+    expect(form?.fields.map((f) => f.key)).toEqual(['keyId', 'keySecret', 'webhookSecret'])
+  })
+
   it('apps that connect on their own page have no flow form', async () => {
     const m = await merchant('g@example.com', 'store-g')
     const form = await call(appRouter.apps.connectForm, { id: 'ses' }, { context: m.ctx })

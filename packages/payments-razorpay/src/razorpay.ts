@@ -366,7 +366,8 @@ export const razorpayFactory: PaymentProviderFactory<RazorpayConfig> = {
   methods: ['upi', 'card', 'netbanking', 'wallet', 'emi'],
   fields: [
     { key: 'keyId', label: 'Key ID', required: true },
-    { key: 'keySecret', label: 'Key secret', secret: true },
+    // Not required: "Connect Razorpay" (OAuth) needs none. Pasted keys do.
+    { key: 'keySecret', label: 'Key secret', secret: true, connect: true },
     {
       key: 'webhookSecret',
       label: 'Webhook secret',

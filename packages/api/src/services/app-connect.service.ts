@@ -42,7 +42,7 @@ export function connectFormFor(plugin: PluginManifest): ConnectForm | null {
     kind,
     label: f.label,
     fields: f.fields
-      .filter((x) => x.required && !x.hidden)
+      .filter((x) => (x.required || x.connect) && !x.hidden)
       .map((x) => ({
         key: x.key,
         label: x.label,
