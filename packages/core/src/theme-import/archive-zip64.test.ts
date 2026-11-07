@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: ZIP64 archive tests — a theme zip whose sizes sit in the ZIP64 extra field reads like any other */
 import { strToU8, zipSync } from 'fflate'
 import { describe, expect, it } from 'vitest'
 import { readThemeArchive, ThemeArchiveProblem } from './archive'

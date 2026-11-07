@@ -18,6 +18,21 @@ type AllowEntry = { file: string; names: string[]; reason: string }
 
 const ALLOWLIST: AllowEntry[] = [
   {
+    file: 'packages/core/src/media/settings.ts',
+    names: ['storageDefaultsFromEnv'],
+    reason: 'used in the module and asserted directly by service.test.ts',
+  },
+  {
+    file: 'packages/core/src/pixels/meta.ts',
+    names: ['verifyMetaToken'],
+    reason: 'used in the module and asserted directly by meta.test.ts',
+  },
+  {
+    file: 'packages/core/src/theme-import/import-media.ts',
+    names: ['videoNamesOf'],
+    reason: 'used in the module and asserted directly by static-blocks.test.ts',
+  },
+  {
     file: 'packages/plugin-affiliates/src/stats.ts',
     names: ['ledgerCsvCell'],
     reason: 'used by ledgerCsv in the module and asserted directly by csv-injection.test.ts',

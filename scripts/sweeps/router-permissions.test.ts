@@ -25,6 +25,7 @@ const ALLOWLIST: AllowEntry[] = [
   { site: 'account.ts: profile (protectedProcedure)', reason: OWN_ACCOUNT },
   { site: 'account.ts: updateProfile (protectedProcedure)', reason: OWN_ACCOUNT },
   { site: 'account.ts: stores (protectedProcedure)', reason: OWN_ACCOUNT },
+  { site: 'account.ts: storesWithApp (protectedProcedure)', reason: OWN_ACCOUNT },
   { site: 'account.ts: leaveStore (protectedProcedure)', reason: OWN_ACCOUNT },
   { site: 'account.ts: security (protectedProcedure)', reason: OWN_ACCOUNT },
   { site: 'account.ts: requestEmailChange (protectedProcedure)', reason: OWN_ACCOUNT },

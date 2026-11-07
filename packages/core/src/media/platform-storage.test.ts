@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: platform storage tests — every store gets platform storage by default, and a merchant bucket app replaces it */
 import { StorageRegistry } from '@commerce/storage'
 import { describe, expect, it } from 'vitest'
 import { effectiveStorageSettings, storageRegistryFor } from './settings'
