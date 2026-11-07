@@ -119,7 +119,7 @@ describe('order list tabs and filters on the split statuses', () => {
     expect(await numbers(m, { view: 'cancelled' })).toEqual([5])
   })
 
-  it('keeps a gateway checkout nobody paid out of the list and sales, until it is paid', async () => {
+  it('lists a gateway checkout nobody paid under All, but not as work to do', async () => {
     const m = await merchant('abandoned@example.com', 'abandoned')
     await seedOrders(m.storeId)
     const carts = await owner
@@ -136,10 +136,12 @@ describe('order list tabs and filters on the split statuses', () => {
       { ...closed, number: 23, paymentStatus: 'authorized' as const, cartId: carts[3]?.id },
     ])
     const all = await numbers(m, {})
-    expect(all).not.toContain(20)
-    expect(all).not.toContain(21)
+    expect(all).toContain(20)
+    expect(all).toContain(21)
     expect(all).toContain(22)
     expect(all).toContain(23)
+    expect(await numbers(m, { view: 'unpaid' })).not.toContain(20)
+    expect(await numbers(m, { view: 'unfulfilled' })).not.toContain(20)
     expect(await numbers(m, { view: 'cancelled' })).toEqual([5])
     expect(await numbers(m, { view: 'payment_not_finished' })).toEqual([20, 21])
     expect(await numbers(m, { search: '20' })).toContain(20)
