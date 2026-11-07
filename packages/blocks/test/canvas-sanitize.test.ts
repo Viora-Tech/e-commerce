@@ -66,4 +66,14 @@ describe('sanitizeCanvasHtml', () => {
       expect(out).toContain(kept)
     }
   })
+
+  it('keeps a stylesheet whose comment has a less-than sign', () => {
+    const html =
+      '<style>/* iOS < 16.4 */ .color-scheme-1 { --color-background: rgb(0 0 0); }</style>'
+    expect(sanitizeCanvasHtml(html)).toContain('.color-scheme-1')
+  })
+
+  it('does not let a comment hide the end of a style element', () => {
+    expect(runs('<style>/*</style><img src=x onerror=alert(1)>*/</style>')).toBe(false)
+  })
 })

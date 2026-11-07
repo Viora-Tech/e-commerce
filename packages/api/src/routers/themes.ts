@@ -32,6 +32,7 @@ import {
   updateThemeSettings,
   webPerformance,
 } from '@commerce/core'
+import { LiquidSectionPlacementSchema } from '@commerce/core/theme-import'
 import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
 import { can, canDetached, heavy } from '../procedures'
@@ -57,24 +58,6 @@ import { customSectionsRouter, templatesRouter } from './theme-templates'
 
 /** The largest theme zip the import accepts (Shopify's own themes are a few MB). */
 const THEME_ZIP_MAX_BYTES = 50 * 1024 * 1024
-
-const LiquidSectionInput = z.object({
-  id: z.string().min(1).max(80),
-  type: z.string().min(1).max(100),
-  settings: z.record(z.string(), z.unknown()),
-  blocks: z
-    .array(
-      z.object({
-        id: z.string().min(1).max(80),
-        type: z.string().min(1).max(100),
-        disabled: z.boolean().optional(),
-        settings: z.record(z.string(), z.unknown()),
-      }),
-    )
-    .max(100),
-  location: z.string().min(1).max(40),
-  index: z.number().int().min(0).max(100),
-})
 
 /** Theme settings values by setting id (`settings_schema.json`); each is cleaned by its type. */
 const ThemeSettingValues = z
@@ -133,7 +116,7 @@ const importRouter = {
     .input(
       z.object({
         themeId: z.string().uuid(),
-        sections: z.array(LiquidSectionInput).max(60),
+        sections: z.array(LiquidSectionPlacementSchema).max(60),
         /** Unsaved Theme settings to preview in place of the saved ones. */
         themeSettings: ThemeSettingValues.optional(),
       }),

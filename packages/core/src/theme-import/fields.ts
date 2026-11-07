@@ -1,4 +1,5 @@
 /** SOURCE OF TRUTH: imported sections as Puck data and editor fields — WHAT: how a Shopify section (settings, blocks) is stored in a theme template as a `LiquidSection` (prop keys, block items), how it reads back for the Liquid engine, and the editor fields generated from its `{% schema %}` / WHY: the importer writes this shape, the storefront and the canvas render from it, and Customize edits it; all three must agree. Browser safe */
+import { z } from 'zod'
 import type { ShopifySectionSchema, ShopifySetting } from './schema'
 import { isValueSetting, MAX_BLOCK_DEPTH } from './schema'
 
@@ -100,6 +101,39 @@ export type LiquidSectionPlacement = {
   location: string
   index: number
 }
+
+const BLOCK_FIELDS = {
+  id: z.string().min(1).max(80),
+  type: z.string().min(1).max(100),
+  disabled: z.boolean().optional(),
+  static: z.boolean().optional(),
+  settings: z.record(z.string(), z.unknown()),
+}
+
+/** A block as the canvas sends it, nested blocks included, as deep as the theme may go. */
+function blockSchema(depth: number): z.ZodType<LiquidBlockItem> {
+  if (depth <= 1) return z.object(BLOCK_FIELDS)
+  return z.object({
+    ...BLOCK_FIELDS,
+    blocks: z
+      .array(blockSchema(depth - 1))
+      .max(100)
+      .optional(),
+  })
+}
+
+/**
+ * The checked shape of `LiquidSectionPlacement`. It has to carry everything the engine reads:
+ * a dropped `static` makes a block the merchant turned off draw itself with the theme's defaults.
+ */
+export const LiquidSectionPlacementSchema: z.ZodType<LiquidSectionPlacement> = z.object({
+  id: z.string().min(1).max(80),
+  type: z.string().min(1).max(100),
+  settings: z.record(z.string(), z.unknown()),
+  blocks: z.array(blockSchema(MAX_BLOCK_DEPTH)).max(100),
+  location: z.string().min(1).max(40),
+  index: z.number().int().min(0).max(100),
+})
 
 /** A stable 14-digit number per template or group, standing in for Shopify's internal ids. */
 function locationNumber(location: string): string {

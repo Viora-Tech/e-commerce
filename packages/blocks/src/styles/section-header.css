@@ -234,8 +234,9 @@ focus-disclosure {
 /* ------------------------------------------------------------------ */
 /* 112px: the reference navbar height exactly, at the owner's direction.
    An earlier pass stopped at 96 to keep our smaller logo from swimming in
-   the bar, but parity was what was asked for. */
-.header {
+   the bar, but parity was what was asked for. Not Horizon's `<header-component class="header">`:
+   its theme sets that element's height itself. */
+.header:where(:not(header-component)) {
   display: flex;
   align-items: center;
   min-height: var(--header-height);
