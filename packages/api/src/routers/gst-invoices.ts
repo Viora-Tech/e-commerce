@@ -14,7 +14,6 @@ import {
   issueCreditNotes,
   issueDocument,
   issueDrafts,
-  issuedInvoiceIds,
   listDocuments,
   listPeriods,
   listQueue,
@@ -48,7 +47,7 @@ import {
   renderDeps,
   requireInstalled,
 } from './gst-invoices-context'
-import { addToQueue, generateInvoice } from './gst-invoices-order-actions'
+import { addToQueue, generateInvoice, invoicesForOrders } from './gst-invoices-order-actions'
 import { returnsProcedures } from './gst-invoices-returns'
 
 const IssueBatch = z.object({
@@ -74,9 +73,8 @@ const Selection = z.union([
   z.object({ filter: Filter }),
 ])
 
-async function selectedIds(context: Ctx, input: z.infer<typeof Selection>) {
-  return 'ids' in input ? input.ids : documentIds(context.tx, input.filter, 200)
-}
+const selectedIds = async (context: Ctx, input: z.infer<typeof Selection>) =>
+  'ids' in input ? input.ids : documentIds(context.tx, input.filter, 200)
 
 const file = (bytes: Uint8Array, name: string, type = 'application/pdf') =>
   new File([bytes as Uint8Array<ArrayBuffer>], name, { type })
@@ -385,14 +383,7 @@ export const gstInvoicesRouter = {
       }
     }),
 
-  /** The issued invoices of the orders selected in Orders, for its Print invoices. */
-  forOrders: can(permissions.ORDERS_READ)
-    .input(z.object({ orderIds: z.array(z.uuid()).min(1).max(BULK_MAX) }))
-    .handler(async ({ context, input }) => {
-      await requireInstalled(context)
-      return { ids: await issuedInvoiceIds(context.tx, input.orderIds) }
-    }),
-
+  forOrders: invoicesForOrders,
   /** A zip of PDFs, one per selected document. */
   bulkDownload: can(permissions.ORDERS_READ)
     .use(heavy('bulk'))
