@@ -7,8 +7,10 @@ import Link from 'next/link'
 import BrowseResults from '@/components/browse/browse-results'
 import { SEARCH_SORTS } from '@/data/browse'
 import { searchContent as copy, SEARCH_PER_PAGE } from '@/data/search'
+import { blockCardsFor } from '@/lib/liquid-cards'
 
 type MainSearchProps = {
+  storeId: string
   query: string
   products: CardProduct[]
   /** Null until the shopper has typed something. */
@@ -20,7 +22,8 @@ type MainSearchProps = {
 }
 
 /** The search template's main section: the query box, then filtered, sortable results. */
-export default function MainSearch({
+export default async function MainSearch({
+  storeId,
   query,
   products,
   result,
@@ -29,6 +32,12 @@ export default function MainSearch({
   page,
   settings,
 }: MainSearchProps) {
+  // Hooks
+  const themeCards = await blockCardsFor(
+    storeId,
+    products.map((p) => p.handle),
+  )
+
   // Render logic
   const nothing = result !== null && result.total === 0 && !hasActiveFilters(filters)
   const jsonLd = result
@@ -118,6 +127,7 @@ export default function MainSearch({
             perPage={SEARCH_PER_PAGE}
             showFilters={settings.showFilters !== false}
             showSort={settings.showSort !== false}
+            grid={{ themeCards }}
           />
         </>
       )}

@@ -156,7 +156,7 @@ export async function renderThemeCards(
       id: shopifySectionId(card.section.key, 'template'),
       type: card.section.type,
       settings: card.section.settings,
-      blocks: [],
+      blocks: card.section.blocks ?? [],
       location: 'template',
       index: 0,
     }

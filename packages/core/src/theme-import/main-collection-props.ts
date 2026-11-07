@@ -1,5 +1,6 @@
 /** SOURCE OF TRUTH: the theme's collection sections → our MainCollection settings — WHAT: reads an imported theme's main collection section(s) (Zero Drift's `main-collection`, Dawn's `main-collection-banner` + `main-collection-product-grid`) and its theme settings into the `MainCollection` section's settings: columns per row (desktop and phone), description, image, filtering, sorting, breadcrumbs, capital titles, and the sections themselves so the grid can draw the theme's own product card / WHY: on import our MainCollection replaces the theme's main collection sections; without this the page opened with our defaults (#1048) */
 
+import type { LiquidBlockItem } from './fields'
 import { mainProductProps } from './main-product-props'
 import { isMainSection } from './report'
 import type { ShopifyJsonTemplate, ShopifyTemplateSection } from './schema'
@@ -16,6 +17,9 @@ const num = (v: unknown): number | null => {
   return typeof n === 'number' && Number.isFinite(n) ? n : null
 }
 
+/** A section's theme blocks as the import stores them. */
+export type BlocksOf = (section: ShopifyJsonTemplate['sections'][string]) => LiquidBlockItem[]
+
 /** The first of `ids` any section sets, in the template's order. */
 function first(sections: ThemeCardSection[], ids: string[]): unknown {
   for (const s of sections) {
@@ -31,11 +35,23 @@ function flag(out: Props, key: string, sections: ThemeCardSection[], ids: string
 }
 
 /** The template's enabled main sections in order: Dawn splits the page in two (banner, grid). */
-function mainSections(tpl: ShopifyJsonTemplate, stored: StoredSettings): ThemeCardSection[] {
+function mainSections(
+  tpl: ShopifyJsonTemplate,
+  stored: StoredSettings,
+  blocksOf: BlocksOf | undefined,
+): ThemeCardSection[] {
   return tpl.order.flatMap((key) => {
     const s = tpl.sections[key]
     if (!s || s.disabled || !isMainSection(s.type)) return []
-    return [{ type: s.type, key, settings: stored(s.type, s.settings) }]
+    const blocks = blocksOf?.(s)
+    return [
+      {
+        type: s.type,
+        key,
+        settings: stored(s.type, s.settings),
+        ...(blocks?.length ? { blocks } : {}),
+      },
+    ]
   })
 }
 
@@ -47,9 +63,9 @@ function mainSections(tpl: ShopifyJsonTemplate, stored: StoredSettings): ThemeCa
 function mainCollectionProps(
   tpl: ShopifyJsonTemplate,
   stored: StoredSettings,
-  theme: { look: ThemeLook; settings: Record<string, unknown> },
+  theme: { look: ThemeLook; settings: Record<string, unknown>; blocksOf?: BlocksOf | undefined },
 ): Props {
-  const sections = mainSections(tpl, stored)
+  const sections = mainSections(tpl, stored, theme.blocksOf)
   const themeSettings = theme.settings
   const look = theme.look
   const out: Props = { _themeSections: sections }
@@ -76,7 +92,7 @@ export function themeMainProps(
   tpl: ShopifyJsonTemplate,
   s: ShopifyTemplateSection,
   stored: StoredSettings,
-  theme: { look: ThemeLook; settings: Record<string, unknown> },
+  theme: { look: ThemeLook; settings: Record<string, unknown>; blocksOf?: BlocksOf | undefined },
 ): Props {
   if (key === 'product') return mainProductProps(s, theme.look)
   if (key === 'collection') return mainCollectionProps(tpl, stored, theme)

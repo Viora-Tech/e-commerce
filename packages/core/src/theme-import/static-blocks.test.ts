@@ -4,7 +4,9 @@ import { buildThemeBundle } from './bundle'
 import { videoNamesOf } from './import-media'
 import { createPageContext, type LiquidBlockInput } from './page-context'
 import { renderLiquidLayout, renderLiquidSection } from './render'
+import { isMainSection } from './report'
 import { dynamicSettings } from './settings-values'
+import { themeCardTemplate } from './theme-cards'
 
 let themes = 0
 
@@ -186,6 +188,26 @@ describe('per-customer tracking', () => {
       index: 0,
     })
     expect(read).toBe(0)
+  })
+})
+
+describe('main sections', () => {
+  it("counts Horizon's product section", () => {
+    expect(isMainSection('product-information')).toBe(true)
+    expect(isMainSection('product-list')).toBe(false)
+  })
+})
+
+describe('theme product cards', () => {
+  it('skips a card snippet that only wraps blocks', () => {
+    const bundle = buildThemeBundle({
+      themeId: `static-${themes++}`,
+      version: 'v1',
+      textFiles: new Map([['snippets/product-card.liquid', '<div>{{ children }}</div>']]),
+      assetChecksums: new Map(),
+      settings: {},
+    })
+    expect(themeCardTemplate(bundle)).toBeNull()
   })
 })
 

@@ -1697,18 +1697,20 @@ main#MainContent {
   border-start-end-radius: var(--section-radius);
 }
 
-/* An imported theme that paints its own section grounds behind the content (Horizon: a
-   `.section-background` at a negative z-index). A filled page would cover them, and the
-   theme's white text would sit on white. */
-main#MainContent:has(.section-background) {
+/* Horizon, the layout that wraps its header in `#header-group`, paints section grounds at a
+   negative z-index. A filled page would cover them, and its white text would sit on white. */
+:root:has(#header-group) main#MainContent {
   background-color: transparent;
 }
 
 /* Our own sections inside such a theme (the product page) take its colours: its scheme can be
    dark, and our ink on its ground would hide the price and the buttons. */
-main#MainContent:has(.section-background) .shopify-section {
+:root:has(#header-group) main#MainContent {
   --color-ink: var(--color-foreground);
   --color-bg: var(--color-background);
+  --color-muted: color-mix(in srgb, var(--color-foreground) 65%, transparent);
+  --color-line: color-mix(in srgb, var(--color-foreground) 15%, transparent);
+  --color-surface: color-mix(in srgb, var(--color-foreground) 6%, transparent);
 }
 
 /* Settled by scrolling the live reference and photographing the boundary:
