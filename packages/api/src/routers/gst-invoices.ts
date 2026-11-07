@@ -14,6 +14,7 @@ import {
   issueCreditNotes,
   issueDocument,
   issueDrafts,
+  issuedInvoiceIds,
   listDocuments,
   listPeriods,
   listQueue,
@@ -382,6 +383,14 @@ export const gstInvoicesRouter = {
       } catch (err) {
         asOrpc(err)
       }
+    }),
+
+  /** The issued invoices of the orders selected in Orders, for its Print invoices. */
+  forOrders: can(permissions.ORDERS_READ)
+    .input(z.object({ orderIds: z.array(z.uuid()).min(1).max(BULK_MAX) }))
+    .handler(async ({ context, input }) => {
+      await requireInstalled(context)
+      return { ids: await issuedInvoiceIds(context.tx, input.orderIds) }
     }),
 
   /** A zip of PDFs, one per selected document. */

@@ -113,6 +113,23 @@ export async function documentsByIds(tx: StoreTx, ids: readonly string[]) {
     .orderBy(invoice.issuedAt)
 }
 
+/** The issued tax invoices of these orders (not queued drafts, not cancelled ones). */
+export async function issuedInvoiceIds(tx: StoreTx, orderIds: readonly string[]) {
+  if (orderIds.length === 0) return []
+  const rows = await tx
+    .select({ id: invoice.id })
+    .from(invoice)
+    .where(
+      and(
+        inArray(invoice.orderId, [...orderIds]),
+        eq(invoice.kind, 'tax_invoice'),
+        eq(invoice.status, 'issued'),
+      ),
+    )
+    .orderBy(invoice.issuedAt)
+  return rows.map((r) => r.id)
+}
+
 type InvoiceRow = typeof invoice.$inferSelect
 
 /**
