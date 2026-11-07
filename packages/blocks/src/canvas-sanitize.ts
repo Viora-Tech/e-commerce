@@ -35,7 +35,7 @@ const DROPPED = new Set([
  * Elements whose content the sanitiser reads as plain text, while a browser inside `<svg>`
  * or `<math>` reads it as markup (`<svg><style><img onerror=…>`). Any of them holding a `<`
  * is dropped, so text kept here can never turn back into an element. Real theme CSS has
- * no `<`.
+ * no `<` outside its comments, which `withoutCssComments` removes first.
  */
 const RAW_TEXT = new Set(['style', 'title', 'textarea', 'xmp', 'noembed', 'noframes', 'plaintext'])
 
@@ -49,8 +49,19 @@ function withoutHandlers(attribs: sanitizeHtml.Attributes): sanitizeHtml.Attribu
   return out
 }
 
+const STYLE_ELEMENT = /(<style\b[^>]*>)([\s\S]*?)(<\/style\s*>)/gi
+const CSS_COMMENT = /\/\*[\s\S]*?\*\//g
+
+/** Comments can say anything: Horizon's colours note "iOS < 16.4", which cost the whole block. */
+function withoutCssComments(html: string): string {
+  return html.replace(
+    STYLE_ELEMENT,
+    (_, open: string, css: string, close: string) => open + css.replace(CSS_COMMENT, '') + close,
+  )
+}
+
 export function sanitizeCanvasHtml(html: string): string {
-  return sanitizeHtml(html, {
+  return sanitizeHtml(withoutCssComments(html), {
     allowedTags: false,
     allowedAttributes: false,
     allowVulnerableTags: true,
