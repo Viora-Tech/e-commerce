@@ -140,6 +140,7 @@ const READ_NAMES = new Set([
   'sourceValues',
   'sources',
   'storageMigrationStatus',
+  'tabCounts',
   'tags',
   'template',
   'tiles',
