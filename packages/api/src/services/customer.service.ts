@@ -1,4 +1,5 @@
 import {
+  allCustomersSpentSql,
   customerSpentSql,
   decryptCustomerPhone,
   deleteMetafieldsOf,
@@ -227,9 +228,14 @@ export async function customerStats(tx: StoreTx, now = new Date()): Promise<Cust
       newThisMonth: sql<number>`count(*) filter (where ${c.createdAt} >= ${monthAgo.toISOString()}::timestamptz)::int`,
       newLast7: sql<number>`count(*) filter (where ${c.createdAt} >= ${weekStart.toISOString()}::timestamptz)::int`,
       newPrevious7: sql<number>`count(*) filter (where ${c.createdAt} >= ${previousStart.toISOString()}::timestamptz and ${c.createdAt} < ${weekStart.toISOString()}::timestamptz)::int`,
-      returning: sql<number>`count(*) filter (where ${orderCountSql} > 1)::int`,
+      /* Both read the orders once for the whole store instead of once per customer: the same
+         counted orders as `orderCountSql`, and the average of every customer's spend (a customer
+         with no orders counts as 0, as `avg(spentSql)` did). */
+      returning: sql<number>`(select count(*)::int from (
+        select 1 from ${order} o where o.customer_id is not null and o.status <> 'draft' and not o.is_test
+        group by o.customer_id having count(*) > 1) r)`,
       marketing: sql<number>`count(*) filter (where ${c.acceptsMarketing})::int`,
-      averageLifetimePaise: sql<number>`coalesce(round(avg(${spentSql})), 0)::int`,
+      averageLifetimePaise: sql<number>`coalesce(round(${allCustomersSpentSql()}::numeric / nullif(count(*), 0)), 0)::int`,
     })
     .from(c)
   return {
