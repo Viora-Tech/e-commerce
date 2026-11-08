@@ -2,6 +2,7 @@ import { fileURLToPath } from 'node:url'
 import { withSentryConfig } from '@sentry/nextjs/config'
 import type { NextConfig } from 'next'
 import { leanBuild } from '../../packages/config/src/lean-build'
+import { SERVER_EXTERNAL_PACKAGES } from '../../packages/config/src/server-external-packages'
 import { storefrontFrameAncestors } from './src/lib/csp'
 
 // Monorepo root, two levels up from apps/storefront — lets `output: 'standalone'`
@@ -79,8 +80,9 @@ const config: NextConfig = {
     '@commerce/plugin-chatwoot',
     '@commerce/plugin-shopify-import',
   ],
-  // react-pdf and pdf-lib load fonts and wasm at runtime; keep them out of the bundle.
-  serverExternalPackages: ['postgres', '@react-pdf/renderer', 'pdf-lib'],
+  // Server-only libraries Node loads at run time instead of bundling (react-pdf and pdf-lib load
+  // fonts and wasm; the rest only cost build memory). List and reasons: server-external-packages.ts.
+  serverExternalPackages: [...SERVER_EXTERNAL_PACKAGES],
   images: {
     // Dev only: the built-in local storage serves uploads from localhost, which next/image
     // otherwise refuses as a private address (SSRF guard). Production uses R2/S3 public hosts.
