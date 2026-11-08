@@ -55,7 +55,7 @@ export const PaymentSettingsSchema = z.object({
    */
   duplicateCheckoutHours: z.number().int().min(0).max(168).default(24),
   /** Most unpaid checkouts one shopper (email, phone or IP) may start in an hour; 0 is no cap. */
-  unpaidCheckoutsPerHour: z.number().int().min(0).max(50).default(3),
+  unpaidCheckoutsPerHour: z.number().int().min(0).max(50).default(0),
   /**
    * "Shoppers can pay with": UPI, cards, netbanking, wallets, EMI and COD, each
    * on or off, in checkout order. Unset on stores saved before it existed;
@@ -89,23 +89,24 @@ export const defaultPaymentSettings: PaymentSettings = {
   expireUnpaidAfterMinutes: 30,
   manualCancelAfterHours: 0,
   duplicateCheckoutHours: 24,
-  unpaidCheckoutsPerHour: 3,
+  unpaidCheckoutsPerHour: 0,
 }
 
 /** Auto-cancel window for unpaid manual transfer orders, in hours. */
 const MANUAL_CANCEL_HOURS = { default: 6, min: 1, max: 72 } as const
 
 /**
- * The window unpaid manual transfer orders get before they are cancelled; 0 when the
- * merchant turned auto-cancel off. On by default: a store that never chose gets 6 hours.
- * Before this default, 0 was both "off" and "never set" and every payments save wrote it,
- * so a stored 0 without `manualAutoCancel` counts as never chosen. A window that was turned
- * on keeps its hours, clamped to 1 to 72.
+ * The window unpaid manual transfer orders get before they are cancelled; 0 when auto-cancel is
+ * off. Off by default (owner, 8 Nov 2026): merchants match transfers by hand and mark orders
+ * paid, so a timer could cancel an order that was paid but not yet marked. `manualAutoCancel`
+ * 'on' turns it on (6 hours unless a window is set). Before that flag existed a positive stored
+ * window meant on, so it still does. A window is clamped to 1 to 72 hours.
  */
 export function manualCancelHoursOf(
   s: Pick<PaymentSettings, 'manualAutoCancel' | 'manualCancelAfterHours'>,
 ): number {
   if (s.manualAutoCancel === 'off') return 0
+  if (s.manualAutoCancel !== 'on' && s.manualCancelAfterHours <= 0) return 0
   const hours =
     s.manualCancelAfterHours > 0 ? s.manualCancelAfterHours : MANUAL_CANCEL_HOURS.default
   return Math.min(MANUAL_CANCEL_HOURS.max, Math.max(MANUAL_CANCEL_HOURS.min, hours))

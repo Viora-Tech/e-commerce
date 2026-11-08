@@ -33,7 +33,7 @@ const toHours = (raw: string): number => {
 }
 
 /**
- * Settings › Payments: auto-cancel for UPI / bank transfer orders never paid. On by default;
+ * Settings › Payments: auto-cancel for UPI / bank transfer orders never paid. Off by default;
  * reads the stored value the way core `manualCancelHoursOf` does.
  */
 export default function ManualTransferFields({ value, onChange }: ManualTransferFieldsProps) {
@@ -41,7 +41,9 @@ export default function ManualTransferFields({ value, onChange }: ManualTransfer
   const copy = useCopy(paymentsSettingsContent)
 
   // Render logic
-  const on = value.manualAutoCancel !== 'off'
+  const on =
+    value.manualAutoCancel === 'on' ||
+    (value.manualAutoCancel !== 'off' && value.manualCancelAfterHours > 0)
   const hours = clamp(
     value.manualCancelAfterHours > 0 ? value.manualCancelAfterHours : DEFAULT_HOURS,
   )

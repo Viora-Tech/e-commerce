@@ -36,3 +36,8 @@ reserved, and only for a storefront checkout (`input.checkout` set). Admin draft
 - **Tests**: `order/duplicate-checkout.test.ts`, `payments/manual-followup.test.ts` (defaults,
   6 h timing, notice scaling), `payments/settings.test.ts`, storefront
   `lib/checkout-repeat.test.ts`.
+
+## Owner changes (8 Nov 2026, before merge)
+- **Auto-cancel of unpaid UPI / bank transfers is off by default.** The owner checks transfers and marks orders paid by hand, so a timer could cancel a paid order. `manualAutoCancel: 'on'` (or an old positive window) turns it on.
+- **No hard blocks.** The one-unpaid-transfer-per-shopper rule is removed. The hourly cap (`unpaidCheckoutsPerHour`) defaults to 0, which is off. When a store sets it, the per-IP guard is a fixed 20 an hour, because Indian mobile networks share IPs.
+- **Same items again while unpaid** still creates no new order: the shopper is sent to their existing order with "You already placed this order (#N) and it is waiting for payment. Please pay for it to confirm it."

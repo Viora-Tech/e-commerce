@@ -193,14 +193,14 @@ CSV to match against your bank statement.
   so a payment that arrived late is kept, not cancelled. Set it to `0` to turn this off. Cash on
   delivery is never auto-cancelled.
 - **Unpaid UPI or bank transfers** have their own, separate timer: **Cancel unpaid transfer
-  orders automatically** is on by default and cancels after 6 hours (**Cancel after**, 1 to 72
-  hours). You get an email before: 12 hours ahead, or halfway through when the window is under
-  24 hours. Each shopper can have only one unpaid transfer order at a time; they can still pay
-  another way.
+  orders automatically** is off by default, since you check transfers and mark orders paid
+  yourself. Turned on, it cancels after 6 hours (**Cancel after**, 1 to 72 hours). You get an
+  email before: 12 hours ahead, or halfway through when the window is under 24 hours.
 - **Repeated checkouts**: when a shopper checks out the same items again within 24 hours, an
   unpaid first order is not duplicated (they are sent to pay for it), and a paid one asks
-  "Order again?" first. At most 3 unpaid orders per shopper (email, phone or internet address)
-  per hour; cash on delivery is not counted. Both numbers are editable; `0` turns each off.
+  "Order again?" first. Nobody is blocked otherwise. An optional cap on unpaid orders per shopper
+  per hour is off by default (`0`); when you set it, one internet address may also start at most 20
+  unpaid orders an hour. Cash on delivery is never counted.
 
 ## Pre-order balances
 

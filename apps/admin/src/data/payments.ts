@@ -16,7 +16,7 @@ export const paymentsSettingsContent = {
     heading: 'Unpaid UPI or bank transfers',
     autoCancel: 'Cancel unpaid transfer orders automatically',
     autoCancelHelp:
-      'On by default, so unpaid orders do not hold stock for long. Each customer can have only one unpaid transfer order at a time. Customers are never reminded automatically; send a reminder from the order instead.',
+      'Off by default, because you check transfers and mark orders paid yourself. Turn it on to cancel unpaid orders after a set time and release their stock. Customers are never reminded automatically; send a reminder from the order instead.',
     cancelLabel: 'Cancel after (hours from the order, 1 to 72)',
     cancelHelp:
       'You get an email before it is cancelled: 12 hours before, or halfway through when the window is under 24 hours. The order always waits that long after the email. Marking the order paid stops the cancellation. The customer is told when it is cancelled.',

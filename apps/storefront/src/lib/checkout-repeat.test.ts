@@ -22,10 +22,10 @@ describe('repeatCheckoutResult', () => {
       'c1',
     )
     expect(r && 'error' in r ? r.error : null).toBe(
-      'You already have this order: #1042, waiting for payment.',
+      'You already placed this order (#1042) and it is waiting for payment. Please pay for it to confirm it.',
     )
     const links = r && 'error' in r ? (r.links ?? []) : []
-    expect(links.map((l) => l.label)).toEqual(['Complete payment', 'Change payment method'])
+    expect(links.map((l) => l.label)).toEqual(['Pay for this order', 'Change payment method'])
     expect(links[0]?.href).toMatch(/^\/checkout\/thank-you\/1042\?t=/)
   })
 

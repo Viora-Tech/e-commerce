@@ -30,8 +30,6 @@ import {
   startPaymentAttempt,
   startPaymentWithFallback,
 } from '../payments/attempts'
-import { MANUAL_METHOD } from '../payments/manual-followup'
-import { assertNoUnpaidTransfer } from '../payments/manual-unpaid'
 import { hiddenPaymentMethods } from '../payments/method-rules'
 import { GATEWAY_START_TIMEOUT_MS } from '../payments/routing'
 import { parsePaymentSettings } from '../payments/settings'
@@ -179,8 +177,8 @@ const enforceCheckoutRules: WorkflowStep<State> = {
         unpaidPerHour: payments.unpaidCheckoutsPerHour,
         orderAgain: input.orderAgain,
       })
-      // One unpaid UPI or bank transfer order per shopper: pay it, or pay another way.
-      if (input.paymentProvider.id === MANUAL_METHOD) await assertNoUnpaidTransfer(ctx, keys)
+      // No hard block on other unpaid orders (owner, 8 Nov 2026): the same items bring the
+      // shopper back to their unpaid order above; anything else may be ordered.
     }
     return { contact }
   },

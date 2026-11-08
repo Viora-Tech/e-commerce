@@ -177,11 +177,10 @@ describe('notice and window settings', () => {
     expect(cancelNoticeHours(6)).toBe(3)
   })
 
-  it('is on at 6 hours unless the merchant turned it off, and stays within 1 to 72', () => {
+  it('is off until the merchant turns it on (6 hours by default), and stays within 1 to 72', () => {
     const at = (s: unknown) => manualCancelHoursOf(parsePaymentSettings(s))
-    expect(at(null)).toBe(6)
-    // Every payments save used to write 0: without a choice, that is the default too.
-    expect(at({ manualCancelAfterHours: 0 })).toBe(6)
+    expect(at(null)).toBe(0)
+    expect(at({ manualCancelAfterHours: 0 })).toBe(0)
     expect(at({ manualCancelAfterHours: 48 })).toBe(48)
     expect(at({ manualCancelAfterHours: 720 })).toBe(72)
     expect(at({ manualAutoCancel: 'off', manualCancelAfterHours: 48 })).toBe(0)
@@ -395,8 +394,8 @@ describe('auto-cancel', () => {
     expect(await events(orderId)).not.toContain('order.unpaid_cancel_notice')
   })
 
-  it('is on by default: notice at 3 hours, cancelled at 6', async () => {
-    const shop = await seedStore('a')
+  it('once turned on: notice at 3 hours, cancelled at 6', async () => {
+    const shop = await seedStore('a', 0, 'on')
     const orderId = await transferOrder(shop)
     expect(await runManualFollowUp(app, shop.storeId, hoursAfter(2.5))).toEqual([])
     expect(await runManualFollowUp(app, shop.storeId, hoursAfter(3))).toEqual([

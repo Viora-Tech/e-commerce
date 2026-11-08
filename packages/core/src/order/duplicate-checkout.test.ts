@@ -14,7 +14,6 @@ import { resetDb } from '@commerce/db/test'
 import { eq } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import { GatewayDouble } from '../payments/gateway-double.test-util'
-import { UnpaidTransferExists } from '../payments/manual-unpaid'
 import { ManualPaymentProvider } from '../providers/manual'
 import { FakePaymentProvider, type PaymentProvider } from '../providers/payment'
 import { DuplicateCheckout, itemsKey, TooManyUnpaidCheckouts } from './duplicate-checkout'
@@ -232,8 +231,21 @@ describe('the same items, already paid', () => {
 })
 
 describe('unpaid checkouts per hour', () => {
-  it('refuses the 4th unpaid checkout in an hour and names the latest unpaid order', async () => {
+  it('is off by default (owner: no hard block)', async () => {
     const shop = await seedShop()
+    for (const q of [1, 2, 3, 4]) {
+      await place(
+        shop,
+        await cartWith(shop, [{ variantId: shop.mouse, quantity: q }]),
+        gateway(),
+        asha,
+      )
+    }
+    expect(await orderCount(shop.storeId)).toBe(4)
+  })
+
+  it('when turned on, refuses the 4th unpaid checkout in an hour and names the latest', async () => {
+    const shop = await seedShop({ unpaidCheckoutsPerHour: 3 })
     const ids: string[] = []
     for (const q of [1, 2, 3]) {
       ids.push(
@@ -292,7 +304,7 @@ describe('unpaid checkouts per hour', () => {
   })
 })
 
-describe('one unpaid manual transfer per shopper', () => {
+describe('unpaid manual transfers are not blocked', () => {
   const setup = async () => {
     const shop = await seedShop()
     const first = await place(
@@ -305,25 +317,13 @@ describe('one unpaid manual transfer per shopper', () => {
   }
   const otherCart = (shop: Shop) => cartWith(shop, [{ variantId: shop.pad, quantity: 1 }])
 
-  it('refuses a second transfer order matched by email', async () => {
-    const { shop, first } = await setup()
-    const err = await place(shop, await otherCart(shop), transfer, {
+  it('does not block a second transfer order with other items (owner: no hard block)', async () => {
+    const { shop } = await setup()
+    await place(shop, await otherCart(shop), transfer, {
       email: ' ASHA@example.com',
       phone: '9000000000',
-    }).catch((e: unknown) => e)
-    expect(err).toBeInstanceOf(UnpaidTransferExists)
-    expect((err as UnpaidTransferExists).orderId).toBe(first.orderId)
-    expect(await orderCount(shop.storeId)).toBe(1)
-  })
-
-  it('refuses a second transfer order matched by phone', async () => {
-    const { shop } = await setup()
-    await expect(
-      place(shop, await otherCart(shop), transfer, {
-        email: 'new@example.com',
-        phone: '098765 43210',
-      }),
-    ).rejects.toBeInstanceOf(UnpaidTransferExists)
+    })
+    expect(await orderCount(shop.storeId)).toBe(2)
   })
 
   it('still lets the shopper pay another way', async () => {

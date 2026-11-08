@@ -224,6 +224,8 @@ export type CheckoutForm = {
 export type { CheckoutResult } from './checkout-result'
 
 /** Each unpaid checkout counts per IP for an hour, against the store's cap (0: no cap). */
+/** Unpaid checkouts one IP may start in an hour: high enough for a shared mobile-network IP. */
+const IP_UNPAID_CHECKOUTS_PER_HOUR = 20
 const UNPAID_CHECKOUT_WINDOW_MS = 3_600_000
 
 /**
@@ -331,11 +333,13 @@ export async function checkoutAction(submitted: CheckoutForm): Promise<CheckoutR
     )
   }
 
-  /* Too many unpaid checkouts from one IP in an hour (the email and phone count is placeOrder's).
+  /* Too many unpaid checkouts from one IP in an hour (the email and phone count is placeOrder's,
+     at the store's cap). Indian mobile networks put many shoppers behind one IP, so the IP cap is
+     a fixed bot guard (IP_UNPAID_CHECKOUTS_PER_HOUR), on whenever the store's cap is on.
      Cash on delivery is never counted: it is unpaid until the parcel arrives. */
   if (form.payment !== 'cod') {
     const cap = await inStore(storeId, (tx) => unpaidCheckoutsPerHourOf({ storeId, tx }))
-    const rule = { limit: cap, windowMs: UNPAID_CHECKOUT_WINDOW_MS }
+    const rule = { limit: IP_UNPAID_CHECKOUTS_PER_HOUR, windowMs: UNPAID_CHECKOUT_WINDOW_MS }
     if (cap > 0 && !(await rateLimited('unpaid-checkout:ip', `${storeId}:${ip}`, rule)).ok) {
       return tooManyFromIp()
     }

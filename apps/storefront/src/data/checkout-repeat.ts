@@ -2,8 +2,9 @@
 
 export const checkoutRepeatContent = {
   /** The same items, still waiting for payment: no new order. */
-  unpaidDuplicate: (n: number) => `You already have this order: #${n}, waiting for payment.`,
-  completePayment: 'Complete payment',
+  unpaidDuplicate: (n: number) =>
+    `You already placed this order (#${n}) and it is waiting for payment. Please pay for it to confirm it.`,
+  completePayment: 'Pay for this order',
   /** Manual transfer orders: the status page offers paying online instead. */
   changeMethod: 'Change payment method',
   /** The same items, already placed: asked before a second order. */
