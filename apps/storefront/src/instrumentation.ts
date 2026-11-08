@@ -18,6 +18,10 @@ export async function register() {
     const { nextLogInstrumentation } = await import('@commerce/observability/logging/next')
     logs = nextLogInstrumentation('storefront', env)
     await logs.register()
+    // A new build may be live: the worker purges pages a CDN still holds, which point at the old
+    // build's scripts (`apps/worker/src/edge-purge.ts`). Never holds up the boot.
+    const { announceStorefrontStart } = await import('@commerce/db')
+    void announceStorefrontStart(env.DATABASE_URL_DIRECT ?? env.DATABASE_URL).catch(() => undefined)
   }
   const options = sentryOptions(env)
   if (!options) return

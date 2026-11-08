@@ -2,6 +2,7 @@ import { resolve } from 'node:path'
 import { loadEnv } from '@commerce/config'
 import {
   cloudflareConfigFrom,
+  cloudflarePurgeConfigFrom,
   createRedisRateLimitStore,
   dokployConfigFrom,
   FX_RATES_QUEUE,
@@ -62,6 +63,7 @@ import {
   createDomainRouteWorker,
   VERIFY_EVERY_MS,
 } from './domains'
+import { startEdgePurge } from './edge-purge'
 import { createFxRates, FX_RATES_SCHEDULE } from './fx-rates'
 import { createHomeCardsRefresh, HOME_CARDS_EVERY_MS } from './home-cards'
 import { createImportSnapshotCleanup, SNAPSHOT_CLEANUP_EVERY_MS } from './import-snapshots'
@@ -139,6 +141,11 @@ const orderPusher = createOrderPusher(db, { settingsSecret: env.SETTINGS_SECRET 
 // Unset Dokploy keys: no routes are asked for and every route job is a no-op (added by hand).
 const dokploy = dokployConfigFrom(env)
 const cloudflare = env.DOMAIN_PROVIDER === 'cloudflare' ? cloudflareConfigFrom(env) : null
+// Cloudflare cache purge after a store's pages change: off without CLOUDFLARE_CACHE_PURGE_TOKEN.
+const purgeConfig = cloudflarePurgeConfigFrom(env)
+const edgePurge = purgeConfig
+  ? startEdgePurge(db, env.DATABASE_URL_DIRECT ?? env.DATABASE_URL, purgeConfig)
+  : null
 const domainTargets = { aRecord: env.STOREFRONT_A_RECORD, cnameTarget: env.STOREFRONT_CNAME_TARGET }
 const domainGuard = {
   platformRoots: platformRoots(env),
@@ -536,6 +543,7 @@ app.get('/health', async (c) => {
 })
 
 const shutdown = async () => {
+  await edgePurge?.close()
   memoryGuard.stop()
   await sweeps.worker.close()
   await sweeps.queue.close()

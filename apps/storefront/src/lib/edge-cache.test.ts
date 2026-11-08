@@ -13,6 +13,12 @@ const base: EdgeCacheInput = {
 const shared = (patch: Partial<EdgeCacheInput>) => edgeCacheControl({ ...base, ...patch })
 
 describe('edgeCacheControl', () => {
+  it('caps the stale window at an hour for a long TTL', () => {
+    expect(shared({ ttlSeconds: 600 })).toBe(
+      'public, max-age=0, s-maxage=600, stale-while-revalidate=3600',
+    )
+  })
+
   it('lets a CDN keep catalogue pages for visitors without our cookies', () => {
     const header = 'public, max-age=0, s-maxage=30, stale-while-revalidate=300'
     for (const pathname of [

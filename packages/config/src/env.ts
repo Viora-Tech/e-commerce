@@ -280,6 +280,13 @@ const shape = z.object({
    * admin and worker only, so `createDomainProvider`, not this schema, refuses a missing one.
    */
   CLOUDFLARE_API_TOKEN: optionalOrBlank(z.string().min(1)),
+  /**
+   * Cloudflare API token with "Zone → Cache Purge: Purge" on the SaaS zone, nothing else. Secret:
+   * worker only. Set, the worker purges a store's hostnames from Cloudflare's cache a few seconds
+   * after its pages change (`@commerce/core` `domains/edge-purge.ts`), so `STOREFRONT_EDGE_TTL`
+   * can be minutes instead of 30 seconds.
+   */
+  CLOUDFLARE_CACHE_PURGE_TOKEN: optionalOrBlank(z.string().min(1)),
   /** The id of the zone with Cloudflare for SaaS turned on. Not a secret. */
   CLOUDFLARE_ZONE_ID: optionalOrBlank(z.string().regex(/^[a-f0-9]{32}$/)),
   /**

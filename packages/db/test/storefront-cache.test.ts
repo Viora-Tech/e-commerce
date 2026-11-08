@@ -6,6 +6,7 @@ import { navigationMenu } from '../src/content-schema'
 import { pixelConnection } from '../src/pixel-schema'
 import { store } from '../src/schema'
 import {
+  announceStorefrontStart,
   listenStorefrontCache,
   parseStorefrontCachePayload,
   STOREFRONT_CACHE_CHANNEL,
@@ -13,6 +14,7 @@ import {
   STOREFRONT_CACHE_SOFT_TABLES,
   STOREFRONT_CACHE_TABLES,
 } from '../src/storefront-cache'
+import { theme, themeFile, themeTemplate } from '../src/theme-schema'
 import { withStore } from '../src/with-store'
 import { resetDb } from './reset'
 
@@ -127,6 +129,53 @@ describe('storefront cache notifications', () => {
     expect(got).toEqual([])
   })
 
+  it('a theme draft save notifies nobody, publishing it does', async () => {
+    const [t] = await owner
+      .insert(theme)
+      .values({ storeId, name: 'Live', role: 'main', settings: {} })
+      .returning()
+    if (!t) throw new Error('seed failed')
+    const [tpl] = await owner
+      .insert(themeTemplate)
+      .values({ storeId, themeId: t.id, template: 'home', sections: { content: [] } })
+      .returning()
+    const [file] = await owner
+      .insert(themeFile)
+      .values({
+        storeId,
+        themeId: t.id,
+        path: 'sections/hero.liquid',
+        body: 'a',
+        contentType: 'text/plain',
+        size: 1,
+        checksum: 'x',
+      })
+      .returning()
+    if (!tpl || !file) throw new Error('seed failed')
+    const drafted = await notificationsDuring(async () => {
+      await owner
+        .update(themeTemplate)
+        .set({ draft: { content: [1] }, updatedAt: new Date() })
+        .where(eq(themeTemplate.id, tpl.id))
+      await owner.update(themeFile).set({ draftBody: 'b' }).where(eq(themeFile.id, file.id))
+    })
+    expect(drafted).toEqual([])
+    const published = await notificationsDuring(() =>
+      owner
+        .update(themeTemplate)
+        .set({ sections: sql`${themeTemplate.draft}`, draft: null, updatedAt: new Date() })
+        .where(eq(themeTemplate.id, tpl.id)),
+    )
+    expect(published).toEqual([storeId])
+    const fileSaved = await notificationsDuring(() =>
+      owner
+        .update(themeFile)
+        .set({ body: 'b', draftBody: null, size: 1, checksum: 'y' })
+        .where(eq(themeFile.id, file.id)),
+    )
+    expect(fileSaved).toEqual([storeId])
+  })
+
   it('the store row notifies for settings, not for the order counter', async () => {
     const counter = await notificationsDuring(() =>
       owner
@@ -170,6 +219,24 @@ describe('listenStorefrontCache', () => {
       `)
       await until(() => events.filter((e) => e === 'live').length === 2)
       expect(events.indexOf('lost')).toBeGreaterThan(events.indexOf('change:true:false'))
+    } finally {
+      await listener.close()
+    }
+  })
+
+  it("hears a storefront's start, which no store cache takes for a change", async () => {
+    const events: string[] = []
+    const listener = listenStorefrontCache(process.env.DATABASE_URL as string, {
+      onChange: () => events.push('change'),
+      onLive: () => events.push('live'),
+      onLost: () => events.push('lost'),
+      onStorefrontStart: () => events.push('start'),
+    })
+    try {
+      await until(() => events.includes('live'))
+      await announceStorefrontStart(process.env.DATABASE_URL as string)
+      await until(() => events.includes('start'))
+      expect(events).not.toContain('change')
     } finally {
       await listener.close()
     }
