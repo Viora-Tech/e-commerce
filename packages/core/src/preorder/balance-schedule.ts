@@ -2,11 +2,11 @@ import { type Db, order, orderLine, orderNote, payment, store, withStore } from 
 import type { PaymentProvider } from '@commerce/payments'
 import { and, asc, eq, gt, inArray, isNotNull, isNull, notInArray, sql } from 'drizzle-orm'
 import type { StoreContext } from '../context'
-import { GIFT_CARD_PROVIDER } from '../gift-cards/service'
 import { RefundNotAllowed, refundedPaise, refundPayment } from '../order/refund'
 import { cancelOrder } from '../order/status'
 import { insertOutboxEvent } from '../outbox/write'
 import { applyPaymentStatus } from '../payments/confirm'
+import { isSplitTender } from '../payments/split-tender'
 import { OPEN_ATTEMPT_STATUSES } from '../payments/transitions'
 import { balanceAttempts, balanceOwed, requestBalance } from './balance'
 import { type PreorderStoreSettings, parsePreorderStoreSettings } from './store-settings'
@@ -227,7 +227,7 @@ async function refundDeposit(
     )
   const notes: string[] = []
   for (const p of held) {
-    if (p.provider === GIFT_CARD_PROVIDER) continue
+    if (isSplitTender(p.provider)) continue
     const left = p.amountPaise - (await refundedPaise(ctx, p.id))
     if (left <= 0) continue
     try {

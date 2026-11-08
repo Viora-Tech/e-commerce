@@ -7,6 +7,7 @@ export const accountContent = {
     orders: 'Orders',
     addresses: 'Addresses',
     profile: 'Profile',
+    storeCredit: 'Store credit',
     privacy: 'Your data',
     signOut: 'Sign out',
   },
@@ -119,6 +120,20 @@ export const accountContent = {
       facebook: 'Facebook',
       truecaller: 'Truecaller',
     },
+  },
+  /** The read-only Store credit page: the balance the shop holds for the shopper and its history. */
+  storeCredit: {
+    title: 'Store credit',
+    balance: 'Your balance',
+    intro: 'Store credit is used at checkout when you are signed in. You can turn it off there.',
+    history: 'History',
+    empty: 'No store credit yet. A refund or credit from the store shows up here.',
+    added: 'Added by the store',
+    removed: 'Removed by the store',
+    used: (n: number | null) => (n ? `Used on order #${n}` : 'Used on an order'),
+    refund: (n: number | null) => (n ? `Refund for order #${n}` : 'Refund'),
+    returned: (n: number | null) =>
+      n ? `Returned: order #${n} was not paid` : 'Returned from an unpaid order',
   },
   orders: {
     title: 'Orders',

@@ -29,9 +29,9 @@ import type { StoreContext } from '../context'
 import { newsletterConfirmToken, newsletterConfirmUrl } from '../customers/newsletter'
 import { phoneBlindIndex } from '../customers/phone-crypto'
 import { storefrontOriginFor } from '../domains/origin'
-import { GIFT_CARD_PROVIDER } from '../gift-cards/service'
 import { mayNudgeKnownContact, phoneLookupVariants } from '../marketing/recipient'
 import { orderParcelsView } from '../order/parcel-view'
+import { SPLIT_TENDER_PROVIDERS } from '../payments/split-tender'
 import { balanceOwed } from '../preorder/balance'
 import { balanceUrl, invoiceUrl, thankYouUrl } from '../preorder/balance-link'
 import { parsePreorderStoreSettings } from '../preorder/store-settings'
@@ -404,7 +404,7 @@ export async function deliverCartRecovery(
 }
 
 /** Paid outside a gateway: never a "your payment did not go through" order. */
-const OFFLINE_METHODS: ReadonlySet<string> = new Set(['cod', 'manual', GIFT_CARD_PROVIDER])
+const OFFLINE_METHODS: ReadonlySet<string> = new Set(['cod', 'manual', ...SPLIT_TENDER_PROVIDERS])
 
 /**
  * Whether an order is still a "Payment pending" order (#1001 rules: a storefront checkout whose

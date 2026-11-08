@@ -12,6 +12,7 @@ import { hiddenPaymentMethods, type PaymentMethodRule } from '@commerce/core/pay
 import { formatMoney } from '@commerce/money'
 import { checkoutContent as content } from '@/data/checkout'
 import { deliveryOptionsContent as appCopy } from '@/data/delivery-options'
+import { storeCreditCheckoutContent } from '@/data/store-credit'
 import type { AppliedGiftCard } from '@/lib/gift-card-actions'
 import type { CheckoutMethod } from '@/lib/payments'
 import type { CheckoutRate, CheckoutShipping } from '@/lib/shipping'
@@ -41,6 +42,13 @@ export function spendCards(cards: AppliedGiftCard[], totalPaise: number) {
 /** Whether the applied cards cover the order before any payment fee; enough to decide COD, preview only. */
 export const coveredByCardsBefore = (cards: AppliedGiftCard[], goodsPaise: number): boolean =>
   cards.reduce((sum, c) => sum + c.balancePaise, 0) >= goodsPaise
+
+/**
+ * The store credit checkout offers: the balance of a signed-in shopper, never a guest's
+ * (`checkoutAction` passes only the session's customer to `placeOrder` as well).
+ */
+export const storeCreditOffered = (signedIn: boolean, balancePaise: number): number =>
+  signedIn ? Math.max(0, balancePaise) : 0
 
 /** A basket of only gift cards: emailed, so no delivery check, and paid online. */
 export const isDigitalOnly = (cart: CartView): boolean =>
@@ -162,15 +170,22 @@ export type CheckoutTotalsInput = {
   methodRules?: readonly PaymentMethodRule[] | undefined
   /** The address is outside India: cash on delivery is not offered at all. */
   abroad?: boolean | undefined
+  /**
+   * The signed-in shopper's store credit balance when they use it, else 0. Spent after gift
+   * cards on what is due now (`placeOrder` does the same); never on a gift card basket.
+   */
+  storeCreditPaise?: number | undefined
 }
 
 /**
  * Every amount the form shows, and whether cash on delivery is allowed, in one pass. The
- * same order as `placeOrder` (discount, payment fee, shipping, gift cards), preview only.
+ * same order as `placeOrder` (discount, payment fee, shipping, gift cards, store credit), preview
+ * only.
  */
 export function checkoutTotals(input: CheckoutTotalsInput) {
   const { cart, methods, settings, discountPaise, shipping, rate, giftCards } = input
   const digitalOnly = isDigitalOnly(cart)
+  const credit = digitalOnly ? 0 : Math.max(0, input.storeCreditPaise ?? 0)
   const discounted = Math.max(0, cart.subtotalPaise - discountPaise)
   const shippingPaise = digitalOnly ? 0 : (rate?.pricePaise ?? 0)
   const delivery = shipping?.delivery
@@ -194,7 +209,9 @@ export function checkoutTotals(input: CheckoutTotalsInput) {
   const codBlocked =
     optionPrepaid ||
     (delivery?.ok === true && delivery.serviceable && !delivery.codAvailable) ||
-    (giftCards.length > 0 && !coveredByCardsBefore(giftCards, discounted + shippingPaise)) ||
+    // Cash on delivery cannot collect what gift cards or store credit leave.
+    ((giftCards.length > 0 || credit > 0) &&
+      !coveredByCardsBefore(giftCards, discounted + shippingPaise - credit)) ||
     !codRule.allowed
   const pickedGone = !offered.some((m) => m.id === input.picked)
   const payment =
@@ -213,12 +230,19 @@ export function checkoutTotals(input: CheckoutTotalsInput) {
       ? codShippingPaise
       : shippingPaise
   const totalPaise = goodsPaise + chargedShippingPaise
-  const { rows: cardRows, duePaise } = spendCards(giftCards, totalPaise)
-  const coveredByCards = giftCards.length > 0 && duePaise === 0
+  const { rows: cardRows, duePaise: afterCards } = spendCards(giftCards, totalPaise)
+  // Store credit pays what is due today after gift cards; a deposit's later balance is not touched.
+  const storeCreditUsedPaise = Math.min(credit, Math.max(0, afterCards - input.laterPaise))
+  const duePaise = afterCards - storeCreditUsedPaise
+  const coveredByCards =
+    (giftCards.length > 0 && afterCards === 0) ||
+    (storeCreditUsedPaise > 0 && duePaise - input.laterPaise <= 0)
   const codExtraPaise = codShippingPaise === null ? 0 : codShippingPaise - shippingPaise
   const codNote =
-    giftCards.length > 0 && !coveredByCards
-      ? content.codWithGiftCard
+    (giftCards.length > 0 || storeCreditUsedPaise > 0) && !coveredByCards
+      ? giftCards.length > 0
+        ? content.codWithGiftCard
+        : storeCreditCheckoutContent.codNote
       : optionPrepaid
         ? appCopy.codPrepaidOnly(rate?.delivery?.optionName ?? '')
         : codRule.allowed
@@ -238,6 +262,7 @@ export function checkoutTotals(input: CheckoutTotalsInput) {
     cardRows,
     duePaise,
     coveredByCards,
+    storeCreditUsedPaise,
     payNowPaise: Math.max(0, duePaise - input.laterPaise),
     shortfallPaise: digitalOnly ? 0 : minimumOrderShortfall(settings, ruleSubtotal),
     codBlocked,

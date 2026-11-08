@@ -29,6 +29,8 @@ export type CheckoutFormInput = {
   discount: CartDiscountView | null
   /** The signed-in shopper, or null for guest checkout. */
   customer?: SignedInCustomer | null
+  /** The signed-in shopper's store credit balance; 0 (or left out) for a guest or none. */
+  storeCreditPaise?: number
   /** Their saved addresses, default first. */
   addresses?: SavedAddress[]
   /** Deposit pre-orders: the balance left for later and the store's deposit terms. */

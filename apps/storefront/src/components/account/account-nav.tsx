@@ -30,6 +30,11 @@ const LINKS = [
     match: (p: string) => p.startsWith('/account/profile'),
   },
   {
+    href: '/account/store-credit',
+    label: copy.storeCredit,
+    match: (p: string) => p.startsWith('/account/store-credit'),
+  },
+  {
     href: '/account/privacy',
     label: copy.privacy,
     match: (p: string) => p.startsWith('/account/privacy'),

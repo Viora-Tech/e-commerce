@@ -8,6 +8,7 @@ import {
   storeCheckoutCountries,
   storeCheckoutLook,
   storeCheckoutSettings,
+  storeCreditOf,
   storefrontOriginFor,
 } from '@commerce/core'
 import { defaultCheckoutCountry } from '@commerce/core/checkout-address'
@@ -91,6 +92,10 @@ export default async function CheckoutPage({ params }: Params) {
       : null
   // A signed-in shopper checks out as themselves, with their address book to pick from.
   const addresses = me ? await inStore(storeId, (tx) => listAddresses({ storeId, tx }, me.id)) : []
+  // Their store credit, offered in the summary; a guest has none to see.
+  const storeCreditPaise = me
+    ? (await inStore(storeId, (tx) => storeCreditOf({ storeId, tx }, me.id, 1))).balancePaise
+    : 0
   const itemCount = cart.lines.reduce((n, l) => n + l.quantity, 0)
   // Settings → Checkout → Checkout content (#158): the store's wording in the shopper's language.
   const requestHeaders = await headers()
@@ -121,6 +126,7 @@ export default async function CheckoutPage({ params }: Params) {
         discount={discount}
         customer={me}
         addresses={addresses}
+        storeCreditPaise={storeCreditPaise}
         deposit={deposit}
         settings={settings}
         text={text}

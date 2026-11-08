@@ -54,7 +54,7 @@ export type WhatsappChatContext = {
 type LinkOpts = { storefrontUrl: string; settingsSecret: string }
 
 /** Methods paid on delivery or already settled: there is nothing to send a payment link for. */
-const NO_PAY_LINK = new Set(['cod', 'gift_card'])
+const NO_PAY_LINK = new Set(['cod', 'gift_card', 'store_credit'])
 
 /** The labels the timeline line names the message by. */
 const WHATSAPP_CHAT_LABEL: Record<WhatsappChatTemplate, string> = {

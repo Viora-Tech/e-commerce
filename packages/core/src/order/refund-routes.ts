@@ -3,8 +3,8 @@ import { payment } from '@commerce/db'
 import type { PaymentProvider } from '@commerce/payments'
 import { and, eq, inArray } from 'drizzle-orm'
 import type { StoreContext } from '../context'
-import { GIFT_CARD_PROVIDER } from '../gift-cards/service'
 import { insertOutboxEvent } from '../outbox/write'
+import { isSplitTender } from '../payments/split-tender'
 import { RefundNotAllowed, refundedPaise, refundPayment } from './refund'
 
 /**
@@ -44,10 +44,10 @@ async function heldPayments(ctx: StoreContext, orderId: string): Promise<Held[]>
       remainingPaise,
     })
   }
-  // Gift cards last: the shopper would rather have money back than card balance.
+  // Gift cards and store credit last: the shopper would rather have money back than a balance.
   return held.sort(
     (a, b) =>
-      Number(a.provider === GIFT_CARD_PROVIDER) - Number(b.provider === GIFT_CARD_PROVIDER) ||
+      Number(isSplitTender(a.provider)) - Number(isSplitTender(b.provider)) ||
       b.remainingPaise - a.remainingPaise,
   )
 }
@@ -66,7 +66,7 @@ export type StoreCreditIssue = {
 /** True when this payment's money can go back the way it came, with the store's gateways. */
 const viaOriginal = (p: Held, providers: readonly PaymentProvider[]): boolean =>
   OFFLINE.has(p.provider) ||
-  p.provider === GIFT_CARD_PROVIDER ||
+  isSplitTender(p.provider) ||
   (!!p.providerPaymentId && providers.some((x) => x.id === p.provider))
 
 export type RefundOptions = {

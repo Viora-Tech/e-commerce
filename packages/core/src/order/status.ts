@@ -1,10 +1,11 @@
 import { order, payment, shipment } from '@commerce/db'
 import { and, desc, eq, inArray, isNull, notInArray } from 'drizzle-orm'
 import type { StoreContext } from '../context'
+import { captureHeldStoreCredit, releaseHeldStoreCredit } from '../customers/store-credit-checkout'
 import { CommerceError } from '../errors'
-import { GIFT_CARD_PROVIDER } from '../gift-cards/service'
 import { insertOutboxEvent } from '../outbox/write'
 import { applyPaymentStatus } from '../payments/confirm'
+import { SPLIT_TENDER_PROVIDERS } from '../payments/split-tender'
 import { OPEN_ATTEMPT_STATUSES } from '../payments/transitions'
 import { capturedPaise, checkoutDuePaise } from './aggregate-status'
 import { fulfilRemainingLines } from './fulfil'
@@ -14,9 +15,9 @@ import { recomputeOrderStatuses } from './recompute'
 import { refundedPaise, refundPayment } from './refund'
 
 /**
- * A cancelled order gives back whatever it took from gift cards, straight onto
- * the same cards. Gateway money is still refunded by the merchant; gift card
- * balances are returned here because nothing else would ever release them.
+ * A cancelled order gives back whatever it took from gift cards and store credit, straight onto
+ * the same cards and the same store credit balance. Gateway money is still refunded by the
+ * merchant; these balances are returned here because nothing else would ever release them.
  */
 async function returnGiftCardPayments(ctx: StoreContext, orderId: string) {
   const rows = await ctx.tx
@@ -25,7 +26,7 @@ async function returnGiftCardPayments(ctx: StoreContext, orderId: string) {
     .where(
       and(
         eq(payment.orderId, orderId),
-        eq(payment.provider, GIFT_CARD_PROVIDER),
+        inArray(payment.provider, [...SPLIT_TENDER_PROVIDERS]),
         eq(payment.status, 'captured'),
       ),
     )
@@ -99,6 +100,9 @@ export async function cancelOrder(
   }
   // Each parcel gives back its unpacked units at its own location (gift cards hold none).
   await releaseFulfillmentOrders(ctx, orderId, { restock: opts.restock })
+  // Store credit held for a payment that never came goes back whatever else is kept: it was
+  // never the order's money.
+  await releaseHeldStoreCredit(ctx, orderId)
   if (opts.returnGiftCards !== false) await returnGiftCardPayments(ctx, orderId)
   if (opts.notifyCustomer !== false) {
     await insertOutboxEvent(ctx.tx, ctx.storeId, 'order.cancel_notice', { orderId })
@@ -124,11 +128,13 @@ async function markPaid(ctx: StoreContext, o: typeof order.$inferSelect) {
         eq(payment.orderId, o.id),
         eq(payment.purpose, 'order'),
         inArray(payment.status, [...OPEN_ATTEMPT_STATUSES]),
+        notInArray(payment.provider, [...SPLIT_TENDER_PROVIDERS]),
       ),
     )
     .orderBy(desc(payment.attempt), desc(payment.id))
     .limit(1)
   if (open) {
+    // Captures the held store credit with it (`applyPaymentStatus`).
     await applyPaymentStatus(ctx, {
       paymentId: open.id,
       status: 'captured',
@@ -136,6 +142,8 @@ async function markPaid(ctx: StoreContext, o: typeof order.$inferSelect) {
     })
     return
   }
+  // No attempt open: held store credit still counts, and only the rest is recorded as manual.
+  await captureHeldStoreCredit(ctx, o.id)
   const rows = await ctx.tx
     .select({
       status: payment.status,

@@ -8,6 +8,7 @@ import {
   offeredMethods,
   processorNames,
   recommendedMethodId,
+  storeCreditOffered,
   takesUpi,
   trustMethodNames,
 } from './checkout-preview'
@@ -151,6 +152,73 @@ describe('checkoutTotals', () => {
     })
     expect(t.coveredByCards).toBe(true)
     expect(t.payNowPaise).toBe(0)
+  })
+})
+
+describe('checkoutTotals with store credit', () => {
+  const base = {
+    cart: cart(),
+    methods: [decentro, cod],
+    settings: defaultCheckoutSettings,
+    discountPaise: 0,
+    shipping: null,
+    rate: undefined,
+    giftCards: [],
+    picked: 'cod',
+    pincode: '110001',
+    laterPaise: 0,
+  }
+
+  it('pays part of the order and leaves the rest to an online way to pay', () => {
+    const t = checkoutTotals({ ...base, storeCreditPaise: 100_000 })
+    expect(t.storeCreditUsedPaise).toBe(100_000)
+    expect(t.payNowPaise).toBe(399_900)
+    // A payment, not a discount: the total stays.
+    expect(t.totalPaise).toBe(499_900)
+    expect(t.coveredByCards).toBe(false)
+    // Cash on delivery cannot collect what store credit leaves.
+    expect(t.codBlocked).toBe(true)
+    expect(t.payment).toBe('decentro')
+    expect(t.codNote).toBe('Not available with store credit for part of the order')
+  })
+
+  it('covers the whole order, never more than is due', () => {
+    const t = checkoutTotals({ ...base, picked: 'decentro', storeCreditPaise: 900_000 })
+    expect(t.storeCreditUsedPaise).toBe(499_900)
+    expect(t.payNowPaise).toBe(0)
+    expect(t.coveredByCards).toBe(true)
+    expect(t.codBlocked).toBe(false)
+  })
+
+  it('spends after gift cards and leaves a pre-order balance for later', () => {
+    const t = checkoutTotals({
+      ...base,
+      picked: 'decentro',
+      giftCards: [{ code: 'G', lastCharacters: 'ABCD', balancePaise: 99_900 }],
+      laterPaise: 300_000,
+      storeCreditPaise: 500_000,
+    })
+    expect(t.storeCreditUsedPaise).toBe(100_000)
+    expect(t.payNowPaise).toBe(0)
+  })
+
+  it('is never used on a basket of gift cards', () => {
+    const t = checkoutTotals({
+      ...base,
+      picked: 'decentro',
+      cart: cart([line({ giftCard: true })]),
+      storeCreditPaise: 900_000,
+    })
+    expect(t.storeCreditUsedPaise).toBe(0)
+  })
+
+  it('shows a guest nothing, whatever balance was passed', () => {
+    expect(storeCreditOffered(false, 100_000)).toBe(0)
+    expect(storeCreditOffered(true, 100_000)).toBe(100_000)
+    expect(storeCreditOffered(true, -5)).toBe(0)
+    const t = checkoutTotals({ ...base, storeCreditPaise: storeCreditOffered(false, 100_000) })
+    expect(t.storeCreditUsedPaise).toBe(0)
+    expect(t.payNowPaise).toBe(499_900)
   })
 })
 

@@ -27,10 +27,12 @@ import { whatsAppHelp } from '@/lib/whatsapp-help'
 type ThankYouTemplateProps = {
   order: typeof order.$inferSelect
   lines: (typeof orderLine.$inferSelect)[]
-  /** The latest gateway, COD or transfer attempt; undefined when gift cards paid everything. */
+  /** The latest gateway, COD or transfer attempt; undefined when gift cards or store credit paid everything. */
   payment: typeof payment.$inferSelect | undefined
   /** Gift cards spent on the order. */
   giftCards?: { id: string; last: string; amountPaise: number }[]
+  /** Store credit spent on the order (held until the payment arrives, then taken); 0 for none. */
+  storeCreditPaise?: number
   /** Links from installed apps, e.g. a signed invoice download. */
   links?: { label: string; url: string }[]
   /** A deposit pre-order's balance block, when a balance is still owed. */
@@ -89,6 +91,7 @@ export default function ThankYouTemplate({
   lines,
   payment: pay,
   giftCards = [],
+  storeCreditPaise = 0,
   links = [],
   balance = null,
   payPath,
@@ -202,7 +205,13 @@ export default function ThankYouTemplate({
       }
       summary={
         <SummaryDisclosure totalLabel={formatPaise(o.totalPaise)}>
-          <OrderSummary order={o} lines={lines} images={images} giftCards={giftCards} />
+          <OrderSummary
+            order={o}
+            lines={lines}
+            images={images}
+            giftCards={giftCards}
+            storeCreditPaise={storeCreditPaise}
+          />
         </SummaryDisclosure>
       }
     >
@@ -340,6 +349,7 @@ export default function ThankYouTemplate({
               shipTo={shipTo}
               payment={pay}
               giftCards={giftCards}
+              storeCreditPaise={storeCreditPaise}
               compact={showDelivery}
             />
             <CheckoutParcels parcels={parcels} />

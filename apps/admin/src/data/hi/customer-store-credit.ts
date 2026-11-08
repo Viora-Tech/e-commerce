@@ -12,7 +12,12 @@ export default [
     history: 'इतिहास',
     by: (who: string) => `${who} ने`,
     system: 'अपने आप',
-    kinds: { adjustment: 'बदलाव', payment: 'ऑर्डर का पेमेंट', refund: 'रिफ़ंड' },
+    kinds: {
+      adjustment: 'बदलाव',
+      payment: 'ऑर्डर का पेमेंट',
+      refund: 'रिफ़ंड',
+      release: 'वापस आया (ऑर्डर का पेमेंट नहीं हुआ)',
+    },
     dialog: {
       addTitle: 'स्टोर क्रेडिट जोड़ें',
       removeTitle: 'स्टोर क्रेडिट हटाएँ',

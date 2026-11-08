@@ -4,10 +4,12 @@ import { formatPaise, useFormatCart, useFormatPaise, useMarketPricing } from '@c
 import type { CartView } from '@commerce/core'
 import CheckoutDiscount from '@/components/checkout/checkout-discount'
 import GiftCardField from '@/components/checkout/gift-card-field'
+import StoreCreditField from '@/components/checkout/store-credit-field'
 import SummaryItems from '@/components/checkout/summary-items'
 import SummaryLine from '@/components/checkout/summary-line'
 import SummaryRow from '@/components/checkout/summary-row'
 import { type CheckoutCopy, checkoutContent as content } from '@/data/checkout'
+import { storeCreditCheckoutContent } from '@/data/store-credit'
 import type { ShippingRow } from '@/lib/checkout-preview'
 import type { CartDiscountView } from '@/lib/discount-view'
 import type { AppliedGiftCard } from '@/lib/gift-card-actions'
@@ -19,6 +21,11 @@ type CheckoutSummaryProps = {
   giftCards: AppliedGiftCard[]
   onGiftCardApply: (card: AppliedGiftCard) => void
   onGiftCardRemove: (code: string) => void
+  /** The signed-in shopper's store credit and whether it is on; a balance of 0 hides the row. */
+  storeCredit?: { balancePaise: number; on: boolean } | undefined
+  /** What store credit pays now (`checkoutTotals`); 0 hides its row under the total. */
+  storeCreditPaise?: number | undefined
+  onStoreCredit?: ((on: boolean) => void) | undefined
   /** Fee (+) or discount (−) of the chosen payment method; 0 hides the row. */
   adjustmentPaise: number
   adjustmentLabel: string
@@ -65,6 +72,9 @@ export default function CheckoutSummary({
   giftCards,
   onGiftCardApply,
   onGiftCardRemove,
+  storeCredit,
+  storeCreditPaise = 0,
+  onStoreCredit,
   adjustmentPaise,
   adjustmentLabel,
   shipping,
@@ -136,6 +146,14 @@ export default function CheckoutSummary({
               onApply={onGiftCardApply}
               onRemove={onGiftCardRemove}
             />
+            {storeCredit && storeCredit.balancePaise > 0 && onStoreCredit ? (
+              <StoreCreditField
+                balancePaise={storeCredit.balancePaise}
+                appliedPaise={storeCreditPaise}
+                on={storeCredit.on}
+                onChange={onStoreCredit}
+              />
+            ) : null}
           </div>
         )}
 
@@ -203,7 +221,15 @@ export default function CheckoutSummary({
               value={`−${money(c.amountPaise)}`}
             />
           ))}
-          {giftCards.length > 0 ? (
+          {/* A way to pay, not a discount: under the total, which (and its GST) stays as it is. */}
+          {storeCreditPaise > 0 ? (
+            <SummaryRow
+              tone="saving"
+              label={storeCreditCheckoutContent.label}
+              value={`−${money(storeCreditPaise)}`}
+            />
+          ) : null}
+          {giftCards.length > 0 || storeCreditPaise > 0 ? (
             <SummaryRow tone="total" label={content.totalDue} value={onCart(duePaise)} />
           ) : null}
           {laterPaise > 0 ? (

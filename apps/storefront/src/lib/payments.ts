@@ -175,7 +175,7 @@ export async function storePaymentMethodRules(
 }
 
 /** Paid outside a gateway; never the target of "Pay online instead". */
-const OFFLINE_METHODS: ReadonlySet<string> = new Set(['manual', 'cod', 'gift_card'])
+const OFFLINE_METHODS: ReadonlySet<string> = new Set(['manual', 'cod', 'gift_card', 'store_credit'])
 
 /**
  * The gateway a transfer order can pay through instead (issue 1010): the first online option in
