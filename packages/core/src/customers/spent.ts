@@ -25,3 +25,13 @@ export function customerSpentSql(customerId: SQL): SQL<number> {
   return sql<number>`(select coalesce(sum(${sql.raw(ORDER_NET_PAID)}), 0)::int from "order" o
     where o.customer_id = ${customerId} and o.status <> 'draft' and not o.is_test)`
 }
+
+/**
+ * What every customer of the store has spent, added up (the same per-order amount as
+ * `customerSpentSql`, over every counted order that has a customer). One pass over the orders,
+ * for store-wide figures such as the average lifetime spend.
+ */
+export function allCustomersSpentSql(): SQL<number> {
+  return sql<number>`(select coalesce(sum(${sql.raw(ORDER_NET_PAID)}), 0)::bigint from "order" o
+    where o.customer_id is not null and o.status <> 'draft' and not o.is_test)`
+}
