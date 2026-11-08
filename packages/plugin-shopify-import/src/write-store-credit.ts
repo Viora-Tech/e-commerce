@@ -21,13 +21,13 @@ import type { NStoreCreditAccount } from './types'
 const R = 'store_credit'
 /** The only currency store credit is held in here. */
 const CURRENCY = 'INR'
-export const STORE_CREDIT_IMPORT_REASON = 'Imported from Shopify (store credit)'
+const STORE_CREDIT_IMPORT_REASON = 'Imported from Shopify (store credit)'
 
 const amount = (minor: number, currency: string) =>
   formatMoney(minor, currency in CURRENCIES ? (currency as Currency) : CURRENCY)
 
 /** The ledger reason, naming the Shopify account so its lines can be found again. */
-export function importReason(sourceId: string): string {
+function importReason(sourceId: string): string {
   const number = sourceId.split('/').pop() ?? sourceId
   return `${STORE_CREDIT_IMPORT_REASON} · Shopify account ${number}`
 }

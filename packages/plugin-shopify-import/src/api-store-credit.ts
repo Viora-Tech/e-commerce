@@ -46,7 +46,7 @@ type GCustomer = {
 
 const paise = (amount: string) => Math.round(Number(amount) * 100)
 
-export function mapStoreCredit(c: GCustomer): NStoreCreditAccount[] {
+function mapStoreCredit(c: GCustomer): NStoreCreditAccount[] {
   const owner = {
     sourceId: c.id,
     email: c.email?.toLowerCase() || null,
