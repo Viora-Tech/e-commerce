@@ -1,6 +1,6 @@
 'use client'
 
-import { Download, Save } from '@commerce/ui/icons'
+import { Download, RefreshCw, Save } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Input } from '@commerce/ui/shadcn/input'
 import { useEffect, useState } from 'react'
@@ -11,6 +11,7 @@ import DateField from '@/components/fields/date-field'
 import PageHeader from '@/components/layout/page-header'
 import OrderChip from '@/components/orders/order-chip'
 import SettingsCard from '@/components/settings/settings-card'
+import { gstInvoiceRefreshContent as refreshCopy } from '@/data/gst-invoice-refresh'
 import { gstInvoicesContent } from '@/data/gst-invoices'
 import { api } from '@/lib/api-client'
 import { formatDay } from '@/lib/format-date'
@@ -80,6 +81,11 @@ export default function InvoiceDetail({ params }: AppPageProps) {
     run(async () => {
       await api.gstInvoices.cancel({ id: params.id ?? '', reason })
     }, copy.cancelled)
+  const handleRefreshGst = () =>
+    run(async () => {
+      const r = await api.gstInvoices.refreshGst({ id: params.id ?? '' })
+      toast.success(refreshCopy.done(r.changedLines))
+    })
   const handleShipping = () =>
     run(async () => {
       if (!ship) return
@@ -202,6 +208,20 @@ export default function InvoiceDetail({ params }: AppPageProps) {
           >
             <Save aria-hidden="true" />
             {copy.saveShipping}
+          </Button>
+        </SettingsCard>
+      ) : null}
+      {cancellable ? (
+        <SettingsCard title={refreshCopy.title}>
+          <p className="text-body text-muted-foreground">{refreshCopy.body}</p>
+          <Button
+            className="mt-3 self-start"
+            variant="outline"
+            disabled={busy}
+            onClick={handleRefreshGst}
+          >
+            <RefreshCw aria-hidden="true" />
+            {refreshCopy.button}
           </Button>
         </SettingsCard>
       ) : null}

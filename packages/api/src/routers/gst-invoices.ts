@@ -47,7 +47,7 @@ import {
   renderDeps,
   requireInstalled,
 } from './gst-invoices-context'
-import { addToQueue, generateInvoice, invoicesForOrders } from './gst-invoices-order-actions'
+import { addToQueue, generateInvoice, invoiceFixProcedures } from './gst-invoices-order-actions'
 import { returnsProcedures } from './gst-invoices-returns'
 
 const IssueBatch = z.object({
@@ -383,7 +383,7 @@ export const gstInvoicesRouter = {
       }
     }),
 
-  forOrders: invoicesForOrders,
+  ...invoiceFixProcedures,
   /** A zip of PDFs, one per selected document. */
   bulkDownload: can(permissions.ORDERS_READ)
     .use(heavy('bulk'))
