@@ -46,6 +46,12 @@ x-app-env: &app-env
   # Worker image jobs at once, and per store; blank uses the defaults (3 and 3). Near the vCPU count.
   MEDIA_PROCESS_CONCURRENCY: ${MEDIA_PROCESS_CONCURRENCY:-}
   MEDIA_PROCESS_PER_STORE: ${MEDIA_PROCESS_PER_STORE:-}
+  WORKER_MEMORY_LIMIT_MB: ${WORKER_MEMORY_LIMIT_MB:-}
+  WORKER_MEMORY_SLOW_PCT: ${WORKER_MEMORY_SLOW_PCT:-}
+  WORKER_MEMORY_CRITICAL_PCT: ${WORKER_MEMORY_CRITICAL_PCT:-}
+  WORKER_MEMORY_RESUME_PCT: ${WORKER_MEMORY_RESUME_PCT:-}
+  WORKER_MEMORY_EXIT_PCT: ${WORKER_MEMORY_EXIT_PCT:-}
+  WORKER_MEMORY_EXIT_AFTER_S: ${WORKER_MEMORY_EXIT_AFTER_S:-}
   # Storefront render cache (MB, blank = 48, 0 = off) and how long a CDN may keep a page for
   # visitors without cookies (seconds, blank = 30, 0 = private). See developer docs, performance.
   STOREFRONT_CACHE_MB: ${STOREFRONT_CACHE_MB:-}

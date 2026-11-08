@@ -167,6 +167,19 @@ const shape = z.object({
   /** Most image jobs of one store at once (capped at the concurrency); unset uses `QUEUE_LIMITS.mediaProcess` (3). */
   MEDIA_PROCESS_PER_STORE: z.coerce.number().int().min(1).max(8).optional(),
   /**
+   * Worker memory guard (apps/worker/src/memory-guard.ts). The limit comes from the container's
+   * cgroup; this is the fallback when there is none (local runs). Percentages of that limit:
+   * above SLOW bulk queues pause and the rest halve, above CRITICAL only payments, order emails
+   * and the outbox keep running, below RESUME all resume; at EXIT for EXIT_AFTER_S seconds the
+   * worker exits cleanly so Docker restarts it.
+   */
+  WORKER_MEMORY_LIMIT_MB: z.coerce.number().int().min(64).optional(),
+  WORKER_MEMORY_SLOW_PCT: z.coerce.number().min(1).max(100).default(70),
+  WORKER_MEMORY_CRITICAL_PCT: z.coerce.number().min(1).max(100).default(85),
+  WORKER_MEMORY_RESUME_PCT: z.coerce.number().min(1).max(100).default(60),
+  WORKER_MEMORY_EXIT_PCT: z.coerce.number().min(1).max(100).default(95),
+  WORKER_MEMORY_EXIT_AFTER_S: z.coerce.number().int().min(5).default(60),
+  /**
    * The Chromium the worker photographs theme home pages with (Themes page pictures). The worker
    * image installs Alpine's `chromium` at `/usr/bin/chromium-browser`; unset on a development
    * machine uses Playwright's own download (`bunx playwright install chromium`). Without a
