@@ -53,7 +53,8 @@ ENV BUILD_TYPECHECK=0
 ENV BUILD_CPUS=2
 # See apps/admin/Dockerfile's identical line.
 ENV NODE_OPTIONS=--max-old-space-size=4096
-# Turbopack's build cache in a BuildKit cache mount: see apps/admin/Dockerfile's build step.
+# Turbopack's build cache in a BuildKit cache mount, and the build split into `compile` then
+# `generate` (package.json): see apps/admin/Dockerfile's build step.
 ARG TARGETPLATFORM
 RUN --mount=type=cache,id=commerce-storefront-next-cache-$TARGETPLATFORM,sharing=locked,target=/repo/apps/storefront/.next/cache \
   bun run build --filter=@commerce/storefront
