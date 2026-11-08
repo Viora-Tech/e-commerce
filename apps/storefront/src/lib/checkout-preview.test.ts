@@ -25,6 +25,7 @@ const line = (over: Partial<CartView['lines'][number]> = {}): CartView['lines'][
   available: 10,
   imageUrl: null,
   giftCard: false,
+  requiresShipping: true,
   preorder: false,
   ...over,
 })

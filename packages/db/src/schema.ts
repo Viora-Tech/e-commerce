@@ -598,6 +598,11 @@ export const variant = pgTable(
     taxable: boolean('taxable').notNull().default(true),
     /** false = always purchasable regardless of inventory_level. */
     trackInventory: boolean('track_inventory').notNull().default(true),
+    /**
+     * Shopify's "This is a physical product": false for a service or a download, which takes no
+     * shipping charge, no shipping profile and never goes into a shipment.
+     */
+    requiresShipping: boolean('requires_shipping').notNull().default(true),
     weightGrams: integer('weight_grams'),
     /**
      * Unit the merchant types the weight in on the product page; `weight_grams` stays the source of
@@ -1599,6 +1604,8 @@ export const orderLine = pgTable(
     hsCode: text('hs_code'),
     /** A gift card sold on this line: a voucher, so it stays out of tax invoices and shipping. */
     giftCard: boolean('gift_card').notNull().default(false),
+    /** The variant's "requires shipping" when the order was placed: false never goes in a shipment. */
+    requiresShipping: boolean('requires_shipping').notNull().default(true),
     /** Sold under pre-order rules (the product/variant had pre-order on at order time). */
     preorder: boolean('preorder').notNull().default(false),
     /** Expected ship date shown on the order/email; resolved from the product's settings at order time. */

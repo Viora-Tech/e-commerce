@@ -12,7 +12,7 @@ import {
   uniqueIndex,
   uuid,
 } from 'drizzle-orm/pg-core'
-import { fulfillmentOrder, newId, order, product, store } from './schema'
+import { fulfillmentOrder, newId, order, product, store, variant } from './schema'
 
 const id = () => uuid('id').primaryKey().$defaultFn(newId)
 const storeId = () =>
@@ -261,6 +261,29 @@ export const shippingProfileProduct = pgTable(
     // One profile per product: adding it to another profile moves it.
     uniqueIndex('shipping_profile_product_unique').on(t.storeId, t.productId),
     index('shipping_profile_product_profile').on(t.profileId),
+  ],
+)
+
+/**
+ * A single variant placed in a shipping profile (Shopify's profiles hold variants). It wins over
+ * its product's row: the variant ships under this profile whatever profile the product is in.
+ * A variant is in one profile at most, so placing it in another moves it.
+ */
+export const shippingProfileVariant = pgTable(
+  'shipping_profile_variant',
+  {
+    id: id(),
+    storeId: storeId(),
+    profileId: uuid('profile_id')
+      .notNull()
+      .references(() => shippingProfile.id, { onDelete: 'cascade' }),
+    variantId: uuid('variant_id')
+      .notNull()
+      .references(() => variant.id, { onDelete: 'cascade' }),
+  },
+  (t) => [
+    uniqueIndex('shipping_profile_variant_unique').on(t.storeId, t.variantId),
+    index('shipping_profile_variant_profile').on(t.profileId),
   ],
 )
 

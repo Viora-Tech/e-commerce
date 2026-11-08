@@ -163,7 +163,12 @@ export function readTools(env: ToolEnv): AiToolSet {
             const [row] = await tx.select().from(product).where(eq(product.id, found.id))
             if (!row) return { facts: [] }
             const variants = await tx
-              .select({ title: variant.title, price: variant.pricePaise, mrp: variant.mrpPaise })
+              .select({
+                title: variant.title,
+                price: variant.pricePaise,
+                mrp: variant.mrpPaise,
+                requiresShipping: variant.requiresShipping,
+              })
               .from(variant)
               .where(and(eq(variant.productId, row.id), isNull(variant.archivedAt)))
               .orderBy(asc(variant.position))
@@ -187,6 +192,18 @@ export function readTools(env: ToolEnv): AiToolSet {
                       ? 'not set yet'
                       : `${money(env, v.price)}${v.mrp ? ` (MRP ${money(env, v.mrp)})` : ''}`,
                 })),
+                // "This is a physical product" off: no shipping charge, never in a shipment.
+                ...(variants.some((v) => !v.requiresShipping)
+                  ? [
+                      {
+                        label: 'Needs no shipping',
+                        value: variants
+                          .filter((v) => !v.requiresShipping)
+                          .map((v) => safeTitle(env, v.title))
+                          .join(', '),
+                      },
+                    ]
+                  : []),
                 { label: 'In stock', value: String(stock?.n ?? 0) },
                 { label: 'Tags', value: guarded(env, row.tags.join(', '), 300) || 'none' },
                 { label: 'Type', value: guarded(env, row.productType, 100) || 'not set' },

@@ -16,7 +16,10 @@ import {
  * run the same rule.
  *
  * THE RULE for a cart:
- * 1. Each line belongs to one profile: the custom profile its product is in, else General.
+ * 0. Lines that need no shipping (gift cards, variants with "requires shipping" off) are left
+ *    out; a cart with no other line ships nothing. Their share of the cart's value is too.
+ * 1. Each line belongs to one profile: the profile its variant was placed in on its own, else
+ *    the profile its product is in, else General.
  * 2. Each profile in the cart is quoted on its own lines only (their value after discounts
  *    and their weight), against its own zones, exactly as a store without profiles is.
  * 3. One profile in the cart: its rates are the options, unchanged (every store before
@@ -180,7 +183,7 @@ export function profilesFreeShippingThreshold(
  * Split a value (the cart after discounts) across profiles in proportion to their lines'
  * subtotal, in whole minor units; the last profile takes the remainder so the parts add up.
  */
-export function splitValue(total: number, subtotals: readonly number[]): number[] {
+function splitValue(total: number, subtotals: readonly number[]): number[] {
   const sum = subtotals.reduce((a, b) => a + b, 0)
   if (sum <= 0) return subtotals.map((_, i) => (i === 0 ? total : 0))
   let left = total
@@ -192,8 +195,86 @@ export function splitValue(total: number, subtotals: readonly number[]): number[
   })
 }
 
+/**
+ * The profile a line ships under (rule 1): its variant's own placement wins, then its
+ * product's, then General.
+ */
+export function lineProfileId(
+  line: { variantId: string; productId: string },
+  byVariant: ReadonlyMap<string, string>,
+  byProduct: ReadonlyMap<string, string>,
+  generalId: string,
+): string {
+  return byVariant.get(line.variantId) ?? byProduct.get(line.productId) ?? generalId
+}
+
+/** A cart or order line as the profile split reads it. */
+export type ProfileSplitLine = {
+  quantity: number
+  unitPricePaise: number
+  weightGrams: number | null
+  /** Gift cards are emailed, never shipped. */
+  giftCard: boolean
+  /** The variant's "requires shipping"; left out counts as true (older callers). */
+  requiresShipping?: boolean | undefined
+}
+
+/** Whether a line goes in a parcel: not a gift card and its variant requires shipping. */
+export const lineShips = (l: Pick<ProfileSplitLine, 'giftCard' | 'requiresShipping'>): boolean =>
+  !l.giftCard && l.requiresShipping !== false
+
+/**
+ * The cart split into profile parts (rules 0 to 2). `profileOf` names each shipping line's
+ * profile. `valuePaise` is the whole cart after discounts: a cart whose every line ships in one
+ * profile is measured on it whole, exactly as before profiles; otherwise each part (and the
+ * lines that do not ship) takes its share in proportion to its subtotal. `measure` is what the
+ * shipping lines add up to; null when nothing ships.
+ */
+export function splitProfileParts<L extends ProfileSplitLine>(
+  lines: readonly L[],
+  valuePaise: number,
+  profileOf: (line: L) => string,
+): { parts: ProfileCartPart[]; measure: ShippingCartMeasure | null } {
+  const weightOf = (ls: readonly L[]) =>
+    ls.reduce((sum, l) => sum + l.quantity * (l.weightGrams ?? 0), 0)
+  const subtotalOf = (ls: readonly L[]) =>
+    ls.reduce((sum, l) => sum + l.quantity * l.unitPricePaise, 0)
+  const shipped = lines.filter(lineShips)
+  if (shipped.length === 0) return { parts: [], measure: null }
+  const groups = new Map<string, L[]>()
+  for (const l of shipped) {
+    const id = profileOf(l)
+    groups.set(id, [...(groups.get(id) ?? []), l])
+  }
+  const entries = [...groups]
+  const rest = lines.filter((l) => !lineShips(l))
+  if (entries.length === 1 && rest.length === 0) {
+    const measure = { valuePaise, weightGrams: weightOf(shipped) }
+    return { parts: [{ profileId: entries[0]?.[0] as string, measure }], measure }
+  }
+  // The lines that do not ship take their share last, so the parts never count it; without
+  // them the last profile takes the remainder, as before.
+  const values = splitValue(valuePaise, [
+    ...entries.map(([, ls]) => subtotalOf(ls)),
+    ...(rest.length ? [subtotalOf(rest)] : []),
+  ])
+  const parts = entries.map(([profileId, ls], i) => ({
+    profileId,
+    measure: { valuePaise: values[i] ?? 0, weightGrams: weightOf(ls) },
+  }))
+  const measure = {
+    valuePaise: parts.reduce((sum, p) => sum + p.measure.valuePaise, 0),
+    weightGrams: weightOf(shipped),
+  }
+  return { parts, measure }
+}
+
 export const ShippingProfileWriteSchema = z.object({
   name: z.string().trim().min(1, 'Give the profile a name').max(80),
+  /** Whole products: every variant, including ones added later, unless placed elsewhere alone. */
   productIds: z.array(z.uuid()).max(5000).default([]),
+  /** Variants placed in this profile on their own; they win over their product's profile. Left
+   *  out keeps the profile's variants as they are (callers that only know products). */
+  variantIds: z.array(z.uuid()).max(5000).optional(),
 })
 export type ShippingProfileWrite = z.infer<typeof ShippingProfileWriteSchema>

@@ -153,6 +153,7 @@ export async function resolveLines(ctx: StoreContext, lines: DraftInput['lines']
             hsCode: effectiveHsCode,
             productTitle: product.title,
             giftCard: product.isGiftCard,
+            requiresShipping: variant.requiresShipping,
           })
           .from(variant)
           .innerJoin(product, eq(product.id, variant.productId))
@@ -186,6 +187,7 @@ export async function resolveLines(ctx: StoreContext, lines: DraftInput['lines']
       unitPricePaise,
       // Snapshotted like checkout does, so routing, GST and card issue treat it as digital.
       giftCard: v.giftCard,
+      requiresShipping: v.requiresShipping,
       gstRatePercent: v.taxable ? v.gstRatePercent : 0,
       hsCode: v.hsCode,
     }
@@ -322,10 +324,7 @@ export async function deleteDrafts(ctx: StoreContext, ids: readonly string[]) {
   return draftIds.length
 }
 
-/**
- * Whether any line of the draft is shipped. A gift card is the one digital product (no
- * address needed, as at checkout); every other line ships.
- */
+/** Whether the draft needs a shipping address: any line but a gift card does, as at checkout. */
 async function draftNeedsShipping(ctx: StoreContext, orderId: string): Promise<boolean> {
   const [row] = await ctx.tx
     .select({ id: orderLine.id })

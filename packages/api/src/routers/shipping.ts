@@ -10,6 +10,7 @@ import {
   listShippingProfiles,
   listShippingZones,
   permissions,
+  profileProductEntries,
   ShippingProfileWriteSchema,
   ShippingZoneWriteSchema,
   updateShippingProfile,
@@ -17,7 +18,7 @@ import {
 } from '@commerce/core'
 import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
-import { can } from '../procedures'
+import { BULK_MAX, can } from '../procedures'
 
 const notFound = (err: unknown): never => {
   if (err instanceof CommerceError && err.code === 'NOT_FOUND') {
@@ -41,7 +42,7 @@ function zoneFields(zone: Zone): Record<string, unknown> {
 
 /**
  * Settings → Shipping → Shipping rates: shipping profiles (General and custom ones with
- * their products), their zones (states and PIN code rules) and the rates offered in each.
+ * their products and variants), their zones (states and PIN code rules) and the rates offered in each.
  * Guarded like the rest of the shipping settings: read with `settings.read`, change with
  * `settings.manage`.
  */
@@ -57,12 +58,20 @@ export const shippingRouter = {
         getShippingProfile(context.tx, context.scope.storeId, input.id),
       ),
 
+    /**
+     * Make a custom profile holding whole products (`productIds`, every variant including ones
+     * added later) and single variants (`variantIds`, which win over their product's profile).
+     */
     create: can(permissions.SETTINGS_MANAGE)
       .input(ShippingProfileWriteSchema)
       .handler(({ context, input }) =>
         createShippingProfile(context.tx, context.scope.storeId, input),
       ),
 
+    /**
+     * Rename a profile and set exactly its whole products and single variants (ones in another
+     * profile move here; `variantIds` left out keeps the profile's variants as they are).
+     */
     update: can(permissions.SETTINGS_MANAGE)
       .input(z.object({ id: z.uuid(), data: ShippingProfileWriteSchema }))
       .handler(({ context, input }) =>
@@ -76,6 +85,21 @@ export const shippingRouter = {
       .handler(async ({ context, input }) => ({
         deleted: await deleteShippingProfile(context.tx, input.id),
       })),
+
+    /**
+     * Products with their variants as a profile's page lists them: which variants ship under
+     * `profileId` and where the others ship now. For products just picked, before saving.
+     */
+    productEntries: can(permissions.SETTINGS_READ)
+      .input(
+        z.object({
+          profileId: z.uuid().nullable(),
+          productIds: z.array(z.uuid()).max(BULK_MAX),
+        }),
+      )
+      .handler(({ context, input }) =>
+        profileProductEntries(context.tx, input.profileId, input.productIds),
+      ),
 
     /** Products of the picked collections, for "Add a collection's products". */
     collectionProducts: can(permissions.SETTINGS_READ)

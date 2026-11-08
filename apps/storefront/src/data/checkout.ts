@@ -439,6 +439,9 @@ export const checkoutContent = {
     /** On the option that arrives first, when the options do not all arrive together. */
     fastest: 'Fastest',
     digital: 'Delivered by email',
+    /** Nothing in the order is shipped (services, downloads): no charge, no courier. */
+    notNeeded: 'No shipping needed',
+    notNeededBody: 'Nothing in your order is shipped, so there is no delivery charge.',
   },
   /** When one order ships as more than one parcel (several warehouses, or a pre-order held back). */
   parcels: {

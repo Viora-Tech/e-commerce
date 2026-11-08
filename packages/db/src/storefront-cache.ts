@@ -69,6 +69,8 @@ export const STOREFRONT_CACHE_TABLES = [
   // Shipping profiles: which rates the cart's free-shipping line reads (0193).
   'shipping_profile',
   'shipping_profile_product',
+  // Variants placed in a profile on their own (0230).
+  'shipping_profile_variant',
   'shipping_rate',
   'shipping_zone',
   'store_domain',

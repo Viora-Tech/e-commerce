@@ -37,6 +37,7 @@ import { parsePaymentSettings } from '../payments/settings'
 import { STORE_CREDIT_PROVIDER } from '../payments/split-tender'
 import { isLaunched } from '../preorder/launch'
 import { priceOrderDelivery } from '../shipping/delivery-options/order'
+import { lineShips } from '../shipping/profiles'
 import { quoteProfileLines } from '../shipping/profiles-service'
 import { runWorkflow, type WorkflowLog, type WorkflowStep } from '../workflow/run'
 import { lockCartOrReplay } from './cart-replay'
@@ -102,7 +103,8 @@ const resolveShipping: WorkflowStep<State> = {
   name: 'resolveShipping',
   async run({ ctx, input, lines, discount: applied }) {
     const to = input.checkout?.address
-    if (!to || lines.every((l) => l.giftCard)) return { shipping: null }
+    // Nothing to ship (gift cards, services, downloads): no charge, no option, no courier.
+    if (!to || !lines.some(lineShips)) return { shipping: null }
     const { discountedSubtotalPaise } = applyDiscount(sumPaise(lines), 0, applied)
     // One rate per shipping profile in the cart, summed (rule in shipping/profiles.ts).
     const { quote } = await quoteProfileLines(ctx.tx, lines, discountedSubtotalPaise, {

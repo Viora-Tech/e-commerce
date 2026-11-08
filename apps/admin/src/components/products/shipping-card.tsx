@@ -17,12 +17,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@commerce/ui/shadcn/select'
+import { Switch } from '@commerce/ui/shadcn/switch'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import KitField from '@/components/kit/kit-field'
 import DataCard from '@/components/layout/data-card'
 import { COUNTRIES } from '@/data/countries'
 import { productFormContent } from '@/data/product-form'
+import { productShippingContent } from '@/data/product-shipping'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
@@ -87,6 +89,7 @@ export default function ShippingCard({
 }: ShippingCardProps) {
   // Hooks
   const { shipping: copy } = useCopy(productFormContent)
+  const physical = useCopy(productShippingContent)
   const [boxPresets, setBoxPresets] = useState<BoxPreset[]>([])
   /* "Custom size" picked but no dimension typed yet still shows the inputs. */
   const [customPicked, setCustomPicked] = useState(false)
@@ -156,8 +159,24 @@ export default function ShippingCard({
         {singleVariant ? null : (
           <p className="text-body text-muted-foreground">{copy.perVariant}</p>
         )}
-        {/* One form style across the product page: label above the field (audit #28). */}
+        {/* Shopify's "This is a physical product"; with options each variant sets its own. */}
         {singleVariant ? (
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex flex-col gap-0.5">
+              <label htmlFor="variant-physical" className="text-body text-foreground">
+                {physical.physical}
+              </label>
+              <p className="text-caption text-muted-foreground">{physical.physicalHelp}</p>
+            </div>
+            <Switch
+              id="variant-physical"
+              checked={variant.requiresShipping}
+              onCheckedChange={(requiresShipping) => onChange({ requiresShipping })}
+            />
+          </div>
+        ) : null}
+        {/* One form style across the product page: label above the field (audit #28). */}
+        {singleVariant && variant.requiresShipping ? (
           <div className="grid gap-4 md:grid-cols-2">
             <KitField label={copy.weight} help={copy.weightHelp} htmlFor="variant-weight">
               <WeightInput

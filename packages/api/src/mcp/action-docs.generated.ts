@@ -613,7 +613,7 @@ export const ACTION_DOCS: Record<string, string> = {
   'products.stats': 'Tiles above the list.',
   'products.update': 'Small patches from the list page (bulk status).',
   'products.updateVariant':
-    'Patch one variant: price, MRP, SKU, stock, or hide it on the storefront (hiddenOnStore).',
+    'Patch one variant: price, MRP, SKU, stock, hide it on the storefront (hiddenOnStore), or say whether it is a physical product (requiresShipping).',
   'purchaseDocuments.apply': 'Apply what the merchant ticked on the review screen.',
   'purchaseDocuments.download': 'The file itself, for the preview and the download button.',
   'purchaseDocuments.read': 'Read (or read again) with AI, in the worker.',
@@ -737,6 +737,12 @@ export const ACTION_DOCS: Record<string, string> = {
   'shipments.wallets': 'One card per connected courier - each has its own account and balance.',
   'shipping.profiles.collectionProducts':
     'Products of the picked collections, for "Add a collection\'s products".',
+  'shipping.profiles.create':
+    "Make a custom profile holding whole products (productIds, every variant including ones added later) and single variants (variantIds, which win over their product's profile).",
+  'shipping.profiles.productEntries':
+    "Products with their variants as a profile's page lists them: which variants ship under profileId and where the others ship now.",
+  'shipping.profiles.update':
+    "Rename a profile and set exactly its whole products and single variants (ones in another profile move here; variantIds left out keeps the profile's variants as they are).",
   'shopifyImport.appInstall':
     'Whether this deployment has the platform\'s own Shopify app, so "Install the app" can show.',
   'shopifyImport.claimAppInstall':

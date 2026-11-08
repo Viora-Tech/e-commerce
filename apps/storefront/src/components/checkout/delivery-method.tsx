@@ -114,9 +114,9 @@ export default function DeliveryMethod({
             value="free"
             checked
             onChange={() => undefined}
-            title={content.delivery.free}
+            title={shipping.nothingShips ? content.delivery.notNeeded : content.delivery.free}
             icon="truck"
-            description={shipping.arrives}
+            description={shipping.nothingShips ? content.delivery.notNeededBody : shipping.arrives}
             meta={content.shippingFree}
           />
         ) : (

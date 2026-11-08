@@ -71,6 +71,9 @@ function readVariant(
     mrpPaise: paise(row.get('variant compare at price')),
     costPaise: paise(row.get('cost per item', 'variant cost')),
     taxable: bool(row.get('variant taxable'), true),
+    ...(row.get('variant requires shipping')
+      ? { requiresShipping: bool(row.get('variant requires shipping'), true) }
+      : {}),
     // Shopify writes `shopify` for tracked variants and leaves the cell empty otherwise.
     trackInventory: columns.tracker
       ? row.get('variant inventory tracker') !== '' &&

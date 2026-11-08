@@ -20,7 +20,7 @@ import {
 import type { StoreTx } from '@commerce/db'
 import { address, customer, location, order, orderLine, store, variant } from '@commerce/db'
 import { ASSUMED_WEIGHT_GRAMS } from '@commerce/shipping'
-import { eq, inArray, isNotNull, sql } from 'drizzle-orm'
+import { and, eq, inArray, isNotNull, sql } from 'drizzle-orm'
 import { withThumbnails } from './order-detail.service'
 import { loadShippingSettings } from './shipping.service'
 
@@ -209,9 +209,13 @@ export async function prepareShipments(
           .from(orderLine)
           .leftJoin(variant, eq(variant.id, orderLine.variantId))
           .where(
-            inArray(
-              orderLine.orderId,
-              orders.map((o) => o.id),
+            and(
+              inArray(
+                orderLine.orderId,
+                orders.map((o) => o.id),
+              ),
+              // Lines that need no shipping never go in a parcel; one holding only those is skipped.
+              eq(orderLine.requiresShipping, true),
             ),
           )
   const lines = await withThumbnails(tx, orderLines)

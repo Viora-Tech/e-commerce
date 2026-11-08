@@ -240,6 +240,7 @@ export async function getProduct(tx: StoreTx, id: string) {
       trackInventory: variant.trackInventory,
       hiddenOnStore: variant.hiddenOnStore,
       preorderOverride: variant.preorderOverride,
+      requiresShipping: variant.requiresShipping,
       weightGrams: variant.weightGrams,
       weightUnit: variant.weightUnit,
       hsCode: variant.hsCode,
@@ -417,6 +418,7 @@ export type VariantPatch = {
   sku?: string | null | undefined
   onHand?: number | undefined
   hiddenOnStore?: boolean | undefined
+  requiresShipping?: boolean | undefined
 }
 
 export async function updateVariant(tx: StoreTx, id: string, patch: VariantPatch) {

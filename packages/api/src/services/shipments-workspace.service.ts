@@ -293,6 +293,8 @@ const readyToShipWhere = () =>
       ),
     ),
     sql`${order.status} != 'cancelled'`,
+    // Something on the order needs a courier: gift cards, services and downloads do not.
+    sql`exists (select 1 from ${orderLine} l where l.order_id = ${order.id} and l.requires_shipping and not l.gift_card)`,
     // A held parcel (Hold fulfilment) keeps the order off the list until it is released.
     sql`not exists (select 1 from ${fulfillmentOrder} where ${fulfillmentOrder.orderId} = ${order.id} and ${fulfillmentOrder.heldAt} is not null and ${fulfillmentOrder.status} in ('open', 'on_hold'))`,
     // The older stand-in, kept for stores that mark holds with a tag.
@@ -355,7 +357,7 @@ export async function listReadyToShip(
           })
           .from(orderLine)
           .leftJoin(variant, eq(variant.id, orderLine.variantId))
-          .where(inArray(orderLine.orderId, orderIds))
+          .where(and(inArray(orderLine.orderId, orderIds), eq(orderLine.requiresShipping, true)))
           .groupBy(orderLine.orderId)
   const byOrder = new Map(lineAgg.map((l) => [l.orderId, l]))
 
