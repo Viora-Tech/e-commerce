@@ -21,6 +21,7 @@ export const shopifyImportPlugin = definePlugin({
   version: '1.0.0',
   kind: 'builtin',
   category: 'migration',
+  tested: true,
   description:
     'Bring products, collections, customers, orders, pages, blog posts, menus, redirects, files, content types, extra fields, discounts and gift card balances over from Shopify.',
   listing: {

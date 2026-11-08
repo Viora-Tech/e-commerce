@@ -9,6 +9,12 @@ becomes its own design and PRs when picked up. Last reorganised 7 Nov 2026.
 Goal: every flow a shop owner or shopper touches has been run for real on a live store, and
 every app is marked `tested: true` (manifest) or fixed. Untested apps show an "Untested" badge.
 
+Each app is tested in two passes:
+- **v1, functionality:** every feature works end to end on a live store. Passing v1 sets
+  `tested: true`.
+- **v2, UI:** the app's admin pages are redesigned to the Phase 3 standard ("Every app looks
+  great") and checked again.
+
 ### 1a. Everyday shop flows (Waimers and Claw Gears)
 
 Run each on the live store, note bugs as GitHub issues (`bug` label), fix, re-run.
@@ -25,10 +31,11 @@ Run each on the live store, note bugs as GitHub issues (`bug` label), fix, re-ru
 
 ### 1b. Apps, in the order the shops need them
 
-Tested so far: **Delhivery, Razorpay**.
+Tested (v1) so far: **Delhivery, Razorpay, Cloudflare R2, Shopify importer** (R2 and the importer
+marked 8 Nov 2026).
 
-1. In use or needed for Claw Gears go-live: GST invoices, Shopify importer, Shiprocket,
-   RapidShyp, Reviews, WhatsApp, Amazon SES email, Cloudflare R2.
+1. In use or needed for Claw Gears go-live: GST invoices, Shiprocket, RapidShyp, Reviews,
+   WhatsApp, Amazon SES email, Inbox.
 2. Selling and marketing: Back in stock, Forms, Affiliates, EMI & pay later, Search &
    discovery, Meilisearch, GrowthBook, Google Search Console, Umami, Chatwoot, Amazon S3.
 3. Payments not in use yet: Cashfree, Decentro.
