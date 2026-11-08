@@ -188,6 +188,8 @@ export const product = pgTable(
        inserted, so two saves at once could both take one (schema review 2026-10-27). */
     uniqueIndex('product_store_handle').on(t.storeId, t.handle),
     index('product_store_status').on(t.storeId, t.status, t.createdAt),
+    /** The Products list with no status filter, newest first, and Home's latest products (0231). */
+    index('product_store_created').on(t.storeId, t.createdAt),
     index('product_preorder_campaign')
       .on(t.preorderCampaignId)
       .where(sql`${t.preorderCampaignId} is not null`),
@@ -889,6 +891,10 @@ export const inventoryLevel = pgTable(
   (t) => [
     uniqueIndex('inventory_level_variant_location').on(t.variantId, t.locationId),
     index('inventory_level_variant_sellable').on(t.variantId).where(sql`${t.fulfilsOnline}`),
+    /** `sellableStock` groups a store's selling rows by variant (admin lists, Home) (0231). */
+    index('inventory_level_store_sellable')
+      .on(t.storeId, t.variantId)
+      .where(sql`${t.fulfilsOnline}`),
     index('inventory_level_location').on(t.locationId),
   ],
 )
@@ -917,7 +923,11 @@ export const inventoryAdjustment = pgTable(
     actorName: text('actor_name').default(sql`nullif(current_setting('app.actor_name', true), '')`),
     createdAt: createdAt(),
   },
-  (t) => [index('inventory_adjustment_variant').on(t.variantId, t.createdAt)],
+  (t) => [
+    index('inventory_adjustment_variant').on(t.variantId, t.createdAt),
+    /** Home's stock-change series reads a store's recent adjustments (0231). */
+    index('inventory_adjustment_store_created').on(t.storeId, t.createdAt),
+  ],
 )
 
 // purchase_order and purchase_order_line: purchasing-schema.ts (suppliers, landed cost).
@@ -1029,6 +1039,8 @@ export const customer = pgTable(
   (t) => [
     uniqueIndex('customer_store_email').on(t.storeId, t.email),
     index('customer_store_phone_index').on(t.storeId, t.phoneIndex),
+    /** The Customers list's default sort (newest first) and its date filters (0231). */
+    index('customer_store_created').on(t.storeId, t.createdAt),
   ],
 )
 
@@ -1518,6 +1530,8 @@ export const order = pgTable(
     /** The All orders list: newest first. */
     index('order_store_placed').on(t.storeId, t.placedAt),
     index('order_customer').on(t.customerId).where(sql`${t.customerId} is not null`),
+    /** "Delete test orders" shows only when the store has some: counted on every list load (0231). */
+    index('order_store_test').on(t.storeId).where(sql`${t.isTest}`),
     check('order_tax_regime_check', sql`${t.taxRegime} in (${oneOf(ORDER_TAX_REGIMES)})`),
     /** The COD & RTO sweep reads orders still waiting for the shopper's answer. */
     index('order_cod_verification_open')
@@ -1835,6 +1849,8 @@ export const payment = pgTable(
     /* Confirmation and gateway webhooks find the attempt by the gateway's reference. */
     index('payment_provider_ref').on(t.providerRef),
     index('payment_order').on(t.orderId),
+    /** Store health: a gateway's latest payment (0231). */
+    index('payment_store_provider_created').on(t.storeId, t.provider, t.createdAt),
     check(
       'payment_status_check',
       sql`${t.status} in ('created', 'pending', 'authorized', 'captured', 'failed', 'cancelled', 'refunded')`,
@@ -1900,7 +1916,12 @@ export const refund = pgTable(
     /** Kept current by the `touch_updated_at` trigger (0177). */
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [index('refund_order').on(t.orderId), index('refund_payment').on(t.paymentId)],
+  (t) => [
+    index('refund_order').on(t.orderId),
+    index('refund_payment').on(t.paymentId),
+    /** Home and Analytics read a store's refunds in a date range (0231). */
+    index('refund_store_created').on(t.storeId, t.createdAt),
+  ],
 )
 
 /** Staff notes on an order; the timeline shows them beside system events. */
@@ -1954,7 +1975,11 @@ export const paymentEvent = pgTable(
     receivedAt: timestamp('received_at', { withTimezone: true }).notNull().defaultNow(),
     processedAt: timestamp('processed_at', { withTimezone: true }),
   },
-  (t) => [uniqueIndex('payment_event_provider_event').on(t.storeId, t.provider, t.eventId)],
+  (t) => [
+    uniqueIndex('payment_event_provider_event').on(t.storeId, t.provider, t.eventId),
+    /** An order's payment history reads events from its first payment on (0231). */
+    index('payment_event_store_received').on(t.storeId, t.receivedAt),
+  ],
 )
 
 /** One row per message attempted, so admin can see what a shopper was told and retries never double-send. */
