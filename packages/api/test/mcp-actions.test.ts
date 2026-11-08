@@ -318,6 +318,16 @@ describe('MCP admin actions', () => {
     expect(pending).toMatchObject({ tool: 'runAdminAction', source: 'mcp', status: 'proposed' })
     const card = await call(appRouter.ai.action, { id: pending?.id as string }, { context: m.ctx })
     expect(card.preview.title).toBe('Discounts: delete')
+    // It waits in Settings → Approvals too, not only in MCP Activity (#1263).
+    const waiting = await call(appRouter.approvals.waiting, undefined, { context: m.ctx })
+    expect(waiting.map((v) => [v.id, v.source])).toEqual([[pending?.id, 'mcp']])
+    expect(await call(appRouter.approvals.counts, undefined, { context: m.ctx })).toEqual({
+      waiting: 1,
+      outcomes: 0,
+    })
+    // Another member never sees someone else's own MCP request.
+    const s = await staffOf(m, 'admin@example.com', 'admin')
+    expect(await call(appRouter.approvals.waiting, undefined, { context: s.ctx })).toEqual([])
     // The owner confirms their own AI app's sensitive action in the admin.
     const done = await call(
       appRouter.ai.approveAction,
@@ -325,6 +335,7 @@ describe('MCP admin actions', () => {
       { context: m.ctx },
     )
     expect(done).toMatchObject({ status: 'executed', confirmedAi: true })
+    expect(await call(appRouter.approvals.waiting, undefined, { context: m.ctx })).toEqual([])
     const rows = await activity(m.storeId)
     expect(rows.filter((r) => r.kind === 'approval').map((r) => r.tool)).toEqual([
       'discounts.delete',
