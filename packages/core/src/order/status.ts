@@ -1,5 +1,6 @@
-import { order, payment, shipment } from '@commerce/db'
-import { and, desc, eq, inArray, isNull, notInArray } from 'drizzle-orm'
+import { order, payment, shipment, store } from '@commerce/db'
+import { and, desc, eq, inArray, isNull, notInArray, sql } from 'drizzle-orm'
+import { parseCheckoutSettings } from '../checkout/settings'
 import type { StoreContext } from '../context'
 import { CommerceError } from '../errors'
 import { GIFT_CARD_PROVIDER } from '../gift-cards/service'
@@ -60,11 +61,22 @@ export class OrderStatusLocked extends CommerceError {
   }
 }
 
+/** Settings → Checkout → "Archive orders automatically when they're cancelled" (on by default). */
+async function archivesOnCancel(ctx: StoreContext): Promise<boolean> {
+  const [s] = await ctx.tx
+    .select({ preferences: store.preferences })
+    .from(store)
+    .where(eq(store.id, ctx.storeId))
+  return parseCheckoutSettings(s?.preferences).archiveCancelled
+}
+
 /**
  * Cancel an order and give back the stock its unpacked lines hold. Units
  * already packed have left on hand and stay gone. The status flip is the
  * guard: only the call that moves the order out of a live status releases
- * anything, so a repeated cancel is a no-op.
+ * anything, so a repeated cancel is a no-op. Every cancel goes through here (staff, the
+ * unpaid-online and unpaid-transfer timers, the shopper's COD link, automations), so this is
+ * also where a store that archives cancelled orders archives them, in the same update.
  */
 export async function cancelOrder(
   ctx: StoreContext,
@@ -87,9 +99,14 @@ export async function cancelOrder(
 ) {
   // An order older than parcels gets them while it is still live, so they hold its stock.
   await ensureFulfillmentOrders(ctx, orderId)
+  const archive = await archivesOnCancel(ctx)
   const [cancelled] = await ctx.tx
     .update(order)
-    .set({ status: 'cancelled' })
+    .set({
+      status: 'cancelled',
+      // An order the merchant already archived keeps its first archive time.
+      ...(archive ? { archivedAt: sql`coalesce(${order.archivedAt}, now())` } : {}),
+    })
     .where(and(eq(order.id, orderId), notInArray(order.status, ['cancelled', 'draft'])))
     .returning()
   if (!cancelled) {
