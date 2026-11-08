@@ -11,7 +11,13 @@ import type { LiquidPageContext } from '@commerce/core'
  * every request with that request's own nonce. The placeholder is random per process: theme
  * data cannot contain it, so a script that came in with data never gains a nonce.
  */
-export const NONCE_MARK = `nonce${randomBytes(16).toString('hex')}`
+export const NONCE_MARK: string = (() => {
+  // One per process, not per module copy: the render cache is shared by every route bundle
+  // (pages, the plain HTML route, theme actions), so they must all read the same placeholder.
+  const g = globalThis as unknown as { __liquidNonceMark?: string }
+  g.__liquidNonceMark ??= `nonce${randomBytes(16).toString('hex')}`
+  return g.__liquidNonceMark
+})()
 
 /** Cached Liquid with this request's nonce in place of the placeholder. */
 export function withNonce(html: string, nonce: string): string {

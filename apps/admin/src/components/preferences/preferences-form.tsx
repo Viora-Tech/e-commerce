@@ -209,6 +209,16 @@ export default function PreferencesForm({
               />
             </SettingsCard>
 
+            <SettingsCard title={copy.delivery.heading} description={copy.delivery.body}>
+              <SettingsToggleRow
+                id="delivery-plain-html"
+                label={copy.delivery.plainHtml}
+                description={copy.delivery.plainHtmlHelp}
+                checked={form.delivery.plainHtml}
+                onChange={(plainHtml) => patch('delivery', { plainHtml })}
+              />
+            </SettingsCard>
+
             <SettingsCard
               title={copy.verification.heading}
               description={copy.verification.body}

@@ -197,6 +197,12 @@ const shape = z.object({
    */
   STOREFRONT_EDGE_TTL: z.coerce.number().int().min(0).max(86_400).optional(),
   /**
+   * `off` sends every page through React even for stores that switched Preferences › Storefront
+   * speed on (plain HTML pages, docs/design/storefront-plain-html.md): the deployment-wide way
+   * back. Unset follows each store's switch.
+   */
+  STOREFRONT_PLAIN_HTML: z.enum(['on', 'off']).optional(),
+  /**
    * How many sections of an imported theme's page are sent first and drawn as the theme wrote
    * them; the rest stream in behind them in the same response, their images lazy and their
    * scripts started near the viewport. Unset is 3.

@@ -64,6 +64,13 @@ export const preferencesContent = {
     locked:
       'Your store is password protected, so search engines and AI crawlers are kept out until you remove the password.',
   },
+  delivery: {
+    heading: 'Storefront speed (beta)',
+    body: 'For a theme imported from Shopify. Your home page and content pages go out as the theme’s own HTML, without the app code our storefront adds, so they open faster. Product, collection, cart and checkout pages are not changed yet.',
+    plainHtml: 'Send pages as plain HTML',
+    plainHtmlHelp:
+      'Turn off at any time to go back; the change reaches every page within a minute. Pages that use one of our own sections stay as they are.',
+  },
   verification: {
     heading: 'Site verification',
     body: 'Prove you own this store to search consoles and ad platforms. Paste the code, or the whole meta tag they give you.',
