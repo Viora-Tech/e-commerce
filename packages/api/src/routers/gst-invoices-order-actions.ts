@@ -3,20 +3,24 @@
  * actions"): adding orders to the invoice queue and "Generate GST invoice". Split out of
  * `./gst-invoices.ts`, which mounts them as `gstInvoices.queue.add` and `gstInvoices.generate`.
  */
-import { enqueueAppJob, permissions } from '@commerce/core'
+import { enqueueAppJob, permissions, refreshOrderLineGst } from '@commerce/core'
 import {
   defaultInvoiceDate,
+  documentsByIds,
   enqueueOrderParcels,
   GST_INVOICES_ID,
   issueDrafts,
   issuedInvoiceIds,
   isTestOrder,
+  regenerateDocument,
+  renderAndStore,
   soldOnlyGiftCards,
 } from '@commerce/plugin-gst-invoices/server'
+import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
 import { BULK_MAX, can } from '../procedures'
 import { orderIdsByNumber } from '../services/gst-invoices.service'
-import { asOrpc, requireInstalled } from './gst-invoices-context'
+import { asOrpc, renderDeps, requireInstalled } from './gst-invoices-context'
 
 /** Add orders by hand, e.g. a pre-order the merchant wants invoiced now. */
 export const addToQueue = can(permissions.ORDERS_WRITE)
@@ -124,3 +128,29 @@ export const invoicesForOrders = can(permissions.ORDERS_READ)
     await requireInstalled(context)
     return { ids: await issuedInvoiceIds(context.tx, input.orderIds) }
   })
+
+/**
+ * "Recalculate GST from products" on an issued, unfiled tax invoice: the order's lines take
+ * their products' GST and HSN as they are now, and the invoice is rebuilt under the same
+ * number and date. Once reported in GSTR-1 it is locked; a credit note is the way then.
+ */
+export const refreshInvoiceGst = can(permissions.ORDERS_WRITE)
+  .input(z.object({ id: z.uuid() }))
+  .handler(async ({ context, input }) => {
+    await requireInstalled(context)
+    try {
+      const [doc] = await documentsByIds(context.tx, [input.id])
+      if (!doc || doc.kind !== 'tax_invoice') {
+        throw new ORPCError('BAD_REQUEST', { message: 'Only a tax invoice can be recalculated' })
+      }
+      const changed = await refreshOrderLineGst(context.tx, doc.orderId)
+      const row = await regenerateDocument(context.tx, context.scope.storeId, doc.id)
+      const done = await renderAndStore(renderDeps(context), row.id)
+      return { id: done.id, number: done.number, changedLines: changed }
+    } catch (err) {
+      asOrpc(err)
+    }
+  })
+
+/** Mounted on `gstInvoices` in one line, so that router stays within the file-size sweep. */
+export const invoiceFixProcedures = { forOrders: invoicesForOrders, refreshGst: refreshInvoiceGst }
