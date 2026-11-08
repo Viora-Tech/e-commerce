@@ -13,14 +13,7 @@ import {
   TableHeader,
   TableRow,
 } from '@commerce/ui/shadcn/table'
-import {
-  createColumnHelper,
-  type ExpandedState,
-  type RowData,
-  type RowSelectionState,
-  type Updater,
-  useTable,
-} from '@tanstack/react-table'
+import { createColumnHelper, type RowData, useTable } from '@tanstack/react-table'
 import { useRouter } from 'next/navigation'
 import { type CSSProperties, type ReactNode, useEffect, useState } from 'react'
 import EmptyState from '@/components/layout/empty-state'
@@ -38,8 +31,16 @@ import {
 } from './columns'
 import { type ResourceTableFeatures, resourceTableFeatures } from './features'
 import ResourceTablePagination from './pagination'
+import { useExpanded, useRowSelection, viewOf } from './row-state'
 import SelectionBar from './selection-bar'
-import { type TableSort, tableMinWidth, useColumnPrefs, useTableSorting } from './table-state'
+import {
+  listScopeKey,
+  type TableSort,
+  tableMinWidth,
+  useClearOnChange,
+  useColumnPrefs,
+  useTableSorting,
+} from './table-state'
 import ResourceTableToolbar, { type AppliedFilter } from './toolbar'
 
 export type { AppliedFilter, ResourceColumnSpec, TableSort }
@@ -136,34 +137,6 @@ export type ResourceTableProps<T extends RowData> = {
 
 const SKELETON_ROWS = 6
 
-/** The table's row selection: the page's own (`selection`) when given, else kept here. */
-function useRowSelection(
-  controlled: { ids: string[]; onChange: (ids: string[]) => void } | undefined,
-) {
-  const [own, setOwn] = useState<RowSelectionState>({})
-  const value: RowSelectionState = controlled
-    ? Object.fromEntries(controlled.ids.map((id) => [id, true]))
-    : own
-  const set = (next: Updater<RowSelectionState>) => {
-    const resolved = typeof next === 'function' ? next(value) : next
-    if (controlled) controlled.onChange(Object.keys(resolved).filter((id) => resolved[id]))
-    else setOwn(resolved)
-  }
-  return [value, set] as const
-}
-
-/** The table's expanded rows: the page's own (`tree`), as TanStack state. */
-function useExpanded<T extends RowData>(tree: ResourceTableProps<T>['tree']) {
-  const value: ExpandedState = tree?.expanded ?? {}
-  const set = (next: Updater<ExpandedState>, expandable: () => string[]) => {
-    const resolved = typeof next === 'function' ? next(value) : next
-    tree?.onExpandedChange(
-      resolved === true ? Object.fromEntries(expandable().map((id) => [id, true])) : resolved,
-    )
-  }
-  return [value, set] as const
-}
-
 /* Icon cells are 44px squares (the row height); the column drops its padding so the
    dividers run the full row height. */
 const ICON_CELL_WIDTH = {
@@ -256,6 +229,22 @@ export default function ResourceTable<T extends RowData>(props: ResourceTablePro
     )
     return () => publishListSelection(path, [])
   }, [rowSelection])
+  // Another tab or view, a filter, a search or a page shows other rows: the selection (and the
+  // bulk bar's "1 order selected") would point at rows no longer on screen, so it clears.
+  useClearOnChange(
+    listScopeKey({
+      view: viewOf(props.views),
+      filterGroups: props.filterGroups,
+      applied: props.applied,
+      query: props.query,
+      page: props.page,
+      perPage: props.perPage,
+    }),
+    () => {
+      if (Object.keys(rowSelection).some((id) => rowSelection[id])) setRowSelection({})
+      setOnlySelected(false)
+    },
+  )
   const [expanded, setExpanded] = useExpanded(props.tree)
   const table = useTable({
     features: resourceTableFeatures,

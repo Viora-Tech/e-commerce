@@ -22,7 +22,9 @@ import PillTabs from '@/components/layout/pill-tabs'
 import RelativeTime from '@/components/layout/relative-time'
 import OrderChip from '@/components/orders/order-chip'
 import TableEmptyRow from '@/components/table/table-empty-row'
+import TableSkeletonRows from '@/components/table/table-skeleton-rows'
 import { gstInvoicesContent } from '@/data/gst-invoices'
+import { tableContent as tableCopy } from '@/data/table'
 import { api } from '@/lib/api-client'
 import { formatPattern } from '@/lib/format-date'
 import { formatPaise } from '@/lib/money'
@@ -36,6 +38,8 @@ type Progress = { batchId: string; total: number; sent: number; failed: number }
 
 const copy = gstInvoicesContent.list
 const kindCopy = gstInvoicesContent.kinds
+/** "invoices", for the shared table copy ("Loading invoices"). */
+const listName = copy.title.toLowerCase()
 /** The list's tabs: GST returns treat invoices, notes and vouchers apart. */
 const TABS = ['tax_invoice', 'credit_note', 'vouchers', 'all'] as const
 type Tab = (typeof TABS)[number]
@@ -74,6 +78,10 @@ const monthLabel = (m: Month) =>
 const istStart = (day: string) => new Date(`${day}T00:00:00+05:30`)
 const istEnd = (day: string) => new Date(istStart(day).getTime() + 86_400_000)
 
+/** Which page of which view a response answers, so rows from another one never show as these. */
+const viewKey = (q: string, tab: Tab, month: Month, page: number, gst: string | undefined) =>
+  JSON.stringify([q.trim(), tab, month, page, gst ?? null])
+
 function filterOf(q: string, tab: Tab, month: Month, gst: string | undefined) {
   const range = monthRange(month)
   return {
@@ -93,6 +101,8 @@ export default function InvoicesList() {
   const [month, setMonth] = useState(thisMonth)
   const [page, setPage] = useState(1)
   const [data, setData] = useState<Page | null>(null)
+  /** The view `data` answers; until it matches the current one the list is still loading. */
+  const [loadedKey, setLoadedKey] = useState<string | null>(null)
   const [picked, setPicked] = useState<Set<string>>(new Set())
   const [everything, setEverything] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -102,9 +112,20 @@ export default function InvoicesList() {
   useEffect(() => {
     let cancelled = false
     const timer = setTimeout(() => {
-      api.gstInvoices.list({ ...filterOf(q, tab, month, gst), page }).then((d) => {
-        if (!cancelled) setData(d)
-      })
+      const key = viewKey(q, tab, month, page, gst)
+      api.gstInvoices
+        .list({ ...filterOf(q, tab, month, gst), page })
+        .then((d) => {
+          if (cancelled) return
+          setData(d)
+          setLoadedKey(key)
+        })
+        .catch((err: unknown) => {
+          if (cancelled) return
+          setData(null)
+          setLoadedKey(key)
+          toast.error(err instanceof Error ? err.message : tableCopy.loadFailed(listName))
+        })
     }, 250)
     return () => {
       cancelled = true
@@ -177,7 +198,10 @@ export default function InvoicesList() {
     })
 
   // Render logic
-  const rows = data?.rows ?? []
+  /* Skeleton rows until the response for this tab, month, search and page arrives; only then can
+     an empty answer read "Nothing issued in this range". */
+  const loading = loadedKey !== viewKey(q, tab, month, page, gst)
+  const rows = loading ? [] : (data?.rows ?? [])
   const count = everything ? null : picked.size
   const anySelected = everything || picked.size > 0
   const allOnPage = rows.length > 0 && rows.every((r) => picked.has(r.id))
@@ -284,7 +308,15 @@ export default function InvoicesList() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {rows.length === 0 ? <TableEmptyRow colSpan={9} message={copy.empty} /> : null}
+            {loading ? (
+              <TableSkeletonRows
+                columns={9}
+                cellClassName={CELL}
+                label={tableCopy.loading(listName)}
+              />
+            ) : rows.length === 0 ? (
+              <TableEmptyRow colSpan={9} message={copy.empty} />
+            ) : null}
             {rows.map((r) => (
               <TableRow key={r.id}>
                 <TableCell className={CELL}>

@@ -181,6 +181,19 @@ export default function CheckoutSettings() {
             title: rules.rows.content,
             value: textEdits > 0 ? rules.rows.contentEdited(textEdits) : rules.rows.contentDefault,
           },
+          {
+            // Order processing: one switch, in the row like the PIN code one.
+            id: 'archive-cancelled',
+            title: r.archiveCancelled,
+            value: r.archiveCancelledHint,
+            control: (
+              <Switch
+                aria-label={r.archiveCancelled}
+                checked={s.archiveCancelled}
+                onCheckedChange={(archiveCancelled) => patch({ archiveCancelled })}
+              />
+            ),
+          },
           { id: 'branding', title: r.branding, value: r.brandingValue },
         ]
       : []

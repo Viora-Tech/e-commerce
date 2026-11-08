@@ -1,6 +1,6 @@
 ---
 title: Customers
-description: Change a customer's name and phone, and keep their saved addresses up to date.
+description: Change a customer's name and phone, keep their saved addresses up to date, and manage their store credit.
 ---
 
 # Customers
@@ -35,6 +35,30 @@ The **Addresses** card lists the customer's saved addresses, with their default 
 A customer who has only ever checked out as a guest has no saved addresses yet. The card then
 shows the address from their latest order, marked **From their latest order**. Select **Edit**
 and **Save address** to add it to their address book.
+
+## Store credit
+
+The **Store credit** card shows the money your shop holds for the customer, and every change to
+it: who made it, why and when. A line that belongs to an order links to that order. Select **Add
+credit** or **Remove credit** to change it by hand, with a reason (the customer does not see the
+reason). Refunds and returns to store credit go onto the same balance. Store credit is not a gift
+card: no code is ever sent.
+
+**Spending it at checkout.** A customer who is signed in sees "You have ₹X in store credit" in
+the order summary, switched on. It pays what is left after discounts and gift cards:
+
+- When it covers everything, there is nothing else to pay. The order is paid by store credit.
+- When it covers part, the rest goes through the way to pay they pick online. Cash on delivery is
+  not offered for the rest, the same as with a gift card.
+- The credit is taken from the balance when the order is placed, so it can't be spent twice. If
+  the online payment never arrives and the order is cancelled (unpaid orders cancel themselves
+  after 30 minutes), it goes back onto the balance as **Returned (order not paid)**.
+- Store credit is a way to pay, not a discount: the order total, the taxable value and the GST
+  stay the same, and the invoice shows it under how the order was paid.
+- A refund of the part paid with store credit always goes back onto the balance.
+
+Customers see their balance and its history under **Account → Store credit** on your store.
+Guests don't see store credit at checkout.
 
 ## Common problems and fixes
 

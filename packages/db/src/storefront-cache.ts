@@ -148,6 +148,8 @@ export const STOREFRONT_CACHE_EXEMPT: Record<string, string> = {
   fulfillment_order_line: SHOPPER,
   gift_card: SHOPPER,
   gift_card_transaction: LOG,
+  store_credit_account: SHOPPER,
+  store_credit_entry: LOG,
   inbound_shipment: ADMIN,
   inbox_ai_event: ADMIN,
   inbox_block: ADMIN,

@@ -52,6 +52,7 @@ const PAYMENT_METHOD_LABELS: Record<string, string> = {
   razorpay: 'Card, UPI or netbanking',
   razorpay_upi: 'UPI',
   gift_card: 'Gift card',
+  store_credit: 'Store credit',
 }
 
 export function paymentMethodLabel(method: string | null): string {

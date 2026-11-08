@@ -62,6 +62,12 @@ export const CheckoutSettingsSchema = z.object({
   recommendedMethod: z.string().trim().max(40).default(''),
   /** Smallest order (items after discount, before shipping) the store accepts; 0 means none. */
   minimumOrderPaise: z.number().int().min(0).default(0),
+  /**
+   * Settings → Checkout → Order processing: a cancelled order is archived in the same step
+   * (`cancelOrder`), so unpaid and voided attempts leave the working tabs. On unless the
+   * merchant turned it off; archived orders stay searchable and can be unarchived.
+   */
+  archiveCancelled: z.boolean().default(true),
   cod: CodRulesSchema.prefault({}),
   /** Settings → Checkout → Branding: the checkout's own look, never the theme's. */
   branding: CheckoutBrandingSchema.prefault({}),

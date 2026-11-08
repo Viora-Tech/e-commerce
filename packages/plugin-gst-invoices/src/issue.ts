@@ -309,6 +309,9 @@ const PAYMENT_LABELS: Record<string, string> = {
   cod: 'Cash on delivery',
   manual: 'UPI or bank transfer',
   razorpay: 'Razorpay',
+  gift_card: 'Gift card',
+  // Store credit is a way the order was paid, never a discount: the taxable value and GST stay.
+  store_credit: 'Store credit',
 }
 const paymentLabel = (id: string | null) => (id ? (PAYMENT_LABELS[id] ?? id) : null)
 

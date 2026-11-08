@@ -249,3 +249,42 @@ export async function refundToStoreCredit(
   })
   return { customerId: holder.customerId, balancePaise }
 }
+
+export type ShopperStoreCreditEntry = {
+  id: string
+  amountPaise: number
+  kind: StoreCreditKind
+  /** The order it was used on or came from; null for a change the store made by hand. */
+  orderNumber: number | null
+  createdAt: Date
+}
+
+/**
+ * What the shopper's own account page shows: the balance and the newest changes, with the
+ * order each one belongs to. Never the staff member or the reason staff typed (the admin's
+ * dialog promises the customer does not see it).
+ */
+export async function shopperStoreCredit(
+  ctx: StoreContext,
+  customerId: string,
+  limit = 20,
+): Promise<{ balancePaise: number; entries: ShopperStoreCreditEntry[] }> {
+  const [account] = await ctx.tx
+    .select({ balancePaise: storeCreditAccount.balancePaise })
+    .from(storeCreditAccount)
+    .where(eq(storeCreditAccount.customerId, customerId))
+  const entries = await ctx.tx
+    .select({
+      id: storeCreditEntry.id,
+      amountPaise: storeCreditEntry.amountPaise,
+      kind: storeCreditEntry.kind,
+      orderNumber: order.number,
+      createdAt: storeCreditEntry.createdAt,
+    })
+    .from(storeCreditEntry)
+    .leftJoin(order, eq(order.id, storeCreditEntry.orderId))
+    .where(eq(storeCreditEntry.customerId, customerId))
+    .orderBy(desc(storeCreditEntry.createdAt), desc(storeCreditEntry.id))
+    .limit(limit)
+  return { balancePaise: account?.balancePaise ?? 0, entries }
+}

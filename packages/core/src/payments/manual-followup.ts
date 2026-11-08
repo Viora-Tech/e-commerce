@@ -1,13 +1,13 @@
 import { type Db, order, orderNote, payment, store, withStore } from '@commerce/db'
 import type { CustomMessage } from '@commerce/notifications'
-import { and, asc, eq, inArray, isNotNull, isNull, lte, ne, or } from 'drizzle-orm'
+import { and, asc, eq, inArray, isNotNull, isNull, lte, notInArray, or } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 import { CommerceError } from '../errors'
-import { GIFT_CARD_PROVIDER } from '../gift-cards/service'
 import { recomputeOrderStatuses } from '../order/recompute'
 import { cancelOrder } from '../order/status'
 import { insertOutboxEvent } from '../outbox/write'
 import { manualCancelHoursOf, parsePaymentSettings } from './settings'
+import { SPLIT_TENDER_PROVIDERS } from './split-tender'
 import { OPEN_ATTEMPT_STATUSES } from './transitions'
 
 /*
@@ -306,7 +306,7 @@ export async function cancelUnpaidManualOrder(
       and(
         eq(payment.orderId, orderId),
         inArray(payment.status, [...OPEN_ATTEMPT_STATUSES]),
-        ne(payment.provider, GIFT_CARD_PROVIDER),
+        notInArray(payment.provider, [...SPLIT_TENDER_PROVIDERS]),
       ),
     )
   await recomputeOrderStatuses(ctx, orderId)

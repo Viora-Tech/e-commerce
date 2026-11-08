@@ -201,6 +201,11 @@ export type CheckoutForm = {
   payment: string
   /** Gift card codes applied in the summary; each is re-checked here before it is spent. */
   giftCards?: string[]
+  /**
+   * Spend the signed-in shopper's store credit. Whose balance comes from the session, never the
+   * form; a guest's submit with this set uses nothing.
+   */
+  useStoreCredit?: boolean
   /** The shipping rate picked in the summary; re-priced on the server. */
   shippingRate?: string
   /**
@@ -366,6 +371,8 @@ export async function checkoutAction(submitted: CheckoutForm): Promise<CheckoutR
         paymentProvider: provider,
         paymentFallbacks: fallbacks,
         giftCardIds,
+        // Store credit only ever comes from the signed-in customer's own balance.
+        ...(me && form.useStoreCredit === true ? { storeCredit: { customerId: me.id } } : {}),
         // A delivery option id is not a rate row: the app prices it instead.
         shippingRateId: delivery ? null : form.shippingRate || null,
         ...(delivery ? { delivery } : {}),

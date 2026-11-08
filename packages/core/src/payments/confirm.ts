@@ -1,9 +1,11 @@
 import { order, payment } from '@commerce/db'
 import type { ClientConfirmation, PaymentProvider, PaymentStatus } from '@commerce/payments'
-import { and, eq, isNull, ne } from 'drizzle-orm'
+import { and, eq, isNull, ne, notInArray } from 'drizzle-orm'
 import type { StoreContext } from '../context'
+import { captureHeldStoreCredit } from '../customers/store-credit-checkout'
 import { recomputeOrderStatuses } from '../order/recompute'
 import { insertOutboxEvent } from '../outbox/write'
+import { isSplitTender, SPLIT_TENDER_PROVIDERS } from './split-tender'
 import { nextPaymentStatus } from './transitions'
 
 export type AppliedPayment = {
@@ -169,7 +171,7 @@ export async function applyPaymentStatus(
           eq(payment.orderId, p.orderId),
           ne(payment.id, p.id),
           eq(payment.status, 'captured'),
-          ne(payment.provider, 'gift_card'),
+          notInArray(payment.provider, [...SPLIT_TENDER_PROVIDERS]),
           eq(payment.multiCapture, false),
           eq(payment.refundNeeded, false),
         ),
@@ -192,6 +194,10 @@ export async function applyPaymentStatus(
   if (!updated) return null
   if (next === 'captured' && !refundNeeded && p.purpose === 'balance') {
     await settleBalance(ctx, p.orderId)
+  }
+  // The rest arrived: store credit held for this checkout is now the order's money too.
+  if (next === 'captured' && !refundNeeded && p.purpose === 'order' && !isSplitTender(p.provider)) {
+    await captureHeldStoreCredit(ctx, p.orderId)
   }
   // The single choke point every capture path (webhook, gateway
   // create-payment, client confirm) goes through. The recompute writes

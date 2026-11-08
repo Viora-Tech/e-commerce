@@ -5,9 +5,10 @@
  */
 import { cart, order, payment } from '@commerce/db'
 import type { CheckoutSession } from '@commerce/payments'
-import { and, desc, eq, ne } from 'drizzle-orm'
+import { and, desc, eq, notInArray } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 import { GIFT_CARD_PROVIDER } from '../gift-cards/service'
+import { SPLIT_TENDER_PROVIDERS } from '../payments/split-tender'
 import type { PlaceOrderResult } from './place-order-types'
 
 /**
@@ -49,12 +50,14 @@ export async function lockCartOrReplay(
       checkoutSession: payment.checkoutSession,
     })
     .from(payment)
-    .where(and(eq(payment.orderId, o.id), ne(payment.provider, GIFT_CARD_PROVIDER)))
+    .where(
+      and(eq(payment.orderId, o.id), notInArray(payment.provider, [...SPLIT_TENDER_PROVIDERS])),
+    )
     .orderBy(desc(payment.attempt), desc(payment.id))
     .limit(1)
   if (!p) {
-    // Paid in full by gift cards: no provider payment was ever created.
-    const providerRef = `gift_card_${o.id}`
+    // Paid in full by gift cards or store credit: no provider payment was ever created.
+    const providerRef = `${o.paymentMethod ?? GIFT_CARD_PROVIDER}_${o.id}`
     return {
       orderId: o.id,
       orderNumber: o.number,

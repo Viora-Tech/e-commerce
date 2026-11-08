@@ -6,6 +6,7 @@ import { CHECKOUT_LIMITS } from '@commerce/core/checkout-settings'
 import { addPaymentInfoEventId } from '@commerce/core/pixels'
 import PaymentMethods from '@/components/checkout/payment-methods'
 import { checkoutContent as content } from '@/data/checkout'
+import { storeCreditCheckoutContent } from '@/data/store-credit'
 import { CK_INPUT, CK_LABEL } from '@/lib/checkout-classes'
 import { recommendedMethodId } from '@/lib/checkout-preview'
 import type { CheckoutFormModel } from '@/lib/use-checkout-form'
@@ -69,7 +70,11 @@ export default function CheckoutPaymentStep({ ck }: CheckoutPaymentStepProps) {
       ) : null}
       {totals.coveredByCards ? (
         <p className="rounded-ck border border-ck-line bg-ck-canvas px-4 py-3 text-[0.875rem] text-ck-ink">
-          {content.paidByGiftCard}
+          {totals.storeCreditUsedPaise === 0
+            ? content.paidByGiftCard
+            : totals.cardRows.length > 0
+              ? storeCreditCheckoutContent.paidByBoth
+              : storeCreditCheckoutContent.paidBy}
         </p>
       ) : totals.offered.length === 0 ? (
         // Every way to pay is hidden for this order (Settings → Payments → customizations).

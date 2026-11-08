@@ -1835,12 +1835,12 @@ export const payment = pgTable(
     uniqueIndex('payment_store_idempotency_key')
       .on(t.storeId, t.idempotencyKey)
       .where(sql`${t.idempotencyKey} is not null`),
-    /* At most one gateway capture per order. Gift cards are split tender by
+    /* At most one gateway capture per order. Gift cards and store credit are split tender by
        design; a capture flagged refund-needed is money on its way back. */
     uniqueIndex('payment_one_capture_per_order')
       .on(t.storeId, t.orderId)
       .where(
-        sql`${t.status} = 'captured' and ${t.provider} <> 'gift_card' and not ${t.multiCapture} and not ${t.refundNeeded}`,
+        sql`${t.status} = 'captured' and ${t.provider} not in ('gift_card', 'store_credit') and not ${t.multiCapture} and not ${t.refundNeeded}`,
       ),
     check('payment_purpose_check', sql`${t.purpose} in ('order', 'balance')`),
     /* One balance attempt in flight per order: two "Pay balance" taps get the same one. */

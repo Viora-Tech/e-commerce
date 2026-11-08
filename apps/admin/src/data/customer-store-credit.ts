@@ -13,6 +13,7 @@ export const customerStoreCreditContent = {
     adjustment: 'Adjusted',
     payment: 'Paid an order',
     refund: 'Refund',
+    release: 'Returned (order not paid)',
   } as Record<string, string>,
   dialog: {
     addTitle: 'Add store credit',

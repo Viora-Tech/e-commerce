@@ -82,6 +82,12 @@ export type PlaceOrderInput = {
   /** Cards the shopper applied (ids from `findRedeemableGiftCard`), spent before the provider is charged. */
   giftCardIds?: readonly string[]
   /**
+   * Spend this customer's store credit on what is left after gift cards. Only for a signed-in
+   * shopper (the storefront passes the session's customer, never one from the form); the order's
+   * customer must be the same one. Left out: no store credit is used.
+   */
+  storeCredit?: { customerId: string } | undefined
+  /**
    * The shipping rate the shopper picked. Re-priced here; a rate that no longer
    * applies throws `ShippingRateUnavailable`. Omitted: the cheapest that applies.
    */
@@ -100,7 +106,7 @@ export type PlaceOrderResult = {
   /**
    * The payment attempt recorded with the order. `placeOrder` never calls the
    * gateway: after its transaction commits, start this attempt with
-   * `startPaymentAttempt` (or use `placeOrderAndPay`). Null when gift cards
+   * `startPaymentAttempt` (or use `placeOrderAndPay`). Null when gift cards and store credit
    * paid the whole order.
    */
   attemptId: string | null
@@ -174,6 +180,8 @@ export type State = {
   /** Part of the total paid from gift cards; the provider is asked for the rest. */
   giftCardPaise: number
   redemptions: GiftCardRedemption[]
+  /** Part of what is due now taken from the customer's store credit (held or captured). */
+  storeCreditPaise: number
   attemptId: string | null
   /** Deposit charged now and balance deferred, from the order's pre-order lines. Both 0 when none. */
   depositPaise: number

@@ -47,5 +47,7 @@ export default [
     emptyHeading: (plural) => `अभी कोई ${plural} नहीं`,
     noResultsBody: 'इस खोज और इन फ़िल्टर से कुछ नहीं मिला।',
     clearSearchAndFilters: 'फ़िल्टर हटाएँ',
+    loading: (plural) => `${plural} लोड हो रहे हैं`,
+    loadFailed: (plural) => `${plural} लोड नहीं हो सके`,
   }),
 ]

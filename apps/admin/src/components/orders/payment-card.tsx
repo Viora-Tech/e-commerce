@@ -67,7 +67,10 @@ export default function PaymentCard({
 
   // Render logic
   const events = order.paymentEvents
-  const multipleAttempts = order.payments.filter((p) => p.provider !== 'gift_card').length > 1
+  // Gift cards and store credit sit beside the attempts; they are not attempts themselves.
+  const multipleAttempts =
+    order.payments.filter((p) => p.provider !== 'gift_card' && p.provider !== 'store_credit')
+      .length > 1
   // Payment due later (#1029): shown while money is still owed.
   const owed = order.paymentTerms !== null && order.paymentStatus !== 'paid'
   const dueAt = order.paymentDueAt ? new Date(order.paymentDueAt) : null

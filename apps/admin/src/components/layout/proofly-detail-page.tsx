@@ -1,7 +1,7 @@
 import { cn } from '@commerce/ui/lib/utils'
 import type { ReactNode } from 'react'
 import FocusFromQuery from './focus-from-query'
-import StickySideColumn from './sticky-side-column'
+import StickyColumns from './sticky-columns'
 
 type ProoflyDetailPageProps = {
   /** `PageHeader`, plus any banner that belongs above the columns. */
@@ -12,7 +12,7 @@ type ProoflyDetailPageProps = {
   children?: ReactNode
 }
 
-/** Detail-page shell of the Proofly frames: header on top, a fluid main column and a 22rem side column that stays in view on desktop (scrolling on its own when taller than the screen). */
+/** Detail-page shell of the Proofly frames: header on top, a fluid main column and a 23.5rem side column; on desktop the shorter column stays in view. */
 export default function ProoflyDetailPage({
   header,
   main,
@@ -26,15 +26,12 @@ export default function ProoflyDetailPage({
       {header}
       {/* Two columns only with a side column; without one the main column takes the width
           (an empty content type left half the page blank, audit #184). */}
-      <div
-        className={cn(
-          'grid grid-cols-1 items-start gap-6',
-          side && 'lg:grid-cols-[minmax(0,1fr)_23.5rem]',
-        )}
-      >
-        <div className="flex min-w-0 flex-col gap-6">{main}</div>
-        {side ? <StickySideColumn gap={6}>{side}</StickySideColumn> : null}
-      </div>
+      <StickyColumns
+        main={main}
+        side={side}
+        gap={6}
+        className={cn('gap-6', side && 'lg:grid-cols-[minmax(0,1fr)_23.5rem]')}
+      />
       {children}
       <FocusFromQuery />
     </div>
