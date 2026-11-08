@@ -355,7 +355,18 @@ describe('dashboard.summary', () => {
     expect(s.lowStock).toEqual([expect.objectContaining({ title: 'Pad', available: 8 })])
     expect(s.needsYou.lowStock.count).toBe(1)
     expect((await low()).total).toBe(1)
-    expect((await call(appRouter.products.stats, undefined, { context: a.ctx })).lowStock).toBe(1)
+    expect(await call(appRouter.products.stats, undefined, { context: a.ctx })).toMatchObject({
+      lowStock: 1,
+      outOfStock: 0,
+    })
+    // A product with no variant has nothing to sell: out of stock, not low.
+    await owner
+      .insert(product)
+      .values({ storeId: a.storeId, handle: 'empty', title: 'Empty', status: 'active' })
+    expect(await call(appRouter.products.stats, undefined, { context: a.ctx })).toMatchObject({
+      lowStock: 1,
+      outOfStock: 1,
+    })
     expect(
       (await call(appRouter.products.facets, undefined, { context: a.ctx })).lowStockThreshold,
     ).toBe(10)

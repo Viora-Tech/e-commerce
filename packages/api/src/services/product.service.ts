@@ -24,6 +24,7 @@ import {
   productOption,
   productOptionValue,
   sellableStock,
+  sellableStockForProducts,
   store,
   variant,
   variantOptionValue,
@@ -172,8 +173,19 @@ export async function listProducts(
   const where = listWhere(input, await storeLowStockThreshold(tx))
   const [countRow] = await tx.select({ total: count() }).from(product).where(where)
   const total = countRow?.total ?? 0
+  // Only the columns a row shows: not the description, SEO text and the rest of each product.
   const rows = await tx
-    .select()
+    .select({
+      id: product.id,
+      handle: product.handle,
+      title: product.title,
+      status: product.status,
+      vendor: product.vendor,
+      productType: product.productType,
+      tags: product.tags,
+      preorderEnabled: product.preorderEnabled,
+      launchAt: product.launchAt,
+    })
     .from(product)
     .where(where)
     .orderBy(desc(product.createdAt))
@@ -182,16 +194,18 @@ export async function listProducts(
   if (rows.length === 0) return { items: [], total }
   const ids = rows.map((r) => r.id)
 
+  // Selling stock for this page's variants only, not every stock row in the store.
+  const stock = sellableStockForProducts(ids)
   const variants = await tx
     .select({
       productId: variant.productId,
       pricePaise: variant.pricePaise,
       hiddenOnStore: variant.hiddenOnStore,
-      onHand: sellableStock.onHand,
-      reserved: sellableStock.reserved,
+      onHand: stock.onHand,
+      reserved: stock.reserved,
     })
     .from(variant)
-    .leftJoin(sellableStock, eq(sellableStock.variantId, variant.id))
+    .leftJoin(stock, eq(stock.variantId, variant.id))
     .where(and(inArray(variant.productId, ids), isNull(variant.archivedAt)))
   const images = await tx
     .select({ productId: productMedia.productId, url: media.url })
