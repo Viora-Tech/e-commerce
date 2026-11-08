@@ -4,7 +4,6 @@ import {
   DocumentSnapshotSchema,
   type InvoiceSettings,
 } from '@commerce/invoices'
-import { renderDocumentToBuffer } from '@commerce/invoices/render'
 import type { StorageProvider } from '@commerce/storage'
 import { eq } from 'drizzle-orm'
 import { getDocument, InvoiceError, type InvoiceRow, loadSettings } from './issue'
@@ -53,6 +52,9 @@ export async function renderSnapshot(
       signature: await mediaDataUri(tx, storage, s.signatureMediaId),
     }
   })
+  // The PDF renderer (React PDF, fonts, pdf-lib) loads on the first PDF, not with every process
+  // that loads the plugin: it is the biggest library the worker would otherwise keep resident.
+  const { renderDocumentToBuffer } = await import('@commerce/invoices/render')
   return renderDocumentToBuffer({ doc, settings: s, assets: { logo, signature } })
 }
 

@@ -91,11 +91,15 @@ export function sharpThreadsFor(cpus: number, jobs: number): number {
   return Math.max(1, Math.floor(cpus / Math.max(1, jobs)))
 }
 
-/** Call once at worker start. Also caps libvips' own cache so memory stays bounded across parallel jobs. */
+/**
+ * Call once at worker start. Also turns libvips' operation cache off: each step of `processImage` starts a
+ * fresh `sharp()` from a new buffer, so a cached result is almost never reused, and the cache kept
+ * up to 100 MB of decoded pixels resident after an import's last image.
+ */
 export function tuneImagePipeline(opts: { cpus: number; jobs: number }): number {
   const threads = sharpThreadsFor(opts.cpus, opts.jobs)
   sharp.concurrency(threads)
-  sharp.cache({ memory: 100, files: 0, items: 50 })
+  sharp.cache(false)
   return threads
 }
 

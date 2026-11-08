@@ -12,8 +12,6 @@ import { registriesForStore } from '@commerce/core/registries'
 import { type Db, withStore } from '@commerce/db'
 import { logger } from '@commerce/observability/logging'
 import { type IORedis, KEEP_FINISHED, Queue, Worker } from '@commerce/queue'
-import { chromium } from 'playwright-core'
-import sharp from 'sharp'
 
 /** The desktop frame the Themes page draws the picture in (1440 × 1080). */
 const VIEWPORT = { width: 1440, height: 1080 }
@@ -33,8 +31,16 @@ type ThemeScreenshotOptions = {
   disabled?: boolean
 }
 
-/** The storefront's home page in a headless Chromium, as a webp of the first screen. */
+/**
+ * The storefront's home page in a headless Chromium, as a webp of the first screen.
+ * Playwright and sharp load here, on the first picture, not at worker start: Playwright alone is
+ * tens of MB of resident memory, and most worker runs never take a picture.
+ */
 async function photograph(url: string, chromiumPath: string | undefined): Promise<Uint8Array> {
+  const [{ chromium }, { default: sharp }] = await Promise.all([
+    import('playwright-core'),
+    import('sharp'),
+  ])
   const browser = await chromium.launch({
     ...(chromiumPath ? { executablePath: chromiumPath } : {}),
     // Containers have a tiny /dev/shm and no user namespaces for the sandbox.

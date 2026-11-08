@@ -543,6 +543,7 @@ export const ACTION_DOCS: Record<string, string> = {
   'orders.setStatus': '"Mark as paid / fulfilled / delivered", or cancel.',
   'orders.sheet': 'Rows for the Orders bulk-edit spreadsheet, in the order the ids were given.',
   'orders.stats': 'The order stats for the last 7 days, against the 7 days before.',
+  'orders.tabCounts': 'The Orders tab badges (All, Unpaid, Unfulfilled, Pending UPI) in one query.',
   'orders.tagMany':
     'The list\'s bulk "Add tags" / "Remove tags": every given tag on (or off) every order.',
   'orders.takeOver':

@@ -1,5 +1,4 @@
 /** SOURCE OF TRUTH: shopper social sign-in providers — WHAT: Google, Apple and Facebook OAuth (authorisation URL with PKCE, code exchange, profile to a shopper identity) and Google One Tap credential checks, built on Better Auth's official provider modules / WHY: provider protocols (PKCE, Apple's signed client secret, ID token checks) are easy to get subtly wrong, so we reuse the maintained implementation instead of writing our own */
-import { apple, facebook, google, verifyGoogleIdToken } from 'better-auth/social-providers'
 import { importPKCS8, SignJWT } from 'jose'
 import type { SocialProvider } from '../customer-accounts/client'
 import type { AppleApp, FacebookApp, GoogleApp } from './credentials'
@@ -21,6 +20,9 @@ import type { ShopperIdentity } from './identities'
 
 export type SocialApp = GoogleApp | AppleApp | FacebookApp
 
+/** Loaded on the first social sign-in: tens of MB the worker and admin never use. */
+const socialProviders = () => import('better-auth/social-providers')
+
 /** Apple's client secret is a JWT we sign with the .p8 key (ES256), valid up to 6 months. */
 export async function appleClientSecret(app: AppleApp, now: Date = new Date()): Promise<string> {
   const key = await importPKCS8(app.privateKey, 'ES256')
@@ -36,6 +38,7 @@ export async function appleClientSecret(app: AppleApp, now: Date = new Date()): 
 }
 
 async function providerFor(app: SocialApp, redirectURI: string) {
+  const { apple, facebook, google } = await socialProviders()
   switch (app.provider) {
     case 'google':
       return google({ clientId: app.clientId, clientSecret: app.clientSecret, redirectURI })
@@ -120,6 +123,7 @@ export async function verifyOneTapCredential(
   nonce: string,
 ): Promise<ShopperIdentity | null> {
   if (typeof credential !== 'string' || credential.length > 4096) return null
+  const { verifyGoogleIdToken } = await socialProviders()
   const payload = await verifyGoogleIdToken({ token: credential, audience: app.clientId, nonce })
   if (!payload || typeof payload.sub !== 'string') return null
   const email = typeof payload.email === 'string' ? payload.email : null

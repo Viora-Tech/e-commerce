@@ -9,17 +9,6 @@ import OrdersPage from './orders-page'
 
 export const metadata: Metadata = { title: 'Orders' }
 
-type Context = Awaited<ReturnType<typeof serverContext>>
-
-/** Total orders in one tab, for the tab badges and the summary line. */
-function count(context: Context, view?: (typeof ORDER_LIST_FILTERS)[number]) {
-  return call(
-    appRouter.orders.list,
-    { page: 1, perPage: 1, ...(view ? { view } : {}) },
-    { context },
-  )
-}
-
 type Props = { searchParams: Promise<SearchParams> }
 
 export default async function Page({ searchParams }: Props) {
@@ -27,7 +16,7 @@ export default async function Page({ searchParams }: Props) {
   const query = parseListQuery(params, ORDER_LIST_FILTERS)
   const perPage = parseRowsPerPage(params.perPage)
   const context = await serverContext()
-  const [result, all, unpaid, unfulfilled, pending, tiles, appActions, apps] = await Promise.all([
+  const [result, counts, tiles, appActions, apps] = await Promise.all([
     call(
       appRouter.orders.list,
       {
@@ -38,10 +27,8 @@ export default async function Page({ searchParams }: Props) {
       },
       { context },
     ),
-    count(context),
-    count(context, 'unpaid'),
-    count(context, 'unfulfilled'),
-    count(context, 'pending_upi'),
+    // Every tab badge in one query, not a full list read per tab.
+    call(appRouter.orders.tabCounts, undefined, { context }),
     call(appRouter.orders.tiles, undefined, { context }),
     call(appRouter.apps.orderActions, undefined, { context }).catch(() => []),
     listApps().catch(() => []),
@@ -56,12 +43,7 @@ export default async function Page({ searchParams }: Props) {
         tiles,
         appActions,
         automations: apps.some((a) => a.installed && a.id === 'automations'),
-        counts: {
-          all: all.total,
-          unpaid: unpaid.total,
-          unfulfilled: unfulfilled.total,
-          pendingUpi: pending.total,
-        },
+        counts,
       }}
     />
   )

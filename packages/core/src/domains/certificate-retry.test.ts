@@ -325,6 +325,19 @@ describe('rows Cloudflare took on', () => {
     expect(w.d.calls).toEqual([])
   })
 
+  it('the sweep leaves them out, so they are not counted every minute', async () => {
+    await seed('www.brand.in', {
+      kind: 'custom',
+      status: 'active',
+      sslStatus: 'issuing',
+      routeStatus: 'ready',
+      edgeRecords: [],
+    })
+    const w = world({ 'www.brand.in': 'valid' })
+    expect(await runCertificateSweep(w.deps())).toMatchObject({ checked: 0, failed: 0 })
+    expect(w.d.calls).toEqual([])
+  })
+
   it('a pre-existing row with no edge records is checked as before', async () => {
     const row = await seed('www.brand.in', {
       kind: 'custom',

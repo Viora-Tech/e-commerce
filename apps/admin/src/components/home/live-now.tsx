@@ -2,10 +2,10 @@
 
 import type { DashboardSummary } from '@commerce/api'
 import { motion, useReducedMotion } from 'motion/react'
+import dynamic from 'next/dynamic'
 import { useTheme } from 'next-themes'
 import { useEffect, useState } from 'react'
 import { buildGlobeData } from '@/components/analytics/live-globe/build-globe-data'
-import LiveGlobeCanvas from '@/components/analytics/live-globe/live-globe-canvas'
 import SectionHead from '@/components/layout/section-head'
 import { homePageContent } from '@/data/home'
 import { useCopy, useFormat } from '@/hooks/use-copy'
@@ -17,6 +17,15 @@ import RollingNumber from './rolling-number'
 type LiveNowProps = {
   initial: DashboardSummary
 }
+
+/* cobe and the globe's overlay load in their own chunk once the card knows WebGL works; the
+   card keeps its fixed height meanwhile, so nothing moves. */
+const LiveGlobeCanvas = dynamic(
+  () => import('@/components/analytics/live-globe/live-globe-canvas'),
+  {
+    ssr: false,
+  },
+)
 
 /** Where the camera eases to on load: a point roughly in the middle of India. */
 const INDIA_FOCUS = { lat: 22.35, lng: 78.6 }

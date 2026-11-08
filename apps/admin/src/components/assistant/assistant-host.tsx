@@ -2,11 +2,12 @@
 
 import { pageContextFor } from '@commerce/ai/client'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
+import dynamic from 'next/dynamic'
 import { usePathname } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { useAssistant } from '@/hooks/use-assistant'
+import { useAssistantEnabled } from '@/hooks/use-assistant-enabled'
 import { useLocale } from '@/hooks/use-copy'
-import { api } from '@/lib/api-client'
 import {
   isAssistantShortcut,
   OPEN_ASSISTANT_EVENT,
@@ -15,7 +16,10 @@ import {
 import { listSelection } from '@/lib/list-selection'
 import { instant } from '@/lib/motion'
 import AssistantLauncher from './assistant-launcher'
-import AssistantPanel from './assistant-panel'
+
+/* The chat panel (composer, answers, action cards, sources) loads the first time it opens, not
+   with every admin page; the bar alone is part of the page. */
+const AssistantPanel = dynamic(() => import('./assistant-panel'), { ssr: false })
 
 /** Opening and closing: 420ms on the drawer curve (owner: slower and smooth). */
 const DRAWER = { duration: 0.42, ease: [0.32, 0.72, 0, 1] as const }
@@ -36,21 +40,14 @@ export default function AssistantHost({ storeId }: AssistantHostProps) {
   const pathname = usePathname()
   const locale = useLocale()
   const assistant = useAssistant(storeId)
-  const [enabled, setEnabled] = useState(false)
+  // The same cached `ai.status` read the top bar and the palette use: one request per page load.
+  const aiEnabled = useAssistantEnabled()
   const [open, setOpen] = useState(false)
   const [pending, setPending] = useState<string | null>(null)
   const reduced = useReducedMotion()
 
   useEffect(() => {
-    if (!storeId) return
-    api.ai
-      .status()
-      .then((status) => setEnabled(status.assistant))
-      .catch(() => setEnabled(false))
-  }, [storeId])
-
-  useEffect(() => {
-    if (!enabled) return
+    if (!aiEnabled || !storeId) return
     function onKey(e: KeyboardEvent) {
       if (isAssistantShortcut(e)) {
         e.preventDefault()
@@ -73,7 +70,7 @@ export default function AssistantHost({ storeId }: AssistantHostProps) {
       window.removeEventListener('keydown', onKey)
       window.removeEventListener(OPEN_ASSISTANT_EVENT, onOpen)
     }
-  }, [enabled])
+  }, [aiEnabled, storeId])
 
   // A suggestion picked elsewhere (Home) is sent once the panel is open.
   useEffect(() => {
@@ -92,7 +89,7 @@ export default function AssistantHost({ storeId }: AssistantHostProps) {
   }
 
   // Early returns
-  if (!enabled) return null
+  if (!aiEnabled || !storeId) return null
 
   // Render logic
   const page = pageContextFor(pathname).page

@@ -1,6 +1,6 @@
-import { type SQL, type SQLWrapper, sql } from 'drizzle-orm'
+import { and, eq, inArray, type SQL, type SQLWrapper, sql } from 'drizzle-orm'
 import { QueryBuilder } from 'drizzle-orm/pg-core'
-import { inventoryLevel, sellableLevel } from './schema'
+import { inventoryLevel, sellableLevel, variant } from './schema'
 
 /**
  * SOURCE OF TRUTH: sellableStock, primarySellingLevel
@@ -22,6 +22,24 @@ export const sellableStock = new QueryBuilder()
   .where(sellableLevel)
   .groupBy(inventoryLevel.variantId)
   .as('sellable_stock')
+
+/**
+ * `sellableStock` for the variants of some products only: the same sums, filtered before the
+ * grouping. Join it where a page shows a few products (the Products list's 25 rows):
+ * `sellableStock` groups every selling row in the store before the join can narrow it.
+ */
+export const sellableStockForProducts = (productIds: string[]) =>
+  new QueryBuilder()
+    .select({
+      variantId: inventoryLevel.variantId,
+      onHand: sql<number>`sum(${inventoryLevel.onHand})::int`.as('on_hand'),
+      reserved: sql<number>`sum(${inventoryLevel.reserved})::int`.as('reserved'),
+    })
+    .from(inventoryLevel)
+    .innerJoin(variant, eq(variant.id, inventoryLevel.variantId))
+    .where(and(sellableLevel, inArray(variant.productId, productIds)))
+    .groupBy(inventoryLevel.variantId)
+    .as('sellable_stock_page')
 
 /**
  * Filter for the one selling row a whole-variant stock edit (the product form's "Stock") and a
