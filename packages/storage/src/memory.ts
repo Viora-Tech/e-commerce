@@ -1,3 +1,4 @@
+import { cacheControlFor } from './keys'
 import type {
   PresignedUpload,
   PresignInput,
@@ -22,7 +23,10 @@ export class MemoryStorageProvider implements StorageProvider {
   readonly label = 'In-memory (tests)'
   readonly signed: PresignInput[] = []
   readonly deleted: string[] = []
-  readonly objects = new Map<string, { body: Uint8Array; contentType: string }>()
+  readonly objects = new Map<
+    string,
+    { body: Uint8Array; contentType: string; cacheControl?: string | undefined }
+  >()
   private readonly publicBase: string
   private readonly uploadBase: string
 
@@ -46,7 +50,11 @@ export class MemoryStorageProvider implements StorageProvider {
   }
 
   async put(input: PutInput): Promise<void> {
-    this.objects.set(input.key, { body: input.body, contentType: input.contentType })
+    this.objects.set(input.key, {
+      body: input.body,
+      contentType: input.contentType,
+      cacheControl: cacheControlFor(input),
+    })
   }
 
   /** Keys written through `putStream`, so tests can tell a streamed copy from a buffered one. */
@@ -56,7 +64,11 @@ export class MemoryStorageProvider implements StorageProvider {
     const body = new Uint8Array(await new Response(input.body).arrayBuffer())
     input.signal?.throwIfAborted()
     this.streamed.push(input.key)
-    this.objects.set(input.key, { body, contentType: input.contentType })
+    this.objects.set(input.key, {
+      body,
+      contentType: input.contentType,
+      cacheControl: cacheControlFor(input),
+    })
   }
 
   async get(key: string): Promise<Uint8Array | null> {

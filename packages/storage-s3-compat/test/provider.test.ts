@@ -48,6 +48,23 @@ describe('S3CompatProvider', () => {
     expect(sent.input.Key).toBe('media/a.png')
   })
 
+  it('put sends the Cache-Control a media file gets, and none for other files', async () => {
+    const { provider, client } = fake()
+    const body = new Uint8Array([1])
+    await provider.put({
+      key: 'stores/s1/media/x-w640.webp',
+      body,
+      contentType: 'image/webp',
+      cacheControl: 'public, max-age=31536000, immutable',
+    })
+    await provider.put({ key: 'stores/s1/media/x.mp4', body, contentType: 'video/mp4' })
+    await provider.put({ key: 'stores/s1/invoices/1.pdf', body, contentType: 'application/pdf' })
+    const calls = (client.send as ReturnType<typeof vi.fn>).mock.calls
+    expect(calls[0]?.[0].input.CacheControl).toBe('public, max-age=31536000, immutable')
+    expect(calls[1]?.[0].input.CacheControl).toBe('public, max-age=31536000, immutable')
+    expect(calls[2]?.[0].input.CacheControl).toBeUndefined()
+  })
+
   it('put forwards the caller signal to the SDK, combined with the hard deadline', async () => {
     const { provider, client } = fake()
     const caller = new AbortController()

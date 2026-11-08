@@ -95,3 +95,28 @@ export function mediaKey(input: MediaKeyInput): string {
 export function keyBelongsToStore(key: string, storeId: string): boolean {
   return key.startsWith(`stores/${storeId}/`) && !key.includes('..')
 }
+
+/**
+ * `Cache-Control` for media whose bytes never change at their key: a year, in browsers and the
+ * CDN, without asking again. Media keys carry a fresh id (`mediaKey`), and the processed files the
+ * pipeline writes (the cleaned master, its `-w<width>` variants) are final.
+ */
+export const MEDIA_CACHE_CONTROL = 'public, max-age=31536000, immutable'
+
+/**
+ * The `Cache-Control` a write gets: the caller's, else a year for a video under a media key (a
+ * video is stored as it came and never rewritten), else none. An image under a media key gets
+ * none until the pipeline rewrites it: its first bytes are the original, EXIF and GPS included,
+ * which no cache may keep.
+ */
+export function cacheControlFor(input: {
+  key: string
+  contentType: string
+  cacheControl?: string | undefined
+}): string | undefined {
+  if (input.cacheControl) return input.cacheControl
+  const isMedia = /^(?:.*\/)?stores\/[^/]+\/media\//.test(input.key)
+  return isMedia && input.contentType.toLowerCase().startsWith('video/')
+    ? MEDIA_CACHE_CONTROL
+    : undefined
+}

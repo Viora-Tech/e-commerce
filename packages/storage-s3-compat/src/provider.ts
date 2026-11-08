@@ -15,6 +15,7 @@ import type {
   PutStreamInput,
   StorageProvider,
 } from '@commerce/storage'
+import { cacheControlFor } from '@commerce/storage/keys'
 import { defaultSign, S3_COMPAT_PRESIGN_SECONDS, type S3CompatDeps, type SignFn } from './client'
 
 /**
@@ -102,6 +103,7 @@ export abstract class S3CompatProvider implements StorageProvider {
         Body: input.body,
         ContentType: input.contentType,
         ContentLength: input.body.byteLength,
+        CacheControl: cacheControlFor(input),
       }),
       { abortSignal: opSignal(input.signal) },
     )
@@ -124,6 +126,7 @@ export abstract class S3CompatProvider implements StorageProvider {
         Key: this.fullKey(input.key),
         Body: input.body,
         ContentType: input.contentType,
+        CacheControl: cacheControlFor(input),
       },
       partSize: STREAM_PART_BYTES,
       queueSize: STREAM_PARTS_IN_FLIGHT,

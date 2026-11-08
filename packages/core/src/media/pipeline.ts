@@ -10,6 +10,7 @@
  * `thumbhash` (MIT) are credited in THIRD_PARTY_NOTICES.md.
  */
 
+import { MEDIA_CACHE_CONTROL } from '@commerce/storage/keys'
 import sharp from 'sharp'
 import { rgbaToThumbHash, thumbHashToRGBA } from 'thumbhash'
 import { MAX_MASTER_LONG_EDGE, VARIANT_WIDTHS, variantKey } from './constants'
@@ -42,6 +43,8 @@ export type ProcessedAsset = {
   contentType: string
   key: string
   body: Uint8Array
+  /** Final bytes at a fresh key: cached for a year (`MEDIA_CACHE_CONTROL`). */
+  cacheControl: string
 }
 
 export type ProcessImageResult = {
@@ -135,7 +138,12 @@ async function processAnimatedGif(
   const hash = rgbaToThumbHash(stillFrame.info.width, stillFrame.info.height, stillFrame.data)
   const webpKey = masterKey.replace(/\.[a-z0-9]+$/i, '.webp')
   return {
-    master: { contentType: 'image/webp', key: webpKey, body: webpBuffer },
+    master: {
+      contentType: 'image/webp',
+      key: webpKey,
+      body: webpBuffer,
+      cacheControl: MEDIA_CACHE_CONTROL,
+    },
     variants: [],
     width: meta.width,
     height: meta.height,
@@ -251,11 +259,13 @@ export async function processImage(input: ProcessImageInput): Promise<ProcessIma
         contentType: 'image/avif',
         key: variantKey(input.masterKey, width, 'avif'),
         body: avifBuffer,
+        cacheControl: MEDIA_CACHE_CONTROL,
       },
       webp: {
         contentType: 'image/webp',
         key: variantKey(input.masterKey, width, 'webp'),
         body: webpBuffer,
+        cacheControl: MEDIA_CACHE_CONTROL,
       },
     }
   }
@@ -276,7 +286,12 @@ export async function processImage(input: ProcessImageInput): Promise<ProcessIma
   const hash = rgbaToThumbHash(thumbSource.info.width, thumbSource.info.height, thumbSource.data)
 
   return {
-    master: { contentType: masterContentType, key: input.masterKey, body: masterBuffer },
+    master: {
+      contentType: masterContentType,
+      key: input.masterKey,
+      body: masterBuffer,
+      cacheControl: MEDIA_CACHE_CONTROL,
+    },
     variants,
     width: masterWidth,
     height: masterHeight,
