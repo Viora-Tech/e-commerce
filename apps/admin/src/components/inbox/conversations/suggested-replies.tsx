@@ -96,12 +96,13 @@ export default function SuggestedReplies({
       ) : replies.length === 0 ? (
         <p className="text-caption text-muted-foreground">{a.none}</p>
       ) : (
-        <ul className="flex flex-col gap-1.5">
+        <ul className="flex flex-wrap gap-1.5">
           {replies.map((reply) => (
-            <li key={reply}>
+            <li key={reply} className="min-w-0 max-w-full">
               <button
                 type="button"
-                className="motion-press w-full rounded-lg border border-hairline bg-background px-3 py-2 text-left text-body hover:bg-accent"
+                title={reply}
+                className="motion-press max-w-full rounded-2xl border border-hairline bg-background px-3 py-1.5 text-left text-caption text-ink-strong hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 onClick={() => onPick(reply)}
               >
                 <span className="line-clamp-2">{reply}</span>

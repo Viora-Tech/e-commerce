@@ -15,13 +15,15 @@ import { inboxKnowledgeContent } from '@/data/inbox-knowledge'
 import { useCopy } from '@/hooks/use-copy'
 import { usePermissions } from '@/hooks/use-permissions'
 import { api } from '@/lib/api-client'
-import { conversationName, withMessage } from '@/lib/inbox-view'
+import { conversationName, withDayBreaks, withMessage } from '@/lib/inbox-view'
 import { routes } from '@/lib/routes'
 import AiActiveBanner from './ai-active-banner'
 import Composer, { type ComposerSend } from './composer'
 import CustomerPanel from './customer-panel'
+import DayDivider from './day-divider'
 import HandoffBanner from './handoff-banner'
 import MessageItem, { type ThreadData, type ThreadMessage } from './message-item'
+import QuickReplyChips from './quick-reply-chips'
 import SuggestedReplies from './suggested-replies'
 import ThreadHeader from './thread-header'
 import ThreadSummary from './thread-summary'
@@ -288,6 +290,7 @@ export default function ThreadPane({
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         <ThreadHeader
           name={name}
+          channel={copy.thread.channel[c.channel] ?? c.channel}
           status={c.status}
           spam={c.blockedReason === 'spam'}
           assigneeUserId={c.assigneeUserId}
@@ -318,16 +321,20 @@ export default function ThreadPane({
               </Button>
             </div>
           ) : null}
-          <div className="flex flex-col gap-3">
-            {thread.messages.map((m) => (
-              <MessageItem
-                key={m.id}
-                message={m}
-                cards={thread.cards}
-                seen={m.id === lastSeenStaff}
-                nameOfMember={nameOfMember}
-              />
-            ))}
+          <div className="mx-auto flex w-full max-w-3xl flex-col gap-3">
+            {withDayBreaks(thread.messages).map((row) =>
+              row.kind === 'day' ? (
+                <DayDivider key={`day-${row.key}`} at={row.at} />
+              ) : (
+                <MessageItem
+                  key={row.message.id}
+                  message={row.message}
+                  cards={thread.cards}
+                  seen={row.message.id === lastSeenStaff}
+                  nameOfMember={nameOfMember}
+                />
+              ),
+            )}
             {typingAt ? (
               <p className="text-caption text-muted-foreground" aria-live="polite">
                 {copy.thread.typing}
@@ -340,6 +347,12 @@ export default function ThreadPane({
           <SuggestedReplies
             conversationId={conversationId}
             messageId={awaiting}
+            onPick={(text) => setSeed((s) => ({ seq: (s?.seq ?? 0) + 1, text }))}
+          />
+        ) : null}
+        {canReply && c.status !== 'blocked' ? (
+          <QuickReplyChips
+            replies={quickReplies}
             onPick={(text) => setSeed((s) => ({ seq: (s?.seq ?? 0) + 1, text }))}
           />
         ) : null}
