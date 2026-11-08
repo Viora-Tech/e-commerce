@@ -70,7 +70,24 @@ const buyer = (d: TemplateData): string =>
   d.customerName && d.customerName !== 'there' ? d.customerName : 'A customer'
 const ordersCount = (n: number): string => (n === 1 ? '1 order' : `${n} orders`)
 
+/** "D57" while the checkout waits as a draft, else the order number. */
+const refOf = (d: TemplateData): string =>
+  d.draftNumber ? `D${d.draftNumber}` : String(d.orderNumber)
+
 export const transferTemplates = {
+  /** A UPI / bank transfer checkout kept as a draft (#D57): received, now pay to confirm it. */
+  transfer_requested: {
+    subject: (d) => `${d.storeName}: order #${refOf(d)} received, complete your payment`,
+    heading: (d) => `Thank you, ${d.customerName}! Your order #${refOf(d)} is received`,
+    intro: (d) =>
+      `Complete your ${d.totalLabel} UPI or bank transfer to confirm it.${d.paymentInstructions?.length ? ` To pay: ${d.paymentInstructions.join('. ')}.` : ''} Put #${refOf(d)} in the payment note. We hold your items until then.`,
+    outro: (d) =>
+      d.orderUrl
+        ? `The QR code and payment details are here, with an "I've paid" button: ${d.orderUrl}`
+        : 'Reply to this email once you have paid.',
+    whatsapp: (d) =>
+      `${d.storeName}: order #${refOf(d)} received. Pay ${d.totalLabel} by UPI or bank transfer to confirm it.${d.paymentInstructions?.length ? ` ${d.paymentInstructions.join('. ')}.` : ''}${d.orderUrl ? ` Details: ${d.orderUrl}` : ''}`,
+  },
   payment_reminder: {
     subject: (d) => `${d.storeName}: order #${d.orderNumber} is waiting for payment`,
     heading: (d) => `Hi ${d.customerName}, your order is on hold`,
@@ -129,6 +146,7 @@ export const transferTemplates = {
       `${d.storeName} ${d.dailySummary?.periodLabel ?? ''}: ${ordersCount(d.dailySummary?.orders ?? 0)}, ${d.dailySummary?.salesLabel ?? ''}, ${d.dailySummary?.toShip ?? 0} to ship.`,
   },
 } satisfies Record<
+  | 'transfer_requested'
   | 'payment_reminder'
   | 'unpaid_cancel_notice'
   | 'unpaid_cancelled'

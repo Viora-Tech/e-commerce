@@ -49,7 +49,13 @@ export class ManualPaymentProvider implements PaymentProvider {
 
   async createPayment(input: CreatePaymentInput): Promise<CreatePaymentResult> {
     const providerRef = `manual_${input.orderId}`
-    const reference = input.orderNumber != null ? `Order ${input.orderNumber}` : input.orderId
+    // A checkout kept as a draft is quoted by its draft number: "Order D57".
+    const reference =
+      input.orderNumber != null
+        ? `Order ${input.orderNumber}`
+        : input.draftNumber != null
+          ? `Order D${input.draftNumber}`
+          : input.orderId
     const c = this.config
     const instructions: ManualInstructions = {
       reference,

@@ -79,6 +79,7 @@ export const draftsContent = {
     unpaid: 'Unpaid',
     failed: (n: number) => (n > 1 ? `Payment failed ×${n}` : 'Payment failed'),
     refundNeeded: 'Refund needed',
+    shopperPaid: 'Shopper says paid',
     expired: 'Expired',
   },
 } as const

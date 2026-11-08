@@ -961,6 +961,11 @@ const ALLOWLIST: AllowEntry[] = [
     reason: 'used in the module and asserted by order/checkout-draft.test.ts',
   },
   {
+    file: 'packages/core/src/order/checkout-draft.ts',
+    names: ['shopperPaidNote'],
+    reason: 'used in the module and asserted by checkout-draft.test.ts',
+  },
+  {
     file: 'packages/core/src/order/duplicate-checkout.ts',
     names: ['findRecentDuplicateCheckout', 'recentUnpaidCheckouts'],
     reason:

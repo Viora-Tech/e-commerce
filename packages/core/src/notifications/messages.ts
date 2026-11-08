@@ -55,6 +55,7 @@ export const MESSAGE_CATALOGUE: readonly MessageDef[] = [
   { id: 'return_received', group: 'returns', trigger: 'auto', channels: BOTH },
   { id: 'return_refunded', group: 'returns', trigger: 'auto', channels: BOTH },
   { id: 'return_exchanged', group: 'returns', trigger: 'auto', channels: BOTH },
+  { id: 'transfer_requested', group: 'transfer', trigger: 'auto', channels: BOTH },
   { id: 'unpaid_cancelled', group: 'transfer', trigger: 'auto', channels: BOTH },
   { id: 'balance_request', group: 'preorder', trigger: 'auto', channels: BOTH },
   { id: 'balance_reminder', group: 'preorder', trigger: 'auto', channels: BOTH },

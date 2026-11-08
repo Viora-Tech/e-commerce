@@ -74,6 +74,7 @@ export default [
       unpaid: 'पेमेंट बाकी',
       failed: (n: number) => (n > 1 ? `पेमेंट फ़ेल ×${n}` : 'पेमेंट फ़ेल'),
       refundNeeded: 'रिफ़ंड ज़रूरी',
+      shopperPaid: 'ग्राहक ने कहा पेमेंट किया',
       expired: 'समय निकल गया',
     },
   }),

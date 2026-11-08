@@ -103,6 +103,9 @@ export async function listDrafts(
       failedAttempts: sql<number>`(
         select count(*)::int from payment p where p.order_id = ${order.id} and p.status = 'failed')`,
       refundNeeded,
+      shopperPaid: sql<boolean>`exists (
+        select 1 from payment p where p.order_id = ${order.id}
+        and p.status in ('created', 'pending') and p.checkout_session ? 'shopperPaid')`,
       reservedUntil: order.reservedUntil,
       expiredAt: order.draftExpiredAt,
     })

@@ -22,6 +22,7 @@ function statusOf(
       : { tone: 'info', label: copy.status.open }
   }
   if (d.refundNeeded) return { tone: 'danger', label: copy.status.refundNeeded }
+  if (d.shopperPaid) return { tone: 'attention', label: copy.status.shopperPaid }
   if (d.expiredAt) return { tone: 'neutral', label: copy.status.expired }
   if (d.failedAttempts > 0 && d.lastAttemptStatus === 'failed') {
     return { tone: 'danger', label: copy.status.failed(d.failedAttempts) }

@@ -219,3 +219,53 @@ export async function retireCheckoutDraft(
     .insert(orderNote)
     .values({ storeId: ctx.storeId, orderId: draft.id, body: opts.note, author: 'system' })
 }
+
+/** The longest UTR / bank reference a shopper may type with "I've paid". */
+const UTR_MAX = 40
+
+/** Timeline note when the shopper says they paid a transfer. */
+export const shopperPaidNote = (utr: string | null): string =>
+  utr
+    ? `Shopper says they paid by UPI or bank transfer. UTR / reference: ${utr}`
+    : 'Shopper says they paid by UPI or bank transfer (no reference given).'
+
+/**
+ * "I've paid" on a transfer checkout's page: the shopper's word, not money. Kept on the open
+ * transfer attempt (`checkout_session.shopperPaid`: UTR and time) and on the draft's timeline,
+ * so the merchant can match it and mark the draft paid. Once per attempt; false when the draft
+ * is not an open transfer checkout or the shopper already said so.
+ */
+export async function recordShopperPaid(
+  ctx: StoreContext,
+  orderId: string,
+  utrInput: string | null | undefined,
+  now = new Date(),
+): Promise<boolean> {
+  const utr = utrInput?.replace(/[^0-9A-Za-z-]/g, '').slice(0, UTR_MAX) || null
+  const [o] = await ctx.tx.select().from(order).where(eq(order.id, orderId)).for('update')
+  if (!o || !isOpenCheckoutDraft(o) || o.paymentMethod !== 'manual') return false
+  const [p] = await ctx.tx
+    .select({ id: payment.id, checkoutSession: payment.checkoutSession })
+    .from(payment)
+    .where(
+      and(
+        eq(payment.orderId, orderId),
+        eq(payment.provider, 'manual'),
+        inArray(payment.status, ['created', 'pending']),
+      ),
+    )
+    .orderBy(desc(payment.attempt))
+    .limit(1)
+  if (!p) return false
+  const session = (p.checkoutSession ?? {}) as Record<string, unknown>
+  if (session.shopperPaid) return false
+  await ctx.tx
+    .update(payment)
+    .set({ checkoutSession: { ...session, shopperPaid: { utr, at: now.toISOString() } } })
+    .where(eq(payment.id, p.id))
+  await ctx.tx.update(order).set({ lastActivityAt: now }).where(eq(order.id, orderId))
+  await ctx.tx
+    .insert(orderNote)
+    .values({ storeId: ctx.storeId, orderId, body: shopperPaidNote(utr), author: 'system' })
+  return true
+}

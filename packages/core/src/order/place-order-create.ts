@@ -321,6 +321,10 @@ export const createOrder: WorkflowStep<State> = {
             : null,
       })),
     )
+    // A UPI / bank transfer draft: the shopper is told it is received and how to pay it.
+    if (draft && input.paymentProvider.id === 'manual' && !draft.reuse) {
+      await insertOutboxEvent(ctx.tx, ctx.storeId, 'order.transfer_requested', { orderId: o.id })
+    }
     if (draft?.reuse) {
       await ctx.tx.insert(orderNote).values({
         storeId: ctx.storeId,

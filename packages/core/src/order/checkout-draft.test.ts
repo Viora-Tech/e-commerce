@@ -20,6 +20,7 @@ import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import { retryPayment } from '../payments/attempts'
 import { applyPaymentStatus, LATE_CAPTURE_NOTE } from '../payments/confirm'
 import { GatewayDouble } from '../payments/gateway-double.test-util'
+import { readShopperPaid } from '../payments/shopper-paid'
 import { orderViewToken } from '../preorder/balance-link'
 import { ManualPaymentProvider } from '../providers/manual'
 import { FakePaymentProvider } from '../providers/payment'
@@ -27,6 +28,8 @@ import {
   CHECKED_OUT_AGAIN_NOTE,
   expireCheckoutDrafts,
   ORDERED_INSTEAD_NOTE,
+  recordShopperPaid,
+  shopperPaidNote,
 } from './checkout-draft'
 import { listDrafts } from './draft-list'
 import { releaseExpiredDraftHolds } from './draft-reserve'
@@ -400,6 +403,43 @@ describe('UPI and bank transfer checkouts', () => {
     ).map((e) => e.type)
     expect(types).toContain('order.placed')
     expect(types).toContain('order.paid')
+  })
+
+  it('tells the shopper it is received, quotes #D1, and keeps their I have paid and UTR', async () => {
+    const shop = await seedShop({ drafts: 'on' })
+    const r = await checkoutOnline(
+      shop,
+      [{ variantId: shop.keyboard, quantity: 1 }],
+      rudra,
+      transfer,
+    )
+    const types = (
+      await owner.select().from(outboxEvent).where(eq(outboxEvent.storeId, shop.storeId))
+    ).map((e) => e.type)
+    expect(types).toContain('order.transfer_requested')
+    expect(types).not.toContain('order.placed')
+    const [p] = await owner.select().from(payment).where(eq(payment.orderId, r.orderId))
+    expect(p?.checkoutSession).toMatchObject({
+      kind: 'manual',
+      instructions: { reference: 'Order D1' },
+    })
+
+    const said = await withStore(app, shop.storeId, (tx) =>
+      recordShopperPaid({ storeId: shop.storeId, tx }, r.orderId, ' 4123 4567 8901 '),
+    )
+    expect(said).toBe(true)
+    const again = await withStore(app, shop.storeId, (tx) =>
+      recordShopperPaid({ storeId: shop.storeId, tx }, r.orderId, 'x'),
+    )
+    expect(again).toBe(false)
+    const [after] = await owner.select().from(payment).where(eq(payment.orderId, r.orderId))
+    expect(readShopperPaid(after?.checkoutSession)?.utr).toBe('412345678901')
+    const notes = await owner.select().from(orderNote).where(eq(orderNote.orderId, r.orderId))
+    expect(notes.map((n) => n.body)).toContain(shopperPaidNote('412345678901'))
+    const list = await withStore(app, shop.storeId, (tx) =>
+      listDrafts({ storeId: shop.storeId, tx }, { source: 'checkout', page: 1, perPage: 10 }),
+    )
+    expect(list.items[0]).toMatchObject({ id: r.orderId, shopperPaid: true })
   })
 
   it('"Convert to order (unpaid)" places it with its transfer still to pay', async () => {

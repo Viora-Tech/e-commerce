@@ -126,6 +126,8 @@ export type DraftListItem = {
   failedAttempts: number
   /** Money came in that the draft could not keep (out of stock when it arrived). */
   refundNeeded: boolean
+  /** The shopper pressed "I've paid" on an open transfer (check the bank, then mark it paid). */
+  shopperPaid: boolean
   /** When its held stock goes back on sale; null when it holds nothing. */
   reservedUntil: Date | null
   /** Set once a checkout draft stopped waiting for payment (7 days without activity). */

@@ -518,6 +518,18 @@ export async function deliverNotification(
       .where(eq(order.id, input.orderId))
     if (o?.status !== 'open' || o.checkoutPaidAt) return []
   }
+  // "Complete your transfer": only while the transfer checkout still waits as a draft.
+  if (input.template === 'transfer_requested') {
+    const [o] = await ctx.tx
+      .select({
+        status: order.status,
+        draftSource: order.draftSource,
+        draftExpiredAt: order.draftExpiredAt,
+      })
+      .from(order)
+      .where(eq(order.id, input.orderId))
+    if (!o || !isOpenCheckoutDraft(o)) return []
+  }
   // "Your payment did not go through": only while the order still waits on an online payment.
   if (input.template === 'payment_pending' && !(await stillPaymentPending(ctx, input.orderId))) {
     return []
