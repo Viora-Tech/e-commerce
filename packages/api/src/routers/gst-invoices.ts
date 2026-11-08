@@ -59,7 +59,7 @@ const IssueBatch = z.object({
 
 const Filter = z.object({
   q: z.string().max(100).optional(),
-  kind: z.enum(DOCUMENT_KINDS).optional(),
+  kind: z.union([z.enum(DOCUMENT_KINDS), z.array(z.enum(DOCUMENT_KINDS)).max(6)]).optional(),
   status: z.enum(['issued', 'cancelled']).optional(),
   from: z.coerce.date().optional(),
   to: z.coerce.date().optional(),

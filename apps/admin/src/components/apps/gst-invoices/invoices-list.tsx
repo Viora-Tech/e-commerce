@@ -1,7 +1,7 @@
 'use client'
 
-import { DOCUMENT_KINDS, type DocumentKind } from '@commerce/invoices'
-import { Download, Printer, Send } from '@commerce/ui/icons'
+import type { DocumentKind } from '@commerce/invoices'
+import { ChevronLeftIcon, ChevronRightIcon, Download, Printer, Send } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Checkbox } from '@commerce/ui/shadcn/checkbox'
 import { Input } from '@commerce/ui/shadcn/input'
@@ -17,16 +17,16 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import CopyButton from '@/components/fields/copy-button'
-import DateField from '@/components/fields/date-field'
 import PageHeader from '@/components/layout/page-header'
+import PillTabs from '@/components/layout/pill-tabs'
 import RelativeTime from '@/components/layout/relative-time'
 import OrderChip from '@/components/orders/order-chip'
 import TableEmptyRow from '@/components/table/table-empty-row'
 import { gstInvoicesContent } from '@/data/gst-invoices'
 import { api } from '@/lib/api-client'
+import { formatPattern } from '@/lib/format-date'
 import { formatPaise } from '@/lib/money'
 import { routes } from '@/lib/routes'
-import ChoiceField from './choice-field'
 import GstNumberPicker from './gst-number-picker'
 import { saveFile } from './save-file'
 import { CELL, HEAD } from './table-classes'
@@ -36,47 +36,61 @@ type Progress = { batchId: string; total: number; sent: number; failed: number }
 
 const copy = gstInvoicesContent.list
 const kindCopy = gstInvoicesContent.kinds
-const ALL = 'all'
-const KIND_OPTIONS = [
-  { value: ALL, label: copy.all },
-  ...DOCUMENT_KINDS.map((k) => ({ value: k, label: kindCopy[k] })),
-]
+/** The list's tabs: GST returns treat invoices, notes and vouchers apart. */
+const TABS = ['tax_invoice', 'credit_note', 'vouchers', 'all'] as const
+type Tab = (typeof TABS)[number]
 
-/** yyyy-mm-dd of the first of this month and today, in the browser's zone. */
-function monthRange(now = new Date()): { from: string; to: string } {
+const TAB_KINDS: Record<Tab, DocumentKind[] | undefined> = {
+  tax_invoice: ['tax_invoice'],
+  credit_note: ['credit_note'],
+  vouchers: ['receipt_voucher', 'refund_voucher'],
+  all: undefined,
+}
+
+/** A calendar month: GST is filed month by month. */
+type Month = { year: number; month: number }
+
+const thisMonth = (now = new Date()): Month => ({ year: now.getFullYear(), month: now.getMonth() })
+
+const shift = (m: Month, by: number): Month => {
+  const d = new Date(m.year, m.month + by, 1)
+  return { year: d.getFullYear(), month: d.getMonth() }
+}
+
+/** yyyy-mm-dd of the month's first and last day. */
+function monthRange(m: Month): { from: string; to: string } {
   const pad = (n: number) => String(n).padStart(2, '0')
-  const d = (y: number, m: number, day: number) => `${y}-${pad(m + 1)}-${pad(day)}`
+  const last = new Date(m.year, m.month + 1, 0).getDate()
   return {
-    from: d(now.getFullYear(), now.getMonth(), 1),
-    to: d(now.getFullYear(), now.getMonth(), now.getDate()),
+    from: `${m.year}-${pad(m.month + 1)}-01`,
+    to: `${m.year}-${pad(m.month + 1)}-${pad(last)}`,
   }
 }
+
+const monthLabel = (m: Month) =>
+  formatPattern(new Date(m.year, m.month, 15), { month: 'long', year: 'numeric' })
 
 /** Midnight IST at the start of a yyyy-mm-dd, and of the day after for an exclusive end. */
 const istStart = (day: string) => new Date(`${day}T00:00:00+05:30`)
 const istEnd = (day: string) => new Date(istStart(day).getTime() + 86_400_000)
 
-function filterOf(
-  q: string,
-  kind: string,
-  range: { from: string; to: string },
-  gst: string | undefined,
-) {
+function filterOf(q: string, tab: Tab, month: Month, gst: string | undefined) {
+  const range = monthRange(month)
   return {
     q: q.trim() || undefined,
-    kind: kind === ALL ? undefined : (kind as DocumentKind),
-    from: range.from ? istStart(range.from) : undefined,
-    to: range.to ? istEnd(range.to) : undefined,
+    kind: TAB_KINDS[tab],
+    from: istStart(range.from),
+    to: istEnd(range.to),
     gstRegistrationId: gst,
   }
 }
 
-/** Issued documents with search, date range, bulk zip, print, email and GSTR-1 export. */
+/** Issued documents by type and month, with search, bulk zip, print, email and GSTR-1 export. */
 export default function InvoicesList() {
   // Hooks
   const [q, setQ] = useState('')
-  const [kind, setKind] = useState<string>(ALL)
-  const [range, setRange] = useState(monthRange)
+  const [tab, setTab] = useState<Tab>('tax_invoice')
+  const [month, setMonth] = useState(thisMonth)
   const [page, setPage] = useState(1)
   const [data, setData] = useState<Page | null>(null)
   const [picked, setPicked] = useState<Set<string>>(new Set())
@@ -88,7 +102,7 @@ export default function InvoicesList() {
   useEffect(() => {
     let cancelled = false
     const timer = setTimeout(() => {
-      api.gstInvoices.list({ ...filterOf(q, kind, range, gst), page }).then((d) => {
+      api.gstInvoices.list({ ...filterOf(q, tab, month, gst), page }).then((d) => {
         if (!cancelled) setData(d)
       })
     }, 250)
@@ -96,7 +110,7 @@ export default function InvoicesList() {
       cancelled = true
       clearTimeout(timer)
     }
-  }, [q, kind, range, page, gst])
+  }, [q, tab, month, page, gst])
 
   useEffect(() => {
     if (!progress || progress.sent + progress.failed >= progress.total) return
@@ -109,7 +123,7 @@ export default function InvoicesList() {
 
   // Helpers
   const selection = () =>
-    everything ? { filter: filterOf(q, kind, range, gst) } : { ids: [...picked] }
+    everything ? { filter: filterOf(q, tab, month, gst) } : { ids: [...picked] }
   const bulk = async (fn: () => Promise<void>) => {
     setBusy(true)
     const id = toast.loading(copy.working)
@@ -139,6 +153,14 @@ export default function InvoicesList() {
     setPicked(new Set())
     setEverything(false)
   }
+  /** A new tab or month starts from page one with nothing picked. */
+  const handleView = (next: { tab?: Tab; month?: Month }) => {
+    if (next.tab) setTab(next.tab)
+    if (next.month) setMonth(next.month)
+    setPage(1)
+    setPicked(new Set())
+    setEverything(false)
+  }
   const handleTogglePage = (on: boolean) => {
     setEverything(false)
     setPicked(on ? new Set(data?.rows.map((r) => r.id)) : new Set())
@@ -159,6 +181,8 @@ export default function InvoicesList() {
   const count = everything ? null : picked.size
   const anySelected = everything || picked.size > 0
   const allOnPage = rows.length > 0 && rows.every((r) => picked.has(r.id))
+  const latest = thisMonth()
+  const atLatest = month.year === latest.year && month.month === latest.month
 
   return (
     <div className="flex flex-col gap-4">
@@ -169,7 +193,12 @@ export default function InvoicesList() {
       />
       <div className="overflow-hidden rounded-xl surface-card">
         <div className="flex flex-col gap-3 p-4">
-          <div className="grid gap-3 md:grid-cols-[1fr_12rem_10rem_10rem]">
+          <PillTabs<Tab>
+            value={tab}
+            onChange={(t) => handleView({ tab: t })}
+            tabs={TABS.map((t) => ({ value: t, label: copy.tabs[t] }))}
+          />
+          <div className="grid gap-3 md:grid-cols-[1fr_auto]">
             <Input
               size="lg"
               placeholder={copy.search}
@@ -179,27 +208,29 @@ export default function InvoicesList() {
                 setPage(1)
               }}
             />
-            <ChoiceField
-              id="inv-kind"
-              label={copy.kindFilter}
-              hideLabel
-              value={kind}
-              options={KIND_OPTIONS}
-              onChange={(v) => {
-                setKind(v)
-                setPage(1)
-              }}
-            />
-            <DateField
-              aria-label={copy.from}
-              value={range.from}
-              onChange={(v) => setRange((r) => ({ ...r, from: v }))}
-            />
-            <DateField
-              aria-label={copy.to}
-              value={range.to}
-              onChange={(v) => setRange((r) => ({ ...r, to: v }))}
-            />
+            {/* One month at a time, the way GSTR-1 and GSTR-3B are filed. */}
+            <fieldset className="flex items-center gap-1" aria-label={copy.month}>
+              <Button
+                variant="outline"
+                size="icon"
+                aria-label={copy.previousMonth}
+                onClick={() => handleView({ month: shift(month, -1) })}
+              >
+                <ChevronLeftIcon />
+              </Button>
+              <span className="min-w-36 text-center text-body font-medium tabular-nums">
+                {monthLabel(month)}
+              </span>
+              <Button
+                variant="outline"
+                size="icon"
+                aria-label={copy.nextMonth}
+                disabled={atLatest}
+                onClick={() => handleView({ month: shift(month, 1) })}
+              >
+                <ChevronRightIcon />
+              </Button>
+            </fieldset>
           </div>
           {anySelected ? (
             <div className="flex flex-wrap items-center gap-2 rounded-[0.5rem] bg-secondary px-3 py-2">
