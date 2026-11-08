@@ -1,6 +1,6 @@
-import { cache } from 'react'
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
+import { cache } from 'react'
 import CollectionForm from '@/components/collections/collection-form'
 import type { LoadedCollection } from '@/components/collections/form-state'
 import { collectionFormContent } from '@/data/collections'

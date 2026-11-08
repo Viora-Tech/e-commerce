@@ -1,7 +1,7 @@
-import { cache } from 'react'
 import type { Metadata } from 'next'
 import { cookies } from 'next/headers'
 import { notFound, redirect } from 'next/navigation'
+import { cache } from 'react'
 import ProductForm from '@/components/products/product-form'
 import { appRouter, call, serverContext } from '@/lib/api'
 import { PRODUCT_LAYOUT_COOKIE, parseProductLayout } from '@/lib/product-layout'

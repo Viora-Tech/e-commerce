@@ -1,6 +1,6 @@
-import { cache } from 'react'
 import type { Metadata } from 'next'
 import { notFound, redirect } from 'next/navigation'
+import { cache } from 'react'
 import DiscountForm from '@/components/discounts/discount-form'
 import { appRouter, call, serverContext } from '@/lib/api'
 import { orNoStoreOrMissing } from '@/lib/store-guard'
@@ -20,9 +20,7 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
 
 export default async function DiscountEditPage({ params }: Params) {
   const { id } = await params
-  const discount = await loadDiscount(id).catch(
-    orNoStoreOrMissing(undefined),
-  )
+  const discount = await loadDiscount(id).catch(orNoStoreOrMissing(undefined))
   if (discount === undefined) redirect('/select-store')
   if (!discount) notFound()
   return <DiscountForm discount={discount} />

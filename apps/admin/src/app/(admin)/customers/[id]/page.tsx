@@ -1,6 +1,6 @@
-import { cache } from 'react'
 import type { Metadata } from 'next'
 import { notFound, redirect } from 'next/navigation'
+import { cache } from 'react'
 import CustomerView from '@/components/customers/customer-view'
 import { appRouter, call, serverContext } from '@/lib/api'
 import { routes } from '@/lib/routes'
