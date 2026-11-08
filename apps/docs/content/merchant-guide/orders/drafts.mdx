@@ -6,9 +6,46 @@ description: Build an order for a customer yourself, send a pay link or convert 
 # Drafts
 
 **Orders → Drafts** holds orders you build yourself for a customer, such as one agreed on
-WhatsApp. They stay hidden from your store until you convert them. The tabs are **All drafts**,
+WhatsApp, and checkouts your shoppers have not paid for yet. They stay hidden from your store until
+you convert them. The tabs are **All drafts**, **From checkout (unpaid)**, **Created by staff**,
 **Open** and **Invoice sent**, and the tiles show open drafts, invoices sent and the value in
 drafts. The filter button beside the search narrows the list by **Created** (a preset or your own
 dates) and **Total** (a min and max in rupees). Open a draft, add products, set a discount or shipping if you need to, then use **Send
 invoice** (the customer gets a pay link) or **Convert to order**. A converted draft is billed
 for GST the same way a checkout order is, including the warehouse's GST number.
+
+## Unpaid checkouts
+
+When a shopper checks out with an online payment (Razorpay, Cashfree) or with UPI to your own ID
+or bank transfer, the checkout is kept as a draft with its own number, such as **#D57**, until the
+money arrives. It only becomes an order, with the next order number, once it is paid. So your
+**Orders** list only has real orders, and order numbers are not used up by payments that failed.
+Cash on delivery is always an order straight away, and so is anything a gift card or store credit
+pays for.
+
+- **Where to find them**: **Orders → Drafts → From checkout (unpaid)**, newest activity first.
+  Each row shows the shopper, the total and how the payment is going: **Unpaid**, **Payment
+  failed ×3**, **Shopper says paid**, **Refund needed** or **Expired**.
+- **Online payments**: when the payment comes in, the draft becomes an order by itself, and the
+  shopper gets the usual order confirmation with the real order number. If the shopper's card
+  fails, they can try again from their order page, on the same draft.
+- **UPI or bank transfer**: the shopper lands on a page that says their order #D57 is received,
+  with your QR code, UPI ID, the exact amount and your bank details, and gets the same by email.
+  They can press **I've paid** and type the UTR. When the money is in your account, open the draft
+  and select **Mark as paid**: it becomes an order and the shopper gets their confirmation.
+- **Convert to order (unpaid)**: turns the draft into an unpaid order now, for example to ship
+  on trust. The payment can still come in later.
+- **Copy payment link**: the shopper's own page for this checkout, to send on WhatsApp.
+- **Same items again**: if the same shopper (same email or phone) checks out the same items again
+  within your [repeated checkouts](/merchant-guide/settings/payments) window (24 hours by default,
+  counted from their last try), they carry on with the same draft and see "You already placed this
+  order (#D57) and it is waiting for payment". Different items make a new draft. A shopper who
+  uses a different email and a different phone number is a new shopper to the store.
+- **Held stock**: the items are held for your unpaid window (30 minutes for online payments; 48
+  hours for transfers unless you cancel transfers sooner). After that the draft holds nothing; if
+  the payment still arrives and the items are in stock, it becomes an order as usual. If they sold
+  out meanwhile, the draft shows **Refund needed**: refund the shopper from your payment company.
+- **After 7 days** without activity an unpaid checkout stops waiting for payment and leaves the
+  list.
+- **Turn it off**: **Settings → Payments → More → Repeated checkouts → Keep unpaid checkouts as
+  drafts**. With it off, unpaid checkouts are numbered orders again, as before.
