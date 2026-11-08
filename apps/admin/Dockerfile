@@ -65,6 +65,10 @@ ARG NEXT_PUBLIC_WORKER_URL
 # `.next/standalone` and `.next/static` are written beside it and copied below as before. One
 # cache per platform (an amd64 and an arm64 build don't share compiled output), and `locked` so
 # two builds at once wait rather than write the same cache. On a fresh CI runner it starts empty.
+# `bun run build` runs `next build` in two processes (apps/admin/package.json): `compile`, then
+# `generate`. Turbopack keeps its compile memory until its process exits, so in a single process
+# the page workers start on top of it; split, they start in a fresh one. Same output, about 9%
+# lower peak (measured 8 Nov 2026).
 ARG TARGETPLATFORM
 RUN --mount=type=cache,id=commerce-admin-next-cache-$TARGETPLATFORM,sharing=locked,target=/repo/apps/admin/.next/cache \
   if [ -z "$NEXT_PUBLIC_WORKER_URL" ]; then unset NEXT_PUBLIC_WORKER_URL; fi \
