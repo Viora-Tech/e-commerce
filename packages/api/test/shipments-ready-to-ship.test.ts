@@ -71,7 +71,7 @@ async function seedAddress(storeId: string, pincode = '110001') {
 async function seedOrderWithLines(
   storeId: string,
   overrides: Partial<typeof order.$inferInsert>,
-  lines: { quantity: number; preorder?: boolean }[],
+  lines: { quantity: number; preorder?: boolean; requiresShipping?: boolean }[],
 ) {
   const [p] = await owner
     .insert(product)
@@ -102,6 +102,7 @@ async function seedOrderWithLines(
       quantity: line.quantity,
       unitPricePaise: 1000,
       preorder: line.preorder ?? false,
+      requiresShipping: line.requiresShipping ?? true,
     })
   }
   return id
@@ -186,6 +187,26 @@ describe('shipments.readyToShip', () => {
 
     const preorderRow = r.items.find((i) => i.orderId === partial)
     expect(preorderRow).toMatchObject({ orderNumber: 2, itemsCount: 1, isPreorder: true })
+  })
+
+  it('leaves out orders with nothing to ship, and counts only the units that ship', async () => {
+    const m = await merchant('noship@example.com', 'noship')
+    await seedOrderWithLines(
+      m.storeId,
+      { number: 1, paymentStatus: 'paid', fulfillmentStatus: 'unfulfilled' },
+      [{ quantity: 1, requiresShipping: false }],
+    )
+    const mixed = await seedOrderWithLines(
+      m.storeId,
+      { number: 2, paymentStatus: 'paid', fulfillmentStatus: 'unfulfilled' },
+      [{ quantity: 2 }, { quantity: 1, requiresShipping: false }],
+    )
+    const r = await call(
+      appRouter.shipments.readyToShip,
+      { page: 1, perPage: 50 },
+      { context: m.ctx },
+    )
+    expect(r.items.map((i) => [i.orderId, i.itemsCount])).toEqual([[mixed, 2]])
   })
 
   it('lists a packed order again once its label was cancelled and nothing replaced it', async () => {

@@ -54,6 +54,46 @@ gets the area's prices as a whole. The Shopify import brings over zones abroad t
 Every country an area names shows in the checkout's **Country** picker (see
 [Checkout › Shoppers outside India](/merchant-guide/settings/checkout#shoppers-outside-india)).
 
+### Products with their own prices
+
+Every product ships with the **General** profile's prices unless you place it in another
+profile. Select **Create profile** under **Shipping profiles**, name it (for example "Skates"), and
+add what it holds:
+
+- **Add products** opens the product picker. Tick a product to take all of its variants,
+  including ones you add later, or open it and tick only some variants.
+- **Add a collection's products** adds every product of the collections you pick.
+- A product with several variants shows how many are in the profile ("2 of 3 variants"). Open
+  it to tick or untick variants. A variant that ships with another profile says which one.
+
+A product or variant is in one profile at a time: adding it here moves it out of the other
+one. A variant you place on its own wins over its product, so a "Large" deck can ship with
+"Freight" while the rest of the deck product ships with "Skates". Untick a variant and it goes
+back to its product's profile, or to General.
+
+When a cart mixes profiles, the customer still picks one delivery option and pays the highest
+of the profiles' prices, once.
+
+### Products that don't ship
+
+A service, a fitting session or a download has nothing to send. Open the product, and under
+**Shipping** turn off **This is a physical product** (with options, it is in each variant's
+**Edit** dialog). Such a variant:
+
+- takes no shipping charge, and no profile prices it;
+- never goes into a shipment, a courier booking, a packing slip or a pick list;
+- still counts towards the order total, GST and the invoice.
+
+A cart of only these has no shipping charge and no delivery option. Checkout still asks for
+the address, because the GST invoice needs it, but no courier is asked about the pincode and
+cash on delivery is not offered (there is no courier to collect it). In a mixed cart, only the
+items that ship are priced for shipping: a ₹600 T-shirt with a ₹1,000 session pays the
+T-shirt's shipping, and free delivery above ₹999 does not apply. Mark an order of only these
+as fulfilled with **Fulfil items**, no tracking needed.
+
+The Shopify import brings over Shopify's **This is a physical product**, and the product CSV
+reads and writes a **Variant Requires Shipping** column.
+
 ### Your packages
 
 Under **Packages**, add the boxes, envelopes and soft packages you pack in, with their **Type**,
@@ -105,6 +145,13 @@ delivery to a pincode** and select **Check**. You see exactly what a customer th
 ## FAQ
 
 <Faq>
+
+<FaqItem question="Can one variant ship with a different profile from the rest of the product?">
+
+Yes. Open the profile, open the product and tick only that variant. The other variants stay
+with their product's profile (or General).
+
+</FaqItem>
 
 <FaqItem question="Where did the Couriers tab go?">
 

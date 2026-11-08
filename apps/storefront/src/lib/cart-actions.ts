@@ -292,10 +292,17 @@ export async function checkoutAction(submitted: CheckoutForm): Promise<CheckoutR
   // Gift cards are emailed, so a basket of only gift cards has nothing to ship.
   const current = await inStore(storeId, (tx) => getCart({ storeId, tx }, cartId))
   const digitalOnly = !!current?.lines.length && current.lines.every((l) => l.giftCard)
+  // Services and downloads too: no courier to ask, no delivery check (placeOrder agrees).
+  const nothingShips =
+    !!current?.lines.length && current.lines.every((l) => l.giftCard || !l.requiresShipping)
   // An address abroad is priced by its country zone: no Indian courier, no COD (placeOrder agrees).
   const countryCode = checkoutCountry(form.countryCode)
   const abroad = isAbroad(countryCode)
   if (abroad && form.payment === 'cod') return { error: checkoutContent.errors.codAbroad }
+  // Cash on delivery is collected by the courier: with nothing to ship there is no one to collect it.
+  if (nothingShips && !digitalOnly && form.payment === 'cod') {
+    return { error: checkoutContent.errors.codUnavailable }
+  }
 
   /** The delivery window each warehouse's parcel was shown with, stored on the order's parcels. */
   let deliveryEstimates: Record<string, ParcelDeliveryEstimate> = {}
@@ -304,7 +311,7 @@ export async function checkoutAction(submitted: CheckoutForm): Promise<CheckoutR
   const to = { pincode: form.pincode, stateCode: form.stateCode }
   const appQuote = form.deliveryQuote
   const delivery =
-    !digitalOnly && !abroad && appQuote && form.shippingRate
+    !nothingShips && !abroad && appQuote && form.shippingRate
       ? await inStore(storeId, (tx) =>
           deliveryForOrder(tx, storeId, cartId, to, {
             quoteId: typeof appQuote.quoteId === 'string' ? appQuote.quoteId : null,
@@ -314,14 +321,14 @@ export async function checkoutAction(submitted: CheckoutForm): Promise<CheckoutR
           }),
         )
       : null
-  if (!digitalOnly && delivery) {
+  if (!nothingShips && delivery) {
     const parcels = await inStore(storeId, (tx) => checkoutParcels(tx, storeId, cartId, to)).catch(
       () => [],
     )
     deliveryEstimates = Object.fromEntries(
       parcels.flatMap((p) => (p.estimate ? [[p.locationId, p.estimate] as const] : [])),
     )
-  } else if (!digitalOnly && !abroad) {
+  } else if (!nothingShips && !abroad) {
     // The courier's word on the destination, never the client's. A cached answer makes this cheap.
     const delivery = await inStore(storeId, (tx) => estimateForPincode(tx, storeId, form.pincode))
     if (!delivery.ok) return { error: delivery.error }

@@ -59,6 +59,8 @@ export type CartLineView = {
   imageUrl: string | null
   /** A gift card product: digital, checked out on its own. */
   giftCard: boolean
+  /** The variant's "requires shipping": false (a service, a download) takes no shipping. */
+  requiresShipping: boolean
   /** Sold under pre-order rules; the storefront shows the ship date and badge for this line. */
   preorder: boolean
   /** The pre-order note (#936), ship date filled in; null when the line is no pre-order or has none. */
@@ -125,6 +127,7 @@ export async function getCart(ctx: StoreContext, cartId: string): Promise<CartVi
       trackInventory: variant.trackInventory,
       imageUrl: media.url,
       giftCard: product.isGiftCard,
+      requiresShipping: variant.requiresShipping,
       preorderOverride: variant.preorderOverride,
       preorderEnabled: product.preorderEnabled,
       preorderShipDate: product.preorderShipDate,
@@ -203,6 +206,7 @@ export async function getCart(ctx: StoreContext, cartId: string): Promise<CartVi
     available: Math.min(lineAvailable(r, campaignOf(r)), roomOf(r) ?? Number.POSITIVE_INFINITY),
     imageUrl: r.imageUrl ?? firstImages.get(r.productId) ?? null,
     giftCard: r.giftCard,
+    requiresShipping: r.requiresShipping,
     preorder: r.preorder,
     preorderNote: noteOf(r),
     preorderBadge: badgeOf(r),

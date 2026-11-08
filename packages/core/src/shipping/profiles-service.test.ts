@@ -6,7 +6,9 @@ import {
   createDb,
   inventoryLevel,
   order,
+  orderLine,
   product,
+  shipment,
   shippingProfile,
   shippingProfileProduct,
   shippingZone,
@@ -17,6 +19,7 @@ import {
 import { resetDb } from '@commerce/db/test'
 import { eq, sql } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
+import { fulfilOrderLines } from '../order/fulfil'
 import { placeOrder } from '../order/place-order'
 import { FakePaymentProvider } from '../providers/payment'
 import {
@@ -300,5 +303,223 @@ describe('shipping profile service', () => {
     const zones = await withStore(app, s.storeId, (tx) => listShippingZones(tx))
     expect(zones.map((z) => z.rates.map((r) => r.name))).toEqual([['Standard']])
     expect(await owner.select().from(shippingProfileProduct)).toEqual([])
+  })
+})
+
+/** A product with several variants, each ₹ priced; `noShipping` marks the ones that do not ship. */
+async function product3(
+  storeId: string,
+  handle: string,
+  variants: { title: string; pricePaise: number; noShipping?: boolean }[],
+): Promise<{ productId: string; variantIds: string[] }> {
+  const [p] = await owner
+    .insert(product)
+    .values({ storeId, handle, title: handle, status: 'active' })
+    .returning()
+  if (!p) throw new Error('seed')
+  const variantIds: string[] = []
+  for (const [i, v] of variants.entries()) {
+    const [row] = await owner
+      .insert(variant)
+      .values({
+        storeId,
+        productId: p.id,
+        title: v.title,
+        pricePaise: v.pricePaise,
+        weightGrams: 500,
+        position: i,
+        requiresShipping: !v.noShipping,
+      })
+      .returning()
+    if (!row) throw new Error('seed')
+    await owner.insert(inventoryLevel).values({ storeId, variantId: row.id, onHand: 50 })
+    variantIds.push(row.id)
+  }
+  return { productId: p.id, variantIds }
+}
+
+const variantItem = (productId: string, variantId: string): Item => ({ productId, variantId })
+
+describe('variant shipping profiles', () => {
+  it('ships a variant placed alone under its own profile, over its product', async () => {
+    const s = await seed('variant-wins')
+    const skates = await waimers(s)
+    const deck = await product3(s.storeId, 'deck', [
+      { title: 'Small', pricePaise: 60_000 },
+      { title: 'Large', pricePaise: 70_000 },
+    ])
+    const [small, large] = deck.variantIds as [string, string]
+    await withStore(app, s.storeId, async (tx) => {
+      const freight = await createShippingProfile(tx, s.storeId, {
+        name: 'Freight',
+        productIds: [],
+        variantIds: [large],
+      })
+      await createShippingZone(tx, s.storeId, {
+        name: 'All India',
+        profileId: freight.id,
+        stateCodes: [],
+        pincodeRules: [],
+        rates: [flat('Freight', 29_900)],
+      })
+    })
+    const smallCart = await cartOf(s.storeId, [variantItem(deck.productId, small)])
+    const largeCart = await cartOf(s.storeId, [variantItem(deck.productId, large)])
+    // The product is in no profile: Small ships with General, Large with Freight.
+    expect(await quote(s.storeId, smallCart)).toMatchObject({
+      kind: 'rates',
+      options: [{ name: 'Standard', pricePaise: 4900 }],
+    })
+    expect(await quote(s.storeId, largeCart)).toMatchObject({
+      kind: 'rates',
+      options: [{ name: 'Freight', pricePaise: 29_900 }],
+    })
+    // The whole product goes into Skates: Small follows it, Large keeps its own profile.
+    await withStore(app, s.storeId, (tx) =>
+      updateShippingProfile(tx, s.storeId, skates.id, {
+        name: 'Skates',
+        productIds: [s.skate.productId, deck.productId],
+      }),
+    )
+    expect(await quote(s.storeId, smallCart)).toMatchObject({
+      kind: 'rates',
+      options: [{ name: 'Delhivery' }, { name: 'Bluedart' }],
+    })
+    expect(await quote(s.storeId, largeCart)).toMatchObject({
+      kind: 'rates',
+      options: [{ name: 'Freight', pricePaise: 29_900 }],
+    })
+    const placed = await place(s.storeId, largeCart)
+    expect(await totalOf(placed.orderId)).toBe(70_000 + 29_900)
+  })
+
+  it('moves a variant between profiles, and lists which variants each profile holds', async () => {
+    const s = await seed('variant-moves')
+    const deck = await product3(s.storeId, 'deck', [
+      { title: 'Small', pricePaise: 60_000 },
+      { title: 'Medium', pricePaise: 65_000 },
+      { title: 'Large', pricePaise: 70_000 },
+    ])
+    const [small, medium, large] = deck.variantIds as [string, string, string]
+    const result = await withStore(app, s.storeId, async (tx) => {
+      const a = await createShippingProfile(tx, s.storeId, {
+        name: 'A',
+        productIds: [deck.productId],
+        variantIds: [],
+      })
+      // Large moves to B on its own; A keeps the product and the other two.
+      const b = await createShippingProfile(tx, s.storeId, {
+        name: 'B',
+        productIds: [],
+        variantIds: [large],
+      })
+      return {
+        a: await getShippingProfile(tx, s.storeId, a.id),
+        b,
+        list: await listShippingProfiles(tx, s.storeId),
+      }
+    })
+    const variantsOf = (entries: { variants: { id: string; inProfile: boolean }[] }[] = []) =>
+      entries.flatMap((e) => e.variants.filter((v) => v.inProfile).map((v) => v.id))
+    expect(result.a?.productIds).toEqual([deck.productId])
+    expect(variantsOf(result.a?.entries)).toEqual([small, medium])
+    expect(result.a?.entries[0]?.variants[2]).toMatchObject({
+      id: large,
+      inProfile: false,
+      placedElsewhere: true,
+      shipsUnder: { name: 'B' },
+    })
+    expect(result.b.variantIds).toEqual([large])
+    expect(variantsOf(result.b.entries)).toEqual([large])
+    expect(result.list.map((p) => [p.name, p.productCount])).toEqual([
+      ['General', null],
+      ['A', 1],
+      ['B', 1],
+    ])
+
+    // Placing Large in A takes it out of B: a variant is in one profile at most.
+    const after = await withStore(app, s.storeId, async (tx) => {
+      await updateShippingProfile(tx, s.storeId, result.b.id, { name: 'B', productIds: [] })
+      const a = await updateShippingProfile(tx, s.storeId, result.a?.id ?? '', {
+        name: 'A',
+        productIds: [],
+        variantIds: [medium, large],
+      })
+      return { a, b: await getShippingProfile(tx, s.storeId, result.b.id) }
+    })
+    // B's update left `variantIds` out, so it kept Large until A took it.
+    expect(after.a.variantIds.sort()).toEqual([medium, large].sort())
+    expect(after.b?.variantIds).toEqual([])
+    // Small left with the product: it ships with General now.
+    expect(after.a.entries[0]?.variants[0]).toMatchObject({
+      id: small,
+      inProfile: false,
+      shipsUnder: { name: 'General' },
+    })
+  })
+
+  it('charges no shipping for a cart of only variants that need none', async () => {
+    const s = await seed('no-shipping')
+    await waimers(s)
+    const fitting = await product3(s.storeId, 'fitting', [
+      { title: 'Default', pricePaise: 100_000, noShipping: true },
+    ])
+    const cartId = await cartOf(s.storeId, [
+      variantItem(fitting.productId, fitting.variantIds[0] as string),
+    ])
+    expect(await quote(s.storeId, cartId)).toMatchObject({ kind: 'not_configured' })
+    expect(await withStore(app, s.storeId, (tx) => cartShippingHintFor(tx, cartId))).toEqual({
+      charged: false,
+      freeAbovePaise: null,
+    })
+    const placed = await place(s.storeId, cartId)
+    const [row] = await owner.select().from(order).where(eq(order.id, placed.orderId))
+    expect(row).toMatchObject({ shippingPaise: 0, shippingRateId: null, totalPaise: 100_000 })
+    const lines = await owner.select().from(orderLine).where(eq(orderLine.orderId, placed.orderId))
+    expect(lines.map((l) => l.requiresShipping)).toEqual([false])
+  })
+
+  it('prices a mixed cart on the lines that ship only', async () => {
+    const s = await seed('mixed-shipping')
+    await waimers(s)
+    const fitting = await product3(s.storeId, 'fitting', [
+      { title: 'Default', pricePaise: 100_000, noShipping: true },
+    ])
+    // ₹1,600 in the cart, but only the ₹600 T-shirt ships: General's free-from-₹999 does not apply.
+    const cartId = await cartOf(s.storeId, [
+      s.tshirt,
+      variantItem(fitting.productId, fitting.variantIds[0] as string),
+    ])
+    expect(await quote(s.storeId, cartId)).toMatchObject({
+      kind: 'rates',
+      options: [{ name: 'Standard', pricePaise: 4900 }],
+    })
+    const placed = await place(s.storeId, cartId)
+    expect(await totalOf(placed.orderId)).toBe(160_000 + 4900)
+  })
+
+  it('fulfils an order with nothing to ship without a shipment', async () => {
+    const s = await seed('fulfil-no-shipping')
+    await waimers(s)
+    const fitting = await product3(s.storeId, 'fitting', [
+      { title: 'Default', pricePaise: 100_000, noShipping: true },
+    ])
+    const cartId = await cartOf(s.storeId, [
+      variantItem(fitting.productId, fitting.variantIds[0] as string),
+    ])
+    const placed = await place(s.storeId, cartId)
+    const [line] = await owner.select().from(orderLine).where(eq(orderLine.orderId, placed.orderId))
+    await withStore(app, s.storeId, (tx) =>
+      fulfilOrderLines(
+        { storeId: s.storeId, tx },
+        { orderId: placed.orderId, lines: [{ lineId: line?.id ?? '', quantity: 1 }] },
+      ),
+    )
+    const [row] = await owner.select().from(order).where(eq(order.id, placed.orderId))
+    // Packed by hand with no tracking: nothing for a courier to carry.
+    expect(row?.fulfillmentStatus).toBe('fulfilled')
+    expect(await owner.select().from(shipment).where(eq(shipment.orderId, placed.orderId))).toEqual(
+      [],
+    )
   })
 })

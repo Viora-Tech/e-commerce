@@ -132,6 +132,7 @@ export async function previewCartParcels(
       title: product.title,
       variantTitle: variant.title,
       giftCard: product.isGiftCard,
+      requiresShipping: variant.requiresShipping,
       preorderOverride: variant.preorderOverride,
       preorderEnabled: product.preorderEnabled,
       preorderShipDate: product.preorderShipDate,
@@ -153,7 +154,8 @@ export async function previewCartParcels(
         key: String(i),
         variantId: r.variantId,
         quantity: r.quantity,
-        giftCard: r.giftCard,
+        // "Ships in 2 parcels" counts only what travels; a service or download is no parcel.
+        giftCard: r.giftCard || !r.requiresShipping,
         preorder: pre.enabled ? { enabled: true, limit: pre.limit } : null,
       }
     }),

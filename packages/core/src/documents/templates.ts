@@ -155,8 +155,16 @@ export type DocOrder = {
     sku: string | null
     quantity: number
     unitPricePaise: number
+    /** False for a variant that needs no shipping: never packed or picked. */
+    requiresShipping?: boolean | undefined
   }[]
 }
+
+/** Lines that go in a box: the packing slip and pick list leave out the rest. */
+const packed = (o: DocOrder): DocOrder => ({
+  ...o,
+  lines: o.lines.filter((l) => l.requiresShipping !== false),
+})
 
 /** The store as printed in the header. */
 export type DocStore = {
@@ -234,10 +242,14 @@ function orderData(o: DocOrder, opts: DocOptions) {
 
 export const packingSlipData = (o: DocOrder, store: DocStore, opts: DocOptions = {}) => ({
   store,
-  ...orderData(o, opts),
+  ...orderData(packed(o), opts),
 })
 
-export const invoiceData = packingSlipData
+/** The invoice bills every line, shipped or not. */
+export const invoiceData = (o: DocOrder, store: DocStore, opts: DocOptions = {}) => ({
+  store,
+  ...orderData(o, opts),
+})
 
 /**
  * The pick list for several orders: every item once, with the quantity to pick across all of
@@ -253,7 +265,7 @@ export function pickListData(
     string,
     { title: string; variant: string; sku: string; quantity: number; orders: string[] }
   >()
-  for (const o of orders) {
+  for (const o of orders.map(packed)) {
     for (const l of o.lines) {
       const variant = variantOf(l.variantTitle)
       const key = [l.sku ?? '', l.title ?? '', variant].join('|')

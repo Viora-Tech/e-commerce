@@ -269,6 +269,7 @@ export const createOrder: WorkflowStep<State> = {
         gstRatePercent: lineGstRate(l, s.gstRatePercent, storeTax),
         hsCode: l.giftCard ? null : l.hsCode,
         giftCard: l.giftCard,
+        requiresShipping: l.requiresShipping,
         preorder: l.preorder.enabled && !l.giftCard,
         // Products › Pre-orders counts a campaign's orders and revenue from this (#141).
         preorderCampaignId:

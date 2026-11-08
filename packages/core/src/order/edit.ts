@@ -73,6 +73,7 @@ async function loadForEdit(ctx: StoreContext, edit: OrderEdit, lock: boolean) {
           gstRatePercent: effectiveGstRatePercent,
           hsCode: effectiveHsCode,
           costPaise: variant.costPaise,
+          requiresShipping: variant.requiresShipping,
         })
         .from(variant)
         .innerJoin(product, eq(product.id, variant.productId))
@@ -344,6 +345,7 @@ export async function editOrder(
           : 0,
         hsCode: v.hsCode,
         costAtSalePaise: v.costPaise,
+        requiresShipping: v.requiresShipping,
       })
       .returning({ id: orderLine.id })
     if (row) added.push({ orderLineId: row.id, variantId: v.id, quantity: l.quantity })

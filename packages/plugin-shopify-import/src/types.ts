@@ -46,6 +46,11 @@ export type NVariant = {
    * variants Shopify kept at ₹0 (#934). Imported hidden; undefined when the source cannot tell (CSV).
    */
   hiddenOnStore?: boolean | undefined
+  /**
+   * Shopify's "This is a physical product" (`inventoryItem.requiresShipping`, CSV "Variant
+   * Requires Shipping"); undefined when the source did not say.
+   */
+  requiresShipping?: boolean | undefined
 }
 
 export type NProduct = {

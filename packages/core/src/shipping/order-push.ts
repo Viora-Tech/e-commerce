@@ -87,7 +87,13 @@ async function pushInputFor(
     })
     .from(orderLine)
     .leftJoin(variant, eq(variant.id, orderLine.variantId))
-    .where(and(eq(orderLine.orderId, orderId), eq(orderLine.giftCard, false)))
+    .where(
+      and(
+        eq(orderLine.orderId, orderId),
+        eq(orderLine.giftCard, false),
+        eq(orderLine.requiresShipping, true),
+      ),
+    )
   if (lines.length === 0) return null
   const weighed = lines.reduce((g, l) => g + (l.weightGrams ?? 0) * l.quantity, 0)
   const w = settings.policy.warehouse

@@ -104,6 +104,7 @@ import platform from './platform'
 import preorders from './preorders'
 import productForm from './product-form'
 import productPage from './product-page'
+import productShipping from './product-shipping'
 import products from './products'
 import profitCosts from './profit-costs'
 import profitReport from './profit-report'
@@ -255,6 +256,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...commandPalette,
   ...inventory,
   ...productForm,
+  ...productShipping,
   ...preorders,
   ...productPage,
   ...products,

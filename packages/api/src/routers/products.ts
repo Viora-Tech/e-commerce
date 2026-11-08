@@ -317,7 +317,10 @@ export const productsRouter = {
       }
     }),
 
-  /** Patch one variant: price, MRP, SKU, stock, or hide it on the storefront (`hiddenOnStore`). */
+  /**
+   * Patch one variant: price, MRP, SKU, stock, hide it on the storefront (`hiddenOnStore`), or
+   * say whether it is a physical product (`requiresShipping`).
+   */
   updateVariant: can(permissions.INVENTORY_WRITE)
     .input(
       z.object({
@@ -328,6 +331,8 @@ export const productsRouter = {
         onHand: z.number().int().min(0).optional(),
         /** Hidden variants are never shown or sold on the storefront, but stay in admin (#934). */
         hiddenOnStore: z.boolean().optional(),
+        /** Shopify's "This is a physical product": false takes no shipping and never ships. */
+        requiresShipping: z.boolean().optional(),
       }),
     )
     .handler(({ context, input: { id, ...patch } }) => updateVariant(context.tx, id, patch)),

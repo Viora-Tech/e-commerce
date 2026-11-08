@@ -39,7 +39,7 @@ export async function fetchShopAndScopes(
 
 const VARIANT_FIELDS = `id title sku barcode price compareAtPrice taxable inventoryQuantity inventoryPolicy availableForSale
   selectedOptions { name value } image { url }
-  inventoryItem { tracked harmonizedSystemCode unitCost { amount } measurement { weight { unit value } } }`
+  inventoryItem { tracked requiresShipping harmonizedSystemCode unitCost { amount } measurement { weight { unit value } } }`
 
 /**
  * Only used when the Bulk Operations path (`fetchProducts` below) is
@@ -84,6 +84,8 @@ type GVariant = {
   image: { url: string } | null
   inventoryItem: {
     tracked: boolean
+    /** "This is a physical product"; older fixtures leave it out. */
+    requiresShipping?: boolean | null
     harmonizedSystemCode: string | null
     unitCost: { amount: string } | null
     measurement: { weight: { unit: string; value: number } | null } | null
@@ -165,6 +167,9 @@ export function mapVariant(
     // A sold-out variant with a real price stays visible as sold out; only the ₹0 ones Shopify
     // would not sell are the "unavailable" leftovers (#934).
     hiddenOnStore: v.availableForSale === false && (rupees(v.price) ?? 0) === 0,
+    ...(typeof v.inventoryItem?.requiresShipping === 'boolean'
+      ? { requiresShipping: v.inventoryItem.requiresShipping }
+      : {}),
   }
 }
 

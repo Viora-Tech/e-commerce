@@ -4,6 +4,7 @@ import {
   cartShippingHintFor,
   type DeliveryEstimate,
   domesticShippingProvider,
+  getCart,
   parseShippingSettings,
   previewCartParcels,
   quoteCartShipping,
@@ -159,6 +160,35 @@ export type CheckoutShipping = {
   arrives: string | null
   /** Delivery options app: the quote Pay prices from, and the insurance checkbox. */
   deliveryQuote?: Pick<CheckoutDelivery, 'quoteId' | 'insurance'> | undefined
+  /** Nothing in the cart needs shipping (services, downloads): no charge, no courier asked. */
+  nothingShips?: true | undefined
+}
+
+/** Stands in for the courier's answer when nothing in the cart travels. */
+const NOTHING_SHIPS: Extract<DeliveryEstimate, { serviceable: true }> = {
+  ok: true,
+  serviceable: true,
+  pincode: '',
+  // Cash is collected by the courier on delivery; with no parcel there is no one to collect it.
+  codAvailable: false,
+  dateRange: '',
+  earliestDate: '',
+  latestDate: '',
+  dispatchDate: '',
+  dispatchLabel: '',
+  dispatchesToday: false,
+  fallback: true,
+  provider: 'none',
+}
+
+/** Whether a cart has nothing to ship: every line a gift card or a variant without shipping. */
+async function cartNothingShips(tx: StoreTx, storeId: string, cartId: string): Promise<boolean> {
+  const cart = await getCart({ storeId, tx }, cartId)
+  return (
+    !!cart?.lines.length &&
+    cart.lines.every((l) => l.giftCard || !l.requiresShipping) &&
+    !cart.lines.every((l) => l.giftCard)
+  )
 }
 
 /** The options as cards: each with its window (`rateWindow`), its date line and the fastest flag. */
@@ -222,6 +252,16 @@ export async function checkoutShipping(
   to: { pincode: string; stateCode: string; countryCode?: string | undefined },
   opts: { declineInsurance?: boolean | undefined; quoteId?: string | null | undefined } = {},
 ): Promise<CheckoutShipping> {
+  // A service or a download: the address is kept for the invoice, but nothing is quoted.
+  if (await cartNothingShips(tx, storeId, cartId)) {
+    return {
+      delivery: { ...NOTHING_SHIPS, pincode: to.pincode },
+      rates: { kind: 'free' },
+      parcels: [],
+      arrives: null,
+      nothingShips: true,
+    }
+  }
   if (isAbroad(to.countryCode)) return abroadShipping(tx, storeId, cartId, to)
   const fromApp = await deliveryOptionsShipping(tx, storeId, cartId, to, opts)
   if (fromApp) return fromApp

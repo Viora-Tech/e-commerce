@@ -30,3 +30,15 @@ describe('hidden variants from Shopify (#934)', () => {
     expect(mapVariant(gVariant('0.00', undefined), ['Colour'], null).hiddenOnStore).toBe(false)
   })
 })
+
+describe('physical products from Shopify', () => {
+  it('maps "This is a physical product" and leaves it out when Shopify did not say', () => {
+    const base = gVariant('499.00', true)
+    const download = {
+      ...base,
+      inventoryItem: { ...base.inventoryItem, requiresShipping: false },
+    }
+    expect(mapVariant(download, ['Colour'], null).requiresShipping).toBe(false)
+    expect(mapVariant(base, ['Colour'], null).requiresShipping).toBeUndefined()
+  })
+})

@@ -16,6 +16,7 @@ import MoneyInput from '@/components/fields/money-input'
 import KitField from '@/components/kit/kit-field'
 import { COUNTRIES } from '@/data/countries'
 import { productFormContent } from '@/data/product-form'
+import { productShippingContent } from '@/data/product-shipping'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { margin, type VariantRow } from './form-state'
 import type { ProductTax } from './product-tax'
@@ -45,6 +46,7 @@ export default function VariantEditFields({
 }: VariantEditFieldsProps) {
   // Hooks
   const formCopy = useCopy(productFormContent)
+  const physical = useCopy(productShippingContent)
   const fmt = useFormat()
 
   // Render logic
@@ -243,14 +245,33 @@ export default function VariantEditFields({
       </Group>
 
       <Group title={copy.shipping}>
-        <KitField label={shipping.weight} htmlFor="edit-variant-weight" help={shipping.weightHelp}>
-          <WeightInput
-            id="edit-variant-weight"
-            weight={draft.weight}
-            unit={draft.weightUnit}
-            onChange={onPatch}
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex flex-col gap-0.5">
+            <label htmlFor="edit-variant-physical" className="text-body text-foreground">
+              {physical.physical}
+            </label>
+            <p className="text-caption text-muted-foreground">{physical.physicalHelp}</p>
+          </div>
+          <Switch
+            id="edit-variant-physical"
+            checked={draft.requiresShipping}
+            onCheckedChange={(requiresShipping) => onPatch({ requiresShipping })}
           />
-        </KitField>
+        </div>
+        {draft.requiresShipping ? (
+          <KitField
+            label={shipping.weight}
+            htmlFor="edit-variant-weight"
+            help={shipping.weightHelp}
+          >
+            <WeightInput
+              id="edit-variant-weight"
+              weight={draft.weight}
+              unit={draft.weightUnit}
+              onChange={onPatch}
+            />
+          </KitField>
+        ) : null}
         <div className="grid gap-4 md:grid-cols-2">
           <KitField label={shipping.country} htmlFor="edit-variant-origin">
             <Select

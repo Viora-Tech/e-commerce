@@ -90,6 +90,7 @@ function importToWrite(parsed: ImportProduct): ProductWrite {
       costPaise: v.costPaise,
       taxable: v.taxable,
       trackInventory: v.trackInventory,
+      ...(v.requiresShipping === undefined ? {} : { requiresShipping: v.requiresShipping }),
       weightGrams: v.weightGrams,
       onHand: v.onHand,
     })),
@@ -150,6 +151,8 @@ export type ExportRow = {
   mrpPaise: number | null
   costPaise: number | null
   weightGrams: number | null
+  /** "Variant Requires Shipping". */
+  requiresShipping: boolean
   onHand: number
 }
 
@@ -171,6 +174,7 @@ export async function exportRows(tx: StoreTx, productIds: string[]): Promise<Exp
       mrpPaise: variant.mrpPaise,
       costPaise: variant.costPaise,
       weightGrams: variant.weightGrams,
+      requiresShipping: variant.requiresShipping,
       onHand: sellableStock.onHand,
     })
     .from(variant)
@@ -195,6 +199,7 @@ export async function exportRows(tx: StoreTx, productIds: string[]): Promise<Exp
         mrpPaise: v.mrpPaise,
         costPaise: v.costPaise,
         weightGrams: v.weightGrams,
+        requiresShipping: v.requiresShipping,
         onHand: v.onHand ?? 0,
       })),
   )
@@ -313,6 +318,7 @@ export async function duplicateProduct(
       costPaise: v.costPaise,
       taxable: v.taxable,
       trackInventory: v.trackInventory,
+      requiresShipping: v.requiresShipping,
       weightGrams: v.weightGrams,
       boxPresetId: v.boxPresetId,
       packageLengthCm: v.packageLengthCm,

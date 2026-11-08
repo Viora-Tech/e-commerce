@@ -37,6 +37,8 @@ export const VariantInputSchema = z.object({
   hiddenOnStore: z.boolean().optional(),
   /** "Allow pre-order" when the product is on pre-order (default on). Undefined leaves it as it is. */
   preorderAllowed: z.boolean().optional(),
+  /** Shopify's "This is a physical product" (default on). Undefined leaves it as it is. */
+  requiresShipping: z.boolean().optional(),
   weightGrams: z.number().int().min(0).max(1_000_000).nullable().optional(),
   /** Unit the product page shows the weight in; grams stay the source of truth. Null shows kg. */
   weightUnit: WeightUnitSchema.nullable().optional(),

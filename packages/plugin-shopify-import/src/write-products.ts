@@ -156,6 +156,7 @@ function toWrite(
       costPaise: v.costPaise,
       taxable: v.taxable,
       trackInventory: v.trackInventory,
+      ...(v.requiresShipping === undefined ? {} : { requiresShipping: v.requiresShipping }),
       weightGrams: v.weightGrams,
       hsCode: v.hsCode,
       // Only ever hides: a variant the merchant hid by hand stays hidden on re-import.

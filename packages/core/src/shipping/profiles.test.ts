@@ -1,11 +1,13 @@
 /** SOURCE OF TRUTH: shipping profile rule tests — WHAT: quotes across profiles, free shipping and value splits / WHY: guard the rule in profiles.ts */
 import { describe, expect, it } from 'vitest'
 import {
+  lineProfileId,
+  lineShips,
   primaryRateId,
   profilesFreeShippingThreshold,
   quoteProfiles,
   type ShippingProfileInput,
-  splitValue,
+  splitProfileParts,
 } from './profiles'
 import type { ShippingZoneInput, ShippingZoneRateInput } from './rates'
 
@@ -155,10 +157,76 @@ describe('profilesFreeShippingThreshold', () => {
   })
 })
 
-describe('splitValue', () => {
+describe('sharing the value across profiles', () => {
+  const at = (price: number) => ({
+    quantity: 1,
+    unitPricePaise: price,
+    weightGrams: null,
+    giftCard: false,
+  })
+  const values = (total: number, prices: number[]) =>
+    splitProfileParts(
+      prices.map((p, i) => ({ ...at(p), id: String(i) })),
+      total,
+      (l) => l.id,
+    ).parts.map((p) => p.measure.valuePaise)
+
   it('shares the discounted value by subtotal and always adds up', () => {
-    expect(splitValue(90_000, [60_000, 40_000])).toEqual([54_000, 36_000])
-    expect(splitValue(100, [1, 1, 1])).toEqual([33, 33, 34])
-    expect(splitValue(500, [0, 0])).toEqual([500, 0])
+    expect(values(90_000, [60_000, 40_000])).toEqual([54_000, 36_000])
+    expect(values(100, [1, 1, 1])).toEqual([33, 33, 34])
+    expect(values(500, [0, 0])).toEqual([500, 0])
+  })
+})
+
+describe('variant placement and lines that do not ship', () => {
+  const byVariant = new Map([['v-large', 'freight']])
+  const byProduct = new Map([['deck', 'skates']])
+
+  it('puts a line under its variant first, then its product, then General', () => {
+    const of = (variantId: string, productId: string) =>
+      lineProfileId({ variantId, productId }, byVariant, byProduct, 'general')
+    expect(of('v-large', 'deck')).toBe('freight')
+    expect(of('v-small', 'deck')).toBe('skates')
+    expect(of('v-shirt', 'shirt')).toBe('general')
+  })
+
+  const line = (
+    over: Partial<Parameters<typeof lineShips>[0]> & { id: string; price: number },
+  ) => ({
+    id: over.id,
+    quantity: 1,
+    unitPricePaise: over.price,
+    weightGrams: 500,
+    giftCard: over.giftCard ?? false,
+    requiresShipping: over.requiresShipping,
+  })
+
+  it('measures a cart that ships whole in one profile on the whole cart, as before', () => {
+    const lines = [line({ id: 'a', price: 60_000 }), line({ id: 'b', price: 40_000 })]
+    expect(splitProfileParts(lines, 90_000, () => 'general')).toEqual({
+      parts: [{ profileId: 'general', measure: { valuePaise: 90_000, weightGrams: 1000 } }],
+      measure: { valuePaise: 90_000, weightGrams: 1000 },
+    })
+  })
+
+  it('leaves lines that need no shipping out, with their share of the value', () => {
+    const lines = [
+      line({ id: 'shirt', price: 60_000 }),
+      line({ id: 'session', price: 40_000, requiresShipping: false }),
+    ]
+    const split = splitProfileParts(lines, 100_000, () => 'general')
+    expect(split.parts).toEqual([
+      { profileId: 'general', measure: { valuePaise: 60_000, weightGrams: 500 } },
+    ])
+    expect(split.measure).toEqual({ valuePaise: 60_000, weightGrams: 500 })
+  })
+
+  it('has nothing to measure when no line ships', () => {
+    const lines = [
+      line({ id: 'session', price: 40_000, requiresShipping: false }),
+      line({ id: 'card', price: 50_000, giftCard: true }),
+    ]
+    expect(splitProfileParts(lines, 90_000, () => 'general')).toEqual({ parts: [], measure: null })
+    expect(lines.map(lineShips)).toEqual([false, false])
   })
 })

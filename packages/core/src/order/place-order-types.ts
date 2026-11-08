@@ -135,6 +135,8 @@ export type Line = {
   hsCode: string | null
   /** Sold as a gift card: no tax, no stock, issued on payment. */
   giftCard: boolean
+  /** The variant's "requires shipping": false takes no shipping charge and never ships. */
+  requiresShipping: boolean
   /** Variant weight; null counts as 0 for weight-based rates. */
   weightGrams: number | null
   /** The variant's weighted average cost now: snapshotted as the line's cost at sale. */

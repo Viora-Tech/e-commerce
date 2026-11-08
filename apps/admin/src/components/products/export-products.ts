@@ -20,6 +20,7 @@ const HEADERS = [
   'Variant Cost',
   'Variant Grams',
   'Variant Inventory Qty',
+  'Variant Requires Shipping',
 ]
 
 const rupees = (paise: number | null) => (paise == null ? '' : (paise / 100).toFixed(2))
@@ -45,6 +46,7 @@ export function downloadProductCsv(rows: Row[]) {
         rupees(r.costPaise),
         r.weightGrams,
         r.onHand,
+        r.requiresShipping ? 'TRUE' : 'FALSE',
       ]),
     ),
   )
