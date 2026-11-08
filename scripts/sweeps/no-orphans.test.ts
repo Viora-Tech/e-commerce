@@ -666,11 +666,6 @@ const ALLOWLIST: AllowEntry[] = [
     reason: 'no external importer today — investigate before removing',
   },
   {
-    file: 'packages/core/src/order/draft-list.ts',
-    names: ['DRAFT_SOURCES'],
-    reason: 'the drafts list source filter; the admin Drafts tabs (part 4) wire it',
-  },
-  {
     file: 'packages/core/src/payments/confirm.ts',
     names: ['gatewayPaidTooLittle'],
     reason: 'exported for its unit test (amount-check.test.ts); used inside applyPaymentStatus',
