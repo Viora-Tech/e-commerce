@@ -3,10 +3,12 @@ import {
   canvasSafeHtml,
   cleanThemeSettings,
   createPageContext,
+  enqueueMediaProcess,
   googleFontsHref,
   importShopifyTheme,
   type LiquidSectionInput,
   loadThemeBundle,
+  type MediaProcessQueue,
   renderLiquidLayout,
   renderLiquidSection,
   type ShopifySectionSchema,
@@ -40,6 +42,8 @@ export async function importThemeZip(
   tx: StoreTx,
   storeId: string,
   input: { file: File; shopifyHost?: string | undefined },
+  /** The worker's media queue: copied images get their sized copies like any upload. */
+  mediaProcess?: MediaProcessQueue | undefined,
 ) {
   try {
     const { storage } = await storeRegistries(tx, storeId)
@@ -49,7 +53,12 @@ export async function importThemeZip(
       tx,
       storeId,
       { zip, fileName: input.file.name, shopifyHost: input.shopifyHost },
-      { storage: provider },
+      {
+        storage: provider,
+        processImage: mediaProcess
+          ? (mediaId) => enqueueMediaProcess(mediaProcess, { storeId, mediaId, bulk: true })
+          : undefined,
+      },
     )
   } catch (err) {
     if (err instanceof ThemeLibraryError) throw err

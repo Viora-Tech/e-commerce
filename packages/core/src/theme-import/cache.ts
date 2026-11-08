@@ -5,6 +5,7 @@ import type {
   LiquidCollectionData,
   LiquidCustomData,
   LiquidDataSource,
+  LiquidImageData,
   LiquidMenuData,
   LiquidMetafieldData,
   LiquidMetafieldOwner,
@@ -41,6 +42,9 @@ export class LiquidDataCache {
   /** Content type → its entries' ids, in order. */
   readonly #types: Store<string[]> = new Map()
   readonly #pending = new Map<string, () => Promise<void>>()
+  /** Files-library images by URL (image settings saved as a bare URL); null when not in Files. */
+  readonly #images: Store<LiquidImageData> = new Map()
+  readonly #wantImages = new Set<string>()
   /** Collection and search listings with the request's filters, by collection and query. */
   readonly #listings: Store<LiquidBrowseData> = new Map()
   /** The signed-in shopper's latest orders (`customer.orders`; one value per request). */
@@ -210,6 +214,27 @@ export class LiquidDataCache {
       return data.entries.filter((e) => e.type === type).map((e) => e.id)
     })
     return ids ? ids.flatMap((id) => this.#entries.get(id) ?? []) : null
+  }
+
+  /**
+   * A Files-library image by URL with its size and sized copies; null while it loads, or always
+   * when the source cannot look images up or the URL is not in the library. Every URL asked for
+   * in one pass loads in one query.
+   */
+  image(url: string): LiquidImageData | null {
+    const lookup = this.source.images
+    if (!lookup) return null
+    if (this.#images.has(url)) return this.#images.get(url) ?? null
+    this.#wantImages.add(url)
+    if (!this.#pending.has('img*')) {
+      this.#pending.set('img*', async () => {
+        const urls = [...this.#wantImages]
+        this.#wantImages.clear()
+        const found = await lookup(urls)
+        for (const u of urls) this.#images.set(u, found.get(u) ?? null)
+      })
+    }
+    return null
   }
 
   /** True when the last render asked for something not loaded yet. */

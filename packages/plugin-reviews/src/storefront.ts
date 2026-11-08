@@ -1,8 +1,20 @@
 import { product, type StoreTx } from '@commerce/db'
 import { and, asc, desc, eq, type SQL, sql } from 'drizzle-orm'
-import { emptySummary, photosFor, type RatingSummary, ratingSummaries } from './reviews'
+import {
+  emptySummary,
+  photoCopy,
+  photosFor,
+  type RatingSummary,
+  type ReviewPhoto,
+  ratingSummaries,
+} from './reviews'
+
 import { review } from './schema'
 import type { ReviewSort, ReviewsSettings } from './settings'
+
+/** Copy widths for Judge.me's `small` (a card) and `huge` (a photo opened large). */
+const SMALL_PHOTO_WIDTH = 640
+const HUGE_PHOTO_WIDTH = 1280
 
 /** Published reviews one product page loads; chips and "show more" work on these. */
 const PRODUCT_PAGE_REVIEWS = 100
@@ -133,8 +145,20 @@ export async function storeReviewFeed(tx: StoreTx, settings: ReviewsSettings, li
         tx,
         rows.map((r) => r.id),
       )
-    : new Map<string, { url: string }[]>()
-  return rows.map((r) => ({ ...r, photos: (photos.get(r.id) ?? []).map((p) => p.url) }))
+    : new Map<string, ReviewPhoto[]>()
+  return rows.map((r) => {
+    const own = photos.get(r.id) ?? []
+    return {
+      ...r,
+      photos: own.map((p) => p.url),
+      /** Judge.me's `pictures_urls` sizes: the theme draws `small` on cards, `huge` opened. */
+      pictures: own.map((p) => ({
+        original: p.url,
+        huge: photoCopy(p, HUGE_PHOTO_WIDTH),
+        small: photoCopy(p, SMALL_PHOTO_WIDTH),
+      })),
+    }
+  })
 }
 
 export type StoreReviewFeed = Awaited<ReturnType<typeof storeReviewFeed>>

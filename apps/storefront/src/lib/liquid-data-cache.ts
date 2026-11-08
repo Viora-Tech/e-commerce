@@ -52,7 +52,7 @@ export function cachedLiquidData(
   const prefix = `liquid-data|${origin}|${pricing ? `${pricing}|` : ''}`
   const read = <T>(key: string, load: () => Promise<T>) =>
     cachedForStore(storeId, `${prefix}${key}`, load)
-  const { importedFiles, judgeme, products, collectionsProducts } = source
+  const { importedFiles, images, judgeme, products, collectionsProducts } = source
   return {
     ...source,
     product: (handle) => read(`p|${handle}`, () => source.product(handle)),
@@ -86,5 +86,8 @@ export function cachedLiquidData(
     metaobjects: (ids) => read(`mo|${ids.join(',')}`, () => source.metaobjects(ids)),
     importedFiles: importedFiles ? () => read('files', importedFiles) : undefined,
     judgeme: judgeme ? () => read('judgeme', judgeme) : undefined,
+    images: images
+      ? (urls) => cachedBatch(storeId, urls, (u) => `${prefix}img|${u}`, images, null)
+      : undefined,
   }
 }
