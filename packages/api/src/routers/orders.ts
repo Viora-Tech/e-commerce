@@ -117,7 +117,7 @@ export const ordersRouter = {
       const { shipping } = await storeRegistries(context.tx, context.scope.storeId)
       const [shipment, balance, customerOrders, customerOrderNumber] = await Promise.all([
         shipmentDetailsForOrder(context.tx, shipping, input.id),
-        orderBalance(context.tx, context.scope.storeId, input.id, o.totalPaise),
+        orderBalance(context.tx, input.id, o.totalPaise),
         customerOrderCount(context.tx, o.customerId),
         customerOrderIndex(context.tx, o.customerId, o.placedAt),
       ])

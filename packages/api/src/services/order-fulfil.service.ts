@@ -8,13 +8,12 @@ import {
   OrderNotFound,
   recomputeOrderStatuses,
   recordBalancePaid,
-  refundedPaise,
   withManualCollection,
 } from '@commerce/core'
 import type { StoreTx } from '@commerce/db'
-import { customer, order, payment } from '@commerce/db'
+import { customer, order, payment, refund } from '@commerce/db'
 import { ORPCError } from '@orpc/server'
-import { and, asc, count, desc, eq, gt, inArray, lt, lte, ne } from 'drizzle-orm'
+import { and, asc, count, desc, eq, gt, inArray, lt, lte, ne, sum } from 'drizzle-orm'
 
 /** The orders either side of this one by number, for the header's arrows. */
 export async function orderNeighbours(tx: StoreTx, id: string) {
@@ -92,7 +91,6 @@ export function balanceOf(totalPaise: number, capturedPaise: number, refundedPai
 
 export async function orderBalance(
   tx: StoreTx,
-  storeId: string,
   orderId: string,
   totalPaise: number,
 ): Promise<OrderBalance> {
@@ -105,8 +103,15 @@ export async function orderBalance(
   const pendingPaise = rows
     .filter((p) => p.status === 'pending')
     .reduce((sum, p) => sum + p.amountPaise, 0)
-  let back = 0
-  for (const p of rows) back += await refundedPaise({ tx, storeId }, p.id)
+  // Every payment's refunds in one query (the same rows `refundedPaise` adds up per payment).
+  const ids = rows.map((p) => p.id)
+  const [refunded] = ids.length
+    ? await tx
+        .select({ total: sum(refund.amountPaise) })
+        .from(refund)
+        .where(and(inArray(refund.paymentId, ids), ne(refund.status, 'failed')))
+    : []
+  const back = Number(refunded?.total ?? 0)
   return {
     capturedPaise,
     pendingPaise,
@@ -165,7 +170,7 @@ export async function collectOrderPayment(
     await stampCollection(tx, input, 'order', first.id)
   } else {
     // Never more than is still owed: an over-recorded order reads as paid twice over.
-    const { balancePaise } = await orderBalance(tx, storeId, input.orderId, current.totalPaise)
+    const { balancePaise } = await orderBalance(tx, input.orderId, current.totalPaise)
     if (input.amountPaise > balancePaise) {
       throw new ORPCError('BAD_REQUEST', {
         message: 'That is more than is left to pay on this order.',
