@@ -3,20 +3,18 @@
  * actions"): adding orders to the invoice queue and "Generate GST invoice". Split out of
  * `./gst-invoices.ts`, which mounts them as `gstInvoices.queue.add` and `gstInvoices.generate`.
  */
-import { enqueueAppJob, permissions, refreshOrderLineGst } from '@commerce/core'
+import { enqueueAppJob, permissions } from '@commerce/core'
 import {
   defaultInvoiceDate,
-  documentsByIds,
   enqueueOrderParcels,
   GST_INVOICES_ID,
   issueDrafts,
   issuedInvoiceIds,
   isTestOrder,
-  regenerateDocument,
+  refreshInvoiceGst as refreshFromProducts,
   renderAndStore,
   soldOnlyGiftCards,
 } from '@commerce/plugin-gst-invoices/server'
-import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
 import { BULK_MAX, can } from '../procedures'
 import { orderIdsByNumber } from '../services/gst-invoices.service'
@@ -122,7 +120,7 @@ export const generateInvoice = can(permissions.ORDERS_WRITE)
   })
 
 /** The issued tax invoices of the orders selected in Orders, for its bulk Print invoices. */
-export const invoicesForOrders = can(permissions.ORDERS_READ)
+const invoicesForOrders = can(permissions.ORDERS_READ)
   .input(z.object({ orderIds: z.array(z.uuid()).min(1).max(BULK_MAX) }))
   .handler(async ({ context, input }) => {
     await requireInstalled(context)
@@ -134,19 +132,18 @@ export const invoicesForOrders = can(permissions.ORDERS_READ)
  * their products' GST and HSN as they are now, and the invoice is rebuilt under the same
  * number and date. Once reported in GSTR-1 it is locked; a credit note is the way then.
  */
-export const refreshInvoiceGst = can(permissions.ORDERS_WRITE)
+const refreshInvoiceGst = can(permissions.ORDERS_WRITE)
   .input(z.object({ id: z.uuid() }))
   .handler(async ({ context, input }) => {
     await requireInstalled(context)
     try {
-      const [doc] = await documentsByIds(context.tx, [input.id])
-      if (!doc || doc.kind !== 'tax_invoice') {
-        throw new ORPCError('BAD_REQUEST', { message: 'Only a tax invoice can be recalculated' })
-      }
-      const changed = await refreshOrderLineGst(context.tx, doc.orderId)
-      const row = await regenerateDocument(context.tx, context.scope.storeId, doc.id)
+      const { row, changedLines } = await refreshFromProducts(
+        context.tx,
+        context.scope.storeId,
+        input.id,
+      )
       const done = await renderAndStore(renderDeps(context), row.id)
-      return { id: done.id, number: done.number, changedLines: changed }
+      return { id: done.id, number: done.number, changedLines }
     } catch (err) {
       asOrpc(err)
     }
