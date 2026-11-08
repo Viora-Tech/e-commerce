@@ -9,13 +9,6 @@ import {
   approveDueCommissions,
   loadAffiliateSettings,
 } from '@commerce/plugin-affiliates/server'
-import {
-  AFFILIATE_COMMISSIONS_QUEUE,
-  type IORedis,
-  KEEP_FINISHED,
-  Queue,
-  Worker,
-} from '@commerce/queue'
 
 /**
  * Sends one `affiliate_update` (approved, a new sale, a payout) to the affiliate by email, and by
@@ -62,29 +55,24 @@ export const AFFILIATE_COMMISSIONS_EVERY_MS = 60 * 60_000
  * writes `affiliate.commission_approved` in the same transaction, for the Automations app.
  * One store failing is logged and skipped.
  */
-export function createAffiliateCommissionSweep(connection: IORedis, db: Db) {
-  const queue = new Queue(AFFILIATE_COMMISSIONS_QUEUE, { connection })
-  const worker = new Worker(
-    AFFILIATE_COMMISSIONS_QUEUE,
-    async () => {
-      const storeIds = await storesWithDueAffiliateCommissions(db)
-      const counts = { approved: 0, reversed: 0 }
-      for (const storeId of storeIds) {
-        try {
-          if (!(await installedApps(db, storeId)).includes(AFFILIATES_ID)) continue
-          const r = await withStore(db, storeId, async (tx) =>
-            approveDueCommissions(tx, storeId, await loadAffiliateSettings(tx, storeId)),
-          )
-          counts.approved += r.approved
-          counts.reversed += r.reversed
-        } catch (err) {
-          logger.warn('affiliate commission sweep failed', { storeId, error: err })
-        }
+export function createAffiliateCommissionSweep(db: Db) {
+  const run = async () => {
+    const storeIds = await storesWithDueAffiliateCommissions(db)
+    const counts = { approved: 0, reversed: 0 }
+    for (const storeId of storeIds) {
+      try {
+        if (!(await installedApps(db, storeId)).includes(AFFILIATES_ID)) continue
+        const r = await withStore(db, storeId, async (tx) =>
+          approveDueCommissions(tx, storeId, await loadAffiliateSettings(tx, storeId)),
+        )
+        counts.approved += r.approved
+        counts.reversed += r.reversed
+      } catch (err) {
+        logger.warn('affiliate commission sweep failed', { storeId, error: err })
       }
-      if (counts.approved || counts.reversed) logger.info('affiliate commissions', counts)
-      return { stores: storeIds.length, ...counts }
-    },
-    { connection, ...KEEP_FINISHED },
-  )
-  return { queue, worker }
+    }
+    if (counts.approved || counts.reversed) logger.info('affiliate commissions', counts)
+    return { stores: storeIds.length, ...counts }
+  }
+  return { run }
 }

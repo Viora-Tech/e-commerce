@@ -18,15 +18,7 @@ import {
 } from '@commerce/core'
 import type { Db } from '@commerce/db'
 import { logger } from '@commerce/observability/logging'
-import {
-  DOMAIN_CERTIFICATE_QUEUE,
-  DOMAIN_ROUTE_QUEUE,
-  DOMAIN_VERIFY_QUEUE,
-  type IORedis,
-  KEEP_FINISHED,
-  Queue,
-  Worker,
-} from '@commerce/queue'
+import { DOMAIN_ROUTE_QUEUE, type IORedis, KEEP_FINISHED, Queue, Worker } from '@commerce/queue'
 
 /** How often the certificate sweep looks for due hosts; each host's own schedule is in `certCheckInterval`. */
 export const CERTIFICATE_EVERY_MS = 60_000
@@ -41,7 +33,6 @@ export const VERIFY_EVERY_MS = 2 * 60_000
  * configured it also queues the HTTPS route for a live domain that has none yet.
  */
 export function createDomainPoller(
-  connection: IORedis,
   db: Db,
   opts: {
     provider: string
@@ -50,26 +41,21 @@ export function createDomainPoller(
     requestRoutes: boolean
   },
 ) {
-  const queue = new Queue(DOMAIN_VERIFY_QUEUE, { connection })
   const provider = createDomainProvider(opts.provider, {
     cloudflare: opts.cloudflare,
     log: (m) => logger.warn(m, { area: 'domains' }),
   })
-  const worker = new Worker(
-    DOMAIN_VERIFY_QUEUE,
-    async () => {
-      const r = await pollPendingDomains(db, {
-        provider,
-        targets: opts.targets,
-        requestRoutes: opts.requestRoutes,
-        log: (m) => logger.warn(m, { area: 'domains' }),
-      })
-      if (r.checked > 0 || r.failed > 0) logger.info('domains checked', { area: 'domains', ...r })
-      return r
-    },
-    { connection, ...KEEP_FINISHED },
-  )
-  return { queue, worker }
+  const run = async () => {
+    const r = await pollPendingDomains(db, {
+      provider,
+      targets: opts.targets,
+      requestRoutes: opts.requestRoutes,
+      log: (m) => logger.warn(m, { area: 'domains' }),
+    })
+    if (r.checked > 0 || r.failed > 0) logger.info('domains checked', { area: 'domains', ...r })
+    return r
+  }
+  return { run }
 }
 
 /**
@@ -155,21 +141,15 @@ function certificateDeps(
  * there is no real network to ask. Rows Cloudflare took on are skipped row by row.
  */
 export function createCertificateSweep(
-  connection: IORedis,
   db: Db,
   opts: { dokploy: DokployConfig | null; guard: RouteGuard; targets: DomainTargets },
 ) {
-  const queue = new Queue(DOMAIN_CERTIFICATE_QUEUE, { connection })
   const deps = certificateDeps(db, opts.dokploy ? createDokployClient(opts.dokploy) : null, opts)
-  const worker = new Worker(
-    DOMAIN_CERTIFICATE_QUEUE,
-    async () => {
-      const r = await runCertificateSweep(deps)
-      if (r.checked > 0 || r.failed > 0)
-        logger.info('certificates checked', { area: 'domains', ...r })
-      return r
-    },
-    { connection, concurrency: 1, ...KEEP_FINISHED },
-  )
-  return { queue, worker }
+  const run = async () => {
+    const r = await runCertificateSweep(deps)
+    if (r.checked > 0 || r.failed > 0)
+      logger.info('certificates checked', { area: 'domains', ...r })
+    return r
+  }
+  return { run }
 }

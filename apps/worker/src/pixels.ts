@@ -2,7 +2,6 @@ import {
   deliverPixelAlertRow,
   PIXEL_SEND_ATTEMPTS,
   PIXELS_ORDER_QUEUE,
-  PIXELS_PRUNE_QUEUE,
   PIXELS_SEND_QUEUE,
   type PixelOrderJob,
   type PixelSendJob,
@@ -41,7 +40,6 @@ type Opts = {
 export function createPixelsWorker(connection: IORedis, db: Db, opts: Opts) {
   const orderQueue = new Queue<PixelOrderJob>(PIXELS_ORDER_QUEUE, { connection })
   const sendQueue = new Queue<PixelSendJob>(PIXELS_SEND_QUEUE, { connection })
-  const pruneQueue = new Queue(PIXELS_PRUNE_QUEUE, { connection })
 
   const order = new Worker<PixelOrderJob>(
     PIXELS_ORDER_QUEUE,
@@ -70,15 +68,11 @@ export function createPixelsWorker(connection: IORedis, db: Db, opts: Opts) {
     { connection, concurrency: QUEUE_LIMITS.pixelsSend.concurrency, ...KEEP_FINISHED },
   )
 
-  const prune = new Worker(
-    PIXELS_PRUNE_QUEUE,
-    async () => {
-      const r = await runPixelPruneJob(db, new Date(), (m) => logger.warn(m, { area: 'pixels' }))
-      if (r.logs || r.days || r.orders) logger.info('pixels pruned', { area: 'pixels', ...r })
-      return r
-    },
-    { connection, concurrency: 1, ...KEEP_FINISHED },
-  )
+  const prune = async () => {
+    const r = await runPixelPruneJob(db, new Date(), (m) => logger.warn(m, { area: 'pixels' }))
+    if (r.logs || r.days || r.orders) logger.info('pixels pruned', { area: 'pixels', ...r })
+    return r
+  }
 
-  return { order, send, prune, orderQueue, sendQueue, pruneQueue }
+  return { order, send, prune, orderQueue, sendQueue }
 }
