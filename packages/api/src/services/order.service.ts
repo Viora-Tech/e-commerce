@@ -158,7 +158,12 @@ export async function listOrders(
 }
 
 /** The Orders list's tab badges, the same rows each tab lists with no search or filter. */
-export type OrderTabCounts = { all: number; unpaid: number; unfulfilled: number; pendingUpi: number }
+export type OrderTabCounts = {
+  all: number
+  unpaid: number
+  unfulfilled: number
+  pendingUpi: number
+}
 
 /**
  * Every tab badge in one pass over the store's orders: each count is the tab's own where clause
