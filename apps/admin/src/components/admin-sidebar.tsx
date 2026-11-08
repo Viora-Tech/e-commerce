@@ -32,9 +32,11 @@ import {
 } from '@/data/navigation'
 import { useCopy, useLocale } from '@/hooks/use-copy'
 import { usePermissions } from '@/hooks/use-permissions'
+import { useRecentApps } from '@/hooks/use-recent-apps'
 import { authClient } from '@/lib/auth-client'
 import { withSalesChannels } from '@/lib/nav-channels'
 import { localizeNavItems, navGroupName } from '@/lib/page-names'
+import { orderSidebarApps } from '@/lib/recent-apps'
 import { routes } from '@/lib/routes'
 import {
   SIDEBAR_BLOCK,
@@ -66,9 +68,6 @@ type AdminSidebarProps = {
   navCounts?: Record<string, number> | undefined
 }
 
-/** How many installed apps the sidebar lists before "View all apps". */
-const SIDEBAR_APPS = 5
-
 /* Figma "Store switcher" and "User": a 48px row, 32px tile or avatar, 10px gap, radius 8. */
 const ROW_TRIGGER =
   'flex h-12 w-full min-w-0 items-center gap-2.5 overflow-hidden rounded-sm px-1.5 text-left transition-[background-color,padding] hover:bg-sidebar-accent/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring aria-expanded:bg-sidebar-accent/60 group-data-[collapsible=icon]:px-0 ' +
@@ -78,21 +77,19 @@ const ROW_TRIGGER =
 const SIDEBAR_MENU = 'w-60 rounded-sm p-1'
 
 /**
- * Installed apps hang under the Apps entry, like Drafts under Orders. Past a handful the list
- * would push everything else off the rail, so it stops at `SIDEBAR_APPS` with a "View all".
- * The last row is the App Store website, where more apps are found (a new tab).
+ * Installed apps hang under the Apps entry, like Drafts under Orders: only the three this member
+ * used most recently (`orderSidebarApps`, the one on screen first), then "All apps" for the
+ * rest. The last row is the App Store website, where more apps are found (a new tab).
  */
 function nestApps(
   items: NavItem[],
-  apps: AdminSidebarProps['apps'],
+  shown: AdminSidebarProps['apps'],
+  installed: number,
   words: { viewAllApps: (n: number) => string; appStore: string },
 ): NavItem[] {
-  const shown = apps.slice(0, SIDEBAR_APPS).map((a) => ({ href: a.href, label: a.name }))
   const children = [
-    ...shown,
-    ...(apps.length > SIDEBAR_APPS
-      ? [{ href: routes.apps.list(), label: words.viewAllApps(apps.length) }]
-      : []),
+    ...shown.map((a) => ({ href: a.href, label: a.name })),
+    ...(installed > 0 ? [{ href: routes.apps.list(), label: words.viewAllApps(installed) }] : []),
     { href: appStoreUrl(), label: words.appStore, external: true },
   ]
   return items.map((item) =>
@@ -136,6 +133,11 @@ export default function AdminSidebar({
   const pathname = usePathname()
   const { member } = usePermissions()
   const [switchingId, setSwitchingId] = useState<string | null>(null)
+  const { recent, currentId } = useRecentApps(
+    activeStoreId,
+    pathname,
+    apps.map((a) => a.id),
+  )
 
   // Event handlers
   const handleSwitchStore = async (id: string) => {
@@ -260,7 +262,12 @@ export default function AdminSidebar({
             label={group.label ? navGroupName(group.label, locale) : undefined}
             items={
               group.label === APPS_GROUP
-                ? nestApps(localizeNavItems(group.items, locale), apps, layoutCopy)
+                ? nestApps(
+                    localizeNavItems(group.items, locale),
+                    orderSidebarApps(apps, recent, currentId),
+                    apps.length,
+                    layoutCopy,
+                  )
                 : localizeNavItems(group.items, locale)
             }
             pathname={pathname}

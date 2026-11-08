@@ -87,6 +87,10 @@ export default async function AppShell({
   // Render logic
   const copy = await getCopy(appsContent)
   const section = active.split('/')[0] ?? ''
+  // The side menu is for big apps (3+ pages). A two-page app whose second page is its settings
+  // reaches it from the header's Settings shortcut instead; any other two-page app keeps the
+  // menu, so no page becomes unreachable.
+  const showNav = tabs.length >= 3 || (tabs.length === 2 && !hasSettings)
   const tone = status === 'error' ? 'danger' : status === 'needsSetup' ? 'attention' : 'success'
   const statusLabel =
     status === 'error' ? copy.statusError : status === 'needsSetup' ? copy.needsSetup : copy.active
@@ -158,7 +162,7 @@ export default async function AppShell({
         ) : null}
       </div>
       <div className="flex flex-col gap-5 md:flex-row md:items-start md:gap-8">
-        {tabs.length > 1 ? (
+        {showNav ? (
           <AppNav
             label={name}
             tabs={tabs.map((t) => ({

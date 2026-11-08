@@ -128,7 +128,7 @@ export const layoutContent = {
   filterRows: 'Filter rows',
   more: 'More',
   viewAll: 'View all',
-  viewAllApps: (n: number) => `View all apps (${n})`,
+  viewAllApps: (n: number) => `All apps (${n})`,
   /** Last row under Apps in the sidebar: the App Store website, in a new tab. */
   appStore: 'App Store',
   noStore: 'No store selected',
