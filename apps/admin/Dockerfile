@@ -56,6 +56,15 @@ ENV BUILD_CPUS=2
 # Caps Node's own heap (Turbopack's native memory is outside it). The lean build peaked at about
 # 6 GB in total on 8 Nov 2026, against 8.7 GB before.
 ENV NODE_OPTIONS=--max-old-space-size=4096
+# Prebuilt packages (scripts/prebuild-packages.ts, about 8 s): the server-side workspace packages
+# are compiled to plain JS in their dist/ and their exports pointed there, so `next build` bundles
+# JS instead of compiling their TypeScript. ui, blocks, editor and richtext stay as source (client
+# React code, for the React Compiler). `--build-arg BUILD_PREBUILT=0` compiles every package from
+# source, as before. turbo prune leaves out root-only files, so the script comes from the pruner.
+ARG BUILD_PREBUILT=1
+ENV BUILD_PREBUILT=$BUILD_PREBUILT
+COPY --from=pruner /repo/scripts/prebuild-packages.ts ./scripts/prebuild-packages.ts
+RUN bun scripts/prebuild-packages.ts
 # Next inlines NEXT_PUBLIC_* into the browser bundle at build time, so the worker URL shown on
 # the Settings pages has to be known here (release.yml passes the repo variable of this name).
 # Left unset when empty so the code's own localhost fallback applies.

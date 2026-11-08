@@ -1,7 +1,7 @@
 import { fileURLToPath } from 'node:url'
 import { withSentryConfig } from '@sentry/nextjs/config'
 import type { NextConfig } from 'next'
-import { leanBuild } from '../../packages/config/src/lean-build'
+import { dropPrebuilt, leanBuild } from '../../packages/config/src/lean-build'
 import { storefrontFrameAncestors } from './src/lib/csp'
 
 // Monorepo root, two levels up from apps/storefront — lets `output: 'standalone'`
@@ -55,6 +55,8 @@ const config: NextConfig = {
       },
     ]
   },
+  // The image build prebuilds the server-side ones to JS and drops them from this list
+  // (scripts/prebuild-packages.ts, `dropPrebuilt`); dev compiles them all from source.
   transpilePackages: [
     '@commerce/db',
     '@commerce/core',
@@ -133,7 +135,7 @@ const config: NextConfig = {
 // token); this only wraps the build to inject release/runtime hooks for instrumentation.ts.
 // Dev skips the wrapper: under Turbopack dev it made the first compile run away on memory.
 export default process.env.NODE_ENV === 'production'
-  ? withSentryConfig(leanBuild(config), {
+  ? withSentryConfig(dropPrebuilt(leanBuild(config), monorepoRoot), {
       silent: true,
       disableLogger: true,
       sourcemaps: { disable: true },

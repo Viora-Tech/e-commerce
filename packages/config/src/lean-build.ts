@@ -1,3 +1,6 @@
+import { existsSync, readFileSync } from 'node:fs'
+import { join } from 'node:path'
+
 /** The part of Next's config these settings touch (no `next` dependency in this package). */
 type BuildConfig = {
   enablePrerenderSourceMaps?: boolean
@@ -25,6 +28,9 @@ type BuildConfig = {
  *   icons used.
  * - `BUILD_TYPECHECK=0` skips the type check inside the build. Only for builds of code whose
  *   types were already checked (every PR runs `tsc` locally); the image Dockerfiles set it.
+ *
+ * `dropPrebuilt` (below) goes with `scripts/prebuild-packages.ts`, which the image Dockerfiles
+ * run before `next build` (`BUILD_PREBUILT=0` skips both).
  */
 export function leanBuild<T extends BuildConfig>(config: T, env = process.env): T {
   if (env.BUILD_LEAN === '0') return config
@@ -51,4 +57,32 @@ export function leanBuild<T extends BuildConfig>(config: T, env = process.env): 
       ...(capped ? { cpus, staticGenerationMaxConcurrency: cpus * 4 } : {}),
     },
   } as T
+}
+
+/** True when `scripts/prebuild-packages.ts` pointed this workspace package's exports at `dist/`. */
+function isPrebuilt(name: string, root: string): boolean {
+  if (!name.startsWith('@commerce/')) return false
+  const file = join(root, 'packages', name.slice('@commerce/'.length), 'package.json')
+  if (!existsSync(file)) return false
+  const { exports } = JSON.parse(readFileSync(file, 'utf8')) as { exports?: unknown }
+  return JSON.stringify(exports ?? null).includes('"./dist/')
+}
+
+/**
+ * Drops prebuilt packages from `transpilePackages`. The image build runs
+ * `scripts/prebuild-packages.ts` first, which compiles the server-side packages to plain JS in
+ * `dist/` and points their exports there; Next then bundles that JS as it is. A package whose
+ * exports still point at `src/` stays listed, so dev and a build without the prebuild step are
+ * unchanged. `BUILD_PREBUILT=0` keeps the list as written.
+ */
+export function dropPrebuilt<T extends { transpilePackages?: string[] }>(
+  config: T,
+  root: string,
+  env = process.env,
+): T {
+  if (env.BUILD_PREBUILT === '0' || !config.transpilePackages) return config
+  return {
+    ...config,
+    transpilePackages: config.transpilePackages.filter((name) => !isPrebuilt(name, root)),
+  }
 }

@@ -53,6 +53,11 @@ ENV BUILD_TYPECHECK=0
 ENV BUILD_CPUS=2
 # See apps/admin/Dockerfile's identical line.
 ENV NODE_OPTIONS=--max-old-space-size=4096
+# Prebuilt server-side packages: see apps/admin/Dockerfile's identical lines.
+ARG BUILD_PREBUILT=1
+ENV BUILD_PREBUILT=$BUILD_PREBUILT
+COPY --from=pruner /repo/scripts/prebuild-packages.ts ./scripts/prebuild-packages.ts
+RUN bun scripts/prebuild-packages.ts
 # Turbopack's build cache in a BuildKit cache mount: see apps/admin/Dockerfile's build step.
 ARG TARGETPLATFORM
 RUN --mount=type=cache,id=commerce-storefront-next-cache-$TARGETPLATFORM,sharing=locked,target=/repo/apps/storefront/.next/cache \
