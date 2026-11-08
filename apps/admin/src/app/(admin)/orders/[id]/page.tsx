@@ -1,17 +1,22 @@
 import type { Metadata } from 'next'
 import { notFound, redirect } from 'next/navigation'
+import { cache } from 'react'
 import OrderView from '@/components/orders/order-view'
 import { appRouter, call, serverContext } from '@/lib/api'
 import { listApps } from '@/lib/shell-data'
 import { orNoStoreOrMissing } from '@/lib/store-guard'
+
+/** One read of the order per server render: the tab title and the page share it. */
+const loadOrder = cache(async (id: string) =>
+  call(appRouter.orders.get, { id }, { context: await serverContext() }),
+)
 
 type Params = { params: Promise<{ id: string }> }
 
 /** "Order #19" in the browser tab, not "Admin". */
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const { id } = await params
-  const context = await serverContext()
-  const order = await call(appRouter.orders.get, { id }, { context }).catch(() => null)
+  const order = await loadOrder(id).catch(() => null)
   return { title: order ? `Order #${order.number}` : 'Order' }
 }
 
@@ -19,7 +24,7 @@ export default async function OrderPage({ params }: Params) {
   const { id } = await params
   const context = await serverContext()
   const [order, apps, appActions] = await Promise.all([
-    call(appRouter.orders.get, { id }, { context }).catch(orNoStoreOrMissing(undefined)),
+    loadOrder(id).catch(orNoStoreOrMissing(undefined)),
     listApps().catch(() => []),
     call(appRouter.apps.orderActions, undefined, { context }).catch(() => []),
   ])
