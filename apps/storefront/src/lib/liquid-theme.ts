@@ -54,6 +54,7 @@ import {
   withNonce,
 } from './liquid-cache'
 import { toLiquidCart } from './liquid-cart'
+import { revealConsentEarly } from './liquid-consent-reveal'
 import { cachedLiquidData } from './liquid-data-cache'
 import { deferThemeScripts } from './liquid-defer'
 import { belowTheFold } from './liquid-fold'
@@ -445,8 +446,9 @@ export async function renderLiquidSections(
       if (live.ctx.cache.missing) trace.failed = true
       // The theme's own `<script>` tags carry the nonce (written at parse time,
       // `nonceThemeScripts` in core); a script that came in with data never does. Its deferred
-      // and module scripts wait for React (`./liquid-defer.ts`).
-      const parked = deferThemeScripts(html)
+      // and module scripts wait for React (`./liquid-defer.ts`); a cookie banner shows with
+      // the first paint (`./liquid-consent-reveal.ts`).
+      const parked = revealConsentEarly(deferThemeScripts(html), NONCE_MARK)
       done.push({ p, html: p.belowFold ? belowTheFold(parked) : parked, trace })
     }
     return done
