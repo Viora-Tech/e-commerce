@@ -119,6 +119,41 @@ describe('order list tabs and filters on the split statuses', () => {
     expect(await numbers(m, { view: 'cancelled' })).toEqual([5])
   })
 
+  it('the tab badges count exactly what each tab lists, in one call', async () => {
+    const m = await merchant('badges@example.com', 'badges')
+    await seedOrders(m.storeId)
+    await owner
+      .update(order)
+      .set({ archivedAt: new Date() })
+      .where(and(eq(order.storeId, m.storeId), eq(order.number, 1)))
+    const [c] = await owner.insert(cart).values({ storeId: m.storeId }).returning()
+    await owner.insert(order).values({
+      storeId: m.storeId,
+      number: 30,
+      subtotalPaise: 1000,
+      totalPaise: 1000,
+      status: 'open',
+      paymentMethod: 'razorpay',
+      cartId: c?.id,
+    })
+    const total = async (view?: 'unpaid' | 'unfulfilled' | 'pending_upi') =>
+      (
+        await call(
+          appRouter.orders.list,
+          { page: 1, perPage: 1, ...(view ? { view } : {}) },
+          { context: m.ctx },
+        )
+      ).total
+    const counts = await call(appRouter.orders.tabCounts, undefined, { context: m.ctx })
+    expect(counts).toEqual({
+      all: await total(),
+      unpaid: await total('unpaid'),
+      unfulfilled: await total('unfulfilled'),
+      pendingUpi: await total('pending_upi'),
+    })
+    expect(counts).toEqual({ all: 6, unpaid: 2, unfulfilled: 2, pendingUpi: 1 })
+  })
+
   it('an archived cancelled order shows under Cancelled, Archived and search, not All', async () => {
     const m = await merchant('archived@example.com', 'archived')
     await seedOrders(m.storeId)

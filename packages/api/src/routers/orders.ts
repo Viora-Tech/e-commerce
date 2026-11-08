@@ -33,6 +33,7 @@ import {
   orderCouriers,
   orderFacets,
   orderStats,
+  orderTabCounts,
   orderTiles,
   readyToShipCount,
   refundOrderPayment,
@@ -101,6 +102,9 @@ export const ordersRouter = {
 
   /** The order stats for the last 7 days, against the 7 days before. */
   stats: can(permissions.ORDERS_READ).handler(({ context }) => orderStats(context.tx)),
+
+  /** The Orders tab badges (All, Unpaid, Unfulfilled, Pending UPI) in one query. */
+  tabCounts: can(permissions.ORDERS_READ).handler(({ context }) => orderTabCounts(context.tx)),
 
   /** The stat cards above the Orders list. */
   tiles: can(permissions.ORDERS_READ).handler(({ context }) => orderTiles(context.tx)),
