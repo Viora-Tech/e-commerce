@@ -23,6 +23,8 @@ import { placeOrderAndPay } from '../order/place-order'
 import { ManualPaymentProvider } from '../providers/manual'
 import { applyPaymentStatus } from './confirm'
 import {
+  cancelNoticeHours,
+  manualCancelAt,
   nextManualStep,
   noteChatPaymentReminder,
   PaymentNotPending,
@@ -30,6 +32,7 @@ import {
   runManualFollowUp,
   sendManualPaymentReminder,
 } from './manual-followup'
+import { manualCancelHoursOf, parsePaymentSettings } from './settings'
 
 const owner = createDb(process.env.DATABASE_URL_OWNER as string)
 const app = createDb(process.env.DATABASE_URL as string)
@@ -47,8 +50,11 @@ const NOW = new Date('2026-09-24T12:00:00Z')
 const hoursAfter = (h: number) => new Date(NOW.getTime() + h * HOUR)
 const transfer = new ManualPaymentProvider({ upiId: 'shop@hdfcbank', payeeName: 'Shop' })
 
-/** `manualCancelAfterHours` undefined leaves the store on the defaults (auto-cancel off). */
-async function seedStore(slug: string, manualCancelAfterHours?: number) {
+/**
+ * `manualCancelAfterHours` undefined leaves the store on the defaults (auto-cancel on, 6
+ * hours); `off` is a store whose merchant turned it off.
+ */
+async function seedStore(slug: string, manualCancelAfterHours?: number, choice?: 'on' | 'off') {
   const [s] = await owner
     .insert(store)
     .values({
@@ -58,7 +64,13 @@ async function seedStore(slug: string, manualCancelAfterHours?: number) {
       payments:
         manualCancelAfterHours === undefined
           ? null
-          : { enabled: ['manual'], providers: {}, adjustments: {}, manualCancelAfterHours },
+          : {
+              enabled: ['manual'],
+              providers: {},
+              adjustments: {},
+              manualCancelAfterHours,
+              ...(choice ? { manualAutoCancel: choice } : {}),
+            },
     })
     .returning()
   if (!s) throw new Error('seed')
@@ -140,6 +152,40 @@ describe('nextManualStep', () => {
     const late = { placedAt: NOW, cancelNoticeAt: hoursAfter(100) }
     expect(nextManualStep(48, late, hoursAfter(111))).toBeNull()
     expect(nextManualStep(48, late, hoursAfter(112))).toBe('cancel')
+  })
+
+  it('under a day, tells the merchant halfway through and cancels at the window', () => {
+    expect(nextManualStep(6, placed, hoursAfter(2.9))).toBeNull()
+    expect(nextManualStep(6, placed, hoursAfter(3))).toBe('notice')
+    const noticed = { placedAt: NOW, cancelNoticeAt: hoursAfter(3) }
+    expect(nextManualStep(6, noticed, hoursAfter(5.9))).toBeNull()
+    expect(nextManualStep(6, noticed, hoursAfter(6))).toBe('cancel')
+    expect(manualCancelAt(6, noticed)).toEqual(hoursAfter(6))
+    // A one hour window: notice at 30 minutes, cancel at the hour.
+    expect(nextManualStep(1, placed, hoursAfter(0.5))).toBe('notice')
+    // Noticed late (the window was shortened): the cancel still waits half the window.
+    const late = { placedAt: NOW, cancelNoticeAt: hoursAfter(10) }
+    expect(manualCancelAt(6, late)).toEqual(hoursAfter(13))
+  })
+})
+
+describe('notice and window settings', () => {
+  it('gives 12 hours of notice from a day up, half the window under it', () => {
+    expect(cancelNoticeHours(72)).toBe(12)
+    expect(cancelNoticeHours(24)).toBe(12)
+    expect(cancelNoticeHours(23)).toBe(11.5)
+    expect(cancelNoticeHours(6)).toBe(3)
+  })
+
+  it('is off until the merchant turns it on (6 hours by default), and stays within 1 to 72', () => {
+    const at = (s: unknown) => manualCancelHoursOf(parsePaymentSettings(s))
+    expect(at(null)).toBe(0)
+    expect(at({ manualCancelAfterHours: 0 })).toBe(0)
+    expect(at({ manualCancelAfterHours: 48 })).toBe(48)
+    expect(at({ manualCancelAfterHours: 720 })).toBe(72)
+    expect(at({ manualAutoCancel: 'off', manualCancelAfterHours: 48 })).toBe(0)
+    expect(at({ manualAutoCancel: 'on', manualCancelAfterHours: 0 })).toBe(6)
+    expect(at({ manualAutoCancel: 'on', manualCancelAfterHours: 12 })).toBe(12)
   })
 })
 
@@ -339,13 +385,27 @@ describe('reminder channel', () => {
   })
 })
 
-describe('opt-in auto-cancel', () => {
-  it('is off by default: an old unpaid transfer order is left alone', async () => {
-    const shop = await seedStore('a')
+describe('auto-cancel', () => {
+  it('stays off for a store that turned it off: an old unpaid transfer order is left alone', async () => {
+    const shop = await seedStore('a', 0, 'off')
     const orderId = await transferOrder(shop)
     expect(await runManualFollowUp(app, shop.storeId, hoursAfter(500))).toEqual([])
     expect((await orderRow(orderId))?.status).toBe('open')
     expect(await events(orderId)).not.toContain('order.unpaid_cancel_notice')
+  })
+
+  it('once turned on: notice at 3 hours, cancelled at 6', async () => {
+    const shop = await seedStore('a', 0, 'on')
+    const orderId = await transferOrder(shop)
+    expect(await runManualFollowUp(app, shop.storeId, hoursAfter(2.5))).toEqual([])
+    expect(await runManualFollowUp(app, shop.storeId, hoursAfter(3))).toEqual([
+      { orderId, result: 'noticed' },
+    ])
+    expect(await runManualFollowUp(app, shop.storeId, hoursAfter(5.5))).toEqual([])
+    expect(await runManualFollowUp(app, shop.storeId, hoursAfter(6))).toEqual([
+      { orderId, result: 'cancelled' },
+    ])
+    expect((await orderRow(orderId))?.status).toBe('cancelled')
   })
 
   it('tells the merchant once, then cancels once and releases the stock', async () => {
@@ -409,7 +469,7 @@ describe('opt-in auto-cancel', () => {
 
   it("follows each store's own setting and never touches another store's orders", async () => {
     const a = await seedStore('a', 48)
-    const b = await seedStore('b')
+    const b = await seedStore('b', 0, 'off')
     const orderA = await transferOrder(a)
     const orderB = await transferOrder(b)
     await runManualFollowUp(app, a.storeId, hoursAfter(37))

@@ -31,6 +31,7 @@ import {
   takesUpi,
 } from '@/lib/checkout-preview'
 import { readRemembered, writeRemembered } from '@/lib/checkout-remember'
+import type { CheckoutProblem } from '@/lib/checkout-result'
 import { bringIntoView, followLegacyStep, pressSendCode } from '@/lib/checkout-scroll'
 import {
   type CheckoutSection,
@@ -95,7 +96,7 @@ export function useCheckoutForm(input: CheckoutFormInput) {
   }))
   const [savedId, setSavedId] = useState<string>(addresses[0]?.id ?? NEW_ADDRESS)
   const [business, setBusiness] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<CheckoutProblem | null>(null)
   const tender = useCheckoutTender(methods, setForm, customer !== null, input.storeCreditPaise)
   const { giftCards } = tender
   const [touched, setTouched] = useState<Partial<Record<CheckoutFieldKey, true>>>({})
@@ -103,9 +104,7 @@ export function useCheckoutForm(input: CheckoutFormInput) {
   const [expressNote, setExpressNote] = useState<string | null>(null)
   /** The step the shopper chose; until then, the first one that still needs something. */
   const [pickedStep, setPickedStep] = useState<CheckoutSection | null>(null)
-  /**
-   * Signing in with a code comes first, every time; a guest link leads to the contact fields.
-   */
+  /** Signing in with a code comes first, every time; a guest link leads to the contact fields. */
   const [guest, setGuest] = useState(false)
   /** The saved address being edited in place, or null. */
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -249,7 +248,7 @@ export function useCheckoutForm(input: CheckoutFormInput) {
     requestAnimationFrame(() => window.scrollTo({ top: 0 }))
   }
   /** Place the order with this way to pay, or point at the first field that needs fixing. */
-  const submit = (paymentId: string): boolean => {
+  const submit = (paymentId: string, orderAgain = false): boolean => {
     if (gates.address !== 'ok') {
       showFirstWrong()
       return false
@@ -267,11 +266,12 @@ export function useCheckoutForm(input: CheckoutFormInput) {
       const r = await checkoutAction({
         ...orderDetails(form, { splitName, abroad }),
         payment: paymentId,
+        orderAgain,
         giftCards: giftCards.map((c) => c.code),
         useStoreCredit: tender.spendablePaise > 0 && !digitalOnly,
         ...ship.formFields,
       })
-      if (r?.error) setError(r.error)
+      if (r) setError(r)
     })
     return true
   }
@@ -296,10 +296,7 @@ export function useCheckoutForm(input: CheckoutFormInput) {
     // Abroad the region is typed: zones there go by country, so nothing re-prices.
     if (!abroad) checkPincode(form.pincode, stateCode)
   }
-  /**
-   * A new country empties the address's place fields (a PIN code is not a postcode) and
-   * quotes again; cash on delivery moves to the first online method outside India.
-   */
+  /** A new country empties the place fields and quotes again; COD moves to an online method. */
   const handleCountry = (countryCode: string) => {
     const next = addressForCountry(offeredCountry(countryCode))
     const online = methods.find((m) => m.id !== 'cod')?.id
@@ -484,6 +481,7 @@ export function useCheckoutForm(input: CheckoutFormInput) {
     handleLabel,
     handleRate: setRateId,
     handleSubmit,
+    handleOrderAgain: () => submit(form.payment, true),
     handleStep: setPickedStep,
     handleStayOnStep,
     handleExpress,

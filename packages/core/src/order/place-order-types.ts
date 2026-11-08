@@ -94,6 +94,11 @@ export type PlaceOrderInput = {
   shippingRateId?: string | null | undefined
   /** Delivery options app: the choice and the quote snapshot's answers (`priceOrderDelivery`). */
   delivery?: OrderDeliveryInput | undefined
+  /**
+   * The shopper pressed "Yes, order again" after being told they placed these items a little
+   * while ago (`DuplicateCheckout` kind `placed`). Never skips the unpaid-duplicate block.
+   */
+  orderAgain?: boolean | undefined
 }
 export type PlaceOrderResult = {
   orderId: string

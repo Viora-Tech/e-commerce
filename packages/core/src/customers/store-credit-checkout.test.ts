@@ -41,10 +41,12 @@ beforeEach(async () => {
 const PRICE = 499_900
 const EMAIL = 'shriram@example.com'
 
-const checkoutAs = (email: string) => ({
+// Each shopper gets their own phone: the same items for the same contact would be a repeated
+// checkout (order/duplicate-checkout.ts), which these tests are not about.
+const checkoutAs = (email: string, phone = '9999999999') => ({
   name: 'Shriram V',
   email,
-  phone: '9999999999',
+  phone,
   address: { line1: '12 MG Road', city: 'Bengaluru', stateCode: 'KA', pincode: '560001' },
 })
 
@@ -301,7 +303,7 @@ describe('store credit at checkout', () => {
         {
           cartId,
           paymentProvider: new FakePaymentProvider(),
-          checkout: checkoutAs('guest@example.com'),
+          checkout: checkoutAs('guest@example.com', '9888888801'),
         },
       ),
     )
@@ -317,7 +319,7 @@ describe('store credit at checkout', () => {
           {
             cartId: other,
             paymentProvider: new FakePaymentProvider(),
-            checkout: checkoutAs('someone-else@example.com'),
+            checkout: checkoutAs('someone-else@example.com', '9888888802'),
             storeCredit: { customerId },
           },
         ),
@@ -356,7 +358,9 @@ describe('store credit at checkout', () => {
           {
             cartId,
             paymentProvider: new FakePaymentProvider(),
-            checkout: checkoutAs(EMAIL),
+            checkout: withCredit
+              ? checkoutAs(EMAIL)
+              : checkoutAs('plain@example.com', '9888888803'),
             ...(withCredit ? { storeCredit: { customerId } } : {}),
           },
         ),

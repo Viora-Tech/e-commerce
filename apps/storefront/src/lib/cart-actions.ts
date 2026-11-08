@@ -15,6 +15,7 @@ import {
   rememberCheckoutAddress,
   setCartAttribution,
   setLineQuantity,
+  unpaidCheckoutsPerHourOf,
 } from '@commerce/core'
 import { checkoutCountry, isAbroad } from '@commerce/core/checkout-address'
 import { CONSENT_COOKIE, currentConsent, decodeConsent } from '@commerce/core/consent'
@@ -32,6 +33,8 @@ import { clearCartId, readCartId, writeCartId } from './cart-cookie'
 import { checkoutCartId } from './checkout-context'
 import { checkoutErrorMessage } from './checkout-errors'
 import { redirectAfterCheckout } from './checkout-redirect'
+import { repeatCheckoutResult, tooManyFromIp } from './checkout-repeat'
+import type { CheckoutResult } from './checkout-result'
 import { currentCustomer } from './customer-session'
 import { db } from './db'
 import { deliveryForOrder } from './delivery-options'
@@ -219,9 +222,16 @@ export type CheckoutForm = {
   label?: string
   /** The marketing ticks under Contact; unticked sends nothing. */
   marketing?: { email: boolean; whatsapp: boolean }
+  /** "Yes, order again" after being asked about the same items ordered a little while ago. */
+  orderAgain?: boolean
 }
 
-export type CheckoutResult = { error: string } | undefined
+export type { CheckoutResult } from './checkout-result'
+
+/** Each unpaid checkout counts per IP for an hour, against the store's cap (0: no cap). */
+/** Unpaid checkouts one IP may start in an hour: high enough for a shared mobile-network IP. */
+const IP_UNPAID_CHECKOUTS_PER_HOUR = 20
+const UNPAID_CHECKOUT_WINDOW_MS = 3_600_000
 
 /**
  * Remember who is checking out before the order exists. Without this a cart
@@ -328,6 +338,18 @@ export async function checkoutAction(submitted: CheckoutForm): Promise<CheckoutR
     )
   }
 
+  /* Too many unpaid checkouts from one IP in an hour (the email and phone count is placeOrder's,
+     at the store's cap). Indian mobile networks put many shoppers behind one IP, so the IP cap is
+     a fixed bot guard (IP_UNPAID_CHECKOUTS_PER_HOUR), on whenever the store's cap is on.
+     Cash on delivery is never counted: it is unpaid until the parcel arrives. */
+  if (form.payment !== 'cod') {
+    const cap = await inStore(storeId, (tx) => unpaidCheckoutsPerHourOf({ storeId, tx }))
+    const rule = { limit: IP_UNPAID_CHECKOUTS_PER_HOUR, windowMs: UNPAID_CHECKOUT_WINDOW_MS }
+    if (cap > 0 && !(await rateLimited('unpaid-checkout:ip', `${storeId}:${ip}`, rule)).ok) {
+      return tooManyFromIp()
+    }
+  }
+
   /* The order and its stock are committed first; the gateway is asked after
      that, so a slow gateway never holds stock locks. A gateway failure leaves
      the order placed and the shopper retries from the thank-you page. */
@@ -356,6 +378,7 @@ export async function checkoutAction(submitted: CheckoutForm): Promise<CheckoutR
         ...(delivery ? { delivery } : {}),
         deliveryEstimates,
         secret: settingsSecret(),
+        orderAgain: form.orderAgain === true,
         checkout: {
           name: form.name,
           ...(typeof form.firstName === 'string'
@@ -378,12 +401,14 @@ export async function checkoutAction(submitted: CheckoutForm): Promise<CheckoutR
         },
       }),
     )
-    .catch((err: unknown) => {
+    .catch((err: unknown): NonNullable<CheckoutResult> => {
+      const repeat = repeatCheckoutResult(err, me?.id ?? null)
+      if (repeat) return repeat
       const refused = checkoutErrorMessage(err, form.pincode)
       if (refused === null) throw err
       return { error: refused }
     })
-  if ('error' in placed) return { error: placed.error }
+  if ('error' in placed || 'confirmAgain' in placed) return placed
   const result = placed
   await clearCartId()
   // A second submit of the same cart got the first order back: it was already

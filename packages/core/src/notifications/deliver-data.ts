@@ -9,7 +9,7 @@ import type { StoreContext } from '../context'
 import { GIFT_CARD_PROVIDER } from '../gift-cards/service'
 import type { ParcelView } from '../order/parcel-view'
 import { manualCancelAt } from '../payments/manual-followup'
-import { parsePaymentSettings } from '../payments/settings'
+import { manualCancelHoursOf, parsePaymentSettings } from '../payments/settings'
 import { type GstBreakdown, gstRowsToShow } from '../tax/gst'
 
 /** Human label for the order's payment_method id; adapters own the real label, this is the fallback. */
@@ -148,7 +148,7 @@ export async function merchantNotice(
     .from(order)
     .where(eq(order.id, orderId))
   if (!s?.email || o?.status !== 'open' || o.checkoutPaidAt) return null
-  const at = manualCancelAt(parsePaymentSettings(s.payments).manualCancelAfterHours, {
+  const at = manualCancelAt(manualCancelHoursOf(parsePaymentSettings(s.payments)), {
     placedAt: o.placedAt,
     cancelNoticeAt: o.noticeAt,
   })

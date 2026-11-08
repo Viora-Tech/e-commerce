@@ -40,6 +40,7 @@ import { priceOrderDelivery } from '../shipping/delivery-options/order'
 import { quoteProfileLines } from '../shipping/profiles-service'
 import { runWorkflow, type WorkflowLog, type WorkflowStep } from '../workflow/run'
 import { lockCartOrReplay } from './cart-replay'
+import { enforceCheckoutRepeats } from './duplicate-checkout'
 import { createOrder } from './place-order-create'
 import { loadCart, mixedCartOf } from './place-order-load'
 import {
@@ -153,7 +154,8 @@ const enforceCheckoutRules: WorkflowStep<State> = {
     )
     const ruleSubtotalPaise = checkoutRuleSubtotalPaise(lines, discountPaise)
     // Payment rules (#150): a way to pay the store hides for this order is refused here too.
-    const hidden = hiddenPaymentMethods(parsePaymentSettings(s?.payments).methodRules, {
+    const payments = parsePaymentSettings(s?.payments)
+    const hidden = hiddenPaymentMethods(payments.methodRules, {
       orderValuePaise: ruleSubtotalPaise + shippingPaise,
       pincode: input.checkout?.address.pincode ?? '',
       productIds: lines.map((l) => l.productId),
@@ -161,16 +163,32 @@ const enforceCheckoutRules: WorkflowStep<State> = {
     if (hidden.has(input.paymentProvider.id)) {
       throw new PaymentMethodHidden(input.paymentProvider.id, ctx.storeId)
     }
-    return {
-      contact: checkCheckoutRules(settings, {
-        checkout: input.checkout ?? null,
-        paymentProviderId: input.paymentProvider.id,
-        giftCardsOnly: lines.every((l) => l.giftCard),
-        ruleSubtotalPaise,
-        shippingPaise,
-        storeId: ctx.storeId,
-      }),
+    const contact = checkCheckoutRules(settings, {
+      checkout: input.checkout ?? null,
+      paymentProviderId: input.paymentProvider.id,
+      giftCardsOnly: lines.every((l) => l.giftCard),
+      ruleSubtotalPaise,
+      shippingPaise,
+      storeId: ctx.storeId,
+    })
+    if (input.checkout) {
+      const keys = {
+        email: contact?.email ?? input.checkout.email,
+        phone: contact?.phone ?? input.checkout.phone,
+      }
+      // The same items again (unpaid: resume it; placed: ask), then the hourly cap.
+      await enforceCheckoutRepeats(ctx, {
+        contact: keys,
+        lines,
+        paymentMethod: input.paymentProvider.id,
+        windowHours: payments.duplicateCheckoutHours,
+        unpaidPerHour: payments.unpaidCheckoutsPerHour,
+        orderAgain: input.orderAgain,
+      })
+      // No hard block on other unpaid orders (owner, 8 Nov 2026): the same items bring the
+      // shopper back to their unpaid order above; anything else may be ordered.
     }
+    return { contact }
   },
 }
 

@@ -99,6 +99,8 @@ async function place(t: Seeded, quantity = 1) {
   return placeOrderAndPay(app, t.storeId, {
     cartId: c?.id as string,
     paymentProvider: new FakePaymentProvider({ mode: 'capture', id: 'razorpay' }),
+    // Some cases order the same item twice: the shopper said "Yes, order again".
+    orderAgain: true,
     checkout: {
       email: 'a@example.com',
       phone: '9820012345',
