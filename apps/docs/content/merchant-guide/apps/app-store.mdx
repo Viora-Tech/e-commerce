@@ -78,7 +78,7 @@ Every app is one of two kinds. On the App Store, **Built by Koomerce** shows onl
 | App | Section | What it adds |
 | --- | --- | --- |
 | GST invoices | Built-in | Tax invoices, credit notes, vouchers, GSTR-1 export. Pages: Queue, Invoices, Returns, Settings. |
-| Shopify importer | Built-in | Brings products, collections, customers, orders, pages, blog posts, menus, redirects, files, content types, extra fields, discounts and gift card balances over from Shopify. Pages: Imports, CSV files, Connect store. See [Move from Shopify](/merchant-guide/start-here/move-from-shopify). |
+| Shopify importer | Built-in | Brings products, collections, customers, orders, pages, blog posts, menus, redirects, files, content types, extra fields, discounts, gift card balances and customers' store credit over from Shopify. Pages: Imports, CSV files, Connect store. See [Move from Shopify](/merchant-guide/start-here/move-from-shopify). |
 | Back in stock | Built-in | A **Notify me** block and restock alerts. Pages: Overview, Signups, Settings. |
 | Reviews | Built-in | Product reviews with photos, verified buyer badges, your replies, review request emails after delivery and an import from Judge.me. Pages: Reviews, Import, Settings. See [Reviews](/merchant-guide/apps/reviews). |
 | Forms | Built-in | Makes the contact and advice forms of an imported theme work: messages are saved on the Submissions page and emailed to your store contact email. |
@@ -126,8 +126,9 @@ two ways in. Both are read-only: the import never writes anything back to Shopif
      `read_orders`, `read_all_orders`, `read_content`, `read_online_store_navigation`,
      `read_files`, `read_metaobject_definitions`, `read_metaobjects`, `read_discounts`,
      `read_gift_cards`, `read_shipping`, `read_legal_policies`, `read_purchase_options`,
-     `read_markets`, `read_inventory_purchase_orders`, `read_inventory_transfers` (the files,
-     content type, discount and gift card scopes bring those over; shipping, policies, markets,
+     `read_markets`, `read_inventory_purchase_orders`, `read_inventory_transfers`,
+     `read_reports`, `read_store_credit_accounts` (the files, content type, discount, gift card
+     and store credit scopes bring those over; shipping, policies, markets,
      purchase orders and transfers are for Store settings; purchase options bring pre-orders over;
      see [Move from Shopify](/merchant-guide/start-here/move-from-shopify)).
   3. Release a version, then install the app on your own store.

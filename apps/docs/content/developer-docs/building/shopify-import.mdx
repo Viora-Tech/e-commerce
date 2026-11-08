@@ -323,6 +323,22 @@ Resend; reported as `gift_card_code`. No customer, empty, disabled, expired, ove
 ₹2,00,000 cap or another currency stay behind with their reason. A re-run adjusts the balance
 to Shopify's with an `adjustment` transaction unless the card has a `debit` here.
 
+**Store credit** (`store_credit`, issue #1227; `api-store-credit.ts`, `write-store-credit.ts`):
+runs last, after customers. Shopify has no account list, so it reads `customers` with their
+`storeCreditAccounts { id balance { amount currencyCode } }` (bulk, else 50 customers × 5
+accounts a page). Each INR account with a balance goes onto the customer's store credit
+(`changeStoreCredit`, kind `adjustment`, never a gift card) with the reason
+`Imported from Shopify (store credit) · Shopify account <n>`. Those ledger lines are the record
+of what was imported: a re-run sums them and adds only `shopify − imported` (nothing when
+equal; a decrease is taken back unless the balance here is too low, `store_credit_used_here`).
+The mapping `store_credit: <account gid> → customer id` feeds the status page. Other currencies
+(`store_credit_currency`, detail = currency) and customers not here
+(`store_credit_no_customer`) are skipped. `read_store_credit_accounts` is in
+`OPTIONAL_RESOURCES`: missing it is a preflight `optional_scope` warning, not a block, and the
+run catches the scope error itself (`store_credit_scope`) and imports the rest.
+`progress.store_credit.credit` holds `{ customers, amountPaise }` for the run card's
+"Store credit: N customers, ₹X total imported".
+
 ## What stays behind: `left`
 
 `Reporter.leave(resource, reason, count, detail)` sums by reason into `progress[resource].left`

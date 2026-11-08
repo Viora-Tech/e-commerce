@@ -60,6 +60,7 @@ import {
   productSourceId,
   writeProducts,
 } from './write-products'
+import { importStoreCredit } from './write-store-credit'
 
 /** Records per write batch: products are heavy (images, variants), customers light. */
 const PRODUCT_BATCH = 25
@@ -406,6 +407,9 @@ export async function runApi(
     await optional(ctx, 'discounts', () => importDiscounts(ctx, client, wants(only, 'discounts')))
   if (wanted('gift_cards'))
     await optional(ctx, 'gift_cards', () => importGiftCards(ctx, client, wants(only, 'gift_cards')))
+  // After customers: the credit goes onto their balance. A missing scope skips it with a note.
+  if (wanted('store_credit'))
+    await importStoreCredit(ctx, client, wants(only, 'store_credit'), onBulkFallback)
 }
 
 /**

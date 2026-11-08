@@ -345,3 +345,11 @@ export type NGiftCard = {
   note: string | null
   customer: { sourceId: string; email: string | null; name: string | null } | null
 }
+
+/** One Shopify store credit account: a customer's balance in one currency. */
+export type NStoreCreditAccount = {
+  sourceId: string
+  balancePaise: number
+  currency: string
+  customer: { sourceId: string; email: string | null; name: string | null }
+}

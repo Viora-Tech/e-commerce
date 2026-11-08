@@ -3,6 +3,7 @@ import {
   ArrowLeftRight,
   BadgePercent,
   Boxes,
+  CreditCard,
   FieldList,
   FileText,
   Gift,
@@ -31,4 +32,5 @@ export const RESOURCE_ICON: Record<ImportResource, IconComponent> = {
   metafields: SlidersHorizontal,
   discounts: BadgePercent,
   gift_cards: Gift,
+  store_credit: CreditCard,
 }

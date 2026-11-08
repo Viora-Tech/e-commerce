@@ -33,6 +33,8 @@ export default [
       skipped: (n) => `${num(n)} छोड़े`,
       failed: (n) => `${num(n)} नहीं हुए`,
       nothing: (names) => `लाने को कुछ नहीं: ${names}`,
+      credit: (customers, amount, preview) =>
+        `स्टोर क्रेडिट: ${num(customers)} ग्राहक, कुल ${amount} ${preview ? 'इंपोर्ट होगा' : 'इंपोर्ट हुआ'}`,
     },
     left: {
       showAll: (n) => `सभी ${num(n)} देखें`,
