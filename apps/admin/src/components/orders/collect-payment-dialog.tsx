@@ -9,7 +9,7 @@ import { Field, FieldDescription, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import { RadioGroup, RadioGroupItem } from '@commerce/ui/shadcn/radio-group'
 import Link from 'next/link'
-import { type FormEvent, useState } from 'react'
+import { type FormEvent, useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import DateField from '@/components/fields/date-field'
 import DialogContent from '@/components/layout/dialog-content'
@@ -55,6 +55,24 @@ export default function CollectPaymentDialog({
   const [reference, setReference] = useState('')
   const [receivedOn, setReceivedOn] = useState('')
   const [busy, setBusy] = useState(false)
+  // The customer's store credit, for the Store credit method (null until read, or no customer).
+  const [credit, setCredit] = useState<number | null>(null)
+
+  useEffect(() => {
+    let live = true
+    setCredit(null)
+    const id = order?.customer?.id
+    if (!id) return
+    api.storeCredit
+      .get({ customerId: id })
+      .then((a) => {
+        if (live) setCredit(a.balancePaise)
+      })
+      .catch(() => undefined)
+    return () => {
+      live = false
+    }
+  }, [order?.customer?.id])
 
   // Helpers
   const reset = () => {
@@ -97,8 +115,12 @@ export default function CollectPaymentDialog({
   const paise = shown.trim() === '' ? null : parseRupees(shown)
   const paidWith = method ?? likelyMethod(order)
   const day = receivedOn || todayKey()
-  const valid = paise !== null && paise > 0 && day <= todayKey()
   const c = copy.collectDialog
+  const customerId = order?.customer?.id ?? null
+  const byCredit = paidWith === 'store_credit'
+  // Store credit pays only from a customer's balance that covers the amount.
+  const creditShort = byCredit && (credit === null || (paise !== null && paise > credit))
+  const valid = paise !== null && paise > 0 && day <= todayKey() && !creditShort
 
   return (
     <Dialog open={order !== null} onOpenChange={(open) => (!open ? handleClose() : undefined)}>
@@ -143,6 +165,17 @@ export default function CollectPaymentDialog({
                 </label>
               ))}
             </RadioGroup>
+            {byCredit ? (
+              <FieldDescription className={creditShort ? 'text-destructive' : undefined}>
+                {!customerId
+                  ? c.storeCreditNone
+                  : credit === null
+                    ? null
+                    : creditShort
+                      ? c.storeCreditShort(fmt.money(credit))
+                      : c.storeCreditBalance(fmt.money(credit))}
+              </FieldDescription>
+            ) : null}
           </Field>
           <div className="grid gap-4 sm:grid-cols-2">
             <Field>

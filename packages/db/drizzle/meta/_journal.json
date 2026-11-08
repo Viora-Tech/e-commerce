@@ -1478,6 +1478,13 @@
       "when": 1793720000000,
       "tag": "0226_imported_discount_type",
       "breakpoints": true
+    },
+    {
+      "idx": 211,
+      "version": "7",
+      "when": 1793806400000,
+      "tag": "0227_store_credit",
+      "breakpoints": true
     }
   ]
 }

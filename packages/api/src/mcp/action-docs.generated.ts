@@ -809,6 +809,9 @@ export const ACTION_DOCS: Record<string, string> = {
   'store.updatePreorderNote':
     "The store's default pre-order note (#936), for pre-order products without their own.",
   'store.updateTheme': "Saves the live theme's settings.",
+  'storeCredit.adjust':
+    'Add (positive amountPaise) or remove (negative) store credit, with a reason the history shows.',
+  'storeCredit.get': "The customer's balance in paise and their newest 50 changes, newest first.",
   'suppliers.bulkUpdate':
     'Bulk edit on the suppliers list (#1064): currency, country or payment terms for many.',
   'suppliers.facets': "The countries and currencies in use, for the list's filter pickers.",

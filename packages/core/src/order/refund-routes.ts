@@ -10,8 +10,9 @@ import { RefundNotAllowed, refundedPaise, refundPayment } from './refund'
 /**
  * `original`: back through the gateway that took it (cash on delivery and manual payments are
  * recorded, gift cards go back onto the card). `manual`: the merchant sends it back themselves
- * and the refund is only recorded. `store_credit`: one gift card for the amount, emailed to the
- * shopper, recorded as the refund of each payment it covers. `none`: nothing goes back.
+ * and the refund is only recorded. `store_credit`: onto the customer's store credit balance
+ * (one gift card for the amount, emailed, when the order has no customer), recorded as the
+ * refund of each payment it covers. `none`: nothing goes back.
  */
 export const REFUND_ROUTES = ['original', 'manual', 'store_credit', 'none'] as const
 export type RefundRoute = (typeof REFUND_ROUTES)[number]
@@ -67,10 +68,12 @@ async function storeCreditCard(
   orderId: string,
   amountPaise: number,
   storeCredit: StoreCreditIssue | undefined,
-): Promise<string> {
+): Promise<string | null> {
   if (!storeCredit) throw new RefundNotAllowed('Store credit could not be issued', ctx.storeId)
   const [o] = await ctx.tx.select().from(order).where(eq(order.id, orderId))
   if (!o) throw new RefundNotAllowed('Order not found', ctx.storeId)
+  // A customer's refund goes onto their store credit balance (refundPayment), not a card.
+  if (o.customerId) return null
   const [cu] = o.customerId
     ? await ctx.tx.select().from(customer).where(eq(customer.id, o.customerId))
     : []
@@ -179,7 +182,13 @@ export async function refundOrderAmount(
       amountPaise,
       reason: input.reason,
       manual: input.route === 'manual',
-      ...(giftCardId ? { method: 'store_credit' as const, giftCardId } : {}),
+      ...(input.route === 'store_credit'
+        ? {
+            method: 'store_credit' as const,
+            ...(giftCardId ? { giftCardId } : {}),
+            createdBy: input.storeCredit?.createdBy ?? null,
+          }
+        : {}),
     })
     if (!row) continue
     ids.push(row.id)

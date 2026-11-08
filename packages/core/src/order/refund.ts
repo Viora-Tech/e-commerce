@@ -2,6 +2,7 @@ import { customer, order, payment, refund } from '@commerce/db'
 import type { PaymentProvider } from '@commerce/payments'
 import { and, eq, ne, sum } from 'drizzle-orm'
 import type { StoreContext } from '../context'
+import { refundToStoreCredit } from '../customers/store-credit'
 import { CommerceError } from '../errors'
 import { changeGiftCardBalance, GIFT_CARD_PROVIDER, issueGiftCard } from '../gift-cards/service'
 import { recomputeOrderStatuses } from './recompute'
@@ -31,8 +32,9 @@ export type RefundInput = {
    */
   manual?: boolean | undefined
   /**
-   * How a refund recorded by hand went back (`REFUND_METHODS`). `store_credit` needs `secret`
-   * (gift card codes are stored encrypted) and returns the new card's id on the row.
+   * How a refund recorded by hand went back (`REFUND_METHODS`). `store_credit` goes onto the
+   * customer's store credit balance; for an order with no customer it issues a gift card instead
+   * (needs `secret`, codes are stored encrypted) and returns the card's id on the row.
    */
   method?: RefundMethod | undefined
   /** Settings secret, for `store_credit`. */
@@ -116,7 +118,16 @@ export async function refundPayment(
     OFFLINE_PROVIDERS.has(p.provider) || ((input.manual === true || storeCredit) && !toGiftCard)
   const method = offline ? (input.method ?? null) : null
   let giftCardId: string | null = credited
-  if (storeCredit && credited === null) {
+  // Store credit goes onto the customer's balance; only an order with no customer gets a card.
+  const toBalance =
+    storeCredit &&
+    credited === null &&
+    (await refundToStoreCredit(ctx, {
+      orderId: p.orderId,
+      amountPaise: input.amountPaise,
+      staffEmail: input.createdBy,
+    }))
+  if (storeCredit && credited === null && !toBalance) {
     if (!input.secret) throw new RefundNotAllowed('Store credit could not be issued')
     const [o] = await ctx.tx.select().from(order).where(eq(order.id, p.orderId))
     const [cu] = o?.customerId

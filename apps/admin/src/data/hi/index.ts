@@ -37,6 +37,7 @@ import createShipment from './create-shipment'
 import customData from './custom-data'
 import customerAddresses from './customer-addresses'
 import customerGiftCards from './customer-gift-cards'
+import customerStoreCredit from './customer-store-credit'
 import customers from './customers'
 import customersBulkEdit from './customers-bulk-edit'
 import customizeAi from './customize-ai'
@@ -164,6 +165,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...apps,
   ...abandonedDetail,
   ...customerGiftCards,
+  ...customerStoreCredit,
   ...ai,
   ...assistant,
   ...automationRecords,

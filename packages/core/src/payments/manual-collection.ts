@@ -9,7 +9,15 @@
  * this key never touches, so a gateway session on the same row stays intact.
  */
 
-export const MANUAL_PAYMENT_METHODS = ['upi', 'bank_transfer', 'cash', 'cheque', 'other'] as const
+export const MANUAL_PAYMENT_METHODS = [
+  'upi',
+  'bank_transfer',
+  'cash',
+  'cheque',
+  /** Taken from the customer's store credit balance (`payOrderWithStoreCredit`). */
+  'store_credit',
+  'other',
+] as const
 export type ManualPaymentMethod = (typeof MANUAL_PAYMENT_METHODS)[number]
 
 export type ManualCollection = {

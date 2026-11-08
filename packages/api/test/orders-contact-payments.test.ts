@@ -156,6 +156,45 @@ describe('orders.collectPayment with how it was paid', () => {
     expect(p?.checkoutSession).toMatchObject({ ...session, collected: { method: 'upi' } })
   })
 
+  it("pays from the customer's store credit, and rolls back when the balance is too low", async () => {
+    const a = await merchant('a@example.com', 'store-a')
+    const { orderId, customerId } = await seedOrder(a.storeId)
+    await call(
+      appRouter.storeCredit.adjust,
+      { customerId, amountPaise: 100_000, reason: 'Goodwill' },
+      { context: a.ctx },
+    )
+    await expect(
+      call(
+        appRouter.orders.collectPayment,
+        { orderId, amountPaise: 150000, paidWith: 'store_credit' },
+        { context: a.ctx },
+      ),
+    ).rejects.toMatchObject({ code: 'BAD_REQUEST' })
+    expect(await owner.select().from(payment).where(eq(payment.orderId, orderId))).toEqual([])
+
+    await call(
+      appRouter.storeCredit.adjust,
+      { customerId, amountPaise: 60_000, reason: 'Top up' },
+      { context: a.ctx },
+    )
+    await call(
+      appRouter.orders.collectPayment,
+      { orderId, amountPaise: 150000, paidWith: 'store_credit' },
+      { context: a.ctx },
+    )
+    const [p] = await owner.select().from(payment).where(eq(payment.orderId, orderId))
+    expect(p?.checkoutSession).toMatchObject({ collected: { method: 'store_credit' } })
+    const credit = await call(appRouter.storeCredit.get, { customerId }, { context: a.ctx })
+    expect(credit.balancePaise).toBe(10_000)
+    expect(credit.entries[0]).toMatchObject({
+      kind: 'payment',
+      amountPaise: -150000,
+      orderId,
+      staffEmail: 'a@example.com',
+    })
+  })
+
   it('refuses to record more than is left to pay', async () => {
     const a = await merchant('a@example.com', 'store-a')
     const { orderId } = await seedOrder(a.storeId)
