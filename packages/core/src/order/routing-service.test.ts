@@ -53,6 +53,8 @@ async function seed(opts: { maxParcels?: number; mumbaiComposition?: boolean } =
       slug: 'waimers',
       name: 'Waimers',
       shipping: { routing: { maxParcels: opts.maxParcels ?? 2 } },
+      // Routing at checkout: drafts off, as a draft is routed when it converts (checkout-draft.ts).
+      payments: { unpaidAsDrafts: 'off' },
     })
     .returning()
   if (!s) throw new Error('seed')
