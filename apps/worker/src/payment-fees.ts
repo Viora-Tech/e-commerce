@@ -9,7 +9,6 @@ import {
 import { registriesForStore } from '@commerce/core/registries'
 import { type Db, store, storesWithUnknownPaymentFees, withStore } from '@commerce/db'
 import { logger } from '@commerce/observability/logging'
-import { type IORedis, KEEP_FINISHED, PAYMENT_FEES_QUEUE, Queue, Worker } from '@commerce/queue'
 import { eq } from 'drizzle-orm'
 
 /** How often the fee sync runs. Razorpay usually reports the fee on capture; Cashfree after settling. */
@@ -69,20 +68,11 @@ export async function syncAllStoreFees(db: Db, settingsSecret: string, opts: Fee
  * it (core payments/charges.ts). Covers the last 90 days, so it also backfills older orders a
  * little at a time; `bun run fees:backfill` does the same at once.
  */
-export function createPaymentFeeSync(
-  connection: IORedis,
-  db: Db,
-  opts: { settingsSecret: string },
-) {
-  const queue = new Queue(PAYMENT_FEES_QUEUE, { connection })
-  const worker = new Worker(
-    PAYMENT_FEES_QUEUE,
-    async () => {
-      const r = await syncAllStoreFees(db, opts.settingsSecret, { limit: PER_STORE_LIMIT })
-      if (r.checked) logger.info('payment fees synced', { ...r })
-      return r
-    },
-    { connection, ...KEEP_FINISHED },
-  )
-  return { queue, worker }
+export function createPaymentFeeSync(db: Db, opts: { settingsSecret: string }) {
+  const run = async () => {
+    const r = await syncAllStoreFees(db, opts.settingsSecret, { limit: PER_STORE_LIMIT })
+    if (r.checked) logger.info('payment fees synced', { ...r })
+    return r
+  }
+  return { run }
 }

@@ -1,7 +1,6 @@
-import { FX_RATES_QUEUE, refreshExchangeRates } from '@commerce/core'
+import { refreshExchangeRates } from '@commerce/core'
 import type { Db } from '@commerce/db'
 import { logger } from '@commerce/observability/logging'
-import { type IORedis, KEEP_FINISHED, Queue, Worker } from '@commerce/queue'
 
 export { FX_RATES_SCHEDULE } from '@commerce/core'
 
@@ -11,17 +10,12 @@ export { FX_RATES_SCHEDULE } from '@commerce/core'
  * without a fixed rate convert with the latest day. Also run once when the worker starts, so a
  * fresh deploy has rates before the first evening.
  */
-export function createFxRates(connection: IORedis, db: Db) {
-  const queue = new Queue(FX_RATES_QUEUE, { connection })
-  const worker = new Worker(
-    FX_RATES_QUEUE,
-    async () => {
-      const r = await refreshExchangeRates(db)
-      if ('problem' in r) logger.warn('exchange rates not refreshed', { area: 'fx', ...r })
-      else logger.info('exchange rates refreshed', { area: 'fx', ...r })
-      return r
-    },
-    { connection, concurrency: 1, ...KEEP_FINISHED },
-  )
-  return { queue, worker }
+export function createFxRates(db: Db) {
+  const run = async () => {
+    const r = await refreshExchangeRates(db)
+    if ('problem' in r) logger.warn('exchange rates not refreshed', { area: 'fx', ...r })
+    else logger.info('exchange rates refreshed', { area: 'fx', ...r })
+    return r
+  }
+  return { run }
 }
