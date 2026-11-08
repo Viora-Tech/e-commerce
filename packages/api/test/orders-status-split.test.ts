@@ -119,6 +119,19 @@ describe('order list tabs and filters on the split statuses', () => {
     expect(await numbers(m, { view: 'cancelled' })).toEqual([5])
   })
 
+  it('an archived cancelled order shows under Cancelled, Archived and search, not All', async () => {
+    const m = await merchant('archived@example.com', 'archived')
+    await seedOrders(m.storeId)
+    await owner
+      .update(order)
+      .set({ archivedAt: new Date() })
+      .where(and(eq(order.storeId, m.storeId), eq(order.number, 5)))
+    expect(await numbers(m, { view: 'all' })).toEqual([1, 2, 3, 4, 7])
+    expect(await numbers(m, { view: 'cancelled' })).toEqual([5])
+    expect(await numbers(m, { view: 'archived' })).toEqual([5])
+    expect(await numbers(m, { search: '5' })).toContain(5)
+  })
+
   it('lists a gateway checkout nobody paid under All, but not as work to do', async () => {
     const m = await merchant('abandoned@example.com', 'abandoned')
     await seedOrders(m.storeId)
