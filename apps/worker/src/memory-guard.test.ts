@@ -6,6 +6,8 @@ import {
   nextLevel,
   priorityOf,
   readMemoryLimit,
+  SWEEPS_WORKER,
+  sweepRuns,
   workerPlan,
 } from './memory-guard'
 
@@ -61,6 +63,32 @@ describe('priorityOf', () => {
     expect(priorityOf('media-process')).toBe('bulk')
     expect(priorityOf('marketing-send')).toBe('bulk')
     expect(priorityOf('order-push')).toBe('normal')
+  })
+
+  it('never pauses the shared sweeps worker: its jobs are held back one sweep at a time', () => {
+    expect(priorityOf(SWEEPS_WORKER)).toBe('critical')
+    expect(workerPlan('critical', priorityOf(SWEEPS_WORKER), 6)).toEqual({
+      paused: false,
+      concurrency: 6,
+    })
+  })
+})
+
+describe('sweepRuns', () => {
+  const payments = ['unpaid-order-expiry', 'preorder-balance', 'payment-fees']
+  it('payment sweeps run at every level', () => {
+    for (const name of payments) {
+      expect(sweepRuns('normal', name)).toBe(true)
+      expect(sweepRuns('slow', name)).toBe(true)
+      expect(sweepRuns('critical', name)).toBe(true)
+    }
+  })
+  it('housekeeping waits at slow; the rest wait at critical', () => {
+    expect(sweepRuns('normal', 'home-cards')).toBe(true)
+    expect(sweepRuns('slow', 'home-cards')).toBe(false)
+    expect(sweepRuns('slow', 'shipping-tracker')).toBe(true)
+    expect(sweepRuns('critical', 'shipping-tracker')).toBe(false)
+    expect(sweepRuns('critical', 'retention-prune')).toBe(false)
   })
 })
 

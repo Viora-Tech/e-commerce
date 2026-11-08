@@ -105,6 +105,20 @@ describe('runSweep', () => {
     expect(running.has('boom')).toBe(false)
   })
 
+  it('a sweep the memory guard holds back is deferred, not run', async () => {
+    let runs = 0
+    const run = async () => {
+      runs += 1
+      return { ok: runs }
+    }
+    const byName = new Map([['prune', { run }]])
+    const running = new Set<string>()
+    expect(await runSweep(byName, running, 'prune', () => false)).toEqual({ deferred: 1 })
+    expect(runs).toBe(0)
+    expect(running.size).toBe(0)
+    expect(await runSweep(byName, running, 'prune', (n) => n === 'prune')).toEqual({ ok: 1 })
+  })
+
   it('a job for a sweep this build does not have does nothing', async () => {
     expect(await runSweep(new Map(), new Set(), 'gone')).toEqual({ unknown: 1 })
   })

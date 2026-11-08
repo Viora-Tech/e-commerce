@@ -78,9 +78,17 @@ const BULK = new Set([
   'bug-report-sync',
 ])
 
+/**
+ * The one worker that runs every scheduled sweep (`./sweeps.ts`). It mixes payment sweeps with
+ * housekeeping, so the guard never pauses it as a whole; each job is held back by its own sweep
+ * name instead (`sweepRuns`), so unpaid-order expiry and payment sweeps keep running at
+ * `critical` while the housekeeping sweeps wait.
+ */
+export const SWEEPS_WORKER = 'sweeps'
+
 /** A worker's priority by the label it logs under (`watched` in index.ts). */
 export function priorityOf(label: string): QueuePriority {
-  if (CRITICAL.has(label)) return 'critical'
+  if (CRITICAL.has(label) || label === SWEEPS_WORKER) return 'critical'
   if (BULK.has(label)) return 'bulk'
   return 'normal'
 }
@@ -115,6 +123,15 @@ export function workerPlan(
     return { paused: true, concurrency: baseConcurrency }
   }
   return { paused: false, concurrency: Math.max(1, Math.ceil(baseConcurrency / 2)) }
+}
+
+/**
+ * Whether one sweep job runs at this level, by the sweep's name: the same plan a worker of its
+ * own would get (payments always, bulk paused at `slow`, the rest paused at `critical`).
+ * A held-back sweep is simply skipped; its next scheduled run picks up whatever is due.
+ */
+export function sweepRuns(level: MemoryLevel, sweepName: string): boolean {
+  return !workerPlan(level, priorityOf(sweepName), 1).paused
 }
 
 /** No limit at all reads as a huge number in cgroup v1 (and "max" in v2). */

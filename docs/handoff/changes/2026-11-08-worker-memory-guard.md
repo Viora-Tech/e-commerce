@@ -17,4 +17,9 @@ stay queued, running jobs finish. Every level change is logged (`worker memory l
 area `memory`, with rss/heap/limit MB and the paused queues). Priorities by queue label are in
 `priorityOf`; a new queue is `normal` unless added there.
 
+Scheduled sweeps share one worker since #1350 (`sweeps`). The guard never pauses that worker;
+each sweep job is checked by its own name instead (`sweepRuns`): unpaid-order expiry, pre-order
+balances and payment fees run at every level, housekeeping sweeps wait at 70%, the rest at 85%.
+A held-back sweep returns `{ deferred: 1 }` and runs again on its next turn.
+
 Live limit today: 1.5 GiB (Dokploy), so slow at about 1.05 GiB, critical 1.28 GiB, exit 1.43 GiB.

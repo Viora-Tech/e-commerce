@@ -70,7 +70,7 @@ import { createMarketingWorker, MARKETING_TICK_MS, retireAbandonedSweep } from '
 import { mediaProcessLimits } from './media-limits'
 import { createMediaProcessWorker } from './media-process'
 import { createMemberDailySummary, DAILY_SUMMARY_EVERY_MS } from './member-daily-summary'
-import { createMemoryGuard, readMemoryLimit } from './memory-guard'
+import { createMemoryGuard, type MemoryLevel, readMemoryLimit, sweepRuns } from './memory-guard'
 import { createNotificationWorker } from './notifications'
 import { initSentry, reportError } from './observability'
 import { createOrderPusher, PUSH_EVERY_MS } from './order-push'
@@ -412,7 +412,10 @@ const sweepList: Sweep[] = [
     enabled: bugReportSync !== null,
   },
 ]
-const sweeps = createSweepWorker(redis, sweepList)
+// The memory guard holds back sweeps one job at a time (it never pauses this mixed worker):
+// payment sweeps run at every level. It starts below, so this reads `normal` until then.
+let memoryLevel = (): MemoryLevel => 'normal'
+const sweeps = createSweepWorker(redis, sweepList, (name) => sweepRuns(memoryLevel(), name))
 
 // Each worker reports its failures to Sentry and logs one wide event per job (docs/ops/logging.md).
 const watched = [
@@ -463,6 +466,7 @@ const memoryGuard = createMemoryGuard({
   },
 })
 memoryGuard.start()
+memoryLevel = memoryGuard.level
 logger.info('memory guard on', {
   area: 'memory',
   limitMb: Math.round(memoryLimit.bytes / 1024 / 1024),

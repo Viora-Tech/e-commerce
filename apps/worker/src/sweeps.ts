@@ -31,23 +31,35 @@ export const SWEEP_CONCURRENCY = 6
  * runs on time. With a worker per sweep the late run waited instead; for these jobs, which all
  * pick up whatever is due, skipping does the same work with less load.
  */
-export function createSweepWorker(connection: IORedis, sweeps: readonly Sweep[]) {
+export function createSweepWorker(
+  connection: IORedis,
+  sweeps: readonly Sweep[],
+  allow: (name: string) => boolean = () => true,
+) {
   const byName = new Map(sweeps.map((s) => [s.name, s]))
   const running = new Set<string>()
   const queue = new Queue(SWEEPS_QUEUE, { connection })
-  const worker = new Worker(SWEEPS_QUEUE, async (job) => runSweep(byName, running, job.name), {
-    connection,
-    concurrency: SWEEP_CONCURRENCY,
-    ...KEEP_FINISHED,
-  })
+  const worker = new Worker(
+    SWEEPS_QUEUE,
+    async (job) => runSweep(byName, running, job.name, allow),
+    {
+      connection,
+      concurrency: SWEEP_CONCURRENCY,
+      ...KEEP_FINISHED,
+    },
+  )
   return { queue, worker }
 }
 
-/** One sweep job: the sweep it names, unless that sweep is still running. Exported for tests. */
+/**
+ * One sweep job: the sweep it names, unless that sweep is still running or `allow` holds it back
+ * (the memory guard, under memory pressure: `{ deferred: 1 }`). Exported for tests.
+ */
 export async function runSweep(
   byName: ReadonlyMap<string, Pick<Sweep, 'run'>>,
   running: Set<string>,
   name: string,
+  allow: (name: string) => boolean = () => true,
 ): Promise<unknown> {
   const sweep = byName.get(name)
   if (!sweep) {
@@ -56,6 +68,7 @@ export async function runSweep(
     return { unknown: 1 }
   }
   if (running.has(name)) return { skipped: 1 }
+  if (!allow(name)) return { deferred: 1 }
   running.add(name)
   try {
     return await sweep.run()
