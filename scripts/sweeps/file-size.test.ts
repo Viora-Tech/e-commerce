@@ -54,9 +54,9 @@ const ALLOWLIST: Record<string, { lines: number; reason: string }> = {
     reason: 'API keys plus the OAuth server for MCP clients — split OAuth into its own module',
   },
   'apps/worker/src/index.ts': {
-    lines: 512,
+    lines: 574,
     reason:
-      'the worker entry wires every queue, worker, schedule and shutdown in one place; a jobs registry would split it',
+      'the worker entry wires every queue, worker, schedule and shutdown in one place; the sweep list (#1350) could move to its own module',
   },
   'packages/core/src/billing/service.ts': {
     lines: 716,
