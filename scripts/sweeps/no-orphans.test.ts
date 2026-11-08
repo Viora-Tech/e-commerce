@@ -666,6 +666,16 @@ const ALLOWLIST: AllowEntry[] = [
     reason: 'no external importer today — investigate before removing',
   },
   {
+    file: 'packages/core/src/order/draft-list.ts',
+    names: ['DRAFT_SOURCES'],
+    reason: 'the drafts list source filter; the admin Drafts tabs (part 4) wire it',
+  },
+  {
+    file: 'packages/core/src/order/view-access.ts',
+    names: ['orderRefWhere'],
+    reason: 'finds a #D57 link; the storefront pages (part 3) wire it',
+  },
+  {
     file: 'packages/core/src/payments/confirm.ts',
     names: ['gatewayPaidTooLittle'],
     reason: 'exported for its unit test (amount-check.test.ts); used inside applyPaymentStatus',
@@ -951,19 +961,18 @@ const ALLOWLIST: AllowEntry[] = [
   },
   {
     file: 'packages/core/src/payments/checkout-drafts.ts',
-    names: [
-      'CHECKOUT_DRAFTS_DEFAULT',
-      'checkoutDraftsOn',
-      'draftsForMethod',
-      'draftHoldMinutes',
-      'CHECKOUT_DRAFT_EXPIRY_DAYS',
-    ],
+    names: ['CHECKOUT_DRAFTS_DEFAULT'],
     reason:
       'used in the module and asserted by checkout-drafts.test.ts; the admin mirrors it (UNPAID_AS_DRAFTS_DEFAULT)',
   },
   {
+    file: 'packages/core/src/payments/confirm.ts',
+    names: ['LATE_CAPTURE_NOTE'],
+    reason: 'used in the module and asserted by order/checkout-draft.test.ts',
+  },
+  {
     file: 'packages/core/src/order/duplicate-checkout.ts',
-    names: ['itemsKey', 'findRecentDuplicateCheckout', 'recentUnpaidCheckouts'],
+    names: ['findRecentDuplicateCheckout', 'recentUnpaidCheckouts'],
     reason:
       'unit-tested directly; findRecentDuplicateCheckout is the helper the unpaid-checkouts-as-drafts design (#1293) points at drafts',
   },

@@ -1,4 +1,5 @@
 import {
+  expireCheckoutDrafts,
   expireUnpaidOrders,
   parsePaymentSettings,
   queuePaymentPendingNudges,
@@ -13,6 +14,7 @@ import {
   type Db,
   store,
   storesWithExpiredDraftHolds,
+  storesWithOpenCheckoutDrafts,
   storesWithPendingCodChecks,
   storesWithPendingManualOrders,
   storesWithUnpaidOnlineOrders,
@@ -45,7 +47,9 @@ export const EXPIRY_EVERY_MS = 60_000
  */
 export function createUnpaidOrderExpiry(db: Db, opts: { settingsSecret: string }) {
   const run = async () => {
-    const storeIds = await storesWithUnpaidOnlineOrders(db)
+    const drafted = await storesWithOpenCheckoutDrafts(db)
+    // Unpaid checkouts kept as drafts are nudged too; they are never cancelled here.
+    const storeIds = [...new Set([...(await storesWithUnpaidOnlineOrders(db)), ...drafted])]
     let cancelled = 0
     let paid = 0
     let nudged = 0
@@ -92,6 +96,7 @@ export function createUnpaidOrderExpiry(db: Db, opts: { settingsSecret: string }
     const transfers = await followUpManualTransfers(db)
     const cod = await sweepCodConfirmations(db)
     const draftHoldsReleased = await releaseDraftHolds(db)
+    const checkoutDraftsExpired = await expireOldCheckoutDrafts(db, drafted)
     return {
       stores: storeIds.length,
       cancelled,
@@ -100,6 +105,7 @@ export function createUnpaidOrderExpiry(db: Db, opts: { settingsSecret: string }
       ...transfers,
       ...cod,
       draftHoldsReleased,
+      checkoutDraftsExpired,
     }
   }
   return { run }
@@ -117,6 +123,20 @@ async function releaseDraftHolds(db: Db) {
   }
   if (released) logger.info('draft holds released', { released })
   return released
+}
+
+/** Checkout drafts with no activity for 7 days stop waiting for payment (order/checkout-draft.ts). */
+async function expireOldCheckoutDrafts(db: Db, storeIds: readonly string[]) {
+  let expired = 0
+  for (const storeId of storeIds) {
+    try {
+      expired += await withStore(db, storeId, (tx) => expireCheckoutDrafts({ storeId, tx }))
+    } catch (err) {
+      logger.warn('checkout draft expiry failed', { storeId, error: err })
+    }
+  }
+  if (expired) logger.info('checkout drafts expired', { expired })
+  return expired
 }
 
 /** COD orders past the store's confirmation deadlines: flagged, or cancelled when opted in. */

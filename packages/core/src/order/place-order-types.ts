@@ -102,7 +102,15 @@ export type PlaceOrderInput = {
 }
 export type PlaceOrderResult = {
   orderId: string
+  /** The order number; a checkout draft's placeholder (minus its draft number) while unpaid. */
   orderNumber: number
+  /**
+   * Set when the checkout was kept as a draft until paid (0233): the shopper sees #D57, and
+   * the thank-you and pay links use it. Null for a numbered order.
+   */
+  draftNumber: number | null
+  /** The shopper checked out the same items again: their open draft was used, not a new one. */
+  resumedDraft: boolean
   /**
    * The payment attempt recorded with the order. `placeOrder` never calls the
    * gateway: after its transaction commits, start this attempt with
@@ -190,4 +198,16 @@ export type State = {
   balanceDuePaise: number
   /** COD & RTO app: the order's RTO risk and whether to ask for COD confirmation; null without it. */
   risk: CheckoutRisk | null
+  /** Kept as a draft until paid (`payments/checkout-drafts.ts`); null for an order at once. */
+  draft: DraftPlan | null
+}
+
+/** How an unpaid checkout is saved as a draft. */
+export type DraftPlan = {
+  /** How long the draft holds its items. */
+  holdMinutes: number
+  /** The shopper's open draft with the same items, used again instead of a new one. */
+  reuse: { id: string; draftNumber: number | null } | null
+  /** The draft's number, once `createOrder` saved it. */
+  draftNumber?: number | undefined
 }

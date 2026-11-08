@@ -19,6 +19,12 @@ export async function convertDraftForOnlinePayment(
   draftId: string,
   providerId: string,
 ): Promise<{ orderId: string; orderNumber: number; attemptId: string } | null> {
+  // A shopper's unpaid checkout is paid from its own order page (retry), never converted unpaid.
+  const [head] = await ctx.tx
+    .select({ draftSource: order.draftSource })
+    .from(order)
+    .where(eq(order.id, draftId))
+  if (head?.draftSource === 'checkout') return null
   const converted = await convertDraft(ctx, draftId, { paymentMethod: providerId })
   if (!converted) return null
   await ctx.tx

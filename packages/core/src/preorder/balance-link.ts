@@ -108,13 +108,21 @@ export function balanceUrl(
   return `${storefrontUrl.replace(/\/$/, '')}${balancePath(balanceToken(orderId, secret, now))}`
 }
 
+/**
+ * What an order link carries for the order: its number, or `D57` for a draft's placeholder
+ * (minus its draft number). A draft's link keeps working after it converts: the pages find
+ * it by its draft number (`orderRefWhere`).
+ */
+const linkRef = (orderNumber: number): string =>
+  orderNumber < 0 ? `D${-orderNumber}` : String(orderNumber)
+
 /** `/checkout/thank-you/<number>?t=<token>` — the unguessable, signed order link. */
 export const thankYouPath = (orderNumber: number, token: string): string =>
-  `/checkout/thank-you/${orderNumber}?t=${token}`
+  `/checkout/thank-you/${linkRef(orderNumber)}?t=${token}`
 
 /** `/checkout/pay/<number>?t=<token>` — the unguessable, signed payment link. */
 export const payPath = (orderNumber: number, token: string): string =>
-  `/checkout/pay/${orderNumber}?t=${token}`
+  `/checkout/pay/${linkRef(orderNumber)}?t=${token}`
 
 export function thankYouUrl(
   orderId: string,

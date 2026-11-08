@@ -1,14 +1,4 @@
-import {
-  address,
-  notification,
-  order,
-  orderLine,
-  orderNote,
-  payment,
-  product,
-  store,
-  variant,
-} from '@commerce/db'
+import { notification, order, orderLine, orderNote, payment, product, variant } from '@commerce/db'
 import { and, eq, inArray, sql } from 'drizzle-orm'
 import { z } from 'zod'
 import { effectiveGstRatePercent, effectiveHsCode } from '../catalog/effective-tax'
@@ -16,21 +6,19 @@ import type { StoreContext } from '../context'
 import { recordDiscountUse } from '../discounts/usage'
 import { CommerceError, PriceNotSet } from '../errors'
 import { announceExchangeOrder } from '../returns/notify'
-import { StoreAddressSchema } from '../settings/general'
 import { assertCustomerInStore } from '../store-scope'
-import { chargedGstRate, parseStoreTax } from '../tax/settings'
+import { convertCheckoutDraft, isCheckoutDraft } from './checkout-draft'
 import { CustomItemSchema, ensureCustomItemVariant } from './custom-item'
 import { DraftAddressSchema, DraftBillingSchema, writeAddress, writeBilling } from './draft-billing'
 import { draftMoney } from './draft-discount'
-import { draftPreorders, markPreorderLines, routingPreorder } from './draft-preorder'
+import { routeAndBillDraft } from './draft-place'
+import { markPreorderLines } from './draft-preorder'
 import { draftPlaceholder, isDraftPlaceholder } from './draft-ref'
 import { releaseDraftHold, reserveDraft } from './draft-reserve'
-import { createFulfillmentOrders } from './fulfillment-orders'
 import { takeDraftNumber, takeOrderNumber } from './order-number'
-import { taxParcels } from './parcel-tax'
 import { PaymentTermsSchema, paymentDueAt } from './payment-terms'
 import { recomputeOrderStatuses } from './recompute'
-import { releaseReserved, routeAndReserve } from './routing-service'
+import { releaseReserved } from './routing-service'
 
 /**
  * Draft orders: an order a merchant builds by hand (phone order, WhatsApp
@@ -126,6 +114,22 @@ export type DraftListItem = {
   totalPaise: number
   createdAt: Date
   invoiceSentAt: Date | null
+  /** `checkout`: a shopper's unpaid checkout waiting for payment (0233); `staff` otherwise. */
+  source: 'checkout' | 'staff'
+  /** How the shopper chose to pay (`razorpay`, `manual`, ...); null on a staff draft without one. */
+  paymentMethod: string | null
+  /** A checkout draft's last activity (made, or the same items checked out again). */
+  lastActivityAt: Date | null
+  /** The latest payment attempt's status and error, and how many attempts failed. */
+  lastAttemptStatus: string | null
+  lastAttemptError: string | null
+  failedAttempts: number
+  /** Money came in that the draft could not keep (out of stock when it arrived). */
+  refundNeeded: boolean
+  /** When its held stock goes back on sale; null when it holds nothing. */
+  reservedUntil: Date | null
+  /** Set once a checkout draft stopped waiting for payment (7 days without activity). */
+  expiredAt: Date | null
 }
 
 const DRAFT_TAG = 'draft'
@@ -362,6 +366,14 @@ export async function convertDraft(
   const [o] = await ctx.tx.select().from(order).where(eq(order.id, id)).for('update')
   if (!o) return null
   if (o.status !== 'draft') throw new DraftNotEditable(id, ctx.storeId)
+  // A shopper's unpaid checkout ("Convert to order (unpaid)"): placed as it was checked out, its
+  // discount already counted and its payment attempt kept, so a later payment still lands on it.
+  if (isCheckoutDraft(o)) {
+    await convertCheckoutDraft(ctx, id)
+    await recomputeOrderStatuses(ctx, id)
+    const [placed] = await ctx.tx.select().from(order).where(eq(order.id, id))
+    return placed ?? null
+  }
   const lines = await ctx.tx.select().from(orderLine).where(eq(orderLine.orderId, id))
   if (lines.length === 0) throw new DraftEmpty(id, ctx.storeId)
   if (
@@ -385,69 +397,9 @@ export async function convertDraft(
 
   // Its own hold (#1030) is given back first, so the stock below is held once, for the order.
   await releaseDraftHold(ctx, o)
-  // Routed and held like a checkout (order/routing.ts); its stock guard stops an oversell.
-  const [shipTo] = o.shippingAddressId
-    ? await ctx.tx
-        .select({ stateCode: address.stateCode })
-        .from(address)
-        .where(eq(address.id, o.shippingAddressId))
-    : []
-  const preorders = await draftPreorders(
-    ctx,
-    lines.map((l) => l.variantId),
-  )
-  const { parcels } = await routeAndReserve(ctx, {
-    lines: lines.map((l) => ({
-      key: l.id,
-      variantId: l.variantId,
-      quantity: l.quantity,
-      giftCard: l.giftCard,
-      preorder: l.giftCard ? null : routingPreorder(preorders.get(l.variantId)),
-    })),
-    buyerState: shipTo?.stateCode ?? null,
-  })
+  // Routed, held and billed like a checkout (draft-place.ts); its stock guard stops an oversell.
+  const { parcels, preorders, billed } = await routeAndBillDraft(ctx, o, lines)
   await markPreorderLines(ctx, lines, parcels, preorders)
-  // Billed like a checkout, per parcel GSTIN; with no shipping state it is IGST.
-  const [s] = await ctx.tx
-    .select({ address: store.address, gstRatePercent: store.gstRatePercent, apps: store.apps })
-    .from(store)
-    .where(eq(store.id, ctx.storeId))
-  const storeTax = parseStoreTax(s?.apps)
-  const storeAddress = StoreAddressSchema.safeParse(s?.address ?? {})
-  const byId = new Map(lines.map((l) => [l.id, l]))
-  const billed = await taxParcels(ctx.tx, {
-    parcels,
-    lineOf: (key, quantity) => {
-      const line = byId.get(key)
-      return {
-        grossPaise: quantity * (line?.unitPricePaise ?? 0),
-        ratePercent:
-          !line || line.giftCard
-            ? 0
-            : chargedGstRate(line.gstRatePercent ?? s?.gstRatePercent ?? 18, storeTax),
-      }
-    },
-    discountPaise: o.discountPaise,
-    adjustmentPaise: o.paymentAdjustmentPaise,
-    shippingPaise: o.shippingPaise,
-    shipToState: shipTo?.stateCode ?? null,
-    storeState: storeAddress.success ? storeAddress.data.state : null,
-  })
-  await createFulfillmentOrders(ctx, {
-    orderId: id,
-    plans: parcels.map((p, i) => ({
-      locationId: p.locationId,
-      status: p.status,
-      needsTransfer: p.needsTransfer,
-      money: billed.money[i],
-      lines: p.lines.map((l) => ({
-        orderLineId: l.key,
-        quantity: l.quantity,
-        fulfilledQuantity: 0,
-      })),
-    })),
-    fallbackRegistrationId: o.gstRegistrationId,
-  })
 
   // Cost at sale is the variant's cost when the draft becomes an order (order/profit.ts).
   await ctx.tx

@@ -197,6 +197,14 @@ describe('payment attempts', () => {
     expect(buildReceipt({ ...base, orderId: 'x'.repeat(60) })).toHaveLength(40)
   })
 
+  it('names a checkout draft by its draft number and sends its id in notes', () => {
+    expect(buildReceipt({ ...base, draftNumber: 57, idempotencyKey: 'o1:2' })).toBe('draft-D57-2')
+    const notes = buildOrderNotes({ ...base, draftNumber: 57 })
+    expect(notes.draft_id).toBe('o1')
+    expect(notes.draftNumber).toBe('D57')
+    expect(notes.orderNumber).toBeUndefined()
+  })
+
   it('sends the key in notes and receipt without calling the real API', async () => {
     const p = new RazorpayProvider(config)
     const create = vi.fn(async (body: Record<string, unknown>) => ({ id: 'order_m1', ...body }))

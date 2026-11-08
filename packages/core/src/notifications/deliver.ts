@@ -30,6 +30,7 @@ import { newsletterConfirmToken, newsletterConfirmUrl } from '../customers/newsl
 import { phoneBlindIndex } from '../customers/phone-crypto'
 import { storefrontOriginFor } from '../domains/origin'
 import { mayNudgeKnownContact, phoneLookupVariants } from '../marketing/recipient'
+import { isOpenCheckoutDraft } from '../order/checkout-draft'
 import { orderParcelsView } from '../order/parcel-view'
 import { SPLIT_TENDER_PROVIDERS } from '../payments/split-tender'
 import { balanceOwed } from '../preorder/balance'
@@ -419,10 +420,14 @@ async function stillPaymentPending(ctx: StoreContext, orderId: string): Promise<
       cartId: order.cartId,
       importedFrom: order.importedFrom,
       paymentMethod: order.paymentMethod,
+      draftSource: order.draftSource,
+      draftExpiredAt: order.draftExpiredAt,
     })
     .from(order)
     .where(eq(order.id, orderId))
-  if (o?.status !== 'open' || o.checkoutPaidAt || o.importedFrom || !o.cartId) return false
+  // An unpaid checkout kept as a draft (#D57) waits for its payment the same way.
+  const waiting = o?.status === 'open' || (o && isOpenCheckoutDraft(o))
+  if (!o || !waiting || o.checkoutPaidAt || o.importedFrom || !o.cartId) return false
   return !OFFLINE_METHODS.has(o.paymentMethod ?? 'manual')
 }
 

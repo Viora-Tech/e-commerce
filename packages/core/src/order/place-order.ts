@@ -43,6 +43,7 @@ import { runWorkflow, type WorkflowLog, type WorkflowStep } from '../workflow/ru
 import { lockCartOrReplay } from './cart-replay'
 import { enforceCheckoutRepeats } from './duplicate-checkout'
 import { createOrder } from './place-order-create'
+import { planCheckoutDraft, prepareDraft } from './place-order-draft'
 import { loadCart, mixedCartOf } from './place-order-load'
 import {
   chargeNowPaise,
@@ -51,7 +52,7 @@ import {
   splitTenderPaise,
   sumPaise,
 } from './place-order-rules'
-import type { PlaceOrderInput, PlaceOrderResult, State } from './place-order-types'
+import type { DraftPlan, PlaceOrderInput, PlaceOrderResult, State } from './place-order-types'
 import { recomputeOrderStatuses } from './recompute'
 import { releaseReserved, routeAndReserve } from './routing-service'
 
@@ -173,11 +174,14 @@ const enforceCheckoutRules: WorkflowStep<State> = {
       shippingPaise,
       storeId: ctx.storeId,
     })
+    let draft: DraftPlan | null = null
     if (input.checkout) {
       const keys = {
         email: contact?.email ?? input.checkout.email,
         phone: contact?.phone ?? input.checkout.phone,
       }
+      draft = await planCheckoutDraft(ctx, input, { contact: keys, lines, payments })
+      if (draft?.reuse) return { contact, draft }
       // The same items again (unpaid: resume it; placed: ask), then the hourly cap.
       await enforceCheckoutRepeats(ctx, {
         contact: keys,
@@ -190,7 +194,7 @@ const enforceCheckoutRules: WorkflowStep<State> = {
       // No hard block on other unpaid orders (owner, 8 Nov 2026): the same items bring the
       // shopper back to their unpaid order above; anything else may be ordered.
     }
-    return { contact }
+    return { contact, draft }
   },
 }
 
@@ -398,6 +402,7 @@ export async function placeOrder(
       depositPaise: 0,
       balanceDuePaise: 0,
       risk: null,
+      draft: null,
     },
     [
       loadCart,
@@ -406,6 +411,7 @@ export async function placeOrder(
       resolveShipping,
       enforceCheckoutRules,
       assessRisk,
+      prepareDraft,
       reserveStock,
       createOrder,
       redeemCards,
@@ -423,6 +429,8 @@ export async function placeOrder(
   return {
     orderId: state.orderId,
     orderNumber: state.orderNumber,
+    draftNumber: state.draft?.draftNumber ?? null,
+    resumedDraft: !!state.draft?.reuse,
     attemptId: state.attemptId,
     paymentStatus: byCards ? 'captured' : 'created',
     session: byCards

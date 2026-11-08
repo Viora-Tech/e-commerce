@@ -8,6 +8,7 @@ const now = new Date('2026-11-08T12:00:00Z')
 const earlier = {
   id: 'o1',
   number: 1042,
+  draftNumber: null,
   customerId: 'c1',
   email: 'asha@example.com',
   phone: '9876543210',
