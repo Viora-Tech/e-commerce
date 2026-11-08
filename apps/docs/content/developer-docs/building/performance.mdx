@@ -368,12 +368,11 @@ The origin is ready for it; switching DNS is a separate, owner-run step.
   `/api/search/suggest` (`public, max-age=30, stale-while-revalidate=60`) are per-host
   documents; a shared cache keys them by URL, host included. The proxy does not mint the
   visitor cookie on the SEO files, so no `Set-Cookie` rides on a publicly cacheable response.
-- **Open item:** media files in R2/S3 are uploaded without a `Cache-Control` header, so
-  browsers fall back to heuristic caching. Keys are unique per upload (`mediaKey` puts a uuid
-  in each), and variant files are written once, so variants can be served
-  `public, max-age=31536000, immutable`. The master is rewritten once in place by the
-  pipeline (original, then cleaned master), so it wants a shorter lifetime, such as a day.
-  Set it on upload or with a bucket or CDN rule.
+- Media files in R2/S3: the pipeline writes the cleaned master and every `-w<width>` variant with
+  `Cache-Control: public, max-age=31536000, immutable` (`MEDIA_CACHE_CONTROL`,
+  `@commerce/storage/keys`), and a video under a media key gets it too. An image's first write
+  (the original, EXIF included) gets none until the pipeline replaces it. Objects stored before
+  this: `bun scripts/media-cache-headers.ts --apply`.
 
 ### Measuring
 
