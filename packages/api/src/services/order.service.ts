@@ -182,12 +182,8 @@ export async function orderTabCounts(tx: StoreTx): Promise<OrderTabCounts> {
     })
     .from(order)
     .where(notDraft)
-  return {
-    all: row?.all ?? 0,
-    unpaid: row?.unpaid ?? 0,
-    unfulfilled: row?.unfulfilled ?? 0,
-    pendingUpi: row?.pendingUpi ?? 0,
-  }
+  // An aggregate with no GROUP BY always returns one row, and `count(*)` is never null.
+  return row ?? { all: 0, unpaid: 0, unfulfilled: 0, pendingUpi: 0 }
 }
 
 /** Most lines the list's items popover shows; the order page has the rest. */
