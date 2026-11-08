@@ -38,6 +38,7 @@ import { createMarketingWorker, MARKETING_TICK_MS, retireAbandonedSweep } from '
 import { mediaProcessLimits } from './media-limits'
 import { createMediaProcessWorker } from './media-process'
 import { createMemberDailySummary, DAILY_SUMMARY_EVERY_MS } from './member-daily-summary'
+import { createMemoryGuard, readMemoryLimit } from './memory-guard'
 import { createNotificationWorker } from './notifications'
 import { initSentry, reportError } from './observability'
 import { createOrderPusher, PUSH_EVERY_MS } from './order-push'
@@ -251,6 +252,32 @@ for (const [w, queueName] of watched) {
   reportWorkerFailures(w, queueName, reportError)
   logWorkerJobs(w, queueName)
 }
+
+// The worker backs off before its container limit instead of being OOM-killed on a shared box:
+// bulk queues pause first, then all but payments and order emails (./memory-guard.ts).
+const memoryLimit = readMemoryLimit(env.WORKER_MEMORY_LIMIT_MB)
+const memoryGuard = createMemoryGuard({
+  workers: watched,
+  limitBytes: memoryLimit.bytes,
+  thresholds: {
+    slow: env.WORKER_MEMORY_SLOW_PCT / 100,
+    critical: env.WORKER_MEMORY_CRITICAL_PCT / 100,
+    resume: env.WORKER_MEMORY_RESUME_PCT / 100,
+    exit: env.WORKER_MEMORY_EXIT_PCT / 100,
+    exitAfterMs: env.WORKER_MEMORY_EXIT_AFTER_S * 1000,
+  },
+  exit: () => {
+    // Running jobs get time to finish; past that, leave anyway so Docker restarts the worker.
+    setTimeout(() => process.exit(1), 30_000).unref()
+    void shutdown()
+  },
+})
+memoryGuard.start()
+logger.info('memory guard on', {
+  area: 'memory',
+  limitMb: Math.round(memoryLimit.bytes / 1024 / 1024),
+  source: memoryLimit.source,
+})
 // Finished jobs kept from before KEEP_FINISHED; in the background so start-up does not wait.
 trimFinishedJobs(
   redis,
@@ -441,6 +468,7 @@ app.get('/health', async (c) => {
 })
 
 const shutdown = async () => {
+  memoryGuard.stop()
   await worker.close()
   await notificationWorker.close()
   await appEventWorker.close()
