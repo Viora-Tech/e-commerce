@@ -5,150 +5,7 @@ import { theme } from './theme'
 
 type Colours = { bg: string; fg: string }
 
-/** What sits on the hero's right: a code, an amount, or the first product's photo. */
-export type HeroShot =
-  | { kind: 'code'; value: string; caption?: string | undefined }
-  | { kind: 'amount'; value: string; caption?: string | undefined }
-  | { kind: 'image'; url: string; alt: string }
-
 const MONO = "ui-monospace, SFMono-Regular, Menlo, Consolas, 'Courier New', monospace"
-
-function ShotCard({ shot }: { shot: HeroShot }) {
-  if (shot.kind === 'image') {
-    return (
-      <Section
-        style={{
-          backgroundColor: '#ffffff',
-          borderRadius: '18px',
-          padding: '18px',
-          textAlign: 'center',
-        }}
-      >
-        <Img
-          src={shot.url}
-          alt={shot.alt}
-          width="160"
-          style={{ margin: '0 auto', maxWidth: '100%', height: 'auto', borderRadius: '10px' }}
-        />
-      </Section>
-    )
-  }
-  return (
-    <Section
-      style={{
-        backgroundColor: '#ffffff',
-        borderRadius: '18px',
-        padding: '26px 14px',
-        textAlign: 'center',
-      }}
-    >
-      <Text
-        style={{
-          margin: 0,
-          fontSize: shot.kind === 'code' ? '30px' : '32px',
-          lineHeight: '36px',
-          fontWeight: 800,
-          letterSpacing: shot.kind === 'code' ? '0.14em' : '-0.02em',
-          fontFamily: shot.kind === 'code' ? MONO : undefined,
-          color: theme.ink,
-        }}
-      >
-        {shot.value}
-      </Text>
-      {shot.caption ? (
-        <Text
-          style={{ margin: '8px 0 0', fontSize: '12px', lineHeight: '17px', color: theme.muted }}
-        >
-          {shot.caption}
-        </Text>
-      ) : null}
-    </Section>
-  )
-}
-
-/** The full-colour opener: a small label, a big uppercase headline, one line, and the shot. */
-export function Hero({
-  colours,
-  eyebrow,
-  title,
-  line,
-  shot,
-}: {
-  colours: Colours
-  eyebrow: string
-  title: string
-  line?: string | undefined
-  shot?: HeroShot | undefined
-}) {
-  const words = (
-    <>
-      <Text
-        style={{
-          margin: '0 0 12px',
-          fontSize: '11.5px',
-          fontWeight: 700,
-          letterSpacing: '0.16em',
-          textTransform: 'uppercase',
-          color: colours.fg,
-          opacity: 0.8,
-        }}
-      >
-        {eyebrow}
-      </Text>
-      <Text
-        className="k-hero-title"
-        style={{
-          margin: '0 0 12px',
-          fontSize: '36px',
-          lineHeight: '38px',
-          fontWeight: 800,
-          letterSpacing: '-0.03em',
-          textTransform: 'uppercase',
-          color: colours.fg,
-        }}
-      >
-        {title}
-      </Text>
-      {line ? (
-        <Text
-          style={{
-            margin: 0,
-            fontSize: '14.5px',
-            lineHeight: '22px',
-            color: colours.fg,
-            opacity: 0.88,
-          }}
-        >
-          {line}
-        </Text>
-      ) : null}
-    </>
-  )
-  return (
-    <Section style={{ padding: '24px 24px 0' }}>
-      <Section
-        className="k-pad"
-        style={{ backgroundColor: colours.bg, borderRadius: '22px', padding: '36px 32px' }}
-      >
-        {shot ? (
-          <Row>
-            <Column
-              className="k-stack"
-              style={{ width: '56%', verticalAlign: 'middle', paddingRight: '16px' }}
-            >
-              {words}
-            </Column>
-            <Column className="k-stack" style={{ width: '44%', verticalAlign: 'middle' }}>
-              <ShotCard shot={shot} />
-            </Column>
-          </Row>
-        ) : (
-          words
-        )}
-      </Section>
-    </Section>
-  )
-}
 
 /** Four steps with the done ones filled in brand colour, e.g. Confirmed → Delivered. */
 export function Steps({
@@ -200,10 +57,28 @@ export function Steps({
   )
 }
 
-/** The message under the hero: a short heading and the text, centred. */
-export function Intro({ heading, children }: { heading: string; children?: ReactNode }) {
+/**
+ * The top of every email under the logo: a small grey context line ("Order #42"), one clear
+ * heading, then the text. Plain on purpose (owner, 8 Nov 2026): no coloured banner, no amount card.
+ */
+export function Intro({
+  eyebrow,
+  heading,
+  children,
+}: {
+  eyebrow?: string | undefined
+  heading: string
+  children?: ReactNode
+}) {
   return (
-    <Section className="k-pad" style={{ padding: '30px 40px 0', textAlign: 'center' }}>
+    <Section className="k-pad" style={{ padding: '28px 40px 0', textAlign: 'center' }}>
+      {eyebrow ? (
+        <Text
+          style={{ margin: '0 0 6px', fontSize: '13px', lineHeight: '18px', color: theme.muted }}
+        >
+          {eyebrow}
+        </Text>
+      ) : null}
       <Text
         style={{
           margin: '0 0 10px',

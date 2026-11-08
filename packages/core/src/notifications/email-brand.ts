@@ -5,12 +5,10 @@ import { eq } from 'drizzle-orm'
 import { primaryStoreHostname } from '../domains/origin'
 import { storeSender } from '../marketing/send'
 import { liveThemeSettings } from '../theme/library'
-
-const absoluteUrl = (url: string | null | undefined) =>
-  url && /^https:\/\//i.test(url) ? url : null
+import { storeEmailLogo } from './email-logo'
 
 /**
- * The store's email look from its live theme (logo, the light scheme's button colour, social
+ * The store's email look from its live theme (logo, see `storeEmailLogo`; the light scheme's button colour, social
  * profiles) and its store details (contact email and phone, address, primary domain).
  * Never throws: a store with a broken theme still sends, in the neutral look.
  */
@@ -26,12 +24,13 @@ export async function storeEmailBrand(tx: StoreTx, storeId: string): Promise<Ema
         .where(eq(store.id, storeId)),
     ])
     const scheme = theme.schemes.find((c) => c.id === theme.lightScheme) ?? theme.schemes[0]
+    const shopUrl = host ? `https://${host}` : null
     return {
-      logoUrl: absoluteUrl(theme.brand.logo?.url),
+      logoUrl: await storeEmailLogo(tx, storeId, theme.brand.logo?.url, shopUrl).catch(() => null),
       logoWidth: theme.brand.logoWidth,
       colour: scheme?.button,
       onColour: scheme?.buttonText,
-      shopUrl: host ? `https://${host}` : null,
+      shopUrl,
       supportEmail: s?.email ?? null,
       supportPhone: s?.phone ?? null,
       address: sender.storeAddress ?? null,
