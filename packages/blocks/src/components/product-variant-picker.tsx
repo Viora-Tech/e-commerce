@@ -67,6 +67,20 @@ export function swatchImages(
   return new Set(images.values()).size === images.size && images.size > 0 ? images : null
 }
 
+/**
+ * The file a swatch circle draws: the image's smallest sized copy, never the original, which
+ * a CSS background always downloads in full (a 1.8 MB PNG for a 2.5rem circle on Waimers).
+ */
+export function swatchFile(product: ProductDetail, url: string): string {
+  const variants = product.images.find((i) => i.url === url)?.variants
+  if (!variants) return url
+  const smallest = Object.keys(variants)
+    .map(Number)
+    .filter((w) => Number.isFinite(w))
+    .sort((a, b) => a - b)[0]
+  return (smallest !== undefined && variants[String(smallest)]?.webp) || url
+}
+
 // Port of snippets/variant-picker.liquid: one fieldset per option, the radio before its
 // label (the theme CSS styles the checked one as `radio:checked + label`), pills, or round
 // image swatches when each value has its own variant image (`swatchImages`). A value is
@@ -123,7 +137,9 @@ export default function ProductVariantPicker({
                         <>
                           <span
                             className="variant-picker__swatch-circle"
-                            style={{ backgroundImage: `url(${JSON.stringify(image)})` }}
+                            style={{
+                              backgroundImage: `url(${JSON.stringify(swatchFile(product, image))})`,
+                            }}
                             aria-hidden="true"
                           />
                           <span className="visually-hidden">{val.value}</span>

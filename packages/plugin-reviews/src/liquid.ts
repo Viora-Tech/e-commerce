@@ -91,7 +91,7 @@ function judgemeShopData(
     product_url: r.handle ? `/products/${r.handle}` : '/',
     product_handle: r.handle ?? '',
     created_at: r.createdAt.toISOString(),
-    pictures_urls: r.photos.map((url) => ({ original: url, huge: url, small: url })),
+    pictures_urls: r.pictures,
   }))
   return {
     reviews_grid: {

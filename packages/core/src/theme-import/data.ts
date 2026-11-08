@@ -13,7 +13,7 @@ import {
   store,
   variant,
 } from '@commerce/db'
-import { and, asc, desc, eq, isNotNull, like, sql } from 'drizzle-orm'
+import { and, asc, desc, eq, inArray, isNotNull, like, sql } from 'drizzle-orm'
 import type { SignedInCustomer } from '../accounts/auth'
 import { excerptText } from '../blog/text'
 import { browseProducts } from '../catalog/browse'
@@ -40,6 +40,7 @@ import type {
   LiquidCollectionData,
   LiquidCustomData,
   LiquidDataSource,
+  LiquidImageData,
   LiquidLinkData,
   LiquidReviewsSource,
   LiquidShopData,
@@ -121,6 +122,25 @@ const escapeHtml = (s: string) =>
 function excerptHtml(excerpt: string | null): string {
   const text = excerptText(excerpt)
   return text ? `<p>${escapeHtml(text)}</p>` : ''
+}
+
+/** At most this many image URLs are looked up in one go (a page's image settings). */
+const MAX_IMAGE_LOOKUP = 200
+
+/** Files-library rows for image settings, by URL: their size and sized copies (one query). */
+async function loadImages(tx: StoreTx, urls: string[]): Promise<Map<string, LiquidImageData>> {
+  const wanted = [...new Set(urls)].slice(0, MAX_IMAGE_LOOKUP)
+  if (wanted.length === 0) return new Map()
+  const rows = await tx
+    .select({ url: media.url, width: media.width, height: media.height, variants: media.variants })
+    .from(media)
+    .where(inArray(media.url, wanted))
+  return new Map(
+    rows.map((r) => [
+      r.url,
+      { url: r.url, width: r.width, height: r.height, variants: r.variants as MediaVariants },
+    ]),
+  )
 }
 
 /** Our menu items as Shopify links, three levels deep. */
@@ -406,6 +426,7 @@ export async function storeLiquidData(
       once(`mt:${type}`, () => loadMetaobjectsOfType(tx, keyFromName(type))),
     metaobjects: (ids) => loadMetaobjects(tx, ids),
     importedFiles: () => once('imported-files', () => loadImportedFiles(tx)),
+    images: (urls) => loadImages(tx, urls),
     browse: async ({ collectionId, query, perPage }) => {
       const first = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v)
       const q = (first(query.q) ?? '').trim().slice(0, 100)

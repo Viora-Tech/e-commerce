@@ -137,17 +137,33 @@ export async function ratingSummaries(
   return out
 }
 
+/** A review photo as Files holds it: the original and the sized copies the pipeline made. */
+export type ReviewPhoto = {
+  id: string
+  url: string
+  width: number | null
+  height: number | null
+  variants: Record<string, { avif: string; webp: string }> | null
+}
+
+/**
+ * The WebP copy of a photo at least `width` wide (the largest when none is), else the original:
+ * a review photo straight off a phone is often 0.5–1 MB, its 640 copy a few dozen KB.
+ */
+export function photoCopy(photo: Pick<ReviewPhoto, 'url' | 'variants'>, width: number): string {
+  const sized = Object.entries(photo.variants ?? {})
+    .map(([w, files]) => [Number(w), files?.webp] as const)
+    .filter((e): e is readonly [number, string] => Number.isFinite(e[0]) && Boolean(e[1]))
+    .sort((a, b) => a[0] - b[0])
+  return (sized.find(([w]) => w >= width) ?? sized.at(-1))?.[1] ?? photo.url
+}
+
 /** Ready photos per review, in order. */
 export async function photosFor(
   tx: StoreTx,
   reviewIds: string[],
-): Promise<
-  Map<string, { id: string; url: string; width: number | null; height: number | null }[]>
-> {
-  const out = new Map<
-    string,
-    { id: string; url: string; width: number | null; height: number | null }[]
-  >()
+): Promise<Map<string, ReviewPhoto[]>> {
+  const out = new Map<string, ReviewPhoto[]>()
   if (reviewIds.length === 0) return out
   const rows = await tx
     .select({
@@ -156,6 +172,7 @@ export async function photosFor(
       url: media.url,
       width: media.width,
       height: media.height,
+      variants: media.variants,
     })
     .from(reviewMedia)
     .innerJoin(media, eq(media.id, reviewMedia.mediaId))
@@ -163,7 +180,13 @@ export async function photosFor(
     .orderBy(reviewMedia.position)
   for (const r of rows) {
     const list = out.get(r.reviewId) ?? []
-    list.push({ id: r.id, url: r.url, width: r.width, height: r.height })
+    list.push({
+      id: r.id,
+      url: r.url,
+      width: r.width,
+      height: r.height,
+      variants: (r.variants as ReviewPhoto['variants']) ?? null,
+    })
     out.set(r.reviewId, list)
   }
   return out

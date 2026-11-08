@@ -319,6 +319,12 @@ export type LiquidDataSource = {
    */
   importedFiles?: (() => Promise<Map<string, string>>) | undefined
   /**
+   * Files-library images by URL → their size and sized copies, for image settings saved as a
+   * bare URL (or without copies), so `image_url: width:` picks a small copy rather than the
+   * original. Optional: without it those settings keep the original file.
+   */
+  images?: ((urls: string[]) => Promise<Map<string, LiquidImageData>>) | undefined
+  /**
    * Judge.me's shop-wide review data (`shop.metafields.judgeme.*`: `reviews_grid`,
    * `all_reviews_rating`...), built from the Reviews app; null when the app is not installed.
    */
