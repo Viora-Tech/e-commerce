@@ -9,12 +9,13 @@ import {
   PaymentNotRetryable,
   payOnlineInstead,
   retryAndStartPayment,
+  SPLIT_TENDER_PROVIDERS,
   syncOpenQrAttempt,
   thankYouPath,
 } from '@commerce/core'
 import { order, payment } from '@commerce/db'
 import type { ClientConfirmation } from '@commerce/payments'
-import { and, desc, eq, ne } from 'drizzle-orm'
+import { and, desc, eq, notInArray } from 'drizzle-orm'
 import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { redirectAfterCheckout } from './checkout-redirect'
@@ -58,7 +59,9 @@ export async function retryPaymentAction(orderNumber: number, viewToken: string 
     const [latest] = await tx
       .select({ provider: payment.provider })
       .from(payment)
-      .where(and(eq(payment.orderId, oid), ne(payment.provider, 'gift_card')))
+      .where(
+        and(eq(payment.orderId, oid), notInArray(payment.provider, [...SPLIT_TENDER_PROVIDERS])),
+      )
       .orderBy(desc(payment.attempt), desc(payment.id))
       .limit(1)
     const providers = await storePaymentProviders(tx, storeId)
@@ -135,7 +138,9 @@ export async function checkQrPaymentAction(orderNumber: number, viewToken: strin
     const [latest] = await tx
       .select({ provider: payment.provider })
       .from(payment)
-      .where(and(eq(payment.orderId, o.id), ne(payment.provider, 'gift_card')))
+      .where(
+        and(eq(payment.orderId, o.id), notInArray(payment.provider, [...SPLIT_TENDER_PROVIDERS])),
+      )
       .orderBy(desc(payment.attempt), desc(payment.id))
       .limit(1)
     const providers = await storePaymentProviders(tx, storeId)

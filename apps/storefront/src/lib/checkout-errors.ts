@@ -14,6 +14,7 @@ import {
   PriceNotSet,
   ShippingRateUnavailable,
   ShippingUnavailable,
+  StoreCreditError,
   VariantHidden,
 } from '@commerce/core'
 import { formatMoney } from '@commerce/money'
@@ -26,6 +27,8 @@ export function checkoutErrorMessage(err: unknown, pincode: string): string | nu
   const e = checkoutContent.errors
   // Gift card rules (spent elsewhere, COD for the rest, a card in a mixed basket) are the shopper's to fix.
   if (err instanceof GiftCardError) return err.message
+  // Store credit (cash on delivery for the rest, or not this shopper's order) is theirs to fix too.
+  if (err instanceof StoreCreditError) return err.message
   // Another checkout took the last use of the code; the next submit prices without it.
   if (err instanceof DiscountUnavailable) return e.discountUnavailable
   // The code works for nobody with this email (one use each, customers only): say so, never charge more quietly.

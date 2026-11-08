@@ -1,6 +1,7 @@
 import { loadEnv } from '@commerce/config'
 import {
   orderViewToken,
+  SPLIT_TENDER_PROVIDERS,
   storeCheckoutLook,
   thankYouPath,
   variantImageUrls,
@@ -8,7 +9,7 @@ import {
 } from '@commerce/core'
 import { order, orderLine, payment } from '@commerce/db'
 import type { CheckoutSession } from '@commerce/payments'
-import { and, desc, eq, ne } from 'drizzle-orm'
+import { and, desc, eq, notInArray } from 'drizzle-orm'
 import { notFound, redirect } from 'next/navigation'
 import CheckoutShell from '@/components/checkout/checkout-shell'
 import OrderSummary from '@/components/checkout/order-summary'
@@ -40,11 +41,13 @@ export default async function PayPage({ params, searchParams }: Params) {
     const verified = token ? verifyOrderViewToken(token, env.SETTINGS_SECRET) : null
     const validForThisOrder = !!verified?.ok && verified.orderId === o.id
     if (!ownedBySession && !validForThisOrder) return null
-    // The latest gateway attempt; gift card payments on the same order are already captured.
+    // The latest gateway attempt; gift card and store credit payments are not attempts.
     const [p] = await tx
       .select()
       .from(payment)
-      .where(and(eq(payment.orderId, o.id), ne(payment.provider, 'gift_card')))
+      .where(
+        and(eq(payment.orderId, o.id), notInArray(payment.provider, [...SPLIT_TENDER_PROVIDERS])),
+      )
       .orderBy(desc(payment.attempt), desc(payment.id))
       .limit(1)
     if (!p) return null

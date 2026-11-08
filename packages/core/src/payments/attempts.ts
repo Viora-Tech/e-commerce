@@ -5,16 +5,16 @@ import {
   type PaymentProvider,
   readableError,
 } from '@commerce/payments'
-import { and, desc, eq, isNull, ne } from 'drizzle-orm'
+import { and, desc, eq, isNull, notInArray } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 import { CommerceError } from '../errors'
-import { GIFT_CARD_PROVIDER } from '../gift-cards/service'
 import { captureModeFor } from './capture'
 import { applyPaymentStatus } from './confirm'
 import { type FallbackTry, runWithFallbacks } from './fallback'
 import { isGatewayProvider, type OnlineMethodId } from './methods'
 import { methodsForGateway } from './routing'
 import { parsePaymentSettings } from './settings'
+import { SPLIT_TENDER_PROVIDERS } from './split-tender'
 import { OPEN_ATTEMPT_STATUSES, type PaymentRowStatus } from './transitions'
 
 /*
@@ -53,12 +53,14 @@ export const attemptKey = (orderId: string, attempt: number): string => `${order
 /** Until the gateway answers, the reference is our own placeholder. */
 const placeholderRef = (key: string): string => `attempt_${key}`
 
-/** The gateway attempts on an order, newest first. Gift card payments are not attempts. */
+/** The gateway attempts on an order, newest first. Gift card and store credit payments are not attempts. */
 export async function paymentAttempts(ctx: StoreContext, orderId: string) {
   return ctx.tx
     .select()
     .from(payment)
-    .where(and(eq(payment.orderId, orderId), ne(payment.provider, GIFT_CARD_PROVIDER)))
+    .where(
+      and(eq(payment.orderId, orderId), notInArray(payment.provider, [...SPLIT_TENDER_PROVIDERS])),
+    )
     .orderBy(desc(payment.attempt), desc(payment.id))
 }
 

@@ -1492,6 +1492,13 @@
       "when": 1793892800000,
       "tag": "0228_archive_cancelled_orders",
       "breakpoints": true
+    },
+    {
+      "idx": 213,
+      "version": "7",
+      "when": 1793979200000,
+      "tag": "0229_store_credit_checkout",
+      "breakpoints": true
     }
   ]
 }

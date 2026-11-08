@@ -7,9 +7,11 @@ type OrderDetailsProps = {
   order: typeof order.$inferSelect
   /** The order's delivery address snapshot; null for gift cards, which are emailed. */
   shipTo: typeof address.$inferSelect | null
-  /** The latest gateway, COD or transfer attempt; undefined when gift cards paid everything. */
+  /** The latest gateway, COD or transfer attempt; undefined when gift cards or store credit paid everything. */
   payment: typeof payment.$inferSelect | undefined
   giftCards: { id: string; last: string; amountPaise: number }[]
+  /** Store credit spent on the order; 0 for none. */
+  storeCreditPaise?: number
   /** The Delivery card already says where it goes: leave the address and shipping out. */
   compact?: boolean
 }
@@ -29,6 +31,7 @@ export default function OrderDetails({
   shipTo,
   payment: pay,
   giftCards,
+  storeCreditPaise = 0,
   compact = false,
 }: OrderDetailsProps) {
   // Render logic
@@ -40,7 +43,7 @@ export default function OrderDetails({
     ? (content.methods[o.paymentMethod] ?? content.methods.online)
     : null
   const payLines: string[] = []
-  if (method && o.paymentMethod !== 'gift_card') {
+  if (method && o.paymentMethod !== 'gift_card' && o.paymentMethod !== 'store_credit') {
     payLines.push(
       o.paymentMethod === 'cod' && !paid
         ? content.codToPay(amount)
@@ -48,6 +51,7 @@ export default function OrderDetails({
     )
   }
   for (const g of giftCards) payLines.push(content.giftCardLine(g.last, formatPaise(g.amountPaise)))
+  if (storeCreditPaise > 0) payLines.push(content.storeCreditLine(formatPaise(storeCreditPaise)))
   const rows: [string, string[]][] = []
   if (contact.length > 0) rows.push([content.details.contact, contact])
   if (payLines.length > 0) rows.push([content.details.payment, payLines])

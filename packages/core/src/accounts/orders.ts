@@ -18,6 +18,7 @@ import type {
   OrderPaymentStatus,
 } from '../order/aggregate-status'
 import { orderParcelsView, type ParcelView } from '../order/parcel-view'
+import { isSplitTender } from '../payments/split-tender'
 import { balanceOwed } from '../preorder/balance'
 import type { GstBreakdown } from '../tax/gst'
 
@@ -161,7 +162,7 @@ async function summarise(
       payment: shopperPayment(
         o,
         pays
-          .filter((p) => p.orderId === o.id && p.provider !== 'gift_card')
+          .filter((p) => p.orderId === o.id && !isSplitTender(p.provider))
           .sort((a, b) => b.attempt - a.attempt)[0],
       ),
       shipment: shipmentState(

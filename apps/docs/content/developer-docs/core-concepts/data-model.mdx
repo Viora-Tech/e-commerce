@@ -423,6 +423,19 @@ order's derived `fulfillment_status` (`returned` once every unit is back). Every
 `packages/core/src/returns/*` and writes its outbox event (`return.requested`, `return.approved`,
 `return.rejected`, `return.received`, `return.refunded`, `order.rto`) in the same transaction.
 
+### Store credit at checkout
+
+A customer's balance is `store_credit_account` (one row, `balance_paise >= 0`) and every change is
+a `store_credit_entry` (kind `adjustment`, `payment`, `refund` or `release`, linked to the order).
+At checkout (`spendStoreCreditOnOrder`, step `spendStoreCredit` in `placeOrder`) the balance is
+debited under the account's row lock and the order gets a `payment` row with provider
+`store_credit` (`providerPaymentId` is the customer id). It is `captured` when it covers what is
+due now, else `pending`: a hold that `applyPaymentStatus` captures with the gateway's capture
+(`captureHeldStoreCredit`) and `cancelOrder` gives back with a `release` entry
+(`releaseHeldStoreCredit`). Gift card and store credit rows are split tender
+(`SPLIT_TENDER_PROVIDERS`): never gateway attempts, and outside `payment_one_capture_per_order`
+(0228). The order's total and GST are worked out before any of this and never change.
+
 ### Purchasing and landed cost
 
 `purchasing-schema.ts` holds `supplier`, `purchase_order` and `purchase_order_line`,

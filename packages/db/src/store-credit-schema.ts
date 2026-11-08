@@ -23,8 +23,11 @@ const storeId = () =>
     .references(() => store.id)
 const createdAt = () => timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
 
-/** Why the balance moved: staff added or removed it, an order was paid with it, a refund went to it. */
-export const STORE_CREDIT_KINDS = ['adjustment', 'payment', 'refund'] as const
+/**
+ * Why the balance moved: staff added or removed it, an order was paid with it, a refund went to it,
+ * or credit held for a checkout came back because the order was cancelled before it was paid.
+ */
+export const STORE_CREDIT_KINDS = ['adjustment', 'payment', 'refund', 'release'] as const
 
 /** One customer's store credit balance, in paise. Never below zero. */
 export const storeCreditAccount = pgTable(
@@ -71,6 +74,9 @@ export const storeCreditEntry = pgTable(
   (t) => [
     index('store_credit_entry_customer').on(t.customerId, t.createdAt),
     check('store_credit_entry_nonzero', sql`${t.amountPaise} <> 0`),
-    check('store_credit_entry_kind_check', sql`${t.kind} in ('adjustment', 'payment', 'refund')`),
+    check(
+      'store_credit_entry_kind_check',
+      sql`${t.kind} in ('adjustment', 'payment', 'refund', 'release')`,
+    ),
   ],
 )

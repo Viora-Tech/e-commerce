@@ -4,8 +4,10 @@ import {
   canViewOrder,
   GIFT_CARD_PROVIDER,
   installedApps,
+  isSplitTender,
   orderParcelsView,
   orderViewToken,
+  STORE_CREDIT_PROVIDER,
   storeCheckoutLook,
   storefrontOriginFor,
   variantImageUrls,
@@ -77,11 +79,20 @@ export default async function ThankYouPage({ params, searchParams }: Params) {
       last: cards.find((c) => c.id === p.providerPaymentId)?.last ?? '',
       amountPaise: p.amountPaise,
     }))
+    // Store credit spent on the order: held while the gateway is paid, then captured. A hold
+    // given back (the order was cancelled unpaid) no longer counts.
+    const storeCreditPaise = pays
+      .filter(
+        (p) =>
+          p.provider === STORE_CREDIT_PROVIDER &&
+          (p.status === 'pending' || p.status === 'captured' || p.status === 'refunded'),
+      )
+      .reduce((sum, p) => sum + p.amountPaise, 0)
     // The latest checkout attempt: a failed one offers "Retry payment".
     const newest = (a: (typeof pays)[number], b: (typeof pays)[number]) =>
       b.attempt - a.attempt || (b.id > a.id ? 1 : -1)
     const pay = pays
-      .filter((p) => p.provider !== GIFT_CARD_PROVIDER && p.purpose === 'order')
+      .filter((p) => !isSplitTender(p.provider) && p.purpose === 'order')
       .sort(newest)[0]
     // A deposit pre-order's balance, with its open attempt (a transfer shows its instructions).
     const balance = balanceView(o, await storePreorderPolicy(tx, storeId))
@@ -124,6 +135,7 @@ export default async function ThankYouPage({ params, searchParams }: Params) {
       lines,
       pay,
       giftCards,
+      storeCreditPaise,
       balance,
       balanceAttempt,
       images,
@@ -191,6 +203,7 @@ export default async function ThankYouPage({ params, searchParams }: Params) {
         lines={data.lines}
         payment={data.pay}
         giftCards={data.giftCards}
+        storeCreditPaise={data.storeCreditPaise}
         links={links}
         payPath={buildPayPath(data.order.number, payToken)}
         canPayOnline={data.canPayOnline}

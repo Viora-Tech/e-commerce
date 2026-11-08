@@ -2,6 +2,7 @@
 
 import { permissions } from '@commerce/core/permissions'
 import { Button } from '@commerce/ui/shadcn/button'
+import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import DataCard from '@/components/layout/data-card'
 import { customerStoreCreditContent } from '@/data/customer-store-credit'
@@ -10,6 +11,7 @@ import { usePermissions } from '@/hooks/use-permissions'
 import { api } from '@/lib/api-client'
 import { formatDay } from '@/lib/format-date'
 import { formatPaise } from '@/lib/money'
+import { routes } from '@/lib/routes'
 import StoreCreditDialog from './store-credit-dialog'
 
 type CustomerStoreCreditCardProps = { customerId: string }
@@ -95,7 +97,16 @@ export default function CustomerStoreCreditCard({ customerId }: CustomerStoreCre
               {account.entries.map((e) => (
                 <li key={e.id} className="flex items-start justify-between gap-3 py-2">
                   <span className="min-w-0">
-                    <span className="block truncate text-body text-foreground">{e.reason}</span>
+                    {e.orderId ? (
+                      <Link
+                        href={routes.orders.detail(e.orderId)}
+                        className="block truncate text-body text-foreground underline-offset-4 hover:underline"
+                      >
+                        {e.reason}
+                      </Link>
+                    ) : (
+                      <span className="block truncate text-body text-foreground">{e.reason}</span>
+                    )}
                     <span className="block text-caption text-muted-foreground">
                       {copy.kinds[e.kind] ?? e.kind} · {formatDay(e.createdAt, new Date(), locale)}{' '}
                       {e.staffEmail ? copy.by(e.staffEmail) : copy.system}

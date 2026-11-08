@@ -96,6 +96,9 @@ export const orderDetailContent = {
     manualHint: 'You returned the money yourself. This records how.',
     storeCredit: 'As store credit',
     storeCreditHint: "The amount goes onto the customer's store credit balance. No code is sent.",
+    /** A payment the customer made from store credit at checkout. */
+    storeCreditBack:
+      "It was paid from store credit, so it goes back onto the customer's store credit balance.",
     method: 'Sent by',
     methods: {
       upi: 'UPI',

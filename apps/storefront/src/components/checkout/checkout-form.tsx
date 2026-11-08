@@ -191,6 +191,9 @@ export default function CheckoutForm(props: CheckoutFormProps) {
             giftCards={ck.giftCards}
             onGiftCardApply={ck.handleGiftCardApply}
             onGiftCardRemove={ck.handleGiftCardRemove}
+            storeCredit={ck.storeCredit}
+            storeCreditPaise={totals.storeCreditUsedPaise}
+            onStoreCredit={ck.handleStoreCredit}
             adjustmentPaise={totals.adjustmentPaise}
             adjustmentLabel={
               totals.adjustment?.label || content.adjustmentFallback(totals.adjustmentPaise)

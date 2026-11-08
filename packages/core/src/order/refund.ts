@@ -5,6 +5,7 @@ import type { StoreContext } from '../context'
 import { refundToStoreCredit, StoreCreditError } from '../customers/store-credit'
 import { CommerceError } from '../errors'
 import { changeGiftCardBalance, GIFT_CARD_PROVIDER } from '../gift-cards/service'
+import { STORE_CREDIT_PROVIDER } from '../payments/split-tender'
 import { recomputeOrderStatuses } from './recompute'
 
 /**
@@ -107,12 +108,14 @@ export async function refundPayment(
     throw new RefundNotAllowed(`Only ${remaining} paise left to refund on this payment`)
   }
 
-  // Money paid from a gift card goes back onto that same card, whatever was asked.
+  // Money paid from a gift card goes back onto that same card, whatever was asked; money paid
+  // from store credit goes back onto the store credit balance.
   const toGiftCard = p.provider === GIFT_CARD_PROVIDER
-  const storeCredit = input.method === 'store_credit' && !toGiftCard
+  const storeCredit =
+    (input.method === 'store_credit' || p.provider === STORE_CREDIT_PROVIDER) && !toGiftCard
   const offline =
     OFFLINE_PROVIDERS.has(p.provider) || ((input.manual === true || storeCredit) && !toGiftCard)
-  const method = offline ? (input.method ?? null) : null
+  const method = storeCredit ? 'store_credit' : offline ? (input.method ?? null) : null
   // Store credit lives only on the customer's balance: refused (and nothing moves) when the
   // order has nobody to hold it.
   if (storeCredit) {

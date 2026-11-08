@@ -18,6 +18,8 @@ export const PAYMENT_LABELS: Record<string, string> = {
   manual: 'UPI or bank transfer',
   razorpay: 'Razorpay',
   razorpay_upi: 'UPI',
+  gift_card: 'Gift card',
+  store_credit: 'Store credit',
 }
 
 const isGst = (v: unknown): v is GstBreakdown =>
@@ -75,6 +77,7 @@ export function emailParcels(views: readonly ParcelView[]): EmailParcel[] | unde
 /** Human label for a refund's method, for the refund_issued message. */
 function refundMethodLabel(provider: string): string {
   if (provider === GIFT_CARD_PROVIDER) return 'your gift card'
+  if (provider === 'store_credit') return 'your store credit balance'
   return PAYMENT_LABELS[provider] ?? 'your original payment method'
 }
 
@@ -83,7 +86,12 @@ function refundMethodLabel(provider: string): string {
  * transfer) the merchant settles directly does not have a bank-side wait to quote.
  */
 function refundEtaLabel(provider: string): string | undefined {
-  if (provider === GIFT_CARD_PROVIDER || provider === 'cod' || provider === 'manual') {
+  if (
+    provider === GIFT_CARD_PROVIDER ||
+    provider === 'store_credit' ||
+    provider === 'cod' ||
+    provider === 'manual'
+  ) {
     return undefined
   }
   return '5 to 7 working days'

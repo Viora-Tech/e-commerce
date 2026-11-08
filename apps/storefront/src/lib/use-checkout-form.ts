@@ -47,8 +47,8 @@ import {
   fieldId,
   fieldOrder,
 } from '@/lib/checkout-validation'
-import type { AppliedGiftCard } from '@/lib/gift-card-actions'
 import { isQuotable, useCheckoutShipping } from '@/lib/use-checkout-shipping'
+import { useCheckoutTender } from '@/lib/use-checkout-tender'
 import { useHeldStep } from '@/lib/use-held-step'
 import {
   type ChangeHandler,
@@ -96,7 +96,8 @@ export function useCheckoutForm(input: CheckoutFormInput) {
   const [savedId, setSavedId] = useState<string>(addresses[0]?.id ?? NEW_ADDRESS)
   const [business, setBusiness] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [giftCards, setGiftCards] = useState<AppliedGiftCard[]>([])
+  const tender = useCheckoutTender(methods, setForm, customer !== null, input.storeCreditPaise)
+  const { giftCards } = tender
   const [touched, setTouched] = useState<Partial<Record<CheckoutFieldKey, true>>>({})
   const [attempted, setAttempted] = useState(false)
   const [expressNote, setExpressNote] = useState<string | null>(null)
@@ -189,6 +190,7 @@ export function useCheckoutForm(input: CheckoutFormInput) {
     laterPaise: deposit.laterPaise,
     methodRules: input.methodRules,
     abroad,
+    storeCreditPaise: tender.spendablePaise,
   })
   const { digitalOnly, offered, payment, coveredByCards, payNowPaise } = totals
   const contactFieldsOk = !wrongFields.some((k) => CONTACT_KEYS.includes(k))
@@ -266,6 +268,7 @@ export function useCheckoutForm(input: CheckoutFormInput) {
         ...orderDetails(form, { splitName, abroad }),
         payment: paymentId,
         giftCards: giftCards.map((c) => c.code),
+        useStoreCredit: tender.spendablePaise > 0 && !digitalOnly,
         ...ship.formFields,
       })
       if (r?.error) setError(r.error)
@@ -404,14 +407,6 @@ export function useCheckoutForm(input: CheckoutFormInput) {
           : content.express.needDetails,
     )
   }
-  /* COD cannot collect what a gift card leaves; move to the first online method. */
-  const handleGiftCardApply = (card: AppliedGiftCard) => {
-    setGiftCards((prev) => [...prev, card])
-    setForm((prev) => offCod(prev, methods))
-  }
-  const handleGiftCardRemove = (code: string) =>
-    setGiftCards((prev) => prev.filter((c) => c.code !== code))
-
   const shortfall = totals.shortfallPaise
   const updating = checking && !digitalOnly
   const { payNow, emiMonthly, payLabel } = payView(payNowPaise, {
@@ -447,6 +442,7 @@ export function useCheckoutForm(input: CheckoutFormInput) {
     savingAddress,
     addressError,
     giftCards,
+    storeCredit: tender.storeCredit,
     shownErrors,
     toFix: attempted && contactReady ? fieldsOnStep(wrongFields, CONTACT_KEYS, step) : 0,
     /** Pay was pressed before the contact was settled (signed in, or a guest). */
@@ -491,8 +487,9 @@ export function useCheckoutForm(input: CheckoutFormInput) {
     handleStep: setPickedStep,
     handleStayOnStep,
     handleExpress,
-    handleGiftCardApply,
-    handleGiftCardRemove,
+    handleGiftCardApply: tender.handleGiftCardApply,
+    handleGiftCardRemove: tender.handleGiftCardRemove,
+    handleStoreCredit: tender.handleStoreCredit,
   }
 }
 
