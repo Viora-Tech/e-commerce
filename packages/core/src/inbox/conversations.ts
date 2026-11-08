@@ -224,6 +224,8 @@ export async function loadConversation(tx: StoreTx, storeId: string, id: string)
 
 /** What the thread header and the customer panel show about a conversation. */
 export type ConversationDetail = ConversationSummary & {
+  /** Where the chat came in: the online store chat today; WhatsApp and others later. */
+  channel: (typeof inboxConversation.channel)['_']['data']
   contactPhone: string | null
   startedUrl: string | null
   firstResponseAt: Date | null
@@ -242,6 +244,7 @@ export async function getConversation(
   const [row] = await ctx.tx
     .select({
       ...summaryColumns,
+      channel: inboxConversation.channel,
       contactPhone: inboxConversation.contactPhone,
       startedUrl: inboxConversation.startedUrl,
       firstResponseAt: inboxConversation.firstResponseAt,
@@ -269,6 +272,7 @@ export async function getConversation(
   return {
     conversation: {
       ...summaryOf(row),
+      channel: row.channel,
       contactPhone: decryptCustomerPhone(row.contactPhone, secret),
       startedUrl: row.startedUrl,
       firstResponseAt: row.firstResponseAt,

@@ -17,6 +17,8 @@ import CloseButton from './close-button'
 
 type ThreadHeaderProps = {
   name: string
+  /** Where the chat came in, in words ("Online store chat"). */
+  channel: string
   status: 'open' | 'closed' | 'blocked'
   spam: boolean
   assigneeUserId: string | null
@@ -34,9 +36,13 @@ type ThreadHeaderProps = {
 
 const TONE = { open: 'success', closed: 'neutral', blocked: 'danger' } as const
 
-/** The thread's header: back (phones), name and status, Assign, the close circle (or Reopen) and More. */
+/**
+ * The thread's header, one compact line: back (phones), the customer, the channel and status,
+ * then Assign, the close circle (or Reopen) and More. The thread gets the height it saves.
+ */
 export default function ThreadHeader({
   name,
+  channel,
   status,
   spam,
   assigneeUserId,
@@ -57,7 +63,7 @@ export default function ThreadHeader({
   const t = copy.thread
 
   return (
-    <header className="flex flex-wrap items-center gap-2 border-b border-hairline px-3 py-2.5">
+    <header className="flex min-h-12 items-center gap-2 border-b border-hairline px-3 py-1.5">
       <Button
         variant="ghost"
         size="icon"
@@ -67,16 +73,20 @@ export default function ThreadHeader({
       >
         <ChevronLeftIcon className="size-4" />
       </Button>
-      {/* The name keeps at least 8rem (~10 characters) and truncates past that; the status sits on
-          its own line under it, and the controls wrap below rather than squeeze the name. */}
-      <div className="flex min-w-32 flex-1 flex-col gap-1">
-        <h2 className="truncate text-card-title text-ink-strong" title={name}>
+      {/* One line: the name truncates first, then the channel; the status chip always shows. */}
+      <div className="flex min-w-0 flex-1 items-center gap-2">
+        <h2 className="min-w-0 truncate text-body-strong text-ink-strong" title={name}>
           {name}
         </h2>
-        <div className="flex min-w-0 items-center gap-2">
-          <StatusChip tone={TONE[status]}>{t.status[status]}</StatusChip>
-          {spam ? <p className="truncate text-caption text-muted-foreground">{t.spam}</p> : null}
-        </div>
+        <span className="hidden min-w-0 truncate text-caption text-muted-foreground sm:inline">
+          {channel}
+        </span>
+        <StatusChip tone={TONE[status]}>{t.status[status]}</StatusChip>
+        {spam ? (
+          <span className="hidden truncate text-caption text-muted-foreground lg:inline">
+            {t.spam}
+          </span>
+        ) : null}
       </div>
       <div className="flex shrink-0 items-center gap-1.5">
         {canReply ? (

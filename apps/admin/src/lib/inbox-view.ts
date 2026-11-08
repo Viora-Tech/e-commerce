@@ -1,4 +1,5 @@
 import type { inboxConversationsContent } from '@/data/inbox-conversations'
+import { dayKey } from './format-date'
 
 /*
  * Small pure helpers the admin inbox shares between its panes: how a conversation is named,
@@ -62,6 +63,22 @@ export function withMessage<T extends { id: string }>(messages: T[], message: T)
   const next = [...messages, message]
   next.sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
   return next
+}
+
+/** A thread with a day divider before the first message of each calendar day (store zone). */
+export function withDayBreaks<T extends { id: string; createdAt: Date | string }>(
+  messages: readonly T[],
+): ({ kind: 'day'; key: string; at: Date | string } | { kind: 'message'; message: T })[] {
+  const out: ({ kind: 'day'; key: string; at: Date | string } | { kind: 'message'; message: T })[] =
+    []
+  let last: string | null = null
+  for (const message of messages) {
+    const key = dayKey(message.createdAt)
+    if (key !== last) out.push({ kind: 'day', key, at: message.createdAt })
+    last = key
+    out.push({ kind: 'message', message })
+  }
+  return out
 }
 
 /** The quick replies whose shortcut or title starts with what follows `/` in the composer. */
