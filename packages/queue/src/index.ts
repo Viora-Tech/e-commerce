@@ -43,6 +43,13 @@ import IORedis from 'ioredis'
 import type { QueueLimits } from './fair'
 
 export const HEARTBEAT_QUEUE = '{system}-heartbeat'
+/**
+ * The worker's scheduled sweeps (expiry, prunes, syncs, ticks), one job name per sweep, on one
+ * queue with one BullMQ worker (`apps/worker/src/sweeps.ts`). Each sweep used to have its own
+ * queue and worker, so its own Redis connection; the old queue names below stay for the
+ * one-time cleanup on boot.
+ */
+export const SWEEPS_QUEUE = '{system}-sweeps'
 /** Repeat job that polls open shipments. Braces keep every key on one slot. */
 export const SHIPPING_TRACK_QUEUE = '{shipping}-track'
 /** Repeat job that sends new orders to Shiprocket / RapidShyp as pending orders. */
