@@ -98,6 +98,10 @@ export const checkoutBrandingContent = {
     codOn: 'On',
     branding: 'Branding',
     brandingValue: 'Logo, colours and type',
+    /** Order processing: one switch in its row (on by default). */
+    archiveCancelled: "Archive orders automatically when they're cancelled",
+    archiveCancelledHint:
+      'Cancelled and unpaid orders move to the Archived tab. You can still search for them and unarchive them.',
   },
   intro:
     'Your checkout is locked, like Shopify’s: themes never change it, so it always works. Make it look like your brand here.',

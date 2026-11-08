@@ -43,7 +43,7 @@ order, payment and RLS rules); nothing copied, so no `THIRD_PARTY_NOTICES.md` en
 
 ## Code
 
-- Migration `0228_store_credit_checkout.sql`: ledger kind `release`; `payment_one_capture_per_order`
+- Migration `0229_store_credit_checkout.sql`: ledger kind `release`; `payment_one_capture_per_order`
   now leaves out `store_credit` as well as `gift_card` (split tender).
 - `payments/split-tender.ts`: `STORE_CREDIT_PROVIDER`, `SPLIT_TENDER_PROVIDERS`, `isSplitTender`.
   Everything that skipped gift card rows as "not a gateway attempt" now skips both: attempts,

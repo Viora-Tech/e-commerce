@@ -1,76 +1,78 @@
-# Builds the production images OFF the dev machine and pushes them to ECR, the registry Dokploy
-# pulls from. Building locally needs Docker Desktop and most of the laptop's RAM (it crashed the
-# engine on 2026-10-20). Lint/typecheck/tests stay in ci.yml. Rolling out stays a separate,
-# human step (worker first: it runs migrations).
-#
-# Tags: <ECR>/vextro/<app>:<full commit sha>, the same tags the local release script pushes.
-#
-# Repo settings this needs:
-#   vars.AWS_ROLE_ARN            IAM role GitHub assumes over OIDC; it needs ECR push on
-#                                vextro/* (trust: token.actions.githubusercontent.com, this repo).
-#   vars.NEXT_PUBLIC_WORKER_URL  inlined into the admin's browser bundle (https://api.koomerce.app).
-
-name: Release
-
-# Paused (owner, 2026-10-02): images are built only when started by hand from the Actions tab
-# ("Run workflow"). Restore the push trigger to build on every merge to main again.
-on:
-  workflow_dispatch:
-  # push:
-  #   branches: [main]
-
-# One release at a time; a newer push to main supersedes a queued one.
-concurrency:
-  group: release-${{ github.ref }}
-  cancel-in-progress: false
-
-# Nothing by default; each job asks for what it needs (only the build pushes to GHCR).
-permissions: {}
-
-env:
-  AWS_REGION: ap-south-1
-  IMAGE_PREFIX: 924422830513.dkr.ecr.ap-south-1.amazonaws.com/vextro
-
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      id-token: write
-    strategy:
-      fail-fast: true
-      matrix:
-        include:
-          - image: admin
-            dockerfile: apps/admin/Dockerfile
-          - image: storefront
-            dockerfile: apps/storefront/Dockerfile
-          - image: worker
-            dockerfile: apps/worker/Dockerfile
-    steps:
-      # Third-party actions are pinned to full commit SHAs (a moved tag cannot change what runs);
-      # the comment is the release the SHA belongs to. Bump both together.
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
-      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
-      - uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
-        with:
-          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
-          aws-region: ${{ env.AWS_REGION }}
-      - uses: aws-actions/amazon-ecr-login@03f1aad4c6c7ffd436567f42f9384779290529bd # v2.1.7
-      - uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
-        with:
-          context: .
-          file: ${{ matrix.dockerfile }}
-          push: true
-          platforms: linux/amd64
-          tags: ${{ env.IMAGE_PREFIX }}/${{ matrix.image }}:${{ github.sha }}
-          labels: |
-            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
-            org.opencontainers.image.revision=${{ github.sha }}
-          build-args: |
-            NEXT_PUBLIC_WORKER_URL=${{ vars.NEXT_PUBLIC_WORKER_URL }}
-          # Layer cache in the GitHub Actions cache, one scope per image so they don't evict
-          # each other.
-          cache-from: type=gha,scope=${{ matrix.image }}
-          cache-to: type=gha,mode=max,scope=${{ matrix.image }}
-
+# DISABLED on 8 Nov 2026 at the owner's request: GitHub Actions is turned off for this repo
+# (billing; checks run locally before each PR). Uncomment everything below to bring it back.
+# # Builds the production images OFF the dev machine and pushes them to ECR, the registry Dokploy
+# # pulls from. Building locally needs Docker Desktop and most of the laptop's RAM (it crashed the
+# # engine on 2026-10-20). Lint/typecheck/tests stay in ci.yml. Rolling out stays a separate,
+# # human step (worker first: it runs migrations).
+# #
+# # Tags: <ECR>/vextro/<app>:<full commit sha>, the same tags the local release script pushes.
+# #
+# # Repo settings this needs:
+# #   vars.AWS_ROLE_ARN            IAM role GitHub assumes over OIDC; it needs ECR push on
+# #                                vextro/* (trust: token.actions.githubusercontent.com, this repo).
+# #   vars.NEXT_PUBLIC_WORKER_URL  inlined into the admin's browser bundle (https://api.koomerce.app).
+# 
+# name: Release
+# 
+# # Paused (owner, 2026-10-02): images are built only when started by hand from the Actions tab
+# # ("Run workflow"). Restore the push trigger to build on every merge to main again.
+# on:
+#   workflow_dispatch:
+#   # push:
+#   #   branches: [main]
+# 
+# # One release at a time; a newer push to main supersedes a queued one.
+# concurrency:
+#   group: release-${{ github.ref }}
+#   cancel-in-progress: false
+# 
+# # Nothing by default; each job asks for what it needs (only the build pushes to GHCR).
+# permissions: {}
+# 
+# env:
+#   AWS_REGION: ap-south-1
+#   IMAGE_PREFIX: 924422830513.dkr.ecr.ap-south-1.amazonaws.com/vextro
+# 
+# jobs:
+#   build:
+#     runs-on: ubuntu-latest
+#     permissions:
+#       contents: read
+#       id-token: write
+#     strategy:
+#       fail-fast: true
+#       matrix:
+#         include:
+#           - image: admin
+#             dockerfile: apps/admin/Dockerfile
+#           - image: storefront
+#             dockerfile: apps/storefront/Dockerfile
+#           - image: worker
+#             dockerfile: apps/worker/Dockerfile
+#     steps:
+#       # Third-party actions are pinned to full commit SHAs (a moved tag cannot change what runs);
+#       # the comment is the release the SHA belongs to. Bump both together.
+#       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+#       - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
+#       - uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+#         with:
+#           role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+#           aws-region: ${{ env.AWS_REGION }}
+#       - uses: aws-actions/amazon-ecr-login@03f1aad4c6c7ffd436567f42f9384779290529bd # v2.1.7
+#       - uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
+#         with:
+#           context: .
+#           file: ${{ matrix.dockerfile }}
+#           push: true
+#           platforms: linux/amd64
+#           tags: ${{ env.IMAGE_PREFIX }}/${{ matrix.image }}:${{ github.sha }}
+#           labels: |
+#             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+#             org.opencontainers.image.revision=${{ github.sha }}
+#           build-args: |
+#             NEXT_PUBLIC_WORKER_URL=${{ vars.NEXT_PUBLIC_WORKER_URL }}
+#           # Layer cache in the GitHub Actions cache, one scope per image so they don't evict
+#           # each other.
+#           cache-from: type=gha,scope=${{ matrix.image }}
+#           cache-to: type=gha,mode=max,scope=${{ matrix.image }}
+# 

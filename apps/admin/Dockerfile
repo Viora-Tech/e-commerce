@@ -80,6 +80,8 @@ RUN cd /repo/apps/admin/.next/standalone/node_modules/.bun \
 # Plain Alpine (the release the bun image is built on): the server runs on Node, so the bun
 # binary that `base` carries (~90 MB) has no job here.
 FROM alpine:3.22 AS runner
+# Alpine fixes published after the base image (musl, zlib).
+RUN apk upgrade --no-cache
 # The standalone Next server runs on Node: Bun 1.3.11 fails to load Next's compiled
 # server runtime ("Expected CommonJS module to have a function wrapper").
 # Node comes from the official image, not Alpine's package: Alpine's nodejs lags security
