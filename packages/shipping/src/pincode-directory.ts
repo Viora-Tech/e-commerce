@@ -21,9 +21,11 @@ function candidates(): string[] {
   const fromEnv = process.env.PINCODE_DIRECTORY_PATH?.trim()
   const cwd = process.cwd()
   return [
-    ...(fromEnv ? [resolve(cwd, fromEnv)] : []),
-    resolve(cwd, PINCODE_DIRECTORY_FILE),
-    resolve(cwd, '../..', PINCODE_DIRECTORY_FILE),
+    // turbopackIgnore: the file reaches the image through outputFileTracingIncludes; without it
+    // the build traces the whole app because of the env path.
+    ...(fromEnv ? [resolve(/* turbopackIgnore: true */ cwd, fromEnv)] : []),
+    resolve(/* turbopackIgnore: true */ cwd, PINCODE_DIRECTORY_FILE),
+    resolve(/* turbopackIgnore: true */ cwd, '../..', PINCODE_DIRECTORY_FILE),
   ]
 }
 
