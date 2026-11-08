@@ -23,7 +23,7 @@ type CheckoutRepeatFieldsProps = {
  * What a store that never chose gets; mirrors core `CHECKOUT_DRAFTS_DEFAULT`
  * (payments/checkout-drafts.ts), which this client file cannot import. Flip both together.
  */
-const UNPAID_AS_DRAFTS_DEFAULT = false
+const UNPAID_AS_DRAFTS_DEFAULT = true
 
 /** Same bounds as core `PaymentSettingsSchema`: 0 to 168 hours, 0 to 50 orders; 0 is off. */
 const MAX_WINDOW_HOURS = 168

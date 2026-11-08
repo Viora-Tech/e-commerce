@@ -43,7 +43,12 @@ type Shop = { storeId: string; mouse: string; pad: string }
 async function seedShop(payments: unknown = null): Promise<Shop> {
   const [s] = await owner
     .insert(store)
-    .values({ slug: 'waimers', name: 'Waimers', payments })
+    // These rules guard numbered unpaid orders: drafts off (checkout-draft.test.ts covers drafts).
+    .values({
+      slug: 'waimers',
+      name: 'Waimers',
+      payments: { unpaidAsDrafts: 'off', ...(payments as object | null) },
+    })
     .returning()
   if (!s) throw new Error('seed')
   const [p] = await owner
