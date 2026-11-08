@@ -14,6 +14,7 @@ import {
   product,
   refund,
   store,
+  storeCreditEntry,
   variant,
   withStore,
 } from '@commerce/db'
@@ -285,7 +286,7 @@ describe('cancelOrderByStaff', () => {
     expect(r).toMatchObject({ status: 'manual', amountPaise: 200000 })
   })
 
-  it('gives the money back as store credit: one gift card, recorded as the refund', async () => {
+  it("gives the money back as store credit: onto the customer's balance, recorded as the refund", async () => {
     const { storeId, black } = await seed()
     const id = await placed(storeId, black)
     const g = gateway()
@@ -307,9 +308,14 @@ describe('cancelOrderByStaff', () => {
     const rows = await owner.select().from(refund).where(eq(refund.orderId, id))
     expect(rows).toHaveLength(1)
     expect(rows[0]).toMatchObject({ method: 'store_credit', status: 'manual', amountPaise: 200000 })
-    const [card] = await owner.select().from(giftCard).where(eq(giftCard.orderId, id))
-    expect(card).toMatchObject({ initialValuePaise: 200000, balancePaise: 200000 })
-    expect(rows[0]?.giftCardId).toBe(card?.id)
+    // Store credit is never a gift card code: it lands on the shopper's balance.
+    expect(await owner.select().from(giftCard).where(eq(giftCard.orderId, id))).toEqual([])
+    expect(rows[0]?.giftCardId).toBeNull()
+    const [entry] = await owner
+      .select()
+      .from(storeCreditEntry)
+      .where(eq(storeCreditEntry.orderId, id))
+    expect(entry).toMatchObject({ kind: 'refund', amountPaise: 200000 })
     expect((await orderRow(id)).paymentStatus).toBe('refunded')
     const notes = await owner.select().from(orderNote).where(eq(orderNote.orderId, id))
     expect(notes.at(-1)?.body).toContain('given back as store credit')

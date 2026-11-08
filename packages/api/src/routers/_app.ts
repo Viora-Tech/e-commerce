@@ -73,6 +73,7 @@ import { shopifyImportRouter } from './shopify-import'
 import { shortLinksRouter } from './short-links'
 import { staffRouter } from './staff'
 import { storeRouter } from './store'
+import { storeCreditRouter } from './store-credit'
 import { storeDataRouter } from './store-data'
 import { taxesRouter } from './taxes'
 import { themesRouter } from './themes'
@@ -123,6 +124,7 @@ export const appRouter = {
   automations: automationsRouter,
   shortLinks: shortLinksRouter,
   giftCards: giftCardsRouter,
+  storeCredit: storeCreditRouter,
   preorders: preordersRouter,
   apps: appsRouter,
   gstInvoices: gstInvoicesRouter,

@@ -49,7 +49,7 @@ export type StaffCancelInput = {
   /** How the money taken goes back (`refund-routes.ts`). */
   refund: RefundRoute
   author: string
-  /** For `store_credit`: the settings secret the gift card code is encrypted with. */
+  /** For `store_credit`: the settings secret (a customer made from a guest order's phone stores it encrypted). */
   settingsSecret?: string | undefined
   /** For `store_credit`: the card's last day (YYYY-MM-DD); none, it never expires. */
   storeCreditExpiresOn?: string | null | undefined

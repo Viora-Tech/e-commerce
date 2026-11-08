@@ -12,6 +12,7 @@ import {
   ORDER_MARKS,
   OrderNotFound,
   orderProfit,
+  payOrderWithStoreCredit,
   permissions,
   REFUND_METHODS,
   setCourierCharge,
@@ -221,18 +222,29 @@ export const ordersRouter = {
         : undefined
       // order.paid (or order.balance_paid for a pre-order balance) is written
       // inside, by the call that sees the money arrive.
-      const { order: o } = await collectOrderPayment(context.tx, context.scope.storeId, {
-        ...rest,
-        collected,
-      }).catch((err) => {
-        if (err instanceof OrderNotFound) {
-          throw new ORPCError('NOT_FOUND', { message: 'Order not found' })
-        }
-        if (err instanceof CommerceError) {
-          throw new ORPCError('BAD_REQUEST', { message: err.message })
-        }
-        throw err
-      })
+      const ctx = { storeId: context.scope.storeId, tx: context.tx }
+      const { order: o } = await collectOrderPayment(ctx.tx, ctx.storeId, { ...rest, collected })
+        .then(async (done) => {
+          // Store credit: the balance pays; too low, and the whole collection rolls back.
+          if (paidWith === 'store_credit') {
+            const staff = { userId: context.scope.userId, email: context.session.user.email }
+            await payOrderWithStoreCredit(ctx, {
+              orderId: input.orderId,
+              amountPaise: input.amountPaise,
+              staff,
+            })
+          }
+          return done
+        })
+        .catch((err) => {
+          if (err instanceof OrderNotFound) {
+            throw new ORPCError('NOT_FOUND', { message: 'Order not found' })
+          }
+          if (err instanceof CommerceError) {
+            throw new ORPCError('BAD_REQUEST', { message: err.message })
+          }
+          throw err
+        })
       return o
     }),
 
@@ -410,7 +422,7 @@ export const ordersRouter = {
         reason: z.string().trim().max(500).optional(),
         /** Record it as sent back by hand instead of asking the gateway. */
         manual: z.boolean().optional(),
-        /** How it went back when recorded by hand; `store_credit` issues a gift card. */
+        /** How it went back when recorded by hand; `store_credit` adds it to the customer's store credit balance. */
         method: z.enum(REFUND_METHODS).optional(),
       }),
     )

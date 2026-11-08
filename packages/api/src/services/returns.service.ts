@@ -3,11 +3,9 @@ import {
   arrangeReturnPickup,
   CommerceError,
   closeReturn,
-  deliverGiftCard,
   exchangeReturn,
   exchangeWishes,
   getReturn,
-  giftCardChannels,
   type HandRefundMethod,
   listReturns,
   loadReturnPolicy,
@@ -33,7 +31,6 @@ import {
 } from '@commerce/core'
 import type { StoreTx } from '@commerce/db'
 import { giftCard, shipment, store } from '@commerce/db'
-import type { NotificationRegistry } from '@commerce/notifications'
 import type { PaymentRegistry } from '@commerce/payments'
 import { CourierError, describeCourierFailure, type ShippingRegistry } from '@commerce/shipping'
 import { ORPCError } from '@orpc/server'
@@ -240,23 +237,18 @@ export const refundStoreReturn = (
     }),
   )
 
-/** Store credit as a gift card, emailed to the shopper straight away. */
+/**
+ * Store credit onto the customer's balance (never a gift card code). The shopper hears about it
+ * in the `return_refunded` message the outbox sends.
+ */
 export const storeCreditStoreReturn = (
   tx: StoreTx,
   storeId: string,
-  registry: NotificationRegistry,
   secret: string,
   id: string,
   amountPaise: number,
   createdBy: string,
-) =>
-  run(async () => {
-    const ctx = { storeId, tx }
-    const r = await storeCreditReturn(ctx, id, { amountPaise, secret, createdBy })
-    const channels = await giftCardChannels(ctx, registry, secret)
-    const delivery = await deliverGiftCard(ctx, r.giftCardId, { channels, secret })
-    return { ...r, delivery }
-  })
+) => run(() => storeCreditReturn({ storeId, tx }, id, { amountPaise, secret, createdBy }))
 
 export const exchangeStoreReturn = (
   tx: StoreTx,

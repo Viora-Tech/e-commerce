@@ -98,11 +98,13 @@ export async function refundTemplateData(
   if (!r) return null
   const [p] = await ctx.tx.select().from(payment).where(eq(payment.id, r.paymentId))
   const provider = p?.provider ?? ''
+  // Store credit with no card: it went onto the customer's balance, at once.
+  const toBalance = r.method === 'store_credit' && !r.giftCardId
   return {
     refund: {
       amountLabel: formatMoney(r.amountPaise),
-      methodLabel: refundMethodLabel(provider),
-      etaLabel: refundEtaLabel(provider),
+      methodLabel: toBalance ? 'your store credit balance' : refundMethodLabel(provider),
+      etaLabel: toBalance ? undefined : refundEtaLabel(provider),
     },
   }
 }

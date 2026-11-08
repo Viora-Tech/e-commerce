@@ -414,9 +414,10 @@ back undelivered (`kind = rto`, opened by `applyTracking` when a shipment turns 
 unique index on `shipment_id` keeps it to one per shipment). `return_request_line` says which
 order lines and how many units, and how many were put back in stock. Each step has its own
 timestamp (`requested_at`, `approved_at`, `rejected_at`, `pickup_arranged_at`, `received_at`,
-`resolved_at`), which is what the status timeline reads. Refunds, store credit (a `gift_card`)
-and exchange drafts are ordinary rows elsewhere, linked back by id (`refund_ids`,
-`gift_card_id`, `exchange_order_id`, `reship_shipment_id`). The policy lives on `store.returns`
+`resolved_at`), which is what the status timeline reads. Refunds, store credit (lines in
+`store_credit_entry` on the customer's balance; `gift_card_id` only on returns settled before
+balances existed) and exchange drafts are ordinary rows elsewhere, linked back by id
+(`refund_ids`, `exchange_order_id`, `reship_shipment_id`). The policy lives on `store.returns`
 (`ReturnPolicySchema` in `@commerce/core/returns`). Received customer returns count toward the
 order's derived `fulfillment_status` (`returned` once every unit is back). Every change is owned by
 `packages/core/src/returns/*` and writes its outbox event (`return.requested`, `return.approved`,

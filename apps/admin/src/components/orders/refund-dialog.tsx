@@ -38,7 +38,7 @@ type RefundDialogProps = {
 
 const OFFLINE = new Set(['cod', 'manual'])
 
-/** Back through the gateway, recorded as sent another way, or as a store credit gift card. */
+/** Back through the gateway, recorded as sent another way, or onto the customer's store credit balance. */
 type Way = 'original' | 'manual' | 'store_credit'
 
 /** Ways to record money sent back by hand (store credit is its own choice). */

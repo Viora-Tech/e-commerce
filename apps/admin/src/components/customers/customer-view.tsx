@@ -23,6 +23,7 @@ import CustomerHeader from './customer-header'
 import CustomerNextStep from './customer-next-step'
 import CustomerNoteCard from './customer-note-card'
 import CustomerOrdersCard from './customer-orders-card'
+import CustomerStoreCreditCard from './customer-store-credit-card'
 import CustomerSummaryStrip from './customer-summary-strip'
 import CustomerTagsCard from './customer-tags-card'
 import EditCustomerDialog from './edit-customer-dialog'
@@ -189,6 +190,7 @@ export default function CustomerView({
             <CustomerOrdersCard customer={customer} />
             <CustomerActivityCard customer={customer} />
             <MessagesCard messages={customer.notifications} />
+            <CustomerStoreCreditCard customerId={customer.id} />
             <CustomerGiftCardsCard customerId={customer.id} />
             {appCards.map((id) => {
               const Card = ADMIN_APPS[id]?.CustomerCard

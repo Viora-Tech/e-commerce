@@ -10,8 +10,7 @@ export const refundRouteContent = {
   manual: 'Mark as refunded by hand',
   manualHint: 'You send the money yourself (UPI, bank transfer, cash). Only recorded here.',
   storeCredit: 'Store credit',
-  storeCreditHint:
-    'A gift card for the amount is emailed to the customer to use on their next order.',
+  storeCreditHint: "The amount goes onto the customer's store credit balance. No code is sent.",
   none: 'No refund',
   noneHint: 'Nothing goes back now. You can refund later from the payment card.',
   unavailable:

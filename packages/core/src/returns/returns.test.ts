@@ -23,6 +23,7 @@ import { FakeShippingProvider, type Tracking } from '@commerce/shipping'
 import { and, eq } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import type { StoreContext } from '../context'
+import { storeCreditOf } from '../customers/store-credit'
 import { convertDraft } from '../order/drafts'
 import { applyTracking, createShipmentForOrder } from '../shipping/shipments'
 import { returnTemplateData } from './notify'
@@ -435,8 +436,11 @@ describe('customer return, start to finish', () => {
     const credit = await inStore(s.storeId, (ctx) =>
       storeCreditReturn(ctx, a.id, { amountPaise: 100000, secret: SECRET }),
     )
-    const [card] = await owner.select().from(giftCard).where(eq(giftCard.id, credit.giftCardId))
-    expect(card).toMatchObject({ balancePaise: 100000, customerId: s.customerId })
+    // Onto the customer's store credit balance, never a gift card code.
+    const account = await inStore(s.storeId, (ctx) => storeCreditOf(ctx, s.customerId))
+    expect(account.balancePaise).toBe(100000)
+    expect(account.entries[0]?.reason).toMatch(/^Store credit for return R-1/)
+    expect(await owner.select().from(giftCard).where(eq(giftCard.storeId, s.storeId))).toEqual([])
     expect(credit.row.resolution).toBe('store_credit')
 
     const b = await make()
@@ -457,7 +461,7 @@ describe('customer return, start to finish', () => {
     expect(listed.items.map((i) => i.label)).toEqual(['R-2'])
   })
 
-  it('records store credit as a refund of the payment, with one gift card (#879)', async () => {
+  it("records store credit as a refund of the payment, on the customer's balance (#879)", async () => {
     const s = await seed()
     const r = await receivedReturn(s.storeId, s.orderId, s.lineId)
     const credit = await inStore(s.storeId, (ctx) =>
@@ -469,13 +473,13 @@ describe('customer return, start to finish', () => {
         amountPaise: 100000,
         method: 'store_credit',
         status: 'manual',
-        giftCardId: credit.giftCardId,
+        giftCardId: null,
       }),
     ])
     expect(credit.row.refundIds).toEqual([rows[0]?.id])
-    expect(await owner.select().from(giftCard).where(eq(giftCard.storeId, s.storeId))).toHaveLength(
-      1,
-    )
+    expect(await owner.select().from(giftCard).where(eq(giftCard.storeId, s.storeId))).toEqual([])
+    const account = await inStore(s.storeId, (ctx) => storeCreditOf(ctx, s.customerId))
+    expect(account.balancePaise).toBe(100000)
     // Tagged with the return: the GST invoices plugin credits the returned unit from it.
     const created = await events(s.storeId, 'refund.created')
     expect(created.map((e) => e.payload)).toEqual([
