@@ -12,6 +12,8 @@ import { type ProfileProductRow as Row, tickable } from './profile-products-stat
 
 type ProfileProductRowProps = {
   row: Row
+  /** Price and stock, as the product picker shows them; null while loading. */
+  meta: string | null
   disabled: boolean
   onTick: (variantId: string, on: boolean) => void
   onRemove: () => void
@@ -26,6 +28,7 @@ const named = (title: string) => (title === 'Default' || title === 'Default Titl
  */
 export default function ProfileProductRow({
   row,
+  meta,
   disabled,
   onTick,
   onRemove,
@@ -61,11 +64,18 @@ export default function ProfileProductRow({
           >
             <ChevronRight className={cn('transition-transform', open && 'rotate-90')} />
           </Button>
-        ) : null}
+        ) : (
+          // Same width as the chevron, so every thumbnail lines up.
+          <span aria-hidden="true" className="size-8 shrink-0" />
+        )}
         <ProductThumb url={row.imageUrl} />
         <span className="flex min-w-0 flex-1 flex-col">
           <span className="truncate text-body-strong">{row.title}</span>
-          {summary ? <span className="truncate text-caption">{summary}</span> : null}
+          {summary || meta ? (
+            <span className="truncate text-caption">
+              {[summary, meta].filter(Boolean).join(' · ')}
+            </span>
+          ) : null}
         </span>
         {disabled ? null : (
           <Button

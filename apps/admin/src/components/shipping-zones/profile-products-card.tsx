@@ -2,9 +2,9 @@
 
 import { Folder, Plus } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
-import { itemTabs } from '@/components/discounts/pick-sources'
+import { itemTabs, loadPicked } from '@/components/discounts/pick-sources'
 import DataCard from '@/components/layout/data-card'
 import ResourcePickDialog from '@/components/pickers/resource-pick-dialog'
 import SelectProductsDialog, {
@@ -47,6 +47,24 @@ export default function ProfileProductsCard({
   const locale = useLocale()
   const [picking, setPicking] = useState(false)
   const [pickingCollections, setPickingCollections] = useState(false)
+  // Each product's price and stock line ("₹1,499 · Out of stock"), the way the product picker
+  // shows it; fetched for the listed products, keyed by product id.
+  const [metaById, setMetaById] = useState<ReadonlyMap<string, string>>(new Map())
+  // Ticking a variant changes `rows` but not which products are listed: refetch only then.
+  const fetchedFor = useRef<string | null>(null)
+  useEffect(() => {
+    const ids = rows.map((r) => r.productId)
+    const key = ids.join(',')
+    if (key === fetchedFor.current) return
+    fetchedFor.current = key
+    // Only the latest list's answer lands (a slower earlier one is dropped).
+    loadPicked('products', ids, discountCopy.value, locale)
+      .then((items) => {
+        if (fetchedFor.current !== key) return
+        setMetaById(new Map(items.flatMap((i) => (i.meta ? [[i.id, i.meta]] : []))))
+      })
+      .catch(() => undefined)
+  }, [rows, discountCopy.value, locale])
 
   // Helpers
   /** Fetch the picked products' variants and where they ship now, then list them. */
@@ -131,6 +149,7 @@ export default function ProfileProductsCard({
             <ProfileProductRow
               key={r.productId}
               row={r}
+              meta={metaById.get(r.productId) ?? null}
               disabled={!canManage}
               onTick={(variantId, on) => handleTick(r.productId, variantId, on)}
               onRemove={() => handleRemove(r.productId)}
