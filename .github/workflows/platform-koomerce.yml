@@ -1,0 +1,1 @@
+gh secret set PLATFORM_DEPLOY_HOOK --repo Viora-Tech/e-commerce
