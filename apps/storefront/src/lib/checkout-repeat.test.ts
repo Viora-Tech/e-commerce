@@ -30,6 +30,20 @@ describe('repeatCheckoutResult', () => {
     expect(links[0]?.href).toMatch(/^\/checkout\/thank-you\/1042\?t=/)
   })
 
+  it('an unpaid checkout draft is named #D57 and linked to pay that draft', () => {
+    const draft = { ...earlier, id: 'd1', number: -57, draftNumber: 57, paymentMethod: 'razorpay' }
+    const r = repeatCheckoutResult(
+      new DuplicateCheckout('unpaid', draft, { sameContact: true, now }),
+      null,
+    )
+    expect(r && 'error' in r ? r.error : null).toBe(
+      'You already placed this order (#D57) and it is waiting for payment. Please pay for it to confirm it.',
+    )
+    const links = r && 'error' in r ? (r.links ?? []) : []
+    expect(links.map((l) => l.label)).toEqual(['Pay for this order'])
+    expect(links[0]?.href).toMatch(/^\/checkout\/thank-you\/D57\?t=/)
+  })
+
   it('never links someone else’s order: another signed-in shopper or a guest with one match', () => {
     const r = repeatCheckoutResult(
       new DuplicateCheckout('unpaid', earlier, { sameContact: false, now }),

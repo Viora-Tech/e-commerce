@@ -671,11 +671,6 @@ const ALLOWLIST: AllowEntry[] = [
     reason: 'the drafts list source filter; the admin Drafts tabs (part 4) wire it',
   },
   {
-    file: 'packages/core/src/order/view-access.ts',
-    names: ['orderRefWhere'],
-    reason: 'finds a #D57 link; the storefront pages (part 3) wire it',
-  },
-  {
     file: 'packages/core/src/payments/confirm.ts',
     names: ['gatewayPaidTooLittle'],
     reason: 'exported for its unit test (amount-check.test.ts); used inside applyPaymentStatus',

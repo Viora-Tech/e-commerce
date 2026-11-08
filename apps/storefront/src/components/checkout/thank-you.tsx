@@ -1,5 +1,6 @@
 import { formatPaise } from '@commerce/blocks'
 import type { CheckoutLook } from '@commerce/core'
+import { orderRef } from '@commerce/core/draft-number'
 import { OPEN_ATTEMPT_STATUSES } from '@commerce/core/order-status'
 import type { address, order, orderLine, payment } from '@commerce/db'
 import type { CheckoutSession } from '@commerce/payments'
@@ -18,6 +19,7 @@ import ThankYouFailed from '@/components/checkout/thank-you-failed'
 import TransferInstructions from '@/components/checkout/transfer-instructions'
 import UpiQrPayment from '@/components/checkout/upi-qr-payment'
 import { thankYouContent as content } from '@/data/checkout'
+import { checkoutRepeatContent } from '@/data/checkout-repeat'
 import { CK_BUTTON_PRIMARY, CK_BUTTON_SECONDARY, CK_CARD, CK_HEADING } from '@/lib/checkout-classes'
 import type { ShopperParcel } from '@/lib/parcels'
 import { payOnlineAction, retryPaymentAction } from '@/lib/payment-actions'
@@ -54,6 +56,8 @@ type ThankYouTemplateProps = {
   track?: { href: string; external: boolean } | null
   /** A transfer order can pay through the store's gateway instead; false when it has none. */
   canPayOnline?: boolean
+  /** The shopper checked out the same items again: say this is their earlier, unpaid checkout. */
+  checkedOutAgain?: boolean
 }
 
 /** Attempts still waiting on the shopper or the gateway. */
@@ -103,18 +107,20 @@ export default function ThankYouTemplate({
   shipmentStatus = null,
   track = null,
   canPayOnline = false,
+  checkedOutAgain = false,
 }: ThankYouTemplateProps) {
   // Render logic
+  // An unpaid checkout kept as a draft (#D57) waits for its payment like an open order.
+  const waiting =
+    o.status === 'open' ||
+    (o.status === 'draft' && o.draftSource === 'checkout' && o.draftExpiredAt === null)
   const awaiting = o.paymentMethod !== 'cod' && OPEN_STATUSES.has(pay?.status ?? '')
   // The latest attempt failed on an order that is still open: offer a new attempt.
   const failed =
-    o.status === 'open' &&
-    !o.checkoutPaidAt &&
-    (pay?.status === 'failed' || pay?.status === 'cancelled')
+    waiting && !o.checkoutPaidAt && (pay?.status === 'failed' || pay?.status === 'cancelled')
   const session = (pay?.checkoutSession ?? null) as CheckoutSession | null
   // An attempt made for a pay link (a plan bill, an invoice) that nobody has started yet.
-  const notStarted =
-    o.status === 'open' && !o.checkoutPaidAt && pay?.status === 'created' && session === null
+  const notStarted = waiting && !o.checkoutPaidAt && pay?.status === 'created' && session === null
   const manual = awaiting && session?.kind === 'manual' ? session.instructions : null
   const qr = awaiting && session?.kind === 'upi_qr' ? session.qr : null
   // What the shopper still pays after gift cards: the amount COD, transfer and gateway lines quote.
@@ -159,7 +165,7 @@ export default function ThankYouTemplate({
             content.updates(o.email ?? o.phone),
           ]
   const trackLink = settled && !progress.end ? track : null
-  const number = `#${o.number}`
+  const number = `#${orderRef(o)}`
   const method = o.paymentMethod
     ? (content.methods[o.paymentMethod] ?? content.methods.online ?? '')
     : (content.methods.online ?? '')
@@ -216,6 +222,11 @@ export default function ThankYouTemplate({
       }
     >
       <div className="flex flex-col gap-6 max-lg:pt-2">
+        {checkedOutAgain ? (
+          <p role="status" className="text-[0.875rem] leading-5 text-ck-ink">
+            {checkoutRepeatContent.unpaidDuplicate(orderRef(o))}
+          </p>
+        ) : null}
         {confirming ? (
           <div className={`flex flex-col gap-6 ${ENTER[0]}`}>
             <ThankYouConfirming

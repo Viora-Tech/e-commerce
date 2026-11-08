@@ -17,6 +17,10 @@ import type { CheckoutLink, CheckoutResult } from './checkout-result'
 const statusPage = (o: { id: string; number: number }) =>
   thankYouPath(o.number, orderViewToken(o.id, settingsSecret()))
 
+/** What the shopper quotes: #D57 while it is an unpaid checkout draft, else the order number. */
+const refOf = (o: { number: number; draftNumber?: number | null | undefined }) =>
+  o.draftNumber ? `D${o.draftNumber}` : String(o.number)
+
 /**
  * Who may be linked to an earlier order: the signed-in customer it belongs to, or (for the
  * same items only) a guest whose email and phone both match it.
@@ -31,7 +35,7 @@ function duplicateResult(err: DuplicateCheckout, viewerId: string | null): Check
   if (err.kind === 'placed') {
     return {
       confirmAgain: {
-        message: copy.placedDuplicate(err.minutesAgo, o.number),
+        message: copy.placedDuplicate(err.minutesAgo, refOf(o)),
         links: href ? [{ href, label: copy.viewOrder }] : [],
         orderAgain: copy.orderAgain,
       },
@@ -40,7 +44,7 @@ function duplicateResult(err: DuplicateCheckout, viewerId: string | null): Check
   const links: CheckoutLink[] = href ? [{ href, label: copy.completePayment }] : []
   // Only a transfer order can switch how it is paid ("Pay online instead" on its page).
   if (href && o.paymentMethod === 'manual') links.push({ href, label: copy.changeMethod })
-  return { error: copy.unpaidDuplicate(o.number), links }
+  return { error: copy.unpaidDuplicate(refOf(o)), links }
 }
 
 /** The result for a repeated checkout, or null when `err` is not one. */
@@ -49,7 +53,7 @@ export function repeatCheckoutResult(err: unknown, viewerId: string | null): Che
   if (err instanceof UnpaidTransferExists) {
     const o = { id: err.orderId, number: err.orderNumber, customerId: err.customerId }
     return {
-      error: copy.unpaidTransfer(o.number),
+      error: copy.unpaidTransfer(refOf(o)),
       links: mayLink(o, viewerId) ? [{ href: statusPage(o), label: copy.payForIt }] : [],
     }
   }
