@@ -43,6 +43,21 @@ const LIBRARY_SHOWN = 6
 const ROW =
   'flex h-[1.875rem] w-full min-w-0 items-center gap-2 rounded-md px-2 text-left text-body transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
 
+type DotKind = 'problem' | 'unsaved' | 'unpublished' | 'published'
+
+/** Strongest first: a folder shows the first of these any of its files has. */
+const DOT_ORDER: readonly DotKind[] = ['problem', 'unsaved', 'unpublished', 'published']
+
+const DOT = {
+  problem: { label: 'problem', className: 'bg-destructive' },
+  unsaved: { label: 'unsaved', className: 'bg-warning' },
+  unpublished: { label: 'unpublished', className: 'bg-primary' },
+  published: { label: 'justPublished', className: 'bg-success' },
+} as const satisfies Record<DotKind, { label: string; className: string }>
+
+const strongest = (kinds: readonly (DotKind | null)[]): DotKind | null =>
+  DOT_ORDER.find((k) => kinds.includes(k)) ?? null
+
 function iconFor(path: string) {
   if (/\.(png|jpe?g|gif|webp|svg|ico|woff2?|ttf|otf|eot)$/i.test(path)) return ImageIcon
   if (path.endsWith('.json')) return Braces
@@ -53,7 +68,9 @@ function iconFor(path: string) {
 /**
  * Files (Figma 699:93624): folders that open in place, Shopify's order, the open file on a
  * soft fill, an amber dot on unsaved files, a red one on files with a problem, a blue one on
- * saved files not yet published and a green one on files just published. Native
+ * saved files not yet published and a green one on files just published. Every folder starts
+ * closed (the open file's folder opens with it), and a closed or open folder shows the
+ * strongest dot of its files, so unpublished drafts are findable at a glance. Native
  * themes end with the Koomerce library, locked.
  */
 export default function CodeFileTree({
@@ -69,19 +86,36 @@ export default function CodeFileTree({
 }: CodeFileTreeProps) {
   // Hooks
   const copy = useCopy(themeCodeContent.files)
-  const [closed, setClosed] = useState<ReadonlySet<string>>(new Set())
+  // Folders the merchant opened or closed by hand; anything else is closed, except the folder
+  // of the open file.
+  const [toggled, setToggled] = useState<ReadonlyMap<string, boolean>>(new Map())
   const [allLibrary, setAllLibrary] = useState(false)
 
   // Event handlers
-  const handleToggle = (name: string) =>
-    setClosed((prev) => {
-      const next = new Set(prev)
-      if (next.has(name)) next.delete(name)
-      else next.add(name)
-      return next
-    })
+  const isOpen = (name: string, holdsActive: boolean) => toggled.get(name) ?? holdsActive
+  const handleToggle = (name: string, holdsActive = false) =>
+    setToggled((prev) => new Map(prev).set(name, !(prev.get(name) ?? holdsActive)))
 
   // Helpers
+  const statusOf = (path: string, draft: boolean): DotKind | null =>
+    broken.has(path)
+      ? 'problem'
+      : dirty.has(path)
+        ? 'unsaved'
+        : draft
+          ? 'unpublished'
+          : justPublished.has(path)
+            ? 'published'
+            : null
+  const dot = (kind: DotKind | null) =>
+    kind ? (
+      <span
+        role="img"
+        aria-label={copy[DOT[kind].label]}
+        title={copy[DOT[kind].label]}
+        className={cn('size-1.5 shrink-0 rounded-full', DOT[kind].className)}
+      />
+    ) : null
   const fileRow = (path: string, label: string, locked = false, draft = false) => {
     const Icon = locked ? Lock : iconFor(path)
     const selected = path === active
@@ -99,42 +133,23 @@ export default function CodeFileTree({
         >
           <Icon aria-hidden className="size-4 shrink-0" />
           <span className="min-w-0 flex-1 truncate">{label}</span>
-          {broken.has(path) ? (
-            <span
-              role="img"
-              aria-label={copy.problem}
-              className="size-1.5 rounded-full bg-destructive"
-            />
-          ) : dirty.has(path) ? (
-            <span
-              role="img"
-              aria-label={copy.unsaved}
-              className="size-1.5 rounded-full bg-warning"
-            />
-          ) : draft ? (
-            <span
-              role="img"
-              aria-label={copy.unpublished}
-              title={copy.unpublished}
-              className="size-1.5 rounded-full bg-primary"
-            />
-          ) : justPublished.has(path) ? (
-            <span
-              role="img"
-              aria-label={copy.justPublished}
-              title={copy.justPublished}
-              className="size-1.5 rounded-full bg-success"
-            />
-          ) : null}
+          {dot(statusOf(path, draft))}
         </button>
       </li>
     )
   }
 
-  const folderHead = (name: string, label: string, open: boolean, locked = false) => (
+  const folderHead = (
+    name: string,
+    label: string,
+    open: boolean,
+    locked = false,
+    status: DotKind | null = null,
+    holdsActive = false,
+  ) => (
     <button
       type="button"
-      onClick={() => handleToggle(name)}
+      onClick={() => handleToggle(name, holdsActive)}
       aria-expanded={open}
       className={cn(ROW, 'text-foreground')}
     >
@@ -153,14 +168,17 @@ export default function CodeFileTree({
       <span className="min-w-0 flex-1 truncate">{label}</span>
       {locked ? (
         <span className="font-mono text-caption text-muted-foreground">{copy.locked}</span>
-      ) : null}
+      ) : (
+        dot(status)
+      )}
     </button>
   )
 
   // Render logic
   const folders = codeFolders(files)
   const shownLibrary = allLibrary ? library : library.slice(0, LIBRARY_SHOWN)
-  const libraryOpen = !closed.has('library')
+  const libraryActive = active !== null && library.some((t) => libraryPath(t) === active)
+  const libraryOpen = isOpen('library', libraryActive)
 
   return (
     <nav
@@ -183,10 +201,19 @@ export default function CodeFileTree({
       </div>
       <ul className="flex min-h-0 flex-1 flex-col overflow-y-auto px-2 pb-4">
         {folders.map((folder) => {
-          const open = !closed.has(folder.name)
+          const holdsActive = folder.files.some((f) => f.path === active)
+          const open = isOpen(folder.name, holdsActive)
+          const status = strongest(folder.files.map((f) => statusOf(f.path, f.draft)))
           return (
             <li key={folder.name}>
-              {folderHead(folder.name, copy.folders[folder.name] ?? folder.name, open)}
+              {folderHead(
+                folder.name,
+                copy.folders[folder.name] ?? folder.name,
+                open,
+                false,
+                status,
+                holdsActive,
+              )}
               {open ? (
                 <ul>
                   {folder.files.map((f) => fileRow(f.path, codeFileName(f.path), false, f.draft))}
@@ -197,7 +224,7 @@ export default function CodeFileTree({
         })}
         {library.length ? (
           <li>
-            {folderHead('library', copy.library, libraryOpen, true)}
+            {folderHead('library', copy.library, libraryOpen, true, null, libraryActive)}
             {libraryOpen ? (
               <ul>
                 {shownLibrary.map((type) =>
