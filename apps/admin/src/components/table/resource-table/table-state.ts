@@ -4,7 +4,8 @@ import type {
   SortingState,
   Updater,
 } from '@tanstack/react-table'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import type { FilterGroup } from '@/components/table/filter-panel'
 
 /** A table's sort as the page keeps it (in the URL): one column and its direction. */
 export type TableSort = { id: string; desc: boolean }
@@ -50,6 +51,46 @@ export function tableMinWidth(columns: ColumnWidth[]): number {
   const rest = Math.max(0.25, 1 - percent)
   const needed = Math.max(percentFloor, (fixed + flexible) / rest)
   return Math.ceil(Math.max(40, columns.length * DEFAULT_MIN_REM, needed))
+}
+
+/** What decides which rows the list shows: its view, filters, search and page. */
+export type ListScope = {
+  view: unknown
+  filterGroups: FilterGroup[] | undefined
+  applied: { key: string; label: string }[] | undefined
+  query: string
+  page: number
+  perPage: number
+}
+
+/**
+ * One string per set of shown rows. When it changes (another tab or view, a filter, a search, a
+ * page) the rows on screen are different ones, so a selection made before no longer applies.
+ */
+export function listScopeKey(scope: ListScope): string {
+  return JSON.stringify([
+    scope.view ?? null,
+    (scope.filterGroups ?? []).map((g) => [
+      g.key,
+      g.type === 'range' ? [g.from, g.to ?? ''] : g.value,
+    ]),
+    (scope.applied ?? []).map((a) => [a.key, a.label]),
+    scope.query,
+    scope.page,
+    scope.perPage,
+  ])
+}
+
+/** Runs `clear` whenever `key` changes after the first render (not on mount). */
+export function useClearOnChange(key: string, clear: () => void) {
+  // Hooks
+  const last = useRef(key)
+  // biome-ignore lint/correctness/useExhaustiveDependencies: only a new key clears; `clear` is a fresh arrow each render.
+  useEffect(() => {
+    if (last.current === key) return
+    last.current = key
+    clear()
+  }, [key])
 }
 
 /** Sorting state, owned by the page when it passes `sort` (kept in the URL), else kept here. */
