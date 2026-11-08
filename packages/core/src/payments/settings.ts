@@ -54,6 +54,12 @@ export const PaymentSettingsSchema = z.object({
    * "Order again?"). 0 turns the check off.
    */
   duplicateCheckoutHours: z.number().int().min(0).max(168).default(24),
+  /**
+   * "Keep unpaid checkouts as drafts" (docs/design/unpaid-checkouts-as-drafts.md): an online or
+   * UPI / bank transfer checkout is a draft (#D57) until it is paid. Unset follows the platform
+   * default; read it through `checkoutDraftsOn` (./checkout-drafts), never on its own.
+   */
+  unpaidAsDrafts: z.enum(['on', 'off']).optional(),
   /** Most unpaid checkouts one shopper (email, phone or IP) may start in an hour; 0 is no cap. */
   unpaidCheckoutsPerHour: z.number().int().min(0).max(50).default(0),
   /**

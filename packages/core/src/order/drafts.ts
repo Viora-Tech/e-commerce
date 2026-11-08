@@ -222,6 +222,7 @@ export async function createDraft(ctx: StoreContext, input: DraftInput) {
       storeId: ctx.storeId,
       number: draftPlaceholder(draftNumber),
       draftNumber,
+      draftSource: 'staff',
       status: 'draft',
       customerId: input.customerId ?? null,
       email: input.email ?? null,

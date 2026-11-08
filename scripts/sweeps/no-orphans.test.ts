@@ -198,12 +198,7 @@ const ALLOWLIST: AllowEntry[] = [
   },
   {
     file: 'packages/core/src/inbox/widget.ts',
-    names: [
-      'WIDGET_ICONS',
-      'WIDGET_HORIZONTAL',
-      'WIDGET_VERTICAL',
-      'DEFAULT_INBOX_WIDGET',
-    ],
+    names: ['WIDGET_ICONS', 'WIDGET_HORIZONTAL', 'WIDGET_VERTICAL', 'DEFAULT_INBOX_WIDGET'],
     reason:
       'the Inbox app embed schema the theme editor App embeds panel renders (coordinator, 2026-10-24); read once that panel lands',
   },
@@ -953,6 +948,18 @@ const ALLOWLIST: AllowEntry[] = [
     file: 'packages/core/src/payments/gateway-double.test-util.ts',
     names: ['GatewayDouble'],
     reason: 'no external importer today — investigate before removing',
+  },
+  {
+    file: 'packages/core/src/payments/checkout-drafts.ts',
+    names: [
+      'CHECKOUT_DRAFTS_DEFAULT',
+      'checkoutDraftsOn',
+      'draftsForMethod',
+      'draftHoldMinutes',
+      'CHECKOUT_DRAFT_EXPIRY_DAYS',
+    ],
+    reason:
+      'used in the module and asserted by checkout-drafts.test.ts; the admin mirrors it (UNPAID_AS_DRAFTS_DEFAULT)',
   },
   {
     file: 'packages/core/src/order/duplicate-checkout.ts',

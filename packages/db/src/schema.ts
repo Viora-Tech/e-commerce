@@ -1312,6 +1312,12 @@ export const order = pgTable(
      * draft converts. Null on orders that never were drafts.
      */
     draftNumber: integer('draft_number'),
+    /** Who made the draft (0233): `checkout` (a shopper's unpaid checkout) or `staff`; null = staff. */
+    draftSource: text('draft_source', { enum: ['checkout', 'staff'] }),
+    /** When a checkout draft stopped waiting for payment (7 days without activity). */
+    draftExpiredAt: timestamp('draft_expired_at', { withTimezone: true }),
+    /** A checkout draft's last activity; its repeat match, expiry and list order count from it. */
+    lastActivityAt: timestamp('last_activity_at', { withTimezone: true }),
     customerId: uuid('customer_id').references(() => customer.id),
     email: text('email'),
     phone: text('phone'),
@@ -1529,6 +1535,11 @@ export const order = pgTable(
       .where(sql`${t.draftNumber} is not null`),
     /** The All orders list: newest first. */
     index('order_store_placed').on(t.storeId, t.placedAt),
+    /** Drafts → From checkout and the 7-day expiry (0233). */
+    index('order_store_checkout_drafts')
+      .on(t.storeId, t.lastActivityAt)
+      .where(sql`${t.status} = 'draft' and ${t.draftSource} = 'checkout'`),
+    check('order_draft_source_check', sql`${t.draftSource} in ('checkout', 'staff')`),
     index('order_customer').on(t.customerId).where(sql`${t.customerId} is not null`),
     /** "Delete test orders" shows only when the store has some: counted on every list load (0231). */
     index('order_store_test').on(t.storeId).where(sql`${t.isTest}`),

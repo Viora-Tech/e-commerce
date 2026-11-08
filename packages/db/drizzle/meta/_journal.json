@@ -1513,6 +1513,13 @@
       "when": 1794152000000,
       "tag": "0231_admin_list_indexes",
       "breakpoints": true
+    },
+    {
+      "idx": 217,
+      "version": "7",
+      "when": 1794324800000,
+      "tag": "0233_checkout_drafts",
+      "breakpoints": true
     }
   ]
 }
