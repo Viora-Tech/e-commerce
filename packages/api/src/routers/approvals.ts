@@ -3,6 +3,8 @@
  * role), from the admin, the AI assistant, MCP or the API. Approve and Reject are
  * `ai.approveAction` / `ai.cancelAction` (the same rules: never the asker, `canApprove`).
  * Any member may open the page: approvers see what waits, everyone sees their own requests.
+ * A member's own AI app (MCP) requests are listed under Waiting too: those are theirs to confirm
+ * (#1263). A "Needs approval" request still never goes to the member who asked for it.
  */
 
 import { isPermission } from '@commerce/core/permissions'
@@ -10,6 +12,7 @@ import { storeProcedure } from '../procedures'
 import { canApprove } from '../procedures/approval-rules'
 import {
   approvalCounts,
+  isOwnMcpRequest,
   listMyRequests,
   listWaitingApprovals,
 } from '../services/ai/assistant/activity'
@@ -17,11 +20,20 @@ import {
 export const approvalsRouter = {
   /** Waiting changes this member may decide, and recently expired ones (marked expired). */
   waiting: storeProcedure.handler(async ({ context }) => {
-    const all = await listWaitingApprovals({ storeId: context.scope.storeId, tx: context.tx })
+    const { userId } = context.scope
+    const all = await listWaitingApprovals(
+      { storeId: context.scope.storeId, tx: context.tx },
+      userId,
+    )
     return all.filter(
       (v) =>
-        v.requestedById !== context.scope.userId &&
-        canApprove(context.scope, v.permission && isPermission(v.permission) ? v.permission : null),
+        isOwnMcpRequest(v, userId) ||
+        (v.needsApprover &&
+          v.requestedById !== userId &&
+          canApprove(
+            context.scope,
+            v.permission && isPermission(v.permission) ? v.permission : null,
+          )),
     )
   }),
 
