@@ -176,7 +176,7 @@ export const backInStockTemplates = {
 const ret = (d: TemplateData): string => d.returnInfo?.label ?? ''
 const refundWhere = (d: TemplateData): string =>
   d.returnInfo?.refundMethod === 'store_credit'
-    ? 'as store credit. The gift card code is in a separate email, and you can use it at checkout'
+    ? 'as store credit, added to your account with us'
     : 'to the way you paid. Banks usually show it in 5 to 7 working days'
 const fromOrder = (d: TemplateData): string =>
   d.returnInfo?.originalOrderNumber ? ` (order #${d.returnInfo.originalOrderNumber})` : ''

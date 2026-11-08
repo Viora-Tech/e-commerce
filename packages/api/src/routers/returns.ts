@@ -182,14 +182,16 @@ export const returnsRouter = {
       )
     }),
 
+  /**
+   * Settle a received return with store credit: the amount goes onto the store credit balance of
+   * the order's customer (never a gift card code); refused for an order with no email or phone.
+   */
   storeCredit: can(permissions.ORDERS_REFUND)
     .input(z.object({ id: z.uuid(), amountPaise: z.number().int().positive() }))
     .handler(async ({ context, input }) => {
-      const { notifications } = await storeRegistries(context.tx, context.scope.storeId)
       return storeCreditStoreReturn(
         context.tx,
         context.scope.storeId,
-        notifications,
         settingsSecret(),
         input.id,
         input.amountPaise,

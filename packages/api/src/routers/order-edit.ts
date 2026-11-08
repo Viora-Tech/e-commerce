@@ -74,7 +74,7 @@ export const orderEditRoutes = {
       return cancelStoreOrder(context.tx, context.scope.storeId, deps, {
         ...input,
         author: context.session.user.email,
-        // Store credit issues a gift card, whose code is stored encrypted.
+        // Store credit may make the guest's customer record, whose phone is stored encrypted.
         settingsSecret: deps.secret,
       })
     }),

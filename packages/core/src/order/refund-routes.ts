@@ -1,18 +1,18 @@
 /** SOURCE OF TRUTH: REFUND_ROUTES, refundOptions, refundOrderAmount — WHAT: how money goes back when staff cancel or edit an order (the original gateway, recorded by hand, or not at all) and spreading one amount over the order's payments / WHY: cancel and edit offer the same choice and must refund the same way */
-import { customer, order, payment } from '@commerce/db'
+import { payment } from '@commerce/db'
 import type { PaymentProvider } from '@commerce/payments'
 import { and, eq, inArray } from 'drizzle-orm'
 import type { StoreContext } from '../context'
-import { GIFT_CARD_PROVIDER, issueGiftCard } from '../gift-cards/service'
+import { GIFT_CARD_PROVIDER } from '../gift-cards/service'
 import { insertOutboxEvent } from '../outbox/write'
 import { RefundNotAllowed, refundedPaise, refundPayment } from './refund'
 
 /**
  * `original`: back through the gateway that took it (cash on delivery and manual payments are
  * recorded, gift cards go back onto the card). `manual`: the merchant sends it back themselves
- * and the refund is only recorded. `store_credit`: onto the customer's store credit balance
- * (one gift card for the amount, emailed, when the order has no customer), recorded as the
- * refund of each payment it covers. `none`: nothing goes back.
+ * and the refund is only recorded. `store_credit`: onto the store credit balance of the order's
+ * customer (found or made from its email or phone), recorded as the refund of each payment it
+ * covers; never a gift card code. `none`: nothing goes back.
  */
 export const REFUND_ROUTES = ['original', 'manual', 'store_credit', 'none'] as const
 export type RefundRoute = (typeof REFUND_ROUTES)[number]
@@ -52,47 +52,15 @@ async function heldPayments(ctx: StoreContext, orderId: string): Promise<Held[]>
   )
 }
 
-/** Issues the store credit gift card for a refund of `amountPaise` on the order, to its shopper. */
 /**
- * How a store credit refund is issued: the settings secret (card codes are stored encrypted), who
- * issued it, and its last day (YYYY-MM-DD, store time); no date means it never expires.
+ * How a store credit refund is given: the settings secret (a customer record made from the
+ * order's email or phone stores the phone encrypted) and who gave it.
  */
 export type StoreCreditIssue = {
   secret: string
   createdBy: string | null
+  /** Kept for callers that still pass it; store credit on a balance has no expiry. */
   expiresOn?: string | null | undefined
-}
-
-async function storeCreditCard(
-  ctx: StoreContext,
-  orderId: string,
-  amountPaise: number,
-  storeCredit: StoreCreditIssue | undefined,
-): Promise<string | null> {
-  if (!storeCredit) throw new RefundNotAllowed('Store credit could not be issued', ctx.storeId)
-  const [o] = await ctx.tx.select().from(order).where(eq(order.id, orderId))
-  if (!o) throw new RefundNotAllowed('Order not found', ctx.storeId)
-  // A customer's refund goes onto their store credit balance (refundPayment), not a card.
-  if (o.customerId) return null
-  const [cu] = o.customerId
-    ? await ctx.tx.select().from(customer).where(eq(customer.id, o.customerId))
-    : []
-  const issued = await issueGiftCard(
-    ctx,
-    {
-      valuePaise: amountPaise,
-      customerId: o.customerId,
-      recipientEmail: o.email,
-      recipientName: cu?.name ?? null,
-      note: `Store credit refund for order #${o.number}`,
-      createdBy: storeCredit.createdBy,
-      orderId: o.id,
-      expiresOn: storeCredit.expiresOn ?? null,
-    },
-    storeCredit.secret,
-  )
-  if (!issued) throw new RefundNotAllowed('Store credit could not be issued', ctx.storeId)
-  return issued.card.id
 }
 
 /** True when this payment's money can go back the way it came, with the store's gateways. */
@@ -142,7 +110,7 @@ export async function refundOrderAmount(
     route: RefundRoute
     reason: string
     providers: readonly PaymentProvider[]
-    /** For `store_credit`: the settings secret (card codes are stored encrypted) and who issued it. */
+    /** For `store_credit`: the settings secret and who gave it. */
     storeCredit?: StoreCreditIssue | undefined
   },
 ): Promise<string[]> {
@@ -169,11 +137,9 @@ export async function refundOrderAmount(
       )
     }
   }
-  // Store credit: one card for the whole amount, then each payment's share recorded against it.
-  const giftCardId =
-    input.route === 'store_credit'
-      ? await storeCreditCard(ctx, input.orderId, input.amountPaise, input.storeCredit)
-      : undefined
+  if (input.route === 'store_credit' && !input.storeCredit) {
+    throw new RefundNotAllowed('Store credit could not be given', ctx.storeId)
+  }
   const ids: string[] = []
   for (const { p, amountPaise } of plan) {
     const provider = input.providers.find((x) => x.id === p.provider) ?? null
@@ -185,7 +151,7 @@ export async function refundOrderAmount(
       ...(input.route === 'store_credit'
         ? {
             method: 'store_credit' as const,
-            ...(giftCardId ? { giftCardId } : {}),
+            secret: input.storeCredit?.secret,
             createdBy: input.storeCredit?.createdBy ?? null,
           }
         : {}),

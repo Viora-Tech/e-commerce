@@ -644,6 +644,8 @@ export const ACTION_DOCS: Record<string, string> = {
   'returns.forOrder':
     "The order page's Returns card: what can still go back and every return so far.",
   'returns.rtoSummary': 'Shipments workspace: RTO counts and costs over the last N days.',
+  'returns.storeCredit':
+    "Settle a received return with store credit: the amount goes onto the store credit balance of the order's customer (never a gift card code); refused for an order with no email or phone.",
   'reviews.ask': 'Plans review requests, due now, for recently delivered orders never asked.',
   'reviews.askPastOrders':
     'Plans the requests the preview counted, a batch an hour, after any still waiting.',

@@ -9,6 +9,7 @@ import {
 import { and, desc, eq, sql } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 import { CommerceError } from '../errors'
+import { createCustomer } from './create'
 
 export type StoreCreditKind = (typeof STORE_CREDIT_KINDS)[number]
 
@@ -179,27 +180,72 @@ export async function payOrderWithStoreCredit(
   return { balancePaise }
 }
 
-/** A refund to store credit: back onto the customer's balance. False when the order has none. */
+/** Said when a refund to store credit has nobody to hold the money. */
+const NO_STORE_CREDIT_HOLDER =
+  'This order has no customer to hold store credit; refund to the original payment instead.'
+
+/**
+ * Whose balance store credit for an order goes to: the order's customer, else the store's
+ * customer with the order's email (or, with no email, its phone), else a new customer record
+ * made for that email or phone. An order with neither throws `NO_STORE_CREDIT_HOLDER`: store
+ * credit lives only on a customer's balance, never as a gift card code.
+ */
+async function storeCreditHolder(
+  ctx: StoreContext,
+  orderId: string,
+  secret: string | undefined,
+): Promise<{ customerId: string; orderNumber: number }> {
+  const [o] = await ctx.tx
+    .select({
+      number: order.number,
+      customerId: order.customerId,
+      email: order.email,
+      phone: order.phone,
+    })
+    .from(order)
+    .where(eq(order.id, orderId))
+  if (!o) throw new StoreCreditError('not_found', 'Order not found', ctx.storeId)
+  if (o.customerId) return { customerId: o.customerId, orderNumber: o.number }
+  const email = o.email?.trim() || null
+  const phone = o.phone?.trim() || null
+  if ((email || phone) && !secret) {
+    throw new StoreCreditError('invalid', 'Store credit could not be given.', ctx.storeId)
+  }
+  const actor = { type: 'system' as const, label: 'Refund to store credit' }
+  // Email first, as the shopper is known by it; a phone only when there is no email.
+  for (const contact of [email ? { email } : null, !email && phone ? { phone } : null]) {
+    if (!contact) continue
+    const made = await createCustomer(ctx, contact, { secret: secret as string, actor })
+    if (made.ok) return { customerId: made.id, orderNumber: o.number }
+    if (made.reason === 'duplicate') return { customerId: made.existingId, orderNumber: o.number }
+  }
+  throw new StoreCreditError('invalid', NO_STORE_CREDIT_HOLDER, ctx.storeId)
+}
+
+/**
+ * A refund (or a return's credit) to store credit: onto the balance of the order's customer,
+ * found or made by `storeCreditHolder`. Throws when the order has nobody to hold it.
+ */
 export async function refundToStoreCredit(
   ctx: StoreContext,
   input: {
     orderId: string
     amountPaise: number
+    /** For a customer record made from the order's email or phone (it is stored encrypted). */
+    secret?: string | undefined
     staffEmail?: string | null | undefined
+    /** The history line; "Refund for order #N" when left out. */
+    reason?: string | undefined
   },
-): Promise<boolean> {
-  const [o] = await ctx.tx
-    .select({ id: order.id, number: order.number, customerId: order.customerId })
-    .from(order)
-    .where(eq(order.id, input.orderId))
-  if (!o?.customerId) return false
-  await changeStoreCredit(ctx, {
-    customerId: o.customerId,
+): Promise<{ customerId: string; balancePaise: number }> {
+  const holder = await storeCreditHolder(ctx, input.orderId, input.secret)
+  const { balancePaise } = await changeStoreCredit(ctx, {
+    customerId: holder.customerId,
     amountPaise: input.amountPaise,
     kind: 'refund',
-    reason: `Refund for order #${o.number}`,
-    orderId: o.id,
+    reason: input.reason ?? `Refund for order #${holder.orderNumber}`,
+    orderId: input.orderId,
     staff: input.staffEmail ? { email: input.staffEmail } : null,
   })
-  return true
+  return { customerId: holder.customerId, balancePaise }
 }

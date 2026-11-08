@@ -422,7 +422,7 @@ export const ordersRouter = {
         reason: z.string().trim().max(500).optional(),
         /** Record it as sent back by hand instead of asking the gateway. */
         manual: z.boolean().optional(),
-        /** How it went back when recorded by hand; `store_credit` issues a gift card. */
+        /** How it went back when recorded by hand; `store_credit` adds it to the customer's store credit balance. */
         method: z.enum(REFUND_METHODS).optional(),
       }),
     )

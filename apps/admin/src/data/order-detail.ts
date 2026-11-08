@@ -95,7 +95,7 @@ export const orderDetailContent = {
     manual: 'Already sent another way',
     manualHint: 'You returned the money yourself. This records how.',
     storeCredit: 'As store credit',
-    storeCreditHint: 'A gift card for this amount is emailed to the customer.',
+    storeCreditHint: "The amount goes onto the customer's store credit balance. No code is sent.",
     method: 'Sent by',
     methods: {
       upi: 'UPI',

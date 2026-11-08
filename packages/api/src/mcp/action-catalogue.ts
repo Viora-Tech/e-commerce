@@ -256,7 +256,7 @@ const SENSITIVE_PATHS: Record<string, string> = {
   'affiliates.blocklist.add': 'blocks buyers or affiliates (fraud list)',
   'affiliates.blocklist.remove': 'unblocks buyers or affiliates (fraud list)',
   'inbox.send': 'sends a message to a shopper',
-  'returns.storeCredit': 'issues store credit (money)',
+  'returns.storeCredit': "adds a return's value to the customer's store credit balance (money)",
   'giftCards.issue': 'issues a gift card (money)',
   'giftCards.adjust': 'changes a gift card balance (money)',
   'storeCredit.adjust': "changes a customer's store credit balance (money)",

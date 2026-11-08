@@ -24,14 +24,30 @@ in-house. Nothing was copied, so there is no `THIRD_PARTY_NOTICES.md` entry.
 - **Collect payment**: a "Store credit" method (`MANUAL_PAYMENT_METHODS`). The dialog shows the
   customer's balance and blocks when it is too low or the order has no customer. The API debits
   the balance in the same transaction, so a short balance rolls the whole collection back.
-- **Refund to store credit** (order refunds, and refunds from staff cancel and edit): the money
-  goes onto the customer's balance (refund row `method = store_credit`, no gift card). An order
-  with no customer still gets a gift card, as before. The refund email says "your store credit
-  balance".
+- **Store credit is never a gift card** (owner, 8 Nov 2026). A gift card is a product a shopper
+  buys and gives away; store credit is money the shop owes a customer and lives only on their
+  balance. Every path that used to issue a store credit gift card now credits the balance:
+  - order refunds (`refundPayment`, method `store_credit`), and the refunds from staff cancel and
+    edit (`refundOrderAmount`);
+  - the returns flow's "Store credit" resolution (`storeCreditReturn`, `returns.storeCredit`),
+    through the same helper, with the line "Store credit for return R-n (order #N)". The shopper
+    hears about it in the existing `return_refunded` email ("added to your account with us").
+- **Guest orders** (`storeCreditHolder`): the credit goes to the order's customer, else the
+  store's customer with the order's email (or, with no email, its phone), else a new customer
+  record made for that email or phone. With neither, the refund is refused: "This order has no
+  customer to hold store credit; refund to the original payment instead." Nothing moves and no
+  gift card is made.
+- Money paid *with* a gift card still goes back onto that same card (that is not a new code).
+- The refund row is `method = store_credit`, `gift_card_id` null. The refund email says "your
+  store credit balance".
+- Copy, comments, MCP descriptions and docs that called store credit a gift card are reworded
+  (refund and edit hints, returns outcome and options, `returns.storeCredit` MCP description,
+  merchant guide "Returns and RTO", developer data model). Older returns settled with a gift card
+  still show "an older gift card ending …".
 
-Not in this PR (later steps): checkout redemption; the returns flow's "Store credit" resolution
-(still a gift card); Shopify store credit import; moving existing customer gift cards into the
-balance (SHRIRAM V's ₹1,900 card ending G49E); paying order #2424 from it.
+Not in this PR (later steps): checkout redemption; Shopify store credit import; moving existing
+customer gift cards into the balance (SHRIRAM V's ₹1,900 card ending G49E); paying order #2424
+from it.
 
 Also: `gstInvoicesProducts: 'products'` in `mcp/action-areas.ts`. It has been missing since #1242
 and made `mcp-action-catalogue.test.ts` fail on dev.
