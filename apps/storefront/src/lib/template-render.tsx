@@ -37,7 +37,7 @@ import { collectionCards, listCollections } from './collections'
 import { requestExperiments } from './experiments'
 import { digest } from './liquid-cache'
 import { liquidSplit, STREAM_GRACE_MS, settlesWithin } from './liquid-split'
-import { mainProductStylesheetUrls, renderLiquidSections } from './liquid-theme'
+import { importedTheme, mainProductStylesheetUrls, renderLiquidSections } from './liquid-theme'
 import { attachImageMedia } from './media-lookup'
 import { subscribeAction } from './newsletter-actions'
 import { abThemeId } from './rollout-ab'
@@ -89,6 +89,12 @@ async function requestTheme(storeId: string) {
     /** A version from the theme's history to show instead (preview only, set by the proxy). */
     version: preview ? all.get('x-theme-version') : null,
   }
+}
+
+/** Whether this request renders an imported Shopify theme (the live one, or the previewed one). */
+export async function rendersImportedTheme(storeId: string): Promise<boolean> {
+  const { themeId } = await requestTheme(storeId)
+  return themeId ? (await importedTheme(storeId, themeId)) !== null : false
 }
 
 /**
