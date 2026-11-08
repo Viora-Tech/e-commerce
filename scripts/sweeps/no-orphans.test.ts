@@ -442,8 +442,9 @@ const ALLOWLIST: AllowEntry[] = [
   },
   {
     file: 'packages/blocks/src/components/product-variant-picker.tsx',
-    names: ['swatchImages'],
-    reason: 'the swatch-or-pill rule behind the variant picker, exported for its unit test',
+    names: ['swatchImages', 'swatchFile'],
+    reason:
+      'the swatch-or-pill rule and the sized file a swatch draws, behind the variant picker, exported for their unit tests',
   },
   {
     file: 'packages/core/src/theme-import/main-product-props.ts',
