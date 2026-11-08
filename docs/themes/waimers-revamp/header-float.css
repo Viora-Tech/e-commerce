@@ -1,73 +1,24 @@
 /*
- * Waimers revamp theme: the floating header sits a little below the window's top edge and
- * compresses once the page scrolls (owner, 8 Nov 2026).
+ * Waimers revamp theme (Zero Drift): once the page scrolls, the floating header sits below the
+ * window's top edge and squeezes narrower; its height and logo stay the same (owner, 8 Nov 2026).
  *
- * Where it goes: after the revamp's own "Header: a floating glass bar that narrows on scroll"
- * block (one of the theme's plain <style> blocks, next to the "Tokens" block; on the live page
- * it is the third <style> in <head>). Add it to a copy of the theme first (Online store >
- * Themes > Duplicate > Edit code), preview, then publish. Every rule uses that block's own
- * `html body` selectors and the revamp's `--rv-*` tokens, so no other theme or store changes.
- * Nothing here has been applied to the live theme.
+ * Applied on 8 Nov 2026 as drafts on the live theme Zero Drift: this file is
+ * `snippets/revamp-header-float.liquid` (inside a <style> tag), rendered from layout/theme.liquid
+ * right after `{% render 'revamp-tweaks' %}`. Publish or Discard from Themes > Edit code.
  *
- * Not touched: in-page anchors already stop clear of the bar through the revamp's
- * scroll-margin rule (it avoids scroll-padding on purpose), and the store's preview bar keeps
- * its own `top: 3rem` rule, which is more specific than the gap rule below.
- *
- * Sizes: --rv-header-gap is the gap above the bar; the compact values apply while
- * `.header-wrapper.scrolled-past` is set (header.js adds it once the page scrolls).
+ * Why :has(): section-header.css pins the sticky section at `top: 0` with
+ * `.shopify-section:has(> .header-wrapper[data-sticky-type="always"])`, which out-ranks a plain
+ * `[id$='__header']` rule, so the gap only showed before scrolling. The second top rule keeps
+ * the gap below the theme-preview bar (`body > .sticky.top-0.z-50`).
+ * Measured at 1920px: bar 1325px wide at rest, about 785px wide and 24px from the top when
+ * scrolled; the product gallery stays below it.
  */
-:root {
-  --rv-header-gap: 0.75rem;
-  --rv-header-compact: 3rem;
-  --rv-logo-compact: 1.25rem;
-  --rv-header-ease: cubic-bezier(0.22, 1, 0.36, 1);
+:root { --rv-header-gap: 1.5rem; --rv-header-ease: cubic-bezier(0.22, 1, 0.36, 1); }
+html body .shopify-section[id$='__header']:has(> .header-wrapper) { top: var(--rv-header-gap); margin-top: var(--rv-header-gap); }
+html body:has(> .sticky.top-0.z-50) .shopify-section[id$='__header']:has(> .header-wrapper) { top: calc(3rem + var(--rv-header-gap) / 2); }
+html body .header-wrapper { transition: max-width 360ms var(--rv-header-ease); }
+@media screen and (min-width: 61.875rem) {
+  html body .header-wrapper.scrolled-past { max-width: min(calc(100% - 2rem), 60rem); }
 }
-
-/* A gap from the top edge, at rest and while stuck. */
-html body .shopify-section[id$="__header"] {
-  top: var(--rv-header-gap);
-  margin-top: var(--rv-header-gap);
-}
-
-/* Compress once scrolled: a shorter bar, a smaller logo, tighter padding and icon buttons. */
-html body .header {
-  transition:
-    min-height 280ms var(--rv-header-ease),
-    padding-inline 280ms var(--rv-header-ease);
-}
-html body .header__logo-image {
-  transition: height 280ms var(--rv-header-ease);
-}
-html body .header-wrapper {
-  transition: max-width 280ms var(--rv-header-ease);
-}
-html body .header-wrapper.scrolled-past .header {
-  min-height: var(--rv-header-compact);
-  padding-inline: 0.875rem;
-}
-html body .header-wrapper.scrolled-past .header__logo-image {
-  height: var(--rv-logo-compact);
-}
-html body .header-wrapper.scrolled-past .header__icon-btn,
-html body .header-wrapper.scrolled-past .header__cart-link,
-html body .header-wrapper.scrolled-past .header__more-toggle {
-  min-width: 2.25rem;
-  min-height: 2.25rem;
-}
-
-/* The product gallery (and the stacked layout's buy rail) pin below the bar and its gap,
-   so the bar no longer covers their top edge. */
-@media screen and (min-width: 990px) {
-  html body .product-layout__gallery,
-  html body .product-layout--stacked .product-layout__info {
-    top: calc(var(--header-sticky-height, 4rem) + var(--rv-header-gap) * 2 + 1rem);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  html body .header,
-  html body .header__logo-image,
-  html body .header-wrapper {
-    transition: none;
-  }
-}
+@media screen and (min-width: 990px) { html body .product-layout__gallery, html body .product-layout--stacked .product-layout__info { top: calc(var(--header-sticky-height, 4rem) + var(--rv-header-gap) * 2 + 1rem); } }
+@media (prefers-reduced-motion: reduce) { html body .header-wrapper { transition: none; } }
