@@ -31,6 +31,9 @@ export const shopifyImportRunContent = {
     skipped: (n: number) => `${n.toLocaleString('en-IN')} skipped`,
     failed: (n: number) => `${n.toLocaleString('en-IN')} failed`,
     nothing: (names: string) => `Nothing to bring: ${names}`,
+    /** The store credit card's summary line; `amount` is already formatted (₹1,500). */
+    credit: (customers: number, amount: string, preview: boolean) =>
+      `Store credit: ${customers.toLocaleString('en-IN')} ${customers === 1 ? 'customer' : 'customers'}, ${amount} total ${preview ? 'to import' : 'imported'}`,
   },
   left: {
     showAll: (n: number) => `Show all ${n.toLocaleString('en-IN')}`,

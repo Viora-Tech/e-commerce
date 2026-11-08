@@ -39,7 +39,13 @@ export default function RunTypeGrid({ run }: RunTypeGridProps) {
       <div className="flex flex-col gap-4">
         <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {shown.map(({ resource, progress }) => (
-            <RunTypeCard key={resource} resource={resource} progress={progress} live={live} />
+            <RunTypeCard
+              key={resource}
+              resource={resource}
+              progress={progress}
+              live={live}
+              preview={run.dryRun}
+            />
           ))}
         </ul>
         {empty.length ? (

@@ -41,6 +41,7 @@ const MAPPED: Partial<Record<ImportResource, string>> = {
   metaobjects: 'metaobjects',
   gift_cards: 'gift_cards',
   discounts: 'discounts',
+  store_credit: 'store_credit',
 }
 
 /** Shopify's own counts, where the Admin API has one (`limit: null` = no 10,000 cap). */

@@ -20,6 +20,8 @@ export const IMPORT_RESOURCES = [
   'metafields',
   'discounts',
   'gift_cards',
+  /** Customers' store credit balances, onto their balance here (never a gift card). */
+  'store_credit',
 ] as const
 export type ImportResource = (typeof IMPORT_RESOURCES)[number]
 
@@ -80,6 +82,14 @@ export const LEFT_BEHIND_REASONS = [
   'gift_card_over_limit',
   'gift_card_currency',
   'gift_card_used_here',
+  /** The app cannot read store credit (no read_store_credit_accounts); none came over. */
+  'store_credit_scope',
+  /** A store credit balance whose customer is not here. */
+  'store_credit_no_customer',
+  /** A store credit balance in another currency (`detail` is the currency). */
+  'store_credit_currency',
+  /** Shopify's balance went down, but the credit was already spent here; the balance was kept. */
+  'store_credit_used_here',
   /** A redirect for that path was set here by hand; the merchant's own one was kept. */
   'redirect_manual',
   /** A redirect from the home page or an empty path. */
@@ -110,6 +120,11 @@ export type ResourceProgress = {
   notCopied?: number | undefined
   /** Files only: what the Files step copies (or would copy) and weighs once optimized. */
   estimate?: FilesEstimate | undefined
+  /**
+   * Store credit only: customers holding credit from Shopify and the total they hold from it
+   * after this run (what a preview would bring), for "Store credit: N customers, ₹X imported".
+   */
+  credit?: { customers: number; amountPaise: number } | undefined
 }
 
 /** Files counted by kind with their estimated stored size in bytes (after optimizing). */
@@ -203,6 +218,7 @@ export const REQUIRED_SCOPES: Record<ImportResource, string> = {
   metafields: 'read_products (read_metaobjects for linked entries)',
   discounts: 'read_discounts',
   gift_cards: 'read_gift_cards',
+  store_credit: 'read_store_credit_accounts',
 }
 
 /** The same scopes as handles, for checking what a token actually has. */
@@ -253,7 +269,14 @@ export const RESOURCE_SCOPES: Record<ImportResource, ScopeHandle[]> = {
   metafields: ['read_products'],
   discounts: ['read_discounts'],
   gift_cards: ['read_gift_cards'],
+  store_credit: ['read_store_credit_accounts'],
 }
+
+/**
+ * Scopes a run can do without: a missing one is a warning, and the run skips that resource
+ * with a note in its report instead of the resource being blocked.
+ */
+export const OPTIONAL_RESOURCES: readonly ImportResource[] = ['store_credit']
 
 /** "Before you import" checks, shown before Preview import and Import now. */
 export const PREFLIGHT_IDS = [
@@ -263,6 +286,8 @@ export const PREFLIGHT_IDS = [
   'connection',
   /** A chosen resource's scope is missing: that resource cannot be imported. */
   'scope',
+  /** A scope an `OPTIONAL_RESOURCES` resource needs is missing: the run skips it with a note. */
+  'optional_scope',
   /** Orders older than 60 days need read_all_orders. */
   'all_orders',
   /** Orders, collections, discounts or extra fields point at products that are not here yet. */

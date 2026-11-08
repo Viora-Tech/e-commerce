@@ -8,6 +8,7 @@ import type { StoreTx } from '@commerce/db'
 import { count, eq } from 'drizzle-orm'
 import {
   type ImportResource,
+  OPTIONAL_RESOURCES,
   type PreflightCheck,
   REQUIRED_SCOPES,
   RESOURCE_SCOPES,
@@ -78,6 +79,18 @@ export async function preflightChecks(
       for (const resource of input.resources) {
         const lacking = RESOURCE_SCOPES[resource].filter((s) => missing.has(s))
         if (lacking.length === 0) continue
+        if (OPTIONAL_RESOURCES.includes(resource)) {
+          checks.push({
+            id: 'optional_scope',
+            status: 'warn',
+            resource,
+            detail: lacking.join(', '),
+            title: `Shopify access for ${resource}`,
+            help: `Without ${REQUIRED_SCOPES[resource]} this is skipped and the rest imports. Add the scope in Shopify, then test the connection again.`,
+            fixHref: CONNECT_HREF,
+          })
+          continue
+        }
         checks.push({
           id: 'scope',
           status: 'block',
@@ -118,15 +131,18 @@ export async function preflightChecks(
       })
     }
   }
-  if (chosen('gift_cards') && !chosen('customers') && !(await imported(tx, 'customers'))) {
-    checks.push({
-      id: 'needs_customers',
-      status: 'warn',
-      resource: 'gift_cards',
-      title: 'Customers not imported yet',
-      help: 'Gift cards belong to customers. Tick customers too, or cards for unknown customers are skipped.',
-      fixHref: null,
-    })
+  const needCustomers = (['gift_cards', 'store_credit'] as const).filter((r) => chosen(r))
+  if (needCustomers.length && !chosen('customers') && !(await imported(tx, 'customers'))) {
+    for (const resource of needCustomers) {
+      checks.push({
+        id: 'needs_customers',
+        status: 'warn',
+        resource,
+        title: 'Customers not imported yet',
+        help: 'Gift cards and store credit belong to customers. Tick customers too, or those of unknown customers are skipped.',
+        fixHref: null,
+      })
+    }
   }
   return checks
 }
