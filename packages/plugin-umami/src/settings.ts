@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import type { UmamiTracker } from './tracker'
 
 /**
  * The Umami app's settings: pure and client-safe, shared by the admin page, the API service
@@ -95,9 +96,6 @@ export function umamiScriptSrc(url: string): string {
   return isUmamiCloud(url) ? CLOUD_SCRIPT : `${url.replace(/\/+$/, '')}/script.js`
 }
 
-/** What the storefront needs to load the tracker. */
-export type UmamiTracker = { src: string; websiteId: string; waitForConsent: boolean }
-
 /** The tracker for a store, or null until the app has an address and a valid website id. */
 export function umamiTracker(settings: UmamiSettings): UmamiTracker | null {
   const url = normaliseUmamiUrl(settings.url)
@@ -107,18 +105,6 @@ export function umamiTracker(settings: UmamiSettings): UmamiTracker | null {
     websiteId: settings.websiteId.toLowerCase(),
     waitForConsent: settings.waitForConsent,
   }
-}
-
-/**
- * Whether the tracker runs for this shopper: after a yes to analytics, or, when the store does
- * not wait for consent, until the shopper says no (`consent` null = not answered yet).
- */
-export function umamiAllowed(
-  tracker: UmamiTracker,
-  consent: { analytics: boolean } | null,
-): boolean {
-  if (consent) return consent.analytics
-  return !tracker.waitForConsent
 }
 
 /** The admin's view of the settings: never the key itself, only whether one is saved. */
@@ -146,3 +132,5 @@ export function umamiSettingsView(settings: UmamiSettings): UmamiSettingsView {
     reporting: tracking && settings.apiKey !== '',
   }
 }
+
+export { type UmamiTracker, umamiAllowed } from './tracker'
