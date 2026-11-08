@@ -1,6 +1,7 @@
 import { fileURLToPath } from 'node:url'
 import { withSentryConfig } from '@sentry/nextjs/config'
 import type { NextConfig } from 'next'
+import { leanBuild } from '../../packages/config/src/lean-build'
 import { storefrontFrameAncestors } from './src/lib/csp'
 
 // Monorepo root, two levels up from apps/storefront — lets `output: 'standalone'`
@@ -132,7 +133,7 @@ const config: NextConfig = {
 // token); this only wraps the build to inject release/runtime hooks for instrumentation.ts.
 // Dev skips the wrapper: under Turbopack dev it made the first compile run away on memory.
 export default process.env.NODE_ENV === 'production'
-  ? withSentryConfig(config, {
+  ? withSentryConfig(leanBuild(config), {
       silent: true,
       disableLogger: true,
       sourcemaps: { disable: true },
