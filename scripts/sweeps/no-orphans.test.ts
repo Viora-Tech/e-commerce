@@ -203,7 +203,6 @@ const ALLOWLIST: AllowEntry[] = [
       'WIDGET_HORIZONTAL',
       'WIDGET_VERTICAL',
       'DEFAULT_INBOX_WIDGET',
-      'INBOX_WIDGET_FIELDS',
     ],
     reason:
       'the Inbox app embed schema the theme editor App embeds panel renders (coordinator, 2026-10-24); read once that panel lands',
