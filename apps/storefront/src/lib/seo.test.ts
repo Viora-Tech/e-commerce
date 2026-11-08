@@ -93,6 +93,65 @@ describe('JSON-LD', () => {
     expect(p.brand.name).toBe('Waimers')
   })
 
+  it("gives every offer Google's merchant-listing fields: seller, price validity, shipping, returns", () => {
+    const policies = {
+      returns: { enabled: true, windowDays: 7 },
+      shipping: { fromPaise: 9900, freeAbovePaise: 799900, minDays: 2, maxDays: 5 },
+    }
+    const now = new Date('2026-11-08T10:00:00Z')
+    const [p] = parsed(productGraph({ ...product, policies }, origin, 'INR', 'Waimers', now))[
+      '@graph'
+    ]
+    const [black, white] = p.offers.offers
+    expect(black.seller).toEqual({
+      '@type': 'Organization',
+      '@id': 'https://waimers.in/#organization',
+      name: 'Waimers',
+    })
+    expect(black.priceValidUntil).toBe('2027-11-08')
+    // ₹7,499 pays the ₹99 rate; ₹7,999 clears the free-shipping threshold.
+    expect(black.shippingDetails.shippingRate).toEqual({
+      '@type': 'MonetaryAmount',
+      value: '99.00',
+      currency: 'INR',
+    })
+    expect(white.shippingDetails.shippingRate.value).toBe('0.00')
+    expect(black.shippingDetails.shippingDestination.addressCountry).toBe('IN')
+    expect(black.shippingDetails.deliveryTime.transitTime).toMatchObject({
+      minValue: 2,
+      maxValue: 5,
+      unitCode: 'DAY',
+    })
+    expect(black.hasMerchantReturnPolicy).toEqual({
+      '@type': 'MerchantReturnPolicy',
+      applicableCountry: 'IN',
+      returnPolicyCategory: 'https://schema.org/MerchantReturnFiniteReturnWindow',
+      merchantReturnDays: 7,
+      returnMethod: 'https://schema.org/ReturnByMail',
+    })
+  })
+
+  it('says when returns are off, and leaves shipping out when no single rate applies', () => {
+    const policies = {
+      returns: { enabled: false, windowDays: 7 },
+      shipping: { fromPaise: null, freeAbovePaise: null, minDays: 2, maxDays: 5 },
+    }
+    const [p] = parsed(productGraph({ ...product, policies }, origin, 'INR', 'W'))['@graph']
+    const [offer] = p.offers.offers
+    expect(offer.hasMerchantReturnPolicy.returnPolicyCategory).toBe(
+      'https://schema.org/MerchantReturnNotPermitted',
+    )
+    expect(offer.shippingDetails).toBeUndefined()
+    // No India rates at all: shipping is free, as checkout charges it.
+    const [free] = parsed(
+      productGraph({ ...product, policies: { ...policies, shipping: null } }, origin, 'INR', 'W'),
+    )['@graph']
+    expect(free.offers.offers[0].shippingDetails.shippingRate.value).toBe('0.00')
+    // A price in another currency carries no India shipping or returns.
+    const [abroad] = parsed(productGraph({ ...product, policies }, origin, 'USD', 'W'))['@graph']
+    expect(abroad.offers.offers[0].hasMerchantReturnPolicy).toBeUndefined()
+  })
+
   it('lists a collection page with absolute URLs and running positions', () => {
     const graph = parsed(
       collectionGraph(
