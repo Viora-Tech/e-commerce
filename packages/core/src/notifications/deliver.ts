@@ -9,7 +9,6 @@ import {
   orderLine,
   payment,
   product,
-  productMedia,
   shipment,
   store,
   variant,
@@ -48,6 +47,7 @@ import {
   refundTemplateData,
   taxLines,
 } from './deliver-data'
+import { emailPicture, productCoverImages } from './email-images'
 import { isMessageOn } from './messages'
 import { paymentInstructionsOf } from './payment-instructions'
 import { parseNotificationSettings } from './settings'
@@ -109,16 +109,10 @@ export async function buildTemplateData(
     })
     .from(orderLine)
     .leftJoin(variant, eq(variant.id, orderLine.variantId))
-    .leftJoin(media, eq(media.id, variant.mediaId))
+    .leftJoin(media, and(eq(media.id, variant.mediaId), emailPicture))
     .where(eq(orderLine.orderId, orderId))
   const productIds = [...new Set(lines.map((l) => l.productId).filter((id): id is string => !!id))]
-  const images = productIds.length
-    ? await ctx.tx
-        .select({ productId: productMedia.productId, url: media.url })
-        .from(productMedia)
-        .innerJoin(media, eq(media.id, productMedia.mediaId))
-        .where(and(inArray(productMedia.productId, productIds), eq(productMedia.position, 0)))
-    : []
+  const covers = await productCoverImages(ctx.tx, productIds)
   const [cu] = o.customerId
     ? await ctx.tx.select().from(customer).where(eq(customer.id, o.customerId))
     : []
@@ -161,7 +155,7 @@ export async function buildTemplateData(
         quantity: l.quantity,
         priceLabel: formatMoney(l.quantity * l.unitPricePaise),
         imageUrl:
-          l.variantImage ?? images.find((i) => i.productId === l.productId)?.url ?? undefined,
+          l.variantImage ?? (l.productId ? covers.get(l.productId) : undefined) ?? undefined,
         ...(l.preorderNote ? { note: l.preorderNote } : {}),
       })),
       // Named after the rate ("Bluedart"), so an edit that changed the rate shows the new one.

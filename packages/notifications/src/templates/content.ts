@@ -73,18 +73,18 @@ export const templateContent: Record<TemplateId, TemplateCopy> = {
     heading: (d) => `Hi ${d.customerName}`,
     intro: (d) =>
       d.reminder
-        ? `A quick reminder: order #${draftRef(d)} for ${d.totalLabel} is still waiting for your payment.`
+        ? `Order #${draftRef(d)} for ${d.totalLabel} is still waiting for your payment.`
         : `We have prepared order #${draftRef(d)} for ${d.totalLabel}.`,
     outro: (d) => (d.actionUrl ? `Pay securely here: ${d.actionUrl}` : 'Reply to confirm.'),
     whatsapp: (d) =>
       `${d.storeName}: order #${draftRef(d)} for ${d.totalLabel} is ready.${d.actionUrl ? ` Pay: ${d.actionUrl}` : ''}`,
   },
   checkout_recovery: {
-    subject: (d) => `${d.storeName}: you left something behind`,
-    heading: (d) => `Still thinking it over, ${d.customerName}?`,
-    intro: (d) => `Your basket of ${d.totalLabel} is saved and waiting.`,
+    subject: (d) => `${d.storeName}: your basket is saved`,
+    heading: (d) => `Hi ${d.customerName}, your basket is saved`,
+    intro: (d) => `You left items worth ${d.totalLabel} in your basket.`,
     outro: (d) =>
-      d.actionUrl ? `Pick up where you left off: ${d.actionUrl}` : 'Your basket is still saved.',
+      d.actionUrl ? `Finish your order here: ${d.actionUrl}` : 'Your basket is still saved.',
     whatsapp: (d) =>
       `Your ${d.storeName} basket (${d.totalLabel}) is still saved.${d.actionUrl ? ` Finish here: ${d.actionUrl}` : ''}`,
   },
@@ -134,7 +134,7 @@ export const templateContent: Record<TemplateId, TemplateCopy> = {
   },
   review_request: {
     subject: (d) => d.review?.subject || `How was your order from ${d.storeName}?`,
-    heading: (d) => `Hi ${d.customerName}, how is it going?`,
+    heading: (d) => `Hi ${d.customerName}, how was your order?`,
     intro: (d) => {
       const names = (d.review?.items ?? []).map((i) => i.title)
       const what = names.length === 1 ? names[0] : 'what you bought'
@@ -142,14 +142,14 @@ export const templateContent: Record<TemplateId, TemplateCopy> = {
     },
     outro: (d) =>
       d.review?.unsubscribeUrl
-        ? 'Not keen on these emails? The "Stop review emails" link below ends them.'
+        ? 'To stop review emails, use the "Stop review emails" link below.'
         : '',
     whatsapp: (d) =>
       `${d.storeName}: how was your order? Leave a review: ${d.review?.items?.[0]?.url ?? ''}`,
   },
   review_reminder: {
     subject: (d) => d.review?.subject || `A quick review for ${d.storeName}?`,
-    heading: (d) => `Hi ${d.customerName}, one quick question`,
+    heading: (d) => `Hi ${d.customerName}, a review reminder`,
     intro: (d) => {
       const names = (d.review?.items ?? []).map((i) => i.title)
       const what = names.length === 1 ? names[0] : 'your order'
@@ -157,7 +157,7 @@ export const templateContent: Record<TemplateId, TemplateCopy> = {
     },
     outro: (d) =>
       d.review?.unsubscribeUrl
-        ? 'Not keen on these emails? The "Stop review emails" link below ends them.'
+        ? 'To stop review emails, use the "Stop review emails" link below.'
         : '',
     whatsapp: (d) => `${d.storeName}: a quick review? ${d.review?.items?.[0]?.url ?? ''}`,
   },
@@ -258,7 +258,7 @@ ${d.review?.answer ?? ''}`,
   },
   affiliate_application: {
     subject: (d) => `New affiliate application: ${d.affiliate?.name || 'someone'}`,
-    heading: () => 'Someone wants to sell for you',
+    heading: () => 'New affiliate application',
     intro: (d) => {
       const a = d.affiliate
       return [
@@ -295,7 +295,7 @@ ${m?.text ?? ''}`
     subject: (d) => `Confirm your ${d.storeName} newsletter signup`,
     heading: () => 'Please confirm your email',
     intro: (d) =>
-      `Someone, hopefully you, asked to get emails from ${d.storeName} at this address. Tap the button to confirm.`,
+      `Someone asked to get emails from ${d.storeName} at this address. If it was you, tap the button to confirm.`,
     outro: () =>
       'The link works for 7 days. If you did not sign up, ignore this email and you will not hear from us.',
     whatsapp: (d) => `Confirm your ${d.storeName} newsletter signup: ${d.actionUrl ?? ''}`,
@@ -342,62 +342,7 @@ export const sharedContent = {
   awb: (courier: string | undefined, waybill: string) =>
     courier ? `${courier} · AWB ${waybill}` : `AWB ${waybill}`,
   giftCardLabel: 'Your gift card code',
-  /** The short uppercase line in each email's coloured hero. */
-  heroTitles: {
-    order_placed: 'Order confirmed',
-    payment_received: 'Payment received',
-    order_shipped: "It's on its way",
-    out_for_delivery: 'Out for delivery',
-    delivered: 'Delivered',
-    delivery_failed: 'We missed you',
-    order_cancelled: 'Order cancelled',
-    refund_issued: 'Refund sent',
-    order_edited: 'Order updated',
-    payment_pending: 'Payment not finished',
-    shipping_update: 'Shipping update',
-    order_link: 'Your order',
-    draft_invoice: 'Your invoice',
-    checkout_recovery: 'Still in your cart',
-    document_copy: 'Your documents',
-    customer_message: 'A message for you',
-    login_code: 'Your code is here',
-    account_deletion_code: 'Confirm deletion',
-    login_link: 'Sign in',
-    newsletter_confirm: 'Confirm your email',
-    gift_card_issued: 'A gift for you',
-    balance_request: 'Balance due',
-    balance_reminder: 'Balance reminder',
-    balance_received: 'Balance paid',
-    payment_reminder: 'Payment reminder',
-    unpaid_cancel_notice: 'Unpaid order',
-    staff_new_order: 'New order',
-    staff_daily_summary: 'Daily summary',
-    contact_message: 'New message',
-    review_request: 'How did we do?',
-    review_reminder: 'Quick review?',
-    review_reply: 'We replied',
-    review_reward: 'Thank you',
-    question_answered: 'Your answer is here',
-    question_asked: 'New question',
-    affiliate_update: 'Affiliate update',
-    affiliate_application: 'New affiliate',
-    unpaid_cancelled: 'Order cancelled',
-    back_in_stock_confirm: 'Confirm your alert',
-    back_in_stock_alert: "It's back",
-    return_requested: 'Return requested',
-    return_approved: 'Return approved',
-    return_rejected: 'Return declined',
-    return_received: 'Return received',
-    return_refunded: 'Refund sent',
-    return_exchanged: 'Exchange on its way',
-    cod_confirm: 'Confirm your order',
-    staff_invite: "You're invited",
-    email_change_code: 'Your code',
-    email_changed: 'Email changed',
-    plan_bill: 'Your bill',
-    bug_report_update: 'Report update',
-    purchase_order: 'Purchase order',
-  } satisfies Record<TemplateId, string>,
+  codeLabel: 'Your code',
   parcels: {
     title: (count: number) => `Ships in ${count} parcels`,
     note: 'Your order comes from more than one warehouse, so it arrives in separate parcels, each with its own invoice.',

@@ -1,10 +1,12 @@
 import {
   createDb,
   customer,
+  media,
   notification,
   order,
   orderLine,
   product,
+  productMedia,
   returnRequest,
   returnRequestLine,
   store,
@@ -148,6 +150,26 @@ describe('deliverNotification', () => {
     // Signed, unguessable order token — never just the sequential number.
     expect(built?.data.orderUrl).toMatch(/^https:\/\/shop\.test\/checkout\/thank-you\/7\?t=.+/)
     expect(built?.data.lines).toEqual([{ title: 'Pad', quantity: 1, priceLabel: '₹1,999' }])
+  })
+
+  it("shows each line's first product photo, skipping a video and a gallery not starting at 0", async () => {
+    const { storeId, orderId } = await seedOrder()
+    const [p] = await owner.select().from(product).where(eq(product.storeId, storeId))
+    const [video, photo] = await owner
+      .insert(media)
+      .values([
+        { storeId, url: 'https://cdn.test/clip.mp4', contentType: 'video/mp4' },
+        { storeId, url: 'https://cdn.test/pad.png', contentType: 'image/png' },
+      ])
+      .returning()
+    await owner.insert(productMedia).values([
+      { storeId, productId: p?.id as string, mediaId: video?.id as string, position: 1 },
+      { storeId, productId: p?.id as string, mediaId: photo?.id as string, position: 2 },
+    ])
+    const built = await withStore(app, storeId, (tx) =>
+      buildTemplateData({ storeId, tx }, orderId, 'https://shop.test', secret),
+    )
+    expect(built?.data.lines[0]?.imageUrl).toBe('https://cdn.test/pad.png')
   })
 
   it('sends through every channel with a recipient and records a row each', async () => {
