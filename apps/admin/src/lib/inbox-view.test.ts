@@ -5,6 +5,7 @@ import {
   initialsOf,
   matchQuickReplies,
   systemLine,
+  withDayBreaks,
   withMessage,
 } from './inbox-view'
 
@@ -47,5 +48,22 @@ describe('inbox view helpers', () => {
     expect(matchQuickReplies(replies, '/')).toHaveLength(2)
     expect(matchQuickReplies(replies, 'hello /s')).toBeNull()
     expect(matchQuickReplies(replies, '/cash')?.map((r) => r.shortcut)).toEqual(['cod'])
+  })
+
+  it('puts a day divider before the first message of each day (store zone)', () => {
+    const rows = withDayBreaks([
+      { id: 'a', createdAt: '2026-11-07T17:00:00Z' },
+      { id: 'b', createdAt: '2026-11-07T18:00:00Z' },
+      // 00:00 IST on 8 Nov: a new day in the store's zone though still 7 Nov in UTC.
+      { id: 'c', createdAt: '2026-11-07T18:30:00Z' },
+    ])
+    expect(rows.map((r) => (r.kind === 'day' ? 'day' : r.message.id))).toEqual([
+      'day',
+      'a',
+      'b',
+      'day',
+      'c',
+    ])
+    expect(withDayBreaks([])).toEqual([])
   })
 })

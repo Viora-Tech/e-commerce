@@ -102,6 +102,12 @@ export default [
       note: 'नोट',
       typing: 'लिख रहे हैं…',
       startedOn: (url) => `${url} पर शुरू हुई`,
+      channel: {
+        web: 'ऑनलाइन स्टोर चैट',
+        whatsapp: 'WhatsApp',
+        instagram: 'Instagram',
+        messenger: 'Messenger',
+      },
       aiAuthor: 'AI एजेंट',
       handoff: {
         title: 'AI ने यह चैट आपको सौंपी है',
@@ -134,7 +140,9 @@ export default [
       },
     },
     composer: {
-      placeholder: 'जवाब लिखें… झटपट जवाब के लिए / लिखें',
+      placeholder: 'जवाब लिखें, या झटपट जवाब के लिए / लिखें',
+      quickReplies: 'झटपट जवाब',
+      sendHint: 'भेजने के लिए Enter, नई लाइन के लिए Shift + Enter',
       notePlaceholder: 'ऐसा नोट लिखें जो सिर्फ़ आपकी टीम देखे',
       send: 'भेजें',
       addNote: 'नोट जोड़ें',

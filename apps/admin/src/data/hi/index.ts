@@ -42,6 +42,7 @@ import customers from './customers'
 import customersBulkEdit from './customers-bulk-edit'
 import customizeAi from './customize-ai'
 import customizeAppEmbeds from './customize-app-embeds'
+import customizeInboxEmbed from './customize-inbox-embed'
 import dateRange from './date-range'
 import dates from './dates'
 import deliveryOptions from './delivery-options'
@@ -196,6 +197,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...customersBulkEdit,
   ...customizeAi,
   ...customizeAppEmbeds,
+  ...customizeInboxEmbed,
   ...dates,
   ...dhlExpress,
   ...fedex,

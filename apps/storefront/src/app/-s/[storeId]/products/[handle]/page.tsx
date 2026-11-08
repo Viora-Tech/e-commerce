@@ -7,6 +7,7 @@ import {
 import { loadProductPageExtras } from '@commerce/core'
 import { seoSnippet } from '@commerce/core/catalog'
 import { isAbroad } from '@commerce/core/checkout-address'
+import { productOfferPolicies } from '@commerce/core/offer-policies'
 import {
   depositIsNonRefundable,
   type PreorderStoreSettings,
@@ -136,7 +137,7 @@ export default async function ProductPage({ params, searchParams }: Params) {
   const { product } = found
   // None of these reads needs another's result and each opens its own short transaction (only on
   // a cache miss), so they run together.
-  const [reviews, extras, upiDiscount, emiApp, bis, policies] = await Promise.all([
+  const [reviews, extras, upiDiscount, emiApp, bis, policies, offerPolicies] = await Promise.all([
     // Reviews app: the widget's data, and the real rating for the stars under the title.
     productReviews(storeId, product, {
       requestToken: typeof review === 'string' ? review : null,
@@ -151,6 +152,8 @@ export default async function ProductPage({ params, searchParams }: Params) {
     storeRead(storeId, 'emi-offers', (tx) => storeEmiOffers(tx, storeId)),
     storeRead(storeId, 'back-in-stock', (tx) => backInStockContext(tx, storeId)),
     storeRead(storeId, 'policy-panels', (tx) => policyPanels(tx)),
+    // Returns and India shipping for the structured data's merchant-listing fields.
+    storeRead(storeId, 'offer-policies', (tx) => productOfferPolicies(tx, storeId)),
   ])
   // The stars are the product's real figure: the Reviews app's, else the rating imported
   // from Shopify's review app; never a typed one.
@@ -190,6 +193,7 @@ export default async function ProductPage({ params, searchParams }: Params) {
           title: r.title,
           body: r.body,
         })) ?? [],
+      policies: offerPolicies,
     },
     await requestOrigin(),
     found.currency,

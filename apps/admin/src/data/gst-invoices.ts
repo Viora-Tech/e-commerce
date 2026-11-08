@@ -281,6 +281,15 @@ export const gstInvoicesContent = {
     to: 'To',
     all: 'All documents',
     kindFilter: 'Document type',
+    tabs: {
+      tax_invoice: 'Tax invoices',
+      credit_note: 'Credit notes',
+      vouchers: 'Vouchers',
+      all: 'All documents',
+    },
+    month: 'Month',
+    previousMonth: 'Previous month',
+    nextMonth: 'Next month',
     columns: {
       number: 'Number',
       kind: 'Type',

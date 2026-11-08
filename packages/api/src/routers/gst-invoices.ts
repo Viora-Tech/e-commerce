@@ -47,7 +47,7 @@ import {
   renderDeps,
   requireInstalled,
 } from './gst-invoices-context'
-import { addToQueue, generateInvoice, invoicesForOrders } from './gst-invoices-order-actions'
+import { addToQueue, generateInvoice, invoiceFixProcedures } from './gst-invoices-order-actions'
 import { returnsProcedures } from './gst-invoices-returns'
 
 const IssueBatch = z.object({
@@ -59,7 +59,7 @@ const IssueBatch = z.object({
 
 const Filter = z.object({
   q: z.string().max(100).optional(),
-  kind: z.enum(DOCUMENT_KINDS).optional(),
+  kind: z.union([z.enum(DOCUMENT_KINDS), z.array(z.enum(DOCUMENT_KINDS)).max(6)]).optional(),
   status: z.enum(['issued', 'cancelled']).optional(),
   from: z.coerce.date().optional(),
   to: z.coerce.date().optional(),
@@ -383,7 +383,7 @@ export const gstInvoicesRouter = {
       }
     }),
 
-  forOrders: invoicesForOrders,
+  ...invoiceFixProcedures,
   /** A zip of PDFs, one per selected document. */
   bulkDownload: can(permissions.ORDERS_READ)
     .use(heavy('bulk'))

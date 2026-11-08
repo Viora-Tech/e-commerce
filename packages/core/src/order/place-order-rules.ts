@@ -79,8 +79,11 @@ export function paymentAdjustmentFor(
  * GST at the line's rate; a gift card sale is a voucher, taxed only when it is
  * redeemed. A composition-scheme store charges no GST on anything.
  */
-export const lineGstRate = (l: Line, storeRate: number, tax: StoreTaxSettings): number =>
-  l.giftCard || !l.taxable ? 0 : chargedGstRate(l.gstRatePercent ?? storeRate, tax)
+export const lineGstRate = (
+  l: Pick<Line, 'giftCard' | 'taxable' | 'gstRatePercent'>,
+  storeRate: number,
+  tax: StoreTaxSettings,
+): number => (l.giftCard || !l.taxable ? 0 : chargedGstRate(l.gstRatePercent ?? storeRate, tax))
 
 /** The India Post directory's state for a PIN code, when the directory file is installed. */
 async function directoryState(pincode: string): Promise<string | null> {

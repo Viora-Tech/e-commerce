@@ -1,7 +1,7 @@
 /** The read side of the approval flow: Activity, Approvals and the nav badge. */
 import type { StoreContext } from '@commerce/core'
 import { aiAction } from '@commerce/db'
-import { and, desc, eq, gte, inArray, isNull, lt, ne } from 'drizzle-orm'
+import { and, desc, eq, gte, inArray, isNull, lt, ne, or, type SQL } from 'drizzle-orm'
 import { canApprove } from '../../../procedures/approval-rules'
 import type { StoreScope } from '../../../procedures/store'
 import { keyOfRow, onePerRequest } from './duplicates'
@@ -42,11 +42,30 @@ export async function listActivity(
 }
 
 /**
- * Settings → Approvals: changes waiting for a different member, and recent expired ones. Copies
- * of the same request (asked before duplicates were folded) show once.
+ * What Approvals lists for this member: changes sent for a different member's approval, and the
+ * member's own AI app (MCP) requests that wait for them to confirm (#1263). Those are not "Needs
+ * approval" rows (the owner never has to ask), so without this they showed only in MCP Activity.
+ */
+const approvalRows = (userId: string): SQL =>
+  or(
+    eq(aiAction.needsApprover, true),
+    and(eq(aiAction.source, 'mcp'), eq(aiAction.userId, userId)),
+  ) as SQL
+
+/** An own MCP request the member confirms themselves, rather than one for someone else. */
+export const isOwnMcpRequest = (
+  v: Pick<ActionView, 'needsApprover' | 'source' | 'requestedById'>,
+  userId: string,
+): boolean => !v.needsApprover && v.source === 'mcp' && v.requestedById === userId
+
+/**
+ * Settings → Approvals: changes waiting for a different member, the member's own MCP requests,
+ * and recent expired ones. Copies of the same request (asked before duplicates were folded)
+ * show once.
  */
 export async function listWaitingApprovals(
   ctx: StoreContext,
+  userId: string,
   now: Date = new Date(),
 ): Promise<ActionView[]> {
   const rows = await ctx.tx
@@ -54,7 +73,7 @@ export async function listWaitingApprovals(
     .from(aiAction)
     .where(
       and(
-        eq(aiAction.needsApprover, true),
+        approvalRows(userId),
         inArray(aiAction.status, ['proposed', 'expired']),
         gte(aiAction.expiresAt, new Date(now.getTime() - approvalTtlMs)),
       ),
@@ -117,11 +136,12 @@ export async function approvalCounts(
       permission: aiAction.permission,
       expiresAt: aiAction.expiresAt,
       outcomeSeenAt: aiAction.outcomeSeenAt,
+      needsApprover: aiAction.needsApprover,
     })
     .from(aiAction)
     .where(
       and(
-        eq(aiAction.needsApprover, true),
+        approvalRows(scope.userId),
         gte(aiAction.createdAt, new Date(now.getTime() - 30 * 24 * 60 * 60_000)),
       ),
     )
@@ -131,7 +151,10 @@ export async function approvalCounts(
   const counted = new Set<string>()
   for (const r of rows) {
     const open = r.status === 'proposed' && r.expiresAt.getTime() > now.getTime()
-    if (r.userId === scope.userId) {
+    if (!r.needsApprover) {
+      // The member's own MCP request: theirs to confirm, so it counts as waiting for them.
+      if (open) waiting++
+    } else if (r.userId === scope.userId) {
       if (!open && r.status !== 'proposed' && !r.outcomeSeenAt) outcomes++
     } else if (open && canApprove(scope, permissionOf(r as Row))) {
       const key = keyOfRow(r as Row)

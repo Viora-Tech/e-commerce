@@ -1,6 +1,7 @@
 'use client'
 
 import { appStoreUrl } from '@commerce/config/site'
+import { INBOX_APP_ID } from '@commerce/core/inbox'
 import { resolveAppEmbeds, type Theme } from '@commerce/core/theme'
 import { ChevronRight, Puzzle } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
@@ -9,6 +10,7 @@ import { Switch } from '@commerce/ui/shadcn/switch'
 import { AutoField, type Field } from '@puckeditor/core'
 import { useState } from 'react'
 import { customizeContent } from '@/data/customize'
+import { customizeInboxEmbedContent } from '@/data/customize-inbox-embed'
 import { useCopy } from '@/hooks/use-copy'
 import { editorAppEmbedSources } from '@/lib/customize-app-embeds'
 import {
@@ -19,6 +21,7 @@ import {
   CHROME_META,
 } from '@/lib/customize-chrome'
 import { FIELD_INPUT } from '@/lib/customize-field-styles'
+import InboxEmbedCard from './inbox-embed-card'
 
 type AppsPanelProps = {
   /** The apps this store has installed; only their embeds are listed. */
@@ -33,11 +36,14 @@ type LabelledField = Field & { label?: string }
 /**
  * The App embeds rail panel (Shopify's "App embeds"): every site-wide widget the installed apps
  * offer, each with a switch and, opened, its settings. Both save into `theme.appEmbeds` with the
- * other theme settings, so they ship on Save like the rest of the theme.
+ * other theme settings, so they ship on Save like the rest of the theme. The Inbox app's chat
+ * ("Online store chat") is listed first when Inbox is installed; its settings are the app's own
+ * and save as they change (`InboxEmbedCard`).
  */
 export default function AppsPanel({ installed, theme, onChange }: AppsPanelProps) {
   // Hooks
   const copy = useCopy(customizeContent.appEmbeds)
+  const inboxCopy = useCopy(customizeInboxEmbedContent)
   const [query, setQuery] = useState('')
   const [open, setOpen] = useState<string | null>(null)
 
@@ -51,9 +57,12 @@ export default function AppsPanel({ installed, theme, onChange }: AppsPanelProps
   const matched = embeds.filter((e) =>
     `${e.embed.label} ${e.appName}`.toLowerCase().includes(needle),
   )
+  const hasInbox = installed.includes(INBOX_APP_ID)
+  const inboxMatched =
+    hasInbox && `${inboxCopy.label} ${inboxCopy.app}`.toLowerCase().includes(needle)
 
   // Early returns
-  if (embeds.length === 0) {
+  if (embeds.length === 0 && !hasInbox) {
     return (
       <div className="flex flex-col items-center gap-2 px-4 py-10 text-center">
         <span className="flex size-8 items-center justify-center rounded-lg bg-chart-2/14 text-chart-2">
@@ -87,10 +96,16 @@ export default function AppsPanel({ installed, theme, onChange }: AppsPanelProps
         aria-label={copy.search}
         className={FIELD_INPUT}
       />
-      {matched.length === 0 ? (
+      {matched.length === 0 && !inboxMatched ? (
         <p className="py-6 text-center text-[0.8125rem] text-muted-foreground">{copy.noMatch}</p>
       ) : (
         <ul className="flex flex-col gap-2">
+          {inboxMatched ? (
+            <InboxEmbedCard
+              expanded={open === INBOX_APP_ID}
+              onToggleOpen={() => setOpen(open === INBOX_APP_ID ? null : INBOX_APP_ID)}
+            />
+          ) : null}
           {matched.map((e) => {
             const type = e.embed.type
             const expanded = open === type

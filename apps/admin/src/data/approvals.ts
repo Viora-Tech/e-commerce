@@ -2,10 +2,10 @@
 export const approvalsContent = {
   title: 'Approvals',
   intro:
-    "Changes a member's role sends for approval, from the admin, the AI assistant, AI apps (MCP) or the API. A different member approves them; the person who asked never can.",
+    "Changes a member's role sends for approval, from the admin, the AI assistant, AI apps (MCP) or the API. A different member approves them; the person who asked never can. Your own AI app's requests wait here for you to confirm.",
   waiting: {
     heading: 'Waiting for you',
-    help: 'Approve runs the change as you, with your role. Reject throws it away.',
+    help: 'Changes from other members, and your own AI app requests. Approve runs the change as you, with your role. Reject throws it away.',
     empty: 'Nothing is waiting for your approval.',
   },
   mine: {

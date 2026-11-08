@@ -99,6 +99,12 @@ export const inboxConversationsContent = {
     note: 'Note',
     typing: 'Typing…',
     startedOn: (url: string) => `Started on ${url}`,
+    channel: {
+      web: 'Online store chat',
+      whatsapp: 'WhatsApp',
+      instagram: 'Instagram',
+      messenger: 'Messenger',
+    } as Record<string, string>,
     aiAuthor: 'AI agent',
     handoff: {
       title: 'The AI handed this chat to you',
@@ -131,7 +137,9 @@ export const inboxConversationsContent = {
     },
   },
   composer: {
-    placeholder: 'Reply… type / for quick replies',
+    placeholder: 'Write a reply, or type / for quick replies',
+    quickReplies: 'Quick replies',
+    sendHint: 'Enter to send, Shift + Enter for a new line',
     notePlaceholder: 'Write a note only your team sees',
     send: 'Send',
     addNote: 'Add note',

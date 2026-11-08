@@ -28,7 +28,7 @@ export default [
     filterRows: 'लाइनें फ़िल्टर करें',
     more: 'और',
     viewAll: 'सब देखें',
-    viewAllApps: (n) => `सभी ऐप्स देखें (${n})`,
+    viewAllApps: (n) => `सभी ऐप्स (${n})`,
     appStore: 'ऐप स्टोर',
     noStore: 'कोई स्टोर नहीं चुना',
     toggleTheme: 'थीम बदलें',

@@ -48,10 +48,14 @@ COPY --from=pruner /repo/out/full/ .
 COPY --from=pruner /repo/commerce.config.ts /repo/commerce.blocks.config.ts ./
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
-# Caps the build's own heap growth so it fails with a clear OOM instead of the runner killing
-# the job (GitHub's standard runner for private repos has ~7 GB RAM; building this used ~7 GB
-# uncapped, which is why builds moved off the 8 GB server).
-ENV NODE_OPTIONS=--max-old-space-size=6144
+# Lean build (packages/config/src/lean-build.ts): types are checked before every PR with
+# TypeScript 7 (`bun run typecheck`), so the build skips Next's slower TypeScript 5.9 pass, and
+# two page workers instead of one per core. Measured: fits a 4 GB machine with 4 GB of swap.
+ENV BUILD_TYPECHECK=0
+ENV BUILD_CPUS=2
+# Caps Node's own heap (Turbopack's native memory is outside it). The lean build peaked at about
+# 6 GB in total on 8 Nov 2026, against 8.7 GB before.
+ENV NODE_OPTIONS=--max-old-space-size=4096
 # Next inlines NEXT_PUBLIC_* into the browser bundle at build time, so the worker URL shown on
 # the Settings pages has to be known here (release.yml passes the repo variable of this name).
 # Left unset when empty so the code's own localhost fallback applies.

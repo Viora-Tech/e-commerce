@@ -7,7 +7,13 @@ import { Button } from '@commerce/ui/shadcn/button'
 import { Dialog, DialogDescription, DialogTitle } from '@commerce/ui/shadcn/dialog'
 import { Field, FieldDescription, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
-import { RadioGroup, RadioGroupItem } from '@commerce/ui/shadcn/radio-group'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@commerce/ui/shadcn/select'
 import Link from 'next/link'
 import { type FormEvent, useEffect, useState } from 'react'
 import { toast } from 'sonner'
@@ -147,24 +153,25 @@ export default function CollectPaymentDialog({
               autoFocus
             />
           </Field>
+          {/* A dropdown, not a tile per method: the dialog stays short and more methods fit. */}
           <Field>
-            <FieldLabel>{c.how}</FieldLabel>
-            <RadioGroup
+            <FieldLabel htmlFor="collect-method">{c.how}</FieldLabel>
+            <Select
+              items={c.methods}
               value={paidWith}
-              onValueChange={(v) => setMethod(v as ManualPaymentMethod)}
-              className="grid gap-2 sm:grid-cols-2"
+              onValueChange={(v) => v && setMethod(v as ManualPaymentMethod)}
             >
-              {MANUAL_PAYMENT_METHODS.map((m) => (
-                <label
-                  key={m}
-                  htmlFor={`collect-method-${m}`}
-                  className="flex min-h-11 items-center gap-2 rounded-md border border-border px-3 text-body has-data-checked:border-primary"
-                >
-                  <RadioGroupItem id={`collect-method-${m}`} value={m} />
-                  {c.methods[m]}
-                </label>
-              ))}
-            </RadioGroup>
+              <SelectTrigger size="lg" id="collect-method" className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {MANUAL_PAYMENT_METHODS.map((m) => (
+                  <SelectItem key={m} value={m}>
+                    {c.methods[m]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             {byCredit ? (
               <FieldDescription className={creditShort ? 'text-destructive' : undefined}>
                 {!customerId

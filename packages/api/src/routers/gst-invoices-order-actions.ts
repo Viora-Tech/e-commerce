@@ -11,12 +11,14 @@ import {
   issueDrafts,
   issuedInvoiceIds,
   isTestOrder,
+  refreshInvoiceGst as refreshFromProducts,
+  renderAndStore,
   soldOnlyGiftCards,
 } from '@commerce/plugin-gst-invoices/server'
 import { z } from 'zod'
 import { BULK_MAX, can } from '../procedures'
 import { orderIdsByNumber } from '../services/gst-invoices.service'
-import { asOrpc, requireInstalled } from './gst-invoices-context'
+import { asOrpc, renderDeps, requireInstalled } from './gst-invoices-context'
 
 /** Add orders by hand, e.g. a pre-order the merchant wants invoiced now. */
 export const addToQueue = can(permissions.ORDERS_WRITE)
@@ -118,9 +120,34 @@ export const generateInvoice = can(permissions.ORDERS_WRITE)
   })
 
 /** The issued tax invoices of the orders selected in Orders, for its bulk Print invoices. */
-export const invoicesForOrders = can(permissions.ORDERS_READ)
+const invoicesForOrders = can(permissions.ORDERS_READ)
   .input(z.object({ orderIds: z.array(z.uuid()).min(1).max(BULK_MAX) }))
   .handler(async ({ context, input }) => {
     await requireInstalled(context)
     return { ids: await issuedInvoiceIds(context.tx, input.orderIds) }
   })
+
+/**
+ * "Recalculate GST from products" on an issued, unfiled tax invoice: the order's lines take
+ * their products' GST and HSN as they are now, and the invoice is rebuilt under the same
+ * number and date. Once reported in GSTR-1 it is locked; a credit note is the way then.
+ */
+const refreshInvoiceGst = can(permissions.ORDERS_WRITE)
+  .input(z.object({ id: z.uuid() }))
+  .handler(async ({ context, input }) => {
+    await requireInstalled(context)
+    try {
+      const { row, changedLines } = await refreshFromProducts(
+        context.tx,
+        context.scope.storeId,
+        input.id,
+      )
+      const done = await renderAndStore(renderDeps(context), row.id)
+      return { id: done.id, number: done.number, changedLines }
+    } catch (err) {
+      asOrpc(err)
+    }
+  })
+
+/** Mounted on `gstInvoices` in one line, so that router stays within the file-size sweep. */
+export const invoiceFixProcedures = { forOrders: invoicesForOrders, refreshGst: refreshInvoiceGst }

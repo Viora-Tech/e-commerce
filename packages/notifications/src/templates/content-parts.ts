@@ -47,7 +47,7 @@ export const balanceTemplates = {
   },
   balance_reminder: {
     subject: (d) => `${d.storeName}: reminder, balance due for order #${d.orderNumber}`,
-    heading: (d) => `Hi ${d.customerName}, a quick reminder`,
+    heading: (d) => `Hi ${d.customerName}, a balance is due`,
     intro: (d) =>
       `The balance of ${d.balance?.dueLabel ?? ''} for ${orderRef(d)} is still due.${payBy(d)}${keepNote(d)}`,
     outro: (d) =>
@@ -98,9 +98,9 @@ export const transferTemplates = {
     heading: (d) => `Hi ${d.customerName}, we cancelled your order`,
     intro: (d) =>
       `We did not receive the ${d.totalLabel} payment for order #${d.orderNumber}, so it has been cancelled and the items released.`,
-    outro: () => 'If you have paid, reply to this email and we will sort it out.',
+    outro: () => 'If you have paid, reply to this email and we will check.',
     whatsapp: (d) =>
-      `${d.storeName}: order #${d.orderNumber} was cancelled because the ${d.totalLabel} payment did not arrive. Paid already? Just reply.`,
+      `${d.storeName}: order #${d.orderNumber} was cancelled because the ${d.totalLabel} payment did not arrive. If you paid, reply to this message.`,
   },
   staff_new_order: {
     subject: (d) => `${d.storeName}: new order #${d.orderNumber} (${d.totalLabel})`,
@@ -164,8 +164,8 @@ export const backInStockTemplates = {
       `${[d.backInStock?.productTitle, d.backInStock?.variantTitle].filter(Boolean).join(' / ')} is available again at ${d.storeName}.`,
     outro: (d) =>
       d.backInStock?.productUrl
-        ? `Get it before it sells out: ${d.backInStock.productUrl}`
-        : 'Get it before it sells out.',
+        ? `Buy it here: ${d.backInStock.productUrl}`
+        : 'You can order it on the store now.',
     whatsapp: (d) =>
       `${d.backInStock?.productTitle ?? 'Good news'} is back in stock at ${d.storeName}.${
         d.backInStock?.productUrl ? ` Shop: ${d.backInStock.productUrl}` : ''
@@ -198,7 +198,7 @@ export const returnTemplates = {
   return_approved: {
     subject: (d) => `${d.storeName}: your return ${ret(d)} is approved`,
     heading: () => 'Your return is approved',
-    intro: (d) => `Good news: we accepted return ${ret(d)} for order #${d.orderNumber}.`,
+    intro: (d) => `We accepted return ${ret(d)} for order #${d.orderNumber}.`,
     outro: (d) => howBack(d),
     whatsapp: (d) =>
       `${d.storeName}: return ${ret(d)} for order #${d.orderNumber} is approved. ${howBack(d)}`,
@@ -208,7 +208,7 @@ export const returnTemplates = {
     heading: (d) => `Hi ${d.customerName}, we could not accept this return`,
     intro: (d) =>
       `We are sorry, return ${ret(d)} for order #${d.orderNumber} was not accepted.${d.returnInfo?.decisionNote ? ` Reason: ${d.returnInfo.decisionNote}` : ''}`,
-    outro: () => 'If you think this is a mistake, just reply to this email and we will look again.',
+    outro: () => 'If you think this is a mistake, reply to this email and we will look again.',
     whatsapp: (d) =>
       `${d.storeName}: return ${ret(d)} for order #${d.orderNumber} was not accepted.${d.returnInfo?.decisionNote ? ` Reason: ${d.returnInfo.decisionNote}` : ''} Reply if you have questions.`,
   },
@@ -226,7 +226,7 @@ export const returnTemplates = {
     heading: () => 'Your refund is on its way',
     intro: (d) =>
       `We sent ${d.returnInfo?.refundLabel ?? d.totalLabel} for return ${ret(d)} (order #${d.orderNumber}) ${refundWhere(d)}.`,
-    outro: () => 'Thank you for shopping with us.',
+    outro: () => 'Reply to this email if anything is not right.',
     whatsapp: (d) =>
       `${d.storeName}: refund of ${d.returnInfo?.refundLabel ?? d.totalLabel} for return ${ret(d)} is on its way ${d.returnInfo?.refundMethod === 'store_credit' ? 'as store credit' : 'to the way you paid'}.`,
   },
@@ -266,8 +266,8 @@ export const shipmentTemplates = {
   delivered: {
     subject: (d) => `${d.storeName}: order #${d.orderNumber} was delivered`,
     heading: () => 'Delivered',
-    intro: (d) => `Order #${d.orderNumber} has been delivered. We hope you love it.`,
-    outro: () => 'Something wrong with it? Just reply to this email.',
+    intro: (d) => `Order #${d.orderNumber} has been delivered.`,
+    outro: () => 'If something is wrong with it, reply to this email.',
     whatsapp: (d) => `${d.storeName} order #${d.orderNumber} was delivered. Enjoy!`,
   },
   delivery_failed: {
