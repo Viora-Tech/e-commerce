@@ -100,6 +100,7 @@
     "./order-edit-rules": "./src/order/edit-rules.ts",
     "./fulfillment-orders": "./src/order/fulfillment-orders.ts",
     "./returns": "./src/returns/policy.ts",
+    "./offer-policies": "./src/seo/offer-policies.ts",
     "./return-reasons": "./src/returns/reasons.ts",
     "./cod-rto": "./src/cod-rto/client.ts",
     "./cod-rto-app": "./src/cod-rto/app.ts",
