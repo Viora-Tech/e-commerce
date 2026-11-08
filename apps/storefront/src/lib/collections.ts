@@ -214,6 +214,7 @@ export async function listCollectionProducts(
       alt: media.alt,
       variants: media.variants,
       thumbhash: media.thumbhash,
+      width: media.width,
     })
     .from(productMedia)
     .innerJoin(media, eq(media.id, productMedia.mediaId))
@@ -249,6 +250,7 @@ export async function listCollectionProducts(
           alt: i.alt,
           variants: i.variants as Record<string, { avif: string; webp: string }> | null,
           thumbhash: i.thumbhash,
+          width: i.width,
         })),
     }
   })

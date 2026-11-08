@@ -13,6 +13,8 @@ export type MediaImage = {
   contentType?: string | null | undefined
   variants?: Record<string, { avif: string; webp: string }> | null | undefined
   thumbhash?: string | null | undefined
+  /** The original file's pixel width: `<Picture>` offers it when it beats the widest variant. */
+  width?: number | null | undefined
 }
 
 export type CardProduct = {

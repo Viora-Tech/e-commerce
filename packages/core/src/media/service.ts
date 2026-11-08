@@ -476,6 +476,7 @@ export async function productGallery(tx: StoreTx, productId: string) {
       contentType: media.contentType,
       variants: media.variants,
       thumbhash: media.thumbhash,
+      width: media.width,
     })
     .from(productMedia)
     .innerJoin(media, eq(media.id, productMedia.mediaId))
