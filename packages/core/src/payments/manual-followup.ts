@@ -7,7 +7,7 @@ import { GIFT_CARD_PROVIDER } from '../gift-cards/service'
 import { recomputeOrderStatuses } from '../order/recompute'
 import { cancelOrder } from '../order/status'
 import { insertOutboxEvent } from '../outbox/write'
-import { parsePaymentSettings } from './settings'
+import { manualCancelHoursOf, parsePaymentSettings } from './settings'
 import { OPEN_ATTEMPT_STATUSES } from './transitions'
 
 /*
@@ -16,8 +16,9 @@ import { OPEN_ATTEMPT_STATUSES } from './transitions'
  * nothing here reaches the shopper on its own:
  * - the merchant sends a payment reminder from the order, at most once every
  *   6 hours;
- * - auto-cancel is opt-in per store. When on, the merchant is told 12 hours
- *   ahead, then the order is cancelled and its stock released.
+ * - auto-cancel is on by default (6 hours; 1 to 72, or off, per store). The
+ *   merchant is told ahead (`cancelNoticeHours`), then the order is cancelled
+ *   and its stock released.
  * Marking the order paid ends all of it: every step re-checks `placed` under
  * a conditional update or the order's row lock.
  */
@@ -27,8 +28,16 @@ export const MANUAL_METHOD = 'manual'
 const HOUR_MS = 3_600_000
 /** Shortest gap between two reminders the merchant sends for one order. */
 export const REMINDER_EVERY_HOURS = 6
-/** How long before an automatic cancel the merchant hears about it. */
+/** How long before an automatic cancel the merchant hears about it, for a window of a day or more. */
 export const CANCEL_NOTICE_HOURS = 12
+
+/**
+ * Hours of notice the merchant gets before an order is cancelled: 12, or half the window
+ * when the window is under a day (a 6 hour window is noticed at 3 hours, 3 hours ahead).
+ */
+export function cancelNoticeHours(cancelAfterHours: number): number {
+  return cancelAfterHours < 24 ? cancelAfterHours / 2 : CANCEL_NOTICE_HOURS
+}
 const BATCH = 100
 
 export class PaymentNotPending extends CommerceError {
@@ -222,10 +231,12 @@ export type ManualStep = 'notice' | 'cancel' | null
 
 export type ManualCandidate = { placedAt: Date; cancelNoticeAt: Date | null }
 
-/** When the order will be cancelled: its window, but never sooner than 12 hours after the notice. */
+/** When the order will be cancelled: its window, but never sooner than the notice period after the notice. */
 export function manualCancelAt(hours: number, o: ManualCandidate): Date {
   const byWindow = o.placedAt.getTime() + hours * HOUR_MS
-  const byNotice = o.cancelNoticeAt ? o.cancelNoticeAt.getTime() + CANCEL_NOTICE_HOURS * HOUR_MS : 0
+  const byNotice = o.cancelNoticeAt
+    ? o.cancelNoticeAt.getTime() + cancelNoticeHours(hours) * HOUR_MS
+    : 0
   return new Date(Math.max(byWindow, byNotice))
 }
 
@@ -238,7 +249,8 @@ export function nextManualStep(
   if (cancelAfterHours <= 0) return null
   const t = now.getTime()
   if (!o.cancelNoticeAt) {
-    const noticeAt = o.placedAt.getTime() + (cancelAfterHours - CANCEL_NOTICE_HOURS) * HOUR_MS
+    const noticeAt =
+      o.placedAt.getTime() + (cancelAfterHours - cancelNoticeHours(cancelAfterHours)) * HOUR_MS
     return t >= noticeAt ? 'notice' : null
   }
   return t >= manualCancelAt(cancelAfterHours, o).getTime() ? 'cancel' : null
@@ -336,7 +348,7 @@ export type ManualOutcome = {
   reason?: string | undefined
 }
 
-/** One store's auto-cancel run. Off unless the store turned it on. */
+/** One store's auto-cancel run. On unless the store turned it off. */
 export async function runManualFollowUp(
   db: Db,
   storeId: string,
@@ -347,7 +359,7 @@ export async function runManualFollowUp(
       .select({ payments: store.payments })
       .from(store)
       .where(eq(store.id, storeId))
-    const hours = parsePaymentSettings(s?.payments).manualCancelAfterHours
+    const hours = manualCancelHoursOf(parsePaymentSettings(s?.payments))
     return { hours, candidates: hours > 0 ? await manualFollowUpCandidates({ storeId, tx }) : [] }
   })
   const out: ManualOutcome[] = []

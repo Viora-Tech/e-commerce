@@ -954,10 +954,17 @@ const ALLOWLIST: AllowEntry[] = [
     reason: 'no external importer today — investigate before removing',
   },
   {
+    file: 'packages/core/src/order/duplicate-checkout.ts',
+    names: ['itemsKey', 'findRecentDuplicateCheckout', 'recentUnpaidCheckouts'],
+    reason:
+      'unit-tested directly; findRecentDuplicateCheckout is the helper the unpaid-checkouts-as-drafts design (#1293) points at drafts',
+  },
+  {
     file: 'packages/core/src/payments/manual-followup.ts',
     names: [
       'REMINDER_EVERY_HOURS',
       'CANCEL_NOTICE_HOURS',
+      'cancelNoticeHours',
       'PaymentNotPending',
       'CANCEL_NOTICE_NOTE',
       'MANUAL_CANCELLED_NOTE',

@@ -30,6 +30,8 @@ import {
   startPaymentAttempt,
   startPaymentWithFallback,
 } from '../payments/attempts'
+import { MANUAL_METHOD } from '../payments/manual-followup'
+import { assertNoUnpaidTransfer } from '../payments/manual-unpaid'
 import { hiddenPaymentMethods } from '../payments/method-rules'
 import { GATEWAY_START_TIMEOUT_MS } from '../payments/routing'
 import { parsePaymentSettings } from '../payments/settings'
@@ -38,6 +40,7 @@ import { priceOrderDelivery } from '../shipping/delivery-options/order'
 import { quoteProfileLines } from '../shipping/profiles-service'
 import { runWorkflow, type WorkflowLog, type WorkflowStep } from '../workflow/run'
 import { lockCartOrReplay } from './cart-replay'
+import { enforceCheckoutRepeats } from './duplicate-checkout'
 import { createOrder } from './place-order-create'
 import { loadCart, mixedCartOf } from './place-order-load'
 import { chargeNowPaise, checkCheckoutPincode, paidByCards, sumPaise } from './place-order-rules'
@@ -145,7 +148,8 @@ const enforceCheckoutRules: WorkflowStep<State> = {
     )
     const ruleSubtotalPaise = checkoutRuleSubtotalPaise(lines, discountPaise)
     // Payment rules (#150): a way to pay the store hides for this order is refused here too.
-    const hidden = hiddenPaymentMethods(parsePaymentSettings(s?.payments).methodRules, {
+    const payments = parsePaymentSettings(s?.payments)
+    const hidden = hiddenPaymentMethods(payments.methodRules, {
       orderValuePaise: ruleSubtotalPaise + shippingPaise,
       pincode: input.checkout?.address.pincode ?? '',
       productIds: lines.map((l) => l.productId),
@@ -153,16 +157,32 @@ const enforceCheckoutRules: WorkflowStep<State> = {
     if (hidden.has(input.paymentProvider.id)) {
       throw new PaymentMethodHidden(input.paymentProvider.id, ctx.storeId)
     }
-    return {
-      contact: checkCheckoutRules(settings, {
-        checkout: input.checkout ?? null,
-        paymentProviderId: input.paymentProvider.id,
-        giftCardsOnly: lines.every((l) => l.giftCard),
-        ruleSubtotalPaise,
-        shippingPaise,
-        storeId: ctx.storeId,
-      }),
+    const contact = checkCheckoutRules(settings, {
+      checkout: input.checkout ?? null,
+      paymentProviderId: input.paymentProvider.id,
+      giftCardsOnly: lines.every((l) => l.giftCard),
+      ruleSubtotalPaise,
+      shippingPaise,
+      storeId: ctx.storeId,
+    })
+    if (input.checkout) {
+      const keys = {
+        email: contact?.email ?? input.checkout.email,
+        phone: contact?.phone ?? input.checkout.phone,
+      }
+      // The same items again (unpaid: resume it; placed: ask), then the hourly cap.
+      await enforceCheckoutRepeats(ctx, {
+        contact: keys,
+        lines,
+        paymentMethod: input.paymentProvider.id,
+        windowHours: payments.duplicateCheckoutHours,
+        unpaidPerHour: payments.unpaidCheckoutsPerHour,
+        orderAgain: input.orderAgain,
+      })
+      // One unpaid UPI or bank transfer order per shopper: pay it, or pay another way.
+      if (input.paymentProvider.id === MANUAL_METHOD) await assertNoUnpaidTransfer(ctx, keys)
     }
+    return { contact }
   },
 }
 

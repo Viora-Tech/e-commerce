@@ -10,6 +10,7 @@ import CheckoutPageShell from '@/components/checkout/checkout-page-shell'
 import CheckoutPayButton from '@/components/checkout/checkout-pay-button'
 import CheckoutPayNote from '@/components/checkout/checkout-pay-note'
 import CheckoutPaymentStep from '@/components/checkout/checkout-payment-step'
+import CheckoutRepeatNotice from '@/components/checkout/checkout-repeat-notice'
 import CheckoutReview from '@/components/checkout/checkout-review'
 import CheckoutSoldOut from '@/components/checkout/checkout-sold-out'
 import CheckoutStepper from '@/components/checkout/checkout-stepper'
@@ -25,6 +26,7 @@ import { countryName } from '@/lib/checkout-countries'
 import { reviewRows } from '@/lib/checkout-filled-rows'
 import type { CheckoutFormInput } from '@/lib/checkout-form-input'
 import { processorNames, shippingRow } from '@/lib/checkout-preview'
+import { problemText } from '@/lib/checkout-result'
 import {
   type CheckoutSection,
   nextSection,
@@ -83,7 +85,7 @@ export default function CheckoutForm(props: CheckoutFormProps) {
       ? content.minimumOrder(formatPaise(ck.settings.minimumOrderPaise), formatPaise(ck.shortfall))
       : null
   const error =
-    ck.error ??
+    problemText(ck.error) ??
     (ck.needsContact
       ? ck.accountRequired
         ? content.otp.needSignInRequired
@@ -361,6 +363,11 @@ export default function CheckoutForm(props: CheckoutFormProps) {
             </p>
           ) : null}
         </div>
+        <CheckoutRepeatNotice
+          problem={ck.error}
+          onOrderAgain={ck.handleOrderAgain}
+          pending={ck.pending}
+        />
         {continueButton && !(step === 'contact' && signingIn) ? (
           <div className={`hidden lg:flex ${step === 'contact' ? 'justify-end' : ''}`}>
             {continueButton}

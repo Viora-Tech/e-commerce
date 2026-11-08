@@ -37,12 +37,25 @@ export const PaymentSettingsSchema = z.object({
    */
   expireUnpaidAfterMinutes: z.number().int().min(0).max(10_080).default(30),
   /**
-   * Cancel manual UPI / bank transfer orders still unpaid this many hours
-   * after they were placed, releasing their stock. Off (0) by default: the
-   * shopper may have paid and the merchant not matched it yet. When on, the
-   * merchant is told 12 hours before; marking the order paid stops it.
+   * "Cancel unpaid UPI and bank transfer orders automatically": the merchant's own choice.
+   * Unset means they never chose, and the default (on) applies; `off` is kept off. Read it
+   * through `manualCancelHoursOf`, never on its own.
+   */
+  manualAutoCancel: z.enum(['on', 'off']).optional(),
+  /**
+   * Hours after a manual UPI / bank transfer order is placed before it is cancelled unpaid,
+   * releasing its stock. 0 means "not set" (the 6 hour default); stored values outside 1 to
+   * 72 are clamped by `manualCancelHoursOf`. Marking the order paid stops it.
    */
   manualCancelAfterHours: z.number().int().min(0).max(720).default(0),
+  /**
+   * Repeated checkouts (`order/duplicate-checkout.ts`): how far back, in hours, the same items
+   * from the same shopper count as the same order (unpaid: refused and resumed; paid: asked
+   * "Order again?"). 0 turns the check off.
+   */
+  duplicateCheckoutHours: z.number().int().min(0).max(168).default(24),
+  /** Most unpaid checkouts one shopper (email, phone or IP) may start in an hour; 0 is no cap. */
+  unpaidCheckoutsPerHour: z.number().int().min(0).max(50).default(3),
   /**
    * "Shoppers can pay with": UPI, cards, netbanking, wallets, EMI and COD, each
    * on or off, in checkout order. Unset on stores saved before it existed;
@@ -75,6 +88,27 @@ export const defaultPaymentSettings: PaymentSettings = {
   adjustments: {},
   expireUnpaidAfterMinutes: 30,
   manualCancelAfterHours: 0,
+  duplicateCheckoutHours: 24,
+  unpaidCheckoutsPerHour: 3,
+}
+
+/** Auto-cancel window for unpaid manual transfer orders, in hours. */
+const MANUAL_CANCEL_HOURS = { default: 6, min: 1, max: 72 } as const
+
+/**
+ * The window unpaid manual transfer orders get before they are cancelled; 0 when the
+ * merchant turned auto-cancel off. On by default: a store that never chose gets 6 hours.
+ * Before this default, 0 was both "off" and "never set" and every payments save wrote it,
+ * so a stored 0 without `manualAutoCancel` counts as never chosen. A window that was turned
+ * on keeps its hours, clamped to 1 to 72.
+ */
+export function manualCancelHoursOf(
+  s: Pick<PaymentSettings, 'manualAutoCancel' | 'manualCancelAfterHours'>,
+): number {
+  if (s.manualAutoCancel === 'off') return 0
+  const hours =
+    s.manualCancelAfterHours > 0 ? s.manualCancelAfterHours : MANUAL_CANCEL_HOURS.default
+  return Math.min(MANUAL_CANCEL_HOURS.max, Math.max(MANUAL_CANCEL_HOURS.min, hours))
 }
 
 export function parsePaymentSettings(raw: unknown): PaymentSettings {
