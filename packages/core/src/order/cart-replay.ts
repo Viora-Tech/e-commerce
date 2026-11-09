@@ -35,6 +35,8 @@ export async function lockCartOrReplay(
     .select({
       id: order.id,
       number: order.number,
+      status: order.status,
+      draftNumber: order.draftNumber,
       paymentMethod: order.paymentMethod,
       depositPaise: order.depositPaise,
       balanceDuePaise: order.balanceDuePaise,
@@ -43,6 +45,7 @@ export async function lockCartOrReplay(
     .where(eq(order.cartId, cartId))
   // Converted before orders recorded their cart: nothing to replay.
   if (!o) return null
+  const draft = { draftNumber: o.status === 'draft' ? o.draftNumber : null, resumedDraft: false }
   const [p] = await ctx.tx
     .select({
       id: payment.id,
@@ -61,6 +64,7 @@ export async function lockCartOrReplay(
     return {
       orderId: o.id,
       orderNumber: o.number,
+      ...draft,
       attemptId: null,
       paymentStatus: 'captured',
       session: { kind: 'none', provider: o.paymentMethod ?? GIFT_CARD_PROVIDER, providerRef },
@@ -74,6 +78,7 @@ export async function lockCartOrReplay(
   return {
     orderId: o.id,
     orderNumber: o.number,
+    ...draft,
     attemptId: p.id,
     paymentStatus: p.status,
     depositPaise: o.depositPaise ?? 0,

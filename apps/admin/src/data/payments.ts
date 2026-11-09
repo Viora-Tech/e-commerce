@@ -24,9 +24,12 @@ export const paymentsSettingsContent = {
   /** Repeated checkouts: the same items again, and too many unpaid orders. */
   repeats: {
     heading: 'Repeated checkouts',
+    draftsLabel: 'Keep unpaid checkouts as drafts',
+    draftsHelp:
+      'A checkout paid online or by UPI / bank transfer stays a draft (#D57) under Draft orders until the money arrives or you mark it paid. Only then does it get an order number. Cash on delivery is always an order at once.',
     windowLabel: 'Treat the same items as the same order for (hours)',
     windowHelp:
-      'When a customer checks out the same items again within this time, an unpaid order is not created twice: they are sent to pay for the first one. If the first one is paid, they are asked before ordering again. 0 turns this off.',
+      'When a customer checks out the same items again within this time, an unpaid order is not created twice: they go on paying for the first one. If the first one is paid, they are asked before ordering again. The time counts from their last try. 0 turns this off.',
     capLabel: 'Most unpaid orders per customer in an hour',
     capHelp:
       'Counted by email, phone and internet address. Cash on delivery does not count. 0 means no limit.',

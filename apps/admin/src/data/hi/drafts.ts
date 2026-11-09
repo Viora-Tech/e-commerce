@@ -1,4 +1,9 @@
-import { abandonedBulkContent, draftEditorContent, draftsContent } from '@/data/drafts'
+import {
+  abandonedBulkContent,
+  checkoutDraftContent,
+  draftEditorContent,
+  draftsContent,
+} from '@/data/drafts'
 import { translation } from '@/lib/i18n'
 
 export default [
@@ -16,7 +21,13 @@ export default [
     title: 'ड्राफ़्ट ऑर्डर',
     heading: 'ड्राफ़्ट ऑर्डर',
     intro: 'ग्राहक के लिए बनाए गए ऑर्डर। कन्वर्ट करने तक ये आपके स्टोरफ़्रंट पर नहीं दिखते।',
-    tabs: { all: 'सभी ड्राफ़्ट', open: 'खुले', invoice_sent: 'इनवॉइस भेजा' },
+    tabs: {
+      all: 'सभी ड्राफ़्ट',
+      checkout: 'चेकआउट से (बिना पेमेंट)',
+      staff: 'स्टाफ़ ने बनाए',
+      open: 'खुले',
+      invoice_sent: 'इनवॉइस भेजा',
+    },
     viewLabel: 'ड्राफ़्ट व्यू',
     sortNewest: 'नए पहले',
     sortOldest: 'पुराने पहले',
@@ -27,6 +38,7 @@ export default [
         .join(' · '),
     tiles: {
       open: { label: 'खुले ड्राफ़्ट', note: 'कन्वर्ट या भेजने के लिए तैयार' },
+      checkout: { label: 'बिना पेमेंट के चेकआउट', note: 'जिन ग्राहकों ने अभी पेमेंट नहीं किया' },
       invoiced: { label: 'भेजे गए इनवॉइस', note: 'ग्राहक के पेमेंट का इंतज़ार' },
       value: { label: 'ड्राफ़्ट में वैल्यू', note: (n: number) => `सभी ${n} ड्राफ़्ट मिलाकर` },
     },
@@ -51,11 +63,63 @@ export default [
       items: 'आइटम',
       total: 'कुल',
       created: 'बनाया',
+      activity: 'आख़िरी गतिविधि',
       status: 'स्थिति',
     },
     itemCount: (n: number) => `${n} आइटम`,
     guest: 'कोई ग्राहक नहीं',
-    status: { open: 'खुला', invoiceSent: 'इनवॉइस भेजा' },
+    status: {
+      open: 'खुला',
+      invoiceSent: 'इनवॉइस भेजा',
+      unpaid: 'पेमेंट बाकी',
+      failed: (n: number) => (n > 1 ? `पेमेंट फ़ेल ×${n}` : 'पेमेंट फ़ेल'),
+      refundNeeded: 'रिफ़ंड ज़रूरी',
+      shopperPaid: 'ग्राहक ने कहा पेमेंट किया',
+      expired: 'समय निकल गया',
+    },
+  }),
+  translation(checkoutDraftContent, {
+    badge: 'बिना पेमेंट का चेकआउट',
+    intro:
+      'ग्राहक ने चेकआउट किया पर अभी पेमेंट नहीं किया। पेमेंट आने पर या आपके पेमेंट मिला मार्क करने पर यह ऑर्डर नंबर के साथ ऑर्डर बन जाएगा।',
+    summary: 'चेकआउट',
+    method: 'पेमेंट का तरीका',
+    methods: { manual: 'UPI या बैंक ट्रांसफ़र', online: 'ऑनलाइन पेमेंट' },
+    lastActivity: 'आख़िरी गतिविधि',
+    held: 'आइटम इस समय तक रोके गए हैं',
+    notHeld: 'आइटम रोके नहीं गए हैं। पेमेंट होने पर स्टॉक हो तो फिर से रोके जाएँगे।',
+    expired: '7 दिन तक कोई गतिविधि न होने पर इस चेकआउट का पेमेंट का इंतज़ार बंद हो गया।',
+    refundNeeded: 'पेमेंट आया पर आइटम स्टॉक में नहीं थे, इसलिए ऑर्डर नहीं बना। ग्राहक को पेमेंट रिफ़ंड करें।',
+    attempts: 'पेमेंट की कोशिशें',
+    attempt: (n: number) => `कोशिश ${n}`,
+    noAttempts: 'अभी कोई पेमेंट कोशिश नहीं',
+    attemptStatus: {
+      created: 'शुरू नहीं हुआ',
+      pending: 'ग्राहक का इंतज़ार',
+      authorized: 'ऑथराइज़ हुआ',
+      captured: 'पेमेंट हो गया',
+      failed: 'फ़ेल',
+      cancelled: 'बदल दिया गया',
+      refunded: 'रिफ़ंड हुआ',
+    },
+    items: 'आइटम',
+    total: 'कुल',
+    contact: 'संपर्क',
+    timeline: 'टाइमलाइन',
+    payLink: 'पेमेंट लिंक कॉपी करें',
+    payLinkCopied: 'पेमेंट लिंक कॉपी हो गया',
+    markPaid: 'पेमेंट मिला मार्क करें',
+    markPaidTitle: 'इस चेकआउट को पेमेंट मिला मार्क करें?',
+    markPaidBody: (total: string) =>
+      `सिर्फ़ तब जब आपको ${total} मिल चुके हों। यह अगले ऑर्डर नंबर के साथ ऑर्डर बन जाएगा और ग्राहक को कन्फ़र्मेशन मिलेगा।`,
+    convert: 'ऑर्डर में बदलें (बिना पेमेंट)',
+    convertTitle: 'बिना पेमेंट के ऑर्डर में बदलें?',
+    convertBody:
+      'यह अगले ऑर्डर नंबर के साथ ऑर्डर बन जाएगा, पेमेंट अभी बाकी रहेगा, जैसे भरोसे पर भेजने के लिए। इसका स्टॉक ऑर्डर के लिए रोका जाएगा।',
+    converted: (n: number) => `ऑर्डर #${n} बन गया`,
+    failedAction: 'यह नहीं हो सका। फिर से कोशिश करें।',
+    deleteDraft: 'हटाएँ',
+    cancel: 'रद्द करें',
   }),
   translation(draftEditorContent, {
     newTitle: 'ड्राफ़्ट ऑर्डर बनाएँ',

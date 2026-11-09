@@ -3,7 +3,7 @@
  *        order lines and fulfillment orders, inside placeOrder's transaction.
  * WHY:   Split from place-order.ts (#973) to keep the workflow file readable; placeOrder runs it.
  */
-import { newId, order, orderLine, type StoreTx, store } from '@commerce/db'
+import { newId, order, orderLine, orderNote, type StoreTx, store } from '@commerce/db'
 import { eq, sql } from 'drizzle-orm'
 import { isAbroad, taxRegimeFor } from '../checkout/address-abroad'
 import { requestCodConfirmation } from '../cod-rto/confirm'
@@ -25,8 +25,10 @@ import { parseStoreTax } from '../tax/settings'
 import type { WorkflowStep } from '../workflow/run'
 import { paysOnlineAtCheckout } from './aggregate-status'
 import { upsertCheckoutCustomer } from './checkout-customer'
+import { CHECKED_OUT_AGAIN_NOTE } from './checkout-draft'
+import { draftPlaceholder } from './draft-ref'
 import { createFulfillmentOrders, deleteFulfillmentOrders } from './fulfillment-orders'
-import { takeOrderNumber } from './order-number'
+import { takeDraftNumber, takeOrderNumber } from './order-number'
 import { taxParcels } from './parcel-tax'
 import { lineGstRate, paymentAdjustmentFor, sumPaise } from './place-order-rules'
 import type { State } from './place-order-types'
@@ -50,6 +52,8 @@ export const createOrder: WorkflowStep<State> = {
     backupRateId,
     contact,
     risk,
+    draft,
+    reserved,
   }) {
     const { customerId, shippingAddressId } = input.checkout
       ? await upsertCheckoutCustomer(ctx, input.checkout, contact, input.secret)
@@ -69,7 +73,16 @@ export const createOrder: WorkflowStep<State> = {
     if (!s) throw new Error(`store ${ctx.storeId} not visible in context`)
     const storePreorderNote = parsePreorderStoreSettings(s.preorder).note
     const storeTax = parseStoreTax(s.apps)
-    const orderNumber = await takeOrderNumber(ctx.tx, ctx.storeId)
+    // An unpaid checkout kept as a draft takes a draft number (#D57), or keeps the one of the
+    // shopper's open draft it is used again for; the order number waits for the money.
+    const draftNumber = draft
+      ? (draft.reuse?.draftNumber ?? (await takeDraftNumber(ctx.tx, ctx.storeId)))
+      : null
+    const orderNumber =
+      draftNumber !== null
+        ? draftPlaceholder(draftNumber)
+        : await takeOrderNumber(ctx.tx, ctx.storeId)
+    const now = new Date()
     const subtotalPaise = sumPaise(lines)
     // Discount first, then the payment-method fee or discount on what is left.
     // Both are applied server-side here; the checkout preview is only a hint.
@@ -163,82 +176,100 @@ export const createOrder: WorkflowStep<State> = {
         shipToState,
         storeState: origin.stateCode,
       })
-    const [o] = await ctx.tx
-      .insert(order)
-      .values({
-        storeId: ctx.storeId,
-        number: orderNumber,
-        status: 'open',
-        subtotalPaise,
-        taxPaise: tax.taxPaise,
-        taxBreakdown: tax,
-        taxRegime,
-        gstRegistrationId: origin.gstRegistrationId,
-        taxOrigin: origin,
-        shippingPaise,
-        // A delivery option has no rate row: only a backup order points at its zone rate.
-        // A rate joined from several profiles keeps its first part here; the snapshot has all.
-        shippingRateId: delivery
-          ? backupRateId && primaryRateId(backupRateId)
-          : shipping
-            ? rateRowId(shipping.rateId, primaryRateId)
-            : null,
-        shippingRateName: shipping?.name ?? null,
-        shipping: shipping
-          ? {
-              rateId: shipping.rateId,
-              rateName: shipping.name,
-              zoneId: shipping.zoneId,
-              zoneName: shipping.zoneName,
-              listPricePaise: shipping.listPricePaise,
-              pricePaise: shippingPaise,
-              codSurchargePaise: shipping.codSurchargePaise,
-              minTransitDays: shipping.minTransitDays,
-              maxTransitDays: shipping.maxTransitDays,
-              ...(shipping.parts && !delivery
-                ? {
-                    profiles: shipping.parts.map((p) => ({
-                      profileId: p.profileId,
-                      profileName: p.profileName,
-                      rateId: p.rateId,
-                      rateName: p.name,
-                      zoneId: p.zoneId,
-                      zoneName: p.zoneName,
-                      pricePaise: p.pricePaise,
-                    })),
-                  }
-                : {}),
-              ...(delivery ? { delivery } : {}),
-              ...(shipping.local && !delivery ? { local: shipping.local } : {}),
-            }
+    const values = {
+      storeId: ctx.storeId,
+      number: orderNumber,
+      status: draft ? ('draft' as const) : ('open' as const),
+      ...(draft
+        ? {
+            draftNumber,
+            draftSource: 'checkout' as const,
+            draftExpiredAt: null,
+            // The draft holds what reserveStock reserved, until the unpaid window ends.
+            draftReserved: reserved.length > 0 ? reserved : null,
+            reservedUntil:
+              reserved.length > 0 ? new Date(now.getTime() + draft.holdMinutes * 60_000) : null,
+            lastActivityAt: now,
+            placedAt: now,
+          }
+        : {}),
+      subtotalPaise,
+      taxPaise: tax.taxPaise,
+      taxBreakdown: tax,
+      taxRegime,
+      gstRegistrationId: origin.gstRegistrationId,
+      taxOrigin: origin,
+      shippingPaise,
+      // A delivery option has no rate row: only a backup order points at its zone rate.
+      // A rate joined from several profiles keeps its first part here; the snapshot has all.
+      shippingRateId: delivery
+        ? backupRateId && primaryRateId(backupRateId)
+        : shipping
+          ? rateRowId(shipping.rateId, primaryRateId)
           : null,
-        paymentAdjustmentPaise: adjustmentPaise,
-        paymentAdjustmentLabel: adjustmentPaise ? (adjustment?.label ?? null) : null,
-        discountId: applied?.discount.id ?? null,
-        discountCode: applied?.discount.code ?? null,
-        discountLabel: applied ? applied.label : null,
-        discountPaise,
-        totalPaise,
-        customerId,
-        shippingAddressId,
-        // As typed (the customer row is keyed on the lower-cased one); null when optional and blank.
-        email: input.checkout?.email.trim() || null,
-        phone: contact?.phone ?? input.checkout?.phone ?? null,
-        buyerGstin: contact?.gstin ?? null,
-        buyerBusinessName: contact?.businessName ?? null,
-        customerNote: contact?.note ?? null,
-        paymentMethod: input.paymentProvider.id,
-        // The gateway runs on its test keys: no real money, kept out of reports and invoices.
-        isTest: input.paymentProvider.mode === 'test',
-        attribution: cartAttribution,
-        tracking: cartTracking,
-        cartId: input.cartId,
-        tags: risk ? tagsForRisk(tags, risk.risk, risk.settings) : tags,
-        rtoRisk: risk?.risk ?? null,
-        depositPaise: preorderLines.length > 0 ? depositPaise : null,
-        balanceDuePaise: preorderLines.length > 0 ? balanceDuePaise : null,
-      })
-      .returning({ id: order.id })
+      shippingRateName: shipping?.name ?? null,
+      shipping: shipping
+        ? {
+            rateId: shipping.rateId,
+            rateName: shipping.name,
+            zoneId: shipping.zoneId,
+            zoneName: shipping.zoneName,
+            listPricePaise: shipping.listPricePaise,
+            pricePaise: shippingPaise,
+            codSurchargePaise: shipping.codSurchargePaise,
+            minTransitDays: shipping.minTransitDays,
+            maxTransitDays: shipping.maxTransitDays,
+            ...(shipping.parts && !delivery
+              ? {
+                  profiles: shipping.parts.map((p) => ({
+                    profileId: p.profileId,
+                    profileName: p.profileName,
+                    rateId: p.rateId,
+                    rateName: p.name,
+                    zoneId: p.zoneId,
+                    zoneName: p.zoneName,
+                    pricePaise: p.pricePaise,
+                  })),
+                }
+              : {}),
+            ...(delivery ? { delivery } : {}),
+            ...(shipping.local && !delivery ? { local: shipping.local } : {}),
+          }
+        : null,
+      paymentAdjustmentPaise: adjustmentPaise,
+      paymentAdjustmentLabel: adjustmentPaise ? (adjustment?.label ?? null) : null,
+      discountId: applied?.discount.id ?? null,
+      discountCode: applied?.discount.code ?? null,
+      discountLabel: applied ? applied.label : null,
+      discountPaise,
+      totalPaise,
+      customerId,
+      shippingAddressId,
+      // As typed (the customer row is keyed on the lower-cased one); null when optional and blank.
+      email: input.checkout?.email.trim() || null,
+      phone: contact?.phone ?? input.checkout?.phone ?? null,
+      buyerGstin: contact?.gstin ?? null,
+      buyerBusinessName: contact?.businessName ?? null,
+      customerNote: contact?.note ?? null,
+      paymentMethod: input.paymentProvider.id,
+      // The gateway runs on its test keys: no real money, kept out of reports and invoices.
+      isTest: input.paymentProvider.mode === 'test',
+      attribution: cartAttribution,
+      tracking: cartTracking,
+      cartId: input.cartId,
+      tags: risk ? tagsForRisk(tags, risk.risk, risk.settings) : tags,
+      rtoRisk: risk?.risk ?? null,
+      depositPaise: preorderLines.length > 0 ? depositPaise : null,
+      balanceDuePaise: preorderLines.length > 0 ? balanceDuePaise : null,
+    }
+    // The same items again on the shopper's open draft: the row (id, #D number) is written over.
+    const [o] = draft?.reuse
+      ? await ctx.tx
+          .update(order)
+          .set(values)
+          .where(eq(order.id, draft.reuse.id))
+          .returning({ id: order.id })
+      : await ctx.tx.insert(order).values(values).returning({ id: order.id })
     if (!o) throw new Error('order insert returned nothing')
     // In the same transaction as the insert: if a later step throws, the
     // workflow's compensation (below) deletes the order and the whole
@@ -251,7 +282,8 @@ export const createOrder: WorkflowStep<State> = {
         importedFrom: null,
         paymentMethod: input.paymentProvider.id,
       })
-    if (!waitsForMoney) {
+    // A draft is announced when it converts (checkout-draft.ts), never while it waits.
+    if (!waitsForMoney && !draft) {
       await insertOutboxEvent(ctx.tx, ctx.storeId, 'order.placed', { orderId: o.id })
     }
     if (risk?.verify) await requestCodConfirmation(ctx, o.id)
@@ -289,35 +321,57 @@ export const createOrder: WorkflowStep<State> = {
             : null,
       })),
     )
-    // The parcels routing chose, where reserveStock holds their stock.
-    await createFulfillmentOrders(ctx, {
-      orderId: o.id,
-      plans: parcels.map((p, i) => ({
-        locationId: p.locationId,
-        status: p.status,
-        needsTransfer: p.needsTransfer,
-        money: billed.money[i],
-        deliveryEstimate: input.deliveryEstimates?.[p.locationId] ?? null,
-        lines: p.lines.map((l) => ({
-          orderLineId: lineIds[Number(l.key)] as string,
-          quantity: l.quantity,
-          fulfilledQuantity: 0,
+    // A UPI / bank transfer draft: the shopper is told it is received and how to pay it.
+    if (draft && input.paymentProvider.id === 'manual' && !draft.reuse) {
+      await insertOutboxEvent(ctx.tx, ctx.storeId, 'order.transfer_requested', { orderId: o.id })
+    }
+    if (draft?.reuse) {
+      await ctx.tx.insert(orderNote).values({
+        storeId: ctx.storeId,
+        orderId: o.id,
+        body: CHECKED_OUT_AGAIN_NOTE,
+        author: 'system',
+      })
+    }
+    // The parcels routing chose, where reserveStock holds their stock. A draft has none yet:
+    // they are routed again when it converts (checkout-draft.ts).
+    if (!draft)
+      await createFulfillmentOrders(ctx, {
+        orderId: o.id,
+        plans: parcels.map((p, i) => ({
+          locationId: p.locationId,
+          status: p.status,
+          needsTransfer: p.needsTransfer,
+          money: billed.money[i],
+          deliveryEstimate: input.deliveryEstimates?.[p.locationId] ?? null,
+          lines: p.lines.map((l) => ({
+            orderLineId: lineIds[Number(l.key)] as string,
+            quantity: l.quantity,
+            fulfilledQuantity: 0,
+          })),
         })),
-      })),
-      fallbackRegistrationId: origin.gstRegistrationId,
-    })
+        fallbackRegistrationId: origin.gstRegistrationId,
+      })
     if (applied) {
       const email = (contact ? contact.email : input.checkout?.email.trim().toLowerCase()) || null
       await recordDiscountUses(ctx, applied, { id: o.id, customerId, email, discountPaise })
     }
-    return { orderId: o.id, orderNumber, totalPaise, balanceDuePaise, depositPaise }
+    return {
+      orderId: o.id,
+      orderNumber,
+      totalPaise,
+      balanceDuePaise,
+      depositPaise,
+      ...(draft && draftNumber !== null ? { draft: { ...draft, draftNumber } } : {}),
+    }
   },
-  async compensate({ ctx, orderId, discount: applied }) {
+  async compensate({ ctx, orderId, discount: applied, draft }) {
     if (!orderId) return
     if (applied) await releaseDiscountUses(ctx, applied, orderId)
     await deleteFulfillmentOrders(ctx.tx, orderId)
     await ctx.tx.delete(orderLine).where(eq(orderLine.orderId, orderId))
-    await ctx.tx.delete(order).where(eq(order.id, orderId))
+    // The shopper's open draft used again stays; the rolled-back transaction restores it.
+    if (!draft?.reuse) await ctx.tx.delete(order).where(eq(order.id, orderId))
   },
 }
 

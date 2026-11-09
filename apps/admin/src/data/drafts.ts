@@ -1,7 +1,10 @@
 /** Every word the draft order and abandoned checkout screens show. */
 
-/** The drafts list's tabs after "All" (`?status=`); mirrors DRAFT_LIST_STATUSES in core. */
-export const DRAFT_LIST_FILTERS = ['open', 'invoice_sent'] as const
+/**
+ * The drafts list's tabs after "All" (`?status=`): who made it (`checkout`, `staff`; DRAFT_SOURCES
+ * in core), then a staff draft's state (DRAFT_LIST_STATUSES in core).
+ */
+export const DRAFT_LIST_FILTERS = ['checkout', 'staff', 'open', 'invoice_sent'] as const
 export type DraftListFilter = (typeof DRAFT_LIST_FILTERS)[number]
 
 export const draftsContent = {
@@ -9,7 +12,13 @@ export const draftsContent = {
   heading: 'Draft orders',
   intro:
     'Orders you build for a customer. They stay hidden from your storefront until you convert them.',
-  tabs: { all: 'All drafts', open: 'Open', invoice_sent: 'Invoice sent' },
+  tabs: {
+    all: 'All drafts',
+    checkout: 'From checkout (unpaid)',
+    staff: 'Created by staff',
+    open: 'Open',
+    invoice_sent: 'Invoice sent',
+  },
   viewLabel: 'Draft view',
   sortNewest: 'Newest first',
   sortOldest: 'Oldest first',
@@ -23,6 +32,7 @@ export const draftsContent = {
       .join(' · '),
   tiles: {
     open: { label: 'Open drafts', note: 'Ready to convert or send' },
+    checkout: { label: 'Unpaid checkouts', note: 'Shoppers who have not paid yet' },
     invoiced: { label: 'Invoices sent', note: 'Waiting for the customer to pay' },
     value: { label: 'Value in drafts', note: (n: number) => `Across all ${n} drafts` },
   },
@@ -58,11 +68,66 @@ export const draftsContent = {
     items: 'Items',
     total: 'Total',
     created: 'Created',
+    activity: 'Last activity',
     status: 'Status',
   },
   itemCount: (n: number) => (n === 1 ? '1 item' : `${n} items`),
   guest: 'No customer',
-  status: { open: 'Open', invoiceSent: 'Invoice sent' },
+  status: {
+    open: 'Open',
+    invoiceSent: 'Invoice sent',
+    unpaid: 'Unpaid',
+    failed: (n: number) => (n > 1 ? `Payment failed ×${n}` : 'Payment failed'),
+    refundNeeded: 'Refund needed',
+    shopperPaid: 'Shopper says paid',
+    expired: 'Expired',
+  },
+} as const
+
+/** A shopper's unpaid checkout kept as a draft (#D57) until it is paid. */
+export const checkoutDraftContent = {
+  badge: 'Unpaid checkout',
+  intro:
+    'A shopper checked out but has not paid yet. It becomes an order, with an order number, when the payment arrives or when you mark it paid.',
+  summary: 'Checkout',
+  method: 'Payment method',
+  methods: { manual: 'UPI or bank transfer', online: 'Online payment' } as Record<string, string>,
+  lastActivity: 'Last activity',
+  held: 'Items held until',
+  notHeld: 'Items are not held. Paying reserves them again if they are in stock.',
+  expired: 'This checkout stopped waiting for payment after 7 days without activity.',
+  refundNeeded:
+    'A payment arrived but the items were out of stock, so no order was placed. Refund the payment to the shopper.',
+  attempts: 'Payment attempts',
+  attempt: (n: number) => `Attempt ${n}`,
+  noAttempts: 'No payment attempts yet',
+  attemptStatus: {
+    created: 'Not started',
+    pending: 'Waiting for the shopper',
+    authorized: 'Authorised',
+    captured: 'Paid',
+    failed: 'Failed',
+    cancelled: 'Replaced',
+    refunded: 'Refunded',
+  } as Record<string, string>,
+  items: 'Items',
+  total: 'Total',
+  contact: 'Contact',
+  timeline: 'Timeline',
+  payLink: 'Copy payment link',
+  payLinkCopied: 'Payment link copied',
+  markPaid: 'Mark as paid',
+  markPaidTitle: 'Mark this checkout as paid?',
+  markPaidBody: (total: string) =>
+    `Only when you have received ${total}. It becomes an order with the next order number and the shopper gets their confirmation.`,
+  convert: 'Convert to order (unpaid)',
+  convertTitle: 'Convert to an unpaid order?',
+  convertBody:
+    'It becomes an order with the next order number, still waiting for payment, for example to ship on trust. Its stock is held for the order.',
+  converted: (n: number) => `Order #${n} created`,
+  failedAction: 'Could not do that. Try again.',
+  deleteDraft: 'Delete',
+  cancel: 'Cancel',
 } as const
 
 export const draftEditorContent = {

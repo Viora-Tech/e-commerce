@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { DRAFT_LIST_FILTERS, draftsContent } from '@/data/drafts'
 import { appRouter, call, serverContext } from '@/lib/api'
+import { draftViewInput } from '@/lib/draft-list-filters'
 import { parseListQuery, type SearchParams } from '@/lib/list-query'
 import { parseRowsPerPage } from '@/lib/rows-per-page'
 import DraftsPage from './drafts-page'
@@ -21,7 +22,7 @@ export default async function Page({ searchParams }: Props) {
         page: query.page,
         perPage,
         search: query.query || undefined,
-        status: query.status ?? undefined,
+        ...draftViewInput(query.status),
       },
       { context },
     ),

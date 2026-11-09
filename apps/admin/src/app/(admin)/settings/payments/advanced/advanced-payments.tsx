@@ -29,6 +29,8 @@ type Extra = {
   manualAutoCancel?: 'on' | 'off' | undefined
   /** Hours before an unpaid manual-transfer order is cancelled; 0 is the 6 hour default. */
   manualCancelAfterHours: number
+  /** "Keep unpaid checkouts as drafts"; unset follows the platform default. */
+  unpaidAsDrafts?: 'on' | 'off' | undefined
   /** Same items within these hours count as the same order; 0 is off. */
   duplicateCheckoutHours: number
   /** Most unpaid checkouts per shopper in an hour; 0 is no cap. */

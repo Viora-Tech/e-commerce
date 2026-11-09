@@ -35,7 +35,8 @@ export const GRAPH_API = 'https://graph.facebook.com/v26.0'
  * the TemplateId in Meta Business Manager with matching placeholders.
  */
 export function templateParams(template: TemplateId, d: TemplateData): string[] {
-  const n = String(d.orderNumber)
+  // A checkout kept as a draft is quoted by its draft number (#D57), never its placeholder.
+  const n = d.draftNumber ? `D${d.draftNumber}` : String(d.orderNumber)
   switch (template) {
     case 'order_placed':
       return [d.customerName, d.storeName, n, d.totalLabel]
@@ -88,6 +89,7 @@ export function templateParams(template: TemplateId, d: TemplateData): string[] 
     case 'balance_received':
       return [d.storeName, n, d.totalLabel]
     case 'payment_reminder':
+    case 'transfer_requested':
       return [d.customerName, d.storeName, n, d.totalLabel, d.orderUrl ?? '-']
     case 'unpaid_cancelled':
       return [d.customerName, d.storeName, n, d.totalLabel]

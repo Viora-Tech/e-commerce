@@ -198,12 +198,7 @@ const ALLOWLIST: AllowEntry[] = [
   },
   {
     file: 'packages/core/src/inbox/widget.ts',
-    names: [
-      'WIDGET_ICONS',
-      'WIDGET_HORIZONTAL',
-      'WIDGET_VERTICAL',
-      'DEFAULT_INBOX_WIDGET',
-    ],
+    names: ['WIDGET_ICONS', 'WIDGET_HORIZONTAL', 'WIDGET_VERTICAL', 'DEFAULT_INBOX_WIDGET'],
     reason:
       'the Inbox app embed schema the theme editor App embeds panel renders (coordinator, 2026-10-24); read once that panel lands',
   },
@@ -955,8 +950,24 @@ const ALLOWLIST: AllowEntry[] = [
     reason: 'no external importer today — investigate before removing',
   },
   {
+    file: 'packages/core/src/payments/checkout-drafts.ts',
+    names: ['CHECKOUT_DRAFTS_DEFAULT'],
+    reason:
+      'used in the module and asserted by checkout-drafts.test.ts; the admin mirrors it (UNPAID_AS_DRAFTS_DEFAULT)',
+  },
+  {
+    file: 'packages/core/src/payments/confirm.ts',
+    names: ['LATE_CAPTURE_NOTE'],
+    reason: 'used in the module and asserted by order/checkout-draft.test.ts',
+  },
+  {
+    file: 'packages/core/src/order/checkout-draft.ts',
+    names: ['shopperPaidNote'],
+    reason: 'used in the module and asserted by checkout-draft.test.ts',
+  },
+  {
     file: 'packages/core/src/order/duplicate-checkout.ts',
-    names: ['itemsKey', 'findRecentDuplicateCheckout', 'recentUnpaidCheckouts'],
+    names: ['findRecentDuplicateCheckout', 'recentUnpaidCheckouts'],
     reason:
       'unit-tested directly; findRecentDuplicateCheckout is the helper the unpaid-checkouts-as-drafts design (#1293) points at drafts',
   },

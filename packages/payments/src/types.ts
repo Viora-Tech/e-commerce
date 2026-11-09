@@ -23,6 +23,8 @@ export type CreatePaymentInput = {
   orderId: string
   /** Human order number, shown on the gateway's page where supported. */
   orderNumber?: number | undefined
+  /** Set instead of `orderNumber` while the checkout is a draft (#D57) waiting for payment. */
+  draftNumber?: number | undefined
   amountPaise: number
   currency: 'INR'
   customer: PaymentCustomer

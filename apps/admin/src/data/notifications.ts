@@ -143,6 +143,10 @@ export const notificationsSettingsContent = {
       name: 'Rest of payment received',
       when: 'When the customer pays the rest of a pre-order.',
     },
+    transfer_requested: {
+      name: 'Order received, pay by UPI or bank transfer',
+      when: 'When a customer checks out with UPI or bank transfer: how to pay, to confirm it.',
+    },
     payment_reminder: {
       name: 'Reminder to pay (UPI or bank transfer)',
       when: 'When you click "Send reminder" on an unpaid order.',

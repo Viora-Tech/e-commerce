@@ -22,7 +22,7 @@ import {
   withStore,
 } from '@commerce/db'
 import { type Currency, formatMoney } from '@commerce/money'
-import { and, asc, desc, eq, gte, inArray, lt, lte, ne, sql, sum } from 'drizzle-orm'
+import { and, asc, count, desc, eq, gte, inArray, isNull, lt, lte, ne, sql, sum } from 'drizzle-orm'
 import { z } from 'zod'
 import {
   type AnswerTable,
@@ -389,7 +389,7 @@ export function storeTools(env: ToolEnv): AiToolSet {
 
     pendingOrders: defineAiTool({
       description:
-        'Open orders not yet packed or shipped that were placed more than N days ago (0 means all of them), oldest first, with whether they are paid.',
+        'Open orders not yet packed or shipped that were placed more than N days ago (0 means all of them), oldest first, with whether they are paid, and how many unpaid checkouts wait as drafts.',
       input: z.object({ olderThanDays: z.number().int().min(0).max(30).default(2) }),
       risk: 'read',
       run: (input, runtime) =>
@@ -417,7 +417,17 @@ export function storeTools(env: ToolEnv): AiToolSet {
             input.olderThanDays === 0
               ? 'Orders waiting to ship'
               : `Waiting over ${input.olderThanDays} days`
-          if (!rows.length) return { facts: [{ label, value: 'none' }] }
+          // Shoppers' unpaid checkouts kept as drafts (#D57) until paid: not orders yet.
+          const open = and(eq(order.draftSource, 'checkout'), isNull(order.draftExpiredAt))
+          const [drafted] = await tx
+            .select({ n: count() })
+            .from(order)
+            .where(and(eq(order.status, 'draft'), open))
+          const unpaidCheckouts = {
+            label: 'Unpaid checkouts (drafts)',
+            value: `${drafted?.n ?? 0}`,
+          }
+          if (!rows.length) return { facts: [{ label, value: 'none' }, unpaidCheckouts] }
           const paid = rows.filter((r) => r.paymentStatus === 'paid').length
           const value = rows.reduce((n, r) => n + r.totalPaise, 0)
           const oldest = rows[0] as (typeof rows)[number]
@@ -446,6 +456,7 @@ export function storeTools(env: ToolEnv): AiToolSet {
               },
               { label: 'Paid and ready', value: String(paid) },
               { label: 'Payment still due', value: String(rows.length - paid) },
+              unpaidCheckouts,
               {
                 label: 'Oldest',
                 value: `#${oldest.number}, placed ${day(env, oldest.placedAt)} (${Math.floor((now.getTime() - oldest.placedAt.getTime()) / DAY_MS)} days ago)`,

@@ -154,6 +154,11 @@ export const sampleTemplateDataByTemplate: Record<TemplateId, TemplateData> = {
   },
   balance_received: { ...base, orderUrl: 'https://waimers.example/orders/42' },
   payment_reminder: { ...base, orderUrl: 'https://waimers.example/orders/42/pay' },
+  transfer_requested: {
+    ...base,
+    draftNumber: 57,
+    orderUrl: 'https://waimers.example/checkout/thank-you/D57',
+  },
   unpaid_cancel_notice: { ...base, deadlineLabel: '28 Sep 2026' },
   affiliate_update: {
     ...base,

@@ -1,8 +1,10 @@
-import { order, payment } from '@commerce/db'
+import { order, orderNote, payment } from '@commerce/db'
 import type { ClientConfirmation, PaymentProvider, PaymentStatus } from '@commerce/payments'
 import { and, eq, isNull, ne, notInArray } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 import { captureHeldStoreCredit } from '../customers/store-credit-checkout'
+import { OutOfStock } from '../errors'
+import { convertCheckoutDraft, isCheckoutDraft } from '../order/checkout-draft'
 import { recomputeOrderStatuses } from '../order/recompute'
 import { insertOutboxEvent } from '../outbox/write'
 import { isSplitTender, SPLIT_TENDER_PROVIDERS } from './split-tender'
@@ -127,7 +129,12 @@ export async function applyPaymentStatus(
     .where(eq(payment.id, id))
   if (!head) return null
   const [o] = await ctx.tx
-    .select({ id: order.id, status: order.status, balancePaidAt: order.balancePaidAt })
+    .select({
+      id: order.id,
+      status: order.status,
+      draftSource: order.draftSource,
+      balancePaidAt: order.balancePaidAt,
+    })
     .from(order)
     .where(eq(order.id, head.orderId))
     .for('update')
@@ -180,6 +187,19 @@ export async function applyPaymentStatus(
     refundNeeded = o.status === 'cancelled' || !!other
   }
 
+  // Unpaid checkouts as drafts: the money (or, on a manual-capture store, the authorisation) is
+  // what turns the shopper's draft into a numbered order, here, under the order lock, so a
+  // duplicate webhook finds it already converted. Goods gone since the hold lapsed: the money
+  // is kept but flagged to refund, and the draft stays for the merchant to see (owner, Q3).
+  if (
+    (next === 'captured' || next === 'authorized') &&
+    p.purpose === 'order' &&
+    !refundNeeded &&
+    isCheckoutDraft(o)
+  ) {
+    refundNeeded = !(await convertInSavepoint(ctx, p.orderId))
+  }
+
   const [updated] = await ctx.tx
     .update(payment)
     .set({
@@ -207,6 +227,29 @@ export async function applyPaymentStatus(
     payment: updated,
     becameCaptured: next === 'captured' && !refundNeeded,
     refundNeeded,
+  }
+}
+
+export const LATE_CAPTURE_NOTE =
+  'Payment arrived after the held items were released, and they are now out of stock. The draft was not placed: refund the payment to the shopper.'
+
+/** Convert the checkout draft; false when its goods are out of stock (nothing changed then). */
+async function convertInSavepoint(ctx: StoreContext, orderId: string): Promise<boolean> {
+  try {
+    await ctx.tx.transaction((sp) =>
+      convertCheckoutDraft({ storeId: ctx.storeId, tx: sp }, orderId),
+    )
+    return true
+  } catch (err) {
+    if (!(err instanceof OutOfStock)) throw err
+    // The Drafts list shows it as "Refund needed"; the note says why on the draft's timeline.
+    await ctx.tx.insert(orderNote).values({
+      storeId: ctx.storeId,
+      orderId,
+      body: LATE_CAPTURE_NOTE,
+      author: 'system',
+    })
+    return false
   }
 }
 

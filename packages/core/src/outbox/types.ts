@@ -22,6 +22,8 @@ export type OutboxEventType =
   | 'order.balance_paid'
   /** The merchant sent a payment reminder for a manual UPI / bank transfer order. */
   | 'order.payment_reminder'
+  /** A UPI / bank transfer checkout was kept as a draft (#D57): how to pay it (0233). */
+  | 'order.transfer_requested'
   /** Tells the merchant an unpaid transfer order will be auto-cancelled in 12 hours. */
   | 'order.unpaid_cancel_notice'
   /** A manual-transfer order was cancelled for non-payment (alongside `order.cancelled`). */
@@ -273,6 +275,7 @@ export const OUTBOX_NOTIFICATION_TEMPLATE: Record<OutboxEventType, TemplateId | 
   'order.balance_reminder': 'balance_reminder',
   'order.balance_paid': 'balance_received',
   'order.payment_reminder': 'payment_reminder',
+  'order.transfer_requested': 'transfer_requested',
   'order.unpaid_cancel_notice': 'unpaid_cancel_notice',
   'order.unpaid_cancelled': 'unpaid_cancelled',
   // Handled by the back-in-stock plugin's own dispatch path, not the generic
@@ -390,6 +393,7 @@ export const OUTBOX_APP_EVENT: Record<OutboxEventType, AppEvent | null> = {
   'order.balance_reminder': null,
   'order.balance_paid': null,
   'order.payment_reminder': null,
+  'order.transfer_requested': null,
   'order.unpaid_cancel_notice': null,
   'order.unpaid_cancelled': null,
   'inventory.restocked': null,

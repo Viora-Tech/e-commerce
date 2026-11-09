@@ -1,8 +1,9 @@
 /** SOURCE OF TRUTH: the "payment not finished" nudge — WHAT: once per order, a short while after an online checkout whose payment failed or was abandoned, writes `order.payment_pending` so the shopper gets `payment_pending` with the retry link / WHY: Shopify's "Payment error" message; the unpaid expiry would otherwise cancel the order without the shopper ever hearing */
 import { order, store } from '@commerce/db'
-import { and, asc, eq, gt, isNotNull, isNull, lt, notInArray, sql } from 'drizzle-orm'
+import { and, asc, eq, gt, isNotNull, isNull, lt, notInArray, or, sql } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 import { messageOn } from '../notifications/deliver'
+import { openCheckoutDraftWhere } from '../order/checkout-draft'
 import { insertOutboxEvent } from '../outbox/write'
 import { EXPIRY_EXEMPT_METHODS } from './expiry'
 import { parsePaymentSettings } from './settings'
@@ -54,7 +55,8 @@ export async function queuePaymentPendingNudges(
     .from(order)
     .where(
       and(
-        eq(order.status, 'open'),
+        // An open order, or an unpaid checkout kept as a draft (#D57) until paid.
+        or(eq(order.status, 'open'), openCheckoutDraftWhere()),
         isNull(order.checkoutPaidAt),
         isNotNull(order.cartId),
         isNull(order.importedFrom),

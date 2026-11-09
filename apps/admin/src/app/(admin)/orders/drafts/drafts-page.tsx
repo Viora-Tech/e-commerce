@@ -27,6 +27,7 @@ import {
   type DraftFilters,
   draftFilterGroups,
   draftFilterInput,
+  draftViewInput,
   hasDraftFilters,
 } from '@/lib/draft-list-filters'
 import { type ListQuery, sameListQuery } from '@/lib/list-query'
@@ -50,7 +51,7 @@ function fetchDrafts(q: Query, perPage: number) {
     page: q.page,
     perPage,
     search: q.query || undefined,
-    status: q.status ?? undefined,
+    ...draftViewInput(q.status),
     ...draftFilterInput(q),
   })
 }
@@ -196,6 +197,12 @@ function DraftsContent({ initial }: { initial: DraftsInitial }) {
                 note: copy.tiles.open.note,
               },
               {
+                id: 'checkout',
+                label: copy.tiles.checkout.label,
+                value: fmt.number(tiles.checkout),
+                note: copy.tiles.checkout.note,
+              },
+              {
                 id: 'invoiced',
                 label: copy.tiles.invoiced.label,
                 value: fmt.number(tiles.invoiced),
@@ -240,7 +247,7 @@ function DraftsContent({ initial }: { initial: DraftsInitial }) {
                 {
                   label: d.invoiceSentAt ? copy.resendInvoice : copy.sendInvoice,
                   icon: Send,
-                  hidden: !d.email,
+                  hidden: !d.email || d.source === 'checkout',
                   onSelect: () => setInvoicing(d.id),
                 },
                 {
@@ -289,6 +296,8 @@ function DraftsContent({ initial }: { initial: DraftsInitial }) {
               formatCount={fmt.number}
               options={[
                 { value: null, label: copy.tabs.all, count: tiles.total },
+                { value: 'checkout', label: copy.tabs.checkout, count: tiles.checkout },
+                { value: 'staff', label: copy.tabs.staff, count: tiles.total - tiles.checkout },
                 { value: 'open', label: copy.tabs.open, count: tiles.open },
                 { value: 'invoice_sent', label: copy.tabs.invoice_sent, count: tiles.invoiced },
               ]}
