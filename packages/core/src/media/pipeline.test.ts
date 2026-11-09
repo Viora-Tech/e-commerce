@@ -11,6 +11,7 @@ import {
   sharpThreadsFor,
   VARIANT_WIDTHS,
   variantKey,
+  encodeVariantWidth,
   variantWidthsFor,
 } from './pipeline'
 
@@ -261,5 +262,20 @@ describe('variantWidthsFor', () => {
   })
   it('does not repeat a master that is already a standard width', () => {
     expect(variantWidthsFor(1280)).toEqual([320, 640, 1280])
+  })
+})
+
+describe('encodeVariantWidth', () => {
+  it('makes one AVIF and WebP copy at the asked width, keyed like the others', async () => {
+    const bytes = await sharp({
+      create: { width: 533, height: 400, channels: 3, background: { r: 200, g: 10, b: 10 } },
+    })
+      .png()
+      .toBuffer()
+    const copy = await encodeVariantWidth({ bytes, masterKey: 'stores/s/media/z.png', width: 533 })
+    expect(copy.avif.key).toBe('stores/s/media/z-w533.avif')
+    expect(copy.webp.key).toBe('stores/s/media/z-w533.webp')
+    expect((await sharp(copy.webp.body).metadata()).width).toBe(533)
+    expect(copy.avif.body.byteLength).toBeGreaterThan(0)
   })
 })
