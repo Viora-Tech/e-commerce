@@ -2,7 +2,7 @@
 
 The order we work in. **Phase 1 comes first: test what we already have.** New features
 (Phase 3) start only when the shops' everyday flows and the apps they use pass. Each item
-becomes its own design and PRs when picked up. Last reorganised 7 Nov 2026.
+becomes its own design and PRs when picked up. Last reorganised 7 Nov 2026; speed track added 10 Nov 2026.
 
 ## Phase 1: Test what exists (now)
 
@@ -63,6 +63,30 @@ marked 8 Nov 2026).
   Shopify. Five steps.
 - **Leaner image builds.** Build images on a small machine (target 1 GB RAM with swap) or a
   cheap remote builder instead of the 8 GB PC.
+
+## Speed and memory track (runs alongside the phases)
+
+Goal: the fastest, smoothest pages for shoppers and the least memory on the server, whatever the
+language. Measured on 9–10 Nov 2026: median server response 1.2 s over 352 store pages; home
+images 9 MB, product pages 8–11 MB; server 2.1 of 4 GB used (storefront 2 × 355 MB, admin 373 MB,
+worker 229 MB). Each step is measured before and after; a step that does not beat the numbers
+is dropped.
+
+1. **Cloudflare cache 10 minutes, cleared on every edit.** Code is done; needs the Cache Purge
+   token, `STOREFRONT_EDGE_TTL=600`. Most visits answer in about 0.05 s.
+2. **No multi-MB originals** (merged #1422). Deploy, then `media:reprocess --own-size` once.
+3. **Server's own time.** Find and fix the slow queries behind the 1.2 s; target 0.2–0.4 s for an
+   uncached page.
+4. **Plain HTML for product and collection pages**, as done for home and `/pages/*`.
+5. **One storefront copy** once the edge cache carries the traffic.
+6. **Storefront server: measured choice.** One product page served by (A) Next today, (B) Bun +
+   Hono with our Liquid engine, (C) Rust (liquid-rust plus the filters that page needs), and (D)
+   A behind the edge cache. k6 at 20 and 100 users: p50/p99, memory, build time and memory, and
+   an exact HTML match. The winner becomes the storefront; a rewrite is fine if it wins.
+7. **Admin as a browser-only app** (no server, no Server Components): pilot on Orders first.
+8. **Go or Rust for self-contained services**, starting with image processing; the backend API
+   moves part by part (reads first, money rules last) only if the pilots win on the same
+   measures.
 
 ## Phase 3: New features
 
