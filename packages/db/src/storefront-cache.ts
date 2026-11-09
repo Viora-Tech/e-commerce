@@ -14,6 +14,13 @@ import postgres from 'postgres'
 /** The NOTIFY channel. Payload: the store id, or `<store id>:soft` for a write that may wait. */
 export const STOREFRONT_CACHE_CHANNEL = 'storefront_cache'
 
+/**
+ * The payload a storefront process sends when it starts (`announceStorefrontStart`): a new build
+ * may be live, and pages a CDN still holds point at the old build's scripts. Not a store id, so
+ * store caches ignore it; the worker's edge purge (`apps/worker/src/edge-purge.ts`) hears it.
+ */
+export const STOREFRONT_START_PAYLOAD = 'storefront-start'
+
 /** Suffix on a soft notification (media processing): applied at most once a minute per store. */
 const STOREFRONT_CACHE_SOFT = ':soft'
 
@@ -270,6 +277,8 @@ export type StorefrontCacheHandlers = {
   onLive: () => void
   /** The connection dropped; notifications are missed until `onLive`. */
   onLost: () => void
+  /** A storefront process started (`STOREFRONT_START_PAYLOAD`). */
+  onStorefrontStart?: (() => void) | undefined
 }
 
 /**
@@ -297,6 +306,10 @@ export function listenStorefrontCache(
     // Implemented by postgres.js (its own `listen` uses it) but missing from its types.
     onnotify: (channel: string, payload: string) => {
       if (channel !== STOREFRONT_CACHE_CHANNEL) return
+      if (payload === STOREFRONT_START_PAYLOAD) {
+        handlers.onStorefrontStart?.()
+        return
+      }
       const parsed = parseStorefrontCachePayload(payload)
       if (parsed) handlers.onChange(parsed.storeId, parsed.soft)
     },
@@ -327,5 +340,18 @@ export function listenStorefrontCache(
       if (timer) clearTimeout(timer)
       await sql.end({ timeout: 1 })
     },
+  }
+}
+
+/**
+ * Tells listeners a storefront process started (see `STOREFRONT_START_PAYLOAD`). One short
+ * connection; a failure is the caller's to log, never a reason not to boot.
+ */
+export async function announceStorefrontStart(url: string): Promise<void> {
+  const sql = postgres(url, { max: 1, idle_timeout: 1, connect_timeout: 5 })
+  try {
+    await sql`select pg_notify(${STOREFRONT_CACHE_CHANNEL}, ${STOREFRONT_START_PAYLOAD})`
+  } finally {
+    await sql.end({ timeout: 1 })
   }
 }

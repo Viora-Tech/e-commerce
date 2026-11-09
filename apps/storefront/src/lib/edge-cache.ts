@@ -25,6 +25,9 @@ const SHARED_PAGES = [
   /^\/search\/?$/,
 ]
 
+/** The longest a shared cache may serve a page past its TTL while it refetches. */
+const MAX_STALE_SECONDS = 3600
+
 const PERSONAL_COOKIES = new Set(['theme', 'recently_viewed'])
 /** Our cookies that never change what a page shows. */
 const NEUTRAL_COOKIES = new Set(['wc_ref'])
@@ -60,6 +63,8 @@ export function edgeCacheControl(input: EdgeCacheInput): string | null {
   if (input.cookieNames.some(isPersonalCookie)) return null
   if (!isSharedPage(input.pathname)) return null
   // Browsers always ask again (max-age=0); a shared cache keeps it for the TTL and may serve it
-  // a while longer while it fetches a fresh one.
-  return `public, max-age=0, s-maxage=${input.ttlSeconds}, stale-while-revalidate=${input.ttlSeconds * 10}`
+  // a while longer while it fetches a fresh one (ten TTLs, at most an hour: with a long TTL the
+  // worker's purge keeps it fresh, and the stale window only covers a purge that failed).
+  const stale = Math.min(input.ttlSeconds * 10, MAX_STALE_SECONDS)
+  return `public, max-age=0, s-maxage=${input.ttlSeconds}, stale-while-revalidate=${stale}`
 }

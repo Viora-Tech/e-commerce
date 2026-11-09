@@ -355,8 +355,19 @@ The origin is ready for it; switching DNS is a separate, owner-run step.
    is the second lock.
 5. **Static files**: `/_next/static/*` and `/theme-assets/…?v=` already send `immutable` for a
    year; Cloudflare caches them by default.
-6. **Purge**: not needed for correctness (the TTL is 30 seconds). To show a big theme change
-   everywhere at once, Caching → Configuration → Purge Everything.
+6. **Purge**: not needed for correctness with the default 30-second TTL. For a longer one, give
+   the worker `CLOUDFLARE_CACHE_PURGE_TOKEN` (an API token on the SaaS zone with only
+   Zone → Cache Purge → Purge; `CLOUDFLARE_ZONE_ID` must be set too) and a direct
+   `DATABASE_URL_DIRECT` (it LISTENs like the storefront), then raise `STOREFRONT_EDGE_TTL`
+   (600 suggested). The worker (`apps/worker/src/edge-purge.ts`, timing rules in core
+   `domains/edge-purge.ts`) then purges a store's hostnames about 5 seconds after its writes
+   settle (at most every 30 seconds per store, a media write after the origin's 60-second
+   delay), the whole zone 30 s and 120 s after a storefront process starts (pages from an old
+   build point at scripts the new one no longer has), and the whole zone after its listener
+   reconnects. The stale window is ten TTLs, capped at an hour, and only matters if a purge
+   fails.
+7. **Tiered cache**: Caching → Tiered Cache → Smart Tiered Caching, so a miss in one city's
+   data centre is filled from Cloudflare's upper tier instead of the origin.
 
 ### Static files
 

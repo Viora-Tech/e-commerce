@@ -357,6 +357,8 @@ services:
       DOKPLOY_STOREFRONT_PORT: ${DOKPLOY_STOREFRONT_PORT:-3100}
       # Cloudflare custom hostnames API (the domain poll and removals). Admin and worker only.
       CLOUDFLARE_API_TOKEN: ${CLOUDFLARE_API_TOKEN:-}
+      # Cloudflare cache purge after a store's pages change (Zone > Cache Purge). Worker only.
+      CLOUDFLARE_CACHE_PURGE_TOKEN: ${CLOUDFLARE_CACHE_PURGE_TOKEN:-}
     depends_on:
       migrate:
         condition: service_completed_successfully
