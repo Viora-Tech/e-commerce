@@ -150,6 +150,11 @@ export type OutboxEventType =
   | 'shipment.tracking_updated'
   /** Staff sent the shopper the link to their order page ("Send order link"). */
   | 'order.link_sent'
+  /**
+   * A payment gateway refused the store's API keys (`payments/gateway-health.ts`): checkout hides
+   * it and the owners are emailed, once per incident. No order.
+   */
+  | 'payments.gateway_keys_refused'
 
 /**
  * `orderId` is required for every order-lifecycle type; `variantId` (and
@@ -214,6 +219,8 @@ export type OutboxPayload = {
    * "Notify customer" off); app hooks and automations still see it. Absent means notify.
    */
   notifyCustomer?: boolean | undefined
+  /** For `payments.gateway_keys_refused`: the gateway and its words (never a key). */
+  gatewayAlert?: { gateway: string; error: string } | undefined
   /** For `automation.owner_alert`: what to tell the owner. */
   ownerAlert?:
     | {
@@ -353,6 +360,7 @@ export const OUTBOX_NOTIFICATION_TEMPLATE: Record<OutboxEventType, TemplateId | 
   'order.payment_pending': 'payment_pending',
   'shipment.tracking_updated': 'shipping_update',
   'order.link_sent': 'order_link',
+  'payments.gateway_keys_refused': null,
 }
 
 /**
@@ -450,4 +458,5 @@ export const OUTBOX_APP_EVENT: Record<OutboxEventType, AppEvent | null> = {
   'order.payment_pending': null,
   'shipment.tracking_updated': null,
   'order.link_sent': null,
+  'payments.gateway_keys_refused': null,
 }

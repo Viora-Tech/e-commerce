@@ -69,6 +69,8 @@ export const AUTOMATION_OUTBOX_TYPES: ReadonlySet<string> = new Set([
   'automation.app_trigger',
   // Not a trigger: the trigger job emails it to the owner (owner-alerts.ts).
   'automation.owner_alert',
+  // Not a trigger either: the same job emails the owner that a gateway refused the keys.
+  'payments.gateway_keys_refused',
 ])
 
 /** What an outbox row is about. */

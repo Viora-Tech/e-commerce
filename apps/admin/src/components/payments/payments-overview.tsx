@@ -22,6 +22,7 @@ import AddGatewayDialog from './add-gateway-dialog'
 import AdvancedSection from './advanced-section'
 import CodSettingsSection from './cod-settings-section'
 import ConfigSection from './config-section'
+import GatewayKeysBanner from './gateway-keys-banner'
 import HelpFooter from './help-footer'
 import ManualMethodsCard from './manual-methods-card'
 import ManualSection from './manual-section'
@@ -165,6 +166,7 @@ export default function PaymentsOverview({ setup, onReload, onOpenGuide }: Payme
       />
 
       <StatusBanner canTakePayments={setup.canTakePayments} canTakeOnline={setup.canTakeOnline} />
+      <GatewayKeysBanner />
       {setup.testMode ? <TestModeBar /> : null}
       {setup.razorpayWebsiteBlock ? (
         <RazorpayWebsiteBanner

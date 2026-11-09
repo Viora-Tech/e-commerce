@@ -12,7 +12,7 @@ import {
   ORDERED_INSTEAD_NOTE,
   retireCheckoutDraft,
 } from './checkout-draft'
-import type { DraftPlan, PlaceOrderInput, State } from './place-order-types'
+import type { DraftPlan, PlaceOrderInput, RewriteTarget, State } from './place-order-types'
 
 /**
  * Unpaid checkouts as drafts: an online or transfer checkout nothing else pays for is a draft
@@ -28,9 +28,14 @@ export async function planCheckoutDraft(
     contact: CheckoutContactKeys
     lines: readonly { variantId: string; quantity: number }[]
     payments: PaymentSettings
+    /** The cart's own order written again with another way to pay (checkout-reopen.ts). */
+    rewrite?: RewriteTarget | null | undefined
   },
 ): Promise<DraftPlan | null> {
   const method = input.paymentProvider.id
+  const rewrite = opts.rewrite ?? null
+  // A numbered order stays one; a draft stays this draft, or becomes the order (cash on delivery).
+  if (rewrite && !rewrite.wasDraft) return null
   const sameItems = () =>
     findSameItemsDraft(ctx, {
       contact: opts.contact,
@@ -38,6 +43,7 @@ export async function planCheckoutDraft(
       windowHours: opts.payments.duplicateCheckoutHours,
     })
   if (!draftsForMethod(method)) {
+    if (rewrite) return null
     const open = await sameItems()
     if (open) await retireSameItemsDraft(ctx, open.id)
     return null
@@ -45,7 +51,8 @@ export async function planCheckoutDraft(
   const asDraft =
     checkoutDraftsOn(opts.payments) && !input.giftCardIds?.length && !input.storeCredit
   if (!asDraft) return null
-  return { holdMinutes: draftHoldMinutes(opts.payments, method), reuse: await sameItems() }
+  const reuse = rewrite ? { id: rewrite.id, draftNumber: rewrite.draftNumber } : await sameItems()
+  return { holdMinutes: draftHoldMinutes(opts.payments, method), reuse }
 }
 
 /** Close the shopper's open draft they just ordered another way. */

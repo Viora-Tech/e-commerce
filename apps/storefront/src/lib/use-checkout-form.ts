@@ -51,6 +51,7 @@ import {
 import { isQuotable, useCheckoutShipping } from '@/lib/use-checkout-shipping'
 import { useCheckoutTender } from '@/lib/use-checkout-tender'
 import { useHeldStep } from '@/lib/use-held-step'
+import { useUnavailableMethods } from '@/lib/use-unavailable-methods'
 import {
   type ChangeHandler,
   type CheckoutFormInput,
@@ -70,7 +71,7 @@ import { applyPendingDiscountCode } from './pending-code'
  * re-price everything on the server.
  */
 export function useCheckoutForm(input: CheckoutFormInput) {
-  const { cart, methods, discount, settings } = input
+  const { cart, discount, settings } = input
   const customer = input.customer ?? null
   const addresses = input.addresses ?? []
   const deposit = input.deposit ?? NO_DEPOSIT
@@ -88,6 +89,7 @@ export function useCheckoutForm(input: CheckoutFormInput) {
   const copy = applyCheckoutText(content, input.text ?? {})
   const router = useRouter()
 
+  const { methods, drop: dropUnavailable } = useUnavailableMethods(input.methods, cart)
   const [pending, start] = useTransition()
   const [savingAddress, startSave] = useTransition()
   const [form, setForm] = useState<CheckoutFormState>(() => ({
@@ -271,6 +273,9 @@ export function useCheckoutForm(input: CheckoutFormInput) {
         useStoreCredit: tender.spendablePaise > 0 && !digitalOnly,
         ...ship.formFields,
       })
+      const next = dropUnavailable(r)
+      if (next) setForm((prev) => ({ ...prev, payment: next }))
+      if (next) setPickedStep('payment')
       if (r) setError(r)
     })
     return true

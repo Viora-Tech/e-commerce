@@ -50,6 +50,7 @@ export const thankYouContent = {
   headline: {
     pending: 'Complete your payment',
     failed: 'Your payment did not go through',
+    unavailable: 'Online payment is temporarily unavailable',
   },
   /** The headline by where the order stands. */
   card: {
@@ -109,6 +110,7 @@ export const thankYouContent = {
       `Pay ${total} with any UPI app. This page updates on its own once it is paid.`,
     failed: (total: string) =>
       `Your payment of ${total} did not go through. Your order is saved; try again when ready.`,
+    unavailable: 'Please choose another payment method. Your order is saved.',
     giftCardEmail: (email: string | null) =>
       email
         ? `Your gift card is on its way to ${email}. It usually arrives within a few minutes.`
@@ -135,6 +137,7 @@ export const thankYouContent = {
   storeCreditPaid: 'Store credit',
   payNow: 'Pay now',
   retryPayment: 'Retry payment',
+  chooseAnother: 'Choose another payment method',
   newQr: 'Get a new UPI QR',
   /** A transfer order's way to pay through the store's gateway instead (issue 1010). */
   payOnline: {

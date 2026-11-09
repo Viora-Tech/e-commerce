@@ -13,6 +13,7 @@ import { formatMoney } from '@commerce/money'
 import { checkoutContent as content } from '@/data/checkout'
 import { deliveryOptionsContent as appCopy } from '@/data/delivery-options'
 import { storeCreditCheckoutContent } from '@/data/store-credit'
+import type { CheckoutResult } from '@/lib/checkout-result'
 import type { AppliedGiftCard } from '@/lib/gift-card-actions'
 import type { CheckoutMethod } from '@/lib/payments'
 import type { CheckoutRate, CheckoutShipping } from '@/lib/shipping'
@@ -364,3 +365,14 @@ export function payView(
       : content.pay(payNow)
   return { payNow, emiMonthly, payLabel }
 }
+
+/** The ways to pay without the ones checkout said it cannot offer now (a refused gateway). */
+export const withoutUnavailable = (
+  methods: CheckoutMethod[],
+  unavailable: readonly string[],
+): CheckoutMethod[] =>
+  unavailable.length ? methods.filter((m) => !unavailable.includes(m.id)) : methods
+
+/** The gateways a checkout result says are unavailable; null when it says none. */
+export const unavailableOf = (r: CheckoutResult): string[] | null =>
+  r && 'unavailable' in r && r.unavailable?.length ? r.unavailable : null
