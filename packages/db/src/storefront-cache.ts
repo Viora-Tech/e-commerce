@@ -191,6 +191,8 @@ export const STOREFRONT_CACHE_EXEMPT: Record<string, string> = {
   outbox_event: LOG,
   payment: SHOPPER,
   payment_event: LOG,
+  // Gateway health (0234): read only by checkout, which is per shopper and never cached.
+  payment_gateway_health: LOG,
   // Classified with the Pixels PR (they were missing): Affiliates, Automations, Profit, platform apps.
   affiliate: "an affiliate's own pages are personal and never cached",
   affiliate_blocklist: ADMIN,

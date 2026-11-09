@@ -165,7 +165,10 @@ export default function GatewayConnectForm({
       else toast.success(copy.saved(guides[providerId].name))
       onConnected()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.saveFailed)
+      // Saving checks the keys first: a refusal shows under "Test connection" too.
+      const message = err instanceof Error ? err.message : copy.saveFailed
+      setTest({ status: 'error', message })
+      toast.error(message)
     } finally {
       setSaving(false)
     }

@@ -4,8 +4,10 @@ import {
   CheckoutMethodSchema,
   checkRateLimit,
   createMemoryRateLimitStore,
+  gatewayName,
   MANUAL_ROW_IDS,
   MODE_GATEWAY_IDS,
+  markGatewayHealthy,
   ONLINE_METHOD_IDS,
   PaymentAdjustmentSchema,
   PaymentMethodRulesSchema,
@@ -14,6 +16,7 @@ import {
   rateLimitKey,
   refreshPaymentCredentials,
   retryAfterSeconds,
+  unhealthyGateways,
 } from '@commerce/core'
 import { razorpayAuthorizeUrl, razorpayOAuthApp } from '@commerce/payments-razorpay'
 import { ORPCError } from '@orpc/server'
@@ -84,6 +87,20 @@ export const paymentsRouter = {
     )
     const apps = await getStoreApps(context.tx, storeId)
     return paymentsSetup(context.tx, storeId, payments, apps.installed, env)
+  }),
+
+  /**
+   * Gateways that refused the store's API keys and are hidden at checkout until they pass a
+   * check: the banner on Home and Settings → Payments.
+   */
+  gatewayAlerts: can(permissions.SETTINGS_READ).handler(async ({ context }) => {
+    const rows = await unhealthyGateways(context.tx, context.scope.storeId)
+    return rows.map((r) => ({
+      gateway: r.gateway,
+      name: gatewayName(r.gateway),
+      since: r.since.toISOString(),
+      lastError: r.lastError,
+    }))
   }),
 
   /** For the admin-wide "Test mode" banner: a gateway at checkout runs on test keys. */
@@ -188,6 +205,24 @@ export const paymentsRouter = {
       if (!payments.get(input.providerId)) {
         throw new ORPCError('BAD_REQUEST', { message: 'Install this app from Apps first.' })
       }
+      // Keys the gateway refuses are never saved (Waimers, Nov 2026: a rejected key set failed every
+      // checkout). The same read-only check as "Test connection", under its rate limit.
+      const limit = await checkRateLimit(
+        context.rateLimit ?? fallbackRateLimit,
+        rateLimitKey('payments-test-connection', context.scope.storeId),
+        TEST_CONNECTION_RULE,
+      )
+      if (!limit.ok) throw tooMany(retryAfterSeconds(limit))
+      const check = await testPaymentConnection(
+        context.tx,
+        context.scope.storeId,
+        payments,
+        paymentsEnv(),
+        input.providerId,
+        input.fields,
+        input.mode,
+      )
+      if (!check.ok) throw new ORPCError('BAD_REQUEST', { message: check.message })
       await connectPaymentGateway(
         context.tx,
         context.scope.storeId,
@@ -197,6 +232,8 @@ export const paymentsRouter = {
         input.fields,
         input.mode,
       )
+      // Keys that pass end a refused-keys incident: checkout shows the gateway again at once.
+      await markGatewayHealthy(context.tx, context.scope.storeId, input.providerId)
       return { ok: true }
     }),
 
@@ -246,7 +283,7 @@ export const paymentsRouter = {
       if (!payments.get(input.providerId)) {
         throw new ORPCError('BAD_REQUEST', { message: 'Install this app from Apps first.' })
       }
-      return switchPaymentMode(
+      const switched = await switchPaymentMode(
         context.tx,
         context.scope.storeId,
         payments,
@@ -254,6 +291,9 @@ export const paymentsRouter = {
         input.providerId,
         input.mode,
       )
+      // Other keys now: a refused-keys incident is over (checkout re-checks Test keys itself).
+      if (switched.ok) await markGatewayHealthy(context.tx, context.scope.storeId, input.providerId)
+      return switched
     }),
 
   /** The Active/Inactive switch: off leaves checkout at once, keys and settings kept. */
@@ -318,10 +358,20 @@ export const paymentsRouter = {
         throw new ORPCError('BAD_REQUEST', { message: 'This link has expired. Try Connect again.' })
       }
       const { payments } = await storeRegistries(context.tx, context.scope.storeId)
-      return completeRazorpayOAuth(context.tx, context.scope.storeId, payments, env, app, {
-        code: input.code,
-        mode: state.mode,
-        redirectUri: razorpayRedirectUri(env.adminUrl),
-      })
+      const done = await completeRazorpayOAuth(
+        context.tx,
+        context.scope.storeId,
+        payments,
+        env,
+        app,
+        {
+          code: input.code,
+          mode: state.mode,
+          redirectUri: razorpayRedirectUri(env.adminUrl),
+        },
+      )
+      // A fresh connection replaces the refused keys.
+      await markGatewayHealthy(context.tx, context.scope.storeId, 'razorpay')
+      return done
     }),
 }

@@ -83,7 +83,7 @@ export async function findSameItemsDraft(
 }
 
 /** Give back the discount uses an order counted, so a fresh try counts its own. */
-async function releaseOrderDiscountUses(ctx: StoreContext, orderId: string): Promise<void> {
+export async function releaseOrderDiscountUses(ctx: StoreContext, orderId: string): Promise<void> {
   const uses = await ctx.tx
     .delete(discountUsage)
     .where(eq(discountUsage.orderId, orderId))
@@ -97,7 +97,7 @@ async function releaseOrderDiscountUses(ctx: StoreContext, orderId: string): Pro
 }
 
 /** Mark the draft's open gateway attempts cancelled: a new try (or the expiry) replaces them. */
-async function cancelOpenAttempts(ctx: StoreContext, orderId: string, why: string) {
+export async function cancelOpenAttempts(ctx: StoreContext, orderId: string, why: string) {
   await ctx.tx
     .update(payment)
     .set({ status: 'cancelled', error: why })

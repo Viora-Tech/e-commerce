@@ -6,6 +6,7 @@ import type { StoreHealthReport } from '@commerce/core/store-health'
 import PageBody from '@/components/layout/page-body'
 import BackgroundWorkNotice from '@/components/media/background-work-notice'
 import LocalStorageWarning from '@/components/media/local-storage-warning'
+import GatewayKeysBanner from '@/components/payments/gateway-keys-banner'
 import type { HomeRange } from '@/lib/home-range'
 import AskAiCard from './ask-ai-card'
 import ChartsPanel from './charts/charts-panel'
@@ -73,6 +74,7 @@ export default function DashboardPage({
             now={new Date()}
           />
         </HomeEnter>
+        <GatewayKeysBanner />
         <LocalStorageWarning />
         <BackgroundWorkNotice />
         <HomeEnter index={1}>

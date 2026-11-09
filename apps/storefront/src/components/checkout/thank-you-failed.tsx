@@ -10,26 +10,32 @@ type ThankYouFailedProps = {
   actions: ReactNode
   /** The store's WhatsApp link, when it has a number. */
   help: string | null
+  /** "Your money is safe": off when no payment was ever tried (the gateway was unavailable). */
+  safe?: boolean | undefined
 }
 
 const content = thankYouContent.failed
 
 /** A payment that did not go through: what was tried, that the money is safe, what to do next. */
-export default function ThankYouFailed({ rows, actions, help }: ThankYouFailedProps) {
+export default function ThankYouFailed({ rows, actions, help, safe = true }: ThankYouFailedProps) {
   return (
     <>
       <div className={`${CK_CARD} px-[1.125rem] py-4`}>
         <ThankYouRows rows={rows} />
       </div>
-      <div className="flex items-start gap-3 rounded-[calc(var(--ck-radius)*1.6)] bg-ck-success-soft px-[1.125rem] py-4">
-        <CheckoutIcon name="shield" className="size-[1.375rem] shrink-0 text-ck-success" />
-        <div className="flex min-w-0 flex-col gap-0.5">
-          <p className="text-[0.9375rem] leading-[1.375rem] font-semibold text-ck-success">
-            {content.safeHeading}
-          </p>
-          <p className="text-[0.875rem] leading-5 text-pretty text-ck-muted">{content.safeBody}</p>
+      {safe ? (
+        <div className="flex items-start gap-3 rounded-[calc(var(--ck-radius)*1.6)] bg-ck-success-soft px-[1.125rem] py-4">
+          <CheckoutIcon name="shield" className="size-[1.375rem] shrink-0 text-ck-success" />
+          <div className="flex min-w-0 flex-col gap-0.5">
+            <p className="text-[0.9375rem] leading-[1.375rem] font-semibold text-ck-success">
+              {content.safeHeading}
+            </p>
+            <p className="text-[0.875rem] leading-5 text-pretty text-ck-muted">
+              {content.safeBody}
+            </p>
+          </div>
         </div>
-      </div>
+      ) : null}
       {actions}
       {help ? (
         <a

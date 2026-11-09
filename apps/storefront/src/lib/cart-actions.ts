@@ -10,6 +10,7 @@ import {
   findRedeemableGiftCard,
   getCart,
   onOrderPlaced,
+  type PlacedAndPaid,
   PreorderMixedCart,
   placeOrderAndPay,
   rememberCheckoutAddress,
@@ -42,7 +43,7 @@ import { discoveryVisitor, recordDiscoveryCartAdd } from './discovery-events'
 import { hasChatCookie, postChatCartLine } from './inbox'
 import { requestMarketId } from './market-catalog'
 import { nudgeOutbox } from './outbox'
-import { storePaymentFallbacks, storePaymentProviders } from './payments'
+import { storePaymentFallbacks, storePaymentProviders, storeUnavailableMethods } from './payments'
 import { clientIp, rateLimited } from './rate-limit'
 import { requestStoreId } from './request-store'
 import { noteAbAddToCart } from './rollout-ab'
@@ -364,6 +365,9 @@ export async function checkoutAction(submitted: CheckoutForm): Promise<CheckoutR
     const providers = await storePaymentProviders(tx, storeId)
     const provider = providers.find((p) => p.id === form.payment)
     if (!provider) throw new Error(`payment method ${form.payment} is not enabled`)
+    // A gateway that refused the store's keys is off checkout: no order, pay another way.
+    const unavailable = await storeUnavailableMethods(tx, storeId, providers)
+    if (unavailable.includes(provider.id)) return { unavailable }
     // Several gateways on: who to try next if this one cannot open the payment.
     const fallbacks = await storePaymentFallbacks(tx, storeId, providers, provider.id)
     const giftCardIds: string[] = []
@@ -372,8 +376,16 @@ export async function checkoutAction(submitted: CheckoutForm): Promise<CheckoutR
     }
     return { provider, fallbacks, giftCardIds }
   })
-    .then(({ provider, fallbacks, giftCardIds }) =>
-      placeOrderAndPay(db(), storeId, {
+    .then(async (ready): Promise<PlacedAndPaid | NonNullable<CheckoutResult>> => {
+      if ('unavailable' in ready) {
+        const refused: NonNullable<CheckoutResult> = {
+          error: checkoutContent.errors.gatewayUnavailable,
+          unavailable: ready.unavailable,
+        }
+        return refused
+      }
+      const { provider, fallbacks, giftCardIds } = ready
+      return placeOrderAndPay(db(), storeId, {
         cartId,
         paymentProvider: provider,
         paymentFallbacks: fallbacks,
@@ -406,8 +418,8 @@ export async function checkoutAction(submitted: CheckoutForm): Promise<CheckoutR
             countryCode,
           },
         },
-      }),
-    )
+      })
+    })
     .catch((err: unknown): NonNullable<CheckoutResult> => {
       const repeat = repeatCheckoutResult(err, me?.id ?? null)
       if (repeat) return repeat
@@ -417,6 +429,20 @@ export async function checkoutAction(submitted: CheckoutForm): Promise<CheckoutR
     })
   if ('error' in placed || 'confirmAgain' in placed) return placed
   const result = placed
+  /* The gateway refused the store's API keys (the store's to fix, the owner was told): the shopper
+     stays on the payment step with that gateway gone, and the cart keeps pointing at this order,
+     so the next Pay writes the same order again with the way they pick (checkout-reopen.ts). */
+  if (result.keysRefused) {
+    const unavailable = await inStore(storeId, async (tx) =>
+      storeUnavailableMethods(tx, storeId, await storePaymentProviders(tx, storeId)),
+    )
+    return {
+      error: checkoutContent.errors.gatewayUnavailable,
+      unavailable: unavailable.includes(form.payment)
+        ? unavailable
+        : [...unavailable, form.payment],
+    }
+  }
   await clearCartId()
   // A second submit of the same cart got the first order back: it was already
   // announced (the outbox row, if any, was written on the first submit only:

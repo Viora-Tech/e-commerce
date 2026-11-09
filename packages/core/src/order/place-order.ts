@@ -41,6 +41,7 @@ import { lineShips } from '../shipping/profiles'
 import { quoteProfileLines } from '../shipping/profiles-service'
 import { runWorkflow, type WorkflowLog, type WorkflowStep } from '../workflow/run'
 import { lockCartOrReplay } from './cart-replay'
+import { clearOrderForAnotherMethod, orderAwaitingAnotherMethod } from './checkout-reopen'
 import { enforceCheckoutRepeats } from './duplicate-checkout'
 import { createOrder } from './place-order-create'
 import { planCheckoutDraft, prepareDraft } from './place-order-draft'
@@ -141,7 +142,7 @@ const resolveShipping: WorkflowStep<State> = {
  */
 const enforceCheckoutRules: WorkflowStep<State> = {
   name: 'enforceCheckoutRules',
-  async run({ ctx, input, lines, discount: applied, shipping }) {
+  async run({ ctx, input, lines, discount: applied, shipping, rewrite }) {
     const [s] = await ctx.tx
       .select({ preferences: store.preferences, payments: store.payments })
       .from(store)
@@ -180,8 +181,9 @@ const enforceCheckoutRules: WorkflowStep<State> = {
         email: contact?.email ?? input.checkout.email,
         phone: contact?.phone ?? input.checkout.phone,
       }
-      draft = await planCheckoutDraft(ctx, input, { contact: keys, lines, payments })
-      if (draft?.reuse) return { contact, draft }
+      draft = await planCheckoutDraft(ctx, input, { contact: keys, lines, payments, rewrite })
+      // The same checkout written again (another way to pay) is no repeat of itself.
+      if (draft?.reuse || rewrite) return { contact, draft }
       // The same items again (unpaid: resume it; placed: ask), then the hourly cap.
       await enforceCheckoutRepeats(ctx, {
         contact: keys,
@@ -373,7 +375,11 @@ export async function placeOrder(
   log?: WorkflowLog,
 ): Promise<PlaceOrderResult> {
   const replay = await lockCartOrReplay(ctx, input.cartId)
-  if (replay) return replay
+  // The cart's order whose gateway refused the store's keys: placed again on the same row with
+  // the way to pay the shopper picked now, never a second order (`order/checkout-reopen.ts`).
+  const rewrite = replay ? await orderAwaitingAnotherMethod(ctx, { orderId: replay.orderId }) : null
+  if (replay && !rewrite) return replay
+  if (rewrite) await clearOrderForAnotherMethod(ctx, rewrite, input.cartId)
   // One spelling of the PIN code, and a state that agrees with it (place-order-rules.ts).
   if (input.checkout)
     input = { ...input, checkout: await checkCheckoutPincode(ctx.storeId, input.checkout) }
@@ -403,6 +409,7 @@ export async function placeOrder(
       balanceDuePaise: 0,
       risk: null,
       draft: null,
+      rewrite,
     },
     [
       loadCart,
@@ -447,6 +454,11 @@ export type PlacedAndPaid = PlaceOrderResult & {
   becameCaptured: boolean
   /** The gateway's error when the attempt could not be started; the order stays placed. */
   paymentError: string | null
+  /**
+   * The gateway refused the store's API keys and no fallback opened the payment: checkout
+   * offers the shopper another way to pay on this same order (`order/checkout-reopen.ts`).
+   */
+  keysRefused: boolean
 }
 
 /**
@@ -463,7 +475,7 @@ export async function placeOrderAndPay(
   const placed = await withStore(db, storeId, (tx) => placeOrder({ storeId, tx }, input, log))
   if (!placed.attemptId || placed.paymentStatus !== 'created') {
     const byCards = !placed.replayed && placed.paymentStatus === 'captured'
-    return { ...placed, becameCaptured: byCards, paymentError: null }
+    return { ...placed, becameCaptured: byCards, paymentError: null, keysRefused: false }
   }
   const fallbacks = input.paymentFallbacks ?? []
   const started = fallbacks.length
@@ -482,5 +494,6 @@ export async function placeOrderAndPay(
     session: started.session ?? placed.session,
     becameCaptured: started.becameCaptured,
     paymentError: started.error,
+    keysRefused: started.keysRefused === true && started.session == null,
   }
 }

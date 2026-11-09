@@ -559,6 +559,8 @@ export const ACTION_DOCS: Record<string, string> = {
   'payments.connect': 'Save pasted keys and make that gateway the main way to get paid.',
   'payments.fixWebhook':
     'The health line\'s "Fix" for payment updates on a Connect Razorpay account.',
+  'payments.gatewayAlerts':
+    "Gateways that refused the store's API keys and are hidden at checkout until they pass a check: the banner on Home and Settings → Payments.",
   'payments.razorpayOAuthComplete':
     "The OAuth callback route hands the code here; the state must be this store's, and fresh.",
   'payments.razorpayOAuthStart': 'Where "Connect Razorpay" sends the merchant.',

@@ -1993,6 +1993,32 @@ export const paymentEvent = pgTable(
   ],
 )
 
+/**
+ * A payment gateway that refused the store's API keys (0234). While `unhealthy_since` is set,
+ * checkout hides the gateway; from `retest_after` on, checkout runs the gateway's read-only key
+ * check and shows it again once that passes. `alerted_at` is when the owner was told about this
+ * incident (once per incident). Cleared (`unhealthy_since` null) when keys pass a check again.
+ */
+export const paymentGatewayHealth = pgTable(
+  'payment_gateway_health',
+  {
+    storeId: storeId(),
+    /** The gateway provider id (`razorpay`, `cashfree`, ...). */
+    gateway: text('gateway').notNull(),
+    unhealthySince: timestamp('unhealthy_since', { withTimezone: true }),
+    /** The gateway's words for the latest refusal; never a key. */
+    lastError: text('last_error'),
+    lastFailedAt: timestamp('last_failed_at', { withTimezone: true }),
+    /** When checkout may run the key check again (the cool-down). */
+    retestAfter: timestamp('retest_after', { withTimezone: true }),
+    alertedAt: timestamp('alerted_at', { withTimezone: true }),
+    /** When the keys last passed a check (a re-test, a save, "Test connection"). */
+    lastOkAt: timestamp('last_ok_at', { withTimezone: true }),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex('payment_gateway_health_store_gateway').on(t.storeId, t.gateway)],
+)
+
 /** One row per message attempted, so admin can see what a shopper was told and retries never double-send. */
 export const notification = pgTable(
   'notification',

@@ -200,6 +200,22 @@ export type State = {
   risk: CheckoutRisk | null
   /** Kept as a draft until paid (`payments/checkout-drafts.ts`); null for an order at once. */
   draft: DraftPlan | null
+  /**
+   * The cart's own order, written again on the same row: its gateway refused the store's keys
+   * and the shopper picked another way to pay (`order/checkout-reopen.ts`). Null otherwise.
+   */
+  rewrite: RewriteTarget | null
+}
+
+/** An order (or checkout draft) placed again on its own row with another way to pay. */
+export type RewriteTarget = {
+  id: string
+  number: number
+  draftNumber: number | null
+  /** An open checkout draft (#D57) rather than a numbered order. */
+  wasDraft: boolean
+  /** The gateway that refused the keys. */
+  failedProvider: string
 }
 
 /** How an unpaid checkout is saved as a draft. */

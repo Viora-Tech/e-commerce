@@ -2,6 +2,8 @@ import { address, type Db, order, orderLine, payment, store, withStore } from '@
 import {
   type CheckoutSession,
   type CreatePaymentInput,
+  isGatewayKeysRefused,
+  keysRefusedError,
   type PaymentProvider,
   readableError,
 } from '@commerce/payments'
@@ -12,6 +14,7 @@ import { isOpenCheckoutDraft } from '../order/checkout-draft'
 import { captureModeFor } from './capture'
 import { applyPaymentStatus } from './confirm'
 import { type FallbackTry, runWithFallbacks } from './fallback'
+import { noteGatewayKeysRefused } from './gateway-health'
 import { isGatewayProvider, type OnlineMethodId } from './methods'
 import { methodsForGateway } from './routing'
 import { parsePaymentSettings } from './settings'
@@ -38,6 +41,11 @@ export type StartedPayment = {
   /** True when this call captured the money (providers that capture at creation). */
   becameCaptured: boolean
   error: string | null
+  /**
+   * The gateway refused the store's API keys (a merchant configuration error, not the
+   * shopper's): checkout offers another way to pay on the same order instead of a retry.
+   */
+  keysRefused?: boolean | undefined
 }
 
 export class PaymentNotRetryable extends CommerceError {
@@ -279,13 +287,23 @@ export async function startPaymentAttempt(
       provider.id,
     )
   } catch (err) {
-    const failed = await markFailed(db, storeId, attemptId, message(err))
+    // Refused keys are the merchant's to fix: the gateway is marked unhealthy (checkout hides it)
+    // and the owner hears once. That bookkeeping never fails the shopper's checkout.
+    const refused = isGatewayKeysRefused(err)
+    const error = refused ? keysRefusedError(message(err)) : message(err)
+    const failed = await markFailed(db, storeId, attemptId, error)
+    if (refused) {
+      await noteGatewayKeysRefused(db, storeId, provider.id, message(err)).catch((e: unknown) =>
+        log.error('[payments] could not record refused gateway keys', e),
+      )
+    }
     return {
       attemptId,
       status: failed?.status ?? 'failed',
       session: null,
       becameCaptured: false,
-      error: message(err),
+      error,
+      keysRefused: refused,
     }
   }
 

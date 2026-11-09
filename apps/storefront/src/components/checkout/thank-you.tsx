@@ -5,6 +5,7 @@ import { OPEN_ATTEMPT_STATUSES } from '@commerce/core/order-status'
 import { readShopperPaid } from '@commerce/core/shopper-paid'
 import type { address, order, orderLine, payment } from '@commerce/db'
 import type { CheckoutSession } from '@commerce/payments'
+import { isKeysRefusedError } from '@commerce/payments/failure-reasons'
 import type { ReactNode } from 'react'
 import CheckoutIcon from '@/components/checkout/checkout-icon'
 import CheckoutPageShell from '@/components/checkout/checkout-page-shell'
@@ -120,6 +121,8 @@ export default function ThankYouTemplate({
   // The latest attempt failed on an order that is still open: offer a new attempt.
   const failed =
     waiting && !o.checkoutPaidAt && (pay?.status === 'failed' || pay?.status === 'cancelled')
+  // The gateway refused the store's keys: no shopper failure, another way to pay instead.
+  const unavailable = failed && isKeysRefusedError(pay?.error)
   const session = (pay?.checkoutSession ?? null) as CheckoutSession | null
   // An attempt made for a pay link (a plan bill, an invoice) that nobody has started yet.
   const notStarted = waiting && !o.checkoutPaidAt && pay?.status === 'created' && session === null
@@ -155,11 +158,13 @@ export default function ThankYouTemplate({
       ? transferContent.received(orderRef(o))
       : progress.end
         ? content.card[progress.end]
-        : failed
-          ? content.headline.failed
-          : awaiting || notStarted
-            ? content.headline.pending
-            : content.card.confirmed
+        : unavailable
+          ? content.headline.unavailable
+          : failed
+            ? content.headline.failed
+            : awaiting || notStarted
+              ? content.headline.pending
+              : content.card.confirmed
   const statusLines = expiredDraft
     ? [transferContent.expiredBody]
     : transferDraft
@@ -168,7 +173,9 @@ export default function ThankYouTemplate({
         ? [
             payClient
               ? content.status.unpaid(due)
-              : pendingLine(failed, manual !== null, qr !== null, due),
+              : unavailable
+                ? content.status.unavailable
+                : pendingLine(failed, manual !== null, qr !== null, due),
           ]
         : progress.end
           ? []
@@ -192,6 +199,11 @@ export default function ThankYouTemplate({
   const continueLink = (
     <a href="/" className={`${CK_BUTTON_SECONDARY} h-13! no-underline`}>
       {content.continueShopping}
+    </a>
+  )
+  const chooseAnother = (
+    <a href="/checkout" className={`${CK_BUTTON_PRIMARY} min-w-0 flex-1 no-underline`}>
+      {content.chooseAnother}
     </a>
   )
   const retryButton = retry ? (
@@ -282,10 +294,11 @@ export default function ThankYouTemplate({
                     [content.confirming.order, number],
                   ]}
                   help={whatsAppHelp(look.contactPhone)}
+                  safe={!unavailable}
                   actions={
                     <div className="flex flex-col-reverse gap-3 sm:flex-row">
                       {continueLink}
-                      {retryButton}
+                      {unavailable ? chooseAnother : retryButton}
                     </div>
                   }
                 />
