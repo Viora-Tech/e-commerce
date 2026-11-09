@@ -1,5 +1,4 @@
 import { importedMethod, notTestOrder } from '@commerce/core'
-import { dayKey } from '@commerce/dates'
 import type { StoreTx } from '@commerce/db'
 import {
   address,
@@ -16,7 +15,6 @@ import { and, asc, count, desc, eq, gte, inArray, lt, ne, sql, sum } from 'drizz
 import type { LiveVisitors, VisitorSource } from '../context'
 import {
   averageOrderValue,
-  bucketByDay,
   buildFunnel,
   conversionRate,
   delta,
@@ -32,6 +30,7 @@ import {
 } from './analytics-buckets'
 import { breakdownLines, type SalesBreakdownLine, salesBreakdownSums } from './sales-breakdown'
 import { countSessions, importedTrafficDays, totalSessions } from './sessions'
+import { countWhere, istDaySql, sumInt } from './sql-buckets'
 
 /** Drafts are not orders: they never reach revenue, counts or the funnel. */
 /** Test-mode orders (gateway test keys, no real money) are left out too. */
@@ -87,53 +86,82 @@ export type AnalyticsLive = {
   }[]
 }
 
-type OrderRow = {
-  id: string
-  placedAt: Date
-  totalPaise: number
-  customerId: string | null
-  email: string | null
+/** One group of a range's counted orders: same IST day, payment method, tracking and returning. */
+type OrderGroup = {
+  day: string
   paymentMethod: string | null
   /** The old platform's gateway names on an imported order (`UPI Id`, `Cards, UPI… by Razorpay`). */
   importedGateway: string | null
   /** Placed through a tracked storefront session; only these convert sessions (audit #95). */
   tracked: boolean
+  /** The customer had already ordered before this order. */
+  returning: boolean
+  orders: number
+  revenuePaise: number
 }
 
-async function ordersIn(tx: StoreTx, from: Date, to: Date): Promise<OrderRow[]> {
+/**
+ * The range's counted orders grouped in Postgres, so a year of orders comes back as a few
+ * hundred rows. "Returning" compares each order with its customer's first counted order at
+ * millisecond precision, as the JS Date comparison it replaces did.
+ */
+async function orderGroups(tx: StoreTx, from: Date, to: Date): Promise<OrderGroup[]> {
+  const inRange = and(counted, gte(order.placedAt, from), lt(order.placedAt, to))
+  const firsts = tx.$with('firsts').as(
+    tx
+      .select({
+        customerId: order.customerId,
+        firstAt: sql<Date>`date_trunc('milliseconds', min(${order.placedAt}))`.as('first_at'),
+      })
+      .from(order)
+      .where(
+        and(
+          counted,
+          inArray(order.customerId, tx.select({ id: order.customerId }).from(order).where(inRange)),
+        ),
+      )
+      .groupBy(order.customerId),
+  )
+  const day = istDaySql(order.placedAt)
+  const importedGateway = sql<string | null>`${order.importMeta}->>'paymentMethod'`
+  const tracked = sql<boolean>`(${order.attribution}->>'channel') is not null`
+  const returning = sql<boolean>`coalesce(date_trunc('milliseconds', ${order.placedAt}) > ${firsts.firstAt}, false)`
   return tx
+    .with(firsts)
     .select({
-      id: order.id,
-      placedAt: order.placedAt,
-      totalPaise: order.totalPaise,
-      customerId: order.customerId,
-      email: order.email,
+      day,
       paymentMethod: order.paymentMethod,
-      importedGateway: sql<string | null>`${order.importMeta}->>'paymentMethod'`,
-      tracked: sql<boolean>`(${order.attribution}->>'channel') is not null`,
+      importedGateway,
+      tracked,
+      returning,
+      orders: countWhere(undefined),
+      revenuePaise: sumInt(order.totalPaise),
     })
     .from(order)
-    .where(and(counted, gte(order.placedAt, from), lt(order.placedAt, to)))
+    .leftJoin(firsts, eq(firsts.customerId, order.customerId))
+    .where(inRange)
+    .groupBy(day, order.paymentMethod, importedGateway, tracked, returning)
 }
 
-/** Orders whose customer had already ordered before the order in question. */
-async function returningOrderIds(tx: StoreTx, rows: OrderRow[]): Promise<Set<string>> {
-  const ids = [...new Set(rows.map((r) => r.customerId).filter((v): v is string => v !== null))]
-  if (ids.length === 0) return new Set()
-  const firstOrders = await tx
-    .select({ customerId: order.customerId, firstAt: sql<Date>`min(${order.placedAt})` })
-    .from(order)
-    .where(and(counted, inArray(order.customerId, ids)))
-    .groupBy(order.customerId)
-  const firstByCustomer = new Map(firstOrders.map((r) => [r.customerId, new Date(r.firstAt)]))
-  const out = new Set<string>()
-  for (const r of rows) {
-    if (!r.customerId) continue
-    const first = firstByCustomer.get(r.customerId)
-    if (first && r.placedAt.getTime() > first.getTime()) out.add(r.id)
+/** Sum `pick` over the groups that pass `keep`, one value per day of `days`. */
+function byDay(
+  groups: OrderGroup[],
+  days: string[],
+  pick: (g: OrderGroup) => number,
+  keep: (g: OrderGroup) => boolean = () => true,
+): number[] {
+  const index = new Map(days.map((d, i) => [d, i]))
+  const out = days.map(() => 0)
+  for (const g of groups) {
+    const i = index.get(g.day)
+    if (i === undefined || !keep(g)) continue
+    out[i] = (out[i] ?? 0) + pick(g)
   }
   return out
 }
+
+const total = (groups: OrderGroup[], pick: (g: OrderGroup) => number) =>
+  groups.reduce((n, g) => n + pick(g), 0)
 
 function share(value: number, total: number): number {
   return total > 0 ? value / total : 0
@@ -168,28 +196,26 @@ export async function analyticsOverview(
   const now = opts.now ?? new Date()
   const range: ResolvedRange = resolveRange(opts.range ?? { key: '30d' }, now)
   const [current, previous] = await Promise.all([
-    ordersIn(tx, range.from, range.to),
-    ordersIn(tx, range.previousFrom, range.previousTo),
+    orderGroups(tx, range.from, range.to),
+    orderGroups(tx, range.previousFrom, range.previousTo),
   ])
   const [sessionsPerDay, sessionsPrev] = await Promise.all([
     countSessions(tx, range, false),
     totalSessions(tx, range.previousFrom, range.previousTo),
   ])
 
-  const revenue = current.reduce((n, r) => n + r.totalPaise, 0)
-  const revenuePrev = previous.reduce((n, r) => n + r.totalPaise, 0)
-  const returning = await returningOrderIds(tx, current)
-  const returningPrev = await returningOrderIds(tx, previous)
+  const orders = (g: OrderGroup) => g.orders
+  const paise = (g: OrderGroup) => g.revenuePaise
+  const ordersNow = total(current, orders)
+  const ordersPrev = total(previous, orders)
+  const revenue = total(current, paise)
+  const revenuePrev = total(previous, paise)
+  const returningNow = total(current, (g) => (g.returning ? g.orders : 0))
+  const returningPrev = total(previous, (g) => (g.returning ? g.orders : 0))
   const sessionTotal = sessionsPerDay.reduce((n, v) => n + v, 0)
 
-  const revenueByDay = bucketByDay(
-    current.map((r) => ({ at: r.placedAt, weight: r.totalPaise })),
-    range.days,
-  )
-  const ordersByDay = bucketByDay(
-    current.map((r) => ({ at: r.placedAt })),
-    range.days,
-  )
+  const revenueByDay = byDay(current, range.days, paise)
+  const ordersByDay = byDay(current, range.days, orders)
   // Only orders with sessions behind them convert: one placed through this storefront, or an
   // imported one on a day with imported traffic. Other imported history (101 orders vs 19
   // sessions) read as "100% conversion" (audit #95).
@@ -197,18 +223,11 @@ export async function analyticsOverview(
     importedTrafficDays(tx, range.from, range.to),
     importedTrafficDays(tx, range.previousFrom, range.previousTo),
   ])
-  const convertsIn = (days: Set<string>) => (r: { tracked: boolean; placedAt: Date }) =>
-    r.tracked || days.has(dayKey(r.placedAt))
-  const trackedNow = current.filter(convertsIn(importedNow))
-  const trackedPrev = previous.filter(convertsIn(importedPrev)).length
-  const trackedByDay = bucketByDay(
-    trackedNow.map((r) => ({ at: r.placedAt })),
-    range.days,
-  )
-  const returningByDay = bucketByDay(
-    current.filter((r) => returning.has(r.id)).map((r) => ({ at: r.placedAt })),
-    range.days,
-  )
+  const convertsIn = (days: Set<string>) => (g: OrderGroup) => g.tracked || days.has(g.day)
+  const trackedNow = total(current.filter(convertsIn(importedNow)), orders)
+  const trackedPrev = total(previous.filter(convertsIn(importedPrev)), orders)
+  const trackedByDay = byDay(current, range.days, orders, convertsIn(importedNow))
+  const returningByDay = byDay(current, range.days, orders, (g) => g.returning)
 
   const kpis: AnalyticsKpi[] = [
     {
@@ -227,99 +246,104 @@ export async function analyticsOverview(
     },
     {
       id: 'orders',
-      value: current.length,
-      previous: previous.length,
-      delta: delta(current.length, previous.length),
+      value: ordersNow,
+      previous: ordersPrev,
+      delta: delta(ordersNow, ordersPrev),
       series: ordersByDay,
     },
     {
       id: 'conversion',
-      value: conversionRate(trackedNow.length, sessionTotal),
+      value: conversionRate(trackedNow, sessionTotal),
       previous: conversionRate(trackedPrev, sessionsPrev),
       delta: delta(
-        conversionRate(trackedNow.length, sessionTotal),
+        conversionRate(trackedNow, sessionTotal),
         conversionRate(trackedPrev, sessionsPrev),
       ),
       series: trackedByDay.map((o, i) => conversionRate(o, sessionsPerDay[i] ?? 0)),
     },
     {
       id: 'aov',
-      value: averageOrderValue(revenue, current.length),
-      previous: averageOrderValue(revenuePrev, previous.length),
+      value: averageOrderValue(revenue, ordersNow),
+      previous: averageOrderValue(revenuePrev, ordersPrev),
       delta: delta(
-        averageOrderValue(revenue, current.length),
-        averageOrderValue(revenuePrev, previous.length),
+        averageOrderValue(revenue, ordersNow),
+        averageOrderValue(revenuePrev, ordersPrev),
       ),
       series: revenueByDay.map((r, i) => averageOrderValue(r, ordersByDay[i] ?? 0)),
     },
     {
       id: 'returning',
-      value: returningRate(returning.size, current.length),
-      previous: returningRate(returningPrev.size, previous.length),
+      value: returningRate(returningNow, ordersNow),
+      previous: returningRate(returningPrev, ordersPrev),
       delta: delta(
-        returningRate(returning.size, current.length),
-        returningRate(returningPrev.size, previous.length),
+        returningRate(returningNow, ordersNow),
+        returningRate(returningPrev, ordersPrev),
       ),
       series: returningByDay.map((r, i) => returningRate(r, ordersByDay[i] ?? 0)),
     },
   ]
 
-  const topRows = await tx
-    .select({
-      productId: variant.productId,
-      title: product.title,
-      units: sum(orderLine.quantity).mapWith(Number),
-      revenuePaise: sum(sql`${orderLine.quantity} * ${orderLine.unitPricePaise}`).mapWith(Number),
-    })
-    .from(orderLine)
-    .innerJoin(order, eq(order.id, orderLine.orderId))
-    .innerJoin(variant, eq(variant.id, orderLine.variantId))
-    .innerJoin(product, eq(product.id, variant.productId))
-    .where(and(counted, gte(order.placedAt, range.from), lt(order.placedAt, range.to)))
-    .groupBy(variant.productId, product.title)
-    .orderBy(desc(sum(sql`${orderLine.quantity} * ${orderLine.unitPricePaise}`)))
-    .limit(TOP_PRODUCTS)
+  const inRange = and(counted, gte(order.placedAt, range.from), lt(order.placedAt, range.to))
+  const lineRevenue = sum(sql`${orderLine.quantity} * ${orderLine.unitPricePaise}`)
+  const [topRows, stateRows, [cartsRow], [checkoutRow], breakdownNow, breakdownPrev] =
+    await Promise.all([
+      tx
+        .select({
+          productId: variant.productId,
+          title: product.title,
+          units: sum(orderLine.quantity).mapWith(Number),
+          revenuePaise: lineRevenue.mapWith(Number),
+        })
+        .from(orderLine)
+        .innerJoin(order, eq(order.id, orderLine.orderId))
+        .innerJoin(variant, eq(variant.id, orderLine.variantId))
+        .innerJoin(product, eq(product.id, variant.productId))
+        .where(inRange)
+        .groupBy(variant.productId, product.title)
+        .orderBy(desc(lineRevenue))
+        .limit(TOP_PRODUCTS),
+      tx
+        .select({
+          stateCode: address.stateCode,
+          orders: count(),
+          revenuePaise: sum(order.totalPaise).mapWith(Number),
+        })
+        .from(order)
+        .innerJoin(address, eq(address.id, order.shippingAddressId))
+        .where(inRange)
+        .groupBy(address.stateCode)
+        .orderBy(desc(sum(order.totalPaise)))
+        .limit(STATE_ROWS),
+      tx
+        .select({ n: count() })
+        .from(cart)
+        .where(and(gte(cart.createdAt, range.from), lt(cart.createdAt, range.to))),
+      tx
+        .select({ n: count() })
+        .from(cart)
+        .where(
+          and(
+            gte(cart.createdAt, range.from),
+            lt(cart.createdAt, range.to),
+            sql`${cart.email} is not null`,
+          ),
+        ),
+      salesBreakdownSums(tx, range.from, range.to),
+      salesBreakdownSums(tx, range.previousFrom, range.previousTo),
+    ])
   const images = await productImages(
     tx,
     topRows.map((r) => r.productId),
   )
 
-  const stateRows = await tx
-    .select({
-      stateCode: address.stateCode,
-      orders: count(),
-      revenuePaise: sum(order.totalPaise).mapWith(Number),
-    })
-    .from(order)
-    .innerJoin(address, eq(address.id, order.shippingAddressId))
-    .where(and(counted, gte(order.placedAt, range.from), lt(order.placedAt, range.to)))
-    .groupBy(address.stateCode)
-    .orderBy(desc(sum(order.totalPaise)))
-    .limit(STATE_ROWS)
-
   const byMethod = new Map<string, { orders: number; revenuePaise: number }>()
-  for (const r of current) {
-    const key = r.paymentMethod ?? importedMethod(r.importedGateway) ?? 'unknown'
+  for (const g of current) {
+    const key = g.paymentMethod ?? importedMethod(g.importedGateway) ?? 'unknown'
     const entry = byMethod.get(key) ?? { orders: 0, revenuePaise: 0 }
-    entry.orders += 1
-    entry.revenuePaise += r.totalPaise
+    entry.orders += g.orders
+    entry.revenuePaise += g.revenuePaise
     byMethod.set(key, entry)
   }
-
-  const [cartsRow] = await tx
-    .select({ n: count() })
-    .from(cart)
-    .where(and(gte(cart.createdAt, range.from), lt(cart.createdAt, range.to)))
-  const [checkoutRow] = await tx
-    .select({ n: count() })
-    .from(cart)
-    .where(
-      and(
-        gte(cart.createdAt, range.from),
-        lt(cart.createdAt, range.to),
-        sql`${cart.email} is not null`,
-      ),
-    )
 
   return {
     range: {
@@ -337,12 +361,12 @@ export async function analyticsOverview(
     salesByState: stateRows.map((r) => ({ ...r, share: share(r.revenuePaise, revenue) })),
     paymentMethods: [...byMethod.entries()]
       .map(([method, v]) => ({ method, ...v, share: share(v.revenuePaise, revenue) }))
-      .sort((a, b) => b.revenuePaise - a.revenuePaise),
+      .sort((a, b) => b.revenuePaise - a.revenuePaise || a.method.localeCompare(b.method)),
     /* One sales channel today; the shape is ready for marketplaces and POS. */
     channels: [
       {
         channel: 'online',
-        orders: current.length,
+        orders: ordersNow,
         revenuePaise: revenue,
         share: revenue > 0 ? 1 : 0,
       },
@@ -351,11 +375,11 @@ export async function analyticsOverview(
       sessions: sessionTotal,
       carts: cartsRow?.n ?? 0,
       checkouts: checkoutRow?.n ?? 0,
-      orders: trackedNow.length,
+      orders: trackedNow,
     }),
     salesBreakdown: {
-      current: breakdownLines(await salesBreakdownSums(tx, range.from, range.to)),
-      previous: breakdownLines(await salesBreakdownSums(tx, range.previousFrom, range.previousTo)),
+      current: breakdownLines(breakdownNow),
+      previous: breakdownLines(breakdownPrev),
     },
   }
 }

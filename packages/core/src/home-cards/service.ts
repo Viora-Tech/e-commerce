@@ -1,4 +1,4 @@
-/** SOURCE OF TRUTH: Home smart cards storage — WHAT: reads one store's facts for the card rules, rebuilds its stored cards (keeping dismissals), lists the live ones and dismisses one / WHY: the worker refreshes every store once a day and Home only reads, so the page never runs the heavy queries */
+/** SOURCE OF TRUTH: Home smart cards storage — WHAT: reads one store's facts for the card rules, rebuilds its stored cards (keeping dismissals), lists the live ones and dismisses one / WHY: the worker refreshes every store once a day and Home only reads (it no longer rebuilds stale cards itself), so the page never runs the heavy queries */
 import { wallClock } from '@commerce/dates'
 import {
   cart,
@@ -40,8 +40,6 @@ import { notTestOrder } from '../order/test-orders'
 import { buildHomeCards, type HomeCard, type HomeCardFacts, parseHomeCard } from './rules'
 
 const DAY_MS = 86_400_000
-/** Cards older than this are rebuilt when Home is opened, in case the worker is behind. */
-const STALE_MS = 26 * 60 * 60_000
 /** A dismissed card stays hidden this long, then may come back if it still applies. */
 const DISMISS_MS = 30 * DAY_MS
 /** Product pages looked at for the add-to-cart rule, busiest first. */
@@ -279,10 +277,13 @@ export async function refreshHomeCards(ctx: StoreContext, now = new Date()): Pro
   return cards.length
 }
 
-/** The live cards, best first; rebuilt first when the worker has not run for a day. */
-export async function listHomeCards(ctx: StoreContext, now = new Date()): Promise<HomeCard[]> {
-  const [run] = await ctx.tx.select({ at: homeCardRun.refreshedAt }).from(homeCardRun)
-  if (!run || now.getTime() - run.at.getTime() > STALE_MS) await refreshHomeCards(ctx, now)
+/**
+ * The live cards, best first. Only reads: the worker's hourly sweep rebuilds every store whose
+ * cards are 20 hours old (or that has none yet), so a store waits at most an hour for its first
+ * cards. Home used to rebuild them itself when they were 26 hours old, which ran every card
+ * query inside the page request; on a store with a year of orders that was most of Home's time.
+ */
+export async function listHomeCards(ctx: StoreContext): Promise<HomeCard[]> {
   const rows = await ctx.tx
     .select({ data: homeCard.data })
     .from(homeCard)
