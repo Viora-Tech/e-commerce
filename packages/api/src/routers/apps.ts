@@ -23,6 +23,16 @@ import { storeAppSummaries } from '../services/installed-apps.service'
 import { storeOrderActions } from '../services/order-actions.service'
 import { TEST_CONNECTION_RULE } from '../services/shipping.service'
 
+/** The store's apps (installed and not) with what each costs; `apps.list` and the admin shell. */
+export async function listStoreApps(tx: StoreTx, storeId: string) {
+  const [apps, pricing] = await Promise.all([
+    storeAppSummaries(tx, storeId),
+    // Paid apps: free, included in the plan, bought, or to buy (`@commerce/core/billing`).
+    storeAppAccess(tx, storeId),
+  ])
+  return apps.map((a) => ({ ...a, billing: pricing[a.id] ?? ({ state: 'free' } as const) }))
+}
+
 /** A plugin id as commerce.config.ts spells it. */
 const PluginId = z.string().min(1).max(64)
 const pluginId = z.object({ id: PluginId })
@@ -56,12 +66,9 @@ export const appsRouter = {
    * Every plugin this deployment ships, flagged with whether this store installed it, its
    * status (Connected, Needs setup, Error) and its history for the Installed apps list.
    */
-  list: can(permissions.SETTINGS_READ).handler(async ({ context }) => {
-    const apps = await storeAppSummaries(context.tx, context.scope.storeId)
-    // Paid apps: free, included in the plan, bought, or to buy (`@commerce/core/billing`).
-    const pricing = await storeAppAccess(context.tx, context.scope.storeId)
-    return apps.map((a) => ({ ...a, billing: pricing[a.id] ?? ({ state: 'free' } as const) }))
-  }),
+  list: can(permissions.SETTINGS_READ).handler(({ context }) =>
+    listStoreApps(context.tx, context.scope.storeId),
+  ),
 
   /**
    * Actions installed apps add to orders (the order page's More actions, the Orders list's row
