@@ -40,6 +40,11 @@ export type PutInput = {
   key: string
   body: Uint8Array
   contentType: string
+  /**
+   * The object's `Cache-Control`, served with it by the bucket and its CDN. Unset: see
+   * `cacheControlFor` (`./keys`), which only fills it in where the bytes never change.
+   */
+  cacheControl?: string | undefined
   /** Gives up on the write (the caller's deadline); providers that cannot cancel may ignore it. */
   signal?: AbortSignal | undefined
 }
@@ -54,6 +59,8 @@ export type PutStreamInput = {
   key: string
   body: ReadableStream<Uint8Array>
   contentType: string
+  /** As on `PutInput`. */
+  cacheControl?: string | undefined
   signal?: AbortSignal | undefined
 }
 

@@ -1,4 +1,5 @@
 /** SOURCE OF TRUTH: image pipeline tests — variants, no upscaling, metadata stripped */
+import { MEDIA_CACHE_CONTROL } from '@commerce/storage/keys'
 import sharp from 'sharp'
 import { describe, expect, it } from 'vitest'
 import {
@@ -114,7 +115,11 @@ describe('processImage', () => {
     })
 
     expect(result.variants.length).toBeGreaterThan(0)
+    // Final bytes at fresh keys: browsers and the CDN keep them for a year.
+    expect(result.master.cacheControl).toBe(MEDIA_CACHE_CONTROL)
     for (const v of result.variants) {
+      expect(v.avif.cacheControl).toBe(MEDIA_CACHE_CONTROL)
+      expect(v.webp.cacheControl).toBe(MEDIA_CACHE_CONTROL)
       expect(v.avif.contentType).toBe('image/avif')
       expect(v.webp.contentType).toBe('image/webp')
       expect(v.avif.key).toBe(variantKey('stores/s1/media/id-name.jpg', v.width, 'avif'))
