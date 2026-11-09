@@ -36,6 +36,18 @@ const PLUGIN = 'plugin owns its own schema/queries; not yet routed through packa
 
 const ALLOWLIST: AllowEntry[] = [
   {
+    path: 'apps/storefront/src/lib/plain-html/render.ts',
+    exact: true,
+    reason:
+      'plain-HTML page render reads the same store, market and page rows as the React route, inside withStore; kept beside the renderer so both paths cannot drift (#1367)',
+  },
+  {
+    path: 'apps/worker/src/edge-purge.ts',
+    exact: true,
+    reason:
+      'worker job that lists the live hostnames of a store for the Cloudflare purge (#1363); a read inside withStore, no business rule',
+  },
+  {
     path: 'packages/auth/src/step-up.ts',
     exact: true,
     reason:
