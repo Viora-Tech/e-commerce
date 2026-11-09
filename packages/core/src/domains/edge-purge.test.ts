@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: edge purge tests — WHAT: when a store's pages are purged (quiet window, max wait, min gap) and the batched Cloudflare purge call / WHY: a longer edge cache must stay as fresh as a 30 s one */
 import { describe, expect, it, vi } from 'vitest'
 import {
   cloudflarePurgeConfigFrom,
