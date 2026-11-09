@@ -20,6 +20,7 @@ import {
 } from '@/lib/customize-canvas-motion'
 import type { CustomizeDoc } from '@/lib/customize-doc'
 import { CANVAS_DROP_CSS, installMediaDrop } from '@/lib/customize-media-drop'
+import { installPreviewRoot } from '@/lib/customize-preview-root'
 import { useCustomizePuck } from '@/lib/customize-puck'
 import { findBlock } from '@/lib/customize-slots'
 import { useLiquidHead, usePreviewMode, useThemePreview } from '@/lib/customize-theme-context'
@@ -78,20 +79,8 @@ export default function PreviewFrame({ children, document }: PreviewFrameProps) 
     const root = document.documentElement
     for (const [name, value] of Object.entries(themeRootAttrs(theme)))
       root.setAttribute(name, value)
-    root.setAttribute('data-theme', mode)
-    // Puck copies the admin's <html> attributes into the frame (after this runs), including
-    // next-themes' inline `color-scheme`; the theme's own CSS decides that here.
-    const dropAdminScheme = () => {
-      if (root.style.colorScheme) root.style.removeProperty('color-scheme')
-    }
-    dropAdminScheme()
-    const observer = new MutationObserver(dropAdminScheme)
-    observer.observe(root, { attributes: true, attributeFilter: ['style'] })
-    return () => {
-      observer.disconnect()
-      style.remove()
-    }
-  }, [document, theme, mode, liquid])
+    return () => style.remove()
+  }, [document, theme, liquid])
 
   // An imported Shopify theme: its stylesheets, CSS variables and fonts in the frame's
   // head, its icon sprite at the top of the body, its <html> attributes on the root.
@@ -107,7 +96,10 @@ export default function PreviewFrame({ children, document }: PreviewFrameProps) 
     sprite.innerHTML = liquid.beforeHeader
     document.body.prepend(sprite)
     const root = document.documentElement
-    const attrs = Object.entries(liquid.htmlAttrs).filter(([k]) => !k.startsWith('on'))
+    // Its classes and `data-theme` are held by the root sync below (Puck replaces `class`).
+    const attrs = Object.entries(liquid.htmlAttrs).filter(
+      ([k]) => !k.startsWith('on') && k !== 'class' && k !== 'data-theme',
+    )
     for (const [name, value] of attrs) root.setAttribute(name, value)
     return () => {
       for (const node of added) node.parentNode?.removeChild(node)
@@ -115,6 +107,18 @@ export default function PreviewFrame({ children, document }: PreviewFrameProps) 
       for (const [name] of attrs) root.removeAttribute(name)
     }
   }, [document, liquid])
+
+  // The preview's <html>: the toolbar's Light/Dark mode as `data-theme` (an imported theme's own
+  // toggle script never runs in here, so this is what it would have stamped), and none of the
+  // admin's colour mode, which Puck copies over after this runs (lib/customize-preview-root).
+  useEffect(() => {
+    if (!document) return
+    return installPreviewRoot(document, {
+      mode,
+      inlineScheme: Boolean(liquid),
+      classes: (liquid?.htmlAttrs.class ?? '').split(/\s+/).filter(Boolean),
+    })
+  }, [document, mode, liquid])
 
   // The storefront theme above redefines --primary/--primary-soft inside this
   // iframe, so canvas chrome that wants the admin's own accent (the canvas
