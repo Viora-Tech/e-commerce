@@ -11,6 +11,7 @@ import {
   getDefinition,
   getEntry,
   getMetafields,
+  getMetafieldsForOwners,
   InvalidMetaobject,
   listDefinitions,
   listEntries,
@@ -83,6 +84,9 @@ const ownerIdFor = (
   input: { ownerType: MetafieldOwnerType; ownerId?: string | undefined },
   storeId: string,
 ) => (input.ownerType === 'shop' ? storeId : input.ownerId)
+
+/** A variant-fields read asks for one product's variants: comfortably more than its 100 (`ProductInputSchema`). */
+const VARIANT_METAFIELDS_MAX = 250
 
 const OwnerInput = z
   .object({ ownerType: MetafieldOwnerTypeSchema, ownerId: z.uuid().optional() })
@@ -241,6 +245,17 @@ export const metaobjectsRouter = {
       assertOwnerAccess(context.scope, input.ownerType, 'read')
       const ownerId = ownerIdFor(input, context.scope.storeId) as string
       return getMetafields(context.tx, input.ownerType, ownerId)
+    }),
+
+  /**
+   * A product's variants' extra fields in one call (the product page asked once per variant:
+   * a product with 25 sizes sent 25 requests). Values are keyed by variant id.
+   */
+  variantMetafields: canAny(METAFIELD_READ_PERMISSIONS)
+    .input(z.object({ variantIds: z.array(z.uuid()).min(1).max(VARIANT_METAFIELDS_MAX) }))
+    .handler(({ context, input }) => {
+      assertOwnerAccess(context.scope, 'variant', 'read')
+      return getMetafieldsForOwners(context.tx, 'variant', [...new Set(input.variantIds)])
     }),
 
   setMetafields: canAny(METAFIELD_WRITE_PERMISSIONS)

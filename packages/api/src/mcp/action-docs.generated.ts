@@ -426,6 +426,8 @@ export const ACTION_DOCS: Record<string, string> = {
     'A ready-made content type (Size guide, FAQ, ...) from METAOBJECT_PRESETS.',
   'metaobjects.references':
     'Rows for reference pickers: search results, or labels for ids already chosen.',
+  'metaobjects.variantMetafields':
+    "A product's variants' extra fields in one call (the product page asked once per variant: a product with 25 sizes sent 25 requests).",
   'monthlyExpenses.create':
     'Add a monthly expense from a month on (one-off: its last month is its first).',
   'monthlyExpenses.delete':
