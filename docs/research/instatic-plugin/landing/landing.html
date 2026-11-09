@@ -1,0 +1,107 @@
+<header class="w-header">
+  <a class="w-logo" href="/">WAIMERS</a>
+  <nav class="w-nav" aria-label="Main">
+    <a class="w-nav-link" href="/collections/mice">Mice</a>
+    <a class="w-nav-link" href="/collections/keyboards">Keyboards</a>
+    <a class="w-nav-link" href="/collections/mousepads">Glasspads</a>
+  </nav>
+  <koomerce-cart></koomerce-cart>
+</header>
+<main class="w-main">
+  <section class="w-hero">
+    <div class="w-hero-copy">
+      <p class="w-eyebrow">Free shipping across India over ₹2,999</p>
+      <h1 class="w-hero-title">Premium gaming mice, keyboards and glasspads</h1>
+      <p class="w-hero-text">Hand-picked gear from Pulsar, Wooting, Lofree, ATK and more. Genuine stock, shipped from India, with local warranty support.</p>
+      <a class="btn w-cta" href="/collections/mice">Shop mice</a>
+      <koomerce-atc-hero></koomerce-atc-hero>
+    </div>
+    <img class="w-hero-img" src="https://cdn.koomerce.app/stores/259813c5-2ef9-0198-7fd0-e760f4273725/media/01a12b48-4a52-720f-8962-0c49446acee2-white1-w640.webp" loading="eager" decoding="async" fetchpriority="high" alt="Hitscan Hyperlight wireless mouse in white">
+  </section>
+
+  <section class="w-section">
+    <h2 class="w-h2">Best sellers</h2>
+    <instatic-loop data-source-id="koomerce.shop.products" data-limit="8" data-tag="ul" class="w-grid">
+      <li class="w-card">
+        <a class="w-card-link" href="{currentEntry.url}">
+          <img class="w-card-img" src="{currentEntry.image}" loading="lazy" decoding="async" alt="">
+          <span class="w-card-title">{currentEntry.title}</span>
+        </a>
+        <p class="w-price"><strong class="w-price-now">{currentEntry.priceText}</strong> <s class="w-price-was">{currentEntry.compareAtText}</s> <em class="w-save">{currentEntry.saveText}</em></p>
+        <p class="w-stock">{currentEntry.stockText}</p>
+        <koomerce-atc></koomerce-atc>
+      </li>
+    </instatic-loop>
+  </section>
+
+  <section class="w-section">
+    <h2 class="w-h2">Live stock right now</h2>
+    <p class="w-note">This row is an Instatic dynamic hole: the page is static, the row is fetched when it scrolls into view.</p>
+    <instatic-loop data-source-id="koomerce.shop.products-live" data-limit="4" data-tag="ul" class="w-grid">
+      <li class="w-card">
+        <a class="w-card-link" href="{currentEntry.url}">
+          <img class="w-card-img" src="{currentEntry.image}" loading="lazy" decoding="async" alt="">
+          <span class="w-card-title">{currentEntry.title}</span>
+        </a>
+        <p class="w-price"><strong class="w-price-now">{currentEntry.priceText}</strong></p>
+        <p class="w-stock">{currentEntry.stockText}</p>
+        <koomerce-atc></koomerce-atc>
+      </li>
+    </instatic-loop>
+  </section>
+
+  <section class="w-section w-faq">
+    <h2 class="w-h2">Questions</h2>
+    <details class="w-q">
+      <summary class="w-q-title">Are your products genuine?</summary>
+      <p class="w-q-text">Yes. We buy directly from the brands or their official distributors, and every product carries its local warranty.</p>
+    </details>
+    <details class="w-q">
+      <summary class="w-q-title">How long does delivery take?</summary>
+      <p class="w-q-text">Orders ship within one working day. Metro cities usually receive them in 2 to 4 days, other pin codes in 4 to 7 days.</p>
+    </details>
+    <details class="w-q">
+      <summary class="w-q-title">Can I pay cash on delivery?</summary>
+      <p class="w-q-text">Cash on delivery is available on most pin codes for orders up to ₹15,000. UPI, cards and EMI are available at checkout.</p>
+    </details>
+    <details class="w-q">
+      <summary class="w-q-title">What if my mouse has a defect?</summary>
+      <p class="w-q-text">Write to us within 7 days of delivery with a short video. We replace it or handle the warranty claim with the brand for you.</p>
+    </details>
+  </section>
+</main>
+<footer class="w-footer">
+  <p class="w-footer-text">© 2026 Waimers. Evaluation page built with Instatic and the Koomerce plugin.</p>
+</footer>
+<style>
+body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; color: #111; background: #f6f6f4; }
+.w-header { display: flex; align-items: center; gap: 1rem; padding: 0.75rem 1rem; background: #fff; border-bottom: 1px solid #e5e5e5; flex-wrap: wrap; }
+.w-logo { font-weight: 800; letter-spacing: 0.12em; color: #111; text-decoration: none; margin-inline-end: auto; }
+.w-nav { display: flex; gap: 1rem; flex-wrap: wrap; }
+.w-nav-link { color: #333; text-decoration: none; font-size: 0.9375rem; }
+.w-main { max-width: 72rem; margin: 0 auto; padding: 0 1rem; }
+.w-hero { display: grid; grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr)); gap: 1.5rem; align-items: center; padding: 2rem 0; }
+.w-eyebrow { margin: 0 0 0.5rem; font-size: 0.8125rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: #b45309; }
+.w-hero-title { margin: 0 0 0.75rem; font-size: clamp(1.75rem, 5vw, 3rem); line-height: 1.1; }
+.w-hero-text { margin: 0 0 1.25rem; font-size: 1.0625rem; line-height: 1.5; color: #444; }
+.w-cta { display: inline-block; padding: 0.875rem 1.5rem; border-radius: 0.5rem; background: #111; color: #fff; text-decoration: none; font-weight: 600; }
+.w-hero-img { width: 100%; height: auto; aspect-ratio: 1 / 1; object-fit: contain; background: #fff; border-radius: 1rem; }
+.w-section { padding: 1.5rem 0; }
+.w-h2 { margin: 0 0 1rem; font-size: 1.5rem; }
+.w-note { margin: -0.5rem 0 1rem; color: #666; font-size: 0.875rem; }
+.w-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr)); gap: 1rem; margin: 0; padding: 0; list-style: none; }
+.w-card { display: flex; flex-direction: column; gap: 0.375rem; padding: 0.75rem; background: #fff; border-radius: 0.75rem; }
+.w-card-link { display: flex; flex-direction: column; gap: 0.5rem; color: inherit; text-decoration: none; }
+.w-card-img { width: 100%; height: auto; aspect-ratio: 1 / 1; object-fit: contain; }
+.w-card-title { font-weight: 600; font-size: 0.9375rem; line-height: 1.3; }
+.w-price { margin: 0; display: flex; gap: 0.375rem; align-items: baseline; flex-wrap: wrap; }
+.w-price-was { color: #888; font-size: 0.8125rem; }
+.w-save { font-style: normal; font-size: 0.75rem; font-weight: 700; color: #b91c1c; }
+.w-stock { margin: 0 0 0.25rem; font-size: 0.8125rem; color: #166534; }
+.w-faq { max-width: 48rem; }
+.w-q { padding: 0.875rem 0; border-bottom: 1px solid #e5e5e5; }
+.w-q-title { cursor: pointer; font-weight: 600; }
+.w-q-text { margin: 0.5rem 0 0; line-height: 1.5; color: #444; }
+.w-footer { margin-top: 2rem; padding: 1.5rem 1rem; background: #111; color: #ccc; }
+.w-footer-text { margin: 0; font-size: 0.875rem; text-align: center; }
+</style>
