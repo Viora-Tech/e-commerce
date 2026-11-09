@@ -3,6 +3,7 @@ import {
   createDb,
   customer,
   discount,
+  preorderCampaign,
   product,
   role,
   rolePermission,
@@ -12,7 +13,7 @@ import {
   withStore,
 } from '@commerce/db'
 import { resetDb } from '@commerce/db/test'
-import { sql } from 'drizzle-orm'
+import { eq, sql } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import type { StoreContext } from '../context'
 import { inboxCounts, listConversations } from './conversations'
@@ -24,6 +25,7 @@ import {
   inboxAssignees,
   inboxMetrics,
   messageCards,
+  productCards,
 } from './panel'
 import { DEFAULT_INBOX_SETTINGS } from './settings'
 import { postCartEvent, shopperSend } from './shopper'
@@ -201,6 +203,37 @@ describe('cards, featured products, assignees, numbers', () => {
     expect(cards.discounts[d?.id as string]).toMatchObject({ code: 'TEN', active: true })
     const featured = await inStore(storeId, (ctx) => featuredProducts(ctx.tx, []))
     expect(featured.map((f) => f.title)).toEqual(['Saree'])
+  })
+
+  it('a sold-out product on a pre-order campaign is still buyable on its card', async () => {
+    const { storeId } = await setup()
+    const [p] = await owner
+      .insert(product)
+      .values({ storeId, title: 'X2F', handle: 'x2f', status: 'active' })
+      .returning()
+    const id = p?.id as string
+    await owner
+      .insert(variant)
+      .values({
+        storeId,
+        productId: id,
+        title: 'Default',
+        pricePaise: 1_449_900,
+        trackInventory: true,
+      })
+    const card = () => inStore(storeId, (ctx) => productCards(ctx.tx, [id]))
+    expect((await card())[id]).toMatchObject({ available: false, variantId: null })
+    const [c] = await owner
+      .insert(preorderCampaign)
+      .values({ storeId, name: 'November' })
+      .returning()
+    await owner
+      .update(product)
+      .set({ preorderCampaignId: c?.id as string })
+      .where(eq(product.id, id))
+    const on = (await card())[id]
+    expect(on?.available).toBe(true)
+    expect(on?.variantId).toBeTruthy()
   })
 
   it('assignees are owners and roles that may reply; numbers and the Unread view add up', async () => {

@@ -4,3 +4,5 @@
 - **Why:** Waimers' "Pulsar Pre-Orders (November)" products said Sold out on collection pages but Pre-order on the product page (#1417).
 - **Test:** `packages/core/src/theme-import/preorder-campaign-cards.test.ts`.
 - **Cost:** one extra small query per product batch, only when a product is in a campaign.
+- **Also:** chat widget product cards (`productCards` in `packages/core/src/inbox/panel.ts`) said Sold out for every pre-order product (own switch or campaign); they now offer the first variant that sells on pre-order, under its limit. Test in `panel.test.ts`.
+- **Swept, already right:** React cards (`catalog.ts`, `collections.ts`), product page, search suggestions, structured data (`seo.ts`), cart and checkout. Theme home carousels, related products and recommendations all go through the Liquid loader fixed above.

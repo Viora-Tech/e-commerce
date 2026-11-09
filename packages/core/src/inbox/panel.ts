@@ -22,6 +22,9 @@ import { getCart } from '../cart/cart'
 import type { StoreContext } from '../context'
 import { decryptCustomerPhone } from '../customers/phone-crypto'
 import { customerSpentSql } from '../customers/spent'
+import { campaignApplies } from '../preorder/campaigns'
+import { campaignsByIds } from '../preorder/campaigns-service'
+import { resolvePreorderSettings } from '../preorder/settings'
 import { isShareableDiscount } from './conversations-send'
 import { type InsightLocation, locationOf, pagesViewed, productHandleOf } from './insights'
 import { InboxError } from './messages'
@@ -94,6 +97,16 @@ export async function productCards(
       title: product.title,
       handle: product.handle,
       status: product.status,
+      preorderCampaignId: product.preorderCampaignId,
+      preorderEnabled: product.preorderEnabled,
+      preorderShipDate: product.preorderShipDate,
+      preorderShipsInDays: product.preorderShipsInDays,
+      preorderLimit: product.preorderLimit,
+      preorderButtonLabel: product.preorderButtonLabel,
+      preorderPaymentMode: product.preorderPaymentMode,
+      preorderDepositPaise: product.preorderDepositPaise,
+      preorderDepositPercent: product.preorderDepositPercent,
+      preorderOwn: product.preorderOwn,
     })
     .from(product)
     .where(inArray(product.id, productIds))
@@ -105,6 +118,7 @@ export async function productCards(
       trackInventory: variant.trackInventory,
       onHand: sellableStock.onHand,
       reserved: sellableStock.reserved,
+      preorderOverride: variant.preorderOverride,
     })
     .from(variant)
     .leftJoin(sellableStock, eq(sellableStock.variantId, variant.id))
@@ -116,9 +130,26 @@ export async function productCards(
     .innerJoin(media, eq(media.id, productMedia.mediaId))
     .where(inArray(productMedia.productId, productIds))
     .orderBy(asc(productMedia.position))
+  // Pre-order campaigns that sell on the online store, as the product page reads them.
+  const campaigns = await campaignsByIds(
+    tx,
+    rows.map((r) => r.preorderCampaignId),
+  )
   for (const r of rows) {
     const own = variants.filter((v) => v.productId === r.id)
-    const buyable = own.find((v) => !v.trackInventory || (v.onHand ?? 0) - (v.reserved ?? 0) > 0)
+    const c = r.preorderCampaignId ? campaigns.get(r.preorderCampaignId) : undefined
+    const campaign =
+      c && campaignApplies(c, { marketId: undefined, channel: 'online_store' }) ? c : null
+    // In stock first; else a variant that still sells on pre-order (the product's switch or its
+    // campaign) under its pre-order limit, as on the product page.
+    const preorderable = (v: (typeof own)[number]) => {
+      const s = resolvePreorderSettings(r, v.preorderOverride, campaign)
+      if (!s.enabled || v.pricePaise == null) return false
+      return s.limit == null || Math.max(0, (v.reserved ?? 0) - (v.onHand ?? 0)) < s.limit
+    }
+    const buyable =
+      own.find((v) => !v.trackInventory || (v.onHand ?? 0) - (v.reserved ?? 0) > 0) ??
+      own.find(preorderable)
     out[r.id] = {
       id: r.id,
       title: r.title,
