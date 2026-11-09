@@ -19,6 +19,7 @@ import {
   campaignReportContent as copy,
 } from '@/data/marketing-campaigns'
 import { api } from '@/lib/api-client'
+import { noteRefreshed } from '@/lib/focus-refresh'
 import { formatDate, formatDateTime } from '@/lib/format-date'
 import { formatPaise, formatPaiseWhole } from '@/lib/money'
 import { routes } from '@/lib/routes'
@@ -72,7 +73,11 @@ export default function CampaignReport({
   // Refresh while the worker is still sending, so the numbers move without a reload.
   useEffect(() => {
     if (campaign.status !== 'sending' && campaign.status !== 'scheduled') return
-    const t = setInterval(() => router.refresh(), POLL_MS)
+    // Its own poll counts as fresh, so coming back to the tab does not read it twice.
+    const t = setInterval(() => {
+      noteRefreshed()
+      router.refresh()
+    }, POLL_MS)
     return () => clearInterval(t)
   }, [campaign.status, router])
 

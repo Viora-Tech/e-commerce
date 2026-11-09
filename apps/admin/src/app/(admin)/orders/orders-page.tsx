@@ -35,6 +35,7 @@ import {
 import { ordersBulkContent } from '@/data/orders-bulk'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api, isApprovalQueued } from '@/lib/api-client'
+import { ADMIN_REFRESH_EVENT } from '@/lib/focus-refresh'
 import { type ListQuery, sameListQuery } from '@/lib/list-query'
 import { orderColumns } from '@/lib/order-columns'
 import { orderListFilter } from '@/lib/order-filter'
@@ -174,6 +175,22 @@ function OrdersContent({ initial }: { initial: OrdersInitial }) {
       cancelled = true
     }
   }, [q, initial.query, initial.perPage])
+
+  // Back on the tab (RefreshOnFocus): the rows live here, so they are read again with the page.
+  useEffect(() => {
+    const onRefresh = () => {
+      fetchOrders(q, parseRowsPerPage(q.perPage)).then(
+        (r) => {
+          setItems(r.items)
+          setTotal(r.total)
+          setTestOrders(r.testOrders)
+        },
+        () => undefined,
+      )
+    }
+    window.addEventListener(ADMIN_REFRESH_EVENT, onRefresh)
+    return () => window.removeEventListener(ADMIN_REFRESH_EVENT, onRefresh)
+  }, [q])
 
   // Helpers
   const loadViewIds = () =>

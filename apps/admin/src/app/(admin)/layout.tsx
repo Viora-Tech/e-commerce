@@ -7,6 +7,7 @@ import type { ReactNode } from 'react'
 import AdminFrame from '@/components/admin-frame'
 import AccentStyle from '@/components/layout/accent-style'
 import PaymentsTestBanner from '@/components/layout/payments-test-banner'
+import RefreshOnFocus from '@/components/layout/refresh-on-focus'
 import { billingContent } from '@/data/billing'
 import { appEntryHref } from '@/lib/apps-gallery'
 import { getSession } from '@/lib/auth'
@@ -77,6 +78,8 @@ export default async function AdminLayout({ children }: { children: ReactNode })
   return (
     <>
       <AccentStyle organizationId={active?.id ?? null} />
+      {/* Back on the tab after 30 s or more: the page is read again (new orders show). */}
+      {active ? <RefreshOnFocus /> : null}
       <AdminFrame
         user={{
           name: session.user.name,
