@@ -102,6 +102,7 @@ const ALLOWLIST: AllowEntry[] = [
   },
   { path: 'apps/storefront/src/app/api/health/route.ts', exact: true, reason: STOREFRONT_PAGE },
   { path: 'apps/storefront/src/lib/account.ts', exact: true, reason: STOREFRONT_LIB },
+  { path: 'apps/storefront/src/lib/plain-html/render.ts', exact: true, reason: STOREFRONT_LIB },
   { path: 'apps/storefront/src/lib/back-in-stock-context.ts', exact: true, reason: STOREFRONT_LIB },
   { path: 'apps/storefront/src/lib/balance-actions.ts', exact: true, reason: STOREFRONT_LIB },
   { path: 'apps/storefront/src/lib/payment-actions.ts', exact: true, reason: STOREFRONT_LIB },

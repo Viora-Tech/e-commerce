@@ -4,7 +4,7 @@
  * tags send the full page URL to Google and Meta, where anyone with access to the
  * merchant's analytics could replay it: sign in, pay, confirm a COD order or read the order.
  */
-const PRIVATE_PREFIXES = [
+export const PRIVATE_PREFIXES = [
   '/account/login',
   '/checkout/balance',
   '/checkout/invoice',

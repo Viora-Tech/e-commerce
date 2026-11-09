@@ -13,6 +13,7 @@ import { CONSENT_COOKIE } from '@commerce/core/consent'
 import { policyTypeOfHandle } from '@commerce/core/policies'
 import { appEmbedSourcesForStore } from '@commerce/core/registries'
 import { resolveAppEmbeds } from '@commerce/core/theme'
+import { APP_BLOCK_SLOT_ATTR } from '@commerce/core/theme-import'
 import { market, page as pageTable, store } from '@commerce/db'
 import { parseRichText, richTextToPlainText } from '@commerce/richtext'
 import { eq } from 'drizzle-orm'
@@ -113,10 +114,12 @@ function pageRow(storeId: string, handle: string) {
   })
 }
 
-/** A template's visible sections when every one is the theme's own; null when any is ours. */
+/**
+ * A template's visible sections when every one is the theme's own; null when any is ours. A section
+ * in an A/B test is already the shopper's variant (`templateSections`); the island reports it.
+ */
 async function liquidOnly(storeId: string, key: TemplateKey, suffix?: string | null) {
   const t = await templateSections(storeId, key, { suffix })
-  if (t.seen.length) return null
   if (!t.bound.content.every((item) => item.type === 'LiquidSection')) return null
   return (await attachImageMedia(storeId, t.bound, false)).content
 }
@@ -129,7 +132,6 @@ type Seo = {
   jsonLd: unknown
 }
 
-/** The page as a whole HTML document, or the reason to hand it back to the React page. */
 /** The page, or why it goes to the React page instead (sent back as `x-plain-skip-reason`). */
 export type PlainResult = { html: string } | { skip: string }
 
@@ -154,8 +156,6 @@ export async function renderPlainPage(storeId: string): Promise<PlainResult> {
   }
   if (inboxLauncherOf(current.apps)) return skip('inbox-chat')
   if (await chatwootChatFor(storeId, current.apps)) return skip('chatwoot')
-  if ((await storePixels(storeId, current.apps))?.length) return skip('pixels-app')
-  if (Object.keys((await requestExperiments(storeId)).assignments).length) return skip('experiment')
   if (await abThemeId(storeId)) return skip('theme-ab-test')
   const themeId = await liveThemeId(storeId)
   if (!themeId) return skip('no-theme')
@@ -198,6 +198,14 @@ export async function renderPlainPage(storeId: string): Promise<PlainResult> {
     renderLiquidSections(storeId, themeId, 'footer', footerContent, WHOLE_TEMPLATE),
   ])
   if (!main || !header || !footer) return skip('not-imported')
+  // One of our widgets drawn into a theme app block's slot (the reviews carousel) is React's.
+  if (
+    [main, header, footer].some((m) =>
+      [...m.values()].some((s) => s.html.includes(APP_BLOCK_SLOT_ATTR)),
+    )
+  ) {
+    return skip('app-block')
+  }
   const draw = (items: typeof content, html: Map<string, LiquidSectionHtml>) =>
     items
       .map((item) => html.get(String(item.props.id)))
@@ -280,6 +288,8 @@ export async function renderPlainPage(storeId: string): Promise<PlainResult> {
       googleAds: prefs.tracking.googleAds ?? '',
     },
     umami,
+    pixels: await storePixels(storeId, current.apps),
+    experiments: Object.keys((await requestExperiments(storeId)).assignments),
   })}</script>`
 
   const html = [

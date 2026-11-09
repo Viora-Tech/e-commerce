@@ -1,5 +1,8 @@
 import { CONSENT_COOKIE, CONSENT_MAX_AGE } from '@commerce/core/consent'
+import type { BrowserPixel } from '../pixels/track'
+import { PRIVATE_PREFIXES } from '../tracking-paths'
 import { fbqInit, gtmInit } from '../tracking-snippets'
+import { islandModuleUrl } from './modules'
 
 /**
  * The small scripts a plain HTML page needs (`lib/plain-html/render.ts`), in place of the React
@@ -13,12 +16,21 @@ import { fbqInit, gtmInit } from '../tracking-snippets'
  *   as `ConsentManager` does. The tags it allows load when the browser is idle.
  * - Analytics, after a yes: our visit beacon (`/api/beacon`), GA4 / Google Ads (gtag.js), Tag
  *   Manager, the Meta pixel, and the Umami app's tracker (cookieless: it may count before an
- *   answer when the store said so).
+ *   answer when the store said so). A click on a product in a theme's recommendation row counts
+ *   for Search & discovery (`DiscoveryTracker`).
+ * - Pixels app, after a yes to marketing: its module (`pixels-module.ts`) loads when the browser
+ *   is idle and sends PageView and every `commerce:track` event, as `PixelEvents` does.
+ * - Experiments (GrowthBook): the experiments this page was drawn with, once, to
+ *   `/api/experiments` (`ExperimentBeacon`). Only shoppers the server assigned have any.
  * - Page speed: LCP, INP and CLS to `/api/vitals`, anonymous, whatever the consent (as
  *   `WebVitalsBeacon`).
  *
  * The cart, predictive search, section rendering and recommendations need no island: the shim
  * already answers the theme's own calls (`/cart/add.js`, `/cart.js`, `?section_id=`).
+ *
+ * Island modules (`modules.ts`) load as separate files and register with
+ * `window.__commerceIsland(name, fn)`; `fn` gets the module's config and the helpers `send`,
+ * `inline`, `external` and `idle`.
  */
 export type IslandConfig = {
   /** Settings › Customer privacy: answers for an older banner version do not count. */
@@ -27,6 +39,10 @@ export type IslandConfig = {
   tracking: { ga4: string; gtm: string; metaPixel: string; googleAds: string }
   /** The Umami app's tracker, when installed and set up. */
   umami: { src: string; websiteId: string; waitForConsent: boolean } | null
+  /** The Pixels app's pixels (they replace the legacy Meta pixel); null without the app. */
+  pixels?: BrowserPixel[] | null | undefined
+  /** Tracking keys of the experiments this page was drawn with. */
+  experiments?: readonly string[] | undefined
 }
 
 /** The island script's body for `config`; `<` is escaped so no value can close the script. */
@@ -39,8 +55,23 @@ export function islandScript(config: IslandConfig): string {
     ga4: t.ga4 || null,
     ads: t.googleAds || null,
     gtm: t.gtm ? gtmInit(t.gtm) : null,
-    meta: t.metaPixel ? fbqInit([], t.metaPixel) : null,
+    // With the Pixels app installed its pixels replace the legacy one, as on the React page.
+    meta: t.metaPixel && !config.pixels ? fbqInit([], t.metaPixel) : null,
     umami: config.umami,
+    pixels: config.pixels?.length
+      ? {
+          src: islandModuleUrl('pixels'),
+          config: {
+            pixels: config.pixels,
+            init: fbqInit(
+              config.pixels.map((p) => p.id),
+              null,
+            ),
+            private: PRIVATE_PREFIXES,
+          },
+        }
+      : null,
+    experiments: config.experiments?.length ? config.experiments : null,
   }
   return ISLANDS.replace('__CONFIG__', JSON.stringify(data).replace(/</g, '\\u003c'))
 }
@@ -88,6 +119,44 @@ const ISLANDS = `(function () {
     fetch(path, { method: 'POST', keepalive: true, headers: { 'content-type': 'application/json' }, body: json }).catch(function () {});
   }
 
+  // Island modules: each file registers here and gets its config and these helpers.
+  var modules = {};
+  var api = { send: send, inline: inline, external: external, idle: idle, nonce: nonce };
+  window.__commerceIsland = function (name, fn) {
+    var m = modules[name];
+    if (!m || m.started) return;
+    m.started = true;
+    try { fn(m.config, api); } catch (e) {}
+  };
+  function load(name, spec) {
+    if (!spec || modules[name]) return;
+    modules[name] = { config: spec.config, started: false };
+    var s = document.createElement('script');
+    if (nonce) s.nonce = nonce;
+    s.type = 'module';
+    s.src = spec.src;
+    document.head.appendChild(s);
+  }
+  window.__commerceLoadIsland = load;
+
+  // Search & discovery: a click on a product in a theme's recommendation row.
+  var ROWS = '[data-recommendations], product-recommendations, .product-recommendations';
+  function discoveryClick(event) {
+    var a = event.target && event.target.closest ? event.target.closest('a[href]') : null;
+    if (!a || a.origin !== location.origin) return;
+    var m = /(?:^|\\/)products\\/([^/]+)\\/?$/.exec(a.pathname);
+    var row = m && a.closest(ROWS);
+    var now = readConsent();
+    if (!row || !now || !now.analytics) return;
+    var own = row.getAttribute('data-recommendations');
+    var source = own === 'complementary' || own === 'related' ? own
+      : row.getAttribute('data-intent') === 'complementary' || String(row.className).indexOf('complementary') >= 0 ? 'complementary' : 'related';
+    var handle = m[1];
+    try { handle = decodeURIComponent(handle); } catch (e) { return; }
+    handle = handle.trim().toLowerCase();
+    if (handle && handle.length <= 255) send('/api/beacon', { discovery: { kind: 'click', source: source, handle: handle } });
+  }
+
   var done = {};
   function once(key, fn) { if (!done[key]) { done[key] = true; fn(); } }
   function gtag(id) {
@@ -106,7 +175,10 @@ const ISLANDS = `(function () {
     }
     if (!consent) return;
     if (consent.analytics) {
-      once('visit', function () { send('/api/beacon', { href: location.href, referrer: document.referrer }); });
+      once('visit', function () {
+        send('/api/beacon', { href: location.href, referrer: document.referrer });
+        document.addEventListener('click', discoveryClick, { capture: true, passive: true });
+      });
       idle(function () {
         if (c.ga4) gtag(c.ga4);
         if (c.gtm) once('gtm', function () { inline(c.gtm); });
@@ -116,9 +188,13 @@ const ISLANDS = `(function () {
       idle(function () {
         if (c.ads) gtag(c.ads);
         if (c.meta) once('meta', function () { inline(c.meta); });
+        load('pixels', c.pixels);
       });
     }
   }
+
+  // "Experiment viewed": the server only assigns shoppers who said yes to analytics.
+  if (c.experiments) send('/api/experiments', { seen: c.experiments });
 
   var current = readConsent();
   if (current === null) {
