@@ -1,20 +1,16 @@
 'use client'
 
-import {
-  SHIPGLOBAL_CAPABILITIES,
-  SHIPGLOBAL_TRACKING_PAGE,
-} from '@commerce/shipping-shipglobal/client'
+import { SHIPGLOBAL_CAPABILITIES } from '@commerce/shipping-shipglobal/client'
 import { Truck } from '@commerce/ui/icons'
 import CourierShipmentsLink from '@/components/apps/shared/courier-shipments-link'
-import ManualParcelsCard from '@/components/apps/shared/manual-parcels-card'
 import ProviderOverviewPage, {
   type OverviewList,
 } from '@/components/apps/shared/provider-overview-page'
 import { shipglobalAppContent } from '@/data/shipglobal'
 import { useCopy } from '@/hooks/use-copy'
 
-/** `/apps/shipglobal`: status, what the app can do, and the parcels on the way with their status
- *  (ShipGlobal's API sends no tracking, so the merchant moves each one along here). */
+/** `/apps/shipglobal`: status and what the app can do. Tracking comes from ShipGlobal's API, so
+ *  parcels move along on their own in the Shipments workspace. */
 export default function OverviewPage() {
   // Hooks
   const copy = useCopy(shipglobalAppContent)
@@ -44,13 +40,6 @@ export default function OverviewPage() {
       copy={copy.overview}
       connectedBody={connectedBody}
       lists={lists}
-      footer={
-        <ManualParcelsCard
-          providerId="shipglobal"
-          copy={copy.parcels}
-          trackingPage={SHIPGLOBAL_TRACKING_PAGE}
-        />
-      }
     />
   )
 }

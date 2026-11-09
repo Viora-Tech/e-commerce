@@ -800,12 +800,12 @@ export const APP_CATALOGUE_DATA: CatalogueEntry[] = [
     category: 'shipping',
     company: 'ShipGlobal',
     description:
-      'Ship abroad with ShipGlobal: book export orders with their customs lines and print the label.',
+      'Ship abroad with ShipGlobal: live rates, export bookings with customs lines, labels and tracking.',
     tagline: 'Ship abroad with ShipGlobal: export bookings and labels from your orders.',
     highlights: [
       'Export bookings with HS codes per item',
       'Labels in the Shipments workspace',
-      'Parcel status on one page',
+      'Tracking and cancel from the order',
     ],
     guide: '/merchant-guide/apps/international-couriers',
     worksWith: [
@@ -821,7 +821,7 @@ export const APP_CATALOGUE_DATA: CatalogueEntry[] = [
         {
           resource: 'orders',
           level: 'read-write',
-          why: 'Reads orders going abroad to book them; the status you set marks them delivered',
+          why: 'Reads orders going abroad to book them; tracking marks them delivered',
         },
         {
           resource: 'shipments',
@@ -842,7 +842,7 @@ export const APP_CATALOGUE_DATA: CatalogueEntry[] = [
       shares: [
         {
           when: 'Sent per shipment',
-          what: 'Ship-to name, address and phone, item names, SKUs, prices and HS codes, parcel weight and size, your GSTIN, IEC and IOSS',
+          what: 'Ship-to name, address, phone and email, item names, SKUs, prices and HS codes, parcel weight and size, and your IOSS',
         },
       ],
     },
