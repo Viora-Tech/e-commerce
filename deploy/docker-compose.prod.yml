@@ -41,6 +41,8 @@ x-app-env: &app-env
   STOREFRONT_A_RECORD: ${STOREFRONT_A_RECORD:-}
   STOREFRONT_CNAME_TARGET: ${STOREFRONT_CNAME_TARGET:-}
   CLOUDFLARE_ZONE_ID: ${CLOUDFLARE_ZONE_ID:-}
+  # Cloudflare token with only Zone > Cache Purge, used by the worker to purge store pages.
+  CLOUDFLARE_CACHE_PURGE_TOKEN: ${CLOUDFLARE_CACHE_PURGE_TOKEN:-}
   PLATFORM_DOMAINS: ${PLATFORM_DOMAINS:-}
   PLATFORM_STORE_DOMAIN: ${PLATFORM_STORE_DOMAIN:-}
   # Worker image jobs at once, and per store; blank uses the defaults (3 and 3). Near the vCPU count.
@@ -58,10 +60,8 @@ x-app-env: &app-env
   STOREFRONT_EDGE_TTL: ${STOREFRONT_EDGE_TTL:-}
   # Sections of an imported theme's page sent first (blank = 3); the rest stream in behind them.
   STOREFRONT_EAGER_SECTIONS: ${STOREFRONT_EAGER_SECTIONS:-}
-  # Plain HTML pages for imported themes: on/off for the whole deployment (blank = each store's switch).
+  # `off` keeps every store on React pages, whatever their "Send pages as plain HTML" switch.
   STOREFRONT_PLAIN_HTML: ${STOREFRONT_PLAIN_HTML:-}
-  # Cloudflare token with only Zone > Cache Purge, used by the worker to purge store pages.
-  CLOUDFLARE_CACHE_PURGE_TOKEN: ${CLOUDFLARE_CACHE_PURGE_TOKEN:-}
   # Branded checkout origin label (security audit D-01 phase B): blank = same-origin checkout
   # (today's behaviour), else checkout serves on <CHECKOUT_SUBDOMAIN>.<store primary host>.
   CHECKOUT_SUBDOMAIN: ${CHECKOUT_SUBDOMAIN:-}
