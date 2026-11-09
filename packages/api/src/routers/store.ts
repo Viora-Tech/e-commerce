@@ -70,6 +70,7 @@ import {
   updateStorePreorder,
 } from '../services/store.service'
 import { savedOriginPincode, storeHealth } from '../services/store-health.service'
+import { shellProcedure } from './shell'
 
 const previousSecrets = () => parsePreviousSecrets(loadEnv(process.env).SETTINGS_SECRET_PREVIOUS)
 
@@ -113,6 +114,9 @@ function courierConnectionTest(providerId: string) {
 }
 
 export const storeRouter = {
+  /** Everything the admin layout reads on every page (apps, logo, orders to ship, plan usage, payments test mode, approvals, Inbox), in one call. */
+  shell: shellProcedure,
+
   current: can(permissions.SETTINGS_READ).handler(async ({ context }) => {
     const { storeId } = context.scope
     const s = await getStore(context.tx, storeId)

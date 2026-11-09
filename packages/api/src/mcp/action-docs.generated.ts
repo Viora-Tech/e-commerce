@@ -807,6 +807,8 @@ export const ACTION_DOCS: Record<string, string> = {
   'store.origin':
     'The store\'s public web address (https://<live primary domain>, STOREFRONT_URL only when it has none): every admin "View store", preview and share link starts here.',
   'store.setupChecklist': "The Settings home's setup checklist: what is done, from real data.",
+  'store.shell':
+    'Everything the admin layout reads on every page (apps, logo, orders to ship, plan usage, payments test mode, approvals, Inbox), in one call.',
   'store.storageMigrationStatus':
     'Progress the admin polls while "Move existing files to <connection>" runs.',
   'store.testDecentroConnection':

@@ -24,6 +24,7 @@ import {
   UnlimitedPlan,
   usageBillCsv,
 } from '@commerce/core'
+import type { StoreTx } from '@commerce/db'
 import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
 import type { ApiContext } from '../context'
@@ -42,6 +43,22 @@ const NOT_READY: Record<BillingNotReady['reason'], string> = {
   no_sales_store: 'Paying for plans is not switched on yet. We will let you know when it is.',
   no_plan_product: 'This plan is not on sale yet. Please contact us to change plans.',
   no_gateway: 'Payments for plans are not set up yet. Please contact us.',
+}
+
+/** The sidebar's plan usage card; `billing.usage` and the admin shell. */
+export async function planUsageCard(tx: StoreTx, storeId: string) {
+  const row = await ensureStorePlan(tx, storeId)
+  const usage = await planUsage(tx)
+  return {
+    plan: row.plan,
+    status: row.status,
+    // Koomerce's own store: no allowance, so the sidebar shows no usage card.
+    unlimited: row.unlimited,
+    used: usage.orders,
+    limit: PLANS[row.plan].orders,
+    // What each order past `limit` costs: the sidebar's "Each further order: 1%".
+    feeBasisPoints: PLANS[row.plan].feeBasisPoints,
+  }
 }
 
 export const billingRouter = {
@@ -132,20 +149,9 @@ export const billingRouter = {
   ),
 
   /** The sidebar's "Orders this month · 142 of 200": cheap, on every page. */
-  usage: can(permissions.SETTINGS_READ).handler(async ({ context }) => {
-    const row = await ensureStorePlan(context.tx, context.scope.storeId)
-    const usage = await planUsage(context.tx)
-    return {
-      plan: row.plan,
-      status: row.status,
-      // Koomerce's own store: no allowance, so the sidebar shows no usage card.
-      unlimited: row.unlimited,
-      used: usage.orders,
-      limit: PLANS[row.plan].orders,
-      // What each order past `limit` costs: the sidebar's "Each further order: 1%".
-      feeBasisPoints: PLANS[row.plan].feeBasisPoints,
-    }
-  }),
+  usage: can(permissions.SETTINGS_READ).handler(({ context }) =>
+    planUsageCard(context.tx, context.scope.storeId),
+  ),
 
   /** A usage bill's "Download CSV": each order of that month that carried a fee. */
   usageBillCsv: can(permissions.SETTINGS_READ)
