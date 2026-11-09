@@ -201,8 +201,28 @@ export class ShipglobalProvider implements ShippingProvider {
     } catch {
       parsed = null
     }
-    if (res.status === 401 || res.status === 403 || parsed?.error_code === AUTH_ERROR_CODE) {
-      throw new CourierError('auth', this.id, REFUSED_LOGIN, { status: res.status })
+    // A login ShipGlobal refused answers with its own JSON (EA_401). A 401/403 with no JSON is
+    // something in front of the API (a firewall, a proxy) turning our server away: not the
+    // login, so it says so. Either way ShipGlobal's own words go into the message.
+    if (
+      parsed &&
+      (res.status === 401 || res.status === 403 || parsed.error_code === AUTH_ERROR_CODE)
+    ) {
+      const said = reasonOf(parsed)
+      throw new CourierError(
+        'auth',
+        this.id,
+        `${REFUSED_LOGIN} ShipGlobal answered HTTP ${res.status}${parsed.error_code ? ` ${parsed.error_code}` : ''}${said ? `: "${said}"` : ''}.`,
+        { status: res.status },
+      )
+    }
+    if (!parsed && (res.status === 401 || res.status === 403)) {
+      throw new CourierError(
+        'unavailable',
+        this.id,
+        `ShipGlobal's server turned our request away (HTTP ${res.status}, not a login answer). Ask ShipGlobal whether they block requests from our server's address.`,
+        { status: res.status },
+      )
     }
     if (res.status === 429) {
       throw new CourierError('rate_limited', this.id, 'ShipGlobal is rate limiting us.', {
@@ -491,7 +511,7 @@ export class ShipglobalProvider implements ShippingProvider {
       }
     } catch (error) {
       if (error instanceof CourierError && error.kind === 'auth') {
-        return { ok: false, message: REFUSED_LOGIN }
+        return { ok: false, message: error.message }
       }
       if (error instanceof CourierError && error.kind === 'rejected') {
         // Signed in: ShipGlobal only refused the sample parcel.
