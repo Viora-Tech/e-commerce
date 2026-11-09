@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import {
   bulkOrders,
   bulkPicks,
+  bulkQuoteRequests,
   bulkSplit,
   CUSTOM_BOX,
   courierTotals,
@@ -285,6 +286,49 @@ describe('bulk', () => {
       ['o2', 'no_address'],
       ['o3', 'several_parcels'],
     ])
+  })
+
+  it('asks the couriers for every ready order, leaving out values the server refuses', () => {
+    const { ready } = bulkSplit([
+      order(),
+      order({
+        orderId: 'o2',
+        parcels: [
+          parcel({
+            id: 'p2',
+            weightGrams: 0,
+            dimensionsCm: { length: 0, width: 0, height: 0 },
+            pickupLocationId: null,
+          }),
+        ],
+      }),
+    ])
+    const asked = bulkQuoteRequests(ready, undefined)
+    expect(asked).toEqual([
+      {
+        orderId: 'o1',
+        fulfillmentOrderId: 'p1',
+        pickupLocationId: 'loc-jaipur',
+        weightGrams: 700,
+        dimensionsCm: undefined,
+        paymentMode: 'prepaid',
+        declaredValuePaise: 149900,
+      },
+      {
+        orderId: 'o2',
+        fulfillmentOrderId: 'p2',
+        pickupLocationId: null,
+        // 0 g is not a weight: the server falls back to its default instead of refusing all.
+        weightGrams: undefined,
+        dimensionsCm: undefined,
+        paymentMode: 'prepaid',
+        declaredValuePaise: 149900,
+      },
+    ])
+    // The box picked for all wins over the products' own.
+    expect(bulkQuoteRequests(ready, { length: 25, width: 20, height: 5 })[1]?.dimensionsCm).toEqual(
+      { length: 25, width: 20, height: 5 },
+    )
   })
 
   it('totals each courier across the batch and recommends the one that takes the most', () => {

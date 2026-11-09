@@ -243,6 +243,24 @@ describe('GST invoices order actions', () => {
     expect(r).toMatchObject({ added: 1, skipped: 1 })
   })
 
+  it('bulk add accounts for every order: already queued, already invoiced, cancelled', async () => {
+    const m = await merchant('f@example.com', 'store-f')
+    await installGst(m.storeId)
+    const fresh = await seedOrder(m.storeId, 1)
+    const queued = await seedOrder(m.storeId, 2)
+    const invoiced = await seedOrder(m.storeId, 3)
+    const cancelled = await seedOrder(m.storeId, 4)
+    await owner.update(order).set({ status: 'cancelled' }).where(eq(order.id, cancelled))
+    await call(appRouter.gstInvoices.queue.add, { orderIds: [queued] }, { context: m.ctx })
+    await call(appRouter.gstInvoices.generate, { orderId: invoiced }, { context: m.ctx })
+    const r = await call(
+      appRouter.gstInvoices.queue.add,
+      { orderIds: [fresh, queued, invoiced, cancelled], skipIneligible: true },
+      { context: m.ctx },
+    )
+    expect(r).toMatchObject({ added: 1, skipped: 1, alreadyQueued: 1, alreadyInvoiced: 1 })
+  })
+
   it('both need the app installed', async () => {
     const m = await merchant('e@example.com', 'store-e')
     const orderId = await seedOrder(m.storeId, 1)

@@ -75,7 +75,7 @@ async function merchant(email: string, slug: string) {
 }
 
 /** A COD order of two units, nothing packed yet. */
-async function seedCodOrder(storeId: string) {
+async function seedCodOrder(storeId: string, variantWeightGrams?: number) {
   const [a] = await owner
     .insert(address)
     .values({
@@ -106,7 +106,13 @@ async function seedCodOrder(storeId: string) {
     .returning()
   const [v] = await owner
     .insert(variant)
-    .values({ storeId, productId: p?.id as string, title: 'Default', pricePaise: 99950 })
+    .values({
+      storeId,
+      productId: p?.id as string,
+      title: 'Default',
+      pricePaise: 99950,
+      weightGrams: variantWeightGrams ?? null,
+    })
     .returning()
   await owner.insert(orderLine).values({
     storeId,
@@ -236,5 +242,40 @@ describe('shipment details, cancel and rebooking', () => {
     await expect(
       call(appRouter.shipments.label, { id: row?.id as string }, { context: m.ctx }),
     ).rejects.toMatchObject({ code: 'NOT_FOUND' })
+  })
+})
+
+describe('bulk Create shipment: step 2 quote', () => {
+  it('quotes a parcel whose products weigh 0 g, as the bulk dialog sends it (no 400)', async () => {
+    const m = await merchant('q@example.com', 'store-q')
+    // Shopify imports save "no weight" as 0 g.
+    const orderId = await seedCodOrder(m.storeId, 0)
+    const draft = await call(
+      appRouter.shipments.prepare,
+      { orderIds: [orderId] },
+      { context: m.ctx },
+    )
+    const o = draft.orders[0]
+    const parcel = o?.parcels[0]
+    expect(parcel?.weightGrams).toBeGreaterThanOrEqual(1)
+    // Step 1's values straight into step 2, the way the bulk flow maps them.
+    const quotes = await call(
+      appRouter.shipments.quote,
+      {
+        parcels: [
+          {
+            orderId,
+            fulfillmentOrderId: parcel?.id,
+            pickupLocationId: parcel?.pickupLocationId,
+            weightGrams: parcel?.weightGrams,
+            dimensionsCm: parcel?.dimensionsCm ?? undefined,
+            paymentMode: o?.paymentMode,
+            declaredValuePaise: parcel?.valuePaise,
+          },
+        ],
+      },
+      { context: m.ctx },
+    )
+    expect(quotes.map((q) => q.orderId)).toEqual([orderId])
   })
 })

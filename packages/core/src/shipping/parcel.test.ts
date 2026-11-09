@@ -37,6 +37,18 @@ describe('resolveParcelWeightGrams', () => {
   it('falls back to the box weight when a weighed line has zero quantity', () => {
     expect(resolveParcelWeightGrams([{ quantity: 0, variantWeightGrams: 100 }], 300)).toBe(300)
   })
+
+  it('falls back to the box weight when the products weigh 0 g (bulk quote 400)', () => {
+    expect(
+      resolveParcelWeightGrams(
+        [
+          { quantity: 2, variantWeightGrams: 0 },
+          { quantity: 1, variantWeightGrams: 0 },
+        ],
+        300,
+      ),
+    ).toBe(300)
+  })
 })
 
 describe('volumetricWeightGrams', () => {
@@ -141,6 +153,22 @@ describe('resolveParcelPackage', () => {
           packageLengthCm: 25,
           packageWidthCm: 18,
           packageHeightCm: 8,
+        },
+      ],
+      presets,
+    )
+    expect(dims).toBeNull()
+  })
+
+  it('falls back to null when a package side is 0 cm', () => {
+    const dims = resolveParcelPackage(
+      [
+        {
+          quantity: 1,
+          boxPresetId: null,
+          packageLengthCm: 0,
+          packageWidthCm: 0,
+          packageHeightCm: 0,
         },
       ],
       presets,
