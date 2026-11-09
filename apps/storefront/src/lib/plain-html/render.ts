@@ -149,12 +149,8 @@ export async function renderPlainPage(storeId: string): Promise<PlainResult> {
   if (!prefs.delivery.plainHtml) return skip('switch-off')
 
   // Our widgets, drawn by the island's modules (docs: phase 2).
-  if (
-    parseMarketSettings(current.preferences).suggestMarket &&
-    (await liveMarketCount(storeId)) > 1
-  ) {
-    return skip('market-banner')
-  }
+  const marketBanner =
+    parseMarketSettings(current.preferences).suggestMarket && (await liveMarketCount(storeId)) > 1
   const inboxChat = inboxLauncherOf(current.apps)
   // The Inbox app's chat wins over Chatwoot's, as on the React page.
   const chatwoot = inboxChat ? null : await chatwootChatFor(storeId, current.apps)
@@ -185,11 +181,8 @@ export async function renderPlainPage(storeId: string): Promise<PlainResult> {
     liquidOnly(storeId, 'footer'),
   ])
   if (!content || !headerContent || !footerContent) return skip('own-section')
-  // The theme's own cookie banner asks for consent (the shim answers it). Without one the React
-  // page draws ours, which is not an island yet.
-  if (!footerContent.some((item) => item.props.sectionType === 'cookie-banner')) {
-    return skip('no-theme-cookie-banner')
-  }
+  // The theme's own cookie banner asks for consent (the shim answers it); without one, ours does.
+  const themeBanner = footerContent.some((item) => item.props.sectionType === 'cookie-banner')
   const layout = await liquidLayoutFor(storeId, themeId)
   if (!layout) return skip('not-imported')
 
@@ -294,6 +287,8 @@ export async function renderPlainPage(storeId: string): Promise<PlainResult> {
     experiments: Object.keys((await requestExperiments(storeId)).assignments),
     chat: inboxChat ? chatModuleSpec(inboxChat, current.name) : null,
     chatwoot,
+    consentBanner: themeBanner ? null : { message: privacy.bannerMessage },
+    marketBanner,
   })}</script>`
 
   const html = [

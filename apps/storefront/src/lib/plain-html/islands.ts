@@ -1,4 +1,6 @@
 import { CONSENT_COOKIE, CONSENT_MAX_AGE } from '@commerce/core/consent'
+import { marketSuggestionContent } from '@/data/markets'
+import { consentContent } from '@/data/online-store'
 import type { ChatwootChat } from '../chatwoot'
 import type { BrowserPixel } from '../pixels/track'
 import { PRIVATE_PREFIXES } from '../tracking-paths'
@@ -23,6 +25,9 @@ import { islandModuleUrl } from './modules'
  *   is idle and sends PageView and every `commerce:track` event, as `PixelEvents` does.
  * - Inbox chat: the server draws the button (`chat-launcher.ts`); its module (`chat-module.ts`)
  *   loads on idle or on the first tap and opens the chat card in a frame.
+ * - Our cookie banner, for a theme without its own, and the market suggestion: their modules
+ *   (`banner-modules.ts`) draw the cards; the banner answers with the same `commerce:consent`
+ *   event a theme's banner sends.
  * - Chatwoot app: its module (`chatwoot-module.ts`) once the store's chosen cookie category
  *   allows it, after the page has loaded.
  * - Experiments (GrowthBook): the experiments this page was drawn with, once, to
@@ -52,6 +57,10 @@ export type IslandConfig = {
   chat?: { src: string; config: Record<string, unknown> } | null | undefined
   /** The Chatwoot app's chat, with the signed-in shopper's signed identity. */
   chatwoot?: ChatwootChat | null | undefined
+  /** Our cookie banner, for a theme without its own: the store's wording (empty: ours). */
+  consentBanner?: { message: string } | null | undefined
+  /** Preferences › Markets › suggest the visitor's market, with more than one market live. */
+  marketBanner?: boolean | undefined
 }
 
 /** The island script's body for `config`; `<` is escaped so no value can close the script. */
@@ -90,6 +99,26 @@ export function islandScript(config: IslandConfig): string {
             baseUrl: config.chatwoot.widget.baseUrl,
             websiteToken: config.chatwoot.widget.websiteToken,
             identity: config.chatwoot.identity,
+          },
+        }
+      : null,
+    consentBanner: config.consentBanner
+      ? {
+          src: islandModuleUrl('consent'),
+          config: { copy: consentContent, message: config.consentBanner.message },
+        }
+      : null,
+    market: config.marketBanner
+      ? {
+          src: islandModuleUrl('market'),
+          config: {
+            copy: {
+              ...marketSuggestionContent,
+              question: marketSuggestionContent.question('{country}'),
+              body: marketSuggestionContent.body('{currency}'),
+              switch: marketSuggestionContent.switch('{currency}'),
+              stay: marketSuggestionContent.stay('{currency}'),
+            },
           },
         }
       : null,
@@ -217,6 +246,21 @@ const ISLANDS = `(function () {
       });
     }
   }
+
+  // Our cookie banner (a theme without its own): at once while unanswered, or from Cookie settings.
+  if (c.consentBanner) {
+    if (readConsent() === null) { c.consentBanner.config.ask = true; load('consent', c.consentBanner); }
+    var reopen = function () {
+      if (location.hash !== '#cookie-settings' || modules.consent) return;
+      history.replaceState(null, '', location.pathname + location.search);
+      c.consentBanner.config.reopen = true;
+      load('consent', c.consentBanner);
+    };
+    reopen();
+    window.addEventListener('hashchange', reopen);
+  }
+  // "Shop in AED?": asked for once the page has loaded.
+  if (c.market) idle(function () { load('market', c.market); });
 
   // The Inbox chat: its module on idle, or at once (opening the chat) on a tap before that.
   var chatButton = c.chat && document.getElementById('wc-chat');
