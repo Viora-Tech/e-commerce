@@ -1,5 +1,6 @@
 'use client'
 
+import { canStaffCancel } from '@commerce/core/order-edit-rules'
 import { permissions } from '@commerce/core/permissions'
 import {
   Archive,
@@ -17,6 +18,8 @@ import { toast } from 'sonner'
 import TagInput from '@/components/fields/tag-input'
 import type { ActionItem } from '@/components/layout/action-menu'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
+import CancelOrderDialog from '@/components/orders/cancel-order-dialog'
+import type { OrderDetail } from '@/components/orders/order-detail-types'
 import type { SendChannel } from '@/components/orders/reminder-channel-picker'
 import SendMessageDialog, { type CustomMessage } from '@/components/orders/send-message-dialog'
 import { useDuplicateOrder } from '@/components/orders/use-duplicate-order'
@@ -54,7 +57,7 @@ type OrderRowMenuProps = {
   onChanged: () => void
 }
 
-type Dialog = 'cancelOrder' | 'cancelShipment' | 'addTags' | 'removeTags' | 'remind' | null
+type Dialog = 'cancelShipment' | 'addTags' | 'removeTags' | 'remind' | null
 
 const SHIPPABLE = ['unfulfilled', 'partially_fulfilled']
 /** Booked with a courier but not yet in the shopper's hands. */
@@ -66,8 +69,9 @@ const MOVE_ICON = { paid: CircleCheck, fulfilled: PackageCheck, delivered: Packa
 /**
  * The ⋯ menu on an order row, Shopify style: open, the order's next move (paid, fulfilled,
  * delivered), a payment reminder, shipping, cancel, tags, copy the number, and the installed
- * apps last under one "Apps" heading. Each item shows only when it applies; cancel and cancel
- * shipment ask first, and the reminder opens the "Review email" step.
+ * apps last under one "Apps" heading. Each item shows only when it applies; cancel opens the
+ * order page's own "Cancel order" (same call, same rules, same approval), cancel shipment asks
+ * first, and the reminder opens the "Review email" step.
  */
 export default function OrderRowMenu({
   order,
@@ -83,6 +87,7 @@ export default function OrderRowMenu({
   const duplicateOrder = useDuplicateOrder()
   const { hasPermission } = usePermissions()
   const [dialog, setDialog] = useState<Dialog>(null)
+  const [cancelling, setCancelling] = useState<OrderDetail | null>(null)
   const [tags, setTags] = useState<string[]>([])
 
   // Event handlers
@@ -115,14 +120,19 @@ export default function OrderRowMenu({
     void api.orders.notePaymentReminderChat({ orderId: order.id }).then(onChanged, () => undefined)
   }
 
-  const handleCancelOrder = async () => {
+  // The row only has a summary: the dialog needs the full order (payments, refundable amount).
+  const handleOpenCancel = async () => {
     try {
-      await api.orders.setStatus({ id: order.id, status: 'cancelled' })
-      toast.success(detail.moved(list.marks.cancelled.toLowerCase()))
-      onChanged()
+      const full = await api.orders.get({ id: order.id })
+      if (full) setCancelling(full)
     } catch (err) {
       toast.error(err instanceof Error ? err.message : list.bulk.failed)
     }
+  }
+
+  const handleCancelled = () => {
+    setCancelling(null)
+    onChanged()
   }
 
   const handleCancelShipment = async () => {
@@ -182,7 +192,11 @@ export default function OrderRowMenu({
     SHIPPABLE.includes(fulfilment) &&
     (PAID.includes(order.paymentStatus) || order.paymentMethod === 'cod')
   const canCancelShipment = open && BOOKED.includes(fulfilment)
-  const cancellable = open && fulfilment !== 'delivered'
+  // The order page's rule (not shipped yet) and grant, so both offer the same cancel.
+  const cancellable =
+    open &&
+    canStaffCancel({ importedFrom: null, status: order.status, fulfillmentStatus: fulfilment }) &&
+    hasPermission(permissions.ORDERS_CANCEL)
   const move = order.importedFrom
     ? null
     : nextOrderMove(order.status, order.paymentStatus, order.fulfillmentStatus)
@@ -227,7 +241,7 @@ export default function OrderRowMenu({
             icon: CancelCircle,
             destructive: true,
             hidden: !cancellable,
-            onSelect: () => setDialog('cancelOrder'),
+            onSelect: handleOpenCancel,
           },
           {
             label: list.row.addTags,
@@ -263,15 +277,11 @@ export default function OrderRowMenu({
           })),
         ]}
       />
-      <ConfirmDialog
-        open={dialog === 'cancelOrder'}
-        onOpenChange={(o) => !o && setDialog(null)}
-        title={detail.cancelDialog.title}
-        body={detail.cancelDialog.body}
-        confirmLabel={detail.cancelDialog.confirm}
-        cancelLabel={detail.cancelDialog.keep}
+      <CancelOrderDialog
+        order={cancelling}
         stopPropagation
-        onConfirm={handleCancelOrder}
+        onClose={() => setCancelling(null)}
+        onDone={handleCancelled}
       />
       <ConfirmDialog
         open={dialog === 'cancelShipment'}

@@ -143,9 +143,18 @@ Who approves (`canApprove` in `procedures/approval-rules.ts`): the owner, or a m
 after `APPROVAL_TTL_DAYS` (7). `approvals.waiting` / `mine` / `counts` back Settings → Approvals
 and its nav count; opening *Your requests* marks decided outcomes seen.
 
+A grant some inputs need on top of the procedure's own is named on the procedure too:
+`can(permissions.ORDERS_WRITE, (input) => ...)` (`AlsoNeeds`, `procedures/also-needs.ts`). The
+middleware refuses the call without it and holds it when the role ticks it, exactly like the main
+permission: `orders.setStatus` to `cancelled` also needs `orders.cancel`, a cancel or edit that
+refunds `orders.refund`, `products.bulk` deleting `products.delete`, and so on. Never check a
+change grant inside the handler (`scope.can(...)`): the tick would be skipped there, which is how
+the orders table's cancel ran at once while the order page's waited (#1409). The
+`handler-grants` sweep enforces it.
+
 Gaps, by design:
-- Reads are never queued, nor `canAny` / `canDetached` procedures (no single permission to tick),
-  nor a server-side `call()` without a path.
+- Reads are never queued, nor `canAny` / `canDetached` procedures by their own list (no single
+  permission to tick; an `also` grant is held), nor a server-side `call()` without a path.
 - People-only paths (catalogue exclusions: browser hand-offs, tokens, deciding approvals) and
   file uploads cannot wait: a ticked one is refused with `FORBIDDEN`.
 

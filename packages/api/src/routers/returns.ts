@@ -9,7 +9,6 @@ import {
   RETURN_RESOLUTIONS,
   RETURN_STATUSES,
 } from '@commerce/core'
-import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
 import { can, PAGE_SIZE_MAX, SEARCH_MAX } from '../procedures'
 import { storeRegistries } from '../services/apps.service'
@@ -199,7 +198,8 @@ export const returnsRouter = {
       )
     }),
 
-  exchange: can(permissions.ORDERS_WRITE)
+  // An exchange makes a draft order: drafts.write too (and its "Needs approval" tick).
+  exchange: can(permissions.ORDERS_WRITE, () => [permissions.DRAFTS_WRITE])
     .input(
       z.object({
         id: z.uuid(),
@@ -210,12 +210,6 @@ export const returnsRouter = {
       }),
     )
     .handler(({ context, input }) => {
-      if (!context.scope.can(permissions.DRAFTS_WRITE)) {
-        throw new ORPCError('FORBIDDEN', {
-          message: 'Your role does not allow creating draft orders',
-          data: { required: permissions.DRAFTS_WRITE, role: context.scope.roleSlug },
-        })
-      }
       return exchangeStoreReturn(context.tx, context.scope.storeId, input.id, input.lines)
     }),
 

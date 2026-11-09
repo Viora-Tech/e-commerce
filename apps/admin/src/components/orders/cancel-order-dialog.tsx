@@ -33,6 +33,8 @@ type CancelOrderDialogProps = {
   order: OrderDetail | null
   onClose: () => void
   onDone: () => void
+  /** For the dialog opened from an order row, so clicks inside it do not open the order. */
+  stopPropagation?: boolean
 }
 
 /** Came from another platform (still imported, or taken over): its stock was counted there. */
@@ -63,7 +65,12 @@ const today = () => {
  * original payment, store credit with or without an expiry date, recorded by hand, or later),
  * then the reason, a staff note, and restock / email checkboxes. In the shared dialog shell.
  */
-export default function CancelOrderDialog({ order, onClose, onDone }: CancelOrderDialogProps) {
+export default function CancelOrderDialog({
+  order,
+  onClose,
+  onDone,
+  stopPropagation = false,
+}: CancelOrderDialogProps) {
   // Hooks
   const copy = useCopy(orderCancelContent)
   const routeCopy = useCopy(refundRouteContent)
@@ -158,7 +165,7 @@ export default function CancelOrderDialog({ order, onClose, onDone }: CancelOrde
 
   return (
     <Dialog open={order !== null} onOpenChange={(open) => (!open ? onClose() : undefined)}>
-      <DialogContent>
+      <DialogContent onClick={stopPropagation ? (event) => event.stopPropagation() : undefined}>
         <form onSubmit={handleSubmit} className="contents">
           <DialogHeader>
             <DialogTitle>{order ? copy.title(order.number) : ''}</DialogTitle>
