@@ -74,6 +74,8 @@ export function variantRow(input: VariantInput) {
     weightGrams: input.weightGrams ?? null,
     // Writers that do not know the setting (imports, bulk tools) keep the merchant's choice.
     ...(input.hiddenOnStore === undefined ? {} : { hiddenOnStore: input.hiddenOnStore }),
+    // New variants default to physical; writers that do not know the flag leave it alone.
+    ...(input.requiresShipping === undefined ? {} : { requiresShipping: input.requiresShipping }),
     // The variant's "Allow pre-order" switch is the only override key the admin edits.
     ...(input.preorderAllowed === undefined
       ? {}

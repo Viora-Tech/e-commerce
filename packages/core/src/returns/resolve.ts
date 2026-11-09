@@ -4,7 +4,6 @@ import type { PaymentProvider } from '@commerce/payments'
 import type { ShippingProvider } from '@commerce/shipping'
 import { and, eq, inArray } from 'drizzle-orm'
 import type { StoreContext } from '../context'
-import { issueGiftCard } from '../gift-cards/service'
 import { adjustStock } from '../inventory/levels'
 import { createDraft } from '../order/drafts'
 import { type RefundInput, type RefundMethod, refundedPaise, refundPayment } from '../order/refund'
@@ -142,7 +141,7 @@ async function payBack(
   amountPaise: number,
   how: {
     providerFor: (providerId: string) => Promise<PaymentProvider | null>
-    extra: Pick<RefundInput, 'manual' | 'method' | 'giftCardId'>
+    extra: Pick<RefundInput, 'manual' | 'method' | 'secret' | 'createdBy' | 'storeCreditReason'>
   },
 ): Promise<string[]> {
   let left = amountPaise
@@ -215,11 +214,11 @@ export async function refundReturn(ctx: StoreContext, id: string, input: RefundR
 }
 
 /**
- * Give the money back as store credit: a gift card in the shopper's name, the
- * platform's existing gift card. Returns the code once so the caller can email it.
- * The credit is recorded as a refund of the order's payments (method `store_credit`), so the
- * same money cannot also be refunded, and the GST invoices plugin issues a credit note for the
- * returned units: spending the card later is billed in full, as a gift card is.
+ * Give the money back as store credit: onto the store credit balance of the order's customer
+ * (found or made from the order's email or phone), the same ledger refunds use; never a gift
+ * card code. The credit is recorded as a refund of the order's payments (method
+ * `store_credit`), so the same money cannot also be refunded, and the GST invoices plugin issues
+ * a credit note for the returned units: spending the credit later is billed in full.
  */
 export async function storeCreditReturn(
   ctx: StoreContext,
@@ -244,33 +243,21 @@ export async function storeCreditReturn(
   assertCovered(ctx, payments, input.amountPaise)
   const [o] = await ctx.tx.select().from(order).where(eq(order.id, r.orderId))
   if (!o) throw new ReturnNotAllowed('Order not found', ctx.storeId)
-  const [cu] = o.customerId
-    ? await ctx.tx.select().from(customer).where(eq(customer.id, o.customerId))
-    : []
-  const issued = await issueGiftCard(
-    ctx,
-    {
-      valuePaise: input.amountPaise,
-      customerId: o.customerId,
-      recipientEmail: o.email,
-      recipientName: cu?.name ?? null,
-      note: `Store credit for return ${returnLabel(r.number)} (order #${o.number})`,
-      createdBy: input.createdBy ?? null,
-      orderId: o.id,
-    },
-    input.secret,
-  )
-  if (!issued) throw new ReturnNotAllowed('The store credit could not be created.', ctx.storeId)
+  // Each payment's share goes onto the balance as it is recorded (`refundPayment`).
   const refundIds = await payBack(ctx, r, payments, input.amountPaise, {
     providerFor: noGateway,
-    extra: { method: 'store_credit', giftCardId: issued.card.id },
+    extra: {
+      method: 'store_credit',
+      secret: input.secret,
+      createdBy: input.createdBy ?? null,
+      storeCreditReason: `Store credit for return ${returnLabel(r.number)} (order #${o.number})`,
+    },
   })
   const row = await updateReturnRow(ctx, id, {
     status: 'resolved',
     resolution: 'store_credit',
     refundAmountPaise: input.amountPaise,
     refundIds,
-    giftCardId: issued.card.id,
     resolvedAt: new Date(),
   })
   if (r.kind === 'return') {
@@ -279,7 +266,7 @@ export async function storeCreditReturn(
       returnId: r.id,
     })
   }
-  return { row, giftCardId: issued.card.id }
+  return { row }
 }
 
 /**

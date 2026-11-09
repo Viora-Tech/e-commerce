@@ -1,8 +1,10 @@
 /** SOURCE OF TRUTH: the "payment not finished" nudge — WHAT: once per order, a short while after an online checkout whose payment failed or was abandoned, writes `order.payment_pending` so the shopper gets `payment_pending` with the retry link / WHY: Shopify's "Payment error" message; the unpaid expiry would otherwise cancel the order without the shopper ever hearing */
 import { order, store } from '@commerce/db'
-import { and, asc, eq, gt, isNotNull, isNull, lt, notInArray, sql } from 'drizzle-orm'
+import { KEYS_REFUSED_PREFIX } from '@commerce/payments'
+import { and, asc, eq, gt, isNotNull, isNull, lt, notInArray, or, sql } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 import { messageOn } from '../notifications/deliver'
+import { openCheckoutDraftWhere } from '../order/checkout-draft'
 import { insertOutboxEvent } from '../outbox/write'
 import { EXPIRY_EXEMPT_METHODS } from './expiry'
 import { parsePaymentSettings } from './settings'
@@ -54,13 +56,23 @@ export async function queuePaymentPendingNudges(
     .from(order)
     .where(
       and(
-        eq(order.status, 'open'),
+        // An open order, or an unpaid checkout kept as a draft (#D57) until paid.
+        or(eq(order.status, 'open'), openCheckoutDraftWhere()),
         isNull(order.checkoutPaidAt),
         isNotNull(order.cartId),
         isNull(order.importedFrom),
         notInArray(order.paymentMethod, [...EXPIRY_EXEMPT_METHODS]),
         lt(order.placedAt, due),
         gt(order.placedAt, oldest),
+        // The gateway refused the store's keys on the latest attempt: "retry your payment" would
+        // fail the same way; the owner was told instead (payments/gateway-health.ts).
+        sql`not exists (
+          select 1 from payment p
+          where p.order_id = "order"."id" and p.error like ${`${KEYS_REFUSED_PREFIX}%`}
+          and not exists (
+            select 1 from payment q where q.order_id = p.order_id and q.attempt > p.attempt
+          )
+        )`,
         // Spelled out: the outbox keeps the order id inside its payload.
         sql`not exists (
           select 1 from outbox_event e

@@ -34,6 +34,8 @@ export type VariantRow = {
   hiddenOnStore: boolean
   /** Sells on pre-order once out of stock, while the product is on pre-order (default on). */
   preorderAllowed: boolean
+  /** Shopify's "This is a physical product": off takes no shipping and never ships. */
+  requiresShipping: boolean
   quantity: string
   /** As typed, in `weightUnit`; saved as whole grams. */
   weight: string
@@ -119,6 +121,7 @@ export function emptyVariant(optionValues: string[], template?: VariantRow): Var
     trackInventory: template?.trackInventory ?? true,
     hiddenOnStore: false,
     preorderAllowed: template?.preorderAllowed ?? true,
+    requiresShipping: template?.requiresShipping ?? true,
     quantity: '0',
     weight: template?.weight ?? '',
     weightUnit: template?.weightUnit ?? DEFAULT_WEIGHT_UNIT,
@@ -235,6 +238,7 @@ function fromVariants(p: LoadedProduct): VariantRow[] {
         trackInventory: v.trackInventory,
         hiddenOnStore: v.hiddenOnStore,
         preorderAllowed: v.preorderAllowed,
+        requiresShipping: v.requiresShipping,
         quantity: String(v.onHand ?? 0),
         weight: fromGrams(v.weightGrams, v.weightUnit ?? DEFAULT_WEIGHT_UNIT),
         weightUnit: v.weightUnit ?? DEFAULT_WEIGHT_UNIT,
@@ -355,6 +359,7 @@ export function toWrite(form: ProductFormState): ProductWrite {
       trackInventory: v.trackInventory,
       hiddenOnStore: v.hiddenOnStore,
       preorderAllowed: v.preorderAllowed,
+      requiresShipping: v.requiresShipping,
       weightGrams: toGrams(v.weight, v.weightUnit),
       weightUnit: v.weightUnit,
       // One HSN and rate for the product unless "Different per variant" is on (#63): then a

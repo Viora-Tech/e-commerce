@@ -16,10 +16,23 @@ export const paymentsSettingsContent = {
     heading: 'Unpaid UPI or bank transfers',
     autoCancel: 'Cancel unpaid transfer orders automatically',
     autoCancelHelp:
-      'Off by default, since a customer may have paid before you matched it. Customers are never reminded automatically; send a reminder from the order instead.',
-    cancelLabel: 'Cancel after (hours from the order)',
+      'Off by default, because you check transfers and mark orders paid yourself. Turn it on to cancel unpaid orders after a set time and release their stock. Customers are never reminded automatically; send a reminder from the order instead.',
+    cancelLabel: 'Cancel after (hours from the order, 1 to 72)',
     cancelHelp:
-      'You get an email 12 hours before, and the order waits at least that long after it. Marking the order paid stops the cancellation. The customer is told when it is cancelled.',
+      'You get an email before it is cancelled: 12 hours before, or halfway through when the window is under 24 hours. The order always waits that long after the email. Marking the order paid stops the cancellation. The customer is told when it is cancelled.',
+  },
+  /** Repeated checkouts: the same items again, and too many unpaid orders. */
+  repeats: {
+    heading: 'Repeated checkouts',
+    draftsLabel: 'Keep unpaid checkouts as drafts',
+    draftsHelp:
+      'A checkout paid online or by UPI / bank transfer stays a draft (#D57) under Draft orders until the money arrives or you mark it paid. Only then does it get an order number. Cash on delivery is always an order at once.',
+    windowLabel: 'Treat the same items as the same order for (hours)',
+    windowHelp:
+      'When a customer checks out the same items again within this time, an unpaid order is not created twice: they go on paying for the first one. If the first one is paid, they are asked before ordering again. The time counts from their last try. 0 turns this off.',
+    capLabel: 'Most unpaid orders per customer in an hour',
+    capHelp:
+      'Counted by email, phone and internet address. Cash on delivery does not count. 0 means no limit.',
   },
   preorder: {
     heading: 'Pre-order balance',

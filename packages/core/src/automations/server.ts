@@ -1,4 +1,7 @@
 /** SOURCE OF TRUTH: Automations server barrel — WHAT: the engine's server surface as `@commerce/core/automations/server` (piece registry, executor contract, interpreter, trigger matching, tick, services, queues) / WHY: the API and the worker import one path; the pure parts stay importable from `@commerce/core/automations` for the browser. */
+
+// The trigger job also emails a payment gateway's refused-keys alert (payments/gateway-alert.ts).
+export { deliverGatewayAlertRow } from '../payments/gateway-alert'
 export * from './actions'
 export * from './client'
 export * from './conditions'

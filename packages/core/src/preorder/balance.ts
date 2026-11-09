@@ -44,7 +44,7 @@ export function balanceOwed(o: BalanceFields): number {
   return Math.max(0, o.balanceDuePaise ?? 0)
 }
 
-const OFFLINE = new Set(['cod', 'gift_card'])
+const OFFLINE = new Set(['cod', 'gift_card', 'store_credit'])
 
 /**
  * Which enabled provider collects the balance: the one that took the

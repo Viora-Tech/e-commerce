@@ -50,6 +50,11 @@ const ALLOWLIST: AllowEntry[] = [
       "Facebook, Instagram, WhatsApp, YouTube and Google marks in each brand's own colours (their brand guidelines require it), wherever the app shows them; no theme token should restyle them",
   },
   {
+    file: 'apps/admin/src/components/themes/customize/inbox-embed-field.tsx',
+    reason:
+      'a native colour input needs a hex value; black is only its swatch while the merchant leaves the chat colour blank (the theme colour)',
+  },
+  {
     file: 'apps/admin/src/components/settings/accent-wheel.tsx',
     reason:
       'the accent colour wheel paints the full hue spectrum with a white centre; it shows raw colours the merchant picks from, not themed UI',

@@ -8,13 +8,15 @@ import {
   orderViewToken,
   PaymentNotRetryable,
   payOnlineInstead,
+  recordShopperPaid,
   retryAndStartPayment,
+  SPLIT_TENDER_PROVIDERS,
   syncOpenQrAttempt,
   thankYouPath,
 } from '@commerce/core'
 import { order, payment } from '@commerce/db'
 import type { ClientConfirmation } from '@commerce/payments'
-import { and, desc, eq, ne } from 'drizzle-orm'
+import { and, desc, eq, notInArray } from 'drizzle-orm'
 import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { redirectAfterCheckout } from './checkout-redirect'
@@ -22,7 +24,7 @@ import { db } from './db'
 import { accessibleOrderId } from './order-access'
 import { redirectToOrderPage } from './order-view-cookie'
 import { nudgeOutbox } from './outbox'
-import { payOnlineGateway, storePaymentProviders } from './payments'
+import { payOnlineGateway, storePaymentProviders, storeUnavailableMethods } from './payments'
 import { clientIp, rateLimited } from './rate-limit'
 import { requestStoreId } from './request-store'
 import { inStore } from './store-context'
@@ -58,11 +60,16 @@ export async function retryPaymentAction(orderNumber: number, viewToken: string 
     const [latest] = await tx
       .select({ provider: payment.provider })
       .from(payment)
-      .where(and(eq(payment.orderId, oid), ne(payment.provider, 'gift_card')))
+      .where(
+        and(eq(payment.orderId, oid), notInArray(payment.provider, [...SPLIT_TENDER_PROVIDERS])),
+      )
       .orderBy(desc(payment.attempt), desc(payment.id))
       .limit(1)
     const providers = await storePaymentProviders(tx, storeId)
     const provider = providers.find((p) => p.id === latest?.provider)
+    // A gateway that refused the store's keys would fail again: the order page offers another way.
+    if (provider && (await storeUnavailableMethods(tx, storeId, providers)).includes(provider.id))
+      return null
     return provider ?? null
   })
   if (!target) {
@@ -114,6 +121,34 @@ export async function payOnlineAction(orderNumber: number, viewToken: string | n
 }
 
 /**
+ * "I've paid" on a UPI / bank transfer checkout's page (a draft, #D57): records the shopper's
+ * word and optional UTR for the merchant (`recordShopperPaid`). Nothing is marked paid: the
+ * merchant does that once the money is seen. Same access rule and rate limit as "Retry payment".
+ */
+export async function shopperPaidAction(
+  orderNumber: number,
+  viewToken: string | null,
+  form: FormData,
+) {
+  const storeId = await requestStoreId()
+  const orderId = await accessibleOrderId(storeId, orderNumber, viewToken)
+  if (!orderId) redirect(`/checkout/thank-you/${orderNumber}`)
+  const oid: string = orderId
+  const ip = clientIp(await headers())
+  const [byIp, byOrder] = await Promise.all([
+    rateLimited('payment-retry:ip', ip, PAYMENT_RETRY_IP_RULE),
+    rateLimited('payment-retry:order', `${storeId}:${orderNumber}`, PAYMENT_RETRY_IP_RULE),
+  ])
+  if (byIp.ok && byOrder.ok) {
+    const utr = form.get('utr')
+    await inStore(storeId, (tx) =>
+      recordShopperPaid({ storeId, tx }, oid, typeof utr === 'string' ? utr : null),
+    )
+  }
+  return redirectToOrderPage(thankYouPath(orderNumber, orderViewToken(oid, settingsSecret())))
+}
+
+/**
  * The UPI QR page asks: has this QR been paid? Checks the gateway directly, so
  * the order turns paid even when its webhook is late or not set up. True once
  * paid; the page then refreshes to the paid state.
@@ -135,7 +170,9 @@ export async function checkQrPaymentAction(orderNumber: number, viewToken: strin
     const [latest] = await tx
       .select({ provider: payment.provider })
       .from(payment)
-      .where(and(eq(payment.orderId, o.id), ne(payment.provider, 'gift_card')))
+      .where(
+        and(eq(payment.orderId, o.id), notInArray(payment.provider, [...SPLIT_TENDER_PROVIDERS])),
+      )
       .orderBy(desc(payment.attempt), desc(payment.id))
       .limit(1)
     const providers = await storePaymentProviders(tx, storeId)

@@ -1,124 +1,126 @@
-name: CI
-
-# Runs on every PR and on pushes to the long-lived branches, plus by hand from the Actions tab.
-# Re-enabled 2026-10-26 (was paused 2026-10-02) so the DB-backed security tests — the cross-store
-# RLS leak test and the payment webhook guard — gate every merge and a regression can't ship.
-on:
-  workflow_dispatch:
-  push:
-    branches: [dev, main]
-  pull_request:
-
-# One run per branch/PR; a newer push cancels the older in-progress run.
-concurrency:
-  group: ci-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
-
-jobs:
-  # Three kinds of job run side by side, so a run takes as long as the slowest one instead of the
-  # sum of all of them (was one job of ~40 min: lint, typecheck, sweeps, then tests in a row).
-  lint:
-    runs-on: ubuntu-latest
-    steps:
-      # Pinned to full commit SHAs; the comment is the release. Bump both together.
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
-      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
-        with:
-          bun-version: 1.3.11
-      - run: bun install --frozen-lockfile
-      - run: bun run lint
-      - run: bun run test:sweeps
-
-  typecheck:
-    runs-on: ubuntu-latest
-    steps:
-      # Pinned to full commit SHAs; the comment is the release. Bump both together.
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
-      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
-        with:
-          bun-version: 1.3.11
-      - run: bun install --frozen-lockfile
-      # turbo's local cache (scripts/turbo.ts puts it in .turbo/cache). A package whose inputs did
-      # not change replays its last result instead of running again. PRs restore dev's entries.
-      - uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
-        with:
-          path: .turbo/cache
-          key: turbo-typecheck-${{ github.sha }}
-          restore-keys: turbo-typecheck-
-      # TypeScript 7 (native, scripts/typecheck.ts): far less memory than 5.9's tsc, so two
-      # packages at a time fit the 2-core / ~7 GB runner.
-      - run: bun run typecheck --concurrency=2
-
-  test:
-    name: test (${{ matrix.shard.name }})
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      # Split by package, balanced on CI times (2026-11-02): api ~410s, core ~355s, the next five
-      # ~360s together, everything else ~250s. "rest" is everything not named above it, so a new
-      # package is always tested somewhere. Rebalance here when a shard gets slow.
-      matrix:
-        shard:
-          - name: api
-            filter: --filter=@commerce/api
-          - name: core
-            filter: --filter=@commerce/core
-          - name: apps
-            filter: >-
-              --filter=@commerce/admin --filter=@commerce/storefront
-              --filter=@commerce/plugin-shopify-import --filter=@commerce/plugin-affiliates
-              --filter=@commerce/plugin-reviews
-          - name: rest
-            filter: >-
-              --filter=!@commerce/api --filter=!@commerce/core --filter=!@commerce/admin
-              --filter=!@commerce/storefront --filter=!@commerce/plugin-shopify-import
-              --filter=!@commerce/plugin-affiliates --filter=!@commerce/plugin-reviews
-    # The GitHub runner has 2 cores / ~7 GB. Many packages at once (turbo fans out ~10, each vitest
-    # spawning TEST_WORKERS=3 forks with a DB copy apiece) OOM-kills it. One DB copy per worker and
-    # one package at a time keeps it under the cap. Some packages' Vite/esbuild needs a larger V8
-    # heap than the ~2 GB default, so raise it.
-    env:
-      TEST_WORKERS: '1'
-      NODE_OPTIONS: '--max-old-space-size=6144'
-      REDIS_URL: 'redis://localhost:6379'
-    services:
-      postgres:
-        image: postgres:17-alpine
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: commerce
-        ports: ['5432:5432']
-        options: >-
-          --health-cmd "pg_isready -U postgres"
-          --health-interval 5s
-          --health-timeout 3s
-          --health-retries 10
-      # @commerce/queue tests (fair/visitors/rate-limit) run against a real Redis. Dragonfly can't
-      # run as a service container (it needs --cluster_mode=emulated), but these tests use only
-      # standard ops (sorted sets, multi, hashtag keys on a single node), so stock Redis serves.
-      redis:
-        image: redis:7-alpine
-        ports: ['6379:6379']
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 5s
-          --health-timeout 3s
-          --health-retries 10
-    steps:
-      # Pinned to full commit SHAs; the comment is the release. Bump both together.
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
-      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
-        with:
-          bun-version: 1.3.11
-      - run: bun install --frozen-lockfile
-      # turbo's local cache (scripts/turbo.ts puts it in .turbo/cache). A package whose inputs did
-      # not change replays its last result instead of running again. PRs restore dev's entries.
-      - uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
-        with:
-          path: .turbo/cache
-          key: turbo-test-${{ matrix.shard.name }}-${{ github.sha }}
-          restore-keys: turbo-test-${{ matrix.shard.name }}-
-      - name: Create roles and test databases
-        run: PGPASSWORD=postgres psql -h localhost -U postgres -d commerce -v ON_ERROR_STOP=1 -f docker/postgres/init.sql
-      - run: bun run test --concurrency=1 ${{ matrix.shard.filter }}
+# DISABLED on 8 Nov 2026 at the owner's request: GitHub Actions is turned off for this repo
+# (billing; checks run locally before each PR). Uncomment everything below to bring it back.
+# name: CI
+# 
+# # Runs on every PR and on pushes to the long-lived branches, plus by hand from the Actions tab.
+# # Re-enabled 2026-10-26 (was paused 2026-10-02) so the DB-backed security tests — the cross-store
+# # RLS leak test and the payment webhook guard — gate every merge and a regression can't ship.
+# on:
+#   workflow_dispatch:
+#   push:
+#     branches: [dev, main]
+#   pull_request:
+# 
+# # One run per branch/PR; a newer push cancels the older in-progress run.
+# concurrency:
+#   group: ci-${{ github.workflow }}-${{ github.ref }}
+#   cancel-in-progress: true
+# 
+# jobs:
+#   # Three kinds of job run side by side, so a run takes as long as the slowest one instead of the
+#   # sum of all of them (was one job of ~40 min: lint, typecheck, sweeps, then tests in a row).
+#   lint:
+#     runs-on: ubuntu-latest
+#     steps:
+#       # Pinned to full commit SHAs; the comment is the release. Bump both together.
+#       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+#       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+#         with:
+#           bun-version: 1.3.11
+#       - run: bun install --frozen-lockfile
+#       - run: bun run lint
+#       - run: bun run test:sweeps
+# 
+#   typecheck:
+#     runs-on: ubuntu-latest
+#     steps:
+#       # Pinned to full commit SHAs; the comment is the release. Bump both together.
+#       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+#       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+#         with:
+#           bun-version: 1.3.11
+#       - run: bun install --frozen-lockfile
+#       # turbo's local cache (scripts/turbo.ts puts it in .turbo/cache). A package whose inputs did
+#       # not change replays its last result instead of running again. PRs restore dev's entries.
+#       - uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
+#         with:
+#           path: .turbo/cache
+#           key: turbo-typecheck-${{ github.sha }}
+#           restore-keys: turbo-typecheck-
+#       # TypeScript 7 (native, scripts/typecheck.ts): far less memory than 5.9's tsc, so two
+#       # packages at a time fit the 2-core / ~7 GB runner.
+#       - run: bun run typecheck --concurrency=2
+# 
+#   test:
+#     name: test (${{ matrix.shard.name }})
+#     runs-on: ubuntu-latest
+#     strategy:
+#       fail-fast: false
+#       # Split by package, balanced on CI times (2026-11-02): api ~410s, core ~355s, the next five
+#       # ~360s together, everything else ~250s. "rest" is everything not named above it, so a new
+#       # package is always tested somewhere. Rebalance here when a shard gets slow.
+#       matrix:
+#         shard:
+#           - name: api
+#             filter: --filter=@commerce/api
+#           - name: core
+#             filter: --filter=@commerce/core
+#           - name: apps
+#             filter: >-
+#               --filter=@commerce/admin --filter=@commerce/storefront
+#               --filter=@commerce/plugin-shopify-import --filter=@commerce/plugin-affiliates
+#               --filter=@commerce/plugin-reviews
+#           - name: rest
+#             filter: >-
+#               --filter=!@commerce/api --filter=!@commerce/core --filter=!@commerce/admin
+#               --filter=!@commerce/storefront --filter=!@commerce/plugin-shopify-import
+#               --filter=!@commerce/plugin-affiliates --filter=!@commerce/plugin-reviews
+#     # The GitHub runner has 2 cores / ~7 GB. Many packages at once (turbo fans out ~10, each vitest
+#     # spawning TEST_WORKERS=3 forks with a DB copy apiece) OOM-kills it. One DB copy per worker and
+#     # one package at a time keeps it under the cap. Some packages' Vite/esbuild needs a larger V8
+#     # heap than the ~2 GB default, so raise it.
+#     env:
+#       TEST_WORKERS: '1'
+#       NODE_OPTIONS: '--max-old-space-size=6144'
+#       REDIS_URL: 'redis://localhost:6379'
+#     services:
+#       postgres:
+#         image: postgres:17-alpine
+#         env:
+#           POSTGRES_USER: postgres
+#           POSTGRES_PASSWORD: postgres
+#           POSTGRES_DB: commerce
+#         ports: ['5432:5432']
+#         options: >-
+#           --health-cmd "pg_isready -U postgres"
+#           --health-interval 5s
+#           --health-timeout 3s
+#           --health-retries 10
+#       # @commerce/queue tests (fair/visitors/rate-limit) run against a real Redis. Dragonfly can't
+#       # run as a service container (it needs --cluster_mode=emulated), but these tests use only
+#       # standard ops (sorted sets, multi, hashtag keys on a single node), so stock Redis serves.
+#       redis:
+#         image: redis:7-alpine
+#         ports: ['6379:6379']
+#         options: >-
+#           --health-cmd "redis-cli ping"
+#           --health-interval 5s
+#           --health-timeout 3s
+#           --health-retries 10
+#     steps:
+#       # Pinned to full commit SHAs; the comment is the release. Bump both together.
+#       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+#       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+#         with:
+#           bun-version: 1.3.11
+#       - run: bun install --frozen-lockfile
+#       # turbo's local cache (scripts/turbo.ts puts it in .turbo/cache). A package whose inputs did
+#       # not change replays its last result instead of running again. PRs restore dev's entries.
+#       - uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
+#         with:
+#           path: .turbo/cache
+#           key: turbo-test-${{ matrix.shard.name }}-${{ github.sha }}
+#           restore-keys: turbo-test-${{ matrix.shard.name }}-
+#       - name: Create roles and test databases
+#         run: PGPASSWORD=postgres psql -h localhost -U postgres -d commerce -v ON_ERROR_STOP=1 -f docker/postgres/init.sql
+#       - run: bun run test --concurrency=1 ${{ matrix.shard.filter }}

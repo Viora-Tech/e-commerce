@@ -6,9 +6,13 @@
  */
 import { media, product, type StoreTx } from '@commerce/db'
 import { and, desc, eq, gte, inArray, type SQL, sql } from 'drizzle-orm'
-import { emptySummary, photosFor, type RatingSummary } from './reviews'
+import { emptySummary, photoCopy, photosFor, type RatingSummary, type ReviewPhoto } from './reviews'
+
 import { review, reviewMedia } from './schema'
 import { displayName, type ReviewsSettings } from './settings'
+
+/** Review photos in the widgets show at most this wide (a card, or opened in the dialog). */
+const WIDGET_PHOTO_WIDTH = 1280
 
 /** The most reviews one widget loads (the all-reviews section pages through these). */
 export const WIDGET_REVIEWS_MAX = 200
@@ -136,7 +140,7 @@ export async function storeWidgetReviews(
         tx,
         rows.map((r) => r.id),
       )
-    : new Map<string, { url: string }[]>()
+    : new Map<string, ReviewPhoto[]>()
   return {
     summary,
     reviews: rows.map((r) => ({
@@ -148,7 +152,8 @@ export async function storeWidgetReviews(
       verified: r.verified,
       createdAt: r.createdAt.toISOString(),
       product: r.productTitle && r.handle ? { title: r.productTitle, handle: r.handle } : null,
-      photos: (photos.get(r.id) ?? []).map((p) => p.url),
+      // A sized copy, sharp enough for the photo opened large, never the phone's original.
+      photos: (photos.get(r.id) ?? []).map((p) => photoCopy(p, WIDGET_PHOTO_WIDTH)),
     })),
   }
 }

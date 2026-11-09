@@ -15,7 +15,6 @@ import {
   type IORedis,
   KEEP_FINISHED,
   MARKETING_SEND_QUEUE,
-  MARKETING_TICK_QUEUE,
   QUEUE_LIMITS,
   Queue,
   Worker,
@@ -63,44 +62,37 @@ export async function retireAbandonedSweep(connection: IORedis): Promise<void> {
  * LOCKED keeps two workers apart.
  */
 export function createMarketingWorker(connection: IORedis, db: Db, opts: Opts) {
-  const tickQueue = new Queue(MARKETING_TICK_QUEUE, { connection })
   const sendQueue = new Queue<SendJob>(MARKETING_SEND_QUEUE, { connection })
 
-  const tick = new Worker(
-    MARKETING_TICK_QUEUE,
-    async () => {
-      const storeIds = await storesWithMarketingWork(db)
-      let queued = 0
-      let enrolled = 0
-      let steps = 0
-      for (const storeId of storeIds) {
-        try {
-          const sending = await withStore(db, storeId, (tx) =>
-            startDueCampaigns(tx, storeId, opts.settingsSecret),
+  const tick = async () => {
+    const storeIds = await storesWithMarketingWork(db)
+    let queued = 0
+    let enrolled = 0
+    let steps = 0
+    for (const storeId of storeIds) {
+      try {
+        const sending = await withStore(db, storeId, (tx) =>
+          startDueCampaigns(tx, storeId, opts.settingsSecret),
+        )
+        for (const campaignId of sending) {
+          await sendQueue.add(
+            'batch',
+            { storeId, campaignId },
+            { jobId: `campaign-${campaignId}`, removeOnComplete: true, removeOnFail: true },
           )
-          for (const campaignId of sending) {
-            await sendQueue.add(
-              'batch',
-              { storeId, campaignId },
-              { jobId: `campaign-${campaignId}`, removeOnComplete: true, removeOnFail: true },
-            )
-            queued += 1
-          }
-          enrolled += await withStore(db, storeId, (tx) =>
-            enrolDue(tx, storeId, opts.settingsSecret),
-          )
-          const r = await withStore(db, storeId, async (tx) =>
-            processDueRuns(tx, storeId, await depsFor(tx, storeId, opts)),
-          )
-          steps += r.processed
-        } catch (err) {
-          logger.warn('marketing tick failed', { storeId, error: err })
+          queued += 1
         }
+        enrolled += await withStore(db, storeId, (tx) => enrolDue(tx, storeId, opts.settingsSecret))
+        const r = await withStore(db, storeId, async (tx) =>
+          processDueRuns(tx, storeId, await depsFor(tx, storeId, opts)),
+        )
+        steps += r.processed
+      } catch (err) {
+        logger.warn('marketing tick failed', { storeId, error: err })
       }
-      return { stores: storeIds.length, queued, enrolled, steps }
-    },
-    { connection, ...KEEP_FINISHED },
-  )
+    }
+    return { stores: storeIds.length, queued, enrolled, steps }
+  }
 
   const send = new Worker<SendJob>(
     MARKETING_SEND_QUEUE,
@@ -122,5 +114,5 @@ export function createMarketingWorker(connection: IORedis, db: Db, opts: Opts) {
     { connection, concurrency: QUEUE_LIMITS.marketingSend.concurrency, ...KEEP_FINISHED },
   )
 
-  return { tickQueue, sendQueue, tick, send }
+  return { sendQueue, tick, send }
 }

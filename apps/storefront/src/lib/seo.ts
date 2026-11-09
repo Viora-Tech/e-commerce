@@ -1,3 +1,4 @@
+import type { OfferPolicies } from '@commerce/core/offer-policies'
 import type { Metadata } from 'next'
 import { headers } from 'next/headers'
 import { SEO_DESCRIPTION_MAX, seoContent } from '@/data/seo'
@@ -122,14 +123,90 @@ type ProductForLd = {
   rating?: { value: number; count: number } | null | undefined
   /** A few published reviews, for `review` (Google reads up to a handful). */
   reviews?: { author: string; rating: number; title: string; body: string }[] | undefined
+  /** The store's returns and India shipping (`productOfferPolicies`), for merchant listings. */
+  policies?: OfferPolicies | null | undefined
+}
+
+/** One year on, as YYYY-MM-DD: prices stay until the merchant changes them. */
+const priceValidUntil = (now: Date) =>
+  new Date(Date.UTC(now.getUTCFullYear() + 1, now.getUTCMonth(), now.getUTCDate()))
+    .toISOString()
+    .slice(0, 10)
+
+/** `hasMerchantReturnPolicy`: the store's return window in India, or no returns at all. */
+function returnPolicyLd(returns: OfferPolicies['returns']) {
+  return returns.enabled
+    ? {
+        '@type': 'MerchantReturnPolicy',
+        applicableCountry: 'IN',
+        returnPolicyCategory: 'https://schema.org/MerchantReturnFiniteReturnWindow',
+        merchantReturnDays: returns.windowDays,
+        returnMethod: 'https://schema.org/ReturnByMail',
+      }
+    : {
+        '@type': 'MerchantReturnPolicy',
+        applicableCountry: 'IN',
+        returnPolicyCategory: 'https://schema.org/MerchantReturnNotPermitted',
+      }
+}
+
+/**
+ * `shippingDetails` for one price: free when the store charges nothing or the price clears a
+ * free-shipping threshold, else the cheapest flat India rate. Null when the store's rates
+ * depend on weight or order value only (no single honest figure).
+ */
+function shippingLd(shipping: OfferPolicies['shipping'], pricePaise: number, currency: string) {
+  const free =
+    shipping === null || (shipping.freeAbovePaise !== null && pricePaise >= shipping.freeAbovePaise)
+  const ratePaise = free ? 0 : shipping?.fromPaise
+  if (ratePaise == null) return null
+  return {
+    '@type': 'OfferShippingDetails',
+    shippingRate: {
+      '@type': 'MonetaryAmount',
+      value: paiseToAmount(ratePaise),
+      currency,
+    },
+    shippingDestination: { '@type': 'DefinedRegion', addressCountry: 'IN' },
+    ...(shipping
+      ? {
+          deliveryTime: {
+            '@type': 'ShippingDeliveryTime',
+            handlingTime: {
+              '@type': 'QuantitativeValue',
+              minValue: 0,
+              maxValue: 1,
+              unitCode: 'DAY',
+            },
+            transitTime: {
+              '@type': 'QuantitativeValue',
+              minValue: shipping.minDays,
+              maxValue: shipping.maxDays,
+              unitCode: 'DAY',
+            },
+          },
+        }
+      : {}),
+  }
 }
 
 /**
  * Product with one Offer per variant (INR, stock), its rating and a few reviews when the
  * Reviews app has published ones, and its breadcrumb trail.
  */
-export function productGraph(p: ProductForLd, origin: string, currency: string, storeName: string) {
+export function productGraph(
+  p: ProductForLd,
+  origin: string,
+  currency: string,
+  storeName: string,
+  now: Date = new Date(),
+) {
   const url = `${origin}/products/${p.handle}`
+  // The seller in full, not only by @id: the Organization node lives on the home page, and a
+  // bare reference left Google with a seller that has no name.
+  const seller = { '@type': 'Organization', '@id': `${origin}/#organization`, name: storeName }
+  // India rates and returns only apply to rupee prices; a market abroad leaves them out.
+  const facts = currency === 'INR' ? p.policies : null
   // Variants listed without a price (#913) have no offer to make yet.
   const priced = p.variants.flatMap((v) =>
     v.pricePaise == null ? [] : [{ ...v, pricePaise: v.pricePaise }],
@@ -148,7 +225,17 @@ export function productGraph(p: ProductForLd, origin: string, currency: string, 
           ? 'https://schema.org/PreOrder'
           : 'https://schema.org/OutOfStock',
     itemCondition: 'https://schema.org/NewCondition',
-    seller: { '@id': `${origin}/#organization` },
+    priceValidUntil: priceValidUntil(now),
+    seller,
+    ...(facts
+      ? (() => {
+          const shippingDetails = shippingLd(facts.shipping, v.pricePaise, currency)
+          return {
+            ...(shippingDetails ? { shippingDetails } : {}),
+            hasMerchantReturnPolicy: returnPolicyLd(facts.returns),
+          }
+        })()
+      : {}),
   }))
   const prices = priced.map((v) => v.pricePaise)
   return {

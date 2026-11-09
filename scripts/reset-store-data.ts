@@ -46,6 +46,7 @@ const WIPE = [
   'address',
   'payment',
   'payment_event',
+  'payment_gateway_health',
   'refund',
   'fulfillment_order',
   'fulfillment_order_line',

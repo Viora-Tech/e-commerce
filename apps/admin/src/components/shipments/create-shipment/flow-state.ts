@@ -146,6 +146,40 @@ export function quoteRequest(
   }
 }
 
+/** A whole number of at least 1, or undefined: the server takes nothing less. */
+const atLeastOne = (n: number | null | undefined) =>
+  n !== null && n !== undefined && Number.isFinite(n) && Math.round(n) >= 1
+    ? Math.round(n)
+    : undefined
+
+/** A box with every side at least 1 cm, else undefined (the server's rule). */
+const usableDims = (d: Dimensions | null | undefined): Dimensions | undefined =>
+  d && d.length >= 1 && d.width >= 1 && d.height >= 1 ? d : undefined
+
+/**
+ * The bulk flow's question to the couriers, one row per order, in the same shape the server
+ * accepts from the one-order flow: a weight below 1 g (products saved with 0 g), a box with a
+ * 0 cm side or a fractional value is left out, so the server uses its own default instead of
+ * refusing the whole batch.
+ */
+export function bulkQuoteRequests(
+  ready: ReadonlyArray<{ order: DraftOrder; parcel: DraftParcel }>,
+  dims: Dimensions | undefined,
+) {
+  return ready.map(({ order, parcel }) => {
+    const declared = Number.isFinite(parcel.valuePaise) ? Math.round(parcel.valuePaise) : NaN
+    return {
+      orderId: order.orderId,
+      fulfillmentOrderId: parcel.id,
+      pickupLocationId: parcel.pickupLocationId,
+      weightGrams: atLeastOne(parcel.weightGrams),
+      dimensionsCm: usableDims(dims) ?? usableDims(parcel.dimensionsCm),
+      paymentMode: order.paymentMode,
+      declaredValuePaise: declared >= 0 ? declared : undefined,
+    }
+  })
+}
+
 export const isBookable = (row: CourierRateRow) => row.problem === null
 
 /** The cheapest priced row, else the first; null for none. */

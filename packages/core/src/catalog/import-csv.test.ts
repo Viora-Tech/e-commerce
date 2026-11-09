@@ -92,6 +92,18 @@ describe('parseProductCsv', () => {
     expect(product?.variants[1]?.optionValues).toEqual(['Medium'])
   })
 
+  it('reads Variant Requires Shipping, and leaves a blank one to the store', () => {
+    const header = `${HEADER},Variant Requires Shipping`
+    const csv = [
+      header,
+      `${row({ Handle: 'pdf', Title: 'Pattern PDF', 'Variant Price': '199' })},FALSE`,
+      `${row({ Handle: 'mat', Title: 'Desk mat', 'Variant Price': '1299' })},`,
+    ].join('\n')
+    const parsed = parseProductCsv(csv)
+    expect(parsed.ignoredColumns).toEqual([])
+    expect(parsed.products.map((p) => p.variants[0]?.requiresShipping)).toEqual([false, undefined])
+  })
+
   it('treats a Default Title row as a single variant with no options', () => {
     const csv = [
       HEADER,

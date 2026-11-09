@@ -34,38 +34,33 @@ export async function productStats(tx: StoreTx): Promise<ProductStats> {
     .innerJoin(product, eq(product.id, variant.productId))
     .leftJoin(inventoryLevel, and(eq(inventoryLevel.variantId, variant.id), sellableLevel))
     .where(and(isNull(variant.archivedAt), notSystemTest))
-  const [out] = await tx
-    .select({ n: sql<number>`count(*)` })
+  // Each product's sellable units once (archived variants left out; no variant counts as 0),
+  // then both stock tiles from that one pass instead of a sub-query per product per tile.
+  const perProduct = tx
+    .select({
+      units:
+        sql<number>`coalesce(sum(greatest(0, ${inventoryLevel.onHand} - ${inventoryLevel.reserved})), 0)`.as(
+          'units',
+        ),
+    })
     .from(product)
-    .where(
-      and(
-        notSystemTest,
-        sql`(
-        select coalesce(sum(greatest(0, il.on_hand - il.reserved)), 0)
-        from variant v left join inventory_level il on il.variant_id = v.id and il.fulfils_online
-        where v.product_id = ${product.id} and v.archived_at is null
-      ) = 0`,
-      ),
-    )
-  const [low] = await tx
-    .select({ n: sql<number>`count(*)` })
-    .from(product)
-    .where(
-      and(
-        notSystemTest,
-        sql`(
-        select coalesce(sum(greatest(0, il.on_hand - il.reserved)), 0)
-        from variant v left join inventory_level il on il.variant_id = v.id and il.fulfils_online
-        where v.product_id = ${product.id} and v.archived_at is null
-      ) between 1 and ${lowThreshold}`,
-      ),
-    )
+    .leftJoin(variant, and(eq(variant.productId, product.id), isNull(variant.archivedAt)))
+    .leftJoin(inventoryLevel, and(eq(inventoryLevel.variantId, variant.id), sellableLevel))
+    .where(notSystemTest)
+    .groupBy(product.id)
+    .as('per_product')
+  const [tiles] = await tx
+    .select({
+      out: sql<number>`count(*) filter (where ${perProduct.units} = 0)`,
+      low: sql<number>`count(*) filter (where ${perProduct.units} between 1 and ${lowThreshold})`,
+    })
+    .from(perProduct)
   return {
     total: counts?.total ?? 0,
     active: Number(counts?.active ?? 0),
     draft: Number(counts?.draft ?? 0),
-    lowStock: Number(low?.n ?? 0),
-    outOfStock: Number(out?.n ?? 0),
+    lowStock: Number(tiles?.low ?? 0),
+    outOfStock: Number(tiles?.out ?? 0),
     stockValuePaise: Number(stock?.value ?? 0),
   }
 }

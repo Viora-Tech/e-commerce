@@ -1,20 +1,21 @@
 /** SOURCE OF TRUTH: shopper passkeys — WHAT: add a passkey to a signed-in shopper's account, sign in with one (WebAuthn, discoverable credentials), list and remove them; passkeys are registered on the store's own hostname (rpID) / WHY: a passkey is bound to one domain, so it must live on the domain the shopper actually uses, and a challenge that could be replayed or answered for another store would let the wrong person in */
 
 import { customer, customerLoginTicket, customerPasskey } from '@commerce/db'
-import {
-  type AuthenticationResponseJSON,
-  type AuthenticatorTransportFuture,
-  generateAuthenticationOptions,
-  generateRegistrationOptions,
-  type PublicKeyCredentialCreationOptionsJSON,
-  type PublicKeyCredentialRequestOptionsJSON,
-  type RegistrationResponseJSON,
+import type {
+  AuthenticationResponseJSON,
+  AuthenticatorTransportFuture,
+  PublicKeyCredentialCreationOptionsJSON,
+  PublicKeyCredentialRequestOptionsJSON,
+  RegistrationResponseJSON,
   verifyAuthenticationResponse,
   verifyRegistrationResponse,
 } from '@simplewebauthn/server'
 import { and, eq, isNull, lt } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 import { randomToken, sha256Hex } from './tokens'
+
+/** Loaded on the first passkey ceremony: about 20 MB resident that the worker and admin never use. */
+const webauthn = () => import('@simplewebauthn/server')
 
 /*
  * @simplewebauthn/server 13 (MIT), the library Better Auth's passkey plugin
@@ -113,7 +114,7 @@ export async function passkeyRegistrationOptions(
     .select({ credentialId: customerPasskey.credentialId, transports: customerPasskey.transports })
     .from(customerPasskey)
     .where(and(eq(customerPasskey.customerId, customerId), eq(customerPasskey.rpId, input.rpId)))
-  const options = await generateRegistrationOptions({
+  const options = await (await webauthn()).generateRegistrationOptions({
     rpName: input.storeName || input.rpId,
     rpID: input.rpId,
     userName: cu.email ?? cu.name ?? 'Customer',
@@ -149,7 +150,7 @@ export async function verifyPasskeyRegistration(
   if (!kept || kept.customerId !== customerId) return { ok: false, reason: 'invalid' }
   let result: Awaited<ReturnType<typeof verifyRegistrationResponse>>
   try {
-    result = await verifyRegistrationResponse({
+    result = await (await webauthn()).verifyRegistrationResponse({
       response: input.response as RegistrationResponseJSON,
       expectedChallenge: kept.challenge,
       expectedOrigin: input.origin,
@@ -186,7 +187,7 @@ export async function passkeyLoginOptions(
   input: PasskeyContext,
   now: Date = new Date(),
 ): Promise<{ options: PublicKeyCredentialRequestOptionsJSON; challenge: string }> {
-  const options = await generateAuthenticationOptions({
+  const options = await (await webauthn()).generateAuthenticationOptions({
     rpID: input.rpId,
     userVerification: 'required',
   })
@@ -228,7 +229,7 @@ export async function verifyPasskeyLogin(
   if (!row || row.anonymisedAt) return { ok: false, reason: 'invalid' }
   let result: Awaited<ReturnType<typeof verifyAuthenticationResponse>>
   try {
-    result = await verifyAuthenticationResponse({
+    result = await (await webauthn()).verifyAuthenticationResponse({
       response,
       expectedChallenge: kept.challenge,
       expectedOrigin: input.origin,

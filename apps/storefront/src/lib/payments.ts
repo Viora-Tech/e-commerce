@@ -6,6 +6,8 @@ import {
   fallbackChain,
   type GatewaySupports,
   gatewayOffersEmi,
+  hiddenGateways,
+  isGatewayHidden,
   isGatewayProvider,
   MANUAL_ROW_IDS,
   type ManualRowId,
@@ -73,6 +75,28 @@ export async function storePaymentProviders(tx: StoreTx, storeId: string) {
 }
 
 /**
+ * Gateway ids checkout hides now: their keys were refused and have not passed a check since
+ * (`payments/gateway-health.ts`; one past its cool-down is checked here first).
+ */
+export async function storeHiddenGateways(
+  tx: StoreTx,
+  storeId: string,
+  providers: PaymentProvider[],
+): Promise<ReadonlySet<string>> {
+  return hiddenGateways(tx, storeId, providers)
+}
+
+/** The provider ids among `providers` that checkout hides now (for the form to drop). */
+export async function storeUnavailableMethods(
+  tx: StoreTx,
+  storeId: string,
+  providers: PaymentProvider[],
+): Promise<string[]> {
+  const hidden = await storeHiddenGateways(tx, storeId, providers)
+  return providers.filter((p) => isGatewayHidden(hidden, p.id)).map((p) => p.id)
+}
+
+/**
  * What the checkout form shows: one option per configured provider, in the
  * order of the merchant's "Shoppers can pay with" row (the `enabled` list is
  * saved in that order), plus its price adjustment. The main gateway's option
@@ -86,9 +110,12 @@ export async function storeCheckoutMethods(
   const settings = await loadSettings(tx, storeId)
   const supports = supportsOf((await registriesForStore(tx, storeId)).payments)
   const manual = settings.providers.manual
+  // A gateway that refused the store's keys stays off checkout until they pass a check again.
+  const hidden = await storeHiddenGateways(tx, storeId, providers)
   // Each gateway carries the methods routed to it (all of them for a single gateway); a
   // gateway that takes none is left out.
   return providers.flatMap((p) => {
+    if (isGatewayHidden(hidden, p.id)) return []
     const methods = isGatewayProvider(p.id)
       ? methodsForGateway(settings, p.id, supports)
       : undefined
@@ -126,9 +153,12 @@ export async function storePaymentFallbacks(
   const settings = await loadSettings(tx, storeId)
   const supports = supportsOf((await registriesForStore(tx, storeId)).payments)
   const offered = methodsForGateway(settings, providerId, supports)
+  const hidden = await storeHiddenGateways(tx, storeId, providers)
   return fallbackChain(settings, providerId, offered, supports).flatMap((step) => {
     const provider = providers.find((p) => p.id === step.gatewayId)
-    return provider ? [{ provider, methods: step.methods }] : []
+    return provider && !isGatewayHidden(hidden, provider.id)
+      ? [{ provider, methods: step.methods }]
+      : []
   })
 }
 
@@ -175,7 +205,7 @@ export async function storePaymentMethodRules(
 }
 
 /** Paid outside a gateway; never the target of "Pay online instead". */
-const OFFLINE_METHODS: ReadonlySet<string> = new Set(['manual', 'cod', 'gift_card'])
+const OFFLINE_METHODS: ReadonlySet<string> = new Set(['manual', 'cod', 'gift_card', 'store_credit'])
 
 /**
  * The gateway a transfer order can pay through instead (issue 1010): the first online option in

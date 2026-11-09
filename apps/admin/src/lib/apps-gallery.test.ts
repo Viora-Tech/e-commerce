@@ -6,6 +6,7 @@ const base: Omit<AppSummary, 'id' | 'name' | 'kind' | 'category' | 'company'> = 
   version: '1.0.0',
   description: null,
   builtIn: false,
+  tested: false,
   billing: { state: 'free' },
   installed: false,
   connected: false,

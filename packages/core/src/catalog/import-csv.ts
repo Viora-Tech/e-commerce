@@ -20,6 +20,8 @@ export type ImportVariant = {
   costPaise: number | null
   taxable: boolean
   trackInventory: boolean
+  /** "Variant Requires Shipping"; undefined when the file leaves it blank or has no column. */
+  requiresShipping?: boolean | undefined
   weightGrams: number | null
   onHand: number
 }
@@ -78,6 +80,7 @@ const KNOWN_COLUMNS = new Set([
   'cost per item',
   'variant barcode',
   'variant taxable',
+  'variant requires shipping',
   'image src',
   'seo title',
   'seo description',
@@ -191,6 +194,9 @@ function readVariant(row: Row, names: string[]): ImportVariant {
     mrpPaise: csvPaise(row.get('variant compare at price')),
     costPaise: csvPaise(row.get('variant cost') || row.get('cost per item')),
     taxable: toBool(row.get('variant taxable'), true),
+    ...(row.get('variant requires shipping').trim()
+      ? { requiresShipping: toBool(row.get('variant requires shipping'), true) }
+      : {}),
     trackInventory: row.get('variant inventory tracker').trim().toLowerCase() !== 'not tracked',
     weightGrams: grams,
     onHand: Math.max(0, toInt(row.get('variant inventory qty')) ?? 0),

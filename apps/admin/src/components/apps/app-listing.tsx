@@ -50,7 +50,18 @@ export default function AppListing({ app }: AppListingProps) {
         summary={`${byline}${category ? ` · ${category}` : ''}`}
         back={{ label: copy.listing.back, href: routes.apps.list() }}
         lead={{ kind: 'logo', node: <AppLogo id={app.id} icon={app.admin.icon} size={72} /> }}
-        badges={<StatusChip className="h-5 text-xs">{copy.version(app.version)}</StatusChip>}
+        badges={
+          <>
+            <StatusChip className="h-5 text-xs">{copy.version(app.version)}</StatusChip>
+            {app.tested ? null : (
+              <span title={copy.untestedHint}>
+                <StatusChip tone="attention" className="h-5 text-xs">
+                  {copy.untested}
+                </StatusChip>
+              </span>
+            )}
+          </>
+        }
         actions={
           <Button nativeButton={false} render={<Link href={routes.apps.install(app.id)} />}>
             <Download aria-hidden="true" />

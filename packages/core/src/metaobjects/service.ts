@@ -641,6 +641,38 @@ export async function getMetafields(tx: StoreTx, ownerType: MetafieldOwnerType, 
 }
 
 /**
+ * `getMetafields` for many owners of one type at once (a product's variants): the definitions
+ * once, and every owner's values in one query, keyed by owner id. An owner with no values gets `{}`.
+ */
+export async function getMetafieldsForOwners(
+  tx: StoreTx,
+  ownerType: MetafieldOwnerType,
+  ownerIds: string[],
+) {
+  const [definitions, rows] = await Promise.all([
+    listMetafieldDefinitions(tx, ownerType),
+    ownerIds.length
+      ? tx
+          .select({
+            ownerId: metafield.ownerId,
+            definitionId: metafield.definitionId,
+            value: metafield.value,
+          })
+          .from(metafield)
+          .where(and(eq(metafield.ownerType, ownerType), inArray(metafield.ownerId, ownerIds)))
+      : Promise.resolve([]),
+  ])
+  const values: Record<string, Record<string, unknown>> = Object.fromEntries(
+    ownerIds.map((id) => [id, {}]),
+  )
+  for (const r of rows) {
+    const forOwner = values[r.ownerId]
+    if (forOwner) forOwner[r.definitionId] = r.value
+  }
+  return { definitions, values }
+}
+
+/**
  * Save values for one owner (product, variant, customer, order, page, blog post, the shop...),
  * keyed by definition id. Empty
  * values delete the row; everything is validated (and references confirmed)

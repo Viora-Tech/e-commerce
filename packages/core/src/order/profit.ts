@@ -179,8 +179,8 @@ export function withProfitCosts(appsRaw: unknown, profit: ProfitCostSettings): A
   return withAppSettings(apps, CORE_KEY, { ...(entry.success ? entry.data : {}), profit })
 }
 
-/** Payment methods that take no fee here: store credit and money paid straight to the merchant. */
-export const FEE_FREE_METHODS = new Set(['gift_card', 'manual'])
+/** Payment methods that take no fee here: gift cards, store credit and money paid straight to the merchant. */
+export const FEE_FREE_METHODS = new Set(['gift_card', 'store_credit', 'manual'])
 
 /** `amount × rate`, half up, plus the fixed part; nothing on nothing. */
 export function feeOn(amountPaise: number, rate: FeeRate): number {

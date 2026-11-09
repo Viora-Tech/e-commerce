@@ -16,7 +16,7 @@ import {
   type ChatwootWidget as ChatwootWidgetConfig,
   chatwootAllowed,
 } from '@commerce/plugin-chatwoot/widget'
-import { type UmamiTracker, umamiAllowed } from '@commerce/plugin-umami/settings'
+import { type UmamiTracker, umamiAllowed } from '@commerce/plugin-umami/tracker'
 import { useEffect, useRef, useState } from 'react'
 import DiscoveryTracker from '@/components/analytics/discovery-tracker'
 import PixelEvents from '@/components/analytics/pixel-events'

@@ -82,20 +82,39 @@ export type PlaceOrderInput = {
   /** Cards the shopper applied (ids from `findRedeemableGiftCard`), spent before the provider is charged. */
   giftCardIds?: readonly string[]
   /**
+   * Spend this customer's store credit on what is left after gift cards. Only for a signed-in
+   * shopper (the storefront passes the session's customer, never one from the form); the order's
+   * customer must be the same one. Left out: no store credit is used.
+   */
+  storeCredit?: { customerId: string } | undefined
+  /**
    * The shipping rate the shopper picked. Re-priced here; a rate that no longer
    * applies throws `ShippingRateUnavailable`. Omitted: the cheapest that applies.
    */
   shippingRateId?: string | null | undefined
   /** Delivery options app: the choice and the quote snapshot's answers (`priceOrderDelivery`). */
   delivery?: OrderDeliveryInput | undefined
+  /**
+   * The shopper pressed "Yes, order again" after being told they placed these items a little
+   * while ago (`DuplicateCheckout` kind `placed`). Never skips the unpaid-duplicate block.
+   */
+  orderAgain?: boolean | undefined
 }
 export type PlaceOrderResult = {
   orderId: string
+  /** The order number; a checkout draft's placeholder (minus its draft number) while unpaid. */
   orderNumber: number
+  /**
+   * Set when the checkout was kept as a draft until paid (0233): the shopper sees #D57, and
+   * the thank-you and pay links use it. Null for a numbered order.
+   */
+  draftNumber: number | null
+  /** The shopper checked out the same items again: their open draft was used, not a new one. */
+  resumedDraft: boolean
   /**
    * The payment attempt recorded with the order. `placeOrder` never calls the
    * gateway: after its transaction commits, start this attempt with
-   * `startPaymentAttempt` (or use `placeOrderAndPay`). Null when gift cards
+   * `startPaymentAttempt` (or use `placeOrderAndPay`). Null when gift cards and store credit
    * paid the whole order.
    */
   attemptId: string | null
@@ -124,6 +143,8 @@ export type Line = {
   hsCode: string | null
   /** Sold as a gift card: no tax, no stock, issued on payment. */
   giftCard: boolean
+  /** The variant's "requires shipping": false takes no shipping charge and never ships. */
+  requiresShipping: boolean
   /** Variant weight; null counts as 0 for weight-based rates. */
   weightGrams: number | null
   /** The variant's weighted average cost now: snapshotted as the line's cost at sale. */
@@ -169,10 +190,40 @@ export type State = {
   /** Part of the total paid from gift cards; the provider is asked for the rest. */
   giftCardPaise: number
   redemptions: GiftCardRedemption[]
+  /** Part of what is due now taken from the customer's store credit (held or captured). */
+  storeCreditPaise: number
   attemptId: string | null
   /** Deposit charged now and balance deferred, from the order's pre-order lines. Both 0 when none. */
   depositPaise: number
   balanceDuePaise: number
   /** COD & RTO app: the order's RTO risk and whether to ask for COD confirmation; null without it. */
   risk: CheckoutRisk | null
+  /** Kept as a draft until paid (`payments/checkout-drafts.ts`); null for an order at once. */
+  draft: DraftPlan | null
+  /**
+   * The cart's own order, written again on the same row: its gateway refused the store's keys
+   * and the shopper picked another way to pay (`order/checkout-reopen.ts`). Null otherwise.
+   */
+  rewrite: RewriteTarget | null
+}
+
+/** An order (or checkout draft) placed again on its own row with another way to pay. */
+export type RewriteTarget = {
+  id: string
+  number: number
+  draftNumber: number | null
+  /** An open checkout draft (#D57) rather than a numbered order. */
+  wasDraft: boolean
+  /** The gateway that refused the keys. */
+  failedProvider: string
+}
+
+/** How an unpaid checkout is saved as a draft. */
+export type DraftPlan = {
+  /** How long the draft holds its items. */
+  holdMinutes: number
+  /** The shopper's open draft with the same items, used again instead of a new one. */
+  reuse: { id: string; draftNumber: number | null } | null
+  /** The draft's number, once `createOrder` saved it. */
+  draftNumber?: number | undefined
 }

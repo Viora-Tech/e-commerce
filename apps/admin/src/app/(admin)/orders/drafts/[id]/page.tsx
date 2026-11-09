@@ -1,6 +1,7 @@
 import { draftLabel, orderRef } from '@commerce/core/draft-number'
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
+import CheckoutDraftView from '@/components/drafts/checkout-draft-view'
 import DraftForm from '@/components/drafts/draft-form'
 import { draftEditorContent, draftsContent } from '@/data/drafts'
 import { appRouter, call, serverContext } from '@/lib/api'
@@ -20,6 +21,8 @@ export default async function Page({ params }: Props) {
   const context = await serverContext()
   const draft = await call(appRouter.orders.getDraft, { id }, { context })
   if (!draft) notFound()
+  // A shopper's unpaid checkout is shown as they checked it out, with its payment tries.
+  if (draft.draftSource === 'checkout') return <CheckoutDraftView draft={draft} />
   // The draft record has no invoice history; the list's row for it does.
   const row = await call(
     appRouter.orders.listDrafts,

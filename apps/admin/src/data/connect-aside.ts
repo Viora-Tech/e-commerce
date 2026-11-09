@@ -138,11 +138,11 @@ export const connectAsideContent = {
       connects: [
         'Export bookings with HS codes, GSTIN, IEC and IOSS',
         'The label on the order, ready to print',
-        'One page to move each parcel’s status along',
+        'Live rates, tracking and cancel from the order',
       ],
-      helpTitle: 'Where is my API login?',
+      helpTitle: 'Where is my API username?',
       helpBody:
-        'In ShipGlobal, open Settings › API for the API login (an email) and password. If there is no API section, ask ShipGlobal support to turn on API access.',
+        'In ShipGlobal, open Settings › API for the API username and password. If there is no API section, ask ShipGlobal support to turn on API access.',
     },
   } as Record<string, { connects: string[]; helpTitle: string; helpBody: string }>,
 } as const

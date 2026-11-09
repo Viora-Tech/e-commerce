@@ -125,6 +125,7 @@ export async function recomputeOrderStatuses(
         quantity: orderLine.quantity,
         fulfilledQuantity: orderLine.fulfilledQuantity,
         giftCard: orderLine.giftCard,
+        requiresShipping: orderLine.requiresShipping,
       })
       .from(orderLine)
       .where(eq(orderLine.orderId, orderId)),
@@ -150,7 +151,8 @@ export async function recomputeOrderStatuses(
     deliveredAt: o.deliveredAt,
     returnedUnits: Number(returned[0]?.units ?? 0),
   })
-  const hasPhysicalLines = lines.some((l) => !l.giftCard)
+  // Packed is done for an order with nothing to ship: gift cards, services, downloads.
+  const hasPhysicalLines = lines.some((l) => !l.giftCard && l.requiresShipping)
   const status = deriveLifecycle({
     current: asLifecycle(o.status),
     payment: paymentStatus,

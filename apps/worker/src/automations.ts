@@ -1,11 +1,11 @@
 import { growthExitCheck, growthSweep, storeAppContext } from '@commerce/core'
 import {
   AUTOMATION_STEP_QUEUE,
-  AUTOMATION_TICK_QUEUE,
   AUTOMATION_TRIGGER_QUEUE,
   type AutomationStepJob,
   type AutomationTriggerJob,
   actionResolver,
+  deliverGatewayAlertRow,
   deliverOwnerAlertRow,
   type EngineDeps,
   evaluateRules,
@@ -75,7 +75,6 @@ export function createAutomationsWorker(connection: IORedis, db: Db, opts: Opts)
 
   const triggerQueue = new Queue<AutomationTriggerJob>(AUTOMATION_TRIGGER_QUEUE, { connection })
   const stepQueue = new Queue<AutomationStepJob>(AUTOMATION_STEP_QUEUE, { connection })
-  const tickQueue = new Queue(AUTOMATION_TICK_QUEUE, { connection })
 
   const trigger = new Worker<AutomationTriggerJob>(
     AUTOMATION_TRIGGER_QUEUE,
@@ -84,8 +83,10 @@ export function createAutomationsWorker(connection: IORedis, db: Db, opts: Opts)
       AUTOMATION_TRIGGER_QUEUE,
       QUEUE_LIMITS.automationsTrigger,
       async (job) =>
-        // An owner alert row (80% / 100% of runs, a workflow switched off) is emailed, not run.
-        (await deliverOwnerAlertRow(db, job.data, opts))
+        // An owner alert row (80% / 100% of runs, a workflow switched off, a payment gateway that
+        // refused the store's keys) is emailed, not run.
+        (await deliverOwnerAlertRow(db, job.data, opts)) ||
+        (await deliverGatewayAlertRow(db, job.data, opts))
           ? { alert: true }
           : runTriggerJob(db, job.data, stepQueue, log),
     ),
@@ -101,10 +102,7 @@ export function createAutomationsWorker(connection: IORedis, db: Db, opts: Opts)
     { connection, concurrency: QUEUE_LIMITS.automationsStep.concurrency, ...KEEP_FINISHED },
   )
 
-  const tick = new Worker(AUTOMATION_TICK_QUEUE, () => runTickJob(db, stepQueue, log, sweeps), {
-    connection,
-    ...KEEP_FINISHED,
-  })
+  const tick = () => runTickJob(db, stepQueue, log, sweeps)
 
-  return { trigger, step, tick, triggerQueue, stepQueue, tickQueue }
+  return { trigger, step, tick, triggerQueue, stepQueue }
 }

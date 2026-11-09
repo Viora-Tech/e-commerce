@@ -24,6 +24,7 @@ import {
   productOption,
   productOptionValue,
   sellableStock,
+  sellableStockForProducts,
   store,
   variant,
   variantOptionValue,
@@ -172,8 +173,19 @@ export async function listProducts(
   const where = listWhere(input, await storeLowStockThreshold(tx))
   const [countRow] = await tx.select({ total: count() }).from(product).where(where)
   const total = countRow?.total ?? 0
+  // Only the columns a row shows: not the description, SEO text and the rest of each product.
   const rows = await tx
-    .select()
+    .select({
+      id: product.id,
+      handle: product.handle,
+      title: product.title,
+      status: product.status,
+      vendor: product.vendor,
+      productType: product.productType,
+      tags: product.tags,
+      preorderEnabled: product.preorderEnabled,
+      launchAt: product.launchAt,
+    })
     .from(product)
     .where(where)
     .orderBy(desc(product.createdAt))
@@ -182,16 +194,18 @@ export async function listProducts(
   if (rows.length === 0) return { items: [], total }
   const ids = rows.map((r) => r.id)
 
+  // Selling stock for this page's variants only, not every stock row in the store.
+  const stock = sellableStockForProducts(ids)
   const variants = await tx
     .select({
       productId: variant.productId,
       pricePaise: variant.pricePaise,
       hiddenOnStore: variant.hiddenOnStore,
-      onHand: sellableStock.onHand,
-      reserved: sellableStock.reserved,
+      onHand: stock.onHand,
+      reserved: stock.reserved,
     })
     .from(variant)
-    .leftJoin(sellableStock, eq(sellableStock.variantId, variant.id))
+    .leftJoin(stock, eq(stock.variantId, variant.id))
     .where(and(inArray(variant.productId, ids), isNull(variant.archivedAt)))
   const images = await tx
     .select({ productId: productMedia.productId, url: media.url })
@@ -240,6 +254,7 @@ export async function getProduct(tx: StoreTx, id: string) {
       trackInventory: variant.trackInventory,
       hiddenOnStore: variant.hiddenOnStore,
       preorderOverride: variant.preorderOverride,
+      requiresShipping: variant.requiresShipping,
       weightGrams: variant.weightGrams,
       weightUnit: variant.weightUnit,
       hsCode: variant.hsCode,
@@ -331,33 +346,38 @@ const OPTION_FACETS_MAX = 50
  * store's GST defaults so the pricing card can show what the customer pays.
  */
 export async function productFacets(tx: StoreTx, storeId: string) {
-  const rows = await tx
-    .select({ vendor: product.vendor, productType: product.productType, tags: product.tags })
-    .from(product)
-    .where(notSystemTest)
-  const optionRows = await tx
-    .select({ name: productOption.name, value: productOptionValue.value })
-    .from(productOptionValue)
-    .innerJoin(productOption, eq(productOption.id, productOptionValue.optionId))
-    .orderBy(asc(productOption.name), asc(productOptionValue.position))
-  const collections = await tx
-    .select({ id: collection.id, title: collection.title })
-    .from(collection)
-    .orderBy(asc(collection.title))
-  const [storeRow] = await tx
-    .select({
-      gstRatePercent: store.gstRatePercent,
-      apps: store.apps,
-      lowStockThreshold: store.lowStockThreshold,
-    })
-    .from(store)
-    .where(eq(store.id, storeId))
+  // Distinct values come back from Postgres, not one row per product (and per tag).
+  const [vendorRows, typeRows, tagRows, optionRows, collections, [storeRow]] = await Promise.all([
+    tx.selectDistinct({ v: product.vendor }).from(product).where(notSystemTest),
+    tx.selectDistinct({ v: product.productType }).from(product).where(notSystemTest),
+    tx
+      .selectDistinct({ v: sql<string | null>`unnest(${product.tags})` })
+      .from(product)
+      .where(notSystemTest),
+    tx
+      .select({ name: productOption.name, value: productOptionValue.value })
+      .from(productOptionValue)
+      .innerJoin(productOption, eq(productOption.id, productOptionValue.optionId))
+      .orderBy(asc(productOption.name), asc(productOptionValue.position)),
+    tx
+      .select({ id: collection.id, title: collection.title })
+      .from(collection)
+      .orderBy(asc(collection.title)),
+    tx
+      .select({
+        gstRatePercent: store.gstRatePercent,
+        apps: store.apps,
+        lowStockThreshold: store.lowStockThreshold,
+      })
+      .from(store)
+      .where(eq(store.id, storeId)),
+  ])
   const uniq = (xs: (string | null)[]) =>
     [...new Set(xs.filter((x): x is string => Boolean(x)))].sort((a, b) => a.localeCompare(b))
   return {
-    vendors: uniq(rows.map((r) => r.vendor)),
-    productTypes: uniq(rows.map((r) => r.productType)),
-    tags: uniq(rows.flatMap((r) => r.tags)),
+    vendors: uniq(vendorRows.map((r) => r.v)),
+    productTypes: uniq(typeRows.map((r) => r.v)),
+    tags: uniq(tagRows.map((r) => r.v)),
     options: optionFacets(optionRows),
     /** For the list's Collection filter. */
     collections,
@@ -417,6 +437,7 @@ export type VariantPatch = {
   sku?: string | null | undefined
   onHand?: number | undefined
   hiddenOnStore?: boolean | undefined
+  requiresShipping?: boolean | undefined
 }
 
 export async function updateVariant(tx: StoreTx, id: string, patch: VariantPatch) {

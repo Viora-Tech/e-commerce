@@ -1,4 +1,4 @@
-/** SOURCE OF TRUTH: canTakeOver, canStaffCancel, canEditOrder, editsAfterShipping, canHoldFulfillment — WHAT: which orders staff may take over, cancel, edit and hold / WHY: the admin hides the actions and the server refuses them by the same rules; pure, so the browser can import it (`@commerce/core/order-edit-rules`) */
+/** SOURCE OF TRUTH: canTakeOver, canStaffCancel, cancelsWithoutRefund, canEditOrder, editsAfterShipping, canHoldFulfillment — WHAT: which orders staff may take over, cancel, edit and hold / WHY: the admin hides the actions and the server refuses them by the same rules; pure, so the browser can import it (`@commerce/core/order-edit-rules`) */
 import { UNFULFILLED_STATUSES } from './aggregate-status'
 
 type OrderFacts = { importedFrom: string | null; status: string; fulfillmentStatus: string }
@@ -18,6 +18,25 @@ export function canTakeOver(o: OrderFacts): boolean {
  */
 export function canStaffCancel(o: OrderFacts): boolean {
   return notShipped(o)
+}
+
+/**
+ * Payment statuses where the store holds none of the shopper's money: never paid (cash on
+ * delivery not yet collected, a UPI or card checkout that never completed), or already refunded
+ * in full. `authorized` is left out on purpose: a held card payment has to be released, which is
+ * the order page's decision.
+ */
+const NOTHING_TO_REFUND: readonly string[] = ['unpaid', 'refunded']
+
+/**
+ * "Cancel orders" on the Orders list's selection (#1408): only orders a cancel can close
+ * with no refund decision. Worked here (not an import, which is taken over on its page first),
+ * cancellable, and holding no money. Paid orders are skipped: their page asks how the money goes
+ * back. The server checks the refundable amount as well (`cancelOrderByStaff` with
+ * `onlyWithoutRefund`).
+ */
+export function cancelsWithoutRefund(o: OrderFacts & { paymentStatus: string }): boolean {
+  return o.importedFrom === null && canStaffCancel(o) && NOTHING_TO_REFUND.includes(o.paymentStatus)
 }
 
 /**

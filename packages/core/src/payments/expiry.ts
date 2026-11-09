@@ -1,6 +1,6 @@
 import { type Db, order, orderNote, payment, store, withStore } from '@commerce/db'
 import type { PaymentProvider } from '@commerce/payments'
-import { and, asc, eq, inArray, isNotNull, isNull, lt, ne, notInArray } from 'drizzle-orm'
+import { and, asc, eq, inArray, isNotNull, isNull, lt, notInArray } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 import { GIFT_CARD_PROVIDER } from '../gift-cards/service'
 import { recomputeOrderStatuses } from '../order/recompute'
@@ -8,6 +8,7 @@ import { cancelOrder } from '../order/status'
 import { paymentAttempts } from './attempts'
 import { applyPaymentStatus } from './confirm'
 import { parsePaymentSettings } from './settings'
+import { SPLIT_TENDER_PROVIDERS, STORE_CREDIT_PROVIDER } from './split-tender'
 import { OPEN_ATTEMPT_STATUSES } from './transitions'
 
 /*
@@ -20,8 +21,13 @@ import { OPEN_ATTEMPT_STATUSES } from './transitions'
  * `release_funds_for_expired_checkouts` (BSD-3), model only.
  */
 
-/** Paid outside a gateway: COD at the door, transfers matched by hand, gift cards up front. */
-export const EXPIRY_EXEMPT_METHODS = ['cod', 'manual', GIFT_CARD_PROVIDER] as const
+/** Paid outside a gateway: COD at the door, transfers matched by hand, gift cards and store credit up front. */
+export const EXPIRY_EXEMPT_METHODS = [
+  'cod',
+  'manual',
+  GIFT_CARD_PROVIDER,
+  STORE_CREDIT_PROVIDER,
+] as const
 
 /** Orders looked at per store per run; the next run picks up the rest. */
 const BATCH = 50
@@ -147,7 +153,7 @@ export async function expireUnpaidOrder(
         and(
           eq(payment.orderId, orderId),
           inArray(payment.status, [...OPEN_ATTEMPT_STATUSES]),
-          ne(payment.provider, GIFT_CARD_PROVIDER),
+          notInArray(payment.provider, [...SPLIT_TENDER_PROVIDERS]),
         ),
       )
     // An authorised hold just ended: the payment status follows.

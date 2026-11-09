@@ -51,6 +51,7 @@ const cart: CartView = {
       available: 10,
       imageUrl: null,
       giftCard: false,
+      requiresShipping: true,
       preorder: false,
     },
   ],

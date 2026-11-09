@@ -7,7 +7,7 @@ import { eq } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 import { CommerceError } from '../errors'
 import { insertOutboxEvent } from '../outbox/write'
-import { canStaffCancel } from './edit-rules'
+import { cancelsWithoutRefund, canStaffCancel } from './edit-rules'
 import { RefundNotAllowed } from './refund'
 import { type RefundRoute, refundOptions, refundOrderAmount } from './refund-routes'
 import { cancelOrder } from './status'
@@ -18,6 +18,17 @@ class OrderNotCancellable extends CommerceError {
     super(
       'ORDER_NOT_CANCELLABLE',
       `Order ${orderId} is ${status}: only an order that has not been shipped can be cancelled`,
+      { storeId },
+    )
+  }
+}
+
+/** "Cancel orders" on the list's selection reached an order whose money needs a refund decision. */
+class OrderNeedsRefundDecision extends CommerceError {
+  constructor(orderId: string, storeId?: string) {
+    super(
+      'ORDER_NEEDS_REFUND_DECISION',
+      `Order ${orderId} has money to refund: cancel it from its page to choose how it goes back`,
       { storeId },
     )
   }
@@ -49,10 +60,16 @@ export type StaffCancelInput = {
   /** How the money taken goes back (`refund-routes.ts`). */
   refund: RefundRoute
   author: string
-  /** For `store_credit`: the settings secret the gift card code is encrypted with. */
+  /** For `store_credit`: the settings secret (a customer made from a guest order's phone stores it encrypted). */
   settingsSecret?: string | undefined
   /** For `store_credit`: the card's last day (YYYY-MM-DD); none, it never expires. */
   storeCreditExpiresOn?: string | null | undefined
+  /**
+   * The Orders list's bulk "Cancel orders" (#1408): refuse (`OrderNeedsRefundDecision`), changing
+   * nothing, unless the order is worked here and has no money to give back. Checked inside the
+   * same locked transaction, so a payment that lands after the list loaded is never lost.
+   */
+  onlyWithoutRefund?: boolean | undefined
 }
 
 const ROUTE_WORDS: Record<RefundRoute, string> = {
@@ -110,8 +127,14 @@ export async function cancelOrderByStaff(
       ctx.storeId,
     )
   }
+  if (input.onlyWithoutRefund && !cancelsWithoutRefund(o)) {
+    throw new OrderNeedsRefundDecision(input.orderId, ctx.storeId)
+  }
   if (o.importedFrom) await takeOverImportedOrder(ctx, input.orderId, input.author)
   const before = await refundOptions(ctx, input.orderId, providers)
+  if (input.onlyWithoutRefund && before.refundablePaise > 0) {
+    throw new OrderNeedsRefundDecision(input.orderId, ctx.storeId)
+  }
   if (input.refund === 'original' && before.refundablePaise > 0 && !before.original) {
     throw new RefundNotAllowed(
       'This payment cannot be refunded from here; mark it as refunded by hand instead',

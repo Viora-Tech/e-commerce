@@ -1,6 +1,6 @@
 'use client'
 
-import { Truck } from '@commerce/ui/icons'
+import { RefreshCw, TriangleAlert, Truck } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { DialogFooter, DialogHeader, DialogTitle } from '@commerce/ui/shadcn/dialog'
 import { Spinner } from '@commerce/ui/shadcn/spinner'
@@ -16,6 +16,7 @@ import {
   type BulkMode,
   bulkOrders,
   bulkPicks,
+  bulkQuoteRequests,
   bulkSplit,
   courierTotals,
   OWN_WEIGHT,
@@ -51,6 +52,8 @@ export default function BulkShipmentFlow({
   const [step, setStep] = useState<FlowStep>('package')
   const [boxId, setBoxId] = useState(OWN_WEIGHT)
   const [quotes, setQuotes] = useState<ParcelQuote[] | null>(null)
+  /* The last ask failed: step 2 says so with a retry, never an empty table. */
+  const [quoteError, setQuoteError] = useState<string | null>(null)
   const [mode, setMode] = useState<BulkMode>('cheapest')
   const [providerId, setProviderId] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
@@ -60,29 +63,21 @@ export default function BulkShipmentFlow({
   // Helpers
   const askCouriers = async () => {
     setQuotes(null)
+    setQuoteError(null)
     if (draft.couriers.length === 0) {
       setQuotes([])
       return
     }
     try {
       const answer = await api.shipments.quote({
-        parcels: ready.map(({ order, parcel }) => ({
-          orderId: order.orderId,
-          fulfillmentOrderId: parcel.id,
-          pickupLocationId: parcel.pickupLocationId,
-          weightGrams: parcel.weightGrams,
-          dimensionsCm: dims ?? parcel.dimensionsCm ?? undefined,
-          paymentMode: order.paymentMode,
-          declaredValuePaise: parcel.valuePaise,
-        })),
+        parcels: bulkQuoteRequests(ready, dims),
       })
       setQuotes(answer)
       const start = startingBulkPick(courierTotals(answer, draft.couriers), courier)
       if (start.mode) setMode(start.mode)
       setProviderId(start.providerId)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err))
-      setQuotes([])
+      setQuoteError(err instanceof Error && err.message ? err.message : copy.courier.quoteFailed)
     }
   }
 
@@ -179,15 +174,39 @@ export default function BulkShipmentFlow({
             {draft.couriers.length === 0 ? (
               <p className="text-body text-muted-foreground">{copy.courier.noCourier}</p>
             ) : null}
-            <BulkCourierStep
-              totals={quotes ? courierTotals(quotes, draft.couriers) : null}
-              orderCount={ready.length}
-              mode={mode}
-              onModeChange={setMode}
-              providerId={providerId}
-              onProviderChange={setProviderId}
-              picks={rows}
-            />
+            {quoteError ? (
+              <div
+                role="alert"
+                className="flex flex-col gap-3 rounded-lg border border-danger-border bg-danger-soft p-4"
+              >
+                <p className="flex items-start gap-2 text-body">
+                  <TriangleAlert aria-hidden="true" className="mt-0.5 shrink-0" />
+                  <span>
+                    {copy.courier.quoteFailed}{' '}
+                    <span className="text-muted-foreground">{quoteError}</span>
+                  </span>
+                </p>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="self-start"
+                  onClick={() => void askCouriers()}
+                >
+                  <RefreshCw aria-hidden="true" />
+                  {copy.courier.retry}
+                </Button>
+              </div>
+            ) : (
+              <BulkCourierStep
+                totals={quotes ? courierTotals(quotes, draft.couriers) : null}
+                orderCount={ready.length}
+                mode={mode}
+                onModeChange={setMode}
+                providerId={providerId}
+                onProviderChange={setProviderId}
+                picks={rows}
+              />
+            )}
           </div>
         ) : null}
         {step === 'done' && results ? (

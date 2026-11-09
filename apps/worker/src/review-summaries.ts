@@ -19,7 +19,6 @@ import {
   storeNameOf,
   summarySource,
 } from '@commerce/plugin-reviews/server'
-import { type IORedis, KEEP_FINISHED, Queue, REVIEW_SUMMARIES_QUEUE, Worker } from '@commerce/queue'
 
 /** New reviews show in the summary within about this long. */
 export const REVIEW_SUMMARIES_EVERY_MS = 15 * 60_000
@@ -100,25 +99,20 @@ async function refreshStore(db: Db, storeId: string): Promise<number> {
  * the Reviews app installed with summaries on, writes them again. One store failing is logged
  * and skipped.
  */
-export function createReviewSummarySweep(connection: IORedis, db: Db) {
-  const queue = new Queue(REVIEW_SUMMARIES_QUEUE, { connection })
-  const worker = new Worker(
-    REVIEW_SUMMARIES_QUEUE,
-    async () => {
-      const storeIds = await storesWithStaleReviewSummaries(db)
-      let written = 0
-      for (const storeId of storeIds) {
-        try {
-          if (!(await installedApps(db, storeId)).includes(REVIEWS_ID)) continue
-          written += await refreshStore(db, storeId)
-        } catch (err) {
-          logger.warn('review summary sweep failed', { storeId, error: err })
-        }
+export function createReviewSummarySweep(db: Db) {
+  const run = async () => {
+    const storeIds = await storesWithStaleReviewSummaries(db)
+    let written = 0
+    for (const storeId of storeIds) {
+      try {
+        if (!(await installedApps(db, storeId)).includes(REVIEWS_ID)) continue
+        written += await refreshStore(db, storeId)
+      } catch (err) {
+        logger.warn('review summary sweep failed', { storeId, error: err })
       }
-      if (written) logger.info('review summaries written', { written })
-      return { stores: storeIds.length, written }
-    },
-    { connection, ...KEEP_FINISHED },
-  )
-  return { queue, worker }
+    }
+    if (written) logger.info('review summaries written', { written })
+    return { stores: storeIds.length, written }
+  }
+  return { run }
 }

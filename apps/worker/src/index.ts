@@ -2,14 +2,47 @@ import { resolve } from 'node:path'
 import { loadEnv } from '@commerce/config'
 import {
   cloudflareConfigFrom,
+  cloudflarePurgeConfigFrom,
   createRedisRateLimitStore,
   dokployConfigFrom,
+  FX_RATES_QUEUE,
   platformRoots,
+  RETENTION_QUEUE,
+  ROLLOUTS_EVERY_MS,
+  ROLLOUTS_QUEUE,
 } from '@commerce/core'
+import { AUTOMATION_PRUNE_QUEUE, AUTOMATION_TICK_QUEUE } from '@commerce/core/automations/server'
+import { PIXELS_PRUNE_QUEUE } from '@commerce/core/pixels/server'
 import { createDb } from '@commerce/db'
 import { reportWorkerFailures } from '@commerce/observability'
 import { flushLogs, initLogging, logger, logWorkerJobs } from '@commerce/observability/logging'
-import { createAppEventQueue, createNotificationQueue, trimFinishedJobs } from '@commerce/queue'
+import {
+  AFFILIATE_COMMISSIONS_QUEUE,
+  API_ACTIVITY_PRUNE_QUEUE,
+  BILLING_SWEEP_QUEUE,
+  BUG_REPORT_SYNC_QUEUE,
+  createAppEventQueue,
+  createNotificationQueue,
+  DOMAIN_CERTIFICATE_QUEUE,
+  DOMAIN_VERIFY_QUEUE,
+  HOME_CARDS_QUEUE,
+  IMPORT_SNAPSHOT_CLEANUP_QUEUE,
+  MARKETING_TICK_QUEUE,
+  MEMBER_DAILY_SUMMARY_QUEUE,
+  ORDER_PUSH_QUEUE,
+  PAYMENT_FEES_QUEUE,
+  PREORDER_BALANCE_QUEUE,
+  Queue,
+  REVIEW_REQUESTS_QUEUE,
+  REVIEW_SUMMARIES_QUEUE,
+  SEARCH_CONSOLE_SWEEP_QUEUE,
+  SENDER_EMAIL_VERIFY_QUEUE,
+  SHIPPING_TRACK_QUEUE,
+  SHOPIFY_TOKEN_SWEEP_QUEUE,
+  STORE_ACTIVITY_PRUNE_QUEUE,
+  trimFinishedJobs,
+  UNPAID_EXPIRY_QUEUE,
+} from '@commerce/queue'
 import { sql } from 'drizzle-orm'
 import { evlog } from 'evlog/hono'
 import { Hono } from 'hono'
@@ -21,7 +54,7 @@ import { AUTOMATIONS_TICK_MS, createAutomationsWorker } from './automations'
 import { AUTOMATION_PRUNE_EVERY_MS, createAutomationsPrune } from './automations-prune'
 import { createBackInStockWorker } from './back-in-stock'
 import { BILLING_EVERY_MS, createBillingSweep } from './billing'
-import { createBugReportSync } from './bug-report-sync'
+import { BUG_REPORT_SYNC_EVERY_MS, createBugReportSync } from './bug-report-sync'
 import { CHANNEL_SYNC_EVERY_MS, createChannelSync } from './channel-sync'
 import {
   CERTIFICATE_EVERY_MS,
@@ -30,6 +63,7 @@ import {
   createDomainRouteWorker,
   VERIFY_EVERY_MS,
 } from './domains'
+import { startEdgePurge } from './edge-purge'
 import { createFxRates, FX_RATES_SCHEDULE } from './fx-rates'
 import { createHomeCardsRefresh, HOME_CARDS_EVERY_MS } from './home-cards'
 import { createImportSnapshotCleanup, SNAPSHOT_CLEANUP_EVERY_MS } from './import-snapshots'
@@ -38,6 +72,7 @@ import { createMarketingWorker, MARKETING_TICK_MS, retireAbandonedSweep } from '
 import { mediaProcessLimits } from './media-limits'
 import { createMediaProcessWorker } from './media-process'
 import { createMemberDailySummary, DAILY_SUMMARY_EVERY_MS } from './member-daily-summary'
+import { createMemoryGuard, type MemoryLevel, readMemoryLimit, sweepRuns } from './memory-guard'
 import { createNotificationWorker } from './notifications'
 import { initSentry, reportError } from './observability'
 import { createOrderPusher, PUSH_EVERY_MS } from './order-push'
@@ -53,7 +88,7 @@ import { createConnection, createHeartbeat } from './queues'
 import { createRetentionPrune, RETENTION_SCHEDULE } from './retention'
 import { createReviewSummarySweep, REVIEW_SUMMARIES_EVERY_MS } from './review-summaries'
 import { createReviewRequestSweep, REVIEW_REQUESTS_EVERY_MS } from './reviews'
-import { createRolloutsTick, scheduleRolloutsTick } from './rollouts'
+import { createRolloutsTick } from './rollouts'
 import { createSearchConsoleSweep, SEARCH_CONSOLE_EVERY_MS } from './search-console'
 import { createSenderEmailPoller, SENDER_CHECK_EVERY_MS } from './sender-email'
 import { shipmentWebhooks } from './shipments-webhook'
@@ -61,6 +96,7 @@ import { createShippingTracker, TRACK_EVERY_MS } from './shipping'
 import { createShopifyTokenSweep, SHOPIFY_TOKEN_SWEEP_EVERY_MS } from './shopify-token-sweep'
 import { createStoreActivityPrune, STORE_ACTIVITY_PRUNE_EVERY_MS } from './store-activity'
 import { createStoreExportWorker } from './store-export'
+import { createSweepWorker, type Sweep, scheduleSweeps } from './sweeps'
 import { createThemeScreenshotWorker } from './theme-screenshot'
 
 /* The local storage provider writes relative to the admin app, which serves
@@ -97,21 +133,26 @@ const appJobWorker = createAppJobWorker(redis, db, {
   mediaProcess: mediaProcess.queue,
 })
 
-const unpaidExpiry = createUnpaidOrderExpiry(redis, db, { settingsSecret: env.SETTINGS_SECRET })
-const preorderBalance = createPreorderBalanceJob(redis, db, { settingsSecret: env.SETTINGS_SECRET })
-const paymentFees = createPaymentFeeSync(redis, db, { settingsSecret: env.SETTINGS_SECRET })
-const tracker = createShippingTracker(redis, db, { settingsSecret: env.SETTINGS_SECRET })
-const orderPusher = createOrderPusher(redis, db, { settingsSecret: env.SETTINGS_SECRET })
+const unpaidExpiry = createUnpaidOrderExpiry(db, { settingsSecret: env.SETTINGS_SECRET })
+const preorderBalance = createPreorderBalanceJob(db, { settingsSecret: env.SETTINGS_SECRET })
+const paymentFees = createPaymentFeeSync(db, { settingsSecret: env.SETTINGS_SECRET })
+const tracker = createShippingTracker(db, { settingsSecret: env.SETTINGS_SECRET })
+const orderPusher = createOrderPusher(db, { settingsSecret: env.SETTINGS_SECRET })
 // Unset Dokploy keys: no routes are asked for and every route job is a no-op (added by hand).
 const dokploy = dokployConfigFrom(env)
 const cloudflare = env.DOMAIN_PROVIDER === 'cloudflare' ? cloudflareConfigFrom(env) : null
+// Cloudflare cache purge after a store's pages change: off without CLOUDFLARE_CACHE_PURGE_TOKEN.
+const purgeConfig = cloudflarePurgeConfigFrom(env)
+const edgePurge = purgeConfig
+  ? startEdgePurge(db, env.DATABASE_URL_DIRECT ?? env.DATABASE_URL, purgeConfig)
+  : null
 const domainTargets = { aRecord: env.STOREFRONT_A_RECORD, cnameTarget: env.STOREFRONT_CNAME_TARGET }
 const domainGuard = {
   platformRoots: platformRoots(env),
   cnameTarget: env.STOREFRONT_CNAME_TARGET,
   storeDomain: env.PLATFORM_STORE_DOMAIN,
 }
-const domains = createDomainPoller(redis, db, {
+const domains = createDomainPoller(db, {
   provider: env.DOMAIN_PROVIDER,
   cloudflare,
   targets: domainTargets,
@@ -123,12 +164,12 @@ const domainRoutes = createDomainRouteWorker(redis, db, {
   guard: domainGuard,
   targets: domainTargets,
 })
-const certificates = createCertificateSweep(redis, db, {
+const certificates = createCertificateSweep(db, {
   dokploy,
   guard: domainGuard,
   targets: domainTargets,
 })
-const senderEmails = createSenderEmailPoller(redis, db)
+const senderEmails = createSenderEmailPoller(db)
 const marketing = createMarketingWorker(redis, db, {
   settingsSecret: env.SETTINGS_SECRET,
   storefrontUrl: env.STOREFRONT_URL,
@@ -148,33 +189,33 @@ const themeScreenshots = createThemeScreenshotWorker(redis, db, {
 const aiBulkWrite = createAiBulkWriteWorker(redis, db, { settingsSecret: env.SETTINGS_SECRET })
 const inboxAi = createInboxAiReplyWorker(redis, db)
 const purchaseDocuments = createPurchaseDocumentWorker(redis, db)
-const importSnapshots = createImportSnapshotCleanup(redis, db, {
+const importSnapshots = createImportSnapshotCleanup(db, {
   settingsSecret: env.SETTINGS_SECRET,
 })
-const reviewRequests = createReviewRequestSweep(redis, db)
-const reviewSummaries = createReviewSummarySweep(redis, db)
-const affiliateCommissions = createAffiliateCommissionSweep(redis, db)
-const memberDailySummary = createMemberDailySummary(redis, db, {
+const reviewRequests = createReviewRequestSweep(db)
+const reviewSummaries = createReviewSummarySweep(db)
+const affiliateCommissions = createAffiliateCommissionSweep(db)
+const memberDailySummary = createMemberDailySummary(db, {
   settingsSecret: env.SETTINGS_SECRET,
   adminUrl: env.ADMIN_URL,
 })
-const homeCards = createHomeCardsRefresh(redis, db)
+const homeCards = createHomeCardsRefresh(db)
 const searchConsole = createSearchConsoleSweep(redis, db)
-const billing = createBillingSweep(redis, db, {
+const billing = createBillingSweep(db, {
   salesStoreId: env.PLATFORM_SALES_STORE_ID,
   settingsSecret: env.SETTINGS_SECRET,
   storefrontUrl: env.STOREFRONT_URL,
 })
-const apiActivityPrune = createApiActivityPrune(redis, db)
-const storeActivityPrune = createStoreActivityPrune(redis, db)
-const shopifyTokenSweep = createShopifyTokenSweep(redis, db, {
+const apiActivityPrune = createApiActivityPrune(db)
+const storeActivityPrune = createStoreActivityPrune(db)
+const shopifyTokenSweep = createShopifyTokenSweep(db, {
   settingsSecret: env.SETTINGS_SECRET,
 })
-const bugReportSync = await createBugReportSync(redis, db, env)
-const automationsPrune = createAutomationsPrune(redis, db)
-const retentionPrune = createRetentionPrune(redis, db)
-const rolloutsTick = createRolloutsTick(redis, db)
-const fxRates = createFxRates(redis, db)
+const bugReportSync = createBugReportSync(db, env)
+const automationsPrune = createAutomationsPrune(db)
+const retentionPrune = createRetentionPrune(db)
+const rolloutsTick = createRolloutsTick(db)
+const fxRates = createFxRates(db)
 const channelSync = createChannelSync(redis, db, {
   settingsSecret: env.SETTINGS_SECRET,
   adminUrl: env.ADMIN_URL,
@@ -199,30 +240,203 @@ const outboxRelay = createOutboxRelay(redis, db, {
   domainRoutes: domainRoutes.queue,
 })
 
+/*
+ * Every scheduled sweep, on one shared queue and one worker (`./sweeps.ts`). `name` is the label
+ * its jobs log under (the queue label each had before); `legacy` is the queue and scheduler it
+ * had then, retired on boot. Outbox relay, channel sync and the heartbeat keep their own queues:
+ * other apps add jobs to the first two, and the heartbeat is the liveness signal.
+ */
+const every = (ms: number) => ({ every: ms })
+const noop = async () => ({ skipped: 1 })
+const sweepList: Sweep[] = [
+  {
+    name: 'shipping-tracker',
+    schedule: every(TRACK_EVERY_MS),
+    run: tracker.run,
+    legacy: { queue: SHIPPING_TRACK_QUEUE, scheduler: 'track-open-shipments' },
+  },
+  {
+    name: 'order-push',
+    schedule: every(PUSH_EVERY_MS),
+    run: orderPusher.run,
+    legacy: { queue: ORDER_PUSH_QUEUE, scheduler: 'push-new-orders' },
+  },
+  {
+    name: 'unpaid-order-expiry',
+    schedule: every(EXPIRY_EVERY_MS),
+    run: unpaidExpiry.run,
+    legacy: { queue: UNPAID_EXPIRY_QUEUE, scheduler: 'expire-unpaid-orders' },
+  },
+  {
+    name: 'preorder-balance',
+    schedule: every(BALANCE_EVERY_MS),
+    run: preorderBalance.run,
+    legacy: { queue: PREORDER_BALANCE_QUEUE, scheduler: 'preorder-balance' },
+  },
+  {
+    name: 'payment-fees',
+    schedule: every(PAYMENT_FEES_EVERY_MS),
+    run: paymentFees.run,
+    legacy: { queue: PAYMENT_FEES_QUEUE, scheduler: 'sync-payment-fees' },
+  },
+  {
+    name: 'domain-verify',
+    schedule: every(VERIFY_EVERY_MS),
+    run: domains.run,
+    legacy: { queue: DOMAIN_VERIFY_QUEUE, scheduler: 'verify-pending-domains' },
+  },
+  // Real network checks only: with the dev provider there is nothing to ask.
+  {
+    name: 'domain-certificate',
+    schedule: every(CERTIFICATE_EVERY_MS),
+    run: certificates.run,
+    legacy: { queue: DOMAIN_CERTIFICATE_QUEUE, scheduler: 'check-domain-certificates' },
+    enabled: env.DOMAIN_PROVIDER !== 'dev',
+  },
+  {
+    name: 'sender-email-verify',
+    schedule: every(SENDER_CHECK_EVERY_MS),
+    run: senderEmails.run,
+    legacy: { queue: SENDER_EMAIL_VERIFY_QUEUE, scheduler: 'verify-sender-emails' },
+  },
+  {
+    name: 'marketing-tick',
+    schedule: every(MARKETING_TICK_MS),
+    run: marketing.tick,
+    legacy: { queue: MARKETING_TICK_QUEUE, scheduler: 'marketing-tick' },
+  },
+  {
+    name: 'automations-tick',
+    schedule: every(AUTOMATIONS_TICK_MS),
+    run: automations.tick,
+    legacy: { queue: AUTOMATION_TICK_QUEUE, scheduler: 'automations-tick' },
+  },
+  {
+    name: 'import-snapshot-cleanup',
+    schedule: every(SNAPSHOT_CLEANUP_EVERY_MS),
+    run: importSnapshots.run,
+    legacy: { queue: IMPORT_SNAPSHOT_CLEANUP_QUEUE, scheduler: 'clean-import-snapshots' },
+  },
+  {
+    name: 'review-requests',
+    schedule: every(REVIEW_REQUESTS_EVERY_MS),
+    run: reviewRequests.run,
+    legacy: { queue: REVIEW_REQUESTS_QUEUE, scheduler: 'queue-review-requests' },
+  },
+  {
+    name: 'review-summaries',
+    schedule: every(REVIEW_SUMMARIES_EVERY_MS),
+    run: reviewSummaries.run,
+    legacy: { queue: REVIEW_SUMMARIES_QUEUE, scheduler: 'refresh-review-summaries' },
+  },
+  {
+    name: 'affiliate-commissions',
+    schedule: every(AFFILIATE_COMMISSIONS_EVERY_MS),
+    run: affiliateCommissions.run,
+    legacy: { queue: AFFILIATE_COMMISSIONS_QUEUE, scheduler: 'approve-affiliate-commissions' },
+  },
+  {
+    name: 'member-daily-summary',
+    schedule: every(DAILY_SUMMARY_EVERY_MS),
+    run: memberDailySummary.run,
+    legacy: { queue: MEMBER_DAILY_SUMMARY_QUEUE, scheduler: 'member-daily-summary' },
+  },
+  {
+    name: 'home-cards',
+    schedule: every(HOME_CARDS_EVERY_MS),
+    run: homeCards.run,
+    legacy: { queue: HOME_CARDS_QUEUE, scheduler: 'home-cards' },
+  },
+  {
+    name: 'search-console-sweep',
+    schedule: every(SEARCH_CONSOLE_EVERY_MS),
+    run: searchConsole.run,
+    legacy: { queue: SEARCH_CONSOLE_SWEEP_QUEUE, scheduler: 'search-console-sweep' },
+  },
+  {
+    name: 'billing-sweep',
+    schedule: every(BILLING_EVERY_MS),
+    run: billing.run,
+    legacy: { queue: BILLING_SWEEP_QUEUE, scheduler: 'billing-sweep' },
+  },
+  {
+    name: 'automations-prune',
+    schedule: every(AUTOMATION_PRUNE_EVERY_MS),
+    run: automationsPrune.run,
+    legacy: { queue: AUTOMATION_PRUNE_QUEUE, scheduler: 'automations-prune' },
+  },
+  {
+    name: 'pixels-prune',
+    schedule: every(PIXELS_PRUNE_EVERY_MS),
+    run: pixels.prune,
+    legacy: { queue: PIXELS_PRUNE_QUEUE, scheduler: 'pixels-prune' },
+  },
+  {
+    name: 'api-activity-prune',
+    schedule: every(API_ACTIVITY_PRUNE_EVERY_MS),
+    run: apiActivityPrune.run,
+    legacy: { queue: API_ACTIVITY_PRUNE_QUEUE, scheduler: 'api-activity-prune' },
+  },
+  {
+    name: 'store-activity-prune',
+    schedule: every(STORE_ACTIVITY_PRUNE_EVERY_MS),
+    run: storeActivityPrune.run,
+    legacy: { queue: STORE_ACTIVITY_PRUNE_QUEUE, scheduler: 'store-activity-prune' },
+  },
+  {
+    name: 'shopify-token-sweep',
+    schedule: every(SHOPIFY_TOKEN_SWEEP_EVERY_MS),
+    run: shopifyTokenSweep.run,
+    legacy: { queue: SHOPIFY_TOKEN_SWEEP_QUEUE, scheduler: 'shopify-token-sweep' },
+  },
+  // Carts, outbox rows and webhook payloads past retention: 03:30 India time, when stores are quiet.
+  {
+    name: 'retention-prune',
+    schedule: RETENTION_SCHEDULE,
+    run: retentionPrune.run,
+    legacy: { queue: RETENTION_QUEUE, scheduler: 'retention-prune' },
+  },
+  // Rollouts due to start or end (Markets → Rollouts): checked every minute.
+  {
+    name: 'rollouts-tick',
+    schedule: every(ROLLOUTS_EVERY_MS),
+    run: rolloutsTick.run,
+    legacy: { queue: ROLLOUTS_QUEUE, scheduler: 'rollouts-tick' },
+  },
+  // Markets' reference exchange rates: 21:30 India time, after the ECB publishes; once at boot too.
+  {
+    name: 'fx-rates',
+    schedule: FX_RATES_SCHEDULE,
+    run: fxRates.run,
+    legacy: { queue: FX_RATES_QUEUE, scheduler: 'fx-rates' },
+  },
+  // Open bug reports re-read from GitHub; off without GITHUB_ISSUES_TOKEN.
+  {
+    name: 'bug-report-sync',
+    schedule: every(BUG_REPORT_SYNC_EVERY_MS),
+    run: bugReportSync?.run ?? noop,
+    legacy: { queue: BUG_REPORT_SYNC_QUEUE, scheduler: 'bug-report-sync' },
+    enabled: bugReportSync !== null,
+  },
+]
+// The memory guard holds back sweeps one job at a time (it never pauses this mixed worker):
+// payment sweeps run at every level. It starts below, so this reads `normal` until then.
+let memoryLevel = (): MemoryLevel => 'normal'
+const sweeps = createSweepWorker(redis, sweepList, (name) => sweepRuns(memoryLevel(), name))
+
 // Each worker reports its failures to Sentry and logs one wide event per job (docs/ops/logging.md).
 const watched = [
   [worker, 'heartbeat'],
   [notificationWorker, 'notifications'],
   [appEventWorker, 'app-events'],
   [appJobWorker, 'app-jobs'],
-  [tracker.worker, 'shipping-tracker'],
-  [orderPusher.worker, 'order-push'],
-  [unpaidExpiry.worker, 'unpaid-order-expiry'],
-  [preorderBalance.worker, 'preorder-balance'],
-  [paymentFees.worker, 'payment-fees'],
-  [domains.worker, 'domain-verify'],
   [domainRoutes.worker, 'domain-route'],
-  [certificates.worker, 'domain-certificate'],
-  [senderEmails.worker, 'sender-email-verify'],
-  [marketing.tick, 'marketing-tick'],
   [marketing.send, 'marketing-send'],
   [outboxRelay.worker, 'outbox-relay'],
   [automations.trigger, 'automations-trigger'],
   [automations.step, 'automations-step'],
-  [automations.tick, 'automations-tick'],
   [pixels.order, 'pixels-order'],
   [pixels.send, 'pixels-send'],
-  [pixels.prune, 'pixels-prune'],
   [backInStock.worker, 'back-in-stock'],
   [mediaProcess.worker, 'media-process'],
   [storeExport.worker, 'store-export'],
@@ -230,27 +444,41 @@ const watched = [
   [aiBulkWrite.worker, 'ai-bulk-write'],
   [inboxAi.worker, 'inbox-ai-reply'],
   [purchaseDocuments.worker, 'purchase-documents'],
-  [importSnapshots.worker, 'import-snapshot-cleanup'],
-  [reviewRequests.worker, 'review-requests'],
-  [reviewSummaries.worker, 'review-summaries'],
-  [affiliateCommissions.worker, 'affiliate-commissions'],
-  [memberDailySummary.worker, 'member-daily-summary'],
-  [homeCards.worker, 'home-cards'],
-  [searchConsole.worker, 'search-console-sweep'],
-  [billing.worker, 'billing-sweep'],
-  [apiActivityPrune.worker, 'api-activity-prune'],
-  [storeActivityPrune.worker, 'store-activity-prune'],
-  [shopifyTokenSweep.worker, 'shopify-token-sweep'],
-  [automationsPrune.worker, 'automations-prune'],
-  [retentionPrune.worker, 'retention-prune'],
-  [rolloutsTick.worker, 'rollouts-tick'],
-  [fxRates.worker, 'fx-rates'],
   [channelSync.worker, 'channel-sync'],
+  // One worker for every scheduled sweep; each job's name is the sweep (`unpaid-order-expiry`…).
+  [sweeps.worker, 'sweeps'],
 ] as const
 for (const [w, queueName] of watched) {
   reportWorkerFailures(w, queueName, reportError)
   logWorkerJobs(w, queueName)
 }
+
+// The worker backs off before its container limit instead of being OOM-killed on a shared box:
+// bulk queues pause first, then all but payments and order emails (./memory-guard.ts).
+const memoryLimit = readMemoryLimit(env.WORKER_MEMORY_LIMIT_MB)
+const memoryGuard = createMemoryGuard({
+  workers: watched,
+  limitBytes: memoryLimit.bytes,
+  thresholds: {
+    slow: env.WORKER_MEMORY_SLOW_PCT / 100,
+    critical: env.WORKER_MEMORY_CRITICAL_PCT / 100,
+    resume: env.WORKER_MEMORY_RESUME_PCT / 100,
+    exit: env.WORKER_MEMORY_EXIT_PCT / 100,
+    exitAfterMs: env.WORKER_MEMORY_EXIT_AFTER_S * 1000,
+  },
+  exit: () => {
+    // Running jobs get time to finish; past that, leave anyway so Docker restarts the worker.
+    setTimeout(() => process.exit(1), 30_000).unref()
+    void shutdown()
+  },
+})
+memoryGuard.start()
+memoryLevel = memoryGuard.level
+logger.info('memory guard on', {
+  area: 'memory',
+  limitMb: Math.round(memoryLimit.bytes / 1024 / 1024),
+  source: memoryLimit.source,
+})
 // Finished jobs kept from before KEEP_FINISHED; in the background so start-up does not wait.
 trimFinishedJobs(
   redis,
@@ -261,142 +489,16 @@ trimFinishedJobs(
 })
 
 await queue.upsertJobScheduler('heartbeat-every-minute', { every: 60_000 }, { name: 'tick' })
-await tracker.queue.upsertJobScheduler(
-  'track-open-shipments',
-  { every: TRACK_EVERY_MS },
-  { name: 'track' },
-)
-await orderPusher.queue.upsertJobScheduler(
-  'push-new-orders',
-  { every: PUSH_EVERY_MS },
-  { name: 'push' },
-)
-await unpaidExpiry.queue.upsertJobScheduler(
-  'expire-unpaid-orders',
-  { every: EXPIRY_EVERY_MS },
-  { name: 'expire' },
-)
-await preorderBalance.queue.upsertJobScheduler(
-  'preorder-balance',
-  { every: BALANCE_EVERY_MS },
-  { name: 'balance' },
-)
-await paymentFees.queue.upsertJobScheduler(
-  'sync-payment-fees',
-  { every: PAYMENT_FEES_EVERY_MS },
-  { name: 'sync' },
-)
 // Abandoned-cart recovery now runs as a Marketing automation; drop the old sweep's schedule.
 await retireAbandonedSweep(redis)
-
-await domains.queue.upsertJobScheduler(
-  'verify-pending-domains',
-  { every: VERIFY_EVERY_MS },
-  { name: 'verify' },
-)
-// Real network checks only: with the dev provider there is nothing to ask.
-if (env.DOMAIN_PROVIDER !== 'dev') {
-  await certificates.queue.upsertJobScheduler(
-    'check-domain-certificates',
-    { every: CERTIFICATE_EVERY_MS },
-    { name: 'check' },
-  )
-} else {
-  await certificates.queue.removeJobScheduler('check-domain-certificates')
-}
-await senderEmails.queue.upsertJobScheduler(
-  'verify-sender-emails',
-  { every: SENDER_CHECK_EVERY_MS },
-  { name: 'verify' },
-)
-await marketing.tickQueue.upsertJobScheduler(
-  'marketing-tick',
-  { every: MARKETING_TICK_MS },
-  { name: 'tick' },
-)
-await automations.tickQueue.upsertJobScheduler(
-  'automations-tick',
-  { every: AUTOMATIONS_TICK_MS },
-  { name: 'tick' },
-)
 await outboxRelay.queue.upsertJobScheduler(
   'relay-outbox-events',
   { every: RELAY_EVERY_MS },
   { name: 'relay' },
 )
-await importSnapshots.queue.upsertJobScheduler(
-  'clean-import-snapshots',
-  { every: SNAPSHOT_CLEANUP_EVERY_MS },
-  { name: 'clean' },
-)
-await reviewRequests.queue.upsertJobScheduler(
-  'queue-review-requests',
-  { every: REVIEW_REQUESTS_EVERY_MS },
-  { name: 'sweep' },
-)
-await reviewSummaries.queue.upsertJobScheduler(
-  'refresh-review-summaries',
-  { every: REVIEW_SUMMARIES_EVERY_MS },
-  { name: 'sweep' },
-)
-await affiliateCommissions.queue.upsertJobScheduler(
-  'approve-affiliate-commissions',
-  { every: AFFILIATE_COMMISSIONS_EVERY_MS },
-  { name: 'sweep' },
-)
-await memberDailySummary.queue.upsertJobScheduler(
-  'member-daily-summary',
-  { every: DAILY_SUMMARY_EVERY_MS },
-  { name: 'sweep' },
-)
-await homeCards.queue.upsertJobScheduler(
-  'home-cards',
-  { every: HOME_CARDS_EVERY_MS },
-  { name: 'sweep' },
-)
-await searchConsole.queue.upsertJobScheduler(
-  'search-console-sweep',
-  { every: SEARCH_CONSOLE_EVERY_MS },
-  { name: 'sweep' },
-)
-await billing.queue.upsertJobScheduler(
-  'billing-sweep',
-  { every: BILLING_EVERY_MS },
-  { name: 'sweep' },
-)
-await automationsPrune.queue.upsertJobScheduler(
-  'automations-prune',
-  { every: AUTOMATION_PRUNE_EVERY_MS },
-  { name: 'prune' },
-)
-await pixels.pruneQueue.upsertJobScheduler(
-  'pixels-prune',
-  { every: PIXELS_PRUNE_EVERY_MS },
-  { name: 'prune' },
-)
-await apiActivityPrune.queue.upsertJobScheduler(
-  'api-activity-prune',
-  { every: API_ACTIVITY_PRUNE_EVERY_MS },
-  { name: 'prune' },
-)
-await storeActivityPrune.queue.upsertJobScheduler(
-  'store-activity-prune',
-  { every: STORE_ACTIVITY_PRUNE_EVERY_MS },
-  { name: 'prune' },
-)
-await shopifyTokenSweep.queue.upsertJobScheduler(
-  'shopify-token-sweep',
-  { every: SHOPIFY_TOKEN_SWEEP_EVERY_MS },
-  { name: 'sweep' },
-)
-// Carts, outbox rows and webhook payloads past retention: 03:30 India time, when stores are quiet.
-await retentionPrune.queue.upsertJobScheduler('retention-prune', RETENTION_SCHEDULE, {
-  name: 'prune',
-})
-await scheduleRolloutsTick(rolloutsTick.queue)
-// Markets' reference exchange rates: 21:30 India time, after the ECB publishes; once now too.
-await fxRates.queue.upsertJobScheduler('fx-rates', FX_RATES_SCHEDULE, { name: 'refresh' })
-await fxRates.queue.add('refresh', {})
+// Every sweep on the shared queue; the first boot after the move retires their old queues.
+await scheduleSweeps(sweeps.queue, sweepList, (name) => new Queue(name, { connection: redis }))
+await sweeps.queue.add('fx-rates', {})
 await channelSync.queue.upsertJobScheduler(
   'channel-sync-sweep',
   { every: CHANNEL_SYNC_EVERY_MS },
@@ -441,43 +543,25 @@ app.get('/health', async (c) => {
 })
 
 const shutdown = async () => {
+  await edgePurge?.close()
+  memoryGuard.stop()
+  await sweeps.worker.close()
+  await sweeps.queue.close()
   await worker.close()
   await notificationWorker.close()
   await appEventWorker.close()
   await appJobWorker.close()
-  await tracker.worker.close()
-  await tracker.queue.close()
-  await orderPusher.worker.close()
-  await orderPusher.queue.close()
-  await unpaidExpiry.worker.close()
-  await unpaidExpiry.queue.close()
-  await preorderBalance.worker.close()
-  await preorderBalance.queue.close()
-  await paymentFees.worker.close()
-  await paymentFees.queue.close()
-  await domains.worker.close()
-  await domains.queue.close()
   await domainRoutes.worker.close()
   await domainRoutes.queue.close()
-  await certificates.worker.close()
-  await certificates.queue.close()
-  await senderEmails.worker.close()
-  await senderEmails.queue.close()
-  await marketing.tick.close()
   await automations.trigger.close()
   await automations.step.close()
-  await automations.tick.close()
   await automations.triggerQueue.close()
   await automations.stepQueue.close()
-  await automations.tickQueue.close()
   await pixels.order.close()
   await pixels.send.close()
-  await pixels.prune.close()
   await pixels.orderQueue.close()
   await pixels.sendQueue.close()
-  await pixels.pruneQueue.close()
   await marketing.send.close()
-  await marketing.tickQueue.close()
   await marketing.sendQueue.close()
   await outboxRelay.worker.close()
   await outboxRelay.queue.close()
@@ -494,38 +578,7 @@ const shutdown = async () => {
   await inboxAi.queue.close()
   await purchaseDocuments.worker.close()
   await purchaseDocuments.queue.close()
-  await importSnapshots.worker.close()
-  await importSnapshots.queue.close()
-  await reviewRequests.worker.close()
-  await reviewRequests.queue.close()
-  await reviewSummaries.worker.close()
-  await reviewSummaries.queue.close()
-  await affiliateCommissions.worker.close()
-  await affiliateCommissions.queue.close()
-  await memberDailySummary.worker.close()
-  await memberDailySummary.queue.close()
-  await homeCards.worker.close()
-  await homeCards.queue.close()
-  await searchConsole.worker.close()
-  await searchConsole.queue.close()
   await searchConsole.appJobs.close()
-  await billing.worker.close()
-  await billing.queue.close()
-  await apiActivityPrune.worker.close()
-  await apiActivityPrune.queue.close()
-  await storeActivityPrune.worker.close()
-  await storeActivityPrune.queue.close()
-  await shopifyTokenSweep.worker.close()
-  await shopifyTokenSweep.queue.close()
-  await bugReportSync?.close()
-  await automationsPrune.worker.close()
-  await automationsPrune.queue.close()
-  await retentionPrune.worker.close()
-  await retentionPrune.queue.close()
-  await rolloutsTick.worker.close()
-  await rolloutsTick.queue.close()
-  await fxRates.worker.close()
-  await fxRates.queue.close()
   await channelSync.worker.close()
   await channelSync.queue.close()
   await queue.close()

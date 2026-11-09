@@ -50,6 +50,7 @@ export const thankYouContent = {
   headline: {
     pending: 'Complete your payment',
     failed: 'Your payment did not go through',
+    unavailable: 'Online payment is temporarily unavailable',
   },
   /** The headline by where the order stands. */
   card: {
@@ -96,6 +97,7 @@ export const thankYouContent = {
   codToPay: (amount: string) => `Cash on delivery · ${amount} to pay`,
   due: (amount: string) => `${amount} to pay`,
   giftCardLine: (last: string, amount: string) => `Gift card •••• ${last} · ${amount}`,
+  storeCreditLine: (amount: string) => `Store credit · ${amount}`,
   /** The Shipping cell: "Standard · Free". */
   shippingLine: (rate: string, price: string) => `${rate} · ${price}`,
   trackOrder: 'Track order',
@@ -108,6 +110,7 @@ export const thankYouContent = {
       `Pay ${total} with any UPI app. This page updates on its own once it is paid.`,
     failed: (total: string) =>
       `Your payment of ${total} did not go through. Your order is saved; try again when ready.`,
+    unavailable: 'Please choose another payment method. Your order is saved.',
     giftCardEmail: (email: string | null) =>
       email
         ? `Your gift card is on its way to ${email}. It usually arrives within a few minutes.`
@@ -127,11 +130,14 @@ export const thankYouContent = {
     decentro: 'UPI',
     manual: 'UPI or bank transfer',
     gift_card: 'Gift card',
+    store_credit: 'Store credit',
     online: 'Online payment',
   } as Record<string, string>,
   giftCardPaid: (last: string) => `Gift card •••• ${last}`,
+  storeCreditPaid: 'Store credit',
   payNow: 'Pay now',
   retryPayment: 'Retry payment',
+  chooseAnother: 'Choose another payment method',
   newQr: 'Get a new UPI QR',
   /** A transfer order's way to pay through the store's gateway instead (issue 1010). */
   payOnline: {
@@ -436,6 +442,9 @@ export const checkoutContent = {
     /** On the option that arrives first, when the options do not all arrive together. */
     fastest: 'Fastest',
     digital: 'Delivered by email',
+    /** Nothing in the order is shipped (services, downloads): no charge, no courier. */
+    notNeeded: 'No shipping needed',
+    notNeededBody: 'Nothing in your order is shipped, so there is no delivery charge.',
   },
   /** When one order ships as more than one parcel (several warehouses, or a pre-order held back). */
   parcels: {

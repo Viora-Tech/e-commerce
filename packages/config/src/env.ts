@@ -167,6 +167,19 @@ const shape = z.object({
   /** Most image jobs of one store at once (capped at the concurrency); unset uses `QUEUE_LIMITS.mediaProcess` (3). */
   MEDIA_PROCESS_PER_STORE: z.coerce.number().int().min(1).max(8).optional(),
   /**
+   * Worker memory guard (apps/worker/src/memory-guard.ts). The limit comes from the container's
+   * cgroup; this is the fallback when there is none (local runs). Percentages of that limit:
+   * above SLOW bulk queues pause and the rest halve, above CRITICAL only payments, order emails
+   * and the outbox keep running, below RESUME all resume; at EXIT for EXIT_AFTER_S seconds the
+   * worker exits cleanly so Docker restarts it.
+   */
+  WORKER_MEMORY_LIMIT_MB: z.coerce.number().int().min(64).optional(),
+  WORKER_MEMORY_SLOW_PCT: z.coerce.number().min(1).max(100).default(70),
+  WORKER_MEMORY_CRITICAL_PCT: z.coerce.number().min(1).max(100).default(85),
+  WORKER_MEMORY_RESUME_PCT: z.coerce.number().min(1).max(100).default(60),
+  WORKER_MEMORY_EXIT_PCT: z.coerce.number().min(1).max(100).default(95),
+  WORKER_MEMORY_EXIT_AFTER_S: z.coerce.number().int().min(5).default(60),
+  /**
    * The Chromium the worker photographs theme home pages with (Themes page pictures). The worker
    * image installs Alpine's `chromium` at `/usr/bin/chromium-browser`; unset on a development
    * machine uses Playwright's own download (`bunx playwright install chromium`). Without a
@@ -183,6 +196,12 @@ const shape = z.object({
    * in seconds (`s-maxage`); unset is 30. 0 keeps every page private.
    */
   STOREFRONT_EDGE_TTL: z.coerce.number().int().min(0).max(86_400).optional(),
+  /**
+   * `off` sends every page through React even for stores that switched Preferences › Storefront
+   * speed on (plain HTML pages, docs/design/storefront-plain-html.md): the deployment-wide way
+   * back. Unset follows each store's switch.
+   */
+  STOREFRONT_PLAIN_HTML: z.enum(['on', 'off']).optional(),
   /**
    * How many sections of an imported theme's page are sent first and drawn as the theme wrote
    * them; the rest stream in behind them in the same response, their images lazy and their
@@ -267,6 +286,13 @@ const shape = z.object({
    * admin and worker only, so `createDomainProvider`, not this schema, refuses a missing one.
    */
   CLOUDFLARE_API_TOKEN: optionalOrBlank(z.string().min(1)),
+  /**
+   * Cloudflare API token with "Zone → Cache Purge: Purge" on the SaaS zone, nothing else. Secret:
+   * worker only. Set, the worker purges a store's hostnames from Cloudflare's cache a few seconds
+   * after its pages change (`@commerce/core` `domains/edge-purge.ts`), so `STOREFRONT_EDGE_TTL`
+   * can be minutes instead of 30 seconds.
+   */
+  CLOUDFLARE_CACHE_PURGE_TOKEN: optionalOrBlank(z.string().min(1)),
   /** The id of the zone with Cloudflare for SaaS turned on. Not a secret. */
   CLOUDFLARE_ZONE_ID: optionalOrBlank(z.string().regex(/^[a-f0-9]{32}$/)),
   /**

@@ -7,12 +7,13 @@ import type { ShippingCapability } from '@commerce/shipping'
  */
 
 /**
- * ShipGlobal's Label Generation API, the only API ShipGlobal publishes
- * (https://labels.shipglobal.in/api-docs.php, read 2026-10-31). One host: the docs name no
- * separate sandbox, so there is no Test/Live switch.
- * VERIFY: that a merchant account from app.shipglobal.in signs in here, or which host it uses.
+ * ShipGlobal's vendor API ("ApiV1 ShipGlobal Vendor - Production",
+ * https://developer.docs.shipglobal.in/, published 2026-11-03). The paths start with `/apiv1`.
+ * The docs keep the host in an unpublished Postman variable; app.shipglobal.in is the one that
+ * answers `/apiv1/rates/calculate` with ShipGlobal's own EA_401 JSON (checked 2026-11-10).
+ * The docs name no sandbox host, so there is no Test/Live switch.
  */
-export const SHIPGLOBAL_API_URL = 'https://labels.shipglobal.in/api/v1'
+export const SHIPGLOBAL_API_URL = 'https://app.shipglobal.in'
 
 /** ShipGlobal's public tracker. It takes the number in a form; no URL format is documented. */
 export const SHIPGLOBAL_TRACKING_PAGE = 'https://shipglobal.in/tracking/'
@@ -21,31 +22,33 @@ export const SHIPGLOBAL_TRACKING_PAGE = 'https://shipglobal.in/tracking/'
 export const SHIPGLOBAL_DASHBOARD_URL = 'https://v2.app.shipglobal.in/auth/login'
 
 /**
- * The service codes in the docs' "Supported Services" table. USPS and UPS deliver in the US
- * only, split at 5 kg (USPS up to 5000 g, UPS above); the rest list no rule.
+ * The services the docs' rate sample lists, by the title ShipGlobal itself uses. The rate
+ * table books whatever title the live rates return; this list is only the Connect page's
+ * default for a booking made without a rate pick.
  */
 export const SHIPGLOBAL_SERVICES = [
-  { code: 'DHLECS', label: 'DHL eCommerce' },
-  { code: 'DPD', label: 'DPD' },
-  { code: 'UNIUNI', label: 'UniUni' },
-  { code: 'UBI', label: 'UBI' },
-  { code: 'VIPPARCEL', label: 'VipParcel' },
-  { code: 'USPS', label: 'USPS (US, up to 5 kg) / UPS (US, above 5 kg)' },
+  { code: 'ShipGlobal Direct', label: 'ShipGlobal Direct' },
+  { code: 'ShipGlobal First Class', label: 'ShipGlobal First Class' },
+  { code: 'ShipGlobal Premium', label: 'ShipGlobal Premium' },
+  { code: 'UPS Promotional', label: 'UPS Promotional' },
+  { code: 'UPS', label: 'UPS' },
+  { code: 'Fedex', label: 'FedEx' },
 ] as const
 
-export type ShipglobalServiceCode = (typeof SHIPGLOBAL_SERVICES)[number]['code'] | 'UPS'
+export type ShipglobalServiceCode = (typeof SHIPGLOBAL_SERVICES)[number]['code']
 
-export const SHIPGLOBAL_DEFAULT_SERVICE: ShipglobalServiceCode = 'DHLECS'
+export const SHIPGLOBAL_DEFAULT_SERVICE: ShipglobalServiceCode = 'ShipGlobal Direct'
 
 /**
- * What this adapter does. The published API books an order and returns its label; it has no
- * rate, tracking, cancel or pickup call, so those are not claimed: the rate table shows
- * ShipGlobal as "rate on booking", the merchant moves each parcel's status on the app page,
- * and cancelling happens in ShipGlobal's own panel.
+ * What this adapter does with the vendor API: live rates, booking with the paid label,
+ * tracking and cancel with refund. No pickup or webhook call is documented.
  */
 export const SHIPGLOBAL_CAPABILITIES: ShippingCapability[] = [
   'serviceability',
+  'rates',
   'create_shipment',
   'label',
+  'tracking',
+  'cancel',
   'international',
 ]

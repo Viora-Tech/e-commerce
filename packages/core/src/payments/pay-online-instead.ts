@@ -1,9 +1,11 @@
 /** SOURCE OF TRUTH: payOnlineInstead — WHAT: a transfer order's shopper switches to a gateway, under the order's row lock / WHY: one attempt per switch, and the merchant's reminders keep working */
+
 import { type Db, order, orderNote, payment, withStore } from '@commerce/db'
 import { formatMoney } from '@commerce/money'
 import type { PaymentProvider } from '@commerce/payments'
 import { eq } from 'drizzle-orm'
 import type { StoreContext } from '../context'
+import { isOpenCheckoutDraft } from '../order/checkout-draft'
 import { retaxOrder } from '../order/edit-stock'
 import { recomputeOrderStatuses } from '../order/recompute'
 import {
@@ -53,7 +55,10 @@ async function switchToOnlinePayment(
 ): Promise<{ attempt: PaymentAttempt; created: boolean }> {
   const [o] = await ctx.tx.select().from(order).where(eq(order.id, orderId)).for('update')
   if (!o) throw new PaymentNotRetryable(orderId, 'not found', ctx.storeId)
-  if (o.status !== 'open') throw new PaymentNotRetryable(orderId, o.status, ctx.storeId)
+  // A UPI / bank transfer checkout kept as a draft (#D57) switches the same way.
+  if (o.status !== 'open' && !isOpenCheckoutDraft(o)) {
+    throw new PaymentNotRetryable(orderId, o.status, ctx.storeId)
+  }
   if (o.checkoutPaidAt) throw new PaymentNotRetryable(orderId, 'already paid', ctx.storeId)
   if (o.paymentMethod !== MANUAL_METHOD) {
     throw new PaymentNotRetryable(orderId, 'not a transfer order', ctx.storeId)

@@ -3,11 +3,14 @@ import {
   ABANDONED_CONTACTS,
   ABANDONED_LIST_STATUSES,
   DRAFT_LIST_STATUSES,
+  DRAFT_SOURCES,
   DraftInputSchema,
   insertOutboxEvent,
   permissions,
   releaseDraft,
   reserveDraft,
+  storefrontOriginFor,
+  thankYouUrl,
 } from '@commerce/core'
 import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
@@ -49,6 +52,8 @@ export const draftAndAbandonedRoutes = {
         perPage: z.number().int().min(1).max(PAGE_SIZE_MAX).default(25),
         search: z.string().trim().max(SEARCH_MAX).optional(),
         status: z.enum(DRAFT_LIST_STATUSES).optional(),
+        /** `checkout`: shoppers' unpaid checkouts; `staff`: drafts built in the admin. */
+        source: z.enum(DRAFT_SOURCES).optional(),
         /** Created at or after / before these moments (the filter panel's Created). */
         createdFrom: z.iso.datetime().optional(),
         createdTo: z.iso.datetime().optional(),
@@ -65,7 +70,16 @@ export const draftAndAbandonedRoutes = {
   /** One draft order with its lines, customer, addresses and totals. */
   getDraft: can(permissions.DRAFTS_READ)
     .input(z.object({ id: z.uuid() }))
-    .handler(({ context, input }) => getDraft(context.tx, input.id)),
+    .handler(async ({ context, input }) => {
+      const draft = await getDraft(context.tx, input.id)
+      if (draft?.draftSource !== 'checkout') return draft ? { ...draft, payLink: null } : null
+      // A shopper's unpaid checkout: the signed link to its page, where they pay or retry.
+      const origin = await storefrontOriginFor(context.tx, context.scope.storeId, storefrontUrl())
+      return {
+        ...draft,
+        payLink: thankYouUrl(draft.id, draft.number, settingsSecret(), origin),
+      }
+    }),
 
   /** Create a draft order (no id) or replace an existing draft's lines, customer and addresses. */
   saveDraft: can(permissions.DRAFTS_WRITE)
@@ -199,9 +213,12 @@ export const draftAndAbandonedRoutes = {
     .input(z.object({ id: z.uuid(), paymentMethod: z.string().trim().max(60).optional() }))
     .handler(async ({ context, input }) => {
       const row = await convertStoreDraft(context.tx, context.scope.storeId, input)
-      await insertOutboxEvent(context.tx, context.scope.storeId, 'order.placed', {
-        orderId: input.id,
-      })
+      // A shopper's unpaid checkout announces itself as it converts (order/checkout-draft.ts).
+      if (row.draftSource !== 'checkout') {
+        await insertOutboxEvent(context.tx, context.scope.storeId, 'order.placed', {
+          orderId: input.id,
+        })
+      }
       return row
     }),
 

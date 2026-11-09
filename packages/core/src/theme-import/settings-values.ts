@@ -56,6 +56,14 @@ const handlesOf = (value: unknown): string[] =>
   Array.isArray(value) ? value.filter((v): v is string => typeof v === 'string' && v !== '') : []
 
 /**
+ * The Files row behind an image setting saved without its sized copies (a bare URL, an import,
+ * an older save): without them `image_url: width: 900` hands out the original, several MB on a
+ * phone. Only web URLs are looked up; null while the lookup is pending or for a URL not in Files.
+ */
+const libraryImage = (url: string, data: LiquidDataCache) =>
+  /^https?:\/\//.test(url) ? data.image(url) : null
+
+/**
  * A setting's stored value as the theme reads it: image settings become image
  * objects, product settings products, colours colour objects, and so on.
  */
@@ -76,17 +84,24 @@ export function liquidSettingValue(
           height?: unknown
           variants?: MediaVariants
         }
-        return typeof v.url === 'string' && v.url && !v.url.startsWith('shopify://')
-          ? imageDrop({
-              url: v.url,
-              alt: typeof v.alt === 'string' ? v.alt : '',
-              width: typeof v.width === 'number' ? v.width : null,
-              height: typeof v.height === 'number' ? v.height : null,
-              variants: v.variants ?? undefined,
-            })
-          : null
+        if (typeof v.url !== 'string' || !v.url || v.url.startsWith('shopify://')) return null
+        const known = v.variants ? null : libraryImage(v.url, data)
+        return imageDrop({
+          url: v.url,
+          alt: typeof v.alt === 'string' ? v.alt : '',
+          width: typeof v.width === 'number' ? v.width : (known?.width ?? null),
+          height: typeof v.height === 'number' ? v.height : (known?.height ?? null),
+          variants: v.variants ?? known?.variants ?? undefined,
+        })
       }
-      return text && !text.startsWith('shopify://') ? imageDrop({ url: text }) : null
+      if (!text || text.startsWith('shopify://')) return null
+      const known = libraryImage(text, data)
+      return imageDrop({
+        url: text,
+        width: known?.width ?? null,
+        height: known?.height ?? null,
+        variants: known?.variants ?? undefined,
+      })
     }
     case 'product': {
       const found = text ? data.product(text) : null

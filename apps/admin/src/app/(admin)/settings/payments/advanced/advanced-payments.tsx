@@ -4,6 +4,7 @@ import type { PaymentAdjustment } from '@commerce/core'
 import { CreditCard } from '@commerce/ui/icons'
 import { useState } from 'react'
 import UpiCompare from '@/components/payments/upi-compare'
+import CheckoutRepeatFields from '@/components/settings/checkout-repeat-fields'
 import ManualTransferFields from '@/components/settings/manual-transfer-fields'
 import PaymentAdjustmentFields from '@/components/settings/payment-adjustment-fields'
 import PreorderBalanceSettings from '@/components/settings/preorder-balance-settings'
@@ -24,11 +25,22 @@ type Extra = {
   adjustments: Record<string, PaymentAdjustment>
   /** Minutes before an unpaid online order is cancelled; 0 is never. */
   expireUnpaidAfterMinutes: number
-  /** Hours before an unpaid manual-transfer order is cancelled; 0 (the default) is never. */
+  /** Auto-cancel for unpaid manual transfers: unset is never chosen (on, the default). */
+  manualAutoCancel?: 'on' | 'off' | undefined
+  /** Hours before an unpaid manual-transfer order is cancelled; 0 is the 6 hour default. */
   manualCancelAfterHours: number
+  /** "Keep unpaid checkouts as drafts"; unset follows the platform default. */
+  unpaidAsDrafts?: 'on' | 'off' | undefined
+  /** Same items within these hours count as the same order; 0 is off. */
+  duplicateCheckoutHours: number
+  /** Most unpaid checkouts per shopper in an hour; 0 is no cap. */
+  unpaidCheckoutsPerHour: number
 }
 
 const DEFAULT_EXPIRY_MINUTES = 30
+/** Core `PaymentSettingsSchema` defaults, shown while the settings load. */
+const DEFAULT_DUPLICATE_HOURS = 24
+const DEFAULT_UNPAID_PER_HOUR = 3
 
 /** Methods that confirm through the Razorpay webhook. */
 const RAZORPAY_WEBHOOK_METHODS = new Set(['razorpay', 'razorpay_upi'])
@@ -110,10 +122,8 @@ function footer(
           value={extra.expireUnpaidAfterMinutes}
           onChange={(expireUnpaidAfterMinutes) => setExtra({ ...extra, expireUnpaidAfterMinutes })}
         />
-        <ManualTransferFields
-          cancelHours={extra.manualCancelAfterHours}
-          onChange={(manualCancelAfterHours) => setExtra({ ...extra, manualCancelAfterHours })}
-        />
+        <ManualTransferFields value={extra} onChange={(next) => setExtra({ ...extra, ...next })} />
+        <CheckoutRepeatFields value={extra} onChange={(next) => setExtra({ ...extra, ...next })} />
       </SettingsSection>
       {/* Kept in store.preorder, but saved by the page's one Save and save bar (#94). */}
       <SettingsSection id={preorders?.id ?? 'section-preorders'} className="flex flex-col gap-4">
@@ -151,6 +161,8 @@ export default function AdvancedPayments() {
           adjustments: {},
           expireUnpaidAfterMinutes: DEFAULT_EXPIRY_MINUTES,
           manualCancelAfterHours: 0,
+          duplicateCheckoutHours: DEFAULT_DUPLICATE_HOURS,
+          unpaidCheckoutsPerHour: DEFAULT_UNPAID_PER_HOUR,
         }}
         renderHint={(m) => webhookHint(copy, m)}
         renderDescription={(m) => upiDescription(setupCopy.upiOptions, m)}

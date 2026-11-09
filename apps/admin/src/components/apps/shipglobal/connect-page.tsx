@@ -24,18 +24,16 @@ const PROVIDER_ID = 'shipglobal'
 const testConnection = (values: FieldValues) =>
   api.store.testShipglobalConnection({ fields: values })
 
-/** "UPS" is booked for US parcels above 5 kg when USPS is picked, so it is not its own choice. */
+/** The saved service, or the default for an empty or old (Label API) value. */
 const serviceValue = (values: FieldValues) => {
-  const v = (values.service ?? '').trim().toUpperCase()
-  return SHIPGLOBAL_SERVICES.some((s) => s.code === v)
-    ? v
-    : v === 'UPS'
-      ? 'USPS'
-      : SHIPGLOBAL_DEFAULT_SERVICE
+  const v = (values.service ?? '').trim().toLowerCase()
+  return (
+    SHIPGLOBAL_SERVICES.find((s) => s.code.toLowerCase() === v)?.code ?? SHIPGLOBAL_DEFAULT_SERVICE
+  )
 }
 
-/** `/apps/shipglobal/connect`: guide, API login, export details, service and a read-only check.
- *  No Test/Live switch (ShipGlobal publishes one host) and no pickup switch (no pickup call). */
+/** `/apps/shipglobal/connect`: guide, API username, export details, default service and a
+ *  read-only check (a sample rate). No Test/Live switch: ShipGlobal publishes one host. */
 export default function ConnectPage() {
   // Hooks
   const copy = useCopy(shipglobalAppContent)
@@ -43,6 +41,7 @@ export default function ConnectPage() {
   // Helpers
   const extraFields = ({ values, setField }: ConnectContext<TestOutcome>): ConnectFieldSpec[] => [
     { key: 'iossNumber', ...copy.connect.fields.iossNumber },
+    { key: 'customerNickname', ...copy.connect.fields.customerNickname },
     {
       key: 'service',
       ...copy.connect.fields.service,
@@ -67,11 +66,11 @@ export default function ConnectPage() {
     <ExportCourierConnectPage
       providerId={PROVIDER_ID}
       copy={copy.connect}
-      keyField="email"
+      keyField="username"
       secretField="password"
-      accountField="sellerNickname"
+      accountField="addressNickname"
       extraFields={extraFields}
-      extraValues={{ iossNumber: '', service: SHIPGLOBAL_DEFAULT_SERVICE }}
+      extraValues={{ iossNumber: '', customerNickname: '', service: SHIPGLOBAL_DEFAULT_SERVICE }}
       test={testConnection}
     />
   )

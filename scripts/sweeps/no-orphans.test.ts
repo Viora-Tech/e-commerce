@@ -18,6 +18,23 @@ type AllowEntry = { file: string; names: string[]; reason: string }
 
 const ALLOWLIST: AllowEntry[] = [
   {
+    file: 'packages/core/src/domains/edge-purge.ts',
+    names: [
+      'PURGE_QUIET_MS',
+      'PURGE_MAX_WAIT_MS',
+      'PURGE_MIN_GAP_MS',
+      'PURGE_SOFT_DELAY_MS',
+      'PURGE_HOSTS_PER_CALL',
+    ],
+    reason: 'timing constants used in the module and asserted directly by edge-purge.test.ts',
+  },
+  {
+    file: 'packages/db/src/storefront-cache.ts',
+    names: ['STOREFRONT_START_PAYLOAD', 'announceStorefrontStart'],
+    reason:
+      'announceStorefrontStart is loaded by a dynamic import in apps/storefront/src/instrumentation.ts, which the sweep does not follow; the payload is its constant',
+  },
+  {
     file: 'packages/core/src/media/settings.ts',
     names: ['storageDefaultsFromEnv'],
     reason: 'used in the module and asserted directly by service.test.ts',
@@ -198,13 +215,7 @@ const ALLOWLIST: AllowEntry[] = [
   },
   {
     file: 'packages/core/src/inbox/widget.ts',
-    names: [
-      'WIDGET_ICONS',
-      'WIDGET_HORIZONTAL',
-      'WIDGET_VERTICAL',
-      'DEFAULT_INBOX_WIDGET',
-      'INBOX_WIDGET_FIELDS',
-    ],
+    names: ['WIDGET_ICONS', 'WIDGET_HORIZONTAL', 'WIDGET_VERTICAL', 'DEFAULT_INBOX_WIDGET'],
     reason:
       'the Inbox app embed schema the theme editor App embeds panel renders (coordinator, 2026-10-24); read once that panel lands',
   },
@@ -443,8 +454,9 @@ const ALLOWLIST: AllowEntry[] = [
   },
   {
     file: 'packages/blocks/src/components/product-variant-picker.tsx',
-    names: ['swatchImages'],
-    reason: 'the swatch-or-pill rule behind the variant picker, exported for its unit test',
+    names: ['swatchImages', 'swatchFile'],
+    reason:
+      'the swatch-or-pill rule and the sized file a swatch draws, behind the variant picker, exported for their unit tests',
   },
   {
     file: 'packages/core/src/theme-import/main-product-props.ts',
@@ -955,10 +967,33 @@ const ALLOWLIST: AllowEntry[] = [
     reason: 'no external importer today — investigate before removing',
   },
   {
+    file: 'packages/core/src/payments/checkout-drafts.ts',
+    names: ['CHECKOUT_DRAFTS_DEFAULT'],
+    reason:
+      'used in the module and asserted by checkout-drafts.test.ts; the admin mirrors it (UNPAID_AS_DRAFTS_DEFAULT)',
+  },
+  {
+    file: 'packages/core/src/payments/confirm.ts',
+    names: ['LATE_CAPTURE_NOTE'],
+    reason: 'used in the module and asserted by order/checkout-draft.test.ts',
+  },
+  {
+    file: 'packages/core/src/order/checkout-draft.ts',
+    names: ['shopperPaidNote'],
+    reason: 'used in the module and asserted by checkout-draft.test.ts',
+  },
+  {
+    file: 'packages/core/src/order/duplicate-checkout.ts',
+    names: ['findRecentDuplicateCheckout', 'recentUnpaidCheckouts'],
+    reason:
+      'unit-tested directly; findRecentDuplicateCheckout is the helper the unpaid-checkouts-as-drafts design (#1293) points at drafts',
+  },
+  {
     file: 'packages/core/src/payments/manual-followup.ts',
     names: [
       'REMINDER_EVERY_HOURS',
       'CANCEL_NOTICE_HOURS',
+      'cancelNoticeHours',
       'PaymentNotPending',
       'CANCEL_NOTICE_NOTE',
       'MANUAL_CANCELLED_NOTE',

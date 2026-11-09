@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
 import { leaveGuardContent } from '@/data/common'
 import { useCopy } from '@/hooks/use-copy'
+import { holdForUnsaved } from '@/lib/focus-refresh'
 
 type LeaveGuardProps = {
   /** The form has changes not saved yet. */
@@ -53,7 +54,10 @@ export default function LeaveGuard({ when }: LeaveGuardProps) {
     }
     window.addEventListener('beforeunload', onBeforeUnload)
     document.addEventListener('click', onClick, true)
+    // Coming back to the tab does not read the page again under unsaved changes.
+    const release = holdForUnsaved()
     return () => {
+      release()
       window.removeEventListener('beforeunload', onBeforeUnload)
       document.removeEventListener('click', onClick, true)
     }

@@ -7,6 +7,8 @@ type PictureProps = {
     alt: string | null
     variants?: Record<string, { avif: string; webp: string }> | null | undefined
     thumbhash?: string | null | undefined
+    /** The original's pixel width, when known (see `srcSet`). */
+    width?: number | null | undefined
   }
   alt: string
   className?: string | undefined
@@ -41,12 +43,32 @@ const widthsOf = (variants: Record<string, unknown>) =>
     .filter((w) => Number.isFinite(w))
     .sort((a, b) => a - b)
 
-function srcSet(variants: Record<string, { avif: string; webp: string }>, format: 'avif' | 'webp') {
+/**
+ * The original file as one more width when it is wider than every variant: the pipeline makes
+ * only widths at or below the original (no upscaling), so a 480 px original has just a 320
+ * variant and was shown blurry at 1000 px (#1271). The original is never upscaled either; the
+ * browser just gets 480 to pick instead of 320. Its format (PNG, JPEG) does not match the
+ * `<source>`'s type, which browsers ignore once a candidate is chosen.
+ */
+function originalCandidate(
+  image: { url: string; width?: number | null | undefined },
+  widths: readonly number[],
+): { url: string; width: number } | null {
+  const widest = widths.at(-1) ?? 0
+  return image.width && image.width > widest ? { url: image.url, width: image.width } : null
+}
+
+function srcSet(
+  variants: Record<string, { avif: string; webp: string }>,
+  format: 'avif' | 'webp',
+  original: { url: string; width: number } | null,
+) {
   const entries: string[] = []
   for (const w of widthsOf(variants)) {
     const entry = variants[String(w)]
     if (entry) entries.push(`${entry[format]} ${w}w`)
   }
+  if (original) entries.push(`${original.url} ${original.width}w`)
   return entries.join(', ')
 }
 
@@ -126,16 +148,18 @@ export default function Picture({
       />
     )
   }
-  const widest = widthsOf(variants).at(-1)
+  const widths = widthsOf(variants)
+  const widest = widths.at(-1)
+  const original = originalCandidate(image, widths)
   const fallbackWebp = widest ? variants[String(widest)]?.webp : undefined
   return (
     <picture style={fill ? FILL_WRAPPER : undefined}>
-      <source type="image/avif" srcSet={srcSet(variants, 'avif')} sizes={sizes} />
-      <source type="image/webp" srcSet={srcSet(variants, 'webp')} sizes={sizes} />
+      <source type="image/avif" srcSet={srcSet(variants, 'avif', original)} sizes={sizes} />
+      <source type="image/webp" srcSet={srcSet(variants, 'webp', original)} sizes={sizes} />
       <img
         className={className}
         style={style}
-        src={fallbackWebp ?? image.url}
+        src={original ? image.url : (fallbackWebp ?? image.url)}
         alt={alt}
         width={width}
         height={height}

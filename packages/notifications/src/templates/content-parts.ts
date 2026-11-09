@@ -47,7 +47,7 @@ export const balanceTemplates = {
   },
   balance_reminder: {
     subject: (d) => `${d.storeName}: reminder, balance due for order #${d.orderNumber}`,
-    heading: (d) => `Hi ${d.customerName}, a quick reminder`,
+    heading: (d) => `Hi ${d.customerName}, a balance is due`,
     intro: (d) =>
       `The balance of ${d.balance?.dueLabel ?? ''} for ${orderRef(d)} is still due.${payBy(d)}${keepNote(d)}`,
     outro: (d) =>
@@ -70,7 +70,24 @@ const buyer = (d: TemplateData): string =>
   d.customerName && d.customerName !== 'there' ? d.customerName : 'A customer'
 const ordersCount = (n: number): string => (n === 1 ? '1 order' : `${n} orders`)
 
+/** "D57" while the checkout waits as a draft, else the order number. */
+const refOf = (d: TemplateData): string =>
+  d.draftNumber ? `D${d.draftNumber}` : String(d.orderNumber)
+
 export const transferTemplates = {
+  /** A UPI / bank transfer checkout kept as a draft (#D57): received, now pay to confirm it. */
+  transfer_requested: {
+    subject: (d) => `${d.storeName}: order #${refOf(d)} received, complete your payment`,
+    heading: (d) => `Thank you, ${d.customerName}! Your order #${refOf(d)} is received`,
+    intro: (d) =>
+      `Complete your ${d.totalLabel} UPI or bank transfer to confirm it.${d.paymentInstructions?.length ? ` To pay: ${d.paymentInstructions.join('. ')}.` : ''} Put #${refOf(d)} in the payment note. We hold your items until then.`,
+    outro: (d) =>
+      d.orderUrl
+        ? `The QR code and payment details are here, with an "I've paid" button: ${d.orderUrl}`
+        : 'Reply to this email once you have paid.',
+    whatsapp: (d) =>
+      `${d.storeName}: order #${refOf(d)} received. Pay ${d.totalLabel} by UPI or bank transfer to confirm it.${d.paymentInstructions?.length ? ` ${d.paymentInstructions.join('. ')}.` : ''}${d.orderUrl ? ` Details: ${d.orderUrl}` : ''}`,
+  },
   payment_reminder: {
     subject: (d) => `${d.storeName}: order #${d.orderNumber} is waiting for payment`,
     heading: (d) => `Hi ${d.customerName}, your order is on hold`,
@@ -98,9 +115,9 @@ export const transferTemplates = {
     heading: (d) => `Hi ${d.customerName}, we cancelled your order`,
     intro: (d) =>
       `We did not receive the ${d.totalLabel} payment for order #${d.orderNumber}, so it has been cancelled and the items released.`,
-    outro: () => 'If you have paid, reply to this email and we will sort it out.',
+    outro: () => 'If you have paid, reply to this email and we will check.',
     whatsapp: (d) =>
-      `${d.storeName}: order #${d.orderNumber} was cancelled because the ${d.totalLabel} payment did not arrive. Paid already? Just reply.`,
+      `${d.storeName}: order #${d.orderNumber} was cancelled because the ${d.totalLabel} payment did not arrive. If you paid, reply to this message.`,
   },
   staff_new_order: {
     subject: (d) => `${d.storeName}: new order #${d.orderNumber} (${d.totalLabel})`,
@@ -129,6 +146,7 @@ export const transferTemplates = {
       `${d.storeName} ${d.dailySummary?.periodLabel ?? ''}: ${ordersCount(d.dailySummary?.orders ?? 0)}, ${d.dailySummary?.salesLabel ?? ''}, ${d.dailySummary?.toShip ?? 0} to ship.`,
   },
 } satisfies Record<
+  | 'transfer_requested'
   | 'payment_reminder'
   | 'unpaid_cancel_notice'
   | 'unpaid_cancelled'
@@ -164,8 +182,8 @@ export const backInStockTemplates = {
       `${[d.backInStock?.productTitle, d.backInStock?.variantTitle].filter(Boolean).join(' / ')} is available again at ${d.storeName}.`,
     outro: (d) =>
       d.backInStock?.productUrl
-        ? `Get it before it sells out: ${d.backInStock.productUrl}`
-        : 'Get it before it sells out.',
+        ? `Buy it here: ${d.backInStock.productUrl}`
+        : 'You can order it on the store now.',
     whatsapp: (d) =>
       `${d.backInStock?.productTitle ?? 'Good news'} is back in stock at ${d.storeName}.${
         d.backInStock?.productUrl ? ` Shop: ${d.backInStock.productUrl}` : ''
@@ -176,7 +194,7 @@ export const backInStockTemplates = {
 const ret = (d: TemplateData): string => d.returnInfo?.label ?? ''
 const refundWhere = (d: TemplateData): string =>
   d.returnInfo?.refundMethod === 'store_credit'
-    ? 'as store credit. The gift card code is in a separate email, and you can use it at checkout'
+    ? 'as store credit, added to your account with us'
     : 'to the way you paid. Banks usually show it in 5 to 7 working days'
 const fromOrder = (d: TemplateData): string =>
   d.returnInfo?.originalOrderNumber ? ` (order #${d.returnInfo.originalOrderNumber})` : ''
@@ -198,7 +216,7 @@ export const returnTemplates = {
   return_approved: {
     subject: (d) => `${d.storeName}: your return ${ret(d)} is approved`,
     heading: () => 'Your return is approved',
-    intro: (d) => `Good news: we accepted return ${ret(d)} for order #${d.orderNumber}.`,
+    intro: (d) => `We accepted return ${ret(d)} for order #${d.orderNumber}.`,
     outro: (d) => howBack(d),
     whatsapp: (d) =>
       `${d.storeName}: return ${ret(d)} for order #${d.orderNumber} is approved. ${howBack(d)}`,
@@ -208,7 +226,7 @@ export const returnTemplates = {
     heading: (d) => `Hi ${d.customerName}, we could not accept this return`,
     intro: (d) =>
       `We are sorry, return ${ret(d)} for order #${d.orderNumber} was not accepted.${d.returnInfo?.decisionNote ? ` Reason: ${d.returnInfo.decisionNote}` : ''}`,
-    outro: () => 'If you think this is a mistake, just reply to this email and we will look again.',
+    outro: () => 'If you think this is a mistake, reply to this email and we will look again.',
     whatsapp: (d) =>
       `${d.storeName}: return ${ret(d)} for order #${d.orderNumber} was not accepted.${d.returnInfo?.decisionNote ? ` Reason: ${d.returnInfo.decisionNote}` : ''} Reply if you have questions.`,
   },
@@ -226,7 +244,7 @@ export const returnTemplates = {
     heading: () => 'Your refund is on its way',
     intro: (d) =>
       `We sent ${d.returnInfo?.refundLabel ?? d.totalLabel} for return ${ret(d)} (order #${d.orderNumber}) ${refundWhere(d)}.`,
-    outro: () => 'Thank you for shopping with us.',
+    outro: () => 'Reply to this email if anything is not right.',
     whatsapp: (d) =>
       `${d.storeName}: refund of ${d.returnInfo?.refundLabel ?? d.totalLabel} for return ${ret(d)} is on its way ${d.returnInfo?.refundMethod === 'store_credit' ? 'as store credit' : 'to the way you paid'}.`,
   },
@@ -266,8 +284,8 @@ export const shipmentTemplates = {
   delivered: {
     subject: (d) => `${d.storeName}: order #${d.orderNumber} was delivered`,
     heading: () => 'Delivered',
-    intro: (d) => `Order #${d.orderNumber} has been delivered. We hope you love it.`,
-    outro: () => 'Something wrong with it? Just reply to this email.',
+    intro: (d) => `Order #${d.orderNumber} has been delivered.`,
+    outro: () => 'If something is wrong with it, reply to this email.',
     whatsapp: (d) => `${d.storeName} order #${d.orderNumber} was delivered. Enjoy!`,
   },
   delivery_failed: {

@@ -7,22 +7,25 @@ import {
   type StoreTx,
   shippingProfile,
   shippingProfileProduct,
+  shippingProfileVariant,
   variant,
 } from '@commerce/db'
-import { and, asc, count, eq, inArray, max, notInArray } from 'drizzle-orm'
+import { and, asc, eq, inArray, max } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 import { applyDiscount, subtotalPaise } from '../discounts/evaluate'
 import { resolveCartDiscount } from '../discounts/resolve'
 import { CommerceError } from '../errors'
 import { localOptions, withLocalOptions } from './local-options'
 import { loadLocalOptionLocations } from './local-service'
+import { type ProfileProductEntry, profileProductEntries } from './profile-entries'
+import { lineProfiles, profileProducts, syncProducts, syncVariants } from './profile-placement'
 import {
-  type ProfileCartPart,
+  lineShips,
   profilesFreeShippingThreshold,
   quoteProfiles,
   type ShippingProfileInput,
   type ShippingProfileWrite,
-  splitValue,
+  splitProfileParts,
 } from './profiles'
 import type { ShippingCartMeasure, ShippingDestination, ShippingQuote } from './rates'
 import {
@@ -40,11 +43,19 @@ import {
  */
 
 export type ShippingProfileSummary = ShippingProfileRow & {
-  /** Products placed in it; null for General (every other product). */
+  /** Products with at least one variant in it; null for General (every other product). */
   productCount: number | null
   zones: ShippingZoneWithRates[]
 }
-export type ShippingProfileDetail = ShippingProfileSummary & { productIds: string[] }
+
+export type ShippingProfileDetail = ShippingProfileSummary & {
+  /** Whole products in the profile. */
+  productIds: string[]
+  /** Variants placed in the profile on their own. */
+  variantIds: string[]
+  /** Every product with a variant in the profile, for the page's list. */
+  entries: ProfileProductEntry[]
+}
 
 /** A zone's profile: its own, or General when it has none (zones from seeds and older code). */
 const zoneProfileId = (zone: { profileId: string | null }, generalId: string) =>
@@ -60,16 +71,13 @@ export async function listShippingProfiles(
     .select()
     .from(shippingProfile)
     .orderBy(asc(shippingProfile.position), asc(shippingProfile.createdAt))
-  const counts = await tx
-    .select({ profileId: shippingProfileProduct.profileId, n: count() })
-    .from(shippingProfileProduct)
-    .groupBy(shippingProfileProduct.profileId)
+  const products = await profileProducts(tx)
   const zones = await listShippingZones(tx)
   return [...rows]
     .sort((a, b) => Number(b.isDefault) - Number(a.isDefault))
     .map((p) => ({
       ...p,
-      productCount: p.isDefault ? null : (counts.find((c) => c.profileId === p.id)?.n ?? 0),
+      productCount: p.isDefault ? null : (products.get(p.id)?.size ?? 0),
       zones: zones.filter((z) => zoneProfileId(z, general.id) === p.id),
     }))
 }
@@ -82,44 +90,26 @@ export async function getShippingProfile(
   const profiles = await listShippingProfiles(tx, storeId)
   const found = profiles.find((p) => p.id === id)
   if (!found) return null
-  const products = found.isDefault
-    ? []
-    : await tx
-        .select({ id: shippingProfileProduct.productId })
-        .from(shippingProfileProduct)
-        .where(eq(shippingProfileProduct.profileId, id))
-  return { ...found, productIds: products.map((p) => p.id) }
-}
-
-/** Put exactly `productIds` in a custom profile; products in another profile move here. */
-async function syncProducts(
-  tx: StoreTx,
-  storeId: string,
-  profileId: string,
-  productIds: readonly string[],
-): Promise<void> {
-  const wanted = [...new Set(productIds)]
-  await tx
-    .delete(shippingProfileProduct)
-    .where(
-      wanted.length
-        ? and(
-            eq(shippingProfileProduct.profileId, profileId),
-            notInArray(shippingProfileProduct.productId, wanted),
-          )
-        : eq(shippingProfileProduct.profileId, profileId),
-    )
-  if (wanted.length === 0) return
-  // Only this store's products (RLS hides the rest), so a foreign id is dropped, not linked.
-  const known = await tx.select({ id: product.id }).from(product).where(inArray(product.id, wanted))
-  if (known.length === 0) return
-  await tx
-    .insert(shippingProfileProduct)
-    .values(known.map((p) => ({ storeId, profileId, productId: p.id })))
-    .onConflictDoUpdate({
-      target: [shippingProfileProduct.storeId, shippingProfileProduct.productId],
-      set: { profileId },
-    })
+  if (found.isDefault) return { ...found, productIds: [], variantIds: [], entries: [] }
+  const products = await tx
+    .select({ id: shippingProfileProduct.productId })
+    .from(shippingProfileProduct)
+    .where(eq(shippingProfileProduct.profileId, id))
+  const variants = await tx
+    .select({ id: shippingProfileVariant.variantId, productId: variant.productId })
+    .from(shippingProfileVariant)
+    .innerJoin(variant, eq(variant.id, shippingProfileVariant.variantId))
+    .where(eq(shippingProfileVariant.profileId, id))
+  const entries = await profileProductEntries(tx, id, [
+    ...products.map((p) => p.id),
+    ...variants.map((v) => v.productId),
+  ])
+  return {
+    ...found,
+    productIds: products.map((p) => p.id),
+    variantIds: variants.map((v) => v.id),
+    entries,
+  }
 }
 
 export async function createShippingProfile(
@@ -135,10 +125,14 @@ export async function createShippingProfile(
     .returning({ id: shippingProfile.id })
   if (!made) throw new Error('shipping profile insert returned nothing')
   await syncProducts(tx, storeId, made.id, input.productIds)
+  await syncVariants(tx, storeId, made.id, input.variantIds)
   return (await getShippingProfile(tx, storeId, made.id)) as ShippingProfileDetail
 }
 
-/** Rename a profile and set its products. General keeps every product not placed elsewhere. */
+/**
+ * Rename a profile and set its products and variants. General keeps every product and variant
+ * not placed elsewhere.
+ */
 export async function updateShippingProfile(
   tx: StoreTx,
   storeId: string,
@@ -151,12 +145,16 @@ export async function updateShippingProfile(
     .where(eq(shippingProfile.id, id))
     .returning({ id: shippingProfile.id, isDefault: shippingProfile.isDefault })
   if (!row) throw new CommerceError('NOT_FOUND', `Shipping profile ${id} not found`, { storeId })
-  if (!row.isDefault) await syncProducts(tx, storeId, id, input.productIds)
+  if (!row.isDefault) {
+    await syncProducts(tx, storeId, id, input.productIds)
+    await syncVariants(tx, storeId, id, input.variantIds)
+  }
   return (await getShippingProfile(tx, storeId, id)) as ShippingProfileDetail
 }
 
 /**
- * Delete a custom profile with its zones and rates; its products go back to General. Orders
+ * Delete a custom profile with its zones and rates; its products and variants go back to their
+ * product's profile or General. Orders
  * keep their own snapshot of the rate they paid. General cannot be deleted.
  */
 export async function deleteShippingProfile(tx: StoreTx, id: string): Promise<boolean> {
@@ -203,35 +201,24 @@ async function loadRateProfiles(tx: StoreTx): Promise<ShippingProfileInput[]> {
   }))
 }
 
-/** The custom profile each product is in; products missing from the map ship under General. */
-async function productProfiles(
-  tx: StoreTx,
-  productIds: readonly string[],
-): Promise<Map<string, string>> {
-  if (productIds.length === 0) return new Map()
-  const rows = await tx
-    .select({
-      productId: shippingProfileProduct.productId,
-      profileId: shippingProfileProduct.profileId,
-    })
-    .from(shippingProfileProduct)
-    .where(inArray(shippingProfileProduct.productId, [...new Set(productIds)]))
-  return new Map(rows.map((r) => [r.productId, r.profileId]))
-}
-
 /** A cart or order line as the profile quote needs it. */
 export type ProfileQuoteLine = {
   productId: string
+  variantId: string
   quantity: number
   unitPricePaise: number
   weightGrams: number | null
   giftCard: boolean
+  /** The variant's "requires shipping"; false leaves the line out of the quote. */
+  requiresShipping: boolean
 }
 
 /**
- * Quote `lines` going to `to`, split by profile (`quoteProfiles`). `valuePaise` is the whole
- * cart after discounts; with several profiles it is shared out in proportion to each one's
- * subtotal. A cart from one profile is priced on the whole cart, exactly as before profiles.
+ * Quote `lines` going to `to`, split by profile (`splitProfileParts`, `quoteProfiles`).
+ * `valuePaise` is the whole cart after discounts; with several profiles, or lines that do not
+ * ship, each profile takes its share in proportion to its subtotal. A cart whose every line
+ * ships in one profile is priced on the whole cart, exactly as before profiles. A cart with
+ * nothing to ship is `not_configured`: no charge and no option.
  */
 export async function quoteProfileLines(
   tx: StoreTx,
@@ -239,37 +226,19 @@ export async function quoteProfileLines(
   valuePaise: number,
   to: ShippingDestination,
 ): Promise<{ quote: ShippingQuote; measure: ShippingCartMeasure }> {
-  const weightOf = (ls: readonly ProfileQuoteLine[]) =>
-    ls.reduce((sum, l) => sum + l.quantity * (l.weightGrams ?? 0), 0)
-  const measure: ShippingCartMeasure = { valuePaise, weightGrams: weightOf(lines) }
   const profiles = await loadRateProfiles(tx)
   const general = profiles.find((p) => p.isDefault) as ShippingProfileInput
-  const shipped = lines.filter((l) => !l.giftCard)
-  const placed = await productProfiles(
-    tx,
-    shipped.map((l) => l.productId),
-  )
-  const groups = new Map<string, ProfileQuoteLine[]>()
-  for (const l of shipped) {
-    const id = placed.get(l.productId) ?? general.id
-    groups.set(id, [...(groups.get(id) ?? []), l])
+  const profileOf = await lineProfiles(tx, lines.filter(lineShips), general.id)
+  const split = splitProfileParts(lines, valuePaise, profileOf)
+  if (!split.measure) {
+    return { quote: { kind: 'not_configured' }, measure: { valuePaise: 0, weightGrams: 0 } }
   }
-  const entries = [...groups]
   // Local delivery and pickup in store at the store's locations come after the zone rates.
-  const local = localOptions(await loadLocalOptionLocations(tx), to, valuePaise)
-  if (entries.length <= 1) {
-    const parts: ProfileCartPart[] = [{ profileId: entries[0]?.[0] ?? general.id, measure }]
-    return { quote: withLocalOptions(quoteProfiles(profiles, parts, to), local), measure }
+  const local = localOptions(await loadLocalOptionLocations(tx), to, split.measure.valuePaise)
+  return {
+    quote: withLocalOptions(quoteProfiles(profiles, split.parts, to), local),
+    measure: split.measure,
   }
-  const values = splitValue(
-    valuePaise,
-    entries.map(([, ls]) => ls.reduce((sum, l) => sum + l.quantity * l.unitPricePaise, 0)),
-  )
-  const parts = entries.map(([profileId, ls], i) => ({
-    profileId,
-    measure: { valuePaise: values[i] ?? 0, weightGrams: weightOf(ls) },
-  }))
-  return { quote: withLocalOptions(quoteProfiles(profiles, parts, to), local), measure }
 }
 
 /**
@@ -285,18 +254,24 @@ export async function cartShippingHintFor(
   const charged = profiles.some((p) => p.zones.length > 0)
   if (!charged) return { charged, freeAbovePaise: null }
   const general = profiles.find((p) => p.isDefault) as ShippingProfileInput
-  const productIds = cartId
-    ? (
-        await tx
-          .selectDistinct({ id: variant.productId })
-          .from(cartLine)
-          .innerJoin(variant, eq(variant.id, cartLine.variantId))
-          .innerJoin(product, eq(product.id, variant.productId))
-          .where(and(eq(cartLine.cartId, cartId), eq(product.isGiftCard, false)))
-      ).map((r) => r.id)
+  const lines = cartId
+    ? await tx
+        .select({
+          variantId: cartLine.variantId,
+          productId: variant.productId,
+          giftCard: product.isGiftCard,
+          requiresShipping: variant.requiresShipping,
+        })
+        .from(cartLine)
+        .innerJoin(variant, eq(variant.id, cartLine.variantId))
+        .innerJoin(product, eq(product.id, variant.productId))
+        .where(eq(cartLine.cartId, cartId))
     : []
-  const placed = await productProfiles(tx, productIds)
-  const ids = productIds.map((id) => placed.get(id) ?? general.id)
+  const shipped = lines.filter(lineShips)
+  // A cart of only things that never ship (a service, a download) has no shipping to promise.
+  if (lines.length > 0 && shipped.length === 0) return { charged: false, freeAbovePaise: null }
+  const profileOf = await lineProfiles(tx, shipped, general.id)
+  const ids = [...new Set(shipped.map(profileOf))]
   return { charged, freeAbovePaise: profilesFreeShippingThreshold(profiles, ids) }
 }
 
@@ -313,7 +288,8 @@ export type CartShippingQuote = ShippingQuote & {
  * Rates for a cart going to `to`, priced the way `placeOrder` prices them:
  * bands and thresholds read the subtotal after the discount in force, lines are
  * split by shipping profile (`quoteProfileLines`), and a free-shipping discount
- * zeroes the price. A basket of only gift cards ships nothing.
+ * zeroes the price. A basket of only gift cards, or of variants that need no shipping, ships
+ * nothing.
  */
 export async function quoteCartShipping(
   ctx: StoreContext,
@@ -330,14 +306,17 @@ export async function quoteCartShipping(
       quantity: cartLine.quantity,
       unitPricePaise: cartLine.unitPricePaise,
       productId: variant.productId,
+      variantId: cartLine.variantId,
       weightGrams: variant.weightGrams,
       giftCard: product.isGiftCard,
+      requiresShipping: variant.requiresShipping,
     })
     .from(cartLine)
     .innerJoin(variant, eq(variant.id, cartLine.variantId))
     .innerJoin(product, eq(product.id, variant.productId))
     .where(eq(cartLine.cartId, cartId))
-  if (!c || lines.length === 0 || lines.every((l) => l.giftCard)) {
+  // Gift cards and variants that need no shipping: nothing to charge for, nothing to pick.
+  if (!c || !lines.some(lineShips)) {
     return { kind: 'not_configured', freeShippingDiscount: false }
   }
   const { outcome } = await resolveCartDiscount(ctx, cartId, c.discountCode, {

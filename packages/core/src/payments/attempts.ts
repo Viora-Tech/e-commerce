@@ -2,19 +2,23 @@ import { address, type Db, order, orderLine, payment, store, withStore } from '@
 import {
   type CheckoutSession,
   type CreatePaymentInput,
+  isGatewayKeysRefused,
+  keysRefusedError,
   type PaymentProvider,
   readableError,
 } from '@commerce/payments'
-import { and, desc, eq, isNull, ne } from 'drizzle-orm'
+import { and, desc, eq, isNull, notInArray } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 import { CommerceError } from '../errors'
-import { GIFT_CARD_PROVIDER } from '../gift-cards/service'
+import { isOpenCheckoutDraft } from '../order/checkout-draft'
 import { captureModeFor } from './capture'
 import { applyPaymentStatus } from './confirm'
 import { type FallbackTry, runWithFallbacks } from './fallback'
+import { noteGatewayKeysRefused } from './gateway-health'
 import { isGatewayProvider, type OnlineMethodId } from './methods'
 import { methodsForGateway } from './routing'
 import { parsePaymentSettings } from './settings'
+import { SPLIT_TENDER_PROVIDERS } from './split-tender'
 import { OPEN_ATTEMPT_STATUSES, type PaymentRowStatus } from './transitions'
 
 /*
@@ -37,6 +41,11 @@ export type StartedPayment = {
   /** True when this call captured the money (providers that capture at creation). */
   becameCaptured: boolean
   error: string | null
+  /**
+   * The gateway refused the store's API keys (a merchant configuration error, not the
+   * shopper's): checkout offers another way to pay on the same order instead of a retry.
+   */
+  keysRefused?: boolean | undefined
 }
 
 export class PaymentNotRetryable extends CommerceError {
@@ -53,12 +62,14 @@ export const attemptKey = (orderId: string, attempt: number): string => `${order
 /** Until the gateway answers, the reference is our own placeholder. */
 const placeholderRef = (key: string): string => `attempt_${key}`
 
-/** The gateway attempts on an order, newest first. Gift card payments are not attempts. */
+/** The gateway attempts on an order, newest first. Gift card and store credit payments are not attempts. */
 export async function paymentAttempts(ctx: StoreContext, orderId: string) {
   return ctx.tx
     .select()
     .from(payment)
-    .where(and(eq(payment.orderId, orderId), ne(payment.provider, GIFT_CARD_PROVIDER)))
+    .where(
+      and(eq(payment.orderId, orderId), notInArray(payment.provider, [...SPLIT_TENDER_PROVIDERS])),
+    )
     .orderBy(desc(payment.attempt), desc(payment.id))
 }
 
@@ -134,7 +145,9 @@ async function claimAttempt(
     gateway?.capture === 'manual' && claimed.purpose !== 'balance' ? 'manual' : undefined
   const request: CreatePaymentInput = {
     orderId: o.id,
-    orderNumber: o.number,
+    // A checkout draft has no order number yet: the gateway shows its draft number (#D57).
+    orderNumber: o.status === 'draft' ? undefined : o.number,
+    draftNumber: o.status === 'draft' ? (o.draftNumber ?? undefined) : undefined,
     amountPaise: claimed.amountPaise,
     currency: 'INR',
     idempotencyKey: claimed.idempotencyKey ?? attemptKey(o.id, claimed.attempt),
@@ -274,13 +287,23 @@ export async function startPaymentAttempt(
       provider.id,
     )
   } catch (err) {
-    const failed = await markFailed(db, storeId, attemptId, message(err))
+    // Refused keys are the merchant's to fix: the gateway is marked unhealthy (checkout hides it)
+    // and the owner hears once. That bookkeeping never fails the shopper's checkout.
+    const refused = isGatewayKeysRefused(err)
+    const error = refused ? keysRefusedError(message(err)) : message(err)
+    const failed = await markFailed(db, storeId, attemptId, error)
+    if (refused) {
+      await noteGatewayKeysRefused(db, storeId, provider.id, message(err)).catch((e: unknown) =>
+        log.error('[payments] could not record refused gateway keys', e),
+      )
+    }
     return {
       attemptId,
       status: failed?.status ?? 'failed',
       session: null,
       becameCaptured: false,
-      error: message(err),
+      error,
+      keysRefused: refused,
     }
   }
 
@@ -345,7 +368,7 @@ async function reopenOnGateway(
     const [failed] = await tx.select().from(payment).where(eq(payment.id, failedAttemptId))
     if (failed?.status !== 'failed') return null
     const [o] = await tx.select().from(order).where(eq(order.id, failed.orderId)).for('update')
-    if (o?.status !== 'open' || o.checkoutPaidAt) return null
+    if (!o || !(o.status === 'open' || isOpenCheckoutDraft(o)) || o.checkoutPaidAt) return null
     const [latest] = await paymentAttempts({ storeId, tx }, failed.orderId)
     if (latest?.id !== failed.id) return null
     const next = await createPaymentAttempt(
@@ -394,7 +417,10 @@ export async function retryPayment(
 ): Promise<{ attempt: PaymentAttempt; created: boolean }> {
   const [o] = await ctx.tx.select().from(order).where(eq(order.id, orderId)).for('update')
   if (!o) throw new PaymentNotRetryable(orderId, 'not found', ctx.storeId)
-  if (o.status !== 'open') throw new PaymentNotRetryable(orderId, o.status, ctx.storeId)
+  // A checkout draft waits for its money like an open order does, until it expires.
+  if (o.status !== 'open' && !isOpenCheckoutDraft(o)) {
+    throw new PaymentNotRetryable(orderId, o.draftExpiredAt ? 'expired' : o.status, ctx.storeId)
+  }
   if (o.checkoutPaidAt) throw new PaymentNotRetryable(orderId, 'already paid', ctx.storeId)
   // Balance attempts on a pre-order are a separate collection, never retried from here.
   const attempts = (await paymentAttempts(ctx, orderId)).filter((a) => a.purpose === 'order')

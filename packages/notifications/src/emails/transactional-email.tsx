@@ -1,10 +1,9 @@
 import { Section } from '@react-email/components'
 import type { EmailBrandInfo, TemplateData } from '../types'
-import type { HeroShot, ParcelsBlockProps, TaxLine } from './components'
+import type { ParcelsBlockProps, TaxLine } from './components'
 import {
   Body,
   CodeBox,
-  Hero,
   Intro,
   ItemsPanel,
   LinkLine,
@@ -21,11 +20,10 @@ export type TransactionalEmailProps = {
   storeAddress?: string | undefined
   brand?: EmailBrandInfo | undefined
   previewText: string
+  /** The small grey line above the heading ("Order #42"). */
   eyebrow: string
-  /** The big uppercase line in the coloured hero ("Order confirmed"). */
-  heroTitle: string
-  heroLine?: string | undefined
-  shot?: HeroShot | undefined
+  /** A sign-in or confirmation code, shown large under the text. */
+  code?: { label: string; value: string } | undefined
   /** A four-step tracker under the hero (delivery or return progress). */
   steps?: { labels: string[]; current: number } | undefined
   heading: string
@@ -52,8 +50,9 @@ export type TransactionalEmailProps = {
 }
 
 /**
- * The one template every transactional message renders through, in the store's own colours
- * (owner, 3 Nov 2026: the "Brand" look). Copy stays data-driven (templates/content.ts); this
+ * The one template every transactional message renders through: the store's logo, one clear
+ * heading and line, the button in the store's colour, then the order (owner, 8 Nov 2026: plain,
+ * no coloured banner or amount card). Copy stays data-driven (templates/content.ts); this
  * component only lays it out, and optional blocks render only when the caller passes that data.
  */
 export function TransactionalEmail(p: TransactionalEmailProps) {
@@ -69,21 +68,15 @@ export function TransactionalEmail(p: TransactionalEmailProps) {
       internal={p.internal}
       labels={p.labels}
     >
-      <Hero
-        colours={colours}
-        eyebrow={p.eyebrow}
-        title={p.heroTitle}
-        line={p.heroLine}
-        shot={p.shot}
-      />
-      {p.steps ? (
-        <Steps colours={colours} labels={p.steps.labels} current={p.steps.current} />
-      ) : null}
-      <Intro heading={p.heading}>
+      <Intro eyebrow={p.eyebrow} heading={p.heading}>
         {paragraphs.map((t) => (
           <Body key={t}>{t}</Body>
         ))}
       </Intro>
+      {p.code ? <CodeBox colours={colours} label={p.code.label} code={p.code.value} /> : null}
+      {p.steps ? (
+        <Steps colours={colours} labels={p.steps.labels} current={p.steps.current} />
+      ) : null}
       {p.primaryAction ? (
         <PrimaryButton href={p.primaryAction.url} colours={colours}>
           {p.primaryAction.label}

@@ -140,6 +140,11 @@ export function totalsRows(doc: DocumentSnapshot, view: TemplateView) {
       rows.push({ label: 'CGST', value: formatAmount(t.cgstPaise) })
       rows.push({ label: 'SGST/UTGST', value: formatAmount(t.sgstPaise) })
     }
+    // One GST figure for the customer; the split above stays for the returns (Rule 46).
+    rows.push({
+      label: 'Total GST',
+      value: formatAmount(t.igstPaise + t.cgstPaise + t.sgstPaise),
+    })
   }
   return rows
 }

@@ -9,7 +9,6 @@ import {
   orderLine,
   payment,
   product,
-  productMedia,
   shipment,
   store,
   variant,
@@ -30,9 +29,10 @@ import type { StoreContext } from '../context'
 import { newsletterConfirmToken, newsletterConfirmUrl } from '../customers/newsletter'
 import { phoneBlindIndex } from '../customers/phone-crypto'
 import { storefrontOriginFor } from '../domains/origin'
-import { GIFT_CARD_PROVIDER } from '../gift-cards/service'
 import { mayNudgeKnownContact, phoneLookupVariants } from '../marketing/recipient'
+import { isOpenCheckoutDraft } from '../order/checkout-draft'
 import { orderParcelsView } from '../order/parcel-view'
+import { SPLIT_TENDER_PROVIDERS } from '../payments/split-tender'
 import { balanceOwed } from '../preorder/balance'
 import { balanceUrl, invoiceUrl, thankYouUrl } from '../preorder/balance-link'
 import { parsePreorderStoreSettings } from '../preorder/store-settings'
@@ -48,6 +48,7 @@ import {
   refundTemplateData,
   taxLines,
 } from './deliver-data'
+import { emailPicture, productCoverImages } from './email-images'
 import { isMessageOn } from './messages'
 import { paymentInstructionsOf } from './payment-instructions'
 import { parseNotificationSettings } from './settings'
@@ -109,16 +110,10 @@ export async function buildTemplateData(
     })
     .from(orderLine)
     .leftJoin(variant, eq(variant.id, orderLine.variantId))
-    .leftJoin(media, eq(media.id, variant.mediaId))
+    .leftJoin(media, and(eq(media.id, variant.mediaId), emailPicture))
     .where(eq(orderLine.orderId, orderId))
   const productIds = [...new Set(lines.map((l) => l.productId).filter((id): id is string => !!id))]
-  const images = productIds.length
-    ? await ctx.tx
-        .select({ productId: productMedia.productId, url: media.url })
-        .from(productMedia)
-        .innerJoin(media, eq(media.id, productMedia.mediaId))
-        .where(and(inArray(productMedia.productId, productIds), eq(productMedia.position, 0)))
-    : []
+  const covers = await productCoverImages(ctx.tx, productIds)
   const [cu] = o.customerId
     ? await ctx.tx.select().from(customer).where(eq(customer.id, o.customerId))
     : []
@@ -161,7 +156,7 @@ export async function buildTemplateData(
         quantity: l.quantity,
         priceLabel: formatMoney(l.quantity * l.unitPricePaise),
         imageUrl:
-          l.variantImage ?? images.find((i) => i.productId === l.productId)?.url ?? undefined,
+          l.variantImage ?? (l.productId ? covers.get(l.productId) : undefined) ?? undefined,
         ...(l.preorderNote ? { note: l.preorderNote } : {}),
       })),
       // Named after the rate ("Bluedart"), so an edit that changed the rate shows the new one.
@@ -410,7 +405,7 @@ export async function deliverCartRecovery(
 }
 
 /** Paid outside a gateway: never a "your payment did not go through" order. */
-const OFFLINE_METHODS: ReadonlySet<string> = new Set(['cod', 'manual', GIFT_CARD_PROVIDER])
+const OFFLINE_METHODS: ReadonlySet<string> = new Set(['cod', 'manual', ...SPLIT_TENDER_PROVIDERS])
 
 /**
  * Whether an order is still a "Payment pending" order (#1001 rules: a storefront checkout whose
@@ -425,10 +420,14 @@ async function stillPaymentPending(ctx: StoreContext, orderId: string): Promise<
       cartId: order.cartId,
       importedFrom: order.importedFrom,
       paymentMethod: order.paymentMethod,
+      draftSource: order.draftSource,
+      draftExpiredAt: order.draftExpiredAt,
     })
     .from(order)
     .where(eq(order.id, orderId))
-  if (o?.status !== 'open' || o.checkoutPaidAt || o.importedFrom || !o.cartId) return false
+  // An unpaid checkout kept as a draft (#D57) waits for its payment the same way.
+  const waiting = o?.status === 'open' || (o && isOpenCheckoutDraft(o))
+  if (!o || !waiting || o.checkoutPaidAt || o.importedFrom || !o.cartId) return false
   return !OFFLINE_METHODS.has(o.paymentMethod ?? 'manual')
 }
 
@@ -518,6 +517,18 @@ export async function deliverNotification(
       .from(order)
       .where(eq(order.id, input.orderId))
     if (o?.status !== 'open' || o.checkoutPaidAt) return []
+  }
+  // "Complete your transfer": only while the transfer checkout still waits as a draft.
+  if (input.template === 'transfer_requested') {
+    const [o] = await ctx.tx
+      .select({
+        status: order.status,
+        draftSource: order.draftSource,
+        draftExpiredAt: order.draftExpiredAt,
+      })
+      .from(order)
+      .where(eq(order.id, input.orderId))
+    if (!o || !isOpenCheckoutDraft(o)) return []
   }
   // "Your payment did not go through": only while the order still waits on an online payment.
   if (input.template === 'payment_pending' && !(await stillPaymentPending(ctx, input.orderId))) {

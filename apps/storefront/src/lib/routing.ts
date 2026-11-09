@@ -1,3 +1,5 @@
+import { CHAT_FRAME_PATH } from './inbox-frame'
+
 /**
  * Internal route segment every store page lives under. Never appears in a
  * public URL: the proxy rewrites `host/path` to `/-s/<storeId>/path`, and
@@ -8,6 +10,10 @@ export const INTERNAL_PREFIX = '/-s'
 export const PASSWORD_PREFIX = '/-p'
 /** Internal segment for the platform login domain (`ACCOUNTS_URL`): provider sign-in and callbacks. */
 export const ACCOUNTS_PREFIX = '/-a'
+/** Internal segment for a page sent as plain HTML (`lib/plain-html`), with no React runtime. */
+export const PLAIN_PREFIX = '/-h'
+/** Internal segment for the Inbox chat frame a plain HTML page opens (`lib/inbox-frame.ts`). */
+export const CHAT_FRAME_PREFIX = '/-c'
 
 const internal = (pathname: string, prefix: string) =>
   pathname === prefix || pathname.startsWith(`${prefix}/`)
@@ -21,13 +27,17 @@ export function routeForStore(storeId: string, pathname: string): Route {
   if (
     internal(pathname, INTERNAL_PREFIX) ||
     internal(pathname, PASSWORD_PREFIX) ||
-    internal(pathname, ACCOUNTS_PREFIX)
+    internal(pathname, ACCOUNTS_PREFIX) ||
+    internal(pathname, PLAIN_PREFIX) ||
+    internal(pathname, CHAT_FRAME_PREFIX)
   ) {
     return { kind: 'forbidden' }
   }
   if (pathname.startsWith('/_next/') || pathname.startsWith('/api/')) {
     return { kind: 'passthrough' }
   }
+  if (pathname === CHAT_FRAME_PATH)
+    return { kind: 'rewrite', path: `${CHAT_FRAME_PREFIX}/${storeId}` }
   const rest = pathname === '/' ? '' : pathname
   return { kind: 'rewrite', path: `${INTERNAL_PREFIX}/${storeId}${rest}` }
 }
@@ -76,6 +86,8 @@ export const DERIVED_HEADERS = [
   'x-form-posted',
   'x-pathname',
   'x-listing',
+  // The shared-cache answer the proxy chose for a plain HTML page (`lib/plain-html/route.ts`).
+  'x-edge-cache-control',
   // Markets (`lib/markets.ts` MARKET_HEADERS).
   'x-market-id',
   'x-market-currency',

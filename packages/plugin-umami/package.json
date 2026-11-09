@@ -7,6 +7,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./settings": "./src/settings.ts",
+    "./tracker": "./src/tracker.ts",
     "./report": "./src/report.ts",
     "./client": "./src/client.ts"
   },

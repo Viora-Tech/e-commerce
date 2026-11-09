@@ -66,6 +66,9 @@ export function buildOrderNotes(input: CreatePaymentInput): Record<string, strin
   const candidates: Record<string, string | undefined> = {
     orderId: input.orderId,
     orderNumber: input.orderNumber != null ? String(input.orderNumber) : undefined,
+    // A checkout draft (#D57): matched by id on every webhook, never by number.
+    draft_id: input.draftNumber != null ? input.orderId : undefined,
+    draftNumber: input.draftNumber != null ? `D${input.draftNumber}` : undefined,
     // Echoed back on every payment webhook, so an attempt can be matched even if
     // recording the Razorpay order id failed after the API call.
     idempotencyKey: input.idempotencyKey,
@@ -92,12 +95,17 @@ const RECEIPT_MAX_LEN = 40
 
 /**
  * The receipt merchants see in the Razorpay dashboard: `order-1042`, and
- * `order-1042-2` for the second attempt. Razorpay has no idempotency header for
+ * `order-1042-2` for the second attempt; `draft-D57-2` while the checkout is a draft. Razorpay has no idempotency header for
  * orders, so our own dedupe (one gateway call per attempt row) does that job.
  */
 export function buildReceipt(input: CreatePaymentInput): string {
   const attempt = input.idempotencyKey?.split(':').at(-1)
-  const base = input.orderNumber != null ? `order-${input.orderNumber}` : input.orderId
+  const base =
+    input.orderNumber != null
+      ? `order-${input.orderNumber}`
+      : input.draftNumber != null
+        ? `draft-D${input.draftNumber}`
+        : input.orderId
   const receipt = attempt && attempt !== '1' ? `${base}-${attempt}` : base
   return receipt.slice(0, RECEIPT_MAX_LEN)
 }
@@ -366,13 +374,15 @@ export const razorpayFactory: PaymentProviderFactory<RazorpayConfig> = {
   methods: ['upi', 'card', 'netbanking', 'wallet', 'emi'],
   fields: [
     { key: 'keyId', label: 'Key ID', required: true },
-    { key: 'keySecret', label: 'Key secret', secret: true },
+    // Not required: "Connect Razorpay" (OAuth) needs none. Pasted keys do.
+    { key: 'keySecret', label: 'Key secret', secret: true, connect: true },
     {
       key: 'webhookSecret',
       label: 'Webhook secret',
       secret: true,
       required: true,
-      help: 'Set the same value in the Razorpay dashboard webhook.',
+      generate: true,
+      help: 'Generate one, then paste the same value as the secret of your Razorpay dashboard webhook.',
     },
     { key: 'displayName', label: 'Name shown in checkout' },
     {

@@ -79,13 +79,13 @@ export default function VariantMetafieldsCard({
       setDefinitions([])
       return
     }
-    Promise.all(
-      list.map((ownerId) => api.metaobjects.metafields({ ownerType: 'variant', ownerId })),
-    )
-      .then((rows) => {
+    // Every variant in one call (it used to be one request per variant).
+    api.metaobjects
+      .variantMetafields({ variantIds: list })
+      .then((res) => {
         if (!live) return
-        const loaded = Object.fromEntries(list.map((id, i) => [id, rows[i]?.values ?? {}]))
-        setDefinitions(rows[0]?.definitions ?? [])
+        const loaded = Object.fromEntries(list.map((id) => [id, res.values[id] ?? {}]))
+        setDefinitions(res.definitions)
         setValues(loaded)
         setSaved(loaded)
         setErrors({})

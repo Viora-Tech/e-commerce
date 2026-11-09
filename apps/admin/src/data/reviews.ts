@@ -293,7 +293,7 @@ export const reviewsContent = {
       previewTitle: 'Review request email',
       previewSubject: 'Subject',
       previewBody: (store: string) =>
-        `Hi Asha, how is it going?\n\nYour order arrived a few days ago. Would you tell other shoppers what you think of it? It takes a minute, and photos are welcome.\n\n[Write a review]\n\nNot keen on these emails? The "Stop review emails" link below ends them.\n\n${store}`,
+        `Hi Asha, how was your order?\n\nYour order arrived a few days ago. Would you tell other shoppers what you think of it? It takes a minute, and photos are welcome.\n\n[Write a review]\n\nNot keen on these emails? The "Stop review emails" link below ends them.\n\n${store}`,
       sampleProduct: 'Maboroshi mousepad',
       close: 'Close',
     },

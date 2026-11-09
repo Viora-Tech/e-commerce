@@ -46,10 +46,15 @@ COPY --from=pruner /repo/commerce.config.ts ./commerce.config.ts
 RUN mkdir -p apps/storefront/public
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
-# See apps/admin/Dockerfile's identical line for why this is here (fits the GitHub Actions
-# runner that builds this image).
-ENV NODE_OPTIONS=--max-old-space-size=3072
-# Turbopack's build cache in a BuildKit cache mount: see apps/admin/Dockerfile's build step.
+# Lean build (packages/config/src/lean-build.ts): types are checked before every PR with
+# TypeScript 7 (`bun run typecheck`), so the build skips Next's slower TypeScript 5.9 pass, and
+# two page workers instead of one per core. Measured: fits a 4 GB machine with 4 GB of swap.
+ENV BUILD_TYPECHECK=0
+ENV BUILD_CPUS=2
+# See apps/admin/Dockerfile's identical line.
+ENV NODE_OPTIONS=--max-old-space-size=4096
+# Turbopack's build cache in a BuildKit cache mount, and the build split into `compile` then
+# `generate` (package.json): see apps/admin/Dockerfile's build step.
 ARG TARGETPLATFORM
 RUN --mount=type=cache,id=commerce-storefront-next-cache-$TARGETPLATFORM,sharing=locked,target=/repo/apps/storefront/.next/cache \
   bun run build --filter=@commerce/storefront
@@ -64,6 +69,8 @@ RUN cd /repo/apps/storefront/.next/standalone/node_modules/.bun \
 # Plain Alpine (the release the bun image is built on): the server runs on Node, so the bun
 # binary that `base` carries (~90 MB) has no job here.
 FROM alpine:3.22 AS runner
+# Alpine fixes published after the base image (musl, zlib).
+RUN apk upgrade --no-cache
 # The standalone Next server runs on Node: Bun 1.3.11 fails to load Next's compiled
 # server runtime ("Expected CommonJS module to have a function wrapper").
 # Node comes from the official image, not Alpine's package: Alpine's nodejs lags security

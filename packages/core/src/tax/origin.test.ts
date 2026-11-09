@@ -177,8 +177,9 @@ async function orderTo(seed: Seeded, stateCode: string) {
         cartId: c?.id as string,
         paymentProvider: new FakePaymentProvider(),
         checkout: {
-          email: 'a@example.com',
-          phone: '9820012345',
+          // One shopper per state, so the same item to two states is not a repeated checkout.
+          email: `${stateCode.toLowerCase()}@example.com`,
+          phone: `98200${String(stateCode.charCodeAt(0) * 100 + stateCode.charCodeAt(1)).padStart(5, '0')}`,
           name: 'Aarav',
           address: { line1: '1 Road', city: 'City', stateCode, pincode: PINS[stateCode] ?? '' },
         },

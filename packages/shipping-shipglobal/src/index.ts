@@ -7,6 +7,6 @@ export {
   type ShipglobalServiceCode,
 } from './client'
 export { shipglobalFactory } from './factory'
-export { shipglobalService, tokenLifetimeMs } from './mapping'
+export { serviceOrDefault } from './mapping'
 export { shipglobalPlugin } from './plugin'
 export { type ShipglobalConfig, ShipglobalProvider } from './shipglobal'

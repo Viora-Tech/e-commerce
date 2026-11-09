@@ -188,6 +188,8 @@ export const product = pgTable(
        inserted, so two saves at once could both take one (schema review 2026-10-27). */
     uniqueIndex('product_store_handle').on(t.storeId, t.handle),
     index('product_store_status').on(t.storeId, t.status, t.createdAt),
+    /** The Products list with no status filter, newest first, and Home's latest products (0231). */
+    index('product_store_created').on(t.storeId, t.createdAt),
     index('product_preorder_campaign')
       .on(t.preorderCampaignId)
       .where(sql`${t.preorderCampaignId} is not null`),
@@ -598,6 +600,11 @@ export const variant = pgTable(
     taxable: boolean('taxable').notNull().default(true),
     /** false = always purchasable regardless of inventory_level. */
     trackInventory: boolean('track_inventory').notNull().default(true),
+    /**
+     * Shopify's "This is a physical product": false for a service or a download, which takes no
+     * shipping charge, no shipping profile and never goes into a shipment.
+     */
+    requiresShipping: boolean('requires_shipping').notNull().default(true),
     weightGrams: integer('weight_grams'),
     /**
      * Unit the merchant types the weight in on the product page; `weight_grams` stays the source of
@@ -884,6 +891,10 @@ export const inventoryLevel = pgTable(
   (t) => [
     uniqueIndex('inventory_level_variant_location').on(t.variantId, t.locationId),
     index('inventory_level_variant_sellable').on(t.variantId).where(sql`${t.fulfilsOnline}`),
+    /** `sellableStock` groups a store's selling rows by variant (admin lists, Home) (0231). */
+    index('inventory_level_store_sellable')
+      .on(t.storeId, t.variantId)
+      .where(sql`${t.fulfilsOnline}`),
     index('inventory_level_location').on(t.locationId),
   ],
 )
@@ -912,7 +923,11 @@ export const inventoryAdjustment = pgTable(
     actorName: text('actor_name').default(sql`nullif(current_setting('app.actor_name', true), '')`),
     createdAt: createdAt(),
   },
-  (t) => [index('inventory_adjustment_variant').on(t.variantId, t.createdAt)],
+  (t) => [
+    index('inventory_adjustment_variant').on(t.variantId, t.createdAt),
+    /** Home's stock-change series reads a store's recent adjustments (0231). */
+    index('inventory_adjustment_store_created').on(t.storeId, t.createdAt),
+  ],
 )
 
 // purchase_order and purchase_order_line: purchasing-schema.ts (suppliers, landed cost).
@@ -1024,6 +1039,8 @@ export const customer = pgTable(
   (t) => [
     uniqueIndex('customer_store_email').on(t.storeId, t.email),
     index('customer_store_phone_index').on(t.storeId, t.phoneIndex),
+    /** The Customers list's default sort (newest first) and its date filters (0231). */
+    index('customer_store_created').on(t.storeId, t.createdAt),
   ],
 )
 
@@ -1295,6 +1312,12 @@ export const order = pgTable(
      * draft converts. Null on orders that never were drafts.
      */
     draftNumber: integer('draft_number'),
+    /** Who made the draft (0233): `checkout` (a shopper's unpaid checkout) or `staff`; null = staff. */
+    draftSource: text('draft_source', { enum: ['checkout', 'staff'] }),
+    /** When a checkout draft stopped waiting for payment (7 days without activity). */
+    draftExpiredAt: timestamp('draft_expired_at', { withTimezone: true }),
+    /** A checkout draft's last activity; its repeat match, expiry and list order count from it. */
+    lastActivityAt: timestamp('last_activity_at', { withTimezone: true }),
     customerId: uuid('customer_id').references(() => customer.id),
     email: text('email'),
     phone: text('phone'),
@@ -1512,7 +1535,14 @@ export const order = pgTable(
       .where(sql`${t.draftNumber} is not null`),
     /** The All orders list: newest first. */
     index('order_store_placed').on(t.storeId, t.placedAt),
+    /** Drafts → From checkout and the 7-day expiry (0233). */
+    index('order_store_checkout_drafts')
+      .on(t.storeId, t.lastActivityAt)
+      .where(sql`${t.status} = 'draft' and ${t.draftSource} = 'checkout'`),
+    check('order_draft_source_check', sql`${t.draftSource} in ('checkout', 'staff')`),
     index('order_customer').on(t.customerId).where(sql`${t.customerId} is not null`),
+    /** "Delete test orders" shows only when the store has some: counted on every list load (0231). */
+    index('order_store_test').on(t.storeId).where(sql`${t.isTest}`),
     check('order_tax_regime_check', sql`${t.taxRegime} in (${oneOf(ORDER_TAX_REGIMES)})`),
     /** The COD & RTO sweep reads orders still waiting for the shopper's answer. */
     index('order_cod_verification_open')
@@ -1599,6 +1629,8 @@ export const orderLine = pgTable(
     hsCode: text('hs_code'),
     /** A gift card sold on this line: a voucher, so it stays out of tax invoices and shipping. */
     giftCard: boolean('gift_card').notNull().default(false),
+    /** The variant's "requires shipping" when the order was placed: false never goes in a shipment. */
+    requiresShipping: boolean('requires_shipping').notNull().default(true),
     /** Sold under pre-order rules (the product/variant had pre-order on at order time). */
     preorder: boolean('preorder').notNull().default(false),
     /** Expected ship date shown on the order/email; resolved from the product's settings at order time. */
@@ -1828,6 +1860,8 @@ export const payment = pgTable(
     /* Confirmation and gateway webhooks find the attempt by the gateway's reference. */
     index('payment_provider_ref').on(t.providerRef),
     index('payment_order').on(t.orderId),
+    /** Store health: a gateway's latest payment (0231). */
+    index('payment_store_provider_created').on(t.storeId, t.provider, t.createdAt),
     check(
       'payment_status_check',
       sql`${t.status} in ('created', 'pending', 'authorized', 'captured', 'failed', 'cancelled', 'refunded')`,
@@ -1835,12 +1869,12 @@ export const payment = pgTable(
     uniqueIndex('payment_store_idempotency_key')
       .on(t.storeId, t.idempotencyKey)
       .where(sql`${t.idempotencyKey} is not null`),
-    /* At most one gateway capture per order. Gift cards are split tender by
+    /* At most one gateway capture per order. Gift cards and store credit are split tender by
        design; a capture flagged refund-needed is money on its way back. */
     uniqueIndex('payment_one_capture_per_order')
       .on(t.storeId, t.orderId)
       .where(
-        sql`${t.status} = 'captured' and ${t.provider} <> 'gift_card' and not ${t.multiCapture} and not ${t.refundNeeded}`,
+        sql`${t.status} = 'captured' and ${t.provider} not in ('gift_card', 'store_credit') and not ${t.multiCapture} and not ${t.refundNeeded}`,
       ),
     check('payment_purpose_check', sql`${t.purpose} in ('order', 'balance')`),
     /* One balance attempt in flight per order: two "Pay balance" taps get the same one. */
@@ -1893,7 +1927,12 @@ export const refund = pgTable(
     /** Kept current by the `touch_updated_at` trigger (0177). */
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [index('refund_order').on(t.orderId), index('refund_payment').on(t.paymentId)],
+  (t) => [
+    index('refund_order').on(t.orderId),
+    index('refund_payment').on(t.paymentId),
+    /** Home and Analytics read a store's refunds in a date range (0231). */
+    index('refund_store_created').on(t.storeId, t.createdAt),
+  ],
 )
 
 /** Staff notes on an order; the timeline shows them beside system events. */
@@ -1947,7 +1986,37 @@ export const paymentEvent = pgTable(
     receivedAt: timestamp('received_at', { withTimezone: true }).notNull().defaultNow(),
     processedAt: timestamp('processed_at', { withTimezone: true }),
   },
-  (t) => [uniqueIndex('payment_event_provider_event').on(t.storeId, t.provider, t.eventId)],
+  (t) => [
+    uniqueIndex('payment_event_provider_event').on(t.storeId, t.provider, t.eventId),
+    /** An order's payment history reads events from its first payment on (0231). */
+    index('payment_event_store_received').on(t.storeId, t.receivedAt),
+  ],
+)
+
+/**
+ * A payment gateway that refused the store's API keys (0234). While `unhealthy_since` is set,
+ * checkout hides the gateway; from `retest_after` on, checkout runs the gateway's read-only key
+ * check and shows it again once that passes. `alerted_at` is when the owner was told about this
+ * incident (once per incident). Cleared (`unhealthy_since` null) when keys pass a check again.
+ */
+export const paymentGatewayHealth = pgTable(
+  'payment_gateway_health',
+  {
+    storeId: storeId(),
+    /** The gateway provider id (`razorpay`, `cashfree`, ...). */
+    gateway: text('gateway').notNull(),
+    unhealthySince: timestamp('unhealthy_since', { withTimezone: true }),
+    /** The gateway's words for the latest refusal; never a key. */
+    lastError: text('last_error'),
+    lastFailedAt: timestamp('last_failed_at', { withTimezone: true }),
+    /** When checkout may run the key check again (the cool-down). */
+    retestAfter: timestamp('retest_after', { withTimezone: true }),
+    alertedAt: timestamp('alerted_at', { withTimezone: true }),
+    /** When the keys last passed a check (a re-test, a save, "Test connection"). */
+    lastOkAt: timestamp('last_ok_at', { withTimezone: true }),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex('payment_gateway_health_store_gateway').on(t.storeId, t.gateway)],
 )
 
 /** One row per message attempted, so admin can see what a shopper was told and retries never double-send. */

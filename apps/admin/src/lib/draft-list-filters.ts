@@ -1,8 +1,23 @@
-import { parseAsString } from 'nuqs'
+// From nuqs/server, like lib/date-filter.ts: app/(admin)/orders/drafts/page.tsx imports this.
+import { parseAsString } from 'nuqs/server'
 import type { DateFilterValue, FilterGroup } from '@/components/table/filter-panel'
+import type { DraftListFilter } from '@/data/drafts'
 import type { draftFiltersContent } from '@/data/order-list-filters'
 import { dateFilterBounds, hasDateFilter, parseAsDateFilter } from '@/lib/date-filter'
 import { DAY_PRESETS, daysBackStart, moneyRangeGroup, paiseBound } from '@/lib/list-filter-groups'
+
+/**
+ * The view picker's value as the list query's `source` and `status`: "From checkout" and "Created
+ * by staff" pick who made the draft, "Open" and "Invoice sent" are staff drafts in that state.
+ */
+export function draftViewInput(view: DraftListFilter | null): {
+  source?: 'checkout' | 'staff'
+  status?: 'open' | 'invoice_sent'
+} {
+  if (view === 'checkout' || view === 'staff') return { source: view }
+  if (view === 'open' || view === 'invoice_sent') return { source: 'staff', status: view }
+  return {}
+}
 
 /** The Drafts filter panel: when it was made and what it adds up to. */
 export type DraftFilters = {

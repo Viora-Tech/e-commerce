@@ -7,7 +7,7 @@
  * Shopify with the reason. A discount with several codes becomes one discount
  * per code here. Matched on the import mapping, then the code.
  */
-import { DiscountInputSchema, normaliseCode } from '@commerce/core'
+import { DiscountInputSchema, discountType, normaliseCode } from '@commerce/core'
 import { collection, discount, product } from '@commerce/db'
 import { eq, inArray } from 'drizzle-orm'
 import { fetchDiscounts, MAX_CODES } from './api-discounts'
@@ -124,6 +124,8 @@ async function writeOne(
   const sourceId = code ? `${d.sourceId}#${normaliseCode(code.code)}` : d.sourceId
   const parsed = DiscountInputSchema.safeParse({
     title: d.title.trim().slice(0, 120) || ref,
+    // Amount off products, amount off order or free shipping, as Shopify had it.
+    type: d.method === 'free_shipping' ? 'shipping' : d.items.kind === 'all' ? 'order' : 'products',
     kind: d.kind,
     code: code?.code ?? null,
     method: d.method,
@@ -183,6 +185,7 @@ async function writeOne(
     const used = Math.max(code?.used ?? d.used, existing?.usedCount ?? 0)
     const row = {
       title: input.title,
+      type: discountType(input),
       kind: input.kind,
       code: input.kind === 'code' && input.code ? normaliseCode(input.code) : null,
       method: input.method,

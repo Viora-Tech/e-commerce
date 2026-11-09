@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import PageBody from '@/components/layout/page-body'
-import StickySideColumn from '@/components/layout/sticky-side-column'
+import StickyColumns from '@/components/layout/sticky-columns'
 
 type OrderPageFrameProps = {
   header: ReactNode
@@ -27,12 +27,13 @@ export default function OrderPageFrame({
       <PageBody className="mx-auto max-w-[75rem] gap-6 md:pt-5 md:pb-8 print:hidden">
         {header}
         {nextStep}
-        <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_23.5rem]">
-          <div className="flex min-w-0 flex-col gap-6">{main}</div>
-          <StickySideColumn as="aside" gap={6}>
-            {side}
-          </StickySideColumn>
-        </div>
+        <StickyColumns
+          main={main}
+          side={side}
+          sideAs="aside"
+          gap={6}
+          className="gap-6 lg:grid-cols-[minmax(0,1fr)_23.5rem]"
+        />
       </PageBody>
       {children}
     </>

@@ -27,7 +27,7 @@ import {
 } from '@commerce/core'
 import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
-import { BULK_MAX, can, heavy, PAGE_SIZE_MAX, SEARCH_MAX } from '../procedures'
+import { BULK_MAX, can, heavy, inputField, PAGE_SIZE_MAX, SEARCH_MAX } from '../procedures'
 import { loadBulkEditSheet } from '../services/bulk-edit.service'
 import {
   getProduct,
@@ -157,8 +157,15 @@ export const productsRouter = {
       return { outcome: await deleteProduct(context.tx, input.id) }
     }),
 
-  /** One action over many products: status, tags or delete. */
-  bulk: can(permissions.PRODUCTS_WRITE)
+  /**
+   * One action over many products: status, tags or delete. Deleting needs products.delete (and
+   * its "Needs approval" tick), as deleting one product does.
+   */
+  bulk: can(permissions.PRODUCTS_WRITE, (input) =>
+    inputField(inputField(input, 'action'), 'kind') === 'delete'
+      ? [permissions.PRODUCTS_DELETE]
+      : [],
+  )
     .use(heavy('bulk'))
     .input(
       z.object({
@@ -182,13 +189,15 @@ export const productsRouter = {
    * One save for the whole sheet: every row is checked first, then all of it is written in one
    * transaction, or none of it, with per-row errors. Stock cells also need inventory access.
    */
-  bulkEdit: can(permissions.PRODUCTS_WRITE)
+  bulkEdit: can(permissions.PRODUCTS_WRITE, (input) => {
+    const rows = inputField(input, 'rows')
+    return Array.isArray(rows) && rows.some((r) => inputField(r, 'stock'))
+      ? [permissions.INVENTORY_WRITE]
+      : []
+  })
     .use(heavy('bulk'))
     .input(BulkEditInputSchema)
     .handler(({ context, input }) => {
-      if (input.rows.some((r) => r.stock) && !context.scope.can(permissions.INVENTORY_WRITE)) {
-        throw new ORPCError('FORBIDDEN', { message: 'Your role cannot change stock.' })
-      }
       return bulkEdit(context.tx, context.scope.storeId, input.rows, {
         stockReason: input.stockReason,
       }).then(async (result) => {
@@ -317,7 +326,10 @@ export const productsRouter = {
       }
     }),
 
-  /** Patch one variant: price, MRP, SKU, stock, or hide it on the storefront (`hiddenOnStore`). */
+  /**
+   * Patch one variant: price, MRP, SKU, stock, hide it on the storefront (`hiddenOnStore`), or
+   * say whether it is a physical product (`requiresShipping`).
+   */
   updateVariant: can(permissions.INVENTORY_WRITE)
     .input(
       z.object({
@@ -328,6 +340,8 @@ export const productsRouter = {
         onHand: z.number().int().min(0).optional(),
         /** Hidden variants are never shown or sold on the storefront, but stay in admin (#934). */
         hiddenOnStore: z.boolean().optional(),
+        /** Shopify's "This is a physical product": false takes no shipping and never ships. */
+        requiresShipping: z.boolean().optional(),
       }),
     )
     .handler(({ context, input: { id, ...patch } }) => updateVariant(context.tx, id, patch)),

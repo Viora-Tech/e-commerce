@@ -25,6 +25,8 @@ export type VariantInput = {
   hiddenOnStore?: boolean | undefined
   /** Sells on pre-order when the product does (default). False: sold out stays sold out. Undefined leaves it. */
   preorderAllowed?: boolean | undefined
+  /** "This is a physical product": false takes no shipping and never ships. Undefined leaves it. */
+  requiresShipping?: boolean | undefined
   weightGrams?: number | null | undefined
   /** Display unit for the weight on the product page; null shows kilograms. */
   weightUnit?: 'g' | 'kg' | 'lb' | 'oz' | null | undefined

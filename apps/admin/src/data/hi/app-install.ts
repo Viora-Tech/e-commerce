@@ -19,12 +19,14 @@ export default [
     },
     connect: {
       title: (name: string) => `${name} जोड़ें`,
-      intro: (name: string) =>
-        `${name} से अपने अकाउंट की जानकारी पेस्ट करें। जाँच के दौरान न कुछ बुक होता है, न कोई पैसा कटता है।`,
+      intro: (name: string, kind: 'payments' | 'shipping') =>
+        `${name} से अपने अकाउंट की जानकारी पेस्ट करें। ${kind === 'payments' ? 'जाँच में कोई पैसा नहीं कटता।' : 'जाँच में कुछ बुक नहीं होता।'}`,
       test: 'कनेक्शन जाँचें',
       testing: 'जाँच हो रही है…',
       testHint: (name: string) => `जाँचता है कि ${name} यह जानकारी मानता है।`,
       testFailed: 'कनेक्शन की जाँच नहीं हो सकी',
+      generate: 'बनाएँ',
+      generateLabel: (field: string) => `${field} बनाएँ`,
       cancel: 'रद्द करें',
       continue: 'आगे बढ़ें',
       loadFailed: 'अकाउंट के फ़ील्ड लोड नहीं हो सके। एक मिनट बाद फिर कोशिश करें।',

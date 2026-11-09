@@ -318,6 +318,16 @@ describe('MCP admin actions', () => {
     expect(pending).toMatchObject({ tool: 'runAdminAction', source: 'mcp', status: 'proposed' })
     const card = await call(appRouter.ai.action, { id: pending?.id as string }, { context: m.ctx })
     expect(card.preview.title).toBe('Discounts: delete')
+    // It waits in Settings → Approvals too, not only in MCP Activity (#1263).
+    const waiting = await call(appRouter.approvals.waiting, undefined, { context: m.ctx })
+    expect(waiting.map((v) => [v.id, v.source])).toEqual([[pending?.id, 'mcp']])
+    expect(await call(appRouter.approvals.counts, undefined, { context: m.ctx })).toEqual({
+      waiting: 1,
+      outcomes: 0,
+    })
+    // Another member never sees someone else's own MCP request.
+    const s = await staffOf(m, 'admin@example.com', 'admin')
+    expect(await call(appRouter.approvals.waiting, undefined, { context: s.ctx })).toEqual([])
     // The owner confirms their own AI app's sensitive action in the admin.
     const done = await call(
       appRouter.ai.approveAction,
@@ -325,6 +335,7 @@ describe('MCP admin actions', () => {
       { context: m.ctx },
     )
     expect(done).toMatchObject({ status: 'executed', confirmedAi: true })
+    expect(await call(appRouter.approvals.waiting, undefined, { context: m.ctx })).toEqual([])
     const rows = await activity(m.storeId)
     expect(rows.filter((r) => r.kind === 'approval').map((r) => r.tool)).toEqual([
       'discounts.delete',
@@ -816,5 +827,156 @@ describe('role approvals', () => {
       .where(eq(aiAction.id, otherCopy?.id as string))
     expect(rejected).toMatchObject({ status: 'cancelled', result: { duplicateOf: other?.id } })
     expect(await call(appRouter.approvals.waiting, undefined, { context: m.ctx })).toEqual([])
+  })
+
+  /*
+   * One change, one rule, whichever button asks (#1409): the orders table cancelled through
+   * `orders.setStatus` (orders.write, with orders.cancel checked inside the handler) and ran at
+   * once, while the order page's "Cancel order" (`orders.cancel`) waited for approval.
+   */
+  describe('every entry point asks the same', () => {
+    /** A custom role with these grants and "Needs approval" ticks. */
+    async function roleWith(storeId: string, slug: string, grants: string[], ticks: string[]) {
+      const [r] = await owner
+        .insert(role)
+        .values({ storeId, name: slug, slug, isSystem: false })
+        .returning()
+      const roleId = r?.id as string
+      await owner
+        .insert(rolePermission)
+        .values(grants.map((permission) => ({ storeId, roleId, permission })))
+      if (ticks.length)
+        await owner
+          .insert(roleApproval)
+          .values(ticks.map((permission) => ({ storeId, roleId, permission })))
+    }
+
+    const orderOf = async (storeId: string) => {
+      const paymentId = await paidOrder(storeId)
+      const [p] = await owner.select().from(payment).where(eq(payment.id, paymentId))
+      return p?.orderId as string
+    }
+    const statusOf = async (id: string) =>
+      (await owner.select().from(order).where(eq(order.id, id)))[0]?.status
+    const queued = (storeId: string) =>
+      owner.select().from(aiAction).where(eq(aiAction.storeId, storeId))
+
+    it("holds the orders table's cancel for approval, as the order page's cancel", async () => {
+      const m = await merchant('asha@example.com', 'asha')
+      // The built-in Administrator ticks orders.cancel by default.
+      const a = await staffOf(m, 'admin@example.com', 'admin')
+      const id = await orderOf(m.storeId)
+
+      // The table's row menu and bulk bar: "mark as cancelled".
+      await expect(
+        call(
+          appRouter.orders.setStatus,
+          { id, status: 'cancelled' },
+          { context: a.ctx, path: ['orders', 'setStatus'] },
+        ),
+      ).rejects.toMatchObject({ code: 'APPROVAL_QUEUED' })
+      // The order page's "More actions" → "Cancel order".
+      await expect(
+        call(
+          appRouter.orders.cancel,
+          { orderId: id, restock: false, notifyCustomer: false, refund: 'none' },
+          { context: a.ctx, path: ['orders', 'cancel'] },
+        ),
+      ).rejects.toMatchObject({ code: 'APPROVAL_QUEUED' })
+      expect(await statusOf(id)).toBe('open')
+      const rows = await queued(m.storeId)
+      expect(rows.map((r) => r.permission)).toEqual(['orders.cancel', 'orders.cancel'])
+
+      // The owner approves the table's request: it runs, as the owner.
+      const fromTable = rows.find((r) => JSON.stringify(r.input).includes('setStatus'))
+      const done = await call(
+        appRouter.ai.approveAction,
+        { id: fromTable?.id as string },
+        { context: m.ctx },
+      )
+      expect(done.status).toBe('executed')
+      expect(await statusOf(id)).toBe('cancelled')
+    })
+
+    it('still refuses a role without orders.cancel, and runs the other marks at once', async () => {
+      const m = await merchant('asha@example.com', 'asha')
+      await roleWith(m.storeId, 'packer', ['orders.read', 'orders.write'], ['orders.cancel'])
+      const s = await staffOf(m, 'packer@example.com', 'packer')
+      const id = await orderOf(m.storeId)
+      await expect(
+        call(
+          appRouter.orders.setStatus,
+          { id, status: 'cancelled' },
+          { context: s.ctx, path: ['orders', 'setStatus'] },
+        ),
+      ).rejects.toMatchObject({ code: 'FORBIDDEN', message: expect.stringMatching(/cancel/) })
+      expect(await queued(m.storeId)).toEqual([])
+      expect(await statusOf(id)).toBe('open')
+    })
+
+    it('holds a cancel or an edit that refunds for the refund tick, as a refund does', async () => {
+      const m = await merchant('asha@example.com', 'asha')
+      await roleWith(
+        m.storeId,
+        'desk',
+        ['orders.read', 'orders.write', 'orders.cancel', 'orders.refund'],
+        ['orders.refund'],
+      )
+      const s = await staffOf(m, 'desk@example.com', 'desk')
+      const id = await orderOf(m.storeId)
+      await expect(
+        call(
+          appRouter.orders.cancel,
+          { orderId: id, restock: false, notifyCustomer: false, refund: 'manual' },
+          { context: s.ctx, path: ['orders', 'cancel'] },
+        ),
+      ).rejects.toMatchObject({ code: 'APPROVAL_QUEUED' })
+      const [row] = await queued(m.storeId)
+      expect(row).toMatchObject({ permission: 'orders.refund', userId: s.userId })
+      expect(await statusOf(id)).toBe('open')
+    })
+
+    it("holds the products table's bulk delete for products.delete, as one product's delete", async () => {
+      const m = await merchant('asha@example.com', 'asha')
+      const [p] = await owner
+        .insert(product)
+        .values({ storeId: m.storeId, handle: 'mug', title: 'Mug', status: 'active' })
+        .returning()
+      const ids = [p?.id as string]
+      const a = await staffOf(m, 'admin@example.com', 'admin')
+      await expect(
+        call(
+          appRouter.products.bulk,
+          { ids, action: { kind: 'delete' } },
+          { context: a.ctx, path: ['products', 'bulk'] },
+        ),
+      ).rejects.toMatchObject({ code: 'APPROVAL_QUEUED' })
+      const [row] = await queued(m.storeId)
+      expect(row?.permission).toBe('products.delete')
+      expect(await owner.select().from(product).where(eq(product.storeId, m.storeId))).toHaveLength(
+        1,
+      )
+
+      // products.write alone may archive in bulk, but never delete.
+      await roleWith(m.storeId, 'editor', ['products.read', 'products.write'], [])
+      const e = await staffOf(m, 'editor@example.com', 'editor')
+      await expect(
+        call(
+          appRouter.products.bulk,
+          { ids, action: { kind: 'delete' } },
+          { context: e.ctx, path: ['products', 'bulk'] },
+        ),
+      ).rejects.toMatchObject({ code: 'FORBIDDEN' })
+      await call(
+        appRouter.products.bulk,
+        { ids, action: { kind: 'status', status: 'archived' } },
+        { context: e.ctx, path: ['products', 'bulk'] },
+      )
+      const [after] = await owner
+        .select()
+        .from(product)
+        .where(eq(product.id, ids[0] as string))
+      expect(after?.status).toBe('archived')
+    })
   })
 })

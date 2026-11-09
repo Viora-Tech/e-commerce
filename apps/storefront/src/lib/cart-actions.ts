@@ -10,11 +10,13 @@ import {
   findRedeemableGiftCard,
   getCart,
   onOrderPlaced,
+  type PlacedAndPaid,
   PreorderMixedCart,
   placeOrderAndPay,
   rememberCheckoutAddress,
   setCartAttribution,
   setLineQuantity,
+  unpaidCheckoutsPerHourOf,
 } from '@commerce/core'
 import { checkoutCountry, isAbroad } from '@commerce/core/checkout-address'
 import { CONSENT_COOKIE, currentConsent, decodeConsent } from '@commerce/core/consent'
@@ -32,6 +34,8 @@ import { clearCartId, readCartId, writeCartId } from './cart-cookie'
 import { checkoutCartId } from './checkout-context'
 import { checkoutErrorMessage } from './checkout-errors'
 import { redirectAfterCheckout } from './checkout-redirect'
+import { repeatCheckoutResult, tooManyFromIp } from './checkout-repeat'
+import type { CheckoutResult } from './checkout-result'
 import { currentCustomer } from './customer-session'
 import { db } from './db'
 import { deliveryForOrder } from './delivery-options'
@@ -39,7 +43,7 @@ import { discoveryVisitor, recordDiscoveryCartAdd } from './discovery-events'
 import { hasChatCookie, postChatCartLine } from './inbox'
 import { requestMarketId } from './market-catalog'
 import { nudgeOutbox } from './outbox'
-import { storePaymentFallbacks, storePaymentProviders } from './payments'
+import { storePaymentFallbacks, storePaymentProviders, storeUnavailableMethods } from './payments'
 import { clientIp, rateLimited } from './rate-limit'
 import { requestStoreId } from './request-store'
 import { noteAbAddToCart } from './rollout-ab'
@@ -198,6 +202,11 @@ export type CheckoutForm = {
   payment: string
   /** Gift card codes applied in the summary; each is re-checked here before it is spent. */
   giftCards?: string[]
+  /**
+   * Spend the signed-in shopper's store credit. Whose balance comes from the session, never the
+   * form; a guest's submit with this set uses nothing.
+   */
+  useStoreCredit?: boolean
   /** The shipping rate picked in the summary; re-priced on the server. */
   shippingRate?: string
   /**
@@ -214,9 +223,16 @@ export type CheckoutForm = {
   label?: string
   /** The marketing ticks under Contact; unticked sends nothing. */
   marketing?: { email: boolean; whatsapp: boolean }
+  /** "Yes, order again" after being asked about the same items ordered a little while ago. */
+  orderAgain?: boolean
 }
 
-export type CheckoutResult = { error: string } | undefined
+export type { CheckoutResult } from './checkout-result'
+
+/** Each unpaid checkout counts per IP for an hour, against the store's cap (0: no cap). */
+/** Unpaid checkouts one IP may start in an hour: high enough for a shared mobile-network IP. */
+const IP_UNPAID_CHECKOUTS_PER_HOUR = 20
+const UNPAID_CHECKOUT_WINDOW_MS = 3_600_000
 
 /**
  * Remember who is checking out before the order exists. Without this a cart
@@ -277,10 +293,17 @@ export async function checkoutAction(submitted: CheckoutForm): Promise<CheckoutR
   // Gift cards are emailed, so a basket of only gift cards has nothing to ship.
   const current = await inStore(storeId, (tx) => getCart({ storeId, tx }, cartId))
   const digitalOnly = !!current?.lines.length && current.lines.every((l) => l.giftCard)
+  // Services and downloads too: no courier to ask, no delivery check (placeOrder agrees).
+  const nothingShips =
+    !!current?.lines.length && current.lines.every((l) => l.giftCard || !l.requiresShipping)
   // An address abroad is priced by its country zone: no Indian courier, no COD (placeOrder agrees).
   const countryCode = checkoutCountry(form.countryCode)
   const abroad = isAbroad(countryCode)
   if (abroad && form.payment === 'cod') return { error: checkoutContent.errors.codAbroad }
+  // Cash on delivery is collected by the courier: with nothing to ship there is no one to collect it.
+  if (nothingShips && !digitalOnly && form.payment === 'cod') {
+    return { error: checkoutContent.errors.codUnavailable }
+  }
 
   /** The delivery window each warehouse's parcel was shown with, stored on the order's parcels. */
   let deliveryEstimates: Record<string, ParcelDeliveryEstimate> = {}
@@ -289,7 +312,7 @@ export async function checkoutAction(submitted: CheckoutForm): Promise<CheckoutR
   const to = { pincode: form.pincode, stateCode: form.stateCode }
   const appQuote = form.deliveryQuote
   const delivery =
-    !digitalOnly && !abroad && appQuote && form.shippingRate
+    !nothingShips && !abroad && appQuote && form.shippingRate
       ? await inStore(storeId, (tx) =>
           deliveryForOrder(tx, storeId, cartId, to, {
             quoteId: typeof appQuote.quoteId === 'string' ? appQuote.quoteId : null,
@@ -299,14 +322,14 @@ export async function checkoutAction(submitted: CheckoutForm): Promise<CheckoutR
           }),
         )
       : null
-  if (!digitalOnly && delivery) {
+  if (!nothingShips && delivery) {
     const parcels = await inStore(storeId, (tx) => checkoutParcels(tx, storeId, cartId, to)).catch(
       () => [],
     )
     deliveryEstimates = Object.fromEntries(
       parcels.flatMap((p) => (p.estimate ? [[p.locationId, p.estimate] as const] : [])),
     )
-  } else if (!digitalOnly && !abroad) {
+  } else if (!nothingShips && !abroad) {
     // The courier's word on the destination, never the client's. A cached answer makes this cheap.
     const delivery = await inStore(storeId, (tx) => estimateForPincode(tx, storeId, form.pincode))
     if (!delivery.ok) return { error: delivery.error }
@@ -323,6 +346,18 @@ export async function checkoutAction(submitted: CheckoutForm): Promise<CheckoutR
     )
   }
 
+  /* Too many unpaid checkouts from one IP in an hour (the email and phone count is placeOrder's,
+     at the store's cap). Indian mobile networks put many shoppers behind one IP, so the IP cap is
+     a fixed bot guard (IP_UNPAID_CHECKOUTS_PER_HOUR), on whenever the store's cap is on.
+     Cash on delivery is never counted: it is unpaid until the parcel arrives. */
+  if (form.payment !== 'cod') {
+    const cap = await inStore(storeId, (tx) => unpaidCheckoutsPerHourOf({ storeId, tx }))
+    const rule = { limit: IP_UNPAID_CHECKOUTS_PER_HOUR, windowMs: UNPAID_CHECKOUT_WINDOW_MS }
+    if (cap > 0 && !(await rateLimited('unpaid-checkout:ip', `${storeId}:${ip}`, rule)).ok) {
+      return tooManyFromIp()
+    }
+  }
+
   /* The order and its stock are committed first; the gateway is asked after
      that, so a slow gateway never holds stock locks. A gateway failure leaves
      the order placed and the shopper retries from the thank-you page. */
@@ -330,6 +365,9 @@ export async function checkoutAction(submitted: CheckoutForm): Promise<CheckoutR
     const providers = await storePaymentProviders(tx, storeId)
     const provider = providers.find((p) => p.id === form.payment)
     if (!provider) throw new Error(`payment method ${form.payment} is not enabled`)
+    // A gateway that refused the store's keys is off checkout: no order, pay another way.
+    const unavailable = await storeUnavailableMethods(tx, storeId, providers)
+    if (unavailable.includes(provider.id)) return { unavailable }
     // Several gateways on: who to try next if this one cannot open the payment.
     const fallbacks = await storePaymentFallbacks(tx, storeId, providers, provider.id)
     const giftCardIds: string[] = []
@@ -338,17 +376,28 @@ export async function checkoutAction(submitted: CheckoutForm): Promise<CheckoutR
     }
     return { provider, fallbacks, giftCardIds }
   })
-    .then(({ provider, fallbacks, giftCardIds }) =>
-      placeOrderAndPay(db(), storeId, {
+    .then(async (ready): Promise<PlacedAndPaid | NonNullable<CheckoutResult>> => {
+      if ('unavailable' in ready) {
+        const refused: NonNullable<CheckoutResult> = {
+          error: checkoutContent.errors.gatewayUnavailable,
+          unavailable: ready.unavailable,
+        }
+        return refused
+      }
+      const { provider, fallbacks, giftCardIds } = ready
+      return placeOrderAndPay(db(), storeId, {
         cartId,
         paymentProvider: provider,
         paymentFallbacks: fallbacks,
         giftCardIds,
+        // Store credit only ever comes from the signed-in customer's own balance.
+        ...(me && form.useStoreCredit === true ? { storeCredit: { customerId: me.id } } : {}),
         // A delivery option id is not a rate row: the app prices it instead.
         shippingRateId: delivery ? null : form.shippingRate || null,
         ...(delivery ? { delivery } : {}),
         deliveryEstimates,
         secret: settingsSecret(),
+        orderAgain: form.orderAgain === true,
         checkout: {
           name: form.name,
           ...(typeof form.firstName === 'string'
@@ -369,15 +418,31 @@ export async function checkoutAction(submitted: CheckoutForm): Promise<CheckoutR
             countryCode,
           },
         },
-      }),
-    )
-    .catch((err: unknown) => {
+      })
+    })
+    .catch((err: unknown): NonNullable<CheckoutResult> => {
+      const repeat = repeatCheckoutResult(err, me?.id ?? null)
+      if (repeat) return repeat
       const refused = checkoutErrorMessage(err, form.pincode)
       if (refused === null) throw err
       return { error: refused }
     })
-  if ('error' in placed) return { error: placed.error }
+  if ('error' in placed || 'confirmAgain' in placed) return placed
   const result = placed
+  /* The gateway refused the store's API keys (the store's to fix, the owner was told): the shopper
+     stays on the payment step with that gateway gone, and the cart keeps pointing at this order,
+     so the next Pay writes the same order again with the way they pick (checkout-reopen.ts). */
+  if (result.keysRefused) {
+    const unavailable = await inStore(storeId, async (tx) =>
+      storeUnavailableMethods(tx, storeId, await storePaymentProviders(tx, storeId)),
+    )
+    return {
+      error: checkoutContent.errors.gatewayUnavailable,
+      unavailable: unavailable.includes(form.payment)
+        ? unavailable
+        : [...unavailable, form.payment],
+    }
+  }
   await clearCartId()
   // A second submit of the same cart got the first order back: it was already
   // announced (the outbox row, if any, was written on the first submit only:

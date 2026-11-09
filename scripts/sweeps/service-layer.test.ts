@@ -36,6 +36,18 @@ const PLUGIN = 'plugin owns its own schema/queries; not yet routed through packa
 
 const ALLOWLIST: AllowEntry[] = [
   {
+    path: 'apps/storefront/src/lib/plain-html/render.ts',
+    exact: true,
+    reason:
+      'plain-HTML page render reads the same store, market and page rows as the React route, inside withStore; kept beside the renderer so both paths cannot drift (#1367)',
+  },
+  {
+    path: 'apps/worker/src/edge-purge.ts',
+    exact: true,
+    reason:
+      'worker job that lists the live hostnames of a store for the Cloudflare purge (#1363); a read inside withStore, no business rule',
+  },
+  {
     path: 'packages/auth/src/step-up.ts',
     exact: true,
     reason:
@@ -57,6 +69,7 @@ const ALLOWLIST: AllowEntry[] = [
     exact: true,
     reason: 'creates the Db connection for the admin app request context',
   },
+  { path: 'apps/storefront/src/app/-c/[storeId]/page.tsx', exact: true, reason: STOREFRONT_PAGE },
   { path: 'apps/storefront/src/app/-p/[storeId]/page.tsx', exact: true, reason: STOREFRONT_PAGE },
   {
     path: 'apps/storefront/src/app/-s/[storeId]/account/(signed-in)/orders/[number]/page.tsx',
@@ -102,6 +115,7 @@ const ALLOWLIST: AllowEntry[] = [
   },
   { path: 'apps/storefront/src/app/api/health/route.ts', exact: true, reason: STOREFRONT_PAGE },
   { path: 'apps/storefront/src/lib/account.ts', exact: true, reason: STOREFRONT_LIB },
+  { path: 'apps/storefront/src/lib/plain-html/render.ts', exact: true, reason: STOREFRONT_LIB },
   { path: 'apps/storefront/src/lib/back-in-stock-context.ts', exact: true, reason: STOREFRONT_LIB },
   { path: 'apps/storefront/src/lib/balance-actions.ts', exact: true, reason: STOREFRONT_LIB },
   { path: 'apps/storefront/src/lib/payment-actions.ts', exact: true, reason: STOREFRONT_LIB },
@@ -319,6 +333,7 @@ const ALLOWLIST: AllowEntry[] = [
   { path: 'packages/plugin-shopify-import/src/references.ts', exact: true, reason: PLUGIN },
   { path: 'packages/plugin-shopify-import/src/write-discounts.ts', exact: true, reason: PLUGIN },
   { path: 'packages/plugin-shopify-import/src/write-gift-cards.ts', exact: true, reason: PLUGIN },
+  { path: 'packages/plugin-shopify-import/src/write-store-credit.ts', exact: true, reason: PLUGIN },
   { path: 'packages/plugin-shopify-import/src/write-metaobjects.ts', exact: true, reason: PLUGIN },
   { path: 'packages/plugin-shopify-import/src/run.ts', exact: true, reason: PLUGIN },
   { path: 'packages/plugin-shopify-import/src/traffic.ts', exact: true, reason: PLUGIN },
@@ -348,6 +363,21 @@ const ALLOWLIST: AllowEntry[] = [
     path: 'packages/plugin-shopify-import/test/helpers.ts',
     exact: true,
     reason: 'test helper seeds the db directly',
+  },
+  {
+    path: 'packages/api/test/support/legacy/analytics.service.ts',
+    exact: true,
+    reason: 'frozen copy of the old service, the reference for dashboard-sql-parity.test.ts',
+  },
+  {
+    path: 'packages/api/test/support/legacy/dashboard.service.ts',
+    exact: true,
+    reason: 'frozen copy of the old service, the reference for dashboard-sql-parity.test.ts',
+  },
+  {
+    path: 'packages/api/test/support/legacy/home-analytics.service.ts',
+    exact: true,
+    reason: 'frozen copy of the old service, the reference for dashboard-sql-parity.test.ts',
   },
   {
     path: 'packages/plugin-reviews/test/helpers.ts',

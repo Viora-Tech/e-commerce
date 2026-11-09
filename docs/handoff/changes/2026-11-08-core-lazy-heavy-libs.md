@@ -1,0 +1,3 @@
+# Heavy libraries in core load on first use (8 Nov 2026)
+
+Loaded with `await import()` inside the function that needs them: the invoice PDF renderer (`plugin-gst-invoices/src/render.ts`), pdf-lib (`core/src/shipping/label-documents.ts`), `@simplewebauthn/server` (`core/src/shopper-login/passkeys.ts`) and `better-auth/social-providers` (`core/src/shopper-login/providers.ts`). Worker job modules: about 285 → 243 MB resident, 79 → 61 MB heap, 3,501 → 2,853 modules at start-up. Keep new heavy, rarely used libraries behind a dynamic import too: every process that loads core pays for top-level imports.

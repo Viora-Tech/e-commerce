@@ -55,12 +55,6 @@ export const orderDetailContent = {
     failed: 'Could not duplicate this order',
   },
   moved: (status: string) => `Order marked as ${status}`,
-  cancelDialog: {
-    title: 'Cancel this order?',
-    body: 'The shopper will no longer be able to pay for it and any booked shipment should be cancelled separately. This cannot be undone.',
-    confirm: 'Cancel order',
-    keep: 'Keep order',
-  },
   courierOrders: {
     heading: 'Courier apps',
     status: {
@@ -95,7 +89,10 @@ export const orderDetailContent = {
     manual: 'Already sent another way',
     manualHint: 'You returned the money yourself. This records how.',
     storeCredit: 'As store credit',
-    storeCreditHint: 'A gift card for this amount is emailed to the customer.',
+    storeCreditHint: "The amount goes onto the customer's store credit balance. No code is sent.",
+    /** A payment the customer made from store credit at checkout. */
+    storeCreditBack:
+      "It was paid from store credit, so it goes back onto the customer's store credit balance.",
     method: 'Sent by',
     methods: {
       upi: 'UPI',
@@ -168,6 +165,7 @@ export const orderDetailContent = {
       bank_transfer: 'Bank transfer (NEFT, IMPS, RTGS)',
       cash: 'Cash',
       cheque: 'Cheque',
+      store_credit: 'Store credit',
       other: 'Other',
     },
     reference: 'UTR or reference (optional)',
@@ -178,8 +176,13 @@ export const orderDetailContent = {
       bank_transfer: 'UTR number',
       cash: 'Receipt number',
       cheque: 'Cheque number',
+      store_credit: 'Any note',
       other: 'Any note',
     },
+    storeCreditBalance: (amount: string) => `Store credit balance: ${amount}`,
+    storeCreditShort: (amount: string) =>
+      `The customer has ${amount} of store credit, less than this amount.`,
+    storeCreditNone: 'This order has no customer, so store credit cannot pay for it.',
     receivedOn: 'Date received',
     done: 'Payment recorded',
     failed: 'Could not record that payment',

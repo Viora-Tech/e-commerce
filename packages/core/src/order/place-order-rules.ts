@@ -79,8 +79,11 @@ export function paymentAdjustmentFor(
  * GST at the line's rate; a gift card sale is a voucher, taxed only when it is
  * redeemed. A composition-scheme store charges no GST on anything.
  */
-export const lineGstRate = (l: Line, storeRate: number, tax: StoreTaxSettings): number =>
-  l.giftCard || !l.taxable ? 0 : chargedGstRate(l.gstRatePercent ?? storeRate, tax)
+export const lineGstRate = (
+  l: Pick<Line, 'giftCard' | 'taxable' | 'gstRatePercent'>,
+  storeRate: number,
+  tax: StoreTaxSettings,
+): number => (l.giftCard || !l.taxable ? 0 : chargedGstRate(l.gstRatePercent ?? storeRate, tax))
 
 /** The India Post directory's state for a PIN code, when the directory file is installed. */
 async function directoryState(pincode: string): Promise<string | null> {
@@ -156,7 +159,11 @@ function checkAbroadAddress(storeId: string, checkout: CheckoutDetails): Checkou
 export const chargeNowPaise = (s: Pick<State, 'totalPaise' | 'balanceDuePaise'>): number =>
   s.totalPaise - s.balanceDuePaise
 
-/** True when gift cards paid the whole order and no provider is involved. */
+/** Taken at checkout beside the gateway: gift cards and store credit. */
+export const splitTenderPaise = (s: Pick<State, 'giftCardPaise' | 'storeCreditPaise'>): number =>
+  s.giftCardPaise + s.storeCreditPaise
+
+/** True when gift cards and store credit paid everything due now and no provider is involved. */
 export const paidByCards = (
-  s: Pick<State, 'giftCardPaise' | 'totalPaise' | 'balanceDuePaise'>,
-): boolean => s.giftCardPaise > 0 && s.giftCardPaise >= chargeNowPaise(s)
+  s: Pick<State, 'giftCardPaise' | 'storeCreditPaise' | 'totalPaise' | 'balanceDuePaise'>,
+): boolean => splitTenderPaise(s) > 0 && splitTenderPaise(s) >= chargeNowPaise(s)

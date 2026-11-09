@@ -86,7 +86,7 @@ const importRouter = {
     .handler(({ context, input }) =>
       libraryErrors(async () => {
         const { storeId } = context.scope
-        const result = await importThemeZip(context.tx, storeId, input)
+        const result = await importThemeZip(context.tx, storeId, input, context.mediaProcess)
         const created = await getTheme(context.tx, result.themeId)
         if (!created) throw new ORPCError('NOT_FOUND', { message: 'Theme not found' })
         return {

@@ -78,21 +78,25 @@ export const ORDER_ACTION_PROCEDURES: Record<string, OrderActionProcedure> = {
     return { message }
   },
   'gst-invoices/queue-add': async (orderIds, copy) => {
-    let added = 0
-    let skipped = 0
+    const counts = { added: 0, skipped: 0, alreadyQueued: 0, alreadyInvoiced: 0 }
     for (let i = 0; i < orderIds.length; i += QUEUE_BATCH) {
       const r = await api.gstInvoices.queue.add({
         orderIds: orderIds.slice(i, i + QUEUE_BATCH),
         skipIneligible: true,
       })
-      added += r?.added ?? 0
-      skipped += r?.skipped ?? 0
+      counts.added += r?.added ?? 0
+      counts.skipped += r?.skipped ?? 0
+      counts.alreadyQueued += r?.alreadyQueued ?? 0
+      counts.alreadyInvoiced += r?.alreadyInvoiced ?? 0
     }
     announce()
     return {
-      message: copy.gst.queued(added, skipped),
+      message: copy.gst.queued(counts),
       // Queued invoices are issued from the queue (or straight away, when the store auto-issues).
-      action: added ? { label: copy.gst.openQueue, href: routes.apps.page(GST_APP) } : undefined,
+      action:
+        counts.added || counts.alreadyQueued
+          ? { label: copy.gst.openQueue, href: routes.apps.page(GST_APP) }
+          : undefined,
     }
   },
 }

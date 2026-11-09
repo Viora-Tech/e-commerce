@@ -8,7 +8,6 @@
  * WHERE: `createShipmentForOrder` (shipments.ts), only when the result carries `documents`.
  */
 import type { ShipmentDocument, ShippingLabelDocument } from '@commerce/shipping'
-import { PDFDocument } from 'pdf-lib'
 
 const ORDER: Record<ShipmentDocument['kind'], number> = {
   label: 0,
@@ -24,6 +23,8 @@ export async function shipmentDocumentsAsLabel(
   documents: ShipmentDocument[],
 ): Promise<ShippingLabelDocument | null> {
   const sorted = [...documents].sort((a, b) => ORDER[a.kind] - ORDER[b.kind])
+  // pdf-lib loads here, for the rare export booking, not with every process that loads core.
+  const { PDFDocument } = await import('pdf-lib')
   const out = await PDFDocument.create()
   for (const doc of sorted) {
     try {

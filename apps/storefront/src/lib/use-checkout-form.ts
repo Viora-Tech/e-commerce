@@ -31,6 +31,7 @@ import {
   takesUpi,
 } from '@/lib/checkout-preview'
 import { readRemembered, writeRemembered } from '@/lib/checkout-remember'
+import type { CheckoutProblem } from '@/lib/checkout-result'
 import { bringIntoView, followLegacyStep, pressSendCode } from '@/lib/checkout-scroll'
 import {
   type CheckoutSection,
@@ -47,9 +48,10 @@ import {
   fieldId,
   fieldOrder,
 } from '@/lib/checkout-validation'
-import type { AppliedGiftCard } from '@/lib/gift-card-actions'
 import { isQuotable, useCheckoutShipping } from '@/lib/use-checkout-shipping'
+import { useCheckoutTender } from '@/lib/use-checkout-tender'
 import { useHeldStep } from '@/lib/use-held-step'
+import { useUnavailableMethods } from '@/lib/use-unavailable-methods'
 import {
   type ChangeHandler,
   type CheckoutFormInput,
@@ -69,7 +71,7 @@ import { applyPendingDiscountCode } from './pending-code'
  * re-price everything on the server.
  */
 export function useCheckoutForm(input: CheckoutFormInput) {
-  const { cart, methods, discount, settings } = input
+  const { cart, discount, settings } = input
   const customer = input.customer ?? null
   const addresses = input.addresses ?? []
   const deposit = input.deposit ?? NO_DEPOSIT
@@ -87,6 +89,7 @@ export function useCheckoutForm(input: CheckoutFormInput) {
   const copy = applyCheckoutText(content, input.text ?? {})
   const router = useRouter()
 
+  const { methods, drop: dropUnavailable } = useUnavailableMethods(input.methods, cart)
   const [pending, start] = useTransition()
   const [savingAddress, startSave] = useTransition()
   const [form, setForm] = useState<CheckoutFormState>(() => ({
@@ -95,16 +98,15 @@ export function useCheckoutForm(input: CheckoutFormInput) {
   }))
   const [savedId, setSavedId] = useState<string>(addresses[0]?.id ?? NEW_ADDRESS)
   const [business, setBusiness] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [giftCards, setGiftCards] = useState<AppliedGiftCard[]>([])
+  const [error, setError] = useState<CheckoutProblem | null>(null)
+  const tender = useCheckoutTender(methods, setForm, customer !== null, input.storeCreditPaise)
+  const { giftCards } = tender
   const [touched, setTouched] = useState<Partial<Record<CheckoutFieldKey, true>>>({})
   const [attempted, setAttempted] = useState(false)
   const [expressNote, setExpressNote] = useState<string | null>(null)
   /** The step the shopper chose; until then, the first one that still needs something. */
   const [pickedStep, setPickedStep] = useState<CheckoutSection | null>(null)
-  /**
-   * Signing in with a code comes first, every time; a guest link leads to the contact fields.
-   */
+  /** Signing in with a code comes first, every time; a guest link leads to the contact fields. */
   const [guest, setGuest] = useState(false)
   /** The saved address being edited in place, or null. */
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -189,6 +191,7 @@ export function useCheckoutForm(input: CheckoutFormInput) {
     laterPaise: deposit.laterPaise,
     methodRules: input.methodRules,
     abroad,
+    storeCreditPaise: tender.spendablePaise,
   })
   const { digitalOnly, offered, payment, coveredByCards, payNowPaise } = totals
   const contactFieldsOk = !wrongFields.some((k) => CONTACT_KEYS.includes(k))
@@ -247,7 +250,7 @@ export function useCheckoutForm(input: CheckoutFormInput) {
     requestAnimationFrame(() => window.scrollTo({ top: 0 }))
   }
   /** Place the order with this way to pay, or point at the first field that needs fixing. */
-  const submit = (paymentId: string): boolean => {
+  const submit = (paymentId: string, orderAgain = false): boolean => {
     if (gates.address !== 'ok') {
       showFirstWrong()
       return false
@@ -265,10 +268,15 @@ export function useCheckoutForm(input: CheckoutFormInput) {
       const r = await checkoutAction({
         ...orderDetails(form, { splitName, abroad }),
         payment: paymentId,
+        orderAgain,
         giftCards: giftCards.map((c) => c.code),
+        useStoreCredit: tender.spendablePaise > 0 && !digitalOnly,
         ...ship.formFields,
       })
-      if (r?.error) setError(r.error)
+      const next = dropUnavailable(r)
+      if (next) setForm((prev) => ({ ...prev, payment: next }))
+      if (next) setPickedStep('payment')
+      if (r) setError(r)
     })
     return true
   }
@@ -293,10 +301,7 @@ export function useCheckoutForm(input: CheckoutFormInput) {
     // Abroad the region is typed: zones there go by country, so nothing re-prices.
     if (!abroad) checkPincode(form.pincode, stateCode)
   }
-  /**
-   * A new country empties the address's place fields (a PIN code is not a postcode) and
-   * quotes again; cash on delivery moves to the first online method outside India.
-   */
+  /** A new country empties the place fields and quotes again; COD moves to an online method. */
   const handleCountry = (countryCode: string) => {
     const next = addressForCountry(offeredCountry(countryCode))
     const online = methods.find((m) => m.id !== 'cod')?.id
@@ -404,14 +409,6 @@ export function useCheckoutForm(input: CheckoutFormInput) {
           : content.express.needDetails,
     )
   }
-  /* COD cannot collect what a gift card leaves; move to the first online method. */
-  const handleGiftCardApply = (card: AppliedGiftCard) => {
-    setGiftCards((prev) => [...prev, card])
-    setForm((prev) => offCod(prev, methods))
-  }
-  const handleGiftCardRemove = (code: string) =>
-    setGiftCards((prev) => prev.filter((c) => c.code !== code))
-
   const shortfall = totals.shortfallPaise
   const updating = checking && !digitalOnly
   const { payNow, emiMonthly, payLabel } = payView(payNowPaise, {
@@ -447,6 +444,7 @@ export function useCheckoutForm(input: CheckoutFormInput) {
     savingAddress,
     addressError,
     giftCards,
+    storeCredit: tender.storeCredit,
     shownErrors,
     toFix: attempted && contactReady ? fieldsOnStep(wrongFields, CONTACT_KEYS, step) : 0,
     /** Pay was pressed before the contact was settled (signed in, or a guest). */
@@ -488,11 +486,13 @@ export function useCheckoutForm(input: CheckoutFormInput) {
     handleLabel,
     handleRate: setRateId,
     handleSubmit,
+    handleOrderAgain: () => submit(form.payment, true),
     handleStep: setPickedStep,
     handleStayOnStep,
     handleExpress,
-    handleGiftCardApply,
-    handleGiftCardRemove,
+    handleGiftCardApply: tender.handleGiftCardApply,
+    handleGiftCardRemove: tender.handleGiftCardRemove,
+    handleStoreCredit: tender.handleStoreCredit,
   }
 }
 

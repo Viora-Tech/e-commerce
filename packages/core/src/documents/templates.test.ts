@@ -4,6 +4,7 @@ import {
   DEFAULT_TEMPLATES,
   DOCUMENT_KINDS,
   DocumentTemplateWriteSchema,
+  invoiceData,
   packingSlipData,
   pickListData,
   printDocument,
@@ -64,6 +65,27 @@ describe('document data', () => {
       ['GP-XL-BLK', 2, '#1042, #1043'],
       ['SK-01', 4, '#1042, #1043'],
     ])
+  })
+
+  it('leaves lines that need no shipping off the packing slip and pick list, not the invoice', () => {
+    const service = {
+      title: 'Fitting session',
+      variantTitle: null,
+      sku: 'SVC-1',
+      quantity: 1,
+      unitPricePaise: 50_000,
+      requiresShipping: false,
+    }
+    const withService = { ...SAMPLE_ORDER, lines: [...SAMPLE_ORDER.lines, service] }
+    const slip = renderTemplate(
+      DEFAULT_TEMPLATES.packing_slip,
+      packingSlipData(withService, SAMPLE_STORE),
+    )
+    expect(slip).not.toContain('Fitting session')
+    expect(pickListData([withService], SAMPLE_STORE).items.map((i) => i.sku)).not.toContain('SVC-1')
+    expect(invoiceData(withService, SAMPLE_STORE).lines.map((l) => l.title)).toContain(
+      'Fitting session',
+    )
   })
 
   it('prints totals on the invoice and leaves an empty discount out', () => {

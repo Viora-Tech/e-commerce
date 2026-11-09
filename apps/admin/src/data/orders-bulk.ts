@@ -25,6 +25,8 @@ export const ordersBulkContent = {
   printTooMany: (max: number) => `Print up to ${max} packing slips at a time`,
   printPickList: 'Print pick list',
   printInvoices: 'Print invoices',
+  printIssuedInvoices: (n: number) => `Print ${n} ${n === 1 ? 'invoice' : 'invoices'}`,
+  printFailed: 'Could not print the invoices',
   /** #1007: off the working tabs (All, Unfulfilled…) into Archived, or back. */
   archive: 'Archive orders',
   unarchive: 'Unarchive orders',
@@ -35,6 +37,29 @@ export const ordersBulkContent = {
     `${n} ${n === 1 ? 'order' : 'orders'} unarchived` +
     (skipped > 0 ? `, ${skipped} were not archived` : ''),
   archiveFailed: 'Could not change the orders. Try again.',
+  /** #1408: only orders with nothing to refund; paid ones are cancelled from their own page. */
+  cancel: 'Cancel orders',
+  cancelTitle: (n: number) =>
+    n === 0 ? 'No orders to cancel' : n === 1 ? 'Cancel 1 order?' : `Cancel ${n} orders?`,
+  cancelBody:
+    'Only orders with nothing to refund are cancelled: not paid yet (cash on delivery not collected, a checkout never paid) or already refunded in full.',
+  cancelBodySkipping: (skipped: number) =>
+    `${skipped} of the selected ${skipped === 1 ? 'order is' : 'orders are'} skipped: paid, shipped, imported or already cancelled. Cancel a paid order from its page to choose how the money goes back.`,
+  cancelRestock: 'Restock the items',
+  cancelNotify: 'Email customers that their order was cancelled',
+  cancelConfirm: 'Cancel orders',
+  cancelKeep: 'Keep them',
+  cancelDone: (cancelled: number, skipped: number, queued: number, failed: number) =>
+    [
+      `${cancelled} ${cancelled === 1 ? 'order' : 'orders'} cancelled`,
+      queued > 0 ? `${queued} sent for approval` : null,
+      skipped > 0
+        ? `${skipped} skipped (paid or no longer cancellable: cancel those from their page)`
+        : null,
+      failed > 0 ? `${failed} could not be cancelled` : null,
+    ]
+      .filter(Boolean)
+      .join(', '),
   csv: {
     order: 'Order',
     date: 'Date',

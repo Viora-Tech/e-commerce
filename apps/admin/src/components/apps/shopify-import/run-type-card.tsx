@@ -3,7 +3,7 @@ import { CircleCheck } from '@commerce/ui/icons'
 import StatusChip from '@/components/layout/status-chip'
 import { shopifyImportContent } from '@/data/shopify-import'
 import { shopifyImportRunContent } from '@/data/shopify-import-run'
-import { useCopy } from '@/hooks/use-copy'
+import { useCopy, useFormat } from '@/hooks/use-copy'
 import { RESOURCE_ICON } from './run-resource-icons'
 
 type RunTypeCardProps = {
@@ -11,6 +11,8 @@ type RunTypeCardProps = {
   progress: ResourceProgress
   /** True while the run is moving; the bar shows only then. */
   live: boolean
+  /** A preview: amounts read "to import", not "imported". */
+  preview: boolean
 }
 
 type Chip = {
@@ -26,11 +28,12 @@ const CHIPS: Chip[] = [
 ]
 
 /** One type: glyph and name, "276 of 276", a bar while it runs and chips for the non-zero outcomes. */
-export default function RunTypeCard({ resource, progress, live }: RunTypeCardProps) {
+export default function RunTypeCard({ resource, progress, live, preview }: RunTypeCardProps) {
   // Hooks
   const copy = useCopy(shopifyImportContent.run)
   const view = useCopy(shopifyImportRunContent)
   const resources = useCopy(shopifyImportContent.resources)
+  const fmt = useFormat()
 
   // Render logic
   const Icon = RESOURCE_ICON[resource]
@@ -38,6 +41,7 @@ export default function RunTypeCard({ resource, progress, live }: RunTypeCardPro
   const working = live && !finished
   const share = progress.total > 0 ? Math.min(1, progress.processed / progress.total) : 0
   const chips = CHIPS.filter((c) => progress[c.key] > 0)
+  const credit = progress.credit
 
   return (
     <li className="flex flex-col gap-3 rounded-xl border border-hairline bg-card p-4">
@@ -75,6 +79,11 @@ export default function RunTypeCard({ resource, progress, live }: RunTypeCardPro
           </span>
         ) : null}
       </div>
+      {credit ? (
+        <span className="text-caption text-muted-foreground">
+          {view.types.credit(credit.customers, fmt.money(credit.amountPaise), preview)}
+        </span>
+      ) : null}
       {chips.length ? (
         <div className="flex flex-wrap gap-1.5">
           {chips.map((c) => (

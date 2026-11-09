@@ -93,14 +93,13 @@ export default function PillTabs<T extends string | null>({
               variant === 'pill' ? (
                 <span className="text-caption text-muted-foreground tabular-nums">{tab.count}</span>
               ) : (
+                // Every count sits in a small pill so the numbers line up as a row; the active
+                // tab's is darker and an empty tab's fades, so the busy stages stand out.
                 <span
                   className={cn(
-                    'rounded-full px-1.5 text-caption font-medium text-muted-foreground tabular-nums',
-                    variant === 'segmented'
-                      ? 'bg-muted'
-                      : active
-                        ? 'bg-secondary text-foreground'
-                        : '',
+                    'min-w-5 rounded-full px-1.5 text-center text-caption font-medium tabular-nums',
+                    active ? 'bg-foreground text-background' : 'bg-muted text-muted-foreground',
+                    tab.count === 0 && !active && 'opacity-60',
                   )}
                 >
                   {tab.count}

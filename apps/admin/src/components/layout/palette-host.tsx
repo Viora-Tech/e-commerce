@@ -1,12 +1,16 @@
 'use client'
 
+import dynamic from 'next/dynamic'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { GO_TO_ROUTES } from '@/data/command-palette'
 import { isTyping, OPEN_PALETTE_EVENT } from '@/lib/palette-events'
 import { primaryActionHref } from '@/lib/primary-action'
-import CommandPalette from './command-palette'
-import KeyboardShortcutsDialog from './keyboard-shortcuts-dialog'
+
+/* The palette (its search index and settings search) and the shortcuts list load on first use,
+   not with every admin page; once loaded they stay mounted so closing still animates. */
+const CommandPalette = dynamic(() => import('./command-palette'), { ssr: false })
+const KeyboardShortcutsDialog = dynamic(() => import('./keyboard-shortcuts-dialog'), { ssr: false })
 
 const GO_TO_WINDOW_MS = 900
 
@@ -21,6 +25,14 @@ export default function PaletteHost() {
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [shortcutsOpen, setShortcutsOpen] = useState(false)
+  const [used, setUsed] = useState({ palette: false, shortcuts: false })
+
+  // Keep a dialog mounted after its first opening (its close animation needs it there).
+  useEffect(() => {
+    if (open || shortcutsOpen) {
+      setUsed((u) => ({ palette: u.palette || open, shortcuts: u.shortcuts || shortcutsOpen }))
+    }
+  }, [open, shortcutsOpen])
 
   useEffect(() => {
     let awaitingGoTo = false
@@ -87,8 +99,10 @@ export default function PaletteHost() {
 
   return (
     <>
-      <CommandPalette open={open} onOpenChange={setOpen} />
-      <KeyboardShortcutsDialog open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
+      {open || used.palette ? <CommandPalette open={open} onOpenChange={setOpen} /> : null}
+      {shortcutsOpen || used.shortcuts ? (
+        <KeyboardShortcutsDialog open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
+      ) : null}
     </>
   )
 }

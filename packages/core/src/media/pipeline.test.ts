@@ -1,4 +1,5 @@
 /** SOURCE OF TRUTH: image pipeline tests — variants, no upscaling, metadata stripped */
+import { MEDIA_CACHE_CONTROL } from '@commerce/storage/keys'
 import sharp from 'sharp'
 import { describe, expect, it } from 'vitest'
 import {
@@ -10,6 +11,8 @@ import {
   sharpThreadsFor,
   VARIANT_WIDTHS,
   variantKey,
+  encodeVariantWidth,
+  variantWidthsFor,
 } from './pipeline'
 
 /** A flat-colour JPEG with an EXIF GPS tag and a "rotate 90° CW" orientation tag. */
@@ -77,9 +80,10 @@ describe('processImage', () => {
 
     expect(result.width).toBe(MAX_MASTER_LONG_EDGE)
     expect(result.height).toBe(Math.round((MAX_MASTER_LONG_EDGE / 4000) * 2000))
-    // 1920 is <= 2560 so it's still generated; nothing above the master width is.
+    // 1920 is <= 2560 so it's still generated, plus a copy at the master's own width; nothing
+    // above the master width is.
     const widths = result.variants.map((v) => v.width)
-    expect(widths).toEqual(VARIANT_WIDTHS.filter((w) => w <= result.width))
+    expect(widths).toEqual([...VARIANT_WIDTHS.filter((w) => w <= result.width), result.width])
     expect(Math.max(...widths)).toBeLessThanOrEqual(result.width)
   })
 
@@ -97,7 +101,8 @@ describe('processImage', () => {
     })
 
     expect(result.variants.every((v) => v.width <= 500)).toBe(true)
-    expect(result.variants.map((v) => v.width)).toEqual([320])
+    // A copy at its own width, so a card shown wider than 320 never falls back to the PNG.
+    expect(result.variants.map((v) => v.width)).toEqual([320, 500])
   })
 
   it('produces AVIF and WebP for each generated width, keyed off the master path', async () => {
@@ -114,7 +119,11 @@ describe('processImage', () => {
     })
 
     expect(result.variants.length).toBeGreaterThan(0)
+    // Final bytes at fresh keys: browsers and the CDN keep them for a year.
+    expect(result.master.cacheControl).toBe(MEDIA_CACHE_CONTROL)
     for (const v of result.variants) {
+      expect(v.avif.cacheControl).toBe(MEDIA_CACHE_CONTROL)
+      expect(v.webp.cacheControl).toBe(MEDIA_CACHE_CONTROL)
       expect(v.avif.contentType).toBe('image/avif')
       expect(v.webp.contentType).toBe('image/webp')
       expect(v.avif.key).toBe(variantKey('stores/s1/media/id-name.jpg', v.width, 'avif'))
@@ -242,5 +251,31 @@ describe('sharpThreadsFor', () => {
     expect(sharpThreadsFor(8, 2)).toBe(4)
     expect(sharpThreadsFor(4, 1)).toBe(4)
     expect(sharpThreadsFor(2, 0)).toBe(2)
+  })
+})
+
+describe('variantWidthsFor', () => {
+  it('adds the master width when it is not a standard width', () => {
+    expect(variantWidthsFor(533)).toEqual([320, 533])
+    expect(variantWidthsFor(2560)).toEqual([320, 640, 1280, 1920, 2560])
+    expect(variantWidthsFor(200)).toEqual([200])
+  })
+  it('does not repeat a master that is already a standard width', () => {
+    expect(variantWidthsFor(1280)).toEqual([320, 640, 1280])
+  })
+})
+
+describe('encodeVariantWidth', () => {
+  it('makes one AVIF and WebP copy at the asked width, keyed like the others', async () => {
+    const bytes = await sharp({
+      create: { width: 533, height: 400, channels: 3, background: { r: 200, g: 10, b: 10 } },
+    })
+      .png()
+      .toBuffer()
+    const copy = await encodeVariantWidth({ bytes, masterKey: 'stores/s/media/z.png', width: 533 })
+    expect(copy.avif.key).toBe('stores/s/media/z-w533.avif')
+    expect(copy.webp.key).toBe('stores/s/media/z-w533.webp')
+    expect((await sharp(copy.webp.body).metadata()).width).toBe(533)
+    expect(copy.avif.body.byteLength).toBeGreaterThan(0)
   })
 })

@@ -1,4 +1,4 @@
-/** SOURCE OF TRUTH: tests for staff cancel, taking over an imported order, and order editing — WHAT: cancel with restock/refund choices (native and imported), takeover stock, edit add/remove/quantity with the balance going up and down / WHY: issues 801 and 802 */
+/** SOURCE OF TRUTH: tests for staff cancel (and the Orders list's bulk cancel of orders with nothing to refund), taking over an imported order, and order editing — WHAT: cancel with restock/refund choices (native and imported), takeover stock, edit add/remove/quantity with the balance going up and down / WHY: issues 801 and 802 */
 import {
   address,
   createDb,
@@ -14,6 +14,7 @@ import {
   product,
   refund,
   store,
+  storeCreditEntry,
   variant,
   withStore,
 } from '@commerce/db'
@@ -26,6 +27,7 @@ import { convertDraft, createDraft } from './drafts'
 import { duplicateOrderAsDraft } from './duplicate'
 import { editOrder, previewOrderEdit } from './edit'
 import { OrderEditRefused, OrderEditSchema } from './edit-plan'
+import { cancelsWithoutRefund } from './edit-rules'
 import { ORDER_EDIT_REFUND_REASON } from './edit-settle'
 import { recomputeOrderStatuses } from './recompute'
 import { RefundNotAllowed } from './refund'
@@ -285,7 +287,7 @@ describe('cancelOrderByStaff', () => {
     expect(r).toMatchObject({ status: 'manual', amountPaise: 200000 })
   })
 
-  it('gives the money back as store credit: one gift card, recorded as the refund', async () => {
+  it("gives the money back as store credit: onto the customer's balance, recorded as the refund", async () => {
     const { storeId, black } = await seed()
     const id = await placed(storeId, black)
     const g = gateway()
@@ -307,9 +309,14 @@ describe('cancelOrderByStaff', () => {
     const rows = await owner.select().from(refund).where(eq(refund.orderId, id))
     expect(rows).toHaveLength(1)
     expect(rows[0]).toMatchObject({ method: 'store_credit', status: 'manual', amountPaise: 200000 })
-    const [card] = await owner.select().from(giftCard).where(eq(giftCard.orderId, id))
-    expect(card).toMatchObject({ initialValuePaise: 200000, balancePaise: 200000 })
-    expect(rows[0]?.giftCardId).toBe(card?.id)
+    // Store credit is never a gift card code: it lands on the shopper's balance.
+    expect(await owner.select().from(giftCard).where(eq(giftCard.orderId, id))).toEqual([])
+    expect(rows[0]?.giftCardId).toBeNull()
+    const [entry] = await owner
+      .select()
+      .from(storeCreditEntry)
+      .where(eq(storeCreditEntry.orderId, id))
+    expect(entry).toMatchObject({ kind: 'refund', amountPaise: 200000 })
     expect((await orderRow(id)).paymentStatus).toBe('refunded')
     const notes = await owner.select().from(orderNote).where(eq(orderNote.orderId, id))
     expect(notes.at(-1)?.body).toContain('given back as store credit')
@@ -342,6 +349,100 @@ describe('cancelOrderByStaff', () => {
     )
     expect(await level(black)).toEqual({ onHand: 12, reserved: 0 })
     expect(await owner.select().from(refund).where(eq(refund.orderId, id))).toHaveLength(0)
+  })
+})
+
+describe('bulk cancel: only orders with nothing to refund (#1408)', () => {
+  /** The refusal the list counts as skipped (BAD_REQUEST with this code over the API). */
+  const NEEDS_REFUND = { code: 'ORDER_NEEDS_REFUND_DECISION' }
+  /** The list's "Cancel orders": the order page's cancel, nothing refunded, guarded. */
+  const bulk = (storeId: string, orderId: string, g = gateway()) =>
+    withStore(app, storeId, (tx) =>
+      cancelOrderByStaff(
+        { storeId, tx },
+        {
+          orderId,
+          restock: true,
+          notifyCustomer: true,
+          refund: 'none',
+          onlyWithoutRefund: true,
+          author: STAFF,
+        },
+        [g],
+      ),
+    )
+
+  it('cancels an unpaid cash-on-delivery order and gives its stock back', async () => {
+    const { storeId, black } = await seed()
+    const id = await placed(storeId, black, { paid: false })
+    expect((await orderRow(id)).paymentStatus).toBe('unpaid')
+    await bulk(storeId, id)
+    const o = await orderRow(id)
+    expect(o.status).toBe('cancelled')
+    expect(await level(black)).toEqual({ onHand: 10, reserved: 0 })
+    expect(await owner.select().from(refund).where(eq(refund.orderId, id))).toEqual([])
+    expect(await events(id)).toContain('order.cancel_notice')
+    const notes = await owner.select().from(orderNote).where(eq(orderNote.orderId, id))
+    expect(notes.at(-1)?.body).toContain('Nothing to refund.')
+  })
+
+  it('refuses a paid order and changes nothing: its page asks how the money goes back', async () => {
+    const { storeId, black } = await seed()
+    const id = await placed(storeId, black)
+    const g = gateway()
+    await expect(bulk(storeId, id, g)).rejects.toMatchObject(NEEDS_REFUND)
+    const o = await orderRow(id)
+    expect(o.status).toBe('open')
+    expect(o.paymentStatus).toBe('paid')
+    expect(await level(black)).toEqual({ onHand: 10, reserved: 2 })
+    expect(g.calls).toEqual([])
+    expect(await events(id)).not.toContain('order.cancel_notice')
+  })
+
+  it('refuses an order whose status still reads unpaid but holds captured money', async () => {
+    const { storeId, black } = await seed()
+    const id = await placed(storeId, black, { paid: false })
+    // A capture the derived status has not caught up with: the refundable amount still counts.
+    await owner
+      .update(payment)
+      .set({ status: 'captured', providerPaymentId: 'pay_1', provider: 'fake' })
+      .where(eq(payment.orderId, id))
+    await expect(bulk(storeId, id)).rejects.toMatchObject(NEEDS_REFUND)
+    expect((await orderRow(id)).status).toBe('open')
+  })
+
+  it('refuses an imported order: it is taken over on its own page first', async () => {
+    const { storeId, black } = await seed()
+    const id = await imported(storeId, black)
+    await owner.update(order).set({ paymentStatus: 'unpaid' }).where(eq(order.id, id))
+    await expect(bulk(storeId, id)).rejects.toMatchObject(NEEDS_REFUND)
+    const o = await orderRow(id)
+    expect(o.status).toBe('open')
+    expect(o.importedFrom).toBe('shopify')
+  })
+
+  it('the shared rule: unpaid or fully refunded, open, not shipped, worked here', () => {
+    const o = {
+      importedFrom: null,
+      status: 'open',
+      fulfillmentStatus: 'unfulfilled',
+      paymentStatus: 'unpaid',
+    }
+    expect(cancelsWithoutRefund(o)).toBe(true)
+    expect(cancelsWithoutRefund({ ...o, paymentStatus: 'refunded' })).toBe(true)
+    expect(cancelsWithoutRefund({ ...o, fulfillmentStatus: 'partially_fulfilled' })).toBe(true)
+    for (const paymentStatus of [
+      'paid',
+      'partially_paid',
+      'partially_refunded',
+      'refund_needed',
+      'authorized',
+    ]) {
+      expect(cancelsWithoutRefund({ ...o, paymentStatus })).toBe(false)
+    }
+    expect(cancelsWithoutRefund({ ...o, fulfillmentStatus: 'shipped' })).toBe(false)
+    expect(cancelsWithoutRefund({ ...o, status: 'cancelled' })).toBe(false)
+    expect(cancelsWithoutRefund({ ...o, importedFrom: 'shopify' })).toBe(false)
   })
 })
 

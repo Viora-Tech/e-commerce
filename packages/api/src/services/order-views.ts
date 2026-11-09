@@ -6,7 +6,7 @@ import {
   UNPAID_PAYMENT_STATUSES,
 } from '@commerce/core'
 import { order } from '@commerce/db'
-import { and, eq, gt, inArray, isNotNull, isNull, ne, type SQL } from 'drizzle-orm'
+import { and, eq, gt, inArray, isNotNull, isNull, ne, or, type SQL } from 'drizzle-orm'
 
 export { paymentFinished, paymentNotFinished }
 
@@ -29,12 +29,32 @@ export type OrderView = (typeof ORDER_VIEWS)[number]
  * open orders count; Pending UPI is a manual transfer whose checkout amount
  * has not been matched yet.
  */
-/** Archived orders (#1007) sit only under the Archived tab; every other tab leaves them out. */
+/**
+ * Archived orders (#1007) sit under the Archived tab and leave the working tabs. The Cancelled
+ * tab is the one exception: cancelled orders are archived automatically by default, and a
+ * merchant who asks for the cancelled ones expects to see them all.
+ */
 const notArchived = isNull(order.archivedAt)
+
+/**
+ * The Orders "Pending UPI" tile: open transfer orders, and shoppers' UPI / bank transfer
+ * checkouts kept as drafts (0233) still waiting to be marked paid.
+ */
+export const pendingUpiTile = (): SQL | undefined =>
+  or(
+    viewFilter('pending_upi'),
+    and(
+      eq(order.status, 'draft'),
+      eq(order.draftSource, 'checkout'),
+      isNull(order.draftExpiredAt),
+      eq(order.paymentMethod, 'manual'),
+    ),
+  )
 
 /** A list tab's rows; Home's to-do counts use the same rule so their number matches the list they open. */
 export function viewFilter(view: OrderView): SQL | undefined {
   if (view === 'archived') return isNotNull(order.archivedAt)
+  if (view === 'cancelled') return tabFilter(view)
   return and(notArchived, tabFilter(view))
 }
 

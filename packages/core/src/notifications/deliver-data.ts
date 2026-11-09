@@ -9,7 +9,7 @@ import type { StoreContext } from '../context'
 import { GIFT_CARD_PROVIDER } from '../gift-cards/service'
 import type { ParcelView } from '../order/parcel-view'
 import { manualCancelAt } from '../payments/manual-followup'
-import { parsePaymentSettings } from '../payments/settings'
+import { manualCancelHoursOf, parsePaymentSettings } from '../payments/settings'
 import { type GstBreakdown, gstRowsToShow } from '../tax/gst'
 
 /** Human label for the order's payment_method id; adapters own the real label, this is the fallback. */
@@ -18,6 +18,8 @@ export const PAYMENT_LABELS: Record<string, string> = {
   manual: 'UPI or bank transfer',
   razorpay: 'Razorpay',
   razorpay_upi: 'UPI',
+  gift_card: 'Gift card',
+  store_credit: 'Store credit',
 }
 
 const isGst = (v: unknown): v is GstBreakdown =>
@@ -75,6 +77,7 @@ export function emailParcels(views: readonly ParcelView[]): EmailParcel[] | unde
 /** Human label for a refund's method, for the refund_issued message. */
 function refundMethodLabel(provider: string): string {
   if (provider === GIFT_CARD_PROVIDER) return 'your gift card'
+  if (provider === 'store_credit') return 'your store credit balance'
   return PAYMENT_LABELS[provider] ?? 'your original payment method'
 }
 
@@ -83,7 +86,12 @@ function refundMethodLabel(provider: string): string {
  * transfer) the merchant settles directly does not have a bank-side wait to quote.
  */
 function refundEtaLabel(provider: string): string | undefined {
-  if (provider === GIFT_CARD_PROVIDER || provider === 'cod' || provider === 'manual') {
+  if (
+    provider === GIFT_CARD_PROVIDER ||
+    provider === 'store_credit' ||
+    provider === 'cod' ||
+    provider === 'manual'
+  ) {
     return undefined
   }
   return '5 to 7 working days'
@@ -98,11 +106,13 @@ export async function refundTemplateData(
   if (!r) return null
   const [p] = await ctx.tx.select().from(payment).where(eq(payment.id, r.paymentId))
   const provider = p?.provider ?? ''
+  // Store credit with no card: it went onto the customer's balance, at once.
+  const toBalance = r.method === 'store_credit' && !r.giftCardId
   return {
     refund: {
       amountLabel: formatMoney(r.amountPaise),
-      methodLabel: refundMethodLabel(provider),
-      etaLabel: refundEtaLabel(provider),
+      methodLabel: toBalance ? 'your store credit balance' : refundMethodLabel(provider),
+      etaLabel: toBalance ? undefined : refundEtaLabel(provider),
     },
   }
 }
@@ -138,7 +148,7 @@ export async function merchantNotice(
     .from(order)
     .where(eq(order.id, orderId))
   if (!s?.email || o?.status !== 'open' || o.checkoutPaidAt) return null
-  const at = manualCancelAt(parsePaymentSettings(s.payments).manualCancelAfterHours, {
+  const at = manualCancelAt(manualCancelHoursOf(parsePaymentSettings(s.payments)), {
     placedAt: o.placedAt,
     cancelNoticeAt: o.noticeAt,
   })

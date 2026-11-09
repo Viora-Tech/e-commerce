@@ -8,14 +8,18 @@ import {
   defaultInvoiceDate,
   enqueueOrderParcels,
   GST_INVOICES_ID,
+  isCancelledOrder,
   issueDrafts,
+  issuedInvoiceIds,
   isTestOrder,
+  refreshInvoiceGst as refreshFromProducts,
+  renderAndStore,
   soldOnlyGiftCards,
 } from '@commerce/plugin-gst-invoices/server'
 import { z } from 'zod'
-import { can } from '../procedures'
+import { BULK_MAX, can } from '../procedures'
 import { orderIdsByNumber } from '../services/gst-invoices.service'
-import { asOrpc, requireInstalled } from './gst-invoices-context'
+import { asOrpc, renderDeps, requireInstalled } from './gst-invoices-context'
 
 /** Add orders by hand, e.g. a pre-order the merchant wants invoiced now. */
 export const addToQueue = can(permissions.ORDERS_WRITE)
@@ -24,8 +28,9 @@ export const addToQueue = can(permissions.ORDERS_WRITE)
       orderIds: z.array(z.uuid()).max(100).default([]),
       orderNumbers: z.array(z.number().int().positive()).max(100).default([]),
       /**
-       * The Orders list's bulk "Add to invoice queue": skip test-mode and gift-card-only orders
-       * (which never get a tax invoice) and count them, instead of failing the batch.
+       * The Orders list's bulk "Add to invoice queue": skip test-mode, cancelled and
+       * gift-card-only orders (which never get a tax invoice) and count them, instead of
+       * failing the batch.
        */
       skipIneligible: z.boolean().default(false),
     }),
@@ -36,10 +41,15 @@ export const addToQueue = can(permissions.ORDERS_WRITE)
       const byNumber = await orderIdsByNumber(context.tx, input.orderNumbers)
       let added = 0
       let skipped = 0
+      /* Orders that added nothing because their invoice was already there (queued by payment
+         or fulfilment, or issued): counted, so the toast accounts for every order selected. */
+      let alreadyQueued = 0
+      let alreadyInvoiced = 0
       for (const orderId of [...input.orderIds, ...byNumber.ids]) {
         if (
           input.skipIneligible &&
           ((await isTestOrder(context.tx, orderId)) ||
+            (await isCancelledOrder(context.tx, orderId)) ||
             (await soldOnlyGiftCards(context.tx, orderId)))
         ) {
           skipped += 1
@@ -52,9 +62,14 @@ export const addToQueue = can(permissions.ORDERS_WRITE)
           'manual',
         )
         // One draft per parcel; a split order adds one per GSTIN.
-        added += queued.filter((q) => q.created).length
+        const created = queued.filter((q) => q.created).length
+        added += created
+        if (created === 0 && queued.length > 0) {
+          if (queued.every((q) => q.row.status === 'issued')) alreadyInvoiced += 1
+          else alreadyQueued += 1
+        }
       }
-      return { added, skipped, missing: byNumber.missing }
+      return { added, skipped, alreadyQueued, alreadyInvoiced, missing: byNumber.missing }
     } catch (err) {
       asOrpc(err)
     }
@@ -115,3 +130,36 @@ export const generateInvoice = can(permissions.ORDERS_WRITE)
       asOrpc(err)
     }
   })
+
+/** The issued tax invoices of the orders selected in Orders, for its bulk Print invoices. */
+const invoicesForOrders = can(permissions.ORDERS_READ)
+  .input(z.object({ orderIds: z.array(z.uuid()).min(1).max(BULK_MAX) }))
+  .handler(async ({ context, input }) => {
+    await requireInstalled(context)
+    return { ids: await issuedInvoiceIds(context.tx, input.orderIds) }
+  })
+
+/**
+ * "Recalculate GST from products" on an issued, unfiled tax invoice: the order's lines take
+ * their products' GST and HSN as they are now, and the invoice is rebuilt under the same
+ * number and date. Once reported in GSTR-1 it is locked; a credit note is the way then.
+ */
+const refreshInvoiceGst = can(permissions.ORDERS_WRITE)
+  .input(z.object({ id: z.uuid() }))
+  .handler(async ({ context, input }) => {
+    await requireInstalled(context)
+    try {
+      const { row, changedLines } = await refreshFromProducts(
+        context.tx,
+        context.scope.storeId,
+        input.id,
+      )
+      const done = await renderAndStore(renderDeps(context), row.id)
+      return { id: done.id, number: done.number, changedLines }
+    } catch (err) {
+      asOrpc(err)
+    }
+  })
+
+/** Mounted on `gstInvoices` in one line, so that router stays within the file-size sweep. */
+export const invoiceFixProcedures = { forOrders: invoicesForOrders, refreshGst: refreshInvoiceGst }

@@ -48,10 +48,14 @@ COPY --from=pruner /repo/out/full/ .
 COPY --from=pruner /repo/commerce.config.ts /repo/commerce.blocks.config.ts ./
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
-# Caps the build's own heap growth so it fails with a clear OOM instead of the runner killing
-# the job (GitHub's standard runner for private repos has ~7 GB RAM; building this used ~7 GB
-# uncapped, which is why builds moved off the 8 GB server).
-ENV NODE_OPTIONS=--max-old-space-size=6144
+# Lean build (packages/config/src/lean-build.ts): types are checked before every PR with
+# TypeScript 7 (`bun run typecheck`), so the build skips Next's slower TypeScript 5.9 pass, and
+# two page workers instead of one per core. Measured: fits a 4 GB machine with 4 GB of swap.
+ENV BUILD_TYPECHECK=0
+ENV BUILD_CPUS=2
+# Caps Node's own heap (Turbopack's native memory is outside it). The lean build peaked at about
+# 6 GB in total on 8 Nov 2026, against 8.7 GB before.
+ENV NODE_OPTIONS=--max-old-space-size=4096
 # Next inlines NEXT_PUBLIC_* into the browser bundle at build time, so the worker URL shown on
 # the Settings pages has to be known here (release.yml passes the repo variable of this name).
 # Left unset when empty so the code's own localhost fallback applies.
@@ -61,6 +65,10 @@ ARG NEXT_PUBLIC_WORKER_URL
 # `.next/standalone` and `.next/static` are written beside it and copied below as before. One
 # cache per platform (an amd64 and an arm64 build don't share compiled output), and `locked` so
 # two builds at once wait rather than write the same cache. On a fresh CI runner it starts empty.
+# `bun run build` runs `next build` in two processes (apps/admin/package.json): `compile`, then
+# `generate`. Turbopack keeps its compile memory until its process exits, so in a single process
+# the page workers start on top of it; split, they start in a fresh one. Same output, about 9%
+# lower peak (measured 8 Nov 2026).
 ARG TARGETPLATFORM
 RUN --mount=type=cache,id=commerce-admin-next-cache-$TARGETPLATFORM,sharing=locked,target=/repo/apps/admin/.next/cache \
   if [ -z "$NEXT_PUBLIC_WORKER_URL" ]; then unset NEXT_PUBLIC_WORKER_URL; fi \
@@ -76,6 +84,8 @@ RUN cd /repo/apps/admin/.next/standalone/node_modules/.bun \
 # Plain Alpine (the release the bun image is built on): the server runs on Node, so the bun
 # binary that `base` carries (~90 MB) has no job here.
 FROM alpine:3.22 AS runner
+# Alpine fixes published after the base image (musl, zlib).
+RUN apk upgrade --no-cache
 # The standalone Next server runs on Node: Bun 1.3.11 fails to load Next's compiled
 # server runtime ("Expected CommonJS module to have a function wrapper").
 # Node comes from the official image, not Alpine's package: Alpine's nodejs lags security

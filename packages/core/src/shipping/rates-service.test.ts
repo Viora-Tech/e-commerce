@@ -84,9 +84,11 @@ async function newCart(storeId: string, variantId: string, quantity: number): Pr
   return c.id
 }
 
+/** A new shopper each time, so repeated orders of the same items are not refused as duplicates. */
+let shopper = 0
 const checkout = (stateCode: string, pincode: string) => ({
-  email: 'a@example.com',
-  phone: '9999999999',
+  email: `a${++shopper}@example.com`,
+  phone: `99999${String(shopper).padStart(5, '0')}`,
   name: 'Asha',
   address: { line1: '2 Park St', city: 'City', stateCode, pincode },
 })

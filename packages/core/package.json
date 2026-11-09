@@ -3,6 +3,9 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
+  "sideEffects": [
+    "./src/search-console/service.ts"
+  ],
   "exports": {
     ".": "./src/index.ts",
     "./testing": "./src/testing/index.ts",
@@ -30,6 +33,7 @@
     "./gst": "./src/tax/gst.ts",
     "./tax-settings": "./src/tax/settings.ts",
     "./profit": "./src/order/profit.ts",
+    "./refresh-gst": "./src/order/refresh-gst.ts",
     "./expenses": "./src/finance/monthly-expenses.ts",
     "./profit-summary": "./src/finance/profit-summary.ts",
     "./gst-registrations": "./src/tax/registration-schemas.ts",
@@ -96,10 +100,12 @@
     "./preorder-block": "./src/preorder/block.tsx",
     "./order-status": "./src/order/aggregate-status.ts",
     "./draft-number": "./src/order/draft-ref.ts",
+    "./shopper-paid": "./src/payments/shopper-paid.ts",
     "./payment-terms": "./src/order/payment-terms.ts",
     "./order-edit-rules": "./src/order/edit-rules.ts",
     "./fulfillment-orders": "./src/order/fulfillment-orders.ts",
     "./returns": "./src/returns/policy.ts",
+    "./offer-policies": "./src/seo/offer-policies.ts",
     "./return-reasons": "./src/returns/reasons.ts",
     "./cod-rto": "./src/cod-rto/client.ts",
     "./cod-rto-app": "./src/cod-rto/app.ts",
@@ -168,7 +174,7 @@
     "@vitest/coverage-v8": "4.1.11",
     "dotenv": "^18.0.1",
     "fast-check": "4.10.2",
-    "react": "^19.2.0",
+    "react": "^19.3.1",
     "typescript": "~5.9.3",
     "vitest": "^4.1.11"
   }

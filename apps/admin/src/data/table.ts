@@ -51,4 +51,7 @@ export const tableContent = {
   /** Figma "Feedback state · No results": a search found nothing; one button clears it. */
   noResultsBody: 'Nothing matches this search and these filters.',
   clearSearchAndFilters: 'Clear filters',
+  /** Read out over a plain table's skeleton rows while its page loads. */
+  loading: (plural: string) => `Loading ${plural}`,
+  loadFailed: (plural: string) => `Could not load the ${plural}`,
 } as const

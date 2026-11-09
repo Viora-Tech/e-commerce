@@ -35,6 +35,7 @@ export const shopifyImportContent = {
     metafields: 'Extra fields',
     discounts: 'Discounts',
     gift_cards: 'Gift cards',
+    store_credit: 'Store credit',
   } satisfies Record<ImportResource, string>,
   previewReady: 'Preview ready',
   status: {
@@ -244,6 +245,7 @@ export const shopifyImportContent = {
       read_inventory_purchase_orders: 'Read purchase orders',
       read_inventory_transfers: 'Read transfers',
       read_reports: 'Read traffic reports (sessions and visitors)',
+      read_store_credit_accounts: 'Read store credit balances',
     } satisfies Record<ScopeHandle, string>,
     chooseHeading: 'What to import',
     chooseHelp:
@@ -325,6 +327,10 @@ export const shopifyImportContent = {
         title: 'Shopify access missing',
         help: 'Your Shopify app can’t read this yet. Add the missing access in Shopify, then test the connection again.',
       },
+      optional_scope: {
+        title: 'Shopify access missing',
+        help: 'Your Shopify app can’t read this, so the import skips it and brings everything else. Add the missing access in Shopify and test the connection to include it.',
+      },
       all_orders: {
         title: 'Only recent orders',
         help: 'Without “Read all orders” Shopify shares only the last 60 days of orders.',
@@ -335,7 +341,7 @@ export const shopifyImportContent = {
       },
       needs_customers: {
         title: 'Customers aren’t here yet',
-        help: 'Tick customers too, or gift cards for unknown customers are skipped.',
+        help: 'Tick customers too, or gift cards and store credit of unknown customers are skipped.',
       },
     },
   },
@@ -412,6 +418,14 @@ export const shopifyImportContent = {
         `${plural(n, 'gift card is', 'gift cards are')} in another currency.`,
       gift_card_used_here: (n: number) =>
         `${plural(n, 'gift card was', 'gift cards were')} already spent in this store, so the balance here was kept.`,
+      store_credit_scope: () =>
+        'Store credit was skipped: your Shopify app can’t read store credit (read_store_credit_accounts). Add that access in Shopify, test the connection, then import Store credit again.',
+      store_credit_no_customer: (n: number) =>
+        `${plural(n, 'store credit balance belongs', 'store credit balances belong')} to customers who aren’t here. Import customers, then run the import again.`,
+      store_credit_currency: (n: number, currency: string) =>
+        `${plural(n, 'store credit balance is', 'store credit balances are')} in ${currency}. Store credit here is in rupees, so ${n === 1 ? 'it stays' : 'they stay'} in Shopify.`,
+      store_credit_used_here: (n: number) =>
+        `${plural(n, 'customer’s Shopify balance', 'customers’ Shopify balances')} went down, but the credit was already spent here, so the balance here was kept.`,
       redirect_manual: (n: number) =>
         `${plural(n, 'redirect', 'redirects')} you set up here by hand kept your version.`,
       redirect_invalid: (n: number) =>

@@ -7,9 +7,15 @@ import { Button } from '@commerce/ui/shadcn/button'
 import { Dialog, DialogDescription, DialogTitle } from '@commerce/ui/shadcn/dialog'
 import { Field, FieldDescription, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
-import { RadioGroup, RadioGroupItem } from '@commerce/ui/shadcn/radio-group'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@commerce/ui/shadcn/select'
 import Link from 'next/link'
-import { type FormEvent, useState } from 'react'
+import { type FormEvent, useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import DateField from '@/components/fields/date-field'
 import DialogContent from '@/components/layout/dialog-content'
@@ -49,15 +55,34 @@ export default function CollectPaymentDialog({
   // Hooks
   const copy = useCopy(orderDetailContent)
   const fmt = useFormat()
-  const [amount, setAmount] = useState('')
+  // Null until the merchant types: the field shows the full balance, ready to confirm.
+  const [amount, setAmount] = useState<string | null>(null)
   const [method, setMethod] = useState<ManualPaymentMethod | null>(null)
   const [reference, setReference] = useState('')
   const [receivedOn, setReceivedOn] = useState('')
   const [busy, setBusy] = useState(false)
+  // The customer's store credit, for the Store credit method (null until read, or no customer).
+  const [credit, setCredit] = useState<number | null>(null)
+
+  useEffect(() => {
+    let live = true
+    setCredit(null)
+    const id = order?.customer?.id
+    if (!id) return
+    api.storeCredit
+      .get({ customerId: id })
+      .then((a) => {
+        if (live) setCredit(a.balancePaise)
+      })
+      .catch(() => undefined)
+    return () => {
+      live = false
+    }
+  }, [order?.customer?.id])
 
   // Helpers
   const reset = () => {
-    setAmount('')
+    setAmount(null)
     setMethod(null)
     setReference('')
     setReceivedOn('')
@@ -92,11 +117,16 @@ export default function CollectPaymentDialog({
   }
 
   // Render logic
-  const paise = amount.trim() === '' ? balancePaise : parseRupees(amount)
+  const shown = amount ?? String(balancePaise / 100)
+  const paise = shown.trim() === '' ? null : parseRupees(shown)
   const paidWith = method ?? likelyMethod(order)
   const day = receivedOn || todayKey()
-  const valid = paise !== null && paise > 0 && day <= todayKey()
   const c = copy.collectDialog
+  const customerId = order?.customer?.id ?? null
+  const byCredit = paidWith === 'store_credit'
+  // Store credit pays only from a customer's balance that covers the amount.
+  const creditShort = byCredit && (credit === null || (paise !== null && paise > credit))
+  const valid = paise !== null && paise > 0 && day <= todayKey() && !creditShort
 
   return (
     <Dialog open={order !== null} onOpenChange={(open) => (!open ? handleClose() : undefined)}>
@@ -117,31 +147,42 @@ export default function CollectPaymentDialog({
               type="number"
               inputMode="decimal"
               min="1"
-              step="1"
-              placeholder={String(balancePaise / 100)}
-              value={amount}
+              step="0.01"
+              value={shown}
               onChange={(e) => setAmount(e.target.value)}
               autoFocus
             />
           </Field>
+          {/* A dropdown, not a tile per method: the dialog stays short and more methods fit. */}
           <Field>
-            <FieldLabel>{c.how}</FieldLabel>
-            <RadioGroup
+            <FieldLabel htmlFor="collect-method">{c.how}</FieldLabel>
+            <Select
+              items={c.methods}
               value={paidWith}
-              onValueChange={(v) => setMethod(v as ManualPaymentMethod)}
-              className="grid gap-2 sm:grid-cols-2"
+              onValueChange={(v) => v && setMethod(v as ManualPaymentMethod)}
             >
-              {MANUAL_PAYMENT_METHODS.map((m) => (
-                <label
-                  key={m}
-                  htmlFor={`collect-method-${m}`}
-                  className="flex min-h-11 items-center gap-2 rounded-md border border-border px-3 text-body has-data-checked:border-primary"
-                >
-                  <RadioGroupItem id={`collect-method-${m}`} value={m} />
-                  {c.methods[m]}
-                </label>
-              ))}
-            </RadioGroup>
+              <SelectTrigger size="lg" id="collect-method" className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {MANUAL_PAYMENT_METHODS.map((m) => (
+                  <SelectItem key={m} value={m}>
+                    {c.methods[m]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {byCredit ? (
+              <FieldDescription className={creditShort ? 'text-destructive' : undefined}>
+                {!customerId
+                  ? c.storeCreditNone
+                  : credit === null
+                    ? null
+                    : creditShort
+                      ? c.storeCreditShort(fmt.money(credit))
+                      : c.storeCreditBalance(fmt.money(credit))}
+              </FieldDescription>
+            ) : null}
           </Field>
           <div className="grid gap-4 sm:grid-cols-2">
             <Field>

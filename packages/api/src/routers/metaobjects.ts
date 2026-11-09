@@ -11,6 +11,7 @@ import {
   getDefinition,
   getEntry,
   getMetafields,
+  getMetafieldsForOwners,
   InvalidMetaobject,
   listDefinitions,
   listEntries,
@@ -38,6 +39,7 @@ import {
   BULK_MAX,
   can,
   canAny,
+  inputField,
   PAGE_MAX,
   PAGE_SIZE_MAX,
   SEARCH_MAX,
@@ -83,6 +85,9 @@ const ownerIdFor = (
   input: { ownerType: MetafieldOwnerType; ownerId?: string | undefined },
   storeId: string,
 ) => (input.ownerType === 'shop' ? storeId : input.ownerId)
+
+/** A variant-fields read asks for one product's variants: comfortably more than its 100 (`ProductInputSchema`). */
+const VARIANT_METAFIELDS_MAX = 250
 
 const OwnerInput = z
   .object({ ownerType: MetafieldOwnerTypeSchema, ownerId: z.uuid().optional() })
@@ -243,10 +248,28 @@ export const metaobjectsRouter = {
       return getMetafields(context.tx, input.ownerType, ownerId)
     }),
 
-  setMetafields: canAny(METAFIELD_WRITE_PERMISSIONS)
+  /**
+   * A product's variants' extra fields in one call (the product page asked once per variant:
+   * a product with 25 sizes sent 25 requests). Values are keyed by variant id.
+   */
+  variantMetafields: canAny(METAFIELD_READ_PERMISSIONS)
+    .input(z.object({ variantIds: z.array(z.uuid()).min(1).max(VARIANT_METAFIELDS_MAX) }))
+    .handler(({ context, input }) => {
+      assertOwnerAccess(context.scope, 'variant', 'read')
+      return getMetafieldsForOwners(context.tx, 'variant', [...new Set(input.variantIds)])
+    }),
+
+  // The record's own write grant (products.write for a product's fields), declared so its
+  // "Needs approval" tick holds the change here as it does on the record's own save.
+  setMetafields: canAny(METAFIELD_WRITE_PERMISSIONS, (input) => {
+    const ownerType = inputField(input, 'ownerType')
+    const grains = Object.hasOwn(METAFIELD_OWNER_PERMISSIONS, String(ownerType))
+      ? METAFIELD_OWNER_PERMISSIONS[ownerType as MetafieldOwnerType]
+      : undefined
+    return grains ? [grains.write] : []
+  })
     .input(OwnerInput.and(z.object({ values: z.record(z.uuid(), z.unknown()) })))
     .handler(({ context, input }) => {
-      assertOwnerAccess(context.scope, input.ownerType, 'write')
       const ownerId = ownerIdFor(input, context.scope.storeId) as string
       return invalidToBadRequest(async () => {
         await setMetafields(context.tx, context.scope.storeId, {

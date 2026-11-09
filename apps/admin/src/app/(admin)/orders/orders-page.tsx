@@ -24,6 +24,7 @@ import { useOrderAppActions } from '@/components/orders/use-order-app-actions'
 import InlineState from '@/components/states/inline-state'
 import ResourceTable, { type TableSort } from '@/components/table/resource-table'
 import ViewSelect from '@/components/table/view-select'
+import { approvalsContent } from '@/data/approvals'
 import {
   ORDER_LIST_FILTERS,
   type OrderListFilter,
@@ -33,7 +34,8 @@ import {
 } from '@/data/orders'
 import { ordersBulkContent } from '@/data/orders-bulk'
 import { useCopy, useFormat } from '@/hooks/use-copy'
-import { api } from '@/lib/api-client'
+import { api, isApprovalQueued } from '@/lib/api-client'
+import { ADMIN_REFRESH_EVENT } from '@/lib/focus-refresh'
 import { type ListQuery, sameListQuery } from '@/lib/list-query'
 import { orderColumns } from '@/lib/order-columns'
 import { orderListFilter } from '@/lib/order-filter'
@@ -107,6 +109,7 @@ function fetchOrders(q: Query, perPage: number) {
 function OrdersContent({ initial }: { initial: OrdersInitial }) {
   // Hooks
   const copy = useCopy(ordersContent)
+  const approvals = useCopy(approvalsContent)
   const bulkCopy = useCopy(ordersBulkContent)
   const fmt = useFormat()
   const router = useRouter()
@@ -173,6 +176,22 @@ function OrdersContent({ initial }: { initial: OrdersInitial }) {
     }
   }, [q, initial.query, initial.perPage])
 
+  // Back on the tab (RefreshOnFocus): the rows live here, so they are read again with the page.
+  useEffect(() => {
+    const onRefresh = () => {
+      fetchOrders(q, parseRowsPerPage(q.perPage)).then(
+        (r) => {
+          setItems(r.items)
+          setTotal(r.total)
+          setTestOrders(r.testOrders)
+        },
+        () => undefined,
+      )
+    }
+    window.addEventListener(ADMIN_REFRESH_EVENT, onRefresh)
+    return () => window.removeEventListener(ADMIN_REFRESH_EVENT, onRefresh)
+  }, [q])
+
   // Helpers
   const loadViewIds = () =>
     api.orders.ids({
@@ -203,21 +222,29 @@ function OrdersContent({ initial }: { initial: OrdersInitial }) {
     })
     let skipped = ids.length - due.length
     let updated = 0
+    /* A role whose cancel needs approval: each order waits in Settings → Approvals instead. */
+    let queued = 0
     /* "Select all" can hand over thousands of ids: ten requests at a time, never all at once. */
     const { failed } = await runBatched(due, async (id) => {
       try {
         await api.orders.setStatus({ id, status: mark })
         updated += 1
       } catch (err) {
+        if (isApprovalQueued(err)) {
+          queued += 1
+          return
+        }
         // The API refuses a locked (cancelled, imported) order with BAD_REQUEST: a skip.
         if (!isBadRequest(err)) throw err
         skipped += 1
       }
     })
+    if (queued > 0) toast.info(approvals.sent)
     if (failed > 0 && updated === 0) toast.error(copy.bulk.failed)
     else if (failed > 0) toast.warning(copy.bulk.partlyFailed(updated, failed))
-    else if (updated === 0) toast.info(copy.bulk.noneUpdated(skipped))
-    else if (skipped > 0)
+    else if (updated === 0) {
+      if (queued === 0) toast.info(copy.bulk.noneUpdated(skipped))
+    } else if (skipped > 0)
       toast.success(copy.bulk.updatedSkipped(updated, copy.marks[mark], skipped))
     else toast.success(copy.bulk.updated(updated, copy.marks[mark]))
     if (updated > 0) {

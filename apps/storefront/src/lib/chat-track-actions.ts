@@ -4,7 +4,7 @@ import 'server-only'
 
 import { settingsSecret } from '@commerce/config'
 import {
-  GIFT_CARD_PROVIDER,
+  isSplitTender,
   orderViewToken,
   parseMethodDetail,
   paymentState,
@@ -110,7 +110,7 @@ async function orderViews(tx: StoreTx, storeId: string, rows: OrderRow[]) {
     const mine = lines.filter((l) => l.orderId === o.id)
     const first = mine[0]
     const latestPay = pays
-      .filter((p) => p.orderId === o.id && p.provider !== GIFT_CARD_PROVIDER)
+      .filter((p) => p.orderId === o.id && !isSplitTender(p.provider))
       .sort((a, b) => b.attempt - a.attempt)[0]
     const captured = pays.find(
       (p) => p.orderId === o.id && p.status === 'captured' && p.methodDetail,

@@ -1,6 +1,5 @@
 import { render } from '@react-email/render'
 import { createElement } from 'react'
-import type { HeroShot } from '../emails/components'
 import { TransactionalEmail } from '../emails/transactional-email'
 import type { TemplateData, TemplateId } from '../types'
 import { sharedContent as shared, templateContent } from './content'
@@ -34,6 +33,7 @@ export const TEMPLATE_IDS: TemplateId[] = [
   'balance_reminder',
   'balance_received',
   'payment_reminder',
+  'transfer_requested',
   'unpaid_cancel_notice',
   'staff_new_order',
   'staff_daily_summary',
@@ -103,6 +103,7 @@ export const TEMPLATE_NAMES: Record<TemplateId, string> = {
   balance_reminder: 'Balance reminder',
   balance_received: 'Balance received',
   payment_reminder: 'Payment reminder',
+  transfer_requested: 'Order received, complete your transfer',
   unpaid_cancel_notice: 'Unpaid order will be cancelled (merchant)',
   staff_new_order: 'New order (team member alert)',
   staff_daily_summary: 'Daily summary (team member alert)',
@@ -253,6 +254,7 @@ function primaryActionFor(
     case 'balance_reminder':
       return d.actionUrl ? { label: 'Pay the balance', url: d.actionUrl } : undefined
     case 'payment_reminder':
+    case 'transfer_requested':
       return d.orderUrl ? { label: 'View payment details', url: d.orderUrl } : undefined
     case 'back_in_stock_confirm':
       return d.backInStock?.confirmUrl
@@ -353,24 +355,6 @@ function stepsFor(template: TemplateId) {
   return undefined
 }
 
-/** The card on the hero's right: the code, the amount that matters, or the first product photo. */
-function shotFor(template: TemplateId, d: TemplateData): HeroShot | undefined {
-  // A six-digit code reads as two groups ("482 913"); the text part keeps it whole for copying.
-  if (d.code) return { kind: 'code', value: d.code.replace(/^(\d{3})(\d{3})$/, '$1 $2') }
-  if (d.refund && (template === 'refund_issued' || template === 'return_refunded')) {
-    return { kind: 'amount', value: d.refund.amountLabel, caption: d.refund.methodLabel }
-  }
-  if (d.balance && (template === 'balance_request' || template === 'balance_reminder')) {
-    return { kind: 'amount', value: d.balance.dueLabel, caption: d.balance.payByLabel }
-  }
-  if (d.giftCard) return { kind: 'amount', value: d.giftCard.balanceLabel }
-  if (template === 'staff_new_order' && d.totalLabel) {
-    return { kind: 'amount', value: d.totalLabel, caption: d.paymentMethodLabel || undefined }
-  }
-  const photo = d.lines.find((l) => l.imageUrl)
-  return photo?.imageUrl ? { kind: 'image', url: photo.imageUrl, alt: photo.title } : undefined
-}
-
 function metaFor(template: TemplateId, d: TemplateData): string[] {
   const meta: string[] = []
   if (d.waybill && DELIVERY_STEP[template] !== undefined)
@@ -432,8 +416,10 @@ export async function renderEmail(template: TemplateId, d: TemplateData): Promis
       brand: d.brand,
       previewText: subject,
       eyebrow: eyebrowFor(template, d),
-      heroTitle: shared.heroTitles[template],
-      shot: shotFor(template, d),
+      // A six-digit code reads as two groups ("482 913"); the text part keeps it whole for copying.
+      code: d.code
+        ? { label: shared.codeLabel, value: d.code.replace(/^(\d{3})(\d{3})$/, '$1 $2') }
+        : undefined,
       steps: stepsFor(template),
       heading: c.heading(d),
       intro: c.intro(d),

@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { fireEvent, render, screen, within } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
+import ViewSelect from '../view-select'
 import ResourceTable from './index'
 
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn() }) }))
@@ -13,16 +14,38 @@ const ITEMS: Item[] = [
   { id: 'c', name: 'Charlie' },
 ]
 
-function List({ onAction }: { onAction: (ids: string[]) => void }) {
+type Scope = { view?: string | null; query?: string; page?: number; status?: string[] }
+
+function List({ onAction, scope = {} }: { onAction: (ids: string[]) => void; scope?: Scope }) {
   return (
     <ResourceTable<Item>
+      views={
+        <ViewSelect<string | null>
+          value={scope.view ?? null}
+          options={[
+            { value: null, label: 'All' },
+            { value: 'unfulfilled', label: 'Unfulfilled' },
+          ]}
+          onChange={() => undefined}
+        />
+      }
+      filterGroups={[
+        {
+          type: 'checks',
+          key: 'status',
+          label: 'Status',
+          options: [{ value: 'paid', label: 'Paid' }],
+          value: scope.status ?? [],
+          onChange: () => undefined,
+        },
+      ]}
       resourceName={{ singular: 'order', plural: 'orders' }}
       columns={[{ id: 'name', title: 'Name', render: (i) => <span>{i.name}</span> }]}
       items={ITEMS}
       getId={(i) => i.id}
-      query=""
+      query={scope.query ?? ''}
       onQueryChange={() => undefined}
-      page={1}
+      page={scope.page ?? 1}
       perPage={25}
       total={3}
       onPageChange={() => undefined}
@@ -71,5 +94,30 @@ describe('ResourceTable bulk bar', () => {
     expect(screen.getByText('Bravo')).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: 'Show all rows' }))
     expect(screen.getByText('Alpha')).toBeTruthy()
+  })
+
+  it.each<[string, Scope]>([
+    ['the view (tab)', { view: 'unfulfilled' }],
+    ['a filter', { status: ['paid'] }],
+    ['the search', { query: 'alp' }],
+    ['the page', { page: 2 }],
+  ])('clears the selection when %s changes', (_, scope) => {
+    const { rerender } = render(<List onAction={() => undefined} />)
+    tick('Alpha')
+    expect(screen.getByRole('button', { name: 'Selection options' }).textContent).toContain(
+      '1 order selected',
+    )
+    rerender(<List onAction={() => undefined} scope={scope} />)
+    expect(screen.queryByRole('button', { name: 'Selection options' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Archive' })).toBeNull()
+  })
+
+  it('keeps the selection when the same rows render again', () => {
+    const { rerender } = render(<List onAction={() => undefined} />)
+    tick('Alpha')
+    rerender(<List onAction={() => undefined} />)
+    expect(screen.getByRole('button', { name: 'Selection options' }).textContent).toContain(
+      '1 order selected',
+    )
   })
 })

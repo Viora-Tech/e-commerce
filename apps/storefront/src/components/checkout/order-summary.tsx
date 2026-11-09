@@ -12,13 +12,22 @@ type OrderSummaryProps = {
   /** Variant images by variant id; lines without one draw their initial. */
   images: Record<string, string>
   giftCards: { id: string; last: string; amountPaise: number }[]
+  /** Store credit spent on the order; 0 hides the row. A payment, so the total above stays. */
+  storeCreditPaise?: number
 }
 
 /**
  * The thank-you page's summary card, drawn as the checkout's: every line with its thumbnail and
- * quantity, then the price rows as charged, the GST inside the total and any gift cards.
+ * quantity, then the price rows as charged, the GST inside the total, any gift cards and store
+ * credit.
  */
-export default function OrderSummary({ order: o, lines, images, giftCards }: OrderSummaryProps) {
+export default function OrderSummary({
+  order: o,
+  lines,
+  images,
+  giftCards,
+  storeCreditPaise = 0,
+}: OrderSummaryProps) {
   // Render logic
   const itemCount = lines.reduce((n, l) => n + l.quantity, 0)
 
@@ -97,6 +106,13 @@ export default function OrderSummary({ order: o, lines, images, giftCards }: Ord
               value={`−${formatPaise(g.amountPaise)}`}
             />
           ))}
+          {storeCreditPaise > 0 ? (
+            <SummaryRow
+              tone="saving"
+              label={content.storeCreditPaid}
+              value={`−${formatPaise(storeCreditPaise)}`}
+            />
+          ) : null}
         </dl>
       </section>
     </div>

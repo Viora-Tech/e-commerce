@@ -17,7 +17,7 @@ type RefundRouteFieldProps = {
   onChange: (route: RefundRoute) => void
   /** Prefix for the radio ids, so two of these never share one. */
   idPrefix: string
-  /** Offer store credit (a gift card for the amount): on cancel, not yet on edit. */
+  /** Offer store credit (onto the customer's balance): on cancel, not yet on edit. */
   storeCredit?: boolean | undefined
 }
 

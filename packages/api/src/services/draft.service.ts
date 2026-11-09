@@ -44,13 +44,14 @@ import {
   order,
   orderLine,
   orderNote,
+  payment,
   product,
   productMedia,
   variant,
 } from '@commerce/db'
 import type { CustomMessage, NotificationRegistry } from '@commerce/notifications'
 import { ORPCError } from '@orpc/server'
-import { and, asc, count, eq, sql } from 'drizzle-orm'
+import { and, asc, count, desc, eq, isNull, or, sql } from 'drizzle-orm'
 
 /**
  * Draft orders and abandoned checkouts for the admin. Core owns the rules;
@@ -98,22 +99,38 @@ export const listStoreDrafts = (
 
 /** The stat cards above the drafts list: open drafts, invoices sent, and what they add up to. */
 export async function draftTiles(tx: StoreTx) {
+  const fromCheckout = sql`${order.draftSource} = 'checkout'`
   const [row] = await tx
     .select({
       total: count(),
+      // Shoppers' unpaid checkouts waiting for payment (0233): their own tab, not "Open".
+      checkout: sql<number>`count(*) filter (where ${fromCheckout})::int`.mapWith(Number),
       invoiced:
         // Qualified by hand: with no join Drizzle prints a bare "id", which inside the subquery
         // means the notification's own id, so this counted 0 while the list showed sent invoices.
-        sql<number>`count(*) filter (where exists (select 1 from notification n where n.order_id = "order"."id" and n.template = 'draft_invoice' and n.status = 'sent'))::int`.mapWith(
+        sql<number>`count(*) filter (where not ${fromCheckout} and exists (select 1 from notification n where n.order_id = "order"."id" and n.template = 'draft_invoice' and n.status = 'sent'))::int`.mapWith(
           Number,
         ),
       valuePaise: sql<number>`coalesce(sum(${order.totalPaise}), 0)::bigint`.mapWith(Number),
     })
     .from(order)
-    .where(eq(order.status, 'draft'))
+    // Checkout drafts count while they wait for payment, as the list shows them.
+    .where(
+      and(
+        eq(order.status, 'draft'),
+        or(sql`${order.draftSource} is distinct from 'checkout'`, isNull(order.draftExpiredAt)),
+      ),
+    )
   const total = row?.total ?? 0
   const invoiced = row?.invoiced ?? 0
-  return { open: total - invoiced, invoiced, total, valuePaise: row?.valuePaise ?? 0 }
+  const checkout = row?.checkout ?? 0
+  return {
+    open: total - invoiced - checkout,
+    invoiced,
+    checkout,
+    total,
+    valuePaise: row?.valuePaise ?? 0,
+  }
 }
 
 /** The draft plus everything its editor needs: lines with titles, address, note. */
@@ -156,9 +173,32 @@ export async function getDraft(tx: StoreTx, id: string) {
   const [bill] = o.billingAddressId
     ? await tx.select().from(address).where(eq(address.id, o.billingAddressId))
     : []
+  // A shopper's unpaid checkout (0233): its payment tries, newest first, for the draft page.
+  const attempts =
+    o.draftSource === 'checkout'
+      ? await tx
+          .select({
+            id: payment.id,
+            attempt: payment.attempt,
+            provider: payment.provider,
+            status: payment.status,
+            error: payment.error,
+            amountPaise: payment.amountPaise,
+            refundNeeded: payment.refundNeeded,
+            createdAt: payment.createdAt,
+          })
+          .from(payment)
+          .where(eq(payment.orderId, id))
+          .orderBy(desc(payment.attempt), desc(payment.createdAt))
+      : []
   return {
     ...o,
     lines,
+    attempts,
+    /** What the system wrote on its timeline (checked out again, expired, late payment). */
+    timeline: notes
+      .filter((n) => n.author === 'system')
+      .map((n) => ({ id: n.id, body: n.body, createdAt: n.createdAt })),
     note: notes.find((n) => n.author === 'draft')?.body ?? '',
     customer: cust ?? null,
     shippingAddress: ship ?? null,
@@ -174,6 +214,16 @@ export async function saveDraft(
 ) {
   try {
     if (input.id) {
+      // A shopper's checkout is kept as they checked it out: its payment is already asked for.
+      const [head] = await tx
+        .select({ draftSource: order.draftSource })
+        .from(order)
+        .where(eq(order.id, input.id))
+      if (head?.draftSource === 'checkout') {
+        throw new ORPCError('BAD_REQUEST', {
+          message: 'A shopper’s unpaid checkout cannot be edited. Convert it to an order first.',
+        })
+      }
       const row = await updateDraft(ctxOf(tx, storeId), input.id, input.draft)
       if (!row) throw new ORPCError('NOT_FOUND', { message: 'Draft not found' })
       return { id: input.id }

@@ -6,6 +6,7 @@ import { renderStaticLiquidSection } from '@/lib/liquid-theme'
 import { requestPriceCents } from '@/lib/market-pricing'
 import { localizationAction, marketSuggestionAction } from '@/lib/market-switch'
 import { subscribeAction } from '@/lib/newsletter-actions'
+import { recordConsentAction } from '@/lib/privacy-actions'
 import { recommendationsResponse } from '@/lib/recommendations-route'
 import { withEvlog } from '@/lib/request-log'
 import { requestedSections, validSectionId } from '@/lib/section-rendering'
@@ -95,6 +96,20 @@ export const POST = withEvlog(async (req: Request, { params }: Params) => {
     const path = referer ? new URL(referer).pathname : ''
     const outcome = await submitContact(form, path)
     return backTo(req, outcome === 'posted' ? 'contact' : 'contact_error')
+  }
+  // The cookie banner's answer on a plain HTML page (`lib/plain-html/islands.ts`): the proof row
+  // and the cookie, as the React consent manager's action stores them.
+  if (action === 'consent') {
+    const body = (await req.json().catch(() => null)) as {
+      analytics?: unknown
+      marketing?: unknown
+    } | null
+    return Response.json(
+      await recordConsentAction({
+        analytics: body?.analytics === true,
+        marketing: body?.marketing === true,
+      }),
+    )
   }
   // The theme's country and language selector: the shopper's market (`lib/market-switch.ts`).
   if (action === 'localization') return localizationAction(req, storeId)

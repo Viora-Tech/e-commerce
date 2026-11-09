@@ -3,7 +3,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 import { upiPricePaise } from '../src/components/product-payment-signals'
 import ProductRating from '../src/components/product-rating'
-import { swatchImages } from '../src/components/product-variant-picker'
+import { swatchFile, swatchImages } from '../src/components/product-variant-picker'
 import ProductView from '../src/components/product-view'
 import { specCells, specRows, specTable } from '../src/product-specs'
 import { mainProductSettings } from '../src/sections/main-product-settings'
@@ -100,6 +100,25 @@ describe('variant swatches', () => {
         ['clear', 'https://cdn.example.com/clear.webp'],
       ]),
     )
+  })
+
+  it('draws a swatch from the smallest sized copy, the original only without copies', () => {
+    const url = 'https://cdn.example.com/black.png'
+    const withCopies = {
+      ...product,
+      images: [
+        {
+          url,
+          alt: null,
+          variants: {
+            '640': { avif: 'b-640.avif', webp: 'b-640.webp' },
+            '320': { avif: 'b-320.avif', webp: 'b-320.webp' },
+          },
+        },
+      ],
+    }
+    expect(swatchFile(withCopies, url)).toBe('b-320.webp')
+    expect(swatchFile(product, url)).toBe(url)
   })
 
   it('keeps pills when a value has no image, or values share one image', () => {

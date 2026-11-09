@@ -306,6 +306,8 @@ describe('placeOrder', () => {
     const r2 = await placeOrderAndPay(app, first.storeId, {
       cartId: c2.id,
       paymentProvider: provider,
+      // The same item again: the shopper confirmed "Yes, order again".
+      orderAgain: true,
       checkout: checkout('Asha M.', 'asha@example.com ', 'Mysuru'),
     })
 
@@ -351,6 +353,7 @@ describe('placeOrder', () => {
     await placeOrderAndPay(app, first.storeId, {
       cartId: c2.id,
       paymentProvider: provider,
+      orderAgain: true,
       checkout: checkout(null, null),
     })
     const [row] = await owner.select().from(customer).where(eq(customer.storeId, first.storeId))

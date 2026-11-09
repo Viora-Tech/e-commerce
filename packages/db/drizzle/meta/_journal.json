@@ -1471,6 +1471,69 @@
       "when": 1793635704262,
       "tag": "0225_cookie_banner_day",
       "breakpoints": true
+    },
+    {
+      "idx": 210,
+      "version": "7",
+      "when": 1793720000000,
+      "tag": "0226_imported_discount_type",
+      "breakpoints": true
+    },
+    {
+      "idx": 211,
+      "version": "7",
+      "when": 1793806400000,
+      "tag": "0227_store_credit",
+      "breakpoints": true
+    },
+    {
+      "idx": 212,
+      "version": "7",
+      "when": 1793892800000,
+      "tag": "0228_archive_cancelled_orders",
+      "breakpoints": true
+    },
+    {
+      "idx": 213,
+      "version": "7",
+      "when": 1793979200000,
+      "tag": "0229_store_credit_checkout",
+      "breakpoints": true
+    },
+    {
+      "idx": 214,
+      "version": "7",
+      "when": 1794065600000,
+      "tag": "0230_variant_shipping",
+      "breakpoints": true
+    },
+    {
+      "idx": 215,
+      "version": "7",
+      "when": 1794152000000,
+      "tag": "0231_admin_list_indexes",
+      "breakpoints": true
+    },
+    {
+      "idx": 216,
+      "version": "7",
+      "when": 1794238400000,
+      "tag": "0232_storefront_cache_quiet_drafts",
+      "breakpoints": true
+    },
+    {
+      "idx": 217,
+      "version": "7",
+      "when": 1794324800000,
+      "tag": "0233_checkout_drafts",
+      "breakpoints": true
+    },
+    {
+      "idx": 218,
+      "version": "7",
+      "when": 1794411200000,
+      "tag": "0234_payment_gateway_health",
+      "breakpoints": true
     }
   ]
 }

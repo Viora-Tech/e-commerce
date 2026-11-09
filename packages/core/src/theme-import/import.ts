@@ -62,6 +62,11 @@ export type ThemeImportDeps = {
   lookup?: LookupAll | undefined
   /** Image dimensions for copied images (sharp in production). */
   imageSize?: ((bytes: Uint8Array) => Promise<{ width: number; height: number } | null>) | undefined
+  /**
+   * Queues a copied image's media row for the upload pipeline (sized AVIF/WebP copies). Without
+   * it the row is stored `ready` with no copies, which `bun run media:reprocess` picks up later.
+   */
+  processImage?: ((mediaId: string) => Promise<void>) | undefined
 }
 
 export type ThemeImportResult = { themeId: string; name: string; report: ImportReport }

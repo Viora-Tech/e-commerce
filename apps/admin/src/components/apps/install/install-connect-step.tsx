@@ -1,11 +1,12 @@
 'use client'
 
-import { CircleAlert, CircleCheck, RefreshCw } from '@commerce/ui/icons'
+import { CircleAlert, CircleCheck, Lock, RefreshCw } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { DialogDescription, DialogFooter, DialogTitle } from '@commerce/ui/shadcn/dialog'
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import { Spinner } from '@commerce/ui/shadcn/spinner'
+import CopyButton from '@/components/fields/copy-button'
 import { appInstallContent } from '@/data/app-install'
 import { useCopy } from '@/hooks/use-copy'
 import type { api } from '@/lib/api-client'
@@ -15,6 +16,15 @@ export type ConnectForm = NonNullable<Awaited<ReturnType<typeof api.apps.connect
 export type TestState = {
   status: 'idle' | 'testing' | 'ok' | 'error'
   message?: string | undefined
+}
+
+/** Random bytes in a generated secret: 32 hex characters. */
+const SECRET_BYTES = 16
+
+/** A random secret the merchant pastes into the provider's dashboard as well. */
+function newSecret(): string {
+  const bytes = crypto.getRandomValues(new Uint8Array(SECRET_BYTES))
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('')
 }
 
 type InstallConnectStepProps = {
@@ -50,19 +60,44 @@ export default function InstallConnectStep({
     <>
       <div className="flex flex-col gap-1.5">
         <DialogTitle>{copy.connect.title(appName)}</DialogTitle>
-        <DialogDescription>{copy.connect.intro(appName)}</DialogDescription>
+        <DialogDescription>{copy.connect.intro(appName, form.kind)}</DialogDescription>
       </div>
       <FieldGroup className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         {form.fields.map((f, i) => (
           <Field key={f.key} className={i === 0 || f.secret ? 'sm:col-span-2' : undefined}>
             <FieldLabel htmlFor={`install-${f.key}`}>{f.label}</FieldLabel>
-            <Input
-              id={`install-${f.key}`}
-              type={f.secret ? 'password' : 'text'}
-              autoComplete="off"
-              value={values[f.key] ?? ''}
-              onChange={(e) => onField(f.key, e.target.value)}
-            />
+            {f.generate ? (
+              <div className="flex items-center gap-2">
+                <Input
+                  id={`install-${f.key}`}
+                  type="text"
+                  autoComplete="off"
+                  spellCheck={false}
+                  className="font-mono"
+                  value={values[f.key] ?? ''}
+                  onChange={(e) => onField(f.key, e.target.value)}
+                />
+                {values[f.key] ? (
+                  <CopyButton value={values[f.key] ?? ''} what={f.label} visible />
+                ) : null}
+                <Button
+                  variant="outline"
+                  aria-label={copy.connect.generateLabel(f.label)}
+                  onClick={() => onField(f.key, newSecret())}
+                >
+                  <Lock aria-hidden="true" />
+                  {copy.connect.generate}
+                </Button>
+              </div>
+            ) : (
+              <Input
+                id={`install-${f.key}`}
+                type={f.secret ? 'password' : 'text'}
+                autoComplete="off"
+                value={values[f.key] ?? ''}
+                onChange={(e) => onField(f.key, e.target.value)}
+              />
+            )}
             {f.help ? <FieldDescription>{f.help}</FieldDescription> : null}
           </Field>
         ))}

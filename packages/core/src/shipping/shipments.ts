@@ -204,7 +204,8 @@ export async function createShipmentForOrder(
     .from(orderLine)
     .leftJoin(variant, eq(variant.id, orderLine.variantId))
     .leftJoin(product, eq(product.id, variant.productId))
-    .where(eq(orderLine.orderId, orderId))
+    // A line whose variant needs no shipping (a service, a download) never goes to the courier.
+    .where(and(eq(orderLine.orderId, orderId), eq(orderLine.requiresShipping, true)))
   /* The parcel's location (the order's, when it ships whole) when it has courier pickup on,
      else Settings › Shipping - unless the merchant picked where it leaves from. */
   await ensureFulfillmentOrders(ctx, o.id)
@@ -227,6 +228,7 @@ export async function createShipmentForOrder(
       })
     : orderLines
   if (named && lines.length === 0) throw new Error('This parcel has nothing left to ship.')
+  if (lines.length === 0) throw new Error('This order has nothing that needs shipping.')
   const shipFrom = await shipFromFor(ctx.tx, {
     taxOrigin: o.taxOrigin,
     locationId: options.pickupLocationId ?? parcel?.locationId,

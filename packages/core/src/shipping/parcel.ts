@@ -9,7 +9,10 @@ export type WeighableLine = { quantity: number; variantWeightGrams: number | nul
  */
 export function resolveParcelWeightGrams(lines: WeighableLine[], boxWeightGrams: number): number {
   if (lines.length > 0 && lines.every((l) => l.variantWeightGrams != null && l.quantity > 0)) {
-    return lines.reduce((grams, l) => grams + l.quantity * (l.variantWeightGrams ?? 0), 0)
+    const grams = lines.reduce((sum, l) => sum + l.quantity * (l.variantWeightGrams ?? 0), 0)
+    /* Products saved with 0 g (Shopify's default for "no weight") weigh nothing on paper; a
+       courier needs at least a gram, so they count as unknown, like a missing weight. */
+    if (grams >= 1) return grams
   }
   return boxWeightGrams
 }
@@ -74,7 +77,15 @@ export function resolveParcelPackage(
   if (packed.length === 0) return null
 
   const dimsOf = (l: LinePackage): PackageDimensionsCm | null => {
-    if (l.packageLengthCm != null && l.packageWidthCm != null && l.packageHeightCm != null) {
+    // A 0 cm side is "not set" (an import's blank), not a real box.
+    if (
+      l.packageLengthCm != null &&
+      l.packageWidthCm != null &&
+      l.packageHeightCm != null &&
+      l.packageLengthCm > 0 &&
+      l.packageWidthCm > 0 &&
+      l.packageHeightCm > 0
+    ) {
       return { lengthCm: l.packageLengthCm, widthCm: l.packageWidthCm, heightCm: l.packageHeightCm }
     }
     if (l.boxPresetId) {

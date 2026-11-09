@@ -1,12 +1,13 @@
 import { ABANDONED_AFTER_MS, notTestCartContact, notTestOrder } from '@commerce/core'
 import { HOME_METRICS, type HomeMetric, parseHomeTiles } from '@commerce/core/home-metrics'
-import { IST_OFFSET_MS } from '@commerce/dates'
 import type { StoreTx } from '@commerce/db'
 import { cart, order, orderLine, product, refund, storeMember, variant } from '@commerce/db'
-import { and, desc, eq, gte, inArray, isNotNull, lt, min, ne, or, sql, sum } from 'drizzle-orm'
+import { and, desc, eq, gte, inArray, isNotNull, lt, ne, or, sql, sum } from 'drizzle-orm'
+import type { AnyPgColumn } from 'drizzle-orm/pg-core'
 import type { VisitorSource } from '../context'
 import { DAY_MS, istDayStart, istIsoDate } from './analytics-buckets'
 import { countSessions } from './sessions'
+import { countWhere, istHourSql, stepIndex, sumInt } from './sql-buckets'
 
 /** The longest span the Home analytics card reads at once (a financial year and a day). */
 const HOME_ANALYTICS_MAX_DAYS = 366
@@ -64,27 +65,61 @@ function comparisonWindow(w: Window, compare: Exclude<HomeCompare, 'none'>): Win
   }
 }
 
-/** Raw rows for one window: orders, refunds and abandoned carts. */
-async function load(tx: StoreTx, w: Window) {
-  const inWindow = (col: typeof order.placedAt) => and(gte(col, w.from), lt(col, w.to))
-  const [orders, refunds, carts] = await Promise.all([
+/** Per-bucket sums for one window, grouped in Postgres: orders, refunds, abandoned carts, units. */
+async function load(tx: StoreTx, w: Window, hourly: boolean) {
+  const bucket = (col: AnyPgColumn) => (hourly ? istHourSql(col) : stepIndex(col, w.from, DAY_MS))
+  const inWindow = and(counted, gte(order.placedAt, w.from), lt(order.placedAt, w.to))
+  /* An order is "returning" when its customer had ordered before it: each window customer's
+   * first counted order, compared at millisecond precision as the JS Date comparison did. */
+  const firsts = tx.$with('firsts').as(
     tx
       .select({
-        id: order.id,
-        at: order.placedAt,
-        totalPaise: order.totalPaise,
-        subtotalPaise: order.subtotalPaise,
-        discountPaise: order.discountPaise,
-        shippingPaise: order.shippingPaise,
-        taxPaise: order.taxPaise,
-        paymentMethod: order.paymentMethod,
         customerId: order.customerId,
+        firstAt: sql<Date>`date_trunc('milliseconds', min(${order.placedAt}))`.as('first_at'),
       })
       .from(order)
-      .where(and(counted, inWindow(order.placedAt))),
+      .where(
+        and(
+          counted,
+          inArray(
+            order.customerId,
+            tx.select({ id: order.customerId }).from(order).where(inWindow),
+          ),
+        ),
+      )
+      .groupBy(order.customerId),
+  )
+  const orderBucket = bucket(order.placedAt)
+  const isReturning = sql`date_trunc('milliseconds', ${order.placedAt}) > ${firsts.firstAt}`
+  const refundBucket = bucket(refund.createdAt)
+  const cartBucket = bucket(cart.updatedAt)
+  const lineBucket = bucket(order.placedAt)
+  const [orders, refunds, carts, lines] = await Promise.all([
+    tx
+      .with(firsts)
+      .select({
+        bucket: orderBucket,
+        /* The whole-window row of the grouping sets (distinct returning customers overall). */
+        total: sql<number>`grouping(${orderBucket})`.mapWith(Number),
+        sales: sumInt(order.totalPaise),
+        orders: countWhere(undefined),
+        gross: sumInt(order.subtotalPaise),
+        discounts: sumInt(order.discountPaise),
+        shipping: sumInt(order.shippingPaise),
+        gst: sumInt(order.taxPaise),
+        cod: countWhere(eq(order.paymentMethod, 'cod')),
+        returning:
+          sql<number>`count(distinct ${order.customerId}) filter (where ${isReturning})::int`.mapWith(
+            Number,
+          ),
+      })
+      .from(order)
+      .leftJoin(firsts, eq(firsts.customerId, order.customerId))
+      .where(inWindow)
+      .groupBy(sql`grouping sets ((${orderBucket}), ())`),
     // Joined to its order so a test order's refund stays out, as everywhere else on Home.
     tx
-      .select({ at: refund.createdAt, amountPaise: refund.amountPaise })
+      .select({ bucket: refundBucket, paise: sumInt(refund.amountPaise) })
       .from(refund)
       .innerJoin(order, eq(order.id, refund.orderId))
       .where(
@@ -94,11 +129,12 @@ async function load(tx: StoreTx, w: Window) {
           gte(refund.createdAt, w.from),
           lt(refund.createdAt, w.to),
         ),
-      ),
+      )
+      .groupBy(refundBucket),
     // The Abandoned page's definition: a contact, at least one line, quiet for the grace period,
     // and never checked out. (Nothing sets `cart.status = abandoned`, so that filter was always 0.)
     tx
-      .select({ at: cart.updatedAt })
+      .select({ bucket: cartBucket, n: countWhere(undefined) })
       .from(cart)
       .where(
         and(
@@ -110,19 +146,18 @@ async function load(tx: StoreTx, w: Window) {
           lt(cart.updatedAt, w.to),
           lt(cart.updatedAt, new Date(Date.now() - ABANDONED_AFTER_MS)),
         ),
-      ),
+      )
+      .groupBy(cartBucket),
+    /* Units sold, per bucket. */
+    tx
+      .select({ bucket: lineBucket, units: sumInt(orderLine.quantity) })
+      .from(orderLine)
+      .innerJoin(order, eq(order.id, orderLine.orderId))
+      .innerJoin(variant, eq(variant.id, orderLine.variantId))
+      .where(inWindow)
+      .groupBy(lineBucket),
   ])
-  /* An order is "returning" when its customer had ordered before it. */
-  const customerIds = [...new Set(orders.map((o) => o.customerId).filter((id) => id !== null))]
-  const firsts = customerIds.length
-    ? await tx
-        .select({ customerId: order.customerId, first: min(order.placedAt) })
-        .from(order)
-        .where(and(counted, inArray(order.customerId, customerIds)))
-        .groupBy(order.customerId)
-    : []
-  const firstAt = new Map(firsts.map((f) => [f.customerId, f.first]))
-  return { orders, refunds, carts, firstAt }
+  return { orders, refunds, carts, lines }
 }
 
 /** Figures for every metric over one window, bucketed by hour (one day) or by day. */
@@ -132,49 +167,37 @@ async function figures(
   hourly: boolean,
   visitorsDaily: number[],
 ): Promise<Record<HomeMetric, { value: number; series: number[] }>> {
-  const sessionSeries = await countSessions(tx, w, hourly)
   const n = hourly ? HOURS : w.days.length
-  const bucket = (at: Date) =>
-    hourly
-      ? new Date(at.getTime() + IST_OFFSET_MS).getUTCHours()
-      : Math.floor((at.getTime() - w.from.getTime()) / DAY_MS)
-  const { orders, refunds, carts, firstAt } = await load(tx, w)
+  const [sessionSeries, { orders, refunds, carts, lines }] = await Promise.all([
+    countSessions(tx, w, hourly),
+    load(tx, w, hourly),
+  ])
   const series = Object.fromEntries(HOME_METRICS.map((m) => [m, zeros(n)])) as Record<
     HomeMetric,
     number[]
   >
   const cod = zeros(n)
-  // Returning = distinct customers who had ordered before, per bucket and over the whole window.
-  const returningIn = Array.from({ length: n }, () => new Set<string>())
-  const returningAll = new Set<string>()
+  const inRange = (i: number | null): i is number => i !== null && i >= 0 && i < n
+  let returningAll = 0
   for (const o of orders) {
-    const i = bucket(o.at)
-    if (i < 0 || i >= n) continue
-    const add = (m: HomeMetric, v: number) => {
-      series[m][i] = (series[m][i] ?? 0) + v
+    if (o.total === 1) {
+      returningAll = o.returning
+      continue
     }
-    add('sales', o.totalPaise)
-    add('orders', 1)
-    add('gross', o.subtotalPaise)
-    add('discounts', o.discountPaise)
-    add('shipping', o.shippingPaise)
-    add('gst', o.taxPaise)
-    if (o.paymentMethod === 'cod') cod[i] = (cod[i] ?? 0) + 1
-    const first = o.customerId ? firstAt.get(o.customerId) : undefined
-    if (o.customerId && first && o.at.getTime() > new Date(first).getTime()) {
-      returningIn[i]?.add(o.customerId)
-      returningAll.add(o.customerId)
-    }
+    if (!inRange(o.bucket)) continue
+    const i = o.bucket
+    series.sales[i] = o.sales
+    series.orders[i] = o.orders
+    series.gross[i] = o.gross
+    series.discounts[i] = o.discounts
+    series.shipping[i] = o.shipping
+    series.gst[i] = o.gst
+    series.returning[i] = o.returning
+    cod[i] = o.cod
   }
-  for (const r of refunds) {
-    const i = bucket(r.at)
-    if (i >= 0 && i < n) series.refunds[i] = (series.refunds[i] ?? 0) + r.amountPaise
-  }
-  for (const c of carts) {
-    const i = bucket(c.at)
-    if (i >= 0 && i < n) series.abandoned[i] = (series.abandoned[i] ?? 0) + 1
-  }
-  series.returning = returningIn.map((s) => s.size)
+  for (const r of refunds) if (inRange(r.bucket)) series.refunds[r.bucket] = r.paise
+  for (const c of carts) if (inRange(c.bucket)) series.abandoned[c.bucket] = c.n
+  for (const l of lines) if (inRange(l.bucket)) series.topProducts[l.bucket] = l.units
   /* Visitors are counted by the day; a single day keeps its total and no hourly line. */
   series.visitors = hourly ? zeros(n) : visitorsDaily.slice(0, n)
   const total = (m: HomeMetric) => series[m].reduce((a, b) => a + b, 0)
@@ -198,9 +221,6 @@ async function figures(
     return pct(ordersSoFar, sessionsSoFar)
   })
 
-  const units = await topUnits(tx, w)
-  series.topProducts = units.series(bucket, n)
-
   const orderCount = total('orders')
   const value: Record<HomeMetric, number> = {
     sales: total('sales'),
@@ -209,7 +229,7 @@ async function figures(
     sessions,
     visitors,
     conversion: pct(orderCount, sessions),
-    returning: returningAll.size,
+    returning: returningAll,
     gross: total('gross'),
     refunds: total('refunds'),
     discounts: total('discounts'),
@@ -220,34 +240,11 @@ async function figures(
     ),
     abandoned: total('abandoned'),
     shipping: total('shipping'),
-    topProducts: units.total,
+    topProducts: lines.reduce((sum, l) => sum + l.units, 0),
   }
   return Object.fromEntries(
     HOME_METRICS.map((m) => [m, { value: value[m], series: series[m] }]),
   ) as Record<HomeMetric, { value: number; series: number[] }>
-}
-
-/** Units sold in the window: the total, per bucket, and the best seller. */
-async function topUnits(tx: StoreTx, w: Window) {
-  const lines = await tx
-    .select({ at: order.placedAt, quantity: orderLine.quantity, productId: variant.productId })
-    .from(orderLine)
-    .innerJoin(order, eq(order.id, orderLine.orderId))
-    .innerJoin(variant, eq(variant.id, orderLine.variantId))
-    .where(and(counted, gte(order.placedAt, w.from), lt(order.placedAt, w.to)))
-  const total = lines.reduce((n, l) => n + l.quantity, 0)
-  return {
-    total,
-    lines,
-    series(bucket: (at: Date) => number, n: number) {
-      const out = zeros(n)
-      for (const l of lines) {
-        const i = bucket(l.at)
-        if (i >= 0 && i < n) out[i] = (out[i] ?? 0) + l.quantity
-      }
-      return out
-    },
-  }
 }
 
 /** The best seller by units in the window, by title. */

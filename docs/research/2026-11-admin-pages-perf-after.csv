@@ -1,0 +1,192 @@
+route,url,status,ttfbMs,docMs,readyMs,statements,queries,txStatements,setConfig,jsKb,jsFiles,errors,error
+/,/,200,424,700,1457,264,207,38,19,2429.2,48,0,
+/[...missing],/this-page-does-not-exist,200,318,320,824,90,72,12,6,1921.2,36,0,
+/account,/account,200,217,219,792,114,90,16,8,2204.5,42,0,
+/account/appearance,/account/appearance,200,251,253,723,110,86,16,8,1962.9,39,0,
+/account/bug-reports,/account/bug-reports,200,255,260,692,90,72,12,6,1923.4,37,0,
+/account/language,/account/language,200,524,526,1020,90,72,12,6,1938.2,38,0,
+/account/notifications,/account/notifications,200,233,235,774,120,96,16,8,1977.8,39,0,
+/account/security,/account/security,200,214,216,730,84,66,12,6,1944.1,39,0,
+/account/sessions,/account/sessions,200,198,200,687,82,64,12,6,1933.9,38,0,
+/account/stores,/account/stores,200,197,199,666,92,68,16,8,1933.9,38,0,
+/analytics,/analytics,200,466,546,1263,128,101,18,9,2337.9,46,0,
+/analytics/live,/analytics/live,200,365,527,1069,168,141,18,9,2292.6,48,0,
+/analytics/reports,/analytics/reports,200,240,243,690,100,73,18,9,1977.9,39,0,
+/analytics/reports/[slug],/analytics/reports/sales-over-time,200,341,344,907,97,76,14,7,2361.7,47,0,
+/analytics/reports/answer,/analytics/reports/answer,200,263,265,709,90,72,12,6,1950.2,38,0,
+/analytics/reports/query,/analytics/reports/query,200,371,375,858,100,76,16,8,2388.9,47,0,
+/apps,/apps,200,245,248,864,140,110,20,10,2144.2,38,0,
+/apps/[pluginId]/[[...path]],/apps/reviews,200,516,526,1649,110,86,16,8,3952.3,76,0,
+/apps/install,/apps/install,200,280,282,819,230,182,32,16,234.3,38,0,
+/apps/store,/apps/store,200,16,17,924,36,30,4,2,415,26,0,
+/content,/content,200,611,614,1099,107,77,20,10,1926.3,37,0,
+/content/blog-posts,/content/blog-posts,200,287,290,763,112,79,22,11,2230.1,38,0,
+/content/blog-posts/[id],,,,,,,,,,,,,skipped: no row to open
+/content/blog-posts/blogs,/content/blog-posts/blogs,200,238,241,690,95,74,14,7,1989.5,38,0,
+/content/blog-posts/new,/content/blog-posts/new,200,255,258,789,140,101,26,13,2565.8,50,0,
+/content/files,/content/files,200,570,574,1355,142,106,24,12,2076.3,38,0,
+/content/files/[id],/content/files/01a1bf01-668c-75f3-8025-670878a8bc09,200,307,310,804,103,76,18,9,1991.5,39,0,
+/content/files/storage,/content/files/storage,200,256,259,819,115,88,18,9,2051.8,38,0,
+/content/menus,/content/menus,200,268,271,730,107,80,18,9,2212.1,43,0,
+/content/menus/[id],/content/menus/01a1bf0a-a8bf-77c6-800c-39ac2cce61b5,200,493,497,1392,116,86,20,10,2003.4,38,0,
+/content/menus/redirects,/content/menus/redirects,200,566,569,1018,95,74,14,7,2121.1,38,0,
+/content/metaobjects,/content/metaobjects,200,282,285,736,94,73,14,7,2112,38,0,
+/content/metaobjects/[type],,,,,,,,,,,,,skipped: no row to open
+/content/metaobjects/[type]/[id],,,,,,,,,,,,,skipped: no row to open
+/content/metaobjects/[type]/definition,,,,,,,,,,,,,skipped: no row to open
+/content/metaobjects/[type]/new,,,,,,,,,,,,,skipped: no row to open
+/content/metaobjects/new,/content/metaobjects/new,200,492,495,918,90,72,12,6,1931,37,0,
+/content/metaobjects/new/blank,/content/metaobjects/new/blank,200,336,339,762,94,73,14,7,2056.4,38,0,
+/customers,/customers,200,625,629,1383,131,95,24,12,2470.9,45,0,
+/customers/[id],/customers/01a1bf01-85b3-72f1-8263-443a6d80027f,200,396,399,1172,184,139,30,15,4069.8,79,0,
+/customers/bulk-edit,/customers/bulk-edit,200,418,421,835,90,72,12,6,2015.5,38,0,
+/customers/segments,/customers/segments,200,305,315,725,95,74,14,7,1943.7,38,0,
+/customers/segments/[id],,,,,,,,,,,,,skipped: no row to open
+/customers/segments/new,/customers/segments/new,200,292,295,1132,99,78,14,7,2029.9,38,0,
+/dev/editor,/dev/editor,200,252,258,679,90,72,12,6,2263.7,44,0,
+/dev/emails,/dev/emails,200,500,502,923,90,72,12,6,1921.2,36,0,
+/dev/emails/[template],/dev/emails/order_confirmation,200,852,855,1499,90,72,12,6,1921.2,36,0,
+/discounts,/discounts,200,353,357,862,119,86,22,11,2243.1,38,0,
+/discounts/[id],,,,,,,,,,,,,skipped: no row to open
+/discounts/new,/discounts/new,200,338,340,812,90,72,12,6,2147.1,39,0,
+/growth,/growth,200,678,682,1119,132,99,22,11,2036.5,38,0,
+/growth/attribution,/growth/attribution,200,333,372,919,103,82,14,7,2674.3,54,0,
+/growth/automations,/growth/automations,200,309,311,762,101,77,16,8,2130.7,38,0,
+/growth/automations/[id],,,,,,,,,,,,,skipped: no row to open
+/growth/autopilot,/growth/autopilot,200,329,405,885,107,83,16,8,2271.1,47,0,
+/growth/campaigns,/growth/campaigns,200,603,606,1107,101,77,16,8,2293.7,44,0,
+/growth/campaigns/[id],,,,,,,,,,,,,skipped: no row to open
+/growth/campaigns/new,/growth/campaigns/new,200,336,339,885,116,89,18,9,2180.6,43,0,
+/growth/links,/growth/links,200,333,336,990,239,185,36,18,700.1,52,0,
+/markets,/markets,200,474,477,928,131,92,26,13,1962.6,38,0,
+/markets/[id],/markets/01a1bf46-170f-7128-a4ff-69d116f56a8a,200,416,420,891,118,82,24,12,2006.8,38,0,
+/markets/catalogs,/markets/catalogs,200,343,345,814,94,73,14,7,1935.2,37,0,
+/markets/catalogs/[id],,,,,,,,,,,,,skipped: no row to open
+/markets/catalogs/new,/markets/catalogs/new,200,565,568,1091,100,76,16,8,1994.9,39,0,
+/markets/new,/markets/new,200,482,486,1262,131,92,26,13,2002.9,38,1,"pageerror: Hydration failed because the server rendered text didn't match the client. As a result this tree will be regenerated on the client. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `"
+/markets/rollouts,/markets/rollouts,200,303,306,807,94,73,14,7,1944,37,0,
+/markets/rollouts/[id],,,,,,,,,,,,,skipped: no row to open
+/markets/rollouts/new,/markets/rollouts/new,200,602,605,1516,112,82,20,10,2198.6,42,0,
+/online-store,/online-store,200,496,500,995,207,156,34,17,63.8,38,0,
+/online-store/blog,/online-store/blog,200,531,533,1011,204,153,34,17,320.1,38,0,
+/online-store/pages,/online-store/pages,200,410,413,939,108,84,16,8,2132,38,0,
+/online-store/pages/[id],/online-store/pages/01a1bf01-83e5-7666-b70f-bb7e186fbb98,200,529,532,1086,131,95,24,12,2500.4,49,0,
+/online-store/pages/[id]/content,/online-store/pages/01a1bf01-83e5-7666-b70f-bb7e186fbb98/content,200,443,445,1833,284,200,56,28,2765.3,80,0,
+/online-store/preferences,/online-store/preferences,200,598,601,1182,94,73,14,7,2035.3,38,0,
+/online-store/seo,/online-store/seo,200,289,396,757,106,82,16,8,1933.7,37,0,
+/online-store/themes,/online-store/themes,200,587,590,1035,117,84,22,11,1973.7,38,0,
+/online-store/themes/[id]/code,,,,,,,,,,,,,skipped: no row to open
+/online-store/themes/[id]/editor,/online-store/themes/01a1bf52-7edd-7297-9281-f655ff2ab256/editor,200,695,697,1737,181,121,40,20,3640.7,70,0,
+/online-store/themes/[id]/import,/online-store/themes/01a1bf52-7edd-7297-9281-f655ff2ab256/import,200,475,478,945,102,78,16,8,1925.6,37,0,
+/online-store/themes/import,/online-store/themes/import,200,545,550,1025,90,72,12,6,1930.5,37,0,
+/orders,/orders,200,670,677,1870,151,112,26,13,2501,49,0,
+/orders/[id],/orders/b5b0d956-6cf3-4689-b9c2-5aa64a29c59b,200,652,655,1483,236,188,32,16,4201.7,81,0,
+/orders/[id]/edit,/orders/01a1bf01-85e1-73d8-8924-ddcbace5dbdc/edit,200,358,361,966,112,91,14,7,2012.7,39,0,
+/orders/[id]/ship,/orders/01a1bf01-8767-754e-b2fe-97a6c58a079b/ship,200,521,523,1180,152,122,20,10,2524,48,0,
+/orders/abandoned-checkouts,/orders/abandoned-checkouts,200,355,357,936,113,83,20,10,2157.6,38,0,
+/orders/abandoned-checkouts/[id],/orders/abandoned-checkouts/01a1bf01-889d-779a-8b82-d091c23da45d,200,570,574,1061,96,75,14,7,2010.7,39,0,
+/orders/bulk-edit,/orders/bulk-edit,200,266,268,661,90,72,12,6,1964.8,38,0,
+/orders/drafts,/orders/drafts,200,690,693,1205,109,82,18,9,2159.6,38,0,
+/orders/drafts/[id],,,,,,,,,,,,,skipped: no row to open
+/orders/drafts/new,/orders/drafts/new,200,680,684,1230,90,72,12,6,2072.4,38,0,
+/orders/packing-slips,/orders/packing-slips,200,309,311,722,98,77,14,7,1931.9,37,0,
+/orders/returns,/orders/returns,200,469,471,928,109,82,18,9,2241.8,38,0,
+/orders/returns/[id],,,,,,,,,,,,,skipped: no row to open
+/orders/shipments,/orders/shipments,200,615,618,1452,190,142,32,16,2392.9,45,0,
+/orders/shipments/[id],,,,,,,,,,,,,skipped: no row to open
+/orders/shipments/attention,/orders/shipments/attention,200,517,519,1021,108,84,16,8,2005.8,38,0,
+/orders/shipments/pickups,/orders/shipments/pickups,200,313,315,818,144,108,24,12,2005.8,38,0,
+/platform,/platform,404,139,141,314,2,2,0,0,1269.6,28,1,console: Failed to load resource: the server responded with a status of 404 (Not Found)
+/platform/audit,/platform/audit,404,136,137,307,2,2,0,0,1269.6,28,1,console: Failed to load resource: the server responded with a status of 404 (Not Found)
+/platform/stores,/platform/stores,404,133,134,308,2,2,0,0,1269.6,28,1,console: Failed to load resource: the server responded with a status of 404 (Not Found)
+/platform/stores/[id],/platform/stores/01a1bf01-6653-7495-82cb-f4580d04d292,404,155,157,337,2,2,0,0,1269.6,28,1,console: Failed to load resource: the server responded with a status of 404 (Not Found)
+/platform/users,/platform/users,404,137,138,311,2,2,0,0,1269.6,28,1,console: Failed to load resource: the server responded with a status of 404 (Not Found)
+/products,/products,200,963,968,1666,130,97,22,11,2256.6,39,0,
+/products/[id],/products/006a2ef3-41d6-4d06-8a56-419e13f88d81,200,544,550,1995,334,241,62,31,2935,57,0,
+/products/bulk-edit,/products/bulk-edit,200,334,337,780,90,72,12,6,2090.1,38,0,
+/products/bulk-write,/products/bulk-write,200,570,575,1365,224,170,36,18,346.7,39,0,
+/products/collections,/products/collections,200,364,367,833,95,74,14,7,2228.1,38,0,
+/products/collections/[id],/products/collections/01a1bf01-894a-7342-95ea-f65616c93ff4,200,892,899,2100,145,109,24,12,2667.7,56,0,
+/products/collections/new,/products/collections/new,200,324,326,1035,128,98,20,10,2667.7,56,0,
+/products/gift-cards,/products/gift-cards,200,522,525,1026,124,91,22,11,2279.3,43,0,
+/products/gift-cards/[id],,,,,,,,,,,,,skipped: no row to open
+/products/gift-cards/new,/products/gift-cards/new,200,759,763,1336,97,76,14,7,2015.1,38,0,
+/products/new,/products/new,200,457,462,1393,218,158,40,20,2935,57,0,
+/products/preorders,/products/preorders,200,571,597,1073,100,79,14,7,1937.9,37,0,
+/products/preorders/campaigns/[id],,,,,,,,,,,,,skipped: no row to open
+/products/preorders/campaigns/new,/products/preorders/campaigns/new,200,661,706,1232,100,79,14,7,2133.4,38,0,
+/sales-channels/agentic,/sales-channels/agentic,200,255,371,710,102,81,14,7,2065.1,38,0,
+/sales-channels/agentic/controls,/sales-channels/agentic/controls,200,566,568,1045,102,78,16,8,1971.1,38,0,
+/sales-channels/agentic/readiness,/sales-channels/agentic/readiness,200,330,333,753,98,74,16,8,1944.2,37,0,
+/sales-channels/inbox,/sales-channels/inbox,200,273,276,686,94,73,14,7,1921.2,36,0,
+/sales-channels/inbox/conversations,/sales-channels/inbox/conversations,200,324,327,831,94,73,14,7,2103.2,38,0,
+/sales-channels/inbox/knowledge,/sales-channels/inbox/knowledge,200,577,579,999,94,73,14,7,1945.4,38,0,
+/sales-channels/inbox/quick-replies,/sales-channels/inbox/quick-replies,200,289,291,676,94,73,14,7,1940.9,38,0,
+/sales-channels/inbox/settings,/sales-channels/inbox/settings,200,651,653,1182,94,73,14,7,1956.7,38,0,
+/sales-channels/social,/sales-channels/social,200,443,448,964,193,151,28,14,456.2,46,0,
+/sales-channels/social/[channel],/sales-channels/social/google,200,383,387,872,103,79,16,8,2366.1,46,0,
+/select-store,/select-store,200,314,316,714,94,76,12,6,1921.2,36,0,
+/settings,/settings,200,860,864,1512,134,104,20,10,1949.8,38,0,
+/settings/activity,/settings/activity,200,338,341,917,146,110,24,12,2145.9,39,0,
+/settings/ai,/settings/ai,200,780,783,1385,132,102,20,10,2005.5,39,0,
+/settings/appearance,/settings/appearance,200,224,226,720,218,170,32,16,52.9,39,0,
+/settings/approvals,/settings/approvals,200,602,604,1225,146,110,24,12,1961.2,38,0,
+/settings/billing,/settings/billing,200,373,376,867,149,110,26,13,1992.4,39,0,
+/settings/checkout,/settings/checkout,200,615,618,1194,146,110,24,12,2134.8,39,0,
+/settings/costs,/settings/costs,200,276,280,843,130,100,20,10,1967.9,39,0,
+/settings/custom-data,/settings/custom-data,200,633,636,1422,270,192,52,26,1946.7,38,0,
+/settings/custom-data/[owner],/settings/custom-data/products,200,401,403,987,144,108,24,12,2166.7,40,0,
+/settings/customer-accounts,/settings/customer-accounts,200,703,706,1246,138,108,20,10,1983.6,39,0,
+/settings/domains,/settings/domains,200,393,396,876,112,85,18,9,1968.4,39,0,
+/settings/domains/[id],/settings/domains/01a1bf01-665c-759e-9b4f-4b5bdda0b476,200,717,723,1271,112,85,18,9,1969.3,39,0,
+/settings/expenses,/settings/expenses,200,274,277,827,130,100,20,10,2062.2,39,0,
+/settings/locations,/settings/locations,200,630,633,1163,116,89,18,9,2316.4,44,0,
+/settings/locations/[id],/settings/locations/743751f2-b382-41cf-8a46-15bb7ec08ed7,200,352,356,859,116,89,18,9,2271.7,43,0,
+/settings/mcp,/settings/mcp,200,538,542,1034,118,88,20,10,2049.9,39,0,
+/settings/mcp/activity,/settings/mcp/activity,200,290,293,831,134,101,22,11,1967,39,0,
+/settings/notifications,/settings/notifications,200,674,679,1317,146,110,24,12,2118.7,39,0,
+/settings/payments,/settings/payments,200,271,274,961,134,104,20,10,2253.5,43,0,
+/settings/payments/advanced,/settings/payments/advanced,200,594,597,1153,128,98,20,10,2124.6,39,0,
+/settings/payments/providers/[id],/settings/payments/providers/razorpay,200,364,368,941,134,104,20,10,1986.1,39,0,
+/settings/policies,/settings/policies,200,616,620,1173,128,98,20,10,1968.2,39,0,
+/settings/policies/[type],/settings/policies/refund-policy,200,341,345,997,128,98,20,10,2295.9,46,0,
+/settings/privacy,/settings/privacy,200,668,671,1278,134,104,20,10,1964.9,39,0,
+/settings/privacy/requests,/settings/privacy/requests,200,327,330,856,126,96,20,10,2241.5,43,0,
+/settings/privacy/requests/[id],,,,,,,,,,,,,skipped: no row to open
+/settings/returns,/settings/returns,200,663,666,1194,126,96,20,10,1983.1,39,0,
+/settings/shipping,/settings/shipping,200,681,684,1210,128,98,20,10,2060.4,39,0,
+/settings/shipping/profiles/[id],,,,,,,,,,,,,skipped: no row to open
+/settings/shipping/profiles/new,/settings/shipping/profiles/new,200,504,507,972,108,84,16,8,2066.8,39,0,
+/settings/shipping/zones/[id],/settings/shipping/zones/01a1bf01-83f4-7090-81f2-735b27572310,200,532,539,1407,118,88,20,10,2037.1,39,1,"pageerror: Hydration failed because the server rendered text didn't match the client. As a result this tree will be regenerated on the client. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `"
+/settings/shipping/zones/new,/settings/shipping/zones/new,200,730,736,1471,108,84,16,8,2037.1,39,1,"pageerror: Hydration failed because the server rendered text didn't match the client. As a result this tree will be regenerated on the client. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `"
+/settings/staff,/settings/staff,200,319,322,906,204,162,28,14,2097.5,39,0,
+/settings/staff/roles/[id],/settings/staff/roles/01a1bf0d-bec0-7574-bb73-d435f7cc03bd,200,693,696,1258,115,88,18,9,1953.9,38,0,
+/settings/staff/roles/new,/settings/staff/roles/new,200,294,297,760,108,84,16,8,1953.9,38,0,
+/settings/store,/settings/store,200,738,741,1335,126,96,20,10,2275.7,43,0,
+/settings/store-health,/settings/store-health,200,381,385,890,120,93,18,9,1953.8,38,0,
+/settings/taxes,/settings/taxes,200,717,720,1269,148,115,22,11,2134,39,0,
+/settings/templates,/settings/templates,200,319,322,847,116,89,18,9,1946.4,38,0,
+/settings/templates/[kind],/settings/templates/packing_slip,200,802,807,1394,116,89,18,9,1966.3,39,0,
+/stock,/stock,200,567,571,1152,206,158,32,16,539,45,0,
+/stock/inbound-shipments,/stock/inbound-shipments,200,660,672,1173,110,83,18,9,2230,38,0,
+/stock/inbound-shipments/[id],,,,,,,,,,,,,skipped: no row to open
+/stock/inbound-shipments/new,/stock/inbound-shipments/new,200,936,940,1645,90,72,12,6,2196.6,40,0,
+/stock/inventory,/stock/inventory,200,653,657,1311,116,86,20,10,2448.9,45,0,
+/stock/purchase-orders,/stock/purchase-orders,200,767,770,1333,120,87,22,11,2236.8,38,0,
+/stock/purchase-orders/[id],,,,,,,,,,,,,skipped: no row to open
+/stock/purchase-orders/new,/stock/purchase-orders/new,200,988,991,1612,95,74,14,7,2483.1,48,0,
+/stock/suppliers,/stock/suppliers,200,352,355,869,100,76,16,8,2170.9,42,0,
+/stock/suppliers/[id],,,,,,,,,,,,,skipped: no row to open
+/stock/suppliers/new,/stock/suppliers/new,200,681,684,1160,90,72,12,6,2341.9,43,0,
+/stock/transfers,/stock/transfers,200,707,710,1251,115,85,20,10,2525.3,46,0,
+/stock/transfers/[id],,,,,,,,,,,,,skipped: no row to open
+/stock/transfers/new,/stock/transfers/new,200,604,606,1035,210,159,34,17,2525.3,46,0,

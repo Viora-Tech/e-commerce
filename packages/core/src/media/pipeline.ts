@@ -10,6 +10,7 @@
  * `thumbhash` (MIT) are credited in THIRD_PARTY_NOTICES.md.
  */
 
+import { MEDIA_CACHE_CONTROL } from '@commerce/storage/keys'
 import sharp from 'sharp'
 import { rgbaToThumbHash, thumbHashToRGBA } from 'thumbhash'
 import { MAX_MASTER_LONG_EDGE, VARIANT_WIDTHS, variantKey } from './constants'
@@ -42,6 +43,8 @@ export type ProcessedAsset = {
   contentType: string
   key: string
   body: Uint8Array
+  /** Final bytes at a fresh key: cached for a year (`MEDIA_CACHE_CONTROL`). */
+  cacheControl: string
 }
 
 export type ProcessImageResult = {
@@ -91,11 +94,15 @@ export function sharpThreadsFor(cpus: number, jobs: number): number {
   return Math.max(1, Math.floor(cpus / Math.max(1, jobs)))
 }
 
-/** Call once at worker start. Also caps libvips' own cache so memory stays bounded across parallel jobs. */
+/**
+ * Call once at worker start. Also turns libvips' operation cache off: each step of `processImage` starts a
+ * fresh `sharp()` from a new buffer, so a cached result is almost never reused, and the cache kept
+ * up to 100 MB of decoded pixels resident after an import's last image.
+ */
 export function tuneImagePipeline(opts: { cpus: number; jobs: number }): number {
   const threads = sharpThreadsFor(opts.cpus, opts.jobs)
   sharp.concurrency(threads)
-  sharp.cache({ memory: 100, files: 0, items: 50 })
+  sharp.cache(false)
   return threads
 }
 
@@ -131,7 +138,12 @@ async function processAnimatedGif(
   const hash = rgbaToThumbHash(stillFrame.info.width, stillFrame.info.height, stillFrame.data)
   const webpKey = masterKey.replace(/\.[a-z0-9]+$/i, '.webp')
   return {
-    master: { contentType: 'image/webp', key: webpKey, body: webpBuffer },
+    master: {
+      contentType: 'image/webp',
+      key: webpKey,
+      body: webpBuffer,
+      cacheControl: MEDIA_CACHE_CONTROL,
+    },
     variants: [],
     width: meta.width,
     height: meta.height,
@@ -151,6 +163,18 @@ function assertRasterFormat(format: string | undefined): void {
   if (!format || !RASTER_FORMATS.has(format)) {
     throw new Error(`not a supported image format: ${format ?? 'unknown'}`)
   }
+}
+
+/**
+ * The widths to encode for a master `masterWidth` wide: every standard width it can fill, and a
+ * copy at the master's own width when that is not already one of them. Without that last copy
+ * a 533 px photo had only a 320 copy, and every card or tile shown wider fell back to the
+ * PNG/JPEG original (5-10x the bytes); a 2560 px master on a wide retina screen did the same.
+ */
+export function variantWidthsFor(masterWidth: number): number[] {
+  const widths: number[] = VARIANT_WIDTHS.filter((w) => w <= masterWidth)
+  if (masterWidth > 0 && !widths.includes(masterWidth)) widths.push(masterWidth)
+  return widths
 }
 
 /**
@@ -229,7 +253,7 @@ export async function processImage(input: ProcessImageInput): Promise<ProcessIma
   const masterBuffer = await masterFormatted.toBuffer()
   const masterContentType = isJpeg ? 'image/jpeg' : 'image/png'
 
-  const widths = VARIANT_WIDTHS.filter((w) => w <= masterWidth)
+  const widths = variantWidthsFor(masterWidth)
   const encodeWidth = async (width: number) => {
     const height = Math.round((width / masterWidth) * masterHeight)
     const base = sharp(masterBuffer, { limitInputPixels: limit }).resize({
@@ -247,11 +271,13 @@ export async function processImage(input: ProcessImageInput): Promise<ProcessIma
         contentType: 'image/avif',
         key: variantKey(input.masterKey, width, 'avif'),
         body: avifBuffer,
+        cacheControl: MEDIA_CACHE_CONTROL,
       },
       webp: {
         contentType: 'image/webp',
         key: variantKey(input.masterKey, width, 'webp'),
         body: webpBuffer,
+        cacheControl: MEDIA_CACHE_CONTROL,
       },
     }
   }
@@ -272,7 +298,12 @@ export async function processImage(input: ProcessImageInput): Promise<ProcessIma
   const hash = rgbaToThumbHash(thumbSource.info.width, thumbSource.info.height, thumbSource.data)
 
   return {
-    master: { contentType: masterContentType, key: input.masterKey, body: masterBuffer },
+    master: {
+      contentType: masterContentType,
+      key: input.masterKey,
+      body: masterBuffer,
+      cacheControl: MEDIA_CACHE_CONTROL,
+    },
     variants,
     width: masterWidth,
     height: masterHeight,
@@ -290,4 +321,42 @@ export function decodeThumbhash(base64: string): {
   const bytes = Uint8Array.from(Buffer.from(base64, 'base64'))
   const { w, h, rgba } = thumbHashToRGBA(bytes)
   return { width: w, height: h, rgba }
+}
+
+/**
+ * One extra AVIF/WebP copy of an already-processed master, at `width` (never upscaled): the
+ * backfill's fast path for a row that has every other copy and only lacks its own-width one
+ * (`variantWidthsFor`), about 5x cheaper than `processImage` redoing every width.
+ */
+export async function encodeVariantWidth(input: {
+  bytes: Uint8Array
+  masterKey: string
+  width: number
+  profile?: ImageProfile | undefined
+}): Promise<{ width: number; avif: ProcessedAsset; webp: ProcessedAsset }> {
+  const base = sharp(input.bytes, { limitInputPixels: LIMIT_INPUT_PIXELS })
+    .rotate()
+    .resize({ width: input.width, withoutEnlargement: true })
+  const [avifBuffer, webpBuffer] = await Promise.all([
+    base
+      .clone()
+      .avif({ quality: 55, effort: AVIF_EFFORT[input.profile ?? 'interactive'] })
+      .toBuffer(),
+    base.clone().webp({ quality: 72, effort: 4 }).toBuffer(),
+  ])
+  return {
+    width: input.width,
+    avif: {
+      contentType: 'image/avif',
+      key: variantKey(input.masterKey, input.width, 'avif'),
+      body: avifBuffer,
+      cacheControl: MEDIA_CACHE_CONTROL,
+    },
+    webp: {
+      contentType: 'image/webp',
+      key: variantKey(input.masterKey, input.width, 'webp'),
+      body: webpBuffer,
+      cacheControl: MEDIA_CACHE_CONTROL,
+    },
+  }
 }

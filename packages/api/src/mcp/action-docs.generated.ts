@@ -426,6 +426,8 @@ export const ACTION_DOCS: Record<string, string> = {
     'A ready-made content type (Size guide, FAQ, ...) from METAOBJECT_PRESETS.',
   'metaobjects.references':
     'Rows for reference pickers: search results, or labels for ids already chosen.',
+  'metaobjects.variantMetafields':
+    "A product's variants' extra fields in one call (the product page asked once per variant: a product with 25 sizes sent 25 requests).",
   'monthlyExpenses.create':
     'Add a monthly expense from a month on (one-off: its last month is its first).',
   'monthlyExpenses.delete':
@@ -543,6 +545,7 @@ export const ACTION_DOCS: Record<string, string> = {
   'orders.setStatus': '"Mark as paid / fulfilled / delivered", or cancel.',
   'orders.sheet': 'Rows for the Orders bulk-edit spreadsheet, in the order the ids were given.',
   'orders.stats': 'The order stats for the last 7 days, against the 7 days before.',
+  'orders.tabCounts': 'The Orders tab badges (All, Unpaid, Unfulfilled, Pending UPI) in one query.',
   'orders.tagMany':
     'The list\'s bulk "Add tags" / "Remove tags": every given tag on (or off) every order.',
   'orders.takeOver':
@@ -556,6 +559,8 @@ export const ACTION_DOCS: Record<string, string> = {
   'payments.connect': 'Save pasted keys and make that gateway the main way to get paid.',
   'payments.fixWebhook':
     'The health line\'s "Fix" for payment updates on a Connect Razorpay account.',
+  'payments.gatewayAlerts':
+    "Gateways that refused the store's API keys and are hidden at checkout until they pass a check: the banner on Home and Settings → Payments.",
   'payments.razorpayOAuthComplete':
     "The OAuth callback route hands the code here; the state must be this store's, and fresh.",
   'payments.razorpayOAuthStart': 'Where "Connect Razorpay" sends the merchant.',
@@ -613,7 +618,7 @@ export const ACTION_DOCS: Record<string, string> = {
   'products.stats': 'Tiles above the list.',
   'products.update': 'Small patches from the list page (bulk status).',
   'products.updateVariant':
-    'Patch one variant: price, MRP, SKU, stock, or hide it on the storefront (hiddenOnStore).',
+    'Patch one variant: price, MRP, SKU, stock, hide it on the storefront (hiddenOnStore), or say whether it is a physical product (requiresShipping).',
   'purchaseDocuments.apply': 'Apply what the merchant ticked on the review screen.',
   'purchaseDocuments.download': 'The file itself, for the preview and the download button.',
   'purchaseDocuments.read': 'Read (or read again) with AI, in the worker.',
@@ -644,6 +649,8 @@ export const ACTION_DOCS: Record<string, string> = {
   'returns.forOrder':
     "The order page's Returns card: what can still go back and every return so far.",
   'returns.rtoSummary': 'Shipments workspace: RTO counts and costs over the last N days.',
+  'returns.storeCredit':
+    "Settle a received return with store credit: the amount goes onto the store credit balance of the order's customer (never a gift card code); refused for an order with no email or phone.",
   'reviews.ask': 'Plans review requests, due now, for recently delivered orders never asked.',
   'reviews.askPastOrders':
     'Plans the requests the preview counted, a batch an hour, after any still waiting.',
@@ -735,6 +742,12 @@ export const ACTION_DOCS: Record<string, string> = {
   'shipments.wallets': 'One card per connected courier - each has its own account and balance.',
   'shipping.profiles.collectionProducts':
     'Products of the picked collections, for "Add a collection\'s products".',
+  'shipping.profiles.create':
+    "Make a custom profile holding whole products (productIds, every variant including ones added later) and single variants (variantIds, which win over their product's profile).",
+  'shipping.profiles.productEntries':
+    "Products with their variants as a profile's page lists them: which variants ship under profileId and where the others ship now.",
+  'shipping.profiles.update':
+    "Rename a profile and set exactly its whole products and single variants (ones in another profile move here; variantIds left out keeps the profile's variants as they are).",
   'shopifyImport.appInstall':
     'Whether this deployment has the platform\'s own Shopify app, so "Install the app" can show.',
   'shopifyImport.claimAppInstall':
@@ -798,6 +811,8 @@ export const ACTION_DOCS: Record<string, string> = {
   'store.origin':
     'The store\'s public web address (https://<live primary domain>, STOREFRONT_URL only when it has none): every admin "View store", preview and share link starts here.',
   'store.setupChecklist': "The Settings home's setup checklist: what is done, from real data.",
+  'store.shell':
+    'Everything the admin layout reads on every page (apps, logo, orders to ship, plan usage, payments test mode, approvals, Inbox), in one call.',
   'store.storageMigrationStatus':
     'Progress the admin polls while "Move existing files to <connection>" runs.',
   'store.testDecentroConnection':
@@ -809,6 +824,9 @@ export const ACTION_DOCS: Record<string, string> = {
   'store.updatePreorderNote':
     "The store's default pre-order note (#936), for pre-order products without their own.",
   'store.updateTheme': "Saves the live theme's settings.",
+  'storeCredit.adjust':
+    'Add (positive amountPaise) or remove (negative) store credit, with a reason the history shows.',
+  'storeCredit.get': "The customer's balance in paise and their newest 50 changes, newest first.",
   'suppliers.bulkUpdate':
     'Bulk edit on the suppliers list (#1064): currency, country or payment terms for many.',
   'suppliers.facets': "The countries and currencies in use, for the list's filter pickers.",

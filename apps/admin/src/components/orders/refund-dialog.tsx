@@ -38,7 +38,7 @@ type RefundDialogProps = {
 
 const OFFLINE = new Set(['cod', 'manual'])
 
-/** Back through the gateway, recorded as sent another way, or as a store credit gift card. */
+/** Back through the gateway, recorded as sent another way, or onto the customer's store credit balance. */
 type Way = 'original' | 'manual' | 'store_credit'
 
 /** Ways to record money sent back by hand (store credit is its own choice). */
@@ -99,19 +99,21 @@ export default function RefundDialog({
   const valid = paise !== null && paise > 0 && paise <= remainingPaise
   const offline = payment ? OFFLINE.has(payment.provider) : false
   const giftCard = payment?.provider === 'gift_card'
+  // Paid from store credit at checkout: it can only go back onto the same balance.
+  const fromCredit = payment?.provider === 'store_credit'
   const via = payment ? (PROVIDER_NAMES[payment.provider] ?? payment.provider) : ''
-  const ways: { id: Way; label: string; hint: string }[] = giftCard
-    ? []
-    : [
-        ...(offline || imported
-          ? []
-          : [{ id: 'original' as const, label: r.original(via), hint: r.originalHint }]),
-        { id: 'manual', label: r.manual, hint: r.manualHint },
-        { id: 'store_credit', label: r.storeCredit, hint: r.storeCreditHint },
-      ]
-  const chosen: Way | null = giftCard
-    ? null
-    : (way ?? (offline || imported ? 'manual' : 'original'))
+  const ways: { id: Way; label: string; hint: string }[] =
+    giftCard || fromCredit
+      ? []
+      : [
+          ...(offline || imported
+            ? []
+            : [{ id: 'original' as const, label: r.original(via), hint: r.originalHint }]),
+          { id: 'manual', label: r.manual, hint: r.manualHint },
+          { id: 'store_credit', label: r.storeCredit, hint: r.storeCreditHint },
+        ]
+  const chosen: Way | null =
+    giftCard || fromCredit ? null : (way ?? (offline || imported ? 'manual' : 'original'))
   const methodLabels = Object.fromEntries(HAND_METHODS.map((m) => [m, r.methods[m]])) as Record<
     HandMethod,
     string
@@ -125,7 +127,13 @@ export default function RefundDialog({
             <DialogTitle>{copy.refundDialog.title}</DialogTitle>
             <DialogDescription>
               {copy.refundDialog.body(fmt.money(remainingPaise))}
-              {imported ? ` ${r.importedNote}` : offline ? ` ${copy.refundDialog.manualNote}` : ''}
+              {fromCredit
+                ? ` ${r.storeCreditBack}`
+                : imported
+                  ? ` ${r.importedNote}`
+                  : offline
+                    ? ` ${copy.refundDialog.manualNote}`
+                    : ''}
             </DialogDescription>
           </DialogHeader>
           <Field>

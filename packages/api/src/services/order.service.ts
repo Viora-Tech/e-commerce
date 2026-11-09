@@ -50,7 +50,7 @@ import {
 
 export { ORDER_VIEWS, type OrderView, viewFilter } from './order-views'
 
-import { viewFilter } from './order-views'
+import { pendingUpiTile, viewFilter } from './order-views'
 
 export {
   ORDER_CHANNEL_FILTERS,
@@ -141,12 +141,12 @@ export async function listOrders(
     .from(order)
     .leftJoin(customer, eq(customer.id, order.customerId))
     .where(where)
-  const [countRow] = await tx
-    .select({ total: count() })
-    .from(order)
-    .leftJoin(customer, eq(customer.id, order.customerId))
-    .where(where)
-  const [items, [testRow]] = await Promise.all([
+  const [[countRow], items, [testRow]] = await Promise.all([
+    tx
+      .select({ total: count() })
+      .from(order)
+      .leftJoin(customer, eq(customer.id, order.customerId))
+      .where(where),
     base
       .orderBy(desc(order.placedAt))
       .limit(input.perPage)
@@ -155,6 +155,35 @@ export async function listOrders(
     tx.select({ n: count() }).from(order).where(eq(order.isTest, true)),
   ])
   return { items, total: countRow?.total ?? 0, testOrders: testRow?.n ?? 0 }
+}
+
+/** The Orders list's tab badges, the same rows each tab lists with no search or filter. */
+export type OrderTabCounts = {
+  all: number
+  unpaid: number
+  unfulfilled: number
+  pendingUpi: number
+}
+
+/**
+ * Every tab badge in one pass over the store's orders: each count is the tab's own where clause
+ * (`orderListWhere`), so a badge always matches the rows its tab shows. One query instead of a
+ * full list read (count, rows and test count) per tab.
+ */
+export async function orderTabCounts(tx: StoreTx): Promise<OrderTabCounts> {
+  const tab = (view?: 'unpaid' | 'unfulfilled' | 'pending_upi') =>
+    sql<number>`(count(*) filter (where ${orderListWhere(view ? { view } : {})}))::int`
+  const [row] = await tx
+    .select({
+      all: tab(),
+      unpaid: tab('unpaid'),
+      unfulfilled: tab('unfulfilled'),
+      pendingUpi: tab('pending_upi'),
+    })
+    .from(order)
+    .where(notDraft)
+  // An aggregate with no GROUP BY always returns one row, and `count(*)` is never null.
+  return row ?? { all: 0, unpaid: 0, unfulfilled: 0, pendingUpi: 0 }
 }
 
 /** Most lines the list's items popover shows; the order page has the rest. */
@@ -234,7 +263,7 @@ export async function orderTiles(tx: StoreTx, now = new Date()): Promise<OrderTi
         and(live, gte(order.placedAt, yesterdayStart), lte(order.placedAt, sameTimeYesterday)),
       ),
     tx.select({ n: count() }).from(order).where(readyToShipWhere()),
-    tx.select({ n: count() }).from(order).where(viewFilter('pending_upi')),
+    tx.select({ n: count() }).from(order).where(pendingUpiTile()),
     tx
       .select({ totalPaise: order.totalPaise, placedAt: order.placedAt })
       .from(order)

@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import {
+  cacheControlFor,
   IMAGE_MAX_UPLOAD_BYTES,
   isAllowedContentType,
   keyBelongsToStore,
+  MEDIA_CACHE_CONTROL,
   maxUploadBytesFor,
   mediaKey,
   safeFilename,
@@ -74,3 +76,29 @@ describe('StorageRegistry', () => {
 })
 
 describeStorageProvider('memory', { create: () => new MemoryStorageProvider(), live: true })
+
+describe('cacheControlFor', () => {
+  const media = 'stores/s1/media/abc-photo'
+  it("keeps the caller's header", () => {
+    expect(
+      cacheControlFor({ key: `${media}.jpg`, contentType: 'image/jpeg', cacheControl: 'no-store' }),
+    ).toBe('no-store')
+  })
+  it('caches a video under a media key for a year, also under a key prefix', () => {
+    expect(cacheControlFor({ key: `${media}.mp4`, contentType: 'video/mp4' })).toBe(
+      MEDIA_CACHE_CONTROL,
+    )
+    expect(cacheControlFor({ key: `tenant/${media}.mp4`, contentType: 'video/mp4' })).toBe(
+      MEDIA_CACHE_CONTROL,
+    )
+  })
+  it('leaves an unprocessed image and anything outside media uncached', () => {
+    expect(cacheControlFor({ key: `${media}.jpg`, contentType: 'image/jpeg' })).toBeUndefined()
+    expect(
+      cacheControlFor({ key: 'stores/s1/invoices/1.pdf', contentType: 'application/pdf' }),
+    ).toBeUndefined()
+    expect(
+      cacheControlFor({ key: 'stores/s1/exports/a.mp4', contentType: 'video/mp4' }),
+    ).toBeUndefined()
+  })
+})

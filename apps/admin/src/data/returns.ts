@@ -188,7 +188,7 @@ export const returnDetailContent = {
     confirmClose: 'Close',
     refunded: (amount: string) => `Refund of ${amount} sent.`,
     recorded: (amount: string, how: string) => `Refund of ${amount} by ${how} recorded.`,
-    credited: (amount: string) => `Store credit of ${amount} created and emailed.`,
+    credited: (amount: string) => `${amount} added to the customer's store credit balance.`,
     exchanged: (n: number) => `Draft order #D${n} created. Open it to send the items.`,
     reshipped: 'New shipment booked.',
     closed: 'Closed.',
@@ -202,8 +202,11 @@ export const returnDetailContent = {
   outcome: {
     title: 'Result',
     refund: (amount: string) => `Refunded ${amount}.`,
+    /** `last4`: only on returns settled before store credit balances, as a gift card then. */
     store_credit: (amount: string, last4: string | null) =>
-      `Gave ${amount} as store credit${last4 ? ` (gift card ending ${last4})` : ''}.`,
+      last4
+        ? `Gave ${amount} as store credit (an older gift card ending ${last4}).`
+        : `Gave ${amount} as store credit, on the customer's balance.`,
     /** `ref` is what follows the #: "D12" while a draft, "2374" once placed. */
     exchange: (ref: string | null) =>
       ref ? `Exchange: order #${ref}.` : 'Exchange draft created.',
@@ -291,7 +294,7 @@ export const returnSettingsContent = {
   refund: 'When you give money back, suggest',
   refundOptions: {
     original: 'Refund to how they paid',
-    store_credit: 'Store credit (a gift card for your shop)',
+    store_credit: "Store credit (added to the customer's balance)",
   },
   save: 'Save',
   saved: 'Return rules saved.',

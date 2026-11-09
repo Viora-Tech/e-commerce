@@ -10,7 +10,7 @@ import {
   productMedia,
   variant,
 } from '@commerce/db'
-import { asc, eq, inArray, or, sql } from 'drizzle-orm'
+import { and, asc, eq, gte, inArray, or, sql } from 'drizzle-orm'
 
 export {
   ORDER_CHANNEL_FILTERS,
@@ -61,13 +61,21 @@ export async function withThumbnails<L extends Pick<Line, 'variantId'>>(tx: Stor
 
 type Payment = typeof payment.$inferSelect
 
+/** How far before its first payment row an order's webhook may have been stored (clock skew). */
+const EVENT_LEAD_MS = 86_400_000
+
 /**
  * payment_event has no order column (webhooks arrive before we know the
  * order); match on the gateway's own ids inside the stored payload instead.
+ * A gateway only sends events for a payment it was asked to make, so only events from a day
+ * before the order's first payment on are read: the payload-to-text match then runs on those
+ * rows instead of every webhook the store ever received.
  */
 export async function eventsForPayments(tx: StoreTx, payments: Payment[]) {
   const refs = payments.flatMap((p) => [p.providerRef, p.providerPaymentId]).filter(Boolean)
   if (refs.length === 0) return []
+  const first = Math.min(...payments.map((p) => p.createdAt.getTime()))
+  const since = new Date(first - EVENT_LEAD_MS)
   return tx
     .select({
       id: paymentEvent.id,
@@ -78,6 +86,11 @@ export async function eventsForPayments(tx: StoreTx, payments: Payment[]) {
       receivedAt: paymentEvent.receivedAt,
     })
     .from(paymentEvent)
-    .where(or(...refs.map((r) => sql`${paymentEvent.payload}::text like ${`%${r}%`}`)))
+    .where(
+      and(
+        gte(paymentEvent.receivedAt, since),
+        or(...refs.map((r) => sql`${paymentEvent.payload}::text like ${`%${r}%`}`)),
+      ),
+    )
     .orderBy(asc(paymentEvent.receivedAt))
 }

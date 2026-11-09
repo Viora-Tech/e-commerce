@@ -1,0 +1,35 @@
+/** The customer page's Store credit card and its Add / Remove dialog. */
+export const customerStoreCreditContent = {
+  heading: 'Store credit',
+  balance: 'Balance',
+  add: 'Add credit',
+  remove: 'Remove credit',
+  empty:
+    'No store credit yet. Credit added here, or a refund to store credit, shows up as a balance the customer can spend.',
+  history: 'History',
+  by: (who: string) => `by ${who}`,
+  system: 'automatically',
+  kinds: {
+    adjustment: 'Adjusted',
+    payment: 'Paid an order',
+    refund: 'Refund',
+    release: 'Returned (order not paid)',
+  } as Record<string, string>,
+  dialog: {
+    addTitle: 'Add store credit',
+    removeTitle: 'Remove store credit',
+    body: (balance: string) => `Current balance: ${balance}.`,
+    amount: 'Amount (₹)',
+    reason: 'Reason',
+    reasonPlaceholder: 'For example: goodwill for a late delivery',
+    reasonHint: 'Shown in the history. The customer does not see it.',
+    tooMuch: 'That is more than the balance.',
+    cancel: 'Cancel',
+    saveAdd: 'Add credit',
+    saveRemove: 'Remove credit',
+    added: 'Store credit added',
+    removed: 'Store credit removed',
+    failed: 'Could not change the store credit. Try again.',
+  },
+  loadFailed: 'Could not load store credit.',
+}

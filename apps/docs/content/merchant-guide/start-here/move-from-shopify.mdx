@@ -1,6 +1,6 @@
 ---
 title: Move your store from Shopify
-description: What the Shopify importer brings over (products to gift cards), how the preview and report read, what stays in Shopify and why, and the Shopify scopes to give the app.
+description: What the Shopify importer brings over (products to gift cards and store credit), how the preview and report read, what stays in Shopify and why, and the Shopify scopes to give the app.
 ---
 
 # Move your store from Shopify
@@ -23,6 +23,7 @@ it again updates what it brought over before instead of making copies.
 | **Metafields** on products and collections | **Extra fields** | Each Shopify field becomes an extra field of the matching type. |
 | **Discounts** | **Discounts** | Code and automatic discounts our discount model can express. |
 | **Gift cards** | **Gift cards** | Balances, with a **new code** (see below). |
+| **Store credit** | The customer's **Store credit** balance | Balances in rupees, never as a gift card (see below). |
 
 ## Run an import
 
@@ -41,7 +42,7 @@ it again updates what it brought over before instead of making copies.
 already read from Shopify (products, collections, customers, orders, pages, blog posts and
 files) and only asks Shopify for what changed since. The run page says so: "Using the preview
 from … + 3 changes since". Stock is always read fresh. After a day, or for menus, redirects,
-content types, extra fields, discounts and gift cards, the import reads Shopify again.
+content types, extra fields, discounts, gift cards and store credit, the import reads Shopify again.
 
 Run it again any time (**Run again**): records it brought over before are updated, never
 duplicated.
@@ -98,7 +99,7 @@ each record. What you can see there:
   than letters, numbers and hyphens. A Shopify discount with several codes becomes one discount
   per code here. A minimum purchase amount here counts the whole cart, not only the items the
   discount applies to.
-- **Gift cards**, explained next.
+- **Gift cards** and **store credit**, explained next.
 
 ## Gift cards get a new code
 
@@ -115,6 +116,30 @@ So a card cannot keep its old code here. What the importer does instead:
 
 Running the import again moves each card's balance to match Shopify, unless the card has already
 been spent in this store; then its balance here is kept.
+
+## Store credit comes onto the customer's balance
+
+Store credit a customer holds in Shopify comes over as their **Store credit** balance here
+(open the customer to see it). It is never turned into a gift card or a code. Each balance
+shows in the customer's store credit history as one line, "Imported from Shopify (store
+credit)", with the Shopify account number. The run page sums it up, for example **Store
+credit: 12 customers, ₹18,500 total imported**.
+
+- Import **customers** first, or tick them too: a balance whose customer is not here is skipped
+  and listed in the report.
+- Only balances in **rupees** come over. A balance in another currency stays in Shopify; the
+  report lists it with its currency.
+- Customers with nothing left on their Shopify store credit are not counted.
+
+**Running it again never adds the credit twice.** If the Shopify balance is unchanged, nothing
+happens. If it went up, only the difference is added; if it went down, the difference is taken
+back, unless the customer has already spent that credit here, in which case their balance here
+is kept and the report says so.
+
+Store credit needs the `read_store_credit_accounts` scope. The Koomerce app has it. If you
+connected your own app without it, **Before you import** warns you, and the import skips store
+credit with a note in the report while everything else comes over. Add the scope, test the
+connection, and import **Store credit** again.
 
 ## Store settings
 
@@ -155,7 +180,7 @@ If you connect your own app instead, give it these read scopes in the Shopify De
 `read_content`, `read_online_store_navigation`, `read_files`, `read_metaobject_definitions`,
 `read_metaobjects`, `read_discounts`, `read_gift_cards`, `read_shipping`, `read_legal_policies`,
 `read_purchase_options`, `read_markets`, `read_inventory_purchase_orders`,
-`read_inventory_transfers`, `read_reports`.
+`read_inventory_transfers`, `read_reports`, `read_store_credit_accounts`.
 
 `read_reports` brings your daily sessions and visitors over (**Traffic history** on the importer page). Shopify also asks for Level 2 customer data access on this report.
 

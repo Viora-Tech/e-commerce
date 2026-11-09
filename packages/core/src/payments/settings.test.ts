@@ -4,6 +4,7 @@ import {
   builtInPaymentRegistry,
   decryptPaymentSettings,
   encryptPaymentSettings,
+  manualCancelHoursOf,
   maskPaymentSettings,
   parsePaymentSettings,
   resolvePaymentProviders,
@@ -65,12 +66,15 @@ describe('payment settings', () => {
       adjustments: {},
       expireUnpaidAfterMinutes: 30,
       manualCancelAfterHours: 0,
+      duplicateCheckoutHours: 24,
+      unpaidCheckoutsPerHour: 0,
     })
   })
 
-  it('leaves auto-cancel of unpaid transfer orders off unless the store turns it on', () => {
+  it('keeps the stored transfer window; auto-cancel is off until the merchant turns it on', () => {
     expect(parsePaymentSettings({ enabled: ['manual'] }).manualCancelAfterHours).toBe(0)
     expect(parsePaymentSettings({ manualCancelAfterHours: 48 }).manualCancelAfterHours).toBe(48)
+    expect(manualCancelHoursOf(parsePaymentSettings({ enabled: ['manual'] }))).toBe(0)
   })
 
   it('expires unpaid online orders after 30 minutes unless the store says otherwise', () => {

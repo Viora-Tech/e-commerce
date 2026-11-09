@@ -251,6 +251,7 @@ async function storeFile(
     ? await (deps.imageSize ?? sharpSize)(file.bytes).catch(() => null)
     : null
   const url = deps.storage.publicUrl(key)
+  const queued = Boolean(deps.processImage) && file.contentType.startsWith('image/')
   await tx.insert(media).values({
     id,
     storeId,
@@ -262,8 +263,11 @@ async function storeFile(
     alt: null,
     width: size?.width ?? null,
     height: size?.height ?? null,
-    status: 'ready',
+    // An image goes through the upload pipeline like any upload, for its sized copies: without
+    // them a theme's `image_url: width:` can only hand out the original (several MB on a phone).
+    status: queued ? 'processing' : 'ready',
   })
+  if (queued) await deps.processImage?.(id)
   return { url, width: size?.width ?? null, height: size?.height ?? null }
 }
 

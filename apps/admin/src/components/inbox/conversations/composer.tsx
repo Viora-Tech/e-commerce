@@ -146,19 +146,19 @@ export default function Composer({
       ) : null}
       <div
         className={cn(
-          'flex flex-col gap-2 rounded-xl border border-input bg-background p-2',
+          'flex flex-col gap-2 rounded-xl border border-input bg-background p-2 shadow-xs transition-[border-color,box-shadow] focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/20',
           note && 'border-dashed bg-muted/40',
         )}
       >
         <Textarea
           ref={textRef}
           value={draft}
-          rows={2}
+          rows={3}
           maxLength={2000}
           disabled={disabled && !note}
           placeholder={note ? c.notePlaceholder : c.placeholder}
           aria-label={note ? c.notePlaceholder : c.placeholder}
-          className="min-h-12 resize-none border-0 bg-transparent p-1 shadow-none focus-visible:ring-0"
+          className="min-h-20 resize-none border-0 bg-transparent p-1.5 text-body shadow-none focus-visible:ring-0"
           onChange={(e) => handleChange(e.target.value)}
           onKeyDown={handleKeyDown}
         />
@@ -207,15 +207,20 @@ export default function Composer({
               onChange={(e) => handleFile(e.target.files?.[0])}
             />
           </div>
-          <Button
-            size="sm"
-            loading={busy}
-            disabled={!draft.trim() || (disabled && !note)}
-            onClick={handleSubmit}
-          >
-            <Send aria-hidden="true" />
-            {note ? c.addNote : c.send}
-          </Button>
+          <div className="flex items-center gap-3">
+            <span className="hidden text-caption text-muted-foreground lg:inline">
+              {c.sendHint}
+            </span>
+            <Button
+              loading={busy}
+              disabled={!draft.trim() || (disabled && !note)}
+              onClick={handleSubmit}
+              className="min-w-24"
+            >
+              <Send aria-hidden="true" />
+              {note ? c.addNote : c.send}
+            </Button>
+          </div>
         </div>
       </div>
       {picking === 'product' ? (

@@ -1,7 +1,7 @@
 'use client'
 
 import { permissions } from '@commerce/core/permissions'
-import { CircleAlert, Folder, Save, Trash2 } from '@commerce/ui/icons'
+import { CircleAlert, Save, Trash2 } from '@commerce/ui/icons'
 import { Alert, AlertDescription, AlertTitle } from '@commerce/ui/shadcn/alert'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Field, FieldDescription, FieldError, FieldLabel } from '@commerce/ui/shadcn/field'
@@ -9,19 +9,17 @@ import { Input } from '@commerce/ui/shadcn/input'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { itemTabs, loadPicked } from '@/components/discounts/pick-sources'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
 import DataCard from '@/components/layout/data-card'
 import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
-import PickedField from '@/components/pickers/picked-field'
-import ResourcePickDialog from '@/components/pickers/resource-pick-dialog'
-import { discountFormContent } from '@/data/discounts'
 import { shippingRatesContent } from '@/data/shipping-rates'
-import { useCopy, useLocale } from '@/hooks/use-copy'
+import { useCopy } from '@/hooks/use-copy'
 import { usePermissions } from '@/hooks/use-permissions'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
+import ProfileProductsCard from './profile-products-card'
+import { type ProfileProductRow, rowsFrom, toPlacement } from './profile-products-state'
 import ShippingZonesCard from './shipping-zones-card'
 
 type LoadedProfile = NonNullable<Awaited<ReturnType<typeof api.shipping.profiles.get>>>
@@ -31,33 +29,35 @@ type ProfileFormProps = {
   profile: LoadedProfile | null
 }
 
-type ProfileFormState = { name: string; productIds: string[] }
+type ProfileFormState = { name: string; rows: ProfileProductRow[] }
 
 const LIST_HREF = '/settings/shipping?tab=section-rates'
 
 const initialForm = (profile: LoadedProfile | null): ProfileFormState => ({
   name: profile?.name ?? '',
-  productIds: profile?.productIds ?? [],
+  rows: rowsFrom(profile?.entries ?? []),
 })
 
+/** What a save would write: compared with the last save to tell whether the page changed. */
+const fingerprint = (form: ProfileFormState) =>
+  JSON.stringify({ name: form.name, ...toPlacement(form.rows) })
+
 /**
- * A shipping profile's page: its name and products (custom profiles only) and its delivery
- * areas with their prices. General holds every product not placed in another profile.
+ * A shipping profile's page: its name, products and variants (custom profiles only) and its
+ * delivery areas with their prices. General holds every product and variant not placed in
+ * another profile.
  */
 export default function ProfileForm({ profile }: ProfileFormProps) {
   // Hooks
   const { profile: copy } = useCopy(shippingRatesContent)
-  const discountCopy = useCopy(discountFormContent)
-  const locale = useLocale()
   const router = useRouter()
   const { hasPermission } = usePermissions()
   const [form, setForm] = useState<ProfileFormState>(() => initialForm(profile))
-  const [saved, setSaved] = useState(() => JSON.stringify(initialForm(profile)))
+  const [saved, setSaved] = useState(() => initialForm(profile))
   const [busy, setBusy] = useState(false)
   const [attempted, setAttempted] = useState(false)
   const [serverError, setServerError] = useState<string | null>(null)
   const [confirmDelete, setConfirmDelete] = useState(false)
-  const [pickingCollections, setPickingCollections] = useState(false)
 
   // Event handlers
   const handleSave = async () => {
@@ -66,10 +66,10 @@ export default function ProfileForm({ profile }: ProfileFormProps) {
     setBusy(true)
     setServerError(null)
     try {
-      const data = { name: form.name.trim(), productIds: form.productIds }
+      const data = { name: form.name.trim(), ...toPlacement(form.rows) }
       if (!profile) {
         const created = await api.shipping.profiles.create(data)
-        setSaved(JSON.stringify(form))
+        setSaved(form)
         toast.success(copy.toasts.created)
         router.replace(routes.settings.shippingProfile(created.id))
         return
@@ -77,7 +77,7 @@ export default function ProfileForm({ profile }: ProfileFormProps) {
       const fresh = await api.shipping.profiles.update({ id: profile.id, data })
       const next = initialForm(fresh)
       setForm(next)
-      setSaved(JSON.stringify(next))
+      setSaved(next)
       toast.success(copy.toasts.saved)
       router.refresh()
     } catch (err) {
@@ -88,7 +88,7 @@ export default function ProfileForm({ profile }: ProfileFormProps) {
   }
 
   const handleDiscard = () => {
-    setForm(JSON.parse(saved) as ProfileFormState)
+    setForm(saved)
     setAttempted(false)
     setServerError(null)
   }
@@ -108,27 +108,11 @@ export default function ProfileForm({ profile }: ProfileFormProps) {
     }
   }
 
-  const handleCollections = async (collectionIds: string[]) => {
-    setPickingCollections(false)
-    if (collectionIds.length === 0) return
-    try {
-      const ids = await api.shipping.profiles.collectionProducts({ collectionIds })
-      const added = ids.filter((id) => !form.productIds.includes(id))
-      setForm((f) => ({ ...f, productIds: [...f.productIds, ...added] }))
-      toast.success(copy.products.added(added.length))
-    } catch (err) {
-      setServerError(err instanceof Error ? err.message : copy.toasts.failed)
-    }
-  }
-
   // Render logic
   const canManage = hasPermission(permissions.SETTINGS_MANAGE)
   const general = profile?.isDefault === true
-  const dirty = JSON.stringify(form) !== saved
+  const dirty = fingerprint(form) !== fingerprint(saved)
   const nameError = attempted && !form.name.trim() ? copy.errors.name : null
-  const tabs = itemTabs(discountCopy.value, locale)
-  const productTabs = tabs.filter((t) => t.key === 'products')
-  const collectionTabs = tabs.filter((t) => t.key === 'collections')
 
   return (
     <div className="flex flex-col gap-4">
@@ -188,33 +172,13 @@ export default function ProfileForm({ profile }: ProfileFormProps) {
         </DataCard>
       )}
       {general ? null : (
-        <DataCard
-          title={copy.products.heading}
-          subtitle={copy.products.meta}
-          footer={
-            canManage ? (
-              <Button variant="outline" onClick={() => setPickingCollections(true)}>
-                <Folder aria-hidden="true" />
-                {copy.products.addCollection}
-              </Button>
-            ) : null
-          }
-        >
-          <PickedField
-            kind="products"
-            ids={form.productIds}
-            tabs={productTabs}
-            title={copy.products.pickTitle}
-            search={copy.products.search}
-            labels={{
-              browse: copy.products.browse,
-              nothingPicked: copy.products.nothingPicked,
-              remove: copy.products.remove,
-            }}
-            loadPicked={(_kind, ids) => loadPicked('products', ids, discountCopy.value, locale)}
-            onChange={({ ids }) => setForm((f) => ({ ...f, productIds: ids }))}
-          />
-        </DataCard>
+        <ProfileProductsCard
+          profileId={profile?.id ?? null}
+          rows={form.rows}
+          canManage={canManage}
+          onChange={(rows) => setForm((f) => ({ ...f, rows }))}
+          onError={setServerError}
+        />
       )}
       {profile ? (
         <ShippingZonesCard zones={profile.zones} profileId={profile.id} general={general} />
@@ -222,14 +186,6 @@ export default function ProfileForm({ profile }: ProfileFormProps) {
         <p className="text-body text-muted-foreground">{copy.zones.saveFirst}</p>
       )}
 
-      <ResourcePickDialog
-        open={pickingCollections}
-        title={copy.products.collectionTitle}
-        tabs={collectionTabs}
-        selected={{ tab: 'collections', ids: [] }}
-        onClose={() => setPickingCollections(false)}
-        onDone={(r) => void handleCollections(r.ids)}
-      />
       <ConfirmDialog
         open={confirmDelete}
         onOpenChange={setConfirmDelete}

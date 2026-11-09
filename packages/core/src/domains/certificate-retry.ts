@@ -79,6 +79,11 @@ function routable(row: DomainRow, guard: RouteGuard): boolean {
     : isRoutableHostname(row.hostname, guard)
 }
 
+/** Not ours to check: a host we never route, or one Cloudflare serves (its own certificate). */
+function notOurs(row: DomainRow, guard: RouteGuard): boolean {
+  return !routable(row, guard) || row.edgeRecords !== null
+}
+
 async function patch(
   deps: CertificateDeps,
   row: DomainRow,
@@ -114,7 +119,7 @@ export async function checkCertificate(
   row: DomainRow,
   opts: { force?: boolean; register?: boolean } = {},
 ): Promise<CertOutcome> {
-  if (!routable(row, deps.guard) || row.edgeRecords !== null) return 'skipped'
+  if (notOurs(row, deps.guard)) return 'skipped'
   const now = deps.now ?? new Date()
   const seen = await look(deps, row)
 
@@ -216,7 +221,8 @@ export async function runCertificateSweep(deps: CertificateDeps): Promise<SweepR
         .from(storeDomain)
         .where(and(eq(storeDomain.status, 'active'), eq(storeDomain.routeStatus, 'ready'))),
     )
-    for (const row of rows.filter((r) => certCheckDue(r, now))) {
+    // Skipped rows never get a check time, so they would stay due and be counted every minute.
+    for (const row of rows.filter((r) => !notOurs(r, deps.guard) && certCheckDue(r, now))) {
       try {
         const out = await checkCertificate(deps, row)
         result.checked += 1

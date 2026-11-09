@@ -67,7 +67,8 @@ export function assertSafeKey(key: string): void {
 export function localStoragePath(key: string, dir = localStorageDir()): string {
   assertSafeKey(key)
   const root = process.env.LOCAL_UPLOAD_ROOT
-  const base = isAbsolute(dir) || !root ? dir : join(root, dir)
+  // turbopackIgnore: a runtime data folder, not a build input (else the build traces the whole app).
+  const base = isAbsolute(dir) || !root ? dir : join(/* turbopackIgnore: true */ root, dir)
   const resolvedRoot = resolve(base)
   const resolvedPath = resolve(resolvedRoot, key)
   if (resolvedPath !== resolvedRoot && !resolvedPath.startsWith(resolvedRoot + sep)) {

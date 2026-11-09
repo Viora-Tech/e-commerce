@@ -1,17 +1,18 @@
 /** SOURCE OF TRUTH: REFUND_ROUTES, refundOptions, refundOrderAmount — WHAT: how money goes back when staff cancel or edit an order (the original gateway, recorded by hand, or not at all) and spreading one amount over the order's payments / WHY: cancel and edit offer the same choice and must refund the same way */
-import { customer, order, payment } from '@commerce/db'
+import { payment } from '@commerce/db'
 import type { PaymentProvider } from '@commerce/payments'
 import { and, eq, inArray } from 'drizzle-orm'
 import type { StoreContext } from '../context'
-import { GIFT_CARD_PROVIDER, issueGiftCard } from '../gift-cards/service'
 import { insertOutboxEvent } from '../outbox/write'
+import { isSplitTender } from '../payments/split-tender'
 import { RefundNotAllowed, refundedPaise, refundPayment } from './refund'
 
 /**
  * `original`: back through the gateway that took it (cash on delivery and manual payments are
  * recorded, gift cards go back onto the card). `manual`: the merchant sends it back themselves
- * and the refund is only recorded. `store_credit`: one gift card for the amount, emailed to the
- * shopper, recorded as the refund of each payment it covers. `none`: nothing goes back.
+ * and the refund is only recorded. `store_credit`: onto the store credit balance of the order's
+ * customer (found or made from its email or phone), recorded as the refund of each payment it
+ * covers; never a gift card code. `none`: nothing goes back.
  */
 export const REFUND_ROUTES = ['original', 'manual', 'store_credit', 'none'] as const
 export type RefundRoute = (typeof REFUND_ROUTES)[number]
@@ -43,59 +44,29 @@ async function heldPayments(ctx: StoreContext, orderId: string): Promise<Held[]>
       remainingPaise,
     })
   }
-  // Gift cards last: the shopper would rather have money back than card balance.
+  // Gift cards and store credit last: the shopper would rather have money back than a balance.
   return held.sort(
     (a, b) =>
-      Number(a.provider === GIFT_CARD_PROVIDER) - Number(b.provider === GIFT_CARD_PROVIDER) ||
+      Number(isSplitTender(a.provider)) - Number(isSplitTender(b.provider)) ||
       b.remainingPaise - a.remainingPaise,
   )
 }
 
-/** Issues the store credit gift card for a refund of `amountPaise` on the order, to its shopper. */
 /**
- * How a store credit refund is issued: the settings secret (card codes are stored encrypted), who
- * issued it, and its last day (YYYY-MM-DD, store time); no date means it never expires.
+ * How a store credit refund is given: the settings secret (a customer record made from the
+ * order's email or phone stores the phone encrypted) and who gave it.
  */
 export type StoreCreditIssue = {
   secret: string
   createdBy: string | null
+  /** Kept for callers that still pass it; store credit on a balance has no expiry. */
   expiresOn?: string | null | undefined
-}
-
-async function storeCreditCard(
-  ctx: StoreContext,
-  orderId: string,
-  amountPaise: number,
-  storeCredit: StoreCreditIssue | undefined,
-): Promise<string> {
-  if (!storeCredit) throw new RefundNotAllowed('Store credit could not be issued', ctx.storeId)
-  const [o] = await ctx.tx.select().from(order).where(eq(order.id, orderId))
-  if (!o) throw new RefundNotAllowed('Order not found', ctx.storeId)
-  const [cu] = o.customerId
-    ? await ctx.tx.select().from(customer).where(eq(customer.id, o.customerId))
-    : []
-  const issued = await issueGiftCard(
-    ctx,
-    {
-      valuePaise: amountPaise,
-      customerId: o.customerId,
-      recipientEmail: o.email,
-      recipientName: cu?.name ?? null,
-      note: `Store credit refund for order #${o.number}`,
-      createdBy: storeCredit.createdBy,
-      orderId: o.id,
-      expiresOn: storeCredit.expiresOn ?? null,
-    },
-    storeCredit.secret,
-  )
-  if (!issued) throw new RefundNotAllowed('Store credit could not be issued', ctx.storeId)
-  return issued.card.id
 }
 
 /** True when this payment's money can go back the way it came, with the store's gateways. */
 const viaOriginal = (p: Held, providers: readonly PaymentProvider[]): boolean =>
   OFFLINE.has(p.provider) ||
-  p.provider === GIFT_CARD_PROVIDER ||
+  isSplitTender(p.provider) ||
   (!!p.providerPaymentId && providers.some((x) => x.id === p.provider))
 
 export type RefundOptions = {
@@ -139,7 +110,7 @@ export async function refundOrderAmount(
     route: RefundRoute
     reason: string
     providers: readonly PaymentProvider[]
-    /** For `store_credit`: the settings secret (card codes are stored encrypted) and who issued it. */
+    /** For `store_credit`: the settings secret and who gave it. */
     storeCredit?: StoreCreditIssue | undefined
   },
 ): Promise<string[]> {
@@ -166,11 +137,9 @@ export async function refundOrderAmount(
       )
     }
   }
-  // Store credit: one card for the whole amount, then each payment's share recorded against it.
-  const giftCardId =
-    input.route === 'store_credit'
-      ? await storeCreditCard(ctx, input.orderId, input.amountPaise, input.storeCredit)
-      : undefined
+  if (input.route === 'store_credit' && !input.storeCredit) {
+    throw new RefundNotAllowed('Store credit could not be given', ctx.storeId)
+  }
   const ids: string[] = []
   for (const { p, amountPaise } of plan) {
     const provider = input.providers.find((x) => x.id === p.provider) ?? null
@@ -179,7 +148,13 @@ export async function refundOrderAmount(
       amountPaise,
       reason: input.reason,
       manual: input.route === 'manual',
-      ...(giftCardId ? { method: 'store_credit' as const, giftCardId } : {}),
+      ...(input.route === 'store_credit'
+        ? {
+            method: 'store_credit' as const,
+            secret: input.storeCredit?.secret,
+            createdBy: input.storeCredit?.createdBy ?? null,
+          }
+        : {}),
     })
     if (!row) continue
     ids.push(row.id)

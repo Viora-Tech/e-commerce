@@ -41,12 +41,6 @@ export default [
       failed: 'इस ऑर्डर की कॉपी नहीं बन सकी',
     },
     moved: (status) => `ऑर्डर "${status}" मार्क किया गया`,
-    cancelDialog: {
-      title: 'यह ऑर्डर कैंसिल करें?',
-      body: 'ग्राहक इसका पेमेंट नहीं कर पाएगा, और अगर शिपमेंट बुक है तो उसे अलग से कैंसिल करना होगा। यह वापस नहीं होगा।',
-      confirm: 'ऑर्डर कैंसिल करें',
-      keep: 'ऑर्डर रखें',
-    },
     courierOrders: {
       heading: 'कूरियर ऐप',
       status: {
@@ -80,7 +74,9 @@ export default [
       manual: 'दूसरे तरीके से भेज दिए',
       manualHint: 'आपने पैसे खुद लौटाए। यहाँ बस तरीका दर्ज होगा।',
       storeCredit: 'स्टोर क्रेडिट के रूप में',
-      storeCreditHint: 'इतनी रकम का गिफ़्ट कार्ड ग्राहक को ईमेल होगा।',
+      storeCreditHint: 'यह रकम ग्राहक के स्टोर क्रेडिट बैलेंस में जुड़ जाती है। कोई कोड नहीं भेजा जाता।',
+      storeCreditBack:
+        'यह स्टोर क्रेडिट से चुकाया गया था, इसलिए रकम ग्राहक के स्टोर क्रेडिट बैलेंस में वापस जाती है।',
       method: 'किससे भेजा',
       methods: {
         upi: 'UPI',
@@ -153,6 +149,7 @@ export default [
         bank_transfer: 'बैंक ट्रांसफ़र (NEFT, IMPS, RTGS)',
         cash: 'कैश',
         cheque: 'चेक',
+        store_credit: 'स्टोर क्रेडिट',
         other: 'दूसरा',
       },
       reference: 'UTR या रेफ़रेंस (ज़रूरी नहीं)',
@@ -162,8 +159,12 @@ export default [
         bank_transfer: 'UTR नंबर',
         cash: 'रसीद नंबर',
         cheque: 'चेक नंबर',
+        store_credit: 'कोई भी नोट',
         other: 'कोई भी नोट',
       },
+      storeCreditBalance: (amount) => `स्टोर क्रेडिट बैलेंस: ${amount}`,
+      storeCreditShort: (amount) => `ग्राहक के पास ${amount} स्टोर क्रेडिट है, जो इस रकम से कम है।`,
+      storeCreditNone: 'इस ऑर्डर का कोई ग्राहक नहीं है, इसलिए स्टोर क्रेडिट से पेमेंट नहीं हो सकता।',
       receivedOn: 'पेमेंट मिलने की तारीख',
       done: 'पेमेंट दर्ज हो गया',
       failed: 'पेमेंट दर्ज नहीं हो पाया',

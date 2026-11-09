@@ -29,19 +29,19 @@ import { GST_INVOICES_ID, invoice, queuedInvoiceDrafts } from '@commerce/plugin-
 import { and, asc, count, desc, eq, gte, inArray, isNull, lt, ne, sql, sum } from 'drizzle-orm'
 import type { LiveVisitors, VisitorSource } from '../context'
 import { istIsoDate } from './analytics-buckets'
-import {
-  buildSeries,
-  dayIndex,
-  hourlyCounts,
-  isoDate,
-  istHour,
-  istWeekday,
-  paymentMethodLabel,
-  startOfDay,
-  statusBucket,
-  zeros,
-} from './dashboard-buckets'
+import { isoDate, paymentMethodLabel, startOfDay, statusBucket, zeros } from './dashboard-buckets'
 import { type OrderStatus, viewFilter } from './order.service'
+import {
+  countWhere,
+  int,
+  istDaySql,
+  istHourSql,
+  istWeekdaySql,
+  stepIndex,
+  sumInt,
+  sumWhere,
+  ts,
+} from './sql-buckets'
 
 const DAY_MS = 86_400_000
 const WINDOW_DAYS = 7
@@ -269,9 +269,13 @@ export type DashboardChartsData = {
 }
 
 /**
- * Everything the admin home shows, in one round of queries. Windows are
- * "last 7 days" vs the 7 before, matching the kit's stat cards. Cancelled
- * orders are excluded from money and counts except the cancelled tile itself.
+ * Everything the admin home shows. Windows are "last 7 days" vs the 7 before, matching the
+ * kit's stat cards. Cancelled orders are excluded from money and counts except the cancelled
+ * tile itself.
+ *
+ * Totals are grouped in Postgres (by day, IST hour, window) and only those few rows come back;
+ * the store's orders and variants never load into JavaScript. The independent reads go out
+ * together on the request's transaction, so they share round trips.
  */
 export async function dashboardSummary(
   tx: StoreTx,
@@ -284,369 +288,450 @@ export async function dashboardSummary(
 ): Promise<DashboardSummary> {
   const now = opts.now ?? new Date()
   const lowStockThreshold = await storeLowStockThreshold(tx, opts.storeId)
-  const thisStart = startOfDay(now, WINDOW_DAYS - 1)
   const lastStart = startOfDay(now, WINDOW_DAYS * 2 - 1)
+  const todayStart = startOfDay(now, 0)
+  const yesterdayStart = startOfDay(now, 1)
+  const dayAgo = new Date(now.getTime() - HOURS * 3_600_000)
+  const thirtyDaysAgo = startOfDay(now, 29)
+  const monthStart = startOfMonth(now)
+  const lastMonthStart = startOfMonth(now, undefined, -1)
+  const ninetyDaysAgo = startOfDay(now, 89)
+  const mixFrom = startOfDay(now, MIX_WINDOW_DAYS - 1)
+  const mapFrom = new Date(now.getTime() - MAP_RANGE_MS[opts.mapRange ?? '24h'])
+  const liveOrder = ne(order.status, 'cancelled')
+  const available = sql`${sellableStock.onHand} - ${sellableStock.reserved}`
+  const lowStockLevel = lt(available, lowStockThreshold + 1)
+  // The same rule as Inventory's "Out of stock": live variants of products not archived (#72).
+  const liveVariant = and(
+    eq(variant.trackInventory, true),
+    isNull(variant.archivedAt),
+    ne(product.status, 'archived'),
+  )
+  const toShip = viewFilter('unfulfilled')
+  const SERIES_DAYS = WINDOW_DAYS * 2
 
-  const recentRows = await tx
+  /* The last 14 days of orders, by day (from `lastStart`), IST hour and the 24-hour activity
+   * bar (hours since `dayAgo`): a few hundred rows at most, whatever the store's size. */
+  const dayOf = stepIndex(order.placedAt, lastStart, DAY_MS)
+  const hourOf = istHourSql(order.placedAt)
+  const activityHour = sql<number | null>`case when ${order.placedAt} >= ${ts(dayAgo)}
+    then least(${int(HOURS - 1)}, ${stepIndex(order.placedAt, dayAgo, 3_600_000)}) end`
+  const recentQuery = tx
     .select({
-      id: order.id,
-      status: order.status,
-      paymentStatus: order.paymentStatus,
-      totalPaise: order.totalPaise,
-      placedAt: order.placedAt,
+      day: dayOf,
+      hour: hourOf,
+      activityHour,
+      live: countWhere(liveOrder),
+      livePaise: sumWhere(order.totalPaise, liveOrder),
+      liveBeforeNow: countWhere(and(liveOrder, lt(order.placedAt, now))),
+      // Pending: open orders still waiting for their money (COD included).
+      pending: countWhere(
+        and(eq(order.status, 'open'), inArray(order.paymentStatus, [...UNPAID_PAYMENT_STATUSES])),
+      ),
+      cancelled: countWhere(eq(order.status, 'cancelled')),
     })
     .from(order)
     .where(and(notDraft, gte(order.placedAt, lastStart)))
+    .groupBy(dayOf, hourOf, activityHour)
 
-  const inWindow = (from: Date, to?: Date) =>
-    recentRows.filter((r) => r.placedAt >= from && (!to || r.placedAt < to))
-  const cur = inWindow(thisStart)
-  const prev = inWindow(lastStart, thisStart)
-  const live = (rows: typeof recentRows) => rows.filter((r) => r.status !== 'cancelled')
-  const sumPaise = (rows: typeof recentRows) => rows.reduce((n, r) => n + r.totalPaise, 0)
-  const countStatus = (rows: typeof recentRows, s: string) =>
-    rows.filter((r) => r.status === s).length
-  /* Pending: open orders still waiting for their money (COD included). */
-  const countPending = (rows: typeof recentRows) =>
-    rows.filter((r) => r.status === 'open' && UNPAID_PAYMENT_STATUSES.includes(r.paymentStatus))
-      .length
-
-  const [customersRow] = await tx.select({ n: count() }).from(customer)
-  // The same count as the Products list's "All" (archived included): Home read 307, the list 309 (#61).
-  const [productsRow] = await tx.select({ n: count() }).from(product).where(notSystemTest)
-  const stockRows = await tx
+  /* Stock now and at the end of each of the 14 days: today's sellable levels with the
+   * adjustment log undone backwards a day at a time (as `stockByDay` did), counted in SQL. */
+  const stockRows = tx
     .select({
       variantId: sellableStock.variantId,
-      available: sql<number>`${sellableStock.onHand} - ${sellableStock.reserved}`.mapWith(Number),
+      available: sql<number>`${available}`.as('available'),
     })
     .from(sellableStock)
     .innerJoin(variant, eq(variant.id, sellableStock.variantId))
     .innerJoin(product, eq(product.id, variant.productId))
-    // The same rule as Inventory's "Out of stock": live variants of products not archived (#72).
-    .where(
-      and(
-        eq(variant.trackInventory, true),
-        isNull(variant.archivedAt),
-        ne(product.status, 'archived'),
-      ),
-    )
-  const inStock = stockRows.filter((r) => r.available > 0).length
-  const outOfStock = stockRows.length - inStock
-  const newCustomers = await tx
-    .select({ at: customer.createdAt })
-    .from(customer)
-    .where(gte(customer.createdAt, lastStart))
-  const newProducts = await tx
-    .select({ at: product.createdAt })
-    .from(product)
-    .where(and(gte(product.createdAt, lastStart), notSystemTest))
-  const adjustments = await tx
+    .where(liveVariant)
+  const adjDay = stepIndex(inventoryAdjustment.createdAt, lastStart, DAY_MS)
+  const adjustments = tx
     .select({
       variantId: inventoryAdjustment.variantId,
-      delta: inventoryAdjustment.delta,
-      at: inventoryAdjustment.createdAt,
+      day: sql<number>`${adjDay}`.as('day'),
+      delta: sql<number>`sum(${inventoryAdjustment.delta})`.as('delta'),
     })
     .from(inventoryAdjustment)
     .where(gte(inventoryAdjustment.createdAt, lastStart))
-  /* The stock series is rebuilt from today backwards across both weeks at once, then split. */
-  const twoWeeks = buildSeries(
-    {
-      orders: live(inWindow(lastStart)),
-      customers: newCustomers,
-      products: newProducts,
-      stock: stockRows,
-      adjustments,
-    },
-    lastStart,
-    WINDOW_DAYS * 2,
-  )
-  const sliceSeries = (from: number): DashboardSeries => ({
-    days: twoWeeks.days.slice(from, from + WINDOW_DAYS),
-    customers: twoWeeks.customers.slice(from, from + WINDOW_DAYS),
-    products: twoWeeks.products.slice(from, from + WINDOW_DAYS),
-    inStock: twoWeeks.inStock.slice(from, from + WINDOW_DAYS),
-    outOfStock: twoWeeks.outOfStock.slice(from, from + WINDOW_DAYS),
-    revenuePaise: twoWeeks.revenuePaise.slice(from, from + WINDOW_DAYS),
-  })
-  const [allTimeRevenue] = await tx
-    .select({ total: sum(order.totalPaise).mapWith(Number) })
-    .from(order)
-    .where(and(notDraft, ne(order.status, 'cancelled')))
+    .groupBy(inventoryAdjustment.variantId, adjDay)
+  const stockSeriesQuery = tx.execute<{ day: number; in_stock: number; out_of_stock: number }>(sql`
+    with s as (${stockRows}), a as (${adjustments}),
+    per_day as (
+      select d.day, s.available - coalesce(sum(a.delta), 0) as available
+      from s cross join generate_series(0, ${SERIES_DAYS - 1}) as d(day)
+      left join a on a.variant_id = s.variant_id and a.day > d.day and a.day < ${SERIES_DAYS}
+      group by d.day, s.variant_id, s.available
+    )
+    select day, count(*) filter (where available > 0)::int as in_stock,
+      count(*) filter (where available <= 0)::int as out_of_stock
+    from per_day group by day`)
 
-  const recentOrders = await tx
-    .select({
-      id: order.id,
-      number: order.number,
-      /* `notDraft` below guarantees the narrower type the dashboard exposes. */
-      status: sql<OrderStatus>`${order.status}`,
-      paymentStatus: order.paymentStatus,
-      fulfillmentStatus: order.fulfillmentStatus,
-      totalPaise: order.totalPaise,
-      customerName: customer.name,
-      email: order.email,
-      placedAt: order.placedAt,
-    })
-    .from(order)
-    .leftJoin(customer, eq(customer.id, order.customerId))
-    .where(notDraft)
-    .orderBy(desc(order.placedAt))
-    .limit(RECENT_ORDERS)
+  const newCustomerDay = stepIndex(customer.createdAt, lastStart, DAY_MS)
+  const newProductDay = stepIndex(product.createdAt, lastStart, DAY_MS)
+  const revenueDay = istDaySql(order.placedAt)
+  const mixWeekday = istWeekdaySql(order.placedAt)
+  const mixHour = istHourSql(order.placedAt)
 
-  const topRows = await tx
-    .select({
-      productId: variant.productId,
-      title: product.title,
-      handle: product.handle,
-      units: sum(orderLine.quantity).mapWith(Number),
-      revenuePaise: sum(sql`${orderLine.quantity} * ${orderLine.unitPricePaise}`).mapWith(Number),
-    })
-    .from(orderLine)
-    .innerJoin(order, eq(order.id, orderLine.orderId))
-    .innerJoin(variant, eq(variant.id, orderLine.variantId))
-    .innerJoin(product, eq(product.id, variant.productId))
-    .where(and(notDraft, ne(order.status, 'cancelled'), gte(order.placedAt, startOfDay(now, 29))))
-    .groupBy(variant.productId, product.title, product.handle)
-    .orderBy(desc(sum(orderLine.quantity)))
-    .limit(TOP_PRODUCTS)
-  const topIds = topRows.map((r) => r.productId)
-  const lowStockRows = await tx
-    .select({
-      variantId: variant.id,
-      productId: variant.productId,
-      title: product.title,
-      variantTitle: variant.title,
-      available: sql<number>`${sellableStock.onHand} - ${sellableStock.reserved}`.mapWith(Number),
-    })
-    .from(sellableStock)
-    .innerJoin(variant, eq(variant.id, sellableStock.variantId))
-    .innerJoin(product, eq(product.id, variant.productId))
-    .where(
-      and(
-        eq(variant.trackInventory, true),
-        isNull(variant.archivedAt),
-        ne(product.status, 'archived'),
-        lt(sql`${sellableStock.onHand} - ${sellableStock.reserved}`, lowStockThreshold + 1),
+  const [
+    recentGroups,
+    stockSeriesRows,
+    [customersRow],
+    [productsRow],
+    newCustomerRows,
+    newProductRows,
+    [allTimeRevenue],
+    recentOrders,
+    topRows,
+    lowStockRows,
+    stateRows,
+    typeRows,
+    latestRows,
+    [toShipTodayRow],
+    [ordersToShipRow],
+    [upiToVerifyRow],
+    [lowStockCountRow],
+    [preorderBalanceDueRow],
+    [unpaidRow],
+    [preorderShipSoonRow],
+    [returnsToReviewRow],
+    storeRows,
+    revenueRows,
+    mapOrderRows,
+    mixRows,
+  ] = await Promise.all([
+    recentQuery,
+    stockSeriesQuery,
+    tx.select({ n: count() }).from(customer),
+    // The same count as the Products list's "All" (archived included): Home read 307, the list 309 (#61).
+    tx.select({ n: count() }).from(product).where(notSystemTest),
+    tx
+      .select({ day: newCustomerDay, n: count() })
+      .from(customer)
+      .where(gte(customer.createdAt, lastStart))
+      .groupBy(newCustomerDay),
+    tx
+      .select({ day: newProductDay, n: count() })
+      .from(product)
+      .where(and(gte(product.createdAt, lastStart), notSystemTest))
+      .groupBy(newProductDay),
+    tx
+      .select({ total: sum(order.totalPaise).mapWith(Number) })
+      .from(order)
+      .where(and(notDraft, liveOrder)),
+    tx
+      .select({
+        id: order.id,
+        number: order.number,
+        /* `notDraft` below guarantees the narrower type the dashboard exposes. */
+        status: sql<OrderStatus>`${order.status}`,
+        paymentStatus: order.paymentStatus,
+        fulfillmentStatus: order.fulfillmentStatus,
+        totalPaise: order.totalPaise,
+        customerName: customer.name,
+        email: order.email,
+        placedAt: order.placedAt,
+      })
+      .from(order)
+      .leftJoin(customer, eq(customer.id, order.customerId))
+      .where(notDraft)
+      .orderBy(desc(order.placedAt))
+      .limit(RECENT_ORDERS),
+    tx
+      .select({
+        productId: variant.productId,
+        title: product.title,
+        handle: product.handle,
+        units: sum(orderLine.quantity).mapWith(Number),
+        revenuePaise: sum(sql`${orderLine.quantity} * ${orderLine.unitPricePaise}`).mapWith(Number),
+      })
+      .from(orderLine)
+      .innerJoin(order, eq(order.id, orderLine.orderId))
+      .innerJoin(variant, eq(variant.id, orderLine.variantId))
+      .innerJoin(product, eq(product.id, variant.productId))
+      .where(and(notDraft, liveOrder, gte(order.placedAt, thirtyDaysAgo)))
+      .groupBy(variant.productId, product.title, product.handle)
+      .orderBy(desc(sum(orderLine.quantity)))
+      .limit(TOP_PRODUCTS),
+    tx
+      .select({
+        variantId: variant.id,
+        productId: variant.productId,
+        title: product.title,
+        variantTitle: variant.title,
+        available: sql<number>`${available}`.mapWith(Number),
+      })
+      .from(sellableStock)
+      .innerJoin(variant, eq(variant.id, sellableStock.variantId))
+      .innerJoin(product, eq(product.id, variant.productId))
+      .where(and(liveVariant, lowStockLevel))
+      .orderBy(asc(available))
+      .limit(LOW_STOCK_ROWS),
+    tx
+      .select({
+        stateCode: address.stateCode,
+        revenuePaise: sum(order.totalPaise).mapWith(Number),
+        orders: count(),
+      })
+      .from(order)
+      .innerJoin(address, eq(address.id, order.shippingAddressId))
+      .where(and(notDraft, liveOrder, gte(order.placedAt, thirtyDaysAgo)))
+      .groupBy(address.stateCode)
+      .orderBy(desc(sum(order.totalPaise))),
+    tx
+      .select({ type: product.productType, n: count() })
+      .from(product)
+      .where(
+        and(
+          ne(product.status, 'archived'),
+          notSystemTest,
+          sql`${product.productType} is not null and ${product.productType} <> ''`,
+        ),
+      )
+      .groupBy(product.productType)
+      .orderBy(desc(count()))
+      .limit(CATEGORY_ROWS),
+    tx
+      .select({ productId: product.id, title: product.title })
+      .from(product)
+      .where(and(ne(product.status, 'archived'), notSystemTest))
+      .orderBy(desc(product.createdAt))
+      .limit(LATEST_PRODUCTS),
+    // Same rule as the Unfulfilled list "Ship N orders" opens, so the counts match (COD included).
+    tx
+      .select({ n: count() })
+      .from(order)
+      .where(and(toShip, gte(order.placedAt, todayStart))),
+    // "Waiting N days" skips orders held for a pre-order line that has not shipped yet: they are
+    // waiting on stock, not on the merchant.
+    tx
+      .select({
+        n: count(),
+        oldestAt: sql<Date | null>`min(${order.placedAt}) filter (where not exists (
+          select 1 from order_line ol where ol.order_id = "order".id and ol.preorder
+          and (ol.preorder_ship_date is null or ol.preorder_ship_date > now())))`,
+      })
+      .from(order)
+      .where(toShip),
+    tx
+      .select({ n: count() })
+      .from(order)
+      .where(
+        and(
+          eq(order.status, 'open'),
+          isNull(order.checkoutPaidAt),
+          eq(order.paymentMethod, 'manual'),
+          isNull(order.importedFrom),
+        ),
       ),
-    )
-    .orderBy(asc(sql`${sellableStock.onHand} - ${sellableStock.reserved}`))
-    .limit(LOW_STOCK_ROWS)
-  const imageIds = [...new Set([...topIds, ...lowStockRows.map((r) => r.productId)])]
-  const images = imageIds.length
-    ? await tx
-        .select({
-          productId: productMedia.productId,
-          url: media.url,
-          position: productMedia.position,
-        })
-        .from(productMedia)
-        .innerJoin(media, eq(media.id, productMedia.mediaId))
-        .where(inArray(productMedia.productId, imageIds))
-        .orderBy(asc(productMedia.position))
-    : []
-  const firstImage = new Map<string, string>()
-  for (const img of images)
-    if (!firstImage.has(img.productId)) firstImage.set(img.productId, img.url)
-  const stockByProduct = topIds.length
-    ? await tx
-        .select({
-          productId: variant.productId,
-          pricePaise: sql<number>`min(${variant.pricePaise})`.mapWith(Number),
-          inStock: sql<boolean>`bool_or(${variant.trackInventory} = false or coalesce(${sellableStock.onHand} - ${sellableStock.reserved}, 0) > 0)`,
-        })
-        .from(variant)
-        .leftJoin(sellableStock, eq(sellableStock.variantId, variant.id))
-        .where(inArray(variant.productId, topIds))
-        .groupBy(variant.productId)
-    : []
-  const stockInfo = new Map(stockByProduct.map((r) => [r.productId, r]))
+    // "Restock N products" counts products (one with three sold-out sizes is one), not variants,
+    // and skips archived variants: it read 1,219 on a store of 307 products (audit #2).
+    tx
+      .select({ n: sql<number>`count(distinct ${product.id})`.mapWith(Number) })
+      .from(sellableStock)
+      .innerJoin(variant, eq(variant.id, sellableStock.variantId))
+      .innerJoin(product, eq(product.id, variant.productId))
+      .where(and(liveVariant, lowStockLevel)),
+    tx
+      .select({ n: count() })
+      .from(order)
+      .where(and(viewFilter('balance_due'), ne(order.status, 'draft'))),
+    tx.select({ n: count() }).from(order).where(viewFilter('unpaid')),
+    tx
+      .select({ n: count() })
+      .from(preorderCampaign)
+      .where(
+        and(
+          eq(preorderCampaign.status, 'active'),
+          gte(preorderCampaign.shipDate, now),
+          lt(preorderCampaign.shipDate, new Date(now.getTime() + 7 * DAY_MS)),
+        ),
+      ),
+    tx.select({ n: count() }).from(returnRequest).where(eq(returnRequest.status, 'requested')),
+    opts.storeId
+      ? tx
+          .select({ apps: store.apps, address: store.address })
+          .from(store)
+          .where(eq(store.id, opts.storeId))
+      : Promise.resolve([]),
+    /* Revenue per IST day for 90 days: the month ring, best day, streak and last month. */
+    tx
+      .select({ day: revenueDay, paise: sumInt(order.totalPaise) })
+      .from(order)
+      .where(and(notDraft, liveOrder, gte(order.placedAt, ninetyDaysAgo)))
+      .groupBy(revenueDay)
+      .orderBy(revenueDay),
+    /* Orders with a shipping address over the globe's chosen time range, for its markers/arcs. */
+    tx
+      .select({
+        id: order.id,
+        number: order.number,
+        city: address.city,
+        stateCode: address.stateCode,
+        totalPaise: order.totalPaise,
+        placedAt: order.placedAt,
+      })
+      .from(order)
+      .innerJoin(address, eq(address.id, order.shippingAddressId))
+      .where(and(notDraft, liveOrder, gte(order.placedAt, mapFrom)))
+      .orderBy(desc(order.placedAt))
+      .limit(MAP_ORDERS),
+    /* Payment mix, status mix and the hours heatmap: 30 days of orders, grouped. */
+    tx
+      .select({
+        status: order.status,
+        fulfillmentStatus: order.fulfillmentStatus,
+        paymentMethod: order.paymentMethod,
+        weekday: mixWeekday,
+        hour: mixHour,
+        n: count(),
+      })
+      .from(order)
+      .where(and(notDraft, gte(order.placedAt, mixFrom)))
+      .groupBy(order.status, order.fulfillmentStatus, order.paymentMethod, mixWeekday, mixHour),
+  ])
 
-  const lowStock = lowStockRows.map((r) => ({
-    ...r,
-    imageUrl: firstImage.get(r.productId) ?? null,
-  }))
-
-  const dayAgo = new Date(now.getTime() - HOURS * 3_600_000)
-  const perHour = Array.from({ length: HOURS }, () => 0)
-  for (const r of live(recentRows)) {
-    if (r.placedAt < dayAgo) continue
-    const idx = Math.min(
-      HOURS - 1,
-      Math.floor((r.placedAt.getTime() - dayAgo.getTime()) / 3_600_000),
-    )
-    perHour[idx] = (perHour[idx] ?? 0) + 1
+  /* Windows, the revenue series, today and yesterday, from the 14-day groups. */
+  const cur = { sales: 0, orders: 0, pending: 0, cancelled: 0 }
+  const prev = { sales: 0, orders: 0, pending: 0, cancelled: 0 }
+  const revenueByDay = zeros(SERIES_DAYS)
+  const perHour = zeros(HOURS)
+  const todayHourly = zeros(HOURS)
+  const yesterdayHourly = zeros(HOURS)
+  const today = { orders: 0, sales: 0 }
+  for (const g of recentGroups) {
+    const w = g.day >= WINDOW_DAYS ? cur : prev
+    w.sales += g.livePaise
+    w.orders += g.live
+    w.pending += g.pending
+    w.cancelled += g.cancelled
+    if (g.day < SERIES_DAYS) revenueByDay[g.day] = (revenueByDay[g.day] ?? 0) + g.livePaise
+    if (g.activityHour !== null) {
+      perHour[g.activityHour] = (perHour[g.activityHour] ?? 0) + g.live
+    }
+    if (g.day >= SERIES_DAYS - 1) {
+      today.orders += g.live
+      today.sales += g.livePaise
+    }
+    if (g.day === SERIES_DAYS - 1) {
+      todayHourly[g.hour] = (todayHourly[g.hour] ?? 0) + g.liveBeforeNow
+    }
+    if (g.day === SERIES_DAYS - 2) {
+      yesterdayHourly[g.hour] = (yesterdayHourly[g.hour] ?? 0) + g.live
+    }
   }
 
-  const stateRows = await tx
-    .select({
-      stateCode: address.stateCode,
-      revenuePaise: sum(order.totalPaise).mapWith(Number),
-      orders: count(),
-    })
-    .from(order)
-    .innerJoin(address, eq(address.id, order.shippingAddressId))
-    .where(and(notDraft, ne(order.status, 'cancelled'), gte(order.placedAt, startOfDay(now, 29))))
-    .groupBy(address.stateCode)
-    .orderBy(desc(sum(order.totalPaise)))
+  const inStockByDay = zeros(SERIES_DAYS)
+  const outOfStockByDay = zeros(SERIES_DAYS)
+  for (const r of stockSeriesRows) {
+    inStockByDay[Number(r.day)] = Number(r.in_stock)
+    outOfStockByDay[Number(r.day)] = Number(r.out_of_stock)
+  }
+  const byDayIndex = (rows: { day: number; n: number }[]) => {
+    const out = zeros(SERIES_DAYS)
+    for (const r of rows) if (r.day >= 0 && r.day < SERIES_DAYS) out[r.day] = r.n
+    return out
+  }
+  const customersByDay = byDayIndex(newCustomerRows)
+  const productsByDay = byDayIndex(newProductRows)
+  const seriesDays = Array.from({ length: SERIES_DAYS }, (_, i) =>
+    isoDate(new Date(lastStart.getTime() + i * DAY_MS)),
+  )
+  const sliceSeries = (from: number): DashboardSeries => ({
+    days: seriesDays.slice(from, from + WINDOW_DAYS),
+    customers: customersByDay.slice(from, from + WINDOW_DAYS),
+    products: productsByDay.slice(from, from + WINDOW_DAYS),
+    inStock: inStockByDay.slice(from, from + WINDOW_DAYS),
+    outOfStock: outOfStockByDay.slice(from, from + WINDOW_DAYS),
+    revenuePaise: revenueByDay.slice(from, from + WINDOW_DAYS),
+  })
+
+  /* Images, prices and stock for the products the cards show: one more round, all at once. */
+  const topIds = topRows.map((r) => r.productId)
+  const coverTypes = typeRows.map((r) => r.type ?? '')
+  const shownIds = [
+    ...new Set([
+      ...topIds,
+      ...lowStockRows.map((r) => r.productId),
+      ...latestRows.map((r) => r.productId),
+    ]),
+  ]
+  const [images, stockByProduct, coverRows, latestPrices] = await Promise.all([
+    firstImages(tx, shownIds),
+    topIds.length
+      ? tx
+          .select({
+            productId: variant.productId,
+            pricePaise: sql<number>`min(${variant.pricePaise})`.mapWith(Number),
+            inStock: sql<boolean>`bool_or(${variant.trackInventory} = false or coalesce(${available}, 0) > 0)`,
+          })
+          .from(variant)
+          .leftJoin(sellableStock, eq(sellableStock.variantId, variant.id))
+          .where(inArray(variant.productId, topIds))
+          .groupBy(variant.productId)
+      : Promise.resolve([]),
+    // The newest product of each top type, for its cover image.
+    coverTypes.length
+      ? tx
+          .selectDistinctOn([product.productType], {
+            type: product.productType,
+            productId: product.id,
+          })
+          .from(product)
+          .where(
+            and(
+              ne(product.status, 'archived'),
+              notSystemTest,
+              inArray(product.productType, coverTypes),
+            ),
+          )
+          .orderBy(product.productType, desc(product.createdAt))
+      : Promise.resolve([]),
+    latestRows.length
+      ? tx
+          .select({
+            productId: variant.productId,
+            pricePaise: sql<number>`min(${variant.pricePaise})`.mapWith(Number),
+          })
+          .from(variant)
+          .where(
+            inArray(
+              variant.productId,
+              latestRows.map((r) => r.productId),
+            ),
+          )
+          .groupBy(variant.productId)
+      : Promise.resolve([]),
+  ])
+  const coverByType = new Map<string, string>()
+  for (const r of coverRows) if (r.type) coverByType.set(r.type, r.productId)
+  const coverIds = [...coverByType.values()].filter((id) => !images.has(id))
+  for (const [id, url] of await firstImages(tx, coverIds)) images.set(id, url)
+  const stockInfo = new Map(stockByProduct.map((r) => [r.productId, r]))
+  const priceByProduct = new Map(latestPrices.map((r) => [r.productId, r.pricePaise]))
+
   const stateTotal = stateRows.reduce((n, r) => n + r.revenuePaise, 0)
   const salesByState = stateRows.slice(0, STATE_ROWS).map((r) => ({
     ...r,
     share: stateTotal > 0 ? r.revenuePaise / stateTotal : 0,
   }))
 
-  const typeRows = await tx
-    .select({ type: product.productType, n: count() })
-    .from(product)
-    .where(
-      and(
-        ne(product.status, 'archived'),
-        notSystemTest,
-        sql`${product.productType} is not null and ${product.productType} <> ''`,
-      ),
-    )
-    .groupBy(product.productType)
-    .orderBy(desc(count()))
-    .limit(CATEGORY_ROWS)
-  const latestRows = await tx
-    .select({ productId: product.id, title: product.title })
-    .from(product)
-    .where(and(ne(product.status, 'archived'), notSystemTest))
-    .orderBy(desc(product.createdAt))
-    .limit(LATEST_PRODUCTS)
-  const coverRows = typeRows.length
-    ? await tx
-        .select({ type: product.productType, productId: product.id })
-        .from(product)
-        .where(
-          and(
-            ne(product.status, 'archived'),
-            notSystemTest,
-            inArray(
-              product.productType,
-              typeRows.map((r) => r.type ?? ''),
-            ),
-          ),
-        )
-        .orderBy(desc(product.createdAt))
-    : []
-  const coverByType = new Map<string, string>()
-  for (const r of coverRows)
-    if (r.type && !coverByType.has(r.type)) coverByType.set(r.type, r.productId)
-  const extraIds = [
-    ...new Set([...latestRows.map((r) => r.productId), ...coverByType.values()]),
-  ].filter((id) => !firstImage.has(id))
-  const extraImages = extraIds.length
-    ? await tx
-        .select({ productId: productMedia.productId, url: media.url })
-        .from(productMedia)
-        .innerJoin(media, eq(media.id, productMedia.mediaId))
-        .where(inArray(productMedia.productId, extraIds))
-        .orderBy(asc(productMedia.position))
-    : []
-  for (const img of extraImages)
-    if (!firstImage.has(img.productId)) firstImage.set(img.productId, img.url)
-  const latestPrices = latestRows.length
-    ? await tx
-        .select({
-          productId: variant.productId,
-          pricePaise: sql<number>`min(${variant.pricePaise})`.mapWith(Number),
-        })
-        .from(variant)
-        .where(
-          inArray(
-            variant.productId,
-            latestRows.map((r) => r.productId),
-          ),
-        )
-        .groupBy(variant.productId)
-    : []
-  const priceByProduct = new Map(latestPrices.map((r) => [r.productId, r.pricePaise]))
-
   const liveVisitors =
     opts.visitors && opts.storeId
       ? await opts.visitors.live(opts.storeId)
       : { last30: 0, perMinute: Array.from({ length: LIVE_MINUTES }, () => 0) }
-
-  /* Today, in IST: the briefing sentence and its "N need shipping" count. */
-  const todayStart = startOfDay(now, 0)
   /* Visitors today and yesterday (IST days), for the hero's Visitors and Conversion tiles. */
-  const visitorDays = [istIsoDate(startOfDay(now, 1)), istIsoDate(todayStart)]
+  const visitorDays = [istIsoDate(yesterdayStart), istIsoDate(todayStart)]
   const dailyVisitors =
     opts.visitors?.daily && opts.storeId
       ? await opts.visitors.daily(opts.storeId, visitorDays)
       : { perDay: [0, 0], total: 0 }
   const [visitorsYesterday = 0, visitorsToday = 0] = dailyVisitors.perDay
-  const todayRows = live(recentRows).filter((r) => r.placedAt >= todayStart)
-  // Same rule as the Unfulfilled list "Ship N orders" opens, so the counts match (COD included).
-  const toShip = viewFilter('unfulfilled')
-  const [toShipTodayRow] = await tx
-    .select({ n: count() })
-    .from(order)
-    .where(and(toShip, gte(order.placedAt, todayStart)))
 
-  /* Needs you: one count per queue, each with its deep link. */
-  // "Waiting N days" skips orders held for a pre-order line that has not shipped yet: they are
-  // waiting on stock, not on the merchant.
-  const [ordersToShipRow] = await tx
-    .select({
-      n: count(),
-      oldestAt: sql<Date | null>`min(${order.placedAt}) filter (where not exists (
-        select 1 from order_line ol where ol.order_id = "order".id and ol.preorder
-        and (ol.preorder_ship_date is null or ol.preorder_ship_date > now())))`,
-    })
-    .from(order)
-    .where(toShip)
-  const [upiToVerifyRow] = await tx
-    .select({ n: count() })
-    .from(order)
-    .where(
-      and(
-        eq(order.status, 'open'),
-        isNull(order.checkoutPaidAt),
-        eq(order.paymentMethod, 'manual'),
-        isNull(order.importedFrom),
-      ),
-    )
-  // "Restock N products" counts products (one with three sold-out sizes is one), not variants,
-  // and skips archived variants: it read 1,219 on a store of 307 products (audit #2).
-  const [lowStockCountRow] = await tx
-    .select({ n: sql<number>`count(distinct ${product.id})`.mapWith(Number) })
-    .from(sellableStock)
-    .innerJoin(variant, eq(variant.id, sellableStock.variantId))
-    .innerJoin(product, eq(product.id, variant.productId))
-    .where(
-      and(
-        eq(variant.trackInventory, true),
-        isNull(variant.archivedAt),
-        ne(product.status, 'archived'),
-        lt(sql`${sellableStock.onHand} - ${sellableStock.reserved}`, lowStockThreshold + 1),
-      ),
-    )
-  const [preorderBalanceDueRow] = await tx
-    .select({ n: count() })
-    .from(order)
-    .where(and(viewFilter('balance_due'), ne(order.status, 'draft')))
-  const [unpaidRow] = await tx.select({ n: count() }).from(order).where(viewFilter('unpaid'))
-  const [preorderShipSoonRow] = await tx
-    .select({ n: count() })
-    .from(preorderCampaign)
-    .where(
-      and(
-        eq(preorderCampaign.status, 'active'),
-        gte(preorderCampaign.shipDate, now),
-        lt(preorderCampaign.shipDate, new Date(now.getTime() + 7 * DAY_MS)),
-      ),
-    )
-  const [returnsToReviewRow] = await tx
-    .select({ n: count() })
-    .from(returnRequest)
-    .where(eq(returnRequest.status, 'requested'))
   let gstQueued: { count: number; href: string } | null = null
   let dispatch: DashboardSummary['dispatch'] = null
+  const [storeRow] = storeRows
   if (opts.storeId) {
-    const [storeRow] = await tx
-      .select({ apps: store.apps, address: store.address })
-      .from(store)
-      .where(eq(store.id, opts.storeId))
     if (parseAppsSettings(storeRow?.apps).installed.includes(GST_INVOICES_ID)) {
       const [queuedRow] = await tx.select({ n: count() }).from(invoice).where(queuedInvoiceDrafts())
       gstQueued = { count: queuedRow?.n ?? 0, href: '/apps/gst-invoices' }
@@ -658,9 +743,7 @@ export async function dashboardSummary(
   }
 
   /* Plain-language insight ingredients: the 7-day sales trend and this week's best seller. */
-  const prevSalesPaise = sumPaise(live(prev))
-  const salesChange =
-    prevSalesPaise > 0 ? (sumPaise(live(cur)) - prevSalesPaise) / prevSalesPaise : null
+  const salesChange = prev.sales > 0 ? (cur.sales - prev.sales) / prev.sales : null
   const bestSeller = topRows[0] ? { title: topRows[0].title, units: topRows[0].units } : null
 
   /* This month, in IST: sales-goal ring and a streak line. */
@@ -669,112 +752,63 @@ export async function dashboardSummary(
   const daysInMonth = new Date(
     Date.UTC(shifted.getUTCFullYear(), shifted.getUTCMonth() + 1, 0),
   ).getUTCDate()
-  const monthStart = startOfMonth(now)
-  const ninetyDaysAgo = startOfDay(now, 89)
-  const revenueRows = await tx
-    .select({ placedAt: order.placedAt, totalPaise: order.totalPaise })
-    .from(order)
-    .where(and(notDraft, ne(order.status, 'cancelled'), gte(order.placedAt, ninetyDaysAgo)))
-  // From the whole month (revenueRows reach back 90 days), not the 14-day window above:
-  // from the 15th that window no longer held the month's first days.
-  const monthToDatePaise = revenueRows
-    .filter((r) => r.placedAt >= monthStart)
-    .reduce((n, r) => n + r.totalPaise, 0)
-  const projectedPaise =
-    dayOfMonth > 0 ? Math.round((monthToDatePaise / dayOfMonth) * daysInMonth) : 0
-  const byDay = new Map<string, number>()
-  for (const r of revenueRows)
-    byDay.set(isoDate(r.placedAt), (byDay.get(isoDate(r.placedAt)) ?? 0) + r.totalPaise)
+  const monthKey = isoDate(monthStart)
+  const lastMonthKey = isoDate(lastMonthStart)
+  let monthToDatePaise = 0
+  let lastMonthSalesPaise = 0
   let bestDayPaise = 0
   let bestDay: string | null = null
-  for (const [day, paise] of byDay) {
-    if (paise > bestDayPaise) {
-      bestDayPaise = paise
-      bestDay = day
+  const byDay = new Map<string, number>()
+  for (const r of revenueRows) {
+    byDay.set(r.day, r.paise)
+    // From the whole month (the rows reach back 90 days), not the 14-day window above:
+    // from the 15th that window no longer held the month's first days.
+    if (r.day >= monthKey) monthToDatePaise += r.paise
+    else if (r.day >= lastMonthKey) lastMonthSalesPaise += r.paise
+    if (r.paise > bestDayPaise) {
+      bestDayPaise = r.paise
+      bestDay = r.day
     }
   }
+  const projectedPaise =
+    dayOfMonth > 0 ? Math.round((monthToDatePaise / dayOfMonth) * daysInMonth) : 0
   let streakDays = 0
   for (let i = 0; i < WINDOW_DAYS * 2; i++) {
     const day = isoDate(new Date(todayStart.getTime() - i * DAY_MS))
     if ((byDay.get(day) ?? 0) > 0) streakDays++
     else break
   }
-  const lastMonthStart = startOfMonth(now, undefined, -1)
-  const lastMonthSalesPaise = revenueRows
-    .filter((r) => r.placedAt >= lastMonthStart && r.placedAt < monthStart)
-    .reduce((n, r) => n + r.totalPaise, 0)
-
-  /* Orders with a shipping address over the globe's chosen time range, for its markers/arcs. */
-  const mapFrom = new Date(now.getTime() - MAP_RANGE_MS[opts.mapRange ?? '24h'])
-  const mapOrderRows = await tx
-    .select({
-      id: order.id,
-      number: order.number,
-      city: address.city,
-      stateCode: address.stateCode,
-      totalPaise: order.totalPaise,
-      placedAt: order.placedAt,
-    })
-    .from(order)
-    .innerJoin(address, eq(address.id, order.shippingAddressId))
-    .where(and(notDraft, ne(order.status, 'cancelled'), gte(order.placedAt, mapFrom)))
-    .orderBy(desc(order.placedAt))
-    .limit(MAP_ORDERS)
-
-  /* Payment mix, status mix and the hours heatmap: one extra 30-day query, reused for all three. */
-  const mixRows = await tx
-    .select({
-      status: order.status,
-      fulfillmentStatus: order.fulfillmentStatus,
-      paymentMethod: order.paymentMethod,
-      placedAt: order.placedAt,
-    })
-    .from(order)
-    .where(and(notDraft, gte(order.placedAt, startOfDay(now, MIX_WINDOW_DAYS - 1))))
-  const liveMixRows = mixRows.filter((r) => r.status !== 'cancelled')
 
   const paymentCounts = new Map<string, number>()
-  for (const r of liveMixRows) {
+  const statusCounts = new Map<string, number>()
+  const hoursHeatmap: number[][] = Array.from({ length: 7 }, () => zeros(HOURS))
+  for (const r of mixRows) {
+    const bucket = statusBucket(r)
+    if (bucket) statusCounts.set(bucket, (statusCounts.get(bucket) ?? 0) + r.n)
+    if (r.status === 'cancelled') continue
     const label = paymentMethodLabel(r.paymentMethod)
-    paymentCounts.set(label, (paymentCounts.get(label) ?? 0) + 1)
+    paymentCounts.set(label, (paymentCounts.get(label) ?? 0) + r.n)
+    const row = hoursHeatmap[r.weekday]
+    if (row) row[r.hour] = (row[r.hour] ?? 0) + r.n
   }
   const paymentMix = [...paymentCounts.entries()]
     .map(([label, count]) => ({ label, count }))
-    .sort((a, b) => b.count - a.count)
-
-  const statusCounts = new Map<string, number>()
-  for (const r of mixRows) {
-    const bucket = statusBucket(r)
-    if (bucket) statusCounts.set(bucket, (statusCounts.get(bucket) ?? 0) + 1)
-  }
+    .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label))
   const statusMix = (['to_ship', 'shipped', 'delivered', 'cancelled'] as const).map((status) => ({
     status,
     count: statusCounts.get(status) ?? 0,
   }))
 
-  const hoursHeatmap: number[][] = Array.from({ length: 7 }, () => zeros(HOURS))
-  for (const r of liveMixRows) {
-    const row = hoursHeatmap[istWeekday(r.placedAt)]
-    if (!row) continue
-    const h = istHour(r.placedAt)
-    row[h] = (row[h] ?? 0) + 1
-  }
-
-  /* Today vs yesterday, hour by hour (IST), for the briefing sparkline. */
-  const yesterdayStart = startOfDay(now, 1)
-  const todayHourly = hourlyCounts(live(recentRows), todayStart, now)
-  const yesterdayHourly = hourlyCounts(live(recentRows), yesterdayStart, todayStart)
-
   return {
-    sales: { value: sumPaise(live(cur)), previous: sumPaise(live(prev)) },
-    orders: { value: live(cur).length, previous: live(prev).length },
-    pending: { value: countPending(cur), previous: countPending(prev) },
-    cancelled: { value: countStatus(cur, 'cancelled'), previous: countStatus(prev, 'cancelled') },
+    sales: { value: cur.sales, previous: prev.sales },
+    orders: { value: cur.orders, previous: prev.orders },
+    pending: { value: cur.pending, previous: prev.pending },
+    cancelled: { value: cur.cancelled, previous: prev.cancelled },
     report: {
       customers: customersRow?.n ?? 0,
       products: productsRow?.n ?? 0,
-      inStock,
-      outOfStock,
+      inStock: inStockByDay[SERIES_DAYS - 1] ?? 0,
+      outOfStock: outOfStockByDay[SERIES_DAYS - 1] ?? 0,
       revenuePaise: allTimeRevenue?.total ?? 0,
       thisWeek: sliceSeries(WINDOW_DAYS),
       lastWeek: sliceSeries(0),
@@ -782,27 +816,27 @@ export async function dashboardSummary(
     recentOrders,
     topProducts: topRows.map((r) => ({
       ...r,
-      imageUrl: firstImage.get(r.productId) ?? null,
+      imageUrl: images.get(r.productId) ?? null,
       pricePaise: stockInfo.get(r.productId)?.pricePaise ?? 0,
       inStock: stockInfo.get(r.productId)?.inStock ?? true,
     })),
-    lowStock,
+    lowStock: lowStockRows.map((r) => ({ ...r, imageUrl: images.get(r.productId) ?? null })),
     activity: { ordersLast24h: perHour.reduce((n, v) => n + v, 0), perHour },
     liveVisitors,
     categories: typeRows.map((r) => ({
       type: r.type ?? '',
       count: r.n,
-      imageUrl: (r.type && firstImage.get(coverByType.get(r.type) ?? '')) || null,
+      imageUrl: (r.type && images.get(coverByType.get(r.type) ?? '')) || null,
     })),
     latestProducts: latestRows.map((r) => ({
       ...r,
       pricePaise: priceByProduct.get(r.productId) ?? 0,
-      imageUrl: firstImage.get(r.productId) ?? null,
+      imageUrl: images.get(r.productId) ?? null,
     })),
     salesByState,
     today: {
-      ordersCount: todayRows.length,
-      salesPaise: sumPaise(todayRows),
+      ordersCount: today.orders,
+      salesPaise: today.sales,
       toShipCount: toShipTodayRow?.n ?? 0,
       hourly: todayHourly,
       visitors: visitorsToday,
@@ -848,10 +882,26 @@ export async function dashboardSummary(
   }
 }
 
+/** Each product's first image (lowest position), for the cards' thumbnails. */
+async function firstImages(tx: StoreTx, productIds: string[]): Promise<Map<string, string>> {
+  if (productIds.length === 0) return new Map()
+  const rows = await tx
+    .selectDistinctOn([productMedia.productId], {
+      productId: productMedia.productId,
+      url: media.url,
+    })
+    .from(productMedia)
+    .innerJoin(media, eq(media.id, productMedia.mediaId))
+    .where(inArray(productMedia.productId, productIds))
+    .orderBy(productMedia.productId, asc(productMedia.position))
+  return new Map(rows.map((r) => [r.productId, r.url]))
+}
+
 /**
  * The range-switch chart data for the home page: sales and order counts for `range`
  * days against the same span before it, plus the top 5 products by revenue in that
  * range. Separate from `dashboardSummary` so switching the range only refetches this.
+ * Orders are summed per day in Postgres.
  */
 export async function dashboardCharts(
   tx: StoreTx,
@@ -867,10 +917,30 @@ export async function dashboardCharts(
   const from = startOfDay(now, range - 1)
   const prevFrom = startOfDay(now, range * 2 - 1)
 
-  const rows = await tx
-    .select({ status: order.status, totalPaise: order.totalPaise, placedAt: order.placedAt })
-    .from(order)
-    .where(and(notDraft, ne(order.status, 'cancelled'), gte(order.placedAt, prevFrom)))
+  const day = stepIndex(order.placedAt, prevFrom, DAY_MS)
+  const revenueExpr = sql<number>`sum(${orderLine.quantity} * ${orderLine.unitPricePaise})`
+  const [rows, topRows] = await Promise.all([
+    tx
+      .select({ day, paise: sumInt(order.totalPaise), n: count() })
+      .from(order)
+      .where(and(notDraft, ne(order.status, 'cancelled'), gte(order.placedAt, prevFrom)))
+      .groupBy(day),
+    tx
+      .select({
+        productId: variant.productId,
+        title: product.title,
+        units: sum(orderLine.quantity).mapWith(Number),
+        revenuePaise: revenueExpr.mapWith(Number),
+      })
+      .from(orderLine)
+      .innerJoin(order, eq(order.id, orderLine.orderId))
+      .innerJoin(variant, eq(variant.id, orderLine.variantId))
+      .innerJoin(product, eq(product.id, variant.productId))
+      .where(and(notDraft, ne(order.status, 'cancelled'), gte(order.placedAt, from)))
+      .groupBy(variant.productId, product.title)
+      .orderBy(desc(revenueExpr))
+      .limit(TOP_PRODUCTS),
+  ])
 
   const days = Array.from({ length: range }, (_, i) =>
     isoDate(new Date(from.getTime() + i * DAY_MS)),
@@ -878,63 +948,28 @@ export async function dashboardCharts(
   const previousDays = Array.from({ length: range }, (_, i) =>
     isoDate(new Date(prevFrom.getTime() + i * DAY_MS)),
   )
-  const visitorDaily =
-    opts.visitors?.daily && opts.storeId
-      ? await opts.visitors.daily(opts.storeId, [...previousDays, ...days])
-      : { perDay: zeros(range * 2), total: 0 }
-  const previousVisitors = visitorDaily.perDay.slice(0, range)
-  const visitors = visitorDaily.perDay.slice(range)
   const salesPaise = zeros(range)
   const orders = zeros(range)
   const previousSalesPaise = zeros(range)
   let hasPrevious = false
   for (const r of rows) {
-    const curIdx = dayIndex(r.placedAt, from, range)
-    if (curIdx >= 0) {
-      salesPaise[curIdx] = (salesPaise[curIdx] ?? 0) + r.totalPaise
-      orders[curIdx] = (orders[curIdx] ?? 0) + 1
-      continue
-    }
-    const prevIdx = dayIndex(r.placedAt, prevFrom, range)
-    if (prevIdx >= 0) {
+    if (r.day >= range && r.day < range * 2) {
+      salesPaise[r.day - range] = r.paise
+      orders[r.day - range] = r.n
+    } else if (r.day >= 0 && r.day < range) {
       hasPrevious = true
-      previousSalesPaise[prevIdx] = (previousSalesPaise[prevIdx] ?? 0) + r.totalPaise
+      previousSalesPaise[r.day] = r.paise
     }
   }
-
-  const revenueExpr = sql<number>`sum(${orderLine.quantity} * ${orderLine.unitPricePaise})`
-  const topRows = await tx
-    .select({
-      productId: variant.productId,
-      title: product.title,
-      units: sum(orderLine.quantity).mapWith(Number),
-      revenuePaise: revenueExpr.mapWith(Number),
-    })
-    .from(orderLine)
-    .innerJoin(order, eq(order.id, orderLine.orderId))
-    .innerJoin(variant, eq(variant.id, orderLine.variantId))
-    .innerJoin(product, eq(product.id, variant.productId))
-    .where(and(notDraft, ne(order.status, 'cancelled'), gte(order.placedAt, from)))
-    .groupBy(variant.productId, product.title)
-    .orderBy(desc(revenueExpr))
-    .limit(TOP_PRODUCTS)
-
-  const topIds = topRows.map((r) => r.productId)
-  const images = topIds.length
-    ? await tx
-        .select({
-          productId: productMedia.productId,
-          url: media.url,
-          position: productMedia.position,
-        })
-        .from(productMedia)
-        .innerJoin(media, eq(media.id, productMedia.mediaId))
-        .where(inArray(productMedia.productId, topIds))
-        .orderBy(asc(productMedia.position))
-    : []
-  const firstImage = new Map<string, string>()
-  for (const img of images)
-    if (!firstImage.has(img.productId)) firstImage.set(img.productId, img.url)
+  const [visitorDaily, images] = await Promise.all([
+    opts.visitors?.daily && opts.storeId
+      ? opts.visitors.daily(opts.storeId, [...previousDays, ...days])
+      : Promise.resolve({ perDay: zeros(range * 2), total: 0 }),
+    firstImages(
+      tx,
+      topRows.map((r) => r.productId),
+    ),
+  ])
 
   return {
     range,
@@ -942,8 +977,8 @@ export async function dashboardCharts(
     salesPaise,
     orders,
     previousSalesPaise: hasPrevious ? previousSalesPaise : null,
-    visitors,
-    previousVisitors,
-    topProducts: topRows.map((r) => ({ ...r, imageUrl: firstImage.get(r.productId) ?? null })),
+    visitors: visitorDaily.perDay.slice(range),
+    previousVisitors: visitorDaily.perDay.slice(0, range),
+    topProducts: topRows.map((r) => ({ ...r, imageUrl: images.get(r.productId) ?? null })),
   }
 }

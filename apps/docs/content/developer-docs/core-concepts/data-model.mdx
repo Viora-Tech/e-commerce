@@ -145,6 +145,7 @@ erDiagram
     int mrp_paise
     text hs_code
     int gst_rate_percent
+    bool requires_shipping "false: service or download"
   }
   collection {
     uuid id PK
@@ -330,6 +331,9 @@ Around these sit the side tables the diagrams leave out: `payment_event` (webhoo
 unique on `store_id, provider, event_id`), `shipment_webhook_event`, `outbox_event` (domain
 events written in the same transaction as the change), `order_note`, `discount` and
 `discount_usage`, `gift_card` and its transactions, `shipping_zone` / `shipping_rate`,
+`shipping_profile` with `shipping_profile_product` (whole products, every variant including
+later ones) and `shipping_profile_variant` (single variants, unique on `store_id, variant_id`,
+migration `0230`; a variant's own row wins over its product's, else General),
 `purchase_order`, `transfer`, `page`, `navigation_menu`, `store_domain`, metaobjects and
 metafields, `role` / `role_permission` / `store_member` / `store_invitation`, and the marketing
 tables in `marketing-schema.ts`.
@@ -379,6 +383,14 @@ unpacked units back there, and a return restocks where the line's parcel left fr
 parcel. A shipment carries one parcel (`shipment.fulfillment_order_id`, null for bookings made
 before parcels).
 
+`variant.requires_shipping` (Shopify's "This is a physical product", default true, migration
+`0230`) is snapshotted on `order_line.requires_shipping`. A line with it false is routed and
+reserved like any other (its stock still counts), but no shipping profile prices it
+(`splitProfileParts` in `packages/core/src/shipping/profiles.ts` leaves it out, value share
+included), no courier booking, courier order push, packing slip or pick list carries it, and an
+order of only such lines never lists under Shipments, To book; `recomputeOrderStatuses` treats it
+like a gift card order (packed is done).
+
 ### Selling from several warehouses (routing)
 
 A location sells online when `location.fulfils_online_orders` is on and it is active; a trigger
@@ -414,13 +426,27 @@ back undelivered (`kind = rto`, opened by `applyTracking` when a shipment turns 
 unique index on `shipment_id` keeps it to one per shipment). `return_request_line` says which
 order lines and how many units, and how many were put back in stock. Each step has its own
 timestamp (`requested_at`, `approved_at`, `rejected_at`, `pickup_arranged_at`, `received_at`,
-`resolved_at`), which is what the status timeline reads. Refunds, store credit (a `gift_card`)
-and exchange drafts are ordinary rows elsewhere, linked back by id (`refund_ids`,
-`gift_card_id`, `exchange_order_id`, `reship_shipment_id`). The policy lives on `store.returns`
+`resolved_at`), which is what the status timeline reads. Refunds, store credit (lines in
+`store_credit_entry` on the customer's balance; `gift_card_id` only on returns settled before
+balances existed) and exchange drafts are ordinary rows elsewhere, linked back by id
+(`refund_ids`, `exchange_order_id`, `reship_shipment_id`). The policy lives on `store.returns`
 (`ReturnPolicySchema` in `@commerce/core/returns`). Received customer returns count toward the
 order's derived `fulfillment_status` (`returned` once every unit is back). Every change is owned by
 `packages/core/src/returns/*` and writes its outbox event (`return.requested`, `return.approved`,
 `return.rejected`, `return.received`, `return.refunded`, `order.rto`) in the same transaction.
+
+### Store credit at checkout
+
+A customer's balance is `store_credit_account` (one row, `balance_paise >= 0`) and every change is
+a `store_credit_entry` (kind `adjustment`, `payment`, `refund` or `release`, linked to the order).
+At checkout (`spendStoreCreditOnOrder`, step `spendStoreCredit` in `placeOrder`) the balance is
+debited under the account's row lock and the order gets a `payment` row with provider
+`store_credit` (`providerPaymentId` is the customer id). It is `captured` when it covers what is
+due now, else `pending`: a hold that `applyPaymentStatus` captures with the gateway's capture
+(`captureHeldStoreCredit`) and `cancelOrder` gives back with a `release` entry
+(`releaseHeldStoreCredit`). Gift card and store credit rows are split tender
+(`SPLIT_TENDER_PROVIDERS`): never gateway attempts, and outside `payment_one_capture_per_order`
+(0228). The order's total and GST are worked out before any of this and never change.
 
 ### Purchasing and landed cost
 

@@ -63,6 +63,8 @@ RUN sh /tmp/prune-image.sh /repo && rm /tmp/prune-image.sh
 # A fresh stage: copying the pruned tree across leaves the deleted files behind in the
 # installer's layers instead of shipping them (a delete in a later layer frees nothing).
 FROM base AS runner
+# Alpine fixes published after the base image (musl, zlib): the security scan flags them otherwise.
+RUN apk upgrade --no-cache
 RUN addgroup -S bunapp && adduser -S worker -G bunapp
 COPY --from=installer /repo /repo
 # Theme pictures for the Themes page (`src/theme-screenshot.ts`): opt in with

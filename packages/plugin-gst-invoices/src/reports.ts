@@ -12,16 +12,18 @@ import { and, desc, eq, gte, ilike, inArray, lt, ne, or, type SQL } from 'drizzl
 import { sameRegistration } from './registration'
 import { invoice } from './schema'
 
+type ListKind =
+  | 'tax_invoice'
+  | 'credit_note'
+  | 'packing_slip'
+  | 'order_confirmation'
+  | 'receipt_voucher'
+  | 'refund_voucher'
+
 export type ListFilter = {
   q?: string | undefined
-  kind?:
-    | 'tax_invoice'
-    | 'credit_note'
-    | 'packing_slip'
-    | 'order_confirmation'
-    | 'receipt_voucher'
-    | 'refund_voucher'
-    | undefined
+  /** One kind, or several (the Vouchers tab: receipt and refund vouchers). */
+  kind?: ListKind | ListKind[] | undefined
   status?: 'issued' | 'cancelled' | undefined
   /** Inclusive start and exclusive end, as instants. */
   from?: Date | undefined
@@ -38,7 +40,13 @@ function where(filter: ListFilter): SQL | undefined {
     filter.gstRegistrationId === undefined
       ? undefined
       : sameRegistration(invoice.gstRegistrationId, filter.gstRegistrationId),
-    filter.kind ? eq(invoice.kind, filter.kind) : undefined,
+    Array.isArray(filter.kind)
+      ? filter.kind.length
+        ? inArray(invoice.kind, filter.kind)
+        : undefined
+      : filter.kind
+        ? eq(invoice.kind, filter.kind)
+        : undefined,
     filter.status ? eq(invoice.status, filter.status) : undefined,
     filter.from ? gte(invoice.invoiceDate, filter.from) : undefined,
     filter.to ? lt(invoice.invoiceDate, filter.to) : undefined,
@@ -111,6 +119,23 @@ export async function documentsByIds(tx: StoreTx, ids: readonly string[]) {
     .from(invoice)
     .where(inArray(invoice.id, [...ids]))
     .orderBy(invoice.issuedAt)
+}
+
+/** The issued tax invoices of these orders (not queued drafts, not cancelled ones). */
+export async function issuedInvoiceIds(tx: StoreTx, orderIds: readonly string[]) {
+  if (orderIds.length === 0) return []
+  const rows = await tx
+    .select({ id: invoice.id })
+    .from(invoice)
+    .where(
+      and(
+        inArray(invoice.orderId, [...orderIds]),
+        eq(invoice.kind, 'tax_invoice'),
+        eq(invoice.status, 'issued'),
+      ),
+    )
+    .orderBy(invoice.issuedAt)
+  return rows.map((r) => r.id)
 }
 
 type InvoiceRow = typeof invoice.$inferSelect

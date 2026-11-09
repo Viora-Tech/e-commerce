@@ -37,10 +37,12 @@ import createShipment from './create-shipment'
 import customData from './custom-data'
 import customerAddresses from './customer-addresses'
 import customerGiftCards from './customer-gift-cards'
+import customerStoreCredit from './customer-store-credit'
 import customers from './customers'
 import customersBulkEdit from './customers-bulk-edit'
 import customizeAi from './customize-ai'
 import customizeAppEmbeds from './customize-app-embeds'
+import customizeInboxEmbed from './customize-inbox-embed'
 import dateRange from './date-range'
 import dates from './dates'
 import deliveryOptions from './delivery-options'
@@ -55,6 +57,7 @@ import ekart from './ekart'
 import emailBuilder from './email-builder'
 import fedex from './fedex'
 import filterPanel from './filter-panel'
+import gatewayKeys from './gateway-keys'
 import giftCards from './gift-cards'
 import growth from './growth'
 import growthHome from './growth-home'
@@ -102,6 +105,7 @@ import platform from './platform'
 import preorders from './preorders'
 import productForm from './product-form'
 import productPage from './product-page'
+import productShipping from './product-shipping'
 import products from './products'
 import profitCosts from './profit-costs'
 import profitReport from './profit-report'
@@ -164,6 +168,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...apps,
   ...abandonedDetail,
   ...customerGiftCards,
+  ...customerStoreCredit,
   ...ai,
   ...assistant,
   ...automationRecords,
@@ -194,10 +199,12 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...customersBulkEdit,
   ...customizeAi,
   ...customizeAppEmbeds,
+  ...customizeInboxEmbed,
   ...dates,
   ...dhlExpress,
   ...fedex,
   ...shipglobal,
+  ...gatewayKeys,
   ...giftCards,
   ...drafts,
   ...domains,
@@ -251,6 +258,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...commandPalette,
   ...inventory,
   ...productForm,
+  ...productShipping,
   ...preorders,
   ...productPage,
   ...products,

@@ -46,6 +46,11 @@ export type NVariant = {
    * variants Shopify kept at ₹0 (#934). Imported hidden; undefined when the source cannot tell (CSV).
    */
   hiddenOnStore?: boolean | undefined
+  /**
+   * Shopify's "This is a physical product" (`inventoryItem.requiresShipping`, CSV "Variant
+   * Requires Shipping"); undefined when the source did not say.
+   */
+  requiresShipping?: boolean | undefined
 }
 
 export type NProduct = {
@@ -339,4 +344,12 @@ export type NGiftCard = {
   expiresOn: string | null
   note: string | null
   customer: { sourceId: string; email: string | null; name: string | null } | null
+}
+
+/** One Shopify store credit account: a customer's balance in one currency. */
+export type NStoreCreditAccount = {
+  sourceId: string
+  balancePaise: number
+  currency: string
+  customer: { sourceId: string; email: string | null; name: string | null }
 }

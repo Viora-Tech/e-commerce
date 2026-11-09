@@ -165,6 +165,12 @@ function proposalOf(events: AssistantEvent[]) {
   return found.action
 }
 
+/** "8 Nov" for today plus `days`, as a merchant would type it. */
+function dayMonth(days: number) {
+  const d = new Date(Date.now() + days * 86_400_000)
+  return `${d.getUTCDate()} ${d.toLocaleString('en', { month: 'short', timeZone: 'UTC' })}`
+}
+
 const priceOf = async (variantId: string) =>
   (await owner.select({ p: variant.pricePaise }).from(variant).where(eq(variant.id, variantId)))[0]
     ?.p
@@ -194,15 +200,13 @@ describe('approval gating', () => {
     const mouse = await seedProduct(a.storeId, 'Glide Mouse', 199900)
     await seedCollection(a.storeId, 'Mice', [mouse.id])
 
-    const events = await ask(
-      a.ctx,
-      'Create discount DIWALI10: 10% off collection Mice, 20 Oct to 5 Nov',
-    )
+    // Dates relative to today: the mock reads "20 Oct" as this year, so a fixed range goes stale.
+    const range = `${dayMonth(0)} to ${dayMonth(20)}`
+    const request = `Create discount DIWALI10: 10% off collection Mice, ${range}`
+    const events = await ask(a.ctx, request)
     const proposal = proposalOf(events)
     expect(proposal.status).toBe('proposed')
-    expect(proposal.summary).toMatch(
-      /^Create discount DIWALI10: 10% off collection Mice, 20 Oct to 5 Nov/,
-    )
+    expect(proposal.summary.startsWith(request)).toBe(true)
     expect(proposal.preview.lines).toContainEqual({
       label: 'Applies to',
       value: 'Mice (1 products)',

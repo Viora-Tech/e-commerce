@@ -53,6 +53,7 @@ export type TemplateId =
   | 'balance_received'
   /** A manual UPI / bank transfer order is still unpaid; links to the payment details. Sent by the merchant. */
   | 'payment_reminder'
+  | 'transfer_requested'
   /** To the MERCHANT: a shopper sent a message from a contact or advice form (Forms app). Email only. */
   | 'contact_message'
   /** Asks the shopper to review what a delivered order brought (Reviews app). Email, WhatsApp or both (app setting). */
