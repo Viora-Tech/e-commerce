@@ -346,33 +346,38 @@ const OPTION_FACETS_MAX = 50
  * store's GST defaults so the pricing card can show what the customer pays.
  */
 export async function productFacets(tx: StoreTx, storeId: string) {
-  const rows = await tx
-    .select({ vendor: product.vendor, productType: product.productType, tags: product.tags })
-    .from(product)
-    .where(notSystemTest)
-  const optionRows = await tx
-    .select({ name: productOption.name, value: productOptionValue.value })
-    .from(productOptionValue)
-    .innerJoin(productOption, eq(productOption.id, productOptionValue.optionId))
-    .orderBy(asc(productOption.name), asc(productOptionValue.position))
-  const collections = await tx
-    .select({ id: collection.id, title: collection.title })
-    .from(collection)
-    .orderBy(asc(collection.title))
-  const [storeRow] = await tx
-    .select({
-      gstRatePercent: store.gstRatePercent,
-      apps: store.apps,
-      lowStockThreshold: store.lowStockThreshold,
-    })
-    .from(store)
-    .where(eq(store.id, storeId))
+  // Distinct values come back from Postgres, not one row per product (and per tag).
+  const [vendorRows, typeRows, tagRows, optionRows, collections, [storeRow]] = await Promise.all([
+    tx.selectDistinct({ v: product.vendor }).from(product).where(notSystemTest),
+    tx.selectDistinct({ v: product.productType }).from(product).where(notSystemTest),
+    tx
+      .selectDistinct({ v: sql<string | null>`unnest(${product.tags})` })
+      .from(product)
+      .where(notSystemTest),
+    tx
+      .select({ name: productOption.name, value: productOptionValue.value })
+      .from(productOptionValue)
+      .innerJoin(productOption, eq(productOption.id, productOptionValue.optionId))
+      .orderBy(asc(productOption.name), asc(productOptionValue.position)),
+    tx
+      .select({ id: collection.id, title: collection.title })
+      .from(collection)
+      .orderBy(asc(collection.title)),
+    tx
+      .select({
+        gstRatePercent: store.gstRatePercent,
+        apps: store.apps,
+        lowStockThreshold: store.lowStockThreshold,
+      })
+      .from(store)
+      .where(eq(store.id, storeId)),
+  ])
   const uniq = (xs: (string | null)[]) =>
     [...new Set(xs.filter((x): x is string => Boolean(x)))].sort((a, b) => a.localeCompare(b))
   return {
-    vendors: uniq(rows.map((r) => r.vendor)),
-    productTypes: uniq(rows.map((r) => r.productType)),
-    tags: uniq(rows.flatMap((r) => r.tags)),
+    vendors: uniq(vendorRows.map((r) => r.v)),
+    productTypes: uniq(typeRows.map((r) => r.v)),
+    tags: uniq(tagRows.map((r) => r.v)),
     options: optionFacets(optionRows),
     /** For the list's Collection filter. */
     collections,

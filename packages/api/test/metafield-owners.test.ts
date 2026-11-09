@@ -1,5 +1,5 @@
 import { createMerchantAuth } from '@commerce/auth'
-import { createDb, customer, order, role, store, storeMember } from '@commerce/db'
+import { createDb, customer, order, product, role, store, storeMember, variant } from '@commerce/db'
 import { resetDb } from '@commerce/db/test'
 import { call } from '@orpc/server'
 import { and, eq } from 'drizzle-orm'
@@ -62,7 +62,7 @@ async function team() {
   return { storeId, boss: ctx(boss), staff: ctx(helper) }
 }
 
-const note = (ownerType: 'customer' | 'order' | 'shop' | 'page') => ({
+const note = (ownerType: 'customer' | 'order' | 'shop' | 'page' | 'variant') => ({
   ownerType,
   name: 'Note',
   type: 'single_line_text' as const,
@@ -176,5 +176,45 @@ describe('extra fields on customers, orders and the shop', () => {
     await expect(
       call(appRouter.metaobjects.metafields, { ownerType: 'order' }, { context: t.boss }),
     ).rejects.toMatchObject({ code: 'BAD_REQUEST' })
+  })
+})
+
+describe('variant extra fields in one call', () => {
+  it('answers what the per-variant reads answer, for every variant at once', async () => {
+    const t = await team()
+    const [p] = await owner
+      .insert(product)
+      .values({ storeId: t.storeId, handle: 'mat', title: 'Mat' })
+      .returning()
+    const vs = await owner
+      .insert(variant)
+      .values(
+        ['S', 'M', 'L'].map((title) => ({ storeId: t.storeId, productId: p?.id as string, title })),
+      )
+      .returning()
+    const ids = vs.map((v) => v.id)
+    const def = await call(appRouter.metaobjects.createMetafieldDefinition, note('variant'), {
+      context: t.boss,
+    })
+    await call(
+      appRouter.metaobjects.setMetafields,
+      { ownerType: 'variant', ownerId: ids[1] as string, values: { [def.id]: 'Thick' } },
+      { context: t.boss },
+    )
+    const many = await call(
+      appRouter.metaobjects.variantMetafields,
+      { variantIds: ids },
+      { context: t.boss },
+    )
+    for (const id of ids) {
+      const one = await call(
+        appRouter.metaobjects.metafields,
+        { ownerType: 'variant', ownerId: id },
+        { context: t.boss },
+      )
+      expect(many.values[id]).toEqual(one.values)
+      expect(many.definitions).toEqual(one.definitions)
+    }
+    expect(many.values[ids[1] as string]).toEqual({ [def.id]: 'Thick' })
   })
 })

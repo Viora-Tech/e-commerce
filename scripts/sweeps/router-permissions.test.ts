@@ -76,6 +76,11 @@ const ALLOWLIST: AllowEntry[] = [
     reason: "badge counts for the caller's own queue",
   },
   {
+    site: 'shell.ts: shellProcedure (storeProcedure)',
+    reason:
+      'the admin layout reads; each part checks its own permission (scope.can) and is null without it',
+  },
+  {
     site: 'store.ts: origin (storeProcedure)',
     reason: "the store's public web address, which every shopper already sees",
   },

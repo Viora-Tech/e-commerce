@@ -7,6 +7,11 @@ export type CheckoutResult =
       error: string
       /** "Complete payment", "Change payment method": the shopper's own earlier order. */
       links?: CheckoutLink[] | undefined
+      /**
+       * Ways to pay checkout cannot offer now (a gateway refused the store's keys): the form drops
+       * them and picks the next one; the next Pay goes on the same order.
+       */
+      unavailable?: string[] | undefined
     }
   | {
       /** The same items were placed a little while ago: "Order again?" before a second order. */

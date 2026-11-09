@@ -57,6 +57,7 @@ import ekart from './ekart'
 import emailBuilder from './email-builder'
 import fedex from './fedex'
 import filterPanel from './filter-panel'
+import gatewayKeys from './gateway-keys'
 import giftCards from './gift-cards'
 import growth from './growth'
 import growthHome from './growth-home'
@@ -203,6 +204,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...dhlExpress,
   ...fedex,
   ...shipglobal,
+  ...gatewayKeys,
   ...giftCards,
   ...drafts,
   ...domains,

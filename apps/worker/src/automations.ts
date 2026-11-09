@@ -5,6 +5,7 @@ import {
   type AutomationStepJob,
   type AutomationTriggerJob,
   actionResolver,
+  deliverGatewayAlertRow,
   deliverOwnerAlertRow,
   type EngineDeps,
   evaluateRules,
@@ -82,8 +83,10 @@ export function createAutomationsWorker(connection: IORedis, db: Db, opts: Opts)
       AUTOMATION_TRIGGER_QUEUE,
       QUEUE_LIMITS.automationsTrigger,
       async (job) =>
-        // An owner alert row (80% / 100% of runs, a workflow switched off) is emailed, not run.
-        (await deliverOwnerAlertRow(db, job.data, opts))
+        // An owner alert row (80% / 100% of runs, a workflow switched off, a payment gateway that
+        // refused the store's keys) is emailed, not run.
+        (await deliverOwnerAlertRow(db, job.data, opts)) ||
+        (await deliverGatewayAlertRow(db, job.data, opts))
           ? { alert: true }
           : runTriggerJob(db, job.data, stepQueue, log),
     ),

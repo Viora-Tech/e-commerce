@@ -18,6 +18,23 @@ type AllowEntry = { file: string; names: string[]; reason: string }
 
 const ALLOWLIST: AllowEntry[] = [
   {
+    file: 'packages/core/src/domains/edge-purge.ts',
+    names: [
+      'PURGE_QUIET_MS',
+      'PURGE_MAX_WAIT_MS',
+      'PURGE_MIN_GAP_MS',
+      'PURGE_SOFT_DELAY_MS',
+      'PURGE_HOSTS_PER_CALL',
+    ],
+    reason: 'timing constants used in the module and asserted directly by edge-purge.test.ts',
+  },
+  {
+    file: 'packages/db/src/storefront-cache.ts',
+    names: ['STOREFRONT_START_PAYLOAD', 'announceStorefrontStart'],
+    reason:
+      'announceStorefrontStart is loaded by a dynamic import in apps/storefront/src/instrumentation.ts, which the sweep does not follow; the payload is its constant',
+  },
+  {
     file: 'packages/core/src/media/settings.ts',
     names: ['storageDefaultsFromEnv'],
     reason: 'used in the module and asserted directly by service.test.ts',

@@ -426,6 +426,8 @@ export const ACTION_DOCS: Record<string, string> = {
     'A ready-made content type (Size guide, FAQ, ...) from METAOBJECT_PRESETS.',
   'metaobjects.references':
     'Rows for reference pickers: search results, or labels for ids already chosen.',
+  'metaobjects.variantMetafields':
+    "A product's variants' extra fields in one call (the product page asked once per variant: a product with 25 sizes sent 25 requests).",
   'monthlyExpenses.create':
     'Add a monthly expense from a month on (one-off: its last month is its first).',
   'monthlyExpenses.delete':
@@ -557,6 +559,8 @@ export const ACTION_DOCS: Record<string, string> = {
   'payments.connect': 'Save pasted keys and make that gateway the main way to get paid.',
   'payments.fixWebhook':
     'The health line\'s "Fix" for payment updates on a Connect Razorpay account.',
+  'payments.gatewayAlerts':
+    "Gateways that refused the store's API keys and are hidden at checkout until they pass a check: the banner on Home and Settings → Payments.",
   'payments.razorpayOAuthComplete':
     "The OAuth callback route hands the code here; the state must be this store's, and fresh.",
   'payments.razorpayOAuthStart': 'Where "Connect Razorpay" sends the merchant.',
@@ -807,6 +811,8 @@ export const ACTION_DOCS: Record<string, string> = {
   'store.origin':
     'The store\'s public web address (https://<live primary domain>, STOREFRONT_URL only when it has none): every admin "View store", preview and share link starts here.',
   'store.setupChecklist': "The Settings home's setup checklist: what is done, from real data.",
+  'store.shell':
+    'Everything the admin layout reads on every page (apps, logo, orders to ship, plan usage, payments test mode, approvals, Inbox), in one call.',
   'store.storageMigrationStatus':
     'Progress the admin polls while "Move existing files to <connection>" runs.',
   'store.testDecentroConnection':

@@ -1,5 +1,6 @@
 import { loadEnv } from '@commerce/config'
 import {
+  cartAwaitsAnotherMethod,
   checkoutOriginFor,
   checkoutTextFor,
   getCart,
@@ -52,7 +53,12 @@ export default async function CheckoutPage({ params }: Params) {
   }
   const cartId = session?.cartId ?? (await readCartId())
   const cart = cartId ? await inStore(storeId, (tx) => getCart({ storeId, tx }, cartId)) : null
-  if (cart?.status !== 'open' || cart.lines.length === 0) redirect('/cart')
+  // A cart whose order waits for another way to pay (its gateway refused the store's keys) opens
+  // again here: the next Pay writes that same order (`order/checkout-reopen.ts`).
+  const reopened =
+    cart?.status === 'converted' &&
+    (await inStore(storeId, (tx) => cartAwaitsAnotherMethod({ storeId, tx }, cart.id)))
+  if (!cart || (cart.status !== 'open' && !reopened) || cart.lines.length === 0) redirect('/cart')
   // Settings → Customer accounts can require an account: the contact step then signs the
   // shopper in with the store's own codes and providers before anything else (`checkoutAction`
   // refuses an order without one regardless).

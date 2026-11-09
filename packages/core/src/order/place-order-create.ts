@@ -26,6 +26,7 @@ import type { WorkflowStep } from '../workflow/run'
 import { paysOnlineAtCheckout } from './aggregate-status'
 import { upsertCheckoutCustomer } from './checkout-customer'
 import { CHECKED_OUT_AGAIN_NOTE } from './checkout-draft'
+import { PAID_ANOTHER_WAY_NOTE } from './checkout-reopen'
 import { draftPlaceholder } from './draft-ref'
 import { createFulfillmentOrders, deleteFulfillmentOrders } from './fulfillment-orders'
 import { takeDraftNumber, takeOrderNumber } from './order-number'
@@ -54,6 +55,7 @@ export const createOrder: WorkflowStep<State> = {
     risk,
     draft,
     reserved,
+    rewrite,
   }) {
     const { customerId, shippingAddressId } = input.checkout
       ? await upsertCheckoutCustomer(ctx, input.checkout, contact, input.secret)
@@ -78,10 +80,13 @@ export const createOrder: WorkflowStep<State> = {
     const draftNumber = draft
       ? (draft.reuse?.draftNumber ?? (await takeDraftNumber(ctx.tx, ctx.storeId)))
       : null
+    // The cart's own order written again (another way to pay) keeps its number.
     const orderNumber =
       draftNumber !== null
         ? draftPlaceholder(draftNumber)
-        : await takeOrderNumber(ctx.tx, ctx.storeId)
+        : rewrite && !rewrite.wasDraft
+          ? rewrite.number
+          : await takeOrderNumber(ctx.tx, ctx.storeId)
     const now = new Date()
     const subtotalPaise = sumPaise(lines)
     // Discount first, then the payment-method fee or discount on what is left.
@@ -192,7 +197,10 @@ export const createOrder: WorkflowStep<State> = {
             lastActivityAt: now,
             placedAt: now,
           }
-        : {}),
+        : rewrite?.wasDraft
+          ? // The shopper's draft becomes the order (cash on delivery): no hold, placed now.
+            { draftReserved: null, reservedUntil: null, placedAt: now, lastActivityAt: now }
+          : {}),
       subtotalPaise,
       taxPaise: tax.taxPaise,
       taxBreakdown: tax,
@@ -263,11 +271,13 @@ export const createOrder: WorkflowStep<State> = {
       balanceDuePaise: preorderLines.length > 0 ? balanceDuePaise : null,
     }
     // The same items again on the shopper's open draft: the row (id, #D number) is written over.
-    const [o] = draft?.reuse
+    // The cart's own order paid another way: the same row too.
+    const rowId = draft?.reuse?.id ?? rewrite?.id
+    const [o] = rowId
       ? await ctx.tx
           .update(order)
           .set(values)
-          .where(eq(order.id, draft.reuse.id))
+          .where(eq(order.id, rowId))
           .returning({ id: order.id })
       : await ctx.tx.insert(order).values(values).returning({ id: order.id })
     if (!o) throw new Error('order insert returned nothing')
@@ -322,14 +332,14 @@ export const createOrder: WorkflowStep<State> = {
       })),
     )
     // A UPI / bank transfer draft: the shopper is told it is received and how to pay it.
-    if (draft && input.paymentProvider.id === 'manual' && !draft.reuse) {
+    if (draft && input.paymentProvider.id === 'manual' && (!draft.reuse || rewrite)) {
       await insertOutboxEvent(ctx.tx, ctx.storeId, 'order.transfer_requested', { orderId: o.id })
     }
-    if (draft?.reuse) {
+    if (draft?.reuse || rewrite) {
       await ctx.tx.insert(orderNote).values({
         storeId: ctx.storeId,
         orderId: o.id,
-        body: CHECKED_OUT_AGAIN_NOTE,
+        body: rewrite ? PAID_ANOTHER_WAY_NOTE(input.paymentProvider.label) : CHECKED_OUT_AGAIN_NOTE,
         author: 'system',
       })
     }
@@ -365,13 +375,13 @@ export const createOrder: WorkflowStep<State> = {
       ...(draft && draftNumber !== null ? { draft: { ...draft, draftNumber } } : {}),
     }
   },
-  async compensate({ ctx, orderId, discount: applied, draft }) {
+  async compensate({ ctx, orderId, discount: applied, draft, rewrite }) {
     if (!orderId) return
     if (applied) await releaseDiscountUses(ctx, applied, orderId)
     await deleteFulfillmentOrders(ctx.tx, orderId)
     await ctx.tx.delete(orderLine).where(eq(orderLine.orderId, orderId))
     // The shopper's open draft used again stays; the rolled-back transaction restores it.
-    if (!draft?.reuse) await ctx.tx.delete(order).where(eq(order.id, orderId))
+    if (!draft?.reuse && !rewrite) await ctx.tx.delete(order).where(eq(order.id, orderId))
   },
 }
 

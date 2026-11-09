@@ -24,7 +24,7 @@ import { db } from './db'
 import { accessibleOrderId } from './order-access'
 import { redirectToOrderPage } from './order-view-cookie'
 import { nudgeOutbox } from './outbox'
-import { payOnlineGateway, storePaymentProviders } from './payments'
+import { payOnlineGateway, storePaymentProviders, storeUnavailableMethods } from './payments'
 import { clientIp, rateLimited } from './rate-limit'
 import { requestStoreId } from './request-store'
 import { inStore } from './store-context'
@@ -67,6 +67,9 @@ export async function retryPaymentAction(orderNumber: number, viewToken: string 
       .limit(1)
     const providers = await storePaymentProviders(tx, storeId)
     const provider = providers.find((p) => p.id === latest?.provider)
+    // A gateway that refused the store's keys would fail again: the order page offers another way.
+    if (provider && (await storeUnavailableMethods(tx, storeId, providers)).includes(provider.id))
+      return null
     return provider ?? null
   })
   if (!target) {

@@ -5,6 +5,9 @@ export const checkoutErrorsContent = {
   codUnavailable:
     'Cash on delivery is not available for this PIN code. Pick another payment method.',
   pickShipping: 'Pick a shipping option to pay.',
+  /** The gateway refused the store's keys (the store's to fix): pay another way, same order. */
+  gatewayUnavailable:
+    'Online payment is temporarily unavailable. Please choose another payment method.',
   codAbroad: 'Cash on delivery is only offered in India. Pick another payment method.',
   noShipping: (pincode: string) => `We do not ship to ${pincode} yet. Try another address.`,
   cannotShipToState: "We can't deliver this item to your state yet.",

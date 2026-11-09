@@ -1,4 +1,6 @@
-import { createParser } from 'nuqs'
+// From nuqs/server: the Drafts page reads its filters on the server, and the plain `nuqs` entry
+// is a client module (calling its createParser there threw, so /orders/drafts answered 500).
+import { createParser } from 'nuqs/server'
 import { DATE_CUSTOM, type DateFilterValue } from '@/components/table/filter-panel'
 
 /** No date filter. Module scope, so the URL default keeps one identity. */

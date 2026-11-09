@@ -22,16 +22,26 @@ export const storesWithApp = cache(async (appId: string) =>
   ),
 )
 
-/** The active store's apps (installed and not); rejects without a store or permission. */
-export const listApps = cache(async () =>
-  call(appRouter.apps.list, undefined, { context: await serverContext() }),
+/**
+ * The layout's per-page store reads in one call (`store.shell`), so one transaction: the
+ * helpers below read their part of it. Rejects without a store, like the calls it replaced.
+ */
+const shell = cache(async () =>
+  call(appRouter.store.shell, undefined, { context: await serverContext() }),
 )
+
+/** The active store's apps (installed and not); rejects without a store or permission. */
+export const listApps = cache(async () => {
+  const { apps } = await shell()
+  if (!apps) throw new Error('Your role cannot read apps')
+  return apps
+})
 
 /** Orders waiting to ship, for the sidebar's Orders count; null without permission. */
 export const ordersToShipCount = cache(async () =>
-  call(appRouter.orders.toShipCount, undefined, { context: await serverContext() }).catch(
-    () => null,
-  ),
+  shell()
+    .then((s) => s.toShip)
+    .catch(() => null),
 )
 
 /**
@@ -39,31 +49,35 @@ export const ordersToShipCount = cache(async () =>
  * decisions on their own requests they have not opened yet; null when it cannot be read.
  */
 export const approvalsBadgeCount = cache(async () =>
-  call(appRouter.approvals.counts, undefined, { context: await serverContext() })
-    .then((c) => c.waiting + c.outcomes)
+  shell()
+    .then((s) => s.approvals.waiting + s.approvals.outcomes)
     .catch(() => null),
 )
 
 /** Open Inbox conversations with unread shopper messages, for the sidebar count; null without access. */
 export const inboxUnreadCount = cache(async () =>
-  call(appRouter.inbox.counts, undefined, { context: await serverContext() })
-    .then((c) => c.unread)
+  shell()
+    .then((s) => s.inbox?.unread ?? null)
     .catch(() => null),
 )
 
 /** A gateway at checkout runs on test keys (the admin-wide banner); false without permission. */
 export const paymentsTestMode = cache(async () =>
-  call(appRouter.payments.testMode, undefined, { context: await serverContext() })
-    .then((r) => r.testMode)
+  shell()
+    .then((s) => s.testMode)
     .catch(() => false),
 )
 
 /** The live theme's logo for the sidebar's brand mark; null when unset or not readable. */
 export const liveLogoUrl = cache(async () =>
-  call(appRouter.themes.logo, undefined, { context: await serverContext() }).catch(() => null),
+  shell()
+    .then((s) => s.logo)
+    .catch(() => null),
 )
 
 /** The sidebar's "Orders this month · 142 of 200"; null when the member cannot read settings. */
 export const planUsageSummary = cache(async () =>
-  call(appRouter.billing.usage, undefined, { context: await serverContext() }).catch(() => null),
+  shell()
+    .then((s) => s.usage)
+    .catch(() => null),
 )
