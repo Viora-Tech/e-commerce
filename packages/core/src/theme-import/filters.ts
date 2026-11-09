@@ -47,6 +47,22 @@ export type { LiquidRuntime } from './filter-values'
 export function registerShopifyFilters(engine: Liquid): void {
   const add = (name: string, fn: FilterImplOptions) => engine.registerFilter(name, fn)
 
+  // LiquidJS's own `default` unwraps an object to its `valueOf()`, so an image picked by
+  // `block.settings.image | default: collection.image` became a bare URL and lost its sized
+  // copies: `image_url: width: 900` then handed out the multi-MB original. Same blank rules as
+  // Shopify (nil, false, '' and empty lists), but the value itself goes through untouched.
+  add('default', (value: unknown, fallback: unknown, ...args: unknown[]) => {
+    const allowFalse = splitArgs(args).named.allow_false === true
+    const raw = value instanceof Drop ? value.valueOf() : value
+    const blank =
+      raw === null ||
+      raw === undefined ||
+      raw === '' ||
+      (raw === false && !allowFalse) ||
+      (Array.isArray(raw) && raw.length === 0)
+    return blank ? fallback : value
+  })
+
   add('t', function (this: unknown, key: unknown, ...args: unknown[]) {
     const { named } = splitArgs(args)
     return translate(runtimeOf(this).locale, str(key), named)

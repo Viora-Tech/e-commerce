@@ -84,6 +84,10 @@ export default function ReviewForm({ context, onClose }: ReviewFormProps) {
           <img
             src={context.productImage}
             alt=""
+            width={48}
+            height={48}
+            loading="lazy"
+            decoding="async"
             className="size-12 shrink-0 rounded-md border border-line object-cover"
           />
         ) : null}
