@@ -322,3 +322,41 @@ export function decodeThumbhash(base64: string): {
   const { w, h, rgba } = thumbHashToRGBA(bytes)
   return { width: w, height: h, rgba }
 }
+
+/**
+ * One extra AVIF/WebP copy of an already-processed master, at `width` (never upscaled): the
+ * backfill's fast path for a row that has every other copy and only lacks its own-width one
+ * (`variantWidthsFor`), about 5x cheaper than `processImage` redoing every width.
+ */
+export async function encodeVariantWidth(input: {
+  bytes: Uint8Array
+  masterKey: string
+  width: number
+  profile?: ImageProfile | undefined
+}): Promise<{ width: number; avif: ProcessedAsset; webp: ProcessedAsset }> {
+  const base = sharp(input.bytes, { limitInputPixels: LIMIT_INPUT_PIXELS })
+    .rotate()
+    .resize({ width: input.width, withoutEnlargement: true })
+  const [avifBuffer, webpBuffer] = await Promise.all([
+    base
+      .clone()
+      .avif({ quality: 55, effort: AVIF_EFFORT[input.profile ?? 'interactive'] })
+      .toBuffer(),
+    base.clone().webp({ quality: 72, effort: 4 }).toBuffer(),
+  ])
+  return {
+    width: input.width,
+    avif: {
+      contentType: 'image/avif',
+      key: variantKey(input.masterKey, input.width, 'avif'),
+      body: avifBuffer,
+      cacheControl: MEDIA_CACHE_CONTROL,
+    },
+    webp: {
+      contentType: 'image/webp',
+      key: variantKey(input.masterKey, input.width, 'webp'),
+      body: webpBuffer,
+      cacheControl: MEDIA_CACHE_CONTROL,
+    },
+  }
+}
