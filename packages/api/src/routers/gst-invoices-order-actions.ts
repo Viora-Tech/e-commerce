@@ -8,6 +8,7 @@ import {
   defaultInvoiceDate,
   enqueueOrderParcels,
   GST_INVOICES_ID,
+  isCancelledOrder,
   issueDrafts,
   issuedInvoiceIds,
   isTestOrder,
@@ -27,8 +28,9 @@ export const addToQueue = can(permissions.ORDERS_WRITE)
       orderIds: z.array(z.uuid()).max(100).default([]),
       orderNumbers: z.array(z.number().int().positive()).max(100).default([]),
       /**
-       * The Orders list's bulk "Add to invoice queue": skip test-mode and gift-card-only orders
-       * (which never get a tax invoice) and count them, instead of failing the batch.
+       * The Orders list's bulk "Add to invoice queue": skip test-mode, cancelled and
+       * gift-card-only orders (which never get a tax invoice) and count them, instead of
+       * failing the batch.
        */
       skipIneligible: z.boolean().default(false),
     }),
@@ -39,10 +41,15 @@ export const addToQueue = can(permissions.ORDERS_WRITE)
       const byNumber = await orderIdsByNumber(context.tx, input.orderNumbers)
       let added = 0
       let skipped = 0
+      /* Orders that added nothing because their invoice was already there (queued by payment
+         or fulfilment, or issued): counted, so the toast accounts for every order selected. */
+      let alreadyQueued = 0
+      let alreadyInvoiced = 0
       for (const orderId of [...input.orderIds, ...byNumber.ids]) {
         if (
           input.skipIneligible &&
           ((await isTestOrder(context.tx, orderId)) ||
+            (await isCancelledOrder(context.tx, orderId)) ||
             (await soldOnlyGiftCards(context.tx, orderId)))
         ) {
           skipped += 1
@@ -55,9 +62,14 @@ export const addToQueue = can(permissions.ORDERS_WRITE)
           'manual',
         )
         // One draft per parcel; a split order adds one per GSTIN.
-        added += queued.filter((q) => q.created).length
+        const created = queued.filter((q) => q.created).length
+        added += created
+        if (created === 0 && queued.length > 0) {
+          if (queued.every((q) => q.row.status === 'issued')) alreadyInvoiced += 1
+          else alreadyQueued += 1
+        }
       }
-      return { added, skipped, missing: byNumber.missing }
+      return { added, skipped, alreadyQueued, alreadyInvoiced, missing: byNumber.missing }
     } catch (err) {
       asOrpc(err)
     }

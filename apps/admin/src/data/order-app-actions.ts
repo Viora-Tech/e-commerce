@@ -17,14 +17,27 @@ export const orderAppActionsContent = {
     download: 'Download',
     viewAll: 'View invoices',
     openQueue: 'Open queue',
-    queued: (added: number, skipped: number) => {
-      const done =
-        added === 0
+    /** Bulk "Add to invoice queue": every selected order is accounted for. */
+    queued: (c: {
+      added: number
+      skipped: number
+      alreadyQueued: number
+      alreadyInvoiced: number
+    }) => {
+      const orders = (n: number) => `${n} ${n === 1 ? 'order' : 'orders'}`
+      const parts = [
+        c.added === 0
           ? 'Nothing new to add to the invoice queue'
-          : `Added ${added} ${added === 1 ? 'invoice' : 'invoices'} to the invoice queue`
-      return skipped === 0
-        ? done
-        : `${done}. Skipped ${skipped} test or gift-card-only ${skipped === 1 ? 'order' : 'orders'}, which get no tax invoice.`
+          : `Added ${c.added} ${c.added === 1 ? 'invoice' : 'invoices'} to the invoice queue`,
+      ]
+      if (c.alreadyQueued) parts.push(`${orders(c.alreadyQueued)} already in the queue`)
+      if (c.alreadyInvoiced) parts.push(`${orders(c.alreadyInvoiced)} already invoiced`)
+      if (c.skipped) {
+        parts.push(
+          `Skipped ${orders(c.skipped)}: test, cancelled and gift-card-only orders get no tax invoice`,
+        )
+      }
+      return `${parts.join('. ')}.`
     },
   },
 }

@@ -17,12 +17,18 @@ export default [
       download: 'डाउनलोड',
       viewAll: 'इनवॉइस देखें',
       openQueue: 'कतार खोलें',
-      queued: (added, skipped) => {
-        const done =
-          added === 0 ? 'इनवॉइस कतार में जोड़ने को कुछ नया नहीं' : `${added} इनवॉइस कतार में जोड़े गए`
-        return skipped === 0
-          ? done
-          : `${done}। ${skipped} टेस्ट या सिर्फ़ गिफ़्ट कार्ड वाले ऑर्डर छोड़े गए, इन पर टैक्स इनवॉइस नहीं बनता।`
+      queued: (c) => {
+        const parts = [
+          c.added === 0 ? 'इनवॉइस कतार में जोड़ने को कुछ नया नहीं' : `${c.added} इनवॉइस कतार में जोड़े गए`,
+        ]
+        if (c.alreadyQueued) parts.push(`${c.alreadyQueued} ऑर्डर पहले से कतार में हैं`)
+        if (c.alreadyInvoiced) parts.push(`${c.alreadyInvoiced} ऑर्डर का इनवॉइस पहले से बना है`)
+        if (c.skipped) {
+          parts.push(
+            `${c.skipped} ऑर्डर छोड़े गए, इन पर टैक्स इनवॉइस नहीं बनता (टेस्ट, रद्द या सिर्फ़ गिफ़्ट कार्ड)`,
+          )
+        }
+        return `${parts.join('। ')}।`
       },
     },
   }),
