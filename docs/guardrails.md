@@ -300,6 +300,15 @@ settings (`:root[data-*]`, `:root:not([data-*])`) must end with `:not(:where(.sh
 so it never reaches an imported section: ours sit at their defaults there and hid the imported
 theme's quick-add buttons and sale badges (#1046). Not allow-listed.
 
+### y. `handler-grants` (`scripts/sweeps/handler-grants.test.ts`)
+
+A router handler never checks a change grant itself (`scope.can(permissions.ORDERS_CANCEL)`): a
+role's *Needs approval* tick is only seen by `storeProcedureWith`, before the handler runs, so a
+grant checked inside it skips the hold (#1409: the orders table's cancel ran at once, the order
+page's waited). Name it on the procedure: `can(permission, (input) => [extra])` (`AlsoNeeds`,
+`packages/api/src/procedures/also-needs.ts`). `*_READ` checks pass; a grant held in a variable is
+listed with why it only shapes a read. Ratchet: new fails, stale fails.
+
 ## `server-only`
 
 The `server-only` npm package throws unconditionally when the bundler resolving it does

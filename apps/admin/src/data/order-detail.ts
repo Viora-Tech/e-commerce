@@ -55,12 +55,6 @@ export const orderDetailContent = {
     failed: 'Could not duplicate this order',
   },
   moved: (status: string) => `Order marked as ${status}`,
-  cancelDialog: {
-    title: 'Cancel this order?',
-    body: 'The shopper will no longer be able to pay for it and any booked shipment should be cancelled separately. This cannot be undone.',
-    confirm: 'Cancel order',
-    keep: 'Keep order',
-  },
   courierOrders: {
     heading: 'Courier apps',
     status: {

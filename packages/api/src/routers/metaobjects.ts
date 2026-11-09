@@ -39,6 +39,7 @@ import {
   BULK_MAX,
   can,
   canAny,
+  inputField,
   PAGE_MAX,
   PAGE_SIZE_MAX,
   SEARCH_MAX,
@@ -258,10 +259,17 @@ export const metaobjectsRouter = {
       return getMetafieldsForOwners(context.tx, 'variant', [...new Set(input.variantIds)])
     }),
 
-  setMetafields: canAny(METAFIELD_WRITE_PERMISSIONS)
+  // The record's own write grant (products.write for a product's fields), declared so its
+  // "Needs approval" tick holds the change here as it does on the record's own save.
+  setMetafields: canAny(METAFIELD_WRITE_PERMISSIONS, (input) => {
+    const ownerType = inputField(input, 'ownerType')
+    const grains = Object.hasOwn(METAFIELD_OWNER_PERMISSIONS, String(ownerType))
+      ? METAFIELD_OWNER_PERMISSIONS[ownerType as MetafieldOwnerType]
+      : undefined
+    return grains ? [grains.write] : []
+  })
     .input(OwnerInput.and(z.object({ values: z.record(z.uuid(), z.unknown()) })))
     .handler(({ context, input }) => {
-      assertOwnerAccess(context.scope, input.ownerType, 'write')
       const ownerId = ownerIdFor(input, context.scope.storeId) as string
       return invalidToBadRequest(async () => {
         await setMetafields(context.tx, context.scope.storeId, {
