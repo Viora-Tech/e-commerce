@@ -1,5 +1,8 @@
 'use client'
 
+import { cancelsWithoutRefund } from '@commerce/core/order-edit-rules'
+import { Checkbox } from '@commerce/ui/shadcn/checkbox'
+import { Label } from '@commerce/ui/shadcn/label'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import TagInput from '@/components/fields/tag-input'
@@ -13,18 +16,20 @@ import { runBatched } from '@/lib/run-batched'
 
 /** A bulk action from the orders list that asks first. */
 export type OrdersBulkRequest = {
-  kind: 'addTags' | 'removeTags' | 'remind'
+  kind: 'addTags' | 'removeTags' | 'remind' | 'cancel'
   ids: string[]
   clear: () => void
 }
 
 type OrdersBulkDialogsProps = {
   request: OrdersBulkRequest | null
-  /** The loaded rows: orders on screen that cannot be reminded are skipped without a call. */
+  /** The loaded rows: orders on screen that cannot be reminded (or cancelled) are skipped without a call. */
   items: readonly {
     id: string
     status: string
     paymentStatus: string
+    fulfillmentStatus: string
+    importedFrom: string | null
     paymentMethod: string | null
     tags: string[] | null
   }[]
@@ -45,9 +50,12 @@ function isSkip(err: unknown): boolean {
   return code === 'TOO_MANY_REQUESTS' || code === 'BAD_REQUEST'
 }
 
+/** The member's role sends cancels for approval: queued, not done and not failed. */
+const isQueued = (err: unknown) => (err as { code?: unknown } | null)?.code === 'APPROVAL_QUEUED'
+
 /**
  * The confirm steps for the orders list's bulk actions: add or remove tags (one dialog with
- * the tag field) and send payment reminders. Rendered once by the page, outside the table,
+ * the tag field), send payment reminders, and cancel the orders that have nothing to refund. Rendered once by the page, outside the table,
  * so clicks inside never reach a row.
  */
 export default function OrdersBulkDialogs({
@@ -61,12 +69,25 @@ export default function OrdersBulkDialogs({
   const copy = useCopy(ordersContent)
   const bulkCopy = useCopy(ordersBulkContent)
   const [tags, setTags] = useState<string[]>([])
+  const [restock, setRestock] = useState(true)
+  const [notify, setNotify] = useState(true)
 
   // Helpers
   const finish = () => {
     request?.clear()
     setTags([])
+    setRestock(true)
+    setNotify(true)
     onDone()
+  }
+  /* Orders on screen that hold money are skipped without a call; the server checks every one. */
+  const cancelPlan = (ids: readonly string[]) => {
+    const loaded = new Map(items.map((o) => [o.id, o]))
+    const due = ids.filter((id) => {
+      const o = loaded.get(id)
+      return !o || cancelsWithoutRefund(o)
+    })
+    return { due, skipped: ids.length - due.length }
   }
 
   // Event handlers
@@ -116,15 +137,50 @@ export default function OrdersBulkDialogs({
     finish()
   }
 
+  /* The order page's own cancel (`orders.cancel`), with nothing refunded: no second path. */
+  const handleCancel = async () => {
+    if (!request) return
+    const plan = cancelPlan(request.ids)
+    let skipped = plan.skipped
+    let cancelled = 0
+    let queued = 0
+    const r = await runBatched(plan.due, async (orderId) => {
+      try {
+        await api.orders.cancel({
+          orderId,
+          restock,
+          notifyCustomer: notify,
+          refund: 'none',
+          onlyWithoutRefund: true,
+        })
+        cancelled += 1
+      } catch (err) {
+        if (isQueued(err)) queued += 1
+        // Paid since the list loaded, shipped, or already cancelled: a skip, as on screen.
+        else if (isSkip(err)) skipped += 1
+        else throw err
+      }
+    })
+    const summary = bulkCopy.cancelDone(cancelled, skipped, queued, r.failed)
+    if (cancelled > 0 || queued > 0) toast.success(summary)
+    else if (r.failed > 0) toast.error(summary)
+    else toast.info(summary)
+    finish()
+  }
+
   const handleOpenChange = (open: boolean) => {
     if (open) return
     setTags([])
+    setRestock(true)
+    setNotify(true)
     onClose()
   }
 
   // Render logic
   const n = request?.ids.length ?? 0
   const tagging = request?.kind === 'addTags' || request?.kind === 'removeTags'
+  const cancelling = request?.kind === 'cancel'
+  const toCancel = cancelling ? cancelPlan(request.ids) : { due: [], skipped: 0 }
   const selected = new Set(request?.ids ?? [])
   /* Removing offers the tags the selected orders on screen carry. */
   const onSelected = [
@@ -162,6 +218,37 @@ export default function OrdersBulkDialogs({
         tone="default"
         onConfirm={handleRemind}
       />
+      <ConfirmDialog
+        open={cancelling}
+        onOpenChange={handleOpenChange}
+        title={bulkCopy.cancelTitle(toCancel.due.length)}
+        body={
+          toCancel.skipped > 0 ? bulkCopy.cancelBodySkipping(toCancel.skipped) : bulkCopy.cancelBody
+        }
+        confirmLabel={bulkCopy.cancelConfirm}
+        cancelLabel={bulkCopy.cancelKeep}
+        confirmDisabled={toCancel.due.length === 0}
+        onConfirm={handleCancel}
+      >
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="orders-bulk-restock" className="flex items-center gap-2 font-normal">
+            <Checkbox
+              id="orders-bulk-restock"
+              checked={restock}
+              onCheckedChange={(v) => setRestock(v === true)}
+            />
+            {bulkCopy.cancelRestock}
+          </Label>
+          <Label htmlFor="orders-bulk-notify" className="flex items-center gap-2 font-normal">
+            <Checkbox
+              id="orders-bulk-notify"
+              checked={notify}
+              onCheckedChange={(v) => setNotify(v === true)}
+            />
+            {bulkCopy.cancelNotify}
+          </Label>
+        </div>
+      </ConfirmDialog>
     </>
   )
 }

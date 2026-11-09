@@ -1,6 +1,6 @@
 'use client'
 
-import { Bell, ChevronDown, Download, Pencil, Printer } from '@commerce/ui/icons'
+import { Bell, CancelCircle, ChevronDown, Download, Pencil, Printer } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import {
   DropdownMenu,
@@ -16,7 +16,6 @@ import { saveFile } from '@/components/apps/gst-invoices/save-file'
 import RunAutomationDialog from '@/components/automations/records/run-automation-dialog'
 import { useRunAutomation } from '@/components/automations/records/use-run-automation'
 import ActionMenu, { type ActionItem } from '@/components/layout/action-menu'
-import ConfirmDialog from '@/components/layout/confirm-dialog'
 import CreateShipmentDialog from '@/components/shipments/create-shipment/create-shipment-dialog'
 import { orderAppActionsContent } from '@/data/order-app-actions'
 import { ORDER_MARKS, type OrderMark, ordersContent } from '@/data/orders'
@@ -35,7 +34,7 @@ type OrdersBulkActionsProps = {
   onMark: (ids: string[], mark: OrderMark) => void
   /** Archive (true) or unarchive (false) the selected orders. */
   onArchive: (ids: string[], archived: boolean) => void
-  /** Tags and payment reminders ask first: the page opens their dialog for these ids. */
+  /** Tags, payment reminders and cancel ask first: the page opens their dialog for these ids. */
   onRequest: (kind: OrdersBulkRequest['kind'], ids: string[]) => void
   /** Installed apps' order actions; those placed on the bulk bar show in its More actions. */
   appActions?: OrderActionGroup[]
@@ -45,12 +44,18 @@ type OrdersBulkActionsProps = {
   automations?: boolean
 }
 
+/** The bar's Mark as: every move but cancel, which has its own dialog in More actions. */
+const BULK_MARKS = ORDER_MARKS.filter(
+  (m): m is Exclude<OrderMark, 'cancelled'> => m !== 'cancelled',
+)
+
 /** Most packing slips one print view loads (the ids ride in its URL). */
 const PRINT_MAX = 100
 
 /**
- * Buttons for the selected orders: open them in the bulk-edit sheet, mark them all, and in
- * More actions add or remove tags, archive or unarchive them, send payment reminders, export a CSV, print packing slips,
+ * Buttons for the selected orders: open them in the bulk-edit sheet, mark them paid, fulfilled or
+ * delivered, and in More actions add or remove tags, archive or unarchive them, send payment
+ * reminders, export a CSV, print packing slips, cancel the ones with nothing to refund (#1408),
  * or run an installed app's action on them (a courier's Create shipment opens the bulk
  * shipment dialog with that courier picked).
  */
@@ -72,7 +77,6 @@ export default function OrdersBulkActions({
   const automation = useRunAutomation('order', automations)
   /* The dialog stays open on its Booked step; the list reloads once the merchant closes it. */
   const [booked, setBooked] = useState(false)
-  const [confirmCancel, setConfirmCancel] = useState(false)
   const { exporting, exportOrders } = useOrdersExport()
   const invoiceIds = useOrderInvoices(ids)
   const [printing, setPrinting] = useState(false)
@@ -142,6 +146,13 @@ export default function OrdersBulkActions({
     ...[...automation.items(ids), ...appItems].map((item, i) =>
       i === 0 ? { ...item, separatorBefore: true } : item,
     ),
+    // Unpaid orders only, on the order page's cancel path; paid ones are skipped and counted.
+    {
+      label: bulkCopy.cancel,
+      icon: CancelCircle,
+      destructive: true,
+      onSelect: () => onRequest('cancel', ids),
+    },
   ]
 
   return (
@@ -156,13 +167,9 @@ export default function OrdersBulkActions({
           <ChevronDown />
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start">
-          {ORDER_MARKS.map((s) => (
-            // Cancelling many orders asks first; one click used to do it (audit #48).
-            <DropdownMenuItem
-              key={s}
-              variant={s === 'cancelled' ? 'destructive' : 'default'}
-              onClick={() => (s === 'cancelled' ? setConfirmCancel(true) : onMark(ids, s))}
-            >
+          {/* Cancel is not a mark here: More actions > Cancel orders asks about refunds (#1408). */}
+          {BULK_MARKS.map((s) => (
+            <DropdownMenuItem key={s} onClick={() => onMark(ids, s)}>
               {copy.marks[s]}
             </DropdownMenuItem>
           ))}
@@ -178,19 +185,6 @@ export default function OrdersBulkActions({
         // Wide enough that "Send payment reminders" fits on one line. Its height stays the
         // menu's own cap so a long list scrolls rather than running off the screen.
         contentClassName="min-w-64"
-      />
-      <ConfirmDialog
-        open={confirmCancel}
-        onOpenChange={setConfirmCancel}
-        title={copy.bulk.cancelTitle(ids.length)}
-        body={copy.bulk.cancelBody}
-        confirmLabel={copy.bulk.cancelConfirm}
-        cancelLabel={copy.bulk.keep}
-        tone="destructive"
-        onConfirm={() => {
-          setConfirmCancel(false)
-          onMark(ids, 'cancelled')
-        }}
       />
       <CreateShipmentDialog
         orderIds={apps.shipping?.orderIds ?? []}

@@ -283,11 +283,6 @@ export const ordersContent = {
         ? '1 order skipped: cancelled or imported orders cannot change'
         : `${skipped} orders skipped: cancelled or imported orders cannot change`,
     failed: 'Could not update orders',
-    cancelTitle: (n: number) => (n === 1 ? 'Cancel 1 order?' : `Cancel ${n} orders?`),
-    cancelBody:
-      'Their stock goes back and they leave the to-ship lists. Money already paid is not refunded here: refund each one from its page.',
-    cancelConfirm: 'Cancel orders',
-    keep: 'Keep them',
   },
   empty: {
     heading: 'No orders yet',
