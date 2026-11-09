@@ -12,6 +12,10 @@
  * order (batched with `LIMIT`, never `OFFSET`, so rows already fixed in this
  * run drop out of the next batch's `WHERE` on their own — no page to skip).
  *
+ * `--own-size` also redoes ready images that lack a copy at their own width (added with
+ * `variantWidthsFor`): before it, a photo narrower than the next standard width, or wider than
+ * 1920, fell back to the PNG/JPEG original. Each row gains that copy once, so a rerun skips it.
+ *
  * `--concurrency <n>` (default 2, max 8) works on that many rows of a batch at once, each in
  * its own `withStore` transaction; a failed row is marked `failed` and the others go on.
  * `processImage` (sharp) is CPU-bound, so set it to about the server's cores.
@@ -26,19 +30,36 @@ import { forEachLimit, parseConcurrency } from './media-concurrency'
 
 const BATCH = 10
 
-function parseArgs(argv: string[]): { storeSlug: string | null; concurrency: number } {
+function parseArgs(argv: string[]): {
+  storeSlug: string | null
+  concurrency: number
+  ownSize: boolean
+} {
   const idx = argv.indexOf('--store')
   return {
     storeSlug: idx !== -1 ? (argv[idx + 1] ?? null) : null,
     concurrency: parseConcurrency(argv),
+    ownSize: argv.includes('--own-size'),
   }
 }
 
-const needsProcessing = or(
+const unprocessed = or(
   eq(media.status, 'processing'),
   eq(media.status, 'failed'),
   and(eq(media.status, 'ready'), isNull(media.variants), sql`${media.contentType} like 'image/%'`),
 )
+
+/** Ready still images whose copies stop short of their own width (animated GIFs keep their own). */
+const missingOwnSize = and(
+  eq(media.status, 'ready'),
+  sql`${media.contentType} like 'image/%'`,
+  sql`${media.contentType} not in ('image/gif', 'image/svg+xml')`,
+  sql`${media.variants} is not null`,
+  sql`${media.width} is not null`,
+  sql`not (${media.variants} ? (${media.width})::text)`,
+)
+
+let needsProcessing = unprocessed
 
 async function storeIdsToProcess(db: ReturnType<typeof createDb>, slug: string | null) {
   if (slug) {
@@ -54,7 +75,8 @@ async function storeIdsToProcess(db: ReturnType<typeof createDb>, slug: string |
 
 async function main() {
   const env = loadEnv(process.env)
-  const { storeSlug, concurrency } = parseArgs(process.argv.slice(2))
+  const { storeSlug, concurrency, ownSize } = parseArgs(process.argv.slice(2))
+  if (ownSize) needsProcessing = or(unprocessed, missingOwnSize)
   const db = createDb(env.DATABASE_URL)
 
   const storeIds = await storeIdsToProcess(db, storeSlug)

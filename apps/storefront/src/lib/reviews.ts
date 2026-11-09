@@ -1,6 +1,7 @@
 import 'server-only'
 import type { ProductDetail, ReviewsWidgetContext } from '@commerce/blocks'
 import { settingsSecret } from '@commerce/config'
+import { pickVariantUrls } from '@commerce/core/media-loader'
 import {
   openRequestLink,
   productReviewsFor,
@@ -14,6 +15,18 @@ import {
 import { currentCustomer } from './customer-session'
 import { storeRead } from './store-cache'
 import { inStore } from './store-context'
+
+/**
+ * The review form's 3 rem product thumbnail: the smallest sized copy, never the original (an
+ * uploaded PNG can be 8-11 MB and the form's markup is on every product page, so the browser
+ * fetched it even with the form closed).
+ */
+function thumbnailOf(image: ProductDetail['images'][number] | undefined): string | null {
+  if (!image) return null
+  return (
+    pickVariantUrls({ url: image.url, variants: image.variants ?? null }, 160).webp ?? image.url
+  )
+}
 
 const DAY = 24 * 60 * 60 * 1000
 
@@ -89,7 +102,7 @@ export async function productReviews(
     widget: {
       productId: product.id,
       productTitle: product.title,
-      productImage: product.images.find((i) => !i.contentType?.startsWith('video/'))?.url ?? null,
+      productImage: thumbnailOf(product.images.find((i) => !i.contentType?.startsWith('video/'))),
       storeName: opts.storeName,
       summary,
       reviews: reviews.map((r) => ({

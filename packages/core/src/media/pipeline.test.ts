@@ -11,6 +11,7 @@ import {
   sharpThreadsFor,
   VARIANT_WIDTHS,
   variantKey,
+  variantWidthsFor,
 } from './pipeline'
 
 /** A flat-colour JPEG with an EXIF GPS tag and a "rotate 90° CW" orientation tag. */
@@ -78,9 +79,10 @@ describe('processImage', () => {
 
     expect(result.width).toBe(MAX_MASTER_LONG_EDGE)
     expect(result.height).toBe(Math.round((MAX_MASTER_LONG_EDGE / 4000) * 2000))
-    // 1920 is <= 2560 so it's still generated; nothing above the master width is.
+    // 1920 is <= 2560 so it's still generated, plus a copy at the master's own width; nothing
+    // above the master width is.
     const widths = result.variants.map((v) => v.width)
-    expect(widths).toEqual(VARIANT_WIDTHS.filter((w) => w <= result.width))
+    expect(widths).toEqual([...VARIANT_WIDTHS.filter((w) => w <= result.width), result.width])
     expect(Math.max(...widths)).toBeLessThanOrEqual(result.width)
   })
 
@@ -98,7 +100,8 @@ describe('processImage', () => {
     })
 
     expect(result.variants.every((v) => v.width <= 500)).toBe(true)
-    expect(result.variants.map((v) => v.width)).toEqual([320])
+    // A copy at its own width, so a card shown wider than 320 never falls back to the PNG.
+    expect(result.variants.map((v) => v.width)).toEqual([320, 500])
   })
 
   it('produces AVIF and WebP for each generated width, keyed off the master path', async () => {
@@ -247,5 +250,16 @@ describe('sharpThreadsFor', () => {
     expect(sharpThreadsFor(8, 2)).toBe(4)
     expect(sharpThreadsFor(4, 1)).toBe(4)
     expect(sharpThreadsFor(2, 0)).toBe(2)
+  })
+})
+
+describe('variantWidthsFor', () => {
+  it('adds the master width when it is not a standard width', () => {
+    expect(variantWidthsFor(533)).toEqual([320, 533])
+    expect(variantWidthsFor(2560)).toEqual([320, 640, 1280, 1920, 2560])
+    expect(variantWidthsFor(200)).toEqual([200])
+  })
+  it('does not repeat a master that is already a standard width', () => {
+    expect(variantWidthsFor(1280)).toEqual([320, 640, 1280])
   })
 })

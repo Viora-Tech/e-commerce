@@ -166,6 +166,18 @@ function assertRasterFormat(format: string | undefined): void {
 }
 
 /**
+ * The widths to encode for a master `masterWidth` wide: every standard width it can fill, and a
+ * copy at the master's own width when that is not already one of them. Without that last copy
+ * a 533 px photo had only a 320 copy, and every card or tile shown wider fell back to the
+ * PNG/JPEG original (5-10x the bytes); a 2560 px master on a wide retina screen did the same.
+ */
+export function variantWidthsFor(masterWidth: number): number[] {
+  const widths: number[] = VARIANT_WIDTHS.filter((w) => w <= masterWidth)
+  if (masterWidth > 0 && !widths.includes(masterWidth)) widths.push(masterWidth)
+  return widths
+}
+
+/**
  * The full pipeline for one still image: auto-orient from EXIF, strip all
  * metadata (this is what removes GPS — sharp strips EXIF/ICC/XMP by default
  * unless `.withMetadata()` is called, so simply never calling it is the
@@ -241,7 +253,7 @@ export async function processImage(input: ProcessImageInput): Promise<ProcessIma
   const masterBuffer = await masterFormatted.toBuffer()
   const masterContentType = isJpeg ? 'image/jpeg' : 'image/png'
 
-  const widths = VARIANT_WIDTHS.filter((w) => w <= masterWidth)
+  const widths = variantWidthsFor(masterWidth)
   const encodeWidth = async (width: number) => {
     const height = Math.round((width / masterWidth) * masterHeight)
     const base = sharp(masterBuffer, { limitInputPixels: limit }).resize({
