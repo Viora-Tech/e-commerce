@@ -16,7 +16,6 @@ import type { StoreTx } from '@commerce/db'
 import { organizationMembership, withStore } from '@commerce/db'
 import { ORPCError } from '@orpc/server'
 import { approvalKind, isReadPath, kindForInput } from '../mcp/action-catalogue'
-import { setActorName } from '../services/actor.service'
 import { ALREADY_REQUESTED, queueForApprover } from '../services/ai/assistant/service'
 import { activityRecorder, recordChange, recordedPath } from './activity'
 import { mustAsk } from './approval-rules'
@@ -217,37 +216,43 @@ function storeProcedureWith(required?: Permission | readonly Permission[]) {
     const afterCommit = (fn: AfterCommit) => {
       committed.push(fn)
     }
-    const result = await withStore(context.db, member.storeId, async (tx: StoreTx) => {
-      const scope = await scopeFor(context, tx, member, required)
-      context.log.set({ role: scope.roleSlug })
-      const waits = waitsForApproval(scope, path, required, input)
-      if (waits) {
-        // An approver running the change for someone: `approveAction` records who must approve.
-        if (context.approvalReplay) throw approvalQueued(null, waits)
-        return { [QUEUED]: await queue(context, tx, scope, path.join('.'), waits, input) }
-      }
-      // Runs now (the owner, or a role that does not need approval): a sensitive action also
-      // needs a recent step-up when enforcement is on. Checked here, after approval, so a role
-      // that would queue is never also asked to step up.
-      await requireStepUp(context, path, input)
-      const actor = context.session.user.name?.trim() || context.session.user.email
-      await setActorName(tx, actor)
-      try {
-        const activity = activityRecorder()
-        const out = await next({ context: { scope, tx, afterCommit, activity } })
-        await logTokenCall(context, tx, member.storeId, path, required)
-        await recordChange(context, tx, member.storeId, {
-          path,
-          procedure,
-          input,
-          output: out.output,
-          note: activity.read(),
-        })
-        return out
-      } catch (error) {
-        return report(context, member.storeId, error)
-      }
-    })
+    // Who is acting, for rows that record it by column default (stock history, audit #139), set
+    // with the store in one statement.
+    const actor = context.session.user.name?.trim() || context.session.user.email
+    const result = await withStore(
+      context.db,
+      member.storeId,
+      async (tx: StoreTx) => {
+        const scope = await scopeFor(context, tx, member, required)
+        context.log.set({ role: scope.roleSlug })
+        const waits = waitsForApproval(scope, path, required, input)
+        if (waits) {
+          // An approver running the change for someone: `approveAction` records who must approve.
+          if (context.approvalReplay) throw approvalQueued(null, waits)
+          return { [QUEUED]: await queue(context, tx, scope, path.join('.'), waits, input) }
+        }
+        // Runs now (the owner, or a role that does not need approval): a sensitive action also
+        // needs a recent step-up when enforcement is on. Checked here, after approval, so a role
+        // that would queue is never also asked to step up.
+        await requireStepUp(context, path, input)
+        try {
+          const activity = activityRecorder()
+          const out = await next({ context: { scope, tx, afterCommit, activity } })
+          await logTokenCall(context, tx, member.storeId, path, required)
+          await recordChange(context, tx, member.storeId, {
+            path,
+            procedure,
+            input,
+            output: out.output,
+            note: activity.read(),
+          })
+          return out
+        } catch (error) {
+          return report(context, member.storeId, error)
+        }
+      },
+      { actorName: actor },
+    )
     for (const fn of committed) {
       try {
         await fn()
