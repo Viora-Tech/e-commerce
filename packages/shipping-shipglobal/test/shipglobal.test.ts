@@ -204,6 +204,24 @@ describe('ShipglobalProvider sign-in', () => {
     expect(check.message).toMatch(/did not accept/)
   })
 
+  it('shows ShipGlobal’s own words with a refused login', async () => {
+    const { p } = provider({ '/apiv1/rates/calculate': () => json(AUTH_FAILED, 401) })
+    const check = await p.verifyCredentials()
+    expect(check.message).toContain(
+      'ShipGlobal answered HTTP 401 EA_401: "Authorization Failed, Invalid Username/Password Combination"',
+    )
+  })
+
+  it('says the request was turned away, not the login, on a 403 page with no JSON', async () => {
+    const { p } = provider({
+      '/apiv1/rates/calculate': () => new Response('<html>Access denied</html>', { status: 403 }),
+    })
+    const check = await p.verifyCredentials()
+    expect(check.ok).toBe(false)
+    expect(check.message).not.toMatch(/did not accept/)
+    expect(check.message).toMatch(/turned our request away \(HTTP 403/)
+  })
+
   it('does not blame the login when ShipGlobal is down', async () => {
     const { p } = provider({
       '/apiv1/rates/calculate': () => new Response('oops', { status: 502 }),
