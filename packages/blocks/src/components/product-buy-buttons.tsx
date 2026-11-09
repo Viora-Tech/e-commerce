@@ -30,6 +30,31 @@ type ProductBuyButtonsProps = {
 
 const ui = copy.ui
 
+/**
+ * An imported theme's sticky bar says "Add to cart": on Shopify the pre-order app's script
+ * relabels it, here the page does. The theme's own script reads `data-add-label`. Null leaves
+ * the bar alone.
+ */
+function useStickyPreorderLabel(label: string | null) {
+  useEffect(() => {
+    if (!label) return
+    const bars = [...document.querySelectorAll<HTMLElement>('[data-sticky-atc-label]')]
+    const before = bars.map((bar) => bar.dataset.addLabel)
+    for (const bar of bars) {
+      bar.dataset.addLabel = label
+      bar.textContent = label
+    }
+    return () => {
+      bars.forEach((bar, i) => {
+        const previous = before[i]
+        if (previous === undefined) return
+        bar.dataset.addLabel = previous
+        bar.textContent = previous
+      })
+    }
+  }, [label])
+}
+
 // The `buy_buttons` block: snippets/buy-buttons.liquid plus our launch countdown, pre-order
 // notes (ship date, deposit split) and, for a sold-out variant, the theme's sold-out panel
 // (snippets/product-notify) with the back-in-stock form in place of the buttons. Laid out
@@ -58,28 +83,7 @@ export default function ProductBuyButtons({
   // second click on a slow load does not add the item again.
   const [leaving, setLeaving] = useState(false)
   const reduceMotion = useReducedMotion()
-  // An imported theme's sticky bar says "Add to cart": on Shopify the pre-order app's script
-  // relabels it, here the page does. The theme's own script reads `data-add-label`.
-  const stickyPreorderLabel = isPreorder
-    ? (product.preorder?.buttonLabel ?? ui.preorderLabel)
-    : null
-  useEffect(() => {
-    if (!stickyPreorderLabel) return
-    const bars = [...document.querySelectorAll<HTMLElement>('[data-sticky-atc-label]')]
-    const before = bars.map((bar) => bar.dataset.addLabel)
-    for (const bar of bars) {
-      bar.dataset.addLabel = stickyPreorderLabel
-      bar.textContent = stickyPreorderLabel
-    }
-    return () => {
-      bars.forEach((bar, i) => {
-        const label = before[i]
-        if (label === undefined) return
-        bar.dataset.addLabel = label
-        bar.textContent = label
-      })
-    }
-  }, [stickyPreorderLabel])
+  useStickyPreorderLabel(isPreorder ? (product.preorder?.buttonLabel ?? ui.preorderLabel) : null)
 
   // Helpers
   // The most the picker allows: stock, or on a pre-order with a limit the stock plus the room left.
