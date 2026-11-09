@@ -173,15 +173,15 @@ function experimentSections<T extends { props: Record<string, unknown> }>(
 }
 
 /**
- * Renders a theme template (or the header or footer group) for this request: the
- * live theme's saved sections, or in the Customize preview the previewed theme
- * with its unsaved drafts. Hidden sections are skipped. Opens its own short transactions, and
- * only for what the store cache does not already hold: call it outside `inStore`.
+ * A template's sections as this request shows them, before anything is drawn: the live (or
+ * previewed) theme's saved sections, hidden ones and other A/B variants left out, lists and
+ * connected settings filled from store data. `renderTemplate` draws them with React; the plain
+ * HTML path (`lib/plain-html`) places an imported theme's rendered Liquid directly.
  */
-export async function renderTemplate(
+export async function templateSections(
   storeId: string,
   key: TemplateKey,
-  options: TemplateOptions = {},
+  options: Pick<TemplateOptions, 'suffix' | 'view' | 'sources'> = {},
 ) {
   const { themeId, preview, version } = await requestTheme(storeId)
   const read = readerFor(storeId, preview)
@@ -235,6 +235,22 @@ export async function renderTemplate(
         ),
       )
     : shown
+  return { themeId, preview, read, bound, seen: tested.seen }
+}
+
+/**
+ * Renders a theme template (or the header or footer group) for this request: the
+ * live theme's saved sections, or in the Customize preview the previewed theme
+ * with its unsaved drafts. Hidden sections are skipped. Opens its own short transactions, and
+ * only for what the store cache does not already hold: call it outside `inStore`.
+ */
+export async function renderTemplate(
+  storeId: string,
+  key: TemplateKey,
+  options: TemplateOptions = {},
+) {
+  const { themeId, preview, read, bound, seen } = await templateSections(storeId, key, options)
+  const tested = { seen }
   // Section images are saved as bare URLs; one lookup gives <Picture> their AVIF/WebP
   // variants and ThumbHash, so a banner never ships the full-size original.
   const [visible, config, split] = await Promise.all([

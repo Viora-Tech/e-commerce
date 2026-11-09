@@ -1,4 +1,4 @@
-import { loadEnv } from '@commerce/config'
+import { loadEnv, settingsSecret } from '@commerce/config'
 import { CONSENT_COOKIE } from '@commerce/core/preferences'
 import { withQuery } from '@commerce/core/redirects'
 import { THEME_PREVIEW_PARAM } from '@commerce/core/theme'
@@ -21,6 +21,7 @@ import { edgeCacheControl, isSharedPage } from './lib/edge-cache'
 import {
   MARKET_COOKIE,
   MARKET_COOKIE_MAX_AGE,
+  MARKET_HEADERS,
   type MarketPick,
   marketHeaders,
   marketPath,
@@ -30,6 +31,12 @@ import {
   withoutMarketSegment,
 } from './lib/markets'
 import { ORDER_VIEW_COOKIE, ORDER_VIEW_MAX_AGE, orderTokenSwap } from './lib/order-token-swap'
+import {
+  PLAIN_SKIP_HEADER,
+  plainPath,
+  plainSkipNonce,
+  wantsPlainHtml,
+} from './lib/plain-html/route'
 import { noteVisit, WARM_USER_AGENT } from './lib/recent-pages'
 import { redirectFor } from './lib/redirects'
 import { noteReferral } from './lib/referral-landing'
@@ -64,6 +71,10 @@ let edgeTtl: number | null = null
 const edgeTtlSeconds = () =>
   (edgeTtl ??= loadEnv(process.env).STOREFRONT_EDGE_TTL ?? DEFAULT_EDGE_TTL)
 
+let plainKilled: boolean | null = null
+/** `STOREFRONT_PLAIN_HTML=off`, read once per process: no page goes out as plain HTML. */
+const plainHtmlKilled = () => (plainKilled ??= loadEnv(process.env).STOREFRONT_PLAIN_HTML === 'off')
+
 /** A version id from the admin (`?theme-version=`): a uuid, nothing else reaches the header. */
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
@@ -90,7 +101,10 @@ function visitorCountry(request: NextRequest): string | null {
  * (`lib/csp.ts`); the forwarded request carries the same nonce for the page to use.
  */
 export async function proxy(request: NextRequest) {
-  const nonce = newNonce()
+  // The plain HTML route handing an ineligible page back (`lib/plain-html/forward.ts`): the page
+  // keeps the nonce the outer response's CSP names.
+  const handedBack = plainSkipNonce(settingsSecret(), request.headers.get(PLAIN_SKIP_HEADER))
+  const nonce = handedBack ?? newNonce()
   // Checkout and the shopper account (D-01) refuse all framing and carry the isolation headers;
   // every other page keeps the self-plus-admin frame-ancestors the theme editor needs.
   // A market prefix (`/ae/checkout`) never loosens that.
@@ -104,13 +118,21 @@ export async function proxy(request: NextRequest) {
       ? ISOLATED_FRAME_ANCESTORS
       : storefrontFrameAncestors(process.env.ADMIN_URL),
   })
-  const response = await routeRequest(request, (headers) => forwardNonce(headers, nonce, csp))
+  const response = await routeRequest(
+    request,
+    (headers) => forwardNonce(headers, nonce, csp),
+    handedBack !== null,
+  )
   response.headers.set(csp.name, csp.value)
   if (isolated) for (const [name, value] of ISOLATION_HEADERS) response.headers.set(name, value)
   return response
 }
 
-async function routeRequest(request: NextRequest, withNonce: (headers: Headers) => void) {
+async function routeRequest(
+  request: NextRequest,
+  withNonce: (headers: Headers) => void,
+  handedBack = false,
+) {
   const host = request.headers.get('host')
   const hostname = hostnameFromHeader(host)
   // The platform login domain (ACCOUNTS_URL) is no store: it serves provider sign-in only.
@@ -276,8 +298,41 @@ async function routeRequest(request: NextRequest, withNonce: (headers: Headers) 
     !preview &&
     !hasAccess(storeId, lock.password, request.cookies.get(ACCESS_COOKIE)?.value)
 
+  // A `?ref=` landing sets the referral cookie, so a cached copy must never answer it.
+  const referred = request.nextUrl.searchParams.has('ref')
+  const cookieNames = request.cookies.getAll().map((c) => c.name)
+  // A page that is the same for every visitor without our cookies may sit in a CDN briefly
+  // (`lib/edge-cache.ts`); everything else keeps Next's private, no-store answer.
+  const shared = edgeCacheControl({
+    method: request.method,
+    pathname: pick.pathname,
+    cookieNames,
+    rsc: request.headers.has('rsc'),
+    personal: Boolean(preview) || locked || posted !== null || referred,
+    ttlSeconds: edgeTtlSeconds(),
+  })
+  // Preferences › Storefront speed: an imported theme's page as plain HTML (`lib/plain-html`).
+  const plain =
+    !locked &&
+    wantsPlainHtml({
+      enabled: lock.plainHtml,
+      killed: plainHtmlKilled(),
+      method: request.method,
+      pathname: pick.pathname,
+      rsc: request.headers.has('rsc'),
+      personal: Boolean(preview) || posted !== null || referred,
+      marketPrefix: headers.get(MARKET_HEADERS.prefix) ?? '',
+      cookie: (name) => request.cookies.get(name)?.value,
+      handedBack,
+    })
+  if (plain && shared) headers.set('x-edge-cache-control', shared)
+
   const url = request.nextUrl.clone()
-  url.pathname = locked ? `${PASSWORD_PREFIX}/${storeId}` : route.path
+  url.pathname = locked
+    ? `${PASSWORD_PREFIX}/${storeId}`
+    : plain
+      ? plainPath(storeId, pick.pathname)
+      : route.path
   const response = NextResponse.rewrite(url, { request: { headers } })
   if (preview && param && request.headers.get('sec-fetch-dest') === 'document') {
     response.cookies.set(PREVIEW_COOKIE, param, {
@@ -305,9 +360,9 @@ async function routeRequest(request: NextRequest, withNonce: (headers: Headers) 
     })
   }
   // An affiliate's link (`?ref=`): the referral cookie and the click count, with or without
-  // analytics consent (`lib/referral-landing.ts`).
-  const referred = request.nextUrl.searchParams.has('ref')
-  if (referred && !seoFile && !locked && !preview) await noteReferral(storeId, request, response)
+  // analytics consent (`lib/referral-landing.ts`). Never twice for a page handed back.
+  if (!handedBack && referred && !seoFile && !locked && !preview)
+    await noteReferral(storeId, request, response)
   // The first page view after the shopper allowed analytics mints the anonymous visitor
   // id the beacon reports (the beacon is a keepalive POST whose Set-Cookie some browsers
   // drop, so it is done here). Without analytics consent no visitor id is set at all. Never
@@ -325,17 +380,6 @@ async function routeRequest(request: NextRequest, withNonce: (headers: Headers) 
       maxAge: VISITOR_COOKIE_MAX_AGE,
     })
   }
-  // A page that is the same for every visitor without our cookies may sit in a CDN briefly
-  // (`lib/edge-cache.ts`); everything else keeps Next's private, no-store answer.
-  const shared = edgeCacheControl({
-    method: request.method,
-    pathname: pick.pathname,
-    cookieNames: request.cookies.getAll().map((c) => c.name),
-    rsc: request.headers.has('rsc'),
-    // A `?ref=` landing sets the referral cookie, so a cached copy must never answer it.
-    personal: Boolean(preview) || locked || posted !== null || referred,
-    ttlSeconds: edgeTtlSeconds(),
-  })
   if (shared && !response.headers.has('set-cookie')) response.headers.set('cache-control', shared)
   // Pages shoppers view are re-rendered after the store changes (`lib/cache-warm.ts`).
   if (
@@ -344,6 +388,7 @@ async function routeRequest(request: NextRequest, withNonce: (headers: Headers) 
     !locked &&
     !request.headers.has('rsc') &&
     isSharedPage(pick.pathname) &&
+    !handedBack &&
     request.headers.get('user-agent') !== WARM_USER_AGENT
   ) {
     noteVisit(storeId, {

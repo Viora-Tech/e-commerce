@@ -8,6 +8,8 @@ export const INTERNAL_PREFIX = '/-s'
 export const PASSWORD_PREFIX = '/-p'
 /** Internal segment for the platform login domain (`ACCOUNTS_URL`): provider sign-in and callbacks. */
 export const ACCOUNTS_PREFIX = '/-a'
+/** Internal segment for a page sent as plain HTML (`lib/plain-html`), with no React runtime. */
+export const PLAIN_PREFIX = '/-h'
 
 const internal = (pathname: string, prefix: string) =>
   pathname === prefix || pathname.startsWith(`${prefix}/`)
@@ -21,7 +23,8 @@ export function routeForStore(storeId: string, pathname: string): Route {
   if (
     internal(pathname, INTERNAL_PREFIX) ||
     internal(pathname, PASSWORD_PREFIX) ||
-    internal(pathname, ACCOUNTS_PREFIX)
+    internal(pathname, ACCOUNTS_PREFIX) ||
+    internal(pathname, PLAIN_PREFIX)
   ) {
     return { kind: 'forbidden' }
   }
@@ -76,6 +79,8 @@ export const DERIVED_HEADERS = [
   'x-form-posted',
   'x-pathname',
   'x-listing',
+  // The shared-cache answer the proxy chose for a plain HTML page (`lib/plain-html/route.ts`).
+  'x-edge-cache-control',
   // Markets (`lib/markets.ts` MARKET_HEADERS).
   'x-market-id',
   'x-market-currency',

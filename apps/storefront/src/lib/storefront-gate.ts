@@ -25,6 +25,8 @@ type Lock = {
   search: boolean
   /** AI crawlers may too; never when search engines may not. */
   ai: boolean
+  /** Preferences › Storefront speed: imported-theme pages go out as plain HTML (`lib/plain-html`). */
+  plainHtml: boolean
 }
 
 const LOCK_TTL_MS = 10_000
@@ -52,6 +54,7 @@ export async function storefrontLock(storeId: string): Promise<Lock> {
     password: prefs.password.password,
     search,
     ai: search && prefs.indexing.aiCrawlers,
+    plainHtml: prefs.delivery.plainHtml,
   }
   locks.set(storeId, { lock, expiresAt: Date.now() + LOCK_TTL_MS })
   return lock

@@ -92,12 +92,23 @@ const VerificationSchema = z.object({
   pinterest: verificationToken.default(''),
 })
 
+/**
+ * How the storefront sends its pages. `plainHtml` (off by default, per store): an imported Shopify
+ * theme's home and content pages go out as the theme's own HTML and CSS with small scripts only
+ * where a page must be live, without the React runtime (docs/design/storefront-plain-html.md).
+ * Pages it cannot serve that way yet are drawn as before.
+ */
+const DeliverySchema = z.object({
+  plainHtml: z.boolean().default(false),
+})
+
 export const StorePreferencesSchema = z.object({
   seo: SeoSchema.prefault({}),
   password: PasswordSchema.prefault({}),
   tracking: TrackingSchema.prefault({}),
   indexing: IndexingSchema.prefault({}),
   verification: VerificationSchema.prefault({}),
+  delivery: DeliverySchema.prefault({}),
 })
 export type StorePreferences = z.infer<typeof StorePreferencesSchema>
 
