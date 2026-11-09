@@ -245,19 +245,43 @@ type PickupLocation = {
   is_rto_address_same?: boolean
 }
 
-/** Estimated-delivery-date strings ("edd") are free text in RapidShyp's docs sample
- *  ("YYYY-MM-DD" is the documented shape but not guaranteed); this only ever reads
- *  a leading date, never assumes a full timestamp is present. */
-function daysFromToday(dateStr: string | undefined): number | null {
-  if (!dateStr) return null
-  const target = new Date(dateStr.slice(0, 10))
-  if (Number.isNaN(target.getTime())) return null
-  // ceil, not round: `target` is a date-only midnight, `Date.now()` carries a
-  // time-of-day, so any elapsed time since midnight would otherwise round a
-  // real "3 days from now" down to 2 depending what time of day this runs.
-  const days = Math.ceil((target.getTime() - Date.now()) / (24 * 60 * 60 * 1000))
+const DAY_MS = 24 * 60 * 60 * 1000
+const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000
+
+/** A calendar date as UTC midnight, or null when the parts are not a real date (31-02). */
+function calendarDate(y: number, m: number, d: number): number | null {
+  const t = Date.UTC(y, m - 1, d)
+  const back = new Date(t)
+  return back.getUTCFullYear() === y && back.getUTCMonth() === m - 1 && back.getUTCDate() === d
+    ? t
+    : null
+}
+
+/**
+ * Days from today (India's calendar) to RapidShyp's estimated delivery date (`edd`), or null.
+ * RapidShyp's serviceability docs show `edd` as DD-MM-YYYY ("22-04-2026"); YYYY-MM-DD and a
+ * trailing time are read too. Before this, only YYYY-MM-DD parsed, so every RapidShyp route
+ * fell back to the store's default transit days and showed the same date.
+ */
+export function eddDaysFromToday(
+  dateStr: string | undefined,
+  now: number = Date.now(),
+): number | null {
+  const s = dateStr?.trim() ?? ''
+  const dmy = /^(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})\b/.exec(s)
+  const ymd = /^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})\b/.exec(s)
+  const target = dmy
+    ? calendarDate(Number(dmy[3]), Number(dmy[2]), Number(dmy[1]))
+    : ymd
+      ? calendarDate(Number(ymd[1]), Number(ymd[2]), Number(ymd[3]))
+      : null
+  if (target === null) return null
+  const todayIst = Math.floor((now + IST_OFFSET_MS) / DAY_MS) * DAY_MS
+  const days = Math.round((target - todayIst) / DAY_MS)
   return days > 0 ? days : null
 }
+
+const daysFromToday = (dateStr: string | undefined) => eddDaysFromToday(dateStr)
 
 /**
  * RapidShyp's own tracking status codes (docs' "Tracking status code
