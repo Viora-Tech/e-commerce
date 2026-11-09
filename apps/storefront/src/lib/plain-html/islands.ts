@@ -1,4 +1,5 @@
 import { CONSENT_COOKIE, CONSENT_MAX_AGE } from '@commerce/core/consent'
+import type { ChatwootChat } from '../chatwoot'
 import type { BrowserPixel } from '../pixels/track'
 import { PRIVATE_PREFIXES } from '../tracking-paths'
 import { fbqInit, gtmInit } from '../tracking-snippets'
@@ -20,6 +21,10 @@ import { islandModuleUrl } from './modules'
  *   for Search & discovery (`DiscoveryTracker`).
  * - Pixels app, after a yes to marketing: its module (`pixels-module.ts`) loads when the browser
  *   is idle and sends PageView and every `commerce:track` event, as `PixelEvents` does.
+ * - Inbox chat: the server draws the button (`chat-launcher.ts`); its module (`chat-module.ts`)
+ *   loads on idle or on the first tap and opens the chat card in a frame.
+ * - Chatwoot app: its module (`chatwoot-module.ts`) once the store's chosen cookie category
+ *   allows it, after the page has loaded.
  * - Experiments (GrowthBook): the experiments this page was drawn with, once, to
  *   `/api/experiments` (`ExperimentBeacon`). Only shoppers the server assigned have any.
  * - Page speed: LCP, INP and CLS to `/api/vitals`, anonymous, whatever the consent (as
@@ -43,6 +48,10 @@ export type IslandConfig = {
   pixels?: BrowserPixel[] | null | undefined
   /** Tracking keys of the experiments this page was drawn with. */
   experiments?: readonly string[] | undefined
+  /** The Inbox chat's module, when the page drew its button (`chat-launcher.ts`). */
+  chat?: { src: string; config: Record<string, unknown> } | null | undefined
+  /** The Chatwoot app's chat, with the signed-in shopper's signed identity. */
+  chatwoot?: ChatwootChat | null | undefined
 }
 
 /** The island script's body for `config`; `<` is escaped so no value can close the script. */
@@ -72,6 +81,18 @@ export function islandScript(config: IslandConfig): string {
         }
       : null,
     experiments: config.experiments?.length ? config.experiments : null,
+    chat: config.chat ?? null,
+    chatwoot: config.chatwoot
+      ? {
+          consent: config.chatwoot.widget.consent,
+          src: islandModuleUrl('chatwoot'),
+          config: {
+            baseUrl: config.chatwoot.widget.baseUrl,
+            websiteToken: config.chatwoot.widget.websiteToken,
+            identity: config.chatwoot.identity,
+          },
+        }
+      : null,
   }
   return ISLANDS.replace('__CONFIG__', JSON.stringify(data).replace(/</g, '\\u003c'))
 }
@@ -173,6 +194,10 @@ const ISLANDS = `(function () {
     if (c.umami && (consent ? consent.analytics : !c.umami.waitForConsent)) {
       once('umami', function () { external(c.umami.src, { 'data-website-id': c.umami.websiteId }); });
     }
+    // Chatwoot waits for the category its store picked; necessary loads it for everyone.
+    if (c.chatwoot && (c.chatwoot.consent === 'necessary' || (consent && consent[c.chatwoot.consent] === true))) {
+      idle(function () { load('chatwoot', c.chatwoot); });
+    }
     if (!consent) return;
     if (consent.analytics) {
       once('visit', function () {
@@ -191,6 +216,16 @@ const ISLANDS = `(function () {
         load('pixels', c.pixels);
       });
     }
+  }
+
+  // The Inbox chat: its module on idle, or at once (opening the chat) on a tap before that.
+  var chatButton = c.chat && document.getElementById('wc-chat');
+  if (chatButton) {
+    chatButton.addEventListener('click', function () {
+      var m = modules.chat;
+      if (!m) { c.chat.config.openNow = true; load('chat', c.chat); } else if (!m.started) m.config.openNow = true;
+    }, { once: true });
+    idle(function () { load('chat', c.chat); });
   }
 
   // "Experiment viewed": the server only assigns shoppers who said yes to analytics.

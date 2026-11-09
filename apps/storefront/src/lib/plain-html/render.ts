@@ -40,6 +40,7 @@ import { storeRead } from '../store-cache'
 import { liveThemeId, templateSections } from '../template-render'
 import { resolveThemeMode, THEME_COOKIE, themeViewport } from '../theme-mode'
 import { umamiTrackerOf } from '../umami'
+import { chatLauncherHtml, chatModuleSpec } from './chat-launcher'
 import { islandScript } from './islands'
 import { plainKind, plainPageHandle } from './route'
 
@@ -147,15 +148,16 @@ export async function renderPlainPage(storeId: string): Promise<PlainResult> {
   const prefs = parsePreferences(current.preferences)
   if (!prefs.delivery.plainHtml) return skip('switch-off')
 
-  // Widgets only React draws keep the React page for now (docs: phase 2).
+  // Our widgets, drawn by the island's modules (docs: phase 2).
   if (
     parseMarketSettings(current.preferences).suggestMarket &&
     (await liveMarketCount(storeId)) > 1
   ) {
     return skip('market-banner')
   }
-  if (inboxLauncherOf(current.apps)) return skip('inbox-chat')
-  if (await chatwootChatFor(storeId, current.apps)) return skip('chatwoot')
+  const inboxChat = inboxLauncherOf(current.apps)
+  // The Inbox app's chat wins over Chatwoot's, as on the React page.
+  const chatwoot = inboxChat ? null : await chatwootChatFor(storeId, current.apps)
   if (await abThemeId(storeId)) return skip('theme-ab-test')
   const themeId = await liveThemeId(storeId)
   if (!themeId) return skip('no-theme')
@@ -290,6 +292,8 @@ export async function renderPlainPage(storeId: string): Promise<PlainResult> {
     umami,
     pixels: await storePixels(storeId, current.apps),
     experiments: Object.keys((await requestExperiments(storeId)).assignments),
+    chat: inboxChat ? chatModuleSpec(inboxChat, current.name) : null,
+    chatwoot,
   })}</script>`
 
   const html = [
@@ -304,6 +308,7 @@ export async function renderPlainPage(storeId: string): Promise<PlainResult> {
     '</main>',
     draw(footerContent, footer),
     layout.afterFooter,
+    inboxChat ? chatLauncherHtml(inboxChat) : '',
     island,
     '</body></html>',
   ].join('')

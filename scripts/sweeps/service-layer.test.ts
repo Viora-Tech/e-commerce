@@ -57,6 +57,7 @@ const ALLOWLIST: AllowEntry[] = [
     exact: true,
     reason: 'creates the Db connection for the admin app request context',
   },
+  { path: 'apps/storefront/src/app/-c/[storeId]/page.tsx', exact: true, reason: STOREFRONT_PAGE },
   { path: 'apps/storefront/src/app/-p/[storeId]/page.tsx', exact: true, reason: STOREFRONT_PAGE },
   {
     path: 'apps/storefront/src/app/-s/[storeId]/account/(signed-in)/orders/[number]/page.tsx',

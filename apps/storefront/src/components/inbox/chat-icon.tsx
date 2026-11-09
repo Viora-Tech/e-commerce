@@ -19,7 +19,7 @@ type ChatIconProps = {
 }
 
 /** Stroke paths, 24×24, drawn in `currentColor` so they follow the theme. */
-const PATHS: Record<ChatIconProps['kind'], string[]> = {
+export const CHAT_ICON_PATHS: Record<ChatIconProps['kind'], string[]> = {
   chat: ['M4 5h16v11H8l-4 4z'],
   bubble: ['M3 6h12v8H7l-4 3z', 'M9 17h8l4 3v-9h-3'],
   help: [
@@ -62,7 +62,7 @@ export default function ChatIcon({ kind, className }: ChatIconProps) {
       aria-hidden="true"
       className={className}
     >
-      {PATHS[kind].map((d) => (
+      {CHAT_ICON_PATHS[kind].map((d) => (
         <path key={d} d={d} />
       ))}
     </svg>

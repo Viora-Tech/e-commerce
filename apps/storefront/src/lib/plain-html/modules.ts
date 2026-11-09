@@ -1,4 +1,6 @@
 import { createHash } from 'node:crypto'
+import { CHAT_MODULE } from './chat-module'
+import { CHATWOOT_MODULE } from './chatwoot-module'
 import { PIXELS_MODULE } from './pixels-module'
 
 /**
@@ -12,6 +14,8 @@ import { PIXELS_MODULE } from './pixels-module'
  */
 export const ISLAND_MODULES = {
   pixels: PIXELS_MODULE,
+  chat: CHAT_MODULE,
+  chatwoot: CHATWOOT_MODULE,
 } as const
 
 export type IslandModuleName = keyof typeof ISLAND_MODULES

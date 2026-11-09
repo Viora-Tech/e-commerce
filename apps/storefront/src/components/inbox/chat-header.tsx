@@ -12,6 +12,11 @@ type ChatHeaderProps = {
   mode: ChatMode
   onMode: (mode: ChatMode) => void
   onClose: () => void
+  /**
+   * The page around the chat is desktop-wide although the card is not: the plain HTML page's chat
+   * frame is only as wide as the card, so the `sm:` breakpoint cannot tell. Null: ask the breakpoint.
+   */
+  wide?: boolean | null | undefined
 }
 
 const HAIRLINE = 'border-[color-mix(in_srgb,currentColor_8%,transparent)]'
@@ -26,8 +31,12 @@ export default function ChatHeader({
   mode,
   onMode,
   onClose,
+  wide,
 }: ChatHeaderProps) {
   // Render logic
+  const desktopOnly = wide == null ? 'hidden! sm:flex!' : wide ? 'flex!' : 'hidden!'
+  const phoneIcon = wide == null ? 'sm:hidden!' : wide ? 'hidden!' : ''
+  const desktopIcon = wide == null ? 'hidden! sm:block!' : wide ? 'block!' : 'hidden!'
   const initial = storeName.trim().charAt(0).toUpperCase() || '?'
 
   return (
@@ -63,7 +72,7 @@ export default function ChatHeader({
         {mode === 'float' ? null : (
           <button
             type="button"
-            className={`${ICON_BUTTON} hidden! sm:flex!`}
+            className={`${ICON_BUTTON} ${desktopOnly}`}
             aria-label={mode === 'docked' ? copy.undock : copy.dock}
             onClick={() => onMode(mode === 'docked' ? 'float' : 'docked')}
           >
@@ -72,15 +81,15 @@ export default function ChatHeader({
         )}
         <button
           type="button"
-          className={`${ICON_BUTTON} hidden! sm:flex!`}
+          className={`${ICON_BUTTON} ${desktopOnly}`}
           aria-label={mode === 'expanded' ? copy.restore : copy.expand}
           onClick={() => onMode(mode === 'expanded' ? 'float' : 'expanded')}
         >
           <ChatIcon kind={mode === 'expanded' ? 'shrink' : 'expand'} className="size-4" />
         </button>
         <button type="button" className={ICON_BUTTON} aria-label={copy.close} onClick={onClose}>
-          <ChatIcon kind="chevronDown" className="size-5 sm:hidden!" />
-          <ChatIcon kind="minimise" className="hidden! size-4 sm:block!" />
+          <ChatIcon kind="chevronDown" className={`size-5 ${phoneIcon}`} />
+          <ChatIcon kind="minimise" className={`size-4 ${desktopIcon}`} />
         </button>
       </div>
     </header>
