@@ -1,12 +1,14 @@
 import { EmptyState, Icon } from '@commerce/blocks'
 import { headers } from 'next/headers'
 import { notFoundContent as copy } from '@/data/search'
+import { notFoundMarkupNeeded } from '@/lib/not-found-markup'
 import { renderTemplate } from '@/lib/template-render'
 
 /**
  * The theme's 404 template. Not-found pages get no params, so the store id comes from the proxy.
  * The browser draws it from the RSC payload (Next's error shell, or the Suspense boundary of the
  * themed reload, `lib/themed-rerender.ts`), never from server HTML: imported sections inline.
+ * Under an imported theme a page load that will never draw it gets nothing (`lib/not-found-markup.ts`).
  */
 export default async function StoreNotFound() {
   // Hooks
@@ -14,6 +16,7 @@ export default async function StoreNotFound() {
 
   // Early returns
   if (!storeId) return <h1 className="page-width py-16 h2">{copy.title}</h1>
+  if (!(await notFoundMarkupNeeded(storeId))) return null
 
   // Render logic
   return renderTemplate(storeId, 'not_found', {
