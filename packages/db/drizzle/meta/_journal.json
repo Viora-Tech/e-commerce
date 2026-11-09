@@ -1520,6 +1520,13 @@
       "when": 1794238400000,
       "tag": "0232_storefront_cache_quiet_drafts",
       "breakpoints": true
+    },
+    {
+      "idx": 217,
+      "version": "7",
+      "when": 1794324800000,
+      "tag": "0233_checkout_drafts",
+      "breakpoints": true
     }
   ]
 }

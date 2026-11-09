@@ -8,6 +8,7 @@ import {
 import { and, desc, eq, isNull, notInArray } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 import { CommerceError } from '../errors'
+import { isOpenCheckoutDraft } from '../order/checkout-draft'
 import { captureModeFor } from './capture'
 import { applyPaymentStatus } from './confirm'
 import { type FallbackTry, runWithFallbacks } from './fallback'
@@ -136,7 +137,9 @@ async function claimAttempt(
     gateway?.capture === 'manual' && claimed.purpose !== 'balance' ? 'manual' : undefined
   const request: CreatePaymentInput = {
     orderId: o.id,
-    orderNumber: o.number,
+    // A checkout draft has no order number yet: the gateway shows its draft number (#D57).
+    orderNumber: o.status === 'draft' ? undefined : o.number,
+    draftNumber: o.status === 'draft' ? (o.draftNumber ?? undefined) : undefined,
     amountPaise: claimed.amountPaise,
     currency: 'INR',
     idempotencyKey: claimed.idempotencyKey ?? attemptKey(o.id, claimed.attempt),
@@ -347,7 +350,7 @@ async function reopenOnGateway(
     const [failed] = await tx.select().from(payment).where(eq(payment.id, failedAttemptId))
     if (failed?.status !== 'failed') return null
     const [o] = await tx.select().from(order).where(eq(order.id, failed.orderId)).for('update')
-    if (o?.status !== 'open' || o.checkoutPaidAt) return null
+    if (!o || !(o.status === 'open' || isOpenCheckoutDraft(o)) || o.checkoutPaidAt) return null
     const [latest] = await paymentAttempts({ storeId, tx }, failed.orderId)
     if (latest?.id !== failed.id) return null
     const next = await createPaymentAttempt(
@@ -396,7 +399,10 @@ export async function retryPayment(
 ): Promise<{ attempt: PaymentAttempt; created: boolean }> {
   const [o] = await ctx.tx.select().from(order).where(eq(order.id, orderId)).for('update')
   if (!o) throw new PaymentNotRetryable(orderId, 'not found', ctx.storeId)
-  if (o.status !== 'open') throw new PaymentNotRetryable(orderId, o.status, ctx.storeId)
+  // A checkout draft waits for its money like an open order does, until it expires.
+  if (o.status !== 'open' && !isOpenCheckoutDraft(o)) {
+    throw new PaymentNotRetryable(orderId, o.draftExpiredAt ? 'expired' : o.status, ctx.storeId)
+  }
   if (o.checkoutPaidAt) throw new PaymentNotRetryable(orderId, 'already paid', ctx.storeId)
   // Balance attempts on a pre-order are a separate collection, never retried from here.
   const attempts = (await paymentAttempts(ctx, orderId)).filter((a) => a.purpose === 'order')

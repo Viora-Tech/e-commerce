@@ -6,6 +6,7 @@ import {
   installedApps,
   isSplitTender,
   orderParcelsView,
+  orderRefWhere,
   orderViewToken,
   STORE_CREDIT_PROVIDER,
   storeCheckoutLook,
@@ -19,7 +20,7 @@ import { getRegistries } from '@commerce/core/registries'
 import { address, giftCard, order, orderLine, payment, shipment, withStore } from '@commerce/db'
 import type { CheckoutSession } from '@commerce/payments'
 import type { Tracking } from '@commerce/shipping'
-import { desc, eq, inArray } from 'drizzle-orm'
+import { desc, eq, inArray, sql } from 'drizzle-orm'
 import { notFound } from 'next/navigation'
 import { after } from 'next/server'
 import ExperimentBeacon from '@/components/analytics/experiment-beacon'
@@ -43,20 +44,23 @@ const OPEN_STATUSES: ReadonlySet<string> = new Set(OPEN_ATTEMPT_STATUSES)
 
 type Params = {
   params: Promise<{ storeId: string; number: string }>
-  searchParams: Promise<{ t?: string }>
+  /** `again=1`: the shopper checked out the same items again and is on their open draft. */
+  searchParams: Promise<{ t?: string; again?: string }>
 }
 
 export default async function ThankYouPage({ params, searchParams }: Params) {
   const { storeId, number } = await params
   // The proxy moved `?t=` into a cookie for this page (`lib/order-token-swap.ts`).
-  const token = await orderPageToken((await searchParams).t)
+  const query = await searchParams
+  const token = await orderPageToken(query.t)
   const env = loadEnv(process.env)
   const me = await currentCustomer(storeId)
   const data = await inStore(storeId, async (tx) => {
     const [o] = await tx
       .select()
       .from(order)
-      .where(eq(order.number, Number(number)))
+      // `2441`, or `D57` for an unpaid checkout kept as a draft (also once it is an order).
+      .where(orderRefWhere(number) ?? sql`false`)
     if (!o) return null
     // Either a signed-in customer who owns the order, or a valid, unguessable
     // per-order token — never the sequential order number alone.
@@ -121,7 +125,7 @@ export default async function ThankYouPage({ params, searchParams }: Params) {
     // A transfer still waiting: offer the store's gateway as well (issue 1010).
     const transferOpen =
       o.paymentMethod === 'manual' &&
-      o.status === 'open' &&
+      (o.status === 'open' || o.status === 'draft') &&
       !o.checkoutPaidAt &&
       !!pay &&
       OPEN_STATUSES.has(pay.status)
@@ -146,6 +150,8 @@ export default async function ThankYouPage({ params, searchParams }: Params) {
   })
 
   if (!data) notFound()
+  // Not paid yet: an unpaid checkout kept as a draft is no purchase for pixels or A/B tests.
+  const isDraft = data.order.status === 'draft'
   // Links installed apps add, e.g. a signed "Download invoice".
   const links = await getRegistries().orderLinks(
     await installedApps(db(), storeId),
@@ -180,13 +186,13 @@ export default async function ThankYouPage({ params, searchParams }: Params) {
     (await abPurchaseMeasured(storeId))
   // Search & discovery: the funnel's last step, when this browser added from a search or a
   // recommendation in the last 30 minutes (a reload within the window is not counted again).
-  const discoveryShopper = data.order.isTest ? null : await discoveryVisitor()
+  const discoveryShopper = data.order.isTest || isDraft ? null : await discoveryVisitor()
   if (discoveryShopper) after(() => recordDiscoveryOrder(storeId, discoveryShopper))
   return (
     <>
-      {measured ? <ExperimentBeacon order={data.order.id} /> : null}
+      {measured && !isDraft ? <ExperimentBeacon order={data.order.id} /> : null}
       {/* Pixels app: the browser Purchase (ord_<orderId>); test orders never count. */}
-      {data.order.isTest ? null : (
+      {data.order.isTest || isDraft ? null : (
         <PixelTrack
           event={{
             name: 'Purchase',
@@ -207,6 +213,7 @@ export default async function ThankYouPage({ params, searchParams }: Params) {
         links={links}
         payPath={buildPayPath(data.order.number, payToken)}
         canPayOnline={data.canPayOnline}
+        checkedOutAgain={isDraft && query.again === '1'}
         look={await withThemeLogo(storeId, data.look)}
         images={data.images}
         shipTo={data.shipTo}
@@ -215,7 +222,7 @@ export default async function ThankYouPage({ params, searchParams }: Params) {
         track={
           data.trackingUrl
             ? { href: data.trackingUrl, external: true }
-            : data.owned
+            : data.owned && !isDraft
               ? { href: `/account/orders/${data.order.number}`, external: false }
               : null
         }

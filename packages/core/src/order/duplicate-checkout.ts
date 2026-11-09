@@ -1,6 +1,6 @@
 /** SOURCE OF TRUTH: duplicate and repeated checkouts — WHAT: `findRecentDuplicateCheckout` (the shopper's recent order with the same items, unpaid or placed), `recentUnpaidCheckouts` (their unpaid checkouts in the last hour) and the errors `placeOrder` throws for them / WHY: failed card retries and never-paid transfers each became a new order; the later "unpaid checkouts as drafts" design (docs/design/unpaid-checkouts-as-drafts.md) points this one helper at drafts instead */
 import { order, orderLine, store } from '@commerce/db'
-import { and, desc, eq, gte, inArray, isNull, ne, notInArray, type SQL } from 'drizzle-orm'
+import { and, desc, eq, inArray, isNull, ne, or, type SQL, sql } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 import { CommerceError } from '../errors'
 import {
@@ -18,6 +18,8 @@ const CANDIDATES = 20
 export type RecentCheckout = {
   id: string
   number: number
+  /** Set while it is a checkout draft: the shopper sees and pays #D57, not an order number. */
+  draftNumber: number | null
   customerId: string | null
   email: string | null
   phone: string | null
@@ -48,7 +50,8 @@ export class DuplicateCheckout extends CommerceError {
     o: RecentCheckout,
     opts: { sameContact: boolean; now: Date; storeId?: string | undefined },
   ) {
-    super('DUPLICATE_CHECKOUT', `These items were ordered as #${o.number} (${kind})`, {
+    const ref = o.draftNumber ? `D${o.draftNumber}` : String(o.number)
+    super('DUPLICATE_CHECKOUT', `These items were ordered as #${ref} (${kind})`, {
       storeId: opts.storeId,
     })
     this.kind = kind
@@ -71,27 +74,49 @@ export class TooManyUnpaidCheckouts extends CommerceError {
 const recentColumns = {
   id: order.id,
   number: order.number,
+  draftNumber: sql<
+    number | null
+  >`case when ${order.status} = 'draft' then ${order.draftNumber} end`,
   customerId: order.customerId,
   email: order.email,
   phone: order.phone,
   paymentMethod: order.paymentMethod,
-  placedAt: order.placedAt,
+  // A checkout draft counts from its last activity (the shopper came back), an order from its placing.
+  placedAt: sql<Date>`coalesce(${order.lastActivityAt}, ${order.placedAt})`.mapWith(order.placedAt),
   status: order.status,
   checkoutPaidAt: order.checkoutPaidAt,
   paymentStatus: order.paymentStatus,
 }
 
-/** Waiting for its money: open, nothing captured at checkout, not cash on delivery or authorised. */
+/**
+ * Orders and the open checkout drafts (an unpaid checkout kept as a draft until paid, 0233):
+ * staff drafts and expired checkout drafts are not the shopper's checkouts to resume.
+ */
+const ordersAndOpenCheckoutDrafts = (): SQL | undefined =>
+  or(
+    ne(order.status, 'draft'),
+    and(eq(order.draftSource, 'checkout'), isNull(order.draftExpiredAt)),
+  )
+
+/** Ordered or open checkout drafts, last active since `since`. */
+const activeSince = (since: Date): SQL =>
+  sql`coalesce(${order.lastActivityAt}, ${order.placedAt}) >= ${since.toISOString()}::timestamptz`
+
+/**
+ * Waiting for its money: an open checkout draft, or an open order with nothing captured at
+ * checkout, not cash on delivery or authorised.
+ */
 const isUnpaid = (o: {
   status: string
   checkoutPaidAt: Date | null
   paymentMethod: string | null
   paymentStatus: string
 }) =>
-  o.status === 'open' &&
-  o.checkoutPaidAt === null &&
-  o.paymentMethod !== 'cod' &&
-  o.paymentStatus !== 'authorized'
+  o.status === 'draft' ||
+  (o.status === 'open' &&
+    o.checkoutPaidAt === null &&
+    o.paymentMethod !== 'cod' &&
+    o.paymentStatus !== 'authorized')
 
 /** `variantId:quantity` pairs, quantities summed per variant, sorted: line order does not count. */
 export function itemsKey(lines: readonly { variantId: string | null; quantity: number }[]): string {
@@ -143,13 +168,14 @@ export async function findRecentDuplicateCheckout(
     .from(order)
     .where(
       and(
-        notInArray(order.status, ['cancelled', 'draft']),
+        ne(order.status, 'cancelled'),
+        ordersAndOpenCheckoutDrafts(),
         isNull(order.importedFrom),
-        gte(order.placedAt, since),
+        activeSince(since),
         match,
       ),
     )
-    .orderBy(desc(order.placedAt))
+    .orderBy(desc(sql`coalesce(${order.lastActivityAt}, ${order.placedAt})`))
     .limit(CANDIDATES)
   if (rows.length === 0) return null
   const lines = await ctx.tx
@@ -185,20 +211,21 @@ export async function recentUnpaidCheckouts(
   const match = orderContactMatch(input.contact)
   if (!match) return { count: 0, latest: null }
   const since = new Date((input.now ?? new Date()).getTime() - HOUR_MS)
+  // Checkout drafts count, expired ones too (a failed card retry used to be cancelled the same way).
   const where: SQL | undefined = and(
-    ne(order.status, 'draft'),
+    or(ne(order.status, 'draft'), eq(order.draftSource, 'checkout')),
     isNull(order.checkoutPaidAt),
     ne(order.paymentMethod, 'cod'),
     ne(order.paymentStatus, 'authorized'),
     isNull(order.importedFrom),
-    gte(order.placedAt, since),
+    activeSince(since),
     match,
   )
   const rows: RecentRow[] = await ctx.tx
     .select(recentColumns)
     .from(order)
     .where(where)
-    .orderBy(desc(order.placedAt))
+    .orderBy(desc(sql`coalesce(${order.lastActivityAt}, ${order.placedAt})`))
   const latest = rows.find(isUnpaid)
   return { count: rows.length, latest: latest ? pick(latest) : null }
 }

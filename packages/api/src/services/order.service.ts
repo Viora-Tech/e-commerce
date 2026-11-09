@@ -50,7 +50,7 @@ import {
 
 export { ORDER_VIEWS, type OrderView, viewFilter } from './order-views'
 
-import { viewFilter } from './order-views'
+import { pendingUpiTile, viewFilter } from './order-views'
 
 export {
   ORDER_CHANNEL_FILTERS,
@@ -263,7 +263,7 @@ export async function orderTiles(tx: StoreTx, now = new Date()): Promise<OrderTi
         and(live, gte(order.placedAt, yesterdayStart), lte(order.placedAt, sameTimeYesterday)),
       ),
     tx.select({ n: count() }).from(order).where(readyToShipWhere()),
-    tx.select({ n: count() }).from(order).where(viewFilter('pending_upi')),
+    tx.select({ n: count() }).from(order).where(pendingUpiTile()),
     tx
       .select({ totalPaise: order.totalPaise, placedAt: order.placedAt })
       .from(order)

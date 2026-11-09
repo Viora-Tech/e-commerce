@@ -8,6 +8,7 @@ import {
   orderViewToken,
   PaymentNotRetryable,
   payOnlineInstead,
+  recordShopperPaid,
   retryAndStartPayment,
   SPLIT_TENDER_PROVIDERS,
   syncOpenQrAttempt,
@@ -114,6 +115,34 @@ export async function payOnlineAction(orderNumber: number, viewToken: string | n
   )
   if (started?.becameCaptured) await nudgeOutbox(storeId)
   await redirectAfterCheckout({ session: started?.session ?? null, orderNumber, orderId: oid })
+}
+
+/**
+ * "I've paid" on a UPI / bank transfer checkout's page (a draft, #D57): records the shopper's
+ * word and optional UTR for the merchant (`recordShopperPaid`). Nothing is marked paid: the
+ * merchant does that once the money is seen. Same access rule and rate limit as "Retry payment".
+ */
+export async function shopperPaidAction(
+  orderNumber: number,
+  viewToken: string | null,
+  form: FormData,
+) {
+  const storeId = await requestStoreId()
+  const orderId = await accessibleOrderId(storeId, orderNumber, viewToken)
+  if (!orderId) redirect(`/checkout/thank-you/${orderNumber}`)
+  const oid: string = orderId
+  const ip = clientIp(await headers())
+  const [byIp, byOrder] = await Promise.all([
+    rateLimited('payment-retry:ip', ip, PAYMENT_RETRY_IP_RULE),
+    rateLimited('payment-retry:order', `${storeId}:${orderNumber}`, PAYMENT_RETRY_IP_RULE),
+  ])
+  if (byIp.ok && byOrder.ok) {
+    const utr = form.get('utr')
+    await inStore(storeId, (tx) =>
+      recordShopperPaid({ storeId, tx }, oid, typeof utr === 'string' ? utr : null),
+    )
+  }
+  return redirectToOrderPage(thankYouPath(orderNumber, orderViewToken(oid, settingsSecret())))
 }
 
 /**

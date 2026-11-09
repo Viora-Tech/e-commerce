@@ -129,6 +129,8 @@ describe('order-view link (thank-you / pay IDOR guard)', () => {
     const token = orderViewToken('order-1', secret, t0)
     expect(thankYouPath(7, token)).toBe(`/checkout/thank-you/7?t=${token}`)
     expect(payPath(7, token)).toBe(`/checkout/pay/7?t=${token}`)
+    expect(thankYouPath(-57, token)).toBe(`/checkout/thank-you/D57?t=${token}`)
+    expect(payPath(-57, token)).toBe(`/checkout/pay/D57?t=${token}`)
     expect(thankYouUrl('order-1', 7, secret, 'https://shop.test/', t0)).toBe(
       `https://shop.test/checkout/thank-you/7?t=${token}`,
     )

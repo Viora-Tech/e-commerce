@@ -1,5 +1,6 @@
 import { loadEnv } from '@commerce/config'
 import {
+  orderRefWhere,
   orderViewToken,
   SPLIT_TENDER_PROVIDERS,
   storeCheckoutLook,
@@ -7,13 +8,15 @@ import {
   variantImageUrls,
   verifyOrderViewToken,
 } from '@commerce/core'
+import { orderRef } from '@commerce/core/draft-number'
 import { order, orderLine, payment } from '@commerce/db'
 import type { CheckoutSession } from '@commerce/payments'
-import { and, desc, eq, notInArray } from 'drizzle-orm'
+import { and, desc, eq, notInArray, sql } from 'drizzle-orm'
 import { notFound, redirect } from 'next/navigation'
 import CheckoutShell from '@/components/checkout/checkout-shell'
 import OrderSummary from '@/components/checkout/order-summary'
 import { payClientContent } from '@/data/checkout'
+import { checkoutRepeatContent } from '@/data/checkout-repeat'
 import { withThemeLogo } from '@/lib/checkout-look'
 import { currentCustomer } from '@/lib/customer-session'
 import { orderPageToken } from '@/lib/order-view-cookie'
@@ -22,20 +25,23 @@ import PayClient from './pay-client'
 
 type Params = {
   params: Promise<{ storeId: string; number: string }>
-  searchParams: Promise<{ t?: string }>
+  /** `again=1`: the shopper checked out the same items again and is on their open draft. */
+  searchParams: Promise<{ t?: string; again?: string }>
 }
 
 export default async function PayPage({ params, searchParams }: Params) {
   const { storeId, number } = await params
   // The proxy moved `?t=` into a cookie for this page (`lib/order-token-swap.ts`).
-  const token = await orderPageToken((await searchParams).t)
+  const query = await searchParams
+  const token = await orderPageToken(query.t)
   const env = loadEnv(process.env)
   const me = await currentCustomer(storeId)
   const data = await inStore(storeId, async (tx) => {
     const [o] = await tx
       .select()
       .from(order)
-      .where(eq(order.number, Number(number)))
+      // `2441`, or `D57` for an unpaid checkout kept as a draft.
+      .where(orderRefWhere(number) ?? sql`false`)
     if (!o) return null
     const ownedBySession = !!me && o.customerId === me.id
     const verified = token ? verifyOrderViewToken(token, env.SETTINGS_SECRET) : null
@@ -76,6 +82,11 @@ export default async function PayPage({ params, searchParams }: Params) {
         <OrderSummary order={data.order} lines={data.lines} images={data.images} giftCards={[]} />
       }
     >
+      {query.again === '1' && data.order.status === 'draft' ? (
+        <p role="status" className="mb-4 text-[0.875rem] leading-5 text-ck-ink">
+          {checkoutRepeatContent.unpaidDuplicate(orderRef(data.order))}
+        </p>
+      ) : null}
       <PayClient
         orderNumber={data.order.number}
         session={session}

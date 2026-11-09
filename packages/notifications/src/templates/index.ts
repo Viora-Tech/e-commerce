@@ -33,6 +33,7 @@ export const TEMPLATE_IDS: TemplateId[] = [
   'balance_reminder',
   'balance_received',
   'payment_reminder',
+  'transfer_requested',
   'unpaid_cancel_notice',
   'staff_new_order',
   'staff_daily_summary',
@@ -102,6 +103,7 @@ export const TEMPLATE_NAMES: Record<TemplateId, string> = {
   balance_reminder: 'Balance reminder',
   balance_received: 'Balance received',
   payment_reminder: 'Payment reminder',
+  transfer_requested: 'Order received, complete your transfer',
   unpaid_cancel_notice: 'Unpaid order will be cancelled (merchant)',
   staff_new_order: 'New order (team member alert)',
   staff_daily_summary: 'Daily summary (team member alert)',
@@ -252,6 +254,7 @@ function primaryActionFor(
     case 'balance_reminder':
       return d.actionUrl ? { label: 'Pay the balance', url: d.actionUrl } : undefined
     case 'payment_reminder':
+    case 'transfer_requested':
       return d.orderUrl ? { label: 'View payment details', url: d.orderUrl } : undefined
     case 'back_in_stock_confirm':
       return d.backInStock?.confirmUrl
