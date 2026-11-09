@@ -17,7 +17,9 @@ import { and, asc, eq, inArray, isNull, sql } from 'drizzle-orm'
 import { soldInRequestCatalog } from '../markets/catalog-rules'
 import { type MarketPricing, presentmentCents } from '../markets/presentment'
 import type { MediaVariants } from '../media/loader'
-import { variantAllowsPreorder } from '../preorder/settings'
+import { campaignApplies } from '../preorder/campaigns'
+import { campaignsByIds } from '../preorder/campaigns-service'
+import { resolvePreorderSettings } from '../preorder/settings'
 import type { LiquidImageData, LiquidProductData } from './drops'
 import { richTextHtml } from './rich-html'
 
@@ -129,6 +131,17 @@ export async function loadProducts(
         .where(inArray(variantOptionValue.variantId, variantIds))
         .orderBy(asc(productOption.position))
     : []
+  // Pre-order campaigns (Products › Pre-orders) that sell on the online store now, as the
+  // product page reads them (`storefrontCampaigns`): a product in one sells on pre-order even
+  // with its own switch off.
+  const campaigns = await campaignsByIds(
+    tx,
+    found.map((r) => r.p.preorderCampaignId),
+  )
+  const campaignOf = (p: (typeof found)[number]['p']) => {
+    const c = p.preorderCampaignId ? campaigns.get(p.preorderCampaignId) : undefined
+    return c && campaignApplies(c, { marketId: undefined, channel: 'online_store' }) ? c : null
+  }
   const unsold = new Set(found.filter((r) => !r.soldHere).map((r) => r.p.id))
   const rows = found.filter((r) => options.keepUnsold || r.soldHere).map((r) => r.p)
   const byId = new Map(rows.map((r) => [r.id, r]))
@@ -180,6 +193,7 @@ export async function loadProducts(
     }
     const imageById = new Map(imgs.map((i) => [i.id as string, i]))
     const description = richTextHtml(p.description)
+    const campaign = campaignOf(p)
     return [
       {
         id: p.id,
@@ -194,14 +208,14 @@ export async function loadProducts(
           .map(([name, vals]) => ({ name, values: vals.filter(shownValue) }))
           .filter((o) => o.values.length > 0),
         createdAt: p.createdAt,
-        preorder: p.preorderEnabled,
+        preorder: resolvePreorderSettings(p, null, campaign).enabled,
         collectionHandles: memberships.filter((m) => m.productId === id).map((m) => m.handle),
         variants: productVariants.map((v) => {
           const qty = onHand(v)
           // Pre-order variants sell with no stock, as Shopify's "continue selling" does: the
-          // product has pre-order on and the variant allows it (#962), else sold out, which the
-          // theme draws crossed out.
-          const preorder = p.preorderEnabled && variantAllowsPreorder(v.preorder)
+          // product (or its campaign) has pre-order on and the variant allows it (#962), else
+          // sold out, which the theme draws crossed out.
+          const preorder = resolvePreorderSettings(p, v.preorder, campaign).enabled
           // Listed without a price (#913): Liquid needs a number, and the variant is not for sale.
           const price = v.price
           return {
