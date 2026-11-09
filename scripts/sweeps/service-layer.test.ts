@@ -363,6 +363,21 @@ const ALLOWLIST: AllowEntry[] = [
     reason: 'test helper seeds the db directly',
   },
   {
+    path: 'packages/api/test/support/legacy/analytics.service.ts',
+    exact: true,
+    reason: 'frozen copy of the old service, the reference for dashboard-sql-parity.test.ts',
+  },
+  {
+    path: 'packages/api/test/support/legacy/dashboard.service.ts',
+    exact: true,
+    reason: 'frozen copy of the old service, the reference for dashboard-sql-parity.test.ts',
+  },
+  {
+    path: 'packages/api/test/support/legacy/home-analytics.service.ts',
+    exact: true,
+    reason: 'frozen copy of the old service, the reference for dashboard-sql-parity.test.ts',
+  },
+  {
     path: 'packages/plugin-reviews/test/helpers.ts',
     exact: true,
     reason: 'test helper seeds the db directly',

@@ -8,7 +8,7 @@ export const HOME_CARDS_EVERY_MS = 60 * 60_000
 /**
  * Home's smart cards: one repeat job rebuilds the cards of every store whose last refresh is
  * 20 hours old, from its own numbers (`@commerce/core` home-cards). One store failing is
- * logged and skipped; Home rebuilds on open if a store is ever missed for a day.
+ * logged and skipped, and tried again on the next hourly run. Home only reads the cards.
  */
 export function createHomeCardsRefresh(db: Db) {
   const run = async () => {
