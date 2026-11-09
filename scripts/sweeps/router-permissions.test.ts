@@ -77,7 +77,8 @@ const ALLOWLIST: AllowEntry[] = [
   },
   {
     site: 'shell.ts: shellProcedure (storeProcedure)',
-    reason: 'the admin layout reads; each part checks its own permission (scope.can) and is null without it',
+    reason:
+      'the admin layout reads; each part checks its own permission (scope.can) and is null without it',
   },
   {
     site: 'store.ts: origin (storeProcedure)',
