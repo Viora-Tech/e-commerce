@@ -1,37 +1,30 @@
 /**
- * ShipGlobal adapter, for exports from India: books an order and returns its label.
+ * ShipGlobal adapter, for exports from India.
  *
- * Built on the only API ShipGlobal publishes, the Label Generation API
- * (https://labels.shipglobal.in/api-docs.php, read 2026-10-31):
+ * Built on ShipGlobal's vendor API ("ApiV1 ShipGlobal Vendor - Production",
+ * https://developer.docs.shipglobal.in/, published 2026-11-03). Every call is a POST with
+ * HTTP Basic auth (the API username and password from ShipGlobal):
  *
- *   POST /customers.php                     {email,password} -> {token, expires_at, customer}
- *   POST /addOrder.php?download=true        order + items -> {success, data.waybill_number,
- *                                           data.pdf_base64, data.label_format}
+ *   /apiv1/rates/calculate          {package_weight kg, country_iso_code_2, postcode}
+ *                                   -> {success, billed_weight, currency, services[]}
+ *   /apiv1/order/add                the order and its customs lines
+ *   /apiv1/order/getLabel           {tracking, label:true} -> pays from the wallet, {label}
+ *   /apiv1/tools/tracking           {tracking} -> {data.awbEvents[]}
+ *   /apiv1/order/cancelRefundOrder  {tracking} -> {success, msg}
  *
- * The docs list no rate, tracking, cancel, pickup or webhook call, and none is guessed here:
- *  - Rates: none. The rate table shows ShipGlobal with transit and price unknown ("rate on
- *    booking"); serviceability is answered from the service rules without a call.
- *  - Tracking: none. `tracksManually`, so the poll job skips it and the merchant moves each
- *    parcel's status on the app page, reading ShipGlobal's tracker.
- *  - Cancel: none. Not in the capabilities; the merchant cancels in ShipGlobal's panel.
- *  - `/processDestination.php` (manifest handoff) exists for the UBI service only and is for
- *    ShipGlobal's carrier partners, so it is not used.
+ * A wrong login answers `{success:false, error_code:"EA_401"}` (HTTP 401). The pickup address
+ * and the seller's GSTIN and IEC come from the ShipGlobal account itself (its KYC), not from
+ * the order; `address_nickname` picks a pickup address other than the default.
  *
- * Every field the docs do not explain, and how this adapter fills it, carries a `VERIFY:`
- * note; the handoff note lists them for the owner to confirm with ShipGlobal's integration team.
+ * Every field the docs do not explain, and how this adapter fills it, carries a `VERIFY:` note.
  *
  * DECISIONS:
- *  - Exports only (`coverage: 'international'`), prepaid only (no COD), DAP.
- *  - `?download=true` on every booking: the docs make the same `order_reference` +
- *    `invoice_no` pair return the saved label instead of a 409, so a retry after a timeout
- *    gets the same waybill rather than a second booking. `order_reference` is our order id
- *    (a UUID), never the order number, so a ShipGlobal account also used from Shopify (same
- *    order numbers) can never hand back that store's label.
- *  - A failed booking still answers HTTP 200 with `success: false` (the docs say so): the
- *    `error` text is what the merchant reads.
- *  - UPS answers with a GIF label (the docs say so); it is not stored, since labels are
- *    stored and joined as PDFs. The booking stands and the merchant prints from ShipGlobal.
- *  - The bearer token lives in memory only (`LoginTokenCache`), never in the database.
+ *  - Exports only (`coverage: 'international'`), prepaid only (no COD).
+ *  - Booking is two calls: order/add saves the order, getLabel pays for it and returns the
+ *    PDF. If the second fails, the error names the saved order's tracking number so the
+ *    merchant pays for it in ShipGlobal rather than booking it twice.
+ *  - `order_reference` is our order id (a UUID), never the order number, so a ShipGlobal
+ *    account also used from Shopify (same order numbers) cannot clash.
  */
 
 import {
@@ -42,33 +35,43 @@ import {
   customsLines,
   indiaLocalTime,
   isDomesticCountry,
-  LoginTokenCache,
   missingHsCodeMessage,
+  type RateOption,
+  type RateQuery,
+  type RateQuote,
   type Serviceability,
   type ServiceabilityQuery,
+  type ShippingLabelDocument,
   type ShippingProvider,
   type Tracking,
+  type TrackingEvent,
 } from '@commerce/shipping'
 import { SHIPGLOBAL_API_URL, SHIPGLOBAL_TRACKING_PAGE, type ShipglobalServiceCode } from './client'
 import {
+  billedGrams,
+  carrierOf,
   cm,
+  eventInstant,
+  kg,
   phoneOf,
   rupees,
-  shipglobalService,
   splitName,
+  statusOfEvent,
   streetLines,
-  tokenLifetimeMs,
+  transitDays,
 } from './mapping'
 
 export type ShipglobalConfig = {
-  /** The API login from ShipGlobal's dashboard (Settings › API). */
-  email: string
+  /** The API username from ShipGlobal (Settings › API). */
+  username: string
   password: string
-  /** `seller_nickname` on every order. VERIFY: what ShipGlobal expects here. */
-  sellerNickname: string
+  /** ShipGlobal's `address_nickname`: a saved pickup address other than the default. */
+  addressNickname?: string | undefined
+  /** ShipGlobal's `customer_nickname`, required for franchise accounts only. */
+  customerNickname?: string | undefined
   originPincode: string
   originCity: string
-  /** Importer-Exporter Code, 10 characters from DGFT. */
+  /** Importer-Exporter Code. Kept on file; ShipGlobal reads it from the account's KYC. */
   iec?: string | undefined
   /** EU IOSS number, for low-value parcels to the EU. */
   iossNumber?: string | undefined
@@ -83,63 +86,95 @@ export type ShipglobalConfig = {
 const QUICK_TIMEOUT_MS = 10_000
 const BOOKING_TIMEOUT_MS = 30_000
 const DEFAULT_BOX_CM = { length: 10, width: 10, height: 10 }
+const AUTH_ERROR_CODE = 'EA_401'
+const REFUSED_LOGIN =
+  'ShipGlobal did not accept this API username or password. Copy them again from ShipGlobal › Settings › API.'
 
-type LoginResponse = {
-  token?: string
-  expires_at?: string
-  customer?: { id?: number; name?: string; email?: string }
+/** Every answer carries `success`; a refusal adds `error` (and often `error_code`) or `msg`. */
+type Answer = {
+  success?: boolean
   error?: string
+  error_code?: string
+  msg?: string
   message?: string
 }
 
-type AddOrderResponse = {
-  success?: boolean
-  label?: string
-  error?: string
+type RatesResponse = Answer & {
+  billed_weight?: number
+  billed_weight_unit?: string
+  currency?: string
+  services?: {
+    title?: string
+    notes?: string
+    transit_time?: string
+    price?: { logistic_fee?: number }
+    subtotal_fee?: number
+  }[]
+}
+
+/**
+ * VERIFY: the docs show no answer for order/add. ShipGlobal's other answers put the number in
+ * `tracking`, so that is read first, then the likely nested spellings.
+ */
+type AddOrderResponse = Answer & {
+  tracking?: string
+  awb?: string
+  awb_number?: string
+  data?: { tracking?: string; awb?: string; awb_number?: string; order_reference?: string }
+}
+
+type LabelResponse = Answer & { tracking?: string; label?: string }
+
+type TrackingResponse = Answer & {
   data?: {
-    order_number?: string
-    waybill_number?: string
-    pdf_base64?: string
-    label_format?: string
+    awbEvents?: {
+      awb_history_datetime?: string
+      awb_history_location?: string
+      awb_history_comment?: string
+      awb_event_code?: string
+    }[]
   }
 }
+
+const reasonOf = (a: Answer) => (a.error || a.msg || a.message || '').trim()
 
 export class ShipglobalProvider implements ShippingProvider {
   readonly id = 'shipglobal'
   readonly label = 'ShipGlobal'
   readonly coverage = 'international' as const
-  readonly tracksManually = true
+  readonly tracksManually = false
 
   private readonly fetchImpl: typeof fetch
   private readonly now: () => Date
-  private readonly tokens: LoginTokenCache
 
   constructor(private readonly config: ShipglobalConfig) {
     this.fetchImpl = config.fetchImpl ?? fetch
     this.now = config.now ?? (() => new Date())
-    this.tokens = new LoginTokenCache(() => this.login())
+  }
+
+  private authorization(): string {
+    const pair = `${this.config.username}:${this.config.password}`
+    return `Basic ${Buffer.from(pair, 'utf8').toString('base64')}`
   }
 
   /**
-   * One ShipGlobal call. A 4xx body is read for its `error`, which is what the merchant needs
-   * to fix a refused booking. The URL and body never go into a message, and neither does the
-   * token or password.
+   * One ShipGlobal call. A refused login (HTTP 401, or EA_401 in the body) is an `auth` error;
+   * any other `success: false` is `rejected` with ShipGlobal's own reason, which is what the
+   * merchant needs to fix it. The URL, body and password never go into a message.
    */
-  private async call<T>(
+  private async call<T extends Answer>(
     path: string,
     body: unknown,
-    options: { token?: string; query?: Record<string, string>; timeoutMs?: number } = {},
+    timeoutMs = QUICK_TIMEOUT_MS,
   ): Promise<T> {
-    const qs = options.query ? `?${new URLSearchParams(options.query).toString()}` : ''
-    const timeoutMs = options.timeoutMs ?? QUICK_TIMEOUT_MS
     let res: Response
     try {
-      res = await this.fetchImpl(`${SHIPGLOBAL_API_URL}${path}${qs}`, {
+      res = await this.fetchImpl(`${SHIPGLOBAL_API_URL}${path}`, {
         method: 'POST',
         headers: {
           Accept: 'application/json',
           'Content-Type': 'application/json',
-          ...(options.token ? { Authorization: `Bearer ${options.token}` } : {}),
+          Authorization: this.authorization(),
         },
         body: JSON.stringify(body),
         signal: AbortSignal.timeout(timeoutMs),
@@ -159,38 +194,31 @@ export class ShipglobalProvider implements ShippingProvider {
         cause: error,
       })
     }
-    // VERIFY: the docs list no status for a bad or lapsed token; 401/403 is assumed.
-    if (res.status === 401 || res.status === 403) {
-      throw new CourierError('auth', this.id, 'ShipGlobal rejected the API login.', {
-        status: res.status,
-      })
+    const text = await res.text()
+    let parsed: T | null = null
+    try {
+      parsed = text ? (JSON.parse(text) as T) : ({} as T)
+    } catch {
+      parsed = null
+    }
+    if (res.status === 401 || res.status === 403 || parsed?.error_code === AUTH_ERROR_CODE) {
+      throw new CourierError('auth', this.id, REFUSED_LOGIN, { status: res.status })
     }
     if (res.status === 429) {
       throw new CourierError('rate_limited', this.id, 'ShipGlobal is rate limiting us.', {
         status: res.status,
       })
     }
-    const text = await res.text()
-    let parsed: unknown
-    try {
-      parsed = text ? JSON.parse(text) : {}
-    } catch (error) {
-      if (!res.ok) {
-        throw new CourierError(
-          res.status >= 500 ? 'unavailable' : 'rejected',
-          this.id,
-          `ShipGlobal returned HTTP ${res.status}.`,
-          { status: res.status },
-        )
-      }
-      throw new CourierError('bad_response', this.id, 'ShipGlobal returned a non-JSON body.', {
-        cause: error,
-      })
+    if (!parsed) {
+      throw new CourierError(
+        !res.ok && res.status < 500 ? 'rejected' : res.ok ? 'bad_response' : 'unavailable',
+        this.id,
+        res.ok ? 'ShipGlobal returned a non-JSON body.' : `ShipGlobal returned HTTP ${res.status}.`,
+        { status: res.status },
+      )
     }
-    if (!res.ok) {
-      const reason =
-        (parsed as { error?: string; message?: string }).error ??
-        (parsed as { message?: string }).message
+    if (!res.ok || parsed.success === false) {
+      const reason = reasonOf(parsed)
       throw new CourierError(
         res.status >= 500 ? 'unavailable' : 'rejected',
         this.id,
@@ -198,44 +226,82 @@ export class ShipglobalProvider implements ShippingProvider {
         { status: res.status },
       )
     }
-    return parsed as T
-  }
-
-  private async login(): Promise<{ token: string; lifetimeMs: number }> {
-    const data = await this.call<LoginResponse>('/customers.php', {
-      email: this.config.email,
-      password: this.config.password,
-    })
-    // VERIFY: a wrong password's answer. The docs show only the success body; no token = refused.
-    if (!data.token) {
-      throw new CourierError('auth', this.id, 'ShipGlobal did not accept this API login.')
-    }
-    return { token: data.token, lifetimeMs: tokenLifetimeMs(data.expires_at, this.now()) }
+    return parsed
   }
 
   async checkServiceability(query: ServiceabilityQuery): Promise<Serviceability> {
-    const answer = (serviceable: boolean, reason: string | null): Serviceability => ({
+    const abroad = !isDomesticCountry(query.destinationCountry)
+    return {
       provider: this.id,
-      serviceable,
+      serviceable: abroad,
       codAvailable: false,
-      prepaidAvailable: serviceable,
-      // ShipGlobal publishes no transit times for its API.
+      prepaidAvailable: abroad,
+      // Transit comes per service with the live rates, not here.
       minTransitDays: null,
       maxTransitDays: null,
-      reason,
-    })
-    if (isDomesticCountry(query.destinationCountry)) {
-      return answer(false, 'ShipGlobal ships from India to other countries only.')
+      reason: abroad ? null : 'ShipGlobal ships from India to other countries only.',
     }
-    const service = shipglobalService(
-      undefined,
-      this.config.service,
-      query.destinationCountry ?? '',
-      query.weightGrams ?? 500,
-    )
-    return service
-      ? answer(true, null)
-      : answer(false, 'Your ShipGlobal service (USPS / UPS) delivers in the US only.')
+  }
+
+  /** Every service ShipGlobal offers for this parcel, priced live. Empty at home or for COD. */
+  async quoteOptions(query: RateQuery): Promise<RateOption[]> {
+    if (isDomesticCountry(query.destinationCountry) || query.paymentMode === 'cod') return []
+    const data = await this.call<RatesResponse>('/apiv1/rates/calculate', {
+      package_weight: kg(query.weightGrams),
+      country_iso_code_2: (query.destinationCountry ?? '').trim().toUpperCase(),
+      postcode: query.destinationPincode.trim(),
+    })
+    // The docs answer in INR; any other currency is not priced rather than mispriced.
+    if ((data.currency ?? 'INR').toUpperCase() !== 'INR') return []
+    const chargeable = billedGrams(data.billed_weight, data.billed_weight_unit)
+    return (data.services ?? []).flatMap((s): RateOption[] => {
+      const title = s.title?.trim()
+      // VERIFY: whether subtotal_fee includes GST; it is the total the docs show per service.
+      const total = s.subtotal_fee ?? s.price?.logistic_fee
+      if (!title || typeof total !== 'number' || !Number.isFinite(total)) return []
+      const pricePaise = Math.round(total * 100)
+      const freight = s.price?.logistic_fee
+      const freightPaise =
+        typeof freight === 'number' && Number.isFinite(freight) ? Math.round(freight * 100) : null
+      const charges: RateOption['charges'] =
+        freightPaise === null
+          ? []
+          : [
+              { kind: 'freight', pricePaise: freightPaise },
+              ...(pricePaise > freightPaise
+                ? [{ kind: 'other' as const, pricePaise: pricePaise - freightPaise }]
+                : []),
+            ]
+      const days = transitDays(s.transit_time)
+      return [
+        {
+          serviceId: title,
+          serviceLabel: title,
+          carrier: carrierOf(title),
+          pricePaise,
+          minTransitDays: days.min,
+          maxTransitDays: days.max,
+          codAvailable: false,
+          charges,
+          chargeableWeightGrams: chargeable,
+        },
+      ]
+    })
+  }
+
+  /** The configured service's price, or the cheapest when ShipGlobal does not offer it here. */
+  async quoteRate(query: RateQuery): Promise<RateQuote | null> {
+    const options = await this.quoteOptions(query)
+    if (!options.length) return null
+    const want = this.config.service.toLowerCase()
+    const pick =
+      options.find((o) => o.serviceId.toLowerCase() === want) ??
+      options.reduce((a, b) => (b.pricePaise < a.pricePaise ? b : a))
+    return {
+      pricePaise: pick.pricePaise,
+      minTransitDays: pick.minTransitDays,
+      maxTransitDays: pick.maxTransitDays,
+    }
   }
 
   buildOrderPayload(input: CreateShipmentInput) {
@@ -247,93 +313,55 @@ export class ShipglobalProvider implements ShippingProvider {
         missingHsCodeMessage('ShipGlobal', customs.missingHsCode),
       )
     }
-    const service = shipglobalService(
-      input.serviceId,
-      this.config.service,
-      input.to.country,
-      input.weightGrams,
-    )
-    if (!service) {
-      throw new CourierError(
-        'rejected',
-        this.id,
-        'ShipGlobal books USPS and UPS to the US only. Pick another ShipGlobal service on the Connect page.',
-      )
-    }
-    const seller = splitName(input.from.name)
+    // VERIFY: the order sample spells it "Shipglobal Direct", the rates answer "ShipGlobal
+    // Direct"; we send the rates' own title.
+    const service = input.serviceId?.trim() || this.config.service
     const buyer = splitName(input.to.name)
-    const [sellerLine1, sellerLine2, sellerLine3] = streetLines(input.from)
-    const [buyerLine1, buyerLine2, buyerLine3] = streetLines(input.to)
+    const [line1, line2, line3] = streetLines(input.to)
     const box = input.dimensionsCm ?? DEFAULT_BOX_CM
-    const gstin = input.exporterGstin?.trim()
-    const iec = this.config.iec?.trim()
-    const ioss = this.config.iossNumber?.trim()
-    const toCountry = input.to.country.trim().toUpperCase()
+    const ioss = this.config.iossNumber?.trim() ?? ''
+    const customerNickname = this.config.customerNickname?.trim()
     return {
       service,
       payload: {
+        // VERIFY: the docs want invoice_no unique; the order number is unique per store.
         invoice_no: String(input.orderNumber),
         invoice_date: indiaLocalTime(this.now()).slice(0, 10),
-        // VERIFY: the longest order_reference ShipGlobal takes (a UUID is 36 characters).
         order_reference: input.orderId,
         service,
-        package_weight: Math.max(Math.round(input.weightGrams), 1),
+        package_weight: kg(input.weightGrams),
         package_length: cm(box.length),
         package_breadth: cm(box.width),
         package_height: cm(box.height),
-        // VERIFY: the docs' sample sends EUR; we declare the order's rupees.
+        // The order's own currency; ShipGlobal lists INR among its supported codes.
         currency_code: 'INR',
-        // VERIFY: 1 is read as "export under CSB-V" (the e-commerce courier shipping bill).
+        // 1 = export under CSB-V (the e-commerce courier shipping bill), per the docs.
         csb5_status: 1,
-        seller_nickname: this.config.sellerNickname,
-        seller_firstname: seller.first,
-        seller_lastname: seller.last,
-        seller_mobile: phoneOf(input.from.phone, 'IN'),
-        // VERIFY: the parcel's seller email. The API login's email is the one we have.
-        seller_email: this.config.email,
-        seller_company: input.from.name,
-        seller_address: sellerLine1,
-        seller_address_2: sellerLine2,
-        ...(sellerLine3 ? { seller_address_3: sellerLine3 } : {}),
-        seller_city: input.from.city,
-        seller_postcode: input.from.pincode.trim(),
-        seller_country_code: 'IN',
-        seller_state: input.from.state || input.from.city,
-        // VERIFY: the tax id type ShipGlobal expects for an Indian GSTIN (the sample says VAT).
-        ...(gstin ? { seller_tax_id_type: 'GSTIN', seller_tax_id: gstin } : {}),
-        // VERIFY: the docs name no IEC field; `iec_number` is our guess.
-        ...(iec ? { iec_number: iec } : {}),
+        address_nickname: this.config.addressNickname?.trim() ?? '',
+        ...(customerNickname ? { customer_nickname: customerNickname } : {}),
         customer_shipping_firstname: buyer.first,
         customer_shipping_lastname: buyer.last,
-        customer_shipping_mobile: phoneOf(input.to.phone, toCountry),
-        // The shopper's email when the order has one; the seller's stands in otherwise.
-        customer_shipping_email: input.to.email || this.config.email,
-        customer_shipping_company: input.to.name,
-        customer_shipping_address: buyerLine1,
-        customer_shipping_address_2: buyerLine2,
-        ...(buyerLine3 ? { customer_shipping_address_3: buyerLine3 } : {}),
+        customer_shipping_mobile: phoneOf(input.to.phone),
+        // VERIFY: an order with no shopper email; ShipGlobal marks the field required.
+        customer_shipping_email: input.to.email?.trim() ?? '',
+        customer_shipping_company: '',
+        customer_shipping_address: line1,
+        customer_shipping_address_2: line2,
+        customer_shipping_address_3: line3,
         customer_shipping_city: input.to.city,
         customer_shipping_postcode: input.to.pincode.trim(),
-        customer_shipping_country_code: toCountry,
+        customer_shipping_country_code: input.to.country.trim().toUpperCase(),
         customer_shipping_state: input.to.state || input.to.city,
-        ...(ioss ? { ioss_number: ioss } : {}),
+        ioss_number: ioss,
         vendor_order_items: customs.lines.map((l, i) => ({
           vendor_order_item_name: l.title.slice(0, 200),
           vendor_order_item_sku: l.sku?.trim() || `LINE-${i + 1}`,
-          vendor_order_item_quantity: l.quantity,
+          vendor_order_item_quantity: String(l.quantity),
           vendor_order_item_unit_price: rupees(l.unitPricePaise),
           vendor_order_item_hsn: l.hsCode,
           // VERIFY: exports under a LUT are zero-rated, so 0; ask if ShipGlobal wants the IGST rate.
-          vendor_order_item_tax_rate: 0,
+          vendor_order_item_tax_rate: '0',
         })),
-        // VERIFY: the docs mark `tracking` mandatory with a sample number and no description;
-        // we send the order reference.
-        tracking: input.trackingNumber?.trim() || input.orderId,
-        // The docs' sample values, mandatory for VipParcel only.
-        ...(service === 'VIPPARCEL'
-          ? { mailClass: 'First', deliveryConfirmation: 'NO_SIGNATURE' }
-          : {}),
-        retry: false,
       },
     }
   }
@@ -354,83 +382,124 @@ export class ShipglobalProvider implements ShippingProvider {
       )
     }
     const { payload } = this.buildOrderPayload(input)
-    const result = await this.tokens.withToken((token) =>
-      this.call<AddOrderResponse>('/addOrder.php', payload, {
-        token,
-        query: { download: 'true' },
-        timeoutMs: BOOKING_TIMEOUT_MS,
-      }),
-    )
-    const waybill = result.data?.waybill_number?.trim()
-    if (result.success !== true || !waybill) {
+    const added = await this.call<AddOrderResponse>('/apiv1/order/add', payload, BOOKING_TIMEOUT_MS)
+    const tracking = (
+      added.tracking ||
+      added.data?.tracking ||
+      added.awb_number ||
+      added.data?.awb_number ||
+      added.awb ||
+      added.data?.awb ||
+      ''
+    ).trim()
+    if (!tracking) {
+      const reason = reasonOf(added)
       throw new CourierError(
-        'rejected',
+        'bad_response',
         this.id,
-        result.error
-          ? `ShipGlobal: ${result.error}`
-          : 'ShipGlobal booked nothing: no waybill came back.',
+        `ShipGlobal saved nothing we can track: no tracking number came back${reason ? ` (${reason})` : ''}. Check the order in your ShipGlobal panel before booking again.`,
       )
     }
-    const pdf =
-      result.data?.pdf_base64 && (result.data.label_format ?? 'PDF').toUpperCase() === 'PDF'
-        ? result.data.pdf_base64
-        : null
+    let label: LabelResponse
+    try {
+      label = await this.call<LabelResponse>(
+        '/apiv1/order/getLabel',
+        { tracking, label: true },
+        BOOKING_TIMEOUT_MS,
+      )
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : 'no label came back'
+      throw new CourierError(
+        error instanceof CourierError ? error.kind : 'unavailable',
+        this.id,
+        `ShipGlobal saved the order as ${tracking} but did not take payment for its label: ${reason}. Pay for it in your ShipGlobal panel; booking again here would add a second order.`,
+        { cause: error },
+      )
+    }
+    const pdf = label.label?.trim()
     return {
-      waybill,
-      providerRef: result.data?.order_number || waybill,
+      waybill: tracking,
+      providerRef: tracking,
       trackingUrl: SHIPGLOBAL_TRACKING_PAGE,
       ...(pdf ? { documents: [{ kind: 'label' as const, pdfBase64: pdf }] } : {}),
     }
   }
 
-  /** The published API has no tracking call; `tracksManually` keeps the poll job away. */
-  async track(_waybill: string): Promise<Tracking> {
-    throw new CourierError(
-      'rejected',
-      this.id,
-      'ShipGlobal sends no tracking to apps. Check the parcel on shipglobal.in/tracking and set its status on the ShipGlobal app page.',
-    )
+  /** The label again, for a paid order. VERIFY: that a second getLabel does not charge again. */
+  async getLabel(waybill: string): Promise<ShippingLabelDocument> {
+    const label = await this.call<LabelResponse>('/apiv1/order/getLabel', {
+      tracking: waybill,
+      label: true,
+    })
+    if (!label.label) {
+      throw new CourierError(
+        'bad_response',
+        this.id,
+        'ShipGlobal returned no label for this parcel.',
+      )
+    }
+    return {
+      contentType: 'application/pdf',
+      body: new Uint8Array(Buffer.from(label.label, 'base64')),
+    }
   }
 
-  /** The published API has no cancel call (`cancel` is not in the capabilities). */
-  async cancel(_waybill: string): Promise<void> {
-    throw new CourierError(
-      'rejected',
-      this.id,
-      'Cancel this label in your ShipGlobal panel; ShipGlobal has no cancel for apps.',
-    )
+  async track(waybill: string): Promise<Tracking> {
+    const data = await this.call<TrackingResponse>('/apiv1/tools/tracking', { tracking: waybill })
+    const events: TrackingEvent[] = (data.data?.awbEvents ?? [])
+      .flatMap((e): TrackingEvent[] => {
+        const at = eventInstant(e.awb_history_datetime)
+        if (!at) return []
+        const location = e.awb_history_location?.trim()
+        return [
+          {
+            at,
+            status: statusOfEvent(e.awb_event_code),
+            description: (e.awb_history_comment ?? '').trim() || (e.awb_event_code ?? ''),
+            ...(location ? { location } : {}),
+          },
+        ]
+      })
+      .sort((a, b) => a.at.localeCompare(b.at))
+    return {
+      waybill,
+      status: events.at(-1)?.status ?? 'created',
+      events,
+      trackingUrl: SHIPGLOBAL_TRACKING_PAGE,
+    }
   }
 
-  /** Signs in: the login is read-only and is the whole of what the key check needs. */
+  /** Cancels and refunds to the wallet. "Order Already Cancelled" answers success too. */
+  async cancel(waybill: string): Promise<void> {
+    await this.call<Answer>('/apiv1/order/cancelRefundOrder', { tracking: waybill })
+  }
+
+  /**
+   * A tiny rate lookup: read-only, books nothing, and needs the login like every call.
+   * Only a 401 / EA_401 means the login is wrong; anything else is reported as it is.
+   */
   async verifyCredentials(): Promise<CredentialCheck> {
     try {
-      const data = await this.call<LoginResponse>('/customers.php', {
-        email: this.config.email,
-        password: this.config.password,
+      await this.call<RatesResponse>('/apiv1/rates/calculate', {
+        package_weight: '0.5',
+        country_iso_code_2: 'US',
+        postcode: '10001',
       })
-      if (!data.token) {
-        return {
-          ok: false,
-          message:
-            'ShipGlobal did not accept this API login. Copy it again from ShipGlobal › Settings › API.',
-        }
-      }
-      const who = data.customer?.name?.trim()
       return {
         ok: true,
-        message: `Connected to ShipGlobal${who ? ` as ${who}` : ''}. Labels are booked with ${this.config.service}.`,
+        message: `Connected to ShipGlobal. Live rates work; labels default to ${this.config.service}.`,
       }
     } catch (error) {
-      if (error instanceof CourierError && (error.kind === 'auth' || error.kind === 'rejected')) {
-        return {
-          ok: false,
-          message:
-            'ShipGlobal did not accept this API login. Copy it again from ShipGlobal › Settings › API.',
-        }
+      if (error instanceof CourierError && error.kind === 'auth') {
+        return { ok: false, message: REFUSED_LOGIN }
+      }
+      if (error instanceof CourierError && error.kind === 'rejected') {
+        // Signed in: ShipGlobal only refused the sample parcel.
+        return { ok: true, message: `Connected to ShipGlobal. ${error.message}` }
       }
       return {
         ok: false,
-        message: error instanceof Error ? error.message : 'Could not verify the ShipGlobal login.',
+        message: `Could not check the ShipGlobal login: ${error instanceof Error ? error.message : 'unknown error'} Try again in a minute.`,
       }
     }
   }
