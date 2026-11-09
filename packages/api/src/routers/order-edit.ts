@@ -66,6 +66,11 @@ export const orderEditRoutes = {
         refund: refundRoute,
         /** Store credit's last day (YYYY-MM-DD); left out, it never expires. */
         storeCreditExpiresOn: z.iso.date().optional(),
+        /**
+         * The Orders list's bulk "Cancel orders" (#1408): refused with BAD_REQUEST (code
+         * ORDER_NEEDS_REFUND_DECISION) unless the order has nothing to refund.
+         */
+        onlyWithoutRefund: z.boolean().optional(),
       }),
     )
     .handler(async ({ context, input }) => {
