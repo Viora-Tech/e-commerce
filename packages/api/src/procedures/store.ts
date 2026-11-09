@@ -18,6 +18,7 @@ import { ORPCError } from '@orpc/server'
 import { approvalKind, isReadPath, kindForInput } from '../mcp/action-catalogue'
 import { ALREADY_REQUESTED, queueForApprover } from '../services/ai/assistant/service'
 import { activityRecorder, recordChange, recordedPath } from './activity'
+import { type AlsoNeeds, alsoHeld, describePermission as describe } from './also-needs'
 import { mustAsk } from './approval-rules'
 import { memberProcedure, type SessionContext } from './base'
 import { remember } from './request-memo'
@@ -43,12 +44,6 @@ type Access = Pick<
   StoreScope,
   'roleId' | 'roleSlug' | 'roleName' | 'isOwner' | 'permissions' | 'needsApproval'
 >
-
-/** "orders.refund" reads as "refund orders" in the message a merchant sees. */
-function describe(permission: Permission): string {
-  const [resource, action] = permission.split('.')
-  return `${action} ${String(resource).replace(/_/g, ' ')}`
-}
 
 function accessOf(found: MemberAccess): Access {
   return {
@@ -206,7 +201,7 @@ function report(context: SessionContext, storeId: string, error: unknown): never
  * request rather than carried in the session, so revoking one takes effect on
  * the next request (a page's parallel calls share one read through `context.memo`).
  */
-function storeProcedureWith(required?: Permission | readonly Permission[]) {
+function storeProcedureWith(required?: Permission | readonly Permission[], also?: AlsoNeeds) {
   return memberProcedure.use(async ({ context, next, path, procedure }, input) => {
     const member = await findMembership(context)
     context.log.set({ storeId: member.storeId })
@@ -225,7 +220,10 @@ function storeProcedureWith(required?: Permission | readonly Permission[]) {
       async (tx: StoreTx) => {
         const scope = await scopeFor(context, tx, member, required)
         context.log.set({ role: scope.roleSlug })
-        const waits = waitsForApproval(scope, path, required, input)
+        const extra = also
+          ? await alsoHeld(scope, also, input, { tx, storeId: member.storeId })
+          : []
+        const waits = waitsForApproval(scope, path, required, extra, input)
         if (waits) {
           // An approver running the change for someone: `approveAction` records who must approve.
           if (context.approvalReplay) throw approvalQueued(null, waits)
@@ -321,30 +319,35 @@ async function requireStepUp(
 
 /**
  * The permission whose "Needs approval" tick holds this call back, or null when it runs now:
- * a change (the catalogue's write or sensitive, never a read) behind one `can(permission)` that
- * the member's role ticks. The owner never waits. A people-only path (a browser hand-off, a
- * token, deciding approvals) or a file upload cannot wait, so it is refused.
+ * a change (the catalogue's write or sensitive, never a read) behind one `can(permission)`, or
+ * one of the extra grants its input needs (`can(permission, also)`), that the member's role
+ * ticks. The owner never waits. A people-only path (a browser hand-off, a token, deciding
+ * approvals) or a file upload cannot wait, so it is refused.
  *
- * Gaps, by design: `canAny` and `canDetached` procedures are not held back (no single
- * permission to tick), nor a server-side `call()` without a path.
+ * Gaps, by design: `canAny` and `canDetached` procedures are not held back by their own list
+ * (no single permission to tick), only by an `also` grant, nor a server-side `call()` without
+ * a path.
  */
 function waitsForApproval(
   scope: StoreScope,
   path: readonly string[],
   required: Permission | readonly Permission[] | undefined,
+  extra: readonly Permission[],
   input: unknown,
 ): Permission | null {
-  if (typeof required !== 'string' || !mustAsk(scope, required)) return null
+  const needs = [...(typeof required === 'string' ? [required] : []), ...extra]
+  const ticked = needs.find((p) => mustAsk(scope, p))
+  if (!ticked) return null
   const dotted = path.join('.')
   // A server-side `call()` without a path (admin pages reading data) cannot be classified or
   // queued; every request from the browser, MCP or the API carries its path.
   if (!dotted || isReadPath(dotted)) return null
   if (!approvalKind(dotted) || hasFile(input)) {
     throw new ORPCError('FORBIDDEN', {
-      message: `Your role needs approval for ${describe(required)}, and this cannot wait for it. Ask a member who can approve it to do it.`,
+      message: `Your role needs approval for ${describe(ticked)}, and this cannot wait for it. Ask a member who can approve it to do it.`,
     })
   }
-  return required
+  return ticked
 }
 
 const hasFile = (value: unknown): boolean =>
@@ -420,9 +423,12 @@ async function logTokenCall(
 /** Store-scoped procedure with no permission of its own. */
 export const storeProcedure = storeProcedureWith()
 
-/** Store-scoped procedure that refuses callers without `permission`. */
-export function can(permission: Permission) {
-  return storeProcedureWith(permission)
+/**
+ * Store-scoped procedure that refuses callers without `permission`. `also` names the grants
+ * some inputs need on top (see `AlsoNeeds`): checked, and held for approval, like `permission`.
+ */
+export function can(permission: Permission, also?: AlsoNeeds) {
+  return storeProcedureWith(permission, also)
 }
 
 /**
@@ -430,8 +436,8 @@ export function can(permission: Permission) {
  * itself (`context.scope.can(...)`): the caller must hold at least one of `permissions`. The
  * AI assistant's approve and undo use it; each action re-checks its own permission.
  */
-export function canAny(permissions: readonly Permission[]) {
-  return storeProcedureWith(permissions)
+export function canAny(permissions: readonly Permission[], also?: AlsoNeeds) {
+  return storeProcedureWith(permissions, also)
 }
 
 /**

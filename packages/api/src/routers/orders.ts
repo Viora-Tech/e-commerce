@@ -20,7 +20,7 @@ import {
 } from '@commerce/core'
 import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
-import { can, PAGE_SIZE_MAX } from '../procedures'
+import { can, inputField, PAGE_SIZE_MAX } from '../procedures'
 import { storeRegistries } from '../services/apps.service'
 import { retryCourierPushForOrder } from '../services/courier-push.service'
 import {
@@ -256,7 +256,10 @@ export const ordersRouter = {
    * "Edit" on the order page's customer card: this order's contact and shipping
    * address, optionally copied to the customer's saved address. Logged on the timeline.
    */
-  updateContact: can(permissions.ORDERS_WRITE)
+  // Rewriting the customer's saved address is a customer edit, not an order edit.
+  updateContact: can(permissions.ORDERS_WRITE, (input) =>
+    inputField(input, 'alsoUpdateCustomer') === true ? [permissions.CUSTOMERS_WRITE] : [],
+  )
     .input(
       z.object({
         orderId: z.uuid(),
@@ -293,10 +296,6 @@ export const ordersRouter = {
       }),
     )
     .handler(async ({ context, input }) => {
-      // Rewriting the customer's saved address is a customer edit, not an order edit.
-      if (input.alsoUpdateCustomer && !context.scope.can(permissions.CUSTOMERS_WRITE)) {
-        throw new ORPCError('FORBIDDEN', { message: 'Your role does not allow write customers' })
-      }
       await assertNotImported(context.tx, { orderId: input.orderId })
       try {
         return await updateOrderContact(
@@ -392,16 +391,12 @@ export const ordersRouter = {
     }),
 
   /** "Mark as paid / fulfilled / delivered", or cancel. Events follow the derived transitions. */
-  setStatus: can(permissions.ORDERS_WRITE)
+  // Cancelling is its own grant (and its own "Needs approval" tick), as on `orders.cancel`.
+  setStatus: can(permissions.ORDERS_WRITE, (input) =>
+    inputField(input, 'status') === 'cancelled' ? [permissions.ORDERS_CANCEL] : [],
+  )
     .input(z.object({ id: z.uuid(), status: change }))
     .handler(async ({ context, input }) => {
-      // Cancelling is its own grant; everything else on this route is orders.write.
-      if (input.status === 'cancelled' && !context.scope.can(permissions.ORDERS_CANCEL)) {
-        throw new ORPCError('FORBIDDEN', {
-          message: 'Your role does not allow cancelling orders',
-          data: { required: permissions.ORDERS_CANCEL, role: context.scope.roleSlug },
-        })
-      }
       await assertNotImported(context.tx, { orderId: input.id })
       const o = await setOrderStatus(
         context.tx,

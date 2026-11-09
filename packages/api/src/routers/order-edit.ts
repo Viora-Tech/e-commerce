@@ -1,8 +1,7 @@
 import { settingsSecret } from '@commerce/config'
 import { ORDER_CANCEL_REASONS, OrderEditSchema, permissions, REFUND_ROUTES } from '@commerce/core'
-import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
-import { can, type StoreScope } from '../procedures'
+import { type AlsoNeeds, can, inputField } from '../procedures'
 import { storeRegistries } from '../services/apps.service'
 import {
   cancelStoreOrder,
@@ -16,17 +15,13 @@ const refundRoute = z.enum(REFUND_ROUTES)
 /** An edit's refund: store credit is offered on cancel only for now. */
 const editRefundRoute = refundRoute.exclude(['store_credit'])
 
-/** Money going back is its own grant (`orders.refund`), on top of cancelling or editing. */
-function assertCanRefund(
-  scope: Pick<StoreScope, 'can' | 'roleSlug'>,
-  route: z.infer<typeof refundRoute>,
-) {
-  if (route !== 'none' && !scope.can(permissions.ORDERS_REFUND)) {
-    throw new ORPCError('FORBIDDEN', {
-      message: 'Your role does not allow refunds; choose "No refund" or ask an owner',
-      data: { required: permissions.ORDERS_REFUND, role: scope.roleSlug },
-    })
-  }
+/**
+ * Money going back is its own grant (`orders.refund`, and its "Needs approval" tick), on top of
+ * cancelling or editing: the same as a refund from the payment card (`orders.refund`).
+ */
+const refundNeeds: AlsoNeeds = (input) => {
+  const route = inputField(input, 'refund')
+  return route !== undefined && route !== 'none' ? [permissions.ORDERS_REFUND] : []
 }
 
 async function paymentsDeps(tx: Parameters<typeof storeRegistries>[0], storeId: string) {
@@ -53,7 +48,7 @@ export const orderEditRoutes = {
    * goes back (original payment, recorded by hand, or not at all). An imported order that is
    * still open is taken over first. Logged on the timeline.
    */
-  cancel: can(permissions.ORDERS_CANCEL)
+  cancel: can(permissions.ORDERS_CANCEL, refundNeeds)
     .input(
       z.object({
         orderId: z.uuid(),
@@ -66,10 +61,14 @@ export const orderEditRoutes = {
         refund: refundRoute,
         /** Store credit's last day (YYYY-MM-DD); left out, it never expires. */
         storeCreditExpiresOn: z.iso.date().optional(),
+        /**
+         * The Orders list's bulk "Cancel orders" (#1408): refused with BAD_REQUEST (code
+         * ORDER_NEEDS_REFUND_DECISION) unless the order has nothing to refund.
+         */
+        onlyWithoutRefund: z.boolean().optional(),
       }),
     )
     .handler(async ({ context, input }) => {
-      assertCanRefund(context.scope, input.refund)
       const deps = await paymentsDeps(context.tx, context.scope.storeId)
       return cancelStoreOrder(context.tx, context.scope.storeId, deps, {
         ...input,
@@ -113,7 +112,7 @@ export const orderEditRoutes = {
    * parcel; a higher total opens a balance (emailed as a pay link with `requestPayment`), a lower
    * one is refunded the chosen way.
    */
-  edit: can(permissions.ORDERS_WRITE)
+  edit: can(permissions.ORDERS_WRITE, refundNeeds)
     .input(
       OrderEditSchema.extend({
         refund: editRefundRoute,
@@ -124,7 +123,6 @@ export const orderEditRoutes = {
       }),
     )
     .handler(async ({ context, input }) => {
-      assertCanRefund(context.scope, input.refund)
       const { refund, requestPayment, note, notifyCustomer, ...edit } = input
       return editStoreOrder(
         context.tx,

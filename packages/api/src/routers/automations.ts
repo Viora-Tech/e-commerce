@@ -51,8 +51,9 @@ import type { Permission } from '@commerce/core/permissions'
 import { getRegistries } from '@commerce/core/registries'
 import type { StoreTx } from '@commerce/db'
 import { ORPCError } from '@orpc/server'
+import { z } from 'zod'
 import type { ApiContext } from '../context'
-import { can } from '../procedures'
+import { type AlsoNeeds, can, inputField } from '../procedures'
 
 type Ctx = {
   tx: StoreTx
@@ -87,13 +88,15 @@ async function guard<T>(fn: () => Promise<T>): Promise<T> {
 
 /**
  * Growth's marketing workflows keep their own permissions (design §8.7): editing one here
- * also needs marketing.write, switching or publishing it marketing.send.
+ * also needs marketing.write, switching or publishing it marketing.send. Declared on the
+ * procedure, so that grant's "Needs approval" tick holds the change here as it does in Growth.
  */
-async function guardGrowth(c: Ctx, id: string, permission: Permission) {
-  if ((await workflowOrigin(c.tx, id)) === 'growth' && !c.scope.can(permission)) {
-    throw new ORPCError('FORBIDDEN', { message: 'Marketing automations need marketing access' })
+const growthNeeds =
+  (permission: Permission): AlsoNeeds =>
+  async (input, { tx }) => {
+    const id = z.uuid().safeParse(inputField(input, 'id'))
+    return id.success && (await workflowOrigin(tx, id.data)) === 'growth' ? [permission] : []
   }
-}
 
 /** Queue runs' next step now; the worker's tick is the fallback when there is no queue. */
 async function enqueue(c: Ctx, runs: StartedRun[]) {
@@ -146,36 +149,32 @@ export const automationsRouter = {
     ),
 
   /** Saves the name, description or draft; the live version keeps running until Publish. */
-  update: can(permissions.AUTOMATIONS_WRITE)
+  update: can(permissions.AUTOMATIONS_WRITE, growthNeeds(permissions.MARKETING_WRITE))
     .input(WorkflowUpdateInput)
     .handler(async ({ context, input }) => {
-      await guardGrowth(context, input.id, permissions.MARKETING_WRITE)
       return guard(() => updateWorkflow(context.tx, input))
     }),
 
   /** Publishes the draft as a new version (checks pieces, plan and the publisher's permissions). */
-  publish: can(permissions.AUTOMATIONS_PUBLISH)
+  publish: can(permissions.AUTOMATIONS_PUBLISH, growthNeeds(permissions.MARKETING_SEND))
     .input(WorkflowPublishInput)
     .handler(async ({ context, input }) => {
-      await guardGrowth(context, input.id, permissions.MARKETING_SEND)
       return guard(() =>
         publishWorkflow(context.tx, context.scope.storeId, input, member(context), plugins()),
       )
     }),
 
   /** Turns a workflow on or off; off can cancel or let waiting runs finish. */
-  setStatus: can(permissions.AUTOMATIONS_PUBLISH)
+  setStatus: can(permissions.AUTOMATIONS_PUBLISH, growthNeeds(permissions.MARKETING_SEND))
     .input(WorkflowSetStatusInput)
     .handler(async ({ context, input }) => {
-      await guardGrowth(context, input.id, permissions.MARKETING_SEND)
       return guard(() => setWorkflowStatus(context.tx, context.scope.storeId, input))
     }),
 
   /** Copies a version back into the draft. */
-  restoreVersion: can(permissions.AUTOMATIONS_WRITE)
+  restoreVersion: can(permissions.AUTOMATIONS_WRITE, growthNeeds(permissions.MARKETING_WRITE))
     .input(WorkflowRestoreVersionInput)
     .handler(async ({ context, input }) => {
-      await guardGrowth(context, input.id, permissions.MARKETING_WRITE)
       return guard(() => restoreVersion(context.tx, input))
     }),
 
@@ -187,10 +186,9 @@ export const automationsRouter = {
     ),
 
   /** Deletes a workflow with its versions and runs; open runs are cancelled. */
-  delete: can(permissions.AUTOMATIONS_PUBLISH)
+  delete: can(permissions.AUTOMATIONS_PUBLISH, growthNeeds(permissions.MARKETING_WRITE))
     .input(WorkflowIdInput)
     .handler(async ({ context, input }) => {
-      await guardGrowth(context, input.id, permissions.MARKETING_WRITE)
       return guard(() => deleteWorkflow(context.tx, input.id))
     }),
 

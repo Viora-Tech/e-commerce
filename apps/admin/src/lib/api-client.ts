@@ -17,7 +17,7 @@ import { isStepUpRequired, requestStepUp } from '@/lib/step-up-gate'
 function readable(err: unknown): unknown {
   const cookie = typeof document === 'undefined' ? '' : document.cookie
   const locale = localeFromCookieHeader(cookie)
-  if (err instanceof Error && (err as { code?: unknown }).code === 'APPROVAL_QUEUED') {
+  if (err instanceof Error && isApprovalQueued(err)) {
     const copy = localize(approvalsContent, locale)
     const data = (err as { data?: { alreadyRequested?: boolean } }).data
     err.message = data?.alreadyRequested ? copy.already : copy.sent
@@ -26,6 +26,11 @@ function readable(err: unknown): unknown {
   // Next frame: the toast shows the plain sentence and the cursor lands in the field it names.
   if (typeof window !== 'undefined') window.requestAnimationFrame(() => focusFirstIssue(err))
   return withReadableValidation(err, localize(validationContent, locale))
+}
+
+/** The call was sent for approval (the member's role ticks it): nothing changed yet, not a failure. */
+export function isApprovalQueued(err: unknown): boolean {
+  return (err as { code?: unknown } | null)?.code === 'APPROVAL_QUEUED'
 }
 
 // RPCLink needs an absolute URL; resolve against the page origin in the browser.
