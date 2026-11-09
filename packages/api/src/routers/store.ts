@@ -114,7 +114,7 @@ function courierConnectionTest(providerId: string) {
 }
 
 export const storeRouter = {
-  /** The admin layout's per-page reads in one call: see `./shell`. */
+  /** Everything the admin layout reads on every page (apps, logo, orders to ship, plan usage, payments test mode, approvals, Inbox), in one call. */
   shell: shellProcedure,
 
   current: can(permissions.SETTINGS_READ).handler(async ({ context }) => {
