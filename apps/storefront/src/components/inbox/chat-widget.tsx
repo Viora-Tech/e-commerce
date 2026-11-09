@@ -34,6 +34,11 @@ type ChatWidgetProps = {
   onActive: () => void
   /** Staff replies the shopper has not seen while the chat is closed. */
   onUnread: (n: number) => void
+  /**
+   * Inside the plain HTML page's chat frame (`components/inbox/chat-frame.tsx`): the card fills
+   * the frame, the page around it places and sizes the frame, and hears of mode changes here.
+   */
+  framed?: { onMode: (mode: ChatMode) => void; pagePath: () => string; wide: boolean } | undefined
 }
 
 type Contact = { name: string; email: string; phone: string }
@@ -119,6 +124,7 @@ export default function ChatWidget({
   onClose,
   onActive,
   onUnread,
+  framed,
 }: ChatWidgetProps) {
   // Hooks
   const [state, setState] = useState<ChatState | null>(null)
@@ -233,7 +239,7 @@ export default function ChatWidget({
     const result = await sendChatAction({
       ...input,
       clientId,
-      url: window.location.pathname,
+      url: framed ? framed.pagePath() : window.location.pathname,
       ...(contact ? { name: contact.name, email: contact.email, phone: contact.phone } : {}),
     }).catch(() => ({ ok: false as const, error: 'failed' as const }))
     if (result.ok) {
@@ -294,10 +300,11 @@ export default function ChatWidget({
   const blockedBySignIn = state.requireSignIn && !state.signedIn
   const signInHref = state.signedIn
     ? null
-    : `/account/login?return_to=${encodeURIComponent(window.location.pathname)}`
+    : `/account/login?return_to=${encodeURIComponent(framed ? framed.pagePath() : window.location.pathname)}`
   const side = widget.horizontal
-  const frame =
-    mode === 'expanded'
+  const frame = framed
+    ? 'inset-0'
+    : mode === 'expanded'
       ? 'inset-0'
       : mode === 'docked'
         ? `inset-y-0 w-full sm:w-[26rem] ${side === 'left' ? 'left-0 sm:origin-left' : 'right-0 sm:origin-right'}`
@@ -326,14 +333,18 @@ export default function ChatWidget({
       inert={!open}
       style={style}
       {...{ [CHAT_ROOT_ATTR]: '' }}
-      className={`${CHAT_GUARD} fixed z-[2147483000]! flex flex-col overflow-hidden overscroll-contain bg-[var(--color-bg,Canvas)] text-[var(--color-ink,CanvasText)] shadow-[0_0_0_1px_rgb(0_0_0/0.06),0_12px_32px_rgb(0_0_0/0.12),0_2px_6px_rgb(0_0_0/0.06)] ${PANEL_MOTION} ${frame} ${motion}`}
+      className={`${CHAT_GUARD} fixed z-[2147483000]! flex flex-col overflow-hidden overscroll-contain bg-[var(--color-bg,Canvas)] text-[var(--color-ink,CanvasText)] ${framed ? '' : 'shadow-[0_0_0_1px_rgb(0_0_0/0.06),0_12px_32px_rgb(0_0_0/0.12),0_2px_6px_rgb(0_0_0/0.06)]'} ${PANEL_MOTION} ${frame} ${motion}`}
     >
       <ChatHeader
         storeName={storeName}
         logoUrl={logoUrl}
         available={state.available}
         mode={mode}
-        onMode={setMode}
+        wide={framed ? framed.wide : null}
+        onMode={(next) => {
+          setMode(next)
+          framed?.onMode(next)
+        }}
         onClose={onClose}
       />
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-3">

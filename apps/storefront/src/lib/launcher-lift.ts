@@ -11,9 +11,9 @@
 export type Box = { top: number; bottom: number; left: number; right: number }
 
 /** How close to the window's bottom edge a bar must reach to count as pinned there. */
-const EDGE_PX = 32
+export const EDGE_PX = 32
 /** Anything taller than this share of the window is an overlay (a drawer, a modal), not a bar. */
-const MAX_BAR_SHARE = 0.5
+export const MAX_BAR_SHARE = 0.5
 
 /** Taller than half the window: an overlay (a drawer, a modal, a menu), not a bar. */
 export function isOverlay(box: Box, viewportHeight: number): boolean {
@@ -42,10 +42,10 @@ export function launcherLift(
 }
 
 /** The merchant's launcher heights (theme editor › Inbox chat › Position), above the safe area. */
-const LAUNCHER_BOTTOM = { lowest: '1rem', higher: '5.5rem', highest: '10rem' } as const
+export const LAUNCHER_BOTTOM = { lowest: '1rem', higher: '5.5rem', highest: '10rem' } as const
 
 /** The gap kept between a bar in the way and the lifted chat button. */
-const LIFT_GAP = '0.75rem'
+export const LIFT_GAP = '0.75rem'
 
 /**
  * The chat button's CSS `bottom`: the merchant's height above the safe area, or just above the

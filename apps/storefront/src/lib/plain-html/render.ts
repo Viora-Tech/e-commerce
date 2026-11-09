@@ -13,6 +13,7 @@ import { CONSENT_COOKIE } from '@commerce/core/consent'
 import { policyTypeOfHandle } from '@commerce/core/policies'
 import { appEmbedSourcesForStore } from '@commerce/core/registries'
 import { resolveAppEmbeds } from '@commerce/core/theme'
+import { APP_BLOCK_SLOT_ATTR } from '@commerce/core/theme-import'
 import { market, page as pageTable, store } from '@commerce/db'
 import { parseRichText, richTextToPlainText } from '@commerce/richtext'
 import { eq } from 'drizzle-orm'
@@ -39,8 +40,11 @@ import { storeRead } from '../store-cache'
 import { liveThemeId, templateSections } from '../template-render'
 import { resolveThemeMode, THEME_COOKIE, themeViewport } from '../theme-mode'
 import { umamiTrackerOf } from '../umami'
+import { chatLauncherHtml, chatModuleSpec } from './chat-launcher'
 import { islandScript } from './islands'
 import { plainKind, plainPageHandle } from './route'
+import { THEME_COMPAT_CSS } from './theme-compat'
+import { ourFontsHref } from './theme-fonts'
 
 /**
  * An imported Shopify theme's page as one plain HTML document: the theme's `layout/theme.liquid`
@@ -113,10 +117,12 @@ function pageRow(storeId: string, handle: string) {
   })
 }
 
-/** A template's visible sections when every one is the theme's own; null when any is ours. */
+/**
+ * A template's visible sections when every one is the theme's own; null when any is ours. A section
+ * in an A/B test is already the shopper's variant (`templateSections`); the island reports it.
+ */
 async function liquidOnly(storeId: string, key: TemplateKey, suffix?: string | null) {
   const t = await templateSections(storeId, key, { suffix })
-  if (t.seen.length) return null
   if (!t.bound.content.every((item) => item.type === 'LiquidSection')) return null
   return (await attachImageMedia(storeId, t.bound, false)).content
 }
@@ -129,7 +135,6 @@ type Seo = {
   jsonLd: unknown
 }
 
-/** The page as a whole HTML document, or the reason to hand it back to the React page. */
 /** The page, or why it goes to the React page instead (sent back as `x-plain-skip-reason`). */
 export type PlainResult = { html: string } | { skip: string }
 
@@ -145,17 +150,12 @@ export async function renderPlainPage(storeId: string): Promise<PlainResult> {
   const prefs = parsePreferences(current.preferences)
   if (!prefs.delivery.plainHtml) return skip('switch-off')
 
-  // Widgets only React draws keep the React page for now (docs: phase 2).
-  if (
-    parseMarketSettings(current.preferences).suggestMarket &&
-    (await liveMarketCount(storeId)) > 1
-  ) {
-    return skip('market-banner')
-  }
-  if (inboxLauncherOf(current.apps)) return skip('inbox-chat')
-  if (await chatwootChatFor(storeId, current.apps)) return skip('chatwoot')
-  if ((await storePixels(storeId, current.apps))?.length) return skip('pixels-app')
-  if (Object.keys((await requestExperiments(storeId)).assignments).length) return skip('experiment')
+  // Our widgets, drawn by the island's modules (docs: phase 2).
+  const marketBanner =
+    parseMarketSettings(current.preferences).suggestMarket && (await liveMarketCount(storeId)) > 1
+  const inboxChat = inboxLauncherOf(current.apps)
+  // The Inbox app's chat wins over Chatwoot's, as on the React page.
+  const chatwoot = inboxChat ? null : await chatwootChatFor(storeId, current.apps)
   if (await abThemeId(storeId)) return skip('theme-ab-test')
   const themeId = await liveThemeId(storeId)
   if (!themeId) return skip('no-theme')
@@ -183,11 +183,8 @@ export async function renderPlainPage(storeId: string): Promise<PlainResult> {
     liquidOnly(storeId, 'footer'),
   ])
   if (!content || !headerContent || !footerContent) return skip('own-section')
-  // The theme's own cookie banner asks for consent (the shim answers it). Without one the React
-  // page draws ours, which is not an island yet.
-  if (!footerContent.some((item) => item.props.sectionType === 'cookie-banner')) {
-    return skip('no-theme-cookie-banner')
-  }
+  // The theme's own cookie banner asks for consent (the shim answers it); without one, ours does.
+  const themeBanner = footerContent.some((item) => item.props.sectionType === 'cookie-banner')
   const layout = await liquidLayoutFor(storeId, themeId)
   if (!layout) return skip('not-imported')
 
@@ -198,6 +195,14 @@ export async function renderPlainPage(storeId: string): Promise<PlainResult> {
     renderLiquidSections(storeId, themeId, 'footer', footerContent, WHOLE_TEMPLATE),
   ])
   if (!main || !header || !footer) return skip('not-imported')
+  // One of our widgets drawn into a theme app block's slot (the reviews carousel) is React's.
+  if (
+    [main, header, footer].some((m) =>
+      [...m.values()].some((s) => s.html.includes(APP_BLOCK_SLOT_ATTR)),
+    )
+  ) {
+    return skip('app-block')
+  }
   const draw = (items: typeof content, html: Map<string, LiquidSectionHtml>) =>
     items
       .map((item) => html.get(String(item.props.id)))
@@ -225,44 +230,49 @@ export async function renderPlainPage(storeId: string): Promise<PlainResult> {
       ? [{ color: String(viewport.themeColor) }]
       : []
 
-  const head = [
-    '<meta charset="utf-8">',
-    '<meta name="viewport" content="width=device-width, initial-scale=1">',
-    `<title>${escapeHtml(seo.title)}</title>`,
-    meta('description', seo.description),
-    `<link rel="canonical" href="${escapeHtml(origin + seo.canonical)}">`,
-    searchIndexable(prefs) ? '' : meta('robots', 'noindex, nofollow'),
-    meta('google-site-verification', v.google),
-    meta('msvalidate.01', v.bing),
-    meta('facebook-domain-verification', v.meta),
-    meta('p:domain_verify', v.pinterest),
-    meta('og:type', 'website', 'property'),
-    meta('og:site_name', current.name, 'property'),
-    meta('og:title', seo.title, 'property'),
-    meta('og:description', seo.description, 'property'),
-    seo.ogUrl ? meta('og:url', origin + seo.ogUrl, 'property') : '',
-    ...images.flatMap((i) => [
-      meta('og:image', new URL(i.url, origin).href, 'property'),
-      meta('og:image:alt', i.alt, 'property'),
-    ]),
-    meta('twitter:card', images.length ? 'summary_large_image' : 'summary'),
-    meta('twitter:title', seo.title),
-    meta('twitter:description', seo.description),
-    ...images.map((i) => meta('twitter:image', new URL(i.url, origin).href)),
-    viewport.colorScheme ? meta('color-scheme', String(viewport.colorScheme)) : '',
-    ...themeColors.map((t) =>
-      'media' in t && t.media
-        ? `<meta name="theme-color" media="${escapeHtml(t.media)}" content="${escapeHtml(t.color)}">`
-        : meta('theme-color', t.color),
-    ),
-    layout.fontsHref ? `<link rel="stylesheet" href="${escapeHtml(layout.fontsHref)}">` : '',
-    favicon ? `<link rel="icon" href="${escapeHtml(favicon)}">` : '',
-    `<script${n}>${liquidShim({
-      askConsent: currentConsent(consent, privacy.bannerVersion) === null,
-      prefix: '',
-    })}</script>`,
-    layout.head,
-  ].join('')
+  // `ourFonts`: our families the page names (`theme-fonts.ts`), known once the body is written.
+  const headWith = (ourFonts: string | null) =>
+    [
+      '<meta charset="utf-8">',
+      '<meta name="viewport" content="width=device-width, initial-scale=1">',
+      // Before the theme's own CSS, where the React page has our global stylesheet.
+      `<style>${THEME_COMPAT_CSS}</style>`,
+      `<title>${escapeHtml(seo.title)}</title>`,
+      meta('description', seo.description),
+      `<link rel="canonical" href="${escapeHtml(origin + seo.canonical)}">`,
+      searchIndexable(prefs) ? '' : meta('robots', 'noindex, nofollow'),
+      meta('google-site-verification', v.google),
+      meta('msvalidate.01', v.bing),
+      meta('facebook-domain-verification', v.meta),
+      meta('p:domain_verify', v.pinterest),
+      meta('og:type', 'website', 'property'),
+      meta('og:site_name', current.name, 'property'),
+      meta('og:title', seo.title, 'property'),
+      meta('og:description', seo.description, 'property'),
+      seo.ogUrl ? meta('og:url', origin + seo.ogUrl, 'property') : '',
+      ...images.flatMap((i) => [
+        meta('og:image', new URL(i.url, origin).href, 'property'),
+        meta('og:image:alt', i.alt, 'property'),
+      ]),
+      meta('twitter:card', images.length ? 'summary_large_image' : 'summary'),
+      meta('twitter:title', seo.title),
+      meta('twitter:description', seo.description),
+      ...images.map((i) => meta('twitter:image', new URL(i.url, origin).href)),
+      viewport.colorScheme ? meta('color-scheme', String(viewport.colorScheme)) : '',
+      ...themeColors.map((t) =>
+        'media' in t && t.media
+          ? `<meta name="theme-color" media="${escapeHtml(t.media)}" content="${escapeHtml(t.color)}">`
+          : meta('theme-color', t.color),
+      ),
+      layout.fontsHref ? `<link rel="stylesheet" href="${escapeHtml(layout.fontsHref)}">` : '',
+      ourFonts ? `<link rel="stylesheet" href="${escapeHtml(ourFonts)}">` : '',
+      favicon ? `<link rel="icon" href="${escapeHtml(favicon)}">` : '',
+      `<script${n}>${liquidShim({
+        askConsent: currentConsent(consent, privacy.bannerVersion) === null,
+        prefix: '',
+      })}</script>`,
+      layout.head,
+    ].join('')
 
   const headerHtml = draw(headerContent, header)
   const wrappedHeader = layout.headerWrapper
@@ -280,11 +290,15 @@ export async function renderPlainPage(storeId: string): Promise<PlainResult> {
       googleAds: prefs.tracking.googleAds ?? '',
     },
     umami,
+    pixels: await storePixels(storeId, current.apps),
+    experiments: Object.keys((await requestExperiments(storeId)).assignments),
+    chat: inboxChat ? chatModuleSpec(inboxChat, current.name) : null,
+    chatwoot,
+    consentBanner: themeBanner ? null : { message: privacy.bannerMessage },
+    marketBanner,
   })}</script>`
 
-  const html = [
-    `<!DOCTYPE html><html${attrs({ lang, ...layout.htmlAttrs })}>`,
-    `<head>${head}</head>`,
+  const body = [
     `<body${attrs(layout.bodyAttrs)}>`,
     layout.beforeHeader,
     wrappedHeader,
@@ -294,9 +308,13 @@ export async function renderPlainPage(storeId: string): Promise<PlainResult> {
     '</main>',
     draw(footerContent, footer),
     layout.afterFooter,
+    inboxChat ? chatLauncherHtml(inboxChat) : '',
     island,
     '</body></html>',
   ].join('')
+  // The compat CSS names our default body font (`--font-body`), which Dawn's `.rte` reads.
+  const head = headWith(ourFontsHref(THEME_COMPAT_CSS + layout.head + body))
+  const html = `<!DOCTYPE html><html${attrs({ lang, ...layout.htmlAttrs })}><head>${head}</head>${body}`
   return { html }
 }
 

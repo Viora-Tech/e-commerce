@@ -69,6 +69,7 @@ const ALLOWLIST: AllowEntry[] = [
     exact: true,
     reason: 'creates the Db connection for the admin app request context',
   },
+  { path: 'apps/storefront/src/app/-c/[storeId]/page.tsx', exact: true, reason: STOREFRONT_PAGE },
   { path: 'apps/storefront/src/app/-p/[storeId]/page.tsx', exact: true, reason: STOREFRONT_PAGE },
   {
     path: 'apps/storefront/src/app/-s/[storeId]/account/(signed-in)/orders/[number]/page.tsx',
@@ -114,6 +115,7 @@ const ALLOWLIST: AllowEntry[] = [
   },
   { path: 'apps/storefront/src/app/api/health/route.ts', exact: true, reason: STOREFRONT_PAGE },
   { path: 'apps/storefront/src/lib/account.ts', exact: true, reason: STOREFRONT_LIB },
+  { path: 'apps/storefront/src/lib/plain-html/render.ts', exact: true, reason: STOREFRONT_LIB },
   { path: 'apps/storefront/src/lib/back-in-stock-context.ts', exact: true, reason: STOREFRONT_LIB },
   { path: 'apps/storefront/src/lib/balance-actions.ts', exact: true, reason: STOREFRONT_LIB },
   { path: 'apps/storefront/src/lib/payment-actions.ts', exact: true, reason: STOREFRONT_LIB },
