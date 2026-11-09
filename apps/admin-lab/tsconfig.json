@@ -1,0 +1,13 @@
+{
+  "extends": "@commerce/config/tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "jsx": "react-jsx",
+    "noEmit": true,
+    "paths": { "@/*": ["../admin/src/*"], "~/*": ["./src/*"] },
+    "resolveJsonModule": true,
+    "exactOptionalPropertyTypes": false,
+    "types": ["node", "bun", "vite/client"]
+  },
+  "include": ["src", "vite.config.ts", "serve.ts"]
+}
