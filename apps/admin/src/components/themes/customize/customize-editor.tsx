@@ -30,6 +30,7 @@ import {
 } from '@/lib/customize-editor'
 import { CUSTOMIZE_OVERRIDES } from '@/lib/customize-overrides'
 import { previewMetadata } from '@/lib/customize-preview'
+import { previewDefaultMode, useDeviceDark } from '@/lib/customize-preview-root'
 import {
   LiquidHeadContext,
   LiquidThemeSettingsContext,
@@ -118,7 +119,8 @@ export default function CustomizeEditor({
   const [creating, setCreating] = useState<'closed' | 'open' | 'busy'>('closed')
   const [creatingKind, setCreatingKind] = useState<AlternateKind | null>(null)
   const [device, setDevice] = useState<PreviewDevice>('desktop')
-  const [modePick, setModePick] = useState<'light' | 'dark'>('light')
+  /** The toolbar's Light/Dark pick; until the first click the preview follows the theme's default. */
+  const [modePick, setModePick] = useState<'light' | 'dark' | null>(null)
   const [nonce, setNonce] = useState(0)
   /** The first page could not be loaded (an error, or no answer in `LOAD_TIMEOUT_MS`). */
   const [loadFailed, setLoadFailed] = useState(false)
@@ -129,6 +131,7 @@ export default function CustomizeEditor({
   const [config] = useState(() => createCustomizeConfig(new Set(installedApps), themePacks))
   const drafts = useTemplateDrafts(record.id, () => toast.error(copy.draftFailed))
   const preview = useCustomizePreview(ref.key, initial.resource)
+  const deviceDark = useDeviceDark()
   // An imported Shopify theme: section fields from each `{% schema %}`; its own Theme settings
   // (`settings_schema.json`), kept by Save, and its head for the canvas with them in place.
   const liquidTheme = useLiquidTheme(record.id)
@@ -303,7 +306,9 @@ export default function CustomizeEditor({
 
   // Render logic
   const settingsDirty = JSON.stringify(settings) !== JSON.stringify(record.settings)
-  const mode = settings.darkMode.enabled ? modePick : 'light'
+  const mode = settings.darkMode.enabled
+    ? (modePick ?? previewDefaultMode(settings.darkMode, deviceDark))
+    : 'light'
   const logo = settings.brand.logo
     ? { url: settings.brand.logo.url, width: settings.brand.logoWidth }
     : null
