@@ -1,6 +1,7 @@
 # Storefront as plain HTML with islands
 
-Status: phase 1 shipped behind a per-store switch (off by default). Written 9 Nov 2026.
+Status: phase 1 shipped behind a per-store switch (off by default); phase 2 (islands, theme CSS)
+in review. Written 9 Nov 2026.
 
 ## Why
 
@@ -111,9 +112,12 @@ Next server itself becomes the bottleneck after phases 1-3 (it is not today: on 
 plain route answers in about 60 ms locally against about 250 ms for the React page).
 
 **What becomes an island, and how it loads.** One inline script with the request's nonce, after
-the page's markup (`lib/plain-html/islands.ts`, about 6 KB raw). No framework.
+the page's markup (`lib/plain-html/islands.ts`, about 10 KB raw / 3.8 KB gzip with every option on).
+Anything bigger is an island module (`lib/plain-html/modules.ts`): a plain-JS file at
+`/api/islands/<name>.js?v=<hash>` (cached for a year), loaded only when needed, on idle or on a
+tap, which registers with `window.__commerceIsland(name, fn)`. No framework.
 
-| Feature | Phase 1 | How it loads |
+| Feature | Plain page | How it loads |
 |---|---|---|
 | Theme scripts (sliders, reveals, menus) | Yes | The theme's own files, run once the page is parsed (`__commerceBootTheme`); nothing hydrates first, so no waiting |
 | Add to cart, `/cart.js`, cart page | Yes | The existing shim answers the theme's own calls (`/cart/add.js` → our cart, then the cart page) |
@@ -122,11 +126,14 @@ the page's markup (`lib/plain-html/islands.ts`, about 6 KB raw). No framework.
 | Visit beacon, GA4, Google Ads, Tag Manager, legacy Meta pixel | Yes | After the matching yes, when the browser is idle |
 | Umami app | Yes | After a yes, or at once when the store does not wait for consent |
 | Core Web Vitals (LCP, INP, CLS) | Yes | PerformanceObserver, sent to `/api/vitals` when the page is hidden |
-| Inbox chat launcher, Chatwoot | Phase 2 (page stays React) | Small module loaded on idle or on first tap of a stub button |
-| Pixels app events, discovery tracking, experiments beacon | Phase 2 (page stays React) | Same pattern, plain modules |
-| Market suggestion banner, subfolder markets | Phase 2 (page stays React) | Server-rendered banner + a tiny module |
+| Inbox chat | Phase 2 | The server draws the button; `chat-module.ts` (1.9 KB gzip) on idle or first tap; the chat card opens in a same-origin frame (`/inbox/frame`), so React loads only when a shopper asks to chat |
+| Chatwoot app | Phase 2 | `chatwoot-module.ts` after the store's chosen cookie category, after load |
+| Pixels app events, discovery clicks, experiments beacon | Phase 2 | `pixels-module.ts` (1.1 KB gzip) after a yes to marketing, on idle; discovery clicks and "experiment viewed" from the inline island |
+| Market suggestion banner | Phase 2 | `banner-modules.ts` `market` after load (asks `/theme-actions/market-suggestion`) |
+| Subfolder markets (`/ae/...`) | React page | Not drawn plain yet |
 | Wishlist, variant/stock/price | Theme's own JS today | Theme JS + section rendering; our own live price/stock via `?section_id=` when needed |
-| Our cookie banner (themes without one) | Phase 2 (page stays React) | Server-rendered markup + a small module |
+| Our cookie banner (themes without one) | Phase 2 | `banner-modules.ts` `consent`, at once while unanswered or from `#cookie-settings`; answers with the same `commerce:consent` event as a theme's banner |
+| App embeds, our widgets in a theme's app-block slot (reviews carousel), theme A/B rollouts | React page | Skip reasons `app-embed`, `app-block`, `theme-ab-test` |
 
 **Checkout, account, cart page, thank-you, password page** stay React pages. They are personal,
 never edge-cached, and their forms rely on server actions; nothing changes there.
@@ -149,8 +156,17 @@ rules.
 `data-island` marker. The plain route then serves them exactly like a Liquid page.
 
 **CSS per page.** The plain page links only the theme's own stylesheets (the layout's and each
-section's `stylesheet_tag`). Our 552 KB global stylesheet is not sent at all. For Puck themes,
-publish records which sections a page uses and links only their CSS (Tailwind per section group).
+section's `stylesheet_tag`). Our 552 KB global stylesheet is not sent. What imported themes
+relied on from it ships inline instead (`lib/plain-html/theme-compat.ts`, 13 KB raw / 3.3 KB gzip,
+before the theme's CSS, where the React page has ours): found by comparing every element's
+computed style with our sheets on and off on the live React pages (Waimers' Zero Drift, and Dawn
+locally), keeping only the declarations behind each difference (`scripts/plain-html/`). Two
+things the comparison showed beyond plain rules: Waimers draws its text in Plus Jakarta Sans,
+which only our self-hosted next/font faces declared (the plain page links that family from
+Google Fonts, `theme-fonts.ts`); and our heading-rise hides every `main h1-h3` until a reveal
+script marks it, which Dawn does not have (its headings were invisible on the React page), so
+that rule is left out. For Puck themes, publish records which sections a page uses and links only
+their CSS (Tailwind per section group).
 
 **Caching.** HTML is cached at the edge for cookieless visitors with purge on change (#1363), and
 in the process cache per store version. Per-shopper parts are never in the cached HTML: the cart
@@ -164,14 +180,14 @@ page. The sitemap, robots.txt and llms.txt are unchanged. No content depends on 
 
 ## Risks and what can break
 
-- **Look changes where the theme silently leaned on our global CSS.** The React page also loads
-  our 552 KB stylesheet, and some of its rules reach the theme (seen locally on Dawn: header icon
-  pill, line heights). Zero Drift's heading reveal CSS lives in our `base.css`. Check Waimers home
-  and pages side by side before switching on. If something the theme needs is in our CSS, move that
-  rule into the import's theme CSS, not back into every page.
-- **A feature only React draws** (chat, Pixels app, market banner, experiments, our cookie banner,
-  app embeds): the route detects it and hands the page back to React; the reason is in the
-  `x-plain-skip-reason` header. Nothing is silently dropped.
+- **Look changes where the theme silently leaned on our global CSS.** Covered by
+  `theme-compat.ts` for the states the comparison saw (pages as loaded and scrolled, desktop and
+  phone, Zero Drift and Dawn). Open menus, drawers and hover states were not compared; another
+  imported theme may lean on rules neither of these two does. Check side by side before switching
+  a store on, and regenerate with `scripts/plain-html/` for a new theme.
+- **A feature only React draws** (app embeds, a reviews carousel in a theme app block, a theme
+  A/B rollout's Treatment, our own sections): the route detects it and hands the page back to
+  React; the reason is in the `x-plain-skip-reason` header. Nothing is silently dropped.
 - **Hand-back cost:** an ineligible page is rendered by the React page behind one extra local hop.
   Only stores with the switch on pay it, and only on home and `/pages/*`.
 - **Next upgrades:** the route uses only stable APIs (Route Handler, `headers()`, `cookies()`).
@@ -201,7 +217,7 @@ page. The sitemap, robots.txt and llms.txt are unchanged. No content depends on 
 | Phase | Scope | Rough effort |
 |---|---|---|
 | 1 (this PR) | Switch, proxy routing, plain route for home and `/pages/*` of imported themes, consent/analytics/vitals island, hand-back, skip reasons | Done |
-| 2 | Islands for Inbox chat, Chatwoot, Pixels app, experiments beacon, market banner, our cookie banner; consent decision fully in the browser | 3-5 days |
+| 2 | Islands for Inbox chat, Chatwoot, Pixels app, experiments beacon, market banner, our cookie banner; the theme CSS imported themes relied on | In review. Left: consent decision fully in the browser (so a visitor with only `wc_consent` can be edge-cached), app embeds, theme A/B rollouts |
 | 3 | Collection, search, blog, article through the theme's own main sections + small islands | 1-1.5 weeks |
 | 4 | Product page: static main section + buy-box island (pre-order, notify-me, reviews, EMI, delivery estimate) | 1.5-2 weeks |
 | 5 | Our own Puck themes: static render on publish, per-section CSS, islands for client components | 2-3 weeks |

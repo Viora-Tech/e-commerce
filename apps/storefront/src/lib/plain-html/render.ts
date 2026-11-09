@@ -43,6 +43,8 @@ import { umamiTrackerOf } from '../umami'
 import { chatLauncherHtml, chatModuleSpec } from './chat-launcher'
 import { islandScript } from './islands'
 import { plainKind, plainPageHandle } from './route'
+import { THEME_COMPAT_CSS } from './theme-compat'
+import { ourFontsHref } from './theme-fonts'
 
 /**
  * An imported Shopify theme's page as one plain HTML document: the theme's `layout/theme.liquid`
@@ -228,44 +230,49 @@ export async function renderPlainPage(storeId: string): Promise<PlainResult> {
       ? [{ color: String(viewport.themeColor) }]
       : []
 
-  const head = [
-    '<meta charset="utf-8">',
-    '<meta name="viewport" content="width=device-width, initial-scale=1">',
-    `<title>${escapeHtml(seo.title)}</title>`,
-    meta('description', seo.description),
-    `<link rel="canonical" href="${escapeHtml(origin + seo.canonical)}">`,
-    searchIndexable(prefs) ? '' : meta('robots', 'noindex, nofollow'),
-    meta('google-site-verification', v.google),
-    meta('msvalidate.01', v.bing),
-    meta('facebook-domain-verification', v.meta),
-    meta('p:domain_verify', v.pinterest),
-    meta('og:type', 'website', 'property'),
-    meta('og:site_name', current.name, 'property'),
-    meta('og:title', seo.title, 'property'),
-    meta('og:description', seo.description, 'property'),
-    seo.ogUrl ? meta('og:url', origin + seo.ogUrl, 'property') : '',
-    ...images.flatMap((i) => [
-      meta('og:image', new URL(i.url, origin).href, 'property'),
-      meta('og:image:alt', i.alt, 'property'),
-    ]),
-    meta('twitter:card', images.length ? 'summary_large_image' : 'summary'),
-    meta('twitter:title', seo.title),
-    meta('twitter:description', seo.description),
-    ...images.map((i) => meta('twitter:image', new URL(i.url, origin).href)),
-    viewport.colorScheme ? meta('color-scheme', String(viewport.colorScheme)) : '',
-    ...themeColors.map((t) =>
-      'media' in t && t.media
-        ? `<meta name="theme-color" media="${escapeHtml(t.media)}" content="${escapeHtml(t.color)}">`
-        : meta('theme-color', t.color),
-    ),
-    layout.fontsHref ? `<link rel="stylesheet" href="${escapeHtml(layout.fontsHref)}">` : '',
-    favicon ? `<link rel="icon" href="${escapeHtml(favicon)}">` : '',
-    `<script${n}>${liquidShim({
-      askConsent: currentConsent(consent, privacy.bannerVersion) === null,
-      prefix: '',
-    })}</script>`,
-    layout.head,
-  ].join('')
+  // `ourFonts`: our families the page names (`theme-fonts.ts`), known once the body is written.
+  const headWith = (ourFonts: string | null) =>
+    [
+      '<meta charset="utf-8">',
+      '<meta name="viewport" content="width=device-width, initial-scale=1">',
+      // Before the theme's own CSS, where the React page has our global stylesheet.
+      `<style>${THEME_COMPAT_CSS}</style>`,
+      `<title>${escapeHtml(seo.title)}</title>`,
+      meta('description', seo.description),
+      `<link rel="canonical" href="${escapeHtml(origin + seo.canonical)}">`,
+      searchIndexable(prefs) ? '' : meta('robots', 'noindex, nofollow'),
+      meta('google-site-verification', v.google),
+      meta('msvalidate.01', v.bing),
+      meta('facebook-domain-verification', v.meta),
+      meta('p:domain_verify', v.pinterest),
+      meta('og:type', 'website', 'property'),
+      meta('og:site_name', current.name, 'property'),
+      meta('og:title', seo.title, 'property'),
+      meta('og:description', seo.description, 'property'),
+      seo.ogUrl ? meta('og:url', origin + seo.ogUrl, 'property') : '',
+      ...images.flatMap((i) => [
+        meta('og:image', new URL(i.url, origin).href, 'property'),
+        meta('og:image:alt', i.alt, 'property'),
+      ]),
+      meta('twitter:card', images.length ? 'summary_large_image' : 'summary'),
+      meta('twitter:title', seo.title),
+      meta('twitter:description', seo.description),
+      ...images.map((i) => meta('twitter:image', new URL(i.url, origin).href)),
+      viewport.colorScheme ? meta('color-scheme', String(viewport.colorScheme)) : '',
+      ...themeColors.map((t) =>
+        'media' in t && t.media
+          ? `<meta name="theme-color" media="${escapeHtml(t.media)}" content="${escapeHtml(t.color)}">`
+          : meta('theme-color', t.color),
+      ),
+      layout.fontsHref ? `<link rel="stylesheet" href="${escapeHtml(layout.fontsHref)}">` : '',
+      ourFonts ? `<link rel="stylesheet" href="${escapeHtml(ourFonts)}">` : '',
+      favicon ? `<link rel="icon" href="${escapeHtml(favicon)}">` : '',
+      `<script${n}>${liquidShim({
+        askConsent: currentConsent(consent, privacy.bannerVersion) === null,
+        prefix: '',
+      })}</script>`,
+      layout.head,
+    ].join('')
 
   const headerHtml = draw(headerContent, header)
   const wrappedHeader = layout.headerWrapper
@@ -291,9 +298,7 @@ export async function renderPlainPage(storeId: string): Promise<PlainResult> {
     marketBanner,
   })}</script>`
 
-  const html = [
-    `<!DOCTYPE html><html${attrs({ lang, ...layout.htmlAttrs })}>`,
-    `<head>${head}</head>`,
+  const body = [
     `<body${attrs(layout.bodyAttrs)}>`,
     layout.beforeHeader,
     wrappedHeader,
@@ -307,6 +312,9 @@ export async function renderPlainPage(storeId: string): Promise<PlainResult> {
     island,
     '</body></html>',
   ].join('')
+  // The compat CSS names our default body font (`--font-body`), which Dawn's `.rte` reads.
+  const head = headWith(ourFontsHref(THEME_COMPAT_CSS + layout.head + body))
+  const html = `<!DOCTYPE html><html${attrs({ lang, ...layout.htmlAttrs })}><head>${head}</head>${body}`
   return { html }
 }
 
