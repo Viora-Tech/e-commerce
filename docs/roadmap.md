@@ -88,6 +88,36 @@ is dropped.
    moves part by part (reads first, money rules last) only if the pilots win on the same
    measures.
 
+### Long-term port: faster stack by April 2027
+
+Agreed 10 Nov 2026. Two tracks side by side: the steps above keep improving today's stack (TypeScript,
+Bun, Next, React), while the new stack is built and swapped in one piece at a time. Target: the
+port released by **April 2027**. Every piece is switched only after it matches the old one
+exactly on the same requests and beats it on speed and memory; until then the old one serves.
+
+- **Target stack.** Backend API and worker: Rust (Axum, SQLx; Go if Rust slows the work too
+  much). Storefront: plain HTML rendered by Rust (liquid-rust plus our Shopify filters), small
+  JavaScript islands, Cloudflare edge cache. Admin: React today; SolidJS later only if a pilot wins.
+  Postgres, Dragonfly and per-store row-level security stay.
+- **How a piece moves.** Publish the oRPC contract as OpenAPI; generate the TypeScript client from
+  it; the Rust server takes endpoints over at the same paths; each runs side by side with the old
+  one (shadow traffic, compared answers) before it takes real traffic. Rust builds run on a cloud
+  builder, not the dev PC.
+- **Order and dates (targets, reviewed monthly):**
+  - **Nov–Dec 2026:** finish the speed track above on today's stack; OpenAPI contract and client
+    generation; Rust project skeleton and CI on a cloud builder; pilot: image processing worker
+    in Rust; storefront server comparison (step 6).
+  - **Jan 2027:** read-only API in Rust (products, collections, search, pages) behind the same
+    paths; storefront product and collection pages rendered by Rust if step 6 wins.
+  - **Feb 2027:** worker jobs in Rust (emails and notifications, courier tracking, sweeps); the
+    rest of the storefront pages; cart in Rust.
+  - **Mar 2027:** orders, checkout, payments (Razorpay first), refunds and couriers' booking,
+    each shadowed against the TypeScript version with identical totals, GST and stock.
+  - **Apr 2027:** remaining admin endpoints; full switch; old services kept one release as a
+    fallback, then removed.
+- **Done means:** shopper pages p50 under 0.3 s uncached and about 0.05 s cached, product pages
+  under 1 MB, and the whole server under half its current memory.
+
 ## Phase 3: New features
 
 - **Every app looks great.** Redesign each app's pages in the admin (connect page, settings,
