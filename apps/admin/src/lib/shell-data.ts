@@ -37,6 +37,13 @@ export const listApps = cache(async () => {
   return apps
 })
 
+/** Shoppers' unpaid checkout drafts this member has not seen yet (Drafts count); null without permission. */
+export const unseenDraftsCount = cache(async () =>
+  shell()
+    .then((s) => s.drafts)
+    .catch(() => null),
+)
+
 /** Orders waiting to ship, for the sidebar's Orders count; null without permission. */
 export const ordersToShipCount = cache(async () =>
   shell()

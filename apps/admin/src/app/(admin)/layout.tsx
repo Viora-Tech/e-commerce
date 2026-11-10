@@ -23,6 +23,7 @@ import {
   ordersToShipCount,
   paymentsTestMode,
   planUsageSummary,
+  unseenDraftsCount,
 } from '@/lib/shell-data'
 import { storefrontOrigin } from '@/lib/storefront-origin'
 import SelectStore from './select-store/select-store'
@@ -40,16 +41,18 @@ export default async function AdminLayout({ children }: { children: ReactNode })
   // Everything else needs only the session, so it is read at once rather than one after
   // another. Store calls for a stale active id answer "no store" on their own and are dropped
   // below unless that store is one of the member's.
-  const [orgs, apps, logo, storefrontUrl, toShip, plan, testMode, approvals] = await Promise.all([
-    listStores(),
-    activeId ? listApps().catch(() => []) : [],
-    activeId ? liveLogoUrl() : null,
-    storefrontOrigin(),
-    activeId ? ordersToShipCount() : null,
-    activeId ? planUsageSummary() : null,
-    activeId ? paymentsTestMode() : false,
-    activeId ? approvalsBadgeCount() : null,
-  ])
+  const [orgs, apps, logo, storefrontUrl, toShip, plan, testMode, approvals, drafts] =
+    await Promise.all([
+      listStores(),
+      activeId ? listApps().catch(() => []) : [],
+      activeId ? liveLogoUrl() : null,
+      storefrontOrigin(),
+      activeId ? ordersToShipCount() : null,
+      activeId ? planUsageSummary() : null,
+      activeId ? paymentsTestMode() : false,
+      activeId ? approvalsBadgeCount() : null,
+      activeId ? unseenDraftsCount() : null,
+    ])
   // No store at all yet: send them to create one, which shows the invite-only
   // screen instead of the wizard when they are not allowed to sign up.
   if (orgs.length === 0) redirect(routes.onboarding())
@@ -67,6 +70,8 @@ export default async function AdminLayout({ children }: { children: ReactNode })
       ? { [routes.orders.list()]: toShip, [routes.orders.shipments()]: toShip }
       : {}),
     ...(inboxUnread ? { [routes.salesChannels.inboxConversations()]: inboxUnread } : {}),
+    // Shoppers' unpaid checkout drafts that came in since the member last opened Drafts.
+    ...(active && drafts ? { [routes.orders.drafts()]: drafts } : {}),
     // Waiting approvals and unseen outcomes of the member's own requests.
     ...(active && approvals ? { [routes.settings.home()]: approvals } : {}),
   }

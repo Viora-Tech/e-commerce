@@ -122,7 +122,8 @@ export default function LiveGlobeCanvas({
         offset: cobeOffset(shiftPx, s.zoom),
         markers: markersRef.current.map((m) => ({
           location: [m.lat, m.lng] as [number, number],
-          size: m.isNewest ? 0.09 * (0.6 + 0.4 * pulse) * revealT : 0.045,
+          // Small even pins, the newest a little larger with a gentle pulse (as the Live view).
+          size: m.isNewest ? 0.027 * (0.85 + 0.15 * pulse) * revealT : 0.018,
           color: m.isNewest ? palette.arcNewest : palette.marker,
         })),
         arcs: arcsRef.current.map((a) => ({

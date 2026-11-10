@@ -35,6 +35,7 @@ import {
   sendRecovery,
   storeAbandonedStats,
 } from '../services/draft.service'
+import { markDraftsSeen } from '../services/drafts-seen.service'
 import { customMessage } from './custom-message'
 
 const storefrontUrl = () => loadEnv(process.env).STOREFRONT_URL
@@ -66,6 +67,11 @@ export const draftAndAbandonedRoutes = {
 
   /** The stat cards above the drafts list: open drafts, invoices sent, and their total value. */
   draftTiles: can(permissions.DRAFTS_READ).handler(({ context }) => draftTiles(context.tx)),
+
+  /** The member opened Orders › Drafts: clears the sidebar's unseen checkout drafts count. */
+  markDraftsSeen: can(permissions.DRAFTS_READ).handler(({ context }) =>
+    markDraftsSeen(context.tx, context.scope.storeId, context.scope.userId),
+  ),
 
   /** One draft order with its lines, customer, addresses and totals. */
   getDraft: can(permissions.DRAFTS_READ)

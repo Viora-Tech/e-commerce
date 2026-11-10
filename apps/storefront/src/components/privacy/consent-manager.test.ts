@@ -11,7 +11,8 @@ import { analyticsAllowed } from '@/lib/consent-cookie'
  * would have been mounted and loaded.
  */
 vi.mock('@/components/analytics/visit-beacon', () => ({
-  default: () => createElement('i', { 'data-testid': 'beacon' }),
+  default: (p: { consented: boolean }) =>
+    createElement('i', { 'data-testid': 'beacon', 'data-consented': String(p.consented) }),
 }))
 vi.mock('@/components/analytics/tracking-tags', () => ({
   default: (p: {
@@ -54,35 +55,35 @@ function render(cookie: string | null, bannerVersion = 1) {
 }
 
 describe('consent gating on the storefront', () => {
-  it('loads no beacon, analytics tag or pixel before the shopper chooses, and shows the banner', () => {
+  it('counts the visit cookieless and loads no analytics tag or pixel before the shopper chooses, and shows the banner', () => {
     const html = render(null)
-    expect(html).not.toContain('data-testid="beacon"')
+    expect(html).toContain('data-testid="beacon" data-consented="false"')
     expect(html).toContain('data-ga4="" data-gtm="" data-pixel=""')
     expect(html).toContain('aria-label="Cookie consent"')
   })
 
   it('keeps everything off after "Necessary only"', () => {
     const html = render(encodeConsent({ analytics: false, marketing: false }, 1, AT))
-    expect(html).not.toContain('data-testid="beacon"')
+    expect(html).toContain('data-testid="beacon" data-consented="false"')
     expect(html).toContain('data-ga4="" data-gtm="" data-pixel=""')
     expect(html).not.toContain('aria-label="Cookie consent"')
   })
 
   it('loads the beacon and analytics tags, not the pixel, after analytics only', () => {
     const html = render(encodeConsent({ analytics: true, marketing: false }, 1, AT))
-    expect(html).toContain('data-testid="beacon"')
+    expect(html).toContain('data-testid="beacon" data-consented="true"')
     expect(html).toContain('data-ga4="G-ABC1234" data-gtm="GTM-5X7K9Q" data-pixel=""')
   })
 
-  it('loads the pixel after marketing only, without the beacon', () => {
+  it('loads the pixel after marketing only, the visit counted cookieless', () => {
     const html = render(encodeConsent({ analytics: false, marketing: true }, 1, AT))
-    expect(html).not.toContain('data-testid="beacon"')
+    expect(html).toContain('data-testid="beacon" data-consented="false"')
     expect(html).toContain('data-ga4="" data-gtm="" data-pixel="1234567890"')
   })
 
   it('asks again, with everything off, when the store bumped the banner version', () => {
     const html = render(encodeConsent({ analytics: true, marketing: true }, 1, AT), 2)
-    expect(html).not.toContain('data-testid="beacon"')
+    expect(html).toContain('data-testid="beacon" data-consented="false"')
     expect(html).toContain('data-ga4="" data-gtm="" data-pixel=""')
     expect(html).toContain('aria-label="Cookie consent"')
     // A cookie from before banner versions existed also counts as no answer.
@@ -145,14 +146,14 @@ describe('the theme CookieBanner section', () => {
     expect(html).toContain('cookie-banner--right')
     expect(html).toContain('Yes please')
     expect(html.match(/aria-label="Cookie consent"/g)).toHaveLength(1)
-    expect(html).not.toContain('data-testid="beacon"')
+    expect(html).toContain('data-testid="beacon" data-consented="false"')
     expect(html).toContain('data-ga4="" data-gtm="" data-pixel=""')
   })
 
   it('stays away once the shopper has answered', () => {
     const html = themed(encodeConsent({ analytics: true, marketing: false }, 1, AT))
     expect(html).not.toContain('aria-label="Cookie consent"')
-    expect(html).toContain('data-testid="beacon"')
+    expect(html).toContain('data-testid="beacon" data-consented="true"')
   })
 })
 

@@ -6,8 +6,9 @@ import { and, count, gte, lt, lte, sql, sum } from 'drizzle-orm'
 /**
  * Storefront sessions, Shopify's definition: one visit, so one visitor can have many. The
  * beacon writes a `marketing_session` row when a visit starts (no `wc_ses` cookie, which lapses
- * after 30 minutes without a page view) or when a tagged landing starts a new one. Only
- * shoppers who accepted analytics are counted, as with every storefront number.
+ * after 30 minutes without a page view) or when a tagged landing starts a new one. Shoppers
+ * who have not accepted analytics are counted too, without cookies
+ * (`apps/storefront/src/lib/anonymous-visit.ts`: a daily-salted hash, `visitor_id` `anon:…`).
  *
  * Days from the store's old platform (`imported_traffic_day`) are added to the daily counts.
  * Shopify gives no hours, so a single-day view by hour shows only sessions counted here.

@@ -417,7 +417,8 @@ export default function ResourceTable<T extends RowData>(props: ResourceTablePro
                         className={cn(
                           'group/row border-0 tabular-nums transition-colors duration-150 hover:bg-row-hover data-[state=selected]:bg-primary-soft motion-reduce:transition-none',
                           (target || folds) && 'cursor-pointer',
-                          props.rowMuted?.(row.original) && 'bg-muted/40 [&>td]:opacity-60',
+                          props.rowMuted?.(row.original) &&
+                            '[&>td]:opacity-40 [&>td]:grayscale [&>td]:transition-opacity hover:[&>td]:opacity-80',
                         )}
                         onClick={
                           target

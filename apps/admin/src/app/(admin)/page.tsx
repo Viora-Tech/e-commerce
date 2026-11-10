@@ -1,3 +1,4 @@
+import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import DashboardPage from '@/components/home/dashboard-page'
 import { homeSignals } from '@/components/home/home-signals'
@@ -5,7 +6,7 @@ import { homeContent } from '@/data/home'
 import { appRouter, call, serverContext } from '@/lib/api'
 import { getSession } from '@/lib/auth'
 import { getCopy } from '@/lib/copy-server'
-import { rangeFor } from '@/lib/home-range'
+import { decodeHomeRange, HOME_RANGE_COOKIE, rangeFor } from '@/lib/home-range'
 import { listApps, paymentsTestMode } from '@/lib/shell-data'
 import { orNoStore } from '@/lib/store-guard'
 
@@ -17,7 +18,10 @@ export default async function Home() {
   // The page's reads start alongside the guard rather than after it; without a store they all
   // fail the same way, so that outcome is dropped and the guard sends the member to the picker.
   const memberP = call(appRouter.staff.me, {}, { context }).catch(orNoStore(null))
-  const opening = rangeFor('today')
+  // The range the member last picked (a cookie), else Today.
+  const saved = decodeHomeRange((await cookies()).get(HOME_RANGE_COOKIE)?.value)
+  const opening = saved?.range ?? rangeFor('today')
+  const openingCompare = saved?.compare ?? 'previous'
   const readsP = Promise.all([
     call(appRouter.dashboard.summary, undefined, { context }),
     call(appRouter.dashboard.charts, { range: 30 }, { context }),
@@ -29,7 +33,7 @@ export default async function Home() {
     listApps().catch(() => null),
     call(
       appRouter.dashboard.analytics,
-      { from: opening.from, to: opening.to, compare: 'previous' },
+      { from: opening.from, to: opening.to, compare: openingCompare },
       { context },
     ),
     call(appRouter.dashboard.tiles, undefined, { context }),
@@ -51,7 +55,7 @@ export default async function Home() {
     <DashboardPage
       summary={summary}
       charts={charts}
-      analytics={{ range: opening, analytics, tiles }}
+      analytics={{ range: opening, compare: openingCompare, analytics, tiles }}
       firstName={firstName}
       assistant={ai?.assistant ?? false}
       signals={apps ? homeSignals(apps, await paymentsTestMode()) : null}

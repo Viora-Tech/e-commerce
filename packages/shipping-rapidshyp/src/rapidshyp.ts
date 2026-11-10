@@ -93,13 +93,14 @@ import {
   type ReturnPickupInput,
   type Serviceability,
   type ServiceabilityQuery,
-  type ShipmentStatus,
   type ShippingProvider,
   type ShippingProviderFactory,
   type Tracking,
   type TrackingEvent,
 } from '@commerce/shipping'
 import { RAPIDSHYP_CAPABILITIES } from './client'
+import { eddDaysFromToday } from './edd'
+import { mapRapidshypStatus } from './status'
 
 export const RAPIDSHYP_BASE_URL = 'https://api.rapidshyp.com'
 
@@ -245,53 +246,6 @@ type PickupLocation = {
   is_rto_address_same?: boolean
 }
 
-/** Estimated-delivery-date strings ("edd") are free text in RapidShyp's docs sample
- *  ("YYYY-MM-DD" is the documented shape but not guaranteed); this only ever reads
- *  a leading date, never assumes a full timestamp is present. */
-function daysFromToday(dateStr: string | undefined): number | null {
-  if (!dateStr) return null
-  const target = new Date(dateStr.slice(0, 10))
-  if (Number.isNaN(target.getTime())) return null
-  // ceil, not round: `target` is a date-only midnight, `Date.now()` carries a
-  // time-of-day, so any elapsed time since midnight would otherwise round a
-  // real "3 days from now" down to 2 depending what time of day this runs.
-  const days = Math.ceil((target.getTime() - Date.now()) / (24 * 60 * 60 * 1000))
-  return days > 0 ? days : null
-}
-
-/**
- * RapidShyp's own tracking status codes (docs' "Tracking status code
- * Rapidshyp" table), reduced to ours. Falls back to the shipment's coarse
- * free-text `shipment_status` (e.g. "READY_TO_SHIP") when no code is present,
- * and to `in_transit` for anything unrecognised rather than guessing a
- * terminal state.
- */
-export function mapRapidshypStatus(
-  code: string | null | undefined,
-  shipmentStatus: string | null | undefined,
-): ShipmentStatus {
-  const c = (code ?? '').toUpperCase()
-  if (c === 'DEL') return 'delivered'
-  if (c.startsWith('RTO')) return 'rto'
-  if (c === 'CAN') return 'cancelled'
-  if (c === 'OFD') return 'out_for_delivery'
-  if (c === 'PUC') return 'picked_up'
-  if (['SCB', 'PSH', 'OFP', 'PUE', 'PCN'].includes(c)) return 'created'
-  if (['SPD', 'INT', 'RAD', 'DED', 'UND', 'ONH', 'LST', 'DMG', 'MSR', 'DPO'].includes(c)) {
-    return 'in_transit'
-  }
-  const s = (shipmentStatus ?? '').toUpperCase()
-  // "UNDELIVERED" and "NOT DELIVERED" contain "DELIVERED"; they are attempts, not delivery.
-  if (/UNDELIVERED|NOT[\s_]DELIVERED/.test(s)) return 'in_transit'
-  if (s.includes('DELIVERED')) return 'delivered'
-  if (s.includes('RTO')) return 'rto'
-  if (s.includes('CANCEL')) return 'cancelled'
-  if (s.includes('READY_TO_SHIP') || s.includes('ASSIGNED') || s.includes('MANIFEST')) {
-    return 'created'
-  }
-  return 'in_transit'
-}
-
 export class RapidshypProvider implements ShippingProvider {
   readonly id = 'rapidshyp'
   readonly label = 'RapidShyp'
@@ -386,7 +340,7 @@ export class RapidshypProvider implements ShippingProvider {
       declaredValue: query.declaredValue ?? undefined,
       cod: true,
     })
-    const days = couriers.map((c) => daysFromToday(c.edd)).filter((n): n is number => n !== null)
+    const days = couriers.map((c) => eddDaysFromToday(c.edd)).filter((n): n is number => n !== null)
     return {
       provider: this.id,
       serviceable: true,
@@ -416,7 +370,7 @@ export class RapidshypProvider implements ShippingProvider {
     })
     const price = Number(cheapest.total_freight)
     if (!Number.isFinite(price)) return null
-    const days = daysFromToday(cheapest.edd)
+    const days = eddDaysFromToday(cheapest.edd)
     return { pricePaise: Math.round(price * 100), minTransitDays: days, maxTransitDays: days }
   }
 
@@ -444,7 +398,7 @@ export class RapidshypProvider implements ShippingProvider {
     return couriers.flatMap((c) => {
       const price = Number(c.total_freight)
       if (!c.courier_code || !Number.isFinite(price) || price <= 0) return []
-      const days = daysFromToday(c.edd)
+      const days = eddDaysFromToday(c.edd)
       const name = c.courier_name ?? 'RapidShyp courier'
       return [
         {

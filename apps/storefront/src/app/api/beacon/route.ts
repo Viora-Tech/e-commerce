@@ -1,4 +1,4 @@
-import { loadEnv } from '@commerce/config'
+import { loadEnv, settingsSecret } from '@commerce/config'
 import {
   type Attribution,
   attributionFromVisit,
@@ -11,10 +11,17 @@ import {
 } from '@commerce/core'
 import { isBotUserAgent, productHandleFromHref } from '@commerce/core/marketing'
 import { CONSENT_COOKIE } from '@commerce/core/preferences'
+import { dayKey } from '@commerce/dates'
 import { logger } from '@commerce/observability/logging'
 import { recordVisit, sharedRedis } from '@commerce/queue'
 import { cookies, headers } from 'next/headers'
 import { after } from 'next/server'
+import {
+  anonymousSessionKey,
+  anonymousVisitorId,
+  startsAnonymousSession,
+  visitAddress,
+} from '@/lib/anonymous-visit'
 import {
   ATTRIBUTION_COOKIE,
   ATTRIBUTION_MAX_AGE,
@@ -67,6 +74,62 @@ function hasCampaignSignal(href: string): boolean {
   }
 }
 
+/** Today's cookieless id for this request, or null when shoppers cannot be told apart. */
+function anonymousIdFor(h: Headers, storeId: string): string | null {
+  const ip = visitAddress(h)
+  if (!ip) return null
+  return anonymousVisitorId({
+    secret: settingsSecret(),
+    day: dayKey(new Date()),
+    storeId,
+    ip,
+    userAgent: h.get('user-agent') ?? '',
+  })
+}
+
+/** A cookieless visit, counted as one session per 30 minutes of page views. */
+async function countAnonymousVisit(
+  request: Request,
+  h: Headers,
+  storeId: string,
+  href: string,
+  referrer: string | null,
+): Promise<void> {
+  const visitorId = anonymousIdFor(h, storeId)
+  if (!visitorId) return
+  try {
+    const redis = sharedRedis(loadEnv(process.env).REDIS_URL)
+    await recordVisit(redis, storeId, visitorId)
+    const isNew = await startsAnonymousSession(
+      redis,
+      anonymousSessionKey(storeId, visitorId),
+      hasCampaignSignal(href),
+    )
+    if (!isNew) return
+    const attribution = attributionFromVisit({
+      landingUrl: href || request.url,
+      referrer,
+      storeHost: h.get('host'),
+    })
+    await inStore(storeId, (tx) => recordMarketingSession(tx, storeId, { visitorId, attribution }))
+  } catch (err) {
+    // A lost visit costs a report line, never the page view.
+    logger.warn('could not record the anonymous visit', { storeId, error: err })
+  }
+}
+
+/** True when this browser's visit is already open as a cookieless one (said yes mid-visit). */
+async function countedAnonymously(h: Headers, storeId: string): Promise<boolean> {
+  const visitorId = anonymousIdFor(h, storeId)
+  if (!visitorId) return false
+  try {
+    const redis = sharedRedis(loadEnv(process.env).REDIS_URL)
+    return (await redis.exists(anonymousSessionKey(storeId, visitorId))) === 1
+  } catch {
+    return false
+  }
+}
+
 function sameTouch(a: Attribution, b: Attribution): boolean {
   return (
     a.channel === b.channel &&
@@ -87,8 +150,13 @@ export const POST = withEvlog(async (request: Request) => {
   const h = await headers()
   const jar = await cookies()
   const storeId = h.get('x-store-id')
-  // No analytics consent, no counting: the banner gates the beacon, and so does the server.
-  if (!storeId || !analyticsAllowed(jar.get(CONSENT_COOKIE)?.value)) {
+  if (!storeId) return new Response(null, { status: 204 })
+  // No analytics consent: count the visit without cookies or ids (totals only), nothing else.
+  if (!analyticsAllowed(jar.get(CONSENT_COOKIE)?.value)) {
+    const { href, referrer, discovery } = await readBody(request)
+    if (discovery === undefined && !isBotUserAgent(h.get('user-agent'))) {
+      await countAnonymousVisit(request, h, storeId, href, referrer)
+    }
     return new Response(null, { status: 204 })
   }
   const secure = new URL(request.url).protocol === 'https:'
@@ -161,10 +229,12 @@ export const POST = withEvlog(async (request: Request) => {
   }
   const picked = compactAttribution(pickAttribution(current, previous))
   const cartId = await readCartId()
+  const alreadyCounted = await countedAnonymously(h, storeId)
   try {
     await inStore(storeId, async (tx) => {
       // A bot is no visit: it would count against the plan's fair-use visits for nothing.
-      if (!isBotUserAgent(h.get('user-agent')))
+      // Nor is the yes on the banner: a visit already counted without cookies stays one visit.
+      if (!isBotUserAgent(h.get('user-agent')) && !alreadyCounted)
         await recordMarketingSession(tx, storeId, { visitorId, attribution: current })
       if (cartId) await setCartAttribution(tx, cartId, picked)
       // Affiliate link clicks are counted by the proxy, consent or not (`lib/referral-landing.ts`).

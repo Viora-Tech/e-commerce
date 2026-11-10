@@ -1,7 +1,16 @@
 import { CourierError } from '@commerce/shipping'
 import { describeShippingProvider, sampleShipment } from '@commerce/shipping/testing'
 import { describe, expect, it } from 'vitest'
-import { mapRapidshypStatus, RapidshypProvider, rapidshypFactory } from '../src/rapidshyp'
+import { eddDaysFromToday } from '../src/edd'
+import { RapidshypProvider, rapidshypFactory } from '../src/rapidshyp'
+import { mapRapidshypStatus } from '../src/status'
+
+/** A date N days ahead on India's calendar, as RapidShyp writes it (DD-MM-YYYY). */
+const istDaysAhead = (n: number) => {
+  const d = new Date(Date.now() + 5.5 * 3600_000 + n * 86400000)
+  const p = (x: number) => String(x).padStart(2, '0')
+  return `${p(d.getUTCDate())}-${p(d.getUTCMonth() + 1)}-${d.getUTCFullYear()}`
+}
 
 type Route = (url: URL, init?: RequestInit) => Response | Promise<Response>
 
@@ -41,7 +50,7 @@ describe('RapidshypProvider serviceability and rates', () => {
                 courier_code: 'B',
                 courier_name: 'Courier B',
                 total_freight: 90,
-                edd: new Date(Date.now() + 5 * 86400000).toISOString().slice(0, 10),
+                edd: istDaysAhead(5),
               },
             ]
           : [
@@ -49,13 +58,13 @@ describe('RapidshypProvider serviceability and rates', () => {
                 courier_code: 'A',
                 courier_name: 'Courier A',
                 total_freight: 60,
-                edd: new Date(Date.now() + 3 * 86400000).toISOString().slice(0, 10),
+                edd: istDaysAhead(3),
               },
               {
                 courier_code: 'B',
                 courier_name: 'Courier B',
                 total_freight: 90,
-                edd: new Date(Date.now() + 5 * 86400000).toISOString().slice(0, 10),
+                edd: istDaysAhead(5),
               },
             ]
         return json({ status: true, serviceable_courier_list: codList })
@@ -610,5 +619,28 @@ describe('rapidshypFactory base URL', () => {
     ).toMatchObject({
       ok: false,
     })
+  })
+})
+
+describe('eddDaysFromToday', () => {
+  const now = Date.parse('2026-11-10T05:00:00Z') // 10:30 in India
+
+  it('reads RapidShyp’s documented DD-MM-YYYY dates', () => {
+    expect(eddDaysFromToday('13-11-2026', now)).toBe(3)
+    expect(eddDaysFromToday('16-11-2026', now)).toBe(6)
+  })
+
+  it('still reads YYYY-MM-DD and a date with a time after it', () => {
+    expect(eddDaysFromToday('2026-11-13', now)).toBe(3)
+    expect(eddDaysFromToday('2026-11-13 18:00:00', now)).toBe(3)
+    expect(eddDaysFromToday('13/11/2026', now)).toBe(3)
+  })
+
+  it('gives nothing for a past, empty or unreadable date', () => {
+    expect(eddDaysFromToday('09-11-2026', now)).toBeNull()
+    expect(eddDaysFromToday('', now)).toBeNull()
+    expect(eddDaysFromToday(undefined, now)).toBeNull()
+    expect(eddDaysFromToday('soon', now)).toBeNull()
+    expect(eddDaysFromToday('31-02-2026', now)).toBeNull()
   })
 })
