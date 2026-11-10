@@ -34,6 +34,7 @@ import {
   groupIntoParcels,
   lineLocation,
 } from './fulfillment-orders'
+import { splitFulfillmentOrder } from './parcel-split'
 import { orderParcelsView } from './parcel-view'
 import { placeOrder } from './place-order'
 import { cancelOrder } from './status'
@@ -472,5 +473,55 @@ describe('orderParcelsView', () => {
       gstin: '06AAAPL1234C1Z5',
       lines: [{ quantity: 3, fulfilledQuantity: 0 }],
     })
+  })
+})
+
+describe('splitFulfillmentOrder (partial shipment)', () => {
+  it('keeps the units shipping now and moves the rest to a new parcel at the same place', async () => {
+    const t = await seed()
+    const { orderId, line } = await legacyOrder(t)
+    await inStore(t, (ctx) => ensureFulfillmentOrders(ctx, orderId))
+    const before = await parcelsOf(orderId)
+    const first = before.fos[0]
+    if (!first) throw new Error('no parcel')
+    const { restId } = await inStore(t, (ctx) =>
+      splitFulfillmentOrder(ctx, orderId, first.id, [{ orderLineId: line.id, quantity: 1 }]),
+    )
+    const fos = await owner
+      .select()
+      .from(fulfillmentOrder)
+      .where(eq(fulfillmentOrder.orderId, orderId))
+      .orderBy(fulfillmentOrder.position)
+    expect(fos.map((f) => f.id)).toEqual([first.id, restId])
+    expect(fos[1]).toMatchObject({ locationId: first.locationId, status: 'open', position: 2 })
+    const lineOf = async (foId: string) =>
+      (
+        await owner
+          .select()
+          .from(fulfillmentOrderLine)
+          .where(eq(fulfillmentOrderLine.fulfillmentOrderId, foId))
+      ).map((l) => l.quantity)
+    expect(await lineOf(first.id)).toEqual([1])
+    expect(await lineOf(restId)).toEqual([2])
+    // No stock moved: the units stay committed where they were.
+    expect((await levels(t)).haryana.committed).toBe(3)
+  })
+
+  it('refuses to keep nothing or everything', async () => {
+    const t = await seed()
+    const { orderId, line } = await legacyOrder(t)
+    await inStore(t, (ctx) => ensureFulfillmentOrders(ctx, orderId))
+    const first = (await parcelsOf(orderId)).fos[0]
+    if (!first) throw new Error('no parcel')
+    await expect(
+      inStore(t, (ctx) =>
+        splitFulfillmentOrder(ctx, orderId, first.id, [{ orderLineId: line.id, quantity: 0 }]),
+      ),
+    ).rejects.toThrow(/at least one/)
+    await expect(
+      inStore(t, (ctx) =>
+        splitFulfillmentOrder(ctx, orderId, first.id, [{ orderLineId: line.id, quantity: 3 }]),
+      ),
+    ).rejects.toThrow(/Nothing is left/)
   })
 })

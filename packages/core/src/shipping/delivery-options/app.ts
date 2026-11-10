@@ -61,6 +61,9 @@ export const deliveryOptionsPlugin = definePlugin({
     icon: 'Truck',
     pages: [
       { path: '', title: 'Delivery options', navLabel: 'Overview', icon: 'Truck' },
+      { path: 'options', title: 'Options', navLabel: 'Options' },
+      { path: 'routes', title: 'Routes', navLabel: 'Routes' },
+      { path: 'rules', title: 'Product rules', navLabel: 'Product rules' },
       { path: 'options/[id]', title: 'Delivery option' },
     ],
   },

@@ -5,6 +5,7 @@ import { type BillingInterval, PLAN_IDS, type PlanId, planRank } from '@commerce
 import { CircleAlert, CreditCard, InfoIcon } from '@commerce/ui/icons'
 import { Alert, AlertDescription } from '@commerce/ui/shadcn/alert'
 import { Button } from '@commerce/ui/shadcn/button'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
@@ -17,6 +18,7 @@ import { settingsRowsContent } from '@/data/settings-rows'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { daysUntil } from '@/lib/billing'
+import { routes } from '@/lib/routes'
 import SettingsDrill from '../settings/settings-drill'
 import SettingsDrillPanel from '../settings/settings-drill-panel'
 import AppsCard, { type BoughtApp } from './apps-card'
@@ -131,8 +133,8 @@ export default function BillingPage({ view, apps, autopay }: BillingPageProps) {
         title={copy.title}
         subtitle={copy.subtitle}
         actions={
-          <Button variant="outline" onClick={() => setComparing(true)}>
-            {copy.compare}
+          <Button nativeButton={false} render={<Link href={routes.settings.billingPlans()} />}>
+            {copy.changePlan.action}
           </Button>
         }
       />

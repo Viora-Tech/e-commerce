@@ -339,6 +339,7 @@ export const routes = {
     activityLog: () => '/settings/activity',
     appearance: () => '/settings/appearance',
     billing: () => '/settings/billing',
+    billingPlans: () => '/settings/billing/plans',
     /** Settings → MCP & API; `activity` is its full activity log. */
     mcp: (page?: 'activity') => (page ? `/settings/mcp/${page}` : '/settings/mcp'),
   },

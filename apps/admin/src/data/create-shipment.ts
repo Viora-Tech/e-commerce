@@ -72,6 +72,29 @@ export const createShipmentContent = {
     },
     noneLeft: 'None of these orders can be booked here.',
   },
+  partial: {
+    heading: 'Items in this parcel · ship now',
+    of: (n: number, total: number) => `${n} of ${total}`,
+    less: (title: string) => `One less ${title}`,
+    more: (title: string) => `One more ${title}`,
+    summary: (now: number, later: number) =>
+      `${now} item${now === 1 ? '' : 's'} ship now; ${later} stay in To ship as the next parcel.`,
+    split: 'Ship only these',
+    done: 'Split. The rest is a new parcel in To ship.',
+  },
+  drawer: {
+    title: 'Select courier partner',
+    open: 'Select courier',
+    summary: (route: string, weight: string, payment: string) =>
+      [route, weight, payment].filter(Boolean).join(' · '),
+    shipNow: 'Ship now',
+    close: 'Close',
+    pickupNow: 'Create pickup now',
+    pickupTitle: 'Create pickup',
+    pickupBody:
+      'The courier gets the pickup request and its manifest in one go. If a pickup is already booked for that place and day, this parcel joins it.',
+    pickupDone: 'Pickup booked. The parcel moved to To be picked up.',
+  },
   courier: {
     heading: 'Choose a courier',
     help: 'Live prices and delivery dates for this parcel. Pick the one you want.',
@@ -135,7 +158,21 @@ export const createShipmentContent = {
       noFallback: 'No other connected route fits this order. Pick a row, or ship it yourself.',
     },
   },
+  bulkEdit: {
+    title: (n: number) => `Edit shipment · #${n}`,
+    position: (i: number, total: number) => `${i} of ${total}`,
+    previous: 'Previous order',
+    next: 'Next order',
+    save: 'Save',
+    saveNext: 'Save and next',
+    courier: 'Courier for this order',
+    noCourier: 'No courier can take this order.',
+    note: 'Box and weight come from the first step for the whole batch.',
+    pickups: 'Create pickups',
+  },
   bulkCourier: {
+    edit: 'Edit',
+    editOrder: (n: number) => `Edit order #${n}`,
     mode: 'How to pick couriers',
     one: 'One courier for all',
     cheapest: 'Cheapest for each order',

@@ -36,7 +36,7 @@ function dropReason(
   need: { insured: boolean; cod: boolean },
 ): DropReason | null {
   if (!optionAllows(option, route)) return 'not_allowed'
-  if (route.speed !== option.speed) return 'wrong_speed'
+  if (route.speed !== option.speed && option.couriers.show !== 'list') return 'wrong_speed'
   if (!poolAllows(pool, route)) return 'rule'
   if (!route.enabled) return 'disabled'
   if (!route.serviceable) return 'not_serviceable'
@@ -184,6 +184,54 @@ function traceRoute(
 
 const asRef = (r: { id: string; name: string }) => ({ id: r.id, name: r.name })
 
+/** Rupees rounded up so they end in 9 (₹37 → ₹39, ₹40 → ₹49); paise in, paise out. */
+function upToNine(paise: number): number {
+  if (paise <= 0) return 0
+  const rupees = Math.ceil(paise / 100)
+  return (rupees + ((9 - (rupees % 10) + 10) % 10)) * 100
+}
+
+/**
+ * The cards of a `list` option: the pick at its own price, every other allowed courier at that
+ * price plus what it costs the store more (rounded to ₹…9 when asked). One card per courier and
+ * speed (a carrier offered by two apps keeps the cheaper); couriers beaten on both price and
+ * date are dropped when asked; at most `max`, cheapest first.
+ */
+function courierList(fits: Candidate[], winner: Candidate, option: DeliveryOption): PricedRoute[] {
+  const cost = (c: Candidate) => c.priced.courierCostPaise + (c.priced.insurancePaise ?? 0)
+  const base = winner.priced
+  const seen = new Set<string>([`${winner.route.carrierKey}:${winner.route.speed}`])
+  const rest: PricedRoute[] = []
+  for (const c of [...fits].sort(byCheapest)) {
+    const id = `${c.route.carrierKey}:${c.route.speed}`
+    if (c.route.key === winner.route.key || seen.has(id)) continue
+    seen.add(id)
+    const more = Math.max(0, cost(c) - cost(winner))
+    const extra = option.couriers.roundTo9 ? upToNine(more) : Math.ceil(more / 100) * 100
+    rest.push({
+      ...c.priced,
+      pricePaise: base.pricePaise + extra,
+      listPricePaise: base.listPricePaise + extra,
+    })
+  }
+  const later = (p: PricedRoute) => p.latest ?? '9999-12-31'
+  const all = [base, ...rest]
+  const kept = option.couriers.hideSlowerDearer
+    ? all.filter(
+        (p) =>
+          p === base ||
+          !all.some(
+            (q) =>
+              q !== p &&
+              q.pricePaise <= p.pricePaise &&
+              later(q) <= later(p) &&
+              (q.pricePaise < p.pricePaise || later(q) < later(p)),
+          ),
+      )
+    : all
+  return kept.slice(0, option.couriers.max)
+}
+
 export function resolveDeliveryOptions(input: ResolveInput): DeliveryResolveResult {
   const { config, cart, answers } = input
   const routes = routesFromAnswers(answers, config.routeSettings, cart.weightGrams)
@@ -208,7 +256,10 @@ export function resolveDeliveryOptions(input: ResolveInput): DeliveryResolveResu
       traces.push({ ...base, hidden: 'disabled' })
       continue
     }
-    const candidates = routes.filter((r) => optionAllows(option, r) && r.speed === option.speed)
+    const listed = option.couriers.show === 'list'
+    const candidates = routes.filter(
+      (r) => optionAllows(option, r) && (listed || r.speed === option.speed),
+    )
     const pool = rulePool(matchingRules(config.rules, option.id, cart.items), candidates)
     const ins = option.insurance
     const offered =
@@ -258,6 +309,7 @@ export function resolveDeliveryOptions(input: ResolveInput): DeliveryResolveResu
       ? pickFor(routes, option, pool, input, { insured, cod: true }, ruleNames).picked
       : null
     const pick = winner.priced
+    const listChoices = listed ? courierList(prepaid.fits, winner, option) : []
     options.push({
       optionId: option.id,
       name: option.name,
@@ -268,7 +320,12 @@ export function resolveDeliveryOptions(input: ResolveInput): DeliveryResolveResu
       pick,
       pickedBy: why.kind === 'rule_default' ? `rule:${why.ruleId}` : 'strategy',
       why,
-      choices: alternatives.length ? [pick, ...alternatives] : [],
+      choices: listChoices.length
+        ? listChoices
+        : alternatives.length
+          ? [pick, ...alternatives]
+          : [],
+      layout: listChoices.length ? 'list' : 'one',
       pricePaise: pick.pricePaise,
       listPricePaise: pick.listPricePaise,
       earliest: pick.earliest,
@@ -323,6 +380,7 @@ function backupOption(
     pickedBy: 'backup',
     why: { kind: 'backup' },
     choices: [],
+    layout: 'one',
     pricePaise: price,
     listPricePaise: rate?.listPricePaise ?? price,
     earliest: dated.earliest,

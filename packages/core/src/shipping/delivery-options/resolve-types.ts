@@ -92,6 +92,8 @@ export type ResolvedOption = {
   why: WhyPicked
   /** Sub-choices when a rule allows alternatives: the pick first. Empty: no choice. */
   choices: PricedRoute[]
+  /** `list`: checkout draws each choice as its own card (the option's Couriers setting). */
+  layout: 'one' | 'list'
   pricePaise: number
   listPricePaise: number
   earliest: string | null

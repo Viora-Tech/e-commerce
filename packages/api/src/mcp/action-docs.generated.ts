@@ -733,14 +733,14 @@ export const ACTION_DOCS: Record<string, string> = {
     'Our own India Post address label (Code 128 article number), as a PDF.',
   'shipments.label':
     "A shipment's label PDF for the admin's /api/shipments/<id>/label route: the copy kept in the store's private storage (Blue Dart, DTDC, DHL Express, FedEx), else the courier's own, fetched server-side…",
-  'shipments.prepare':
-    "Create shipment, step 1: each order's parcels (items, weight, box, pickup place, COD) and the store's couriers, boxes and pickup places.",
   'shipments.quote':
     "Create shipment, step 2: every connected courier's price, delivery date and COD support per parcel, with Cheapest / Fastest / Recommended.",
   'shipments.readyToShip':
     'Ready to ship tab: paid, unfulfilled orders - the main Shopify-style booking flow.',
   'shipments.recordStatus':
     "A status set by hand, for a courier with no tracking feed (India Post): appended to the shipment's timeline and applied like a scan (delivered closes the order, RTO opens its task).",
+  'shipments.splitParcel':
+    'Partial shipment: the parcel keeps keep; the rest becomes a new parcel (Part 2).',
   'shipments.updateTracking':
     "Correct a hand-entered shipment's tracking number, courier or tracking link.",
   'shipments.wallets': 'One card per connected courier - each has its own account and balance.',

@@ -396,6 +396,16 @@ export const productFormContent = {
     noImage: 'No image',
     selectAll: 'Select all variants',
     selectOne: (title: string) => `Select ${title}`,
+    appliesTo: (n: number) => `Sets it on ${n} variant${n === 1 ? '' : 's'}.`,
+    generateSkus: 'Generate SKUs',
+    delete: (n: number) => `Delete ${n}`,
+    deleteTitle: (n: number) => `Delete ${n} variant${n === 1 ? '' : 's'}?`,
+    deleteBody: (names: string) =>
+      `${names}. They leave the store when you press Save. Past orders keep these items, and you can add the variants again later.`,
+    deleteConfirm: (n: number) => `Delete ${n} variant${n === 1 ? '' : 's'}`,
+    deleteKeep: 'Cancel',
+    deleteAll:
+      'A product needs at least one variant. Leave one unticked, or delete the product instead.',
   },
   variantImages: {
     title: (label: string) => `Images: ${label}`,

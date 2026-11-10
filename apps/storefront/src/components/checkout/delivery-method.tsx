@@ -4,6 +4,7 @@ import { useFormatPaise } from '@commerce/blocks'
 import CheckoutIcon from '@/components/checkout/checkout-icon'
 import CheckoutParcels from '@/components/checkout/checkout-parcels'
 import DeliveryRouteChoices from '@/components/checkout/delivery-route-choices'
+import InsuranceToggle from '@/components/checkout/insurance-toggle'
 import OptionCard from '@/components/checkout/option-card'
 import { checkoutContent as content } from '@/data/checkout'
 import { deliveryOptionsContent as appCopy } from '@/data/delivery-options'
@@ -121,8 +122,35 @@ export default function DeliveryMethod({
           />
         ) : (
           rates.map((o) => {
-            const picked = selectedId === o.id
             const choices = o.delivery?.choices ?? []
+            if (o.delivery?.layout === 'list' && choices.length > 0) {
+              // The courier list (Figma 942:513): every allowed courier is its own card; the
+              // first is included at the option's price, the rest show what they add.
+              const base = choices[0]?.pricePaise ?? o.pricePaise
+              const current = routeKey ?? choices[0]?.routeKey
+              return choices.map((c) => {
+                const on = selectedId === o.id && current === c.routeKey
+                const extra = c.pricePaise - base
+                return (
+                  <OptionCard
+                    key={`${o.id}:${c.routeKey}`}
+                    name="shipping-rate"
+                    value={`${o.id}:${c.routeKey}`}
+                    checked={on}
+                    icon="truck"
+                    logo={c.logo}
+                    onChange={() => {
+                      onSelect(o.id)
+                      onRoute?.(c.routeKey)
+                    }}
+                    title={c.label}
+                    description={c.arrives}
+                    meta={extra > 0 ? `+ ${money(extra)}` : price(c.pricePaise)}
+                  />
+                )
+              })
+            }
+            const picked = selectedId === o.id
             const sub = picked ? choices.find((c) => c.routeKey === routeKey) : undefined
             return (
               <div key={o.id} className="flex flex-col gap-1.5">
@@ -131,6 +159,7 @@ export default function DeliveryMethod({
                   value={o.id}
                   checked={picked}
                   icon={o.fastest ? 'plane' : 'truck'}
+                  logo={sub ? null : (o.delivery?.logo ?? null)}
                   onChange={() => onSelect(o.id)}
                   title={
                     <span className="flex flex-wrap items-center gap-2">
@@ -168,15 +197,11 @@ export default function DeliveryMethod({
         )}
       </fieldset>
       {insurance?.offered && onInsurance ? (
-        <label className="flex w-fit cursor-pointer items-center gap-2 pt-1 text-[0.8125rem] text-ck-ink/85">
-          <input
-            type="checkbox"
-            checked={insurance.on}
-            onChange={(e) => onInsurance(e.target.checked)}
-            className="size-4 cursor-pointer rounded accent-[var(--ck-accent)]"
-          />
-          {appCopy.insure(insurance.pricePaise ? money(insurance.pricePaise) : null)}
-        </label>
+        <InsuranceToggle
+          on={insurance.on}
+          price={insurance.pricePaise ? money(insurance.pricePaise) : null}
+          onChange={onInsurance}
+        />
       ) : null}
       <CheckoutParcels parcels={shipping.parcels} />
     </div>

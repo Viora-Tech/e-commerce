@@ -571,3 +571,47 @@ describe('fallback', () => {
     expect(r.status).toBe('none')
   })
 })
+
+describe('courier list (the option shows every allowed courier)', () => {
+  const LIST = option(
+    'list',
+    {
+      name: 'Delivery',
+      speed: 'standard',
+      strategy: 'cheapest',
+      couriers: { show: 'list', max: 4 },
+    },
+    0,
+  )
+  const listInput = (over: Partial<ResolveInput> = {}) =>
+    input({ config: { ...config(), options: [LIST] }, ...over })
+
+  it('lists couriers of any speed: the pick at its price, the rest at price + the difference', () => {
+    const r = resolveDeliveryOptions(listInput())
+    const o = find(r, 'list')
+    expect(o?.layout).toBe('list')
+    const keys = o?.choices.map((c) => c.route.key)
+    // Pick: Delhivery Surface ₹60 (same shopper price as DTDC, earlier). DTDC is slower and
+    // not dearer, so it goes; Delhivery Express and Bluedart Air follow with their extra.
+    expect(keys?.[0]).toBe('delhivery:S')
+    expect(keys).toContain('delhivery:E')
+    expect(keys).toContain('shiprocket:20')
+    const express = o?.choices.find((c) => c.route.key === 'delhivery:E')
+    // ₹102 - ₹60 = ₹42 more → +₹49 on top of the pick's ₹60.
+    expect(express?.pricePaise).toBe(6_000 + 4_900)
+  })
+
+  it('keeps one card per courier and speed (the cheaper app wins)', () => {
+    const r = resolveDeliveryOptions(listInput())
+    const delhiveryStandard = find(r, 'list')?.choices.filter(
+      (c) => c.route.carrierKey === 'delhivery' && c.route.speed === 'standard',
+    )
+    expect(delhiveryStandard).toHaveLength(1)
+    expect(delhiveryStandard?.[0]?.route.key).toBe('delhivery:S')
+  })
+
+  it('a one-card option is unchanged', () => {
+    const r = resolveDeliveryOptions(input())
+    expect(find(r, 'std')?.layout).toBe('one')
+  })
+})

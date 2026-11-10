@@ -26,6 +26,7 @@ import {
 import { useCopy } from '@/hooks/use-copy'
 import { base, instant, pill } from '@/lib/motion'
 import { SIDEBAR_CONTROL, SIDEBAR_LABEL } from '@/lib/sidebar-motion'
+import NavAppPages from './nav-app-pages'
 
 type NavSectionProps = {
   item: NavItem
@@ -226,6 +227,9 @@ export default function NavSection({ item, pathname, count = 0, counts = {} }: N
                       <ExternalLink aria-hidden="true" className="size-3.5 shrink-0" />
                     ) : null}
                   </Link>
+                  {child.pages && active ? (
+                    <NavAppPages pages={child.pages} pathname={pathname} />
+                  ) : null}
                 </li>
               )
             })}

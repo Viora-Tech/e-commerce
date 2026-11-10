@@ -23,7 +23,6 @@ type VariantMatrixRowProps = {
   selected: boolean
   onSelect: (checked: boolean) => void
   onChange: (patch: Partial<VariantRow>) => void
-  onGenerateSku: () => void
   onEdit: () => void
   /** Files uploaded from a variant's images dialog join the product gallery. */
   onAddMedia: (items: MediaItem[]) => void
@@ -40,7 +39,6 @@ export default function VariantMatrixRow({
   selected,
   onSelect,
   onChange,
-  onGenerateSku,
   onEdit,
   onAddMedia,
 }: VariantMatrixRowProps) {
@@ -103,27 +101,14 @@ export default function VariantMatrixRow({
         />
       </TableCell>
       <TableCell className={CELL}>
-        <div className="flex items-center gap-1">
-          <Input
-            aria-label={`${copy.sku} ${title}`}
-            value={v.sku}
-            onChange={(e) => onChange({ sku: e.target.value })}
-            autoComplete="off"
-          />
-          {v.sku.trim() ? null : (
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="shrink-0"
-              onClick={onGenerateSku}
-              title={inventoryCopy.skuGenerateHelp}
-              aria-label={`${inventoryCopy.skuGenerate} ${copy.sku} ${title}`}
-            >
-              {inventoryCopy.skuGenerate}
-            </Button>
-          )}
-        </div>
+        <Input
+          aria-label={`${copy.sku} ${title}`}
+          placeholder={inventoryCopy.skuGenerate}
+          title={inventoryCopy.skuGenerateHelp}
+          value={v.sku}
+          onChange={(e) => onChange({ sku: e.target.value })}
+          autoComplete="off"
+        />
       </TableCell>
       <TableCell className={CELL}>
         <MoneyInput
@@ -138,13 +123,13 @@ export default function VariantMatrixRow({
       <TableCell className={cn(CELL, 'text-right')}>
         <Button
           type="button"
-          variant="outline"
-          size="sm"
+          variant="ghost"
+          size="icon-sm"
           onClick={onEdit}
           aria-label={variantsCopy.editVariant(title)}
+          title={variantsCopy.edit}
         >
           <Pencil aria-hidden="true" />
-          {variantsCopy.edit}
         </Button>
       </TableCell>
     </TableRow>

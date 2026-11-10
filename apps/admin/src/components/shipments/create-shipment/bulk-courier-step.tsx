@@ -1,8 +1,10 @@
 'use client'
 
 import type { CourierRateRow } from '@commerce/core'
+import { Pencil } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import { Badge } from '@commerce/ui/shadcn/badge'
+import { Button } from '@commerce/ui/shadcn/button'
 import { Spinner } from '@commerce/ui/shadcn/spinner'
 import {
   Table,
@@ -27,6 +29,8 @@ type BulkCourierStepProps = {
   onProviderChange: (providerId: string) => void
   /** Each order's courier under the mode; null when none can take it. */
   picks: Array<{ orderId: string; orderNumber: number; row: CourierRateRow | null }>
+  /** Opens one order's Edit shipment popup (Figma 913:9698). */
+  onEdit?: ((orderId: string) => void) | undefined
 }
 
 const SHORT_DATE = { weekday: 'short', day: 'numeric', month: 'short' } as const
@@ -41,6 +45,7 @@ export default function BulkCourierStep({
   providerId,
   onProviderChange,
   picks,
+  onEdit,
 }: BulkCourierStepProps) {
   // Hooks
   const copy = useCopy(createShipmentContent)
@@ -123,6 +128,11 @@ export default function BulkCourierStep({
             <TableHead>{b.columns.courier}</TableHead>
             <TableHead>{b.columns.price}</TableHead>
             <TableHead>{b.columns.delivery}</TableHead>
+            {onEdit ? (
+              <TableHead className="w-12">
+                <span className="sr-only">{b.edit}</span>
+              </TableHead>
+            ) : null}
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -146,6 +156,20 @@ export default function BulkCourierStep({
                   {b.noCourierFor}
                 </TableCell>
               )}
+              {onEdit ? (
+                <TableCell className="text-right">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
+                    aria-label={b.editOrder(orderNumber)}
+                    title={b.edit}
+                    onClick={() => onEdit(orderId)}
+                  >
+                    <Pencil aria-hidden="true" />
+                  </Button>
+                </TableCell>
+              ) : null}
             </TableRow>
           ))}
         </TableBody>
