@@ -7,10 +7,13 @@ import { store } from '@commerce/db'
 import { eq } from 'drizzle-orm'
 import { cookies, headers } from 'next/headers'
 import { redirect } from 'next/navigation'
+import { clientIp, rateLimited } from './rate-limit'
 import { inStore } from './store-context'
 import { ACCESS_COOKIE, ACCESS_MAX_AGE, accessToken } from './storefront-gate'
 
 export type UnlockState = { error: boolean }
+
+const UNLOCK_RULE = { limit: 10, windowMs: 10 * 60_000 }
 
 /**
  * The password page's form. The store comes from the proxy's derived header, never
@@ -20,6 +23,11 @@ export async function unlockStorefront(_prev: UnlockState, form: FormData): Prom
   const storeId = (await headers()).get('x-store-id')
   const given = form.get('password')
   if (!storeId || typeof given !== 'string' || given.length > 200) return { error: true }
+  // Ten tries per 10 minutes per visitor and store: no guessing the password by brute force.
+  const ip = clientIp(await headers())
+  if (!(await rateLimited('store-password:ip', `${storeId}:${ip}`, UNLOCK_RULE)).ok) {
+    return { error: true }
+  }
 
   const prefs = await inStore(storeId, async (tx) => {
     const [row] = await tx
