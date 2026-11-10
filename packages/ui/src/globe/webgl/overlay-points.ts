@@ -51,10 +51,14 @@ export function buildArcPoints(arcs: GlobeArc[], palette: OverlayPalette): Float
   return new Float32Array(out)
 }
 
+/** Marker diameters as a share of the globe radius: every order, and the newest one. */
+const MARKER_SIZE = 0.022
+const NEWEST_SIZE = 0.034
+
 /** A big-order glow marker is drawn this much larger than its own marker, at this much of its
  * brightness, so it reads as a soft halo behind it rather than a second solid dot. */
-const GLOW_SIZE_SCALE = 2.6
-const GLOW_BRIGHTNESS = 0.4
+const GLOW_SIZE_SCALE = 1.9
+const GLOW_BRIGHTNESS = 0.3
 
 /** What share of the shown markers "Highlight big orders" treats as big enough for the soft
  * glow: the top 10%, at least one when there is any spread in value at all. */
@@ -71,7 +75,9 @@ function bigOrderThreshold(values: number[]): number {
 
 /**
  * Markers as point sprites. The newest pulses (`pulse`, 0..1) and grows in on arrival
- * (`reveal`, 0..1); sizes are cobe's (0.045, newest up to 0.09) as a diameter over the radius.
+ * (`reveal`, 0..1); sizes are a diameter over the radius: small, even dots (`MARKER_SIZE`), the
+ * newest a little larger with a gentle breathing pulse (`NEWEST_SIZE`), so a busy hour reads as a
+ * scatter of pins rather than overlapping blobs.
  *
  * With `highlightBigOrders` on, size also scales with `valuePaise` (square-root, so it reads
  * as area rather than diameter) and the top 10% by value get an extra, larger, dimmer point
@@ -93,9 +99,9 @@ export function buildMarkerPoints(
   const out: number[] = []
   for (const m of markers) {
     const value = m.valuePaise ?? 0
-    const scale = highlightBigOrders && maxValue > 0 ? 0.75 + 0.65 * Math.sqrt(value / maxValue) : 1
-    const baseSize = m.isNewest ? 0.09 * (0.6 + 0.4 * pulse) * reveal : 0.045
-    const size = baseSize * scale * 1.25
+    const scale = highlightBigOrders && maxValue > 0 ? 0.85 + 0.45 * Math.sqrt(value / maxValue) : 1
+    const baseSize = m.isNewest ? NEWEST_SIZE * (0.85 + 0.15 * pulse) * reveal : MARKER_SIZE
+    const size = baseSize * scale
     const color = m.isNewest ? palette.newest : palette.marker
     const point = markerVector(m)
     if (highlightBigOrders && maxValue > 0 && value >= bigThreshold) {
