@@ -17,6 +17,7 @@ import { api } from '@/lib/api-client'
 import { formatDay } from '@/lib/format-date'
 import { formatPaise } from '@/lib/money'
 import { routes } from '@/lib/routes'
+import InvoiceLinesCard from './invoice-lines-card'
 import { saveFile } from './save-file'
 import TextField from './text-field'
 
@@ -157,6 +158,7 @@ export default function InvoiceDetail({ params }: AppPageProps) {
           <p className="mt-1 text-caption text-muted-foreground">{copy.b2bCreditNotice}</p>
         ) : null}
       </SettingsCard>
+      <InvoiceLinesCard snapshot={s} />
       {s.exportSupply && doc.status !== 'cancelled' && !doc.reportedPeriod ? (
         <SettingsCard title={copy.shipping}>
           <div className="grid gap-3 md:grid-cols-3">
