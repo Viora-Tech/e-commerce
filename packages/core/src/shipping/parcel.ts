@@ -1,20 +1,23 @@
 /** SOURCE OF TRUTH: parcel weight, box presets — computes what a shipment weighs for booking */
+import { ASSUMED_WEIGHT_GRAMS } from '@commerce/shipping'
 
 export type WeighableLine = { quantity: number; variantWeightGrams: number | null | undefined }
 
 /**
- * Per-order parcel weight: the sum of product weights when every line's variant carries one,
- * else the packed box's own weight (a named preset from Settings -> Shipping, or the caller's
- * fallback). The merchant can still edit the result per row before booking.
+ * Per-order parcel weight: the products' own weights plus the packing (the box's weight from
+ * Settings -> Shipping: the carton, bubble wrap and invoice). When any line has no weight the
+ * products count as 500 g. A box is packing only, never the whole parcel (owner, 10 Nov 2026).
+ * The merchant can still edit the result per row before booking.
  */
-export function resolveParcelWeightGrams(lines: WeighableLine[], boxWeightGrams: number): number {
+export function resolveParcelWeightGrams(lines: WeighableLine[], packingGrams: number): number {
+  const packing = Math.max(0, Math.round(packingGrams || 0))
   if (lines.length > 0 && lines.every((l) => l.variantWeightGrams != null && l.quantity > 0)) {
     const grams = lines.reduce((sum, l) => sum + l.quantity * (l.variantWeightGrams ?? 0), 0)
     /* Products saved with 0 g (Shopify's default for "no weight") weigh nothing on paper; a
        courier needs at least a gram, so they count as unknown, like a missing weight. */
-    if (grams >= 1) return grams
+    if (grams >= 1) return grams + packing
   }
-  return boxWeightGrams
+  return ASSUMED_WEIGHT_GRAMS + packing
 }
 
 export type PackageDimensionsCm = { lengthCm: number; widthCm: number; heightCm: number }

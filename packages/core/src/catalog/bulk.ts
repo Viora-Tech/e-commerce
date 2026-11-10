@@ -10,6 +10,7 @@ import {
   variantOptionValue,
 } from '@commerce/db'
 import { asc, eq, inArray } from 'drizzle-orm'
+import { type BulkShippingAction, bulkSetShipping } from './bulk-shipping'
 import { noteProductEvent, noteProductsChanged, txStoreId } from './changes'
 import type { ImportProduct } from './import-csv'
 import { createProduct, deleteProduct, uniqueHandle, updateProduct } from './products'
@@ -335,6 +336,7 @@ export type BulkAction =
   | { kind: 'addTag'; tag: string }
   | { kind: 'removeTag'; tag: string }
   | { kind: 'delete' }
+  | BulkShippingAction
 
 export type BulkResult = { changed: number; deleted: number; archived: number }
 
@@ -354,6 +356,11 @@ export async function bulkUpdateProducts(
       else result.archived++
     }
     result.changed = ids.length
+    return result
+  }
+
+  if (action.kind === 'shipping') {
+    result.changed = await bulkSetShipping(tx, ids, action)
     return result
   }
 

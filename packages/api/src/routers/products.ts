@@ -175,6 +175,14 @@ export const productsRouter = {
           z.object({ kind: z.literal('addTag'), tag: z.string().trim().min(1).max(50) }),
           z.object({ kind: z.literal('removeTag'), tag: z.string().trim().min(1).max(50) }),
           z.object({ kind: z.literal('delete') }),
+          /* "Set weight and box": the products' own weight (packing comes from the box) and box,
+             on every live variant, or only those with one option value ("XL"). */
+          z.object({
+            kind: z.literal('shipping'),
+            weightGrams: z.number().int().min(1).max(100_000).optional(),
+            boxPresetId: z.string().min(1).max(60).nullable().optional(),
+            optionValue: z.string().trim().min(1).max(60).optional(),
+          }),
         ]),
       }),
     )

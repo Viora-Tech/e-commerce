@@ -8,6 +8,7 @@ import {
   Download,
   FileEdit,
   Folder,
+  Package,
   Pencil,
   Tag,
   Trash2,
@@ -20,11 +21,13 @@ import { useRunAutomation } from '@/components/automations/records/use-run-autom
 import ActionMenu, { type ActionItem } from '@/components/layout/action-menu'
 import { assistantContent } from '@/data/assistant'
 import { bulkActionsContent } from '@/data/bulk-actions'
+import { productBulkShippingContent } from '@/data/product-bulk-shipping'
 import { productsListContent } from '@/data/products'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { runBatched, toastOutcome } from '@/lib/run-batched'
 import AddToCollectionDialog from './add-to-collection-dialog'
+import BulkShippingDialog from './bulk-shipping-dialog'
 import { downloadProductCsv } from './export-products'
 
 type ExportRows = Awaited<ReturnType<typeof api.products.exportRows>>
@@ -75,9 +78,11 @@ export default function ProductBulkActions({
   const { bulk: copy, exporting } = useCopy(productsListContent)
   const { bulk: ai } = useCopy(assistantContent)
   const shared = useCopy(bulkActionsContent)
+  const shippingCopy = useCopy(productBulkShippingContent)
   const automation = useRunAutomation('product', automations)
   const [working, setWorking] = useState(false)
   const [picking, setPicking] = useState(false)
+  const [weighing, setWeighing] = useState(false)
 
   // Event handlers
   const handleAddToCollection = async (collectionId: string) => {
@@ -111,6 +116,7 @@ export default function ProductBulkActions({
     { label: copy.addTag, icon: Tag, onSelect: onTag },
     { label: copy.removeTag, icon: Tag, onSelect: onUntag },
     { label: copy.addToCollection, icon: Folder, onSelect: () => setPicking(true) },
+    { label: shippingCopy.menu, icon: Package, onSelect: () => setWeighing(true) },
     { label: ai.button, icon: AiIcon, hidden: !onWriteAi, onSelect: onWriteAi },
     {
       label: copy.archive,
@@ -152,6 +158,11 @@ export default function ProductBulkActions({
         busy={working}
         onClose={() => setPicking(false)}
         onApply={handleAddToCollection}
+      />
+      <BulkShippingDialog
+        ids={weighing ? ids : []}
+        onClose={() => setWeighing(false)}
+        onDone={onDone}
       />
       <RunAutomationDialog
         subjectType="product"

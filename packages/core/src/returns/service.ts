@@ -14,7 +14,7 @@ import {
   store,
   variant,
 } from '@commerce/db'
-import { ASSUMED_WEIGHT_GRAMS, type ShippingProvider, type Tracking } from '@commerce/shipping'
+import type { ShippingProvider, Tracking } from '@commerce/shipping'
 import { and, asc, desc, eq, inArray, sql } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 import { CommerceError } from '../errors'
@@ -483,7 +483,8 @@ export async function arrangeReturnPickup(
     .innerJoin(orderLine, eq(orderLine.id, returnRequestLine.orderLineId))
     .leftJoin(variant, eq(variant.id, orderLine.variantId))
     .where(eq(returnRequestLine.returnRequestId, id))
-  const boxWeight = defaultBoxPreset(settings)?.weightGrams ?? ASSUMED_WEIGHT_GRAMS
+  // A return goes back in the store's main box: its packing is added to the products.
+  const packingGrams = defaultBoxPreset(settings)?.weightGrams ?? 0
   const result = await provider.createReturnPickup({
     returnId: r.id,
     reference: `${returnLabel(r.number)}-${o.number}`,
@@ -507,7 +508,7 @@ export async function arrangeReturnPickup(
       unitPricePaise: l.unitPricePaise,
     })),
     valuePaise: lines.reduce((sum, l) => sum + l.quantity * l.unitPricePaise, 0),
-    weightGrams: resolveParcelWeightGrams(lines, boxWeight),
+    weightGrams: resolveParcelWeightGrams(lines, packingGrams),
   })
   const row = await setReturn(ctx, id, {
     status: 'in_transit',

@@ -1,4 +1,4 @@
-/** SOURCE OF TRUTH: parcel weight — tests resolveParcelWeightGrams's fallback rules */
+/** SOURCE OF TRUTH: parcel weight — tests resolveParcelWeightGrams (products + packing) */
 import { describe, expect, it } from 'vitest'
 import {
   effectiveWeightGrams,
@@ -8,46 +8,48 @@ import {
 } from './parcel'
 
 describe('resolveParcelWeightGrams', () => {
-  it('sums quantity * variant weight when every line has one', () => {
+  it('adds the box packing to the products when every line has a weight', () => {
+    // Two 400 g mice in the mouse box (70 g of carton and invoice).
     const grams = resolveParcelWeightGrams(
       [
-        { quantity: 2, variantWeightGrams: 150 },
-        { quantity: 1, variantWeightGrams: 400 },
+        { quantity: 2, variantWeightGrams: 400 },
+        { quantity: 1, variantWeightGrams: 100 },
       ],
-      250,
+      70,
     )
-    expect(grams).toBe(2 * 150 + 400)
+    expect(grams).toBe(2 * 400 + 100 + 70)
   })
 
-  it('falls back to the box weight when any line has no variant weight', () => {
+  it('counts 500 g for the products when any line has no weight, plus the packing', () => {
     const grams = resolveParcelWeightGrams(
       [
         { quantity: 2, variantWeightGrams: 150 },
         { quantity: 1, variantWeightGrams: null },
       ],
-      250,
+      70,
     )
-    expect(grams).toBe(250)
+    expect(grams).toBe(500 + 70)
   })
 
-  it('falls back to the box weight with no lines', () => {
-    expect(resolveParcelWeightGrams([], 300)).toBe(300)
+  it('never uses the box as the whole parcel', () => {
+    expect(resolveParcelWeightGrams([], 300)).toBe(800)
+    expect(resolveParcelWeightGrams([{ quantity: 0, variantWeightGrams: 100 }], 300)).toBe(800)
   })
 
-  it('falls back to the box weight when a weighed line has zero quantity', () => {
-    expect(resolveParcelWeightGrams([{ quantity: 0, variantWeightGrams: 100 }], 300)).toBe(300)
-  })
-
-  it('falls back to the box weight when the products weigh 0 g (bulk quote 400)', () => {
+  it('treats products saved at 0 g as unknown (bulk quote 400)', () => {
     expect(
       resolveParcelWeightGrams(
         [
           { quantity: 2, variantWeightGrams: 0 },
           { quantity: 1, variantWeightGrams: 0 },
         ],
-        300,
+        10,
       ),
-    ).toBe(300)
+    ).toBe(510)
+  })
+
+  it('adds nothing for a box with no packing weight', () => {
+    expect(resolveParcelWeightGrams([{ quantity: 1, variantWeightGrams: 400 }], 0)).toBe(400)
   })
 })
 
