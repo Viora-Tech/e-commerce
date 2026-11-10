@@ -249,6 +249,7 @@ describe('checkoutTotals with the Delivery options app', () => {
       listPricePaise: 6000,
       choices: [],
       optionName: 'Standard',
+      logo: null,
       ...over,
     },
   })

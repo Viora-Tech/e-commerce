@@ -8,6 +8,8 @@ export const deliveryOptionsContent = {
   /** The insurance checkbox under the options. */
   insure: (price: string | null) =>
     price ? `Insure this shipment (+${price})` : 'Insure this shipment',
+  insureTitle: 'Insure this parcel',
+  insureBody: 'Replaced or refunded if it’s lost or damaged on the way.',
   /** The Payment step, when cash on delivery ships another route at another price. */
   codRoute: (extra: string, carrier: string) =>
     `Cash on delivery: +${extra}, ships with ${carrier}`,

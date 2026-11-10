@@ -63,6 +63,38 @@ export type DeliveryCardExtras = {
   choices: DeliveryChoiceCard[]
   /** The option's own name ("Express"), for "Not available with Express delivery". */
   optionName: string
+  /** The picked courier's logo, when the merchant shows its name; null otherwise. */
+  logo: CourierLogo | null
+}
+
+export type CourierLogo = {
+  src: string
+  alt: string /** Dark lettering: sits on a white tile. */
+  light: boolean
+}
+
+/** Logos shipped in `public/courier-logos/`, by the carrier key `normaliseCarrier` gives. */
+const COURIER_LOGOS: Record<string, { file: string; light?: boolean }> = {
+  delhivery: { file: 'delhivery.png' },
+  bluedart: { file: 'bluedart.svg', light: true },
+  dtdc: { file: 'dtdc.png' },
+  xpressbees: { file: 'xpressbees.png' },
+  ekart: { file: 'ekart.png' },
+  shadowfax: { file: 'shadowfax.png' },
+  'india-post': { file: 'india-post.png' },
+  dhl: { file: 'dhl.svg', light: true },
+  fedex: { file: 'fedex.svg', light: true },
+}
+
+export function courierLogo(route: {
+  carrierKey: string
+  carrier: string
+  showCarrier: boolean
+}): CourierLogo | null {
+  const logo = route.showCarrier ? COURIER_LOGOS[route.carrierKey] : undefined
+  return logo
+    ? { src: `/courier-logos/${logo.file}`, alt: route.carrier, light: logo.light === true }
+    : null
 }
 
 export type CheckoutDelivery = {
@@ -124,6 +156,7 @@ export function cardExtras(
     codCarrier: o.cod?.route.showCarrier ? o.cod.route.carrier : null,
     listPricePaise: o.listPricePaise,
     optionName: o.name,
+    logo: o.pick ? courierLogo(o.pick.route) : null,
     choices: o.choices.map((c) => ({
       routeKey: c.route.key,
       label: choiceLabel(c.route),

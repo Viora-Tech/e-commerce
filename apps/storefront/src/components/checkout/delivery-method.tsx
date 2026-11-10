@@ -4,6 +4,7 @@ import { useFormatPaise } from '@commerce/blocks'
 import CheckoutIcon from '@/components/checkout/checkout-icon'
 import CheckoutParcels from '@/components/checkout/checkout-parcels'
 import DeliveryRouteChoices from '@/components/checkout/delivery-route-choices'
+import InsuranceToggle from '@/components/checkout/insurance-toggle'
 import OptionCard from '@/components/checkout/option-card'
 import { checkoutContent as content } from '@/data/checkout'
 import { deliveryOptionsContent as appCopy } from '@/data/delivery-options'
@@ -131,6 +132,7 @@ export default function DeliveryMethod({
                   value={o.id}
                   checked={picked}
                   icon={o.fastest ? 'plane' : 'truck'}
+                  logo={sub ? null : (o.delivery?.logo ?? null)}
                   onChange={() => onSelect(o.id)}
                   title={
                     <span className="flex flex-wrap items-center gap-2">
@@ -168,15 +170,11 @@ export default function DeliveryMethod({
         )}
       </fieldset>
       {insurance?.offered && onInsurance ? (
-        <label className="flex w-fit cursor-pointer items-center gap-2 pt-1 text-[0.8125rem] text-ck-ink/85">
-          <input
-            type="checkbox"
-            checked={insurance.on}
-            onChange={(e) => onInsurance(e.target.checked)}
-            className="size-4 cursor-pointer rounded accent-[var(--ck-accent)]"
-          />
-          {appCopy.insure(insurance.pricePaise ? money(insurance.pricePaise) : null)}
-        </label>
+        <InsuranceToggle
+          on={insurance.on}
+          price={insurance.pricePaise ? money(insurance.pricePaise) : null}
+          onChange={onInsurance}
+        />
       ) : null}
       <CheckoutParcels parcels={shipping.parcels} />
     </div>
