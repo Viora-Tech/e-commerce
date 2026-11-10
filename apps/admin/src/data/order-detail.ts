@@ -36,6 +36,10 @@ export const orderDetailContent = {
     /** Undo a "Mark as delivered" pressed by mistake: the order goes back to where it was. */
     markNotDelivered: 'Mark as not delivered',
     markedNotDelivered: 'Marked as not delivered',
+    markNotShipped: 'Mark as unfulfilled',
+    markedNotShipped: 'Marked as unfulfilled: back to To ship',
+    restore: 'Restore order',
+    restored: 'Order restored',
     cancel: 'Cancel order',
     refund: 'Refund',
     print: 'Print packing slip',

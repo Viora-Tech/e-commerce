@@ -56,6 +56,8 @@ type OrderActionsProps = {
   onShip?: (() => void) | undefined
   /** Cancels the booked courier shipment (asks first); undefined when there is none to cancel. */
   onCancelShipment?: (() => void) | undefined
+  /** Why the booked shipment can no longer be cancelled here; shown instead of asking. */
+  cancelShipmentBlocked?: string | undefined
   /** Nudges the customer about an unmatched UPI or bank transfer. */
   onSendReminder?: (() => void) | undefined
   /** "Send order link": the customer's link to their order page; undefined hides it. */
@@ -64,6 +66,10 @@ type OrderActionsProps = {
   onViewStatusPage?: (() => void) | undefined
   /** Undo a "Mark as delivered" pressed by mistake; shown only on a delivered order. */
   onMarkNotDelivered?: (() => void) | undefined
+  /** Packed items back to To ship when no courier booking is live (a label cancelled earlier). */
+  onMarkNotShipped?: (() => void) | undefined
+  /** "Restore order": a cancelled order back to open; shown only on a cancelled order. */
+  onRestore?: (() => void) | undefined
   /** Starts a new draft from this order ("Duplicate order"); undefined hides it. */
   onDuplicate?: (() => void) | undefined
   /** "Archive order": off the working tabs; undefined hides it (no right, or already archived). */
@@ -90,6 +96,13 @@ type OrderActionsProps = {
   nextId?: string | undefined
 }
 
+/** Packed, or partly packed, but not yet with a courier on its way: can go back to To ship. */
+const NOT_SHIPPED_FROM = new Set<OrderFulfillmentStatus>([
+  'fulfilled',
+  'partially_fulfilled',
+  'shipped',
+])
+
 export default function OrderActions({
   status,
   paymentStatus,
@@ -101,10 +114,13 @@ export default function OrderActions({
   onRequestBalance,
   onShip,
   onCancelShipment,
+  cancelShipmentBlocked,
   onSendReminder,
   onSendOrderLink,
   onViewStatusPage,
   onMarkNotDelivered,
+  onMarkNotShipped,
+  onRestore,
   onDuplicate,
   onArchive,
   onCancel,
@@ -259,6 +275,20 @@ export default function OrderActions({
             onSelect: onMarkNotDelivered,
           },
           {
+            label: copy.actions.markNotShipped,
+            icon: RotateCcw,
+            hidden: !onMarkNotShipped || !NOT_SHIPPED_FROM.has(fulfillmentStatus) || readOnly,
+            disabled: busy,
+            onSelect: onMarkNotShipped,
+          },
+          {
+            label: copy.actions.restore,
+            icon: RotateCcw,
+            hidden: !onRestore || status !== 'cancelled' || readOnly,
+            disabled: busy,
+            onSelect: onRestore,
+          },
+          {
             label: copy.actions.viewStatusPage,
             icon: ExternalLink,
             hidden: !onViewStatusPage,
@@ -270,7 +300,10 @@ export default function OrderActions({
             destructive: true,
             hidden: !onCancelShipment || readOnly,
             disabled: busy,
-            onSelect: () => setConfirm('cancelShipment'),
+            onSelect: () =>
+              cancelShipmentBlocked
+                ? toast.info(cancelShipmentBlocked)
+                : setConfirm('cancelShipment'),
           },
           {
             label: copy.duplicate.action,
