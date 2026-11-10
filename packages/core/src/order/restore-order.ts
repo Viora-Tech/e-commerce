@@ -8,11 +8,19 @@
  * returned): restoring would leave the order open with its payment already given back.
  * Units written off at cancel ("Restock" off) are held again from what is on hand.
  */
-import { order, orderNote, payment, refund } from '@commerce/db'
-import { and, count, eq } from 'drizzle-orm'
+import {
+  fulfillmentOrder,
+  fulfillmentOrderLine,
+  order,
+  orderLine,
+  orderNote,
+  payment,
+  refund,
+} from '@commerce/db'
+import { and, count, eq, inArray } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 import { STORE_CREDIT_PROVIDER } from '../payments/split-tender'
-import { reopenFulfillmentOrders } from './fulfillment-orders'
+import { recommitStock } from './committed-stock'
 import { recomputeOrderStatuses } from './recompute'
 
 export type RestoreOrderResult =
@@ -59,4 +67,44 @@ export async function restoreCancelledOrder(
   })
   await recomputeOrderStatuses(ctx, orderId)
   return { restored: true, units }
+}
+
+/**
+ * Every parcel the cancel closed that still has unpacked units opens again and holds them
+ * again: the reverse of `releaseFulfillmentOrders`. Returns the units held again.
+ */
+async function reopenFulfillmentOrders(ctx: StoreContext, orderId: string): Promise<number> {
+  const rows = await ctx.tx
+    .select({
+      fulfillmentOrderId: fulfillmentOrderLine.fulfillmentOrderId,
+      variantId: orderLine.variantId,
+      quantity: fulfillmentOrderLine.quantity,
+      fulfilledQuantity: fulfillmentOrderLine.fulfilledQuantity,
+      locationId: fulfillmentOrder.locationId,
+    })
+    .from(fulfillmentOrderLine)
+    .innerJoin(fulfillmentOrder, eq(fulfillmentOrder.id, fulfillmentOrderLine.fulfillmentOrderId))
+    .innerJoin(orderLine, eq(orderLine.id, fulfillmentOrderLine.orderLineId))
+    .where(and(eq(fulfillmentOrder.orderId, orderId), eq(fulfillmentOrder.status, 'cancelled')))
+    .for('update', { of: fulfillmentOrderLine })
+  const reopened = new Set<string>()
+  let units = 0
+  for (const row of rows) {
+    const unpacked = row.quantity - row.fulfilledQuantity
+    if (unpacked <= 0) continue
+    await recommitStock(ctx, {
+      variantId: row.variantId,
+      quantity: unpacked,
+      locationId: row.locationId,
+    })
+    reopened.add(row.fulfillmentOrderId)
+    units += unpacked
+  }
+  if (reopened.size > 0) {
+    await ctx.tx
+      .update(fulfillmentOrder)
+      .set({ status: 'open', updatedAt: new Date() })
+      .where(inArray(fulfillmentOrder.id, [...reopened]))
+  }
+  return units
 }

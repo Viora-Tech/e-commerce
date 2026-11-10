@@ -30,7 +30,6 @@ import { and, asc, desc, eq, inArray, isNull, ne, sql } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 import { defaultLocationId } from '../inventory/levels'
 import {
-  recommitStock,
   releaseCommittedStock,
   shipCommittedStock,
   unshipCommittedStock,
@@ -377,36 +376,6 @@ export async function releaseFulfillmentOrders(
     .update(fulfillmentOrder)
     .set({ status: 'cancelled', updatedAt: new Date() })
     .where(inArray(fulfillmentOrder.id, [...touched]))
-}
-
-/**
- * A cancelled order restored (`restoreCancelledOrder`): every parcel the cancel closed that
- * still has unpacked units opens again and holds them again. The reverse of
- * `releaseFulfillmentOrders`; returns the units held again.
- */
-export async function reopenFulfillmentOrders(ctx: StoreContext, orderId: string): Promise<number> {
-  const rows = await lockParcelLines(ctx, orderId)
-  const reopened = new Set<string>()
-  let units = 0
-  for (const row of rows) {
-    if (row.status !== 'cancelled') continue
-    const unpacked = row.quantity - row.fulfilledQuantity
-    if (unpacked <= 0) continue
-    await recommitStock(ctx, {
-      variantId: row.variantId,
-      quantity: unpacked,
-      locationId: row.locationId,
-    })
-    reopened.add(row.fulfillmentOrderId)
-    units += unpacked
-  }
-  if (reopened.size > 0) {
-    await ctx.tx
-      .update(fulfillmentOrder)
-      .set({ status: 'open', updatedAt: new Date() })
-      .where(inArray(fulfillmentOrder.id, [...reopened]))
-  }
-  return units
 }
 
 /**

@@ -509,6 +509,8 @@ export const ACTION_DOCS: Record<string, string> = {
     "The member opened one draft: it leaves the sidebar's unseen checkout drafts count.",
   'orders.markNotDelivered':
     '"Mark as not delivered": undo a "Mark as delivered" pressed by mistake.',
+  'orders.markNotShipped':
+    '"Mark as not shipped": packed items back to To ship when no courier booking is live.',
   'orders.neighbours':
     'Order numbers either side of this one, for the arrows in the detail header.',
   'orders.notePaymentReminderChat':
@@ -533,6 +535,7 @@ export const ACTION_DOCS: Record<string, string> = {
     "Ask the shopper for a deposit pre-order's balance: email and WhatsApp (when set up) with a signed pay link.",
   'orders.reserveDraft':
     "Reserve items (#1030): hold the saved draft's stock until a date, so no one else can buy it.",
+  'orders.restore': '"Restore order": a cancel pressed by mistake; refused once money went back.',
   'orders.retryCourierPush':
     "Send the order to a courier's panel again after it refused (order push).",
   'orders.saveDraft':
