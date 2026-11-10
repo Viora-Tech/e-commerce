@@ -105,8 +105,12 @@ export const billingContent = {
     notReady: `Paying for plans online is not switched on yet. Contact ${siteConfig.brand.name} to change plans.`,
   },
   apps: {
-    heading: 'Paid apps',
-    help: 'Apps bought on top of your plan. Each renews monthly.',
+    heading: 'Apps and your plan',
+    help: 'Couriers, payments and most apps are free on every plan. These cost extra below a plan.',
+    included: (plan: string) => `Included in ${plan}`,
+    buyFor: (price: string) => `${price}/month`,
+    orIncluded: (plan: string) => `Or included in ${plan}`,
+    buy: 'Buy',
     paidUntil: (date: string) => `Paid until ${date}`,
     endsOn: (date: string) => `Stops on ${date}`,
     due: (amount: string) => `${amount} due`,
@@ -166,7 +170,23 @@ export const billingContent = {
     cancel: 'Keep my plan',
     scheduled: (plan: string) => `You move to ${plan} when this period ends`,
   },
+  changePlan: {
+    title: 'Change plan',
+    action: 'Change plan',
+    subtitle:
+      'Prices exclude 18% GST. Orders never stop: past the included orders, each one adds a small fee.',
+    back: 'Plan & billing',
+    basedOn: (orders: string) => `Suggested from ${orders} orders this month`,
+    confirmTitle: (plan: string) => `Move to ${plan}?`,
+    upgradeBody: (plan: string, price: string) =>
+      `${plan} starts as soon as its bill (${price} + GST) is paid. You go to the secure payment page next.`,
+    downgradeBody: (plan: string, date: string) =>
+      `You keep your current plan until ${date}, then move to ${plan}. Nothing is charged now.`,
+    confirm: (plan: string) => `Move to ${plan}`,
+    cancel: 'Cancel',
+  },
   dialog: {
+    suggested: 'Suggested',
     title: 'Compare plans',
     subtitle:
       'Every plan has GST invoices, couriers, UPI payments and a Hindi admin. Prices before GST.',

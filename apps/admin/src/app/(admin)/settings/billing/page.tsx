@@ -18,14 +18,13 @@ export default async function Page() {
     call(appRouter.apps.list, undefined, { context }).catch(() => []),
     call(appRouter.billing.autopay, undefined, { context }),
   ])
-  // Paid apps bought on top of the plan, or with a bill waiting.
-  const bought: BoughtApp[] = Object.entries(paid.access)
-    .map(([id, access]) => ({
-      id,
-      name: apps.find((a) => a.id === id)?.name ?? id,
-      access: access.state === 'bought' ? access : null,
-      due: paid.bills.find((b) => b.pluginId === id && b.status === 'due') ?? null,
-    }))
-    .filter((a) => a.access || a.due)
+  // Every app that costs extra below a plan (Figma 931:9997): included, bought, or to buy.
+  const bought: BoughtApp[] = Object.entries(paid.access).map(([id, access]) => ({
+    id,
+    name: apps.find((a) => a.id === id)?.name ?? id,
+    access: access.state === 'bought' ? access : null,
+    status: access,
+    due: paid.bills.find((b) => b.pluginId === id && b.status === 'due') ?? null,
+  }))
   return <BillingPage view={view} apps={bought} autopay={autopay} />
 }
