@@ -36,8 +36,7 @@ import {
 } from './flow-state'
 import NoPickupLocationAlert, { missingPickupLocation } from './no-pickup-location-alert'
 import PackageStep from './package-step'
-import PickupCard from './pickup-card'
-import { pickupReady, startingPickupPlan } from './pickup-plan'
+import { startingPickupPlan } from './pickup-plan'
 import RouteCard from './route-card'
 import ShipPageUnavailable from './ship-page-unavailable'
 import SummaryCard from './summary-card'
@@ -53,7 +52,6 @@ type CreateShipmentPageProps = {
   courier?: string | undefined
 }
 
-const SHORT_DATE = { weekday: 'short', day: 'numeric', month: 'short' } as const
 
 /**
  * Figma "Orders · Create shipment" (616:16737): one page for one order. Route, package and
@@ -80,7 +78,7 @@ export default function CreateShipmentPage({ orderId, back, courier }: CreateShi
     updating,
     waitingForSize,
   } = useShipQuote(draft, parcelId, form, courier)
-  const [pickup, setPickup] = useState(() => startingPickupPlan())
+  const [pickup] = useState(() => startingPickupPlan())
   const [wallets, setWallets] = useState<Wallets>([])
   const [tracking, setTracking] = useState<TrackingDraft>(EMPTY_TRACKING)
   const [busy, setBusy] = useState(false)
@@ -170,7 +168,8 @@ export default function CreateShipmentPage({ orderId, back, courier }: CreateShi
           typed,
           courierLabel: chosen?.providerLabel,
           canPickup: draft?.couriers.find((c) => c.id === chosen?.providerId)?.hasPickup ?? false,
-          pickup,
+          // Booking only books (owner, 10 Nov 2026): the pickup is made on Shipments › Booked.
+          pickup: { ...pickup, ask: false },
           pickupFailed: content.pickup.notSupported,
         }),
       )
@@ -209,24 +208,16 @@ export default function CreateShipmentPage({ orderId, back, courier }: CreateShi
   const units = parcel.lines.reduce((n, l) => n + l.quantity, 0)
   const manual = pick === MANUAL
   const route = page.routeValue(place?.city ?? place?.name ?? '—', order.city ?? '—')
-  const canPickup = draft.couriers.find((c) => c.id === chosen?.providerId)?.hasPickup ?? false
-  const pickupOn = !manual && pickup.ask && canPickup
   /* A courier's price is only booked once it answers the package on screen. */
   const pricesCurrent = manual || (!updating && !waitingForSize)
   const canBook =
-    parsed !== null &&
-    pricesCurrent &&
-    (manual || (chosen !== null && !chosen.problem)) &&
-    (!pickupOn || pickupReady(pickup))
+    parsed !== null && pricesCurrent && (manual || (chosen !== null && !chosen.problem))
   const serviceable = quote?.options.some((o) => o.problem === null) ?? false
   const wallet = manual ? null : wallets.find((w) => w.provider === chosen?.providerId)
   const walletNote =
     wallet && (wallet.supportsLiveBalance || wallet.fetchedAt)
       ? page.walletLeft(wallet.providerLabel, fmt.money(wallet.balancePaise))
       : null
-  const pickupLine = pickupOn
-    ? page.pickupValue(fmt.pattern(pickup.date, SHORT_DATE), pickup.timeFrom)
-    : null
   const paymentLine = order.paymentMode === 'cod' ? page.cod : null
 
   return (
@@ -342,14 +333,6 @@ export default function CreateShipmentPage({ orderId, back, courier }: CreateShi
                 waitingForSize={waitingForSize}
               />
             </DataCard>
-            {manual ? null : (
-              <PickupCard
-                plan={pickup}
-                onChange={setPickup}
-                canPickup={canPickup}
-                courierChosen={Boolean(chosen)}
-              />
-            )}
           </>
         )
       }
@@ -366,7 +349,7 @@ export default function CreateShipmentPage({ orderId, back, courier }: CreateShi
             pkg={parsed}
             courier={manual ? null : chosen}
             chargedGrams={quote?.chargedWeightGrams}
-            pickupLine={pickupLine}
+            pickupLine={null}
             walletNote={walletNote}
             manual={manual}
             canBook={canBook}
