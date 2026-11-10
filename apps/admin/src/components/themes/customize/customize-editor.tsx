@@ -42,7 +42,7 @@ import { DynamicSourceContext, scopeFor } from '@/lib/dynamic-sources'
 import { routes } from '@/lib/routes'
 import { useCustomizePreview } from '@/lib/use-customize-preview'
 import { useImportedThemeSettings } from '@/lib/use-imported-theme-settings'
-import { useLiquidTheme } from '@/lib/use-liquid-theme'
+import { type LiquidEditorInfo, useLiquidTheme } from '@/lib/use-liquid-theme'
 import { partsOf, useTemplateDrafts } from '@/lib/use-template-drafts'
 import type { TemplateChange } from '@/lib/use-template-manager'
 import { useThemeThumbnail } from '@/lib/use-theme-thumbnail'
@@ -74,6 +74,8 @@ type CustomizeEditorProps = {
   /** Installed app ids, read on the server so Puck mounts once with the real Apps tab. */
   installedApps: string[]
   initial: { template: TemplateKind; suffix: string; resource: string | null }
+  /** An imported theme's schemas and head, loaded with the page (#1314); null for ours. */
+  preloadedLiquid?: LiquidEditorInfo | null | undefined
   /** The store being edited: the rail's tile and the left panel's heading. */
   store: { id: string | null; name: string; domain: string; logoUrl: string | null }
   /** The signed-in member, for the top bar's avatar. */
@@ -99,6 +101,7 @@ export default function CustomizeEditor({
   canPublish,
   installedApps,
   initial,
+  preloadedLiquid,
   store,
   user,
   ai,
@@ -134,7 +137,7 @@ export default function CustomizeEditor({
   const deviceDark = useDeviceDark()
   // An imported Shopify theme: section fields from each `{% schema %}`; its own Theme settings
   // (`settings_schema.json`), kept by Save, and its head for the canvas with them in place.
-  const liquidTheme = useLiquidTheme(record.id)
+  const liquidTheme = useLiquidTheme(record.id, preloadedLiquid)
   const importedSettings = useImportedThemeSettings(record.id, liquidTheme.info)
   // The Themes page's picture of this theme, retaken on Save of the home page.
   const thumbnail = useThemeThumbnail({

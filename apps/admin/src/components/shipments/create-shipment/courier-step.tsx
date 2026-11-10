@@ -9,6 +9,7 @@ import { Spinner } from '@commerce/ui/shadcn/spinner'
 import Link from 'next/link'
 import { useState } from 'react'
 import AppStoreLink from '@/components/apps/app-store-link'
+import ChoiceField from '@/components/apps/gst-invoices/choice-field'
 import TrackingFields, { type TrackingDraft } from '@/components/orders/tracking-fields'
 import { createShipmentContent } from '@/data/create-shipment'
 import { useCopy, useFormat } from '@/hooks/use-copy'
@@ -25,6 +26,10 @@ type CourierStepProps = {
   pick: string
   /** A row's `optionKey`, or MANUAL. */
   onPick: (optionKey: string) => void
+  /** Connected courier apps, for an AWB booked in one's own panel (Ship it yourself). */
+  panels?: Array<{ id: string; label: string }> | undefined
+  panel?: string | null | undefined
+  onPanel?: ((providerId: string | null) => void) | undefined
   /** The drawer's Ship now: books that courier at once. */
   onShipNow?: ((optionKey: string) => void) | undefined
   /** The option whose Ship now is booking. */
@@ -53,6 +58,9 @@ export default function CourierStep({
   onPick,
   onShipNow,
   shippingKey = null,
+  panels = [],
+  panel = null,
+  onPanel,
   tracking,
   onTrackingChange,
   onRetry,
@@ -210,7 +218,23 @@ export default function CourierStep({
               <span className="text-caption text-muted-foreground">{copy.courier.manualHelp}</span>
             </span>
           </button>
-          {manual ? <TrackingFields value={tracking} onChange={onTrackingChange} /> : null}
+          {manual ? (
+            <div className="flex flex-col gap-3">
+              {panels.length > 0 && onPanel ? (
+                <ChoiceField
+                  id="panel-courier"
+                  label={copy.courier.panelLabel}
+                  value={panel ?? ''}
+                  options={[
+                    { value: '', label: copy.courier.panelNone },
+                    ...panels.map((p) => ({ value: p.id, label: p.label })),
+                  ]}
+                  onChange={(v) => onPanel(v || null)}
+                />
+              ) : null}
+              <TrackingFields value={tracking} onChange={onTrackingChange} />
+            </div>
+          ) : null}
         </div>
       </div>
 

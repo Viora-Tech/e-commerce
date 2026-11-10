@@ -26,7 +26,7 @@ export default async function Page({ params, searchParams }: Props) {
   const session = await getSession()
   if (!session) redirect(routes.login())
   const context = await serverContext()
-  const [theme, me, apps, themes, aiStatus, orgs] = await Promise.all([
+  const [theme, me, apps, themes, aiStatus, orgs, liquidInfo] = await Promise.all([
     call(appRouter.themes.get, { id }, { context }).catch(() => null),
     call(appRouter.staff.me, {}, { context }).catch(() => null),
     call(appRouter.apps.list, undefined, { context }).catch(() => []),
@@ -35,6 +35,9 @@ export default async function Page({ params, searchParams }: Props) {
     auth()
       .api.listOrganizations({ headers: await headers() })
       .catch(() => []),
+    // Imported themes: schemas and head with the page, so the canvas renders on first paint
+    // instead of after the editor's own round trip (#1314). Undefined lets the editor ask.
+    call(appRouter.themes.import.editor, { themeId: id }, { context }).catch(() => undefined),
   ])
 
   if (!theme) notFound()
@@ -63,6 +66,7 @@ export default async function Page({ params, searchParams }: Props) {
         ai={{ connected: aiStatus?.configured === true, assistant: aiStatus?.assistant === true }}
         liveName={themes.find((t) => t.role === 'main' && t.id !== theme.id)?.name ?? null}
         installedApps={apps.filter((a) => a.installed).map((a) => a.id)}
+        preloadedLiquid={liquidInfo}
         initial={{
           template: isKind(query.template) ? query.template : 'home',
           suffix: query.suffix && TEMPLATE_SUFFIX.test(query.suffix) ? query.suffix : '',

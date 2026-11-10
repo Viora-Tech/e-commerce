@@ -96,6 +96,8 @@ export const createShipmentContent = {
     pickupDone: 'Pickup booked. The parcel moved to To be picked up.',
   },
   courier: {
+    panelLabel: 'Booked in which courier app?',
+    panelNone: 'None: my own courier or local delivery',
     heading: 'Choose a courier',
     help: 'Live prices and delivery dates for this parcel. Pick the one you want.',
     checking: 'Asking your couriers…',
