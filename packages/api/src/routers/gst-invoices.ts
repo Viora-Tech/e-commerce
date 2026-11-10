@@ -49,6 +49,7 @@ import {
 } from './gst-invoices-context'
 import { addToQueue, generateInvoice, invoiceFixProcedures } from './gst-invoices-order-actions'
 import { returnsProcedures } from './gst-invoices-returns'
+import { Filter, Selection, selectedIds } from './gst-invoices-selection'
 
 const IssueBatch = z.object({
   items: z
@@ -56,25 +57,6 @@ const IssueBatch = z.object({
     .min(1)
     .max(200),
 })
-
-const Filter = z.object({
-  q: z.string().max(100).optional(),
-  kind: z.union([z.enum(DOCUMENT_KINDS), z.array(z.enum(DOCUMENT_KINDS)).max(6)]).optional(),
-  status: z.enum(['issued', 'cancelled']).optional(),
-  from: z.coerce.date().optional(),
-  to: z.coerce.date().optional(),
-  /** One GST number's documents; omitted lists every GST number's. */
-  gstRegistrationId: Gst,
-})
-
-/** Rows or "everything matching the filter", capped so one click cannot render the year. */
-const Selection = z.union([
-  z.object({ ids: z.array(z.uuid()).min(1).max(BULK_MAX) }),
-  z.object({ filter: Filter }),
-])
-
-const selectedIds = async (context: Ctx, input: z.infer<typeof Selection>) =>
-  'ids' in input ? input.ids : documentIds(context.tx, input.filter, 200)
 
 const file = (bytes: Uint8Array, name: string, type = 'application/pdf') =>
   new File([bytes as Uint8Array<ArrayBuffer>], name, { type })
