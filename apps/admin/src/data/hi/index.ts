@@ -103,6 +103,7 @@ import paymentsSetup from './payments-setup'
 import pixels from './pixels'
 import platform from './platform'
 import preorders from './preorders'
+import productBulkShipping from './product-bulk-shipping'
 import productForm from './product-form'
 import productPage from './product-page'
 import productShipping from './product-shipping'
@@ -258,6 +259,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...commandPalette,
   ...inventory,
   ...productForm,
+  ...productBulkShipping,
   ...productShipping,
   ...preorders,
   ...productPage,

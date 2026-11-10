@@ -9,7 +9,7 @@ import {
   store,
   variant,
 } from '@commerce/db'
-import { ASSUMED_WEIGHT_GRAMS, type ShippingProvider, type Tracking } from '@commerce/shipping'
+import type { ShippingProvider, Tracking } from '@commerce/shipping'
 import { and, eq, inArray, ne } from 'drizzle-orm'
 import { effectiveHsCode } from '../catalog/effective-tax'
 import type { StoreContext } from '../context'
@@ -31,7 +31,7 @@ import {
   resolveParcelPackage,
   resolveParcelWeightGrams,
 } from './parcel'
-import { defaultBoxPreset, parseShippingSettings } from './settings'
+import { parseShippingSettings } from './settings'
 import { shipFromFor } from './ship-from'
 import { rebookableParcels } from './shipment-cancel'
 import { storedLabelUrl } from './shipment-state'
@@ -49,10 +49,9 @@ export const OPEN_SHIPMENT_STATUSES = [
 /**
  * Book a consignment with the courier for an order and record it.
  *
- * The order must have a shipping address. Parcel weight sums the order's own
- * variant weights when every line has one, else falls back to the store's
- * default box weight (see `resolveParcelWeightGrams`), and finally
- * `ASSUMED_WEIGHT_GRAMS` if the store has no box preset either. A
+ * The order must have a shipping address. Parcel weight is the order's own
+ * variant weights (500 g when a line has none) plus the packing weight of the
+ * box it goes in (see `resolveParcelWeightGrams`). A
  * product/variant's own box (custom dims, or a named preset), when every line
  * agrees on one, can push that weight up to its volumetric weight, since
  * couriers bill by whichever is greater. The order is marked fulfilled here
@@ -236,7 +235,22 @@ export async function createShipmentForOrder(
     settings,
     storeName: s?.name ?? '',
   })
-  const boxWeightGrams = defaultBoxPreset(settings)?.weightGrams ?? ASSUMED_WEIGHT_GRAMS
+  /* The box packed, for the packing snapshot: the one named, else the box whose size the packer
+     picked in the booking flow, else the parcel's own box (parcelBoxPreset). */
+  const picked = options.dimensionsCm
+  const box =
+    settings.boxPresets.find((b) => b.id === options.boxPresetId) ??
+    (picked
+      ? settings.boxPresets.find(
+          (b) =>
+            b.lengthCm === picked.length &&
+            b.widthCm === picked.width &&
+            b.heightCm === picked.height,
+        )
+      : undefined) ??
+    parcelBoxPreset(lines, settings.boxPresets)
+  // That box's packing (carton, bubble wrap, invoice) is added to the products' weight.
+  const packingGrams = box?.weightGrams ?? 0
   /* A product/variant's own package (custom dims, or one of the store's named boxes) is used
      when every sellable line agrees on one; its volumetric weight is compared against the
      actual weight, as couriers bill by whichever is greater. The merchant's own weight or
@@ -251,7 +265,7 @@ export async function createShipmentForOrder(
   const weightGrams =
     options.weightGrams ||
     effectiveWeightGrams(
-      resolveParcelWeightGrams(lines, boxWeightGrams),
+      resolveParcelWeightGrams(lines, packingGrams),
       options.dimensionsCm ? null : parcelPackage,
     )
   // A parcel that is the whole order is worth the order; one of several, its own share.
@@ -326,20 +340,6 @@ export async function createShipmentForOrder(
   if (pushed) await markCourierOrderBooked(ctx, o.id, provider.id)
   if (route && !onRoute) await noteOffRoute(ctx, o.id, route, provider.label, options.serviceLabel)
 
-  /* The box packed, for the packing snapshot: the one named, else the box whose size the packer
-     picked in the booking flow, else the parcel's own box (parcelBoxPreset). */
-  const picked = options.dimensionsCm
-  const box =
-    settings.boxPresets.find((b) => b.id === options.boxPresetId) ??
-    (picked
-      ? settings.boxPresets.find(
-          (b) =>
-            b.lengthCm === picked.length &&
-            b.widthCm === picked.width &&
-            b.heightCm === picked.height,
-        )
-      : undefined) ??
-    parcelBoxPreset(lines, settings.boxPresets)
   // The consignment carries its parcel: the named one, or the order's only one.
   const shipmentId = crypto.randomUUID()
   const [row] = await ctx.tx

@@ -69,7 +69,9 @@ export const shippingSettingsContent = {
     length: 'Length (cm)',
     width: 'Width (cm)',
     height: 'Height (cm)',
-    weight: 'Box weight (g)',
+    weight: 'Packing weight (g)',
+    weightHelp:
+      'Packing weight is the empty box, bubble wrap and invoice. It is added to the product weights to get the parcel weight.',
     cost: 'Cost (₹)',
     costHelp:
       'What one box and its filler cost you, counted once per parcel in order profit. Before GST if you are GST-registered, else what you pay. Leave it empty and packing counts as nothing.',

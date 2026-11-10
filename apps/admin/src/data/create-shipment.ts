@@ -42,7 +42,8 @@ export const createShipmentContent = {
     productBox: "Products' own box",
     boxLabel: (name: string, l: number, w: number, h: number) => `${name} · ${l} × ${w} × ${h} cm`,
     weight: 'Weight (grams)',
-    weightHelp: 'From your product weights, or the box weight when a product has none.',
+    weightHelp:
+      'Product weights plus the packing weight of the box (500 g is counted for a product with no weight).',
     length: 'Length (cm)',
     width: 'Width (cm)',
     height: 'Height (cm)',
