@@ -1,6 +1,7 @@
 'use client'
 
 import {
+  SHIPMENT_TAB_ON_PICKUP,
   SHIPMENT_TAB_STATUSES,
   SHIPMENT_TABS,
   type ShipmentTab,
@@ -61,6 +62,7 @@ async function fetchTab(q: Query, perPage: number) {
     perPage,
     search,
     status: SHIPMENT_TAB_STATUSES[q.tab],
+    onPickup: SHIPMENT_TAB_ON_PICKUP[q.tab],
     ...shipmentFilterInput(q),
   })
   return { items: r.items.map(rowFromShipment), total: r.total }

@@ -4,7 +4,7 @@ export const deliveryOptionsContent = {
   usually: (min: number, max: number) =>
     min === max ? `Usually ${min} days` : `Usually ${min}–${max} days`,
   /** Under an option that refuses cash on delivery (Express). */
-  prepaidOnly: 'Cash on delivery not available with this option',
+  prepaidOnly: 'Pay online for this option',
   /** The insurance checkbox under the options. */
   insure: (price: string | null) =>
     price ? `Insure this shipment (+${price})` : 'Insure this shipment',

@@ -103,6 +103,8 @@ async function seedStore(sellsFrom: 'main' | 'blr' = 'main'): Promise<Seeded> {
       slug: 'w',
       name: 'Waimers',
       address: { line1: '14 Sector 29', city: 'Gurugram', state: 'HR', pincode: '122001' },
+      // Billed at checkout: drafts off, as a draft is routed and billed when it converts.
+      payments: { unpaidAsDrafts: 'off' },
     })
     .returning()
   if (!s) throw new Error('seed')

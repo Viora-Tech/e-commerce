@@ -1,6 +1,7 @@
 /** SOURCE OF TRUTH: inboxState, saveInboxSettings — WHAT: whether a store installed Inbox, its parsed settings and its time zone, read from `store.apps` in one query; and saving a settings patch / WHY: every Inbox entry point (admin API, widget, stream) starts with "is it installed and how is it set" (design §3). */
 import { type StoreTx, store } from '@commerce/db'
 import { eq } from 'drizzle-orm'
+import { lockStoreApps } from '../apps/locked'
 import { appSettingsOf, parseAppsSettings, withAppSettings } from '../apps/settings'
 import { INBOX_APP_ID } from './constants'
 import { type InboxSettings, type InboxSettingsPatch, parseInboxSettings } from './settings'
@@ -32,8 +33,7 @@ export async function saveInboxSettings(
   storeId: string,
   patch: InboxSettingsPatch,
 ): Promise<InboxSettings> {
-  const [s] = await tx.select({ apps: store.apps }).from(store).where(eq(store.id, storeId))
-  const apps = parseAppsSettings(s?.apps)
+  const apps = await lockStoreApps(tx, storeId)
   const next = parseInboxSettings({
     ...parseInboxSettings(appSettingsOf(apps, INBOX_APP_ID)),
     ...patch,

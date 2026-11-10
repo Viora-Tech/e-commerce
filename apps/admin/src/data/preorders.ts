@@ -62,6 +62,13 @@ export const preordersContent = {
     products: 'Products',
     productsHelp:
       'Products in this campaign take its settings. A product in another campaign moves to this one when you save.',
+    perProduct: 'Per product',
+    perProductHelp:
+      'Only the variants you picked take pre-orders. A limit here is that product’s own, per variant beyond stock; blank uses the campaign’s.',
+    allVariants: 'All variants',
+    someVariants: (n: number) => `${n} variant${n === 1 ? '' : 's'} picked`,
+    productLimit: 'Limit',
+    campaignLimit: 'Campaign’s',
     pickProducts: 'Choose products',
     searchProducts: 'Search products',
     productsLabel: 'Products',

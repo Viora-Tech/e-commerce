@@ -43,6 +43,7 @@ export default [
     statusError: 'गड़बड़ी',
     allInstalled: 'सभी इंस्टॉल किए ऐप्स',
     listing: {
+      installed: 'इंस्टॉल है',
       back: 'इंस्टॉल किए ऐप्स',
       whatItDoes: 'यह क्या करता है',
       access: 'यह किस तक पहुंच सकता है',

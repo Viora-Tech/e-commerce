@@ -69,7 +69,7 @@ export default function OptionCard({
             {description}
           </span>
         ) : null}
-        {note ? <span className="text-[0.75rem] leading-snug text-ck-danger">{note}</span> : null}
+        {note ? <span className="text-[0.75rem] leading-snug text-ck-muted">{note}</span> : null}
       </span>
       {meta ? (
         <span className="shrink-0 text-right text-[0.9375rem] leading-[1.375rem] font-semibold tabular-nums text-ck-ink">

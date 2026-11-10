@@ -51,13 +51,19 @@ export default function ShipmentsBulkActions({
   // Event handlers
   const handlePickup = async () => {
     try {
-      await api.shipments.schedulePickup({
+      // One step (owner, 10 Nov 2026): the courier's pickup request, then its manifest; the
+      // labels move to To be picked up.
+      const pickups = await api.shipments.schedulePickup({
         shipmentIds: ids,
         date,
         timeFrom,
         timeTo: timeTo || undefined,
       })
-      toast.success(actions.pickupDone(ids.length))
+      for (const pickup of pickups) {
+        if (pickup.status === 'failed') continue
+        await api.shipments.createManifest({ pickupId: pickup.id }).catch(() => undefined)
+      }
+      toast.success(actions.pickupAndManifestDone(ids.length))
       onDone()
     } catch (err) {
       fail(err)
@@ -84,16 +90,16 @@ export default function ShipmentsBulkActions({
         {copy.printLabels}
       </Button>
       {waiting ? (
-        <>
-          <Button size="sm" variant="outline" onClick={() => setDialog('pickup')}>
-            <Truck aria-hidden />
-            {actions.schedulePickup}
-          </Button>
-          <Button size="sm" variant="outline" onClick={() => setDialog('manifest')}>
-            <FileText aria-hidden />
-            {actions.createManifest}
-          </Button>
-        </>
+        <Button size="sm" variant="outline" onClick={() => setDialog('pickup')}>
+          <Truck aria-hidden />
+          {actions.schedulePickup}
+        </Button>
+      ) : null}
+      {tab === 'toPickUp' ? (
+        <Button size="sm" variant="outline" onClick={() => setDialog('manifest')}>
+          <FileText aria-hidden />
+          {actions.createManifest}
+        </Button>
       ) : null}
       <ConfirmDialog
         open={dialog === 'pickup'}

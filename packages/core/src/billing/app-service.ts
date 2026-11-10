@@ -8,7 +8,8 @@ import { siteConfig } from '@commerce/config/site'
 import { appPurchase, type Db, type StoreTx, store, withStore } from '@commerce/db'
 import { and, desc, eq, inArray, sql } from 'drizzle-orm'
 import { recordAppInstall } from '../apps/installation'
-import { installApp, parseAppsSettings } from '../apps/settings'
+import { lockStoreApps } from '../apps/locked'
+import { installApp } from '../apps/settings'
 import { CommerceError } from '../errors'
 import { orderViewToken, thankYouPath } from '../preorder/balance-link'
 import { APP_PRICING, type AppAccess, appAccess, appSku } from './apps'
@@ -203,10 +204,10 @@ export async function markAppBillPaid(
           sql`${appPurchase.id} <> ${bill.id}`,
         ),
       )
-    const [s] = await tx.select({ apps: store.apps }).from(store).where(eq(store.id, storeId))
+    const apps = await lockStoreApps(tx, storeId)
     await tx
       .update(store)
-      .set({ apps: installApp(parseAppsSettings(s?.apps), bill.pluginId) })
+      .set({ apps: installApp(apps, bill.pluginId) })
       .where(eq(store.id, storeId))
     await recordAppInstall(tx, storeId, bill.pluginId, null, now)
     return { storeId, pluginId: bill.pluginId }

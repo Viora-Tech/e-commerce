@@ -28,11 +28,12 @@ export type EmiSettingsView = {
   gatewaysOn: string[]
 }
 
-async function loadRow(tx: StoreTx, storeId: string) {
-  const [s] = await tx
+async function loadRow(tx: StoreTx, storeId: string, lock = false) {
+  const read = tx
     .select({ apps: store.apps, payments: store.payments })
     .from(store)
     .where(eq(store.id, storeId))
+  const [s] = lock ? await read.for('update') : await read
   return { apps: parseAppsSettings(s?.apps), payments: parsePaymentSettings(s?.payments) }
 }
 
@@ -56,7 +57,7 @@ export async function saveEmiSettings(
   storeId: string,
   input: EmiWidgetSettingsPatch,
 ): Promise<EmiSettingsView> {
-  const { apps, payments } = await loadRow(tx, storeId)
+  const { apps, payments } = await loadRow(tx, storeId, true)
   const current = parseEmiWidgetSettings(appSettingsOf(apps, EMI_PAY_LATER_ID))
   const next = applyEmiSettingsPatch(current, input)
   await tx

@@ -1,5 +1,7 @@
 import {
   cartLine,
+  market,
+  marketRegion,
   type StoreTx,
   shippingProfile,
   shippingRate,
@@ -15,6 +17,7 @@ import {
   HOME_COUNTRY,
   type ShippingZoneInput,
   type ShippingZoneWrite,
+  zonesForMarkets,
 } from './rates'
 
 export const GENERAL_PROFILE_NAME = 'General'
@@ -47,8 +50,25 @@ export type ShippingZoneWithRates = ShippingZoneRow & { rates: ShippingRateRow[]
  * zone names (all of them with a "Rest of world" zone). RLS scopes the zones.
  */
 export async function storeCheckoutCountries(tx: StoreTx): Promise<string[]> {
-  const zones = await tx.select({ countries: shippingZone.countryCodes }).from(shippingZone)
-  return checkoutCountries(zones.map((z) => z.countries))
+  const [zones, selling] = await Promise.all([
+    tx.select({ countryCodes: shippingZone.countryCodes }).from(shippingZone),
+    sellingCountries(tx),
+  ])
+  return checkoutCountries(zonesForMarkets(zones, selling).map((z) => z.countryCodes))
+}
+
+/**
+ * Countries in the store's enabled markets, India always among them; null for a store with
+ * no markets yet (nothing to limit by). RLS scopes the rows.
+ */
+export async function sellingCountries(tx: StoreTx): Promise<Set<string> | null> {
+  const rows = await tx
+    .select({ country: marketRegion.countryCode, enabled: market.enabled })
+    .from(market)
+    .leftJoin(marketRegion, eq(marketRegion.marketId, market.id))
+  if (rows.length === 0) return null
+  const codes = rows.flatMap((r) => (r.enabled && r.country ? [r.country] : []))
+  return new Set([HOME_COUNTRY, ...codes])
 }
 
 /** Every zone of the store with its rates, in the merchant's order. RLS scopes the rows. */
@@ -208,8 +228,10 @@ export async function loadRateZones(tx: StoreTx): Promise<ShippingZoneInput[]> {
     .select({ id: shippingProfile.id })
     .from(shippingProfile)
     .where(eq(shippingProfile.isDefault, true))
-  const zones = await listShippingZones(tx)
-  return zones.filter((z) => z.profileId === null || z.profileId === general?.id)
+  const [zones, selling] = await Promise.all([listShippingZones(tx), sellingCountries(tx)])
+  return zonesForMarkets(zones, selling).filter(
+    (z) => z.profileId === null || z.profileId === general?.id,
+  )
 }
 
 /** The store-wide free-shipping threshold for the cart line, or null. */

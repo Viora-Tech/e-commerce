@@ -58,7 +58,9 @@ export default function PdfPreview({
           })
           setFailed(false)
         })
-        .catch(() => {
+        .catch((err: unknown) => {
+          // The reason stays visible to whoever opens the console (fonts, images, settings).
+          console.error('[gst-invoices] preview render failed', err)
           if (!cancelled) setFailed(true)
         })
         .finally(() => {

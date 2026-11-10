@@ -11,6 +11,7 @@ import {
   storesWithSearchConsoleDue,
 } from '@commerce/db'
 import { and, desc, eq, inArray, isNotNull } from 'drizzle-orm'
+import { lockStoreApps } from '../apps/locked'
 import { appSettingsOf, parseAppsSettings, withAppSettings } from '../apps/settings'
 import { type PageSearchQuery, setSearchQueriesSource } from '../seo/search-queries'
 import {
@@ -60,10 +61,10 @@ export async function saveSearchConsoleEntry(
   storeId: string,
   value: unknown,
 ): Promise<void> {
-  const [s] = await tx.select({ apps: store.apps }).from(store).where(eq(store.id, storeId))
+  const apps = await lockStoreApps(tx, storeId)
   await tx
     .update(store)
-    .set({ apps: withAppSettings(parseAppsSettings(s?.apps), SEARCH_CONSOLE_APP_ID, value) })
+    .set({ apps: withAppSettings(apps, SEARCH_CONSOLE_APP_ID, value) })
     .where(eq(store.id, storeId))
 }
 

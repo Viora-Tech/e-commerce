@@ -63,6 +63,26 @@ export type ShippingDestination = {
 export const REST_OF_WORLD = '*'
 export const HOME_COUNTRY = 'IN'
 
+/**
+ * Zones cut down to the countries the store sells to (its enabled markets): a country outside
+ * every enabled market is never priced, so checkout cannot take an order there even when an
+ * old zone still names it (#2460: an imported "International" zone sold to Australia while
+ * Markets listed only India). "Rest of world" becomes the market countries. `selling` null
+ * means the store has no markets yet and every zone is kept as it is.
+ */
+export function zonesForMarkets<Z extends { countryCodes: readonly string[] }>(
+  zones: readonly Z[],
+  selling: ReadonlySet<string> | null,
+): Z[] {
+  if (!selling) return [...zones]
+  return zones.flatMap((z) => {
+    const codes = z.countryCodes.includes(REST_OF_WORLD)
+      ? [...selling]
+      : z.countryCodes.filter((c) => selling.has(c.trim().toUpperCase()))
+    return codes.length > 0 ? [{ ...z, countryCodes: codes }] : []
+  })
+}
+
 /** The zone's countries, `['IN']` when it names none (zones made before country zones). */
 export const zoneCountries = (zone: Pick<ShippingZoneInput, 'countryCodes'>): readonly string[] =>
   zone.countryCodes && zone.countryCodes.length > 0 ? zone.countryCodes : [HOME_COUNTRY]

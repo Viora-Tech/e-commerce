@@ -32,6 +32,7 @@ import { defaultLocationId } from '../inventory/levels'
 import {
   releaseCommittedStock,
   shipCommittedStock,
+  unshipCommittedStock,
   writeOffCommittedStock,
 } from './committed-stock'
 
@@ -434,4 +435,49 @@ export async function deleteFulfillmentOrders(tx: StoreTx, orderId: string): Pro
     )})`,
   )
   await tx.delete(fulfillmentOrder).where(inArray(fulfillmentOrder.id, ids))
+}
+
+/**
+ * Unpack a parcel whose label was cancelled: its packed units go back to To ship, on the order
+ * line and the parcel line, and back into stock at the parcel's location. `fulfillmentOrderId`
+ * null (a shipment from before parcels) unpacks every parcel of the order. Returns how many
+ * units came back. Running it again finds nothing packed and moves nothing.
+ */
+export async function unpackFulfillmentOrder(
+  ctx: StoreContext,
+  orderId: string,
+  fulfillmentOrderId: string | null,
+): Promise<number> {
+  const rows = (await lockParcelLines(ctx, orderId)).filter(
+    (r) =>
+      r.fulfilledQuantity > 0 &&
+      r.status !== 'cancelled' &&
+      (fulfillmentOrderId === null || r.fulfillmentOrderId === fulfillmentOrderId),
+  )
+  let units = 0
+  for (const row of rows) {
+    const n = row.fulfilledQuantity
+    await ctx.tx
+      .update(fulfillmentOrderLine)
+      .set({ fulfilledQuantity: 0 })
+      .where(eq(fulfillmentOrderLine.id, row.id))
+    await ctx.tx
+      .update(orderLine)
+      .set({ fulfilledQuantity: sql`greatest(0, ${orderLine.fulfilledQuantity} - ${n})` })
+      .where(eq(orderLine.id, row.orderLineId))
+    await unshipCommittedStock(ctx, {
+      variantId: row.variantId,
+      quantity: n,
+      locationId: row.locationId,
+    })
+    units += n
+  }
+  const parcels = [...new Set(rows.map((r) => r.fulfillmentOrderId))]
+  if (parcels.length > 0) {
+    await ctx.tx
+      .update(fulfillmentOrder)
+      .set({ status: 'open', updatedAt: new Date() })
+      .where(and(inArray(fulfillmentOrder.id, parcels), eq(fulfillmentOrder.status, 'fulfilled')))
+  }
+  return units
 }

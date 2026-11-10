@@ -1,5 +1,5 @@
 /** SOURCE OF TRUTH: affiliate store settings storage — WHAT: reads and writes the store-wide settings in store.apps / WHY: one place for "is it installed" and the tracking, hold, payout and TDS facts */
-import { CommerceError, parseAppsSettings, withAppSettings } from '@commerce/core'
+import { CommerceError, lockStoreApps, parseAppsSettings, withAppSettings } from '@commerce/core'
 import { type StoreTx, store } from '@commerce/db'
 import { eq } from 'drizzle-orm'
 import {
@@ -47,8 +47,7 @@ export async function saveAffiliateSettings(
   input: StoreAffiliateSettings,
 ): Promise<StoreAffiliateSettings> {
   const next = StoreAffiliateSettingsSchema.parse(storePart(input))
-  const [s] = await tx.select({ apps: store.apps }).from(store).where(eq(store.id, storeId))
-  const parsed = parseAppsSettings(s?.apps)
+  const parsed = await lockStoreApps(tx, storeId)
   const current = parsed.settings?.[AFFILIATES_ID]
   const kept = current && typeof current === 'object' ? (current as Record<string, unknown>) : {}
   const apps = withAppSettings(parsed, AFFILIATES_ID, { ...kept, ...next })

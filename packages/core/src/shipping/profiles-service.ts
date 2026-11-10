@@ -27,13 +27,19 @@ import {
   type ShippingProfileWrite,
   splitProfileParts,
 } from './profiles'
-import type { ShippingCartMeasure, ShippingDestination, ShippingQuote } from './rates'
+import {
+  type ShippingCartMeasure,
+  type ShippingDestination,
+  type ShippingQuote,
+  zonesForMarkets,
+} from './rates'
 import {
   ensureGeneralProfile,
   GENERAL_PROFILE_NAME,
   listShippingZones,
   type ShippingProfileRow,
   type ShippingZoneWithRates,
+  sellingCountries,
 } from './rates-service'
 
 /**
@@ -190,7 +196,8 @@ async function loadRateProfiles(tx: StoreTx): Promise<ShippingProfileInput[]> {
     isDefault: true,
     position: 0,
   }
-  const zones = await listShippingZones(tx)
+  const [listed, selling] = await Promise.all([listShippingZones(tx), sellingCountries(tx)])
+  const zones = zonesForMarkets(listed, selling)
   const all = rows.some((p) => p.isDefault) ? rows : [general, ...rows]
   return all.map((p) => ({
     id: p.id,

@@ -76,8 +76,12 @@ const delhivery = () =>
     }),
   ])
 
-/** Shiprocket: Delhivery Surface ₹80, Bluedart Air ₹128 (1–2 d), DTDC Surface ₹55, no COD. */
-const shiprocket = () =>
+/**
+ * Shiprocket: Delhivery Surface ₹80, Bluedart Air ₹128 (1–2 d), DTDC Surface ₹55 (5–6 d), no COD.
+ * ₹55 rounds up to the same ₹60 the shopper pays for Delhivery direct; pass a lower DTDC price
+ * (₹45 → ₹50) when a test needs DTDC to be cheaper for the shopper too.
+ */
+const shiprocket = (dtdcPaise = 5500) =>
   answer('shiprocket', 'Shiprocket', [
     svc({
       serviceId: '10',
@@ -100,7 +104,7 @@ const shiprocket = () =>
       serviceId: '30',
       serviceLabel: 'DTDC Surface',
       carrier: 'DTDC Surface',
-      pricePaise: 5500,
+      pricePaise: dtdcPaise,
       minTransitDays: 5,
       maxTransitDays: 6,
       codAvailable: false,
@@ -205,12 +209,22 @@ describe('roundUpToTenRupees', () => {
 })
 
 describe('strategies', () => {
-  it('cheapest: Standard takes the lowest cost, which is DTDC via Shiprocket', () => {
-    const r = resolveDeliveryOptions(input())
+  it('cheapest: Standard takes the lowest shopper price, which is DTDC via Shiprocket', () => {
+    const r = resolveDeliveryOptions(input({ answers: [delhivery(), shiprocket(4500)] }))
     const std = find(r, 'std')
     expect(std?.pick?.route.key).toBe('shiprocket:30')
     expect(std?.title).toBe('Standard · DTDC')
-    expect(std?.pricePaise).toBe(6000) // ₹55 → ₹60
+    expect(std?.pricePaise).toBe(5000) // ₹45 → ₹50
+    expect(std?.why).toEqual({ kind: 'cheapest' })
+  })
+
+  it('cheapest: at the same shopper price the faster route wins, even if it costs the store more', () => {
+    // DTDC ₹55 and Delhivery ₹60 both show ₹60; Delhivery arrives a day earlier.
+    const r = resolveDeliveryOptions(input())
+    const std = find(r, 'std')
+    expect(std?.pick?.route.key).toBe('delhivery:S')
+    expect(std?.title).toBe('Standard · Delhivery')
+    expect(std?.pricePaise).toBe(6000)
     expect(std?.why).toEqual({ kind: 'cheapest' })
   })
 
@@ -259,9 +273,14 @@ describe('strategies', () => {
       strategy: 'cheapest',
       preferDirectWithinPaise: 1000,
     })
-    const r = resolveDeliveryOptions(input({ config: config({ options: [preferring] }) }))
+    const r = resolveDeliveryOptions(
+      input({
+        config: config({ options: [preferring] }),
+        answers: [delhivery(), shiprocket(5000)],
+      }),
+    )
     const std = find(r, 'std')
-    expect(std?.pick?.route.key).toBe('delhivery:S') // ₹60 direct vs ₹55 DTDC: within ₹10
+    expect(std?.pick?.route.key).toBe('delhivery:S') // ₹60 direct vs ₹50 DTDC: within ₹10
     expect(std?.why).toEqual({ kind: 'prefer_direct', withinPaise: 1000 })
   })
 
@@ -358,7 +377,7 @@ describe('route filtering', () => {
   })
 
   it('Standard is picked again for COD: DTDC has no COD, so COD ships Delhivery', () => {
-    const r = resolveDeliveryOptions(input())
+    const r = resolveDeliveryOptions(input({ answers: [delhivery(), shiprocket(4500)] }))
     const std = find(r, 'std')
     expect(std?.codAllowed).toBe(true)
     expect(std?.cod?.route.key).toBe('delhivery:S')
@@ -438,8 +457,8 @@ describe('product route rules', () => {
     expect(exp?.pickedBy).toBe('rule:mice')
     expect(exp?.choices.map((c) => c.route.key)).toEqual(['delhivery:E', 'shiprocket:20'])
     expect(exp && chosenRoute(exp, 'shiprocket:20', 'prepaid')?.pricePaise).toBe(13_000)
-    // Standard is untouched by the Mice rule.
-    expect(find(r, 'std')?.pick?.route.key).toBe('shiprocket:30')
+    // Standard is untouched by the Mice rule: the faster Delhivery Surface at the same ₹60.
+    expect(find(r, 'std')?.pick?.route.key).toBe('delhivery:S')
   })
 
   it('mixed cart: Glasspads + Mice share Delhivery Express, so Express is Delhivery with no Blue Dart choice', () => {

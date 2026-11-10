@@ -11,7 +11,8 @@ import {
   withStore,
 } from '@commerce/db'
 import { and, eq } from 'drizzle-orm'
-import { installApp, parseAppsSettings } from '../apps/settings'
+import { lockStoreApps } from '../apps/locked'
+import { installApp } from '../apps/settings'
 import { PREINSTALLED_APPS } from '../automations/app'
 import { createCollection } from '../collections/service'
 import { requestDomainRoute } from '../domains/routes'
@@ -128,8 +129,7 @@ async function applyBusinessProfile(
 }
 
 async function installStoreApps(tx: StoreTx, storeId: string, ids: string[]): Promise<void> {
-  const [row] = await tx.select({ apps: store.apps }).from(store).where(eq(store.id, storeId))
-  const apps = ids.reduce(installApp, parseAppsSettings(row?.apps))
+  const apps = ids.reduce(installApp, await lockStoreApps(tx, storeId))
   await tx.update(store).set({ apps }).where(eq(store.id, storeId))
 }
 

@@ -19,6 +19,7 @@ export const summary = (r: Route): RouteSummary => ({
   channel: r.channel,
   carrierKey: r.carrierKey,
   carrier: r.carrier,
+  showCarrier: r.showCarrier,
   serviceId: r.serviceId,
   serviceLabel: r.serviceLabel,
   speed: r.speed,

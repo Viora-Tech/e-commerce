@@ -1,6 +1,7 @@
 import {
   type AppsSettings,
   installApp,
+  lockStoreApps,
   parseAppsSettings,
   parseNotificationSettings,
   parsePaymentSettings,
@@ -49,7 +50,7 @@ export async function installStoreApp(
   pluginId: string,
   userId: string | null = null,
 ) {
-  const next = installApp(await getStoreApps(tx, storeId), pluginId)
+  const next = installApp(await lockStoreApps(tx, storeId), pluginId)
   await tx.update(store).set({ apps: next }).where(eq(store.id, storeId))
   await recordAppInstall(tx, storeId, pluginId, userId)
   return next
@@ -77,7 +78,7 @@ function withoutProviders(s: typeof store.$inferSelect, pluginId: string) {
  * reinstall picks up where the merchant left off.
  */
 export async function uninstallStoreApp(tx: StoreTx, storeId: string, pluginId: string) {
-  const [s] = await tx.select().from(store).where(eq(store.id, storeId))
+  const [s] = await tx.select().from(store).where(eq(store.id, storeId)).for('update')
   if (!s) return null
   const apps = uninstallApp(parseAppsSettings(s.apps), pluginId)
   await tx
@@ -97,7 +98,7 @@ export async function uninstallStoreApp(tx: StoreTx, storeId: string, pluginId: 
  * connecting again picks up where the merchant left off.
  */
 export async function disconnectStoreApp(tx: StoreTx, storeId: string, pluginId: string) {
-  const [s] = await tx.select().from(store).where(eq(store.id, storeId))
+  const [s] = await tx.select().from(store).where(eq(store.id, storeId)).for('update')
   if (!s) return
   // An app counted as installed only through its saved account (connected from Settings before
   // Apps existed) is put on the install list, so disconnecting never makes it vanish.

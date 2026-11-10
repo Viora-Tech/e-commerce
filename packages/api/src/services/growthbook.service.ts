@@ -42,8 +42,9 @@ export type GrowthbookExperimentsView =
   | { state: 'error'; message: string }
   | { state: 'ready'; experiments: GrowthbookExperiment[] }
 
-async function loadRow(tx: StoreTx, storeId: string) {
-  const [s] = await tx.select({ apps: store.apps }).from(store).where(eq(store.id, storeId))
+async function loadRow(tx: StoreTx, storeId: string, lock = false) {
+  const read = tx.select({ apps: store.apps }).from(store).where(eq(store.id, storeId))
+  const [s] = lock ? await read.for('update') : await read
   const apps = parseAppsSettings(s?.apps)
   return { apps, settings: parseGrowthbookSettings(appSettingsOf(apps, GROWTHBOOK_ID)) }
 }
@@ -90,7 +91,7 @@ export async function saveGrowthbookSettings(
   patch: GrowthbookSettingsPatch,
   env: GrowthbookEnv,
 ): Promise<GrowthbookSettingsView> {
-  const { apps, settings } = await loadRow(tx, storeId)
+  const { apps, settings } = await loadRow(tx, storeId, true)
   const next: GrowthbookSettings = { ...settings }
   const address = (value: string) => {
     if (value === '') return ''

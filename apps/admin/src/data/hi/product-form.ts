@@ -442,6 +442,7 @@ export default [
     variantBulk: {
       selected: (n) => `${n} वेरिएंट चुने गए`,
       price: 'कीमत डालें',
+      mrp: 'MRP डालें',
       quantity: 'मात्रा डालें',
       sku: 'SKU प्रीफ़िक्स',
       skuHelp: 'प्रीफ़िक्स से हर चुने गए वेरिएंट का SKU PREFIX-VALUE बनेगा।',

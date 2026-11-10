@@ -102,6 +102,8 @@ describe('store.shell', () => {
       approvals,
       // Inbox is not installed: `inbox.counts` refuses, the shell says null.
       inbox: null,
+      // The Drafts badge (#1443): a new store has no unpaid checkout drafts.
+      drafts: 0,
     })
     await expect(call(appRouter.inbox.counts, undefined, { context })).rejects.toThrow()
   })
@@ -115,6 +117,7 @@ describe('store.shell', () => {
     expect(shell.logo).toBeNull()
     expect(shell.testMode).toBe(false)
     expect(shell.inbox).toBeNull()
+    expect(shell.drafts).toBeNull()
     expect(shell.toShip).toBe(await call(appRouter.orders.toShipCount, undefined, { context }))
     expect(shell.approvals).toEqual(await call(appRouter.approvals.counts, undefined, { context }))
     await expect(call(appRouter.apps.list, undefined, { context })).rejects.toThrow()

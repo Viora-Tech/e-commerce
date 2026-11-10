@@ -224,6 +224,8 @@ export const createShipmentContent = {
     backToOrder: 'Back to the order',
   },
   pickup: {
+    fromBooked:
+      'Ready for the courier: create its pickup from Shipments › Booked when the parcels are packed.',
     heading: 'Ask the courier to collect',
     help: 'Pick a day and a start time. Skip this if you drop parcels off yourself.',
     date: 'Pickup date',

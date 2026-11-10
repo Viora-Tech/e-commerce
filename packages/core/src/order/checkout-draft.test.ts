@@ -137,7 +137,7 @@ async function setActivity(id: string, at: Date) {
 }
 
 describe('unpaid checkouts as drafts', () => {
-  it('keeps an online checkout as a draft with a #D number and its items held', async () => {
+  it('keeps an online checkout as a draft with a #D number, holding no stock until paid', async () => {
     const shop = await seedShop({ drafts: 'on' })
     const gw = new GatewayDouble()
     const r = await checkoutOnline(shop, [{ variantId: shop.keyboard, quantity: 1 }], rudra, gw)
@@ -153,9 +153,10 @@ describe('unpaid checkouts as drafts', () => {
       totalPaise: 2689900,
     })
     expect(o?.lastActivityAt).toBeInstanceOf(Date)
-    expect(o?.reservedUntil).toBeInstanceOf(Date)
-    expect(o?.draftReserved).toEqual([expect.objectContaining({ quantity: 1 })])
-    expect(await reservedOf(shop.keyboard)).toBe(1)
+    // Stock is reserved only for paid orders (owner, 10 Nov 2026).
+    expect(o?.reservedUntil).toBeNull()
+    expect(o?.draftReserved).toBeNull()
+    expect(await reservedOf(shop.keyboard)).toBe(0)
     // No parcels and no "order placed" until it is paid; the gateway sees the draft number.
     expect(
       await owner.select().from(fulfillmentOrder).where(eq(fulfillmentOrder.orderId, r.orderId)),
@@ -317,8 +318,8 @@ describe('the same shopper checking out again', () => {
     expect(o?.lastActivityAt?.getTime()).toBeGreaterThan(Date.now() - 60_000)
     const notes = await owner.select().from(orderNote).where(eq(orderNote.orderId, first.orderId))
     expect(notes.map((n) => n.body)).toContain(CHECKED_OUT_AGAIN_NOTE)
-    // Held once: the old hold was given back before the new one.
-    expect(await reservedOf(shop.keyboard)).toBe(1)
+    // An unpaid checkout draft holds no stock, before or after checking out again.
+    expect(await reservedOf(shop.keyboard)).toBe(0)
     const after = await withStore(app, shop.storeId, (tx) =>
       listDrafts({ storeId: shop.storeId, tx }, { source: 'checkout', page: 1, perPage: 10 }),
     )
@@ -389,9 +390,9 @@ describe('UPI and bank transfer checkouts', () => {
       transfer,
     )
     expect((await orderRow(r.orderId))?.status).toBe('draft')
-    const held = await orderRow(r.orderId)
-    // The transfer window: 48 hours while transfers are never cancelled.
-    expect(held?.reservedUntil?.getTime()).toBeGreaterThan(Date.now() + 47 * HOUR)
+    // Nothing is held while the transfer is unconfirmed: stock is taken when it is marked paid.
+    expect((await orderRow(r.orderId))?.reservedUntil).toBeNull()
+    expect(await reservedOf(shop.keyboard)).toBe(0)
     const [p] = await owner.select().from(payment).where(eq(payment.orderId, r.orderId))
     if (!p) throw new Error('attempt')
 
