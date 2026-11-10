@@ -19,7 +19,13 @@ import DateRangePicker from '@/components/layout/date-range-picker'
 import { homePageContent } from '@/data/home'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
-import type { HomeRange, RangeCompare } from '@/lib/home-range'
+import {
+  encodeHomeRange,
+  HOME_RANGE_COOKIE,
+  HOME_RANGE_MAX_AGE,
+  type HomeRange,
+  type RangeCompare,
+} from '@/lib/home-range'
 import { routes } from '@/lib/routes'
 import ChannelMenu, { type Channel } from './analytics/channel-menu'
 import {
@@ -35,7 +41,12 @@ import SalesMetricTiles from './sales-metric-tiles'
 
 type SalesHeroProps = {
   /** Today's numbers, rendered on the server so the card never paints empty. */
-  initial: { range: HomeRange; analytics: HomeAnalytics; tiles: HomeMetric[] }
+  initial: {
+    range: HomeRange
+    compare: RangeCompare
+    analytics: HomeAnalytics
+    tiles: HomeMetric[]
+  }
   /** Visitors on the store right now (the beacon's last-30-minutes count). */
   liveNow: number
 }
@@ -82,7 +93,7 @@ export default function SalesHero({ initial, liveNow }: SalesHeroProps) {
   const content = useCopy(homePageContent)
   const fmt = useFormat()
   const [range, setRange] = useState(initial.range)
-  const [compare, setCompare] = useState<RangeCompare>('previous')
+  const [compare, setCompare] = useState<RangeCompare>(initial.compare)
   const [channel, setChannel] = useState<Channel>('all')
   const [data, setData] = useState(initial.analytics)
   const [loading, setLoading] = useState(false)
@@ -97,6 +108,9 @@ export default function SalesHero({ initial, liveNow }: SalesHeroProps) {
       first.current = false
       return
     }
+    // Remembered until the member picks another, so Home opens on it next time.
+    // biome-ignore lint/suspicious/noDocumentCookie: the server reads it to render the opening range; same pattern as the sales goal.
+    document.cookie = `${HOME_RANGE_COOKIE}=${encodeHomeRange(range, compare)}; path=/; max-age=${HOME_RANGE_MAX_AGE}; samesite=lax`
     let live = true
     setLoading(true)
     api.dashboard
@@ -107,7 +121,7 @@ export default function SalesHero({ initial, liveNow }: SalesHeroProps) {
     return () => {
       live = false
     }
-  }, [range.from, range.to, compare, content.sales.loadFailed])
+  }, [range, compare, content.sales.loadFailed])
 
   // Helpers
   const dayLabel = (iso: string) =>

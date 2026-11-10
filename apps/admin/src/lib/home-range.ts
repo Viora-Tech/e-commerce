@@ -110,3 +110,35 @@ export function presetRange(preset: RangePreset, now = new Date()): { from: stri
 export function rangeFor(preset: RangePreset, now = new Date()): HomeRange {
   return { preset, ...presetRange(preset, now) }
 }
+
+/** Remembers the Home card's range and comparison until the member picks another (a year). */
+export const HOME_RANGE_COOKIE = 'koo_home_range'
+export const HOME_RANGE_MAX_AGE = 60 * 60 * 24 * 365
+
+const ISO_DAY = /^\d{4}-\d{2}-\d{2}$/
+const COMPARES: readonly RangeCompare[] = ['previous', 'year', 'none']
+
+/** `preset.from.to.compare`, safe as a cookie value. */
+export function encodeHomeRange(range: HomeRange, compare: RangeCompare): string {
+  return [range.preset, range.from, range.to, compare].join('.')
+}
+
+/**
+ * The saved range, or null for a missing or broken cookie. A preset is worked out again for
+ * today (last 7 days keeps rolling); only a custom range keeps its saved dates, never past today.
+ */
+export function decodeHomeRange(
+  value: string | undefined,
+  now = new Date(),
+): { range: HomeRange; compare: RangeCompare } | null {
+  const [preset, from, to, compare] = value?.split('.') ?? []
+  if (!(RANGE_PRESETS as readonly string[]).includes(preset ?? '')) return null
+  if (!COMPARES.includes(compare as RangeCompare)) return null
+  const p = preset as RangePreset
+  const c = compare as RangeCompare
+  if (p !== 'custom') return { range: rangeFor(p, now), compare: c }
+  if (!from || !to || !ISO_DAY.test(from) || !ISO_DAY.test(to) || from > to) return null
+  const today = istToday(now)
+  if (from > today) return null
+  return { range: { preset: 'custom', from, to: earlier(to, today) }, compare: c }
+}
