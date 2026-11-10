@@ -21,6 +21,13 @@ import { halfKgSteps, type ProviderAnswer, type QuotedService } from './routes'
 
 /** Per call at checkout. Booking keeps the adapters' own 6 s timeout. */
 const CHECKOUT_COURIER_DEADLINE_MS = 800
+/**
+ * When nothing is cached for this app and PIN code (not even stale), waiting the short
+ * deadline only drops the app: RapidShyp answers in 1.8–2 s, so its couriers were missing for
+ * every first shopper at a PIN. With nothing to stand in, the first ask waits this long; later
+ * shoppers get the cached answer at once and the refresh runs behind.
+ */
+const CHECKOUT_COLD_DEADLINE_MS = 2500
 /** Live prices and serviceability, per app, origin>PIN, slab and value bucket: fresh for 6 h. */
 export const DELIVERY_QUOTE_FRESH_MS = 6 * 3600 * 1000
 /** Kept (stale-while-revalidate) for 7 days, for when the live call misses its deadline. */
@@ -161,7 +168,7 @@ export async function gatherProviderAnswers(
     now?: (() => number) | undefined
   },
 ): Promise<ProviderAnswer[]> {
-  const deadline = opts.deadlineMs ?? CHECKOUT_COURIER_DEADLINE_MS
+  const shortDeadline = opts.deadlineMs ?? CHECKOUT_COURIER_DEADLINE_MS
   const now = opts.now ?? Date.now
   const cache = opts.cache ?? null
   const domestic = providers.filter((p) => servesDestination(p, 'IN') && !p.requiresTrackingNumber)
@@ -194,6 +201,11 @@ export async function gatherProviderAnswers(
         const why = `Skipped since ${open.since}: failing`
         return fromCache(true, why) ?? failed(why)
       }
+      // Nothing cached to stand in: wait longer rather than drop the app (RapidShyp).
+      const deadline =
+        entry?.answer || opts.deadlineMs !== undefined
+          ? shortDeadline
+          : Math.max(shortDeadline, CHECKOUT_COLD_DEADLINE_MS)
       const started = now()
       const work = askProvider(provider, query)
       // Late or not, a real answer is remembered for the next shopper (the background refresh).
