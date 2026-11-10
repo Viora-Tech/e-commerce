@@ -14,6 +14,7 @@ import {
   setSenderEmail,
 } from '@commerce/core'
 import type { TemplateId } from '@commerce/notifications'
+import { logger } from '@commerce/observability/logging'
 import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
 import { can } from '../procedures'
@@ -65,6 +66,10 @@ async function senderErrors<T>(fn: () => Promise<T>): Promise<T> {
     return await fn()
   } catch (err) {
     if (err instanceof SenderEmailError) {
+      // The provider's own words (SES refused, or no SES keys) go to the log, never on the card.
+      if (err.reason === 'provider_failed') {
+        logger.warn('sender email provider failed', { storeId: err.storeId, error: err.message })
+      }
       throw new ORPCError('BAD_REQUEST', { message: err.reason, data: { reason: err.reason } })
     }
     throw err

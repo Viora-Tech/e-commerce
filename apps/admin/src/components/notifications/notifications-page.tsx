@@ -214,30 +214,33 @@ export default function NotificationsPage() {
         }
       />
 
-      <HealthLine
-        tone={emailOn ? 'ok' : 'warn'}
-        title={
-          emailOn
-            ? whatsappOn
-              ? copy.status.readyWhatsapp
-              : copy.status.ready
-            : copy.status.notReady
-        }
-        help={emailOn ? null : copy.status.notReadyHelp}
-        action={
-          emailOn ? null : (
-            <Button
-              nativeButton={false}
-              render={
-                <Link href={`${routes.settings.notifications()}?open=how-messages-are-sent`} />
-              }
-            >
-              <PlugConnect aria-hidden="true" />
-              {copy.status.connectEmail}
-            </Button>
-          )
-        }
-      />
+      {/* The status line belongs to the page's first screen; inside a row the back link leads. */}
+      {openRow ? null : (
+        <HealthLine
+          tone={emailOn ? 'ok' : 'warn'}
+          title={
+            emailOn
+              ? whatsappOn
+                ? copy.status.readyWhatsapp
+                : copy.status.ready
+              : copy.status.notReady
+          }
+          help={emailOn ? null : copy.status.notReadyHelp}
+          action={
+            emailOn ? null : (
+              <Button
+                nativeButton={false}
+                render={
+                  <Link href={`${routes.settings.notifications()}?open=how-messages-are-sent`} />
+                }
+              >
+                <PlugConnect aria-hidden="true" />
+                {copy.status.connectEmail}
+              </Button>
+            )
+          }
+        />
+      )}
 
       <SettingsDrill rows={drillRows} backLabel={r.back}>
         <SettingsDrillPanel id="messages">
