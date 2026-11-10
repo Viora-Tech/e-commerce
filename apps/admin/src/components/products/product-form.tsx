@@ -131,6 +131,11 @@ export default function ProductForm({
       options,
       variants: reconcileVariants(options, f.options, f.variants).variants,
     }))
+  const removeVariants = (indexes: number[]) =>
+    setForm((f) => {
+      const left = f.variants.filter((_, i) => !indexes.includes(i))
+      return left.length ? { ...f, variants: left } : f
+    })
   /* Files uploaded for a variant join the end of the gallery (once). */
   const addMedia = (items: MediaItem[]) =>
     setForm((f) => ({
@@ -312,6 +317,7 @@ export default function ProductForm({
         error={showErrors ? errors.variants : undefined}
         onOptions={setOptions}
         onVariant={patchVariant}
+        onRemoveVariants={removeVariants}
         onAddMedia={addMedia}
       />
       <VariantMetafieldsCard
@@ -444,23 +450,27 @@ export default function ProductForm({
         />
       }
       side={
-        <ProductSide
-          onPendingCollections={(ids) => {
-            pendingCollections.current = ids
-          }}
-          form={form}
-          facets={facets}
-          productId={product?.id ?? null}
-          revision={revision}
-          checklist={checklist}
-          activeTab={activeTab}
-          busy={working}
-          live={Boolean(product) && form.status === 'active'}
-          onPatch={patch}
-          onSelectTab={handleChecklistSelect}
-          onPublish={() => void handleSave('active')}
-          onSaveDraft={() => void handleSave('draft')}
-        />
+        // Variants takes the whole width (Figma 949:8022): price, MRP, SKU and stock fit without
+        // scrolling sideways. Save and status stay in the header bar.
+        activeTab === 'variants' && form.variants.length > 1 ? undefined : (
+          <ProductSide
+            onPendingCollections={(ids) => {
+              pendingCollections.current = ids
+            }}
+            form={form}
+            facets={facets}
+            productId={product?.id ?? null}
+            revision={revision}
+            checklist={checklist}
+            activeTab={activeTab}
+            busy={working}
+            live={Boolean(product) && form.status === 'active'}
+            onPatch={patch}
+            onSelectTab={handleChecklistSelect}
+            onPublish={() => void handleSave('active')}
+            onSaveDraft={() => void handleSave('draft')}
+          />
+        )
       }
     >
       <ConfirmDialog
