@@ -7,7 +7,7 @@ import PageBody from '@/components/layout/page-body'
 import BackgroundWorkNotice from '@/components/media/background-work-notice'
 import LocalStorageWarning from '@/components/media/local-storage-warning'
 import GatewayKeysBanner from '@/components/payments/gateway-keys-banner'
-import type { HomeRange } from '@/lib/home-range'
+import type { HomeRange, RangeCompare } from '@/lib/home-range'
 import AskAiCard from './ask-ai-card'
 import ChartsPanel from './charts/charts-panel'
 import PaymentStatusDonuts from './charts/payment-status-donuts'
@@ -29,8 +29,13 @@ import TodoCards from './todo-cards'
 type DashboardPageProps = {
   summary: DashboardSummary
   charts: DashboardChartsData
-  /** The analytics card's opening range (Today), its numbers and this member's tiles. */
-  analytics: { range: HomeRange; analytics: HomeAnalytics; tiles: HomeMetric[] }
+  /** The analytics card's opening range (the last one picked, else Today), its numbers and tiles. */
+  analytics: {
+    range: HomeRange
+    compare: RangeCompare
+    analytics: HomeAnalytics
+    tiles: HomeMetric[]
+  }
   firstName: string
   /** Show "Ask AI" (opens the AI bar): the assistant is on for this store and member. */
   assistant?: boolean
