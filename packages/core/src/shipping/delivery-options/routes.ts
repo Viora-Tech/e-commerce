@@ -130,6 +130,8 @@ export type Route = {
   carrierKey: string
   /** What the shopper reads: "Blue Dart". Never the aggregator. */
   carrier: string
+  /** False when the merchant hides this courier's name at checkout. */
+  showCarrier: boolean
   serviceId: string
   serviceLabel: string
   speed: DeliverySpeed
@@ -247,6 +249,7 @@ export function routesFromAnswers(
             channel,
             carrierKey: carrier.key,
             carrier: carrier.name,
+            showCarrier: firstSet(own, (x) => x.showName) ?? true,
             serviceId: s.serviceId,
             serviceLabel: s.serviceLabel,
             speed: serviceSpeed(s.serviceId, s.serviceLabel, carrier.name),

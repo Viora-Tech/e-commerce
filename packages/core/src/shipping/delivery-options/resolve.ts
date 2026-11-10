@@ -262,7 +262,7 @@ export function resolveDeliveryOptions(input: ResolveInput): DeliveryResolveResu
       optionId: option.id,
       name: option.name,
       description: option.description ?? null,
-      title: `${option.name} · ${pick.route.carrier}`,
+      title: pick.route.showCarrier ? `${option.name} · ${pick.route.carrier}` : option.name,
       speed: option.speed,
       source: winner.route.source,
       pick,

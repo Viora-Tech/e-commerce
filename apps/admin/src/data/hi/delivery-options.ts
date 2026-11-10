@@ -94,6 +94,8 @@ export default [
       extraHalfKg: 'हर अगले 500 ग्राम',
       codFee: 'COD शुल्क',
       enabled: 'चेकआउट पर यह रूट इस्तेमाल करें',
+      showName: 'ग्राहकों को कूरियर का नाम दिखाएं',
+      showNameHelp: 'बंद होने पर चेकआउट पर सिर्फ़ विकल्प दिखेगा, जैसे "Standard", और Air या Surface।',
       remove: 'सेटिंग हटाएं',
     },
     options: {

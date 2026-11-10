@@ -46,6 +46,7 @@ export type RouteSummary = Pick<
   | 'channel'
   | 'carrierKey'
   | 'carrier'
+  | 'showCarrier'
   | 'serviceId'
   | 'serviceLabel'
   | 'speed'

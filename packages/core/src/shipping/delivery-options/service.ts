@@ -56,6 +56,7 @@ function toSetting(row: typeof deliveryRouteSetting.$inferSelect): RouteSetting 
     insuranceMinPaise: row.insuranceMinPaise,
     costCard: card.success ? card.data : null,
     enabled: row.enabled,
+    showName: row.showName,
   }
 }
 
@@ -184,6 +185,7 @@ export async function saveRouteSetting(
     insuranceMinPaise: s.insuranceMinPaise ?? null,
     costCard: s.costCard ?? null,
     enabled: s.enabled,
+    showName: s.showName ?? null,
     updatedAt: new Date(),
   }
   const [row] = await tx

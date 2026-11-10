@@ -93,6 +93,8 @@ export const deliveryOptionsContent = {
     extraHalfKg: 'Each further 500 g',
     codFee: 'COD fee',
     enabled: 'Use this route at checkout',
+    showName: 'Show the courier name to shoppers',
+    showNameHelp: 'Off, checkout shows only the option, like "Standard", and Air or Surface.',
     remove: 'Remove setting',
   },
   options: {

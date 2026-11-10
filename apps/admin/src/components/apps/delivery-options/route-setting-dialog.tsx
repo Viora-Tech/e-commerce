@@ -53,6 +53,7 @@ type Draft = {
   extra: string
   cod: string
   enabled: boolean
+  showName: boolean
 }
 
 function parseKey(key: string): { carrier: string; channel: string } | null {
@@ -72,6 +73,7 @@ function draftOf(current: RouteSetting | null): Draft {
     extra: toRupees(current?.costCard?.extraHalfKgPaise),
     cod: toRupees(current?.costCard?.codFeePaise),
     enabled: current?.enabled ?? true,
+    showName: current?.showName ?? true,
   }
 }
 
@@ -128,6 +130,7 @@ export default function RouteSettingDialog({
                 codFeePaise: parseRupees(draft.cod) ?? 0,
               },
         enabled: draft.enabled,
+        showName: draft.showName,
       }),
     )
   }
@@ -223,6 +226,13 @@ export default function RouteSettingDialog({
             label={d.enabled}
             checked={draft.enabled}
             onChange={(enabled) => patch({ enabled })}
+          />
+          <SettingsToggleRow
+            id="route-show-name"
+            label={d.showName}
+            description={d.showNameHelp}
+            checked={draft.showName}
+            onChange={(showName) => patch({ showName })}
           />
         </FieldGroup>
         <DialogFooter>
