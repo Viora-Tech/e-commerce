@@ -31,7 +31,7 @@ import {
   resolveParcelPackage,
   resolveParcelWeightGrams,
 } from './parcel'
-import { defaultBoxPreset, parseShippingSettings } from './settings'
+import { parseShippingSettings } from './settings'
 import { shipFromFor } from './ship-from'
 import { rebookableParcels } from './shipment-cancel'
 import { storedLabelUrl } from './shipment-state'
@@ -236,7 +236,8 @@ export async function createShipmentForOrder(
     settings,
     storeName: s?.name ?? '',
   })
-  const boxWeightGrams = defaultBoxPreset(settings)?.weightGrams ?? ASSUMED_WEIGHT_GRAMS
+  // A box has no weight of its own: the products decide, else the assumed parcel weight.
+  const boxWeightGrams = ASSUMED_WEIGHT_GRAMS
   /* A product/variant's own package (custom dims, or one of the store's named boxes) is used
      when every sellable line agrees on one; its volumetric weight is compared against the
      actual weight, as couriers bill by whichever is greater. The merchant's own weight or

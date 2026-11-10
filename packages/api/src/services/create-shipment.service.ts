@@ -130,7 +130,8 @@ export async function prepareShipments(
   const [s] = await tx.select({ name: store.name }).from(store).where(eq(store.id, storeId))
   const storeName = s?.name ?? ''
   const box = defaultBoxPreset(settings)
-  const boxWeightGrams = box?.weightGrams ?? ASSUMED_WEIGHT_GRAMS
+  // A box has no weight of its own: the products decide, else the assumed parcel weight.
+  const boxWeightGrams = ASSUMED_WEIGHT_GRAMS
 
   const places = await tx
     .select({

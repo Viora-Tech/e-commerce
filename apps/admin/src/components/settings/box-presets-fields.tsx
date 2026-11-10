@@ -24,7 +24,6 @@ const blankBox = (): BoxPreset => ({
   lengthCm: 20,
   widthCm: 15,
   heightCm: 10,
-  weightGrams: 200,
   isDefault: false,
   costPaise: null,
 })
@@ -143,16 +142,6 @@ export default function BoxPresetsFields({ value, onChange }: BoxPresetsFieldsPr
                     value={box.heightCm}
                     disabled={box.kind === 'envelope'}
                     onChange={(e) => handlePatch(box.id, { heightCm: Number(e.target.value) })}
-                  />
-                </Field>
-                <Field>
-                  <FieldLabel htmlFor={`box-weight-${box.id}`}>{copy.weight}</FieldLabel>
-                  <Input
-                    id={`box-weight-${box.id}`}
-                    data-field-path={`boxPresets.${i}.weightGrams`}
-                    type="number"
-                    value={box.weightGrams}
-                    onChange={(e) => handlePatch(box.id, { weightGrams: Number(e.target.value) })}
                   />
                 </Field>
                 <Field>

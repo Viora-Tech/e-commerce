@@ -109,7 +109,11 @@ export const BoxPresetSchema = z.object({
   lengthCm: z.number().min(1).max(200),
   widthCm: z.number().min(1).max(200),
   heightCm: z.number().min(1).max(200),
-  weightGrams: z.number().int().min(1).max(50000),
+  /**
+   * Retired: a box has no weight of its own here (owner, 11 Nov 2026). The parcel weighs what
+   * its products weigh. Still read so older saved boxes parse; never used.
+   */
+  weightGrams: z.number().int().min(0).max(50000).optional(),
   isDefault: z.boolean().default(false),
   /**
    * What one box plus its filler costs, for order profit (packing). Before GST for a

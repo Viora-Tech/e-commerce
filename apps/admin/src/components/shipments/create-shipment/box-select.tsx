@@ -38,10 +38,7 @@ export default function BoxSelect({ id, boxes, hasProductBox, value, onChange }:
     [PRODUCT_BOX]: copy.productBox,
     [CUSTOM_BOX]: copy.customBox,
     ...Object.fromEntries(
-      boxes.map((b) => [
-        b.id,
-        copy.boxChosen(b.name, b.lengthCm, b.widthCm, b.heightCm, b.weightGrams),
-      ]),
+      boxes.map((b) => [b.id, copy.boxChosen(b.name, b.lengthCm, b.widthCm, b.heightCm)]),
     ),
   }
 

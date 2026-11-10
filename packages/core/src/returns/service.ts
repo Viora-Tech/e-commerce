@@ -23,7 +23,7 @@ import { lineLocation } from '../order/fulfillment-orders'
 import { recomputeOrderStatuses } from '../order/recompute'
 import { insertOutboxEvent } from '../outbox/write'
 import { resolveParcelWeightGrams } from '../shipping/parcel'
-import { defaultBoxPreset, parseShippingSettings } from '../shipping/settings'
+import { parseShippingSettings } from '../shipping/settings'
 import { shipFromFor } from '../shipping/ship-from'
 import { announceLatePickup } from './notify'
 import {
@@ -483,7 +483,7 @@ export async function arrangeReturnPickup(
     .innerJoin(orderLine, eq(orderLine.id, returnRequestLine.orderLineId))
     .leftJoin(variant, eq(variant.id, orderLine.variantId))
     .where(eq(returnRequestLine.returnRequestId, id))
-  const boxWeight = defaultBoxPreset(settings)?.weightGrams ?? ASSUMED_WEIGHT_GRAMS
+  const boxWeight = ASSUMED_WEIGHT_GRAMS
   const result = await provider.createReturnPickup({
     returnId: r.id,
     reference: `${returnLabel(r.number)}-${o.number}`,

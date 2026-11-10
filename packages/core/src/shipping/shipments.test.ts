@@ -187,7 +187,7 @@ describe('shipments', () => {
     expect(built?.data.waybill).toBe('WB1')
   })
 
-  it('sums variant weights when the line has one, else falls back to the default box preset', async () => {
+  it('sums variant weights when the line has one, else assumes 500 g (a box has no weight)', async () => {
     const { storeId, orderId } = await seedOrder()
     // The seeded variant has no weight; give the store a default box preset.
     await owner
@@ -221,7 +221,7 @@ describe('shipments', () => {
     await withStore(app, storeId, (tx) =>
       createShipmentForOrder({ storeId, tx }, provider, orderId),
     )
-    expect((captured[0] as { weightGrams: number }).weightGrams).toBe(700)
+    expect((captured[0] as { weightGrams: number }).weightGrams).toBe(500)
 
     // Now give the variant a real weight: the line sum wins over the box.
     await owner.update(variant).set({ weightGrams: 250 }).where(eq(variant.storeId, storeId))
