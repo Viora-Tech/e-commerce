@@ -93,13 +93,14 @@ import {
   type ReturnPickupInput,
   type Serviceability,
   type ServiceabilityQuery,
-  type ShipmentStatus,
   type ShippingProvider,
   type ShippingProviderFactory,
   type Tracking,
   type TrackingEvent,
 } from '@commerce/shipping'
 import { RAPIDSHYP_CAPABILITIES } from './client'
+import { eddDaysFromToday } from './edd'
+import { mapRapidshypStatus } from './status'
 
 export const RAPIDSHYP_BASE_URL = 'https://api.rapidshyp.com'
 
@@ -245,77 +246,6 @@ type PickupLocation = {
   is_rto_address_same?: boolean
 }
 
-const DAY_MS = 24 * 60 * 60 * 1000
-const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000
-
-/** A calendar date as UTC midnight, or null when the parts are not a real date (31-02). */
-function calendarDate(y: number, m: number, d: number): number | null {
-  const t = Date.UTC(y, m - 1, d)
-  const back = new Date(t)
-  return back.getUTCFullYear() === y && back.getUTCMonth() === m - 1 && back.getUTCDate() === d
-    ? t
-    : null
-}
-
-/**
- * Days from today (India's calendar) to RapidShyp's estimated delivery date (`edd`), or null.
- * RapidShyp's serviceability docs show `edd` as DD-MM-YYYY ("22-04-2026"); YYYY-MM-DD and a
- * trailing time are read too. Before this, only YYYY-MM-DD parsed, so every RapidShyp route
- * fell back to the store's default transit days and showed the same date.
- */
-export function eddDaysFromToday(
-  dateStr: string | undefined,
-  now: number = Date.now(),
-): number | null {
-  const s = dateStr?.trim() ?? ''
-  const dmy = /^(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})\b/.exec(s)
-  const ymd = /^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})\b/.exec(s)
-  const target = dmy
-    ? calendarDate(Number(dmy[3]), Number(dmy[2]), Number(dmy[1]))
-    : ymd
-      ? calendarDate(Number(ymd[1]), Number(ymd[2]), Number(ymd[3]))
-      : null
-  if (target === null) return null
-  const todayIst = Math.floor((now + IST_OFFSET_MS) / DAY_MS) * DAY_MS
-  const days = Math.round((target - todayIst) / DAY_MS)
-  return days > 0 ? days : null
-}
-
-const daysFromToday = (dateStr: string | undefined) => eddDaysFromToday(dateStr)
-
-/**
- * RapidShyp's own tracking status codes (docs' "Tracking status code
- * Rapidshyp" table), reduced to ours. Falls back to the shipment's coarse
- * free-text `shipment_status` (e.g. "READY_TO_SHIP") when no code is present,
- * and to `in_transit` for anything unrecognised rather than guessing a
- * terminal state.
- */
-export function mapRapidshypStatus(
-  code: string | null | undefined,
-  shipmentStatus: string | null | undefined,
-): ShipmentStatus {
-  const c = (code ?? '').toUpperCase()
-  if (c === 'DEL') return 'delivered'
-  if (c.startsWith('RTO')) return 'rto'
-  if (c === 'CAN') return 'cancelled'
-  if (c === 'OFD') return 'out_for_delivery'
-  if (c === 'PUC') return 'picked_up'
-  if (['SCB', 'PSH', 'OFP', 'PUE', 'PCN'].includes(c)) return 'created'
-  if (['SPD', 'INT', 'RAD', 'DED', 'UND', 'ONH', 'LST', 'DMG', 'MSR', 'DPO'].includes(c)) {
-    return 'in_transit'
-  }
-  const s = (shipmentStatus ?? '').toUpperCase()
-  // "UNDELIVERED" and "NOT DELIVERED" contain "DELIVERED"; they are attempts, not delivery.
-  if (/UNDELIVERED|NOT[\s_]DELIVERED/.test(s)) return 'in_transit'
-  if (s.includes('DELIVERED')) return 'delivered'
-  if (s.includes('RTO')) return 'rto'
-  if (s.includes('CANCEL')) return 'cancelled'
-  if (s.includes('READY_TO_SHIP') || s.includes('ASSIGNED') || s.includes('MANIFEST')) {
-    return 'created'
-  }
-  return 'in_transit'
-}
-
 export class RapidshypProvider implements ShippingProvider {
   readonly id = 'rapidshyp'
   readonly label = 'RapidShyp'
@@ -410,7 +340,7 @@ export class RapidshypProvider implements ShippingProvider {
       declaredValue: query.declaredValue ?? undefined,
       cod: true,
     })
-    const days = couriers.map((c) => daysFromToday(c.edd)).filter((n): n is number => n !== null)
+    const days = couriers.map((c) => eddDaysFromToday(c.edd)).filter((n): n is number => n !== null)
     return {
       provider: this.id,
       serviceable: true,
@@ -440,7 +370,7 @@ export class RapidshypProvider implements ShippingProvider {
     })
     const price = Number(cheapest.total_freight)
     if (!Number.isFinite(price)) return null
-    const days = daysFromToday(cheapest.edd)
+    const days = eddDaysFromToday(cheapest.edd)
     return { pricePaise: Math.round(price * 100), minTransitDays: days, maxTransitDays: days }
   }
 
@@ -468,7 +398,7 @@ export class RapidshypProvider implements ShippingProvider {
     return couriers.flatMap((c) => {
       const price = Number(c.total_freight)
       if (!c.courier_code || !Number.isFinite(price) || price <= 0) return []
-      const days = daysFromToday(c.edd)
+      const days = eddDaysFromToday(c.edd)
       const name = c.courier_name ?? 'RapidShyp courier'
       return [
         {

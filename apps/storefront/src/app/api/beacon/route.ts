@@ -1,4 +1,4 @@
-import { loadEnv } from '@commerce/config'
+import { loadEnv, settingsSecret } from '@commerce/config'
 import {
   type Attribution,
   attributionFromVisit,
@@ -79,7 +79,7 @@ function anonymousIdFor(h: Headers, storeId: string): string | null {
   const ip = visitAddress(h)
   if (!ip) return null
   return anonymousVisitorId({
-    secret: loadEnv(process.env).SETTINGS_SECRET,
+    secret: settingsSecret(),
     day: dayKey(new Date()),
     storeId,
     ip,
