@@ -1,9 +1,9 @@
 import {
   gstNumberPickerContent,
-  gstProductTaxContent,
   gstQueueEmptyContent,
   gstReturnsContent,
 } from '@/data/gst-invoices'
+import { gstProductTaxContent } from '@/data/gst-product-tax'
 import { translation } from '@/lib/i18n'
 
 export default [
@@ -135,7 +135,12 @@ export default [
     title: 'प्रोडक्ट',
     intro:
       'हर प्रोडक्ट पर GST लगे या नहीं, किस दर से, और उसका HSN कोड। बदलाव प्रोडक्ट पर सेव होते हैं, और अगले ऑर्डर से चेकआउट और इनवॉइस इन्हें ही लेते हैं।',
-    filters: { all: 'सभी', missing_hsn: 'HSN नहीं है', gst_off: 'GST बंद' },
+    filters: {
+      all: 'सभी',
+      missing_hsn: 'HSN नहीं है',
+      missing_rate: 'GST दर नहीं है',
+      gst_off: 'GST बंद',
+    },
     search: 'प्रोडक्ट खोजें',
     columns: { product: 'प्रोडक्ट', charge: 'GST लगाएँ', rate: 'GST दर', hsn: 'HSN कोड' },
     variants: (n) => `${n} वेरिएंट`,

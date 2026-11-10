@@ -59,6 +59,23 @@ export async function withOrigin<P extends { originPincode: string }, S extends 
   return { ...settings, policy }
 }
 
+/**
+ * A booking made in a courier's own panel names the app it was booked in; that app must be
+ * connected, so the worker's tracking poll can follow the AWB (#1490).
+ */
+export async function assertCourierConnected(
+  tx: StoreTx,
+  storeId: string,
+  registry: ShippingRegistry,
+  secret: string,
+  providerId: string,
+): Promise<void> {
+  const settings = await loadShippingSettings(tx, storeId)
+  if (!shippingProviderById(registry, settings, secret, providerId)) {
+    throw new ORPCError('BAD_REQUEST', { message: 'That courier app is not connected.' })
+  }
+}
+
 export async function loadShippingSettings(
   tx: StoreTx,
   storeId: string,

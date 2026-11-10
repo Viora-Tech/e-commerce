@@ -9,7 +9,7 @@ import { toast } from 'sonner'
 import PageHeader from '@/components/layout/page-header'
 import PillTabs from '@/components/layout/pill-tabs'
 import TableEmptyRow from '@/components/table/table-empty-row'
-import { gstProductTaxContent } from '@/data/gst-invoices'
+import { gstProductTaxContent } from '@/data/gst-product-tax'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import ChoiceField from './choice-field'
@@ -17,11 +17,11 @@ import ProductsTaxRow from './products-tax-row'
 import { HEAD } from './table-classes'
 
 type Data = Awaited<ReturnType<typeof api.gstInvoicesProducts.list>>
-type Filter = 'all' | 'missing_hsn' | 'gst_off'
+type Filter = 'all' | 'missing_hsn' | 'missing_rate' | 'gst_off'
 type Change = { hsCode?: string | null; gstRatePercent?: number | null; taxable?: boolean }
 type Target = { ids: string[] } | { match: { filter: Filter; search?: string | undefined } }
 
-const FILTERS: Filter[] = ['all', 'missing_hsn', 'gst_off']
+const FILTERS: Filter[] = ['all', 'missing_hsn', 'missing_rate', 'gst_off']
 const RATES = [0, 3, 5, 12, 18, 28, 40]
 const PER_PAGE = 50
 const SEARCH_SETTLE_MS = 300

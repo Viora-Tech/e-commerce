@@ -3,10 +3,12 @@
 import { Checkbox } from '@commerce/ui/shadcn/checkbox'
 import { Input } from '@commerce/ui/shadcn/input'
 import { Switch } from '@commerce/ui/shadcn/switch'
-import { TableCell, TableRow } from '@commerce/ui/shadcn/table'
+import { TableCell } from '@commerce/ui/shadcn/table'
 import Link from 'next/link'
 import { useState } from 'react'
-import { gstProductTaxContent } from '@/data/gst-invoices'
+import ProductThumb from '@/components/products/product-thumb'
+import LinkRow from '@/components/table/link-row'
+import { gstProductTaxContent } from '@/data/gst-product-tax'
 import { useCopy } from '@/hooks/use-copy'
 import type { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
@@ -29,7 +31,10 @@ const STORE = 'store'
 const MIXED = 'mixed'
 const HSN = /^\d{4,8}$/
 
-/** One product on the Products tab: its Charge GST switch, rate and HSN, each saved on change. */
+/**
+ * One product on the Products tab: its photo, Charge GST switch, rate and HSN, each saved on
+ * change. A click anywhere else on the row opens the product (middle or Ctrl/⌘-click: new tab).
+ */
 export default function ProductsTaxRow({
   row,
   rateOptions,
@@ -70,7 +75,7 @@ export default function ProductsTaxRow({
     : rateOptions
 
   return (
-    <TableRow>
+    <LinkRow href={routes.products.detail(row.id)}>
       <TableCell className={`${CELL} w-10`}>
         <Checkbox
           checked={selected}
@@ -79,19 +84,22 @@ export default function ProductsTaxRow({
         />
       </TableCell>
       <TableCell className={CELL}>
-        <div className="flex min-w-0 flex-col">
-          <Link
-            href={routes.products.detail(row.id)}
-            className="truncate font-medium hover:underline"
-          >
-            {row.title}
-          </Link>
-          <span className="text-caption text-muted-foreground">
-            {copy.variants(row.variants)}
-            {row.missingHsn > 0 && row.hsCode === null
-              ? ` · ${copy.missingHsn(row.missingHsn)}`
-              : ''}
-          </span>
+        <div className="flex min-w-0 items-center gap-3">
+          <ProductThumb url={row.imageUrl} />
+          <div className="flex min-w-0 flex-col">
+            <Link
+              href={routes.products.detail(row.id)}
+              className="truncate font-medium hover:underline"
+            >
+              {row.title}
+            </Link>
+            <span className="text-caption text-muted-foreground">
+              {copy.variants(row.variants)}
+              {row.missingHsn > 0 && row.hsCode === null
+                ? ` · ${copy.missingHsn(row.missingHsn)}`
+                : ''}
+            </span>
+          </div>
         </div>
       </TableCell>
       <TableCell className={CELL}>
@@ -134,6 +142,6 @@ export default function ProductsTaxRow({
           }}
         />
       </TableCell>
-    </TableRow>
+    </LinkRow>
   )
 }
