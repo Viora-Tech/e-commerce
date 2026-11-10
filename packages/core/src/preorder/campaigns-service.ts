@@ -41,11 +41,12 @@ import { CommerceError } from '../errors'
 import {
   type PreorderCampaignCreateInput,
   PreorderCampaignCreateSchema,
+  type PreorderCampaignMember,
   type PreorderCampaignTerms,
   type PreorderCampaignUpdateInput,
   PreorderCampaignUpdateSchema,
 } from './campaigns'
-import { resolvePreorderSettings } from './settings'
+import { resolvePreorderSettings, variantAllowsPreorder, withPreorderAllowed } from './settings'
 
 /** Why a campaign change was refused, in words the merchant can act on. */
 export class PreorderCampaignError extends CommerceError {
@@ -133,7 +134,10 @@ export type PreorderCampaignSummary = PreorderCampaignTerms & {
   updatedAt: Date
 }
 
-export type PreorderCampaignView = PreorderCampaignSummary & { productIds: string[] }
+export type PreorderCampaignView = PreorderCampaignSummary & {
+  productIds: string[]
+  members: PreorderCampaignMember[]
+}
 
 /** Lines that count as sales: real orders that were not cancelled. */
 const countedOrder = and(
@@ -197,12 +201,75 @@ export async function getPreorderCampaign(
   const [summary] = await campaignSummaries(ctx.tx, id)
   if (!summary)
     throw new PreorderCampaignError('CAMPAIGN_NOT_FOUND', 'Campaign not found', ctx.storeId)
-  const members = await ctx.tx
-    .select({ id: product.id })
+  const rows = await ctx.tx
+    .select({ id: product.id, own: product.preorderOwn, limit: product.preorderLimit })
     .from(product)
     .where(eq(product.preorderCampaignId, id))
     .orderBy(asc(product.title))
-  return { ...summary, productIds: members.map((m) => m.id) }
+  const variants = rows.length
+    ? await ctx.tx
+        .select({
+          id: variant.id,
+          productId: variant.productId,
+          override: variant.preorderOverride,
+        })
+        .from(variant)
+        .where(
+          and(
+            inArray(
+              variant.productId,
+              rows.map((r) => r.id),
+            ),
+            isNull(variant.archivedAt),
+          ),
+        )
+    : []
+  const members = rows.map((r): PreorderCampaignMember => {
+    const own = variants.filter((v) => v.productId === r.id)
+    const on = own.filter((v) => variantAllowsPreorder(v.override)).map((v) => v.id)
+    return {
+      productId: r.id,
+      variantIds: on.length === own.length ? null : on,
+      limit: r.own.includes('limit') ? r.limit : null,
+    }
+  })
+  return { ...summary, productIds: rows.map((r) => r.id), members }
+}
+
+/**
+ * Each member's variants and limit (#1473): variants left out get "never on pre-order" on their
+ * own override; a limit becomes the product's own (`preorder_own` holds 'limit').
+ */
+async function setMemberTerms(tx: StoreTx, members: readonly PreorderCampaignMember[]) {
+  const now = new Date()
+  for (const m of members) {
+    const rows = await tx
+      .select({ id: variant.id, override: variant.preorderOverride })
+      .from(variant)
+      .where(and(eq(variant.productId, m.productId), isNull(variant.archivedAt)))
+    for (const v of rows) {
+      const allowed = m.variantIds === null || m.variantIds.includes(v.id)
+      if (variantAllowsPreorder(v.override) === allowed) continue
+      await tx
+        .update(variant)
+        .set({ preorderOverride: withPreorderAllowed(v.override, allowed), updatedAt: now })
+        .where(eq(variant.id, v.id))
+    }
+    const [p] = await tx
+      .select({ own: product.preorderOwn })
+      .from(product)
+      .where(eq(product.id, m.productId))
+    if (!p) continue
+    const own = p.own.filter((f) => f !== 'limit')
+    await tx
+      .update(product)
+      .set(
+        m.limit === null
+          ? { preorderOwn: own, updatedAt: now }
+          : { preorderOwn: [...own, 'limit'], preorderLimit: m.limit, updatedAt: now },
+      )
+      .where(eq(product.id, m.productId))
+  }
 }
 
 /** The chosen products join the campaign (leaving any other); the rest of its products leave it. */
@@ -228,13 +295,17 @@ export async function createPreorderCampaign(
   ctx: StoreContext,
   input: PreorderCampaignCreateInput,
 ): Promise<PreorderCampaignView> {
-  const { productIds, ...fields } = PreorderCampaignCreateSchema.parse(input)
+  const { productIds, members, ...fields } = PreorderCampaignCreateSchema.parse(input)
   const [row] = await ctx.tx
     .insert(preorderCampaign)
     .values({ ...fields, storeId: ctx.storeId })
     .returning({ id: preorderCampaign.id })
   if (!row) throw new Error('preorder campaign insert returned nothing')
   await setMembers(ctx.tx, row.id, productIds)
+  await setMemberTerms(
+    ctx.tx,
+    members.filter((m) => productIds.includes(m.productId)),
+  )
   return getPreorderCampaign(ctx, row.id)
 }
 
@@ -245,7 +316,7 @@ export async function updatePreorderCampaign(
   ctx: StoreContext,
   input: PreorderCampaignUpdateInput,
 ): Promise<PreorderCampaignView> {
-  const { id, productIds, ...f } = PreorderCampaignUpdateSchema.parse(input)
+  const { id, productIds, members, ...f } = PreorderCampaignUpdateSchema.parse(input)
   const [now] = await ctx.tx
     .select(campaignSelection)
     .from(preorderCampaign)
@@ -275,6 +346,12 @@ export async function updatePreorderCampaign(
     })
     .where(eq(preorderCampaign.id, id))
   if (productIds) await setMembers(ctx.tx, id, productIds)
+  if (members) {
+    await setMemberTerms(
+      ctx.tx,
+      productIds ? members.filter((m) => productIds.includes(m.productId)) : members,
+    )
+  }
   return getPreorderCampaign(ctx, id)
 }
 
