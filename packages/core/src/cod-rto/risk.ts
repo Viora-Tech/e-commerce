@@ -9,6 +9,7 @@ import {
   store,
 } from '@commerce/db'
 import { and, eq, inArray, isNull, ne, or, sql } from 'drizzle-orm'
+import { lockStoreApps } from '../apps/locked'
 import { parseAppsSettings, withAppSettings } from '../apps/settings'
 import type { StoreContext } from '../context'
 import { CheckoutRuleViolation } from '../errors'
@@ -42,8 +43,7 @@ export async function saveCodRtoSettings(
   input: unknown,
 ): Promise<CodRtoSettings> {
   const next = CodRtoSettingsSchema.parse(input)
-  const [s] = await tx.select({ apps: store.apps }).from(store).where(eq(store.id, storeId))
-  const apps = withAppSettings(parseAppsSettings(s?.apps), COD_RTO_APP_ID, next)
+  const apps = withAppSettings(await lockStoreApps(tx, storeId), COD_RTO_APP_ID, next)
   await tx.update(store).set({ apps }).where(eq(store.id, storeId))
   return next
 }

@@ -15,6 +15,15 @@ export function mediaProcessLimits(env: MediaEnv): QueueLimits {
   return { concurrency, perStore: Math.min(perStore, concurrency) }
 }
 
+/**
+ * Cores the image pipeline may use: `MEDIA_CPUS` when set, else every core but one, so a photo
+ * upload never takes the whole box from the storefront (#1471). Never below one.
+ */
+export function mediaCpus(cores: number, configured?: number | undefined): number {
+  const budget = configured ?? cores - 1
+  return Math.max(1, Math.min(cores, Math.floor(budget)))
+}
+
 /** This many of a store's images waiting means a bulk run, whoever queued it (an import, a big upload, an old backlog). */
 export const BULK_BACKLOG = 25
 

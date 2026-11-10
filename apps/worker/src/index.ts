@@ -126,6 +126,7 @@ const appEventWorker = createAppEventWorker(redis, db, {
 const mediaProcess = createMediaProcessWorker(redis, db, {
   settingsSecret: env.SETTINGS_SECRET,
   limits: mediaProcessLimits(env),
+  mediaCpus: env.MEDIA_CPUS,
 })
 const appJobWorker = createAppJobWorker(redis, db, {
   settingsSecret: env.SETTINGS_SECRET,

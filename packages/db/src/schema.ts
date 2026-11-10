@@ -2019,6 +2019,23 @@ export const paymentGatewayHealth = pgTable(
   (t) => [uniqueIndex('payment_gateway_health_store_gateway').on(t.storeId, t.gateway)],
 )
 
+/**
+ * A checkout draft one member has opened (owner, 10 Nov 2026): the sidebar's Drafts count leaves
+ * it out until the draft changes again. Goes with the draft (cascade).
+ */
+export const draftSeen = pgTable(
+  'draft_seen',
+  {
+    storeId: storeId(),
+    userId: text('user_id').notNull(),
+    orderId: uuid('order_id')
+      .notNull()
+      .references(() => order.id, { onDelete: 'cascade' }),
+    seenAt: timestamp('seen_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex('draft_seen_user_order').on(t.storeId, t.userId, t.orderId)],
+)
+
 /** One row per message attempted, so admin can see what a shopper was told and retries never double-send. */
 export const notification = pgTable(
   'notification',

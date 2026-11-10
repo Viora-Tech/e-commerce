@@ -73,6 +73,8 @@ async function seed(slug: string): Promise<Seed> {
       name: slug,
       gstRatePercent: 18,
       address: { line1: '1 MG Road', city: 'Bengaluru', state: 'KA', pincode: '560001' },
+      // Parcels written at checkout: drafts off, as a draft gets its parcels when it converts.
+      payments: { unpaidAsDrafts: 'off' },
     })
     .returning()
   if (!s) throw new Error('seed')

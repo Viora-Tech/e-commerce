@@ -63,10 +63,22 @@ export default function AppListing({ app }: AppListingProps) {
           </>
         }
         actions={
-          <Button nativeButton={false} render={<Link href={routes.apps.install(app.id)} />}>
-            <Download aria-hidden="true" />
-            {copy.install}
-          </Button>
+          app.installed ? (
+            <>
+              <StatusChip tone="success" className="h-8">
+                <CheckIcon aria-hidden="true" />
+                {copy.listing.installed}
+              </StatusChip>
+              <Button nativeButton={false} render={<Link href={routes.apps.page(app.id)} />}>
+                {copy.open}
+              </Button>
+            </>
+          ) : (
+            <Button nativeButton={false} render={<Link href={routes.apps.install(app.id)} />}>
+              <Download aria-hidden="true" />
+              {copy.install}
+            </Button>
+          )
         }
       />
       <div className="grid gap-6 lg:grid-cols-[1fr_23.5rem]">

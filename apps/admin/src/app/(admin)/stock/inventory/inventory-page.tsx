@@ -395,7 +395,7 @@ function InventoryContent({ initial }: { initial: InventoryInitial }) {
         }
         loading={loading}
         query={q.query}
-        onQueryChange={(query) => setQ({ query, page: 1 })}
+        onQueryChange={(query) => setQ({ query, page: 1 }, { history: 'replace' })}
         onClearAll={() => setQ({ ...CLEAR_FILTERS, query: '', page: 1 })}
         filterGroups={groups}
         views={

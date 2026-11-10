@@ -6,6 +6,7 @@
  *        Both read the same facts so the card and the report always agree.
  * WHERE: `orders.profit`, `orders.setCourierCharge`, `profitCosts.*`; api reports/profit.ts.
  */
+
 import {
   gstRegistration,
   order,
@@ -21,6 +22,7 @@ import {
 } from '@commerce/db'
 import { and, eq, inArray, isNull, ne, sql } from 'drizzle-orm'
 import { z } from 'zod'
+import { lockStoreApps } from '../apps/locked'
 import type { StoreContext } from '../context'
 import { CommerceError } from '../errors'
 import { parsePaymentSettings } from '../payments/settings'
@@ -224,10 +226,10 @@ export async function saveProfitCosts(
   input: unknown,
 ): Promise<ProfitCostSettings> {
   const costs = ProfitCostSettingsSchema.parse(input)
-  const [s] = await tx.select({ apps: store.apps }).from(store).where(eq(store.id, storeId))
+  const apps = await lockStoreApps(tx, storeId)
   await tx
     .update(store)
-    .set({ apps: withProfitCosts(s?.apps, costs) })
+    .set({ apps: withProfitCosts(apps, costs) })
     .where(eq(store.id, storeId))
   return costs
 }

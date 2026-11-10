@@ -6,7 +6,6 @@ import CopyButton from '@/components/fields/copy-button'
 import { createShipmentContent } from '@/data/create-shipment'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import type { api } from '@/lib/api-client'
-import PickupForm from './pickup-form'
 
 type BulkResult = Awaited<ReturnType<typeof api.shipments.bulkBook>>[number]
 
@@ -72,7 +71,7 @@ export default function BulkDoneStep({ results, numbers, pickupDate = null }: Bu
           )}
         </p>
       ) : shipmentIds.length > 0 ? (
-        <PickupForm shipmentIds={shipmentIds} />
+        <p className="text-body text-muted-foreground">{pickupCopy.fromBooked}</p>
       ) : null}
     </div>
   )

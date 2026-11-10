@@ -193,7 +193,7 @@ function BlogPostsContent({ initial, storefrontOrigin }: BlogPostsPageProps) {
         )}
         loading={loading}
         query={q.query}
-        onQueryChange={(query) => setQ({ query, page: 1 })}
+        onQueryChange={(query) => setQ({ query, page: 1 }, { history: 'replace' })}
         onClearAll={() => setQ({ ...CLEAR_BLOG_POST_FILTERS, query: '', status: null, page: 1 })}
         filterGroups={groups}
         views={

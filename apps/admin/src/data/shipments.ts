@@ -9,7 +9,9 @@ export const shipmentsContent = {
       `${ready} ${ready === 1 ? 'order' : 'orders'} ready to ship · ${today} booked today`,
     lowWallet: (ready: number) =>
       `${ready} ${ready === 1 ? 'order' : 'orders'} ready to ship · wallet low`,
-    booked: (n: number) => `${n} booked, waiting for pickup`,
+    booked: (n: number) => `${n} booked, no pickup yet`,
+    toPickUp: (n: number) =>
+      `${n} ${n === 1 ? 'parcel' : 'parcels'} on a pickup, waiting for the courier`,
     inTransit: (n: number) => `${n} ${n === 1 ? 'shipment' : 'shipments'} on the way`,
     delivered: (n: number) => `${n} delivered`,
     rto: (n: number) => `${n} returned to you (RTO)`,
@@ -18,8 +20,9 @@ export const shipmentsContent = {
   },
   viewLabel: 'Shipment view',
   tabs: {
-    toBook: 'To book',
+    toBook: 'To ship',
     booked: 'Booked',
+    toPickUp: 'To be picked up',
     inTransit: 'In transit',
     delivered: 'Delivered',
     rto: 'Returned (RTO)',
@@ -32,7 +35,7 @@ export const shipmentsContent = {
     weight: 'Weight',
     status: 'Status',
   },
-  toBookChip: 'To book',
+  toBookChip: 'To ship',
   deliveryFailed: 'Delivery failed',
   pickedAtBooking: 'Picked when booking',
   kg: (grams: number) => `${(grams / 1000).toFixed(1)} kg`,
@@ -42,7 +45,7 @@ export const shipmentsContent = {
   pickupsButton: 'Pickups',
   bookSelected: 'Book selected',
   shipNow: 'Ship now',
-  bookSelectedHint: 'Select orders in To book first',
+  bookSelectedHint: 'Select orders in To ship first',
   printLabels: 'Print labels',
   menu: {
     viewOrder: 'View order',
@@ -50,8 +53,10 @@ export const shipmentsContent = {
     track: 'Track parcel',
   },
   empty: {
-    toBook: 'Nothing to book. Paid orders waiting on a label show up here.',
-    booked: 'No shipments waiting for pickup.',
+    toBook: 'Nothing to ship. Paid orders waiting on a label show up here.',
+    booked:
+      'No labels without a pickup. Select booked labels and Create pickup to hand them to the courier.',
+    toPickUp: 'Nothing waiting for the courier. Labels you create a pickup for show up here.',
     inTransit: 'Nothing on the way right now.',
     delivered: 'No deliveries yet.',
     rto: 'No parcels have come back.',
@@ -142,9 +147,12 @@ export const shipmentsContent = {
 
 /** Row and bulk actions on the Shipments table: pickups, manifests, tracking, cancel. */
 export const shipmentActionsContent = {
-  schedulePickup: 'Schedule pickup',
-  pickupTitle: (n: number) => `Schedule a pickup for ${n} ${n === 1 ? 'parcel' : 'parcels'}`,
-  pickupBody: 'The courier collects these booked parcels on the day and time you pick.',
+  schedulePickup: 'Create pickup',
+  pickupTitle: (n: number) => `Create a pickup for ${n} ${n === 1 ? 'parcel' : 'parcels'}`,
+  pickupBody:
+    'The courier is asked to collect these parcels on the day and time you pick, a manifest is made to hand over, and they move to To be picked up.',
+  pickupAndManifestDone: (n: number) =>
+    `Pickup requested for ${n} ${n === 1 ? 'parcel' : 'parcels'}. Its manifest is in Pickups.`,
   date: 'Pickup date',
   timeFrom: 'From (24h, e.g. 14:00)',
   timeTo: 'To (optional)',

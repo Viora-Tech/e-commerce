@@ -79,7 +79,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
           {copy.skipToContent}
         </a>
         <ThemeProvider nonce={nonce}>
-          <NuqsAdapter>
+          <NuqsAdapter defaultOptions={{ history: 'push' }}>
             <LocaleProvider locale={locale} region={region}>
               <MotionProvider>
                 <StepUpProvider>{children}</StepUpProvider>

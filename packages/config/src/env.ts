@@ -162,10 +162,12 @@ const shape = z.object({
   DATABASE_URL_DIRECT: z.string().url().optional(),
   REDIS_URL: z.string().url(),
   WORKER_PORT: z.coerce.number().int().min(1).max(65535).default(4100),
-  /** Image jobs the worker runs at once; unset uses `QUEUE_LIMITS.mediaProcess` (3). Keep it near the box's vCPU count. */
+  /** Image jobs the worker runs at once; unset uses `QUEUE_LIMITS.mediaProcess` (1, #1471). */
   MEDIA_PROCESS_CONCURRENCY: z.coerce.number().int().min(1).max(8).optional(),
-  /** Most image jobs of one store at once (capped at the concurrency); unset uses `QUEUE_LIMITS.mediaProcess` (3). */
+  /** Most image jobs of one store at once (capped at the concurrency); unset uses `QUEUE_LIMITS.mediaProcess` (1). */
   MEDIA_PROCESS_PER_STORE: z.coerce.number().int().min(1).max(8).optional(),
+  /** Cores the image pipeline may use; unset, every core but one (#1471). */
+  MEDIA_CPUS: z.coerce.number().int().min(1).max(64).optional(),
   /**
    * Worker memory guard (apps/worker/src/memory-guard.ts). The limit comes from the container's
    * cgroup; this is the fallback when there is none (local runs). Percentages of that limit:

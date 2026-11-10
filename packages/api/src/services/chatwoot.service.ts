@@ -1,4 +1,4 @@
-import { encryptSecret, parseAppsSettings, withAppSettings } from '@commerce/core'
+import { encryptSecret, lockStoreApps, withAppSettings } from '@commerce/core'
 import type { StoreTx } from '@commerce/db'
 import { store } from '@commerce/db'
 import { ChatwootError, parseTrustedOrigins } from '@commerce/plugin-chatwoot/client'
@@ -34,10 +34,10 @@ export type ChatwootEnv = {
 const badRequest = (message: string) => new ORPCError('BAD_REQUEST', { message })
 
 async function write(tx: StoreTx, storeId: string, next: ChatwootSettings) {
-  const [s] = await tx.select({ apps: store.apps }).from(store).where(eq(store.id, storeId))
+  const apps = await lockStoreApps(tx, storeId)
   await tx
     .update(store)
-    .set({ apps: withAppSettings(parseAppsSettings(s?.apps), CHATWOOT_ID, next) })
+    .set({ apps: withAppSettings(apps, CHATWOOT_ID, next) })
     .where(eq(store.id, storeId))
 }
 

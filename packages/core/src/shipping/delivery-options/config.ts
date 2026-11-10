@@ -137,6 +137,8 @@ export const RouteSettingInputSchema = z.object({
   insuranceMinPaise: paise.nullish(),
   costCard: CostCardSchema.nullish(),
   enabled: z.boolean().default(true),
+  /** Checkout names the courier to shoppers ("Express · Blue Dart"); null keeps it shown. */
+  showName: z.boolean().nullish(),
 })
 export type RouteSettingInput = z.infer<typeof RouteSettingInputSchema>
 export type RouteSetting = RouteSettingInput

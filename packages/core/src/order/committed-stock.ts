@@ -93,6 +93,33 @@ async function takeCommittedStock(
   })
 }
 
+/**
+ * Packed units back on the shelf (a cancelled label, owner 10 Nov 2026): the reverse of
+ * `shipCommittedStock`, on hand and committed rise together, logged as `other`.
+ */
+export async function unshipCommittedStock(ctx: StoreContext, move: StockMove): Promise<void> {
+  if (move.quantity <= 0) return
+  if (!(await isTracked(ctx, move.variantId))) return
+  const [level] = await ctx.tx
+    .update(inventoryLevel)
+    .set({
+      onHand: sql`${inventoryLevel.onHand} + ${move.quantity}`,
+      reserved: sql`${inventoryLevel.reserved} + ${move.quantity}`,
+    })
+    .where(levelOf(move))
+    .returning({ locationId: inventoryLevel.locationId })
+  if (!level) return
+  await ctx.tx.insert(inventoryAdjustment).values({
+    id: newId(),
+    storeId: ctx.storeId,
+    variantId: move.variantId,
+    locationId: level.locationId,
+    delta: move.quantity,
+    reason: 'other',
+    note: 'Label cancelled: unpacked',
+  })
+}
+
 /** Units the order no longer wants: committed drops, on hand stays. */
 export async function releaseCommittedStock(ctx: StoreContext, move: StockMove): Promise<void> {
   if (move.quantity <= 0) return

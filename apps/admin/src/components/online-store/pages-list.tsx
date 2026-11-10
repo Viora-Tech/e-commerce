@@ -148,7 +148,7 @@ function PagesContent({ storefrontOrigin }: PagesListProps) {
         )}
         loading={loading}
         query={q.query}
-        onQueryChange={(query) => setQ({ query, page: 1 })}
+        onQueryChange={(query) => setQ({ query, page: 1 }, { history: 'replace' })}
         onClearAll={() => setQ({ query: '', tab: null, page: 1 })}
         views={
           <ViewSelect

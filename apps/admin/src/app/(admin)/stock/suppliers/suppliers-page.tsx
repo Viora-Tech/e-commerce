@@ -135,7 +135,7 @@ function SuppliersContent({ initial }: { initial: SuppliersInitial }) {
           />
         )}
         query={state.query}
-        onQueryChange={(query) => setState({ query, page: 1 })}
+        onQueryChange={(query) => setState({ query, page: 1 }, { history: 'replace' })}
         onClearAll={() => setState({ ...CLEAR_SUPPLIER_FILTERS, query: '', page: 1 })}
         filterGroups={groups}
         page={state.page}

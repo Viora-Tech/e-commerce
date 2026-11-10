@@ -76,8 +76,17 @@ function pickByStrategy(
 ): { winner: Candidate; why: WhyPicked } | null {
   const order = option.strategy === 'fastest' ? byFastest : byCheapest
   const sorted = [...fits].sort(order)
-  const best = sorted[0]
-  if (!best) return null
+  const cheapest = sorted[0]
+  if (!cheapest) return null
+  // The shopper sees one price per option: among the routes that charge them the same as the
+  // cheapest, the one that arrives first wins (Waimers saw Amazon Shipping on Thursday picked
+  // over Delhivery on Wednesday at the same ₹0). The store may pay a little more for it.
+  const best =
+    option.strategy === 'fastest'
+      ? cheapest
+      : ([...sorted]
+          .filter((c) => c.priced.pricePaise === cheapest.priced.pricePaise)
+          .sort(byFastest)[0] ?? cheapest)
   const within = option.preferDirectWithinPaise
   if (within != null && best.route.channel === 'aggregator') {
     const cost = (c: Candidate) => c.priced.courierCostPaise + (c.priced.insurancePaise ?? 0)
@@ -253,7 +262,7 @@ export function resolveDeliveryOptions(input: ResolveInput): DeliveryResolveResu
       optionId: option.id,
       name: option.name,
       description: option.description ?? null,
-      title: `${option.name} · ${pick.route.carrier}`,
+      title: pick.route.showCarrier ? `${option.name} · ${pick.route.carrier}` : option.name,
       speed: option.speed,
       source: winner.route.source,
       pick,

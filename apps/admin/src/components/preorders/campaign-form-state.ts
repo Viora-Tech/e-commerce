@@ -37,6 +37,8 @@ export type CampaignFormState = {
     badgeText: string
   }
   productIds: string[]
+  /** Per product (#1473): picked variants (null: all) and its own limit as typed ('' = the campaign's). */
+  members: Record<string, { variantIds: string[] | null; limit: string }>
 }
 
 const num = (n: number | null) => (n == null ? '' : String(n))
@@ -77,6 +79,7 @@ export function emptyCampaign(): CampaignFormState {
     },
     design: { buttonBackground: '', buttonText: '', badgeBackground: '', badgeText: '' },
     productIds: [],
+    members: {},
   }
 }
 
@@ -113,6 +116,9 @@ export function fromCampaign(c: Terms): CampaignFormState {
       badgeText: c.design.badgeText ?? '',
     },
     productIds: c.productIds,
+    members: Object.fromEntries(
+      c.members.map((m) => [m.productId, { variantIds: m.variantIds, limit: num(m.limit) }]),
+    ),
   }
 }
 
@@ -139,7 +145,22 @@ export function toCampaignInput(form: CampaignFormState): PreorderCampaignCreate
       : form.discountType === 'fixed'
         ? rupees.toPaise(form.discountValue)
         : whole(form.discountValue)
-  const numbers = [shipsInDays, limit, depositPercent, depositPaise, discountValue]
+  const members = form.productIds.map((productId) => {
+    const m = form.members[productId]
+    return {
+      productId,
+      variantIds: m?.variantIds ?? null,
+      limit: m && m.limit.trim() !== '' ? whole(m.limit) : null,
+    }
+  })
+  const numbers = [
+    shipsInDays,
+    limit,
+    depositPercent,
+    depositPaise,
+    discountValue,
+    ...members.map((m) => m.limit),
+  ]
   if (numbers.some((n) => n !== null && Number.isNaN(n))) return null
   if (form.paymentMode === 'fixed' && !depositPaise) return null
   if (form.discountType !== 'none' && !discountValue) return null
@@ -162,5 +183,6 @@ export function toCampaignInput(form: CampaignFormState): PreorderCampaignCreate
     content: blankless(form.content),
     design: blankless(form.design),
     productIds: form.productIds,
+    members,
   }
 }

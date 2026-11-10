@@ -3,9 +3,11 @@ import { translation } from '@/lib/i18n'
 
 export default [
   translation(shipmentActionsContent, {
-    schedulePickup: 'पिकअप शेड्यूल करें',
-    pickupTitle: (n) => `${n} पार्सल के लिए पिकअप शेड्यूल करें`,
-    pickupBody: 'कूरियर ये बुक किए गए पार्सल आपके चुने दिन और समय पर ले जाएगा।',
+    schedulePickup: 'पिकअप बनाएं',
+    pickupTitle: (n) => `${n} पार्सल के लिए पिकअप बनाएं`,
+    pickupBody:
+      'कूरियर से इन पार्सल को आपके चुने दिन और समय पर ले जाने को कहा जाएगा, सौंपने के लिए मैनिफ़ेस्ट बनेगा, और ये "पिकअप होना है" में चले जाएंगे।',
+    pickupAndManifestDone: (n) => `${n} पार्सल के लिए पिकअप माँगा गया। इसका मैनिफ़ेस्ट Pickups में है।`,
     date: 'पिकअप की तारीख',
     timeFrom: 'कब से (24 घंटे, जैसे 14:00)',
     timeTo: 'कब तक (वैकल्पिक)',

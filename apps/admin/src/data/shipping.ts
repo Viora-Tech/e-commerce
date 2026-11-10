@@ -69,7 +69,9 @@ export const shippingSettingsContent = {
     length: 'Length (cm)',
     width: 'Width (cm)',
     height: 'Height (cm)',
-    weight: 'Box weight (g)',
+    weight: 'Packing weight (g)',
+    weightHelp:
+      'Packing weight is the empty box, bubble wrap and invoice. It is added to the product weights to get the parcel weight.',
     cost: 'Cost (₹)',
     costHelp:
       'What one box and its filler cost you, counted once per parcel in order profit. Before GST if you are GST-registered, else what you pay. Leave it empty and packing counts as nothing.',
@@ -164,7 +166,7 @@ export const shipmentDetailsContent = {
   cancel: 'Cancel shipment',
   cancelTitle: 'Cancel this shipment?',
   cancelBody: (courier: string, awb: string) =>
-    `${courier} cancels AWB ${awb}. The parcel stays packed and the order goes back to the list to book, so you can book it again with any courier.`,
+    `${courier} cancels AWB ${awb}. Its items go back to To ship and back in stock, so you can book it again with any courier.`,
   cancelConfirm: 'Cancel shipment',
   keep: 'Keep shipment',
   cancelled: 'Shipment cancelled. You can book this order again.',

@@ -42,7 +42,8 @@ export const createShipmentContent = {
     productBox: "Products' own box",
     boxLabel: (name: string, l: number, w: number, h: number) => `${name} · ${l} × ${w} × ${h} cm`,
     weight: 'Weight (grams)',
-    weightHelp: 'From your product weights, or the box weight when a product has none.',
+    weightHelp:
+      'Product weights plus the packing weight of the box (500 g is counted for a product with no weight).',
     length: 'Length (cm)',
     width: 'Width (cm)',
     height: 'Height (cm)',
@@ -223,6 +224,8 @@ export const createShipmentContent = {
     backToOrder: 'Back to the order',
   },
   pickup: {
+    fromBooked:
+      'Ready for the courier: create its pickup from Shipments › Booked when the parcels are packed.',
     heading: 'Ask the courier to collect',
     help: 'Pick a day and a start time. Skip this if you drop parcels off yourself.',
     date: 'Pickup date',

@@ -24,7 +24,7 @@ const blankBox = (): BoxPreset => ({
   lengthCm: 20,
   widthCm: 15,
   heightCm: 10,
-  weightGrams: 200,
+  weightGrams: 10,
   isDefault: false,
   costPaise: null,
 })
@@ -78,6 +78,7 @@ export default function BoxPresetsFields({ value, onChange }: BoxPresetsFieldsPr
     <DataCard title={copy.heading}>
       <div className="flex flex-col gap-4">
         <p className="text-body text-muted-foreground">{copy.intro}</p>
+        <p className="text-caption text-muted-foreground">{copy.weightHelp}</p>
         <p className="text-caption text-muted-foreground">{copy.costHelp}</p>
         {boxes.length === 0 ? (
           <EmptyState icon={Package} heading={copy.empty} />

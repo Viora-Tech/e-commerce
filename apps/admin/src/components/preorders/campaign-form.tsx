@@ -42,6 +42,7 @@ import {
   toCampaignInput,
 } from './campaign-form-state'
 import CampaignLookCard from './campaign-look-card'
+import CampaignMembersCard from './campaign-members-card'
 import CampaignRulesCard from './campaign-rules-card'
 import CampaignTermsCard from './campaign-terms-card'
 
@@ -112,9 +113,26 @@ export default function CampaignForm({ campaign, markets, locations }: CampaignF
 
   const handlePick = (picked: PickedProducts) => {
     const added = picked.map((p) => p.product.id).filter((id) => !form.productIds.includes(id))
-    patch({ productIds: [...form.productIds, ...added] })
+    // Only the variants ticked take pre-orders (#1473); every one ticked means all of them.
+    const members = { ...form.members }
+    for (const p of picked) {
+      const all = p.variantIds.length >= p.product.variants.length
+      members[p.product.id] = {
+        variantIds: all ? null : p.variantIds,
+        limit: members[p.product.id]?.limit ?? '',
+      }
+    }
+    patch({ productIds: [...form.productIds, ...added], members })
     setPicking(false)
   }
+
+  const handleMemberLimit = (productId: string, limit: string) =>
+    patch({
+      members: {
+        ...form.members,
+        [productId]: { variantIds: form.members[productId]?.variantIds ?? null, limit },
+      },
+    })
 
   const handleDiscard = () => {
     setForm(JSON.parse(saved) as CampaignFormState)
@@ -211,6 +229,7 @@ export default function CampaignForm({ campaign, markets, locations }: CampaignF
               onBrowse={canManage ? () => setPicking(true) : undefined}
             />
           </DataCard>
+          <CampaignMembersCard form={form} disabled={!canManage} onLimit={handleMemberLimit} />
           {/* One card per question (audit #34): when it ships, how it is paid, its discount,
               where it applies, then how it looks. */}
           <CampaignTermsCard

@@ -1,4 +1,4 @@
-import { appSettingsOf, parseAppsSettings, withAppSettings } from '@commerce/core'
+import { appSettingsOf, lockStoreApps, parseAppsSettings, withAppSettings } from '@commerce/core'
 import { type StoreTx, store } from '@commerce/db'
 import { eq } from 'drizzle-orm'
 import {
@@ -32,8 +32,7 @@ export async function saveReviewsSettings(
   input: ReviewsSettings,
 ): Promise<ReviewsSettings> {
   const next = ReviewsSettingsSchema.parse(input)
-  const [s] = await tx.select({ apps: store.apps }).from(store).where(eq(store.id, storeId))
-  const apps = withAppSettings(parseAppsSettings(s?.apps), REVIEWS_ID, next)
+  const apps = withAppSettings(await lockStoreApps(tx, storeId), REVIEWS_ID, next)
   await tx.update(store).set({ apps }).where(eq(store.id, storeId))
   return next
 }

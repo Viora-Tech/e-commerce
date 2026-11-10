@@ -92,6 +92,8 @@ export const deliveryRouteSetting = pgTable(
     /** `CostCardSchema`: first 500 g, each further 500 g, COD fee. */
     costCard: jsonb('cost_card'),
     enabled: boolean('enabled').notNull().default(true),
+    /** Checkout names this courier to shoppers; null keeps the default (shown). */
+    showName: boolean('show_name'),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },

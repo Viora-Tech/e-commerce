@@ -5,11 +5,9 @@ import {
   chooseCourier,
   compareCourierRates,
   createShipmentForOrder,
-  primaryShippingProvider,
   resolveShippingProviders,
   type ShippingRegistry,
   shipmentLabelUrl,
-  shippingProviderById,
 } from '@commerce/core'
 import { SHIPMENT_TAB_STATUSES } from '@commerce/core/shipment-tabs'
 import { startOfDay } from '@commerce/dates'
@@ -23,66 +21,25 @@ import {
   shipment,
   variant,
 } from '@commerce/db'
-import {
-  ASSUMED_WEIGHT_GRAMS,
-  CourierError,
-  describeCourierFailure,
-  type RateQuery,
-} from '@commerce/shipping'
+import { ASSUMED_WEIGHT_GRAMS, type RateQuery } from '@commerce/shipping'
 import { ORPCError } from '@orpc/server'
-import { and, count, desc, eq, gte, ilike, inArray, lt, ne, or, sql } from 'drizzle-orm'
+import {
+  and,
+  count,
+  desc,
+  eq,
+  gte,
+  ilike,
+  inArray,
+  isNotNull,
+  isNull,
+  lt,
+  ne,
+  or,
+  sql,
+} from 'drizzle-orm'
 import { bookSavedRoute, ruleAllowedRows } from './delivery-booking.service'
 import { loadShippingSettings, noteShipmentBooked } from './shipping.service'
-
-export const courierToRpc = (err: unknown): never => {
-  if (err instanceof CourierError) {
-    const detail = err.kind === 'rejected' ? err.message : describeCourierFailure(err)
-    throw new ORPCError('BAD_REQUEST', { message: detail })
-  }
-  if (err instanceof Error) throw new ORPCError('BAD_REQUEST', { message: err.message })
-  throw err
-}
-
-export async function requireProvider(
-  tx: StoreTx,
-  storeId: string,
-  registry: ShippingRegistry,
-  secret: string,
-) {
-  const provider = primaryShippingProvider(
-    registry,
-    await loadShippingSettings(tx, storeId),
-    secret,
-  )
-  if (!provider) {
-    throw new ORPCError('PRECONDITION_FAILED', { message: 'Enable a courier first.' })
-  }
-  return provider
-}
-
-/** The courier that actually holds a shipment's waybill - by the id stored on the row, not
- *  whichever courier happens to be first in the enabled list. Required for any action on an
- *  *existing* shipment (NDR, cancel, tracking) once a store has more than one courier connected. */
-export async function requireProviderById(
-  tx: StoreTx,
-  storeId: string,
-  registry: ShippingRegistry,
-  secret: string,
-  providerId: string,
-) {
-  const provider = shippingProviderById(
-    registry,
-    await loadShippingSettings(tx, storeId),
-    secret,
-    providerId,
-  )
-  if (!provider) {
-    throw new ORPCError('PRECONDITION_FAILED', {
-      message: `Courier ${providerId} is no longer enabled.`,
-    })
-  }
-  return provider
-}
 
 type OrderShippingContext = {
   orderId: string
@@ -130,6 +87,8 @@ export type ShipmentListFilter = {
   perPage: number
   search?: string | undefined
   status?: string[] | undefined
+  /** True: only labels on a pickup (To be picked up); false: only those with none (Booked). */
+  onPickup?: boolean | undefined
   ndrStatus?: ShipmentNdrFilter[] | undefined
   provider?: string | undefined
   /** Booked at or after / before these moments (the filter panel's Booked). */
@@ -161,6 +120,11 @@ export async function listShipments(
         )
       : undefined,
     input.status?.length ? inArray(shipment.status, input.status as never[]) : undefined,
+    input.onPickup === undefined
+      ? undefined
+      : input.onPickup
+        ? isNotNull(shipment.pickupId)
+        : isNull(shipment.pickupId),
     input.ndrStatus?.length ? inArray(shipment.ndrStatus, input.ndrStatus) : undefined,
     input.provider ? eq(shipment.provider, input.provider) : undefined,
     input.bookedFrom ? gte(shipment.createdAt, new Date(input.bookedFrom)) : undefined,
@@ -231,7 +195,14 @@ export async function shipmentCounts(tx: StoreTx, now = new Date()) {
     sql<number>`count(*) filter (where ${inArray(shipment.status, statuses as never[])})`
   const [row] = await tx
     .select({
-      booked: inGroup(SHIPMENT_TAB_STATUSES.booked),
+      booked: sql<number>`count(*) filter (where ${and(
+        inArray(shipment.status, SHIPMENT_TAB_STATUSES.booked as never[]),
+        isNull(shipment.pickupId),
+      )})`,
+      toPickUp: sql<number>`count(*) filter (where ${and(
+        inArray(shipment.status, SHIPMENT_TAB_STATUSES.toPickUp as never[]),
+        isNotNull(shipment.pickupId),
+      )})`,
       inTransit: inGroup(SHIPMENT_TAB_STATUSES.inTransit),
       delivered: inGroup(SHIPMENT_TAB_STATUSES.delivered),
       rto: inGroup(SHIPMENT_TAB_STATUSES.rto),
@@ -250,6 +221,7 @@ export async function shipmentCounts(tx: StoreTx, now = new Date()) {
   return {
     toBook: ready?.total ?? 0,
     booked: Number(row?.booked ?? 0),
+    toPickUp: Number(row?.toPickUp ?? 0),
     inTransit: Number(row?.inTransit ?? 0),
     delivered: Number(row?.delivered ?? 0),
     rto: Number(row?.rto ?? 0),

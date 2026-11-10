@@ -115,8 +115,9 @@ paths go through the same media host, so both are covered.
   upload path uses), so BullMQ ignores a repeat.
 - **Concurrency.** The enqueue happens inside `host()`, so it shares the importer's existing
   limits (`IMAGE_CONCURRENCY` downloads per product, 3 products at a time on the API path);
-  processing itself is bounded by the worker's `MEDIA_PROCESS_CONCURRENCY` (default 3) and
-  `MEDIA_PROCESS_PER_STORE` (default 3, never above the concurrency). Import jobs carry
+  processing itself is bounded by the worker's `MEDIA_PROCESS_CONCURRENCY` (default 1) and
+  `MEDIA_PROCESS_PER_STORE` (default 1, never above the concurrency), and libvips gets every core
+  but one (`MEDIA_CPUS` overrides), so a bulk upload never takes the box from the storefront. Import jobs carry
   `bulk: true`, which the worker turns into the bulk profile: AVIF effort 2 (instead of 4) and the
   widths encoded one at a time, so three parallel jobs stay well inside the 1.5 GB worker limit.
   A job without the flag also gets it when its store has 25 or more images still `processing` (a big upload, or a backlog queued before the flag existed). A merchant's own single upload keeps the interactive profile. At start the worker splits the cores
@@ -143,8 +144,9 @@ about 1 s to 3 to 5 s. Two things keep that in check:
   share of the CPU, and `nice` inside a container only reorders that container's own threads, so
   the cap has to be set on the service. Values and where to set them:
   [Deployment → CPU for the worker](/developer-docs/operations/deployment#cpu-for-the-worker).
-- **Fewer jobs at once**: `MEDIA_PROCESS_CONCURRENCY=1` on a 2-vCPU box (each job then uses
-  every core it is allowed through `tuneImagePipeline`, so a single upload is not slower).
+- **Fewer jobs at once**: one image at a time is the default since #1471 (a staff photo upload
+  ran 30-74 s encodes on both cores and the storefront went unhealthy). Raise
+  `MEDIA_PROCESS_CONCURRENCY` and `MEDIA_CPUS` only on a bigger box.
 
 ### The "store may be slower" notice
 

@@ -19,7 +19,7 @@ import {
   Worker,
 } from '@commerce/queue'
 import { count, eq } from 'drizzle-orm'
-import { profileFor } from './media-limits'
+import { mediaCpus, profileFor } from './media-limits'
 
 /**
  * One job per confirmed image upload (or Shopify-import media row): loads
@@ -45,10 +45,14 @@ import { profileFor } from './media-limits'
 export function createMediaProcessWorker(
   connection: IORedis,
   db: Db,
-  opts: { settingsSecret: string; limits: QueueLimits },
+  opts: { settingsSecret: string; limits: QueueLimits; mediaCpus?: number | undefined },
 ) {
-  // Parallel jobs share the cores: each encode gets its slice of libvips threads.
-  tuneImagePipeline({ cpus: availableParallelism(), jobs: opts.limits.concurrency })
+  /* Parallel jobs share the image cores: each encode gets its slice of libvips threads. One core
+     is always left for the storefront and admin on the same box (#1471); MEDIA_CPUS overrides. */
+  tuneImagePipeline({
+    cpus: mediaCpus(availableParallelism(), opts.mediaCpus),
+    jobs: opts.limits.concurrency,
+  })
   const queue = new Queue<MediaProcessJob>(MEDIA_PROCESS_QUEUE, { connection })
   const worker = new Worker<MediaProcessJob>(
     MEDIA_PROCESS_QUEUE,

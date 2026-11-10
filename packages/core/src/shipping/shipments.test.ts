@@ -187,9 +187,9 @@ describe('shipments', () => {
     expect(built?.data.waybill).toBe('WB1')
   })
 
-  it('sums variant weights when the line has one, else falls back to the default box preset', async () => {
+  it('weighs the products (500 g when unknown) plus the box packing', async () => {
     const { storeId, orderId } = await seedOrder()
-    // The seeded variant has no weight; give the store a default box preset.
+    // The seeded variant has no weight; the store's main box has 700 g of packing.
     await owner
       .update(store)
       .set({
@@ -221,9 +221,10 @@ describe('shipments', () => {
     await withStore(app, storeId, (tx) =>
       createShipmentForOrder({ storeId, tx }, provider, orderId),
     )
-    expect((captured[0] as { weightGrams: number }).weightGrams).toBe(700)
+    // Unknown products count as 500 g, plus the main box's 700 g packing.
+    expect((captured[0] as { weightGrams: number }).weightGrams).toBe(1200)
 
-    // Now give the variant a real weight: the line sum wins over the box.
+    // Now give the variant a real weight: the line sum replaces the 500 g guess.
     await owner.update(variant).set({ weightGrams: 250 }).where(eq(variant.storeId, storeId))
     const captured2: unknown[] = []
     const provider2 = Object.assign(new FakeShippingProvider(), {
@@ -240,8 +241,8 @@ describe('shipments', () => {
     await withStore(app, storeId, (tx) =>
       createShipmentForOrder({ storeId, tx }, provider2, orderId),
     )
-    // Two units of the seeded line at 250g each.
-    expect((captured2[0] as { weightGrams: number }).weightGrams).toBe(500)
+    // Two units of the seeded line at 250 g each, plus the 700 g packing.
+    expect((captured2[0] as { weightGrams: number }).weightGrams).toBe(1200)
   })
 
   it('applies tracking, flips the order to delivered once, and lists open shipments', async () => {

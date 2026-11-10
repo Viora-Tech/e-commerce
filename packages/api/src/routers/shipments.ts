@@ -63,6 +63,8 @@ export const shipmentsRouter = {
         perPage: z.number().int().min(1).max(PAGE_SIZE_MAX).default(25),
         search: z.string().trim().max(SEARCH_MAX).optional(),
         status: z.array(z.string()).optional(),
+        /** Booked (false) or To be picked up (true): whether the label is on a pickup. */
+        onPickup: z.boolean().optional(),
         /** The filter panel's Delivery problem: the shipments' NDR states. */
         ndrStatus: z
           .array(z.enum(SHIPMENT_NDR_STATUSES))

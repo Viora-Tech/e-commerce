@@ -117,7 +117,8 @@ export const QUEUE_LIMITS = {
   appJobs: { concurrency: 4, perStore: 2 },
   marketingSend: { concurrency: 2, perStore: 1 },
   /** Defaults; `MEDIA_PROCESS_CONCURRENCY` / `MEDIA_PROCESS_PER_STORE` override them (the worker's `mediaProcessLimits`). */
-  mediaProcess: { concurrency: 3, perStore: 2 },
+  /* One image at a time: on the 2-vCPU box three parallel encodes starved the storefront (#1471). */
+  mediaProcess: { concurrency: 1, perStore: 1 },
   backInStock: { concurrency: 2, perStore: 1 },
   storeExport: { concurrency: 2, perStore: 1 },
   /** Bulk "Write with AI" runs: one product at a time per store, so a 200-product run never starves another store's. */

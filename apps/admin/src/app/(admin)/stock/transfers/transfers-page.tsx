@@ -176,7 +176,7 @@ function TransfersContent({ initial }: { initial: TransfersInitial }) {
           loading={loading}
           selectable={false}
           query={q.query}
-          onQueryChange={(query) => setQ({ query, page: 1 })}
+          onQueryChange={(query) => setQ({ query, page: 1 }, { history: 'replace' })}
           onClearAll={() => setQ({ ...CLEAR_TRANSFER_FILTERS, query: '', status: null, page: 1 })}
           filterGroups={groups}
           views={

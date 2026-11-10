@@ -255,6 +255,19 @@ const campaignFields = {
   design: PreorderCampaignDesignSchema,
   /** The products in the campaign; each leaves the campaign it was in. */
   productIds: z.array(z.uuid()).max(5000),
+  /**
+   * Per product (#1473): which variants take pre-orders (null: all of them) and its own limit
+   * beyond stock (null: the campaign's). A product left out keeps what it had.
+   */
+  members: z
+    .array(
+      z.object({
+        productId: z.uuid(),
+        variantIds: z.array(z.uuid()).max(500).nullable(),
+        limit: z.number().int().min(0).max(1_000_000).nullable(),
+      }),
+    )
+    .max(5000),
 }
 
 type CampaignShape = {
@@ -313,6 +326,7 @@ export const PreorderCampaignCreateSchema = z
     content: campaignFields.content.default({}),
     design: campaignFields.design.default({}),
     productIds: campaignFields.productIds.default([]),
+    members: campaignFields.members.default([]),
   })
   .superRefine(checkMoney)
 export type PreorderCampaignCreateInput = z.input<typeof PreorderCampaignCreateSchema>
@@ -339,8 +353,10 @@ export const PreorderCampaignUpdateSchema = z
     content: campaignFields.content.optional(),
     design: campaignFields.design.optional(),
     productIds: campaignFields.productIds.optional(),
+    members: campaignFields.members.optional(),
   })
   .superRefine(checkMoney)
 export type PreorderCampaignUpdateInput = z.input<typeof PreorderCampaignUpdateSchema>
+export type PreorderCampaignMember = z.infer<typeof campaignFields.members>[number]
 
 export const PreorderCampaignIdSchema = z.object({ id: z.uuid() })

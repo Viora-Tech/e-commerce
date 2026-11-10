@@ -5,7 +5,6 @@ import { Button } from '@commerce/ui/shadcn/button'
 import CopyButton from '@/components/fields/copy-button'
 import { createShipmentContent } from '@/data/create-shipment'
 import { useCopy } from '@/hooks/use-copy'
-import PickupForm from './pickup-form'
 
 export type BookedShipment = {
   shipmentId: string | null
@@ -98,7 +97,7 @@ export default function DoneStep({ booked, summaryOnly = false }: DoneStepProps)
             <p className="text-body text-muted-foreground">{pickupCopy.scheduled}</p>
           ) : null}
           {booked.canPickup && booked.shipmentId && !booked.pickupRequested ? (
-            <PickupForm shipmentIds={[booked.shipmentId]} />
+            <p className="text-body text-muted-foreground">{pickupCopy.fromBooked}</p>
           ) : null}
         </>
       )}

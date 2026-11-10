@@ -157,7 +157,7 @@ function CollectionsContent({ initial }: { initial: CollectionsInitial }) {
           </Button>
         )}
         query={q.query}
-        onQueryChange={(query) => setQ({ query, page: 1 })}
+        onQueryChange={(query) => setQ({ query, page: 1 }, { history: 'replace' })}
         onClearAll={() => setQ({ ...CLEAR_COLLECTION_FILTERS, query: '', tab: null, page: 1 })}
         filterGroups={groups}
         views={

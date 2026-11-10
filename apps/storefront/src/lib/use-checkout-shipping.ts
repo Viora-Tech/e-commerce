@@ -58,9 +58,14 @@ export function useCheckoutShipping(cart: CartView, onNoCod: () => void) {
       )
       setShipping(next)
       setQuoted(true)
-      // Keep the shopper's pick when it is still offered, else the first (Standard).
+      // Keep the shopper's pick when it is still offered, else the cheapest (a paid Express card
+      // listed first was being picked for them; ties keep the store's order).
       const options = next?.rates.kind === 'rates' ? next.rates.options : []
-      setRateId((prev) => (options.some((o) => o.id === prev) ? prev : (options[0]?.id ?? null)))
+      const cheapest = options.reduce<(typeof options)[number] | undefined>(
+        (best, o) => (best === undefined || o.pricePaise < best.pricePaise ? o : best),
+        undefined,
+      )
+      setRateId((prev) => (options.some((o) => o.id === prev) ? prev : (cheapest?.id ?? null)))
       setRouteKey((prev) =>
         options.some((o) => o.delivery?.choices.some((c) => c.routeKey === prev)) ? prev : null,
       )

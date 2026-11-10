@@ -148,7 +148,7 @@ function DiscountsContent({ initial }: { initial: DiscountsInitial }) {
         )}
         loading={loading}
         query={q.query}
-        onQueryChange={(next) => setQ({ query: next, page: 1 })}
+        onQueryChange={(next) => setQ({ query: next, page: 1 }, { history: 'replace' })}
         onClearAll={() => setQ({ ...CLEAR_DISCOUNT_FILTERS, query: '', status: null, page: 1 })}
         filterGroups={groups}
         views={

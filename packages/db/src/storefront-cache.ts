@@ -132,6 +132,8 @@ export const STOREFRONT_CACHE_EXEMPT: Record<string, string> = {
   delivery_option: ADMIN,
   delivery_route_rule: ADMIN,
   delivery_route_setting: ADMIN,
+  // Which checkout drafts each member has opened (0237): the admin's Drafts badge only.
+  draft_seen: ADMIN,
   courier_wallet_balance: ADMIN,
   customer: SHOPPER,
   customer_address: SHOPPER,

@@ -74,8 +74,16 @@ export type CheckoutDelivery = {
 }
 
 /** "Delhivery", "Blue Dart Air": the carrier, with Air when the service flies. */
-const choiceLabel = (carrier: string, serviceLabel: string): string =>
-  /\bair\b/i.test(serviceLabel) && !/\bair\b/i.test(carrier) ? `${carrier} Air` : carrier
+const choiceLabel = (route: {
+  carrier: string
+  showCarrier: boolean
+  serviceLabel: string
+}): string => {
+  const air = /\bair\b/i.test(route.serviceLabel)
+  // A courier the merchant hides is named by how it travels instead.
+  if (!route.showCarrier) return air ? 'Air' : 'Surface'
+  return air && !/\bair\b/i.test(route.carrier) ? `${route.carrier} Air` : route.carrier
+}
 
 /** The date line under a card or sub-choice. */
 export function deliveryArrives(
@@ -113,12 +121,12 @@ export function cardExtras(
   return {
     codAllowed: o.codAllowed,
     codPricePaise: o.cod ? afterDiscount(o.cod.pricePaise) : null,
-    codCarrier: o.cod?.route.carrier ?? null,
+    codCarrier: o.cod?.route.showCarrier ? o.cod.route.carrier : null,
     listPricePaise: o.listPricePaise,
     optionName: o.name,
     choices: o.choices.map((c) => ({
       routeKey: c.route.key,
-      label: choiceLabel(c.route.carrier, c.route.serviceLabel),
+      label: choiceLabel(c.route),
       pricePaise: afterDiscount(c.pricePaise),
       arrives: deliveryArrives(c, policy, now),
     })),

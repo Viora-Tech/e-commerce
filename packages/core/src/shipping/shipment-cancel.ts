@@ -4,6 +4,7 @@ import type { ShippingProvider } from '@commerce/shipping'
 import { eq, sql } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 import { CommerceError } from '../errors'
+import { unpackFulfillmentOrder } from '../order/fulfillment-orders'
 import { recomputeOrderStatuses } from '../order/recompute'
 import { type CancelBlock, cancelBlock } from './shipment-state'
 import type { ShipmentRow } from './shipments'
@@ -73,9 +74,9 @@ export type CancelShipmentOptions = {
 }
 
 /**
- * Cancel a booked label with its courier, before the parcel leaves (`cancelBlock`). The packed
- * units stay packed (they are in the box), the order drops back to packed, the parcel can be
- * booked again (`rebookableParcels`), and the order timeline says who cancelled which AWB.
+ * Cancel a booked label with its courier, before the parcel leaves (`cancelBlock`). The parcel's
+ * units are unpacked (back to To ship and back in stock, `unpackFulfillmentOrder`), and the
+ * order timeline says who cancelled which AWB.
  */
 export async function cancelShipment(
   ctx: StoreContext,
@@ -99,10 +100,21 @@ export async function cancelShipment(
     .set({ status: 'cancelled', updatedAt: new Date() })
     .where(eq(shipment.id, shipmentId))
     .returning()
+  // The items come out of the box: back to To ship and back in stock (owner, 10 Nov 2026). A
+  // shipment from before parcels carried the whole order, unless another label is still live.
+  const othersLive =
+    row.fulfillmentOrderId === null &&
+    (
+      await ctx.tx
+        .select({ status: shipment.status })
+        .from(shipment)
+        .where(eq(shipment.orderId, row.orderId))
+    ).some((s) => s.status !== 'cancelled' && s.status !== 'rto')
+  if (!othersLive) await unpackFulfillmentOrder(ctx, row.orderId, row.fulfillmentOrderId)
   await ctx.tx.insert(orderNote).values({
     storeId: ctx.storeId,
     orderId: row.orderId,
-    body: `Cancelled the ${provider.label} shipment (AWB ${row.waybill}). The parcel can be booked again.`,
+    body: `Cancelled the ${provider.label} shipment (AWB ${row.waybill}). Its items are back to To ship.`,
     author: options.author ?? null,
   })
   await recomputeOrderStatuses(ctx, row.orderId)

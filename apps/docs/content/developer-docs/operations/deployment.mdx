@@ -122,8 +122,9 @@ In Dokploy, each application → **Advanced → Resources** (values are Docker's
 
 The worker's **limit** is what keeps the shop fast: whatever the worker does, at least one CPU
 stays free for the storefront, admin and Postgres. Reservations only tell Swarm where a task
-fits; on one box they document intent. Also set `MEDIA_PROCESS_CONCURRENCY=1` on the worker on a
-2-vCPU box. A bigger box: raise the worker limit to half its CPUs and the concurrency with it.
+fits; on one box they document intent. Image processing defaults to one image at a time on every core but one
+(`MEDIA_PROCESS_CONCURRENCY`, `MEDIA_CPUS`). A bigger box: raise the worker limit to half its CPUs
+and those two with it.
 
 `deploy/docker-compose.prod.yml` already caps the worker (`cpus: 1.0`) for setups that run the
 compose file directly.

@@ -9,6 +9,7 @@ import {
   effectiveWeightGrams,
   heldParcels,
   orderParcelsView,
+  parcelBoxPreset,
   rebookableParcels,
   resolveParcelPackage,
   resolveParcelWeightGrams,
@@ -66,7 +67,7 @@ export type DraftParcel = {
   }>
   /** Declared value: the parcel's share of the order, or the order total when it ships whole. */
   valuePaise: number
-  /** From the products' weights, else the default box (what booking would use). */
+  /** The products' weights (500 g for one with none) plus the packing of the box it goes in. */
   weightGrams: number
   /** The products' own box when every line agrees on one; null uses the default box. */
   dimensionsCm: DimensionsCm | null
@@ -130,7 +131,6 @@ export async function prepareShipments(
   const [s] = await tx.select({ name: store.name }).from(store).where(eq(store.id, storeId))
   const storeName = s?.name ?? ''
   const box = defaultBoxPreset(settings)
-  const boxWeightGrams = box?.weightGrams ?? ASSUMED_WEIGHT_GRAMS
 
   const places = await tx
     .select({
@@ -245,7 +245,14 @@ export async function prepareShipments(
       })),
       valuePaise:
         valuePaise ?? picked.reduce((sum, p) => sum + p.line.unitPricePaise * p.quantity, 0),
-      weightGrams: effectiveWeightGrams(resolveParcelWeightGrams(weighed, boxWeightGrams), dims),
+      weightGrams: effectiveWeightGrams(
+        // Products plus the packing of the box this parcel goes in.
+        resolveParcelWeightGrams(
+          weighed,
+          parcelBoxPreset(weighed, settings.boxPresets)?.weightGrams ?? 0,
+        ),
+        dims,
+      ),
       dimensionsCm: toDims(dims),
     }
   }

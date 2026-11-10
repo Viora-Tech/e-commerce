@@ -266,7 +266,7 @@ function GiftCardsContent({ initial }: { initial: GiftCardsInitial }) {
           )}
           loading={loading}
           query={q.query}
-          onQueryChange={(query) => setQ({ query, page: 1 })}
+          onQueryChange={(query) => setQ({ query, page: 1 }, { history: 'replace' })}
           onClearAll={() => setQ({ ...CLEAR_GIFT_CARD_FILTERS, query: '', status: null, page: 1 })}
           filterGroups={groups}
           views={

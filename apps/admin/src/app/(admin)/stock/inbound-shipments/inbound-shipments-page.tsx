@@ -167,7 +167,7 @@ function InboundShipmentsContent({ initial }: { initial: InboundShipmentsInitial
           />
         )}
         query={state.query}
-        onQueryChange={(query) => setState({ query, page: 1 })}
+        onQueryChange={(query) => setState({ query, page: 1 }, { history: 'replace' })}
         onClearAll={() =>
           setState({ ...CLEAR_INBOUND_SHIPMENT_FILTERS, query: '', status: null, page: 1 })
         }

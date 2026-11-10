@@ -3,11 +3,11 @@ import { manualCancelHoursOf, type PaymentSettings } from './settings'
 import { isSplitTender } from './split-tender'
 
 /**
- * What a store that never chose gets. Off until every part of the feature is live (the design's
- * R2: an older worker would apply a payment to a draft without converting it); the last PR of
- * the series turns it on for every store.
+ * What a store that never chose gets: on for every store (owner, 9 Nov 2026). It was off until
+ * every part of the feature had merged (the design's R2: an older worker would apply a payment
+ * to a draft without converting it). `CHECKOUT_DRAFTS=off` still turns it off everywhere.
  */
-export const CHECKOUT_DRAFTS_DEFAULT: boolean = false
+export const CHECKOUT_DRAFTS_DEFAULT: boolean = true
 
 /**
  * The global kill switch: `CHECKOUT_DRAFTS=off` in the app and worker environment makes every

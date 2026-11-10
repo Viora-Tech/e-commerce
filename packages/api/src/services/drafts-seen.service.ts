@@ -1,10 +1,11 @@
-import { order, type StoreTx, storeMember } from '@commerce/db'
+import { draftSeen, order, type StoreTx, storeMember } from '@commerce/db'
 import { and, count, eq, gt, isNull, sql } from 'drizzle-orm'
 
 /**
  * The Drafts badge in the sidebar: shoppers' unpaid checkout drafts (waiting for payment, not
- * expired) with activity since this member last opened Orders › Drafts. Never opened: every
- * open one counts. Opening the page (`markDraftsSeen`) clears it.
+ * expired) this member has not opened since they last changed. Opening one draft
+ * (`markDraftSeen`) takes one off the count (owner, 10 Nov 2026). Drafts older than the member's
+ * last visit under the old rule (`drafts_seen_at`, opening the list) stay seen.
  */
 export async function unseenCheckoutDrafts(
   tx: StoreTx,
@@ -25,23 +26,40 @@ export async function unseenCheckoutDrafts(
         sql`${order.draftSource} = 'checkout'`,
         isNull(order.draftExpiredAt),
         seenAt ? gt(order.lastActivityAt, seenAt) : undefined,
+        sql`not exists (
+          select 1 from ${draftSeen} s
+          where s.order_id = ${order.id} and s.user_id = ${userId}
+            and s.seen_at >= ${order.lastActivityAt}
+        )`,
       ),
     )
   return row?.n ?? 0
 }
 
-/** This member has looked at Drafts now: the badge goes back to zero. Returns how many it cleared. */
-export async function markDraftsSeen(
+/**
+ * This member opened one draft: it leaves their badge. True when the count went down. An id
+ * that is not one of this store's orders is ignored (the foreign key alone would accept another
+ * store's order).
+ */
+export async function markDraftSeen(
   tx: StoreTx,
   storeId: string,
   userId: string,
+  orderId: string,
   now: Date = new Date(),
-): Promise<number> {
-  const cleared = await unseenCheckoutDrafts(tx, storeId, userId)
-  if (cleared === 0) return 0
+): Promise<boolean> {
+  const [own] = await tx
+    .select({ id: order.id })
+    .from(order)
+    .where(and(eq(order.id, orderId), eq(order.storeId, storeId)))
+  if (!own) return false
+  const before = await unseenCheckoutDrafts(tx, storeId, userId)
   await tx
-    .update(storeMember)
-    .set({ draftsSeenAt: now })
-    .where(and(eq(storeMember.storeId, storeId), eq(storeMember.userId, userId)))
-  return cleared
+    .insert(draftSeen)
+    .values({ storeId, userId, orderId, seenAt: now })
+    .onConflictDoUpdate({
+      target: [draftSeen.storeId, draftSeen.userId, draftSeen.orderId],
+      set: { seenAt: now },
+    })
+  return (await unseenCheckoutDrafts(tx, storeId, userId)) < before
 }

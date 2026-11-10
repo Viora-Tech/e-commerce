@@ -2,6 +2,7 @@ import {
   appSettingsOf,
   decryptSecret,
   encryptSecret,
+  lockStoreApps,
   parseAppsSettings,
   recordAppActivity,
   storefrontOriginFor,
@@ -66,12 +67,9 @@ async function loadRow(tx: StoreTx, storeId: string) {
   }
 }
 
-async function write(
-  tx: StoreTx,
-  storeId: string,
-  apps: ReturnType<typeof parseAppsSettings>,
-  next: UmamiSettings,
-) {
+/** Re-reads `apps` under the row lock: Create website waits on Umami between read and write. */
+async function write(tx: StoreTx, storeId: string, next: UmamiSettings) {
+  const apps = await lockStoreApps(tx, storeId)
   await tx
     .update(store)
     .set({ apps: withAppSettings(apps, UMAMI_ID, next) })
@@ -111,7 +109,7 @@ export async function saveUmamiSettings(
   patch: UmamiSettingsPatch,
   env: UmamiEnv,
 ): Promise<UmamiSettingsView> {
-  const { apps, settings } = await loadRow(tx, storeId)
+  const { settings } = await loadRow(tx, storeId)
   const next: UmamiSettings = { ...settings }
   if (patch.url !== undefined) {
     if (patch.url === '') next.url = ''
@@ -133,7 +131,7 @@ export async function saveUmamiSettings(
     next.apiKey = patch.apiKey === '' ? '' : encryptSecret(patch.apiKey, env.secret)
   }
   if (patch.waitForConsent !== undefined) next.waitForConsent = patch.waitForConsent
-  await write(tx, storeId, apps, next)
+  await write(tx, storeId, next)
   return umamiSettingsView(next)
 }
 
@@ -158,13 +156,13 @@ export async function createUmamiWebsite(
   storeId: string,
   env: UmamiEnv,
 ): Promise<UmamiSettingsView> {
-  const { apps, name, settings } = await loadRow(tx, storeId)
+  const { name, settings } = await loadRow(tx, storeId)
   const origin = await storefrontOriginFor(tx, storeId, env.storefrontUrl)
   const created = await clientFor(settings, env)
     .createWebsite({ name: name || new URL(origin).hostname, domain: new URL(origin).hostname })
     .catch(umamiFailure)
   const next = { ...settings, websiteId: created.id.toLowerCase() }
-  await write(tx, storeId, apps, next)
+  await write(tx, storeId, next)
   return umamiSettingsView(next)
 }
 

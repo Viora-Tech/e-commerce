@@ -22,7 +22,7 @@ import {
 import type { NdrAction } from '@commerce/shipping'
 import { ORPCError } from '@orpc/server'
 import { and, desc, eq, inArray } from 'drizzle-orm'
-import { courierToRpc, requireProvider, requireProviderById } from './shipments-workspace.service'
+import { courierToRpc, requireProvider, requireProviderById } from './shipments-provider.service'
 import { loadShippingSettings } from './shipping.service'
 
 /**
