@@ -36,7 +36,11 @@ export async function unseenCheckoutDrafts(
   return row?.n ?? 0
 }
 
-/** This member opened one draft: it leaves their badge. True when the count went down. */
+/**
+ * This member opened one draft: it leaves their badge. True when the count went down. An id
+ * that is not one of this store's orders is ignored (the foreign key alone would accept another
+ * store's order).
+ */
 export async function markDraftSeen(
   tx: StoreTx,
   storeId: string,
@@ -44,6 +48,11 @@ export async function markDraftSeen(
   orderId: string,
   now: Date = new Date(),
 ): Promise<boolean> {
+  const [own] = await tx
+    .select({ id: order.id })
+    .from(order)
+    .where(and(eq(order.id, orderId), eq(order.storeId, storeId)))
+  if (!own) return false
   const before = await unseenCheckoutDrafts(tx, storeId, userId)
   await tx
     .insert(draftSeen)
