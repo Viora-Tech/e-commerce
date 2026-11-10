@@ -40,19 +40,40 @@ describe('StoreVersions', () => {
     expect(v.stamp(B)).toBe(b)
   })
 
-  it('soft notifications coalesce and apply after the delay', () => {
+  it('soft notifications wait for the batch to go quiet, then apply once', () => {
     const { v, tick } = versions()
     v.connected()
     const before = v.stamp(A)
     v.notify(A, true)
     tick(30_000)
     v.notify(A, true)
+    tick(30_000)
+    // 60 s after the first, but only 30 s after the last: still waiting.
     expect(v.stamp(A)).toBe(before)
     tick(30_000)
     const after = v.stamp(A)
     expect(after).not.toBe(before)
     tick(120_000)
     expect(v.stamp(A)).toBe(after)
+  })
+
+  it('a long stream of soft notifications still applies every ten minutes (#1471)', () => {
+    const { v, tick } = versions()
+    v.connected()
+    const before = v.stamp(A)
+    // An image finishing every 40 s for 16 minutes, like a staff bulk upload.
+    let bumps = 0
+    let last = before
+    for (let t = 0; t < 16 * 60_000; t += 40_000) {
+      v.notify(A, true)
+      tick(40_000)
+      const now = v.stamp(A)
+      if (now !== last) bumps++
+      last = now
+    }
+    expect(bumps).toBe(1)
+    tick(60_000)
+    expect(v.stamp(A)).not.toBe(last)
   })
 
   it('a hard notification covers a pending soft one', () => {
