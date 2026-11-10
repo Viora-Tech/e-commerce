@@ -226,7 +226,7 @@ const assessRisk: WorkflowStep<State> = {
  */
 const reserveStock: WorkflowStep<State> = {
   name: 'reserveStock',
-  async run({ ctx, input, lines }) {
+  async run({ ctx, input, lines, draft }) {
     const { parcels, reserved } = await routeAndReserve(ctx, {
       lines: lines.map((l, i) => ({
         key: String(i),
@@ -238,6 +238,13 @@ const reserveStock: WorkflowStep<State> = {
       // Abroad there is no Indian state to route by (a composition GSTIN's limit is India's).
       buyerState: buyerStateOf(input.checkout),
     })
+    // An unpaid checkout kept as a draft holds no stock (owner, 10 Nov 2026): routing above still
+    // refuses goods that are gone, then the hold is given straight back. The stock is taken when
+    // the money arrives (`convertCheckoutDraft`), which flags a refund if it sold out meanwhile.
+    if (draft) {
+      await releaseReserved(ctx, reserved)
+      return { parcels: [], reserved: [] }
+    }
     // Mixed carts set to ship together (#143): every parcel waits with the pre-order, as a
     // pre-order parcel does (`on_hold`: ships when it arrives), so nothing goes out first.
     const verdict = mixedCartOf(lines)
