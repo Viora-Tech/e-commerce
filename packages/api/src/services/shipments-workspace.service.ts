@@ -5,11 +5,9 @@ import {
   chooseCourier,
   compareCourierRates,
   createShipmentForOrder,
-  primaryShippingProvider,
   resolveShippingProviders,
   type ShippingRegistry,
   shipmentLabelUrl,
-  shippingProviderById,
 } from '@commerce/core'
 import { SHIPMENT_TAB_STATUSES } from '@commerce/core/shipment-tabs'
 import { startOfDay } from '@commerce/dates'
@@ -23,12 +21,7 @@ import {
   shipment,
   variant,
 } from '@commerce/db'
-import {
-  ASSUMED_WEIGHT_GRAMS,
-  CourierError,
-  describeCourierFailure,
-  type RateQuery,
-} from '@commerce/shipping'
+import { ASSUMED_WEIGHT_GRAMS, type RateQuery } from '@commerce/shipping'
 import { ORPCError } from '@orpc/server'
 import {
   and,
@@ -47,56 +40,6 @@ import {
 } from 'drizzle-orm'
 import { bookSavedRoute, ruleAllowedRows } from './delivery-booking.service'
 import { loadShippingSettings, noteShipmentBooked } from './shipping.service'
-
-export const courierToRpc = (err: unknown): never => {
-  if (err instanceof CourierError) {
-    const detail = err.kind === 'rejected' ? err.message : describeCourierFailure(err)
-    throw new ORPCError('BAD_REQUEST', { message: detail })
-  }
-  if (err instanceof Error) throw new ORPCError('BAD_REQUEST', { message: err.message })
-  throw err
-}
-
-export async function requireProvider(
-  tx: StoreTx,
-  storeId: string,
-  registry: ShippingRegistry,
-  secret: string,
-) {
-  const provider = primaryShippingProvider(
-    registry,
-    await loadShippingSettings(tx, storeId),
-    secret,
-  )
-  if (!provider) {
-    throw new ORPCError('PRECONDITION_FAILED', { message: 'Enable a courier first.' })
-  }
-  return provider
-}
-
-/** The courier that actually holds a shipment's waybill - by the id stored on the row, not
- *  whichever courier happens to be first in the enabled list. Required for any action on an
- *  *existing* shipment (NDR, cancel, tracking) once a store has more than one courier connected. */
-export async function requireProviderById(
-  tx: StoreTx,
-  storeId: string,
-  registry: ShippingRegistry,
-  secret: string,
-  providerId: string,
-) {
-  const provider = shippingProviderById(
-    registry,
-    await loadShippingSettings(tx, storeId),
-    secret,
-    providerId,
-  )
-  if (!provider) {
-    throw new ORPCError('PRECONDITION_FAILED', {
-      message: `Courier ${providerId} is no longer enabled.`,
-    })
-  }
-  return provider
-}
 
 type OrderShippingContext = {
   orderId: string
