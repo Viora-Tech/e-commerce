@@ -2,6 +2,8 @@
 
 import type { ReactNode } from 'react'
 import { useState, useTransition } from 'react'
+import CodeBoxes from '@/components/account/code-boxes'
+import ResendCode from '@/components/account/resend-code'
 import { accountContent } from '@/data/account'
 import { requestCodeAction, verifyCodeAction } from '@/lib/account-actions'
 import { requestMagicLinkAction } from '@/lib/login-actions'
@@ -92,7 +94,7 @@ export default function LoginForm({
   if (linkSentTo) {
     return (
       <div className="flex flex-col gap-5" role="status">
-        <h1 className="h3">{copy.link.title}</h1>
+        <h1 className="h2">{copy.link.title}</h1>
         <p className="text-body text-muted">{copy.magicLinkSent(linkSentTo)}</p>
         <button
           type="button"
@@ -117,25 +119,10 @@ export default function LoginForm({
       {sentTo ? (
         <form onSubmit={handleCode} className="flex flex-col gap-5">
           <div className="flex flex-col gap-2">
-            <h1 className="h3">{copy.codeTitle}</h1>
+            <h1 className="h2">{copy.codeTitle}</h1>
             <p className="text-body text-muted">{copy.codeSent(sentTo)}</p>
           </div>
-          <label className="field">
-            <span className="field__label text-small">{copy.code}</span>
-            <input
-              className="field__input text-center tracking-[0.5em]"
-              name="code"
-              inputMode="numeric"
-              autoComplete="one-time-code"
-              pattern="[0-9]{6}"
-              maxLength={6}
-              required
-              // biome-ignore lint/a11y/noAutofocus: the only field on this step, reached by the shopper's own submit.
-              autoFocus
-              value={code}
-              onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
-            />
-          </label>
+          <CodeBoxes label={copy.code} value={code} onChange={setCode} />
           {errorLine}
           <button
             type="submit"
@@ -145,14 +132,7 @@ export default function LoginForm({
             <span className="btn__label">{pending ? copy.verifying : copy.verify}</span>
           </button>
           <div className="flex flex-wrap justify-between gap-3 text-small">
-            <button
-              type="button"
-              className="underline underline-offset-4 disabled:opacity-50"
-              onClick={() => send(sentTo)}
-              disabled={pending}
-            >
-              {copy.resend}
-            </button>
+            <ResendCode key={sentTo} disabled={pending} onResend={() => send(sentTo)} />
             {confirmEmail ? null : (
               <button
                 type="button"
@@ -167,7 +147,7 @@ export default function LoginForm({
       ) : (
         <form onSubmit={handleEmail} className="flex flex-col gap-5">
           <div className="flex flex-col gap-2">
-            <h1 className="h3">{confirmEmail ? copy.confirmTitle : copy.title}</h1>
+            <h1 className="h2">{confirmEmail ? copy.confirmTitle : copy.title}</h1>
             <p className="text-body text-muted">
               {confirmEmail ? copy.confirmIntro(confirmEmail) : copy.intro}
             </p>
