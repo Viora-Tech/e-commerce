@@ -189,7 +189,7 @@ function PurchaseOrdersContent({ initial }: { initial: PurchaseOrdersInitial }) 
         )}
         loading={loading}
         query={q.query}
-        onQueryChange={(query) => setQ({ query, page: 1 })}
+        onQueryChange={(query) => setQ({ query, page: 1 }, { history: 'replace' })}
         onClearAll={() =>
           setQ({ ...CLEAR_PURCHASE_ORDER_FILTERS, query: '', status: null, page: 1 })
         }

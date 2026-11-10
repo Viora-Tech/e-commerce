@@ -240,7 +240,7 @@ function AbandonedContent({ initial }: { initial: AbandonedInitial }) {
           </Button>
         )}
         query={query}
-        onQueryChange={(query) => setQ({ query, page: 1 })}
+        onQueryChange={(query) => setQ({ query, page: 1 }, { history: 'replace' })}
         onClearAll={() => setQ({ ...CLEAR_ABANDONED_FILTERS, query: '', status: null, page: 1 })}
         filterGroups={groups}
         views={

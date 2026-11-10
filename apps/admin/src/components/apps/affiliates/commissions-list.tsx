@@ -129,7 +129,7 @@ function CommissionsTable() {
         selectable={false}
         loading={rows === null}
         query={q.query}
-        onQueryChange={(query) => setQ({ query, page: 1 })}
+        onQueryChange={(query) => setQ({ query, page: 1 }, { history: 'replace' })}
         onClearAll={() => setQ({ ...CLEAR_COMMISSION_FILTERS, query: '', page: 1 })}
         filterGroups={groups}
         page={q.page}
