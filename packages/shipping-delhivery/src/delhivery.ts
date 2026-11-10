@@ -448,6 +448,15 @@ export class DelhiveryProvider implements ShippingProvider {
             : {}),
           cod_amount: input.paymentMode === 'cod' ? rupees(input.codAmountPaise) : '0',
           weight: input.weightGrams,
+          // The box (cm). Without it Delhivery bills dead weight now and charges a weight
+          // difference later when its scan measures the box.
+          ...(input.dimensionsCm
+            ? {
+                shipment_length: input.dimensionsCm.length,
+                shipment_width: input.dimensionsCm.width,
+                shipment_height: input.dimensionsCm.height,
+              }
+            : {}),
           quantity: input.lines.reduce((n, l) => n + l.quantity, 0),
           // The invoice value Delhivery prints on the label; without it the label says Rs 0.
           total_amount: rupees(input.valuePaise),
