@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import CheckoutIcon, { type CheckoutIconName } from '@/components/checkout/checkout-icon'
 import RadioDot from '@/components/checkout/radio-dot'
 import { CK_PICKED, CK_UNPICKED } from '@/lib/checkout-classes'
+import type { CourierLogo } from '@/lib/delivery-options'
 
 type OptionCardProps = {
   name: string
@@ -12,6 +13,8 @@ type OptionCardProps = {
   title: ReactNode
   /** The round mark beside the name. */
   icon?: CheckoutIconName | undefined
+  /** The courier's logo, in place of the icon (Figma 942:513). */
+  logo?: CourierLogo | null | undefined
   description?: ReactNode
   /** Right-hand side: a price, a fee, "Free". */
   meta?: ReactNode
@@ -33,6 +36,7 @@ export default function OptionCard({
   onChange,
   title,
   icon,
+  logo = null,
   description = null,
   meta = null,
   note = null,
@@ -53,7 +57,14 @@ export default function OptionCard({
       <span className="pt-0.5">
         <RadioDot checked={checked} />
       </span>
-      {icon ? (
+      {logo ? (
+        <span
+          className={`grid size-10 shrink-0 place-items-center overflow-hidden rounded-[0.625rem] ${logo.light ? 'bg-white px-1' : ''}`}
+        >
+          {/* biome-ignore lint/performance/noImgElement: a 40px static logo from /public. */}
+          <img src={logo.src} alt={logo.alt} className="max-h-8 max-w-full object-contain" />
+        </span>
+      ) : icon ? (
         <span
           className={`grid size-10 shrink-0 place-items-center rounded-full text-ck-ink ${checked ? 'bg-ck-bg' : 'bg-ck-soft'}`}
         >

@@ -27,6 +27,10 @@ export type NavChild = {
   permission?: Permission
   /** A site outside the admin (the App Store website): opens in a new tab, never "active". */
   external?: boolean
+  /** An installed app's own pages, shown under it while one of them is open (Figma 928:10728). */
+  pages?: NavChild[]
+  /** Paths under this start count as this entry (an app's `/apps/<id>`). */
+  base?: string
 }
 
 export type NavItem = {
@@ -325,7 +329,8 @@ export function isSectionActive(pathname: string, item: NavItem): boolean {
 
 /** A child is active for its exact path or its own nested pages. */
 export function isChildActive(pathname: string, child: NavChild): boolean {
-  return pathname === child.href || pathname.startsWith(`${child.href}/`)
+  const under = (href: string) => pathname === href || pathname.startsWith(`${href}/`)
+  return under(child.href) || (child.base !== undefined && under(child.base))
 }
 
 /**

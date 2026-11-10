@@ -54,7 +54,14 @@ type StoreOption = { id: string; name: string; slug: string }
 type AdminSidebarProps = {
   stores: StoreOption[]
   activeStoreId: string | null
-  apps: { id: string; name: string; icon: string | null; href: string }[]
+  apps: {
+    id: string
+    name: string
+    icon: string | null
+    href: string
+    /** The app's own pages (manifest pages with a nav label). */
+    pages?: { href: string; label: string }[]
+  }[]
   /** Installed sales channel apps (Inbox), listed under Sales channels. */
   channels?: string[] | undefined
   logoUrl: string | null
@@ -88,7 +95,12 @@ function nestApps(
   words: { viewAllApps: (n: number) => string; appStore: string },
 ): NavItem[] {
   const children = [
-    ...shown.map((a) => ({ href: a.href, label: a.name })),
+    ...shown.map((a) => ({
+      href: a.href,
+      label: a.name,
+      base: routes.apps.page(a.id),
+      ...((a.pages?.length ?? 0) >= 2 ? { pages: a.pages } : {}),
+    })),
     ...(installed > 0 ? [{ href: routes.apps.list(), label: words.viewAllApps(installed) }] : []),
     { href: appStoreUrl(), label: words.appStore, external: true },
   ]

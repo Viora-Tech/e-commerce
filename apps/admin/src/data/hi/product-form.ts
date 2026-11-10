@@ -452,6 +452,15 @@ export default [
       noImage: 'कोई फ़ोटो नहीं',
       selectAll: 'सभी वेरिएंट चुनें',
       selectOne: (title) => `${title} चुनें`,
+      appliesTo: (n) => `${n} वेरिएंट पर लगेगा।`,
+      generateSkus: 'SKU बनाएं',
+      delete: (n) => `${n} हटाएं`,
+      deleteTitle: (n) => `${n} वेरिएंट हटाएं?`,
+      deleteBody: (names) =>
+        `${names}. Save दबाने पर ये स्टोर से हट जाएंगे। पुराने ऑर्डर में ये बने रहेंगे, और आप इन्हें बाद में फिर जोड़ सकते हैं।`,
+      deleteConfirm: (n) => `${n} वेरिएंट हटाएं`,
+      deleteKeep: 'रद्द करें',
+      deleteAll: 'प्रोडक्ट में कम से कम एक वेरिएंट होना चाहिए। एक को छोड़ दें, या पूरा प्रोडक्ट हटाएं।',
     },
     variantImages: {
       title: (label) => `फ़ोटो: ${label}`,

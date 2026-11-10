@@ -35,7 +35,10 @@ import DecentroOverviewPage from '@/components/apps/decentro/overview-page'
 import DelhiveryConnectPage from '@/components/apps/delhivery/connect-page'
 import DelhiveryOverviewPage from '@/components/apps/delhivery/overview-page'
 import DeliveryOptionPage from '@/components/apps/delivery-options/option-page'
-import DeliveryOptionsOverviewPage from '@/components/apps/delivery-options/overview-page'
+import DeliveryOptionsSectionPage from '@/components/apps/delivery-options/options-section-page'
+import DeliveryOverviewSectionPage from '@/components/apps/delivery-options/overview-section-page'
+import DeliveryRoutesSectionPage from '@/components/apps/delivery-options/routes-section-page'
+import DeliveryRulesSectionPage from '@/components/apps/delivery-options/rules-section-page'
 import DhlExpressConnectPage from '@/components/apps/dhl-express/connect-page'
 import DhlExpressOverviewPage from '@/components/apps/dhl-express/overview-page'
 import DtdcConnectPage from '@/components/apps/dtdc/connect-page'
@@ -195,7 +198,10 @@ export const ADMIN_APPS: Record<string, AdminApp> = {
   },
   'delivery-options': {
     pages: {
-      '': DeliveryOptionsOverviewPage,
+      '': DeliveryOverviewSectionPage,
+      options: DeliveryOptionsSectionPage,
+      routes: DeliveryRoutesSectionPage,
+      rules: DeliveryRulesSectionPage,
       'options/[id]': DeliveryOptionPage,
     },
   },

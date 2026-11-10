@@ -74,50 +74,64 @@ export default function SignIn({
 
   // `mx-auto!`: an imported theme's own unlayered margin reset beat the centring (#118).
   return (
-    <div className="mx-auto! flex w-full max-w-[26rem] flex-col gap-6 rounded-[var(--radius-card)] bg-surface p-6 md:p-8">
-      {error ? (
-        <p className="text-small text-danger" role="alert">
-          {copy.providerErrors[error]}
-        </p>
-      ) : null}
-      {mode === 'phone' && phoneMethods.length > 0 ? (
-        <PhoneLoginForm
-          returnTo={returnTo}
-          methods={phoneMethods}
-          note={note}
-          alternative={switcher('email')}
-          remember={keep}
-        />
-      ) : (
-        <LoginForm
-          returnTo={returnTo}
-          note={note}
-          alternative={switcher('phone')}
-          remember={keep}
-          magicLink={options?.magicLink === true}
-          confirmEmail={confirmEmail ?? null}
-        />
-      )}
-      {options && !confirmEmail ? (
-        <QuickSignIn options={options} returnTo={returnTo} remember={keep} />
-      ) : null}
-      {offerRemember ? (
-        <label className="flex items-start gap-3 text-body">
-          <input
-            type="checkbox"
-            className="mt-1 size-4 accent-[var(--color-ink)]"
-            checked={remember}
-            onChange={(e) => setRemember(e.target.checked)}
+    <div className="mx-auto! flex w-full max-w-[27.5rem] flex-col items-center gap-5">
+      <div className="flex w-full flex-col gap-6 rounded-[1.25rem] border border-line bg-surface p-6 shadow-[0_1.5rem_4rem_rgba(0,0,0,0.28)] md:p-8">
+        {error ? (
+          <p className="text-small text-danger" role="alert">
+            {copy.providerErrors[error]}
+          </p>
+        ) : null}
+        {mode === 'phone' && phoneMethods.length > 0 ? (
+          <PhoneLoginForm
+            returnTo={returnTo}
+            methods={phoneMethods}
+            note={note}
+            alternative={switcher('email')}
+            remember={keep}
           />
-          <span className="flex flex-col">
-            <span>{copy.remember}</span>
-            <span className="text-small text-muted">{copy.rememberHint}</span>
-          </span>
-        </label>
-      ) : null}
-      {oneTapClientId && !confirmEmail ? (
-        <GoogleOneTap clientId={oneTapClientId} returnTo={returnTo} remember={keep} />
-      ) : null}
+        ) : (
+          <LoginForm
+            returnTo={returnTo}
+            note={note}
+            alternative={switcher('phone')}
+            remember={keep}
+            magicLink={options?.magicLink === true}
+            confirmEmail={confirmEmail ?? null}
+          />
+        )}
+        {options && !confirmEmail ? (
+          <QuickSignIn options={options} returnTo={returnTo} remember={keep} />
+        ) : null}
+        {offerRemember ? (
+          <label className="flex items-start gap-3 text-body">
+            <input
+              type="checkbox"
+              className="mt-1 size-4 accent-[var(--color-ink)]"
+              checked={remember}
+              onChange={(e) => setRemember(e.target.checked)}
+            />
+            <span className="flex flex-col">
+              <span>{copy.remember}</span>
+              <span className="text-small text-muted">{copy.rememberHint}</span>
+            </span>
+          </label>
+        ) : null}
+        {oneTapClientId && !confirmEmail ? (
+          <GoogleOneTap clientId={oneTapClientId} returnTo={returnTo} remember={keep} />
+        ) : null}
+      </div>
+      {/* What an account gives, under the card (Figma 948:15521). */}
+      <ul className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-small text-muted">
+        {copy.perks.map((p) => (
+          <li key={p} className="flex items-center gap-2">
+            <span
+              aria-hidden="true"
+              className="size-1.5 rounded-full bg-[var(--color-ink)] opacity-60"
+            />
+            {p}
+          </li>
+        ))}
+      </ul>
     </div>
   )
 }

@@ -11,38 +11,43 @@ type CheckoutTrustProps = {
 
 const copy = content.trustBlock
 
-/** The lines under the summary card: what is safe, what comes back, and who takes the money. */
+/**
+ * The card under the summary (Figma 945:519): what is safe and what comes back side by side,
+ * then who takes the money under a hairline.
+ */
 export default function CheckoutTrust({ names, policies }: CheckoutTrustProps) {
   // Render logic
   const refund = policies.find((p) => p.type === 'refund-policy')
 
   return (
-    <div className="flex flex-col gap-3 px-1 pt-1 text-[0.8125rem] leading-[1.1875rem]">
-      <p className="flex items-start gap-2.5">
-        <CheckoutIcon name="shield" className="size-[1.125rem] text-ck-ink" />
-        <span>
-          <strong className="block font-semibold text-ck-ink">{copy.secure.title}</strong>
-          <span className="text-ck-faint">{copy.secure.body}</span>
-        </span>
-      </p>
-      {refund ? (
+    <div className="flex flex-col gap-3 rounded-ck border border-ck-line bg-ck-soft px-4 py-3.5 text-[0.8125rem] leading-[1.1875rem]">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <p className="flex items-start gap-2.5">
-          <CheckoutIcon name="refresh" className="size-[1.125rem] text-ck-ink" />
+          <CheckoutIcon name="shield" className="size-[1.125rem] text-ck-ink" />
           <span>
-            <strong className="block font-semibold text-ck-ink">{copy.returns.title}</strong>
-            <a
-              href={refund.href}
-              target="_blank"
-              rel="noreferrer"
-              className="text-ck-faint! underline-offset-2 hover:text-ck-ink!"
-            >
-              {copy.returns.body}
-            </a>
+            <strong className="block font-semibold text-ck-ink">{copy.secure.title}</strong>
+            <span className="text-ck-faint">{copy.secure.body}</span>
           </span>
         </p>
-      ) : null}
+        {refund ? (
+          <p className="flex items-start gap-2.5">
+            <CheckoutIcon name="refresh" className="size-[1.125rem] text-ck-ink" />
+            <span>
+              <strong className="block font-semibold text-ck-ink">{copy.returns.title}</strong>
+              <a
+                href={refund.href}
+                target="_blank"
+                rel="noreferrer"
+                className="text-ck-faint! underline-offset-2 hover:text-ck-ink!"
+              >
+                {copy.returns.body}
+              </a>
+            </span>
+          </p>
+        ) : null}
+      </div>
       {names.length > 0 ? (
-        <p className="flex items-center gap-2 text-[0.75rem] text-ck-faint">
+        <p className="flex items-center gap-2 border-t border-ck-line pt-3 text-[0.75rem] text-ck-faint">
           {copy.processedBy}
           {names.includes('Razorpay') ? (
             <span className="grid size-[1.125rem] place-items-center rounded-[0.25rem] bg-ck-qr">

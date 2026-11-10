@@ -21,6 +21,21 @@ function agrees(a: Map<string, string>, b: Map<string, string>): boolean {
   return true
 }
 
+/** True for a combination every value of which the options already offered before this edit. */
+function deletedCombination(
+  next: OptionRow[],
+  prev: OptionRow[],
+  rowCount: number,
+): (combo: string[]) => boolean {
+  // Nothing to have deleted on a fresh product (no rows) or when the option set changed shape.
+  if (rowCount === 0 || prev.length === 0 || next.length !== prev.length) return () => false
+  const prevValues = new Map(
+    prev.map((o) => [o.name.trim().toLowerCase(), new Set(o.values.map((v) => v.trim()))]),
+  )
+  return (combo) =>
+    next.every((o, i) => prevValues.get(o.name.trim().toLowerCase())?.has(combo[i] ?? '') === true)
+}
+
 /**
  * Rebuilds the variant matrix after an options edit, carrying existing rows (and so their ids,
  * prices, SKUs and stock) over wherever they still fit. A row keeps its place when its
@@ -56,13 +71,20 @@ export function reconcileVariants(
     used.add(i)
     taken[c] = i
   })
+  /* A combination built only from values the options already had, with no row, was deleted
+     (bulk Delete, or a Shopify product imported without it): it stays deleted. New values
+     still get their rows. */
+  const deleted = deletedCombination(nextOptions, prevOptions, variants.length)
   const template = variants[0]
+  const rows: VariantRow[] = []
+  combos.forEach((combo, c) => {
+    const i = taken[c]
+    const kept = i === undefined ? undefined : variants[i]
+    if (kept) rows.push({ ...kept, optionValues: combo })
+    else if (!deleted(combo)) rows.push(emptyVariant(combo, template))
+  })
   return {
-    variants: combos.map((combo, c) => {
-      const i = taken[c]
-      const kept = i === undefined ? undefined : variants[i]
-      return kept ? { ...kept, optionValues: combo } : emptyVariant(combo, template)
-    }),
+    variants: rows,
     dropped: variants.filter((_, j) => !used.has(j)),
   }
 }

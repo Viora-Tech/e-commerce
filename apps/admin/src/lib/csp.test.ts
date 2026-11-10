@@ -18,7 +18,9 @@ describe('admin script CSP', () => {
     const csp = scriptCsp({ nonce: 'abc', dev: false })
     expect(csp.name).toBe('Content-Security-Policy')
     expect(csp.value).toContain("script-src 'self' 'nonce-abc' 'strict-dynamic'")
-    expect(csp.value).not.toContain('unsafe-eval')
+    expect(csp.value).not.toContain("'unsafe-eval'")
+    // WebAssembly may compile (GST invoices PDF preview); JS eval stays blocked.
+    expect(csp.value).toContain("'wasm-unsafe-eval'")
     expect(ADMIN_FRAME_ANCESTORS).toBe("frame-ancestors 'self'")
     expect(csp.value).toContain(ADMIN_FRAME_ANCESTORS)
   })

@@ -312,6 +312,18 @@ export const deliveryOptionsContent = {
       prepaidOnly: 'Prepaid only',
       expressNote: 'Express is always prepaid only.',
     },
+    couriers: {
+      title: 'Couriers at checkout',
+      help: 'One card with the courier this option picks, or every allowed courier to choose from.',
+      list: 'Let shoppers pick the courier',
+      listHelp:
+        'Each allowed courier is its own card, any speed. The cheapest is at this option’s price; faster ones show only what they add.',
+      max: 'Show at most (couriers)',
+      roundTo9: 'Round extras up to ₹…9',
+      roundTo9Help: '+₹37 shows as +₹39.',
+      hideSlower: 'Hide couriers that are slower and dearer',
+      hideSlowerHelp: 'Drops a courier another one beats on both price and date.',
+    },
     availability: { title: 'Availability', enabled: 'Show at checkout' },
   },
   route: {

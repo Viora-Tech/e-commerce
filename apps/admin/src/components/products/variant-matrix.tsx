@@ -10,7 +10,6 @@ import { useCopy, useFormat } from '@/hooks/use-copy'
 import { bestMargin } from '@/lib/variant-margin'
 import type { MediaItem, VariantRow } from './form-state'
 import type { ProductTax } from './product-tax'
-import { generateSku } from './sku'
 import VariantEditDialog from './variant-edit-dialog'
 import VariantGroupRow from './variant-group-row'
 import { type MatrixLine, shownIndexes } from './variant-groups'
@@ -75,13 +74,6 @@ export default function VariantMatrix({
     onSelectedChange(checked ? [...rest, ...indexes] : rest)
   }
 
-  const handleGenerateSku = (index: number) => {
-    const row = variants[index]
-    if (!row) return
-    const taken = variants.filter((_, j) => j !== index).map((v) => v.sku)
-    onVariant(index, { sku: generateSku(productTitle, row.optionValues, taken) })
-  }
-
   // Render logic
   const shown = shownIndexes(lines)
   const allSelected = shown.length > 0 && shown.every((i) => selected.includes(i))
@@ -89,7 +81,7 @@ export default function VariantMatrix({
 
   return (
     <div className="overflow-x-auto">
-      <Table className="min-w-[52rem] border-separate border-spacing-0">
+      <Table className="min-w-[44rem] border-separate border-spacing-0">
         <TableHeader className="[&_tr]:border-0">
           <TableRow className="hover:bg-transparent">
             <TableHead className={cn(HEAD, 'w-10')}>
@@ -103,9 +95,9 @@ export default function VariantMatrix({
             <TableHead className={HEAD}>{copy.variant}</TableHead>
             <TableHead className={cn(HEAD, 'w-36')}>{copy.price}</TableHead>
             <TableHead className={cn(HEAD, 'w-36')}>{copy.mrp}</TableHead>
-            <TableHead className={cn(HEAD, 'w-56')}>{copy.sku}</TableHead>
+            <TableHead className={cn(HEAD, 'w-44')}>{copy.sku}</TableHead>
             <TableHead className={cn(HEAD, 'w-28 text-center')}>{copy.available}</TableHead>
-            <TableHead className={cn(HEAD, 'w-24')}>
+            <TableHead className={cn(HEAD, 'w-12')}>
               <span className="sr-only">{variantsCopy.edit}</span>
             </TableHead>
           </TableRow>
@@ -136,7 +128,6 @@ export default function VariantMatrix({
                 selected={selected.includes(line.index)}
                 onSelect={(checked) => handleSelectMany([line.index], checked)}
                 onChange={(patch) => onVariant(line.index, patch)}
-                onGenerateSku={() => handleGenerateSku(line.index)}
                 onEdit={() => setEditing(line.index)}
                 onAddMedia={onAddMedia}
               />

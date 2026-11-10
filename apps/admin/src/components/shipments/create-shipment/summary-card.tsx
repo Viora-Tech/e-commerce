@@ -27,6 +27,8 @@ type SummaryCardProps = {
   canBook: boolean
   busy: boolean
   onBook: () => void
+  /** Nothing picked yet: the button opens the Select courier drawer instead (Figma 898:7376). */
+  onSelectCourier?: (() => void) | undefined
 }
 
 const SHORT_DATE = { weekday: 'short', day: 'numeric', month: 'short' } as const
@@ -45,6 +47,7 @@ export default function SummaryCard({
   canBook,
   busy,
   onBook,
+  onSelectCourier,
 }: SummaryCardProps) {
   // Hooks
   const content = useCopy(createShipmentContent)
@@ -104,10 +107,17 @@ export default function SummaryCard({
         ) : manual ? null : (
           <p className="text-caption text-muted-foreground">{page.chooseFirst}</p>
         )}
-        <Button className="w-full" disabled={!canBook || busy} loading={busy} onClick={onBook}>
-          <Truck aria-hidden="true" />
-          {busy ? review.booking : manual ? review.saveManual : review.book}
-        </Button>
+        {onSelectCourier && !courier && !manual ? (
+          <Button className="w-full" onClick={onSelectCourier}>
+            <Truck aria-hidden="true" />
+            {content.drawer.open}
+          </Button>
+        ) : (
+          <Button className="w-full" disabled={!canBook || busy} loading={busy} onClick={onBook}>
+            <Truck aria-hidden="true" />
+            {busy ? review.booking : manual ? review.saveManual : review.book}
+          </Button>
+        )}
         <p className="text-center text-caption text-muted-foreground">
           {manual ? page.manualNote : (walletNote ?? page.walletNote)}
         </p>

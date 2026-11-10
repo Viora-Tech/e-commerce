@@ -23,6 +23,8 @@ export const accountContent = {
     verify: 'Sign in',
     verifying: 'Signing in',
     resend: 'Send a new code',
+    resendIn: (seconds: number) => `Send a new code in 0:${String(seconds).padStart(2, '0')}`,
+    perks: ['Track every order', 'Easy returns', 'Faster checkout next time'],
     changeEmail: 'Use a different email',
     guestNote: 'New here? Signing in creates your account. You can still check out as a guest.',
     accountNote: 'New here? Signing in creates your account. You need one to check out.',

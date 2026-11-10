@@ -41,6 +41,8 @@ type VariantsCardProps = {
   error?: string | undefined
   onOptions: (options: OptionRow[]) => void
   onVariant: (index: number, patch: Partial<VariantRow>) => void
+  /** Removes these rows (bulk Delete); the options keep their values. */
+  onRemoveVariants: (indexes: number[]) => void
   /** Files uploaded from a variant's images dialog join the product gallery. */
   onAddMedia: (items: MediaItem[]) => void
 }
@@ -58,10 +60,11 @@ export default function VariantsCard({
   error,
   onOptions,
   onVariant,
+  onRemoveVariants,
   onAddMedia,
 }: VariantsCardProps) {
   // Hooks
-  const { variants: copy } = useCopy(productFormContent)
+  const { variants: copy, variantBulk: bulkCopy } = useCopy(productFormContent)
   const [selected, setSelected] = useState<number[]>([])
   /** Options change pending a "this drops stock" confirmation. */
   const [pending, setPending] = useState<OptionRow[] | null>(null)
@@ -72,6 +75,8 @@ export default function VariantsCard({
   const [groupChoice, setGroupChoice] = useState<number | null | undefined>(undefined)
   /** Group values opened to their variants. */
   const [openGroups, setOpenGroups] = useState<string[]>([])
+  /** Bulk Delete waiting on its confirmation. */
+  const [confirmDelete, setConfirmDelete] = useState(false)
 
   // Helpers
   /** Applies an options edit, asking first when it would remove variants that still hold stock. */
@@ -129,9 +134,17 @@ export default function VariantsCard({
     }
   }
 
-  const handleAutoFillSku = () => {
+  const handleBulkDelete = () => {
+    onRemoveVariants(selected)
+    setSelected([])
+    setConfirmDelete(false)
+  }
+
+  /** Fills missing SKUs: on the selected rows, or on every row from the card's own button. */
+  const handleAutoFillSku = (only?: number[]) => {
     const taken = variants.map((v) => v.sku)
     variants.forEach((v, i) => {
+      if (only && !only.includes(i)) return
       if (v.sku.trim()) return
       const sku = generateSku(title, v.optionValues, taken)
       taken[i] = sku
@@ -151,6 +164,15 @@ export default function VariantsCard({
     groupChoice === undefined ? defaultGroupBy(built.length, variants.length) : groupChoice
   const groupBy = picked != null && picked < built.length && built.length >= 2 ? picked : null
   const lines = matrixLines(variants, { query, groupBy, open: openGroups })
+  const deletingAll = selected.length >= variants.length
+  const selectedNames = selected
+    .map((i) => variants[i])
+    .filter((v): v is VariantRow => Boolean(v))
+    .map((v) => v.optionValues.join(' / '))
+  const shownNames =
+    selectedNames.length > 6
+      ? `${selectedNames.slice(0, 6).join(', ')} +${selectedNames.length - 6}`
+      : selectedNames.join(', ')
 
   return (
     <DataCard
@@ -169,7 +191,7 @@ export default function VariantsCard({
               type="button"
               variant="ghost"
               size="sm"
-              onClick={handleAutoFillSku}
+              onClick={() => handleAutoFillSku()}
               title={copy.autoFillSkuHelp}
             >
               {copy.autoFillSku}
@@ -234,6 +256,8 @@ export default function VariantsCard({
         <VariantBulkBar
           count={selected.length}
           onApply={handleBulkApply}
+          onGenerateSkus={() => handleAutoFillSku(selected)}
+          onDelete={() => setConfirmDelete(true)}
           onClear={() => setSelected([])}
         />
       ) : null}
@@ -259,6 +283,17 @@ export default function VariantsCard({
         confirmLabel={copy.confirmRemoveConfirm}
         cancelLabel={copy.confirmRemoveCancel}
         onConfirm={handleConfirmRemove}
+      />
+      <ConfirmDialog
+        open={confirmDelete}
+        onOpenChange={setConfirmDelete}
+        title={bulkCopy.deleteTitle(selected.length)}
+        body={deletingAll ? bulkCopy.deleteAll : bulkCopy.deleteBody(shownNames)}
+        confirmLabel={bulkCopy.deleteConfirm(selected.length)}
+        cancelLabel={bulkCopy.deleteKeep}
+        tone="destructive"
+        confirmDisabled={deletingAll}
+        onConfirm={handleBulkDelete}
       />
     </DataCard>
   )

@@ -25,7 +25,13 @@ type AdminFrameProps = {
   activeStoreId: string | null
   storefrontUrl: string
   /** Installed apps, listed under Apps in the sidebar; `href` is the app page or its settings. */
-  apps: { id: string; name: string; icon: string | null; href: string }[]
+  apps: {
+    id: string
+    name: string
+    icon: string | null
+    href: string
+    pages?: { href: string; label: string }[]
+  }[]
   /** Installed sales channel apps (Inbox), listed under Sales channels. */
   channels?: string[] | undefined
   /** The live theme's logo, if the store has uploaded one; else the sidebar shows a monogram. */

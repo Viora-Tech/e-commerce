@@ -25,6 +25,10 @@ type CourierStepProps = {
   pick: string
   /** A row's `optionKey`, or MANUAL. */
   onPick: (optionKey: string) => void
+  /** The drawer's Ship now: books that courier at once. */
+  onShipNow?: ((optionKey: string) => void) | undefined
+  /** The option whose Ship now is booking. */
+  shippingKey?: string | null | undefined
   tracking: TrackingDraft
   onTrackingChange: (next: TrackingDraft) => void
   onRetry: () => void
@@ -47,6 +51,8 @@ export default function CourierStep({
   hasCouriers,
   pick,
   onPick,
+  onShipNow,
+  shippingKey = null,
   tracking,
   onTrackingChange,
   onRetry,
@@ -164,6 +170,8 @@ export default function CourierStep({
               row={row}
               selected={pick === row.optionKey}
               onSelect={() => onPick(row.optionKey)}
+              onShipNow={onShipNow ? () => onShipNow(row.optionKey) : undefined}
+              shipping={shippingKey === row.optionKey}
             />
           ))}
         </div>

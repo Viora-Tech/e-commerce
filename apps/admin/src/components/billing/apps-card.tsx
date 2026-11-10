@@ -4,6 +4,7 @@ import type { AppBill } from '@commerce/core'
 import type { AppAccess } from '@commerce/core/billing'
 import { CreditCard } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
@@ -12,11 +13,14 @@ import DataCard from '@/components/layout/data-card'
 import { billingContent } from '@/data/billing'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { routes } from '@/lib/routes'
 
 export type BoughtApp = {
   id: string
   name: string
   access: Extract<AppAccess, { state: 'bought' }> | null
+  /** Included, bought or to buy; absent on older callers (treated as bought). */
+  status?: AppAccess | undefined
   due: AppBill | null
 }
 
@@ -60,6 +64,12 @@ export default function AppsCard({ apps }: AppsCardProps) {
               <span className="text-body font-medium text-ink-strong">{a.name}</span>
               <span className="text-caption text-muted-foreground">
                 {[
+                  a.status?.state === 'included'
+                    ? copy.apps.included(copy.plans[a.status.plan].name)
+                    : null,
+                  a.status?.state === 'buy'
+                    ? `${copy.apps.buyFor(format.money(a.status.pricePaise))} · ${copy.apps.orIncluded(copy.plans[a.status.includedFrom].name)}`
+                    : null,
                   a.access
                     ? a.access.renews
                       ? copy.apps.paidUntil(format.date(a.access.until))
@@ -80,6 +90,16 @@ export default function AppsCard({ apps }: AppsCardProps) {
                 >
                   <CreditCard aria-hidden="true" />
                   {copy.apps.pay}
+                </Button>
+              ) : null}
+              {a.status?.state === 'buy' ? (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  nativeButton={false}
+                  render={<Link href={routes.apps.page(a.id)} />}
+                >
+                  {copy.apps.buy}
                 </Button>
               ) : null}
               {a.access?.renews || a.due ? (

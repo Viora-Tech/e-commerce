@@ -98,6 +98,10 @@ export default [
       notReady: `प्लान का ऑनलाइन पेमेंट अभी चालू नहीं है। प्लान बदलने के लिए ${siteConfig.brand.name} से संपर्क करें।`,
     },
     apps: {
+      included: (plan) => `${plan} में शामिल`,
+      buyFor: (price) => `${price}/महीना`,
+      orIncluded: (plan) => `या ${plan} में शामिल`,
+      buy: 'खरीदें',
       heading: 'पेड ऐप',
       help: 'आपके प्लान के ऊपर खरीदे गए ऐप। हर एक हर महीने रिन्यू होता है।',
       paidUntil: (date) => `${date} तक भरा हुआ`,
@@ -159,7 +163,23 @@ export default [
       cancel: 'मेरा प्लान रखें',
       scheduled: (plan) => `यह अवधि खत्म होने पर आप ${plan} पर चले जाएँगे`,
     },
+    changePlan: {
+      title: 'प्लान बदलें',
+      action: 'प्लान बदलें',
+      subtitle:
+        'कीमतों में 18% GST शामिल नहीं है। ऑर्डर कभी नहीं रुकते: शामिल ऑर्डर के बाद हर ऑर्डर पर थोड़ी फ़ीस लगती है।',
+      back: 'प्लान और बिलिंग',
+      basedOn: (orders) => `इस महीने के ${orders} ऑर्डर के हिसाब से सुझाया गया`,
+      confirmTitle: (plan) => `${plan} पर जाएं?`,
+      upgradeBody: (plan, price) =>
+        `बिल (${price} + GST) भरते ही ${plan} शुरू हो जाएगा। आगे सुरक्षित पेमेंट पेज खुलेगा।`,
+      downgradeBody: (plan, date) =>
+        `${date} तक मौजूदा प्लान चलेगा, फिर ${plan} पर चले जाएंगे। अभी कुछ नहीं कटेगा।`,
+      confirm: (plan) => `${plan} पर जाएं`,
+      cancel: 'रद्द करें',
+    },
     dialog: {
+      suggested: 'सुझाया गया',
       title: 'प्लान की तुलना',
       subtitle: 'हर प्लान में GST इनवॉइस, कूरियर, UPI पेमेंट और हिंदी एडमिन है। कीमतें GST से पहले।',
       current: 'आपका प्लान',

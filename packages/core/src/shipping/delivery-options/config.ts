@@ -70,6 +70,22 @@ export const OptionEtaSchema = z.object({
   maxDays: days.nullish(),
 })
 
+/**
+ * How the option shows its couriers at checkout. `one`: one card, the strategy's pick. `list`:
+ * every allowed courier (any speed) as its own card, like the Delivery promise Shopify app: the
+ * pick at the option's price, the rest at that price plus the difference in courier cost.
+ */
+export const OptionCouriersSchema = z.object({
+  show: z.enum(['one', 'list']).default('one'),
+  /** Cards at most, the pick included. */
+  max: z.number().int().min(2).max(8).default(3),
+  /** +₹37 shows as +₹39. */
+  roundTo9: z.boolean().default(true),
+  /** Drop a courier another one beats on both price and date. */
+  hideSlowerDearer: z.boolean().default(true),
+})
+export type OptionCouriers = z.infer<typeof OptionCouriersSchema>
+
 export const OptionCodSchema = z.object({
   /** Express is always prepaid only, whatever is saved here. */
   mode: z.enum(['prepaid_only', 'allowed']).default('allowed'),
@@ -87,6 +103,7 @@ export const DeliveryOptionInputSchema = z.object({
   insurance: OptionInsuranceSchema.default(OptionInsuranceSchema.parse({})),
   eta: OptionEtaSchema.default(OptionEtaSchema.parse({})),
   cod: OptionCodSchema.default(OptionCodSchema.parse({})),
+  couriers: OptionCouriersSchema.default(OptionCouriersSchema.parse({})),
   enabled: z.boolean().default(true),
 })
 export type DeliveryOptionInput = z.infer<typeof DeliveryOptionInputSchema>

@@ -3,6 +3,8 @@
 import PhoneInput from '@commerce/blocks/phone-input-lazy'
 import type { ReactNode } from 'react'
 import { useState, useTransition } from 'react'
+import CodeBoxes from '@/components/account/code-boxes'
+import ResendCode from '@/components/account/resend-code'
 import { accountContent } from '@/data/account'
 import { requestPhoneCodeAction, verifyPhoneCodeAction } from '@/lib/privacy-actions'
 
@@ -77,25 +79,10 @@ export default function PhoneLoginForm({
   return sentTo ? (
     <form onSubmit={handleCode} className="flex flex-col gap-5">
       <div className="flex flex-col gap-2">
-        <h1 className="h3">{copy.codeTitle}</h1>
+        <h1 className="h2">{copy.codeTitle}</h1>
         <p className="text-body text-muted">{copy.phoneCodeSent(sentTo, copy.methods[method])}</p>
       </div>
-      <label className="field">
-        <span className="field__label text-small">{copy.code}</span>
-        <input
-          className="field__input text-center tracking-[0.5em]"
-          name="code"
-          inputMode="numeric"
-          autoComplete="one-time-code"
-          pattern="[0-9]{6}"
-          maxLength={6}
-          required
-          // biome-ignore lint/a11y/noAutofocus: the only field on this step, reached by the shopper's own submit.
-          autoFocus
-          value={code}
-          onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
-        />
-      </label>
+      <CodeBoxes label={copy.code} value={code} onChange={setCode} />
       {errorLine}
       <button
         type="submit"
@@ -105,14 +92,7 @@ export default function PhoneLoginForm({
         <span className="btn__label">{pending ? copy.verifying : copy.verify}</span>
       </button>
       <div className="flex flex-wrap justify-between gap-3 text-small">
-        <button
-          type="button"
-          className="underline underline-offset-4 disabled:opacity-50"
-          onClick={() => send(sentTo)}
-          disabled={pending}
-        >
-          {copy.resend}
-        </button>
+        <ResendCode key={sentTo} disabled={pending} onResend={() => send(sentTo)} />
         <button
           type="button"
           className="underline underline-offset-4"
@@ -128,7 +108,7 @@ export default function PhoneLoginForm({
   ) : (
     <form onSubmit={handlePhone} className="flex flex-col gap-5">
       <div className="flex flex-col gap-2">
-        <h1 className="h3">{copy.title}</h1>
+        <h1 className="h2">{copy.title}</h1>
         <p className="text-body text-muted">{copy.phoneIntro}</p>
       </div>
       <div className="field">
