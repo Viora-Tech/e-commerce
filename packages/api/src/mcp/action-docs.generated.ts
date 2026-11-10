@@ -507,6 +507,8 @@ export const ACTION_DOCS: Record<string, string> = {
   'orders.listDrafts': 'Draft orders, a page at a time, filtered by status or a search.',
   'orders.markDraftsSeen':
     "The member opened Orders › Drafts: clears the sidebar's unseen checkout drafts count.",
+  'orders.markNotDelivered':
+    '"Mark as not delivered": undo a "Mark as delivered" pressed by mistake.',
   'orders.neighbours':
     'Order numbers either side of this one, for the arrows in the detail header.',
   'orders.notePaymentReminderChat':

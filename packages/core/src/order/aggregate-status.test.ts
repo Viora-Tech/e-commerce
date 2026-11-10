@@ -128,7 +128,20 @@ describe('deriveFulfillmentStatus', () => {
     ],
     ['partial pack delivered', [line(2, 1)], [ship('delivered')], null, 'partially_delivered'],
     ['RTO', [line(2, 2)], [ship('rto')], null, 'returned'],
-    ['cancelled label ignored', [line(2, 2)], [ship('cancelled')], null, 'fulfilled'],
+    [
+      'only booking cancelled: back to To ship',
+      [line(2, 2)],
+      [ship('cancelled')],
+      null,
+      'unfulfilled',
+    ],
+    [
+      'cancelled booking, then delivered by hand',
+      [line(2, 2)],
+      [ship('cancelled')],
+      new Date(),
+      'delivered',
+    ],
     [
       'cancelled then rebooked',
       [line(2, 2)],
