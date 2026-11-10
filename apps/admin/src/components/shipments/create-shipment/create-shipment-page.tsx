@@ -1,7 +1,14 @@
 'use client'
 
-import { PackageOpen, RefreshCw, Truck } from '@commerce/ui/icons'
+import { CalendarIcon, PackageOpen, RefreshCw, Truck } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from '@commerce/ui/shadcn/sheet'
 import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
@@ -36,6 +43,7 @@ import {
 } from './flow-state'
 import NoPickupLocationAlert, { missingPickupLocation } from './no-pickup-location-alert'
 import PackageStep from './package-step'
+import PickupNowDialog from './pickup-now-dialog'
 import { startingPickupPlan } from './pickup-plan'
 import RouteCard from './route-card'
 import ShipPageUnavailable from './ship-page-unavailable'
@@ -81,6 +89,12 @@ export default function CreateShipmentPage({ orderId, back, courier }: CreateShi
   const [wallets, setWallets] = useState<Wallets>([])
   const [tracking, setTracking] = useState<TrackingDraft>(EMPTY_TRACKING)
   const [busy, setBusy] = useState(false)
+  /** The Select courier drawer (Figma 898:7790). */
+  const [drawer, setDrawer] = useState(false)
+  /** The courier whose Ship now is booking. */
+  const [shipping, setShipping] = useState<string | null>(null)
+  /** Create pickup now, after booking. */
+  const [pickupOpen, setPickupOpen] = useState(false)
   const [booked, setBooked] = useState<BookedShipment | null>(null)
   /* Delhivery refused the booking: no pickup location by the name sent (shown with the name). */
   const [missingPlace, setMissingPlace] = useState<string | null>(null)
@@ -140,12 +154,22 @@ export default function CreateShipmentPage({ orderId, back, courier }: CreateShi
   }
   const handleShipYourself = () => {
     setPick(MANUAL)
-    document.getElementById('choose-courier')?.scrollIntoView({ behavior: 'smooth' })
+    setDrawer(true)
   }
-  const handleBook = async () => {
+  const handleShipNow = (optionKey: string) => {
+    setPick(optionKey)
+    void handleBook(optionKey)
+  }
+  const handleBook = async (optionKey?: string) => {
     if (!order || !parcel || !form || !parsed) return
+    const key = optionKey ?? pick
+    const chosen = quote?.options.find((o) => o.optionKey === key) ?? null
+    if (key !== MANUAL && (!chosen || chosen.problem || !pricesCurrent)) {
+      setDrawer(true)
+      return
+    }
     const typed = trackingPayload(tracking)
-    if (pick === MANUAL && (!typed.trackingNumber || !typed.courier)) {
+    if (key === MANUAL && (!typed.trackingNumber || !typed.courier)) {
       toast.error(content.courier.manualMissing)
       return
     }
@@ -154,6 +178,7 @@ export default function CreateShipmentPage({ orderId, back, courier }: CreateShi
       return
     }
     setBusy(true)
+    setShipping(optionKey ?? null)
     setMissingPlace(null)
     try {
       setBooked(
@@ -162,7 +187,7 @@ export default function CreateShipmentPage({ orderId, back, courier }: CreateShi
           parcel,
           form,
           parsed,
-          pick,
+          pick: key,
           courier: chosen,
           typed,
           courierLabel: chosen?.providerLabel,
@@ -172,15 +197,18 @@ export default function CreateShipmentPage({ orderId, back, courier }: CreateShi
           pickupFailed: content.pickup.notSupported,
         }),
       )
+      setDrawer(false)
       router.refresh()
     } catch (err) {
       const place = missingPickupLocation(err)
       if (place !== null) {
         setMissingPlace(place)
+        setDrawer(false)
         window.scrollTo({ top: 0, behavior: 'smooth' })
       } else toast.error(err instanceof Error ? err.message : String(err))
     } finally {
       setBusy(false)
+      setShipping(null)
     }
   }
 
@@ -302,36 +330,54 @@ export default function CreateShipmentPage({ orderId, back, courier }: CreateShi
                 chargedGrams={quote?.chargedWeightGrams}
               />
             </DataCard>
-            <DataCard
-              id="choose-courier"
-              title={content.courier.heading}
-              subtitle={
-                draft.couriers.length > 0 ? content.courier.help : content.courier.noCourier
-              }
-              action={
-                draft.couriers.length > 0 ? (
-                  <Button variant="ghost" size="sm" onClick={recheck}>
-                    <RefreshCw aria-hidden="true" />
-                    {content.courier.retry}
+            <Sheet open={drawer} onOpenChange={setDrawer}>
+              <SheetContent
+                side="bottom"
+                className="max-h-[85vh] overflow-y-auto px-4 pb-6 md:px-8"
+              >
+                <SheetHeader className="px-0">
+                  <SheetTitle>{content.drawer.title}</SheetTitle>
+                  <SheetDescription>
+                    {content.drawer.summary(
+                      `#${order.orderNumber} · ${route}`,
+                      quote?.chargedWeightGrams
+                        ? `${fmt.number(quote.chargedWeightGrams / 1000)} kg`
+                        : '',
+                      paymentLine ?? '',
+                    )}
+                  </SheetDescription>
+                </SheetHeader>
+                <div className="flex items-center justify-end">
+                  {draft.couriers.length > 0 ? (
+                    <Button variant="ghost" size="sm" onClick={recheck}>
+                      <RefreshCw aria-hidden="true" />
+                      {content.courier.retry}
+                    </Button>
+                  ) : null}
+                </div>
+                <CourierStep
+                  inCard
+                  quote={quote}
+                  hasCouriers={draft.couriers.length > 0}
+                  pick={pick}
+                  onPick={setPick}
+                  onShipNow={pricesCurrent ? handleShipNow : undefined}
+                  shippingKey={shipping}
+                  tracking={tracking}
+                  onTrackingChange={setTracking}
+                  onRetry={recheck}
+                  needsPackage={needsPackage}
+                  failed={quoteFailed}
+                  updating={updating}
+                  waitingForSize={waitingForSize}
+                />
+                {manual ? (
+                  <Button className="self-end" loading={busy} onClick={() => void handleBook()}>
+                    {content.review.saveManual}
                   </Button>
-                ) : null
-              }
-            >
-              <CourierStep
-                inCard
-                quote={quote}
-                hasCouriers={draft.couriers.length > 0}
-                pick={pick}
-                onPick={setPick}
-                tracking={tracking}
-                onTrackingChange={setTracking}
-                onRetry={recheck}
-                needsPackage={needsPackage}
-                failed={quoteFailed}
-                updating={updating}
-                waitingForSize={waitingForSize}
-              />
-            </DataCard>
+                ) : null}
+              </SheetContent>
+            </Sheet>
           </>
         )
       }
@@ -339,6 +385,24 @@ export default function CreateShipmentPage({ orderId, back, courier }: CreateShi
         booked ? (
           <DataCard title={booked.manual ? content.done.manualHeading : content.done.heading}>
             <DoneStep booked={booked} summaryOnly />
+            {booked.shipmentId && !booked.manual ? (
+              <>
+                <Button
+                  variant="outline"
+                  className="mt-3 w-full"
+                  onClick={() => setPickupOpen(true)}
+                >
+                  <CalendarIcon aria-hidden="true" />
+                  {content.drawer.pickupNow}
+                </Button>
+                <PickupNowDialog
+                  open={pickupOpen}
+                  onOpenChange={setPickupOpen}
+                  shipmentId={booked.shipmentId}
+                  onDone={() => router.refresh()}
+                />
+              </>
+            ) : null}
           </DataCard>
         ) : (
           <SummaryCard
@@ -353,7 +417,8 @@ export default function CreateShipmentPage({ orderId, back, courier }: CreateShi
             manual={manual}
             canBook={canBook}
             busy={busy}
-            onBook={handleBook}
+            onBook={() => void handleBook()}
+            onSelectCourier={() => setDrawer(true)}
           />
         )
       }

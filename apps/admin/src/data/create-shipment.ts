@@ -72,6 +72,19 @@ export const createShipmentContent = {
     },
     noneLeft: 'None of these orders can be booked here.',
   },
+  drawer: {
+    title: 'Select courier partner',
+    open: 'Select courier',
+    summary: (route: string, weight: string, payment: string) =>
+      [route, weight, payment].filter(Boolean).join(' · '),
+    shipNow: 'Ship now',
+    close: 'Close',
+    pickupNow: 'Create pickup now',
+    pickupTitle: 'Create pickup',
+    pickupBody:
+      'The courier gets the pickup request and its manifest in one go. If a pickup is already booked for that place and day, this parcel joins it.',
+    pickupDone: 'Pickup booked. The parcel moved to To be picked up.',
+  },
   courier: {
     heading: 'Choose a courier',
     help: 'Live prices and delivery dates for this parcel. Pick the one you want.',
