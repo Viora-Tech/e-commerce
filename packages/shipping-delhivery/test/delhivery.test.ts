@@ -444,6 +444,18 @@ describe('DelhiveryProvider rates', () => {
     )
   })
 
+  it('sends the box dimensions with the weight, and leaves them out when unknown', () => {
+    const p = new DelhiveryProvider(config)
+    const boxed = p.buildShipmentPayload(
+      { ...sampleShipment, dimensionsCm: { length: 20, width: 20, height: 5 } },
+      'WB3',
+    ).shipments[0]
+    expect(boxed).toMatchObject({ shipment_length: 20, shipment_width: 20, shipment_height: 5 })
+    const plain = p.buildShipmentPayload({ ...sampleShipment, dimensionsCm: undefined }, 'WB4')
+      .shipments[0]
+    expect(plain).not.toHaveProperty('shipment_length')
+  })
+
   it('explains an unknown pickup location in plain words, without a stray "true"', async () => {
     const f = fakeFetch({
       '/waybill/api/bulk/json/': () => json('WB1'),
