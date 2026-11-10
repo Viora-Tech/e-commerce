@@ -208,7 +208,7 @@ describe('store.health', () => {
 describe('products.list missing filter', () => {
   it('lists products with a weightless variant, or with no image', async () => {
     const m = await merchant('missing@example.com', 'missing-a')
-    await seedProduct(m.storeId, {
+    const mug = await seedProduct(m.storeId, {
       title: 'Mug',
       pricePaise: 50_000,
       weightGrams: 300,
@@ -244,5 +244,9 @@ describe('products.list missing filter', () => {
     expect(await ids({ missing: 'image' })).toEqual(new Set([poster, draft]))
     expect(await ids({ missing: 'image', status: 'active' })).toEqual(new Set([poster]))
     expect((await call(appRouter.products.list, {}, { context: m.ctx })).total).toBe(4)
+    // No box: every variant without a box from Settings › Shipping.
+    expect(await ids({ missing: 'box' })).toEqual(new Set([mug, tee, poster, draft]))
+    await owner.update(variant).set({ boxPresetId: 'mug-box' }).where(eq(variant.productId, mug))
+    expect(await ids({ missing: 'box' })).toEqual(new Set([tee, poster, draft]))
   })
 })

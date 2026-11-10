@@ -15,7 +15,6 @@ import {
   payOrderWithStoreCredit,
   permissions,
   REFUND_METHODS,
-  resolveShippingProviders,
   setCourierCharge,
   updateOrderContact,
 } from '@commerce/core'
@@ -49,12 +48,13 @@ import {
   orderNeighbours,
 } from '../services/order-fulfil.service'
 import {
+  assertCourierConnected,
   bookShipment,
   cancelStoreShipment,
-  loadShippingSettings,
   refreshShipmentTracking,
   shipmentDetailsForOrder,
 } from '../services/shipping.service'
+import { courierArgs } from './courier-args'
 import { assertNotImported } from './imported-order'
 import { draftAndAbandonedRoutes } from './order-drafts'
 import { orderEditRoutes } from './order-edit'
@@ -140,14 +140,7 @@ export const ordersRouter = {
   retryCourierPush: can(permissions.ORDERS_WRITE)
     .input(z.object({ orderId: z.uuid(), provider: z.string().min(1).max(40) }))
     .handler(async ({ context, input }) => {
-      const { shipping } = await storeRegistries(context.tx, context.scope.storeId)
-      return retryCourierPushForOrder(
-        context.tx,
-        context.scope.storeId,
-        shipping,
-        settingsSecret(),
-        input,
-      )
+      return retryCourierPushForOrder(...(await courierArgs(context)), input)
     }),
 
   /** What the order earned: net sales less goods, courier, fees and RTO (order/profit.ts). */
@@ -192,11 +185,14 @@ export const ordersRouter = {
       await assertNotImported(context.tx, { orderId: input.orderId })
       if (input.providerId) {
         const { shipping } = await storeRegistries(context.tx, context.scope.storeId)
-        const settings = await loadShippingSettings(context.tx, context.scope.storeId)
-        const { providers } = resolveShippingProviders(shipping, settings, settingsSecret())
-        if (!providers.some((p) => p.id === input.providerId)) {
-          throw new ORPCError('BAD_REQUEST', { message: 'That courier app is not connected.' })
-        }
+        const { storeId } = context.scope
+        await assertCourierConnected(
+          context.tx,
+          storeId,
+          shipping,
+          settingsSecret(),
+          input.providerId,
+        )
       }
       try {
         // order.fulfilled is written by the recompute inside, on the last unit packed.
@@ -357,32 +353,17 @@ export const ordersRouter = {
     )
     .handler(async ({ context, input }) => {
       await assertNotImported(context.tx, { orderId: input.orderId })
-      const { shipping } = await storeRegistries(context.tx, context.scope.storeId)
       // Booking packs what is left; the recompute writes order.fulfilled only
       // if this is what completed the packing.
       const { orderId, ...choice } = input
-      return bookShipment(
-        context.tx,
-        context.scope.storeId,
-        shipping,
-        settingsSecret(),
-        orderId,
-        choice,
-      )
+      return bookShipment(...(await courierArgs(context)), orderId, choice)
     }),
 
   /** Fetch the latest tracking events for a shipment from its courier. */
   refreshTracking: can(permissions.ORDERS_READ)
     .input(z.object({ shipmentId: z.uuid() }))
     .handler(async ({ context, input }) => {
-      const { shipping } = await storeRegistries(context.tx, context.scope.storeId)
-      return refreshShipmentTracking(
-        context.tx,
-        context.scope.storeId,
-        shipping,
-        settingsSecret(),
-        input.shipmentId,
-      )
+      return refreshShipmentTracking(...(await courierArgs(context)), input.shipmentId)
     }),
 
   /**
