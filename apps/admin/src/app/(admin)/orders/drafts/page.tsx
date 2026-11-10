@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import MarkDraftsSeen from '@/components/drafts/mark-drafts-seen'
 import { DRAFT_LIST_FILTERS, draftsContent } from '@/data/drafts'
 import { appRouter, call, serverContext } from '@/lib/api'
 import { draftViewInput } from '@/lib/draft-list-filters'
@@ -28,5 +29,10 @@ export default async function Page({ searchParams }: Props) {
     ),
     call(appRouter.orders.draftTiles, undefined, { context }),
   ])
-  return <DraftsPage initial={{ query, perPage, result, tiles }} />
+  return (
+    <>
+      <MarkDraftsSeen />
+      <DraftsPage initial={{ query, perPage, result, tiles }} />
+    </>
+  )
 }

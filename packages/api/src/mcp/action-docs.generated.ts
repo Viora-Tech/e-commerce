@@ -505,6 +505,8 @@ export const ACTION_DOCS: Record<string, string> = {
   'orders.listAbandoned':
     'Abandoned checkouts from recent days, a page at a time, by recovery status or a search.',
   'orders.listDrafts': 'Draft orders, a page at a time, filtered by status or a search.',
+  'orders.markDraftsSeen':
+    "The member opened Orders › Drafts: clears the sidebar's unseen checkout drafts count.",
   'orders.neighbours':
     'Order numbers either side of this one, for the arrows in the detail header.',
   'orders.notePaymentReminderChat':
