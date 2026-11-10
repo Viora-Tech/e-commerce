@@ -48,6 +48,8 @@ export type DeliveryChoiceCard = {
   label: string
   pricePaise: number
   arrives: string | null
+  /** The courier's logo when its name is shown (list cards). */
+  logo: CourierLogo | null
 }
 
 /** What checkout needs beyond a plain rate card, per delivery option. */
@@ -65,6 +67,8 @@ export type DeliveryCardExtras = {
   optionName: string
   /** The picked courier's logo, when the merchant shows its name; null otherwise. */
   logo: CourierLogo | null
+  /** `list`: each choice is its own card (the option's Couriers setting). */
+  layout: 'one' | 'list'
 }
 
 export type CourierLogo = {
@@ -157,11 +161,13 @@ export function cardExtras(
     listPricePaise: o.listPricePaise,
     optionName: o.name,
     logo: o.pick ? courierLogo(o.pick.route) : null,
+    layout: o.layout,
     choices: o.choices.map((c) => ({
       routeKey: c.route.key,
       label: choiceLabel(c.route),
       pricePaise: afterDiscount(c.pricePaise),
       arrives: deliveryArrives(c, policy, now),
+      logo: courierLogo(c.route),
     })),
   }
 }

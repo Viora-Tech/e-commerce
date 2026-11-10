@@ -122,8 +122,35 @@ export default function DeliveryMethod({
           />
         ) : (
           rates.map((o) => {
-            const picked = selectedId === o.id
             const choices = o.delivery?.choices ?? []
+            if (o.delivery?.layout === 'list' && choices.length > 0) {
+              // The courier list (Figma 942:513): every allowed courier is its own card; the
+              // first is included at the option's price, the rest show what they add.
+              const base = choices[0]?.pricePaise ?? o.pricePaise
+              const current = routeKey ?? choices[0]?.routeKey
+              return choices.map((c) => {
+                const on = selectedId === o.id && current === c.routeKey
+                const extra = c.pricePaise - base
+                return (
+                  <OptionCard
+                    key={`${o.id}:${c.routeKey}`}
+                    name="shipping-rate"
+                    value={`${o.id}:${c.routeKey}`}
+                    checked={on}
+                    icon="truck"
+                    logo={c.logo}
+                    onChange={() => {
+                      onSelect(o.id)
+                      onRoute?.(c.routeKey)
+                    }}
+                    title={c.label}
+                    description={c.arrives}
+                    meta={extra > 0 ? `+ ${money(extra)}` : price(c.pricePaise)}
+                  />
+                )
+              })
+            }
+            const picked = selectedId === o.id
             const sub = picked ? choices.find((c) => c.routeKey === routeKey) : undefined
             return (
               <div key={o.id} className="flex flex-col gap-1.5">

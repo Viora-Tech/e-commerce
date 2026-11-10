@@ -32,6 +32,11 @@ export type OptionForm = {
   processing: string
   maxDays: string
   cod: DeliveryOptionInput['cod']['mode']
+  /** Every allowed courier as its own card at checkout (the Couriers card). */
+  couriersList: boolean
+  couriersMax: string
+  roundTo9: boolean
+  hideSlowerDearer: boolean
   enabled: boolean
 }
 
@@ -62,6 +67,10 @@ export function formOf(o: DeliveryOption | null): OptionForm {
     processing: x.eta.processingDays ? String(x.eta.processingDays) : '',
     maxDays: days(x.eta.maxDays),
     cod: x.cod.mode,
+    couriersList: x.couriers.show === 'list',
+    couriersMax: String(x.couriers.max),
+    roundTo9: x.couriers.roundTo9,
+    hideSlowerDearer: x.couriers.hideSlowerDearer,
     enabled: x.enabled,
   }
 }
@@ -102,6 +111,12 @@ export function inputOf(f: OptionForm): DeliveryOptionInput {
       maxDays: whole(f.maxDays),
     },
     cod: { mode: f.speed === 'express' ? 'prepaid_only' : f.cod },
+    couriers: {
+      show: f.couriersList ? 'list' : 'one',
+      max: Math.min(8, Math.max(2, whole(f.couriersMax) ?? 3)),
+      roundTo9: f.roundTo9,
+      hideSlowerDearer: f.hideSlowerDearer,
+    },
     enabled: f.enabled,
   })
 }

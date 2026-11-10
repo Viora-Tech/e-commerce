@@ -277,6 +277,40 @@ export default function OptionForm({ form, onChange }: OptionFormProps) {
         </div>
       </SettingsCard>
 
+      <SettingsCard title={o.couriers.title} description={o.couriers.help}>
+        <SettingsToggleRow
+          id="opt-couriers-list"
+          label={o.couriers.list}
+          description={o.couriers.listHelp}
+          checked={form.couriersList}
+          onChange={set('couriersList')}
+        />
+        {form.couriersList ? (
+          <>
+            <NumberField
+              id="opt-couriers-max"
+              label={o.couriers.max}
+              value={form.couriersMax}
+              onChange={set('couriersMax')}
+            />
+            <SettingsToggleRow
+              id="opt-round-9"
+              label={o.couriers.roundTo9}
+              description={o.couriers.roundTo9Help}
+              checked={form.roundTo9}
+              onChange={set('roundTo9')}
+            />
+            <SettingsToggleRow
+              id="opt-hide-slower"
+              label={o.couriers.hideSlower}
+              description={o.couriers.hideSlowerHelp}
+              checked={form.hideSlowerDearer}
+              onChange={set('hideSlowerDearer')}
+            />
+          </>
+        ) : null}
+      </SettingsCard>
+
       <SettingsCard title={o.cod.title}>
         {express ? (
           <p className="text-body text-muted-foreground">{o.cod.expressNote}</p>

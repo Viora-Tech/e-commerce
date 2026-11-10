@@ -8,7 +8,7 @@ import {
   RouteRuleInputSchema,
 } from './config'
 import { roundUpToTenRupees } from './price'
-import { chosenRoute, resolveDeliveryOptions } from './resolve'
+import { chosenRoute, resolveDeliveryOptions, upToNine } from './resolve'
 import type { ResolveInput } from './resolve-types'
 import type { ProviderAnswer, QuotedService } from './routes'
 import type { CartItemFacts } from './rules'
@@ -569,5 +569,57 @@ describe('fallback', () => {
   it('no zone rate covers the address: nothing to show', () => {
     const r = resolveDeliveryOptions(input({ answers: [], zone: { kind: 'no_rates' } }))
     expect(r.status).toBe('none')
+  })
+})
+
+describe('courier list (the option shows every allowed courier)', () => {
+  const LIST = option(
+    'list',
+    {
+      name: 'Delivery',
+      speed: 'standard',
+      strategy: 'cheapest',
+      couriers: { show: 'list', max: 4 },
+    },
+    0,
+  )
+  const listInput = (over: Partial<ResolveInput> = {}) =>
+    input({ config: { ...config(), options: [LIST] }, ...over })
+
+  it('upToNine rounds rupees up to end in 9', () => {
+    expect(upToNine(0)).toBe(0)
+    expect(upToNine(3_700)).toBe(3_900)
+    expect(upToNine(4_000)).toBe(4_900)
+    expect(upToNine(3_900)).toBe(3_900)
+    expect(upToNine(1)).toBe(900)
+  })
+
+  it('lists couriers of any speed: the pick at its price, the rest at price + the difference', () => {
+    const r = resolveDeliveryOptions(listInput())
+    const o = find(r, 'list')
+    expect(o?.layout).toBe('list')
+    const keys = o?.choices.map((c) => c.route.key)
+    // Pick: Delhivery Surface ₹60 (same shopper price as DTDC, earlier). DTDC is slower and
+    // not dearer, so it goes; Delhivery Express and Bluedart Air follow with their extra.
+    expect(keys?.[0]).toBe('delhivery:S')
+    expect(keys).toContain('delhivery:E')
+    expect(keys).toContain('shiprocket:20')
+    const express = o?.choices.find((c) => c.route.key === 'delhivery:E')
+    // ₹102 - ₹60 = ₹42 more → +₹49 on top of the pick's ₹60.
+    expect(express?.pricePaise).toBe(6_000 + 4_900)
+  })
+
+  it('keeps one card per courier and speed (the cheaper app wins)', () => {
+    const r = resolveDeliveryOptions(listInput())
+    const delhiveryStandard = find(r, 'list')?.choices.filter(
+      (c) => c.route.carrierKey === 'delhivery' && c.route.speed === 'standard',
+    )
+    expect(delhiveryStandard).toHaveLength(1)
+    expect(delhiveryStandard?.[0]?.route.key).toBe('delhivery:S')
+  })
+
+  it('a one-card option is unchanged', () => {
+    const r = resolveDeliveryOptions(input())
+    expect(find(r, 'std')?.layout).toBe('one')
   })
 })

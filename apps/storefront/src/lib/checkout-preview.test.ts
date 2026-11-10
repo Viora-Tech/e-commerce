@@ -248,6 +248,7 @@ describe('checkoutTotals with the Delivery options app', () => {
       codCarrier: 'Delhivery',
       listPricePaise: 6000,
       choices: [],
+      layout: 'one' as const,
       optionName: 'Standard',
       logo: null,
       ...over,
