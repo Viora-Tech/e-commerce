@@ -2614,6 +2614,8 @@ export const storeMember = pgTable(
      * the defaults (`@commerce/core/member-account`, `parseMemberAlertPrefs`).
      */
     notificationPrefs: jsonb('notification_prefs'),
+    /** When this member last opened Orders › Drafts; the sidebar counts newer unpaid checkout drafts. */
+    draftsSeenAt: timestamp('drafts_seen_at', { withTimezone: true }),
     createdAt: createdAt(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
