@@ -201,6 +201,9 @@ export function deriveFulfillmentStatus(input: FulfillmentStatusInput): OrderFul
   )
   const delivered = moving.filter((s) => s.status === 'delivered').length
   if (ordered === 0 || packed === 0) return 'unfulfilled'
+  // Every courier booking was cancelled: the parcel is packed but going nowhere, so it is back
+  // in To ship until it is booked again (an order packed with no booking at all stays fulfilled).
+  if (input.shipments.length > 0 && live.length === 0 && !input.deliveredAt) return 'unfulfilled'
   if (packed < ordered) return delivered > 0 ? 'partially_delivered' : 'partially_fulfilled'
   if (input.deliveredAt) return 'delivered'
   if (moving.length === 0) return 'fulfilled'

@@ -62,6 +62,8 @@ type OrderActionsProps = {
   onSendOrderLink?: (() => void) | undefined
   /** "View order status page": the shopper's own page for this order, in a new tab. */
   onViewStatusPage?: (() => void) | undefined
+  /** Undo a "Mark as delivered" pressed by mistake; shown only on a delivered order. */
+  onMarkNotDelivered?: (() => void) | undefined
   /** Starts a new draft from this order ("Duplicate order"); undefined hides it. */
   onDuplicate?: (() => void) | undefined
   /** "Archive order": off the working tabs; undefined hides it (no right, or already archived). */
@@ -102,6 +104,7 @@ export default function OrderActions({
   onSendReminder,
   onSendOrderLink,
   onViewStatusPage,
+  onMarkNotDelivered,
   onDuplicate,
   onArchive,
   onCancel,
@@ -247,6 +250,13 @@ export default function OrderActions({
             hidden: !onSendOrderLink || readOnly,
             disabled: busy,
             onSelect: onSendOrderLink,
+          },
+          {
+            label: copy.actions.markNotDelivered,
+            icon: RotateCcw,
+            hidden: !onMarkNotDelivered || fulfillmentStatus !== 'delivered' || readOnly,
+            disabled: busy,
+            onSelect: onMarkNotDelivered,
           },
           {
             label: copy.actions.viewStatusPage,
