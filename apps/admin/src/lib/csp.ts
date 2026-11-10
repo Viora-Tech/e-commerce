@@ -37,6 +37,9 @@ export function scriptCsp(input: { nonce: string; dev: boolean }): CspHeader {
     "'strict-dynamic'",
     'https:',
     "'unsafe-inline'",
+    // WebAssembly only (not JS eval): the GST invoices PDF preview compiles a wasm module and
+    // without this the browser refuses it ("The preview could not be drawn").
+    "'wasm-unsafe-eval'",
     ...(input.dev ? ["'unsafe-eval'"] : []),
   ].join(' ')
   // worker-src is spelled out: without it workers fall back to script-src, where
