@@ -164,7 +164,8 @@ export default function ConsentManager({
 
   return (
     <>
-      {consent?.analytics ? <VisitBeacon /> : null}
+      {/* Every visit counts: without a yes the server counts it cookieless (totals only). */}
+      <VisitBeacon consented={consent?.analytics === true} />
       {consent?.analytics ? <DiscoveryTracker /> : null}
       {/* Anonymous page speed (no cookies, no ids): reported whatever the consent. */}
       <WebVitalsBeacon />

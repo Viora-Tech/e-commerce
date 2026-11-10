@@ -227,6 +227,10 @@ const ISLANDS = `(function () {
     if (c.chatwoot && (c.chatwoot.consent === 'necessary' || (consent && consent[c.chatwoot.consent] === true))) {
       idle(function () { load('chatwoot', c.chatwoot); });
     }
+    // No yes yet: the server counts the visit without cookies (totals only); a later yes sends the full one.
+    if (!(consent && consent.analytics)) {
+      once('anon-visit', function () { send('/api/beacon', { href: location.href, referrer: document.referrer }); });
+    }
     if (!consent) return;
     if (consent.analytics) {
       once('visit', function () {
