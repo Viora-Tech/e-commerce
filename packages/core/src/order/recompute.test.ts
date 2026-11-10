@@ -28,6 +28,7 @@ import { placeOrderAndPay } from './place-order'
 import { recomputeOrderStatuses } from './recompute'
 import { refundPayment } from './refund'
 import { cancelOrder, changeOrderStatus } from './status'
+import { undoDelivered } from './undo-delivered'
 
 const owner = createDb(process.env.DATABASE_URL_OWNER as string)
 const app = createDb(process.env.DATABASE_URL as string)
@@ -201,12 +202,12 @@ describe('recomputeOrderStatuses on every mutation path', () => {
     expect(await events(orderId, 'order.paid')).toBe(0)
   })
 
-  it('a cancelled label drops the order back to packed; a collected parcel cannot be cancelled', async () => {
+  it('a cancelled label puts the order back in To ship; a collected parcel cannot be cancelled', async () => {
     const { storeId, orderId } = await placeCod()
     const provider = new FakeShippingProvider()
     const ship = await inStore(storeId, (ctx) => createShipmentForOrder(ctx, provider, orderId))
     await inStore(storeId, (ctx) => cancelShipment(ctx, provider, ship.id))
-    expect(await statuses(orderId)).toEqual(['open', 'unpaid', 'fulfilled'])
+    expect(await statuses(orderId)).toEqual(['open', 'unpaid', 'unfulfilled'])
 
     const again = await inStore(storeId, (ctx) => createShipmentForOrder(ctx, provider, orderId))
     await inStore(storeId, (ctx) =>
@@ -217,6 +218,31 @@ describe('recomputeOrderStatuses on every mutation path', () => {
       inStore(storeId, (ctx) => cancelShipment(ctx, provider, again.id)),
     ).rejects.toMatchObject({ block: 'picked_up' })
     expect(await statuses(orderId)).toEqual(['open', 'unpaid', 'shipped'])
+  })
+
+  it('marked delivered by mistake after a cancelled booking: undo puts it back in To ship', async () => {
+    const { storeId, orderId } = await placeCod()
+    const provider = new FakeShippingProvider()
+    const ship = await inStore(storeId, (ctx) => createShipmentForOrder(ctx, provider, orderId))
+    await inStore(storeId, (ctx) => cancelShipment(ctx, provider, ship.id))
+    await inStore(storeId, (ctx) => changeOrderStatus(ctx, orderId, 'delivered'))
+    expect(await statuses(orderId)).toEqual(['open', 'unpaid', 'delivered'])
+    expect(await inStore(storeId, (ctx) => undoDelivered(ctx, orderId))).toBe(true)
+    expect(await statuses(orderId)).toEqual(['open', 'unpaid', 'unfulfilled'])
+    // Nothing left to undo.
+    expect(await inStore(storeId, (ctx) => undoDelivered(ctx, orderId))).toBe(false)
+  })
+
+  it('undo leaves a parcel the courier itself reported delivered alone', async () => {
+    const { storeId, orderId } = await placeCod()
+    const provider = new FakeShippingProvider()
+    const ship = await inStore(storeId, (ctx) => createShipmentForOrder(ctx, provider, orderId))
+    await inStore(storeId, (ctx) =>
+      applyTracking(ctx, ship.id, { waybill: ship.waybill, status: 'delivered', events: [] }),
+    )
+    await inStore(storeId, (ctx) => changeOrderStatus(ctx, orderId, 'delivered'))
+    await inStore(storeId, (ctx) => undoDelivered(ctx, orderId))
+    expect((await statuses(orderId))[2]).toBe('delivered')
   })
 
   it('fixes a drifted row: status columns that disagree with the facts are rewritten', async () => {

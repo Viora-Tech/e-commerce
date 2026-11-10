@@ -23,6 +23,8 @@ export default [
       collect: 'पेमेंट लें',
       fulfil: 'भेज दिया मार्क करें',
       deliver: 'डिलीवर हो गया मार्क करें',
+      markNotDelivered: 'डिलीवर नहीं हुआ मार्क करें',
+      markedNotDelivered: 'डिलीवर नहीं हुआ मार्क किया गया',
       cancel: 'ऑर्डर कैंसिल करें',
       refund: 'रिफ़ंड',
       print: 'पैकिंग स्लिप प्रिंट करें',

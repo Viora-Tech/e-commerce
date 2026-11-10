@@ -136,6 +136,18 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
       setBusy(false)
     }
   }
+  const handleMarkNotDelivered = async () => {
+    setBusy(true)
+    try {
+      await api.orders.markNotDelivered({ id: order.id })
+      toast.success(copy.actions.markedNotDelivered)
+      refresh()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : listCopy.bulk.failed)
+    } finally {
+      setBusy(false)
+    }
+  }
   const handleArchive = async (archived: boolean) => {
     setBusy(true)
     try {
@@ -271,6 +283,7 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
               onSendReminder={sendReminder}
               onSendOrderLink={sendOrderLink}
               onViewStatusPage={handleViewStatusPage}
+              onMarkNotDelivered={handleMarkNotDelivered}
               onDuplicate={
                 duplicateOrder.allowed && !readOnly
                   ? () => duplicateOrder.duplicate(order.id)

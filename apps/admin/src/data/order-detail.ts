@@ -33,6 +33,9 @@ export const orderDetailContent = {
     collect: 'Collect payment',
     fulfil: 'Mark as fulfilled',
     deliver: 'Mark as delivered',
+    /** Undo a "Mark as delivered" pressed by mistake: the order goes back to where it was. */
+    markNotDelivered: 'Mark as not delivered',
+    markedNotDelivered: 'Marked as not delivered',
     cancel: 'Cancel order',
     refund: 'Refund',
     print: 'Print packing slip',

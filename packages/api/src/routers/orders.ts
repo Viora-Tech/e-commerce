@@ -60,6 +60,7 @@ import { orderHoldRoutes } from './order-hold'
 import { orderListRoutes } from './order-list'
 import { listFilters } from './order-list-filters'
 import { orderMessageRoutes } from './order-messages'
+import { orderUndoRoutes } from './order-undo'
 
 /** What "Mark as" on the order page records; the statuses are then derived. */
 const change = z.enum(ORDER_MARKS)
@@ -489,6 +490,7 @@ export const ordersRouter = {
   ...orderListRoutes,
   ...orderMessageRoutes,
   ...draftAndAbandonedRoutes,
+  ...orderUndoRoutes,
   ...orderEditRoutes,
   ...orderHoldRoutes,
 }
