@@ -45,7 +45,7 @@ const ALLOWLIST: AllowEntry[] = [
       'invoice register paging stops earlier than lists; fold into PAGE_MAX in a behaviour change',
   },
   {
-    site: 'packages/api/src/routers/gst-invoices.ts: q.max(100)',
+    site: 'packages/api/src/routers/gst-invoices-selection.ts: q.max(100)',
     reason:
       'invoice search box is shorter than SEARCH_MAX; fold into SEARCH_MAX in a behaviour change',
   },

@@ -8,3 +8,16 @@ export const gstInvoiceRefreshContent = {
       ? 'Already matches the products'
       : `GST recalculated on ${n} ${n === 1 ? 'line' : 'lines'}`,
 } as const
+
+/** The Invoices list's bulk "Recalculate GST": the same rebuild for every selected tax invoice. */
+export const gstInvoiceBulkRefreshContent = {
+  button: 'Recalculate GST',
+  done: (updated: number, unchanged: number, skipped: number) =>
+    [
+      `GST recalculated on ${updated} ${updated === 1 ? 'invoice' : 'invoices'}`,
+      unchanged ? `${unchanged} already matched` : null,
+      skipped ? `${skipped} skipped (in a filed GSTR-1, cancelled or not a tax invoice)` : null,
+    ]
+      .filter(Boolean)
+      .join(' · '),
+} as const
