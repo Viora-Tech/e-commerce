@@ -72,6 +72,24 @@ const twoDigits = (n: number) => String(n).padStart(2, '0')
 
 const hasImage = (image: HeroImage | undefined): image is HeroImage => Boolean(image?.url)
 
+/** Widest poster worth sending: a full-bleed hero on a large laptop. */
+const POSTER_MAX = 1920
+
+/**
+ * A video's poster is one URL (no srcset), and it is what shoppers see until the video plays:
+ * send the WebP variant closest to POSTER_MAX instead of the multi-MB original when the media
+ * library made one (the hero image speed item, 10 Nov 2026).
+ */
+function posterUrl(image: HeroImage): string {
+  const widths = Object.keys(image.variants ?? {})
+    .map(Number)
+    .filter((w) => Number.isFinite(w))
+    .sort((a, b) => a - b)
+  const fit = widths.filter((w) => w <= POSTER_MAX).at(-1) ?? widths[0]
+  const variant = fit === undefined ? undefined : image.variants?.[String(fit)]
+  return variant?.webp ?? image.url
+}
+
 /** Words get their own spans for the per-word entrance; a node being edited stays whole. */
 function headingBody(heading: ReactNode, split: boolean): ReactNode {
   if (!split || typeof heading !== 'string') return heading
@@ -112,7 +130,7 @@ export default function HeroSlideView({
       ? { ...productImage, alt: productImage.alt ?? slide.product?.title ?? '' }
       : undefined
   const video = slide.kind === 'video' ? safeVideoFile(slide.videoUrl ?? '') : null
-  const poster = hasImage(slide.poster) ? slide.poster.url : undefined
+  const poster = hasImage(slide.poster) ? posterUrl(slide.poster) : undefined
   const hasMedia = Boolean(video || image)
   const showChip = Boolean(slide.product && slide.showChip !== false)
   const ctas = [slide.cta, slide.cta2].filter((c): c is HeroLink => Boolean(c?.label))

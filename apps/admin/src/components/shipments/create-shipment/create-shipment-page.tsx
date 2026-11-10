@@ -96,6 +96,8 @@ export default function CreateShipmentPage({ orderId, back, courier }: CreateShi
   const [shipping, setShipping] = useState<string | null>(null)
   /** Create pickup now, after booking. */
   const [pickupOpen, setPickupOpen] = useState(false)
+  /** Ship it yourself: the connected app the AWB was booked in, from its own panel. */
+  const [panel, setPanel] = useState<string | null>(null)
   const [booked, setBooked] = useState<BookedShipment | null>(null)
   /* Delhivery refused the booking: no pickup location by the name sent (shown with the name). */
   const [missingPlace, setMissingPlace] = useState<string | null>(null)
@@ -207,6 +209,7 @@ export default function CreateShipmentPage({ orderId, back, courier }: CreateShi
           pick: key,
           courier: chosen,
           typed,
+          panelProviderId: key === MANUAL ? panel : null,
           courierLabel: chosen?.providerLabel,
           canPickup: draft?.couriers.find((c) => c.id === chosen?.providerId)?.hasPickup ?? false,
           // Booking only books (owner, 10 Nov 2026): the pickup is made on Shipments › Booked.
@@ -386,6 +389,9 @@ export default function CreateShipmentPage({ orderId, back, courier }: CreateShi
                   pick={pick}
                   onPick={setPick}
                   onShipNow={pricesCurrent ? handleShipNow : undefined}
+                  panels={draft.couriers.map((c) => ({ id: c.id, label: c.label }))}
+                  panel={panel}
+                  onPanel={setPanel}
                   shippingKey={shipping}
                   tracking={tracking}
                   onTrackingChange={setTracking}

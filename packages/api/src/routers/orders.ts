@@ -15,6 +15,7 @@ import {
   payOrderWithStoreCredit,
   permissions,
   REFUND_METHODS,
+  resolveShippingProviders,
   setCourierCharge,
   updateOrderContact,
 } from '@commerce/core'
@@ -50,6 +51,7 @@ import {
 import {
   bookShipment,
   cancelStoreShipment,
+  loadShippingSettings,
   refreshShipmentTracking,
   shipmentDetailsForOrder,
 } from '../services/shipping.service'
@@ -174,6 +176,8 @@ export const ordersRouter = {
         orderId: z.uuid(),
         lines: z.array(z.object({ lineId: z.uuid(), quantity: z.number().int().min(0) })).min(1),
         courier: z.string().trim().max(60).optional(),
+        /** A connected courier app the AWB was booked in from its own panel. */
+        providerId: z.string().trim().max(60).optional(),
         trackingNumber: z.string().trim().max(60).optional(),
         // Shown as a link to the shopper and in emails: web links only, never javascript: or data:.
         trackingUrl: z
@@ -186,6 +190,14 @@ export const ordersRouter = {
     )
     .handler(async ({ context, input }) => {
       await assertNotImported(context.tx, { orderId: input.orderId })
+      if (input.providerId) {
+        const { shipping } = await storeRegistries(context.tx, context.scope.storeId)
+        const settings = await loadShippingSettings(context.tx, context.scope.storeId)
+        const { providers } = resolveShippingProviders(shipping, settings, settingsSecret())
+        if (!providers.some((p) => p.id === input.providerId)) {
+          throw new ORPCError('BAD_REQUEST', { message: 'That courier app is not connected.' })
+        }
+      }
       try {
         // order.fulfilled is written by the recompute inside, on the last unit packed.
         return await fulfilOrder(context.tx, context.scope.storeId, input)

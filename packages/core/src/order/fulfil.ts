@@ -18,6 +18,11 @@ export type FulfilOrderInput = {
   lines: FulfilLineInput[]
   /** Courier name typed by the merchant when the parcel is not booked through a plugin. */
   courier?: string | undefined
+  /**
+   * The connected courier app the AWB was booked in, from its own panel (owner, 11 Nov 2026).
+   * The shipment is saved under that app, so its tracking poll and webhooks update it.
+   */
+  providerId?: string | undefined
   trackingNumber?: string | undefined
   trackingUrl?: string | undefined
   /** False: no "order shipped" message to the shopper (the merchant's "Notify customer"). */
@@ -245,7 +250,7 @@ export async function fulfilOrderLines(
         storeId: ctx.storeId,
         orderId: input.orderId,
         fulfillmentOrderId,
-        provider: input.courier?.trim() || MANUAL_PROVIDER,
+        provider: input.providerId?.trim() || input.courier?.trim() || MANUAL_PROVIDER,
         waybill,
         status: 'created',
         trackingUrl: input.trackingUrl?.trim() || null,
