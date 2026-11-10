@@ -196,7 +196,9 @@ export const createShipmentContent = {
     shipFrom: 'Ship from',
     shipTo: 'Ship to',
     /** #17: the store has no pickup address yet, only a PIN code. */
-    addPickupAddress: 'Add your pickup address',
+    addPickupAddress: 'Add street address',
+    /** Why booking still works without it: each courier keeps its own pickup address. */
+    courierPickupNote: 'Couriers pick up from the address saved in their own panel.',
     pickupPin: (pin: string) => `PIN ${pin}`,
     package: 'Package',
     summary: 'Summary',
