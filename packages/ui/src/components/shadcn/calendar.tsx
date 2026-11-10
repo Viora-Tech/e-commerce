@@ -87,7 +87,7 @@ function Calendar({
           defaultClassNames.week_number,
         ),
         day: cn(
-          'group/day relative aspect-square h-full w-full rounded-(--cell-radius) p-0 text-center select-none [&:last-child[data-selected=true]_button]:rounded-r-(--cell-radius)',
+          'group/day relative aspect-square h-full w-full rounded-(--cell-radius) p-0 text-center select-none data-[focused=true]:z-20 [&:last-child[data-selected=true]_button]:rounded-r-(--cell-radius)',
           props.showWeekNumber
             ? '[&:nth-child(2)[data-selected=true]_button]:rounded-l-(--cell-radius)'
             : '[&:first-child[data-selected=true]_button]:rounded-l-(--cell-radius)',
@@ -103,7 +103,7 @@ function Calendar({
           defaultClassNames.range_end,
         ),
         today: cn(
-          'rounded-(--cell-radius) bg-muted text-foreground data-[selected=true]:rounded-none',
+          'rounded-(--cell-radius) bg-muted text-foreground [&[data-selected=true]:not(:has([data-range-start=true])):not(:has([data-range-end=true]))]:rounded-none',
           defaultClassNames.today,
         ),
         outside: cn(
