@@ -29,6 +29,7 @@ export default [
     more: 'और',
     viewAll: 'सब देखें',
     viewAllApps: (n) => `सभी ऐप्स (${n})`,
+    viewMorePages: (n) => `और देखें (${n})`,
     appStore: 'ऐप स्टोर',
     noStore: 'कोई स्टोर नहीं चुना',
     toggleTheme: 'थीम बदलें',

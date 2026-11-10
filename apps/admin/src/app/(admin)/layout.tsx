@@ -63,7 +63,25 @@ export default async function AdminLayout({ children }: { children: ReactNode })
   const channels = installed.filter((a) => a.admin.salesChannel).map((a) => a.id)
   const appLinks = installed
     .filter((a) => !a.admin.salesChannel)
-    .map((a) => ({ id: a.id, name: a.name, icon: a.admin.icon, href: appEntryHref(a) }))
+    .map((a) => ({
+      id: a.id,
+      name: a.name,
+      icon: a.admin.icon,
+      href: appEntryHref(a),
+      // The app's pages move into the sidebar under its name (owner, 11 Nov 2026).
+      pages: a.admin.pages.flatMap((p) =>
+        p.navLabel
+          ? [
+              {
+                href: p.path
+                  ? routes.apps.page(a.id, ...p.path.split('/'))
+                  : routes.apps.page(a.id),
+                label: p.navLabel,
+              },
+            ]
+          : [],
+      ),
+    }))
   const inboxUnread = channels.includes('inbox') ? await inboxUnreadCount() : null
   const navCounts: Record<string, number> = {
     ...(active && toShip

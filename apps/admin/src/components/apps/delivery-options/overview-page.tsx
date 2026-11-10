@@ -13,13 +13,18 @@ import RoutesCard from './routes-card'
 import RulesCard from './rules-card'
 import TryPinCard from './try-pin-card'
 
+export type DeliveryOptionsSection = 'overview' | 'options' | 'routes' | 'rules'
+
+type DeliveryOptionsOverviewPageProps = { section?: DeliveryOptionsSection }
+
 /**
- * Apps → Delivery options (full page, cards, dialogs; no drawers): the connected courier apps
- * and route settings, the options shoppers pick from, the product route rules, and Try a PIN
- * with every route's quote. Try a PIN's routes feed the Routes card, so a route can be set
- * up straight from what the apps answered.
+ * Apps → Delivery options, one page per sidebar entry (Figma 929:11373…12840): Overview (the
+ * warnings, the options and Try a PIN), Options, Routes (with Try a PIN, whose routes feed
+ * the Routes card) and Product rules.
  */
-export default function DeliveryOptionsOverviewPage() {
+export default function DeliveryOptionsOverviewPage({
+  section = 'overview',
+}: DeliveryOptionsOverviewPageProps) {
   // Hooks
   const copy = useCopy(deliveryOptionsContent)
   const [overview, setOverview] = useState<Overview | null>(null)
@@ -53,16 +58,24 @@ export default function DeliveryOptionsOverviewPage() {
           {copy.warnings[w]}
         </p>
       ))}
-      <OptionsCard options={overview.options} onChanged={reload} />
-      <RulesCard rules={overview.rules} options={overview.options} onChanged={reload} />
-      <RoutesCard
-        apps={overview.apps}
-        health={overview.health}
-        settings={overview.routeSettings}
-        seen={tried?.routes ?? []}
-        onChanged={reload}
-      />
-      <TryPinCard result={tried} onResult={setTried} />
+      {section === 'overview' || section === 'options' ? (
+        <OptionsCard options={overview.options} onChanged={reload} />
+      ) : null}
+      {section === 'rules' ? (
+        <RulesCard rules={overview.rules} options={overview.options} onChanged={reload} />
+      ) : null}
+      {section === 'routes' ? (
+        <RoutesCard
+          apps={overview.apps}
+          health={overview.health}
+          settings={overview.routeSettings}
+          seen={tried?.routes ?? []}
+          onChanged={reload}
+        />
+      ) : null}
+      {section === 'overview' || section === 'routes' ? (
+        <TryPinCard result={tried} onResult={setTried} />
+      ) : null}
     </div>
   )
 }
