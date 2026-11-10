@@ -1,5 +1,6 @@
 'use client'
 
+import type { CourierRateRow } from '@commerce/core'
 import { RefreshCw, TriangleAlert, Truck } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { DialogFooter, DialogHeader, DialogTitle } from '@commerce/ui/shadcn/dialog'
@@ -11,6 +12,7 @@ import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import BulkCourierStep from './bulk-courier-step'
 import BulkDoneStep from './bulk-done-step'
+import BulkEditDialog, { type BulkEditOrder } from './bulk-edit-dialog'
 import BulkPackageStep from './bulk-package-step'
 import {
   type BulkMode,
@@ -19,6 +21,7 @@ import {
   bulkQuoteRequests,
   bulkSplit,
   courierTotals,
+  isBookable,
   OWN_WEIGHT,
   type ParcelQuote,
   type ShipmentDraft,
@@ -57,6 +60,9 @@ export default function BulkShipmentFlow({
   const [providerId, setProviderId] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [results, setResults] = useState<BulkResult[] | null>(null)
+  /** Couriers picked by hand in the Edit popup: orderId -> optionKey; beats the mode. */
+  const [overrides, setOverrides] = useState<Record<string, string>>({})
+  const [editing, setEditing] = useState<string | null>(null)
 
   // Helpers
   const askCouriers = async () => {
@@ -120,7 +126,19 @@ export default function BulkShipmentFlow({
   const box = draft.boxes.find((b) => b.id === boxId)
   const dims = box ? { length: box.lengthCm, width: box.widthCm, height: box.heightCm } : undefined
   const numbers = new Map(draft.orders.map((o) => [o.orderId, o.orderNumber]))
-  const picked = quotes ? bulkPicks(quotes, mode, providerId) : {}
+  const byMode = quotes ? bulkPicks(quotes, mode, providerId) : {}
+  const picked: Record<string, CourierRateRow | null> = { ...byMode }
+  for (const q of quotes ?? []) {
+    const key = overrides[q.orderId]
+    const hand = key ? q.options.find((o) => o.optionKey === key && isBookable(o)) : undefined
+    if (hand) picked[q.orderId] = hand
+  }
+  const editOrders: BulkEditOrder[] = (quotes ?? []).map((q) => ({
+    orderId: q.orderId,
+    orderNumber: numbers.get(q.orderId) ?? 0,
+    options: q.options.filter(isBookable),
+    pickedKey: picked[q.orderId]?.optionKey ?? null,
+  }))
   const rows = (quotes ?? []).map((q) => ({
     orderId: q.orderId,
     orderNumber: numbers.get(q.orderId) ?? 0,
@@ -181,6 +199,7 @@ export default function BulkShipmentFlow({
                 providerId={providerId}
                 onProviderChange={setProviderId}
                 picks={rows}
+                onEdit={setEditing}
               />
             )}
           </div>
@@ -188,6 +207,12 @@ export default function BulkShipmentFlow({
         {step === 'done' && results ? (
           <BulkDoneStep results={results} numbers={numbers} pickupDate={null} />
         ) : null}
+        <BulkEditDialog
+          orders={editOrders}
+          orderId={editing}
+          onOrderChange={setEditing}
+          onSave={(orderId, optionKey) => setOverrides((o) => ({ ...o, [orderId]: optionKey }))}
+        />
       </div>
       <DialogFooter>
         {step === 'done' ? (

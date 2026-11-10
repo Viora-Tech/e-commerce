@@ -398,7 +398,7 @@ export default function CreateShipmentPage({ orderId, back, courier }: CreateShi
                 <PickupNowDialog
                   open={pickupOpen}
                   onOpenChange={setPickupOpen}
-                  shipmentId={booked.shipmentId}
+                  shipmentIds={[booked.shipmentId]}
                   onDone={() => router.refresh()}
                 />
               </>

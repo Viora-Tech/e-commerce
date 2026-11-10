@@ -14,7 +14,8 @@ import { api } from '@/lib/api-client'
 type PickupNowDialogProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
-  shipmentId: string
+  /** The booked shipments; one pickup per courier and place is made (or joined). */
+  shipmentIds: string[]
   onDone: () => void
 }
 
@@ -33,7 +34,7 @@ const tomorrow = () => {
 export default function PickupNowDialog({
   open,
   onOpenChange,
-  shipmentId,
+  shipmentIds,
   onDone,
 }: PickupNowDialogProps) {
   // Hooks
@@ -47,7 +48,7 @@ export default function PickupNowDialog({
   const handleConfirm = async () => {
     try {
       const pickups = await api.shipments.schedulePickup({
-        shipmentIds: [shipmentId],
+        shipmentIds,
         date,
         timeFrom,
         timeTo: timeTo || undefined,

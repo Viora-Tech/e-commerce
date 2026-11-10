@@ -2,10 +2,12 @@
 
 import { CircleCheck, Printer, TriangleAlert } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
+import { useState } from 'react'
 import CopyButton from '@/components/fields/copy-button'
 import { createShipmentContent } from '@/data/create-shipment'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import type { api } from '@/lib/api-client'
+import PickupNowDialog from './pickup-now-dialog'
 
 type BulkResult = Awaited<ReturnType<typeof api.shipments.bulkBook>>[number]
 
@@ -22,6 +24,9 @@ export default function BulkDoneStep({ results, numbers, pickupDate = null }: Bu
   const copy = useCopy(createShipmentContent.done)
   const pickupCopy = useCopy(createShipmentContent.pickup)
   const fmt = useFormat()
+  const editCopy = useCopy(createShipmentContent.bulkEdit)
+  const [pickupOpen, setPickupOpen] = useState(false)
+  const [pickupDone, setPickupDone] = useState(false)
 
   // Event handlers
   const handlePrintAll = () => {
@@ -41,12 +46,23 @@ export default function BulkDoneStep({ results, numbers, pickupDate = null }: Bu
         <p className="font-medium text-ink-strong">
           {copy.bulkHeading(booked.length, results.length)}
         </p>
-        {labels ? (
-          <Button variant="outline" onClick={handlePrintAll}>
-            <Printer aria-hidden />
-            {copy.printAll}
-          </Button>
-        ) : null}
+        <span className="flex flex-wrap gap-2">
+          {labels ? (
+            <Button variant="outline" onClick={handlePrintAll}>
+              <Printer aria-hidden />
+              {copy.printAll}
+            </Button>
+          ) : null}
+          {shipmentIds.length > 0 && !pickupDone ? (
+            <Button onClick={() => setPickupOpen(true)}>{editCopy.pickups}</Button>
+          ) : null}
+        </span>
+        <PickupNowDialog
+          open={pickupOpen}
+          onOpenChange={setPickupOpen}
+          shipmentIds={shipmentIds}
+          onDone={() => setPickupDone(true)}
+        />
       </div>
       <ul className="flex flex-col divide-y divide-hairline rounded-lg border border-hairline">
         {results.map((r) => (
