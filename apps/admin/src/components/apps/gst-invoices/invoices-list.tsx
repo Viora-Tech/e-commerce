@@ -1,7 +1,14 @@
 'use client'
 
 import type { DocumentKind } from '@commerce/invoices'
-import { ChevronLeftIcon, ChevronRightIcon, Download, Printer, Send } from '@commerce/ui/icons'
+import {
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  Download,
+  Printer,
+  RefreshCw,
+  Send,
+} from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Checkbox } from '@commerce/ui/shadcn/checkbox'
 import { Input } from '@commerce/ui/shadcn/input'
@@ -23,6 +30,7 @@ import RelativeTime from '@/components/layout/relative-time'
 import OrderChip from '@/components/orders/order-chip'
 import TableEmptyRow from '@/components/table/table-empty-row'
 import TableSkeletonRows from '@/components/table/table-skeleton-rows'
+import { gstInvoiceBulkRefreshContent as refreshCopy } from '@/data/gst-invoice-refresh'
 import { gstInvoicesContent } from '@/data/gst-invoices'
 import { tableContent as tableCopy } from '@/data/table'
 import { api } from '@/lib/api-client'
@@ -108,7 +116,10 @@ export default function InvoicesList() {
   const [busy, setBusy] = useState(false)
   const [progress, setProgress] = useState<Progress | null>(null)
   const [gst, setGst] = useState<string | undefined>(undefined)
+  // Bumped after a bulk change so the open page reads its rows again.
+  const [version, setVersion] = useState(0)
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `version` re-runs the load after a bulk change
   useEffect(() => {
     let cancelled = false
     const timer = setTimeout(() => {
@@ -131,7 +142,7 @@ export default function InvoicesList() {
       cancelled = true
       clearTimeout(timer)
     }
-  }, [q, tab, month, page, gst])
+  }, [q, tab, month, page, gst, version])
 
   useEffect(() => {
     if (!progress || progress.sent + progress.failed >= progress.total) return
@@ -190,6 +201,12 @@ export default function InvoicesList() {
     bulk(async () => saveFile(await api.gstInvoices.bulkDownload(selection())))
   const handlePrint = () =>
     bulk(async () => saveFile(await api.gstInvoices.bulkPrint(selection()), 'open'))
+  const handleRecalculate = () =>
+    bulk(async () => {
+      const r = await api.gstInvoices.bulkRefreshGst(selection())
+      toast.success(refreshCopy.done(r.updated, r.unchanged, r.skipped))
+      setVersion((v) => v + 1)
+    })
   const handleEmail = () =>
     bulk(async () => {
       const r = await api.gstInvoices.bulkEmail(selection())
@@ -275,6 +292,12 @@ export default function InvoicesList() {
                 <Printer />
                 {copy.print}
               </Button>
+              {tab === 'tax_invoice' ? (
+                <Button size="sm" variant="outline" disabled={busy} onClick={handleRecalculate}>
+                  <RefreshCw />
+                  {refreshCopy.button}
+                </Button>
+              ) : null}
               <Button size="sm" disabled={busy} onClick={handleEmail}>
                 <Send />
                 {copy.email}

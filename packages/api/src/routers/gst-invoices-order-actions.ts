@@ -8,6 +8,7 @@ import {
   defaultInvoiceDate,
   enqueueOrderParcels,
   GST_INVOICES_ID,
+  InvoiceError,
   isCancelledOrder,
   issueDrafts,
   issuedInvoiceIds,
@@ -20,6 +21,7 @@ import { z } from 'zod'
 import { BULK_MAX, can } from '../procedures'
 import { orderIdsByNumber } from '../services/gst-invoices.service'
 import { asOrpc, renderDeps, requireInstalled } from './gst-invoices-context'
+import { Selection, selectedIds } from './gst-invoices-selection'
 
 /** Add orders by hand, e.g. a pre-order the merchant wants invoiced now. */
 export const addToQueue = can(permissions.ORDERS_WRITE)
@@ -161,5 +163,43 @@ const refreshInvoiceGst = can(permissions.ORDERS_WRITE)
     }
   })
 
+/**
+ * "Recalculate GST" on the Invoices list: the same rebuild for every selected document it can
+ * take (issued tax invoices not yet in GSTR-1). Others are skipped and counted, never an error,
+ * so one filed invoice in the selection does not stop the rest.
+ */
+const bulkRefreshInvoiceGst = can(permissions.ORDERS_WRITE)
+  .input(Selection)
+  .handler(async ({ context, input }) => {
+    await requireInstalled(context)
+    const ids = await selectedIds(context, input)
+    let updated = 0
+    let unchanged = 0
+    let skipped = 0
+    for (const id of ids) {
+      try {
+        const { row, changedLines } = await refreshFromProducts(
+          context.tx,
+          context.scope.storeId,
+          id,
+        )
+        if (changedLines === 0) {
+          unchanged++
+          continue
+        }
+        await renderAndStore(renderDeps(context), row.id)
+        updated++
+      } catch (err) {
+        if (err instanceof InvoiceError) skipped++
+        else throw err
+      }
+    }
+    return { updated, unchanged, skipped }
+  })
+
 /** Mounted on `gstInvoices` in one line, so that router stays within the file-size sweep. */
-export const invoiceFixProcedures = { forOrders: invoicesForOrders, refreshGst: refreshInvoiceGst }
+export const invoiceFixProcedures = {
+  forOrders: invoicesForOrders,
+  refreshGst: refreshInvoiceGst,
+  bulkRefreshGst: bulkRefreshInvoiceGst,
+}

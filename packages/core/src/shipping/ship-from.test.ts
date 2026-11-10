@@ -226,3 +226,63 @@ describe('courier pickup per location', () => {
     })
   })
 })
+
+describe('Settings › Shipping with no street', () => {
+  const PIN_ONLY = { enabled: ['fake'], policy: { originPincode: '131001', warehouse: {} } }
+
+  async function seedPinOnly(addressPin: string) {
+    const [s] = await owner
+      .insert(store)
+      .values({
+        slug: 'p',
+        name: 'Waimers',
+        shipping: PIN_ONLY,
+        contactPhone: '+919000000001',
+        address: {
+          line1: '12 Test Street',
+          line2: 'Sector 1',
+          city: 'Sonipat',
+          state: 'Haryana',
+          pincode: addressPin,
+          country: 'IN',
+        },
+      })
+      .returning()
+    if (!s) throw new Error('seed')
+    return s.id
+  }
+
+  it("sends the store's business address instead of a blank one", async () => {
+    const storeId = await seedPinOnly('131001')
+    const from = await withStore(app, storeId, (tx) =>
+      shipFromFor(tx, {
+        taxOrigin: null,
+        storeAddress: true,
+        settings: parseShippingSettings(PIN_ONLY),
+        storeName: 'Waimers',
+      }),
+    )
+    expect(from.address).toMatchObject({
+      name: 'Waimers',
+      line1: '12 Test Street',
+      city: 'Sonipat',
+      state: 'HR',
+      pincode: '131001',
+      phone: '+919000000001',
+    })
+  })
+
+  it('never borrows an address from another PIN code', async () => {
+    const storeId = await seedPinOnly('110001')
+    const from = await withStore(app, storeId, (tx) =>
+      shipFromFor(tx, {
+        taxOrigin: null,
+        storeAddress: true,
+        settings: parseShippingSettings(PIN_ONLY),
+        storeName: 'Waimers',
+      }),
+    )
+    expect(from.address.line1).toBe('')
+    expect(from.address.pincode).toBe('131001')
+  })
+})
