@@ -72,6 +72,11 @@ images 9 MB, product pages 8–11 MB; server 2.1 of 4 GB used (storefront 2 × 3
 worker 229 MB). Each step is measured before and after; a step that does not beat the numbers
 is dropped.
 
+0. **Image processing must not starve the storefront** (#1471, urgent). On 10 Nov a photo upload
+   made Waimers take 8 s per page: each image took 30–74 s on both cores, the worker has no CPU
+   limit, and every finished image cleared the whole store's page cache. Fix: worker limited to
+   1 core, one image thread, refresh only the pages that show the image, log slow renders. Must
+   land before `media:reprocess` (step 2) runs.
 1. **Cloudflare cache 10 minutes, cleared on every edit.** Code is done; needs the Cache Purge
    token, `STOREFRONT_EDGE_TTL=600`. Most visits answer in about 0.05 s.
 2. **No multi-MB originals** (merged #1422). Deploy, then `media:reprocess --own-size` once.
