@@ -185,7 +185,7 @@ describe('refused gateway keys', () => {
         expect(other.keysRefused).toBe(true)
         expect(await alerts()).toHaveLength(1)
 
-        // The shopper picks UPI to the shop's account: the same order, no second one, stock held once.
+        // The shopper picks UPI to the shop's account: the same order, no second one, stock held at most once.
         const again = await pay(shop, cartId, transfer)
         expect(again.orderId).toBe(first.orderId)
         expect(again.orderNumber).toBe(first.orderNumber)
@@ -197,7 +197,8 @@ describe('refused gateway keys', () => {
         const row = rows.find((r) => r.id === first.orderId)
         expect(row?.paymentMethod).toBe('manual')
         expect(row?.status).toBe(drafts === 'on' ? 'draft' : 'open')
-        expect(await reserved(shop.keyboard)).toBe(2)
+        // Each shopper's order holds one keyboard; an unpaid checkout draft holds none.
+        expect(await reserved(shop.keyboard)).toBe(drafts === 'on' ? 0 : 2)
         const notes = await owner
           .select()
           .from(orderNote)
