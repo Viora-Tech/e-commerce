@@ -46,6 +46,7 @@ export const appsContent = {
   allInstalled: 'All installed apps',
   listing: {
     back: 'Installed apps',
+    installed: 'Installed',
     whatItDoes: 'What it does',
     access: 'What it can access',
     trust: 'You can remove its access any time from Apps.',
