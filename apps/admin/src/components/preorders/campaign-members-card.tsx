@@ -16,13 +16,10 @@ type CampaignMembersCardProps = {
   onLimit: (productId: string, limit: string) => void
 }
 
-/** Per product (#1473): which variants take pre-orders and its own limit beyond stock. */
-export default function CampaignMembersCard({ form, disabled, onLimit }: CampaignMembersCardProps) {
-  // Hooks
-  const { form: f } = useCopy(preordersContent)
-  const { form: pickCopy } = useCopy(catalogsContent)
+/** Titles of the picked products, reloaded when the picked set changes. */
+function usePickedProducts(productIds: string[], pickCopy: typeof catalogsContent.form) {
   const [rows, setRows] = useState<PickItem[]>([])
-  const key = form.productIds.join(',')
+  const key = productIds.join(',')
 
   useEffect(() => {
     let live = true
@@ -37,11 +34,21 @@ export default function CampaignMembersCard({ form, disabled, onLimit }: Campaig
     }
   }, [key, pickCopy])
 
+  return rows
+}
+
+/** Per product (#1473): which variants take pre-orders and its own limit beyond stock. */
+export default function CampaignMembersCard({ form, disabled, onLimit }: CampaignMembersCardProps) {
+  // Hooks
+  const { form: f } = useCopy(preordersContent)
+  const { form: pickCopy } = useCopy(catalogsContent)
+  const rows = usePickedProducts(form.productIds, pickCopy)
+
+  // Helpers
+  const title = (id: string) => rows.find((r) => r.id === id)?.title ?? '…'
+
   // Early returns
   if (form.productIds.length === 0) return null
-
-  // Render logic
-  const title = (id: string) => rows.find((r) => r.id === id)?.title ?? '…'
 
   return (
     <DataCard title={f.perProduct} subtitle={f.perProductHelp}>

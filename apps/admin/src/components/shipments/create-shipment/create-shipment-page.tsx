@@ -52,7 +52,6 @@ type CreateShipmentPageProps = {
   courier?: string | undefined
 }
 
-
 /**
  * Figma "Orders · Create shipment" (616:16737): one page for one order. Route, package and
  * courier on the left with live rates as the package changes; the summary and Book on the
