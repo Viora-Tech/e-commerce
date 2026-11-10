@@ -26,6 +26,8 @@ type BookShipmentArgs = {
     providerLabel?: string | undefined
     needsTrackingNumber?: boolean | undefined
   } | null
+  /** Ship it yourself with an AWB from a connected courier's own panel: that app tracks it. */
+  panelProviderId?: string | null | undefined
   /** The AWB and courier name typed for MANUAL, already trimmed. */
   typed: ReturnType<typeof trackingPayload>
   courierLabel: string | undefined
@@ -44,6 +46,7 @@ export async function bookShipment(a: BookShipmentArgs): Promise<BookedShipment>
       orderId: a.order.orderId,
       lines: a.parcel.lines.map((l) => ({ lineId: l.id, quantity: l.quantity })),
       ...a.typed,
+      ...(a.panelProviderId ? { providerId: a.panelProviderId } : {}),
     })
     return {
       shipmentId: r.shipmentId,
