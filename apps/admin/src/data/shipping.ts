@@ -166,7 +166,7 @@ export const shipmentDetailsContent = {
   cancel: 'Cancel shipment',
   cancelTitle: 'Cancel this shipment?',
   cancelBody: (courier: string, awb: string) =>
-    `${courier} cancels AWB ${awb}. The parcel stays packed and the order goes back to the list to book, so you can book it again with any courier.`,
+    `${courier} cancels AWB ${awb}. Its items go back to To ship and back in stock, so you can book it again with any courier.`,
   cancelConfirm: 'Cancel shipment',
   keep: 'Keep shipment',
   cancelled: 'Shipment cancelled. You can book this order again.',
