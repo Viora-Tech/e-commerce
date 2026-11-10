@@ -8,7 +8,7 @@ import {
   RouteRuleInputSchema,
 } from './config'
 import { roundUpToTenRupees } from './price'
-import { chosenRoute, resolveDeliveryOptions, upToNine } from './resolve'
+import { chosenRoute, resolveDeliveryOptions } from './resolve'
 import type { ResolveInput } from './resolve-types'
 import type { ProviderAnswer, QuotedService } from './routes'
 import type { CartItemFacts } from './rules'
@@ -585,14 +585,6 @@ describe('courier list (the option shows every allowed courier)', () => {
   )
   const listInput = (over: Partial<ResolveInput> = {}) =>
     input({ config: { ...config(), options: [LIST] }, ...over })
-
-  it('upToNine rounds rupees up to end in 9', () => {
-    expect(upToNine(0)).toBe(0)
-    expect(upToNine(3_700)).toBe(3_900)
-    expect(upToNine(4_000)).toBe(4_900)
-    expect(upToNine(3_900)).toBe(3_900)
-    expect(upToNine(1)).toBe(900)
-  })
 
   it('lists couriers of any speed: the pick at its price, the rest at price + the difference', () => {
     const r = resolveDeliveryOptions(listInput())

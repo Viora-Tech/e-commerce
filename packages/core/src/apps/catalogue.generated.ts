@@ -1998,7 +1998,7 @@ export const APP_CATALOGUE_DATA: CatalogueEntry[] = [
       ],
       shares: [],
     },
-    adminPages: ['Overview'],
+    adminPages: ['Overview', 'Options', 'Routes', 'Product rules'],
     themeBlocks: [],
     credits: [],
   },

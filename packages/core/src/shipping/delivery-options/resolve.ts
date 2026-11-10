@@ -185,7 +185,7 @@ function traceRoute(
 const asRef = (r: { id: string; name: string }) => ({ id: r.id, name: r.name })
 
 /** Rupees rounded up so they end in 9 (₹37 → ₹39, ₹40 → ₹49); paise in, paise out. */
-export function upToNine(paise: number): number {
+function upToNine(paise: number): number {
   if (paise <= 0) return 0
   const rupees = Math.ceil(paise / 100)
   return (rupees + ((9 - (rupees % 10) + 10) % 10)) * 100
