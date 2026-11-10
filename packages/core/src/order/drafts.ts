@@ -312,6 +312,9 @@ export async function deleteDraft(ctx: StoreContext, id: string) {
  * Delete several drafts at once (the list's bulk action). Only rows still in `draft` go; an id
  * that converted in the meantime is left alone, and the count says how many went.
  */
+/** Payment rows that never took money: a draft's delete removes them with it. */
+const UNFINISHED_PAYMENTS = new Set<string>(['created', 'pending', 'failed', 'cancelled'])
+
 export async function deleteDrafts(ctx: StoreContext, ids: readonly string[]) {
   if (ids.length === 0) return 0
   // Locked so a conversion running at the same time waits, then finds the row gone.
@@ -322,6 +325,21 @@ export async function deleteDrafts(ctx: StoreContext, ids: readonly string[]) {
     .for('update')
   const draftIds = rows.map((r) => r.id)
   if (draftIds.length === 0) return 0
+  // A checkout draft carries the shopper's payment attempts (opened, never finished): they go
+  // with it. Money that came in (authorized, captured, refunded) stays and blocks the delete,
+  // which used to fail on the foreign key as a bare "Internal server error".
+  const payments = await ctx.tx
+    .select({ id: payment.id, status: payment.status })
+    .from(payment)
+    .where(inArray(payment.orderId, draftIds))
+  if (payments.some((p) => !UNFINISHED_PAYMENTS.has(p.status))) {
+    throw new CommerceError(
+      'draft_has_payment',
+      'A payment came in on this draft, so it cannot be deleted. Open it and convert it instead.',
+      { storeId: ctx.storeId },
+    )
+  }
+  if (payments.length > 0) await ctx.tx.delete(payment).where(inArray(payment.orderId, draftIds))
   // Held stock (#1030) goes back on sale with the draft.
   for (const r of rows) if (r.draftReserved?.length) await releaseReserved(ctx, r.draftReserved)
   await ctx.tx.delete(notification).where(inArray(notification.orderId, draftIds))
