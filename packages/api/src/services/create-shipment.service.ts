@@ -146,16 +146,20 @@ export async function prepareShipments(
     .from(location)
     .where(isNotNull(location.courierPickup))
     .orderBy(location.name)
+  // The same address a booking from Settings › Shipping sends (Store details when it has no street).
+  const storeFrom = (
+    await shipFromFor(tx, { taxOrigin: null, storeAddress: true, settings, storeName })
+  ).address
   const pickupPlaces: PickupPlace[] = [
     {
       id: null,
-      name: settings.policy.warehouse.name || storeName,
-      city: settings.policy.warehouse.city || null,
-      pincode: settings.policy.originPincode,
-      line1: settings.policy.warehouse.line1 || null,
-      line2: settings.policy.warehouse.line2 || null,
-      stateCode: settings.policy.warehouse.state || null,
-      phone: settings.policy.warehouse.phone || null,
+      name: storeFrom.name,
+      city: storeFrom.city || null,
+      pincode: storeFrom.pincode,
+      line1: storeFrom.line1 || null,
+      line2: storeFrom.line2 || null,
+      stateCode: storeFrom.state || null,
+      phone: storeFrom.phone || null,
     },
     ...places.flatMap((p) => (p.pincode ? [{ ...p, pincode: p.pincode }] : [])),
   ]

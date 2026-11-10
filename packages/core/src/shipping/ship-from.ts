@@ -15,15 +15,18 @@ import {
   location,
   type OrderTaxOrigin,
   type StoreTx,
+  store,
 } from '@commerce/db'
 import type { ShipmentAddress } from '@commerce/shipping'
 import { eq } from 'drizzle-orm'
+import { StoreAddressSchema } from '../settings/general'
 import {
   LocationCourierPickupSchema,
   type LocationPickupInput,
   LocationPickupInputSchema,
 } from '../tax/registration-schemas'
 import { GstRegistrationError } from '../tax/registrations'
+import { stateCode } from '../tax/states'
 import type { parseShippingSettings } from './settings'
 
 type LocationRow = typeof location.$inferSelect
@@ -66,9 +69,64 @@ export type ShipFrom = {
 
 type ShippingSettings = ReturnType<typeof parseShippingSettings>
 
+/** The store's business address (Settings › Store details) and phone, for `storeWide`. */
+type StoreFallback = {
+  line1: string
+  line2: string
+  city: string
+  state: string
+  pincode: string
+  phone: string
+}
+
+/**
+ * Settings › Store details' address when Settings › Shipping's dispatch address has no street:
+ * otherwise couriers get a blank pickup / return address. Only when its PIN code is the dispatch
+ * PIN (or none is set), so a parcel never names an address in another town.
+ */
+async function storeFallback(
+  tx: StoreTx,
+  settings: ShippingSettings,
+): Promise<StoreFallback | null> {
+  if (settings.policy.warehouse.line1.trim()) return null
+  const [s] = await tx.select({ address: store.address, phone: store.contactPhone }).from(store)
+  const a = StoreAddressSchema.safeParse(s?.address ?? {})
+  if (!a.success || !a.data.line1.trim()) return null
+  const origin = settings.policy.originPincode
+  if (origin && a.data.pincode && a.data.pincode !== origin) return null
+  return {
+    line1: a.data.line1,
+    line2: a.data.line2,
+    city: a.data.city,
+    state: stateCode(a.data.state) ?? a.data.state,
+    pincode: a.data.pincode,
+    phone: s?.phone ?? '',
+  }
+}
+
 /** Settings › Shipping's return address: what every booking used before per-location pickup. */
-function storeWide(settings: ShippingSettings, storeName: string): ShipFrom {
+function storeWide(
+  settings: ShippingSettings,
+  storeName: string,
+  fallback: StoreFallback | null = null,
+): ShipFrom {
   const w = settings.policy.warehouse
+  if (fallback) {
+    return {
+      address: {
+        name: w.name || storeName,
+        line1: fallback.line1,
+        line2: fallback.line2 || undefined,
+        city: fallback.city,
+        state: fallback.state,
+        pincode: settings.policy.originPincode || fallback.pincode,
+        country: 'IN',
+        phone: w.phone || fallback.phone,
+      },
+      pickupLocationName: null,
+      locationId: null,
+    }
+  }
   return {
     address: {
       name: w.name || storeName,
@@ -103,14 +161,16 @@ export async function shipFromFor(
     storeName: string
   },
 ): Promise<ShipFrom> {
-  if (input.storeAddress) return storeWide(input.settings, input.storeName)
+  if (input.storeAddress)
+    return storeWide(input.settings, input.storeName, await storeFallback(tx, input.settings))
   const id = input.locationId ?? input.taxOrigin?.locationId ?? null
   const [loc] = await tx
     .select()
     .from(location)
     .where(id ? eq(location.id, id) : eq(location.isDefault, true))
   const pickup = loc?.courierPickup
-  if (!loc || !pickup || !hasPickupAddress(loc)) return storeWide(input.settings, input.storeName)
+  if (!loc || !pickup || !hasPickupAddress(loc))
+    return storeWide(input.settings, input.storeName, await storeFallback(tx, input.settings))
   return {
     address: {
       name: pickup.contactName || loc.name,
