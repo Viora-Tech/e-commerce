@@ -9,7 +9,12 @@ import { productFormContent } from '@/data/product-form'
 import { useCopy } from '@/hooks/use-copy'
 
 /** Fields left blank are not touched; `skuPrefix` becomes PREFIX-VALUE-VALUE per row. */
-export type VariantBulkPatch = { price?: string; quantity?: string; skuPrefix?: string }
+export type VariantBulkPatch = {
+  price?: string
+  mrp?: string
+  quantity?: string
+  skuPrefix?: string
+}
 
 type VariantBulkBarProps = {
   count: number
@@ -17,11 +22,12 @@ type VariantBulkBarProps = {
   onClear: () => void
 }
 
-/** Set one price, quantity or SKU prefix across every selected variant row. */
+/** Set one price, MRP, quantity or SKU prefix across every selected variant row. */
 export default function VariantBulkBar({ count, onApply, onClear }: VariantBulkBarProps) {
   // Hooks
   const { variantBulk: copy } = useCopy(productFormContent)
   const [price, setPrice] = useState('')
+  const [mrp, setMrp] = useState('')
   const [quantity, setQuantity] = useState('')
   const [skuPrefix, setSkuPrefix] = useState('')
 
@@ -29,17 +35,19 @@ export default function VariantBulkBar({ count, onApply, onClear }: VariantBulkB
   const handleApply = () => {
     const patch: VariantBulkPatch = {}
     if (price.trim() !== '') patch.price = price.trim()
+    if (mrp.trim() !== '') patch.mrp = mrp.trim()
     if (quantity.trim() !== '') patch.quantity = quantity.trim()
     if (skuPrefix.trim() !== '') patch.skuPrefix = skuPrefix.trim()
     if (Object.keys(patch).length === 0) return
     onApply(patch)
     setPrice('')
+    setMrp('')
     setQuantity('')
     setSkuPrefix('')
   }
 
   // Render logic
-  const empty = price.trim() === '' && quantity.trim() === '' && skuPrefix.trim() === ''
+  const empty = [price, mrp, quantity, skuPrefix].every((v) => v.trim() === '')
 
   return (
     <div className="flex flex-wrap items-center gap-3 border-y border-border bg-primary-soft/60 px-5 py-2">
@@ -51,6 +59,9 @@ export default function VariantBulkBar({ count, onApply, onClear }: VariantBulkB
           value={price}
           onChange={setPrice}
         />
+      </span>
+      <span className="w-32">
+        <MoneyInput aria-label={copy.mrp} placeholder={copy.mrp} value={mrp} onChange={setMrp} />
       </span>
       <span className="w-32">
         <MoneyInput

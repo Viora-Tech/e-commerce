@@ -386,6 +386,7 @@ export const productFormContent = {
   variantBulk: {
     selected: (n: number) => `${n} variant${n === 1 ? '' : 's'} selected`,
     price: 'Set price',
+    mrp: 'Set MRP',
     quantity: 'Set quantity',
     sku: 'SKU prefix',
     skuHelp: 'A prefix gives each selected variant PREFIX-VALUE SKUs.',

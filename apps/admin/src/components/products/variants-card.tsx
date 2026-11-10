@@ -116,12 +116,13 @@ export default function VariantsCard({
   const handleToggleGroup = (value: string) =>
     setOpenGroups((now) => (now.includes(value) ? now.filter((v) => v !== value) : [...now, value]))
 
-  const handleBulkApply = ({ price, quantity, skuPrefix }: VariantBulkPatch) => {
+  const handleBulkApply = ({ price, mrp, quantity, skuPrefix }: VariantBulkPatch) => {
     for (const index of selected) {
       const row = variants[index]
       if (!row) continue
       onVariant(index, {
         ...(price === undefined ? {} : { price }),
+        ...(mrp === undefined ? {} : { mrp }),
         ...(quantity === undefined || !row.trackInventory ? {} : { quantity }),
         ...(skuPrefix === undefined ? {} : { sku: suggestSku(skuPrefix, row.optionValues) }),
       })
