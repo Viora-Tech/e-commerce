@@ -362,7 +362,7 @@ function OrdersContent({ initial }: { initial: OrdersInitial }) {
         // Delivery and Tags show on the row by default (#1007); the rest stay in the columns menu.
         defaultHidden={['fulfilment', 'channel', 'items', 'phone', 'city']}
         query={query}
-        onQueryChange={(query) => setQ({ query, page: 1 })}
+        onQueryChange={(query) => setQ({ query, page: 1 }, { history: 'replace' })}
         onClearAll={() => setQ({ query: '', status: null, ...NO_FILTERS, page: 1 })}
         filterGroups={groups}
         views={
