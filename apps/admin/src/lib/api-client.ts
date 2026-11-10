@@ -4,6 +4,7 @@ import { createApiClient } from '@commerce/api/client'
 import { approvalsContent } from '@/data/approvals'
 import { validationContent } from '@/data/common'
 import { focusFirstIssue, withReadableValidation } from '@/lib/api-errors'
+import { showApprovalNotice } from '@/lib/approval-notice'
 import { localize } from '@/lib/copy'
 import { localeFromCookieHeader } from '@/lib/i18n'
 import { isStepUpRequired, requestStepUp } from '@/lib/step-up-gate'
@@ -21,6 +22,7 @@ function readable(err: unknown): unknown {
     const copy = localize(approvalsContent, locale)
     const data = (err as { data?: { alreadyRequested?: boolean } }).data
     err.message = data?.alreadyRequested ? copy.already : copy.sent
+    if (typeof window !== 'undefined') showApprovalNotice(err.message)
     return err
   }
   // Next frame: the toast shows the plain sentence and the cursor lands in the field it names.
