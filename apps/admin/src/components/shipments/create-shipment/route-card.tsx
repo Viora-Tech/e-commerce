@@ -99,8 +99,17 @@ function Side({ label, place, chip, actions, empty }: SideProps) {
   )
 }
 
-/** The "Gurugram 122001" under a city on the route bar; a pickup with no address asks for one. */
-function Endpoint({ place, align }: { place: Place | null; align: 'start' | 'end' }) {
+/** The "Gurugram 122001" under a city on the route bar; a pickup with only a PIN shows its name
+ * and PIN (couriers still collect from their own saved address), with nothing at all a link. */
+function Endpoint({
+  place,
+  align,
+  pinOnly,
+}: {
+  place: Place | null
+  align: 'start' | 'end'
+  pinOnly?: { name: string | null; pincode: string } | null
+}) {
   // Render logic
   const isOrigin = align === 'start'
 
@@ -110,6 +119,11 @@ function Endpoint({ place, align }: { place: Place | null; align: 'start' | 'end
         <>
           <p className="text-body font-medium text-ink-strong">{place.city ?? '—'}</p>
           <p className="text-caption text-muted-foreground">{place.pincode}</p>
+        </>
+      ) : isOrigin && pinOnly ? (
+        <>
+          <p className="text-body font-medium text-ink-strong">{pinOnly.name ?? '—'}</p>
+          <p className="text-caption text-muted-foreground">{pinOnly.pincode}</p>
         </>
       ) : isOrigin ? (
         <AddPickupLink />
@@ -143,7 +157,11 @@ export default function RouteCard({
   return (
     <section className="overflow-hidden rounded-xl border border-border bg-card">
       <div className="flex items-center gap-4 border-b border-border px-4 py-3">
-        <Endpoint place={origin} align="start" />
+        <Endpoint
+          place={origin}
+          align="start"
+          pinOnly={from?.pincode ? { name: from.name, pincode: from.pincode } : null}
+        />
         <span aria-hidden="true" className="h-px flex-1 border-t border-dashed border-border" />
         <Endpoint place={to} align="end" />
       </div>
@@ -159,6 +177,7 @@ export default function RouteCard({
               {from?.pincode ? (
                 <p className="text-muted-foreground">{copy.pickupPin(from.pincode)}</p>
               ) : null}
+              <p className="text-caption text-muted-foreground">{copy.courierPickupNote}</p>
               <AddPickupLink />
             </div>
           }
