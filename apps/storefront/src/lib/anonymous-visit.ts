@@ -1,3 +1,4 @@
+import 'server-only'
 import { createHash } from 'node:crypto'
 import { clientIp } from '@commerce/core'
 

@@ -46,6 +46,14 @@ import {
   type Tracking,
   type TrackingEvent,
 } from '@commerce/shipping'
+import {
+  type AddOrderResponse,
+  type Answer,
+  type LabelResponse,
+  type RatesResponse,
+  reasonOf,
+  type TrackingResponse,
+} from './answers'
 import { SHIPGLOBAL_API_URL, SHIPGLOBAL_TRACKING_PAGE, type ShipglobalServiceCode } from './client'
 import {
   billedGrams,
@@ -89,54 +97,6 @@ const DEFAULT_BOX_CM = { length: 10, width: 10, height: 10 }
 const AUTH_ERROR_CODE = 'EA_401'
 const REFUSED_LOGIN =
   'ShipGlobal did not accept this API username or password. Copy them again from ShipGlobal › Settings › API.'
-
-/** Every answer carries `success`; a refusal adds `error` (and often `error_code`) or `msg`. */
-type Answer = {
-  success?: boolean
-  error?: string
-  error_code?: string
-  msg?: string
-  message?: string
-}
-
-type RatesResponse = Answer & {
-  billed_weight?: number
-  billed_weight_unit?: string
-  currency?: string
-  services?: {
-    title?: string
-    notes?: string
-    transit_time?: string
-    price?: { logistic_fee?: number }
-    subtotal_fee?: number
-  }[]
-}
-
-/**
- * VERIFY: the docs show no answer for order/add. ShipGlobal's other answers put the number in
- * `tracking`, so that is read first, then the likely nested spellings.
- */
-type AddOrderResponse = Answer & {
-  tracking?: string
-  awb?: string
-  awb_number?: string
-  data?: { tracking?: string; awb?: string; awb_number?: string; order_reference?: string }
-}
-
-type LabelResponse = Answer & { tracking?: string; label?: string }
-
-type TrackingResponse = Answer & {
-  data?: {
-    awbEvents?: {
-      awb_history_datetime?: string
-      awb_history_location?: string
-      awb_history_comment?: string
-      awb_event_code?: string
-    }[]
-  }
-}
-
-const reasonOf = (a: Answer) => (a.error || a.msg || a.message || '').trim()
 
 export class ShipglobalProvider implements ShippingProvider {
   readonly id = 'shipglobal'

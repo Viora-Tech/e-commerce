@@ -1,12 +1,9 @@
 import { CourierError } from '@commerce/shipping'
 import { describeShippingProvider, sampleShipment } from '@commerce/shipping/testing'
 import { describe, expect, it } from 'vitest'
-import {
-  eddDaysFromToday,
-  mapRapidshypStatus,
-  RapidshypProvider,
-  rapidshypFactory,
-} from '../src/rapidshyp'
+import { eddDaysFromToday } from '../src/edd'
+import { RapidshypProvider, rapidshypFactory } from '../src/rapidshyp'
+import { mapRapidshypStatus } from '../src/status'
 
 /** A date N days ahead on India's calendar, as RapidShyp writes it (DD-MM-YYYY). */
 const istDaysAhead = (n: number) => {
