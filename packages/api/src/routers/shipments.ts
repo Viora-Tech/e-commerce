@@ -1,5 +1,5 @@
 import { settingsSecret } from '@commerce/config'
-import { permissions } from '@commerce/core'
+import { permissions, splitFulfillmentOrder } from '@commerce/core'
 import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
 import { BULK_MAX, can, heavy, PAGE_SIZE_MAX, SEARCH_MAX } from '../procedures'
@@ -157,6 +157,27 @@ export const shipmentsRouter = {
 
   /** Create shipment, step 1: each order's parcels (items, weight, box, pickup place, COD)
    *  and the store's couriers, boxes and pickup places. Reads only; no courier is called. */
+  /** Partial shipment: the parcel keeps `keep`; the rest becomes a new parcel (Part 2). */
+  splitParcel: can(permissions.ORDERS_FULFIL)
+    .input(
+      z.object({
+        orderId: z.uuid(),
+        fulfillmentOrderId: z.uuid(),
+        keep: z
+          .array(z.object({ orderLineId: z.uuid(), quantity: z.number().int().min(0) }))
+          .min(1)
+          .max(500),
+      }),
+    )
+    .handler(({ context, input }) =>
+      splitFulfillmentOrder(
+        { tx: context.tx, storeId: context.scope.storeId },
+        input.orderId,
+        input.fulfillmentOrderId,
+        input.keep,
+      ),
+    ),
+
   prepare: can(permissions.ORDERS_READ)
     .input(z.object({ orderIds: z.array(z.uuid()).min(1).max(BULK_MAX) }))
     .handler(async ({ context, input }) => {

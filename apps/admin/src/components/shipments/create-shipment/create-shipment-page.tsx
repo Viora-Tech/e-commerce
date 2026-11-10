@@ -43,6 +43,7 @@ import {
 } from './flow-state'
 import NoPickupLocationAlert, { missingPickupLocation } from './no-pickup-location-alert'
 import PackageStep from './package-step'
+import PartialPicker from './partial-picker'
 import PickupNowDialog from './pickup-now-dialog'
 import { startingPickupPlan } from './pickup-plan'
 import RouteCard from './route-card'
@@ -139,6 +140,22 @@ export default function CreateShipmentPage({ orderId, back, courier }: CreateShi
   }
   const handlePickupPlace = (pickupLocationId: string | null) =>
     form && setForm({ ...form, pickupLocationId })
+  /* After a partial split the parcel holds fewer items: reload it and its package. */
+  const handleSplit = async () => {
+    try {
+      const d = await api.shipments.prepare({ orderIds: [orderId] })
+      setDraft(d)
+      const o = d.orders[0]
+      const same = o?.parcels.find((p) => p.id === parcelId) ?? o?.parcels[0]
+      if (o && same) {
+        setParcelId(same.id)
+        setForm(packageFor(o, same, d))
+      }
+      recheck()
+    } catch {
+      setFailed(true)
+    }
+  }
   const handleEditCustomer = async () => {
     try {
       const full = await api.orders.get({ id: orderId })
@@ -319,6 +336,13 @@ export default function CreateShipmentPage({ orderId, back, courier }: CreateShi
                 </span>
               }
             >
+              <PartialPicker
+                key={`${parcel.id ?? 'whole'}:${parcel.lines.map((l) => `${l.id}x${l.quantity}`).join(',')}`}
+                orderId={orderId}
+                parcelId={parcel.id}
+                lines={parcel.lines}
+                onSplit={handleSplit}
+              />
               <PackageStep
                 draft={draft}
                 order={order}

@@ -72,6 +72,16 @@ export const createShipmentContent = {
     },
     noneLeft: 'None of these orders can be booked here.',
   },
+  partial: {
+    heading: 'Items in this parcel · ship now',
+    of: (n: number, total: number) => `${n} of ${total}`,
+    less: (title: string) => `One less ${title}`,
+    more: (title: string) => `One more ${title}`,
+    summary: (now: number, later: number) =>
+      `${now} item${now === 1 ? '' : 's'} ship now; ${later} stay in To ship as the next parcel.`,
+    split: 'Ship only these',
+    done: 'Split. The rest is a new parcel in To ship.',
+  },
   drawer: {
     title: 'Select courier partner',
     open: 'Select courier',
