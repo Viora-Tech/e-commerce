@@ -48,6 +48,11 @@ type SettingsDrillProps = {
   before?: ReactNode
   /** First screen only: more under the row list (a link row to a sub-page). */
   after?: ReactNode
+  /**
+   * False when the page's own PageHeader turns into the open row's title with its "‹ Page" back
+   * link (Staff), so the detail does not show a second back row under it.
+   */
+  backRow?: boolean
   children: ReactNode
 }
 
@@ -94,6 +99,7 @@ export default function SettingsDrill({
   header,
   before,
   after,
+  backRow = true,
   children,
 }: SettingsDrillProps) {
   // Hooks
@@ -142,7 +148,7 @@ export default function SettingsDrill({
           ) : null}
           {header?.notice ?? null}
           {current ? null : before}
-          {current && header ? null : current ? (
+          {current && (header || !backRow) ? null : current ? (
             <button
               type="button"
               onClick={() => handleOpen(null)}
