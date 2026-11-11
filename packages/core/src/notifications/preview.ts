@@ -79,8 +79,7 @@ export async function previewOrderMessage(
           ...credit,
           ...(reminder ? { reminder } : {}),
         })
-      )
-        .subject
+      ).subject
     : email.subject
   const chat = messageDef(input.template)?.channels.includes('whatsapp')
     ? renderWhatsapp(input.template, data).text

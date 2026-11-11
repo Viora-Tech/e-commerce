@@ -65,7 +65,7 @@ describe('store credit in order emails', () => {
     const data = await inStore(storeId, (tx) =>
       storeCreditTemplateData({ storeId, tx }, { template: 'draft_invoice', orderId }),
     )
-    expect(data).toEqual({ storeCredit: { appliedLabel: '−₹500.00', toPayLabel: '₹1,000.00' } })
+    expect(data).toEqual({ storeCredit: { appliedLabel: '−₹500', toPayLabel: '₹1,000' } })
   })
 
   it('order confirmation: used on the order, and the balance left', async () => {
@@ -77,7 +77,7 @@ describe('store credit in order emails', () => {
       storeCreditTemplateData({ storeId, tx }, { template: 'order_placed', orderId }),
     )
     expect(data).toEqual({
-      storeCredit: { change: { kind: 'used', amountLabel: '₹300.00', balanceLabel: '₹500.00' } },
+      storeCredit: { change: { kind: 'used', amountLabel: '₹300', balanceLabel: '₹500' } },
     })
     // Not in other messages, even for this order.
     for (const template of ['order_shipped', 'payment_received', 'delivered'] as const) {
@@ -132,7 +132,7 @@ describe('store credit in order emails', () => {
       ),
     )
     expect(data).toEqual({
-      storeCredit: { change: { kind: 'added', amountLabel: '₹200.00', balanceLabel: '₹1,000.00' } },
+      storeCredit: { change: { kind: 'added', amountLabel: '₹200', balanceLabel: '₹1,000' } },
     })
   })
 })

@@ -61,11 +61,9 @@ export type TransactionalEmailProps = {
  */
 export function TransactionalEmail(p: TransactionalEmailProps) {
   const colours = brandColours(p.brand)
-  const paragraphs = [
-    p.intro,
-    p.notice,
-    ...(p.note?.split(/\n+/).filter(Boolean) ?? []),
-  ].filter((t): t is string => Boolean(t))
+  const paragraphs = [p.intro, p.notice, ...(p.note?.split(/\n+/).filter(Boolean) ?? [])].filter(
+    (t): t is string => Boolean(t),
+  )
   return (
     <EmailLayout
       previewText={p.previewText}

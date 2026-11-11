@@ -201,7 +201,13 @@ describe('store credit expiry', () => {
   it('checkout spends only what has not expired', async () => {
     const { storeId, customerId, orderId } = await seed()
     // Added two days ago with an end a second ago: expired, but no expiry line written yet.
-    await add(storeId, customerId, 30_000, new Date(Date.now() - 2 * DAY), new Date(Date.now() - 1000))
+    await add(
+      storeId,
+      customerId,
+      30_000,
+      new Date(Date.now() - 2 * DAY),
+      new Date(Date.now() - 1000),
+    )
     await add(storeId, customerId, 5_000, new Date(Date.now() - 2 * DAY))
     const spent = await inStore(storeId, (tx) =>
       spendStoreCreditOnOrder({ storeId, tx }, { orderId, customerId, duePaise: 50_000 }),

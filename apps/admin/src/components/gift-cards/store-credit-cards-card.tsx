@@ -38,10 +38,9 @@ export default function StoreCreditCardsCard({ onMoved }: StoreCreditCardsCardPr
   const [cards, setCards] = useState<Card[] | null>(null)
   const [picked, setPicked] = useState<Set<string>>(new Set())
   const [confirming, setConfirming] = useState(false)
-  const canRead = hasPermission(permissions.CUSTOMERS_READ)
 
+  // Without customers.read the call is refused and the card stays hidden.
   useEffect(() => {
-    if (!canRead) return
     let live = true
     api.storeCredit
       .listGiftCards()
@@ -56,7 +55,7 @@ export default function StoreCreditCardsCard({ onMoved }: StoreCreditCardsCardPr
     return () => {
       live = false
     }
-  }, [canRead])
+  }, [])
 
   // Helpers
   const money = (paise: number) => formatPaise(paise, locale)
@@ -107,7 +106,7 @@ export default function StoreCreditCardsCard({ onMoved }: StoreCreditCardsCardPr
   }
 
   // Early returns
-  if (!canRead || !cards || cards.length === 0) return null
+  if (!cards || cards.length === 0) return null
 
   // Render logic
   const canMove = hasPermission(permissions.CUSTOMERS_WRITE)
@@ -133,24 +132,29 @@ export default function StoreCreditCardsCard({ onMoved }: StoreCreditCardsCardPr
         <p className="text-caption text-muted-foreground">{copy.intro}</p>
         <p className="text-caption text-muted-foreground">{copy.suggestedNote}</p>
         {canMove && movableCards.length > 1 ? (
-          <label className="flex items-center gap-2 text-body">
-            <Checkbox checked={allPicked} onCheckedChange={(v) => handleToggleAll(Boolean(v))} />
-            {copy.selectAll}
-          </label>
+          <div className="flex items-center gap-2 text-body">
+            <Checkbox
+              id="store-credit-cards-all"
+              checked={allPicked}
+              onCheckedChange={(v) => handleToggleAll(Boolean(v))}
+            />
+            <label htmlFor="store-credit-cards-all">{copy.selectAll}</label>
+          </div>
         ) : null}
         <ul className="flex flex-col divide-y divide-line">
           {cards.map((c) => (
             <li key={c.id} className="flex items-start justify-between gap-3 py-2">
-              <label className="flex min-w-0 items-start gap-2">
+              <div className="flex min-w-0 items-start gap-2">
                 {canMove ? (
                   <Checkbox
+                    id={`store-credit-card-${c.id}`}
                     className="mt-0.5"
                     checked={picked.has(c.id)}
                     disabled={!movable(c)}
                     onCheckedChange={(v) => handleToggle(c.id, Boolean(v))}
                   />
                 ) : null}
-                <span className="min-w-0">
+                <label htmlFor={`store-credit-card-${c.id}`} className="min-w-0">
                   <span className="block font-mono text-body-strong tracking-wide">
                     {maskedGiftCardCode(c.lastCharacters)}
                   </span>
@@ -167,8 +171,8 @@ export default function StoreCreditCardsCard({ onMoved }: StoreCreditCardsCardPr
                       {copy.expires(lastDay(c.expiresOn))}
                     </span>
                   ) : null}
-                </span>
-              </label>
+                </label>
+              </div>
               <span className="shrink-0 tabular-nums text-foreground">{money(c.balancePaise)}</span>
             </li>
           ))}

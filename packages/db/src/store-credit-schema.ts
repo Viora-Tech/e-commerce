@@ -87,9 +87,7 @@ export const storeCreditEntry = pgTable(
     uniqueIndex('store_credit_entry_gift_card_once')
       .on(t.giftCardId)
       .where(sql`${t.giftCardId} is not null`),
-    index('store_credit_entry_expires')
-      .on(t.expiresAt)
-      .where(sql`${t.expiresAt} is not null`),
+    index('store_credit_entry_expires').on(t.expiresAt).where(sql`${t.expiresAt} is not null`),
     check('store_credit_entry_nonzero', sql`${t.amountPaise} <> 0`),
     check(
       'store_credit_entry_kind_check',

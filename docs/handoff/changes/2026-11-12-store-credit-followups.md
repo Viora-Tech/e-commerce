@@ -71,6 +71,11 @@ in-house on our own ledger (same radar decision as step 1); nothing copied.
   `customers/store-credit-gift-cards.test.ts` (listing/ticks, move, run twice, two at once, holder
   by email/new, no holder, expiry kept), `notifications/store-credit-data.test.ts`.
 - notifications `test/store-credit.test.ts` (invoice rows, used/added lines, none otherwise).
+- Run here: those plus every core store-credit, draft, returns, order edit, gift card and
+  notification test (13 files, 120 tests), api MCP catalogue/approvals, worker, notifications,
+  `bun run test:sweeps` (29/29; `openLots`, `dueLots`, `moveGiftCardToStoreCredit` allow-listed in
+  no-orphans as tested helpers), typecheck of db, core, notifications, api, worker, admin and
+  storefront, Biome on changed files.
 
 ## Not done / open
 

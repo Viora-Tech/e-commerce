@@ -85,9 +85,17 @@ describe('old store-credit gift cards → balance', () => {
       note: 'Imported from Shopify gift card ending WXYZ. Refund for #1001',
     })
     // Not listed: bought at checkout, a plain manual card, used up, disabled.
-    await card(storeId, { balancePaise: 10_000, source: 'purchase', note: 'Store credit refund for order #1' })
+    await card(storeId, {
+      balancePaise: 10_000,
+      source: 'purchase',
+      note: 'Store credit refund for order #1',
+    })
     await card(storeId, { balancePaise: 10_000, note: 'Birthday' })
-    await card(storeId, { balancePaise: 0, note: 'Store credit refund for order #2' })
+    await card(storeId, {
+      balancePaise: 0,
+      initialValuePaise: 10_000,
+      note: 'Store credit refund for order #2',
+    })
     await card(storeId, {
       balancePaise: 5_000,
       note: 'Store credit for return R-3 (order #9)',
@@ -136,7 +144,11 @@ describe('old store-credit gift cards → balance', () => {
 
   it('two moves at once credit the balance once', async () => {
     const { storeId, customerId } = await seed()
-    const c = await card(storeId, { balancePaise: 70_000, customerId, note: 'Store credit refund for order #5' })
+    const c = await card(storeId, {
+      balancePaise: 70_000,
+      customerId,
+      note: 'Store credit refund for order #5',
+    })
     const runs = await Promise.allSettled(
       [1, 2].map(() =>
         inStore(storeId, (tx) =>
@@ -148,7 +160,10 @@ describe('old store-credit gift cards → balance', () => {
       'already_moved',
       'moved',
     ])
-    const lines = await owner.select().from(storeCreditEntry).where(eq(storeCreditEntry.giftCardId, c.id))
+    const lines = await owner
+      .select()
+      .from(storeCreditEntry)
+      .where(eq(storeCreditEntry.giftCardId, c.id))
     expect(lines).toHaveLength(1)
     const account = await inStore(storeId, (tx) => storeCreditOf({ storeId, tx }, customerId))
     expect(account.balancePaise).toBe(70_000)

@@ -112,15 +112,13 @@ async function hasExpiringCredit(ctx: StoreContext, customerId: string): Promise
   const [row] = await ctx.tx
     .select({ id: storeCreditEntry.id })
     .from(storeCreditEntry)
-    .where(
-      and(eq(storeCreditEntry.customerId, customerId), isNotNull(storeCreditEntry.expiresAt)),
-    )
+    .where(and(eq(storeCreditEntry.customerId, customerId), isNotNull(storeCreditEntry.expiresAt)))
     .limit(1)
   return Boolean(row)
 }
 
 /** The customer's credits with an expiry date that still hold money, soonest first. */
-export async function openStoreCreditLots(
+async function openStoreCreditLots(
   ctx: StoreContext,
   customerId: string,
 ): Promise<StoreCreditLot[]> {
@@ -134,7 +132,7 @@ export async function openStoreCreditLots(
  * Expired credit not yet taken off the balance (the sweep or the next change writes it). A
  * reader subtracts this so the balance it shows is what the customer can really spend.
  */
-export async function dueStoreCreditPaise(
+async function dueStoreCreditPaise(
   ctx: StoreContext,
   customerId: string,
   now: Date = new Date(),

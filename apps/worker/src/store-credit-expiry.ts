@@ -27,7 +27,9 @@ export function createStoreCreditExpiry(db: Db) {
     let expiredPaise = 0
     for (const storeId of storeIds) {
       try {
-        const done = await withStore(db, storeId, (tx) => sweepExpiredStoreCredit({ storeId, tx }, now))
+        const done = await withStore(db, storeId, (tx) =>
+          sweepExpiredStoreCredit({ storeId, tx }, now),
+        )
         customers += done.customers
         expiredPaise += done.expiredPaise
       } catch (err) {

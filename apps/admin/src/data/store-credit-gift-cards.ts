@@ -17,7 +17,8 @@ export const storeCreditGiftCardsContent = {
     expired: 'Expired, nothing to move',
   } as Record<string, string>,
   selectAll: 'Select all',
-  move: (count: number) => (count === 1 ? 'Move 1 card to balance' : `Move ${count} cards to balance`),
+  move: (count: number) =>
+    count === 1 ? 'Move 1 card to balance' : `Move ${count} cards to balance`,
   confirmTitle: 'Move to store credit?',
   confirmBody: (amount: string) =>
     `${amount} goes onto the customers’ store credit balances, and these card codes stop working. Each card moves once; running it again changes nothing.`,

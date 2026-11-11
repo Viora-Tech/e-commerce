@@ -83,11 +83,6 @@ import { createUnpaidOrderExpiry, EXPIRY_EVERY_MS } from './payments-expiry'
 import { createPixelsWorker, PIXELS_PRUNE_EVERY_MS } from './pixels'
 import { platformWebhooks } from './platform-webhooks'
 import { BALANCE_EVERY_MS, createPreorderBalanceJob } from './preorder-balance'
-import {
-  createStoreCreditExpiry,
-  STORE_CREDIT_EXPIRY_EVERY_MS,
-  STORE_CREDIT_EXPIRY_QUEUE,
-} from './store-credit-expiry'
 import { createPurchaseDocumentWorker } from './purchase-documents'
 import { createConnection, createHeartbeat } from './queues'
 import { createRetentionPrune, RETENTION_SCHEDULE } from './retention'
@@ -100,6 +95,11 @@ import { shipmentWebhooks } from './shipments-webhook'
 import { createShippingTracker, TRACK_EVERY_MS } from './shipping'
 import { createShopifyTokenSweep, SHOPIFY_TOKEN_SWEEP_EVERY_MS } from './shopify-token-sweep'
 import { createStoreActivityPrune, STORE_ACTIVITY_PRUNE_EVERY_MS } from './store-activity'
+import {
+  createStoreCreditExpiry,
+  STORE_CREDIT_EXPIRY_EVERY_MS,
+  STORE_CREDIT_EXPIRY_QUEUE,
+} from './store-credit-expiry'
 import { createStoreExportWorker } from './store-export'
 import { createSweepWorker, type Sweep, scheduleSweeps } from './sweeps'
 import { createThemeScreenshotWorker } from './theme-screenshot'

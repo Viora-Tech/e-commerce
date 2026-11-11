@@ -465,6 +465,8 @@ export async function storesWithExpiredDraftHolds(db: Db): Promise<string[]> {
 
 /** Store ids with an open unpaid checkout draft (0233), for the nudge and 7-day expiry. SECURITY DEFINER backed. */
 export async function storesWithOpenCheckoutDrafts(db: Db): Promise<string[]> {
-  const rows = await db.execute<{ id: string }>(sql`select stores_with_open_checkout_drafts() as id`)
+  const rows = await db.execute<{ id: string }>(
+    sql`select stores_with_open_checkout_drafts() as id`,
+  )
   return rows.map((r) => r.id)
 }

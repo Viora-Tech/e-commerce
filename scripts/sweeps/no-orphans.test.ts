@@ -40,6 +40,18 @@ const ALLOWLIST: AllowEntry[] = [
     reason: 'used in the module and asserted directly by service.test.ts',
   },
   {
+    file: 'packages/core/src/customers/store-credit-expiry.ts',
+    names: ['openLots', 'dueLots'],
+    reason:
+      'the pure ledger replay, used in the module and asserted directly by store-credit-expiry.test.ts',
+  },
+  {
+    file: 'packages/core/src/customers/store-credit-gift-cards.ts',
+    names: ['moveGiftCardToStoreCredit'],
+    reason:
+      'one card, used by moveGiftCardsToStoreCredit in the module and asserted directly (concurrency) by store-credit-gift-cards.test.ts',
+  },
+  {
     file: 'packages/core/src/pixels/meta.ts',
     names: ['verifyMetaToken'],
     reason: 'used in the module and asserted directly by meta.test.ts',

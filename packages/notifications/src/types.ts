@@ -262,9 +262,7 @@ export type TemplateData = {
         /** "−₹500.00" */
         appliedLabel?: string | undefined
         toPayLabel?: string | undefined
-        change?:
-          | { kind: 'used' | 'added'; amountLabel: string; balanceLabel: string }
-          | undefined
+        change?: { kind: 'used' | 'added'; amountLabel: string; balanceLabel: string } | undefined
       }
     | undefined
   /** For balance messages: what is still owed, what was paid up front, and when it must be paid by. */
