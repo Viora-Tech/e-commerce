@@ -50,3 +50,29 @@ export function canRemindToPay(o: {
 export function shownPaymentStatus(o: { status: string; paymentStatus: string }): string {
   return o.status === 'cancelled' && o.paymentStatus === 'unpaid' ? 'voided' : o.paymentStatus
 }
+
+const PACKED_NOT_DELIVERED: ReadonlySet<string> = new Set([
+  'fulfilled',
+  'partially_fulfilled',
+  'shipped',
+])
+
+/**
+ * The undo actions an order offers, one rule for the order page's More actions and the orders
+ * list's row menu (owner, 11 Nov 2026: the two menus disagreed). Imported history offers none.
+ * Permissions are checked by each menu; the API refuses what cannot be undone and says why.
+ */
+export function orderUndos(o: {
+  status: string
+  fulfillmentStatus: string | null
+  importedFrom?: string | null | undefined
+}): { unfulfil: boolean; undeliver: boolean; restore: boolean } {
+  if (o.importedFrom) return { unfulfil: false, undeliver: false, restore: false }
+  const open = o.status === 'open'
+  const f = o.fulfillmentStatus ?? 'unfulfilled'
+  return {
+    unfulfil: open && PACKED_NOT_DELIVERED.has(f),
+    undeliver: open && f === 'delivered',
+    restore: o.status === 'cancelled',
+  }
+}

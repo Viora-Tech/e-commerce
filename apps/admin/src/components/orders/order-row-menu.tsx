@@ -11,6 +11,7 @@ import {
   FileEdit,
   Package,
   PackageCheck,
+  RotateCcw,
   Undo,
 } from '@commerce/ui/icons'
 import { useRouter } from 'next/navigation'
@@ -31,7 +32,13 @@ import { shipmentPanelContent } from '@/data/shipping'
 import { useCopy } from '@/hooks/use-copy'
 import { usePermissions } from '@/hooks/use-permissions'
 import { api } from '@/lib/api-client'
-import { canRemindToPay, MOVE_ACTION, nextOrderMove, type OrderMove } from '@/lib/order-next-move'
+import {
+  canRemindToPay,
+  MOVE_ACTION,
+  nextOrderMove,
+  type OrderMove,
+  orderUndos,
+} from '@/lib/order-next-move'
 import { routes } from '@/lib/routes'
 
 type OrderRowMenuProps = {
@@ -103,6 +110,11 @@ export default function OrderRowMenu({
       router.push(`${routes.orders.detail(order.id)}?fulfil=1`)
       return
     }
+    // As on the order page, "Mark as paid" asks how the money came in (cash, UPI, bank).
+    if (to === 'paid') {
+      router.push(`${routes.orders.detail(order.id)}?collect=1`)
+      return
+    }
     try {
       await api.orders.setStatus({ id: order.id, status: to })
       toast.success(detail.moved(list.marks[to].toLowerCase()))
@@ -116,6 +128,18 @@ export default function OrderRowMenu({
     try {
       await api.orders.sendPaymentReminder({ orderId: order.id, custom, channel })
       toast.success(detail.payment.transfer.sentToast)
+      onChanged()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : list.bulk.failed)
+    }
+  }
+
+  /* The order page's undo actions, the same calls and rules (the API refuses what cannot be
+     undone and says why). */
+  const handleUndo = async (call: () => Promise<unknown>, done: string) => {
+    try {
+      await call()
+      toast.success(done)
       onChanged()
     } catch (err) {
       toast.error(err instanceof Error ? err.message : list.bulk.failed)
@@ -198,6 +222,7 @@ export default function OrderRowMenu({
   const open = order.status === 'open' && !order.importedFrom
   const current = order.tags ?? []
   const fulfilment = order.fulfillmentStatus ?? 'unfulfilled'
+  const undos = orderUndos(order)
   const canShip =
     open &&
     SHIPPABLE.includes(fulfilment) &&
@@ -248,6 +273,33 @@ export default function OrderRowMenu({
             destructive: true,
             hidden: !canCancelShipment,
             onSelect: () => setDialog('cancelShipment'),
+          },
+          {
+            label: detail.actions.markNotShipped,
+            icon: RotateCcw,
+            hidden: !undos.unfulfil || !hasPermission(permissions.ORDERS_FULFIL),
+            onSelect: () =>
+              handleUndo(
+                () => api.orders.markNotShipped({ id: order.id }),
+                detail.actions.markedNotShipped,
+              ),
+          },
+          {
+            label: detail.actions.markNotDelivered,
+            icon: RotateCcw,
+            hidden: !undos.undeliver || !hasPermission(permissions.ORDERS_WRITE),
+            onSelect: () =>
+              handleUndo(
+                () => api.orders.markNotDelivered({ id: order.id }),
+                detail.actions.markedNotDelivered,
+              ),
+          },
+          {
+            label: detail.actions.restore,
+            icon: RotateCcw,
+            hidden: !undos.restore || !hasPermission(permissions.ORDERS_CANCEL),
+            onSelect: () =>
+              handleUndo(() => api.orders.restore({ id: order.id }), detail.actions.restored),
           },
           {
             label: detail.actions.cancel,

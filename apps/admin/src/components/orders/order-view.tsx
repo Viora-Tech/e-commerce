@@ -82,7 +82,10 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
   const detailsCopy = useCopy(shipmentDetailsContent)
   const router = useRouter()
   /* `?fulfil=1`: the orders list's "Mark as fulfilled" opens the pack form here. */
-  const askedToFulfil = useSearchParams().get('fulfil') === '1'
+  const asked = useSearchParams()
+  const askedToFulfil = asked.get('fulfil') === '1'
+  /* `?collect=1`: the orders list's "Mark as paid" asks how the money came in, here. */
+  const askedToCollect = asked.get('collect') === '1'
   const { hasPermission } = usePermissions()
   const apps = useOrderAppActions(appActions, () => router.refresh())
   const duplicateOrder = useDuplicateOrder()
@@ -94,7 +97,7 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
   const [reviewing, setReviewing] = useState<
     'balance_request' | 'payment_reminder' | 'order_link' | null
   >(null)
-  const [collecting, setCollecting] = useState(false)
+  const [collecting, setCollecting] = useState(askedToCollect)
   const [cancelling, setCancelling] = useState(false)
   const [holding, setHolding] = useState(false)
   const messages = useOrderMessages(order.id, setBusy, () => router.refresh())
