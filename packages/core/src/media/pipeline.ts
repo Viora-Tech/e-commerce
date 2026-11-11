@@ -146,7 +146,8 @@ async function processAnimatedGif(
     },
     variants: [],
     width: meta.width,
-    height: meta.height,
+    // An animated image's `height` is every frame stacked; `pageHeight` is one frame (#1545).
+    height: meta.pageHeight ?? meta.height,
     thumbhash: Buffer.from(hash).toString('base64'),
     animated: true,
   }
