@@ -17,6 +17,9 @@ export default [
       title: 'Shopify से इंपोर्ट · Liquid',
       body: 'इसकी सेटिंग्स सेक्शन के schema से आती हैं। इसके ब्लॉक Layers में जोड़ें, छिपाएँ और क्रम बदलें; इसका मार्कअप कोड में बदलें।',
       openCode: 'Edit code में खोलें',
+      policies:
+        'ये लिंक वे पॉलिसी हैं जो आप Settings › Policies में प्रकाशित करते हैं (रिफ़ंड, प्राइवेसी, शर्तें, शिपिंग, संपर्क)। कोई प्रकाशित नहीं, तो कोई नहीं दिखेगा।',
+      openPolicies: 'Policies खोलें',
     },
     dialog: {
       title: 'अपनी Shopify थीम इंपोर्ट करें',

@@ -75,6 +75,21 @@ describe('imported section blocks in Layers', () => {
     expect(rows[0]).toMatchObject({ title: 'Lofree Hyzen', typeName: 'Video slide' })
   })
 
+  it('never names a block by a size like 0.875rem (#1486)', () => {
+    const types = liquidBlockTypes(schema, theme)
+    const rows = liquidBlockRows(
+      {
+        ...props,
+        blocks: [
+          { id: 'p', type: 'video', settings: { font_size: '0.875rem', case: 'uppercase' } },
+          { id: 'q', type: 'video', settings: { size: '14px', gap: 'var(--gap-sm)' } },
+        ],
+      },
+      types,
+    )
+    expect(rows.map((r) => r.title)).toEqual(['Video slide', 'Video slide'])
+  })
+
   it('never names a block by a select value like full_bleed', () => {
     const types = liquidBlockTypes(schema, theme)
     const rows = liquidBlockRows(

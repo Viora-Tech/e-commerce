@@ -30,8 +30,10 @@ export type LiquidBlockType = { type: string; name: string }
 /** Settings read as the block's own words, in order of preference. */
 const TITLE_KEYS = ['heading', 'title', 'text', 'label', 'name', 'caption', 'subheading']
 
-/** Not words a person would call the block by: links, colours, Shopify references, numbers. */
-const NOT_A_NAME = /^(https?:|shopify:\/\/|\/|#[0-9a-f]{3,8}$|rgba?\(|[\d\s.,%px-]+$)/i
+/** Not words a person would call the block by: links, colours, Shopify references, numbers and
+ *  sizes ("14px", "0.875rem": a Horizon footer's Policy links read "0.875rem" in Layers, #1486). */
+const NOT_A_NAME =
+  /^(https?:|shopify:\/\/|\/|#[0-9a-f]{3,8}$|rgba?\(|var\(|-?[\d\s.,]+(px|rem|em|%|vh|vw|pt)?$)/i
 
 /** A select option's value, not words: `full_bleed`, `left`, `image-first`. */
 const OPTION_VALUE = /^[a-z0-9]+(?:[_-][a-z0-9]+)*$/
