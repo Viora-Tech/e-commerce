@@ -2,6 +2,7 @@ import {
   appSettingsOf,
   decryptSecret,
   encryptSecret,
+  lockStoreApps,
   parseAppsSettings,
   withAppSettings,
 } from '@commerce/core'
@@ -43,9 +44,12 @@ export type GrowthbookExperimentsView =
   | { state: 'ready'; experiments: GrowthbookExperiment[] }
 
 async function loadRow(tx: StoreTx, storeId: string, lock = false) {
-  const read = tx.select({ apps: store.apps }).from(store).where(eq(store.id, storeId))
-  const [s] = lock ? await read.for('update') : await read
-  const apps = parseAppsSettings(s?.apps)
+  // About to write store.apps back: read it under the row lock, so no writer is lost.
+  const apps = lock
+    ? await lockStoreApps(tx, storeId)
+    : parseAppsSettings(
+        (await tx.select({ apps: store.apps }).from(store).where(eq(store.id, storeId)))[0]?.apps,
+      )
   return { apps, settings: parseGrowthbookSettings(appSettingsOf(apps, GROWTHBOOK_ID)) }
 }
 
