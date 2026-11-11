@@ -74,6 +74,14 @@ export const productVariantsContent = {
     preorder: 'Allow pre-order',
     preorderHelp:
       'When the product is on pre-order, this variant keeps selling after it runs out. Off: once sold out it shows crossed out and cannot be bought.',
+    /** The variant's own pre-order limit, shown while the product takes pre-orders. */
+    preorderLimit: 'Pre-order limit',
+    preorderLimitHelp:
+      "Most pre-orders this variant takes once it is out of stock. Leave blank to use the product's limit.",
+    /** Placeholder while blank: the limit the variant uses instead. */
+    preorderLimitFromProduct: (limit: string) => `Uses product: ${limit}`,
+    preorderLimitNone: 'No limit',
+    preorderLimitFromCampaign: "Uses the campaign's limit",
     previous: 'Previous variant',
     next: 'Next variant',
     position: (n: string, of: string) => `${n} of ${of}`,

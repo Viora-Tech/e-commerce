@@ -8,7 +8,7 @@ import { useState } from 'react'
 import { productFormContent } from '@/data/product-form'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { bestMargin } from '@/lib/variant-margin'
-import type { MediaItem, VariantRow } from './form-state'
+import type { MediaItem, VariantPreorderContext, VariantRow } from './form-state'
 import type { ProductTax } from './product-tax'
 import VariantEditDialog from './variant-edit-dialog'
 import VariantGroupRow from './variant-group-row'
@@ -24,6 +24,8 @@ type VariantMatrixProps = {
   media: MediaItem[]
   /** The product's HSN and GST rate, for the variant dialog (#63). */
   tax: ProductTax
+  /** Whether the product takes pre-orders, for the dialog's pre-order limit. */
+  preorder: VariantPreorderContext
   selected: number[]
   onSelectedChange: (next: number[]) => void
   onToggleGroup: (value: string) => void
@@ -53,6 +55,7 @@ export default function VariantMatrix({
   lines,
   media,
   tax,
+  preorder,
   selected,
   onSelectedChange,
   onToggleGroup,
@@ -161,6 +164,7 @@ export default function VariantMatrix({
           onMove={setEditing}
           onClose={() => setEditing(null)}
           tax={tax}
+          preorder={preorder}
         />
       ) : null}
     </div>

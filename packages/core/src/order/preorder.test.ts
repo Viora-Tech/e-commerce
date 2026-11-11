@@ -258,6 +258,71 @@ describe('pre-order per variant (#962) and its note (#936)', () => {
   })
 })
 
+describe("a variant's own pre-order limit", () => {
+  /** A pre-order product (limit 10) with a second sold-out variant limited to 2 of its own. */
+  async function seedLimitedVariant(storeId: string) {
+    const seeded = await seedProduct(storeId, {
+      onHand: 0,
+      preorderEnabled: true,
+      preorderLimit: 10,
+    })
+    const [limited] = await owner
+      .insert(variant)
+      .values({
+        storeId,
+        productId: seeded.productId,
+        title: 'Blue',
+        pricePaise: 100000,
+        preorderOverride: { limit: 2 },
+      })
+      .returning()
+    if (!limited) throw new Error('seed')
+    await owner.insert(inventoryLevel).values({ storeId, variantId: limited.id, onHand: 0 })
+    return { ...seeded, limitedId: limited.id }
+  }
+
+  it('caps the cart line at the variant limit; its sibling keeps the product limit', async () => {
+    const storeId = await seedStore()
+    const { variantId, limitedId } = await seedLimitedVariant(storeId)
+    const [c] = await owner.insert(cart).values({ storeId }).returning()
+    const cartId = c?.id as string
+    const lines = await withStore(app, storeId, async (tx) => {
+      await addToCart({ storeId, tx }, cartId, limitedId, 5)
+      await addToCart({ storeId, tx }, cartId, variantId, 5)
+      return (await getCart({ storeId, tx }, cartId))?.lines ?? []
+    })
+    const byVariant = new Map(lines.map((l) => [l.variantId, [l.quantity, l.available]]))
+    expect(byVariant.get(limitedId)).toEqual([2, 2])
+    expect(byVariant.get(variantId)).toEqual([5, 10])
+  })
+
+  it('refuses at checkout past the variant limit, even from a line written past the cart', async () => {
+    const storeId = await seedStore()
+    const { limitedId } = await seedLimitedVariant(storeId)
+    const cartId = await seedCart(storeId, limitedId, 3, 100000)
+    await expect(
+      withStore(app, storeId, (tx) =>
+        placeOrder({ storeId, tx }, { cartId, paymentProvider: new FakePaymentProvider() }),
+      ),
+    ).rejects.toThrow(OutOfStock)
+  })
+
+  it('counts what earlier orders already pre-sold against the variant limit', async () => {
+    const storeId = await seedStore()
+    const { limitedId } = await seedLimitedVariant(storeId)
+    const first = await seedCart(storeId, limitedId, 2, 100000)
+    await withStore(app, storeId, (tx) =>
+      placeOrder({ storeId, tx }, { cartId: first, paymentProvider: new FakePaymentProvider() }),
+    )
+    const second = await seedCart(storeId, limitedId, 1, 100000)
+    await expect(
+      withStore(app, storeId, (tx) =>
+        placeOrder({ storeId, tx }, { cartId: second, paymentProvider: new FakePaymentProvider() }),
+      ),
+    ).rejects.toThrow(OutOfStock)
+  })
+})
+
 describe('pre-order deposits', () => {
   it('charges only the fixed deposit and records the balance due', async () => {
     const storeId = await seedStore()

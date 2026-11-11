@@ -245,7 +245,6 @@ export default function ProductForm({
     setAttempted(false)
     setServerError(null)
   }
-
   const handleArchive = () => void handleSave(form.status === 'archived' ? 'draft' : 'archived')
 
   const handleRemove = async () => {
@@ -313,6 +312,7 @@ export default function ProductForm({
         variants={form.variants}
         media={form.media}
         tax={form.tax}
+        preorder={form}
         facets={facets}
         error={showErrors ? errors.variants : undefined}
         onOptions={setOptions}

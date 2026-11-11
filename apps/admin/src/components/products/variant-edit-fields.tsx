@@ -18,7 +18,7 @@ import { COUNTRIES } from '@/data/countries'
 import { productFormContent } from '@/data/product-form'
 import { productShippingContent } from '@/data/product-shipping'
 import { useCopy, useFormat } from '@/hooks/use-copy'
-import { margin, type VariantRow } from './form-state'
+import { margin, type VariantPreorderContext, type VariantRow } from './form-state'
 import type { ProductTax } from './product-tax'
 import WeightInput from './weight-input'
 import ZeroPriceWarning from './zero-price-warning'
@@ -30,6 +30,8 @@ type VariantEditFieldsProps = {
   onGenerateSku: () => void
   /** The product's HSN and GST rate; the variant edits its own only when `perVariant` (#63). */
   tax: ProductTax
+  /** Whether the product takes pre-orders and the limit a blank field uses. */
+  preorder: VariantPreorderContext
 }
 
 const NONE = '__none'
@@ -43,6 +45,7 @@ export default function VariantEditFields({
   onPatch,
   onGenerateSku,
   tax,
+  preorder,
 }: VariantEditFieldsProps) {
   // Hooks
   const formCopy = useCopy(productFormContent)
@@ -53,6 +56,13 @@ export default function VariantEditFields({
   const { pricing, inventory, shipping, variants } = formCopy
   const copy = variants.dialog
   const profit = margin(draft.price, draft.cost)
+  const { inherited } = preorder
+  const limitPlaceholder =
+    inherited.from === 'campaign'
+      ? copy.preorderLimitFromCampaign
+      : inherited.limit == null
+        ? copy.preorderLimitNone
+        : copy.preorderLimitFromProduct(fmt.number(inherited.limit))
   const countries = Object.fromEntries([
     [NONE, shipping.countryPlaceholder],
     ...COUNTRIES.map((c) => [c.code, c.name]),
@@ -188,6 +198,24 @@ export default function VariantEditFields({
             onCheckedChange={(preorderAllowed) => onPatch({ preorderAllowed })}
           />
         </div>
+        {preorder.on && draft.preorderAllowed ? (
+          <KitField
+            label={copy.preorderLimit}
+            htmlFor="edit-variant-preorder-limit"
+            help={copy.preorderLimitHelp}
+          >
+            <Input
+              size="kit"
+              id="edit-variant-preorder-limit"
+              value={draft.preorderLimit}
+              placeholder={limitPlaceholder}
+              onChange={(e) => onPatch({ preorderLimit: e.target.value.replace(/\D/g, '') })}
+              autoComplete="off"
+              inputMode="numeric"
+              className="md:max-w-[12rem]"
+            />
+          </KitField>
+        ) : null}
       </Group>
 
       <Group title={copy.tax}>
