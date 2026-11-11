@@ -28,6 +28,8 @@ type BookShipmentArgs = {
   } | null
   /** Ship it yourself with an AWB from a connected courier's own panel: that app tracks it. */
   panelProviderId?: string | null | undefined
+  /** Shipping insurance from the drawer's toggle; undefined follows the checkout choice. */
+  insured?: boolean | undefined
   /** The AWB and courier name typed for MANUAL, already trimmed. */
   typed: ReturnType<typeof trackingPayload>
   courierLabel: string | undefined
@@ -71,6 +73,7 @@ export async function bookShipment(a: BookShipmentArgs): Promise<BookedShipment>
     dimensionsCm: a.parsed.dimensionsCm,
     paymentMode: a.parsed.paymentMode,
     codAmountPaise: a.parsed.codAmountPaise,
+    insured: a.insured,
   })
   /* Until the courier has a pickup request for this place and day, the waybill sits in its
      "Ready to Ship" list. The request goes out right after the booking; a refusal is recorded

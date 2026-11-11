@@ -73,7 +73,14 @@ export const createShipmentContent = {
     noneLeft: 'None of these orders can be booked here.',
   },
   partial: {
-    heading: 'Items in this parcel · ship now',
+    heading: 'Items in this parcel',
+    shipNow: 'Ship now',
+    tick: (title: string) => `Ship ${title} now`,
+    itemCount: (n: number) => `${n} item${n === 1 ? '' : 's'}`,
+    parcelNow: 'Parcel 1 · ships now',
+    parcelNowHelp: 'Box and weight below are for these items',
+    parcelLater: 'Parcel 2 · stays in To ship',
+    parcelLaterHelp: 'Ships later; it gets its own label',
     of: (n: number, total: number) => `${n} of ${total}`,
     less: (title: string) => `One less ${title}`,
     more: (title: string) => `One more ${title}`,
@@ -94,6 +101,28 @@ export const createShipmentContent = {
     pickupBody:
       'The courier gets the pickup request and its manifest in one go. If a pickup is already booked for that place and day, this parcel joins it.',
     pickupDone: 'Pickup booked. The parcel moved to To be picked up.',
+    /** Figma 898:7790: the drawer's header toggle, tabs, sort and table. */
+    insurance: 'Shipping insurance',
+    insuranceCovers: (price: string | null, value: string) =>
+      price
+        ? `+${price} · covers ${value} if lost or damaged`
+        : `Covers ${value} if lost or damaged · the courier's rate`,
+    mode: { all: 'All', air: 'Air', surface: 'Surface' } as Record<
+      'all' | 'air' | 'surface',
+      string
+    >,
+    sortLabel: 'Sort',
+    sort: { recommended: 'Recommended', cheapest: 'Cheapest', fastest: 'Fastest' } as Record<
+      'recommended' | 'cheapest' | 'fastest',
+      string
+    >,
+    columns: { courier: 'Courier', delivery: 'Delivery', weight: 'Weight', charges: 'Charges' },
+    inDays: (n: number) => `in ${n} ${n === 1 ? 'day' : 'days'}`,
+    via: (name: string) => `via ${name}`,
+    inclGst: 'incl. GST',
+    inclGstInsurance: 'incl. GST + insurance',
+    breakdown: 'Price breakdown',
+    youPay: 'You pay',
   },
   courier: {
     panelLabel: 'Booked in which courier app?',
@@ -233,6 +262,8 @@ export const createShipmentContent = {
       [`Order #${orderNumber}`, who, items, payment].filter(Boolean).join(' · '),
     paidBy: (method: string) => `Paid by ${method}`,
     cod: 'Cash on delivery',
+    codShort: 'COD',
+    prepaidShort: 'Prepaid',
     shipFrom: 'Ship from',
     shipTo: 'Ship to',
     /** #17: the store has no pickup address yet, only a PIN code. */

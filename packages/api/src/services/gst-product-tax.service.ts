@@ -1,11 +1,11 @@
 /** SOURCE OF TRUTH: GST and HSN per product for the GST invoices app — WHAT: every product's Charge GST switch, GST rate and HSN code, read and set many at a time / WHY: checkout and invoices read these per variant, and one table is quicker than opening 250 products */
-import { product, type StoreTx, store, variant } from '@commerce/db'
+import { media, product, productMedia, type StoreTx, store, variant } from '@commerce/db'
 import { and, asc, count, eq, ilike, inArray, isNull, ne, type SQL, sql } from 'drizzle-orm'
 
 /** GST rates a product can be set to (GST 2.0 slabs, plus the older ones still on the books). */
 export const GST_RATES = [0, 3, 5, 12, 18, 28, 40] as const
 
-export const PRODUCT_TAX_FILTERS = ['all', 'missing_hsn', 'gst_off'] as const
+export const PRODUCT_TAX_FILTERS = ['all', 'missing_hsn', 'missing_rate', 'gst_off'] as const
 export type ProductTaxFilter = (typeof PRODUCT_TAX_FILTERS)[number]
 
 export type ProductTaxMatch = { filter: ProductTaxFilter; search?: string | undefined }
@@ -26,6 +26,8 @@ const live = and(
 const having: Record<ProductTaxFilter, SQL | undefined> = {
   all: undefined,
   missing_hsn: sql`count(*) filter (where ${effectiveHsn} is null) > 0`,
+  /* No rate of its own on the variant or the product: it falls back to the store rate. */
+  missing_rate: sql`count(*) filter (where coalesce(${variant.gstRatePercent}, ${product.gstRatePercent}) is null) > 0`,
   gst_off: sql`count(*) filter (where not ${variant.taxable}) > 0`,
 }
 
@@ -55,6 +57,8 @@ function grouped(tx: StoreTx, match: ProductTaxMatch) {
 export type ProductTaxRow = {
   id: string
   title: string
+  /** The product's first photo, for the row's thumbnail. */
+  imageUrl: string | null
   variants: number
   /** On for every variant, off for every one, or a mix. */
   charge: 'on' | 'off' | 'mixed'
@@ -66,6 +70,20 @@ export type ProductTaxRow = {
   /** Null uses the store rate. */
   gstRatePercent: number | null
   rateMixed: boolean
+}
+
+/** Each product's first photo (lowest position), for this page's rows only. */
+async function firstImages(tx: StoreTx, ids: string[]): Promise<Map<string, string>> {
+  if (ids.length === 0) return new Map()
+  const rows = await tx
+    .select({ productId: productMedia.productId, url: media.url })
+    .from(productMedia)
+    .innerJoin(media, eq(media.id, productMedia.mediaId))
+    .where(inArray(productMedia.productId, ids))
+    .orderBy(asc(productMedia.position))
+  const out = new Map<string, string>()
+  for (const r of rows) if (!out.has(r.productId)) out.set(r.productId, r.url)
+  return out
 }
 
 export async function listProductTax(
@@ -81,12 +99,17 @@ export async function listProductTax(
     tx.select({ n: count() }).from(sq),
     tx.select({ rate: store.gstRatePercent }).from(store),
   ])
+  const images = await firstImages(
+    tx,
+    rows.map((r) => r.id),
+  )
   const items: ProductTaxRow[] = rows.map((r) => {
     const hsnMixed = !r.hsCode && r.hsnKinds > 1
     const rateMixed = r.gstRatePercent === null && r.rateKinds > 1
     return {
       id: r.id,
       title: r.title,
+      imageUrl: images.get(r.id) ?? null,
       variants: r.variants,
       charge: r.taxed === r.variants ? 'on' : r.taxed === 0 ? 'off' : 'mixed',
       hsCode: r.hsCode?.trim() || (hsnMixed ? null : r.variantHsn),

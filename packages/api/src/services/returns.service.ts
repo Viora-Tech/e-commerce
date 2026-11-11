@@ -32,7 +32,11 @@ import {
 import type { StoreTx } from '@commerce/db'
 import { giftCard, shipment, store } from '@commerce/db'
 import type { PaymentRegistry } from '@commerce/payments'
-import { CourierError, describeCourierFailure, type ShippingRegistry } from '@commerce/shipping'
+import {
+  CourierError,
+  describeCourierFailureForStaff,
+  type ShippingRegistry,
+} from '@commerce/shipping'
 import { ORPCError } from '@orpc/server'
 import { eq } from 'drizzle-orm'
 import { providerForPayment } from './order.service'
@@ -43,7 +47,7 @@ async function run<T>(fn: () => Promise<T>): Promise<T> {
     return await fn()
   } catch (err) {
     if (err instanceof CourierError) {
-      const detail = err.kind === 'rejected' ? err.message : describeCourierFailure(err)
+      const detail = describeCourierFailureForStaff(err)
       throw new ORPCError('BAD_REQUEST', { message: detail })
     }
     if (err instanceof CommerceError) throw new ORPCError('BAD_REQUEST', { message: err.message })

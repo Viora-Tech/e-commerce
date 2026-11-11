@@ -22,6 +22,7 @@ import RowActionsCell from '@/components/table/row-actions-cell'
 import { tableContent } from '@/data/table'
 import { useCopy } from '@/hooks/use-copy'
 import { publishListSelection } from '@/lib/list-selection'
+import { openRow } from '../open-row'
 import {
   type CellAlign,
   defineColumns,
@@ -422,10 +423,13 @@ export default function ResourceTable<T extends RowData>(props: ResourceTablePro
                         )}
                         onClick={
                           target
-                            ? () => router.push(target)
+                            ? (e) => openRow(e, target, (to) => router.push(to))
                             : folds
                               ? () => row.toggleExpanded()
                               : undefined
+                        }
+                        onAuxClick={
+                          target ? (e) => openRow(e, target, (to) => router.push(to)) : undefined
                         }
                       >
                         {row.getVisibleCells().map((cell) => {

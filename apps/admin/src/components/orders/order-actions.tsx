@@ -39,7 +39,7 @@ import {
   ordersContent,
 } from '@/data/orders'
 import { useCopy } from '@/hooks/use-copy'
-import { MOVE_ACTION, nextOrderMove } from '@/lib/order-next-move'
+import { MOVE_ACTION, nextOrderMove, orderUndos } from '@/lib/order-next-move'
 import { routes } from '@/lib/routes'
 
 type OrderActionsProps = {
@@ -56,6 +56,8 @@ type OrderActionsProps = {
   onShip?: (() => void) | undefined
   /** Cancels the booked courier shipment (asks first); undefined when there is none to cancel. */
   onCancelShipment?: (() => void) | undefined
+  /** Why the booked shipment can no longer be cancelled here; shown instead of asking. */
+  cancelShipmentBlocked?: string | undefined
   /** Nudges the customer about an unmatched UPI or bank transfer. */
   onSendReminder?: (() => void) | undefined
   /** "Send order link": the customer's link to their order page; undefined hides it. */
@@ -64,6 +66,10 @@ type OrderActionsProps = {
   onViewStatusPage?: (() => void) | undefined
   /** Undo a "Mark as delivered" pressed by mistake; shown only on a delivered order. */
   onMarkNotDelivered?: (() => void) | undefined
+  /** Packed items back to To ship when no courier booking is live (a label cancelled earlier). */
+  onMarkNotShipped?: (() => void) | undefined
+  /** "Restore order": a cancelled order back to open; shown only on a cancelled order. */
+  onRestore?: (() => void) | undefined
   /** Starts a new draft from this order ("Duplicate order"); undefined hides it. */
   onDuplicate?: (() => void) | undefined
   /** "Archive order": off the working tabs; undefined hides it (no right, or already archived). */
@@ -101,10 +107,13 @@ export default function OrderActions({
   onRequestBalance,
   onShip,
   onCancelShipment,
+  cancelShipmentBlocked,
   onSendReminder,
   onSendOrderLink,
   onViewStatusPage,
   onMarkNotDelivered,
+  onMarkNotShipped,
+  onRestore,
   onDuplicate,
   onArchive,
   onCancel,
@@ -136,6 +145,7 @@ export default function OrderActions({
 
   // Render logic
   const move = readOnly ? undefined : nextOrderMove(status, paymentStatus, fulfillmentStatus)
+  const undos = orderUndos({ status, fulfillmentStatus })
   /* The Next step card owns the main action; the menu keeps the same move for when it is not shown. */
   const menuMove = move ? { label: copy.actions[MOVE_ACTION[move]], to: move } : undefined
   const refundable = !readOnly && canRefund
@@ -254,9 +264,23 @@ export default function OrderActions({
           {
             label: copy.actions.markNotDelivered,
             icon: RotateCcw,
-            hidden: !onMarkNotDelivered || fulfillmentStatus !== 'delivered' || readOnly,
+            hidden: !onMarkNotDelivered || !undos.undeliver || readOnly,
             disabled: busy,
             onSelect: onMarkNotDelivered,
+          },
+          {
+            label: copy.actions.markNotShipped,
+            icon: RotateCcw,
+            hidden: !onMarkNotShipped || !undos.unfulfil || readOnly,
+            disabled: busy,
+            onSelect: onMarkNotShipped,
+          },
+          {
+            label: copy.actions.restore,
+            icon: RotateCcw,
+            hidden: !onRestore || !undos.restore || readOnly,
+            disabled: busy,
+            onSelect: onRestore,
           },
           {
             label: copy.actions.viewStatusPage,
@@ -270,7 +294,10 @@ export default function OrderActions({
             destructive: true,
             hidden: !onCancelShipment || readOnly,
             disabled: busy,
-            onSelect: () => setConfirm('cancelShipment'),
+            onSelect: () =>
+              cancelShipmentBlocked
+                ? toast.info(cancelShipmentBlocked)
+                : setConfirm('cancelShipment'),
           },
           {
             label: copy.duplicate.action,

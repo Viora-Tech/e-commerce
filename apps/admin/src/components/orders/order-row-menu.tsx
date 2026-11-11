@@ -11,8 +11,10 @@ import {
   FileEdit,
   Package,
   PackageCheck,
+  RotateCcw,
   Undo,
 } from '@commerce/ui/icons'
+import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import TagInput from '@/components/fields/tag-input'
@@ -30,7 +32,13 @@ import { shipmentPanelContent } from '@/data/shipping'
 import { useCopy } from '@/hooks/use-copy'
 import { usePermissions } from '@/hooks/use-permissions'
 import { api } from '@/lib/api-client'
-import { canRemindToPay, MOVE_ACTION, nextOrderMove, type OrderMove } from '@/lib/order-next-move'
+import {
+  canRemindToPay,
+  MOVE_ACTION,
+  nextOrderMove,
+  type OrderMove,
+  orderUndos,
+} from '@/lib/order-next-move'
 import { routes } from '@/lib/routes'
 
 type OrderRowMenuProps = {
@@ -45,6 +53,8 @@ type OrderRowMenuProps = {
     /** Set while the order is archived (#1007): the menu offers Unarchive instead of Archive. */
     archivedAt?: string | Date | null
     /** A read-only import: shipping, moves and cancel happen on its page, after taking it over. */
+    /** The latest booking's courier status; a cancelled or finished one cannot be cancelled. */
+    deliveryStatus?: string | null | undefined
     importedFrom?: string | null
   }
   /** The row's own items (open, new tab, same customer). */
@@ -62,6 +72,8 @@ type Dialog = 'cancelShipment' | 'addTags' | 'removeTags' | 'remind' | null
 const SHIPPABLE = ['unfulfilled', 'partially_fulfilled']
 /** Booked with a courier but not yet in the shopper's hands. */
 const BOOKED = ['fulfilled', 'shipped']
+/** A courier status after which the booking can no longer be cancelled from the list. */
+const ENDED_DELIVERY = new Set(['cancelled', 'delivered', 'rto', 'rto_delivered'])
 const PAID = ['paid', 'partially_paid']
 
 const MOVE_ICON = { paid: CircleCheck, fulfilled: PackageCheck, delivered: Package } as const
@@ -81,6 +93,7 @@ export default function OrderRowMenu({
   onChanged,
 }: OrderRowMenuProps) {
   // Hooks
+  const router = useRouter()
   const detail = useCopy(orderDetailContent)
   const list = useCopy(ordersContent)
   const shipping = useCopy(shipmentPanelContent)
@@ -92,6 +105,16 @@ export default function OrderRowMenu({
 
   // Event handlers
   const handleMove = async (to: OrderMove) => {
+    // Packing asks for the courier and tracking: it happens on the order page's pack form.
+    if (to === 'fulfilled') {
+      router.push(`${routes.orders.detail(order.id)}?fulfil=1`)
+      return
+    }
+    // As on the order page, "Mark as paid" asks how the money came in (cash, UPI, bank).
+    if (to === 'paid') {
+      router.push(`${routes.orders.detail(order.id)}?collect=1`)
+      return
+    }
     try {
       await api.orders.setStatus({ id: order.id, status: to })
       toast.success(detail.moved(list.marks[to].toLowerCase()))
@@ -105,6 +128,18 @@ export default function OrderRowMenu({
     try {
       await api.orders.sendPaymentReminder({ orderId: order.id, custom, channel })
       toast.success(detail.payment.transfer.sentToast)
+      onChanged()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : list.bulk.failed)
+    }
+  }
+
+  /* The order page's undo actions, the same calls and rules (the API refuses what cannot be
+     undone and says why). */
+  const handleUndo = async (call: () => Promise<unknown>, done: string) => {
+    try {
+      await call()
+      toast.success(done)
       onChanged()
     } catch (err) {
       toast.error(err instanceof Error ? err.message : list.bulk.failed)
@@ -187,11 +222,14 @@ export default function OrderRowMenu({
   const open = order.status === 'open' && !order.importedFrom
   const current = order.tags ?? []
   const fulfilment = order.fulfillmentStatus ?? 'unfulfilled'
+  const undos = orderUndos(order)
   const canShip =
     open &&
     SHIPPABLE.includes(fulfilment) &&
     (PAID.includes(order.paymentStatus) || order.paymentMethod === 'cod')
-  const canCancelShipment = open && BOOKED.includes(fulfilment)
+  // Same rule as the order page: a booking that is still live (not cancelled, delivered or back).
+  const canCancelShipment =
+    open && BOOKED.includes(fulfilment) && !ENDED_DELIVERY.has(order.deliveryStatus ?? '')
   // The order page's rule (not shipped yet) and grant, so both offer the same cancel.
   const cancellable =
     open &&
@@ -235,6 +273,33 @@ export default function OrderRowMenu({
             destructive: true,
             hidden: !canCancelShipment,
             onSelect: () => setDialog('cancelShipment'),
+          },
+          {
+            label: detail.actions.markNotShipped,
+            icon: RotateCcw,
+            hidden: !undos.unfulfil || !hasPermission(permissions.ORDERS_FULFIL),
+            onSelect: () =>
+              handleUndo(
+                () => api.orders.markNotShipped({ id: order.id }),
+                detail.actions.markedNotShipped,
+              ),
+          },
+          {
+            label: detail.actions.markNotDelivered,
+            icon: RotateCcw,
+            hidden: !undos.undeliver || !hasPermission(permissions.ORDERS_WRITE),
+            onSelect: () =>
+              handleUndo(
+                () => api.orders.markNotDelivered({ id: order.id }),
+                detail.actions.markedNotDelivered,
+              ),
+          },
+          {
+            label: detail.actions.restore,
+            icon: RotateCcw,
+            hidden: !undos.restore || !hasPermission(permissions.ORDERS_CANCEL),
+            onSelect: () =>
+              handleUndo(() => api.orders.restore({ id: order.id }), detail.actions.restored),
           },
           {
             label: detail.actions.cancel,

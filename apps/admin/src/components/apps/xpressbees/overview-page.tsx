@@ -29,7 +29,7 @@ export default function OverviewPage() {
       heading: copy.capabilitiesHeading,
       items: XPRESSBEES_CAPABILITIES.map((cap) => copy.capabilities[cap] ?? cap),
     },
-    { heading: copy.notYetSupported, items: copy.notYetSupportedItems },
+    { heading: copy.notYetSupported, items: copy.notYetSupportedItems, unavailable: true },
   ]
 
   return (

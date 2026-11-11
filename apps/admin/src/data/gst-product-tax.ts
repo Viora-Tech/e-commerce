@@ -1,0 +1,43 @@
+/** SOURCE OF TRUTH: the GST invoices app Products tab copy (GST rate and HSN per product). */
+/** The Products tab: GST and HSN on every product, set here and saved on the product. */
+export const gstProductTaxContent = {
+  title: 'Products',
+  intro:
+    'Whether each product charges GST, at what rate, and its HSN code. Changes save on the product, and checkout and invoices use them from the next order.',
+  filters: {
+    all: 'All',
+    missing_hsn: 'Missing HSN',
+    missing_rate: 'Missing GST rate',
+    gst_off: 'GST off',
+  },
+  search: 'Search products',
+  columns: { product: 'Product', charge: 'Charge GST', rate: 'GST rate', hsn: 'HSN code' },
+  variants: (n: number) => `${n} ${n === 1 ? 'variant' : 'variants'}`,
+  missingHsn: (n: number) => `${n} without HSN`,
+  mixed: 'Mixed',
+  storeRate: (rate: number) => `Store rate (${rate}%)`,
+  rate: (rate: number) => `${rate}%`,
+  hsnPlaceholder: '4 to 8 digits',
+  hsnInvalid: 'An HSN code is 4 to 8 digits',
+  chargeLabel: (title: string) => `Charge GST on ${title}`,
+  selectRow: (title: string) => `Select ${title}`,
+  selectPage: 'Select this page',
+  selected: (n: number) => `${n} selected`,
+  selectAllMatching: (n: number) => `Select all ${n} matching`,
+  allMatching: (n: number) => `All ${n} matching products`,
+  bulk: {
+    hsn: 'HSN for selected',
+    applyHsn: 'Set HSN',
+    rate: 'GST rate for selected',
+    chargeOn: 'Charge GST',
+    chargeOff: 'No GST',
+    clear: 'Clear',
+  },
+  saved: (n: number) => `Saved on ${n} ${n === 1 ? 'product' : 'products'}`,
+  failed: 'Could not save. Try again.',
+  loadFailed: 'Could not load products',
+  empty: 'No products match.',
+  page: (page: number, pages: number) => `Page ${page} of ${pages}`,
+  previous: 'Previous',
+  next: 'Next',
+}

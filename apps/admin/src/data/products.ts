@@ -64,6 +64,7 @@ export const productsListContent = {
     missing: 'Missing',
     missingOptions: [
       { value: 'weight', label: 'No weight' },
+      { value: 'box', label: 'No box' },
       { value: 'image', label: 'No image' },
       { value: 'price', label: 'Price (₹0 on store)' },
     ],

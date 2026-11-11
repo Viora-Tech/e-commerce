@@ -26,7 +26,7 @@ import {
 import { getRegistries } from '@commerce/core/registries'
 import type { StoreTx } from '@commerce/db'
 import { location, shipment, shipmentPickup, store } from '@commerce/db'
-import { CourierError, describeCourierFailure, isValidPincode } from '@commerce/shipping'
+import { CourierError, describeCourierFailureForStaff, isValidPincode } from '@commerce/shipping'
 import { ORPCError } from '@orpc/server'
 import { and, desc, eq } from 'drizzle-orm'
 
@@ -57,6 +57,23 @@ export async function withOrigin<P extends { originPincode: string }, S extends 
   }
   const { originPincode: _placeholder, ...policy } = settings.policy
   return { ...settings, policy }
+}
+
+/**
+ * A booking made in a courier's own panel names the app it was booked in; that app must be
+ * connected, so the worker's tracking poll can follow the AWB (#1490).
+ */
+export async function assertCourierConnected(
+  tx: StoreTx,
+  storeId: string,
+  registry: ShippingRegistry,
+  secret: string,
+  providerId: string,
+): Promise<void> {
+  const settings = await loadShippingSettings(tx, storeId)
+  if (!shippingProviderById(registry, settings, secret, providerId)) {
+    throw new ORPCError('BAD_REQUEST', { message: 'That courier app is not connected.' })
+  }
 }
 
 export async function loadShippingSettings(
@@ -239,7 +256,7 @@ const courierToRpc = (err: unknown): never => {
     })
   }
   if (err instanceof CourierError) {
-    const detail = err.kind === 'rejected' ? err.message : describeCourierFailure(err)
+    const detail = describeCourierFailureForStaff(err)
     /* A refusal the admin explains with facts (the pickup location name sent) carries them. */
     if (err.detail) {
       throw new ORPCError('BAD_REQUEST', {

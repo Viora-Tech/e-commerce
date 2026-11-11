@@ -36,6 +36,8 @@ export type OverviewList = {
   heading: string
   items: string[]
   bulleted?: boolean
+  /** Every item is something the app cannot do yet: an info mark, muted, never a green tick. */
+  unavailable?: boolean | undefined
   /** What the provider cannot do yet, under the list with an info mark (Figma "Delhivery · Overview"). */
   notAvailable?: string[] | undefined
 }
@@ -95,8 +97,7 @@ export default function ProviderOverviewPage({
   // Render logic
   const extraBadges = status && badges ? badges(status.saved) : null
   const connectedBadge = (
-    <StatusChip className="w-fit gap-1">
-      <CircleCheck aria-hidden="true" className="size-3.5" />
+    <StatusChip tone="success" className="w-fit">
       {tested ? copy.connectedAndTested : copy.connected}
     </StatusChip>
   )
@@ -114,7 +115,7 @@ export default function ProviderOverviewPage({
         icon={status?.connected ? undefined : icon}
       >
         {status === null ? null : status.connected ? (
-          connectedBody(status.saved)
+          <div className="flex flex-col items-start gap-3">{connectedBody(status.saved)}</div>
         ) : (
           <div className="flex flex-col gap-3">
             <p className="text-body text-muted-foreground">{copy.notConnected}</p>
@@ -141,10 +142,14 @@ export default function ProviderOverviewPage({
                 className={
                   list.bulleted
                     ? 'text-body text-muted-foreground'
-                    : 'flex items-start gap-2 text-body text-foreground'
+                    : list.unavailable
+                      ? 'flex items-start gap-2 text-body text-muted-foreground'
+                      : 'flex items-start gap-2 text-body text-foreground'
                 }
               >
-                {list.bulleted ? null : (
+                {list.bulleted ? null : list.unavailable ? (
+                  <InfoIcon aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
+                ) : (
                   <CircleCheck aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-success" />
                 )}
                 {item}

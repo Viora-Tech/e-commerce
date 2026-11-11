@@ -22,6 +22,12 @@ export const shippingRatesContent = {
     },
     loadFailed: 'Could not load shipping rates.',
   },
+  rowMenu: {
+    label: (name: string) => `Actions for ${name}`,
+    edit: 'Edit',
+    delete: 'Delete',
+    failed: 'Could not delete it. Try again.',
+  },
   profiles: {
     heading: 'Shipping profiles',
     meta: 'Give some products their own delivery prices. In a cart with products from several profiles, the shopper pays the highest delivery price once.',

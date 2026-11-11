@@ -2,17 +2,12 @@
 
 import { CalendarIcon, PackageOpen, RefreshCw, Truck } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from '@commerce/ui/shadcn/sheet'
 import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import AppStoreLink from '@/components/apps/app-store-link'
+import ChoiceField from '@/components/apps/gst-invoices/choice-field'
 import CountBadge from '@/components/layout/count-badge'
 import DataCard from '@/components/layout/data-card'
 import PageHeader from '@/components/layout/page-header'
@@ -20,7 +15,7 @@ import ProoflyDetailPage from '@/components/layout/proofly-detail-page'
 import EditOrderContactDialog from '@/components/orders/edit-order-contact-dialog'
 import OrderChip from '@/components/orders/order-chip'
 import type { OrderDetail } from '@/components/orders/order-detail-types'
-import {
+import TrackingFields, {
   EMPTY_TRACKING,
   type TrackingDraft,
   trackingPayload,
@@ -32,7 +27,7 @@ import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
 import ShipmentDetailsLoader from '../shipment-details-loader'
 import { bookShipment } from './book-shipment'
-import CourierStep from './courier-step'
+import CourierDrawer from './courier-drawer'
 import DoneStep, { type BookedShipment } from './done-step'
 import {
   MANUAL,
@@ -92,6 +87,10 @@ export default function CreateShipmentPage({ orderId, back, courier }: CreateShi
   const [busy, setBusy] = useState(false)
   /** The Select courier drawer (Figma 898:7790). */
   const [drawer, setDrawer] = useState(false)
+  /** The merchant chose the courier in the drawer; until then Book shipment opens it. */
+  const [chosenByHand, setChosenByHand] = useState(false)
+  /** Shipping insurance (the drawer's toggle); null follows what the shopper chose at checkout. */
+  const [insuredChoice, setInsuredChoice] = useState<boolean | null>(null)
   /** The courier whose Ship now is booking. */
   const [shipping, setShipping] = useState<string | null>(null)
   /** Create pickup now, after booking. */
@@ -183,7 +182,12 @@ export default function CreateShipmentPage({ orderId, back, courier }: CreateShi
     if (!order || !parcel || !form || !parsed) return
     const key = optionKey ?? pick
     const chosen = quote?.options.find((o) => o.optionKey === key) ?? null
-    if (key !== MANUAL && (!chosen || chosen.problem || !pricesCurrent)) {
+    /* Booking always goes through the courier list (Figma 898:7790): Book shipment opens it
+       until the merchant picks a courier there, and Ship now books from it. */
+    if (
+      key !== MANUAL &&
+      (!chosen || chosen.problem || !pricesCurrent || (!optionKey && !chosenByHand))
+    ) {
       setDrawer(true)
       return
     }
@@ -210,6 +214,7 @@ export default function CreateShipmentPage({ orderId, back, courier }: CreateShi
           courier: chosen,
           typed,
           panelProviderId: key === MANUAL ? panel : null,
+          insured: key === MANUAL ? undefined : insured,
           courierLabel: chosen?.providerLabel,
           canPickup: draft?.couriers.find((c) => c.id === chosen?.providerId)?.hasPickup ?? false,
           // Booking only books (owner, 10 Nov 2026): the pickup is made on Shipments › Booked.
@@ -266,6 +271,48 @@ export default function CreateShipmentPage({ orderId, back, courier }: CreateShi
       ? page.walletLeft(wallet.providerLabel, fmt.money(wallet.balancePaise))
       : null
   const paymentLine = order.paymentMode === 'cod' ? page.cod : null
+  const insured = insuredChoice ?? quote?.checkout?.insured === true
+  const charged = quote?.chargedWeightGrams
+    ? `${fmt.number(Math.round(quote.chargedWeightGrams / 10) / 100)} kg`
+    : ''
+  const box = parsed?.dimensionsCm
+    ? ` (${parsed.dimensionsCm.length} × ${parsed.dimensionsCm.width} × ${parsed.dimensionsCm.height} cm)`
+    : ''
+  const drawerSummary = content.drawer.summary(
+    `#${order.orderNumber} · ${route}`,
+    charged ? `${charged}${box}` : '',
+    `${order.paymentMode === 'cod' ? page.codShort : page.prepaidShort} ${fmt.money(parcel.valuePaise)}`,
+  )
+  const drawerStatus = !quote ? (
+    draft.couriers.length === 0 ? (
+      <div className="flex flex-col items-start gap-3 py-6">
+        <p className="text-body text-muted-foreground">{content.courier.noCourier}</p>
+        <AppStoreLink category="shipping" className="w-fit">
+          {content.courier.connect}
+        </AppStoreLink>
+      </div>
+    ) : needsPackage ? (
+      <p className="py-6 text-body text-muted-foreground">{content.courier.needsWeight}</p>
+    ) : quoteFailed ? (
+      <p className="flex items-center gap-3 py-6 text-body text-muted-foreground">
+        {content.courier.quoteFailed}
+        <Button size="sm" variant="outline" onClick={recheck}>
+          <RefreshCw aria-hidden />
+          {content.courier.retry}
+        </Button>
+      </p>
+    ) : (
+      <p className="flex items-center gap-2 py-6 text-body text-muted-foreground">
+        <Spinner />
+        {content.courier.checking}
+      </p>
+    )
+  ) : updating || waitingForSize ? (
+    <p aria-live="polite" className="flex items-center gap-2 text-caption text-muted-foreground">
+      {updating ? <Spinner className="size-3.5" /> : null}
+      {updating ? content.courier.updating : content.courier.finishSize}
+    </p>
+  ) : null
 
   return (
     <ProoflyDetailPage
@@ -357,57 +404,47 @@ export default function CreateShipmentPage({ orderId, back, courier }: CreateShi
                 chargedGrams={quote?.chargedWeightGrams}
               />
             </DataCard>
-            <Sheet open={drawer} onOpenChange={setDrawer}>
-              <SheetContent
-                side="bottom"
-                className="max-h-[85vh] overflow-y-auto px-4 pb-6 md:px-8"
-              >
-                <SheetHeader className="px-0">
-                  <SheetTitle>{content.drawer.title}</SheetTitle>
-                  <SheetDescription>
-                    {content.drawer.summary(
-                      `#${order.orderNumber} · ${route}`,
-                      quote?.chargedWeightGrams
-                        ? `${fmt.number(quote.chargedWeightGrams / 1000)} kg`
-                        : '',
-                      paymentLine ?? '',
-                    )}
-                  </SheetDescription>
-                </SheetHeader>
-                <div className="flex items-center justify-end">
+            <CourierDrawer
+              open={drawer}
+              onOpenChange={setDrawer}
+              summary={drawerSummary}
+              rows={quote?.options ?? null}
+              pick={pick}
+              onPick={(key) => {
+                setPick(key)
+                setChosenByHand(true)
+              }}
+              onShipNow={pricesCurrent ? handleShipNow : undefined}
+              shippingKey={shipping}
+              insured={insured}
+              onInsured={setInsuredChoice}
+              valueLabel={fmt.money(parcel.valuePaise)}
+              onRetry={draft.couriers.length > 0 ? recheck : undefined}
+              status={drawerStatus}
+              chargedGrams={quote?.chargedWeightGrams}
+            >
+              {manual ? (
+                <div className="flex flex-col gap-3 rounded-lg border border-primary bg-primary-soft p-4">
+                  <p className="font-medium text-ink-strong">{content.courier.manual}</p>
                   {draft.couriers.length > 0 ? (
-                    <Button variant="ghost" size="sm" onClick={recheck}>
-                      <RefreshCw aria-hidden="true" />
-                      {content.courier.retry}
-                    </Button>
+                    <ChoiceField
+                      id="panel-courier"
+                      label={content.courier.panelLabel}
+                      value={panel ?? ''}
+                      options={[
+                        { value: '', label: content.courier.panelNone },
+                        ...draft.couriers.map((c) => ({ value: c.id, label: c.label })),
+                      ]}
+                      onChange={(v) => setPanel(v || null)}
+                    />
                   ) : null}
-                </div>
-                <CourierStep
-                  inCard
-                  quote={quote}
-                  hasCouriers={draft.couriers.length > 0}
-                  pick={pick}
-                  onPick={setPick}
-                  onShipNow={pricesCurrent ? handleShipNow : undefined}
-                  panels={draft.couriers.map((c) => ({ id: c.id, label: c.label }))}
-                  panel={panel}
-                  onPanel={setPanel}
-                  shippingKey={shipping}
-                  tracking={tracking}
-                  onTrackingChange={setTracking}
-                  onRetry={recheck}
-                  needsPackage={needsPackage}
-                  failed={quoteFailed}
-                  updating={updating}
-                  waitingForSize={waitingForSize}
-                />
-                {manual ? (
+                  <TrackingFields value={tracking} onChange={setTracking} />
                   <Button className="self-end" loading={busy} onClick={() => void handleBook()}>
                     {content.review.saveManual}
                   </Button>
-                ) : null}
-              </SheetContent>
-            </Sheet>
+                </div>
+              ) : null}
+            </CourierDrawer>
           </>
         )
       }

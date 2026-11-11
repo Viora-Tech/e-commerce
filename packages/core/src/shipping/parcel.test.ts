@@ -2,6 +2,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   effectiveWeightGrams,
+  parcelBoxPreset,
   resolveParcelPackage,
   resolveParcelWeightGrams,
   volumetricWeightGrams,
@@ -139,7 +140,7 @@ describe('resolveParcelPackage', () => {
     expect(dims).toEqual({ lengthCm: 30, widthCm: 20, heightCm: 10 })
   })
 
-  it('falls back to null when lines disagree on the package', () => {
+  it('uses the biggest package when lines differ (the small items pack inside it, #2461)', () => {
     const dims = resolveParcelPackage(
       [
         {
@@ -159,7 +160,7 @@ describe('resolveParcelPackage', () => {
       ],
       presets,
     )
-    expect(dims).toBeNull()
+    expect(dims).toEqual({ lengthCm: 30, widthCm: 20, heightCm: 10 })
   })
 
   it('falls back to null when a package side is 0 cm', () => {
@@ -192,5 +193,27 @@ describe('resolveParcelPackage', () => {
       presets,
     )
     expect(dims).toBeNull()
+  })
+})
+
+describe('parcelBoxPreset', () => {
+  const cable = { id: 'cable', isDefault: true, lengthCm: 20, widthCm: 20, heightCm: 5 }
+  const glass = { id: 'glass', isDefault: false, lengthCm: 64, widthCm: 64, heightCm: 8 }
+  const skates = { id: 'skates', isDefault: false, lengthCm: 20, widthCm: 20, heightCm: 4 }
+  const boxes = [cable, glass, skates]
+  const line = (boxPresetId: string | null, quantity = 1) => ({ quantity, boxPresetId })
+
+  it("uses the products' box when they agree", () => {
+    expect(parcelBoxPreset([line('skates'), line('skates')], boxes)).toBe(skates)
+  })
+
+  it('uses the biggest box when products pick different ones (glasspad + skates, #2461)', () => {
+    expect(parcelBoxPreset([line('glass'), line('skates')], boxes)).toBe(glass)
+  })
+
+  it('ignores lines with no box, and falls back to the main box when none has one', () => {
+    expect(parcelBoxPreset([line('glass'), line(null)], boxes)).toBe(glass)
+    expect(parcelBoxPreset([line(null)], boxes)).toBe(cable)
+    expect(parcelBoxPreset([line('glass', 0), line(null)], boxes)).toBe(cable)
   })
 })

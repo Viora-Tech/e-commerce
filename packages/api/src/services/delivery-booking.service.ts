@@ -7,7 +7,7 @@ import {
   type ShippingProvider,
 } from '@commerce/core'
 import type { StoreTx } from '@commerce/db'
-import { CourierError, describeCourierFailure } from '@commerce/shipping'
+import { CourierError, describeCourierFailureForStaff } from '@commerce/shipping'
 import { noteShipmentBooked } from './shipping.service'
 
 /**
@@ -52,7 +52,7 @@ export async function bookSavedRoute(
   } catch (err) {
     const reason =
       err instanceof CourierError
-        ? describeCourierFailure(err)
+        ? describeCourierFailureForStaff(err)
         : err instanceof Error
           ? err.message
           : String(err)

@@ -77,7 +77,7 @@ describe('GST invoices Products tab', () => {
     const m = await merchant('a@example.com', 'tax-list')
     await seedProduct(m.storeId, 'Pad')
     await seedProduct(m.storeId, 'Mouse', '8471')
-    const list = (filter: 'all' | 'missing_hsn' | 'gst_off') =>
+    const list = (filter: 'all' | 'missing_hsn' | 'missing_rate' | 'gst_off') =>
       call(appRouter.gstInvoicesProducts.list, { filter }, { context: m.ctx })
     const all = await list('all')
     expect(all.total).toBe(2)
@@ -86,6 +86,16 @@ describe('GST invoices Products tab', () => {
     expect(mouse).toMatchObject({ charge: 'off', hsCode: '8471', missingHsn: 1, variants: 2 })
     expect((await list('missing_hsn')).total).toBe(2)
     expect((await list('gst_off')).total).toBe(2)
+    expect(mouse?.imageUrl).toBeNull()
+    // Missing GST rate: neither the product nor a variant has its own rate.
+    expect((await list('missing_rate')).total).toBe(2)
+    await call(
+      appRouter.gstInvoicesProducts.update,
+      { target: { ids: [mouse?.id as string] }, change: { gstRatePercent: 18 } },
+      { context: m.ctx },
+    )
+    const missingRate = await list('missing_rate')
+    expect(missingRate.items.map((r) => r.title)).toEqual(['Pad'])
   })
 
   it('saves HSN and rate on the product, clears variant overrides and sets Charge GST', async () => {

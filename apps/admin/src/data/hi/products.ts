@@ -56,6 +56,7 @@ export default [
       missing: 'कमी',
       missingOptions: [
         { value: 'weight', label: 'वज़न नहीं' },
+        { value: 'box', label: 'बॉक्स नहीं' },
         { value: 'image', label: 'फ़ोटो नहीं' },
         { value: 'price', label: 'कीमत (स्टोर पर ₹0)' },
       ],

@@ -295,7 +295,9 @@ export const routes = {
     paymentsAdvanced: () => '/settings/payments/advanced',
     paymentProvider: (providerId: string) => `/settings/payments/providers/${id(providerId)}`,
     checkout: () => '/settings/checkout',
-    shipping: () => '/settings/shipping',
+    /** `open` opens one section in place (`dispatch` holds the ship-from address). */
+    shipping: (open?: 'rates' | 'boxes' | 'dispatch' | 'split' | 'courier' | 'pincode') =>
+      open ? `/settings/shipping?open=${open}` : '/settings/shipping',
     newShippingZone: (profileId?: string) =>
       profileId
         ? `/settings/shipping/zones/new?profile=${id(profileId)}`

@@ -10,13 +10,13 @@ import {
   shippingProviderById,
 } from '@commerce/core'
 import type { StoreTx } from '@commerce/db'
-import { CourierError, describeCourierFailure } from '@commerce/shipping'
+import { CourierError, describeCourierFailureForStaff } from '@commerce/shipping'
 import { ORPCError } from '@orpc/server'
 import { loadShippingSettings } from './shipping.service'
 
 export const courierToRpc = (err: unknown): never => {
   if (err instanceof CourierError) {
-    const detail = err.kind === 'rejected' ? err.message : describeCourierFailure(err)
+    const detail = describeCourierFailureForStaff(err)
     throw new ORPCError('BAD_REQUEST', { message: detail })
   }
   if (err instanceof Error) throw new ORPCError('BAD_REQUEST', { message: err.message })

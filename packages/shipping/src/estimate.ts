@@ -71,6 +71,18 @@ export function describeCourierFailure(error: unknown): string {
 }
 
 /**
+ * The same for staff in the admin: a courier's refusal keeps its own words ("The courier
+ * refused it: Order already exists") instead of "did not answer". Never for a shopper.
+ */
+export function describeCourierFailureForStaff(error: unknown): string {
+  if (error instanceof CourierError) {
+    if (error.kind === 'rejected') return error.message
+    if (error.reason) return `The courier refused it: ${error.reason}`
+  }
+  return describeCourierFailure(error)
+}
+
+/**
  * Ask the courier, then turn its answer into dates.
  *
  * A courier that fails is not fatal: the estimate falls back to the
