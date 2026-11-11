@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: courier webhook path tests — WHAT: Shiprocket gets the neutral alias, others the named path, codes map back safely / WHY: a pasted webhook URL must keep reaching the same handler */
 import { describe, expect, it } from 'vitest'
 import {
   COURIER_WEBHOOK_CODES,
