@@ -7,9 +7,9 @@ Follow-up to the Waimers batch (#1482), which shipped the first half of these fi
   shopper picked (or a courier under it) survives a new answer; checkout's own default is
   re-picked, so a card that was cheapest once no longer stays ticked after prices change.
 - **#1520 Preferred courier.** Option setting `preferCarrier` (Routes and strategy → Preferred
-  courier). Among routes at the same shopper price as the first, the preferred courier wins,
-  then the earliest arrival (the #1482 rule). Fastest keeps its date: only same-date, same-price
-  equals are swapped. Never makes the shopper pay more. Stored in the option's JSONB, no
+  courier). Among routes at the same shopper price as the first, the earliest arrival wins (the
+  #1482 rule); the preferred courier wins only when price and date are both equal (owner,
+  11 Nov). Fastest keeps its date. Never makes the shopper pay more. Stored in the option's JSONB, no
   migration.
 - **#1521 Courier names.** Option setting `couriers.showNames` (Couriers at checkout → Show
   courier names to shoppers, on by default). Off, every route of that option has
@@ -24,9 +24,11 @@ Follow-up to the Waimers batch (#1482), which shipped the first half of these fi
   serviceability made its two calls one after the other (two round trips, ~1.8–2 s). The adapter
   now shares identical calls in flight and runs serviceability's two calls at once: two calls,
   one round trip. Whether that fits 800 ms depends on RapidShyp's own response time (not
-  measured: no live calls). Not changed: a missed deadline still counts toward the circuit
-  breaker (3 in 60 s skips the app for 5 min), which also pauses the background refresh of
-  its cache; see the PR for the open question.
+  measured: no live calls). Circuit breaker (owner, 11 Nov): a call is recorded when it ends,
+  not at checkout's 800 ms deadline. A late answer is a success (and refreshes the cache in the
+  background); only a real error or the adapter's own timeout counts toward the breaker, so a
+  slow but working RapidShyp is no longer skipped for 5 minutes. The health line shows its real
+  time (~2 s).
 
 Docs: merchant guide (Delivery options) and developer docs (engine Pick step) updated.
 

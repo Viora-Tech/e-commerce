@@ -49,7 +49,7 @@ You can save a setting for one exact route, or for a courier through a channel (
 
 Each option is one card at checkout. **Add Standard and Express** creates the usual pair:
 
-- **Standard**: picks the route that is **cheapest for the customer**. When several cost the customer the same, your **preferred courier** wins if you set one, else the one that arrives first. Cash on delivery is allowed.
+- **Standard**: picks the route that is **cheapest for the customer**. When several cost the customer the same, the one that arrives first wins; your **preferred courier** wins only when the price and the date are both the same. Cash on delivery is allowed.
 - **Express**: picks the **fastest** route (a tie goes to the cheaper one). Express is always **prepaid only**.
 
 Open an option to change:
@@ -85,7 +85,7 @@ Type a PIN code, an order value and weight, and optionally pick products. **Try*
 
 ## When couriers are down
 
-Checkout never waits more than about a second on couriers. The app remembers each courier's answer for a PIN code, weight and order value: for 6 hours it is used straight away, and for up to 7 days it stands in whenever the courier does not answer in time (while the app asks it again in the background for the next customer). A courier app that fails 3 times within a minute is skipped for 5 minutes, so an outage does not slow checkout.
+Checkout never waits more than about a second on couriers. The app remembers each courier's answer for a PIN code, weight and order value: for 6 hours it is used straight away, and for up to 7 days it stands in whenever the courier does not answer in time (while the app asks it again in the background for the next customer). A courier app that fails 3 times within a minute is skipped for 5 minutes, so an outage does not slow checkout. A courier that is slow but answers is not counted as failing: its answer is saved for the next customer.
 
 If none of an option's couriers answer in time and none has a saved answer:
 
