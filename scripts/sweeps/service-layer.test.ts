@@ -133,7 +133,6 @@ const ALLOWLIST: AllowEntry[] = [
     reason: 'creates the Db connection for the storefront app request context',
   },
   { path: 'apps/storefront/src/lib/emi-offers.ts', exact: true, reason: STOREFRONT_LIB },
-  { path: 'apps/storefront/src/lib/forms-context.ts', exact: true, reason: STOREFRONT_LIB },
   { path: 'apps/storefront/src/lib/login-actions.ts', exact: true, reason: STOREFRONT_LIB },
   {
     path: 'apps/storefront/src/lib/market-switch.ts',

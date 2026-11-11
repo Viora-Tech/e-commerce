@@ -12,7 +12,6 @@ import {
   deliveryRouteSetting,
   product,
   type StoreTx,
-  store,
   variant,
 } from '@commerce/db'
 import { asc, eq, inArray } from 'drizzle-orm'
@@ -23,6 +22,7 @@ import {
   parseAppsSettings,
   withAppSettings,
 } from '../../apps/settings'
+import { storeAppsRow } from '../../apps/store-apps'
 import { type CartParcel, cartParcel } from '../parcel'
 import { lineShips } from '../profiles'
 import type { ShippingSettings } from '../settings'
@@ -43,8 +43,8 @@ import type { CartItemFacts } from './rules'
 
 /** Whether the store installed the app. Options without the app change nothing. */
 export async function deliveryOptionsInstalled(tx: StoreTx, storeId: string): Promise<boolean> {
-  const [s] = await tx.select({ apps: store.apps }).from(store).where(eq(store.id, storeId))
-  return parseAppsSettings(s?.apps).installed.includes(DELIVERY_OPTIONS_APP_ID)
+  const s = await storeAppsRow(tx, storeId)
+  return parseAppsSettings(s.apps).installed.includes(DELIVERY_OPTIONS_APP_ID)
 }
 
 function toOption(row: typeof deliveryOption.$inferSelect): DeliveryOption | null {

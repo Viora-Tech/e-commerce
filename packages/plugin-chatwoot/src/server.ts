@@ -3,9 +3,10 @@ import {
   decryptCustomerPhone,
   decryptSecret,
   parseAppsSettings,
+  storeAppsRow,
 } from '@commerce/core'
 import type { StoreTx } from '@commerce/db'
-import { customer, order, store } from '@commerce/db'
+import { customer, order } from '@commerce/db'
 import { and, desc, eq, ne, sql } from 'drizzle-orm'
 import {
   type ChatwootClient,
@@ -37,8 +38,8 @@ export async function loadChatwootSettings(
   tx: StoreTx,
   storeId: string,
 ): Promise<{ installed: boolean; settings: ChatwootSettings }> {
-  const [s] = await tx.select({ apps: store.apps }).from(store).where(eq(store.id, storeId))
-  return chatwootSettingsFromApps(s?.apps)
+  const s = await storeAppsRow(tx, storeId)
+  return chatwootSettingsFromApps(s.apps)
 }
 
 export function chatwootSettingsFromApps(apps: unknown): {

@@ -1,4 +1,10 @@
-import { appSettingsOf, lockStoreApps, parseAppsSettings, withAppSettings } from '@commerce/core'
+import {
+  appSettingsOf,
+  lockStoreApps,
+  parseAppsSettings,
+  storeAppsRow,
+  withAppSettings,
+} from '@commerce/core'
 import { type StoreTx, store } from '@commerce/db'
 import { eq } from 'drizzle-orm'
 import {
@@ -13,8 +19,8 @@ export async function reviewsState(
   tx: StoreTx,
   storeId: string,
 ): Promise<{ installed: boolean; settings: ReviewsSettings }> {
-  const [s] = await tx.select({ apps: store.apps }).from(store).where(eq(store.id, storeId))
-  const apps = parseAppsSettings(s?.apps)
+  const s = await storeAppsRow(tx, storeId)
+  const apps = parseAppsSettings(s.apps)
   return {
     installed: apps.installed.includes(REVIEWS_ID),
     settings: parseReviewsSettings(appSettingsOf(apps, REVIEWS_ID)),

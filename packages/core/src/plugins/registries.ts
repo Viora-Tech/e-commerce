@@ -5,12 +5,11 @@
 // resolves. app-blocks.tsx has no DOM dependency at all — see packages/blocks/package.json.
 import type { AppBlockSource } from '@commerce/blocks/app-blocks'
 import type { StoreTx } from '@commerce/db'
-import { store } from '@commerce/db'
 import { CORE_PLUGIN_ID, type LoadedPlugins, loadPlugins, type Registries } from '@commerce/plugins'
 import type { StorageRegistry } from '@commerce/storage'
-import { eq } from 'drizzle-orm'
 import commerceConfig from '../../../../commerce.config'
 import { parseAppsSettings } from '../apps/settings'
+import { storeAppsRow } from '../apps/store-apps'
 import { storageRegistryFor } from '../media/settings'
 import { type AppEmbedSource, appEmbedSources } from '../theme/app-embeds'
 import { corePlugin } from './core-plugin'
@@ -35,13 +34,10 @@ export function getRegistries(): LoadedPlugins {
  * the platform bucket needs no app (see `storageRegistryFor`).
  */
 export async function registriesForStore(tx: StoreTx, storeId: string): Promise<Registries> {
-  const [s] = await tx
-    .select({ apps: store.apps, storage: store.storage })
-    .from(store)
-    .where(eq(store.id, storeId))
+  const s = await storeAppsRow(tx, storeId)
   const all = getRegistries()
-  const installed = all.forStore(parseAppsSettings(s?.apps).installed)
-  const storage = storageRegistryFor(s?.storage, process.env, installed.storage, all.storage)
+  const installed = all.forStore(parseAppsSettings(s.apps).installed)
+  const storage = storageRegistryFor(s.storage, process.env, installed.storage, all.storage)
   return { ...installed, storage }
 }
 
@@ -50,8 +46,8 @@ export async function registriesForStore(tx: StoreTx, storeId: string): Promise<
  * this, so the platform's own bucket details are never offered as a form.
  */
 export async function installedStorage(tx: StoreTx, storeId: string): Promise<StorageRegistry> {
-  const [s] = await tx.select({ apps: store.apps }).from(store).where(eq(store.id, storeId))
-  return getRegistries().forStore(parseAppsSettings(s?.apps).installed).storage
+  const s = await storeAppsRow(tx, storeId)
+  return getRegistries().forStore(parseAppsSettings(s.apps).installed).storage
 }
 
 /**
@@ -64,8 +60,8 @@ export async function appBlockSourcesForStore(
   tx: StoreTx,
   storeId: string,
 ): Promise<{ allSources: AppBlockSource[]; enabledIds: Set<string> }> {
-  const [s] = await tx.select({ apps: store.apps }).from(store).where(eq(store.id, storeId))
-  const enabledIds = new Set([CORE_PLUGIN_ID, ...parseAppsSettings(s?.apps).installed])
+  const s = await storeAppsRow(tx, storeId)
+  const enabledIds = new Set([CORE_PLUGIN_ID, ...parseAppsSettings(s.apps).installed])
   const allSources: AppBlockSource[] = getRegistries().plugins.map((p) => ({
     id: p.id,
     name: p.name,
@@ -83,7 +79,7 @@ export async function appEmbedSourcesForStore(
   tx: StoreTx,
   storeId: string,
 ): Promise<AppEmbedSource[]> {
-  const [s] = await tx.select({ apps: store.apps }).from(store).where(eq(store.id, storeId))
-  const installed = new Set([CORE_PLUGIN_ID, ...parseAppsSettings(s?.apps).installed])
+  const s = await storeAppsRow(tx, storeId)
+  const installed = new Set([CORE_PLUGIN_ID, ...parseAppsSettings(s.apps).installed])
   return appEmbedSources(getRegistries().plugins, installed)
 }
