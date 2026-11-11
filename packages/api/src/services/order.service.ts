@@ -14,7 +14,6 @@ import {
   resolvePaymentProviders,
   UNFULFILLED_STATUSES,
   UNPAID_PAYMENT_STATUSES,
-  undoDelivered,
 } from '@commerce/core'
 import { startOfDay } from '@commerce/dates'
 import type { StoreTx } from '@commerce/db'
@@ -51,7 +50,7 @@ import {
 
 export { ORDER_VIEWS, type OrderView, viewFilter } from './order-views'
 
-import { pendingUpiTile, viewFilter } from './order-views'
+import { pendingUpiTile } from './order-views'
 
 export {
   ORDER_CHANNEL_FILTERS,

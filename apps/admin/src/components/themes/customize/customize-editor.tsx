@@ -31,14 +31,8 @@ import {
 import { CUSTOMIZE_OVERRIDES } from '@/lib/customize-overrides'
 import { previewMetadata } from '@/lib/customize-preview'
 import { previewDefaultMode, useDeviceDark } from '@/lib/customize-preview-root'
-import {
-  LiquidHeadContext,
-  LiquidThemeSettingsContext,
-  PreviewModeContext,
-  ThemePreviewContext,
-  useThemePacks,
-} from '@/lib/customize-theme-context'
-import { DynamicSourceContext, scopeFor } from '@/lib/dynamic-sources'
+import { useThemePacks } from '@/lib/customize-theme-context'
+import { scopeFor } from '@/lib/dynamic-sources'
 import { routes } from '@/lib/routes'
 import { useCustomizePreview } from '@/lib/use-customize-preview'
 import { useImportedThemeSettings } from '@/lib/use-imported-theme-settings'
@@ -51,12 +45,12 @@ import { previewUrl, type ThemeItem } from '../theme-types'
 import AppsPanel from './apps-panel'
 import CanvasDock from './canvas-dock'
 import CreateTemplateDialog, { type AlternateKind } from './create-template-dialog'
+import CustomizeContexts from './customize-contexts'
 import CustomizeHotkeys from './customize-hotkeys'
 import CustomizeLayout from './customize-layout'
 import CustomizeTopBar from './customize-top-bar'
 import EditorLoading from './editor-loading'
 import EditorVersionsPanel from './editor-versions-panel'
-import ImportedThemeProvider from './imported-theme-provider'
 import ImportedThemeSettings from './imported-theme-settings'
 import LiquidCanvasSection from './liquid-canvas-section'
 import PagesPanel from './pages-panel'
@@ -422,43 +416,41 @@ export default function CustomizeEditor({
           dnd={{ behavior: 'auto' }}
           overrides={CUSTOMIZE_OVERRIDES}
         >
-          <ThemePreviewContext.Provider value={settings}>
-            <LiquidHeadContext.Provider value={liquidHead}>
-              <LiquidThemeSettingsContext.Provider value={importedSettings.changes}>
-                <ImportedThemeProvider info={liquidInfo ?? null} fields={liquidTheme.fields}>
-                  <PreviewModeContext.Provider value={mode}>
-                    <DynamicSourceContext.Provider value={sourceScope}>
-                      <CustomizeHotkeys />
-                      <SectionRemovedToast />
-                      <CustomizeLayout
-                        topBar={topBar}
-                        settings={settingsPanel}
-                        apps={appsPanel}
-                        pages={
-                          <PagesPanel
-                            themeId={record.id}
-                            value={ref}
-                            alternates={alternates}
-                            onPick={handleTemplate}
-                            onCreate={handleCreateFor}
-                            onManaged={handleManaged}
-                          />
-                        }
-                        device={device}
-                        loading={switching}
-                        store={store}
-                        templateLabel={templateLabel(ref)}
-                        template={ref.key}
-                        previewResource={previewResource}
-                        aiEnabled={ai.assistant}
-                        theme={{ name: record.name, live: record.role === 'main' }}
-                      />
-                    </DynamicSourceContext.Provider>
-                  </PreviewModeContext.Provider>
-                </ImportedThemeProvider>
-              </LiquidThemeSettingsContext.Provider>
-            </LiquidHeadContext.Provider>
-          </ThemePreviewContext.Provider>
+          <CustomizeContexts
+            settings={settings}
+            liquidHead={liquidHead}
+            liquidChanges={importedSettings.changes}
+            liquidInfo={liquidInfo ?? null}
+            liquidFields={liquidTheme.fields}
+            mode={mode}
+            sourceScope={sourceScope}
+          >
+            <CustomizeHotkeys />
+            <SectionRemovedToast />
+            <CustomizeLayout
+              topBar={topBar}
+              settings={settingsPanel}
+              apps={appsPanel}
+              pages={
+                <PagesPanel
+                  themeId={record.id}
+                  value={ref}
+                  alternates={alternates}
+                  onPick={handleTemplate}
+                  onCreate={handleCreateFor}
+                  onManaged={handleManaged}
+                />
+              }
+              device={device}
+              loading={switching}
+              store={store}
+              templateLabel={templateLabel(ref)}
+              template={ref.key}
+              previewResource={previewResource}
+              aiEnabled={ai.assistant}
+              theme={{ name: record.name, live: record.role === 'main' }}
+            />
+          </CustomizeContexts>
         </Puck>
       ) : (
         <EditorLoading
