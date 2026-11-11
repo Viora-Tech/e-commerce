@@ -23,6 +23,7 @@
  *   POST /manifests/generate                {shipment_id: [...]}
  *   GET  /courier/track/awb/{awb_code}
  *   POST /orders/cancel                     {ids: [...]}
+ *   POST /orders/cancel/shipment/awbs       {awbs: [...]}  cancel a booked shipment
  *   POST /ndr/reattempt                     {awb, address1, address2, phone, deferred_date}
  *   GET  /account/details/wallet-balance
  *
@@ -43,6 +44,7 @@
 
 import { logger } from '@commerce/observability/logging'
 import {
+  type CancelRef,
   COURIER_TIMEOUT_MS,
   CourierError,
   type CreateShipmentInput,
@@ -76,6 +78,7 @@ import {
   type WebhookNotice,
   type WebhookRequest,
 } from '@commerce/shipping'
+import { cancelByAwb } from './cancel'
 import { SHIPROCKET_CAPABILITIES } from './client'
 
 export const SHIPROCKET_BASE_URL = 'https://apiv2.shiprocket.in/v1/external'
@@ -586,17 +589,13 @@ export class ShiprocketProvider implements ShippingProvider {
     }
   }
 
-  async cancel(_waybill: string): Promise<void> {
-    /* Shiprocket cancels by its own order id, not the AWB; callers only have
-       the waybill, so this looks the shipment up via tracking first is not
-       possible (track() doesn't return the order id either). Cancel-by-AWB
-       is unconfirmed, so this is left as a documented gap: */
-    throw new CourierError(
-      'unavailable',
-      this.id,
-      'Cancel is not wired for Shiprocket yet: /orders/cancel needs the Shiprocket order id, ' +
-        'which is not part of the shared shipment record. Cancel from the Shiprocket dashboard ' +
-        'for now, or track the order id alongside the AWB to complete this.',
+  /**
+   * Cancel a booked shipment by AWB (`cancel.ts`; owes one live test). Core passes the stored
+   * shipment id (`providerRef`) first, so the AWB comes from `ref.waybill`.
+   */
+  async cancel(waybillOrRef: string, ref?: CancelRef): Promise<void> {
+    await cancelByAwb(this.id, (ref?.waybill || waybillOrRef).trim(), (path, body) =>
+      this.postJson(path, body),
     )
   }
 

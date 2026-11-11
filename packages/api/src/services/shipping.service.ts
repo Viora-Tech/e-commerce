@@ -339,7 +339,7 @@ export async function refreshShipmentTracking(
   return applyTracking({ storeId, tx }, shipmentId, tracking)
 }
 
-/** Whether the courier app declares a cancel over its API (Shiprocket does not, today). */
+/** Whether the courier app declares a cancel over its API. */
 const courierCancels = (registry: ShippingRegistry, providerId: string): boolean =>
   registry.get(providerId)?.capabilities.includes('cancel') ?? false
 
