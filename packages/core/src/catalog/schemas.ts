@@ -51,7 +51,8 @@ export const VariantInputSchema = z.object({
   packageHeightCm: z.number().int().min(1).max(200).nullable().optional(),
   /** Null uses the store's GST rate. */
   gstRatePercent: z.number().int().min(0).max(40).nullable().optional(),
-  onHand: z.number().int().min(0).max(1_000_000).optional(),
+  /** Below zero when pre-orders or an import oversold it: the form sends it back unchanged. */
+  onHand: z.number().int().min(-1_000_000).max(1_000_000).optional(),
   /** The variant's main image. Writers that know only one image (imports, bulk tools) send this. */
   mediaId: z.uuid().nullable().optional(),
   /** The variant's images in order, first = main image; wins over `mediaId` when sent. */

@@ -345,7 +345,8 @@ export const productsRouter = {
         pricePaise: z.number().int().min(0).optional(),
         mrpPaise: z.number().int().min(0).nullable().optional(),
         sku: z.string().max(100).nullable().optional(),
-        onHand: z.number().int().min(0).optional(),
+        /** Oversold (pre-orders) is below zero; saving the row as it is must still work. */
+        onHand: z.number().int().min(-1_000_000).optional(),
         /** Hidden variants are never shown or sold on the storefront, but stay in admin (#934). */
         hiddenOnStore: z.boolean().optional(),
         /** Shopify's "This is a physical product": false takes no shipping and never ships. */

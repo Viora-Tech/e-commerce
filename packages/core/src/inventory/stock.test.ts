@@ -24,6 +24,12 @@ describe('stock maths', () => {
     expect(() => nextOnHand(5, -6, false)).toThrow(NegativeStockError)
   })
 
+  it('lets oversold stock (pre-orders) rise towards zero but not fall further', () => {
+    expect(nextOnHand(-3, 1, false)).toBe(-2)
+    expect(nextOnHand(-3, 5, false)).toBe(2)
+    expect(() => nextOnHand(-3, -1, false)).toThrow(NegativeStockError)
+  })
+
   it('names the rows a bulk adjust would take below zero', () => {
     const rows = [
       { label: 'A', onHand: 10, allowNegative: false },
