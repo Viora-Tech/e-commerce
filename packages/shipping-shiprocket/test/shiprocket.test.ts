@@ -368,6 +368,28 @@ describe('ShiprocketProvider tracking', () => {
     expect(t.expectedDate).toBe('2026-09-28')
     expect(t.events.map((e) => e.status)).toEqual(['picked_up', 'in_transit'])
     expect(t.trackingUrl).toBe('https://track/SR999')
+    // Shiprocket writes India time with no offset: 08:00 IST is 02:30 UTC on any server clock.
+    expect(t.events[1]?.at).toBe('2026-09-22T02:30:00.000Z')
+  })
+
+  it('keeps tracking when a scan date cannot be read', async () => {
+    const f = fakeFetch(
+      withLogin({
+        '/v1/external/courier/track/awb/': () =>
+          json({
+            SR999: {
+              tracking_data: {
+                current_status: 'In Transit',
+                shipment_track_activities: [{ date: 'not a date', status: 'In Transit' }],
+              },
+            },
+          }),
+      }),
+    )
+    const p = new ShiprocketProvider({ ...config, fetchImpl: f.impl })
+    const t = await p.track('SR999')
+    expect(t.status).toBe('in_transit')
+    expect(t.events).toHaveLength(1)
   })
 })
 
@@ -454,6 +476,18 @@ describe('ShiprocketProvider NDR, wallet and webhook', () => {
     const p = new ShiprocketProvider({ ...config, webhookSecret: 'shh' })
     await expect(
       p.parseWebhook({ rawBody: '{}', headers: { 'x-webhook-token': 'nope' } }),
+    ).rejects.toMatchObject({ kind: 'auth' })
+  })
+
+  it('accepts the token in x-api-key, the header Shiprocket’s webhook form sends it in', async () => {
+    const p = new ShiprocketProvider({ ...config, webhookSecret: 'shh' })
+    const notices = await p.parseWebhook({
+      rawBody: JSON.stringify({ awb: 'SR1', current_status: 'Delivered' }),
+      headers: { 'x-api-key': 'shh' },
+    })
+    expect(notices.map((n) => n.waybill)).toEqual(['SR1'])
+    await expect(
+      p.parseWebhook({ rawBody: '{}', headers: { 'x-api-key': 'nope' } }),
     ).rejects.toMatchObject({ kind: 'auth' })
   })
 })

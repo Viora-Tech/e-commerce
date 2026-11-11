@@ -82,6 +82,7 @@ import {
   courierBaseUrlProblem,
   courierFetch,
   courierJson,
+  courierTimeToIso,
   isValidPincode,
   type NdrActionInput,
   type NdrActionResult,
@@ -621,16 +622,15 @@ export class RapidshypProvider implements ShippingProvider {
     const scans = detail.track_scans ?? []
     const events: TrackingEvent[] = scans.length
       ? scans.map((s) => ({
-          at: s.date ? new Date(s.date).toISOString() : new Date(0).toISOString(),
+          // India time with no offset, either date order; unreadable sorts first, never throws.
+          at: courierTimeToIso(s.date) ?? new Date(0).toISOString(),
           status: mapRapidshypStatus(s.status_code, detail.shipment_status),
           description: s.status_description || s.status_code || '',
           location: s.location,
         }))
       : [
           {
-            at: detail.current_status_date
-              ? new Date(detail.current_status_date).toISOString()
-              : new Date().toISOString(),
+            at: courierTimeToIso(detail.current_status_date) ?? new Date().toISOString(),
             status,
             description: detail.current_tracking_status_desc || detail.shipment_status || '',
           },
