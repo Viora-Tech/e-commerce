@@ -836,6 +836,12 @@ export const ACTION_DOCS: Record<string, string> = {
   'storeCredit.adjust':
     'Add (positive amountPaise) or remove (negative) store credit, with a reason the history shows.',
   'storeCredit.get': "The customer's balance in paise and their newest 50 changes, newest first.",
+  'storeCredit.getOrderExpiry':
+    'The store credit an order was paid with, and the expiry the cancel and refund dialogs pre-fill when it goes back: the latest last day among the credit it was spent from, or null when any of it never…',
+  'storeCredit.listGiftCards':
+    'The live gift cards that were really store credit: refund cards made before store credit was a balance, and cards the Shopify import brought over, with whose balance each goes to.',
+  'storeCredit.moveGiftCards':
+    "Move the picked gift cards into their customers' store credit balances: each card's value left becomes store credit, the card is emptied and disabled.",
   'suppliers.bulkUpdate':
     'Bulk edit on the suppliers list (#1064): currency, country or payment terms for many.',
   'suppliers.facets': "The countries and currencies in use, for the list's filter pickers.",

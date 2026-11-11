@@ -1,10 +1,11 @@
 /** SOURCE OF TRUTH: store credit on admin draft orders — WHAT: applying part or all of the draft customer's store credit balance to a draft, and spending it when the draft becomes an order / WHY: staff building an order for a customer can use the money the shop owes them, without ever taking it twice or losing it when the draft is changed or deleted */
 
-import { payment, storeCreditAccount } from '@commerce/db'
+import { payment } from '@commerce/db'
 import { formatMoney } from '@commerce/money'
 import { and, eq } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 import { changeStoreCredit, StoreCreditError } from '../customers/store-credit'
+import { lockStoreCreditBalance, spendableStoreCredit } from '../customers/store-credit-expiry'
 import { CommerceError } from '../errors'
 import { STORE_CREDIT_PROVIDER } from '../payments/split-tender'
 
@@ -68,19 +69,12 @@ export async function draftStoreCredit(
   return row?.customerId ? { ...row, customerId: row.customerId } : null
 }
 
-/** The customer's balance now, locked when `lock` (the convert), else just read (a save). */
+/**
+ * The customer's spendable balance now (expired credit left out), locked when `lock` (the
+ * convert, which also writes the expiry lines), else just read (a save).
+ */
 async function balanceOf(ctx: StoreContext, customerId: string, lock: boolean): Promise<number> {
-  const q = ctx.tx
-    .select({ balancePaise: storeCreditAccount.balancePaise })
-    .from(storeCreditAccount)
-    .where(
-      and(
-        eq(storeCreditAccount.storeId, ctx.storeId),
-        eq(storeCreditAccount.customerId, customerId),
-      ),
-    )
-  const [account] = lock ? await q.for('update') : await q
-  return account?.balancePaise ?? 0
+  return lock ? lockStoreCreditBalance(ctx, customerId) : spendableStoreCredit(ctx, customerId)
 }
 
 /**

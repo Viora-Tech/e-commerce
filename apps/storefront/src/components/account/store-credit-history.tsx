@@ -10,11 +10,15 @@ type StoreCreditHistoryProps = {
 
 const copy = accountContent.storeCredit
 
+/** A credit's last day (`YYYY-MM-DD`, already in store time) in words; noon UTC keeps the day. */
+const lastDay = (day: string) => formatAccountDate(`${day}T12:00:00Z`, 'UTC')
+
 /** What a change was, in the shopper's words: never the reason staff typed. */
 function describe(e: ShopperStoreCreditEntry): string {
   if (e.kind === 'payment') return copy.used(e.orderNumber)
   if (e.kind === 'refund') return copy.refund(e.orderNumber)
   if (e.kind === 'release') return copy.returned(e.orderNumber)
+  if (e.kind === 'expiry') return copy.expired
   return e.amountPaise > 0 ? copy.added : copy.removed
 }
 
@@ -47,6 +51,7 @@ export default function StoreCreditHistory({
                   <span className="text-body">{describe(e)}</span>
                   <span className="text-small text-muted">
                     {formatAccountDate(e.createdAt, timeZone)}
+                    {e.expiresOn ? ` · ${copy.expiresOn(lastDay(e.expiresOn))}` : ''}
                   </span>
                 </span>
                 <span className="shrink-0 text-body font-medium tabular-nums">

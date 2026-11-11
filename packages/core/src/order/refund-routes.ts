@@ -4,7 +4,7 @@ import type { PaymentProvider } from '@commerce/payments'
 import { and, eq, inArray } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 import { insertOutboxEvent } from '../outbox/write'
-import { isSplitTender } from '../payments/split-tender'
+import { isSplitTender, STORE_CREDIT_PROVIDER } from '../payments/split-tender'
 import { RefundNotAllowed, refundedPaise, refundPayment } from './refund'
 
 /**
@@ -59,7 +59,7 @@ async function heldPayments(ctx: StoreContext, orderId: string): Promise<Held[]>
 export type StoreCreditIssue = {
   secret: string
   createdBy: string | null
-  /** Kept for callers that still pass it; store credit on a balance has no expiry. */
+  /** The last day money refunded to store credit can be spent (`YYYY-MM-DD`); null never. */
   expiresOn?: string | null | undefined
 }
 
@@ -112,6 +112,11 @@ export async function refundOrderAmount(
     providers: readonly PaymentProvider[]
     /** For `store_credit`: the settings secret and who gave it. */
     storeCredit?: StoreCreditIssue | undefined
+    /**
+     * Store credit the order spent, coming back: staff's expiry (a day, or null for never).
+     * Left out, it keeps the expiry of the credit it was spent from.
+     */
+    returnedCreditExpiresOn?: string | null | undefined
   },
 ): Promise<string[]> {
   if (input.route === 'none' || input.amountPaise <= 0) return []
@@ -153,7 +158,12 @@ export async function refundOrderAmount(
             method: 'store_credit' as const,
             secret: input.storeCredit?.secret,
             createdBy: input.storeCredit?.createdBy ?? null,
+            storeCreditExpiresOn: input.storeCredit?.expiresOn ?? null,
           }
+        : {}),
+      // The order's own store credit always goes back onto the balance, whatever the route.
+      ...(p.provider === STORE_CREDIT_PROVIDER
+        ? { storeCreditExpiresOn: input.returnedCreditExpiresOn }
         : {}),
     })
     if (!row) continue

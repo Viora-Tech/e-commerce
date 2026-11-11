@@ -405,7 +405,6 @@ export async function setOrderTags(tx: StoreTx, id: string, tags: string[]) {
   return o ?? null
 }
 
-/** Build the gateway for a payment from the store's saved credentials; null for offline methods. */
 /** The store's connected gateway for a payment provider id; null when it is not installed. */
 export async function providerForPayment(
   tx: StoreTx,
@@ -431,6 +430,7 @@ export async function refundOrderPayment(
     manual?: boolean | undefined
     method?: RefundMethod | undefined
     createdBy?: string | null | undefined
+    storeCreditExpiresOn?: string | null | undefined
   },
 ) {
   const [p] = await tx.select().from(payment).where(eq(payment.id, input.paymentId))

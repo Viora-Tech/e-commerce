@@ -19,13 +19,16 @@ import {
 } from '@commerce/ui/shadcn/select'
 import { type FormEvent, useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import StoreCreditExpiryField from '@/components/customers/store-credit-expiry-field'
 import DateField from '@/components/fields/date-field'
 import DialogContent from '@/components/layout/dialog-content'
 import DialogFooter from '@/components/layout/dialog-footer'
 import DialogHeader from '@/components/layout/dialog-header'
 import { orderDetailContent } from '@/data/order-detail'
 import { orderCancelContent, refundRouteContent } from '@/data/order-edit'
+import { storeCreditExpiryContent } from '@/data/store-credit-expiry'
 import { useCopy, useFormat } from '@/hooks/use-copy'
+import { useStoreCreditReturn } from '@/hooks/use-store-credit-return'
 import { api } from '@/lib/api-client'
 import { methodLabel, type OrderDetail } from './order-detail-types'
 
@@ -84,7 +87,10 @@ export default function CancelOrderDialog({
   const copy = useCopy(orderCancelContent)
   const routeCopy = useCopy(refundRouteContent)
   const detail = useCopy(orderDetailContent)
+  const creditCopy = useCopy(storeCreditExpiryContent)
   const fmt = useFormat()
+  // Store credit the order was paid with goes back on a cancel: its original last day, pre-filled.
+  const creditBack = useStoreCreditReturn(order?.id ?? null)
   const [reasonCode, setReasonCode] = useState<OrderCancelReason>('customer')
   const [reason, setReason] = useState('')
   const [restock, setRestock] = useState(true)
@@ -94,6 +100,7 @@ export default function CancelOrderDialog({
   const [route, setRoute] = useState<RefundRoute>('none')
   const [expires, setExpires] = useState(false)
   const [expiresOn, setExpiresOn] = useState('')
+  const [backExpiresOn, setBackExpiresOn] = useState('')
   const [busy, setBusy] = useState(false)
 
   useEffect(() => {
@@ -117,6 +124,10 @@ export default function CancelOrderDialog({
     }
   }, [order])
 
+  useEffect(() => {
+    setBackExpiresOn(creditBack?.expiresOn ?? '')
+  }, [creditBack])
+
   // Event handlers
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
@@ -134,6 +145,10 @@ export default function CancelOrderDialog({
         ...(label && (alsoLabel || labelRequired) ? { cancelShipmentId: label.id } : {}),
         ...(refund === 'store_credit' && expires && expiresOn
           ? { storeCreditExpiresOn: expiresOn }
+          : {}),
+        // Empty is staff's "never expires"; sent either way, so the original is not assumed.
+        ...(creditBack && creditBack.spentPaise > 0
+          ? { returnedCreditExpiresOn: backExpiresOn || null }
           : {}),
       })
       toast.success(copy.done)
@@ -254,6 +269,19 @@ export default function CancelOrderDialog({
           ) : options ? (
             <p className="text-body text-muted-foreground">{copy.nothingToRefund}</p>
           ) : null}
+          {creditBack && creditBack.spentPaise > 0 ? (
+            <div className="flex flex-col gap-2">
+              <p className="text-body text-muted-foreground">
+                {creditCopy.returned(fmt.money(creditBack.spentPaise))}
+              </p>
+              <StoreCreditExpiryField
+                id="cancel-credit-back-expires"
+                value={backExpiresOn}
+                onChange={setBackExpiresOn}
+                originalDay={creditBack.expiresOn}
+              />
+            </div>
+          ) : null}
           <Field>
             <FieldLabel htmlFor="cancel-reason-code">{copy.reason}</FieldLabel>
             <Select
@@ -327,7 +355,12 @@ export default function CancelOrderDialog({
             <Button
               type="submit"
               variant="destructive"
-              disabled={busy || !options || (route === 'store_credit' && expires && !expiresOn)}
+              disabled={
+                busy ||
+                !options ||
+                !creditBack ||
+                (route === 'store_credit' && expires && !expiresOn)
+              }
             >
               <CancelCircle aria-hidden="true" />
               {copy.confirm}
