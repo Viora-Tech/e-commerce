@@ -3,15 +3,13 @@
 import type { ShipmentTab } from '@commerce/core/shipment-tabs'
 import { FileText, Printer, Truck } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import { Field, FieldLabel } from '@commerce/ui/shadcn/field'
-import { Input } from '@commerce/ui/shadcn/input'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import DateField from '@/components/fields/date-field'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
 import { shipmentActionsContent, shipmentsContent } from '@/data/shipments'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import PickupFields, { type PickupValue } from './pickup-fields'
 
 type ShipmentsBulkActionsProps = {
   /** Selected shipment ids (never "To book" orders: that tab books them instead). */
@@ -38,9 +36,12 @@ export default function ShipmentsBulkActions({
   const copy = useCopy(shipmentsContent)
   const actions = useCopy(shipmentActionsContent)
   const [dialog, setDialog] = useState<Dialog>(null)
-  const [date, setDate] = useState('')
-  const [timeFrom, setTimeFrom] = useState('14:00')
-  const [timeTo, setTimeTo] = useState('')
+  const [pickup, setPickup] = useState<PickupValue>({
+    date: '',
+    timeFrom: '14:00',
+    timeTo: '',
+    joinPickupId: null,
+  })
 
   // Helpers
   const fail = (err: unknown) => {
@@ -55,15 +56,20 @@ export default function ShipmentsBulkActions({
       // labels move to To be picked up.
       const pickups = await api.shipments.schedulePickup({
         shipmentIds: ids,
-        date,
-        timeFrom,
-        timeTo: timeTo || undefined,
+        date: pickup.date,
+        timeFrom: pickup.timeFrom,
+        timeTo: pickup.timeTo || undefined,
+        joinPickupId: pickup.joinPickupId ?? undefined,
       })
       for (const pickup of pickups) {
         if (pickup.status === 'failed') continue
         await api.shipments.createManifest({ pickupId: pickup.id }).catch(() => undefined)
       }
-      toast.success(actions.pickupAndManifestDone(ids.length))
+      toast.success(
+        pickup.joinPickupId
+          ? actions.joinedDone(ids.length)
+          : actions.pickupAndManifestDone(ids.length),
+      )
       onDone()
     } catch (err) {
       fail(err)
@@ -106,29 +112,14 @@ export default function ShipmentsBulkActions({
         onOpenChange={(o) => !o && setDialog(null)}
         title={actions.pickupTitle(ids.length)}
         body={actions.pickupBody}
-        confirmLabel={copy.pickups.submit}
+        confirmLabel={pickup.joinPickupId ? actions.addToPickup : copy.pickups.submit}
         tone="default"
-        confirmDisabled={!date || !timeFrom}
+        confirmDisabled={!pickup.date || !pickup.timeFrom}
         onConfirm={handlePickup}
       >
-        <div className="flex flex-col gap-3">
-          <Field>
-            <FieldLabel htmlFor="bulk-pickup-date">{actions.date}</FieldLabel>
-            <DateField id="bulk-pickup-date" value={date} onChange={(v) => setDate(v)} />
-          </Field>
-          <Field>
-            <FieldLabel htmlFor="bulk-pickup-from">{actions.timeFrom}</FieldLabel>
-            <Input
-              id="bulk-pickup-from"
-              value={timeFrom}
-              onChange={(e) => setTimeFrom(e.target.value)}
-            />
-          </Field>
-          <Field>
-            <FieldLabel htmlFor="bulk-pickup-to">{actions.timeTo}</FieldLabel>
-            <Input id="bulk-pickup-to" value={timeTo} onChange={(e) => setTimeTo(e.target.value)} />
-          </Field>
-        </div>
+        {dialog === 'pickup' ? (
+          <PickupFields idPrefix="bulk-pickup" value={pickup} onChange={setPickup} />
+        ) : null}
       </ConfirmDialog>
       <ConfirmDialog
         open={dialog === 'manifest'}
