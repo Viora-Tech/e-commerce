@@ -28,6 +28,8 @@ export type TransactionalEmailProps = {
   steps?: { labels: string[]; current: number } | undefined
   heading: string
   intro: string
+  /** One line under the intro about the store credit balance ("Store credit used ₹X · balance ₹Y"). */
+  notice?: string | undefined
   /** The merchant's own note for a hand-sent message, shown under the intro. */
   note?: string | undefined
   outro: string
@@ -38,6 +40,8 @@ export type TransactionalEmailProps = {
   totalLabel?: string | undefined
   shipping?: TaxLine | undefined
   taxBreakdown?: TaxLine[] | undefined
+  /** Rows under the total ("Store credit −₹X", "To pay ₹Y"). */
+  afterTotal?: TaxLine[] | undefined
   /** "Ships in 2 parcels", already in words. */
   parcels?: ParcelsBlockProps | undefined
   giftCard?: { label: string; code: string; lines: (string | undefined)[] } | undefined
@@ -57,7 +61,11 @@ export type TransactionalEmailProps = {
  */
 export function TransactionalEmail(p: TransactionalEmailProps) {
   const colours = brandColours(p.brand)
-  const paragraphs = [p.intro, ...(p.note?.split(/\n+/).filter(Boolean) ?? [])].filter(Boolean)
+  const paragraphs = [
+    p.intro,
+    p.notice,
+    ...(p.note?.split(/\n+/).filter(Boolean) ?? []),
+  ].filter((t): t is string => Boolean(t))
   return (
     <EmailLayout
       previewText={p.previewText}
@@ -99,6 +107,7 @@ export function TransactionalEmail(p: TransactionalEmailProps) {
         totalLabel={p.totalLabel}
         shipping={p.shipping}
         taxBreakdown={p.taxBreakdown}
+        afterTotal={p.afterTotal}
         qty={p.qty}
       />
       {p.parcels ? <ParcelsBlock {...p.parcels} /> : null}

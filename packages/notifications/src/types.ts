@@ -251,6 +251,22 @@ export type TemplateData = {
         etaLabel?: string | undefined
       }
     | undefined
+  /**
+   * Store credit on this message. `appliedLabel` and `toPayLabel`: a draft invoice partly paid
+   * with the customer's store credit ("Store credit −₹X", then "To pay ₹Y" under the total).
+   * `change`: the balance moved on this message's event, as one line (credit used on the order,
+   * or added by a refund or a return). Omitted when store credit had no part in it.
+   */
+  storeCredit?:
+    | {
+        /** "−₹500.00" */
+        appliedLabel?: string | undefined
+        toPayLabel?: string | undefined
+        change?:
+          | { kind: 'used' | 'added'; amountLabel: string; balanceLabel: string }
+          | undefined
+      }
+    | undefined
   /** For balance messages: what is still owed, what was paid up front, and when it must be paid by. */
   balance?:
     | {

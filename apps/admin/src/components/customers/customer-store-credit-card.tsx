@@ -9,9 +9,10 @@ import { customerStoreCreditContent } from '@/data/customer-store-credit'
 import { useCopy, useLocale } from '@/hooks/use-copy'
 import { usePermissions } from '@/hooks/use-permissions'
 import { api } from '@/lib/api-client'
-import { formatDay } from '@/lib/format-date'
+import { formatDay, formatPattern } from '@/lib/format-date'
 import { formatPaise } from '@/lib/money'
 import { routes } from '@/lib/routes'
+import { dayStart } from '@commerce/dates'
 import StoreCreditDialog from './store-credit-dialog'
 
 type CustomerStoreCreditCardProps = { customerId: string }
@@ -49,6 +50,8 @@ export default function CustomerStoreCreditCard({ customerId }: CustomerStoreCre
 
   // Helpers
   const money = (paise: number) => formatPaise(paise, locale)
+  const lastDay = (day: string) =>
+    formatPattern(dayStart(day), { day: 'numeric', month: 'short', year: 'numeric' }, locale)
 
   // Event handlers
   const handleDone = () => {
@@ -111,6 +114,11 @@ export default function CustomerStoreCreditCard({ customerId }: CustomerStoreCre
                       {copy.kinds[e.kind] ?? e.kind} · {formatDay(e.createdAt, new Date(), locale)}{' '}
                       {e.staffEmail ? copy.by(e.staffEmail) : copy.system}
                     </span>
+                    {e.expiresOn ? (
+                      <span className="block text-caption text-muted-foreground">
+                        {copy.expires(lastDay(e.expiresOn))}
+                      </span>
+                    ) : null}
                   </span>
                   <span
                     className={

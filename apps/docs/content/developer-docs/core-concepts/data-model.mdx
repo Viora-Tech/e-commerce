@@ -448,6 +448,18 @@ due now, else `pending`: a hold that `applyPaymentStatus` captures with the gate
 (`SPLIT_TENDER_PROVIDERS`): never gateway attempts, and outside `payment_one_capture_per_order`
 (0228). The order's total and GST are worked out before any of this and never change.
 
+**Expiry (0239).** A credit line may carry `expires_at` (staff's choice on Add; refunds and
+releases never do). Nothing mutable tracks what is left of it: `openLots`
+(`customers/store-credit-expiry.ts`) replays the ledger in id order (uuidv7, so write order),
+spending the soonest-to-expire credit first and never-expiring credit last. On the date what is
+left leaves with a kind `expiry` line whose `expired_entry_id` names the credit line (unique, so
+once). Every balance change writes due expiry lines first under the account's row lock
+(`expireDueStoreCredit`, also `lockStoreCreditBalance` for checkout and draft converts); readers
+subtract what is due but unwritten (`spendableStoreCredit`); the worker's hourly
+`store-credit-expiry` sweep writes the lines for idle accounts (`stores_with_store_credit_expiring`,
+ids only). `gift_card_id` (unique) marks a credit moved from an old store-credit gift card
+(`moveGiftCardToStoreCredit`), which can therefore happen once per card.
+
 ### Purchasing and landed cost
 
 `purchasing-schema.ts` holds `supplier`, `purchase_order` and `purchase_order_line`,

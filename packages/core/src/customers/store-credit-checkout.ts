@@ -1,9 +1,10 @@
 /** SOURCE OF TRUTH: store credit at checkout — WHAT: spending a signed-in shopper's store credit on a new order (held until the gateway is paid, captured when it covers the order), capturing the hold when the payment arrives, and giving a hold back when the order is cancelled unpaid / WHY: a failed or abandoned online payment must never cost the shopper their credit, and two checkouts at once must never spend the same rupee */
-import { order, payment, storeCreditAccount } from '@commerce/db'
+import { order, payment } from '@commerce/db'
 import { and, eq } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 import { STORE_CREDIT_PROVIDER } from '../payments/split-tender'
 import { changeStoreCredit, StoreCreditError } from './store-credit'
+import { lockStoreCreditBalance } from './store-credit-expiry'
 
 /*
  * How store credit pays for a checkout order:
@@ -58,17 +59,9 @@ export async function spendStoreCreditOnOrder(
     )
   }
   // The row lock: a second checkout for the same customer waits here until this one commits.
-  const [account] = await ctx.tx
-    .select({ balancePaise: storeCreditAccount.balancePaise })
-    .from(storeCreditAccount)
-    .where(
-      and(
-        eq(storeCreditAccount.storeId, ctx.storeId),
-        eq(storeCreditAccount.customerId, input.customerId),
-      ),
-    )
-    .for('update')
-  const amountPaise = Math.min(account?.balancePaise ?? 0, input.duePaise)
+  // Expired credit leaves the balance first, so it is never spent.
+  const balance = await lockStoreCreditBalance(ctx, input.customerId)
+  const amountPaise = Math.min(balance, input.duePaise)
   if (amountPaise <= 0) return null
   const covers = amountPaise >= input.duePaise
   if (!covers && input.cover === 'all') {

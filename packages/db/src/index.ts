@@ -39,6 +39,7 @@ export {
   storesWithAbandonedCarts,
   storesWithAutomationWork,
   storesWithBalanceDue,
+  storesWithStoreCreditExpiring,
   storesWithBugReports,
   storesWithCertificateChecks,
   storesWithChannelConnections,

@@ -83,6 +83,11 @@ import { createUnpaidOrderExpiry, EXPIRY_EVERY_MS } from './payments-expiry'
 import { createPixelsWorker, PIXELS_PRUNE_EVERY_MS } from './pixels'
 import { platformWebhooks } from './platform-webhooks'
 import { BALANCE_EVERY_MS, createPreorderBalanceJob } from './preorder-balance'
+import {
+  createStoreCreditExpiry,
+  STORE_CREDIT_EXPIRY_EVERY_MS,
+  STORE_CREDIT_EXPIRY_QUEUE,
+} from './store-credit-expiry'
 import { createPurchaseDocumentWorker } from './purchase-documents'
 import { createConnection, createHeartbeat } from './queues'
 import { createRetentionPrune, RETENTION_SCHEDULE } from './retention'
@@ -136,6 +141,7 @@ const appJobWorker = createAppJobWorker(redis, db, {
 
 const unpaidExpiry = createUnpaidOrderExpiry(db, { settingsSecret: env.SETTINGS_SECRET })
 const preorderBalance = createPreorderBalanceJob(db, { settingsSecret: env.SETTINGS_SECRET })
+const storeCreditExpiry = createStoreCreditExpiry(db)
 const paymentFees = createPaymentFeeSync(db, { settingsSecret: env.SETTINGS_SECRET })
 const tracker = createShippingTracker(db, { settingsSecret: env.SETTINGS_SECRET })
 const orderPusher = createOrderPusher(db, { settingsSecret: env.SETTINGS_SECRET })
@@ -273,6 +279,13 @@ const sweepList: Sweep[] = [
     schedule: every(BALANCE_EVERY_MS),
     run: preorderBalance.run,
     legacy: { queue: PREORDER_BALANCE_QUEUE, scheduler: 'preorder-balance' },
+  },
+  // Store credit past its expiry date: the "Store credit expired" history lines (hourly).
+  {
+    name: 'store-credit-expiry',
+    schedule: every(STORE_CREDIT_EXPIRY_EVERY_MS),
+    run: storeCreditExpiry.run,
+    legacy: { queue: STORE_CREDIT_EXPIRY_QUEUE, scheduler: 'store-credit-expiry' },
   },
   {
     name: 'payment-fees',

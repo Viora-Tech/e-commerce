@@ -10,6 +10,12 @@ import { and, desc, eq, sql } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 import { CommerceError } from '../errors'
 import { createCustomer } from './create'
+import {
+  expireDueStoreCredit,
+  spendableStoreCredit,
+  storeCreditLastDay,
+  storeCreditTimeZone,
+} from './store-credit-expiry'
 
 export type StoreCreditKind = (typeof STORE_CREDIT_KINDS)[number]
 
@@ -34,20 +40,23 @@ export type StoreCreditEntryView = {
   reason: string
   staffEmail: string | null
   orderId: string | null
+  /** A credit's last day (`YYYY-MM-DD`, store time); null never expires. */
+  expiresOn: string | null
   createdAt: Date
 }
 
-/** A customer's balance (0 with no account yet) and their newest ledger entries. */
+/**
+ * A customer's balance (0 with no account yet; any credit past its expiry date already left
+ * out) and their newest ledger entries.
+ */
 export async function storeCreditOf(
   ctx: StoreContext,
   customerId: string,
   limit = 50,
 ): Promise<{ balancePaise: number; entries: StoreCreditEntryView[] }> {
-  const [account] = await ctx.tx
-    .select({ balancePaise: storeCreditAccount.balancePaise })
-    .from(storeCreditAccount)
-    .where(eq(storeCreditAccount.customerId, customerId))
-  const entries = await ctx.tx
+  const balancePaise = await spendableStoreCredit(ctx, customerId)
+  const timeZone = await storeCreditTimeZone(ctx)
+  const rows = await ctx.tx
     .select({
       id: storeCreditEntry.id,
       amountPaise: storeCreditEntry.amountPaise,
@@ -56,19 +65,26 @@ export async function storeCreditOf(
       reason: storeCreditEntry.reason,
       staffEmail: storeCreditEntry.staffEmail,
       orderId: storeCreditEntry.orderId,
+      expiresAt: storeCreditEntry.expiresAt,
       createdAt: storeCreditEntry.createdAt,
     })
     .from(storeCreditEntry)
     .where(eq(storeCreditEntry.customerId, customerId))
     .orderBy(desc(storeCreditEntry.createdAt), desc(storeCreditEntry.id))
     .limit(limit)
-  return { balancePaise: account?.balancePaise ?? 0, entries }
+  const entries = rows.map(({ expiresAt, ...e }) => ({
+    ...e,
+    expiresOn: expiresAt ? storeCreditLastDay(expiresAt, timeZone) : null,
+  }))
+  return { balancePaise, entries }
 }
 
 /**
  * Credits (positive) or debits (negative) a customer's balance and writes the ledger line, in
  * the caller's transaction. The account row is locked first, so two debits never both pass on
  * the same money; a debit larger than the balance throws `insufficient` and changes nothing.
+ * Any credit past its expiry date leaves the balance first (`expireDueStoreCredit`), so expired
+ * money is never spent. A credit may carry `expiresAt` (staff's choice; null never expires).
  */
 export async function changeStoreCredit(
   ctx: StoreContext,
@@ -83,13 +99,25 @@ export async function changeStoreCredit(
       | null
       | undefined
     orderId?: string | null | undefined
+    /** When what is left of this credit runs out; only on a credit, and in the future. */
+    expiresAt?: Date | null | undefined
+    /** The old store-credit gift card this credit was moved from (once per card). */
+    giftCardId?: string | null | undefined
   },
+  now: Date = new Date(),
 ): Promise<{ balancePaise: number; entryId: string }> {
   const reason = input.reason.trim()
   if (!Number.isInteger(input.amountPaise) || input.amountPaise === 0) {
     throw new StoreCreditError('invalid', 'Enter an amount', ctx.storeId)
   }
   if (!reason) throw new StoreCreditError('invalid', 'Give a reason', ctx.storeId)
+  const expiresAt = input.expiresAt ?? null
+  if (expiresAt && input.amountPaise < 0) {
+    throw new StoreCreditError('invalid', 'Only added credit can have an expiry date', ctx.storeId)
+  }
+  if (expiresAt && expiresAt.getTime() <= now.getTime()) {
+    throw new StoreCreditError('invalid', 'Pick an expiry date in the future', ctx.storeId)
+  }
   const [cu] = await ctx.tx
     .select({ id: customer.id })
     .from(customer)
@@ -108,7 +136,9 @@ export async function changeStoreCredit(
     )
     .for('update')
   if (!account) throw new StoreCreditError('not_found', 'Customer not found', ctx.storeId)
-  const next = account.balancePaise + input.amountPaise
+  // Expired credit leaves first, under the same lock (its own `expiry` lines).
+  const { balancePaise: before } = await expireDueStoreCredit(ctx, account, now)
+  const next = before + input.amountPaise
   if (next < 0) {
     throw new StoreCreditError(
       'insufficient',
@@ -138,6 +168,8 @@ export async function changeStoreCredit(
       staffUserId: input.staff?.userId ?? null,
       staffEmail: input.staff?.email ?? null,
       orderId: input.orderId ?? null,
+      expiresAt,
+      giftCardId: input.giftCardId ?? null,
     })
     .returning({ id: storeCreditEntry.id })
   return { balancePaise: next, entryId: entry?.id as string }
@@ -256,6 +288,8 @@ export type ShopperStoreCreditEntry = {
   kind: StoreCreditKind
   /** The order it was used on or came from; null for a change the store made by hand. */
   orderNumber: number | null
+  /** A credit's last day (`YYYY-MM-DD`, store time); null never expires. */
+  expiresOn: string | null
   createdAt: Date
 }
 
@@ -269,16 +303,15 @@ export async function shopperStoreCredit(
   customerId: string,
   limit = 20,
 ): Promise<{ balancePaise: number; entries: ShopperStoreCreditEntry[] }> {
-  const [account] = await ctx.tx
-    .select({ balancePaise: storeCreditAccount.balancePaise })
-    .from(storeCreditAccount)
-    .where(eq(storeCreditAccount.customerId, customerId))
-  const entries = await ctx.tx
+  const balancePaise = await spendableStoreCredit(ctx, customerId)
+  const timeZone = await storeCreditTimeZone(ctx)
+  const rows = await ctx.tx
     .select({
       id: storeCreditEntry.id,
       amountPaise: storeCreditEntry.amountPaise,
       kind: storeCreditEntry.kind,
       orderNumber: order.number,
+      expiresAt: storeCreditEntry.expiresAt,
       createdAt: storeCreditEntry.createdAt,
     })
     .from(storeCreditEntry)
@@ -286,5 +319,9 @@ export async function shopperStoreCredit(
     .where(eq(storeCreditEntry.customerId, customerId))
     .orderBy(desc(storeCreditEntry.createdAt), desc(storeCreditEntry.id))
     .limit(limit)
-  return { balancePaise: account?.balancePaise ?? 0, entries }
+  const entries = rows.map(({ expiresAt, ...e }) => ({
+    ...e,
+    expiresOn: expiresAt ? storeCreditLastDay(expiresAt, timeZone) : null,
+  }))
+  return { balancePaise, entries }
 }

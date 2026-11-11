@@ -234,6 +234,12 @@ const ALLOWLIST: AllowEntry[] = [
   { path: 'apps/worker/src/payments.ts', exact: true, reason: WORKER },
   { path: 'apps/worker/src/preorder-balance.ts', exact: true, reason: WORKER },
   {
+    path: 'apps/worker/src/store-credit-expiry.ts',
+    exact: true,
+    reason:
+      'worker sweep lists stores through a SECURITY DEFINER helper (ids only), like preorder-balance; the ledger queries live in core customers/store-credit-expiry.ts',
+  },
+  {
     path: 'apps/worker/src/affiliates.ts',
     exact: true,
     reason: 'worker sweep lists stores through a SECURITY DEFINER helper (ids only), like reviews',
