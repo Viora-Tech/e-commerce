@@ -48,7 +48,12 @@ export default function DeliveryRouteCard({ order, showMargin }: DeliveryRouteCa
         ? fmt.date(delivery.promisedEarliest)
         : `${fmt.date(delivery.promisedEarliest)} – ${fmt.date(delivery.promisedLatest)}`
       : null
-  const margin = shippingMargin(delivery, chargedPaise, bookingChargePaise)
+  const margin = shippingMargin(
+    delivery,
+    chargedPaise,
+    bookingChargePaise,
+    order.parcelCourierCharges,
+  )
   const lines: TotalsLine[] = [
     { label: copy.charged, value: fmt.money(margin.chargedPaise) },
     ...(margin.courierPaise !== null && margin.courierFrom
@@ -60,7 +65,7 @@ export default function DeliveryRouteCard({ order, showMargin }: DeliveryRouteCa
           },
         ]
       : []),
-    ...(delivery.insured
+    ...(margin.insurancePaise > 0 || (!split && delivery.insured)
       ? [{ label: copy.insurance, value: `−${fmt.money(margin.insurancePaise)}` }]
       : []),
     ...(margin.marginPaise !== null

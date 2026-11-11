@@ -13,10 +13,12 @@ import {
   orderLine,
   orderNote,
   type StoreTx,
+  shipment,
   variant,
 } from '@commerce/db'
-import { and, eq } from 'drizzle-orm'
+import { and, asc, eq } from 'drizzle-orm'
 import type { StoreContext } from '../../context'
+import { orderParcelsView, type ParcelView } from '../../order/parcel-view'
 import type { CourierRateRow } from '../courier-rates'
 import type { DeliveryOption, RouteSetting } from './config'
 import { type ProviderAnswer, type Route, routeKey, routesFromAnswers } from './routes'
@@ -28,6 +30,45 @@ function orderDeliveryRoute(
   shipping: OrderShippingSnapshot | null | undefined,
 ): OrderDeliveryRoute | null {
   return shipping?.delivery ?? null
+}
+
+/** The order page's parcels (`orderParcelsView`) with each one's booking charge, for its margin. */
+export async function orderParcelsWithCharges(
+  tx: StoreTx,
+  orderId: string,
+  shipping: OrderShippingSnapshot | null | undefined,
+): Promise<{ parcels: ParcelView[]; parcelCourierCharges: Record<string, number> }> {
+  const parcels = await orderParcelsView(tx, orderId)
+  return { parcels, parcelCourierCharges: await parcelCourierCharges(tx, orderId, shipping) }
+}
+
+/**
+ * Each parcel's own booking charge (fulfilment order id -> paise, the latest label that was not
+ * cancelled), so a split cart's shipping margin adds up every parcel (`shippingMargin`). Empty
+ * for an order without parcel routes.
+ */
+async function parcelCourierCharges(
+  tx: StoreTx,
+  orderId: string,
+  shipping: OrderShippingSnapshot | null | undefined,
+): Promise<Record<string, number>> {
+  if (!shipping?.delivery?.parcels?.length) return {}
+  const rows = await tx
+    .select({
+      parcelId: shipment.fulfillmentOrderId,
+      chargePaise: shipment.courierChargePaise,
+      status: shipment.status,
+    })
+    .from(shipment)
+    .where(eq(shipment.orderId, orderId))
+    .orderBy(asc(shipment.createdAt))
+  const charges: Record<string, number> = {}
+  for (const r of rows) {
+    if (r.parcelId && r.chargePaise !== null && r.status !== 'cancelled') {
+      charges[r.parcelId] = r.chargePaise
+    }
+  }
+  return charges
 }
 
 /** A fulfilment order as booking matches it to a saved parcel route. */

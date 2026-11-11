@@ -83,6 +83,7 @@ export const deliveryRouteCardContent = {
   courierFrom: {
     booking: 'from the booking',
     quote: 'quoted at checkout',
+    mixed: 'booked parcels, the rest as quoted at checkout',
   },
   insurance: 'Insurance',
   margin: 'Shipping margin',

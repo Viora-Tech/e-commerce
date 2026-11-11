@@ -79,6 +79,7 @@ export default [
     courierFrom: {
       booking: 'बुकिंग से',
       quote: 'चेकआउट का कोट',
+      mixed: 'बुक हुए पार्सल, बाकी चेकआउट के कोट से',
     },
     insurance: 'बीमा',
     margin: 'शिपिंग मार्जिन',

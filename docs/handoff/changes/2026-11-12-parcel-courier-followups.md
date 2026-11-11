@@ -39,7 +39,16 @@ Branch `feat/parcel-courier-followups`, PR into `dev`. Follow-ups to #1578 (merg
 a saved delivery route. With `delivery.parcels` it shows the option, then
 `DeliveryParcelRoutes` (new sibling): one line per parcel, "Parcel 2 · from Mumbai", courier and
 service, then pre-order / insured / promised. Copy in `data/order-cards.ts` and the Hindi overlay.
-The margin block is unchanged (still the order-level figures).
+
+**Shipping margin adds up every parcel (owner, 12 Nov 2026).** `shippingMargin`
+(`delivery-options/margin.ts`, browser-safe) takes a fourth argument, `parcelCharges`
+(fulfilment order id → booking charge). With `delivery.parcels`, margin = what the shopper paid
+for delivery − every parcel's courier cost (its own booking's charge, else its checkout quote) −
+every insured parcel's insurance. It stays unknown until every parcel's cost is known, and the
+courier line says `mixed` ("booked parcels, the rest as quoted at checkout") when some parcels are
+booked. Without parcel routes it is the order-level figures, as before. `orders.get` now returns
+`parcelCourierCharges` next to `parcels` (`orderParcelsWithCharges` in `booking.ts`: one extra
+query, only for split carts). Bulk screen one row per parcel: later (owner).
 
 ## Tests
 

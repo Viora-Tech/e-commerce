@@ -1,6 +1,6 @@
 /** Bulk Create shipment on a cart checkout split across locations: each parcel books on the
  *  courier checkout quoted for it (`OrderDeliveryRoute.parcels`), not the order's first route. */
-import { saveDeliveryOption, saveParcelIds } from '@commerce/core'
+import { orderParcelsWithCharges, saveDeliveryOption, saveParcelIds } from '@commerce/core'
 import {
   address,
   createDb,
@@ -237,6 +237,14 @@ describe('bulk booking a split cart', () => {
     const byParcel = new Map(rows.map((r) => [r.fulfillmentOrderId, r]))
     expect(byParcel.get(delhi ?? null)).toMatchObject({ carrier: 'Blue Dart', insured: true })
     expect(byParcel.get(mumbai ?? null)).toMatchObject({ carrier: 'DTDC', insured: false })
+    // The order page's margin reads each parcel's own booking charge.
+    const [o] = await owner.select().from(order).where(eq(order.id, orderId))
+    const { parcels, parcelCourierCharges: charges } = await withStore(app, storeId, (tx) =>
+      orderParcelsWithCharges(tx, orderId, o?.shipping),
+    )
+    expect(parcels.map((p) => p.id)).toEqual([delhi, mumbai])
+    expect(Object.keys(charges).sort()).toEqual([delhi, mumbai].sort())
+    expect(charges[delhi as string]).toBe(byParcel.get(delhi ?? null)?.courierChargePaise)
   })
 
   it('a released pre-order parcel at the same place keeps its own route', async () => {
