@@ -19,6 +19,9 @@ import { localOptions, withLocalOptions } from './local-options'
 import { loadLocalOptionLocations } from './local-service'
 import { type ProfileProductEntry, profileProductEntries } from './profile-entries'
 import { lineProfiles, profileProducts, syncProducts, syncVariants } from './profile-placement'
+
+export { moveProductsToGeneral } from './profile-placement'
+
 import {
   lineShips,
   profilesFreeShippingThreshold,
