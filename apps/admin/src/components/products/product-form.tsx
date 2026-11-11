@@ -1,13 +1,12 @@
 'use client'
 
 import type { ProductStatus } from '@commerce/core/catalog'
-import { CircleAlert } from '@commerce/ui/icons'
-import { Alert, AlertDescription, AlertTitle } from '@commerce/ui/shadcn/alert'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { type ReactNode, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import type { ProductApp } from '@/apps/product-actions'
 import type { ProductSectionProps } from '@/apps/product-sections'
+import SaveErrorAlert from '@/components/approvals/save-error-alert'
 import RunAutomationDialog from '@/components/automations/records/run-automation-dialog'
 import { useRunAutomation } from '@/components/automations/records/use-run-automation'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
@@ -142,9 +141,13 @@ export default function ProductForm({
       ...f,
       media: [...f.media, ...items.filter((i) => !f.media.some((m) => m.id === i.id))],
     }))
-  /* The package is one box per product, so every variant ships in it. */
+  /* The product's Package goes onto every variant that follows it; a variant that picked its own
+     box in its Edit dialog keeps it (#1517). */
   const patchPackage = (vp: Partial<VariantRow>) =>
-    setForm((f) => ({ ...f, variants: f.variants.map((v) => ({ ...v, ...vp })) }))
+    setForm((f) => ({
+      ...f,
+      variants: f.variants.map((v) => (v.boxOwn ? v : { ...v, ...vp })),
+    }))
 
   const mainCard = (tab: 'details' | 'pricing' | 'inventory') =>
     first ? (
@@ -362,6 +365,7 @@ export default function ProductForm({
     shipping: (
       <ShippingCard
         variant={first}
+        variants={form.variants}
         singleVariant={single}
         packageError={showErrors ? errors.package : undefined}
         tax={form.tax}
@@ -429,13 +433,8 @@ export default function ProductForm({
               lowStockThreshold={facets.lowStockThreshold}
             />
           ) : null}
-          {serverError ? (
-            <Alert variant="destructive">
-              <CircleAlert />
-              <AlertTitle>{copy.toasts.failed}</AlertTitle>
-              <AlertDescription>{serverError}</AlertDescription>
-            </Alert>
-          ) : null}
+          {/* A change sent for approval shows as a calm notice, not "Save failed" (#1531). */}
+          {serverError ? <SaveErrorAlert title={copy.toasts.failed} message={serverError} /> : null}
         </>
       }
       main={

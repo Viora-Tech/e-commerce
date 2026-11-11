@@ -1,7 +1,6 @@
 'use client'
 
 import { CircleAlert, CircleCheck, ExternalLink, RefreshCw, Upload } from '@commerce/ui/icons'
-import { Alert, AlertDescription, AlertTitle } from '@commerce/ui/shadcn/alert'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card, CardDescription, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '@commerce/ui/shadcn/field'
@@ -10,6 +9,7 @@ import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import SaveErrorAlert from '@/components/approvals/save-error-alert'
 import DataCard from '@/components/layout/data-card'
 import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
@@ -135,13 +135,7 @@ export default function ConnectPage() {
         subtitle={copy.intro}
         lead={{ kind: 'icon', node: <Upload aria-hidden="true" /> }}
       />
-      {error ? (
-        <Alert variant="destructive">
-          <CircleAlert />
-          <AlertTitle>Could not save</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      ) : null}
+      {error ? <SaveErrorAlert title={'Could not save'} message={error} /> : null}
 
       {provider === null ? (
         <Card gap={4} inset={6}>

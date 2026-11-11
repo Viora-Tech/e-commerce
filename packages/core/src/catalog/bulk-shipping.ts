@@ -2,6 +2,8 @@
  * WHAT:  The products list's "Set weight and box": one weight and/or one box for every live
  *        variant of the chosen products, optionally only the variants with a given option value.
  * WHY:   Waimers has about 1,000 variants and set weights one by one (owner, 10 Nov 2026).
+ *        The box is the product's Package: it skips variants with their own box (#1517). With an
+ *        option value the box goes onto just those variants as their own.
  * WHERE: `products.bulk` with `{ kind: 'shipping' }` (api routers/products.ts), the products list.
  */
 import { type StoreTx, store, variant } from '@commerce/db'
@@ -14,7 +16,11 @@ export type BulkShippingAction = {
   kind: 'shipping'
   /** The product's own weight in grams (packing comes from the box). Omitted, left as it is. */
   weightGrams?: number | undefined
-  /** A box from Settings › Shipping; null clears it. Omitted, left as it is. */
+  /**
+   * A box from Settings › Shipping; null clears it. Omitted, left as it is. Without an option value
+   * it is the product's Package (variants with their own box keep it); with one, those variants'
+   * own box.
+   */
   boxPresetId?: string | null | undefined
   /** Only variants with this option value, like "XL" in "XL / Black". Omitted, every variant. */
   optionValue?: string | undefined
@@ -48,25 +54,48 @@ export async function bulkSetShipping(
     }
   }
   const rows = await tx
-    .select({ id: variant.id, productId: variant.productId, title: variant.title })
+    .select({
+      id: variant.id,
+      productId: variant.productId,
+      title: variant.title,
+      boxOwn: variant.boxOwn,
+    })
     .from(variant)
     .where(and(inArray(variant.productId, productIds), isNull(variant.archivedAt)))
   const match = action.optionValue?.trim()
   const chosen = match ? rows.filter((r) => variantHasOption(r.title, match)) : rows
   if (chosen.length === 0) return 0
-  await tx
-    .update(variant)
-    .set({
-      ...(action.weightGrams !== undefined ? { weightGrams: action.weightGrams } : {}),
-      ...(action.boxPresetId !== undefined ? { boxPresetId: action.boxPresetId } : {}),
-      updatedAt: new Date(),
-    })
-    .where(
-      inArray(
-        variant.id,
-        chosen.map((r) => r.id),
-      ),
-    )
+  if (action.weightGrams !== undefined) {
+    await tx
+      .update(variant)
+      .set({ weightGrams: action.weightGrams, updatedAt: new Date() })
+      .where(
+        inArray(
+          variant.id,
+          chosen.map((r) => r.id),
+        ),
+      )
+  }
+  /* A named box replaces a custom size, as on the product page. */
+  const boxed = match ? chosen : chosen.filter((r) => !r.boxOwn)
+  if (action.boxPresetId !== undefined && boxed.length > 0) {
+    await tx
+      .update(variant)
+      .set({
+        boxPresetId: action.boxPresetId,
+        packageLengthCm: null,
+        packageWidthCm: null,
+        packageHeightCm: null,
+        ...(match ? { boxOwn: true } : {}),
+        updatedAt: new Date(),
+      })
+      .where(
+        inArray(
+          variant.id,
+          boxed.map((r) => r.id),
+        ),
+      )
+  }
   const changed = [...new Set(chosen.map((r) => r.productId))]
   await noteProductsChanged(tx, changed)
   await noteProductEvent(tx, storeId, 'product.updated', changed)

@@ -1,5 +1,6 @@
 'use client'
 
+import type { VariantBox } from '@commerce/core/catalog'
 import { TrendingUp } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Input } from '@commerce/ui/shadcn/input'
@@ -20,6 +21,7 @@ import { productShippingContent } from '@/data/product-shipping'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { margin, type VariantPreorderContext, type VariantRow } from './form-state'
 import type { ProductTax } from './product-tax'
+import VariantBoxField from './variant-box-field'
 import WeightInput from './weight-input'
 import ZeroPriceWarning from './zero-price-warning'
 
@@ -32,6 +34,8 @@ type VariantEditFieldsProps = {
   tax: ProductTax
   /** Whether the product takes pre-orders and the limit a blank field uses. */
   preorder: VariantPreorderContext
+  /** The product's Package, for the variant's optional own box (#1517). */
+  productBox: VariantBox
 }
 
 const NONE = '__none'
@@ -46,6 +50,7 @@ export default function VariantEditFields({
   onGenerateSku,
   tax,
   preorder,
+  productBox,
 }: VariantEditFieldsProps) {
   // Hooks
   const formCopy = useCopy(productFormContent)
@@ -299,6 +304,9 @@ export default function VariantEditFields({
               onChange={onPatch}
             />
           </KitField>
+        ) : null}
+        {draft.requiresShipping ? (
+          <VariantBoxField draft={draft} productBox={productBox} onPatch={onPatch} />
         ) : null}
         <div className="grid gap-4 md:grid-cols-2">
           <KitField label={shipping.country} htmlFor="edit-variant-origin">

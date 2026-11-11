@@ -38,3 +38,18 @@ describe('reconcileVariants: deleted combinations', () => {
     expect(out.variants).toHaveLength(4)
   })
 })
+
+describe('reconcileVariants: boxes (#1517)', () => {
+  it("gives a new row the product's package, not the first row's own box", () => {
+    const size = opt('Size', ['80%', '60%'])
+    // The first row (the template for prices) ships in its own box.
+    const rows = [
+      { ...row(['80%']), boxPresetId: 'big', boxOwn: true },
+      { ...row(['60%']), boxPresetId: 'small' },
+    ]
+    const out = reconcileVariants([opt('Size', ['80%', '60%', '100%'])], [size], rows)
+    const added = out.variants.find((v) => v.optionValues[0] === '100%')
+    expect(added?.boxPresetId).toBe('small')
+    expect(added?.boxOwn).toBe(false)
+  })
+})

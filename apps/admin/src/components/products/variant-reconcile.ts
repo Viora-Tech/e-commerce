@@ -1,4 +1,4 @@
-import { buildMatrix, variantTitle } from '@commerce/core/catalog'
+import { buildMatrix, productBoxOf, variantTitle } from '@commerce/core/catalog'
 import { emptyVariant, type OptionRow, type VariantRow } from './form-state'
 
 /** Options that take part in the matrix: at least one non-blank value. A half-typed option waits. */
@@ -76,12 +76,13 @@ export function reconcileVariants(
      still get their rows. */
   const deleted = deletedCombination(nextOptions, prevOptions, variants.length)
   const template = variants[0]
+  const productBox = productBoxOf(variants)
   const rows: VariantRow[] = []
   combos.forEach((combo, c) => {
     const i = taken[c]
     const kept = i === undefined ? undefined : variants[i]
     if (kept) rows.push({ ...kept, optionValues: combo })
-    else if (!deleted(combo)) rows.push(emptyVariant(combo, template))
+    else if (!deleted(combo)) rows.push(emptyVariant(combo, template, productBox))
   })
   return {
     variants: rows,

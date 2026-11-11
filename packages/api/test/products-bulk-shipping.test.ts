@@ -45,6 +45,7 @@ async function merchant(email: string, slug: string) {
             heightCm: 8,
             weightGrams: 500,
           },
+          { id: 'small', name: 'Small', lengthCm: 20, widthCm: 15, heightCm: 5, weightGrams: 80 },
         ],
       },
     })
@@ -91,7 +92,12 @@ async function seedPad(ctx: Ctx) {
 const weights = async (productId: string) =>
   (
     await owner
-      .select({ title: variant.title, weightGrams: variant.weightGrams, box: variant.boxPresetId })
+      .select({
+        title: variant.title,
+        weightGrams: variant.weightGrams,
+        box: variant.boxPresetId,
+        own: variant.boxOwn,
+      })
       .from(variant)
       .where(eq(variant.productId, productId))
   ).sort((a, b) => a.title.localeCompare(b.title))
@@ -108,8 +114,8 @@ describe('products.bulk shipping', () => {
     )
     expect(all.changed).toBe(2)
     expect(await weights(id)).toEqual([
-      { title: 'L / Black', weightGrams: 3000, box: 'glass' },
-      { title: 'XL / Black', weightGrams: 3000, box: 'glass' },
+      { title: 'L / Black', weightGrams: 3000, box: 'glass', own: null },
+      { title: 'XL / Black', weightGrams: 3000, box: 'glass', own: null },
     ])
 
     const xl = await call(
@@ -119,8 +125,27 @@ describe('products.bulk shipping', () => {
     )
     expect(xl.changed).toBe(1)
     expect(await weights(id)).toEqual([
-      { title: 'L / Black', weightGrams: 3000, box: 'glass' },
-      { title: 'XL / Black', weightGrams: 4500, box: 'glass' },
+      { title: 'L / Black', weightGrams: 3000, box: 'glass', own: null },
+      { title: 'XL / Black', weightGrams: 4500, box: 'glass', own: null },
+    ])
+  })
+
+  it("keeps a variant's own box when the product's box changes (#1517)", async () => {
+    const a = await merchant('bs-e@example.com', 'bs-e')
+    const id = await seedPad(a.ctx)
+    await call(
+      appRouter.products.bulk,
+      { ids: [id], action: { kind: 'shipping', boxPresetId: 'glass', optionValue: 'XL' } },
+      { context: a.ctx },
+    )
+    await call(
+      appRouter.products.bulk,
+      { ids: [id], action: { kind: 'shipping', boxPresetId: 'small' } },
+      { context: a.ctx },
+    )
+    expect(await weights(id)).toEqual([
+      { title: 'L / Black', weightGrams: null, box: 'small', own: null },
+      { title: 'XL / Black', weightGrams: null, box: 'glass', own: true },
     ])
   })
 

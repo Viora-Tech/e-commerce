@@ -20,8 +20,20 @@ const showError = toast.error
 toast.error = ((message, data) =>
   Date.now() - shownAt < HOLD_MS ? NOTICE_ID : showError(message, data)) as typeof toast.error
 
+/** The sentences shown so far, so a form that keeps the caught message can tell it apart (#1531). */
+const noticeMessages = new Set<string>()
+
 /** Shows the notice and holds back the page's failure toast for the same call. */
 export function showApprovalNotice(message: string): void {
   shownAt = Date.now()
+  noticeMessages.add(message)
   toast.info(message, { id: NOTICE_ID })
+}
+
+/**
+ * True when a form's stored save error is really the "Sent for approval" sentence: most forms
+ * keep `err.message` as a string, so `SaveErrorAlert` asks this before drawing a red alert.
+ */
+export function isApprovalNotice(message: string | null | undefined): boolean {
+  return Boolean(message) && noticeMessages.has(message as string)
 }

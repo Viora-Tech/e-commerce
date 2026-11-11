@@ -20,6 +20,7 @@ import { Spinner } from '@commerce/ui/shadcn/spinner'
 import Link from 'next/link'
 import { type ReactNode, useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import SaveErrorAlert from '@/components/approvals/save-error-alert'
 import AppLogo from '@/components/apps/app-logo'
 import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
@@ -281,13 +282,7 @@ export default function ProviderConnectPage<R extends TestOutcome>({
           </Button>
         }
       />
-      {error ? (
-        <Alert variant="destructive">
-          <CircleAlert />
-          <AlertTitle>{copy.saveFailedTitle}</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      ) : null}
+      {error ? <SaveErrorAlert title={copy.saveFailedTitle} message={error} /> : null}
 
       {loading ? (
         <Card gap={4} inset={6}>
