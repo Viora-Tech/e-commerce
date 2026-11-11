@@ -1,8 +1,8 @@
 # SES bounces and complaints: SNS webhook and a per-store suppression list (#1569)
 
-**Migration 0239** (`0239_email_suppression`): tables `email_suppression` and
+**Migration 0240** (`0240_email_suppression`): tables `email_suppression` and
 `email_feedback_event` (RLS), SECURITY DEFINER `store_for_sender_domain(text)` and
-`store_for_email_tag(uuid)`. If another PR also took 0239, renumber this one (file, journal tag).
+`store_for_email_tag(uuid)`. Renumbered from 0239: #1582 (store credit) owns `0239_store_credit_expiry`, whose file and journal entry are copied here unchanged so this branch migrates on its own. **Merge after #1582.**
 
 - **Receiving**: worker `POST /webhooks/email/ses` (`apps/worker/src/email-feedback.ts`) calls
   core `handleSesSnsWebhook` (`packages/core/src/email-suppression/webhook.ts`): SNS envelope only,

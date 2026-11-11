@@ -152,7 +152,7 @@ real keys in `.env.test`.
 
 ## Bounces and complaints
 
-Each store keeps its own suppression list (`email_suppression`, migration 0239). SES reports a
+Each store keeps its own suppression list (`email_suppression`, migration 0240). SES reports a
 bounce or complaint to an SNS topic; SNS posts it to the worker; the store stops mailing that
 address until staff press **Allow again**.
 

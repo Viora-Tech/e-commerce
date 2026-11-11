@@ -5,7 +5,7 @@ import { newId, store } from './schema'
 /*
  * Email addresses a store stops mailing because Amazon SES reported a bounce or a complaint
  * (an SNS notification to the worker, core `email-suppression`). Both tables carry `store_id`
- * and sit under RLS. Migration 0239.
+ * and sit under RLS. Migration 0240.
  */
 
 const id = () => uuid('id').primaryKey().$defaultFn(newId)
