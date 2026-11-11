@@ -76,17 +76,22 @@ function pickByStrategy(
 ): { winner: Candidate; why: WhyPicked } | null {
   const order = option.strategy === 'fastest' ? byFastest : byCheapest
   const sorted = [...fits].sort(order)
-  const cheapest = sorted[0]
-  if (!cheapest) return null
+  const first = sorted[0]
+  if (!first) return null
   // The shopper sees one price per option: among the routes that charge them the same as the
-  // cheapest, the one that arrives first wins (Waimers saw Amazon Shipping on Thursday picked
-  // over Delhivery on Wednesday at the same ₹0). The store may pay a little more for it.
+  // first, the merchant's preferred courier wins, then the one that arrives first (Waimers saw
+  // Amazon Shipping on Thursday picked over Delhivery on Wednesday at the same ₹0). The store
+  // may pay a little more for it. Fastest keeps its date: only same-day equals are swapped.
+  const preferred = (c: Candidate) => Number(c.route.carrierKey !== option.preferCarrier)
+  const ties = sorted.filter(
+    (c) =>
+      c.priced.pricePaise === first.priced.pricePaise &&
+      (option.strategy !== 'fastest' || c.priced.latest === first.priced.latest),
+  )
   const best =
-    option.strategy === 'fastest'
-      ? cheapest
-      : ([...sorted]
-          .filter((c) => c.priced.pricePaise === cheapest.priced.pricePaise)
-          .sort(byFastest)[0] ?? cheapest)
+    ties.sort(
+      (a, b) => (option.preferCarrier ? preferred(a) - preferred(b) : 0) || byFastest(a, b),
+    )[0] ?? first
   const within = option.preferDirectWithinPaise
   if (within != null && best.route.channel === 'aggregator') {
     const cost = (c: Candidate) => c.priced.courierCostPaise + (c.priced.insurancePaise ?? 0)
@@ -234,7 +239,7 @@ function courierList(fits: Candidate[], winner: Candidate, option: DeliveryOptio
 
 export function resolveDeliveryOptions(input: ResolveInput): DeliveryResolveResult {
   const { config, cart, answers } = input
-  const routes = routesFromAnswers(answers, config.routeSettings, cart.weightGrams)
+  const allRoutes = routesFromAnswers(answers, config.routeSettings, cart.weightGrams)
   const anyFailed = answers.length === 0 || answers.some((a) => a.status === 'failed')
   const ruleNames = new Map(config.rules.map((r) => [r.id, r.name]))
   const options: ResolvedOption[] = []
@@ -256,6 +261,10 @@ export function resolveDeliveryOptions(input: ResolveInput): DeliveryResolveResu
       traces.push({ ...base, hidden: 'disabled' })
       continue
     }
+    // The option hides every courier name: its cards show only the delivery promise (#1521).
+    const routes = option.couriers.showNames
+      ? allRoutes
+      : allRoutes.map((r) => ({ ...r, showCarrier: false }))
     const listed = option.couriers.show === 'list'
     const candidates = routes.filter(
       (r) => optionAllows(option, r) && (listed || r.speed === option.speed),

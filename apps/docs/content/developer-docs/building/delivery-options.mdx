@@ -47,8 +47,11 @@ For each enabled option:
    and the route does not insure), `no_cod` (COD pick only), `over_max_eta`.
 4. **Pick**: the rule's default route when it fits; else `cheapest` (cost to the store incl.
    insurance; tie → direct) or `fastest` (latest arrival; a real ETA beats an estimate; then
-   cheapest). `preferDirectWithinPaise` swaps an aggregator winner for a direct route within ₹X
-   (same date for `fastest`).
+   cheapest). Among routes at the same shopper price as the first (and, for `fastest`, the same
+   date), `preferCarrier` (a carrier key) wins, then the earliest arrival.
+   `preferDirectWithinPaise` swaps an aggregator winner for a direct route within ₹X (same date
+   for `fastest`). `couriers.showNames: false` turns `showCarrier` off on every route of the
+   option, so its cards carry no courier name or logo.
 5. **Price**: `roundUpToTenRupees(cost + markup + insurance)`, then min/max caps, then
    free-above. Insurance is the quote's own insurance line, else the route setting's % with its
    minimum, else ₹0 (reported as `null`, and the admin warns).
