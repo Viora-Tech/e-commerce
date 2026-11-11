@@ -1,4 +1,4 @@
-import { SESv2Client, SendEmailCommand } from '@aws-sdk/client-sesv2'
+import { SendEmailCommand } from '@aws-sdk/client-sesv2'
 import {
   type MarketingSend,
   type Message,
@@ -8,6 +8,7 @@ import {
   type SendResult,
 } from '@commerce/notifications'
 import { formatMailbox } from './address'
+import { makeSesClient } from './client'
 
 export type SesConfig = {
   region: string
@@ -104,15 +105,7 @@ export class SesChannel implements NotificationChannel {
   ) {
     this.id = options.id ?? 'ses'
     this.label = options.label ?? 'Email (Amazon SES)'
-    this.client =
-      client ??
-      new SESv2Client({
-        region: config.region,
-        credentials: {
-          accessKeyId: config.accessKeyId,
-          secretAccessKey: config.secretAccessKey,
-        },
-      })
+    this.client = client ?? makeSesClient(config)
   }
 
   async send(message: Message): Promise<SendResult> {
