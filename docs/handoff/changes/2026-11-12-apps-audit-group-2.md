@@ -7,4 +7,4 @@ features, the test coverage, the bugs found, the owner's short live check, and w
 ready for `tested: true` after that check. No manifest was changed.
 
 Bugs found, each with its own fix PR: #1587 and #1588 (Back in stock), #1591 (Affiliates),
-#1592 (Umami). Open questions for the owner are at the end of the audit.
+#1592 (Umami). The owner's answers to the three open questions are at the end of the audit.
