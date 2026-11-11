@@ -760,6 +760,8 @@ export const ACTION_DOCS: Record<string, string> = {
     'Products of the picked collections, for "Add a collection\'s products".',
   'shipping.profiles.create':
     "Make a custom profile holding whole products (productIds, every variant including ones added later) and single variants (variantIds, which win over their product's profile).",
+  'shipping.profiles.moveToGeneral':
+    'General\'s "Move products here": take the products (and their single variants) out of the custom profiles that hold them, so they ship at General\'s prices.',
   'shipping.profiles.productEntries':
     "Products with their variants as a profile's page lists them: which variants ship under profileId and where the others ship now.",
   'shipping.profiles.update':
