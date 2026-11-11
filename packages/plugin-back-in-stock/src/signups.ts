@@ -1,5 +1,5 @@
 import { randomBytes } from 'node:crypto'
-import { CommerceError } from '@commerce/core'
+import { CommerceError, insertOutboxEvent } from '@commerce/core'
 import { type StoreTx, variant } from '@commerce/db'
 import { and, eq, isNull, or } from 'drizzle-orm'
 import { variantIsEligible } from './eligibility'
@@ -26,7 +26,8 @@ const normalisePhone = (phone: string): string => phone.replace(/[^0-9]/g, '')
  * not an error, so a shopper double-submitting a form is silently fine. Email
  * signups start `pending_confirmation` (double opt-in); WhatsApp has no such
  * step and starts `confirmed` straight away, since the number itself was
- * typed by the shopper and every message we send carries an unsubscribe link.
+ * typed by the shopper and every message we send carries an unsubscribe link. A new email
+ * signup queues its confirm message (`back_in_stock.confirm_requested`, see `messages.ts`).
  */
 export async function createSignup(tx: StoreTx, storeId: string, input: SignupInput) {
   const email = input.email ? normaliseEmail(input.email) : null
@@ -82,7 +83,15 @@ export async function createSignup(tx: StoreTx, storeId: string, input: SignupIn
     })
     .onConflictDoNothing()
     .returning()
-  if (row) return { row, created: true }
+  if (row) {
+    // Double opt-in: the confirm link goes out through the outbox, in this same transaction.
+    if (email) {
+      await insertOutboxEvent(tx, storeId, 'back_in_stock.confirm_requested', {
+        backInStockSignupId: row.id,
+      })
+    }
+    return { row, created: true }
+  }
 
   // Raced with a concurrent identical signup: the unique index won, fetch what landed.
   const [again] = await tx

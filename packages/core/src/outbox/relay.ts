@@ -204,6 +204,17 @@ async function dispatchRow(deps: OutboxRelayDeps, row: Row): Promise<void> {
       contactMessageId: payload.contactMessageId,
     })
   }
+  if (type === 'back_in_stock.confirm_requested' && payload.backInStockSignupId) {
+    // Back in stock app, no order: the confirm link for an email signup (double opt-in). The
+    // worker reads the signup from the app; keyed by this row so each signup is its own job.
+    await enqueueNotification(deps.notifications, {
+      storeId: row.storeId,
+      orderId: '',
+      template: 'back_in_stock_confirm',
+      key: row.id,
+      backInStockSignupId: payload.backInStockSignupId,
+    })
+  }
   if (type === 'review.request_due' && payload.orderId) {
     // Reviews app: the request or its reminder for one order, keyed by this row so the
     // reminder is its own job (the worker reads the products from the app).

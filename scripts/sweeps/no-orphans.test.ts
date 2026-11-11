@@ -18,6 +18,12 @@ type AllowEntry = { file: string; names: string[]; reason: string }
 
 const ALLOWLIST: AllowEntry[] = [
   {
+    file: 'packages/plugin-back-in-stock/src/messages.ts',
+    names: ['BACK_IN_STOCK_CONFIRM_PATH', 'BACK_IN_STOCK_UNSUBSCRIBE_PATH'],
+    reason:
+      'used in the module; messages.test.ts checks them against the storefront route folders (#1588)',
+  },
+  {
     file: 'packages/core/src/domains/edge-purge.ts',
     names: [
       'PURGE_QUIET_MS',

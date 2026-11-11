@@ -64,6 +64,8 @@ export type OutboxEventType =
   | 'newsletter.confirm_requested'
   /** A shopper sent a message from a theme's contact form (Forms app); the store's contact address is emailed. */
   | 'contact.message_received'
+  /** A "notify me" email signup waits for its confirm link (Back in stock app, double opt-in); no order. */
+  | 'back_in_stock.confirm_requested'
   /** A review request (or its one reminder) is due for an order (Reviews app); the shopper is emailed. */
   | 'review.request_due'
   /** The store replied to a review for the first time (Reviews app); the reviewer is emailed. */
@@ -178,6 +180,8 @@ export type OutboxPayload = {
   signupId?: string | undefined
   /** The `contact_message` a `contact.message_received` event is about. */
   contactMessageId?: string | undefined
+  /** The `back_in_stock_signup` a `back_in_stock.confirm_requested` event is about. */
+  backInStockSignupId?: string | undefined
   /** For `review.request_due`: the first request or the reminder. */
   reviewRequestKind?: 'request' | 'reminder' | undefined
   /** The `review` a `review.replied` event is about. */
@@ -309,6 +313,8 @@ export const OUTBOX_NOTIFICATION_TEMPLATE: Record<OutboxEventType, TemplateId | 
   'newsletter.confirm_requested': null,
   // No order: the relay queues `contact_message` with the message id itself (`dispatchRow`).
   'contact.message_received': null,
+  // No order: the relay queues `back_in_stock_confirm` with the signup id itself (`dispatchRow`).
+  'back_in_stock.confirm_requested': null,
   // The relay queues `review_request` / `review_reminder` itself (`dispatchRow`), keyed by the row.
   'review.request_due': null,
   // The relay queues `review_reply` with the review id itself (`dispatchRow`).
@@ -422,6 +428,7 @@ export const OUTBOX_APP_EVENT: Record<OutboxEventType, AppEvent | null> = {
   'order.cancel_notice': 'order.cancelled',
   'newsletter.confirm_requested': null,
   'contact.message_received': null,
+  'back_in_stock.confirm_requested': null,
   'review.request_due': null,
   'review.replied': null,
   'review.rewarded': null,
