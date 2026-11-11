@@ -252,6 +252,12 @@ export class RapidshypProvider implements ShippingProvider {
 
   private readonly baseUrl: string
   private readonly fetchImpl: typeof fetch
+  /**
+   * Serviceability calls in flight, by request body. Checkout asks prepaid rates, COD rates and
+   * serviceability at once, and each of those used to post the same body again: six calls, two
+   * of them one after the other, about 1.8–2 s in all (#1524). Identical asks now share one call.
+   */
+  private readonly inflight = new Map<string, Promise<ServiceableCourier[]>>()
 
   constructor(private readonly config: RapidshypConfig) {
     this.baseUrl = (config.baseUrl || RAPIDSHYP_BASE_URL).replace(/\/+$/, '')
@@ -297,27 +303,48 @@ export class RapidshypProvider implements ShippingProvider {
     isReturn?: boolean | undefined
   }): Promise<ServiceableCourier[]> {
     const weightKg = Math.max((query.weightGrams ?? 500) / 1000, 0.01)
-    const data = await this.postJson<ServiceabilityResponse>(
+    const body = {
+      Pickup_pincode: query.originPincode,
+      Delivery_pincode: query.destinationPincode,
+      cod: Boolean(query.cod),
+      // Whole rupees, so checkout's serviceability and rate asks post the same body.
+      total_order_value: Math.round(query.declaredValue ?? 0),
+      weight: weightKg,
+      ...(query.isReturn ? { is_return: true } : {}),
+    }
+    const key = JSON.stringify(body)
+    const running = this.inflight.get(key)
+    if (running) return running
+    const call = this.postJson<ServiceabilityResponse>(
       '/rapidshyp/apis/v1/serviceabilty_check',
-      {
-        Pickup_pincode: query.originPincode,
-        Delivery_pincode: query.destinationPincode,
-        cod: Boolean(query.cod),
-        total_order_value: query.declaredValue ?? 0,
-        weight: weightKg,
-        ...(query.isReturn ? { is_return: true } : {}),
-      },
+      body,
     )
-    return data.serviceable_courier_list ?? []
+      .then((data) => data.serviceable_courier_list ?? [])
+      .finally(() => this.inflight.delete(key))
+    this.inflight.set(key, call)
+    return call
   }
 
   async checkServiceability(query: ServiceabilityQuery): Promise<Serviceability> {
-    const couriers = await this.serviceability({
-      originPincode: query.originPincode,
-      destinationPincode: query.destinationPincode,
-      weightGrams: query.weightGrams,
-      declaredValue: query.declaredValue ?? undefined,
-    })
+    const ask = (cod: boolean) =>
+      this.serviceability({
+        originPincode: query.originPincode,
+        destinationPincode: query.destinationPincode,
+        weightGrams: query.weightGrams,
+        declaredValue: query.declaredValue ?? undefined,
+        cod,
+      })
+    /* RapidShyp's serviceability response has no per-courier COD flag in the
+       documented fields; a second call with cod:true is the only confirmed
+       way to learn COD availability, so this checks it as a real call rather
+       than guessing. Both run at once (they used to run one after the other). */
+    const [couriers, cod] = await Promise.all([
+      ask(false),
+      ask(true).then(
+        (list) => ({ ok: true as const, list }),
+        (error: unknown) => ({ ok: false as const, error }),
+      ),
+    ])
     if (couriers.length === 0) {
       return {
         provider: this.id,
@@ -329,17 +356,8 @@ export class RapidshypProvider implements ShippingProvider {
         reason: 'No RapidShyp courier services this route.',
       }
     }
-    /* RapidShyp's serviceability response has no per-courier COD flag in the
-       documented fields; a second call with cod:true is the only confirmed
-       way to learn COD availability, so this checks it as a real call rather
-       than guessing. */
-    const codCouriers = await this.serviceability({
-      originPincode: query.originPincode,
-      destinationPincode: query.destinationPincode,
-      weightGrams: query.weightGrams,
-      declaredValue: query.declaredValue ?? undefined,
-      cod: true,
-    })
+    if (!cod.ok) throw cod.error
+    const codCouriers = cod.list
     const days = couriers.map((c) => eddDaysFromToday(c.edd)).filter((n): n is number => n !== null)
     return {
       provider: this.id,

@@ -37,6 +37,7 @@ No courier API says whether a route insures your parcel, so you tell the app:
 | **Insurance rate** | % of the order value, with an optional minimum ₹. Used when the courier's quote does not list insurance itself. |
 | **Cost card** | First 500 g, each further 500 g and a COD fee, for couriers that give no live price (Blue Dart, DTDC and Shadowfax direct). Without one, such a route cannot back an option. |
 | **Use this route at checkout** | Turn a route off without disconnecting the app. |
+| **Show the courier name to shoppers** | Off, checkout names this courier only by how it travels (Air or Surface). To hide every courier on an option at once, use the option's **Show courier names to shoppers**. |
 
 You can save a setting for one exact route, or for a courier through a channel ("Delhivery, direct", "Blue Dart, any aggregator").
 
@@ -48,7 +49,7 @@ You can save a setting for one exact route, or for a courier through a channel (
 
 Each option is one card at checkout. **Add Standard and Express** creates the usual pair:
 
-- **Standard**: picks the **cheapest** route (a tie goes to the direct route). Cash on delivery is allowed.
+- **Standard**: picks the route that is **cheapest for the customer**. When several cost the customer the same, the one that arrives first wins; your **preferred courier** wins only when the price and the date are both the same. Cash on delivery is allowed.
 - **Express**: picks the **fastest** route (a tie goes to the cheaper one). Express is always **prepaid only**.
 
 Open an option to change:
@@ -56,10 +57,11 @@ Open an option to change:
 | Card | Settings |
 | --- | --- |
 | Name and display | The card's name and an optional line under it |
-| Routes and strategy | Speed (Standard or Express), cheapest or fastest, **prefer a direct route when it costs at most ₹X more**, and which routes it may use |
+| Routes and strategy | Speed (Standard or Express), cheapest or fastest, **prefer a direct route when it costs at most ₹X more**, a **preferred courier** for when couriers cost the customer the same, and which routes it may use (**Only these** or **All except these** limits the couriers) |
 | Price | Courier cost + your markup (₹ and/or %) + insurance, **rounded up to the next ₹10**; or your Shipping rates. Free above an order value, a minimum and a maximum |
 | Insurance | On by default (the customer can untick it), optionally only above an order value |
 | Arrival | The courier's transit time or fixed days, buffer days, processing days, and a limit that hides slower routes |
+| Couriers at checkout | One card or a card per courier, and **Show courier names to shoppers**: off, the cards show only the delivery promise ("Standard" and its date), with no courier name or logo |
 | Cash on delivery | Allowed or prepaid only |
 
 ### Cash on delivery on Standard
@@ -83,7 +85,7 @@ Type a PIN code, an order value and weight, and optionally pick products. **Try*
 
 ## When couriers are down
 
-Checkout never waits more than about a second on couriers. The app remembers each courier's answer for a PIN code, weight and order value: for 6 hours it is used straight away, and for up to 7 days it stands in whenever the courier does not answer in time (while the app asks it again in the background for the next customer). A courier app that fails 3 times within a minute is skipped for 5 minutes, so an outage does not slow checkout.
+Checkout never waits more than about a second on couriers. The app remembers each courier's answer for a PIN code, weight and order value: for 6 hours it is used straight away, and for up to 7 days it stands in whenever the courier does not answer in time (while the app asks it again in the background for the next customer). A courier app that fails 3 times within a minute is skipped for 5 minutes, so an outage does not slow checkout. A courier that is slow but answers is not counted as failing: its answer is saved for the next customer.
 
 If none of an option's couriers answer in time and none has a saved answer:
 

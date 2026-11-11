@@ -339,6 +339,7 @@ export default function CheckoutForm(props: CheckoutFormProps) {
               insurance={ck.deliveryApp.insurance}
               onInsurance={ck.deliveryApp.toggleInsurance}
               abroad={ck.abroad}
+              codOffered={totals.offered.some((m) => m.id === 'cod')}
             />
           </CheckoutCard>
         )}

@@ -15,6 +15,8 @@ export type OptionForm = {
   speed: DeliveryOptionInput['speed']
   strategy: DeliveryOptionInput['strategy']
   preferDirect: string
+  /** A carrier key; '' is no preference. */
+  preferCarrier: string
   routeMode: OptionRoutes['mode']
   selectors: RouteSelector[]
   priceSource: DeliveryOptionInput['price']['source']
@@ -37,6 +39,7 @@ export type OptionForm = {
   couriersMax: string
   roundTo9: boolean
   hideSlowerDearer: boolean
+  showNames: boolean
   enabled: boolean
 }
 
@@ -50,6 +53,7 @@ export function formOf(o: DeliveryOption | null): OptionForm {
     speed: x.speed,
     strategy: x.strategy,
     preferDirect: toRupees(x.preferDirectWithinPaise),
+    preferCarrier: x.preferCarrier ?? '',
     routeMode: x.routes.mode,
     selectors: x.routes.mode === 'any' ? [] : x.routes.selectors,
     priceSource: x.price.source,
@@ -71,6 +75,7 @@ export function formOf(o: DeliveryOption | null): OptionForm {
     couriersMax: String(x.couriers.max),
     roundTo9: x.couriers.roundTo9,
     hideSlowerDearer: x.couriers.hideSlowerDearer,
+    showNames: x.couriers.showNames,
     enabled: x.enabled,
   }
 }
@@ -92,6 +97,7 @@ export function inputOf(f: OptionForm): DeliveryOptionInput {
     speed: f.speed,
     strategy: f.strategy,
     preferDirectWithinPaise: parseRupees(f.preferDirect),
+    preferCarrier: f.preferCarrier || null,
     routes,
     price: {
       source: f.priceSource,
@@ -116,6 +122,7 @@ export function inputOf(f: OptionForm): DeliveryOptionInput {
       max: Math.min(8, Math.max(2, whole(f.couriersMax) ?? 3)),
       roundTo9: f.roundTo9,
       hideSlowerDearer: f.hideSlowerDearer,
+      showNames: f.showNames,
     },
     enabled: f.enabled,
   })
