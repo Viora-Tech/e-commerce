@@ -1,6 +1,6 @@
 # Shiprocket: cancel a booked shipment by AWB (#1567)
 
-- `packages/shipping-shiprocket/src/shiprocket.ts` `cancel` now calls
+- `packages/shipping-shiprocket/src/shiprocket.ts` `cancel` (logic in `src/cancel.ts`) now calls
   `POST /orders/cancel/shipment/awbs` with `{ awbs: [awb] }`. A 4xx (other than 401/403/429) and a
   2xx body with `status_code` >= 400 or non-empty `errors` become `CourierError('rejected')` with
   Shiprocket's reason; auth, rate limit, 5xx, timeout and non-JSON keep their kinds.
