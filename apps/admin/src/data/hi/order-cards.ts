@@ -67,6 +67,10 @@ export default [
     via: (service, app) => `${app} से ${service}`,
     insured: 'बीमा है',
     promised: (range) => `वादा ${range}`,
+    parcelFrom: (position, place) => `पार्सल ${position} · ${place} से`,
+    otherPlace: 'दूसरी लोकेशन',
+    preorder: 'प्री-ऑर्डर',
+    noRoute: 'कोई कूरियर सेव नहीं',
     backupTag: 'बैकअप पर लिया गया',
     backupHelp:
       'चेकआउट पर कूरियर ने जवाब नहीं दिया, इसलिए इस ऑर्डर पर आपका ज़ोन रेट लगा और कोई रूट सेव नहीं हुआ। अपने कूरियर नियमों से बुक करें; प्रोडक्ट रूट नियम फिर भी लागू होते हैं।',

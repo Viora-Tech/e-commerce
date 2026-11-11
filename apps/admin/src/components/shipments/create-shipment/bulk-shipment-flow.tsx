@@ -91,7 +91,10 @@ export default function BulkShipmentFlow({
     void askCouriers()
   }
   const handleBook = async () => {
-    const { orderIds, courierOverrides, serviceOverrides } = bulkOrders(picked)
+    const { orderIds, courierOverrides, serviceOverrides, parcelIds } = bulkOrders(
+      picked,
+      quotes ?? [],
+    )
     if (orderIds.length === 0) return
     setBusy(true)
     try {
@@ -99,6 +102,7 @@ export default function BulkShipmentFlow({
         orderIds,
         courierOverrides,
         ...(Object.keys(serviceOverrides).length ? { serviceOverrides } : {}),
+        ...(Object.keys(parcelIds).length ? { parcelIds } : {}),
         dimensionsCm: dims,
       })
       const unbooked = rows

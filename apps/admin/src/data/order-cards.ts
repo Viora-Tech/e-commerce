@@ -70,6 +70,11 @@ export const deliveryRouteCardContent = {
   via: (service: string, app: string) => `${service} via ${app}`,
   insured: 'Insured',
   promised: (range: string) => `Promised ${range}`,
+  /** A split cart: each parcel's own courier, headed by where it leaves from. */
+  parcelFrom: (position: number, place: string) => `Parcel ${position} · from ${place}`,
+  otherPlace: 'another location',
+  preorder: 'Pre-order',
+  noRoute: 'No courier saved',
   backupTag: 'Placed on backup',
   backupHelp:
     'Couriers did not answer at checkout, so this order was charged your zone rate and saved no route. Book it with your courier rules; product route rules still apply.',

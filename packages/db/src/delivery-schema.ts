@@ -111,6 +111,12 @@ export type OrderDeliveryParcelRoute = {
   locationId: string
   /** A pre-order parcel (its fulfilment order starts `on_hold`). */
   onHold: boolean
+  /**
+   * The fulfilment order made for it when the order was placed, so booking finds this route
+   * even after a pre-order parcel is released (no longer `on_hold`) at a location that also
+   * has another parcel. Absent on orders saved before it was stamped.
+   */
+  fulfillmentOrderId?: string | undefined
   /** Same shape as `OrderDeliveryRoute.route`. */
   route: {
     key: string

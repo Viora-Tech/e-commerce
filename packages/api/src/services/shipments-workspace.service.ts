@@ -38,7 +38,7 @@ import {
   or,
   sql,
 } from 'drizzle-orm'
-import { bookSavedRoute, ruleAllowedRows } from './delivery-booking.service'
+import { bookSavedRoute, parcelsToBook, ruleAllowedRows } from './delivery-booking.service'
 import { loadShippingSettings, noteShipmentBooked } from './shipping.service'
 
 type OrderShippingContext = {
@@ -359,6 +359,8 @@ export async function bulkBookShipments(
     courierOverrides?: Record<string, string> | undefined
     /** The service picked with each override (`CourierRateRow.serviceId`). */
     serviceOverrides?: Record<string, string> | undefined
+    /** orderId -> the parcel (fulfilment order) Create shipment quoted for it. */
+    parcelIds?: Record<string, string> | undefined
   },
 ) {
   const settings = await loadShippingSettings(tx, storeId)
@@ -370,7 +372,7 @@ export async function bulkBookShipments(
   /* Single-courier stores skip rate comparison - there is nothing to choose between, unless
      the merchant picked one of its services (Surface or Express) per order. */
   const appOn = (await activeDeliveryConfig(tx, storeId)) !== null
-  if (providers.length === 1 && !input.serviceOverrides && !appOn) {
+  if (providers.length === 1 && !input.serviceOverrides && !input.parcelIds && !appOn) {
     return bulkCreateShipments(
       { storeId, tx },
       providers[0] as (typeof providers)[0],
@@ -392,6 +394,8 @@ export async function bulkBookShipments(
     waybill?: string
     labelUrl?: string | null
     error?: string
+    /** The parcel booked, when the order was booked parcel by parcel. */
+    fulfillmentOrderId?: string
     /** Delivery options app: the route the shopper paid for could not be booked; the merchant
      *  picks the courier for this order in Create shipment instead of a silent swap. */
     needsDecision?: boolean
@@ -399,62 +403,70 @@ export async function bulkBookShipments(
 
   for (const o of contexts) {
     const overrideId = input.courierOverrides?.[o.orderId]
-    const app = overrideId ? null : await bookingContext(tx, storeId, o.orderId)
-    if (app?.delivery?.route) {
-      const { weightGrams, dimensionsCm, insured } = input
-      results.push(
-        await bookSavedRoute(tx, storeId, providers, o.orderId, app, {
+    // A split cart books parcel by parcel, each on the courier checkout quoted for it.
+    for (const parcelId of await parcelsToBook(tx, o.orderId, input.parcelIds?.[o.orderId])) {
+      const at = parcelId ? { fulfillmentOrderId: parcelId } : {}
+      const app = overrideId ? null : await bookingContext(tx, storeId, o.orderId, parcelId)
+      if (app?.delivery?.route) {
+        const { weightGrams, dimensionsCm, insured } = input
+        const booked = await bookSavedRoute(tx, storeId, providers, o.orderId, app, {
+          ...at,
           weightGrams,
           dimensionsCm,
           insured,
-        }),
-      )
-      continue
-    }
-    try {
-      let provider = overrideId ? providers.find((p) => p.id === overrideId) : undefined
-      if (!provider) {
-        const query: RateQuery = {
-          originPincode: settings.policy.originPincode,
-          destinationPincode: o.pincode,
-          weightGrams: input.weightGrams ?? ASSUMED_WEIGHT_GRAMS,
-          declaredValuePaise: o.totalPaise,
-          paymentMode: o.paymentMethod === 'cod' ? 'cod' : 'prepaid',
-          destinationCountry: o.country,
-          destinationCity: o.city,
-        }
-        const compared = await compareCourierRates(providers, query)
-        const { options, providers: ruleProviders } = ruleAllowedRows(compared, providers, app)
-        provider =
-          chooseCourier(options, ruleProviders, settings.courierRule, { stateCode: o.stateCode }) ??
-          ruleProviders[0]
+        })
+        results.push({ ...booked, ...at })
+        continue
       }
-      const row = await createShipmentForOrder(
-        { storeId, tx },
-        provider as (typeof providers)[0],
-        o.orderId,
-        {
-          weightGrams: input.weightGrams,
-          dimensionsCm: input.dimensionsCm,
-          insured: input.insured,
-          // Only with the courier it was quoted for; a rule-picked courier books its default.
-          serviceId: overrideId ? input.serviceOverrides?.[o.orderId] : undefined,
-        },
-      )
-      await noteShipmentBooked(tx, storeId, row.provider, o.orderId)
-      results.push({
-        orderId: o.orderId,
-        ok: true,
-        shipmentId: row.id,
-        waybill: row.waybill,
-        labelUrl: row.labelUrl,
-      })
-    } catch (err) {
-      results.push({
-        orderId: o.orderId,
-        ok: false,
-        error: err instanceof Error ? err.message : String(err),
-      })
+      try {
+        let provider = overrideId ? providers.find((p) => p.id === overrideId) : undefined
+        if (!provider) {
+          const query: RateQuery = {
+            originPincode: settings.policy.originPincode,
+            destinationPincode: o.pincode,
+            weightGrams: input.weightGrams ?? ASSUMED_WEIGHT_GRAMS,
+            declaredValuePaise: o.totalPaise,
+            paymentMode: o.paymentMethod === 'cod' ? 'cod' : 'prepaid',
+            destinationCountry: o.country,
+            destinationCity: o.city,
+          }
+          const compared = await compareCourierRates(providers, query)
+          const { options, providers: ruleProviders } = ruleAllowedRows(compared, providers, app)
+          provider =
+            chooseCourier(options, ruleProviders, settings.courierRule, {
+              stateCode: o.stateCode,
+            }) ?? ruleProviders[0]
+        }
+        const row = await createShipmentForOrder(
+          { storeId, tx },
+          provider as (typeof providers)[0],
+          o.orderId,
+          {
+            ...at,
+            weightGrams: input.weightGrams,
+            dimensionsCm: input.dimensionsCm,
+            insured: input.insured,
+            // Only with the courier it was quoted for; a rule-picked courier books its default.
+            serviceId: overrideId ? input.serviceOverrides?.[o.orderId] : undefined,
+          },
+        )
+        await noteShipmentBooked(tx, storeId, row.provider, o.orderId)
+        results.push({
+          orderId: o.orderId,
+          ...at,
+          ok: true,
+          shipmentId: row.id,
+          waybill: row.waybill,
+          labelUrl: row.labelUrl,
+        })
+      } catch (err) {
+        results.push({
+          orderId: o.orderId,
+          ...at,
+          ok: false,
+          error: err instanceof Error ? err.message : String(err),
+        })
+      }
     }
   }
   for (const id of input.orderIds) {

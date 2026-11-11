@@ -11,6 +11,8 @@ export type BulkCreateResult = {
   waybill?: string
   labelUrl?: string | null
   error?: string
+  /** The parcel booked, when an order is booked parcel by parcel (`bulkBookShipments`). */
+  fulfillmentOrderId?: string
 }
 
 /**

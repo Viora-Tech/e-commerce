@@ -66,14 +66,7 @@ export default function OrderSideColumn({
         canRetry={canRetry}
         onChanged={onChanged}
       />
-      {order.shipping?.delivery ? (
-        <DeliveryRouteCard
-          delivery={order.shipping.delivery}
-          chargedPaise={order.shippingPaise}
-          bookingChargePaise={order.shipment?.courierChargePaise ?? null}
-          showMargin={showMargin}
-        />
-      ) : null}
+      <DeliveryRouteCard order={order} showMargin={showMargin} />
       {readOnly ? null : (
         <ProfitCard
           orderId={order.id}

@@ -6,9 +6,46 @@ import {
   createShipmentForOrder,
   type ShippingProvider,
 } from '@commerce/core'
-import type { StoreTx } from '@commerce/db'
+import { fulfillmentOrder, order, type StoreTx, shipment } from '@commerce/db'
 import { CourierError, describeCourierFailureForStaff } from '@commerce/shipping'
+import { and, asc, eq, inArray, isNull } from 'drizzle-orm'
 import { noteShipmentBooked } from './shipping.service'
+
+/**
+ * What one order books in bulk: the parcel the merchant quoted (`pinned`), else, for a cart
+ * checkout split across locations (its saved `delivery.parcels`), each parcel still to ship
+ * on its own (open or pre-order, not held, no live label) so each books the courier it was
+ * quoted. Anything else books whole, as before: `[undefined]`.
+ */
+export async function parcelsToBook(
+  tx: StoreTx,
+  orderId: string,
+  pinned: string | undefined,
+): Promise<Array<string | undefined>> {
+  if (pinned) return [pinned]
+  const [o] = await tx.select({ shipping: order.shipping }).from(order).where(eq(order.id, orderId))
+  if (!o?.shipping?.delivery?.parcels?.length) return [undefined]
+  const open = await tx
+    .select({ id: fulfillmentOrder.id })
+    .from(fulfillmentOrder)
+    .where(
+      and(
+        eq(fulfillmentOrder.orderId, orderId),
+        inArray(fulfillmentOrder.status, ['open', 'on_hold']),
+        isNull(fulfillmentOrder.heldAt),
+      ),
+    )
+    .orderBy(asc(fulfillmentOrder.position))
+  const labels = await tx
+    .select({ id: shipment.fulfillmentOrderId, status: shipment.status })
+    .from(shipment)
+    .where(eq(shipment.orderId, orderId))
+  const live = new Set(
+    labels.filter((s) => s.status !== 'cancelled' && s.status !== 'rto').map((s) => s.id),
+  )
+  const ids = open.map((p) => p.id).filter((id) => !live.has(id))
+  return ids.length > 0 ? ids : [undefined]
+}
 
 /**
  * Bulk booking with the Delivery options app: an order books exactly the route its shopper paid
@@ -22,6 +59,8 @@ export async function bookSavedRoute(
   orderId: string,
   app: BookingContext,
   parcel: {
+    /** Book only this parcel (`app` is then its own route: `bookingContext` with the parcel). */
+    fulfillmentOrderId?: string | undefined
     weightGrams?: number | undefined
     dimensionsCm?: { length: number; width: number; height: number } | undefined
     insured?: boolean | undefined
