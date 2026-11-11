@@ -1,6 +1,7 @@
 /** SOURCE OF TRUTH: SETTINGS_SECRET key rotation — re-encrypts one store's stored secrets under the current key */
 import { customer, type StoreTx, store } from '@commerce/db'
 import { eq, sql } from 'drizzle-orm'
+import { lockStoreApps } from './apps/locked'
 import { phoneBlindIndex } from './customers/phone-crypto'
 import {
   decryptSecret,
@@ -146,6 +147,8 @@ export async function rotateStoreSecrets(
     unreadable: 0,
   }
 
+  // Rewriting store.apps: hold the row lock first, so an app saved meanwhile is not lost.
+  if (opts.apply) await lockStoreApps(tx, storeId)
   const [row] = await tx
     .select({
       payments: store.payments,

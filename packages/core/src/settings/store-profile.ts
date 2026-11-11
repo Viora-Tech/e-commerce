@@ -2,6 +2,7 @@
 import { location, newId, store } from '@commerce/db'
 import { cleanMoneyFormat } from '@commerce/money'
 import { eq } from 'drizzle-orm'
+import { lockStoreApps } from '../apps/locked'
 import type { StoreContext } from '../context'
 import { parseStoreTax, withStoreTax } from '../tax/settings'
 import { emptyStoreAddress, type StoreAddress, StoreAddressSchema } from './general'
@@ -57,7 +58,7 @@ export type StoreProfilePatch = {
 }
 
 export async function saveStoreProfile(ctx: StoreContext, patch: StoreProfilePatch): Promise<void> {
-  const [s] = await ctx.tx.select({ apps: store.apps }).from(store).where(eq(store.id, ctx.storeId))
+  const [s] = await ctx.tx.select({ id: store.id }).from(store).where(eq(store.id, ctx.storeId))
   if (!s) throw new Error(`store ${ctx.storeId} not visible in context`)
   const set: Partial<typeof store.$inferInsert> = {}
   if (patch.name !== undefined) set.name = patch.name.trim().slice(0, 120)
@@ -66,8 +67,10 @@ export async function saveStoreProfile(ctx: StoreContext, patch: StoreProfilePat
   if (patch.address !== undefined) set.address = StoreAddressSchema.parse(patch.address)
   if (patch.moneyFormat !== undefined) set.moneyFormat = cleanMoneyFormat(patch.moneyFormat)
   if (patch.pricesIncludeGst !== undefined) {
-    set.apps = withStoreTax(s.apps, {
-      ...parseStoreTax(s.apps),
+    // Read under the row lock, so a concurrent app install is not written over (#1523).
+    const apps = await lockStoreApps(ctx.tx, ctx.storeId)
+    set.apps = withStoreTax(apps, {
+      ...parseStoreTax(apps),
       pricesIncludeGst: patch.pricesIncludeGst,
     })
   }
