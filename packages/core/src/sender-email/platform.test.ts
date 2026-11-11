@@ -163,6 +163,30 @@ describe('platformEmailFromEnv', () => {
     expect(resend.bodies).toHaveLength(0)
   })
 
+  it('names the configuration set and tags SES sends with the store, for bounce handling', async () => {
+    const inputs: Record<string, unknown>[] = []
+    const client = {
+      async send(cmd: Parameters<SesClientLike['send']>[0]) {
+        inputs.push(cmd.input as unknown as Record<string, unknown>)
+        return { MessageId: 'ses-1' }
+      },
+    }
+    const store = '7d3c1c52-0b9e-4a52-9a43-2d3c64a1f0aa'
+    const p = platformEmailFromEnv(
+      env({ SENDER_EMAIL_PROVIDER: 'ses', SES_CONFIGURATION_SET: 'events', ...SES_KEYS }),
+      { sesClient: client },
+    )
+    await p.transport?.channel(ownSender, { storeId: store }).send(message)
+    await p.transport?.channel(platformSender, { storeId: store }).send(message)
+    await p.transport?.channel(platformSender).send(message)
+    expect(inputs.map((i) => i.ConfigurationSetName)).toEqual(['events', 'events', 'events'])
+    expect(inputs.map((i) => i.EmailTags)).toEqual([
+      [{ Name: 'store-id', Value: store }],
+      [{ Name: 'store-id', Value: store }],
+      undefined,
+    ])
+  })
+
   it('falls back for a store domain from the platform address, Reply-To the shop', async () => {
     const down = Object.assign(new Error('paused'), { name: 'SendingPausedException' })
     const ses = sesMock(down)

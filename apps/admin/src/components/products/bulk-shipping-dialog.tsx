@@ -1,13 +1,12 @@
 'use client'
 
-import type { BoxPreset } from '@commerce/core'
 import { CheckIcon } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Dialog, DialogDescription, DialogTitle } from '@commerce/ui/shadcn/dialog'
 import { Field, FieldDescription, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import { NativeSelect, NativeSelectOption } from '@commerce/ui/shadcn/native-select'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { toast } from 'sonner'
 import DialogContent from '@/components/layout/dialog-content'
 import DialogFooter from '@/components/layout/dialog-footer'
@@ -15,6 +14,8 @@ import DialogHeader from '@/components/layout/dialog-header'
 import { productBulkShippingContent } from '@/data/product-bulk-shipping'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { bulkShippingChoice, KEEP, NONE } from './bulk-shipping-state'
+import { useBoxPresets } from './use-box-presets'
 
 type BulkShippingDialogProps = {
   /** The selected products; empty keeps the dialog closed. */
@@ -24,9 +25,6 @@ type BulkShippingDialogProps = {
   onDone: () => void
 }
 
-const KEEP = '__keep'
-const NONE = '__none'
-
 /**
  * "Set weight and box": one product weight and one box for every variant of the selected
  * products, or only the variants with one option value (XL). Packing comes from the box.
@@ -34,26 +32,11 @@ const NONE = '__none'
 export default function BulkShippingDialog({ ids, onClose, onDone }: BulkShippingDialogProps) {
   // Hooks
   const copy = useCopy(productBulkShippingContent)
-  const [boxes, setBoxes] = useState<BoxPreset[]>([])
+  const boxes = useBoxPresets(ids.length > 0)
   const [weight, setWeight] = useState('')
   const [box, setBox] = useState(KEEP)
   const [option, setOption] = useState('')
   const [saving, setSaving] = useState(false)
-  const open = ids.length > 0
-
-  useEffect(() => {
-    if (!open) return
-    api.store
-      .getShipping()
-      .then((r) => setBoxes(r.settings.boxPresets ?? []))
-      .catch(() => setBoxes([]))
-  }, [open])
-
-  // Derived
-  const grams = Number.parseInt(weight, 10)
-  const weightGrams = Number.isFinite(grams) && grams > 0 ? grams : undefined
-  const boxPresetId = box === KEEP ? undefined : box === NONE ? null : box
-  const ready = weightGrams !== undefined || boxPresetId !== undefined
 
   // Event handlers
   const handleClose = () => {
@@ -64,6 +47,7 @@ export default function BulkShippingDialog({ ids, onClose, onDone }: BulkShippin
   }
 
   const handleApply = async () => {
+    const { weightGrams, boxPresetId, ready } = bulkShippingChoice(weight, box)
     if (!ready) {
       toast.error(copy.nothing)
       return
@@ -89,6 +73,10 @@ export default function BulkShippingDialog({ ids, onClose, onDone }: BulkShippin
       setSaving(false)
     }
   }
+
+  // Render logic
+  const open = ids.length > 0
+  const { ready } = bulkShippingChoice(weight, box)
 
   return (
     <Dialog open={open} onOpenChange={(next) => !next && handleClose()}>

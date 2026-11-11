@@ -1,6 +1,7 @@
 import {
   cart,
   cartLine,
+  homeSellingStock,
   media,
   product,
   productMedia,
@@ -124,6 +125,8 @@ export async function getCart(ctx: StoreContext, cartId: string): Promise<CartVi
       variantTitle: variant.title,
       onHand: sellableStock.onHand,
       reserved: sellableStock.reserved,
+      homeOnHand: homeSellingStock.homeOnHand,
+      homeReserved: homeSellingStock.homeReserved,
       trackInventory: variant.trackInventory,
       imageUrl: media.url,
       giftCard: product.isGiftCard,
@@ -144,6 +147,7 @@ export async function getCart(ctx: StoreContext, cartId: string): Promise<CartVi
     .innerJoin(variant, eq(variant.id, cartLine.variantId))
     .innerJoin(product, eq(product.id, variant.productId))
     .leftJoin(sellableStock, eq(sellableStock.variantId, variant.id))
+    .leftJoin(homeSellingStock, eq(homeSellingStock.variantId, variant.id))
     .leftJoin(media, eq(media.id, variant.mediaId))
     .where(eq(cartLine.cartId, cartId))
   // Each line's campaign as it was added under (#142); a paused one no longer shapes it.

@@ -144,3 +144,43 @@ export async function lineProfiles(
   )
   return (line) => lineProfileId(line, byVariant, byProduct, generalId)
 }
+
+/**
+ * Move products back to General (its page's "Move products here"): take them, and every one of
+ * their variants placed on its own, out of whatever custom profile holds them. General holds
+ * every product not placed elsewhere, so removing the placement is the whole move.
+ */
+export async function moveProductsToGeneral(
+  tx: StoreTx,
+  productIds: readonly string[],
+): Promise<{ moved: number }> {
+  const ids = [...new Set(productIds)]
+  if (ids.length === 0) return { moved: 0 }
+  const fromProducts = await tx
+    .delete(shippingProfileProduct)
+    .where(inArray(shippingProfileProduct.productId, ids))
+    .returning({ productId: shippingProfileProduct.productId })
+  const variantIds = (
+    await tx.select({ id: variant.id }).from(variant).where(inArray(variant.productId, ids))
+  ).map((v) => v.id)
+  const fromVariants = variantIds.length
+    ? await tx
+        .delete(shippingProfileVariant)
+        .where(inArray(shippingProfileVariant.variantId, variantIds))
+        .returning({ variantId: shippingProfileVariant.variantId })
+    : []
+  const movedProducts = new Set(fromProducts.map((r) => r.productId))
+  if (fromVariants.length) {
+    const owners = await tx
+      .select({ productId: variant.productId })
+      .from(variant)
+      .where(
+        inArray(
+          variant.id,
+          fromVariants.map((r) => r.variantId),
+        ),
+      )
+    for (const o of owners) movedProducts.add(o.productId)
+  }
+  return { moved: movedProducts.size }
+}

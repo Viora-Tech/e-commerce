@@ -56,6 +56,7 @@ import dtdc from './dtdc'
 import dynamicSources from './dynamic-sources'
 import ekart from './ekart'
 import emailBuilder from './email-builder'
+import emailSuppression from './email-suppression'
 import fedex from './fedex'
 import filterPanel from './filter-panel'
 import gatewayKeys from './gateway-keys'
@@ -143,6 +144,8 @@ import staffInvites from './staff-invites'
 import states from './states'
 import stepUp from './step-up'
 import storageWarning from './storage-warning'
+import storeCreditExpiry from './store-credit-expiry'
+import storeCreditGiftCards from './store-credit-gift-cards'
 import storeData from './store-data'
 import storeHealth from './store-health'
 import table from './table'
@@ -173,6 +176,8 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...abandonedDetail,
   ...customerGiftCards,
   ...customerStoreCredit,
+  ...storeCreditGiftCards,
+  ...storeCreditExpiry,
   ...ai,
   ...assistant,
   ...automationRecords,
@@ -314,6 +319,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...chatwoot,
   ...xpressbees,
   ...ekart,
+  ...emailSuppression,
   ...shadowfax,
   ...growthbook,
   ...whatsappSignup,

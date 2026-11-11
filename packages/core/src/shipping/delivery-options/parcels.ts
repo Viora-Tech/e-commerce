@@ -11,7 +11,8 @@
  *   option in any parcel hides it for the cart.
  * - Prices, list prices, courier cost, markup and insurance add up. The store's Shipping rate (a
  *   parcel on backup, or an option priced "from the Shipping rate") is the cart's rate: it is
- *   charged once, the highest of those parcels, never once per parcel.
+ *   charged once, the highest of those parcels, never once per parcel; free stays free. Each
+ *   parcel's insurance is still added on top of it (owner, 12 Nov: insurance is per parcel).
  * - Free-above and insure-above read the whole order's value (`orderValuePaise`).
  * - Dates: the last parcel to arrive. Any parcel on backup puts the option on backup (no route
  *   saved; booking uses the courier rule). Sub-choices: the couriers every parcel offers, summed.
@@ -44,29 +45,51 @@ export type DeliveryParcelInput = {
 const later = (a: string | null, b: string | null): string | null =>
   a === null || b === null ? null : a > b ? a : b
 
-/** Sum, with the parcels priced from the Shipping rate counted once (their highest). */
-function addUp(values: readonly number[], fromZone: readonly boolean[]): number {
+const roundUpToTen = (paise: number): number => Math.ceil(paise / 1000) * 1000
+
+/**
+ * Sum, with the parcels priced from the Shipping rate counted once (their highest rate), plus
+ * every one of those parcels' insurance (`insurances`, already inside each parcel's price), so a
+ * second parcel's insurance is never dropped. A free parcel (₹0: free Shipping rate or free-above)
+ * adds nothing: free stays free. With insurance the total is rounded up to ₹10, as one parcel's.
+ */
+function addUp(
+  values: readonly number[],
+  fromZone: readonly boolean[],
+  insurances: readonly number[],
+): number {
   let own = 0
-  let zone = 0
+  let rate = 0
+  let insured = 0
+  let charged = false
   values.forEach((v, i) => {
-    if (fromZone[i]) zone = Math.max(zone, v)
-    else own += v
+    if (!fromZone[i]) own += v
+    else if (v > 0) {
+      const ins = Math.min(insurances[i] ?? 0, v)
+      rate = Math.max(rate, v - ins)
+      insured += ins
+      charged = true
+    }
   })
-  return own + zone
+  if (!charged) return own
+  return own + (insured > 0 ? roundUpToTen(rate + insured) : rate)
 }
 
 function addRoutes(routes: readonly PricedRoute[], fromZone: readonly boolean[]): PricedRoute {
   const first = routes[0] as PricedRoute
   const insurances = routes.map((r) => r.insurancePaise)
+  const insured = insurances.map((i) => i ?? 0)
   return {
     route: first.route,
     pricePaise: addUp(
       routes.map((r) => r.pricePaise),
       fromZone,
+      insured,
     ),
     listPricePaise: addUp(
       routes.map((r) => r.listPricePaise),
       fromZone,
+      insured,
     ),
     courierCostPaise: routes.reduce((s, r) => s + r.courierCostPaise, 0),
     markupPaise: routes.reduce((s, r) => s + r.markupPaise, 0),
@@ -105,6 +128,8 @@ function addUpOption(parts: readonly ResolvedOption[], priceFromZone: boolean): 
     pick && cods.every((c): c is PricedRoute => c !== null) ? addRoutes(cods, fromZone) : null
   const insurances = parts.map((p) => p.insurance.pricePaise).filter((v): v is number => v !== null)
   const backup = parts.find((p) => p.source === 'backup')
+  // Insurance inside each parcel's own price (a backup parcel has none).
+  const partInsurance = parts.map((p) => p.pick?.insurancePaise ?? 0)
   return {
     ...first,
     title: pick ? first.title : first.name,
@@ -119,12 +144,14 @@ function addUpOption(parts: readonly ResolvedOption[], priceFromZone: boolean): 
       addUp(
         parts.map((p) => p.pricePaise),
         fromZone,
+        partInsurance,
       ),
     listPricePaise:
       pick?.listPricePaise ??
       addUp(
         parts.map((p) => p.listPricePaise),
         fromZone,
+        partInsurance,
       ),
     earliest: parts.reduce<string | null>((d, p) => later(d, p.earliest), first.earliest),
     latest: parts.reduce<string | null>((d, p) => later(d, p.latest), first.latest),
@@ -176,6 +203,7 @@ export function resolveParcelDeliveries(
   return {
     status,
     options,
+    parcels: results,
     trace: {
       options: first.trace.options,
       providers: results.flatMap((r) => r.trace.providers),

@@ -167,6 +167,7 @@ export function ItemsPanel({
   totalLabel,
   shipping,
   taxBreakdown,
+  afterTotal,
   qty,
 }: {
   title: string
@@ -176,6 +177,8 @@ export function ItemsPanel({
   totalLabel?: string | undefined
   shipping?: TaxLine | undefined
   taxBreakdown?: TaxLine[] | undefined
+  /** Rows under the total, e.g. "Store credit −₹500.00" then "To pay ₹1,000.00". */
+  afterTotal?: TaxLine[] | undefined
   qty: (n: number) => string
 }) {
   if (lines.length === 0) return null
@@ -305,6 +308,25 @@ export function ItemsPanel({
                 Includes GST: {taxBreakdown.map((t) => `${t.label} ${t.amount}`).join(' · ')}
               </Text>
             ) : null}
+            {(afterTotal ?? []).map((row, i, rows) => {
+              const last = i === rows.length - 1
+              const style = {
+                margin: i === 0 ? '12px 0 0' : '6px 0 0',
+                fontSize: last ? '16px' : '13.5px',
+                fontWeight: last ? 800 : 400,
+                color: last ? theme.ink : theme.body,
+              }
+              return (
+                <Row key={row.label}>
+                  <Column>
+                    <Text style={style}>{row.label}</Text>
+                  </Column>
+                  <Column style={{ textAlign: 'right' }}>
+                    <Text style={style}>{row.amount}</Text>
+                  </Column>
+                </Row>
+              )
+            })}
           </Section>
         ) : null}
       </Section>

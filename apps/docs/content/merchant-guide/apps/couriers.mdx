@@ -87,6 +87,21 @@ PIN code**, then **Test connection**.
 The test logs in with your API user; nothing is booked. It can't confirm your pickup location
 nickname, because Shiprocket only checks that when you book a shipment.
 
+For tracking within minutes, copy the **Tracking webhook URL** from the app's Overview into
+Shiprocket's **Settings › API › Webhooks**, with your webhook shared secret in the **Token**
+field. The address ends in `/webhooks/shipments/c/sr/<store id>`: it leaves out the word
+"shiprocket" because Shiprocket's form refuses addresses that contain it. An address you saved
+earlier with `shiprocket` in it keeps working.
+
+**Cancel shipment** in Shipments cancels a booked label with Shiprocket by its AWB, until the
+parcel is picked up or on a manifest. If Shiprocket refuses, you see its reason. The order stays
+in your Shiprocket panel, so you can book it again there or here.
+
+<Callout type="info">
+  New: cancelling a booked Shiprocket shipment from here has not had its first live test yet.
+  Try it once on a test booking and check the shipment shows cancelled in Shiprocket.
+</Callout>
+
 </Tabs.Tab>
 <Tabs.Tab>
 

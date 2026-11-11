@@ -136,6 +136,8 @@ export const accountContent = {
     refund: (n: number | null) => (n ? `Refund for order #${n}` : 'Refund'),
     returned: (n: number | null) =>
       n ? `Returned: order #${n} was not paid` : 'Returned from an unpaid order',
+    expired: 'Expired',
+    expiresOn: (day: string) => `use by ${day}`,
   },
   orders: {
     title: 'Orders',

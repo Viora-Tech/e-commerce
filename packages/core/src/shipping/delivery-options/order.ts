@@ -80,7 +80,15 @@ export async function priceOrderDelivery(
     parcels,
     cart.valuePaise,
   )
-  const out = orderDeliveryFor(result, delivery.choice, cart.payment, delivery.shown, config)
+  // A split cart saves every parcel's quoted courier, keyed by where it leaves from.
+  const out = orderDeliveryFor(
+    result,
+    delivery.choice,
+    cart.payment,
+    delivery.shown,
+    config,
+    split?.map((p) => p.key),
+  )
   if (out.ok) {
     return { shipping: out.shipping, delivery: out.delivery, backupRateId: out.backupRateId }
   }

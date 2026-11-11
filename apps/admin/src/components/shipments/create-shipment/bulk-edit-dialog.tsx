@@ -4,12 +4,13 @@ import type { CourierRateRow } from '@commerce/core'
 import { ChevronLeftIcon, ChevronRightIcon } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Dialog, DialogFooter, DialogTitle } from '@commerce/ui/shadcn/dialog'
-import { useState } from 'react'
 import DialogContent from '@/components/layout/dialog-content'
 import DialogHeader from '@/components/layout/dialog-header'
 import { createShipmentContent } from '@/data/create-shipment'
 import { useCopy } from '@/hooks/use-copy'
+import { batchPosition } from './bulk-edit-state'
 import CourierOption from './courier-option'
+import { useChoiceForOrder } from './use-choice-for-order'
 
 export type BulkEditOrder = {
   orderId: string
@@ -40,14 +41,10 @@ export default function BulkEditDialog({
 }: BulkEditDialogProps) {
   // Hooks
   const copy = useCopy(createShipmentContent.bulkEdit)
-  const index = orders.findIndex((o) => o.orderId === orderId)
-  const order = index >= 0 ? orders[index] : undefined
-  const [choice, setChoice] = useState<string | null>(order?.pickedKey ?? null)
-  const [shownFor, setShownFor] = useState(orderId)
-  if (shownFor !== orderId) {
-    setShownFor(orderId)
-    setChoice(order?.pickedKey ?? null)
-  }
+  const [choice, setChoice] = useChoiceForOrder(
+    orderId,
+    batchPosition(orders, orderId).order?.pickedKey ?? null,
+  )
 
   // Helpers
   const go = (to: number) => {
@@ -57,12 +54,14 @@ export default function BulkEditDialog({
 
   // Event handlers
   const handleSave = (andNext: boolean) => {
+    const { index, order } = batchPosition(orders, orderId)
     if (order && choice) onSave(order.orderId, choice)
     if (andNext && index < orders.length - 1) go(index + 1)
     else onOrderChange(null)
   }
 
   // Render logic
+  const { index, order } = batchPosition(orders, orderId)
   const bookable = order?.options ?? []
 
   return (

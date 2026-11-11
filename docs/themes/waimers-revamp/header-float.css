@@ -13,12 +13,33 @@
  * Measured at 1920px: bar 1325px wide at rest, about 785px wide and 24px from the top when
  * scrolled; the product gallery stays below it.
  */
-:root { --rv-header-gap: 1.5rem; --rv-header-ease: cubic-bezier(0.22, 1, 0.36, 1); }
-html body .shopify-section[id$='__header']:has(> .header-wrapper) { top: var(--rv-header-gap); margin-top: var(--rv-header-gap); }
-html body:has(> .sticky.top-0.z-50) .shopify-section[id$='__header']:has(> .header-wrapper) { top: calc(3rem + var(--rv-header-gap) / 2); }
-html body .header-wrapper { transition: max-width 360ms var(--rv-header-ease); }
-@media screen and (min-width: 61.875rem) {
-  html body .header-wrapper.scrolled-past { max-width: min(calc(100% - 2rem), 60rem); }
+:root {
+  --rv-header-gap: 1.5rem;
+  --rv-header-ease: cubic-bezier(0.22, 1, 0.36, 1);
 }
-@media screen and (min-width: 990px) { html body .product-layout__gallery, html body .product-layout--stacked .product-layout__info { top: calc(var(--header-sticky-height, 4rem) + var(--rv-header-gap) * 2 + 1rem); } }
-@media (prefers-reduced-motion: reduce) { html body .header-wrapper { transition: none; } }
+html body .shopify-section[id$="__header"]:has(> .header-wrapper) {
+  top: var(--rv-header-gap);
+  margin-top: var(--rv-header-gap);
+}
+html body:has(> .sticky.top-0.z-50) .shopify-section[id$="__header"]:has(> .header-wrapper) {
+  top: calc(3rem + var(--rv-header-gap) / 2);
+}
+html body .header-wrapper {
+  transition: max-width 360ms var(--rv-header-ease);
+}
+@media screen and (min-width: 61.875rem) {
+  html body .header-wrapper.scrolled-past {
+    max-width: min(calc(100% - 2rem), 60rem);
+  }
+}
+@media screen and (min-width: 990px) {
+  html body .product-layout__gallery,
+  html body .product-layout--stacked .product-layout__info {
+    top: calc(var(--header-sticky-height, 4rem) + var(--rv-header-gap) * 2 + 1rem);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  html body .header-wrapper {
+    transition: none;
+  }
+}

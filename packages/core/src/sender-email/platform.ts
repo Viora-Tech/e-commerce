@@ -18,6 +18,9 @@ export { formatMailbox } from '@commerce/notifications-ses'
 const PLATFORM_EMAIL_CHANNEL = 'platform_email'
 const PLATFORM_EMAIL_LABEL = 'Email (sent by the platform)'
 
+/** SES message tag carrying the store id; bounce and complaint events echo it back. */
+const STORE_TAG = 'store-id'
+
 export type PlatformEmail = {
   /** The platform's own sender; a placeholder on the platform domain in development. */
   fromEmail: string
@@ -33,7 +36,11 @@ export type PlatformEmail = {
   transport: {
     fromEmail: string
     fromName: string
-    channel(sender: ChosenSender): NotificationChannel
+    /**
+     * The channel for one sender. `storeId` tags SES sends with the store (`store-id`), so a
+     * bounce or complaint is put on that store's suppression list (core `email-suppression`).
+     */
+    channel(sender: ChosenSender, opts?: { storeId?: string | undefined }): NotificationChannel
   } | null
 }
 
@@ -125,10 +132,22 @@ export function platformEmailFromEnv(
    * One provider's channel. The primary records as `platform_email`; a fallback keeps its
    * own id (`ses` / `resend`), which prefixes the provider reference when it delivers.
    */
-  const via = (p: Provider, s: ChosenSender, primary: boolean): NotificationChannel => {
+  const via = (
+    p: Provider,
+    s: ChosenSender,
+    primary: boolean,
+    storeId: string | undefined,
+  ): NotificationChannel => {
     const mailbox = { fromEmail: s.fromEmail, fromName: s.fromName, replyTo: s.replyTo }
     const ids = primary ? meta : {}
-    if (p === 'ses' && ses) return new SesChannel({ ...ses, ...mailbox }, options.sesClient, ids)
+    if (p === 'ses' && ses) {
+      // Bounces and complaints go to the configuration set's SNS topic, tagged with the store.
+      const events = {
+        configurationSetName: env.SES_CONFIGURATION_SET,
+        tags: storeId ? { [STORE_TAG]: storeId } : undefined,
+      }
+      return new SesChannel({ ...ses, ...mailbox, ...events }, options.sesClient, ids)
+    }
     return new ResendChannel(
       { apiKey: resendKey as string, ...mailbox },
       { ...ids, fetch: options.resendFetch },
@@ -140,17 +159,23 @@ export function platformEmailFromEnv(
       ? s
       : { fromName: s.fromName, fromEmail, replyTo: s.fromEmail, using: 'platform' }
 
-  const channel = (sender: ChosenSender): NotificationChannel => {
+  const channel = (
+    sender: ChosenSender,
+    opts: { storeId?: string | undefined } = {},
+  ): NotificationChannel => {
+    const storeId = opts.storeId
     // A store's own domain is an SES identity, so only SES may send as it. Its fallback
     // sends from the platform address instead (Reply-To the shop), as before verification.
     if (sender.using === 'own' && ses) {
-      const primary = via('ses', sender, true)
+      const primary = via('ses', sender, true, storeId)
       // With a fallback configured, the backup for SES is Resend (the provider or the fallback).
-      return fallback ? withFallback(primary, via('resend', asPlatform(sender), false)) : primary
+      return fallback
+        ? withFallback(primary, via('resend', asPlatform(sender), false, storeId))
+        : primary
     }
     const s = asPlatform(sender)
-    const primary = via(provider, s, true)
-    return fallback ? withFallback(primary, via(fallback, s, false)) : primary
+    const primary = via(provider, s, true, storeId)
+    return fallback ? withFallback(primary, via(fallback, s, false, storeId)) : primary
   }
 
   return {

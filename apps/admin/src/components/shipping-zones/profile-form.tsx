@@ -18,6 +18,7 @@ import { useCopy } from '@/hooks/use-copy'
 import { usePermissions } from '@/hooks/use-permissions'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
+import GeneralMoveCard from './general-move-card'
 import ProfileProductsCard from './profile-products-card'
 import { type ProfileProductRow, rowsFrom, toPlacement } from './profile-products-state'
 import ShippingZonesCard from './shipping-zones-card'
@@ -27,6 +28,8 @@ type LoadedProfile = NonNullable<Awaited<ReturnType<typeof api.shipping.profiles
 type ProfileFormProps = {
   /** The profile being edited; null creates one. */
   profile: LoadedProfile | null
+  /** General only: another profile has delivery areas, so General needs its own to sell. */
+  othersHaveAreas?: boolean
 }
 
 type ProfileFormState = { name: string; rows: ProfileProductRow[] }
@@ -47,7 +50,7 @@ const fingerprint = (form: ProfileFormState) =>
  * delivery areas with their prices. General holds every product and variant not placed in
  * another profile.
  */
-export default function ProfileForm({ profile }: ProfileFormProps) {
+export default function ProfileForm({ profile, othersHaveAreas = false }: ProfileFormProps) {
   // Hooks
   const { profile: copy } = useCopy(shippingRatesContent)
   const router = useRouter()
@@ -165,6 +168,7 @@ export default function ProfileForm({ profile }: ProfileFormProps) {
           </Field>
         </DataCard>
       )}
+      {general ? <GeneralMoveCard canManage={canManage} onError={setServerError} /> : null}
       {general ? null : (
         <ProfileProductsCard
           profileId={profile?.id ?? null}
@@ -175,7 +179,12 @@ export default function ProfileForm({ profile }: ProfileFormProps) {
         />
       )}
       {profile ? (
-        <ShippingZonesCard zones={profile.zones} profileId={profile.id} general={general} />
+        <ShippingZonesCard
+          zones={profile.zones}
+          profileId={profile.id}
+          general={general}
+          blocked={general && othersHaveAreas}
+        />
       ) : (
         <p className="text-body text-muted-foreground">{copy.zones.saveFirst}</p>
       )}

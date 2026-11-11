@@ -10,6 +10,7 @@ import {
   GiftCardError,
   NotSoldInMarket,
   PaymentMethodHidden,
+  PreorderLimitReached,
   PreorderMixedCart,
   PriceNotSet,
   ShippingRateUnavailable,
@@ -50,6 +51,8 @@ export function checkoutErrorMessage(err: unknown, pincode: string): string | nu
   if (err instanceof ShippingRateUnavailable) return e.rateChanged
   // Settings → Checkout → Cart limit (#156).
   if (err instanceof CartLimitExceeded) return e.cartLimit(err.title, err.max)
+  // The variant's pre-order limit is used up (#1539): "full", not "out of stock".
+  if (err instanceof PreorderLimitReached) return e.preorderFull
   // A pre-order campaign keeps its pre-orders apart from in-stock items (#143).
   if (err instanceof PreorderMixedCart) return err.shopperMessage ?? e.preorderMixedCart
   // Settings → Payments → Payment rules (#150): this way to pay is not offered for this order.

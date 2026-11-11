@@ -67,7 +67,13 @@ export const orderEditRoutes = {
         notifyCustomer: z.boolean(),
         refund: refundRoute,
         /** Store credit's last day (YYYY-MM-DD); left out, it never expires. */
-        storeCreditExpiresOn: z.iso.date().optional(),
+        storeCreditExpiresOn: z.iso.date().nullish(),
+        /**
+         * Store credit the order was paid with, going back on the cancel: its last day
+         * (YYYY-MM-DD), or null for never. Left out, it keeps the expiry of the credit it was
+         * spent from (`storeCredit.getOrderExpiry` gives the date to pre-fill).
+         */
+        returnedCreditExpiresOn: z.iso.date().nullish(),
         /**
          * The Orders list's bulk "Cancel orders" (#1408): refused with BAD_REQUEST (code
          * ORDER_NEEDS_REFUND_DECISION) unless the order has nothing to refund.

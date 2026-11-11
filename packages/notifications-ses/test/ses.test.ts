@@ -92,3 +92,47 @@ describe('ses specifics', () => {
     expect(sesFactory.validateConfig(config)).toMatchObject({ ok: true })
   })
 })
+
+describe('ses bounce and complaint routing', () => {
+  const routed = {
+    ...config,
+    configurationSetName: 'koomerce-events',
+    tags: { 'store-id': '7d3c1c52-0b9e-4a52-9a43-2d3c64a1f0aa', 'bad tag!': 'x' },
+  }
+
+  it('names the configuration set and tags every send with the store', async () => {
+    const rec: Recorder = { sent: [] }
+    const channel = new SesChannel(routed, fakeClient(rec))
+    await channel.send({
+      to: { email: 'a@example.com' },
+      template: 'order_placed',
+      data: sampleTemplateData,
+    })
+    await channel.sendMarketing({
+      kind: 'email',
+      to: { email: 'a@example.com' },
+      subject: 'Sale',
+      html: '<p>Sale</p>',
+      text: 'Sale',
+    })
+    expect(rec.sent).toHaveLength(2)
+    for (const cmd of rec.sent) {
+      expect(cmd.input.ConfigurationSetName).toBe('koomerce-events')
+      // A tag SES would refuse is dropped rather than failing the send.
+      expect(cmd.input.EmailTags).toEqual([
+        { Name: 'store-id', Value: '7d3c1c52-0b9e-4a52-9a43-2d3c64a1f0aa' },
+      ])
+    }
+  })
+
+  it('leaves both out when not configured', async () => {
+    const rec: Recorder = { sent: [] }
+    await new SesChannel(config, fakeClient(rec)).send({
+      to: { email: 'a@example.com' },
+      template: 'order_placed',
+      data: sampleTemplateData,
+    })
+    expect(rec.sent[0]?.input.ConfigurationSetName).toBeUndefined()
+    expect(rec.sent[0]?.input.EmailTags).toBeUndefined()
+  })
+})

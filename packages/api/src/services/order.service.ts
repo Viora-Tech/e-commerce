@@ -14,7 +14,6 @@ import {
   resolvePaymentProviders,
   UNFULFILLED_STATUSES,
   UNPAID_PAYMENT_STATUSES,
-  undoDelivered,
 } from '@commerce/core'
 import { startOfDay } from '@commerce/dates'
 import type { StoreTx } from '@commerce/db'
@@ -51,7 +50,7 @@ import {
 
 export { ORDER_VIEWS, type OrderView, viewFilter } from './order-views'
 
-import { pendingUpiTile, viewFilter } from './order-views'
+import { pendingUpiTile } from './order-views'
 
 export {
   ORDER_CHANNEL_FILTERS,
@@ -405,7 +404,6 @@ export async function setOrderTags(tx: StoreTx, id: string, tags: string[]) {
   return o ?? null
 }
 
-/** Build the gateway for a payment from the store's saved credentials; null for offline methods. */
 /** The store's connected gateway for a payment provider id; null when it is not installed. */
 export async function providerForPayment(
   tx: StoreTx,
@@ -431,6 +429,7 @@ export async function refundOrderPayment(
     manual?: boolean | undefined
     method?: RefundMethod | undefined
     createdBy?: string | null | undefined
+    storeCreditExpiresOn?: string | null | undefined
   },
 ) {
   const [p] = await tx.select().from(payment).where(eq(payment.id, input.paymentId))

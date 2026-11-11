@@ -560,6 +560,8 @@ export const LIQUID_ROUTES = {
   account_register_url: '/account/login',
   account_addresses_url: '/account/addresses',
   account_recover_url: '/account/login',
+  // Horizon's account popover links "Sign in" here (Shopify's new customer accounts page).
+  storefront_login_url: '/account/login',
   collections_url: '/collections',
   all_products_collection_url: '/collections/all',
   search_url: '/search',

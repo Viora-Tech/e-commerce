@@ -163,6 +163,8 @@ export function registerShopifyFilters(engine: Liquid): void {
   add('structured_data', () => '')
   add('payment_button', () => '')
   add('payment_terms', () => '')
+  // Shopify's "Sign in with Shop" button: no Shop login here, so nothing (not "[object Object]").
+  add('login_button', () => '')
   add('metafield_tag', () => '')
   add('metafield_text', () => '')
   add(

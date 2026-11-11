@@ -87,7 +87,7 @@ export const POST = withEvlog(async (req: Request, { params }: Params) => {
     const data = new FormData()
     if (typeof email === 'string') data.set('email', email)
     const result = await subscribeAction({ status: 'idle' } as NewsletterState, data)
-    return backTo(req, result.status === 'done' ? 'customer' : null)
+    return backTo(req, result.status === 'done' ? 'customer' : 'customer_error')
   }
   if (action === 'contact') {
     const form = await req.formData().catch(() => null)

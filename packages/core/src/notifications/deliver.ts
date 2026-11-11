@@ -52,6 +52,7 @@ import { emailPicture, productCoverImages } from './email-images'
 import { isMessageOn } from './messages'
 import { paymentInstructionsOf } from './payment-instructions'
 import { parseNotificationSettings } from './settings'
+import { storeCreditTemplateData } from './store-credit-data'
 
 export type DeliveryResult = {
   channel: string
@@ -554,6 +555,8 @@ export async function deliverNotification(
   // refund_issued reports one specific refund's amount and method.
   const refunded = input.refundId ? await refundTemplateData(ctx, input.refundId) : null
   if (input.template === 'refund_issued' && !refunded) return []
+  // Store credit only where it moved or paid part (owner, 12 Nov 2026): see storeCreditTemplateData.
+  const credit = await storeCreditTemplateData(ctx, input)
   const merchant = MERCHANT_TEMPLATES.has(input.template)
     ? await merchantNotice(ctx, input.orderId)
     : null
@@ -580,6 +583,7 @@ export async function deliverNotification(
     ...(actionUrl ? { actionUrl } : {}),
     ...returnData,
     ...refunded,
+    ...credit,
     ...tracking,
     ...merchant?.data,
     ...(reminder ? { reminder: true } : {}),

@@ -9,6 +9,7 @@ import {
   getShippingZone,
   listShippingProfiles,
   listShippingZones,
+  moveProductsToGeneral,
   permissions,
   profileProductEntries,
   ShippingProfileWriteSchema,
@@ -100,6 +101,14 @@ export const shippingRouter = {
       .handler(({ context, input }) =>
         profileProductEntries(context.tx, input.profileId, input.productIds),
       ),
+
+    /**
+     * General's "Move products here": take the products (and their single variants) out of the
+     * custom profiles that hold them, so they ship at General's prices.
+     */
+    moveToGeneral: can(permissions.SETTINGS_MANAGE)
+      .input(z.object({ productIds: z.array(z.uuid()).min(1).max(BULK_MAX) }))
+      .handler(({ context, input }) => moveProductsToGeneral(context.tx, input.productIds)),
 
     /** Products of the picked collections, for "Add a collection's products". */
     collectionProducts: can(permissions.SETTINGS_READ)

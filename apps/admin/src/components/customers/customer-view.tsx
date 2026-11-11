@@ -27,6 +27,7 @@ import CustomerStoreCreditCard from './customer-store-credit-card'
 import CustomerSummaryStrip from './customer-summary-strip'
 import CustomerTagsCard from './customer-tags-card'
 import EditCustomerDialog from './edit-customer-dialog'
+import EmailSuppressionNotice from './email-suppression-notice'
 import MarketingConsentCard, { type ConsentWithChannels } from './marketing-consent-card'
 import MessagesCard from './messages-card'
 import ProfileCard from './profile-card'
@@ -183,6 +184,7 @@ export default function CustomerView({
         automations={appCards.includes('automations')}
       />
       <CustomerSummaryStrip customer={customer} />
+      {customer.email ? <EmailSuppressionNotice customerId={customer.id} /> : null}
       {step ? <CustomerNextStep customer={customer} step={step} /> : null}
       <PageColumns
         main={
