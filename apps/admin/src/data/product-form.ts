@@ -58,6 +58,9 @@ export const productFormContent = {
     /** Toast when Save stops on a field, wherever on the page the button was. */
     fixBeforeSave: 'Fix the highlighted fields, then save again',
     depositMissing: 'Enter a deposit amount',
+    /** A variant's own pre-order limit that is not a whole number of at least 1. */
+    variantLimitInvalid: (variant: string) =>
+      `Enter the pre-order limit for ${variant} as a whole number of 1 or more, or leave it blank`,
     depositTooHigh: 'The deposit must be less than the price',
     depositPercent: 'Enter a percentage between 1 and 99',
     /** The server turned the save down; `field` is the plain-words name from `fields`. */
@@ -318,7 +321,8 @@ export const productFormContent = {
     shipsInDays: 'Or, ships in (days)',
     shipsInDaysHelp: 'Used when no expected ship date is set.',
     limit: 'Pre-order quantity limit',
-    limitHelp: 'Leave blank for no limit.',
+    limitHelp:
+      "Counted per variant: each variant can take this many pre-orders. A variant's own limit (Variants, Edit) wins. Leave blank for no limit.",
     buttonLabel: 'Pre-order button label',
     note: 'Pre-order note',
     noteHelp:

@@ -76,6 +76,19 @@ describe('resolvePreorderSettings with a campaign', () => {
     expect(s.paymentMode).toBe('full')
   })
 
+  // Per-variant pre-order limit: the variant's own limit wins over the campaign's and the product's.
+  it("a variant's own limit wins over the campaign's, and blank uses the campaign's", () => {
+    expect(resolvePreorderSettings(product, { limit: 2 }, campaign).limit).toBe(2)
+    expect(resolvePreorderSettings(product, { limit: null }, campaign).limit).toBe(10)
+    expect(resolvePreorderSettings(product, { enabled: false }, campaign).limit).toBe(10)
+  })
+
+  it("a variant's own limit wins over the product's kept limit too", () => {
+    const own = { ...product, preorderOwn: ['limit'] }
+    expect(resolvePreorderSettings(own, { limit: 7 }, campaign).limit).toBe(7)
+    expect(resolvePreorderSettings(own, null, campaign).limit).toBe(3)
+  })
+
   it("falls back to the product's label when the campaign has no button text", () => {
     const blank = { ...campaign, content: {} }
     expect(resolvePreorderSettings(product, null, blank).buttonLabel).toBe('Reserve')

@@ -14,7 +14,7 @@ import {
 import { useState } from 'react'
 import { productFormContent } from '@/data/product-form'
 import { useCopy, useFormat } from '@/hooks/use-copy'
-import type { VariantRow } from './form-state'
+import type { VariantPreorderContext, VariantRow } from './form-state'
 import type { ProductTax } from './product-tax'
 import { generateSku } from './sku'
 import VariantEditFields from './variant-edit-fields'
@@ -32,6 +32,8 @@ type VariantEditDialogProps = {
   onClose: () => void
   /** The product's HSN and GST rate (#63). */
   tax: ProductTax
+  /** Whether the product takes pre-orders, for the pre-order limit field. */
+  preorder: VariantPreorderContext
 }
 
 /**
@@ -46,6 +48,7 @@ export default function VariantEditDialog({
   onMove,
   onClose,
   tax,
+  preorder,
 }: VariantEditDialogProps) {
   // Hooks
   const { variants: variantsCopy } = useCopy(productFormContent)
@@ -101,6 +104,7 @@ export default function VariantEditDialog({
             onPatch={patch}
             onGenerateSku={handleGenerateSku}
             tax={tax}
+            preorder={preorder}
           />
         </div>
 

@@ -331,6 +331,8 @@ export async function getProduct(tx: StoreTx, id: string) {
       ...v,
       /** The variant's "Allow pre-order" switch (on unless its override turns it off). */
       preorderAllowed: preorderOverride?.enabled !== false,
+      /** The variant's own pre-order limit; null uses the product's (or campaign's) limit. */
+      preorderLimit: preorderOverride?.limit ?? null,
       /** The variant's images in order; the first is `mediaId`. */
       mediaIds: variantImages.get(v.id) ?? (v.mediaId ? [v.mediaId] : []),
       /** Values in option order, so the form can rebuild the matrix row. */
