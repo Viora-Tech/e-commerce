@@ -10,6 +10,7 @@ import SettingsCard from '@/components/settings/settings-card'
 import SettingsToggleRow from '@/components/settings/settings-toggle-row'
 import { deliveryOptionsContent } from '@/data/delivery-options'
 import { useCopy } from '@/hooks/use-copy'
+import { CARRIERS } from './format'
 import type { OptionForm as Form } from './option-form-state'
 import RouteSelectorRow from './route-selector-row'
 
@@ -17,6 +18,9 @@ type OptionFormProps = {
   form: Form
   onChange: (next: Form) => void
 }
+
+/** The select's value for "no preferred courier" (a select item needs a non-empty value). */
+const NO_PREFERENCE = 'none'
 
 /** A number field without the ₹ sign (days, %). */
 function NumberField(props: {
@@ -124,6 +128,17 @@ export default function OptionForm({ form, onChange }: OptionFormProps) {
           help={o.routing.preferDirectHelp}
           value={form.preferDirect}
           onChange={set('preferDirect')}
+        />
+        <ChoiceField
+          id="opt-prefer-carrier"
+          label={o.routing.preferCarrier}
+          help={o.routing.preferCarrierHelp}
+          value={form.preferCarrier || NO_PREFERENCE}
+          options={[
+            { value: NO_PREFERENCE, label: o.routing.noPreference },
+            ...CARRIERS.map((c) => ({ value: c.key, label: c.name })),
+          ]}
+          onChange={(v) => set('preferCarrier')(v === NO_PREFERENCE ? '' : v)}
         />
         <ChoiceField
           id="opt-route-mode"
@@ -278,6 +293,13 @@ export default function OptionForm({ form, onChange }: OptionFormProps) {
       </SettingsCard>
 
       <SettingsCard title={o.couriers.title} description={o.couriers.help}>
+        <SettingsToggleRow
+          id="opt-show-names"
+          label={o.couriers.showNames}
+          description={o.couriers.showNamesHelp}
+          checked={form.showNames}
+          onChange={set('showNames')}
+        />
         <SettingsToggleRow
           id="opt-couriers-list"
           label={o.couriers.list}
