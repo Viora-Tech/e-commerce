@@ -245,6 +245,29 @@
         "vitest": "^4.1.11",
       },
     },
+    "apps/storefront-hono": {
+      "name": "@commerce/storefront-hono",
+      "version": "0.0.0",
+      "dependencies": {
+        "@commerce/blocks": "workspace:*",
+        "@commerce/config": "workspace:*",
+        "@commerce/core": "workspace:*",
+        "@commerce/db": "workspace:*",
+        "@commerce/richtext": "workspace:*",
+        "@commerce/storefront": "workspace:*",
+        "@puckeditor/core": "^0.23.0",
+        "drizzle-orm": "^0.45.2",
+        "hono": "^4.13.17",
+        "react": "^19.3.1",
+        "react-dom": "^19.3.1",
+      },
+      "devDependencies": {
+        "@types/bun": "^1.3.11",
+        "@types/react": "^19.2.8",
+        "@types/react-dom": "^19.2.3",
+        "typescript": "~5.9.3",
+      },
+    },
     "apps/worker": {
       "name": "@commerce/worker",
       "version": "0.0.0",
@@ -1701,6 +1724,8 @@
     "@commerce/storage-s3-compat": ["@commerce/storage-s3-compat@workspace:packages/storage-s3-compat"],
 
     "@commerce/storefront": ["@commerce/storefront@workspace:apps/storefront"],
+
+    "@commerce/storefront-hono": ["@commerce/storefront-hono@workspace:apps/storefront-hono"],
 
     "@commerce/ui": ["@commerce/ui@workspace:packages/ui"],
 
