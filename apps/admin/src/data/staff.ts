@@ -79,6 +79,14 @@ export const staffContent = {
     save: 'Save role',
     cancel: 'Cancel',
     readOnly: 'Built in roles cannot be changed.',
+    builtInAskFirst:
+      'Built in roles keep their permissions. You can still choose which changes ask first.',
+    off: 'Off',
+    allowed: 'Allowed',
+    askFirst: 'Ask first',
+    askFirstHelp: 'Ask first: the change runs only after another member approves it in Approvals.',
+    askFirstOwnerOnly: 'Only the owner can change Ask first.',
+    ownerNeverAsks: 'The owner can do everything, and never waits for approval.',
     back: 'Staff',
   },
   status: {
