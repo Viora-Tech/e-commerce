@@ -18,6 +18,11 @@ export class CourierError extends Error {
   readonly status: number | undefined
   /** A refusal the admin can explain better than the sentence, with the facts it needs. */
   readonly detail: CourierErrorDetail | undefined
+  /**
+   * The courier's own words for a 4xx refusal ("Order already exists"), read from its error
+   * body. Shown to staff only; a shopper never sees a courier's text.
+   */
+  readonly reason: string | undefined
 
   constructor(
     kind: CourierErrorKind,
@@ -27,6 +32,7 @@ export class CourierError extends Error {
       status?: number | undefined
       cause?: unknown
       detail?: CourierErrorDetail | undefined
+      reason?: string | undefined
     },
   ) {
     super(message, { cause: options?.cause })
@@ -35,7 +41,54 @@ export class CourierError extends Error {
     this.provider = provider
     this.status = options?.status
     this.detail = options?.detail
+    this.reason = options?.reason
   }
+}
+
+const REASON_KEYS = [
+  'message',
+  'msg',
+  'remarks',
+  'remark',
+  'error',
+  'errors',
+  'description',
+  'detail',
+]
+const MAX_REASON = 200
+
+/** The first readable reason in a courier's JSON error body (nested one level), or null. */
+function reasonFrom(value: unknown, depth = 0): string | null {
+  if (typeof value === 'string') return value.trim() || null
+  if (depth > 2 || value === null || typeof value !== 'object') return null
+  if (Array.isArray(value)) {
+    const parts = value.map((v) => reasonFrom(v, depth + 1)).filter((v): v is string => !!v)
+    return parts.length ? parts.join('; ') : null
+  }
+  const record = value as Record<string, unknown>
+  for (const key of REASON_KEYS) {
+    const found = reasonFrom(record[key], depth + 1)
+    if (found) return found
+  }
+  return null
+}
+
+/**
+ * Why a courier refused a request, from its error body: the JSON message or remarks, else
+ * short plain text. HTML error pages and empty bodies give undefined.
+ */
+export async function courierRefusalReason(response: Response): Promise<string | undefined> {
+  const text = await response.text().catch(() => '')
+  if (!text.trim()) return undefined
+  let reason: string | null
+  try {
+    reason = reasonFrom(JSON.parse(text))
+  } catch {
+    reason = /<[a-z!]/i.test(text) ? null : text.trim()
+  }
+  if (!reason) return undefined
+  const flat = reason.replace(/\s+/g, ' ')
+  return flat.length > MAX_REASON ? `${flat.slice(0, MAX_REASON - 1)}…` : flat
 }
 
 /**
@@ -96,13 +149,15 @@ export async function courierFetch(
       })
     }
     if (!response.ok) {
+      // A 4xx is the courier refusing what we sent: keep its reason for staff.
+      const reason = response.status < 500 ? await courierRefusalReason(response) : undefined
       throw new CourierError(
         'unavailable',
         provider,
-        `${provider} returned HTTP ${response.status}.`,
-        {
-          status: response.status,
-        },
+        reason
+          ? `${provider} refused the request: ${reason}`
+          : `${provider} returned HTTP ${response.status}.`,
+        { status: response.status, reason },
       )
     }
     return response

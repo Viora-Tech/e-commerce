@@ -7,7 +7,6 @@ import { Input } from '@commerce/ui/shadcn/input'
 import ChoiceField from '@/components/apps/gst-invoices/choice-field'
 import ChoiceCard from '@/components/layout/choice-card'
 import PillTabs from '@/components/layout/pill-tabs'
-import ProductThumb from '@/components/products/product-thumb'
 import { createShipmentContent } from '@/data/create-shipment'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import BoxSelect from './box-select'
@@ -29,8 +28,8 @@ type PackageStepProps = {
   form: PackageForm
   onChange: (form: PackageForm) => void
   onParcelChange: (parcelId: string) => void
-  /** The full-page card: items as one muted line, size in one row, choice cards for payment;
-   *  the pickup place lives on the route card. */
+  /** The full-page card: size in one row, choice cards for payment; the items list sits above
+   *  (PartialPicker) and the pickup place on the route card. */
   inCard?: boolean
   /** What the couriers bill, once a quote has come back (the info line in the card). */
   chargedGrams?: number | undefined
@@ -113,29 +112,8 @@ export default function PackageStep({
     const kg = chargedGrams ? fmt.number(Math.round(chargedGrams / 10) / 100) : null
     return (
       <div className="flex flex-col gap-5">
+        {/* The items are listed (and picked) by the Package card's PartialPicker above. */}
         {parcelPicker}
-        <ul className="flex flex-col gap-3">
-          {parcel.lines.map((l) => (
-            <li key={l.id} className="flex items-center gap-3">
-              <ProductThumb url={l.imageUrl} alt={l.title} className="size-10" />
-              <div className="flex min-w-0 flex-1 flex-col">
-                <span className="truncate text-body font-medium text-ink-strong">{l.title}</span>
-                <span className="truncate text-caption text-muted-foreground">
-                  {[
-                    l.sku ? copy.sku(l.sku) : null,
-                    fmt.money(l.unitPricePaise),
-                    l.weightGrams ? copy.unitWeight(fmt.number(l.weightGrams)) : null,
-                  ]
-                    .filter(Boolean)
-                    .join(' · ')}
-                </span>
-              </div>
-              <span className="shrink-0 tabular-nums text-body text-muted-foreground">
-                × {l.quantity}
-              </span>
-            </li>
-          ))}
-        </ul>
         <BoxSelect
           id="ship-box"
           boxes={draft.boxes}

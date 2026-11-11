@@ -6,6 +6,7 @@ import { Button } from '@commerce/ui/shadcn/button'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
+import { toast } from 'sonner'
 import StatusChip from '@/components/layout/status-chip'
 import SettingsCard from '@/components/settings/settings-card'
 import SettingsTable from '@/components/settings/settings-table'
@@ -18,6 +19,7 @@ import { usePermissions } from '@/hooks/use-permissions'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
 import { describePrice, fromRate } from './form-state'
+import RowDeleteMenu from './row-delete-menu'
 
 type LoadedProfile = Awaited<ReturnType<typeof api.shipping.profiles.list>>[number]
 
@@ -31,7 +33,8 @@ const rateLines = (p: LoadedProfile) =>
 
 /**
  * Settings → Shipping: the store's shipping profiles, General first, with how many products
- * each holds and the prices it charges. Each row opens the profile's page.
+ * each holds and the prices it charges. Each row opens the profile's page; its ⋯ menu edits or
+ * deletes it (not General).
  */
 export default function ShippingProfilesCard() {
   // Hooks
@@ -55,6 +58,13 @@ export default function ShippingProfilesCard() {
       live = false
     }
   }, [])
+
+  // Handlers
+  const handleDelete = async (id: string) => {
+    await api.shipping.profiles.delete({ id })
+    setProfiles((all) => (all ?? []).filter((p) => p.id !== id))
+    toast.success(ratesCopy.profile.toasts.deleted)
+  }
 
   // Render logic
   const copy = ratesCopy.profiles
@@ -142,7 +152,17 @@ export default function ShippingProfilesCard() {
               )}
             </SettingsTableCell>
             <SettingsTableCell className="w-16 p-0 last:pr-2 md:last:pr-2">
-              <RowActionsCell href={profileHref(p.id)} />
+              <RowActionsCell href={profileHref(p.id)}>
+                {canManage ? (
+                  <RowDeleteMenu
+                    name={p.name}
+                    editHref={profileHref(p.id)}
+                    // General holds every product not placed elsewhere: it cannot go.
+                    onDelete={p.productCount === null ? undefined : () => handleDelete(p.id)}
+                    confirm={ratesCopy.profile.delete}
+                  />
+                ) : null}
+              </RowActionsCell>
             </SettingsTableCell>
           </SettingsTableRow>
         )

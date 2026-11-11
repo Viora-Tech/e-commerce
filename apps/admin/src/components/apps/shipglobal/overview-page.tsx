@@ -29,7 +29,11 @@ export default function OverviewPage() {
       heading: copy.overview.capabilitiesHeading,
       items: SHIPGLOBAL_CAPABILITIES.map((cap) => copy.overview.capabilities[cap] ?? cap),
     },
-    { heading: copy.overview.notYetSupported, items: copy.overview.notYetSupportedItems },
+    {
+      heading: copy.overview.notYetSupported,
+      items: copy.overview.notYetSupportedItems,
+      unavailable: true,
+    },
   ]
 
   return (

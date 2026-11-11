@@ -26,7 +26,7 @@ import {
 import { getRegistries } from '@commerce/core/registries'
 import type { StoreTx } from '@commerce/db'
 import { location, shipment, shipmentPickup, store } from '@commerce/db'
-import { CourierError, describeCourierFailure, isValidPincode } from '@commerce/shipping'
+import { CourierError, describeCourierFailureForStaff, isValidPincode } from '@commerce/shipping'
 import { ORPCError } from '@orpc/server'
 import { and, desc, eq } from 'drizzle-orm'
 
@@ -256,7 +256,7 @@ const courierToRpc = (err: unknown): never => {
     })
   }
   if (err instanceof CourierError) {
-    const detail = err.kind === 'rejected' ? err.message : describeCourierFailure(err)
+    const detail = describeCourierFailureForStaff(err)
     /* A refusal the admin explains with facts (the pickup location name sent) carries them. */
     if (err.detail) {
       throw new ORPCError('BAD_REQUEST', {

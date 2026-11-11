@@ -5,6 +5,8 @@ import { REST_OF_WORLD } from '@commerce/core/shipping-rates'
 import { Plus, Truck } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { toast } from 'sonner'
 import EmptyState from '@/components/layout/empty-state'
 import StatusChip from '@/components/layout/status-chip'
 import SettingsCard from '@/components/settings/settings-card'
@@ -16,8 +18,10 @@ import { stateName } from '@/data/india'
 import { shippingRatesContent } from '@/data/shipping-rates'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { usePermissions } from '@/hooks/use-permissions'
+import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
 import { describePrice, fromRate, type LoadedZone } from './form-state'
+import RowDeleteMenu from './row-delete-menu'
 
 /** A country's name in the admin's language ("United Arab Emirates"). */
 const regionName = (code: string, tag: string): string =>
@@ -65,6 +69,14 @@ export default function ShippingZonesCard({ zones, profileId, general }: Shippin
   const ratesCopy = useCopy(shippingRatesContent)
   const fmt = useFormat()
   const { hasPermission } = usePermissions()
+  const router = useRouter()
+
+  // Handlers
+  const handleDelete = async (id: string) => {
+    await api.shipping.zones.delete({ id })
+    toast.success(ratesCopy.zone.toasts.deleted)
+    router.refresh()
+  }
 
   // Render logic
   const copy = ratesCopy.list
@@ -138,7 +150,16 @@ export default function ShippingZonesCard({ zones, profileId, general }: Shippin
             )}
           </SettingsTableCell>
           <SettingsTableCell className="w-16 p-0 last:pr-2 md:last:pr-2">
-            <RowActionsCell href={zoneHref(z.id)} />
+            <RowActionsCell href={zoneHref(z.id)}>
+              {canManage ? (
+                <RowDeleteMenu
+                  name={z.name}
+                  editHref={zoneHref(z.id)}
+                  onDelete={() => handleDelete(z.id)}
+                  confirm={ratesCopy.zone.delete}
+                />
+              ) : null}
+            </RowActionsCell>
           </SettingsTableCell>
         </SettingsTableRow>
       ))}
