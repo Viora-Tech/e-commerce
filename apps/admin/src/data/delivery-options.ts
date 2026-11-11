@@ -270,7 +270,7 @@ export const deliveryOptionsContent = {
       preferDirectHelp: 'Empty: no preference.',
       preferCarrier: 'Preferred courier',
       preferCarrierHelp:
-        'When couriers cost the shopper the same, this one wins. Otherwise the one that arrives first wins.',
+        'When couriers cost the shopper the same, the one that arrives first wins. This courier wins only when the price and the date are both the same.',
       noPreference: 'No preference (arrives first)',
       routes: 'Allowed routes',
       routeModes: {

@@ -105,8 +105,8 @@ export const DeliveryOptionInputSchema = z.object({
   /** Take a direct route when it costs at most this much more than the aggregator winner. */
   preferDirectWithinPaise: paise.nullish(),
   /**
-   * A carrier key (`delhivery`): among routes that charge the shopper the same, this carrier
-   * wins, before the earlier arrival (#1520). Null: the earliest arrival wins the tie.
+   * A carrier key (`delhivery`): among routes at the same shopper price and the same arrival
+   * date, this carrier wins (#1520). The earlier arrival always comes first.
    */
   preferCarrier: z.string().trim().min(1).max(40).nullish(),
   price: OptionPriceSchema.default(OptionPriceSchema.parse({})),

@@ -79,10 +79,13 @@ function pickByStrategy(
   const first = sorted[0]
   if (!first) return null
   // The shopper sees one price per option: among the routes that charge them the same as the
-  // first, the merchant's preferred courier wins, then the one that arrives first (Waimers saw
-  // Amazon Shipping on Thursday picked over Delhivery on Wednesday at the same ₹0). The store
-  // may pay a little more for it. Fastest keeps its date: only same-day equals are swapped.
-  const preferred = (c: Candidate) => Number(c.route.carrierKey !== option.preferCarrier)
+  // first, the one that arrives first wins (Waimers saw Amazon Shipping on Thursday picked over
+  // Delhivery on Wednesday at the same ₹0); the merchant's preferred courier wins only when the
+  // price and the date are both equal (owner, 11 Nov). The store may pay a little more for it.
+  // Fastest keeps its date: only same-day equals are swapped.
+  const latest = (c: Candidate) => c.priced.latest ?? '9999-12-31'
+  const preferred = (c: Candidate) =>
+    option.preferCarrier ? Number(c.route.carrierKey !== option.preferCarrier) : 0
   const ties = sorted.filter(
     (c) =>
       c.priced.pricePaise === first.priced.pricePaise &&
@@ -90,7 +93,8 @@ function pickByStrategy(
   )
   const best =
     ties.sort(
-      (a, b) => (option.preferCarrier ? preferred(a) - preferred(b) : 0) || byFastest(a, b),
+      (a, b) =>
+        latest(a).localeCompare(latest(b)) || preferred(a) - preferred(b) || byFastest(a, b),
     )[0] ?? first
   const within = option.preferDirectWithinPaise
   if (within != null && best.route.channel === 'aggregator') {
