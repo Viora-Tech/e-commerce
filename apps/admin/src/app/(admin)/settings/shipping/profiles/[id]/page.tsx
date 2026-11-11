@@ -22,5 +22,17 @@ export default async function ShippingProfilePage({ params }: Params) {
   )
   if (profile === undefined) redirect(routes.selectStore())
   if (!profile) notFound()
-  return <ProfileForm key={profile.updatedAt.toISOString()} profile={profile} />
+  // General with no areas cannot ship once another profile has areas (`quoteProfiles`).
+  const othersHaveAreas = profile.isDefault
+    ? (await call(appRouter.shipping.profiles.list, undefined, { context })).some(
+        (p) => !p.isDefault && p.zones.length > 0,
+      )
+    : false
+  return (
+    <ProfileForm
+      key={profile.updatedAt.toISOString()}
+      profile={profile}
+      othersHaveAreas={othersHaveAreas}
+    />
+  )
 }

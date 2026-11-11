@@ -33,6 +33,8 @@ type ShippingZonesCardProps = {
   profileId: string
   /** The General profile: an empty list there means delivery is free. */
   general: boolean
+  /** General with no areas while another profile has some: its products cannot be bought. */
+  blocked?: boolean
 }
 
 type ListCopy = (typeof shippingRatesContent)['list']
@@ -64,7 +66,12 @@ function indiaCoverage(copy: ListCopy, zone: LoadedZone): string {
 const zoneHref = (id: string) => routes.settings.shippingZone(id)
 
 /** A shipping profile's delivery areas: every zone with what it covers and charges. */
-export default function ShippingZonesCard({ zones, profileId, general }: ShippingZonesCardProps) {
+export default function ShippingZonesCard({
+  zones,
+  profileId,
+  general,
+  blocked = false,
+}: ShippingZonesCardProps) {
   // Hooks
   const ratesCopy = useCopy(shippingRatesContent)
   const fmt = useFormat()
@@ -97,8 +104,20 @@ export default function ShippingZonesCard({ zones, profileId, general }: Shippin
       <SettingsCard title={copy.heading} description={copy.meta}>
         <EmptyState
           icon={Truck}
-          heading={general ? copy.empty.heading : ratesCopy.profile.zones.noAreasHeading}
-          body={general ? copy.empty.body : ratesCopy.profile.zones.noAreasBody}
+          heading={
+            blocked
+              ? ratesCopy.profile.zones.generalBlockedHeading
+              : general
+                ? copy.empty.heading
+                : ratesCopy.profile.zones.noAreasHeading
+          }
+          body={
+            blocked
+              ? ratesCopy.profile.zones.generalBlockedBody
+              : general
+                ? copy.empty.body
+                : ratesCopy.profile.zones.noAreasBody
+          }
           action={create}
         />
       </SettingsCard>
