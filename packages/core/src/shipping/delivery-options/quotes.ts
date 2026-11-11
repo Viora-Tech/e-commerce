@@ -152,7 +152,8 @@ const TIMED_OUT = Symbol('timed out')
  * Every domestic app's answer for this PIN code, in parallel. A fresh cached answer is used
  * as is; otherwise the app is asked live within `deadlineMs`, and when that misses (or the
  * app's breaker is open) a stale cached answer stands in, else the app is `failed` (never "not
- * serviceable"). The live call keeps running so its answer is cached when it lands.
+ * serviceable"). The live call keeps running so its answer is cached when it lands, and it is
+ * recorded for the breaker by how it ends, not by the deadline.
  * `cacheOnly` (placing an order without a quote snapshot) never calls a courier and takes any
  * cached answer, stale or not.
  */
@@ -208,16 +209,31 @@ export async function gatherProviderAnswers(
           : Math.max(shortDeadline, CHECKOUT_COLD_DEADLINE_MS)
       const started = now()
       const work = askProvider(provider, query)
-      // Late or not, a real answer is remembered for the next shopper (the background refresh).
+      const record = (ok: boolean, error: string | null) => {
+        if (cache)
+          void recordCourierCall(cache, opts.storeId, provider.id, {
+            at: started,
+            ok,
+            ms: now() - started,
+            error,
+          })
+      }
+      // The breaker and health line judge the call itself, not checkout's deadline: a late answer
+      // is a success (RapidShyp answers in ~2 s), only a real error or the adapter's own timeout
+      // is a failure. Late or not, a real answer is remembered for the next shopper (#1524).
       work
-        .then((answer) =>
-          cache?.set(key, { at: now(), answer } satisfies CachedEntry, DELIVERY_QUOTE_TTL_SECONDS),
+        .then(
+          (answer) => {
+            record(true, null)
+            return cache?.set(
+              key,
+              { at: now(), answer } satisfies CachedEntry,
+              DELIVERY_QUOTE_TTL_SECONDS,
+            )
+          },
+          (err) => record(false, describeCourierFailure(err)),
         )
         .catch(() => undefined)
-      const record = (ok: boolean, ms: number | null, error: string | null) => {
-        if (cache)
-          void recordCourierCall(cache, opts.storeId, provider.id, { at: started, ok, ms, error })
-      }
       let timer: ReturnType<typeof setTimeout> | undefined
       const late = new Promise<typeof TIMED_OUT>((resolve) => {
         timer = setTimeout(() => resolve(TIMED_OUT), deadline)
@@ -226,16 +242,13 @@ export async function gatherProviderAnswers(
         const answer = await Promise.race([work, late])
         if (answer === TIMED_OUT) {
           const why = `No answer within ${deadline} ms`
-          record(false, null, why)
           return fromCache(true, why) ?? failed(why)
         }
         const ms = now() - started
-        record(true, ms, null)
         return { ...base, ...answer, status: 'ok', source: 'live', ms, error: null }
       } catch (err) {
         const ms = now() - started
         const why = describeCourierFailure(err)
-        record(false, ms, why)
         return fromCache(true, why) ?? failed(why, ms)
       } finally {
         clearTimeout(timer)
