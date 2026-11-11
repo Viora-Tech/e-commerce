@@ -29,7 +29,9 @@ export class NegativeStockError extends Error {
  */
 export function nextOnHand(current: number, delta: number, allowNegative: boolean): number {
   const next = current + delta
-  if (next < 0 && !allowNegative) throw new NegativeStockError(current, delta)
+  // Stock already below zero (pre-orders oversold it) may rise towards zero; only a fall below
+  // zero is refused.
+  if (next < 0 && delta < 0 && !allowNegative) throw new NegativeStockError(current, delta)
   return next
 }
 
