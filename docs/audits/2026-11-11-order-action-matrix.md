@@ -41,18 +41,18 @@ covered by code reading only).
 | --- | --- | --- | --- | --- | --- | --- |
 | Mark as paid | Row, Page, Card, Bulk | COD was offered Mark as paid before it was even packed | Opens Collect payment (how, reference, date) in Row and Page; Bulk marks paid without asking | Paid badge | Payment row captured | **Fixed** #1532 (COD order) |
 | Mark as fulfilled (pack form) | Row → Page `?fulfil=1`, Page, Card | COD orders never offered it in the menus; held orders offered it and failed | Courier, tracking number, tracking link (Other), notify | Fulfilled; menu then offers Mark as delivered + Mark as unfulfilled | Line = parcels; stock leaves on hand and held | **Fixed** #1532 |
-| Mark as fulfilled (Bulk) | Bulk | All selected | Asks nothing (no courier/tracking, by design for many orders) | | Same as above | Pass (see open question 2) |
+| Mark as fulfilled (Bulk) | Bulk | Open orders with something left to pack | One courier, tracking per order, Notify customers | Fulfilled | Same as the pack form (db test) | **Done** (owner answer 2) |
 | Mark as fulfilled on a packed order (cancelled booking) | Page | | Opened an empty pack form | | | In PR #1513 (#1512) |
 | Mark as unfulfilled | Row, Page | Hidden when lines read packed but status read Unfulfilled (#1535); Page did not check Orders: fulfil | Refused while a courier label is live, or when delivered (says why) | Back to To ship; Next step "Pack and ship" | Unpacks parcels and lines, stock back; typed tracking closes | **Fixed** #1535, #1533 |
 | Mark as unfulfilled on a drifted order | Page | | | Refused "Nothing on this order is packed" | Line said packed, parcel and stock said not | **Fixed** #1535 |
-| Mark as delivered | Row, Page, Card, Bulk | COD never offered it in the menus | **Asks nothing**; the shopper's Delivered message cannot be recalled | Delivered; Collect for COD; menu offers Mark as not delivered | Parcels read Delivered; packs what is left | **Fixed** #1532 (COD); confirm step **Open** (question 1) |
-| Mark as delivered (Bulk) on unpacked orders | Bulk | Offered for any selected order | Asks nothing; packs and delivers in one go | | Consistent | **Open** (question 2) |
+| Mark as delivered | Row, Page, Card, Bulk | COD never offered it in the menus | Confirm "Mark #n as delivered?" with Notify customer | Delivered; Collect for COD; menu offers Mark as not delivered | Parcels read Delivered; packs what is left | **Fixed** #1532 (COD); confirm with Notify customer **Done** (owner answer 1) |
+| Mark as delivered (Bulk) | Bulk | Only orders packed or on their way; the rest skipped and counted | Asks nothing | Delivered | API refuses unshipped (`onlyShipped`, db test) | **Done** (owner answer 2) |
 | Mark as not delivered | Row, Page | Page did not check Orders: edit | | Back to Fulfilled / tracked status | Courier-reported deliveries left alone | **Fixed** (gate) |
 | Create shipment | Row, Page, Card | Row offered it on held orders and to members without Orders: fulfil | Courier drawer (#1500) | Fulfilled, label | Parcel packed | **Fixed** #1533 |
 | Cancel shipment | Row, Page, Ship | Row offered it for a typed tracking number or no shipment (ended in "Courier ... is no longer enabled"); Row missed part-packed orders with a label | Confirm dialog | Back to To ship | Parcel unpacked, stock back; tested book → cancel → book → cancel | **Fixed** #1533 |
 | Mark as paid / fulfilled / delivered via API | API, MCP, assistant | `orders.setStatus` packed with Orders: edit only | | | | **Fixed** #1534 |
 | Hold / release fulfilment | Page, banner | Pass | Reason | Hold banner; packing refused until released | No stock moves | Pass (db) |
-| Cancel order | Row, Page, Bulk | Open and not packed | Reason, note, restock, notify, refund route | Cancelled + Voided, archived | Stock back (or written off); tested part-packed and written-off | Pass; see note A |
+| Cancel order | Row, Page, Bulk | Open and not packed, or packed under a live label | Reason, note, restock, notify, refund route | Cancelled + Voided, archived | Stock back (or written off); tested part-packed and written-off | Pass; with a live label: "Also cancel courier label" **Done** (owner answer 3) |
 | Restore order | Row, Page | Cancelled only; refused once money went back | Asks nothing | Open again, unarchived, Next step back | Stock held again; part-packed restore checked | Pass |
 | Refund | Page, Payment card | Captured payments | Amount, reason, route | Payment badge | n/t by hand (core refund tests exist) | n/t |
 | Edit order | Page | Open or completed | Edit page | | Tested edit up and down after a part pack: books agree | Pass (db) |
@@ -81,20 +81,30 @@ covered by code reading only).
   under an Unfulfilled status, and puts the line back in step with its parcels (no stock moves:
   the stock followed the parcels).
 
-## Open: owner decisions
+## Owner decisions (answered 11 Nov, built in the same PR)
 
-1. **Mark as delivered asks nothing.** It tells the shopper "Delivered", which cannot be recalled,
-   and it is the action pressed by mistake on 11 Nov. Add a confirm step ("Mark #1234 delivered?
-   The customer is told.")? Needs a Figma frame first (design-first round).
-2. **Bulk Mark as fulfilled / delivered** pack every selected order with no courier or tracking,
-   and Bulk Mark as delivered also packs orders that were never packed. Keep (Shopify does the
-   same for fulfilled), restrict Mark as delivered to packed orders, or ask once for a courier?
-3. **Cancelling a part-packed order leaves a live label** for the packed part (the dialog says
-   "Cancel any booked courier pickup separately"). Should Cancel order also cancel live labels?
-   Money with the courier, so not changed here.
-4. **A cancelled order keeps its open payment attempt** ("Payment pending" in the Payment card
-   under a Voided badge). By design a late capture turns into Refund needed; worth a clearer
-   label?
+1. **Mark as delivered asks first** everywhere it is offered (More actions, the Next step card,
+   the row menu): "Mark #n as delivered?" with **Notify customer** (on by default). Off, the
+   `order.delivered` event carries `notifyCustomer: false` and the shopper hears nothing.
+   (`mark-delivered-dialog.tsx`, `changeOrderStatus(..., { notifyCustomer })`.)
+2. **Bulk Mark as fulfilled** opens a form: one courier for the selection (the pack form's list,
+   or a typed name), an optional tracking number per order on screen, Notify customers. Each order
+   packs everything left through `orders.fulfilAll` (the pack form's checks: hold, balance due,
+   cancelled). **Bulk Mark as delivered** only hands over orders already packed or on their way;
+   the rest are skipped (rows on screen without a call, others refused by the API with
+   `onlyShipped`) and the toast says how many. The bulk-edit sheet's Mark column uses
+   `onlyShipped` too.
+3. **Cancel order with a live courier label** shows "Also cancel courier label (AWB …)", ticked
+   by default (locked on when everything is packed under it). Ticked, the API cancels the label
+   with the courier first (the Cancel shipment path, which unpacks it), then the order; if the
+   courier refuses, nothing is cancelled and the error shows. Cancel order is now offered on an
+   order packed under a live label (order page and row menu).
+4. **Cancelled orders' payment**: nobody paid reads Voided in the list and header, and the Payment
+   and Transactions cards show no status for the open attempt (no "Payment pending" under
+   Voided). Money still held reads **Refund due**; all of it back reads Refunded.
+
+Browser check for these four is owed: the PC was under 1 GB free, so they were verified with
+tests, typecheck, biome and sweeps only.
 
 ## Notes (not bugs, worth a look)
 

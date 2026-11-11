@@ -1,5 +1,72 @@
 import { describe, expect, it } from 'vitest'
-import { listCancelsShipment, nextOrderMove, orderUndos } from './order-next-move'
+import {
+  bulkFulfilPlan,
+  listCancelsShipment,
+  nextOrderMove,
+  orderUndos,
+  shownAttemptStatus,
+  shownPaymentStatus,
+  undeliverableInBulk,
+} from './order-next-move'
+
+describe("a cancelled order's payment (owner, 11 Nov 2026)", () => {
+  const cancelled = (paymentStatus: string) => ({ status: 'cancelled', paymentStatus })
+  it('nobody paid: Voided, and the open attempt shows no status at all', () => {
+    expect(shownPaymentStatus(cancelled('unpaid'))).toBe('voided')
+    expect(shownPaymentStatus(cancelled('authorized'))).toBe('voided')
+    expect(shownAttemptStatus('cancelled', 'pending')).toBeNull()
+    expect(shownAttemptStatus('cancelled', 'created')).toBeNull()
+    expect(shownAttemptStatus('cancelled', 'authorized')).toBeNull()
+  })
+  it('money still held: Refund due; all of it back: Refunded', () => {
+    for (const s of ['paid', 'partially_paid', 'partially_refunded', 'refund_needed']) {
+      expect(shownPaymentStatus(cancelled(s))).toBe('refund_due')
+    }
+    expect(shownPaymentStatus(cancelled('refunded'))).toBe('refunded')
+    expect(shownAttemptStatus('cancelled', 'captured')).toBe('refund_due')
+    expect(shownAttemptStatus('cancelled', 'partially_refunded')).toBe('refund_due')
+    expect(shownAttemptStatus('cancelled', 'refunded')).toBe('refunded')
+  })
+  it('an open order is shown as it is', () => {
+    expect(shownPaymentStatus({ status: 'open', paymentStatus: 'unpaid' })).toBe('unpaid')
+    expect(shownAttemptStatus('open', 'pending')).toBe('pending')
+  })
+})
+
+describe('bulk Mark as fulfilled: which selected orders are packed', () => {
+  it('skips rows on screen that are packed, cancelled or imported; sends the rest', () => {
+    const row = (
+      id: string,
+      status: string,
+      fulfillmentStatus: string,
+      importedFrom: string | null = null,
+    ) => ({ id, status, fulfillmentStatus, importedFrom })
+    const plan = bulkFulfilPlan(
+      ['a', 'b', 'c', 'd', 'e', 'off-screen'],
+      [
+        row('a', 'open', 'unfulfilled'),
+        row('b', 'open', 'partially_fulfilled'),
+        row('c', 'open', 'fulfilled'),
+        row('d', 'cancelled', 'unfulfilled'),
+        row('e', 'open', 'unfulfilled', 'shopify'),
+      ],
+    )
+    expect(plan).toEqual({ due: ['a', 'b', 'off-screen'], skipped: 3 })
+  })
+})
+
+describe('bulk Mark as delivered: only orders already packed or on their way', () => {
+  it('skips orders never packed, cancelled or already delivered', () => {
+    const open = (fulfillmentStatus: string) => ({ status: 'open', fulfillmentStatus })
+    expect(undeliverableInBulk(open('fulfilled'))).toBe(false)
+    expect(undeliverableInBulk(open('shipped'))).toBe(false)
+    expect(undeliverableInBulk(open('partially_delivered'))).toBe(false)
+    expect(undeliverableInBulk(open('unfulfilled'))).toBe(true)
+    expect(undeliverableInBulk(open('partially_fulfilled'))).toBe(true)
+    expect(undeliverableInBulk(open('delivered'))).toBe(true)
+    expect(undeliverableInBulk({ status: 'cancelled', fulfillmentStatus: 'fulfilled' })).toBe(true)
+  })
+})
 
 describe('orderUndos (one rule for the order page and the orders list)', () => {
   it('offers Mark as unfulfilled on a packed open order, Mark as not delivered once delivered', () => {

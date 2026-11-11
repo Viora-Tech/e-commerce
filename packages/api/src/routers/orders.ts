@@ -392,20 +392,27 @@ export const ordersRouter = {
     if (status === 'cancelled') return [permissions.ORDERS_CANCEL]
     return status === 'fulfilled' || status === 'delivered' ? [permissions.ORDERS_FULFIL] : []
   })
-    .input(z.object({ id: z.uuid(), status: change }))
+    .input(
+      z.object({
+        id: z.uuid(),
+        status: change,
+        /** False: the shopper is not told (Mark as delivered's "Notify customer"). */
+        notifyCustomer: z.boolean().optional(),
+        /** Delivered only if it already went out (bulk Mark as delivered); else BAD_REQUEST. */
+        onlyShipped: z.boolean().optional(),
+      }),
+    )
     .handler(async ({ context, input }) => {
       await assertNotImported(context.tx, { orderId: input.id })
-      const o = await setOrderStatus(
-        context.tx,
-        context.scope.storeId,
-        input.id,
-        input.status,
-      ).catch((err) => {
-        if (err instanceof CommerceError) {
-          throw new ORPCError('BAD_REQUEST', { message: err.message })
-        }
-        throw err
-      })
+      const { id, status, ...opts } = input
+      const o = await setOrderStatus(context.tx, context.scope.storeId, id, status, opts).catch(
+        (err) => {
+          if (err instanceof CommerceError) {
+            throw new ORPCError('BAD_REQUEST', { message: err.message })
+          }
+          throw err
+        },
+      )
       return o
     }),
 

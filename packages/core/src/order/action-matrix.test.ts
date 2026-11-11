@@ -20,6 +20,7 @@ import {
   inventoryLevel,
   order,
   orderLine,
+  outboxEvent,
   product,
   shipment,
   store,
@@ -36,11 +37,12 @@ import { cancelShipment } from '../shipping/shipment-cancel'
 import { applyTracking, createShipmentForOrder } from '../shipping/shipments'
 import { editOrder } from './edit'
 import { OrderEditSchema } from './edit-plan'
-import { fulfilOrderLines } from './fulfil'
+import { fulfilAllLines, fulfilOrderLines } from './fulfil'
 import { holdFulfillment, releaseFulfillment } from './fulfillment-hold'
 import { placeOrderAndPay } from './place-order'
 import { recomputeOrderStatuses } from './recompute'
 import { restoreCancelledOrder } from './restore-order'
+import { cancelOrderByStaff } from './staff-cancel'
 import { cancelOrder, changeOrderStatus } from './status'
 import { undoDelivered } from './undo-delivered'
 import { undoPacked } from './undo-packed'
@@ -418,6 +420,127 @@ describe('order action matrix: edit after packing', () => {
     expect((await statuses(orderId))[2]).toBe('fulfilled')
     await assertBooks(storeId, orderId)
     await inStore(storeId, (ctx) => undoPacked(ctx, orderId))
+    await assertBooks(storeId, orderId)
+  })
+})
+
+const eventsFor = async (orderId: string, type: string) =>
+  (await owner.select().from(outboxEvent).where(eq(outboxEvent.type, type)))
+    .map((e) => e.payload as { orderId?: string; notifyCustomer?: boolean })
+    .filter((p) => p.orderId === orderId)
+
+describe('order action matrix: owner answers of 11 Nov', () => {
+  it('Mark as delivered with Notify customer off tells the shopper nothing', async () => {
+    const { storeId, orderId } = await placeCod()
+    await inStore(storeId, (ctx) => changeOrderStatus(ctx, orderId, 'fulfilled'))
+    await inStore(storeId, (ctx) =>
+      changeOrderStatus(ctx, orderId, 'delivered', { notifyCustomer: false }),
+    )
+    expect(await eventsFor(orderId, 'order.delivered')).toEqual([
+      { orderId, notifyCustomer: false },
+    ])
+    await assertBooks(storeId, orderId)
+  })
+
+  it('Mark as delivered with Notify customer on (the default) tells the shopper', async () => {
+    const { storeId, orderId } = await placeCod()
+    await inStore(storeId, (ctx) => changeOrderStatus(ctx, orderId, 'fulfilled'))
+    await inStore(storeId, (ctx) => changeOrderStatus(ctx, orderId, 'delivered'))
+    expect(await eventsFor(orderId, 'order.delivered')).toEqual([{ orderId }])
+  })
+
+  it('bulk Mark as delivered skips an order that never went out, and changes nothing on it', async () => {
+    const { storeId, orderId } = await placeCod()
+    await expect(
+      inStore(storeId, (ctx) =>
+        changeOrderStatus(ctx, orderId, 'delivered', { onlyShipped: true }),
+      ),
+    ).rejects.toMatchObject({ code: 'ORDER_NOT_SHIPPED_YET' })
+    expect(await statuses(orderId)).toEqual(['open', 'unpaid', 'unfulfilled'])
+    await assertBooks(storeId, orderId)
+    await inStore(storeId, (ctx) => changeOrderStatus(ctx, orderId, 'fulfilled'))
+    await inStore(storeId, (ctx) =>
+      changeOrderStatus(ctx, orderId, 'delivered', { onlyShipped: true }),
+    )
+    expect((await statuses(orderId))[2]).toBe('delivered')
+    await assertBooks(storeId, orderId)
+  })
+
+  it('bulk Mark as fulfilled packs what is left under one courier, with this order’s tracking', async () => {
+    const { storeId, orderId, lineId } = await placeCod()
+    await inStore(storeId, (ctx) =>
+      fulfilOrderLines(ctx, { orderId, lines: [{ lineId, quantity: 1 }] }),
+    )
+    const r = await inStore(storeId, (ctx) =>
+      fulfilAllLines(ctx, { orderId, courier: 'Delhivery', trackingNumber: 'BULK-1' }),
+    )
+    expect(r.complete).toBe(true)
+    const [s] = await owner.select().from(shipment).where(eq(shipment.orderId, orderId))
+    expect({ provider: s?.provider, waybill: s?.waybill }).toEqual({
+      provider: 'Delhivery',
+      waybill: 'BULK-1',
+    })
+    expect((await statuses(orderId))[2]).toBe('fulfilled')
+    await assertBooks(storeId, orderId)
+    // Nothing left: refused, nothing moves.
+    await expect(
+      inStore(storeId, (ctx) => fulfilAllLines(ctx, { orderId, courier: 'Delhivery' })),
+    ).rejects.toMatchObject({ code: 'NOTHING_TO_FULFIL' })
+    await assertBooks(storeId, orderId)
+  })
+
+  it('bulk Mark as fulfilled refuses a held order and a cancelled one', async () => {
+    const held = await placeCod()
+    await inStore(held.storeId, (ctx) => holdFulfillment(ctx, held.orderId, null))
+    await expect(
+      inStore(held.storeId, (ctx) => fulfilAllLines(ctx, { orderId: held.orderId, courier: 'X' })),
+    ).rejects.toThrow()
+    await assertBooks(held.storeId, held.orderId)
+    await inStore(held.storeId, (ctx) => releaseFulfillment(ctx, held.orderId))
+    await inStore(held.storeId, (ctx) => cancelOrder(ctx, held.orderId, { notifyCustomer: false }))
+    await expect(
+      inStore(held.storeId, (ctx) => fulfilAllLines(ctx, { orderId: held.orderId, courier: 'X' })),
+    ).rejects.toMatchObject({ code: 'ORDER_NOT_FULFILLABLE' })
+  })
+
+  it('Cancel order with "Also cancel courier label": the label goes first, then the order', async () => {
+    const { storeId, orderId } = await placeCod()
+    const provider = new FakeShippingProvider()
+    const ship = await inStore(storeId, (ctx) => createShipmentForOrder(ctx, provider, orderId))
+    await withLabel(ship.id)
+    // A packed order with a live label cannot be cancelled on its own.
+    const cancel = () =>
+      inStore(storeId, (ctx) =>
+        cancelOrderByStaff(
+          ctx,
+          { orderId, restock: true, notifyCustomer: false, refund: 'none', author: 'staff@test' },
+          [],
+        ),
+      )
+    await expect(cancel()).rejects.toMatchObject({ code: 'ORDER_NOT_CANCELLABLE' })
+    // The API's order: cancel the label (unpacks it), then the order.
+    await inStore(storeId, (ctx) => cancelShipment(ctx, provider, ship.id))
+    await cancel()
+    expect((await statuses(orderId))[0]).toBe('cancelled')
+    const [s] = await owner.select().from(shipment).where(eq(shipment.id, ship.id))
+    expect(s?.status).toBe('cancelled')
+    await assertBooks(storeId, orderId)
+  })
+
+  it('a courier that refuses the label cancel leaves the order and its label as they were', async () => {
+    const { storeId, orderId } = await placeCod()
+    const refusing = new FakeShippingProvider()
+    refusing.cancel = async () => {
+      throw new Error('Courier says no')
+    }
+    const ship = await inStore(storeId, (ctx) => createShipmentForOrder(ctx, refusing, orderId))
+    await withLabel(ship.id)
+    await expect(inStore(storeId, (ctx) => cancelShipment(ctx, refusing, ship.id))).rejects.toThrow(
+      'Courier says no',
+    )
+    expect(await statuses(orderId)).toEqual(['open', 'unpaid', 'fulfilled'])
+    const [s] = await owner.select().from(shipment).where(eq(shipment.id, ship.id))
+    expect(s?.status).toBe('created')
     await assertBooks(storeId, orderId)
   })
 })

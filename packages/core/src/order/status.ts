@@ -62,6 +62,22 @@ export class OrderStatusLocked extends CommerceError {
   }
 }
 
+/** Already packed or on its way: what bulk Mark as delivered may hand over. */
+const ON_ITS_WAY: ReadonlySet<string> = new Set(['fulfilled', 'shipped', 'partially_delivered'])
+
+/** Bulk Mark as delivered reached an order that never went out: skipped, nothing changes. */
+class NotShippedYet extends CommerceError {
+  constructor(orderId: string, storeId?: string) {
+    super(
+      'ORDER_NOT_SHIPPED_YET',
+      `Order ${orderId} has not been shipped, so it cannot be marked delivered`,
+      {
+        storeId,
+      },
+    )
+  }
+}
+
 /** Settings → Checkout → "Archive orders automatically when they're cancelled" (on by default). */
 async function archivesOnCancel(ctx: StoreContext): Promise<boolean> {
   const [s] = await ctx.tx
@@ -193,9 +209,22 @@ export async function changeOrderStatus(
   ctx: StoreContext,
   orderId: string,
   change: OrderStatusChange,
+  opts: {
+    /** False: the shopper hears nothing (the Mark as delivered dialog's "Notify customer"). */
+    notifyCustomer?: boolean | undefined
+    /**
+     * Delivered only for what already went out (packed or on its way): refused otherwise
+     * (`NotShippedYet`). The orders list's bulk Mark as delivered (owner, 11 Nov 2026).
+     */
+    onlyShipped?: boolean | undefined
+  } = {},
 ) {
   const [current] = await ctx.tx.select().from(order).where(eq(order.id, orderId)).for('update')
   if (!current) return null
+  if (opts.onlyShipped && change === 'delivered' && !ON_ITS_WAY.has(current.fulfillmentStatus)) {
+    throw new NotShippedYet(orderId, ctx.storeId)
+  }
+  const silent = opts.notifyCustomer === false ? { notifyCustomer: false } : {}
   if (change === 'cancelled') {
     return cancelOrder(ctx, orderId)
   }
@@ -206,7 +235,7 @@ export async function changeOrderStatus(
   if (change === 'fulfilled' || change === 'delivered') {
     // "Mark as fulfilled / delivered" on a held order is refused until the hold is released.
     await assertNotHeld(ctx, orderId)
-    await fulfilRemainingLines(ctx, orderId)
+    await fulfilRemainingLines(ctx, orderId, silent)
   }
   if (change === 'delivered') {
     const [marked] = await ctx.tx
@@ -216,7 +245,9 @@ export async function changeOrderStatus(
       .returning({ id: order.id })
     // Tracking may already have flipped the shipment to delivered (see `applyTracking`),
     // which sends the same message; the notification job id makes a repeat harmless.
-    if (marked) await insertOutboxEvent(ctx.tx, ctx.storeId, 'order.delivered', { orderId })
+    if (marked) {
+      await insertOutboxEvent(ctx.tx, ctx.storeId, 'order.delivered', { orderId, ...silent })
+    }
     // The hand-over happened: its parcels read Delivered too, not "Label created" (audit #122).
     await ctx.tx
       .update(shipment)

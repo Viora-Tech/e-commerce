@@ -17,4 +17,16 @@ four open owner questions). Fixes #1532, #1533, #1534, #1535.
 - **Tests**: `packages/core/src/order/action-matrix.test.ts` (15 chained scenarios with books
   invariants), `order-next-move.test.ts`, a permissions test.
 
+Owner answers to the four open questions (same PR, browser check still owed):
+
+- **Mark as delivered confirm**: `mark-delivered-dialog.tsx` (More actions, Next step card, row
+  menu); `orders.setStatus` takes `notifyCustomer`, written onto `order.delivered`.
+- **Bulk fulfil / deliver**: `bulk-fulfil-dialog.tsx` (one courier, tracking per order) calls the
+  new `orders.fulfilAll` (core `fulfilAllLines`); bulk Mark as delivered passes `onlyShipped`
+  (core `NotShippedYet`) and skips unshipped rows (`undeliverableInBulk`).
+- **Cancel with label**: `orders.cancel` takes `cancelShipmentId` (needs Orders: fulfil too):
+  `cancelOrderLabel` cancels it with the courier first, then the order.
+- **Cancelled payment chips**: `shownPaymentStatus` (Voided / Refund due / Refunded) and
+  `shownAttemptStatus` (no chip for an open attempt on a cancelled order).
+
 Overlaps PR #1513 in `order-view.tsx` (three prop lines); whichever merges second rebases.

@@ -1,3 +1,4 @@
+import { OPEN_ATTEMPT_STATUSES } from '@commerce/core/order-status'
 import type { OrderMark } from '@/data/orders'
 
 /** The forward moves an open order can make by hand (cancel is never "next"). */
@@ -89,9 +90,81 @@ export function canRemindToPay(o: {
   return o.status === 'open' && o.paymentMethod === MANUAL_TRANSFER && o.paymentStatus === 'unpaid'
 }
 
-/** The payment chip's value: a cancelled order nobody paid reads "Voided", not "Unpaid" (#123). */
+/** Money the store still holds on a cancelled order: it has to go back ("Refund due"). */
+const HELD_ON_CANCEL: ReadonlySet<string> = new Set([
+  'paid',
+  'partially_paid',
+  'partially_refunded',
+  'refund_needed',
+])
+
+/**
+ * The payment chip's value (list and order header). A cancelled order nobody paid reads
+ * "Voided", not "Unpaid" (#123); one still holding money reads "Refund due", and one whose money
+ * all went back "Refunded" (owner, 11 Nov 2026).
+ */
 export function shownPaymentStatus(o: { status: string; paymentStatus: string }): string {
-  return o.status === 'cancelled' && o.paymentStatus === 'unpaid' ? 'voided' : o.paymentStatus
+  if (o.status !== 'cancelled') return o.paymentStatus
+  if (HELD_ON_CANCEL.has(o.paymentStatus)) return 'refund_due'
+  return o.paymentStatus === 'refunded' ? 'refunded' : 'voided'
+}
+
+const OPEN_ATTEMPT: ReadonlySet<string> = new Set(OPEN_ATTEMPT_STATUSES)
+const CAPTURED_ATTEMPT: ReadonlySet<string> = new Set([
+  'captured',
+  'partially_refunded',
+  'refund_needed',
+])
+
+/**
+ * One payment attempt's chip on the order page. On a cancelled order an attempt still open
+ * shows nothing (never "Payment pending" under Voided), and money captured and not all sent
+ * back reads "Refund due". Null: no chip.
+ */
+export function shownAttemptStatus<T extends string>(
+  orderStatus: string,
+  pill: T,
+): T | 'refund_due' | null {
+  if (orderStatus !== 'cancelled') return pill
+  if (OPEN_ATTEMPT.has(pill)) return null
+  return CAPTURED_ATTEMPT.has(pill) ? 'refund_due' : pill
+}
+
+/**
+ * Bulk "Mark as fulfilled": which selected orders get a call. Rows on screen that are not open,
+ * are imported or have nothing left to pack are skipped without one; ids not on screen go to the
+ * API, which refuses what it cannot pack.
+ */
+export function bulkFulfilPlan(
+  ids: readonly string[],
+  loaded: readonly {
+    id: string
+    status: string
+    fulfillmentStatus: string | null
+    importedFrom: string | null
+  }[],
+): { due: string[]; skipped: number } {
+  const byId = new Map(loaded.map((o) => [o.id, o]))
+  const due = ids.filter((id) => {
+    const o = byId.get(id)
+    return (
+      !o ||
+      (o.status === 'open' && !o.importedFrom && TO_PACK.has(o.fulfillmentStatus ?? 'unfulfilled'))
+    )
+  })
+  return { due, skipped: ids.length - due.length }
+}
+
+/**
+ * Bulk "Mark as delivered" only hands over what already went to a courier (packed or on its
+ * way); anything else is skipped and counted, never packed and delivered in one go (owner,
+ * 11 Nov 2026). The API refuses the same (`onlyShipped`).
+ */
+export function undeliverableInBulk(o: {
+  status: string
+  fulfillmentStatus: string | null
+}): boolean {
+  return o.status !== 'open' || !ON_ITS_WAY.has(o.fulfillmentStatus ?? 'unfulfilled')
 }
 
 const PACKED_NOT_DELIVERED: ReadonlySet<string> = new Set([

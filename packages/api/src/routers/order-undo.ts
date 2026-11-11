@@ -1,11 +1,52 @@
-import { permissions, restoreCancelledOrder, undoDelivered, undoPacked } from '@commerce/core'
+import {
+  CommerceError,
+  fulfilAllLines,
+  permissions,
+  restoreCancelledOrder,
+  undoDelivered,
+  undoPacked,
+} from '@commerce/core'
 import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
 import { can } from '../procedures'
 import { assertNotImported } from './imported-order'
 
-/** Undo buttons on the order page, mounted on `orders` in one line (router file-size sweep). */
+/**
+ * Undo buttons on the order page and the list's bulk pack, mounted on `orders` in one line
+ * (router file-size sweep).
+ */
 export const orderUndoRoutes = {
+  /**
+   * Bulk "Mark as fulfilled" on the orders list: one order at a time, everything left packed
+   * under the courier picked once for the selection, with this order's tracking number if typed.
+   */
+  fulfilAll: can(permissions.ORDERS_FULFIL)
+    .input(
+      z.object({
+        orderId: z.uuid(),
+        courier: z.string().trim().min(1).max(60),
+        trackingNumber: z.string().trim().max(60).optional(),
+        trackingUrl: z
+          .url({ protocol: /^https?$/ })
+          .max(500)
+          .optional(),
+        notifyCustomer: z.boolean().optional(),
+      }),
+    )
+    .handler(async ({ context, input }) => {
+      await assertNotImported(context.tx, { orderId: input.orderId })
+      const { trackingNumber, ...rest } = input
+      return fulfilAllLines(
+        { tx: context.tx, storeId: context.scope.storeId },
+        { ...rest, ...(trackingNumber ? { trackingNumber } : {}) },
+      ).catch((err) => {
+        if (err instanceof CommerceError) {
+          throw new ORPCError('BAD_REQUEST', { message: err.message })
+        }
+        throw err
+      })
+    }),
+
   /** "Mark as not delivered": undo a "Mark as delivered" pressed by mistake. */
   markNotDelivered: can(permissions.ORDERS_WRITE)
     .input(z.object({ id: z.uuid() }))

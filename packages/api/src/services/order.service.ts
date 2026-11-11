@@ -121,7 +121,6 @@ export async function listOrders(
       /* The optional Items, Delivery, Phone and City columns (audit #7, #49). */
       itemCount: sql<number>`(select coalesce(sum(ol.quantity), 0)::int from ${orderLine} ol where ol.order_id = ${order.id})`,
       deliveryStatus: latestShipment<string | null>('s.status'),
-      /* A courier label, not a typed tracking number: the row menu's Cancel shipment (#1533). */
       labelLive: latestShipment<boolean | null>('s.label_url is not null'),
       trackingUrl: latestShipment<string | null>('s.tracking_url'), // the Delivery chip's link (#1008)
       shipCity: sql<
@@ -471,8 +470,9 @@ export async function setOrderStatus(
   storeId: string,
   id: string,
   change: OrderStatusChange,
+  opts?: Parameters<typeof changeOrderStatus>[3],
 ) {
-  return (await changeOrderStatus({ tx, storeId }, id, change)) ?? null
+  return (await changeOrderStatus({ tx, storeId }, id, change, opts)) ?? null
 }
 
 /**

@@ -27,6 +27,7 @@ import DeliveryRouteCard from './delivery-route-card'
 import HoldFulfillmentDialog from './hold-fulfillment-dialog'
 import ImportedOrderCard from './imported-order-card'
 import LineItemsCard from './line-items-card'
+import MarkDeliveredDialog from './mark-delivered-dialog'
 import { openOrderStatusPage } from './open-status-page'
 import OrderActions from './order-actions'
 import OrderArchivedNotice from './order-archived-notice'
@@ -100,6 +101,7 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
   const [collecting, setCollecting] = useState(askedToCollect)
   const [cancelling, setCancelling] = useState(false)
   const [holding, setHolding] = useState(false)
+  const [delivering, setDelivering] = useState(false)
   const messages = useOrderMessages(order.id, setBusy, () => router.refresh())
   useEffect(() => {
     if (!askedToFulfil) return
@@ -140,6 +142,8 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
       handleOpenFulfil()
       return
     }
+    // "Mark as delivered" asks first, with Notify customer (owner, 11 Nov 2026).
+    if (to === 'delivered') return void setDelivering(true)
     setBusy(true)
     try {
       await api.orders.setStatus({ id: order.id, status: to })
@@ -296,7 +300,10 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
   const canShip = !readOnly && !order.hold && readyToShip(order) && canFulfilOrders
   const canHold = !order.hold && canHoldFulfillment(order) && canFulfilOrders
   // An imported order still open can be cancelled too (the server takes it over first).
-  const canCancel = canStaffCancel(order) && hasPermission(permissions.ORDERS_CANCEL)
+  // Packed under a live label: Cancel order cancels the label with it (owner, 11 Nov 2026).
+  const labelCancels = order.status === 'open' && liveShipment && !order.shipment?.cancelBlock
+  const canCancel =
+    (canStaffCancel(order) || labelCancels) && hasPermission(permissions.ORDERS_CANCEL)
   const canEdit = canEditOrder(order) && hasPermission(permissions.ORDERS_WRITE)
   // Orders: edit. Archive and Mark as not delivered need it (the row menu checks the same).
   const canArchive = hasPermission(permissions.ORDERS_WRITE)
@@ -525,6 +532,11 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
         orderId={holding ? order.id : null}
         onClose={() => setHolding(false)}
         onDone={closeAndRefresh(() => setHolding(false))}
+      />
+      <MarkDeliveredDialog
+        order={delivering ? order : null}
+        onClose={() => setDelivering(false)}
+        onDone={refresh}
       />
       <CancelOrderDialog
         order={cancelling ? order : null}

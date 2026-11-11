@@ -46,6 +46,23 @@ export default [
     cancelRestock: 'आइटम वापस स्टॉक में डालें',
     cancelNotify: 'ग्राहकों को ईमेल करें कि उनका ऑर्डर कैंसल हुआ',
     cancelConfirm: 'ऑर्डर कैंसल करें',
+    fulfilTitle: (n) => (n === 0 ? 'भेजने के लिए कोई ऑर्डर नहीं' : `${n} ऑर्डर भेज दिया मार्क करें`),
+    fulfilBody: 'हर ऑर्डर का बाकी सामान पैक होगा और आपके चुने कूरियर से जाएगा।',
+    fulfilSkipping: (n) => `चुने गए ऑर्डर में से ${n} छोड़े गए: पहले से पैक, कैंसिल या इम्पोर्ट किए हुए।`,
+    fulfilCourier: 'कूरियर',
+    fulfilCourierName: 'कूरियर का नाम',
+    fulfilCourierNamePlaceholder: 'हाथ से डिलीवरी, लोकल कूरियर…',
+    fulfilTracking: 'ट्रैकिंग नंबर (ज़रूरी नहीं)',
+    fulfilTrackingPlaceholder: 'ट्रैकिंग नंबर',
+    fulfilNotListed: (n) => `${n} और ऑर्डर इस पेज पर नहीं हैं; बिना ट्रैकिंग नंबर के पैक होंगे।`,
+    fulfilNotify: 'ग्राहकों को बताएँ',
+    fulfilConfirm: 'भेज दिया मार्क करें',
+    fulfilDone: (n, skipped) =>
+      `${n} भेज दिया मार्क हुए` +
+      (skipped > 0 ? `, ${skipped} छोड़े गए (पैक करने को कुछ नहीं, होल्ड पर, कैंसिल या इम्पोर्ट किए हुए)` : ''),
+    deliveredDone: (n, skipped) =>
+      `${n} डिलीवर हो गया मार्क हुए` +
+      (skipped > 0 ? `, ${skipped} छोड़े गए (अभी भेजे नहीं गए, कैंसिल या इम्पोर्ट किए हुए)` : ''),
     cancelKeep: 'रहने दें',
     cancelDone: (cancelled, skipped, queued, failed) =>
       [

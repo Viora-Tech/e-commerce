@@ -21,6 +21,7 @@ import TagInput from '@/components/fields/tag-input'
 import type { ActionItem } from '@/components/layout/action-menu'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
 import CancelOrderDialog from '@/components/orders/cancel-order-dialog'
+import MarkDeliveredDialog from '@/components/orders/mark-delivered-dialog'
 import type { OrderDetail } from '@/components/orders/order-detail-types'
 import type { SendChannel } from '@/components/orders/reminder-channel-picker'
 import SendMessageDialog, { type CustomMessage } from '@/components/orders/send-message-dialog'
@@ -72,7 +73,7 @@ type OrderRowMenuProps = {
   onChanged: () => void
 }
 
-type Dialog = 'cancelShipment' | 'addTags' | 'removeTags' | 'remind' | null
+type Dialog = 'cancelShipment' | 'addTags' | 'removeTags' | 'remind' | 'deliver' | null
 
 const SHIPPABLE = ['unfulfilled', 'partially_fulfilled']
 const PAID = ['paid', 'partially_paid']
@@ -105,7 +106,7 @@ export default function OrderRowMenu({
   const [tags, setTags] = useState<string[]>([])
 
   // Event handlers
-  const handleMove = async (to: OrderMove) => {
+  const handleMove = (to: OrderMove) => {
     // Packing asks for the courier and tracking: it happens on the order page's pack form.
     if (to === 'fulfilled') {
       router.push(`${routes.orders.detail(order.id)}?fulfil=1`)
@@ -116,13 +117,8 @@ export default function OrderRowMenu({
       router.push(`${routes.orders.detail(order.id)}?collect=1`)
       return
     }
-    try {
-      await api.orders.setStatus({ id: order.id, status: to })
-      toast.success(detail.moved(list.marks[to].toLowerCase()))
-      onChanged()
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : list.bulk.failed)
-    }
+    // "Mark as delivered" asks first, with Notify customer (owner, 11 Nov 2026).
+    setDialog('deliver')
   }
 
   const handleSendReminder = async (custom: CustomMessage | undefined, channel?: SendChannel) => {
@@ -235,10 +231,12 @@ export default function OrderRowMenu({
   // Same rule as the order page: a courier label that is still live (not cancelled, delivered or
   // back). A tracking number typed by hand is undone with Mark as unfulfilled instead.
   const canCancelShipment = open && canPack && listCancelsShipment(order)
-  // The order page's rule (not shipped yet) and grant, so both offer the same cancel.
+  // The order page's rule (not shipped yet, or packed under a live label the cancel takes with
+  // it) and grant, so both offer the same cancel.
   const cancellable =
     open &&
-    canStaffCancel({ importedFrom: null, status: order.status, fulfillmentStatus: fulfilment }) &&
+    (canStaffCancel({ importedFrom: null, status: order.status, fulfillmentStatus: fulfilment }) ||
+      listCancelsShipment(order)) &&
     hasPermission(permissions.ORDERS_CANCEL)
   const move = order.importedFrom
     ? null
@@ -350,6 +348,12 @@ export default function OrderRowMenu({
             heading: i === 0 ? list.row.apps : undefined,
           })),
         ]}
+      />
+      <MarkDeliveredDialog
+        order={dialog === 'deliver' ? order : null}
+        stopPropagation
+        onClose={() => setDialog(null)}
+        onDone={onChanged}
       />
       <CancelOrderDialog
         order={cancelling}
