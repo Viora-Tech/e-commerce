@@ -3,7 +3,38 @@ import { customer, order, orderLine } from '@commerce/db'
 import { and, desc, eq, gte, isNull, lt, lte, or, type SQL, sql } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 import { parseDraftSearch } from './draft-ref'
-import type { DraftListItem } from './drafts'
+
+export type DraftListItem = {
+  id: string
+  /** The draft's own number (#D12); null only on a draft older than 0200 that it missed. */
+  draftNumber: number | null
+  /** The order number a pre-0200 draft reserved; below zero (a placeholder) otherwise. */
+  number: number
+  customerName: string | null
+  email: string | null
+  lineCount: number
+  totalPaise: number
+  createdAt: Date
+  invoiceSentAt: Date | null
+  /** `checkout`: a shopper's unpaid checkout waiting for payment (0233); `staff` otherwise. */
+  source: 'checkout' | 'staff'
+  /** How the shopper chose to pay (`razorpay`, `manual`, ...); null on a staff draft without one. */
+  paymentMethod: string | null
+  /** A checkout draft's last activity (made, or the same items checked out again). */
+  lastActivityAt: Date | null
+  /** The latest payment attempt's status and error, and how many attempts failed. */
+  lastAttemptStatus: string | null
+  lastAttemptError: string | null
+  failedAttempts: number
+  /** Money came in that the draft could not keep (out of stock when it arrived). */
+  refundNeeded: boolean
+  /** The shopper pressed "I've paid" on an open transfer (check the bank, then mark it paid). */
+  shopperPaid: boolean
+  /** When its held stock goes back on sale; null when it holds nothing. */
+  reservedUntil: Date | null
+  /** Set once a checkout draft stopped waiting for payment (7 days without activity). */
+  expiredAt: Date | null
+}
 
 /** The drafts list's tabs after "All" (`?status=`). */
 export const DRAFT_LIST_STATUSES = ['open', 'invoice_sent'] as const
