@@ -27,6 +27,7 @@ import WebVitalsBeacon from '@/components/analytics/web-vitals-beacon'
 import CookieBanner from '@/components/privacy/cookie-banner'
 import ChatwootWidget from '@/components/support/chatwoot-widget'
 import { consentContent } from '@/data/online-store'
+import { usePendingReferral } from '@/hooks/use-pending-referral'
 import { COOKIE_SETTINGS_HASH } from '@/lib/cookie-settings'
 import type { BrowserPixel } from '@/lib/pixels/track'
 import { recordConsentAction } from '@/lib/privacy-actions'
@@ -145,6 +146,9 @@ export default function ConsentManager({
     window.addEventListener(THEME_CONSENT_EVENT, handleThemeChoice)
     return () => window.removeEventListener(THEME_CONSENT_EVENT, handleThemeChoice)
   }, [themeBanner, bannerVersion])
+
+  // The affiliate referral cookie waits for a yes to marketing (`hooks/use-pending-referral.ts`).
+  usePendingReferral(consent?.marketing === true)
 
   // Event handlers
   const handleChoose = (next: Consent) => {

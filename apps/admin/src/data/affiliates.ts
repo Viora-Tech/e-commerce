@@ -401,7 +401,7 @@ export const affiliatesContent = {
     lifetimeDays: 'For how many days',
     cookieDays: 'Link counts for (days)',
     cookieHelp:
-      'Orders up to this many days after a click earn. A referral cookie remembers the click whether or not the shopper allowed analytics cookies; codes always count.',
+      'Orders up to this many days after a click earn. A referral cookie remembers the click once the shopper allows marketing cookies; codes always count.',
     overrides: 'Different rates',
     overridesHelp: 'A product or collection with its own percent. Products win over collections.',
     overrideTarget: { product: 'Product', collection: 'Collection' } as Record<string, string>,

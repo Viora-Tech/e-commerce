@@ -16,9 +16,9 @@ export const MARKETING_CLICK_COOKIE = 'wc_mk'
 /** Set by a short link (`/l/<slug>`) for the landing page's beacon: the link's id only. */
 export const LINK_CLICK_COOKIE = 'wc_lk'
 /**
- * The affiliate link the shopper last came through (Affiliates app): `<code>.<click time>`, set
- * by the proxy whatever the consent banner says. Functional, not analytics: it only lets the
- * affiliate who sent the shopper earn on the sale. Lives for the store's link window.
+ * The affiliate link the shopper last came through (Affiliates app): `<code>.<click time>`. Set
+ * only after a yes to marketing cookies (owner, 12 Nov 2026): by the proxy on the landing, or by
+ * `/api/referral` when the yes comes later in the visit. Lives for the store's link window.
  */
 export const REFERRAL_COOKIE = 'wc_ref'
 
