@@ -39,7 +39,7 @@ import {
   ordersContent,
 } from '@/data/orders'
 import { useCopy } from '@/hooks/use-copy'
-import { MOVE_ACTION, nextOrderMove } from '@/lib/order-next-move'
+import { MOVE_ACTION, nextOrderMove, orderUndos } from '@/lib/order-next-move'
 import { routes } from '@/lib/routes'
 
 type OrderActionsProps = {
@@ -96,13 +96,6 @@ type OrderActionsProps = {
   nextId?: string | undefined
 }
 
-/** Packed, or partly packed, but not yet with a courier on its way: can go back to To ship. */
-const NOT_SHIPPED_FROM = new Set<OrderFulfillmentStatus>([
-  'fulfilled',
-  'partially_fulfilled',
-  'shipped',
-])
-
 export default function OrderActions({
   status,
   paymentStatus,
@@ -152,6 +145,7 @@ export default function OrderActions({
 
   // Render logic
   const move = readOnly ? undefined : nextOrderMove(status, paymentStatus, fulfillmentStatus)
+  const undos = orderUndos({ status, fulfillmentStatus })
   /* The Next step card owns the main action; the menu keeps the same move for when it is not shown. */
   const menuMove = move ? { label: copy.actions[MOVE_ACTION[move]], to: move } : undefined
   const refundable = !readOnly && canRefund
@@ -270,21 +264,21 @@ export default function OrderActions({
           {
             label: copy.actions.markNotDelivered,
             icon: RotateCcw,
-            hidden: !onMarkNotDelivered || fulfillmentStatus !== 'delivered' || readOnly,
+            hidden: !onMarkNotDelivered || !undos.undeliver || readOnly,
             disabled: busy,
             onSelect: onMarkNotDelivered,
           },
           {
             label: copy.actions.markNotShipped,
             icon: RotateCcw,
-            hidden: !onMarkNotShipped || !NOT_SHIPPED_FROM.has(fulfillmentStatus) || readOnly,
+            hidden: !onMarkNotShipped || !undos.unfulfil || readOnly,
             disabled: busy,
             onSelect: onMarkNotShipped,
           },
           {
             label: copy.actions.restore,
             icon: RotateCcw,
-            hidden: !onRestore || status !== 'cancelled' || readOnly,
+            hidden: !onRestore || !undos.restore || readOnly,
             disabled: busy,
             onSelect: onRestore,
           },
