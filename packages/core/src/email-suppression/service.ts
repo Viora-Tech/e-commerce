@@ -5,7 +5,7 @@ import {
   emailSuppression,
   type StoreTx,
 } from '@commerce/db'
-import { and, desc, eq, gt, inArray, isNull, sql } from 'drizzle-orm'
+import { and, desc, eq, gt, isNull, sql } from 'drizzle-orm'
 import type { SesFeedback } from './ses-feedback'
 
 /** Soft (transient) bounces in the window that put an address on the list. */
@@ -119,20 +119,6 @@ export async function emailSuppressionFor(
       and(eq(emailSuppression.email, normaliseEmail(email)), isNull(emailSuppression.clearedAt)),
     )
   return row ?? null
-}
-
-/** Active suppressions for these addresses, by address (for the customer list or a batch). */
-export async function emailSuppressionsFor(
-  tx: StoreTx,
-  emails: string[],
-): Promise<Map<string, EmailSuppressionRow>> {
-  const wanted = [...new Set(emails.map(normaliseEmail))]
-  if (wanted.length === 0) return new Map()
-  const rows = await tx
-    .select()
-    .from(emailSuppression)
-    .where(and(inArray(emailSuppression.email, wanted), isNull(emailSuppression.clearedAt)))
-  return new Map(rows.map((r) => [r.email, r]))
 }
 
 /**

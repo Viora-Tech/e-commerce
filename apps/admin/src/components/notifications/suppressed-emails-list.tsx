@@ -17,7 +17,7 @@ type Row = Awaited<ReturnType<typeof api.notifications.emailSuppressions>>[numbe
  */
 export default function SuppressedEmailsList() {
   // Hooks
-  const copy = useCopy(emailSuppressionContent).list
+  const { list: copy } = useCopy(emailSuppressionContent)
   const locale = useLocale()
   const [rows, setRows] = useState<Row[] | null>(null)
   const [failed, setFailed] = useState(false)

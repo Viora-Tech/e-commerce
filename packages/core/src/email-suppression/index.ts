@@ -8,7 +8,6 @@ export {
   allowEmailAgain,
   type EmailSuppressionRow,
   emailSuppressionFor,
-  emailSuppressionsFor,
   listEmailSuppressions,
   recordEmailFeedback,
   SOFT_BOUNCE_LIMIT,

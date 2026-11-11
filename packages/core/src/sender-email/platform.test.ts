@@ -167,7 +167,7 @@ describe('platformEmailFromEnv', () => {
     const inputs: Record<string, unknown>[] = []
     const client = {
       async send(cmd: Parameters<SesClientLike['send']>[0]) {
-        inputs.push(cmd.input as Record<string, unknown>)
+        inputs.push(cmd.input as unknown as Record<string, unknown>)
         return { MessageId: 'ses-1' }
       },
     }

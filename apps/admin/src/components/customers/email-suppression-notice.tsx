@@ -22,7 +22,7 @@ type Suppression = Awaited<ReturnType<typeof api.customers.emailSuppression>>
  */
 export default function EmailSuppressionNotice({ customerId }: EmailSuppressionNoticeProps) {
   // Hooks
-  const copy = useCopy(emailSuppressionContent).notice
+  const { notice: copy } = useCopy(emailSuppressionContent)
   const locale = useLocale()
   const [suppression, setSuppression] = useState<Suppression>(null)
   const [allowing, setAllowing] = useState(false)

@@ -221,7 +221,11 @@ export const ACTION_DOCS: Record<string, string> = {
     "Add an address to the customer's book; the first one becomes their default.",
   'customers.adoptContactPhone':
     "Save the mobile from the customer's latest order (or saved address) as their contact phone, when they have none.",
+  'customers.allowEmailAgain':
+    '"Allow again": email this customer again; only later bounces count towards a new stop.',
   'customers.create': 'Add a customer by hand ("Add customer" on the list).',
+  'customers.emailSuppression':
+    '"Email bounced/complained — not sending": why the store stopped emailing this customer.',
   'customers.export': 'Rows for a CSV export of the current filter; the browser builds the file.',
   'customers.lookupPincode':
     'City and state for a PIN code, from the same directory as Settings → Checkout\'s "PIN code first".',
@@ -439,7 +443,10 @@ export const ACTION_DOCS: Record<string, string> = {
   'navigation.settings': 'Which menus the storefront header and footer render, by handle.',
   'navigation.themePlacements':
     "Per menu handle, where the live theme's sections pick it (header, footer or a page).",
+  'notifications.allowSuppressedEmail': '"Allow again" from the Sender email card\'s list.',
   'notifications.checkSenderEmail': '"Check now": ask SES again.',
+  'notifications.emailSuppressions':
+    'Addresses the store stopped emailing after a bounce or complaint (Sender email card).',
   'notifications.overview':
     'Settings → Notifications: every message the shop sends and how messages go out.',
   'notifications.preview': 'The message filled with a sample order, for the Preview dialog.',
