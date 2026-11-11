@@ -6,7 +6,6 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { type OrderActionGroup, readyToShip } from '@/apps/order-actions'
-import { ADMIN_APPS } from '@/apps/registry'
 import RunAutomationDialog from '@/components/automations/records/run-automation-dialog'
 import { useRunAutomation } from '@/components/automations/records/use-run-automation'
 import MetafieldsCard from '@/components/metaobjects/metafields-card'
@@ -16,13 +15,9 @@ import { shipmentDetailsContent, shipmentPanelContent } from '@/data/shipping'
 import { useCopy } from '@/hooks/use-copy'
 import { usePermissions } from '@/hooks/use-permissions'
 import { api } from '@/lib/api-client'
-import { orderChannel } from '@/lib/order-channel'
 import { routes } from '@/lib/routes'
 import CancelOrderDialog from './cancel-order-dialog'
 import CollectPaymentDialog from './collect-payment-dialog'
-import CourierOrdersCard from './courier-orders-card'
-import CustomerCard from './customer-card'
-import DeliveryRouteCard from './delivery-route-card'
 import HoldFulfillmentDialog from './hold-fulfillment-dialog'
 import ImportedOrderCard from './imported-order-card'
 import LineItemsCard from './line-items-card'
@@ -45,24 +40,18 @@ import OrderNextStep from './order-next-step'
 import { nextStepKind } from './order-next-step-kind'
 import OrderPageFrame from './order-page-frame'
 import OrderReturnsCard from './order-returns-card'
+import OrderSideColumn, { INVOICES_ANCHOR, INVOICES_APP } from './order-side-column'
 import ParcelsCard from './parcels-card'
 import PaymentCard from './payment-card'
-import ProfitCard from './profit-card'
 import RefundDialog from './refund-dialog'
-import SalesChannelCard from './sales-channel-card'
 import SendMessageDialog from './send-message-dialog'
 import ShipmentPanel from './shipment-panel'
-import TagsCard from './tags-card'
 import TimelineCard from './timeline-card'
 import UnfulfilledCard from './unfulfilled-card'
 import { useDuplicateOrder } from './use-duplicate-order'
 import { useOrderAppActions } from './use-order-app-actions'
 import { useOrderMessages } from './use-order-messages'
 import { useOrderUndo } from './use-order-undo'
-
-/** The GST invoices app's card, drawn high in the side column and linked from "More actions". */
-const INVOICES_APP = 'gst-invoices'
-const INVOICES_ANCHOR = 'order-invoices'
 
 type OrderViewProps = {
   order: OrderDetail
@@ -112,10 +101,6 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
   }, [asked, order, router])
 
   // Helpers
-  const appCard = (id: string) => {
-    const Card = ADMIN_APPS[id]?.OrderCard
-    return Card ? <Card key={id} orderId={order.id} /> : null
-  }
   const refresh = () => router.refresh()
   const openRefund = () => setRefunding(payment?.status === 'captured' ? payment : null)
   const closeAndRefresh = (close: () => void) => () => {
@@ -199,7 +184,6 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
   // Render logic
   // #1012: "Ships from" leads only while a parcel waits on a transfer; archive works on imports too.
   const parcelsFirst = order.parcels.some((p) => p.needsTransfer && p.status === 'open')
-  const soldThrough = orderChannel(order.attribution)
   const payment = primaryPayment(order.payments)
   const pay = paymentStatus(payment, order.refunds)
   const remaining = refunding
@@ -408,51 +392,14 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
         </>
       }
       side={
-        <>
-          {soldThrough ? (
-            <SalesChannelCard
-              channel={soldThrough}
-              cameFrom={order.attribution?.referrer ?? order.attribution?.source ?? null}
-              campaign={order.attribution?.campaign ?? null}
-            />
-          ) : null}
-          <CustomerCard order={order} />
-          {/* Invoices sit right under the customer, where staff look for them (issue 920). */}
-          {appCards.includes(INVOICES_APP) ? (
-            <div id={INVOICES_ANCHOR} className="scroll-mt-6">
-              {appCard(INVOICES_APP)}
-            </div>
-          ) : null}
-          <CourierOrdersCard
-            orderId={order.id}
-            rows={order.courierOrders}
-            canRetry={!readOnly && hasPermission(permissions.ORDERS_WRITE)}
-            onChanged={refresh}
-          />
-          {order.shipping?.delivery ? (
-            <DeliveryRouteCard
-              delivery={order.shipping.delivery}
-              chargedPaise={order.shippingPaise}
-              bookingChargePaise={order.shipment?.courierChargePaise ?? null}
-              showMargin={hasPermission(permissions.ANALYTICS_READ)}
-            />
-          ) : null}
-          {readOnly ? null : (
-            <ProfitCard
-              orderId={order.id}
-              shipment={
-                order.shipment
-                  ? {
-                      id: order.shipment.id,
-                      courierChargePaise: order.shipment.courierChargePaise,
-                    }
-                  : null
-              }
-            />
-          )}
-          {appCards.filter((id) => id !== INVOICES_APP).map(appCard)}
-          <TagsCard orderId={order.id} tags={order.tags} onChanged={refresh} />
-        </>
+        <OrderSideColumn
+          order={order}
+          appCards={appCards}
+          readOnly={readOnly}
+          canRetry={!readOnly && hasPermission(permissions.ORDERS_WRITE)}
+          showMargin={hasPermission(permissions.ANALYTICS_READ)}
+          onChanged={refresh}
+        />
       }
     >
       <RunAutomationDialog
