@@ -17,6 +17,9 @@ import {
 } from '@commerce/db'
 import { asc, eq, inArray } from 'drizzle-orm'
 import { parseAppsSettings } from '../../apps/settings'
+import { type CartParcel, cartParcel } from '../parcel'
+import { lineShips } from '../profiles'
+import type { ShippingSettings } from '../settings'
 import {
   CostCardSchema,
   DELIVERY_OPTIONS_APP_ID,
@@ -212,6 +215,45 @@ export async function cartLineKeys(
     .select({ variantId: cartLine.variantId, quantity: cartLine.quantity })
     .from(cartLine)
     .where(eq(cartLine.cartId, cartId))
+}
+
+/**
+ * The parcel these cart lines become, as the admin would book it: each variant's box (its own,
+ * else its product's, both stored on the variant) and weight, the store's boxes for the main
+ * box and packing. Lines that never ship (gift cards, no shipping) are left out. Checkout and
+ * place order price couriers on its billed weight (#1546).
+ */
+export async function cartParcelFor(
+  tx: StoreTx,
+  lines: ReadonlyArray<{ variantId: string; quantity: number }>,
+  boxPresets: ShippingSettings['boxPresets'],
+): Promise<CartParcel> {
+  const ids = [...new Set(lines.map((l) => l.variantId))]
+  const rows =
+    ids.length === 0
+      ? []
+      : await tx
+          .select({
+            id: variant.id,
+            weightGrams: variant.weightGrams,
+            boxPresetId: variant.boxPresetId,
+            packageLengthCm: variant.packageLengthCm,
+            packageWidthCm: variant.packageWidthCm,
+            packageHeightCm: variant.packageHeightCm,
+            requiresShipping: variant.requiresShipping,
+            giftCard: product.isGiftCard,
+          })
+          .from(variant)
+          .innerJoin(product, eq(product.id, variant.productId))
+          .where(inArray(variant.id, ids))
+  const byId = new Map(rows.map((r) => [r.id, r]))
+  const shipped = lines.flatMap((l) => {
+    const v = byId.get(l.variantId)
+    return v && lineShips(v)
+      ? [{ ...v, quantity: l.quantity, variantWeightGrams: v.weightGrams }]
+      : []
+  })
+  return cartParcel(shipped, boxPresets)
 }
 
 /** What the route rules match on, for each product behind these variants. */

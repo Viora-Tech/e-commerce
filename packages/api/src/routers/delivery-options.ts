@@ -165,6 +165,11 @@ export const deliveryOptionsRouter = {
         valuePaise: z.number().int().min(0).max(100_000_000),
         weightGrams: z.number().int().min(1).max(100_000),
         productIds: z.array(z.uuid()).max(BULK_MAX).default([]),
+        /** Pick products mode: the parcel is built from these, as checkout builds it. */
+        lines: z
+          .array(z.object({ variantId: z.uuid(), quantity: z.number().int().min(1).max(999) }))
+          .max(BULK_MAX)
+          .optional(),
         declineInsurance: z.boolean().default(false),
       }),
     )

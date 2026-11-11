@@ -276,7 +276,9 @@ export function resolveDeliveryOptions(input: ResolveInput): DeliveryResolveResu
     const pool = rulePool(matchingRules(config.rules, option.id, cart.items), candidates)
     const ins = option.insurance
     const offered =
-      ins.default === 'on' && (ins.onlyAbovePaise == null || cart.valuePaise >= ins.onlyAbovePaise)
+      ins.default === 'on' &&
+      (ins.onlyAbovePaise == null ||
+        (input.orderValuePaise ?? cart.valuePaise) >= ins.onlyAbovePaise)
     const required = pool.insuranceRequired
     const insured = required || (offered && !input.declineInsurance)
     const codAllowed =

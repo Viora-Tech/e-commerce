@@ -38,6 +38,20 @@ function hasPickupAddress(
   return Boolean(l.line1?.trim() && l.city?.trim() && l.stateCode?.trim() && l.pincode?.trim())
 }
 
+/**
+ * The PIN code a courier collects a parcel from at this location, as `shipFromFor` books it: the
+ * location's own when it has courier pickup and a full address, else `storePincode` (Settings ›
+ * Shipping). Checkout prices a split cart's parcels from here (#1546).
+ */
+export function pickupPincodeOf(
+  loc: Pick<LocationRow, 'courierPickup' | 'line1' | 'city' | 'stateCode' | 'pincode'>,
+  storePincode: string,
+): string {
+  return loc.courierPickup && hasPickupAddress(loc) && loc.pincode
+    ? loc.pincode.trim()
+    : storePincode
+}
+
 /** Turn courier pickup on (with the names the courier knows it by) or off for one location. */
 export async function setLocationCourierPickup(
   tx: StoreTx,

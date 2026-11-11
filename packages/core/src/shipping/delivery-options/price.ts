@@ -88,7 +88,8 @@ export function priceRoute(
   if (p.minPaise != null) list = Math.max(list, p.minPaise)
   if (p.maxPaise != null) list = Math.min(list, p.maxPaise)
   const zoneFree = zoneRate !== null && zoneRate.pricePaise === 0
-  const free = zoneFree || (p.freeAbovePaise != null && input.cart.valuePaise >= p.freeAbovePaise)
+  const orderValue = input.orderValuePaise ?? input.cart.valuePaise
+  const free = zoneFree || (p.freeAbovePaise != null && orderValue >= p.freeAbovePaise)
   const dated = datesFor(route, option, input)
   return {
     route: summary(route),

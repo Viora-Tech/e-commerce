@@ -1,6 +1,6 @@
 /** SOURCE OF TRUTH: checkout's courier questions — WHAT: asks every connected domestic courier
  * app for a PIN code at once (its services, prices for prepaid and COD, serviceability), each
- * within the checkout deadline, and remembers the answers by weight slab and value bucket /
+ * within the checkout deadline, and remembers the answers by billed-weight slab, box and value bucket /
  * WHY: checkout must never wait more than about a second on couriers, and one slow app must
  * never blank the Shipping step. A late answer still lands in the cache for the next shopper.
  * An answer older than 6 h is stale: it is asked again live, and used (up to 7 days old) when
@@ -16,6 +16,7 @@ import {
   type ShippingProvider,
   servesDestination,
 } from '@commerce/shipping'
+import type { PackageDimensionsCm } from '../parcel'
 import { breakerOpen, type HealthStore, recordCourierCall } from './health'
 import { halfKgSteps, type ProviderAnswer, type QuotedService } from './routes'
 
@@ -39,7 +40,10 @@ export type QuoteCache = HealthStore
 export type CheckoutQuoteQuery = {
   originPincode: string
   destinationPincode: string
+  /** The weight the courier bills: the heavier of actual and the box's volumetric (#1546). */
   weightGrams: number
+  /** The parcel's box, sent to couriers that take it; part of the cache key. */
+  dimensionsCm?: PackageDimensionsCm | null | undefined
   valuePaise: number
   /** Ask the COD price too (some option allows cash on delivery). */
   wantCod: boolean
@@ -61,10 +65,14 @@ export const deliveryQuoteKey = (
   providerId: string,
   q: Pick<
     CheckoutQuoteQuery,
-    'originPincode' | 'destinationPincode' | 'weightGrams' | 'valuePaise'
+    'originPincode' | 'destinationPincode' | 'weightGrams' | 'valuePaise' | 'dimensionsCm'
   >,
 ): string =>
-  `{shipping}:delivery-quote:v2:${storeId}:${providerId}:${q.originPincode}>${q.destinationPincode}:${halfKgSteps(q.weightGrams) * 500}g:${valueBucket(q.valuePaise)}`
+  `{shipping}:delivery-quote:v2:${storeId}:${providerId}:${q.originPincode}>${q.destinationPincode}:${halfKgSteps(q.weightGrams) * 500}g:${valueBucket(q.valuePaise)}${boxKey(q.dimensionsCm)}`
+
+/** The box in the cache key, so a bigger box is never served a small box's price. No box: as before. */
+const boxKey = (d: PackageDimensionsCm | null | undefined): string =>
+  d ? `:${d.lengthCm}x${d.widthCm}x${d.heightCm}cm` : ''
 
 const insuranceLine = (o: RateOption): number | null => {
   const lines = o.charges.filter((c) => c.kind === 'insurance')
@@ -82,6 +90,15 @@ async function askProvider(
     weightGrams: q.weightGrams || ASSUMED_WEIGHT_GRAMS,
     declaredValuePaise: q.valuePaise,
     paymentMode,
+    ...(q.dimensionsCm
+      ? {
+          dimensionsCm: {
+            length: q.dimensionsCm.lengthCm,
+            width: q.dimensionsCm.widthCm,
+            height: q.dimensionsCm.heightCm,
+          },
+        }
+      : {}),
   })
   const served = provider.checkServiceability({
     originPincode: q.originPincode,
