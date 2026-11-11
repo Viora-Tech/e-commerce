@@ -448,7 +448,7 @@ describe('pickup requests', () => {
     const pickup = await withStore(app, storeId, (tx) =>
       schedulePickup({ storeId, tx }, courier, {
         shipmentIds: [first.id],
-        date: '2026-10-27',
+        date: '2099-10-27',
         timeFrom: '14:00',
         pickupLocationName: '',
       }),
@@ -472,7 +472,7 @@ describe('pickup requests', () => {
     const joined = await withStore(app, storeId, (tx) =>
       schedulePickup({ storeId, tx }, courier, {
         shipmentIds: [second.id],
-        date: '2026-10-27',
+        date: '2099-10-27',
         timeFrom: '15:00',
         pickupLocationName: 'Waimers Sonipat',
       }),
@@ -494,7 +494,7 @@ describe('pickup requests', () => {
     const pickup = await withStore(app, storeId, (tx) =>
       schedulePickup({ storeId, tx }, courier, {
         shipmentIds: [first.id],
-        date: '2026-10-27',
+        date: '2099-10-27',
         timeFrom: '14:00',
         pickupLocationName: '',
       }),
@@ -507,7 +507,7 @@ describe('pickup requests', () => {
     const joined = await withStore(app, storeId, (tx) =>
       schedulePickup({ storeId, tx }, courier, {
         shipmentIds: [second.id],
-        date: '2026-10-28',
+        date: '2099-10-28',
         timeFrom: '14:00',
         pickupLocationName: 'Warehouse',
         joinPickupId: pickup.id,
@@ -516,6 +516,26 @@ describe('pickup requests', () => {
     expect(asked).toHaveLength(1)
     expect(joined.id).toBe(pickup.id)
     expect(joined.expectedPackageCount).toBe(2)
+  })
+
+  it('refuses a new pickup on a day that has passed', async () => {
+    const { storeId, orderId } = await seedOrder()
+    const asked: unknown[] = []
+    const courier = pickupCourier(asked)
+    const row = await withStore(app, storeId, (tx) =>
+      createShipmentForOrder({ storeId, tx }, courier, orderId),
+    )
+    await expect(
+      withStore(app, storeId, (tx) =>
+        schedulePickup({ storeId, tx }, courier, {
+          shipmentIds: [row.id],
+          date: '2020-01-01',
+          timeFrom: '14:00',
+          pickupLocationName: '',
+        }),
+      ),
+    ).rejects.toThrow('Pick today or a later day')
+    expect(asked).toHaveLength(0)
   })
 
   it('a refused request is recorded as failed and leaves the parcel free to request again', async () => {
@@ -527,7 +547,7 @@ describe('pickup requests', () => {
     const failed = await withStore(app, storeId, (tx) =>
       schedulePickup({ storeId, tx }, pickupCourier(asked, true), {
         shipmentIds: [row.id],
-        date: '2026-10-27',
+        date: '2099-10-27',
         timeFrom: '14:00',
         pickupLocationName: '',
       }),
@@ -540,7 +560,7 @@ describe('pickup requests', () => {
     const retried = await withStore(app, storeId, (tx) =>
       schedulePickup({ storeId, tx }, pickupCourier(asked), {
         shipmentIds: [row.id],
-        date: '2026-10-27',
+        date: '2099-10-27',
         timeFrom: '14:00',
         pickupLocationName: '',
       }),

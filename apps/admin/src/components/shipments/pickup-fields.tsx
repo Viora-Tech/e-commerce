@@ -135,6 +135,7 @@ export default function PickupFields({ idPrefix, providerId, value, onChange }: 
             <DateField
               id={`${idPrefix}-date`}
               value={value.date}
+              min={todayKey()}
               onChange={(v) => onChange({ ...value, date: v, joinPickupId: null })}
             />
           </Field>

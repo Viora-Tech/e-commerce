@@ -1,7 +1,9 @@
+import { dayKey } from '@commerce/dates'
 import { shipment, shipmentManifest, shipmentPickup } from '@commerce/db'
 import type { ShippingProvider } from '@commerce/shipping'
 import { and, eq, inArray, isNull } from 'drizzle-orm'
 import type { StoreContext } from '../context'
+import { CommerceError } from '../errors'
 
 export type ShipmentPickupRow = typeof shipmentPickup.$inferSelect
 export type ShipmentManifestRow = typeof shipmentManifest.$inferSelect
@@ -41,6 +43,10 @@ export async function schedulePickup(
   },
 ): Promise<ShipmentPickupRow> {
   if (input.shipmentIds.length === 0) throw new Error('pick at least one shipment')
+  // A new pickup can't be booked for a day that has passed (India time); joining one stays allowed.
+  if (!input.joinPickupId && input.date < dayKey(new Date())) {
+    throw new CommerceError('BAD_REQUEST', 'Pick today or a later day for the pickup')
+  }
   const place = input.pickupLocationName || provider.defaultPickupLocationName || ''
 
   const [open] = await ctx.tx
