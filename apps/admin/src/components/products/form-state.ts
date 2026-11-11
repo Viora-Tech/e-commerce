@@ -2,6 +2,7 @@ import {
   type InventoryReason,
   type ProductStatus,
   type ProductWrite,
+  type VariantBox,
   variantTitle,
   type WeightUnit,
 } from '@commerce/core/catalog'
@@ -49,6 +50,8 @@ export type VariantRow = {
   packageLengthCm: number | null
   packageWidthCm: number | null
   packageHeightCm: number | null
+  /** The box above is the variant's own (#1517); false follows the product's Package. */
+  boxOwn: boolean
   /** The variant's images in order, ids from the product gallery; the first is its main image. */
   mediaIds: string[]
 }
@@ -109,7 +112,16 @@ export type ProductFormState = {
 
 export const MAX_OPTIONS = 3
 
-export function emptyVariant(optionValues: string[], template?: VariantRow): VariantRow {
+/**
+ * A new row, copying the template's prices and shipping. Its box is the product's Package
+ * (`productBox`), never the template's own box (#1517).
+ */
+export function emptyVariant(
+  optionValues: string[],
+  template?: VariantRow,
+  productBox?: VariantBox,
+): VariantRow {
+  const box = productBox ?? template
   return {
     optionValues,
     price: template?.price ?? '',
@@ -128,10 +140,11 @@ export function emptyVariant(optionValues: string[], template?: VariantRow): Var
     hsCode: template?.hsCode ?? '',
     countryOfOrigin: template?.countryOfOrigin ?? '',
     gstRate: template?.gstRate ?? '',
-    boxPresetId: template?.boxPresetId ?? null,
-    packageLengthCm: template?.packageLengthCm ?? null,
-    packageWidthCm: template?.packageWidthCm ?? null,
-    packageHeightCm: template?.packageHeightCm ?? null,
+    boxPresetId: box?.boxPresetId ?? null,
+    packageLengthCm: box?.packageLengthCm ?? null,
+    packageWidthCm: box?.packageWidthCm ?? null,
+    packageHeightCm: box?.packageHeightCm ?? null,
+    boxOwn: false,
     mediaIds: [],
   }
 }
@@ -249,6 +262,7 @@ function fromVariants(p: LoadedProduct): VariantRow[] {
         packageLengthCm: v.packageLengthCm ?? null,
         packageWidthCm: v.packageWidthCm ?? null,
         packageHeightCm: v.packageHeightCm ?? null,
+        boxOwn: v.boxOwn ?? false,
         mediaIds: v.mediaIds,
       }))
 }
@@ -371,6 +385,7 @@ export function toWrite(form: ProductFormState): ProductWrite {
       packageLengthCm: v.packageLengthCm,
       packageWidthCm: v.packageWidthCm,
       packageHeightCm: v.packageHeightCm,
+      boxOwn: v.boxOwn,
       onHand: v.trackInventory ? (intOrNull(v.quantity) ?? 0) : undefined,
       mediaId: v.mediaIds[0] ?? null,
       mediaIds: v.mediaIds,

@@ -89,6 +89,8 @@ export function variantRow(input: VariantInput) {
     packageLengthCm: input.packageLengthCm ?? null,
     packageWidthCm: input.packageWidthCm ?? null,
     packageHeightCm: input.packageHeightCm ?? null,
+    // Writers that only know one box per product (imports, AI tools) leave the choice alone.
+    ...(input.boxOwn === undefined ? {} : { boxOwn: input.boxOwn }),
     // The main image is the first of an ordered list when one is sent (catalog/variant-media.ts).
     mediaId: input.mediaIds !== undefined ? (input.mediaIds[0] ?? null) : (input.mediaId ?? null),
   }

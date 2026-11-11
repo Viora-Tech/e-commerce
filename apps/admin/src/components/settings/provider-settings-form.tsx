@@ -1,11 +1,11 @@
 'use client'
 
-import { CircleAlert, Puzzle } from '@commerce/ui/icons'
-import { Alert, AlertDescription, AlertTitle } from '@commerce/ui/shadcn/alert'
+import { Puzzle } from '@commerce/ui/icons'
 import { Card } from '@commerce/ui/shadcn/card'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { type ReactNode, useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import SaveErrorAlert from '@/components/approvals/save-error-alert'
 import AppStoreLink from '@/components/apps/app-store-link'
 import EmptyState from '@/components/layout/empty-state'
 import PageHeader from '@/components/layout/page-header'
@@ -194,13 +194,7 @@ export default function ProviderSettingsForm<Extra extends object>({
         back={back?.href ? { label: back.label, href: back.href } : undefined}
         save={{ dirty, saving: busy, onSave: handleSave, label: copy.save }}
       />
-      {error ? (
-        <Alert variant="destructive">
-          <CircleAlert />
-          <AlertTitle>{copy.couldNotSave}</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      ) : null}
+      {error ? <SaveErrorAlert title={copy.couldNotSave} message={error} /> : null}
       <SectionTabs tabs={sections ?? []}>
         <div className="flex min-w-0 flex-1 flex-col gap-4">
           <SettingsSection

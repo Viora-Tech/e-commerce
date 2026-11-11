@@ -29,6 +29,10 @@ export const approvalsContent = {
   /** The same change was already waiting, so nothing new was sent. */
   already:
     'Already requested — waiting for approval. The same change is already in Settings → Approvals, so nothing new was sent.',
+  /** Title of the calm notice a form shows in place of its red save error (#1531). */
+  sentTitle: 'Sent for approval',
+  /** Link under that notice. */
+  openApprovals: 'Open Settings › Approvals',
   role: {
     heading: 'Needs approval',
     help: 'Ticked actions do not run when a member on this role does them: they wait in Approvals until a different member approves them. Only the owner can change this.',

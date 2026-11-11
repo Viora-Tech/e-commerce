@@ -1,6 +1,6 @@
 'use client'
 
-import { variantTitle } from '@commerce/core/catalog'
+import { productBoxOf, variantTitle } from '@commerce/core/catalog'
 import { CheckIcon, ChevronLeftIcon, ChevronRightIcon } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import {
@@ -101,6 +101,7 @@ export default function VariantEditDialog({
             onPatch={patch}
             onGenerateSku={handleGenerateSku}
             tax={tax}
+            productBox={productBoxOf(variants)}
           />
         </div>
 

@@ -49,6 +49,8 @@ export const VariantInputSchema = z.object({
   packageLengthCm: z.number().int().min(1).max(200).nullable().optional(),
   packageWidthCm: z.number().int().min(1).max(200).nullable().optional(),
   packageHeightCm: z.number().int().min(1).max(200).nullable().optional(),
+  /** The box is the variant's own, not the product's Package (#1517). Undefined leaves it as it is. */
+  boxOwn: z.boolean().optional(),
   /** Null uses the store's GST rate. */
   gstRatePercent: z.number().int().min(0).max(40).nullable().optional(),
   /** Below zero when pre-orders or an import oversold it: the form sends it back unchanged. */
