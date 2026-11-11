@@ -16,7 +16,7 @@ export type VariantBox = {
   packageHeightCm: number | null
 }
 
-export const NO_VARIANT_BOX: VariantBox = {
+const NO_VARIANT_BOX: VariantBox = {
   boxPresetId: null,
   packageLengthCm: null,
   packageWidthCm: null,
@@ -39,7 +39,7 @@ export function variantBox(v: {
 }
 
 /** True when two rows pack in the same box (same named box and same custom size). */
-export function sameBox(a: Partial<VariantBox>, b: Partial<VariantBox>): boolean {
+function sameBox(a: Partial<VariantBox>, b: Partial<VariantBox>): boolean {
   const x = variantBox(a)
   const y = variantBox(b)
   return (

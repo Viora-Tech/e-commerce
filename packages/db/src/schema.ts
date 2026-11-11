@@ -621,11 +621,7 @@ export const variant = pgTable(
     packageLengthCm: integer('package_length_cm'),
     packageWidthCm: integer('package_width_cm'),
     packageHeightCm: integer('package_height_cm'),
-    /**
-     * The box above is this variant's own choice (#1517). Null or false: it follows the product's
-     * Package, which the product page writes onto every such variant. Sizes stay in the named
-     * boxes; this only says whether a later product-level change may overwrite the variant.
-     */
+    /** The box above is the variant's own (#1517); null/false follows the product's Package. */
     boxOwn: boolean('box_own'),
     position: integer('position').notNull().default(0),
     mediaId: uuid('media_id').references(() => media.id),
