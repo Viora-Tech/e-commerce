@@ -82,6 +82,62 @@ describe('RapidshypProvider serviceability and rates', () => {
     expect(calls).toHaveLength(2)
   })
 
+  it('asks serviceability with and without COD at once, not one after the other (#1524)', async () => {
+    let open = 0
+    let peak = 0
+    const f = fakeFetch({
+      '/rapidshyp/apis/v1/serviceabilty_check': async () => {
+        open += 1
+        peak = Math.max(peak, open)
+        await new Promise((r) => setTimeout(r, 10))
+        open -= 1
+        return json({
+          status: true,
+          serviceable_courier_list: [{ courier_code: 'A', total_freight: 60 }],
+        })
+      },
+    })
+    const p = new RapidshypProvider({ ...config, fetchImpl: f.impl })
+    await p.checkServiceability({ originPincode: '131028', destinationPincode: '560001' })
+    expect(peak).toBe(2)
+  })
+
+  it('checkout’s three asks share two calls: prepaid rates, COD rates and serviceability (#1524)', async () => {
+    const f = fakeFetch({
+      '/rapidshyp/apis/v1/serviceabilty_check': async () => {
+        await new Promise((r) => setTimeout(r, 10))
+        return json({
+          status: true,
+          serviceable_courier_list: [{ courier_code: 'A', total_freight: 60 }],
+        })
+      },
+    })
+    const p = new RapidshypProvider({ ...config, fetchImpl: f.impl })
+    const rate = (paymentMode: 'prepaid' | 'cod') => ({
+      originPincode: '131028',
+      destinationPincode: '560001',
+      weightGrams: 500,
+      declaredValuePaise: 199_900,
+      paymentMode,
+    })
+    await Promise.all([
+      p.quoteOptions(rate('prepaid')),
+      p.quoteOptions(rate('cod')),
+      p.checkServiceability({
+        originPincode: '131028',
+        destinationPincode: '560001',
+        weightGrams: 500,
+        declaredValue: 1999,
+      }),
+    ])
+    const bodies = f.calls.map((c) => c.init?.body)
+    expect(bodies).toHaveLength(2) // was 6
+    expect(new Set(bodies).size).toBe(2)
+    // A later ask is a fresh call: only calls in flight are shared.
+    await p.quoteOptions(rate('prepaid'))
+    expect(f.calls).toHaveLength(4)
+  })
+
   it('is unserviceable, not an error, when no couriers are returned', async () => {
     const f = fakeFetch({
       '/rapidshyp/apis/v1/serviceabilty_check': () =>
