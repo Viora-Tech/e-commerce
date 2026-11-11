@@ -203,12 +203,16 @@ export const ACTION_DOCS: Record<string, string> = {
   'collections.searchProducts': 'Product picker inside a manual collection.',
   'collections.stats': 'Tiles above the category cards.',
   'customerAccounts.saveApp': "Save the merchant's own Google / Apple / Facebook / Truecaller app.",
+  'customerPrivacy.allowEmailAgain':
+    '"Allow again": email this customer again; only later bounces count towards a new stop.',
   'customerPrivacy.anonymise':
     "Erase a customer's personal data, keeping what invoices need, and close the request it answers.",
   'customerPrivacy.askConsentAgain':
     'Show the banner to everyone again (after changing tags or the banner text).',
   'customerPrivacy.consent': "A customer's marketing consent per channel, with its history.",
   'customerPrivacy.createRequest': 'Staff log a request that came by email, phone or in person.',
+  'customerPrivacy.emailSuppression':
+    '"Email bounced/complained — not sending": why the store stopped emailing this customer.',
   'customerPrivacy.export': 'One-click export: the file to download, noted in the audit trail.',
   'customerPrivacy.overview': 'Everything the settings page shows at once.',
   'customerPrivacy.sendableChannels':
@@ -439,7 +443,10 @@ export const ACTION_DOCS: Record<string, string> = {
   'navigation.settings': 'Which menus the storefront header and footer render, by handle.',
   'navigation.themePlacements':
     "Per menu handle, where the live theme's sections pick it (header, footer or a page).",
+  'notifications.allowSuppressedEmail': '"Allow again" from the Sender email card\'s list.',
   'notifications.checkSenderEmail': '"Check now": ask SES again.',
+  'notifications.emailSuppressions':
+    'Addresses the store stopped emailing after a bounce or complaint (Sender email card).',
   'notifications.overview':
     'Settings → Notifications: every message the shop sends and how messages go out.',
   'notifications.preview': 'The message filled with a sample order, for the Preview dialog.',

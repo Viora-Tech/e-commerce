@@ -64,6 +64,7 @@ import {
   VERIFY_EVERY_MS,
 } from './domains'
 import { startEdgePurge } from './edge-purge'
+import { emailFeedbackWebhooks } from './email-feedback'
 import { createFxRates, FX_RATES_SCHEDULE } from './fx-rates'
 import { createHomeCardsRefresh, HOME_CARDS_EVERY_MS } from './home-cards'
 import { createImportSnapshotCleanup, SNAPSHOT_CLEANUP_EVERY_MS } from './import-snapshots'
@@ -526,6 +527,7 @@ const app = new Hono()
 app.use(evlog({ exclude: ['/health'] }))
 app.route('/', paymentWebhooks(db, env.SETTINGS_SECRET, rateLimitStore))
 app.route('/', shipmentWebhooks(db, env.SETTINGS_SECRET, rateLimitStore))
+app.route('/', emailFeedbackWebhooks(db, { topicArn: env.SES_EVENTS_TOPIC_ARN }, rateLimitStore))
 app.route(
   '/',
   platformWebhooks(

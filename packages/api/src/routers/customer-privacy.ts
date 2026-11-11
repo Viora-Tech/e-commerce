@@ -34,6 +34,10 @@ import type { StoreTx } from '@commerce/db'
 import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
 import { BULK_MAX, can, heavy } from '../procedures'
+import {
+  allowCustomerEmailAgain,
+  customerEmailSuppression,
+} from '../services/email-suppression.service'
 import { sendableConsentChannels } from '../services/notifications.service'
 
 type Ctx = {
@@ -274,4 +278,20 @@ export const customerPrivacyRouter = {
       }
       return { updated }
     }),
+
+  /** "Email bounced/complained — not sending": why the store stopped emailing this customer. */
+  emailSuppression: can(permissions.CUSTOMERS_READ)
+    .input(z.object({ customerId: z.uuid() }))
+    .handler(({ context, input }) => customerEmailSuppression(context.tx, input.customerId)),
+
+  /** "Allow again": email this customer again; only later bounces count towards a new stop. */
+  allowEmailAgain: can(permissions.CUSTOMERS_WRITE)
+    .input(z.object({ customerId: z.uuid() }))
+    .handler(async ({ context, input }) => ({
+      allowed: await allowCustomerEmailAgain(
+        context.tx,
+        input.customerId,
+        context.session.user.email,
+      ),
+    })),
 }

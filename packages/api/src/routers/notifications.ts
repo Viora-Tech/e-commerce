@@ -20,6 +20,10 @@ import { z } from 'zod'
 import { can } from '../procedures'
 import { storeRegistries } from '../services/apps.service'
 import {
+  allowSuppressedEmailAgain,
+  emailSuppressionList,
+} from '../services/email-suppression.service'
+import {
   notificationsOverview,
   previewMessage,
   sendTestMessage,
@@ -162,6 +166,18 @@ export const notificationsRouter = {
     const overview = await senderEmailOverview(context.tx, context.scope.storeId)
     return { ...overview, restarted: r?.restarted ?? false }
   }),
+
+  /** Addresses the store stopped emailing after a bounce or complaint (Sender email card). */
+  emailSuppressions: can(permissions.SETTINGS_READ).handler(({ context }) =>
+    emailSuppressionList(context.tx),
+  ),
+
+  /** "Allow again" from the Sender email card's list. */
+  allowSuppressedEmail: can(permissions.SETTINGS_MANAGE)
+    .input(z.object({ email: z.string().trim().min(3).max(320) }))
+    .handler(async ({ context, input }) => ({
+      allowed: await allowSuppressedEmailAgain(context.tx, input.email, context.session.user.email),
+    })),
 
   /** Stop sending from the address; customer email goes back to the platform sender. */
   removeSenderEmail: can(permissions.SETTINGS_MANAGE).handler(async ({ context }) => {
