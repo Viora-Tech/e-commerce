@@ -264,6 +264,9 @@ export type RateOption = {
   chargeableWeightGrams: number | null
 }
 
+/** The stored shipment a cancel is for (`ShippingProvider.cancel`). */
+export type CancelRef = { waybill: string; providerRef?: string | null | undefined }
+
 /**
  * What an adapter can actually do. Declared on the factory (`capabilities`)
  * so the admin can grey out "Schedule pickup" for a courier that has no
@@ -428,8 +431,12 @@ export type ShippingProvider = {
   /**
    * Cancel a booked consignment. Throw CourierError('rejected', ...) with the courier's reason
    * when it refuses (already picked up, already cancelled), so the merchant sees why.
+   *
+   * `ref` is the stored shipment's own waybill and `providerRef`, passed by core's
+   * `cancelShipment`, for a courier whose cancel needs the AWB even though the first argument is
+   * its `providerRef` (Shiprocket stores its shipment id there but cancels by AWB).
    */
-  cancel(waybill: string): Promise<void>
+  cancel(waybill: string, ref?: CancelRef): Promise<void>
   /**
    * Present for a courier that serves its label only behind the API key (`labelViaProvider` at
    * booking): the label PDF for this waybill, fetched server-side.

@@ -26,7 +26,7 @@ export type ShipmentRow = {
   deliveryFailed: boolean
   labelUrl: string | null
   trackingUrl: string | null
-  /** The courier app takes cancellations over its API (Shiprocket does not, today). */
+  /** The courier app takes cancellations over its API. */
   courierCancels: boolean
 }
 

@@ -23,6 +23,7 @@
  *   POST /manifests/generate                {shipment_id: [...]}
  *   GET  /courier/track/awb/{awb_code}
  *   POST /orders/cancel                     {ids: [...]}
+ *   POST /orders/cancel/shipment/awbs       {awbs: [...]}  cancel a booked shipment
  *   POST /ndr/reattempt                     {awb, address1, address2, phone, deferred_date}
  *   GET  /account/details/wallet-balance
  *
@@ -45,6 +46,7 @@ import { logger } from '@commerce/observability/logging'
 import {
   COURIER_TIMEOUT_MS,
   CourierError,
+  type CancelRef,
   type CreateShipmentInput,
   type CreateShipmentResult,
   type CredentialCheck,
@@ -177,6 +179,31 @@ type TrackResponse = Record<string, { tracking_data?: TrackActivity } | undefine
 type WalletResponse = { data?: { balance_amount?: number | string } }
 
 type NdrResponse = { message?: string; ndr_raised?: boolean; error?: string }
+
+/** `/orders/cancel/shipment/awbs`. Only `message` is documented; the rest is read when present. */
+type CancelAwbResponse = {
+  message?: string
+  status_code?: number
+  errors?: unknown
+}
+
+/**
+ * Why a 2xx cancel answer is still a refusal, or null when it is not one. Shiprocket answers some
+ * refusals with a 200 carrying `status_code` and `errors`, the way its create calls do.
+ */
+export function cancelRefusal(body: CancelAwbResponse | null | undefined): string | null {
+  if (!body || typeof body !== 'object') return null
+  const failed =
+    (typeof body.status_code === 'number' && body.status_code >= 400) ||
+    (body.errors !== undefined &&
+      body.errors !== null &&
+      !(Array.isArray(body.errors) && body.errors.length === 0) &&
+      !(typeof body.errors === 'object' && Object.keys(body.errors).length === 0))
+  if (!failed) return null
+  if (body.message) return body.message
+  if (typeof body.errors === 'string') return body.errors
+  return 'no detail returned'
+}
 
 /**
  * Shiprocket's own status vocabulary (courier/track) is free text ("Pickup
@@ -586,18 +613,49 @@ export class ShiprocketProvider implements ShippingProvider {
     }
   }
 
-  async cancel(_waybill: string): Promise<void> {
-    /* Shiprocket cancels by its own order id, not the AWB; callers only have
-       the waybill, so this looks the shipment up via tracking first is not
-       possible (track() doesn't return the order id either). Cancel-by-AWB
-       is unconfirmed, so this is left as a documented gap: */
-    throw new CourierError(
-      'unavailable',
-      this.id,
-      'Cancel is not wired for Shiprocket yet: /orders/cancel needs the Shiprocket order id, ' +
-        'which is not part of the shared shipment record. Cancel from the Shiprocket dashboard ' +
-        'for now, or track the order id alongside the AWB to complete this.',
-    )
+  /**
+   * Cancel a booked shipment by AWB: `POST /orders/cancel/shipment/awbs` with `{ awbs: [...] }`
+   * (Shiprocket's API collection, "Cancel a Shipment"). Core passes the stored shipment id
+   * (`providerRef`) first, so the AWB comes from `ref.waybill`. The Shiprocket order itself stays
+   * (it can be booked again there); `cancelPushedOrder` is the one that cancels a pending order.
+   *
+   * UNCONFIRMED LIVE: the success body is not documented beyond a message, so only a refusal the
+   * API states (a 4xx, or a 2xx body with `status_code` >= 400 or `errors`) counts as failure.
+   * Needs one live test on a test booking before it is relied on.
+   */
+  async cancel(waybillOrRef: string, ref?: CancelRef): Promise<void> {
+    const awb = (ref?.waybill || waybillOrRef).trim()
+    if (!awb) throw new CourierError('rejected', this.id, 'No AWB to cancel.')
+    let result: CancelAwbResponse
+    try {
+      result = await this.postJson<CancelAwbResponse>('/orders/cancel/shipment/awbs', {
+        awbs: [awb],
+      })
+    } catch (error) {
+      // A 4xx other than auth and rate limits (which keep their kinds) is Shiprocket refusing
+      // this cancel, e.g. the parcel was already picked up: say so in its own words.
+      if (
+        error instanceof CourierError &&
+        error.kind === 'unavailable' &&
+        error.status !== undefined &&
+        error.status >= 400 &&
+        error.status < 500
+      ) {
+        throw new CourierError(
+          'rejected',
+          this.id,
+          `Shiprocket did not cancel AWB ${awb}: ${error.reason || `HTTP ${error.status}`}`,
+          { status: error.status, reason: error.reason, cause: error },
+        )
+      }
+      throw error
+    }
+    const refused = cancelRefusal(result)
+    if (refused) {
+      throw new CourierError('rejected', this.id, `Shiprocket did not cancel AWB ${awb}: ${refused}`, {
+        reason: refused,
+      })
+    }
   }
 
   async schedulePickup(input: SchedulePickupInput): Promise<SchedulePickupResult> {
