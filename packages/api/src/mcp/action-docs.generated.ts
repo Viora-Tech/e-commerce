@@ -554,6 +554,8 @@ export const ACTION_DOCS: Record<string, string> = {
     'The list\'s bulk "Send invoices": each selected draft with an email gets its pay link.',
   'orders.sendOrderLink':
     '"Send order link": the signed link to the order\'s page, by email and WhatsApp (when set up).',
+  'orders.sendPaymentLink':
+    '"Send payment link" on a shopper\'s unpaid checkout draft: its pay link (the order page where the shopper pays or retries) by email, WhatsApp (when connected) or both, noted on the draft\'s timeline.',
   'orders.sendPaymentReminder':
     '"Send payment reminder" on an unpaid UPI / bank transfer order: by email, WhatsApp (when set up) or both (the default), with the QR and bank details.',
   'orders.sendRecovery': 'Email the shopper a reminder with a link back to their abandoned cart.',
@@ -760,6 +762,8 @@ export const ACTION_DOCS: Record<string, string> = {
     'Products of the picked collections, for "Add a collection\'s products".',
   'shipping.profiles.create':
     "Make a custom profile holding whole products (productIds, every variant including ones added later) and single variants (variantIds, which win over their product's profile).",
+  'shipping.profiles.moveToGeneral':
+    'General\'s "Move products here": take the products (and their single variants) out of the custom profiles that hold them, so they ship at General\'s prices.',
   'shipping.profiles.productEntries':
     "Products with their variants as a profile's page lists them: which variants ship under profileId and where the others ship now.",
   'shipping.profiles.update':

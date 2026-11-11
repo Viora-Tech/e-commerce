@@ -116,6 +116,17 @@ export const checkoutDraftContent = {
   timeline: 'Timeline',
   payLink: 'Copy payment link',
   payLinkCopied: 'Payment link copied',
+  /** "Send payment link": the review dialog's title and button, then the toasts. */
+  sendLink: 'Send payment link',
+  sendLinkButton: 'Send link',
+  linkSent: {
+    email: 'Payment link sent by email',
+    whatsapp: 'Payment link sent on WhatsApp',
+    both: 'Payment link sent by email and WhatsApp',
+  },
+  /** The 10-minute limit per channel; `minutes` until it may go again. */
+  linkTooSoon: (channel: 'email' | 'whatsapp', minutes: number) =>
+    `The payment link already went ${channel === 'email' ? 'by email' : 'on WhatsApp'} a moment ago. You can send it again in ${minutes === 1 ? '1 minute' : `${minutes} minutes`}.`,
   markPaid: 'Mark as paid',
   markPaidTitle: 'Mark this checkout as paid?',
   markPaidBody: (total: string) =>

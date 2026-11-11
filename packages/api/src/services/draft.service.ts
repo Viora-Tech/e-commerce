@@ -211,9 +211,9 @@ export async function getDraft(tx: StoreTx, id: string) {
     lines,
     attempts,
     storeCreditPaise: credit?.amountPaise ?? 0,
-    /** What the system wrote on its timeline (checked out again, expired, late payment). */
+    /** Its timeline: system and staff lines (payment link sent), not the draft's own `draft` note. */
     timeline: notes
-      .filter((n) => n.author === 'system')
+      .filter((n) => n.author !== 'draft')
       .map((n) => ({ id: n.id, body: n.body, createdAt: n.createdAt })),
     note: notes.find((n) => n.author === 'draft')?.body ?? '',
     customer: cust ?? null,
