@@ -6,12 +6,12 @@ import {
   AVIF_EFFORT,
   DecompressionBombError,
   decodeThumbhash,
+  encodeVariantWidth,
   MAX_MASTER_LONG_EDGE,
   processImage,
   sharpThreadsFor,
   VARIANT_WIDTHS,
   variantKey,
-  encodeVariantWidth,
   variantWidthsFor,
 } from './pipeline'
 
