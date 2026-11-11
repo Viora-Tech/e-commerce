@@ -1199,7 +1199,8 @@ export const APP_CATALOGUE_DATA: CatalogueEntry[] = [
       },
       {
         question: 'Can I change the alert message?',
-        answer: 'Yes. Edit its messages in the app’s Settings, not in Settings → Notifications.',
+        answer:
+          'Not yet. The confirm email and the alert use a standard template with your store’s name, the product and a link to buy it. Settings chooses the channels and how fast alerts go out.',
       },
     ],
     icon: 'Bell',

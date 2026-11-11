@@ -1,4 +1,5 @@
 export * from './eligibility'
+export * from './messages'
 export * from './notify'
 export * from './plugin'
 export * from './queue'

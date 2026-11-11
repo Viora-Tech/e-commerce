@@ -263,6 +263,11 @@ const ALLOWLIST: AllowEntry[] = [
     reason: 'resolves the store from the db in an oRPC procedure — not yet a service',
   },
   { path: 'packages/plugin-back-in-stock/src/eligibility.ts', exact: true, reason: PLUGIN },
+  {
+    path: 'packages/plugin-back-in-stock/src/messages.ts',
+    exact: true,
+    reason: 'reads its own signup row (with the product and variant) for the confirm email (#1587)',
+  },
   { path: 'packages/plugin-back-in-stock/src/notify.ts', exact: true, reason: PLUGIN },
   { path: 'packages/plugin-back-in-stock/src/quota.ts', exact: true, reason: PLUGIN },
   { path: 'packages/plugin-back-in-stock/src/schema.ts', exact: true, reason: PLUGIN },

@@ -18,6 +18,7 @@ import { formatInZone } from '@commerce/dates'
 import { type Db, withStore } from '@commerce/db'
 import { logger } from '@commerce/observability/logging'
 import { applicationNotice } from '@commerce/plugin-affiliates/server'
+import { confirmMessageFor } from '@commerce/plugin-back-in-stock/server'
 import { getContactMessage, messageText } from '@commerce/plugin-forms/server'
 import {
   loadReviewsSettings,
@@ -77,6 +78,7 @@ export function createNotificationWorker(
         shipmentId,
         signupId,
         contactMessageId,
+        backInStockSignupId,
         reviewId,
         questionId,
         affiliateId,
@@ -132,6 +134,32 @@ export function createNotificationWorker(
             },
           )
         })
+        const bad = sent.filter((r) => !r.ok)
+        if (bad.length > 0) throw new Error(bad.map((r) => `${r.channel}: ${r.error}`).join('; '))
+        return sent
+      }
+      // Back in stock app, no order: the confirm link for a new email signup (double opt-in).
+      if (template === 'back_in_stock_confirm') {
+        const fallback = opts.storefrontUrl
+        if (!backInStockSignupId || !fallback) return []
+        const sent = await withStore(db, storeId, async (tx) => {
+          const origin = await storefrontOriginFor(tx, storeId, fallback)
+          const message = await confirmMessageFor(tx, backInStockSignupId, origin)
+          if (!message) return []
+          return deliverMessageTo(
+            { storeId, tx },
+            template,
+            { email: message.email },
+            message.data,
+            {
+              registry: (await registriesForStore(tx, storeId)).notifications,
+              settingsSecret: opts.settingsSecret,
+            },
+          )
+        })
+        for (const r of sent) {
+          delivery(template, { storeId, channel: r.channel, ok: r.ok, error: r.error })
+        }
         const bad = sent.filter((r) => !r.ok)
         if (bad.length > 0) throw new Error(bad.map((r) => `${r.channel}: ${r.error}`).join('; '))
         return sent

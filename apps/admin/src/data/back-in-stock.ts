@@ -41,7 +41,7 @@ export const backInStockContent = {
   },
   settings: {
     title: 'Settings',
-    subtitle: 'Channels, message copy and how fast alerts go out.',
+    subtitle: 'Channels and how fast alerts go out.',
     channels: 'Channels',
     emailEnabled: 'Send email alerts',
     whatsappEnabled: 'Send WhatsApp alerts',
