@@ -5,7 +5,6 @@ import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import AppStoreLink from '@/components/apps/app-store-link'
-import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
 import HelpFooter from '@/components/payments/help-footer'
 import BoxPresetsFields from '@/components/settings/box-presets-fields'
@@ -158,7 +157,7 @@ export default function ShippingPage() {
   ]
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-4">
       <SaveBar
         open={dirty}
         message={copy.unsaved}
@@ -168,35 +167,40 @@ export default function ShippingPage() {
         onDiscard={handleDiscard}
         saving={busy}
       />
-      <PageHeader
-        title={copy.title}
-        subtitle={
-          <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
-            {copy.intro}
-            <WhatsThisHelp
-              trigger={copy.whatsThis.trigger}
-              title={copy.whatsThis.title}
-              body={copy.whatsThis.body}
-            />
-          </span>
+      <SettingsDrill
+        rows={rows}
+        backLabel={r.back}
+        header={{
+          title: copy.title,
+          subtitle: (
+            <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
+              {copy.intro}
+              <WhatsThisHelp
+                trigger={copy.whatsThis.trigger}
+                title={copy.whatsThis.title}
+                body={copy.whatsThis.body}
+              />
+            </span>
+          ),
+          save: { dirty, saving: busy, onSave: handleSave, label: copy.save },
+        }}
+        before={
+          <HealthLine
+            tone={couriers.length > 0 ? 'ok' : 'warn'}
+            title={
+              couriers.length > 0 ? copy.health.ready(couriers.join(', ')) : copy.health.noCourier
+            }
+            help={couriers.length > 0 ? null : copy.health.noCourierHelp}
+            action={
+              couriers.length > 0 ? null : (
+                <AppStoreLink category="shipping" variant="default">
+                  {copy.health.connect}
+                </AppStoreLink>
+              )
+            }
+          />
         }
-        save={{ dirty, saving: busy, onSave: handleSave, label: copy.save }}
-      />
-
-      <HealthLine
-        tone={couriers.length > 0 ? 'ok' : 'warn'}
-        title={couriers.length > 0 ? copy.health.ready(couriers.join(', ')) : copy.health.noCourier}
-        help={couriers.length > 0 ? null : copy.health.noCourierHelp}
-        action={
-          couriers.length > 0 ? null : (
-            <AppStoreLink category="shipping" variant="default">
-              {copy.health.connect}
-            </AppStoreLink>
-          )
-        }
-      />
-
-      <SettingsDrill rows={rows} backLabel={r.back}>
+      >
         <SettingsDrillPanel id="rates">
           <ShippingProfilesCard />
         </SettingsDrillPanel>

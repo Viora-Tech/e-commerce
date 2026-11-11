@@ -47,6 +47,7 @@ export default [
       failed: 'इस ऑर्डर की कॉपी नहीं बन सकी',
     },
     moved: (status) => `ऑर्डर "${status}" मार्क किया गया`,
+    alreadyPacked: 'पहले से पैक है: फिर से बुक करें या ट्रैकिंग नंबर जोड़ें।',
     courierOrders: {
       heading: 'कूरियर ऐप',
       status: {

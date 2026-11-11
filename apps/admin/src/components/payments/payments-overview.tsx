@@ -7,7 +7,6 @@ import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
-import PageHeader from '@/components/layout/page-header'
 import SettingsCard from '@/components/settings/settings-card'
 import SettingsDrill from '@/components/settings/settings-drill'
 import SettingsDrillPanel from '@/components/settings/settings-drill-panel'
@@ -153,30 +152,39 @@ export default function PaymentsOverview({ setup, onReload, onOpenGuide }: Payme
   )
 
   return (
-    <div className="flex flex-col gap-5">
-      <PageHeader
-        title={copy.title}
-        subtitle={
-          <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
-            {copy.intro}
-            <WhatsThis />
-          </span>
-        }
-        actions={actions}
-      />
-
-      <StatusBanner canTakePayments={setup.canTakePayments} canTakeOnline={setup.canTakeOnline} />
-      <GatewayKeysBanner />
-      {setup.testMode ? <TestModeBar /> : null}
-      {setup.razorpayWebsiteBlock ? (
-        <RazorpayWebsiteBanner
-          block={setup.razorpayWebsiteBlock}
-          websites={setup.razorpayWebsites}
-          listHref={WEBSITES_HREF}
-        />
-      ) : null}
-
-      <SettingsDrill rows={rows} backLabel={page.back} home={home}>
+    <div className="flex flex-col gap-4">
+      <SettingsDrill
+        rows={rows}
+        backLabel={page.back}
+        home={home}
+        header={{
+          title: copy.title,
+          subtitle: (
+            <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
+              {copy.intro}
+              <WhatsThis />
+            </span>
+          ),
+          actions,
+          notice: (
+            <>
+              <StatusBanner
+                canTakePayments={setup.canTakePayments}
+                canTakeOnline={setup.canTakeOnline}
+              />
+              <GatewayKeysBanner />
+              {setup.testMode ? <TestModeBar /> : null}
+              {setup.razorpayWebsiteBlock ? (
+                <RazorpayWebsiteBanner
+                  block={setup.razorpayWebsiteBlock}
+                  websites={setup.razorpayWebsites}
+                  listHref={WEBSITES_HREF}
+                />
+              ) : null}
+            </>
+          ),
+        }}
+      >
         <SettingsDrillPanel id={PAYMENT_ROWS.providers}>
           <ActiveProvidersCard
             key={JSON.stringify(setup.routing.gateways)}

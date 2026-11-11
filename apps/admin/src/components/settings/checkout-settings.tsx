@@ -111,6 +111,7 @@ export default function CheckoutSettings() {
           {
             id: 'contact',
             title: r.contact,
+            help: `${copy.contact.phone}. ${copy.contact.phoneHint}`,
             value: s.email === 'optional' ? r.emailOptional : r.emailRequired,
           },
           {
@@ -146,7 +147,12 @@ export default function CheckoutSettings() {
                   : rules.rows.companyHidden,
             ),
           },
-          { id: 'cod', title: r.cod, value: loaded.codEnabled ? r.codOn : r.codOff },
+          {
+            id: 'cod',
+            title: r.cod,
+            value: loaded.codEnabled ? r.codOn : r.codOff,
+            help: copy.cod.moved,
+          },
           {
             // One choice: in the row itself, like the PIN code switch.
             id: 'recommended',
@@ -209,20 +215,27 @@ export default function CheckoutSettings() {
         onDiscard={handleDiscard}
         saving={busy}
       />
-      <PageHeader
-        title={copy.title}
-        subtitle={copy.subtitle}
-        save={{ dirty, saving: busy, onSave: handleSave, label: copy.save }}
-      />
       {!form || !s || !loaded ? (
-        <Skeleton className="h-96 w-full rounded-2xl" />
+        <>
+          <PageHeader
+            title={copy.title}
+            subtitle={copy.subtitle}
+            save={{ dirty: false, saving: busy, onSave: handleSave, label: copy.save }}
+          />
+          <Skeleton className="h-96 w-full rounded-2xl" />
+        </>
       ) : (
-        <SettingsDrill rows={rows} backLabel={r.back}>
+        <SettingsDrill
+          rows={rows}
+          backLabel={r.back}
+          header={{
+            title: copy.title,
+            subtitle: copy.subtitle,
+            save: { dirty, saving: busy, onSave: handleSave, label: copy.save },
+          }}
+        >
           <SettingsDrillPanel id="contact">
-            <SettingsCard
-              title={copy.contact.heading}
-              description={`${copy.contact.phone}. ${copy.contact.phoneHint}`}
-            >
+            <SettingsCard>
               <Field>
                 <FieldLabel>{copy.contact.email}</FieldLabel>
                 <ChoiceList
@@ -239,7 +252,7 @@ export default function CheckoutSettings() {
           </SettingsDrillPanel>
 
           <SettingsDrillPanel id="minimum">
-            <SettingsCard title={copy.minimum.heading}>
+            <SettingsCard>
               <RupeeInput
                 key={`min-${codKey}`}
                 id="checkout-minimum"
@@ -253,7 +266,7 @@ export default function CheckoutSettings() {
 
           <SettingsDrillPanel id="cod">
             {/* Set with the other ways to pay now (#97); this row only points there. */}
-            <SettingsCard title={copy.cod.heading} description={copy.cod.moved}>
+            <SettingsCard>
               <Button
                 variant="outline"
                 className="self-start"

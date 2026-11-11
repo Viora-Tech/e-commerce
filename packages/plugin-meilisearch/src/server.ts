@@ -2,6 +2,7 @@ import {
   appSettingsOf,
   decryptSecret,
   encryptSecret,
+  lockStoreApps,
   type ProductSearchEngine,
   parseAppsSettings,
   withAppSettings,
@@ -63,12 +64,7 @@ export async function updateMeilisearchEntry(
   storeId: string,
   change: (current: MeilisearchSettings) => MeilisearchSettings,
 ): Promise<MeilisearchSettings> {
-  const [s] = await tx
-    .select({ apps: store.apps })
-    .from(store)
-    .where(eq(store.id, storeId))
-    .for('update')
-  const apps = parseAppsSettings(s?.apps)
+  const apps = await lockStoreApps(tx, storeId)
   const next = change(parseMeilisearchSettings(appSettingsOf(apps, MEILISEARCH_ID)))
   await tx
     .update(store)

@@ -149,7 +149,7 @@ export default function AdvancedPayments() {
   const back = { label: setupCopy.title, href: PAYMENTS_PAGE_HREF }
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-4">
       {/* One "‹ Payments": the form draws it from `back`. */}
       <ProviderSettingsForm<Extra>
         title={copy.advancedTitle}

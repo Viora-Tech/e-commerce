@@ -8,7 +8,6 @@ import Link from 'next/link'
 import { useQueryState } from 'nuqs'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import PageHeader from '@/components/layout/page-header'
 import HelpFooter from '@/components/payments/help-footer'
 import HealthLine from '@/components/settings/health-line'
 import SettingsDrill from '@/components/settings/settings-drill'
@@ -183,71 +182,79 @@ export default function NotificationsPage() {
     (c) => c !== null,
   )
   const drillRows = [
-    { id: 'messages', title: r.customers, value: countOn(customerMessages, r.countOn) },
-    { id: 'you', title: r.you, value: countOn(rows('you'), r.countOn) },
+    {
+      id: 'messages',
+      title: r.customers,
+      value: countOn(customerMessages, r.countOn),
+      help: copy.list.help,
+    },
+    {
+      id: 'you',
+      title: r.you,
+      value: countOn(rows('you'), r.countOn),
+      help: copy.groups.you.help,
+    },
     {
       id: 'sender',
       title: r.sender,
+      help: senderEmailContent.help,
       value: senderEmail ? (senderEmail.sender?.email ?? r.senderNotSet) : undefined,
     },
     {
       id: 'how-messages-are-sent',
       title: r.sending,
+      help: copy.sending.help,
       value: channels.length ? channels.join(', ') : r.notConnected,
     },
     ...(DEV ? [{ id: 'advanced', title: r.advanced, value: r.advancedValue }] : []),
   ]
 
   return (
-    <div className="flex flex-col gap-5">
-      <PageHeader
-        title={copy.title}
-        subtitle={
-          <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
-            {copy.intro}
-            <WhatsThisHelp
-              trigger={copy.whatsThis.trigger}
-              title={copy.whatsThis.title}
-              body={copy.whatsThis.body}
-            />
-          </span>
+    <div className="flex flex-col gap-4">
+      <SettingsDrill
+        rows={drillRows}
+        backLabel={r.back}
+        header={{
+          title: copy.title,
+          subtitle: (
+            <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
+              {copy.intro}
+              <WhatsThisHelp
+                trigger={copy.whatsThis.trigger}
+                title={copy.whatsThis.title}
+                body={copy.whatsThis.body}
+              />
+            </span>
+          ),
+        }}
+        before={
+          <HealthLine
+            tone={emailOn ? 'ok' : 'warn'}
+            title={
+              emailOn
+                ? whatsappOn
+                  ? copy.status.readyWhatsapp
+                  : copy.status.ready
+                : copy.status.notReady
+            }
+            help={emailOn ? null : copy.status.notReadyHelp}
+            action={
+              emailOn ? null : (
+                <Button
+                  nativeButton={false}
+                  render={
+                    <Link href={`${routes.settings.notifications()}?open=how-messages-are-sent`} />
+                  }
+                >
+                  <PlugConnect aria-hidden="true" />
+                  {copy.status.connectEmail}
+                </Button>
+              )
+            }
+          />
         }
-      />
-
-      {/* The status line belongs to the page's first screen; inside a row the back link leads. */}
-      {openRow ? null : (
-        <HealthLine
-          tone={emailOn ? 'ok' : 'warn'}
-          title={
-            emailOn
-              ? whatsappOn
-                ? copy.status.readyWhatsapp
-                : copy.status.ready
-              : copy.status.notReady
-          }
-          help={emailOn ? null : copy.status.notReadyHelp}
-          action={
-            emailOn ? null : (
-              <Button
-                nativeButton={false}
-                render={
-                  <Link href={`${routes.settings.notifications()}?open=how-messages-are-sent`} />
-                }
-              >
-                <PlugConnect aria-hidden="true" />
-                {copy.status.connectEmail}
-              </Button>
-            )
-          }
-        />
-      )}
-
-      <SettingsDrill rows={drillRows} backLabel={r.back}>
+      >
         <SettingsDrillPanel id="messages">
-          <div className="flex flex-col gap-0.5">
-            <h2 className="text-card font-semibold text-foreground">{copy.list.heading}</h2>
-            <p className="text-body text-muted-foreground">{copy.list.help}</p>
-          </div>
           {GROUPS.map((g) => {
             const list = rows(g)
             if (list.length === 0) return null
@@ -255,29 +262,13 @@ export default function NotificationsPage() {
           })}
         </SettingsDrillPanel>
 
-        <SettingsDrillPanel id="you">
-          <div className="flex flex-col gap-0.5">
-            <h2 className="text-card font-semibold text-foreground">{copy.groups.you.title}</h2>
-            <p className="text-body text-muted-foreground">{copy.groups.you.help}</p>
-          </div>
-          {renderRows(rows('you'))}
-        </SettingsDrillPanel>
+        <SettingsDrillPanel id="you">{renderRows(rows('you'))}</SettingsDrillPanel>
 
         <SettingsDrillPanel id="sender">
-          <div className="flex flex-col gap-0.5">
-            <h2 className="text-card font-semibold text-foreground">
-              {senderEmailContent.heading}
-            </h2>
-            <p className="text-body text-muted-foreground">{senderEmailContent.help}</p>
-          </div>
           <SenderEmailCard />
         </SettingsDrillPanel>
 
         <SettingsDrillPanel id="how-messages-are-sent">
-          <div className="flex flex-col gap-0.5">
-            <h2 className="text-card font-semibold text-foreground">{copy.sending.heading}</h2>
-            <p className="text-body text-muted-foreground">{copy.sending.help}</p>
-          </div>
           <SendingCard
             email={data.channels.email}
             whatsapp={data.channels.whatsapp}

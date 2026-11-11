@@ -268,6 +268,10 @@ export const deliveryOptionsContent = {
       },
       preferDirect: 'Prefer a direct route when it costs at most this much more',
       preferDirectHelp: 'Empty: no preference.',
+      preferCarrier: 'Preferred courier',
+      preferCarrierHelp:
+        'When couriers cost the shopper the same, the one that arrives first wins. This courier wins only when the price and the date are both the same.',
+      noPreference: 'No preference (arrives first)',
       routes: 'Allowed routes',
       routeModes: {
         any: 'Any connected route of this speed',
@@ -323,6 +327,9 @@ export const deliveryOptionsContent = {
       roundTo9Help: '+₹37 shows as +₹39.',
       hideSlower: 'Hide couriers that are slower and dearer',
       hideSlowerHelp: 'Drops a courier another one beats on both price and date.',
+      showNames: 'Show courier names to shoppers',
+      showNamesHelp:
+        'Off, cards show only the delivery promise, like "Standard" and its date: no courier name or logo.',
     },
     availability: { title: 'Availability', enabled: 'Show at checkout' },
   },

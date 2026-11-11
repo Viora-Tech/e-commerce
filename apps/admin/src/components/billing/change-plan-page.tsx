@@ -68,7 +68,7 @@ export default function ChangePlanPage({ view }: ChangePlanPageProps) {
   const askedPrice = asking ? format.money(PLANS[asking.plan].pricePaise[asking.interval]) : ''
 
   return (
-    <div className="flex w-full flex-col gap-5">
+    <div className="flex w-full flex-col gap-4">
       <PageHeader
         title={c.title}
         subtitle={

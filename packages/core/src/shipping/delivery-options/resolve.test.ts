@@ -243,6 +243,59 @@ describe('strategies', () => {
     expect(find(r, 'std')?.pick?.route.key).toBe('delhivery:S')
   })
 
+  it('at the same shopper price the faster courier beats the preferred one (#1520)', () => {
+    // DTDC ₹55 and Delhivery ₹60 both show ₹60; the merchant prefers DTDC, Delhivery is a day sooner.
+    const std = option('std', { name: 'Standard', speed: 'standard', preferCarrier: 'dtdc' })
+    const r = resolveDeliveryOptions(input({ config: config({ options: [std, EXPRESS] }) }))
+    expect(find(r, 'std')?.pick?.route.key).toBe('delhivery:S')
+    expect(find(r, 'std')?.pricePaise).toBe(6000)
+  })
+
+  it('a preferred courier wins when the shopper price and the date are both equal (#1520)', () => {
+    // DTDC ₹55 via Shiprocket and Delhivery direct ₹60: both ₹60, both 4–5 days.
+    const sameDay = answer('shiprocket', 'Shiprocket', [
+      svc({
+        serviceId: '30',
+        serviceLabel: 'DTDC Surface',
+        carrier: 'DTDC Surface',
+        pricePaise: 5500,
+        minTransitDays: 4,
+        maxTransitDays: 5,
+      }),
+    ])
+    const plain = resolveDeliveryOptions(input({ answers: [delhivery(), sameDay] }))
+    expect(find(plain, 'std')?.pick?.route.key).toBe('shiprocket:30') // tie: cheaper for the store
+    const std = option('std', { name: 'Standard', speed: 'standard', preferCarrier: 'delhivery' })
+    const r = resolveDeliveryOptions(
+      input({ config: config({ options: [std, EXPRESS] }), answers: [delhivery(), sameDay] }),
+    )
+    expect(find(r, 'std')?.pick?.route.key).toBe('delhivery:S')
+  })
+
+  it('a preferred courier never makes the shopper pay more', () => {
+    // DTDC ₹45 shows ₹50; the preferred Delhivery shows ₹60, so DTDC still wins.
+    const std = option('std', { name: 'Standard', speed: 'standard', preferCarrier: 'delhivery' })
+    const r = resolveDeliveryOptions(
+      input({
+        config: config({ options: [std, EXPRESS] }),
+        answers: [delhivery(), shiprocket(4500)],
+      }),
+    )
+    expect(find(r, 'std')?.pick?.route.key).toBe('shiprocket:30')
+  })
+
+  it('fastest keeps its date: a preferred courier that arrives later does not win', () => {
+    const exp = option('exp', {
+      name: 'Express',
+      speed: 'express',
+      strategy: 'fastest',
+      cod: { mode: 'prepaid_only' },
+      preferCarrier: 'delhivery',
+    })
+    const r = resolveDeliveryOptions(input({ config: config({ options: [STANDARD, exp] }) }))
+    expect(find(r, 'exp')?.pick?.route.key).toBe('shiprocket:20')
+  })
+
   it('fastest: Express takes the earliest arrival (Blue Dart Air), shown by its carrier', () => {
     const r = resolveDeliveryOptions(input())
     const exp = find(r, 'exp')
@@ -608,6 +661,22 @@ describe('courier list (the option shows every allowed courier)', () => {
     )
     expect(delhiveryStandard).toHaveLength(1)
     expect(delhiveryStandard?.[0]?.route.key).toBe('delhivery:S')
+  })
+
+  it('an option that hides courier names shows only the delivery promise (#1521)', () => {
+    const hidden = option('list', {
+      name: 'Delivery',
+      speed: 'standard',
+      couriers: { show: 'list', max: 4, showNames: false },
+    })
+    const std = option('std', { name: 'Standard', couriers: { showNames: false } })
+    const r = resolveDeliveryOptions(input({ config: config({ options: [std, hidden, EXPRESS] }) }))
+    expect(find(r, 'std')?.title).toBe('Standard')
+    expect(find(r, 'std')?.pick?.route.showCarrier).toBe(false)
+    expect(find(r, 'std')?.cod?.route.showCarrier).toBe(false)
+    expect(find(r, 'list')?.choices.every((c) => !c.route.showCarrier)).toBe(true)
+    // Another option keeps its courier names.
+    expect(find(r, 'exp')?.title).toBe('Express · Blue Dart')
   })
 
   it('a one-card option is unchanged', () => {

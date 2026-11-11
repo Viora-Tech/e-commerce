@@ -88,7 +88,7 @@ export default function MonthlyExpensesSettings() {
   ) : null
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-4">
       <PageHeader title={copy.title} subtitle={copy.intro} actions={addButton} />
       {!view ? (
         <Skeleton className="h-64 w-full rounded-2xl" />
