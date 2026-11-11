@@ -5,9 +5,13 @@ import {
   contactPhoneFrom,
   customItemErrors,
   customItemLine,
+  draftStoreCreditMax,
+  draftStoreCreditProblem,
+  draftToPay,
   EMPTY_ADDRESS,
   emptyDraft,
   formToDraft,
+  patchDraft,
   stateFor,
 } from './draft-form-state'
 
@@ -84,5 +88,46 @@ describe('picking a customer fills state and phone (#1028)', () => {
     expect(contactPhoneFrom('', { phoneSuggestion: null }, address)).toBe('9123456780')
     expect(contactPhoneFrom(null, taken, address)).toBe('9123456780')
     expect(contactPhoneFrom(null, null, undefined)).toBe('')
+  })
+})
+
+describe('store credit on a draft (store credit step 3)', () => {
+  const withCustomer = { ...emptyDraft(), customerId: 'c1', storeCreditPaise: 50_000 }
+
+  it('saves the applied amount, and 0 when none is applied', () => {
+    expect(formToDraft(withCustomer).storeCreditPaise).toBe(50_000)
+    expect(formToDraft(emptyDraft()).storeCreditPaise).toBe(0)
+  })
+
+  it('offers up to the balance, never more than the total', () => {
+    expect(draftStoreCreditMax(80_000, 200_000)).toBe(80_000)
+    expect(draftStoreCreditMax(300_000, 200_000)).toBe(200_000)
+    expect(draftStoreCreditMax(0, 200_000)).toBe(0)
+    expect(draftStoreCreditMax(50_000, 0)).toBe(0)
+  })
+
+  it('leaves the rest to pay, never below zero', () => {
+    expect(draftToPay(200_000, 50_000)).toBe(150_000)
+    expect(draftToPay(200_000, 200_000)).toBe(0)
+    expect(draftToPay(100_000, 0)).toBe(100_000)
+  })
+
+  it('says why the applied credit cannot stand', () => {
+    expect(draftStoreCreditProblem(emptyDraft(), 100_000, 0)).toBeNull()
+    expect(draftStoreCreditProblem(withCustomer, 100_000, 60_000)).toBeNull()
+    expect(draftStoreCreditProblem(withCustomer, 100_000, null)).toBeNull()
+    expect(draftStoreCreditProblem({ ...withCustomer, customerId: null }, 100_000, 60_000)).toBe(
+      'no_customer',
+    )
+    expect(draftStoreCreditProblem(withCustomer, 40_000, 60_000)).toBe('over_total')
+    expect(draftStoreCreditProblem(withCustomer, 100_000, 30_000)).toBe('over_balance')
+  })
+
+  it('clears the credit when another customer (or none) is picked, keeps it otherwise', () => {
+    expect(patchDraft(withCustomer, { customerId: 'c2' }).storeCreditPaise).toBe(0)
+    expect(patchDraft(withCustomer, { customerId: null }).storeCreditPaise).toBe(0)
+    expect(patchDraft(withCustomer, { customerId: 'c1' }).storeCreditPaise).toBe(50_000)
+    expect(patchDraft(withCustomer, { note: 'hi' }).storeCreditPaise).toBe(50_000)
+    expect(patchDraft(withCustomer, { storeCreditPaise: 0 }).storeCreditPaise).toBe(0)
   })
 })

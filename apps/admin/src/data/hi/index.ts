@@ -50,6 +50,7 @@ import dhlExpress from './dhl-express'
 import discounts from './discounts'
 import documentTemplates from './document-templates'
 import domains from './domains'
+import draftStoreCredit from './draft-store-credit'
 import drafts from './drafts'
 import dtdc from './dtdc'
 import dynamicSources from './dynamic-sources'
@@ -208,6 +209,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...gatewayKeys,
   ...giftCards,
   ...drafts,
+  ...draftStoreCredit,
   ...domains,
   ...emailBuilder,
   ...dtdc,

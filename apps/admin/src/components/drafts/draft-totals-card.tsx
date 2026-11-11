@@ -6,11 +6,12 @@ import type { ReactNode } from 'react'
 import { useState } from 'react'
 import DraftDiscountDialog from '@/components/drafts/draft-discount-dialog'
 import type { DraftCodeCheck, DraftFormState } from '@/components/drafts/draft-form-state'
-import { draftTotals } from '@/components/drafts/draft-form-state'
+import { draftToPay, draftTotals } from '@/components/drafts/draft-form-state'
 import DraftShippingDialog from '@/components/drafts/draft-shipping-dialog'
 import { useDraftCodeCheck } from '@/components/drafts/use-draft-code-check'
 import { type DraftGst, useDraftGst } from '@/components/drafts/use-draft-gst'
 import DataCard from '@/components/layout/data-card'
+import { draftStoreCreditContent } from '@/data/draft-store-credit'
 import { draftEditorContent } from '@/data/drafts'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 
@@ -31,6 +32,7 @@ type DraftTotalsCardProps = {
 export default function DraftTotalsCard({ form, tax, savedCheck, onChange }: DraftTotalsCardProps) {
   // Hooks
   const copy = useCopy(draftEditorContent)
+  const credit = useCopy(draftStoreCreditContent)
   const fmt = useFormat()
   const { check, apply } = useDraftCodeCheck(form, savedCheck)
   const [editing, setEditing] = useState<'discount' | 'shipping' | null>(null)
@@ -97,6 +99,18 @@ export default function DraftTotalsCard({ form, tax, savedCheck, onChange }: Dra
         <p>{t.total}</p>
         <p className="tabular-nums">{fmt.money(totals.totalPaise)}</p>
       </div>
+      {/* Store credit is a payment, not a discount: it sits under the total, which it never changes. */}
+      {form.storeCreditPaise > 0 ? (
+        <>
+          <Row label={credit.line} amount={`−${fmt.money(form.storeCreditPaise)}`} muted />
+          <div className="flex items-center justify-between text-body font-semibold text-ink-strong">
+            <p>{credit.toPay}</p>
+            <p className="tabular-nums">
+              {fmt.money(draftToPay(totals.totalPaise, form.storeCreditPaise))}
+            </p>
+          </div>
+        </>
+      ) : null}
       <DraftDiscountDialog
         open={editing === 'discount'}
         onOpenChange={(open) => setEditing(open ? 'discount' : null)}

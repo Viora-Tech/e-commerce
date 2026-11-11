@@ -14,6 +14,31 @@ dates) and **Total** (a min and max in rupees). Open a draft, add products, set 
 invoice** (the customer gets a pay link) or **Convert to order**. A converted draft is billed
 for GST the same way a checkout order is, including the warehouse's GST number.
 
+## Paying with store credit
+
+When the draft's customer has [store credit](/merchant-guide/customers/customers#store-credit), the
+**Store credit** card on the draft shows their balance. Select **Apply store credit** and enter how
+much to use, up to the balance or the draft's total, whichever is less (**Use ₹X** fills in the
+most). Select **Save**. The **Payment** card then shows **Store credit −₹Y** under the total and
+**To pay** for the rest.
+
+- **Nothing leaves the balance while it is a draft.** The credit is taken when the draft becomes
+  an order, so changing, saving or deleting the draft never costs the customer anything. The
+  customer's history shows **Paid an order** with the order number.
+- **Covers everything**: select **Convert to order**. The order is paid by store credit and
+  nothing else is collected. **Send invoice** is off, as there is nothing to pay.
+- **Covers part**: the payment method you chose collects the rest. **Convert to order** takes
+  the credit and leaves the rest due, to collect later with **Collect payment**. Or **Send
+  invoice**: the pay page shows the store credit and asks the customer only for the rest. The
+  credit is held when they press Pay and kept once their payment arrives; if the order is
+  cancelled unpaid, it goes back onto their balance.
+- **The balance changed meanwhile** (they spent it at checkout, or someone removed it): the draft
+  can't be converted until you lower the store credit and save. The draft says why.
+- **Picking another customer** removes the store credit from the draft, as it belongs to the
+  customer it was applied for.
+- Store credit is a way to pay, not a discount: the total, the taxable value and the GST stay the
+  same.
+
 ## Unpaid checkouts
 
 When a shopper checks out with an online payment (Razorpay, Cashfree) or with UPI to your own ID

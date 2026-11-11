@@ -8,12 +8,14 @@ import {
   CommerceError,
   convertDraftForOnlinePayment,
   DraftNeedsShippingAddress,
+  DraftPaidByStoreCredit,
   draftInvoiceState,
   OutOfStock,
   orderViewToken,
   PaymentNotRetryable,
   payPath,
   retryAndStartPayment,
+  StoreCreditError,
   startPaymentAttempt,
   thankYouPath,
   verifyInvoiceToken,
@@ -83,6 +85,9 @@ export async function payInvoiceAction(token: string): Promise<PayInvoiceResult>
   } catch (err) {
     if (err instanceof OutOfStock) return { error: content.outOfStock }
     if (err instanceof DraftNeedsShippingAddress) return { error: content.noAddress }
+    if (err instanceof DraftPaidByStoreCredit || err instanceof StoreCreditError) {
+      return { error: content.storeCreditUnusable }
+    }
     if (err instanceof PaymentNotRetryable) await thankYou()
     if (err instanceof CommerceError) return { error: content.unavailable }
     throw err

@@ -164,6 +164,12 @@ export const draftAndAbandonedRoutes = {
       if (!draft.email) {
         throw new ORPCError('BAD_REQUEST', { message: 'Add an email address first' })
       }
+      if (draft.storeCreditPaise > 0 && draft.storeCreditPaise >= draft.totalPaise) {
+        throw new ORPCError('BAD_REQUEST', {
+          message:
+            'Store credit pays all of this draft, so there is nothing to invoice. Convert it to an order instead.',
+        })
+      }
       await recordInvoiceSent(context.tx, context.scope.storeId, input.id, draft.email)
       await insertOutboxEvent(context.tx, context.scope.storeId, 'draft.invoice_sent', {
         orderId: input.id,

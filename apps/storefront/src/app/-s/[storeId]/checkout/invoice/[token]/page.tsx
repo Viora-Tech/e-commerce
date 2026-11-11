@@ -62,7 +62,19 @@ export default async function InvoicePage({ params }: Params) {
             <span>{content.total}</span>
             <span className="tabular-nums">{formatPaise(data.totalPaise)}</span>
           </p>
-          <InvoicePay token={token} totalLabel={formatPaise(data.totalPaise)} />
+          {data.storeCreditPaise > 0 ? (
+            <div className="-mt-4 flex flex-col gap-2 text-[1rem] text-ck-ink">
+              <p className="flex items-baseline justify-between">
+                <span>{content.storeCredit}</span>
+                <span className="tabular-nums">−{formatPaise(data.storeCreditPaise)}</span>
+              </p>
+              <p className="flex items-baseline justify-between font-semibold">
+                <span>{content.toPay}</span>
+                <span className="tabular-nums">{formatPaise(data.duePaise)}</span>
+              </p>
+            </div>
+          ) : null}
+          <InvoicePay token={token} totalLabel={formatPaise(data.duePaise)} />
         </div>
       ) : (
         <p className="rounded-ck bg-ck-soft px-4 py-3 text-[0.9375rem] text-ck-ink">
