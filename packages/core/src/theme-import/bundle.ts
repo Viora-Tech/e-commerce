@@ -61,20 +61,31 @@ function defaultLocale(files: Map<string, string>, schema: boolean): Record<stri
  * Shopify allows `comment … endcomment` inside a `{% liquid %}` tag; LiquidJS reads
  * every line there as a tag, so those comment lines are dropped before parsing.
  */
+/**
+ * Shopify themes write `© 2026 {{ shop.name }}, {{ powered_by_link }}`. `powered_by_link` is empty
+ * here (no platform credit), so the comma before it would be left dangling: "© 2026 Claw Gears,".
+ */
+function dropPoweredByComma(source: string): string {
+  return source.replace(/,(\s*)(\{\{-?\s*powered_by_link\b[^}]*\}\})/g, '$1$2')
+}
+
 export function normalizeLiquid(source: string): string {
-  return source.replace(/{%-?\s*liquid\b([\s\S]*?)-?%}/g, (whole, body: string) => {
-    if (!/^\s*comment\s*$/m.test(body)) return whole
-    const lines = body.split('\n')
-    const kept: string[] = []
-    let depth = 0
-    for (const line of lines) {
-      const t = line.trim()
-      if (t === 'comment') depth += 1
-      else if (t === 'endcomment' && depth > 0) depth -= 1
-      else if (depth === 0) kept.push(line)
-    }
-    return whole.replace(body, kept.join('\n'))
-  })
+  return dropPoweredByComma(source).replace(
+    /{%-?\s*liquid\b([\s\S]*?)-?%}/g,
+    (whole, body: string) => {
+      if (!/^\s*comment\s*$/m.test(body)) return whole
+      const lines = body.split('\n')
+      const kept: string[] = []
+      let depth = 0
+      for (const line of lines) {
+        const t = line.trim()
+        if (t === 'comment') depth += 1
+        else if (t === 'endcomment' && depth > 0) depth -= 1
+        else if (depth === 0) kept.push(line)
+      }
+      return whole.replace(body, kept.join('\n'))
+    },
+  )
 }
 
 /** What `<script` in a theme's own markup becomes: the tag writes the request's CSP nonce. */

@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest'
 import { fakeDataSource, fixtureThemeZip } from '../../test/theme-import-fixture'
 import { readThemeArchive } from './archive'
-import { buildThemeBundle } from './bundle'
+import { buildThemeBundle, normalizeLiquid } from './bundle'
 import type { LiquidPolicyData } from './drops'
 import { createPageContext } from './page-context'
 import { renderLiquidSection } from './render'
@@ -95,5 +95,16 @@ describe('shop policies in an imported theme', () => {
     )
     expect(html.toLowerCase()).not.toContain('shopify.com')
     expect(html).not.toContain('Powered by')
+  })
+
+  it('leaves no dangling comma where the theme puts one before powered_by_link', () => {
+    expect(normalizeLiquid('{{ shop.name }}, {{ powered_by_link }}</span>')).toBe(
+      '{{ shop.name }} {{ powered_by_link }}</span>',
+    )
+    expect(normalizeLiquid('{{ shop.name -}}\n  ,\n  {{- powered_by_link -}}')).toBe(
+      '{{ shop.name -}}\n  \n  {{- powered_by_link -}}',
+    )
+    // Commas elsewhere are untouched.
+    expect(normalizeLiquid('a, b {{ shop.name }}')).toBe('a, b {{ shop.name }}')
   })
 })
