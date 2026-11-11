@@ -33,11 +33,4 @@ export const approvalsContent = {
   sentTitle: 'Sent for approval',
   /** Link under that notice. */
   openApprovals: 'Open Settings › Approvals',
-  role: {
-    heading: 'Needs approval',
-    help: 'Ticked actions do not run when a member on this role does them: they wait in Approvals until a different member approves them. Only the owner can change this.',
-    empty: 'This role cannot change anything that could need approval.',
-    save: 'Save approvals',
-    saved: 'Approvals saved',
-  },
 }

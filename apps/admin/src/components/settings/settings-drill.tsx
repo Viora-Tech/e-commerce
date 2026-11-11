@@ -21,6 +21,11 @@ type SettingsDrillProps = {
   backLabel: string
   /** Replaces the default row list on the page's first screen; open a row with `useDrillNav`. */
   home?: ReactNode
+  /**
+   * False when the page's own PageHeader turns into the open row's title with its "‹ Page" back
+   * link (Staff), so the detail does not show a second back row under it.
+   */
+  backRow?: boolean
   children: ReactNode
 }
 
@@ -49,7 +54,13 @@ export function useDrillNav(): (id: string | null) => void {
  * value and a ›; a row opens its detail in place with a "‹ Page" row to come back. The URL
  * (`?open=`) remembers the detail, and an old `#anchor` link opens the row of that id.
  */
-export default function SettingsDrill({ rows, backLabel, home, children }: SettingsDrillProps) {
+export default function SettingsDrill({
+  rows,
+  backLabel,
+  home,
+  backRow = true,
+  children,
+}: SettingsDrillProps) {
   // Hooks
   const [open, setOpen] = useQueryState('open')
   // biome-ignore lint/correctness/useExhaustiveDependencies: only the address the page opened on
@@ -74,14 +85,16 @@ export default function SettingsDrill({ rows, backLabel, home, children }: Setti
     <NavContext.Provider value={handleOpen}>
       <OpenRowContext.Provider value={current}>
         {current ? (
-          <button
-            type="button"
-            onClick={() => handleOpen(null)}
-            className={`-ml-1 inline-flex h-9 items-center gap-1 self-start rounded-md pr-2 pl-1 text-nav text-muted-foreground transition-colors hover:text-foreground [&_svg]:size-4 ${FOCUS}`}
-          >
-            <ChevronLeftIcon aria-hidden="true" />
-            {backLabel}
-          </button>
+          backRow ? (
+            <button
+              type="button"
+              onClick={() => handleOpen(null)}
+              className={`-ml-1 inline-flex h-9 items-center gap-1 self-start rounded-md pr-2 pl-1 text-nav text-muted-foreground transition-colors hover:text-foreground [&_svg]:size-4 ${FOCUS}`}
+            >
+              <ChevronLeftIcon aria-hidden="true" />
+              {backLabel}
+            </button>
+          ) : null
         ) : home !== undefined ? (
           home
         ) : (
