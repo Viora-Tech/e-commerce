@@ -16,7 +16,7 @@ import {
   type ChatwootWidget as ChatwootWidgetConfig,
   chatwootAllowed,
 } from '@commerce/plugin-chatwoot/widget'
-import { type UmamiTracker, umamiAllowed } from '@commerce/plugin-umami/tracker'
+import { syncUmamiOptOut, type UmamiTracker, umamiAllowed } from '@commerce/plugin-umami/tracker'
 import { useEffect, useRef, useState } from 'react'
 import DiscoveryTracker from '@/components/analytics/discovery-tracker'
 import PixelEvents from '@/components/analytics/pixel-events'
@@ -77,6 +77,15 @@ function remember(consent: Consent, version: number): void {
   document.cookie = `${CONSENT_COOKIE}=${encodeConsent(consent, version, new Date())}; path=/; max-age=${CONSENT_MAX_AGE}; samesite=lax${secure}`
 }
 
+/** The page's local storage, or null where the browser blocks it. */
+function localStore(): Storage | null {
+  try {
+    return window.localStorage
+  } catch {
+    return null
+  }
+}
+
 const SHOWN_KEY = 'wc_banner_shown'
 
 /** Counts the banner once per tab: `/api/consent-shown` keeps a plain daily number. */
@@ -132,6 +141,11 @@ export default function ConsentManager({
   useEffect(() => {
     if (initialUnanswered.current) reportBannerShown()
   }, [])
+
+  // A loaded Umami keeps counting page views by itself: a no must also flip its own off switch.
+  useEffect(() => {
+    if (umami) syncUmamiOptOut(localStore(), umamiAllowed(umami, consent))
+  }, [umami, consent])
 
   useEffect(() => {
     if (!themeBanner) return
