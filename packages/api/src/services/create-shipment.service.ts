@@ -484,7 +484,7 @@ export async function quoteShipments(
         ...(r.dimensionsCm ? { dimensionsCm: r.dimensionsCm } : {}),
       })
       const dated = datedCourierRows(options, policy, now)
-      const app = await bookingContext(tx, storeId, o.id)
+      const app = await bookingContext(tx, storeId, o.id, r.fulfillmentOrderId)
       const saved = app?.delivery
       if (!app || !saved?.route) {
         return {

@@ -2173,6 +2173,7 @@ export type OrderDeliveryRoute = {
   promisedEarliest: string | null
   promisedLatest: string | null
   quoteSource: 'live' | 'cache' | 'backup'
+  parcels?: import('./delivery-schema').OrderDeliveryParcelRoute[] | undefined
 }
 
 export type DiscountKind = 'code' | 'automatic'

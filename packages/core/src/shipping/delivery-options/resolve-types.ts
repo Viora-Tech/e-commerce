@@ -155,6 +155,11 @@ export type DeliveryResolveResult = {
   /** `unserviceable`: every route truly said no. `none`: nothing to show (use zone rates). */
   status: 'options' | 'unserviceable' | 'none'
   options: ResolvedOption[]
+  /**
+   * A cart priced as several parcels (`resolveParcelDeliveries`): each parcel's own result, in
+   * parcel order, so the order can save the courier quoted for every parcel. Absent: one parcel.
+   */
+  parcels?: DeliveryResolveResult[] | undefined
   trace: {
     options: OptionTrace[]
     providers: Array<

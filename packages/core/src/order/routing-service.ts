@@ -19,7 +19,7 @@ import {
 } from '@commerce/db'
 import { and, asc, eq, inArray, isNull, sql } from 'drizzle-orm'
 import type { StoreContext } from '../context'
-import { CannotShipToState, OutOfStock } from '../errors'
+import { CannotShipToState, OutOfStock, PreorderLimitReached } from '../errors'
 import { defaultLocationId } from '../inventory/levels'
 import { watchStockCrossings } from '../inventory/stock-events'
 import { parseShippingSettings } from '../shipping/settings'
@@ -262,8 +262,9 @@ async function reserveRoute(
         const limit = line.preorder?.limit ?? null
         const shortfall = Math.max(0, part.quantity - Math.max(0, free))
         const sold = level ? Math.max(0, level.reserved - level.onHand) : 0
+        // The pre-order is full (#1539): say so, not "out of stock".
         if (limit !== null && sold + shortfall > limit) {
-          throw new OutOfStock(line.variantId, ctx.storeId)
+          throw new PreorderLimitReached(line.variantId, ctx.storeId)
         }
       } else if (!parcel.needsTransfer && free < part.quantity) {
         throw new OutOfStock(line.variantId, ctx.storeId)
