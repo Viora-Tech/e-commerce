@@ -1,12 +1,7 @@
 import { CourierError } from '@commerce/shipping'
 import { describeShippingProvider, sampleShipment } from '@commerce/shipping/testing'
 import { describe, expect, it } from 'vitest'
-import {
-  cancelRefusal,
-  mapShiprocketStatus,
-  ShiprocketProvider,
-  shiprocketFactory,
-} from '../src/shiprocket'
+import { mapShiprocketStatus, ShiprocketProvider, shiprocketFactory } from '../src/shiprocket'
 
 type Route = (url: URL, init?: RequestInit) => Response | Promise<Response>
 
@@ -482,12 +477,21 @@ describe('ShiprocketProvider cancel a booked shipment', () => {
     expect(shiprocketFactory.capabilities).toContain('cancel')
   })
 
-  it('reads refusals from a 2xx body only when it says so', () => {
-    expect(cancelRefusal({ message: 'ok' })).toBeNull()
-    expect(cancelRefusal({ message: 'ok', errors: [] })).toBeNull()
-    expect(cancelRefusal({ message: 'ok', errors: {} })).toBeNull()
-    expect(cancelRefusal({ status_code: 400 })).toBe('no detail returned')
-    expect(cancelRefusal({ errors: 'AWB not found' })).toBe('AWB not found')
+  it('reads a 2xx body as a refusal only when it says so', async () => {
+    for (const ok of [
+      { message: 'ok' },
+      { message: 'ok', errors: [] },
+      { message: 'ok', errors: {} },
+    ]) {
+      const f = fakeFetch(withLogin({ [CANCEL]: () => json(ok) }))
+      const p = new ShiprocketProvider({ ...config, fetchImpl: f.impl })
+      await expect(p.cancel('1', { waybill: 'SR1' })).resolves.toBeUndefined()
+    }
+    const f = fakeFetch(withLogin({ [CANCEL]: () => json({ errors: 'AWB not found' }) }))
+    const p = new ShiprocketProvider({ ...config, fetchImpl: f.impl })
+    await expect(p.cancel('1', { waybill: 'SR1' })).rejects.toMatchObject({
+      reason: 'AWB not found',
+    })
   })
 })
 

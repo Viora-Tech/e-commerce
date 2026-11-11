@@ -78,6 +78,7 @@ import {
   type WebhookNotice,
   type WebhookRequest,
 } from '@commerce/shipping'
+import { cancelByAwb } from './cancel'
 import { SHIPROCKET_CAPABILITIES } from './client'
 
 export const SHIPROCKET_BASE_URL = 'https://apiv2.shiprocket.in/v1/external'
@@ -179,31 +180,6 @@ type TrackResponse = Record<string, { tracking_data?: TrackActivity } | undefine
 type WalletResponse = { data?: { balance_amount?: number | string } }
 
 type NdrResponse = { message?: string; ndr_raised?: boolean; error?: string }
-
-/** `/orders/cancel/shipment/awbs`. Only `message` is documented; the rest is read when present. */
-type CancelAwbResponse = {
-  message?: string
-  status_code?: number
-  errors?: unknown
-}
-
-/**
- * Why a 2xx cancel answer is still a refusal, or null when it is not one. Shiprocket answers some
- * refusals with a 200 carrying `status_code` and `errors`, the way its create calls do.
- */
-export function cancelRefusal(body: CancelAwbResponse | null | undefined): string | null {
-  if (!body || typeof body !== 'object') return null
-  const failed =
-    (typeof body.status_code === 'number' && body.status_code >= 400) ||
-    (body.errors !== undefined &&
-      body.errors !== null &&
-      !(Array.isArray(body.errors) && body.errors.length === 0) &&
-      !(typeof body.errors === 'object' && Object.keys(body.errors).length === 0))
-  if (!failed) return null
-  if (body.message) return body.message
-  if (typeof body.errors === 'string') return body.errors
-  return 'no detail returned'
-}
 
 /**
  * Shiprocket's own status vocabulary (courier/track) is free text ("Pickup
@@ -614,53 +590,13 @@ export class ShiprocketProvider implements ShippingProvider {
   }
 
   /**
-   * Cancel a booked shipment by AWB: `POST /orders/cancel/shipment/awbs` with `{ awbs: [...] }`
-   * (Shiprocket's API collection, "Cancel a Shipment"). Core passes the stored shipment id
-   * (`providerRef`) first, so the AWB comes from `ref.waybill`. The Shiprocket order itself stays
-   * (it can be booked again there); `cancelPushedOrder` is the one that cancels a pending order.
-   *
-   * UNCONFIRMED LIVE: the success body is not documented beyond a message, so only a refusal the
-   * API states (a 4xx, or a 2xx body with `status_code` >= 400 or `errors`) counts as failure.
-   * Needs one live test on a test booking before it is relied on.
+   * Cancel a booked shipment by AWB (`cancel.ts`; owes one live test). Core passes the stored
+   * shipment id (`providerRef`) first, so the AWB comes from `ref.waybill`.
    */
   async cancel(waybillOrRef: string, ref?: CancelRef): Promise<void> {
-    const awb = (ref?.waybill || waybillOrRef).trim()
-    if (!awb) throw new CourierError('rejected', this.id, 'No AWB to cancel.')
-    let result: CancelAwbResponse
-    try {
-      result = await this.postJson<CancelAwbResponse>('/orders/cancel/shipment/awbs', {
-        awbs: [awb],
-      })
-    } catch (error) {
-      // A 4xx other than auth and rate limits (which keep their kinds) is Shiprocket refusing
-      // this cancel, e.g. the parcel was already picked up: say so in its own words.
-      if (
-        error instanceof CourierError &&
-        error.kind === 'unavailable' &&
-        error.status !== undefined &&
-        error.status >= 400 &&
-        error.status < 500
-      ) {
-        throw new CourierError(
-          'rejected',
-          this.id,
-          `Shiprocket did not cancel AWB ${awb}: ${error.reason || `HTTP ${error.status}`}`,
-          { status: error.status, reason: error.reason, cause: error },
-        )
-      }
-      throw error
-    }
-    const refused = cancelRefusal(result)
-    if (refused) {
-      throw new CourierError(
-        'rejected',
-        this.id,
-        `Shiprocket did not cancel AWB ${awb}: ${refused}`,
-        {
-          reason: refused,
-        },
-      )
-    }
+    await cancelByAwb(this.id, (ref?.waybill || waybillOrRef).trim(), (path, body) =>
+      this.postJson(path, body),
+    )
   }
 
   async schedulePickup(input: SchedulePickupInput): Promise<SchedulePickupResult> {
