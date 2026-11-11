@@ -93,6 +93,15 @@ field. The address ends in `/webhooks/shipments/c/sr/<store id>`: it leaves out 
 "shiprocket" because Shiprocket's form refuses addresses that contain it. An address you saved
 earlier with `shiprocket` in it keeps working.
 
+**Cancel shipment** in Shipments cancels a booked label with Shiprocket by its AWB, until the
+parcel is picked up or on a manifest. If Shiprocket refuses, you see its reason. The order stays
+in your Shiprocket panel, so you can book it again there or here.
+
+<Callout type="info">
+  New: cancelling a booked Shiprocket shipment from here has not had its first live test yet.
+  Try it once on a test booking and check the shipment shows cancelled in Shiprocket.
+</Callout>
+
 </Tabs.Tab>
 <Tabs.Tab>
 

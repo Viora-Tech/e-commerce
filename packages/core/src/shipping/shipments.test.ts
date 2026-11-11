@@ -291,14 +291,18 @@ describe('shipments', () => {
       createShipmentForOrder({ storeId, tx }, provider, orderId),
     )
     const cancelled: string[] = []
-    provider.cancel = async (waybill: string) => {
+    const refs: unknown[] = []
+    provider.cancel = async (waybill: string, ref?: unknown) => {
       cancelled.push(waybill)
+      refs.push(ref)
     }
     const c = await withStore(app, storeId, (tx) =>
       cancelShipment({ storeId, tx }, provider, row.id, { author: 'kuldeep@example.com' }),
     )
     expect(c.status).toBe('cancelled')
-    expect(cancelled).toEqual([row.waybill])
+    expect(cancelled).toEqual([row.providerRef || row.waybill])
+    // The row's own AWB goes along, for a courier that cancels by AWB (Shiprocket).
+    expect(refs).toEqual([{ waybill: row.waybill, providerRef: row.providerRef }])
     const [s] = await owner.select().from(shipment).where(eq(shipment.id, row.id))
     expect(s?.status).toBe('cancelled')
     // The timeline says who cancelled which AWB.

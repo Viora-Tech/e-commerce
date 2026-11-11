@@ -17,6 +17,8 @@ export const SHIPROCKET_CAPABILITIES: ShippingCapability[] = [
   'label',
   'tracking',
   'webhook',
+  // Cancel a booked shipment by AWB (`/orders/cancel/shipment/awbs`); owes one live test.
+  'cancel',
   'ndr',
   'wallet',
   'reverse_pickup',
