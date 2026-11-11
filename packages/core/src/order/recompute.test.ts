@@ -252,7 +252,11 @@ describe('recomputeOrderStatuses on every mutation path', () => {
     const { storeId, orderId } = await placeCod()
     const provider = new FakeShippingProvider()
     const ship = await inStore(storeId, (ctx) => createShipmentForOrder(ctx, provider, orderId))
-    // A live booking: cancel it first.
+    // A live booking with a bought label: cancel it with the courier first.
+    await owner
+      .update(shipment)
+      .set({ labelUrl: 'https://labels.test/1.pdf' })
+      .where(eq(shipment.id, ship.id))
     expect(await inStore(storeId, (ctx) => undoPacked(ctx, orderId))).toEqual({
       undone: false,
       reason: 'live_shipment',
@@ -269,6 +273,20 @@ describe('recomputeOrderStatuses on every mutation path', () => {
       undone: false,
       reason: 'not_packed',
     })
+  })
+
+  it('Mark as unfulfilled closes a tracking number typed by hand (no label)', async () => {
+    const { storeId, orderId } = await placeCod()
+    const ship = await inStore(storeId, (ctx) =>
+      createShipmentForOrder(ctx, new FakeShippingProvider(), orderId),
+    )
+    expect(await inStore(storeId, (ctx) => undoPacked(ctx, orderId))).toEqual({
+      undone: true,
+      units: 2,
+    })
+    const [row] = await owner.select().from(shipment).where(eq(shipment.id, ship.id))
+    expect(row?.status).toBe('cancelled')
+    expect((await statuses(orderId))[2]).toBe('unfulfilled')
   })
 
   it('Restore order: a cancelled order opens again and holds its stock again', async () => {

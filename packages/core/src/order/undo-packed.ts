@@ -7,7 +7,7 @@
  * WHERE: `orders.markNotShipped` (api routers/order-undo.ts), the order page's More actions.
  */
 import { order, orderNote, shipment } from '@commerce/db'
-import { eq } from 'drizzle-orm'
+import { eq, inArray } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 import { unpackFulfillmentOrder } from './fulfillment-orders'
 import { recomputeOrderStatuses } from './recompute'
@@ -20,9 +20,9 @@ export type UndoPackedResult =
   | { undone: false; reason: 'not_packed' | 'live_shipment' | 'delivered' }
 
 /**
- * Unpacks the order's parcels when none of its shipments is live (all cancelled or returned, or
- * none at all) and it is not delivered. A live booking must be cancelled first, which unpacks its
- * own parcel.
+ * Unpacks the order's parcels when no courier label for it is live and it is not delivered. A
+ * live label must be cancelled first (which unpacks its own parcel); a tracking number typed by
+ * hand closes here with the packing.
  */
 export async function undoPacked(
   ctx: StoreContext,
@@ -39,18 +39,31 @@ export async function undoPacked(
   }
   if (o.deliveredAt) return { undone: false, reason: 'delivered' }
   const shipments = await ctx.tx
-    .select({ status: shipment.status })
+    .select({ id: shipment.id, status: shipment.status, labelUrl: shipment.labelUrl })
     .from(shipment)
     .where(eq(shipment.orderId, orderId))
-  if (shipments.some((s) => !ENDED.has(s.status))) {
-    return { undone: false, reason: 'live_shipment' }
-  }
+  const live = shipments.filter((s) => !ENDED.has(s.status))
+  /* A label bought from a courier is cancelled with that courier first (Cancel shipment).
+     A tracking number typed by hand (Ship it yourself, Mark as fulfilled) has no label: it
+     closes with the packing it recorded. */
+  if (live.some((s) => s.labelUrl !== null)) return { undone: false, reason: 'live_shipment' }
   const units = await unpackFulfillmentOrder(ctx, orderId, null)
   if (units === 0) return { undone: false, reason: 'not_packed' }
+  if (live.length > 0) {
+    await ctx.tx
+      .update(shipment)
+      .set({ status: 'cancelled', updatedAt: new Date() })
+      .where(
+        inArray(
+          shipment.id,
+          live.map((s) => s.id),
+        ),
+      )
+  }
   await ctx.tx.insert(orderNote).values({
     storeId: ctx.storeId,
     orderId,
-    body: `Marked as not shipped: ${units} ${units === 1 ? 'item is' : 'items are'} back to To ship.`,
+    body: `Marked as unfulfilled: ${units} ${units === 1 ? 'item is' : 'items are'} back to To ship.`,
     author,
   })
   await recomputeOrderStatuses(ctx, orderId)

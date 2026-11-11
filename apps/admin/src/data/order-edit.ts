@@ -20,7 +20,7 @@ export const refundRouteContent = {
 
 export const orderCancelContent = {
   title: (number: number) => `Cancel order #${number}?`,
-  body: 'The order closes and cannot be reopened. Cancel any booked courier pickup separately.',
+  body: 'The order closes. You can restore it from More actions as long as no money went back. Cancel any booked courier pickup separately.',
   refundHeading: 'Refund payment',
   later: 'Later',
   laterHint: 'Nothing goes back now. You can refund from the payment card any time.',

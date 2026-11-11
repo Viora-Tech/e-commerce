@@ -20,6 +20,8 @@ type CourierTableProps = {
   shippingKey: string | null
   /** The insurance toggle is on: the charge line names it. */
   insured: boolean
+  /** The parcel's charged weight, for a courier that did not say its own. */
+  chargedGrams?: number | null | undefined
 }
 
 const SHORT_DATE = { weekday: 'short', day: 'numeric', month: 'short' } as const
@@ -42,6 +44,7 @@ export default function CourierTable({
   onShipNow,
   shippingKey,
   insured,
+  chargedGrams = null,
 }: CourierTableProps) {
   // Hooks
   const copy = useCopy(createShipmentContent)
@@ -102,13 +105,13 @@ export default function CourierTable({
                   )}
                 >
                   <td className="px-4 py-3">
-                    <div className="flex items-center gap-3">
-                      <div className="flex w-16 shrink-0 flex-col items-start gap-1.5">
+                    <div className="flex flex-col items-start gap-1.5">
+                      <div className="flex items-center gap-3">
                         {logo ? (
                           <span
                             aria-hidden
                             className={cn(
-                              'flex h-8 w-14 items-center justify-center overflow-hidden rounded-md',
+                              'flex h-8 w-14 shrink-0 items-center justify-center overflow-hidden rounded-md',
                               logo.light && 'bg-white px-1',
                             )}
                           >
@@ -122,33 +125,33 @@ export default function CourierTable({
                         ) : (
                           <span
                             aria-hidden
-                            className="flex size-8 items-center justify-center rounded-md border border-border bg-muted text-caption font-semibold text-ink-strong"
+                            className="flex h-8 w-14 shrink-0 items-center justify-center rounded-md border border-border bg-muted text-caption font-semibold text-ink-strong"
                           >
                             {courierInitials(row.providerLabel)}
                           </span>
                         )}
-                        {badge ? <StatusChip tone={badge.tone}>{badge.label}</StatusChip> : null}
-                      </div>
-                      <div className="flex min-w-0 flex-col gap-0.5">
-                        <span className="font-medium text-ink-strong">
-                          {row.providerLabel}
-                          {row.chosenAtCheckout ? (
-                            <StatusChip tone="attention" className="ml-2">
-                              {c.chosenAtCheckout}
-                            </StatusChip>
-                          ) : null}
-                        </span>
-                        {sub ? (
-                          <span
-                            className={cn(
-                              'text-caption',
-                              blocked ? 'text-danger' : 'text-muted-foreground',
-                            )}
-                          >
-                            {sub}
+                        <div className="flex min-w-0 flex-col gap-0.5">
+                          <span className="font-medium text-ink-strong">
+                            {row.providerLabel}
+                            {row.chosenAtCheckout ? (
+                              <StatusChip tone="attention" className="ml-2">
+                                {c.chosenAtCheckout}
+                              </StatusChip>
+                            ) : null}
                           </span>
-                        ) : null}
+                          {sub ? (
+                            <span
+                              className={cn(
+                                'text-caption',
+                                blocked ? 'text-danger' : 'text-muted-foreground',
+                              )}
+                            >
+                              {sub}
+                            </span>
+                          ) : null}
+                        </div>
                       </div>
+                      {badge ? <StatusChip tone={badge.tone}>{badge.label}</StatusChip> : null}
                     </div>
                   </td>
                   <td className="px-4 py-3">
@@ -166,9 +169,9 @@ export default function CourierTable({
                     )}
                   </td>
                   <td className="px-4 py-3 tabular-nums">
-                    {blocked || row.chargeableWeightGrams === null
+                    {blocked || (row.chargeableWeightGrams ?? chargedGrams) === null
                       ? '—'
-                      : `${fmt.number(kg(row.chargeableWeightGrams))} kg`}
+                      : `${fmt.number(kg(row.chargeableWeightGrams ?? chargedGrams ?? 0))} kg`}
                   </td>
                   <td className="px-4 py-3">
                     {blocked ? (
@@ -206,7 +209,7 @@ export default function CourierTable({
                 {picked && !blocked && row.pricePaise !== null ? (
                   <tr className="bg-muted/40">
                     <td colSpan={5} className="px-4 py-3">
-                      <dl className="flex flex-wrap items-end gap-x-8 gap-y-2 pl-[4.75rem]">
+                      <dl className="flex flex-wrap items-end gap-x-8 gap-y-2 pl-[4.25rem]">
                         <dt className="self-center text-caption uppercase tracking-wide text-muted-foreground">
                           {d.breakdown}
                         </dt>

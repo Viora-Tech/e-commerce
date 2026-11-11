@@ -6,6 +6,7 @@ import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import AppStoreLink from '@/components/apps/app-store-link'
 import ChoiceField from '@/components/apps/gst-invoices/choice-field'
 import CountBadge from '@/components/layout/count-badge'
 import DataCard from '@/components/layout/data-card'
@@ -283,7 +284,14 @@ export default function CreateShipmentPage({ orderId, back, courier }: CreateShi
     `${order.paymentMode === 'cod' ? page.codShort : page.prepaidShort} ${fmt.money(parcel.valuePaise)}`,
   )
   const drawerStatus = !quote ? (
-    needsPackage ? (
+    draft.couriers.length === 0 ? (
+      <div className="flex flex-col items-start gap-3 py-6">
+        <p className="text-body text-muted-foreground">{content.courier.noCourier}</p>
+        <AppStoreLink category="shipping" className="w-fit">
+          {content.courier.connect}
+        </AppStoreLink>
+      </div>
+    ) : needsPackage ? (
       <p className="py-6 text-body text-muted-foreground">{content.courier.needsWeight}</p>
     ) : quoteFailed ? (
       <p className="flex items-center gap-3 py-6 text-body text-muted-foreground">
@@ -413,6 +421,7 @@ export default function CreateShipmentPage({ orderId, back, courier }: CreateShi
               valueLabel={fmt.money(parcel.valuePaise)}
               onRetry={draft.couriers.length > 0 ? recheck : undefined}
               status={drawerStatus}
+              chargedGrams={quote?.chargedWeightGrams}
             >
               {manual ? (
                 <div className="flex flex-col gap-3 rounded-lg border border-primary bg-primary-soft p-4">

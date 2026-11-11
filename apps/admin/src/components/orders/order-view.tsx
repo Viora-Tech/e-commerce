@@ -257,8 +257,10 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
     (p) => p.status === 'captured' && refundedTotal(order.refunds, p.id) < p.amountPaise,
   )
   const shipmentId = order.shipment?.id
+  /* A label bought from a courier; a tracking number typed by hand has none and is undone
+     with Mark as unfulfilled instead. */
   const liveShipment =
-    Boolean(shipmentId) &&
+    Boolean(shipmentId && order.shipment?.labelUrl) &&
     order.shipment?.cancelBlock !== 'cancelled' &&
     order.shipment?.cancelBlock !== 'settled'
   const live = order.status !== 'cancelled' && !readOnly

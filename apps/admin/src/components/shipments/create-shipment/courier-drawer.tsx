@@ -38,6 +38,8 @@ type CourierDrawerProps = {
   onRetry?: (() => void) | undefined
   /** Asking, failed, updating: shown above the table. */
   status?: ReactNode
+  /** The parcel's charged weight, for couriers that did not say their own. */
+  chargedGrams?: number | null | undefined
   /** Ship it yourself: the panel and tracking fields, shown under the table when picked. */
   children?: ReactNode
 }
@@ -66,6 +68,7 @@ export default function CourierDrawer({
   valueLabel,
   onRetry,
   status,
+  chargedGrams,
   children,
 }: CourierDrawerProps) {
   // Hooks
@@ -89,8 +92,8 @@ export default function CourierDrawer({
   return (
     <Drawer open={open} onOpenChange={onOpenChange} showSwipeHandle>
       <DrawerContent className="mx-auto max-w-[90rem]">
-        <DrawerHeader className="flex flex-row flex-wrap items-start justify-between gap-4 px-4 pt-2 md:px-8">
-          <div className="flex min-w-0 flex-col gap-1">
+        <DrawerHeader className="flex flex-row flex-wrap items-start justify-between gap-4 px-4 pt-2 text-left md:px-8">
+          <div className="flex min-w-0 flex-col items-start gap-1 text-left">
             <DrawerTitle className="text-lg font-semibold text-ink-strong">
               {copy.title}
             </DrawerTitle>
@@ -103,7 +106,7 @@ export default function CourierDrawer({
               htmlFor="drawer-insurance"
               className="flex cursor-pointer items-center gap-4 rounded-lg border border-border px-4 py-2.5"
             >
-              <span className="flex flex-col">
+              <span className="flex flex-col text-left">
                 <span className="text-body font-medium text-ink-strong">{copy.insurance}</span>
                 <span className="text-caption text-muted-foreground">
                   {copy.insuranceCovers(
@@ -178,6 +181,7 @@ export default function CourierDrawer({
                 onShipNow={onShipNow}
                 shippingKey={shippingKey}
                 insured={insured}
+                chargedGrams={chargedGrams}
               />
             </div>
           ) : null}

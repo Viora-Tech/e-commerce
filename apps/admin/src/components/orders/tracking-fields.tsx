@@ -30,6 +30,8 @@ export type TrackingDraft = {
   picked: boolean
   /** What the merchant typed when the courier is "Other". */
   otherName: string
+  /** "Other" courier's own tracking page, typed by the merchant (optional). */
+  otherUrl?: string | undefined
 }
 
 export const EMPTY_TRACKING: TrackingDraft = {
@@ -52,7 +54,13 @@ export function trackingPayload(d: TrackingDraft): {
 } {
   const trackingNumber = d.trackingNumber.trim()
   const courier = d.courierId === 'other' ? d.otherName.trim() : courierById(d.courierId)?.name
-  const trackingUrl = trackingNumber ? trackingUrlFor(d.courierId, trackingNumber) : null
+  const typedUrl = d.courierId === 'other' ? (d.otherUrl ?? '').trim() : ''
+  /* A typed link is used only when it is a web address (the API refuses anything else). */
+  const trackingUrl = /^https?:\/\/\S+$/i.test(typedUrl)
+    ? typedUrl
+    : trackingNumber
+      ? trackingUrlFor(d.courierId, trackingNumber)
+      : null
   return {
     ...(courier ? { courier } : {}),
     ...(trackingNumber ? { trackingNumber } : {}),
@@ -164,6 +172,21 @@ export default function TrackingFields({ value, onChange }: TrackingFieldsProps)
             placeholder={c.otherNamePlaceholder}
             onChange={(e) => onChange({ ...value, otherName: e.target.value })}
           />
+        </Field>
+      ) : null}
+      {value.courierId === 'other' ? (
+        <Field>
+          <FieldLabel htmlFor="fulfil-tracking-link">{c.otherUrl}</FieldLabel>
+          <Input
+            id="fulfil-tracking-link"
+            type="url"
+            inputMode="url"
+            value={value.otherUrl ?? ''}
+            maxLength={500}
+            placeholder={c.otherUrlPlaceholder}
+            onChange={(e) => onChange({ ...value, otherUrl: e.target.value })}
+          />
+          <FieldDescription>{c.otherUrlHelp}</FieldDescription>
         </Field>
       ) : null}
     </div>
