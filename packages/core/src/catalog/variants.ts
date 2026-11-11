@@ -39,6 +39,8 @@ export type VariantInput = {
   packageLengthCm?: number | null | undefined
   packageWidthCm?: number | null | undefined
   packageHeightCm?: number | null | undefined
+  /** The box above is the variant's own (#1517); false follows the product's Package. Undefined leaves it. */
+  boxOwn?: boolean | undefined
   /** Absolute on-hand count when the merchant edits it inline. */
   onHand?: number | undefined
   /** The variant's main image; mirrors `mediaIds[0]` when both are sent. */

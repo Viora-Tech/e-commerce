@@ -294,7 +294,8 @@ export const productFormContent = {
     packageHelp:
       'The box this product ships in. Shipment booking uses it instead of the store default box.',
     packageManage: 'Add or edit named boxes in Settings, Shipping & delivery.',
-    packageAllVariants: 'Applies to every variant of this product.',
+    packageAllVariants:
+      'Applies to every variant of this product, unless a variant picks its own box in its Edit dialog under Variants.',
     /** With options, weight and customs move into each variant's Edit dialog. */
     perVariant:
       'Weight and country of origin are set on each variant. Open a variant under Variants to edit them.',

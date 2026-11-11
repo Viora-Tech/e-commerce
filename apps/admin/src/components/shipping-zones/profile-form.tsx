@@ -1,14 +1,14 @@
 'use client'
 
 import { permissions } from '@commerce/core/permissions'
-import { CircleAlert, Save, Trash2 } from '@commerce/ui/icons'
-import { Alert, AlertDescription, AlertTitle } from '@commerce/ui/shadcn/alert'
+import { Save, Trash2 } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Field, FieldDescription, FieldError, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import SaveErrorAlert from '@/components/approvals/save-error-alert'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
 import DataCard from '@/components/layout/data-card'
 import PageHeader from '@/components/layout/page-header'
@@ -143,13 +143,7 @@ export default function ProfileForm({ profile }: ProfileFormProps) {
           )
         }
       />
-      {serverError ? (
-        <Alert variant="destructive">
-          <CircleAlert />
-          <AlertTitle>{copy.toasts.failed}</AlertTitle>
-          <AlertDescription>{serverError}</AlertDescription>
-        </Alert>
-      ) : null}
+      {serverError ? <SaveErrorAlert title={copy.toasts.failed} message={serverError} /> : null}
 
       {general ? null : (
         <DataCard title={copy.details.heading}>

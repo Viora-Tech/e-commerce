@@ -10,6 +10,7 @@ import { TableCell, TableRow } from '@commerce/ui/shadcn/table'
 import MoneyInput from '@/components/fields/money-input'
 import StatusChip from '@/components/layout/status-chip'
 import { productFormContent } from '@/data/product-form'
+import { variantBoxContent } from '@/data/variant-box'
 import { useCopy } from '@/hooks/use-copy'
 import type { MediaItem, VariantRow } from './form-state'
 import VariantImagePicker from './variant-image-picker'
@@ -48,6 +49,7 @@ export default function VariantMatrixRow({
     variantBulk: bulkCopy,
     inventory: inventoryCopy,
   } = useCopy(productFormContent)
+  const boxCopy = useCopy(variantBoxContent)
 
   // Render logic
   const title = variantTitle(v.optionValues)
@@ -83,6 +85,12 @@ export default function VariantMatrixRow({
               {variantsCopy.noPreorder}
             </StatusChip>
           )}
+          {/* A variant that ships in its own box, not the product's package (#1517). */}
+          {v.boxOwn && v.requiresShipping ? (
+            <StatusChip tone="neutral" variant="outline">
+              {boxCopy.chip}
+            </StatusChip>
+          ) : null}
         </span>
       </TableCell>
       <TableCell className={CELL}>
