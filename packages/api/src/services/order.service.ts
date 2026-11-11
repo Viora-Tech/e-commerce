@@ -69,6 +69,9 @@ import { notDraft, type OrderListFilters, onHoldSql, orderListWhere } from './or
 
 /** The most ids "Select all" takes at once; bulk actions above this would need a background job. */
 const SELECT_ALL_MAX = 5000
+const latestShipment = <T>(column: string) =>
+  sql<T>`(select ${sql.raw(column)} from shipment s where s.order_id = ${order.id}
+    order by s.created_at desc limit 1)`
 
 /** Every order id the list's filters match, newest first (the table's "Select all N orders"). */
 export async function listOrderIds(tx: StoreTx, input: OrderListFilters): Promise<string[]> {
@@ -117,13 +120,9 @@ export async function listOrders(
       lineCount: sql<number>`(select count(*)::int from ${orderLine} ol where ol.order_id = ${order.id})`,
       /* The optional Items, Delivery, Phone and City columns (audit #7, #49). */
       itemCount: sql<number>`(select coalesce(sum(ol.quantity), 0)::int from ${orderLine} ol where ol.order_id = ${order.id})`,
-      deliveryStatus: sql<string | null>`(
-        select s.status from shipment s where s.order_id = ${order.id}
-        order by s.created_at desc limit 1)`,
-      /* The same shipment's tracking page: the Delivery chip links to it (#1008). */
-      trackingUrl: sql<string | null>`(
-        select s.tracking_url from shipment s where s.order_id = ${order.id}
-        order by s.created_at desc limit 1)`,
+      deliveryStatus: latestShipment<string | null>('s.status'),
+      labelLive: latestShipment<boolean | null>('s.label_url is not null'),
+      trackingUrl: latestShipment<string | null>('s.tracking_url'), // the Delivery chip's link (#1008)
       shipCity: sql<
         string | null
       >`(select a.city from ${address} a where a.id = ${order.shippingAddressId})`,
@@ -471,8 +470,9 @@ export async function setOrderStatus(
   storeId: string,
   id: string,
   change: OrderStatusChange,
+  opts?: Parameters<typeof changeOrderStatus>[3],
 ) {
-  return (await changeOrderStatus({ tx, storeId }, id, change)) ?? null
+  return (await changeOrderStatus({ tx, storeId }, id, change, opts)) ?? null
 }
 
 /**

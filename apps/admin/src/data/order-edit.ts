@@ -45,6 +45,12 @@ export const orderCancelContent = {
     'Off by default for an imported order: its stock came from your old store, which had already taken these items out. Turn it on only if they are back on the shelf and not counted yet.',
   notify: 'Send the customer an email that the order was cancelled',
   notifyHint: 'Email the customer that the order was cancelled.',
+  /** A live courier label on the order (owner, 11 Nov 2026): cancelled with the courier first. */
+  cancelLabel: (awb: string) => `Also cancel courier label (AWB ${awb})`,
+  cancelLabelHint:
+    'The courier cancels the label first. If the courier refuses, nothing is cancelled and you see why.',
+  cancelLabelRequired:
+    'Everything is packed under this label, so the label has to be cancelled with the order.',
   nothingToRefund: 'Nothing was paid, so there is nothing to refund.',
   confirm: 'Cancel order',
   keep: 'Keep order',

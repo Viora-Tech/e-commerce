@@ -9,6 +9,7 @@ import StatusLabel from '@/components/status/status-label'
 import { orderDetailContent } from '@/data/order-detail'
 import { paymentRulesContent } from '@/data/payment-rules'
 import { useCopy, useFormat } from '@/hooks/use-copy'
+import { shownAttemptStatus } from '@/lib/order-next-move'
 import FailedAttemptReason from './failed-attempt-reason'
 import OrderChip from './order-chip'
 import {
@@ -112,6 +113,8 @@ export default function PaymentCard({
         ) : null}
         {order.payments.map((p) => {
           const pill = paymentStatus(p, order.refunds)
+          // A cancelled order: no "Payment pending" under Voided; money held reads Refund due.
+          const shown = shownAttemptStatus(order.status, pill)
           const back = refundedTotal(order.refunds, p.id)
           const refundable = p.status === 'captured' && back < p.amountPaise
           return (
@@ -128,7 +131,7 @@ export default function PaymentCard({
                   ) : null}
                 </p>
                 <div className="flex items-center gap-3">
-                  <OrderChip kind="payment" value={pill} />
+                  {shown ? <OrderChip kind="payment" value={shown} /> : null}
                   {p.status === 'authorized' && onCapture ? (
                     <Button
                       size="sm"
@@ -169,7 +172,7 @@ export default function PaymentCard({
                     hidden: !p.providerPaymentId,
                   },
                   {
-                    label: amountLabel(copy, p.status),
+                    label: amountLabel(copy, shown === null ? 'cancelled' : p.status),
                     value: fmt.money(p.amountPaise),
                     strong: true,
                   },

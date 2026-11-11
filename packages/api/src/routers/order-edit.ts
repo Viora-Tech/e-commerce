@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { type AlsoNeeds, can, inputField } from '../procedures'
 import { storeRegistries } from '../services/apps.service'
 import {
+  cancelOrderLabel,
   cancelStoreOrder,
   editStoreOrder,
   orderRefundOptions,
@@ -19,10 +20,16 @@ const editRefundRoute = refundRoute.exclude(['store_credit'])
  * Money going back is its own grant (`orders.refund`, and its "Needs approval" tick), on top of
  * cancelling or editing: the same as a refund from the payment card (`orders.refund`).
  */
-const refundNeeds: AlsoNeeds = (input) => {
+const refundNeeds = (input: unknown) => {
   const route = inputField(input, 'refund')
   return route !== undefined && route !== 'none' ? [permissions.ORDERS_REFUND] : []
 }
+
+/** Cancel order: the refund's grant, and "Also cancel courier label" is Cancel shipment's grant. */
+const cancelNeeds: AlsoNeeds = (input) => [
+  ...refundNeeds(input),
+  ...(inputField(input, 'cancelShipmentId') ? [permissions.ORDERS_FULFIL] : []),
+]
 
 async function paymentsDeps(tx: Parameters<typeof storeRegistries>[0], storeId: string) {
   const { payments } = await storeRegistries(tx, storeId)
@@ -48,7 +55,7 @@ export const orderEditRoutes = {
    * goes back (original payment, recorded by hand, or not at all). An imported order that is
    * still open is taken over first. Logged on the timeline.
    */
-  cancel: can(permissions.ORDERS_CANCEL, refundNeeds)
+  cancel: can(permissions.ORDERS_CANCEL, cancelNeeds)
     .input(
       z.object({
         orderId: z.uuid(),
@@ -66,12 +73,27 @@ export const orderEditRoutes = {
          * ORDER_NEEDS_REFUND_DECISION) unless the order has nothing to refund.
          */
         onlyWithoutRefund: z.boolean().optional(),
+        /**
+         * "Also cancel courier label": this order's live label is cancelled with the courier
+         * first (the Cancel shipment path, which unpacks it), then the order. If the courier
+         * refuses, nothing is cancelled and the courier's reason comes back.
+         */
+        cancelShipmentId: z.uuid().optional(),
       }),
     )
     .handler(async ({ context, input }) => {
-      const deps = await paymentsDeps(context.tx, context.scope.storeId)
-      return cancelStoreOrder(context.tx, context.scope.storeId, deps, {
-        ...input,
+      const { storeId } = context.scope
+      const deps = await paymentsDeps(context.tx, storeId)
+      const { cancelShipmentId, ...cancel } = input
+      if (cancelShipmentId) {
+        await cancelOrderLabel(context.tx, storeId, {
+          orderId: input.orderId,
+          shipmentId: cancelShipmentId,
+          author: context.session.user.email,
+        })
+      }
+      return cancelStoreOrder(context.tx, storeId, deps, {
+        ...cancel,
         author: context.session.user.email,
         // Store credit may make the guest's customer record, whose phone is stored encrypted.
         settingsSecret: deps.secret,

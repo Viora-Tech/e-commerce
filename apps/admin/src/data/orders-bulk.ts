@@ -48,6 +48,30 @@ export const ordersBulkContent = {
   cancelRestock: 'Restock the items',
   cancelNotify: 'Email customers that their order was cancelled',
   cancelConfirm: 'Cancel orders',
+  /** Bulk Mark as fulfilled (owner, 11 Nov 2026): one courier, a tracking number per order. */
+  fulfilTitle: (n: number) =>
+    n === 0 ? 'No orders to fulfil' : `Mark ${n} ${n === 1 ? 'order' : 'orders'} as fulfilled`,
+  fulfilBody: 'Everything left on each order is packed and goes out with the courier you pick.',
+  fulfilSkipping: (n: number) =>
+    `${n} of the selected ${n === 1 ? 'order is' : 'orders are'} skipped: already packed, cancelled or imported.`,
+  fulfilCourier: 'Courier',
+  fulfilCourierName: 'Courier name',
+  fulfilCourierNamePlaceholder: 'Hand delivery, local courier…',
+  fulfilTracking: 'Tracking numbers (optional)',
+  fulfilTrackingPlaceholder: 'Tracking number',
+  fulfilNotListed: (n: number) =>
+    `${n} more ${n === 1 ? 'order is' : 'orders are'} not on this page; packed without a tracking number.`,
+  fulfilNotify: 'Notify customers',
+  fulfilConfirm: 'Mark as fulfilled',
+  fulfilDone: (n: number, skipped: number) =>
+    `${n} marked fulfilled` +
+    (skipped > 0
+      ? `, ${skipped} skipped (nothing left to pack, on hold, cancelled or imported)`
+      : ''),
+  /** Bulk Mark as delivered hands over only what already went out (owner, 11 Nov 2026). */
+  deliveredDone: (n: number, skipped: number) =>
+    `${n} marked delivered` +
+    (skipped > 0 ? `, ${skipped} skipped (not shipped yet, cancelled or imported)` : ''),
   cancelKeep: 'Keep them',
   cancelDone: (cancelled: number, skipped: number, queued: number, failed: number) =>
     [
