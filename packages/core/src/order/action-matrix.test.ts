@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: order action matrix test — WHAT: every order action chained the way staff press them, with the books checked after each step / WHY: order handling broke in ways each single-action test missed (owner, 11 Nov 2026) */
 /**
  * The order action matrix (docs/audits/2026-11-11-order-action-matrix.md), run against a real
  * database: every action the order page, the orders list and the bulk bar offer, chained the way
