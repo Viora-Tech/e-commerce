@@ -11,11 +11,13 @@ import {
   FieldSet,
 } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import StoreCreditExpiryField from '@/components/customers/store-credit-expiry-field'
 import OptionSelect from '@/components/landed-cost/option-select'
 import DataCard from '@/components/layout/data-card'
 import { returnDetailContent } from '@/data/returns'
+import { useStoreCreditReturn } from '@/hooks/use-store-credit-return'
 import { api } from '@/lib/api-client'
 import { formatPaise } from '@/lib/money'
 import ChoiceList from './choice-list'
@@ -56,11 +58,18 @@ const isWay = (v: string): v is Way => v === 'original' || v === 'manual'
 /** Settle a received return or RTO: refund, store credit, exchange, re-ship or close. */
 export default function ReturnResolveCard({ detail: r, onChanged }: ReturnResolveCardProps) {
   // Hooks
+  // An order paid with store credit: the credit's original last day is pre-filled.
+  const creditBack = useStoreCreditReturn(r.orderId)
   const [outcome, setOutcome] = useState<Outcome>(() => firstChoice(r))
   const [amount, setAmount] = useState(() => toRupees(r.suggestedRefundPaise ?? 0))
   const [way, setWay] = useState<Way | null>(null)
   const [method, setMethod] = useState<HandMethod>('upi')
+  const [expiresOn, setExpiresOn] = useState('')
   const [busy, setBusy] = useState(false)
+
+  useEffect(() => {
+    setExpiresOn(creditBack && creditBack.spentPaise > 0 ? creditBack.expiresOn : '')
+  }, [creditBack])
 
   // Helpers
   const act = async (run: () => Promise<string>) => {
@@ -97,7 +106,7 @@ export default function ReturnResolveCard({ detail: r, onChanged }: ReturnResolv
         return copy.refunded(formatPaise(amountPaise))
       }
       if (outcome === 'credit') {
-        await api.returns.storeCredit({ id: r.id, amountPaise })
+        await api.returns.storeCredit({ id: r.id, amountPaise, expiresOn: expiresOn || null })
         return copy.credited(formatPaise(amountPaise))
       }
       if (outcome === 'exchange') {
@@ -181,6 +190,18 @@ export default function ReturnResolveCard({ detail: r, onChanged }: ReturnResolv
             </FieldDescription>
           </Field>
         ) : null}
+        {outcome === 'credit' ? (
+          <div className="max-w-sm">
+            <StoreCreditExpiryField
+              id="resolve-credit-expires"
+              value={expiresOn}
+              onChange={setExpiresOn}
+              originalDay={
+                creditBack && creditBack.spentPaise > 0 ? creditBack.expiresOn : undefined
+              }
+            />
+          </div>
+        ) : null}
         {outcome === 'refund' ? (
           <FieldSet>
             <FieldLegend variant="label">{copy.how}</FieldLegend>
@@ -208,7 +229,9 @@ export default function ReturnResolveCard({ detail: r, onChanged }: ReturnResolv
           <Button
             size="lg"
             onClick={handleConfirm}
-            disabled={busy || (needsAmount && !validAmount)}
+            disabled={
+              busy || (needsAmount && !validAmount) || (outcome === 'credit' && !creditBack)
+            }
           >
             <CheckIcon aria-hidden="true" />
             {confirmLabel}

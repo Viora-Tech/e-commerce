@@ -69,7 +69,7 @@ export async function shipmentInManifest(
 export type CancelShipmentOptions = {
   /** Staff email for the order timeline entry. */
   author?: string | null | undefined
-  /** False when the courier app does not declare `cancel` (Shiprocket today). */
+  /** False when the courier app does not declare `cancel`. */
   courierCancels?: boolean | undefined
 }
 
@@ -93,8 +93,12 @@ export async function cancelShipment(
   if (block) throw new ShipmentNotCancellable(block, ctx.storeId)
   // Most couriers cancel by waybill; RapidShyp's cancel_order wants its own
   // order id instead (stored as providerRef on create) - see
-  // packages/shipping-rapidshyp/src/rapidshyp.ts.
-  await provider.cancel(row.providerRef || row.waybill)
+  // packages/shipping-rapidshyp/src/rapidshyp.ts. Shiprocket keeps its shipment id in
+  // providerRef but cancels by AWB, so the row's own waybill goes along too.
+  await provider.cancel(row.providerRef || row.waybill, {
+    waybill: row.waybill,
+    providerRef: row.providerRef,
+  })
   const [updated] = await ctx.tx
     .update(shipment)
     .set({ status: 'cancelled', updatedAt: new Date() })

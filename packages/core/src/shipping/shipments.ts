@@ -19,7 +19,7 @@ import { ensureFulfillmentOrders, soleFulfillmentOrder } from '../order/fulfillm
 import { recomputeOrderStatuses } from '../order/recompute'
 import { insertOutboxEvent } from '../outbox/write'
 import { recordRtoForShipment } from '../returns/rto'
-import { noteOffRoute } from './delivery-options/booking'
+import { deliveryForParcel, noteOffRoute } from './delivery-options/booking'
 import { bookedCarrier } from './delivery-options/routes'
 import { shipmentDocumentsAsLabel } from './label-documents'
 import { storeShippingLabel } from './label-store'
@@ -114,6 +114,7 @@ async function loadParcel(ctx: StoreContext, orderId: string, fulfillmentOrderId
     .select({
       id: fulfillmentOrder.id,
       locationId: fulfillmentOrder.locationId,
+      status: fulfillmentOrder.status,
       totalPaise: fulfillmentOrder.totalPaise,
     })
     .from(fulfillmentOrder)
@@ -277,15 +278,16 @@ export async function createShipmentForOrder(
   const codAmountPaise = paymentMode === 'cod' ? (options.codAmountPaise ?? valuePaise) : 0
   const threshold = settings.policy.insuranceThresholdPaise
   // The Delivery options app's route: what the shopper paid for (insured or not) and who carries it.
-  const route = o.shipping?.delivery?.route ?? null
+  // A parcel of a split cart books the courier checkout quoted for that parcel.
+  const delivery = deliveryForParcel(o.shipping?.delivery ?? null, named)
+  const route = delivery?.route ?? null
   const onRoute =
     route !== null &&
     route.providerId === provider.id &&
     route.serviceId === (options.serviceId ?? '')
   const insured =
     options.insured ??
-    ((onRoute && o.shipping?.delivery?.insured === true) ||
-      (threshold > 0 && valuePaise >= threshold))
+    ((onRoute && delivery?.insured === true) || (threshold > 0 && valuePaise >= threshold))
   const carrier =
     options.carrier?.trim() ||
     (onRoute ? route.carrier : bookedCarrier(provider, options.serviceLabel))

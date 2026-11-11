@@ -1,5 +1,6 @@
 'use client'
 
+import { courierWebhookPath } from '@commerce/core/courier-webhook-path'
 import { ChevronDown } from '@commerce/ui/icons'
 import {
   Collapsible,
@@ -28,7 +29,7 @@ function webhookHint() {
       {copy.webhookNeedsDomain}
       <br />
       <code className="rounded bg-muted px-1 py-0.5 font-mono text-foreground">
-        {`${WORKER_URL}/webhooks/shipments/shiprocket/<store id>`}
+        {`${WORKER_URL}${courierWebhookPath('shiprocket', '<store id>')}`}
       </code>
     </p>
   )

@@ -96,6 +96,7 @@
     "./shipment-tabs": "./src/shipping/tabs.ts",
     "./shipment-state": "./src/shipping/shipment-state.ts",
     "./tracking-numbers": "./src/shipping/tracking-numbers.ts",
+    "./courier-webhook-path": "./src/shipping/webhook-path.ts",
     "./preorder": "./src/preorder/client.ts",
     "./preorder-block": "./src/preorder/block.tsx",
     "./order-status": "./src/order/aggregate-status.ts",

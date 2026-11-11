@@ -96,6 +96,14 @@ export async function storesWithBalanceDue(db: Db): Promise<string[]> {
   return rows.map((r) => r.id)
 }
 
+/** Store ids with store credit past its expiry and not yet taken off, for the expiry sweep. SECURITY DEFINER backed. */
+export async function storesWithStoreCreditExpiring(db: Db, now: Date): Promise<string[]> {
+  const rows = await db.execute<{ id: string }>(
+    sql`select stores_with_store_credit_expiring(${now.toISOString()}::timestamptz) as id`,
+  )
+  return rows.map((r) => r.id)
+}
+
 /** Store ids with undispatched outbox rows, for the outbox relay. SECURITY DEFINER backed. */
 export async function storesWithUndispatchedOutboxEvents(db: Db): Promise<string[]> {
   const rows = await db.execute<{ id: string }>(
@@ -461,4 +469,28 @@ export async function storesWithOpenCheckoutDrafts(db: Db): Promise<string[]> {
     sql`select stores_with_open_checkout_drafts() as id`,
   )
   return rows.map((r) => r.id)
+}
+
+/**
+ * The store an SES bounce or complaint belongs to (core `email-suppression`): the store a
+ * `store-id` message tag names, when that store exists, else the store whose sender domain sent
+ * it. Null when neither matches (the platform address with no tag). SECURITY DEFINER backed.
+ */
+export async function storeForEmailFeedback(
+  db: Db,
+  hint: { storeTag: string | null; fromDomain: string | null },
+): Promise<string | null> {
+  if (hint.storeTag) {
+    const rows = await db.execute<{ id: string | null }>(
+      sql`select store_for_email_tag(${hint.storeTag}::uuid) as id`,
+    )
+    if (rows[0]?.id) return rows[0].id
+  }
+  if (hint.fromDomain) {
+    const rows = await db.execute<{ id: string | null }>(
+      sql`select store_for_sender_domain(${hint.fromDomain}) as id`,
+    )
+    if (rows[0]?.id) return rows[0].id
+  }
+  return null
 }

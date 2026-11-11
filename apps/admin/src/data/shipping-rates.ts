@@ -72,6 +72,19 @@ export const shippingRatesContent = {
       noAreasHeading: 'No delivery areas yet',
       noAreasBody:
         'Add a delivery area with a price, or these products cannot be bought for delivery.',
+      /** General with no areas while another profile has some: its products cannot ship. */
+      generalBlockedHeading: 'These products cannot be bought',
+      generalBlockedBody:
+        'Another profile has delivery areas, so delivery is no longer free everywhere. Add a delivery area here (a free one is fine) so every product not in another profile can be bought.',
+    },
+    moveHere: {
+      heading: 'Move products here',
+      meta: "Products in another profile ship at that profile's prices. Move them here to ship them at General's prices instead.",
+      action: 'Move products here',
+      moved: (n: number) =>
+        n === 0
+          ? 'Those products already ship with General'
+          : `${n} ${n === 1 ? 'product' : 'products'} moved to General`,
     },
     saveBar: { message: 'Unsaved profile', save: 'Save', discard: 'Discard' },
     toasts: {

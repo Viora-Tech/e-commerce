@@ -62,8 +62,13 @@ export type StaffCancelInput = {
   author: string
   /** For `store_credit`: the settings secret (a customer made from a guest order's phone stores it encrypted). */
   settingsSecret?: string | undefined
-  /** For `store_credit`: the card's last day (YYYY-MM-DD); none, it never expires. */
+  /** For `store_credit`: the last day the credit can be spent (YYYY-MM-DD); none, it never expires. */
   storeCreditExpiresOn?: string | null | undefined
+  /**
+   * Store credit the order spent, coming back on the cancel: staff's expiry (a day, or null for
+   * never), pre-filled in the dialog with the original. Left out, it keeps its original dates.
+   */
+  returnedCreditExpiresOn?: string | null | undefined
   /**
    * The Orders list's bulk "Cancel orders" (#1408): refuse (`OrderNeedsRefundDecision`), changing
    * nothing, unless the order is worked here and has no money to give back. Checked inside the
@@ -144,6 +149,7 @@ export async function cancelOrderByStaff(
   await cancelOrder(ctx, input.orderId, {
     restock: input.restock,
     notifyCustomer: input.notifyCustomer,
+    storeCreditExpiresOn: input.returnedCreditExpiresOn,
   })
   await ctx.tx
     .update(order)
@@ -165,6 +171,7 @@ export async function cancelOrderByStaff(
       (input.reasonCode ? REASON_WORDS[input.reasonCode] : null) ||
       'Order cancelled',
     providers,
+    returnedCreditExpiresOn: input.returnedCreditExpiresOn,
     storeCredit:
       input.refund === 'store_credit' && input.settingsSecret
         ? {

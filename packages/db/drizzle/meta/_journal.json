@@ -1562,6 +1562,20 @@
       "when": 1794756800000,
       "tag": "0238_variant_box_own",
       "breakpoints": true
+    },
+    {
+      "idx": 223,
+      "version": "7",
+      "when": 1794843200000,
+      "tag": "0239_store_credit_expiry",
+      "breakpoints": true
+    },
+    {
+      "idx": 224,
+      "version": "7",
+      "when": 1794929600000,
+      "tag": "0240_email_suppression",
+      "breakpoints": true
     }
   ]
 }

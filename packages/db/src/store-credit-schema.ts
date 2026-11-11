@@ -1,5 +1,6 @@
 import { sql } from 'drizzle-orm'
 import {
+  type AnyPgColumn,
   check,
   index,
   integer,
@@ -9,7 +10,7 @@ import {
   uniqueIndex,
   uuid,
 } from 'drizzle-orm/pg-core'
-import { customer, newId, order, store } from './schema'
+import { customer, giftCard, newId, order, store } from './schema'
 
 /*
  * Store credit: a real per-customer balance (not a gift card code). The account holds the
@@ -25,9 +26,10 @@ const createdAt = () => timestamp('created_at', { withTimezone: true }).notNull(
 
 /**
  * Why the balance moved: staff added or removed it, an order was paid with it, a refund went to it,
- * or credit held for a checkout came back because the order was cancelled before it was paid.
+ * credit held for a checkout came back because the order was cancelled before it was paid, or
+ * what was left of a credit with an expiry date ran out on that date.
  */
-export const STORE_CREDIT_KINDS = ['adjustment', 'payment', 'refund', 'release'] as const
+export const STORE_CREDIT_KINDS = ['adjustment', 'payment', 'refund', 'release', 'expiry'] as const
 
 /** One customer's store credit balance, in paise. Never below zero. */
 export const storeCreditAccount = pgTable(
@@ -69,14 +71,28 @@ export const storeCreditEntry = pgTable(
     /** Their sign-in email at the time, shown in the history. */
     staffEmail: text('staff_email'),
     orderId: uuid('order_id').references(() => order.id, { onDelete: 'set null' }),
+    /** A credit line that runs out: what is left of it leaves the balance then. Null never expires. */
+    expiresAt: timestamp('expires_at', { withTimezone: true }),
+    /** On an `expiry` line: the credit line whose remainder it took off. One per credit line. */
+    expiredEntryId: uuid('expired_entry_id').references((): AnyPgColumn => storeCreditEntry.id),
+    /** On a line that moved an old store-credit gift card into the balance: that card. Once per card. */
+    giftCardId: uuid('gift_card_id').references(() => giftCard.id),
     createdAt: createdAt(),
   },
   (t) => [
     index('store_credit_entry_customer').on(t.customerId, t.createdAt),
+    uniqueIndex('store_credit_entry_expired_once')
+      .on(t.expiredEntryId)
+      .where(sql`${t.expiredEntryId} is not null`),
+    uniqueIndex('store_credit_entry_gift_card_once')
+      .on(t.giftCardId)
+      .where(sql`${t.giftCardId} is not null`),
+    index('store_credit_entry_expires').on(t.expiresAt).where(sql`${t.expiresAt} is not null`),
     check('store_credit_entry_nonzero', sql`${t.amountPaise} <> 0`),
     check(
       'store_credit_entry_kind_check',
-      sql`${t.kind} in ('adjustment', 'payment', 'refund', 'release')`,
+      sql`${t.kind} in ('adjustment', 'payment', 'refund', 'release', 'expiry')`,
     ),
+    check('store_credit_entry_expiry_credit', sql`${t.expiresAt} is null or ${t.amountPaise} > 0`),
   ],
 )

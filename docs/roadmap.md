@@ -4,6 +4,31 @@ The order we work in. **Phase 1 comes first: test what we already have.** New fe
 (Phase 3) start only when the shops' everyday flows and the apps they use pass. Each item
 becomes its own design and PRs when picked up. Last reorganised 7 Nov 2026; speed track added 10 Nov 2026.
 
+## Status on 12 Nov 2026
+
+Merged into `dev` on 11–12 Nov (not deployed yet): 20 PRs, 53 issues closed. Open PRs are listed
+per item; "live check" means the owner runs it on a real store.
+
+| Item | Status |
+| --- | --- |
+| 1a Order actions | Audited end to end, 24 actions (#1541, merged). Per-parcel courier (#1578) open. |
+| 1a Shipping | Add to pickup, drawer, billed weight, quotes per warehouse merged; General profile fix #1580 open. |
+| 1a Claw Gears theme | Footer comma #1573, newsletter error #1575, account popover #1577 open. Owner: unhide header menu, publish policies, add a General delivery area. |
+| 1a Checkout, invoices, returns, theme on both stores | Still to run live. |
+| 1b Apps group 1 | Code audit done (`docs/audits/2026-11-11-apps-group-1.md`), 8 bugs fixed; SES bounces #1581, Shiprocket cancel #1583, neutral webhook URL #1584 open. Owner's live checklist owed. |
+| 1b Apps group 2 | Audit in progress. |
+| 1b Apps groups 3–4 | Not started (accounts needed for couriers). |
+| 1c Outside reviews | Owner: Shopify resubmit and IP allowlist, Google video, Meta reply. |
+| 2 Bulk shipments redesign | Live. |
+| 2 Store credit | Steps 1–4 and draft orders merged; expiry, email lines and gift card move #1582 open. |
+| 2 Leaner image builds | Not started (needs a cloud builder). |
+| Speed 0 | Done: worker limits, one width at a time (#1548), GIF height #1566 open. |
+| Speed 1 | Code done; needs the Cloudflare purge token. |
+| Speed 2 | Merged; `media:reprocess --own-size` still to run at night. |
+| Speed 3 | #1530 (draft) halves transactions per page; measure on the test server. |
+| Speed 6 | Measured (#1565): Bun + Hono 6x faster cached, less memory, same section HTML. Decided: reuse the buy box as a React island, switch store by store. Buy box next. |
+| Speed 8 | Rust image worker pilot (#1542): 1.3–3.5x faster, a third of the memory. Next: AVIF tuning, HEIC. |
+
 ## Phase 1: Test what exists (now)
 
 Goal: every flow a shop owner or shopper touches has been run for real on a live store, and

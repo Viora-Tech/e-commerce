@@ -105,6 +105,24 @@ from your own address.
 - Sending offers to people who did not ask for them. Only email customers who agreed.
 - Many customers mark your emails as spam, or the addresses do not exist.
 
+## Addresses that bounce or complain
+
+When an email cannot be delivered (the address does not exist) or a customer marks your email as
+spam, your shop stops emailing that address, so the rest of your emails keep reaching inboxes.
+An address that bounces for a passing reason (a full mailbox) is stopped after 3 failures within
+14 days.
+
+- The customer's page shows **Email bounced — not sending** (or **Email complained**), with what
+  their mail server said. Order and marketing emails to them are skipped and listed as not sent.
+  Sign-in codes they ask for still go out.
+- **Settings › Notifications › Sender email** lists every address your shop stopped emailing.
+- **Allow again** starts emailing the address again, once the customer fixed it or asked for your
+  emails. Only allow a spam complaint again if the customer asked: another complaint hurts
+  delivery for your shop.
+
+This works for emails the platform sends for you. If you connected your own Amazon SES app,
+bounces go to your own AWS account instead.
+
 Order emails (confirmations, shipping updates) are the least likely to be filtered. Marketing
 emails always carry a one-click unsubscribe link; order emails never do, because customers need
 them.

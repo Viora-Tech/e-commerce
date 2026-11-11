@@ -14,7 +14,9 @@ export const customerStoreCreditContent = {
     payment: 'Paid an order',
     refund: 'Refund',
     release: 'Returned (order not paid)',
+    expiry: 'Expired',
   } as Record<string, string>,
+  expires: (day: string) => `Can be spent until ${day}`,
   dialog: {
     addTitle: 'Add store credit',
     removeTitle: 'Remove store credit',
@@ -24,6 +26,10 @@ export const customerStoreCreditContent = {
     reasonPlaceholder: 'For example: goodwill for a late delivery',
     reasonHint: 'Shown in the history. The customer does not see it.',
     tooMuch: 'That is more than the balance.',
+    expires: 'Expiry date (optional)',
+    expiresPlaceholder: 'Never expires',
+    expiresHint:
+      'The last day it can be spent. Whatever is left of it comes off the balance after that day. Leave empty and it never expires.',
     cancel: 'Cancel',
     saveAdd: 'Add credit',
     saveRemove: 'Remove credit',

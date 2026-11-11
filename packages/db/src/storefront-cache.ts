@@ -150,6 +150,8 @@ export const STOREFRONT_CACHE_EXEMPT: Record<string, string> = {
   discovery_event: LOG,
   discount_usage: LOG,
   document_template: ADMIN,
+  email_feedback_event: LOG,
+  email_suppression: ADMIN,
   home_card: ADMIN,
   home_card_run: LOG,
   media_folder: ADMIN,
