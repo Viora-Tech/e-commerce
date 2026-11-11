@@ -1,0 +1,3 @@
+# The storefront's modules are written for Next: `server-only` and `next/headers` are swapped for
+# this server's own request context before anything loads (`src/preload.ts`).
+preload = ["./src/preload.ts"]
