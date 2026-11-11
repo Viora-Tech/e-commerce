@@ -26,7 +26,7 @@ import {
   uniqueHandle,
   updateProduct,
 } from './products'
-import type { ProductWrite } from './schemas'
+import { type ProductWrite, ProductWriteSchema } from './schemas'
 
 const owner = createDb(process.env.DATABASE_URL_OWNER as string)
 const app = createDb(process.env.DATABASE_URL as string)
@@ -209,6 +209,48 @@ describe('updateProduct', () => {
     const revived = await load(storeId, id)
     expect(revived.vs.find((v) => v.id === black.id)?.archivedAt).toBeNull()
     expect(revived.vs).toHaveLength(2)
+  })
+})
+
+describe("a variant's own pre-order limit on save", () => {
+  it('writes the limit, keeps the other override keys, and clears it when blank', async () => {
+    const storeId = await seedStore()
+    const id = await withStore(app, storeId, (tx) => createProduct(tx, storeId, write))
+    const { vs } = await load(storeId, id)
+    const purple = vs[0]
+    if (!purple) throw new Error('seed')
+    // A key the admin does not edit, written by another tool, must survive the save.
+    await owner
+      .update(variant)
+      .set({ preorderOverride: { enabled: false, buttonLabel: 'Reserve' } })
+      .where(eq(variant.id, purple.id))
+    const withLimit = (limit: number | null | undefined): ProductWrite => ({
+      ...write,
+      variants: write.variants.map((v, i) =>
+        i === 0 ? { ...v, id: purple.id, preorderLimit: limit } : v,
+      ),
+    })
+
+    await withStore(app, storeId, (tx) => updateProduct(tx, storeId, id, withLimit(4)))
+    let row = (await load(storeId, id)).vs.find((v) => v.id === purple.id)
+    expect(row?.preorderOverride).toEqual({ enabled: false, buttonLabel: 'Reserve', limit: 4 })
+
+    // Left out (an older client, an import): the stored limit stays.
+    await withStore(app, storeId, (tx) => updateProduct(tx, storeId, id, withLimit(undefined)))
+    row = (await load(storeId, id)).vs.find((v) => v.id === purple.id)
+    expect(row?.preorderOverride).toEqual({ enabled: false, buttonLabel: 'Reserve', limit: 4 })
+
+    await withStore(app, storeId, (tx) => updateProduct(tx, storeId, id, withLimit(null)))
+    row = (await load(storeId, id)).vs.find((v) => v.id === purple.id)
+    expect(row?.preorderOverride).toEqual({ enabled: false, buttonLabel: 'Reserve' })
+  })
+
+  it('rejects a limit below 1', () => {
+    const bad = {
+      ...write,
+      variants: [{ optionValues: ['Purple', 'L'], pricePaise: 1, preorderLimit: 0 }],
+    }
+    expect(ProductWriteSchema.safeParse(bad).success).toBe(false)
   })
 })
 

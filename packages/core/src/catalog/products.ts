@@ -157,10 +157,9 @@ export async function setOptionsAndVariants(
 ) {
   const valueIds = await syncOptions(tx, storeId, productId, options)
 
-  const existing = await tx
-    .select({ id: variant.id, title: variant.title, archivedAt: variant.archivedAt })
-    .from(variant)
-    .where(eq(variant.productId, productId))
+  // Whole rows: the matrix diff reads id, title and archivedAt; a save merges onto the override.
+  const existing = await tx.select().from(variant).where(eq(variant.productId, productId))
+  const storedOverride = new Map(existing.map((e) => [e.id, e.preorderOverride]))
   const diff = diffVariants(existing, variants)
   // Each variant's current image list, so a write that sends only `mediaId` keeps the rest.
   const images = await loadVariantMedia(
@@ -186,7 +185,11 @@ export async function setOptionsAndVariants(
     if (upd) {
       await tx
         .update(variant)
-        .set({ ...variantRow(input), position: position++, archivedAt: null })
+        .set({
+          ...variantRow(input, storedOverride.get(upd.id)),
+          position: position++,
+          archivedAt: null,
+        })
         .where(eq(variant.id, upd.id))
       await link(upd.id, input)
       const current = images.get(upd.id) ?? []

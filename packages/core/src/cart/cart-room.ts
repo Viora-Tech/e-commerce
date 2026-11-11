@@ -36,7 +36,8 @@ type AvailabilityRow = {
 
 /**
  * How many more of this line the shopper can add: real stock, plus pre-order
- * room beyond it (unlimited when the product's `preorderLimit` is null). A
+ * room beyond it, counted per variant: the variant's own limit, else the product's or the
+ * campaign's (`resolvePreorderSettings`; unlimited when that is null). A
  * hint for the quantity stepper; `placeOrder`'s `reserveStock` is the actual
  * server-side check.
  */

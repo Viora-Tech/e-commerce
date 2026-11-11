@@ -34,6 +34,8 @@ export type VariantRow = {
   hiddenOnStore: boolean
   /** Sells on pre-order once out of stock, while the product is on pre-order (default on). */
   preorderAllowed: boolean
+  /** The variant's own pre-order limit as typed; blank uses the product's (or campaign's). */
+  preorderLimit: string
   /** Shopify's "This is a physical product": off takes no shipping and never ships. */
   requiresShipping: boolean
   quantity: string
@@ -121,6 +123,7 @@ export function emptyVariant(optionValues: string[], template?: VariantRow): Var
     trackInventory: template?.trackInventory ?? true,
     hiddenOnStore: false,
     preorderAllowed: template?.preorderAllowed ?? true,
+    preorderLimit: template?.preorderLimit ?? '',
     requiresShipping: template?.requiresShipping ?? true,
     quantity: '0',
     weight: template?.weight ?? '',
@@ -238,6 +241,7 @@ function fromVariants(p: LoadedProduct): VariantRow[] {
         trackInventory: v.trackInventory,
         hiddenOnStore: v.hiddenOnStore,
         preorderAllowed: v.preorderAllowed,
+        preorderLimit: v.preorderLimit == null ? '' : String(v.preorderLimit),
         requiresShipping: v.requiresShipping,
         quantity: String(v.onHand ?? 0),
         weight: fromGrams(v.weightGrams, v.weightUnit ?? DEFAULT_WEIGHT_UNIT),
@@ -306,6 +310,46 @@ const intOrNull = (text: string): number | null => {
   return text.trim() === '' || !Number.isInteger(n) ? null : n
 }
 
+/** A variant's pre-order limit as typed: blank, or a whole number from 1 to 1,000,000. */
+export function validVariantLimit(text: string): boolean {
+  if (text.trim() === '') return true
+  const n = Number(text)
+  return Number.isInteger(n) && n >= 1 && n <= 1_000_000
+}
+
+/**
+ * What a variant with a blank pre-order limit uses, for the field's placeholder: the product's
+ * own limit (null: none), or the campaign's when the product is in one and does not keep its own.
+ */
+export function inheritedPreorderLimit(
+  form: Pick<ProductFormState, 'preorderCampaignId' | 'preorderOwn' | 'preorderLimit'>,
+): { from: 'product'; limit: number | null } | { from: 'campaign' } {
+  if (form.preorderCampaignId && !form.preorderOwn.includes('limit')) return { from: 'campaign' }
+  const n = Number(form.preorderLimit)
+  const limit = form.preorderLimit.trim() !== '' && Number.isInteger(n) && n >= 1 ? n : null
+  return { from: 'product', limit }
+}
+
+/** What the variant dialog needs to show the pre-order limit field and its placeholder. */
+export type VariantPreorderContext = {
+  /** The product takes pre-orders (its own switch or a campaign). */
+  on: boolean
+  inherited: ReturnType<typeof inheritedPreorderLimit>
+}
+
+/** The variant dialog's pre-order context for this form. */
+export function variantPreorderContext(
+  form: Pick<
+    ProductFormState,
+    'preorderEnabled' | 'preorderCampaignId' | 'preorderOwn' | 'preorderLimit'
+  >,
+): VariantPreorderContext {
+  return {
+    on: form.preorderEnabled || Boolean(form.preorderCampaignId),
+    inherited: inheritedPreorderLimit(form),
+  }
+}
+
 export function toWrite(form: ProductFormState): ProductWrite {
   return {
     title: form.title.trim(),
@@ -359,6 +403,8 @@ export function toWrite(form: ProductFormState): ProductWrite {
       trackInventory: v.trackInventory,
       hiddenOnStore: v.hiddenOnStore,
       preorderAllowed: v.preorderAllowed,
+      // Blank clears the variant's own limit: it uses the product's (or campaign's) again.
+      preorderLimit: intOrNull(v.preorderLimit),
       requiresShipping: v.requiresShipping,
       weightGrams: toGrams(v.weight, v.weightUnit),
       weightUnit: v.weightUnit,
@@ -397,6 +443,10 @@ export function formErrors(copy: typeof productFormContent, form: ProductFormSta
   const bad = form.variants.find((v) => v.price.trim() !== '' && rupees.toPaise(v.price) == null)
   if (bad && !errors.variants)
     errors.variants = copy.errors.priceInvalid(variantTitle(bad.optionValues))
+  // A variant's own pre-order limit is a whole number of at least 1, or blank.
+  const badLimit = form.variants.find((v) => !validVariantLimit(v.preorderLimit))
+  if (badLimit && !errors.variants)
+    errors.variants = copy.errors.variantLimitInvalid(variantTitle(badLimit.optionValues))
   const dims = form.variants.map((v) => [v.packageLengthCm, v.packageWidthCm, v.packageHeightCm])
   if (dims.some((d) => d.some((n) => n != null) && d.some((n) => n == null))) {
     errors.package = copy.shipping.packageIncomplete

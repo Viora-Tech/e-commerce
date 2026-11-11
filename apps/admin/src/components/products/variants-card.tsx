@@ -14,9 +14,11 @@ import {
   MAX_OPTIONS,
   type MediaItem,
   type OptionRow,
+  type ProductFormState,
   stockOf,
   suggestSku,
   type VariantRow,
+  variantPreorderContext,
 } from './form-state'
 import OptionChip from './option-chip'
 import OptionEditor from './option-editor'
@@ -36,6 +38,11 @@ type VariantsCardProps = {
   media: MediaItem[]
   /** The product's HSN and GST rate, for the variant dialog (#63). */
   tax: ProductTax
+  /** The product's pre-order switch, campaign and limit, for the variant dialog's pre-order limit. */
+  preorder: Pick<
+    ProductFormState,
+    'preorderEnabled' | 'preorderCampaignId' | 'preorderOwn' | 'preorderLimit'
+  >
   /** Option names and values the store's other products use, offered first. */
   facets?: Facets | undefined
   error?: string | undefined
@@ -56,6 +63,7 @@ export default function VariantsCard({
   variants,
   media,
   tax,
+  preorder,
   facets,
   error,
   onOptions,
@@ -268,6 +276,7 @@ export default function VariantsCard({
           lines={lines}
           media={media}
           tax={tax}
+          preorder={variantPreorderContext(preorder)}
           selected={selected}
           onSelectedChange={setSelected}
           onToggleGroup={handleToggleGroup}
