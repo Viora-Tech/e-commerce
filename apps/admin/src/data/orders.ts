@@ -131,7 +131,7 @@ export const ordersContent = {
   filters: {
     /** The Product picker (Shopify's "Product is …"): products and variants to tick. */
     product: 'Product',
-    /** The older free-text filter, kept for saved links: a line's title or SKU contains it. */
+    /** The older free-text filter: no longer in the menu, but an old link's `?product=` shows as this chip. */
     productText: 'Product title or SKU',
     productPlaceholder: 'Product name or SKU',
     picker: {

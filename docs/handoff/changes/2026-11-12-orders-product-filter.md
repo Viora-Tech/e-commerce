@@ -19,8 +19,10 @@ Orders list → Filter → **Product** now opens a picker like Shopify's, not a 
   (`FILTER_PARAMS`), so reload, back/forward and shared links keep it. Orders has no saved views
   beyond the URL and its tabs; the tab badges are store-wide counts (not filtered by any panel
   filter), the "Custom" count is the filtered total and respects this filter.
-- **Old filter kept**: the free-text filter is still there as "Product title or SKU", so
-  `?product=pd170` links and bookmarks keep working.
+- **Old filter retired from the menu** (owner, 12 Nov): the free-text filter is no longer in
+  the Filter menu (the picker searches by SKU), but `?product=pd170` links and bookmarks still
+  filter and show a "Product title or SKU is pd170" chip that × clears. Done with a new
+  `inMenu: false` on filter groups, which `filter-menu.tsx` skips.
 - **API**: `orders.list` / `orders.ids` take `productIds[]`, `variantIds[]` (100 each) and
   `excludeProducts`. One `exists (select 1 from order_line join variant …)` per order; with
   `excludeProducts`, `not exists`. Uses the existing indexes `order_line_order`,

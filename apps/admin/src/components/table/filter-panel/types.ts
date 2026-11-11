@@ -8,6 +8,11 @@ export const DATE_CUSTOM = 'custom'
 type GroupBase = {
   key: string
   label: string
+  /**
+   * False: left out of the Filter menu, yet still a chip while it holds a value (a retired
+   * filter that old links still set, so it can be seen and cleared).
+   */
+  inMenu?: boolean
 }
 
 /** A list of tick boxes; the value is the ticked option values, in option order. */

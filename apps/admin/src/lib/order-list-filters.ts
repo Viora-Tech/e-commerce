@@ -252,10 +252,12 @@ export function orderFilterGroups(
       control: picker.control,
     },
     {
-      // Free text, kept for links and bookmarks made before the picker (`?product=pd170`).
+      /* Free text, retired from the Filter menu (the picker searches by SKU too). Links and
+         bookmarks made before the picker (`?product=pd170`) still filter and show as a chip. */
       key: 'product',
       label: copy.productText,
       type: 'text',
+      inMenu: false,
       value: f.product ?? '',
       onChange: (next) => onChange({ product: next ? next : null }),
       placeholder: copy.productPlaceholder,

@@ -175,7 +175,7 @@ describe('Orders Product filter group, chip and URL', () => {
     )
   })
 
-  it('keeps the old free-text Product filter (?product=pd170) as its own chip', () => {
+  it('reads an old ?product=pd170 link as a chip, but leaves it out of the Filter menu', () => {
     const groups = orderFilterGroups(
       { ...NO_FILTERS, product: 'pd170' },
       ordersContent.filters,
@@ -185,5 +185,9 @@ describe('Orders Product filter group, chip and URL', () => {
       ['Product title or SKU', 'pd170'],
     ])
     expect(orderFilterInput({ ...NO_FILTERS, product: 'pd170' })).toEqual({ product: 'pd170' })
+    // The Filter menu offers the picker, never the retired text box.
+    const offered = groups.filter((g) => g.inMenu !== false).map((g) => g.key)
+    expect(offered).toContain('products')
+    expect(offered).not.toContain('product')
   })
 })
