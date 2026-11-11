@@ -33,6 +33,8 @@ const READ_PREFIXES = [
   'quote',
   'check',
   'status',
+  // Calculations: work out a number from what is sent, save nothing (draft GST, delivery dates).
+  'estimate',
 ]
 
 /** Names that only read but do not start with a read verb. */
@@ -160,6 +162,16 @@ const READ_PATHS = new Set([
   'rollouts.holds',
   'rollouts.results',
   'payments.testMode',
+  // "Test connection" buttons: try the typed or saved keys against the service, save nothing.
+  'payments.testConnection',
+  'store.testDecentroConnection',
+  'store.testDelhiveryConnection',
+  'store.testStorageConnection',
+  'chatwoot.settings.test',
+  'growthbook.settings.test',
+  'umami.settings.test',
+  'meilisearch.test',
+  'shopifyImport.testConnection',
   'gstInvoices.bulkDownload',
   'inbox.sync',
   'inbox.panel',
