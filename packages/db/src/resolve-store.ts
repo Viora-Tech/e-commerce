@@ -457,6 +457,32 @@ export async function storesWithExpiredDraftHolds(db: Db): Promise<string[]> {
 
 /** Store ids with an open unpaid checkout draft (0233), for the nudge and 7-day expiry. SECURITY DEFINER backed. */
 export async function storesWithOpenCheckoutDrafts(db: Db): Promise<string[]> {
-  const rows = await db.execute<{ id: string }>(sql`select stores_with_open_checkout_drafts() as id`)
+  const rows = await db.execute<{ id: string }>(
+    sql`select stores_with_open_checkout_drafts() as id`,
+  )
   return rows.map((r) => r.id)
+}
+
+/**
+ * The store an SES bounce or complaint belongs to (core `email-suppression`): the store a
+ * `store-id` message tag names, when that store exists, else the store whose sender domain sent
+ * it. Null when neither matches (the platform address with no tag). SECURITY DEFINER backed.
+ */
+export async function storeForEmailFeedback(
+  db: Db,
+  hint: { storeTag: string | null; fromDomain: string | null },
+): Promise<string | null> {
+  if (hint.storeTag) {
+    const rows = await db.execute<{ id: string | null }>(
+      sql`select store_for_email_tag(${hint.storeTag}::uuid) as id`,
+    )
+    if (rows[0]?.id) return rows[0].id
+  }
+  if (hint.fromDomain) {
+    const rows = await db.execute<{ id: string | null }>(
+      sql`select store_for_sender_domain(${hint.fromDomain}) as id`,
+    )
+    if (rows[0]?.id) return rows[0].id
+  }
+  return null
 }

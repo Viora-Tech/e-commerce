@@ -139,7 +139,8 @@ flowchart TD
 | `SES_ACCESS_KEY_ID`, `SES_SECRET_ACCESS_KEY` | none | IAM user with `ses:SendEmail`, `ses:CreateEmailIdentity`, `ses:GetEmailIdentity`, `ses:DeleteEmailIdentity`, `ses:PutEmailIdentityMailFromAttributes`, `ses:TagResource`. |
 | `PLATFORM_EMAIL_FROM` | none | The platform's verified sender, e.g. `no-reply@mail.waimers.com`. Verify its domain in SES by hand once. |
 | `PLATFORM_EMAIL_NAME` | the platform name (`siteConfig.brand.name`) | Display name when a store has no name. |
-| `SES_CONFIGURATION_SET` | none | Optional default configuration set for every store identity (event destinations). |
+| `SES_CONFIGURATION_SET` | none | Configuration set every store identity uses by default and every platform SES send names (`ConfigurationSetName`). Its event destination sends bounces and complaints to SNS. **It must exist in SES**, or SES refuses every send. |
+| `SES_EVENTS_TOPIC_ARN` | none | ARN of that SNS topic. The worker's `POST /webhooks/email/ses` accepts only messages from this exact topic; unset, it refuses everything. Worker only. |
 
 Set these on **all three apps** (admin, storefront, worker): the storefront sends sign-in codes,
 the worker sends order email and runs the poll, the admin creates identities.
@@ -151,12 +152,71 @@ real keys in `.env.test`.
 
 ## Bounces and complaints
 
-Not wired in this release, for either provider. SES's **account-level suppression list** (on
-by default for new accounts, bounces and complaints) and Resend's own suppression list already
-stop repeat sends to bad addresses. Follow-up: one suppression path in core (mark customers
-`bounced`/`complained`) fed by an SNS handler (SES configuration set `SES_CONFIGURATION_SET`,
-SNS signature check) and a Resend webhook route (`email.bounced`, `email.complained`, svix
-signature check). There is no SES handler yet, so no Resend one was added on its own.
+Each store keeps its own suppression list (`email_suppression`, migration 0239). SES reports a
+bounce or complaint to an SNS topic; SNS posts it to the worker; the store stops mailing that
+address until staff press **Allow again**.
+
+```mermaid
+flowchart LR
+  send["Platform SES send<br/>ConfigurationSetName + tag store-id"] --> ses["SES"]
+  ses -->|"Bounce / Complaint event"| sns["SNS topic<br/>SES_EVENTS_TOPIC_ARN"]
+  sns -->|"HTTPS POST"| worker["worker<br/>POST /webhooks/email/ses"]
+  worker --> list["email_suppression<br/>(per store, RLS)"]
+  list --> guard["storeNotificationChannels<br/>withSuppressionGuard"]
+```
+
+- **Sending.** `platformEmailFromEnv` names `SES_CONFIGURATION_SET` on every SES send and tags it
+  `store-id=<store>` (`transport.channel(sender, { storeId })`), for the platform address and a
+  store's verified domain alike.
+- **Receiving** (`packages/core/src/email-suppression/`, route `apps/worker/src/email-feedback.ts`):
+  the body must be an SNS envelope (raw message delivery **off**) from exactly
+  `SES_EVENTS_TOPIC_ARN`; the signature (SignatureVersion 1 SHA1 or 2 SHA256) is checked against
+  the certificate at `SigningCertURL`, fetched only from `https://sns.<region>.amazonaws.com/…pem`
+  (cached per process). A `SubscriptionConfirmation` that passes is confirmed by visiting its
+  `SubscribeURL`, only on an SNS host with `Action=ConfirmSubscription`. Refusals get the generic
+  webhook answer; a database error is a 500 so SNS retries.
+- **Store.** The `store-id` tag when that store exists (`store_for_email_tag`), else the store whose
+  sender domain sent it (`store_for_sender_domain`); neither: ignored.
+- **Rules** (`recordEmailFeedback`): Permanent bounce or complaint, suppressed at once.
+  Transient/Undetermined bounces: suppressed after `SOFT_BOUNCE_LIMIT` (3) within
+  `SOFT_BOUNCE_WINDOW_DAYS` (14), counting only bounces after the last **Allow again**. Every event
+  is a row in `email_feedback_event`, unique per store, SNS `MessageId` and address, so a
+  redelivery is a no-op.
+- **Skipping.** `storeNotificationChannels` loads the store's active list once and wraps every
+  email channel (`withSuppressionGuard`): `send` and `sendMarketing` to a suppressed address return
+  `{ ok: false, error: 'suppressed: <reason>: …' }` without calling the provider, so the
+  `notification` / marketing message row records why. That covers order messages, one-off
+  emails, gift cards, campaigns and automations. Sign-in codes and links (`login_code`,
+  `login_link`) still go out. Platform-to-merchant mail (billing, staff invites) does not use a
+  store's channels and is not checked.
+- **Admin.** Customer page notice (`customers.emailSuppression`, `customers.allowEmailAgain`);
+  Settings › Notifications › Sender email list (`notifications.emailSuppressions`,
+  `notifications.allowSuppressedEmail`).
+- **Erasure** deletes the customer's rows in both tables.
+- **Not covered:** a store's own SES app (bounces go to its own AWS account) and Resend (no
+  webhook yet). SES's account-level suppression list stays on as a second net.
+
+### AWS setup (once, by the platform owner)
+
+1. **SNS topic.** In the SES region (e.g. `ap-south-1`), create a Standard topic, e.g.
+   `ses-events`. Copy its ARN.
+2. **Worker env.** Set `SES_EVENTS_TOPIC_ARN` to that ARN on the worker and redeploy it, before
+   step 3, or the confirmation is refused.
+3. **Subscription.** On the topic, create an HTTPS subscription to
+   `${WORKER_URL}/webhooks/email/ses`. Leave **raw message delivery off**. The worker confirms it
+   on its own; the subscription shows **Confirmed** within a minute.
+4. **Configuration set.** In SES › Configuration sets, create one (e.g. `koomerce-events`) and
+   add an event destination: Amazon SNS, the topic above, event types **Hard bounces** and
+   **Complaints** (add **Delivery delays** only if you want; they are ignored). If AWS asks, let
+   SES publish to the topic.
+5. **Sending env.** Set `SES_CONFIGURATION_SET` to its name on admin, storefront and worker, and
+   redeploy. Every platform SES send names it from then on.
+6. **Check.** In a test store, add a customer with the email `bounce@simulator.amazonses.com` (SES
+   mailbox simulator) and use **Email customer**. Within a minute the address shows under that
+   store's Settings › Notifications › Sender email list and on the customer page. **Allow again**
+   it afterwards. `complaint@simulator.amazonses.com` does the same for a complaint.
+
+Keep the SES **account-level suppression list** on.
 
 ## Testing
 

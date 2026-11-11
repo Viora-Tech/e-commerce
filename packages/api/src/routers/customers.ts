@@ -46,6 +46,10 @@ import {
   saveSegment,
 } from '../services/customer-segment.service'
 import { customerSheet } from '../services/customer-sheet.service'
+import {
+  allowCustomerEmailAgain,
+  customerEmailSuppression,
+} from '../services/email-suppression.service'
 
 const FiltersSchema = z.object({
   search: z.string().trim().max(SEARCH_MAX).optional(),
@@ -259,6 +263,18 @@ export const customersRouter = {
         settingsSecret: settingsSecret(),
       }),
     ),
+
+  /** "Email bounced/complained — not sending": why the store stopped emailing this customer. */
+  emailSuppression: can(permissions.CUSTOMERS_READ)
+    .input(z.object({ id: z.uuid() }))
+    .handler(({ context, input }) => customerEmailSuppression(context.tx, input.id)),
+
+  /** "Allow again": email this customer again; only later bounces count towards a new stop. */
+  allowEmailAgain: can(permissions.CUSTOMERS_WRITE)
+    .input(z.object({ id: z.uuid() }))
+    .handler(async ({ context, input }) => ({
+      allowed: await allowCustomerEmailAgain(context.tx, input.id, context.session.user.email),
+    })),
 
   /** The merchant opened a click-to-chat WhatsApp: the line goes on the customer's Timeline. */
   noteWhatsappChat: can(permissions.CUSTOMERS_WRITE)
