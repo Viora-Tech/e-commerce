@@ -15,7 +15,7 @@ type Settings = Awaited<ReturnType<typeof api.backInStock.settings.get>>
 
 const copy = backInStockContent.settings
 
-/** Channels, batch size and message copy. `unlimited` is a platform override and is not shown here. */
+/** Channels and batch size. `unlimited` is a platform override and is not shown here. */
 export default function SettingsEditor() {
   // Hooks
   const [form, setForm] = useState<Settings | null>(null)

@@ -18,3 +18,8 @@ Issues #1587, #1588. Found in the Phase 1b group 2 apps audit
 - Tests: `packages/plugin-back-in-stock/test/messages.test.ts` (event once per email signup,
   message links, paths are real storefront routes) and a relay test in
   `packages/core/src/outbox/relay.test.ts`.
+- **Help text (owner, 12 Nov 2026).** The app's FAQ said its messages are edited in its
+  Settings; nothing does that. The FAQ (`plugin.ts`, regenerated into
+  `packages/core/src/apps/catalogue.generated.ts`), the merchant guide `apps/back-in-stock.mdx`
+  and the Settings subtitle now say the confirm email and the alert use a standard template;
+  Settings chooses the channels and the pace.
