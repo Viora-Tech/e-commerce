@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: email-suppression barrel — WHAT: what core exports for SES bounce and complaint handling (webhook, list, guard) / WHY: the worker, API and channel builder import one place */
 export {
   SUPPRESSED_PREFIX,
   suppressedError,

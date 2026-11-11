@@ -14,7 +14,7 @@ type EmailSuppressionNoticeProps = {
   customerId: string
 }
 
-type Suppression = Awaited<ReturnType<typeof api.customers.emailSuppression>>
+type Suppression = Awaited<ReturnType<typeof api.customerPrivacy.emailSuppression>>
 
 /**
  * "Email bounced/complained — not sending" on the customer page, with "Allow again". Shows
@@ -28,8 +28,8 @@ export default function EmailSuppressionNotice({ customerId }: EmailSuppressionN
   const [allowing, setAllowing] = useState(false)
 
   useEffect(() => {
-    api.customers
-      .emailSuppression({ id: customerId })
+    api.customerPrivacy
+      .emailSuppression({ customerId })
       .then(setSuppression)
       .catch(() => setSuppression(null))
   }, [customerId])
@@ -38,7 +38,7 @@ export default function EmailSuppressionNotice({ customerId }: EmailSuppressionN
   const handleAllow = async () => {
     setAllowing(true)
     try {
-      await api.customers.allowEmailAgain({ id: customerId })
+      await api.customerPrivacy.allowEmailAgain({ customerId })
       setSuppression(null)
       toast.success(copy.allowed)
     } catch {

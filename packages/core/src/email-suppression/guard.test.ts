@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: withSuppressionGuard tests — WHAT: suppressed addresses never reach the provider on send or sendMarketing, sign-in mail still goes, phone channels untouched / WHY: one wrapper is the only gate every store email passes */
 import type { EmailSuppressionReason } from '@commerce/db'
 import type { MarketingSend, Message, NotificationChannel } from '@commerce/notifications'
 import { sampleTemplateDataByTemplate } from '@commerce/notifications'

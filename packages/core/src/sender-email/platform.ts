@@ -19,7 +19,7 @@ const PLATFORM_EMAIL_CHANNEL = 'platform_email'
 const PLATFORM_EMAIL_LABEL = 'Email (sent by the platform)'
 
 /** SES message tag carrying the store id; bounce and complaint events echo it back. */
-export const STORE_TAG = 'store-id'
+const STORE_TAG = 'store-id'
 
 export type PlatformEmail = {
   /** The platform's own sender; a placeholder on the platform domain in development. */

@@ -203,12 +203,16 @@ export const ACTION_DOCS: Record<string, string> = {
   'collections.searchProducts': 'Product picker inside a manual collection.',
   'collections.stats': 'Tiles above the category cards.',
   'customerAccounts.saveApp': "Save the merchant's own Google / Apple / Facebook / Truecaller app.",
+  'customerPrivacy.allowEmailAgain':
+    '"Allow again": email this customer again; only later bounces count towards a new stop.',
   'customerPrivacy.anonymise':
     "Erase a customer's personal data, keeping what invoices need, and close the request it answers.",
   'customerPrivacy.askConsentAgain':
     'Show the banner to everyone again (after changing tags or the banner text).',
   'customerPrivacy.consent': "A customer's marketing consent per channel, with its history.",
   'customerPrivacy.createRequest': 'Staff log a request that came by email, phone or in person.',
+  'customerPrivacy.emailSuppression':
+    '"Email bounced/complained — not sending": why the store stopped emailing this customer.',
   'customerPrivacy.export': 'One-click export: the file to download, noted in the audit trail.',
   'customerPrivacy.overview': 'Everything the settings page shows at once.',
   'customerPrivacy.sendableChannels':
@@ -221,11 +225,7 @@ export const ACTION_DOCS: Record<string, string> = {
     "Add an address to the customer's book; the first one becomes their default.",
   'customers.adoptContactPhone':
     "Save the mobile from the customer's latest order (or saved address) as their contact phone, when they have none.",
-  'customers.allowEmailAgain':
-    '"Allow again": email this customer again; only later bounces count towards a new stop.',
   'customers.create': 'Add a customer by hand ("Add customer" on the list).',
-  'customers.emailSuppression':
-    '"Email bounced/complained — not sending": why the store stopped emailing this customer.',
   'customers.export': 'Rows for a CSV export of the current filter; the browser builds the file.',
   'customers.lookupPincode':
     'City and state for a PIN code, from the same directory as Settings → Checkout\'s "PIN code first".',
