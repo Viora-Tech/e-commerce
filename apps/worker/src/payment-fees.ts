@@ -18,7 +18,7 @@ export const PAYMENT_FEES_EVERY_MS = 30 * 60_000
 const PER_STORE_LIMIT = 100
 
 /** The store's switched-on gateways, with OAuth tokens renewed first (asking needs a live one). */
-async function providersFor(db: Db, storeId: string, settingsSecret: string) {
+export async function providersFor(db: Db, storeId: string, settingsSecret: string) {
   return withStore(db, storeId, async (tx) => {
     const { payments } = await registriesForStore(tx, storeId)
     await refreshPaymentCredentials({ storeId, tx }, payments, settingsSecret)

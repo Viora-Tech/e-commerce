@@ -56,7 +56,8 @@ type PaymentRow = typeof payment.$inferSelect
 
 /** The stored payment status first; the latest attempt only tells unpaid orders apart. */
 function paymentOf(o: OrderRow, latest: PaymentRow | undefined): ShopperPaymentState {
-  if (o.paymentStatus === 'refunded' || o.paymentStatus === 'partially_refunded') return 'refunded'
+  if (o.paymentStatus === 'refunded') return 'refunded'
+  if (o.paymentStatus === 'partially_refunded') return 'partly_refunded'
   if (o.paymentStatus === 'paid' || o.paymentStatus === 'refund_needed') return 'paid'
   if (o.paymentStatus === 'partially_paid' && o.checkoutPaidAt) return 'paid'
   return paymentState(latest, o.paymentMethod, false)

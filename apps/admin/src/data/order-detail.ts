@@ -131,7 +131,7 @@ export const orderDetailContent = {
       cancelled: 'Payment cancelled',
       refundNeeded: 'Refund needed',
     },
-    partiallyRefunded: 'Partially refunded',
+    partiallyRefunded: 'Partly refunded',
   },
   unfulfilled: {
     heading: 'Unfulfilled',

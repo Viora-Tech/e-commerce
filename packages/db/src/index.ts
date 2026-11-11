@@ -59,6 +59,7 @@ export {
   storesWithOrderPushCouriers,
   storesWithPendingCodChecks,
   storesWithPendingDomains,
+  storesWithPendingGatewayRefunds,
   storesWithPendingManualOrders,
   storesWithRetentionDue,
   storesWithRolloutsDue,

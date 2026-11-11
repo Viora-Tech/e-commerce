@@ -28,7 +28,14 @@ import type { GstBreakdown } from '../tax/gst'
  * even inside the same store. Drafts are the merchant's and never listed.
  */
 
-export type ShopperPaymentState = 'paid' | 'pending' | 'cod' | 'refunded' | 'failed'
+/** `refunded`: all of it went back; `partly_refunded`: some of it did. */
+export type ShopperPaymentState =
+  | 'paid'
+  | 'pending'
+  | 'cod'
+  | 'partly_refunded'
+  | 'refunded'
+  | 'failed'
 export type ShopperShipmentState =
   | 'unfulfilled'
   | 'created'
@@ -94,8 +101,9 @@ type OrderMoney = Pick<
 >
 
 /** The stored payment status first; the latest attempt only tells unpaid orders apart. */
-function shopperPayment(o: OrderMoney, latest: PaymentRow | undefined): ShopperPaymentState {
-  if (o.paymentStatus === 'refunded' || o.paymentStatus === 'partially_refunded') return 'refunded'
+export function shopperPayment(o: OrderMoney, latest: PaymentRow | undefined): ShopperPaymentState {
+  if (o.paymentStatus === 'refunded') return 'refunded'
+  if (o.paymentStatus === 'partially_refunded') return 'partly_refunded'
   if (o.paymentStatus === 'paid' || o.paymentStatus === 'refund_needed') return 'paid'
   // A deposit pre-order whose deposit is in reads as paid; the balance has its own panel.
   if (o.paymentStatus === 'partially_paid' && o.checkoutPaidAt) return 'paid'

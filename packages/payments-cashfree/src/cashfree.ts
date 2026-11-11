@@ -37,6 +37,10 @@ import type {
 } from '@commerce/payments'
 import { safeEqual } from '@commerce/payments'
 import { type CfOrderSettlement, type CfPaidPayment, chargesOfPayment } from './charges'
+import { CashfreeApiError, cashfreeRequest } from './http'
+
+export { CASHFREE_TIMEOUT_MS } from './http'
+
 import { type CfWebhookBody, cashfreeEventId, normaliseCashfreeWebhook } from './webhook-events'
 
 export type CashfreeConfig = {
@@ -48,10 +52,6 @@ export type CashfreeConfig = {
   /** Written by the admin on connect (our webhook URL); sent as `order_meta.notify_url`. */
   notifyUrl?: string | undefined
 }
-
-const SANDBOX_HOST = 'https://sandbox.cashfree.com/pg'
-const PROD_HOST = 'https://api.cashfree.com/pg'
-const API_VERSION = '2026-01-01'
 
 /** Cashfree order id: 3-45 chars, alphanumeric plus `_` and `-`. */
 const ORDER_ID_MAX_LEN = 45
@@ -109,14 +109,21 @@ function clip(value: string, max: number): string {
 }
 
 /**
- * Cashfree order id: `o<orderNumber>_<first 8 hex chars of orderId>_<attempt>`,
- * sanitised to the characters Cashfree allows and capped at 45 chars.
+ * Cashfree order id: `o<orderNumber>_<first 8 hex chars of orderId>_<attempt>`, or
+ * `d<draftNumber>_…` for a checkout draft, sanitised to the characters Cashfree allows and
+ * capped at 45 chars. The number keeps ids unique: 8 hex chars alone collide across a busy
+ * store's drafts, and Cashfree refuses a repeated order id (#1596).
  */
 export function buildCashfreeOrderId(input: CreatePaymentInput): string {
-  const numberPart = input.orderNumber != null ? String(input.orderNumber) : ''
+  const numberPart =
+    input.orderNumber != null
+      ? `o${input.orderNumber}`
+      : input.draftNumber != null
+        ? `d${input.draftNumber}`
+        : 'o'
   const idPart = input.orderId.replace(/-/g, '').slice(0, 8)
   const attempt = input.idempotencyKey?.split(':').at(-1) || '1'
-  const raw = `o${numberPart}_${idPart}_${attempt}`
+  const raw = `${numberPart}_${idPart}_${attempt}`
   return clip(sanitiseId(raw), ORDER_ID_MAX_LEN)
 }
 
@@ -166,15 +173,6 @@ type CfRefundResponse = {
   refund_status: string
 }
 
-class CashfreeApiError extends Error {
-  constructor(
-    message: string,
-    readonly status: number,
-  ) {
-    super(message)
-  }
-}
-
 /**
  * Cashfree Payment Gateway adapter. Order-first flow: we create a Cashfree
  * order for the amount, the browser opens Cashfree Checkout with the
@@ -195,40 +193,13 @@ export class CashfreeProvider implements PaymentProvider {
     return this.config.mode
   }
 
-  private async request<T>(
+  private request<T>(
     method: string,
     path: string,
     body?: unknown,
     extraHeaders?: Record<string, string>,
   ): Promise<T> {
-    const host = this.config.mode === 'live' ? PROD_HOST : SANDBOX_HOST
-    const init: RequestInit = {
-      method,
-      headers: {
-        'x-client-id': this.config.appId,
-        'x-client-secret': this.config.secretKey,
-        'x-api-version': API_VERSION,
-        'content-type': 'application/json',
-        ...extraHeaders,
-      },
-    }
-    if (body !== undefined) init.body = JSON.stringify(body)
-    const res = await this.fetchImpl(`${host}${path}`, init)
-    const text = await res.text()
-    let json: unknown = {}
-    if (text) {
-      try {
-        json = JSON.parse(text)
-      } catch {
-        json = {}
-      }
-    }
-    if (!res.ok) {
-      const message =
-        (json as { message?: string })?.message ?? `Cashfree request failed (${res.status})`
-      throw new CashfreeApiError(message, res.status)
-    }
-    return json as T
+    return cashfreeRequest<T>(this.fetchImpl, this.config, method, path, body, extraHeaders)
   }
 
   async createPayment(input: CreatePaymentInput): Promise<CreatePaymentResult> {
@@ -394,11 +365,17 @@ export class CashfreeProvider implements PaymentProvider {
     }
     if (note && note.length >= 3) body.refund_note = clip(note, REFUND_NOTE_MAX_LEN)
 
-    const r = await this.request<CfRefundResponse>(
-      'POST',
-      `/orders/${context.providerRef}/refunds`,
-      body,
-    )
+    const path = `/orders/${context.providerRef}/refunds`
+    const r = await this.request<CfRefundResponse>('POST', path, body).catch(async (err) => {
+      // Our own key, refused: the first try may have refunded with its reply lost (#1595).
+      // Report that refund when it is for this amount; otherwise the refusal stands.
+      if (!context.refundKey || !(err instanceof CashfreeApiError)) throw err
+      const existing = await this.request<CfRefundResponse>('GET', `${path}/${refundId}`).catch(
+        () => null,
+      )
+      if (!existing || Math.round(existing.refund_amount * 100) !== amountPaise) throw err
+      return existing
+    })
     return {
       providerRefundId: String(r.cf_refund_id ?? refundId),
       status: r.refund_status === 'SUCCESS' ? 'processed' : 'pending',
