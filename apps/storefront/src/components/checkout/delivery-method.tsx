@@ -7,7 +7,7 @@ import DeliveryRouteChoices from '@/components/checkout/delivery-route-choices'
 import InsuranceToggle from '@/components/checkout/insurance-toggle'
 import OptionCard from '@/components/checkout/option-card'
 import { checkoutContent as content } from '@/data/checkout'
-import { deliveryOptionsContent as appCopy } from '@/data/delivery-options'
+import { deliveryCardNote } from '@/lib/delivery-card-note'
 import type { CheckoutRate, CheckoutShipping } from '@/lib/shipping'
 
 type DeliveryMethodProps = {
@@ -27,6 +27,8 @@ type DeliveryMethodProps = {
   onInsurance?: (insured: boolean) => void
   /** The address is outside India: it asks for the address, not a PIN code (#64). */
   abroad?: boolean
+  /** Cash on delivery is a way to pay here: only then does a prepaid-only card say so. */
+  codOffered?: boolean
 }
 
 /**
@@ -38,7 +40,7 @@ type DeliveryMethodProps = {
  * picked one. Free shipping is one card. An order leaving from more than one warehouse lists
  * its parcels under the cards. With the Delivery options app each card names its courier
  * ("Express · Blue Dart"), a product rule may offer couriers to pick between under it, a
- * prepaid-only option says so, and the insurance checkbox sits under the cards.
+ * prepaid-only option quietly says so when COD is offered, and the insurance checkbox sits under the cards.
  */
 export default function DeliveryMethod({
   shipping,
@@ -53,6 +55,7 @@ export default function DeliveryMethod({
   insurance = null,
   onInsurance,
   abroad = false,
+  codOffered = false,
 }: DeliveryMethodProps) {
   // Hooks
   const money = useFormatPaise()
@@ -181,7 +184,7 @@ export default function DeliveryMethod({
                     null
                   }
                   meta={sub ? price(sub.pricePaise) : meta(o)}
-                  note={o.delivery && !o.delivery.codAllowed ? appCopy.prepaidOnly : null}
+                  note={deliveryCardNote(o, codOffered)}
                 />
                 {picked && choices.length > 1 && onRoute ? (
                   <DeliveryRouteChoices
