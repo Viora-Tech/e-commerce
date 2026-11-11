@@ -1,9 +1,11 @@
 import 'server-only'
+import { CONSENT_COOKIE } from '@commerce/core/preferences'
 import { logger } from '@commerce/observability/logging'
 import { affiliateState } from '@commerce/plugin-affiliates/server'
 import type { NextRequest, NextResponse } from 'next/server'
 import { countAffiliateClick } from './affiliates'
 import { REFERRAL_COOKIE } from './attribution-cookie'
+import { marketingAllowed } from './consent-cookie'
 import { isPrefetch, referralClick } from './referral-click'
 import { inStore } from './store-context'
 
@@ -29,10 +31,33 @@ async function linkWindowDays(storeId: string): Promise<number | null> {
 }
 
 /**
- * An affiliate link landing (`?ref=`): sets the referral cookie for the store's link window and
- * counts the click. Runs in the proxy, whatever the consent banner says: the cookie holds the
- * code and click time only (functional, so the affiliate earns on the sale) and the count is a
- * per-affiliate daily total. Never fails the page.
+ * Sets the referral cookie (`<code>.<click time>`) for the store's link window. False when the
+ * store does not have the Affiliates app.
+ */
+export async function setReferralCookie(
+  storeId: string,
+  response: NextResponse,
+  cookie: string,
+  secure: boolean,
+): Promise<boolean> {
+  const days = await linkWindowDays(storeId)
+  if (days === null) return false
+  response.cookies.set(REFERRAL_COOKIE, cookie, {
+    httpOnly: true,
+    sameSite: 'lax',
+    secure,
+    path: '/',
+    maxAge: days * DAY_SECONDS,
+  })
+  return true
+}
+
+/**
+ * An affiliate link landing (`?ref=`): counts the click and, once the shopper has said yes to
+ * marketing cookies, sets the referral cookie for the store's link window (owner, 12 Nov 2026).
+ * Without that yes the banner keeps the landing in the tab and sets the cookie on a later yes
+ * (`lib/referral-pending.ts`, `/api/referral`). The count is a per-affiliate daily total and
+ * needs no consent. Runs in the proxy; never fails the page.
  */
 export async function noteReferral(
   storeId: string,
@@ -45,19 +70,16 @@ export async function noteReferral(
     method: request.method,
     userAgent: request.headers.get('user-agent'),
     prefetch: isPrefetch(request.headers),
+    marketing: marketingAllowed(request.cookies.get(CONSENT_COOKIE)?.value),
     now: new Date(),
   })
   if (!click) return
   try {
-    const days = await linkWindowDays(storeId)
-    if (days === null) return
-    response.cookies.set(REFERRAL_COOKIE, click.cookie, {
-      httpOnly: true,
-      sameSite: 'lax',
-      secure: request.nextUrl.protocol === 'https:',
-      path: '/',
-      maxAge: days * DAY_SECONDS,
-    })
+    const secure = request.nextUrl.protocol === 'https:'
+    const installed = click.cookie
+      ? await setReferralCookie(storeId, response, click.cookie, secure)
+      : (await linkWindowDays(storeId)) !== null
+    if (!installed) return
     if (click.count) await inStore(storeId, (tx) => countAffiliateClick(tx, storeId, click.code))
   } catch (err) {
     logger.warn('could not note an affiliate link click', { storeId, error: err })

@@ -8,3 +8,8 @@ import { decodeConsent } from '@commerce/core/preferences'
 export function analyticsAllowed(raw: string | undefined): boolean {
   return decodeConsent(raw)?.analytics === true
 }
+
+/** Whether the consent cookie says yes to marketing (the affiliate referral cookie waits for it). */
+export function marketingAllowed(raw: string | undefined): boolean {
+  return decodeConsent(raw)?.marketing === true
+}

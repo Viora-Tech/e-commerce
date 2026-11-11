@@ -26,7 +26,7 @@ export const consentContent = {
   categories: {
     necessary: {
       label: 'Necessary',
-      body: 'Cart, checkout and security, and the affiliate referral: if an affiliate’s link brought you, which affiliate (never who you are), so they are credited for your order. Always on.',
+      body: 'Cart, checkout and security. Always on.',
     },
     analytics: {
       label: 'Analytics',
@@ -34,7 +34,7 @@ export const consentContent = {
     },
     marketing: {
       label: 'Marketing',
-      body: 'Shares your visits and purchases with advertising partners such as Meta, with your email and phone scrambled first, to measure and show ads.',
+      body: 'Shares your visits and purchases with advertising partners such as Meta, with your email and phone scrambled first, to measure and show ads. Also the affiliate referral: if an affiliate’s link brought you, which affiliate (never who you are), so they are credited for your order.',
     },
   },
 } as const
