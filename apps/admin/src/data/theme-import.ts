@@ -18,6 +18,10 @@ export const themeImportContent = {
     title: 'Imported from Shopify · Liquid',
     body: 'Its settings come from the section’s schema. Add, hide and reorder its blocks in Layers; change its markup in code.',
     openCode: 'Open in Edit code',
+    /** On a block or section that lists the store's policies (`shop.policies`, #1486). */
+    policies:
+      'These links are the policies you publish in Settings › Policies (refund, privacy, terms, shipping, contact). None published, none show.',
+    openPolicies: 'Open Policies',
   },
   dialog: {
     title: 'Import your Shopify theme',

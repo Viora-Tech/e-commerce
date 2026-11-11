@@ -21,6 +21,7 @@ import ImportedSectionNote from './imported-section-note'
 import InspectorBreadcrumb from './inspector-breadcrumb'
 import InspectorEmpty from './inspector-empty'
 import LiquidBlockInspector from './liquid-block-inspector'
+import PoliciesSourceNote from './policies-source-note'
 import SectionIcon from './section-icon'
 import SegmentedTabs from './segmented-tabs'
 
@@ -118,6 +119,7 @@ export default function SectionInspector() {
         )}
       </header>
       {liquidType ? <ImportedSectionNote sectionType={liquidType} place="top" /> : null}
+      {liquidType ? <PoliciesSourceNote names={[liquidType, label]} /> : null}
       {hasAdvanced ? (
         <>
           <SegmentedTabs
