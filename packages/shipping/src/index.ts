@@ -9,6 +9,7 @@ export {
   courierJson,
   courierRefusalReason,
 } from './courier-error'
+export { courierTimeToIso } from './courier-time'
 export { isDomesticCountry, servesDestination } from './coverage'
 export {
   type CustomsLine,

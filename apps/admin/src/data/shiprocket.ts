@@ -52,7 +52,7 @@ export const shiprocketAppContent = {
       baseUrlHelp: 'Leave blank for production.',
       webhookSecretLabel: 'Webhook shared secret',
       webhookSecretHelp:
-        'Required for automatic tracking updates. Paste the same value into the custom header field when you register the tracking webhook in Shiprocket (Settings › API › Webhooks); a webhook call without it is refused.',
+        'Required for automatic tracking updates. Paste the same value into the Token field when you register the tracking webhook in Shiprocket (Settings › API › Webhooks); a webhook call without it is refused.',
       webhookUrlLabel: 'Tracking webhook URL',
       webhookNeedsDomain:
         'Webhooks only work once your store is live on a public domain - Shiprocket cannot reach localhost or a preview URL.',

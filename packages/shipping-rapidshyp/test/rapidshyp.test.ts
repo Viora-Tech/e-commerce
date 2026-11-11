@@ -424,6 +424,37 @@ describe('RapidshypProvider track', () => {
     expect(t.events[1]?.status).toBe('delivered')
   })
 
+  it('reads scan times as India time, in either date order, and never fails on an odd one', async () => {
+    const f = fakeFetch({
+      '/rapidshyp/apis/v1/track_order': () =>
+        json({
+          success: true,
+          records: [
+            {
+              shipment_details: [
+                {
+                  awb: 'RS999',
+                  shipment_status: 'IN_TRANSIT',
+                  current_tracking_status_code: 'INT',
+                  track_scans: [
+                    { status_code: 'PUC', date: '18-09-2026 10:00:00' },
+                    { status_code: 'INT', date: '2026-09-19 08:00:00' },
+                    { status_code: 'INT', date: 'sometime soon' },
+                  ],
+                },
+              ],
+            },
+          ],
+        }),
+    })
+    const p = new RapidshypProvider({ ...config, fetchImpl: f.impl })
+    const t = await p.track('RS999')
+    const times = t.events.map((e) => e.at)
+    expect(times).toContain('2026-09-18T04:30:00.000Z')
+    expect(times).toContain('2026-09-19T02:30:00.000Z')
+    expect(t.events).toHaveLength(3)
+  })
+
   it('maps an undelivered scan so the shared NDR detector picks it up', async () => {
     const f = fakeFetch({
       '/rapidshyp/apis/v1/track_order': () =>
