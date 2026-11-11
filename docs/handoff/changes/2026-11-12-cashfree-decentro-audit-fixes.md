@@ -8,7 +8,8 @@ Neither app is marked `tested: true`; that waits for the owner's sandbox check.
   (`REFUND_STATUS_WEBHOOK:<cf_refund_id>:<status>`). Before, a PENDING or ONHOLD webhook took
   the id first and the SUCCESS or CANCELLED after it was dropped as a duplicate. Payment
   webhooks keep their old ids.
-- **Timeouts (#1594, #1597).** Every Cashfree call (`CashfreeProvider.request`) and every
+- **Timeouts (#1594, #1597).** Every Cashfree call (now `cashfreeRequest` in the new
+  `packages/payments-cashfree/src/http.ts`, split out to keep `cashfree.ts` under 500 lines) and every
   Decentro call (`decentroRequest`, collections and payouts) gives up after 15 s
   (`CASHFREE_TIMEOUT_MS`, `DECENTRO_TIMEOUT_MS`) with "Cashfree/Decentro did not answer in 15s".
 - **Cashfree refund retry (#1595).** When the refund POST is refused and our refund key was
