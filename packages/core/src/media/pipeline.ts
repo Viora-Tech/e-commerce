@@ -70,9 +70,9 @@ export type ProcessImageInput = {
   /** Encoder effort/speed; lower is faster. Defaults tuned for a small 2-vCPU box. */
   effort?: { avif?: number; webp?: number } | undefined
   /**
-   * 'bulk' (Shopify import, thousands of images): AVIF effort 2 and widths encoded one after
-   * another, so several parallel jobs fit a 2-vCPU box and 1.5 GB. 'interactive' (default) is the
-   * merchant's own upload: full quality, all widths at once. Explicit `effort` still wins.
+   * 'bulk' (Shopify import, thousands of images): AVIF effort 2, so several parallel jobs fit a
+   * 2-vCPU box and 1.5 GB. 'interactive' (default) is the merchant's own upload: full quality.
+   * Both encode widths one after another to keep peak memory low. Explicit `effort` still wins.
    */
   profile?: ImageProfile | undefined
   /** Override for tests: proves the bomb guard rejects with a small, valid image instead of needing a real 40MP fixture. */
@@ -281,10 +281,11 @@ export async function processImage(input: ProcessImageInput): Promise<ProcessIma
       },
     }
   }
-  // Bulk: one width at a time, so peak memory is one set of encoder buffers per job.
+  // One width at a time for every profile, so peak memory is one set of encoder buffers per job.
+  // Encoding all widths at once peaked at 400–500 MB for a 12–24 MP photo, over the worker's
+  // 384 MB limit, and gained nothing on the worker's single core (#1547, measured in #1542).
   const variants: Awaited<ReturnType<typeof encodeWidth>>[] = []
-  if (profile === 'bulk') for (const width of widths) variants.push(await encodeWidth(width))
-  else variants.push(...(await Promise.all(widths.map(encodeWidth))))
+  for (const width of widths) variants.push(await encodeWidth(width))
 
   const thumbSource = await sharp(masterBuffer, { limitInputPixels: limit })
     .resize({

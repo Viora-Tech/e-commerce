@@ -5,13 +5,14 @@ import { Card } from '@commerce/ui/shadcn/card'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { type ReactNode, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
+import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
 import { settingsRowsContent } from '@/data/settings-rows'
 import { taxesContent as copy } from '@/data/taxes'
 import { useCopy } from '@/hooks/use-copy'
 import { useSetupNext } from '@/hooks/use-setup-next'
 import { api } from '@/lib/api-client'
-import SettingsDrill from '../settings-drill'
+import SettingsDrill, { type DrillHeader } from '../settings-drill'
 import SettingsDrillPanel from '../settings-drill-panel'
 import ChargingCard from './charging-card'
 import GstExplainer from './gst-explainer'
@@ -28,6 +29,8 @@ type TaxesSettingsProps = {
   gstNumbers: ReactNode
   /** Tells the page header whether there is something to save, and how to save it. */
   onSaveState: (state: TaxesSaveState) => void
+  /** The page header, drawn here so an open row takes it over (one "‹ GST & invoices"). */
+  header?: DrillHeader
 }
 
 export type TaxesSaveState = { dirty: boolean; busy: boolean; save: () => void }
@@ -70,6 +73,7 @@ export default function TaxesSettings({
   gstCount,
   gstNumbers,
   onSaveState,
+  header,
 }: TaxesSettingsProps) {
   // Hooks
   const rowsCopy = useCopy(settingsRowsContent)
@@ -196,9 +200,12 @@ export default function TaxesSettings({
         saving={busy}
       />
       {!form || !view ? (
-        <LoadingCards />
+        <>
+          {header ? <PageHeader {...header} /> : null}
+          <LoadingCards />
+        </>
       ) : (
-        <SettingsDrill rows={rows} backLabel={t.back}>
+        <SettingsDrill rows={rows} backLabel={t.back} header={header}>
           <SettingsDrillPanel id="gst-numbers">{gstNumbers}</SettingsDrillPanel>
           <SettingsDrillPanel id="registration">
             <RegistrationCard

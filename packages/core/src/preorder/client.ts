@@ -36,12 +36,15 @@ export { isLaunched, msUntilLaunch } from './launch'
 export { PREORDER_NOTE_MAX, PREORDER_NOTE_PLACEHOLDERS, preorderNoteText } from './note'
 export type { PreorderPaymentMode, PreorderSettings, ProductPreorderRow } from './settings'
 export {
+  nextVariantPreorderOverride,
   PreorderSettingsInputSchema,
   resolvePreorderSettings,
   resolveShipDate,
   validateDepositAgainstPrice,
   variantAllowsPreorder,
+  variantPreorderLimit,
   withPreorderAllowed,
+  withPreorderLimit,
 } from './settings'
 export type { PreorderStoreSettings, UnpaidBalanceAction } from './store-settings'
 export {

@@ -4,6 +4,7 @@ import { permissions } from '@commerce/core/permissions'
 import { Plus, UserPlus } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
+import { useQueryState } from 'nuqs'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
@@ -51,6 +52,7 @@ export default function StaffSettings() {
   const [inviteOpen, setInviteOpen] = useState(false)
   const [pendingRemove, setPendingRemove] = useState<StaffMemberRow | null>(null)
   const [pendingDelete, setPendingDelete] = useState<RoleRow | null>(null)
+  const [open] = useQueryState('open')
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: load the team once per mount
   useEffect(() => {
@@ -124,21 +126,33 @@ export default function StaffSettings() {
     { id: 'roles', title: s.roles, value: roles ? s.rolesValue(roles.length) : '' },
   ]
 
+  // Inside a row the header names it and leads back to Staff (one back link, as other settings
+  // pages); its action sits in the header too: Create role on Roles, Invite member elsewhere.
+  const openRow = rows.find((r) => r.id === open)
+  const action =
+    openRow?.id === 'roles' ? (
+      canManage ? (
+        <Button nativeButton={false} render={<Link href={routes.settings.newRole()} />}>
+          <Plus aria-hidden="true" />
+          {copy.roles.create}
+        </Button>
+      ) : undefined
+    ) : canInvite ? (
+      <Button onClick={() => setInviteOpen(true)}>
+        <UserPlus aria-hidden="true" />
+        {copy.members.invite}
+      </Button>
+    ) : undefined
+
   return (
     <div className="flex flex-col gap-4">
       <PageHeader
-        title={copy.title}
-        subtitle={copy.intro}
-        actions={
-          canInvite ? (
-            <Button onClick={() => setInviteOpen(true)}>
-              <UserPlus aria-hidden="true" />
-              {copy.members.invite}
-            </Button>
-          ) : undefined
-        }
+        title={openRow?.title ?? copy.title}
+        subtitle={openRow ? undefined : copy.intro}
+        back={openRow ? { label: copy.title, href: routes.settings.staff() } : undefined}
+        actions={action}
       />
-      <SettingsDrill rows={rows} backLabel={copy.title}>
+      <SettingsDrill rows={rows} backLabel={copy.title} backRow={false}>
         <SettingsDrillPanel id="members">
           <MembersCard
             members={members ?? []}
@@ -153,14 +167,6 @@ export default function StaffSettings() {
           <PendingInvitesCard invites={invites} canInvite={canInvite} onChanged={reload} />
         </SettingsDrillPanel>
         <SettingsDrillPanel id="roles">
-          {canManage ? (
-            <div className="flex justify-end">
-              <Button nativeButton={false} render={<Link href={routes.settings.newRole()} />}>
-                <Plus aria-hidden="true" />
-                {copy.roles.create}
-              </Button>
-            </div>
-          ) : null}
           <RolesCard roles={roles ?? []} canManage={canManage} onDelete={setPendingDelete} />
         </SettingsDrillPanel>
       </SettingsDrill>

@@ -7,6 +7,7 @@ import { Button } from '@commerce/ui/shadcn/button'
 import { Checkbox } from '@commerce/ui/shadcn/checkbox'
 import { Input } from '@commerce/ui/shadcn/input'
 import { TableCell, TableRow } from '@commerce/ui/shadcn/table'
+import Link from 'next/link'
 import MoneyInput from '@/components/fields/money-input'
 import StatusChip from '@/components/layout/status-chip'
 import { productFormContent } from '@/data/product-form'
@@ -24,7 +25,8 @@ type VariantMatrixRowProps = {
   selected: boolean
   onSelect: (checked: boolean) => void
   onChange: (patch: Partial<VariantRow>) => void
-  onEdit: () => void
+  /** The variant's own page; null for a variant added since the last save (it has none yet). */
+  href: string | null
   /** Files uploaded from a variant's images dialog join the product gallery. */
   onAddMedia: (items: MediaItem[]) => void
 }
@@ -32,7 +34,8 @@ type VariantMatrixRowProps = {
 /** Same grid as ResourceTable's body: rows on lighter hairlines. */
 const CELL = 'border-b border-line px-3 py-2 text-body first:pl-5 last:pr-5'
 
-/** One variant of the matrix, edited in place: price, MRP, SKU and stock. */
+/** One variant of the matrix, edited in place: price, MRP, SKU and stock; its title and pencil
+ *  open the variant's own page for everything else. */
 export default function VariantMatrixRow({
   variant: v,
   media,
@@ -40,7 +43,7 @@ export default function VariantMatrixRow({
   selected,
   onSelect,
   onChange,
-  onEdit,
+  href,
   onAddMedia,
 }: VariantMatrixRowProps) {
   // Hooks
@@ -74,7 +77,13 @@ export default function VariantMatrixRow({
       </TableCell>
       <TableCell className={cn(CELL, 'font-medium text-ink-strong')}>
         <span className="flex min-w-0 items-center gap-2">
-          <span className="truncate">{title}</span>
+          {href ? (
+            <Link href={href} className="truncate hover:underline">
+              {title}
+            </Link>
+          ) : (
+            <span className="truncate">{title}</span>
+          )}
           {v.hiddenOnStore ? (
             <StatusChip tone="neutral" variant="outline">
               {variantsCopy.hidden}
@@ -129,16 +138,31 @@ export default function VariantMatrixRow({
         />
       </TableCell>
       <TableCell className={cn(CELL, 'text-right')}>
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon-sm"
-          onClick={onEdit}
-          aria-label={variantsCopy.editVariant(title)}
-          title={variantsCopy.edit}
-        >
-          <Pencil aria-hidden="true" />
-        </Button>
+        {href ? (
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            nativeButton={false}
+            render={<Link href={href} />}
+            aria-label={variantsCopy.editVariant(title)}
+            title={variantsCopy.edit}
+          >
+            <Pencil aria-hidden="true" />
+          </Button>
+        ) : (
+          // Added since the last save: no page yet. Price, MRP, SKU and stock still edit here.
+          <span title={variantsCopy.saveFirst} className="inline-flex">
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              disabled
+              aria-label={variantsCopy.saveFirst}
+            >
+              <Pencil aria-hidden="true" />
+            </Button>
+          </span>
+        )}
       </TableCell>
     </TableRow>
   )

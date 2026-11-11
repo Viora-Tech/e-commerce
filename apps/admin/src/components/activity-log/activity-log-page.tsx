@@ -130,7 +130,7 @@ export default function ActivityLogPage() {
   // Early returns
   if (failure === 'forbidden') {
     return (
-      <div className="flex flex-col gap-5">
+      <div className="flex flex-col gap-4">
         <PageHeader title={copy.title} summary={copy.intro} />
         <PageState kind="no-access" body={copy.noAccess} />
       </div>
@@ -184,7 +184,7 @@ export default function ActivityLogPage() {
   const filtered = applied.length > 0 || search !== ''
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-4">
       <PageHeader title={copy.title} summary={copy.intro} />
       {failure === 'failed' ? (
         <PageState kind="error" body={copy.failed} onRetry={handleRetry} />

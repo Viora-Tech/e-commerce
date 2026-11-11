@@ -1,5 +1,6 @@
 import {
   appSettingsOf,
+  lockStoreApps,
   parseAppsSettings,
   parsePaymentSettings,
   withAppSettings,
@@ -29,11 +30,12 @@ export type EmiSettingsView = {
 }
 
 async function loadRow(tx: StoreTx, storeId: string, lock = false) {
-  const read = tx
+  // About to write store.apps back: hold the row lock first (lockStoreApps), so no writer is lost.
+  if (lock) await lockStoreApps(tx, storeId)
+  const [s] = await tx
     .select({ apps: store.apps, payments: store.payments })
     .from(store)
     .where(eq(store.id, storeId))
-  const [s] = lock ? await read.for('update') : await read
   return { apps: parseAppsSettings(s?.apps), payments: parsePaymentSettings(s?.payments) }
 }
 

@@ -52,6 +52,15 @@ export const orderDetailContent = {
     viewStatusPage: 'View order status page',
     statusPageFailed: 'Could not open the order status page. Try again.',
   },
+  /** Mark as delivered asks first (owner, 11 Nov 2026): the shopper's message cannot be recalled. */
+  delivered: {
+    title: (n: number) => `Mark #${n} as delivered?`,
+    body: 'Use this when the parcel has reached the customer. Mark as not delivered undoes it, but a message already sent stays sent.',
+    notify: 'Notify customer',
+    notifyHint: 'Sends the "order delivered" message.',
+    confirm: 'Confirm',
+    done: 'Marked as delivered',
+  },
   duplicate: {
     action: 'Duplicate order',
     done: 'Draft created from this order',
@@ -62,6 +71,7 @@ export const orderDetailContent = {
     failed: 'Could not duplicate this order',
   },
   moved: (status: string) => `Order marked as ${status}`,
+  alreadyPacked: 'Already packed: book it again or add its tracking number.',
   courierOrders: {
     heading: 'Courier apps',
     status: {

@@ -199,9 +199,10 @@ export const product = pgTable(
 /**
  * Optional per-variant override of the product's pre-order settings; any key
  * left out inherits the product's value. See `@commerce/core/preorder` for
- * the merge (`resolvePreorderSettings`). The admin edits `enabled: false` only, the
- * variant's "Allow pre-order" switch (a variant sells on pre-order when the product has it on
- * and the variant allows it); the other keys are not exposed yet.
+ * the merge (`resolvePreorderSettings`). The admin edits `enabled: false`, the variant's
+ * "Allow pre-order" switch (a variant sells on pre-order when the product has it on and the
+ * variant allows it), and `limit`, the variant's own pre-order limit (wins over the product's
+ * and the campaign's). The other keys are not exposed yet.
  */
 export type VariantPreorderOverride = {
   /** False: this variant never sells on pre-order. Cannot turn pre-order on by itself. */

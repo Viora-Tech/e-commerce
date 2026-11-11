@@ -1,3 +1,4 @@
+import { settingsSecret } from '@commerce/config'
 import {
   CommerceError,
   cancelOrderByStaff,
@@ -14,10 +15,12 @@ import {
   takeOverImportedOrder,
 } from '@commerce/core'
 import type { StoreTx } from '@commerce/db'
-import { store } from '@commerce/db'
+import { shipment, store } from '@commerce/db'
 import type { PaymentRegistry } from '@commerce/payments'
 import { ORPCError } from '@orpc/server'
-import { eq } from 'drizzle-orm'
+import { and, eq } from 'drizzle-orm'
+import { storeRegistries } from './apps.service'
+import { cancelStoreShipment } from './shipping.service'
 
 /** The store's connected gateways, the ones a refund to the original payment can go through. */
 async function storeProviders(
@@ -63,6 +66,25 @@ export async function cancelStoreOrder(
 ) {
   const providers = await storeProviders(tx, storeId, deps.registry, deps.secret)
   return cancelOrderByStaff({ tx, storeId }, input, providers).catch(asRpcError)
+}
+
+/**
+ * Cancel Order's "Also cancel courier label": the order's own live label goes through the
+ * Cancel shipment path (the courier first, then the parcel is unpacked). A label of another
+ * order is refused; a courier refusal throws, so the caller never cancels the order.
+ */
+export async function cancelOrderLabel(
+  tx: StoreTx,
+  storeId: string,
+  input: { orderId: string; shipmentId: string; author: string },
+) {
+  const [row] = await tx
+    .select({ id: shipment.id })
+    .from(shipment)
+    .where(and(eq(shipment.id, input.shipmentId), eq(shipment.orderId, input.orderId)))
+  if (!row) throw new ORPCError('NOT_FOUND', { message: 'Shipment not found on this order' })
+  const { shipping } = await storeRegistries(tx, storeId)
+  return cancelStoreShipment(tx, storeId, shipping, settingsSecret(), row.id, input.author)
 }
 
 export async function takeOverStoreOrder(

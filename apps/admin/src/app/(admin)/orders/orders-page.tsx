@@ -13,6 +13,7 @@ import { Suspense, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import type { OrderActionGroup } from '@/apps/order-actions'
 import ProoflyListPage from '@/components/layout/proofly-list-page'
+import BulkFulfilDialog from '@/components/orders/bulk-fulfil-dialog'
 import DeleteTestOrdersDialog from '@/components/orders/delete-test-orders-dialog'
 import OrderRowMenu from '@/components/orders/order-row-menu'
 import { orderRowDone } from '@/components/orders/order-stage'
@@ -49,6 +50,7 @@ import {
   orderFilterGroups,
   orderFilterInput,
 } from '@/lib/order-list-filters'
+import { undeliverableInBulk } from '@/lib/order-next-move'
 import { usePrimaryAction } from '@/lib/primary-action'
 import { routes } from '@/lib/routes'
 import { parseRowsPerPage } from '@/lib/rows-per-page'
@@ -135,6 +137,7 @@ function OrdersContent({ initial }: { initial: OrdersInitial }) {
   const [testOrders, setTestOrders] = useState(initial.result.testOrders)
   const [askDeleteTests, setAskDeleteTests] = useState(false)
   const [bulkRequest, setBulkRequest] = useState<OrdersBulkRequest | null>(null)
+  const [bulkFulfil, setBulkFulfil] = useState<{ ids: string[]; clear: () => void } | null>(null)
 
   const hydrated = useRef(false)
   const apps = useOrderAppActions(initial.appActions, () => {
@@ -214,10 +217,15 @@ function OrdersContent({ initial }: { initial: OrdersInitial }) {
     reload().catch(() => setFailed(true))
   }
   const handleBulkSetStatus = async (ids: string[], mark: OrderMark, clear: () => void) => {
-    /* Cancelled and imported orders on screen cannot take a mark: skipped without a call. */
+    // Mark as fulfilled asks for one courier and a tracking number per order (owner, 11 Nov).
+    if (mark === 'fulfilled') return void setBulkFulfil({ ids, clear })
+    /* Cancelled and imported orders on screen cannot take a mark: skipped without a call.
+       Mark as delivered also skips what never went out (the API refuses it too). */
+    const delivering = mark === 'delivered'
     const loaded = new Map(items.map((o) => [o.id, o]))
     const due = ids.filter((id) => {
       const o = loaded.get(id)
+      if (o && delivering) return !o.importedFrom && !undeliverableInBulk(o)
       return !o || mark === 'cancelled' || (o.status !== 'cancelled' && !o.importedFrom)
     })
     let skipped = ids.length - due.length
@@ -227,7 +235,11 @@ function OrdersContent({ initial }: { initial: OrdersInitial }) {
     /* "Select all" can hand over thousands of ids: ten requests at a time, never all at once. */
     const { failed } = await runBatched(due, async (id) => {
       try {
-        await api.orders.setStatus({ id, status: mark })
+        await api.orders.setStatus({
+          id,
+          status: mark,
+          ...(delivering ? { onlyShipped: true } : {}),
+        })
         updated += 1
       } catch (err) {
         if (isApprovalQueued(err)) {
@@ -242,6 +254,7 @@ function OrdersContent({ initial }: { initial: OrdersInitial }) {
     if (queued > 0) toast.info(approvals.sent)
     if (failed > 0 && updated === 0) toast.error(copy.bulk.failed)
     else if (failed > 0) toast.warning(copy.bulk.partlyFailed(updated, failed))
+    else if (delivering && queued === 0) toast.info(bulkCopy.deliveredDone(updated, skipped))
     else if (updated === 0) {
       if (queued === 0) toast.info(copy.bulk.noneUpdated(skipped))
     } else if (skipped > 0)
@@ -420,6 +433,16 @@ function OrdersContent({ initial }: { initial: OrdersInitial }) {
         onClose={() => setBulkRequest(null)}
         onDone={() => {
           setBulkRequest(null)
+          reload().catch(() => setFailed(true))
+        }}
+      />
+      <BulkFulfilDialog
+        ids={bulkFulfil?.ids ?? null}
+        items={items}
+        onClose={() => setBulkFulfil(null)}
+        onDone={() => {
+          bulkFulfil?.clear()
+          setBulkFulfil(null)
           reload().catch(() => setFailed(true))
         }}
       />

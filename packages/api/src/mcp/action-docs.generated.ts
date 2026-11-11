@@ -491,6 +491,8 @@ export const ACTION_DOCS: Record<string, string> = {
     'What the Orders filter panel offers: tags, discount codes, couriers and collections in use.',
   'orders.fulfil':
     'Pack some or all of the lines; the shopper is told once the parcel is complete.',
+  'orders.fulfilAll':
+    'Bulk "Mark as fulfilled" on the orders list: one order at a time, everything left packed under the courier picked once for the selection, with this order\'s tracking number if typed.',
   'orders.get':
     "One order with its lines, payments, shipment, balance due and the customer's order history.",
   'orders.getAbandoned': 'One abandoned checkout with its cart, contact and recovery link.',

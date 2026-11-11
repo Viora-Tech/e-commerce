@@ -52,34 +52,10 @@ export const productVariantsContent = {
   unlimited: 'Unlimited',
   edit: 'Edit',
   editVariant: (title: string) => `Edit ${title}`,
-  /** The centred dialog that edits one variant's details (#914). */
-  dialog: {
-    title: (title: string) => `Edit variant: ${title}`,
-    description:
-      'Price, stock, tax and shipping for this variant. Save the product to keep the changes.',
-    pricing: 'Pricing',
-    inventory: 'Inventory',
-    tax: 'Tax',
-    /** Variant dialog, when HSN and GST are set once for the product (#63). */
-    taxFromProduct: 'HSN code and GST rate are set for the whole product on the Shipping tab.',
-    /** Placeholder of a per-variant field left blank: the product's value applies. */
-    fromProduct: (value: string) => `Product: ${value}`,
-    shipping: 'Shipping',
-    track: 'Track quantity',
-    trackHelp: 'Off sells it without counting stock.',
-    visibility: 'Visibility',
-    hide: 'Hide on store',
-    hideHelp:
-      "Shoppers can't see, pick or buy it. It stays here, in orders and in reports. Use it instead of deleting.",
-    preorder: 'Allow pre-order',
-    preorderHelp:
-      'When the product is on pre-order, this variant keeps selling after it runs out. Off: once sold out it shows crossed out and cannot be bought.',
-    previous: 'Previous variant',
-    next: 'Next variant',
-    position: (n: string, of: string) => `${n} of ${of}`,
-    cancel: 'Cancel',
-    done: 'Done',
-  },
+  /** A variant added since the last save has no page yet. */
+  saveFirst: 'Save the product first, then open this variant for its other details.',
+  /** Products without options: their one variant's own page (barcode, weight, metafields). */
+  variantDetails: 'Variant details',
   footer: {
     stockAcross: (units: number, n: number) =>
       `${units} in stock across ${n} variant${n === 1 ? '' : 's'}`,

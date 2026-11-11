@@ -5,7 +5,6 @@ import type { McpSettings } from '@commerce/core/api-access'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
 import SettingsDrill from '@/components/settings/settings-drill'
 import SettingsDrillPanel from '@/components/settings/settings-drill-panel'
@@ -99,17 +98,34 @@ export default function McpPage({ overview, grants, serverUrl }: McpPageProps) {
         onDiscard={() => setSettings(saved)}
         saving={saving}
       />
-      <PageHeader
-        title={copy.title}
-        subtitle={copy.subtitle(store)}
-        save={{ dirty, saving, onSave: handleSave, label: copy.save }}
-      />
-      <McpStatusCard
-        connected={live}
-        lastRequestAt={overview.lastRequestAt}
-        serverUrl={serverUrl}
-      />
-      <SettingsDrill rows={rows} backLabel={copy.title}>
+      <SettingsDrill
+        rows={rows}
+        backLabel={copy.title}
+        header={{
+          title: copy.title,
+          subtitle: copy.subtitle(store),
+          save: { dirty, saving, onSave: handleSave, label: copy.save },
+          notice: (
+            <McpStatusCard
+              connected={live}
+              lastRequestAt={overview.lastRequestAt}
+              serverUrl={serverUrl}
+            />
+          ),
+        }}
+        after={
+          <SettingsList>
+            <li>
+              <SettingsLinkRow
+                href={routes.settings.mcp('activity')}
+                title={copy.activity.heading}
+                description={copy.activity.help}
+                value={m.activityValue}
+              />
+            </li>
+          </SettingsList>
+        }
+      >
         <SettingsDrillPanel id="connect">
           <McpConnectGuide serverUrl={serverUrl} onCreateToken={() => setCreating(true)} />
         </SettingsDrillPanel>
@@ -127,16 +143,6 @@ export default function McpPage({ overview, grants, serverUrl }: McpPageProps) {
           />
         </SettingsDrillPanel>
       </SettingsDrill>
-      <SettingsList>
-        <li>
-          <SettingsLinkRow
-            href={routes.settings.mcp('activity')}
-            title={copy.activity.heading}
-            description={copy.activity.help}
-            value={m.activityValue}
-          />
-        </li>
-      </SettingsList>
 
       <CreateTokenDialog open={creating} onOpenChange={setCreating} serverUrl={serverUrl} />
       <RevokeGrantDialog grant={revoking} storeName={store} onClose={() => setRevoking(null)} />

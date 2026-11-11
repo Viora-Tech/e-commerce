@@ -86,7 +86,9 @@ export const STATUS = {
     refund_needed: entry(ordersContent.paymentStatus.refund_needed, 'error'),
     // Shown only, never stored: a cancelled order nobody paid (`shownPaymentStatus`).
     voided: entry(ordersContent.paymentVoided, 'neutral'),
-  } satisfies Record<OrderPaymentStatus | 'voided', StatusEntry>,
+    // Shown only: a cancelled order still holding the customer's money (`shownPaymentStatus`).
+    refund_due: entry(ordersContent.paymentRefundDue, 'error'),
+  } satisfies Record<OrderPaymentStatus | 'voided' | 'refund_due', StatusEntry>,
   /** One payment attempt (payment card rows, the summary box). */
   payment: {
     created: entry(orderDetailContent.pills.payment.created, 'neutral'),
@@ -98,6 +100,8 @@ export const STATUS = {
     refunded: entry(orderDetailContent.pills.payment.refunded, 'info'),
     partially_refunded: entry(orderDetailContent.pills.partiallyRefunded, 'pending'),
     failed: entry(orderDetailContent.pills.payment.failed, 'error'),
+    // Shown only: an attempt captured on an order that was cancelled (`shownAttemptStatus`).
+    refund_due: entry(ordersContent.paymentRefundDue, 'error'),
   },
   /** The order's derived fulfilment status: list column, header pill, Unfulfilled card. */
   fulfilment: {
