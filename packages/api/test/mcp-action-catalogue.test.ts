@@ -5,6 +5,7 @@ import {
   classifyAction,
   exclusionReason,
   humanName,
+  isReadPath,
   kindForInput,
   procedureAt,
   routerProcedures,
@@ -29,6 +30,31 @@ describe('MCP action catalogue', () => {
     expect(classifyAction('products.somethingNew')).toBe('write')
     // "getaway" is not "get" + a word.
     expect(classifyAction('products.getaway')).toBe('write')
+  })
+
+  it('never holds back a calculation or a connection test for approval (#1525)', () => {
+    // Gated by a write permission (the draft editor's own), but they only work out an answer.
+    for (const path of [
+      'orders.estimateDraftGst',
+      'orders.checkDraftDiscount',
+      'store.estimateDelivery',
+      'payments.testConnection',
+      'store.testDecentroConnection',
+      'store.testDelhiveryConnection',
+      'store.testStorageConnection',
+      'chatwoot.settings.test',
+      'growthbook.settings.test',
+      'umami.settings.test',
+      'meilisearch.test',
+      'shopifyImport.testConnection',
+    ]) {
+      expect(isReadPath(path), path).toBe(true)
+      expect(procedureAt(appRouter, path), path).toBeTruthy()
+    }
+    // A test that does something outside the store still waits: it sends or makes a link.
+    expect(isReadPath('marketing.campaigns.testSend')).toBe(false)
+    expect(isReadPath('payments.testOrderLink')).toBe(false)
+    expect(isReadPath('orders.saveDraft')).toBe(false)
   })
 
   it('marks refunds, cancellations, deletes, keys, people, billing, domains and MCP settings sensitive', () => {

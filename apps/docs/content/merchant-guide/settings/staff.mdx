@@ -46,14 +46,26 @@ When nobody is waiting, the list says "No pending invites".
   Administrator roles have it; the Staff role does not.
 - Nobody but the owner can invite someone to a role with more access than their own.
 
-## Needs approval
+## Off, Allowed and Ask first
 
-Every role except the owner has a **Needs approval** card in **Settings → Staff → Roles**. Tick an
-action there and a member on that role who does it, from the admin, the AI assistant, an AI app
-(MCP) or an API token, does not change anything: the change waits in **Settings → Approvals** and
-they see "Sent for approval". Only the owner can change the ticks.
+Open a role in **Settings → Staff → Roles**. Its **Permissions** card has one control per
+permission:
 
-New stores and new roles start with these ticked: refunding and cancelling orders, deleting
+| Choice | What a member on this role gets |
+| --- | --- |
+| **Off** | They cannot do it. |
+| **Allowed** | They can do it, straight away. |
+| **Ask first** | They can ask: the change runs only after another member approves it in **Settings → Approvals**. |
+
+With **Ask first**, a member who does that action, from the admin, the AI assistant, an AI app
+(MCP) or an API token, does not change anything yet: the change waits in **Settings → Approvals**
+and they see "Sent for approval". Viewing permissions (**Read**) and **Approvals** itself only have
+**Off** and **Allowed**: looking, and working out a number such as a draft order's GST, never waits.
+
+Only the owner can set **Ask first**. Built-in roles keep their permissions, but the owner can
+still choose which of their changes ask first. **Save role** at the top saves everything at once.
+
+New stores and new roles start with these on **Ask first**: refunding and cancelling orders, deleting
 products and customers, discounts, payment gateways and payout keys (**Payments**), billing,
 inviting staff and managing roles. Other settings are not ticked.
 
@@ -61,7 +73,7 @@ Who can approve a waiting change:
 
 - The owner, always. The owner's own changes never wait.
 - A different member whose role has the **Approvals** permission and can make that change, and
-  whose own role does not tick it. The Administrator role has **Approvals**.
+  whose own role has it on **Allowed** (not **Ask first**). The Administrator role has **Approvals**.
 - Never the person who asked. They can only withdraw it.
 
 **Settings → Approvals** lists what waits for you, with who asked, from where and when, with

@@ -1,6 +1,11 @@
 'use client'
 
-import { type Permission, permissions } from '@commerce/core/permissions'
+import {
+  canNeedApproval,
+  DEFAULT_APPROVAL_PERMISSIONS,
+  type Permission,
+  permissions,
+} from '@commerce/core/permissions'
 import { Input } from '@commerce/ui/shadcn/input'
 import { Label } from '@commerce/ui/shadcn/label'
 import { useRouter } from 'next/navigation'
@@ -8,8 +13,8 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 import PageHeader from '@/components/layout/page-header'
 import SettingsCard from '@/components/settings/settings-card'
-import PermissionSwitches from '@/components/staff/permission-switches'
-import RoleApprovalsCard from '@/components/staff/role-approvals-card'
+import type { RoleAccess } from '@/components/staff/role-access'
+import RolePermissions from '@/components/staff/role-permissions'
 import { staffContent } from '@/data/staff'
 import { useCopy } from '@/hooks/use-copy'
 import { refreshPermissions, usePermissions } from '@/hooks/use-permissions'
@@ -23,7 +28,7 @@ export type EditableRole = {
   isSystem: boolean
   permissions: Permission[]
   slug?: string
-  /** "Needs approval" ticks; absent while the role is new (it starts with the defaults). */
+  /** "Ask first" ticks; absent while the role is new (it starts with the defaults). */
   needsApproval?: Permission[]
 }
 
@@ -32,9 +37,17 @@ type RoleEditorProps = {
   initial: EditableRole | null
 }
 
+const sameSet = (a: readonly string[], b: readonly string[]) =>
+  [...a].sort().join() === [...b].sort().join()
+
+/** The ticks worth saving: Ask first only sits on a grant that changes something. */
+const askedGrants = ({ granted, asks }: RoleAccess) =>
+  asks.filter((p) => granted.includes(p) && canNeedApproval(p))
+
 /**
- * Settings → Staff → a role, on its own page: name, description and permissions.
- * Built in roles, and members without staff.manage, see it read only.
+ * Settings → Staff → a role, on its own page: name, description and one Off / Allowed / Ask
+ * first control per permission, saved together by the header's Save. Built-in roles keep their
+ * grants (the owner can still choose what asks first); only the owner changes Ask first.
  */
 export default function RoleEditor({ initial }: RoleEditorProps) {
   // Hooks
@@ -43,19 +56,36 @@ export default function RoleEditor({ initial }: RoleEditorProps) {
   const { member, hasPermission } = usePermissions()
   const [name, setName] = useState(initial?.name ?? '')
   const [description, setDescription] = useState(initial?.description ?? '')
-  const [granted, setGranted] = useState<Permission[]>(initial?.permissions ?? [])
+  const [access, setAccess] = useState<RoleAccess>({
+    granted: initial?.permissions ?? [],
+    // A new role starts with the store's default ticks, as the server gives it.
+    asks: initial ? (initial.needsApproval ?? []) : DEFAULT_APPROVAL_PERMISSIONS,
+  })
   const [saving, setSaving] = useState(false)
 
   // Event handlers
+  /*
+   * One Save for both: the role (name, description, grants) first, then the owner's Ask first
+   * ticks on the saved role. A new role is created with the default ticks and then given the
+   * owner's choice. Each endpoint keeps its own server-side checks.
+   */
   const handleSave = async () => {
     setSaving(true)
     try {
-      await api.staff.saveRole({
-        id: initial?.id,
-        name: name.trim(),
-        description: description.trim() || null,
-        permissions: granted,
-      })
+      let roleId = initial?.id
+      if (detailsChanged || grantsChanged || !roleId) {
+        const saved = await api.staff.saveRole({
+          id: initial?.id,
+          name: name.trim(),
+          description: description.trim() || null,
+          permissions: access.granted,
+        })
+        roleId = saved.id
+      }
+      const asks = askedGrants(access)
+      if (askEditable && (!initial || !sameSet(asks, askedGrants(savedAccess)))) {
+        await api.staff.saveRoleApprovals({ roleId, permissions: asks })
+      }
       refreshPermissions()
       toast.success(copy.roles.saved)
       router.push(routes.settings.staffRoles())
@@ -67,22 +97,40 @@ export default function RoleEditor({ initial }: RoleEditorProps) {
   }
 
   // Render logic
-  const readOnly = initial?.isSystem === true || !hasPermission(permissions.STAFF_MANAGE)
-  const changed =
-    name !== (initial?.name ?? '') ||
-    description !== (initial?.description ?? '') ||
-    [...granted].sort().join() !== [...(initial?.permissions ?? [])].sort().join()
+  const savedAccess: RoleAccess = {
+    granted: initial?.permissions ?? [],
+    asks: initial ? (initial.needsApproval ?? []) : DEFAULT_APPROVAL_PERMISSIONS,
+  }
+  const isOwnerRole = initial?.slug === 'owner'
+  const grantsLocked = initial?.isSystem === true || !hasPermission(permissions.STAFF_MANAGE)
+  const askEditable = member?.isOwner === true && !isOwnerRole
+  const readOnly = grantsLocked && !askEditable
+  const detailsChanged =
+    name !== (initial?.name ?? '') || description !== (initial?.description ?? '')
+  const grantsChanged = !sameSet(access.granted, savedAccess.granted)
+  const asksChanged = !sameSet(askedGrants(access), askedGrants(savedAccess))
+  const changed = detailsChanged || grantsChanged || asksChanged
   const title = initial
     ? initial.isSystem
       ? initial.name
       : copy.roleForm.editTitle
     : copy.roleForm.createTitle
+  const subtitle = initial?.isSystem
+    ? askEditable
+      ? copy.roleForm.builtInAskFirst
+      : copy.roleForm.readOnly
+    : copy.members.intro
+  const help = isOwnerRole
+    ? copy.roleForm.ownerNeverAsks
+    : askEditable
+      ? copy.roleForm.askFirstHelp
+      : `${copy.roleForm.askFirstHelp} ${copy.roleForm.askFirstOwnerOnly}`
 
   return (
     <div className="flex flex-col gap-4">
       <PageHeader
         title={title}
-        subtitle={initial?.isSystem ? copy.roleForm.readOnly : copy.members.intro}
+        subtitle={subtitle}
         back={{ label: copy.roleForm.back, href: routes.settings.staffRoles() }}
         save={
           readOnly
@@ -101,7 +149,7 @@ export default function RoleEditor({ initial }: RoleEditorProps) {
           <Input
             id="role-name"
             value={name}
-            disabled={readOnly}
+            disabled={grantsLocked}
             placeholder={copy.roleForm.namePlaceholder}
             onChange={(e) => setName(e.target.value)}
           />
@@ -111,23 +159,21 @@ export default function RoleEditor({ initial }: RoleEditorProps) {
           <Input
             id="role-description"
             value={description}
-            disabled={readOnly}
+            disabled={grantsLocked}
             placeholder={copy.roleForm.descriptionPlaceholder}
             onChange={(e) => setDescription(e.target.value)}
           />
         </div>
       </SettingsCard>
-      <SettingsCard title={copy.roleForm.permissions}>
-        <PermissionSwitches value={granted} disabled={readOnly} onChange={setGranted} />
-      </SettingsCard>
-      {initial && initial.slug !== 'owner' ? (
-        <RoleApprovalsCard
-          roleId={initial.id}
-          granted={initial.permissions}
-          initial={initial.needsApproval ?? []}
-          editable={member?.isOwner === true}
+      <SettingsCard title={copy.roleForm.permissions} description={help}>
+        <RolePermissions
+          value={access}
+          onChange={setAccess}
+          grantsLocked={grantsLocked}
+          askEditable={askEditable}
+          showAsk={!isOwnerRole}
         />
-      ) : null}
+      </SettingsCard>
     </div>
   )
 }
