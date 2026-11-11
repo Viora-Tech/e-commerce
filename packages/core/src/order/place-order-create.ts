@@ -18,6 +18,7 @@ import { preorderNoteText } from '../preorder/note'
 import { resolveShipDate } from '../preorder/settings'
 import { parsePreorderStoreSettings } from '../preorder/store-settings'
 import { StoreAddressSchema } from '../settings/general'
+import { saveParcelIds } from '../shipping/delivery-options/booking'
 import { rateRowId } from '../shipping/local-options'
 import { primaryRateId } from '../shipping/profiles'
 import { computeOrderGst } from '../tax/gst'
@@ -345,8 +346,8 @@ export const createOrder: WorkflowStep<State> = {
     }
     // The parcels routing chose, where reserveStock holds their stock. A draft has none yet:
     // they are routed again when it converts (checkout-draft.ts).
-    if (!draft)
-      await createFulfillmentOrders(ctx, {
+    if (!draft) {
+      const made = await createFulfillmentOrders(ctx, {
         orderId: o.id,
         plans: parcels.map((p, i) => ({
           locationId: p.locationId,
@@ -362,6 +363,15 @@ export const createOrder: WorkflowStep<State> = {
         })),
         fallbackRegistrationId: origin.gstRegistrationId,
       })
+      // A split cart's parcel routes learn their parcel's id, so booking matches it exactly.
+      if (delivery?.parcels?.length) {
+        await saveParcelIds(
+          ctx.tx,
+          o.id,
+          parcels.map((p, i) => ({ id: made[i], locationId: p.locationId, status: p.status })),
+        )
+      }
+    }
     if (applied) {
       const email = (contact ? contact.email : input.checkout?.email.trim().toLowerCase()) || null
       await recordDiscountUses(ctx, applied, { id: o.id, customerId, email, discountPaise })

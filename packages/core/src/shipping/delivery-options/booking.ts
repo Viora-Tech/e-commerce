@@ -13,10 +13,12 @@ import {
   orderLine,
   orderNote,
   type StoreTx,
+  shipment,
   variant,
 } from '@commerce/db'
-import { and, eq } from 'drizzle-orm'
+import { and, asc, eq } from 'drizzle-orm'
 import type { StoreContext } from '../../context'
+import { orderParcelsView, type ParcelView } from '../../order/parcel-view'
 import type { CourierRateRow } from '../courier-rates'
 import type { DeliveryOption, RouteSetting } from './config'
 import { type ProviderAnswer, type Route, routeKey, routesFromAnswers } from './routes'
@@ -30,21 +32,113 @@ function orderDeliveryRoute(
   return shipping?.delivery ?? null
 }
 
+/** The order page's parcels (`orderParcelsView`) with each one's booking charge, for its margin. */
+export async function orderParcelsWithCharges(
+  tx: StoreTx,
+  orderId: string,
+  shipping: OrderShippingSnapshot | null | undefined,
+): Promise<{ parcels: ParcelView[]; parcelCourierCharges: Record<string, number> }> {
+  const parcels = await orderParcelsView(tx, orderId)
+  return { parcels, parcelCourierCharges: await parcelCourierCharges(tx, orderId, shipping) }
+}
+
+/**
+ * Each parcel's own booking charge (fulfilment order id -> paise, the latest label that was not
+ * cancelled), so a split cart's shipping margin adds up every parcel (`shippingMargin`). Empty
+ * for an order without parcel routes.
+ */
+async function parcelCourierCharges(
+  tx: StoreTx,
+  orderId: string,
+  shipping: OrderShippingSnapshot | null | undefined,
+): Promise<Record<string, number>> {
+  if (!shipping?.delivery?.parcels?.length) return {}
+  const rows = await tx
+    .select({
+      parcelId: shipment.fulfillmentOrderId,
+      chargePaise: shipment.courierChargePaise,
+      status: shipment.status,
+    })
+    .from(shipment)
+    .where(eq(shipment.orderId, orderId))
+    .orderBy(asc(shipment.createdAt))
+  const charges: Record<string, number> = {}
+  for (const r of rows) {
+    if (r.parcelId && r.chargePaise !== null && r.status !== 'cancelled') {
+      charges[r.parcelId] = r.chargePaise
+    }
+  }
+  return charges
+}
+
+/** A fulfilment order as booking matches it to a saved parcel route. */
+export type ParcelRef = { id?: string | null | undefined; locationId: string; status: string }
+
 /**
  * The route to book for one parcel of the order: the courier checkout quoted for that parcel
- * (matched by its location, a pre-order parcel to the pre-order one first), else the order's
- * route. Booking the whole order, or an order with one parcel, is the order's route unchanged.
+ * (the route stamped with its fulfilment order id; else matched by its location, a pre-order
+ * parcel to the pre-order one first), else the order's route. Booking the whole order, or an
+ * order with one parcel, is the order's route unchanged. The id match keeps a released
+ * pre-order parcel on its own route when its location also has an in-stock parcel.
  */
 export function deliveryForParcel(
   delivery: OrderDeliveryRoute | null,
-  parcel: { locationId: string; status: string } | null | undefined,
+  parcel: ParcelRef | null | undefined,
 ): OrderDeliveryRoute | null {
   if (!delivery?.parcels?.length || !parcel) return delivery
+  const byId = parcel.id
+    ? delivery.parcels.find((p) => p.fulfillmentOrderId === parcel.id)
+    : undefined
   const here = delivery.parcels.filter((p) => p.locationId === parcel.locationId)
-  const own = here.find((p) => p.onHold === (parcel.status === 'on_hold')) ?? here[0]
+  const own = byId ?? here.find((p) => p.onHold === (parcel.status === 'on_hold')) ?? here[0]
   if (!own) return delivery
-  const { locationId: _l, onHold: _h, ...route } = own
+  const { locationId: _l, onHold: _h, fulfillmentOrderId: _f, ...route } = own
   return { ...delivery, ...route }
+}
+
+/**
+ * Stamp each saved parcel route with the fulfilment order placing made for it (same location,
+ * pre-order with pre-order), each used once. Unchanged (same object) when there is nothing to
+ * stamp, so callers can skip the write.
+ */
+export function withParcelIds(
+  delivery: OrderDeliveryRoute | null | undefined,
+  made: readonly ParcelRef[],
+): OrderDeliveryRoute | null | undefined {
+  if (!delivery?.parcels?.length) return delivery
+  const taken = new Set<string>()
+  let changed = false
+  const parcels = delivery.parcels.map((p) => {
+    if (p.fulfillmentOrderId) return p
+    const fo = made.find(
+      (m) =>
+        m.id &&
+        !taken.has(m.id) &&
+        m.locationId === p.locationId &&
+        (m.status === 'on_hold') === p.onHold,
+    )
+    if (!fo?.id) return p
+    taken.add(fo.id)
+    changed = true
+    return { ...p, fulfillmentOrderId: fo.id }
+  })
+  return changed ? { ...delivery, parcels } : delivery
+}
+
+/** Save the new parcels' ids on the order's parcel routes (`withParcelIds`); no-op without. */
+export async function saveParcelIds(
+  tx: StoreTx,
+  orderId: string,
+  made: readonly ParcelRef[],
+): Promise<void> {
+  const [o] = await tx.select({ shipping: order.shipping }).from(order).where(eq(order.id, orderId))
+  const delivery = o?.shipping?.delivery
+  const stamped = withParcelIds(delivery, made)
+  if (!o?.shipping || !stamped || stamped === delivery) return
+  await tx
+    .update(order)
+    .set({ shipping: { ...o.shipping, delivery: stamped } })
+    .where(eq(order.id, orderId))
 }
 
 /** What a Create shipment rate row is as a route (carrier, channel, speed, insures). */
@@ -97,7 +191,11 @@ export async function bookingContext(
   // Booking one parcel of a split cart: the courier quoted for that parcel.
   const [parcel] = fulfillmentOrderId
     ? await tx
-        .select({ locationId: fulfillmentOrder.locationId, status: fulfillmentOrder.status })
+        .select({
+          id: fulfillmentOrder.id,
+          locationId: fulfillmentOrder.locationId,
+          status: fulfillmentOrder.status,
+        })
         .from(fulfillmentOrder)
         .where(
           and(eq(fulfillmentOrder.id, fulfillmentOrderId), eq(fulfillmentOrder.orderId, orderId)),

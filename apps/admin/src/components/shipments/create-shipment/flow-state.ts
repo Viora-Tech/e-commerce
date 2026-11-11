@@ -311,18 +311,27 @@ export function bulkPicks(
   return picks
 }
 
-/** What `shipments.bulkBook` takes: each bookable order with its courier. */
-export function bulkOrders(picks: Record<string, CourierRateRow | null>): {
+/** What `shipments.bulkBook` takes: each bookable order with its courier, and the parcel it
+ *  was quoted for (`quotes`), so a parcel of a split cart books on its own route. */
+export function bulkOrders(
+  picks: Record<string, CourierRateRow | null>,
+  quotes: ReadonlyArray<Pick<ParcelQuote, 'orderId' | 'fulfillmentOrderId'>> = [],
+): {
   orderIds: string[]
   courierOverrides: Record<string, string>
   serviceOverrides: Record<string, string>
+  parcelIds: Record<string, string>
 } {
   const courierOverrides: Record<string, string> = {}
   const serviceOverrides: Record<string, string> = {}
+  const parcelIds: Record<string, string> = {}
+  const parcelOf = new Map(quotes.map((q) => [q.orderId, q.fulfillmentOrderId]))
   for (const [orderId, row] of Object.entries(picks)) {
     if (!row) continue
     courierOverrides[orderId] = row.providerId
     if (row.serviceId) serviceOverrides[orderId] = row.serviceId
+    const parcelId = parcelOf.get(orderId)
+    if (parcelId) parcelIds[orderId] = parcelId
   }
-  return { orderIds: Object.keys(courierOverrides), courierOverrides, serviceOverrides }
+  return { orderIds: Object.keys(courierOverrides), courierOverrides, serviceOverrides, parcelIds }
 }

@@ -6,7 +6,7 @@ import {
   notTestOrder,
   type OrderStatus,
   type OrderStatusChange,
-  orderParcelsView,
+  orderParcelsWithCharges,
   type PaymentProvider,
   parsePaymentSettings,
   type RefundMethod,
@@ -361,8 +361,8 @@ export async function getOrder(tx: StoreTx, id: string) {
     shippingAddress: ship ?? null,
     /** Where the bill goes when it is not the shipping address; null when they are the same. */
     billingAddress: bill ?? null,
-    /** Where each part ships from: one parcel per warehouse (order/routing.ts). */
-    parcels: await orderParcelsView(tx, id),
+    /** `parcels`: one per warehouse (order/routing.ts); `parcelCourierCharges`: their bookings'. */
+    ...(await orderParcelsWithCharges(tx, id, o.shipping)),
     /** Fulfilment on hold (#1011): why, who and when; null while it can ship. */
     hold: await orderHold(tx, id),
   }

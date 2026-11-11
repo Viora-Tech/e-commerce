@@ -374,4 +374,50 @@ describe('shipping margin', () => {
       marginPaise: 2000,
     })
   })
+
+  it('a split cart adds up every parcel’s courier and insurance', () => {
+    const parcel = (id: string | undefined, cost: number | null, insurance: number | null) => ({
+      ...(id ? { fulfillmentOrderId: id } : {}),
+      locationId: `loc-${id}`,
+      onHold: false,
+      route: null,
+      insured: insurance !== null,
+      insurancePaise: insurance,
+      markupPaise: 0,
+      courierCostPaise: cost,
+      promisedEarliest: null,
+      promisedLatest: null,
+    })
+    // The order-level fields are the first parcel's; the margin must not stop there.
+    const split = {
+      ...delivery,
+      parcels: [parcel('fo-1', 9000, 1500), parcel('fo-2', 6000, null)],
+    }
+    expect(shippingMargin(split, 20000, null)).toEqual({
+      chargedPaise: 20000,
+      courierPaise: 15000,
+      courierFrom: 'quote',
+      insurancePaise: 1500,
+      marginPaise: 3500,
+    })
+    // One parcel booked: its own charge replaces its quote; the order's latest charge is ignored.
+    expect(shippingMargin(split, 20000, 99999, { 'fo-2': 7000 })).toMatchObject({
+      courierPaise: 16000,
+      courierFrom: 'mixed',
+      marginPaise: 2500,
+    })
+    expect(shippingMargin(split, 20000, null, { 'fo-1': 8000, 'fo-2': 7000 })).toMatchObject({
+      courierFrom: 'booking',
+      marginPaise: 3500,
+    })
+    // A parcel with no cost known yet: no margin until it is.
+    const unknown = {
+      ...split,
+      parcels: [parcel('fo-1', 9000, 1500), parcel(undefined, null, null)],
+    }
+    expect(shippingMargin(unknown, 20000, null)).toMatchObject({
+      courierPaise: null,
+      marginPaise: null,
+    })
+  })
 })

@@ -216,7 +216,11 @@ export async function createShipmentForOrder(
     ? [named]
     : parcelId
       ? await ctx.tx
-          .select({ locationId: fulfillmentOrder.locationId })
+          .select({
+            id: fulfillmentOrder.id,
+            locationId: fulfillmentOrder.locationId,
+            status: fulfillmentOrder.status,
+          })
           .from(fulfillmentOrder)
           .where(eq(fulfillmentOrder.id, parcelId))
       : []
@@ -278,8 +282,8 @@ export async function createShipmentForOrder(
   const codAmountPaise = paymentMode === 'cod' ? (options.codAmountPaise ?? valuePaise) : 0
   const threshold = settings.policy.insuranceThresholdPaise
   // The Delivery options app's route: what the shopper paid for (insured or not) and who carries it.
-  // A parcel of a split cart books the courier checkout quoted for that parcel.
-  const delivery = deliveryForParcel(o.shipping?.delivery ?? null, named)
+  // A parcel of a split cart (named, or the only one left) books the courier quoted for it.
+  const delivery = deliveryForParcel(o.shipping?.delivery ?? null, parcel)
   const route = delivery?.route ?? null
   const onRoute =
     route !== null &&
