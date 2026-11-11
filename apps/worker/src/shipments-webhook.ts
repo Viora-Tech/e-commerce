@@ -61,7 +61,12 @@ export function shipmentWebhooks(db: Db, settingsSecret: string, rateLimitStore:
     }
     if (!providerId) {
       // Same generic answer as any other bad call: the alias code was never issued.
-      return rejectWebhook(c, 'shipment-webhook', { providerId: '', storeId }, 'unknown courier code')
+      return rejectWebhook(
+        c,
+        'shipment-webhook',
+        { providerId: '', storeId },
+        'unknown courier code',
+      )
     }
     const where = { providerId, storeId }
     if (!isStoreId(storeId)) {
