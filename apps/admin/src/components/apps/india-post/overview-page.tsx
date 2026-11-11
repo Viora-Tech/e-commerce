@@ -25,7 +25,11 @@ export default function OverviewPage() {
       heading: copy.overview.capabilitiesHeading,
       items: INDIA_POST_CAPABILITIES.map((cap) => copy.overview.capabilities[cap] ?? cap),
     },
-    { heading: copy.overview.notYetSupported, items: copy.overview.notYetSupportedItems },
+    {
+      heading: copy.overview.notYetSupported,
+      items: copy.overview.notYetSupportedItems,
+      unavailable: true,
+    },
   ]
 
   return (

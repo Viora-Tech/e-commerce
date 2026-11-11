@@ -15,7 +15,7 @@ const lists: OverviewList[] = [
     heading: copy.capabilitiesHeading,
     items: RAPIDSHYP_CAPABILITIES.map((cap) => copy.capabilities[cap] ?? cap),
   },
-  { heading: copy.notYetSupported, items: copy.notYetSupportedItems },
+  { heading: copy.notYetSupported, items: copy.notYetSupportedItems, unavailable: true },
 ]
 
 const connectedBody = () => (

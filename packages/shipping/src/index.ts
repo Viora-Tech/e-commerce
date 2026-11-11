@@ -7,6 +7,7 @@ export {
   type CourierErrorKind,
   courierFetch,
   courierJson,
+  courierRefusalReason,
 } from './courier-error'
 export { isDomesticCountry, servesDestination } from './coverage'
 export {
@@ -22,6 +23,7 @@ export * from './delivery-date'
 export {
   type DeliveryEstimate,
   describeCourierFailure,
+  describeCourierFailureForStaff,
   type EstimateSource,
   estimateDelivery,
   type ShippingPolicy,

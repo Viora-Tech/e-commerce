@@ -56,7 +56,7 @@ function AddPickupLink() {
 
   return (
     <Link
-      href={routes.settings.shipping()}
+      href={routes.settings.shipping('dispatch')}
       className="text-body font-medium text-primary hover:underline"
     >
       {copy.addPickupAddress}
@@ -189,7 +189,7 @@ export default function RouteCard({
                   variant="outline"
                   size="sm"
                   nativeButton={false}
-                  render={<Link href={routes.settings.shipping()} />}
+                  render={<Link href={routes.settings.shipping('dispatch')} />}
                 >
                   <Pencil aria-hidden="true" />
                   {copy.edit}

@@ -1,5 +1,6 @@
 'use client'
 
+import { Truck } from '@commerce/ui/icons'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
@@ -23,8 +24,8 @@ import type { ActionItem } from '@/components/layout/action-menu'
 import { orderAppActionsContent } from '@/data/order-app-actions'
 import { useCopy, useLocale } from '@/hooks/use-copy'
 
-/** The bulk Create shipment dialog's orders and the courier the app picked. */
-export type ShippingWith = { orderIds: string[]; providerId: string }
+/** The bulk Create shipment dialog's orders, and the courier to start on (none: compare all). */
+export type ShippingWith = { orderIds: string[]; providerId?: string | undefined }
 
 /**
  * Installed apps' order actions as menu items, Shopify style: each app's name heads its
@@ -85,22 +86,43 @@ export function useOrderAppActions(groups: readonly OrderActionGroup[], onDone: 
     }
   }
 
-  /** Menu items for one menu: `order` filters by the actions' conditions (none on the bulk bar). */
+  /**
+   * Menu items for one menu: `order` filters by the actions' conditions (none on the bulk bar).
+   * Each courier app's own "Create shipment" is folded into one (owner, 11 Nov): the order page
+   * and the row menu already have it, and the bulk bar gets a single Create shipment that
+   * compares every connected courier.
+   */
   const items = (
     target: OrderActionTarget,
     order: OrderFacts | null,
     orderIds: string[],
-  ): ActionItem[] =>
-    actionsFor(groups, target, order, (a) => isRunnable(a.handler)).flatMap((g) =>
-      g.actions.map((a, i) => ({
-        id: `app:${g.appId}/${a.id}`,
-        label: actionLabel(a, locale),
-        icon: appIcon(g.icon),
-        heading: i === 0 ? g.appName : undefined,
-        disabled: busy,
-        onSelect: () => void run(a, orderIds),
-      })),
+  ): ActionItem[] => {
+    const found = actionsFor(groups, target, order, (a) => isRunnable(a.handler))
+    const anyShipment = found.some((g) => g.actions.some((a) => a.handler.type === 'shipment'))
+    const appItems = found.flatMap((g) =>
+      g.actions
+        .filter((a) => a.handler.type !== 'shipment')
+        .map((a, i) => ({
+          id: `app:${g.appId}/${a.id}`,
+          label: actionLabel(a, locale),
+          icon: appIcon(g.icon),
+          heading: i === 0 ? g.appName : undefined,
+          disabled: busy,
+          onSelect: () => void run(a, orderIds),
+        })),
     )
+    if (target !== 'bulk' || !anyShipment || orderIds.length === 0) return appItems
+    return [
+      {
+        id: 'create-shipment',
+        label: copy.createShipment,
+        icon: Truck,
+        disabled: busy,
+        onSelect: () => setShipping({ orderIds }),
+      },
+      ...appItems,
+    ]
+  }
 
   return { items, busy, shipping, closeShipping: () => setShipping(null) }
 }

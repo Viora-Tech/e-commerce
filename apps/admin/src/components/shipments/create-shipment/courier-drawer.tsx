@@ -78,10 +78,12 @@ export default function CourierDrawer({
   const [mode, setMode] = useState<Mode>('all')
   const [sort, setSort] = useState<CourierSort>('recommended')
 
+  // Helpers
+  const count = (m: Mode) =>
+    m === 'all' ? (rows ?? []).length : (rows ?? []).filter((r) => courierMode(r) === m).length
+
   // Render logic
   const all = rows ?? []
-  const count = (m: Mode) =>
-    m === 'all' ? all.length : all.filter((r) => courierMode(r) === m).length
   const shown = sortCourierRows(
     all.filter((r) => mode === 'all' || courierMode(r) === mode),
     sort,
