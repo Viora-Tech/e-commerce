@@ -4,6 +4,9 @@ import { z } from 'zod'
 import { SEARCH_MAX } from '../procedures'
 import { ORDER_CHANNEL_FILTERS, ORDER_RETURN_FILTERS, ORDER_VIEWS } from '../services/order.service'
 
+/** The most products, and separately variants, the Product picker sends. */
+export const PICKED_MAX = 100
+
 /** The Orders list's tab, search and filter panel, shared by the list and "Select all". */
 export const listFilters = z.object({
   search: z.string().trim().max(SEARCH_MAX).optional(),
@@ -37,4 +40,9 @@ export const listFilters = z.object({
   returnStatus: z.array(z.enum(ORDER_RETURN_FILTERS)).max(ORDER_RETURN_FILTERS.length).optional(),
   /** Has a line whose product is in any of these collections (#886). */
   collectionIds: z.array(z.uuid()).max(50).optional(),
+  /** The Product picker: a line is one of these products (any variant) or these variants. */
+  productIds: z.array(z.uuid()).max(PICKED_MAX).optional(),
+  variantIds: z.array(z.uuid()).max(PICKED_MAX).optional(),
+  /** "Product is not": no line is any of the picked products or variants. */
+  excludeProducts: z.boolean().optional(),
 })

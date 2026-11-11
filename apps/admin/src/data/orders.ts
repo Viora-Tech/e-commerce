@@ -129,8 +129,31 @@ export const ordersContent = {
   customView: 'Custom',
   /** The filter panel and its chips (Figma "Orders · Filter", "Applied filters"). */
   filters: {
+    /** The Product picker (Shopify's "Product is …"): products and variants to tick. */
     product: 'Product',
+    /** The older free-text filter, kept for saved links: a line's title or SKU contains it. */
+    productText: 'Product title or SKU',
     productPlaceholder: 'Product name or SKU',
+    picker: {
+      search: 'Search products or SKU',
+      /** The Is / Is not switch. */
+      is: 'Is',
+      isNot: 'Is not',
+      matchLabel: 'Orders that',
+      /** The chip's value: the first pick, then how many more. */
+      more: (first: string, n: number) => `${first}, +${n}`,
+      /** The chip while the picked names load. */
+      count: (n: number) => `${n} picked`,
+      variantCount: (n: number) => `${n} ${n === 1 ? 'variant' : 'variants'}`,
+      openVariants: (title: string) => `Variants of ${title}`,
+      back: 'All products',
+      allVariants: 'All variants',
+      empty: 'No products found',
+      failed: 'Could not load products',
+      retry: 'Try again',
+      loadMore: 'Show more',
+      tooMany: (n: number) => `Up to ${n} products and ${n} variants`,
+    },
     payment: 'Payment',
     fulfilment: 'Fulfilment',
     date: 'Date',

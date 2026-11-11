@@ -21,7 +21,12 @@ import OrdersBulkActions from '@/components/orders/orders-bulk-actions'
 import OrdersBulkDialogs, { type OrdersBulkRequest } from '@/components/orders/orders-bulk-dialogs'
 import OrdersHeaderActions from '@/components/orders/orders-header-actions'
 import OrdersTiles, { type OrderTilesData } from '@/components/orders/orders-tiles'
+import ProductFilterPicker, {
+  type ProductFilterValue,
+} from '@/components/orders/product-filter-picker'
 import { useOrderAppActions } from '@/components/orders/use-order-app-actions'
+import { useProductFilterNames } from '@/components/orders/use-product-filter-names'
+import type { PickRow } from '@/components/products/select-products-row'
 import InlineState from '@/components/states/inline-state'
 import ResourceTable, { type TableSort } from '@/components/table/resource-table'
 import ViewSelect from '@/components/table/view-select'
@@ -140,6 +145,8 @@ function OrdersContent({ initial }: { initial: OrdersInitial }) {
   const [bulkFulfil, setBulkFulfil] = useState<{ ids: string[]; clear: () => void } | null>(null)
 
   const hydrated = useRef(false)
+  // The Product filter chip names its picks, also ones that came in with the URL.
+  const productNames = useProductFilterNames(q)
   const apps = useOrderAppActions(initial.appActions, () => {
     reload().catch(() => setFailed(true))
   })
@@ -211,6 +218,10 @@ function OrdersContent({ initial }: { initial: OrdersInitial }) {
 
   // Event handlers
   const setFilters = (patch: Partial<OrderFilters>) => setQ({ ...patch, page: 1 })
+  const handleProductFilter = (next: ProductFilterValue, row?: PickRow) => {
+    if (row) productNames.remember(row)
+    setFilters(next)
+  }
   const handleTestsDeleted = () => {
     // The tiles and tab counts come from the server render; the rows are fetched again here.
     router.refresh()
@@ -295,7 +306,15 @@ function OrdersContent({ initial }: { initial: OrdersInitial }) {
   const columns = orderColumns(copy, fmt)
   const { page, query, status } = q
   const filtered = hasOrderFilters(q)
-  const groups = orderFilterGroups(q, copy.filters, setFilters, facets)
+  const productFilter: ProductFilterValue = {
+    productIds: q.productIds,
+    variantIds: q.variantIds,
+    productNot: q.productNot,
+  }
+  const groups = orderFilterGroups(q, copy.filters, setFilters, facets, {
+    names: productNames.names,
+    control: <ProductFilterPicker value={productFilter} onChange={handleProductFilter} />,
+  })
   const searching = query.length > 0 || filtered
   const tabEmpty = status === 'archived' ? copy.emptyArchived : copy.emptyView
   const tabCounts: Partial<Record<OrderListFilter, number>> = {
