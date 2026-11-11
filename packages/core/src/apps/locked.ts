@@ -3,7 +3,8 @@
  * WHY:   Fourteen services read the whole record, change their own part and save it all. Two at
  *        once lost one change: Delivery options vanished from Installed apps on Waimers
  *        (10 Nov 2026). Locked, the second writer waits and reads the first one's change.
- * WHERE: Every `update(store).set({ apps })`; plain reads keep `parseAppsSettings`.
+ * WHERE: Every `update(store).set({ apps })`; plain reads keep `parseAppsSettings`. The
+ *        `store-apps-writes` sweep fails a file that writes `apps` without calling this (#1523).
  */
 import { type StoreTx, store } from '@commerce/db'
 import { eq } from 'drizzle-orm'

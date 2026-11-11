@@ -3,6 +3,7 @@ import {
   defaultRegistrationGstin,
   documentRegistration,
   gstinStateOf,
+  lockStoreApps,
   parseStoreTax,
   type TaxesForm,
   TaxesFormSchema,
@@ -142,16 +143,18 @@ export async function saveTaxes(
   storeId: string,
   input: TaxesInput,
 ): Promise<TaxesView | null> {
-  const [s] = await tx.select({ apps: store.apps }).from(store).where(eq(store.id, storeId))
+  const [s] = await tx.select({ id: store.id }).from(store).where(eq(store.id, storeId))
   if (!s) return null
   // Business and GST owns the GSTIN once the store has one (see adoptStoreGstin).
   await adoptStoreGstin(tx, storeId, input.gstin, input.legalName)
+  // store.apps is read under the row lock, so a concurrent app install is not written over.
+  const apps = await lockStoreApps(tx, storeId)
   await tx
     .update(store)
     .set({
       gstin: input.gstin === '' ? null : input.gstin,
       gstRatePercent: input.gstRatePercent,
-      apps: withStoreTax(s.apps, {
+      apps: withStoreTax(apps, {
         pricesIncludeGst: input.pricesIncludeGst,
         composition: input.composition,
       }),
