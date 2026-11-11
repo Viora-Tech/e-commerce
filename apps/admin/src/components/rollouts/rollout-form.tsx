@@ -8,6 +8,7 @@ import { Button } from '@commerce/ui/shadcn/button'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import SaveErrorAlert from '@/components/approvals/save-error-alert'
 import DataCard from '@/components/layout/data-card'
 import PageBody from '@/components/layout/page-body'
 import PageHeader from '@/components/layout/page-header'
@@ -180,13 +181,7 @@ export default function RolloutForm({ rollout, data, results = null }: RolloutFo
           <AlertDescription>{rollout.error}</AlertDescription>
         </Alert>
       ) : null}
-      {serverError ? (
-        <Alert variant="destructive">
-          <CircleAlert />
-          <AlertTitle>{copy.toasts.failed}</AlertTitle>
-          <AlertDescription>{serverError}</AlertDescription>
-        </Alert>
-      ) : null}
+      {serverError ? <SaveErrorAlert title={copy.toasts.failed} message={serverError} /> : null}
       {changesEditable ? <RolloutConflictsBanner conflicts={conflicts} /> : null}
 
       <RolloutDetailsCard

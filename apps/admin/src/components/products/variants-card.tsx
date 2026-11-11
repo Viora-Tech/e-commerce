@@ -3,26 +3,25 @@
 import { Plus } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { FieldError } from '@commerce/ui/shadcn/field'
+import Link from 'next/link'
 import { useState } from 'react'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
 import DataCard from '@/components/layout/data-card'
 import StatusChip from '@/components/layout/status-chip'
 import { productFormContent } from '@/data/product-form'
 import { useCopy } from '@/hooks/use-copy'
+import { routes } from '@/lib/routes'
 import {
   type Facets,
   MAX_OPTIONS,
   type MediaItem,
   type OptionRow,
-  type ProductFormState,
   stockOf,
   suggestSku,
   type VariantRow,
-  variantPreorderContext,
 } from './form-state'
 import OptionChip from './option-chip'
 import OptionEditor from './option-editor'
-import type { ProductTax } from './product-tax'
 import { generateSku } from './sku'
 import VariantBulkBar, { type VariantBulkPatch } from './variant-bulk-bar'
 import { defaultGroupBy, matrixLines } from './variant-groups'
@@ -31,18 +30,13 @@ import { matrixOptions, reconcileVariants } from './variant-reconcile'
 import VariantToolbar from './variant-toolbar'
 
 type VariantsCardProps = {
+  /** Null before the product's first save: no variant has its own page yet. */
+  productId: string | null
   title: string
   options: OptionRow[]
   variants: VariantRow[]
   /** Gallery, so a variant can use its images. */
   media: MediaItem[]
-  /** The product's HSN and GST rate, for the variant dialog (#63). */
-  tax: ProductTax
-  /** The product's pre-order switch, campaign and limit, for the variant dialog's pre-order limit. */
-  preorder: Pick<
-    ProductFormState,
-    'preorderEnabled' | 'preorderCampaignId' | 'preorderOwn' | 'preorderLimit'
-  >
   /** Option names and values the store's other products use, offered first. */
   facets?: Facets | undefined
   error?: string | undefined
@@ -58,12 +52,11 @@ type VariantsCardProps = {
 const unfinished = (o: OptionRow) => !o.name.trim() || !o.values.some((v) => v.trim())
 
 export default function VariantsCard({
+  productId,
   title,
   options,
   variants,
   media,
-  tax,
-  preorder,
   facets,
   error,
   onOptions,
@@ -177,6 +170,9 @@ export default function VariantsCard({
     .map((i) => variants[i])
     .filter((v): v is VariantRow => Boolean(v))
     .map((v) => v.optionValues.join(' / '))
+  // Without options the one variant's page still holds its barcode, weight and metafields.
+  const onlyId = !hasMatrix && variants.length === 1 ? variants[0]?.id : undefined
+  const detailsHref = productId && onlyId ? routes.products.variant(productId, onlyId) : null
   const shownNames =
     selectedNames.length > 6
       ? `${selectedNames.slice(0, 6).join(', ')} +${selectedNames.length - 6}`
@@ -194,6 +190,16 @@ export default function VariantsCard({
       }
       action={
         <>
+          {detailsHref ? (
+            <Button
+              variant="ghost"
+              size="sm"
+              nativeButton={false}
+              render={<Link href={detailsHref} />}
+            >
+              {copy.variantDetails}
+            </Button>
+          ) : null}
           {hasMatrix ? (
             <Button
               type="button"
@@ -271,12 +277,10 @@ export default function VariantsCard({
       ) : null}
       {hasMatrix ? (
         <VariantMatrix
-          productTitle={title}
+          productId={productId}
           variants={variants}
           lines={lines}
           media={media}
-          tax={tax}
-          preorder={variantPreorderContext(preorder)}
           selected={selected}
           onSelectedChange={setSelected}
           onToggleGroup={handleToggleGroup}

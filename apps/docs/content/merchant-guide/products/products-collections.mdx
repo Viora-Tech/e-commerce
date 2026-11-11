@@ -70,10 +70,38 @@ Set each variant's price, MRP, SKU and quantity in the table, or tick rows and u
 price**, **Set quantity** or **SKU prefix** for many at once (a prefix of `KUR` gives
 `KUR-M-INDIGO`). **Suggest SKUs** fills any blank SKU from the title and the variant.
 
+#### A variant's own page
+
+Click a variant's name (or the pencil at the end of its row) to open its own page, as in
+Shopify. **What you'll see:** "‹ Product name" at the top to go back, the variant's photo,
+name and the product's status, and two columns. On the left is every variant of the product
+with its photo, price and stock; the one you're on is highlighted, and clicking another opens
+it (if you have unsaved changes you're asked first). On a phone the list is a dropdown above
+the cards. On the right are the variant's cards:
+
+- **Options**: which value of each option this variant is, picked from the product's values,
+  and **Hide on store**. Two variants can't have the same values; add or rename values on the
+  product, under **Variants**.
+- **Image**: the photos shoppers see when they pick this variant.
+- **Pricing**: price, MRP, cost (with the margin it leaves) and **Charge tax on this product** (for this variant).
+- **Inventory**: SKU, barcode, **Track quantity**, stock, **Allow pre-order** and the variant's
+  own **Pre-order limit**. **Stock at each location** opens the bulk editor with every location.
+- **Shipping**: physical product, weight, **Box**, country of origin, and the variant's own HSN
+  code and GST rate when the product sets them per variant.
+- **Metafields**: the variant's own extra fields, when your store has variant fields.
+
+Press **Save** in the save bar (or at the top) to keep the variant and its metafields together;
+**Discard** puts back what was saved. **More actions → Delete variant** removes it from the store
+straight away (past orders keep it). A product's only variant can't be deleted.
+
+A variant you've just added has no page until you save the product: its pencil is greyed out.
+Its price, MRP, SKU and stock can still be set in the table. A product without options has one
+variant; **Variant details** on its Variants card opens that variant's page.
+
 #### Hide a variant instead of deleting it
 
-To stop selling one variant but keep it, select **Edit** on its row and turn on **Hide on
-store** under **Visibility**. Shoppers no longer see it: it drops out of the option picker,
+To stop selling one variant but keep it, open its page and turn on **Hide on store** in the
+**Options** card. Shoppers no longer see it: it drops out of the option picker,
 quick add, collection and search prices, and Google and Meta feeds, and it can't be added to a
 cart or checked out. It stays in admin, in past orders and in reports, with a **Hidden** chip in
 the variants table and on the **Inventory** page. Turn the switch off to sell it again.
@@ -105,6 +133,12 @@ for a length × width × height in cm. The card shows the **volumetric weight** 
 5000, in kg): couriers bill the higher of that and the actual weight, so a light product in a
 big box costs more to ship. When you book a shipment for an order whose items all use the same
 box, that box and its volumetric weight are used instead of the store's default box.
+
+The Package applies to every variant. When one variant ships in a different box (a keyboard sold
+in 60% and 80% sizes), open its page from **Variants** and pick its own **Box** in the
+**Shipping** card. **Same as
+product** follows the Package again. Variants with their own box show an **Own box** chip and are
+listed under the Package, and changing the Package later leaves them as they are.
 
 ### Stock
 
@@ -160,8 +194,8 @@ Open **More settings → Pre-order & launch** on a product:
 
 ### Pre-order per variant
 
-Pre-order is switched on for the product, then each variant decides. Open a variant (**Edit**
-in the variants table) and turn **Allow pre-order** off for one you can't get more of: once it
+Pre-order is switched on for the product, then each variant decides. Open a variant's page
+(click it in the variants table) and turn **Allow pre-order** off for one you can't get more of: once it
 sells out it shows crossed out on the product page and can't be added to the cart. The others
 keep selling as pre-orders. Variants with **Allow pre-order** off carry a **No pre-order** chip
 in the table. This is different from **Hide on store**: a hidden variant is not shown at all,

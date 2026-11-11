@@ -8,6 +8,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import SaveErrorAlert from '@/components/approvals/save-error-alert'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
 import DataCard from '@/components/layout/data-card'
 import PageHeader from '@/components/layout/page-header'
@@ -222,12 +223,7 @@ export default function CampaignEditor({
           </AlertDescription>
         </Alert>
       ) : null}
-      {error ? (
-        <Alert variant="destructive">
-          <CircleAlert />
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      ) : null}
+      {error ? <SaveErrorAlert message={error} /> : null}
       {problems.length && (campaign || dirty) ? (
         <Alert>
           <CircleAlert />

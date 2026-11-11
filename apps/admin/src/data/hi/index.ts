@@ -149,6 +149,8 @@ import themeCode from './theme-code'
 import themeImport from './theme-import'
 import themes from './themes'
 import umami from './umami'
+import variantBox from './variant-box'
+import variantPage from './variant-page'
 import whatsappChat from './whatsapp-chat'
 import whatsappSignup from './whatsapp-signup'
 import xpressbees from './xpressbees'
@@ -261,6 +263,8 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...productForm,
   ...productBulkShipping,
   ...productShipping,
+  ...variantBox,
+  ...variantPage,
   ...preorders,
   ...productPage,
   ...products,

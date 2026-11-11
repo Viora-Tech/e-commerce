@@ -289,7 +289,7 @@ export const productFormContent = {
     taxPerVariantOffHelp:
       'Turn on only when variants are classed differently. Saving with it off uses these values for every variant.',
     taxPerVariantOnHelp:
-      "Set a variant's own HSN code or GST rate in its Edit dialog under Variants. A variant left blank uses the values above.",
+      "Set a variant's own HSN code or GST rate on its page: open it under Variants. A variant left blank uses the values above.",
     country: 'Country of origin',
     countryHelp: 'Where the product was made or assembled.',
     countryPlaceholder: 'Select a country',
@@ -297,8 +297,9 @@ export const productFormContent = {
     packageHelp:
       'The box this product ships in. Shipment booking uses it instead of the store default box.',
     packageManage: 'Add or edit named boxes in Settings, Shipping & delivery.',
-    packageAllVariants: 'Applies to every variant of this product.',
-    /** With options, weight and customs move into each variant's Edit dialog. */
+    packageAllVariants:
+      'Applies to every variant of this product, unless a variant picks its own box on its page (open it under Variants).',
+    /** With options, weight and customs move onto each variant's page. */
     perVariant:
       'Weight and country of origin are set on each variant. Open a variant under Variants to edit them.',
     packageStoreDefault: "Use the store's default box",

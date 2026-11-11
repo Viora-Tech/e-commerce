@@ -2,14 +2,14 @@
 
 import type { CatalogSummary, CatalogView, MarketView } from '@commerce/core'
 import { permissions } from '@commerce/core/permissions'
-import { CircleAlert, Trash2 } from '@commerce/ui/icons'
-import { Alert, AlertDescription, AlertTitle } from '@commerce/ui/shadcn/alert'
+import { Trash2 } from '@commerce/ui/icons'
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import { NativeSelect, NativeSelectOption } from '@commerce/ui/shadcn/native-select'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import SaveErrorAlert from '@/components/approvals/save-error-alert'
 import ActionMenu from '@/components/layout/action-menu'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
 import DataCard from '@/components/layout/data-card'
@@ -188,13 +188,7 @@ export default function CatalogForm({ catalog, markets, catalogs }: CatalogFormP
           ) : null
         }
       />
-      {error ? (
-        <Alert variant="destructive">
-          <CircleAlert />
-          <AlertTitle>{copy.toasts.failed}</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      ) : null}
+      {error ? <SaveErrorAlert title={copy.toasts.failed} message={error} /> : null}
 
       <DataCard title={f.details}>
         <FieldGroup>

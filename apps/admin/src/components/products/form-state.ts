@@ -2,6 +2,7 @@ import {
   type InventoryReason,
   type ProductStatus,
   type ProductWrite,
+  type VariantBox,
   variantTitle,
   type WeightUnit,
 } from '@commerce/core/catalog'
@@ -11,6 +12,7 @@ import type { productFormContent } from '@/data/product-form'
 import { rupees } from '@/data/products'
 import type { api } from '@/lib/api-client'
 import { liftTax, type ProductTax } from './product-tax'
+import { validVariantLimit } from './variant-preorder-limit'
 import { DEFAULT_WEIGHT_UNIT, fromGrams, toGrams } from './weight-units'
 
 export type LoadedProduct = NonNullable<Awaited<ReturnType<typeof api.products.get>>>
@@ -51,6 +53,8 @@ export type VariantRow = {
   packageLengthCm: number | null
   packageWidthCm: number | null
   packageHeightCm: number | null
+  /** The box above is the variant's own (#1517); false follows the product's Package. */
+  boxOwn: boolean
   /** The variant's images in order, ids from the product gallery; the first is its main image. */
   mediaIds: string[]
 }
@@ -111,7 +115,16 @@ export type ProductFormState = {
 
 export const MAX_OPTIONS = 3
 
-export function emptyVariant(optionValues: string[], template?: VariantRow): VariantRow {
+/**
+ * A new row, copying the template's prices and shipping. Its box is the product's Package
+ * (`productBox`), never the template's own box (#1517).
+ */
+export function emptyVariant(
+  optionValues: string[],
+  template?: VariantRow,
+  productBox?: VariantBox,
+): VariantRow {
+  const box = productBox ?? template
   return {
     optionValues,
     price: template?.price ?? '',
@@ -131,10 +144,11 @@ export function emptyVariant(optionValues: string[], template?: VariantRow): Var
     hsCode: template?.hsCode ?? '',
     countryOfOrigin: template?.countryOfOrigin ?? '',
     gstRate: template?.gstRate ?? '',
-    boxPresetId: template?.boxPresetId ?? null,
-    packageLengthCm: template?.packageLengthCm ?? null,
-    packageWidthCm: template?.packageWidthCm ?? null,
-    packageHeightCm: template?.packageHeightCm ?? null,
+    boxPresetId: box?.boxPresetId ?? null,
+    packageLengthCm: box?.packageLengthCm ?? null,
+    packageWidthCm: box?.packageWidthCm ?? null,
+    packageHeightCm: box?.packageHeightCm ?? null,
+    boxOwn: false,
     mediaIds: [],
   }
 }
@@ -253,6 +267,7 @@ function fromVariants(p: LoadedProduct): VariantRow[] {
         packageLengthCm: v.packageLengthCm ?? null,
         packageWidthCm: v.packageWidthCm ?? null,
         packageHeightCm: v.packageHeightCm ?? null,
+        boxOwn: v.boxOwn ?? false,
         mediaIds: v.mediaIds,
       }))
 }
@@ -308,46 +323,6 @@ function fromDateTimeField(value: string): Date | null {
 const intOrNull = (text: string): number | null => {
   const n = Number(text)
   return text.trim() === '' || !Number.isInteger(n) ? null : n
-}
-
-/** A variant's pre-order limit as typed: blank, or a whole number from 1 to 1,000,000. */
-export function validVariantLimit(text: string): boolean {
-  if (text.trim() === '') return true
-  const n = Number(text)
-  return Number.isInteger(n) && n >= 1 && n <= 1_000_000
-}
-
-/**
- * What a variant with a blank pre-order limit uses, for the field's placeholder: the product's
- * own limit (null: none), or the campaign's when the product is in one and does not keep its own.
- */
-export function inheritedPreorderLimit(
-  form: Pick<ProductFormState, 'preorderCampaignId' | 'preorderOwn' | 'preorderLimit'>,
-): { from: 'product'; limit: number | null } | { from: 'campaign' } {
-  if (form.preorderCampaignId && !form.preorderOwn.includes('limit')) return { from: 'campaign' }
-  const n = Number(form.preorderLimit)
-  const limit = form.preorderLimit.trim() !== '' && Number.isInteger(n) && n >= 1 ? n : null
-  return { from: 'product', limit }
-}
-
-/** What the variant dialog needs to show the pre-order limit field and its placeholder. */
-export type VariantPreorderContext = {
-  /** The product takes pre-orders (its own switch or a campaign). */
-  on: boolean
-  inherited: ReturnType<typeof inheritedPreorderLimit>
-}
-
-/** The variant dialog's pre-order context for this form. */
-export function variantPreorderContext(
-  form: Pick<
-    ProductFormState,
-    'preorderEnabled' | 'preorderCampaignId' | 'preorderOwn' | 'preorderLimit'
-  >,
-): VariantPreorderContext {
-  return {
-    on: form.preorderEnabled || Boolean(form.preorderCampaignId),
-    inherited: inheritedPreorderLimit(form),
-  }
 }
 
 export function toWrite(form: ProductFormState): ProductWrite {
@@ -417,6 +392,7 @@ export function toWrite(form: ProductFormState): ProductWrite {
       packageLengthCm: v.packageLengthCm,
       packageWidthCm: v.packageWidthCm,
       packageHeightCm: v.packageHeightCm,
+      boxOwn: v.boxOwn,
       onHand: v.trackInventory ? (intOrNull(v.quantity) ?? 0) : undefined,
       mediaId: v.mediaIds[0] ?? null,
       mediaIds: v.mediaIds,

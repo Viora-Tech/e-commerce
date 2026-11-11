@@ -272,6 +272,7 @@ export async function getProduct(tx: StoreTx, id: string) {
       packageLengthCm: variant.packageLengthCm,
       packageWidthCm: variant.packageWidthCm,
       packageHeightCm: variant.packageHeightCm,
+      boxOwn: variant.boxOwn,
       mediaId: variant.mediaId,
       onHand: sellableStock.onHand,
       reserved: sellableStock.reserved,

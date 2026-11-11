@@ -1,6 +1,7 @@
 'use client'
 
 import type { BoxPreset } from '@commerce/core'
+import { productBoxOf, type VariantBox, variantBox, variantTitle } from '@commerce/core/catalog'
 import { type PackageDimensionsCm, volumetricWeightGrams } from '@commerce/core/parcel'
 import {
   Field,
@@ -25,9 +26,11 @@ import DataCard from '@/components/layout/data-card'
 import { COUNTRIES } from '@/data/countries'
 import { productFormContent } from '@/data/product-form'
 import { productShippingContent } from '@/data/product-shipping'
+import { variantBoxContent } from '@/data/variant-box'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
+import { boxLabel } from './box-label'
 import type { VariantRow } from './form-state'
 import type { ProductTax } from './product-tax'
 import ProductTaxFields from './product-tax-fields'
@@ -36,6 +39,8 @@ import { toGrams } from './weight-units'
 
 type ShippingCardProps = {
   variant: VariantRow
+  /** Every variant: the Package shown is the product's (`productBoxOf`), and the ones with their own box are named. */
+  variants: VariantRow[]
   /** Without options the card edits the only variant; with them, the package still covers all. */
   singleVariant: boolean
   packageError?: string | undefined
@@ -44,7 +49,7 @@ type ShippingCardProps = {
   onTax: (tax: ProductTax) => void
   /** Weight and customs fields, for the variant shown. */
   onChange: (patch: Partial<VariantRow>) => void
-  /** Package fields, applied to every variant. */
+  /** Package fields, applied to every variant that has no box of its own (#1517). */
   onPackage: (patch: Partial<VariantRow>) => void
 }
 
@@ -68,7 +73,7 @@ function toCm(text: string): number | null {
 }
 
 /** The box in use: custom dimensions when all three are set, else the named preset. */
-function packageDims(variant: VariantRow, presets: BoxPreset[]): PackageDimensionsCm | null {
+function packageDims(variant: VariantBox, presets: BoxPreset[]): PackageDimensionsCm | null {
   const { packageLengthCm: l, packageWidthCm: w, packageHeightCm: h } = variant
   if (l && w && h) return { lengthCm: l, widthCm: w, heightCm: h }
   const preset = presets.find((b) => b.id === variant.boxPresetId)
@@ -80,6 +85,7 @@ function packageDims(variant: VariantRow, presets: BoxPreset[]): PackageDimensio
 /** Weight, customs fields for international labels, and the package this variant ships in. */
 export default function ShippingCard({
   variant,
+  variants,
   singleVariant,
   packageError,
   tax,
@@ -90,6 +96,7 @@ export default function ShippingCard({
   // Hooks
   const { shipping: copy } = useCopy(productFormContent)
   const physical = useCopy(productShippingContent)
+  const boxCopy = useCopy(variantBoxContent)
   const [boxPresets, setBoxPresets] = useState<BoxPreset[]>([])
   /* "Custom size" picked but no dimension typed yet still shows the inputs. */
   const [customPicked, setCustomPicked] = useState(false)
@@ -106,7 +113,7 @@ export default function ShippingCard({
     setCustomPicked(next === CUSTOM)
     if (next === CUSTOM) {
       /* Start from the box in use, so switching to custom is a tweak rather than a blank form. */
-      const from = packageDims(variant, boxPresets)
+      const from = packageDims(productBoxOf(variants), boxPresets)
       onPackage({
         boxPresetId: null,
         packageLengthCm: from?.lengthCm ?? null,
@@ -119,24 +126,28 @@ export default function ShippingCard({
   }
 
   // Render logic
+  const box = productBoxOf(variants)
+  const ownBox = singleVariant ? [] : variants.filter((v) => v.boxOwn && v.requiresShipping)
+  const allOwn = ownBox.length > 0 && variants.every((v) => v.boxOwn || !v.requiresShipping)
+  const ownList = ownBox
+    .map((v) => `${variantTitle(v.optionValues)} (${boxLabel(variantBox(v), boxPresets, boxCopy)})`)
+    .join(', ')
   const items = Object.fromEntries([
     [NONE, copy.countryPlaceholder],
     ...COUNTRIES.map((c) => [c.code, c.name]),
   ])
   const hasCustomDims =
-    variant.packageLengthCm != null ||
-    variant.packageWidthCm != null ||
-    variant.packageHeightCm != null
+    box.packageLengthCm != null || box.packageWidthCm != null || box.packageHeightCm != null
   const packageValue =
-    hasCustomDims || (customPicked && !variant.boxPresetId)
+    hasCustomDims || (customPicked && !box.boxPresetId)
       ? CUSTOM
-      : (variant.boxPresetId ?? STORE_DEFAULT)
+      : (box.boxPresetId ?? STORE_DEFAULT)
   const packageItems = Object.fromEntries([
     [STORE_DEFAULT, copy.packageStoreDefault],
     ...boxPresets.map((b) => [b.id, copy.packageOption(b.name, b.lengthCm, b.widthCm, b.heightCm)]),
     [CUSTOM, copy.packageCustom],
   ])
-  const dims = packageDims(variant, boxPresets)
+  const dims = packageDims(box, boxPresets)
   const volumetricKg = dims ? volumetricWeightGrams(dims) / 1000 : null
   const actualGrams = toGrams(variant.weight, variant.weightUnit)
   const actualKg = actualGrams == null ? null : actualGrams / 1000
@@ -213,6 +224,7 @@ export default function ShippingCard({
           <Select
             items={packageItems}
             value={packageValue}
+            disabled={allOwn}
             onValueChange={(next) => handlePackage(String(next))}
           >
             <SelectTrigger size="lg" id="variant-package" className="w-full md:max-w-[20.75rem]">
@@ -220,9 +232,9 @@ export default function ShippingCard({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value={STORE_DEFAULT}>{copy.packageStoreDefault}</SelectItem>
-              {boxPresets.map((box) => (
-                <SelectItem key={box.id} value={box.id}>
-                  {packageItems[box.id]}
+              {boxPresets.map((preset) => (
+                <SelectItem key={preset.id} value={preset.id}>
+                  {packageItems[preset.id]}
                 </SelectItem>
               ))}
               <SelectItem value={CUSTOM}>{copy.packageCustom}</SelectItem>
@@ -235,8 +247,14 @@ export default function ShippingCard({
               {copy.packageManage}
             </Link>
           </FieldDescription>
+          {/* Variants with their own box are named, so the exception is never hidden (#1517). */}
+          {ownBox.length > 0 ? (
+            <FieldDescription className="text-foreground">
+              {allOwn ? boxCopy.allOwn : boxCopy.ownVariants(ownList)}
+            </FieldDescription>
+          ) : null}
         </KitField>
-        {packageValue === CUSTOM ? (
+        {packageValue === CUSTOM && !allOwn ? (
           <div className="grid gap-4 md:grid-cols-3">
             <Field>
               <FieldLabel htmlFor="variant-package-length">{copy.packageLength}</FieldLabel>
@@ -248,7 +266,7 @@ export default function ShippingCard({
                 min={1}
                 max={200}
                 step={1}
-                value={variant.packageLengthCm ?? ''}
+                value={box.packageLengthCm ?? ''}
                 onChange={(e) => onPackage({ packageLengthCm: toCm(e.target.value) })}
               />
             </Field>
@@ -262,7 +280,7 @@ export default function ShippingCard({
                 min={1}
                 max={200}
                 step={1}
-                value={variant.packageWidthCm ?? ''}
+                value={box.packageWidthCm ?? ''}
                 onChange={(e) => onPackage({ packageWidthCm: toCm(e.target.value) })}
               />
             </Field>
@@ -276,7 +294,7 @@ export default function ShippingCard({
                 min={1}
                 max={200}
                 step={1}
-                value={variant.packageHeightCm ?? ''}
+                value={box.packageHeightCm ?? ''}
                 onChange={(e) => onPackage({ packageHeightCm: toCm(e.target.value) })}
               />
             </Field>

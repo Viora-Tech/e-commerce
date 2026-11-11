@@ -325,6 +325,7 @@ export async function duplicateProduct(
       packageLengthCm: v.packageLengthCm,
       packageWidthCm: v.packageWidthCm,
       packageHeightCm: v.packageHeightCm,
+      boxOwn: v.boxOwn ?? false,
       onHand: opts.stock ? (levels.find((l) => l.variantId === v.id)?.onHand ?? 0) : 0,
       ...(opts.photos && v.mediaId ? { mediaId: v.mediaId } : {}),
     })),

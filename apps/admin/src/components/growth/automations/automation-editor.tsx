@@ -12,8 +12,7 @@ import {
   TRIGGER_QUIET_MINUTES,
 } from '@commerce/core/marketing'
 import { formatNumber } from '@commerce/money'
-import { ArrowRight, ChevronLeftIcon, CircleAlert, Save, Trash2, X } from '@commerce/ui/icons'
-import { Alert, AlertDescription } from '@commerce/ui/shadcn/alert'
+import { ArrowRight, ChevronLeftIcon, Save, Trash2, X } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card } from '@commerce/ui/shadcn/card'
 import { Field, FieldLabel } from '@commerce/ui/shadcn/field'
@@ -23,6 +22,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import SaveErrorAlert from '@/components/approvals/save-error-alert'
 import { blockId } from '@/components/growth/campaigns/form-state'
 import type { TemplatesResult } from '@/components/growth/campaigns/whatsapp-template-card'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
@@ -236,12 +236,7 @@ export default function AutomationEditor({
           </Button>
         </div>
       </header>
-      {error ? (
-        <Alert variant="destructive">
-          <CircleAlert />
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      ) : null}
+      {error ? <SaveErrorAlert message={error} /> : null}
       {tab === 'builder' ? (
         <div className="grid min-h-[40rem] grid-cols-1 overflow-hidden rounded-xl border border-border bg-card lg:h-[calc(100dvh-10rem)] lg:grid-cols-[15rem_minmax(0,1fr)_22rem]">
           <AutomationPalette

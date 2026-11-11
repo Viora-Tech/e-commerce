@@ -6,16 +6,18 @@ import {
   emptyVariant,
   formErrors,
   fromProduct,
-  inheritedPreorderLimit,
   type LoadedProduct,
   type OptionRow,
   stockOf,
   suggestSku,
   toWrite,
   type VariantRow,
+} from './form-state'
+import {
+  inheritedPreorderLimit,
   validVariantLimit,
   variantPreorderContext,
-} from './form-state'
+} from './variant-preorder-limit'
 import { matrixOptions, reconcileVariants } from './variant-reconcile'
 
 function variant(optionValues: string[], patch: Partial<VariantRow> = {}): VariantRow {
