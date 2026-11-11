@@ -118,6 +118,7 @@ export default function CustomerAccountsSettings() {
         {
           id: 'sign-in',
           title: copy.methods.heading,
+          help: copy.methods.body,
           value: listOr(form.loginMethods.map((m) => LOGIN_METHOD_COPY[m].label)),
         },
         {
@@ -130,7 +131,12 @@ export default function CustomerAccountsSettings() {
           ),
         },
         { id: 'more-sign-in', title: copy.extras.heading, value: copy.rows.extrasValue },
-        { id: 'deletion', title: copy.deletion.heading, value: copy.rows.deletionValue },
+        {
+          id: 'deletion',
+          title: copy.deletion.heading,
+          help: copy.deletion.body,
+          value: copy.rows.deletionValue,
+        },
       ]
     : []
 
@@ -145,17 +151,27 @@ export default function CustomerAccountsSettings() {
         onDiscard={() => saved && setForm(JSON.parse(saved) as Settings)}
         saving={busy}
       />
-      <PageHeader
-        title={copy.title}
-        subtitle={copy.subtitle}
-        save={{ dirty: dirty && !none, saving: busy, onSave: handleSave, label: copy.save }}
-      />
       {!form || !loaded ? (
-        <Skeleton className="h-96 w-full rounded-2xl" />
+        <>
+          <PageHeader
+            title={copy.title}
+            subtitle={copy.subtitle}
+            save={{ dirty: dirty && !none, saving: busy, onSave: handleSave, label: copy.save }}
+          />
+          <Skeleton className="h-96 w-full rounded-2xl" />
+        </>
       ) : (
-        <SettingsDrill rows={rows} backLabel={copy.rows.back}>
+        <SettingsDrill
+          rows={rows}
+          backLabel={copy.rows.back}
+          header={{
+            title: copy.title,
+            subtitle: copy.subtitle,
+            save: { dirty: dirty && !none, saving: busy, onSave: handleSave, label: copy.save },
+          }}
+        >
           <SettingsDrillPanel id="checkout">
-            <SettingsCard title={copy.checkout.heading}>
+            <SettingsCard>
               <ChoiceList
                 name="account-checkout"
                 value={form.checkout}
@@ -177,7 +193,7 @@ export default function CustomerAccountsSettings() {
           </SettingsDrillPanel>
 
           <SettingsDrillPanel id="sign-in">
-            <SettingsCard title={copy.methods.heading} description={copy.methods.body}>
+            <SettingsCard>
               {LOGIN_METHODS.map((m) => {
                 const can = loaded.available.includes(m)
                 const text = LOGIN_METHOD_COPY[m]
@@ -252,7 +268,7 @@ export default function CustomerAccountsSettings() {
           />
 
           <SettingsDrillPanel id="deletion">
-            <SettingsCard title={copy.deletion.heading} description={copy.deletion.body}>
+            <SettingsCard>
               <Button
                 variant="outline"
                 className="self-end"

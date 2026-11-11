@@ -160,141 +160,145 @@ export default function AiSettings() {
         }}
         saving={busy}
       />
-      <PageHeader
-        title={copy.settings.title}
-        subtitle={copy.settings.subtitle}
-        save={{ dirty, saving: busy, onSave: handleSave, label: copy.settings.save }}
-      />
       {!loaded || !features || !usage ? (
-        <Skeleton className="h-96 w-full rounded-2xl" />
-      ) : (
         <>
-          {loaded.configured ? null : (
-            <Alert>
-              <CircleAlert />
-              <AlertTitle>{copy.settings.off.title}</AlertTitle>
-              <AlertDescription>{copy.settings.off.body}</AlertDescription>
-            </Alert>
-          )}
-          <SettingsDrill rows={rows} backLabel={copy.settings.title}>
-            <SettingsDrillPanel id="usage">
-              <DataCard
-                title={
-                  <>
-                    {copy.settings.usage.heading}
-                    <Badge variant="neutral">
-                      {copy.settings.usage.plan}: {copy.settings.usage.plans[loaded.plan]}
-                    </Badge>
-                  </>
-                }
-                subtitle={copy.settings.usage.help(
-                  fmt.pattern(nextMonthStart(usage.month), { day: 'numeric', month: 'long' }),
-                )}
-                bodyClassName="flex flex-col gap-5"
-              >
-                <div className="flex flex-col gap-1.5">
-                  <div className="flex flex-wrap items-center justify-between gap-2 text-body">
-                    <span className="text-ink-strong">{copy.settings.usage.credits}</span>
-                    <span className={`tabular-nums ${countTone(credits, loaded.quota.credits)}`}>
-                      {meter(credits, loaded.quota.credits)}
-                    </span>
-                  </div>
-                  <Progress value={share(credits, loaded.quota.credits)} />
-                  <p className="text-caption text-muted-foreground">
-                    {copy.settings.usage.creditsHelp}
-                  </p>
-                  {loaded.extraCredits > 0 ? (
-                    <p className="text-caption text-foreground">
-                      {copy.settings.usage.extra(fmt.number(Math.floor(loaded.extraCredits)))}
-                    </p>
-                  ) : null}
+          <PageHeader
+            title={copy.settings.title}
+            subtitle={copy.settings.subtitle}
+            save={{ dirty: false, saving: busy, onSave: handleSave, label: copy.settings.save }}
+          />
+          <Skeleton className="h-96 w-full rounded-2xl" />
+        </>
+      ) : (
+        <SettingsDrill
+          rows={rows}
+          backLabel={copy.settings.title}
+          header={{
+            title: copy.settings.title,
+            subtitle: copy.settings.subtitle,
+            save: { dirty, saving: busy, onSave: handleSave, label: copy.settings.save },
+            notice: loaded.configured ? null : (
+              <Alert>
+                <CircleAlert />
+                <AlertTitle>{copy.settings.off.title}</AlertTitle>
+                <AlertDescription>{copy.settings.off.body}</AlertDescription>
+              </Alert>
+            ),
+          }}
+        >
+          <SettingsDrillPanel id="usage">
+            <DataCard
+              title={
+                <>
+                  {copy.settings.usage.heading}
+                  <Badge variant="neutral">
+                    {copy.settings.usage.plan}: {copy.settings.usage.plans[loaded.plan]}
+                  </Badge>
+                </>
+              }
+              subtitle={copy.settings.usage.help(
+                fmt.pattern(nextMonthStart(usage.month), { day: 'numeric', month: 'long' }),
+              )}
+              bodyClassName="flex flex-col gap-5"
+            >
+              <div className="flex flex-col gap-1.5">
+                <div className="flex flex-wrap items-center justify-between gap-2 text-body">
+                  <span className="text-ink-strong">{copy.settings.usage.credits}</span>
+                  <span className={`tabular-nums ${countTone(credits, loaded.quota.credits)}`}>
+                    {meter(credits, loaded.quota.credits)}
+                  </span>
                 </div>
-                {/* No limit, nothing to top up: the Unlimited plan offered "Buy 1,000 credits" (#176). */}
-                {loaded.quota.credits === null ? null : (
-                  <Button
-                    variant="outline"
-                    className="self-end"
-                    loading={buying}
-                    onClick={handleBuyCredits}
-                  >
-                    <CreditCard aria-hidden="true" />
-                    {copy.settings.usage.buy(fmt.money(AI_CREDIT_PACK.pricePaise))}
-                  </Button>
-                )}
-              </DataCard>
-            </SettingsDrillPanel>
-            <SettingsDrillPanel id="features">
-              <SettingsCard
-                title={copy.settings.features.heading}
-                description={copy.settings.features.help}
-              >
-                {AI_FEATURES.map((feature) => (
-                  <SettingsToggleRow
-                    key={feature}
-                    id={`ai-${feature}`}
-                    label={copy.settings.features[feature].label}
-                    description={copy.settings.features[feature].help}
-                    checked={features[feature]}
-                    onChange={(on) => setFeatures({ ...features, [feature]: on })}
-                  >
-                    <span className="text-caption text-muted-foreground tabular-nums">
-                      {copy.settings.usage.requestCount(usage.byFeature[feature].calls)}
-                    </span>
-                  </SettingsToggleRow>
-                ))}
-                <SettingsRow
-                  label={copy.settings.quality.label}
-                  description={copy.settings.quality.help}
-                >
-                  <RadioGroup
-                    value={quality}
-                    onValueChange={(v) => setQuality(v as WritingQuality)}
-                    className="flex flex-wrap gap-4"
-                  >
-                    {WRITING_QUALITIES.map((q) => (
-                      <label
-                        key={q}
-                        htmlFor={`ai-quality-${q}`}
-                        className="flex items-center gap-2"
-                      >
-                        <RadioGroupItem id={`ai-quality-${q}`} value={q} />
-                        <span className="text-body">{copy.settings.quality[q]}</span>
-                      </label>
-                    ))}
-                  </RadioGroup>
-                </SettingsRow>
-              </SettingsCard>
-            </SettingsDrillPanel>
-            <SettingsDrillPanel id="privacy">
-              <DataCard
-                title={
-                  <>
-                    <ShieldCheck className="size-5 text-primary" aria-hidden="true" />
-                    {copy.settings.privacy.heading}
-                  </>
-                }
-                bodyClassName="flex flex-col gap-3"
-              >
-                <ul className="flex list-disc flex-col gap-1.5 pl-5 text-body text-ink-strong">
-                  {copy.settings.privacy.lines.map((line) => (
-                    <li key={line}>{line}</li>
-                  ))}
-                </ul>
-                {loaded.configured ? (
-                  <p className="text-caption text-muted-foreground">
-                    {copy.settings.privacy.model(
-                      modelLabel(loaded.models.fast),
-                      modelLabel(loaded.models.strong),
-                    )}
+                <Progress value={share(credits, loaded.quota.credits)} />
+                <p className="text-caption text-muted-foreground">
+                  {copy.settings.usage.creditsHelp}
+                </p>
+                {loaded.extraCredits > 0 ? (
+                  <p className="text-caption text-foreground">
+                    {copy.settings.usage.extra(fmt.number(Math.floor(loaded.extraCredits)))}
                   </p>
                 ) : null}
-              </DataCard>
-            </SettingsDrillPanel>
-            <SettingsDrillPanel id="activity">
-              <AiActivityCard />
-            </SettingsDrillPanel>
-          </SettingsDrill>
-        </>
+              </div>
+              {/* No limit, nothing to top up: the Unlimited plan offered "Buy 1,000 credits" (#176). */}
+              {loaded.quota.credits === null ? null : (
+                <Button
+                  variant="outline"
+                  className="self-end"
+                  loading={buying}
+                  onClick={handleBuyCredits}
+                >
+                  <CreditCard aria-hidden="true" />
+                  {copy.settings.usage.buy(fmt.money(AI_CREDIT_PACK.pricePaise))}
+                </Button>
+              )}
+            </DataCard>
+          </SettingsDrillPanel>
+          <SettingsDrillPanel id="features">
+            <SettingsCard
+              title={copy.settings.features.heading}
+              description={copy.settings.features.help}
+            >
+              {AI_FEATURES.map((feature) => (
+                <SettingsToggleRow
+                  key={feature}
+                  id={`ai-${feature}`}
+                  label={copy.settings.features[feature].label}
+                  description={copy.settings.features[feature].help}
+                  checked={features[feature]}
+                  onChange={(on) => setFeatures({ ...features, [feature]: on })}
+                >
+                  <span className="text-caption text-muted-foreground tabular-nums">
+                    {copy.settings.usage.requestCount(usage.byFeature[feature].calls)}
+                  </span>
+                </SettingsToggleRow>
+              ))}
+              <SettingsRow
+                label={copy.settings.quality.label}
+                description={copy.settings.quality.help}
+              >
+                <RadioGroup
+                  value={quality}
+                  onValueChange={(v) => setQuality(v as WritingQuality)}
+                  className="flex flex-wrap gap-4"
+                >
+                  {WRITING_QUALITIES.map((q) => (
+                    <label key={q} htmlFor={`ai-quality-${q}`} className="flex items-center gap-2">
+                      <RadioGroupItem id={`ai-quality-${q}`} value={q} />
+                      <span className="text-body">{copy.settings.quality[q]}</span>
+                    </label>
+                  ))}
+                </RadioGroup>
+              </SettingsRow>
+            </SettingsCard>
+          </SettingsDrillPanel>
+          <SettingsDrillPanel id="privacy">
+            <DataCard
+              title={
+                <>
+                  <ShieldCheck className="size-5 text-primary" aria-hidden="true" />
+                  {copy.settings.privacy.heading}
+                </>
+              }
+              bodyClassName="flex flex-col gap-3"
+            >
+              <ul className="flex list-disc flex-col gap-1.5 pl-5 text-body text-ink-strong">
+                {copy.settings.privacy.lines.map((line) => (
+                  <li key={line}>{line}</li>
+                ))}
+              </ul>
+              {loaded.configured ? (
+                <p className="text-caption text-muted-foreground">
+                  {copy.settings.privacy.model(
+                    modelLabel(loaded.models.fast),
+                    modelLabel(loaded.models.strong),
+                  )}
+                </p>
+              ) : null}
+            </DataCard>
+          </SettingsDrillPanel>
+          <SettingsDrillPanel id="activity">
+            <AiActivityCard />
+          </SettingsDrillPanel>
+        </SettingsDrill>
       )}
     </div>
   )

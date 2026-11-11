@@ -175,6 +175,7 @@ export default function CostsSettings() {
                 {
                   id: 'methods',
                   title: copy.methods.heading,
+                  help: copy.methods.help,
                   value: rowsCopy.costs.ratesSet(
                     METHOD_RATE_IDS.filter((id) => filled(form.methods[id])).length,
                     METHOD_RATE_IDS.length,
@@ -185,6 +186,7 @@ export default function CostsSettings() {
           {
             id: 'gateways',
             title: copy.gateways.heading,
+            help: copy.gateways.help,
             value:
               view.gateways.length === 0
                 ? rowsCopy.costs.noGateways
@@ -198,6 +200,7 @@ export default function CostsSettings() {
           {
             id: 'delivery',
             title: copy.delivery.heading,
+            help: copy.delivery.help,
             value: deliveryPaise === null ? rowsCopy.needsFix : fmt.money(deliveryPaise),
           },
           ...(view.codOn
@@ -205,6 +208,7 @@ export default function CostsSettings() {
                 {
                   id: 'cod-fee',
                   title: copy.cod.heading,
+                  help: copy.cod.help,
                   value: rateLine(form.cod, fmt.money) ?? rowsCopy.notSet,
                 },
               ]
@@ -213,7 +217,7 @@ export default function CostsSettings() {
       : []
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-4">
       <SaveBar
         open={dirty}
         message={general.unsaved}
@@ -223,18 +227,28 @@ export default function CostsSettings() {
         onDiscard={handleDiscard}
         saving={busy}
       />
-      <PageHeader
-        title={copy.title}
-        subtitle={copy.intro}
-        save={{ dirty, saving: busy, onSave: handleSave, label: copy.save }}
-      />
       {!view || !form ? (
-        <Skeleton className="h-64 w-full rounded-2xl" />
+        <>
+          <PageHeader
+            title={copy.title}
+            subtitle={copy.intro}
+            save={{ dirty: false, saving: busy, onSave: handleSave, label: copy.save }}
+          />
+          <Skeleton className="h-64 w-full rounded-2xl" />
+        </>
       ) : (
-        <SettingsDrill rows={rows} backLabel={copy.title}>
+        <SettingsDrill
+          rows={rows}
+          backLabel={copy.title}
+          header={{
+            title: copy.title,
+            subtitle: copy.intro,
+            save: { dirty, saving: busy, onSave: handleSave, label: copy.save },
+          }}
+        >
           {view.methodRatesOn ? (
             <SettingsDrillPanel id="methods">
-              <SettingsCard title={copy.methods.heading} description={copy.methods.help}>
+              <SettingsCard>
                 {METHOD_RATE_IDS.map((id) => (
                   <FeeRateRow
                     key={id}
@@ -259,7 +273,7 @@ export default function CostsSettings() {
             </SettingsDrillPanel>
           ) : null}
           <SettingsDrillPanel id="gateways">
-            <SettingsCard title={copy.gateways.heading} description={copy.gateways.help}>
+            <SettingsCard>
               {view.gateways.length === 0 ? (
                 <p className="text-body text-muted-foreground">{copy.gateways.none}</p>
               ) : (
@@ -282,11 +296,7 @@ export default function CostsSettings() {
             </SettingsCard>
           </SettingsDrillPanel>
           <SettingsDrillPanel id="delivery">
-            <SettingsCard
-              id="delivery-cost"
-              title={copy.delivery.heading}
-              description={copy.delivery.help}
-            >
+            <SettingsCard id="delivery-cost">
               <div className="flex flex-col gap-1">
                 <label htmlFor="default-delivery" className="text-caption text-muted-foreground">
                   {copy.delivery.label}
@@ -308,7 +318,7 @@ export default function CostsSettings() {
           </SettingsDrillPanel>
           {view.codOn ? (
             <SettingsDrillPanel id="cod-fee">
-              <SettingsCard title={copy.cod.heading} description={copy.cod.help}>
+              <SettingsCard>
                 <FeeRateRow
                   id="fee-cod"
                   label={copy.cod.label}
