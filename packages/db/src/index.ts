@@ -67,6 +67,7 @@ export {
   storesWithShopifyConnections,
   storesWithStaleImportSnapshots,
   storesWithStaleReviewSummaries,
+  storesWithStoreCreditExpiring,
   storesWithUndispatchedOutboxEvents,
   storesWithUnknownPaymentFees,
   storesWithUnpaidOnlineOrders,

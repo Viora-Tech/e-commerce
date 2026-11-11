@@ -252,7 +252,9 @@ export const storeCreditStoreReturn = (
   id: string,
   amountPaise: number,
   createdBy: string,
-) => run(() => storeCreditReturn({ storeId, tx }, id, { amountPaise, secret, createdBy }))
+  expiresOn?: string | null | undefined,
+) =>
+  run(() => storeCreditReturn({ storeId, tx }, id, { amountPaise, secret, createdBy, expiresOn }))
 
 export const exchangeStoreReturn = (
   tx: StoreTx,

@@ -7,12 +7,14 @@ import { Field, FieldDescription, FieldError, FieldLabel } from '@commerce/ui/sh
 import { Input } from '@commerce/ui/shadcn/input'
 import { type FormEvent, useState } from 'react'
 import { toast } from 'sonner'
+import DateField from '@/components/fields/date-field'
 import DialogContent from '@/components/layout/dialog-content'
 import DialogFooter from '@/components/layout/dialog-footer'
 import DialogHeader from '@/components/layout/dialog-header'
 import { customerStoreCreditContent } from '@/data/customer-store-credit'
 import { useCopy, useLocale } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { todayKey } from '@/lib/format-date'
 import { formatPaise } from '@/lib/money'
 
 type StoreCreditDialogProps = {
@@ -24,7 +26,10 @@ type StoreCreditDialogProps = {
   onDone: () => void
 }
 
-/** Add or remove store credit: an amount and the reason the history shows. */
+/**
+ * Add or remove store credit: an amount and the reason the history shows. Added credit may get an
+ * expiry date (its last day); left empty it never expires.
+ */
 export default function StoreCreditDialog({
   customerId,
   mode,
@@ -37,12 +42,14 @@ export default function StoreCreditDialog({
   const locale = useLocale()
   const [amount, setAmount] = useState('')
   const [reason, setReason] = useState('')
+  const [expiresOn, setExpiresOn] = useState('')
   const [busy, setBusy] = useState(false)
 
   // Helpers
   const reset = () => {
     setAmount('')
     setReason('')
+    setExpiresOn('')
   }
 
   // Event handlers
@@ -59,6 +66,7 @@ export default function StoreCreditDialog({
         customerId,
         amountPaise: mode === 'remove' ? -paise : paise,
         reason: reason.trim(),
+        expiresOn: mode === 'add' && expiresOn ? expiresOn : null,
       })
       toast.success(mode === 'remove' ? d.removed : d.added)
       reset()
@@ -110,6 +118,20 @@ export default function StoreCreditDialog({
             />
             <FieldDescription>{d.reasonHint}</FieldDescription>
           </Field>
+          {mode === 'add' ? (
+            <Field>
+              <FieldLabel htmlFor="store-credit-expires">{d.expires}</FieldLabel>
+              <DateField
+                id="store-credit-expires"
+                min={todayKey()}
+                value={expiresOn}
+                onChange={setExpiresOn}
+                placeholder={d.expiresPlaceholder}
+                clearable
+              />
+              <FieldDescription>{d.expiresHint}</FieldDescription>
+            </Field>
+          ) : null}
           <DialogFooter>
             <Button type="button" variant="outline" onClick={handleClose} disabled={busy}>
               {d.cancel}

@@ -14,6 +14,7 @@ import { balanceUrl, invoiceUrl } from '../preorder/balance-link'
 import { buildCartTemplateData, buildTemplateData, messageOn } from './deliver'
 import { storeEmailBrand } from './email-brand'
 import { messageDef } from './messages'
+import { storeCreditTemplateData } from './store-credit-data'
 
 /** The messages an admin sends by hand from an order, previewed before they go. */
 export const ORDER_PREVIEW_TEMPLATES = [
@@ -59,8 +60,11 @@ export async function previewOrderMessage(
       .limit(1)
     reminder = Boolean(sent)
   }
+  // A draft invoice paid partly by store credit shows it, as the sent one does.
+  const credit = await storeCreditTemplateData(ctx, input)
   const data = {
     ...built.data,
+    ...credit,
     brand: await storeEmailBrand(ctx.tx, ctx.storeId),
     ...(actionUrl ? { actionUrl } : {}),
     ...(reminder ? { reminder: true } : {}),
@@ -69,8 +73,13 @@ export async function previewOrderMessage(
   const email = await renderEmail(input.template, data)
   // The template's own subject, so the dialog can prefill it and tell an edit apart.
   const defaultSubject = input.custom?.subject
-    ? (await renderEmail(input.template, { ...built.data, ...(reminder ? { reminder } : {}) }))
-        .subject
+    ? (
+        await renderEmail(input.template, {
+          ...built.data,
+          ...credit,
+          ...(reminder ? { reminder } : {}),
+        })
+      ).subject
     : email.subject
   const chat = messageDef(input.template)?.channels.includes('whatsapp')
     ? renderWhatsapp(input.template, data).text

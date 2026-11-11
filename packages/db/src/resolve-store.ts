@@ -96,6 +96,14 @@ export async function storesWithBalanceDue(db: Db): Promise<string[]> {
   return rows.map((r) => r.id)
 }
 
+/** Store ids with store credit past its expiry and not yet taken off, for the expiry sweep. SECURITY DEFINER backed. */
+export async function storesWithStoreCreditExpiring(db: Db, now: Date): Promise<string[]> {
+  const rows = await db.execute<{ id: string }>(
+    sql`select stores_with_store_credit_expiring(${now.toISOString()}::timestamptz) as id`,
+  )
+  return rows.map((r) => r.id)
+}
+
 /** Store ids with undispatched outbox rows, for the outbox relay. SECURITY DEFINER backed. */
 export async function storesWithUndispatchedOutboxEvents(db: Db): Promise<string[]> {
   const rows = await db.execute<{ id: string }>(
