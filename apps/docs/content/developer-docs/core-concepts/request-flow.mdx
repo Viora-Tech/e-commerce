@@ -183,7 +183,8 @@ per store.
 On-demand queues: `{notifications}-send`, `{apps}-events`, `{apps}-jobs`, `{marketing}-send`,
 `{back-in-stock}-restock`, `{domains}-route` (adds and deletes custom domains' Dokploy routes).
 The worker's HTTP side (Hono) serves
-`POST /webhooks/payments/:provider/:storeId`, `POST /webhooks/shipments/:provider/:storeId`
+`POST /webhooks/payments/:provider/:storeId`, `POST /webhooks/shipments/:provider/:storeId` (and
+its neutral alias `/webhooks/shipments/c/:code/:storeId`, `packages/core/src/shipping/webhook-path.ts`)
 (both rate limited per IP, 120 per minute) and `GET /health`.
 
 ## Common pitfalls
