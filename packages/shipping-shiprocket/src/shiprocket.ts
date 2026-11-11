@@ -44,9 +44,9 @@
 
 import { logger } from '@commerce/observability/logging'
 import {
+  type CancelRef,
   COURIER_TIMEOUT_MS,
   CourierError,
-  type CancelRef,
   type CreateShipmentInput,
   type CreateShipmentResult,
   type CredentialCheck,
@@ -652,9 +652,14 @@ export class ShiprocketProvider implements ShippingProvider {
     }
     const refused = cancelRefusal(result)
     if (refused) {
-      throw new CourierError('rejected', this.id, `Shiprocket did not cancel AWB ${awb}: ${refused}`, {
-        reason: refused,
-      })
+      throw new CourierError(
+        'rejected',
+        this.id,
+        `Shiprocket did not cancel AWB ${awb}: ${refused}`,
+        {
+          reason: refused,
+        },
+      )
     }
   }
 

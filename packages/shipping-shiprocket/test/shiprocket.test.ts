@@ -403,7 +403,9 @@ describe('ShiprocketProvider cancel a booked shipment', () => {
 
   it('cancels by the AWB, not the stored shipment id core passes first', async () => {
     const f = fakeFetch(
-      withLogin({ [CANCEL]: () => json({ message: 'Bulk Shipment cancellation is in progress.' }) }),
+      withLogin({
+        [CANCEL]: () => json({ message: 'Bulk Shipment cancellation is in progress.' }),
+      }),
     )
     const p = new ShiprocketProvider({ ...config, fetchImpl: f.impl })
     await expect(
