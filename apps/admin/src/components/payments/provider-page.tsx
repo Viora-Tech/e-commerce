@@ -102,7 +102,7 @@ export default function ProviderPage({ providerId }: ProviderPageProps) {
 
   if (!gateway.configured) {
     return (
-      <div className="flex flex-col gap-5">
+      <div className="flex flex-col gap-4">
         <PageHeader
           title={gateway.name}
           back={back}
@@ -131,7 +131,7 @@ export default function ProviderPage({ providerId }: ProviderPageProps) {
   const isMain = several && mainProviderId(setup) === gateway.id
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-4">
       <PageHeader
         title={gateway.name}
         subtitle={isMain ? copy.provider.mainHelp : undefined}

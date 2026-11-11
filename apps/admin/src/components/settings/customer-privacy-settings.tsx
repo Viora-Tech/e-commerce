@@ -143,16 +143,26 @@ export default function CustomerPrivacySettings() {
         onDiscard={() => saved && setForm(JSON.parse(saved) as Form)}
         saving={busy}
       />
-      <PageHeader
-        title={copy.title}
-        subtitle={copy.subtitle}
-        save={{ dirty, saving: busy, onSave: handleSave, label: copy.save }}
-      />
       {!overview || !form ? (
-        <Skeleton className="h-96 w-full rounded-2xl" />
+        <>
+          <PageHeader
+            title={copy.title}
+            subtitle={copy.subtitle}
+            save={{ dirty: false, saving: busy, onSave: handleSave, label: copy.save }}
+          />
+          <Skeleton className="h-96 w-full rounded-2xl" />
+        </>
       ) : (
         <>
-          <SettingsDrill rows={rows} backLabel={r.back}>
+          <SettingsDrill
+            rows={rows}
+            backLabel={r.back}
+            header={{
+              title: copy.title,
+              subtitle: copy.subtitle,
+              save: { dirty, saving: busy, onSave: handleSave, label: copy.save },
+            }}
+          >
             <SettingsDrillPanel id="banner">
               <SettingsCard
                 id="privacy-consent-card"

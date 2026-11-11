@@ -7,6 +7,11 @@ import { layoutContent } from '@/data/layout'
 import { useCopy } from '@/hooks/use-copy'
 import BackLink from './back-link'
 
+/** The "‹ Parent" link: a route, or an in-page step back. */
+export type PageHeaderBack =
+  | { label: string; href: string }
+  | { label: string; onClick: () => void }
+
 type LeadTone = 'success' | 'warning' | 'info' | 'danger' | 'neutral'
 
 /** What sits before the title: a record tile or glyph, a person's avatar, or an app logo. */
@@ -23,8 +28,9 @@ type PageHeaderProps = {
   subtitle?: ReactNode
   /** The plain-language line under the title ("72 products · 8 low on stock"). */
   summary?: ReactNode
-  /** Small link above the title that leads back to the parent page. */
-  back?: { label: string; href: string }
+  /** Small link above the title that leads back to the parent page (or, with `onClick`, closes
+   *  an in-page detail such as an open settings row). */
+  back?: PageHeaderBack
   /** The glyph, photo, avatar or logo before the title. */
   lead?: PageHeaderLead
   /** Status chips beside the title. */
@@ -90,7 +96,13 @@ export default function PageHeader({
 
   return (
     <div className="flex flex-col gap-3">
-      {back ? <BackLink href={back.href} label={back.label} /> : null}
+      {back ? (
+        'href' in back ? (
+          <BackLink href={back.href} label={back.label} />
+        ) : (
+          <BackLink onClick={back.onClick} label={back.label} />
+        )
+      ) : null}
       <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3">
         <div className="flex min-w-[min(100%,16rem)] flex-1 items-start gap-4">
           {lead ? (

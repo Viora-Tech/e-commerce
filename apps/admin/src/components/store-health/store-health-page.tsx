@@ -51,10 +51,19 @@ export default function StoreHealthPage({ initial }: StoreHealthPageProps) {
   })).filter((g) => g.issues.length > 0)
 
   return (
-    <>
+    <div className="flex flex-col gap-4">
       <PageHeader
         title={copy.title}
-        subtitle={report ? copy.checked(fmt.dateTime(report.checkedAt)) : copy.intro}
+        subtitle={
+          report ? (
+            <span className="flex flex-col gap-0.5">
+              <span>{copy.intro}</span>
+              <span>{copy.checked(fmt.dateTime(report.checkedAt))}</span>
+            </span>
+          ) : (
+            copy.intro
+          )
+        }
         actions={recheck}
       />
       {report === null ? (
@@ -74,27 +83,24 @@ export default function StoreHealthPage({ initial }: StoreHealthPageProps) {
           </div>
         </SettingsCard>
       ) : (
-        <>
-          <p className="text-caption text-muted-foreground">{copy.intro}</p>
-          {groups.map((g) => (
-            <SettingsCard key={g.severity}>
-              <header className="mb-4 flex flex-wrap items-center gap-2">
-                <StatusChip tone={SEVERITY_TONE[g.severity]}>
-                  {copy.severity[g.severity]} · {g.issues.length}
-                </StatusChip>
-                <span className="text-caption text-muted-foreground">
-                  {copy.severityHelp[g.severity]}
-                </span>
-              </header>
-              <ul className="flex flex-col">
-                {g.issues.map((issue) => (
-                  <HealthIssueRow key={issue.key} issue={issue} copy={copy} />
-                ))}
-              </ul>
-            </SettingsCard>
-          ))}
-        </>
+        groups.map((g) => (
+          <SettingsCard key={g.severity}>
+            <header className="mb-4 flex flex-wrap items-center gap-2">
+              <StatusChip tone={SEVERITY_TONE[g.severity]}>
+                {copy.severity[g.severity]} · {g.issues.length}
+              </StatusChip>
+              <span className="text-caption text-muted-foreground">
+                {copy.severityHelp[g.severity]}
+              </span>
+            </header>
+            <ul className="flex flex-col">
+              {g.issues.map((issue) => (
+                <HealthIssueRow key={issue.key} issue={issue} copy={copy} />
+              ))}
+            </ul>
+          </SettingsCard>
+        ))
       )}
-    </>
+    </div>
   )
 }
