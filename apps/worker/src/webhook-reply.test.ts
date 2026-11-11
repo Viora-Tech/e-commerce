@@ -69,4 +69,40 @@ describe('webhook rejections (D-11)', () => {
     expect(malformed.status).toBe(WEBHOOK_REJECTED_STATUS)
     expect(malformed.body).not.toMatch(/store|provider|signature|uuid/i)
   })
+
+  it('serves the neutral courier alias with the same answers as the named route', async () => {
+    const app = shipmentWebhooks(emptyDb, 'secret-secret-secret', createMemoryRateLimitStore())
+    const named = await answer(app, `/webhooks/shipments/shiprocket/${STORE}`)
+    const alias = await answer(app, `/webhooks/shipments/c/sr/${STORE}`)
+    const malformed = await answer(app, '/webhooks/shipments/c/sr/nope')
+    const unknownCode = await answer(app, `/webhooks/shipments/c/zz/${STORE}`)
+    // The route exists (not Hono's 404) and rejects an unknown store like the named one.
+    expect(alias).toEqual(named)
+    expect(malformed).toEqual(named)
+    expect(unknownCode).toEqual(named)
+    expect(alias.status).toBe(WEBHOOK_REJECTED_STATUS)
+  })
+
+  it('reaches the store lookup for a known alias code, and not for an unknown one', async () => {
+    const lookups: string[] = []
+    const spyDb = {
+      transaction: async (fn: (tx: unknown) => Promise<unknown>) =>
+        fn({
+          execute: async () => undefined,
+          select: () => ({
+            from: () => ({
+              where: async () => {
+                lookups.push('store')
+                return []
+              },
+            }),
+          }),
+        }),
+    } as unknown as Db
+    const app = shipmentWebhooks(spyDb, 'secret-secret-secret', createMemoryRateLimitStore())
+    await answer(app, `/webhooks/shipments/c/zz/${STORE}`)
+    expect(lookups).toEqual([])
+    await answer(app, `/webhooks/shipments/c/sr/${STORE}`)
+    expect(lookups).toEqual(['store'])
+  })
 })

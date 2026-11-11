@@ -87,6 +87,12 @@ PIN code**, then **Test connection**.
 The test logs in with your API user; nothing is booked. It can't confirm your pickup location
 nickname, because Shiprocket only checks that when you book a shipment.
 
+For tracking within minutes, copy the **Tracking webhook URL** from the app's Overview into
+Shiprocket's **Settings › API › Webhooks**, with your webhook shared secret in the **Token**
+field. The address ends in `/webhooks/shipments/c/sr/<store id>`: it leaves out the word
+"shiprocket" because Shiprocket's form refuses addresses that contain it. An address you saved
+earlier with `shiprocket` in it keeps working.
+
 </Tabs.Tab>
 <Tabs.Tab>
 
