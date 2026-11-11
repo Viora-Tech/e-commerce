@@ -5,6 +5,7 @@ import {
   cartItemFacts,
   cartKeyOf,
   cartLineKeys,
+  cartParcelFor,
   DELIVERY_SNAPSHOT_TTL_SECONDS,
   type DeliveryChoice,
   type DeliveryQuoteSnapshot,
@@ -215,10 +216,15 @@ export async function checkoutDelivery(
       : null
   const { shipping } = await registriesForStore(tx, storeId)
   const providers = resolveShippingProviders(shipping, settings, env().SETTINGS_SECRET).providers
+  /* Couriers bill the heavier of actual and volumetric weight: price the parcel the admin
+     would book, box and packing included, not the bare products (#1546). Zone rates keep
+     the cart's own weight (`zone.measure`). */
+  const parcel = await cartParcelFor(tx, lines, settings.boxPresets)
   const base = {
     config,
     cart: {
-      ...zone.measure,
+      valuePaise: zone.measure.valuePaise,
+      weightGrams: parcel.billedGrams,
       items: await cartItemFacts(
         tx,
         lines.map((l) => l.variantId),
@@ -242,7 +248,9 @@ export async function checkoutDelivery(
         query: {
           originPincode: policy.originPincode,
           destinationPincode: to.pincode,
-          ...zone.measure,
+          valuePaise: zone.measure.valuePaise,
+          weightGrams: parcel.billedGrams,
+          dimensionsCm: parcel.dimensionsCm,
         },
       })
   // For the app page's "share of checkouts on backup"; a repeat ask (insurance tick) is not counted.
@@ -310,12 +318,15 @@ export async function deliveryForOrder(
   const policy = toShippingPolicy(settings)
   const { shipping } = await registriesForStore(tx, storeId)
   const providers = resolveShippingProviders(shipping, settings, env().SETTINGS_SECRET).providers
+  // The same billed weight and box checkout asked with, so the cached answers are found.
+  const parcel = await cartParcelFor(tx, lines, settings.boxPresets)
   const answers = await gatherProviderAnswers(
     providers,
     {
       originPincode: policy.originPincode,
       destinationPincode: to.pincode,
-      weightGrams: zone.measure?.weightGrams ?? 0,
+      weightGrams: parcel.billedGrams,
+      dimensionsCm: parcel.dimensionsCm,
       valuePaise: zone.measure?.valuePaise ?? 0,
       wantCod: true,
     },

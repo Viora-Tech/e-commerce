@@ -27,6 +27,10 @@ The **Routes** card lists your connected courier apps. Under each app, a health 
 
 To see every route they offer for a PIN code, run **Try a PIN** (below): the routes appear in the Routes card, and **Edit** on a row sets that route up.
 
+### Prices use the box size, like the courier bills
+
+Couriers charge for whichever is more: what the parcel weighs, or how much room its box takes (length × width × height in cm ÷ 5000, in kg). Checkout asks each courier for the parcel you would book: the products' box (a variant's own box, else its product's, else your main box from **Settings › Shipping**; a mixed cart goes in the biggest box) and its weight with the box's packing added. A glasspad that weighs 1 kg in a 64 × 64 × 8 cm box is priced as about 6.5 kg, the same as its label will cost. Your own **Shipping rates** are not changed: they still use the products' weight.
+
 ### Route settings
 
 No courier API says whether a route insures your parcel, so you tell the app:
@@ -83,7 +87,7 @@ Type a PIN code, an order value and weight, and optionally pick products. **Try*
 
 ## When couriers are down
 
-Checkout never waits more than about a second on couriers. The app remembers each courier's answer for a PIN code, weight and order value: for 6 hours it is used straight away, and for up to 7 days it stands in whenever the courier does not answer in time (while the app asks it again in the background for the next customer). A courier app that fails 3 times within a minute is skipped for 5 minutes, so an outage does not slow checkout.
+Checkout never waits more than about a second on couriers. The app remembers each courier's answer for a PIN code, billed weight, box and order value: for 6 hours it is used straight away, and for up to 7 days it stands in whenever the courier does not answer in time (while the app asks it again in the background for the next customer). A courier app that fails 3 times within a minute is skipped for 5 minutes, so an outage does not slow checkout.
 
 If none of an option's couriers answer in time and none has a saved answer:
 

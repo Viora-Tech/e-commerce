@@ -9,7 +9,7 @@ import { type DeliveryChoice, orderDeliveryFor } from './checkout'
 import { resolveDeliveryOptions } from './resolve'
 import type { ZoneQuote } from './resolve-types'
 import type { ProviderAnswer } from './routes'
-import { activeDeliveryConfig, cartItemFacts } from './service'
+import { activeDeliveryConfig, cartItemFacts, cartParcelFor } from './service'
 
 /**
  * The shopper's option (and sub-choice and insurance tick) with the courier answers checkout
@@ -31,7 +31,7 @@ export async function priceOrderDelivery(
   ctx: StoreContext,
   delivery: OrderDeliveryInput,
   cart: {
-    lines: ReadonlyArray<{ variantId: string; quantity: number; weightGrams: number | null }>
+    lines: ReadonlyArray<{ variantId: string; quantity: number }>
     valuePaise: number
     zone: ZoneQuote
     payment: 'prepaid' | 'cod'
@@ -47,11 +47,14 @@ export async function priceOrderDelivery(
     .select({ shipping: store.shipping })
     .from(store)
     .where(eq(store.id, ctx.storeId))
+  const settings = parseShippingSettings(s?.shipping)
+  // Billed weight, as checkout priced it (#1546): the cost cards must match what was shown.
+  const parcel = await cartParcelFor(ctx.tx, cart.lines, settings.boxPresets)
   const result = resolveDeliveryOptions({
     config,
     cart: {
       valuePaise: cart.valuePaise,
-      weightGrams: cart.lines.reduce((sum, l) => sum + l.quantity * (l.weightGrams ?? 0), 0),
+      weightGrams: parcel.billedGrams,
       items: await cartItemFacts(
         ctx.tx,
         cart.lines.map((l) => l.variantId),
@@ -59,7 +62,7 @@ export async function priceOrderDelivery(
     },
     answers: delivery.answers,
     zone: cart.zone,
-    policy: toShippingPolicy(parseShippingSettings(s?.shipping)),
+    policy: toShippingPolicy(settings),
     now: new Date(),
     declineInsurance: !delivery.choice.insured,
   })
