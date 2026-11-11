@@ -166,7 +166,9 @@ export async function payoutCandidates(
 
 /**
  * One pending payout per ready affiliate (or the ones asked for), holding their approved
- * commissions. Commissions stay `approved` until the payout is marked paid.
+ * commissions. Commissions stay `approved` until the payout is marked paid. Each payout claims
+ * its commissions before its amounts are final, so two requests at once (a double click) never
+ * make two payouts for the same money (#1591).
  */
 export async function createPayouts(
   tx: StoreTx,
@@ -192,7 +194,41 @@ export async function createPayouts(
       })
       .returning()
     if (!p) continue
-    if (c.clawbackPaise > 0) {
+    // Claim first: the row locks give each commission to one payout, so a second request at
+    // the same moment (a double click) claims nothing, and the totals are what was claimed.
+    const claimed = await tx
+      .update(affiliateCommission)
+      .set({ payoutId: p.id, updatedAt: new Date() })
+      .where(
+        and(
+          eq(affiliateCommission.affiliateId, c.affiliateId),
+          eq(affiliateCommission.status, 'approved'),
+          isNull(affiliateCommission.payoutId),
+        ),
+      )
+      .returning({
+        commissionPaise: affiliateCommission.commissionPaise,
+        tdsPaise: affiliateCommission.tdsPaise,
+      })
+    if (claimed.length === 0) {
+      await tx.delete(affiliatePayout).where(eq(affiliatePayout.id, p.id))
+      continue
+    }
+    const grossPaise = claimed.reduce((sum, r) => sum + r.commissionPaise, 0)
+    const tdsPaise = claimed.reduce((sum, r) => sum + r.tdsPaise, 0)
+    let payout = p
+    if (grossPaise !== c.grossPaise || tdsPaise !== c.tdsPaise) {
+      const clawbackPaise = Math.min(c.clawbackPaise, grossPaise)
+      const gstPaise = payoutGstPaise(settings.gst, c.gstRegistered, grossPaise - clawbackPaise)
+      const netPaise = payoutNetPaise({ grossPaise, clawbackPaise, gstPaise, tdsPaise })
+      const [updated] = await tx
+        .update(affiliatePayout)
+        .set({ grossPaise, tdsPaise, clawbackPaise, gstPaise, netPaise })
+        .where(eq(affiliatePayout.id, p.id))
+        .returning()
+      payout = updated ?? p
+    }
+    if (payout.clawbackPaise > 0) {
       await tx
         .update(affiliateCommission)
         .set({ clawbackPayoutId: p.id, updatedAt: new Date() })
@@ -204,17 +240,7 @@ export async function createPayouts(
           ),
         )
     }
-    await tx
-      .update(affiliateCommission)
-      .set({ payoutId: p.id, updatedAt: new Date() })
-      .where(
-        and(
-          eq(affiliateCommission.affiliateId, c.affiliateId),
-          eq(affiliateCommission.status, 'approved'),
-          isNull(affiliateCommission.payoutId),
-        ),
-      )
-    made.push(p)
+    made.push(payout)
   }
   return made
 }
