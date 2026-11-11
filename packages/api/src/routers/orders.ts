@@ -386,9 +386,12 @@ export const ordersRouter = {
 
   /** "Mark as paid / fulfilled / delivered", or cancel. Events follow the derived transitions. */
   // Cancelling is its own grant (and its own "Needs approval" tick), as on `orders.cancel`.
-  setStatus: can(permissions.ORDERS_WRITE, (input) =>
-    inputField(input, 'status') === 'cancelled' ? [permissions.ORDERS_CANCEL] : [],
-  )
+  // Fulfilled and delivered pack what is left, so they need the pack form's grant too.
+  setStatus: can(permissions.ORDERS_WRITE, (input) => {
+    const status = inputField(input, 'status')
+    if (status === 'cancelled') return [permissions.ORDERS_CANCEL]
+    return status === 'fulfilled' || status === 'delivered' ? [permissions.ORDERS_FULFIL] : []
+  })
     .input(z.object({ id: z.uuid(), status: change }))
     .handler(async ({ context, input }) => {
       await assertNotImported(context.tx, { orderId: input.id })

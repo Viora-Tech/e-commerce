@@ -6,11 +6,40 @@
  *        "Mark as fulfilled" pressed by mistake.
  * WHERE: `orders.markNotShipped` (api routers/order-undo.ts), the order page's More actions.
  */
-import { order, orderNote, shipment } from '@commerce/db'
-import { eq, inArray } from 'drizzle-orm'
+import { fulfillmentOrderLine, order, orderLine, orderNote, shipment } from '@commerce/db'
+import { and, eq, inArray, sql } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 import { unpackFulfillmentOrder } from './fulfillment-orders'
 import { recomputeOrderStatuses } from './recompute'
+
+/**
+ * Lines that read packed while their parcels say the units are still waiting (#1535: the line
+ * moved, the parcel and the stock did not) go back to what their parcels say. No stock moves:
+ * stock follows the parcels, which never took those units. Gift cards have no parcel and are
+ * left alone. Returns how many units came back to To ship.
+ */
+async function alignLinesToParcels(ctx: StoreContext, orderId: string): Promise<number> {
+  const drifted = await ctx.tx
+    .select({
+      id: orderLine.id,
+      fulfilledQuantity: orderLine.fulfilledQuantity,
+      inParcels: sql<number>`coalesce((select sum(l.fulfilled_quantity) from ${fulfillmentOrderLine} l
+        where l.order_line_id = ${orderLine.id}), 0)::int`,
+    })
+    .from(orderLine)
+    .where(and(eq(orderLine.orderId, orderId), eq(orderLine.giftCard, false)))
+    .for('update')
+  let units = 0
+  for (const line of drifted) {
+    if (line.fulfilledQuantity <= line.inParcels) continue
+    await ctx.tx
+      .update(orderLine)
+      .set({ fulfilledQuantity: line.inParcels })
+      .where(eq(orderLine.id, line.id))
+    units += line.fulfilledQuantity - line.inParcels
+  }
+  return units
+}
 
 /** Courier statuses after which a label no longer carries the items. */
 const ENDED = new Set(['cancelled', 'rto'])
@@ -47,7 +76,8 @@ export async function undoPacked(
      A tracking number typed by hand (Ship it yourself, Mark as fulfilled) has no label: it
      closes with the packing it recorded. */
   if (live.some((s) => s.labelUrl !== null)) return { undone: false, reason: 'live_shipment' }
-  const units = await unpackFulfillmentOrder(ctx, orderId, null)
+  const units =
+    (await unpackFulfillmentOrder(ctx, orderId, null)) + (await alignLinesToParcels(ctx, orderId))
   if (units === 0) return { undone: false, reason: 'not_packed' }
   if (live.length > 0) {
     await ctx.tx

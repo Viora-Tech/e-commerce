@@ -120,6 +120,11 @@ export async function listOrders(
       deliveryStatus: sql<string | null>`(
         select s.status from shipment s where s.order_id = ${order.id}
         order by s.created_at desc limit 1)`,
+      /* The same shipment carries a label bought from a courier (not a tracking number typed
+         by hand): only then does the row menu offer Cancel shipment, as the order page does. */
+      labelLive: sql<boolean | null>`(
+        select s.label_url is not null from shipment s where s.order_id = ${order.id}
+        order by s.created_at desc limit 1)`,
       /* The same shipment's tracking page: the Delivery chip links to it (#1008). */
       trackingUrl: sql<string | null>`(
         select s.tracking_url from shipment s where s.order_id = ${order.id}

@@ -39,7 +39,7 @@ import {
   ordersContent,
 } from '@/data/orders'
 import { useCopy } from '@/hooks/use-copy'
-import { MOVE_ACTION, nextOrderMove, orderUndos } from '@/lib/order-next-move'
+import { MOVE_ACTION, type MoveFacts, nextOrderMove, orderUndos } from '@/lib/order-next-move'
 import { routes } from '@/lib/routes'
 
 type OrderActionsProps = {
@@ -47,6 +47,10 @@ type OrderActionsProps = {
   paymentStatus: OrderPaymentStatus
   fulfillmentStatus: OrderFulfillmentStatus
   canRefund: boolean
+  /** Cash on delivery, a hold and the member's packing grant: which forward move is offered. */
+  moveFacts?: MoveFacts | undefined
+  /** Units the lines read packed: Mark as unfulfilled also shows when the status disagrees. */
+  packedUnits?: number | undefined
   busy: boolean
   onMove: (to: OrderMark) => void
   onRefund: () => void
@@ -101,6 +105,8 @@ export default function OrderActions({
   paymentStatus,
   fulfillmentStatus,
   canRefund,
+  moveFacts,
+  packedUnits,
   busy,
   onMove,
   onRefund,
@@ -144,8 +150,10 @@ export default function OrderActions({
   }
 
   // Render logic
-  const move = readOnly ? undefined : nextOrderMove(status, paymentStatus, fulfillmentStatus)
-  const undos = orderUndos({ status, fulfillmentStatus })
+  const move = readOnly
+    ? undefined
+    : nextOrderMove(status, paymentStatus, fulfillmentStatus, moveFacts)
+  const undos = orderUndos({ status, fulfillmentStatus, packedUnits })
   /* The Next step card owns the main action; the menu keeps the same move for when it is not shown. */
   const menuMove = move ? { label: copy.actions[MOVE_ACTION[move]], to: move } : undefined
   const refundable = !readOnly && canRefund

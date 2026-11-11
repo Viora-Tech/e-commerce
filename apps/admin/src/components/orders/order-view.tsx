@@ -298,6 +298,7 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
   // An imported order still open can be cancelled too (the server takes it over first).
   const canCancel = canStaffCancel(order) && hasPermission(permissions.ORDERS_CANCEL)
   const canEdit = canEditOrder(order) && hasPermission(permissions.ORDERS_WRITE)
+  // Orders: edit. Archive and Mark as not delivered need it (the row menu checks the same).
   const canArchive = hasPermission(permissions.ORDERS_WRITE)
   const canCapture = live && hasPermission(permissions.ORDERS_REFUND)
 
@@ -314,6 +315,12 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
               paymentStatus={order.paymentStatus}
               fulfillmentStatus={order.fulfillmentStatus}
               canRefund={canRefund}
+              moveFacts={{
+                cod: order.paymentMethod === 'cod',
+                held: Boolean(order.hold),
+                canPack: canFulfilOrders,
+              }}
+              packedUnits={order.lines.reduce((n, l) => n + l.fulfilledQuantity, 0)}
               busy={busy || apps.busy}
               onMove={handleMove}
               onRefund={openRefund}
@@ -330,8 +337,8 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
               onSendReminder={sendReminder}
               onSendOrderLink={sendOrderLink}
               onViewStatusPage={handleViewStatusPage}
-              onMarkNotDelivered={handleMarkNotDelivered}
-              onMarkNotShipped={handleMarkNotShipped}
+              onMarkNotDelivered={canArchive ? handleMarkNotDelivered : undefined}
+              onMarkNotShipped={canFulfilOrders ? handleMarkNotShipped : undefined}
               onRestore={hasPermission(permissions.ORDERS_CANCEL) ? handleRestore : undefined}
               onDuplicate={
                 duplicateOrder.allowed && !readOnly

@@ -34,6 +34,7 @@ import { usePermissions } from '@/hooks/use-permissions'
 import { api } from '@/lib/api-client'
 import {
   canRemindToPay,
+  listCancelsShipment,
   MOVE_ACTION,
   nextOrderMove,
   type OrderMove,
@@ -52,9 +53,13 @@ type OrderRowMenuProps = {
     tags: string[] | null
     /** Set while the order is archived (#1007): the menu offers Unarchive instead of Archive. */
     archivedAt?: string | Date | null
-    /** A read-only import: shipping, moves and cancel happen on its page, after taking it over. */
     /** The latest booking's courier status; a cancelled or finished one cannot be cancelled. */
     deliveryStatus?: string | null | undefined
+    /** The latest booking has a courier label (not a tracking number typed by hand). */
+    labelLive?: boolean | null | undefined
+    /** Fulfilment held (#1011): nothing is packed or booked until it is released. */
+    onHold?: boolean | null | undefined
+    /** A read-only import: shipping, moves and cancel happen on its page, after taking it over. */
     importedFrom?: string | null
   }
   /** The row's own items (open, new tab, same customer). */
@@ -70,10 +75,6 @@ type OrderRowMenuProps = {
 type Dialog = 'cancelShipment' | 'addTags' | 'removeTags' | 'remind' | null
 
 const SHIPPABLE = ['unfulfilled', 'partially_fulfilled']
-/** Booked with a courier but not yet in the shopper's hands. */
-const BOOKED = ['fulfilled', 'shipped']
-/** A courier status after which the booking can no longer be cancelled from the list. */
-const ENDED_DELIVERY = new Set(['cancelled', 'delivered', 'rto', 'rto_delivered'])
 const PAID = ['paid', 'partially_paid']
 
 const MOVE_ICON = { paid: CircleCheck, fulfilled: PackageCheck, delivered: Package } as const
@@ -223,13 +224,17 @@ export default function OrderRowMenu({
   const current = order.tags ?? []
   const fulfilment = order.fulfillmentStatus ?? 'unfulfilled'
   const undos = orderUndos(order)
+  const canPack = hasPermission(permissions.ORDERS_FULFIL)
+  // The order page's rule: a held order books nothing until the hold is released (#1011).
   const canShip =
     open &&
+    canPack &&
+    !order.onHold &&
     SHIPPABLE.includes(fulfilment) &&
     (PAID.includes(order.paymentStatus) || order.paymentMethod === 'cod')
-  // Same rule as the order page: a booking that is still live (not cancelled, delivered or back).
-  const canCancelShipment =
-    open && BOOKED.includes(fulfilment) && !ENDED_DELIVERY.has(order.deliveryStatus ?? '')
+  // Same rule as the order page: a courier label that is still live (not cancelled, delivered or
+  // back). A tracking number typed by hand is undone with Mark as unfulfilled instead.
+  const canCancelShipment = open && canPack && listCancelsShipment(order)
   // The order page's rule (not shipped yet) and grant, so both offer the same cancel.
   const cancellable =
     open &&
@@ -237,7 +242,11 @@ export default function OrderRowMenu({
     hasPermission(permissions.ORDERS_CANCEL)
   const move = order.importedFrom
     ? null
-    : nextOrderMove(order.status, order.paymentStatus, order.fulfillmentStatus)
+    : nextOrderMove(order.status, order.paymentStatus, order.fulfillmentStatus, {
+        cod: order.paymentMethod === 'cod',
+        held: Boolean(order.onHold),
+        canPack,
+      })
   const remindable = !order.importedFrom && canRemindToPay(order)
 
   const canArchive = hasPermission(permissions.ORDERS_WRITE)
@@ -277,7 +286,7 @@ export default function OrderRowMenu({
           {
             label: detail.actions.markNotShipped,
             icon: RotateCcw,
-            hidden: !undos.unfulfil || !hasPermission(permissions.ORDERS_FULFIL),
+            hidden: !undos.unfulfil || !canPack,
             onSelect: () =>
               handleUndo(
                 () => api.orders.markNotShipped({ id: order.id }),
