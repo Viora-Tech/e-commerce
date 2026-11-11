@@ -44,6 +44,19 @@ Two are worth naming because the upload-time image pipeline (`packages/core/src/
 run in `apps/worker`) depends on them directly rather than adapting any of their code:
 [sharp](https://github.com/lovell/sharp) (Apache License 2.0) for image decode/resize/encode, and
 [thumbhash](https://github.com/evanw/thumbhash) (MIT) for the blur-up placeholder.
+The Rust pilot of that pipeline (`services/image-worker`, not used in production) uses crates
+from crates.io as libraries, no code copied (licences read from each crate's `Cargo.toml`,
+2026-11-11): [image](https://github.com/image-rs/image) 0.25 (MIT or Apache-2.0, with zune-jpeg,
+png, gif and image-webp under the same terms) to decode,
+[fast_image_resize](https://github.com/cykooz/fast_image_resize) 5 (MIT or Apache-2.0) to resize,
+[ravif](https://github.com/kornelski/cavif-rs) 0.13 (BSD-3-Clause) on
+[rav1e](https://github.com/xiph/rav1e) 0.8 (BSD-2-Clause) for AVIF,
+[webp](https://github.com/jaredforth/webp) 0.3 (MIT or Apache-2.0) on libwebp-sys (MIT) and
+[libwebp](https://chromium.googlesource.com/webm/libwebp) (BSD-3-Clause) for WebP,
+[mozjpeg](https://github.com/ImageOptim/mozjpeg-rust) 0.10 on
+[mozjpeg](https://github.com/mozilla/mozjpeg) (IJG, zlib and BSD-3-Clause; this software is
+based in part on the work of the Independent JPEG Group) for the JPEG master, and the Rust
+[thumbhash](https://github.com/evanw/thumbhash) 0.1 (MIT).
 The theme editor's Custom HTML element is sanitised by
 [sanitize-html](https://github.com/apostrophecms/sanitize-html) (MIT, dependency of
 `packages/blocks`, used through `packages/blocks/src/embed-sanitize.ts`; its own dependencies
