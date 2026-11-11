@@ -48,6 +48,7 @@ const CRITICAL = new Set([
   'unpaid-order-expiry',
   'preorder-balance',
   'payment-fees',
+  'refund-sync',
 ])
 
 /** Paused first, at `slow`: imports, images, exports, bulk AI, campaign sends and housekeeping. */

@@ -11,6 +11,7 @@ export {
   decentroFactory,
   decentroReferenceId,
   decentroStatus,
+  refundStateOf,
 } from './decentro'
 export { fetchPayoutStatus, payoutReferenceId, payoutStatusOf } from './payouts'
 export { decentroPlugin } from './plugin'

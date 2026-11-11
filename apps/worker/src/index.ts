@@ -86,6 +86,7 @@ import { platformWebhooks } from './platform-webhooks'
 import { BALANCE_EVERY_MS, createPreorderBalanceJob } from './preorder-balance'
 import { createPurchaseDocumentWorker } from './purchase-documents'
 import { createConnection, createHeartbeat } from './queues'
+import { createRefundSync, REFUND_SYNC_EVERY_MS, REFUND_SYNC_QUEUE } from './refund-sync'
 import { createRetentionPrune, RETENTION_SCHEDULE } from './retention'
 import { createReviewSummarySweep, REVIEW_SUMMARIES_EVERY_MS } from './review-summaries'
 import { createReviewRequestSweep, REVIEW_REQUESTS_EVERY_MS } from './reviews'
@@ -144,6 +145,7 @@ const unpaidExpiry = createUnpaidOrderExpiry(db, { settingsSecret: env.SETTINGS_
 const preorderBalance = createPreorderBalanceJob(db, { settingsSecret: env.SETTINGS_SECRET })
 const storeCreditExpiry = createStoreCreditExpiry(db)
 const paymentFees = createPaymentFeeSync(db, { settingsSecret: env.SETTINGS_SECRET })
+const refundSync = createRefundSync(db, { settingsSecret: env.SETTINGS_SECRET })
 const tracker = createShippingTracker(db, { settingsSecret: env.SETTINGS_SECRET })
 const orderPusher = createOrderPusher(db, { settingsSecret: env.SETTINGS_SECRET })
 // Unset Dokploy keys: no routes are asked for and every route job is a no-op (added by hand).
@@ -293,6 +295,13 @@ const sweepList: Sweep[] = [
     schedule: every(PAYMENT_FEES_EVERY_MS),
     run: paymentFees.run,
     legacy: { queue: PAYMENT_FEES_QUEUE, scheduler: 'sync-payment-fees' },
+  },
+  // Gateways without refund webhooks (Decentro): pending refunds asked about once a day.
+  {
+    name: 'refund-sync',
+    schedule: every(REFUND_SYNC_EVERY_MS),
+    run: refundSync.run,
+    legacy: { queue: REFUND_SYNC_QUEUE, scheduler: 'refund-sync' },
   },
   {
     name: 'domain-verify',

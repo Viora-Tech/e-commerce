@@ -349,6 +349,17 @@ export async function storesWithUnknownPaymentFees(db: Db): Promise<string[]> {
   return rows.map((r) => r.id)
 }
 
+/**
+ * Store ids with a gateway refund still pending on a gateway without refund webhooks
+ * (Decentro), for the worker's refund sync. SECURITY DEFINER backed (0241).
+ */
+export async function storesWithPendingGatewayRefunds(db: Db): Promise<string[]> {
+  const rows = await db.execute<{ id: string }>(
+    sql`select stores_with_pending_gateway_refunds() as id`,
+  )
+  return rows.map((r) => r.id)
+}
+
 /** The store and grant an access token belongs to, before any store context exists. Null when no live grant has it. */
 export async function apiGrantForAccess(
   db: Db,

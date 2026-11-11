@@ -327,7 +327,7 @@ export const analyticsContent = {
       authorized: 'Authorized',
       partially_paid: 'Partially paid',
       paid: 'Paid',
-      partially_refunded: 'Partially refunded',
+      partially_refunded: 'Partly refunded',
       refunded: 'Refunded',
       refund_needed: 'Refund needed',
       cod: 'COD',
