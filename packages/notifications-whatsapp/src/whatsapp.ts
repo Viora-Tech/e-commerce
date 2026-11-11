@@ -167,8 +167,26 @@ export function templateParams(template: TemplateId, d: TemplateData): string[] 
   }
 }
 
-/** WhatsApp placeholders may not contain newlines, tabs or 4+ spaces. */
+/** WhatsApp placeholders may not contain newlines, tabs or 4+ spaces, nor be empty. */
 const clean = (s: string): string => s.replace(/\s+/g, ' ').trim()
+const param = (s: string): string => clean(s) || '-'
+
+/** One Graph call may take this long before the send counts as failed (and is retried). */
+const GRAPH_TIMEOUT_MS = 15_000
+
+/**
+ * The `to` Meta needs: the full number with its country code, digits only. Checkout keeps an
+ * Indian mobile as its 10 digits (`normaliseMobile`), so those get 91; a number from abroad is
+ * stored with its + and country code and is left as it is.
+ */
+function whatsappTo(phone: string | undefined): string | null {
+  const raw = phone?.trim() ?? ''
+  const digits = raw.replace(/\D/g, '')
+  if (!digits) return null
+  if (raw.startsWith('+')) return digits
+  if (/^0?[6-9]\d{9}$/.test(digits)) return `91${digits.slice(-10)}`
+  return digits
+}
 
 export function buildPayload(config: WhatsappConfig, message: Message, to: string) {
   if (config.useTextMessages) {
@@ -191,7 +209,7 @@ export function buildPayload(config: WhatsappConfig, message: Message, to: strin
           type: 'body',
           parameters: templateParams(message.template, message.data).map((text) => ({
             type: 'text',
-            text: clean(text),
+            text: param(text),
           })),
         },
       ],
@@ -226,7 +244,7 @@ export function buildTemplatePayload(
               type: 'body',
               parameters: template.variables.map((text) => ({
                 type: 'text',
-                text: clean(text) || '-',
+                text: param(text),
               })),
             },
           ]
@@ -268,16 +286,19 @@ export class WhatsappChannel implements NotificationChannel {
   readonly requires = 'phone' as const
   readonly medium = 'whatsapp' as const
   private readonly fetchImpl: FetchLike
+  private readonly timeoutMs: number
 
   constructor(
     private readonly config: WhatsappConfig,
     fetchImpl?: FetchLike,
+    options: { timeoutMs?: number | undefined } = {},
   ) {
     this.fetchImpl = fetchImpl ?? ((input, init) => fetch(input, init))
+    this.timeoutMs = options.timeoutMs ?? GRAPH_TIMEOUT_MS
   }
 
   async send(message: Message): Promise<SendResult> {
-    const to = message.to.phone?.replace(/\D/g, '')
+    const to = whatsappTo(message.to.phone)
     if (!to) return { ok: false, error: 'recipient has no phone' }
     return this.post(buildPayload(this.config, message, to))
   }
@@ -287,7 +308,7 @@ export class WhatsappChannel implements NotificationChannel {
     if (message.kind !== 'whatsapp_template') {
       return { ok: false, error: 'WhatsApp sends approved templates only' }
     }
-    const to = message.to.phone?.replace(/\D/g, '')
+    const to = whatsappTo(message.to.phone)
     if (!to) return { ok: false, error: 'recipient has no phone' }
     return this.post(buildTemplatePayload(this.config, message.template, to))
   }
@@ -299,6 +320,7 @@ export class WhatsappChannel implements NotificationChannel {
     const res = await this.fetchImpl(url, {
       method: 'GET',
       headers: { authorization: `Bearer ${this.config.accessToken}` },
+      signal: AbortSignal.timeout(this.timeoutMs),
     })
     const json = (await res.json().catch(() => ({}))) as {
       data?: GraphTemplate[]
@@ -317,6 +339,7 @@ export class WhatsappChannel implements NotificationChannel {
           'content-type': 'application/json',
         },
         body: JSON.stringify(payload),
+        signal: AbortSignal.timeout(this.timeoutMs),
       })
       const json = (await res.json().catch(() => ({}))) as {
         messages?: { id: string }[]
