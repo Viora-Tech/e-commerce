@@ -1,4 +1,4 @@
-export { DECENTRO_HOSTS, DecentroApiError } from './client'
+export { DECENTRO_HOSTS, DECENTRO_TIMEOUT_MS, DecentroApiError } from './client'
 export {
   attemptFromReference,
   DECENTRO_CALLBACK_ACK,

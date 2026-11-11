@@ -108,15 +108,25 @@ function clip(value: string, max: number): string {
   return value.length > max ? value.slice(0, max) : value
 }
 
+/** How long one Cashfree call may take before we give up on it (#1594). */
+export const CASHFREE_TIMEOUT_MS = 15_000
+
 /**
- * Cashfree order id: `o<orderNumber>_<first 8 hex chars of orderId>_<attempt>`,
- * sanitised to the characters Cashfree allows and capped at 45 chars.
+ * Cashfree order id: `o<orderNumber>_<first 8 hex chars of orderId>_<attempt>`, or
+ * `d<draftNumber>_…` for a checkout draft, sanitised to the characters Cashfree allows and
+ * capped at 45 chars. The number keeps ids unique: 8 hex chars alone collide across a busy
+ * store's drafts, and Cashfree refuses a repeated order id (#1596).
  */
 export function buildCashfreeOrderId(input: CreatePaymentInput): string {
-  const numberPart = input.orderNumber != null ? String(input.orderNumber) : ''
+  const numberPart =
+    input.orderNumber != null
+      ? `o${input.orderNumber}`
+      : input.draftNumber != null
+        ? `d${input.draftNumber}`
+        : 'o'
   const idPart = input.orderId.replace(/-/g, '').slice(0, 8)
   const attempt = input.idempotencyKey?.split(':').at(-1) || '1'
-  const raw = `o${numberPart}_${idPart}_${attempt}`
+  const raw = `${numberPart}_${idPart}_${attempt}`
   return clip(sanitiseId(raw), ORDER_ID_MAX_LEN)
 }
 
@@ -213,8 +223,23 @@ export class CashfreeProvider implements PaymentProvider {
       },
     }
     if (body !== undefined) init.body = JSON.stringify(body)
-    const res = await this.fetchImpl(`${host}${path}`, init)
-    const text = await res.text()
+    // A stuck connection must not hang checkout, the expiry job or a refund (#1594).
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), CASHFREE_TIMEOUT_MS)
+    init.signal = controller.signal
+    let res: Response
+    let text: string
+    try {
+      res = await this.fetchImpl(`${host}${path}`, init)
+      text = await res.text()
+    } catch (err) {
+      if (controller.signal.aborted) {
+        throw new Error(`Cashfree did not answer in ${CASHFREE_TIMEOUT_MS / 1000}s`)
+      }
+      throw err
+    } finally {
+      clearTimeout(timer)
+    }
     let json: unknown = {}
     if (text) {
       try {
@@ -394,11 +419,17 @@ export class CashfreeProvider implements PaymentProvider {
     }
     if (note && note.length >= 3) body.refund_note = clip(note, REFUND_NOTE_MAX_LEN)
 
-    const r = await this.request<CfRefundResponse>(
-      'POST',
-      `/orders/${context.providerRef}/refunds`,
-      body,
-    )
+    const path = `/orders/${context.providerRef}/refunds`
+    const r = await this.request<CfRefundResponse>('POST', path, body).catch(async (err) => {
+      // Our own key, refused: the first try may have refunded with its reply lost (#1595).
+      // Report that refund when it is for this amount; otherwise the refusal stands.
+      if (!context.refundKey || !(err instanceof CashfreeApiError)) throw err
+      const existing = await this.request<CfRefundResponse>('GET', `${path}/${refundId}`).catch(
+        () => null,
+      )
+      if (!existing || Math.round(existing.refund_amount * 100) !== amountPaise) throw err
+      return existing
+    })
     return {
       providerRefundId: String(r.cf_refund_id ?? refundId),
       status: r.refund_status === 'SUCCESS' ? 'processed' : 'pending',
