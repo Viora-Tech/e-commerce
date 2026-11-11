@@ -20,7 +20,11 @@ import { refundedPaise, refundPayment } from './refund'
  * the same cards and the same store credit balance. Gateway money is still refunded by the
  * merchant; these balances are returned here because nothing else would ever release them.
  */
-async function returnGiftCardPayments(ctx: StoreContext, orderId: string) {
+async function returnGiftCardPayments(
+  ctx: StoreContext,
+  orderId: string,
+  storeCreditExpiresOn: string | null | undefined,
+) {
   const rows = await ctx.tx
     .select()
     .from(payment)
@@ -38,6 +42,7 @@ async function returnGiftCardPayments(ctx: StoreContext, orderId: string) {
         paymentId: p.id,
         amountPaise: left,
         reason: 'Order cancelled',
+        storeCreditExpiresOn,
       })
     }
   }
@@ -112,6 +117,11 @@ export async function cancelOrder(
      * "Restock" off); they are written off, so available stock stays as it was.
      */
     restock?: boolean | undefined
+    /**
+     * Staff's expiry for store credit the order spent and now gets back (a day, or null for
+     * never). Left out (no one to ask: the unpaid-order expiry), it keeps its original dates.
+     */
+    storeCreditExpiresOn?: string | null | undefined
   } = {},
 ) {
   // An order older than parcels gets them while it is still live, so they hold its stock.
@@ -135,8 +145,10 @@ export async function cancelOrder(
   await releaseFulfillmentOrders(ctx, orderId, { restock: opts.restock })
   // Store credit held for a payment that never came goes back whatever else is kept: it was
   // never the order's money.
-  await releaseHeldStoreCredit(ctx, orderId)
-  if (opts.returnGiftCards !== false) await returnGiftCardPayments(ctx, orderId)
+  await releaseHeldStoreCredit(ctx, orderId, { expiresOn: opts.storeCreditExpiresOn })
+  if (opts.returnGiftCards !== false) {
+    await returnGiftCardPayments(ctx, orderId, opts.storeCreditExpiresOn)
+  }
   if (opts.notifyCustomer !== false) {
     await insertOutboxEvent(ctx.tx, ctx.storeId, 'order.cancel_notice', { orderId })
   }

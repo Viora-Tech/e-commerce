@@ -427,11 +427,11 @@ export const ordersRouter = {
         manual: z.boolean().optional(),
         /** How it went back when recorded by hand; `store_credit` adds it to the customer's store credit balance. */
         method: z.enum(REFUND_METHODS).optional(),
+        storeCreditExpiresOn: z.iso.date().nullish(), // last day or null; see `refundPayment`
       }),
     )
     .handler(async ({ context, input }) => {
-      // An imported order's money was taken on the old platform: it can only be recorded here
-      // (by hand or as store credit), never sent back through a gateway.
+      // Imported order: its money was taken elsewhere, so only by hand or as store credit here.
       const handOnly = input.manual === true || input.method === 'store_credit'
       if (!handOnly) await assertNotImported(context.tx, { paymentId: input.paymentId })
       const { payments, notifications } = await storeRegistries(context.tx, context.scope.storeId)

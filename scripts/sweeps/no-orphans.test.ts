@@ -41,9 +41,15 @@ const ALLOWLIST: AllowEntry[] = [
   },
   {
     file: 'packages/core/src/customers/store-credit-expiry.ts',
-    names: ['openLots', 'dueLots'],
+    names: ['dueLots'],
     reason:
       'the pure ledger replay, used in the module and asserted directly by store-credit-expiry.test.ts',
+  },
+  {
+    file: 'packages/core/src/customers/store-credit-return.ts',
+    names: ['splitReturn'],
+    reason:
+      'how returned credit is split over its original expiry dates, used in the module and asserted directly by store-credit-return.test.ts',
   },
   {
     file: 'packages/core/src/customers/store-credit-gift-cards.ts',

@@ -13,6 +13,7 @@ import {
   storeCreditExpiryAt,
   storeCreditGiftCards,
   storeCreditOf,
+  storeCreditReturnDefault,
   storeCreditTimeZone,
 } from '@commerce/core'
 import { ORPCError } from '@orpc/server'
@@ -37,6 +38,17 @@ export const storeCreditRouter = {
     .input(z.object({ customerId: z.uuid() }))
     .handler(({ context, input }) =>
       storeCreditOf({ storeId: context.scope.storeId, tx: context.tx }, input.customerId),
+    ),
+
+  /**
+   * The store credit an order was paid with, and the expiry the cancel and refund dialogs
+   * pre-fill when it goes back: the latest last day among the credit it was spent from, or null
+   * when any of it never expires.
+   */
+  getOrderExpiry: can(permissions.ORDERS_READ)
+    .input(z.object({ orderId: z.uuid() }))
+    .handler(({ context, input }) =>
+      storeCreditReturnDefault({ storeId: context.scope.storeId, tx: context.tx }, input.orderId),
     ),
 
   /**

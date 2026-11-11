@@ -143,6 +143,7 @@ import staffInvites from './staff-invites'
 import states from './states'
 import stepUp from './step-up'
 import storageWarning from './storage-warning'
+import storeCreditExpiry from './store-credit-expiry'
 import storeCreditGiftCards from './store-credit-gift-cards'
 import storeData from './store-data'
 import storeHealth from './store-health'
@@ -175,6 +176,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...customerGiftCards,
   ...customerStoreCredit,
   ...storeCreditGiftCards,
+  ...storeCreditExpiry,
   ...ai,
   ...assistant,
   ...automationRecords,

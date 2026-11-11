@@ -448,8 +448,10 @@ due now, else `pending`: a hold that `applyPaymentStatus` captures with the gate
 (`SPLIT_TENDER_PROVIDERS`): never gateway attempts, and outside `payment_one_capture_per_order`
 (0228). The order's total and GST are worked out before any of this and never change.
 
-**Expiry (0239).** A credit line may carry `expires_at` (staff's choice on Add; refunds and
-releases never do). Nothing mutable tracks what is left of it: `openLots`
+**Expiry (0239).** A credit line may carry `expires_at`: staff's choice on Add, a refund or a
+return to store credit; spent credit coming back (a release, a refund of a `store_credit`
+payment) takes staff's choice in the cancel or refund dialog, or with no dialog each part keeps
+the date of the credit it was spent from (`customers/store-credit-return.ts`). Nothing mutable tracks what is left of it: `openLots`
 (`customers/store-credit-expiry.ts`) replays the ledger in id order (uuidv7, so write order),
 spending the soonest-to-expire credit first and never-expiring credit last. On the date what is
 left leaves with a kind `expiry` line whose `expired_entry_id` names the credit line (unique, so

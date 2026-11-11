@@ -5,6 +5,7 @@ import type { StoreContext } from '../context'
 import { STORE_CREDIT_PROVIDER } from '../payments/split-tender'
 import { changeStoreCredit, StoreCreditError } from './store-credit'
 import { lockStoreCreditBalance } from './store-credit-expiry'
+import { spentStoreCreditReturn } from './store-credit-return'
 
 /*
  * How store credit pays for a checkout order:
@@ -118,8 +119,14 @@ export async function captureHeldStoreCredit(ctx: StoreContext, orderId: string)
  * The order was cancelled before it was paid: every held store credit payment is cancelled and
  * its amount goes back onto the balance it came from, with a `release` line linked to the order.
  * Each hold is claimed by its status flip, so a repeated cancel gives nothing back twice.
+ * `expiresOn` is staff's choice in the cancel dialog (a day, or null for never); left out (the
+ * unpaid-order expiry, no one to ask) each part keeps the expiry of the credit it was spent from.
  */
-export async function releaseHeldStoreCredit(ctx: StoreContext, orderId: string): Promise<number> {
+export async function releaseHeldStoreCredit(
+  ctx: StoreContext,
+  orderId: string,
+  opts: { expiresOn?: string | null | undefined } = {},
+): Promise<number> {
   const released = await ctx.tx
     .update(payment)
     .set({ status: 'cancelled', error: 'Order cancelled before it was paid' })
@@ -140,13 +147,23 @@ export async function releaseHeldStoreCredit(ctx: StoreContext, orderId: string)
   for (const r of released) {
     const customerId = r.customerId ?? o?.customerId
     if (!customerId) continue
-    await changeStoreCredit(ctx, {
+    const pieces = await spentStoreCreditReturn(ctx, {
+      orderId,
       customerId,
       amountPaise: r.amountPaise,
-      kind: 'release',
-      reason: `Order #${o?.number ?? ''} was not paid: store credit returned`,
-      orderId,
+      expiresOn: opts.expiresOn,
     })
+    for (const piece of pieces) {
+      await changeStoreCredit(ctx, {
+        customerId,
+        amountPaise: piece.amountPaise,
+        kind: 'release',
+        reason: `Order #${o?.number ?? ''} was not paid: store credit returned`,
+        orderId,
+        expiresAt: piece.expiresAt,
+        restoresSpent: piece.restoresSpent,
+      })
+    }
     total += r.amountPaise
   }
   return total

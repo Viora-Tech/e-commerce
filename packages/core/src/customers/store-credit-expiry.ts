@@ -55,9 +55,14 @@ export type StoreCreditLot = { entryId: string; expiresAt: Date; remainingPaise:
 /**
  * Replays a customer's ledger (oldest first) and returns each credit with an expiry date that
  * still has money left. A debit takes from the credit that expires soonest first; credit that
- * never expires is spent last. An `expiry` line empties the credit it names.
+ * never expires is spent last. An `expiry` line empties the credit it names. `onSpend`, when
+ * given, hears each part of every debit: how much, and the expiry of the credit it came from
+ * (null for credit that never expires).
  */
-export function openLots(lines: readonly StoreCreditLedgerLine[]): StoreCreditLot[] {
+export function openLots<L extends StoreCreditLedgerLine>(
+  lines: readonly L[],
+  onSpend?: (line: L, amountPaise: number, expiresAt: Date | null) => void,
+): StoreCreditLot[] {
   const lots: StoreCreditLot[] = []
   for (const line of lines) {
     if (line.amountPaise > 0) {
@@ -80,7 +85,9 @@ export function openLots(lines: readonly StoreCreditLedgerLine[]): StoreCreditLo
       const take = Math.min(left, lot.remainingPaise)
       lot.remainingPaise -= take
       left -= take
+      onSpend?.(line, take, lot.expiresAt)
     }
+    if (left > 0) onSpend?.(line, left, null)
   }
   return lots.filter((l) => l.remainingPaise > 0)
 }

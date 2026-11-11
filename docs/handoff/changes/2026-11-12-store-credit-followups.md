@@ -35,7 +35,7 @@ in-house on our own ledger (same radar decision as step 1); nothing copied.
   the store's time zone. Views return `expiresOn` (`YYYY-MM-DD`).
 - API `storeCredit.adjust` takes `expiresOn` (only on a credit, must be in the future). Admin Add
   dialog: optional **Expiry date** (DateField). History lines show "Can be spent until …" and kind
-  "Expired". Shopper account: "Expired", "· use by …". Refunds, returns and releases never expire.
+  "Expired". Shopper account: "Expired", "· use by …". Refunds, returns and releases: see below.
 
 ## 3. Balance line in emails only when it changes
 
@@ -67,7 +67,7 @@ in-house on our own ledger (same radar decision as step 1); nothing copied.
 ## Tests
 
 - core `customers/store-credit-expiry.test.ts` (replay FIFO, last-day maths, refusals, expiry
-  under lock, read-time balance, sweep once, checkout never spends expired, refunds never expire),
+  under lock, read-time balance, sweep once, checkout never spends expired, a refund with no date never expires),
   `customers/store-credit-gift-cards.test.ts` (listing/ticks, move, run twice, two at once, holder
   by email/new, no holder, expiry kept), `notifications/store-credit-data.test.ts`.
 - notifications `test/store-credit.test.ts` (invoice rows, used/added lines, none otherwise).
@@ -77,11 +77,32 @@ in-house on our own ledger (same radar decision as step 1); nothing copied.
   no-orphans as tested helpers), typecheck of db, core, notifications, api, worker, admin and
   storefront, Biome on changed files.
 
+## Owner's answers, 12 Nov (same PR)
+
+1. **Refunds and returns to store credit get the optional expiry.** `orders.refund` takes
+   `storeCreditExpiresOn` (day or null), `returns.storeCredit` takes `expiresOn`; the Refund
+   dialog and the return's Store credit step show `StoreCreditExpiryField` (empty = never).
+2. **Spent credit coming back: staff choose again, pre-filled with the original.**
+   - `customers/store-credit-return.ts`: `spentStoreCreditParts` replays the ledger
+     (`openLots` now reports each debit's parts through `onSpend`) to find what the order's
+     store credit payment was spent from; `storeCreditReturnDefault` gives the pre-fill (the
+     latest last day, or null when any part never expires), API `storeCredit.getOrderExpiry`
+     (orders.read), admin hook `useStoreCreditReturn` (a past date is pre-filled as today).
+   - Cancel dialog: "₹X of store credit this order was paid with goes back" + the pre-filled
+     field → `orders.cancel` `returnedCreditExpiresOn` → `cancelOrder` → `releaseHeldStoreCredit`
+     and `returnGiftCardPayments`; `refundOrderAmount` passes it for `store_credit` payments.
+     Refund dialog on a store credit payment: pre-filled the same way.
+   - Semantics everywhere: a day = that expiry; null = never; **left out (no dialog: the unpaid
+     order expiry, an order edit refund) = each part keeps its original date**
+     (`spentStoreCreditReturn` → `splitReturn`: never-expiring parts first, then latest date,
+     skipping what went back before). `changeStoreCredit` takes `restoresSpent` so an original
+     date that already passed is allowed: that part expires straight away.
+3. Moved gift cards keep the card's expiry (unchanged).
+- Tests: `customers/store-credit-return.test.ts` (split, pre-fill, unpaid cancel keeps dates,
+  staff date / never on cancel, store credit payment refunds part by part and with a choice,
+  gateway money to credit with and without a date, an already-passed date expires at once).
+
 ## Not done / open
 
-- Staff cannot set an expiry on a refund or return to store credit yet (owner: "no expiry unless
-  staff set one"); core supports `expiresAt`, the refund/return dialogs do not offer it.
-- Credit returned by a `release` (unpaid order cancelled) or a refund of a store-credit payment
-  comes back without the original credit's expiry.
 - Browser check owed: the Add dialog, gift cards page card, account page and the emails were not
   opened (no dev server here).

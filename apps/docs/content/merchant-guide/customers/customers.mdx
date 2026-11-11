@@ -65,8 +65,16 @@ Customers see their balance and its history under **Account → Store credit** o
 Guests don't see store credit at checkout.
 
 **Expiry dates (optional).** When you **Add credit**, you can pick an **Expiry date**: the last
-day it can be spent. Leave it empty and the credit never expires. Refunds and returns to store
-credit never expire.
+day it can be spent. Leave it empty and the credit never expires. The same optional **Store credit
+expiry** is in the **Refund** dialog (when you refund to store credit) and in a return's **Store
+credit** step: empty means it never expires.
+
+**Store credit an order was paid with, coming back.** When you cancel such an order, or refund
+its store credit payment, the dialog shows **Store credit expiry** already filled in with the
+last day of the credit it was spent from (the latest one, or empty when any of it never
+expired). Keep it, change it, or clear it so it never expires. When nobody is asked (an unpaid
+online order cancels itself after 30 minutes), each part keeps the date of the credit it came
+from. If that date has already passed, that part comes back already expired.
 
 - Spending always uses the credit that expires soonest first, then credit that never expires.
 - After the last day, whatever is left of that credit comes off the balance with its own line,

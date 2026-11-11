@@ -13,9 +13,11 @@ import { createCustomer } from './create'
 import {
   expireDueStoreCredit,
   spendableStoreCredit,
+  storeCreditExpiryAt,
   storeCreditLastDay,
   storeCreditTimeZone,
 } from './store-credit-expiry'
+import { type StoreCreditReturnPiece, spentStoreCreditReturn } from './store-credit-return'
 
 export type StoreCreditKind = (typeof STORE_CREDIT_KINDS)[number]
 
@@ -103,6 +105,11 @@ export async function changeStoreCredit(
     expiresAt?: Date | null | undefined
     /** The old store-credit gift card this credit was moved from (once per card). */
     giftCardId?: string | null | undefined
+    /**
+     * Spent credit coming back with the expiry of the credit it was spent from: that date may
+     * already have passed, and the credit then expires straight away.
+     */
+    restoresSpent?: boolean | undefined
   },
   now: Date = new Date(),
 ): Promise<{ balancePaise: number; entryId: string }> {
@@ -115,7 +122,7 @@ export async function changeStoreCredit(
   if (expiresAt && input.amountPaise < 0) {
     throw new StoreCreditError('invalid', 'Only added credit can have an expiry date', ctx.storeId)
   }
-  if (expiresAt && expiresAt.getTime() <= now.getTime()) {
+  if (expiresAt && !input.restoresSpent && expiresAt.getTime() <= now.getTime()) {
     throw new StoreCreditError('invalid', 'Pick an expiry date in the future', ctx.storeId)
   }
   const [cu] = await ctx.tx
@@ -257,6 +264,10 @@ async function storeCreditHolder(
 /**
  * A refund (or a return's credit) to store credit: onto the balance of the order's customer,
  * found or made by `storeCreditHolder`. Throws when the order has nobody to hold it.
+ *
+ * Expiry: `expiresOn` is staff's choice (`YYYY-MM-DD`, the last day; null or left out never
+ * expires). With `spent` (the order's own store credit payment coming back) and no `expiresOn`
+ * given, each part keeps the expiry of the credit it was spent from (`spentStoreCreditReturn`).
  */
 export async function refundToStoreCredit(
   ctx: StoreContext,
@@ -268,17 +279,43 @@ export async function refundToStoreCredit(
     staffEmail?: string | null | undefined
     /** The history line; "Refund for order #N" when left out. */
     reason?: string | undefined
+    /** The last day it can be spent (`YYYY-MM-DD`); null never expires. See above for left out. */
+    expiresOn?: string | null | undefined
+    /** This is the order's own store credit payment coming back. */
+    spent?: boolean | undefined
   },
 ): Promise<{ customerId: string; balancePaise: number }> {
   const holder = await storeCreditHolder(ctx, input.orderId, input.secret)
-  const { balancePaise } = await changeStoreCredit(ctx, {
-    customerId: holder.customerId,
-    amountPaise: input.amountPaise,
-    kind: 'refund',
-    reason: input.reason ?? `Refund for order #${holder.orderNumber}`,
-    orderId: input.orderId,
-    staff: input.staffEmail ? { email: input.staffEmail } : null,
-  })
+  const pieces: StoreCreditReturnPiece[] = input.spent
+    ? await spentStoreCreditReturn(ctx, {
+        orderId: input.orderId,
+        customerId: holder.customerId,
+        amountPaise: input.amountPaise,
+        expiresOn: input.expiresOn,
+      })
+    : [
+        {
+          amountPaise: input.amountPaise,
+          expiresAt: input.expiresOn
+            ? storeCreditExpiryAt(input.expiresOn, await storeCreditTimeZone(ctx))
+            : null,
+          restoresSpent: false,
+        },
+      ]
+  let balancePaise = 0
+  for (const piece of pieces) {
+    const done = await changeStoreCredit(ctx, {
+      customerId: holder.customerId,
+      amountPaise: piece.amountPaise,
+      kind: 'refund',
+      reason: input.reason ?? `Refund for order #${holder.orderNumber}`,
+      orderId: input.orderId,
+      staff: input.staffEmail ? { email: input.staffEmail } : null,
+      expiresAt: piece.expiresAt,
+      restoresSpent: piece.restoresSpent,
+    })
+    balancePaise = done.balancePaise
+  }
   return { customerId: holder.customerId, balancePaise }
 }
 
