@@ -60,31 +60,36 @@ export async function issueCreditNotes(
   if (again.length) return again.map((row) => ({ row, created: false }))
   const at = opts.at ?? new Date()
 
-  // How much of the refund each invoice takes: all of it with one invoice (capped by the note).
+  // What each invoice can still be credited: its total less the credit notes already against it.
+  // Without this, two refunds on a one-invoice order could credit more GST than was charged.
+  const credited = await tx
+    .select({ fulfillmentOrderId: invoice.fulfillmentOrderId, totalPaise: invoice.totalPaise })
+    .from(invoice)
+    .where(
+      and(
+        eq(invoice.orderId, r.orderId),
+        eq(invoice.kind, 'credit_note'),
+        ne(invoice.status, 'cancelled'),
+      ),
+    )
+  const capacityOf = (inv: InvoiceRow) =>
+    inv.totalPaise -
+    credited
+      .filter((c) => c.fulfillmentOrderId === inv.fulfillmentOrderId)
+      .reduce((n, c) => n + c.totalPaise, 0)
+
+  // How much of the refund each invoice takes: all of it with one invoice, up to what is left.
   let amounts: Map<string, number>
-  if (invoices.length === 1) {
-    amounts = new Map([[invoices[0]?.id as string, r.amountPaise]])
+  const [only] = invoices
+  if (invoices.length === 1 && only) {
+    amounts = new Map([[only.id, Math.min(r.amountPaise, capacityOf(only))]])
   } else {
-    const credited = await tx
-      .select({ fulfillmentOrderId: invoice.fulfillmentOrderId, totalPaise: invoice.totalPaise })
-      .from(invoice)
-      .where(
-        and(
-          eq(invoice.orderId, r.orderId),
-          eq(invoice.kind, 'credit_note'),
-          ne(invoice.status, 'cancelled'),
-        ),
-      )
     const weights = await refundWeights(tx, r.orderId, refundId)
     amounts = allocateRefund(
       r.amountPaise,
       invoices.map((inv) => ({
         key: inv.id,
-        capacityPaise:
-          inv.totalPaise -
-          credited
-            .filter((c) => c.fulfillmentOrderId === inv.fulfillmentOrderId)
-            .reduce((n, c) => n + c.totalPaise, 0),
+        capacityPaise: capacityOf(inv),
         weight: inv.fulfillmentOrderId ? (weights.get(inv.fulfillmentOrderId) ?? 0) : 0,
       })),
     )

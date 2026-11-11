@@ -139,17 +139,21 @@ async function issueOn(storeId: string, orderId: string, at: Date, now = at) {
 }
 
 async function seedRefund(storeId: string, orderId: string, amountPaise: number) {
-  const [p] = await owner
-    .insert(payment)
-    .values({
-      storeId,
-      orderId,
-      provider: 'razorpay',
-      providerRef: 'x',
-      status: 'captured',
-      amountPaise: 205_000,
-    })
-    .returning()
+  // An order has one captured payment; a second refund on the order reuses it.
+  const [paid] = await owner.select().from(payment).where(eq(payment.orderId, orderId))
+  const [p] = paid
+    ? [paid]
+    : await owner
+        .insert(payment)
+        .values({
+          storeId,
+          orderId,
+          provider: 'razorpay',
+          providerRef: 'x',
+          status: 'captured',
+          amountPaise: 205_000,
+        })
+        .returning()
   const [r] = await owner
     .insert(refund)
     .values({
@@ -528,6 +532,25 @@ describe('cancellation, credit notes and GSTR-1', () => {
     const doc = DocumentSnapshotSchema.parse(note?.row.snapshot)
     expect(doc.original?.number).toBe('INV/25-26/0001')
     expect(doc.totals.totalPaise).toBe(50_000)
+  })
+
+  it('never credits one invoice past its total across several refunds', async () => {
+    const { storeId, variantId } = await seedStore()
+    const orderId = await seedOrder(storeId, variantId, 1)
+    const inv = await issueOn(storeId, orderId, d('2025-06-01T10:00:00Z'))
+    const at = d('2025-06-05T10:00:00Z')
+    const first = await seedRefund(storeId, orderId, 150_000)
+    const a = await inStore(storeId, (tx) => issueCreditNote(tx, storeId, first, { at }))
+    expect(DocumentSnapshotSchema.parse(a?.row.snapshot).totals.totalPaise).toBe(150_000)
+    // The second refund is more than the invoice has left to credit: only the rest is credited.
+    const second = await seedRefund(storeId, orderId, 150_000)
+    const b = await inStore(storeId, (tx) => issueCreditNote(tx, storeId, second, { at }))
+    expect(DocumentSnapshotSchema.parse(b?.row.snapshot).totals.totalPaise).toBe(
+      inv.row.totalPaise - 150_000,
+    )
+    // Nothing left: a third refund gets no credit note at all.
+    const third = await seedRefund(storeId, orderId, 10_000)
+    expect(await inStore(storeId, (tx) => issueCreditNote(tx, storeId, third, { at }))).toBeNull()
   })
 
   it('stops credit notes after 30 November following the year of supply', async () => {
