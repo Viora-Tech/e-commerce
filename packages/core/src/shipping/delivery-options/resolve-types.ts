@@ -13,6 +13,12 @@ export type ZoneQuote =
 export type ResolveInput = {
   config: DeliveryConfig
   cart: { valuePaise: number; weightGrams: number; items: readonly CartItemFacts[] }
+  /**
+   * The whole order's value, when `cart` is one of its parcels (a cart shipping from two
+   * locations): free-above and insure-above read it, insurance is priced on the parcel's own.
+   * Omitted: `cart.valuePaise`.
+   */
+  orderValuePaise?: number | undefined
   answers: readonly ProviderAnswer[]
   /** The store's zone rates for this address: the `zone` price and the Standard backup. */
   zone: ZoneQuote

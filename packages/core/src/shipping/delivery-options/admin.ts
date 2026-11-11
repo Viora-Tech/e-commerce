@@ -4,9 +4,11 @@
  * every route's quote and why each won or lost) / WHY: the merchant must see the outcome of
  * their options and rules for any PIN and cart before a shopper does.
  */
-import type { StoreTx } from '@commerce/db'
+import { type StoreTx, variant } from '@commerce/db'
 import { parsePincode, type ShippingProvider, servesDestination } from '@commerce/shipping'
+import { inArray } from 'drizzle-orm'
 import { stateForPincode } from '../../checkout/pincode-state'
+import type { CartParcel } from '../parcel'
 import { quoteShipping } from '../rates'
 import { loadRateZones } from '../rates-service'
 import { type ShippingSettings, toShippingPolicy } from '../settings'
@@ -14,7 +16,7 @@ import { quoteDelivery } from './checkout'
 import type { DeliveryConfig } from './config'
 import type { DeliveryResolveResult } from './resolve-types'
 import { AGGREGATOR_PROVIDERS, type Route, routesFromAnswers } from './routes'
-import { loadDeliveryConfig, productFacts } from './service'
+import { cartParcelFor, loadDeliveryConfig, productFacts } from './service'
 
 /** Admin calls wait longer than checkout: the merchant is watching the answer arrive. */
 const ADMIN_DEADLINE_MS = 5000
@@ -77,12 +79,48 @@ export async function deliveryOverview(
 export type TryPinInput = {
   pincode: string
   valuePaise: number
+  /** Typed weight mode: the weight couriers are asked with. Ignored when `lines` is given. */
   weightGrams: number
   productIds: string[]
+  /**
+   * Pick products mode: variants and quantities. The parcel is built as checkout builds it
+   * (`cartParcelFor`: box, packing, billed weight) and the products come from these variants.
+   */
+  lines?: Array<{ variantId: string; quantity: number }> | undefined
   declineInsurance: boolean
 }
 
-export type TryPinResult = DeliveryResolveResult & { routes: Route[]; stateCode: string | null }
+export type TryPinResult = DeliveryResolveResult & {
+  routes: Route[]
+  stateCode: string | null
+  /** Pick products mode: the parcel priced (its box and billed weight); null when typed. */
+  parcel: CartParcel | null
+}
+
+/** The picked variants' products and their own weight (what Shipping rates price on). */
+async function pickedGoods(
+  tx: StoreTx,
+  lines: ReadonlyArray<{ variantId: string; quantity: number }>,
+): Promise<{ productIds: string[]; weightGrams: number }> {
+  if (lines.length === 0) return { productIds: [], weightGrams: 0 }
+  const rows = await tx
+    .select({ id: variant.id, productId: variant.productId, weightGrams: variant.weightGrams })
+    .from(variant)
+    .where(
+      inArray(
+        variant.id,
+        lines.map((l) => l.variantId),
+      ),
+    )
+  const byId = new Map(rows.map((r) => [r.id, r]))
+  return {
+    productIds: [...new Set(rows.map((r) => r.productId))],
+    weightGrams: lines.reduce(
+      (sum, l) => sum + l.quantity * (byId.get(l.variantId)?.weightGrams ?? 0),
+      0,
+    ),
+  }
+}
 
 /** Try a PIN: the options as checkout would show them for this PIN and cart, with the trace. */
 export async function tryDeliveryPin(
@@ -97,10 +135,16 @@ export async function tryDeliveryPin(
   if (!parsed.ok) throw new Error('Enter a 6 digit PIN code.')
   const config = await loadDeliveryConfig(tx)
   const stateCode = stateForPincode(parsed.pincode)
+  const lines = input.lines?.length ? input.lines : null
+  // Pick products: the box and billed weight checkout would price these goods on (#1546).
+  const parcel = lines ? await cartParcelFor(tx, lines, settings.boxPresets) : null
+  const goods = lines ? await pickedGoods(tx, lines) : null
+  const weightGrams = parcel?.billedGrams ?? input.weightGrams
   const zone = quoteShipping(
     await loadRateZones(tx),
     { stateCode: stateCode ?? '', pincode: parsed.pincode },
-    { valuePaise: input.valuePaise, weightGrams: input.weightGrams },
+    // Shipping rates read the products' own weight, as at checkout.
+    { valuePaise: input.valuePaise, weightGrams: goods?.weightGrams ?? input.weightGrams },
   )
   const policy = toShippingPolicy(settings)
   const { result, answers } = await quoteDelivery({
@@ -110,13 +154,14 @@ export async function tryDeliveryPin(
     query: {
       originPincode: policy.originPincode,
       destinationPincode: parsed.pincode,
-      weightGrams: input.weightGrams,
+      weightGrams,
+      dimensionsCm: parcel?.dimensionsCm,
       valuePaise: input.valuePaise,
     },
     cart: {
       valuePaise: input.valuePaise,
-      weightGrams: input.weightGrams,
-      items: await productFacts(tx, input.productIds),
+      weightGrams,
+      items: await productFacts(tx, goods?.productIds ?? input.productIds),
     },
     zone,
     policy,
@@ -126,7 +171,8 @@ export async function tryDeliveryPin(
   })
   return {
     ...result,
-    routes: routesFromAnswers(answers, config.routeSettings, input.weightGrams),
+    routes: routesFromAnswers(answers, config.routeSettings, weightGrams),
     stateCode,
+    parcel,
   }
 }

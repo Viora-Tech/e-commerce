@@ -9,6 +9,7 @@ import type { OrderDeliveryRoute } from '@commerce/db'
 import type { ShippingProvider } from '@commerce/shipping'
 import type { ShippingRateOption } from '../rates'
 import type { DeliveryConfig } from './config'
+import { type DeliveryParcelInput, resolveParcelDeliveries } from './parcels'
 import { type CheckoutQuoteQuery, gatherProviderAnswers, type QuoteCache } from './quotes'
 import { chosenRoute, resolveDeliveryOptions } from './resolve'
 import type { DeliveryResolveResult, ResolvedOption, ResolveInput } from './resolve-types'
@@ -24,6 +25,11 @@ export type DeliveryQuoteSnapshot = {
   pincode: string
   configVersion: string
   answers: ProviderAnswer[]
+  /**
+   * A cart shipping from more than one location: each parcel's lines, value and courier answers
+   * (`answers` is then the first parcel's). Absent: one parcel, priced from `answers`.
+   */
+  parcels?: SnapshotParcel[] | undefined
   /** The price each choice was shown at, by `choiceKey`. Never charge more. */
   shown: Record<string, number>
   createdAt: string
@@ -100,6 +106,78 @@ export async function quoteDelivery(
     },
   )
   return { result: resolveDeliveryOptions({ ...input, answers }), answers }
+}
+
+/** One parcel of a split cart in the snapshot: what place order re-prices it from. */
+export type SnapshotParcel = {
+  key: string
+  lines: Array<{ variantId: string; quantity: number }>
+  valuePaise: number
+  answers: ProviderAnswer[]
+}
+
+/** A parcel of a split cart, ready to ask the couriers about. */
+export type QuoteParcel = {
+  key: string
+  lines: Array<{ variantId: string; quantity: number }>
+  originPincode: string
+  valuePaise: number
+  weightGrams: number
+  dimensionsCm?: CheckoutQuoteQuery['dimensionsCm']
+  cart: DeliveryParcelInput['cart']
+}
+
+/**
+ * A cart shipping as several parcels: every parcel's couriers asked at once (each within the
+ * same checkout deadline, so the wait is the slowest parcel, not the sum), then the cards added
+ * up per option (`resolveParcelDeliveries`).
+ */
+export async function quoteParcelDeliveries(
+  input: Omit<QuoteDeliveryInput, 'query' | 'cart'> & {
+    destinationPincode: string
+    orderValuePaise: number
+    parcels: readonly QuoteParcel[]
+  },
+): Promise<{ result: DeliveryResolveResult; parcels: SnapshotParcel[] }> {
+  const wantCod =
+    input.policy.codAllowed &&
+    input.config.options.some((o) => o.speed === 'standard' && o.cod.mode === 'allowed')
+  const answered = await Promise.all(
+    input.parcels.map((p) =>
+      gatherProviderAnswers(
+        input.providers,
+        {
+          originPincode: p.originPincode,
+          destinationPincode: input.destinationPincode,
+          weightGrams: p.weightGrams,
+          dimensionsCm: p.dimensionsCm,
+          valuePaise: p.valuePaise,
+          wantCod,
+        },
+        {
+          storeId: input.storeId,
+          cache: input.cache,
+          cacheOnly: input.cacheOnly,
+          deadlineMs: input.deadlineMs,
+        },
+      ),
+    ),
+  )
+  const { config, zone, policy, now, declineInsurance } = input
+  const result = resolveParcelDeliveries(
+    { config, zone, policy, now, declineInsurance },
+    input.parcels.map((p, i) => ({ cart: p.cart, answers: answered[i] ?? [] })),
+    input.orderValuePaise,
+  )
+  return {
+    result,
+    parcels: input.parcels.map((p, i) => ({
+      key: p.key,
+      lines: p.lines,
+      valuePaise: p.valuePaise,
+      answers: answered[i] ?? [],
+    })),
+  }
 }
 
 /** Why a choice could not be honoured at place order. */

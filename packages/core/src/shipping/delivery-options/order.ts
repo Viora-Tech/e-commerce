@@ -5,8 +5,8 @@ import type { StoreContext } from '../../context'
 import { CheckoutRuleViolation, ShippingRateUnavailable } from '../../errors'
 import type { ShippingRateOption } from '../rates'
 import { parseShippingSettings, toShippingPolicy } from '../settings'
-import { type DeliveryChoice, orderDeliveryFor } from './checkout'
-import { resolveDeliveryOptions } from './resolve'
+import { type DeliveryChoice, orderDeliveryFor, type SnapshotParcel } from './checkout'
+import { resolveParcelDeliveries } from './parcels'
 import type { ZoneQuote } from './resolve-types'
 import type { ProviderAnswer } from './routes'
 import { activeDeliveryConfig, cartItemFacts, cartParcelFor } from './service'
@@ -20,6 +20,8 @@ export type OrderDeliveryInput = {
   answers: ProviderAnswer[]
   /** The prices the snapshot says were shown; null when there is no snapshot for this cart. */
   shown: Record<string, number> | null
+  /** A cart checkout priced as several parcels (one per location): each re-priced, added up. */
+  parcels?: readonly SnapshotParcel[] | null | undefined
 }
 
 /**
@@ -48,24 +50,36 @@ export async function priceOrderDelivery(
     .from(store)
     .where(eq(store.id, ctx.storeId))
   const settings = parseShippingSettings(s?.shipping)
-  // Billed weight, as checkout priced it (#1546): the cost cards must match what was shown.
-  const parcel = await cartParcelFor(ctx.tx, cart.lines, settings.boxPresets)
-  const result = resolveDeliveryOptions({
-    config,
-    cart: {
-      valuePaise: cart.valuePaise,
-      weightGrams: parcel.billedGrams,
-      items: await cartItemFacts(
-        ctx.tx,
-        cart.lines.map((l) => l.variantId),
-      ),
+  /* Billed weight, as checkout priced it (#1546): the cost cards must match what was shown. A
+     cart checkout split by location is re-priced parcel by parcel and added up, the same way. */
+  const split = delivery.parcels && delivery.parcels.length > 1 ? delivery.parcels : null
+  const parts = split ?? [
+    { lines: cart.lines, valuePaise: cart.valuePaise, answers: delivery.answers },
+  ]
+  const parcels = await Promise.all(
+    parts.map(async (p) => ({
+      cart: {
+        valuePaise: p.valuePaise,
+        weightGrams: (await cartParcelFor(ctx.tx, p.lines, settings.boxPresets)).billedGrams,
+        items: await cartItemFacts(
+          ctx.tx,
+          p.lines.map((l) => l.variantId),
+        ),
+      },
+      answers: p.answers,
+    })),
+  )
+  const result = resolveParcelDeliveries(
+    {
+      config,
+      zone: cart.zone,
+      policy: toShippingPolicy(settings),
+      now: new Date(),
+      declineInsurance: !delivery.choice.insured,
     },
-    answers: delivery.answers,
-    zone: cart.zone,
-    policy: toShippingPolicy(settings),
-    now: new Date(),
-    declineInsurance: !delivery.choice.insured,
-  })
+    parcels,
+    cart.valuePaise,
+  )
   const out = orderDeliveryFor(result, delivery.choice, cart.payment, delivery.shown, config)
   if (out.ok) {
     return { shipping: out.shipping, delivery: out.delivery, backupRateId: out.backupRateId }

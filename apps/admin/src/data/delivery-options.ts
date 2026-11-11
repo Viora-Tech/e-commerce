@@ -187,6 +187,17 @@ export const deliveryOptionsContent = {
     value: 'Order value',
     weight: 'Weight (g)',
     pickProducts: 'Pick products',
+    mode: 'Price the parcel from',
+    modes: { typed: 'A weight I type', picked: 'Products I pick' },
+    ruleProducts: 'Products for rules',
+    addProducts: 'Add products',
+    noLines: 'No products yet. Add what the shopper would buy; the box and weight come from them.',
+    quantity: (title: string) => `Quantity of ${title}`,
+    remove: (title: string) => `Remove ${title}`,
+    pricedAs: (kg: string, box: string | null) =>
+      box
+        ? `Couriers were asked for ${kg} kg, packed in ${box} cm: the higher of its weight and its box size, as couriers bill.`
+        : `Couriers were asked for ${kg} kg (no box set up).`,
     declineInsurance: 'Shopper unticks insurance',
     run: 'Try',
     running: 'Asking your couriers…',
