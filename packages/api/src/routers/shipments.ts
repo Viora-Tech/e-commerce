@@ -231,6 +231,8 @@ export const shipmentsRouter = {
         date: z.string(),
         timeFrom: z.string(),
         timeTo: z.string().optional(),
+        /** "Add to pickup": a booked pickup to add these parcels to. */
+        joinPickupId: z.uuid().optional(),
       }),
     )
     .handler(async ({ context, input }) => {

@@ -37,7 +37,14 @@ export async function schedulePickupForStore(
   storeId: string,
   registry: ShippingRegistry,
   secret: string,
-  input: { shipmentIds: string[]; date: string; timeFrom: string; timeTo?: string | undefined },
+  input: {
+    shipmentIds: string[]
+    date: string
+    timeFrom: string
+    timeTo?: string | undefined
+    /** "Add to pickup": the booked pickup the merchant picked (`schedulePickup`). */
+    joinPickupId?: string | undefined
+  },
 ) {
   const settings = await loadShippingSettings(tx, storeId)
   const { providers } = resolveShippingProviders(registry, settings, secret)

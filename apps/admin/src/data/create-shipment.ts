@@ -96,17 +96,17 @@ export const createShipmentContent = {
       [route, weight, payment].filter(Boolean).join(' · '),
     shipNow: 'Ship now',
     close: 'Close',
-    pickupNow: 'Create pickup now',
+    pickupNow: 'Schedule pickup',
     pickupTitle: 'Create pickup',
     pickupBody:
-      'The courier gets the pickup request and its manifest in one go. If a pickup is already booked for that place and day, this parcel joins it.',
+      'Add this parcel to a pickup already booked, or book a new one. The courier gets the request and its manifest in one go.',
     pickupDone: 'Pickup booked. The parcel moved to To be picked up.',
     /** Figma 898:7790: the drawer's header toggle, tabs, sort and table. */
     insurance: 'Shipping insurance',
     insuranceCovers: (price: string | null, value: string) =>
       price
         ? `+${price} · covers ${value} if lost or damaged`
-        : `Covers ${value} if lost or damaged · the courier's rate`,
+        : `Covers ${value} if lost or damaged · the courier bills it on your invoice, not in these prices`,
     mode: { all: 'All', air: 'Air', surface: 'Surface' } as Record<
       'all' | 'air' | 'surface',
       string

@@ -1,21 +1,21 @@
 'use client'
 
-import { Field, FieldLabel } from '@commerce/ui/shadcn/field'
-import { Input } from '@commerce/ui/shadcn/input'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import DateField from '@/components/fields/date-field'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
 import { createShipmentContent } from '@/data/create-shipment'
 import { shipmentActionsContent } from '@/data/shipments'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import PickupFields, { type PickupValue } from '../pickup-fields'
 
 type PickupNowDialogProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
   /** The booked shipments; one pickup per courier and place is made (or joined). */
   shipmentIds: string[]
+  /** The booked courier: only its open pickups are offered to join. */
+  providerId?: string | undefined
   onDone: () => void
 }
 
@@ -35,29 +35,34 @@ export default function PickupNowDialog({
   open,
   onOpenChange,
   shipmentIds,
+  providerId,
   onDone,
 }: PickupNowDialogProps) {
   // Hooks
   const copy = useCopy(createShipmentContent.drawer)
   const actions = useCopy(shipmentActionsContent)
-  const [date, setDate] = useState(tomorrow)
-  const [timeFrom, setTimeFrom] = useState('14:00')
-  const [timeTo, setTimeTo] = useState('')
+  const [pickup, setPickup] = useState<PickupValue>(() => ({
+    date: tomorrow(),
+    timeFrom: '14:00',
+    timeTo: '',
+    joinPickupId: null,
+  }))
 
   // Event handlers
   const handleConfirm = async () => {
     try {
       const pickups = await api.shipments.schedulePickup({
         shipmentIds,
-        date,
-        timeFrom,
-        timeTo: timeTo || undefined,
+        date: pickup.date,
+        timeFrom: pickup.timeFrom,
+        timeTo: pickup.timeTo || undefined,
+        joinPickupId: pickup.joinPickupId ?? undefined,
       })
       for (const p of pickups) {
         if (p.status === 'failed') continue
         await api.shipments.createManifest({ pickupId: p.id }).catch(() => undefined)
       }
-      toast.success(copy.pickupDone)
+      toast.success(pickup.joinPickupId ? actions.joinedDone(shipmentIds.length) : copy.pickupDone)
       onOpenChange(false)
       onDone()
     } catch (err) {
@@ -73,31 +78,17 @@ export default function PickupNowDialog({
       onOpenChange={onOpenChange}
       title={copy.pickupTitle}
       body={copy.pickupBody}
-      confirmLabel={copy.pickupTitle}
+      confirmLabel={pickup.joinPickupId ? actions.addToPickup : copy.pickupTitle}
       tone="default"
-      confirmDisabled={!date || !timeFrom}
+      confirmDisabled={!pickup.date || !pickup.timeFrom}
       onConfirm={handleConfirm}
     >
-      <div className="flex flex-col gap-3">
-        <Field>
-          <FieldLabel htmlFor="now-pickup-date">{actions.date}</FieldLabel>
-          <DateField id="now-pickup-date" value={date} onChange={(v) => setDate(v)} />
-        </Field>
-        <div className="grid grid-cols-2 gap-3">
-          <Field>
-            <FieldLabel htmlFor="now-pickup-from">{actions.timeFrom}</FieldLabel>
-            <Input
-              id="now-pickup-from"
-              value={timeFrom}
-              onChange={(e) => setTimeFrom(e.target.value)}
-            />
-          </Field>
-          <Field>
-            <FieldLabel htmlFor="now-pickup-to">{actions.timeTo}</FieldLabel>
-            <Input id="now-pickup-to" value={timeTo} onChange={(e) => setTimeTo(e.target.value)} />
-          </Field>
-        </div>
-      </div>
+      <PickupFields
+        idPrefix="now-pickup"
+        providerId={providerId}
+        value={pickup}
+        onChange={setPickup}
+      />
     </ConfirmDialog>
   )
 }

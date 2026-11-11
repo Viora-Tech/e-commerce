@@ -93,7 +93,8 @@ export default function CourierDrawer({
 
   return (
     <Drawer open={open} onOpenChange={onOpenChange} showSwipeHandle>
-      <DrawerContent className="mx-auto max-w-[90rem]">
+      {/* One height whatever the number of couriers (owner, 11 Nov): a single service leaves room below, the drawer does not shrink. */}
+      <DrawerContent className="mx-auto h-[calc(100dvh-6rem)] max-w-[90rem]">
         <DrawerHeader className="flex flex-row flex-wrap items-start justify-between gap-4 px-4 pt-2 text-left md:px-8">
           <div className="flex min-w-0 flex-col items-start gap-1 text-left">
             <DrawerTitle className="text-lg font-semibold text-ink-strong">

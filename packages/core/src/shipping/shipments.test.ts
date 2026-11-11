@@ -480,6 +480,40 @@ describe('pickup requests', () => {
     expect(s?.pickupId).toBe(pickup.id)
   })
 
+  it('"Add to pickup" joins the picked pickup even when the place name differs', async () => {
+    const { storeId, orderId } = await seedOrder()
+    const asked: unknown[] = []
+    const courier = pickupCourier(asked)
+    const first = await withStore(app, storeId, (tx) =>
+      createShipmentForOrder({ storeId, tx }, courier, orderId),
+    )
+    const pickup = await withStore(app, storeId, (tx) =>
+      schedulePickup({ storeId, tx }, courier, {
+        shipmentIds: [first.id],
+        date: '2026-10-27',
+        timeFrom: '14:00',
+        pickupLocationName: '',
+      }),
+    )
+    await owner.update(shipment).set({ status: 'cancelled' }).where(eq(shipment.id, first.id))
+    const second = await withStore(app, storeId, (tx) =>
+      createShipmentForOrder({ storeId, tx }, courier, orderId),
+    )
+    // Another place and day on the form: the picked pickup still wins, the courier is not asked.
+    const joined = await withStore(app, storeId, (tx) =>
+      schedulePickup({ storeId, tx }, courier, {
+        shipmentIds: [second.id],
+        date: '2026-10-28',
+        timeFrom: '14:00',
+        pickupLocationName: 'Warehouse',
+        joinPickupId: pickup.id,
+      }),
+    )
+    expect(asked).toHaveLength(1)
+    expect(joined.id).toBe(pickup.id)
+    expect(joined.expectedPackageCount).toBe(2)
+  })
+
   it('a refused request is recorded as failed and leaves the parcel free to request again', async () => {
     const { storeId, orderId } = await seedOrder()
     const asked: unknown[] = []

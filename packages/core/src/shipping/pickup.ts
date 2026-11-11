@@ -33,6 +33,11 @@ export async function schedulePickup(
     timeTo?: string | undefined
     /** The courier pickup location; empty for the courier account's own (`defaultPickupLocationName`). */
     pickupLocationName: string
+    /**
+     * A pickup already booked that the merchant picked to add these parcels to ("Add to pickup").
+     * Used when it is this courier's and still scheduled; otherwise the day and place decide.
+     */
+    joinPickupId?: string | undefined
   },
 ): Promise<ShipmentPickupRow> {
   if (input.shipmentIds.length === 0) throw new Error('pick at least one shipment')
@@ -45,9 +50,13 @@ export async function schedulePickup(
       and(
         eq(shipmentPickup.storeId, ctx.storeId),
         eq(shipmentPickup.provider, provider.id),
-        eq(shipmentPickup.scheduledFor, input.date),
-        eq(shipmentPickup.pickupLocationName, place),
         eq(shipmentPickup.status, 'scheduled'),
+        ...(input.joinPickupId
+          ? [eq(shipmentPickup.id, input.joinPickupId)]
+          : [
+              eq(shipmentPickup.scheduledFor, input.date),
+              eq(shipmentPickup.pickupLocationName, place),
+            ]),
       ),
     )
     .limit(1)
