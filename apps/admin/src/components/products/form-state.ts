@@ -12,6 +12,7 @@ import type { productFormContent } from '@/data/product-form'
 import { rupees } from '@/data/products'
 import type { api } from '@/lib/api-client'
 import { liftTax, type ProductTax } from './product-tax'
+import { validVariantLimit } from './variant-preorder-limit'
 import { DEFAULT_WEIGHT_UNIT, fromGrams, toGrams } from './weight-units'
 
 export type LoadedProduct = NonNullable<Awaited<ReturnType<typeof api.products.get>>>
@@ -322,46 +323,6 @@ function fromDateTimeField(value: string): Date | null {
 const intOrNull = (text: string): number | null => {
   const n = Number(text)
   return text.trim() === '' || !Number.isInteger(n) ? null : n
-}
-
-/** A variant's pre-order limit as typed: blank, or a whole number from 1 to 1,000,000. */
-export function validVariantLimit(text: string): boolean {
-  if (text.trim() === '') return true
-  const n = Number(text)
-  return Number.isInteger(n) && n >= 1 && n <= 1_000_000
-}
-
-/**
- * What a variant with a blank pre-order limit uses, for the field's placeholder: the product's
- * own limit (null: none), or the campaign's when the product is in one and does not keep its own.
- */
-export function inheritedPreorderLimit(
-  form: Pick<ProductFormState, 'preorderCampaignId' | 'preorderOwn' | 'preorderLimit'>,
-): { from: 'product'; limit: number | null } | { from: 'campaign' } {
-  if (form.preorderCampaignId && !form.preorderOwn.includes('limit')) return { from: 'campaign' }
-  const n = Number(form.preorderLimit)
-  const limit = form.preorderLimit.trim() !== '' && Number.isInteger(n) && n >= 1 ? n : null
-  return { from: 'product', limit }
-}
-
-/** What the variant dialog needs to show the pre-order limit field and its placeholder. */
-export type VariantPreorderContext = {
-  /** The product takes pre-orders (its own switch or a campaign). */
-  on: boolean
-  inherited: ReturnType<typeof inheritedPreorderLimit>
-}
-
-/** The variant dialog's pre-order context for this form. */
-export function variantPreorderContext(
-  form: Pick<
-    ProductFormState,
-    'preorderEnabled' | 'preorderCampaignId' | 'preorderOwn' | 'preorderLimit'
-  >,
-): VariantPreorderContext {
-  return {
-    on: form.preorderEnabled || Boolean(form.preorderCampaignId),
-    inherited: inheritedPreorderLimit(form),
-  }
 }
 
 export function toWrite(form: ProductFormState): ProductWrite {

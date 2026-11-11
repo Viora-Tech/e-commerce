@@ -469,12 +469,6 @@ export const metafieldsCardContent = {
   showEmpty: (n: number) => (n === 1 ? 'Show 1 empty field' : `Show ${n} empty fields`),
   hideEmpty: 'Hide empty fields',
   saveFirst: 'Save first, then fill in the extra fields.',
-  variant: 'Variant',
-  variantHeading: 'Variant metafields',
-  /** Under the variant grid's heading on the product page. */
-  variantHelp: 'Each variant has its own values. They save when you press Save.',
-  variantNewLater: 'Variants you just added get a row after you save.',
-  variantSaveFailed: (variant: string) => `Could not save the fields of ${variant}.`,
   save: 'Save extra fields',
   saving: 'Saving',
   saved: 'Extra fields saved',

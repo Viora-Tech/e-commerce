@@ -29,7 +29,6 @@ const ALLOWLIST: Record<string, { lines: number; reason: string }> = {
   'packages/notifications/src/types.ts': { lines: 511, reason: SPLIT },
   'apps/admin/src/data/automations.ts': { lines: 675, reason: COPY },
   'apps/admin/src/data/hi/automations.ts': { lines: 655, reason: COPY },
-  'apps/admin/src/data/hi/product-form.ts': { lines: 501, reason: COPY },
   'packages/api/src/services/marketing-overview.service.ts': { lines: 503, reason: SPLIT },
   'apps/admin/src/data/customize.ts': { lines: 556, reason: COPY },
   'apps/admin/src/data/settings-search.ts': {

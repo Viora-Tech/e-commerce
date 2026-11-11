@@ -5,7 +5,7 @@
  *        variant and nothing else. `box_own` says whether that box is the variant's own choice:
  *        the product's Package is written only onto variants without one.
  * WHY:   A keyboard sold in 60% and 80% sizes needs two boxes (owner, 11 Nov 2026).
- * WHERE: the product page (form-state, shipping card, variant Edit dialog), the bulk sheet
+ * WHERE: the product page (form-state, shipping card, variant page), the bulk sheet
  *        (bulk-edit.ts) and the products list's "Set weight and box" (bulk-shipping.ts).
  */
 
