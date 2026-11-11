@@ -91,6 +91,21 @@ export default [
       pickupBody:
         'कूरियर को पिकअप अनुरोध और मैनिफ़ेस्ट एक साथ मिलते हैं। उस जगह और दिन के लिए पिकअप पहले से बुक है तो यह पार्सल उसी में जुड़ जाएगा।',
       pickupDone: 'पिकअप बुक हो गया। पार्सल "पिकअप होना है" में चला गया।',
+      insurance: 'शिपिंग बीमा',
+      insuranceCovers: (price, value) =>
+        price
+          ? `+${price} · खो जाने या टूटने पर ${value} तक कवर`
+          : `खो जाने या टूटने पर ${value} तक कवर · कूरियर की दर`,
+      mode: { all: 'सभी', air: 'एयर', surface: 'सरफ़ेस' },
+      sortLabel: 'क्रम',
+      sort: { recommended: 'सुझाया गया', cheapest: 'सबसे सस्ता', fastest: 'सबसे तेज़' },
+      columns: { courier: 'कूरियर', delivery: 'डिलीवरी', weight: 'वज़न', charges: 'शुल्क' },
+      inDays: (n) => `${n} दिन में`,
+      via: (name) => `${name} से`,
+      inclGst: 'GST सहित',
+      inclGstInsurance: 'GST + बीमा सहित',
+      breakdown: 'कीमत का ब्योरा',
+      youPay: 'आप देंगे',
     },
     courier: {
       panelLabel: 'किस कूरियर ऐप में बुक किया?',
@@ -223,6 +238,8 @@ export default [
         [`ऑर्डर #${orderNumber}`, who, items, payment].filter(Boolean).join(' · '),
       paidBy: (method) => `${method} से भुगतान`,
       cod: 'कैश ऑन डिलीवरी',
+      codShort: 'COD',
+      prepaidShort: 'प्रीपेड',
       shipFrom: 'यहाँ से',
       shipTo: 'यहाँ भेजें',
       addPickupAddress: 'गली का पता जोड़ें',

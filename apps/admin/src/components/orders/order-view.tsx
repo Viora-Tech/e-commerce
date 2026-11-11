@@ -2,8 +2,8 @@
 
 import { canEditOrder, canHoldFulfillment, canStaffCancel } from '@commerce/core/order-edit-rules'
 import { permissions } from '@commerce/core/permissions'
-import { useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { type OrderActionGroup, readyToShip } from '@/apps/order-actions'
 import { ADMIN_APPS } from '@/apps/registry'
@@ -13,7 +13,7 @@ import MetafieldsCard from '@/components/metaobjects/metafields-card'
 import { orderDetailContent } from '@/data/order-detail'
 import { type OrderMark, ordersContent } from '@/data/orders'
 import { paymentRulesContent } from '@/data/payment-rules'
-import { shipmentPanelContent } from '@/data/shipping'
+import { shipmentDetailsContent, shipmentPanelContent } from '@/data/shipping'
 import { useCopy } from '@/hooks/use-copy'
 import { usePermissions } from '@/hooks/use-permissions'
 import { api } from '@/lib/api-client'
@@ -79,14 +79,17 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
   const listCopy = useCopy(ordersContent)
   const { order: captureCopy } = useCopy(paymentRulesContent)
   const shippingCopy = useCopy(shipmentPanelContent)
+  const detailsCopy = useCopy(shipmentDetailsContent)
   const router = useRouter()
+  /* `?fulfil=1`: the orders list's "Mark as fulfilled" opens the pack form here. */
+  const askedToFulfil = useSearchParams().get('fulfil') === '1'
   const { hasPermission } = usePermissions()
   const apps = useOrderAppActions(appActions, () => router.refresh())
   const duplicateOrder = useDuplicateOrder()
   const automation = useRunAutomation('order', appCards.includes('automations'))
   const [busy, setBusy] = useState(false)
   const [refunding, setRefunding] = useState<OrderPayment | null>(null)
-  const [fulfilling, setFulfilling] = useState(false)
+  const [fulfilling, setFulfilling] = useState(askedToFulfil)
   /** The hand-sent message whose "Review email" dialog is open. */
   const [reviewing, setReviewing] = useState<
     'balance_request' | 'payment_reminder' | 'order_link' | null
@@ -95,6 +98,10 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
   const [cancelling, setCancelling] = useState(false)
   const [holding, setHolding] = useState(false)
   const messages = useOrderMessages(order.id, setBusy, () => router.refresh())
+  useEffect(() => {
+    if (!askedToFulfil) return
+    document.getElementById('fulfil-items')?.scrollIntoView({ block: 'start' })
+  }, [askedToFulfil])
 
   // Helpers
   const appCard = (id: string) => {
@@ -125,10 +132,39 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
       setCollecting(true)
       return
     }
+    // "Mark as fulfilled" asks for the courier and tracking number in the pack form.
+    if (to === 'fulfilled' && !order.hold) {
+      handleOpenFulfil()
+      return
+    }
     setBusy(true)
     try {
       await api.orders.setStatus({ id: order.id, status: to })
       toast.success(copy.moved(listCopy.marks[to].toLowerCase()))
+      refresh()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : listCopy.bulk.failed)
+    } finally {
+      setBusy(false)
+    }
+  }
+  const handleRestore = async () => {
+    setBusy(true)
+    try {
+      await api.orders.restore({ id: order.id })
+      toast.success(copy.actions.restored)
+      refresh()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : listCopy.bulk.failed)
+    } finally {
+      setBusy(false)
+    }
+  }
+  const handleMarkNotShipped = async () => {
+    setBusy(true)
+    try {
+      await api.orders.markNotShipped({ id: order.id })
+      toast.success(copy.actions.markedNotShipped)
       refresh()
     } catch (err) {
       toast.error(err instanceof Error ? err.message : listCopy.bulk.failed)
@@ -221,6 +257,12 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
     (p) => p.status === 'captured' && refundedTotal(order.refunds, p.id) < p.amountPaise,
   )
   const shipmentId = order.shipment?.id
+  /* A label bought from a courier; a tracking number typed by hand has none and is undone
+     with Mark as unfulfilled instead. */
+  const liveShipment =
+    Boolean(shipmentId && order.shipment?.labelUrl) &&
+    order.shipment?.cancelBlock !== 'cancelled' &&
+    order.shipment?.cancelBlock !== 'settled'
   const live = order.status !== 'cancelled' && !readOnly
   const owed = order.balance.balancePaise
   const canCollect = live && owed > 0
@@ -274,16 +316,20 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
               onRefund={openRefund}
               onRequestBalance={requestBalance}
               onShip={canShip ? handleShip : undefined}
-              onCancelShipment={
-                /* Only while the courier still takes the cancel (before pickup or manifest). */
-                shipmentId && order.shipment?.cancelBlock === null
-                  ? handleCancelShipment
+              /* Offered while a booking is live, as in the orders list; once the courier
+                 no longer takes the cancel (picked up, on a manifest), it says why. */
+              onCancelShipment={liveShipment ? handleCancelShipment : undefined}
+              cancelShipmentBlocked={
+                liveShipment && order.shipment?.cancelBlock
+                  ? detailsCopy.blocked[order.shipment.cancelBlock]
                   : undefined
               }
               onSendReminder={sendReminder}
               onSendOrderLink={sendOrderLink}
               onViewStatusPage={handleViewStatusPage}
               onMarkNotDelivered={handleMarkNotDelivered}
+              onMarkNotShipped={handleMarkNotShipped}
+              onRestore={hasPermission(permissions.ORDERS_CANCEL) ? handleRestore : undefined}
               onDuplicate={
                 duplicateOrder.allowed && !readOnly
                   ? () => duplicateOrder.duplicate(order.id)

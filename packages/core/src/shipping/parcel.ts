@@ -42,19 +42,27 @@ export function effectiveWeightGrams(
 }
 
 /**
- * The named box a parcel is packed in, for its packing cost: the one every packed line's
- * product picks, else the store's main box (custom dimensions, mixed boxes or none set).
+ * The named box a parcel is packed in, for its packing cost: the one its products pick, and
+ * when they pick different boxes the biggest of them (the small items go inside it: a glasspad
+ * and skates ship in the glasspad box, #2461). The store's main box when none of them has one.
  * Null when the store has no boxes.
  */
-export function parcelBoxPreset<B extends { id: string; isDefault: boolean }>(
+export function parcelBoxPreset<
+  B extends { id: string; isDefault: boolean; lengthCm: number; widthCm: number; heightCm: number },
+>(
   lines: readonly { quantity: number; boxPresetId: string | null | undefined }[],
   boxPresets: readonly B[],
 ): B | null {
-  const packed = lines.filter((l) => l.quantity > 0)
-  const ids = new Set(packed.map((l) => l.boxPresetId ?? null))
-  const [only] = [...ids]
-  const named = ids.size === 1 && only ? boxPresets.find((b) => b.id === only) : undefined
-  return named ?? boxPresets.find((b) => b.isDefault) ?? boxPresets[0] ?? null
+  const ids = new Set(lines.filter((l) => l.quantity > 0).map((l) => l.boxPresetId))
+  const named = boxPresets.filter((b) => ids.has(b.id))
+  return biggest(named) ?? boxPresets.find((b) => b.isDefault) ?? boxPresets[0] ?? null
+}
+
+const volume = (d: PackageDimensionsCm) => d.lengthCm * d.widthCm * d.heightCm
+
+/** The box with the most room, or null for none. */
+function biggest<D extends PackageDimensionsCm>(boxes: readonly D[]): D | null {
+  return boxes.reduce<D | null>((big, b) => (!big || volume(b) > volume(big) ? b : big), null)
 }
 
 export type LinePackage = {
@@ -66,11 +74,9 @@ export type LinePackage = {
 }
 
 /**
- * The box to pack an order in: a product/variant's own package when every
- * sellable line agrees on one (same named box, or the same custom
- * dimensions). Null otherwise, and the booking falls back to the store's
- * default box as before, since a mixed order needs the merchant's own
- * packing judgement more than ours.
+ * The box to pack an order in: the products' own package (a named box or custom dimensions),
+ * and when they differ the biggest of them, since the smaller items go inside it. Null when no
+ * line has a package; the booking then uses the store's default box.
  */
 export function resolveParcelPackage(
   lines: LinePackage[],
@@ -100,16 +106,7 @@ export function resolveParcelPackage(
     return null
   }
 
-  const first = dimsOf(packed[0] as LinePackage)
-  if (!first) return null
-  const sameForAll = packed.every((l) => {
-    const d = dimsOf(l)
-    return (
-      d &&
-      d.lengthCm === first.lengthCm &&
-      d.widthCm === first.widthCm &&
-      d.heightCm === first.heightCm
-    )
-  })
-  return sameForAll ? first : null
+  // Mixed boxes: the biggest one, the rest pack inside it (#2461). Lines with no package of
+  // their own ride along; none known at all, the booking uses the store's default box.
+  return biggest(packed.flatMap((l) => dimsOf(l) ?? []))
 }

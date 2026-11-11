@@ -120,6 +120,16 @@ export async function unshipCommittedStock(ctx: StoreContext, move: StockMove): 
   })
 }
 
+/** A restored order wants its units again: the reverse of `releaseCommittedStock`. */
+export async function recommitStock(ctx: StoreContext, move: StockMove): Promise<void> {
+  if (move.quantity <= 0) return
+  if (!(await isTracked(ctx, move.variantId))) return
+  await ctx.tx
+    .update(inventoryLevel)
+    .set({ reserved: sql`${inventoryLevel.reserved} + ${move.quantity}` })
+    .where(levelOf(move))
+}
+
 /** Units the order no longer wants: committed drops, on hand stays. */
 export async function releaseCommittedStock(ctx: StoreContext, move: StockMove): Promise<void> {
   if (move.quantity <= 0) return

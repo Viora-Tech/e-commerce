@@ -9,6 +9,7 @@ import {
   outboxEvent,
   payment,
   product,
+  shipment,
   store,
   variant,
   withStore,
@@ -27,8 +28,10 @@ import { fulfilOrderLines } from './fulfil'
 import { placeOrderAndPay } from './place-order'
 import { recomputeOrderStatuses } from './recompute'
 import { refundPayment } from './refund'
+import { restoreCancelledOrder } from './restore-order'
 import { cancelOrder, changeOrderStatus } from './status'
 import { undoDelivered } from './undo-delivered'
+import { undoPacked } from './undo-packed'
 
 const owner = createDb(process.env.DATABASE_URL_OWNER as string)
 const app = createDb(process.env.DATABASE_URL as string)
@@ -243,6 +246,69 @@ describe('recomputeOrderStatuses on every mutation path', () => {
     await inStore(storeId, (ctx) => changeOrderStatus(ctx, orderId, 'delivered'))
     await inStore(storeId, (ctx) => undoDelivered(ctx, orderId))
     expect((await statuses(orderId))[2]).toBe('delivered')
+  })
+
+  it('Mark as not shipped: a label cancelled before the unpack fix goes back to To ship (#2424)', async () => {
+    const { storeId, orderId } = await placeCod()
+    const provider = new FakeShippingProvider()
+    const ship = await inStore(storeId, (ctx) => createShipmentForOrder(ctx, provider, orderId))
+    // A live booking with a bought label: cancel it with the courier first.
+    await owner
+      .update(shipment)
+      .set({ labelUrl: 'https://labels.test/1.pdf' })
+      .where(eq(shipment.id, ship.id))
+    expect(await inStore(storeId, (ctx) => undoPacked(ctx, orderId))).toEqual({
+      undone: false,
+      reason: 'live_shipment',
+    })
+    // The old cancel only marked the label cancelled and left its items packed.
+    await owner.update(shipment).set({ status: 'cancelled' }).where(eq(shipment.id, ship.id))
+    expect((await statuses(orderId))[2]).not.toBe('unfulfilled')
+    expect(await inStore(storeId, (ctx) => undoPacked(ctx, orderId))).toEqual({
+      undone: true,
+      units: 2,
+    })
+    expect(await statuses(orderId)).toEqual(['open', 'unpaid', 'unfulfilled'])
+    expect(await inStore(storeId, (ctx) => undoPacked(ctx, orderId))).toEqual({
+      undone: false,
+      reason: 'not_packed',
+    })
+  })
+
+  it('Mark as unfulfilled closes a tracking number typed by hand (no label)', async () => {
+    const { storeId, orderId } = await placeCod()
+    const ship = await inStore(storeId, (ctx) =>
+      createShipmentForOrder(ctx, new FakeShippingProvider(), orderId),
+    )
+    expect(await inStore(storeId, (ctx) => undoPacked(ctx, orderId))).toEqual({
+      undone: true,
+      units: 2,
+    })
+    const [row] = await owner.select().from(shipment).where(eq(shipment.id, ship.id))
+    expect(row?.status).toBe('cancelled')
+    expect((await statuses(orderId))[2]).toBe('unfulfilled')
+  })
+
+  it('Restore order: a cancelled order opens again and holds its stock again', async () => {
+    const { storeId, orderId } = await placeCod()
+    const held = async () =>
+      (await owner.select({ reserved: inventoryLevel.reserved }).from(inventoryLevel))[0]?.reserved
+    expect(await held()).toBe(2)
+    await inStore(storeId, (ctx) => cancelOrder(ctx, orderId, { notifyCustomer: false }))
+    expect(await held()).toBe(0)
+    expect(await inStore(storeId, (ctx) => restoreCancelledOrder(ctx, orderId))).toEqual({
+      restored: true,
+      units: 2,
+    })
+    expect(await held()).toBe(2)
+    expect(await statuses(orderId)).toEqual(['open', 'unpaid', 'unfulfilled'])
+    // Packing works again after a restore.
+    await inStore(storeId, (ctx) => changeOrderStatus(ctx, orderId, 'fulfilled'))
+    expect((await statuses(orderId))[2]).toBe('fulfilled')
+    expect(await inStore(storeId, (ctx) => restoreCancelledOrder(ctx, orderId))).toEqual({
+      restored: false,
+      reason: 'not_cancelled',
+    })
   })
 
   it('fixes a drifted row: status columns that disagree with the facts are rewritten', async () => {

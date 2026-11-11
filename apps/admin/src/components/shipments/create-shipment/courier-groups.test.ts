@@ -1,6 +1,6 @@
 import type { CourierRateRow } from '@commerce/core'
 import { describe, expect, test } from 'vitest'
-import { courierInitials, groupCounts } from './courier-groups'
+import { courierInitials, courierMode, groupCounts, sortCourierRows } from './courier-groups'
 import { pickupDayKey, pickupReady, startingPickupPlan } from './pickup-plan'
 
 const row = (providerName: string, providerLabel = providerName): CourierRateRow => ({
@@ -65,5 +65,52 @@ describe('pickup plan', () => {
 
   test('a malformed time is not ready', () => {
     expect(pickupReady({ ask: true, date: '2026-10-16', timeFrom: '2pm' })).toBe(false)
+  })
+})
+
+describe('courierMode and sortCourierRows (the drawer tabs and Sort)', () => {
+  const priced = (
+    label: string,
+    price: number | null,
+    by: string | null,
+    extra: Partial<CourierRateRow> = {},
+  ) => ({
+    ...row('RapidShyp', label),
+    pricePaise: price,
+    deliveryBy: by,
+    ...extra,
+  })
+
+  test('air, express and priority services fly; the rest go by surface', () => {
+    expect(courierMode(priced('Delhivery Air (RapidShyp)', 1, null))).toBe('air')
+    expect(courierMode(priced('Delhivery Express', 1, null))).toBe('air')
+    expect(courierMode(priced('Ekart Surface (RapidShyp)', 1, null))).toBe('surface')
+  })
+
+  test('cheapest and fastest sort; a courier that cannot take it sinks to the bottom', () => {
+    const rows = [
+      priced('A', 30000, '2026-11-20'),
+      priced('B', 10000, '2026-11-25'),
+      priced('C', 5000, '2026-11-15', { problem: 'not_serviceable' }),
+      priced('D', 20000, '2026-11-16', { badges: ['recommended'] }),
+    ]
+    expect(sortCourierRows(rows, 'cheapest').map((r) => r.providerLabel)).toEqual([
+      'B',
+      'D',
+      'A',
+      'C',
+    ])
+    expect(sortCourierRows(rows, 'fastest').map((r) => r.providerLabel)).toEqual([
+      'D',
+      'A',
+      'B',
+      'C',
+    ])
+    expect(sortCourierRows(rows, 'recommended').map((r) => r.providerLabel)).toEqual([
+      'D',
+      'A',
+      'B',
+      'C',
+    ])
   })
 })
