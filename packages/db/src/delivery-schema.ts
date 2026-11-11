@@ -99,3 +99,31 @@ export const deliveryRouteSetting = pgTable(
   },
   (t) => [uniqueIndex('delivery_route_setting_key').on(t.storeId, t.key)],
 )
+
+/**
+ * One parcel's route on an order whose cart shipped from more than one location
+ * (`OrderDeliveryRoute.parcels`): the courier quoted for it at checkout, so booking that parcel
+ * uses its own (`deliveryForParcel` in core). Owner, 12 Nov 2026: each parcel keeps its courier.
+ * The order's own route fields are then the first parcel's; absent for a one-location order.
+ */
+export type OrderDeliveryParcelRoute = {
+  /** Where the parcel leaves from (its fulfilment order's location). */
+  locationId: string
+  /** A pre-order parcel (its fulfilment order starts `on_hold`). */
+  onHold: boolean
+  /** Same shape as `OrderDeliveryRoute.route`. */
+  route: {
+    key: string
+    providerId: string
+    channel: 'direct' | 'aggregator'
+    carrier: string
+    serviceId: string
+    serviceLabel: string
+  } | null
+  insured: boolean
+  insurancePaise: number | null
+  markupPaise: number
+  courierCostPaise: number | null
+  promisedEarliest: string | null
+  promisedLatest: string | null
+}

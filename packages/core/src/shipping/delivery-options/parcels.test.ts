@@ -1,7 +1,7 @@
 /** SOURCE OF TRUTH: split-cart delivery tests — WHAT: one parcel is the plain engine, two parcels add up per option, a parcel that cannot be quoted hides the option or falls back like one parcel, the Shipping rate is charged once / WHY: a cart from two warehouses is two labels (#1546). */
 import type { ShippingProvider } from '@commerce/shipping'
 import { describe, expect, it, vi } from 'vitest'
-import { quoteParcelDeliveries } from './checkout'
+import { orderDeliveryFor, quoteParcelDeliveries } from './checkout'
 import { type DeliveryConfig, type DeliveryOption, DeliveryOptionInputSchema } from './config'
 import { resolveParcelDeliveries, shareValue } from './parcels'
 import { resolveDeliveryOptions } from './resolve'
@@ -194,6 +194,132 @@ describe('resolveParcelDeliveries', () => {
       150_000,
     )
     expect(r).toMatchObject({ status: 'none', options: [] })
+  })
+})
+
+describe('resolveParcelDeliveries: insurance, free shipping and each parcel kept', () => {
+  /** Delhivery insures at 1%, at least ₹30. */
+  const insuring = {
+    key: 'carrier:delhivery|channel:any',
+    insurancePercent: 1,
+    insuranceMinPaise: 3000,
+    enabled: true,
+  }
+  const withSettings = (options: DeliveryOption[]) => ({
+    ...base(options),
+    config: { ...config(options), routeSettings: [insuring] },
+  })
+  /** Free India shipping: the Shipping rate lists ₹49 and charges ₹0. */
+  const freeZone = (options: DeliveryOption[]): Omit<ResolveInput, 'cart' | 'answers'> => {
+    const b = base(options)
+    const rates = b.zone.kind === 'rates' ? b.zone.options : []
+    return { ...b, zone: { kind: 'rates', options: rates.map((r) => ({ ...r, pricePaise: 0 })) } }
+  }
+  const twoParcels = [
+    { cart: cart(100_000, 6554), answers: [delhivery(14000, 26000)] },
+    { cart: cart(50_000, 500), answers: [delhivery(4500, 9100)] },
+  ]
+
+  it('priced from the Shipping rate: the rate once, but every parcel’s insurance', () => {
+    const zoneInsured = option(
+      'std',
+      { name: 'Standard', price: { source: 'zone' }, insurance: { default: 'on' } },
+      0,
+    )
+    const r = resolveParcelDeliveries(withSettings([zoneInsured]), twoParcels, 150_000)
+    const std = find(r, 'std')
+    // Each parcel insures at ₹30 (1% is less): ₹49 rate once + ₹30 + ₹30 = ₹109 → ₹110.
+    expect(std?.insurance).toMatchObject({ on: true, pricePaise: 3000 + 3000 })
+    expect(std?.pick?.insurancePaise).toBe(6000)
+    expect(std?.pricePaise).toBe(11000)
+  })
+
+  it('priced by the courier: every parcel’s insurance is in the price too', () => {
+    const insured = option('std', { name: 'Standard', insurance: { default: 'on' } }, 0)
+    const r = resolveParcelDeliveries(withSettings([insured]), twoParcels, 150_000)
+    // (₹140 + ₹30 → ₹170) + (₹45 + ₹30 → ₹80).
+    expect(find(r, 'std')?.pricePaise).toBe(17000 + 8000)
+    expect(find(r, 'std')?.insurance.pricePaise).toBe(6000)
+  })
+
+  it('free India shipping stays free with two parcels: ₹0 delivery', () => {
+    const zonePriced = option('std', { name: 'Standard', price: { source: 'zone' } }, 0)
+    const r = resolveParcelDeliveries(freeZone([zonePriced]), twoParcels, 150_000)
+    expect(find(r, 'std')).toMatchObject({ pricePaise: 0, source: 'live' })
+    // Couriers down for both parcels: the free Shipping rate, still ₹0.
+    const down2 = twoParcels.map((p) => ({ ...p, answers: [down] }))
+    expect(
+      find(resolveParcelDeliveries(freeZone([STANDARD]), down2, 150_000), 'std'),
+    ).toMatchObject({ source: 'backup', pricePaise: 0 })
+  })
+
+  it('keeps each parcel’s own result, so the order can save every parcel’s courier', () => {
+    const dtdc: ProviderAnswer = {
+      ...delhivery(3000, 9000),
+      providerId: 'dtdc',
+      providerLabel: 'DTDC',
+    }
+    const r = resolveParcelDeliveries(
+      base([STANDARD]),
+      [
+        { cart: cart(100_000, 6554), answers: [delhivery(14000, 26000)] },
+        { cart: cart(50_000, 500), answers: [dtdc] },
+      ],
+      150_000,
+    )
+    expect(r.parcels).toHaveLength(2)
+    const out = orderDeliveryFor(
+      r,
+      { optionId: 'std', routeKey: null, insured: false },
+      'prepaid',
+      null,
+      config([STANDARD]),
+      ['loc-a:open', 'loc-b:on_hold'],
+    )
+    if (!out.ok) throw new Error(out.problem)
+    // The order's own route stays the first parcel's; each parcel keeps the courier it was quoted.
+    expect(out.delivery.route?.providerId).toBe('delhivery')
+    expect(out.delivery.parcels).toEqual([
+      expect.objectContaining({
+        locationId: 'loc-a',
+        onHold: false,
+        route: expect.objectContaining({ providerId: 'delhivery' }),
+        courierCostPaise: 14000,
+      }),
+      expect.objectContaining({
+        locationId: 'loc-b',
+        onHold: true,
+        route: expect.objectContaining({ providerId: 'dtdc' }),
+        courierCostPaise: 3000,
+      }),
+    ])
+    // COD books each parcel's COD route.
+    const cod = orderDeliveryFor(
+      r,
+      { optionId: 'std', routeKey: null, insured: false },
+      'cod',
+      null,
+      config([STANDARD]),
+      ['loc-a:open', 'loc-b:on_hold'],
+    )
+    if (!cod.ok) throw new Error(cod.problem)
+    expect(cod.delivery.parcels?.map((p) => p.courierCostPaise)).toEqual([17000, 6000])
+  })
+
+  it('one parcel, or no parcel keys: no parcel routes saved (single-location orders unchanged)', () => {
+    const one = resolveParcelDeliveries(
+      base([STANDARD]),
+      [{ cart: cart(150_000, 500), answers: [delhivery(6000, 9000)] }],
+      150_000,
+    )
+    const choice = { optionId: 'std', routeKey: null, insured: false }
+    const out = orderDeliveryFor(one, choice, 'prepaid', null, config([STANDARD]), ['loc-a:open'])
+    if (!out.ok) throw new Error(out.problem)
+    expect(out.delivery.parcels).toBeUndefined()
+    const two = resolveParcelDeliveries(base([STANDARD]), twoParcels, 150_000)
+    const none = orderDeliveryFor(two, choice, 'prepaid', null, config([STANDARD]))
+    if (!none.ok) throw new Error(none.problem)
+    expect(none.delivery.parcels).toBeUndefined()
   })
 })
 

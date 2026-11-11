@@ -6,6 +6,7 @@
  * for, and a failed route must never be swapped for another one silently.
  */
 import {
+  fulfillmentOrder,
   type OrderDeliveryRoute,
   type OrderShippingSnapshot,
   order,
@@ -14,7 +15,7 @@ import {
   type StoreTx,
   variant,
 } from '@commerce/db'
-import { eq } from 'drizzle-orm'
+import { and, eq } from 'drizzle-orm'
 import type { StoreContext } from '../../context'
 import type { CourierRateRow } from '../courier-rates'
 import type { DeliveryOption, RouteSetting } from './config'
@@ -27,6 +28,23 @@ function orderDeliveryRoute(
   shipping: OrderShippingSnapshot | null | undefined,
 ): OrderDeliveryRoute | null {
   return shipping?.delivery ?? null
+}
+
+/**
+ * The route to book for one parcel of the order: the courier checkout quoted for that parcel
+ * (matched by its location, a pre-order parcel to the pre-order one first), else the order's
+ * route. Booking the whole order, or an order with one parcel, is the order's route unchanged.
+ */
+export function deliveryForParcel(
+  delivery: OrderDeliveryRoute | null,
+  parcel: { locationId: string; status: string } | null | undefined,
+): OrderDeliveryRoute | null {
+  if (!delivery?.parcels?.length || !parcel) return delivery
+  const here = delivery.parcels.filter((p) => p.locationId === parcel.locationId)
+  const own = here.find((p) => p.onHold === (parcel.status === 'on_hold')) ?? here[0]
+  if (!own) return delivery
+  const { locationId: _l, onHold: _h, ...route } = own
+  return { ...delivery, ...route }
 }
 
 /** What a Create shipment rate row is as a route (carrier, channel, speed, insures). */
@@ -71,11 +89,21 @@ export async function bookingContext(
   tx: StoreTx,
   storeId: string,
   orderId: string,
+  fulfillmentOrderId?: string | null,
 ): Promise<BookingContext | null> {
   const config = await activeDeliveryConfig(tx, storeId)
   if (!config) return null
   const [o] = await tx.select({ shipping: order.shipping }).from(order).where(eq(order.id, orderId))
-  const delivery = orderDeliveryRoute(o?.shipping)
+  // Booking one parcel of a split cart: the courier quoted for that parcel.
+  const [parcel] = fulfillmentOrderId
+    ? await tx
+        .select({ locationId: fulfillmentOrder.locationId, status: fulfillmentOrder.status })
+        .from(fulfillmentOrder)
+        .where(
+          and(eq(fulfillmentOrder.id, fulfillmentOrderId), eq(fulfillmentOrder.orderId, orderId)),
+        )
+    : []
+  const delivery = deliveryForParcel(orderDeliveryRoute(o?.shipping), parcel)
   const lines = await tx
     .select({ productId: variant.productId })
     .from(orderLine)
