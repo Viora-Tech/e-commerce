@@ -71,6 +71,7 @@ export const orderDetailContent = {
     failed: 'Could not duplicate this order',
   },
   moved: (status: string) => `Order marked as ${status}`,
+  alreadyPacked: 'Already packed: book it again or add its tracking number.',
   courierOrders: {
     heading: 'Courier apps',
     status: {
