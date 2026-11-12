@@ -1,5 +1,4 @@
-/**
- * SOURCE OF TRUTH KEYWORDS: settleRefunds, syncRefundedStatus, partly refunded payment
+/** SOURCE OF TRUTH: settleRefunds, syncRefundedStatus, partly refunded payment
  * WHAT:  Record what a gateway finally did with a refund (processed or failed) and keep the
  *        payment row's status honest: `refunded` only when every paisa captured went back; a
  *        payment refunded in part stays `captured` (shown as "Partly refunded", derived from
@@ -19,7 +18,7 @@ import { refundedPaise } from '../order/refund'
  * `captured` when a failed refund leaves part of it unreturned. Other statuses are left alone.
  * The caller holds the order's row lock.
  */
-export async function syncRefundedStatus(ctx: StoreContext, paymentId: string): Promise<void> {
+async function syncRefundedStatus(ctx: StoreContext, paymentId: string): Promise<void> {
   const [p] = await ctx.tx
     .select({ status: payment.status, amountPaise: payment.amountPaise })
     .from(payment)

@@ -1,5 +1,4 @@
-/**
- * SOURCE OF TRUTH KEYWORDS: syncPendingRefunds, refund status sync, Decentro refunds
+/** SOURCE OF TRUTH: syncPendingRefunds, refund status sync, Decentro refunds
  * WHAT:  Ask the gateway about refunds still `pending`, for gateways whose refund updates do
  *        not come by webhook (`fetchRefundStatus`, Decentro): processed or failed is recorded
  *        through `settleRefunds`, so a failed refund no longer counts as money returned.

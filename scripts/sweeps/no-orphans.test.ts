@@ -18,6 +18,12 @@ type AllowEntry = { file: string; names: string[]; reason: string }
 
 const ALLOWLIST: AllowEntry[] = [
   {
+    file: 'packages/core/src/accounts/orders.ts',
+    names: ['shopperPayment'],
+    reason:
+      'used in the module; shopper-payment.test.ts checks the Partly refunded wording (#1605)',
+  },
+  {
     file: 'packages/plugin-back-in-stock/src/messages.ts',
     names: ['BACK_IN_STOCK_CONFIRM_PATH', 'BACK_IN_STOCK_UNSUBSCRIBE_PATH'],
     reason:

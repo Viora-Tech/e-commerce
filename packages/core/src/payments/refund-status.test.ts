@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: refund status tests — WHAT: part refunds leave a payment captured, a full one marks it refunded, failed refunds undo it / WHY: #1605 Partly refunded */
 import {
   createDb,
   order,

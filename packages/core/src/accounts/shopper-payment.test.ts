@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: shopper payment state tests — WHAT: the account page's payment wording (Partly refunded vs Refunded) / WHY: #1605 */
 import { describe, expect, it } from 'vitest'
 import { shopperPayment } from './orders'
 

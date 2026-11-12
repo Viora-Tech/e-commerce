@@ -36,6 +36,12 @@ const PLUGIN = 'plugin owns its own schema/queries; not yet routed through packa
 
 const ALLOWLIST: AllowEntry[] = [
   {
+    path: 'apps/worker/src/refund-sync.ts',
+    exact: true,
+    reason:
+      'worker sweep that finds stores with pending gateway refunds through the db function storesWithPendingGatewayRefunds (owner-level, crosses stores by design); the per-store work is core syncPendingRefunds (#1605)',
+  },
+  {
     path: 'apps/storefront/src/lib/plain-html/render.ts',
     exact: true,
     reason:
