@@ -8,7 +8,6 @@ import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import AppStoreLink from '@/components/apps/app-store-link'
 import ChoiceField from '@/components/apps/gst-invoices/choice-field'
-import CountBadge from '@/components/layout/count-badge'
 import DataCard from '@/components/layout/data-card'
 import PageHeader from '@/components/layout/page-header'
 import ProoflyDetailPage from '@/components/layout/proofly-detail-page'
@@ -38,14 +37,15 @@ import {
 } from './flow-state'
 import { insuredRows } from './insured-rows'
 import NoPickupLocationAlert, { missingPickupLocation } from './no-pickup-location-alert'
-import PackageStep from './package-step'
-import PartialPicker from './partial-picker'
+import PackageCard from './package-card'
+import { plannedDraft } from './partial-plan'
 import PickupNowDialog from './pickup-now-dialog'
 import { startingPickupPlan } from './pickup-plan'
 import RouteCard from './route-card'
 import ShipPageUnavailable from './ship-page-unavailable'
 import SummaryCard from './summary-card'
 import { useShipQuote } from './use-ship-quote'
+import { useSplitPlan } from './use-split-plan'
 
 type Wallets = Awaited<ReturnType<typeof api.shipments.wallets>>
 
@@ -55,6 +55,8 @@ type CreateShipmentPageProps = {
   back?: { label: string; href: string }
   /** A courier's provider id to start on (a courier app's "Create shipment" order action). */
   courier?: string | undefined
+  /** The parcel to start on (a Part 2 opened from Shipments or the order page). */
+  parcel?: string | undefined
 }
 
 /**
@@ -62,7 +64,12 @@ type CreateShipmentPageProps = {
  * courier on the left with live rates as the package changes; the summary and Book on the
  * right; once booked, the label and the pickup request take the summary's place.
  */
-export default function CreateShipmentPage({ orderId, back, courier }: CreateShipmentPageProps) {
+export default function CreateShipmentPage({
+  orderId,
+  back,
+  courier,
+  parcel: startParcel,
+}: CreateShipmentPageProps) {
   // Hooks
   const content = useCopy(createShipmentContent)
   const detailsCopy = useCopy(shipmentDetailsContent)
@@ -72,6 +79,8 @@ export default function CreateShipmentPage({ orderId, back, courier }: CreateShi
   const [failed, setFailed] = useState(false)
   const [parcelId, setParcelId] = useState<string | null>(null)
   const [form, setForm] = useState<PackageForm | null>(null)
+  /** Partial shipment (Figma 916:10179): what ships now; the booking splits off the rest. */
+  const partial = useSplitPlan(orderId)
   const {
     quote,
     pick,
@@ -81,7 +90,7 @@ export default function CreateShipmentPage({ orderId, back, courier }: CreateShi
     failed: quoteFailed,
     updating,
     waitingForSize,
-  } = useShipQuote(draft, parcelId, form, courier)
+  } = useShipQuote(draft && plannedDraft(draft, parcelId, partial.plan), parcelId, form, courier)
   const [pickup] = useState(() => startingPickupPlan())
   const [wallets, setWallets] = useState<Wallets>([])
   const [tracking, setTracking] = useState<TrackingDraft>(EMPTY_TRACKING)
@@ -104,6 +113,7 @@ export default function CreateShipmentPage({ orderId, back, courier }: CreateShi
   /* The full order, loaded when the merchant edits the delivery address from this page. */
   const [editing, setEditing] = useState<OrderDetail | null>(null)
   const [revision, setRevision] = useState(0)
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `partial.start` only sets the plan; loading again on each render would loop
   useEffect(() => {
     let live = true
     api.shipments
@@ -111,19 +121,19 @@ export default function CreateShipmentPage({ orderId, back, courier }: CreateShi
       .then((d) => {
         if (!live) return
         setDraft(d)
-        const first = d.orders[0]?.parcels[0]
         const o = d.orders[0]
+        const first = o?.parcels.find((p) => p.id === startParcel) ?? o?.parcels[0]
         /* After an address edit only the draft refreshes; the package the merchant typed stays. */
         if (o && first && revision === 0) {
           setParcelId(first.id)
-          setForm(packageFor(o, first, d))
+          setForm(packageFor(o, partial.start(first), d))
         }
       })
       .catch(() => live && setFailed(true))
     return () => {
       live = false
     }
-  }, [orderId, revision])
+  }, [orderId, revision, startParcel])
 
   useEffect(() => {
     api.shipments
@@ -138,25 +148,23 @@ export default function CreateShipmentPage({ orderId, back, courier }: CreateShi
     const next = o?.parcels.find((p) => p.id === id)
     if (!draft || !o || !next) return
     setParcelId(next.id)
-    setForm(packageFor(o, next, draft))
+    setForm(packageFor(o, partial.start(next), draft))
   }
   const handlePickupPlace = (pickupLocationId: string | null) =>
     form && setForm({ ...form, pickupLocationId })
-  /* After a partial split the parcel holds fewer items: reload it and its package. */
-  const handleSplit = async () => {
-    try {
-      const d = await api.shipments.prepare({ orderIds: [orderId] })
-      setDraft(d)
-      const o = d.orders[0]
-      const same = o?.parcels.find((p) => p.id === parcelId) ?? o?.parcels[0]
-      if (o && same) {
-        setParcelId(same.id)
-        setForm(packageFor(o, same, d))
-      }
-      recheck()
-    } catch {
-      setFailed(true)
-    }
+  /* Split, but the booking failed: reload the parcel (now only what ships now) so a retry
+     books it without splitting twice. */
+  const handleSplitKept = () => {
+    toast.info(content.partial.splitKept)
+    api.shipments.prepare({ orderIds: [orderId] }).then(
+      (d) => {
+        setDraft(d)
+        const same = d.orders[0]?.parcels.find((p) => p.id === parcelId)
+        if (same) partial.start(same)
+        recheck()
+      },
+      () => setFailed(true),
+    )
   }
   const handleEditCustomer = async () => {
     try {
@@ -204,11 +212,13 @@ export default function CreateShipmentPage({ orderId, back, courier }: CreateShi
     setBusy(true)
     setShipping(optionKey ?? null)
     setMissingPlace(null)
+    let split = false
     try {
+      split = await partial.split(parcel)
       setBooked(
         await bookShipment({
           order,
-          parcel,
+          parcel: shown,
           form,
           parsed,
           pick: key,
@@ -232,6 +242,7 @@ export default function CreateShipmentPage({ orderId, back, courier }: CreateShi
         setDrawer(false)
         window.scrollTo({ top: 0, behavior: 'smooth' })
       } else toast.error(err instanceof Error ? err.message : String(err))
+      if (split) handleSplitKept()
     } finally {
       setBusy(false)
       setShipping(null)
@@ -254,6 +265,7 @@ export default function CreateShipmentPage({ orderId, back, courier }: CreateShi
   }
 
   // Render logic
+  const shown = partial.shown(parcel)
   const parsed = parsePackage(form)
   const page = content.page
   const insured = insuredChoice ?? quote?.checkout?.insured === true
@@ -261,7 +273,7 @@ export default function CreateShipmentPage({ orderId, back, courier }: CreateShi
   const options = quote ? insuredRows(quote.options, insured) : null
   const chosen = options?.find((o) => o.optionKey === pick) ?? null
   const place = draft.pickupPlaces.find((p) => p.id === form.pickupLocationId)
-  const units = parcel.lines.reduce((n, l) => n + l.quantity, 0)
+  const units = shown.lines.reduce((n, l) => n + l.quantity, 0)
   const manual = pick === MANUAL
   const route = page.routeValue(place?.city ?? place?.name ?? '—', order.city ?? '—')
   /* A courier's price is only booked once it answers the package on screen. */
@@ -284,7 +296,7 @@ export default function CreateShipmentPage({ orderId, back, courier }: CreateShi
   const drawerSummary = content.drawer.summary(
     `#${order.orderNumber} · ${route}`,
     charged ? `${charged}${box}` : '',
-    `${order.paymentMode === 'cod' ? page.codShort : page.prepaidShort} ${fmt.money(parcel.valuePaise)}`,
+    `${order.paymentMode === 'cod' ? page.codShort : page.prepaidShort} ${fmt.money(shown.valuePaise)}`,
   )
   const drawerStatus = !quote ? (
     draft.couriers.length === 0 ? (
@@ -381,32 +393,16 @@ export default function CreateShipmentPage({ orderId, back, courier }: CreateShi
                 onSaved={handleCustomerSaved}
               />
             ) : null}
-            <DataCard
-              title={
-                <span className="flex items-center gap-2">
-                  {page.package}
-                  <CountBadge n={content.package.itemCount(units)} tone="outline" />
-                </span>
-              }
-            >
-              <PartialPicker
-                key={`${parcel.id ?? 'whole'}:${parcel.lines.map((l) => `${l.id}x${l.quantity}`).join(',')}`}
-                orderId={orderId}
-                parcelId={parcel.id}
-                lines={parcel.lines}
-                onSplit={handleSplit}
-              />
-              <PackageStep
-                draft={draft}
-                order={order}
-                parcel={parcel}
-                form={form}
-                onChange={setForm}
-                onParcelChange={handleParcel}
-                inCard
-                chargedGrams={quote?.chargedWeightGrams}
-              />
-            </DataCard>
+            <PackageCard
+              draft={draft}
+              order={order}
+              parcel={parcel}
+              form={form}
+              onChange={setForm}
+              onParcelChange={handleParcel}
+              partial={partial}
+              chargedGrams={quote?.chargedWeightGrams}
+            />
             <CourierDrawer
               open={drawer}
               onOpenChange={setDrawer}
@@ -421,7 +417,7 @@ export default function CreateShipmentPage({ orderId, back, courier }: CreateShi
               shippingKey={shipping}
               insured={insured}
               onInsured={setInsuredChoice}
-              valueLabel={fmt.money(parcel.valuePaise)}
+              valueLabel={fmt.money(shown.valuePaise)}
               onRetry={draft.couriers.length > 0 ? recheck : undefined}
               status={drawerStatus}
               chargedGrams={quote?.chargedWeightGrams}

@@ -53,6 +53,7 @@ const parcel = (over: Partial<DraftParcel> = {}): DraftParcel => ({
       sku: null,
       unitPricePaise: 0,
       weightGrams: null,
+      availability: { inStock: 2, preorder: null, restockOn: null },
     },
   ],
   valuePaise: 149900,
