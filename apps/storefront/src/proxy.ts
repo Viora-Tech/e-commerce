@@ -1,4 +1,5 @@
 import { loadEnv, settingsSecret } from '@commerce/config'
+import { readHonoPreviewToken } from '@commerce/core/hono-preview'
 import { CONSENT_COOKIE } from '@commerce/core/preferences'
 import { withQuery } from '@commerce/core/redirects'
 import { THEME_PREVIEW_PARAM } from '@commerce/core/theme'
@@ -18,7 +19,13 @@ import {
 } from './lib/csp'
 import { db } from './lib/db'
 import { edgeCacheControl, isSharedPage } from './lib/edge-cache'
-import { honoPath, wantsHono } from './lib/hono-island/route'
+import {
+  HONO_COOKIE,
+  HONO_COOKIE_MAX_AGE,
+  honoPath,
+  honoPreviewLink,
+  wantsHono,
+} from './lib/hono-island/route'
 import { honoEnv, honoResting } from './lib/hono-island/state'
 import {
   MARKET_COOKIE,
@@ -216,6 +223,30 @@ async function routeRequest(
         })
       }
       return moved
+    }
+  }
+
+  // The faster product pages' link (`?hono=`, `lib/hono-island/route.ts`): this browser's
+  // `wc_hono` cookie, then the same page without the param. Only a token the admin signed for this
+  // store turns the preview on, so a shared link turns nothing on for anyone else.
+  if ((request.method === 'GET' || request.method === 'HEAD') && !request.headers.has('rsc')) {
+    const link = honoPreviewLink(request.nextUrl, (token) =>
+      readHonoPreviewToken({ secret: settingsSecret(), storeId, token }),
+    )
+    if (link) {
+      const back = NextResponse.redirect(new URL(link.location, request.nextUrl), 302)
+      back.headers.set('cache-control', 'private, no-store')
+      if (link.cookie === 'clear') back.cookies.delete(HONO_COOKIE)
+      else if (link.cookie !== 'keep') {
+        back.cookies.set(HONO_COOKIE, link.cookie, {
+          httpOnly: true,
+          sameSite: 'lax',
+          secure: request.nextUrl.protocol === 'https:',
+          path: '/',
+          maxAge: HONO_COOKIE_MAX_AGE,
+        })
+      }
+      return back
     }
   }
 

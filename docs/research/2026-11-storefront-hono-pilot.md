@@ -78,15 +78,30 @@ cut; it was left out here because a remounted panel would then show unsanitised 
 
 `store.preferences.delivery.honoProduct` (`packages/core/src/online-store/preferences.ts`),
 next to the plain HTML path's `delivery.plainHtml`. Off by default for every store; no migration
-(preferences are JSON, parsed with defaults). There is no admin toggle: the admin's preferences
-form saves the whole parsed object, so the switch survives a merchant's save (tested). The proxy
-reads it through `storefrontLock` (cached 10 s per process).
+(preferences are JSON, parsed with defaults). The proxy reads it through `storefrontLock` (cached
+10 s per process).
+
+- **Owner only.** Online store › Preferences shows a "Faster product pages (beta)" card
+  (`components/preferences/hono-product-card.tsx`, English and Hindi) to the store owner alone.
+  It saves through the usual preferences save (`store.updatePreferences`, Online store write), and
+  the API keeps the switch as stored for anyone who is not the owner
+  (`keepOwnerOnlyPreferences`), so another member's save neither changes nor clears it.
+- **One browser, before shoppers.** The same card has "Try it in this browser first": a storefront
+  link `/?hono=<token>`, where the token is signed by the API for the owner only
+  (`honoPreview.token`, HMAC with `SETTINGS_SECRET`, this store, one hour). The proxy turns a
+  valid token into the cookie `wc_hono=on` for that browser and redirects to the same page without
+  the param. That browser then gets Hono product pages even while the store's switch is off.
+  An unsigned `?hono=on`, another store's token or an expired one changes nothing, so a shared
+  link turns nothing on for anyone else (tested). `?hono=off` opts a browser out (anyone may, for
+  themselves), `?hono=clear` (the card's "Stop trying" link) goes back to following the switch.
+  Both cookies are `wc_` cookies, so pages for that browser are never stored in the shared edge
+  cache.
 
 ### Routing and fallback
 
 ```
 shopper → Cloudflare → storefront (Next, unchanged entry point)
-   proxy.ts: store on? STOREFRONT_HONO_URL set? GET /products/<handle>? breaker closed?
+   proxy.ts: store on (or wc_hono=on)? STOREFRONT_HONO_URL set? GET /products/<handle>? breaker closed?
      no  → the Next page, as today
      yes → rewrite to /-x/<store>/products/<handle> (internal, a shopper cannot reach it)
            app/-x/.../route.ts → fetch the service (timeout 3 s, signed headers)
@@ -106,7 +121,8 @@ shopper → Cloudflare → storefront (Next, unchanged entry point)
 - **What goes to the service** (`lib/hono-island/route.ts`, `wantsHono`): GET or HEAD
   `/products/<handle>` of a store with the switch on, while `STOREFRONT_HONO_URL` is set; never a
   client navigation (`RSC`), a theme preview, a form result, a referral landing, a subfolder market,
-  `?view=` / `?review=` / `?write=`, a browser with `wc_hono=off`, or a page handed back.
+  `?view=` / `?review=` / `?write=`, a browser with `wc_hono=off`, or a page handed back. A
+  browser with `wc_hono=on` (the owner's preview) gets it while the store's switch is off.
 - **What the service refuses** (501 with `x-plain-skip-reason`, Next draws it): any section of
   ours other than one `MainProduct`, an A/B theme test, an enabled app embed, an app block slot
   other than the two Reviews ones, a theme buy button that gets the pre-order note, props that do
@@ -165,50 +181,66 @@ Hydration without console errors; the variant picker moves price, stock bar and 
 Reviews widget and carousel fill their theme slots. Add to cart, delivery check and notify-me call
 `/theme-actions/island-*`, which only Next answers, so they were checked by the route's tests and
 the forward contract by hand (a signed forward gets the page with the outer nonce and the shopper's
-host in the canonical; a forged token or another host gets 403). The end-to-end path through a
-locally built Next was not run (no room for `next build` today): do it on the test server before
-switching a store on (runbook step 3).
+host in the canonical; a forged token or another host gets 403). The end-to-end path through Next
+is the owner's preview on production (runbook step 4): there is no test server.
 
 ## Rollout runbook
 
-Nothing below is done by the PR; it ships switched off.
+Nothing below is done by the PR; it ships switched off. There is no test server: the end-to-end
+check is the owner's own browser on production (step 4), before any shopper sees it.
 
-1. **Image.** Build `apps/storefront-hono/Dockerfile` from the repo root (no `next build`: the heavy
-   step is `bun install`) and push it beside the other images. The compose file has the service
-   under the `hono` profile (`deploy/docker-compose.prod.yml`, internal network only, 640 MB limit),
-   so nothing starts until the profile is on.
-2. **Start the service.** Enable the `hono` profile (`COMPOSE_PROFILES=hono` in the Dokploy
-   environment) and set `STOREFRONT_HONO_URL=http://storefront-hono:3200` for the storefront; both
-   share `SETTINGS_SECRET` through the common app env. Redeploy. Every store is still off: nothing
-   changes for shoppers.
-3. **Check on the test server first** (vioratech.in, `dev`): switch the test store on (step 4),
-   open a few product pages, and confirm `x-storefront-render: hono` (`curl -sI`), add to cart,
-   variant pick, notify-me, the delivery check and the reviews widget. Stop the service and confirm
-   pages still load with `x-hono-fallback: unreachable` or `timeout`.
-4. **Switch one store on** (as the database owner):
-
-   ```sql
-   update store
-   set preferences = coalesce(preferences, '{}'::jsonb)
-     || jsonb_build_object('delivery',
-          coalesce(preferences->'delivery', '{}'::jsonb) || '{"honoProduct": true}'::jsonb)
-   where id = '<store id>';
-   ```
-
-   It takes effect within about 10 s (the proxy's cache) plus the edge TTL (30 s by default, or
-   purge). Check with `curl -sI https://<store>/products/<handle>`: `x-storefront-render: hono`; a
-   page Next drew instead says why in `x-hono-fallback` (`skip:<reason>`, `timeout`, ...).
-5. **Watch** the `x-hono-fallback` rate and the storefront's error logs (`[storefront-hono]` lines
-   in the service's logs) for a day before the next store.
+1. **ECR repo** `vextro/storefront-hono` (same lifecycle policy as the others,
+   `deploy/codebuild/README.md`). From then on every release builds and pushes the image with the
+   others, tag = the release sha (`deploy/codebuild/build-images.sh`; until the repo exists the build
+   skips it). The Dockerfile builds from the repo root like the other apps; no `next build`, the
+   heavy step is `bun install`.
+2. **Dokploy service** (internal only: no domain, no Traefik route), image
+   `<registry>/vextro/storefront-hono:<sha>`, on `dokploy-network`, memory limit **768 MB**
+   (measured: about 300 MB at rest, 650 MB peak at 100 users cached, 790 MB uncached), port 3200,
+   health check `GET /healthz`. Environment: **copy the storefront service's environment**. The
+   service runs the storefront's own modules and validates the same env schema (`loadEnv`), so it
+   needs what the storefront needs: `DATABASE_URL` (plus `DATABASE_URL_DIRECT` and
+   `DATABASE_POOLED` when pooled, for the render cache's LISTEN), `REDIS_URL`,
+   `STOREFRONT_CACHE_MB`, the image and domain settings, and `SETTINGS_SECRET`, which **must**
+   match the storefront's because it signs every forward. Do not copy `STOREFRONT_HONO_URL` (it is
+   the storefront's setting). `NODE_ENV=production` and `PORT=3200` come from the image.
+   Then put its app id in SSM `/vextro/deploy/dokploy-app-id-storefront-hono` so releases deploy
+   it (before the storefront); unset, releases skip its deploy. The compose file's `hono` profile
+   describes the same service for a compose setup.
+3. **Point the storefront at it.** On the storefront service set
+   `STOREFRONT_HONO_URL=http://<storefront-hono service name>:3200` (its name on `dokploy-network`)
+   and redeploy. Every store is still off and no browser has the cookie: nothing changes for
+   shoppers. Optional: `STOREFRONT_HONO_TIMEOUT_MS` (default 3000).
+4. **Owner's preview on production.** Online store › Preferences › Faster product pages (beta) ›
+   "Try it in this browser first". In that browser, product pages answer
+   `x-storefront-render: hono` (devtools, Network, the document's response headers). Check add to
+   cart, variant pick, a pre-order product, notify-me on a sold-out variant, the delivery check and
+   the reviews widget. A page that says `x-hono-fallback: <reason>` was drawn by Next, which is
+   fine and tells you why. "Stop trying in this browser" ends it.
+5. **Switch the store on** with the toggle on the same card and save (owner only). It reaches
+   every product page within about 10 s plus the edge TTL (30 s by default, or purge). From a
+   shell: `curl -sI https://<store>/products/<handle>` shows `x-storefront-render: hono`.
+6. **Watch** the `x-hono-fallback` rate and the service's logs (`[storefront-hono]` lines) for a
+   day before switching on another store.
 
 **Roll back**, fastest first:
 
-- One store: the same SQL with `false`. Within about 10 s plus the edge TTL.
-- Everyone: unset `STOREFRONT_HONO_URL` and redeploy the storefront; or just stop the service
-  (every product page falls back to Next; the breaker keeps the cost to five slow pages per
+- One store: the toggle off (or the SQL below with `false`). Within about 10 s plus the edge TTL.
+- Everyone: unset `STOREFRONT_HONO_URL` on the storefront and redeploy it; or just stop the
+  service (every product page falls back to Next; the breaker keeps the cost to five slow pages per
   process every 30 s, so stopping it is safe but unsetting the URL is cleaner).
-- One browser (to compare): cookie `wc_hono=off`.
-- The code: revert the PR; with the switch off it never runs.
+- One browser: `?hono=off` on any page (or `?hono=clear` to follow the switch again).
+- The code: revert the PR; with the switch off and no cookie it never runs.
+
+Without the admin, as the database owner:
+
+```sql
+update store
+set preferences = coalesce(preferences, '{}'::jsonb)
+  || jsonb_build_object('delivery',
+       coalesce(preferences->'delivery', '{}'::jsonb) || '{"honoProduct": true}'::jsonb)
+where id = '<store id>';
+```
 
 ## Result in one line (11 Nov pilot)
 

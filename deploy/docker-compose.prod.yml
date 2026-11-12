@@ -369,9 +369,10 @@ services:
       timeout: 5s
       start_period: 60s
       retries: 3
-    # Measured locally: about 290 MB at rest, 620 MB peak at 100 users with the render cache on.
-    mem_limit: 640m
-    mem_reservation: 320m
+    # Measured locally (12 Nov): about 300 MB at rest, 650 MB peak at 100 users with the render
+    # cache on, 790 MB uncached. The same limit as the storefront.
+    mem_limit: 768m
+    mem_reservation: 384m
     networks: [internal]
 
   worker:

@@ -10,9 +10,14 @@
 # - the only build step is the buy box island bundle (`scripts/build-island.ts`, a few seconds);
 # - one runtime stage on the Bun image the other apps use (`packageManager`: bun@1.3.11).
 #
-# Build from the MONOREPO ROOT (bun install needs the root lockfile and every workspace's
-# package.json), e.g.:
-#   docker build -f apps/storefront-hono/Dockerfile -t commerce-storefront-hono .
+# Build from the MONOREPO ROOT like the other apps (bun install needs the root lockfile and every
+# workspace's package.json); CodeBuild does (deploy/codebuild/build-images.sh), e.g.:
+#   docker build -f apps/storefront-hono/Dockerfile -t vextro/storefront-hono .
+#
+# Memory limit: 768 MB (the storefront's). Measured 12 Nov: about 300 MB at rest, 500 MB peak at
+# 20 users and 650 MB at 100 with the render cache on, 790 MB uncached at 100 users.
+# Runtime env: the common app env (DATABASE_URL, DATABASE_URL_DIRECT when pooled, SETTINGS_SECRET
+# the same as the storefront's, STOREFRONT_CACHE_MB...); PORT defaults to 3200.
 
 FROM oven/bun:1.3.11-alpine AS base
 WORKDIR /repo

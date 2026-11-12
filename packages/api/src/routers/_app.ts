@@ -34,6 +34,7 @@ import { giftCardsRouter } from './gift-cards'
 import { growthbookRouter } from './growthbook'
 import { gstInvoicesRouter } from './gst-invoices'
 import { gstInvoicesProductsRouter } from './gst-invoices-products'
+import { honoPreviewRouter } from './hono-preview'
 import { inboxRouter } from './inbox'
 import { inventoryRouter, purchaseOrdersRouter, transfersRouter } from './inventory'
 import { invitationsRouter } from './invitations'
@@ -88,6 +89,7 @@ export const appRouter = {
   store: storeRouter,
   storeData: storeDataRouter,
   appearance: appearanceRouter,
+  honoPreview: honoPreviewRouter,
   themes: themesRouter,
   products: productsRouter,
   collections: collectionsRouter,

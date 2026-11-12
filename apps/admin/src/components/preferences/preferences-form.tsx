@@ -18,6 +18,7 @@ import SettingsToggleRow from '@/components/settings/settings-toggle-row'
 import { preferencesContent as copy } from '@/data/preferences'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
+import HonoProductCard from './hono-product-card'
 import PreferencesPreviews from './preferences-previews'
 import PreferencesRelated from './preferences-related'
 import SocialImageField from './social-image-field'
@@ -32,6 +33,11 @@ type PreferencesFormProps = {
   storefrontOrigin: string
   /** The store's name, which the storefront uses while the home page title is blank. */
   storeName: string
+  /**
+   * The owner's preview token for the faster product pages (`delivery.honoProduct`); null for
+   * anyone else, who does not see that card (the API keeps the switch as stored for them too).
+   */
+  honoPreviewToken: string | null
 }
 
 type Errors = Partial<Record<string, string>>
@@ -52,6 +58,7 @@ export default function PreferencesForm({
   initial,
   storefrontOrigin,
   storeName,
+  honoPreviewToken,
 }: PreferencesFormProps) {
   // Hooks
   const [form, setForm] = useState(initial)
@@ -218,6 +225,15 @@ export default function PreferencesForm({
                 onChange={(plainHtml) => patch('delivery', { plainHtml })}
               />
             </SettingsCard>
+
+            {honoPreviewToken ? (
+              <HonoProductCard
+                checked={form.delivery.honoProduct}
+                onChange={(honoProduct) => patch('delivery', { honoProduct })}
+                previewHref={`${storefrontOrigin}/?hono=${encodeURIComponent(honoPreviewToken)}`}
+                stopHref={`${storefrontOrigin}/?hono=clear`}
+              />
+            ) : null}
 
             <SettingsCard
               title={copy.verification.heading}

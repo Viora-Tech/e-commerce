@@ -12,8 +12,18 @@ import { HONO_PREFIX } from '../routing'
  * signed hand-back (`lib/plain-html/forward.ts`).
  */
 
-/** A shopper (or the owner) can opt one browser out: `wc_hono=off` keeps the Next product page. */
-export const HONO_OPT_OUT_COOKIE = 'wc_hono'
+/**
+ * One browser's choice, whatever the store's switch says: `off` keeps the Next product page (an
+ * opt-out anyone can make for themselves), `on` gets the Hono page while the switch is still off
+ * (the owner's preview; only a signed admin link sets it, see `honoPreviewLink`).
+ */
+export const HONO_COOKIE = 'wc_hono'
+
+/** The query a link sets the cookie with (`?hono=<signed token>|off|clear`). */
+export const HONO_PREVIEW_PARAM = 'hono'
+
+/** How long a preview (`on`) or an opt-out (`off`) lasts in that browser. */
+export const HONO_COOKIE_MAX_AGE = 7 * 24 * 60 * 60
 
 /** Marks a request the Next storefront forwards to the service; carries the outer nonce, signed. */
 export const HONO_FORWARD_HEADER = 'x-hono-forward'
@@ -41,7 +51,7 @@ export function honoProductHandle(pathname: string): string | null {
 }
 
 export type HonoRouteInput = {
-  /** The store's `delivery.honoProduct` switch. */
+  /** The store's `delivery.honoProduct` switch (or `wc_hono=on` in this browser). */
   enabled: boolean
   /** `STOREFRONT_HONO_URL`; unset turns the service off for every store. */
   serviceUrl: string | null
@@ -63,12 +73,36 @@ export type HonoRouteInput = {
 
 /** Whether this request goes to the Hono service. */
 export function wantsHono(input: HonoRouteInput): boolean {
-  if (!input.enabled || !input.serviceUrl || input.handedBack || input.resting) return false
+  const choice = input.cookie(HONO_COOKIE)
+  // `wc_hono=on` previews in this browser only; `off` opts it out even where the store is on.
+  if (choice === 'off' || !(input.enabled || choice === 'on')) return false
+  if (!input.serviceUrl || input.handedBack || input.resting) return false
   if (input.method !== 'GET' && input.method !== 'HEAD') return false
   if (input.rsc || input.personal || input.marketPrefix) return false
-  if (input.cookie(HONO_OPT_OUT_COOKIE) === 'off') return false
   if (PERSONAL_PARAMS.some((p) => input.searchParams.has(p))) return false
   return honoProductHandle(input.pathname) !== null
+}
+
+/**
+ * What a `?hono=` link does to this browser's `wc_hono` cookie: `on` (a live token the admin
+ * signed for this store), `off` (opt out), `clear` (follow the store's switch again), or `keep`
+ * (a token that did not verify: a shared, guessed or expired link changes nothing).
+ */
+export type HonoPreviewLink = { cookie: 'on' | 'off' | 'clear' | 'keep'; location: string }
+
+/** A page asked with `?hono=`: what to do, and the same URL without it; null without the param. */
+export function honoPreviewLink(
+  url: URL,
+  verify: (token: string) => boolean,
+): HonoPreviewLink | null {
+  const value = url.searchParams.get(HONO_PREVIEW_PARAM)
+  if (value === null) return null
+  const next = new URL(url)
+  next.searchParams.delete(HONO_PREVIEW_PARAM)
+  const location = `${next.pathname}${next.search}`
+  if (value === 'off') return { cookie: 'off', location }
+  if (value === 'clear') return { cookie: 'clear', location }
+  return { cookie: verify(value) ? 'on' : 'keep', location }
 }
 
 /** Where the page loads the island's script and its chunks from (`app/api/hono-island`). */

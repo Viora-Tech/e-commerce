@@ -67,6 +67,7 @@ import growthReport from './growth-report'
 import growthbook from './growthbook'
 import gstInvoices from './gst-invoices'
 import home from './home'
+import honoProduct from './hono-product'
 import imageEditor from './image-editor'
 import inbox from './inbox'
 import inboxConversations from './inbox-conversations'
@@ -230,6 +231,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...growthReport,
   ...gstInvoices,
   ...home,
+  ...honoProduct,
   ...imageEditor,
   ...indiaPost,
   ...installedApps,

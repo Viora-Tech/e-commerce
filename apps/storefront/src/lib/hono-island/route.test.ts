@@ -1,10 +1,11 @@
+import { readHonoPreviewToken, signHonoPreviewToken } from '@commerce/core/hono-preview'
 import { describe, expect, it } from 'vitest'
 import { HONO_PREFIX, routeForStore } from '../routing'
 import {
   BREAKER_FAILURES,
   BREAKER_REST_MS,
   type Breaker,
-  HONO_OPT_OUT_COOKIE,
+  HONO_COOKIE,
   HONO_RENDER,
   type HonoRouteInput,
   honoBreaker,
@@ -12,6 +13,7 @@ import {
   honoForwardToken,
   honoIslandFile,
   honoPath,
+  honoPreviewLink,
   honoProductHandle,
   honoVerdict,
   sameOrigin,
@@ -78,8 +80,62 @@ describe('wantsHono (the store switch and the path)', () => {
   })
 
   it('lets one browser opt out', () => {
-    const cookie = (name: string) => (name === HONO_OPT_OUT_COOKIE ? 'off' : undefined)
+    const cookie = (name: string) => (name === HONO_COOKIE ? 'off' : undefined)
     expect(wantsHono({ ...base, cookie })).toBe(false)
+  })
+
+  it("previews in the owner's browser while the store's switch is off (wc_hono=on)", () => {
+    const on = (name: string) => (name === HONO_COOKIE ? 'on' : undefined)
+    expect(wantsHono({ ...base, enabled: false, cookie: on })).toBe(true)
+    // Still only where the service is configured, only product pages, and never past the rules.
+    expect(wantsHono({ ...base, enabled: false, cookie: on, serviceUrl: null })).toBe(false)
+    expect(wantsHono({ ...base, enabled: false, cookie: on, pathname: '/cart' })).toBe(false)
+    expect(wantsHono({ ...base, enabled: false, cookie: on, resting: true })).toBe(false)
+    expect(wantsHono({ ...base, enabled: false, cookie: on, handedBack: true })).toBe(false)
+    // Any other value is nothing.
+    const odd = (name: string) => (name === HONO_COOKIE ? 'yes' : undefined)
+    expect(wantsHono({ ...base, enabled: false, cookie: odd })).toBe(false)
+  })
+})
+
+describe('honoPreviewLink (?hono=)', () => {
+  const secret = 'settings-secret'
+  const storeId = 'store-1'
+  const verify = (token: string) => readHonoPreviewToken({ secret, storeId, token })
+  const at = (q: string) => new URL(`https://www.waimers.in/products/blue-tee?utm_source=ig&${q}`)
+
+  it('does nothing without the param', () => {
+    expect(honoPreviewLink(new URL('https://www.waimers.in/products/x'), verify)).toBeNull()
+  })
+
+  it('turns the preview on only for a live token the admin signed for this store', () => {
+    const token = signHonoPreviewToken({ secret, storeId })
+    expect(honoPreviewLink(at(`hono=${encodeURIComponent(token)}`), verify)).toEqual({
+      cookie: 'on',
+      location: '/products/blue-tee?utm_source=ig',
+    })
+  })
+
+  it('turns nothing on for anyone else: unsigned, another store, forged or expired', () => {
+    const other = signHonoPreviewToken({ secret, storeId: 'store-2' })
+    const old = signHonoPreviewToken({ secret, storeId, now: Date.now() - 2 * 60 * 60 * 1000 })
+    const forged = `${Math.floor(Date.now() / 1000) + 600}.forged`
+    for (const value of ['on', 'true', '1', other, old, forged, '']) {
+      expect(honoPreviewLink(at(`hono=${encodeURIComponent(value)}`), verify)?.cookie, value).toBe(
+        'keep',
+      )
+    }
+  })
+
+  it('opts this browser out, or back to following the store', () => {
+    expect(honoPreviewLink(at('hono=off'), verify)).toEqual({
+      cookie: 'off',
+      location: '/products/blue-tee?utm_source=ig',
+    })
+    expect(honoPreviewLink(new URL('https://x.in/?hono=clear'), verify)).toEqual({
+      cookie: 'clear',
+      location: '/',
+    })
   })
 })
 

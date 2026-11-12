@@ -4,7 +4,11 @@
 // optional HEALTH_URL_<APP> (public health URL probed afterwards), DEPLOY_TIMEOUT_MIN (15).
 import { execFileSync } from 'node:child_process'
 
-const ORDER = ['worker', 'admin', 'storefront']
+// storefront-hono before storefront: the storefront may forward product pages to it.
+const ORDER = ['worker', 'admin', 'storefront-hono', 'storefront']
+/** Apps deployed only once their Dokploy app exists (its id set); skipped until then. */
+const OPTIONAL = new Set(['storefront-hono'])
+const envName = (app) => app.toUpperCase().replace(/-/g, '_')
 const requested = (process.argv[2] ?? '').split(/\s+/).filter(Boolean)
 const apps = ORDER.filter((a) => requested.includes(a))
 const env = process.env
@@ -29,8 +33,8 @@ async function api(method, path, body) {
 }
 
 async function deployApp(app) {
-  const applicationId = env[`DOKPLOY_APP_ID_${app.toUpperCase()}`]
-  if (!applicationId) throw new Error(`DOKPLOY_APP_ID_${app.toUpperCase()} is not set`)
+  const applicationId = env[`DOKPLOY_APP_ID_${envName(app)}`]
+  if (!applicationId) throw new Error(`DOKPLOY_APP_ID_${envName(app)} is not set`)
   const image = `${env.ECR_REGISTRY}/${env.ECR_PREFIX}/${app}:${env.GIT_SHA}`
 
   /* No registry login is stored: the server pulls from ECR through amazon-ecr-credential-helper
@@ -62,7 +66,7 @@ async function deployApp(app) {
     if (latest?.status === 'done' && info.applicationStatus !== 'error') break
   }
 
-  const healthUrl = env[`HEALTH_URL_${app.toUpperCase()}`]
+  const healthUrl = env[`HEALTH_URL_${envName(app)}`]
   if (healthUrl) {
     for (let i = 0; ; i++) {
       if (
@@ -93,6 +97,10 @@ async function deployApp(app) {
 const summary = []
 try {
   for (const app of apps) {
+    if (OPTIONAL.has(app) && !env[`DOKPLOY_APP_ID_${envName(app)}`]) {
+      summary.push(`${app}: skipped (no Dokploy app id yet)`)
+      continue
+    }
     console.log(`==> deploying ${app}`)
     await deployApp(app)
     summary.push(`${app}: ok`)
