@@ -215,9 +215,20 @@ describe('resolveParcelDeliveries: insurance, free shipping and each parcel kept
     const rates = b.zone.kind === 'rates' ? b.zone.options : []
     return { ...b, zone: { kind: 'rates', options: rates.map((r) => ({ ...r, pricePaise: 0 })) } }
   }
+  /* Delhivery through Shiprocket: the route rate applies (Delhivery direct would ignore it for
+     its Protect card). */
+  const viaShiprocket = (surface: number, express: number): ProviderAnswer => {
+    const d = delhivery(surface, express)
+    return {
+      ...d,
+      providerId: 'shiprocket',
+      providerLabel: 'Shiprocket',
+      services: d.services.map((s) => ({ ...s, carrier: 'Delhivery' })),
+    }
+  }
   const twoParcels = [
-    { cart: cart(100_000, 6554), answers: [delhivery(14000, 26000)] },
-    { cart: cart(50_000, 500), answers: [delhivery(4500, 9100)] },
+    { cart: cart(100_000, 6554), answers: [viaShiprocket(14000, 26000)] },
+    { cart: cart(50_000, 500), answers: [viaShiprocket(4500, 9100)] },
   ]
 
   it('priced from the Shipping rate: the rate once, but every parcel’s insurance', () => {
@@ -228,11 +239,13 @@ describe('resolveParcelDeliveries: insurance, free shipping and each parcel kept
     )
     const r = resolveParcelDeliveries(withSettings([zoneInsured]), twoParcels, 150_000)
     const std = find(r, 'std')
-    // Each parcel insures at ₹30 (1% is less) + 18% GST = ₹35.40. Each parcel's own price is
-    // ₹49 + ₹35.40 → ₹90, so its rate part is ₹54.60: ₹54.60 + ₹35.40 + ₹35.40 = ₹125.40 → ₹130.
+    // Each parcel insures at ₹30 (1% is less) + 18% GST = ₹35.40. The ₹49 rate is counted once
+    // as ₹49, not as a parcel's rounded ₹90 less its insurance (₹54.60, which gave ₹130):
+    // ₹49 + ₹35.40 + ₹35.40 = ₹119.80 → ₹120.
     expect(std?.insurance).toMatchObject({ on: true, pricePaise: 3540 + 3540 })
     expect(std?.pick?.insurancePaise).toBe(7080)
-    expect(std?.pricePaise).toBe(13000)
+    expect(std?.pricePaise).toBe(12000)
+    expect(std?.listPricePaise).toBe(12000)
   })
 
   it('priced by the courier: every parcel’s insurance is in the price too', () => {

@@ -86,7 +86,9 @@ export const deliveryOptionsContent = {
     insuresDefault: 'Use the default',
     insuranceRate: 'Insurance rate (% of order value)',
     insuranceRateHelp:
-      'Of the declared value, before tax: 18% GST is added on top, as couriers bill it. Used when the courier’s quote does not list insurance itself. Empty: RapidShyp uses its 0.89%, Delhivery direct its Protect card, other routes are not priced.',
+      'Of the declared value, before tax: 18% GST is added on top, as couriers bill it. Used when the courier’s quote does not list insurance itself. Empty: RapidShyp uses its 0.89% + GST, Shiprocket its 1.05% (GST included), other routes are not priced.',
+    insuranceDelhivery:
+      'Delhivery direct is always insured at its Delhivery Protect card’s rates (Routes › Delhivery Protect): a rate typed here is not used for its insurance.',
     insuranceMin: 'Minimum insurance',
     costCard: 'Cost card (for couriers without a live price)',
     costCardHelp:

@@ -356,11 +356,11 @@ const allIn = (source: InsuranceSource, feePaise: number, estimate = false): Ins
 
 /**
  * What insurance costs on this route for this declared value: the quote's own line when it
- * itemised one, else the merchant's rate on the route (% with a minimum, plus 18% GST), else
- * the courier's published rate (`COURIER_INSURANCE`: RapidShyp + GST, Shiprocket GST
- * included), else, for Delhivery direct, Delhivery Protect for the parcel's category
- * (`protect`, from its products) plus GST. Null when none is known: the admin says the rate is
- * not set and checkout charges ₹0 for it.
+ * itemised one; for Delhivery direct always Delhivery Protect for the parcel's category
+ * (`protect`, from its products) plus GST, whatever rate is set on the route; for any other
+ * route the merchant's rate on it (% with a minimum, plus 18% GST), else the courier's
+ * published rate (`COURIER_INSURANCE`: RapidShyp + GST, Shiprocket GST included). Null when
+ * none is known: the admin says the rate is not set and checkout charges ₹0 for it.
  */
 export function insuranceQuote(
   route: Route,
@@ -368,6 +368,11 @@ export function insuranceQuote(
   protect: ProtectQuote | null = null,
 ): InsuranceQuote | null {
   if (route.quotedInsurancePaise !== null) return allIn('courier', route.quotedInsurancePaise)
+  /* Delhivery direct is always priced by its Protect card (owner, 12 Nov 2026): a rate set on
+     the route is ignored for insurance; the card is where Delhivery's rates are edited. */
+  if (isDelhiveryDirect(route)) {
+    return protect ? taxed('protect', protectFeePaise(valuePaise, protect.bps), protect) : null
+  }
   if (route.insurancePercent !== null || route.insuranceMinPaise !== null) {
     const byPercent = insuranceFeePaise(valuePaise, (route.insurancePercent ?? 0) * 100)
     return taxed('route', Math.max(byPercent, route.insuranceMinPaise ?? 0), null)
@@ -378,9 +383,6 @@ export function insuranceQuote(
     return rate.gstIncluded
       ? allIn('courier_rate', fee, rate.estimate)
       : taxed('courier_rate', fee, null, rate.estimate)
-  }
-  if (protect && isDelhiveryDirect(route)) {
-    return taxed('protect', protectFeePaise(valuePaise, protect.bps), protect)
   }
   return null
 }

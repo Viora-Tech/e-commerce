@@ -103,6 +103,7 @@ export function priceRoute(
     listPricePaise: list,
     courierCostPaise: base,
     markupPaise: zoneRate ? 0 : markup,
+    zoneRatePaise: zoneRate ? zoneRate.listPricePaise : null,
     insurancePaise: insured ? insurance : 0,
     insured,
     earliest: dated.earliest,

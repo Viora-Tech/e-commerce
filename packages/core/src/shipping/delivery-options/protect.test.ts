@@ -201,9 +201,19 @@ describe('where a route’s insurance price comes from', () => {
     })
   })
 
-  it('a rate the merchant set on the route wins, with GST on top', () => {
-    const q = insuranceQuote(route({ insurancePercent: 1 }), 899_900, computers)
+  it('a rate the merchant set on another courier’s route is used, with GST on top', () => {
+    const blueDart = route({ providerId: 'bluedart', carrierKey: 'bluedart', insurancePercent: 1 })
+    const q = insuranceQuote(blueDart, 899_900, computers)
     expect(q).toMatchObject({ source: 'route', feePaise: 8999, gstPaise: 1620, pricePaise: 10_619 })
+  })
+
+  it('on Delhivery direct the Protect card always wins over a rate set on the route', () => {
+    const q = insuranceQuote(
+      route({ insurancePercent: 1, insuranceMinPaise: 5000 }),
+      899_900,
+      computers,
+    )
+    expect(q).toMatchObject({ source: 'protect', feePaise: 3600, pricePaise: 4248 })
   })
 
   it('Shiprocket, every carrier: 1.05% of the value, GST included, exact', () => {

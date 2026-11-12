@@ -417,8 +417,13 @@ describe('route filtering', () => {
       input({ config: config({ options: [insuredStd], routeSettings: settings }) }),
     )
     const std = find(r, 'std')
-    // ₹1,500 × 0.5% = ₹7.50, minimum ₹20, + 18% GST = ₹23.60 → ₹55 + ₹23.60 = ₹78.60 → ₹80
-    expect(std?.pick?.insurancePaise).toBe(2360)
+    const traced = r.trace.options.find((o) => o.optionId === 'std')?.routes ?? []
+    // DTDC via Shiprocket: ₹1,500 × 0.5% = ₹7.50, minimum ₹20, + 18% GST = ₹23.60.
+    expect(traced.find((x) => x.carrier === 'DTDC')?.insurancePaise).toBe(2360)
+    // Delhivery direct ignores its route's 1% (min ₹30): Protect, Undetermined 0.60% = ₹9 +
+    // ₹1.62 GST. ₹60 + ₹10.62 = ₹70.62 beats DTDC's ₹55 + ₹23.60 = ₹78.60, rounded to ₹80.
+    expect(std?.pick?.route.key).toBe('delhivery:S')
+    expect(std?.pick?.insurancePaise).toBe(1062)
     expect(std?.pricePaise).toBe(8000)
   })
 

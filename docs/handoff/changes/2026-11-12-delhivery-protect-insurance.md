@@ -15,11 +15,11 @@ Shipping insurance switch only changed the label; no courier rate API returns an
   Mousepad, Skates, Keyboard, Keycaps → Computers), else Undetermined. Two or more categories in a
   parcel → Multi-category. Fee = declared value × rate, rounded to the paisa like Delhivery.
   Saved in `store.apps.settings['delivery-options'].protect` (no table); defaults need no setup.
-- **Insurance price** (`insuranceQuote` in `routes.ts`): the courier's own quote line, else the
-  merchant's route rate (% + minimum, + 18% GST), else the courier's published rate
-  (`COURIER_INSURANCE`: RapidShyp 0.89% + 18% GST, an **estimate**; Shiprocket 1.05% GST
-  included, exact; both for every carrier they book), else Protect for Delhivery direct (+ 18%
-  GST, `INSURANCE_GST_BPS`). Owner's real quotes are the tests: Delhivery ₹24,250 → ₹97.00 +
+- **Insurance price** (`insuranceQuote` in `routes.ts`): the courier's own quote line; for
+  Delhivery direct always Protect (+ 18% GST, `INSURANCE_GST_BPS`); otherwise the merchant's
+  route rate (% + minimum, + 18% GST), else the courier's published rate (`COURIER_INSURANCE`:
+  RapidShyp 0.89% + 18% GST, an **estimate**; Shiprocket 1.05% GST included, exact; both for
+  every carrier they book). Owner's real quotes are the tests: Delhivery ₹24,250 → ₹97.00 +
   ₹17.46, ₹4,699 → ₹18.80 + ₹3.38; RapidShyp ₹4,699 → ₹49.35, ₹26,899 → ₹282.49; Shiprocket
   ₹9,999 → ₹104.99, ₹14,889 → ₹156.33, ₹19,297 → ₹202.62.
 - **Cover terms per courier** (`DEFAULT_COURIER_COVER`, `courierCover`, editable in the card's
@@ -53,11 +53,14 @@ Shipping insurance switch only changed the label; no courier rate API returns an
 
 ## Not done / differs
 
-- A merchant route rate now gets 18% GST on top too (it did not before); route-rate tests updated.
-- Insurance is now priced at checkout for Shiprocket and RapidShyp routes too, so insured
-  options cost more there. A split cart priced from the Shipping rate shows an old rounding
-  leak more often (`addUp` takes each parcel's rounded price less its insurance as the rate:
-  ₹49 + ₹35.40 + ₹35.40 now totals ₹130, not ₹120); left as it was, flagged to the owner.
+- Owner's decisions (12 Nov): a merchant route rate gets 18% GST on top (it did not before);
+  insured options cost more on Shiprocket and RapidShyp routes now (charged); the fee is on the
+  full declared value even above Delhivery's ₹30,000 cover; on Delhivery direct the **Protect
+  card always wins** (a route % is ignored for its insurance, and the route dialog says so).
+- Fixed an old rounding leak for split carts priced from the Shipping rate: `addUp` took each
+  parcel's rounded price less its insurance as the rate (₹49 + ₹35.40 → ₹90 counted the rate as
+  ₹54.60, total ₹130); it now uses the rate itself (`PricedRoute.zoneRatePaise`): ₹120. A price
+  capped by the option's min/max keeps its own figure.
 - RapidShyp's own figure can differ (a part-shipped ₹19,297 order was billed on 110% of value).
 - An aggregator quote that itemised insurance at booking is not seen at booking time (no quote
   lines then); booking records the route/default rate instead. Not seen in practice.

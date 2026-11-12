@@ -57,6 +57,7 @@ function addUp(
   values: readonly number[],
   fromZone: readonly boolean[],
   insurances: readonly number[],
+  zoneRates: readonly (number | null | undefined)[] = [],
 ): number {
   let own = 0
   let rate = 0
@@ -66,7 +67,12 @@ function addUp(
     if (!fromZone[i]) own += v
     else if (v > 0) {
       const ins = Math.min(insurances[i] ?? 0, v)
-      rate = Math.max(rate, v - ins)
+      /* The Shipping rate itself, not the parcel's rounded price less its insurance: ₹49 +
+         ₹35.40 rounds to ₹90, which would count the rate as ₹54.60 (₹130 for two parcels where
+         ₹120 is right). A capped price (min/max) keeps its own figure. */
+      const zone = zoneRates[i]
+      const less = v - ins
+      rate = Math.max(rate, zone != null && zone <= less ? zone : less)
       insured += ins
       charged = true
     }
@@ -79,17 +85,20 @@ function addRoutes(routes: readonly PricedRoute[], fromZone: readonly boolean[])
   const first = routes[0] as PricedRoute
   const insurances = routes.map((r) => r.insurancePaise)
   const insured = insurances.map((i) => i ?? 0)
+  const zoneRates = routes.map((r) => r.zoneRatePaise)
   return {
     route: first.route,
     pricePaise: addUp(
       routes.map((r) => r.pricePaise),
       fromZone,
       insured,
+      zoneRates,
     ),
     listPricePaise: addUp(
       routes.map((r) => r.listPricePaise),
       fromZone,
       insured,
+      zoneRates,
     ),
     courierCostPaise: routes.reduce((s, r) => s + r.courierCostPaise, 0),
     markupPaise: routes.reduce((s, r) => s + r.markupPaise, 0),

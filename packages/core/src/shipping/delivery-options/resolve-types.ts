@@ -71,6 +71,9 @@ export type PricedRoute = {
   /** Insurance charged; null when the route's insurance rate is unknown (charged as ₹0). */
   insurancePaise: number | null
   insured: boolean
+  /** Priced from the Shipping rate: that rate before insurance and rounding, so a split cart
+   *  counts the rate once without the ₹10 rounding of each parcel. Absent otherwise. */
+  zoneRatePaise?: number | null | undefined
   earliest: string | null
   latest: string | null
   /** True when the dates come from the store's usual transit days, not the courier. */
