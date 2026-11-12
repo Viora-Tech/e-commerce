@@ -615,6 +615,8 @@ export const ACTION_DOCS: Record<string, string> = {
   'policies.template':
     "A policy's template filled from the store as it is now; the editor shows it, nothing is saved.",
   'preorders.campaigns.delete': 'Its products sell by their own pre-order settings again.',
+  'preorders.campaigns.variants':
+    'These products\' variants with their own pre-order limits, for the "Per product" card.',
   'preorders.overview':
     'Last 30 days, every pre-order product with its limit, every campaign with its sales.',
   'products.adjustments': "Stock movements for the product form's inventory history.",

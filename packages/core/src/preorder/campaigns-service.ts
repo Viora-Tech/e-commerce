@@ -23,6 +23,7 @@ import { and, asc, desc, eq, inArray, isNull, notInArray, sql } from 'drizzle-or
 import type { StoreContext } from '../context'
 import { CommerceError } from '../errors'
 import { countedOrder } from './campaign-orders'
+import { setCampaignVariantLimits } from './campaign-variants'
 import {
   type PreorderCampaignCreateInput,
   PreorderCampaignCreateSchema,
@@ -264,7 +265,8 @@ export async function createPreorderCampaign(
   ctx: StoreContext,
   input: PreorderCampaignCreateInput,
 ): Promise<PreorderCampaignView> {
-  const { productIds, members, ...fields } = PreorderCampaignCreateSchema.parse(input)
+  const { productIds, members, variantLimits, ...fields } =
+    PreorderCampaignCreateSchema.parse(input)
   const [row] = await ctx.tx
     .insert(preorderCampaign)
     .values({ ...fields, storeId: ctx.storeId })
@@ -275,6 +277,7 @@ export async function createPreorderCampaign(
     ctx.tx,
     members.filter((m) => productIds.includes(m.productId)),
   )
+  await setCampaignVariantLimits(ctx.tx, row.id, variantLimits)
   return getPreorderCampaign(ctx, row.id)
 }
 
@@ -285,7 +288,7 @@ export async function updatePreorderCampaign(
   ctx: StoreContext,
   input: PreorderCampaignUpdateInput,
 ): Promise<PreorderCampaignView> {
-  const { id, productIds, members, ...f } = PreorderCampaignUpdateSchema.parse(input)
+  const { id, productIds, members, variantLimits, ...f } = PreorderCampaignUpdateSchema.parse(input)
   const [now] = await ctx.tx
     .select(campaignSelection)
     .from(preorderCampaign)
@@ -321,6 +324,7 @@ export async function updatePreorderCampaign(
       productIds ? members.filter((m) => productIds.includes(m.productId)) : members,
     )
   }
+  if (variantLimits) await setCampaignVariantLimits(ctx.tx, id, variantLimits)
   return getPreorderCampaign(ctx, id)
 }
 
