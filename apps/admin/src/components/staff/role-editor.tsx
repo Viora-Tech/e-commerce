@@ -11,10 +11,13 @@ import { Label } from '@commerce/ui/shadcn/label'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import { revalidateStaff } from '@/app/(admin)/settings/staff/actions'
+import LeaveGuard from '@/components/layout/leave-guard'
 import PageHeader from '@/components/layout/page-header'
 import SettingsCard from '@/components/settings/settings-card'
-import type { RoleAccess } from '@/components/staff/role-access'
+import { countLevels, type EditRules, type RoleAccess } from '@/components/staff/role-access'
 import RolePermissions from '@/components/staff/role-permissions'
+import RoleSummaryBar from '@/components/staff/role-summary-bar'
 import { staffContent } from '@/data/staff'
 import { useCopy } from '@/hooks/use-copy'
 import { refreshPermissions, usePermissions } from '@/hooks/use-permissions'
@@ -44,10 +47,21 @@ const sameSet = (a: readonly string[], b: readonly string[]) =>
 const askedGrants = ({ granted, asks }: RoleAccess) =>
   asks.filter((p) => granted.includes(p) && canNeedApproval(p))
 
+/** Drops every cached copy of the Staff pages; a failure here must not undo a saved role. */
+const forgetCachedStaffPages = async () => {
+  try {
+    await revalidateStaff()
+  } catch {
+    // The role is saved; the router refresh below still reads it again.
+  }
+}
+
 /**
- * Settings → Staff → a role, on its own page: name, description and one Off / Allowed / Ask
- * first control per permission, saved together by the header's Save. Built-in roles keep their
- * grants (the owner can still choose what asks first); only the owner changes Ask first.
+ * Settings → Staff → a role, on its own page: name, description, then one table per area with an
+ * Off / Allowed / Ask first radio per permission, and a bar at the bottom with the counts and the
+ * one Save. Built-in roles keep their grants (the owner can still choose what asks first); only
+ * the owner changes Ask first. After a save every cached copy of the Staff pages is dropped, so
+ * the role never opens again as it was before (#1623).
  */
 export default function RoleEditor({ initial }: RoleEditorProps) {
   // Hooks
@@ -62,6 +76,7 @@ export default function RoleEditor({ initial }: RoleEditorProps) {
     asks: initial ? (initial.needsApproval ?? []) : DEFAULT_APPROVAL_PERMISSIONS,
   })
   const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
 
   // Event handlers
   /*
@@ -74,21 +89,24 @@ export default function RoleEditor({ initial }: RoleEditorProps) {
     try {
       let roleId = initial?.id
       if (detailsChanged || grantsChanged || !roleId) {
-        const saved = await api.staff.saveRole({
+        const result = await api.staff.saveRole({
           id: initial?.id,
           name: name.trim(),
           description: description.trim() || null,
           permissions: access.granted,
         })
-        roleId = saved.id
+        roleId = result.id
       }
       const asks = askedGrants(access)
-      if (askEditable && (!initial || !sameSet(asks, askedGrants(savedAccess)))) {
+      if (rules.askEditable && (!initial || !sameSet(asks, askedGrants(savedAccess)))) {
         await api.staff.saveRoleApprovals({ roleId, permissions: asks })
       }
+      setSaved(true)
       refreshPermissions()
+      await forgetCachedStaffPages()
       toast.success(copy.roles.saved)
       router.push(routes.settings.staffRoles())
+      router.refresh()
     } catch (err) {
       toast.error(err instanceof Error ? err.message : copy.errors.load)
     } finally {
@@ -102,9 +120,12 @@ export default function RoleEditor({ initial }: RoleEditorProps) {
     asks: initial ? (initial.needsApproval ?? []) : DEFAULT_APPROVAL_PERMISSIONS,
   }
   const isOwnerRole = initial?.slug === 'owner'
-  const grantsLocked = initial?.isSystem === true || !hasPermission(permissions.STAFF_MANAGE)
-  const askEditable = member?.isOwner === true && !isOwnerRole
-  const readOnly = grantsLocked && !askEditable
+  const rules: EditRules = {
+    grantsLocked: initial?.isSystem === true || !hasPermission(permissions.STAFF_MANAGE),
+    askEditable: member?.isOwner === true && !isOwnerRole,
+    showAsk: !isOwnerRole,
+  }
+  const readOnly = rules.grantsLocked && !rules.askEditable
   const detailsChanged =
     name !== (initial?.name ?? '') || description !== (initial?.description ?? '')
   const grantsChanged = !sameSet(access.granted, savedAccess.granted)
@@ -116,32 +137,23 @@ export default function RoleEditor({ initial }: RoleEditorProps) {
       : copy.roleForm.editTitle
     : copy.roleForm.createTitle
   const subtitle = initial?.isSystem
-    ? askEditable
+    ? rules.askEditable
       ? copy.roleForm.builtInAskFirst
       : copy.roleForm.readOnly
     : copy.members.intro
   const help = isOwnerRole
     ? copy.roleForm.ownerNeverAsks
-    : askEditable
+    : rules.askEditable
       ? copy.roleForm.askFirstHelp
       : `${copy.roleForm.askFirstHelp} ${copy.roleForm.askFirstOwnerOnly}`
 
   return (
     <div className="flex flex-col gap-4">
+      <LeaveGuard when={changed && !saving && !saved} />
       <PageHeader
         title={title}
         subtitle={subtitle}
         back={{ label: copy.roleForm.back, href: routes.settings.staffRoles() }}
-        save={
-          readOnly
-            ? undefined
-            : {
-                dirty: changed && name.trim() !== '',
-                saving,
-                onSave: () => void handleSave(),
-                label: copy.roleForm.save,
-              }
-        }
       />
       <SettingsCard bodyClassName="gap-5">
         <div className="flex flex-col gap-2">
@@ -149,7 +161,7 @@ export default function RoleEditor({ initial }: RoleEditorProps) {
           <Input
             id="role-name"
             value={name}
-            disabled={grantsLocked}
+            disabled={rules.grantsLocked}
             placeholder={copy.roleForm.namePlaceholder}
             onChange={(e) => setName(e.target.value)}
           />
@@ -159,21 +171,32 @@ export default function RoleEditor({ initial }: RoleEditorProps) {
           <Input
             id="role-description"
             value={description}
-            disabled={grantsLocked}
+            disabled={rules.grantsLocked}
             placeholder={copy.roleForm.descriptionPlaceholder}
             onChange={(e) => setDescription(e.target.value)}
           />
         </div>
       </SettingsCard>
-      <SettingsCard title={copy.roleForm.permissions} description={help}>
-        <RolePermissions
-          value={access}
-          onChange={setAccess}
-          grantsLocked={grantsLocked}
-          askEditable={askEditable}
-          showAsk={!isOwnerRole}
-        />
-      </SettingsCard>
+      <header className="flex flex-col gap-0.5 pt-2">
+        <h2 className="text-[0.9375rem] leading-[1.375rem] font-semibold text-ink-strong">
+          {copy.roleForm.permissions}
+        </h2>
+        <p className="text-[0.8125rem] leading-[1.1875rem] text-muted-foreground">{help}</p>
+      </header>
+      <RolePermissions value={access} onChange={setAccess} rules={rules} />
+      <RoleSummaryBar
+        counts={countLevels(access, rules.showAsk)}
+        showAsk={rules.showAsk}
+        save={
+          readOnly
+            ? undefined
+            : {
+                dirty: changed && name.trim() !== '',
+                saving,
+                onSave: () => void handleSave(),
+              }
+        }
+      />
     </div>
   )
 }

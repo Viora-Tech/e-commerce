@@ -7,6 +7,7 @@ import Link from 'next/link'
 import { useQueryState } from 'nuqs'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import { revalidateStaff } from '@/app/(admin)/settings/staff/actions'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
 import PageHeader from '@/components/layout/page-header'
 import SettingsDrill from '@/components/settings/settings-drill'
@@ -20,6 +21,7 @@ import { staffContent } from '@/data/staff'
 import { useCopy } from '@/hooks/use-copy'
 import { refreshPermissions, usePermissions } from '@/hooks/use-permissions'
 import { api } from '@/lib/api-client'
+import { ADMIN_REFRESH_EVENT } from '@/lib/focus-refresh'
 import { routes } from '@/lib/routes'
 
 type Team = { members: StaffMemberRow[]; roles: RoleRow[]; invites: PendingInviteRow[] }
@@ -67,8 +69,21 @@ export default function StaffSettings() {
       .catch(() => {
         if (live) toast.error(copy.errors.load)
       })
+    // Coming back to the tab reads the team again, like every server-rendered page (#1623).
+    const onRefresh = () => {
+      fetchTeam()
+        .then((team) => {
+          if (!live) return
+          setMembers(team.members)
+          setRoles(team.roles)
+          setInvites(team.invites)
+        })
+        .catch(() => undefined)
+    }
+    window.addEventListener(ADMIN_REFRESH_EVENT, onRefresh)
     return () => {
       live = false
+      window.removeEventListener(ADMIN_REFRESH_EVENT, onRefresh)
     }
   }, [])
 
@@ -109,6 +124,7 @@ export default function StaffSettings() {
     try {
       await api.staff.deleteRole({ id: target.id })
       toast.success(copy.roles.deleted)
+      void revalidateStaff().catch(() => undefined)
       reload()
     } catch (err) {
       toast.error(err instanceof Error ? err.message : copy.errors.load)
@@ -167,7 +183,13 @@ export default function StaffSettings() {
           <PendingInvitesCard invites={invites} canInvite={canInvite} onChanged={reload} />
         </SettingsDrillPanel>
         <SettingsDrillPanel id="roles">
-          <RolesCard roles={roles ?? []} canManage={canManage} onDelete={setPendingDelete} />
+          <RolesCard
+            roles={roles ?? []}
+            members={members ?? []}
+            canManage={canManage}
+            isOwner={member?.isOwner === true}
+            onDelete={setPendingDelete}
+          />
         </SettingsDrillPanel>
       </SettingsDrill>
 
