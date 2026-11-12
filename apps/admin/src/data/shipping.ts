@@ -97,6 +97,9 @@ export const shippingSettingsContent = {
     maxTransit: 'Usual delivery time: most days',
     transitHelp: 'Used when the courier does not tell us how long delivery takes.',
     codAllowed: 'Offer cash on delivery where the courier allows it',
+    insureByDefault: 'Shipping insurance on by default',
+    insureByDefaultHelp:
+      'Create shipment starts with insurance switched on, for one order and in bulk. You can still turn it off for any order.',
     more: 'More options',
     moreHelp: 'Delivery days, return address, insurance',
     warehouse: 'Return address (where returned parcels come back)',

@@ -44,6 +44,11 @@ export const ShippingPolicySchema = z.object({
    * still override it). 0 means never insure automatically.
    */
   insuranceThresholdPaise: z.number().int().min(0).default(0),
+  /**
+   * Create shipment (one order, bulk and its Edit popup) starts with Shipping insurance
+   * switched on. The merchant still switches it per order.
+   */
+  insureByDefault: z.boolean().default(true),
   /** Balance below which the wallet card in the Shipments workspace warns the merchant. */
   lowWalletBalancePaise: z.number().int().min(0).default(50000),
   /** Return address printed on labels; falls back to the pickup location. */
