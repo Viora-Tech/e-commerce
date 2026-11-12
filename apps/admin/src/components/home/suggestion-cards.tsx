@@ -24,6 +24,7 @@ import SectionHead from '@/components/layout/section-head'
 import { api } from '@/lib/api-client'
 import { openAssistant } from '@/lib/assistant-events'
 import { EASE_OUT, ENTER_SCALE, instant, layout, MOTION_MS } from '@/lib/motion'
+import { useScopedStorageKey } from '@/lib/storage-scope'
 
 export type Suggestion = {
   id: string
@@ -89,21 +90,24 @@ const TONES: Record<Suggestion['icon'], string> = {
   trend: 'border-success-border bg-success-soft text-success',
 }
 
+/** Kept per store and member: set-up ideas are about one store. */
 const STORAGE_KEY = 'home-suggestions-dismissed'
 
-/** The ids this browser has dismissed; empty when storage is blocked or holds junk. */
-function readDismissed(): string[] {
+/** The ids dismissed here; empty when storage is blocked, holds junk or no store is picked. */
+function readDismissed(key: string | null): string[] {
+  if (!key) return []
   try {
-    const parsed: unknown = JSON.parse(window.localStorage.getItem(STORAGE_KEY) ?? '[]')
+    const parsed: unknown = JSON.parse(window.localStorage.getItem(key) ?? '[]')
     return Array.isArray(parsed) ? parsed.filter((id): id is string => typeof id === 'string') : []
   } catch {
     return []
   }
 }
 
-function writeDismissed(ids: string[]) {
+function writeDismissed(key: string | null, ids: string[]) {
+  if (!key) return
   try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(ids))
+    window.localStorage.setItem(key, JSON.stringify(ids))
   } catch {
     // Storage blocked: the card is hidden for this visit only.
   }
@@ -126,18 +130,19 @@ export default function SuggestionCards({
 }: SuggestionCardsProps) {
   // Hooks
   const reduced = useReducedMotion()
+  const key = useScopedStorageKey(STORAGE_KEY)
   const [dismissed, setDismissed] = useState<string[] | null>(null)
 
   useEffect(() => {
-    setDismissed(readDismissed())
-  }, [])
+    setDismissed(readDismissed(key))
+  }, [key])
 
   // Event handlers
   const handleRestore = (s: Suggestion) => {
     const next = (dismissed ?? []).filter((saved) => saved !== s.id)
     setDismissed(next)
     if (s.cardKey) api.dashboard.dismissCard({ key: s.cardKey, dismissed: false }).catch(() => {})
-    else writeDismissed(next)
+    else writeDismissed(key, next)
   }
 
   const handleDismiss = (s: Suggestion) => {
@@ -145,7 +150,11 @@ export default function SuggestionCards({
     setDismissed(next)
     // Smart cards hide for the whole store (30 days); set-up ideas only in this browser.
     if (s.cardKey) api.dashboard.dismissCard({ key: s.cardKey }).catch(() => {})
-    else writeDismissed(next.filter((id) => !suggestions.some((x) => x.id === id && x.cardKey)))
+    else
+      writeDismissed(
+        key,
+        next.filter((id) => !suggestions.some((x) => x.id === id && x.cardKey)),
+      )
     toast(hiddenMessage, {
       action: { label: undoLabel, onClick: () => handleRestore(s) },
     })

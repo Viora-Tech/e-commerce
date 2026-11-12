@@ -7,6 +7,7 @@
  */
 import type { ProviderDef, ProviderState } from '@/components/settings/provider-settings-form'
 import { api } from '@/lib/api-client'
+import { type StorageScope, scopedStorageKey } from '@/lib/storage-scope'
 
 /** Which store settings blob the provider lives in: couriers in shipping, Decentro in payments. */
 export type SettingsKind = 'shipping' | 'payments'
@@ -15,22 +16,28 @@ export type SettingsBlob = ProviderState & Record<string, unknown>
 
 export type FieldValues = Record<string, string>
 
-const testedFlagKey = (providerId: string) => `${providerId}-connect-tested`
+/** One flag per store: the badge is about that store's connection, whoever tested it. */
+const testedFlagKey = (scope: StorageScope | null, providerId: string) =>
+  scopedStorageKey(`connect-tested:${providerId}`, scope, { perUser: false })
 
 /** Set by the Connect page after a passing "Test connection". Blocked or private-browsing
- *  storage just means the badge doesn't show. */
-export function readTestedFlag(providerId: string): boolean {
+ *  storage (or no store picked) just means the badge doesn't show. */
+export function readTestedFlag(scope: StorageScope | null, providerId: string): boolean {
+  const key = testedFlagKey(scope, providerId)
+  if (!key) return false
   try {
-    return localStorage.getItem(testedFlagKey(providerId)) === 'true'
+    return localStorage.getItem(key) === 'true'
   } catch {
     return false
   }
 }
 
-export function setTestedFlag(providerId: string, on: boolean): void {
+export function setTestedFlag(scope: StorageScope | null, providerId: string, on: boolean): void {
+  const key = testedFlagKey(scope, providerId)
+  if (!key) return
   try {
-    if (on) localStorage.setItem(testedFlagKey(providerId), 'true')
-    else localStorage.removeItem(testedFlagKey(providerId))
+    if (on) localStorage.setItem(key, 'true')
+    else localStorage.removeItem(key)
   } catch {
     // Blocked storage: the Overview badge just won't show. Not fatal.
   }
