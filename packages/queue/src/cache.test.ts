@@ -1,5 +1,6 @@
+import { courierSettingsFingerprint } from '@commerce/core/courier-fingerprint'
 import { describe, expect, it } from 'vitest'
-import { courierSettingsFingerprint, serviceabilityKey } from './cache'
+import { serviceabilityKey } from './cache'
 
 describe('serviceabilityKey', () => {
   const saved = { apiKey: 'enc:v1:aaa', customerCode: 'GL017' }

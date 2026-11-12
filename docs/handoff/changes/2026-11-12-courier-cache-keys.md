@@ -11,7 +11,16 @@ Branch `fix/courier-cache-keys`.
   key is not part of the token (it is sent per request in `Profile`), so it stays out of the key.
 - Storefront PIN code check (`apps/storefront/src/lib/shipping.ts`, 24 h cache): the key from
   `serviceabilityKey` in `packages/queue/src/cache.ts` now carries a 16-character hash of the
-  courier app's saved settings (`courierSettingsFingerprint`), so saving new credentials or
-  options is a cache miss instead of a day of old answers. Old keys simply expire.
+  courier app's saved settings, so saving new credentials or options is a cache miss instead of
+  a day of old answers. Old keys simply expire.
+- Checkout delivery quotes (`packages/core/src/shipping/delivery-options/quotes.ts`, fresh 6 h,
+  kept 7 days): `deliveryQuoteKey` (now `v3`) carries the same hash. `gatherProviderAnswers`
+  takes `providerSettings` (the store's `ShippingSettings.providers`), and `quoteDelivery` /
+  `quoteParcelDeliveries` require it; the storefront checkout, order placement and the admin
+  "Try a PIN" pass `settings.providers`. After deploy every app/PIN starts cold once (first
+  shopper per PIN waits up to the 2.5 s cold deadline).
+- The hash is `courierSettingsFingerprint` in `packages/core/src/shipping/courier-fingerprint.ts`
+  (subpath `@commerce/core/courier-fingerprint`), over the settings as stored (secrets still
+  encrypted), so any save of that courier's settings resets its cache.
 - Tests: `packages/shipping-dtdc/test/dtdc.test.ts`, `packages/shipping-bluedart/test/bluedart.test.ts`,
-  `packages/queue/src/cache.test.ts`.
+  `packages/queue/src/cache.test.ts`, `packages/core/src/shipping/delivery-options/quotes.test.ts`.
