@@ -45,7 +45,7 @@ const secrets = () => {
   return {
     env,
     secret: env.SETTINGS_SECRET,
-    previous: env.SETTINGS_SECRET_PREVIOUS?.split(',').filter(Boolean) ?? [],
+    previous: env.SETTINGS_SECRET_PREVIOUS,
   }
 }
 
