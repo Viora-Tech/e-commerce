@@ -23,6 +23,7 @@
     "./payment-capture": "./src/payments/capture.ts",
     "./manual-payments": "./src/payments/manual-collection.ts",
     "./registries": "./src/plugins/registries.ts",
+    "./request-memo": "./src/request-memo.ts",
     "./ai-runtime": "./src/ai/runtime.ts",
     "./catalog": "./src/catalog/client.ts",
     "./discounts": "./src/discounts/client.ts",

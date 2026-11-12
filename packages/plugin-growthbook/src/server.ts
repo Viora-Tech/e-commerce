@@ -1,5 +1,5 @@
-import { appSettingsOf, parseAppsSettings } from '@commerce/core'
-import { order, type StoreTx, store } from '@commerce/db'
+import { appSettingsOf, parseAppsSettings, storeAppsRow } from '@commerce/core'
+import { order, type StoreTx } from '@commerce/db'
 import { eq } from 'drizzle-orm'
 import type { ExperimentAssignment } from './assign'
 import { experimentEvent } from './schema'
@@ -22,8 +22,8 @@ export async function growthbookConnectionFor(
   tx: StoreTx,
   storeId: string,
 ): Promise<GrowthbookConnection | null> {
-  const [s] = await tx.select({ apps: store.apps }).from(store).where(eq(store.id, storeId))
-  const apps = parseAppsSettings(s?.apps)
+  const s = await storeAppsRow(tx, storeId)
+  const apps = parseAppsSettings(s.apps)
   if (!apps.installed.includes(GROWTHBOOK_ID)) return null
   return growthbookConnection(parseGrowthbookSettings(appSettingsOf(apps, GROWTHBOOK_ID)))
 }

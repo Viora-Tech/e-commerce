@@ -31,6 +31,7 @@ import type { MediaVariants } from '../media/loader'
 import { keyFromName } from '../metaobjects/validate'
 import { toNavLinks } from '../navigation/resolve'
 import { publishedPolicyLinks } from '../policies/service'
+import { memoPerRequest } from '../request-memo'
 import { loadMetafields, loadMetaobjects, loadMetaobjectsOfType } from './custom-data'
 import { loadLiquidCustomer } from './customer-data'
 import { loadCustomerOrders } from './customer-orders'
@@ -179,17 +180,22 @@ export async function storeLiquidData(
   }
 
   const pricing = options.pricing ?? null
-  const [s] = await tx
-    .select({
-      name: store.name,
-      email: store.contactEmail,
-      phone: store.contactPhone,
-      preferences: store.preferences,
-    })
-    .from(store)
-    .where(eq(store.id, options.storeId))
-  // The footer's policy links (`shop.policies`): payment gateways check a store shows them.
-  const policyLinks = await publishedPolicyLinks({ tx, storeId: options.storeId })
+  // The same for every section of a page: read once per request (`memoPerRequest`), not once
+  // per page context.
+  const { s, policyLinks } = await memoPerRequest(`liquid-shop|${options.storeId}`, async () => {
+    const [s] = await tx
+      .select({
+        name: store.name,
+        email: store.contactEmail,
+        phone: store.contactPhone,
+        preferences: store.preferences,
+      })
+      .from(store)
+      .where(eq(store.id, options.storeId))
+    // The footer's policy links (`shop.policies`): payment gateways check a store shows them.
+    const policyLinks = await publishedPolicyLinks({ tx, storeId: options.storeId })
+    return { s, policyLinks }
+  })
   const seo = ((s?.preferences as { seo?: { description?: string } } | null)?.seo ?? {}) as {
     description?: string
   }

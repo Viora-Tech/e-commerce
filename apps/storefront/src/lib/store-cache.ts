@@ -1,6 +1,7 @@
 import 'server-only'
 import { loadEnv } from '@commerce/config'
 import { listenStorefrontCache, nextScheduledChange } from '@commerce/core'
+import { memoPerRequest, peekPerRequest, rememberPerRequest } from '@commerce/core/request-memo'
 import type { StoreTx } from '@commerce/db'
 import { logger } from '@commerce/observability/logging'
 import { cache } from 'react'
@@ -103,9 +104,14 @@ export type CacheOptions = {
   size?: number
 }
 
+/** The key a value lives under for the rest of this request, while the store has no stamp. */
+const requestKey = (storeId: string, key: string) => `store-cache|${storeId}|${key}`
+
 /**
  * `load()` once per store version for `key`. Concurrent requests for the same key share one
- * load. Values are shared between requests: treat them as read-only.
+ * load. Values are shared between requests: treat them as read-only. With no stamp (caching
+ * off, or just after a change) nothing is kept across requests, but one render still loads each
+ * key once (`memoPerRequest`), so a page that repeats a read does not repeat the query.
  */
 export async function cachedForStore<T>(
   storeId: string,
@@ -114,7 +120,7 @@ export async function cachedForStore<T>(
   options: CacheOptions = {},
 ): Promise<T> {
   const stamp = await storeStamp(storeId)
-  if (!stamp) return load()
+  if (!stamp) return memoPerRequest(requestKey(storeId, key), load)
   const s = shared()
   const full = `${storeId}|${stamp}|${key}`
   const hit = s.entries.get(full)
@@ -157,7 +163,7 @@ export function storeRead<T>(
 /** A cached value, if there is one (`cachedForStore` stores it); no load on a miss. */
 export async function peekForStore<T>(storeId: string, key: string): Promise<T | undefined> {
   const stamp = await storeStamp(storeId)
-  if (!stamp) return undefined
+  if (!stamp) return peekPerRequest<T>(requestKey(storeId, key))
   return shared().entries.get(`${storeId}|${stamp}|${key}`)?.value as T | undefined
 }
 
@@ -169,6 +175,6 @@ export async function rememberForStore(
   options: Required<CacheOptions>,
 ): Promise<void> {
   const stamp = await storeStamp(storeId)
-  if (!stamp) return
+  if (!stamp) return rememberPerRequest(requestKey(storeId, key), value)
   shared().entries.set(`${storeId}|${stamp}|${key}`, { value }, options.size, options.ttlMs)
 }

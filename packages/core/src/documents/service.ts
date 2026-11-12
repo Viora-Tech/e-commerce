@@ -10,6 +10,7 @@
 import { documentTemplate, type StoreTx, store } from '@commerce/db'
 import { eq } from 'drizzle-orm'
 import { parseAppsSettings } from '../apps/settings'
+import { storeAppsRow } from '../apps/store-apps'
 import { StoreAddressSchema } from '../settings/general'
 import { INDIAN_STATE_NAMES } from '../tax/states'
 import {
@@ -114,6 +115,6 @@ export async function documentStore(tx: StoreTx, storeId: string): Promise<DocSt
 
 /** The GST invoices app owns tax invoices when it is installed. */
 export async function gstInvoicesInstalled(tx: StoreTx, storeId: string): Promise<boolean> {
-  const [s] = await tx.select({ apps: store.apps }).from(store).where(eq(store.id, storeId))
-  return parseAppsSettings(s?.apps).installed.includes(GST_INVOICES_APP_ID)
+  const s = await storeAppsRow(tx, storeId)
+  return parseAppsSettings(s.apps).installed.includes(GST_INVOICES_APP_ID)
 }

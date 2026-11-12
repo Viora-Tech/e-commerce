@@ -11,6 +11,7 @@ import {
 import { and, eq, inArray, isNull, ne, or, sql } from 'drizzle-orm'
 import { lockStoreApps } from '../apps/locked'
 import { parseAppsSettings, withAppSettings } from '../apps/settings'
+import { storeAppsRow } from '../apps/store-apps'
 import type { StoreContext } from '../context'
 import { CheckoutRuleViolation } from '../errors'
 import { importedMethod } from '../order/imported-method'
@@ -29,8 +30,8 @@ export async function codRtoState(
   tx: StoreTx,
   storeId: string,
 ): Promise<{ installed: boolean; settings: CodRtoSettings }> {
-  const [s] = await tx.select({ apps: store.apps }).from(store).where(eq(store.id, storeId))
-  const apps = parseAppsSettings(s?.apps)
+  const s = await storeAppsRow(tx, storeId)
+  const apps = parseAppsSettings(s.apps)
   return {
     installed: apps.installed.includes(COD_RTO_APP_ID),
     settings: parseCodRtoSettings(apps.settings?.[COD_RTO_APP_ID]),
