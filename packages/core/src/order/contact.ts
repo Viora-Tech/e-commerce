@@ -59,7 +59,16 @@ export type OrderContactInput = {
     | undefined
   /** Staff email, shown beside the timeline entry. */
   author: string
+  /**
+   * An imported order: its contact and addresses can be corrected, but the GSTIN and company
+   * name are the tax record the other platform invoiced; a change to either is refused.
+   */
+  lockTax?: boolean | undefined
 }
+
+/** Said when an imported order's GSTIN or company name would change. */
+export const IMPORTED_TAX_LOCKED =
+  'An imported order keeps the GSTIN and company name it came with.'
 
 type AddressRow = typeof address.$inferSelect
 
@@ -175,7 +184,7 @@ export async function updateOrderContact(ctx: StoreContext, input: OrderContactI
   }
 
   const billing = input.billing
-    ? await nextBilling(ctx, o, input.billing, input.phone ?? '', changes)
+    ? await nextBilling(ctx, o, input.billing, input.phone ?? '', changes, input.lockTax === true)
     : null
 
   await ctx.tx
@@ -230,7 +239,16 @@ async function nextBilling(
   input: NonNullable<OrderContactInput['billing']>,
   phone: string,
   changes: string[],
+  lockTax: boolean,
 ) {
+  // An imported order's tax record is compared as typed, before any check of the GSTIN itself.
+  if (
+    lockTax &&
+    (!same(o.buyerGstin, input.gstin?.trim().toUpperCase()) ||
+      !same(o.buyerBusinessName, input.businessName))
+  ) {
+    throw new InvalidOrderContact({ gstin: IMPORTED_TAX_LOCKED }, ctx.storeId)
+  }
   let gstin: string | null = null
   if (input.gstin?.trim()) {
     const check = validateGstin(input.gstin)

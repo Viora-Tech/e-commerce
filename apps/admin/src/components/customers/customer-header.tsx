@@ -1,6 +1,6 @@
 'use client'
 
-import { Pencil, Plus, Send, Trash2 } from '@commerce/ui/icons'
+import { Pencil, Plus, Send, Trash2, Users } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -12,6 +12,7 @@ import ActionMenu from '@/components/layout/action-menu'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
 import PageHeader from '@/components/layout/page-header'
 import StatusChip from '@/components/layout/status-chip'
+import { customerMergeContent } from '@/data/customer-merge'
 import { customerDetailContent, customersContent, VIP_SPEND_PAISE } from '@/data/customers'
 import { datesContent } from '@/data/dates'
 import { useCopy, useLocale } from '@/hooks/use-copy'
@@ -23,6 +24,7 @@ import CustomerAvatar from './customer-avatar'
 import type { CustomerDetail } from './customer-detail-types'
 import { day } from './customer-detail-types'
 import CustomerEmailDialog from './customer-email-dialog'
+import MergeCustomerDialog from './merge-customer-dialog'
 
 type CustomerHeaderProps = {
   customer: CustomerDetail
@@ -40,6 +42,7 @@ export default function CustomerHeader({
   // Hooks
   const copy = useCopy(customerDetailContent)
   const customersCopy = useCopy(customersContent)
+  const mergeCopy = useCopy(customerMergeContent)
   const dates = useCopy(datesContent)
   const locale = useLocale()
   const router = useRouter()
@@ -47,6 +50,7 @@ export default function CustomerHeader({
   const [confirming, setConfirming] = useState(false)
   const [busy, setBusy] = useState(false)
   const [emailing, setEmailing] = useState(false)
+  const [merging, setMerging] = useState(false)
 
   // Event handlers
   const handleDelete = async () => {
@@ -127,6 +131,7 @@ export default function CustomerHeader({
               trigger="button"
               items={[
                 { label: copy.actions.edit, icon: Pencil, onSelect: onEdit },
+                { label: mergeCopy.menu, icon: Users, onSelect: () => setMerging(true) },
                 ...automation.items([customer.id], { runsLink: true }),
                 {
                   label: copy.actions.delete,
@@ -158,6 +163,12 @@ export default function CustomerHeader({
           onSent={() => router.refresh()}
         />
       ) : null}
+      <MergeCustomerDialog
+        customer={customer}
+        open={merging}
+        onClose={() => setMerging(false)}
+        onMerged={() => router.refresh()}
+      />
       <RunAutomationDialog
         subjectType="customer"
         ids={automation.target}
