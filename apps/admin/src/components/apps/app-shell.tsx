@@ -1,14 +1,17 @@
 import { siteConfig } from '@commerce/config/site'
-import { CircleAlert, Settings, TriangleAlert } from '@commerce/ui/icons'
+import { CircleAlert, TriangleAlert } from '@commerce/ui/icons'
+import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
 import type { ReactNode } from 'react'
 import NextStepBanner from '@/components/layout/next-step-banner'
 import PageBody from '@/components/layout/page-body'
-import PageHeader from '@/components/layout/page-header'
 import StatusChip from '@/components/layout/status-chip'
+import { CHIP_DOT } from '@/components/status/tone'
 import { appsContent } from '@/data/apps'
-import { getCopy } from '@/lib/copy-server'
+import { layoutContent } from '@/data/layout'
+import { getCopy, getLocale } from '@/lib/copy-server'
+import { formatAgo } from '@/lib/format-date'
 import { routes } from '@/lib/routes'
 import AppLogo from './app-logo'
 import AppNav from './app-nav'
@@ -18,13 +21,16 @@ type AppShellProps = {
   appId: string
   name: string
   icon: string | null
-  description: string | null
-  credits: { name: string; url: string; license: string; note?: string | undefined }[]
+  /** The app's own status pill from its `appBar` read ("GSTIN … · numbering 2026-27"). */
+  statusPill?:
+    | { label: string; tone: 'neutral' | 'success' | 'attention' | 'danger'; at: Date | null }
+    | null
+    | undefined
   /** Tabs: manifest pages that carry a nav label. */
   tabs: { path: string; label: string }[]
   /** The manifest path of the page on screen, e.g. `''` or `'invoices/[id]'`. */
   active: string
-  /** Whether one of the app's own pages is a `settings` page, for the header shortcut. */
+  /** Whether the app has a `settings` page, for the "…" menu's Settings item. */
   hasSettings: boolean
   /** Connected, Needs setup or Error, as the Installed apps list reads it. */
   status: 'connected' | 'needsSetup' | 'error' | null
@@ -32,7 +38,7 @@ type AppShellProps = {
   problem: string | null
   /** Where to fix a Needs setup or Error app: its Connect page, its settings. */
   fixHref?: string | undefined
-  /** The app's own header button, shown beside the more menu. */
+  /** The app's one primary action, beside the "…" menu. */
   headerAction?: ReactNode
   children: ReactNode
 }
@@ -40,41 +46,17 @@ type AppShellProps = {
 const hrefFor = (appId: string, path: string) =>
   path ? routes.apps.page(appId, ...path.split('/')) : routes.apps.page(appId)
 
-/** Small "Built with X (licence)" line under the app description. */
-function CreditLine({
-  credits,
-  copy,
-}: {
-  credits: AppShellProps['credits']
-  copy: typeof appsContent
-}) {
-  if (credits.length === 0) return null
-  return (
-    <p className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-caption text-muted-foreground">
-      <span>{copy.builtWith}</span>
-      {credits.map((c) => (
-        <a
-          key={c.url}
-          href={c.url}
-          target="_blank"
-          rel="noreferrer"
-          title={c.note}
-          className="font-medium text-ink-strong underline-offset-4 hover:text-primary hover:underline"
-        >
-          {copy.creditLabel(c.name, c.license)}
-        </a>
-      ))}
-    </p>
-  )
-}
-
-/** Header for an installed app's pages: the premium PageHeader, then its own tabs. */
+/**
+ * An installed app's pages under the compact app bar (Figma App layout v2, 928:10728): the
+ * "Apps / <Name>" breadcrumb, a small logo, name and status chip, the app's status pill, its one
+ * primary action and the "…" menu (Settings, Uninstall), then a divider. On desktop the app's
+ * pages live in the main sidebar under its name; phones keep the in-page menu.
+ */
 export default async function AppShell({
   appId,
   name,
   icon,
-  description,
-  credits,
+  statusPill,
   tabs,
   active,
   hasSettings,
@@ -86,50 +68,71 @@ export default async function AppShell({
 }: AppShellProps) {
   // Render logic
   const copy = await getCopy(appsContent)
+  const layoutCopy = await getCopy(layoutContent)
+  const locale = await getLocale()
   const section = active.split('/')[0] ?? ''
-  // The side menu is for big apps (3+ pages). A two-page app whose second page is its settings
-  // reaches it from the header's Settings shortcut instead; any other two-page app keeps the
-  // menu, so no page becomes unreachable.
-  const showNav = tabs.length >= 3 || (tabs.length === 2 && !hasSettings)
+  const showNav = tabs.length >= 2
   const tone = status === 'error' ? 'danger' : status === 'needsSetup' ? 'attention' : 'success'
   const statusLabel =
     status === 'error' ? copy.statusError : status === 'needsSetup' ? copy.needsSetup : copy.active
+  const pillText = statusPill
+    ? statusPill.at
+      ? `${statusPill.label} ${formatAgo(statusPill.at, new Date(), locale)}`
+      : statusPill.label
+    : null
 
   return (
     <PageBody>
       <div className="flex flex-col gap-4">
-        <PageHeader
-          title={name}
-          back={{ label: copy.title, href: routes.apps.list() }}
-          lead={{ kind: 'logo', node: <AppLogo id={appId} icon={icon} size={72} /> }}
-          badges={
-            <StatusChip tone={tone} className="h-5 text-xs">
-              {statusLabel}
-            </StatusChip>
-          }
-          subtitle={
-            <div className="flex flex-col gap-1">
-              {description ? <p>{description}</p> : null}
-              <CreditLine credits={credits} copy={copy} />
+        <header className="flex flex-wrap items-center gap-x-3.5 gap-y-3 border-panel-border border-b pb-4">
+          <AppLogo id={appId} icon={icon} size={44} />
+          <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+            <nav aria-label={layoutCopy.breadcrumb}>
+              <ol className="flex items-center gap-1.5 text-caption text-muted-foreground">
+                <li>
+                  <Link
+                    href={routes.apps.list()}
+                    className="rounded-sm hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    {copy.title}
+                  </Link>
+                </li>
+                <li aria-hidden="true">/</li>
+                <li aria-current="page" className="truncate">
+                  {name}
+                </li>
+              </ol>
+            </nav>
+            <div className="flex min-w-0 items-center gap-2">
+              <h1 className="truncate text-[1.25rem] leading-6.5 font-semibold text-ink-strong">
+                {name}
+              </h1>
+              <StatusChip tone={tone} className="h-5 shrink-0 text-xs">
+                {statusLabel}
+              </StatusChip>
             </div>
-          }
-          actions={
-            <>
-              {hasSettings ? (
-                <Button
-                  variant="outline"
-                  nativeButton={false}
-                  render={<Link href={hrefFor(appId, 'settings')} />}
-                >
-                  <Settings />
-                  {copy.settings}
-                </Button>
-              ) : null}
-              {headerAction}
-              <AppUninstallButton appId={appId} name={name} />
-            </>
-          }
-        />
+          </div>
+          <div className="flex max-w-full min-w-0 items-center gap-3.5">
+            {pillText && statusPill ? (
+              <span
+                title={pillText}
+                className="flex h-7.5 max-w-[22rem] min-w-0 items-center gap-1.5 rounded-full border border-hairline px-2.5 text-caption text-muted-foreground"
+              >
+                <span
+                  aria-hidden="true"
+                  className={cn('size-2 shrink-0 rounded-full', CHIP_DOT[statusPill.tone])}
+                />
+                <span className="truncate">{pillText}</span>
+              </span>
+            ) : null}
+            {headerAction}
+            <AppUninstallButton
+              appId={appId}
+              name={name}
+              settingsHref={hasSettings ? hrefFor(appId, 'settings') : undefined}
+            />
+          </div>
+        </header>
         {status === 'needsSetup' || status === 'error' ? (
           // Figma "WhatsApp · Needs setup": the raised card with what is wrong and the way out.
           <NextStepBanner
