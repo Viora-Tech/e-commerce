@@ -37,22 +37,27 @@ export function isApprovalQueued(err: unknown): boolean {
 
 // RPCLink needs an absolute URL; resolve against the page origin in the browser.
 const base = typeof window === 'undefined' ? 'http://localhost:3200' : window.location.origin
-export const api = createApiClient(`${base}/api/rpc`, undefined, [
-  async ({ next }) => {
-    try {
-      return await next()
-    } catch (err) {
-      // A sensitive action refused for a stale session (A5): re-verify in the step-up dialog,
-      // then retry the call once. When no dialog is mounted or the member cancels, fall through
-      // to the original error.
-      if (isStepUpRequired(err) && (await requestStepUp())) {
-        try {
-          return await next()
-        } catch (retryErr) {
-          throw readable(retryErr)
+export const api = createApiClient(
+  `${base}/api/rpc`,
+  undefined,
+  [
+    async ({ next }) => {
+      try {
+        return await next()
+      } catch (err) {
+        // A sensitive action refused for a stale session (A5): re-verify in the step-up dialog,
+        // then retry the call once. When no dialog is mounted or the member cancels, fall through
+        // to the original error.
+        if (isStepUpRequired(err) && (await requestStepUp())) {
+          try {
+            return await next()
+          } catch (retryErr) {
+            throw readable(retryErr)
+          }
         }
+        throw readable(err)
       }
-      throw readable(err)
-    }
-  },
-])
+    },
+  ],
+  { batch: true },
+)
