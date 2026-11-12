@@ -6,7 +6,211 @@ switches only after it renders the same HTML and beats the old one on speed and 
 Postgres copy of Waimers (72 products, imported Horizon theme). Code: `apps/storefront-hono/`,
 draft PR into `dev`.
 
-## Result in one line
+## Update 12 Nov 2026: buy box island, store switch, side by side with Next
+
+Branch `feat/storefront-hono-island` (draft PR into `dev`) takes the pilot to a shippable,
+switched-off setup. The owner's decisions: **reuse the React buy box as a hydrated island** (no
+rewrite in plain JS), and **run Hono beside Next, switched on store by store, with a fallback to
+Next** for any error, unsupported page or store that is not switched on.
+
+### Result in one line (12 Nov)
+
+With the island, B still renders the **same sections as the production Next build (504 of 504,
+`MainProduct` 72 of 72) and the same head SEO (72 of 72)**. The buy box now **works** (variant
+pick, gallery, stock, add to cart, pre-order, notify-me, delivery check, the Reviews app widgets),
+and the page loads **60 % less JavaScript** than Next's (163 KB against 410 KB gzip). Cached, B
+answers at p50 52 ms (365 req/s at 20 users), uncached at 16 req/s, and keeps about 300 MB at rest.
+
+### How hydration works
+
+- **One tree, both sides.** `apps/storefront-hono/src/island/buy-box.tsx` is what the Next product
+  route draws for `MainProduct`: `ProductView` with the same props (`EmiOffersProvider`,
+  `RecordView`, `DeliveryEstimateWidget`, `NotifyMeForm`, the EMI line), inside
+  `MoneyFormatProvider` (the store's price format and market pricing, as Next's layout gives it),
+  plus the Reviews app's widget and carousel through `LiquidAppBlock`, which the Next page and
+  layout portal into the theme's `reviews` and `reviews-carousel` slots. The server renders it
+  with `renderToReadableStream` (all lazy pieces in), the browser hydrates the same tree.
+- **Placed exactly where Next has it.** The section goes through the same block config and Puck
+  data pass as before, with a mark where the buy box goes (`island/place.ts`); the island's HTML
+  replaces the mark. Only when the mark is all the section drew (or all its `section-frame`
+  holds) is the page drawn; anything else beside it sends the page to Next (`island-shape`). React's
+  image preload links move into `<head>`, as Next does.
+- **Props in the page.** `island/props.ts` writes them as JSON in
+  `<script type="application/json" id="hono-island-props">` (`<` escaped, so no value closes the
+  script). A value JSON would change (a `Date`, a `Map`, a function, `NaN`) refuses the page
+  (`island-props:<what>`) so the browser never hydrates other props than the server rendered.
+  Functions Next passes as props travel by name (`underPrice: 'emi-offers' | 'emi-hint'`,
+  `notifyMe`). Typical size: 8.6 KB per page, against 36 KB of RSC payload on Next.
+- **Server actions.** A browser bundle cannot run Next's server actions, so the island build swaps
+  `@/lib/cart-actions`, `@/lib/shipping-actions` and `@/lib/back-in-stock-actions` for
+  `island/actions.ts`, which posts JSON to `/theme-actions/island-add|island-delivery|island-notify`
+  on the store's origin. Next answers those with the very same actions
+  (`apps/storefront/src/lib/hono-island/actions.ts`; JSON only, same origin). An add opens the cart
+  page, as `ThemeCartAdded` does on Next; the Pixels `ViewContent` fires as `PixelTrack` does.
+- **The bundle.** `bun run build:island` (`scripts/build-island.ts`, Bun.build, ESM, minified, code
+  split) writes `dist/island/` with hashed names and a manifest. Anything that reaches
+  `server-only` fails the build. It also compiles the storefront's `globals.css` (Tailwind and the
+  blocks' CSS) the way Next does, since our buy box's CSS lives there: the pilot never linked it
+  (its HTML match dropped `/_next` links), so its buy box would have been unstyled.
+  The page loads `/api/hono-island/<file>` (`<script type="module" nonce>`), which Next passes on
+  from the service with a year's `immutable` cache.
+
+| File | Raw | Gzip | Loaded |
+| --- | --- | --- | --- |
+| `client-*.js` (React DOM, `ProductView`, the widgets) | 478 KB | 163 KB | every product page |
+| `chunk-*.js` (the phone field's country list, `react-phone-number-input`) | 407 KB | 103 KB | only when the notify-me form shows its phone field |
+| `global-*.css` (Next's own global stylesheet, compiled the same way) | 541 KB | 83 KB | every product page (Next ships the same 554 KB file) |
+
+JavaScript a product page loads up front (`pulsar-hyperion-pro`, theme scripts excluded, both
+sides load the same ones):
+
+| | Script files | Raw | Gzip | Inline scripts |
+| --- | --- | --- | --- | --- |
+| A Next (production image 66709261b) | 17 | 1 225 KB | 410 KB | 104 KB |
+| **B Hono + island** | **1** | **478 KB** | **163 KB** | 70 KB |
+
+Most of B's script is React DOM (about 60 KB gzip) and `sanitize-html` with `postcss` (about 45 KB
+gzip), which `RichCopy` uses to clean the accordion and payment-note copy in the browser. Taking
+that out (sanitising on the server and swapping the module in the island build) is the next easy
+cut; it was left out here because a remounted panel would then show unsanitised HTML.
+
+### Where the store switch lives
+
+`store.preferences.delivery.honoProduct` (`packages/core/src/online-store/preferences.ts`),
+next to the plain HTML path's `delivery.plainHtml`. Off by default for every store; no migration
+(preferences are JSON, parsed with defaults). There is no admin toggle: the admin's preferences
+form saves the whole parsed object, so the switch survives a merchant's save (tested). The proxy
+reads it through `storefrontLock` (cached 10 s per process).
+
+### Routing and fallback
+
+```
+shopper → Cloudflare → storefront (Next, unchanged entry point)
+   proxy.ts: store on? STOREFRONT_HONO_URL set? GET /products/<handle>? breaker closed?
+     no  → the Next page, as today
+     yes → rewrite to /-x/<store>/products/<handle> (internal, a shopper cannot reach it)
+           app/-x/.../route.ts → fetch the service (timeout 3 s, signed headers)
+              200 + x-storefront-render: hono + text/html → that page
+              anything else (error, timeout, 404, 501 skip, other status)
+                → the Next page through this same server (the plain path's signed hand-back),
+                  with x-hono-fallback: <reason>
+```
+
+- **Why this way.** Next stays the only entry point: Cloudflare, Traefik and the tunnel do not
+  change, every store not switched on runs exactly today's code path, and Next keeps doing what
+  the service does not yet (redirects, market moves, the password page, previews, the
+  order-token swap, cookies, CSP headers, edge-cache headers). The service is the smallest thing
+  that can fail, and when it does, the shopper gets the Next page. The cost is that a Hono page
+  still passes through Next's proxy and a route handler (no React render), so Next's memory does
+  not go away until more page types move.
+- **What goes to the service** (`lib/hono-island/route.ts`, `wantsHono`): GET or HEAD
+  `/products/<handle>` of a store with the switch on, while `STOREFRONT_HONO_URL` is set; never a
+  client navigation (`RSC`), a theme preview, a form result, a referral landing, a subfolder market,
+  `?view=` / `?review=` / `?write=`, a browser with `wc_hono=off`, or a page handed back.
+- **What the service refuses** (501 with `x-plain-skip-reason`, Next draws it): any section of
+  ours other than one `MainProduct`, an A/B theme test, an enabled app embed, an app block slot
+  other than the two Reviews ones, a theme buy button that gets the pre-order note, props that do
+  not survive JSON, no built island.
+- **Trust.** Next signs each forward (`x-hono-forward`: HMAC of store, host and the outer nonce
+  with `SETTINGS_SECRET`). The service trusts the store, market and path headers only then, writes
+  the page with Next's nonce, and sets no CSP itself (Next's outer response carries it). An
+  unsigned request is answered only outside production (or `STOREFRONT_HONO_DIRECT=1`); a forged
+  one gets 403.
+- **Breaker.** Five failures in a row (errors, timeouts, 5xx; not skips or 404s) rest the service
+  for 30 s per Next process, so a down service costs at most five slow pages, not every one.
+
+### Measurements, 12 Nov (same method as below)
+
+Same PC, same database copy, k6 with the same 10 handles, no think time, 30 s per run after a
+warm-up of 30 requests; memory is the working set of the server process, sampled every second.
+B ran directly (Bun, `bun run`, as in the pilot). The PC had 1.2–2.5 GB free during the runs.
+
+| B Hono + island | Users | p50 | p95 | p99 | req/s | Errors | Idle → peak memory |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| cache on | 20 | 52 ms | 66 ms | 124 ms | 365.6 | 0 % | 297 → 497 MB |
+| cache on | 100 | 253 ms | 352 ms | 1 630 ms | 342.7 | 0 % | 297 → 646 MB |
+| cache off | 20 | 1 220 ms | 1 330 ms | 1 410 ms | 16.2 | 0 % | 307 → 484 MB |
+| cache off | 100 | 5 820 ms | 5 980 ms | 5 990 ms | 17.1 | 0 % | 315 → 786 MB |
+
+A single uncached page alone takes 0.14 s (0.2 s in the pilot).
+
+Against the pilot's B (no island): cached throughput is about 14 % lower (365 against 423 req/s at
+20 users), the cost of rendering the island through a stream and writing its props; uncached
+throughput is higher (16.2 against 11.2 req/s), most likely #1530's request memo, which works here
+because the preload's `React.cache` swap gives it a per-request map.
+
+Against Next (A): `next build` (3.6 GB peak) could not run on this PC today (under 2.5 GB free),
+so the pilot's A figures (11 Nov, native `next start`, same method) remain the comparison:
+cached p50 277 ms and 69.6 req/s at 20 users, 74.4 req/s at 100; uncached 8.1 and 9.4 req/s;
+373 MB idle, 760–777 MB peak. As a same-day check, the production storefront image (66709261b)
+in Docker, capped at 768 MB like production, gave p50 355 ms, p95 408 ms and 54.9 req/s at 20
+users cached, with 301 → 365 MB (Docker adds its own network hop, so read it as a floor for A).
+
+| Cached, 20 users | p50 | req/s | Peak memory |
+| --- | --- | --- | --- |
+| A Next (pilot, native) | 277 ms | 69.6 | 760 MB |
+| A Next (12 Nov, Docker) | 355 ms | 54.9 | 365 MB (container) |
+| **B Hono + island** | **52 ms** | **365.6** | **497 MB** |
+
+### HTML match, 12 Nov
+
+`scripts/html-match.ts` over all 72 product URLs, A = the production storefront image
+(66709261b), B = this branch: **504 / 504 sections equal** (header, 2 template sections, 3 footer
+sections, `MainProduct` 72 / 72) and **72 / 72 head SEO blocks**. The whole document still differs
+by design (Next's runtime and RSC payload; B's island props and script).
+
+### Checked in a browser (B direct)
+
+Hydration without console errors; the variant picker moves price, stock bar and gallery; the
+Reviews widget and carousel fill their theme slots. Add to cart, delivery check and notify-me call
+`/theme-actions/island-*`, which only Next answers, so they were checked by the route's tests and
+the forward contract by hand (a signed forward gets the page with the outer nonce and the shopper's
+host in the canonical; a forged token or another host gets 403). The end-to-end path through a
+locally built Next was not run (no room for `next build` today): do it on the test server before
+switching a store on (runbook step 3).
+
+## Rollout runbook
+
+Nothing below is done by the PR; it ships switched off.
+
+1. **Image.** Build `apps/storefront-hono/Dockerfile` from the repo root (no `next build`: the heavy
+   step is `bun install`) and push it beside the other images. The compose file has the service
+   under the `hono` profile (`deploy/docker-compose.prod.yml`, internal network only, 640 MB limit),
+   so nothing starts until the profile is on.
+2. **Start the service.** Enable the `hono` profile (`COMPOSE_PROFILES=hono` in the Dokploy
+   environment) and set `STOREFRONT_HONO_URL=http://storefront-hono:3200` for the storefront; both
+   share `SETTINGS_SECRET` through the common app env. Redeploy. Every store is still off: nothing
+   changes for shoppers.
+3. **Check on the test server first** (vioratech.in, `dev`): switch the test store on (step 4),
+   open a few product pages, and confirm `x-storefront-render: hono` (`curl -sI`), add to cart,
+   variant pick, notify-me, the delivery check and the reviews widget. Stop the service and confirm
+   pages still load with `x-hono-fallback: unreachable` or `timeout`.
+4. **Switch one store on** (as the database owner):
+
+   ```sql
+   update store
+   set preferences = coalesce(preferences, '{}'::jsonb)
+     || jsonb_build_object('delivery',
+          coalesce(preferences->'delivery', '{}'::jsonb) || '{"honoProduct": true}'::jsonb)
+   where id = '<store id>';
+   ```
+
+   It takes effect within about 10 s (the proxy's cache) plus the edge TTL (30 s by default, or
+   purge). Check with `curl -sI https://<store>/products/<handle>`: `x-storefront-render: hono`; a
+   page Next drew instead says why in `x-hono-fallback` (`skip:<reason>`, `timeout`, ...).
+5. **Watch** the `x-hono-fallback` rate and the storefront's error logs (`[storefront-hono]` lines
+   in the service's logs) for a day before the next store.
+
+**Roll back**, fastest first:
+
+- One store: the same SQL with `false`. Within about 10 s plus the edge TTL.
+- Everyone: unset `STOREFRONT_HONO_URL` and redeploy the storefront; or just stop the service
+  (every product page falls back to Next; the breaker keeps the cost to five slow pages per
+  process every 30 s, so stopping it is safe but unsetting the URL is cleaner).
+- One browser (to compare): cookie `wc_hono=off`.
+- The code: revert the PR; with the switch off it never runs.
+
+## Result in one line (11 Nov pilot)
 
 On the same requests, B rendered the **same theme and product markup** (504 of 504 sections, 72
 of 72 head SEO blocks). B also used **25–45 % less memory**. With the render cache on, B was
@@ -39,7 +243,8 @@ hydration. That last point is the real cost of the port (see "What a full port t
   (the React `ProductView` gallery and buy box) rather than the theme's `main-product`. B draws it
   with `react-dom/server` `renderToString`, through the same Puck config and `renderBlock` call as
   `renderTemplate`, so the markup is the same. It is **not hydrated**, so its variant picker and
-  Add to cart do nothing in B. Everything else on the page is plain HTML from Liquid.
+  Add to cart do nothing in B. Everything else on the page is plain HTML from Liquid. (Hydrated
+  since 12 Nov: see the update at the top.)
 
 Not in the pilot: primary-domain, market and URL redirects, order-token swap, theme previews,
 the password page, edge-cache headers, `/theme-assets/*` and every other route.
@@ -209,20 +414,20 @@ pages, which are most of the traffic, would take about 3–4 weeks.
    reach either server; B mainly saves memory (about 90–190 MB per replica at rest, more under
    load) and cuts the uncached time.
 
-## Questions for the owner
+## Questions for the owner (answered 12 Nov)
 
-- Is a hydrated **React island for the buy box** acceptable on the "plain HTML + CSS + JS" page,
-  or must `ProductView` be rewritten in plain JS before B can switch? The island is faster to
-  ship and keeps the HTML identical. A rewrite drops React from the client too, but needs its own
-  match check.
-- Should B run as a second service next to Next (the proxy sends the pages it can draw), or
-  replace the Next storefront store by store?
+- The buy box is a **hydrated React island** (no plain JS rewrite).
+- B runs **beside Next**, switched on **store by store**, with a **fallback to Next**. See the
+  12 Nov update at the top.
 
 ## Reproduce
 
 ```sh
 # B
-cd apps/storefront-hono && bun run start              # port 3200, root .env
+cd apps/storefront-hono && bun run start              # builds the island, then port 3200, root .env
+bun run test                                          # island props and placement
+# A from the production image when `next build` does not fit (DATABASE_URL to host.docker.internal)
+docker run --rm -p 3100:3100 -m 768m --env-file docker.env <registry>/storefront:<sha>
 # A (from the real path, not a subst drive)
 cd apps/storefront && bun run build && bun run start  # port 3100
 # HTML match

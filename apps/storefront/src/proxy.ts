@@ -18,6 +18,8 @@ import {
 } from './lib/csp'
 import { db } from './lib/db'
 import { edgeCacheControl, isSharedPage } from './lib/edge-cache'
+import { honoPath, wantsHono } from './lib/hono-island/route'
+import { honoEnv, honoResting } from './lib/hono-island/state'
 import {
   MARKET_COOKIE,
   MARKET_COOKIE_MAX_AGE,
@@ -325,14 +327,33 @@ async function routeRequest(
       cookie: (name) => request.cookies.get(name)?.value,
       handedBack,
     })
-  if (plain && shared) headers.set('x-edge-cache-control', shared)
+  // A product page of a store on the Bun + Hono service (`lib/hono-island`); Next draws it on failure.
+  const hono =
+    !locked &&
+    !plain &&
+    wantsHono({
+      enabled: lock.honoProduct,
+      serviceUrl: honoEnv().url,
+      method: request.method,
+      pathname: pick.pathname,
+      searchParams: request.nextUrl.searchParams,
+      rsc: request.headers.has('rsc'),
+      personal: Boolean(preview) || posted !== null || referred,
+      marketPrefix: headers.get(MARKET_HEADERS.prefix) ?? '',
+      cookie: (name) => request.cookies.get(name)?.value,
+      handedBack,
+      resting: honoResting(),
+    })
+  if ((plain || hono) && shared) headers.set('x-edge-cache-control', shared)
 
   const url = request.nextUrl.clone()
   url.pathname = locked
     ? `${PASSWORD_PREFIX}/${storeId}`
     : plain
       ? plainPath(storeId, pick.pathname)
-      : route.path
+      : hono
+        ? honoPath(storeId, pick.pathname)
+        : route.path
   const response = NextResponse.rewrite(url, { request: { headers } })
   if (preview && param && request.headers.get('sec-fetch-dest') === 'document') {
     response.cookies.set(PREVIEW_COOKIE, param, {

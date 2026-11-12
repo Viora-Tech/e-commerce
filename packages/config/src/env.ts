@@ -214,6 +214,15 @@ const shape = z.object({
    */
   STOREFRONT_PLAIN_HTML: z.enum(['on', 'off']).optional(),
   /**
+   * The Bun + Hono product page service (`apps/storefront-hono`), e.g. `http://storefront-hono:3200`.
+   * Unset (the default) sends no page there, whatever a store's `delivery.honoProduct` switch says:
+   * the deployment-wide way back. Set, the Next storefront forwards `/products/<handle>` of the
+   * stores switched on and draws the page itself when the service fails or is slow.
+   */
+  STOREFRONT_HONO_URL: z.string().url().optional(),
+  /** How long the Next storefront waits for the Hono service before drawing the page itself; unset is 3000. */
+  STOREFRONT_HONO_TIMEOUT_MS: z.coerce.number().int().min(100).max(30_000).optional(),
+  /**
    * How many sections of an imported theme's page are sent first and drawn as the theme wrote
    * them; the rest stream in behind them in the same response, their images lazy and their
    * scripts started near the viewport. Unset is 3.

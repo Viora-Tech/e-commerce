@@ -3,9 +3,11 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "Pilot (roadmap speed track step 6, option B): the product page served by Bun + Hono from the storefront's own loaders and Liquid engine.",
+  "description": "Product pages of imported-theme stores served by Bun + Hono beside the Next storefront, with the buy box as a hydrated React island (roadmap speed track step 6, option B).",
   "scripts": {
-    "start": "bun run --env-file=../../.env src/server.ts",
+    "start": "bun scripts/build-island.ts && bun run --env-file=../../.env src/server.ts",
+    "build:island": "bun scripts/build-island.ts",
+    "test": "vitest run",
     "match": "bun scripts/html-match.ts",
     "typecheck": "bun ../../scripts/typecheck.ts"
   },
@@ -14,18 +16,25 @@
     "@commerce/config": "workspace:*",
     "@commerce/core": "workspace:*",
     "@commerce/db": "workspace:*",
+    "@commerce/money": "workspace:*",
+    "@commerce/plugin-emi": "workspace:*",
+    "@commerce/plugin-reviews": "workspace:*",
     "@commerce/richtext": "workspace:*",
     "@commerce/storefront": "workspace:*",
     "@puckeditor/core": "^0.23.0",
+    "@tailwindcss/postcss": "^4.3.3",
     "drizzle-orm": "^0.45.2",
     "hono": "^4.13.17",
+    "postcss": "^8.5.28",
     "react": "^19.3.1",
-    "react-dom": "^19.3.1"
+    "react-dom": "^19.3.1",
+    "tailwindcss": "^4.3.3"
   },
   "devDependencies": {
     "@types/bun": "^1.3.11",
     "@types/react": "^19.2.8",
     "@types/react-dom": "^19.2.3",
-    "typescript": "~5.9.3"
+    "typescript": "~5.9.3",
+    "vitest": "^4.1.11"
   }
 }

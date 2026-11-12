@@ -27,6 +27,8 @@ type Lock = {
   ai: boolean
   /** Preferences › Storefront speed: imported-theme pages go out as plain HTML (`lib/plain-html`). */
   plainHtml: boolean
+  /** The product page is drawn by the Bun + Hono service (`lib/hono-island`); off by default. */
+  honoProduct: boolean
 }
 
 const LOCK_TTL_MS = 10_000
@@ -55,6 +57,7 @@ export async function storefrontLock(storeId: string): Promise<Lock> {
     search,
     ai: search && prefs.indexing.aiCrawlers,
     plainHtml: prefs.delivery.plainHtml,
+    honoProduct: prefs.delivery.honoProduct,
   }
   locks.set(storeId, { lock, expiresAt: Date.now() + LOCK_TTL_MS })
   return lock
