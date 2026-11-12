@@ -1,4 +1,9 @@
-import { deliveryRouteCardContent, parcelsCardContent, profitCardContent } from '@/data/order-cards'
+import {
+  deliveryRouteCardContent,
+  parcelsCardContent,
+  partlyShippedContent,
+  profitCardContent,
+} from '@/data/order-cards'
 import { translation } from '@/lib/i18n'
 
 export default [
@@ -84,5 +89,22 @@ export default [
     insurance: 'बीमा',
     margin: 'शिपिंग मार्जिन',
     marginUnknown: 'पार्सल बुक होने और कूरियर खर्च पता चलने पर मार्जिन दिखेगा।',
+  }),
+  translation(partlyShippedContent, {
+    title: (orderNumber) => `ऑर्डर #${orderNumber}`,
+    chip: (shipped, of) => `कुछ भेजा गया · ${of} में से ${shipped} पार्सल`,
+    parcel: (n) => `पार्सल ${n}`,
+    toShip: 'भेजना है',
+    track: 'ट्रैक करें',
+    createShipment: 'शिपमेंट बनाएं',
+    label: (courier, awb, shipped, deliveryBy) =>
+      [courier, `AWB ${awb}`, `${shipped} को भेजा`, deliveryBy ? `${deliveryBy} तक पहुंचेगा` : null]
+        .filter(Boolean)
+        .join(' · '),
+    preorder: (date) => (date ? `प्री-ऑर्डर · ${date} को आएगा` : 'प्री-ऑर्डर'),
+    moreInStock: (n, date) => (date ? `${n} और ${date} को स्टॉक में` : `${n} और अभी स्टॉक में नहीं`),
+    readyWhen: (orderNumber, n, of) =>
+      `सामान आने पर तैयार; फिर यह शिपमेंट › भेजना है में #${orderNumber} · ${of} में से हिस्सा ${n} के रूप में दिखेगा।`,
+    told: (date, parts) => `ग्राहक को ${date} को बताया गया कि ऑर्डर ${parts} हिस्सों में जाएगा।`,
   }),
 ]
