@@ -235,6 +235,7 @@ const EXCLUDED_PATHS: Record<string, string> = {
   'platformApps.completeWhatsapp': 'a browser sign-in hand-off to Meta (WhatsApp Embedded Signup)',
   'inbox.streamAccess': 'opens a browser realtime stream (people only)',
   'inbox.typing': 'a typing indicator from a person at the keyboard',
+  'honoPreview.token': 'a browser preview hand-off for the owner (people only)',
   'media.presign': 'a browser upload hand-off',
   'media.confirm': 'a browser upload hand-off',
 }
