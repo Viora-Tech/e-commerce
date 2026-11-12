@@ -358,6 +358,7 @@ export { LogNotificationChannel, logChannelFactory } from './providers/log-chann
 export { LogSmsChannel, logSmsChannelFactory } from './providers/log-sms-channel'
 export { ManualPaymentProvider, manualFactory, upiDeepLink } from './providers/manual'
 export * from './providers/payment'
+export * from './rate-limit/concurrency'
 export * from './rate-limit/ip'
 export * from './rate-limit/limiter'
 export * from './rate-limit/memory-store'

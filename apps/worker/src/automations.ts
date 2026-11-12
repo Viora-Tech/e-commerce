@@ -1,4 +1,10 @@
-import { growthExitCheck, growthSweep, storeAppContext } from '@commerce/core'
+import {
+  createRedisConcurrencyStore,
+  createRedisRateLimitStore,
+  growthExitCheck,
+  growthSweep,
+  storeAppContext,
+} from '@commerce/core'
 import {
   AUTOMATION_STEP_QUEUE,
   AUTOMATION_TRIGGER_QUEUE,
@@ -50,7 +56,14 @@ type Opts = {
  * (`fairProcessor`), so one store's flood never slows the rest.
  */
 export function createAutomationsWorker(connection: IORedis, db: Db, opts: Opts) {
-  registerBuiltinActions({ settingsSecret: opts.settingsSecret, storefrontUrl: opts.storefrontUrl })
+  registerBuiltinActions({
+    settingsSecret: opts.settingsSecret,
+    storefrontUrl: opts.storefrontUrl,
+    // The HTTP action's per-store rate and in-flight caps live in the BullMQ Redis, so they
+    // hold across every worker copy rather than per process.
+    rateLimit: createRedisRateLimitStore(connection),
+    concurrency: createRedisConcurrencyStore(connection),
+  })
   const log = (message: string) => logger.info(message, { area: 'automations' })
   const apps = appDeps(db, opts)
   const plugins = getRegistries().plugins
