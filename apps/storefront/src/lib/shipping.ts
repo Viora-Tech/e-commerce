@@ -56,7 +56,7 @@ export async function loadShippingSettings(
 
 /**
  * Delivery estimate for a pincode, with the courier's serviceability answer
- * cached per store for a day. The date maths always runs fresh - it depends
+ * cached per store and courier settings for a day. The date maths always runs fresh - it depends
  * on the clock; the cache only remembers what the courier said. `originPincode`
  * is where the parcel leaves from (a warehouse's PIN code); omitted, the store's.
  */
@@ -80,9 +80,11 @@ export async function estimateForPincode(
 
   const redis = sharedRedis(env().REDIS_URL)
   // Each origin has its own answer; the store's own origin keeps the key it always had.
+  // The courier app's saved settings are hashed in, so new credentials or options miss the cache.
   const key = serviceabilityKey(
     storeId,
     provider.id,
+    settings.providers[provider.id],
     policy.originPincode === storePolicy.originPincode
       ? parsed.pincode
       : `${policy.originPincode}>${parsed.pincode}`,
