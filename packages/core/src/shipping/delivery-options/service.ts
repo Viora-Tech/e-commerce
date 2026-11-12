@@ -12,6 +12,7 @@ import {
   deliveryRouteSetting,
   product,
   type StoreTx,
+  store,
   variant,
 } from '@commerce/db'
 import { asc, eq, inArray } from 'drizzle-orm'
