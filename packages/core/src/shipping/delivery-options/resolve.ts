@@ -6,7 +6,7 @@
  * Pure: no database, no network, the clock is passed in.
  */
 import type { DeliveryOption, RouteSelector } from './config'
-import { cheapestZoneRate, datesFor, priceRoute } from './price'
+import { cartProtect, cheapestZoneRate, datesFor, priceRoute } from './price'
 import type {
   DeliveryResolveResult,
   DropReason,
@@ -180,7 +180,8 @@ function traceRoute(
     serviceLabel: route.serviceLabel,
     speed: route.speed,
     costPaise: route.costPaise,
-    insurancePaise: priced?.insurancePaise ?? insurancePrice(route, input.cart.valuePaise),
+    insurancePaise:
+      priced?.insurancePaise ?? insurancePrice(route, input.cart.valuePaise, cartProtect(input)),
     latest: dated?.latest ?? d?.latest ?? null,
     etaEstimated: dated?.etaEstimated ?? d?.estimated ?? true,
     codAvailable: route.codAvailable,

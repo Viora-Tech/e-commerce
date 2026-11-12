@@ -10,10 +10,14 @@ import {
   heldParcels,
   orderParcelsView,
   parcelBoxPreset,
+  parcelInsuranceFacts,
+  quoteDeclaredValuePaise,
   rebookableParcels,
   resolveParcelPackage,
   resolveParcelWeightGrams,
   resolveShippingProviders,
+  rowCover,
+  rowInsurance,
   type ShippingRegistry,
   shipFromFor,
   toShippingPolicy,
@@ -483,7 +487,22 @@ export async function quoteShipments(
         destinationCity: o.city,
         ...(r.dimensionsCm ? { dimensionsCm: r.dimensionsCm } : {}),
       })
-      const dated = datedCourierRows(options, policy, now)
+      /* What the drawer's Shipping insurance switch adds to each row: Delhivery Protect for this
+         parcel's products, the route's own rate, or nothing known (couriers quote none). */
+      const facts = await parcelInsuranceFacts(tx, storeId, o.id, r.fulfillmentOrderId)
+      // Priced on exactly the value booking declares to the courier.
+      const value = await quoteDeclaredValuePaise(
+        tx,
+        o.id,
+        r.fulfillmentOrderId,
+        o.totalPaise,
+        r.declaredValuePaise ?? o.totalPaise,
+      )
+      const dated = datedCourierRows(options, policy, now).map((row) => ({
+        ...row,
+        insurance: row.problem ? null : rowInsurance(row, facts, value),
+        cover: rowCover(row, facts, value),
+      }))
       const app = await bookingContext(tx, storeId, o.id, r.fulfillmentOrderId)
       const saved = app?.delivery
       if (!app || !saved?.route) {

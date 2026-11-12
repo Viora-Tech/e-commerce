@@ -233,9 +233,9 @@ const ALLOWLIST: AllowEntry[] = [
   },
   {
     file: 'packages/core/src/shipping/delivery-options/booking.ts',
-    names: ['rowRoute', 'withParcelIds'],
+    names: ['withParcelIds'],
     reason:
-      'Delivery options engine (P1): pure helper used inside the engine and unit-tested on its own (delivery-options tests); no other module needs it (withParcelIds is the pure half of saveParcelIds)',
+      'Delivery options engine (P1): pure half of saveParcelIds, unit-tested on its own (delivery-options tests); no other module needs it',
   },
   {
     file: 'packages/core/src/domains/origin.ts',

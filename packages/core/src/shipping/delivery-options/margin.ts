@@ -1,9 +1,10 @@
 /** SOURCE OF TRUTH: a delivery option order's shipping margin — WHAT: what the shopper was charged
  * for shipping against what the courier costs plus insurance, the courier cost being the
- * booking's own charge once there is one, else what the route quoted at checkout. A cart split
- * across locations adds up every parcel's courier and insurance (owner, 12 Nov 2026) / WHY: the
- * order page shows whether Express and Standard pay for themselves, order by order. Pure, safe
- * for the browser (`@commerce/core/delivery-margin`).
+ * booking's own charge once there is one, else what the route quoted at checkout, and the
+ * insurance the booking's recorded cost (Delhivery Protect or the route's rate) once booked,
+ * else what checkout priced. A cart split across locations adds up every parcel's courier and
+ * insurance (owner, 12 Nov 2026) / WHY: the order page shows whether Express and Standard pay
+ * for themselves, order by order. Pure, safe for the browser (`@commerce/core/delivery-margin`).
  */
 import type { OrderDeliveryRoute } from '@commerce/db'
 
@@ -20,6 +21,13 @@ export type ShippingMargin = {
 
 type MarginRoute = Pick<OrderDeliveryRoute, 'courierCostPaise' | 'insured' | 'insurancePaise'>
 
+/** What the bookings recorded for insurance: the order's latest booking (an order in one
+ *  parcel) and each parcel's own (fulfilment order id -> paise). */
+export type BookedInsurance = {
+  insurancePaise?: number | null | undefined
+  parcels?: Readonly<Record<string, number>> | undefined
+}
+
 /** One route's courier cost: its booking's charge, else its checkout quote, else unknown. */
 function courierOf(route: MarginRoute, booked: number | null | undefined) {
   if (booked != null) return { paise: booked, from: 'booking' as const }
@@ -28,27 +36,39 @@ function courierOf(route: MarginRoute, booked: number | null | undefined) {
   return { paise: null, from: null }
 }
 
-const insuranceOf = (route: MarginRoute) => (route.insured ? (route.insurancePaise ?? 0) : 0)
+/** The booking's recorded insurance cost, else what checkout priced for an insured route. */
+const insuranceOf = (route: MarginRoute, booked: number | null | undefined) =>
+  booked != null ? booked : route.insured ? (route.insurancePaise ?? 0) : 0
 
 /**
  * The order's shipping margin. `bookingChargePaise` is the order's latest booking charge (an
  * order in one parcel). A split cart (`delivery.parcels`) adds up every parcel: its own
  * booking's charge from `parcelCharges` (fulfilment order id -> paise), else its checkout
- * quote, plus its insurance; the margin stays unknown until every parcel's cost is known.
+ * quote, plus its insurance (`bookedInsurance`, else checkout's); the margin stays unknown
+ * until every parcel's cost is known.
  */
 export function shippingMargin(
   delivery: MarginRoute & Pick<OrderDeliveryRoute, 'parcels'>,
   chargedPaise: number,
   bookingChargePaise: number | null | undefined,
   parcelCharges: Readonly<Record<string, number>> = {},
+  bookedInsurance: BookedInsurance = {},
 ): ShippingMargin {
   const routes = delivery.parcels?.length ? delivery.parcels : null
   const parts = routes
     ? routes.map((p) => ({
         ...courierOf(p, p.fulfillmentOrderId ? parcelCharges[p.fulfillmentOrderId] : null),
-        insurance: insuranceOf(p),
+        insurance: insuranceOf(
+          p,
+          p.fulfillmentOrderId ? bookedInsurance.parcels?.[p.fulfillmentOrderId] : null,
+        ),
       }))
-    : [{ ...courierOf(delivery, bookingChargePaise), insurance: insuranceOf(delivery) }]
+    : [
+        {
+          ...courierOf(delivery, bookingChargePaise),
+          insurance: insuranceOf(delivery, bookedInsurance.insurancePaise),
+        },
+      ]
   const known = parts.every((p) => p.paise !== null)
   const sources = new Set(parts.map((p) => p.from))
   const courierPaise = known ? parts.reduce((sum, p) => sum + (p.paise ?? 0), 0) : null

@@ -36,6 +36,7 @@ import {
   parsePackage,
   type ShipmentDraft,
 } from './flow-state'
+import { insuredRows } from './insured-rows'
 import NoPickupLocationAlert, { missingPickupLocation } from './no-pickup-location-alert'
 import PackageStep from './package-step'
 import PartialPicker from './partial-picker'
@@ -255,7 +256,10 @@ export default function CreateShipmentPage({ orderId, back, courier }: CreateShi
   // Render logic
   const parsed = parsePackage(form)
   const page = content.page
-  const chosen = quote?.options.find((o) => o.optionKey === pick) ?? null
+  const insured = insuredChoice ?? quote?.checkout?.insured === true
+  // What the merchant pays: with insurance on, its fee and GST are in each price.
+  const options = quote ? insuredRows(quote.options, insured) : null
+  const chosen = options?.find((o) => o.optionKey === pick) ?? null
   const place = draft.pickupPlaces.find((p) => p.id === form.pickupLocationId)
   const units = parcel.lines.reduce((n, l) => n + l.quantity, 0)
   const manual = pick === MANUAL
@@ -271,7 +275,6 @@ export default function CreateShipmentPage({ orderId, back, courier }: CreateShi
       ? page.walletLeft(wallet.providerLabel, fmt.money(wallet.balancePaise))
       : null
   const paymentLine = order.paymentMode === 'cod' ? page.cod : null
-  const insured = insuredChoice ?? quote?.checkout?.insured === true
   const charged = quote?.chargedWeightGrams
     ? `${fmt.number(Math.round(quote.chargedWeightGrams / 10) / 100)} kg`
     : ''
@@ -408,7 +411,7 @@ export default function CreateShipmentPage({ orderId, back, courier }: CreateShi
               open={drawer}
               onOpenChange={setDrawer}
               summary={drawerSummary}
-              rows={quote?.options ?? null}
+              rows={options}
               pick={pick}
               onPick={(key) => {
                 setPick(key)

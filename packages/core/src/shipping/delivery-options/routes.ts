@@ -11,6 +11,7 @@ import {
   type RouteSelector,
   type RouteSetting,
 } from './config'
+import { INSURANCE_GST_BPS, type ProtectQuote, protectFeePaise } from './protect'
 
 /** Couriers that resell other couriers. Their services name the carrier behind them. */
 export const AGGREGATOR_PROVIDERS: ReadonlySet<string> = new Set(['shiprocket', 'rapidshyp'])
@@ -280,16 +281,119 @@ export function routesFromAnswers(
   )
 }
 
+/** Where a route's insurance price comes from: the courier's own quote line, the merchant's
+ *  rate on the route, the courier's published rate (`COURIER_INSURANCE`), or Delhivery
+ *  Protect's card (`protect.ts`). */
+export type InsuranceSource = 'courier' | 'route' | 'courier_rate' | 'protect'
+
+export type InsuranceQuote = {
+  source: InsuranceSource
+  /** The fee before tax (the whole line when the courier quoted it). */
+  feePaise: number
+  /** 18% GST on the fee, as couriers bill it; 0 on a quoted line (already taxed there). */
+  gstPaise: number
+  /** Fee + GST: what insurance adds to the price. */
+  pricePaise: number
+  /** The fee is a GST-inclusive figure (Shiprocket): one line, `gstPaise` 0. */
+  gstIncluded: boolean
+  /** Worked out from a published rate the courier's own figure can differ from (RapidShyp). */
+  estimate: boolean
+  /** The parcel's Protect category and rate, when Protect priced it. */
+  protect: ProtectQuote | null
+}
+
+export type CourierInsuranceRate = {
+  /** Basis points of the declared value. */
+  bps: number
+  /** The rate already includes GST (no 18% on top). */
+  gstIncluded: boolean
+  /** The courier's own bill can differ, so the admin labels it as an estimate. */
+  estimate: boolean
+}
+
 /**
- * What insurance costs on this route for this order value: the quote's own line when it
- * itemised one, else the merchant's rate (% with a minimum). Null when neither is known:
- * the admin warns that insurance cannot be priced until the rate is filled in.
+ * Couriers' own insurance rate for every carrier they book, from the owner's real quotes
+ * (12 Nov 2026). RapidShyp: 0.89% + 18% GST (₹4,699 → ₹49.35, ₹26,899 → ₹282.49; a part-shipped
+ * order was billed on 110% of its value, hence an estimate). Shiprocket: 1.05% GST included
+ * (₹9,999 → ₹104.99, ₹14,889 → ₹156.33, ₹19,297 → ₹202.62). A rate the merchant sets on the
+ * route replaces it.
  */
-export function insurancePrice(route: Route, orderValuePaise: number): number | null {
-  if (route.quotedInsurancePaise !== null) return route.quotedInsurancePaise
-  if (route.insurancePercent === null && route.insuranceMinPaise === null) return null
-  const byPercent = Math.ceil((orderValuePaise * (route.insurancePercent ?? 0)) / 100)
-  return Math.max(byPercent, route.insuranceMinPaise ?? 0)
+export const COURIER_INSURANCE: Readonly<Record<string, CourierInsuranceRate>> = {
+  rapidshyp: { bps: 89, gstIncluded: false, estimate: true },
+  shiprocket: { bps: 105, gstIncluded: true, estimate: false },
+}
+
+/** Delhivery's own app (not Delhivery through an aggregator): insured with Delhivery Protect. */
+const isDelhiveryDirect = (route: Pick<Route, 'channel' | 'carrierKey'>): boolean =>
+  route.channel === 'direct' && route.carrierKey === 'delhivery'
+
+/** A percentage fee of the value, rounded to the paisa as couriers do (₹18.796 → ₹18.80). */
+const insuranceFeePaise = (valuePaise: number, bps: number): number =>
+  Math.round((Math.max(0, valuePaise) * bps) / 10_000)
+
+/** A fee with its 18% GST (₹18.80 → GST ₹3.38). */
+function taxed(
+  source: InsuranceSource,
+  feePaise: number,
+  protect: ProtectQuote | null,
+  estimate = false,
+): InsuranceQuote {
+  const gstPaise = Math.round((feePaise * INSURANCE_GST_BPS) / 10_000)
+  const pricePaise = feePaise + gstPaise
+  return { source, feePaise, gstPaise, pricePaise, gstIncluded: false, estimate, protect }
+}
+
+/** A figure that already holds its tax: a quoted line, or Shiprocket's GST-inclusive rate. */
+const allIn = (source: InsuranceSource, feePaise: number, estimate = false): InsuranceQuote => ({
+  source,
+  feePaise,
+  gstPaise: 0,
+  pricePaise: feePaise,
+  gstIncluded: true,
+  estimate,
+  protect: null,
+})
+
+/**
+ * What insurance costs on this route for this declared value: the quote's own line when it
+ * itemised one; for Delhivery direct always Delhivery Protect for the parcel's category
+ * (`protect`, from its products) plus GST, whatever rate is set on the route; for any other
+ * route the merchant's rate on it (% with a minimum, plus 18% GST), else the courier's
+ * published rate (`COURIER_INSURANCE`: RapidShyp + GST, Shiprocket GST included). Null when
+ * none is known: the admin says the rate is not set and checkout charges ₹0 for it.
+ */
+export function insuranceQuote(
+  route: Route,
+  valuePaise: number,
+  protect: ProtectQuote | null = null,
+): InsuranceQuote | null {
+  if (route.quotedInsurancePaise !== null) return allIn('courier', route.quotedInsurancePaise)
+  /* Delhivery direct is always priced by its Protect card (owner, 12 Nov 2026): a rate set on
+     the route is ignored for insurance; the card is where Delhivery's rates are edited. */
+  if (isDelhiveryDirect(route)) {
+    return protect ? taxed('protect', protectFeePaise(valuePaise, protect.bps), protect) : null
+  }
+  if (route.insurancePercent !== null || route.insuranceMinPaise !== null) {
+    const byPercent = insuranceFeePaise(valuePaise, (route.insurancePercent ?? 0) * 100)
+    return taxed('route', Math.max(byPercent, route.insuranceMinPaise ?? 0), null)
+  }
+  const rate = COURIER_INSURANCE[route.providerId]
+  if (rate) {
+    const fee = insuranceFeePaise(valuePaise, rate.bps)
+    return rate.gstIncluded
+      ? allIn('courier_rate', fee, rate.estimate)
+      : taxed('courier_rate', fee, null, rate.estimate)
+  }
+  return null
+}
+
+/** `insuranceQuote`'s price alone. */
+export function insurancePrice(
+  route: Route,
+  orderValuePaise: number,
+  protect: ProtectQuote | null = null,
+): number | null {
+  return insuranceQuote(route, orderValuePaise, protect)?.pricePaise ?? null
 }
 
 /** The carrier a booking delivers with: a direct courier's own, or the one behind an

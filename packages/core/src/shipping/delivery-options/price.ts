@@ -2,6 +2,7 @@
 import { computeDeliveryEstimate } from '@commerce/shipping'
 import type { ShippingRateOption } from '../rates'
 import type { DeliveryOption } from './config'
+import { DEFAULT_PROTECT_CARD, type ProtectQuote, parcelProtect } from './protect'
 import type { PricedRoute, ResolveInput, RouteSummary, ZoneQuote } from './resolve-types'
 import { insurancePrice, type Route } from './routes'
 
@@ -67,6 +68,11 @@ export function datesFor(route: Route | null, option: DeliveryOption, input: Res
   }
 }
 
+/** This cart's (or parcel's) Delhivery Protect category and rate, from its products and the
+ *  store's Protect card: what a Delhivery direct route's insurance costs. */
+export const cartProtect = (input: Pick<ResolveInput, 'cart' | 'config'>): ProtectQuote =>
+  parcelProtect(input.cart.items, input.config.protect ?? DEFAULT_PROTECT_CARD)
+
 /** Route cost + markup + insurance, rounded up to ₹10, then caps and free-above. */
 export function priceRoute(
   route: Route,
@@ -77,7 +83,7 @@ export function priceRoute(
 ): PricedRoute | null {
   const base = cod ? (route.codCostPaise ?? route.costPaise) : route.costPaise
   if (base === null) return null
-  const insurance = insured ? insurancePrice(route, input.cart.valuePaise) : 0
+  const insurance = insured ? insurancePrice(route, input.cart.valuePaise, cartProtect(input)) : 0
   const p = option.price
   const zoneRate = p.source === 'zone' ? cheapestZoneRate(input.zone) : null
   const markup = p.markupPaise + Math.ceil((base * p.markupPercent) / 100)
@@ -97,6 +103,7 @@ export function priceRoute(
     listPricePaise: list,
     courierCostPaise: base,
     markupPaise: zoneRate ? 0 : markup,
+    zoneRatePaise: zoneRate ? zoneRate.listPricePaise : null,
     insurancePaise: insured ? insurance : 0,
     insured,
     earliest: dated.earliest,

@@ -3,12 +3,16 @@
 import type { CourierRateRow } from '@commerce/core'
 import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
+import Link from 'next/link'
 import { Fragment } from 'react'
 import StatusChip from '@/components/layout/status-chip'
 import { createShipmentContent } from '@/data/create-shipment'
 import { useCopy, useFormat } from '@/hooks/use-copy'
+import { routes } from '@/lib/routes'
 import { courierInitials } from './courier-groups'
 import { courierLogoSrc } from './courier-logo'
+import { coverNotes } from './cover-notes'
+import { rowInsuranceState } from './insured-rows'
 
 type CourierTableProps = {
   rows: readonly CourierRateRow[]
@@ -18,7 +22,8 @@ type CourierTableProps = {
   onShipNow?: ((optionKey: string) => void) | undefined
   /** The option whose Ship now is booking. */
   shippingKey: string | null
-  /** The insurance toggle is on: the charge line names it. */
+  /** The insurance toggle is on: a row whose fee is known says it is in the price
+   *  (`insuredRows` added it); a row without a rate says so and links to Routes. */
   insured: boolean
   /** The parcel's charged weight, for a courier that did not say its own. */
   chargedGrams?: number | null | undefined
@@ -90,6 +95,10 @@ export default function CourierTable({
                 ]
                   .filter(Boolean)
                   .join(' · ')
+            const coverState = rowInsuranceState(row, insured)
+            const cover = coverState.kind
+            // Added by `insuredRows`: its own lines, as Delhivery itemises them.
+            const insurance = coverState.kind === 'added' ? coverState : null
             const charges = [...row.charges].sort(
               (a, b) => BREAKDOWN_ORDER.indexOf(a.kind) - BREAKDOWN_ORDER.indexOf(b.kind),
             )
@@ -184,8 +193,24 @@ export default function CourierTable({
                           {fmt.money(row.pricePaise)}
                         </span>
                         <span className="text-caption text-muted-foreground">
-                          {insured ? d.inclGstInsurance : d.inclGst}
+                          {cover === 'added' || cover === 'included'
+                            ? d.inclGstInsurance
+                            : d.inclGst}
                         </span>
+                        {cover === 'unset' ? (
+                          <Link
+                            href={routes.apps.page('delivery-options', 'routes')}
+                            onClick={(e) => e.stopPropagation()}
+                            className="text-caption text-warning underline-offset-2 hover:underline"
+                          >
+                            {d.insuranceUnset}
+                          </Link>
+                        ) : null}
+                        {coverNotes(row, insured, 0).usedNotCovered ? (
+                          <span className="max-w-[14rem] text-caption text-warning">
+                            {d.usedNotCovered(row.providerName)}
+                          </span>
+                        ) : null}
                       </div>
                     )}
                   </td>
@@ -223,9 +248,43 @@ export default function CourierTable({
                             </dd>
                           </div>
                         ))}
-                        {charges.length === 0 ? (
+                        {charges.length === 0 && !insurance ? (
                           <dd className="text-caption text-muted-foreground">{c.noBreakdown}</dd>
                         ) : null}
+                        {insurance
+                          ? [
+                              {
+                                key: 'fee',
+                                label: insurance.estimate
+                                  ? d.insuranceEstimate
+                                  : insurance.gstIncluded
+                                    ? d.insuranceInclGst
+                                    : c.charge.insurance,
+                                paise: insurance.feePaise,
+                              },
+                              ...(insurance.gstIncluded
+                                ? []
+                                : [
+                                    {
+                                      key: 'gst',
+                                      label: d.insuranceGst,
+                                      paise: insurance.gstPaise,
+                                    },
+                                  ]),
+                            ].map((line) => (
+                              <div key={line.key} className="flex flex-col">
+                                <dt
+                                  className="text-caption text-muted-foreground"
+                                  title={insurance.estimate ? d.insuranceEstimateHint : undefined}
+                                >
+                                  {line.label}
+                                </dt>
+                                <dd className="font-medium tabular-nums text-ink-strong">
+                                  {fmt.money(line.paise)}
+                                </dd>
+                              </div>
+                            ))
+                          : null}
                         <div className="flex flex-col">
                           <dt className="text-caption text-muted-foreground">{d.youPay}</dt>
                           <dd className="font-semibold tabular-nums text-ink-strong">

@@ -417,16 +417,24 @@ describe('route filtering', () => {
       input({ config: config({ options: [insuredStd], routeSettings: settings }) }),
     )
     const std = find(r, 'std')
-    // ₹1,500 × 0.5% = ₹7.50, minimum ₹20 → ₹55 + ₹20 = ₹75 → ₹80
-    expect(std?.pick?.insurancePaise).toBe(2000)
+    const traced = r.trace.options.find((o) => o.optionId === 'std')?.routes ?? []
+    // DTDC via Shiprocket: ₹1,500 × 0.5% = ₹7.50, minimum ₹20, + 18% GST = ₹23.60.
+    expect(traced.find((x) => x.carrier === 'DTDC')?.insurancePaise).toBe(2360)
+    // Delhivery direct ignores its route's 1% (min ₹30): Protect, Undetermined 0.60% = ₹9 +
+    // ₹1.62 GST. ₹60 + ₹10.62 = ₹70.62 beats DTDC's ₹55 + ₹23.60 = ₹78.60, rounded to ₹80.
+    expect(std?.pick?.route.key).toBe('delhivery:S')
+    expect(std?.pick?.insurancePaise).toBe(1062)
     expect(std?.pricePaise).toBe(8000)
   })
 
-  it('an unpriced insurance rate charges ₹0 and reports null', () => {
+  it('with no rate set, Delhivery Protect and Shiprocket’s 1.05% price insurance', () => {
     const insuredStd = option('std', { name: 'Standard', insurance: { default: 'on' } })
     const r = resolveDeliveryOptions(input({ config: config({ options: [insuredStd] }) }))
-    expect(find(r, 'std')?.insurance.pricePaise).toBeNull()
-    expect(find(r, 'std')?.pricePaise).toBe(6000)
+    // ₹1,500, product with no category (Undetermined, 0.60%): Delhivery ₹60 + ₹9 + ₹1.62 GST
+    // = ₹70.62 beats DTDC via Shiprocket ₹55 + ₹15.75 (1.05%, GST in) = ₹70.75.
+    expect(find(r, 'std')?.pick?.route.key).toBe('delhivery:S')
+    expect(find(r, 'std')?.insurance.pricePaise).toBe(1062)
+    expect(find(r, 'std')?.pricePaise).toBe(8000)
   })
 
   it('Standard is picked again for COD: DTDC has no COD, so COD ships Delhivery', () => {

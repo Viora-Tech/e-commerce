@@ -256,6 +256,8 @@ export const ACTION_DOCS: Record<string, string> = {
   'dashboard.tiles': 'Which metric this member keeps in each Home tile (Customize).',
   'dashboard.todos':
     'Which to-do cards this store hides on Home ("Edit to-dos"); one setting for the whole store.',
+  'deliveryOptions.saveProtect':
+    "Delhivery Protect's card: rates per category and product-type overrides (the overview returns it as protect).",
   'deliveryOptions.tryPin':
     "Try a PIN: the cards checkout would show, every route's quote, and why.",
   'documents.templates':

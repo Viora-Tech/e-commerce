@@ -53,8 +53,16 @@ For each enabled option:
    for `fastest`). `couriers.showNames: false` turns `showCarrier` off on every route of the
    option, so its cards carry no courier name or logo.
 5. **Price**: `roundUpToTenRupees(cost + markup + insurance)`, then min/max caps, then
-   free-above. Insurance is the quote's own insurance line, else the route setting's % with its
-   minimum, else ₹0 (reported as `null`, and the admin warns).
+   free-above. Insurance (`insuranceQuote`) is the quote's own insurance line; for Delhivery
+   direct always Delhivery Protect (a route % is ignored), otherwise the route setting's % with
+   its minimum, else the courier's published rate (`COURIER_INSURANCE`: RapidShyp 0.89%,
+   Shiprocket 1.05% GST included); computed fees get 18% GST. Protect (`protect.ts`:
+   ceil(value × the parcel's category rate), the category from the products' taxonomy
+   `categoryId` or type words, Multi-category for two or more, Undetermined when unknown; the
+   card lives in `store.apps.settings['delivery-options'].protect`), else ₹0 (reported as
+   `null`, and the admin warns). Create shipment's rows carry the same price as `insurance`
+   (`rowInsurance`), booking records it on `shipment.insurance_paise` (0242) and
+   `shippingMargin` subtracts the booked figure over checkout's.
 6. **COD**: Standard (and only a standard option with COD allowed) is picked a second time
    with `cod: true`; Express is always prepaid only.
 7. **Backup**: no fitting route, a courier failed and no answered route was serviceable →

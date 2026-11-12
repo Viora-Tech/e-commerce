@@ -1583,6 +1583,13 @@
       "when": 1795016000000,
       "tag": "0241_pending_gateway_refunds",
       "breakpoints": true
+    },
+    {
+      "idx": 226,
+      "version": "7",
+      "when": 1795102400000,
+      "tag": "0242_shipment_insurance_cost",
+      "breakpoints": true
     }
   ]
 }
