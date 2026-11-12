@@ -18,6 +18,10 @@ export async function register() {
     const { nextLogInstrumentation } = await import('@commerce/observability/logging/next')
     logs = nextLogInstrumentation('storefront', env)
     await logs.register()
+    // The product search engine is chosen once per process, before any page runs, so no page
+    // searches with SQL just because the search page has not loaded yet.
+    const { registerSearchEngine } = await import('./lib/search-engine-register')
+    registerSearchEngine()
     // A new build may be live: the worker purges pages a CDN still holds, which point at the old
     // build's scripts (`apps/worker/src/edge-purge.ts`). Never holds up the boot.
     const { announceStorefrontStart } = await import('@commerce/db')

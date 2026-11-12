@@ -33,6 +33,8 @@ export default async function CustomerPage({ params, searchParams }: Params) {
   ])
   if (customer === undefined) redirect(routes.selectStore())
   if (!customer) notFound()
+  // A record merged into another customer opens that customer (old links, timelines).
+  if (customer.mergedIntoId) redirect(routes.customers.detail(customer.mergedIntoId))
   const appCards = apps.filter((a) => a.installed && a.admin.customerDetailCard).map((a) => a.id)
   // `?edit=1` (the order page's "View profile" → edit) opens the editor straight away.
   return <CustomerView customer={customer} appCards={appCards} startEditing={edit === '1'} />

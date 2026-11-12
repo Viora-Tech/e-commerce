@@ -9,7 +9,7 @@ import ProviderConnectPage, {
   type ConnectPageCopy,
   type TestOutcome,
 } from '@/components/apps/shared/provider-connect-page'
-import { type FieldValues, setTestedFlag } from '@/components/apps/shared/provider-settings'
+import type { FieldValues } from '@/components/apps/shared/provider-settings'
 import { decentroAppContent as appCopy } from '@/data/decentro'
 import { api } from '@/lib/api-client'
 import ConnectAdvancedFields from './connect-advanced-fields'
@@ -66,12 +66,8 @@ const filled = (v: string | undefined) => (v ?? '').trim().length > 0
 const keysFilled = (values: FieldValues) =>
   filled(values.clientId) && filled(values.clientSecret) && filled(values.consumerUrn)
 
-/** A failed re-test also drops the Overview's "tested" badge. */
-const testConnection = async (values: FieldValues) => {
-  const result = await api.store.testDecentroConnection({ fields: values })
-  if (!result.ok) setTestedFlag(PROVIDER_ID, false)
-  return result
-}
+/** A failed re-test drops the Overview's "tested" badge in `ProviderConnectPage`. */
+const testConnection = (values: FieldValues) => api.store.testDecentroConnection({ fields: values })
 
 const renderGuide = ({ values, savedValues, enabled, testStatus, opened, onOpen }: Ctx) => (
   <ConnectGuide

@@ -23,6 +23,7 @@ import { shipmentsContent } from '@/data/shipments'
 import { shipmentDetailsContent } from '@/data/shipping'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { todayKey } from '@/lib/format-date'
 
 type Unpicked = Awaited<ReturnType<typeof api.shipments.listUnpicked>>
 type Pickups = Awaited<ReturnType<typeof api.shipments.listPickups>>
@@ -70,7 +71,7 @@ export default function PickupsTab() {
     setSelected((s) => (on ? [...s, id] : s.filter((x) => x !== id)))
 
   const handleSchedule = async () => {
-    if (selected.length === 0 || !date || !timeFrom) return
+    if (selected.length === 0 || !date || date < todayKey() || !timeFrom) return
     setBusy(true)
     try {
       await api.shipments.schedulePickup({
@@ -131,7 +132,12 @@ export default function PickupsTab() {
           <div className="grid gap-4 sm:grid-cols-3">
             <Field>
               <FieldLabel htmlFor="pickup-date">{copy.date}</FieldLabel>
-              <DateField id="pickup-date" value={date} onChange={(v) => setDate(v)} />
+              <DateField
+                id="pickup-date"
+                value={date}
+                min={todayKey()}
+                onChange={(v) => setDate(v)}
+              />
             </Field>
             <Field>
               <FieldLabel htmlFor="pickup-from">{copy.timeFrom}</FieldLabel>
@@ -155,7 +161,7 @@ export default function PickupsTab() {
           <Button
             className="w-fit self-end"
             onClick={handleSchedule}
-            disabled={busy || selected.length === 0 || !date}
+            disabled={busy || selected.length === 0 || !date || date < todayKey()}
           >
             <Truck aria-hidden="true" />
             {busy ? copy.scheduling : copy.submit}

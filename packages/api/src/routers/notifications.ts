@@ -4,7 +4,6 @@ import {
   checkSenderEmail,
   createMemoryRateLimitStore,
   MESSAGE_CATALOGUE,
-  parsePreviousSecrets,
   permissions,
   type RateLimitRule,
   rateLimitKey,
@@ -124,7 +123,7 @@ export const notificationsRouter = {
         to,
         registry: notifications,
         secret: env.SETTINGS_SECRET,
-        previousSecrets: parsePreviousSecrets(env.SETTINGS_SECRET_PREVIOUS),
+        previousSecrets: env.SETTINGS_SECRET_PREVIOUS,
       })
       return { ...result, to }
     }),

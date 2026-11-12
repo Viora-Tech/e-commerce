@@ -51,6 +51,9 @@ const APPEND = argv.includes('--append')
 const MAX = Number(opt('--max', '100000'))
 /** Leave out routes already in --out (resume a chunked run). */
 const SKIP_DONE = argv.includes('--skip-done')
+/** End a chunk early below this much free memory (MB). */
+// biome-ignore lint/suspicious/noUndeclaredEnvVars: a local dev script, not a turbo task
+const MIN_FREE_MB = Number(process.env.PERF_MIN_FREE_MB ?? '1500')
 // biome-ignore lint/suspicious/noUndeclaredEnvVars: a local dev script, not a turbo task
 const EMAIL = process.env.SEED_OWNER_EMAIL
 // biome-ignore lint/suspicious/noUndeclaredEnvVars: a local dev script, not a turbo task
@@ -363,7 +366,9 @@ let visited = 0
 for (const route of all) {
   if (visited >= MAX) break
   // A dev server grows with each page it compiles; end the chunk early so the runner restarts it.
-  if (visited > 0 && freemem() < 1500 * 1024 * 1024) {
+  // A dev server grows by ~0.5 GB a page; a production build does not, so `PERF_MIN_FREE_MB`
+  // can lower this guard for `next start` runs.
+  if (visited > 0 && freemem() < MIN_FREE_MB * 1024 * 1024) {
     console.log('low memory: ending this chunk early')
     break
   }

@@ -12,6 +12,7 @@ import { type CustomizeDoc, MAIN_ZONE } from '@/lib/customize-doc'
 import { groupForZone, sectionName } from '@/lib/customize-insert'
 import { useCustomizePuck } from '@/lib/customize-puck'
 import { insertCopyActions, stepActions, zoneItems } from '@/lib/customize-slots'
+import { useStorageScope } from '@/lib/storage-scope'
 
 const EDITABLE_TAGS = new Set(['input', 'textarea', 'select'])
 
@@ -43,6 +44,7 @@ export default function CustomizeHotkeys() {
   // which may not exist yet when the editor first mounts.
   const selectionKey = useCustomizePuck((s) => JSON.stringify(s.appState.ui.itemSelector))
   const reducedMotion = useReducedMotion()
+  const storageScope = useStorageScope()
 
   useEffect(() => {
     const isEditableTarget = (target: EventTarget | null) =>
@@ -77,12 +79,12 @@ export default function CustomizeHotkeys() {
       const { block } = current()
       if (!block || hasTextSelection(e)) return
       e.preventDefault()
-      copyBlock(block)
+      copyBlock(storageScope, block)
       toast.success(copy.copied(sectionName(block, labelOf(block.type))))
     }
 
     const handlePaste = (e: KeyboardEvent) => {
-      const block = copiedBlock()
+      const block = copiedBlock(storageScope)
       if (!block) return
       e.preventDefault()
       const { data, selector, zone } = current()
@@ -165,7 +167,7 @@ export default function CustomizeHotkeys() {
     return () => {
       for (const doc of docs) doc.removeEventListener('keydown', handleKeyDown, true)
     }
-  }, [dispatch, getPuck, reducedMotion, selectionKey])
+  }, [dispatch, getPuck, reducedMotion, selectionKey, storageScope])
 
   // Render logic
   return null

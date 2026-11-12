@@ -15,6 +15,7 @@
  * Tracking is polled by the worker's shared job.
  */
 
+import { createHash } from 'node:crypto'
 import {
   CourierError,
   type CreateShipmentInput,
@@ -71,6 +72,7 @@ const BOOKING_TIMEOUT_MS = 20_000
 /** How long a tracking token is reused before logging in again (it is refreshed on a 401 too). */
 const TRACKING_TOKEN_MS = 60 * 60_000
 
+/** Tracking tokens per tracking login (username + password, hashed), reused until they expire. */
 const trackingTokens = new Map<string, { token: string; expiresAt: number }>()
 
 const NOT_SERVED = 'DTDC does not currently deliver to this PIN code.'
@@ -81,10 +83,18 @@ export class DtdcProvider implements ShippingProvider {
 
   private readonly baseUrl: string
   private readonly fetchImpl: typeof fetch
+  private readonly trackingKey: string
 
   constructor(private readonly config: DtdcConfig) {
     this.baseUrl = (config.baseUrl || DTDC_BASE_URL).replace(/\/+$/, '')
     this.fetchImpl = config.fetchImpl ?? fetch
+    // The password is hashed into the key so two stores sharing a username, or a store that
+    // changed its password, never reuse each other's token (as FedEx keys its tokens).
+    this.trackingKey = createHash('sha256')
+      .update(
+        `${DTDC_TRACKING_BASE_URL}\0${config.trackingUsername ?? ''}\0${config.trackingPassword ?? ''}`,
+      )
+      .digest('hex')
   }
 
   private headers(extra: Record<string, string> = {}): Record<string, string> {
@@ -194,10 +204,6 @@ export class DtdcProvider implements ShippingProvider {
         `DTDC could not cancel: ${failure?.reason || failure?.message || body.message || 'no detail returned'}`,
       )
     }
-  }
-
-  private get trackingKey() {
-    return this.config.trackingUsername ?? ''
   }
 
   private async trackingToken(): Promise<string> {

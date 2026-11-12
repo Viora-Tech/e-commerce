@@ -1,5 +1,5 @@
-import { loadEnv, settingsSecret } from '@commerce/config'
-import { parsePreviousSecrets, parseShippingSettings } from '@commerce/core'
+import { loadEnv, settingsSecret, workerPublicUrl } from '@commerce/config'
+import { parseShippingSettings } from '@commerce/core'
 import { getRegistries } from '@commerce/core/registries'
 import type { StoreTx } from '@commerce/db'
 import type { ProviderField } from '@commerce/payments'
@@ -81,8 +81,8 @@ const secrets = () => {
   const env = loadEnv(process.env)
   return {
     secret: settingsSecret(),
-    previousSecrets: parsePreviousSecrets(env.SETTINGS_SECRET_PREVIOUS),
-    workerUrl: process.env.NEXT_PUBLIC_WORKER_URL ?? `http://localhost:${env.WORKER_PORT}`,
+    previousSecrets: env.SETTINGS_SECRET_PREVIOUS,
+    workerUrl: workerPublicUrl(env),
   }
 }
 

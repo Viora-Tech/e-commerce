@@ -210,6 +210,7 @@ export const auditContent = {
     'settings.saved': 'saved privacy settings',
     'account.deletion_requested': 'confirmed deleting their account with a code',
     'contact.phone_added': 'saved the phone from their order as their contact number',
+    'customer.merged': 'merged this customer with another record',
   } as Record<string, string>,
   status: (from: string, to: string) => `${from} to ${to}`,
   format: (format: string) => format.toUpperCase(),

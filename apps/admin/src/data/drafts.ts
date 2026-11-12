@@ -111,6 +111,12 @@ export const checkoutDraftContent = {
     refunded: 'Refunded',
   } as Record<string, string>,
   items: 'Items',
+  subtotal: 'Subtotal',
+  discount: (label: string | null) => (label ? `Discount (${label})` : 'Discount'),
+  shipping: (name: string | null) => (name ? `Shipping (${name})` : 'Shipping'),
+  /** The fee (+) or discount (−) for the payment method the shopper chose. */
+  paymentAdjustment: (label: string | null, negative: boolean) =>
+    label ?? (negative ? 'Payment method discount' : 'Payment method fee'),
   total: 'Total',
   contact: 'Contact',
   timeline: 'Timeline',

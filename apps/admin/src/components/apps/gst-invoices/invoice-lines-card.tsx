@@ -45,6 +45,7 @@ export default function InvoiceLinesCard({ snapshot: s }: InvoiceLinesCardProps)
   // Render logic
   const taxOf = (l: DocumentSnapshot['lines'][number]) => l.cgstPaise + l.sgstPaise + l.igstPaise
   const t = s.totals
+  const hasDiscount = t.discountPaise > 0
   const totals: { label: string; value: number }[] = [
     { label: copy.taxable, value: t.taxablePaise },
     ...(s.interState
@@ -75,6 +76,9 @@ export default function InvoiceLinesCard({ snapshot: s }: InvoiceLinesCardProps)
               <TableHead className={HEAD}>{copy.hsn}</TableHead>
               <TableHead className={`${HEAD} ${NUM}`}>{copy.qty}</TableHead>
               <TableHead className={`${HEAD} ${NUM}`}>{copy.rate}</TableHead>
+              {hasDiscount ? (
+                <TableHead className={`${HEAD} ${NUM}`}>{copy.lineDiscount}</TableHead>
+              ) : null}
               <TableHead className={`${HEAD} ${NUM}`}>{copy.taxable}</TableHead>
               <TableHead className={`${HEAD} ${NUM}`}>{copy.tax}</TableHead>
               <TableHead className={`${HEAD} ${NUM}`}>{copy.total}</TableHead>
@@ -96,6 +100,11 @@ export default function InvoiceLinesCard({ snapshot: s }: InvoiceLinesCardProps)
                 </TableCell>
                 <TableCell className={`${CELL} ${NUM}`}>{l.quantity}</TableCell>
                 <TableCell className={`${CELL} ${NUM}`}>{l.ratePercent}%</TableCell>
+                {hasDiscount ? (
+                  <TableCell className={`${CELL} ${NUM}`}>
+                    {l.discountPaise > 0 ? `−${formatPaise(l.discountPaise)}` : '—'}
+                  </TableCell>
+                ) : null}
                 <TableCell className={`${CELL} ${NUM}`}>{formatPaise(l.taxablePaise)}</TableCell>
                 <TableCell className={`${CELL} ${NUM}`}>{formatPaise(taxOf(l))}</TableCell>
                 <TableCell className={`${CELL} ${NUM}`}>{formatPaise(l.totalPaise)}</TableCell>
@@ -106,10 +115,16 @@ export default function InvoiceLinesCard({ snapshot: s }: InvoiceLinesCardProps)
       </div>
       <dl className="mt-4 ml-auto flex w-full max-w-[20rem] flex-col gap-1.5">
         {t.discountPaise > 0 ? (
-          <div className="flex justify-between text-body">
-            <dt className="text-muted-foreground">{copy.discount}</dt>
-            <dd className="tabular-nums">−{formatPaise(t.discountPaise)}</dd>
-          </div>
+          <>
+            <div className="flex justify-between text-body">
+              <dt className="text-muted-foreground">{copy.gross}</dt>
+              <dd className="tabular-nums">{formatPaise(t.grossPaise)}</dd>
+            </div>
+            <div className="flex justify-between text-body">
+              <dt className="text-muted-foreground">{copy.discount(s.discountLabel)}</dt>
+              <dd className="tabular-nums">−{formatPaise(t.discountPaise)}</dd>
+            </div>
+          </>
         ) : null}
         {totals.map((row) => (
           <div key={row.label} className="flex justify-between text-body">

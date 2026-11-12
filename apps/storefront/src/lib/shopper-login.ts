@@ -79,7 +79,7 @@ export async function storeLoginSetup(storeId: string): Promise<{
   own: LoginApps
 }> {
   const env = loadEnv(process.env)
-  const previous = env.SETTINGS_SECRET_PREVIOUS?.split(',').filter(Boolean) ?? []
+  const previous = env.SETTINGS_SECRET_PREVIOUS
   return inStore(storeId, async (tx) => ({
     settings: await loadCustomerAccountSettings({ tx, storeId }),
     platform: platformLoginApps(env),

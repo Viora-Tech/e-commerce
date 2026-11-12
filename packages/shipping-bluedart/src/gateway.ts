@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto'
 import { COURIER_TIMEOUT_MS, CourierError } from '@commerce/shipping'
 import { BLUEDART_PATHS, bluedartError } from './api'
 
@@ -39,7 +40,15 @@ export type GatewayOptions = {
 export class BluedartGateway {
   private readonly id = 'bluedart'
 
-  constructor(private readonly config: GatewayOptions) {}
+  private readonly tokenKey: string
+
+  constructor(private readonly config: GatewayOptions) {
+    // The secret is hashed into the key so a changed secret never reuses an old token
+    // (as FedEx keys its tokens); the raw secret never sits in the key.
+    this.tokenKey = createHash('sha256')
+      .update(`${config.baseUrl}\0${config.clientId}\0${config.clientSecret}`)
+      .digest('hex')
+  }
 
   private get baseUrl() {
     return this.config.baseUrl
@@ -47,10 +56,6 @@ export class BluedartGateway {
 
   private get fetchImpl() {
     return this.config.fetchImpl
-  }
-
-  private get tokenKey() {
-    return `${this.baseUrl}|${this.config.clientId}`
   }
 
   /** A fetch that maps transport failures to CourierError and never puts the URL in a message. */

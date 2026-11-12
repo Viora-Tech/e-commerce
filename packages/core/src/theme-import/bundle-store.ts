@@ -1,4 +1,5 @@
 /** SOURCE OF TRUTH: imported theme storage reads — WHAT: whether a theme is an imported Liquid theme, its import record and report, its renderable bundle (cached per theme version) and single asset files for the storefront's asset route / WHY: every storefront request and every canvas render needs the bundle; reading ~5 MB of theme files per request would be wasteful, so it is cached and re-read only when the import row changes */
+import { createHash } from 'node:crypto'
 import { newId, type StoreTx, themeFile, themeImport } from '@commerce/db'
 import { and, eq, like, sql } from 'drizzle-orm'
 import { buildThemeBundle, type ThemeBundle } from './bundle'
@@ -95,9 +96,24 @@ export async function loadThemeBundle(tx: StoreTx, themeId: string): Promise<The
 }
 
 /**
+ * A digest of every unpublished save (path and text). Saving a draft only writes `draft_body`,
+ * not the import row's `updated_at`, so the draft bundle's version must carry this: the parsed
+ * template cache (`engineFor`) is keyed by version, and without it a second save previewed the
+ * first save's templates.
+ */
+export function draftDigest(drafts: readonly { path: string; draftBody: string }[]): string {
+  const hash = createHash('sha1')
+  for (const d of [...drafts].sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0))) {
+    hash.update(d.path).update('\0').update(d.draftBody).update('\0')
+  }
+  return hash.digest('base64url')
+}
+
+/**
  * The bundle with Edit code's unpublished saves in place of the live files, for a theme preview;
- * null when the theme has none (the preview then shows the live bundle). Never cached: drafts
- * change with every save, and a preview is not cached anyway.
+ * null when the theme has none (the preview then shows the live bundle). Not kept here: drafts
+ * change with every save, and a preview is not cached anyway. Its version changes with every
+ * draft save (`draftDigest`), so parsed templates are never reused across saves.
  */
 export async function loadThemeDraftBundle(
   tx: StoreTx,
@@ -115,7 +131,10 @@ export async function loadThemeDraftBundle(
     })
     .from(themeFile)
     .where(eq(themeFile.themeId, themeId))
-  if (!files.some((f) => f.draftBody !== null)) return null
+  const drafts = files.flatMap((f) =>
+    f.draftBody === null ? [] : [{ path: f.path, draftBody: f.draftBody }],
+  )
+  if (drafts.length === 0) return null
   const textFiles = new Map<string, string>()
   const assetChecksums = new Map<string, string>()
   for (const f of files) {
@@ -124,7 +143,7 @@ export async function loadThemeDraftBundle(
   }
   return buildThemeBundle({
     themeId,
-    version: `${record.updatedAt.toISOString()}|draft`,
+    version: `${record.updatedAt.toISOString()}|draft:${draftDigest(drafts)}`,
     textFiles,
     assetChecksums,
     settings: record.settings,
