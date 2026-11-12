@@ -21,6 +21,7 @@ import { type CourierSort, courierMode, sortCourierRows } from './courier-groups
 import CourierTable from './courier-table'
 import { coverNotes } from './cover-notes'
 import { rowInsuranceState } from './insured-rows'
+import type { ParcelSize } from './price-calculation'
 
 type CourierDrawerProps = {
   open: boolean
@@ -42,6 +43,8 @@ type CourierDrawerProps = {
   status?: ReactNode
   /** The parcel's charged weight, for couriers that did not say their own. */
   chargedGrams?: number | null | undefined
+  /** The package as typed, for the picked row's dead vs volumetric weight. */
+  parcel?: ParcelSize | null | undefined
   /** Ship it yourself: the panel and tracking fields, shown under the table when picked. */
   children?: ReactNode
 }
@@ -71,6 +74,7 @@ export default function CourierDrawer({
   onRetry,
   status,
   chargedGrams,
+  parcel,
   children,
 }: CourierDrawerProps) {
   // Hooks
@@ -216,6 +220,7 @@ export default function CourierDrawer({
                 shippingKey={shippingKey}
                 insured={insured}
                 chargedGrams={chargedGrams}
+                parcel={parcel}
               />
             </div>
           ) : null}

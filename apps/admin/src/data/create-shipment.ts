@@ -123,7 +123,6 @@ export const createShipmentContent = {
     inclGstInsurance: 'incl. GST + insurance',
     /** Insurance is on but this route has no rate (Delivery options › Routes sets one). */
     insuranceUnset: 'Insurance rate not set',
-    insuranceGst: 'Insurance GST',
     /** The courier's cover cap is below the parcel's value (Delhivery Protect: ₹30,000). */
     coverOf: (covered: string, value: string) => `${covered} of ${value}`,
     claimExcess: (percent: string) => `${percent}% excess on claims`,
@@ -131,13 +130,37 @@ export const createShipmentContent = {
       `Without insurance, ${courier} pays at most ${limit} if this ${value} parcel is lost.`,
     usedNotCovered: (courier: string) =>
       `Open-box / used items aren’t covered by ${courier} insurance.`,
-    /** Shiprocket's insurance is one GST-inclusive figure. */
-    insuranceInclGst: 'Insurance (incl. GST)',
     /** RapidShyp's insurance is worked out from its published rate, not its own figure. */
-    insuranceEstimate: 'Insurance (est.)',
     insuranceEstimateHint: 'RapidShyp’s own figure can differ slightly',
-    breakdown: 'Price breakdown',
-    youPay: 'You pay',
+  },
+  /** The picked courier's price worked out line by line (`price-calculation.ts`). */
+  calculation: {
+    heading: 'How this price is worked out',
+    weight: 'Weight',
+    dead: 'Dead weight',
+    volumetric: (l: string, w: string, h: string, divisor: string) =>
+      `Volumetric: ${l} × ${w} × ${h} cm ÷ ${divisor}`,
+    noBox: 'No box size, so no volumetric weight',
+    billed: (basis: 'dead' | 'volumetric') =>
+      basis === 'volumetric'
+        ? 'Charged on volumetric (the higher)'
+        : 'Charged on dead weight (the higher)',
+    charged: 'Charged weight',
+    courierWeight: 'Courier’s charged weight',
+    courierWeightNote: 'as charged by the courier',
+    charges: 'Courier charges',
+    courierTotal: 'Courier’s total (incl. GST)',
+    totalOnly: 'This courier gives one total, so it isn’t split here.',
+    unitemised: 'Not itemised by the courier (incl. GST)',
+    rounding: 'Rounding',
+    insurance: 'Shipping insurance',
+    insuranceRate: (rate: string, value: string) => `${rate}% × ${value}`,
+    insuranceMinimum: 'Route’s minimum fee',
+    insuranceGst: (rate: string) => `+ ${rate}% GST`,
+    inclGst: 'incl. GST',
+    estimate: 'estimate',
+    insuranceUnset: 'Insurance rate not set, so nothing is added',
+    total: 'Total you pay',
   },
   courier: {
     panelLabel: 'Booked in which courier app?',
@@ -169,7 +192,6 @@ export const createShipmentContent = {
     filterAll: 'All',
     manage: 'Manage courier',
     inclGst: 'incl. GST',
-    breakdown: 'Price breakdown',
     charge: {
       freight: 'Freight',
       fuel: 'Fuel surcharge',
@@ -179,9 +201,6 @@ export const createShipmentContent = {
       other: 'Other charges',
       gst: 'GST',
     } as Record<'freight' | 'fuel' | 'cod' | 'insurance' | 'rto' | 'other' | 'gst', string>,
-    total: 'Total',
-    chargeableWeight: (weight: string) => `Charged for ${weight}`,
-    noBreakdown: 'This courier gave a total only.',
     manual: 'Ship it yourself',
     manualHelp: 'Your own courier or local delivery: type the AWB (tracking number) yourself.',
     manualMissing: 'Enter the AWB (tracking number) and the courier name.',

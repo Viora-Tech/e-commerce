@@ -300,6 +300,10 @@ export type InsuranceQuote = {
   estimate: boolean
   /** The parcel's Protect category and rate, when Protect priced it. */
   protect: ProtectQuote | null
+  /** The rate the fee was worked out at, in basis points of the declared value (Protect's
+   *  category rate, the route's %, the courier's published rate); null for a quoted line or
+   *  when the route's minimum fee applied. The drawer shows "rate% × value = fee". */
+  rateBps: number | null
 }
 
 export type CourierInsuranceRate = {
@@ -336,15 +340,21 @@ function taxed(
   source: InsuranceSource,
   feePaise: number,
   protect: ProtectQuote | null,
+  rateBps: number | null,
   estimate = false,
 ): InsuranceQuote {
   const gstPaise = Math.round((feePaise * INSURANCE_GST_BPS) / 10_000)
   const pricePaise = feePaise + gstPaise
-  return { source, feePaise, gstPaise, pricePaise, gstIncluded: false, estimate, protect }
+  return { source, feePaise, gstPaise, pricePaise, gstIncluded: false, estimate, protect, rateBps }
 }
 
 /** A figure that already holds its tax: a quoted line, or Shiprocket's GST-inclusive rate. */
-const allIn = (source: InsuranceSource, feePaise: number, estimate = false): InsuranceQuote => ({
+const allIn = (
+  source: InsuranceSource,
+  feePaise: number,
+  rateBps: number | null,
+  estimate = false,
+): InsuranceQuote => ({
   source,
   feePaise,
   gstPaise: 0,
@@ -352,6 +362,7 @@ const allIn = (source: InsuranceSource, feePaise: number, estimate = false): Ins
   gstIncluded: true,
   estimate,
   protect: null,
+  rateBps,
 })
 
 /**
@@ -367,22 +378,28 @@ export function insuranceQuote(
   valuePaise: number,
   protect: ProtectQuote | null = null,
 ): InsuranceQuote | null {
-  if (route.quotedInsurancePaise !== null) return allIn('courier', route.quotedInsurancePaise)
+  if (route.quotedInsurancePaise !== null) return allIn('courier', route.quotedInsurancePaise, null)
   /* Delhivery direct is always priced by its Protect card (owner, 12 Nov 2026): a rate set on
      the route is ignored for insurance; the card is where Delhivery's rates are edited. */
   if (isDelhiveryDirect(route)) {
-    return protect ? taxed('protect', protectFeePaise(valuePaise, protect.bps), protect) : null
+    return protect
+      ? taxed('protect', protectFeePaise(valuePaise, protect.bps), protect, protect.bps)
+      : null
   }
   if (route.insurancePercent !== null || route.insuranceMinPaise !== null) {
-    const byPercent = insuranceFeePaise(valuePaise, (route.insurancePercent ?? 0) * 100)
-    return taxed('route', Math.max(byPercent, route.insuranceMinPaise ?? 0), null)
+    const bps = (route.insurancePercent ?? 0) * 100
+    const byPercent = insuranceFeePaise(valuePaise, bps)
+    const min = route.insuranceMinPaise ?? 0
+    // The rate is shown only when it set the fee; a minimum that won is shown as a minimum.
+    const rateBps = route.insurancePercent !== null && byPercent >= min ? bps : null
+    return taxed('route', Math.max(byPercent, min), null, rateBps)
   }
   const rate = COURIER_INSURANCE[route.providerId]
   if (rate) {
     const fee = insuranceFeePaise(valuePaise, rate.bps)
     return rate.gstIncluded
-      ? allIn('courier_rate', fee, rate.estimate)
-      : taxed('courier_rate', fee, null, rate.estimate)
+      ? allIn('courier_rate', fee, rate.bps, rate.estimate)
+      : taxed('courier_rate', fee, null, rate.bps, rate.estimate)
   }
   return null
 }

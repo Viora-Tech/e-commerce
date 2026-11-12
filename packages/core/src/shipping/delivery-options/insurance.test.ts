@@ -104,6 +104,7 @@ describe('rowInsurance', () => {
       estimate: false,
       protectCategory: 'computers',
       protectBps: 40,
+      rateBps: 40,
     })
   })
 

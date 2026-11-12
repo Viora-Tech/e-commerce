@@ -22,6 +22,9 @@ export function resolveParcelWeightGrams(lines: WeighableLine[], packingGrams: n
 
 export type PackageDimensionsCm = { lengthCm: number; widthCm: number; heightCm: number }
 
+/** The divisor in L×W×H (cm) ÷ divisor = kg that `volumetricWeightGrams` uses (cm³ ÷ 5 = g). */
+export const VOLUMETRIC_DIVISOR = 5000
+
 /**
  * Couriers bill by whichever is greater, actual or "volumetric" weight: a stand-in for how
  * much room a light, bulky parcel takes on their trucks. Indian couriers use L×W×H (cm) ÷ 5000

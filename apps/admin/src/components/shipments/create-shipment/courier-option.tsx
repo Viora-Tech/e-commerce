@@ -8,6 +8,8 @@ import { createShipmentContent } from '@/data/create-shipment'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { courierInitials } from './courier-groups'
 import { courierLogoSrc } from './courier-logo'
+import { type ParcelSize, priceCalculation } from './price-calculation'
+import PriceCalculationList from './price-calculation-list'
 
 type CourierOptionProps = {
   row: CourierRateRow
@@ -17,12 +19,16 @@ type CourierOptionProps = {
   onShipNow?: (() => void) | undefined
   /** This row's booking is running. */
   shipping?: boolean | undefined
+  /** The insurance switch is on and `row` is `insuredRows`' output (its price holds the fee). */
+  insured?: boolean | undefined
+  /** The package as typed, for the dead vs volumetric weight lines. */
+  parcel?: ParcelSize | null | undefined
 }
 
 const SHORT_DATE = { weekday: 'short', day: 'numeric', month: 'short' } as const
 
 /** One courier service in step 2: logo tile, name with its badges, delivery line and price (or
- *  "rate on booking"), and under it the price breakdown when the courier itemised one. A
+ *  "rate on booking"), and under the picked one its price worked out (`priceCalculation`). A
  *  courier that can't take the parcel is dimmed, says why in red and can't be picked; the
  *  others still can. */
 export default function CourierOption({
@@ -31,6 +37,8 @@ export default function CourierOption({
   onSelect,
   onShipNow,
   shipping = false,
+  insured = false,
+  parcel = null,
 }: CourierOptionProps) {
   // Hooks
   const copy = useCopy(createShipmentContent.courier)
@@ -45,13 +53,9 @@ export default function CourierOption({
       ? copy.deliveryAbout(date)
       : copy.deliveryBy(date)
     : copy.noDate
-  const weight =
-    row.chargeableWeightGrams === null
-      ? null
-      : `${fmt.number(Math.round(row.chargeableWeightGrams / 10) / 100)} kg`
   const logo = courierLogoSrc(row.providerLabel)
-  const showBreakdown =
-    !blocked && row.pricePaise !== null && (row.charges.length > 0 || weight !== null)
+  // The picked row's price worked out, as in the drawer's table.
+  const calc = selected ? priceCalculation(row, { insured, parcel }) : null
 
   return (
     <div className="flex flex-col gap-1">
@@ -153,30 +157,12 @@ export default function CourierOption({
           </Button>
         ) : null}
       </div>
-      {showBreakdown ? (
-        <details className="group/breakdown rounded-lg border border-hairline bg-muted/40 px-3 py-2 text-caption">
-          <summary className="cursor-pointer select-none text-muted-foreground marker:text-muted-foreground hover:text-ink-strong">
-            {copy.breakdown}
-          </summary>
-          <dl className="mt-2 flex flex-col gap-1">
-            {row.charges.map((c) => (
-              <div key={c.kind} className="flex justify-between gap-3">
-                <dt className="text-muted-foreground">{copy.charge[c.kind]}</dt>
-                <dd className="tabular-nums text-ink-strong">{fmt.money(c.pricePaise)}</dd>
-              </div>
-            ))}
-            {row.charges.length === 0 ? (
-              <p className="text-muted-foreground">{copy.noBreakdown}</p>
-            ) : null}
-            <div className="flex justify-between gap-3 border-t border-hairline pt-1 font-medium">
-              <dt className="text-ink-strong">{copy.total}</dt>
-              <dd className="tabular-nums text-ink-strong">{fmt.money(row.pricePaise ?? 0)}</dd>
-            </div>
-            {weight ? (
-              <p className="text-muted-foreground">{copy.chargeableWeight(weight)}</p>
-            ) : null}
-          </dl>
-        </details>
+      {calc ? (
+        <PriceCalculationList
+          calc={calc}
+          estimateHint={drawerCopy.insuranceEstimateHint}
+          className="rounded-lg border border-hairline bg-muted/40 px-3 py-2.5"
+        />
       ) : null}
     </div>
   )
