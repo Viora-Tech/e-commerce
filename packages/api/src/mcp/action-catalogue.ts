@@ -276,6 +276,8 @@ const SENSITIVE_PATHS: Record<string, string> = {
   'storeCredit.adjust': "changes a customer's store credit balance (money)",
   'storeCredit.moveGiftCards': 'moves gift card balances into store credit balances (money)',
   'giftCards.setDisabled': 'disables a gift card (money)',
+  'customers.merge':
+    'merges two customer records into one (moves orders, store credit and sign-ins; closes the other record)',
   'orders.collectPayment': 'records money collected',
   'store.updatePayments': 'payment settings',
   'store.updateStorage': 'storage keys',

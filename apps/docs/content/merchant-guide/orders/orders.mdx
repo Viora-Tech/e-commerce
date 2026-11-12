@@ -198,6 +198,28 @@ this their default address for future orders too. Every change is written to the
 **Timeline**, with who made it, for example "Shipping address changed from 12 MG Road, Pune, MH
 411001 to 4 Park Street, Kolkata, WB 700016".
 
+Nothing is sent to the shopper when you save, and the customer's own phone and saved address stay
+as they are unless you tick the box.
+
+If the new email belongs to another existing customer, the dialog asks **"This email belongs to
+… Also move this order to them?"**. It is off until you tick it. Ticked, the order also moves to
+that customer, so it shows in their account. The two customers are never merged on their own; to
+make them one, see [Merge two customers into one](/merchant-guide/customers/customers#merge-two-customers-into-one).
+
+**Imported orders** (from Shopify): you can correct the name, email, phone, shipping address and
+billing address the same way. Items, prices and payments stay read-only, and the GSTIN and
+company name stay as they were invoiced.
+
+### Move an order to another customer
+
+Select **⋯ → Change customer** on the Customer details card, search for the customer by name,
+email or mobile number, select them and select **Move order**. The order keeps its own email,
+phone and addresses; it now belongs to that customer, shows in their account and counts in their
+totals. The order's timeline and both customers' timelines say what happened.
+
+An order paid with (or refunded to) the current customer's store credit can't be moved, because
+that money belongs to their balance. Merge the two customers instead.
+
 ## Tracking numbers
 
 When you paste a tracking number in **Fulfil items**, the courier is chosen from how the number
@@ -332,7 +354,7 @@ optional timer) and gift card payments.
 <FaqItem question="Can I change an order after it's placed?">
 
 You can change the customer's contact and shipping address (**Edit** on the Customer details
-card), add notes, collect payments, fulfil, refund and cancel. To sell something different,
+card), move it to another customer (**⋯ → Change customer**), add notes, collect payments, fulfil, refund and cancel. To sell something different,
 cancel and create a new draft order from **Orders → Drafts**, then **Send invoice** or
 **Convert to order**.
 

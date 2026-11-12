@@ -348,7 +348,7 @@ const PLATFORMS: Record<string, string> = { shopify: 'Shopify' }
 /** The card on an order brought over from another platform. */
 export const importedOrderContent = {
   title: (platform: string) => `Imported from ${PLATFORMS[platform] ?? platform}`,
-  body: 'A historical order kept as a record. It did not change stock, send messages or create invoices, and it cannot be fulfilled or refunded here.',
+  body: 'A historical order kept as a record. It did not change stock, send messages or create invoices, and it cannot be fulfilled or refunded here. Its contact details and addresses can still be corrected.',
   name: 'Original order',
   financial: 'Payment status',
   fulfillment: 'Fulfilment status',
