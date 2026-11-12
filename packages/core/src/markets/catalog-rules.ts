@@ -1,4 +1,4 @@
-/** SOURCE OF TRUTH: withCatalogPricing, combineAdjustments, CatalogPricing, CATALOG_SETTING, soldInRequestCatalog
+/** SOURCE OF TRUTH: withCatalogPricing, combineAdjustments, CatalogPricing, CATALOG_SETTING, soldInRequestCatalog, requestCatalogSql
  * WHAT:  The pure half of Markets › Catalogs: a market's pricing with its catalog's price
  *        changes on top, and the SQL test "is this product sold in the request's catalog".
  * WHY:   One rule for every price a shopper abroad sees (store, cart, checkout summary), and one
@@ -46,13 +46,18 @@ export function withCatalogPricing(
  */
 const CATALOG_SETTING = 'app.catalog_id'
 
+/** The request's catalog id (`app.catalog_id`) as SQL text, null when every product is sold. */
+export function requestCatalogSql(): SQL {
+  return sql`nullif(current_setting(${sql.raw(`'${CATALOG_SETTING}'`)}, true), '')`
+}
+
 /**
  * True when the product is sold in the request's catalog (`app.catalog_id`): always without
  * one; else when the catalog names it, or one of its collections holds it. Every storefront
  * listing, search and recommendation adds this, so a catalog hides the same products everywhere.
  */
 export function soldInRequestCatalog(productId: AnyColumn | SQL): SQL {
-  const current = sql`nullif(current_setting(${sql.raw(`'${CATALOG_SETTING}'`)}, true), '')`
+  const current = requestCatalogSql()
   return sql`(${current} is null or ${productId} in (
     select cp.product_id from catalog_product cp where cp.catalog_id = ${current}::uuid
     union

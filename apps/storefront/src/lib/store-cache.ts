@@ -1,6 +1,6 @@
 import 'server-only'
 import { loadEnv } from '@commerce/config'
-import { listenStorefrontCache, nextScheduledChange } from '@commerce/core'
+import { nextScheduledChange } from '@commerce/core'
 import { memoPerRequest, peekPerRequest, rememberPerRequest } from '@commerce/core/request-memo'
 import type { StoreTx } from '@commerce/db'
 import { logger } from '@commerce/observability/logging'
@@ -9,6 +9,7 @@ import { SOFT_DELAY_MS, StoreVersions } from './cache-versions'
 import { scheduleWarm, WARM_QUIET_MS } from './cache-warm'
 import { approxSize, LruCache } from './lru-cache'
 import { requestCatalogId } from './market-catalog'
+import { storeChanges } from './store-changes'
 import { inStore } from './store-context'
 
 /**
@@ -54,9 +55,8 @@ function shared(): Shared {
   const s = g.__storefrontCache
   if (!s.listening) {
     s.listening = true
-    // LISTEN needs a connection of its own for good, so never through PgBouncer.
-    const env = loadEnv(process.env)
-    listenStorefrontCache(env.DATABASE_URL_DIRECT ?? env.DATABASE_URL, {
+    // The process's one `storefront_cache` listener, shared with the proxy's small caches.
+    storeChanges().subscribe({
       onChange: (storeId, soft) => {
         s.versions.notify(storeId, soft)
         // Re-render the store's recent pages once the change has settled (a soft one applies

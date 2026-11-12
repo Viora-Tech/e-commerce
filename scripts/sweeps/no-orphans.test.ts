@@ -18,6 +18,12 @@ type AllowEntry = { file: string; names: string[]; reason: string }
 
 const ALLOWLIST: AllowEntry[] = [
   {
+    file: 'packages/core/src/catalog/search-words.ts',
+    names: ['VOCABULARY_MAX_ENTRIES', 'searchVocabulary', 'clearSearchVocabularies'],
+    reason:
+      'the cap and searchVocabulary are used in the module; clearSearchVocabularies is search-words.test.ts resetting the cache between tests',
+  },
+  {
     file: 'packages/core/src/accounts/orders.ts',
     names: ['shopperPayment'],
     reason:
