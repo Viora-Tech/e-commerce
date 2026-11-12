@@ -1,6 +1,6 @@
 'use client'
 
-import { CalendarIcon, PackageOpen, RefreshCw, Truck } from '@commerce/ui/icons'
+import { PackageOpen, RefreshCw, Truck } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { useRouter } from 'next/navigation'
@@ -27,6 +27,7 @@ import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
 import ShipmentDetailsLoader from '../shipment-details-loader'
 import { bookShipment } from './book-shipment'
+import BookedSideCard from './booked-side-card'
 import CourierDrawer from './courier-drawer'
 import DoneStep, { type BookedShipment } from './done-step'
 import {
@@ -40,7 +41,6 @@ import { insuredRows } from './insured-rows'
 import NoPickupLocationAlert, { missingPickupLocation } from './no-pickup-location-alert'
 import PackageStep from './package-step'
 import PartialPicker from './partial-picker'
-import PickupNowDialog from './pickup-now-dialog'
 import { startingPickupPlan } from './pickup-plan'
 import RouteCard from './route-card'
 import ShipPageUnavailable from './ship-page-unavailable'
@@ -94,8 +94,8 @@ export default function CreateShipmentPage({ orderId, back, courier }: CreateShi
   const [insuredChoice, setInsuredChoice] = useState<boolean | null>(null)
   /** The courier whose Ship now is booking. */
   const [shipping, setShipping] = useState<string | null>(null)
-  /** Create pickup now, after booking. */
-  const [pickupOpen, setPickupOpen] = useState(false)
+  /** The courier wallet that paid, when it reports a live balance (the Booked drawer's Wallet). */
+  const [paidWallet, setPaidWallet] = useState<string | null>(null)
   /** Ship it yourself: the connected app the AWB was booked in, from its own panel. */
   const [panel, setPanel] = useState<string | null>(null)
   const [booked, setBooked] = useState<BookedShipment | null>(null)
@@ -205,24 +205,38 @@ export default function CreateShipmentPage({ orderId, back, courier }: CreateShi
     setShipping(optionKey ?? null)
     setMissingPlace(null)
     try {
-      setBooked(
-        await bookShipment({
-          order,
-          parcel,
-          form,
-          parsed,
-          pick: key,
-          courier: chosen,
-          typed,
-          panelProviderId: key === MANUAL ? panel : null,
-          insured: key === MANUAL ? undefined : insured,
-          courierLabel: chosen?.providerLabel,
-          canPickup: draft?.couriers.find((c) => c.id === chosen?.providerId)?.hasPickup ?? false,
-          // Booking only books (owner, 10 Nov 2026): the pickup is made on Shipments › Booked.
-          pickup: { ...pickup, ask: false },
-          pickupFailed: content.pickup.notSupported,
-        }),
-      )
+      const done = await bookShipment({
+        order,
+        parcel,
+        form,
+        parsed,
+        pick: key,
+        courier: chosen,
+        typed,
+        panelProviderId: key === MANUAL ? panel : null,
+        insured: key === MANUAL ? undefined : insured,
+        courierLabel: chosen?.providerLabel,
+        canPickup: draft?.couriers.find((c) => c.id === chosen?.providerId)?.hasPickup ?? false,
+        // Booking only books (owner, 10 Nov 2026): the pickup is made on Shipments › Booked.
+        pickup: { ...pickup, ask: false },
+        pickupFailed: content.pickup.notSupported,
+      })
+      const priced = options?.find((o) => o.optionKey === key) ?? null
+      const paid =
+        key === MANUAL ? undefined : wallets.find((w) => w.provider === priced?.providerId)
+      setBooked({
+        ...done,
+        facts: {
+          orderNumber: order.orderNumber,
+          customerName: order.customerName ?? null,
+          deliveryBy: priced?.deliveryBy ?? null,
+          chargedPaise: priced?.pricePaise ?? null,
+          insured: key !== MANUAL && insured,
+          walletLabel: paid?.providerLabel ?? null,
+          walletLeftPaise: null,
+        },
+      })
+      setPaidWallet(paid?.supportsLiveBalance ? paid.provider : null)
       setDrawer(false)
       router.refresh()
     } catch (err) {
@@ -454,28 +468,12 @@ export default function CreateShipmentPage({ orderId, back, courier }: CreateShi
       }
       side={
         booked ? (
-          <DataCard title={booked.manual ? content.done.manualHeading : content.done.heading}>
-            <DoneStep booked={booked} summaryOnly />
-            {booked.shipmentId && !booked.manual ? (
-              <>
-                <Button
-                  variant="outline"
-                  className="mt-3 w-full"
-                  onClick={() => setPickupOpen(true)}
-                >
-                  <CalendarIcon aria-hidden="true" />
-                  {content.drawer.pickupNow}
-                </Button>
-                <PickupNowDialog
-                  open={pickupOpen}
-                  onOpenChange={setPickupOpen}
-                  shipmentIds={[booked.shipmentId]}
-                  providerId={chosen?.providerId}
-                  onDone={() => router.refresh()}
-                />
-              </>
-            ) : null}
-          </DataCard>
+          <BookedSideCard
+            booked={booked}
+            liveWalletProvider={paidWallet}
+            onChange={setBooked}
+            onPickup={() => router.refresh()}
+          />
         ) : (
           <SummaryCard
             order={order}
