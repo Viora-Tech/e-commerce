@@ -554,6 +554,8 @@ export const ACTION_DOCS: Record<string, string> = {
     'The list\'s bulk "Send invoices": each selected draft with an email gets its pay link.',
   'orders.sendOrderLink':
     '"Send order link": the signed link to the order\'s page, by email and WhatsApp (when set up).',
+  'orders.sendPaymentLink':
+    '"Send payment link" on a shopper\'s unpaid checkout draft: its pay link (the order page where the shopper pays or retries) by email, WhatsApp (when connected) or both, noted on the draft\'s timeline.',
   'orders.sendPaymentReminder':
     '"Send payment reminder" on an unpaid UPI / bank transfer order: by email, WhatsApp (when set up) or both (the default), with the QR and bank details.',
   'orders.sendRecovery': 'Email the shopper a reminder with a link back to their abandoned cart.',

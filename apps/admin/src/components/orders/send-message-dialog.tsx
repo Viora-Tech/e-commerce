@@ -40,8 +40,11 @@ type SendMessageDialogProps = {
   /**
    * Payment reminders: "Send by" Email / WhatsApp / Both, or "Open in WhatsApp" (the merchant's
    * own chat) when the store has no WhatsApp channel; `onChatOpened` records that on the order.
+   * Without `onChatOpened` there is no "Open in WhatsApp": only what the store can send.
    */
-  chooseChannel?: { onChatOpened: () => void } | undefined
+  chooseChannel?: { onChatOpened?: (() => void) | undefined } | undefined
+  /** The title and Send button, when they are not the template's own (a checkout draft's pay link). */
+  labels?: { title: string; send: string } | undefined
   onClose: () => void
   /** For a dialog opened from a clickable table row: clicks inside must not open the row. */
   stopPropagation?: boolean
@@ -79,6 +82,7 @@ export default function SendMessageDialog({
   onSend,
   onClose,
   chooseChannel,
+  labels,
   stopPropagation = false,
 }: SendMessageDialogProps) {
   // Hooks
@@ -146,7 +150,7 @@ export default function SendMessageDialog({
   }
 
   // Render logic
-  const t = copy.templates[template]
+  const t = labels ?? copy.templates[template]
   const canEmail = Boolean(preview?.to.email)
   const canWhatsapp = Boolean(preview?.whatsapp && preview.to.phone)
   const choosing = Boolean(chooseChannel) && canEmail && canWhatsapp
@@ -192,9 +196,11 @@ export default function SendMessageDialog({
                 canEmail={canEmail}
                 canWhatsapp={canWhatsapp}
                 chatHref={
-                  preview.chatText ? whatsappChatUrl(preview.to.phone, preview.chatText) : null
+                  preview.chatText && chooseChannel.onChatOpened
+                    ? whatsappChatUrl(preview.to.phone, preview.chatText)
+                    : null
                 }
-                onChatOpened={chooseChannel.onChatOpened}
+                onChatOpened={() => chooseChannel.onChatOpened?.()}
               />
             ) : null}
             <div className="flex flex-col gap-1.5">

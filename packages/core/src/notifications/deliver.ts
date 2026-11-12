@@ -34,7 +34,7 @@ import { isOpenCheckoutDraft } from '../order/checkout-draft'
 import { orderParcelsView } from '../order/parcel-view'
 import { SPLIT_TENDER_PROVIDERS } from '../payments/split-tender'
 import { balanceOwed } from '../preorder/balance'
-import { balanceUrl, invoiceUrl, thankYouUrl } from '../preorder/balance-link'
+import { balanceUrl, thankYouUrl } from '../preorder/balance-link'
 import { parsePreorderStoreSettings } from '../preorder/store-settings'
 import { returnTemplateData } from '../returns/notify'
 import { storeNotificationChannels } from '../sender-email/channels'
@@ -48,6 +48,7 @@ import {
   refundTemplateData,
   taxLines,
 } from './deliver-data'
+import { draftInvoiceLink } from './draft-invoice-link'
 import { emailPicture, productCoverImages } from './email-images'
 import { isMessageOn } from './messages'
 import { paymentInstructionsOf } from './payment-instructions'
@@ -507,10 +508,14 @@ export async function deliverNotification(
     if (!o || balanceOwed(o) <= 0) return []
     if (storefrontUrl) actionUrl = balanceUrl(o.id, opts.settingsSecret, storefrontUrl)
   }
-  // A draft invoice's "Pay securely" button: the signed page where the customer pays it online.
-  if (input.template === 'draft_invoice' && storefrontUrl) {
-    actionUrl = invoiceUrl(input.orderId, opts.settingsSecret, storefrontUrl)
-  }
+  // A draft invoice's "Pay securely" button: the signed page where the customer pays it online
+  // (a shopper's checkout draft: its own order page, and only while it still waits for payment).
+  const invoice =
+    input.template === 'draft_invoice'
+      ? await draftInvoiceLink(ctx, input.orderId, opts.settingsSecret, storefrontUrl)
+      : null
+  if (invoice?.stale) return []
+  if (invoice?.actionUrl) actionUrl = invoice.actionUrl
   // A reminder to pay is pointless once the order is paid or gone.
   if (input.template === 'payment_reminder') {
     const [o] = await ctx.tx
@@ -576,8 +581,10 @@ export async function deliverNotification(
     .select({ channel: notification.channel, status: notification.status })
     .from(notification)
     .where(and(eq(notification.orderId, input.orderId), eq(notification.template, input.template)))
-  // A draft invoice sent again is a reminder, and says so.
-  const reminder = input.template === 'draft_invoice' && already.some((n) => n.status === 'sent')
+  // A draft invoice sent again is a reminder, and says so; a checkout draft always is one.
+  const reminder =
+    input.template === 'draft_invoice' &&
+    (invoice?.fromCheckout === true || already.some((n) => n.status === 'sent'))
   const data = {
     ...built.data,
     ...(actionUrl ? { actionUrl } : {}),

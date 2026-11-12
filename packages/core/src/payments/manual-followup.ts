@@ -72,7 +72,7 @@ export const REMINDER_CHANNELS = [
 ] as const satisfies readonly ReminderChannel[]
 
 /** The recipient field delivery limits a reminder to (`DeliverOptions.requires`); none for both. */
-function reminderRequires(channel: ReminderChannel): 'email' | 'phone' | undefined {
+export function reminderRequires(channel: ReminderChannel): 'email' | 'phone' | undefined {
   if (channel === 'email') return 'email'
   if (channel === 'whatsapp') return 'phone'
   return undefined
@@ -97,7 +97,7 @@ class ReminderNoRecipient extends CommerceError {
  * (an email, a phone) and the store has (a WhatsApp channel). Null when nothing is left, e.g.
  * WhatsApp chosen for an order without a phone.
  */
-function reminderChannelFor(
+export function reminderChannelFor(
   channel: ReminderChannel,
   to: { email: string | null; phone: string | null },
   whatsappConnected: boolean,

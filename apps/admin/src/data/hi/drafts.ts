@@ -108,6 +108,15 @@ export default [
     timeline: 'टाइमलाइन',
     payLink: 'पेमेंट लिंक कॉपी करें',
     payLinkCopied: 'पेमेंट लिंक कॉपी हो गया',
+    sendLink: 'पेमेंट लिंक भेजें',
+    sendLinkButton: 'लिंक भेजें',
+    linkSent: {
+      email: 'पेमेंट लिंक ईमेल से भेज दिया',
+      whatsapp: 'पेमेंट लिंक WhatsApp पर भेज दिया',
+      both: 'पेमेंट लिंक ईमेल और WhatsApp पर भेज दिया',
+    },
+    linkTooSoon: (channel: 'email' | 'whatsapp', minutes: number) =>
+      `पेमेंट लिंक अभी-अभी ${channel === 'email' ? 'ईमेल से' : 'WhatsApp पर'} जा चुका है। आप इसे ${minutes} मिनट बाद फिर से भेज सकते हैं।`,
     markPaid: 'पेमेंट मिला मार्क करें',
     markPaidTitle: 'इस चेकआउट को पेमेंट मिला मार्क करें?',
     markPaidBody: (total: string) =>

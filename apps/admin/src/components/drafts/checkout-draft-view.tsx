@@ -1,6 +1,7 @@
 'use client'
 
 import { orderRef } from '@commerce/core/draft-number'
+import { Send } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
@@ -10,10 +11,12 @@ import DataCard from '@/components/layout/data-card'
 import PageHeader from '@/components/layout/page-header'
 import ProoflyDetailPage from '@/components/layout/proofly-detail-page'
 import StatusChip from '@/components/layout/status-chip'
+import SendMessageDialog, { type CustomMessage } from '@/components/orders/send-message-dialog'
 import { checkoutDraftContent, draftsContent } from '@/data/drafts'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
+import { type LinkChannel, linkTooSoon } from './checkout-draft-send-link'
 
 type Draft = NonNullable<Awaited<ReturnType<typeof api.orders.getDraft>>>
 
@@ -22,7 +25,7 @@ type CheckoutDraftViewProps = {
   draft: Draft
 }
 
-type Asking = 'paid' | 'convert' | 'delete' | null
+type Asking = 'paid' | 'convert' | 'delete' | 'link' | null
 
 /** The latest attempt still waiting on a transfer: "Mark as paid" captures it. */
 const openTransfer = (d: Draft) =>
@@ -43,6 +46,24 @@ export default function CheckoutDraftView({ draft: d }: CheckoutDraftViewProps) 
   const [asking, setAsking] = useState<Asking>(null)
 
   // Event handlers
+  /** "Send payment link": the API picks what the draft can use when there was no choice. */
+  const handleSendLink = async (custom: CustomMessage | undefined, channel?: LinkChannel) => {
+    try {
+      const r = await api.orders.sendPaymentLink({ id: d.id, custom, channel })
+      toast.success(copy.linkSent[r.channel])
+      router.refresh()
+    } catch (err) {
+      const soon = linkTooSoon(err)
+      toast.error(
+        soon
+          ? copy.linkTooSoon(soon.channel, soon.minutes)
+          : err instanceof Error && err.message
+            ? err.message
+            : copy.failedAction,
+      )
+    }
+  }
+
   const handleCopyLink = async () => {
     if (!d.payLink) return
     await navigator.clipboard.writeText(d.payLink)
@@ -93,6 +114,7 @@ export default function CheckoutDraftView({ draft: d }: CheckoutDraftViewProps) 
   const method = copy.methods[d.paymentMethod === 'manual' ? 'manual' : 'online']
   const held = d.draftReserved?.length && d.reservedUntil ? d.reservedUntil : null
   const canMarkPaid = openTransfer(d) && !d.draftExpiredAt
+  const canSendLink = Boolean(d.payLink && !d.draftExpiredAt && (d.email || d.phone))
 
   return (
     <ProoflyDetailPage
@@ -111,6 +133,12 @@ export default function CheckoutDraftView({ draft: d }: CheckoutDraftViewProps) 
               {d.payLink && !d.draftExpiredAt ? (
                 <Button variant="outline" onClick={handleCopyLink}>
                   {copy.payLink}
+                </Button>
+              ) : null}
+              {canSendLink ? (
+                <Button variant="outline" onClick={() => setAsking('link')}>
+                  <Send aria-hidden="true" />
+                  {copy.sendLink}
                 </Button>
               ) : null}
               <Button variant="outline" onClick={() => setAsking('convert')}>
@@ -210,6 +238,15 @@ export default function CheckoutDraftView({ draft: d }: CheckoutDraftViewProps) 
         </DataCard>
       }
     >
+      {/* Email and WhatsApp as the store and the draft allow; no hand-sent chat fallback here. */}
+      <SendMessageDialog
+        orderId={asking === 'link' ? d.id : null}
+        template="draft_invoice"
+        labels={{ title: copy.sendLink, send: copy.sendLinkButton }}
+        chooseChannel={{}}
+        onSend={handleSendLink}
+        onClose={() => setAsking(null)}
+      />
       <ConfirmDialog
         open={asking === 'paid'}
         onOpenChange={(open) => !open && setAsking(null)}

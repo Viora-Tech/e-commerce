@@ -2,13 +2,18 @@ import { loadEnv, settingsSecret } from '@commerce/config'
 import {
   ABANDONED_CONTACTS,
   ABANDONED_LIST_STATUSES,
+  CommerceError,
   DRAFT_LIST_STATUSES,
   DRAFT_SOURCES,
   DraftInputSchema,
   insertOutboxEvent,
+  NotOpenCheckoutDraft,
+  PayLinkTooSoon,
   permissions,
+  REMINDER_CHANNELS,
   releaseDraft,
   reserveDraft,
+  sendCheckoutDraftPayLink,
   storefrontOriginFor,
   thankYouUrl,
 } from '@commerce/core'
@@ -37,6 +42,7 @@ import {
 } from '../services/draft.service'
 import { markDraftSeen } from '../services/drafts-seen.service'
 import { customMessage } from './custom-message'
+import { storeHasWhatsapp } from './order-messages'
 
 const storefrontUrl = () => loadEnv(process.env).STOREFRONT_URL
 const recoveryLink = () => ({ settingsSecret: settingsSecret(), storefrontUrl: storefrontUrl() })
@@ -197,6 +203,48 @@ export const draftAndAbandonedRoutes = {
         sent++
       }
       return { sent, skipped }
+    }),
+
+  /**
+   * "Send payment link" on a shopper's unpaid checkout draft: its pay link (the order page where
+   * the shopper pays or retries) by email, WhatsApp (when connected) or both, noted on the
+   * draft's timeline. At most once per channel every 10 minutes.
+   */
+  sendPaymentLink: can(permissions.DRAFTS_WRITE)
+    .input(
+      z.object({
+        id: z.uuid(),
+        custom: customMessage,
+        channel: z.enum(REMINDER_CHANNELS).optional(),
+      }),
+    )
+    .handler(async ({ context, input }) => {
+      try {
+        return await sendCheckoutDraftPayLink(
+          { storeId: context.scope.storeId, tx: context.tx },
+          input.id,
+          {
+            author: context.session.user.email,
+            custom: input.custom,
+            channel: input.channel,
+            whatsapp: await storeHasWhatsapp(context.tx, context.scope.storeId),
+          },
+        )
+      } catch (err) {
+        if (err instanceof PayLinkTooSoon) {
+          throw new ORPCError('TOO_MANY_REQUESTS', {
+            message: err.message,
+            data: { channel: err.channel, nextAt: err.nextAt.toISOString() },
+          })
+        }
+        if (err instanceof NotOpenCheckoutDraft) {
+          throw new ORPCError('NOT_FOUND', { message: err.message })
+        }
+        if (err instanceof CommerceError) {
+          throw new ORPCError('BAD_REQUEST', { message: err.message })
+        }
+        throw err
+      }
     }),
 
   /**
