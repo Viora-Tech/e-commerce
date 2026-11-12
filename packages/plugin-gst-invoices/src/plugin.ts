@@ -3,6 +3,7 @@ import type { Attachment } from '@commerce/notifications'
 import { type AppHookContext, definePlugin } from '@commerce/plugins'
 import { eq, sql } from 'drizzle-orm'
 import { z } from 'zod'
+import { gstAppBar } from './app-bar'
 import { issueCreditNotes } from './credit-notes'
 import { InvoiceError, issueDocument, liveDocuments, loadSettings } from './issue'
 import { orderLinks } from './links'
@@ -335,6 +336,8 @@ export const gstInvoicesPlugin = definePlugin({
     { key: 'hsCode', label: 'HSN code', help: '4 digits up to ₹5 crore turnover, 6 above.' },
     { key: 'gstRatePercent', label: 'GST rate (%)', help: 'Leave blank to use the store rate.' },
   ],
+  // The app bar's GSTIN pill and the sidebar's Queue count.
+  appBar: (ctx) => gstAppBar(ctx),
   admin: {
     icon: 'FileText',
     pages: [

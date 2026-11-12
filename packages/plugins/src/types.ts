@@ -357,6 +357,40 @@ export type AppSetupState = {
   problem: string | null
 }
 
+/**
+ * What an installed app adds to its app bar and its sidebar entry (Figma App layout v2,
+ * 928:10728): a short status pill beside the primary action ("GSTIN 06AB… · numbering 2026-27")
+ * and counts on its sidebar pages ("Queue 6"). Plain data; the admin draws it.
+ */
+export type AppBarSummary = {
+  statusPill?:
+    | {
+        /** A few words, e.g. `GSTIN 06ABCDE1234F1Z5 · numbering 2026-27`. */
+        label: string
+        /** The dot's colour. Default `neutral`. */
+        tone?: 'neutral' | 'success' | 'attention' | 'danger' | undefined
+        /** When set, the admin adds how long ago this was ("3 min ago") after the label. */
+        at?: Date | undefined
+      }
+    | null
+    | undefined
+  /** Counts on the app's sidebar pages, keyed by manifest page path (`''` is the first page). 0 hides. */
+  pageCounts?: Record<string, number> | undefined
+}
+
+/** What an `appBar` read gets: the store's transaction and the member's permission check. */
+export type AppBarContext = {
+  tx: StoreTx
+  storeId: string
+  /** Whether the member on screen holds this permission (e.g. `orders.read`); skip what they cannot read. */
+  can(permission: string): boolean
+  /**
+   * A courier's parcels in this store (`shipment.provider` = the courier's provider id): how many
+   * are on the road and when any last changed. One statement; for courier apps' app bars.
+   */
+  courierActivity(provider: string): Promise<{ moving: number; lastUpdate: Date | null }>
+}
+
 /** An app's newest use, in its own words ("New review on Linen shirt"); null text when unsaid. */
 export type AppLastUsed = { at: Date; summary: string | null }
 
@@ -405,6 +439,12 @@ export type PluginManifest = {
    * newer of this and recorded activity. Must be cheap: one indexed query.
    */
   lastUsed?: ((tx: StoreTx, storeId: string) => Promise<AppLastUsed | null>) | undefined
+  /**
+   * The app bar's status pill and the sidebar's page counts (`AppBarSummary`). Read on every
+   * admin page while the app is installed, inside the layout's one `store.shell` call, so it must
+   * be cheap: one indexed statement. A failure only hides the extras.
+   */
+  appBar?: ((ctx: AppBarContext) => Promise<AppBarSummary | null>) | undefined
   /** Triggers, actions and templates the app adds to Automations (Flow-style connectors). */
   automations?: AppAutomations | undefined
 }
