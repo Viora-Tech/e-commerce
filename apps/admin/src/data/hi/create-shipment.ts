@@ -116,6 +116,12 @@ export default [
         `बीमे के बिना, यह ${value} का पार्सल खोने पर ${courier} ज़्यादा से ज़्यादा ${limit} देता है।`,
       usedNotCovered: (courier) => `ओपन-बॉक्स / इस्तेमाल किया सामान ${courier} के बीमे में कवर नहीं है।`,
       insuranceEstimateHint: 'RapidShyp का अपना आंकड़ा थोड़ा अलग हो सकता है',
+      breakdown: 'कीमत का हिसाब',
+      freightWeight: (kg) => `भाड़ा (${kg})`,
+      courierWeight: (kg) => `कूरियर, GST सहित (${kg})`,
+      insuranceShort: 'इंश्योरेंस',
+      gstShort: 'GST 18%',
+      youPay: 'आप देंगे',
     },
     calculation: {
       heading: 'यह कीमत कैसे बनी',
@@ -189,7 +195,7 @@ export default [
         help: 'पहले डाकघर में पार्सल बुक करें, फिर रसीद पर लिखा नंबर डालें, जैसे EE123456785IN।',
         invalid: 'यह आर्टिकल नंबर सही नहीं बैठता। रसीद से मिलाकर देखें।',
       },
-      chosenAtCheckout: 'चेकआउट पर चुना गया',
+      chosenAtCheckout: 'ग्राहक की पसंद',
       checkout: {
         paid: (option, route, price) => `ग्राहक ने ${option} · ${route} चुना और शिपिंग के ${price} दिए।`,
         insured: 'बीमा सहित',
@@ -292,6 +298,15 @@ export default [
       changePickup: 'पिकअप की जगह बदलें',
       weightValue: (real, charged) => `${real} असली · ${charged}`,
       pickupRow: 'पिकअप',
+      pickupLater: 'बाद में, बुक्ड टैब से',
+      pickupJoins: (when) => `${when} वाले पिकअप में जुड़ेगा`,
+      freightRow: 'भाड़ा',
+      insuranceRow: 'इंश्योरेंस',
+      gstRow: 'GST 18%',
+      shopperChose: (name, price, route) =>
+        `ग्राहक ने चुना: ${name} · ${price}${route ? ` (${route})` : ''}`,
+      noShopperChoice: 'कोई डिलीवरी विकल्प नहीं चुना गया',
+      free: 'मुफ़्त',
       pickupValue: (day, time) => `${day}, ${time}`,
       walletLeft: (courier, amount) =>
         `आपके ${courier} वॉलेट से कटेगा · ${amount} बचेंगे। बुक होते ही लेबल प्रिंट के लिए तैयार।`,

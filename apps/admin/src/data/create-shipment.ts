@@ -132,6 +132,13 @@ export const createShipmentContent = {
       `Open-box / used items aren’t covered by ${courier} insurance.`,
     /** RapidShyp's insurance is worked out from its published rate, not its own figure. */
     insuranceEstimateHint: 'RapidShyp’s own figure can differ slightly',
+    /** The picked row's one-line breakdown (Figma 898:7790). */
+    breakdown: 'Price breakdown',
+    freightWeight: (kg: string) => `Freight (${kg})`,
+    courierWeight: (kg: string) => `Courier, incl. GST (${kg})`,
+    insuranceShort: 'Insurance',
+    gstShort: 'GST 18%',
+    youPay: 'You pay',
   },
   /** The picked courier's price worked out line by line (`price-calculation.ts`). */
   calculation: {
@@ -211,7 +218,7 @@ export const createShipmentContent = {
       invalid: 'That article number does not add up. Check it against the receipt.',
     },
     /** Delivery options app: the route the shopper paid for at checkout. */
-    chosenAtCheckout: 'Chosen at checkout',
+    chosenAtCheckout: 'Shopper’s pick',
     checkout: {
       paid: (option: string, route: string, price: string) =>
         `Shopper picked ${option} · ${route} and paid ${price} for shipping.`,
@@ -321,6 +328,17 @@ export const createShipmentContent = {
     changePickup: 'Change pickup place',
     weightValue: (real: string, charged: string) => `${real} real · ${charged}`,
     pickupRow: 'Pickup',
+    /** Booking only books: the pickup is made on Shipments › Booked. */
+    pickupLater: 'Later, on Booked',
+    pickupJoins: (when: string) => `Joins the ${when} pickup`,
+    freightRow: 'Freight',
+    insuranceRow: 'Insurance',
+    gstRow: 'GST 18%',
+    /** What the shopper picked at checkout (Delivery options app or zone rates). */
+    shopperChose: (name: string, price: string, route: string | null) =>
+      `Shopper chose: ${name} · ${price}${route ? ` (${route})` : ''}`,
+    noShopperChoice: 'No delivery option chosen',
+    free: 'Free',
     pickupValue: (day: string, time: string) => `${day}, ${time}`,
     walletLeft: (courier: string, amount: string) =>
       `Paid from your ${courier} wallet · ${amount} left. The label is ready to print right after booking.`,
