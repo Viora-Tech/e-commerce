@@ -173,3 +173,15 @@ export const shipmentActionsContent = {
   trackingUpdated: 'Tracking updated',
   failed: 'The courier request did not go through. Try again in a moment.',
 }
+
+/** Shipments › To book, a parcel of an order that ships in parts (Figma 918:10520). Dates come formatted ("22 Oct"). */
+export const shipmentPartsContent = {
+  part: (n: number, of: number) => `Part ${n} of ${of}`,
+  shipped: (n: number, date: string) => `Part ${n} shipped ${date}`,
+  item: (title: string, quantity: number) => `${title} × ${quantity}`,
+  waiting: {
+    preorder: (date: string | null) =>
+      date ? `Waiting · pre-order ${date}` : 'Waiting · pre-order',
+    stock: (date: string | null) => (date ? `Waiting · stock ${date}` : 'Waiting · stock'),
+  },
+}

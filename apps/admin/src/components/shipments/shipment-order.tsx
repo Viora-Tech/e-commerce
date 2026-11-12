@@ -11,6 +11,8 @@ import { routes } from '@/lib/routes'
 type ShipmentOrderProps = {
   order: OrderDetail
   appCards: string[]
+  /** A parcel still to book (a To book row's Part 2): Create shipment for it. */
+  parcel?: string | undefined
 }
 
 /**
@@ -18,7 +20,7 @@ type ShipmentOrderProps = {
  * opens Create shipment and a booked one opens the order at its shipment card; both go Back to
  * Shipments, and the sidebar keeps Shipments lit.
  */
-export default function ShipmentOrder({ order, appCards }: ShipmentOrderProps) {
+export default function ShipmentOrder({ order, appCards, parcel }: ShipmentOrderProps) {
   // Hooks
   const copy = useCopy(shipmentsContent)
   useEffect(() => {
@@ -29,8 +31,10 @@ export default function ShipmentOrder({ order, appCards }: ShipmentOrderProps) {
 
   // Render logic
   const back = { label: copy.title, href: routes.orders.shipments() }
-  const booked = order.shipment !== null && order.shipment.status !== 'cancelled'
+  /* Part 1 booked does not mean the order is: a part with no label of its own still books. */
+  const partToBook = order.partShipping?.parcels.some((p) => p.id === parcel && !p.shipment)
+  const booked = order.shipment !== null && order.shipment.status !== 'cancelled' && !partToBook
 
   if (booked) return <OrderView order={order} appCards={appCards} back={back} />
-  return <CreateShipmentPage orderId={order.id} back={back} />
+  return <CreateShipmentPage orderId={order.id} back={back} parcel={parcel} />
 }

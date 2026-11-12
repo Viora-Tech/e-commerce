@@ -21,7 +21,7 @@ import StatusChip from '@/components/layout/status-chip'
 import BookByNumberDialog from '@/components/shipments/book-by-number-dialog'
 import ResourceTable from '@/components/table/resource-table'
 import { shipmentFiltersContent } from '@/data/order-list-filters'
-import { shipmentsContent } from '@/data/shipments'
+import { shipmentPartsContent, shipmentsContent } from '@/data/shipments'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
@@ -80,6 +80,7 @@ async function fetchWallets(): Promise<Wallets> {
 function ShipmentsContent() {
   // Hooks
   const copy = useCopy(shipmentsContent)
+  const partsCopy = useCopy(shipmentPartsContent)
   const filterCopy = useCopy(shipmentFiltersContent)
   const router = useRouter()
   const fmt = useFormat()
@@ -105,6 +106,8 @@ function ShipmentsContent() {
   /** Couriers this store's shipments went with: the Courier filter's options. */
   const [usedCouriers, setUsedCouriers] = useState<string[]>([])
   const [selected, setSelected] = useState<string[]>([])
+  /** To book row id (a parcel, or an order shipping whole) -> its order, across pages ticked. */
+  const [rowOrders, setRowOrders] = useState<Map<string, string>>(new Map())
   const [booking, setBooking] = useState<string[]>([])
   const [byNumber, setByNumber] = useState(false)
   const [reloadKey, setReloadKey] = useState(0)
@@ -141,6 +144,9 @@ function ShipmentsContent() {
         if (!live) return
         setRows(r.items)
         setTotal(r.total)
+        setRowOrders(
+          (m) => new Map([...m, ...r.items.map((i): [string, string] => [i.id, i.orderId])]),
+        )
       })
       .finally(() => live && setLoading(false))
     return () => {
@@ -170,6 +176,15 @@ function ShipmentsContent() {
   const handleBook = (orderIds: string[]) => {
     if (orderIds.length === 1 && orderIds[0]) router.push(routes.orders.shipment(orderIds[0]))
     else if (orderIds.length > 1) setBooking(orderIds)
+  }
+  /* To book rows are parcels (Part 2 of an order is its own row): the ticked rows' orders, each
+     once; one parcel row opens Create shipment on that parcel. */
+  const handleBookRows = (rowIds: string[]) => {
+    const orderIds = [...new Set(rowIds.map((id) => rowOrders.get(id) ?? id))]
+    const only = rows.find((r) => r.id === rowIds[0])
+    if (rowIds.length === 1 && only?.fulfillmentOrderId) {
+      router.push(routes.orders.shipment(only.orderId, only.fulfillmentOrderId))
+    } else handleBook(orderIds)
   }
   /* Book by order number found these orders: the same Create shipment flow takes over. */
   const handleShipFound = (orderIds: string[]) => {
@@ -243,7 +258,7 @@ function ShipmentsContent() {
               {copy.courierSettings}
             </Button>
             <Button
-              onClick={() => handleBook(selected)}
+              onClick={() => handleBookRows(selected)}
               disabled={!canBook}
               title={canBook ? undefined : copy.bookSelectedHint}
             >
@@ -272,10 +287,10 @@ function ShipmentsContent() {
           <WalletStrip wallets={liveWallets} />
           <ResourceTable
             resourceName={copy.resource}
-            columns={shipmentColumns(copy, fmt, courierName, toBookCourier)}
+            columns={shipmentColumns(copy, fmt, courierName, toBookCourier, partsCopy)}
             items={rows}
             getId={(r) => r.id}
-            href={(r) => routes.orders.shipment(r.orderId)}
+            href={(r) => routes.orders.shipment(r.orderId, r.fulfillmentOrderId ?? undefined)}
             rowActions={(r) => (
               <span className="flex items-center gap-1">
                 {tab === 'toBook' ? (
@@ -284,7 +299,9 @@ function ShipmentsContent() {
                     variant="outline"
                     onClick={(e) => {
                       e.stopPropagation()
-                      router.push(routes.orders.shipment(r.orderId))
+                      router.push(
+                        routes.orders.shipment(r.orderId, r.fulfillmentOrderId ?? undefined),
+                      )
                     }}
                   >
                     <Truck aria-hidden="true" />
@@ -320,7 +337,7 @@ function ShipmentsContent() {
             selection={{ ids: selected, onChange: setSelected }}
             bulkActions={(ids) =>
               tab === 'toBook' ? (
-                <Button size="sm" onClick={() => handleBook(ids)}>
+                <Button size="sm" onClick={() => handleBookRows(ids)}>
                   <Truck aria-hidden />
                   {copy.bookSelected}
                 </Button>
