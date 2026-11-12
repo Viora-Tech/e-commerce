@@ -1,4 +1,5 @@
 import {
+  campaignVariants,
   createPreorderCampaign,
   deletePreorderCampaign,
   getPreorderCampaign,
@@ -7,6 +8,7 @@ import {
   PreorderCampaignError,
   PreorderCampaignIdSchema,
   PreorderCampaignUpdateSchema,
+  PreorderCampaignVariantsSchema,
   permissions,
   preorderOverview,
   updatePreorderCampaign,
@@ -45,6 +47,11 @@ export const preordersRouter = {
       .handler(({ context, input }) =>
         campaignErrors(() => getPreorderCampaign(ctxOf(context), input.id)),
       ),
+
+    /** These products' variants with their own pre-order limits, for the "Per product" card. */
+    variants: read()
+      .input(PreorderCampaignVariantsSchema)
+      .handler(({ context, input }) => campaignVariants(ctxOf(context), input.productIds)),
 
     create: write()
       .input(PreorderCampaignCreateSchema)

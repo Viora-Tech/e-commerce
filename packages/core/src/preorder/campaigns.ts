@@ -268,6 +268,19 @@ const campaignFields = {
       }),
     )
     .max(5000),
+  /**
+   * Each variant's own pre-order limit, typed on the campaign page and stored on the variant
+   * (`preorder_override.limit`, the field its page edits). Null clears it: the variant uses its
+   * product's limit, or the campaign's. Only variants of the campaign's products change.
+   */
+  variantLimits: z
+    .array(
+      z.object({
+        variantId: z.uuid(),
+        limit: z.number().int().min(1).max(1_000_000).nullable(),
+      }),
+    )
+    .max(5000),
 }
 
 type CampaignShape = {
@@ -327,6 +340,7 @@ export const PreorderCampaignCreateSchema = z
     design: campaignFields.design.default({}),
     productIds: campaignFields.productIds.default([]),
     members: campaignFields.members.default([]),
+    variantLimits: campaignFields.variantLimits.default([]),
   })
   .superRefine(checkMoney)
 export type PreorderCampaignCreateInput = z.input<typeof PreorderCampaignCreateSchema>
@@ -354,9 +368,16 @@ export const PreorderCampaignUpdateSchema = z
     design: campaignFields.design.optional(),
     productIds: campaignFields.productIds.optional(),
     members: campaignFields.members.optional(),
+    variantLimits: campaignFields.variantLimits.optional(),
   })
   .superRefine(checkMoney)
 export type PreorderCampaignUpdateInput = z.input<typeof PreorderCampaignUpdateSchema>
 export type PreorderCampaignMember = z.infer<typeof campaignFields.members>[number]
+export type PreorderCampaignVariantLimit = z.infer<typeof campaignFields.variantLimits>[number]
+
+/** The products whose variants the campaign page lists (saved members and ones just picked). */
+export const PreorderCampaignVariantsSchema = z.object({
+  productIds: z.array(z.uuid()).max(5000),
+})
 
 export const PreorderCampaignIdSchema = z.object({ id: z.uuid() })

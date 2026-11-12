@@ -73,6 +73,7 @@ export default function CampaignForm({ campaign, markets, locations }: CampaignF
   const [error, setError] = useState<string | null>(null)
   const [deleting, setDeleting] = useState(false)
   const [picking, setPicking] = useState(false)
+  const [reloadKey, setReloadKey] = useState(0)
 
   // Helpers
   const patch = (p: Partial<CampaignFormState>) => setForm((f) => ({ ...f, ...p }))
@@ -102,6 +103,7 @@ export default function CampaignForm({ campaign, markets, locations }: CampaignF
       const next = fromCampaign(fresh)
       setForm(next)
       setSaved(JSON.stringify(next))
+      setReloadKey((k) => k + 1)
       toast.success(copy.toasts.saved)
       router.refresh()
     } catch (err) {
@@ -131,6 +133,14 @@ export default function CampaignForm({ campaign, markets, locations }: CampaignF
       members: {
         ...form.members,
         [productId]: { variantIds: form.members[productId]?.variantIds ?? null, limit },
+      },
+    })
+
+  const handleVariantLimit = (productId: string, variantId: string, limit: string) =>
+    patch({
+      variantLimits: {
+        ...form.variantLimits,
+        [productId]: { ...form.variantLimits[productId], [variantId]: limit },
       },
     })
 
@@ -223,7 +233,13 @@ export default function CampaignForm({ campaign, markets, locations }: CampaignF
               onBrowse={canManage ? () => setPicking(true) : undefined}
             />
           </DataCard>
-          <CampaignMembersCard form={form} disabled={!canManage} onLimit={handleMemberLimit} />
+          <CampaignMembersCard
+            form={form}
+            disabled={!canManage}
+            reloadKey={reloadKey}
+            onLimit={handleMemberLimit}
+            onVariantLimit={handleVariantLimit}
+          />
           {/* One card per question (audit #34): when it ships, how it is paid, its discount,
               where it applies, then how it looks. */}
           <CampaignTermsCard
