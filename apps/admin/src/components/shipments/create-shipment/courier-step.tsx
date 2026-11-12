@@ -18,6 +18,7 @@ import CheckoutRouteNote from './checkout-route-note'
 import { groupCounts } from './courier-groups'
 import CourierOption from './courier-option'
 import { MANUAL, type ParcelQuote } from './flow-state'
+import type { ParcelSize } from './price-calculation'
 
 type CourierStepProps = {
   /** Null while the couriers are being asked. */
@@ -47,6 +48,8 @@ type CourierStepProps = {
   waitingForSize?: boolean
   /** Inside a card that already shows the heading and help (the full-page flow). */
   inCard?: boolean
+  /** The package as typed, for the picked courier's dead vs volumetric weight. */
+  parcel?: ParcelSize | null | undefined
 }
 
 /** Step 2: every connected courier with its live rate, delivery date and COD, plus "Ship it
@@ -69,6 +72,7 @@ export default function CourierStep({
   updating = false,
   waitingForSize = false,
   inCard = false,
+  parcel = null,
 }: CourierStepProps) {
   // Hooks
   const copy = useCopy(createShipmentContent)
@@ -180,6 +184,7 @@ export default function CourierStep({
               onSelect={() => onPick(row.optionKey)}
               onShipNow={onShipNow ? () => onShipNow(row.optionKey) : undefined}
               shipping={shippingKey === row.optionKey}
+              parcel={parcel}
             />
           ))}
         </div>

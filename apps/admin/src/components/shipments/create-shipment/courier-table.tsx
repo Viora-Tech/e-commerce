@@ -13,6 +13,8 @@ import { courierInitials } from './courier-groups'
 import { courierLogoSrc } from './courier-logo'
 import { coverNotes } from './cover-notes'
 import { rowInsuranceState } from './insured-rows'
+import { type ParcelSize, priceCalculation } from './price-calculation'
+import PriceCalculationList from './price-calculation-list'
 
 type CourierTableProps = {
   rows: readonly CourierRateRow[]
@@ -27,19 +29,18 @@ type CourierTableProps = {
   insured: boolean
   /** The parcel's charged weight, for a courier that did not say its own. */
   chargedGrams?: number | null | undefined
+  /** The package as typed (weight and box), for the dead vs volumetric weight lines. */
+  parcel?: ParcelSize | null | undefined
 }
 
 const SHORT_DATE = { weekday: 'short', day: 'numeric', month: 'short' } as const
-
-/** The breakdown's columns, in the courier's own order when it itemised one (Figma 898:7790). */
-const BREAKDOWN_ORDER = ['freight', 'fuel', 'cod', 'insurance', 'rto', 'other', 'gst'] as const
 
 const kg = (grams: number) => Math.round(grams / 10) / 100
 
 /**
  * The Select courier drawer's table (Figma 898:7790): logo with its badge under it, name and
  * how it is booked, delivery date and days, charged weight, charges, and Ship now. The picked
- * row opens its price breakdown under it. A courier that cannot take the parcel is dimmed and
+ * row opens its price worked out under it (`priceCalculation`). A courier that cannot take the parcel is dimmed and
  * says why; the rest stay bookable.
  */
 export default function CourierTable({
@@ -50,6 +51,7 @@ export default function CourierTable({
   shippingKey,
   insured,
   chargedGrams = null,
+  parcel = null,
 }: CourierTableProps) {
   // Hooks
   const copy = useCopy(createShipmentContent)
@@ -95,13 +97,9 @@ export default function CourierTable({
                 ]
                   .filter(Boolean)
                   .join(' · ')
-            const coverState = rowInsuranceState(row, insured)
-            const cover = coverState.kind
-            // Added by `insuredRows`: its own lines, as Delhivery itemises them.
-            const insurance = coverState.kind === 'added' ? coverState : null
-            const charges = [...row.charges].sort(
-              (a, b) => BREAKDOWN_ORDER.indexOf(a.kind) - BREAKDOWN_ORDER.indexOf(b.kind),
-            )
+            const cover = rowInsuranceState(row, insured).kind
+            // The picked row's price worked out: weight, courier lines, insurance, total.
+            const calc = picked ? priceCalculation(row, { insured, parcel, chargedGrams }) : null
             return (
               <Fragment key={row.optionKey}>
                 <tr
@@ -231,67 +229,14 @@ export default function CourierTable({
                     ) : null}
                   </td>
                 </tr>
-                {picked && !blocked && row.pricePaise !== null ? (
+                {picked && calc ? (
                   <tr className="bg-muted/40">
                     <td colSpan={5} className="px-4 py-3">
-                      <dl className="flex flex-wrap items-end gap-x-8 gap-y-2 pl-[4.25rem]">
-                        <dt className="self-center text-caption uppercase tracking-wide text-muted-foreground">
-                          {d.breakdown}
-                        </dt>
-                        {charges.map((ch) => (
-                          <div key={ch.kind} className="flex flex-col">
-                            <dt className="text-caption text-muted-foreground">
-                              {c.charge[ch.kind]}
-                            </dt>
-                            <dd className="font-medium tabular-nums text-ink-strong">
-                              {fmt.money(ch.pricePaise)}
-                            </dd>
-                          </div>
-                        ))}
-                        {charges.length === 0 && !insurance ? (
-                          <dd className="text-caption text-muted-foreground">{c.noBreakdown}</dd>
-                        ) : null}
-                        {insurance
-                          ? [
-                              {
-                                key: 'fee',
-                                label: insurance.estimate
-                                  ? d.insuranceEstimate
-                                  : insurance.gstIncluded
-                                    ? d.insuranceInclGst
-                                    : c.charge.insurance,
-                                paise: insurance.feePaise,
-                              },
-                              ...(insurance.gstIncluded
-                                ? []
-                                : [
-                                    {
-                                      key: 'gst',
-                                      label: d.insuranceGst,
-                                      paise: insurance.gstPaise,
-                                    },
-                                  ]),
-                            ].map((line) => (
-                              <div key={line.key} className="flex flex-col">
-                                <dt
-                                  className="text-caption text-muted-foreground"
-                                  title={insurance.estimate ? d.insuranceEstimateHint : undefined}
-                                >
-                                  {line.label}
-                                </dt>
-                                <dd className="font-medium tabular-nums text-ink-strong">
-                                  {fmt.money(line.paise)}
-                                </dd>
-                              </div>
-                            ))
-                          : null}
-                        <div className="flex flex-col">
-                          <dt className="text-caption text-muted-foreground">{d.youPay}</dt>
-                          <dd className="font-semibold tabular-nums text-ink-strong">
-                            {fmt.money(row.pricePaise)}
-                          </dd>
-                        </div>
-                      </dl>
+                      <PriceCalculationList
+                        calc={calc}
+                        estimateHint={d.insuranceEstimateHint}
+                        className="max-w-[52rem] pl-[4.25rem]"
+                      />
                     </td>
                   </tr>
                 ) : null}
