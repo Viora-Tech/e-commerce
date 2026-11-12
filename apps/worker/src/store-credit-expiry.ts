@@ -9,9 +9,6 @@ import { logger } from '@commerce/observability/logging'
  */
 export const STORE_CREDIT_EXPIRY_EVERY_MS = 60 * 60 * 1000
 
-/** The sweep's name, which was never a queue of its own (the shared sweeps queue only). */
-export const STORE_CREDIT_EXPIRY_QUEUE = 'store-credit-expiry'
-
 /**
  * One repeat job finds every store with store credit past its expiry date and not yet taken off
  * (`stores_with_store_credit_expiring`, ids only) and, per store under RLS, writes each expiry
