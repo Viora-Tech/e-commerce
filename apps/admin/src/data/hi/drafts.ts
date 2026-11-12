@@ -91,6 +91,11 @@ export default [
     expired: '7 दिन तक कोई गतिविधि न होने पर इस चेकआउट का पेमेंट का इंतज़ार बंद हो गया।',
     refundNeeded: 'पेमेंट आया पर आइटम स्टॉक में नहीं थे, इसलिए ऑर्डर नहीं बना। ग्राहक को पेमेंट रिफ़ंड करें।',
     attempts: 'पेमेंट की कोशिशें',
+    subtotal: 'सबटोटल',
+    discount: (label: string | null) => (label ? `छूट (${label})` : 'छूट'),
+    shipping: (name: string | null) => (name ? `शिपिंग (${name})` : 'शिपिंग'),
+    paymentAdjustment: (label: string | null, negative: boolean) =>
+      label ?? (negative ? 'पेमेंट तरीके पर छूट' : 'पेमेंट तरीके का शुल्क'),
     attempt: (n: number) => `कोशिश ${n}`,
     noAttempts: 'अभी कोई पेमेंट कोशिश नहीं',
     attemptStatus: {
