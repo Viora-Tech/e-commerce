@@ -79,7 +79,7 @@ const protectCardOf = (apps: AppsSettings): ProtectCard => {
 }
 
 /** The store's Delhivery Protect card; Delhivery's defaults when the merchant saved none. */
-export async function loadProtectCard(tx: StoreTx, storeId: string): Promise<ProtectCard> {
+async function loadProtectCard(tx: StoreTx, storeId: string): Promise<ProtectCard> {
   const [s] = await tx.select({ apps: store.apps }).from(store).where(eq(store.id, storeId))
   return protectCardOf(parseAppsSettings(s?.apps))
 }

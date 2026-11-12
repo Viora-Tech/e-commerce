@@ -35,35 +35,6 @@ export const PROTECT_CATEGORIES = [
 
 export type ProtectCategory = (typeof PROTECT_CATEGORIES)[number]
 
-/** Delhivery's own names, for logs and docs; the admin reads translated names from its copy. */
-export const PROTECT_CATEGORY_NAMES: Record<ProtectCategory, string> = {
-  apparel: 'Apparel and Accessories',
-  bags: 'Handbags, Bags and Luggage',
-  footwear: 'Shoes and Footwear',
-  baby: 'Baby Care',
-  health: 'Health and Wellness',
-  beauty: 'Beauty Products and Personal Care',
-  books: 'Books, Software and E-learning',
-  grocery: 'Grocery and Gourmet Food',
-  stationery: 'Stationery and Office Products',
-  tools: 'Tools and Hardware',
-  pets: 'Pet Supplies',
-  home_kitchen: 'Home and Kitchen',
-  electronics: 'Electronics and Appliances',
-  automotive: 'Automotive',
-  watches_jewellery: 'Watches, Eyewear and Jewellery',
-  computers: 'Computers, Laptops and Accessories',
-  batteries: 'Cells and Batteries',
-  mobiles: 'Mobile Phone, Tablets and Accessories',
-  cameras: 'Camera and Photos',
-  industrial: 'Industrial and Scientific Goods',
-  musical: 'Musical Instruments',
-  sports: 'Sports and Outdoors',
-  toys: 'Toys and Games',
-  undetermined: 'Undetermined shipment category',
-  multi: 'Multi-category',
-}
-
 /** Delhivery Protect's card as the owner gave it (12 Nov 2026): % of value, in basis points. */
 export const DEFAULT_PROTECT_BPS: Record<ProtectCategory, number> = {
   apparel: 25,

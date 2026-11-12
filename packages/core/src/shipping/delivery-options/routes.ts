@@ -324,11 +324,11 @@ export const COURIER_INSURANCE: Readonly<Record<string, CourierInsuranceRate>> =
 }
 
 /** Delhivery's own app (not Delhivery through an aggregator): insured with Delhivery Protect. */
-export const isDelhiveryDirect = (route: Pick<Route, 'channel' | 'carrierKey'>): boolean =>
+const isDelhiveryDirect = (route: Pick<Route, 'channel' | 'carrierKey'>): boolean =>
   route.channel === 'direct' && route.carrierKey === 'delhivery'
 
 /** A percentage fee of the value, rounded to the paisa as couriers do (₹18.796 → ₹18.80). */
-export const insuranceFeePaise = (valuePaise: number, bps: number): number =>
+const insuranceFeePaise = (valuePaise: number, bps: number): number =>
   Math.round((Math.max(0, valuePaise) * bps) / 10_000)
 
 /** A fee with its 18% GST (₹18.80 → GST ₹3.38). */

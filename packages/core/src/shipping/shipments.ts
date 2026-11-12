@@ -274,8 +274,8 @@ export async function createShipmentForOrder(
       resolveParcelWeightGrams(lines, packingGrams),
       options.dimensionsCm ? null : parcelPackage,
     )
-  // A parcel that is the whole order is worth the order; one of several, its own share.
-  // The same rule the Create shipment drawer prices insurance on (`declaredValuePaise`).
+  // A parcel that is the whole order is worth the order; one of several, its own share (the
+  // value the Create shipment drawer prices insurance on).
   const valuePaise = declaredValuePaise({
     parcelId: named?.id ?? null,
     parcelTotalPaise: named?.totalPaise ?? null,
@@ -300,15 +300,12 @@ export async function createShipmentForOrder(
   const carrier =
     options.carrier?.trim() ||
     (onRoute ? route.carrier : bookedCarrier(provider, options.serviceLabel))
-  /* What the insurance costs (Delhivery Protect, or the route's rate), worked out before the
-     courier is called so the AWB is never booked without its row. Kept for the margin. */
+  // Insurance cost, for the margin: worked out before the courier call, so no AWB lacks its row.
   const insurancePaise = await bookingInsurancePaise(ctx.tx, ctx.storeId, {
     orderId: o.id,
     fulfillmentOrderId: named?.id ?? null,
     provider,
-    serviceId: options.serviceId,
-    serviceLabel: options.serviceLabel,
-    carrier: options.carrier,
+    service: options,
     valuePaise,
     insured,
   })

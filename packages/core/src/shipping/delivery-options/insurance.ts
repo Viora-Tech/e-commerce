@@ -153,9 +153,12 @@ export async function bookingInsurancePaise(
     orderId: string
     fulfillmentOrderId?: string | null | undefined
     provider: { id: string; label: string }
-    serviceId?: string | undefined
-    serviceLabel?: string | undefined
-    carrier?: string | undefined
+    /** The service booked, as Create shipment passes it. */
+    service: {
+      serviceId?: string | undefined
+      serviceLabel?: string | undefined
+      carrier?: string | undefined
+    }
     valuePaise: number
     insured: boolean
   },
@@ -166,10 +169,10 @@ export async function bookingInsurancePaise(
     {
       providerId: b.provider.id,
       providerName: b.provider.label,
-      serviceId: b.serviceId ?? null,
-      serviceLabel: b.serviceLabel ?? null,
+      serviceId: b.service.serviceId ?? null,
+      serviceLabel: b.service.serviceLabel ?? null,
       // A direct courier's own service names no carrier behind it, as in the rate rows.
-      carrier: AGGREGATOR_PROVIDERS.has(b.provider.id) ? (b.carrier ?? null) : null,
+      carrier: AGGREGATOR_PROVIDERS.has(b.provider.id) ? (b.service.carrier ?? null) : null,
       charges: [],
       pricePaise: null,
       minTransitDays: null,
@@ -184,7 +187,7 @@ export async function bookingInsurancePaise(
 }
 
 /** The products in one parcel of an order (its fulfilment order), or in the whole order. */
-export async function parcelProductIds(
+async function parcelProductIds(
   tx: StoreTx,
   orderId: string,
   fulfillmentOrderId?: string | null,
@@ -223,7 +226,7 @@ export async function parcelInsuranceFacts(
  * The route settings and the parcel's Protect category for these products. Read whether or not
  * the Delivery options app is on: Delhivery Protect's defaults need no setup.
  */
-export async function insuranceFacts(
+async function insuranceFacts(
   tx: StoreTx,
   storeId: string,
   productIds: readonly string[],
