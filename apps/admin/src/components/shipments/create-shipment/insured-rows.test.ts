@@ -12,6 +12,7 @@ const PROTECT: RowInsurance = {
   estimate: false,
   protectCategory: 'computers',
   protectBps: 40,
+  rateBps: 40,
 }
 
 const row = (over: Partial<CourierRateRow> = {}): CourierRateRow => ({
@@ -71,6 +72,7 @@ describe('the drawer’s Shipping insurance switch', () => {
       pricePaise: 4248,
       estimate: false,
       gstIncluded: false,
+      rateBps: 40,
     })
   })
 

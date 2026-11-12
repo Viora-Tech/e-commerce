@@ -8,11 +8,11 @@ import {
   pixelEventDay,
   pixelEventLog,
   type StoreTx,
-  store,
 } from '@commerce/db'
 import { and, count, desc, eq, gte, lt, sql } from 'drizzle-orm'
 import { z } from 'zod'
 import { parseAppsSettings } from '../apps/settings'
+import { storeAppsRow } from '../apps/store-apps'
 import { CommerceError } from '../errors'
 import { decryptSecret, encryptSecret } from '../secrets'
 import { isMetaPixelId, MAX_PIXELS_PER_STORE, PIXEL_EVENTS, PURCHASE_TRIGGERS } from './client'
@@ -98,8 +98,8 @@ function publicPixel(p: Row) {
 export type PublicPixel = ReturnType<typeof publicPixel>
 
 export async function pixelsInstalled(tx: StoreTx, storeId: string): Promise<boolean> {
-  const [s] = await tx.select({ apps: store.apps }).from(store).where(eq(store.id, storeId))
-  return parseAppsSettings(s?.apps).installed.includes(PIXELS_APP_ID)
+  const s = await storeAppsRow(tx, storeId)
+  return parseAppsSettings(s.apps).installed.includes(PIXELS_APP_ID)
 }
 
 export async function listPixels(tx: StoreTx): Promise<PublicPixel[]> {

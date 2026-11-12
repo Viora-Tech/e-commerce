@@ -215,6 +215,7 @@ export default function SingleShipmentFlow({
             tracking={tracking}
             onTrackingChange={setTracking}
             onRetry={() => void askCouriers()}
+            parcel={parsed}
           />
         ) : null}
         {step === 'review' && parsed ? (

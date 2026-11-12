@@ -86,6 +86,25 @@ delivery there, or didn't answer says so on its own row; the others still work. 
 without a price API (Delhivery today) shows **Rate on booking**. **Ship it yourself** is always
 there for your own courier or local delivery: type the AWB and the courier name.
 
+The courier you pick opens **How this price is worked out** under its row:
+
+- **Weight**: the parcel's dead weight (on the scale) and its volumetric weight (length ×
+  width × height in cm ÷ 5000). You are charged on the higher one. When the courier reports a
+  different charged weight of its own (its weight slabs), that is shown too, "as charged by the
+  courier".
+- **Courier charges**: freight, fuel, COD, return (RTO), other charges and GST, as the courier
+  itemised them. Couriers that give one figure only (RapidShyp, and Shiprocket for some
+  carriers) show **Courier's total (incl. GST)**; it is never split into parts we guessed.
+  When the courier's parts don't add up to its total, the gap is shown (**Rounding** for up to
+  ₹1).
+- **Shipping insurance** (when the switch is on): the rate × the parcel's declared value, e.g.
+  Delhivery Protect `0.40% × ₹24,250 = ₹97.00` then `+ 18% GST ₹17.46`. RapidShyp's
+  `0.89%` + GST is marked **estimate** (its own bill can differ slightly); Shiprocket's `1.05%`
+  already includes GST. A route's own rate gets 18% GST on top, and a route minimum shows as
+  **Route's minimum fee**. If the courier's quote already has an insurance line, it is not added
+  again.
+- **Total you pay**: the same price as on the row.
+
 <Screenshot
   name="Create shipment, Courier step"
   caption="Create shipment for #1042, Courier step: Shiprocket ₹62 with Recommended and Cheapest badges, Delhivery Rate on booking with Fastest, RapidShyp greyed out with Doesn't deliver to this PIN code, and Ship it yourself at the bottom."

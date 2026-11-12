@@ -86,7 +86,7 @@ import { platformWebhooks } from './platform-webhooks'
 import { BALANCE_EVERY_MS, createPreorderBalanceJob } from './preorder-balance'
 import { createPurchaseDocumentWorker } from './purchase-documents'
 import { createConnection, createHeartbeat } from './queues'
-import { createRefundSync, REFUND_SYNC_EVERY_MS, REFUND_SYNC_QUEUE } from './refund-sync'
+import { createRefundSync, REFUND_SYNC_EVERY_MS } from './refund-sync'
 import { createRetentionPrune, RETENTION_SCHEDULE } from './retention'
 import { createReviewSummarySweep, REVIEW_SUMMARIES_EVERY_MS } from './review-summaries'
 import { createReviewRequestSweep, REVIEW_REQUESTS_EVERY_MS } from './reviews'
@@ -97,11 +97,7 @@ import { shipmentWebhooks } from './shipments-webhook'
 import { createShippingTracker, TRACK_EVERY_MS } from './shipping'
 import { createShopifyTokenSweep, SHOPIFY_TOKEN_SWEEP_EVERY_MS } from './shopify-token-sweep'
 import { createStoreActivityPrune, STORE_ACTIVITY_PRUNE_EVERY_MS } from './store-activity'
-import {
-  createStoreCreditExpiry,
-  STORE_CREDIT_EXPIRY_EVERY_MS,
-  STORE_CREDIT_EXPIRY_QUEUE,
-} from './store-credit-expiry'
+import { createStoreCreditExpiry, STORE_CREDIT_EXPIRY_EVERY_MS } from './store-credit-expiry'
 import { createStoreExportWorker } from './store-export'
 import { createSweepWorker, type Sweep, scheduleSweeps } from './sweeps'
 import { createThemeScreenshotWorker } from './theme-screenshot'
@@ -288,7 +284,6 @@ const sweepList: Sweep[] = [
     name: 'store-credit-expiry',
     schedule: every(STORE_CREDIT_EXPIRY_EVERY_MS),
     run: storeCreditExpiry.run,
-    legacy: { queue: STORE_CREDIT_EXPIRY_QUEUE, scheduler: 'store-credit-expiry' },
   },
   {
     name: 'payment-fees',
@@ -301,7 +296,6 @@ const sweepList: Sweep[] = [
     name: 'refund-sync',
     schedule: every(REFUND_SYNC_EVERY_MS),
     run: refundSync.run,
-    legacy: { queue: REFUND_SYNC_QUEUE, scheduler: 'refund-sync' },
   },
   {
     name: 'domain-verify',

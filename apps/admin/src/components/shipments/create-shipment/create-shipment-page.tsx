@@ -425,6 +425,7 @@ export default function CreateShipmentPage({ orderId, back, courier }: CreateShi
               onRetry={draft.couriers.length > 0 ? recheck : undefined}
               status={drawerStatus}
               chargedGrams={quote?.chargedWeightGrams}
+              parcel={parsed}
             >
               {manual ? (
                 <div className="flex flex-col gap-3 rounded-lg border border-primary bg-primary-soft p-4">

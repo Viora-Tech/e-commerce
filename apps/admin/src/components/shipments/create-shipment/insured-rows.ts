@@ -20,6 +20,8 @@ export type RowInsuranceState =
       estimate: boolean
       /** Shiprocket's 1.05% already holds GST: one line, "incl. GST". */
       gstIncluded: boolean
+      /** The rate the fee was worked out at (basis points); null when a route minimum set it. */
+      rateBps: number | null
     }
   | { kind: 'included'; pricePaise: number }
   | { kind: 'unset' }
@@ -40,6 +42,7 @@ export function rowInsuranceState(
         pricePaise: ins.pricePaise,
         estimate: ins.estimate,
         gstIncluded: ins.gstIncluded,
+        rateBps: ins.rateBps ?? null,
       }
 }
 

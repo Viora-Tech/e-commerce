@@ -140,6 +140,16 @@ describe('scheduleSweeps (first boot after the move)', () => {
     ])
   })
 
+  it('a sweep added after the move has no old queue to read or delete', async () => {
+    const q = sharedQueue()
+    const old = legacyQueues({})
+    await scheduleSweeps(q, [sweep({ name: 'new', legacy: undefined })], old.make, {
+      now: () => NOW,
+    })
+    expect(q.calls).toEqual([['upsert', 'new', { every: 60_000 }, { name: 'new' }]])
+    expect(old.calls).toEqual([])
+  })
+
   it('with no old scheduler (later boots) the shared one is upserted as is', async () => {
     const q = sharedQueue()
     await scheduleSweeps(q, [sweep({ name: 'a' })], legacyQueues({}).make, { now: () => NOW })

@@ -7,14 +7,15 @@ export type SweepSchedule = { every: number } | { pattern: string; tz?: string }
 /**
  * One scheduled job: what it runs and when. `name` is its job name and scheduler id on the shared
  * queue, and the label its wide events and Sentry reports carry (the old queue's label, so log
- * searches still find it). `legacy` is the queue and scheduler it had before the shared queue.
+ * searches still find it). `legacy` is the queue and scheduler it had before the shared queue; a sweep
+ * added after the shared queue has none, so there is nothing to carry over or delete.
  * `enabled: false` removes its schedule (no provider, no token) instead of adding it.
  */
 export type Sweep = {
   name: string
   schedule: SweepSchedule
   run: () => Promise<unknown>
-  legacy: { queue: string; scheduler: string }
+  legacy?: { queue: string; scheduler: string } | undefined
   enabled?: boolean | undefined
 }
 
@@ -101,9 +102,10 @@ export async function scheduleSweeps(
 ): Promise<void> {
   const now = opts.now ?? Date.now
   for (const sweep of sweeps) {
-    const old = legacyQueue(sweep.legacy.queue)
+    const legacy = sweep.legacy
+    const old = legacy ? legacyQueue(legacy.queue) : null
     try {
-      const next = (await old.getJobScheduler(sweep.legacy.scheduler))?.next
+      const next = old && legacy ? (await old.getJobScheduler(legacy.scheduler))?.next : undefined
       if (sweep.enabled === false) {
         await queue.removeJobScheduler(sweep.name)
       } else if ('every' in sweep.schedule) {
@@ -116,8 +118,10 @@ export async function scheduleSweeps(
         await queue.upsertJobScheduler(sweep.name, sweep.schedule, { name: sweep.name })
         if (next && next <= now()) await queue.add(sweep.name, {})
       }
-      await old.removeJobScheduler(sweep.legacy.scheduler)
-      await retireQueue(old, sweep.legacy.queue, opts.retryLaterMs ?? 2 * 60_000)
+      if (old && legacy) {
+        await old.removeJobScheduler(legacy.scheduler)
+        await retireQueue(old, legacy.queue, opts.retryLaterMs ?? 2 * 60_000)
+      }
     } catch (err) {
       logger.error('could not schedule sweep', { area: 'sweeps', name: sweep.name, error: err })
     }

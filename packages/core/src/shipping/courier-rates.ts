@@ -104,6 +104,9 @@ export type RowInsurance = {
   /** Delhivery Protect: the parcel's category key and rate in basis points. */
   protectCategory: ProtectCategory | null
   protectBps: number | null
+  /** The rate the fee was worked out at (basis points of the value); null for the courier's own
+   *  line or a route minimum. See `InsuranceQuote.rateBps`. */
+  rateBps: number | null
 }
 
 /**

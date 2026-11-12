@@ -166,6 +166,7 @@ describe('where a route’s insurance price comes from', () => {
       gstIncluded: false,
       estimate: false,
       protect: computers,
+      rateBps: 40,
     })
     // ₹4,699: ₹18.80 + GST ₹3.38.
     expect(insuranceQuote(route(), 469_900, computers)).toMatchObject({
@@ -205,6 +206,17 @@ describe('where a route’s insurance price comes from', () => {
     const blueDart = route({ providerId: 'bluedart', carrierKey: 'bluedart', insurancePercent: 1 })
     const q = insuranceQuote(blueDart, 899_900, computers)
     expect(q).toMatchObject({ source: 'route', feePaise: 8999, gstPaise: 1620, pricePaise: 10_619 })
+    expect(q?.rateBps).toBe(100)
+  })
+
+  it('a route minimum that sets the fee carries no rate (the drawer says "minimum")', () => {
+    const blueDart = route({
+      providerId: 'bluedart',
+      carrierKey: 'bluedart',
+      insurancePercent: 1,
+      insuranceMinPaise: 20_000,
+    })
+    expect(insuranceQuote(blueDart, 899_900)).toMatchObject({ feePaise: 20_000, rateBps: null })
   })
 
   it('on Delhivery direct the Protect card always wins over a rate set on the route', () => {
@@ -227,6 +239,7 @@ describe('where a route’s insurance price comes from', () => {
       gstIncluded: true,
       estimate: false,
       protect: null,
+      rateBps: 105,
     })
     expect(insuranceQuote(viaShiprocket, 1_488_900)?.pricePaise).toBe(15_633)
     expect(insuranceQuote(viaShiprocket, 1_929_700)?.pricePaise).toBe(20_262)
@@ -251,6 +264,7 @@ describe('where a route’s insurance price comes from', () => {
       gstIncluded: true,
       estimate: false,
       protect: null,
+      rateBps: null,
     })
   })
 

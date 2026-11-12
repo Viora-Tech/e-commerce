@@ -6,9 +6,6 @@ import { providersFor } from './payment-fees'
 /** Daily: Decentro refunds usually settle within a few working days. */
 export const REFUND_SYNC_EVERY_MS = 24 * 3_600_000
 
-/** The name its legacy slot is filed under; this sweep never had a queue of its own. */
-export const REFUND_SYNC_QUEUE = 'refund-sync'
-
 /** Refunds asked about per store per run. */
 const PER_STORE_LIMIT = 100
 

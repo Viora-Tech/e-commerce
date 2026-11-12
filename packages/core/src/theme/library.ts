@@ -1,5 +1,6 @@
 import { newId, type StoreTx, store, theme, themeTemplate } from '@commerce/db'
 import { and, desc, eq, ne, sql } from 'drizzle-orm'
+import { storeAppsRow } from '../apps/store-apps'
 import { CommerceError } from '../errors'
 import { copyThemeImport } from '../theme-import/bundle-store'
 import { applyThemePreset } from './presets'
@@ -146,8 +147,8 @@ export async function liveThemeLogoUrl(tx: StoreTx): Promise<string | null> {
 
 /** The store-level theme packs (`parseThemePacks`): what themes without their own list offer. */
 export async function storeThemePacks(tx: StoreTx, storeId: string): Promise<ThemePackId[]> {
-  const [s] = await tx.select({ apps: store.apps }).from(store).where(eq(store.id, storeId))
-  return parseThemePacks(s?.apps)
+  const s = await storeAppsRow(tx, storeId)
+  return parseThemePacks(s.apps)
 }
 
 /**

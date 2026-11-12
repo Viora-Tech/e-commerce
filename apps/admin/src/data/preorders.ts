@@ -64,11 +64,17 @@ export const preordersContent = {
       'Products in this campaign take its settings. A product in another campaign moves to this one when you save.',
     perProduct: 'Per product',
     perProductHelp:
-      'Only the variants you picked take pre-orders. A limit here is that product’s own, per variant beyond stock; blank uses the campaign’s.',
+      'Only the variants you picked take pre-orders. Limits count units beyond stock for each variant. Type a variant’s own limit under its product; a blank one uses the product’s limit, or the campaign’s.',
     allVariants: 'All variants',
     someVariants: (n: number) => `${n} variant${n === 1 ? '' : 's'} picked`,
     productLimit: 'Limit',
     campaignLimit: 'Campaign’s',
+    variantLimits: (n: number) => `Variant limits (${n})`,
+    variantLimit: (name: string) => `Pre-order limit for ${name}`,
+    fromProduct: (n: number) => `${n} (product’s)`,
+    fromCampaign: (n: number) => `${n} (campaign’s)`,
+    noLimit: 'No limit',
+    loadingVariants: 'Loading variants…',
     pickProducts: 'Choose products',
     searchProducts: 'Search products',
     productsLabel: 'Products',
@@ -81,7 +87,8 @@ export const preordersContent = {
     shipsInDays: 'Or, ships in (days)',
     shipsInDaysHelp: 'Used when no ship date is set.',
     limit: 'Pre-order limit per variant',
-    limitHelp: 'Units beyond stock. Leave blank for no limit.',
+    limitHelp:
+      'Units beyond stock, for each variant that has no limit of its own or from its product. Leave blank for no limit.',
     payment: 'Payment',
     paymentFull: 'Charge in full',
     paymentFixed: 'Fixed deposit',
@@ -178,6 +185,6 @@ export const preordersContent = {
     failed: 'Could not save the campaign',
     nameNeeded: 'Give the campaign a name',
     badNumber:
-      'Check the numbers: limit, days, deposit and discount must be whole numbers above zero',
+      'Check the numbers: limits, days, deposit and discount must be whole numbers above zero (a variant’s limit at most 1,000,000)',
   },
 }

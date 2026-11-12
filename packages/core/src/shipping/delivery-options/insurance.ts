@@ -92,6 +92,7 @@ export function rowInsurance(
         estimate: q.estimate,
         protectCategory: q.protect?.category ?? null,
         protectBps: q.protect?.bps ?? null,
+        rateBps: q.rateBps,
       }
     : null
 }
