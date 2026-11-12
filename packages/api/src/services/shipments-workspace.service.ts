@@ -12,15 +12,7 @@ import {
 import { SHIPMENT_TAB_STATUSES } from '@commerce/core/shipment-tabs'
 import { startOfDay } from '@commerce/dates'
 import type { StoreTx } from '@commerce/db'
-import {
-  address,
-  customer,
-  fulfillmentOrder,
-  order,
-  orderLine,
-  shipment,
-  variant,
-} from '@commerce/db'
+import { address, customer, order, shipment } from '@commerce/db'
 import { ASSUMED_WEIGHT_GRAMS, type RateQuery } from '@commerce/shipping'
 import { ORPCError } from '@orpc/server'
 import {
@@ -39,6 +31,7 @@ import {
   sql,
 } from 'drizzle-orm'
 import { bookSavedRoute, parcelsToBook, ruleAllowedRows } from './delivery-booking.service'
+import { countReadyToShip, orderNumberIn } from './ready-to-ship.service'
 import { loadShippingSettings, noteShipmentBooked } from './shipping.service'
 
 type OrderShippingContext = {
@@ -77,10 +70,6 @@ async function loadOrderShippingContexts(
     .where(inArray(order.id, orderIds))
   return rows
 }
-
-/** "1042" or "#1042" in a search box is an order number. */
-const orderNumberIn = (search: string | undefined): number | null =>
-  search && /^#?\d{1,9}$/.test(search) ? Number(search.replace('#', '')) : null
 
 export type ShipmentListFilter = {
   page: number
@@ -185,9 +174,6 @@ export async function listShipments(
   return { items, total: countRow?.total ?? 0 }
 }
 
-const gramsOrNull = (grams: number | string | null | undefined): number | null =>
-  grams === null || grams === undefined ? null : Number(grams)
-
 /** How many rows each Shipments tab holds, plus the two numbers the summary line uses. */
 export async function shipmentCounts(tx: StoreTx, now = new Date()) {
   const today = startOfDay(now)
@@ -213,13 +199,8 @@ export async function shipmentCounts(tx: StoreTx, now = new Date()) {
       bookedToday: sql<number>`count(*) filter (where ${gte(shipment.createdAt, today)})`,
     })
     .from(shipment)
-  const [ready] = await tx
-    .select({ total: count() })
-    .from(order)
-    .innerJoin(address, eq(address.id, order.shippingAddressId))
-    .where(readyToShipWhere())
   return {
-    toBook: ready?.total ?? 0,
+    toBook: await countReadyToShip(tx),
     booked: Number(row?.booked ?? 0),
     toPickUp: Number(row?.toPickUp ?? 0),
     inTransit: Number(row?.inTransit ?? 0),
@@ -227,120 +208,6 @@ export async function shipmentCounts(tx: StoreTx, now = new Date()) {
     rto: Number(row?.rto ?? 0),
     needsAttention: Number(row?.needsAttention ?? 0),
     bookedToday: Number(row?.bookedToday ?? 0),
-  }
-}
-
-export type ReadyToShipFilter = { page: number; perPage: number; search?: string | undefined }
-
-export type ReadyToShipRow = {
-  orderId: string
-  orderNumber: number
-  placedAt: Date
-  customerName: string | null
-  email: string | null
-  city: string
-  stateCode: string
-  pincode: string
-  itemsCount: number
-  totalPaise: number
-  isPreorder: boolean
-  /** Sum of the lines' variant weights; null when no line's variant has a weight set. */
-  weightGrams: number | null
-}
-
-/** Paid orders not yet shipped: fulfilment `unfulfilled`/`partially_fulfilled`, order not
- *  cancelled, and not tagged on hold. This is the Ready to ship tab's main list - the
- *  Shopify-style booking flow starts here instead of pasting order numbers. */
-/** Paid, unshipped, not cancelled and not on hold: the orders the To book tab lists. */
-const readyToShipWhere = () =>
-  and(
-    inArray(order.paymentStatus, ['paid', 'partially_paid']),
-    or(
-      inArray(order.fulfillmentStatus, ['unfulfilled', 'partially_fulfilled']),
-      /* Packed, but its label was cancelled and nothing replaced it: back on the list to book. */
-      and(
-        eq(order.fulfillmentStatus, 'fulfilled'),
-        sql`exists (select 1 from ${shipment} where ${shipment.orderId} = ${order.id} and ${shipment.status} = 'cancelled')`,
-        sql`not exists (select 1 from ${shipment} where ${shipment.orderId} = ${order.id} and ${shipment.status} not in ('cancelled', 'rto'))`,
-      ),
-    ),
-    sql`${order.status} != 'cancelled'`,
-    // Something on the order needs a courier: gift cards, services and downloads do not.
-    sql`exists (select 1 from ${orderLine} l where l.order_id = ${order.id} and l.requires_shipping and not l.gift_card)`,
-    // A held parcel (Hold fulfilment) keeps the order off the list until it is released.
-    sql`not exists (select 1 from ${fulfillmentOrder} where ${fulfillmentOrder.orderId} = ${order.id} and ${fulfillmentOrder.heldAt} is not null and ${fulfillmentOrder.status} in ('open', 'on_hold'))`,
-    // The older stand-in, kept for stores that mark holds with a tag.
-    sql`not (${order.tags} && array['hold', 'on-hold']::text[])`,
-  )
-
-export async function listReadyToShip(
-  tx: StoreTx,
-  input: ReadyToShipFilter,
-): Promise<{ items: ReadyToShipRow[]; total: number }> {
-  const orderNumber = orderNumberIn(input.search)
-  const where = and(
-    readyToShipWhere(),
-    input.search
-      ? or(
-          ilike(order.email, `%${input.search}%`),
-          ilike(address.name, `%${input.search}%`),
-          ilike(address.pincode, `%${input.search}%`),
-          orderNumber !== null ? eq(order.number, orderNumber) : undefined,
-        )
-      : undefined,
-  )
-  const base = tx
-    .select({
-      orderId: order.id,
-      orderNumber: order.number,
-      placedAt: order.placedAt,
-      email: order.email,
-      totalPaise: order.totalPaise,
-      customerName: sql<string | null>`coalesce(${address.name}, ${customer.name})`,
-      city: address.city,
-      stateCode: address.stateCode,
-      pincode: address.pincode,
-    })
-    .from(order)
-    .innerJoin(address, eq(address.id, order.shippingAddressId))
-    .leftJoin(customer, eq(customer.id, order.customerId))
-    .where(where)
-  const [countRow] = await tx
-    .select({ total: count() })
-    .from(order)
-    .innerJoin(address, eq(address.id, order.shippingAddressId))
-    .leftJoin(customer, eq(customer.id, order.customerId))
-    .where(where)
-  const rows = await base
-    .orderBy(desc(order.placedAt))
-    .limit(input.perPage)
-    .offset((input.page - 1) * input.perPage)
-
-  const orderIds = rows.map((r) => r.orderId)
-  const lineAgg =
-    orderIds.length === 0
-      ? []
-      : await tx
-          .select({
-            orderId: orderLine.orderId,
-            itemsCount: sql<number>`coalesce(sum(${orderLine.quantity}), 0)`,
-            isPreorder: sql<boolean>`bool_or(${orderLine.preorder})`,
-            weightGrams: sql<number | null>`sum(${orderLine.quantity} * ${variant.weightGrams})`,
-          })
-          .from(orderLine)
-          .leftJoin(variant, eq(variant.id, orderLine.variantId))
-          .where(and(inArray(orderLine.orderId, orderIds), eq(orderLine.requiresShipping, true)))
-          .groupBy(orderLine.orderId)
-  const byOrder = new Map(lineAgg.map((l) => [l.orderId, l]))
-
-  return {
-    items: rows.map((r) => ({
-      ...r,
-      itemsCount: Number(byOrder.get(r.orderId)?.itemsCount ?? 0),
-      isPreorder: byOrder.get(r.orderId)?.isPreorder ?? false,
-      weightGrams: gramsOrNull(byOrder.get(r.orderId)?.weightGrams),
-    })),
-    total: countRow?.total ?? 0,
   }
 }
 

@@ -3,6 +3,7 @@ import {
   address,
   createDb,
   fulfillmentOrder,
+  fulfillmentOrderLine,
   location,
   order,
   orderLine,
@@ -13,6 +14,7 @@ import {
 } from '@commerce/db'
 import { resetDb } from '@commerce/db/test'
 import { call } from '@orpc/server'
+import { eq } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import type { ApiContext } from '../src/context'
 import { appRouter } from '../src/routers/_app'
@@ -238,6 +240,86 @@ describe('shipments.readyToShip', () => {
       { context: m.ctx },
     )
     expect(r.items.map((i) => i.orderId)).toEqual([freed])
+  })
+
+  it('lists one row per open parcel: Part 2 of 2 with its items, Part 1 shipped and why it waits', async () => {
+    const m = await merchant('parts@example.com', 'parts')
+    const orderId = await seedOrderWithLines(
+      m.storeId,
+      { number: 1042, paymentStatus: 'paid', fulfillmentStatus: 'partially_fulfilled' },
+      [{ quantity: 1 }, { quantity: 1, preorder: true }],
+    )
+    const lines = await owner.select().from(orderLine).where(eq(orderLine.orderId, orderId))
+    const [shippedLine, waitingLine] = [
+      lines.find((l) => !l.preorder),
+      lines.find((l) => l.preorder),
+    ]
+    await owner
+      .update(orderLine)
+      .set({ title: 'Mouse Skates', preorderShipDate: new Date('2026-10-22T06:00:00Z') })
+      .where(eq(orderLine.id, waitingLine?.id as string))
+    const [loc] = await owner
+      .insert(location)
+      .values({ storeId: m.storeId, name: 'Main' })
+      .returning()
+    const [one, two] = await owner
+      .insert(fulfillmentOrder)
+      .values([
+        {
+          storeId: m.storeId,
+          orderId,
+          locationId: loc?.id as string,
+          position: 1,
+          status: 'fulfilled',
+        },
+        { storeId: m.storeId, orderId, locationId: loc?.id as string, position: 2, status: 'open' },
+      ])
+      .returning()
+    await owner.insert(fulfillmentOrderLine).values([
+      {
+        storeId: m.storeId,
+        fulfillmentOrderId: one?.id as string,
+        orderLineId: shippedLine?.id as string,
+        quantity: 1,
+        fulfilledQuantity: 1,
+      },
+      {
+        storeId: m.storeId,
+        fulfillmentOrderId: two?.id as string,
+        orderLineId: waitingLine?.id as string,
+        quantity: 1,
+      },
+    ])
+    const shippedAt = new Date('2026-10-15T06:00:00Z')
+    await owner.insert(shipment).values({
+      storeId: m.storeId,
+      orderId,
+      fulfillmentOrderId: one?.id as string,
+      provider: 'fake',
+      waybill: 'P1',
+      status: 'in_transit',
+      createdAt: shippedAt,
+    })
+
+    const r = await call(
+      appRouter.shipments.readyToShip,
+      { page: 1, perPage: 50 },
+      { context: m.ctx },
+    )
+    expect(r.total).toBe(1)
+    expect(r.items).toHaveLength(1)
+    expect(r.items[0]).toMatchObject({
+      id: two?.id,
+      orderId,
+      fulfillmentOrderId: two?.id,
+      itemsCount: 1,
+      part: { n: 2, of: 2 },
+      shippedPart: { n: 1, at: shippedAt },
+      items: [{ title: 'Mouse Skates', quantity: 1 }],
+      waiting: { kind: 'preorder', on: '2026-10-22' },
+    })
+    const counts = await call(appRouter.shipments.counts, undefined, { context: m.ctx })
+    expect(counts.toBook).toBe(1)
   })
 
   it('paginates and never shows another store’s orders', async () => {

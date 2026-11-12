@@ -11,6 +11,7 @@ import {
   MANUAL_PAYMENT_METHODS,
   ORDER_MARKS,
   OrderNotFound,
+  orderPartShipping,
   orderProfit,
   payOrderWithStoreCredit,
   permissions,
@@ -114,7 +115,7 @@ export const ordersRouter = {
 
   /** How many orders are waiting to ship. */
   toShipCount: can(permissions.ORDERS_READ).handler(({ context }) => readyToShipCount(context.tx)),
-
+  /** One order: lines, payments, shipment, pending courier orders, balance, parts, order history. */
   /** One order with its lines, payments, shipment, balance due and the customer's order history. */
   get: can(permissions.ORDERS_READ)
     .input(z.object({ id: z.uuid() }))
@@ -122,18 +123,17 @@ export const ordersRouter = {
       const o = await getOrder(context.tx, input.id)
       if (!o) return null
       const { shipping } = await storeRegistries(context.tx, context.scope.storeId)
-      const [shipment, balance, customerOrders, customerOrderNumber] = await Promise.all([
-        shipmentDetailsForOrder(context.tx, shipping, input.id),
-        orderBalance(context.tx, input.id, o.totalPaise),
-        customerOrderCount(context.tx, o.customerId),
-        customerOrderIndex(context.tx, o.customerId, o.placedAt),
-      ])
-      // Where it was sent as a pending order (Shiprocket, RapidShyp), for the Shipping card.
-      const courierOrders = await courierOrdersForOrder(
-        { storeId: context.scope.storeId, tx: context.tx },
-        input.id,
-      )
-      return { ...o, shipment, balance, customerOrders, customerOrderNumber, courierOrders }
+      const [shipment, balance, customerOrders, customerOrderNumber, courierOrders, partShipping] =
+        await Promise.all([
+          shipmentDetailsForOrder(context.tx, shipping, input.id),
+          orderBalance(context.tx, input.id, o.totalPaise),
+          customerOrderCount(context.tx, o.customerId),
+          customerOrderIndex(context.tx, o.customerId, o.placedAt),
+          courierOrdersForOrder({ storeId: context.scope.storeId, tx: context.tx }, input.id),
+          orderPartShipping(context.tx, input.id, o.parcels, shipping),
+        ])
+      const extras = { shipment, balance, customerOrders, customerOrderNumber, courierOrders }
+      return { ...o, ...extras, partShipping }
     }),
 
   /** Send the order to a courier's panel again after it refused (order push). */

@@ -540,8 +540,8 @@ export async function deliverNotification(
   if (input.template === 'payment_pending' && !(await stillPaymentPending(ctx, input.orderId))) {
     return []
   }
-  // An edit message for an order cancelled meanwhile would only confuse.
-  if (input.template === 'order_edited') {
+  // An edit or split message for an order cancelled meanwhile would only confuse.
+  if (input.template === 'order_edited' || input.template === 'order_split') {
     const [o] = await ctx.tx
       .select({ status: order.status })
       .from(order)

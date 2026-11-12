@@ -7,7 +7,9 @@ import {
   datedCourierRows,
   defaultBoxPreset,
   effectiveWeightGrams,
+  fillAvailability,
   heldParcels,
+  type LineAvailability,
   orderParcelsView,
   parcelBoxPreset,
   parcelInsuranceFacts,
@@ -68,6 +70,8 @@ export type DraftParcel = {
     unitPricePaise: number
     /** One unit's weight from its variant; null when the product has none. */
     weightGrams: number | null
+    /** On the shelf now, or a pre-order still waiting (Figma 916:10179's chips and ticks). */
+    availability: LineAvailability
   }>
   /** Declared value: the parcel's share of the order, or the order total when it ships whole. */
   valuePaise: number
@@ -229,24 +233,32 @@ export async function prepareShipments(
   const lines = await withThumbnails(tx, orderLines)
 
   type Line = (typeof lines)[number]
+  /* Every parcel line, with where it leaves from: availability is read in one go at the end. */
+  const asked: Array<{ row: DraftParcel['lines'][number]; locationId: string | null }> = []
   const draftParcel = (
     base: Pick<DraftParcel, 'id' | 'position' | 'locationName' | 'pickupLocationId'>,
     picked: Array<{ line: Line; quantity: number }>,
     valuePaise: number | null,
+    locationId: string | null,
   ): DraftParcel => {
     const weighed = picked.map((p) => ({ ...p.line, quantity: p.quantity }))
     const dims = resolveParcelPackage(weighed, settings.boxPresets)
     return {
       ...base,
-      lines: picked.map((p) => ({
-        id: p.line.id,
-        title: lineTitle(p.line.title, p.line.variantTitle),
-        quantity: p.quantity,
-        imageUrl: p.line.imageUrl,
-        sku: p.line.sku,
-        unitPricePaise: p.line.unitPricePaise,
-        weightGrams: p.line.variantWeightGrams,
-      })),
+      lines: picked.map((p) => {
+        const row: DraftParcel['lines'][number] = {
+          id: p.line.id,
+          title: lineTitle(p.line.title, p.line.variantTitle),
+          quantity: p.quantity,
+          imageUrl: p.line.imageUrl,
+          sku: p.line.sku,
+          unitPricePaise: p.line.unitPricePaise,
+          weightGrams: p.line.variantWeightGrams,
+          availability: { inStock: p.quantity, preorder: null, restockOn: null },
+        }
+        asked.push({ row, locationId })
+        return row
+      }),
       valuePaise:
         valuePaise ?? picked.reduce((sum, p) => sum + p.line.unitPricePaise * p.quantity, 0),
       weightGrams: effectiveWeightGrams(
@@ -311,6 +323,7 @@ export async function prepareShipments(
           },
           picked,
           live.length === 1 ? o.totalPaise : view.totalPaise,
+          view.locationId,
         ),
       )
     }
@@ -335,6 +348,7 @@ export async function prepareShipments(
             { id: null, position: 1, locationName: null, pickupLocationId: from.locationId },
             picked,
             o.totalPaise,
+            null,
           ),
         )
       }
@@ -367,6 +381,8 @@ export async function prepareShipments(
   }
   // In the order the caller asked for (the rows the merchant ticked).
   drafts.sort((a, b) => orderIds.indexOf(a.orderId) - orderIds.indexOf(b.orderId))
+
+  await fillAvailability(tx, asked)
 
   return {
     couriers: providers.map((p) => ({

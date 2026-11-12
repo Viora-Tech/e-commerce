@@ -63,6 +63,7 @@ export const MESSAGE_CATALOGUE: readonly MessageDef[] = [
   { id: 'payment_reminder', group: 'manual', trigger: 'manual', channels: BOTH },
   { id: 'draft_invoice', group: 'manual', trigger: 'manual', channels: BOTH },
   { id: 'order_link', group: 'manual', trigger: 'manual', channels: BOTH },
+  { id: 'order_split', group: 'manual', trigger: 'manual', channels: BOTH },
   { id: 'checkout_recovery', group: 'manual', trigger: 'manual', channels: BOTH },
   { id: 'document_copy', group: 'manual', trigger: 'manual', channels: EMAIL },
   { id: 'customer_message', group: 'manual', trigger: 'manual', channels: EMAIL },

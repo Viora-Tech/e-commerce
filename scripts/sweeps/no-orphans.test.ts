@@ -70,6 +70,12 @@ const ALLOWLIST: AllowEntry[] = [
       'one card, used by moveGiftCardsToStoreCredit in the module and asserted directly (concurrency) by store-credit-gift-cards.test.ts',
   },
   {
+    file: 'packages/core/src/order/parcel-availability.ts',
+    names: ['availabilityOf'],
+    reason:
+      'the pure rule, used in the module and asserted directly by parcel-availability.test.ts',
+  },
+  {
     file: 'packages/core/src/pixels/meta.ts',
     names: ['verifyMetaToken'],
     reason: 'used in the module and asserted directly by meta.test.ts',

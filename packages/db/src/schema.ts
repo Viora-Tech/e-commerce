@@ -1697,10 +1697,7 @@ export const fulfillmentOrder = pgTable(
     /** Parcel 1, 2, ... within the order, in the order they were made. */
     position: integer('position').notNull().default(1),
     status: text('status', { enum: FULFILLMENT_ORDER_STATUSES }).notNull().default('open'),
-    /**
-     * No location could send the whole order within the store's parcel limit, so this parcel
-     * holds more than its location has: the merchant moves stock in before packing.
-     */
+    /** Holds more than its location has (no place could send it all): move stock in first. */
     needsTransfer: boolean('needs_transfer').notNull().default(false),
     /*
      * The parcel's share of the order's money (PARCEL_ALLOCATION in @commerce/core
@@ -1735,6 +1732,9 @@ export const fulfillmentOrder = pgTable(
     holdCode: text('hold_code'),
     /** Who held it (staff email, or the automation author). */
     heldBy: text('held_by'),
+    /* Split off to ship later (parcel-split.ts): why, and when the customer was told. */
+    splitReason: text('split_reason'),
+    customerToldAt: timestamp('customer_told_at', { withTimezone: true }),
     createdAt: createdAt(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
