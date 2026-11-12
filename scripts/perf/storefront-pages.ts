@@ -12,7 +12,6 @@
  * so a broken side fails instead of looking fast. 12 Nov 2026, 10 products warm: Next 281 ms,
  * Hono 80 ms (−71%, 95% CI −73…−64%).
  */
-// biome-ignore lint/suspicious/noUndeclaredEnvVars: a local perf script, not a turbo task
 const { BASE, HANDLES, PRODUCTS_ONLY } = process.env
 const base = (process.argv[2] ?? BASE ?? 'http://localhost:3100').replace(/\/$/, '')
 const products = (
