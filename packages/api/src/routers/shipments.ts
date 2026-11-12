@@ -150,6 +150,19 @@ export const shipmentsRouter = {
         serviceOverrides: z.record(z.uuid(), z.string().min(1).max(64)).optional(),
         /** orderId -> the parcel quoted for it; it books that parcel on its own route. */
         parcelIds: z.record(z.uuid(), z.uuid()).optional(),
+        /** orderId -> what the merchant changed for that order alone (bulk drawer's Edit popup):
+         *  its weight and box, how it is paid, its insurance. Beats the batch-wide values. */
+        perOrder: z
+          .record(
+            z.uuid(),
+            z.object({
+              weightGrams: z.number().int().min(1).optional(),
+              dimensionsCm: dimensionsCm.optional(),
+              paymentMode: z.enum(['cod', 'prepaid']).optional(),
+              insured: z.boolean().optional(),
+            }),
+          )
+          .optional(),
       }),
     )
     .handler(async ({ context, input }) => {
