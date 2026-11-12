@@ -53,6 +53,8 @@ export default function DeliveryRouteCard({ order, showMargin }: DeliveryRouteCa
     chargedPaise,
     bookingChargePaise,
     order.parcelCourierCharges,
+    // What booking recorded for insurance (Delhivery Protect or the route's rate), per parcel.
+    { insurancePaise: order.shipment?.insurancePaise, parcels: order.parcelInsuranceCosts },
   )
   const lines: TotalsLine[] = [
     { label: copy.charged, value: fmt.money(margin.chargedPaise) },

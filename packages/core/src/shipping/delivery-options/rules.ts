@@ -12,6 +12,8 @@ export type CartItemFacts = {
   collectionIds: readonly string[]
   tags: readonly string[]
   productType: string | null
+  /** Shopify taxonomy category (`el-7-8-8`): what Delhivery Protect prices insurance by. */
+  categoryId?: string | null | undefined
 }
 
 const lower = (s: string) => s.trim().toLowerCase()

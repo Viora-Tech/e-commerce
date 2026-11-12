@@ -1,3 +1,5 @@
+import type { ProtectCategory } from '@commerce/core/delhivery-protect'
+
 /** Copy for Apps → Delivery options: the app page, the option page and their dialogs. */
 export const deliveryOptionsContent = {
   title: 'Delivery options',
@@ -84,7 +86,7 @@ export const deliveryOptionsContent = {
     insuresDefault: 'Use the default',
     insuranceRate: 'Insurance rate (% of order value)',
     insuranceRateHelp:
-      'Used when the courier’s quote does not list insurance itself. Leave empty if you do not know it yet.',
+      'Of the declared value, before tax: 18% GST is added on top, as couriers bill it. Used when the courier’s quote does not list insurance itself. Empty: RapidShyp uses its 0.89%, Delhivery direct its Protect card, other routes are not priced.',
     insuranceMin: 'Minimum insurance',
     costCard: 'Cost card (for couriers without a live price)',
     costCardHelp:
@@ -346,5 +348,70 @@ export const deliveryOptionsContent = {
   },
   route: {
     speed: 'Speed',
+  },
+  /** Routes page: what each insuring courier pays out (cover terms). */
+  cover: {
+    title: 'Insurance cover',
+    description:
+      'What each courier pays if a parcel is lost or damaged. Empty fields use the courier’s own terms, shown greyed. Create shipment shows the cover, warns when an uninsured parcel is worth more than the courier refunds, and when open-box or used items are not covered.',
+    couriers: { delhivery: 'Delhivery (direct)', shiprocket: 'Shiprocket', rapidshyp: 'RapidShyp' },
+    cap: 'Cover up to (insured)',
+    limit: 'Refund limit (uninsured)',
+    excess: 'Excess on claims',
+    fragile: 'Covers fragile items',
+    used: 'Excludes open-box / used items',
+    asDefault: (value: string) => `Courier’s default (${value})`,
+    yes: 'Yes',
+    no: 'No',
+    unknown: 'not known',
+    bad: 'Enter amounts in rupees and the excess as a percentage up to 100.',
+  },
+  /** Routes page: Delhivery Protect's rate card and product-type overrides. */
+  protect: {
+    title: 'Delhivery Protect',
+    description:
+      'What insuring a Delhivery parcel costs: its declared value × its category’s rate, plus 18% GST. Products from two or more categories ship as Multi-category; products with no category as Undetermined. Create shipment, checkout and the order’s margin all use these rates.',
+    ratesTitle: 'Rate per category',
+    ratesHelp: 'Empty uses Delhivery’s rate, shown greyed. Change a rate to match your contract.',
+    rateLabel: (category: string) => `${category} rate`,
+    rateBad: 'Enter a percentage between 0 and 10.',
+    overridesTitle: 'Product types',
+    overridesHelp:
+      'Products are placed by their category (Product › Category), else by words in their type ("Mouse", "Glasspad"). Send a product type to a category here when that guess is wrong.',
+    overridesEmpty: 'No product types sent anywhere yet.',
+    productType: 'Product type',
+    productTypePlaceholder: 'Glasspads',
+    category: 'Category',
+    addOverride: 'Add a product type',
+    removeOverride: 'Remove',
+    example: (value: string, category: string, rate: string, fee: string, gst: string) =>
+      `Example: a ${value} parcel of ${category} at ${rate} costs ${fee} plus ${gst} GST (18%).`,
+    categories: {
+      apparel: 'Apparel and Accessories',
+      bags: 'Handbags, Bags and Luggage',
+      footwear: 'Shoes and Footwear',
+      baby: 'Baby Care',
+      health: 'Health and Wellness',
+      beauty: 'Beauty Products and Personal Care',
+      books: 'Books, Software and E-learning',
+      grocery: 'Grocery and Gourmet Food',
+      stationery: 'Stationery and Office Products',
+      tools: 'Tools and Hardware',
+      pets: 'Pet Supplies',
+      home_kitchen: 'Home and Kitchen',
+      electronics: 'Electronics and Appliances',
+      automotive: 'Automotive',
+      watches_jewellery: 'Watches, Eyewear and Jewellery',
+      computers: 'Computers, Laptops and Accessories',
+      batteries: 'Cells and Batteries',
+      mobiles: 'Mobile Phone, Tablets and Accessories',
+      cameras: 'Camera and Photos',
+      industrial: 'Industrial and Scientific Goods',
+      musical: 'Musical Instruments',
+      sports: 'Sports and Outdoors',
+      toys: 'Toys and Games',
+      undetermined: 'Undetermined shipment category',
+      multi: 'Multi-category',
+    } as Record<ProtectCategory, string>,
   },
 }

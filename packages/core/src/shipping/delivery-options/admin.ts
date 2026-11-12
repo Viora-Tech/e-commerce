@@ -15,7 +15,7 @@ import { type ShippingSettings, toShippingPolicy } from '../settings'
 import { quoteDelivery } from './checkout'
 import type { DeliveryConfig } from './config'
 import type { DeliveryResolveResult } from './resolve-types'
-import { AGGREGATOR_PROVIDERS, type Route, routesFromAnswers } from './routes'
+import { AGGREGATOR_PROVIDERS, COURIER_INSURANCE, type Route, routesFromAnswers } from './routes'
 import { cartParcelFor, loadDeliveryConfig, productFacts } from './service'
 
 /** Admin calls wait longer than checkout: the merchant is watching the answer arrive. */
@@ -60,18 +60,24 @@ function deliveryWarnings(
   if (config.options.length === 0) out.push('no_options')
   if (apps.length === 0) out.push('no_couriers')
   const insures = config.options.some((o) => o.enabled && o.insurance.default === 'on')
-  const priced = config.routeSettings.some(
-    (s) => s.insurancePercent != null || s.insuranceMinPaise != null,
+  /* Every app without a rate of its own: Delhivery direct is priced by its Protect card,
+     RapidShyp and Shiprocket by their published rates (COURIER_INSURANCE). */
+  const unpriced = apps.filter(
+    (a) => !(a.id === 'delhivery' && a.channel === 'direct') && COURIER_INSURANCE[a.id] == null,
   )
+  const priced =
+    unpriced.length === 0 ||
+    config.routeSettings.some((s) => s.insurancePercent != null || s.insuranceMinPaise != null)
   if (insures && !priced) out.push('insurance_unpriced')
   return out
 }
 
 export async function deliveryOverview(
   tx: StoreTx,
+  storeId: string,
   providers: readonly ShippingProvider[],
 ): Promise<DeliveryOverview> {
-  const config = await loadDeliveryConfig(tx)
+  const config = await loadDeliveryConfig(tx, storeId)
   const apps = connectedApps(providers)
   return { ...config, apps, warnings: deliveryWarnings(config, apps) }
 }
@@ -133,7 +139,7 @@ export async function tryDeliveryPin(
 ): Promise<TryPinResult> {
   const parsed = parsePincode(input.pincode)
   if (!parsed.ok) throw new Error('Enter a 6 digit PIN code.')
-  const config = await loadDeliveryConfig(tx)
+  const config = await loadDeliveryConfig(tx, storeId)
   const stateCode = stateForPincode(parsed.pincode)
   const lines = input.lines?.length ? input.lines : null
   // Pick products: the box and billed weight checkout would price these goods on (#1546).

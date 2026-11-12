@@ -100,9 +100,7 @@ export default [
       pickupDone: 'पिकअप बुक हो गया। पार्सल "पिकअप होना है" में चला गया।',
       insurance: 'शिपिंग बीमा',
       insuranceCovers: (price, value) =>
-        price
-          ? `+${price} · खो जाने या टूटने पर ${value} तक कवर`
-          : `खो जाने या टूटने पर ${value} तक कवर · कूरियर इसे अपने बिल में जोड़ता है, इन दामों में नहीं`,
+        price ? `+${price} · खो जाने या टूटने पर ${value} तक कवर` : `खो जाने या टूटने पर ${value} तक कवर`,
       mode: { all: 'सभी', air: 'एयर', surface: 'सरफ़ेस' },
       sortLabel: 'क्रम',
       sort: { recommended: 'सुझाया गया', cheapest: 'सबसे सस्ता', fastest: 'सबसे तेज़' },
@@ -111,6 +109,16 @@ export default [
       via: (name) => `${name} से`,
       inclGst: 'GST सहित',
       inclGstInsurance: 'GST + बीमा सहित',
+      insuranceUnset: 'बीमा रेट तय नहीं',
+      insuranceGst: 'बीमे पर GST',
+      coverOf: (covered, value) => `${value} में से ${covered}`,
+      claimExcess: (percent) => `हर क्लेम पर ${percent}% कटौती`,
+      uninsuredLimit: (courier, limit, value) =>
+        `बीमे के बिना, यह ${value} का पार्सल खोने पर ${courier} ज़्यादा से ज़्यादा ${limit} देता है।`,
+      usedNotCovered: (courier) => `ओपन-बॉक्स / इस्तेमाल किया सामान ${courier} के बीमे में कवर नहीं है।`,
+      insuranceInclGst: 'बीमा (GST सहित)',
+      insuranceEstimate: 'बीमा (अनुमान)',
+      insuranceEstimateHint: 'RapidShyp का अपना आंकड़ा थोड़ा अलग हो सकता है',
       breakdown: 'कीमत का ब्योरा',
       youPay: 'आप देंगे',
     },

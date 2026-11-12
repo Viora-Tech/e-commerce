@@ -37,38 +37,45 @@ export async function orderParcelsWithCharges(
   tx: StoreTx,
   orderId: string,
   shipping: OrderShippingSnapshot | null | undefined,
-): Promise<{ parcels: ParcelView[]; parcelCourierCharges: Record<string, number> }> {
+): Promise<{
+  parcels: ParcelView[]
+  parcelCourierCharges: Record<string, number>
+  parcelInsuranceCosts: Record<string, number>
+}> {
   const parcels = await orderParcelsView(tx, orderId)
-  return { parcels, parcelCourierCharges: await parcelCourierCharges(tx, orderId, shipping) }
+  const booked = await parcelBookings(tx, orderId, shipping)
+  return { parcels, parcelCourierCharges: booked.charges, parcelInsuranceCosts: booked.insurance }
 }
 
 /**
- * Each parcel's own booking charge (fulfilment order id -> paise, the latest label that was not
- * cancelled), so a split cart's shipping margin adds up every parcel (`shippingMargin`). Empty
- * for an order without parcel routes.
+ * Each parcel's own booking charge and insurance cost (fulfilment order id -> paise, the latest
+ * label that was not cancelled), so a split cart's shipping margin adds up every parcel
+ * (`shippingMargin`). Empty for an order without parcel routes.
  */
-async function parcelCourierCharges(
+async function parcelBookings(
   tx: StoreTx,
   orderId: string,
   shipping: OrderShippingSnapshot | null | undefined,
-): Promise<Record<string, number>> {
-  if (!shipping?.delivery?.parcels?.length) return {}
+): Promise<{ charges: Record<string, number>; insurance: Record<string, number> }> {
+  if (!shipping?.delivery?.parcels?.length) return { charges: {}, insurance: {} }
   const rows = await tx
     .select({
       parcelId: shipment.fulfillmentOrderId,
       chargePaise: shipment.courierChargePaise,
+      insurancePaise: shipment.insurancePaise,
       status: shipment.status,
     })
     .from(shipment)
     .where(eq(shipment.orderId, orderId))
     .orderBy(asc(shipment.createdAt))
   const charges: Record<string, number> = {}
+  const insurance: Record<string, number> = {}
   for (const r of rows) {
-    if (r.parcelId && r.chargePaise !== null && r.status !== 'cancelled') {
-      charges[r.parcelId] = r.chargePaise
-    }
+    if (!r.parcelId || r.status === 'cancelled') continue
+    if (r.chargePaise !== null) charges[r.parcelId] = r.chargePaise
+    if (r.insurancePaise !== null) insurance[r.parcelId] = r.insurancePaise
   }
-  return charges
+  return { charges, insurance }
 }
 
 /** A fulfilment order as booking matches it to a saved parcel route. */

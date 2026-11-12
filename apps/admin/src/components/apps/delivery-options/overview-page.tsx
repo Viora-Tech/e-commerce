@@ -8,7 +8,9 @@ import { deliveryOptionsContent } from '@/data/delivery-options'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import type { Overview, TryPinResult } from './format'
+import InsuranceCoverCard from './insurance-cover-card'
 import OptionsCard from './options-card'
+import ProtectCard from './protect-card'
 import RoutesCard from './routes-card'
 import RulesCard from './rules-card'
 import TryPinCard from './try-pin-card'
@@ -72,6 +74,12 @@ export default function DeliveryOptionsOverviewPage({
           seen={tried?.routes ?? []}
           onChanged={reload}
         />
+      ) : null}
+      {section === 'routes' ? (
+        <>
+          <ProtectCard card={overview.protect} onChanged={reload} />
+          <InsuranceCoverCard card={overview.protect} onChanged={reload} />
+        </>
       ) : null}
       {section === 'overview' || section === 'routes' ? (
         <TryPinCard result={tried} onResult={setTried} />

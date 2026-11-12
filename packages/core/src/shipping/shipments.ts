@@ -20,6 +20,7 @@ import { recomputeOrderStatuses } from '../order/recompute'
 import { insertOutboxEvent } from '../outbox/write'
 import { recordRtoForShipment } from '../returns/rto'
 import { deliveryForParcel, noteOffRoute } from './delivery-options/booking'
+import { bookingInsurancePaise, declaredValuePaise } from './delivery-options/insurance'
 import { bookedCarrier } from './delivery-options/routes'
 import { shipmentDocumentsAsLabel } from './label-documents'
 import { storeShippingLabel } from './label-store'
@@ -274,10 +275,14 @@ export async function createShipmentForOrder(
       options.dimensionsCm ? null : parcelPackage,
     )
   // A parcel that is the whole order is worth the order; one of several, its own share.
-  const valuePaise =
-    named && named.id !== sole
-      ? (named.totalPaise ?? lines.reduce((sum, l) => sum + l.unitPricePaise * l.quantity, 0))
-      : o.totalPaise
+  // The same rule the Create shipment drawer prices insurance on (`declaredValuePaise`).
+  const valuePaise = declaredValuePaise({
+    parcelId: named?.id ?? null,
+    parcelTotalPaise: named?.totalPaise ?? null,
+    soleParcelId: sole,
+    orderTotalPaise: o.totalPaise,
+    linesPaise: () => lines.reduce((sum, l) => sum + l.unitPricePaise * l.quantity, 0),
+  })
   const paymentMode = options.paymentMode ?? (o.paymentMethod === 'cod' ? 'cod' : 'prepaid')
   const codAmountPaise = paymentMode === 'cod' ? (options.codAmountPaise ?? valuePaise) : 0
   const threshold = settings.policy.insuranceThresholdPaise
@@ -295,6 +300,18 @@ export async function createShipmentForOrder(
   const carrier =
     options.carrier?.trim() ||
     (onRoute ? route.carrier : bookedCarrier(provider, options.serviceLabel))
+  /* What the insurance costs (Delhivery Protect, or the route's rate), worked out before the
+     courier is called so the AWB is never booked without its row. Kept for the margin. */
+  const insurancePaise = await bookingInsurancePaise(ctx.tx, ctx.storeId, {
+    orderId: o.id,
+    fulfillmentOrderId: named?.id ?? null,
+    provider,
+    serviceId: options.serviceId,
+    serviceLabel: options.serviceLabel,
+    carrier: options.carrier,
+    valuePaise,
+    insured,
+  })
 
   // Sent to this courier earlier as a pending order (order push): book that one when the
   // whole order ships, so the courier's panel does not end up with two.
@@ -378,6 +395,7 @@ export async function createShipmentForOrder(
       widthCm: parcelPackage?.widthCm ?? null,
       heightCm: parcelPackage?.heightCm ?? null,
       insured,
+      insurancePaise,
       declaredValuePaise: valuePaise,
       // What the courier charges, when its booking said; the merchant can type it otherwise.
       courierChargePaise: result.chargePaise ?? null,

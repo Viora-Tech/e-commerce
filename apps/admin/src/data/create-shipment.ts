@@ -106,7 +106,7 @@ export const createShipmentContent = {
     insuranceCovers: (price: string | null, value: string) =>
       price
         ? `+${price} · covers ${value} if lost or damaged`
-        : `Covers ${value} if lost or damaged · the courier bills it on your invoice, not in these prices`,
+        : `Covers ${value} if lost or damaged`,
     mode: { all: 'All', air: 'Air', surface: 'Surface' } as Record<
       'all' | 'air' | 'surface',
       string
@@ -121,6 +121,21 @@ export const createShipmentContent = {
     via: (name: string) => `via ${name}`,
     inclGst: 'incl. GST',
     inclGstInsurance: 'incl. GST + insurance',
+    /** Insurance is on but this route has no rate (Delivery options › Routes sets one). */
+    insuranceUnset: 'Insurance rate not set',
+    insuranceGst: 'Insurance GST',
+    /** The courier's cover cap is below the parcel's value (Delhivery Protect: ₹30,000). */
+    coverOf: (covered: string, value: string) => `${covered} of ${value}`,
+    claimExcess: (percent: string) => `${percent}% excess on claims`,
+    uninsuredLimit: (courier: string, limit: string, value: string) =>
+      `Without insurance, ${courier} pays at most ${limit} if this ${value} parcel is lost.`,
+    usedNotCovered: (courier: string) =>
+      `Open-box / used items aren’t covered by ${courier} insurance.`,
+    /** Shiprocket's insurance is one GST-inclusive figure. */
+    insuranceInclGst: 'Insurance (incl. GST)',
+    /** RapidShyp's insurance is worked out from its published rate, not its own figure. */
+    insuranceEstimate: 'Insurance (est.)',
+    insuranceEstimateHint: 'RapidShyp’s own figure can differ slightly',
     breakdown: 'Price breakdown',
     youPay: 'You pay',
   },

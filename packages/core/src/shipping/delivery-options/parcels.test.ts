@@ -228,18 +228,19 @@ describe('resolveParcelDeliveries: insurance, free shipping and each parcel kept
     )
     const r = resolveParcelDeliveries(withSettings([zoneInsured]), twoParcels, 150_000)
     const std = find(r, 'std')
-    // Each parcel insures at ₹30 (1% is less): ₹49 rate once + ₹30 + ₹30 = ₹109 → ₹110.
-    expect(std?.insurance).toMatchObject({ on: true, pricePaise: 3000 + 3000 })
-    expect(std?.pick?.insurancePaise).toBe(6000)
-    expect(std?.pricePaise).toBe(11000)
+    // Each parcel insures at ₹30 (1% is less) + 18% GST = ₹35.40. Each parcel's own price is
+    // ₹49 + ₹35.40 → ₹90, so its rate part is ₹54.60: ₹54.60 + ₹35.40 + ₹35.40 = ₹125.40 → ₹130.
+    expect(std?.insurance).toMatchObject({ on: true, pricePaise: 3540 + 3540 })
+    expect(std?.pick?.insurancePaise).toBe(7080)
+    expect(std?.pricePaise).toBe(13000)
   })
 
   it('priced by the courier: every parcel’s insurance is in the price too', () => {
     const insured = option('std', { name: 'Standard', insurance: { default: 'on' } }, 0)
     const r = resolveParcelDeliveries(withSettings([insured]), twoParcels, 150_000)
-    // (₹140 + ₹30 → ₹170) + (₹45 + ₹30 → ₹80).
-    expect(find(r, 'std')?.pricePaise).toBe(17000 + 8000)
-    expect(find(r, 'std')?.insurance.pricePaise).toBe(6000)
+    // Insurance ₹30 + 18% GST = ₹35.40 each: (₹140 + ₹35.40 → ₹180) + (₹45 + ₹35.40 → ₹90).
+    expect(find(r, 'std')?.pricePaise).toBe(18000 + 9000)
+    expect(find(r, 'std')?.insurance.pricePaise).toBe(7080)
   })
 
   it('free India shipping stays free with two parcels: ₹0 delivery', () => {

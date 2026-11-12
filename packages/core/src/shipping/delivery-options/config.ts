@@ -6,6 +6,7 @@
  * Design: docs/superpowers/specs/2026-10-29-delivery-options-design.md.
  */
 import { z } from 'zod'
+import type { ProtectCard } from './protect'
 
 export const DELIVERY_OPTIONS_APP_ID = 'delivery-options'
 
@@ -179,6 +180,8 @@ export type DeliveryConfig = {
   options: DeliveryOption[]
   rules: RouteRule[]
   routeSettings: RouteSetting[]
+  /** Delhivery Protect's card (rates per category, type overrides); omitted: the defaults. */
+  protect?: ProtectCard | undefined
   /** Bumped on every save; part of the quote snapshot's identity. */
   version: string
 }

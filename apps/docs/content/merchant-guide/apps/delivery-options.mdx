@@ -47,8 +47,16 @@ No courier API says whether a route insures your parcel, so you tell the app:
 
 You can save a setting for one exact route, or for a courier through a channel ("Delhivery, direct", "Blue Dart, any aggregator").
 
+**GST on insurance.** Couriers add 18% GST to the insurance fee, so every insurance price the app works out (Delhivery Protect, RapidShyp's rate, a rate you set) has it on top, shown as its own **Insurance GST** line in Create shipment.
+
+**RapidShyp** needs no rate either: 0.89% of the declared value, for every carrier it books (₹4,699 → ₹49.35 with GST). Create shipment marks it **Insurance (est.)**, because RapidShyp's own figure can differ slightly (a part-shipped order was billed on 110% of its value). A rate you set on a RapidShyp route replaces it. **Shiprocket** charges 1.05% of the value, GST included (₹14,889 → ₹156.33), shown as one **Insurance (incl. GST)** line.
+
+**Insurance cover** (Routes) lists what each courier pays out, editable: Delhivery Protect covers the declared value up to ₹30,000 (Create shipment says "Covers ₹30,000 of ₹40,000"); Shiprocket up to ₹4,75,000 with a 0.5% excess on claims, but never open-box or used items (a product tagged `open-box`, or titled "[OPEN BOX] …"); without insurance Shiprocket and RapidShyp refund at most ₹2,500, and Create shipment warns when the parcel is worth more.
+
+**Delhivery Protect.** Delhivery direct needs no rate: its insurance is priced from Delhivery Protect's card, the parcel's declared value (what booking sends Delhivery) × its category's rate (Computers, Laptops and Accessories 0.40%, Apparel 0.25%, Health and Wellness 0.30% and so on; ₹24,250 of computer accessories is ₹97.00 + ₹17.46 GST). A product's category comes from its **Category** (Product › Category), else from words in its product type ("Mouse", "Glasspad"). A parcel with products from two or more categories is Multi-category, and one whose products have no known category is Undetermined, both 0.60%. The **Delhivery Protect** card on Routes shows every rate (change one to match your contract) and lets you send a product type to a category ("Glasspads → Computers, Laptops and Accessories"). The same fee is what checkout charges, what Create shipment adds when Shipping insurance is on, what the booked shipment records and what the shipping margin subtracts. A rate you set on a Delhivery route itself still wins.
+
 <Callout type="warning">
-**Insurance rates start empty.** Until you fill in a rate, an insured option adds ₹0 for insurance and the app page shows a warning. Insurance itself is whatever your courier account provides (Shiprocket's "Secure shipment", Delhivery's contract): the app does not turn it on at the courier.
+**Other couriers' insurance rates start empty.** Until you fill in a rate, an insured option adds ₹0 for insurance on those routes, the app page shows a warning, and Create shipment says **Insurance rate not set** next to them. Insurance itself is whatever your courier account provides (Shiprocket's "Secure shipment", Delhivery's contract): the app does not turn it on at the courier.
 </Callout>
 
 ## Delivery options

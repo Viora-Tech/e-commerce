@@ -10,6 +10,7 @@ import {
   deliveryOptionsInstalled,
   deliveryOverview,
   loadDeliveryConfig,
+  ProtectCardSchema,
   permissions,
   RouteRuleInputSchema,
   RouteSettingInputSchema,
@@ -17,6 +18,7 @@ import {
   reorderRouteRules,
   resolveShippingProviders,
   saveDeliveryOption,
+  saveProtectCard,
   saveRouteRule,
   saveRouteSetting,
   tryDeliveryPin,
@@ -63,7 +65,7 @@ export const deliveryOptionsRouter = {
   overview: can(permissions.SETTINGS_READ).handler(async ({ context }) => {
     await requireInstalled(context)
     const { providers } = await providersOf(context)
-    const overview = await deliveryOverview(context.tx, providers)
+    const overview = await deliveryOverview(context.tx, context.scope.storeId, providers)
     // What checkout recorded: each app's recent calls and breaker, and the backup share.
     const health = context.deliveryHealth
       ? await deliveryHealth(
@@ -79,7 +81,7 @@ export const deliveryOptionsRouter = {
     .input(z.object({ id: z.uuid() }))
     .handler(async ({ context, input }) => {
       await requireInstalled(context)
-      const config = await loadDeliveryConfig(context.tx)
+      const config = await loadDeliveryConfig(context.tx, context.scope.storeId)
       const option = config.options.find((o) => o.id === input.id)
       if (!option)
         throw new ORPCError('NOT_FOUND', { message: 'This delivery option no longer exists.' })
@@ -152,6 +154,15 @@ export const deliveryOptionsRouter = {
       await requireInstalled(context)
       await deleteRouteSetting(context.tx, input.key)
       return { ok: true }
+    }),
+
+  /** Delhivery Protect's card: rates per category and product-type overrides (the overview
+   *  returns it as `protect`). Booking, checkout and the margin read it. */
+  saveProtect: can(permissions.SETTINGS_MANAGE)
+    .input(ProtectCardSchema)
+    .handler(async ({ context, input }) => {
+      await requireInstalled(context)
+      return saveProtectCard(context.tx, context.scope.storeId, input)
     }),
 
   /** Try a PIN: the cards checkout would show, every route's quote, and why. Calls couriers. */

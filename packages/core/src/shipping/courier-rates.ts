@@ -8,6 +8,12 @@ import {
   type ShippingProvider,
   servesDestination,
 } from '@commerce/shipping'
+import { assignBadges } from './courier-badges'
+import type { CourierCover } from './delivery-options/protect'
+import type { ProtectCategory } from './delivery-options/protect-categories'
+import type { InsuranceSource } from './delivery-options/routes'
+
+export { assignBadges }
 
 /**
  * Multi-courier rate comparison and booking-rule selection for the Create
@@ -66,6 +72,38 @@ export type CourierRateRow = {
   carrier?: string | null | undefined
   /** Delivery options app: the exact route the shopper's price was quoted on. */
   chosenAtCheckout?: boolean | undefined
+  /**
+   * What shipping insurance adds to this row when the merchant turns it on (Create shipment's
+   * drawer, `rowInsurance`). `courier`: already inside `pricePaise` (the quote itemised it).
+   * Null: no rate is known for this route, so insurance is not priced.
+   */
+  insurance?: RowInsurance | null | undefined
+  /** What this courier pays if the parcel is lost, insured or not (`rowCover`). */
+  cover?: RowCover | undefined
+}
+
+/**
+ * A rate row's cover for this parcel: its declared value, the courier's terms (`CourierCover`:
+ * cover cap, uninsured refund limit, fragile, used goods, claim excess; null where unknown),
+ * and whether the parcel holds used or open-box products.
+ */
+export type RowCover = CourierCover & { valuePaise: number; hasUsedItems: boolean }
+
+/** A rate row's shipping insurance: where its price comes from, and the price. */
+export type RowInsurance = {
+  source: InsuranceSource
+  /** The fee before tax, and its 18% GST (0 when the courier's own quote line carried it). */
+  feePaise: number
+  gstPaise: number
+  /** Fee + GST: what insurance adds to the row's price. */
+  pricePaise: number
+  /** One GST-inclusive figure (Shiprocket's 1.05%): shown as one line, incl. GST. */
+  gstIncluded: boolean
+  /** From a published rate the courier's bill can differ from (RapidShyp): "Insurance (est.)". */
+  estimate: boolean
+  /** Delhivery Protect: the parcel's category key and rate in basis points. */
+  protectCategory: ProtectCategory | null
+  protectBps: number | null
 }
 
 /**
@@ -225,28 +263,6 @@ async function quoteSingle(provider: ShippingProvider, query: RateQuery): Promis
     return { ...row, problem: 'no_cod' }
   }
   return row
-}
-
-/** Cheapest and fastest among the couriers that can take the parcel; recommended is the
- *  cheapest priced one, else the fastest, else the first courier that can take it. */
-export function assignBadges(rows: CourierRateRow[]): CourierRateRow[] {
-  const bookable = rows.filter((r) => r.problem === null)
-  const priced = bookable.filter((r) => r.pricePaise !== null)
-  const cheapest = priced.length
-    ? priced.reduce((a, b) => ((b.pricePaise as number) < (a.pricePaise as number) ? b : a))
-    : null
-  const timed = bookable.filter((r) => r.minTransitDays !== null)
-  const fastest = timed.length
-    ? timed.reduce((a, b) => ((b.minTransitDays as number) < (a.minTransitDays as number) ? b : a))
-    : null
-  const recommended = cheapest ?? fastest ?? bookable[0] ?? null
-  return rows.map((r) => {
-    const badges: CourierRateRow['badges'] = []
-    if (cheapest === r) badges.push('cheapest')
-    if (fastest === r) badges.push('fastest')
-    if (recommended === r) badges.push('recommended')
-    return { ...r, badges }
-  })
 }
 
 /**
