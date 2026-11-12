@@ -24,6 +24,7 @@ const parcel = (lines: Line[]): DraftParcel => ({
   weightGrams: 520,
   dimensionsCm: null,
   pickupLocationId: null,
+  boxName: null,
 })
 
 describe('startingPlan', () => {

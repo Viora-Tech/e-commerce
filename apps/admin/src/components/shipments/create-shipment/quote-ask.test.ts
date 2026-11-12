@@ -38,8 +38,11 @@ const order: DraftOrder = {
       weightGrams: 700,
       dimensionsCm: null,
       pickupLocationId: 'loc-jaipur',
+      boxName: null,
     },
   ],
+  unitsOrdered: 2,
+  deliveryChoice: null,
 }
 
 const draft: ShipmentDraft = {
@@ -48,6 +51,7 @@ const draft: ShipmentDraft = {
   defaultBoxId: null,
   pickupPlaces: [],
   orders: [order],
+  insureByDefault: true,
 }
 
 const form = (over: Partial<PackageForm> = {}): PackageForm => ({

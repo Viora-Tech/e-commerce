@@ -156,6 +156,13 @@ export default function ShippingPolicyFields({ value, onChange }: ShippingPolicy
         checked={value.codAllowed}
         onChange={(codAllowed) => set('codAllowed', codAllowed)}
       />
+      <SettingsToggleRow
+        id="policy-insure-default"
+        label={p.insureByDefault}
+        description={p.insureByDefaultHelp}
+        checked={value.insureByDefault}
+        onChange={(on) => set('insureByDefault', on)}
+      />
       <Collapsible>
         <CollapsibleTrigger className="group flex w-fit items-center gap-1.5 text-body font-medium text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
           <ChevronDown aria-hidden="true" className="hidden size-4 group-data-[panel-open]:block" />

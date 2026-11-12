@@ -1,7 +1,12 @@
 import type { CourierRateRow, RowCover, RowInsurance } from '@commerce/core'
 import { describe, expect, it } from 'vitest'
 import { insuredRows } from './insured-rows'
-import { type PriceCalculation, priceCalculation, weightCalculation } from './price-calculation'
+import {
+  type PriceCalculation,
+  priceCalculation,
+  summaryParts,
+  weightCalculation,
+} from './price-calculation'
 
 const COVER: RowCover = {
   valuePaise: 2_425_000,
@@ -245,6 +250,37 @@ describe('weight calculation', () => {
       deadGrams: null,
       billedGrams: 1_010,
       basis: null,
+    })
+  })
+})
+
+describe('summary parts', () => {
+  it('splits the price into freight, insurance and GST that add up to it', () => {
+    const r = row({
+      pricePaise: 10_000,
+      charges: [
+        { kind: 'freight', pricePaise: 7_500 },
+        { kind: 'cod', pricePaise: 1_000 },
+        { kind: 'gst', pricePaise: 1_500 },
+      ],
+      insurance: insurance({ feePaise: 2_000, gstPaise: 360, pricePaise: 2_360 }),
+    })
+    const { calc } = shown(r, true)
+    if (!calc) throw new Error('no calc')
+    const parts = summaryParts(calc)
+    expect(parts).toEqual({ freightPaise: 8_500, insurancePaise: 2_000, gstPaise: 1_860 })
+    expect(parts.freightPaise + (parts.insurancePaise ?? 0) + (parts.gstPaise ?? 0)).toBe(
+      calc.totalPaise,
+    )
+  })
+
+  it('a courier total with no insurance is all freight', () => {
+    const { calc } = shown(row({ pricePaise: 9_000 }), false)
+    if (!calc) throw new Error('no calc')
+    expect(summaryParts(calc)).toEqual({
+      freightPaise: 9_000,
+      insurancePaise: null,
+      gstPaise: null,
     })
   })
 })

@@ -205,7 +205,7 @@ export function startingPick(options: CourierRateRow[], preferred?: string | nul
 
 // --- Bulk ------------------------------------------------------------------------------------
 
-export type BulkMode = 'one' | 'cheapest' | 'fastest'
+export type BulkMode = 'one' | 'recommended' | 'cheapest' | 'fastest'
 
 /** Bulk step 1: every parcel keeps its products' own weight and box unless one box is picked. */
 export const OWN_WEIGHT = 'own'

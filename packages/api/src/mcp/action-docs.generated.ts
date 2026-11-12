@@ -759,6 +759,8 @@ export const ACTION_DOCS: Record<string, string> = {
     'Our own India Post address label (Code 128 article number), as a PDF.',
   'shipments.label':
     "A shipment's label PDF for the admin's /api/shipments/<id>/label route: the copy kept in the store's private storage (Blue Dart, DTDC, DHL Express, FedEx), else the courier's own, fetched server-side…",
+  'shipments.listPickupOptions':
+    'The Create pickup drawer: per courier and place, the parcels still without a pickup and the pickups already booked there (Figma 905:8280, 906:8464).',
   'shipments.quote':
     "Create shipment, step 2: every connected courier's price, delivery date and COD support per parcel, with Cheapest / Fastest / Recommended.",
   'shipments.readyToShip':

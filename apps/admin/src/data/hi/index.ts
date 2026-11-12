@@ -20,6 +20,7 @@ import bluedart from './bluedart'
 import bugReport from './bug-report'
 import bulkActions from './bulk-actions'
 import bulkEdit from './bulk-edit'
+import bulkShip from './bulk-ship'
 import businessGst from './business-gst'
 import catalogs from './catalogs'
 import chatwoot from './chatwoot'
@@ -193,6 +194,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...bugReport,
   ...bulkActions,
   ...bulkEdit,
+  ...bulkShip,
   ...businessGst,
   ...checkoutRules,
   ...checkoutSettings,

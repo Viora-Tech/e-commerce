@@ -29,6 +29,7 @@ import { address, customer, location, order, orderLine, store, variant } from '@
 import { ASSUMED_WEIGHT_GRAMS } from '@commerce/shipping'
 import { and, eq, inArray, isNotNull, sql } from 'drizzle-orm'
 import { withThumbnails } from './order-detail.service'
+import { type DeliveryChoice, deliveryChoiceOf } from './shipment-choices'
 import { loadShippingSettings } from './shipping.service'
 
 /**
@@ -81,6 +82,8 @@ export type DraftParcel = {
   dimensionsCm: DimensionsCm | null
   /** Where it leaves from by default: the parcel's location when it has courier pickup on. */
   pickupLocationId: string | null
+  /** The store's box it packs into (`parcelBoxPreset`), for the bulk table; null for none. */
+  boxName: string | null
 }
 
 export type DraftOrder = {
@@ -101,6 +104,10 @@ export type DraftOrder = {
   /** Why this order can't be booked here, if it can't. */
   blocked: 'no_address' | 'closed' | 'nothing_to_ship' | 'on_hold' | null
   parcels: DraftParcel[]
+  /** Units on the order that need shipping, for "Ships 1 of 2 items" on a part parcel. */
+  unitsOrdered: number
+  /** The shopper's delivery choice at checkout; null when the order has none saved. */
+  deliveryChoice: DeliveryChoice | null
 }
 
 export type ShipmentDraft = {
@@ -109,6 +116,8 @@ export type ShipmentDraft = {
   defaultBoxId: string | null
   pickupPlaces: PickupPlace[]
   orders: DraftOrder[]
+  /** Settings › Shipping: shipping insurance starts switched on in Create shipment. */
+  insureByDefault: boolean
 }
 
 const CLOSED_STATUSES = new Set(['cancelled', 'draft'])
@@ -193,6 +202,7 @@ export async function prepareShipments(
             phone: address.phone,
             paymentStatus: order.paymentStatus,
             fulfillmentStatus: order.fulfillmentStatus,
+            shipping: order.shipping,
           })
           .from(order)
           .leftJoin(address, eq(address.id, order.shippingAddressId))
@@ -270,6 +280,7 @@ export async function prepareShipments(
         dims,
       ),
       dimensionsCm: toDims(dims),
+      boxName: parcelBoxPreset(weighed, settings.boxPresets)?.name ?? null,
     }
   }
 
@@ -377,6 +388,8 @@ export async function prepareShipments(
               : 'nothing_to_ship'
             : null,
       parcels,
+      unitsOrdered: own.reduce((n, l) => n + (l.giftCard ? 0 : l.quantity), 0),
+      deliveryChoice: deliveryChoiceOf(o.shipping),
     })
   }
   // In the order the caller asked for (the rows the merchant ticked).
@@ -395,6 +408,7 @@ export async function prepareShipments(
     defaultBoxId: box?.id ?? null,
     pickupPlaces,
     orders: drafts,
+    insureByDefault: settings.policy.insureByDefault,
   }
 }
 

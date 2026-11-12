@@ -32,6 +32,7 @@ import {
 } from 'drizzle-orm'
 import { bookSavedRoute, parcelsToBook, ruleAllowedRows } from './delivery-booking.service'
 import { countReadyToShip, orderNumberIn } from './ready-to-ship.service'
+import { bookingFor, type OrderBookingOverride } from './shipment-choices'
 import { loadShippingSettings, noteShipmentBooked } from './shipping.service'
 
 type OrderShippingContext = {
@@ -228,6 +229,8 @@ export async function bulkBookShipments(
     serviceOverrides?: Record<string, string> | undefined
     /** orderId -> the parcel (fulfilment order) Create shipment quoted for it. */
     parcelIds?: Record<string, string> | undefined
+    /** orderId -> that order's own weight, box, payment mode and insurance (bulk Edit popup). */
+    perOrder?: Record<string, OrderBookingOverride> | undefined
   },
 ) {
   const settings = await loadShippingSettings(tx, storeId)
@@ -239,7 +242,9 @@ export async function bulkBookShipments(
   /* Single-courier stores skip rate comparison - there is nothing to choose between, unless
      the merchant picked one of its services (Surface or Express) per order. */
   const appOn = (await activeDeliveryConfig(tx, storeId)) !== null
-  if (providers.length === 1 && !input.serviceOverrides && !input.parcelIds && !appOn) {
+  const perOrder = input.perOrder ?? {}
+  const plain = Object.keys(perOrder).length === 0
+  if (providers.length === 1 && !input.serviceOverrides && !input.parcelIds && !appOn && plain) {
     return bulkCreateShipments(
       { storeId, tx },
       providers[0] as (typeof providers)[0],
@@ -274,13 +279,11 @@ export async function bulkBookShipments(
     for (const parcelId of await parcelsToBook(tx, o.orderId, input.parcelIds?.[o.orderId])) {
       const at = parcelId ? { fulfillmentOrderId: parcelId } : {}
       const app = overrideId ? null : await bookingContext(tx, storeId, o.orderId, parcelId)
+      const own = bookingFor(input, perOrder[o.orderId])
       if (app?.delivery?.route) {
-        const { weightGrams, dimensionsCm, insured } = input
         const booked = await bookSavedRoute(tx, storeId, providers, o.orderId, app, {
           ...at,
-          weightGrams,
-          dimensionsCm,
-          insured,
+          ...own,
         })
         results.push({ ...booked, ...at })
         continue
@@ -291,9 +294,9 @@ export async function bulkBookShipments(
           const query: RateQuery = {
             originPincode: settings.policy.originPincode,
             destinationPincode: o.pincode,
-            weightGrams: input.weightGrams ?? ASSUMED_WEIGHT_GRAMS,
+            weightGrams: own.weightGrams ?? ASSUMED_WEIGHT_GRAMS,
             declaredValuePaise: o.totalPaise,
-            paymentMode: o.paymentMethod === 'cod' ? 'cod' : 'prepaid',
+            paymentMode: own.paymentMode ?? (o.paymentMethod === 'cod' ? 'cod' : 'prepaid'),
             destinationCountry: o.country,
             destinationCity: o.city,
           }
@@ -310,9 +313,7 @@ export async function bulkBookShipments(
           o.orderId,
           {
             ...at,
-            weightGrams: input.weightGrams,
-            dimensionsCm: input.dimensionsCm,
-            insured: input.insured,
+            ...own,
             // Only with the courier it was quoted for; a rule-picked courier books its default.
             serviceId: overrideId ? input.serviceOverrides?.[o.orderId] : undefined,
           },
