@@ -1031,9 +1031,8 @@ export const customer = pgTable(
     /** Set by the unsubscribe link; no marketing email or automation reaches the customer after it. */
     unsubscribedAt: timestamp('unsubscribed_at', { withTimezone: true }),
     /**
-     * Set when the customer's personal data was erased (a deletion request).
-     * The row stays so orders and invoices keep their link; name, email,
-     * phone and addresses are gone. See `@commerce/core` `anonymiseCustomer`.
+     * Set when the customer's personal data was erased (a deletion request). The row stays so orders
+     * and invoices keep their link; name, email, phone and addresses are gone (`anonymiseCustomer`).
      */
     anonymisedAt: timestamp('anonymised_at', { withTimezone: true }),
     mergedIntoId: uuid('merged_into_id'), // erased stub merged into this customer (core `mergeCustomers`, FK in 0243)
