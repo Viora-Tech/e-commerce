@@ -1,4 +1,5 @@
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'node:crypto'
+import { previousSettingsSecrets } from '@commerce/config'
 
 /**
  * AES-256-GCM for secrets at rest (gateway keys in store settings, gift card
@@ -42,9 +43,9 @@ export function parsePreviousSecrets(raw: string | undefined): string[] {
     .filter(Boolean)
 }
 
-/** The retired keys from the environment; empty outside a rotation. */
+/** The retired keys from the environment (validated by `@commerce/config`); empty outside a rotation. */
 export function previousSecretsFromEnv(): string[] {
-  return parsePreviousSecrets(process.env.SETTINGS_SECRET_PREVIOUS)
+  return previousSettingsSecrets(process.env)
 }
 
 /** The current key plus any retired ones still allowed to decrypt. */

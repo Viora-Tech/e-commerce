@@ -38,6 +38,6 @@ export const startingPickupPlan = (now: Date = new Date()): PickupPlan => ({
   timeFrom: '14:00',
 })
 
-/** Whether the plan is complete enough to send to the courier. */
-export const pickupReady = (plan: PickupPlan): boolean =>
-  plan.date !== '' && TIME_24H.test(plan.timeFrom)
+/** Whether the plan is complete enough to send to the courier: a start time, and today or later. */
+export const pickupReady = (plan: PickupPlan, today: string = todayKey()): boolean =>
+  plan.date !== '' && plan.date >= today && TIME_24H.test(plan.timeFrom)

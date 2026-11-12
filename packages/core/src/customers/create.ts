@@ -81,11 +81,21 @@ export async function customerWithPhone(
   return row?.id ?? null
 }
 
-async function customerWithEmail(ctx: StoreContext, email: string): Promise<string | null> {
+/** The customer who already has this email (any case), leaving out `exceptId`. */
+export async function customerWithEmail(
+  ctx: StoreContext,
+  email: string,
+  exceptId?: string,
+): Promise<string | null> {
   const [row] = await ctx.tx
     .select({ id: customer.id })
     .from(customer)
-    .where(sql`lower(${customer.email}) = ${email}`)
+    .where(
+      and(
+        exceptId ? ne(customer.id, exceptId) : undefined,
+        sql`lower(${customer.email}) = ${email.trim().toLowerCase()}`,
+      ),
+    )
     .limit(1)
   return row?.id ?? null
 }

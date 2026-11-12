@@ -18,7 +18,6 @@ import {
   parsePaymentSettings,
   parsePreferences,
   parsePreorderStoreSettings,
-  parsePreviousSecrets,
   parseShippingSettings,
   permissions,
   presentStoreGeneral,
@@ -73,7 +72,7 @@ import {
 import { savedOriginPincode, storeHealth } from '../services/store-health.service'
 import { shellProcedure } from './shell'
 
-const previousSecrets = () => parsePreviousSecrets(loadEnv(process.env).SETTINGS_SECRET_PREVIOUS)
+const previousSecrets = () => loadEnv(process.env).SETTINGS_SECRET_PREVIOUS
 
 /**
  * In-process fallback for hosts (and tests) that don't wire a Redis-backed

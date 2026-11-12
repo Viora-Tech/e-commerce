@@ -20,6 +20,8 @@ const PRIVACY_AUDIT_ACTIONS = [
   'settings.saved',
   'account.deletion_requested',
   'contact.phone_added',
+  /** Two customer records became one (`mergeCustomers`); written on both. */
+  'customer.merged',
 ] as const
 export type PrivacyAuditAction = (typeof PRIVACY_AUDIT_ACTIONS)[number]
 

@@ -1,5 +1,6 @@
 import { settingsSecret } from '@commerce/config'
 import { permissions, splitFulfillmentOrder } from '@commerce/core'
+import { dayKey } from '@commerce/dates'
 import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
 import { BULK_MAX, can, heavy, PAGE_SIZE_MAX, SEARCH_MAX } from '../procedures'
@@ -230,7 +231,11 @@ export const shipmentsRouter = {
     .input(
       z.object({
         shipmentIds: z.array(z.uuid()).min(1).max(500),
-        date: z.string(),
+        /** "YYYY-MM-DD", today or later in India (couriers never collect on a past day). */
+        date: z
+          .string()
+          .regex(/^\d{4}-\d{2}-\d{2}$/)
+          .refine((d) => d >= dayKey(new Date()), 'Pick today or a later day for the pickup.'),
         timeFrom: z.string(),
         timeTo: z.string().optional(),
         /** "Add to pickup": a booked pickup to add these parcels to. */

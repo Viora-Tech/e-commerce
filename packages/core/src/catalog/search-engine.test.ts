@@ -1,7 +1,12 @@
 /** SOURCE OF TRUTH: product search engine hook tests — WHAT: engineProductIds' fallbacks (no engine, error, null, budget) and id clean-up / WHY: a broken or slow engine must never break storefront search */
 import type { StoreTx } from '@commerce/db'
-import { afterEach, describe, expect, it } from 'vitest'
-import { engineProductIds, type ProductSearchEngine, setProductSearchEngine } from './search-engine'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import {
+  engineProductIds,
+  type ProductSearchEngine,
+  productSearchEngine,
+  setProductSearchEngine,
+} from './search-engine'
 
 /** A transaction whose savepoint just runs the callback on itself. */
 const tx = {
@@ -59,5 +64,19 @@ describe('engineProductIds', () => {
   it('ignores an answer that came after the budget', async () => {
     setProductSearchEngine(() => new Promise((resolve) => setTimeout(() => resolve([A]), 40)))
     expect(await engineProductIds(tx, 's', 'tee', 10, 10)).toBeNull()
+  })
+})
+
+describe('the engine registry', () => {
+  it('is one per process: another copy of the module sees the same engine', async () => {
+    setProductSearchEngine(async () => [A])
+    // A second module graph (another Next bundle) loads its own copy of this file.
+    vi.resetModules()
+    const copy = await import('./search-engine')
+    expect(copy.productSearchEngine()).toBe(productSearchEngine())
+    expect(await copy.engineProductIds(tx, 's', 'tee')).toEqual([A])
+    // And registering from the copy changes what this one uses.
+    copy.setProductSearchEngine(null)
+    expect(await engineProductIds(tx, 's', 'tee')).toBeNull()
   })
 })

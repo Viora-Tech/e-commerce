@@ -19,5 +19,9 @@ export const gstInvoiceLinesContent = {
   igst: 'IGST',
   totalTax: 'Total GST',
   invoiceTotal: 'Invoice total',
-  discount: 'Discount',
+  /** Before the discount; shown only when there is one, like the PDF. */
+  gross: 'Gross',
+  discount: (label: string | null | undefined) => (label ? `Discount (${label})` : 'Discount'),
+  /** The per-line discount column, already taken off each line's taxable value and total. */
+  lineDiscount: 'Discount',
 } as const

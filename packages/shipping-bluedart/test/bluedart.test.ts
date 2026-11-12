@@ -76,6 +76,32 @@ describe('BluedartProvider auth', () => {
     })
   })
 
+  it('never reuses a token minted for the same Client ID with a different secret', async () => {
+    let issued = 0
+    const f = fakeFetch({
+      [TOKEN]: (_url, init) => {
+        issued++
+        const secret = (init?.headers as Record<string, string> | undefined)?.clientSecret
+        return json({ JWTToken: `jwt-for-${secret}` })
+      },
+      [PINCODE]: () => json({ GetServicesforPincodeResult: { AreaCode: 'BLR', IsError: false } }),
+      [TRANSIT]: () => json({}),
+    })
+    const shared = config()
+    const ask = (p: BluedartProvider) =>
+      p.checkServiceability({ originPincode: '110030', destinationPincode: '560001' })
+    await ask(new BluedartProvider({ ...shared, fetchImpl: f.impl }))
+    await ask(new BluedartProvider({ ...shared, clientSecret: 'changed', fetchImpl: f.impl }))
+    expect(issued).toBe(2)
+    const sent = f.calls
+      .filter((c) => c.url.pathname === PINCODE)
+      .map((c) => (c.init?.headers as Record<string, string> | undefined)?.JWTToken)
+    expect(sent).toEqual(['jwt-for-secret', 'jwt-for-changed'])
+    // The same keys again still share the first token.
+    await ask(new BluedartProvider({ ...shared, fetchImpl: f.impl }))
+    expect(issued).toBe(2)
+  })
+
   it('mints a new token and retries once when the gateway answers 401', async () => {
     let issued = 0
     let lookups = 0

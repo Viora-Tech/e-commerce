@@ -5,6 +5,7 @@ import { and, eq, isNull, sql } from 'drizzle-orm'
 import { storefrontOriginFor } from '../../domains/origin'
 import type { LookupAll } from '../../net/safe-fetch'
 import { registriesForStore } from '../../plugins/registries'
+import type { ConcurrencyStore } from '../../rate-limit/concurrency'
 import type { RateLimitStore } from '../../rate-limit/limiter'
 import { type ActionContext, AutomationActionError } from '../executor'
 
@@ -22,6 +23,11 @@ export type BuiltinActionDeps = {
   lookup?: LookupAll | undefined
   /** HTTP action only: per-store request rate (10/s); without one only concurrency is capped. */
   rateLimit?: RateLimitStore | undefined
+  /**
+   * HTTP action only: per-store calls in flight (5), shared by every worker copy. Without one
+   * an in-process store is used, which caps each process on its own (tests, local runs).
+   */
+  concurrency?: ConcurrencyStore | undefined
 }
 
 /**
@@ -37,6 +43,7 @@ export type ActionHost = {
   fetch?: typeof fetch | undefined
   lookup?: LookupAll | undefined
   rateLimit?: RateLimitStore | undefined
+  concurrency?: ConcurrencyStore | undefined
 }
 
 /** The deps for one store, resolved when a step runs. */
@@ -60,6 +67,7 @@ export function depsResolver(host: ActionHost = {}): DepsFor {
       fetch: host.fetch,
       lookup: host.lookup,
       rateLimit: host.rateLimit,
+      concurrency: host.concurrency,
     }
   }
 }

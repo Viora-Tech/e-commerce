@@ -10,6 +10,7 @@ import DateField from '@/components/fields/date-field'
 import { createShipmentContent } from '@/data/create-shipment'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { todayKey } from '@/lib/format-date'
 import { pickupReady, startingPickupPlan } from './pickup-plan'
 
 type PickupFormProps = {
@@ -69,6 +70,7 @@ export default function PickupForm({ shipmentIds, onRequested }: PickupFormProps
           <DateField
             id="pickup-date"
             value={plan.date}
+            min={todayKey()}
             disabled={done}
             onChange={(v) => setPlan({ ...plan, date: v })}
           />

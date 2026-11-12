@@ -82,7 +82,7 @@ export type ApiContext = {
    *  before a `sensitive` action runs; otherwise the call is refused with `STEP_UP_REQUIRED` and
    *  the admin re-auth dialog opens. Off (absent/false) by default, and never applies to access
    *  tokens or MCP (they carry no real session to step up). The admin host sets it from
-   *  `STEP_UP_ENFORCE`. */
+   *  `STEP_UP_ENFORCE` (read through `loadEnv`, never straight from `process.env`). */
   stepUpEnforce?: boolean | undefined
   /** The admin's own URL (`ADMIN_URL`), pinned server-side as the passkey rpID/origin for
    *  step-up — never read from the request. Absent: step-up by passkey is unavailable (tests

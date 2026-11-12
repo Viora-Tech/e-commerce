@@ -1,6 +1,6 @@
 'use client'
 
-import { Copy, Pencil } from '@commerce/ui/icons'
+import { ArrowLeftRight, Copy, Pencil } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -8,15 +8,18 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 import CustomerAvatar from '@/components/customers/customer-avatar'
 import CopyButton from '@/components/fields/copy-button'
+import ActionMenu from '@/components/layout/action-menu'
 import ContactActions from '@/components/layout/contact-actions'
 import DataCard from '@/components/layout/data-card'
 import KeyValueList, { type KeyValueRow } from '@/components/layout/key-value-list'
 import LabeledGroup from '@/components/layout/labeled-group'
+import { orderCustomerContent } from '@/data/customer-merge'
 import { stateName } from '@/data/india'
 import { orderDetailContent } from '@/data/order-detail'
 import { useCopy } from '@/hooks/use-copy'
 import { phoneForDisplay } from '@/lib/phone-display'
 import { routes } from '@/lib/routes'
+import ChangeCustomerDialog from './change-customer-dialog'
 import EditOrderContactDialog from './edit-order-contact-dialog'
 import type { OrderDetail } from './order-detail-types'
 
@@ -76,8 +79,10 @@ function AddressBlock({ lines, what }: AddressBlockProps) {
 export default function CustomerCard({ order }: CustomerCardProps) {
   // Hooks
   const copy = useCopy(orderDetailContent)
+  const moveCopy = useCopy(orderCustomerContent)
   const router = useRouter()
   const [editing, setEditing] = useState(false)
+  const [changing, setChanging] = useState(false)
 
   // Event handlers
   const handleCopyAll = async () => {
@@ -129,13 +134,14 @@ export default function CustomerCard({ order }: CustomerCardProps) {
     .filter((v): v is string => Boolean(v))
     .join('\n')
   const profileHref = order.customer ? `/customers/${order.customer.id}` : null
-  const readOnly = Boolean(order.importedFrom)
 
   return (
     <DataCard
       title={c.heading}
+      // An imported order's contact and addresses can be corrected too; its lines and money
+      // stay read-only (the Imported banner says so).
       action={
-        readOnly ? null : (
+        <div className="flex items-center gap-1">
           <Button
             type="button"
             variant="ghost"
@@ -146,7 +152,13 @@ export default function CustomerCard({ order }: CustomerCardProps) {
             <Pencil />
             {c.edit}
           </Button>
-        )
+          <ActionMenu
+            label={moveCopy.changeHint}
+            items={[
+              { label: moveCopy.change, icon: ArrowLeftRight, onSelect: () => setChanging(true) },
+            ]}
+          />
+        </div>
       }
     >
       {/* Figma "Orders / Order detail" › Customer: who, then the fields one per line (label over
@@ -241,6 +253,12 @@ export default function CustomerCard({ order }: CustomerCardProps) {
           onSaved={() => router.refresh()}
         />
       ) : null}
+      <ChangeCustomerDialog
+        order={order}
+        open={changing}
+        onClose={() => setChanging(false)}
+        onChanged={() => router.refresh()}
+      />
     </DataCard>
   )
 }
