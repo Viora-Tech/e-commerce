@@ -12,11 +12,16 @@ export const metadata: Metadata = { title: 'Preferences' }
 
 export default async function Page() {
   const context = await serverContext()
-  const [prefs, session, stores] = await Promise.all([
+  const [prefs, session, stores, me] = await Promise.all([
     call(appRouter.store.getPreferences, undefined, { context }).catch(() => null),
     getSession(),
     listStores().catch(() => []),
+    call(appRouter.staff.me, {}, { context }).catch(() => null),
   ])
+  // Faster product pages (beta) is the owner's alone: only they get the card and its preview link.
+  const hono = me?.isOwner
+    ? await call(appRouter.honoPreview.token, undefined, { context }).catch(() => null)
+    : null
   const activeId =
     (session?.session as { activeOrganizationId?: string | null } | undefined)
       ?.activeOrganizationId ?? null
@@ -29,6 +34,7 @@ export default async function Page() {
       initial={prefs}
       storefrontOrigin={await storefrontOrigin()}
       storeName={storeName}
+      honoPreviewToken={hono?.token ?? null}
     />
   )
 }

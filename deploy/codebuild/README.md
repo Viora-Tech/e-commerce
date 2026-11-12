@@ -5,6 +5,13 @@ calls the Dokploy API to deploy each changed app one at a time (worker first, it
 migrations). The server stops building. Full guide, switch steps, rollback and cost:
 `apps/docs/content/developer-docs/operations/codebuild.mdx`.
 
+`storefront-hono` (Bun + Hono product pages, internal only) is built and deployed the same way
+once it is set up, before `storefront`: the build skips it while the ECR repo
+`vextro/storefront-hono` does not exist, and the deploy skips it while the SSM parameter
+`/vextro/deploy/dokploy-app-id-storefront-hono` is unset. It also rebuilds when `apps/storefront`
+changes, since it runs that code. Setup and runbook:
+`docs/research/2026-11-storefront-hono-pilot.md` ("Rollout runbook").
+
 Files here:
 
 | File | Job |

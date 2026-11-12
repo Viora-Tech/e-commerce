@@ -18,6 +18,16 @@ describe('store preferences', () => {
     expect(defaultPreferences.password.enabled).toBe(false)
   })
 
+  it('keeps the Hono product page switch off unless set, and keeps it through a save', () => {
+    expect(defaultPreferences.delivery.honoProduct).toBe(false)
+    expect(parsePreferences({ delivery: { plainHtml: true } }).delivery.honoProduct).toBe(false)
+    const on = parsePreferences({ delivery: { honoProduct: true } })
+    expect(on.delivery).toEqual({ plainHtml: false, honoProduct: true })
+    // The admin form saves the whole parsed object, so the switch it does not show survives.
+    expect(StorePreferencesSchema.parse(on).delivery.honoProduct).toBe(true)
+    expect(parsePreferences({ delivery: { honoProduct: 'yes' } })).toEqual(defaultPreferences)
+  })
+
   it('normalises and validates tracking ids', () => {
     const p = StorePreferencesSchema.parse({
       tracking: { ga4: ' g-abc123xyz ', gtm: 'gtm-5x7k9q', metaPixel: '1234567890123' },
