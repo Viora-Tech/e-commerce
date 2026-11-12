@@ -27,12 +27,7 @@ import { loadEnv } from '@commerce/config'
  * could not be decrypted with any key (fix SETTINGS_SECRET_PREVIOUS and run again).
  * Never run by CI or this codebase's own test suite.
  */
-import {
-  type CipherColumn,
-  parsePreviousSecrets,
-  rotateStoreSecrets,
-  secretKeyId,
-} from '@commerce/core'
+import { type CipherColumn, rotateStoreSecrets, secretKeyId } from '@commerce/core'
 import { createDb, store, withStore } from '@commerce/db'
 import {
   AFFILIATE_CIPHER_COLUMNS,
@@ -50,7 +45,7 @@ async function main() {
   const apply = process.argv.includes('--apply')
   const keyring = {
     current: env.SETTINGS_SECRET,
-    previous: parsePreviousSecrets(env.SETTINGS_SECRET_PREVIOUS),
+    previous: env.SETTINGS_SECRET_PREVIOUS,
   }
 
   console.log(

@@ -23,10 +23,12 @@ import AddressFields, {
 import DialogContent from '@/components/layout/dialog-content'
 import DialogFooter from '@/components/layout/dialog-footer'
 import DialogHeader from '@/components/layout/dialog-header'
+import { orderCustomerContent } from '@/data/customer-merge'
 import { orderDetailContent } from '@/data/order-detail'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { fieldErrorsOf } from '@/lib/api-errors'
+import EmailOwnerOffer from './email-owner-offer'
 import type { OrderDetail } from './order-detail-types'
 
 type EditOrderContactDialogProps = {
@@ -87,7 +89,9 @@ export default function EditOrderContactDialog({
 }: EditOrderContactDialogProps) {
   // Hooks
   const copy = useCopy(orderDetailContent)
+  const moveCopy = useCopy(orderCustomerContent)
   const [draft, setDraft] = useState<Draft>(() => draftFrom(order))
+  const [moveToOwner, setMoveToOwner] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [saving, setSaving] = useState(false)
 
@@ -120,6 +124,7 @@ export default function EditOrderContactDialog({
     if (next) return
     setDraft(draftFrom(order))
     setErrors({})
+    setMoveToOwner(false)
     onClose()
   }
 
@@ -135,6 +140,7 @@ export default function EditOrderContactDialog({
         phone: draft.phone.trim() || null,
         address: hasAddress ? trimmed(draft.address) : null,
         alsoUpdateCustomer: canSaveToCustomer && draft.alsoUpdateCustomer,
+        moveToEmailOwner: moveToOwner,
         billing: {
           address: draft.billingSame
             ? null
@@ -158,6 +164,8 @@ export default function EditOrderContactDialog({
   const c = copy.editContact
   const hasAddress = order.shippingAddress !== null || draft.address.line1.trim() !== ''
   const canSaveToCustomer = order.customer !== null && hasAddress
+  // An imported order's GSTIN and company are the tax record it came with.
+  const taxLocked = Boolean(order.importedFrom)
   const billingErrors = Object.fromEntries(
     Object.entries(errors)
       .filter(([k]) => k.startsWith('billing.'))
@@ -207,6 +215,13 @@ export default function EditOrderContactDialog({
                 {errors.phone ? <FieldError>{errors.phone}</FieldError> : null}
               </Field>
             </div>
+            <EmailOwnerOffer
+              orderId={order.id}
+              email={draft.email}
+              original={order.email}
+              checked={moveToOwner}
+              onChange={setMoveToOwner}
+            />
           </FieldSet>
 
           <FieldSet>
@@ -236,6 +251,7 @@ export default function EditOrderContactDialog({
                 <Input
                   id="order-contact-business"
                   autoComplete="organization"
+                  disabled={taxLocked}
                   value={draft.businessName}
                   onChange={(e) => set('businessName')(e.target.value)}
                 />
@@ -246,6 +262,7 @@ export default function EditOrderContactDialog({
                   id="order-contact-gstin"
                   className="font-mono uppercase"
                   maxLength={15}
+                  disabled={taxLocked}
                   aria-invalid={Boolean(errors.gstin) || undefined}
                   value={draft.gstin}
                   onChange={(e) => set('gstin')(e.target.value.toUpperCase().trim())}
@@ -253,7 +270,9 @@ export default function EditOrderContactDialog({
                 {errors.gstin ? (
                   <FieldError>{errors.gstin}</FieldError>
                 ) : (
-                  <FieldDescription>{c.gstinHelp}</FieldDescription>
+                  <FieldDescription>
+                    {taxLocked ? moveCopy.importedTax : c.gstinHelp}
+                  </FieldDescription>
                 )}
               </Field>
             </div>

@@ -16,6 +16,7 @@ import { mediaContent } from '@/data/media'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { readRecentMedia, rememberMedia } from '@/lib/media-recent'
+import { useStorageScope } from '@/lib/storage-scope'
 import { rejectReason } from '@/lib/upload'
 import MediaPickDetails from './media-pick-details'
 import MediaPickDropzone from './media-pick-dropzone'
@@ -104,6 +105,7 @@ export default function MediaPickDialog({
   onPickMany,
 }: MediaPickDialogProps) {
   // Hooks
+  const storageScope = useStorageScope()
   const { picker: copy } = useCopy(mediaContent)
   const [items, setItems] = useState<MediaItem[]>([])
   const [total, setTotal] = useState(0)
@@ -142,8 +144,8 @@ export default function MediaPickDialog({
   })
 
   useEffect(() => {
-    if (open) setRecent(readRecentMedia())
-  }, [open])
+    if (open) setRecent(readRecentMedia(storageScope))
+  }, [open, storageScope])
 
   useEffect(() => {
     if (!open) {
@@ -276,7 +278,7 @@ export default function MediaPickDialog({
     const list = fixedItems ?? [...items, ...recent]
     const found = list.find((i) => i.id === id)
     if (!found) return
-    if (!fixedItems) rememberMedia([found])
+    if (!fixedItems) rememberMedia(storageScope, [found])
     onPick?.(pickedFrom(found))
   }
   const handleDone = () => {
@@ -284,7 +286,7 @@ export default function MediaPickDialog({
     const found = selectedIds
       .map((id) => list.find((i) => i.id === id))
       .filter((i): i is MediaItem => Boolean(i))
-    if (!fixedItems) rememberMedia(found)
+    if (!fixedItems) rememberMedia(storageScope, found)
     const picked = found.map(pickedFrom)
     if (multiple) {
       onPickMany?.(picked)

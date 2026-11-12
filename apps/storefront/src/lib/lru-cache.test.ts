@@ -50,6 +50,18 @@ describe('LruCache', () => {
     c.clear()
     expect(c.count).toBe(0)
   })
+
+  it('deleteWhere drops the picked entries and the expired ones', () => {
+    const { c, tick } = cache(100)
+    c.set('s1|a', 'A', 10, 1_000)
+    c.set('s2|b', 'B', 10, 1_000)
+    c.set('s3|c', 'C', 10, 10)
+    tick(20)
+    c.deleteWhere((key) => key.startsWith('s1|'))
+    expect(c.count).toBe(1)
+    expect(c.size).toBe(10)
+    expect(c.get('s2|b')).toBe('B')
+  })
 })
 
 describe('approxSize', () => {

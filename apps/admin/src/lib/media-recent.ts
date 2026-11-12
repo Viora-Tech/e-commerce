@@ -1,9 +1,10 @@
 import type { MediaItem } from '@/components/media/media-pick-types'
+import { type StorageScope, scopedStorageKey } from '@/lib/storage-scope'
 
 /**
  * The media picker's "Recently used" strip: the last few files picked in this
- * browser. A convenience only (localStorage), so it reads defensively and
- * quietly does nothing where storage is blocked.
+ * browser, per store and member. A convenience only (localStorage), so it reads
+ * defensively and quietly does nothing where storage is blocked or no store is picked.
  */
 const KEY = 'media.pick.recent'
 export const RECENT_MEDIA_MAX = 6
@@ -37,17 +38,24 @@ export function parseRecentMedia(raw: string | null): MediaItem[] {
   }
 }
 
-export function readRecentMedia(): MediaItem[] {
+export function readRecentMedia(scope: StorageScope | null): MediaItem[] {
+  const key = scopedStorageKey(KEY, scope)
+  if (!key) return []
   try {
-    return parseRecentMedia(window.localStorage.getItem(KEY))
+    return parseRecentMedia(window.localStorage.getItem(key))
   } catch {
     return []
   }
 }
 
-export function rememberMedia(picked: readonly MediaItem[]): void {
+export function rememberMedia(scope: StorageScope | null, picked: readonly MediaItem[]): void {
+  const key = scopedStorageKey(KEY, scope)
+  if (!key) return
   try {
-    window.localStorage.setItem(KEY, JSON.stringify(pushRecentMedia(readRecentMedia(), picked)))
+    window.localStorage.setItem(
+      key,
+      JSON.stringify(pushRecentMedia(readRecentMedia(scope), picked)),
+    )
   } catch {
     // Storage blocked: the strip just stays empty.
   }

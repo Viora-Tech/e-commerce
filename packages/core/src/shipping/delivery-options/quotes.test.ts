@@ -154,6 +154,43 @@ describe('gatherProviderAnswers', () => {
     expect(answers[1]).toMatchObject({ status: 'failed' })
   })
 
+  it('misses the cache after the courier settings change, and keeps no credential in the key', async () => {
+    const saved = { apiKey: 'enc:v1:aaa', customerCode: 'GL017' }
+    const changed = { ...saved, apiKey: 'enc:v1:bbb' }
+    expect(deliveryQuoteKey('s1', 'delhivery', QUERY, saved)).not.toBe(
+      deliveryQuoteKey('s1', 'delhivery', QUERY, changed),
+    )
+    expect(deliveryQuoteKey('s1', 'delhivery', QUERY, { apiKey: 'plain' })).not.toContain('plain')
+    const cache = memoryCache()
+    const quoteOptions = vi.fn(async () => [opt('S', 6000)])
+    const p = mockProvider('delhivery', { quoteOptions })
+    await gatherProviderAnswers([p], QUERY, {
+      storeId: 's1',
+      cache,
+      providerSettings: { delhivery: saved },
+    })
+    const same = await gatherProviderAnswers([p], QUERY, {
+      storeId: 's1',
+      cache,
+      providerSettings: { delhivery: { ...saved } },
+    })
+    expect(same[0]?.source).toBe('cache')
+    const after = await gatherProviderAnswers([p], QUERY, {
+      storeId: 's1',
+      cache,
+      providerSettings: { delhivery: changed },
+    })
+    expect(after[0]?.source).toBe('live')
+    // Cache-only (placing an order) never takes another account's answer either.
+    const placed = await gatherProviderAnswers([p], QUERY, {
+      storeId: 's1',
+      cache,
+      cacheOnly: true,
+      providerSettings: { delhivery: { ...saved, apiKey: 'enc:v1:ccc' } },
+    })
+    expect(placed[0]).toMatchObject({ status: 'failed', source: 'cache' })
+  })
+
   it('keys the cache by box, so a bigger box is never served a small-box price (#1546)', async () => {
     const small = { ...QUERY, dimensionsCm: { lengthCm: 20, widthCm: 20, heightCm: 5 } }
     const big = { ...QUERY, dimensionsCm: { lengthCm: 64, widthCm: 64, heightCm: 8 } }

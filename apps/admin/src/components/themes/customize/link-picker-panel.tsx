@@ -19,6 +19,7 @@ import {
   normalisePastedUrl,
   type RecentLink,
 } from '@/lib/customize-links'
+import { useStorageScope } from '@/lib/storage-scope'
 import LinkPasteForm from './link-paste-form'
 import LinkTargetRows, { type LinkRow } from './link-target-rows'
 
@@ -55,7 +56,8 @@ export default function LinkPickerPanel({ value, onPick, newTab, onNewTab }: Lin
   const [kind, setKind] = useState<LinkKind | null>(null)
   const [query, setQuery] = useState('')
   const [load, setLoad] = useState<Load>({ state: 'done', groups: [] })
-  const [recent] = useState<RecentLink[]>(() => readRecentLinks())
+  const storageScope = useStorageScope()
+  const [recent] = useState<RecentLink[]>(() => readRecentLinks(storageScope))
   useEffect(() => {
     let active = true
     if (!kind && !query.trim()) {
@@ -89,7 +91,7 @@ export default function LinkPickerPanel({ value, onPick, newTab, onNewTab }: Lin
 
   // Event handlers
   const handlePick = (href: string, title: string, pickedKind: RecentLink['kind']) => {
-    rememberLink({ href, title, kind: pickedKind })
+    rememberLink(storageScope, { href, title, kind: pickedKind })
     onPick(href)
   }
 

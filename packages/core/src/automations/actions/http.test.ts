@@ -2,6 +2,11 @@
 import { createHmac } from 'node:crypto'
 import type { StoreTx } from '@commerce/db'
 import { describe, expect, it, vi } from 'vitest'
+import {
+  type ConcurrencyStore,
+  concurrencyKey,
+  createMemoryConcurrencyStore,
+} from '../../rate-limit/concurrency'
 import { createMemoryRateLimitStore } from '../../rate-limit/memory-store'
 import { encryptSecret } from '../../secrets'
 import { type ActionContext, type ActionExecutor, AutomationActionError } from '../executor'
@@ -175,6 +180,101 @@ describe('http.request', () => {
     const go = () => executor.run({ tx: fakeTx(), ctx: ctx(), config: config() })
     for (let i = 0; i < 10; i++) await go()
     await expect(go()).rejects.toMatchObject({ retryable: true })
+  })
+
+  it('caps calls in flight per store across worker copies sharing one store', async () => {
+    const shared = createMemoryConcurrencyStore()
+    const gates: (() => void)[] = []
+    let holding = true
+    const hang = () =>
+      new Promise<Response>((resolve) => {
+        if (!holding) return resolve(new Response('ok', { status: 200 }))
+        gates.push(() => resolve(new Response('ok', { status: 200 })))
+      })
+    // Two "copies" of the worker: separate executors, one shared store.
+    const a = setup(hang, { concurrency: shared }).executor
+    const b = setup(hang, { concurrency: shared }).executor
+    const go = (e: ActionExecutor<never>, c = ctx()) =>
+      e.run({ tx: fakeTx(), ctx: c, config: config() })
+    const inFlight = [go(a), go(a), go(a), go(b), go(b)]
+    await vi.waitFor(() => expect(gates).toHaveLength(5))
+    await expect(go(b)).rejects.toMatchObject({ retryable: true, retryAfterMs: 1000 })
+    await expect(go(a)).rejects.toMatchObject({ retryable: true })
+    // Another store is not held back by this one.
+    const other = go(b, ctx({ storeId: '00000000-0000-4000-8000-000000000002' }))
+    await vi.waitFor(() => expect(gates).toHaveLength(6))
+    holding = false
+    for (const open of gates) open()
+    await Promise.all([...inFlight, other])
+    // Every slot came back.
+    await expect(go(a)).resolves.toMatchObject({ output: { status: 200 } })
+  })
+
+  it('releases the slot when the call fails or times out', async () => {
+    const shared = createMemoryConcurrencyStore()
+    const release = vi.spyOn(shared, 'release')
+    const timeout = setup(
+      () => {
+        throw Object.assign(new Error('timed out'), { name: 'TimeoutError' })
+      },
+      { concurrency: shared },
+    ).executor
+    for (let i = 0; i < 8; i++) {
+      await expect(
+        timeout.run({ tx: fakeTx(), ctx: ctx(), config: config() }),
+      ).rejects.toMatchObject({ retryable: true, message: 'The request timed out' })
+    }
+    expect(release).toHaveBeenCalledTimes(8)
+    const errored = setup(() => new Response('nope', { status: 500 }), {
+      concurrency: shared,
+    }).executor
+    for (let i = 0; i < 8; i++) {
+      await expect(
+        errored.run({ tx: fakeTx(), ctx: ctx(), config: config({ onHttpError: 'fail' }) }),
+      ).rejects.toMatchObject({ code: 'AUTOMATION_HTTP_STATUS' })
+    }
+    const key = concurrencyKey('automations-http', STORE)
+    // All five slots are free again.
+    const tokens = await Promise.all(
+      Array.from({ length: 5 }, () => shared.acquire(key, 5, 60_000, Date.now())),
+    )
+    expect(tokens.every(Boolean)).toBe(true)
+  })
+
+  it('takes slots with an expiring lease and survives a failed release', async () => {
+    const inner = createMemoryConcurrencyStore()
+    const leases: number[] = []
+    const flaky: ConcurrencyStore = {
+      acquire: (key, limit, leaseMs, now) => {
+        leases.push(leaseMs)
+        return inner.acquire(key, limit, leaseMs, now)
+      },
+      release: async () => {
+        throw new Error('redis gone')
+      },
+    }
+    const { executor } = setup(undefined, { concurrency: flaky })
+    await expect(
+      executor.run({ tx: fakeTx(), ctx: ctx(), config: config() }),
+    ).resolves.toMatchObject({ output: { status: 200 } })
+    // Longer than the 30 s request timeout, so a live call keeps its slot; finite, so a dead
+    // worker's slot frees itself.
+    expect(leases[0]).toBeGreaterThan(30_000)
+    expect(leases[0]).toBeLessThanOrEqual(120_000)
+  })
+
+  it('retries without calling out when the slot store cannot be reached', async () => {
+    const down: ConcurrencyStore = {
+      acquire: async () => {
+        throw new Error('ECONNREFUSED')
+      },
+      release: async () => {},
+    }
+    const { executor, fetch } = setup(undefined, { concurrency: down })
+    await expect(
+      executor.run({ tx: fakeTx(), ctx: ctx(), config: config() }),
+    ).rejects.toMatchObject({ retryable: true })
+    expect(fetch).not.toHaveBeenCalled()
   })
 
   it('previews without calling out', async () => {

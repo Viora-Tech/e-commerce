@@ -43,7 +43,7 @@ const AUTH = 'blktracksvc.dtdc.com/dtdc-api/api/dtdc/authenticate'
 const TRACK = 'blktracksvc.dtdc.com/dtdc-api/rest/JSONCnTrk/getTrackDetails'
 
 let user = 0
-/** A fresh tracking login per test: the tracking token cache is shared by username. */
+/** A fresh tracking login per test: the tracking token cache is shared by login. */
 const config = () => ({
   apiKey: 'dtdc-key',
   customerCode: 'GL017',
@@ -234,6 +234,28 @@ describe('DtdcProvider tracking', () => {
     const call = f.calls.find((c) => `${c.url.host}${c.url.pathname}` === TRACK)
     expect(headerOf(call?.init, 'X-Access-Token')).toBe('trk-token')
     expect(bodyOf(call?.init)).toEqual({ trkType: 'cnno', strcnno: 'D1', addtnlDtl: 'Y' })
+  })
+
+  it('never reuses a token logged in with the same username but another password', async () => {
+    let logins = 0
+    const f = fakeFetch({
+      [AUTH]: (url) => {
+        logins++
+        return new Response(`trk-for-${url.searchParams.get('password')}`)
+      },
+      [TRACK]: () => json(trackBody),
+    })
+    const shared = config()
+    await new DtdcProvider({ ...shared, fetchImpl: f.impl }).track('D1')
+    await new DtdcProvider({ ...shared, trackingPassword: 'new-pw', fetchImpl: f.impl }).track('D1')
+    expect(logins).toBe(2)
+    const sent = f.calls
+      .filter((c) => `${c.url.host}${c.url.pathname}` === TRACK)
+      .map((c) => headerOf(c.init, 'X-Access-Token'))
+    expect(sent).toEqual(['trk-for-pw', 'trk-for-new-pw'])
+    // The same login again still shares the first token.
+    await new DtdcProvider({ ...shared, fetchImpl: f.impl }).track('D1')
+    expect(logins).toBe(2)
   })
 
   it('logs in again once when the tracking token is refused', async () => {

@@ -75,3 +75,61 @@ describe('createStoreResolver', () => {
     expect(lookup).toHaveBeenCalledTimes(2)
   })
 })
+
+describe('createStoreResolver bounds', () => {
+  it('keeps at most maxEntries keys, dropping the least recently used', async () => {
+    const lookup = vi.fn(async (h: string) => (h === 'shop.test' ? 'store-a' : null))
+    const resolve = createStoreResolver({ lookup, maxEntries: 100, now: () => 0 })
+    await resolve('shop.test')
+    // A bot's random hosts: misses, each cached, never more than the cap.
+    for (let i = 0; i < 1_000; i++) {
+      await resolve(`bot-${i}.test`)
+      // The real shop keeps being asked for, so it stays.
+      if (i % 10 === 0) await resolve('shop.test')
+    }
+    expect(resolve.size).toBeLessThanOrEqual(100)
+    lookup.mockClear()
+    expect(await resolve('shop.test')).toBe('store-a')
+    expect(lookup).not.toHaveBeenCalled()
+    // The oldest misses were evicted, so they are looked up again.
+    await resolve('bot-0.test')
+    expect(lookup).toHaveBeenCalledTimes(1)
+  })
+
+  it('drops an expired answer when it is read', async () => {
+    let now = 0
+    const resolve = createStoreResolver({ lookup: async () => null, ttlMs: 10, now: () => now })
+    await resolve('nope.test')
+    expect(resolve.size).toBe(1)
+    now = 11
+    await resolve('other.test')
+    await resolve('nope.test')
+    expect(resolve.size).toBe(2)
+  })
+
+  it('forgetStore drops that store and every miss, keeping other stores', async () => {
+    const owners: Record<string, string> = { 'a.test': 'store-a', 'b.test': 'store-b' }
+    const lookup = vi.fn(async (h: string) => owners[h] ?? null)
+    const resolve = createStoreResolver({ lookup, now: () => 0, storeOf: (_key, value) => value })
+    await resolve('a.test')
+    await resolve('b.test')
+    await resolve('new.test')
+    lookup.mockClear()
+    // The merchant connects a domain: the cached miss must not hide it.
+    owners['new.test'] = 'store-a'
+    resolve.forgetStore('store-a')
+    expect(await resolve('new.test')).toBe('store-a')
+    await resolve('a.test')
+    await resolve('b.test')
+    expect(lookup.mock.calls.map(([h]) => h)).toEqual(['new.test', 'a.test'])
+  })
+
+  it('clear drops everything', async () => {
+    const lookup = vi.fn(async () => 'store-a')
+    const resolve = createStoreResolver({ lookup, now: () => 0 })
+    await resolve('a.test')
+    resolve.clear()
+    await resolve('a.test')
+    expect(lookup).toHaveBeenCalledTimes(2)
+  })
+})

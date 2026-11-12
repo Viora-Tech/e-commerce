@@ -22,11 +22,24 @@ const ENGINE_MAX_HITS = 1000
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
-let engine: ProductSearchEngine | null = null
+/**
+ * Where the engine lives: on `globalThis`, not in this module. A Next app bundles `@commerce/core`
+ * into several module graphs (instrumentation, route handlers, pages) in one process; a module
+ * variable would give each graph its own engine, so which engine a page used depended on which
+ * module happened to register first. One process, one engine.
+ */
+const ENGINE_KEY = Symbol.for('@commerce/core/product-search-engine')
 
-/** Registers (or with null, removes) the product search engine. The last one wins. */
+const registry = globalThis as unknown as { [ENGINE_KEY]?: ProductSearchEngine | null }
+
+/** Registers (or with null, removes) the process's product search engine. The last one wins. */
 export function setProductSearchEngine(next: ProductSearchEngine | null): void {
-  engine = next
+  registry[ENGINE_KEY] = next
+}
+
+/** The process's product search engine, or null for the built-in SQL search. */
+export function productSearchEngine(): ProductSearchEngine | null {
+  return registry[ENGINE_KEY] ?? null
 }
 
 /**
@@ -40,7 +53,7 @@ export async function engineProductIds(
   limit = ENGINE_MAX_HITS,
   budgetMs = ENGINE_BUDGET_MS,
 ): Promise<string[] | null> {
-  const run = engine
+  const run = productSearchEngine()
   const q = query.trim()
   if (!run || !q) return null
   // The engine must honour the signal, so a slow answer ends here rather than holding up the page.

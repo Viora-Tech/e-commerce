@@ -28,6 +28,7 @@ import type { ProviderDef } from '@/components/settings/provider-settings-form'
 import { appsContent } from '@/data/apps'
 import { useCopy } from '@/hooks/use-copy'
 import { routes } from '@/lib/routes'
+import { useStorageScope } from '@/lib/storage-scope'
 import { initialKeySetMode, keySetValues, withEditedKeySet } from './connect-key-sets'
 import ConnectModeSwitch, { type ModeSwitch } from './connect-mode-switch'
 import {
@@ -129,6 +130,7 @@ export default function ProviderConnectPage<R extends TestOutcome>({
   aside,
 }: ProviderConnectPageProps<R>) {
   // Hooks
+  const storageScope = useStorageScope()
   const apps = useCopy(appsContent)
   const [provider, setProvider] = useState<ProviderDef | null>(null)
   const [blob, setBlob] = useState<SettingsBlob | null>(null)
@@ -166,7 +168,7 @@ export default function ProviderConnectPage<R extends TestOutcome>({
     setValues((v) => ({ ...v, [key]: value }))
     if (keepTestOn.includes(key)) return
     setTestState({ status: 'idle' })
-    setTestedFlag(providerId, false)
+    setTestedFlag(storageScope, providerId, false)
   }
 
   // Event handlers
@@ -188,11 +190,13 @@ export default function ProviderConnectPage<R extends TestOutcome>({
       const result = await test(values)
       if (result.ok) {
         setTestState({ status: 'ok', message: result.message })
-        setTestedFlag(providerId, true)
+        setTestedFlag(storageScope, providerId, true)
         setLastPassed(result)
         setCheckedAt(new Date())
       } else {
         setTestState({ status: 'error', message: result.message })
+        // A failed re-test also drops the Overview's "tested" badge.
+        setTestedFlag(storageScope, providerId, false)
       }
     } catch (err) {
       setTestState({

@@ -1,4 +1,4 @@
-import { loadEnv } from '@commerce/config'
+import { loadEnv, workerPublicUrl } from '@commerce/config'
 import { sentryOptions } from '@commerce/observability'
 import type { nextLogInstrumentation } from '@commerce/observability/logging/next'
 import * as Sentry from '@sentry/nextjs'
@@ -15,6 +15,9 @@ let logs: ReturnType<typeof nextLogInstrumentation> | undefined
 export async function register() {
   const env = loadEnv(process.env)
   if (process.env.NEXT_RUNTIME === 'nodejs') {
+    // Fail at boot, not on a merchant's first webhook page: production needs the worker's
+    // public URL (never the localhost fallback). Skipped while `next build` runs.
+    if (process.env.NEXT_PHASE !== 'phase-production-build') workerPublicUrl(env)
     const { nextLogInstrumentation } = await import('@commerce/observability/logging/next')
     logs = nextLogInstrumentation('admin', env)
     await logs.register()

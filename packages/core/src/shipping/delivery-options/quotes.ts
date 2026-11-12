@@ -16,6 +16,7 @@ import {
   type ShippingProvider,
   servesDestination,
 } from '@commerce/shipping'
+import { courierSettingsFingerprint } from '../courier-fingerprint'
 import type { PackageDimensionsCm } from '../parcel'
 import { breakerOpen, type HealthStore, recordCourierCall } from './health'
 import { halfKgSteps, type ProviderAnswer, type QuotedService } from './routes'
@@ -67,8 +68,10 @@ export const deliveryQuoteKey = (
     CheckoutQuoteQuery,
     'originPincode' | 'destinationPincode' | 'weightGrams' | 'valuePaise' | 'dimensionsCm'
   >,
+  /** The courier app's saved settings as stored (`ShippingSettings.providers[id]`); hashed in. */
+  providerSettings?: unknown,
 ): string =>
-  `{shipping}:delivery-quote:v2:${storeId}:${providerId}:${q.originPincode}>${q.destinationPincode}:${halfKgSteps(q.weightGrams) * 500}g:${valueBucket(q.valuePaise)}${boxKey(q.dimensionsCm)}`
+  `{shipping}:delivery-quote:v3:${storeId}:${providerId}:${courierSettingsFingerprint(providerSettings)}:${q.originPincode}>${q.destinationPincode}:${halfKgSteps(q.weightGrams) * 500}g:${valueBucket(q.valuePaise)}${boxKey(q.dimensionsCm)}`
 
 /** The box in the cache key, so a bigger box is never served a small box's price. No box: as before. */
 const boxKey = (d: PackageDimensionsCm | null | undefined): string =>
@@ -182,6 +185,11 @@ export async function gatherProviderAnswers(
     cache?: QuoteCache | null | undefined
     deadlineMs?: number | undefined
     cacheOnly?: boolean | undefined
+    /**
+     * The store's saved courier settings by app id (`ShippingSettings.providers`), hashed into
+     * each app's cache key so new credentials or options are never answered from the old ones.
+     */
+    providerSettings?: Readonly<Record<string, unknown>> | undefined
     /** Epoch ms; tests pass a clock. */
     now?: (() => number) | undefined
   },
@@ -193,7 +201,12 @@ export async function gatherProviderAnswers(
   return Promise.all(
     domestic.map(async (provider): Promise<ProviderAnswer> => {
       const base = { providerId: provider.id, providerLabel: provider.label }
-      const key = deliveryQuoteKey(opts.storeId, provider.id, query)
+      const key = deliveryQuoteKey(
+        opts.storeId,
+        provider.id,
+        query,
+        opts.providerSettings?.[provider.id],
+      )
       const failed = (error: string, ms: number | null = null): ProviderAnswer => ({
         ...base,
         status: 'failed',

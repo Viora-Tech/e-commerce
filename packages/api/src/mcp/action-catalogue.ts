@@ -235,6 +235,7 @@ const EXCLUDED_PATHS: Record<string, string> = {
   'platformApps.completeWhatsapp': 'a browser sign-in hand-off to Meta (WhatsApp Embedded Signup)',
   'inbox.streamAccess': 'opens a browser realtime stream (people only)',
   'inbox.typing': 'a typing indicator from a person at the keyboard',
+  'honoPreview.token': 'a browser preview hand-off for the owner (people only)',
   'media.presign': 'a browser upload hand-off',
   'media.confirm': 'a browser upload hand-off',
 }
@@ -275,6 +276,8 @@ const SENSITIVE_PATHS: Record<string, string> = {
   'storeCredit.adjust': "changes a customer's store credit balance (money)",
   'storeCredit.moveGiftCards': 'moves gift card balances into store credit balances (money)',
   'giftCards.setDisabled': 'disables a gift card (money)',
+  'customers.merge':
+    'merges two customer records into one (moves orders, store credit and sign-ins; closes the other record)',
   'orders.collectPayment': 'records money collected',
   'store.updatePayments': 'payment settings',
   'store.updateStorage': 'storage keys',

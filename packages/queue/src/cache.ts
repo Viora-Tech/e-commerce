@@ -1,3 +1,4 @@
+import { courierSettingsFingerprint } from '@commerce/core/courier-fingerprint'
 import type IORedis from 'ioredis'
 
 /**
@@ -24,8 +25,17 @@ export async function cacheSet(redis: IORedis, key: string, value: unknown, ttlS
 /** Serviceability answers barely change; a day keeps courier calls to one per pincode. */
 export const SERVICEABILITY_TTL_SECONDS = 24 * 3600
 
-export const serviceabilityKey = (storeId: string, provider: string, pincode: string) =>
-  `{shipping}:serviceability:${storeId}:${provider}:${pincode}`
+export const serviceabilityKey = (
+  storeId: string,
+  provider: string,
+  /**
+   * The courier app's saved settings as stored; hashed into the key so saving new credentials
+   * or options is a cache miss rather than a day of answers from the old account.
+   */
+  providerSettings: unknown,
+  pincode: string,
+) =>
+  `{shipping}:serviceability:${storeId}:${provider}:${courierSettingsFingerprint(providerSettings)}:${pincode}`
 
 /** Add one; the key expires `ttlSeconds` after its first count. */
 async function cacheIncr(redis: IORedis, key: string, ttlSeconds: number): Promise<number> {
