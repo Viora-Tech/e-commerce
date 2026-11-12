@@ -212,7 +212,7 @@ describe('mergeCustomers', () => {
       .from(customerNote)
       .where(eq(customerNote.customerId, keptId))
     expect(keptNotes.map((n) => n.body)).toEqual([
-      'Merged with Rudra: 2 orders, 1 address, ₹280.00 store credit moved here',
+      'Merged with Rudra: 2 orders, 1 address, ₹280 store credit moved here',
     ])
     const audit = await owner.select().from(privacyAuditEvent)
     expect(audit.filter((a) => a.action === 'customer.merged')).toHaveLength(2)

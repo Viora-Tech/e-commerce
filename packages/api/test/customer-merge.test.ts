@@ -256,7 +256,7 @@ describe('orders.changeCustomer and the contact edit', () => {
     await expect(
       call(
         appRouter.orders.edit,
-        { orderId, lines: [{ lineId, quantity: 2 }] },
+        { orderId, lines: [{ lineId, quantity: 2 }], refund: 'none', requestPayment: false },
         { context: a.ctx },
       ),
     ).rejects.toThrow('This order was imported')

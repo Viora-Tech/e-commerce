@@ -67,8 +67,7 @@ export type OrderContactInput = {
 }
 
 /** Said when an imported order's GSTIN or company name would change. */
-export const IMPORTED_TAX_LOCKED =
-  'An imported order keeps the GSTIN and company name it came with.'
+const IMPORTED_TAX_LOCKED = 'An imported order keeps the GSTIN and company name it came with.'
 
 type AddressRow = typeof address.$inferSelect
 

@@ -4,18 +4,14 @@ import {
   createAddress,
   createCustomer,
   customerExists,
-  customerWithEmail,
   deleteAddress,
   GSTIN_MESSAGES,
   listAddresses,
-  mergeCustomers,
   noteWhatsappChat,
   permissions,
-  previewCustomerMerge,
   recordCustomerChange,
   SEGMENT_FIELDS,
   SEGMENT_OPS,
-  StoreCreditError,
   setDefaultAddress,
   setDefaultBillingAddress,
   setMarketingConsent,
@@ -50,6 +46,7 @@ import {
   saveSegment,
 } from '../services/customer-segment.service'
 import { customerSheet } from '../services/customer-sheet.service'
+import { customerMergeRoutes, refuseTakenEmail } from './customer-merge'
 
 const FiltersSchema = z.object({
   search: z.string().trim().max(SEARCH_MAX).optional(),
@@ -118,17 +115,6 @@ async function assertCustomer(tx: Parameters<typeof customerExists>[0], id: stri
   }
 }
 
-/** A refused merge in the words the admin shows. */
-function mergeRefused(reason: 'same' | 'not_found' | 'anonymised'): never {
-  if (reason === 'not_found') throw new ORPCError('NOT_FOUND', { message: 'Customer not found' })
-  throw new ORPCError('BAD_REQUEST', {
-    message:
-      reason === 'same'
-        ? 'Pick a different customer to merge with.'
-        : 'An erased or already merged customer cannot be merged.',
-  })
-}
-
 type AddressResult = Awaited<ReturnType<typeof createAddress>>
 
 function unwrap(result: AddressResult) {
@@ -155,6 +141,7 @@ function parseGstin(raw: string | null | undefined): string | null | undefined {
 }
 
 export const customersRouter = {
+  ...customerMergeRoutes,
   list: can(permissions.CUSTOMERS_READ)
     .input(
       FiltersSchema.extend({
@@ -428,17 +415,7 @@ export const customersRouter = {
       }),
     )
     .handler(async ({ context, input: { id, acceptsMarketing, gstin, ...rest } }) => {
-      if (rest.email) {
-        const ctx = { tx: context.tx, storeId: context.scope.storeId }
-        const existingId = await customerWithEmail(ctx, rest.email, id)
-        if (existingId) {
-          throw new ORPCError('CONFLICT', {
-            message:
-              'Another customer already has this email. Use "Merge with another customer" to make them one.',
-            data: { field: 'email', existingId },
-          })
-        }
-      }
+      if (rest.email) await refuseTakenEmail(context, rest.email, id)
       const patch = {
         ...rest,
         ...(gstin === undefined ? {} : { gstin: parseGstin(gstin) }),
@@ -467,64 +444,6 @@ export const customersRouter = {
         await recordCustomerChange(context.tx, context.scope.storeId, id, 'updated')
       }
       return updated
-    }),
-
-  /**
-   * The merge dialog's summary: both customers and what would move from `mergeId` onto
-   * `keepId` (orders, addresses, store credit, gift cards, sign-ins, carts, notes, reviews).
-   */
-  previewMerge: can(permissions.CUSTOMERS_READ)
-    .input(z.object({ keepId: z.uuid(), mergeId: z.uuid() }))
-    .handler(async ({ context, input }) => {
-      const result = await previewCustomerMerge(
-        { tx: context.tx, storeId: context.scope.storeId },
-        input.keepId,
-        input.mergeId,
-      )
-      if (!result.ok) mergeRefused(result.reason)
-      return result
-    }),
-
-  /**
-   * "Merge with another customer": everything `mergeId` holds moves onto `keepId` in one
-   * transaction, with the email, phone and name chosen in `keep`; the other record is closed
-   * (erased stub) and its sign-ins end. It removes a customer, so it needs delete too.
-   */
-  merge: can(permissions.CUSTOMERS_WRITE, () => [permissions.CUSTOMERS_DELETE])
-    .input(
-      z.object({
-        keepId: z.uuid(),
-        mergeId: z.uuid(),
-        keep: z
-          .object({
-            email: z.enum(['kept', 'merged']),
-            phone: z.enum(['kept', 'merged']),
-            name: z.enum(['kept', 'merged']),
-          })
-          .partial()
-          .optional(),
-      }),
-    )
-    .handler(async ({ context, input }) => {
-      const result = await mergeCustomers(
-        { tx: context.tx, storeId: context.scope.storeId },
-        {
-          ...input,
-          author: context.session.user.email,
-          actor: {
-            type: 'staff',
-            id: context.scope.userId,
-            label: context.session.user.name?.trim() || context.session.user.email,
-          },
-        },
-      ).catch((err: unknown) => {
-        if (err instanceof StoreCreditError) {
-          throw new ORPCError('BAD_REQUEST', { message: err.message })
-        }
-        throw err
-      })
-      if (!result.ok) mergeRefused(result.reason)
-      return result
     }),
 
   delete: can(permissions.CUSTOMERS_DELETE)

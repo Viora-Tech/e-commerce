@@ -11,7 +11,9 @@ the shopper's account showed no orders). Branch `feat/customer-merge-move-order`
   (`customers.previewMerge`), choose whose email, phone and name to keep, **Merge customers**
   (`customers.merge`).
 - Core: `packages/core/src/customers/merge.ts` (`previewCustomerMerge`, `mergeCustomers`), one
-  transaction. Both customer rows are locked in id order.
+  transaction; both customer rows are locked in id order. The table moves live in
+  `merge-moves.ts` (add a new table with a customer_id there). Routes:
+  `packages/api/src/routers/customer-merge.ts`.
 - Permission: `customers.write` + `customers.delete` (also-needs). Sensitive in
   `packages/api/src/mcp/action-catalogue.ts`; MCP action docs regenerated.
 - Tables moved from the merged customer to the kept one: `order`, `customer_address` (the kept

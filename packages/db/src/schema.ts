@@ -1,6 +1,5 @@
 import { eq, sql } from 'drizzle-orm'
 import {
-  type AnyPgColumn,
   bigint,
   boolean,
   check,
@@ -1037,12 +1036,7 @@ export const customer = pgTable(
      * phone and addresses are gone. See `@commerce/core` `anonymiseCustomer`.
      */
     anonymisedAt: timestamp('anonymised_at', { withTimezone: true }),
-    /**
-     * Set on a record merged into another customer (`@commerce/core` `mergeCustomers`): the
-     * stub stays erased (anonymised) so its store credit history and audit trail keep an
-     * owner, lists leave it out, and its admin page opens this customer instead.
-     */
-    mergedIntoId: uuid('merged_into_id').references((): AnyPgColumn => customer.id),
+    mergedIntoId: uuid('merged_into_id'), // erased stub merged into this customer (core `mergeCustomers`, FK in 0243)
     createdAt: createdAt(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },

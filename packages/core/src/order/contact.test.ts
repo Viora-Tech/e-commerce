@@ -14,12 +14,7 @@ import {
 import { resetDb } from '@commerce/db/test'
 import { eq } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
-import {
-  IMPORTED_TAX_LOCKED,
-  InvalidOrderContact,
-  OrderNotFound,
-  updateOrderContact,
-} from './contact'
+import { InvalidOrderContact, OrderNotFound, updateOrderContact } from './contact'
 
 const owner = createDb(process.env.DATABASE_URL_OWNER as string)
 const app = createDb(process.env.DATABASE_URL as string)
@@ -202,7 +197,7 @@ describe('updateOrderContact', () => {
         ),
       )
     // An imported order's GSTIN is its tax record: a change is refused, nothing written.
-    await expect(edit('29AAPFU0939F1ZV')).rejects.toThrow(IMPORTED_TAX_LOCKED)
+    await expect(edit('29AAPFU0939F1ZV')).rejects.toThrow('An imported order keeps the GSTIN')
 
     const result = await edit('27AAPFU0939F1ZV')
     expect(result.changed).toBe(true)
