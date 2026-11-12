@@ -6,13 +6,13 @@ import { useEffect, useState } from 'react'
 import { createShipmentContent } from '@/data/create-shipment'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
-import BulkShipmentFlow from './bulk-shipment-flow'
+import BulkShipDrawer from './bulk-ship-drawer'
 import type { ShipmentDraft } from './flow-state'
 import SingleShipmentFlow from './single-shipment-flow'
 
 type CreateShipmentDialogProps = {
-  /** The orders to ship; the dialog is open while there are any. One order is the full flow,
-   *  several are the bulk flow. */
+  /** The orders to ship. One order opens this dialog's full flow; several open the bulk ship
+   *  drawer (Figma 908:8804). */
   orderIds: string[]
   /** A courier's provider id to start the bulk flow on (a courier app's Create shipment). */
   courier?: string | undefined
@@ -38,7 +38,7 @@ export default function CreateShipmentDialog({
   const [failed, setFailed] = useState(false)
   // A fresh draft each time the dialog opens for a new set of orders.
   useEffect(() => {
-    if (orderIds.length === 0) return
+    if (orderIds.length !== 1) return
     let live = true
     setDraft(null)
     setFailed(false)
@@ -52,39 +52,34 @@ export default function CreateShipmentDialog({
   }, [orderIds])
 
   // Render logic
-  const open = orderIds.length > 0
+  const open = orderIds.length === 1
   const single = orderIds.length === 1 ? draft?.orders[0] : undefined
   const key = orderIds.join(',')
 
   return (
-    <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
-      <DialogContent className="max-h-[90dvh] grid-rows-[auto_minmax(0,1fr)_auto] sm:max-w-2xl">
-        {!draft ? (
-          <>
-            <DialogTitle className="sr-only">{copy.bulkTitle(orderIds.length)}</DialogTitle>
-            <p className="flex items-center gap-2 py-8 text-body text-muted-foreground">
-              {failed ? null : <Spinner />}
-              {failed ? copy.loadFailed : copy.loading}
-            </p>
-          </>
-        ) : single ? (
-          <SingleShipmentFlow
-            key={key}
-            draft={draft}
-            order={single}
-            onClose={onClose}
-            onBooked={onBooked}
-          />
-        ) : (
-          <BulkShipmentFlow
-            key={key}
-            draft={draft}
-            courier={courier}
-            onClose={onClose}
-            onBooked={onBooked}
-          />
-        )}
-      </DialogContent>
-    </Dialog>
+    <>
+      <BulkShipDrawer orderIds={orderIds} courier={courier} onClose={onClose} onBooked={onBooked} />
+      <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
+        <DialogContent className="max-h-[90dvh] grid-rows-[auto_minmax(0,1fr)_auto] sm:max-w-2xl">
+          {!draft ? (
+            <>
+              <DialogTitle className="sr-only">{copy.bulkTitle(orderIds.length)}</DialogTitle>
+              <p className="flex items-center gap-2 py-8 text-body text-muted-foreground">
+                {failed ? null : <Spinner />}
+                {failed ? copy.loadFailed : copy.loading}
+              </p>
+            </>
+          ) : single ? (
+            <SingleShipmentFlow
+              key={key}
+              draft={draft}
+              order={single}
+              onClose={onClose}
+              onBooked={onBooked}
+            />
+          ) : null}
+        </DialogContent>
+      </Dialog>
+    </>
   )
 }

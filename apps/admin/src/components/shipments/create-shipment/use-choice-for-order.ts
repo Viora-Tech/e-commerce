@@ -3,18 +3,19 @@
 import { useState } from 'react'
 
 /**
- * The courier picked in the bulk edit popup. It starts at `initial` and goes back to `initial`
- * whenever the popup moves to another order (state adjusted during render, not in an effect).
+ * A value the bulk edit popup edits for one order. It starts at `initial` and goes back to a
+ * fresh `initial` whenever the popup moves to another order (state adjusted during render, not
+ * in an effect).
  */
-export function useChoiceForOrder(
+export function useChoiceForOrder<T>(
   orderId: string | null,
-  initial: string | null,
-): [string | null, (next: string | null) => void] {
-  const [choice, setChoice] = useState<string | null>(initial)
+  initial: () => T,
+): [T, (next: T) => void] {
+  const [choice, setChoice] = useState<T>(initial)
   const [shownFor, setShownFor] = useState(orderId)
   if (shownFor !== orderId) {
     setShownFor(orderId)
-    setChoice(initial)
+    setChoice(initial())
   }
   return [choice, setChoice]
 }

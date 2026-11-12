@@ -1,78 +1,121 @@
 'use client'
 
-import type { CourierRateRow } from '@commerce/core'
 import { ChevronLeftIcon, ChevronRightIcon } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import { Dialog, DialogFooter, DialogTitle } from '@commerce/ui/shadcn/dialog'
+import { Dialog, DialogDescription, DialogFooter, DialogTitle } from '@commerce/ui/shadcn/dialog'
 import DialogContent from '@/components/layout/dialog-content'
 import DialogHeader from '@/components/layout/dialog-header'
+import StatusChip from '@/components/layout/status-chip'
+import { bulkShipContent } from '@/data/bulk-ship'
 import { createShipmentContent } from '@/data/create-shipment'
-import { useCopy } from '@/hooks/use-copy'
-import { batchPosition } from './bulk-edit-state'
-import CourierOption from './courier-option'
+import { useCopy, useFormat } from '@/hooks/use-copy'
+import BulkEditPackage from './bulk-edit-package'
+import BulkEditShipping from './bulk-edit-shipping'
+import { editForm, formToEdit, linePosition, repriced } from './bulk-edit-state'
+import type { BulkLine, OrderEdit } from './bulk-ship-state'
+import type { ShipmentDraft } from './flow-state'
 import { useChoiceForOrder } from './use-choice-for-order'
 
-export type BulkEditOrder = {
-  orderId: string
-  orderNumber: number
-  /** The order's couriers, as quoted for the batch's box. */
-  options: CourierRateRow[]
-  /** The option it books with now. */
-  pickedKey: string | null
-}
-
 type BulkEditDialogProps = {
-  orders: BulkEditOrder[]
+  lines: BulkLine[]
   /** The order open now; null closes the popup. */
   orderId: string | null
   onOrderChange: (orderId: string | null) => void
-  onSave: (orderId: string, optionKey: string) => void
+  edits: Readonly<Record<string, OrderEdit>>
+  boxes: ShipmentDraft['boxes']
+  /** Orders the merchant left out of this booking. */
+  unticked: ReadonlySet<string>
+  onSave: (orderId: string, edit: OrderEdit) => void
+  onSkip: (orderId: string, skip: boolean) => void
 }
 
 /**
- * One order of a bulk batch (Figma 913:9698): its couriers to pick from, with ‹ › to move
- * through the batch without closing. Save and next keeps the pick and opens the next order.
+ * Edit shipment (Figma 913:9698): one order of the bulk batch over the drawer. Its items, box,
+ * weight and size on the left; its courier (with what the shopper chose at checkout), payment,
+ * insurance and charge on the right. ‹ › move through the batch; Save and next keeps the
+ * changes and opens the next order. A changed package or payment asks its couriers again.
  */
 export default function BulkEditDialog({
-  orders,
+  lines,
   orderId,
   onOrderChange,
+  edits,
+  boxes,
+  unticked,
   onSave,
+  onSkip,
 }: BulkEditDialogProps) {
   // Hooks
   const copy = useCopy(createShipmentContent.bulkEdit)
-  const [choice, setChoice] = useChoiceForOrder(
-    orderId,
-    batchPosition(orders, orderId).order?.pickedKey ?? null,
-  )
+  const bulk = useCopy(bulkShipContent)
+  const pkg = useCopy(createShipmentContent.package)
+  const fmt = useFormat()
+  const [form, setForm] = useChoiceForOrder(orderId, () => {
+    const open = linePosition(lines, orderId).line
+    return open && orderId ? editForm(open, edits[orderId], boxes) : null
+  })
 
   // Helpers
   const go = (to: number) => {
-    const next = orders[to]
-    if (next) onOrderChange(next.orderId)
+    const next = lines[to]
+    if (next) onOrderChange(next.order.orderId)
   }
 
   // Event handlers
   const handleSave = (andNext: boolean) => {
-    const { index, order } = batchPosition(orders, orderId)
-    if (order && choice) onSave(order.orderId, choice)
-    if (andNext && index < orders.length - 1) go(index + 1)
+    const { index, line: open } = linePosition(lines, orderId)
+    if (open && form) {
+      const id = open.order.orderId
+      onSave(id, formToEdit(form, open, edits[id]))
+    }
+    if (andNext && index < lines.length - 1) go(index + 1)
+    else onOrderChange(null)
+  }
+  const handleSkip = () => {
+    const { index, line: open } = linePosition(lines, orderId)
+    if (!open) return
+    onSkip(open.order.orderId, !unticked.has(open.order.orderId))
+    if (index < lines.length - 1) go(index + 1)
     else onOrderChange(null)
   }
 
   // Render logic
-  const { index, order } = batchPosition(orders, orderId)
-  const bookable = order?.options ?? []
+  const { index, line } = linePosition(lines, orderId)
+  const orders = lines
+  const o = line?.order
+  const p = bulk.editPopup
+  const units = line?.parcel?.lines.reduce((n, l) => n + l.quantity, 0) ?? 0
+  const repricing =
+    !!line &&
+    !!form &&
+    repriced(edits[line.order.orderId], formToEdit(form, line, edits[line.order.orderId]))
+  const skipped = line ? unticked.has(line.order.orderId) : false
+  const subtitle = o
+    ? p.subtitle([
+        o.customerName ?? '',
+        [o.city, o.pincode].filter(Boolean).join(' '),
+        `${line?.paymentMode === 'cod' ? bulk.cod : bulk.prepaid} ${fmt.money(line?.parcel?.valuePaise ?? o.totalPaise)}`,
+        pkg.itemCount(units),
+      ])
+    : ''
 
   return (
-    <Dialog open={order !== undefined} onOpenChange={(open) => !open && onOrderChange(null)}>
+    <Dialog open={line !== undefined} onOpenChange={(open) => !open && onOrderChange(null)}>
       <DialogContent size="wide">
         <DialogHeader>
-          <div className="flex items-center gap-2">
-            <DialogTitle className="flex-1">
-              {order ? copy.title(order.orderNumber) : ''}
-            </DialogTitle>
-            <span className="text-caption text-muted-foreground tabular-nums">
+          <div className="flex items-start gap-2">
+            <div className="flex min-w-0 flex-1 flex-col gap-1">
+              <DialogTitle className="flex flex-wrap items-center gap-2">
+                {o ? copy.title(o.orderNumber) : ''}
+                {line?.problem?.kind === 'needs_package' ? (
+                  <StatusChip tone="attention" variant="outline">
+                    {bulk.problem.needsPackage(line.problem.box)}
+                  </StatusChip>
+                ) : null}
+              </DialogTitle>
+              <DialogDescription>{subtitle}</DialogDescription>
+            </div>
+            <span className="pt-1 text-caption text-muted-foreground tabular-nums">
               {copy.position(index + 1, orders.length)}
             </span>
             <Button
@@ -97,29 +140,25 @@ export default function BulkEditDialog({
             </Button>
           </div>
         </DialogHeader>
-        <div className="flex flex-col gap-2">
-          <p className="text-body font-medium text-ink-strong">{copy.courier}</p>
-          {bookable.length === 0 ? (
-            <p className="text-body text-danger">{copy.noCourier}</p>
-          ) : (
-            bookable.map((row) => (
-              <CourierOption
-                key={row.optionKey}
-                row={row}
-                selected={row.optionKey === choice}
-                onSelect={() => setChoice(row.optionKey)}
-              />
-            ))
-          )}
-          <p className="text-caption text-muted-foreground">{copy.note}</p>
-        </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => handleSave(false)} disabled={!choice}>
-            {copy.save}
+        {line && form ? (
+          <div className="grid gap-6 md:grid-cols-2">
+            <BulkEditPackage line={line} form={form} onChange={setForm} boxes={boxes} />
+            <BulkEditShipping line={line} form={form} onChange={setForm} repricing={repricing} />
+          </div>
+        ) : null}
+        <DialogFooter className="items-center sm:justify-between">
+          <Button variant="ghost" onClick={handleSkip} disabled={line?.status !== 'ready'}>
+            {skipped ? p.unskip : p.skip}
           </Button>
-          <Button onClick={() => handleSave(true)} disabled={!choice}>
-            {copy.saveNext}
-          </Button>
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <span className="text-caption text-muted-foreground">{p.saveNote}</span>
+            <Button variant="outline" onClick={() => handleSave(false)} disabled={!form}>
+              {copy.save}
+            </Button>
+            <Button onClick={() => handleSave(true)} disabled={!form}>
+              {copy.saveNext}
+            </Button>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>
