@@ -61,7 +61,7 @@ import {
   routeForStore,
 } from './lib/routing'
 
-import { dropOnStoreChange, watchStoreChanges } from './lib/store-changes'
+import { watchResolvers } from './lib/store-changes'
 import { createStoreResolver, hostnameFromHeader } from './lib/store-resolver'
 import {
   ACCESS_COOKIE,
@@ -107,18 +107,7 @@ const marketsOf = createStoreResolver<StoreMarketRoute[]>({
  * Hosts and markets follow the store's writes (a domain or market saved in the admin) at once,
  * through the storefront's cache notifications; their TTL only covers a lost listener.
  */
-const watchRouting = watchStoreChanges(
-  dropOnStoreChange({
-    store: (storeId) => {
-      resolve.forgetStore(storeId)
-      marketsOf.forgetStore(storeId)
-    },
-    all: () => {
-      resolve.clear()
-      marketsOf.clear()
-    },
-  }),
-)
+const watchRouting = watchResolvers(resolve, marketsOf)
 
 /** Cloudflare's edge country, forwarded for region defaults. Absent when not behind Cloudflare. */
 function visitorCountry(request: NextRequest): string | null {

@@ -14,7 +14,13 @@ import { missingServerOnly } from './consistency'
 
 type AllowEntry = { file: string; reason: string }
 
-const ALLOWLIST: AllowEntry[] = []
+const ALLOWLIST: AllowEntry[] = [
+  {
+    file: 'apps/storefront/src/lib/search-engine-register.ts',
+    reason:
+      'imported only by instrumentation.ts, which Next does not compile with the react-server condition, so server-only would throw at boot',
+  },
+]
 
 describe('sweep: server-only-guard', () => {
   it('every app lib module that reaches server packages imports server-only', async () => {

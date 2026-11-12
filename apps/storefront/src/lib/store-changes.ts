@@ -123,3 +123,19 @@ export function dropOnStoreChange(forget: {
     onLive: forget.all,
   }
 }
+
+/** Keeps per-store resolver caches (`createStoreResolver`) in step with store writes. */
+export function watchResolvers(
+  ...resolvers: { forgetStore: (storeId: string) => void; clear: () => void }[]
+): () => void {
+  return watchStoreChanges(
+    dropOnStoreChange({
+      store: (storeId) => {
+        for (const r of resolvers) r.forgetStore(storeId)
+      },
+      all: () => {
+        for (const r of resolvers) r.clear()
+      },
+    }),
+  )
+}
