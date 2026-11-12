@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto'
 import type IORedis from 'ioredis'
 
 /**
@@ -24,8 +25,25 @@ export async function cacheSet(redis: IORedis, key: string, value: unknown, ttlS
 /** Serviceability answers barely change; a day keeps courier calls to one per pincode. */
 export const SERVICEABILITY_TTL_SECONDS = 24 * 3600
 
-export const serviceabilityKey = (storeId: string, provider: string, pincode: string) =>
-  `{shipping}:serviceability:${storeId}:${provider}:${pincode}`
+/**
+ * A short hash of the courier app's saved settings (credentials, account, options), so saving
+ * new ones is a cache miss rather than a day of answers from the old account. Only the hash
+ * goes in the key, never a credential.
+ */
+export const courierSettingsFingerprint = (settings: unknown): string =>
+  createHash('sha256')
+    .update(JSON.stringify(settings ?? null))
+    .digest('hex')
+    .slice(0, 16)
+
+export const serviceabilityKey = (
+  storeId: string,
+  provider: string,
+  /** The courier app's saved settings as stored; hashed into the key. */
+  providerSettings: unknown,
+  pincode: string,
+) =>
+  `{shipping}:serviceability:${storeId}:${provider}:${courierSettingsFingerprint(providerSettings)}:${pincode}`
 
 /** Add one; the key expires `ttlSeconds` after its first count. */
 async function cacheIncr(redis: IORedis, key: string, ttlSeconds: number): Promise<number> {
