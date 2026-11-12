@@ -1,6 +1,7 @@
 'use client'
 
 import { ChevronDown, X } from '@commerce/ui/icons'
+import { cn } from '@commerce/ui/lib/utils'
 import { Popover, PopoverContent, PopoverTrigger } from '@commerce/ui/shadcn/popover'
 import {
   chipFor,
@@ -46,7 +47,9 @@ export default function FilterChip({ group, open, onOpenChange }: FilterChipProp
           {chip ? (
             <>
               <span className="shrink-0 text-muted-foreground">
-                {tableCopy.filterIs(group.label)}
+                {chip.negated
+                  ? tableCopy.filterIsNot(group.label)
+                  : tableCopy.filterIs(group.label)}
               </span>
               <span className="truncate pr-1 font-medium">{chip.label}</span>
             </>
@@ -70,7 +73,10 @@ export default function FilterChip({ group, open, onOpenChange }: FilterChipProp
       </span>
       <PopoverContent
         align="start"
-        className="max-h-[min(28rem,var(--available-height))] w-72 gap-0 overflow-y-auto p-0"
+        className={cn(
+          'max-h-[min(28rem,var(--available-height))] gap-0 overflow-y-auto p-0',
+          group.type === 'picker' ? 'w-96 max-w-[calc(100vw-2rem)]' : 'w-72',
+        )}
       >
         <div className="flex h-10 shrink-0 items-center justify-between border-border border-b px-3.5">
           <p className="text-xs font-medium text-muted-foreground">{group.label}</p>

@@ -15,6 +15,7 @@ export type {
   FilterGroup,
   FilterOption,
   MultiGroup,
+  PickerGroup,
   RangeGroup,
   RangePatch,
   SelectGroup,

@@ -2,7 +2,7 @@ import { formatMoney } from '@commerce/money'
 import { describe, expect, it } from 'vitest'
 import { filterPanelContent } from '@/data/filter-panel'
 import { chipFor, chipGroups, clearGroup, hasFilter } from './applied'
-import { DATE_CUSTOM, type FilterGroup } from './types'
+import { DATE_CUSTOM, type FilterGroup, type RangeGroup } from './types'
 
 const noop = () => {}
 
@@ -20,7 +20,7 @@ function paymentGroup(value: string[]): FilterGroup {
   }
 }
 
-function totalGroup(from: string, to: string): FilterGroup {
+function totalGroup(from: string, to: string): RangeGroup {
   return {
     key: 'total',
     label: 'Order value',

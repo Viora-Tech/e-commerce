@@ -17,6 +17,7 @@ export default [
     clearFilters: 'सब हटाएं',
     searchMore: 'खोजें',
     filterIs: (field) => `${field}:`,
+    filterIsNot: (field) => `${field} नहीं:`,
     view: 'देखें',
     toggleColumns: 'कॉलम दिखाएं/छिपाएं',
     sortAsc: 'छोटे से बड़ा',

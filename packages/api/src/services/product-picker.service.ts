@@ -115,6 +115,25 @@ export type PickProductsInput = {
   productType?: string | undefined
   status?: ProductStatus | undefined
   limit: number
+  /** Rows to skip: the next page of a long list (the Orders Product filter scrolls). */
+  offset?: number | undefined
+  /**
+   * Look these up instead of searching: these products, and the products of these variants.
+   * Archived ones come back too (an old order's product), with every variant, so a saved
+   * filter can name what it picked.
+   */
+  ids?: string[] | undefined
+  variantIds?: string[] | undefined
+}
+
+/** Products picked by id, or holding one of the picked variants. */
+function lookupWhere(ids: string[], variantIds: string[]) {
+  return or(
+    ids.length ? inArray(product.id, ids) : undefined,
+    variantIds.length
+      ? sql`exists (select 1 from ${variant} v where v.product_id = ${product.id} and v.id = any(${sql.param(variantIds)}::uuid[]))`
+      : undefined,
+  )
 }
 
 /** Rows for the "Select products" dialog: each product with its variants so the dialog can expand them. */
@@ -123,6 +142,7 @@ export async function pickProducts(
   input: PickProductsInput,
 ): Promise<PickProductRow[]> {
   const search = input.search?.trim()
+  const lookup = Boolean(input.ids?.length || input.variantIds?.length)
   const rows = await tx
     .select({
       id: product.id,
@@ -137,7 +157,12 @@ export async function pickProducts(
     .where(
       and(
         notSystemTest,
-        input.status ? eq(product.status, input.status) : ne(product.status, 'archived'),
+        lookup ? lookupWhere(input.ids ?? [], input.variantIds ?? []) : undefined,
+        input.status
+          ? eq(product.status, input.status)
+          : lookup
+            ? undefined
+            : ne(product.status, 'archived'),
         input.productType ? eq(product.productType, input.productType) : undefined,
         input.collectionId
           ? sql`exists (select 1 from collection_product cp where cp.product_id = ${product.id} and cp.collection_id = ${input.collectionId})`
@@ -150,8 +175,9 @@ export async function pickProducts(
           : undefined,
       ),
     )
-    .orderBy(asc(product.title))
+    .orderBy(asc(product.title), asc(product.id))
     .limit(input.limit)
+    .offset(input.offset ?? 0)
   if (rows.length === 0) return []
 
   const variants = await tx
@@ -174,7 +200,7 @@ export async function pickProducts(
           variant.productId,
           rows.map((r) => r.id),
         ),
-        isNull(variant.archivedAt),
+        lookup ? undefined : isNull(variant.archivedAt),
       ),
     )
     .orderBy(asc(variant.position))

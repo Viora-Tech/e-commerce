@@ -54,6 +54,16 @@ function emptyRange(group: RangeGroup): RangePatch {
 
 /** The chip for one group, or null while the group holds no filter. */
 export function chipFor(group: FilterGroup, copy: PanelCopy): AppliedFilter | null {
+  if (group.type === 'picker') {
+    if (group.summary === null) return null
+    return {
+      key: group.key,
+      field: group.label,
+      label: group.summary,
+      negated: group.negated,
+      onRemove: group.onClear,
+    }
+  }
   if (group.type === 'checks') {
     if (group.value.length === 0) return null
     return {
@@ -120,6 +130,7 @@ export function appliedFromGroups(groups: FilterGroup[], copy: PanelCopy): Appli
 
 /** The group holds a filter, so it shows as a chip. */
 export function hasFilter(group: FilterGroup): boolean {
+  if (group.type === 'picker') return group.summary !== null
   if (group.type === 'checks' || group.type === 'multi') return group.value.length > 0
   if (group.type === 'select' || group.type === 'boolean') return group.value !== null
   if (group.type === 'text') return group.value.trim() !== ''
@@ -140,7 +151,8 @@ export function chipGroups(groups: FilterGroup[], picked: string | null): Filter
 
 /** Empties one group (a chip's ×, or Clear in its popover). */
 export function clearGroup(group: FilterGroup): void {
-  if (group.type === 'checks' || group.type === 'multi') group.onChange([])
+  if (group.type === 'picker') group.onClear()
+  else if (group.type === 'checks' || group.type === 'multi') group.onChange([])
   else if (group.type === 'select' || group.type === 'boolean') group.onChange(null)
   else if (group.type === 'text') group.onChange('')
   else if (group.type === 'date') group.onChange(NO_DATE)

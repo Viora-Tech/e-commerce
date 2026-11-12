@@ -41,6 +41,7 @@ import {
 import { pickProducts, searchVariants } from '../services/product-picker.service'
 import { productSales } from '../services/product-sales.service'
 import { productAdjustments, productStats } from '../services/product-stats.service'
+import { PICKED_MAX } from './order-list-filters'
 
 const ListFiltersSchema = z.object({
   search: z.string().trim().max(SEARCH_MAX).optional(),
@@ -118,6 +119,11 @@ export const productsRouter = {
         productType: z.string().trim().max(100).optional(),
         status: ProductStatusSchema.optional(),
         limit: z.number().int().min(1).max(50).default(30),
+        /** The next page: rows to skip. */
+        offset: z.number().int().min(0).max(100_000).optional(),
+        /** Look up these products and the products of these variants (archived too). */
+        ids: z.array(z.uuid()).max(PICKED_MAX).optional(),
+        variantIds: z.array(z.uuid()).max(PICKED_MAX).optional(),
       }),
     )
     .handler(({ context, input }) => pickProducts(context.tx, input)),

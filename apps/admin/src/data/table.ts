@@ -16,6 +16,8 @@ export const tableContent = {
   searchMore: 'Search',
   /** An applied-filter chip: "Payment is" before the bold value. */
   filterIs: (field: string) => `${field} is`,
+  /** A picker's Is not: "Product is not …". */
+  filterIsNot: (field: string) => `${field} is not`,
   view: 'View',
   toggleColumns: 'Toggle columns',
   sortAsc: 'Sort ascending',

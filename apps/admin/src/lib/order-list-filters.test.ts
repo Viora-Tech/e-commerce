@@ -57,7 +57,7 @@ describe('order list filters (#884)', () => {
     const groups = orderFilterGroups(f, ordersContent.filters, (p) => patches.push(p))
     const chips = appliedFromGroups(groups, filterPanelContent)
     expect(chips.map((c) => [c.field, c.label])).toEqual([
-      ['Product', 'pd170'],
+      ['Product title or SKU', 'pd170'],
       ['Fulfilment', 'Unfulfilled'],
     ])
     chips[0]?.onRemove()

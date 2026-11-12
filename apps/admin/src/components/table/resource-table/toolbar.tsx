@@ -23,6 +23,8 @@ export type AppliedFilter = {
   label: string
   /** The group the value belongs to: the chip reads "<field> is <label>" (Figma applied filters). */
   field?: string | undefined
+  /** The chip reads "<field> is not <label>" (a picker's Is not). */
+  negated?: boolean | undefined
   onRemove: () => void
 }
 

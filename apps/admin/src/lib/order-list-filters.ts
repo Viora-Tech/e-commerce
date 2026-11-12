@@ -1,6 +1,7 @@
 import { MARKETING_CHANNELS } from '@commerce/core/marketing'
 import type { OrderFulfillmentStatus, OrderPaymentStatus } from '@commerce/core/order-status'
-import { parseAsArrayOf, parseAsString, parseAsStringLiteral } from 'nuqs'
+import { parseAsArrayOf, parseAsBoolean, parseAsString, parseAsStringLiteral } from 'nuqs'
+import type { ReactNode } from 'react'
 import {
   type DateFilterValue,
   type FilterGroup,
@@ -14,6 +15,7 @@ import {
   parseAsDateFilter,
 } from '@/lib/date-filter'
 import { moneyRangeGroup, paiseBound } from '@/lib/list-filter-groups'
+import { hasPick, NO_PICK, pickSignature, pickSummary } from '@/lib/product-filter-selection'
 
 /** The Orders filter panel (Figma "Orders · Filter"): what a merchant ticks, by group. */
 export const PAYMENT_FILTERS = [
@@ -68,6 +70,13 @@ export type OrderFilters = {
   returns: ReturnFilter[]
   /** Collection ids: orders with a product from any of them (#886). */
   collection: string[]
+  /**
+   * The Product picker (Shopify's "Product is …"): whole products and single variants. An
+   * order matches when a line is one of them, or with `productNot` when none is.
+   */
+  productIds: string[]
+  variantIds: string[]
+  productNot: boolean
 }
 
 /** What the store's orders use, so the panel lists only values that can match. */
@@ -84,6 +93,14 @@ export const NO_ORDER_FACETS: OrderFacets = {
   couriers: [],
   collections: [],
 }
+
+/** The most products, and separately variants, the API takes (its `PICKED_MAX`). */
+export const PICKED_MAX = 100
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+/** Picked ids as sent: a hand-edited URL's junk is dropped so the list still loads. */
+const pickedIds = (ids: string[]) => ids.filter((id) => UUID.test(id)).slice(0, PICKED_MAX)
 
 /** The longest Product filter the API takes (its `SEARCH_MAX`). */
 const PRODUCT_MAX = 200
@@ -144,13 +161,16 @@ export function hasOrderFilters(f: OrderFilters): boolean {
     paiseBound(f.totalMax) !== null ||
     f.discount.length > 0 ||
     f.returns.length > 0 ||
-    f.collection.length > 0
+    f.collection.length > 0 ||
+    hasPick(f)
   )
 }
 
 /** The ticked boxes as `orders.list` input; both payment methods ticked means no method filter. */
 export function orderFilterInput(f: OrderFilters, now = new Date()) {
   const product = productText(f)
+  const productIds = pickedIds(f.productIds)
+  const variantIds = pickedIds(f.variantIds)
   const placed = dateFilterBounds(f.date, presetStart, now)
   const min = paiseBound(f.totalMin)
   const max = paiseBound(f.totalMax)
@@ -177,6 +197,9 @@ export function orderFilterInput(f: OrderFilters, now = new Date()) {
     ...(f.discount.length ? { discountCodes: f.discount } : {}),
     ...(f.returns.length ? { returnStatus: f.returns } : {}),
     ...(f.collection.length ? { collectionIds: f.collection } : {}),
+    ...(productIds.length ? { productIds } : {}),
+    ...(variantIds.length ? { variantIds } : {}),
+    ...((productIds.length || variantIds.length) && f.productNot ? { excludeProducts: true } : {}),
   }
 }
 
@@ -198,6 +221,15 @@ function whenAny(values: readonly unknown[], group: FilterGroup): FilterGroup[] 
   return values.length ? [group] : []
 }
 
+/** What the page hands the Product picker group: the names it knows, and the picker itself. */
+export type ProductPickerSlot = {
+  /** Product ids to titles, variant ids to "Title · Size" (`namesFromRows`). */
+  names: ReadonlyMap<string, string>
+  control: ReactNode
+}
+
+const NO_PICKER: ProductPickerSlot = { names: new Map(), control: null }
+
 /** The panel's groups (Figma "Orders · Filter"); the chips and Clear all come from the same list. */
 export function orderFilterGroups(
   f: OrderFilters,
@@ -205,12 +237,27 @@ export function orderFilterGroups(
   onChange: (patch: Partial<OrderFilters>) => void,
   /** Tags, codes, couriers and collections the store's orders use (`orders.facets`). */
   facets: OrderFacets = NO_ORDER_FACETS,
+  /** The Product picker's names and controls (`components/orders/product-filter-picker`). */
+  picker: ProductPickerSlot = NO_PICKER,
 ): FilterGroup[] {
   return [
     {
-      key: 'product',
+      key: 'products',
       label: copy.product,
+      type: 'picker',
+      summary: pickSummary(f, picker.names, copy.picker),
+      negated: f.productNot,
+      signature: pickSignature(f, f.productNot),
+      onClear: () => onChange({ ...NO_PICK, productNot: false }),
+      control: picker.control,
+    },
+    {
+      /* Free text, retired from the Filter menu (the picker searches by SKU too). Links and
+         bookmarks made before the picker (`?product=pd170`) still filter and show as a chip. */
+      key: 'product',
+      label: copy.productText,
       type: 'text',
+      inMenu: false,
       value: f.product ?? '',
       onChange: (next) => onChange({ product: next ? next : null }),
       placeholder: copy.productPlaceholder,
@@ -327,6 +374,9 @@ export const NO_FILTERS: OrderFilters = {
   discount: [],
   returns: [],
   collection: [],
+  productIds: [],
+  variantIds: [],
+  productNot: false,
 }
 
 /* Module scope, so the empty defaults keep one identity and the list effect runs once per change. */
@@ -344,4 +394,7 @@ export const FILTER_PARAMS = {
   discount: parseAsArrayOf(parseAsString).withDefault([]),
   returns: parseAsArrayOf(parseAsStringLiteral(RETURN_FILTERS)).withDefault([]),
   collection: parseAsArrayOf(parseAsString).withDefault([]),
+  productIds: parseAsArrayOf(parseAsString).withDefault([]),
+  variantIds: parseAsArrayOf(parseAsString).withDefault([]),
+  productNot: parseAsBoolean.withDefault(false),
 }

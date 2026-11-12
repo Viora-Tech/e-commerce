@@ -1,3 +1,5 @@
+import type { ReactNode } from 'react'
+
 export type FilterOption = { value: string; label: string }
 
 /** The date preset that shows the From and To fields. */
@@ -6,6 +8,11 @@ export const DATE_CUSTOM = 'custom'
 type GroupBase = {
   key: string
   label: string
+  /**
+   * False: left out of the Filter menu, yet still a chip while it holds a value (a retired
+   * filter that old links still set, so it can be seen and cleared).
+   */
+  inMenu?: boolean
 }
 
 /** A list of tick boxes; the value is the ticked option values, in option order. */
@@ -82,8 +89,26 @@ export type BooleanGroup = GroupBase & {
   noLabel?: string
 }
 
+/**
+ * A filter with its own picker (the Orders "Product is …" list of products and variants): the
+ * list owns its controls and says what its chip reads; `null` summary = no filter.
+ */
+export type PickerGroup = GroupBase & {
+  type: 'picker'
+  /** The chip's value ("Hachiware ICE Glasspad, +2"), or null while nothing is picked. */
+  summary: string | null
+  /** The chip reads "<label> is not …" (the picker's Is not). */
+  negated: boolean
+  /** What is picked, as a stable string (ids and Is/Is not), so a change clears the selection. */
+  signature: string
+  onClear: () => void
+  /** The picker itself, drawn in the chip's popover. */
+  control: ReactNode
+}
+
 export type FilterGroup =
   | ChecksGroup
+  | PickerGroup
   | SelectGroup
   | RangeGroup
   | TextGroup

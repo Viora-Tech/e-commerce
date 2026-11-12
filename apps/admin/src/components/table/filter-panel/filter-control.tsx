@@ -13,6 +13,7 @@ import type { FilterGroup } from './types'
 type FilterControlProps = { group: FilterGroup }
 
 function controlFor(group: FilterGroup): ReactNode {
+  if (group.type === 'picker') return group.control
   if (group.type === 'checks') return <ChecksSection group={group} />
   if (group.type === 'select') return <SelectSection group={group} />
   if (group.type === 'text') return <TextSection group={group} />
