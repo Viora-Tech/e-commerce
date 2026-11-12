@@ -231,6 +231,14 @@ describe('resolveParcelDeliveries: insurance, free shipping and each parcel kept
     { cart: cart(50_000, 500), answers: [viaShiprocket(4500, 9100)] },
   ]
 
+  it('priced from the Shipping rate without insurance: the rate exactly as typed', () => {
+    // The ₹49 rate is ₹49 at checkout, never rounded up to ₹50 (Waimers' ₹99 showed as ₹100).
+    const zonePriced = option('std', { name: 'Standard', price: { source: 'zone' } }, 0)
+    const one = { cart: cart(150_000, 500), answers: [viaShiprocket(4500, 9100)] }
+    const r = resolveDeliveryOptions({ ...base([zonePriced]), ...one })
+    expect(find(r, 'std')).toMatchObject({ pricePaise: 4900, listPricePaise: 4900 })
+  })
+
   it('priced from the Shipping rate: the rate once, but every parcel’s insurance', () => {
     const zoneInsured = option(
       'std',
