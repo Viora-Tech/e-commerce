@@ -25,13 +25,12 @@ import { activityContent } from '@/data/activity'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
+import { useScopedStorageKey } from '@/lib/storage-scope'
 import ActivityRow from './activity-row'
 import IconBadge from './icon-badge'
 import RelativeTime from './relative-time'
 
 type ActivityBellProps = {
-  /** Whose "seen" mark this is: the bell remembers it per member in this browser. */
-  memberKey: string
   /** The trigger's classes (the top bar's round icon button). */
   className: string
 }
@@ -115,9 +114,11 @@ function eventHref(e: ActivityEvent): string {
   return routes.orders.returnDetail(e.id)
 }
 
-const seenKey = (memberKey: string) => `activity-seen:${memberKey}`
+/** The "seen" mark is per store and member in this browser; none before a store is picked. */
+const SEEN_KEY = 'activity-seen'
 
-function readSeen(key: string): string {
+function readSeen(key: string | null): string {
+  if (!key) return ''
   try {
     return window.localStorage.getItem(key) ?? ''
   } catch {
@@ -125,7 +126,8 @@ function readSeen(key: string): string {
   }
 }
 
-function writeSeen(key: string, value: string) {
+function writeSeen(key: string | null, value: string) {
+  if (!key) return
   try {
     window.localStorage.setItem(key, value)
   } catch {}
@@ -137,8 +139,9 @@ function writeSeen(key: string, value: string) {
  * highlighted while the panel is open and count as read once it closes (or on "Mark all as
  * read"); refreshed every minute while the tab is visible.
  */
-export default function ActivityBell({ memberKey, className }: ActivityBellProps) {
+export default function ActivityBell({ className }: ActivityBellProps) {
   // Hooks
+  const key = useScopedStorageKey(SEEN_KEY)
   const copy = useCopy(activityContent)
   const format = useFormat()
   const [feed, setFeed] = useState<ActivityFeed | null>(null)
@@ -148,7 +151,7 @@ export default function ActivityBell({ memberKey, className }: ActivityBellProps
   const [tab, setTab] = useState<Tab>('all')
 
   useEffect(() => {
-    setSeen(readSeen(seenKey(memberKey)))
+    setSeen(readSeen(key))
     let live = true
     const load = () => {
       if (document.visibilityState !== 'visible') return
@@ -167,13 +170,13 @@ export default function ActivityBell({ memberKey, className }: ActivityBellProps
       live = false
       clearInterval(timer)
     }
-  }, [memberKey])
+  }, [key])
 
   // Helpers
   const markAllRead = () => {
     const newest = feed?.events[0]?.at
     if (!newest) return
-    writeSeen(seenKey(memberKey), newest)
+    writeSeen(key, newest)
     setSeen(newest)
   }
 

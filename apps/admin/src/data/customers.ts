@@ -190,7 +190,6 @@ export const customerDetailContent = {
     heading: 'Edit customer',
     name: 'Name',
     email: 'Email',
-    emailHelp: 'The email comes from the orders this customer places.',
     phone: 'Phone',
     address: 'Default address',
     line1: 'Address',
@@ -204,7 +203,6 @@ export const customerDetailContent = {
     failed: 'Could not save the customer',
     /** #129: closing with Escape or a click outside asks before dropping edits. */
     discardTitle: 'Discard your changes?',
-    discardBody: 'The name and phone you changed are not saved yet.',
     discard: 'Discard',
     keepEditing: 'Keep editing',
   },

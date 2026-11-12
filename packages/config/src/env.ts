@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { previousSecrets, workerUrl } from './env-runtime'
 import { siteConfig } from './site'
 
 /**
@@ -256,7 +257,11 @@ const shape = z.object({
    * `scripts/rotate-secrets.ts --apply` re-encrypts everything under the new
    * SETTINGS_SECRET. Decryption tries these after the current key.
    */
-  SETTINGS_SECRET_PREVIOUS: z.string().optional(),
+  SETTINGS_SECRET_PREVIOUS: previousSecrets,
+  /** The worker's public origin; server code reads it through `workerPublicUrl` (env-runtime.ts). */
+  NEXT_PUBLIC_WORKER_URL: optionalOrBlank(workerUrl),
+  /** Step-up re-auth (A5) for sensitive admin actions; off by default. Admin only (`apiHost`). */
+  STEP_UP_ENFORCE: flag,
   /**
    * Encrypts backup archives (`scripts/backup-db.ts`). Separate from
    * SETTINGS_SECRET so a compromised app secret can't also open the backups.
@@ -547,6 +552,7 @@ export function settingsSecret(): string {
   return loadEnv(process.env).SETTINGS_SECRET
 }
 
+export { previousSettingsSecrets, workerPublicUrl } from './env-runtime'
 export { merchantGoogleSignIn, reviewerSignIn } from './env-sign-in'
 
 const platformEmailSchema = z.object({ ...platformEmailShape, PLATFORM_DOMAINS: platformDomains })

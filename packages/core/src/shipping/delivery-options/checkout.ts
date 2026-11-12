@@ -87,6 +87,8 @@ export function shownPrices(result: DeliveryResolveResult): Record<string, numbe
 export type QuoteDeliveryInput = Omit<ResolveInput, 'answers'> & {
   storeId: string
   providers: readonly ShippingProvider[]
+  /** The store's saved courier settings by app id; part of each app's quote cache key. */
+  providerSettings: Readonly<Record<string, unknown>> | undefined
   query: Omit<CheckoutQuoteQuery, 'wantCod'>
   cache?: QuoteCache | null | undefined
   cacheOnly?: boolean | undefined
@@ -108,6 +110,7 @@ export async function quoteDelivery(
       cache: input.cache,
       cacheOnly: input.cacheOnly,
       deadlineMs: input.deadlineMs,
+      providerSettings: input.providerSettings,
     },
   )
   return { result: resolveDeliveryOptions({ ...input, answers }), answers }
@@ -164,6 +167,7 @@ export async function quoteParcelDeliveries(
           cache: input.cache,
           cacheOnly: input.cacheOnly,
           deadlineMs: input.deadlineMs,
+          providerSettings: input.providerSettings,
         },
       ),
     ),

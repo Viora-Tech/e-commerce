@@ -61,6 +61,7 @@ import {
   routeForStore,
 } from './lib/routing'
 
+import { watchResolvers } from './lib/store-changes'
 import { createStoreResolver, hostnameFromHeader } from './lib/store-resolver'
 import {
   ACCESS_COOKIE,
@@ -89,6 +90,8 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 const resolve = createStoreResolver<HostRoute>({
   lookup: (hostname) => resolveHost(db(), hostname),
+  // A miss belongs to no store: any store's change drops it (a domain may have been added).
+  storeOf: (_hostname, route) => route?.storeId ?? null,
 })
 
 /**
@@ -97,7 +100,14 @@ const resolve = createStoreResolver<HostRoute>({
  */
 const marketsOf = createStoreResolver<StoreMarketRoute[]>({
   lookup: (storeId) => storeMarkets(db(), storeId).catch(() => []),
+  storeOf: (storeId) => storeId,
 })
+
+/**
+ * Hosts and markets follow the store's writes (a domain or market saved in the admin) at once,
+ * through the storefront's cache notifications; their TTL only covers a lost listener.
+ */
+const watchRouting = watchResolvers(resolve, marketsOf)
 
 /** Cloudflare's edge country, forwarded for region defaults. Absent when not behind Cloudflare. */
 function visitorCountry(request: NextRequest): string | null {
@@ -110,6 +120,7 @@ function visitorCountry(request: NextRequest): string | null {
  * (`lib/csp.ts`); the forwarded request carries the same nonce for the page to use.
  */
 export async function proxy(request: NextRequest) {
+  watchRouting()
   // The plain HTML route handing an ineligible page back (`lib/plain-html/forward.ts`): the page
   // keeps the nonce the outer response's CSP names.
   const handedBack = plainSkipNonce(settingsSecret(), request.headers.get(PLAIN_SKIP_HEADER))

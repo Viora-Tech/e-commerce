@@ -36,6 +36,7 @@ import {
 } from '@/lib/customize-chrome'
 import { copyBlock } from '@/lib/customize-clipboard'
 import { sectionHandle } from '@/lib/customize-section-kinds'
+import { useStorageScope } from '@/lib/storage-scope'
 import SectionIcon from './section-icon'
 
 type SectionRowProps = {
@@ -94,6 +95,7 @@ export default function SectionRow({
   onMoveDown,
 }: SectionRowProps) {
   // Hooks
+  const storageScope = useStorageScope()
   const [renaming, setRenaming] = useState(false)
   const [draft, setDraft] = useState(name)
   const [menuOpen, setMenuOpen] = useState(false)
@@ -112,7 +114,7 @@ export default function SectionRow({
   }
 
   const handleCopy = () => {
-    copyBlock(section)
+    copyBlock(storageScope, section)
     toast.success(customizeContent.clipboard.copied(name))
   }
 

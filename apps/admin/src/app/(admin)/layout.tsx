@@ -8,6 +8,7 @@ import AdminFrame from '@/components/admin-frame'
 import AccentStyle from '@/components/layout/accent-style'
 import PaymentsTestBanner from '@/components/layout/payments-test-banner'
 import RefreshOnFocus from '@/components/layout/refresh-on-focus'
+import StorageScopeProvider from '@/components/layout/storage-scope-provider'
 import { billingContent } from '@/data/billing'
 import { appEntryHref } from '@/lib/apps-gallery'
 import { getSession } from '@/lib/auth'
@@ -103,49 +104,52 @@ export default async function AdminLayout({ children }: { children: ReactNode })
       <AccentStyle organizationId={active?.id ?? null} />
       {/* Back on the tab after 30 s or more: the page is read again (new orders show). */}
       {active ? <RefreshOnFocus /> : null}
-      <AdminFrame
-        user={{
-          name: session.user.name,
-          email: session.user.email,
-          image: session.user.image ?? null,
-        }}
-        stores={storeOptions}
-        activeStoreId={active?.id ?? null}
-        storefrontUrl={storefrontUrl}
-        apps={appLinks}
-        logoUrl={logoUrl}
-        channels={channels}
-        navCounts={navCounts}
-        usage={
-          active && plan && !plan.unlimited
-            ? {
-                used: plan.used,
-                limit: plan.limit,
-                // Trial orders carry no fee, so the card warns only once the store is paying.
-                feePercent: plan.status === 'trialing' ? '0' : feePercent(plan.feeBasisPoints),
-                // "More room on Growth plan": the next plan up (none past Scale).
-                planName: nextUp ? billingContent.plans[nextUp].name : null,
-              }
-            : undefined
-        }
-        // Test server only. A report is filed against a store, so none before one is picked.
-        bugReports={loadEnv(process.env).BUG_REPORTS_ENABLED && active !== null}
-        bugReportsPublic={issuesArePublic({
-          issues: loadEnv(process.env).GITHUB_ISSUES_REPO,
-          code: loadEnv(process.env).GITHUB_CODE_REPO,
-        })}
-      >
-        {/* No active org yet: auto-pick it when the member belongs to exactly one store, else
+      {/* Browser-stored conveniences (recents, badges) are kept per store and member. */}
+      <StorageScopeProvider storeId={active?.id ?? null} userId={session.user.id}>
+        <AdminFrame
+          user={{
+            name: session.user.name,
+            email: session.user.email,
+            image: session.user.image ?? null,
+          }}
+          stores={storeOptions}
+          activeStoreId={active?.id ?? null}
+          storefrontUrl={storefrontUrl}
+          apps={appLinks}
+          logoUrl={logoUrl}
+          channels={channels}
+          navCounts={navCounts}
+          usage={
+            active && plan && !plan.unlimited
+              ? {
+                  used: plan.used,
+                  limit: plan.limit,
+                  // Trial orders carry no fee, so the card warns only once the store is paying.
+                  feePercent: plan.status === 'trialing' ? '0' : feePercent(plan.feeBasisPoints),
+                  // "More room on Growth plan": the next plan up (none past Scale).
+                  planName: nextUp ? billingContent.plans[nextUp].name : null,
+                }
+              : undefined
+          }
+          // Test server only. A report is filed against a store, so none before one is picked.
+          bugReports={loadEnv(process.env).BUG_REPORTS_ENABLED && active !== null}
+          bugReportsPublic={issuesArePublic({
+            issues: loadEnv(process.env).GITHUB_ISSUES_REPO,
+            code: loadEnv(process.env).GITHUB_CODE_REPO,
+          })}
+        >
+          {/* No active org yet: auto-pick it when the member belongs to exactly one store, else
             show the picker instead of letting every page below throw "Pick a store first". */}
-        {active ? (
-          <>
-            {testMode ? <PaymentsTestBanner /> : null}
-            {children}
-          </>
-        ) : (
-          <SelectStore stores={storeOptions} autoSelect />
-        )}
-      </AdminFrame>
+          {active ? (
+            <>
+              {testMode ? <PaymentsTestBanner /> : null}
+              {children}
+            </>
+          ) : (
+            <SelectStore stores={storeOptions} autoSelect />
+          )}
+        </AdminFrame>
+      </StorageScopeProvider>
     </>
   )
 }

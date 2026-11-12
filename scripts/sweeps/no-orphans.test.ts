@@ -18,6 +18,12 @@ type AllowEntry = { file: string; names: string[]; reason: string }
 
 const ALLOWLIST: AllowEntry[] = [
   {
+    file: 'packages/core/src/catalog/search-words.ts',
+    names: ['VOCABULARY_MAX_ENTRIES', 'searchVocabulary', 'clearSearchVocabularies'],
+    reason:
+      'the cap and searchVocabulary are used in the module; clearSearchVocabularies is search-words.test.ts resetting the cache between tests',
+  },
+  {
     file: 'packages/core/src/accounts/orders.ts',
     names: ['shopperPayment'],
     reason:
@@ -1835,6 +1841,12 @@ const ALLOWLIST: AllowEntry[] = [
     names: ['preorderAllowedFrom'],
     reason:
       'the per-variant pre-order rule behind the product writer, exported for preorder-policy.test.ts',
+  },
+  {
+    file: 'packages/core/src/theme-import/bundle-store.ts',
+    names: ['draftDigest'],
+    reason:
+      'used in the module; draft-preview.test.ts checks that a new draft save changes the preview cache version',
   },
 ]
 

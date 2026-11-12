@@ -1,6 +1,6 @@
 /**
  * The sidebar's Apps list: the few apps this member opened most recently in this store, kept in
- * this browser (localStorage). A convenience only, so parsing is defensive and every helper here
+ * this browser (localStorage) per store and member. A convenience only, so parsing is defensive and every helper here
  * is pure; the hook `use-recent-apps` does the storage reads and writes.
  */
 
@@ -10,8 +10,8 @@ export const SIDEBAR_RECENT_APPS = 3
 /** How many app ids are remembered, so an app dropped from the top few can climb back. */
 export const RECENT_APPS_MAX = 10
 
-/** The storage key: one list per store, so switching stores never mixes their apps. */
-export const recentAppsKey = (storeId: string) => `admin-recent-apps:v1:${storeId}`
+/** The storage key's base: one list per store and member (`scopedStorageKey`), so switching stores never mixes their apps. */
+export const RECENT_APPS_KEY = 'admin-recent-apps:v2'
 
 /** The app id in an `/apps/<id>/...` path, or null on any other page. */
 export function appIdFromPath(pathname: string): string | null {

@@ -17,6 +17,7 @@ import { assistantContent } from '@/data/assistant'
 import { useCopy } from '@/hooks/use-copy'
 import { openAsReportHref, snapshotOf, stashAnswer } from '@/lib/answer-report'
 import { formatCell, isNumericKind } from '@/lib/report-format'
+import { useStorageScope } from '@/lib/storage-scope'
 import AnswerChart from './answer-chart'
 
 type AnswerTableCardProps = {
@@ -34,13 +35,15 @@ type AnswerTableCardProps = {
  */
 export default function AnswerTableCard({ table, tool, question }: AnswerTableCardProps) {
   // Hooks
+  const storageScope = useStorageScope()
   const copy = useCopy(assistantContent)
   const columns = useCopy(analyticsContent.reports.columns)
   const router = useRouter()
 
   // Event handlers
   const handleOpen = () => {
-    if (!table.query) stashAnswer(snapshotOf(table, { tool, question, answeredAt: new Date() }))
+    if (!table.query)
+      stashAnswer(storageScope, snapshotOf(table, { tool, question, answeredAt: new Date() }))
     router.push(openAsReportHref(table))
   }
 

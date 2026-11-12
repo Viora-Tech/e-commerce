@@ -6,7 +6,6 @@ import {
   deleteTestOrders,
   deliverGiftCard,
   giftCardChannels,
-  InvalidOrderContact,
   isIsoDay,
   MANUAL_PAYMENT_METHODS,
   ORDER_MARKS,
@@ -17,7 +16,6 @@ import {
   permissions,
   REFUND_METHODS,
   setCourierCharge,
-  updateOrderContact,
 } from '@commerce/core'
 import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
@@ -57,6 +55,7 @@ import {
 } from '../services/shipping.service'
 import { courierArgs } from './courier-args'
 import { assertNotImported } from './imported-order'
+import { orderContactRoutes } from './order-contact'
 import { draftAndAbandonedRoutes } from './order-drafts'
 import { orderEditRoutes } from './order-edit'
 import { orderHoldRoutes } from './order-hold'
@@ -261,67 +260,6 @@ export const ordersRouter = {
       return o
     }),
 
-  /**
-   * "Edit" on the order page's customer card: this order's contact and shipping
-   * address, optionally copied to the customer's saved address. Logged on the timeline.
-   */
-  // Rewriting the customer's saved address is a customer edit, not an order edit.
-  updateContact: can(permissions.ORDERS_WRITE, (input) =>
-    inputField(input, 'alsoUpdateCustomer') === true ? [permissions.CUSTOMERS_WRITE] : [],
-  )
-    .input(
-      z.object({
-        orderId: z.uuid(),
-        name: z.string().trim().max(120),
-        email: z.email().max(200).nullable(),
-        phone: z.string().trim().max(30).nullable(),
-        address: z
-          .object({
-            line1: z.string().trim().max(200),
-            line2: z.string().trim().max(200).nullable().optional(),
-            city: z.string().trim().max(80),
-            stateCode: z.string().trim().max(2),
-            pincode: z.string().trim().max(6),
-          })
-          .nullable(),
-        alsoUpdateCustomer: z.boolean().default(false),
-        /** Left out keeps the order's billing; `address` null bills the shipping address. */
-        billing: z
-          .object({
-            address: z
-              .object({
-                name: z.string().trim().max(120),
-                line1: z.string().trim().max(200),
-                line2: z.string().trim().max(200).nullable().optional(),
-                city: z.string().trim().max(80),
-                stateCode: z.string().trim().max(2),
-                pincode: z.string().trim().max(6),
-              })
-              .nullable(),
-            businessName: z.string().trim().max(200).nullable(),
-            gstin: z.string().trim().max(20).nullable(),
-          })
-          .optional(),
-      }),
-    )
-    .handler(async ({ context, input }) => {
-      await assertNotImported(context.tx, { orderId: input.orderId })
-      try {
-        return await updateOrderContact(
-          { storeId: context.scope.storeId, tx: context.tx },
-          { ...input, author: context.session.user.email },
-        )
-      } catch (err) {
-        if (err instanceof OrderNotFound) {
-          throw new ORPCError('NOT_FOUND', { message: 'Order not found' })
-        }
-        if (err instanceof InvalidOrderContact) {
-          throw new ORPCError('BAD_REQUEST', { message: err.message, data: { errors: err.errors } })
-        }
-        throw err
-      }
-    }),
-
   /** Book the parcel with the courier picked in the Create shipment flow (the store's first
    *  courier when none is named); the parcel's items are packed and the shopper is told. */
   createShipment: can(permissions.ORDERS_FULFIL)
@@ -496,4 +434,5 @@ export const ordersRouter = {
   ...orderUndoRoutes,
   ...orderEditRoutes,
   ...orderHoldRoutes,
+  ...orderContactRoutes,
 }

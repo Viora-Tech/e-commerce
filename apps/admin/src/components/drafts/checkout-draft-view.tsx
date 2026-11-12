@@ -2,6 +2,7 @@
 
 import { orderRef } from '@commerce/core/draft-number'
 import { Send } from '@commerce/ui/icons'
+import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
@@ -19,6 +20,43 @@ import { routes } from '@/lib/routes'
 import { type LinkChannel, linkTooSoon } from './checkout-draft-send-link'
 
 type Draft = NonNullable<Awaited<ReturnType<typeof api.orders.getDraft>>>
+
+type MoneyRow = { key: string; label: string; amount: string }
+
+/**
+ * How the items' sum becomes the total: subtotal, a code or automatic discount, shipping and the
+ * payment method's fee or discount (e.g. 2% off for a bank transfer). Lines at zero are left out;
+ * the subtotal shows only when something follows it.
+ */
+function moneyRowsFor(
+  d: Draft,
+  copy: ReturnType<typeof useCopy<typeof checkoutDraftContent>>,
+  money: (paise: number) => string,
+): MoneyRow[] {
+  const rows: MoneyRow[] = []
+  if (d.discountPaise > 0)
+    rows.push({
+      key: 'discount',
+      label: copy.discount(d.discountLabel ?? d.discountCode),
+      amount: `−${money(d.discountPaise)}`,
+    })
+  if (d.shippingPaise > 0)
+    rows.push({
+      key: 'shipping',
+      label: copy.shipping(d.shippingRateName),
+      amount: money(d.shippingPaise),
+    })
+  if (d.paymentAdjustmentPaise !== 0) {
+    const negative = d.paymentAdjustmentPaise < 0
+    rows.push({
+      key: 'payment',
+      label: copy.paymentAdjustment(d.paymentAdjustmentLabel, negative),
+      amount: `${negative ? '−' : ''}${money(Math.abs(d.paymentAdjustmentPaise))}`,
+    })
+  }
+  if (rows.length === 0) return rows
+  return [{ key: 'subtotal', label: copy.subtotal, amount: money(d.subtotalPaise) }, ...rows]
+}
 
 type CheckoutDraftViewProps = {
   /** A shopper's unpaid checkout (`draftSource = 'checkout'`), as `orders.getDraft` returns it. */
@@ -111,6 +149,7 @@ export default function CheckoutDraftView({ draft: d }: CheckoutDraftViewProps) 
   // Render logic
   const ref = orderRef(d)
   const refundNeeded = d.attempts.some((a) => a.refundNeeded)
+  const moneyRows = moneyRowsFor(d, copy, fmt.money)
   const method = copy.methods[d.paymentMethod === 'manual' ? 'manual' : 'online']
   const held = d.draftReserved?.length && d.reservedUntil ? d.reservedUntil : null
   const canMarkPaid = openTransfer(d) && !d.draftExpiredAt
@@ -172,6 +211,18 @@ export default function CheckoutDraftView({ draft: d }: CheckoutDraftViewProps) 
                     {l.variantTitle && l.variantTitle !== 'Default' ? ` / ${l.variantTitle}` : ''}
                   </span>
                   <span className="tabular-nums">{fmt.money(l.unitPricePaise * l.quantity)}</span>
+                </li>
+              ))}
+              {moneyRows.map((row) => (
+                <li
+                  key={row.key}
+                  className={cn(
+                    'flex justify-between gap-4 text-body text-muted-foreground',
+                    row.key === 'subtotal' && 'border-t pt-2',
+                  )}
+                >
+                  <span className="min-w-0 truncate">{row.label}</span>
+                  <span className="tabular-nums">{row.amount}</span>
                 </li>
               ))}
               <li className="flex justify-between gap-4 border-t pt-2 font-medium">

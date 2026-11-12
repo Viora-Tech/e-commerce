@@ -52,7 +52,7 @@ describe('pickup plan', () => {
     expect(plan.date).toBe(pickupDayKey(0, now))
     expect(plan.date).toBe('2026-10-15')
     expect(plan.timeFrom).toBe('14:00')
-    expect(pickupReady(plan)).toBe(true)
+    expect(pickupReady(plan, '2026-10-15')).toBe(true)
   })
 
   test('from noon in India it starts tomorrow', () => {
@@ -64,7 +64,18 @@ describe('pickup plan', () => {
   })
 
   test('a malformed time is not ready', () => {
-    expect(pickupReady({ ask: true, date: '2026-10-16', timeFrom: '2pm' })).toBe(false)
+    expect(pickupReady({ ask: true, date: '2026-10-16', timeFrom: '2pm' }, '2026-10-15')).toBe(
+      false,
+    )
+  })
+
+  test('a day before today is not ready', () => {
+    expect(pickupReady({ ask: true, date: '2026-10-14', timeFrom: '14:00' }, '2026-10-15')).toBe(
+      false,
+    )
+    expect(pickupReady({ ask: true, date: '2026-10-15', timeFrom: '14:00' }, '2026-10-15')).toBe(
+      true,
+    )
   })
 })
 

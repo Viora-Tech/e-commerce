@@ -313,6 +313,7 @@ export async function checkoutDelivery(
           ...base,
           storeId,
           providers,
+          providerSettings: settings.providers,
           cache: redisCache(),
           destinationPincode: to.pincode,
           orderValuePaise: valuePaise,
@@ -329,6 +330,7 @@ export async function checkoutDelivery(
               cart,
               storeId,
               providers,
+              providerSettings: settings.providers,
               cache: redisCache(),
               query: {
                 originPincode: policy.originPincode,
@@ -433,6 +435,7 @@ export async function deliveryForOrder(
       now: new Date(),
       storeId,
       providers,
+      providerSettings: settings.providers,
       cache: redisCache(),
       cacheOnly: true,
       destinationPincode: to.pincode,
@@ -453,7 +456,7 @@ export async function deliveryForOrder(
       valuePaise,
       wantCod: true,
     },
-    { storeId, cache: redisCache(), cacheOnly: true },
+    { storeId, cache: redisCache(), cacheOnly: true, providerSettings: settings.providers },
   )
   // A changed cart was never shown a price: it is charged what the cached answers say.
   return { choice: picked, answers, shown: null, parcels: null }

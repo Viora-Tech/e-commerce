@@ -5,7 +5,7 @@ Figma frames 916:10179 (Create shipment · partial), 918:10520 (To ship · Part 
 
 ## Back end
 
-- Migration `0243_parcel_split_reason.sql`: `fulfillment_order.split_reason` (text) and
+- Migration `0244_parcel_split_reason.sql`: `fulfillment_order.split_reason` (text) and
   `customer_told_at` (timestamptz), both nullable. The table's store RLS already covers them.
   (schema.ts sits at its file-size ratchet, so one nearby comment was shortened to make room.)
 - `packages/core/src/order/parcel-split.ts`: `splitFulfillmentOrder` takes `{ reason, notifyCustomer, author }`.

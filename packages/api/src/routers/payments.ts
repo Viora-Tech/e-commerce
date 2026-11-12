@@ -1,4 +1,4 @@
-import { loadEnv } from '@commerce/config'
+import { loadEnv, workerPublicUrl } from '@commerce/config'
 import {
   CaptureModeSchema,
   CheckoutMethodSchema,
@@ -11,7 +11,6 @@ import {
   ONLINE_METHOD_IDS,
   PaymentAdjustmentSchema,
   PaymentMethodRulesSchema,
-  parsePreviousSecrets,
   permissions,
   rateLimitKey,
   refreshPaymentCredentials,
@@ -57,8 +56,8 @@ function paymentsEnv(): PaymentsEnv & { adminUrl: string } {
   const env = loadEnv(process.env)
   return {
     secret: env.SETTINGS_SECRET,
-    previousSecrets: parsePreviousSecrets(env.SETTINGS_SECRET_PREVIOUS),
-    workerUrl: process.env.NEXT_PUBLIC_WORKER_URL ?? `http://localhost:${env.WORKER_PORT}`,
+    previousSecrets: env.SETTINGS_SECRET_PREVIOUS,
+    workerUrl: workerPublicUrl(env),
     storefrontUrl: env.STOREFRONT_URL,
     adminUrl: env.ADMIN_URL,
     razorpayOAuth: razorpayOAuthApp(process.env) !== null,

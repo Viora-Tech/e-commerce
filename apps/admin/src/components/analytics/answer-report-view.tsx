@@ -14,6 +14,7 @@ import { useCopy, useFormat } from '@/hooks/use-copy'
 import { ANSWER_SLUG, answerReport, stashedAnswer } from '@/lib/answer-report'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
+import { useStorageScope } from '@/lib/storage-scope'
 import ReportChart from './report-chart'
 import ReportNameDialog from './report-name-dialog'
 import ReportTable from './report-table'
@@ -32,6 +33,7 @@ type AnswerReportViewProps = {
  */
 export default function AnswerReportView({ saved: initialSaved }: AnswerReportViewProps) {
   // Hooks
+  const storageScope = useStorageScope()
   const c = useCopy(analyticsContent.reports)
   const fmt = useFormat()
   const router = useRouter()
@@ -44,8 +46,8 @@ export default function AnswerReportView({ saved: initialSaved }: AnswerReportVi
 
   useEffect(() => {
     if (initialSaved) return
-    setHanded(stashedAnswer())
-  }, [initialSaved])
+    setHanded(stashedAnswer(storageScope))
+  }, [initialSaved, storageScope])
 
   // Event handlers
   const handleSave = async (name: string) => {

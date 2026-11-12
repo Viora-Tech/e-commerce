@@ -8,10 +8,14 @@ description: Change a customer's name and phone, keep their saved addresses up t
 Every shopper who places an order gets a customer profile under **Customers**. Open one to see
 their orders, a note for your team, the messages they were sent, and their contact details.
 
-## Change a customer's name or phone
+## Change a customer's name, email or phone
 
-Select **Edit** on the **Contact** card (or in the ⋯ menu at the top of the customer's page), change the **Name** or **Phone**, then select
-**Save**. The email comes from the orders they place, so it can't be changed here.
+Select **Edit** on the **Contact** card (or in the ⋯ menu at the top of the customer's page), change the **Name**, **Email** or
+**Phone**, then select **Save**. The shopper signs in to your store with this email; their past
+orders keep the email they were placed with.
+
+If another customer already has that email, the change is refused with a link to them: it is the
+same person with two records, so merge them instead (below).
 
 <Callout type="info">
   To change the details on one order only (for example, a shopper asks you to send this parcel to
@@ -98,6 +102,35 @@ card is emptied and disabled so its code stops working. Both the card's history 
 credit history say what happened, and a card keeps its expiry date. Each card moves once: running
 it again changes nothing.
 
+## Merge two customers into one
+
+One shopper can end up with two customer records, for example when you corrected the email on
+their order and they then signed in with the new email: their account shows no orders, because
+the orders sit on the old record.
+
+1. Open the customer you want to keep and select **More actions → Merge with another customer…**.
+2. Search for the other record by name, email or mobile number and select it.
+3. Check **What moves here**: orders, saved addresses, store credit, gift cards, sign-ins
+   (Google, Apple, Facebook, Truecaller and passkeys), carts, timeline notes, reviews and inbox
+   conversations. Tags, the note, marketing consent history and browsing history come too.
+4. Under **Keep these details**, choose whose **Email**, **Phone** and **Name** to keep. The
+   shopper signs in with the email you keep.
+5. Select **Merge customers**.
+
+Everything moves in one go, or nothing does. Store credit is added to the kept balance, and a
+credit with an expiry date keeps that date; both store credit histories show the move. Your saved
+default addresses stay the defaults. The other record is closed: it disappears from the list, its
+sign-ins on other devices end, and an old link to it opens the kept customer. Both timelines say
+what happened and who did it.
+
+Merging needs both **Edit customers** and **Delete customers**, because it removes a record. It
+can't be undone, and an erased customer can't be merged.
+
+<Callout type="info">
+  To move just one order to another customer, use **Change customer** on the order instead. See
+  [Orders](/merchant-guide/orders/orders#move-an-order-to-another-customer).
+</Callout>
+
 ## Common problems and fixes
 
 | Problem | Why it happens | Fix |
@@ -105,6 +138,9 @@ it again changes nothing.
 | "Enter a ten digit mobile number" | Couriers need a mobile number on every address. | Type a 10 digit mobile number, with or without +91. |
 | "Enter a six digit PIN code" | Indian PIN codes are six digits and never start with 0. | Check the PIN code on the shopper's message. |
 | City and state didn't fill in | The PIN code isn't in the directory, or it isn't installed on your server. | Type the city and pick the state yourself. |
+| "Another customer already has this email" | The email belongs to a second record of the same person. | Open that customer, or merge the two (More actions → Merge with another customer…). |
+| A shopper's account shows no orders | Their orders are on another record (an older email). | Merge the two records, or move the order with **Change customer**. |
+| "An erased or already merged customer cannot be merged" | That record was erased on request, or already merged. | Nothing to merge; open the kept customer. |
 
 ## Related guides
 

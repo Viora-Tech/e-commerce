@@ -19,7 +19,22 @@ import {
   refund,
   returnRequest,
 } from '@commerce/db'
-import { and, asc, count, desc, eq, gte, ilike, inArray, lt, lte, ne, or, sql } from 'drizzle-orm'
+import {
+  and,
+  asc,
+  count,
+  desc,
+  eq,
+  gte,
+  ilike,
+  inArray,
+  isNull,
+  lt,
+  lte,
+  ne,
+  or,
+  sql,
+} from 'drizzle-orm'
 import { alias } from 'drizzle-orm/pg-core'
 import type { VisitorSource } from '../context'
 import { conversionRate, istIsoDate, startOfIstDay } from './analytics-buckets'
@@ -154,6 +169,8 @@ function filterWhere(input: CustomerQuery, now: Date, secret: string) {
   const phoneMatch =
     searchDigits.length >= 4 ? eq(c.phoneIndex, phoneBlindIndex(searchDigits, secret)) : undefined
   return and(
+    // A record merged into another customer is part of that customer now.
+    isNull(c.mergedIntoId),
     input.ids ? (input.ids.length > 0 ? inArray(c.id, input.ids) : sql`false`) : undefined,
     input.search
       ? or(ilike(c.name, `%${input.search}%`), ilike(c.email, `%${input.search}%`), phoneMatch)
@@ -238,6 +255,7 @@ export async function customerStats(tx: StoreTx, now = new Date()): Promise<Cust
       averageLifetimePaise: sql<number>`coalesce(round(${allCustomersSpentSql()}::numeric / nullif(count(*), 0)), 0)::int`,
     })
     .from(c)
+    .where(isNull(c.mergedIntoId))
   return {
     total: row?.total ?? 0,
     totalPrevious: row?.totalPrevious ?? 0,
@@ -508,6 +526,8 @@ export async function updateCustomer(
   id: string,
   patch: {
     name?: string | null | undefined
+    /** Lower case; the router has refused one another customer already has. */
+    email?: string | null | undefined
     phone?: string | null | undefined
     tags?: string[] | undefined
     note?: string | null | undefined

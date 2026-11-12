@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { settingsHomeContent } from '@/data/settings'
 import { api } from '@/lib/api-client'
+import { type StorageScope, scopedStorageKey, useStorageScope } from '@/lib/storage-scope'
 import { useCopy } from './use-copy'
 
 /** Per-browser opt-out ("Don't show again"); a plain first-party preference cookie. */
@@ -15,21 +16,25 @@ function promptsOff(): boolean {
   return document.cookie.split('; ').some((c) => c === `${SETUP_NEXT_OFF_COOKIE}=1`)
 }
 
-/** How many tasks were done when the nudge last showed in this tab (#102). */
+/** How many tasks were done when the nudge last showed in this tab, per store (#102). */
 const SHOWN_KEY = 'setup_next_shown_done'
 
-function shownAt(): number | null {
+function shownAt(scope: StorageScope | null): number | null {
+  const key = scopedStorageKey(SHOWN_KEY, scope, { perUser: false })
+  if (!key) return null
   try {
-    const raw = window.sessionStorage.getItem(SHOWN_KEY)
+    const raw = window.sessionStorage.getItem(key)
     return raw === null ? null : Number(raw)
   } catch {
     return null
   }
 }
 
-function rememberShown(done: number) {
+function rememberShown(scope: StorageScope | null, done: number) {
+  const key = scopedStorageKey(SHOWN_KEY, scope, { perUser: false })
+  if (!key) return
   try {
-    window.sessionStorage.setItem(SHOWN_KEY, String(done))
+    window.sessionStorage.setItem(key, String(done))
   } catch {
     // Private mode: the nudge may show again, which is harmless.
   }
@@ -51,6 +56,7 @@ function turnPromptsOff() {
  */
 export function useSetupNext(): (task: SetupItemId) => Promise<void> {
   const router = useRouter()
+  const storageScope = useStorageScope()
   const { checklist, next: copy } = useCopy(settingsHomeContent)
 
   return async (task) => {
@@ -61,9 +67,9 @@ export function useSetupNext(): (task: SetupItemId) => Promise<void> {
       if (!next) return
       const saved = progress.items.find((i) => i.id === task)
       if (next === task && !saved?.done) return
-      const last = shownAt()
+      const last = shownAt(storageScope)
       if (last !== null && progress.done <= last) return
-      rememberShown(progress.done)
+      rememberShown(storageScope, progress.done)
       const nextWords = checklist.items[next]
       toast(
         saved?.done
