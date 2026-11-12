@@ -15,14 +15,16 @@ import {
 import { Input } from '@commerce/ui/shadcn/input'
 import { RadioGroup, RadioGroupItem } from '@commerce/ui/shadcn/radio-group'
 import { Textarea } from '@commerce/ui/shadcn/textarea'
-import { type FormEvent, useState } from 'react'
+import { type FormEvent, useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import StoreCreditExpiryField from '@/components/customers/store-credit-expiry-field'
 import OptionSelect from '@/components/landed-cost/option-select'
 import DialogContent from '@/components/layout/dialog-content'
 import DialogFooter from '@/components/layout/dialog-footer'
 import DialogHeader from '@/components/layout/dialog-header'
 import { orderDetailContent } from '@/data/order-detail'
 import { useCopy, useFormat } from '@/hooks/use-copy'
+import { useStoreCreditReturn } from '@/hooks/use-store-credit-return'
 import { api } from '@/lib/api-client'
 import type { OrderPayment } from './order-detail-types'
 
@@ -61,11 +63,20 @@ export default function RefundDialog({
   // Hooks
   const copy = useCopy(orderDetailContent)
   const fmt = useFormat()
+  // Store credit the order was paid with going back: its original last day, pre-filled.
+  const creditBack = useStoreCreditReturn(
+    payment?.provider === 'store_credit' ? payment.orderId : null,
+  )
   const [amount, setAmount] = useState('')
   const [reason, setReason] = useState('')
   const [way, setWay] = useState<Way | null>(null)
   const [method, setMethod] = useState<HandMethod>('upi')
+  const [expiresOn, setExpiresOn] = useState('')
   const [busy, setBusy] = useState(false)
+
+  useEffect(() => {
+    setExpiresOn(creditBack?.expiresOn ?? '')
+  }, [creditBack])
 
   // Event handlers
   const handleSubmit = async (e: FormEvent) => {
@@ -80,11 +91,14 @@ export default function RefundDialog({
         manual: chosen === 'manual' || undefined,
         method:
           chosen === 'store_credit' ? 'store_credit' : chosen === 'manual' ? method : undefined,
+        // Empty is staff's "never expires"; sent either way, so nothing is left to a default.
+        ...(toCredit ? { storeCreditExpiresOn: expiresOn || null } : {}),
       })
       toast.success(copy.refundDialog.done(fmt.money(paise)))
       setAmount('')
       setReason('')
       setWay(null)
+      setExpiresOn('')
       onDone()
     } catch (err) {
       toast.error(err instanceof Error ? err.message : copy.refundDialog.failed)
@@ -114,6 +128,9 @@ export default function RefundDialog({
         ]
   const chosen: Way | null =
     giftCard || fromCredit ? null : (way ?? (offline || imported ? 'manual' : 'original'))
+  const toCredit = fromCredit || chosen === 'store_credit'
+  // Wait for the original date before a store credit payment can go back.
+  const loadingCredit = fromCredit && creditBack === null
   const methodLabels = Object.fromEntries(HAND_METHODS.map((m) => [m, r.methods[m]])) as Record<
     HandMethod,
     string
@@ -186,6 +203,14 @@ export default function RefundDialog({
               />
             </Field>
           ) : null}
+          {toCredit ? (
+            <StoreCreditExpiryField
+              id="refund-credit-expires"
+              value={expiresOn}
+              onChange={setExpiresOn}
+              originalDay={fromCredit ? (creditBack?.expiresOn ?? '') : undefined}
+            />
+          ) : null}
           <Field>
             <FieldLabel htmlFor="refund-reason">{copy.refundDialog.reason}</FieldLabel>
             <Textarea
@@ -200,7 +225,7 @@ export default function RefundDialog({
             <Button type="button" variant="outline" onClick={onClose} disabled={busy}>
               {copy.refundDialog.close}
             </Button>
-            <Button type="submit" disabled={!valid || busy}>
+            <Button type="submit" disabled={!valid || busy || loadingCredit}>
               <RotateCcw aria-hidden="true" />
               {copy.refundDialog.confirm}
               {valid ? ` ${fmt.money(paise)}` : ''}

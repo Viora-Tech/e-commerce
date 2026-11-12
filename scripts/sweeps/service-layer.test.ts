@@ -36,6 +36,12 @@ const PLUGIN = 'plugin owns its own schema/queries; not yet routed through packa
 
 const ALLOWLIST: AllowEntry[] = [
   {
+    path: 'apps/worker/src/refund-sync.ts',
+    exact: true,
+    reason:
+      'worker sweep that finds stores with pending gateway refunds through the db function storesWithPendingGatewayRefunds (owner-level, crosses stores by design); the per-store work is core syncPendingRefunds (#1605)',
+  },
+  {
     path: 'apps/storefront/src/lib/plain-html/render.ts',
     exact: true,
     reason:
@@ -234,6 +240,12 @@ const ALLOWLIST: AllowEntry[] = [
   { path: 'apps/worker/src/payments.ts', exact: true, reason: WORKER },
   { path: 'apps/worker/src/preorder-balance.ts', exact: true, reason: WORKER },
   {
+    path: 'apps/worker/src/store-credit-expiry.ts',
+    exact: true,
+    reason:
+      'worker sweep lists stores through a SECURITY DEFINER helper (ids only), like preorder-balance; the ledger queries live in core customers/store-credit-expiry.ts',
+  },
+  {
     path: 'apps/worker/src/affiliates.ts',
     exact: true,
     reason: 'worker sweep lists stores through a SECURITY DEFINER helper (ids only), like reviews',
@@ -257,6 +269,11 @@ const ALLOWLIST: AllowEntry[] = [
     reason: 'resolves the store from the db in an oRPC procedure — not yet a service',
   },
   { path: 'packages/plugin-back-in-stock/src/eligibility.ts', exact: true, reason: PLUGIN },
+  {
+    path: 'packages/plugin-back-in-stock/src/messages.ts',
+    exact: true,
+    reason: 'reads its own signup row (with the product and variant) for the confirm email (#1587)',
+  },
   { path: 'packages/plugin-back-in-stock/src/notify.ts', exact: true, reason: PLUGIN },
   { path: 'packages/plugin-back-in-stock/src/quota.ts', exact: true, reason: PLUGIN },
   { path: 'packages/plugin-back-in-stock/src/schema.ts', exact: true, reason: PLUGIN },

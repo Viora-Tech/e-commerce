@@ -2,9 +2,11 @@ import 'server-only'
 import { loadEnv } from '@commerce/config'
 import {
   activeDeliveryConfig,
+  cartDeliveryParcels,
   cartItemFacts,
   cartKeyOf,
   cartLineKeys,
+  cartParcelFor,
   DELIVERY_SNAPSHOT_TTL_SECONDS,
   type DeliveryChoice,
   type DeliveryQuoteSnapshot,
@@ -13,12 +15,15 @@ import {
   gatherProviderAnswers,
   type ProviderAnswer,
   type QuoteCache,
+  type QuoteParcel,
   quoteCartShipping,
   quoteDelivery,
+  quoteParcelDeliveries,
   type ResolvedOption,
   recordCheckoutQuote,
-  resolveDeliveryOptions,
+  resolveParcelDeliveries,
   resolveShippingProviders,
+  type SnapshotParcel,
   shownPrices,
   toShippingPolicy,
 } from '@commerce/core'
@@ -182,6 +187,86 @@ async function readSnapshot(
   )
 }
 
+type EngineBase = Parameters<typeof resolveParcelDeliveries>[0]
+type Lines = Array<{ variantId: string; quantity: number }>
+type Settings = Awaited<ReturnType<typeof loadShippingSettings>>
+
+/** One parcel's engine cart: its value, billed weight (box included) and rule facts. */
+async function parcelCart(
+  tx: StoreTx,
+  lines: Lines,
+  valuePaise: number,
+  boxes: Settings['boxPresets'],
+) {
+  /* Couriers bill the heavier of actual and volumetric weight: price the parcel the admin
+     would book, box and packing included, not the bare products (#1546). Zone rates keep
+     the cart's own weight (`zone.measure`). */
+  const parcel = await cartParcelFor(tx, lines, boxes)
+  const items = await cartItemFacts(
+    tx,
+    lines.map((l) => l.variantId),
+  )
+  return { parcel, cart: { valuePaise, weightGrams: parcel.billedGrams, items } }
+}
+
+/** The parcels of a cart that ships from more than one location; null for one (priced whole). */
+async function splitParcels(
+  tx: StoreTx,
+  storeId: string,
+  cartId: string,
+  to: { pincode: string; stateCode: string },
+  valuePaise: number,
+  settings: Settings,
+  storePincode: string,
+): Promise<QuoteParcel[] | null> {
+  const split = await cartDeliveryParcels(tx, storeId, cartId, {
+    buyerState: to.stateCode,
+    valuePaise,
+    storePincode,
+    boxPresets: settings.boxPresets,
+  })
+  if (split.length <= 1) return null
+  return Promise.all(
+    split.map(async (p) => ({
+      key: p.key,
+      lines: p.lines,
+      originPincode: p.originPincode,
+      valuePaise: p.valuePaise,
+      weightGrams: p.parcel.billedGrams,
+      dimensionsCm: p.parcel.dimensionsCm,
+      cart: (await parcelCart(tx, p.lines, p.valuePaise, settings.boxPresets)).cart,
+    })),
+  )
+}
+
+/** A repeat ask (the insurance tick): the snapshot's answers, parcel by parcel when split. */
+async function fromSnapshot(
+  tx: StoreTx,
+  snap: DeliveryQuoteSnapshot,
+  base: EngineBase,
+  lines: Lines,
+  valuePaise: number,
+  boxes: Settings['boxPresets'],
+): Promise<{
+  result: DeliveryResolveResult
+  answers: ProviderAnswer[]
+  parcels: SnapshotParcel[] | null
+}> {
+  const split = snap.parcels && snap.parcels.length > 1 ? snap.parcels : null
+  const parts = split ?? [{ lines, valuePaise, answers: snap.answers }]
+  const carts = await Promise.all(
+    parts.map(async (p) => ({
+      cart: (await parcelCart(tx, p.lines, p.valuePaise, boxes)).cart,
+      answers: p.answers,
+    })),
+  )
+  return {
+    result: resolveParcelDeliveries(base, carts, valuePaise),
+    answers: snap.answers,
+    parcels: split,
+  }
+}
+
 /**
  * The delivery options for this cart and address, or null when the app is off (zone rates as
  * before). A repeat ask for the same cart and PIN code (the insurance tick) reuses the
@@ -215,36 +300,48 @@ export async function checkoutDelivery(
       : null
   const { shipping } = await registriesForStore(tx, storeId)
   const providers = resolveShippingProviders(shipping, settings, env().SETTINGS_SECRET).providers
-  const base = {
-    config,
-    cart: {
-      ...zone.measure,
-      items: await cartItemFacts(
-        tx,
-        lines.map((l) => l.variantId),
-      ),
-    },
-    zone,
-    policy,
-    now: new Date(),
-    declineInsurance: opts.declineInsurance,
-  }
-  const { result, answers } = reuse
-    ? {
-        result: resolveDeliveryOptions({ ...base, answers: reuse.answers }),
-        answers: reuse.answers,
-      }
-    : await quoteDelivery({
-        ...base,
-        storeId,
-        providers,
-        cache: redisCache(),
-        query: {
-          originPincode: policy.originPincode,
+  const base = { config, zone, policy, now: new Date(), declineInsurance: opts.declineInsurance }
+  const valuePaise = zone.measure.valuePaise
+  // A cart that ships from two locations is two labels: each parcel is priced and added up.
+  const split = reuse
+    ? null
+    : await splitParcels(tx, storeId, cartId, to, valuePaise, settings, policy.originPincode)
+  const priced = reuse
+    ? await fromSnapshot(tx, reuse, base, lines, valuePaise, settings.boxPresets)
+    : split
+      ? await quoteParcelDeliveries({
+          ...base,
+          storeId,
+          providers,
+          cache: redisCache(),
           destinationPincode: to.pincode,
-          ...zone.measure,
-        },
-      })
+          orderValuePaise: valuePaise,
+          parcels: split,
+        }).then(({ result, parcels }) => ({
+          result,
+          answers: parcels[0]?.answers ?? [],
+          parcels,
+        }))
+      : await parcelCart(tx, lines, valuePaise, settings.boxPresets).then(
+          async ({ parcel, cart }) => ({
+            ...(await quoteDelivery({
+              ...base,
+              cart,
+              storeId,
+              providers,
+              cache: redisCache(),
+              query: {
+                originPincode: policy.originPincode,
+                destinationPincode: to.pincode,
+                valuePaise,
+                weightGrams: parcel.billedGrams,
+                dimensionsCm: parcel.dimensionsCm,
+              },
+            })),
+            parcels: null,
+          }),
+        )
+  const { result, answers, parcels } = priced
   // For the app page's "share of checkouts on backup"; a repeat ask (insurance tick) is not counted.
   if (!reuse) void recordCheckoutQuote(redisCache(), storeId, result)
   const quoteId = reuse?.quoteId ?? crypto.randomUUID()
@@ -254,6 +351,7 @@ export async function checkoutDelivery(
     pincode: to.pincode,
     configVersion: config.version,
     answers,
+    ...(parcels ? { parcels } : {}),
     shown: { ...(reuse?.shown ?? {}), ...shownPrices(result) },
     createdAt: reuse?.createdAt ?? new Date().toISOString(),
   }
@@ -294,6 +392,7 @@ export async function deliveryForOrder(
   choice: DeliveryChoice
   answers: ProviderAnswer[]
   shown: Record<string, number> | null
+  parcels: SnapshotParcel[] | null
 } | null> {
   if (!choice) return null
   const config = await activeDeliveryConfig(tx, storeId)
@@ -304,23 +403,58 @@ export async function deliveryForOrder(
   const lines = await cartLineKeys(tx, cartId)
   const cartKey = zone.measure ? cartKeyOf(lines, zone.measure.valuePaise) : ''
   if (snapshot && snapshot.cartKey === cartKey && snapshot.pincode === to.pincode) {
-    return { choice: picked, answers: snapshot.answers, shown: snapshot.shown }
+    return {
+      choice: picked,
+      answers: snapshot.answers,
+      shown: snapshot.shown,
+      parcels: snapshot.parcels ?? null,
+    }
   }
   const settings = await loadShippingSettings(tx, storeId)
   const policy = toShippingPolicy(settings)
   const { shipping } = await registriesForStore(tx, storeId)
   const providers = resolveShippingProviders(shipping, settings, env().SETTINGS_SECRET).providers
+  const valuePaise = zone.measure?.valuePaise ?? 0
+  // Split by location as checkout would, read from cache only (no courier call at Pay).
+  const split = await splitParcels(
+    tx,
+    storeId,
+    cartId,
+    to,
+    valuePaise,
+    settings,
+    policy.originPincode,
+  )
+  if (split) {
+    const { parcels } = await quoteParcelDeliveries({
+      config,
+      zone,
+      policy,
+      now: new Date(),
+      storeId,
+      providers,
+      cache: redisCache(),
+      cacheOnly: true,
+      destinationPincode: to.pincode,
+      orderValuePaise: valuePaise,
+      parcels: split,
+    })
+    return { choice: picked, answers: parcels[0]?.answers ?? [], shown: null, parcels }
+  }
+  // The same billed weight and box checkout asked with, so the cached answers are found.
+  const parcel = await cartParcelFor(tx, lines, settings.boxPresets)
   const answers = await gatherProviderAnswers(
     providers,
     {
       originPincode: policy.originPincode,
       destinationPincode: to.pincode,
-      weightGrams: zone.measure?.weightGrams ?? 0,
-      valuePaise: zone.measure?.valuePaise ?? 0,
+      weightGrams: parcel.billedGrams,
+      dimensionsCm: parcel.dimensionsCm,
+      valuePaise,
       wantCod: true,
     },
     { storeId, cache: redisCache(), cacheOnly: true },
   )
   // A changed cart was never shown a price: it is charged what the cached answers say.
-  return { choice: picked, answers, shown: null }
+  return { choice: picked, answers, shown: null, parcels: null }
 }

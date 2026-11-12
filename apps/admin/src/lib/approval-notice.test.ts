@@ -25,4 +25,12 @@ describe('showApprovalNotice', () => {
     toast.error('Could not save. Try again.')
     expect(error).toHaveBeenCalledWith('Could not save. Try again.', undefined)
   })
+
+  it('tells a stored approval sentence apart from a real save error (#1531)', async () => {
+    const { isApprovalNotice, showApprovalNotice } = await import('./approval-notice')
+    showApprovalNotice('Sent for approval. Nothing has changed yet.')
+    expect(isApprovalNotice('Sent for approval. Nothing has changed yet.')).toBe(true)
+    expect(isApprovalNotice('Title is too long')).toBe(false)
+    expect(isApprovalNotice(null)).toBe(false)
+  })
 })

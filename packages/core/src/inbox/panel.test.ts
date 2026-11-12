@@ -212,15 +212,13 @@ describe('cards, featured products, assignees, numbers', () => {
       .values({ storeId, title: 'X2F', handle: 'x2f', status: 'active' })
       .returning()
     const id = p?.id as string
-    await owner
-      .insert(variant)
-      .values({
-        storeId,
-        productId: id,
-        title: 'Default',
-        pricePaise: 1_449_900,
-        trackInventory: true,
-      })
+    await owner.insert(variant).values({
+      storeId,
+      productId: id,
+      title: 'Default',
+      pricePaise: 1_449_900,
+      trackInventory: true,
+    })
     const card = () => inStore(storeId, (ctx) => productCards(ctx.tx, [id]))
     expect((await card())[id]).toMatchObject({ available: false, variantId: null })
     const [c] = await owner

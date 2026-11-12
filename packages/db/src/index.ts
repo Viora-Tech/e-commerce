@@ -11,6 +11,7 @@ export * from './content-schema'
 export { seedWaimersShipping } from './default-shipping'
 export * from './delivery-schema'
 export * from './discovery-schema'
+export * from './email-suppression-schema'
 export { isUniqueViolation } from './errors'
 export * from './finance-schema'
 export * from './home-card-schema'
@@ -33,6 +34,7 @@ export {
   resolveStore,
   resolveStoreForOrganization,
   type StoreMarketRoute,
+  storeForEmailFeedback,
   storeIdForSlug,
   storeMarkets,
   storesForPlatformAccount,
@@ -45,7 +47,6 @@ export {
   storesWithDueAffiliateCommissions,
   storesWithDueReviewRequests,
   storesWithExpiredDraftHolds,
-  storesWithOpenCheckoutDrafts,
   storesWithHomeCardsDue,
   storesWithMarketingWork,
   storesWithMemberDailySummaries,
@@ -53,10 +54,12 @@ export {
   storesWithOldAutomationRuns,
   storesWithOldPixelData,
   storesWithOldStoreActivity,
+  storesWithOpenCheckoutDrafts,
   storesWithOpenShipments,
   storesWithOrderPushCouriers,
   storesWithPendingCodChecks,
   storesWithPendingDomains,
+  storesWithPendingGatewayRefunds,
   storesWithPendingManualOrders,
   storesWithRetentionDue,
   storesWithRolloutsDue,
@@ -65,6 +68,7 @@ export {
   storesWithShopifyConnections,
   storesWithStaleImportSnapshots,
   storesWithStaleReviewSummaries,
+  storesWithStoreCreditExpiring,
   storesWithUndispatchedOutboxEvents,
   storesWithUnknownPaymentFees,
   storesWithUnpaidOnlineOrders,

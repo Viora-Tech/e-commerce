@@ -21,8 +21,13 @@ export class CommerceError extends Error {
 export class OutOfStock extends CommerceError {
   readonly variantId: string
 
-  constructor(variantId: string, storeId?: string) {
-    super('OUT_OF_STOCK', `Variant ${variantId} has insufficient stock`, { storeId })
+  constructor(
+    variantId: string,
+    storeId?: string,
+    code = 'OUT_OF_STOCK',
+    message = `Variant ${variantId} has insufficient stock`,
+  ) {
+    super(code, message, { storeId })
     this.variantId = variantId
   }
 }
@@ -172,12 +177,19 @@ export class NotLaunchedYet extends CommerceError {
   }
 }
 
-/** Pre-order is off (or stock plus the pre-order limit is exhausted) and the variant is out of stock. */
-export class PreorderLimitReached extends CommerceError {
+/**
+ * A pre-order line past stock would go over the variant's pre-order limit (#1539). A kind of
+ * OutOfStock, so every place that handles a sold-out line (a late payment's refund note, a
+ * draft's message) handles it the same; checkout tells the shopper the pre-order is full.
+ */
+export class PreorderLimitReached extends OutOfStock {
   constructor(variantId: string, storeId?: string) {
-    super('PREORDER_LIMIT_REACHED', `Variant ${variantId} has reached its pre-order limit`, {
+    super(
+      variantId,
       storeId,
-    })
+      'PREORDER_LIMIT_REACHED',
+      `Variant ${variantId} has reached its pre-order limit`,
+    )
   }
 }
 

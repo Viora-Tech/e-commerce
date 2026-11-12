@@ -291,14 +291,18 @@ describe('shipments', () => {
       createShipmentForOrder({ storeId, tx }, provider, orderId),
     )
     const cancelled: string[] = []
-    provider.cancel = async (waybill: string) => {
+    const refs: unknown[] = []
+    provider.cancel = async (waybill: string, ref?: unknown) => {
       cancelled.push(waybill)
+      refs.push(ref)
     }
     const c = await withStore(app, storeId, (tx) =>
       cancelShipment({ storeId, tx }, provider, row.id, { author: 'kuldeep@example.com' }),
     )
     expect(c.status).toBe('cancelled')
-    expect(cancelled).toEqual([row.waybill])
+    expect(cancelled).toEqual([row.providerRef || row.waybill])
+    // The row's own AWB goes along, for a courier that cancels by AWB (Shiprocket).
+    expect(refs).toEqual([{ waybill: row.waybill, providerRef: row.providerRef }])
     const [s] = await owner.select().from(shipment).where(eq(shipment.id, row.id))
     expect(s?.status).toBe('cancelled')
     // The timeline says who cancelled which AWB.
@@ -444,7 +448,7 @@ describe('pickup requests', () => {
     const pickup = await withStore(app, storeId, (tx) =>
       schedulePickup({ storeId, tx }, courier, {
         shipmentIds: [first.id],
-        date: '2026-10-27',
+        date: '2099-10-27',
         timeFrom: '14:00',
         pickupLocationName: '',
       }),
@@ -468,7 +472,7 @@ describe('pickup requests', () => {
     const joined = await withStore(app, storeId, (tx) =>
       schedulePickup({ storeId, tx }, courier, {
         shipmentIds: [second.id],
-        date: '2026-10-27',
+        date: '2099-10-27',
         timeFrom: '15:00',
         pickupLocationName: 'Waimers Sonipat',
       }),
@@ -480,6 +484,60 @@ describe('pickup requests', () => {
     expect(s?.pickupId).toBe(pickup.id)
   })
 
+  it('"Add to pickup" joins the picked pickup even when the place name differs', async () => {
+    const { storeId, orderId } = await seedOrder()
+    const asked: unknown[] = []
+    const courier = pickupCourier(asked)
+    const first = await withStore(app, storeId, (tx) =>
+      createShipmentForOrder({ storeId, tx }, courier, orderId),
+    )
+    const pickup = await withStore(app, storeId, (tx) =>
+      schedulePickup({ storeId, tx }, courier, {
+        shipmentIds: [first.id],
+        date: '2099-10-27',
+        timeFrom: '14:00',
+        pickupLocationName: '',
+      }),
+    )
+    await owner.update(shipment).set({ status: 'cancelled' }).where(eq(shipment.id, first.id))
+    const second = await withStore(app, storeId, (tx) =>
+      createShipmentForOrder({ storeId, tx }, courier, orderId),
+    )
+    // Another place and day on the form: the picked pickup still wins, the courier is not asked.
+    const joined = await withStore(app, storeId, (tx) =>
+      schedulePickup({ storeId, tx }, courier, {
+        shipmentIds: [second.id],
+        date: '2099-10-28',
+        timeFrom: '14:00',
+        pickupLocationName: 'Warehouse',
+        joinPickupId: pickup.id,
+      }),
+    )
+    expect(asked).toHaveLength(1)
+    expect(joined.id).toBe(pickup.id)
+    expect(joined.expectedPackageCount).toBe(2)
+  })
+
+  it('refuses a new pickup on a day that has passed', async () => {
+    const { storeId, orderId } = await seedOrder()
+    const asked: unknown[] = []
+    const courier = pickupCourier(asked)
+    const row = await withStore(app, storeId, (tx) =>
+      createShipmentForOrder({ storeId, tx }, courier, orderId),
+    )
+    await expect(
+      withStore(app, storeId, (tx) =>
+        schedulePickup({ storeId, tx }, courier, {
+          shipmentIds: [row.id],
+          date: '2020-01-01',
+          timeFrom: '14:00',
+          pickupLocationName: '',
+        }),
+      ),
+    ).rejects.toThrow('Pick today or a later day')
+    expect(asked).toHaveLength(0)
+  })
+
   it('a refused request is recorded as failed and leaves the parcel free to request again', async () => {
     const { storeId, orderId } = await seedOrder()
     const asked: unknown[] = []
@@ -489,7 +547,7 @@ describe('pickup requests', () => {
     const failed = await withStore(app, storeId, (tx) =>
       schedulePickup({ storeId, tx }, pickupCourier(asked, true), {
         shipmentIds: [row.id],
-        date: '2026-10-27',
+        date: '2099-10-27',
         timeFrom: '14:00',
         pickupLocationName: '',
       }),
@@ -502,7 +560,7 @@ describe('pickup requests', () => {
     const retried = await withStore(app, storeId, (tx) =>
       schedulePickup({ storeId, tx }, pickupCourier(asked), {
         shipmentIds: [row.id],
-        date: '2026-10-27',
+        date: '2099-10-27',
         timeFrom: '14:00',
         pickupLocationName: '',
       }),

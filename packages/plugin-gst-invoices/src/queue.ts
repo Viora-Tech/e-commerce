@@ -231,7 +231,13 @@ export async function listQueue(tx: StoreTx, filter: QueueFilter) {
     .select()
     .from(invoice)
     .where(and(...conds))
-    .orderBy(asc(invoice.eligibleAt), asc(invoice.createdAt))
+    .orderBy(
+      // By day, then order number: the order the batch is numbered in (`issueDrafts`).
+      sql`date_trunc('day', ${invoice.eligibleAt} at time zone 'Asia/Kolkata')`,
+      sql`(select ${order.number} from ${order} where ${order.id} = ${invoice.orderId})`,
+      asc(invoice.eligibleAt),
+      asc(invoice.createdAt),
+    )
 }
 
 /** The default date for a draft: when the goods left, else today. */
@@ -242,9 +248,9 @@ export type IssueItem = { id: string; invoiceDate: Date }
 export type IssuePlan = { id: string; number: string; invoiceDate: Date }[]
 
 /**
- * Number a batch of drafts. Items are sorted by invoice date; items on the
- * same date keep the order the merchant arranged them in (the only reshuffle
- * allowed, since none of them has a number yet). A date before the latest
+ * Number a batch of drafts. Items are sorted by invoice day; drafts on the same
+ * day are numbered in order-number order (#2401 before #2402), whatever order
+ * they were packed in (the only reshuffle allowed, since none has a number yet). A date before the latest
  * issued invoice in its series is refused: numbers must run in date order.
  * With `commit` false nothing is written and the numbers are a preview.
  */
@@ -267,9 +273,31 @@ export async function issueDrafts(
         )
     : []
   const byId = new Map(rows.map((r) => [r.id, r]))
+  // Order numbers, so one day's invoices are numbered in order-number order, not packing order.
+  const orderIds = [...new Set(rows.map((r) => r.orderId))]
+  const orderNumbers = new Map(
+    orderIds.length
+      ? (
+          await tx
+            .select({ id: order.id, number: order.number })
+            .from(order)
+            .where(inArray(order.id, orderIds))
+        ).map((o) => [o.id, o.number])
+      : [],
+  )
+  const numberOf = (id: string) => {
+    const row = byId.get(id)
+    return row ? (orderNumbers.get(row.orderId) ?? 0) : 0
+  }
   const ordered = items
     .map((item, index) => ({ ...item, index }))
-    .sort((a, b) => a.invoiceDate.getTime() - b.invoiceDate.getTime() || a.index - b.index)
+    .sort(
+      (a, b) =>
+        startOfIstDay(a.invoiceDate).getTime() - startOfIstDay(b.invoiceDate).getTime() ||
+        numberOf(a.id) - numberOf(b.id) ||
+        a.invoiceDate.getTime() - b.invoiceDate.getTime() ||
+        a.index - b.index,
+    )
   const settings = await loadSettings(tx, storeId)
 
   // Serialise batches per store so two reviewers never interleave numbers.

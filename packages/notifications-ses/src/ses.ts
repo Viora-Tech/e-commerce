@@ -1,4 +1,4 @@
-import { SESv2Client, SendEmailCommand } from '@aws-sdk/client-sesv2'
+import { SendEmailCommand } from '@aws-sdk/client-sesv2'
 import {
   type MarketingSend,
   type Message,
@@ -8,6 +8,7 @@ import {
   type SendResult,
 } from '@commerce/notifications'
 import { formatMailbox } from './address'
+import { makeSesClient } from './client'
 
 export type SesConfig = {
   region: string
@@ -17,6 +18,13 @@ export type SesConfig = {
   fromName?: string | undefined
   /** Where customer replies go when From is an address nobody reads (the platform sender). */
   replyTo?: string | undefined
+  /**
+   * SES configuration set named on every send, so bounces and complaints reach its event
+   * destination (SNS). It must exist in the account, or SES refuses the send.
+   */
+  configurationSetName?: string | undefined
+  /** Message tags (`EmailTags`), echoed back on bounce and complaint events, e.g. `store-id`. */
+  tags?: Readonly<Record<string, string>> | undefined
 }
 
 /** Lets the platform's own sender reuse this channel under its own id and label. */
@@ -90,6 +98,20 @@ function sesFailure(err: unknown): SendResult {
 const replyTo = (config: SesConfig) =>
   config.replyTo ? { ReplyToAddresses: [config.replyTo] } : {}
 
+/** SES tag names and values allow only letters, digits, `_`, `-`, `.` and `@` (max 256). */
+const TAG_SAFE = /^[A-Za-z0-9_.@-]{1,256}$/
+
+/** The configuration set and tags, only when set (both route bounce and complaint events). */
+function eventRouting(config: SesConfig) {
+  const tags = Object.entries(config.tags ?? {})
+    .filter(([name, value]) => TAG_SAFE.test(name) && TAG_SAFE.test(value))
+    .map(([Name, Value]) => ({ Name, Value }))
+  return {
+    ...(config.configurationSetName ? { ConfigurationSetName: config.configurationSetName } : {}),
+    ...(tags.length > 0 ? { EmailTags: tags } : {}),
+  }
+}
+
 /** Transactional email through Amazon SES v2. Sandbox accounts can only mail verified addresses. */
 export class SesChannel implements NotificationChannel {
   readonly id: string
@@ -104,15 +126,7 @@ export class SesChannel implements NotificationChannel {
   ) {
     this.id = options.id ?? 'ses'
     this.label = options.label ?? 'Email (Amazon SES)'
-    this.client =
-      client ??
-      new SESv2Client({
-        region: config.region,
-        credentials: {
-          accessKeyId: config.accessKeyId,
-          secretAccessKey: config.secretAccessKey,
-        },
-      })
+    this.client = client ?? makeSesClient(config)
   }
 
   async send(message: Message): Promise<SendResult> {
@@ -125,6 +139,7 @@ export class SesChannel implements NotificationChannel {
           FromEmailAddress: formatFrom(this.config),
           Destination: { ToAddresses: [to] },
           ...replyTo(this.config),
+          ...eventRouting(this.config),
           Content: {
             Simple: {
               Subject: { Data: body.subject, Charset: 'UTF-8' },
@@ -166,6 +181,7 @@ export class SesChannel implements NotificationChannel {
           FromEmailAddress: formatFrom(this.config),
           Destination: { ToAddresses: [to] },
           ...replyTo(this.config),
+          ...eventRouting(this.config),
           Content: {
             Simple: {
               Subject: { Data: message.subject, Charset: 'UTF-8' },

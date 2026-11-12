@@ -108,6 +108,9 @@ export const routes = {
       return s ? `/products/bulk-write?${s}` : '/products/bulk-write'
     },
     detail: (productId: string) => `/products/${id(productId)}`,
+    /** One variant's own page (Shopify-style): every field it carries and its metafields. */
+    variant: (productId: string, variantId: string) =>
+      `/products/${id(productId)}/variants/${id(variantId)}`,
     collections: () => '/products/collections',
     newCollection: () => '/products/collections/new',
     collection: (collectionId: string) => `/products/collections/${id(collectionId)}`,

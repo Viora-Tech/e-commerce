@@ -2,6 +2,8 @@
 import { type StoreTx, senderEmail, store } from '@commerce/db'
 import type { NotificationChannel, NotificationRegistry } from '@commerce/notifications'
 import { eq } from 'drizzle-orm'
+import { withSuppressionGuard } from '../email-suppression/guard'
+import { activeSuppressions } from '../email-suppression/service'
 import { storeEmailBrand, withEmailBrand } from '../notifications/email-brand'
 import { parseNotificationSettings, resolveNotificationChannels } from '../notifications/settings'
 import { LogNotificationChannel } from '../providers/log-channel'
@@ -63,9 +65,15 @@ export async function storeNotificationChannels(
     deps.settingsSecret,
     deps.previousSecrets,
   )
+  // Addresses that bounced or complained are skipped on every email channel (core
+  // `email-suppression`). Loaded now, not at send time: marketing sends after the transaction.
+  const suppressed = await activeSuppressions(tx)
   // Every email this store sends carries its own logo, colour and contact (loaded on first send).
   const branded = (list: NotificationChannel[]) =>
-    withEmailBrand(list, () => storeEmailBrand(tx, storeId))
+    withSuppressionGuard(
+      withEmailBrand(list, () => storeEmailBrand(tx, storeId)),
+      suppressed,
+    )
   const transport = (deps.platform ?? getPlatformEmail()).transport
   // Development without the platform account: print emails to the worker log rather than
   // refusing every send ("enable an email channel"), so hand-sent messages can be tried locally.
@@ -73,5 +81,8 @@ export async function storeNotificationChannels(
     return branded([...channels, new LogNotificationChannel()])
   }
   if (!transport || ownsEmail(channels)) return branded(channels)
-  return branded([...channels, transport.channel(await platformSenderFor(tx, storeId, transport))])
+  return branded([
+    ...channels,
+    transport.channel(await platformSenderFor(tx, storeId, transport), { storeId }),
+  ])
 }

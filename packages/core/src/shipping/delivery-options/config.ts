@@ -6,6 +6,7 @@
  * Design: docs/superpowers/specs/2026-10-29-delivery-options-design.md.
  */
 import { z } from 'zod'
+import type { ProtectCard } from './protect'
 
 export const DELIVERY_OPTIONS_APP_ID = 'delivery-options'
 
@@ -83,6 +84,11 @@ export const OptionCouriersSchema = z.object({
   roundTo9: z.boolean().default(true),
   /** Drop a courier another one beats on both price and date. */
   hideSlowerDearer: z.boolean().default(true),
+  /**
+   * Off, checkout shows only the delivery promise ("Standard", the date): no courier name or
+   * logo on any of this option's cards, whatever each courier's own setting says (#1521).
+   */
+  showNames: z.boolean().default(true),
 })
 export type OptionCouriers = z.infer<typeof OptionCouriersSchema>
 
@@ -99,6 +105,11 @@ export const DeliveryOptionInputSchema = z.object({
   strategy: z.enum(DELIVERY_STRATEGIES).default('cheapest'),
   /** Take a direct route when it costs at most this much more than the aggregator winner. */
   preferDirectWithinPaise: paise.nullish(),
+  /**
+   * A carrier key (`delhivery`): among routes at the same shopper price and the same arrival
+   * date, this carrier wins (#1520). The earlier arrival always comes first.
+   */
+  preferCarrier: z.string().trim().min(1).max(40).nullish(),
   price: OptionPriceSchema.default(OptionPriceSchema.parse({})),
   insurance: OptionInsuranceSchema.default(OptionInsuranceSchema.parse({})),
   eta: OptionEtaSchema.default(OptionEtaSchema.parse({})),
@@ -169,6 +180,8 @@ export type DeliveryConfig = {
   options: DeliveryOption[]
   rules: RouteRule[]
   routeSettings: RouteSetting[]
+  /** Delhivery Protect's card (rates per category, type overrides); omitted: the defaults. */
+  protect?: ProtectCard | undefined
   /** Bumped on every save; part of the quote snapshot's identity. */
   version: string
 }

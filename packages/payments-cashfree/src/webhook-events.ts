@@ -51,12 +51,19 @@ export type CfWebhookBody = {
   type?: string
 }
 
-/** One id per event and payment (or refund), so a resent webhook is stored once. */
+/**
+ * One id per event and payment (or refund), so a resent webhook is stored once. A refund sends
+ * the same webhook type for each status it passes through (PENDING, ONHOLD, then SUCCESS or
+ * CANCELLED), so its status is part of the id: otherwise the final word arrives as a
+ * "duplicate" of the first and is never applied (#1593).
+ */
 export function cashfreeEventId(type: string, body: CfWebhookBody): string {
   const paymentId = body.data?.payment?.cf_payment_id
-  const refundId = body.data?.refund?.cf_refund_id
-  const id = paymentId != null ? String(paymentId) : refundId != null ? String(refundId) : 'unknown'
-  return `${type}:${id}`
+  const refund = body.data?.refund
+  if (paymentId == null && refund?.cf_refund_id != null) {
+    return `${type}:${refund.cf_refund_id}:${refund.refund_status ?? 'unknown'}`
+  }
+  return `${type}:${paymentId != null ? String(paymentId) : 'unknown'}`
 }
 
 /** A Cashfree webhook as the platform's event; anything we do not act on is `ignored`. */

@@ -42,6 +42,9 @@ export class DecentroApiError extends Error {
   }
 }
 
+/** How long one Decentro call may take before we give up on it (#1597). */
+export const DECENTRO_TIMEOUT_MS = 15_000
+
 /** Response keys that mean "these keys are wrong", across the documented APIs. */
 const AUTH_KEY = /client_id|client_secret|credential|authenticat|unauthori|api_access/
 
@@ -70,8 +73,23 @@ export async function decentroRequest<T>(
     },
   }
   if (body !== undefined) init.body = JSON.stringify(body)
-  const res = await fetchImpl(`${DECENTRO_HOSTS[api][creds.mode]}${path}`, init)
-  const text = await res.text()
+  // A stuck connection must not hang the QR, the expiry job, a refund or a payout (#1597).
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), DECENTRO_TIMEOUT_MS)
+  init.signal = controller.signal
+  let res: Response
+  let text: string
+  try {
+    res = await fetchImpl(`${DECENTRO_HOSTS[api][creds.mode]}${path}`, init)
+    text = await res.text()
+  } catch (err) {
+    if (controller.signal.aborted) {
+      throw new Error(`Decentro did not answer in ${DECENTRO_TIMEOUT_MS / 1000}s`)
+    }
+    throw err
+  } finally {
+    clearTimeout(timer)
+  }
   let json: DecentroEnvelope<T> = {}
   if (text) {
     try {

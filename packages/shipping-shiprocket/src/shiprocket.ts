@@ -23,6 +23,7 @@
  *   POST /manifests/generate                {shipment_id: [...]}
  *   GET  /courier/track/awb/{awb_code}
  *   POST /orders/cancel                     {ids: [...]}
+ *   POST /orders/cancel/shipment/awbs       {awbs: [...]}  cancel a booked shipment
  *   POST /ndr/reattempt                     {awb, address1, address2, phone, deferred_date}
  *   GET  /account/details/wallet-balance
  *
@@ -43,6 +44,7 @@
 
 import { logger } from '@commerce/observability/logging'
 import {
+  type CancelRef,
   COURIER_TIMEOUT_MS,
   CourierError,
   type CreateShipmentInput,
@@ -51,6 +53,7 @@ import {
   courierBaseUrlProblem,
   courierFetch,
   courierJson,
+  courierTimeToIso,
   isValidPincode,
   type NdrActionInput,
   type NdrActionResult,
@@ -75,6 +78,7 @@ import {
   type WebhookNotice,
   type WebhookRequest,
 } from '@commerce/shipping'
+import { cancelByAwb } from './cancel'
 import { SHIPROCKET_CAPABILITIES } from './client'
 
 export const SHIPROCKET_BASE_URL = 'https://apiv2.shiprocket.in/v1/external'
@@ -569,7 +573,8 @@ export class ShiprocketProvider implements ShippingProvider {
     }
     const events: TrackingEvent[] = (entry.shipment_track_activities ?? [])
       .map((s) => ({
-        at: s.date ? new Date(s.date).toISOString() : new Date(0).toISOString(),
+        // India time with no offset; an unreadable date sorts first instead of failing the poll.
+        at: courierTimeToIso(s.date) ?? new Date(0).toISOString(),
         status: mapShiprocketStatus(s.status),
         description: s.activity || s.status || '',
         location: s.location,
@@ -584,17 +589,13 @@ export class ShiprocketProvider implements ShippingProvider {
     }
   }
 
-  async cancel(_waybill: string): Promise<void> {
-    /* Shiprocket cancels by its own order id, not the AWB; callers only have
-       the waybill, so this looks the shipment up via tracking first is not
-       possible (track() doesn't return the order id either). Cancel-by-AWB
-       is unconfirmed, so this is left as a documented gap: */
-    throw new CourierError(
-      'unavailable',
-      this.id,
-      'Cancel is not wired for Shiprocket yet: /orders/cancel needs the Shiprocket order id, ' +
-        'which is not part of the shared shipment record. Cancel from the Shiprocket dashboard ' +
-        'for now, or track the order id alongside the AWB to complete this.',
+  /**
+   * Cancel a booked shipment by AWB (`cancel.ts`; owes one live test). Core passes the stored
+   * shipment id (`providerRef`) first, so the AWB comes from `ref.waybill`.
+   */
+  async cancel(waybillOrRef: string, ref?: CancelRef): Promise<void> {
+    await cancelByAwb(this.id, (ref?.waybill || waybillOrRef).trim(), (path, body) =>
+      this.postJson(path, body),
     )
   }
 
@@ -661,7 +662,13 @@ export class ShiprocketProvider implements ShippingProvider {
       logger.error('webhook refused: no webhookSecret configured', { provider: 'shiprocket' })
       throw new CourierError('auth', this.id, 'Shiprocket webhook secret is not configured.')
     }
-    const got = request.headers['x-webhook-token'] ?? request.headers.authorization ?? ''
+    // Shiprocket's webhook form ("Token") sends the value in `x-api-key`; the other two stay
+    // accepted for webhooks registered before this.
+    const got =
+      request.headers['x-api-key'] ??
+      request.headers['x-webhook-token'] ??
+      request.headers.authorization ??
+      ''
     if (!timingSafeEqualString(got, this.config.webhookSecret)) {
       throw new CourierError('auth', this.id, 'Shiprocket webhook token did not match.')
     }
@@ -743,7 +750,7 @@ const fields: ProviderField[] = [
     secret: true,
     help:
       'Required for automatic tracking updates via webhook (a webhook call without it is refused). ' +
-      'Paste the same value into the custom header field when registering the tracking ' +
+      'Paste the same value into the Token field when registering the tracking ' +
       'webhook in Shiprocket (Settings > API > Webhooks), so we can tell a genuine call from a stray one.',
   },
 ]

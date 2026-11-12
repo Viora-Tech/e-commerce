@@ -16,7 +16,7 @@ import {
   type ChatwootWidget as ChatwootWidgetConfig,
   chatwootAllowed,
 } from '@commerce/plugin-chatwoot/widget'
-import { type UmamiTracker, umamiAllowed } from '@commerce/plugin-umami/tracker'
+import { syncUmamiOptOut, type UmamiTracker, umamiAllowed } from '@commerce/plugin-umami/tracker'
 import { useEffect, useRef, useState } from 'react'
 import DiscoveryTracker from '@/components/analytics/discovery-tracker'
 import PixelEvents from '@/components/analytics/pixel-events'
@@ -27,6 +27,7 @@ import WebVitalsBeacon from '@/components/analytics/web-vitals-beacon'
 import CookieBanner from '@/components/privacy/cookie-banner'
 import ChatwootWidget from '@/components/support/chatwoot-widget'
 import { consentContent } from '@/data/online-store'
+import { usePendingReferral } from '@/hooks/use-pending-referral'
 import { COOKIE_SETTINGS_HASH } from '@/lib/cookie-settings'
 import type { BrowserPixel } from '@/lib/pixels/track'
 import { recordConsentAction } from '@/lib/privacy-actions'
@@ -75,6 +76,15 @@ function remember(consent: Consent, version: number): void {
   const secure = window.location.protocol === 'https:' ? '; secure' : ''
   // biome-ignore lint/suspicious/noDocumentCookie: one first-party cookie; the Cookie Store API is not in Safari or Firefox.
   document.cookie = `${CONSENT_COOKIE}=${encodeConsent(consent, version, new Date())}; path=/; max-age=${CONSENT_MAX_AGE}; samesite=lax${secure}`
+}
+
+/** The page's local storage, or null where the browser blocks it. */
+function localStore(): Storage | null {
+  try {
+    return window.localStorage
+  } catch {
+    return null
+  }
 }
 
 const SHOWN_KEY = 'wc_banner_shown'
@@ -133,6 +143,11 @@ export default function ConsentManager({
     if (initialUnanswered.current) reportBannerShown()
   }, [])
 
+  // A loaded Umami keeps counting page views by itself: a no must also flip its own off switch.
+  useEffect(() => {
+    if (umami) syncUmamiOptOut(localStore(), umamiAllowed(umami, consent))
+  }, [umami, consent])
+
   useEffect(() => {
     if (!themeBanner) return
     const handleThemeChoice = (event: Event) => {
@@ -145,6 +160,9 @@ export default function ConsentManager({
     window.addEventListener(THEME_CONSENT_EVENT, handleThemeChoice)
     return () => window.removeEventListener(THEME_CONSENT_EVENT, handleThemeChoice)
   }, [themeBanner, bannerVersion])
+
+  // The affiliate referral cookie waits for a yes to marketing (`hooks/use-pending-referral.ts`).
+  usePendingReferral(consent?.marketing === true)
 
   // Event handlers
   const handleChoose = (next: Consent) => {

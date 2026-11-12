@@ -6,7 +6,7 @@
  * Pure: no database, no network, the clock is passed in.
  */
 import type { DeliveryOption, RouteSelector } from './config'
-import { cheapestZoneRate, datesFor, priceRoute } from './price'
+import { cartProtect, cheapestZoneRate, datesFor, priceRoute } from './price'
 import type {
   DeliveryResolveResult,
   DropReason,
@@ -76,17 +76,26 @@ function pickByStrategy(
 ): { winner: Candidate; why: WhyPicked } | null {
   const order = option.strategy === 'fastest' ? byFastest : byCheapest
   const sorted = [...fits].sort(order)
-  const cheapest = sorted[0]
-  if (!cheapest) return null
+  const first = sorted[0]
+  if (!first) return null
   // The shopper sees one price per option: among the routes that charge them the same as the
-  // cheapest, the one that arrives first wins (Waimers saw Amazon Shipping on Thursday picked
-  // over Delhivery on Wednesday at the same ₹0). The store may pay a little more for it.
+  // first, the one that arrives first wins (Waimers saw Amazon Shipping on Thursday picked over
+  // Delhivery on Wednesday at the same ₹0); the merchant's preferred courier wins only when the
+  // price and the date are both equal (owner, 11 Nov). The store may pay a little more for it.
+  // Fastest keeps its date: only same-day equals are swapped.
+  const latest = (c: Candidate) => c.priced.latest ?? '9999-12-31'
+  const preferred = (c: Candidate) =>
+    option.preferCarrier ? Number(c.route.carrierKey !== option.preferCarrier) : 0
+  const ties = sorted.filter(
+    (c) =>
+      c.priced.pricePaise === first.priced.pricePaise &&
+      (option.strategy !== 'fastest' || c.priced.latest === first.priced.latest),
+  )
   const best =
-    option.strategy === 'fastest'
-      ? cheapest
-      : ([...sorted]
-          .filter((c) => c.priced.pricePaise === cheapest.priced.pricePaise)
-          .sort(byFastest)[0] ?? cheapest)
+    ties.sort(
+      (a, b) =>
+        latest(a).localeCompare(latest(b)) || preferred(a) - preferred(b) || byFastest(a, b),
+    )[0] ?? first
   const within = option.preferDirectWithinPaise
   if (within != null && best.route.channel === 'aggregator') {
     const cost = (c: Candidate) => c.priced.courierCostPaise + (c.priced.insurancePaise ?? 0)
@@ -171,7 +180,8 @@ function traceRoute(
     serviceLabel: route.serviceLabel,
     speed: route.speed,
     costPaise: route.costPaise,
-    insurancePaise: priced?.insurancePaise ?? insurancePrice(route, input.cart.valuePaise),
+    insurancePaise:
+      priced?.insurancePaise ?? insurancePrice(route, input.cart.valuePaise, cartProtect(input)),
     latest: dated?.latest ?? d?.latest ?? null,
     etaEstimated: dated?.etaEstimated ?? d?.estimated ?? true,
     codAvailable: route.codAvailable,
@@ -234,7 +244,7 @@ function courierList(fits: Candidate[], winner: Candidate, option: DeliveryOptio
 
 export function resolveDeliveryOptions(input: ResolveInput): DeliveryResolveResult {
   const { config, cart, answers } = input
-  const routes = routesFromAnswers(answers, config.routeSettings, cart.weightGrams)
+  const allRoutes = routesFromAnswers(answers, config.routeSettings, cart.weightGrams)
   const anyFailed = answers.length === 0 || answers.some((a) => a.status === 'failed')
   const ruleNames = new Map(config.rules.map((r) => [r.id, r.name]))
   const options: ResolvedOption[] = []
@@ -256,6 +266,10 @@ export function resolveDeliveryOptions(input: ResolveInput): DeliveryResolveResu
       traces.push({ ...base, hidden: 'disabled' })
       continue
     }
+    // The option hides every courier name: its cards show only the delivery promise (#1521).
+    const routes = option.couriers.showNames
+      ? allRoutes
+      : allRoutes.map((r) => ({ ...r, showCarrier: false }))
     const listed = option.couriers.show === 'list'
     const candidates = routes.filter(
       (r) => optionAllows(option, r) && (listed || r.speed === option.speed),
@@ -263,7 +277,9 @@ export function resolveDeliveryOptions(input: ResolveInput): DeliveryResolveResu
     const pool = rulePool(matchingRules(config.rules, option.id, cart.items), candidates)
     const ins = option.insurance
     const offered =
-      ins.default === 'on' && (ins.onlyAbovePaise == null || cart.valuePaise >= ins.onlyAbovePaise)
+      ins.default === 'on' &&
+      (ins.onlyAbovePaise == null ||
+        (input.orderValuePaise ?? cart.valuePaise) >= ins.onlyAbovePaise)
     const required = pool.insuranceRequired
     const insured = required || (offered && !input.declineInsurance)
     const codAllowed =

@@ -368,6 +368,130 @@ describe('ShiprocketProvider tracking', () => {
     expect(t.expectedDate).toBe('2026-09-28')
     expect(t.events.map((e) => e.status)).toEqual(['picked_up', 'in_transit'])
     expect(t.trackingUrl).toBe('https://track/SR999')
+    // Shiprocket writes India time with no offset: 08:00 IST is 02:30 UTC on any server clock.
+    expect(t.events[1]?.at).toBe('2026-09-22T02:30:00.000Z')
+  })
+
+  it('keeps tracking when a scan date cannot be read', async () => {
+    const f = fakeFetch(
+      withLogin({
+        '/v1/external/courier/track/awb/': () =>
+          json({
+            SR999: {
+              tracking_data: {
+                current_status: 'In Transit',
+                shipment_track_activities: [{ date: 'not a date', status: 'In Transit' }],
+              },
+            },
+          }),
+      }),
+    )
+    const p = new ShiprocketProvider({ ...config, fetchImpl: f.impl })
+    const t = await p.track('SR999')
+    expect(t.status).toBe('in_transit')
+    expect(t.events).toHaveLength(1)
+  })
+})
+
+describe('ShiprocketProvider cancel a booked shipment', () => {
+  const CANCEL = '/v1/external/orders/cancel/shipment/awbs'
+
+  it('cancels by the AWB, not the stored shipment id core passes first', async () => {
+    const f = fakeFetch(
+      withLogin({
+        [CANCEL]: () => json({ message: 'Bulk Shipment cancellation is in progress.' }),
+      }),
+    )
+    const p = new ShiprocketProvider({ ...config, fetchImpl: f.impl })
+    await expect(
+      p.cancel('987654', { waybill: 'SR123', providerRef: '987654' }),
+    ).resolves.toBeUndefined()
+    const call = f.calls.find((c) => c.url.pathname === CANCEL)
+    expect(call?.init?.method).toBe('POST')
+    expect(JSON.parse(call?.init?.body as string)).toEqual({ awbs: ['SR123'] })
+    expect(new Headers(call?.init?.headers).get('authorization')).toBe('Bearer tok123')
+    // The pending-order cancel is a different call and is not used here.
+    expect(f.calls.some((c) => c.url.pathname === '/v1/external/orders/cancel')).toBe(false)
+  })
+
+  it('takes the first argument as the AWB when no ref is given', async () => {
+    const f = fakeFetch(withLogin({ [CANCEL]: () => json({ message: 'ok' }) }))
+    const p = new ShiprocketProvider({ ...config, fetchImpl: f.impl })
+    await p.cancel('SR777')
+    const call = f.calls.find((c) => c.url.pathname === CANCEL)
+    expect(JSON.parse(call?.init?.body as string)).toEqual({ awbs: ['SR777'] })
+  })
+
+  it('turns a 4xx refusal into a rejected error with Shiprocket’s reason', async () => {
+    const f = fakeFetch(
+      withLogin({
+        [CANCEL]: () => json({ message: 'Shipment already picked up, cannot cancel' }, 400),
+      }),
+    )
+    const p = new ShiprocketProvider({ ...config, fetchImpl: f.impl })
+    const err = await p.cancel('1', { waybill: 'SR123' }).catch((e: unknown) => e)
+    expect(err).toBeInstanceOf(CourierError)
+    expect(err).toMatchObject({
+      kind: 'rejected',
+      status: 400,
+      reason: 'Shipment already picked up, cannot cancel',
+    })
+    expect((err as Error).message).toContain('SR123')
+  })
+
+  it('treats a 200 carrying status_code and errors as a refusal', async () => {
+    const f = fakeFetch(
+      withLogin({
+        [CANCEL]: () => json({ status_code: 422, message: 'Invalid AWB', errors: { awbs: ['x'] } }),
+      }),
+    )
+    const p = new ShiprocketProvider({ ...config, fetchImpl: f.impl })
+    await expect(p.cancel('1', { waybill: 'SR123' })).rejects.toMatchObject({
+      kind: 'rejected',
+      reason: 'Invalid AWB',
+    })
+  })
+
+  it('keeps auth, rate-limit, server and network failures as their own kinds', async () => {
+    const cases: [Route, string][] = [
+      [() => json({ message: 'no' }, 401), 'auth'],
+      [() => json({ message: 'slow down' }, 429), 'rate_limited'],
+      [() => json({ message: 'boom' }, 502), 'unavailable'],
+      [() => new Response('<html>oops</html>', { status: 200 }), 'bad_response'],
+    ]
+    for (const [route, kind] of cases) {
+      const f = fakeFetch(withLogin({ [CANCEL]: route }))
+      const p = new ShiprocketProvider({ ...config, fetchImpl: f.impl })
+      await expect(p.cancel('1', { waybill: 'SR123' })).rejects.toMatchObject({ kind })
+    }
+  })
+
+  it('refuses an empty AWB without calling Shiprocket', async () => {
+    const f = fakeFetch(withLogin({}))
+    const p = new ShiprocketProvider({ ...config, fetchImpl: f.impl })
+    await expect(p.cancel('  ', { waybill: '' })).rejects.toMatchObject({ kind: 'rejected' })
+    expect(f.calls).toHaveLength(0)
+  })
+
+  it('declares cancel so the admin offers it', () => {
+    expect(shiprocketFactory.capabilities).toContain('cancel')
+  })
+
+  it('reads a 2xx body as a refusal only when it says so', async () => {
+    for (const ok of [
+      { message: 'ok' },
+      { message: 'ok', errors: [] },
+      { message: 'ok', errors: {} },
+    ]) {
+      const f = fakeFetch(withLogin({ [CANCEL]: () => json(ok) }))
+      const p = new ShiprocketProvider({ ...config, fetchImpl: f.impl })
+      await expect(p.cancel('1', { waybill: 'SR1' })).resolves.toBeUndefined()
+    }
+    const f = fakeFetch(withLogin({ [CANCEL]: () => json({ errors: 'AWB not found' }) }))
+    const p = new ShiprocketProvider({ ...config, fetchImpl: f.impl })
+    await expect(p.cancel('1', { waybill: 'SR1' })).rejects.toMatchObject({
+      reason: 'AWB not found',
+    })
   })
 })
 
@@ -454,6 +578,18 @@ describe('ShiprocketProvider NDR, wallet and webhook', () => {
     const p = new ShiprocketProvider({ ...config, webhookSecret: 'shh' })
     await expect(
       p.parseWebhook({ rawBody: '{}', headers: { 'x-webhook-token': 'nope' } }),
+    ).rejects.toMatchObject({ kind: 'auth' })
+  })
+
+  it('accepts the token in x-api-key, the header Shiprocket’s webhook form sends it in', async () => {
+    const p = new ShiprocketProvider({ ...config, webhookSecret: 'shh' })
+    const notices = await p.parseWebhook({
+      rawBody: JSON.stringify({ awb: 'SR1', current_status: 'Delivered' }),
+      headers: { 'x-api-key': 'shh' },
+    })
+    expect(notices.map((n) => n.waybill)).toEqual(['SR1'])
+    await expect(
+      p.parseWebhook({ rawBody: '{}', headers: { 'x-api-key': 'nope' } }),
     ).rejects.toMatchObject({ kind: 'auth' })
   })
 })

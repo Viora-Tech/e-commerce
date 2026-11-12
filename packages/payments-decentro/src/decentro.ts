@@ -185,6 +185,23 @@ function isUnknownReference(err: DecentroApiError): boolean {
   return /reference/i.test(key) || /invalid reference id/i.test(err.message)
 }
 
+/** No transaction under that id: an unknown reference or Decentro's "not found". */
+function isNoSuchTransaction(err: DecentroApiError): boolean {
+  return (
+    err.responseKey === 'error_no_transaction_found' ||
+    err.status === 404 ||
+    isUnknownReference(err)
+  )
+}
+
+/** A refund's Decentro status to ours. */
+export function refundStateOf(status: string | undefined): 'pending' | 'processed' | 'failed' {
+  const s = (status ?? '').toUpperCase()
+  if (s === 'REFUNDED' || s === 'SUCCESS') return 'processed'
+  if (s === 'REFUND_FAILED' || s === 'FAILED' || s === 'FAILURE') return 'failed'
+  return 'pending'
+}
+
 /** Attempt-level outcomes that send the money back instead of keeping it. */
 const RETURNED_ACTIONS = new Set(['RELEASED', 'AUTO_REFUND', 'AUTO_REFUNDED'])
 
@@ -346,6 +363,36 @@ export class DecentroProvider implements PaymentProvider {
     }
   }
 
+  /**
+   * Where a refund stands, for the worker's refund sync: Decentro sends no documented refund
+   * callback. Asked through Get Transaction Status (Basic) by the id we stored (the refund's
+   * `decentro_txn_id`, or our `reference_id` when Decentro returned none). UNVERIFIED: the
+   * status values for a refund looked up by its own id; REFUNDED and REFUND_FAILED are the
+   * documented refund values, SUCCESS and FAILED are read the same way. A lookup Decentro
+   * cannot match stays pending (asked again next run).
+   */
+  async fetchRefundStatus(input: {
+    providerRefundId: string
+    providerRef: string
+  }): Promise<'pending' | 'processed' | 'failed'> {
+    const id = encodeURIComponent(input.providerRefundId)
+    const lookup = (key: 'decentro_txn_id' | 'reference_id') =>
+      this.call<BasicStatusData>('GET', `/v3/payments/transaction/status?${key}=${id}`)
+    let res: Awaited<ReturnType<typeof lookup>>
+    try {
+      res = await lookup('decentro_txn_id')
+    } catch (err) {
+      if (!(err instanceof DecentroApiError) || !isNoSuchTransaction(err)) throw err
+      try {
+        res = await lookup('reference_id')
+      } catch (again) {
+        if (again instanceof DecentroApiError && isNoSuchTransaction(again)) return 'pending'
+        throw again
+      }
+    }
+    return refundStateOf(res.data?.transaction_status)
+  }
+
   /** A UPI payout from the merchant's funded Decentro account (Payouts v3). */
   refundViaPayout(input: PayoutRefundInput): Promise<PayoutRefundResult> {
     return initiateUpiPayout(
@@ -455,13 +502,7 @@ export class DecentroProvider implements PaymentProvider {
         // A made-up reference can't match a transaction. Decentro answers that either as
         // "no transaction found" or as "Invalid Reference ID" (seen on staging); both mean
         // the keys were accepted and the request reached the payments API.
-        if (
-          err.responseKey === 'error_no_transaction_found' ||
-          err.status === 404 ||
-          isUnknownReference(err)
-        ) {
-          return ok
-        }
+        if (isNoSuchTransaction(err)) return ok
       }
       const message = err instanceof Error ? err.message : String(err)
       return { ok: false, message: `Could not reach Decentro: ${message}` }

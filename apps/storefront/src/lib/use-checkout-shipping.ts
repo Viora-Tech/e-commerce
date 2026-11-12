@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react'
 import { isDigitalOnly } from '@/lib/checkout-preview'
 import type { GateState } from '@/lib/checkout-sections'
 import { cleanPincode } from '@/lib/checkout-validation'
+import { nextRateId } from '@/lib/default-rate'
 import { retryOnce } from '@/lib/retry-once'
 import type { CheckoutRate, CheckoutShipping } from '@/lib/shipping'
 import { checkoutShippingAction } from '@/lib/shipping-actions'
@@ -46,6 +47,8 @@ export function useCheckoutShipping(cart: CartView, onNoCod: () => void) {
   /** The courier has answered (or failed to) for the PIN code on screen. */
   const [quoted, setQuoted] = useState(false)
   const [rateId, setRateId] = useState<string | null>(null)
+  /** The ticked card is the shopper's own choice, not checkout's default. */
+  const [shopperPicked, setShopperPicked] = useState(false)
   const [routeKey, setRouteKey] = useState<string | null>(null)
   const [declineInsurance, setDeclineInsurance] = useState(false)
   const [asked, setAsked] = useState<Asked | null>(null)
@@ -58,14 +61,9 @@ export function useCheckoutShipping(cart: CartView, onNoCod: () => void) {
       )
       setShipping(next)
       setQuoted(true)
-      // Keep the shopper's pick when it is still offered, else the cheapest (a paid Express card
-      // listed first was being picked for them; ties keep the store's order).
+      // Keep the shopper's own pick while it is offered, else the cheapest (#1519).
       const options = next?.rates.kind === 'rates' ? next.rates.options : []
-      const cheapest = options.reduce<(typeof options)[number] | undefined>(
-        (best, o) => (best === undefined || o.pricePaise < best.pricePaise ? o : best),
-        undefined,
-      )
-      setRateId((prev) => (options.some((o) => o.id === prev) ? prev : (cheapest?.id ?? null)))
+      setRateId((prev) => nextRateId(options, prev, shopperPicked))
       setRouteKey((prev) =>
         options.some((o) => o.delivery?.choices.some((c) => c.routeKey === prev)) ? prev : null,
       )
@@ -93,7 +91,14 @@ export function useCheckoutShipping(cart: CartView, onNoCod: () => void) {
 
   const pickRate = (id: string | null) => {
     setRateId(id)
+    setShopperPicked(id !== null)
     setRouteKey(null)
+  }
+
+  /** A courier picked under a card makes that card the shopper's own choice too. */
+  const pickRoute = (key: string | null) => {
+    setRouteKey(key)
+    if (key !== null) setShopperPicked(true)
   }
 
   const rates = shipping?.rates.kind === 'rates' ? shipping.rates.options : []
@@ -130,7 +135,7 @@ export function useCheckoutShipping(cart: CartView, onNoCod: () => void) {
     rateId,
     setRateId: pickRate,
     /** Delivery options app: the sub-choice and the insurance tick under the cards. */
-    app: { routeKey, setRouteKey, insurance: quote?.insurance ?? null, toggleInsurance },
+    app: { routeKey, setRouteKey: pickRoute, insurance: quote?.insurance ?? null, toggleInsurance },
     /** What Pay sends about shipping: the picked rate, and the app's choice when it is on. */
     formFields: {
       ...(rateId ? { shippingRate: rateId } : {}),

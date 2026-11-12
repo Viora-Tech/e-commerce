@@ -16,6 +16,7 @@
       "!**/worker-configuration.d.ts",
       "!apps/docs/public/_pagefind",
       "!apps/www/public",
+      "!apps/storefront/public/flags",
       "!packages/blocks/src/styles",
       "!packages/ui/src/styles.css",
       "!apps/admin/src/app/globals.css",

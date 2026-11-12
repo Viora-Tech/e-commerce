@@ -136,6 +136,8 @@ export const accountContent = {
     refund: (n: number | null) => (n ? `Refund for order #${n}` : 'Refund'),
     returned: (n: number | null) =>
       n ? `Returned: order #${n} was not paid` : 'Returned from an unpaid order',
+    expired: 'Expired',
+    expiresOn: (day: string) => `use by ${day}`,
   },
   orders: {
     title: 'Orders',
@@ -254,6 +256,7 @@ export const paymentLabels: Record<ShopperPaymentState, string> = {
   paid: 'Paid',
   pending: 'Payment pending',
   cod: 'Cash on delivery',
+  partly_refunded: 'Partly refunded',
   refunded: 'Refunded',
   failed: 'Payment failed',
 }

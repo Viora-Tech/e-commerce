@@ -64,6 +64,7 @@ import {
   VERIFY_EVERY_MS,
 } from './domains'
 import { startEdgePurge } from './edge-purge'
+import { emailFeedbackWebhooks } from './email-feedback'
 import { createFxRates, FX_RATES_SCHEDULE } from './fx-rates'
 import { createHomeCardsRefresh, HOME_CARDS_EVERY_MS } from './home-cards'
 import { createImportSnapshotCleanup, SNAPSHOT_CLEANUP_EVERY_MS } from './import-snapshots'
@@ -85,6 +86,7 @@ import { platformWebhooks } from './platform-webhooks'
 import { BALANCE_EVERY_MS, createPreorderBalanceJob } from './preorder-balance'
 import { createPurchaseDocumentWorker } from './purchase-documents'
 import { createConnection, createHeartbeat } from './queues'
+import { createRefundSync, REFUND_SYNC_EVERY_MS, REFUND_SYNC_QUEUE } from './refund-sync'
 import { createRetentionPrune, RETENTION_SCHEDULE } from './retention'
 import { createReviewSummarySweep, REVIEW_SUMMARIES_EVERY_MS } from './review-summaries'
 import { createReviewRequestSweep, REVIEW_REQUESTS_EVERY_MS } from './reviews'
@@ -95,6 +97,11 @@ import { shipmentWebhooks } from './shipments-webhook'
 import { createShippingTracker, TRACK_EVERY_MS } from './shipping'
 import { createShopifyTokenSweep, SHOPIFY_TOKEN_SWEEP_EVERY_MS } from './shopify-token-sweep'
 import { createStoreActivityPrune, STORE_ACTIVITY_PRUNE_EVERY_MS } from './store-activity'
+import {
+  createStoreCreditExpiry,
+  STORE_CREDIT_EXPIRY_EVERY_MS,
+  STORE_CREDIT_EXPIRY_QUEUE,
+} from './store-credit-expiry'
 import { createStoreExportWorker } from './store-export'
 import { createSweepWorker, type Sweep, scheduleSweeps } from './sweeps'
 import { createThemeScreenshotWorker } from './theme-screenshot'
@@ -136,7 +143,9 @@ const appJobWorker = createAppJobWorker(redis, db, {
 
 const unpaidExpiry = createUnpaidOrderExpiry(db, { settingsSecret: env.SETTINGS_SECRET })
 const preorderBalance = createPreorderBalanceJob(db, { settingsSecret: env.SETTINGS_SECRET })
+const storeCreditExpiry = createStoreCreditExpiry(db)
 const paymentFees = createPaymentFeeSync(db, { settingsSecret: env.SETTINGS_SECRET })
+const refundSync = createRefundSync(db, { settingsSecret: env.SETTINGS_SECRET })
 const tracker = createShippingTracker(db, { settingsSecret: env.SETTINGS_SECRET })
 const orderPusher = createOrderPusher(db, { settingsSecret: env.SETTINGS_SECRET })
 // Unset Dokploy keys: no routes are asked for and every route job is a no-op (added by hand).
@@ -274,11 +283,25 @@ const sweepList: Sweep[] = [
     run: preorderBalance.run,
     legacy: { queue: PREORDER_BALANCE_QUEUE, scheduler: 'preorder-balance' },
   },
+  // Store credit past its expiry date: the "Store credit expired" history lines (hourly).
+  {
+    name: 'store-credit-expiry',
+    schedule: every(STORE_CREDIT_EXPIRY_EVERY_MS),
+    run: storeCreditExpiry.run,
+    legacy: { queue: STORE_CREDIT_EXPIRY_QUEUE, scheduler: 'store-credit-expiry' },
+  },
   {
     name: 'payment-fees',
     schedule: every(PAYMENT_FEES_EVERY_MS),
     run: paymentFees.run,
     legacy: { queue: PAYMENT_FEES_QUEUE, scheduler: 'sync-payment-fees' },
+  },
+  // Gateways without refund webhooks (Decentro): pending refunds asked about once a day.
+  {
+    name: 'refund-sync',
+    schedule: every(REFUND_SYNC_EVERY_MS),
+    run: refundSync.run,
+    legacy: { queue: REFUND_SYNC_QUEUE, scheduler: 'refund-sync' },
   },
   {
     name: 'domain-verify',
@@ -513,6 +536,7 @@ const app = new Hono()
 app.use(evlog({ exclude: ['/health'] }))
 app.route('/', paymentWebhooks(db, env.SETTINGS_SECRET, rateLimitStore))
 app.route('/', shipmentWebhooks(db, env.SETTINGS_SECRET, rateLimitStore))
+app.route('/', emailFeedbackWebhooks(db, { topicArn: env.SES_EVENTS_TOPIC_ARN }, rateLimitStore))
 app.route(
   '/',
   platformWebhooks(

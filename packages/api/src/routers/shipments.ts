@@ -148,6 +148,8 @@ export const shipmentsRouter = {
         courierOverrides: z.record(z.uuid(), z.string().min(1)).optional(),
         /** orderId -> the courier's service picked for it; absent books the courier's default. */
         serviceOverrides: z.record(z.uuid(), z.string().min(1).max(64)).optional(),
+        /** orderId -> the parcel quoted for it; it books that parcel on its own route. */
+        parcelIds: z.record(z.uuid(), z.uuid()).optional(),
       }),
     )
     .handler(async ({ context, input }) => {
@@ -231,6 +233,8 @@ export const shipmentsRouter = {
         date: z.string(),
         timeFrom: z.string(),
         timeTo: z.string().optional(),
+        /** "Add to pickup": a booked pickup to add these parcels to. */
+        joinPickupId: z.uuid().optional(),
       }),
     )
     .handler(async ({ context, input }) => {

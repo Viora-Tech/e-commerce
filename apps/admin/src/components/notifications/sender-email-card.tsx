@@ -16,6 +16,7 @@ import SenderDnsTable from './sender-dns-table'
 import SenderEmailForm from './sender-email-form'
 import SenderPreview from './sender-preview'
 import SpamHelp from './spam-help'
+import SuppressedEmailsList from './suppressed-emails-list'
 import type { SenderEmailOverview } from './types'
 
 /** Re-read the saved status this often while waiting; the worker does the SES checks. */
@@ -204,6 +205,8 @@ export default function SenderEmailCard() {
             </Button>
           ) : null}
         </div>
+
+        <SuppressedEmailsList />
       </CardContent>
 
       <ConfirmDialog

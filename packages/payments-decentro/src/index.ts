@@ -1,4 +1,4 @@
-export { DECENTRO_HOSTS, DecentroApiError } from './client'
+export { DECENTRO_HOSTS, DECENTRO_TIMEOUT_MS, DecentroApiError } from './client'
 export {
   attemptFromReference,
   DECENTRO_CALLBACK_ACK,
@@ -11,6 +11,7 @@ export {
   decentroFactory,
   decentroReferenceId,
   decentroStatus,
+  refundStateOf,
 } from './decentro'
 export { fetchPayoutStatus, payoutReferenceId, payoutStatusOf } from './payouts'
 export { decentroPlugin } from './plugin'

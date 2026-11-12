@@ -744,6 +744,46 @@ describe('role approvals', () => {
     )
   })
 
+  it('never holds back a calculation behind a ticked write, only the change itself', async () => {
+    const m = await merchant('asha@example.com', 'asha')
+    const a = await staffOf(m, 'admin@example.com', 'admin')
+    const roles = await call(appRouter.staff.roles, undefined, { context: m.ctx })
+    const adminRole = roles.find((r) => r.slug === 'admin')
+    await call(
+      appRouter.staff.saveRoleApprovals,
+      {
+        roleId: adminRole?.id as string,
+        permissions: [...(adminRole?.needsApproval ?? []), 'drafts.write'],
+      },
+      { context: m.ctx },
+    )
+
+    // The draft editor works out GST and checks a code as the merchant types: both run now.
+    const gst = await call(
+      appRouter.orders.estimateDraftGst,
+      { lines: [], totalPaise: 0 },
+      { context: a.ctx, path: ['orders', 'estimateDraftGst'] },
+    )
+    expect(gst).toBeTruthy()
+    await call(
+      appRouter.orders.checkDraftDiscount,
+      { code: 'NOPE', lines: [] },
+      { context: a.ctx, path: ['orders', 'checkDraftDiscount'] },
+    ).catch((error: { code?: string }) => {
+      expect(error.code).not.toBe('APPROVAL_QUEUED')
+    })
+    expect(await owner.select().from(aiAction).where(eq(aiAction.storeId, m.storeId))).toEqual([])
+
+    // Saving the draft is the change, and that still waits.
+    await expect(
+      call(
+        appRouter.orders.saveDraft,
+        { draft: {} },
+        { context: a.ctx, path: ['orders', 'saveDraft'] },
+      ),
+    ).rejects.toMatchObject({ code: 'APPROVAL_QUEUED' })
+  })
+
   it('keeps one request per change: asking again says so, and approving one closes its copies', async () => {
     const m = await merchant('asha@example.com', 'asha')
     const a = await staffOf(m, 'admin@example.com', 'admin')

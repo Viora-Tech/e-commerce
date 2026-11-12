@@ -361,7 +361,19 @@ describe('bulk', () => {
       orderIds: ['o1'],
       courierOverrides: { o1: 'delhivery' },
       serviceOverrides: {},
+      parcelIds: {},
     })
+  })
+
+  it('each booked order names the parcel it was quoted for', () => {
+    const picks = bulkPicks(quotes, 'one', 'delhivery')
+    const parcels = [
+      { orderId: 'o1', fulfillmentOrderId: 'fo-2' },
+      { orderId: 'o2', fulfillmentOrderId: 'fo-9' },
+    ]
+    // o2 has no courier picked, so it is not booked and names no parcel.
+    expect(bulkOrders(picks, parcels).parcelIds).toEqual({ o1: 'fo-2' })
+    expect(bulkOrders(picks, [{ orderId: 'o1', fulfillmentOrderId: null }]).parcelIds).toEqual({})
   })
 
   it('a courier with several services counts and books its cheapest one per order', () => {

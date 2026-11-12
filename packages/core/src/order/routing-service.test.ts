@@ -21,7 +21,8 @@ import {
 import { resetDb } from '@commerce/db/test'
 import { and, asc, eq } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
-import { CannotShipToState, OutOfStock } from '../errors'
+import { getCart } from '../cart/cart'
+import { CannotShipToState, OutOfStock, PreorderLimitReached } from '../errors'
 import { FakePaymentProvider } from '../providers/payment'
 import { convertDraft } from './drafts'
 import { orderParcelsView, previewCartParcels } from './parcel-view'
@@ -479,5 +480,55 @@ describe('a converted draft is billed like a checkout', () => {
       .where(eq(order.id, d?.id as string))
     expect(o).toMatchObject({ status: 'open', taxPaise: 27_000, gstRegistrationId: t.reg('06') })
     expect(o?.taxBreakdown).toMatchObject({ cgstPaise: 4_500, sgstPaise: 4_500, igstPaise: 18_000 })
+  })
+})
+
+describe('pre-orders with stock in two locations (#1538, #1539)', () => {
+  /** Shirt sells on pre-order, at most 2 past stock; its stock is only in Delhi, not at home. */
+  async function preorderShirt() {
+    const t = await seed()
+    const [v] = await owner.select().from(variant).where(eq(variant.id, t.shirt))
+    await owner
+      .update(product)
+      .set({ preorderEnabled: true, preorderLimit: 2 })
+      .where(eq(product.id, v?.productId as string))
+    await stock(t, t.shirt, { [t.haryana]: 0, [t.delhi]: 3 })
+    return t
+  }
+
+  const cartRoom = async (t: Seeded) => {
+    const c = await cartOf(t, [[t.shirt, 1]])
+    const view = await withStore(app, t.storeId, (tx) => getCart({ storeId: t.storeId, tx }, c.id))
+    return view?.lines[0]?.available
+  }
+
+  it('the cart offers what checkout accepts: stock anywhere, or home stock plus the limit', async () => {
+    const t = await preorderShirt()
+    // Delhi's 3 ship from stock; past that the line is held whole at home (Haryana: 0 + 2).
+    expect(await cartRoom(t)).toBe(3)
+    const placed = await place(t, [[t.shirt, 3]], 'HR')
+    expect((await parcelsOf(placed.orderId)).map((p) => [p.locationId, p.status])).toEqual([
+      [t.delhi, 'open'],
+    ])
+  })
+
+  it('home stock counts too: the larger of stock everywhere and home free + limit', async () => {
+    const t = await preorderShirt()
+    await owner
+      .update(inventoryLevel)
+      .set({ onHand: 2 })
+      .where(and(eq(inventoryLevel.variantId, t.shirt), eq(inventoryLevel.locationId, t.haryana)))
+    // 5 in stock in all; a pre-order of 6 would sit at home: 2 free + 2 limit = 4 < 6.
+    expect(await cartRoom(t)).toBe(5)
+    await expect(place(t, [[t.shirt, 6]], 'HR')).rejects.toBeInstanceOf(PreorderLimitReached)
+  })
+
+  it('a used-up pre-order limit refuses with PreorderLimitReached, still a kind of OutOfStock', async () => {
+    const t = await preorderShirt()
+    const refused = place(t, [[t.shirt, 4]], 'HR')
+    await expect(refused).rejects.toBeInstanceOf(PreorderLimitReached)
+    await expect(refused).rejects.toBeInstanceOf(OutOfStock)
+    await expect(refused).rejects.toMatchObject({ code: 'PREORDER_LIMIT_REACHED' })
+    expect(await committed(t.shirt, t.haryana)).toMatchObject({ reserved: 0 })
   })
 })

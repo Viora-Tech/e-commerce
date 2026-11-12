@@ -21,8 +21,17 @@ const platformEmailShape = {
   SES_REGION: z.string().min(1).optional(),
   SES_ACCESS_KEY_ID: z.string().min(1).optional(),
   SES_SECRET_ACCESS_KEY: z.string().min(1).optional(),
-  /** Optional configuration set every store identity uses by default (bounce/complaint events). */
+  /**
+   * Optional configuration set every store identity uses by default and every platform send
+   * names (bounce/complaint events to SNS). Must exist in SES, or sends through SES fail.
+   */
   SES_CONFIGURATION_SET: z.string().min(1).optional(),
+  /**
+   * ARN of the SNS topic the configuration set publishes bounces and complaints to. The worker's
+   * `/webhooks/email/ses` accepts only messages from this exact topic; unset, it accepts none.
+   * Not shape-checked here, so a typo never stops email sending; the webhook just refuses.
+   */
+  SES_EVENTS_TOPIC_ARN: z.string().min(1).optional(),
   /** The platform's verified sender, used until a store's own address is verified. */
   PLATFORM_EMAIL_FROM: z.string().email().optional(),
   /** Display name when a store has no name yet. */

@@ -13,6 +13,12 @@ export type ZoneQuote =
 export type ResolveInput = {
   config: DeliveryConfig
   cart: { valuePaise: number; weightGrams: number; items: readonly CartItemFacts[] }
+  /**
+   * The whole order's value, when `cart` is one of its parcels (a cart shipping from two
+   * locations): free-above and insure-above read it, insurance is priced on the parcel's own.
+   * Omitted: `cart.valuePaise`.
+   */
+  orderValuePaise?: number | undefined
   answers: readonly ProviderAnswer[]
   /** The store's zone rates for this address: the `zone` price and the Standard backup. */
   zone: ZoneQuote
@@ -65,6 +71,9 @@ export type PricedRoute = {
   /** Insurance charged; null when the route's insurance rate is unknown (charged as ₹0). */
   insurancePaise: number | null
   insured: boolean
+  /** Priced from the Shipping rate: that rate before insurance and rounding, so a split cart
+   *  counts the rate once without the ₹10 rounding of each parcel. Absent otherwise. */
+  zoneRatePaise?: number | null | undefined
   earliest: string | null
   latest: string | null
   /** True when the dates come from the store's usual transit days, not the courier. */
@@ -149,6 +158,11 @@ export type DeliveryResolveResult = {
   /** `unserviceable`: every route truly said no. `none`: nothing to show (use zone rates). */
   status: 'options' | 'unserviceable' | 'none'
   options: ResolvedOption[]
+  /**
+   * A cart priced as several parcels (`resolveParcelDeliveries`): each parcel's own result, in
+   * parcel order, so the order can save the courier quoted for every parcel. Absent: one parcel.
+   */
+  parcels?: DeliveryResolveResult[] | undefined
   trace: {
     options: OptionTrace[]
     providers: Array<

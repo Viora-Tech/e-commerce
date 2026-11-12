@@ -40,6 +40,9 @@ export default function FilterMenu({
     onPick(key)
   }
 
+  // Render logic
+  const offered = groups.filter((g) => g.inMenu !== false)
+
   return (
     <Popover open={open} onOpenChange={handleOpenChange}>
       <PopoverTrigger
@@ -53,7 +56,7 @@ export default function FilterMenu({
         className="max-h-[min(24rem,var(--available-height))] w-56 gap-0 overflow-y-auto p-1"
         finalFocus={() => !picked.current}
       >
-        {groups.map((g) => (
+        {offered.map((g) => (
           <button
             key={g.key}
             type="button"

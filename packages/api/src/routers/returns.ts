@@ -186,7 +186,14 @@ export const returnsRouter = {
    * the order's customer (never a gift card code); refused for an order with no email or phone.
    */
   storeCredit: can(permissions.ORDERS_REFUND)
-    .input(z.object({ id: z.uuid(), amountPaise: z.number().int().positive() }))
+    .input(
+      z.object({
+        id: z.uuid(),
+        amountPaise: z.number().int().positive(),
+        /** The last day the credit can be spent (`YYYY-MM-DD`); null never expires. */
+        expiresOn: z.iso.date().nullish(),
+      }),
+    )
     .handler(async ({ context, input }) => {
       return storeCreditStoreReturn(
         context.tx,
@@ -195,6 +202,7 @@ export const returnsRouter = {
         input.id,
         input.amountPaise,
         context.session.user.email,
+        input.expiresOn,
       )
     }),
 

@@ -203,12 +203,16 @@ export const ACTION_DOCS: Record<string, string> = {
   'collections.searchProducts': 'Product picker inside a manual collection.',
   'collections.stats': 'Tiles above the category cards.',
   'customerAccounts.saveApp': "Save the merchant's own Google / Apple / Facebook / Truecaller app.",
+  'customerPrivacy.allowEmailAgain':
+    '"Allow again": email this customer again; only later bounces count towards a new stop.',
   'customerPrivacy.anonymise':
     "Erase a customer's personal data, keeping what invoices need, and close the request it answers.",
   'customerPrivacy.askConsentAgain':
     'Show the banner to everyone again (after changing tags or the banner text).',
   'customerPrivacy.consent': "A customer's marketing consent per channel, with its history.",
   'customerPrivacy.createRequest': 'Staff log a request that came by email, phone or in person.',
+  'customerPrivacy.emailSuppression':
+    '"Email bounced/complained — not sending": why the store stopped emailing this customer.',
   'customerPrivacy.export': 'One-click export: the file to download, noted in the audit trail.',
   'customerPrivacy.overview': 'Everything the settings page shows at once.',
   'customerPrivacy.sendableChannels':
@@ -252,6 +256,8 @@ export const ACTION_DOCS: Record<string, string> = {
   'dashboard.tiles': 'Which metric this member keeps in each Home tile (Customize).',
   'dashboard.todos':
     'Which to-do cards this store hides on Home ("Edit to-dos"); one setting for the whole store.',
+  'deliveryOptions.saveProtect':
+    "Delhivery Protect's card: rates per category and product-type overrides (the overview returns it as protect).",
   'deliveryOptions.tryPin':
     "Try a PIN: the cards checkout would show, every route's quote, and why.",
   'documents.templates':
@@ -439,7 +445,10 @@ export const ACTION_DOCS: Record<string, string> = {
   'navigation.settings': 'Which menus the storefront header and footer render, by handle.',
   'navigation.themePlacements':
     "Per menu handle, where the live theme's sections pick it (header, footer or a page).",
+  'notifications.allowSuppressedEmail': '"Allow again" from the Sender email card\'s list.',
   'notifications.checkSenderEmail': '"Check now": ask SES again.',
+  'notifications.emailSuppressions':
+    'Addresses the store stopped emailing after a bounce or complaint (Sender email card).',
   'notifications.overview':
     'Settings → Notifications: every message the shop sends and how messages go out.',
   'notifications.preview': 'The message filled with a sample order, for the Preview dialog.',
@@ -491,6 +500,8 @@ export const ACTION_DOCS: Record<string, string> = {
     'What the Orders filter panel offers: tags, discount codes, couriers and collections in use.',
   'orders.fulfil':
     'Pack some or all of the lines; the shopper is told once the parcel is complete.',
+  'orders.fulfilAll':
+    'Bulk "Mark as fulfilled" on the orders list: one order at a time, everything left packed under the courier picked once for the selection, with this order\'s tracking number if typed.',
   'orders.get':
     "One order with its lines, payments, shipment, balance due and the customer's order history.",
   'orders.getAbandoned': 'One abandoned checkout with its cart, contact and recovery link.',
@@ -545,6 +556,8 @@ export const ACTION_DOCS: Record<string, string> = {
     'The list\'s bulk "Send invoices": each selected draft with an email gets its pay link.',
   'orders.sendOrderLink':
     '"Send order link": the signed link to the order\'s page, by email and WhatsApp (when set up).',
+  'orders.sendPaymentLink':
+    '"Send payment link" on a shopper\'s unpaid checkout draft: its pay link (the order page where the shopper pays or retries) by email, WhatsApp (when connected) or both, noted on the draft\'s timeline.',
   'orders.sendPaymentReminder':
     '"Send payment reminder" on an unpaid UPI / bank transfer order: by email, WhatsApp (when set up) or both (the default), with the QR and bank details.',
   'orders.sendRecovery': 'Email the shopper a reminder with a link back to their abandoned cart.',
@@ -751,6 +764,8 @@ export const ACTION_DOCS: Record<string, string> = {
     'Products of the picked collections, for "Add a collection\'s products".',
   'shipping.profiles.create':
     "Make a custom profile holding whole products (productIds, every variant including ones added later) and single variants (variantIds, which win over their product's profile).",
+  'shipping.profiles.moveToGeneral':
+    'General\'s "Move products here": take the products (and their single variants) out of the custom profiles that hold them, so they ship at General\'s prices.',
   'shipping.profiles.productEntries':
     "Products with their variants as a profile's page lists them: which variants ship under profileId and where the others ship now.",
   'shipping.profiles.update':
@@ -834,6 +849,12 @@ export const ACTION_DOCS: Record<string, string> = {
   'storeCredit.adjust':
     'Add (positive amountPaise) or remove (negative) store credit, with a reason the history shows.',
   'storeCredit.get': "The customer's balance in paise and their newest 50 changes, newest first.",
+  'storeCredit.getOrderExpiry':
+    'The store credit an order was paid with, and the expiry the cancel and refund dialogs pre-fill when it goes back: the latest last day among the credit it was spent from, or null when any of it never…',
+  'storeCredit.listGiftCards':
+    'The live gift cards that were really store credit: refund cards made before store credit was a balance, and cards the Shopify import brought over, with whose balance each goes to.',
+  'storeCredit.moveGiftCards':
+    "Move the picked gift cards into their customers' store credit balances: each card's value left becomes store credit, the card is emptied and disabled.",
   'suppliers.bulkUpdate':
     'Bulk edit on the suppliers list (#1064): currency, country or payment terms for many.',
   'suppliers.facets': "The countries and currencies in use, for the list's filter pickers.",

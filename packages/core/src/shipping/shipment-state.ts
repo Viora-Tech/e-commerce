@@ -8,7 +8,7 @@
 
 /** Why a shipment can't be cancelled any more; null when it can. */
 export type CancelBlock =
-  /** The courier app has no cancel (Shiprocket today), or it was shipped by hand. */
+  /** The courier app has no cancel, or it was shipped by hand. */
   | 'not_supported'
   /** Already cancelled. */
   | 'cancelled'

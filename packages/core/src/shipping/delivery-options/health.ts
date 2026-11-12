@@ -41,7 +41,7 @@ const hourKey = (kind: 'quotes' | 'backup', storeId: string, hour: number) =>
 export type CourierCall = {
   at: number
   ok: boolean
-  /** How long it took; null when it missed the deadline. */
+  /** How long the call took, past checkout's deadline or not; null on older records. */
   ms: number | null
   error: string | null
 }
@@ -59,8 +59,8 @@ export async function breakerOpen(
 }
 
 /**
- * Remember one live call: its outcome for the health line, and a failure (an error or a missed
- * deadline) towards the breaker. The third failure inside the window opens it.
+ * Remember one live call when it ends: its outcome for the health line, and a failure (an error,
+ * or the adapter's own timeout) towards the breaker. A late answer is a success (#1524). The third failure inside the window opens it.
  */
 export async function recordCourierCall(
   store: HealthStore,

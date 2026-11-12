@@ -19,6 +19,8 @@ import { createShipmentContent } from '@/data/create-shipment'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { type CourierSort, courierMode, sortCourierRows } from './courier-groups'
 import CourierTable from './courier-table'
+import { coverNotes } from './cover-notes'
+import { rowInsuranceState } from './insured-rows'
 
 type CourierDrawerProps = {
   open: boolean
@@ -89,11 +91,25 @@ export default function CourierDrawer({
     sort,
   )
   const picked = all.find((r) => r.optionKey === pick)
-  const insuranceLine = picked?.charges.find((c) => c.kind === 'insurance')?.pricePaise ?? null
+  // The picked row's insurance fee (Delhivery Protect, the route's rate or the courier's line).
+  const pickedInsurance = picked ? rowInsuranceState(picked, true) : null
+  const insuranceLine =
+    pickedInsurance?.kind === 'added' || pickedInsurance?.kind === 'included'
+      ? pickedInsurance.pricePaise
+      : null
+  // The picked courier's real cover: its cap, uninsured refund limit, used goods, claim excess.
+  const notes = picked?.cover ? coverNotes(picked, insured, 0) : null
+  const coveredLabel = notes?.capped
+    ? copy.coverOf(fmt.money(notes.coveredPaise), fmt.money(notes.valuePaise))
+    : valueLabel
+  const excess = notes?.deductibleBps
+    ? copy.claimExcess(fmt.number(notes.deductibleBps / 100))
+    : undefined
 
   return (
     <Drawer open={open} onOpenChange={onOpenChange} showSwipeHandle>
-      <DrawerContent className="mx-auto max-w-[90rem]">
+      {/* One height whatever the number of couriers (owner, 11 Nov): a single service leaves room below, the drawer does not shrink. */}
+      <DrawerContent className="mx-auto h-[calc(100dvh-6rem)] max-w-[90rem]">
         <DrawerHeader className="flex flex-row flex-wrap items-start justify-between gap-4 px-4 pt-2 text-left md:px-8">
           <div className="flex min-w-0 flex-col items-start gap-1 text-left">
             <DrawerTitle className="text-lg font-semibold text-ink-strong">
@@ -103,22 +119,38 @@ export default function CourierDrawer({
               {summary}
             </DrawerDescription>
           </div>
-          <div className="flex items-center gap-3">
-            <label
-              htmlFor="drawer-insurance"
-              className="flex cursor-pointer items-center gap-4 rounded-lg border border-border px-4 py-2.5"
-            >
-              <span className="flex flex-col text-left">
-                <span className="text-body font-medium text-ink-strong">{copy.insurance}</span>
-                <span className="text-caption text-muted-foreground">
-                  {copy.insuranceCovers(
-                    insuranceLine === null ? null : fmt.money(insuranceLine),
-                    valueLabel,
-                  )}
+          <div className="flex items-start gap-3">
+            <div className="flex max-w-[26rem] flex-col gap-1.5">
+              <label
+                htmlFor="drawer-insurance"
+                className="flex cursor-pointer items-center gap-4 rounded-lg border border-border px-4 py-2.5"
+              >
+                <span className="flex flex-col text-left">
+                  <span className="text-body font-medium text-ink-strong">{copy.insurance}</span>
+                  <span className="text-caption text-muted-foreground" title={excess}>
+                    {copy.insuranceCovers(
+                      insuranceLine === null ? null : fmt.money(insuranceLine),
+                      coveredLabel,
+                    )}
+                  </span>
                 </span>
-              </span>
-              <Switch id="drawer-insurance" checked={insured} onCheckedChange={onInsured} />
-            </label>
+                <Switch id="drawer-insurance" checked={insured} onCheckedChange={onInsured} />
+              </label>
+              {notes?.uninsuredLimitPaise != null && picked ? (
+                <p role="status" className="text-caption text-warning">
+                  {copy.uninsuredLimit(
+                    picked.providerName,
+                    fmt.money(notes.uninsuredLimitPaise),
+                    fmt.money(notes.valuePaise),
+                  )}
+                </p>
+              ) : null}
+              {notes?.usedNotCovered && picked ? (
+                <p role="status" className="text-caption text-warning">
+                  {copy.usedNotCovered(picked.providerName)}
+                </p>
+              ) : null}
+            </div>
             <Button
               variant="ghost"
               size="icon-sm"

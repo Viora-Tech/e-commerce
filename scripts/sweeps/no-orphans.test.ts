@@ -18,6 +18,18 @@ type AllowEntry = { file: string; names: string[]; reason: string }
 
 const ALLOWLIST: AllowEntry[] = [
   {
+    file: 'packages/core/src/accounts/orders.ts',
+    names: ['shopperPayment'],
+    reason:
+      'used in the module; shopper-payment.test.ts checks the Partly refunded wording (#1605)',
+  },
+  {
+    file: 'packages/plugin-back-in-stock/src/messages.ts',
+    names: ['BACK_IN_STOCK_CONFIRM_PATH', 'BACK_IN_STOCK_UNSUBSCRIBE_PATH'],
+    reason:
+      'used in the module; messages.test.ts checks them against the storefront route folders (#1588)',
+  },
+  {
     file: 'packages/core/src/domains/edge-purge.ts',
     names: [
       'PURGE_QUIET_MS',
@@ -38,6 +50,24 @@ const ALLOWLIST: AllowEntry[] = [
     file: 'packages/core/src/media/settings.ts',
     names: ['storageDefaultsFromEnv'],
     reason: 'used in the module and asserted directly by service.test.ts',
+  },
+  {
+    file: 'packages/core/src/customers/store-credit-expiry.ts',
+    names: ['dueLots'],
+    reason:
+      'the pure ledger replay, used in the module and asserted directly by store-credit-expiry.test.ts',
+  },
+  {
+    file: 'packages/core/src/customers/store-credit-return.ts',
+    names: ['splitReturn'],
+    reason:
+      'how returned credit is split over its original expiry dates, used in the module and asserted directly by store-credit-return.test.ts',
+  },
+  {
+    file: 'packages/core/src/customers/store-credit-gift-cards.ts',
+    names: ['moveGiftCardToStoreCredit'],
+    reason:
+      'one card, used by moveGiftCardsToStoreCredit in the module and asserted directly (concurrency) by store-credit-gift-cards.test.ts',
   },
   {
     file: 'packages/core/src/pixels/meta.ts',
@@ -203,9 +233,9 @@ const ALLOWLIST: AllowEntry[] = [
   },
   {
     file: 'packages/core/src/shipping/delivery-options/booking.ts',
-    names: ['rowRoute'],
+    names: ['withParcelIds'],
     reason:
-      'Delivery options engine (P1): pure helper used inside the engine and unit-tested on its own (delivery-options tests); no other module needs it',
+      'Delivery options engine (P1): pure half of saveParcelIds, unit-tested on its own (delivery-options tests); no other module needs it',
   },
   {
     file: 'packages/core/src/domains/origin.ts',

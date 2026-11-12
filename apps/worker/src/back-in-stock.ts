@@ -1,8 +1,9 @@
 import { storefrontOriginFor, storeNotificationChannels } from '@commerce/core'
 import { registriesForStore } from '@commerce/core/registries'
-import { type Db, product, variant, withStore } from '@commerce/db'
+import { type Db, product, store, variant, withStore } from '@commerce/db'
 import { logger } from '@commerce/observability/logging'
 import {
+  alertMessageData,
   availableStockFor,
   BACK_IN_STOCK_QUEUE,
   loadPlatformQuota,
@@ -60,16 +61,23 @@ export function createBackInStockWorker(connection: IORedis, db: Db, opts: BackI
       if (channels.length === 0)
         return { sent: 0, skippedQuota: 0, failed: 0, stoppedForStock: false }
 
-      const [productTitle, variantTitle] = await withStore(db, storeId, async (tx) => {
+      const item = await withStore(db, storeId, async (tx) => {
         const [row] = await tx
-          .select({ productTitle: product.title, variantTitle: variant.title })
+          .select({
+            productTitle: product.title,
+            productHandle: product.handle,
+            variantTitle: variant.title,
+          })
           .from(variant)
           .innerJoin(product, eq(product.id, variant.productId))
           .where(eq(variant.id, variantId))
-        return [
-          row?.productTitle ?? '',
-          row?.variantTitle === 'Default' ? undefined : row?.variantTitle,
-        ]
+        const [s] = await tx.select({ name: store.name }).from(store).where(eq(store.id, storeId))
+        return {
+          productTitle: row?.productTitle ?? '',
+          productHandle: row?.productHandle ?? '',
+          variantTitle: row?.variantTitle,
+          storeName: s?.name ?? '',
+        }
       })
 
       return sendRestockAlerts(
@@ -82,17 +90,16 @@ export function createBackInStockWorker(connection: IORedis, db: Db, opts: BackI
           availableStock: (vId) => withStore(db, storeId, (tx) => availableStockFor(tx, vId)),
           buildMessage: (row, _channel) => ({
             data: {
-              storeName: '',
               customerName: '',
               totalLabel: '',
               lines: [],
               paymentMethodLabel: '',
-              backInStock: {
-                productTitle,
-                variantTitle,
-                productUrl: origin ?? undefined,
-                unsubscribeUrl: `${origin ?? ''}/back-in-stock/unsubscribe/${row.unsubscribeToken}`,
-              },
+              // Links open on the store's own domain; the platform URL is the fallback.
+              ...alertMessageData({
+                ...item,
+                origin: origin ?? '',
+                unsubscribeToken: row.unsubscribeToken,
+              }),
             },
           }),
           log: (message) => logger.info(message, { area: 'back-in-stock', storeId }),

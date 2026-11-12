@@ -1,13 +1,16 @@
 import { describe, expect, it } from 'vitest'
 import { isLaunched, msUntilLaunch } from './launch'
 import {
+  nextVariantPreorderOverride,
   PreorderSettingsInputSchema,
   type ProductPreorderRow,
   resolvePreorderSettings,
   resolveShipDate,
   validateDepositAgainstPrice,
   variantAllowsPreorder,
+  variantPreorderLimit,
   withPreorderAllowed,
+  withPreorderLimit,
 } from './settings'
 
 const product: ProductPreorderRow = {
@@ -184,5 +187,65 @@ describe('isLaunched / msUntilLaunch', () => {
     const future = new Date('2026-01-01T00:00:10Z')
     expect(msUntilLaunch(future, now)).toBe(10_000)
     expect(msUntilLaunch(new Date('2025-01-01T00:00:00Z'), now)).toBe(0)
+  })
+})
+
+describe("a variant's own pre-order limit", () => {
+  it("wins over the product's limit; blank (null or left out) falls back to it", () => {
+    expect(resolvePreorderSettings(product, { limit: 2 }).limit).toBe(2)
+    expect(resolvePreorderSettings(product, { limit: null }).limit).toBe(50)
+    expect(resolvePreorderSettings(product, { enabled: false }).limit).toBe(50)
+    expect(resolvePreorderSettings(product, null).limit).toBe(50)
+  })
+
+  it('applies even when the product itself has no limit', () => {
+    const unlimited = { ...product, preorderLimit: null }
+    expect(resolvePreorderSettings(unlimited, { limit: 4 }).limit).toBe(4)
+    expect(resolvePreorderSettings(unlimited, {}).limit).toBeNull()
+  })
+
+  it('is read back for the admin, null when the variant has none', () => {
+    expect(variantPreorderLimit({ limit: 3, enabled: false })).toBe(3)
+    expect(variantPreorderLimit({ enabled: false })).toBeNull()
+    expect(variantPreorderLimit(null)).toBeNull()
+  })
+
+  it('sets and clears the limit without touching the other keys', () => {
+    expect(withPreorderLimit({ enabled: false }, 5)).toEqual({ enabled: false, limit: 5 })
+    expect(withPreorderLimit({ enabled: false, limit: 5 }, null)).toEqual({ enabled: false })
+    expect(withPreorderLimit({ limit: 5 }, null)).toBeNull()
+    expect(withPreorderLimit(null, 1)).toEqual({ limit: 1 })
+  })
+})
+
+describe('the override a product save writes', () => {
+  it('leaves the column alone when the save sends neither field', () => {
+    expect(nextVariantPreorderOverride({ limit: 3 }, {})).toBeUndefined()
+  })
+
+  it('applies what the save sent on top of the stored override', () => {
+    const stored = { enabled: false, limit: 3, buttonLabel: 'Reserve' }
+    expect(nextVariantPreorderOverride(stored, { preorderAllowed: true })).toEqual({
+      limit: 3,
+      buttonLabel: 'Reserve',
+    })
+    expect(nextVariantPreorderOverride(stored, { preorderLimit: 8 })).toEqual({
+      enabled: false,
+      limit: 8,
+      buttonLabel: 'Reserve',
+    })
+    expect(
+      nextVariantPreorderOverride(stored, { preorderAllowed: true, preorderLimit: null }),
+    ).toEqual({ buttonLabel: 'Reserve' })
+    expect(
+      nextVariantPreorderOverride({ limit: 3 }, { preorderAllowed: true, preorderLimit: null }),
+    ).toBeNull()
+  })
+
+  it("builds a new variant's override from nothing", () => {
+    expect(nextVariantPreorderOverride(null, { preorderAllowed: false, preorderLimit: 2 })).toEqual(
+      { enabled: false, limit: 2 },
+    )
+    expect(nextVariantPreorderOverride(undefined, { preorderAllowed: true })).toBeNull()
   })
 })

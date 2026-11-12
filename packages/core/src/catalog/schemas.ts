@@ -37,6 +37,11 @@ export const VariantInputSchema = z.object({
   hiddenOnStore: z.boolean().optional(),
   /** "Allow pre-order" when the product is on pre-order (default on). Undefined leaves it as it is. */
   preorderAllowed: z.boolean().optional(),
+  /**
+   * The variant's own pre-order limit (units sold past stock); null clears it, so the variant
+   * uses the product's (or campaign's) limit again. Undefined leaves it as it is.
+   */
+  preorderLimit: z.number().int().min(1).max(1_000_000).nullable().optional(),
   /** Shopify's "This is a physical product" (default on). Undefined leaves it as it is. */
   requiresShipping: z.boolean().optional(),
   weightGrams: z.number().int().min(0).max(1_000_000).nullable().optional(),
@@ -49,6 +54,8 @@ export const VariantInputSchema = z.object({
   packageLengthCm: z.number().int().min(1).max(200).nullable().optional(),
   packageWidthCm: z.number().int().min(1).max(200).nullable().optional(),
   packageHeightCm: z.number().int().min(1).max(200).nullable().optional(),
+  /** The box is the variant's own, not the product's Package (#1517). Undefined leaves it as it is. */
+  boxOwn: z.boolean().optional(),
   /** Null uses the store's GST rate. */
   gstRatePercent: z.number().int().min(0).max(40).nullable().optional(),
   /** Below zero when pre-orders or an import oversold it: the form sends it back unchanged. */

@@ -72,6 +72,11 @@ function campaignBase(product: ProductPreorderRow, c: PreorderCampaignTerms): Pr
  * the variant allows it (`enabled: false` is the variant's "Allow pre-order" switch turned off,
  * Shopify's per-variant "Continue selling when out of stock"). A variant cannot switch pre-order
  * on for a product that has it off.
+ *
+ * Limit precedence, highest first: the variant's own `limit` (Variants › Edit › Pre-order
+ * limit), then the campaign's limit unless the product keeps its own (`preorder_own` holds
+ * 'limit'), then the product's `preorderLimit`. Every limit counts units sold past stock for
+ * one variant; there is no product-wide total.
  */
 export function resolvePreorderSettings(
   product: ProductPreorderRow,
@@ -97,7 +102,8 @@ export function resolvePreorderSettings(
     enabled: base.enabled && override.enabled !== false,
     shipDate: override.shipDate !== undefined ? parseDate(override.shipDate) : base.shipDate,
     shipsInDays: override.shipsInDays !== undefined ? override.shipsInDays : base.shipsInDays,
-    limit: override.limit !== undefined ? override.limit : base.limit,
+    // Null is "blank, use the product's (or campaign's)", as documented above, never "no limit".
+    limit: override.limit ?? base.limit,
     buttonLabel: override.buttonLabel ?? base.buttonLabel,
     paymentMode: override.paymentMode ?? base.paymentMode,
     depositPaise: override.depositPaise !== undefined ? override.depositPaise : base.depositPaise,
@@ -122,6 +128,40 @@ export function withPreorderAllowed(
   const next: VariantPreorderOverride = allowed ? rest : { ...rest, enabled: false }
   return Object.keys(next).length > 0 ? next : null
 }
+
+/**
+ * The override to store for a variant's own pre-order limit, keeping any other keys it holds.
+ * Null (blank in the admin) drops the key, so the variant uses the product's or the campaign's
+ * limit again; null overall when nothing is left to override.
+ */
+export function withPreorderLimit(
+  override: VariantPreorderOverride | null | undefined,
+  limit: number | null,
+): VariantPreorderOverride | null {
+  const { limit: _limit, ...rest } = override ?? {}
+  const next: VariantPreorderOverride = limit == null ? rest : { ...rest, limit }
+  return Object.keys(next).length > 0 ? next : null
+}
+
+/**
+ * What a product save writes to `variant.preorder_override`: the stored override with the
+ * fields the save sent applied on top (undefined leaves that key as it is), so keys the admin
+ * does not edit survive. Undefined when the save sent neither, leaving the column alone.
+ */
+export function nextVariantPreorderOverride(
+  current: VariantPreorderOverride | null | undefined,
+  input: { preorderAllowed?: boolean | undefined; preorderLimit?: number | null | undefined },
+): VariantPreorderOverride | null | undefined {
+  if (input.preorderAllowed === undefined && input.preorderLimit === undefined) return undefined
+  let next = current ?? null
+  if (input.preorderAllowed !== undefined) next = withPreorderAllowed(next, input.preorderAllowed)
+  if (input.preorderLimit !== undefined) next = withPreorderLimit(next, input.preorderLimit)
+  return next
+}
+
+/** The variant's own pre-order limit, or null when it uses the product's (or campaign's). */
+export const variantPreorderLimit = (override?: VariantPreorderOverride | null): number | null =>
+  override?.limit ?? null
 
 function parseDate(value: string | null): Date | null {
   if (!value) return null

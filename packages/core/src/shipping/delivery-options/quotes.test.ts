@@ -154,6 +154,26 @@ describe('gatherProviderAnswers', () => {
     expect(answers[1]).toMatchObject({ status: 'failed' })
   })
 
+  it('keys the cache by box, so a bigger box is never served a small-box price (#1546)', async () => {
+    const small = { ...QUERY, dimensionsCm: { lengthCm: 20, widthCm: 20, heightCm: 5 } }
+    const big = { ...QUERY, dimensionsCm: { lengthCm: 64, widthCm: 64, heightCm: 8 } }
+    expect(deliveryQuoteKey('s1', 'delhivery', small)).not.toBe(
+      deliveryQuoteKey('s1', 'delhivery', big),
+    )
+    // No box: the key is as it was, so carts without one keep their cached answers.
+    expect(deliveryQuoteKey('s1', 'delhivery', QUERY)).not.toContain('cm')
+    const cache = memoryCache()
+    const quoteOptions = vi.fn(async () => [opt('S', 6000)])
+    const p = mockProvider('delhivery', { quoteOptions })
+    await gatherProviderAnswers([p], small, { storeId: 's1', cache })
+    const again = await gatherProviderAnswers([p], big, { storeId: 's1', cache })
+    expect(again[0]?.source).toBe('live')
+    // The box goes to the courier too, for those that price it themselves.
+    expect(quoteOptions).toHaveBeenLastCalledWith(
+      expect.objectContaining({ dimensionsCm: { length: 64, width: 64, height: 8 } }),
+    )
+  })
+
   it('buckets order value', () => {
     expect(valueBucket(150_000)).toBe('0-2k')
     expect(valueBucket(300_000)).toBe('2-5k')

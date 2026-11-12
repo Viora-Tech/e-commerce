@@ -6,27 +6,22 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { type OrderActionGroup, readyToShip } from '@/apps/order-actions'
-import { ADMIN_APPS } from '@/apps/registry'
 import RunAutomationDialog from '@/components/automations/records/run-automation-dialog'
 import { useRunAutomation } from '@/components/automations/records/use-run-automation'
 import MetafieldsCard from '@/components/metaobjects/metafields-card'
 import { orderDetailContent } from '@/data/order-detail'
 import { type OrderMark, ordersContent } from '@/data/orders'
-import { paymentRulesContent } from '@/data/payment-rules'
 import { shipmentDetailsContent, shipmentPanelContent } from '@/data/shipping'
 import { useCopy } from '@/hooks/use-copy'
 import { usePermissions } from '@/hooks/use-permissions'
 import { api } from '@/lib/api-client'
-import { orderChannel } from '@/lib/order-channel'
 import { routes } from '@/lib/routes'
 import CancelOrderDialog from './cancel-order-dialog'
 import CollectPaymentDialog from './collect-payment-dialog'
-import CourierOrdersCard from './courier-orders-card'
-import CustomerCard from './customer-card'
-import DeliveryRouteCard from './delivery-route-card'
 import HoldFulfillmentDialog from './hold-fulfillment-dialog'
 import ImportedOrderCard from './imported-order-card'
 import LineItemsCard from './line-items-card'
+import MarkDeliveredDialog from './mark-delivered-dialog'
 import { openOrderStatusPage } from './open-status-page'
 import OrderActions from './order-actions'
 import OrderArchivedNotice from './order-archived-notice'
@@ -45,23 +40,18 @@ import OrderNextStep from './order-next-step'
 import { nextStepKind } from './order-next-step-kind'
 import OrderPageFrame from './order-page-frame'
 import OrderReturnsCard from './order-returns-card'
+import OrderSideColumn, { INVOICES_ANCHOR, INVOICES_APP } from './order-side-column'
 import ParcelsCard from './parcels-card'
 import PaymentCard from './payment-card'
-import ProfitCard from './profit-card'
 import RefundDialog from './refund-dialog'
-import SalesChannelCard from './sales-channel-card'
 import SendMessageDialog from './send-message-dialog'
 import ShipmentPanel from './shipment-panel'
-import TagsCard from './tags-card'
 import TimelineCard from './timeline-card'
 import UnfulfilledCard from './unfulfilled-card'
 import { useDuplicateOrder } from './use-duplicate-order'
 import { useOrderAppActions } from './use-order-app-actions'
 import { useOrderMessages } from './use-order-messages'
-
-/** The GST invoices app's card, drawn high in the side column and linked from "More actions". */
-const INVOICES_APP = 'gst-invoices'
-const INVOICES_ANCHOR = 'order-invoices'
+import { useOrderUndo } from './use-order-undo'
 
 type OrderViewProps = {
   order: OrderDetail
@@ -77,40 +67,40 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
   // Hooks
   const copy = useCopy(orderDetailContent)
   const listCopy = useCopy(ordersContent)
-  const { order: captureCopy } = useCopy(paymentRulesContent)
   const shippingCopy = useCopy(shipmentPanelContent)
   const detailsCopy = useCopy(shipmentDetailsContent)
   const router = useRouter()
-  /* `?fulfil=1`: the orders list's "Mark as fulfilled" opens the pack form here. */
+  /* `?fulfil=1` / `?collect=1`: the orders list's "Mark as fulfilled" opens the pack form here,
+     and its "Mark as paid" asks how the money came in. */
   const asked = useSearchParams()
-  const askedToFulfil = asked.get('fulfil') === '1'
-  /* `?collect=1`: the orders list's "Mark as paid" asks how the money came in, here. */
-  const askedToCollect = asked.get('collect') === '1'
   const { hasPermission } = usePermissions()
   const apps = useOrderAppActions(appActions, () => router.refresh())
   const duplicateOrder = useDuplicateOrder()
   const automation = useRunAutomation('order', appCards.includes('automations'))
   const [busy, setBusy] = useState(false)
   const [refunding, setRefunding] = useState<OrderPayment | null>(null)
-  const [fulfilling, setFulfilling] = useState(askedToFulfil)
+  const [fulfilling, setFulfilling] = useState(() => asked.get('fulfil') === '1')
   /** The hand-sent message whose "Review email" dialog is open. */
   const [reviewing, setReviewing] = useState<
     'balance_request' | 'payment_reminder' | 'order_link' | null
   >(null)
-  const [collecting, setCollecting] = useState(askedToCollect)
+  const [collecting, setCollecting] = useState(() => asked.get('collect') === '1')
   const [cancelling, setCancelling] = useState(false)
   const [holding, setHolding] = useState(false)
+  const [delivering, setDelivering] = useState(false)
   const messages = useOrderMessages(order.id, setBusy, () => router.refresh())
+  const undo = useOrderUndo(order.id, setBusy, () => router.refresh())
   useEffect(() => {
-    if (!askedToFulfil) return
+    if (asked.get('fulfil') !== '1') return
+    // Packed already (its booking was cancelled): book it again or type its tracking.
+    if (unfulfilledLines(order).length === 0) {
+      router.replace(routes.orders.ship(order.id))
+      return
+    }
     document.getElementById('fulfil-items')?.scrollIntoView({ block: 'start' })
-  }, [askedToFulfil])
+  }, [asked, order, router])
 
   // Helpers
-  const appCard = (id: string) => {
-    const Card = ADMIN_APPS[id]?.OrderCard
-    return Card ? <Card key={id} orderId={order.id} /> : null
-  }
   const refresh = () => router.refresh()
   const openRefund = () => setRefunding(payment?.status === 'captured' ? payment : null)
   const closeAndRefresh = (close: () => void) => () => {
@@ -121,6 +111,12 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
   // Event handlers
   /* The next-step bar opens the Unfulfilled card in place; bring it into view. */
   const handleOpenFulfil = () => {
+    // Packed, its booking cancelled (back in To ship): nothing to pack, so book or add tracking.
+    if (unfulfilledLines(order).length === 0) {
+      toast.info(copy.alreadyPacked)
+      router.push(routes.orders.ship(order.id))
+      return
+    }
     setFulfilling(true)
     requestAnimationFrame(() =>
       document
@@ -140,6 +136,8 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
       handleOpenFulfil()
       return
     }
+    // "Mark as delivered" asks first, with Notify customer (owner, 11 Nov 2026).
+    if (to === 'delivered') return void setDelivering(true)
     setBusy(true)
     try {
       await api.orders.setStatus({ id: order.id, status: to })
@@ -151,68 +149,7 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
       setBusy(false)
     }
   }
-  const handleRestore = async () => {
-    setBusy(true)
-    try {
-      await api.orders.restore({ id: order.id })
-      toast.success(copy.actions.restored)
-      refresh()
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : listCopy.bulk.failed)
-    } finally {
-      setBusy(false)
-    }
-  }
-  const handleMarkNotShipped = async () => {
-    setBusy(true)
-    try {
-      await api.orders.markNotShipped({ id: order.id })
-      toast.success(copy.actions.markedNotShipped)
-      refresh()
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : listCopy.bulk.failed)
-    } finally {
-      setBusy(false)
-    }
-  }
-  const handleMarkNotDelivered = async () => {
-    setBusy(true)
-    try {
-      await api.orders.markNotDelivered({ id: order.id })
-      toast.success(copy.actions.markedNotDelivered)
-      refresh()
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : listCopy.bulk.failed)
-    } finally {
-      setBusy(false)
-    }
-  }
-  const handleArchive = async (archived: boolean) => {
-    setBusy(true)
-    try {
-      await api.orders.archiveMany({ ids: [order.id], archived })
-      toast.success(archived ? copy.archive.archived : copy.archive.unarchived)
-      refresh()
-    } catch {
-      toast.error(copy.archive.failed)
-    } finally {
-      setBusy(false)
-    }
-  }
   const handleViewStatusPage = () => openOrderStatusPage(order.id, copy.actions.statusPageFailed)
-  /** "Capture payment" (#150): take the money a manual-capture checkout only authorised. */
-  const handleCapture = async (p: OrderPayment) => {
-    setBusy(true)
-    try {
-      await api.orders.capture({ paymentId: p.id })
-      toast.success(captureCopy.captured)
-      refresh()
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : captureCopy.failed)
-    } finally {
-      setBusy(false)
-    }
-  }
   /** The merchant opened the reminder in their own WhatsApp: put it on the timeline. */
   const handleReminderChat = () => {
     void api.orders.notePaymentReminderChat({ orderId: order.id }).then(refresh, () => undefined)
@@ -247,7 +184,6 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
   // Render logic
   // #1012: "Ships from" leads only while a parcel waits on a transfer; archive works on imports too.
   const parcelsFirst = order.parcels.some((p) => p.needsTransfer && p.status === 'open')
-  const soldThrough = orderChannel(order.attribution)
   const payment = primaryPayment(order.payments)
   const pay = paymentStatus(payment, order.refunds)
   const remaining = refunding
@@ -296,8 +232,12 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
   const canShip = !readOnly && !order.hold && readyToShip(order) && canFulfilOrders
   const canHold = !order.hold && canHoldFulfillment(order) && canFulfilOrders
   // An imported order still open can be cancelled too (the server takes it over first).
-  const canCancel = canStaffCancel(order) && hasPermission(permissions.ORDERS_CANCEL)
+  // Packed under a live label: Cancel order cancels the label with it (owner, 11 Nov 2026).
+  const labelCancels = order.status === 'open' && liveShipment && !order.shipment?.cancelBlock
+  const canCancel =
+    (canStaffCancel(order) || labelCancels) && hasPermission(permissions.ORDERS_CANCEL)
   const canEdit = canEditOrder(order) && hasPermission(permissions.ORDERS_WRITE)
+  // Orders: edit. Archive and Mark as not delivered need it (the row menu checks the same).
   const canArchive = hasPermission(permissions.ORDERS_WRITE)
   const canCapture = live && hasPermission(permissions.ORDERS_REFUND)
 
@@ -314,6 +254,12 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
               paymentStatus={order.paymentStatus}
               fulfillmentStatus={order.fulfillmentStatus}
               canRefund={canRefund}
+              moveFacts={{
+                cod: order.paymentMethod === 'cod',
+                held: Boolean(order.hold),
+                canPack: canFulfilOrders,
+              }}
+              packedUnits={order.lines.reduce((n, l) => n + l.fulfilledQuantity, 0)}
               busy={busy || apps.busy}
               onMove={handleMove}
               onRefund={openRefund}
@@ -330,9 +276,9 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
               onSendReminder={sendReminder}
               onSendOrderLink={sendOrderLink}
               onViewStatusPage={handleViewStatusPage}
-              onMarkNotDelivered={handleMarkNotDelivered}
-              onMarkNotShipped={handleMarkNotShipped}
-              onRestore={hasPermission(permissions.ORDERS_CANCEL) ? handleRestore : undefined}
+              onMarkNotDelivered={canArchive ? undo.markNotDelivered : undefined}
+              onMarkNotShipped={canFulfilOrders ? undo.markNotShipped : undefined}
+              onRestore={hasPermission(permissions.ORDERS_CANCEL) ? undo.restore : undefined}
               onDuplicate={
                 duplicateOrder.allowed && !readOnly
                   ? () => duplicateOrder.duplicate(order.id)
@@ -344,7 +290,7 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
               invoicesHref={appCards.includes(INVOICES_APP) ? `#${INVOICES_ANCHOR}` : undefined}
               orderNumber={order.number}
               customerEmail={order.email}
-              onArchive={canArchive && !order.archivedAt ? () => handleArchive(true) : undefined}
+              onArchive={canArchive && !order.archivedAt ? () => undo.archive(true) : undefined}
               appItems={[
                 ...automation.items([order.id], { runsLink: true }),
                 ...apps.items('detail', order, [order.id]),
@@ -362,7 +308,7 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
           <OrderArchivedNotice
             archivedAt={order.archivedAt}
             busy={busy}
-            onUnarchive={canArchive ? () => handleArchive(false) : undefined}
+            onUnarchive={canArchive ? () => undo.archive(false) : undefined}
           />
         ) : order.hold ? (
           <OrderHoldBanner
@@ -410,7 +356,7 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
           <PaymentCard
             order={order}
             onRefund={canRefund ? setRefunding : undefined}
-            onCapture={canCapture ? handleCapture : undefined}
+            onCapture={canCapture ? (p: OrderPayment) => undo.capture(p.id) : undefined}
             onCollect={canCollect ? () => setCollecting(true) : undefined}
             onRequestBalance={requestBalance}
             onSendReminder={sendReminder}
@@ -446,51 +392,14 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
         </>
       }
       side={
-        <>
-          {soldThrough ? (
-            <SalesChannelCard
-              channel={soldThrough}
-              cameFrom={order.attribution?.referrer ?? order.attribution?.source ?? null}
-              campaign={order.attribution?.campaign ?? null}
-            />
-          ) : null}
-          <CustomerCard order={order} />
-          {/* Invoices sit right under the customer, where staff look for them (issue 920). */}
-          {appCards.includes(INVOICES_APP) ? (
-            <div id={INVOICES_ANCHOR} className="scroll-mt-6">
-              {appCard(INVOICES_APP)}
-            </div>
-          ) : null}
-          <CourierOrdersCard
-            orderId={order.id}
-            rows={order.courierOrders}
-            canRetry={!readOnly && hasPermission(permissions.ORDERS_WRITE)}
-            onChanged={refresh}
-          />
-          {order.shipping?.delivery ? (
-            <DeliveryRouteCard
-              delivery={order.shipping.delivery}
-              chargedPaise={order.shippingPaise}
-              bookingChargePaise={order.shipment?.courierChargePaise ?? null}
-              showMargin={hasPermission(permissions.ANALYTICS_READ)}
-            />
-          ) : null}
-          {readOnly ? null : (
-            <ProfitCard
-              orderId={order.id}
-              shipment={
-                order.shipment
-                  ? {
-                      id: order.shipment.id,
-                      courierChargePaise: order.shipment.courierChargePaise,
-                    }
-                  : null
-              }
-            />
-          )}
-          {appCards.filter((id) => id !== INVOICES_APP).map(appCard)}
-          <TagsCard orderId={order.id} tags={order.tags} onChanged={refresh} />
-        </>
+        <OrderSideColumn
+          order={order}
+          appCards={appCards}
+          readOnly={readOnly}
+          canRetry={!readOnly && hasPermission(permissions.ORDERS_WRITE)}
+          showMargin={hasPermission(permissions.ANALYTICS_READ)}
+          onChanged={refresh}
+        />
       }
     >
       <RunAutomationDialog
@@ -518,6 +427,11 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
         orderId={holding ? order.id : null}
         onClose={() => setHolding(false)}
         onDone={closeAndRefresh(() => setHolding(false))}
+      />
+      <MarkDeliveredDialog
+        order={delivering ? order : null}
+        onClose={() => setDelivering(false)}
+        onDone={refresh}
       />
       <CancelOrderDialog
         order={cancelling ? order : null}

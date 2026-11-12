@@ -1,6 +1,6 @@
 /** SOURCE OF TRUTH: checkout's courier questions — WHAT: asks every connected domestic courier
  * app for a PIN code at once (its services, prices for prepaid and COD, serviceability), each
- * within the checkout deadline, and remembers the answers by weight slab and value bucket /
+ * within the checkout deadline, and remembers the answers by billed-weight slab, box and value bucket /
  * WHY: checkout must never wait more than about a second on couriers, and one slow app must
  * never blank the Shipping step. A late answer still lands in the cache for the next shopper.
  * An answer older than 6 h is stale: it is asked again live, and used (up to 7 days old) when
@@ -16,6 +16,7 @@ import {
   type ShippingProvider,
   servesDestination,
 } from '@commerce/shipping'
+import type { PackageDimensionsCm } from '../parcel'
 import { breakerOpen, type HealthStore, recordCourierCall } from './health'
 import { halfKgSteps, type ProviderAnswer, type QuotedService } from './routes'
 
@@ -39,7 +40,10 @@ export type QuoteCache = HealthStore
 export type CheckoutQuoteQuery = {
   originPincode: string
   destinationPincode: string
+  /** The weight the courier bills: the heavier of actual and the box's volumetric (#1546). */
   weightGrams: number
+  /** The parcel's box, sent to couriers that take it; part of the cache key. */
+  dimensionsCm?: PackageDimensionsCm | null | undefined
   valuePaise: number
   /** Ask the COD price too (some option allows cash on delivery). */
   wantCod: boolean
@@ -61,10 +65,14 @@ export const deliveryQuoteKey = (
   providerId: string,
   q: Pick<
     CheckoutQuoteQuery,
-    'originPincode' | 'destinationPincode' | 'weightGrams' | 'valuePaise'
+    'originPincode' | 'destinationPincode' | 'weightGrams' | 'valuePaise' | 'dimensionsCm'
   >,
 ): string =>
-  `{shipping}:delivery-quote:v2:${storeId}:${providerId}:${q.originPincode}>${q.destinationPincode}:${halfKgSteps(q.weightGrams) * 500}g:${valueBucket(q.valuePaise)}`
+  `{shipping}:delivery-quote:v2:${storeId}:${providerId}:${q.originPincode}>${q.destinationPincode}:${halfKgSteps(q.weightGrams) * 500}g:${valueBucket(q.valuePaise)}${boxKey(q.dimensionsCm)}`
+
+/** The box in the cache key, so a bigger box is never served a small box's price. No box: as before. */
+const boxKey = (d: PackageDimensionsCm | null | undefined): string =>
+  d ? `:${d.lengthCm}x${d.widthCm}x${d.heightCm}cm` : ''
 
 const insuranceLine = (o: RateOption): number | null => {
   const lines = o.charges.filter((c) => c.kind === 'insurance')
@@ -82,6 +90,15 @@ async function askProvider(
     weightGrams: q.weightGrams || ASSUMED_WEIGHT_GRAMS,
     declaredValuePaise: q.valuePaise,
     paymentMode,
+    ...(q.dimensionsCm
+      ? {
+          dimensionsCm: {
+            length: q.dimensionsCm.lengthCm,
+            width: q.dimensionsCm.widthCm,
+            height: q.dimensionsCm.heightCm,
+          },
+        }
+      : {}),
   })
   const served = provider.checkServiceability({
     originPincode: q.originPincode,
@@ -152,7 +169,8 @@ const TIMED_OUT = Symbol('timed out')
  * Every domestic app's answer for this PIN code, in parallel. A fresh cached answer is used
  * as is; otherwise the app is asked live within `deadlineMs`, and when that misses (or the
  * app's breaker is open) a stale cached answer stands in, else the app is `failed` (never "not
- * serviceable"). The live call keeps running so its answer is cached when it lands.
+ * serviceable"). The live call keeps running so its answer is cached when it lands, and it is
+ * recorded for the breaker by how it ends, not by the deadline.
  * `cacheOnly` (placing an order without a quote snapshot) never calls a courier and takes any
  * cached answer, stale or not.
  */
@@ -208,16 +226,31 @@ export async function gatherProviderAnswers(
           : Math.max(shortDeadline, CHECKOUT_COLD_DEADLINE_MS)
       const started = now()
       const work = askProvider(provider, query)
-      // Late or not, a real answer is remembered for the next shopper (the background refresh).
+      const record = (ok: boolean, error: string | null) => {
+        if (cache)
+          void recordCourierCall(cache, opts.storeId, provider.id, {
+            at: started,
+            ok,
+            ms: now() - started,
+            error,
+          })
+      }
+      // The breaker and health line judge the call itself, not checkout's deadline: a late answer
+      // is a success (RapidShyp answers in ~2 s), only a real error or the adapter's own timeout
+      // is a failure. Late or not, a real answer is remembered for the next shopper (#1524).
       work
-        .then((answer) =>
-          cache?.set(key, { at: now(), answer } satisfies CachedEntry, DELIVERY_QUOTE_TTL_SECONDS),
+        .then(
+          (answer) => {
+            record(true, null)
+            return cache?.set(
+              key,
+              { at: now(), answer } satisfies CachedEntry,
+              DELIVERY_QUOTE_TTL_SECONDS,
+            )
+          },
+          (err) => record(false, describeCourierFailure(err)),
         )
         .catch(() => undefined)
-      const record = (ok: boolean, ms: number | null, error: string | null) => {
-        if (cache)
-          void recordCourierCall(cache, opts.storeId, provider.id, { at: started, ok, ms, error })
-      }
       let timer: ReturnType<typeof setTimeout> | undefined
       const late = new Promise<typeof TIMED_OUT>((resolve) => {
         timer = setTimeout(() => resolve(TIMED_OUT), deadline)
@@ -226,16 +259,13 @@ export async function gatherProviderAnswers(
         const answer = await Promise.race([work, late])
         if (answer === TIMED_OUT) {
           const why = `No answer within ${deadline} ms`
-          record(false, null, why)
           return fromCache(true, why) ?? failed(why)
         }
         const ms = now() - started
-        record(true, ms, null)
         return { ...base, ...answer, status: 'ok', source: 'live', ms, error: null }
       } catch (err) {
         const ms = now() - started
         const why = describeCourierFailure(err)
-        record(false, ms, why)
         return fromCache(true, why) ?? failed(why, ms)
       } finally {
         clearTimeout(timer)

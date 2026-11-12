@@ -22,6 +22,7 @@ import { useCustomizePuck } from '@/lib/customize-puck'
 import { locateBlock } from '@/lib/customize-slots'
 import { useImportedTheme, useLiquidBlocks } from '@/lib/customize-theme-context'
 import InspectorCard from './inspector-card'
+import PoliciesSourceNote from './policies-source-note'
 
 type LiquidBlockInspectorProps = {
   section: TemplateSection
@@ -115,6 +116,7 @@ export default function LiquidBlockInspector({
           aria-label={row.hidden ? tree.showBlock(row.title) : tree.hideBlock(row.title)}
           title={row.hidden ? tree.showBlock(row.title) : tree.hideBlock(row.title)}
         >
+          <PoliciesSourceNote names={[row.type, row.typeName, row.title, sectionLabel]} />
           {row.hidden ? (
             <EyeOff aria-hidden className="size-4" />
           ) : (

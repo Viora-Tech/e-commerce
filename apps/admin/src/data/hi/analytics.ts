@@ -327,7 +327,7 @@ export default [
         authorized: 'अधिकृत',
         partially_paid: 'आंशिक पेमेंट',
         paid: 'पेमेंट हो गया',
-        partially_refunded: 'आंशिक रिफ़ंड',
+        partially_refunded: 'कुछ रिफ़ंड हुआ',
         refunded: 'रिफ़ंड हो गया',
         refund_needed: 'रिफ़ंड बाकी',
         cod: 'COD',

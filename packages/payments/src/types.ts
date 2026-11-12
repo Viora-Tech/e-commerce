@@ -306,6 +306,16 @@ export interface PaymentProvider {
     providerPaymentId: string
   }): Promise<PaymentCharges | null>
 
+  /**
+   * Optional read-only lookup of a refund's state, for gateways whose refund updates do not
+   * arrive by webhook (Decentro). The worker's refund sync asks about refunds still `pending`.
+   * Must not create anything.
+   */
+  fetchRefundStatus?(input: {
+    providerRefundId: string
+    providerRef: string
+  }): Promise<'pending' | 'processed' | 'failed'>
+
   /** Verify the signature and parse the body into a normalised event. Never throws on bad input. */
   parseWebhook(input: {
     rawBody: string

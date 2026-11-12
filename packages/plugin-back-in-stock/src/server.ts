@@ -1,5 +1,6 @@
 /** Services for the API routers, the worker and the admin app. Server only. */
 export * from './eligibility'
+export * from './messages'
 export * from './notify'
 export * from './plugin'
 export * from './queue'

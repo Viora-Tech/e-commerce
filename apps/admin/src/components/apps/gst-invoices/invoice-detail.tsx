@@ -1,6 +1,6 @@
 'use client'
 
-import { Download, RefreshCw, Save } from '@commerce/ui/icons'
+import { Download, Printer, RefreshCw, Save } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Input } from '@commerce/ui/shadcn/input'
 import { useEffect, useState } from 'react'
@@ -78,6 +78,9 @@ export default function InvoiceDetail({ params }: AppPageProps) {
   // Event handlers
   const handleDownload = () =>
     run(async () => saveFile(await api.gstInvoices.download({ id: params.id ?? '' })))
+  // Opens the PDF in a new tab, where the browser's viewer prints it (as the list's bulk Print does).
+  const handlePrint = () =>
+    run(async () => saveFile(await api.gstInvoices.download({ id: params.id ?? '' }), 'open'))
   const handleCancel = () =>
     run(async () => {
       await api.gstInvoices.cancel({ id: params.id ?? '', reason })
@@ -131,10 +134,16 @@ export default function InvoiceDetail({ params }: AppPageProps) {
           ) : undefined
         }
         actions={
-          <Button variant="outline" disabled={busy} onClick={handleDownload}>
-            <Download />
-            {copy.download}
-          </Button>
+          <>
+            <Button variant="outline" disabled={busy} onClick={handlePrint}>
+              <Printer />
+              {copy.print}
+            </Button>
+            <Button variant="outline" disabled={busy} onClick={handleDownload}>
+              <Download />
+              {copy.download}
+            </Button>
+          </>
         }
       />
       <SettingsCard title={s.buyer.name}>

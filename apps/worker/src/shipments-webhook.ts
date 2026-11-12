@@ -8,11 +8,12 @@ import {
   resolveShippingProviders,
   retryAfterSeconds,
 } from '@commerce/core'
+import { courierForWebhookCode } from '@commerce/core/courier-webhook-path'
 import { registriesForStore } from '@commerce/core/registries'
 import { type Db, store, withStore } from '@commerce/db'
 import { CourierError } from '@commerce/shipping'
 import { eq } from 'drizzle-orm'
-import { Hono } from 'hono'
+import { type Context, Hono } from 'hono'
 import { isStoreId, peerAddress, rejectWebhook } from './webhook-reply'
 
 /**
@@ -36,6 +37,7 @@ const WEBHOOK_IP_RULE = { limit: 120, windowMs: 60_000 }
 
 /**
  * POST /webhooks/shipments/:provider/:storeId
+ * POST /webhooks/shipments/c/:code/:storeId (neutral alias, `COURIER_WEBHOOK_CODES`)
  * Registered in the courier's own dashboard (Delhivery: Merchant Portal →
  * API → Webhooks). The store id is in the URL the same way the payment
  * webhook does it; `provider.parseWebhook` is what actually authenticates
@@ -44,8 +46,8 @@ const WEBHOOK_IP_RULE = { limit: 120, windowMs: 60_000 }
  */
 export function shipmentWebhooks(db: Db, settingsSecret: string, rateLimitStore: RateLimitStore) {
   const app = new Hono()
-  app.post('/webhooks/shipments/:provider/:storeId', async (c) => {
-    const { provider: providerId, storeId } = c.req.param()
+
+  const handle = async (c: Context, providerId: string | null, storeId: string) => {
     const ip = clientIp(c.req.raw.headers, { peer: peerAddress(c) })
     const limit = await checkRateLimit(
       rateLimitStore,
@@ -56,6 +58,15 @@ export function shipmentWebhooks(db: Db, settingsSecret: string, rateLimitStore:
       return c.json({ ok: false, reason: 'rate limited' }, 429, {
         'retry-after': String(retryAfterSeconds(limit)),
       })
+    }
+    if (!providerId) {
+      // Same generic answer as any other bad call: the alias code was never issued.
+      return rejectWebhook(
+        c,
+        'shipment-webhook',
+        { providerId: '', storeId },
+        'unknown courier code',
+      )
     }
     const where = { providerId, storeId }
     if (!isStoreId(storeId)) {
@@ -93,6 +104,17 @@ export function shipmentWebhooks(db: Db, settingsSecret: string, rateLimitStore:
       webhook: { provider: providerId, applied: outcome.applied.length },
     })
     return c.json(outcome)
+  }
+
+  app.post('/webhooks/shipments/:provider/:storeId', (c) => {
+    const { provider, storeId } = c.req.param()
+    return handle(c, provider, storeId)
+  })
+  // The neutral alias (`courierWebhookPath`): no courier name in the URL, for a courier whose
+  // webhook form refuses its own name (Shiprocket). Same handler, same authentication.
+  app.post('/webhooks/shipments/c/:code/:storeId', (c) => {
+    const { code, storeId } = c.req.param()
+    return handle(c, courierForWebhookCode(code), storeId)
   })
   return app
 }

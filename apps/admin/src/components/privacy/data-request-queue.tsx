@@ -21,6 +21,7 @@ import {
   URGENCY_LABEL,
 } from '@/data/customer-privacy'
 import { api } from '@/lib/api-client'
+import { routes } from '@/lib/routes'
 
 type Tab = 'open' | 'closed' | 'all'
 
@@ -61,7 +62,7 @@ export default function DataRequestQueue() {
       <PageHeader
         title={copy.title}
         subtitle={copy.subtitle}
-        back={{ label: copy.back, href: '/settings/privacy' }}
+        back={{ label: copy.back, href: routes.settings.privacy() }}
         actions={
           <Button onClick={() => setLogging(true)}>
             <Plus aria-hidden="true" />
@@ -99,7 +100,7 @@ export default function DataRequestQueue() {
                 return (
                   <li key={r.id}>
                     <Link
-                      href={`/settings/privacy/requests/${r.id}`}
+                      href={routes.settings.privacyRequest(r.id)}
                       className="flex flex-col gap-2 px-4 py-3 hover:bg-muted/60 focus-visible:bg-muted/60 focus-visible:outline-none sm:flex-row sm:items-center sm:justify-between"
                     >
                       <div className="flex min-w-0 flex-col gap-0.5">

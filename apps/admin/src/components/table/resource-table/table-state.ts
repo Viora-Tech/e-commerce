@@ -72,7 +72,7 @@ export function listScopeKey(scope: ListScope): string {
     scope.view ?? null,
     (scope.filterGroups ?? []).map((g) => [
       g.key,
-      g.type === 'range' ? [g.from, g.to ?? ''] : g.value,
+      g.type === 'range' ? [g.from, g.to ?? ''] : g.type === 'picker' ? g.signature : g.value,
     ]),
     (scope.applied ?? []).map((a) => [a.key, a.label]),
     scope.query,

@@ -7,6 +7,7 @@ import { orderDetailContent } from '@/data/order-detail'
 import { orderEditContent } from '@/data/order-edit'
 import type { StatusValue } from '@/data/status'
 import { useCopy, useFormat } from '@/hooks/use-copy'
+import { shownAttemptStatus } from '@/lib/order-next-move'
 import OrderChip from './order-chip'
 import { type OrderDetail, packedQuantity, unfulfilledLines } from './order-detail-types'
 import OrderLinesTable from './order-lines-table'
@@ -52,6 +53,8 @@ export default function LineItemsCard({
   const waiting = unfulfilledShown
     ? []
     : unfulfilledLines(order).map(({ line, remaining }) => ({ line, quantity: remaining }))
+  // A cancelled order: no "Payment pending" under Voided; money still held reads Refund due.
+  const shownPill = shownAttemptStatus(order.status, payment)
 
   return (
     <>
@@ -74,7 +77,7 @@ export default function LineItemsCard({
           costs (subtotal, discount, shipping, the GST split), a rule, then what was settled. */}
       <DataCard
         title={copy.payment.heading}
-        icon={<OrderChip kind="payment" value={payment} />}
+        icon={shownPill ? <OrderChip kind="payment" value={shownPill} /> : undefined}
         action={
           editHref ? (
             <Button

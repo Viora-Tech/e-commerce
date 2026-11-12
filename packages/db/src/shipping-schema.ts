@@ -59,6 +59,12 @@ export const shipment = pgTable(
     heightCm: integer('height_cm'),
     /** Whether this parcel is insured, from the per-shipment toggle (defaults from the store's threshold). */
     insured: boolean('insured').notNull().default(false),
+    /**
+     * What the insurance costs, worked out at booking (Delhivery Protect for the parcel's
+     * products, or the route's rate): 0 when not insured, null when insured with no known rate
+     * or booked before 0242. The shipping margin subtracts it.
+     */
+    insurancePaise: integer('insurance_paise'),
     declaredValuePaise: integer('declared_value_paise'),
     /** `none` until the courier reports an NDR; the courier app's queue works from this. */
     ndrStatus: text('ndr_status', {

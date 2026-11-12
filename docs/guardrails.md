@@ -309,6 +309,15 @@ page's waited). Name it on the procedure: `can(permission, (input) => [extra])` 
 `packages/api/src/procedures/also-needs.ts`). `*_READ` checks pass; a grant held in a variable is
 listed with why it only shapes a read. Ratchet: new fails, stale fails.
 
+### z. `store-apps-writes` (`scripts/sweeps/store-apps-writes.test.ts`)
+
+`store.apps` is one JSON record many services share (installed apps, every app's settings, the
+tax switches). A writer reads it, changes its part and saves the whole record, so a writer that
+reads without the row lock loses whatever another writer saved meanwhile (installed apps vanished
+on Waimers, #1523). A file that writes `apps` on the `store` table must call `lockStoreApps`
+(`packages/core/src/apps/locked.ts`, SELECT … FOR UPDATE) before it reads what it writes back.
+Ratchet with an empty allow-list: a new unlocked writer fails, stale entries fail.
+
 ## `server-only`
 
 The `server-only` npm package throws unconditionally when the bundler resolving it does

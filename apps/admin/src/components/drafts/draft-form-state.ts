@@ -67,6 +67,11 @@ export type DraftFormState = {
   /** The due date for fixed terms, YYYY-MM-DD. */
   paymentDueDate: string
   note: string
+  /**
+   * Store credit from the customer's balance put towards the draft, in paise; 0 for none. Taken
+   * from the balance only when the draft converts. Picking another customer clears it.
+   */
+  storeCreditPaise: number
 }
 
 export const EMPTY_ADDRESS: DraftFormState['address'] = {
@@ -103,6 +108,7 @@ export const emptyDraft = (): DraftFormState => ({
   paymentTerms: '',
   paymentDueDate: '',
   note: '',
+  storeCreditPaise: 0,
 })
 
 type AddressRow = {
@@ -209,6 +215,7 @@ export function draftToForm(d: Draft): DraftFormState {
     paymentTerms: d.paymentTerms ?? '',
     paymentDueDate: d.paymentDueAt ? new Date(d.paymentDueAt).toISOString().slice(0, 10) : '',
     note: d.note,
+    storeCreditPaise: d.storeCreditPaise,
   }
 }
 
@@ -308,6 +315,7 @@ export function formToDraft(f: DraftFormState) {
     paymentTerms: (f.paymentTerms || null) as PaymentTerms | null,
     paymentDueDate: f.paymentTerms === 'fixed' && f.paymentDueDate ? f.paymentDueDate : null,
     note: f.note || null,
+    storeCreditPaise: f.storeCreditPaise,
   }
 }
 
@@ -434,4 +442,42 @@ export const draftForCustomer = (found: Found): DraftFormState => {
     phone: contactPhoneFrom(found.phone, found, addresses.address),
     ...addresses,
   }
+}
+
+/**
+ * A change to the form. Store credit belongs to the customer it was applied for, so picking
+ * another customer (or none) clears it.
+ */
+export function patchDraft(f: DraftFormState, next: Partial<DraftFormState>): DraftFormState {
+  const merged = { ...f, ...next }
+  const otherCustomer = next.customerId !== undefined && next.customerId !== f.customerId
+  return otherCustomer && next.storeCreditPaise === undefined
+    ? { ...merged, storeCreditPaise: 0 }
+    : merged
+}
+
+/** The most store credit the draft can take: the balance, but never more than the total. */
+export const draftStoreCreditMax = (balancePaise: number, totalPaise: number): number =>
+  Math.max(0, Math.min(balancePaise, totalPaise))
+
+/** What is left to pay once store credit is used: the method or the invoice collects this. */
+export const draftToPay = (totalPaise: number, storeCreditPaise: number): number =>
+  Math.max(0, totalPaise - storeCreditPaise)
+
+export type DraftStoreCreditProblem = 'no_customer' | 'over_total' | 'over_balance'
+
+/**
+ * Why the applied store credit cannot stand (the server refuses the same on save and convert);
+ * null when it is fine or none is applied. A null balance (not loaded yet) is not checked.
+ */
+export function draftStoreCreditProblem(
+  f: DraftFormState,
+  totalPaise: number,
+  balancePaise: number | null,
+): DraftStoreCreditProblem | null {
+  if (f.storeCreditPaise <= 0) return null
+  if (!f.customerId) return 'no_customer'
+  if (f.storeCreditPaise > totalPaise) return 'over_total'
+  if (balancePaise !== null && f.storeCreditPaise > balancePaise) return 'over_balance'
+  return null
 }

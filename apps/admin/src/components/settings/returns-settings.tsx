@@ -110,7 +110,7 @@ export default function ReturnsSettings() {
     : []
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-4">
       <SaveBar
         open={dirty}
         message={settingsContent.general.unsaved}
@@ -120,17 +120,27 @@ export default function ReturnsSettings() {
         onDiscard={handleDiscard}
         saving={busy}
       />
-      <PageHeader
-        title={copy.title}
-        subtitle={copy.subtitle}
-        save={{ dirty, saving: busy, onSave: handleSave, label: copy.save }}
-      />
       {!form ? (
-        <Skeleton className="h-64 w-full rounded-2xl" />
+        <>
+          <PageHeader
+            title={copy.title}
+            subtitle={copy.subtitle}
+            save={{ dirty: false, onSave: handleSave, label: copy.save }}
+          />
+          <Skeleton className="h-64 w-full rounded-2xl" />
+        </>
       ) : (
-        <SettingsDrill rows={rows} backLabel={r.back}>
+        <SettingsDrill
+          rows={rows}
+          backLabel={r.back}
+          header={{
+            title: copy.title,
+            subtitle: copy.subtitle,
+            save: { dirty, saving: busy, onSave: handleSave, label: copy.save },
+          }}
+        >
           <SettingsDrillPanel id="requests">
-            <SettingsCard title={copy.title}>
+            <SettingsCard>
               <SettingsToggleRow
                 id="returns-enabled"
                 label={copy.enabled}

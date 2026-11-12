@@ -8,6 +8,7 @@
  * WHERE: the `footer` of ProviderOverviewPage for couriers that push tracking (Delhivery, Shiprocket).
  */
 
+import { courierWebhookPath } from '@commerce/core/courier-webhook-path'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { useEffect, useState } from 'react'
 import DataCard from '@/components/layout/data-card'
@@ -41,7 +42,8 @@ export default function CourierWebhookCard({
   }, [])
 
   // Render logic
-  const url = storeId ? `${WORKER_URL}/webhooks/shipments/${providerId}/${storeId}` : null
+  // Shiprocket gets the neutral alias (its form refuses a URL naming it); others the named path.
+  const url = storeId ? `${WORKER_URL}${courierWebhookPath(providerId, storeId)}` : null
 
   return (
     <DataCard title={title}>

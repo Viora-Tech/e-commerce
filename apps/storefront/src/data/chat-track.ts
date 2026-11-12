@@ -84,6 +84,7 @@ export const chatPaymentLabels: Record<ShopperPaymentState, string> = {
   paid: 'Paid',
   pending: 'Payment pending',
   cod: 'Cash on delivery',
+  partly_refunded: 'Partly refunded',
   refunded: 'Refunded',
   failed: 'Payment failed',
 }

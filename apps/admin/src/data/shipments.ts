@@ -156,6 +156,13 @@ export const shipmentActionsContent = {
   date: 'Pickup date',
   timeFrom: 'From (24h, e.g. 14:00)',
   timeTo: 'To (optional)',
+  /** A pickup already booked that these parcels can join (one request per place and day). */
+  joinPickup: (courier: string, when: string, n: number) =>
+    `Add to ${courier} pickup · ${when} · ${n} ${n === 1 ? 'parcel' : 'parcels'} in it`,
+  newPickup: 'New pickup',
+  addToPickup: 'Add to pickup',
+  joinedDone: (n: number) =>
+    `Added ${n} ${n === 1 ? 'parcel' : 'parcels'} to the pickup. Its manifest is in Pickups.`,
   pickupDone: (n: number) => `Pickup scheduled for ${n} ${n === 1 ? 'parcel' : 'parcels'}`,
   createManifest: 'Create manifest',
   manifestTitle: (n: number) => `Create a manifest for ${n} ${n === 1 ? 'parcel' : 'parcels'}?`,

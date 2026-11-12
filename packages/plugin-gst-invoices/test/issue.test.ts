@@ -139,17 +139,21 @@ async function issueOn(storeId: string, orderId: string, at: Date, now = at) {
 }
 
 async function seedRefund(storeId: string, orderId: string, amountPaise: number) {
-  const [p] = await owner
-    .insert(payment)
-    .values({
-      storeId,
-      orderId,
-      provider: 'razorpay',
-      providerRef: 'x',
-      status: 'captured',
-      amountPaise: 205_000,
-    })
-    .returning()
+  // An order has one captured payment; a second refund on the order reuses it.
+  const [paid] = await owner.select().from(payment).where(eq(payment.orderId, orderId))
+  const [p] = paid
+    ? [paid]
+    : await owner
+        .insert(payment)
+        .values({
+          storeId,
+          orderId,
+          provider: 'razorpay',
+          providerRef: 'x',
+          status: 'captured',
+          amountPaise: 205_000,
+        })
+        .returning()
   const [r] = await owner
     .insert(refund)
     .values({
@@ -284,7 +288,7 @@ describe('invoice queue', () => {
     expect(april.row.number).toBe('INV/26-27/0001')
   })
 
-  it('batch issue numbers in invoice-date order, keeping the reviewer order within a day', async () => {
+  it('batch issue numbers in invoice-date order, then order number within a day', async () => {
     const { storeId, variantId } = await seedStore()
     const ids: string[] = []
     for (let n = 1; n <= 4; n++) {
@@ -313,6 +317,31 @@ describe('invoice queue', () => {
       [e, 'INV/25-26/0002'],
       [a, 'INV/25-26/0003'],
       [c, 'INV/25-26/0004'],
+    ])
+  })
+
+  it("numbers one day's invoices in order-number order, whatever order they were packed in", async () => {
+    const { storeId, variantId } = await seedStore()
+    const byNumber = new Map<number, string>()
+    for (const n of [7, 5, 6]) {
+      const orderId = await seedOrder(storeId, variantId, n)
+      const q = await inStore(storeId, (tx) => enqueueOrder(tx, storeId, orderId, 'manual'))
+      byNumber.set(n, q?.row.id as string)
+    }
+    const id = (n: number) => byNumber.get(n) as string
+    // Packed #7 first, then #5, then #6, all on 5 June; the reviewer list sends them in that order.
+    const items = [
+      { id: id(7), invoiceDate: d('2025-06-05T04:00:00Z') },
+      { id: id(5), invoiceDate: d('2025-06-05T07:00:00Z') },
+      { id: id(6), invoiceDate: d('2025-06-05T09:00:00Z') },
+    ]
+    const plan = await inStore(storeId, (tx) =>
+      issueDrafts(tx, storeId, items, { commit: true, now: d('2025-06-06T06:00:00Z') }),
+    )
+    expect(plan.map((p) => [p.id, p.number])).toEqual([
+      [id(5), 'INV/25-26/0001'],
+      [id(6), 'INV/25-26/0002'],
+      [id(7), 'INV/25-26/0003'],
     ])
   })
 
@@ -528,6 +557,25 @@ describe('cancellation, credit notes and GSTR-1', () => {
     const doc = DocumentSnapshotSchema.parse(note?.row.snapshot)
     expect(doc.original?.number).toBe('INV/25-26/0001')
     expect(doc.totals.totalPaise).toBe(50_000)
+  })
+
+  it('never credits one invoice past its total across several refunds', async () => {
+    const { storeId, variantId } = await seedStore()
+    const orderId = await seedOrder(storeId, variantId, 1)
+    const inv = await issueOn(storeId, orderId, d('2025-06-01T10:00:00Z'))
+    const at = d('2025-06-05T10:00:00Z')
+    const first = await seedRefund(storeId, orderId, 150_000)
+    const a = await inStore(storeId, (tx) => issueCreditNote(tx, storeId, first, { at }))
+    expect(DocumentSnapshotSchema.parse(a?.row.snapshot).totals.totalPaise).toBe(150_000)
+    // The second refund is more than the invoice has left to credit: only the rest is credited.
+    const second = await seedRefund(storeId, orderId, 150_000)
+    const b = await inStore(storeId, (tx) => issueCreditNote(tx, storeId, second, { at }))
+    expect(DocumentSnapshotSchema.parse(b?.row.snapshot).totals.totalPaise).toBe(
+      inv.row.totalPaise - 150_000,
+    )
+    // Nothing left: a third refund gets no credit note at all.
+    const third = await seedRefund(storeId, orderId, 10_000)
+    expect(await inStore(storeId, (tx) => issueCreditNote(tx, storeId, third, { at }))).toBeNull()
   })
 
   it('stops credit notes after 30 November following the year of supply', async () => {

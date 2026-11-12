@@ -13,6 +13,7 @@ import { Suspense, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import type { OrderActionGroup } from '@/apps/order-actions'
 import ProoflyListPage from '@/components/layout/proofly-list-page'
+import BulkFulfilDialog from '@/components/orders/bulk-fulfil-dialog'
 import DeleteTestOrdersDialog from '@/components/orders/delete-test-orders-dialog'
 import OrderRowMenu from '@/components/orders/order-row-menu'
 import { orderRowDone } from '@/components/orders/order-stage'
@@ -20,7 +21,12 @@ import OrdersBulkActions from '@/components/orders/orders-bulk-actions'
 import OrdersBulkDialogs, { type OrdersBulkRequest } from '@/components/orders/orders-bulk-dialogs'
 import OrdersHeaderActions from '@/components/orders/orders-header-actions'
 import OrdersTiles, { type OrderTilesData } from '@/components/orders/orders-tiles'
+import ProductFilterPicker, {
+  type ProductFilterValue,
+} from '@/components/orders/product-filter-picker'
 import { useOrderAppActions } from '@/components/orders/use-order-app-actions'
+import { useProductFilterNames } from '@/components/orders/use-product-filter-names'
+import type { PickRow } from '@/components/products/select-products-row'
 import InlineState from '@/components/states/inline-state'
 import ResourceTable, { type TableSort } from '@/components/table/resource-table'
 import ViewSelect from '@/components/table/view-select'
@@ -49,6 +55,7 @@ import {
   orderFilterGroups,
   orderFilterInput,
 } from '@/lib/order-list-filters'
+import { undeliverableInBulk } from '@/lib/order-next-move'
 import { usePrimaryAction } from '@/lib/primary-action'
 import { routes } from '@/lib/routes'
 import { parseRowsPerPage } from '@/lib/rows-per-page'
@@ -135,8 +142,11 @@ function OrdersContent({ initial }: { initial: OrdersInitial }) {
   const [testOrders, setTestOrders] = useState(initial.result.testOrders)
   const [askDeleteTests, setAskDeleteTests] = useState(false)
   const [bulkRequest, setBulkRequest] = useState<OrdersBulkRequest | null>(null)
+  const [bulkFulfil, setBulkFulfil] = useState<{ ids: string[]; clear: () => void } | null>(null)
 
   const hydrated = useRef(false)
+  // The Product filter chip names its picks, also ones that came in with the URL.
+  const productNames = useProductFilterNames(q)
   const apps = useOrderAppActions(initial.appActions, () => {
     reload().catch(() => setFailed(true))
   })
@@ -208,16 +218,25 @@ function OrdersContent({ initial }: { initial: OrdersInitial }) {
 
   // Event handlers
   const setFilters = (patch: Partial<OrderFilters>) => setQ({ ...patch, page: 1 })
+  const handleProductFilter = (next: ProductFilterValue, row?: PickRow) => {
+    if (row) productNames.remember(row)
+    setFilters(next)
+  }
   const handleTestsDeleted = () => {
     // The tiles and tab counts come from the server render; the rows are fetched again here.
     router.refresh()
     reload().catch(() => setFailed(true))
   }
   const handleBulkSetStatus = async (ids: string[], mark: OrderMark, clear: () => void) => {
-    /* Cancelled and imported orders on screen cannot take a mark: skipped without a call. */
+    // Mark as fulfilled asks for one courier and a tracking number per order (owner, 11 Nov).
+    if (mark === 'fulfilled') return void setBulkFulfil({ ids, clear })
+    /* Cancelled and imported orders on screen cannot take a mark: skipped without a call.
+       Mark as delivered also skips what never went out (the API refuses it too). */
+    const delivering = mark === 'delivered'
     const loaded = new Map(items.map((o) => [o.id, o]))
     const due = ids.filter((id) => {
       const o = loaded.get(id)
+      if (o && delivering) return !o.importedFrom && !undeliverableInBulk(o)
       return !o || mark === 'cancelled' || (o.status !== 'cancelled' && !o.importedFrom)
     })
     let skipped = ids.length - due.length
@@ -227,7 +246,11 @@ function OrdersContent({ initial }: { initial: OrdersInitial }) {
     /* "Select all" can hand over thousands of ids: ten requests at a time, never all at once. */
     const { failed } = await runBatched(due, async (id) => {
       try {
-        await api.orders.setStatus({ id, status: mark })
+        await api.orders.setStatus({
+          id,
+          status: mark,
+          ...(delivering ? { onlyShipped: true } : {}),
+        })
         updated += 1
       } catch (err) {
         if (isApprovalQueued(err)) {
@@ -242,6 +265,7 @@ function OrdersContent({ initial }: { initial: OrdersInitial }) {
     if (queued > 0) toast.info(approvals.sent)
     if (failed > 0 && updated === 0) toast.error(copy.bulk.failed)
     else if (failed > 0) toast.warning(copy.bulk.partlyFailed(updated, failed))
+    else if (delivering && queued === 0) toast.info(bulkCopy.deliveredDone(updated, skipped))
     else if (updated === 0) {
       if (queued === 0) toast.info(copy.bulk.noneUpdated(skipped))
     } else if (skipped > 0)
@@ -282,7 +306,15 @@ function OrdersContent({ initial }: { initial: OrdersInitial }) {
   const columns = orderColumns(copy, fmt)
   const { page, query, status } = q
   const filtered = hasOrderFilters(q)
-  const groups = orderFilterGroups(q, copy.filters, setFilters, facets)
+  const productFilter: ProductFilterValue = {
+    productIds: q.productIds,
+    variantIds: q.variantIds,
+    productNot: q.productNot,
+  }
+  const groups = orderFilterGroups(q, copy.filters, setFilters, facets, {
+    names: productNames.names,
+    control: <ProductFilterPicker value={productFilter} onChange={handleProductFilter} />,
+  })
   const searching = query.length > 0 || filtered
   const tabEmpty = status === 'archived' ? copy.emptyArchived : copy.emptyView
   const tabCounts: Partial<Record<OrderListFilter, number>> = {
@@ -420,6 +452,16 @@ function OrdersContent({ initial }: { initial: OrdersInitial }) {
         onClose={() => setBulkRequest(null)}
         onDone={() => {
           setBulkRequest(null)
+          reload().catch(() => setFailed(true))
+        }}
+      />
+      <BulkFulfilDialog
+        ids={bulkFulfil?.ids ?? null}
+        items={items}
+        onClose={() => setBulkFulfil(null)}
+        onDone={() => {
+          bulkFulfil?.clear()
+          setBulkFulfil(null)
           reload().catch(() => setFailed(true))
         }}
       />

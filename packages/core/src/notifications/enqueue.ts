@@ -28,6 +28,8 @@ export type NotificationJob = {
   signupId?: string | undefined
   /** For contact_message: the `contact_message` row (Forms app). */
   contactMessageId?: string | undefined
+  /** For back_in_stock_confirm: the pending `back_in_stock_signup` (Back in stock app). */
+  backInStockSignupId?: string | undefined
   /** For review_reply: the `review` the store answered (Reviews app). */
   reviewId?: string | undefined
   /** For question_asked / question_answered: the `review_question` (Reviews app). */

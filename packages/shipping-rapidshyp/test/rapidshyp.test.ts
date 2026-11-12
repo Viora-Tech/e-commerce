@@ -82,6 +82,62 @@ describe('RapidshypProvider serviceability and rates', () => {
     expect(calls).toHaveLength(2)
   })
 
+  it('asks serviceability with and without COD at once, not one after the other (#1524)', async () => {
+    let open = 0
+    let peak = 0
+    const f = fakeFetch({
+      '/rapidshyp/apis/v1/serviceabilty_check': async () => {
+        open += 1
+        peak = Math.max(peak, open)
+        await new Promise((r) => setTimeout(r, 10))
+        open -= 1
+        return json({
+          status: true,
+          serviceable_courier_list: [{ courier_code: 'A', total_freight: 60 }],
+        })
+      },
+    })
+    const p = new RapidshypProvider({ ...config, fetchImpl: f.impl })
+    await p.checkServiceability({ originPincode: '131028', destinationPincode: '560001' })
+    expect(peak).toBe(2)
+  })
+
+  it('checkout’s three asks share two calls: prepaid rates, COD rates and serviceability (#1524)', async () => {
+    const f = fakeFetch({
+      '/rapidshyp/apis/v1/serviceabilty_check': async () => {
+        await new Promise((r) => setTimeout(r, 10))
+        return json({
+          status: true,
+          serviceable_courier_list: [{ courier_code: 'A', total_freight: 60 }],
+        })
+      },
+    })
+    const p = new RapidshypProvider({ ...config, fetchImpl: f.impl })
+    const rate = (paymentMode: 'prepaid' | 'cod') => ({
+      originPincode: '131028',
+      destinationPincode: '560001',
+      weightGrams: 500,
+      declaredValuePaise: 199_900,
+      paymentMode,
+    })
+    await Promise.all([
+      p.quoteOptions(rate('prepaid')),
+      p.quoteOptions(rate('cod')),
+      p.checkServiceability({
+        originPincode: '131028',
+        destinationPincode: '560001',
+        weightGrams: 500,
+        declaredValue: 1999,
+      }),
+    ])
+    const bodies = f.calls.map((c) => c.init?.body)
+    expect(bodies).toHaveLength(2) // was 6
+    expect(new Set(bodies).size).toBe(2)
+    // A later ask is a fresh call: only calls in flight are shared.
+    await p.quoteOptions(rate('prepaid'))
+    expect(f.calls).toHaveLength(4)
+  })
+
   it('is unserviceable, not an error, when no couriers are returned', async () => {
     const f = fakeFetch({
       '/rapidshyp/apis/v1/serviceabilty_check': () =>
@@ -366,6 +422,37 @@ describe('RapidshypProvider track', () => {
     expect(t.events).toHaveLength(2)
     expect(t.events[0]?.status).toBe('picked_up')
     expect(t.events[1]?.status).toBe('delivered')
+  })
+
+  it('reads scan times as India time, in either date order, and never fails on an odd one', async () => {
+    const f = fakeFetch({
+      '/rapidshyp/apis/v1/track_order': () =>
+        json({
+          success: true,
+          records: [
+            {
+              shipment_details: [
+                {
+                  awb: 'RS999',
+                  shipment_status: 'IN_TRANSIT',
+                  current_tracking_status_code: 'INT',
+                  track_scans: [
+                    { status_code: 'PUC', date: '18-09-2026 10:00:00' },
+                    { status_code: 'INT', date: '2026-09-19 08:00:00' },
+                    { status_code: 'INT', date: 'sometime soon' },
+                  ],
+                },
+              ],
+            },
+          ],
+        }),
+    })
+    const p = new RapidshypProvider({ ...config, fetchImpl: f.impl })
+    const t = await p.track('RS999')
+    const times = t.events.map((e) => e.at)
+    expect(times).toContain('2026-09-18T04:30:00.000Z')
+    expect(times).toContain('2026-09-19T02:30:00.000Z')
+    expect(t.events).toHaveLength(3)
   })
 
   it('maps an undelivered scan so the shared NDR detector picks it up', async () => {

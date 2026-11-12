@@ -1,4 +1,4 @@
-/** SOURCE OF TRUTH: parcel weight, box presets — computes what a shipment weighs for booking */
+/** SOURCE OF TRUTH: parcel weight, box presets — computes what a shipment weighs for booking and for checkout's courier prices */
 import { ASSUMED_WEIGHT_GRAMS } from '@commerce/shipping'
 
 export type WeighableLine = { quantity: number; variantWeightGrams: number | null | undefined }
@@ -109,4 +109,41 @@ export function resolveParcelPackage(
   // Mixed boxes: the biggest one, the rest pack inside it (#2461). Lines with no package of
   // their own ride along; none known at all, the booking uses the store's default box.
   return biggest(packed.flatMap((l) => dimsOf(l) ?? []))
+}
+
+export type CartParcelLine = WeighableLine & LinePackage
+
+export type CartParcel = {
+  /** The products plus the box's packing, as the admin weighs a parcel. */
+  actualGrams: number
+  /** What the courier bills: the heavier of actual and the box's volumetric weight. */
+  billedGrams: number
+  /** The box: the products' own (the biggest when they differ), else the store's main box. */
+  dimensionsCm: PackageDimensionsCm | null
+}
+
+/**
+ * The parcel a cart becomes, for checkout's courier prices: the same box, packing and billed
+ * weight the admin books it with (`resolveParcelPackage`, `parcelBoxPreset`,
+ * `resolveParcelWeightGrams`, `effectiveWeightGrams`), so a big light item is priced on its
+ * volumetric weight, as the courier bills it (#1546, owner 11 Nov 2026).
+ */
+export function cartParcel<
+  B extends {
+    id: string
+    isDefault: boolean
+    lengthCm: number
+    widthCm: number
+    heightCm: number
+    weightGrams: number
+  },
+>(lines: readonly CartParcelLine[], boxPresets: readonly B[]): CartParcel {
+  const packed = lines.filter((l) => l.quantity > 0)
+  const box = parcelBoxPreset(packed, boxPresets)
+  // No product has a box: the booking flow starts in the store's main box, so checkout does too.
+  const dimensionsCm =
+    resolveParcelPackage(packed, [...boxPresets]) ??
+    (box ? { lengthCm: box.lengthCm, widthCm: box.widthCm, heightCm: box.heightCm } : null)
+  const actualGrams = resolveParcelWeightGrams(packed, box?.weightGrams ?? 0)
+  return { actualGrams, billedGrams: effectiveWeightGrams(actualGrams, dimensionsCm), dimensionsCm }
 }

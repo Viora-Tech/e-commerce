@@ -16,14 +16,19 @@ import {
   type DraftFormState,
   draftIncompleteBilling,
   draftMissingAddress,
+  draftStoreCreditProblem,
   draftToForm,
+  draftToPay,
+  draftTotals,
   emptyDraft,
   formToDraft,
   missingAddressParts,
+  patchDraft,
   savedCodeCheck,
 } from '@/components/drafts/draft-form-state'
 import DraftHoldCard from '@/components/drafts/draft-hold-card'
 import DraftProductsCard from '@/components/drafts/draft-products-card'
+import DraftStoreCreditCard from '@/components/drafts/draft-store-credit-card'
 import DraftTotalsCard from '@/components/drafts/draft-totals-card'
 import ActionMenu from '@/components/layout/action-menu'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
@@ -35,6 +40,7 @@ import SaveBar from '@/components/layout/save-bar'
 import StatusChip from '@/components/layout/status-chip'
 import WhatsappChatDialog from '@/components/layout/whatsapp-chat-dialog'
 import SendMessageDialog, { type CustomMessage } from '@/components/orders/send-message-dialog'
+import { draftStoreCreditContent } from '@/data/draft-store-credit'
 import { draftEditorContent, draftsContent } from '@/data/drafts'
 import { whatsappChatContent } from '@/data/whatsapp-chat'
 import { useCopy, useFormat } from '@/hooks/use-copy'
@@ -67,6 +73,7 @@ export default function DraftForm({ draft, invoiceSent = false, initial }: Draft
   const list = useCopy(draftsContent)
   const fmt = useFormat()
   const chatCopy = useCopy(whatsappChatContent)
+  const creditCopy = useCopy(draftStoreCreditContent)
   const [id, setId] = useState<string | null>(draft?.id ?? null)
   // What follows the # in the title: "D12" (audit #26).
   const [number, setNumber] = useState<string | null>(draft ? orderRef(draft) : null)
@@ -79,6 +86,8 @@ export default function DraftForm({ draft, invoiceSent = false, initial }: Draft
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [reviewing, setReviewing] = useState(false)
   const [chatting, setChatting] = useState(false)
+  // The picked customer's store credit balance; null until loaded (or not readable).
+  const [creditBalance, setCreditBalance] = useState<number | null>(null)
 
   // A draft saved on "Create draft order" stays on this page (the address is swapped in place),
   // so the tab title follows it: "Draft #D12" (audit #32).
@@ -98,7 +107,7 @@ export default function DraftForm({ draft, invoiceSent = false, initial }: Draft
       : copy.actions.needsAddress
   }
 
-  const patch = (next: Partial<DraftFormState>) => setForm((f) => ({ ...f, ...next }))
+  const patch = (next: Partial<DraftFormState>) => setForm((f) => patchDraft(f, next))
 
   const persist = async () => {
     const r = await api.orders.saveDraft({
@@ -183,9 +192,19 @@ export default function DraftForm({ draft, invoiceSent = false, initial }: Draft
 
   // Render logic
   const dirty = JSON.stringify(form) !== JSON.stringify(saved)
+  // The bill as typed (a code still being re-checked counts as last saved); the server checks
+  // the store credit against its own total on save and on convert.
+  const { totalPaise } = draftTotals(
+    form,
+    form.discountCode === saved.discountCode ? savedCodeCheck(draft) : null,
+  )
+  const creditProblem = draftStoreCreditProblem(form, totalPaise, creditBalance)
+  const paidByCredit =
+    form.storeCreditPaise > 0 && draftToPay(totalPaise, form.storeCreditPaise) === 0
   // Why Convert is off, shown on the button and in the Actions card; core refuses the same.
-  const convertHint =
-    !id || dirty
+  const convertHint = creditProblem
+    ? creditCopy.problems[creditProblem]
+    : !id || dirty
       ? copy.actions.saveFirst
       : draftMissingAddress(saved)
         ? missingAddressHint(saved)
@@ -228,7 +247,8 @@ export default function DraftForm({ draft, invoiceSent = false, initial }: Draft
           <>
             <Button
               variant="outline"
-              disabled={!id || dirty || busy}
+              disabled={!id || dirty || busy || paidByCredit}
+              title={paidByCredit ? creditCopy.nothingToInvoice : undefined}
               onClick={() => setReviewing(true)}
             >
               <Send aria-hidden="true" />
@@ -303,6 +323,14 @@ export default function DraftForm({ draft, invoiceSent = false, initial }: Draft
         side={
           <>
             <DraftCustomerCard form={form} onChange={patch} />
+            <DraftStoreCreditCard
+              customerId={form.customerId}
+              totalPaise={totalPaise}
+              storeCreditPaise={form.storeCreditPaise}
+              problem={creditProblem}
+              onChange={(storeCreditPaise) => patch({ storeCreditPaise })}
+              onBalance={setCreditBalance}
+            />
             <DraftAddressCard address={form.address} onChange={(address) => patch({ address })} />
             <DraftBillingCard form={form} onChange={patch} />
             <DraftActionsCard

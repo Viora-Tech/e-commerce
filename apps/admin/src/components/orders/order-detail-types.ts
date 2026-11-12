@@ -37,7 +37,11 @@ export function paymentStatus(
   if (payment.status === 'captured' && payment.refundNeeded && back < payment.amountPaise) {
     return 'refund_needed'
   }
-  if (payment.status === 'captured' && back > 0) return 'partially_refunded'
+  // From the money, not the row alone: "Refunded" only once all of it went back. Rows a part
+  // refund's webhook once set to `refunded` read as partly refunded too.
+  const taken = payment.status === 'captured' || payment.status === 'refunded'
+  if (taken && back >= payment.amountPaise) return 'refunded'
+  if (taken && back > 0) return 'partially_refunded'
   return payment.status
 }
 

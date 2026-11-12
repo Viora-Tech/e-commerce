@@ -6,12 +6,12 @@ import {
   AVIF_EFFORT,
   DecompressionBombError,
   decodeThumbhash,
+  encodeVariantWidth,
   MAX_MASTER_LONG_EDGE,
   processImage,
   sharpThreadsFor,
   VARIANT_WIDTHS,
   variantKey,
-  encodeVariantWidth,
   variantWidthsFor,
 } from './pipeline'
 
@@ -198,6 +198,25 @@ describe('processImage', () => {
       // Single-frame GIF: falls through to the normal still-image path (PNG master).
       expect(result.animated).toBe(false)
     }
+  })
+
+  it('records one frame of an animated GIF as its size, not every frame stacked (#1545)', async () => {
+    const frame = (r: number) =>
+      sharp({ create: { width: 32, height: 24, channels: 3, background: { r, g: 0, b: 0 } } })
+        .png()
+        .toBuffer()
+    const frames = await Promise.all([frame(255), frame(0), frame(128)])
+    const gif = await sharp(frames, { join: { animated: true } })
+      .gif()
+      .toBuffer()
+    const result = await processImage({
+      bytes: gif,
+      contentType: 'image/gif',
+      masterKey: 'stores/s/media/three-frames.gif',
+    })
+    expect(result.animated).toBe(true)
+    expect(result.width).toBe(32)
+    expect(result.height).toBe(24)
   })
 })
 

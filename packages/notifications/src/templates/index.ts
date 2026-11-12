@@ -365,8 +365,30 @@ function metaFor(template: TemplateId, d: TemplateData): string[] {
   return meta
 }
 
+/** "Store credit used ₹X · balance ₹Y" or "₹X added to your store credit · balance ₹Y". */
+function storeCreditLine(d: TemplateData): string | undefined {
+  const change = d.storeCredit?.change
+  if (!change) return undefined
+  const sc = shared.storeCredit
+  return change.kind === 'used'
+    ? sc.used(change.amountLabel, change.balanceLabel)
+    : sc.added(change.amountLabel, change.balanceLabel)
+}
+
+/** The rows under a draft invoice's total when store credit pays part of it. */
+function storeCreditRows(d: TemplateData): { label: string; amount: string }[] {
+  const sc = d.storeCredit
+  if (!sc?.appliedLabel || !sc.toPayLabel) return []
+  return [
+    { label: shared.storeCredit.applied, amount: sc.appliedLabel },
+    { label: shared.storeCredit.toPay, amount: sc.toPayLabel },
+  ]
+}
+
 export async function renderEmail(template: TemplateId, d: TemplateData): Promise<EmailBody> {
   const c = templateContent[template]
+  const creditLine = storeCreditLine(d)
+  const creditRows = storeCreditRows(d)
   const lines = d.lines.map(shared.lineText)
   // Messages about no order (a sign-in code) carry no items or total.
   const hasItems = d.lines.length > 0
@@ -378,6 +400,7 @@ export async function renderEmail(template: TemplateId, d: TemplateData): Promis
     c.heading(d),
     '',
     c.intro(d),
+    ...(creditLine ? ['', creditLine] : []),
     ...(note ? ['', note] : []),
     '',
     ...(gc
@@ -392,6 +415,7 @@ export async function renderEmail(template: TemplateId, d: TemplateData): Promis
             ...lines.map((l) => `- ${l}`),
             ...(d.shipping ? [`${d.shipping.label}: ${d.shipping.amount}`] : []),
             `${shared.totalLabel}: ${d.totalLabel}`,
+            ...creditRows.map((r) => `${r.label}: ${r.amount}`),
           ]
         : []),
     ...parcelsText(d),
@@ -423,6 +447,7 @@ export async function renderEmail(template: TemplateId, d: TemplateData): Promis
       steps: stepsFor(template),
       heading: c.heading(d),
       intro: c.intro(d),
+      notice: creditLine,
       note,
       outro: c.outro(d),
       lines: gc ? [] : d.lines,
@@ -432,6 +457,7 @@ export async function renderEmail(template: TemplateId, d: TemplateData): Promis
       totalLabel: gc ? undefined : d.totalLabel,
       shipping: gc ? undefined : d.shipping,
       taxBreakdown: gc ? undefined : d.taxBreakdown,
+      afterTotal: gc ? undefined : creditRows,
       parcels: gc ? undefined : parcelsBlock(d),
       giftCard: gc
         ? {

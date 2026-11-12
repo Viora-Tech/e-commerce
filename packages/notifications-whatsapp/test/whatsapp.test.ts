@@ -57,6 +57,51 @@ describe('whatsapp specifics', () => {
     ])
   })
 
+  it('adds India’s 91 to the 10-digit mobile checkout stores, and keeps numbers from abroad', async () => {
+    const sentTo = async (phone: string) => {
+      const calls: Call[] = []
+      await new WhatsappChannel(config, fakeFetch(calls, okReply)).send({
+        to: { phone },
+        template: 'delivered',
+        data: sampleTemplateData,
+      })
+      return calls[0] ? JSON.parse(calls[0].init.body as string).to : null
+    }
+    // Checkout keeps an Indian mobile as 10 digits (normaliseMobile); Meta needs the country code.
+    expect(await sentTo('9876543210')).toBe('919876543210')
+    expect(await sentTo('09876543210')).toBe('919876543210')
+    expect(await sentTo('919876543210')).toBe('919876543210')
+    // A number from abroad is stored with its + and country code: left as it is.
+    expect(await sentTo('+6591234567')).toBe('6591234567')
+    expect(await sentTo('+1 415 555 0100')).toBe('14155550100')
+  })
+
+  it('never sends an empty placeholder, which Meta rejects', () => {
+    const p = buildPayload(
+      config,
+      {
+        to: { phone: '919876543210' },
+        template: 'order_placed',
+        data: { ...sampleTemplateData, customerName: '  ' },
+      },
+      '919876543210',
+    ) as { template: { components: { parameters: { text: string }[] }[] } }
+    expect(p.template.components[0]?.parameters[0]?.text).toBe('-')
+  })
+
+  it('gives up on a Graph call that never answers', async () => {
+    const hang = (_url: string, init: RequestInit) =>
+      new Promise<Response>((_resolve, reject) => {
+        init.signal?.addEventListener('abort', () => reject(init.signal?.reason))
+      })
+    const r = await new WhatsappChannel(config, hang, { timeoutMs: 20 }).send({
+      to: { phone: '919876543210' },
+      template: 'order_placed',
+      data: sampleTemplateData,
+    })
+    expect(r.ok).toBe(false)
+  })
+
   it('sends plain text in test mode', () => {
     const p = buildPayload(
       { ...config, useTextMessages: true },

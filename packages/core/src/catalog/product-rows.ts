@@ -1,5 +1,6 @@
 /** SOURCE OF TRUTH: product and variant row mapping — WHAT: how a ProductWrite / VariantInput becomes the columns saved, plus the pre-order deposit check / WHY: create and update share one mapping, so a field is never written by one and forgotten by the other */
-import { validateDepositAgainstPrice, withPreorderAllowed } from '../preorder/settings'
+import type { VariantPreorderOverride } from '@commerce/db'
+import { nextVariantPreorderOverride, validateDepositAgainstPrice } from '../preorder/settings'
 import type { ProductWrite } from './schemas'
 import { type VariantInput, variantTitle } from './variants'
 
@@ -61,7 +62,12 @@ function dedupe(values: string[]): string[] {
   return out
 }
 
-export function variantRow(input: VariantInput) {
+/**
+ * `current` is the variant's stored pre-order override (none for a new variant): the save's
+ * "Allow pre-order" and pre-order limit are applied on top of it, so other keys survive.
+ */
+export function variantRow(input: VariantInput, current?: VariantPreorderOverride | null) {
+  const preorderOverride = nextVariantPreorderOverride(current, input)
   return {
     title: variantTitle(input.optionValues),
     sku: input.sku || null,
@@ -76,10 +82,9 @@ export function variantRow(input: VariantInput) {
     ...(input.hiddenOnStore === undefined ? {} : { hiddenOnStore: input.hiddenOnStore }),
     // New variants default to physical; writers that do not know the flag leave it alone.
     ...(input.requiresShipping === undefined ? {} : { requiresShipping: input.requiresShipping }),
-    // The variant's "Allow pre-order" switch is the only override key the admin edits.
-    ...(input.preorderAllowed === undefined
-      ? {}
-      : { preorderOverride: withPreorderAllowed(null, input.preorderAllowed) }),
+    // The variant's "Allow pre-order" switch and its own pre-order limit; writers that send
+    // neither (bulk tools) leave the override alone.
+    ...(preorderOverride === undefined ? {} : { preorderOverride }),
     // Writers that never show the unit (imports, bulk tools) leave the merchant's choice alone.
     ...(input.weightUnit === undefined ? {} : { weightUnit: input.weightUnit }),
     hsCode: input.hsCode ?? null,
@@ -89,6 +94,8 @@ export function variantRow(input: VariantInput) {
     packageLengthCm: input.packageLengthCm ?? null,
     packageWidthCm: input.packageWidthCm ?? null,
     packageHeightCm: input.packageHeightCm ?? null,
+    // Writers that only know one box per product (imports, AI tools) leave the choice alone.
+    ...(input.boxOwn === undefined ? {} : { boxOwn: input.boxOwn }),
     // The main image is the first of an ordered list when one is sent (catalog/variant-media.ts).
     mediaId: input.mediaIds !== undefined ? (input.mediaIds[0] ?? null) : (input.mediaId ?? null),
   }

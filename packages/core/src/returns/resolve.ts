@@ -141,7 +141,10 @@ async function payBack(
   amountPaise: number,
   how: {
     providerFor: (providerId: string) => Promise<PaymentProvider | null>
-    extra: Pick<RefundInput, 'manual' | 'method' | 'secret' | 'createdBy' | 'storeCreditReason'>
+    extra: Pick<
+      RefundInput,
+      'manual' | 'method' | 'secret' | 'createdBy' | 'storeCreditReason' | 'storeCreditExpiresOn'
+    >
   },
 ): Promise<string[]> {
   let left = amountPaise
@@ -223,7 +226,16 @@ export async function refundReturn(ctx: StoreContext, id: string, input: RefundR
 export async function storeCreditReturn(
   ctx: StoreContext,
   id: string,
-  input: { amountPaise: number; secret: string; createdBy?: string | undefined },
+  input: {
+    amountPaise: number
+    secret: string
+    createdBy?: string | undefined
+    /**
+     * The last day the credit can be spent (`YYYY-MM-DD`) or null for never (staff's choice).
+     * Left out: never, except store credit the order was paid with, which keeps its dates.
+     */
+    expiresOn?: string | null | undefined
+  },
 ) {
   const r = await lockReturn(ctx, id)
   assertResolvable(ctx, r)
@@ -251,6 +263,7 @@ export async function storeCreditReturn(
       secret: input.secret,
       createdBy: input.createdBy ?? null,
       storeCreditReason: `Store credit for return ${returnLabel(r.number)} (order #${o.number})`,
+      storeCreditExpiresOn: input.expiresOn,
     },
   })
   const row = await updateReturnRow(ctx, id, {

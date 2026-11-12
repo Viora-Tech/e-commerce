@@ -1,6 +1,7 @@
 /** SOURCE OF TRUTH: parcel weight — tests resolveParcelWeightGrams (products + packing) */
 import { describe, expect, it } from 'vitest'
 import {
+  cartParcel,
   effectiveWeightGrams,
   parcelBoxPreset,
   resolveParcelPackage,
@@ -215,5 +216,79 @@ describe('parcelBoxPreset', () => {
     expect(parcelBoxPreset([line('glass'), line(null)], boxes)).toBe(glass)
     expect(parcelBoxPreset([line(null)], boxes)).toBe(cable)
     expect(parcelBoxPreset([line('glass', 0), line(null)], boxes)).toBe(cable)
+  })
+})
+
+describe('cartParcel (checkout prices the billed weight, #1546)', () => {
+  const cable = {
+    id: 'cable',
+    isDefault: true,
+    lengthCm: 20,
+    widthCm: 20,
+    heightCm: 5,
+    weightGrams: 50,
+  }
+  const glass = {
+    id: 'glass',
+    isDefault: false,
+    lengthCm: 64,
+    widthCm: 64,
+    heightCm: 8,
+    weightGrams: 300,
+  }
+  const boxes = [cable, glass]
+  const line = (grams: number | null, boxPresetId: string | null, quantity = 1) => ({
+    quantity,
+    variantWeightGrams: grams,
+    boxPresetId,
+    packageLengthCm: null,
+    packageWidthCm: null,
+    packageHeightCm: null,
+  })
+
+  it('a big light item is priced on its volumetric weight', () => {
+    // 64 × 64 × 8 cm ÷ 5000 = 6.554 kg, against 1 kg + 300 g packing.
+    expect(cartParcel([line(1000, 'glass')], boxes)).toEqual({
+      actualGrams: 1300,
+      billedGrams: 6554,
+      dimensionsCm: { lengthCm: 64, widthCm: 64, heightCm: 8 },
+    })
+  })
+
+  it('a small heavy item is priced on its actual weight', () => {
+    // 20 × 20 × 5 cm is 400 g volumetric; 3 kg + 50 g packing is heavier.
+    expect(cartParcel([line(3000, 'cable')], boxes)).toEqual({
+      actualGrams: 3050,
+      billedGrams: 3050,
+      dimensionsCm: { lengthCm: 20, widthCm: 20, heightCm: 5 },
+    })
+  })
+
+  it('a mixed cart ships in the biggest box, with its packing', () => {
+    const parcel = cartParcel([line(1000, 'glass'), line(200, 'cable', 2)], boxes)
+    expect(parcel.dimensionsCm).toEqual({ lengthCm: 64, widthCm: 64, heightCm: 8 })
+    expect(parcel.actualGrams).toBe(1000 + 400 + 300)
+    expect(parcel.billedGrams).toBe(6554)
+  })
+
+  it("uses the variant's own custom size over the boxes", () => {
+    const own = { ...line(500, null), packageLengthCm: 50, packageWidthCm: 40, packageHeightCm: 30 }
+    expect(cartParcel([own], boxes)).toMatchObject({
+      dimensionsCm: { lengthCm: 50, widthCm: 40, heightCm: 30 },
+      billedGrams: 12000,
+    })
+  })
+
+  it("falls back to the store's main box, and to plain weight with no boxes", () => {
+    expect(cartParcel([line(100, null)], boxes)).toMatchObject({
+      actualGrams: 150,
+      billedGrams: 400,
+      dimensionsCm: { lengthCm: 20, widthCm: 20, heightCm: 5 },
+    })
+    expect(cartParcel([line(100, null)], [])).toEqual({
+      actualGrams: 100,
+      billedGrams: 100,
+      dimensionsCm: null,
+    })
   })
 })

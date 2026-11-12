@@ -21,6 +21,7 @@ import {
 } from '@/data/customer-privacy'
 import { api } from '@/lib/api-client'
 import { formatDate } from '@/lib/format-date'
+import { routes } from '@/lib/routes'
 
 type DataRequestDetailProps = { id: string }
 
@@ -73,7 +74,7 @@ export default function DataRequestDetail({ id }: DataRequestDetailProps) {
       <PageHeader
         title={copy.title(r.number)}
         subtitle={KIND_LABEL[r.kind]}
-        back={{ label: copy.back, href: '/settings/privacy/requests' }}
+        back={{ label: copy.back, href: routes.settings.privacyRequests() }}
         badges={<DataRequestStatusBadge status={r.status} />}
         lead={{ kind: 'icon', node: <ShieldCheck aria-hidden="true" /> }}
       />

@@ -1,5 +1,13 @@
 /** SOURCE OF TRUTH: cart line room — WHAT: how many of a variant a cart line may hold: free stock, pre-order caps and campaigns, the mixed-cart rule and the store's cart limit / WHY: addToCart, setLineQuantity and getCart share one rule; split out of cart.ts */
-import { cartLine, preorderCampaign, product, sellableStock, store, variant } from '@commerce/db'
+import {
+  cartLine,
+  homeSellingStock,
+  preorderCampaign,
+  product,
+  sellableStock,
+  store,
+  variant,
+} from '@commerce/db'
 import { and, eq, ne } from 'drizzle-orm'
 import { type CartLimit, lineRoom, productCartLimit } from '../checkout/cart-limit'
 import { parseCheckoutSettings } from '../checkout/settings'
@@ -22,6 +30,12 @@ type AvailabilityRow = {
   giftCard: boolean
   onHand: number | null
   reserved: number | null
+  /**
+   * The home selling row (`homeSellingStock`), where checkout holds a pre-order past stock and
+   * counts its limit (#1538). Null: no row there. Left out: the totals stand in (old behaviour).
+   */
+  homeOnHand?: number | null
+  homeReserved?: number | null
   preorderOverride: Parameters<typeof resolvePreorderSettings>[1]
   preorderEnabled: boolean
   preorderShipDate: Date | null
@@ -36,9 +50,13 @@ type AvailabilityRow = {
 
 /**
  * How many more of this line the shopper can add: real stock, plus pre-order
- * room beyond it (unlimited when the product's `preorderLimit` is null). A
+ * room beyond it, counted per variant: the variant's own limit, else the product's or the
+ * campaign's (`resolvePreorderSettings`; unlimited when that is null). A
  * hint for the quantity stepper; `placeOrder`'s `reserveStock` is the actual
- * server-side check.
+ * server-side check, and this counts what it counts (#1538): a line the store's stock covers
+ * ships from stock (every selling location); a line past it is held whole at the home
+ * location, where its free stock plus what is left of the limit (the units already sold past
+ * stock there) caps it.
  */
 export function lineAvailable(r: AvailabilityRow, campaign?: PreorderCampaignTerms | null): number {
   if (!r.trackInventory || r.giftCard) return 999
@@ -46,8 +64,11 @@ export function lineAvailable(r: AvailabilityRow, campaign?: PreorderCampaignTer
   const settings = resolvePreorderSettings(r, r.preorderOverride, campaign)
   if (!settings.enabled) return stock
   if (settings.limit == null) return 999
-  const committed = Math.max(0, (r.reserved ?? 0) - (r.onHand ?? 0))
-  return stock + Math.max(0, settings.limit - committed)
+  const homeOnHand = r.homeOnHand === undefined ? r.onHand : r.homeOnHand
+  const homeReserved = r.homeReserved === undefined ? r.reserved : r.homeReserved
+  const homeFree = Math.max(0, (homeOnHand ?? 0) - (homeReserved ?? 0))
+  const committed = Math.max(0, (homeReserved ?? 0) - (homeOnHand ?? 0))
+  return Math.max(stock, homeFree + Math.max(0, settings.limit - committed))
 }
 
 /**
@@ -66,6 +87,8 @@ export async function preorderCap(
       giftCard: product.isGiftCard,
       onHand: sellableStock.onHand,
       reserved: sellableStock.reserved,
+      homeOnHand: homeSellingStock.homeOnHand,
+      homeReserved: homeSellingStock.homeReserved,
       preorderOverride: variant.preorderOverride,
       preorderEnabled: product.preorderEnabled,
       preorderShipDate: product.preorderShipDate,
@@ -80,6 +103,7 @@ export async function preorderCap(
     .from(variant)
     .innerJoin(product, eq(product.id, variant.productId))
     .leftJoin(sellableStock, eq(sellableStock.variantId, variant.id))
+    .leftJoin(homeSellingStock, eq(homeSellingStock.variantId, variant.id))
     .where(eq(variant.id, variantId))
   if (!r?.trackInventory || r.giftCard) return null
   const settings = resolvePreorderSettings(r, r.preorderOverride, campaign)

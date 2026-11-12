@@ -1,4 +1,4 @@
-/** Shopify's "This is a physical product", on the product page and in a variant's Edit dialog. */
+/** Shopify's "This is a physical product", on the product page and on a variant's page. */
 export const productShippingContent = {
   physical: 'This is a physical product',
   physicalHelp:

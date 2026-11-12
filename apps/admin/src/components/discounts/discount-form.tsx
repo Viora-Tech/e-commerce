@@ -1,12 +1,12 @@
 'use client'
 
 import { permissions } from '@commerce/core/permissions'
-import { BadgePercent, CircleAlert, Copy, Pause, Play, Save, Trash2 } from '@commerce/ui/icons'
-import { Alert, AlertDescription, AlertTitle } from '@commerce/ui/shadcn/alert'
+import { BadgePercent, Copy, Pause, Play, Save, Trash2 } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import SaveErrorAlert from '@/components/approvals/save-error-alert'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
 import PageHeader from '@/components/layout/page-header'
 import ProoflyDetailPage from '@/components/layout/proofly-detail-page'
@@ -213,11 +213,10 @@ export default function DiscountForm({ discount, segmentId = null }: DiscountFor
             }
           />
           {serverError || Object.keys(errors).length > 0 ? (
-            <Alert variant="destructive">
-              <CircleAlert />
-              <AlertTitle>{copy.toasts.failed}</AlertTitle>
-              <AlertDescription>{serverError ?? copy.toasts.fixHighlighted}</AlertDescription>
-            </Alert>
+            <SaveErrorAlert
+              title={copy.toasts.failed}
+              message={serverError ?? copy.toasts.fixHighlighted}
+            />
           ) : null}
         </>
       }

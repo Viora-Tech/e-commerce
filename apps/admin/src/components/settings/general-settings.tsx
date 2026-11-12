@@ -170,7 +170,7 @@ export default function GeneralSettings() {
     : []
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-4">
       <SaveBar
         open={dirty}
         message={copy.unsaved}
@@ -180,163 +180,170 @@ export default function GeneralSettings() {
         onDiscard={handleDiscard}
         saving={busy}
       />
-      <PageHeader
-        title={copy.title}
-        subtitle={copy.intro}
-        save={{ dirty, saving: busy, onSave: handleSave, label: copy.save }}
-      />
       {!form ? (
-        <LoadingCards />
-      ) : (
         <>
-          {savedDetails ? <GeneralCompletion details={savedDetails} /> : null}
-
-          <SettingsDrill rows={rows} backLabel={copy.rows.back}>
-            <SettingsDrillPanel id="store-details">
-              <SettingsCard
-                id="store-details"
-                title={copy.details.heading}
-                description={copy.details.help}
-              >
-                <SettingsTextRow
-                  id="store-name"
-                  label={copy.details.name}
-                  description={copy.details.nameHelp}
-                  value={form.name}
-                  onChange={(name) => patch({ name })}
-                  error={errors.name}
-                />
-                <SettingsTextRow
-                  id="store-email"
-                  type="email"
-                  label={copy.details.email}
-                  description={copy.details.emailHelp}
-                  value={form.contactEmail}
-                  onChange={(contactEmail) => patch({ contactEmail })}
-                  error={errors.contactEmail}
-                  autoComplete="email"
-                />
-                <SettingsPhoneRow
-                  id="store-phone"
-                  label={copy.details.phone}
-                  description={copy.details.phoneHelp}
-                  value={form.contactPhone}
-                  onChange={(contactPhone) => patch({ contactPhone })}
-                  error={errors.contactPhone}
-                />
-              </SettingsCard>
-            </SettingsDrillPanel>
-
-            <SettingsDrillPanel id="address">
-              <SettingsCard title={copy.address.heading} description={copy.address.help}>
-                {addressMissing ? (
-                  <div className="mb-5 flex flex-col gap-3 rounded-lg border border-warning/40 bg-warning-soft p-4 sm:flex-row sm:items-center">
-                    <MapPinLineIcon
-                      aria-hidden="true"
-                      className="size-5 shrink-0 text-warning-foreground dark:text-warning"
-                    />
-                    <div className="flex flex-1 flex-col gap-0.5">
-                      <p className="text-body font-semibold text-foreground">
-                        {copy.address.prompt.title}
-                      </p>
-                      <p className="text-body text-muted-foreground">{copy.address.prompt.body}</p>
-                    </div>
-                    <Button variant="outline" onClick={handleAddAddress}>
-                      {copy.address.prompt.action}
-                    </Button>
-                  </div>
-                ) : null}
-                <SettingsTextRow
-                  id="addr-line1"
-                  label={copy.address.line1}
-                  value={form.address.line1}
-                  onChange={(line1) => patchAddress({ line1 })}
-                  autoComplete="address-line1"
-                />
-                <SettingsTextRow
-                  id="addr-line2"
-                  label={copy.address.line2}
-                  value={form.address.line2}
-                  onChange={(line2) => patchAddress({ line2 })}
-                  autoComplete="address-line2"
-                />
-                <SettingsTextRow
-                  id="addr-city"
-                  label={copy.address.city}
-                  value={form.address.city}
-                  onChange={(city) => patchAddress({ city })}
-                  autoComplete="address-level2"
-                />
-                <SettingsTextRow
-                  id="addr-state"
-                  label={copy.address.state}
-                  value={form.address.state}
-                  onChange={(state) => patchAddress({ state })}
-                  autoComplete="address-level1"
-                />
-                <SettingsTextRow
-                  id="addr-pincode"
-                  label={copy.address.pincode}
-                  value={form.address.pincode}
-                  onChange={(pincode) => patchAddress({ pincode })}
-                  error={errors['address.pincode']}
-                  autoComplete="postal-code"
-                  inputMode="numeric"
-                />
-              </SettingsCard>
-              <div
-                id="tax"
-                className="flex scroll-mt-6 flex-col gap-3 rounded-xl border border-border bg-card p-4 sm:flex-row sm:items-center"
-              >
-                <p className="flex-1 text-body text-foreground">{movedCopy.body}</p>
-                <Button variant="outline" render={<Link href={TAXES_HREF} />} nativeButton={false}>
-                  {movedCopy.action}
-                </Button>
-              </div>
-            </SettingsDrillPanel>
-
-            <SettingsDrillPanel id="formats">
-              <SettingsCard title={copy.locale.heading} description={copy.locale.help}>
-                <SettingsRow
-                  label={copy.locale.currency}
-                  description={copy.locale.currencyHelp}
-                  htmlFor="store-currency"
-                >
-                  <Input size="lg" id="store-currency" value={form.currency} readOnly disabled />
-                </SettingsRow>
-                <SettingsTextRow
-                  id="store-money-format"
-                  label={copy.locale.moneyFormat}
-                  description={moneyFormatHelp(form.moneyFormat)}
-                  value={form.moneyFormat}
-                  onChange={(moneyFormat) => patch({ moneyFormat })}
-                  error={errors.moneyFormat ? copy.locale.moneyFormatError : undefined}
-                />
-                <SettingsRow label={copy.locale.timezone} htmlFor="store-timezone">
-                  <Select
-                    items={timezoneItems}
-                    value={form.timezone}
-                    onValueChange={(timezone) => timezone && patch({ timezone })}
-                  >
-                    <SelectTrigger size="lg" id="store-timezone" className="w-full">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {copy.timezones.map((t) => (
-                        <SelectItem key={t.value} value={t.value}>
-                          {t.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </SettingsRow>
-              </SettingsCard>
-            </SettingsDrillPanel>
-            <SettingsDrillPanel id="data">
-              <StoreDataSection />
-            </SettingsDrillPanel>
-          </SettingsDrill>
+          <PageHeader
+            title={copy.title}
+            subtitle={copy.intro}
+            save={{ dirty: false, saving: busy, onSave: handleSave, label: copy.save }}
+          />
+          <LoadingCards />
         </>
+      ) : (
+        <SettingsDrill
+          rows={rows}
+          backLabel={copy.rows.back}
+          header={{
+            title: copy.title,
+            subtitle: copy.intro,
+            save: { dirty, saving: busy, onSave: handleSave, label: copy.save },
+            notice: savedDetails ? <GeneralCompletion details={savedDetails} /> : null,
+          }}
+        >
+          <SettingsDrillPanel id="store-details">
+            <SettingsCard
+              id="store-details"
+              title={copy.details.heading}
+              description={copy.details.help}
+            >
+              <SettingsTextRow
+                id="store-name"
+                label={copy.details.name}
+                description={copy.details.nameHelp}
+                value={form.name}
+                onChange={(name) => patch({ name })}
+                error={errors.name}
+              />
+              <SettingsTextRow
+                id="store-email"
+                type="email"
+                label={copy.details.email}
+                description={copy.details.emailHelp}
+                value={form.contactEmail}
+                onChange={(contactEmail) => patch({ contactEmail })}
+                error={errors.contactEmail}
+                autoComplete="email"
+              />
+              <SettingsPhoneRow
+                id="store-phone"
+                label={copy.details.phone}
+                description={copy.details.phoneHelp}
+                value={form.contactPhone}
+                onChange={(contactPhone) => patch({ contactPhone })}
+                error={errors.contactPhone}
+              />
+            </SettingsCard>
+          </SettingsDrillPanel>
+
+          <SettingsDrillPanel id="address">
+            <SettingsCard title={copy.address.heading} description={copy.address.help}>
+              {addressMissing ? (
+                <div className="mb-5 flex flex-col gap-3 rounded-lg border border-warning/40 bg-warning-soft p-4 sm:flex-row sm:items-center">
+                  <MapPinLineIcon
+                    aria-hidden="true"
+                    className="size-5 shrink-0 text-warning-foreground dark:text-warning"
+                  />
+                  <div className="flex flex-1 flex-col gap-0.5">
+                    <p className="text-body font-semibold text-foreground">
+                      {copy.address.prompt.title}
+                    </p>
+                    <p className="text-body text-muted-foreground">{copy.address.prompt.body}</p>
+                  </div>
+                  <Button variant="outline" onClick={handleAddAddress}>
+                    {copy.address.prompt.action}
+                  </Button>
+                </div>
+              ) : null}
+              <SettingsTextRow
+                id="addr-line1"
+                label={copy.address.line1}
+                value={form.address.line1}
+                onChange={(line1) => patchAddress({ line1 })}
+                autoComplete="address-line1"
+              />
+              <SettingsTextRow
+                id="addr-line2"
+                label={copy.address.line2}
+                value={form.address.line2}
+                onChange={(line2) => patchAddress({ line2 })}
+                autoComplete="address-line2"
+              />
+              <SettingsTextRow
+                id="addr-city"
+                label={copy.address.city}
+                value={form.address.city}
+                onChange={(city) => patchAddress({ city })}
+                autoComplete="address-level2"
+              />
+              <SettingsTextRow
+                id="addr-state"
+                label={copy.address.state}
+                value={form.address.state}
+                onChange={(state) => patchAddress({ state })}
+                autoComplete="address-level1"
+              />
+              <SettingsTextRow
+                id="addr-pincode"
+                label={copy.address.pincode}
+                value={form.address.pincode}
+                onChange={(pincode) => patchAddress({ pincode })}
+                error={errors['address.pincode']}
+                autoComplete="postal-code"
+                inputMode="numeric"
+              />
+            </SettingsCard>
+            <div
+              id="tax"
+              className="flex scroll-mt-6 flex-col gap-3 rounded-xl border border-border bg-card p-4 sm:flex-row sm:items-center"
+            >
+              <p className="flex-1 text-body text-foreground">{movedCopy.body}</p>
+              <Button variant="outline" render={<Link href={TAXES_HREF} />} nativeButton={false}>
+                {movedCopy.action}
+              </Button>
+            </div>
+          </SettingsDrillPanel>
+
+          <SettingsDrillPanel id="formats">
+            <SettingsCard title={copy.locale.heading} description={copy.locale.help}>
+              <SettingsRow
+                label={copy.locale.currency}
+                description={copy.locale.currencyHelp}
+                htmlFor="store-currency"
+              >
+                <Input size="lg" id="store-currency" value={form.currency} readOnly disabled />
+              </SettingsRow>
+              <SettingsTextRow
+                id="store-money-format"
+                label={copy.locale.moneyFormat}
+                description={moneyFormatHelp(form.moneyFormat)}
+                value={form.moneyFormat}
+                onChange={(moneyFormat) => patch({ moneyFormat })}
+                error={errors.moneyFormat ? copy.locale.moneyFormatError : undefined}
+              />
+              <SettingsRow label={copy.locale.timezone} htmlFor="store-timezone">
+                <Select
+                  items={timezoneItems}
+                  value={form.timezone}
+                  onValueChange={(timezone) => timezone && patch({ timezone })}
+                >
+                  <SelectTrigger size="lg" id="store-timezone" className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {copy.timezones.map((t) => (
+                      <SelectItem key={t.value} value={t.value}>
+                        {t.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </SettingsRow>
+            </SettingsCard>
+          </SettingsDrillPanel>
+          <SettingsDrillPanel id="data">
+            <StoreDataSection />
+          </SettingsDrillPanel>
+        </SettingsDrill>
       )}
     </div>
   )

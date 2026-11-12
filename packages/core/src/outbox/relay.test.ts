@@ -208,4 +208,30 @@ describe('relayStoreOutbox', () => {
     ])
     expect(new Set(notifications.calls.map((c) => c.jobId)).size).toBe(2)
   })
+
+  it('queues the back-in-stock confirm email with the signup (Back in stock app)', async () => {
+    const storeId = await seedStore('relay-back-in-stock')
+    const backInStockSignupId = crypto.randomUUID()
+    await withStore(app, storeId, (tx) =>
+      insertOutboxEvent(tx, storeId, 'back_in_stock.confirm_requested', { backInStockSignupId }),
+    )
+    const notifications = fakeQueue<{
+      storeId: string
+      orderId: string
+      template: string
+      backInStockSignupId?: string | undefined
+    }>()
+    const outcome = await relayStoreOutbox(
+      { db: app, plugins, notifications: notifications.queue },
+      storeId,
+    )
+    expect(outcome).toEqual({ claimed: 1, dispatched: 1, failed: 0 })
+    expect(notifications.calls.map((c) => c.data)).toEqual([
+      expect.objectContaining({
+        template: 'back_in_stock_confirm',
+        backInStockSignupId,
+        orderId: '',
+      }),
+    ])
+  })
 })

@@ -1555,6 +1555,41 @@
       "when": 1794670400000,
       "tag": "0237_draft_seen",
       "breakpoints": true
+    },
+    {
+      "idx": 222,
+      "version": "7",
+      "when": 1794756800000,
+      "tag": "0238_variant_box_own",
+      "breakpoints": true
+    },
+    {
+      "idx": 223,
+      "version": "7",
+      "when": 1794843200000,
+      "tag": "0239_store_credit_expiry",
+      "breakpoints": true
+    },
+    {
+      "idx": 224,
+      "version": "7",
+      "when": 1794929600000,
+      "tag": "0240_email_suppression",
+      "breakpoints": true
+    },
+    {
+      "idx": 225,
+      "version": "7",
+      "when": 1795016000000,
+      "tag": "0241_pending_gateway_refunds",
+      "breakpoints": true
+    },
+    {
+      "idx": 226,
+      "version": "7",
+      "when": 1795102400000,
+      "tag": "0242_shipment_insurance_cost",
+      "breakpoints": true
     }
   ]
 }

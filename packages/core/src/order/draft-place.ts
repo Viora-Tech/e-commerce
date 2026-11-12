@@ -3,6 +3,7 @@ import { address, type orderLine, store } from '@commerce/db'
 import { eq } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 import { StoreAddressSchema } from '../settings/general'
+import { saveParcelIds } from '../shipping/delivery-options/booking'
 import { chargedGstRate, parseStoreTax } from '../tax/settings'
 import { draftPreorders, routingPreorder } from './draft-preorder'
 import { createFulfillmentOrders } from './fulfillment-orders'
@@ -74,7 +75,7 @@ export async function routeAndBillDraft(
     shipToState: shipTo?.stateCode ?? null,
     storeState: storeAddress.success ? storeAddress.data.state : null,
   })
-  await createFulfillmentOrders(ctx, {
+  const made = await createFulfillmentOrders(ctx, {
     orderId: o.id,
     plans: parcels.map((p, i) => ({
       locationId: p.locationId,
@@ -89,5 +90,12 @@ export async function routeAndBillDraft(
     })),
     fallbackRegistrationId: o.gstRegistrationId,
   })
+  // A checkout draft of a split cart: its parcel routes learn their parcel ids (booking).
+  if (parcels.length > 1)
+    await saveParcelIds(
+      ctx.tx,
+      o.id,
+      parcels.map((p, i) => ({ id: made[i], locationId: p.locationId, status: p.status })),
+    )
   return { parcels, preorders, billed }
 }

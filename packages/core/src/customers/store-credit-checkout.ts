@@ -1,9 +1,11 @@
 /** SOURCE OF TRUTH: store credit at checkout — WHAT: spending a signed-in shopper's store credit on a new order (held until the gateway is paid, captured when it covers the order), capturing the hold when the payment arrives, and giving a hold back when the order is cancelled unpaid / WHY: a failed or abandoned online payment must never cost the shopper their credit, and two checkouts at once must never spend the same rupee */
-import { order, payment, storeCreditAccount } from '@commerce/db'
+import { order, payment } from '@commerce/db'
 import { and, eq } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 import { STORE_CREDIT_PROVIDER } from '../payments/split-tender'
 import { changeStoreCredit, StoreCreditError } from './store-credit'
+import { lockStoreCreditBalance } from './store-credit-expiry'
+import { spentStoreCreditReturn } from './store-credit-return'
 
 /*
  * How store credit pays for a checkout order:
@@ -58,17 +60,9 @@ export async function spendStoreCreditOnOrder(
     )
   }
   // The row lock: a second checkout for the same customer waits here until this one commits.
-  const [account] = await ctx.tx
-    .select({ balancePaise: storeCreditAccount.balancePaise })
-    .from(storeCreditAccount)
-    .where(
-      and(
-        eq(storeCreditAccount.storeId, ctx.storeId),
-        eq(storeCreditAccount.customerId, input.customerId),
-      ),
-    )
-    .for('update')
-  const amountPaise = Math.min(account?.balancePaise ?? 0, input.duePaise)
+  // Expired credit leaves the balance first, so it is never spent.
+  const balance = await lockStoreCreditBalance(ctx, input.customerId)
+  const amountPaise = Math.min(balance, input.duePaise)
   if (amountPaise <= 0) return null
   const covers = amountPaise >= input.duePaise
   if (!covers && input.cover === 'all') {
@@ -125,8 +119,14 @@ export async function captureHeldStoreCredit(ctx: StoreContext, orderId: string)
  * The order was cancelled before it was paid: every held store credit payment is cancelled and
  * its amount goes back onto the balance it came from, with a `release` line linked to the order.
  * Each hold is claimed by its status flip, so a repeated cancel gives nothing back twice.
+ * `expiresOn` is staff's choice in the cancel dialog (a day, or null for never); left out (the
+ * unpaid-order expiry, no one to ask) each part keeps the expiry of the credit it was spent from.
  */
-export async function releaseHeldStoreCredit(ctx: StoreContext, orderId: string): Promise<number> {
+export async function releaseHeldStoreCredit(
+  ctx: StoreContext,
+  orderId: string,
+  opts: { expiresOn?: string | null | undefined } = {},
+): Promise<number> {
   const released = await ctx.tx
     .update(payment)
     .set({ status: 'cancelled', error: 'Order cancelled before it was paid' })
@@ -147,13 +147,23 @@ export async function releaseHeldStoreCredit(ctx: StoreContext, orderId: string)
   for (const r of released) {
     const customerId = r.customerId ?? o?.customerId
     if (!customerId) continue
-    await changeStoreCredit(ctx, {
+    const pieces = await spentStoreCreditReturn(ctx, {
+      orderId,
       customerId,
       amountPaise: r.amountPaise,
-      kind: 'release',
-      reason: `Order #${o?.number ?? ''} was not paid: store credit returned`,
-      orderId,
+      expiresOn: opts.expiresOn,
     })
+    for (const piece of pieces) {
+      await changeStoreCredit(ctx, {
+        customerId,
+        amountPaise: piece.amountPaise,
+        kind: 'release',
+        reason: `Order #${o?.number ?? ''} was not paid: store credit returned`,
+        orderId,
+        expiresAt: piece.expiresAt,
+        restoresSpent: piece.restoresSpent,
+      })
+    }
     total += r.amountPaise
   }
   return total

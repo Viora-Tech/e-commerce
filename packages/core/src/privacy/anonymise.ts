@@ -12,6 +12,8 @@ import {
   customerSession,
   dataRequest,
   discountUsage,
+  emailFeedbackEvent,
+  emailSuppression,
   giftCard,
   marketingAutomationRun,
   marketingMessage,
@@ -300,6 +302,9 @@ export async function anonymiseCustomer(
   // Newsletter signups (pending or confirmed) for their email: the proof of opt-in goes too.
   if (cu.email) {
     await tx.delete(newsletterSignup).where(eq(newsletterSignup.email, cu.email.toLowerCase()))
+    // Bounce and complaint records for their address (core `email-suppression`).
+    await tx.delete(emailFeedbackEvent).where(eq(emailFeedbackEvent.email, cu.email.toLowerCase()))
+    await tx.delete(emailSuppression).where(eq(emailSuppression.email, cu.email.toLowerCase()))
     // Messages they sent from a theme's contact form (Forms app, same plain-SQL reason as above).
     await tx.execute(
       sql`delete from contact_message where store_id = ${ctx.storeId} and lower(email) = ${cu.email.toLowerCase()}`,

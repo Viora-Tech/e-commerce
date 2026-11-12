@@ -3,8 +3,8 @@ import {
   DeleteEmailIdentityCommand,
   GetEmailIdentityCommand,
   PutEmailIdentityMailFromAttributesCommand,
-  SESv2Client,
 } from '@aws-sdk/client-sesv2'
+import { makeSesClient } from './client'
 
 /**
  * Sender domains in the platform's one SES account: create a domain identity
@@ -155,12 +155,7 @@ export class SesIdentityProvider implements SenderIdentityProvider {
     client?: SesIdentityClientLike,
   ) {
     this.region = config.region
-    this.client =
-      client ??
-      new SESv2Client({
-        region: config.region,
-        credentials: { accessKeyId: config.accessKeyId, secretAccessKey: config.secretAccessKey },
-      })
+    this.client = client ?? makeSesClient(config)
   }
 
   async create(

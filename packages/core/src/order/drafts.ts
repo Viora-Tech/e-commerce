@@ -5,6 +5,7 @@ import { effectiveGstRatePercent, effectiveHsCode } from '../catalog/effective-t
 import type { StoreContext } from '../context'
 import { recordDiscountUse } from '../discounts/usage'
 import { CommerceError, PriceNotSet } from '../errors'
+import { STORE_CREDIT_PROVIDER } from '../payments/split-tender'
 import { announceExchangeOrder } from '../returns/notify'
 import { assertCustomerInStore } from '../store-scope'
 import { convertCheckoutDraft, isCheckoutDraft } from './checkout-draft'
@@ -15,6 +16,7 @@ import { routeAndBillDraft } from './draft-place'
 import { markPreorderLines } from './draft-preorder'
 import { draftPlaceholder, isDraftPlaceholder } from './draft-ref'
 import { releaseDraftHold, reserveDraft } from './draft-reserve'
+import { draftStoreCredit, setDraftStoreCredit, spendDraftStoreCredit } from './draft-store-credit'
 import { takeDraftNumber, takeOrderNumber } from './order-number'
 import { PaymentTermsSchema, paymentDueAt } from './payment-terms'
 import { recomputeOrderStatuses } from './recompute'
@@ -86,6 +88,12 @@ export const DraftInputSchema = z.object({
   /** The due date for 'fixed' terms (YYYY-MM-DD). */
   paymentDueDate: z.iso.date().nullish(),
   note: z.string().trim().max(2000).nullish(),
+  /**
+   * Store credit from the draft customer's balance put towards it (paise; at most the total and
+   * the balance; 0 removes it). It leaves the balance only when the draft converts. Left out, an
+   * edit keeps what the draft had (and checks it again).
+   */
+  storeCreditPaise: z.number().int().min(0).optional(),
 })
 
 export type DraftInput = z.infer<typeof DraftInputSchema>
@@ -100,38 +108,6 @@ function draftTerms(input: DraftInput) {
         ? new Date(`${input.paymentDueDate}T00:00:00Z`)
         : null,
   }
-}
-
-export type DraftListItem = {
-  id: string
-  /** The draft's own number (#D12); null only on a draft older than 0200 that it missed. */
-  draftNumber: number | null
-  /** The order number a pre-0200 draft reserved; below zero (a placeholder) otherwise. */
-  number: number
-  customerName: string | null
-  email: string | null
-  lineCount: number
-  totalPaise: number
-  createdAt: Date
-  invoiceSentAt: Date | null
-  /** `checkout`: a shopper's unpaid checkout waiting for payment (0233); `staff` otherwise. */
-  source: 'checkout' | 'staff'
-  /** How the shopper chose to pay (`razorpay`, `manual`, ...); null on a staff draft without one. */
-  paymentMethod: string | null
-  /** A checkout draft's last activity (made, or the same items checked out again). */
-  lastActivityAt: Date | null
-  /** The latest payment attempt's status and error, and how many attempts failed. */
-  lastAttemptStatus: string | null
-  lastAttemptError: string | null
-  failedAttempts: number
-  /** Money came in that the draft could not keep (out of stock when it arrived). */
-  refundNeeded: boolean
-  /** The shopper pressed "I've paid" on an open transfer (check the bank, then mark it paid). */
-  shopperPaid: boolean
-  /** When its held stock goes back on sale; null when it holds nothing. */
-  reservedUntil: Date | null
-  /** Set once a checkout draft stopped waiting for payment (7 days without activity). */
-  expiredAt: Date | null
 }
 
 const DRAFT_TAG = 'draft'
@@ -249,6 +225,12 @@ export async function createDraft(ctx: StoreContext, input: DraftInput) {
   const lines = await writeLines(ctx, o.id, input)
   const t = await draftMoney(ctx, lines, input)
   await ctx.tx.update(order).set(t).where(eq(order.id, o.id))
+  await setDraftStoreCredit(ctx, {
+    orderId: o.id,
+    customerId: input.customerId ?? null,
+    amountPaise: input.storeCreditPaise ?? 0,
+    totalPaise: t.totalPaise,
+  })
   if (input.note) await setDraftNote(ctx, o.id, input.note)
   /* `number` is the draft number: what the merchant sees as #D12 until it converts. */
   return { id: o.id, number: draftNumber, draftNumber }
@@ -279,6 +261,14 @@ export async function updateDraft(ctx: StoreContext, id: string, input: DraftInp
     })
     .where(eq(order.id, id))
     .returning({ id: order.id })
+  // Checked again on every save: the customer, the total or the balance may have moved.
+  const keptCredit = (await draftStoreCredit(ctx, id))?.amountPaise ?? 0
+  await setDraftStoreCredit(ctx, {
+    orderId: id,
+    customerId: input.customerId ?? null,
+    amountPaise: input.storeCreditPaise ?? keptCredit,
+    totalPaise: t.totalPaise,
+  })
   if (input.note !== undefined) await setDraftNote(ctx, id, input.note ?? '')
   // A held draft (#1030) holds its new lines; a hold that already ran out is just let go.
   if (existing.reservedUntil && existing.reservedUntil.getTime() > Date.now()) {
@@ -380,6 +370,11 @@ export async function convertDraft(
     paymentMethod?: string | undefined
     /** False only for a sale nothing ships for (a plan bill on the sales store). */
     requireShippingAddress?: boolean
+    /**
+     * The customer pays the rest online (the invoice page): applied store credit is held
+     * (`pending`) until the gateway is paid, as at checkout. Otherwise it is taken at once.
+     */
+    holdStoreCredit?: boolean
   } = {},
 ) {
   // Locked, so a delete or a second conversion of the same draft waits for this one.
@@ -429,15 +424,27 @@ export async function convertDraft(
     })
     .where(and(eq(orderLine.orderId, id), eq(orderLine.giftCard, false)))
 
-  const method = opts.paymentMethod ?? o.paymentMethod ?? 'manual'
-  const placedAt = new Date()
-  /* Payment due later (#1029): the clock starts now; a fixed date stays as chosen. */
-  const terms = PaymentTermsSchema.safeParse(o.paymentTerms)
-  const dueAt = terms.success ? paymentDueAt(terms.data, placedAt, o.paymentDueAt) : null
   /* The order number is taken only now; a draft from before 0200 keeps the one it reserved. */
   const number = isDraftPlaceholder(o.number)
     ? await takeOrderNumber(ctx.tx, ctx.storeId)
     : o.number
+  /* Applied store credit leaves the balance now, in this transaction (draft-store-credit.ts);
+     a balance that fell short since the save refuses the whole convert. */
+  const creditPaise = await spendDraftStoreCredit(ctx, {
+    orderId: id,
+    orderNumber: number,
+    customerId: o.customerId,
+    hold: opts.holdStoreCredit === true,
+  })
+  const restPaise = o.totalPaise - creditPaise
+  const method =
+    restPaise <= 0 ? STORE_CREDIT_PROVIDER : (opts.paymentMethod ?? o.paymentMethod ?? 'manual')
+  const placedAt = new Date()
+  /* Payment due later (#1029): the clock starts now; a fixed date stays as chosen. Nothing is
+     due once store credit paid it all. */
+  const terms = PaymentTermsSchema.safeParse(o.paymentTerms)
+  const dueAt =
+    terms.success && restPaise > 0 ? paymentDueAt(terms.data, placedAt, o.paymentDueAt) : null
   const [updated] = await ctx.tx
     .update(order)
     .set({
@@ -457,14 +464,17 @@ export async function convertDraft(
     })
     .where(eq(order.id, id))
     .returning()
-  await ctx.tx.insert(payment).values({
-    storeId: ctx.storeId,
-    orderId: id,
-    provider: method,
-    providerRef: `draft_${id}`,
-    status: 'pending',
-    amountPaise: o.totalPaise,
-  })
+  // What store credit left is what the chosen method collects.
+  if (restPaise > 0) {
+    await ctx.tx.insert(payment).values({
+      storeId: ctx.storeId,
+      orderId: id,
+      provider: method,
+      providerRef: `draft_${id}`,
+      status: 'pending',
+      amountPaise: restPaise,
+    })
+  }
   const result = await recomputeOrderStatuses(ctx, id)
   await announceExchangeOrder(ctx, id)
   return updated && result ? { ...updated, ...result.after } : (updated ?? null)

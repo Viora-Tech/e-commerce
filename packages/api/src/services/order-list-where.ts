@@ -80,6 +80,13 @@ export type OrderListFilters = {
   returnStatus?: OrderReturnFilter[] | undefined
   /** Has a line whose product sits in any of these collections. */
   collectionIds?: string[] | undefined
+  /**
+   * The Product picker (Shopify's "Product is …"): a line is one of these products (any of its
+   * variants) or one of these variants. With `excludeProducts`, no line is.
+   */
+  productIds?: string[] | undefined
+  variantIds?: string[] | undefined
+  excludeProducts?: boolean | undefined
 }
 
 /** The Channel filter: the marketing channels, plus orders placed with no attribution. */
@@ -133,6 +140,33 @@ function inCollections(ids: string[]) {
     join ${variant} v on v.id = ol.variant_id
     join ${collectionProduct} cp on cp.product_id = v.product_id
     where ol.order_id = ${order.id} and cp.collection_id = any(${sql.param(ids)}::uuid[]))`
+}
+
+/**
+ * The Product picker: some line of the order is a picked variant, or a variant of a picked
+ * product. Reads lines by `order_line_order`, the variant by its primary key.
+ */
+function hasPickedLine(productIds: string[], variantIds: string[]) {
+  const byVariant = variantIds.length
+    ? sql`ol.variant_id = any(${sql.param(variantIds)}::uuid[])`
+    : undefined
+  const byProduct = productIds.length
+    ? sql`v.product_id = any(${sql.param(productIds)}::uuid[])`
+    : undefined
+  const match = or(byVariant, byProduct) ?? sql`false`
+  return sql`exists (
+    select 1 from ${orderLine} ol
+    join ${variant} v on v.id = ol.variant_id
+    where ol.order_id = ${order.id} and ${match})`
+}
+
+/** The picker's condition: any line picked ("is"), or none ("is not"); undefined with no picks. */
+function pickedProductsWhere(input: OrderListFilters) {
+  const productIds = input.productIds ?? []
+  const variantIds = input.variantIds ?? []
+  if (productIds.length === 0 && variantIds.length === 0) return undefined
+  const line = hasPickedLine(productIds, variantIds)
+  return input.excludeProducts ? sql`not ${line}` : line
 }
 
 /** `%`, `_` and `\` typed into a filter match themselves, not as LIKE wildcards. */
@@ -246,6 +280,7 @@ export function orderListWhere(input: OrderListFilters) {
       : undefined,
     input.returnStatus?.length ? returnStatusWhere(input.returnStatus) : undefined,
     input.collectionIds?.length ? inCollections(input.collectionIds) : undefined,
+    pickedProductsWhere(input),
   )
 }
 

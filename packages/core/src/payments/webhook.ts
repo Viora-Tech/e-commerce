@@ -1,10 +1,10 @@
-import { paymentEvent, refund } from '@commerce/db'
-import { type PaymentProvider, readableError } from '@commerce/payments'
-import { and, eq, ne } from 'drizzle-orm'
+import { payment, paymentEvent, refund } from '@commerce/db'
+import { type PaymentProvider, readableError, type WebhookEvent } from '@commerce/payments'
+import { and, eq } from 'drizzle-orm'
 import type { StoreContext } from '../context'
-import { recomputeOrderStatuses } from '../order/recompute'
 import { recordPaymentCharges } from './charges'
 import { applyPaymentStatus, findPaymentId } from './confirm'
+import { settleRefunds } from './refund-settle'
 
 export type WebhookOutcome =
   | {
@@ -115,13 +115,7 @@ export async function handlePaymentWebhook(
           error: e.reason,
         })) !== null
     } else if (e.type === 'refund.processed') {
-      await settleRefund(ctx, e.providerRefundId, 'processed')
-      applied =
-        (await applyPaymentStatus(ctx, {
-          providerRef: e.providerRef,
-          status: 'refunded',
-          providerPaymentId: null,
-        })) !== null
+      applied = await refundProcessed(ctx, e)
     } else if (e.type === 'refund.failed') {
       // The gateway's reason stays on the stored payment_event; the refund keeps the merchant's own.
       applied = await settleRefund(ctx, e.providerRefundId, 'failed')
@@ -145,19 +139,46 @@ export async function handlePaymentWebhook(
  * as refunded (recompute reads refunds that are not `failed`), so the order and its return no
  * longer say the money went back when it did not. True when a refund row changed.
  */
-async function settleRefund(
+function settleRefund(
   ctx: StoreContext,
   providerRefundId: string,
   status: 'processed' | 'failed',
 ): Promise<boolean> {
-  if (!providerRefundId) return false
-  const changed = await ctx.tx
-    .update(refund)
-    .set({ status })
-    .where(and(eq(refund.providerRefundId, providerRefundId), ne(refund.status, status)))
-    .returning({ orderId: refund.orderId })
-  for (const orderId of new Set(changed.map((r) => r.orderId))) {
-    await recomputeOrderStatuses(ctx, orderId)
+  if (!providerRefundId) return Promise.resolve(false)
+  return settleRefunds(ctx, eq(refund.providerRefundId, providerRefundId), status)
+}
+
+/**
+ * A refund the gateway completed. Ours: its row turns processed and the payment reads
+ * `refunded` only once all of it went back. Not ours (made on the gateway's dashboard, no row):
+ * only a refund of the whole payment marks it refunded, as before; a part refund changes nothing.
+ */
+async function refundProcessed(
+  ctx: StoreContext,
+  e: Extract<WebhookEvent, { type: 'refund.processed' }>,
+): Promise<boolean> {
+  const [ours] = e.providerRefundId
+    ? await ctx.tx
+        .select({ id: refund.id })
+        .from(refund)
+        .where(eq(refund.providerRefundId, e.providerRefundId))
+        .limit(1)
+    : []
+  if (ours) {
+    await settleRefund(ctx, e.providerRefundId, 'processed')
+    return true
   }
-  return changed.length > 0
+  const [p] = await ctx.tx
+    .select({ amountPaise: payment.amountPaise })
+    .from(payment)
+    .where(eq(payment.providerRef, e.providerRef))
+    .limit(1)
+  if (!p || e.amountPaise < p.amountPaise) return false
+  return (
+    (await applyPaymentStatus(ctx, {
+      providerRef: e.providerRef,
+      status: 'refunded',
+      providerPaymentId: null,
+    })) !== null
+  )
 }

@@ -44,6 +44,12 @@ export type RefundInput = {
   storeCreditReason?: string | undefined
   /** Staff member's email, recorded on the store credit history line. */
   createdBy?: string | null | undefined
+  /**
+   * When store credit given here expires: a day (`YYYY-MM-DD`, the last day it can be spent) or
+   * null for never. Left out, money refunded to store credit never expires, and a store credit
+   * payment coming back keeps the expiry of the credit it was spent from.
+   */
+  storeCreditExpiresOn?: string | null | undefined
 }
 
 export class RefundNotAllowed extends CommerceError {
@@ -125,6 +131,8 @@ export async function refundPayment(
       secret: input.secret,
       staffEmail: input.createdBy,
       reason: input.storeCreditReason,
+      expiresOn: input.storeCreditExpiresOn,
+      spent: p.provider === STORE_CREDIT_PROVIDER,
     }).catch((err: unknown) => {
       if (err instanceof StoreCreditError) throw new RefundNotAllowed(err.message, ctx.storeId)
       throw err

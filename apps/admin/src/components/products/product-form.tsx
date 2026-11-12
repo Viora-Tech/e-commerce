@@ -1,13 +1,12 @@
 'use client'
 
 import type { ProductStatus } from '@commerce/core/catalog'
-import { CircleAlert } from '@commerce/ui/icons'
-import { Alert, AlertDescription, AlertTitle } from '@commerce/ui/shadcn/alert'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { type ReactNode, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import type { ProductApp } from '@/apps/product-actions'
 import type { ProductSectionProps } from '@/apps/product-sections'
+import SaveErrorAlert from '@/components/approvals/save-error-alert'
 import RunAutomationDialog from '@/components/automations/records/run-automation-dialog'
 import { useRunAutomation } from '@/components/automations/records/use-run-automation'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
@@ -53,7 +52,6 @@ import { saveErrorMessage } from './save-error'
 import ShippingCard from './shipping-card'
 import StockHistoryCard from './stock-history-card'
 import { useProductAppActions } from './use-product-app-actions'
-import VariantMetafieldsCard from './variant-metafields-card'
 import { matrixOptions, reconcileVariants } from './variant-reconcile'
 import VariantsCard from './variants-card'
 
@@ -90,11 +88,7 @@ export default function ProductForm({
   const [form, setForm] = useState<ProductFormState>(() => initialForm(product))
   const [saved, setSaved] = useState(() => snapshot(initialForm(product)))
   const [busy, setBusy] = useState(false)
-  // The variant metafields grid's own save and whether it has edits (saved with the page, #894).
-  const variantFieldsSave = useRef<(() => Promise<boolean>) | null>(null)
   const pendingCollections = useRef<string[]>([])
-  const [variantFieldsDirty, setVariantFieldsDirty] = useState(false)
-  const [variantFieldsReset, setVariantFieldsReset] = useState(0)
   const [uploading, setUploading] = useState(false)
   const [serverError, setServerError] = useState<string | null>(null)
   const [attempted, setAttempted] = useState(false)
@@ -142,9 +136,13 @@ export default function ProductForm({
       ...f,
       media: [...f.media, ...items.filter((i) => !f.media.some((m) => m.id === i.id))],
     }))
-  /* The package is one box per product, so every variant ships in it. */
+  /* The product's Package goes onto every variant that follows it; a variant that picked its own
+     box on its page keeps it (#1517). */
   const patchPackage = (vp: Partial<VariantRow>) =>
-    setForm((f) => ({ ...f, variants: f.variants.map((v) => ({ ...v, ...vp })) }))
+    setForm((f) => ({
+      ...f,
+      variants: f.variants.map((v) => (v.boxOwn ? v : { ...v, ...vp })),
+    }))
 
   const mainCard = (tab: 'details' | 'pricing' | 'inventory') =>
     first ? (
@@ -210,9 +208,6 @@ export default function ProductForm({
       setForm(fresh)
       setSaved(snapshot(fresh))
       setRevision((r) => r + 1)
-      // Then each variant whose metafields changed; one that fails names its variant and stays
-      // unsaved (the save bar stays up), the product itself is saved.
-      const fieldsSaved = variantFieldsSave.current ? await variantFieldsSave.current() : true
       // Collections picked before the first save join the new product now (audit #200).
       if (!product && pendingCollections.current.length > 0) {
         await api.collections.setForProduct({
@@ -220,7 +215,7 @@ export default function ProductForm({
           collectionIds: pendingCollections.current,
         })
       }
-      if (fieldsSaved) toast.success(product ? copy.toasts.saved : copy.toasts.created)
+      toast.success(product ? copy.toasts.saved : copy.toasts.created)
       if (!product) router.replace(routes.products.detail(result.id))
       else router.refresh()
     } catch (err) {
@@ -241,11 +236,9 @@ export default function ProductForm({
     /* Restore the last saved snapshot, not the page prop: after a save the prop
        still holds the old product until the router refresh lands. */
     setForm(JSON.parse(saved) as ProductFormState)
-    setVariantFieldsReset((n) => n + 1)
     setAttempted(false)
     setServerError(null)
   }
-
   const handleArchive = () => void handleSave(form.status === 'archived' ? 'draft' : 'archived')
 
   const handleRemove = async () => {
@@ -268,10 +261,7 @@ export default function ProductForm({
   if (!first) return null
 
   // Render logic
-  const savedVariants = form.variants.flatMap((v) =>
-    v.id ? [{ id: v.id, label: v.optionValues.join(' / ') || form.title }] : [],
-  )
-  const isDirty = snapshot(form) !== saved || variantFieldsDirty
+  const isDirty = snapshot(form) !== saved
   const errors = formErrors(copy, form)
   const showErrors = attempted
   const single = matrixOptions(form.options).length === 0
@@ -308,25 +298,17 @@ export default function ProductForm({
   const variantsCard = (
     <>
       <VariantsCard
+        productId={product?.id ?? null}
         title={form.title}
         options={form.options}
         variants={form.variants}
         media={form.media}
-        tax={form.tax}
         facets={facets}
         error={showErrors ? errors.variants : undefined}
         onOptions={setOptions}
         onVariant={patchVariant}
         onRemoveVariants={removeVariants}
         onAddMedia={addMedia}
-      />
-      <VariantMetafieldsCard
-        variants={savedVariants}
-        variantKey={savedVariants.map((v) => v.id).join(',')}
-        hasUnsaved={form.variants.some((v) => !v.id)}
-        saveRef={variantFieldsSave}
-        onDirtyChange={setVariantFieldsDirty}
-        resetSignal={variantFieldsReset}
       />
       <DataCard title={copy.preorder.heading}>
         <ProductPreorderSection
@@ -362,6 +344,7 @@ export default function ProductForm({
     shipping: (
       <ShippingCard
         variant={first}
+        variants={form.variants}
         singleVariant={single}
         packageError={showErrors ? errors.package : undefined}
         tax={form.tax}
@@ -429,13 +412,8 @@ export default function ProductForm({
               lowStockThreshold={facets.lowStockThreshold}
             />
           ) : null}
-          {serverError ? (
-            <Alert variant="destructive">
-              <CircleAlert />
-              <AlertTitle>{copy.toasts.failed}</AlertTitle>
-              <AlertDescription>{serverError}</AlertDescription>
-            </Alert>
-          ) : null}
+          {/* A change sent for approval shows as a calm notice, not "Save failed" (#1531). */}
+          {serverError ? <SaveErrorAlert title={copy.toasts.failed} message={serverError} /> : null}
         </>
       }
       main={

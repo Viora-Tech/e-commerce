@@ -14,7 +14,7 @@ import {
   product,
   variant,
 } from '@commerce/db'
-import { and, eq, inArray, isNull, notInArray, or } from 'drizzle-orm'
+import { and, asc, eq, inArray, isNull, notInArray, or } from 'drizzle-orm'
 import { setStock } from '../inventory/levels'
 import type { ManualReason } from '../inventory/schemas'
 import { onHandleChange } from '../redirects/handle-change'
@@ -25,6 +25,7 @@ import {
   HS_CODE_PATTERN,
 } from './bulk-edit-schemas'
 import { noteProductEvent, noteProductsChanged } from './changes'
+import { settleBoxOwn } from './variant-box'
 
 type ProductCells = NonNullable<BulkEditRow['product']>
 type VariantCells = NonNullable<BulkEditRow['variant']>
@@ -61,6 +62,41 @@ const VARIANT_KEYS = [
   'boxPresetId',
 ] as const
 const PACKAGE_KEYS = ['packageLengthCm', 'packageWidthCm', 'packageHeightCm'] as const
+const BOX_KEYS: readonly string[] = [...PACKAGE_KEYS, 'boxPresetId']
+
+/**
+ * The sheet edits each variant's box on its own row, so a box that differs from the product's
+ * Package becomes that variant's own (#1517) and one that matches it follows the product again.
+ */
+async function settleEditedBoxes(tx: StoreTx, edited: Set<string>): Promise<void> {
+  if (edited.size === 0) return
+  const touched = await tx
+    .select({ productId: variant.productId })
+    .from(variant)
+    .where(inArray(variant.id, [...edited]))
+  const productIds = [...new Set(touched.map((t) => t.productId))]
+  const siblings = await tx
+    .select({
+      id: variant.id,
+      productId: variant.productId,
+      boxOwn: variant.boxOwn,
+      boxPresetId: variant.boxPresetId,
+      packageLengthCm: variant.packageLengthCm,
+      packageWidthCm: variant.packageWidthCm,
+      packageHeightCm: variant.packageHeightCm,
+    })
+    .from(variant)
+    .where(and(inArray(variant.productId, productIds), isNull(variant.archivedAt)))
+    .orderBy(asc(variant.position), asc(variant.id))
+  for (const productId of productIds) {
+    const rows = siblings
+      .filter((s) => s.productId === productId)
+      .map((s) => ({ ...s, edited: edited.has(s.id) }))
+    for (const [id, boxOwn] of settleBoxOwn(rows)) {
+      await tx.update(variant).set({ boxOwn }).where(eq(variant.id, id))
+    }
+  }
+}
 
 /** An emptied text cell means "no value", not an empty string. */
 const blankToNull = (v: string | null | undefined) =>
@@ -345,6 +381,8 @@ export async function bulkEdit(
     undo.set(variantId, row)
     return row
   }
+  /* Variants whose box cell changed: they may now have their own box, or follow the product again. */
+  const boxEdited = new Set<string>()
   let updatedProducts = 0
   let updatedVariants = 0
   let stockChanges = 0
@@ -400,6 +438,7 @@ export async function bulkEdit(
           .set(Object.fromEntries(keys.map((k) => [k, r.variant?.[k]])))
           .where(eq(variant.id, r.variantId))
         updatedVariants += 1
+        if (keys.some((k) => BOX_KEYS.includes(k))) boxEdited.add(r.variantId)
         undoRow(r.variantId).variant = Object.fromEntries(
           keys.map((k) => [k, cur[k]]),
         ) as VariantCells
@@ -421,6 +460,7 @@ export async function bulkEdit(
       row.stock = { ...row.stock, [locationId]: before }
     }
   }
+  await settleEditedBoxes(tx, boxEdited)
 
   const editedProducts = [...undo.keys()].flatMap((v) => current.get(v)?.productId ?? [])
   await noteProductsChanged(tx, editedProducts, storeId)

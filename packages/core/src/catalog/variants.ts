@@ -25,6 +25,8 @@ export type VariantInput = {
   hiddenOnStore?: boolean | undefined
   /** Sells on pre-order when the product does (default). False: sold out stays sold out. Undefined leaves it. */
   preorderAllowed?: boolean | undefined
+  /** The variant's own pre-order limit; null uses the product's again. Undefined leaves it. */
+  preorderLimit?: number | null | undefined
   /** "This is a physical product": false takes no shipping and never ships. Undefined leaves it. */
   requiresShipping?: boolean | undefined
   weightGrams?: number | null | undefined
@@ -39,6 +41,8 @@ export type VariantInput = {
   packageLengthCm?: number | null | undefined
   packageWidthCm?: number | null | undefined
   packageHeightCm?: number | null | undefined
+  /** The box above is the variant's own (#1517); false follows the product's Package. Undefined leaves it. */
+  boxOwn?: boolean | undefined
   /** Absolute on-hand count when the merchant edits it inline. */
   onHand?: number | undefined
   /** The variant's main image; mirrors `mediaIds[0]` when both are sent. */

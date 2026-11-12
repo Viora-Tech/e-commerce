@@ -16,7 +16,16 @@ import {
   variant,
 } from '@commerce/db'
 import { asc, eq, inArray } from 'drizzle-orm'
-import { parseAppsSettings } from '../../apps/settings'
+import { lockStoreApps } from '../../apps/locked'
+import {
+  type AppsSettings,
+  appSettingsOf,
+  parseAppsSettings,
+  withAppSettings,
+} from '../../apps/settings'
+import { type CartParcel, cartParcel } from '../parcel'
+import { lineShips } from '../profiles'
+import type { ShippingSettings } from '../settings'
 import {
   CostCardSchema,
   DELIVERY_OPTIONS_APP_ID,
@@ -29,6 +38,7 @@ import {
   type RouteSetting,
   RouteSettingInputSchema,
 } from './config'
+import { type ProtectCard, ProtectCardSchema, parseProtectCard } from './protect'
 import type { CartItemFacts } from './rules'
 
 /** Whether the store installed the app. Options without the app change nothing. */
@@ -60,20 +70,54 @@ function toSetting(row: typeof deliveryRouteSetting.$inferSelect): RouteSetting 
   }
 }
 
+/** The app's own entry in `store.apps.settings`; it holds the Delhivery Protect card. */
+const protectCardOf = (apps: AppsSettings): ProtectCard => {
+  const own = appSettingsOf(apps, DELIVERY_OPTIONS_APP_ID)
+  return parseProtectCard(
+    own && typeof own === 'object' ? (own as { protect?: unknown }).protect : null,
+  )
+}
+
+/** The store's Delhivery Protect card; Delhivery's defaults when the merchant saved none. */
+async function loadProtectCard(tx: StoreTx, storeId: string): Promise<ProtectCard> {
+  const [s] = await tx.select({ apps: store.apps }).from(store).where(eq(store.id, storeId))
+  return protectCardOf(parseAppsSettings(s?.apps))
+}
+
+/** Replace the Protect card, leaving the install list and other apps' settings alone. */
+export async function saveProtectCard(
+  tx: StoreTx,
+  storeId: string,
+  raw: unknown,
+): Promise<ProtectCard> {
+  const card = ProtectCardSchema.parse(raw)
+  // About to write store.apps back: hold the row lock first, so no other writer is lost.
+  const apps = await lockStoreApps(tx, storeId)
+  const own = appSettingsOf(apps, DELIVERY_OPTIONS_APP_ID)
+  const next = { ...(own && typeof own === 'object' ? own : {}), protect: card }
+  await tx
+    .update(store)
+    .set({ apps: withAppSettings(apps, DELIVERY_OPTIONS_APP_ID, next) })
+    .where(eq(store.id, storeId))
+  return card
+}
+
 /** Everything the engine reads. `version` changes whenever any of it does. */
-export async function loadDeliveryConfig(tx: StoreTx): Promise<DeliveryConfig> {
-  const [options, rules, settings] = await Promise.all([
+export async function loadDeliveryConfig(tx: StoreTx, storeId: string): Promise<DeliveryConfig> {
+  const [options, rules, settings, protect] = await Promise.all([
     tx.select().from(deliveryOption).orderBy(asc(deliveryOption.position), asc(deliveryOption.id)),
     tx
       .select()
       .from(deliveryRouteRule)
       .orderBy(asc(deliveryRouteRule.position), asc(deliveryRouteRule.id)),
     tx.select().from(deliveryRouteSetting).orderBy(asc(deliveryRouteSetting.key)),
+    loadProtectCard(tx, storeId),
   ])
   const config = {
     options: options.flatMap((r) => toOption(r) ?? []),
     rules: rules.flatMap((r) => toRule(r) ?? []),
     routeSettings: settings.map(toSetting),
+    protect,
   }
   const version = createHash('sha256').update(JSON.stringify(config)).digest('hex').slice(0, 16)
   return { ...config, version }
@@ -85,7 +129,7 @@ export async function activeDeliveryConfig(
   storeId: string,
 ): Promise<DeliveryConfig | null> {
   if (!(await deliveryOptionsInstalled(tx, storeId))) return null
-  const config = await loadDeliveryConfig(tx)
+  const config = await loadDeliveryConfig(tx, storeId)
   return config.options.some((o) => o.enabled) ? config : null
 }
 
@@ -214,6 +258,45 @@ export async function cartLineKeys(
     .where(eq(cartLine.cartId, cartId))
 }
 
+/**
+ * The parcel these cart lines become, as the admin would book it: each variant's box (its own,
+ * else its product's, both stored on the variant) and weight, the store's boxes for the main
+ * box and packing. Lines that never ship (gift cards, no shipping) are left out. Checkout and
+ * place order price couriers on its billed weight (#1546).
+ */
+export async function cartParcelFor(
+  tx: StoreTx,
+  lines: ReadonlyArray<{ variantId: string; quantity: number }>,
+  boxPresets: ShippingSettings['boxPresets'],
+): Promise<CartParcel> {
+  const ids = [...new Set(lines.map((l) => l.variantId))]
+  const rows =
+    ids.length === 0
+      ? []
+      : await tx
+          .select({
+            id: variant.id,
+            weightGrams: variant.weightGrams,
+            boxPresetId: variant.boxPresetId,
+            packageLengthCm: variant.packageLengthCm,
+            packageWidthCm: variant.packageWidthCm,
+            packageHeightCm: variant.packageHeightCm,
+            requiresShipping: variant.requiresShipping,
+            giftCard: product.isGiftCard,
+          })
+          .from(variant)
+          .innerJoin(product, eq(product.id, variant.productId))
+          .where(inArray(variant.id, ids))
+  const byId = new Map(rows.map((r) => [r.id, r]))
+  const shipped = lines.flatMap((l) => {
+    const v = byId.get(l.variantId)
+    return v && lineShips(v)
+      ? [{ ...v, quantity: l.quantity, variantWeightGrams: v.weightGrams }]
+      : []
+  })
+  return cartParcel(shipped, boxPresets)
+}
+
 /** What the route rules match on, for each product behind these variants. */
 export async function cartItemFacts(
   tx: StoreTx,
@@ -237,7 +320,12 @@ export async function productFacts(
 ): Promise<CartItemFacts[]> {
   if (productIds.length === 0) return []
   const rows = await tx
-    .select({ productId: product.id, tags: product.tags, productType: product.productType })
+    .select({
+      productId: product.id,
+      tags: product.tags,
+      productType: product.productType,
+      categoryId: product.categoryId,
+    })
     .from(product)
     .where(inArray(product.id, [...productIds]))
   const members = await tx
@@ -251,6 +339,7 @@ export async function productFacts(
     productId: r.productId,
     tags: r.tags,
     productType: r.productType,
+    categoryId: r.categoryId,
     collectionIds: members.filter((m) => m.productId === r.productId).map((m) => m.collectionId),
   }))
 }

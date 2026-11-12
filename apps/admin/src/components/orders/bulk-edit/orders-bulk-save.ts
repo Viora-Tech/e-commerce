@@ -46,7 +46,9 @@ async function saveRow(row: GridRow, base: GridRow, fallback: string): Promise<R
       done.push('tags')
     }
     if (changed('mark') && row.mark) {
-      await api.orders.setStatus({ id: row.id, status: row.mark as Mark })
+      // Delivered only for what already went out, as on the list's bulk bar (owner, 11 Nov).
+      const onlyShipped = row.mark === 'delivered' ? { onlyShipped: true } : {}
+      await api.orders.setStatus({ id: row.id, status: row.mark as Mark, ...onlyShipped })
       done.push('mark')
     }
     return { id: row.id, done, error: null }

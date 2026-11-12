@@ -1,6 +1,7 @@
 'use client'
 
 import type { OrderCancelReason, RefundOptions, RefundRoute } from '@commerce/core'
+import { canStaffCancel } from '@commerce/core/order-edit-rules'
 import { CancelCircle } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Checkbox } from '@commerce/ui/shadcn/checkbox'
@@ -18,13 +19,16 @@ import {
 } from '@commerce/ui/shadcn/select'
 import { type FormEvent, useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import StoreCreditExpiryField from '@/components/customers/store-credit-expiry-field'
 import DateField from '@/components/fields/date-field'
 import DialogContent from '@/components/layout/dialog-content'
 import DialogFooter from '@/components/layout/dialog-footer'
 import DialogHeader from '@/components/layout/dialog-header'
 import { orderDetailContent } from '@/data/order-detail'
 import { orderCancelContent, refundRouteContent } from '@/data/order-edit'
+import { storeCreditExpiryContent } from '@/data/store-credit-expiry'
 import { useCopy, useFormat } from '@/hooks/use-copy'
+import { useStoreCreditReturn } from '@/hooks/use-store-credit-return'
 import { api } from '@/lib/api-client'
 import { methodLabel, type OrderDetail } from './order-detail-types'
 
@@ -54,6 +58,14 @@ const defaultRoute = (options: RefundOptions): RefundRoute => {
   return options.original && !offlineOnly ? 'original' : 'manual'
 }
 
+/**
+ * The order's courier label that can still be cancelled (bought, not picked up, not on a
+ * manifest): "Also cancel courier label" offers it (owner, 11 Nov 2026). A tracking number typed
+ * by hand has no label and closes with the order.
+ */
+const liveLabel = (o: OrderDetail) =>
+  o.status === 'open' && o.shipment?.labelUrl && o.shipment.cancelBlock === null ? o.shipment : null
+
 /** Today in the browser, `yyyy-mm-dd`: store credit cannot expire before it is issued. */
 const today = () => {
   const d = new Date()
@@ -75,15 +87,20 @@ export default function CancelOrderDialog({
   const copy = useCopy(orderCancelContent)
   const routeCopy = useCopy(refundRouteContent)
   const detail = useCopy(orderDetailContent)
+  const creditCopy = useCopy(storeCreditExpiryContent)
   const fmt = useFormat()
+  // Store credit the order was paid with goes back on a cancel: its original last day, pre-filled.
+  const creditBack = useStoreCreditReturn(order?.id ?? null)
   const [reasonCode, setReasonCode] = useState<OrderCancelReason>('customer')
   const [reason, setReason] = useState('')
   const [restock, setRestock] = useState(true)
   const [notify, setNotify] = useState(true)
+  const [alsoLabel, setAlsoLabel] = useState(true)
   const [options, setOptions] = useState<RefundOptions | null>(null)
   const [route, setRoute] = useState<RefundRoute>('none')
   const [expires, setExpires] = useState(false)
   const [expiresOn, setExpiresOn] = useState('')
+  const [backExpiresOn, setBackExpiresOn] = useState('')
   const [busy, setBusy] = useState(false)
 
   useEffect(() => {
@@ -93,6 +110,7 @@ export default function CancelOrderDialog({
     setReason('')
     setRestock(!wasImported(order))
     setNotify(Boolean(order.email))
+    setAlsoLabel(true)
     setExpires(false)
     setExpiresOn('')
     setOptions(null)
@@ -105,6 +123,10 @@ export default function CancelOrderDialog({
       live = false
     }
   }, [order])
+
+  useEffect(() => {
+    setBackExpiresOn(creditBack?.expiresOn ?? '')
+  }, [creditBack])
 
   // Event handlers
   const handleSubmit = async (e: FormEvent) => {
@@ -120,8 +142,13 @@ export default function CancelOrderDialog({
         restock,
         notifyCustomer: notify,
         refund,
+        ...(label && (alsoLabel || labelRequired) ? { cancelShipmentId: label.id } : {}),
         ...(refund === 'store_credit' && expires && expiresOn
           ? { storeCreditExpiresOn: expiresOn }
+          : {}),
+        // Empty is staff's "never expires"; sent either way, so the original is not assumed.
+        ...(creditBack && creditBack.spentPaise > 0
+          ? { returnedCreditExpiresOn: backExpiresOn || null }
           : {}),
       })
       toast.success(copy.done)
@@ -135,6 +162,9 @@ export default function CancelOrderDialog({
 
   // Render logic
   const imported = order ? wasImported(order) : false
+  const label = order ? liveLabel(order) : null
+  // Everything is packed under the label: the order cannot be cancelled without it.
+  const labelRequired = Boolean(label && order && !canStaffCancel(order))
   const reasonItems = Object.entries(copy.reasons).map(([value, label]) => ({ value, label }))
   const amount = options ? fmt.money(options.refundablePaise) : ''
   const via = (options?.providers ?? []).map((p) => methodLabel(p, detail)).join(', ')
@@ -239,6 +269,19 @@ export default function CancelOrderDialog({
           ) : options ? (
             <p className="text-body text-muted-foreground">{copy.nothingToRefund}</p>
           ) : null}
+          {creditBack && creditBack.spentPaise > 0 ? (
+            <div className="flex flex-col gap-2">
+              <p className="text-body text-muted-foreground">
+                {creditCopy.returned(fmt.money(creditBack.spentPaise))}
+              </p>
+              <StoreCreditExpiryField
+                id="cancel-credit-back-expires"
+                value={backExpiresOn}
+                onChange={setBackExpiresOn}
+                originalDay={creditBack.expiresOn}
+              />
+            </div>
+          ) : null}
           <Field>
             <FieldLabel htmlFor="cancel-reason-code">{copy.reason}</FieldLabel>
             <Select
@@ -288,6 +331,22 @@ export default function CancelOrderDialog({
               />
               {copy.notify}
             </Label>
+            {label ? (
+              <>
+                <Label htmlFor="cancel-label" className="flex items-center gap-2 font-normal">
+                  <Checkbox
+                    id="cancel-label"
+                    checked={alsoLabel || labelRequired}
+                    disabled={labelRequired}
+                    onCheckedChange={(v) => setAlsoLabel(v === true)}
+                  />
+                  {copy.cancelLabel(label.waybill)}
+                </Label>
+                <FieldDescription>
+                  {labelRequired ? copy.cancelLabelRequired : copy.cancelLabelHint}
+                </FieldDescription>
+              </>
+            ) : null}
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={onClose} disabled={busy}>
@@ -296,7 +355,12 @@ export default function CancelOrderDialog({
             <Button
               type="submit"
               variant="destructive"
-              disabled={busy || !options || (route === 'store_credit' && expires && !expiresOn)}
+              disabled={
+                busy ||
+                !options ||
+                !creditBack ||
+                (route === 'store_credit' && expires && !expiresOn)
+              }
             >
               <CancelCircle aria-hidden="true" />
               {copy.confirm}

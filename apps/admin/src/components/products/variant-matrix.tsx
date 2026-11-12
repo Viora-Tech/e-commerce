@@ -4,26 +4,22 @@ import { variantTitle } from '@commerce/core/catalog'
 import { cn } from '@commerce/ui/lib/utils'
 import { Checkbox } from '@commerce/ui/shadcn/checkbox'
 import { Table, TableBody, TableHead, TableHeader, TableRow } from '@commerce/ui/shadcn/table'
-import { useState } from 'react'
 import { productFormContent } from '@/data/product-form'
 import { useCopy, useFormat } from '@/hooks/use-copy'
+import { routes } from '@/lib/routes'
 import { bestMargin } from '@/lib/variant-margin'
 import type { MediaItem, VariantRow } from './form-state'
-import type { ProductTax } from './product-tax'
-import VariantEditDialog from './variant-edit-dialog'
 import VariantGroupRow from './variant-group-row'
 import { type MatrixLine, shownIndexes } from './variant-groups'
 import VariantMatrixRow from './variant-matrix-row'
 
 type VariantMatrixProps = {
-  /** The product's title, the stem of a generated SKU. */
-  productTitle: string
+  /** Null before the product's first save: no variant has a page yet. */
+  productId: string | null
   variants: VariantRow[]
   /** What to draw: variant rows, flat or under group rows (`matrixLines`). */
   lines: MatrixLine[]
   media: MediaItem[]
-  /** The product's HSN and GST rate, for the variant dialog (#63). */
-  tax: ProductTax
   selected: number[]
   onSelectedChange: (next: number[]) => void
   onToggleGroup: (value: string) => void
@@ -44,15 +40,14 @@ const rowKey = (v: VariantRow | undefined, index: number) =>
 
 /**
  * One row per option combination, edited in place: price, MRP, SKU and stock, optionally under
- * one summary row per value of a grouped option. Rows are selectable for bulk edits; Edit opens
- * a dialog with the rest of the variant's fields.
+ * one summary row per value of a grouped option. Rows are selectable for bulk edits; a row's title
+ * or pencil opens the variant's own page (Products › product › variant) for the rest.
  */
 export default function VariantMatrix({
-  productTitle,
+  productId,
   variants,
   lines,
   media,
-  tax,
   selected,
   onSelectedChange,
   onToggleGroup,
@@ -65,8 +60,6 @@ export default function VariantMatrix({
     variantBulk: bulkCopy,
   } = useCopy(productFormContent)
   const fmt = useFormat()
-  /** The row whose dialog is open. */
-  const [editing, setEditing] = useState<number | null>(null)
 
   // Event handlers
   const handleSelectMany = (indexes: number[], checked: boolean) => {
@@ -128,7 +121,7 @@ export default function VariantMatrix({
                 selected={selected.includes(line.index)}
                 onSelect={(checked) => handleSelectMany([line.index], checked)}
                 onChange={(patch) => onVariant(line.index, patch)}
-                onEdit={() => setEditing(line.index)}
+                href={productId && v.id ? routes.products.variant(productId, v.id) : null}
                 onAddMedia={onAddMedia}
               />
             )
@@ -150,18 +143,6 @@ export default function VariantMatrix({
             )}
           </span>
         </div>
-      ) : null}
-      {editing !== null ? (
-        <VariantEditDialog
-          key={editing}
-          productTitle={productTitle}
-          variants={variants}
-          index={editing}
-          onSave={onVariant}
-          onMove={setEditing}
-          onClose={() => setEditing(null)}
-          tax={tax}
-        />
       ) : null}
     </div>
   )

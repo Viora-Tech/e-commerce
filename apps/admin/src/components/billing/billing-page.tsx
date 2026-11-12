@@ -10,9 +10,9 @@ import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
-import DataCard from '@/components/layout/data-card'
 import KeyValueList from '@/components/layout/key-value-list'
 import PageHeader from '@/components/layout/page-header'
+import SettingsCard from '@/components/settings/settings-card'
 import { billingContent } from '@/data/billing'
 import { settingsRowsContent } from '@/data/settings-rows'
 import { useCopy, useFormat } from '@/hooks/use-copy'
@@ -129,65 +129,76 @@ export default function BillingPage({ view, apps, autopay }: BillingPageProps) {
 
   return (
     <div className="flex w-full flex-col gap-4">
-      <PageHeader
-        title={copy.title}
-        subtitle={copy.subtitle}
-        actions={
-          <Button nativeButton={false} render={<Link href={routes.settings.billingPlans()} />}>
-            {copy.changePlan.action}
-          </Button>
-        }
-      />
-      {banner ? (
-        <Alert variant={banner.tone === 'danger' ? 'destructive' : 'default'}>
-          {banner.tone === 'info' ? <InfoIcon /> : <CircleAlert />}
-          <AlertDescription className="flex flex-wrap items-center justify-between gap-3">
-            <span>{banner.text}</span>
-            {view.due?.url ? (
-              <Button
-                size="sm"
-                nativeButton={false}
-                render={<a href={view.due.url} target="_blank" rel="noopener noreferrer" />}
-              >
-                <CreditCard aria-hidden="true" />
-                {copy.banners.pay}
-              </Button>
-            ) : (
-              <Button size="sm" onClick={() => setComparing(true)}>
-                {copy.banners.choose}
-              </Button>
-            )}
-          </AlertDescription>
-        </Alert>
-      ) : null}
-      {view.unpaidFees > 0 ? (
-        <Alert>
-          <CircleAlert />
-          <AlertDescription>
-            {copy.banners.unpaidFees(format.money(view.unpaidFees))}
-          </AlertDescription>
-        </Alert>
-      ) : null}
-      {view.fairUseNotice ? (
-        <Alert>
-          <InfoIcon />
-          <AlertDescription>{copy.banners.fairUse}</AlertDescription>
-        </Alert>
-      ) : null}
-      <CurrentPlanCard
-        view={view}
-        onKeepPlan={handleKeepPlan}
-        onCompare={() => setComparing(true)}
-      />
-      <SettingsDrill rows={rows} backLabel={copy.title}>
+      <SettingsDrill
+        rows={rows}
+        backLabel={copy.title}
+        header={{
+          title: copy.title,
+          subtitle: copy.subtitle,
+          actions: (
+            <Button nativeButton={false} render={<Link href={routes.settings.billingPlans()} />}>
+              {copy.changePlan.action}
+            </Button>
+          ),
+          notice: (
+            <>
+              {banner ? (
+                <Alert variant={banner.tone === 'danger' ? 'destructive' : 'default'}>
+                  {banner.tone === 'info' ? <InfoIcon /> : <CircleAlert />}
+                  <AlertDescription className="flex flex-wrap items-center justify-between gap-3">
+                    <span>{banner.text}</span>
+                    {view.due?.url ? (
+                      <Button
+                        size="sm"
+                        nativeButton={false}
+                        render={<a href={view.due.url} target="_blank" rel="noopener noreferrer" />}
+                      >
+                        <CreditCard aria-hidden="true" />
+                        {copy.banners.pay}
+                      </Button>
+                    ) : (
+                      <Button size="sm" onClick={() => setComparing(true)}>
+                        {copy.banners.choose}
+                      </Button>
+                    )}
+                  </AlertDescription>
+                </Alert>
+              ) : null}
+              {view.unpaidFees > 0 ? (
+                <Alert>
+                  <CircleAlert />
+                  <AlertDescription>
+                    {copy.banners.unpaidFees(format.money(view.unpaidFees))}
+                  </AlertDescription>
+                </Alert>
+              ) : null}
+              {view.fairUseNotice ? (
+                <Alert>
+                  <InfoIcon />
+                  <AlertDescription>{copy.banners.fairUse}</AlertDescription>
+                </Alert>
+              ) : null}
+              <CurrentPlanCard
+                view={view}
+                onKeepPlan={handleKeepPlan}
+                onCompare={() => setComparing(true)}
+              />
+            </>
+          ),
+        }}
+      >
         <SettingsDrillPanel id="payment">
-          <DataCard title={copy.payment.heading} subtitle={copy.payment.body}>
+          <SettingsCard
+            title={copy.payment.heading}
+            description={copy.payment.body}
+            bodyClassName="gap-4"
+          >
             <KeyValueList
               variant="grid"
               rows={[{ label: copy.payment.invoiceEmail, value: view.invoiceEmail ?? '—' }]}
             />
             <AutopayRow autopay={autopay} billingReady={view.billingReady} />
-          </DataCard>
+          </SettingsCard>
         </SettingsDrillPanel>
         <SettingsDrillPanel id="apps">
           <AppsCard apps={apps} />
@@ -200,15 +211,18 @@ export default function BillingPage({ view, apps, autopay }: BillingPageProps) {
         </SettingsDrillPanel>
         {canDowngrade && lower && view.periodEnd ? (
           <SettingsDrillPanel id="downgrade">
-            <DataCard
+            <SettingsCard
               title={copy.change.heading}
-              subtitle={copy.change.body(copy.plans[lower].name, format.date(view.periodEnd))}
-              bodyClassName="flex justify-end"
+              footer={
+                <Button variant="outline" onClick={() => setDowngrading(true)}>
+                  {copy.change.action(copy.plans[lower].name)}
+                </Button>
+              }
             >
-              <Button variant="outline" onClick={() => setDowngrading(true)}>
-                {copy.change.action(copy.plans[lower].name)}
-              </Button>
-            </DataCard>
+              <p className="text-body text-muted-foreground">
+                {copy.change.body(copy.plans[lower].name, format.date(view.periodEnd))}
+              </p>
+            </SettingsCard>
           </SettingsDrillPanel>
         ) : null}
       </SettingsDrill>

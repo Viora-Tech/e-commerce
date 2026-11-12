@@ -47,11 +47,22 @@ For each enabled option:
    and the route does not insure), `no_cod` (COD pick only), `over_max_eta`.
 4. **Pick**: the rule's default route when it fits; else `cheapest` (cost to the store incl.
    insurance; tie → direct) or `fastest` (latest arrival; a real ETA beats an estimate; then
-   cheapest). `preferDirectWithinPaise` swaps an aggregator winner for a direct route within ₹X
-   (same date for `fastest`).
+   cheapest). Among routes at the same shopper price as the first (and, for `fastest`, the same
+   date), the earliest arrival wins; on the same date too, `preferCarrier` (a carrier key) wins.
+   `preferDirectWithinPaise` swaps an aggregator winner for a direct route within ₹X (same date
+   for `fastest`). `couriers.showNames: false` turns `showCarrier` off on every route of the
+   option, so its cards carry no courier name or logo.
 5. **Price**: `roundUpToTenRupees(cost + markup + insurance)`, then min/max caps, then
-   free-above. Insurance is the quote's own insurance line, else the route setting's % with its
-   minimum, else ₹0 (reported as `null`, and the admin warns).
+   free-above. Insurance (`insuranceQuote`) is the quote's own insurance line; for Delhivery
+   direct always Delhivery Protect (a route % is ignored), otherwise the route setting's % with
+   its minimum, else the courier's published rate (`COURIER_INSURANCE`: RapidShyp 0.89%,
+   Shiprocket 1.05% GST included); computed fees get 18% GST. Protect (`protect.ts`:
+   ceil(value × the parcel's category rate), the category from the products' taxonomy
+   `categoryId` or type words, Multi-category for two or more, Undetermined when unknown; the
+   card lives in `store.apps.settings['delivery-options'].protect`), else ₹0 (reported as
+   `null`, and the admin warns). Create shipment's rows carry the same price as `insurance`
+   (`rowInsurance`), booking records it on `shipment.insurance_paise` (0242) and
+   `shippingMargin` subtracts the booked figure over checkout's.
 6. **COD**: Standard (and only a standard option with COD allowed) is picked a second time
    with `cod: true`; Express is always prepaid only.
 7. **Backup**: no fitting route, a courier failed and no answered route was serviceable →
@@ -87,7 +98,9 @@ calls (tests, a plain JSON cache) has no breaker and no health; nothing else cha
   (`source: 'cache'`, `stale: true`, `error` says why the live call was not used) and the live
   call keeps running and rewrites the entry when it lands. `cacheOnly` (place order without a
   snapshot) takes stale entries too and never calls a courier.
-- **Circuit breaker.** Each live call that throws or misses the deadline counts towards
+- **Circuit breaker.** Each live call is recorded when it ends, not at the deadline: a late
+  answer is a success (and is cached), and only a call that throws (an error, or the adapter's
+  own timeout) counts towards
   `{shipping}:delivery-breaker-fails:<store>:<app>` (a 60 s window). The third opens
   `{shipping}:delivery-breaker:<store>:<app>` for 5 minutes (`{ since, error }`); while it is
   open the app is not asked and its stale answer (if any) stands in, else it is `failed` with
@@ -135,7 +148,7 @@ account.
 
 `resolve.test.ts` (strategies, filtering, the Glasspads and Mice rules, mixed carts, ₹10
 round-up, Express prepaid only, fallback), `quotes.test.ts` (deadline, cache, cache-only, with
-mocked courier clients), `health.test.ts` (breaker on errors and missed deadlines,
+mocked courier clients), `health.test.ts` (breaker on errors, late answers counted as successes,
 stale-while-revalidate, health line, backup share, shipping margin), `booking.test.ts` and the booking case in `shipments.test.ts`, the
 admin `flow-state.test.ts` and the storefront `checkout-preview.test.ts`.
 

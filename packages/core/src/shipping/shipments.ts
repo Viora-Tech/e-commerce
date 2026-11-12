@@ -19,7 +19,8 @@ import { ensureFulfillmentOrders, soleFulfillmentOrder } from '../order/fulfillm
 import { recomputeOrderStatuses } from '../order/recompute'
 import { insertOutboxEvent } from '../outbox/write'
 import { recordRtoForShipment } from '../returns/rto'
-import { noteOffRoute } from './delivery-options/booking'
+import { deliveryForParcel, noteOffRoute } from './delivery-options/booking'
+import { bookingInsurancePaise, declaredValuePaise } from './delivery-options/insurance'
 import { bookedCarrier } from './delivery-options/routes'
 import { shipmentDocumentsAsLabel } from './label-documents'
 import { storeShippingLabel } from './label-store'
@@ -114,6 +115,7 @@ async function loadParcel(ctx: StoreContext, orderId: string, fulfillmentOrderId
     .select({
       id: fulfillmentOrder.id,
       locationId: fulfillmentOrder.locationId,
+      status: fulfillmentOrder.status,
       totalPaise: fulfillmentOrder.totalPaise,
     })
     .from(fulfillmentOrder)
@@ -215,7 +217,11 @@ export async function createShipmentForOrder(
     ? [named]
     : parcelId
       ? await ctx.tx
-          .select({ locationId: fulfillmentOrder.locationId })
+          .select({
+            id: fulfillmentOrder.id,
+            locationId: fulfillmentOrder.locationId,
+            status: fulfillmentOrder.status,
+          })
           .from(fulfillmentOrder)
           .where(eq(fulfillmentOrder.id, parcelId))
       : []
@@ -268,27 +274,41 @@ export async function createShipmentForOrder(
       resolveParcelWeightGrams(lines, packingGrams),
       options.dimensionsCm ? null : parcelPackage,
     )
-  // A parcel that is the whole order is worth the order; one of several, its own share.
-  const valuePaise =
-    named && named.id !== sole
-      ? (named.totalPaise ?? lines.reduce((sum, l) => sum + l.unitPricePaise * l.quantity, 0))
-      : o.totalPaise
+  // A parcel that is the whole order is worth the order; one of several, its own share (the
+  // value the Create shipment drawer prices insurance on).
+  const valuePaise = declaredValuePaise({
+    parcelId: named?.id ?? null,
+    parcelTotalPaise: named?.totalPaise ?? null,
+    soleParcelId: sole,
+    orderTotalPaise: o.totalPaise,
+    linesPaise: () => lines.reduce((sum, l) => sum + l.unitPricePaise * l.quantity, 0),
+  })
   const paymentMode = options.paymentMode ?? (o.paymentMethod === 'cod' ? 'cod' : 'prepaid')
   const codAmountPaise = paymentMode === 'cod' ? (options.codAmountPaise ?? valuePaise) : 0
   const threshold = settings.policy.insuranceThresholdPaise
   // The Delivery options app's route: what the shopper paid for (insured or not) and who carries it.
-  const route = o.shipping?.delivery?.route ?? null
+  // A parcel of a split cart (named, or the only one left) books the courier quoted for it.
+  const delivery = deliveryForParcel(o.shipping?.delivery ?? null, parcel)
+  const route = delivery?.route ?? null
   const onRoute =
     route !== null &&
     route.providerId === provider.id &&
     route.serviceId === (options.serviceId ?? '')
   const insured =
     options.insured ??
-    ((onRoute && o.shipping?.delivery?.insured === true) ||
-      (threshold > 0 && valuePaise >= threshold))
+    ((onRoute && delivery?.insured === true) || (threshold > 0 && valuePaise >= threshold))
   const carrier =
     options.carrier?.trim() ||
     (onRoute ? route.carrier : bookedCarrier(provider, options.serviceLabel))
+  // Insurance cost, for the margin: worked out before the courier call, so no AWB lacks its row.
+  const insurancePaise = await bookingInsurancePaise(ctx.tx, ctx.storeId, {
+    orderId: o.id,
+    fulfillmentOrderId: named?.id ?? null,
+    provider,
+    service: options,
+    valuePaise,
+    insured,
+  })
 
   // Sent to this courier earlier as a pending order (order push): book that one when the
   // whole order ships, so the courier's panel does not end up with two.
@@ -372,6 +392,7 @@ export async function createShipmentForOrder(
       widthCm: parcelPackage?.widthCm ?? null,
       heightCm: parcelPackage?.heightCm ?? null,
       insured,
+      insurancePaise,
       declaredValuePaise: valuePaise,
       // What the courier charges, when its booking said; the merchant can type it otherwise.
       courierChargePaise: result.chargePaise ?? null,

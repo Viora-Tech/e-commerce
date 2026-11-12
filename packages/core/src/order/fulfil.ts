@@ -275,3 +275,23 @@ export async function fulfilOrderLines(
     shipmentId,
   }
 }
+
+/**
+ * The orders list's bulk "Mark as fulfilled" (owner, 11 Nov 2026): every unpacked unit of one
+ * order, under the courier picked once for the selection and this order's own tracking number
+ * when one was typed. The same checks as the pack form (hold, balance due, cancelled); an order
+ * with nothing left to pack is refused (`NothingToFulfil`).
+ */
+export async function fulfilAllLines(
+  ctx: StoreContext,
+  input: Omit<FulfilOrderInput, 'lines'>,
+): Promise<FulfilOrderResult> {
+  const lines = await ctx.tx
+    .select({ id: orderLine.id, quantity: orderLine.quantity, packed: orderLine.fulfilledQuantity })
+    .from(orderLine)
+    .where(eq(orderLine.orderId, input.orderId))
+  const left = lines
+    .filter((l) => l.quantity > l.packed)
+    .map((l) => ({ lineId: l.id, quantity: l.quantity - l.packed }))
+  return fulfilOrderLines(ctx, { ...input, lines: left })
+}

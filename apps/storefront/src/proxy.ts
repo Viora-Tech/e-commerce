@@ -359,8 +359,8 @@ async function routeRequest(
       maxAge: MARKET_COOKIE_MAX_AGE,
     })
   }
-  // An affiliate's link (`?ref=`): the referral cookie and the click count, with or without
-  // analytics consent (`lib/referral-landing.ts`). Never twice for a page handed back.
+  // An affiliate's link (`?ref=`): the click count, and the referral cookie once the shopper
+  // said yes to marketing (`lib/referral-landing.ts`). Never twice for a page handed back.
   if (!handedBack && referred && !seoFile && !locked && !preview)
     await noteReferral(storeId, request, response)
   // The first page view after the shopper allowed analytics mints the anonymous visitor

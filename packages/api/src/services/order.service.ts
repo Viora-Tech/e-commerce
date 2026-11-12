@@ -6,7 +6,7 @@ import {
   notTestOrder,
   type OrderStatus,
   type OrderStatusChange,
-  orderParcelsView,
+  orderParcelsWithCharges,
   type PaymentProvider,
   parsePaymentSettings,
   type RefundMethod,
@@ -14,7 +14,6 @@ import {
   resolvePaymentProviders,
   UNFULFILLED_STATUSES,
   UNPAID_PAYMENT_STATUSES,
-  undoDelivered,
 } from '@commerce/core'
 import { startOfDay } from '@commerce/dates'
 import type { StoreTx } from '@commerce/db'
@@ -51,7 +50,7 @@ import {
 
 export { ORDER_VIEWS, type OrderView, viewFilter } from './order-views'
 
-import { pendingUpiTile, viewFilter } from './order-views'
+import { pendingUpiTile } from './order-views'
 
 export {
   ORDER_CHANNEL_FILTERS,
@@ -69,6 +68,9 @@ import { notDraft, type OrderListFilters, onHoldSql, orderListWhere } from './or
 
 /** The most ids "Select all" takes at once; bulk actions above this would need a background job. */
 const SELECT_ALL_MAX = 5000
+const latestShipment = <T>(column: string) =>
+  sql<T>`(select ${sql.raw(column)} from shipment s where s.order_id = ${order.id}
+    order by s.created_at desc limit 1)`
 
 /** Every order id the list's filters match, newest first (the table's "Select all N orders"). */
 export async function listOrderIds(tx: StoreTx, input: OrderListFilters): Promise<string[]> {
@@ -117,13 +119,9 @@ export async function listOrders(
       lineCount: sql<number>`(select count(*)::int from ${orderLine} ol where ol.order_id = ${order.id})`,
       /* The optional Items, Delivery, Phone and City columns (audit #7, #49). */
       itemCount: sql<number>`(select coalesce(sum(ol.quantity), 0)::int from ${orderLine} ol where ol.order_id = ${order.id})`,
-      deliveryStatus: sql<string | null>`(
-        select s.status from shipment s where s.order_id = ${order.id}
-        order by s.created_at desc limit 1)`,
-      /* The same shipment's tracking page: the Delivery chip links to it (#1008). */
-      trackingUrl: sql<string | null>`(
-        select s.tracking_url from shipment s where s.order_id = ${order.id}
-        order by s.created_at desc limit 1)`,
+      deliveryStatus: latestShipment<string | null>('s.status'),
+      labelLive: latestShipment<boolean | null>('s.label_url is not null'),
+      trackingUrl: latestShipment<string | null>('s.tracking_url'), // the Delivery chip's link (#1008)
       shipCity: sql<
         string | null
       >`(select a.city from ${address} a where a.id = ${order.shippingAddressId})`,
@@ -363,8 +361,8 @@ export async function getOrder(tx: StoreTx, id: string) {
     shippingAddress: ship ?? null,
     /** Where the bill goes when it is not the shipping address; null when they are the same. */
     billingAddress: bill ?? null,
-    /** Where each part ships from: one parcel per warehouse (order/routing.ts). */
-    parcels: await orderParcelsView(tx, id),
+    /** `parcels`: one per warehouse (order/routing.ts); `parcelCourierCharges`: their bookings'. */
+    ...(await orderParcelsWithCharges(tx, id, o.shipping)),
     /** Fulfilment on hold (#1011): why, who and when; null while it can ship. */
     hold: await orderHold(tx, id),
   }
@@ -406,7 +404,6 @@ export async function setOrderTags(tx: StoreTx, id: string, tags: string[]) {
   return o ?? null
 }
 
-/** Build the gateway for a payment from the store's saved credentials; null for offline methods. */
 /** The store's connected gateway for a payment provider id; null when it is not installed. */
 export async function providerForPayment(
   tx: StoreTx,
@@ -432,6 +429,7 @@ export async function refundOrderPayment(
     manual?: boolean | undefined
     method?: RefundMethod | undefined
     createdBy?: string | null | undefined
+    storeCreditExpiresOn?: string | null | undefined
   },
 ) {
   const [p] = await tx.select().from(payment).where(eq(payment.id, input.paymentId))
@@ -471,8 +469,9 @@ export async function setOrderStatus(
   storeId: string,
   id: string,
   change: OrderStatusChange,
+  opts?: Parameters<typeof changeOrderStatus>[3],
 ) {
-  return (await changeOrderStatus({ tx, storeId }, id, change)) ?? null
+  return (await changeOrderStatus({ tx, storeId }, id, change, opts)) ?? null
 }
 
 /**

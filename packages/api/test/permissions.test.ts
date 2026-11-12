@@ -1,5 +1,5 @@
 import { createMerchantAuth } from '@commerce/auth'
-import { createDb, order, role, store, storeMember } from '@commerce/db'
+import { createDb, order, role, rolePermission, store, storeMember } from '@commerce/db'
 import { resetDb } from '@commerce/db/test'
 import { call } from '@orpc/server'
 import { and, eq } from 'drizzle-orm'
@@ -202,6 +202,64 @@ describe('store permissions', () => {
         { context: ctx(helperHeaders) },
       ),
     ).rejects.toMatchObject({ code: 'FORBIDDEN' })
+  })
+
+  it('packs only with the fulfil grant: Mark as fulfilled / delivered need it, as the pack form does', async () => {
+    const boss = await merchant('boss5@example.com', 'perm-f')
+    const [s] = await owner
+      .insert(store)
+      .values({ slug: 'perm-f', name: 'F', organizationId: boss.organizationId })
+      .returning()
+    if (!s) throw new Error('seed')
+    await call(appRouter.staff.me, {}, { context: ctx(boss.headers) })
+    // A custom role that edits orders but is not allowed to pack them.
+    const [clerk] = await owner
+      .insert(role)
+      .values({ storeId: s.id, name: 'Order clerk', slug: 'order-clerk' })
+      .returning()
+    if (!clerk) throw new Error('seed role')
+    await owner.insert(rolePermission).values(
+      ['orders.read', 'orders.write'].map((permission) => ({
+        storeId: s.id,
+        roleId: clerk.id,
+        permission,
+      })),
+    )
+    const helperHeaders = await signIn('clerk@example.com')
+    const helperId = (await auth.api.getSession({ headers: helperHeaders }))?.user.id as string
+    await auth.api.addMember({
+      body: { userId: helperId, role: 'member', organizationId: boss.organizationId },
+    })
+    await auth.api.setActiveOrganization({
+      headers: helperHeaders,
+      body: { organizationId: boss.organizationId },
+    })
+    await setRole(s.id, helperId, 'order-clerk')
+    const [o] = await owner
+      .insert(order)
+      .values({
+        storeId: s.id,
+        number: 3,
+        email: 'shopper@example.com',
+        status: 'open',
+        subtotalPaise: 1000,
+        totalPaise: 1000,
+      })
+      .returning()
+    if (!o) throw new Error('seed order')
+
+    for (const status of ['fulfilled', 'delivered'] as const) {
+      await expect(
+        call(appRouter.orders.setStatus, { id: o.id, status }, { context: ctx(helperHeaders) }),
+      ).rejects.toMatchObject({ code: 'FORBIDDEN' })
+    }
+    // Mark as paid stays an order edit.
+    const paid = await call(
+      appRouter.orders.setStatus,
+      { id: o.id, status: 'paid' },
+      { context: ctx(helperHeaders) },
+    )
+    expect(paid?.paymentStatus).toBe('paid')
   })
 
   it('stops a non owner granting more than they hold', async () => {

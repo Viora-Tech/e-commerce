@@ -110,14 +110,28 @@ export default function PoliciesSettings() {
               policies.length,
             ),
           },
-          { id: 'business', title: r.business, value: form.legalName || rowsCopy.notSet },
+          {
+            id: 'business',
+            title: r.business,
+            value: form.legalName || rowsCopy.notSet,
+            help: copy.business.help,
+          },
           {
             id: 'grievance',
             title: r.grievance,
             value: form.grievanceOfficer.name || rowsCopy.notSet,
+            help: copy.grievance.help,
           },
         ]
       : []
+
+  const disclaimer = (
+    <Alert>
+      <InfoIcon aria-hidden="true" />
+      <AlertTitle>{copy.disclaimer.title}</AlertTitle>
+      <AlertDescription>{copy.disclaimer.body}</AlertDescription>
+    </Alert>
+  )
 
   return (
     <div className="flex flex-col gap-4">
@@ -130,22 +144,29 @@ export default function PoliciesSettings() {
         onDiscard={handleDiscard}
         saving={busy}
       />
-      <PageHeader
-        title={copy.title}
-        subtitle={copy.subtitle}
-        save={{ dirty, saving: busy, onSave: handleSave, label: copy.save }}
-      />
-      <Alert>
-        <InfoIcon aria-hidden="true" />
-        <AlertTitle>{copy.disclaimer.title}</AlertTitle>
-        <AlertDescription>{copy.disclaimer.body}</AlertDescription>
-      </Alert>
       {!policies || !form ? (
-        <Skeleton className="h-64 w-full rounded-2xl" />
+        <>
+          <PageHeader
+            title={copy.title}
+            subtitle={copy.subtitle}
+            save={{ dirty: false, saving: busy, onSave: handleSave, label: copy.save }}
+          />
+          {disclaimer}
+          <Skeleton className="h-64 w-full rounded-2xl" />
+        </>
       ) : (
-        <SettingsDrill rows={rows} backLabel={r.back}>
+        <SettingsDrill
+          rows={rows}
+          backLabel={r.back}
+          header={{
+            title: copy.title,
+            subtitle: copy.subtitle,
+            save: { dirty, saving: busy, onSave: handleSave, label: copy.save },
+            notice: disclaimer,
+          }}
+        >
           <SettingsDrillPanel id="policies">
-            <SettingsList heading={copy.list.heading}>
+            <SettingsList>
               {policies.map((p) => (
                 <PolicyRow key={p.type} policy={p} />
               ))}
@@ -153,15 +174,8 @@ export default function PoliciesSettings() {
           </SettingsDrillPanel>
 
           <SettingsDrillPanel id="business">
-            <SettingsCard title={copy.business.heading} description={copy.business.help}>
-              <SettingsTextRow
-                id="policy-legal-name"
-                label={copy.business.legalName}
-                description={copy.business.legalNameHint}
-                value={form.legalName}
-                onChange={(legalName) => setForm({ ...form, legalName })}
-              />
-              <div className="flex justify-end pt-5">
+            <SettingsCard
+              footer={
                 <Button
                   variant="outline"
                   render={<Link href={routes.settings.store()} />}
@@ -169,16 +183,20 @@ export default function PoliciesSettings() {
                 >
                   {copy.business.generalLink}
                 </Button>
-              </div>
+              }
+            >
+              <SettingsTextRow
+                id="policy-legal-name"
+                label={copy.business.legalName}
+                description={copy.business.legalNameHint}
+                value={form.legalName}
+                onChange={(legalName) => setForm({ ...form, legalName })}
+              />
             </SettingsCard>
           </SettingsDrillPanel>
 
           <SettingsDrillPanel id="grievance">
-            <SettingsCard
-              id="grievance-officer"
-              title={copy.grievance.heading}
-              description={copy.grievance.help}
-            >
+            <SettingsCard id="grievance-officer">
               {OFFICER_FIELDS.map((f) => (
                 <SettingsTextRow
                   key={f.key}

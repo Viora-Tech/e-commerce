@@ -243,6 +243,59 @@ describe('strategies', () => {
     expect(find(r, 'std')?.pick?.route.key).toBe('delhivery:S')
   })
 
+  it('at the same shopper price the faster courier beats the preferred one (#1520)', () => {
+    // DTDC ₹55 and Delhivery ₹60 both show ₹60; the merchant prefers DTDC, Delhivery is a day sooner.
+    const std = option('std', { name: 'Standard', speed: 'standard', preferCarrier: 'dtdc' })
+    const r = resolveDeliveryOptions(input({ config: config({ options: [std, EXPRESS] }) }))
+    expect(find(r, 'std')?.pick?.route.key).toBe('delhivery:S')
+    expect(find(r, 'std')?.pricePaise).toBe(6000)
+  })
+
+  it('a preferred courier wins when the shopper price and the date are both equal (#1520)', () => {
+    // DTDC ₹55 via Shiprocket and Delhivery direct ₹60: both ₹60, both 4–5 days.
+    const sameDay = answer('shiprocket', 'Shiprocket', [
+      svc({
+        serviceId: '30',
+        serviceLabel: 'DTDC Surface',
+        carrier: 'DTDC Surface',
+        pricePaise: 5500,
+        minTransitDays: 4,
+        maxTransitDays: 5,
+      }),
+    ])
+    const plain = resolveDeliveryOptions(input({ answers: [delhivery(), sameDay] }))
+    expect(find(plain, 'std')?.pick?.route.key).toBe('shiprocket:30') // tie: cheaper for the store
+    const std = option('std', { name: 'Standard', speed: 'standard', preferCarrier: 'delhivery' })
+    const r = resolveDeliveryOptions(
+      input({ config: config({ options: [std, EXPRESS] }), answers: [delhivery(), sameDay] }),
+    )
+    expect(find(r, 'std')?.pick?.route.key).toBe('delhivery:S')
+  })
+
+  it('a preferred courier never makes the shopper pay more', () => {
+    // DTDC ₹45 shows ₹50; the preferred Delhivery shows ₹60, so DTDC still wins.
+    const std = option('std', { name: 'Standard', speed: 'standard', preferCarrier: 'delhivery' })
+    const r = resolveDeliveryOptions(
+      input({
+        config: config({ options: [std, EXPRESS] }),
+        answers: [delhivery(), shiprocket(4500)],
+      }),
+    )
+    expect(find(r, 'std')?.pick?.route.key).toBe('shiprocket:30')
+  })
+
+  it('fastest keeps its date: a preferred courier that arrives later does not win', () => {
+    const exp = option('exp', {
+      name: 'Express',
+      speed: 'express',
+      strategy: 'fastest',
+      cod: { mode: 'prepaid_only' },
+      preferCarrier: 'delhivery',
+    })
+    const r = resolveDeliveryOptions(input({ config: config({ options: [STANDARD, exp] }) }))
+    expect(find(r, 'exp')?.pick?.route.key).toBe('shiprocket:20')
+  })
+
   it('fastest: Express takes the earliest arrival (Blue Dart Air), shown by its carrier', () => {
     const r = resolveDeliveryOptions(input())
     const exp = find(r, 'exp')
@@ -364,16 +417,24 @@ describe('route filtering', () => {
       input({ config: config({ options: [insuredStd], routeSettings: settings }) }),
     )
     const std = find(r, 'std')
-    // ₹1,500 × 0.5% = ₹7.50, minimum ₹20 → ₹55 + ₹20 = ₹75 → ₹80
-    expect(std?.pick?.insurancePaise).toBe(2000)
+    const traced = r.trace.options.find((o) => o.optionId === 'std')?.routes ?? []
+    // DTDC via Shiprocket: ₹1,500 × 0.5% = ₹7.50, minimum ₹20, + 18% GST = ₹23.60.
+    expect(traced.find((x) => x.carrier === 'DTDC')?.insurancePaise).toBe(2360)
+    // Delhivery direct ignores its route's 1% (min ₹30): Protect, Undetermined 0.60% = ₹9 +
+    // ₹1.62 GST. ₹60 + ₹10.62 = ₹70.62 beats DTDC's ₹55 + ₹23.60 = ₹78.60, rounded to ₹80.
+    expect(std?.pick?.route.key).toBe('delhivery:S')
+    expect(std?.pick?.insurancePaise).toBe(1062)
     expect(std?.pricePaise).toBe(8000)
   })
 
-  it('an unpriced insurance rate charges ₹0 and reports null', () => {
+  it('with no rate set, Delhivery Protect and Shiprocket’s 1.05% price insurance', () => {
     const insuredStd = option('std', { name: 'Standard', insurance: { default: 'on' } })
     const r = resolveDeliveryOptions(input({ config: config({ options: [insuredStd] }) }))
-    expect(find(r, 'std')?.insurance.pricePaise).toBeNull()
-    expect(find(r, 'std')?.pricePaise).toBe(6000)
+    // ₹1,500, product with no category (Undetermined, 0.60%): Delhivery ₹60 + ₹9 + ₹1.62 GST
+    // = ₹70.62 beats DTDC via Shiprocket ₹55 + ₹15.75 (1.05%, GST in) = ₹70.75.
+    expect(find(r, 'std')?.pick?.route.key).toBe('delhivery:S')
+    expect(find(r, 'std')?.insurance.pricePaise).toBe(1062)
+    expect(find(r, 'std')?.pricePaise).toBe(8000)
   })
 
   it('Standard is picked again for COD: DTDC has no COD, so COD ships Delhivery', () => {
@@ -608,6 +669,22 @@ describe('courier list (the option shows every allowed courier)', () => {
     )
     expect(delhiveryStandard).toHaveLength(1)
     expect(delhiveryStandard?.[0]?.route.key).toBe('delhivery:S')
+  })
+
+  it('an option that hides courier names shows only the delivery promise (#1521)', () => {
+    const hidden = option('list', {
+      name: 'Delivery',
+      speed: 'standard',
+      couriers: { show: 'list', max: 4, showNames: false },
+    })
+    const std = option('std', { name: 'Standard', couriers: { showNames: false } })
+    const r = resolveDeliveryOptions(input({ config: config({ options: [std, hidden, EXPRESS] }) }))
+    expect(find(r, 'std')?.title).toBe('Standard')
+    expect(find(r, 'std')?.pick?.route.showCarrier).toBe(false)
+    expect(find(r, 'std')?.cod?.route.showCarrier).toBe(false)
+    expect(find(r, 'list')?.choices.every((c) => !c.route.showCarrier)).toBe(true)
+    // Another option keeps its courier names.
+    expect(find(r, 'exp')?.title).toBe('Express · Blue Dart')
   })
 
   it('a one-card option is unchanged', () => {

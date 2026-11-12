@@ -58,6 +58,9 @@ export const productFormContent = {
     /** Toast when Save stops on a field, wherever on the page the button was. */
     fixBeforeSave: 'Fix the highlighted fields, then save again',
     depositMissing: 'Enter a deposit amount',
+    /** A variant's own pre-order limit that is not a whole number of at least 1. */
+    variantLimitInvalid: (variant: string) =>
+      `Enter the pre-order limit for ${variant} as a whole number of 1 or more, or leave it blank`,
     depositTooHigh: 'The deposit must be less than the price',
     depositPercent: 'Enter a percentage between 1 and 99',
     /** The server turned the save down; `field` is the plain-words name from `fields`. */
@@ -286,7 +289,7 @@ export const productFormContent = {
     taxPerVariantOffHelp:
       'Turn on only when variants are classed differently. Saving with it off uses these values for every variant.',
     taxPerVariantOnHelp:
-      "Set a variant's own HSN code or GST rate in its Edit dialog under Variants. A variant left blank uses the values above.",
+      "Set a variant's own HSN code or GST rate on its page: open it under Variants. A variant left blank uses the values above.",
     country: 'Country of origin',
     countryHelp: 'Where the product was made or assembled.',
     countryPlaceholder: 'Select a country',
@@ -294,8 +297,9 @@ export const productFormContent = {
     packageHelp:
       'The box this product ships in. Shipment booking uses it instead of the store default box.',
     packageManage: 'Add or edit named boxes in Settings, Shipping & delivery.',
-    packageAllVariants: 'Applies to every variant of this product.',
-    /** With options, weight and customs move into each variant's Edit dialog. */
+    packageAllVariants:
+      'Applies to every variant of this product, unless a variant picks its own box on its page (open it under Variants).',
+    /** With options, weight and customs move onto each variant's page. */
     perVariant:
       'Weight and country of origin are set on each variant. Open a variant under Variants to edit them.',
     packageStoreDefault: "Use the store's default box",
@@ -318,7 +322,8 @@ export const productFormContent = {
     shipsInDays: 'Or, ships in (days)',
     shipsInDaysHelp: 'Used when no expected ship date is set.',
     limit: 'Pre-order quantity limit',
-    limitHelp: 'Leave blank for no limit.',
+    limitHelp:
+      "Counted per variant: each variant can take this many pre-orders. A variant's own limit (Variants, Edit) wins. Leave blank for no limit.",
     buttonLabel: 'Pre-order button label',
     note: 'Pre-order note',
     noteHelp:

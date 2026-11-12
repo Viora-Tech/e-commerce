@@ -96,17 +96,17 @@ export const createShipmentContent = {
       [route, weight, payment].filter(Boolean).join(' · '),
     shipNow: 'Ship now',
     close: 'Close',
-    pickupNow: 'Create pickup now',
+    pickupNow: 'Schedule pickup',
     pickupTitle: 'Create pickup',
     pickupBody:
-      'The courier gets the pickup request and its manifest in one go. If a pickup is already booked for that place and day, this parcel joins it.',
+      'Add this parcel to a pickup already booked, or book a new one. The courier gets the request and its manifest in one go.',
     pickupDone: 'Pickup booked. The parcel moved to To be picked up.',
     /** Figma 898:7790: the drawer's header toggle, tabs, sort and table. */
     insurance: 'Shipping insurance',
     insuranceCovers: (price: string | null, value: string) =>
       price
         ? `+${price} · covers ${value} if lost or damaged`
-        : `Covers ${value} if lost or damaged · the courier's rate`,
+        : `Covers ${value} if lost or damaged`,
     mode: { all: 'All', air: 'Air', surface: 'Surface' } as Record<
       'all' | 'air' | 'surface',
       string
@@ -121,6 +121,21 @@ export const createShipmentContent = {
     via: (name: string) => `via ${name}`,
     inclGst: 'incl. GST',
     inclGstInsurance: 'incl. GST + insurance',
+    /** Insurance is on but this route has no rate (Delivery options › Routes sets one). */
+    insuranceUnset: 'Insurance rate not set',
+    insuranceGst: 'Insurance GST',
+    /** The courier's cover cap is below the parcel's value (Delhivery Protect: ₹30,000). */
+    coverOf: (covered: string, value: string) => `${covered} of ${value}`,
+    claimExcess: (percent: string) => `${percent}% excess on claims`,
+    uninsuredLimit: (courier: string, limit: string, value: string) =>
+      `Without insurance, ${courier} pays at most ${limit} if this ${value} parcel is lost.`,
+    usedNotCovered: (courier: string) =>
+      `Open-box / used items aren’t covered by ${courier} insurance.`,
+    /** Shiprocket's insurance is one GST-inclusive figure. */
+    insuranceInclGst: 'Insurance (incl. GST)',
+    /** RapidShyp's insurance is worked out from its published rate, not its own figure. */
+    insuranceEstimate: 'Insurance (est.)',
+    insuranceEstimateHint: 'RapidShyp’s own figure can differ slightly',
     breakdown: 'Price breakdown',
     youPay: 'You pay',
   },

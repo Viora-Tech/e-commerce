@@ -139,6 +139,11 @@ export default function RouteSettingDialog({
   // Render logic
   const d = copy.routeDialog
   const percentBad = draft.percent.trim() !== '' && toNumber(draft.percent) === null
+  // Delhivery's own app is insured by its Protect card; a rate here does not apply to it.
+  const delhiveryDirect =
+    target.kind === 'exact'
+      ? target.key.startsWith('delhivery:')
+      : draft.carrier === 'delhivery' && draft.channel === 'direct'
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -196,7 +201,9 @@ export default function RouteSettingDialog({
               <MoneyInput id="route-min" value={draft.min} onChange={(min) => patch({ min })} />
             </Field>
           </div>
-          <FieldDescription>{d.insuranceRateHelp}</FieldDescription>
+          <FieldDescription>
+            {delhiveryDirect ? d.insuranceDelhivery : d.insuranceRateHelp}
+          </FieldDescription>
           <Field>
             <FieldLabel>{d.costCard}</FieldLabel>
             <div className="grid grid-cols-3 gap-3">

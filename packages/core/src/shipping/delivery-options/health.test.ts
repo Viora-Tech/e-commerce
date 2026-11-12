@@ -115,7 +115,59 @@ describe('circuit breaker', () => {
     expect(health.apps[1]).toMatchObject({ calls: 0, successRate: null, skippedSince: null })
   })
 
-  it('a missed deadline counts as a failure', async () => {
+  it('a late answer counts as a success and refreshes the cache (#1524)', async () => {
+    const store = memoryStore()
+    const lands: Array<() => void> = []
+    const late = mockProvider('rapidshyp', {
+      quoteOptions: () =>
+        new Promise<RateOption[]>((resolve) => lands.push(() => resolve([opt('S', 6000)]))),
+    })
+    let clock = 1_000_000
+    const now = () => clock
+    for (let i = 0; i < BREAKER_FAILURES; i++) {
+      const [a] = await gatherProviderAnswers([late], QUERY, {
+        storeId: 's1',
+        cache: store,
+        deadlineMs: 5,
+        now,
+      })
+      // Past the deadline: failed the first time, the stale cached answer after that.
+      expect(a?.source === 'live' ? a.status : 'cache').toBe(i === 0 ? 'failed' : 'cache')
+      clock += 1900 // RapidShyp's ~2 s
+      for (const land of lands.splice(0)) land()
+      await flush()
+      clock += DELIVERY_QUOTE_FRESH_MS + 1 // stale again: the next shopper asks live
+    }
+    const health = await deliveryHealth(store, 's1', ['rapidshyp'], clock)
+    expect(health.apps[0]).toMatchObject({ calls: 3, successRate: 1, skippedSince: null })
+    expect(health.apps[0]?.typicalMs).toBe(1900)
+    // Never skipped, and the late answer refreshed the cache for the next shopper.
+    clock -= DELIVERY_QUOTE_FRESH_MS + 1
+    const [next] = await gatherProviderAnswers([late], QUERY, { storeId: 's1', cache: store, now })
+    expect(next).toMatchObject({ status: 'ok', source: 'cache', stale: false })
+  })
+
+  it('a call that ends in an error after the deadline still counts as a failure', async () => {
+    const store = memoryStore()
+    const fails: Array<() => void> = []
+    const hung = mockProvider('rapidshyp', {
+      quoteOptions: () =>
+        new Promise<RateOption[]>((_, reject) =>
+          fails.push(() => reject(new Error('The operation timed out'))),
+        ),
+      checkServiceability: () =>
+        new Promise((_, reject) => fails.push(() => reject(new Error('The operation timed out')))),
+    })
+    for (let i = 0; i < BREAKER_FAILURES; i++) {
+      await gatherProviderAnswers([hung], QUERY, { storeId: 's1', cache: store, deadlineMs: 5 })
+      for (const fail of fails.splice(0)) fail()
+      await flush()
+    }
+    const [a] = await gatherProviderAnswers([hung], QUERY, { storeId: 's1', cache: store })
+    expect(a?.error).toMatch(/^Skipped since/)
+  })
+
+  it('a call still running after the deadline is not counted yet', async () => {
     const store = memoryStore()
     const slow = mockProvider('rapidshyp', {
       quoteOptions: () => new Promise<RateOption[]>(() => undefined),
@@ -125,8 +177,13 @@ describe('circuit breaker', () => {
       await gatherProviderAnswers([slow], QUERY, { storeId: 's1', cache: store, deadlineMs: 5 })
       await flush()
     }
-    const [a] = await gatherProviderAnswers([slow], QUERY, { storeId: 's1', cache: store })
-    expect(a?.error).toMatch(/^Skipped since/)
+    const [a] = await gatherProviderAnswers([slow], QUERY, {
+      storeId: 's1',
+      cache: store,
+      deadlineMs: 5,
+    })
+    expect(a?.error).toMatch(/No answer within 5 ms/)
+    expect((await deliveryHealth(store, 's1', ['rapidshyp'])).apps[0]?.calls).toBe(0)
   })
 
   it('a store without counters has no breaker', async () => {
@@ -315,6 +372,52 @@ describe('shipping margin', () => {
     expect(shippingMargin(backup, 8000, 6000)).toMatchObject({
       insurancePaise: 0,
       marginPaise: 2000,
+    })
+  })
+
+  it('a split cart adds up every parcel’s courier and insurance', () => {
+    const parcel = (id: string | undefined, cost: number | null, insurance: number | null) => ({
+      ...(id ? { fulfillmentOrderId: id } : {}),
+      locationId: `loc-${id}`,
+      onHold: false,
+      route: null,
+      insured: insurance !== null,
+      insurancePaise: insurance,
+      markupPaise: 0,
+      courierCostPaise: cost,
+      promisedEarliest: null,
+      promisedLatest: null,
+    })
+    // The order-level fields are the first parcel's; the margin must not stop there.
+    const split = {
+      ...delivery,
+      parcels: [parcel('fo-1', 9000, 1500), parcel('fo-2', 6000, null)],
+    }
+    expect(shippingMargin(split, 20000, null)).toEqual({
+      chargedPaise: 20000,
+      courierPaise: 15000,
+      courierFrom: 'quote',
+      insurancePaise: 1500,
+      marginPaise: 3500,
+    })
+    // One parcel booked: its own charge replaces its quote; the order's latest charge is ignored.
+    expect(shippingMargin(split, 20000, 99999, { 'fo-2': 7000 })).toMatchObject({
+      courierPaise: 16000,
+      courierFrom: 'mixed',
+      marginPaise: 2500,
+    })
+    expect(shippingMargin(split, 20000, null, { 'fo-1': 8000, 'fo-2': 7000 })).toMatchObject({
+      courierFrom: 'booking',
+      marginPaise: 3500,
+    })
+    // A parcel with no cost known yet: no margin until it is.
+    const unknown = {
+      ...split,
+      parcels: [parcel('fo-1', 9000, 1500), parcel(undefined, null, null)],
+    }
+    expect(shippingMargin(unknown, 20000, null)).toMatchObject({
+      courierPaise: null,
+      marginPaise: null,
     })
   })
 })

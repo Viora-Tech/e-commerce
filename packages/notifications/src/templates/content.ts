@@ -72,12 +72,14 @@ export const templateContent: Record<TemplateId, TemplateCopy> = {
         : `${d.storeName}: your order #${draftRef(d)} is ready to pay`,
     heading: (d) => `Hi ${d.customerName}`,
     intro: (d) =>
-      d.reminder
-        ? `Order #${draftRef(d)} for ${d.totalLabel} is still waiting for your payment.`
-        : `We have prepared order #${draftRef(d)} for ${d.totalLabel}.`,
+      `${
+        d.reminder
+          ? `Order #${draftRef(d)} for ${d.totalLabel} is still waiting for your payment.`
+          : `We have prepared order #${draftRef(d)} for ${d.totalLabel}.`
+      }${d.storeCredit?.toPayLabel ? ` Your store credit covers part of it, so ${d.storeCredit.toPayLabel} is left to pay.` : ''}`,
     outro: (d) => (d.actionUrl ? `Pay securely here: ${d.actionUrl}` : 'Reply to confirm.'),
     whatsapp: (d) =>
-      `${d.storeName}: order #${draftRef(d)} for ${d.totalLabel} is ready.${d.actionUrl ? ` Pay: ${d.actionUrl}` : ''}`,
+      `${d.storeName}: order #${draftRef(d)} for ${d.totalLabel} is ready.${d.storeCredit?.toPayLabel ? ` After your store credit, ${d.storeCredit.toPayLabel} to pay.` : ''}${d.actionUrl ? ` Pay: ${d.actionUrl}` : ''}`,
   },
   checkout_recovery: {
     subject: (d) => `${d.storeName}: your basket is saved`,
@@ -342,6 +344,13 @@ export const sharedContent = {
   awb: (courier: string | undefined, waybill: string) =>
     courier ? `${courier} · AWB ${waybill}` : `AWB ${waybill}`,
   giftCardLabel: 'Your gift card code',
+  storeCredit: {
+    applied: 'Store credit',
+    toPay: 'To pay',
+    used: (amount: string, balance: string) => `Store credit used ${amount} · balance ${balance}`,
+    added: (amount: string, balance: string) =>
+      `${amount} added to your store credit · balance ${balance}`,
+  },
   codeLabel: 'Your code',
   parcels: {
     title: (count: number) => `Ships in ${count} parcels`,

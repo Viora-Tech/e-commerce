@@ -28,6 +28,7 @@ import {
   deleteShippingProfile,
   getShippingProfile,
   listShippingProfiles,
+  moveProductsToGeneral,
   quoteCartShipping,
   updateShippingProfile,
 } from './profiles-service'
@@ -305,6 +306,44 @@ describe('shipping profile service', () => {
     const zones = await withStore(app, s.storeId, (tx) => listShippingZones(tx))
     expect(zones.map((z) => z.rates.map((r) => r.name))).toEqual([['Standard']])
     expect(await owner.select().from(shippingProfileProduct)).toEqual([])
+  })
+
+  it("General's Move products here takes products and their single variants out of other profiles", async () => {
+    const s = await seed('move-general')
+    const other = await seed('move-other')
+    const skates = await waimers(s)
+    await waimers(other)
+    const pad = await product3(s.storeId, 'pad', [
+      { title: 'L', pricePaise: 200_000 },
+      { title: 'XL', pricePaise: 250_000 },
+    ])
+    const big = await withStore(app, s.storeId, (tx) =>
+      createShippingProfile(tx, s.storeId, {
+        name: 'Big pads',
+        productIds: [],
+        variantIds: [pad.variantIds[1] as string],
+      }),
+    )
+    const moved = await withStore(app, s.storeId, (tx) =>
+      moveProductsToGeneral(tx, [s.skate.productId, pad.productId, other.skate.productId]),
+    )
+    // The other store's product is not this store's to move (RLS).
+    expect(moved).toEqual({ moved: 2 })
+    const after = await withStore(app, s.storeId, async (tx) => ({
+      skates: await getShippingProfile(tx, s.storeId, skates.id),
+      big: await getShippingProfile(tx, s.storeId, big.id),
+    }))
+    expect(after.skates?.productIds).toEqual([])
+    expect(after.big?.variantIds).toEqual([])
+    // Still in its own store's Skates profile.
+    const otherList = await withStore(app, other.storeId, (tx) =>
+      listShippingProfiles(tx, other.storeId),
+    )
+    expect(otherList.find((p) => p.name === 'Skates')?.productCount).toBe(1)
+    // Moving again changes nothing.
+    expect(
+      await withStore(app, s.storeId, (tx) => moveProductsToGeneral(tx, [s.skate.productId])),
+    ).toEqual({ moved: 0 })
   })
 })
 

@@ -51,3 +51,22 @@ export const primarySellingLevel = (variantId: SQLWrapper | string): SQL =>
     select il.id from inventory_level il join location l on l.id = il.location_id
     where il.variant_id = ${variantId} and il.fulfils_online
     order by l.is_default desc, l.priority, l.id limit 1)`
+
+/**
+ * SOURCE OF TRUTH: homeSellingStock
+ * WHAT:  The one selling row a pre-order is held at (`primarySellingLevel`: the default location
+ *        when it sells online, else the first selling location by priority), one row per variant:
+ *        `variantId`, `homeOnHand`, `homeReserved`.
+ * WHY:   Checkout routes a pre-order line past stock to the home location and counts its limit
+ *        there (order/routing-service.ts); the cart's stepper reads the same figure (#1538).
+ * WHERE: `.leftJoin(homeSellingStock, eq(homeSellingStock.variantId, variant.id))`.
+ */
+export const homeSellingStock = new QueryBuilder()
+  .select({
+    variantId: inventoryLevel.variantId,
+    homeOnHand: sql<number>`${inventoryLevel.onHand}`.as('home_on_hand'),
+    homeReserved: sql<number>`${inventoryLevel.reserved}`.as('home_reserved'),
+  })
+  .from(inventoryLevel)
+  .where(primarySellingLevel(inventoryLevel.variantId))
+  .as('home_selling_stock')

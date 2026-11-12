@@ -23,7 +23,7 @@ import { customMessage } from './custom-message'
 import { assertNotImported } from './imported-order'
 
 /** Whether the store has a WhatsApp channel (Meta Cloud API) set up to send order messages. */
-async function storeHasWhatsapp(tx: Parameters<typeof storeRegistries>[0], storeId: string) {
+export async function storeHasWhatsapp(tx: Parameters<typeof storeRegistries>[0], storeId: string) {
   const { notifications } = await storeRegistries(tx, storeId)
   const channels = await storeNotificationChannels(tx, storeId, {
     registry: notifications,

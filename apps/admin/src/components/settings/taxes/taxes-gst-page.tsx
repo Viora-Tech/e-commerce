@@ -2,7 +2,6 @@
 
 import type { BusinessGstView } from '@commerce/core'
 import { useState } from 'react'
-import PageHeader from '@/components/layout/page-header'
 import { settingsContent } from '@/data/settings'
 import { useCopy } from '@/hooks/use-copy'
 import BusinessGstSettings from '../business-gst/business-gst-settings'
@@ -28,19 +27,17 @@ export default function TaxesGstPage({ view }: TaxesGstPageProps) {
 
   return (
     <div className="flex flex-col gap-4">
-      <PageHeader
-        title={copy.taxesPage.title}
-        subtitle={copy.taxesPage.intro}
-        save={
-          saveState
-            ? { dirty: saveState.dirty, saving: saveState.busy, onSave: saveState.save }
-            : undefined
-        }
-      />
       <TaxesSettings
         refreshKey={gstKey(view)}
         gstCount={view.registrations.length}
         gstNumbers={<BusinessGstSettings view={view} />}
+        header={{
+          title: copy.taxesPage.title,
+          subtitle: copy.taxesPage.intro,
+          save: saveState
+            ? { dirty: saveState.dirty, saving: saveState.busy, onSave: saveState.save }
+            : undefined,
+        }}
         onSaveState={setSaveState}
       />
     </div>

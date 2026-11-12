@@ -1,7 +1,13 @@
 /** SOURCE OF TRUTH: delivery option booking tests — WHAT: the saved route among the rate rows, its failure reason and fallback, product rules for orders without a route / WHY: booking must match what the shopper paid for. */
 import { describe, expect, it } from 'vitest'
 import type { CourierRateRow } from '../courier-rates'
-import { type BookingContext, bookingPlan, rowRoute } from './booking'
+import {
+  type BookingContext,
+  bookingPlan,
+  deliveryForParcel,
+  rowRoute,
+  withParcelIds,
+} from './booking'
 import { DeliveryOptionInputSchema, RouteRuleInputSchema } from './config'
 
 const row = (
@@ -143,5 +149,105 @@ describe('bookingPlan', () => {
       speed: 'express',
       insures: true,
     })
+  })
+})
+
+describe('deliveryForParcel', () => {
+  const saved = ctx().delivery as NonNullable<BookingContext['delivery']>
+  const dtdc = {
+    key: 'shiprocket:30',
+    providerId: 'shiprocket',
+    channel: 'aggregator' as const,
+    carrier: 'DTDC',
+    serviceId: '30',
+    serviceLabel: 'DTDC Surface',
+  }
+  const parcelRoute = (locationId: string, onHold: boolean, route = dtdc) => ({
+    locationId,
+    onHold,
+    route,
+    insured: false,
+    insurancePaise: null,
+    markupPaise: 0,
+    courierCostPaise: 5500,
+    promisedEarliest: '2026-11-06',
+    promisedLatest: '2026-11-08',
+  })
+  const split = {
+    ...saved,
+    parcels: [parcelRoute('loc-a', false, saved.route as typeof dtdc), parcelRoute('loc-b', false)],
+  }
+
+  it('a parcel of a split cart books the courier quoted for it', () => {
+    const d = deliveryForParcel(split, { locationId: 'loc-b', status: 'open' })
+    expect(d).toMatchObject({
+      route: dtdc,
+      insured: false,
+      courierCostPaise: 5500,
+      optionId: 'exp',
+    })
+    // Its booking plan finds that parcel's route among the rate rows.
+    const plan = bookingPlan(ROWS, ctx({ delivery: d }), { insured: false })
+    expect(plan.chosenKey).toBe('shiprocket:30')
+  })
+
+  it('a pre-order parcel at the same place takes the pre-order route first', () => {
+    const both = {
+      ...saved,
+      parcels: [
+        parcelRoute('loc-a', false, saved.route as typeof dtdc),
+        parcelRoute('loc-a', true),
+      ],
+    }
+    expect(deliveryForParcel(both, { locationId: 'loc-a', status: 'on_hold' })?.route).toEqual(dtdc)
+    expect(deliveryForParcel(both, { locationId: 'loc-a', status: 'open' })?.route).toEqual(
+      saved.route,
+    )
+  })
+
+  it('a released pre-order parcel keeps its own route at a shared location (by parcel id)', () => {
+    const both = {
+      ...saved,
+      parcels: [
+        parcelRoute('loc-a', false, saved.route as typeof dtdc),
+        parcelRoute('loc-a', true),
+      ],
+    }
+    // Placing the order stamps each route with its parcel: in stock first, then the pre-order.
+    const stamped = withParcelIds(both, [
+      { id: 'fo-1', locationId: 'loc-a', status: 'open' },
+      { id: 'fo-2', locationId: 'loc-a', status: 'on_hold' },
+    ])
+    expect(stamped?.parcels?.map((p) => p.fulfillmentOrderId)).toEqual(['fo-1', 'fo-2'])
+    // Released: the pre-order parcel is `open` now, yet still books the pre-order route.
+    const released = { id: 'fo-2', locationId: 'loc-a', status: 'open' }
+    const d = deliveryForParcel(stamped ?? null, released)
+    expect(d?.route).toEqual(dtdc)
+    expect(d).not.toHaveProperty('fulfillmentOrderId')
+    expect(deliveryForParcel(stamped ?? null, { ...released, id: 'fo-1' })?.route).toEqual(
+      saved.route,
+    )
+    // Unstamped (an older order), the same parcel falls back to the location's in-stock route.
+    expect(deliveryForParcel(both, released)?.route).toEqual(saved.route)
+  })
+
+  it('stamping uses each parcel once and leaves the order alone when nothing matches', () => {
+    const made = [
+      { id: 'fo-1', locationId: 'loc-a', status: 'open' },
+      { id: 'fo-2', locationId: 'loc-b', status: 'open' },
+    ]
+    const stamped = withParcelIds(split, made)
+    expect(stamped?.parcels?.map((p) => p.fulfillmentOrderId)).toEqual(['fo-1', 'fo-2'])
+    // Already stamped, or no parcel at those places: the same object (no write).
+    expect(withParcelIds(stamped, made)).toBe(stamped)
+    expect(withParcelIds(split, [{ id: 'fo-9', locationId: 'loc-z', status: 'open' }])).toBe(split)
+    expect(withParcelIds(saved, made)).toBe(saved)
+  })
+
+  it('the whole order, one parcel, or an unknown location: the order’s route unchanged', () => {
+    expect(deliveryForParcel(split, null)).toBe(split)
+    expect(deliveryForParcel(saved, { locationId: 'loc-b', status: 'open' })).toBe(saved)
+    expect(deliveryForParcel(split, { locationId: 'loc-z', status: 'open' })).toBe(split)
+    expect(deliveryForParcel(null, { locationId: 'loc-b', status: 'open' })).toBeNull()
   })
 })

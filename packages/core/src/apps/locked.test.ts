@@ -3,6 +3,8 @@ import { createDb, store, withStore } from '@commerce/db'
 import { resetDb } from '@commerce/db/test'
 import { eq } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
+import { saveStoreProfile } from '../settings/store-profile'
+import { parseStoreTax } from '../tax/settings'
 import { lockStoreApps } from './locked'
 import { installApp, parseAppsSettings } from './settings'
 
@@ -63,5 +65,43 @@ describe('lockStoreApps', () => {
       'delivery-options',
       'gst-invoices',
     ])
+  })
+
+  it('saving the store profile while an app installs keeps both (#1523)', async () => {
+    const [s] = await owner
+      .insert(store)
+      .values({ slug: 'w2', name: 'Waimers', apps: { installed: ['reviews'] } })
+      .returning()
+    const storeId = s?.id as string
+    let releaseFirst: () => void = () => undefined
+    const firstMayWrite = new Promise<void>((resolve) => {
+      releaseFirst = resolve
+    })
+    let firstLocked: () => void = () => undefined
+    const lockedByFirst = new Promise<void>((resolve) => {
+      firstLocked = resolve
+    })
+
+    const install = withStore(app, storeId, async (tx) => {
+      const apps = await lockStoreApps(tx, storeId)
+      firstLocked()
+      await firstMayWrite
+      await tx
+        .update(store)
+        .set({ apps: installApp(apps, 'delivery-options') })
+        .where(eq(store.id, storeId))
+    })
+    await lockedByFirst
+    // Unlocked, this read the apps record before the install committed and wrote it back without it.
+    const profile = withStore(app, storeId, (tx) =>
+      saveStoreProfile({ tx, storeId }, { pricesIncludeGst: false }),
+    )
+    await pause(300)
+    releaseFirst()
+    await Promise.all([install, profile])
+
+    const [row] = await owner.select({ apps: store.apps }).from(store).where(eq(store.id, storeId))
+    expect(parseAppsSettings(row?.apps).installed).toEqual(['reviews', 'delivery-options'])
+    expect(parseStoreTax(row?.apps).pricesIncludeGst).toBe(false)
   })
 })

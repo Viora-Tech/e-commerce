@@ -13,6 +13,11 @@ import {
   toWrite,
   type VariantRow,
 } from './form-state'
+import {
+  inheritedPreorderLimit,
+  validVariantLimit,
+  variantPreorderContext,
+} from './variant-preorder-limit'
 import { matrixOptions, reconcileVariants } from './variant-reconcile'
 
 function variant(optionValues: string[], patch: Partial<VariantRow> = {}): VariantRow {
@@ -213,5 +218,70 @@ describe('a product without a price (#913)', () => {
 
   it('still stops a price that is typed but not a number', () => {
     expect(formErrors(productFormContent, titled('abc')).variants).toMatch(/as a number/)
+  })
+})
+
+describe("a variant's own pre-order limit", () => {
+  const titled = (preorderLimit: string) => ({
+    ...emptyForm(),
+    title: 'Glasspad',
+    preorderEnabled: true,
+    preorderLimit: '20',
+    variants: [variant(['Black'], { preorderLimit }), variant(['White'])],
+  })
+
+  it('sends the typed limit, and null for a blank one (use the product limit)', () => {
+    const write = toWrite(titled('5'))
+    expect(write.variants.map((v) => v.preorderLimit)).toEqual([5, null])
+    expect(write.preorderLimit).toBe(20)
+  })
+
+  it('reads the variant limit back from the loaded product', () => {
+    const loaded = {
+      title: 'Glasspad',
+      description: null,
+      status: 'active',
+      tags: [],
+      handle: 'glasspad',
+      options: [],
+      images: [],
+      variants: [
+        { id: 'v1', optionValues: [], preorderAllowed: true, preorderLimit: 3, mediaIds: [] },
+        { id: 'v2', optionValues: [], preorderAllowed: true, preorderLimit: null, mediaIds: [] },
+      ],
+    } as unknown as LoadedProduct
+    expect(fromProduct(loaded).variants.map((v) => v.preorderLimit)).toEqual(['3', ''])
+  })
+
+  it('accepts a whole number of 1 or more, or blank; stops anything else', () => {
+    expect(['', ' ', '1', '25', '1000000'].every(validVariantLimit)).toBe(true)
+    expect(['0', '-2', '1.5', 'abc', '1000001'].some(validVariantLimit)).toBe(false)
+    expect(formErrors(productFormContent, titled('5'))).toEqual({})
+    expect(formErrors(productFormContent, titled('0')).variants).toMatch(
+      /pre-order limit for Black/,
+    )
+  })
+
+  it("shows the product's limit, no limit, or the campaign's in the placeholder", () => {
+    expect(inheritedPreorderLimit(titled(''))).toEqual({ from: 'product', limit: 20 })
+    expect(inheritedPreorderLimit({ ...titled(''), preorderLimit: '' })).toEqual({
+      from: 'product',
+      limit: null,
+    })
+    const inCampaign = { ...titled(''), preorderCampaignId: 'c1', preorderOwn: [] }
+    expect(inheritedPreorderLimit(inCampaign)).toEqual({ from: 'campaign' })
+    expect(inheritedPreorderLimit({ ...inCampaign, preorderOwn: ['limit'] })).toEqual({
+      from: 'product',
+      limit: 20,
+    })
+  })
+
+  it('offers the field only while the product takes pre-orders', () => {
+    expect(variantPreorderContext(titled('')).on).toBe(true)
+    expect(variantPreorderContext({ ...titled(''), preorderEnabled: false }).on).toBe(false)
+    expect(
+      variantPreorderContext({ ...titled(''), preorderEnabled: false, preorderCampaignId: 'c1' })
+        .on,
+    ).toBe(true)
   })
 })

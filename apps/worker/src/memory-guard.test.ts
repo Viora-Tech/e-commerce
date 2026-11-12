@@ -75,7 +75,7 @@ describe('priorityOf', () => {
 })
 
 describe('sweepRuns', () => {
-  const payments = ['unpaid-order-expiry', 'preorder-balance', 'payment-fees']
+  const payments = ['unpaid-order-expiry', 'preorder-balance', 'payment-fees', 'refund-sync']
   it('payment sweeps run at every level', () => {
     for (const name of payments) {
       expect(sweepRuns('normal', name)).toBe(true)

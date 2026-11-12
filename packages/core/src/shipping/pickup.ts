@@ -1,7 +1,9 @@
+import { dayKey } from '@commerce/dates'
 import { shipment, shipmentManifest, shipmentPickup } from '@commerce/db'
 import type { ShippingProvider } from '@commerce/shipping'
 import { and, eq, inArray, isNull } from 'drizzle-orm'
 import type { StoreContext } from '../context'
+import { CommerceError } from '../errors'
 
 export type ShipmentPickupRow = typeof shipmentPickup.$inferSelect
 export type ShipmentManifestRow = typeof shipmentManifest.$inferSelect
@@ -33,9 +35,18 @@ export async function schedulePickup(
     timeTo?: string | undefined
     /** The courier pickup location; empty for the courier account's own (`defaultPickupLocationName`). */
     pickupLocationName: string
+    /**
+     * A pickup already booked that the merchant picked to add these parcels to ("Add to pickup").
+     * Used when it is this courier's and still scheduled; otherwise the day and place decide.
+     */
+    joinPickupId?: string | undefined
   },
 ): Promise<ShipmentPickupRow> {
   if (input.shipmentIds.length === 0) throw new Error('pick at least one shipment')
+  // A new pickup can't be booked for a day that has passed (India time); joining one stays allowed.
+  if (!input.joinPickupId && input.date < dayKey(new Date())) {
+    throw new CommerceError('BAD_REQUEST', 'Pick today or a later day for the pickup')
+  }
   const place = input.pickupLocationName || provider.defaultPickupLocationName || ''
 
   const [open] = await ctx.tx
@@ -45,9 +56,13 @@ export async function schedulePickup(
       and(
         eq(shipmentPickup.storeId, ctx.storeId),
         eq(shipmentPickup.provider, provider.id),
-        eq(shipmentPickup.scheduledFor, input.date),
-        eq(shipmentPickup.pickupLocationName, place),
         eq(shipmentPickup.status, 'scheduled'),
+        ...(input.joinPickupId
+          ? [eq(shipmentPickup.id, input.joinPickupId)]
+          : [
+              eq(shipmentPickup.scheduledFor, input.date),
+              eq(shipmentPickup.pickupLocationName, place),
+            ]),
       ),
     )
     .limit(1)

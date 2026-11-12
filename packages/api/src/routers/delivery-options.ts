@@ -10,6 +10,7 @@ import {
   deliveryOptionsInstalled,
   deliveryOverview,
   loadDeliveryConfig,
+  ProtectCardSchema,
   permissions,
   RouteRuleInputSchema,
   RouteSettingInputSchema,
@@ -17,6 +18,7 @@ import {
   reorderRouteRules,
   resolveShippingProviders,
   saveDeliveryOption,
+  saveProtectCard,
   saveRouteRule,
   saveRouteSetting,
   tryDeliveryPin,
@@ -63,7 +65,7 @@ export const deliveryOptionsRouter = {
   overview: can(permissions.SETTINGS_READ).handler(async ({ context }) => {
     await requireInstalled(context)
     const { providers } = await providersOf(context)
-    const overview = await deliveryOverview(context.tx, providers)
+    const overview = await deliveryOverview(context.tx, context.scope.storeId, providers)
     // What checkout recorded: each app's recent calls and breaker, and the backup share.
     const health = context.deliveryHealth
       ? await deliveryHealth(
@@ -79,7 +81,7 @@ export const deliveryOptionsRouter = {
     .input(z.object({ id: z.uuid() }))
     .handler(async ({ context, input }) => {
       await requireInstalled(context)
-      const config = await loadDeliveryConfig(context.tx)
+      const config = await loadDeliveryConfig(context.tx, context.scope.storeId)
       const option = config.options.find((o) => o.id === input.id)
       if (!option)
         throw new ORPCError('NOT_FOUND', { message: 'This delivery option no longer exists.' })
@@ -154,6 +156,15 @@ export const deliveryOptionsRouter = {
       return { ok: true }
     }),
 
+  /** Delhivery Protect's card: rates per category and product-type overrides (the overview
+   *  returns it as `protect`). Booking, checkout and the margin read it. */
+  saveProtect: can(permissions.SETTINGS_MANAGE)
+    .input(ProtectCardSchema)
+    .handler(async ({ context, input }) => {
+      await requireInstalled(context)
+      return saveProtectCard(context.tx, context.scope.storeId, input)
+    }),
+
   /** Try a PIN: the cards checkout would show, every route's quote, and why. Calls couriers. */
   tryPin: can(permissions.SETTINGS_READ)
     .input(
@@ -165,6 +176,11 @@ export const deliveryOptionsRouter = {
         valuePaise: z.number().int().min(0).max(100_000_000),
         weightGrams: z.number().int().min(1).max(100_000),
         productIds: z.array(z.uuid()).max(BULK_MAX).default([]),
+        /** Pick products mode: the parcel is built from these, as checkout builds it. */
+        lines: z
+          .array(z.object({ variantId: z.uuid(), quantity: z.number().int().min(1).max(999) }))
+          .max(BULK_MAX)
+          .optional(),
         declineInsurance: z.boolean().default(false),
       }),
     )

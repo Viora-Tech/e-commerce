@@ -17,6 +17,7 @@ import GiftCardSettingsCard from '@/components/gift-cards/gift-card-settings-car
 import GiftCardStateTabs from '@/components/gift-cards/gift-card-state-tabs'
 import GiftCardTiles from '@/components/gift-cards/gift-card-tiles'
 import GiftCardsBulkActions from '@/components/gift-cards/gift-cards-bulk-actions'
+import StoreCreditCardsCard from '@/components/gift-cards/store-credit-cards-card'
 import EmptyState from '@/components/layout/empty-state'
 import ProoflyListPage from '@/components/layout/proofly-list-page'
 import RelativeTime from '@/components/layout/relative-time'
@@ -284,6 +285,7 @@ function GiftCardsContent({ initial }: { initial: GiftCardsInitial }) {
           empty={copy.empty}
         />
       )}
+      <StoreCreditCardsCard onMoved={() => void refresh()} />
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
         <GiftCardProductsCard products={products} onAdd={() => setProductOpen(true)} />
         <GiftCardSettingsCard initial={initial.settings} />

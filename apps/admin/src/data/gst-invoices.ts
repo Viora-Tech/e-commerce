@@ -208,6 +208,7 @@ export const gstInvoicesContent = {
   detail: {
     back: 'All invoices',
     download: 'Download PDF',
+    print: 'Print',
     cancel: 'Cancel invoice',
     cancelReason: 'Reason for cancelling',
     cancelled: 'Invoice cancelled; its number stays used.',

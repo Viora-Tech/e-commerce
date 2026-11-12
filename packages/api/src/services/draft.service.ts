@@ -29,6 +29,7 @@ import {
   previewDraftGst,
   RECOVERY_NO_CONSENT,
   recoveryUrl,
+  STORE_CREDIT_PROVIDER,
   storefrontOriginFor,
   storeNotificationChannels,
   updateDraft,
@@ -191,13 +192,28 @@ export async function getDraft(tx: StoreTx, id: string) {
           .where(eq(payment.orderId, id))
           .orderBy(desc(payment.attempt), desc(payment.createdAt))
       : []
+  // Store credit staff applied to a staff draft, taken from the balance when it converts.
+  const [credit] =
+    o.draftSource === 'checkout'
+      ? []
+      : await tx
+          .select({ amountPaise: payment.amountPaise })
+          .from(payment)
+          .where(
+            and(
+              eq(payment.orderId, id),
+              eq(payment.provider, STORE_CREDIT_PROVIDER),
+              eq(payment.status, 'created'),
+            ),
+          )
   return {
     ...o,
     lines,
     attempts,
-    /** What the system wrote on its timeline (checked out again, expired, late payment). */
+    storeCreditPaise: credit?.amountPaise ?? 0,
+    /** Its timeline: system and staff lines (payment link sent), not the draft's own `draft` note. */
     timeline: notes
-      .filter((n) => n.author === 'system')
+      .filter((n) => n.author !== 'draft')
       .map((n) => ({ id: n.id, body: n.body, createdAt: n.createdAt })),
     note: notes.find((n) => n.author === 'draft')?.body ?? '',
     customer: cust ?? null,
@@ -433,12 +449,22 @@ export async function getStoreAbandoned(
   }
 }
 
-/** The email on a draft, for a bulk invoice send; null when it is not a draft or has none. */
+/**
+ * The email on a draft, for a bulk invoice send; null when it is not a draft, has none, or store
+ * credit pays all of it (nothing to invoice).
+ */
 export async function draftEmail(tx: StoreTx, id: string): Promise<string | null> {
   const [o] = await tx
-    .select({ email: order.email })
+    .select({
+      email: order.email,
+      totalPaise: order.totalPaise,
+      creditPaise: sql<number>`coalesce((select sum(p.amount_paise) from payment p
+        where p.order_id = ${order.id} and p.provider = ${STORE_CREDIT_PROVIDER}
+        and p.status = 'created'), 0)::int`,
+    })
     .from(order)
     .where(and(eq(order.id, id), eq(order.status, 'draft')))
+  if (o && o.creditPaise > 0 && o.creditPaise >= o.totalPaise) return null
   return o?.email ?? null
 }
 

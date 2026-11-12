@@ -129,8 +129,31 @@ export const ordersContent = {
   customView: 'Custom',
   /** The filter panel and its chips (Figma "Orders · Filter", "Applied filters"). */
   filters: {
+    /** The Product picker (Shopify's "Product is …"): products and variants to tick. */
     product: 'Product',
+    /** The older free-text filter: no longer in the menu, but an old link's `?product=` shows as this chip. */
+    productText: 'Product title or SKU',
     productPlaceholder: 'Product name or SKU',
+    picker: {
+      search: 'Search products or SKU',
+      /** The Is / Is not switch. */
+      is: 'Is',
+      isNot: 'Is not',
+      matchLabel: 'Orders that',
+      /** The chip's value: the first pick, then how many more. */
+      more: (first: string, n: number) => `${first}, +${n}`,
+      /** The chip while the picked names load. */
+      count: (n: number) => `${n} picked`,
+      variantCount: (n: number) => `${n} ${n === 1 ? 'variant' : 'variants'}`,
+      openVariants: (title: string) => `Variants of ${title}`,
+      back: 'All products',
+      allVariants: 'All variants',
+      empty: 'No products found',
+      failed: 'Could not load products',
+      retry: 'Try again',
+      loadMore: 'Show more',
+      tooMany: (n: number) => `Up to ${n} products and ${n} variants`,
+    },
     payment: 'Payment',
     fulfilment: 'Fulfilment',
     date: 'Date',
@@ -151,7 +174,7 @@ export const ordersContent = {
       paid: 'Paid',
       unpaid: 'Unpaid',
       payment_pending: 'Payment pending',
-      partially_refunded: 'Partially refunded',
+      partially_refunded: 'Partly refunded',
       refunded: 'Refunded',
       refund_needed: 'Refund needed',
     } satisfies Record<PaymentFilter, string>,
@@ -204,12 +227,14 @@ export const ordersContent = {
     authorized: 'Authorised',
     partially_paid: 'Partially paid',
     paid: 'Paid',
-    partially_refunded: 'Partially refunded',
+    partially_refunded: 'Partly refunded',
     refunded: 'Refunded',
     refund_needed: 'Refund needed',
   } satisfies Record<OrderPaymentStatus, string>,
   /** A cancelled order nobody paid (#123): nothing is pending any more, as Shopify's "Voided". */
   paymentVoided: 'Voided',
+  /** A cancelled order still holding the customer's money: it has to go back. */
+  paymentRefundDue: 'Refund due',
   fulfillmentStatus: {
     unfulfilled: 'Unfulfilled',
     partially_fulfilled: 'Partially fulfilled',
@@ -305,7 +330,7 @@ const IMPORTED_STATUS: Record<string, string> = {
   pending: 'Payment pending',
   authorized: 'Authorized',
   partially_paid: 'Partially paid',
-  partially_refunded: 'Partially refunded',
+  partially_refunded: 'Partly refunded',
   refunded: 'Refunded',
   voided: 'Voided',
   expired: 'Expired',
