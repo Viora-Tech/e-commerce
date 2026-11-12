@@ -13,6 +13,7 @@ import type {
   ReportValue,
 } from '@commerce/api'
 import { routes } from './routes'
+import { type StorageScope, scopedStorageKey } from './storage-scope'
 
 /** The report slug saved answer snapshots are filed under (the API's `ANSWER_REPORT_SLUG`). */
 export const ANSWER_SLUG = 'answer'
@@ -104,19 +105,23 @@ export function answerReport(
   }
 }
 
-/** Hands a snapshot to the snapshot page in this tab. */
-export function stashAnswer(snapshot: AnswerSnapshot): void {
+/** Hands a snapshot to the snapshot page in this tab, for this store and member only. */
+export function stashAnswer(scope: StorageScope | null, snapshot: AnswerSnapshot): void {
+  const key = scopedStorageKey(STASH_KEY, scope)
+  if (!key) return
   try {
-    window.sessionStorage.setItem(STASH_KEY, JSON.stringify(snapshot))
+    window.sessionStorage.setItem(key, JSON.stringify(snapshot))
   } catch {
     // Private mode or full storage: the snapshot page says there is nothing to show.
   }
 }
 
 /** The snapshot handed over by `stashAnswer`, or null. */
-export function stashedAnswer(): AnswerSnapshot | null {
+export function stashedAnswer(scope: StorageScope | null): AnswerSnapshot | null {
+  const key = scopedStorageKey(STASH_KEY, scope)
+  if (!key) return null
   try {
-    const raw = window.sessionStorage.getItem(STASH_KEY)
+    const raw = window.sessionStorage.getItem(key)
     const value = raw ? (JSON.parse(raw) as AnswerSnapshot) : null
     return value && Array.isArray(value.columns) && Array.isArray(value.rows) ? value : null
   } catch {

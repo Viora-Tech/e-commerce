@@ -7,6 +7,7 @@ import {
 } from '@commerce/ai/client'
 import { useEffect, useRef, useState } from 'react'
 import { api } from '@/lib/api-client'
+import { scopedStorageKey, useStorageScope } from '@/lib/storage-scope'
 
 export type AssistantEvent =
   Awaited<ReturnType<typeof api.ai.assistant>> extends AsyncIterable<infer E> ? E : never
@@ -33,13 +34,13 @@ export type AssistantTurn = {
 const MAX_TURNS = 20
 const HISTORY_TURNS = 4
 
-function storageKey(storeId: string | null): string {
-  return `admin-assistant:v1:${storeId ?? 'none'}`
-}
+/** Kept per store and member, so a shared tab never shows another member's conversation. */
+const STORAGE_BASE = 'admin-assistant:v2'
 
-function load(storeId: string | null): AssistantTurn[] {
+function load(key: string | null): AssistantTurn[] {
+  if (!key) return []
   try {
-    const raw = window.sessionStorage.getItem(storageKey(storeId))
+    const raw = window.sessionStorage.getItem(key)
     const turns = raw ? (JSON.parse(raw) as AssistantTurn[]) : []
     // A reload mid-answer leaves nothing streaming.
     return turns.map((t) => (t.status === 'streaming' ? { ...t, status: 'stopped' } : t))
@@ -48,9 +49,10 @@ function load(storeId: string | null): AssistantTurn[] {
   }
 }
 
-function save(storeId: string | null, turns: AssistantTurn[]) {
+function save(key: string | null, turns: AssistantTurn[]) {
+  if (!key) return
   try {
-    window.sessionStorage.setItem(storageKey(storeId), JSON.stringify(turns.slice(-MAX_TURNS)))
+    window.sessionStorage.setItem(key, JSON.stringify(turns.slice(-MAX_TURNS)))
   } catch {
     // Private mode or full storage: the conversation just is not kept.
   }
@@ -103,16 +105,18 @@ export function useAssistant(
   options: { persist?: boolean } = {},
 ) {
   const persist = options.persist ?? true
+  const scope = useStorageScope()
+  const key = storeId && scope?.storeId === storeId ? scopedStorageKey(STORAGE_BASE, scope) : null
   // The bar renders nothing until AI status arrives in the browser, so reading storage on the
   // first render cannot mismatch the server's HTML. A store switch reloads the admin.
   const [turns, setTurns] = useState<AssistantTurn[]>(() =>
-    typeof window === 'undefined' || !persist ? [] : load(storeId),
+    typeof window === 'undefined' || !persist ? [] : load(key),
   )
   const controller = useRef<AbortController | null>(null)
 
   useEffect(() => {
-    if (persist) save(storeId, turns)
-  }, [persist, storeId, turns])
+    if (persist) save(key, turns)
+  }, [persist, key, turns])
 
   const update = (id: string, fn: (turn: AssistantTurn) => AssistantTurn) =>
     setTurns((all) => all.map((t) => (t.id === id ? fn(t) : t)))

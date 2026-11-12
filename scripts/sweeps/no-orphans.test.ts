@@ -1836,6 +1836,12 @@ const ALLOWLIST: AllowEntry[] = [
     reason:
       'the per-variant pre-order rule behind the product writer, exported for preorder-policy.test.ts',
   },
+  {
+    file: 'packages/core/src/theme-import/bundle-store.ts',
+    names: ['draftDigest'],
+    reason:
+      'used in the module; draft-preview.test.ts checks that a new draft save changes the preview cache version',
+  },
 ]
 
 function allowlistedNames(file: string): Set<string> {
