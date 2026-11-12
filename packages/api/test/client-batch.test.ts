@@ -1,4 +1,4 @@
-import { os } from '@orpc/server'
+import { os, type RouterClient } from '@orpc/server'
 import { RPCHandler } from '@orpc/server/fetch'
 import { BatchHandlerPlugin } from '@orpc/server/plugins'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -50,9 +50,11 @@ afterEach(() => {
   globalThis.fetch = realFetch
 })
 
-// biome-ignore lint/suspicious/noExplicitAny: the stand-in router is not AppRouter
+// The stand-in router is not AppRouter, so the client is typed as that router's client.
 const client = (batch: boolean) =>
-  createApiClient('http://admin.test/api/rpc', undefined, [], { batch }) as any
+  createApiClient('http://admin.test/api/rpc', undefined, [], {
+    batch,
+  }) as unknown as RouterClient<typeof router>
 
 describe('createApiClient batching', () => {
   it('sends calls made together as one request that shares one session lookup', async () => {
