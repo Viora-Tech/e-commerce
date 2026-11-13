@@ -218,6 +218,8 @@ export default function BulkShipDrawer({
                             ticked={isTicked(line, b.unticked)}
                             onTick={(on) => b.tick(line.order.orderId, on)}
                             onEdit={() => setEditing(line.order.orderId)}
+                            onAskPayOnline={() => void b.askPayOnline(line.order.orderId)}
+                            busy={b.busy}
                           />
                         ))}
                       </TableBody>

@@ -82,6 +82,7 @@ const order = (over: Partial<DraftOrder> = {}): DraftOrder => ({
   parcels: [parcel()],
   unitsOrdered: 2,
   deliveryChoice: null,
+  payOnlineRequestedAt: null,
   ...over,
 })
 

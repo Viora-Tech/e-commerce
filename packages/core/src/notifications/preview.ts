@@ -23,6 +23,7 @@ export const ORDER_PREVIEW_TEMPLATES = [
   'balance_request',
   'payment_reminder',
   'order_link',
+  'cod_pay_online',
 ] as const satisfies readonly TemplateId[]
 export type OrderPreviewTemplate = (typeof ORDER_PREVIEW_TEMPLATES)[number]
 

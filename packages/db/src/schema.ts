@@ -1465,10 +1465,7 @@ export const order = pgTable(
     balanceRequestedAt: timestamp('balance_requested_at', { withTimezone: true }),
     /** Balance reminders sent so far; the reminder job only moves it forward, one step at a time. */
     balanceRemindersSent: integer('balance_reminders_sent').notNull().default(0),
-    /**
-     * When the merchant last sent the shopper a payment reminder for an unpaid
-     * manual UPI / bank transfer order. The 6-hour resend limit counts from here.
-     */
+    /** Last payment reminder for an unpaid UPI / bank transfer order; the 6-hour limit counts from here. */
     paymentReminderSentAt: timestamp('payment_reminder_sent_at', { withTimezone: true }),
     /**
      * When the merchant was told this unpaid transfer order will be cancelled
@@ -1505,6 +1502,9 @@ export const order = pgTable(
     codVerifyRequestedAt: timestamp('cod_verify_requested_at', { withTimezone: true }),
     /** When the shopper answered, the merchant marked it, or the deadline flagged it. */
     codVerifiedAt: timestamp('cod_verified_at', { withTimezone: true }),
+    /** COD "Ask to pay online" (core payments/cod-pay-online.ts): when asked, and its one reminder. */
+    payOnlineRequestedAt: timestamp('pay_online_requested_at', { withTimezone: true }),
+    payOnlineRemindedAt: timestamp('pay_online_reminded_at', { withTimezone: true }),
     /**
      * Markets. Every `*_paise` column above stays the shop currency (rupees): reports, GST and
      * profit read those. The presentment columns are what the shopper saw, in

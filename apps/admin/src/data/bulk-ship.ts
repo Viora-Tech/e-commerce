@@ -72,6 +72,10 @@ export const bulkShipContent = {
     payOnline: 'Ask to pay online',
     change: 'Change courier',
   },
+  /** After "Ask to pay online": the shopper has their payment link; the row waits for it. */
+  waitingOnline: 'Waiting for online payment',
+  payOnlineSent: (name: string | null) =>
+    name ? `Payment link sent to ${name}` : 'Payment link sent to the customer',
   edit: (n: number) => `Edit order #${n}`,
   footer: {
     ready: 'Ready',

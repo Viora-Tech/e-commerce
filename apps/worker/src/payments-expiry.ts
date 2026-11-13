@@ -8,6 +8,7 @@ import {
   resolvePaymentProviders,
   runCodConfirmationSweep,
   runManualFollowUp,
+  runPayOnlineReminders,
 } from '@commerce/core'
 import { registriesForStore } from '@commerce/core/registries'
 import {
@@ -15,6 +16,7 @@ import {
   store,
   storesWithExpiredDraftHolds,
   storesWithOpenCheckoutDrafts,
+  storesWithPayOnlineRequests,
   storesWithPendingCodChecks,
   storesWithPendingManualOrders,
   storesWithUnpaidOnlineOrders,
@@ -44,6 +46,9 @@ export const EXPIRY_EVERY_MS = 60_000
  *
  * And the COD & RTO app's confirmation deadlines: COD orders nobody confirmed are flagged
  * for a call, and cancelled when the store turned auto-cancel on.
+ *
+ * And "Ask to pay online" on COD orders: one reminder two days after the request if still
+ * unpaid (`runPayOnlineReminders`). The order stays cash on delivery; nothing is cancelled.
  */
 export function createUnpaidOrderExpiry(db: Db, opts: { settingsSecret: string }) {
   const run = async () => {
@@ -95,6 +100,7 @@ export function createUnpaidOrderExpiry(db: Db, opts: { settingsSecret: string }
     if (nudged) logger.info('payment pending nudges queued', { nudged })
     const transfers = await followUpManualTransfers(db)
     const cod = await sweepCodConfirmations(db)
+    const payOnlineReminded = await remindPayOnline(db)
     const draftHoldsReleased = await releaseDraftHolds(db)
     const checkoutDraftsExpired = await expireOldCheckoutDrafts(db, drafted)
     return {
@@ -104,11 +110,26 @@ export function createUnpaidOrderExpiry(db: Db, opts: { settingsSecret: string }
       nudged,
       ...transfers,
       ...cod,
+      payOnlineReminded,
       draftHoldsReleased,
       checkoutDraftsExpired,
     }
   }
   return { run }
+}
+
+/** COD shoppers asked to pay online two days ago and still unpaid: their one reminder. */
+async function remindPayOnline(db: Db) {
+  let reminded = 0
+  for (const storeId of await storesWithPayOnlineRequests(db)) {
+    try {
+      reminded += await runPayOnlineReminders(db, storeId)
+    } catch (err) {
+      logger.warn('pay online reminder failed', { storeId, error: err })
+    }
+  }
+  if (reminded) logger.info('pay online reminders sent', { reminded })
+  return reminded
 }
 
 /** Drafts whose "reserve items" date passed (#1030) put their stock back on sale. */

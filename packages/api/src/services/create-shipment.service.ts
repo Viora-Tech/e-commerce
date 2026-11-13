@@ -122,6 +122,7 @@ export async function prepareShipments(
             number: order.number,
             status: order.status,
             paymentMethod: order.paymentMethod,
+            payOnlineRequestedAt: order.payOnlineRequestedAt,
             totalPaise: order.totalPaise,
             taxOrigin: order.taxOrigin,
             hasAddress: isNotNull(order.shippingAddressId),
@@ -309,6 +310,7 @@ export async function prepareShipments(
       paymentStatus: o.paymentStatus,
       fulfillmentStatus: o.fulfillmentStatus,
       paymentMode: o.paymentMethod === 'cod' ? 'cod' : 'prepaid',
+      payOnlineRequestedAt: o.paymentMethod === 'cod' ? o.payOnlineRequestedAt : null,
       totalPaise: o.totalPaise,
       blocked: CLOSED_STATUSES.has(o.status)
         ? 'closed'

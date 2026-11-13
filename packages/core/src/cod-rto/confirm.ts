@@ -182,7 +182,13 @@ export async function runCodConfirmationSweep(
     const cancelBefore = now.getTime() - v.autoCancelAfterHours * HOUR_MS
     for (const o of due) {
       const at = o.codVerifyRequestedAt?.getTime() ?? now.getTime()
-      if (v.autoCancel && at <= cancelBefore && o.fulfillmentStatus === 'unfulfilled') {
+      // Staff asked the shopper to pay online instead: they are on it, nothing is cancelled.
+      if (
+        v.autoCancel &&
+        at <= cancelBefore &&
+        o.fulfillmentStatus === 'unfulfilled' &&
+        !o.payOnlineRequestedAt
+      ) {
         await tx
           .update(order)
           .set({ codVerification: 'cancelled', codVerifiedAt: now })

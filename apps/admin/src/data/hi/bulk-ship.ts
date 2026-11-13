@@ -72,6 +72,9 @@ export default [
       payOnline: 'ऑनलाइन भुगतान कहें',
       change: 'कूरियर बदलें',
     },
+    waitingOnline: 'ऑनलाइन भुगतान का इंतज़ार',
+    payOnlineSent: (name) =>
+      name ? `${name} को भुगतान का लिंक भेज दिया` : 'ग्राहक को भुगतान का लिंक भेज दिया',
     edit: (n) => `ऑर्डर #${n} बदलें`,
     footer: {
       ready: 'तैयार',
