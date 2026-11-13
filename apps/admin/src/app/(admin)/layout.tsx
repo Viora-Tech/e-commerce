@@ -16,8 +16,10 @@ import { feePercent } from '@/lib/billing'
 import { REQUEST_PATH_HEADER } from '@/lib/csp'
 import { routes, safeNext } from '@/lib/routes'
 import {
+  type AppBars,
   approvalsBadgeCount,
   inboxUnreadCount,
+  listAppBars,
   listApps,
   listStores,
   liveLogoUrl,
@@ -28,6 +30,12 @@ import {
 } from '@/lib/shell-data'
 import { storefrontOrigin } from '@/lib/storefront-origin'
 import SelectStore from './select-store/select-store'
+
+const NO_APP_BARS: AppBars = {}
+
+/** An app page's address from its manifest path (`''` is the app's first page). */
+const pageHref = (appId: string, path: string) =>
+  path ? routes.apps.page(appId, ...path.split('/')) : routes.apps.page(appId)
 
 export default async function AdminLayout({ children }: { children: ReactNode }) {
   const session = await getSession()
@@ -42,7 +50,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
   // Everything else needs only the session, so it is read at once rather than one after
   // another. Store calls for a stale active id answer "no store" on their own and are dropped
   // below unless that store is one of the member's.
-  const [orgs, apps, logo, storefrontUrl, toShip, plan, testMode, approvals, drafts] =
+  const [orgs, apps, logo, storefrontUrl, toShip, plan, testMode, approvals, drafts, bars] =
     await Promise.all([
       listStores(),
       activeId ? listApps().catch(() => []) : [],
@@ -53,6 +61,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
       activeId ? paymentsTestMode() : false,
       activeId ? approvalsBadgeCount() : null,
       activeId ? unseenDraftsCount() : null,
+      activeId ? listAppBars() : NO_APP_BARS,
     ])
   // No store at all yet: send them to create one, which shows the invite-only
   // screen instead of the wizard when they are not allowed to sign up.
@@ -69,22 +78,20 @@ export default async function AdminLayout({ children }: { children: ReactNode })
       name: a.name,
       icon: a.admin.icon,
       href: appEntryHref(a),
-      // The app's pages move into the sidebar under its name (owner, 11 Nov 2026).
+      // Each app is its own row under Apps with its pages nested (Figma 928:10728).
       pages: a.admin.pages.flatMap((p) =>
-        p.navLabel
-          ? [
-              {
-                href: p.path
-                  ? routes.apps.page(a.id, ...p.path.split('/'))
-                  : routes.apps.page(a.id),
-                label: p.navLabel,
-              },
-            ]
-          : [],
+        p.navLabel ? [{ href: pageHref(a.id, p.path), label: p.navLabel }] : [],
       ),
     }))
+  // An app's page counts ("Queue 6") join the sidebar's counts, keyed by the page's address.
+  const appCounts = Object.fromEntries(
+    appLinks.flatMap((a) =>
+      Object.entries(bars[a.id]?.pageCounts ?? {}).map(([path, n]) => [pageHref(a.id, path), n]),
+    ),
+  )
   const inboxUnread = channels.includes('inbox') ? await inboxUnreadCount() : null
   const navCounts: Record<string, number> = {
+    ...(active ? appCounts : {}),
     ...(active && toShip
       ? { [routes.orders.list()]: toShip, [routes.orders.shipments()]: toShip }
       : {}),

@@ -41,7 +41,6 @@ export default [
       runAgain: 'फिर से चलाएँ',
     },
     statusError: 'गड़बड़ी',
-    allInstalled: 'सभी इंस्टॉल किए ऐप्स',
     listing: {
       installed: 'इंस्टॉल है',
       back: 'इंस्टॉल किए ऐप्स',
@@ -92,7 +91,6 @@ export default [
     installed: 'इंस्टॉल है',
     builtIn: 'पहले से मौजूद',
     version: (v: string) => `v${v}`,
-    builtWith: 'इन पर बना',
     creditLabel: (name: string, license: string) => `${name} (${license})`,
     loadFailed: 'ऐप्स लोड नहीं हो सके',
     actionFailed: 'ऐप अपडेट नहीं हो सका',

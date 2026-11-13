@@ -1,6 +1,5 @@
 'use client'
 
-import { appStoreUrl } from '@commerce/config/site'
 import { CheckIcon, ChevronsUpDown, ExternalLink, Globe, Store } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import {
@@ -20,8 +19,8 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import { appIcon } from '@/apps/app-icons'
 import { authContent } from '@/data/auth'
-import { layoutContent } from '@/data/layout'
 import {
   APPS_GROUP,
   NAV_GROUPS,
@@ -32,11 +31,9 @@ import {
 } from '@/data/navigation'
 import { useCopy, useLocale } from '@/hooks/use-copy'
 import { usePermissions } from '@/hooks/use-permissions'
-import { useRecentApps } from '@/hooks/use-recent-apps'
 import { authClient } from '@/lib/auth-client'
 import { withSalesChannels } from '@/lib/nav-channels'
 import { localizeNavItems, navGroupName } from '@/lib/page-names'
-import { orderSidebarApps } from '@/lib/recent-apps'
 import { routes } from '@/lib/routes'
 import {
   SIDEBAR_BLOCK,
@@ -59,7 +56,7 @@ type AdminSidebarProps = {
     name: string
     icon: string | null
     href: string
-    /** The app's own pages (manifest pages with a nav label). */
+    /** The app's own pages (manifest pages with a nav label), nested under its row. */
     pages?: { href: string; label: string }[]
   }[]
   /** Installed sales channel apps (Inbox), listed under Sales channels. */
@@ -83,32 +80,25 @@ const ROW_TRIGGER =
 /* Figma sidebar menus (store switcher, user menu): 240px glass, radius 8, 4px inset. */
 const SIDEBAR_MENU = 'w-60 rounded-sm p-1'
 
+/** An app's pages shown under its row before "View more" (owner, 11 Nov 2026). */
+const APP_PAGES_SHOWN = 4
+
 /**
- * Installed apps hang under the Apps entry, like Drafts under Orders: only the three this member
- * used most recently (`orderSidebarApps`, the one on screen first), then "All apps" for the
- * rest. The last row is the App Store website, where more apps are found (a new tab).
+ * Each installed app is its own row in the Apps group, after the Apps entry (Figma 928:10728):
+ * its icon, a chevron, and its pages nested while one of them is open. Rows keep the installed
+ * order, so a row never moves under the pointer. Page counts ("Queue 6") come in `navCounts`.
  */
-function nestApps(
-  items: NavItem[],
-  shown: AdminSidebarProps['apps'],
-  installed: number,
-  words: { viewAllApps: (n: number) => string; appStore: string },
-): NavItem[] {
-  const children = [
-    ...shown.map((a) => ({
+function withAppRows(items: NavItem[], apps: AdminSidebarProps['apps']): NavItem[] {
+  return [
+    ...items,
+    ...apps.map((a) => ({
       href: a.href,
       label: a.name,
+      icon: appIcon(a.icon),
       base: routes.apps.page(a.id),
-      ...((a.pages?.length ?? 0) >= 2 ? { pages: a.pages } : {}),
+      ...((a.pages?.length ?? 0) >= 2 ? { children: a.pages, childLimit: APP_PAGES_SHOWN } : {}),
     })),
-    ...(installed > 0 ? [{ href: routes.apps.list(), label: words.viewAllApps(installed) }] : []),
-    { href: appStoreUrl(), label: words.appStore, external: true },
   ]
-  return items.map((item) =>
-    item.href === routes.apps.list()
-      ? { ...item, children: [...(item.children ?? []), ...children] }
-      : item,
-  )
 }
 
 /** The host of a URL for the domain pill ("waimers.in"), or the URL itself when it will not parse. */
@@ -139,17 +129,11 @@ export default function AdminSidebar({
 }: AdminSidebarProps) {
   // Hooks
   const copy = useCopy(navigationContent)
-  const layoutCopy = useCopy(layoutContent)
   const auth = useCopy(authContent)
   const locale = useLocale()
   const pathname = usePathname()
   const { member } = usePermissions()
   const [switchingId, setSwitchingId] = useState<string | null>(null)
-  const { recent, currentId } = useRecentApps(
-    activeStoreId,
-    pathname,
-    apps.map((a) => a.id),
-  )
 
   // Event handlers
   const handleSwitchStore = async (id: string) => {
@@ -274,12 +258,7 @@ export default function AdminSidebar({
             label={group.label ? navGroupName(group.label, locale) : undefined}
             items={
               group.label === APPS_GROUP
-                ? nestApps(
-                    localizeNavItems(group.items, locale),
-                    orderSidebarApps(apps, recent, currentId),
-                    apps.length,
-                    layoutCopy,
-                  )
+                ? withAppRows(localizeNavItems(group.items, locale), apps)
                 : localizeNavItems(group.items, locale)
             }
             pathname={pathname}

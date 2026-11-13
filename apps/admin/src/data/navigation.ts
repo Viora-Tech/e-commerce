@@ -27,8 +27,6 @@ export type NavChild = {
   permission?: Permission
   /** A site outside the admin (the App Store website): opens in a new tab, never "active". */
   external?: boolean
-  /** An installed app's own pages, shown under it while one of them is open (Figma 928:10728). */
-  pages?: NavChild[]
   /** Paths under this start count as this entry (an app's `/apps/<id>`). */
   base?: string
 }
@@ -45,6 +43,10 @@ export type NavItem = {
   children?: NavChild[]
   /** Paths under `href` that another section owns (Blog posts live under Content, URLs unchanged). */
   excludes?: string[]
+  /** The section is active under this path instead of `href` (an installed app's `/apps/<id>`). */
+  base?: string
+  /** Sub-pages shown before "View more" (an app's own pages: four, owner 11 Nov 2026). */
+  childLimit?: number
 }
 export type NavGroup = { label?: string; items: NavItem[] }
 
@@ -324,7 +326,8 @@ export function isSectionActive(pathname: string, item: NavItem): boolean {
     return false
   }
   if ((item.children ?? []).some((c) => isChildActive(pathname, c))) return true
-  return pathname === item.href || pathname.startsWith(`${item.href}/`)
+  const root = item.base ?? item.href
+  return pathname === root || pathname.startsWith(`${root}/`)
 }
 
 /** A child is active for its exact path or its own nested pages. */

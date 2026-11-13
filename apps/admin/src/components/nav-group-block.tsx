@@ -57,10 +57,12 @@ export default function NavGroupBlock({ label, items, pathname, counts = {} }: N
       <ul className="flex flex-col gap-1">
         {visible.map((item) => (
           <NavSection
-            key={item.href}
+            key={item.base ?? item.href}
             item={item}
             pathname={pathname}
-            count={counts[item.href] ?? 0}
+            // An app row that nests its pages shows their counts there, not again on its own row
+            // (Figma 928:10728: "Queue 6", the GST invoices row itself plain).
+            count={item.base && item.children?.length ? 0 : (counts[item.href] ?? 0)}
             counts={counts}
           />
         ))}

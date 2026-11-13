@@ -14,6 +14,7 @@ import { resetDb } from '@commerce/db/test'
 import { DocumentSnapshotSchema } from '@commerce/invoices'
 import { eq } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
+import { gstAppBar } from '../src/app-bar'
 import { issueCreditNote } from '../src/credit-notes'
 import {
   documentsForOrder,
@@ -244,6 +245,26 @@ describe('invoice queue', () => {
     expect(await inStore(storeId, (tx) => listQueue(tx, {}))).toHaveLength(1)
     await owner.update(order).set({ status: 'cancelled' }).where(eq(order.id, later))
     expect(await inStore(storeId, (tx) => listQueue(tx, {}))).toHaveLength(0)
+  })
+
+  it('the app bar counts the queue like the queue page and names the GSTIN and year', async () => {
+    const { storeId, variantId } = await seedStore()
+    const a = await seedOrder(storeId, variantId, 1)
+    const b = await seedOrder(storeId, variantId, 2)
+    await inStore(storeId, (tx) => enqueueOrder(tx, storeId, a, 'paid'))
+    await inStore(storeId, (tx) => enqueueOrder(tx, storeId, b, 'paid'))
+    await owner.update(order).set({ status: 'cancelled' }).where(eq(order.id, b))
+    const now = d('2026-11-12T10:00:00Z')
+    const bar = await inStore(storeId, (tx) => gstAppBar({ tx, storeId, can: () => true, now }))
+    expect(bar.pageCounts).toEqual({ '': 1 })
+    expect(bar.statusPill?.label).toMatch(/ · numbering 2026-27$/)
+    // A member who cannot read orders sees the pill, not the count.
+    const blind = await inStore(storeId, (tx) => gstAppBar({ tx, storeId, can: () => false, now }))
+    expect(blind.pageCounts).toEqual({})
+    const year = (now: Date) =>
+      inStore(storeId, (tx) => gstAppBar({ tx, storeId, can: () => false, now }))
+    expect((await year(d('2027-03-31T12:00:00Z'))).statusPill?.label).toMatch(/2026-27$/)
+    expect((await year(d('2027-04-01T00:00:00+05:30'))).statusPill?.label).toMatch(/2027-28$/)
   })
 
   it('a pre-order waits for dispatch and takes the next number in the dispatch month', async () => {
