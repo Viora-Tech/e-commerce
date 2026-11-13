@@ -11,6 +11,7 @@ import {
   type TemplateCopy,
   transferTemplates,
 } from './content-parts'
+import { payOnlineTemplates } from './content-pay-online'
 import { splitTemplates } from './content-split'
 
 /** A draft invoice's number after the #: "D12" while it is a draft, else the order number. */
@@ -27,6 +28,7 @@ export const templateContent: Record<TemplateId, TemplateCopy> = {
   ...shipmentTemplates,
   ...orderUpdateTemplates,
   ...splitTemplates,
+  ...payOnlineTemplates,
   cod_confirm: {
     subject: (d) => `${d.storeName}: please confirm your cash on delivery order #${d.orderNumber}`,
     heading: (d) => `Hi ${d.customerName}, is this order yours?`,

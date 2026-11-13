@@ -165,6 +165,9 @@ export async function cancelOrder(
  * rows always explain the derived status.
  */
 async function markPaid(ctx: StoreContext, o: typeof order.$inferSelect) {
+  // Cash collected on a COD order is cash, even while a "pay online" gateway attempt waits open
+  // (`payOnlineInstead`): that attempt stays as it is, and a late gateway capture is flagged.
+  const cod = o.paymentMethod === 'cod'
   const [open] = await ctx.tx
     .select({ id: payment.id })
     .from(payment)
@@ -174,6 +177,7 @@ async function markPaid(ctx: StoreContext, o: typeof order.$inferSelect) {
         eq(payment.purpose, 'order'),
         inArray(payment.status, [...OPEN_ATTEMPT_STATUSES]),
         notInArray(payment.provider, [...SPLIT_TENDER_PROVIDERS]),
+        cod ? eq(payment.provider, 'cod') : undefined,
       ),
     )
     .orderBy(desc(payment.attempt), desc(payment.id))
@@ -202,7 +206,7 @@ async function markPaid(ctx: StoreContext, o: typeof order.$inferSelect) {
   await ctx.tx.insert(payment).values({
     storeId: ctx.storeId,
     orderId: o.id,
-    provider: 'manual',
+    provider: cod ? 'cod' : 'manual',
     providerRef: `manual_${o.id}_${Date.now()}`,
     status: 'captured',
     amountPaise: due,

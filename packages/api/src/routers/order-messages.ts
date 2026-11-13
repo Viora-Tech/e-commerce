@@ -9,6 +9,7 @@ import {
   REMINDER_CHANNELS,
   ReminderTooSoon,
   requestBalance,
+  requestOnlinePayment,
   sendManualPaymentReminder,
   sendOrderLink,
   storeNotificationChannels,
@@ -139,6 +140,28 @@ export const orderMessageRoutes = {
             author: context.session.user.email,
             custom: input.custom,
           },
+        )
+      } catch (err) {
+        if (err instanceof CommerceError) {
+          throw new ORPCError('BAD_REQUEST', { message: err.message })
+        }
+        throw err
+      }
+    }),
+
+  /**
+   * "Ask to pay online" on an unpaid cash on delivery order (e.g. no courier takes COD to the PIN):
+   * the shopper gets their order page link to pay through the store's gateway, by email and
+   * WhatsApp (when set up). The order stays COD until paid; one reminder follows after two days.
+   */
+  requestOnlinePayment: can(permissions.ORDERS_WRITE)
+    .input(z.object({ orderId: z.uuid(), custom: customMessage }))
+    .handler(async ({ context, input }) => {
+      try {
+        return await requestOnlinePayment(
+          { storeId: context.scope.storeId, tx: context.tx },
+          input.orderId,
+          { author: context.session.user.email, custom: input.custom },
         )
       } catch (err) {
         if (err instanceof CommerceError) {

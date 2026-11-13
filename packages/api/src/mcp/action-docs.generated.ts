@@ -552,6 +552,7 @@ export const ACTION_DOCS: Record<string, string> = {
     'Release the hold: the order goes back to where it was (to pack, or partly shipped).',
   'orders.requestBalance':
     "Ask the shopper for a deposit pre-order's balance: email and WhatsApp (when set up) with a signed pay link.",
+  'orders.requestOnlinePayment': '"Ask to pay online" on an unpaid cash on delivery order (e.g.',
   'orders.reserveDraft':
     "Reserve items (#1030): hold the saved draft's stock until a date, so no one else can buy it.",
   'orders.restore': '"Restore order": a cancel pressed by mistake; refused once money went back.',

@@ -1,8 +1,9 @@
 /** SOURCE OF TRUTH: settleEditMoney — WHAT: the money side of an order edit: ask the customer for more through the balance pay link, or send the store's excess back / WHY: an edited paid order must end with the books balanced, reusing the pre-order balance flow and the refund routes */
 import { order, payment } from '@commerce/db'
 import type { PaymentProvider } from '@commerce/payments'
-import { and, eq, inArray } from 'drizzle-orm'
+import { and, eq, inArray, notInArray } from 'drizzle-orm'
 import type { StoreContext } from '../context'
+import { SPLIT_TENDER_PROVIDERS } from '../payments/split-tender'
 import { OPEN_ATTEMPT_STATUSES } from '../payments/transitions'
 import { requestBalance } from '../preorder/balance'
 import type { EditPlan } from './edit-plan'
@@ -77,6 +78,21 @@ export async function settleEditMoney(
           inArray(payment.status, [...OPEN_ATTEMPT_STATUSES]),
         ),
       )
+    // A COD shopper asked to pay online: the gateway attempt was for the old amount. The next
+    // "Pay online now" opens one for the new total (`payOnlineInstead`).
+    if (o.paymentMethod === 'cod') {
+      await ctx.tx
+        .update(payment)
+        .set({ status: 'cancelled', error: 'Order edited: amount changed' })
+        .where(
+          and(
+            eq(payment.orderId, o.id),
+            eq(payment.purpose, 'order'),
+            notInArray(payment.provider, ['cod', 'manual', ...SPLIT_TENDER_PROVIDERS]),
+            inArray(payment.status, [...OPEN_ATTEMPT_STATUSES]),
+          ),
+        )
+    }
     return { kind: 'none', amountPaise: 0 }
   }
   const diff = input.plan.differencePaise
