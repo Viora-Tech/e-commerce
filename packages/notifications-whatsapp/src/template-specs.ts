@@ -5,7 +5,8 @@ import {
   type TemplateData,
   type TemplateId,
 } from '@commerce/notifications'
-import { CODE_TEMPLATES, templateParams } from './whatsapp'
+import { CODE_TEMPLATES } from './code-templates'
+import { templateParams } from './whatsapp'
 
 /**
  * One-time code messages are AUTHENTICATION templates, whose wording Meta writes itself
