@@ -40,6 +40,7 @@ import {
   shipmentDetails,
   shipmentLabelFile,
 } from '../services/shipping.service'
+import { courierAppProcedures } from './shipments-courier'
 
 const ndrAction = z.enum(['reattempt', 'change_address', 'rto'])
 
@@ -162,8 +163,12 @@ export const shipmentsRouter = {
       }
     }),
 
-  /** Rows per Shipments tab, plus "booked today" and "need attention" for the summary line. */
-  counts: can(permissions.ORDERS_READ).handler(({ context }) => shipmentCounts(context.tx)),
+  /** Rows per Shipments tab plus the summary line; `provider`: one courier's (its app's page). */
+  counts: can(permissions.ORDERS_READ)
+    .input(z.object({ provider: z.string().trim().min(1).max(60).optional() }).optional())
+    .handler(({ context, input }) => shipmentCounts(context.tx, new Date(), input?.provider)),
+
+  ...courierAppProcedures,
 
   /** Ready to ship tab: paid, unfulfilled orders - the main Shopify-style booking flow. */
   readyToShip: can(permissions.ORDERS_READ)
