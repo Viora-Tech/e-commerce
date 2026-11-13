@@ -59,6 +59,7 @@ const parcel = (over: Partial<DraftParcel> = {}): DraftParcel => ({
   weightGrams: 700,
   dimensionsCm: null,
   pickupLocationId: 'loc-jaipur',
+  boxName: null,
   ...over,
 })
 
@@ -78,6 +79,8 @@ const order = (over: Partial<DraftOrder> = {}): DraftOrder => ({
   totalPaise: 149900,
   blocked: null,
   parcels: [parcel()],
+  unitsOrdered: 2,
+  deliveryChoice: null,
   ...over,
 })
 
@@ -102,6 +105,7 @@ const draft = (over: Partial<ShipmentDraft> = {}): ShipmentDraft => ({
   defaultBoxId: 'mailer',
   pickupPlaces: [],
   orders: [order()],
+  insureByDefault: true,
   ...over,
 })
 

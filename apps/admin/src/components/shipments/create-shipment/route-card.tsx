@@ -1,13 +1,14 @@
 'use client'
 
-import { Pencil } from '@commerce/ui/icons'
+import { Pencil, Truck } from '@commerce/ui/icons'
+import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
 import { type ReactNode, useState } from 'react'
 import AddressLines from '@/components/layout/address-lines'
 import StatusChip from '@/components/layout/status-chip'
 import { createShipmentContent } from '@/data/create-shipment'
-import { useCopy } from '@/hooks/use-copy'
+import { useCopy, useFormat } from '@/hooks/use-copy'
 import { routes } from '@/lib/routes'
 import ChangePickupDialog from './change-pickup-dialog'
 import type { DraftOrder, ShipmentDraft } from './flow-state'
@@ -146,6 +147,7 @@ export default function RouteCard({
 }: RouteCardProps) {
   // Hooks
   const copy = useCopy(createShipmentContent.page)
+  const fmt = useFormat()
   const [changing, setChanging] = useState(false)
 
   // Render logic
@@ -153,6 +155,7 @@ export default function RouteCard({
   // A pickup place with only a PIN code reads as missing: "— 110001" told the merchant nothing.
   const origin: Place | null = from && hasAddress(from) ? { ...from } : null
   const isDefault = from !== undefined && from.id === null
+  const choice = order.deliveryChoice
 
   return (
     <section className="overflow-hidden rounded-xl border border-border bg-card">
@@ -214,6 +217,21 @@ export default function RouteCard({
           }
         />
       </div>
+      <p
+        className={cn(
+          'flex items-center gap-2 border-t border-border px-4 py-3 text-body',
+          choice ? 'text-ink-strong' : 'text-muted-foreground',
+        )}
+      >
+        <Truck aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
+        {choice
+          ? copy.shopperChose(
+              choice.name,
+              choice.pricePaise > 0 ? fmt.money(choice.pricePaise) : copy.free,
+              choice.route,
+            )
+          : copy.noShopperChoice}
+      </p>
       <ChangePickupDialog
         open={changing}
         onOpenChange={setChanging}

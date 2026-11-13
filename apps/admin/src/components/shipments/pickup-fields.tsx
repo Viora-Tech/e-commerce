@@ -38,6 +38,21 @@ type PickupFieldsProps = {
 
 const NEW = 'new'
 
+/** Booked pickups still to come (today or later), soonest first; one courier's when named.
+ *  Also used by the bulk result's Pickups card to show "Pickup already booked". */
+export function upcomingPickups<
+  T extends { status: string; scheduledFor: string; provider: string },
+>(rows: readonly T[], today: string, providerId?: string | undefined): T[] {
+  return rows
+    .filter(
+      (p) =>
+        p.status === 'scheduled' &&
+        p.scheduledFor >= today &&
+        (!providerId || p.provider === providerId),
+    )
+    .toSorted((a, b) => a.scheduledFor.localeCompare(b.scheduledFor))
+}
+
 /** Title case for a courier id ("delhivery" → "Delhivery") where no label is at hand. */
 const courierName = (id: string) => id.charAt(0).toUpperCase() + id.slice(1)
 
@@ -61,14 +76,7 @@ export default function PickupFields({ idPrefix, providerId, value, onChange }: 
       .listPickups()
       .then((rows) => {
         if (!live) return
-        const upcoming = rows
-          .filter(
-            (p) =>
-              p.status === 'scheduled' &&
-              p.scheduledFor >= today &&
-              (!providerId || p.provider === providerId),
-          )
-          .toSorted((a, b) => a.scheduledFor.localeCompare(b.scheduledFor))
+        const upcoming = upcomingPickups(rows, today, providerId)
         setOpen(upcoming)
         const first = upcoming[0]
         if (first) {
