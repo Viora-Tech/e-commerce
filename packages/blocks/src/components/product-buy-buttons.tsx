@@ -6,7 +6,7 @@ import { mainProductContent as copy } from '../data/zero-drift/main-product'
 import { useFormatPaise } from '../money-format'
 import { safeHref } from '../slot-types'
 import { type AddToCart, announceCartAdded, trackCommerce } from '../store-actions'
-import type { ProductDetail } from '../types'
+import type { NotifyMeFormProps, ProductDetail } from '../types'
 import { useReducedMotion } from '../use-reduced-motion'
 import Icon from './icon'
 import QuantityInput from './quantity-input'
@@ -18,8 +18,8 @@ type ProductBuyButtonsProps = {
   countdown: number
   isPreorder: boolean
   onAddToCart?: AddToCart | undefined
-  NotifyMe?: ComponentType<{ variantId: string; whatsappEnabled: boolean }> | undefined
-  notifyMeProps?: { whatsappEnabled: boolean } | undefined
+  NotifyMe?: ComponentType<NotifyMeFormProps> | undefined
+  notifyMeProps?: Omit<NotifyMeFormProps, 'variantId'> | undefined
   /** With the stock bar on, the in-stock lines are its job; this keeps only sold-out/pre-order. */
   stockBarShown: boolean
   /** The pre-order updates page, linked under the button on a pre-order; null hides it. */
