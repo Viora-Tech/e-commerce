@@ -91,7 +91,11 @@ export default function CheckoutPaymentStep({ ck }: CheckoutPaymentStepProps) {
           codBlocked={totals.codBlocked}
           codNote={totals.codNote}
           amountLabel={ck.payNow}
-          recommendedId={recommendedMethodId(totals.offered, ck.settings.recommendedMethod)}
+          recommendedId={recommendedMethodId(
+            totals.offered,
+            ck.settings.recommendedMethod,
+            totals.codBlocked,
+          )}
           onSelect={handleSelect}
         />
       )}

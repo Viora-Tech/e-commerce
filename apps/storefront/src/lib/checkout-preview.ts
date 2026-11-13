@@ -6,6 +6,7 @@ import {
   checkoutRuleSubtotalPaise,
   codDecision,
   minimumOrderShortfall,
+  RECOMMENDED_METHOD,
 } from '@commerce/core/checkout-settings'
 import { lowestEmiPaise } from '@commerce/core/emi'
 import { hiddenPaymentMethods, type PaymentMethodRule } from '@commerce/core/payment-method-rules'
@@ -84,14 +85,22 @@ export function offeredMethods(cart: CartView, methods: CheckoutMethod[]): Check
 }
 
 /**
- * Which way to pay wears Recommended: the store's choice when it is on offer here, else the first
- * one. Never cash on delivery by default, and none when there is nothing to choose between.
+ * Which way to pay wears Recommended (Settings → Checkout): the store's choice when a shopper
+ * can pick it for this order, else none; "none" is none; automatic is the first one, never cash
+ * on delivery. No badge when there is nothing to choose between.
  */
-export function recommendedMethodId(methods: CheckoutMethod[], chosen: string): string | null {
-  if (methods.length < 2) return null
-  if (methods.some((m) => m.id === chosen)) return chosen
-  const first = methods[0]
-  return first && first.id !== 'cod' ? first.id : null
+export function recommendedMethodId(
+  methods: CheckoutMethod[],
+  chosen: string,
+  codBlocked = false,
+): string | null {
+  if (methods.length < 2 || chosen === RECOMMENDED_METHOD.none) return null
+  if (chosen === RECOMMENDED_METHOD.automatic) {
+    const first = methods[0]
+    return first && first.id !== 'cod' ? first.id : null
+  }
+  if (chosen === 'cod' && codBlocked) return null
+  return methods.some((m) => m.id === chosen) ? chosen : null
 }
 
 export type MethodView = {
