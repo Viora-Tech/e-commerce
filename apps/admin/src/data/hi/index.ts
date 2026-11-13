@@ -158,6 +158,7 @@ import themes from './themes'
 import umami from './umami'
 import variantBox from './variant-box'
 import variantPage from './variant-page'
+import whatsappApp from './whatsapp-app'
 import whatsappChat from './whatsapp-chat'
 import whatsappSignup from './whatsapp-signup'
 import xpressbees from './xpressbees'
@@ -330,4 +331,5 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...growthbook,
   ...whatsappSignup,
   ...whatsappChat,
+  ...whatsappApp,
 ]

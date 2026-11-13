@@ -1,5 +1,7 @@
 import {
   type ChannelTemplate,
+  type ChannelTemplateSpec,
+  type ChannelTemplateStatus,
   type MarketingSend,
   type Message,
   type NotificationChannel,
@@ -9,6 +11,8 @@ import {
   type TemplateData,
   type TemplateId,
 } from '@commerce/notifications'
+import { whatsappTemplateSpecs } from './template-specs'
+import { fetchTemplateStatuses, postTemplate } from './templates-api'
 
 export type WhatsappConfig = {
   phoneNumberId: string
@@ -170,7 +174,7 @@ export function templateParams(template: TemplateId, d: TemplateData): string[] 
 
 /** WhatsApp placeholders may not contain newlines, tabs or 4+ spaces, nor be empty. */
 const clean = (s: string): string => s.replace(/\s+/g, ' ').trim()
-const param = (s: string): string => clean(s) || '-'
+export const param = (s: string): string => clean(s) || '-'
 
 /** One Graph call may take this long before the send counts as failed (and is retried). */
 const GRAPH_TIMEOUT_MS = 15_000
@@ -254,11 +258,12 @@ export function buildTemplatePayload(
   }
 }
 
-type GraphTemplate = {
+export type GraphTemplate = {
   name?: string
   language?: string
   status?: string
   category?: string
+  rejected_reason?: string
   components?: { type?: string; text?: string }[]
 }
 
@@ -329,6 +334,16 @@ export class WhatsappChannel implements NotificationChannel {
     }
     if (!res.ok) throw new Error(json.error?.message ?? `HTTP ${res.status}`)
     return approvedTemplates(json.data ?? [])
+  }
+
+  /** Every template on the business account with its review status (all pages). */
+  templateStatuses(): Promise<ChannelTemplateStatus[]> {
+    return fetchTemplateStatuses(this.fetchImpl, this.config, this.timeoutMs)
+  }
+
+  /** Submits one message's template to Meta for review. Codes (Authentication) go by hand. */
+  submitTemplate(spec: ChannelTemplateSpec): Promise<{ status: string }> {
+    return postTemplate(this.fetchImpl, this.config, spec, this.timeoutMs)
   }
 
   private async post(payload: unknown): Promise<SendResult> {
@@ -403,4 +418,5 @@ export const whatsappFactory: NotificationChannelFactory<WhatsappConfig> = {
     }
   },
   create: (config) => new WhatsappChannel(config),
+  templateSpecs: whatsappTemplateSpecs,
 }

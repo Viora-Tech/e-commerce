@@ -2064,6 +2064,7 @@ export const notification = pgTable(
     uniqueIndex('notification_cart_channel_template')
       .on(t.cartId, t.channel, t.template)
       .where(sql`cart_id is not null`),
+    index('notification_store_channel_created').on(t.storeId, t.channel, t.createdAt),
   ],
 )
 

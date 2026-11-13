@@ -1,3 +1,5 @@
+import type { ChannelTemplateSpec, ChannelTemplateStatus } from './template-types'
+
 /**
  * The notification contract. Channels (email, WhatsApp, SMS) implement it; the
  * worker renders a template and hands the result to every channel a store has
@@ -502,6 +504,13 @@ export type NotificationChannel = {
   sendMarketing?(message: MarketingSend): Promise<SendResult>
   /** Approved templates the channel may send (WhatsApp). Throws on transport errors. */
   listTemplates?(): Promise<ChannelTemplate[]>
+  /**
+   * Every template on the account with its review status (approved, pending, rejected), for
+   * Apps → WhatsApp → Templates. Throws on transport errors with the provider's own message.
+   */
+  templateStatuses?(): Promise<ChannelTemplateStatus[]>
+  /** Sends one message's template to the provider for review. Throws with the provider's message. */
+  submitTemplate?(spec: ChannelTemplateSpec): Promise<{ status: string }>
 }
 
 /** Same shape as the payments ProviderField; copied so this package stays dependency-free. */
@@ -524,4 +533,9 @@ export type NotificationChannelFactory<Config> = {
   fields: ProviderField[]
   validateConfig(raw: unknown): { ok: true; config: Config } | { ok: false; errors: string[] }
   create(config: Config): NotificationChannel
+  /**
+   * Template channels (WhatsApp): the template each message needs, written from the channel's
+   * own copy, so the admin can show it and submit it. `storeName` fills the examples.
+   */
+  templateSpecs?(ids: readonly TemplateId[], storeName: string): ChannelTemplateSpec[]
 }
