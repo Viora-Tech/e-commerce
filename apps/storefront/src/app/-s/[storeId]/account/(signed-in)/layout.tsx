@@ -19,7 +19,7 @@ export default async function SignedInLayout({ children, params }: SignedInLayou
   return renderTemplate(storeId, 'account', {
     renderers: {
       MainAccount: () => (
-        <AccountFrame>
+        <AccountFrame storeId={storeId}>
           <div className="account-layout">
             {me ? <AccountNav email={me.email ?? me.phone ?? ''} name={me.name} /> : null}
             <div className="account-layout__main">{children}</div>

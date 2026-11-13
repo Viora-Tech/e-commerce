@@ -3,6 +3,8 @@ import type { OrderReturnState } from '@commerce/core'
 import Link from 'next/link'
 import { formatAccountDate } from '@/data/account'
 import { returnsContent } from '@/data/returns'
+import { ACCOUNT_CARD, ACCOUNT_CARD_TITLE } from '@/lib/account-classes'
+import { CK_BUTTON_PRIMARY } from '@/lib/checkout-classes'
 import ReturnTimeline from './return-timeline'
 import StatusPill from './status-pill'
 
@@ -67,40 +69,37 @@ export default function ReturnsCard({ state, orderNumber, timeZone, justSent }: 
   const returns = state.returns.filter((r) => r.kind === 'return')
 
   return (
-    <section
-      className="flex flex-col gap-4 rounded-[var(--radius-card)] bg-surface p-6"
-      aria-labelledby="order-returns"
-    >
-      <h3 id="order-returns" className="h4">
+    <section className={ACCOUNT_CARD} aria-labelledby="order-returns">
+      <h2 id="order-returns" className={ACCOUNT_CARD_TITLE}>
         {copy.title}
-      </h3>
+      </h2>
       {justSent ? (
-        <p className="text-body text-success" role="status">
+        <p className="text-[0.9375rem] text-ck-success" role="status">
           {copy.sent}
         </p>
       ) : null}
-      <p className="text-body text-muted">{windowLine(state, timeZone)}</p>
+      <p className="text-[0.9375rem] text-ck-muted">{windowLine(state, timeZone)}</p>
       {state.eligibility.open ? (
         <Link
           href={`/account/orders/${orderNumber}/return`}
-          className="btn btn--primary self-start"
+          className={`${CK_BUTTON_PRIMARY} h-12! sm:w-auto! sm:self-start`}
         >
-          <span className="btn__label">{copy.start}</span>
+          {copy.start}
         </Link>
       ) : null}
       {returns.length > 0 ? (
-        <ul className="flex flex-col divide-y divide-line">
+        <ul className="flex flex-col divide-y divide-ck-line">
           {returns.map((r) => {
             const note = outcome(r)
             return (
               <li key={r.id} className="flex flex-col gap-3 py-4 first:pt-0 last:pb-0">
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <span className="text-body font-medium">
+                  <span className="text-[0.9375rem] font-medium">
                     {r.label} · {copy.items(r.lines.reduce((n, l) => n + l.returnQuantity, 0))}
                   </span>
                   <StatusPill label={returnsContent.status[r.status]} tone={tone(r)} />
                 </div>
-                <ul className="flex flex-col gap-1 text-small text-muted">
+                <ul className="flex flex-col gap-1 text-[0.8125rem] text-ck-muted">
                   {r.lines.map((l) => (
                     <li key={l.returnLineId}>
                       {l.title}
@@ -109,7 +108,7 @@ export default function ReturnsCard({ state, orderNumber, timeZone, justSent }: 
                     </li>
                   ))}
                 </ul>
-                {note ? <p className="text-small">{note}</p> : null}
+                {note ? <p className="text-[0.8125rem]">{note}</p> : null}
                 <ReturnTimeline row={r} timeZone={timeZone} />
               </li>
             )

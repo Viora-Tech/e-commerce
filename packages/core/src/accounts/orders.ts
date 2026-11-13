@@ -21,6 +21,7 @@ import { orderParcelsView, type ParcelView } from '../order/parcel-view'
 import { isSplitTender } from '../payments/split-tender'
 import { balanceOwed } from '../preorder/balance'
 import type { GstBreakdown } from '../tax/gst'
+import { orderThumbnails } from './order-thumbnails'
 
 /**
  * What a signed-in shopper can see of their own orders. Every query is filtered
@@ -59,6 +60,8 @@ export type ShopperOrderSummary = {
   payment: ShopperPaymentState
   shipment: ShopperShipmentState
   firstImage: { url: string; alt: string | null } | null
+  /** One picture per product, in the order's line order, at most `ORDER_THUMBNAILS` (Figma 705:114276). */
+  thumbnails: { url: string; alt: string | null }[]
 }
 
 type PaymentRow = { provider: string; status: string }
@@ -180,6 +183,10 @@ async function summarise(
         o.fulfillmentStatus,
       ),
       firstImage: img ? { url: img.url, alt: img.alt } : null,
+      thumbnails: orderThumbnails(
+        mine.map((l) => l.productId),
+        images,
+      ),
     }
   })
 }

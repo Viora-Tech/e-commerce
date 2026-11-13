@@ -40,8 +40,8 @@ export default async function LoginPage({ params, searchParams }: LoginPageProps
   return renderTemplate(storeId, 'login', {
     renderers: {
       MainLogin: () => (
-        <AccountFrame>
-          <div className="py-6 md:py-12">
+        <AccountFrame storeId={storeId}>
+          <div className="md:py-6">
             <SignIn
               returnTo={returnTo}
               methods={signIn.methods}

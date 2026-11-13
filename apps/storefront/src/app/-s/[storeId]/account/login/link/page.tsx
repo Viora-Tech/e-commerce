@@ -28,7 +28,7 @@ export default async function MagicLinkPage({ params, searchParams }: MagicLinkP
   if (await currentCustomer(storeId)) redirect('/account')
   const live = await magicLinkLive(storeId, token)
   return (
-    <AccountFrame>
+    <AccountFrame storeId={storeId}>
       <div className="py-6 md:py-12">
         <MagicLinkSignIn token={live && token ? token : null} />
       </div>

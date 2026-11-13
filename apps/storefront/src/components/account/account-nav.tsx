@@ -65,14 +65,17 @@ export default function AccountNav({ email, name }: AccountNavProps) {
               key={l.href}
               href={l.href}
               aria-current={active ? 'page' : undefined}
-              className="account-nav__link"
+              className="account-nav__link flex! min-h-11 items-center"
             >
               {l.label}
             </Link>
           )
         })}
         <form action={signOutAction}>
-          <button type="submit" className="account-nav__link account-nav__sign-out">
+          <button
+            type="submit"
+            className="account-nav__link account-nav__sign-out flex! min-h-11 items-center"
+          >
             {copy.signOut}
           </button>
         </form>
