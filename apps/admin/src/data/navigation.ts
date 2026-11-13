@@ -253,6 +253,8 @@ export const SETTINGS_NAV: NavItem = {
 }
 
 export const navigationContent = {
+  /** The Apps group's last row, after the three most recent apps. */
+  allApps: (n: number) => `All apps (${n})`,
   pickStore: 'Pick a store',
   mainMenu: 'Main menu',
   stores: 'Stores',
