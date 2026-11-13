@@ -155,6 +155,11 @@ export type OutboxEventType =
   /** Staff split a parcel to ship part of the order now and chose to tell the shopper (`order_split`). */
   | 'order.split'
   /**
+   * Staff asked a cash on delivery shopper to pay online instead, or the one automatic reminder
+   * two days later (`cod_pay_online`, payments/cod-pay-online.ts).
+   */
+  | 'order.pay_online_requested'
+  /**
    * A payment gateway refused the store's API keys (`payments/gateway-health.ts`): checkout hides
    * it and the owners are emailed, once per incident. No order.
    */
@@ -369,6 +374,7 @@ export const OUTBOX_NOTIFICATION_TEMPLATE: Record<OutboxEventType, TemplateId | 
   'shipment.tracking_updated': 'shipping_update',
   'order.link_sent': 'order_link',
   'order.split': 'order_split',
+  'order.pay_online_requested': 'cod_pay_online',
   'payments.gateway_keys_refused': null,
 }
 
@@ -383,6 +389,8 @@ export const REPEATABLE_OUTBOX_EVENTS: ReadonlySet<OutboxEventType> = new Set([
   'order.edited',
   'shipment.tracking_updated',
   'order.link_sent',
+  // "Ask to pay online" and its one reminder two days later: both go out.
+  'order.pay_online_requested',
   'order.balance_requested',
   'order.balance_reminder',
   'order.payment_reminder',
@@ -469,5 +477,6 @@ export const OUTBOX_APP_EVENT: Record<OutboxEventType, AppEvent | null> = {
   'shipment.tracking_updated': null,
   'order.link_sent': null,
   'order.split': null,
+  'order.pay_online_requested': null,
   'payments.gateway_keys_refused': null,
 }

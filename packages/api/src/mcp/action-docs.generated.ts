@@ -552,6 +552,7 @@ export const ACTION_DOCS: Record<string, string> = {
     'Release the hold: the order goes back to where it was (to pack, or partly shipped).',
   'orders.requestBalance':
     "Ask the shopper for a deposit pre-order's balance: email and WhatsApp (when set up) with a signed pay link.",
+  'orders.requestOnlinePayment': '"Ask to pay online" on an unpaid cash on delivery order (e.g.',
   'orders.reserveDraft':
     "Reserve items (#1030): hold the saved draft's stock until a date, so no one else can buy it.",
   'orders.restore': '"Restore order": a cancel pressed by mistake; refused once money went back.',
@@ -763,6 +764,8 @@ export const ACTION_DOCS: Record<string, string> = {
     'Our own India Post address label (Code 128 article number), as a PDF.',
   'shipments.label':
     "A shipment's label PDF for the admin's /api/shipments/<id>/label route: the copy kept in the store's private storage (Blue Dart, DTDC, DHL Express, FedEx), else the courier's own, fetched server-side…",
+  'shipments.labelSheet':
+    "A batch's labels as one PDF in the merchant's paper (Figma 909:9249, the bulk result's Print card; also Shipments › Booked's selection): 4 × 6 in thermal one per page, A4 four per sheet, or each cour…",
   'shipments.listPickupOptions':
     'The Create pickup drawer: per courier and place, the parcels still without a pickup and the pickups already booked there (Figma 905:8280, 906:8464).',
   'shipments.quote':

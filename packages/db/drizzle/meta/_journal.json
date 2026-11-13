@@ -1611,6 +1611,13 @@
       "when": 1795189000000,
       "tag": "0245_live_storefront_hosts",
       "breakpoints": true
+    },
+    {
+      "idx": 230,
+      "version": "7",
+      "when": 1795189100000,
+      "tag": "0246_cod_pay_online",
+      "breakpoints": true
     }
   ]
 }

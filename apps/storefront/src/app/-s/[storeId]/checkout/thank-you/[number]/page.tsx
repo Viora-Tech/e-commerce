@@ -129,9 +129,18 @@ export default async function ThankYouPage({ params, searchParams }: Params) {
       !o.checkoutPaidAt &&
       !!pay &&
       OPEN_STATUSES.has(pay.status)
-    const canPayOnline = transferOpen ? !!(await payOnlineGateway(tx, storeId, o.isTest)) : false
+    // A cash on delivery order staff asked to pay online (no courier takes COD here), still unpaid.
+    const codAsked =
+      o.paymentMethod === 'cod' &&
+      o.status === 'open' &&
+      !o.checkoutPaidAt &&
+      o.payOnlineRequestedAt !== null &&
+      o.fulfillmentStatus === 'unfulfilled'
+    const canPayOnline =
+      transferOpen || codAsked ? !!(await payOnlineGateway(tx, storeId, o.isTest)) : false
     return {
       canPayOnline,
+      codPayOnline: codAsked && canPayOnline,
       owned: ownedBySession,
       shipmentStatus: ship?.status ?? null,
       trackingUrl,
@@ -213,6 +222,7 @@ export default async function ThankYouPage({ params, searchParams }: Params) {
         links={links}
         payPath={buildPayPath(data.order.number, payToken)}
         canPayOnline={data.canPayOnline}
+        codPayOnline={data.codPayOnline}
         checkedOutAgain={isDraft && query.again === '1'}
         look={await withThemeLogo(storeId, data.look)}
         images={data.images}

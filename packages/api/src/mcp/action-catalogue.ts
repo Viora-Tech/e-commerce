@@ -173,6 +173,8 @@ const READ_PATHS = new Set([
   'meilisearch.test',
   'shopifyImport.testConnection',
   'gstInvoices.bulkDownload',
+  // Joins the batch's labels into one PDF to print, saves nothing.
+  'shipments.labelSheet',
   'inbox.sync',
   'inbox.panel',
   'inbox.assignees',

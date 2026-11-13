@@ -1,6 +1,7 @@
 import {
   order,
   orderLine,
+  orderNote,
   payment,
   refund,
   returnRequest,
@@ -8,8 +9,10 @@ import {
   shipment,
 } from '@commerce/db'
 import { and, eq, inArray, isNull, ne, sql } from 'drizzle-orm'
+import { COD_RTO_TAGS } from '../cod-rto/settings'
 import type { StoreContext } from '../context'
 import { insertOutboxEvent } from '../outbox/write'
+import { isSplitTender } from '../payments/split-tender'
 import {
   asLifecycle,
   deriveFulfillmentStatus,
@@ -62,6 +65,7 @@ async function paymentFacts(ctx: StoreContext, orderId: string) {
   const rows = await ctx.tx
     .select({
       id: payment.id,
+      provider: payment.provider,
       status: payment.status,
       amountPaise: payment.amountPaise,
       refundNeeded: payment.refundNeeded,
@@ -81,6 +85,54 @@ async function paymentFacts(ctx: StoreContext, orderId: string) {
     : []
   const byPayment = new Map(back.map((r) => [r.paymentId, Number(r.total)]))
   return rows.map((r) => ({ ...r, refundedPaise: byPayment.get(r.id) ?? 0 }))
+}
+
+/** Money collected outside a gateway: a capture on these never makes a COD order prepaid. */
+const OFFLINE_PROVIDERS: ReadonlySet<string> = new Set(['cod', 'manual'])
+
+const COD_PAID_ONLINE_NOTE =
+  'Paid online, so this order now ships prepaid instead of cash on delivery.'
+
+/**
+ * A cash on delivery order the shopper paid online after all ("Ask to pay online",
+ * `payments/pay-online-instead.ts`): once a gateway capture covers it, it is a prepaid order, so
+ * booking, the bulk ship drawer and order push stop asking the courier to collect cash. A COD
+ * confirmation still waiting is answered by the payment. Cash collected at the door (a `cod` or
+ * `manual` capture) changes nothing.
+ */
+async function codPaidOnline(
+  ctx: StoreContext,
+  o: OrderRow,
+  payments: readonly { provider: string; status: string; refundNeeded: boolean }[],
+): Promise<void> {
+  const online = payments.find(
+    (p) =>
+      p.status === 'captured' &&
+      !p.refundNeeded &&
+      !OFFLINE_PROVIDERS.has(p.provider) &&
+      !isSplitTender(p.provider),
+  )
+  if (!online) return
+  const waiting = o.codVerification === 'pending' || o.codVerification === 'unconfirmed'
+  await ctx.tx
+    .update(order)
+    .set({
+      paymentMethod: online.provider,
+      ...(waiting
+        ? {
+            codVerification: 'confirmed' as const,
+            codVerifiedAt: new Date(),
+            tags: o.tags.filter((t) => t !== COD_RTO_TAGS.unconfirmed),
+          }
+        : {}),
+    })
+    .where(eq(order.id, o.id))
+  await ctx.tx.insert(orderNote).values({
+    storeId: ctx.storeId,
+    orderId: o.id,
+    body: COD_PAID_ONLINE_NOTE,
+    author: 'system',
+  })
 }
 
 /**
@@ -178,6 +230,7 @@ export async function recomputeOrderStatuses(
       .returning({ id: order.id })
     if (marked) {
       becamePaid = true
+      if (o.paymentMethod === 'cod') await codPaidOnline(ctx, o, payments)
       // `order.placed` below tells the shopper; one confirmation is enough.
       await insertOutboxEvent(ctx.tx, ctx.storeId, 'order.paid', {
         orderId,

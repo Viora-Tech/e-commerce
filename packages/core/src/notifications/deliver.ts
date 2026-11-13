@@ -540,6 +540,18 @@ export async function deliverNotification(
   if (input.template === 'payment_pending' && !(await stillPaymentPending(ctx, input.orderId))) {
     return []
   }
+  // "Please pay online": only while the cash on delivery order is still open and unpaid.
+  if (input.template === 'cod_pay_online') {
+    const [o] = await ctx.tx
+      .select({
+        status: order.status,
+        checkoutPaidAt: order.checkoutPaidAt,
+        paymentMethod: order.paymentMethod,
+      })
+      .from(order)
+      .where(eq(order.id, input.orderId))
+    if (o?.status !== 'open' || o.checkoutPaidAt || o.paymentMethod !== 'cod') return []
+  }
   // An edit or split message for an order cancelled meanwhile would only confuse.
   if (input.template === 'order_edited' || input.template === 'order_split') {
     const [o] = await ctx.tx

@@ -9,7 +9,7 @@ import type { SendChannel } from './reminder-channel-picker'
 import type { CustomMessage } from './send-message-dialog'
 
 /**
- * The order page's hand-sent messages (balance request, payment reminder, order link), each
+ * The order page's hand-sent messages (balance request, payment reminder, order link, ask to pay online), each
  * toasted and followed by `onSent`. `setBusy` is the page's own busy flag, so the page's buttons
  * wait for a send too.
  */
@@ -47,5 +47,7 @@ export function useOrderMessages(
       ),
     sendOrderLink: (custom?: CustomMessage) =>
       send(() => api.orders.sendOrderLink({ orderId, custom }), copy.actions.orderLinkSent),
+    askPayOnline: (custom?: CustomMessage) =>
+      send(() => api.orders.requestOnlinePayment({ orderId, custom }), copy.actions.payOnlineSent),
   }
 }
