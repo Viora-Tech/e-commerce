@@ -14,6 +14,7 @@ import apps from './apps'
 import assistant from './assistant'
 import automationRecords from './automation-records'
 import automations from './automations'
+import backInStock from './back-in-stock'
 import backgroundWork from './background-work'
 import billing from './billing'
 import bluedart from './bluedart'
@@ -47,7 +48,9 @@ import customizeAppEmbeds from './customize-app-embeds'
 import customizeInboxEmbed from './customize-inbox-embed'
 import dateRange from './date-range'
 import dates from './dates'
+import delhivery from './delhivery'
 import deliveryOptions from './delivery-options'
+import deliveryOptionsPages from './delivery-options-pages'
 import dhlExpress from './dhl-express'
 import discounts from './discounts'
 import documentTemplates from './document-templates'
@@ -68,6 +71,7 @@ import growthHome from './growth-home'
 import growthReport from './growth-report'
 import growthbook from './growthbook'
 import gstInvoices from './gst-invoices'
+import gstQueuePage from './gst-queue-page'
 import home from './home'
 import honoProduct from './hono-product'
 import imageEditor from './image-editor'
@@ -77,6 +81,7 @@ import inboxKnowledge from './inbox-knowledge'
 import indiaPost from './india-post'
 import installedApps from './installed-apps'
 import inventory from './inventory'
+import labelSheet from './label-sheet'
 import layout from './layout'
 import localDelivery from './local-delivery'
 import login from './login'
@@ -158,6 +163,7 @@ import themes from './themes'
 import umami from './umami'
 import variantBox from './variant-box'
 import variantPage from './variant-page'
+import whatsappApp from './whatsapp-app'
 import whatsappChat from './whatsapp-chat'
 import whatsappSignup from './whatsapp-signup'
 import xpressbees from './xpressbees'
@@ -186,6 +192,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...assistant,
   ...automationRecords,
   ...automations,
+  ...backInStock,
   ...backgroundWork,
   ...billing,
   ...bluedart,
@@ -200,6 +207,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...checkoutSettings,
   ...codRto,
   ...deliveryOptions,
+  ...deliveryOptionsPages,
   ...common,
   ...resourcePicker,
   ...connectAside,
@@ -215,6 +223,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...customizeAppEmbeds,
   ...customizeInboxEmbed,
   ...dates,
+  ...delhivery,
   ...dhlExpress,
   ...fedex,
   ...shipglobal,
@@ -234,6 +243,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...growthHome,
   ...growthReport,
   ...gstInvoices,
+  ...gstQueuePage,
   ...home,
   ...honoProduct,
   ...imageEditor,
@@ -273,6 +283,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...collections,
   ...commandPalette,
   ...inventory,
+  ...labelSheet,
   ...productForm,
   ...productBulkShipping,
   ...productShipping,
@@ -330,4 +341,5 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...growthbook,
   ...whatsappSignup,
   ...whatsappChat,
+  ...whatsappApp,
 ]

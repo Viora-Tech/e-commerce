@@ -398,6 +398,7 @@ export const sendMessageContent = {
     balance_request: { title: 'Request balance', send: 'Send request' },
     payment_reminder: { title: 'Send payment reminder', send: 'Send reminder' },
     order_link: { title: 'Send order link', send: 'Send link' },
+    cod_pay_online: { title: 'Ask to pay online', send: 'Send payment link' },
     checkout_recovery: { title: 'Send checkout reminder', send: 'Send reminder' },
   },
 }

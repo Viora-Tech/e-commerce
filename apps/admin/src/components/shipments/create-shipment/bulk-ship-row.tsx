@@ -24,6 +24,10 @@ type BulkShipRowProps = {
   onTick: (on: boolean) => void
   /** Opens the order's Edit popup (Figma 913:9698): Change, the fix buttons and the pencil. */
   onEdit: () => void
+  /** "Ask to pay online" for a COD order no courier takes: sends the shopper a payment link. */
+  onAskPayOnline: () => void
+  /** A request is on its way: the fix button waits. */
+  busy?: boolean | undefined
 }
 
 const SHORT_DATE = { weekday: 'short', day: 'numeric', month: 'short' } as const
@@ -46,6 +50,8 @@ export default function BulkShipRow({
   ticked,
   onTick,
   onEdit,
+  onAskPayOnline,
+  busy = false,
 }: BulkShipRowProps) {
   // Hooks
   const copy = useCopy(bulkShipContent)
@@ -90,6 +96,9 @@ export default function BulkShipRow({
       : null
   const said = problem ? problemText(problem, copy, blockedCopy) : null
   const muted = line.status === 'problem'
+  const noCod = problem?.kind === 'no_cod'
+  // Asked already: the shopper has the link, the order waits for their payment.
+  const waitingOnline = noCod && order.payOnlineRequestedAt !== null
 
   return (
     <TableRow className={cn('align-middle', muted && 'bg-muted/20')}>
@@ -198,8 +207,17 @@ export default function BulkShipRow({
           <StatusChip tone="success" variant="outline">
             {copy.ready}
           </StatusChip>
+        ) : waitingOnline ? (
+          <StatusChip tone="info" variant="outline">
+            {copy.waitingOnline}
+          </StatusChip>
         ) : said?.fix ? (
-          <Button size="sm" variant="outline" onClick={onEdit}>
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={noCod && busy}
+            onClick={noCod ? onAskPayOnline : onEdit}
+          >
             {said.fix}
           </Button>
         ) : null}

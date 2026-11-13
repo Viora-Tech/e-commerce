@@ -156,6 +156,8 @@ export const ACTION_DOCS: Record<string, string> = {
   'billing.choose':
     'Pick a plan: billed now (pay link) or, for a downgrade, scheduled for the period end.',
   'billing.keepPlan': 'Cancel a scheduled downgrade.',
+  'billing.quote':
+    '"Move to Pro?": what picking a plan costs now (the new plan for the rest of the period, less the old plan\'s unused days, plus GST), or that it starts at the period end.',
   'billing.startAutopay':
     '"Turn on UPI AutoPay" for the current plan: the page where the owner approves the mandate.',
   'billing.stopApp': '"Stop renewing": the app keeps working until its paid month ends.',
@@ -260,8 +262,14 @@ export const ACTION_DOCS: Record<string, string> = {
   'dashboard.tiles': 'Which metric this member keeps in each Home tile (Customize).',
   'dashboard.todos':
     'Which to-do cards this store hides on Home ("Edit to-dos"); one setting for the whole store.',
+  'deliveryOptions.routeCatalogue':
+    "Routes: every courier x app x service the connected apps offer, asked on two long lanes from the store's origin through checkout's answer cache (live only when nothing is cached), with the route sett…",
+  'deliveryOptions.saveOptions':
+    "The Options page's Save: every edited option, the card order and the checkout layout in one transaction, so a half-saved page never reaches checkout.",
   'deliveryOptions.saveProtect':
     "Delhivery Protect's card: rates per category and product-type overrides (the overview returns it as protect).",
+  'deliveryOptions.status':
+    "The app bar's status pill: courier apps connected and the share priced live today.",
   'deliveryOptions.tryPin':
     "Try a PIN: the cards checkout would show, every route's quote, and why.",
   'documents.templates':
@@ -297,6 +305,8 @@ export const ACTION_DOCS: Record<string, string> = {
   'gstInvoices.queue.issue':
     'Review, Issue: numbers are assigned here and never change afterwards.',
   'gstInvoices.queue.preview': 'The numbers a batch would get, in the order it would get them.',
+  'gstInvoices.queue.stats':
+    'The four figures above the queue: issued this month and its taxable value, credit notes this month, and the next invoice number with the day its series starts again.',
   'gstInvoices.returns.gstr1Csv': 'The GSTR-1 totals per table, as a CSV for Excel.',
   'gstInvoices.returns.gstr1Json': 'The GSTR-1 JSON for the portal\'s "Prepare offline → Upload".',
   'gstInvoices.returns.gstr3b': 'GSTR-3B 3.1 and 3.2 as a CSV or a one-page PDF.',
@@ -552,6 +562,7 @@ export const ACTION_DOCS: Record<string, string> = {
     'Release the hold: the order goes back to where it was (to pack, or partly shipped).',
   'orders.requestBalance':
     "Ask the shopper for a deposit pre-order's balance: email and WhatsApp (when set up) with a signed pay link.",
+  'orders.requestOnlinePayment': '"Ask to pay online" on an unpaid cash on delivery order (e.g.',
   'orders.reserveDraft':
     "Reserve items (#1030): hold the saved draft's stock until a date, so no one else can buy it.",
   'orders.restore': '"Restore order": a cancel pressed by mistake; refused once money went back.',
@@ -618,8 +629,16 @@ export const ACTION_DOCS: Record<string, string> = {
     "The popup finished: swap the code (it lives 30 seconds), subscribe, register the number, then save it as the store's WhatsApp channel and turn the channel on.",
   'platformApps.disconnectWhatsapp':
     'Forget the Embedded Signup account: the channel turns off and its saved access goes.',
+  'platformApps.submitWhatsappTemplates':
+    "Submits message templates to Meta for review (Utility, the store's language).",
   'platformApps.whatsapp':
     'Whether Embedded Signup is set up here, what the SDK needs, and the linked account.',
+  'platformApps.whatsappMessages':
+    "Apps → WhatsApp → Messages: the store's WhatsApp sends, newest first, 50 at a time.",
+  'platformApps.whatsappSetup':
+    'Apps → WhatsApp → Setup: the number, the Meta connection and the sample messages.',
+  'platformApps.whatsappTemplates':
+    "Apps → WhatsApp → Templates: each message's template (name, body, examples) and Meta's review status, read with the saved access token when the account ID is saved too.",
   'policies.template':
     "A policy's template filled from the store as it is now; the editor shows it, nothing is saved.",
   'preorders.campaigns.delete': 'Its products sell by their own pre-order settings again.',
@@ -752,13 +771,19 @@ export const ACTION_DOCS: Record<string, string> = {
   'searchConsole.view':
     "Connection state for the app's pages: account, property, last sync, refresh cooldown.",
   'shipments.counts':
-    'Rows per Shipments tab, plus "booked today" and "need attention" for the summary line.',
+    "Rows per Shipments tab plus the summary line; provider: one courier's (its app's page).",
+  'shipments.courierOverview':
+    "A courier app's Overview tiles: in transit and delayed, booked today and what it cost, RTO this month, and its newest shipment change.",
+  'shipments.courierPickupPlaces':
+    "A courier app's Pickup locations: the account's own place, then every location with courier pickup on, each with the next pickup booked there with that courier.",
   'shipments.get':
     'One booked shipment for its details view: courier and service, AWB, status, COD or prepaid, package, pickup, the label link the admin may open, and whether it can still be cancelled (and why not).',
   'shipments.indiaPostLabel':
     'Our own India Post address label (Code 128 article number), as a PDF.',
   'shipments.label':
     "A shipment's label PDF for the admin's /api/shipments/<id>/label route: the copy kept in the store's private storage (Blue Dart, DTDC, DHL Express, FedEx), else the courier's own, fetched server-side…",
+  'shipments.labelSheet':
+    "A batch's labels as one PDF in the merchant's paper (Figma 909:9249, the bulk result's Print card; also Shipments › Booked's selection): 4 × 6 in thermal one per page, A4 four per sheet, or each cour…",
   'shipments.listPickupOptions':
     'The Create pickup drawer: per courier and place, the parcels still without a pickup and the pickups already booked there (Figma 905:8280, 906:8464).',
   'shipments.quote':

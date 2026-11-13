@@ -2,6 +2,8 @@
 /** Plans and their limits for client components: `@commerce/core/billing`. */
 export * from './apps'
 export * from './cost-estimate'
+export * from './next-bill'
 export * from './plans'
+export * from './proration'
 export * from './regional-prices'
 export * from './usage-fee'

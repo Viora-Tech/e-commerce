@@ -112,6 +112,8 @@ export type AppHealth = {
   successRate: number | null
   /** Median of the calls that answered, ms. */
   typicalMs: number | null
+  /** Calls among them that failed (an error or the adapter's own timeout). */
+  failures: number
   lastError: { at: string; message: string } | null
   /** Skipped by the breaker since then; null when checkout asks it. */
   skippedSince: string | null
@@ -122,6 +124,8 @@ export type DeliveryHealth = {
   /** Checkouts that ran the engine in the last 24 h, and how many fell back to the zone rate. */
   checkouts24h: number
   backup24h: number
+  /** Median answer time over every app's answered calls, ms; null with none. */
+  typicalMs: number | null
 }
 
 function median(values: number[]): number | null {
@@ -140,6 +144,7 @@ export async function deliveryHealth(
   providerIds: readonly string[],
   now: number = Date.now(),
 ): Promise<DeliveryHealth> {
+  const answered: number[] = []
   const apps = await Promise.all(
     providerIds.map(async (providerId): Promise<AppHealth> => {
       const [calls, open] = await Promise.all([
@@ -147,11 +152,14 @@ export async function deliveryHealth(
         breakerOpen(store, storeId, providerId),
       ])
       const failed = calls.find((c) => !c.ok)
+      const ms = calls.flatMap((c) => (c.ok && c.ms !== null ? [c.ms] : []))
+      answered.push(...ms)
       return {
         providerId,
         calls: calls.length,
         successRate: calls.length ? calls.filter((c) => c.ok).length / calls.length : null,
-        typicalMs: median(calls.flatMap((c) => (c.ok && c.ms !== null ? [c.ms] : []))),
+        typicalMs: median(ms),
+        failures: calls.filter((c) => !c.ok).length,
         lastError: failed
           ? { at: new Date(failed.at).toISOString(), message: failed.error ?? '' }
           : null,
@@ -167,5 +175,5 @@ export async function deliveryHealth(
       )
     ).reduce<number>((sum, n) => sum + (Number(n) || 0), 0)
   const [checkouts24h, backup24h] = await Promise.all([count('quotes'), count('backup')])
-  return { apps, checkouts24h, backup24h }
+  return { apps, checkouts24h, backup24h, typicalMs: median(answered) }
 }

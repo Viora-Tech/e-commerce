@@ -220,6 +220,7 @@ export const deliveryOptionsContent = {
       couriers_down: 'Hidden: couriers did not answer',
       no_zone_rate: 'Hidden: no Shipping rate covers this address',
       disabled: 'Hidden: turned off',
+      list_layout: 'Hidden: checkout shows the courier list instead',
     },
     why: {
       cheapest: 'Won: cheapest',

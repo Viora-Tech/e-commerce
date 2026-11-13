@@ -10,7 +10,7 @@ import { formatInZone } from '@commerce/dates'
 import { type Db, usageBill, withStore } from '@commerce/db'
 import { and, eq, inArray, sql } from 'drizzle-orm'
 import { sendPlanBillEmail } from './emails'
-import { GRACE_DAYS, PLAN_GST_PERCENT } from './plans'
+import { GRACE_DAYS } from './plans'
 import {
   type BillingEnv,
   BillingNotReady,
@@ -18,7 +18,7 @@ import {
   salesOrderUrl,
   usageFeeSku,
 } from './service'
-import { billable, monthFee } from './usage-fee'
+import { billable, feeBillChargePaise, monthFee, withFeeGst } from './usage-fee'
 import { billingMonth, loadMonthFeeInputs, monthRange, previousMonth } from './usage-fee-service'
 
 const DAY_MS = 86_400_000
@@ -101,10 +101,10 @@ export async function runUsageBilling(
         lines: [
           ...claim.fee.lines.map((l) => ({
             sku: usageFeeSku(l.plan),
-            unitPricePaise: l.feePaise,
+            unitPricePaise: withFeeGst(l.feePaise),
           })),
           ...(claim.carriedIn > 0
-            ? [{ sku: usageFeeSku('carried'), unitPricePaise: claim.carriedIn }]
+            ? [{ sku: usageFeeSku('carried'), unitPricePaise: withFeeGst(claim.carriedIn) }]
             : []),
         ],
         note: (buyer) =>
@@ -180,8 +180,8 @@ export async function runUsageReminders(
       await sendPlanBillEmail(db, storeId, {
         kind: 'usage',
         what: `Per-order fees for ${monthLabel(b.month)}`,
-        // The bill's own order added GST on the sales store; the row keeps the amount before it.
-        amountPaise: Math.round((b.totalPaise * (100 + PLAN_GST_PERCENT)) / 100),
+        // The same amount the bill's own sales order charges; the row keeps the fee before GST.
+        amountPaise: feeBillChargePaise(b),
         due: new Date(b.createdAt.getTime() + GRACE_DAYS * DAY_MS),
         url: salesOrderUrl(env, b.salesOrderId, b.salesOrderNumber),
       })

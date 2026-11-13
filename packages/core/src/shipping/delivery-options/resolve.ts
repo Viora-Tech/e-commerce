@@ -5,7 +5,7 @@
  * `placeOrder` (from the quote snapshot) and the admin's Try a PIN must compute the same answer.
  * Pure: no database, no network, the clock is passed in.
  */
-import type { DeliveryOption, RouteSelector } from './config'
+import { courierId, type DeliveryOption, type RouteSelector } from './config'
 import { cartProtect, cheapestZoneRate, datesFor, priceRoute } from './price'
 import type {
   DeliveryResolveResult,
@@ -21,6 +21,9 @@ import { insurancePrice, type Route, routesFromAnswers, selectorMatches } from '
 import { matchingRules, poolAllows, type RulePool, rulePool } from './rules'
 
 const optionAllows = (option: DeliveryOption, route: Route): boolean => {
+  // The courier list's switches: a courier not turned on (new ones start off) never shows.
+  const allow = option.couriers.allow
+  if (allow != null && !allow.includes(courierId(route.carrierKey, route.speed))) return false
   const r = option.routes
   if (r.mode === 'any') return true
   const hit = r.selectors.some((s) => selectorMatches(route, s))
@@ -216,7 +219,7 @@ function courierList(fits: Candidate[], winner: Candidate, option: DeliveryOptio
     const id = `${c.route.carrierKey}:${c.route.speed}`
     if (c.route.key === winner.route.key || seen.has(id)) continue
     seen.add(id)
-    const more = Math.max(0, cost(c) - cost(winner))
+    const more = option.couriers.extra === 'none' ? 0 : Math.max(0, cost(c) - cost(winner))
     const extra = option.couriers.roundTo9 ? upToNine(more) : Math.ceil(more / 100) * 100
     rest.push({
       ...c.priced,
@@ -251,7 +254,13 @@ export function resolveDeliveryOptions(input: ResolveInput): DeliveryResolveResu
   const traces: OptionTrace[] = []
 
   const sorted = [...config.options].sort((a, b) => a.position - b.position)
-  for (const option of sorted) {
+  // The courier list layout: the first enabled option alone, as a list of couriers.
+  const listOptionId = config.layout === 'list' ? (sorted.find((o) => o.enabled)?.id ?? null) : null
+  for (const saved of sorted) {
+    const option: DeliveryOption =
+      saved.id === listOptionId && saved.couriers.show !== 'list'
+        ? { ...saved, couriers: { ...saved.couriers, show: 'list' } }
+        : saved
     const base: OptionTrace = {
       optionId: option.id,
       name: option.name,
@@ -264,6 +273,10 @@ export function resolveDeliveryOptions(input: ResolveInput): DeliveryResolveResu
     }
     if (!option.enabled) {
       traces.push({ ...base, hidden: 'disabled' })
+      continue
+    }
+    if (listOptionId !== null && option.id !== listOptionId) {
+      traces.push({ ...base, hidden: 'list_layout' })
       continue
     }
     // The option hides every courier name: its cards show only the delivery promise (#1521).

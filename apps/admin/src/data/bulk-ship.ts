@@ -72,6 +72,10 @@ export const bulkShipContent = {
     payOnline: 'Ask to pay online',
     change: 'Change courier',
   },
+  /** After "Ask to pay online": the shopper has their payment link; the row waits for it. */
+  waitingOnline: 'Waiting for online payment',
+  payOnlineSent: (name: string | null) =>
+    name ? `Payment link sent to ${name}` : 'Payment link sent to the customer',
   edit: (n: number) => `Edit order #${n}`,
   footer: {
     ready: 'Ready',
@@ -97,8 +101,10 @@ export const bulkShipContent = {
         ? `${plural(skipped, 'order', 'orders')} skipped and stay in To ship. Booked orders moved to Shipments › Booked.`
         : 'Booked orders moved to Shipments › Booked.',
     print: 'Print',
-    printHeading: (n: number) => (n === 1 ? 'The label' : `All ${n} labels`),
-    printHelp: 'Each courier’s label opens in its own tab, in the courier’s own size.',
+    printHeading: (n: number) =>
+      n === 1 ? 'The label in one file' : `All ${n} labels in one file`,
+    printMissing: (n: number) =>
+      `${plural(n, 'label is', 'labels are')} not sent by the courier yet and stay out of the file.`,
     printLabels: (n: number) =>
       n === 0 ? 'Print labels' : `Print ${plural(n, 'label', 'labels')}`,
     packingSlips: 'Packing slips',

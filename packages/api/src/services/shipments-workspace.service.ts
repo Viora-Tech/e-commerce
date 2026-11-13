@@ -176,7 +176,7 @@ export async function listShipments(
 }
 
 /** How many rows each Shipments tab holds, plus the two numbers the summary line uses. */
-export async function shipmentCounts(tx: StoreTx, now = new Date()) {
+export async function shipmentCounts(tx: StoreTx, now = new Date(), provider?: string) {
   const today = startOfDay(now)
   const inGroup = (statuses: string[]) =>
     sql<number>`count(*) filter (where ${inArray(shipment.status, statuses as never[])})`
@@ -200,6 +200,7 @@ export async function shipmentCounts(tx: StoreTx, now = new Date()) {
       bookedToday: sql<number>`count(*) filter (where ${gte(shipment.createdAt, today)})`,
     })
     .from(shipment)
+    .where(provider ? eq(shipment.provider, provider) : undefined)
   return {
     toBook: await countReadyToShip(tx),
     booked: Number(row?.booked ?? 0),

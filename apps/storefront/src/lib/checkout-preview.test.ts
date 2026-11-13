@@ -8,6 +8,7 @@ import {
   offeredMethods,
   processorNames,
   recommendedMethodId,
+  shippingRow,
   storeCreditOffered,
   takesUpi,
   trustMethodNames,
@@ -251,6 +252,7 @@ describe('checkoutTotals with the Delivery options app', () => {
       layout: 'one' as const,
       optionName: 'Standard',
       logo: null,
+      mode: null,
       ...over,
     },
   })
@@ -271,6 +273,17 @@ describe('checkoutTotals with the Delivery options app', () => {
     expect(checkoutTotals({ ...base, rate: card(), picked: 'decentro' }).totalPaise).toBe(
       499_900 + 6000,
     )
+  })
+
+  it('the summary row reads "insured" while the parcel is insured (Figma 945:519)', () => {
+    const rates = { kind: 'rates' as const, options: [] }
+    const s = { delivery: { ok: false, error: 'x' } as const, rates, parcels: [], arrives: null }
+    expect(shippingRow(false, s, card(), 'decentro', true)).toEqual({
+      kind: 'price',
+      paise: 6000,
+      name: 'insured',
+    })
+    expect(shippingRow(false, s, card(), 'decentro')).toMatchObject({ name: 'Standard · DTDC' })
   })
 })
 

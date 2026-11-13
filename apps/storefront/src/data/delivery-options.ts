@@ -5,6 +5,14 @@ export const deliveryOptionsContent = {
     min === max ? `Usually ${min} days` : `Usually ${min}–${max} days`,
   /** Under an option that refuses cash on delivery (Express). */
   prepaidOnly: 'Pay online for this option',
+  /** The fact line under a card (Figma 942:513): how it travels, joined with " · ". */
+  mode: { air: 'By air', express: 'Express', surface: 'Surface' },
+  /** Before today's dispatch cut-off: "order in the next 2 h 14 min". */
+  orderWithin: (hours: number, minutes: number) =>
+    `Order in the next ${[hours > 0 ? `${hours} h` : '', minutes > 0 ? `${minutes} min` : ''].filter(Boolean).join(' ')}`,
+  codAvailable: 'Cash on delivery available',
+  /** The summary's delivery row while the parcel is insured (Figma 945:519). */
+  insured: 'insured',
   /** The insurance checkbox under the options. */
   insure: (price: string | null) =>
     price ? `Insure this shipment (+${price})` : 'Insure this shipment',

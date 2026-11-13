@@ -1604,6 +1604,34 @@
       "when": 1795188900000,
       "tag": "0244_parcel_split_reason",
       "breakpoints": true
+    },
+    {
+      "idx": 229,
+      "version": "7",
+      "when": 1795189000000,
+      "tag": "0245_live_storefront_hosts",
+      "breakpoints": true
+    },
+    {
+      "idx": 230,
+      "version": "7",
+      "when": 1795189100000,
+      "tag": "0246_cod_pay_online",
+      "breakpoints": true
+    },
+    {
+      "idx": 231,
+      "version": "7",
+      "when": 1795189200000,
+      "tag": "0247_notification_channel_log",
+      "breakpoints": true
+    },
+    {
+      "idx": 232,
+      "version": "7",
+      "when": 1795189300000,
+      "tag": "0248_plan_payment_proration",
+      "breakpoints": true
     }
   ]
 }

@@ -7,6 +7,7 @@ import {
   ChevronRightIcon,
   CircleCheck,
   Copy,
+  CreditCard,
   ExternalLink,
   FileEdit,
   FileText,
@@ -66,6 +67,8 @@ type OrderActionsProps = {
   onSendReminder?: (() => void) | undefined
   /** "Send order link": the customer's link to their order page; undefined hides it. */
   onSendOrderLink?: (() => void) | undefined
+  /** "Ask to pay online": an unpaid cash on delivery order's shopper gets a payment link. */
+  onAskPayOnline?: (() => void) | undefined
   /** "View order status page": the shopper's own page for this order, in a new tab. */
   onViewStatusPage?: (() => void) | undefined
   /** Undo a "Mark as delivered" pressed by mistake; shown only on a delivered order. */
@@ -116,6 +119,7 @@ export default function OrderActions({
   cancelShipmentBlocked,
   onSendReminder,
   onSendOrderLink,
+  onAskPayOnline,
   onViewStatusPage,
   onMarkNotDelivered,
   onMarkNotShipped,
@@ -268,6 +272,13 @@ export default function OrderActions({
             hidden: !onSendOrderLink || readOnly,
             disabled: busy,
             onSelect: onSendOrderLink,
+          },
+          {
+            label: copy.actions.askPayOnline,
+            icon: CreditCard,
+            hidden: !onAskPayOnline || readOnly,
+            disabled: busy,
+            onSelect: onAskPayOnline,
           },
           {
             label: copy.actions.markNotDelivered,

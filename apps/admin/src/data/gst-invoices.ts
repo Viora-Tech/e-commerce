@@ -328,9 +328,9 @@ export const gstQueueEmptyContent = {
   when: {
     payment: 'Orders join here when their payment is received.',
     fulfilment: 'Orders join here when they ship.',
-    manual: 'Orders join here only when you add them by number above.',
+    manual: 'Orders join here only when you add them by number from the More menu.',
   },
-  next: 'To invoice an order now, type its number above and choose Add orders.',
+  next: 'To invoice an order now, open the More menu and choose Add orders by number.',
   settings: 'Change when orders join',
   orders: 'View orders',
   filtered: 'Nothing waiting between these dates. Clear the dates to see the whole queue.',

@@ -3,7 +3,7 @@
  * Only orders placed inside a paid plan period count, so trial, grace and paused days carry no
  * fee and the plan of each order is the period that covers it (owner, 2026-10-28). Client-safe.
  */
-import { PLAN_IDS, PLANS, type PlanId } from './plans'
+import { PLAN_GST_PERCENT, PLAN_IDS, PLANS, type PlanId } from './plans'
 
 /** One order as the fee sees it: when it was placed and what the buyer paid. */
 export type FeeOrder = { id: string; placedAt: Date; totalPaise: number; number?: number }
@@ -86,6 +86,27 @@ export function monthFee(orders: FeeOrder[], periods: PaidPeriod[]): MonthFee {
     feePaise: lines.reduce((n, l) => n + l.feePaise, 0),
   }
 }
+
+/**
+ * A fee amount as a sales-store line: the fee plus 18% GST on top, because sales prices include
+ * GST (owner, 2026-11-13: fees are "+ GST", like the plan price).
+ */
+export const withFeeGst = (paise: number): number =>
+  paise + Math.round((paise * PLAN_GST_PERCENT) / 100)
+
+/**
+ * What a fee bill's own sales order charges: each plan's line and the carried amount, GST on top.
+ * A bill without plan lines is charged as one line of `totalPaise`.
+ */
+export const feeBillChargePaise = (bill: {
+  lines: readonly { feePaise: number }[]
+  carriedInPaise: number
+  totalPaise: number
+}): number =>
+  bill.lines.length === 0
+    ? withFeeGst(bill.totalPaise)
+    : bill.lines.reduce((n, l) => n + withFeeGst(l.feePaise), 0) +
+      (bill.carriedInPaise > 0 ? withFeeGst(bill.carriedInPaise) : 0)
 
 /** Whether a month's fee plus what was carried in is enough to bill, and the total either way. */
 export function billable(

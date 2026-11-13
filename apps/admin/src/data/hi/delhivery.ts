@@ -1,0 +1,95 @@
+import { delhiveryAppContent } from '@/data/delhivery'
+import { translation, untranslated } from '@/lib/i18n'
+
+export default [
+  translation(delhiveryAppContent, {
+    connect: untranslated,
+    overview: {
+      title: 'ओवरव्यू',
+      subtitle: 'आपका Delhivery अकाउंट: वॉलेट, आज के पार्सल और पिकअप की जगहें।',
+      notConnected: 'अभी जुड़ा नहीं है। शिपमेंट बुक करने के लिए अपने अकाउंट की जानकारी डालें।',
+      connectCta: 'अकाउंट जोड़ें',
+      rechargeWallet: 'वॉलेट रिचार्ज करें',
+      rechargeUrl: 'https://one.delhivery.com/',
+      tiles: {
+        wallet: 'वॉलेट',
+        recharge: 'रिचार्ज',
+        lowAlert: (amount: string) => `${amount} से कम होने पर अलर्ट`,
+        low: (amount: string) => `${amount} के अलर्ट से कम है। बुक करने से पहले रिचार्ज करें।`,
+        notRecorded: 'दर्ज नहीं',
+        notRecordedNote: 'Delhivery बैलेंस नहीं बताता। कम बैलेंस के अलर्ट के लिए इसे डालें।',
+        update: 'बदलें',
+        bookedToday: 'आज बुक हुए',
+        charged: (amount: string) => `${amount} लगे`,
+        noneToday: 'आज अभी कुछ बुक नहीं हुआ',
+        inTransit: 'रास्ते में',
+        delayed: (n: number) => `${n} देर से`,
+        noneDelayed: 'कोई भी तय तारीख से पीछे नहीं',
+        rto: 'इस महीने RTO',
+        rtoOf: (percent: string, n: number) => `${n} में से ${percent}`,
+        noneThisMonth: 'इस महीने कुछ बुक नहीं हुआ',
+      },
+      recent: {
+        title: 'हाल के शिपमेंट',
+        viewAll: 'सब देखें',
+        columns: { awb: 'AWB', order: 'ऑर्डर', status: 'स्थिति', updated: 'अपडेट' },
+        empty: 'अभी कोई Delhivery शिपमेंट नहीं। ऑर्डर → शिपमेंट से बुक करें।',
+      },
+      pickup: {
+        title: 'पिकअप की जगहें',
+        add: 'जोड़ें',
+        default: 'डिफ़ॉल्ट',
+        registered: 'रजिस्टर्ड',
+        next: (when: string, n: number) => `अगला पिकअप: ${when} · ${n} पार्सल`,
+        noNext: 'कोई पिकअप बुक नहीं',
+        empty: 'अभी कोई पिकअप जगह नहीं। Connect पेज पर Delhivery One में रजिस्टर्ड नाम डालें।',
+      },
+      connection: {
+        title: 'कनेक्शन',
+        edit: 'बदलें',
+        account: 'अकाउंट',
+        apiKey: 'API key',
+        works: 'चल रही है',
+        saved: 'सेव है',
+        tracking: 'ट्रैकिंग अपडेट',
+        webhookOn: 'मिल रहे हैं · वेबहुक चालू',
+        polled: 'दिन में कुछ बार जाँचे जाते हैं',
+        pickupName: 'पिकअप जगह',
+        unknown: 'सेट नहीं',
+      },
+      walletDialog: {
+        title: 'Delhivery वॉलेट बैलेंस',
+        body: 'Delhivery अपने API से बैलेंस नहीं बताता। कम बैलेंस का अलर्ट चलाने के लिए इसे Delhivery One से कॉपी करें।',
+        label: 'बैलेंस',
+        save: 'बैलेंस सेव करें',
+        saved: 'बैलेंस सेव हो गया',
+      },
+    },
+    shipmentsPage: {
+      title: 'शिपमेंट',
+      subtitle: 'Delhivery से बुक हुआ हर पार्सल। नए ऑर्डर → शिपमेंट से बुक करें।',
+      openWorkspace: 'सभी कूरियर',
+    },
+    pickupsPage: {
+      title: 'पिकअप',
+      subtitle: 'बुक हुए पार्सल के लिए Delhivery पिकअप बुक करें, फिर मैनिफ़ेस्ट प्रिंट करें।',
+    },
+    pickupLocationsPage: {
+      title: 'पिकअप की जगहें',
+      subtitle:
+        'Delhivery आपके पार्सल कहाँ से उठाता है। हर नाम Delhivery One के वेयरहाउस नाम से हूबहू मिलना चाहिए।',
+      manage: 'जगहें संभालें',
+      changeDefault: 'Connect पर बदलें',
+      columns: {
+        place: 'जगह',
+        registered: 'Delhivery में नाम',
+        address: 'शहर और PIN कोड',
+        next: 'अगला पिकअप',
+      },
+      next: (when: string, n: number) => `${when} · ${n} पार्सल`,
+      none: 'कोई बुक नहीं',
+      empty:
+        'अभी कोई पिकअप जगह नहीं। Connect पेज पर Delhivery One में रजिस्टर्ड नाम डालें, या किसी जगह पर कूरियर पिकअप चालू करें।',
+    },
+  }),
+]

@@ -34,6 +34,11 @@ import DecentroConnectPage from '@/components/apps/decentro/connect-page'
 import DecentroOverviewPage from '@/components/apps/decentro/overview-page'
 import DelhiveryConnectPage from '@/components/apps/delhivery/connect-page'
 import DelhiveryOverviewPage from '@/components/apps/delhivery/overview-page'
+import DelhiveryPickupLocationsPage from '@/components/apps/delhivery/pickup-locations-page'
+import DelhiveryPickupsPage from '@/components/apps/delhivery/pickups-page'
+import DelhiveryRechargeButton from '@/components/apps/delhivery/recharge-button'
+import DelhiveryShipmentsPage from '@/components/apps/delhivery/shipments-page'
+import DeliveryOptionsHeaderAction from '@/components/apps/delivery-options/header-action'
 import DeliveryOptionPage from '@/components/apps/delivery-options/option-page'
 import DeliveryOptionsSectionPage from '@/components/apps/delivery-options/options-section-page'
 import DeliveryOverviewSectionPage from '@/components/apps/delivery-options/overview-section-page'
@@ -50,6 +55,7 @@ import FedexConnectPage from '@/components/apps/fedex/connect-page'
 import FedexOverviewPage from '@/components/apps/fedex/overview-page'
 import SubmissionsList from '@/components/apps/forms/submissions-list'
 import GrowthbookExperimentsPage from '@/components/apps/growthbook/experiments-page'
+import GstExportButton from '@/components/apps/gst-invoices/gst-export-button'
 import InvoiceDetail from '@/components/apps/gst-invoices/invoice-detail'
 import InvoicesList from '@/components/apps/gst-invoices/invoices-list'
 import GstOrderCard from '@/components/apps/gst-invoices/order-card'
@@ -102,6 +108,10 @@ import ImportsPage from '@/components/apps/shopify-import/imports-page'
 import RunPage from '@/components/apps/shopify-import/run-page'
 import ShopifySettingsPage from '@/components/apps/shopify-import/settings-page'
 import UmamiSettingsPage from '@/components/apps/umami/settings-page'
+import WhatsappConnectHeaderButton from '@/components/apps/whatsapp/connect-header-button'
+import WhatsappMessagesPage from '@/components/apps/whatsapp/messages-page'
+import WhatsappSetupPage from '@/components/apps/whatsapp/setup-page'
+import WhatsappTemplatesPage from '@/components/apps/whatsapp/templates-page'
 import XpressbeesConnectPage from '@/components/apps/xpressbees/connect-page'
 import XpressbeesOverviewPage from '@/components/apps/xpressbees/overview-page'
 import AutomationsCustomerCard from '@/components/automations/records/customer-card'
@@ -197,6 +207,7 @@ export const ADMIN_APPS: Record<string, AdminApp> = {
     OrderCard: CodRtoOrderCard,
   },
   'delivery-options': {
+    HeaderAction: DeliveryOptionsHeaderAction,
     pages: {
       '': DeliveryOverviewSectionPage,
       options: DeliveryOptionsSectionPage,
@@ -215,9 +226,13 @@ export const ADMIN_APPS: Record<string, AdminApp> = {
   delhivery: {
     pages: {
       '': DelhiveryOverviewPage,
+      shipments: DelhiveryShipmentsPage,
+      pickups: DelhiveryPickupsPage,
+      'pickup-locations': DelhiveryPickupLocationsPage,
       connect: DelhiveryConnectPage,
     },
     fullPages: ['connect'],
+    HeaderAction: DelhiveryRechargeButton,
   },
   dtdc: {
     pages: {
@@ -289,6 +304,7 @@ export const ADMIN_APPS: Record<string, AdminApp> = {
     },
   },
   'gst-invoices': {
+    HeaderAction: GstExportButton,
     pages: {
       '': QueuePage,
       invoices: InvoicesList,
@@ -358,8 +374,12 @@ export const ADMIN_APPS: Record<string, AdminApp> = {
     fullPages: ['connect'],
   },
   whatsapp: {
+    HeaderAction: WhatsappConnectHeaderButton,
     pages: {
-      '': WhatsappConnectPage,
+      '': WhatsappSetupPage,
+      messages: WhatsappMessagesPage,
+      templates: WhatsappTemplatesPage,
+      settings: WhatsappConnectPage,
       connect: WhatsappConnectPage,
     },
   },

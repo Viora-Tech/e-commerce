@@ -8,6 +8,8 @@ import { type NotifyMeState, notifyMeAction } from '@/lib/back-in-stock-actions'
 type NotifyMeFormProps = {
   variantId: string
   whatsappEnabled: boolean
+  /** The app's "Button text" setting; null keeps "Notify me". */
+  buttonText?: string | null | undefined
 }
 
 const idle: NotifyMeState = { status: 'idle' }
@@ -16,7 +18,11 @@ const idle: NotifyMeState = { status: 'idle' }
  * Sold-out variant, not on pre-order: ask for an email (and optionally WhatsApp) alert. Drawn
  * inside the buy box's sold-out panel (`product-notify`), which carries the heading.
  */
-export default function NotifyMeForm({ variantId, whatsappEnabled }: NotifyMeFormProps) {
+export default function NotifyMeForm({
+  variantId,
+  whatsappEnabled,
+  buttonText,
+}: NotifyMeFormProps) {
   // Hooks
   const [phone, setPhone] = useState('')
   const [state, submit, pending] = useActionState(
@@ -72,7 +78,7 @@ export default function NotifyMeForm({ variantId, whatsappEnabled }: NotifyMeFor
         ) : null}
       </div>
       <button className="btn btn--primary product-notify__submit" type="submit" disabled={pending}>
-        <span>{pending ? content.submitting : content.submit}</span>
+        <span>{pending ? content.submitting : buttonText || content.submit}</span>
       </button>
       <p className="product-notify__note text-caption">{content.consent}</p>
       {state.status === 'error' ? (

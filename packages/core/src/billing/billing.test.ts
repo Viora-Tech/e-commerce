@@ -1,13 +1,24 @@
 /** SOURCE OF TRUTH: plan billing tests — WHAT: choosing plans, bills and renewals / WHY: a bill must become a paid order on the sales store */
-import { aiSettings, createDb, planPayment, store, storePlan, withStore } from '@commerce/db'
+import {
+  aiSettings,
+  createDb,
+  order,
+  orderLine,
+  planPayment,
+  store,
+  storePlan,
+  withStore,
+} from '@commerce/db'
 import { resetDb } from '@commerce/db/test'
 import { eq } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
+import { seedPaidPeriod, seedSalesStore } from '../testing/usage-seed'
 import { addInterval } from './plans'
 import {
   type BillingEnv,
   choosePlan,
   ensureStorePlan,
+  loadPlanChangeQuote,
   loadPlanView,
   markPlanBillPaid,
   runBillingSweep,
@@ -137,5 +148,69 @@ describe('runBillingSweep', () => {
     const id = await seedStore()
     await withStore(app, id, (tx) => ensureStorePlan(tx, id, t0))
     expect(await runBillingSweep(app, env, t0)).toMatchObject({ stores: 0 })
+  })
+})
+
+describe('a prorated upgrade', () => {
+  // 1 Nov to 1 Dec in India; the owner moves Growth to Pro on 11 Nov with 20 days left.
+  const NOV1 = new Date('2026-10-31T18:30:00Z')
+  const DEC1 = addInterval(NOV1, 'month')
+  const NOV11 = new Date('2026-11-11T04:30:00Z')
+
+  async function growthStore() {
+    const salesEnv: BillingEnv = {
+      salesStoreId: await seedSalesStore(owner),
+      settingsSecret: 'test-secret-test-secret-test-secret',
+      salesStorefrontUrl: 'https://sales.example.test',
+    }
+    const id = await seedStore()
+    await seedPaidPeriod(owner, id, 'growth', NOV1, DEC1)
+    return { id, salesEnv }
+  }
+
+  it('charges exactly what the quote showed, for the rest of the period', async () => {
+    const { id, salesEnv } = await growthStore()
+    const quote = await loadPlanChangeQuote(app, id, { plan: 'pro', interval: 'month' }, NOV11)
+    expect(quote).toMatchObject({ kind: 'charge', totalPaise: 2_36_000, creditPaise: 1_33_267 })
+    const r = await choosePlan(app, id, { plan: 'pro', interval: 'month' }, salesEnv, NOV11)
+    expect(r.scheduled).toBe(false)
+    expect(r.bill).toMatchObject({ plan: 'pro', amountPaise: 2_36_000, periodEnd: DEC1 })
+    const [bill] = await owner.select().from(planPayment).where(eq(planPayment.status, 'due'))
+    expect(bill).toMatchObject({ prorated: true, creditPaise: 1_33_267, amountPaise: 2_36_000 })
+    // The sales order: one plan line at the quote's total, GST extracted from it.
+    const [o] = await owner
+      .select()
+      .from(order)
+      .where(eq(order.id, bill?.salesOrderId as string))
+    expect(o).toMatchObject({ totalPaise: 2_36_000, taxPaise: 36_000 })
+    const lines = await owner
+      .select({ unit: orderLine.unitPricePaise })
+      .from(orderLine)
+      .where(eq(orderLine.orderId, bill?.salesOrderId as string))
+    expect(lines.map((l) => l.unit)).toEqual([2_36_000])
+
+    // Paid the same day: Pro from now, renewing on 1 Dec as before.
+    const paidAt = new Date(NOV11.getTime() + 3_600_000)
+    await markPlanBillPaid(app, bill?.salesOrderId as string, paidAt)
+    const [plan] = await owner.select().from(storePlan).where(eq(storePlan.storeId, id))
+    expect(plan).toMatchObject({ plan: 'pro', status: 'active', periodEnd: DEC1 })
+    expect(plan?.periodStart?.getTime()).toBe(paidAt.getTime())
+  })
+
+  it('a trial is billed at the plan variant price, nothing credited', async () => {
+    const { salesEnv } = await growthStore()
+    const id = await seedStore('meera')
+    await withStore(app, id, (tx) => ensureStorePlan(tx, id, NOV11))
+    const r = await choosePlan(app, id, { plan: 'pro', interval: 'month' }, salesEnv, NOV11)
+    expect(r.bill).toMatchObject({ amountPaise: 5_89_882 })
+    const quote = await loadPlanChangeQuote(app, id, { plan: 'pro', interval: 'month' }, NOV11)
+    expect(quote).toMatchObject({ kind: 'charge', totalPaise: 5_89_882, creditPaise: 0 })
+  })
+
+  it('refuses the plan the store is already on', async () => {
+    const { id, salesEnv } = await growthStore()
+    await expect(
+      choosePlan(app, id, { plan: 'growth', interval: 'month' }, salesEnv, NOV11),
+    ).rejects.toThrow('already on that plan')
   })
 })
