@@ -16,7 +16,7 @@ import PageHeader from '@/components/layout/page-header'
 import { salesChannelsContent } from '@/data/sales-channels'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
-import { chipStatus } from '@/lib/channel-status'
+import { agentChipStatus } from '@/lib/channel-status'
 import { routes } from '@/lib/routes'
 import ChannelLogo from './channel-logo'
 import ChannelStatusChip from './channel-status-chip'
@@ -161,7 +161,7 @@ export default function AgenticGetReady({ data }: AgenticGetReadyProps) {
                     <span className="min-w-0 flex-1 truncate text-body text-foreground">
                       {shared.agents[agent].name}
                     </span>
-                    {state ? <ChannelStatusChip status={chipStatus(state)} /> : null}
+                    {state ? <ChannelStatusChip status={agentChipStatus(state)} /> : null}
                   </li>
                 )
               })}

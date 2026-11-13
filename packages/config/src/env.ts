@@ -466,6 +466,12 @@ const shape = z.object({
   BACKUP_R2_BUCKET: z.string().min(1).optional(),
   /** Write backups to this local folder instead of R2. Takes priority over BACKUP_R2_* when set. */
   BACKUP_LOCAL_DIR: z.string().min(1).optional(),
+  /**
+   * Who hears when the nightly backup fails (comma-separated). Blank: PLATFORM_ADMIN_EMAILS.
+   */
+  BACKUP_ALERT_EMAIL: platformAdminEmails,
+  /** Where the backup alert keeps its counts between attempts. */
+  BACKUP_ALERT_STATE_FILE: z.string().min(1).default('/tmp/backup-alert.json'),
   /** Folder the built-in local storage provider reads and writes. Default ./.data/uploads. */
   LOCAL_STORAGE_DIR: z.string().min(1).optional(),
   ...platformEmailShape,
@@ -584,6 +590,22 @@ const backupSchema = shape.pick({
 })
 
 export type BackupEnv = z.infer<typeof backupSchema>
+
+/**
+ * Only what `scripts/backup-alert.ts` reads. Its own pick, so a bad backup setting (the very
+ * thing that may be failing the backup) never stops the alert. Blank values count as unset.
+ */
+export function loadBackupAlertEnv(source: Record<string, string | undefined>) {
+  return shape
+    .pick({
+      BACKUP_ALERT_EMAIL: true,
+      BACKUP_ALERT_STATE_FILE: true,
+      PLATFORM_ADMIN_EMAILS: true,
+      BACKUP_R2_BUCKET: true,
+      BACKUP_LOCAL_DIR: true,
+    })
+    .parse(withoutBlanks(source))
+}
 
 /**
  * Only what `scripts/backup-db.ts` and `scripts/restore-db.ts` read: the backup job runs as its

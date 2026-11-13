@@ -369,8 +369,9 @@ reports zero values left, then remove `SETTINGS_SECRET_PREVIOUS` and redeploy on
   Budgets) so an unexpected traffic spike or runaway container shows up as a cost alert, not a
   surprise invoice.
 - **Backups**: the nightly `backup` service (or Dokploy Scheduled Job — see Backups doc) logs
-  each run; check it's actually landing new objects in R2 periodically, not just that the
-  container is "running".
+  each run, and emails `BACKUP_ALERT_EMAIL` (or `PLATFORM_ADMIN_EMAILS`) once a night when it
+  keeps failing and again when it recovers (see [Failure alerts](/developer-docs/operations/backups#failure-alerts));
+  still check it's actually landing new objects in R2 now and then.
 
 ## 12. Ops scripts in the worker
 

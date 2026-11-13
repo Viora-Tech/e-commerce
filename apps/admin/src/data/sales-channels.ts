@@ -73,6 +73,8 @@ export const salesChannelsContent = {
   status: {
     connected: 'Connected',
     requested: 'Waiting for approval',
+    /** An AI agent the store asked to be listed on: there is no approval step behind it yet. */
+    listed: 'On the list · not live yet',
     not_connected: 'Not connected',
     attention: 'Needs attention',
     syncing: 'Syncing',
@@ -116,6 +118,20 @@ export const salesChannelsContent = {
     syncNow: 'Sync now',
     reconnect: 'Reconnect',
     withdraw: 'Withdraw request',
+  },
+  /**
+   * An AI agent in `requested`: nothing is sent to the agent and none of them can be joined
+   * automatically yet, so it reads as a waiting list, never as an approval in progress.
+   */
+  agentList: {
+    bar: (names: string) => `${names}: on the list, not live yet`,
+    barBody:
+      'We’ll list your store as each agent opens to stores in India. Nothing is shared until then.',
+    title: (name: string) => `${name}: on the list, not live yet`,
+    body: (name: string) =>
+      `We’ll list your store when ${name} opens to stores in India. Nothing is shared until then.`,
+    since: (date: string) => `On the list since ${date}.`,
+    withdraw: 'Take off the list',
   },
   card: {
     productsVisible: 'Products visible',
@@ -178,7 +194,7 @@ export const salesChannelsContent = {
     manage: `Let ${siteConfig.brand.name} manage for me`,
     manageBody: 'We list your store with each agent as it goes live, with the products you allow.',
     managedOn: 'You’re on the list for every AI agent',
-    managedOff: 'Your agent requests are withdrawn',
+    managedOff: 'You’re off the list for every AI agent',
     sourcesHeading: 'Sources',
     sources: {
       catalog: `${siteConfig.brand.name} catalog`,
@@ -213,14 +229,14 @@ export const salesChannelsContent = {
     ordersNote: (name: string) =>
       `Orders from ${name} arrive in Orders like any other order. You fulfil, cancel and refund them as usual.`,
     reviewBody: (name: string) =>
-      `We ask ${name} to approve your store. Nothing is shared until it does; we email you then, and you can withdraw the request any time.`,
+      `We’ll list your store when ${name} opens to stores in India. Nothing is shared until then, and you can take it off the list any time.`,
     readiness: (score: number) =>
       `Your AI-ready score is ${score}. Fixing issues first helps agents recommend you.`,
     back: 'Back',
     next: 'Continue',
     cancel: 'Cancel',
-    submit: 'Request access',
-    requested: (name: string) => `${name} access requested`,
+    submit: 'Add to the list',
+    requested: (name: string) => `On the list for ${name}`,
     failed: 'Could not send the request. Try again.',
   },
   socialConnect: {
