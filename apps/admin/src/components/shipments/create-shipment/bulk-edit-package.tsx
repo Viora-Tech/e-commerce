@@ -36,6 +36,7 @@ export default function BulkEditPackage({ line, form, onChange, boxes }: BulkEdi
   const field = (key: 'weight' | 'length' | 'width' | 'height', label: string) => (
     <Input
       aria-label={label}
+      placeholder={copy.hints[key]}
       inputMode="numeric"
       value={form[key]}
       onChange={(e) =>

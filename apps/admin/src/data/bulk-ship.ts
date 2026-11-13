@@ -81,7 +81,8 @@ export const bulkShipContent = {
     total: 'Total',
     totalValue: (amount: string, insured: boolean) =>
       insured ? `${amount} incl. GST + insurance` : `${amount} incl. GST`,
-    unpriced: (n: number) => ` + ${n} at booking`,
+    /** Rows whose courier only prices at booking (no quote now): not in the total above. */
+    unpriced: (n: number) => ` · ${plural(n, 'order', 'orders')} priced at booking`,
     wallets: 'Wallets',
     walletLow: (label: string) => `${label} wallet is short for this batch`,
   },
@@ -96,9 +97,10 @@ export const bulkShipContent = {
         ? `${plural(skipped, 'order', 'orders')} skipped and stay in To ship. Booked orders moved to Shipments › Booked.`
         : 'Booked orders moved to Shipments › Booked.',
     print: 'Print',
-    printHeading: (n: number) => `All ${plural(n, 'label', 'labels')}`,
+    printHeading: (n: number) => (n === 1 ? 'The label' : `All ${n} labels`),
     printHelp: 'Each courier’s label opens in its own tab, in the courier’s own size.',
-    printLabels: (n: number) => `Print ${plural(n, 'label', 'labels')}`,
+    printLabels: (n: number) =>
+      n === 0 ? 'Print labels' : `Print ${plural(n, 'label', 'labels')}`,
     packingSlips: 'Packing slips',
     noLabels: 'The couriers have not sent labels yet. They show on Shipments › Booked.',
     skipped: (n: number) => `Skipped · ${n}`,
@@ -142,6 +144,8 @@ export const bulkShipContent = {
     length: 'Length in cm',
     width: 'Width in cm',
     height: 'Height in cm',
+    /** Short hints inside the four boxes, so an empty box still says what goes in it. */
+    hints: { weight: 'g', length: 'L cm', width: 'W cm', height: 'H cm' },
     chargedNote: (kg: string) => `Charged ${kg} kg: the bigger of real and size weight.`,
     shipping: 'Shipping',
     courier: 'Courier',
