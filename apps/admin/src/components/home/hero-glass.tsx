@@ -4,12 +4,17 @@
  * the parent needs `relative isolate overflow-hidden`. Blobs keep their Figma sizes (420x260,
  * 360x220, 260x160) rather than scaling with the card, so a short card (no sales yet) still
  * glows. No backdrop blur on the frost: Chrome stops clipping it to the rounded corners, and
- * the blobs are already blurred.
+ * the blobs are already blurred. The layer is its own compositor layer (`will-change-transform`):
+ * the 60px blurs are drawn once, instead of again each time something above them repaints (the
+ * chart's hover line, a tile's hover), which cost frames on every mouse move over the hero.
  */
 export default function HeroGlass() {
   // Render logic
   return (
-    <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10">
+    <div
+      aria-hidden="true"
+      className="pointer-events-none absolute inset-0 -z-10 will-change-transform"
+    >
       <div className="absolute -top-[5.625rem] -left-[3.75rem] h-[16.25rem] w-[26.25rem] rounded-full bg-glass-blob opacity-90 blur-[3.75rem]" />
       <div className="absolute -right-[3.75rem] -bottom-[5rem] h-[13.75rem] w-[22.5rem] rounded-full bg-glass-blob opacity-60 blur-[3.75rem]" />
       <div className="absolute top-[7.5rem] left-[45%] h-[10rem] w-[16.25rem] rounded-full bg-glass-blob opacity-35 blur-[3.75rem]" />

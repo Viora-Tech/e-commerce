@@ -194,6 +194,35 @@ Rules:
   touch screens so iOS does not zoom. Controls get `touch-action: manipulation`; scrollable
   drawers and overlays get `overscroll-behavior: contain`. Never disable zoom.
 
+## Smooth UI
+
+The admin has to stay at 60 fps on an ordinary Windows PC in Chromium (Chrome, Edge, Brave), where
+the GPU work below showed up as choppy scrolling, menus and drawers (November 2026). The
+`smooth-ui` sweep (`docs/guardrails.md`) checks rules 1 and 2.
+
+1. **No `transition-all`.** Name the properties (see Motion above). Do not transition width,
+   height, padding, margin, top or left on anything that repeats (rows, cards); use `scale`,
+   `translate` and `opacity`.
+2. **No backdrop blur on big, fixed or sticky surfaces** (bars, headers, scrims, menus, the save
+   bar). Chromium redraws a backdrop blur on every frame that anything behind it scrolls or moves.
+   Floating layers use the solid `glass-bar` / `glass-popover` utilities (`--raised` /
+   `--popover`); scrims use `glass-scrim` (a tint, no blur). A blur is fine only on something
+   small and short-lived over a still background (a drop-zone hint), with an allow-list reason.
+3. **No filters or big shadows animated across many elements.** Hover shadows are for one card at
+   a time (`card-lift`, `motion-press`), never every table row. A large `blur()` that sits under
+   content that repaints (a chart's hover line) gets its own layer with `will-change-transform`,
+   as `home/hero-glass.tsx` does; never put `will-change` on many elements.
+4. **Animation loops stop when nobody sees them.** A `requestAnimationFrame` loop (the globes)
+   pauses in a hidden tab and while scrolled out of view (`IntersectionObserver`), and never reads
+   layout or `getComputedStyle` per frame: read once, re-read when the input changes.
+5. **The shell renders rarely.** State in `admin-frame.tsx`, the sidebar and the top bar changes
+   on navigation or a user action, not on scroll ticks, timers or polls; a poll or a ticking
+   label lives in the small component that shows it (the bell, `RollingText`), never in a
+   provider or the layout. Context values are primitives or memoised by the React Compiler.
+6. **Long lists are paged** (`ResourceTable`, 25 to 100 rows). `content-visibility` has no effect
+   on table rows (`tr` cannot be contained), so a list that must render hundreds of rows uses a
+   virtualiser instead.
+
 ## Inline editing in theme sections
 
 Text drawn on the canvas uses the field helpers in `packages/blocks/src/sections/inline-fields.ts`

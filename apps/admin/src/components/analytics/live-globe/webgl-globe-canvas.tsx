@@ -184,7 +184,12 @@ export default function WebglGlobeCanvas({
         })
     }
 
+    let paletteLook = settingsRef.current.look
+    let palette = readPalette(dark, paletteLook, true)
     let rafId = 0
+    /** Off screen (scrolled past) or in a hidden tab, the globe draws nothing. */
+    let onScreen = true
+    const shouldRun = () => onScreen && document.visibilityState === 'visible'
     const tick = () => {
       const now = performance.now()
       const live = settingsRef.current
@@ -203,7 +208,12 @@ export default function WebglGlobeCanvas({
       const cy = h / 2
 
       // `brand`: "Store accent" is the Home card's palette exactly (deep accent land in dark).
-      const palette = readPalette(dark, live.look, true)
+      // Read again only when the look changes: it calls getComputedStyle three times, which on
+      // every frame forced a style recalculation each frame.
+      if (live.look !== paletteLook) {
+        paletteLook = live.look
+        palette = readPalette(dark, live.look, true)
+      }
       const overlayPalette = {
         marker: palette.marker,
         arc: palette.arc,
@@ -304,21 +314,28 @@ export default function WebglGlobeCanvas({
         const inView = sx > -8 && sx < w + 8 && sy > -8 && sy < h + 8
         return { x: sx, y: sy, visible: inView && (z >= 0 || x * x + y * y > 1) }
       })
-      if (document.visibilityState === 'visible') rafId = requestAnimationFrame(tick)
+      rafId = shouldRun() ? requestAnimationFrame(tick) : 0
     }
     rafId = requestAnimationFrame(tick)
-    // A hidden tab draws nothing (no GPU or battery use) and picks up again when shown.
+    // A hidden tab, or a globe scrolled out of view, draws nothing (no GPU or battery use, no
+    // frames taken from scrolling the page) and picks up again when shown.
     const handleVisibility = () => {
       cancelAnimationFrame(rafId)
-      if (document.visibilityState === 'visible') rafId = requestAnimationFrame(tick)
+      rafId = shouldRun() ? requestAnimationFrame(tick) : 0
     }
     document.addEventListener('visibilitychange', handleVisibility)
+    const viewObserver = new IntersectionObserver(([entry]) => {
+      onScreen = entry?.isIntersecting ?? true
+      handleVisibility()
+    })
+    viewObserver.observe(container)
     const detach = attachControls(canvas, s, reducedMotion)
 
     return () => {
       alive = false
       cancelAnimationFrame(rafId)
       document.removeEventListener('visibilitychange', handleVisibility)
+      viewObserver.disconnect()
       detach()
       renderer.destroy()
     }
