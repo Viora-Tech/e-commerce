@@ -43,6 +43,7 @@ const order: DraftOrder = {
   ],
   unitsOrdered: 2,
   deliveryChoice: null,
+  payOnlineRequestedAt: null,
 }
 
 const draft: ShipmentDraft = {

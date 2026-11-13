@@ -131,6 +131,13 @@ export const thankYouContent = {
       `The ${label} of ${saved} is only for this direct payment. Paying online costs ${total}.`,
     action: 'Pay online now',
     alreadySent: 'Already sent the transfer? You do not need to pay again; we will confirm it.',
+    /** A cash on delivery order the store asked to pay online (no courier takes COD here). */
+    cod: {
+      heading: 'Pay online to get your order shipped',
+      body: (total: string) =>
+        `Cash on delivery isn't available at your address right now. Pay ${total} online with UPI, card or netbanking and we ship your order straight away.`,
+      note: 'Nothing else about your order changes. Once paid, you pay nothing at the door.',
+    },
   },
   continueShopping: 'Continue shopping',
   subtotal: 'Subtotal',

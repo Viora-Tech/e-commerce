@@ -410,6 +410,7 @@ export default [
       balance_request: { title: 'बाकी रकम मांगें', send: 'रिक्वेस्ट भेजें' },
       payment_reminder: { title: 'पेमेंट रिमाइंडर भेजें', send: 'रिमाइंडर भेजें' },
       order_link: { title: 'ऑर्डर का लिंक भेजें', send: 'लिंक भेजें' },
+      cod_pay_online: { title: 'ऑनलाइन भुगतान कहें', send: 'भुगतान का लिंक भेजें' },
       checkout_recovery: { title: 'चेकआउट रिमाइंडर भेजें', send: 'रिमाइंडर भेजें' },
     },
   }),

@@ -59,6 +59,8 @@ type ThankYouTemplateProps = {
   track?: { href: string; external: boolean } | null
   /** A transfer order can pay through the store's gateway instead; false when it has none. */
   canPayOnline?: boolean
+  /** Staff asked this cash on delivery shopper to pay online instead, and the store can take it. */
+  codPayOnline?: boolean
   /** The shopper checked out the same items again: say this is their earlier, unpaid checkout. */
   checkedOutAgain?: boolean
 }
@@ -110,6 +112,7 @@ export default function ThankYouTemplate({
   shipmentStatus = null,
   track = null,
   canPayOnline = false,
+  codPayOnline = false,
   checkedOutAgain = false,
 }: ThankYouTemplateProps) {
   // Render logic
@@ -145,6 +148,8 @@ export default function ThankYouTemplate({
       : null
   const payClient = awaiting && session?.kind === 'client'
   const payOnline = manual !== null && canPayOnline
+  // A cash on delivery order staff asked to pay online: the same block, pay now instead of cash.
+  const payOnlineCod = codPayOnline && !payOnline && o.paymentMethod === 'cod' && !o.checkoutPaidAt
   const retry = failed || notStarted
   // Paid and not yet answered: nothing for the shopper to do but wait.
   const confirming = awaiting && manual === null && qr === null && !payClient
@@ -182,7 +187,9 @@ export default function ThankYouTemplate({
           : boughtCards
             ? [content.status.giftCardEmail(o.email)]
             : [
-                ...(o.paymentMethod === 'cod' && !o.checkoutPaidAt ? [content.codDue(due)] : []),
+                ...(o.paymentMethod === 'cod' && !o.checkoutPaidAt && !payOnlineCod
+                  ? [content.codDue(due)]
+                  : []),
                 content.updates(o.email ?? o.phone),
               ]
   const trackLink = settled && !progress.end ? track : null
@@ -387,6 +394,25 @@ export default function ThankYouTemplate({
                     </button>
                     <p className="text-[0.8125rem] leading-[1.1875rem] text-pretty text-ck-muted">
                       {content.payOnline.alreadySent}
+                    </p>
+                  </form>
+                ) : null}
+                {payOnlineCod ? (
+                  <form
+                    action={payOnlineAction.bind(null, o.number, viewToken)}
+                    className={`${CK_CARD} flex flex-col gap-3 p-5`}
+                  >
+                    <h2 className={`${CK_HEADING} text-[1.0625rem]!`}>
+                      {content.payOnline.cod.heading}
+                    </h2>
+                    <p className="text-[0.875rem] leading-5 text-pretty text-ck-muted">
+                      {content.payOnline.cod.body(due)}
+                    </p>
+                    <button type="submit" className={CK_BUTTON_PRIMARY}>
+                      {content.payOnline.action}
+                    </button>
+                    <p className="text-[0.8125rem] leading-[1.1875rem] text-pretty text-ck-muted">
+                      {content.payOnline.cod.note}
                     </p>
                   </form>
                 ) : null}

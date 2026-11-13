@@ -167,11 +167,6 @@ function ShipmentsContent() {
     setSelected([])
     setReloadKey((k) => k + 1)
   }
-  const handlePrint = (ids: string[]) => {
-    for (const r of rows) {
-      if (ids.includes(r.id) && r.labelUrl) window.open(r.labelUrl, '_blank', 'noopener')
-    }
-  }
   /* One order opens the Create shipment page; several open the shared bulk dialog. */
   const handleBook = (orderIds: string[]) => {
     if (orderIds.length === 1 && orderIds[0]) router.push(routes.orders.shipment(orderIds[0]))
@@ -342,12 +337,7 @@ function ShipmentsContent() {
                   {copy.bookSelected}
                 </Button>
               ) : (
-                <ShipmentsBulkActions
-                  ids={ids}
-                  tab={tab}
-                  onPrint={handlePrint}
-                  onDone={handleBooked}
-                />
+                <ShipmentsBulkActions ids={ids} tab={tab} onDone={handleBooked} />
               )
             }
             empty={{

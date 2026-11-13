@@ -131,6 +131,10 @@ export const notificationsSettingsContent = {
       name: 'Order ships in parts',
       when: 'When you ship some items now and the rest later, and choose to tell the customer.',
     },
+    cod_pay_online: {
+      name: 'Pay online instead of cash on delivery',
+      when: 'When you click "Ask to pay online" on a cash on delivery order, and once more two days later if it is still unpaid.',
+    },
     unpaid_cancelled: {
       name: 'Order cancelled for not paying',
       when: 'When an unpaid UPI or bank transfer order is cancelled.',

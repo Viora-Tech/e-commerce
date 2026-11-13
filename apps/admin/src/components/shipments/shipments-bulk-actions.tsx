@@ -9,13 +9,14 @@ import ConfirmDialog from '@/components/layout/confirm-dialog'
 import { shipmentActionsContent, shipmentsContent } from '@/data/shipments'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import LabelPaperSelect from './label-paper-select'
 import PickupFields, { type PickupValue } from './pickup-fields'
+import { useLabelSheet } from './use-label-sheet'
 
 type ShipmentsBulkActionsProps = {
   /** Selected shipment ids (never "To book" orders: that tab books them instead). */
   ids: string[]
   tab: Exclude<ShipmentTab, 'toBook'>
-  onPrint: (ids: string[]) => void
   /** After a pickup or manifest: clear the selection and read the rows again. */
   onDone: () => void
 }
@@ -23,18 +24,15 @@ type ShipmentsBulkActionsProps = {
 type Dialog = 'pickup' | 'manifest' | null
 
 /**
- * The selection bar on the booked tabs: print the labels, and while parcels wait for the
- * courier (Booked), schedule their pickup or group them into a manifest. Both ask first.
+ * The selection bar on the booked tabs: print the selected labels as one file on the paper
+ * picked, and while parcels wait for the courier (Booked), schedule their pickup or group them
+ * into a manifest. Both ask first.
  */
-export default function ShipmentsBulkActions({
-  ids,
-  tab,
-  onPrint,
-  onDone,
-}: ShipmentsBulkActionsProps) {
+export default function ShipmentsBulkActions({ ids, tab, onDone }: ShipmentsBulkActionsProps) {
   // Hooks
   const copy = useCopy(shipmentsContent)
   const actions = useCopy(shipmentActionsContent)
+  const sheet = useLabelSheet()
   const [dialog, setDialog] = useState<Dialog>(null)
   const [pickup, setPickup] = useState<PickupValue>({
     date: '',
@@ -91,7 +89,13 @@ export default function ShipmentsBulkActions({
 
   return (
     <>
-      <Button size="sm" variant="outline" onClick={() => onPrint(ids)}>
+      <LabelPaperSelect value={sheet.format} onChange={sheet.setFormat} size="sm" />
+      <Button
+        size="sm"
+        variant="outline"
+        disabled={sheet.printing}
+        onClick={() => void sheet.print(ids)}
+      >
         <Printer aria-hidden />
         {copy.printLabels}
       </Button>
