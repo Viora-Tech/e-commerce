@@ -99,6 +99,7 @@ import { createShopifyTokenSweep, SHOPIFY_TOKEN_SWEEP_EVERY_MS } from './shopify
 import { createStoreActivityPrune, STORE_ACTIVITY_PRUNE_EVERY_MS } from './store-activity'
 import { createStoreCreditExpiry, STORE_CREDIT_EXPIRY_EVERY_MS } from './store-credit-expiry'
 import { createStoreExportWorker } from './store-export'
+import { startStorefrontWarmup } from './storefront-warmup'
 import { createSweepWorker, type Sweep, scheduleSweeps } from './sweeps'
 import { createThemeScreenshotWorker } from './theme-screenshot'
 
@@ -152,6 +153,12 @@ const purgeConfig = cloudflarePurgeConfigFrom(env)
 const edgePurge = purgeConfig
   ? startEdgePurge(db, env.DATABASE_URL_DIRECT ?? env.DATABASE_URL, purgeConfig)
   : null
+// After a storefront deploy, load each live store's front pages once so shoppers never meet a cold
+// process. Production only: a dev worker must not load the live stores.
+const warmup =
+  process.env.NODE_ENV === 'production'
+    ? startStorefrontWarmup(db, env.DATABASE_URL_DIRECT ?? env.DATABASE_URL)
+    : null
 const domainTargets = { aRecord: env.STOREFRONT_A_RECORD, cnameTarget: env.STOREFRONT_CNAME_TARGET }
 const domainGuard = {
   platformRoots: platformRoots(env),
@@ -563,6 +570,7 @@ app.get('/health', async (c) => {
 
 const shutdown = async () => {
   await edgePurge?.close()
+  await warmup?.close()
   memoryGuard.stop()
   await sweeps.worker.close()
   await sweeps.queue.close()

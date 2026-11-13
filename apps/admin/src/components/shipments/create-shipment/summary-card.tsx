@@ -111,6 +111,11 @@ export default function SummaryCard({
           { label: page.pickupRow, value: pickupLine ?? '—', hidden: manual },
           { label: page.freightRow, value: money(parts?.freightPaise), hidden: manual },
           {
+            label: page.codFeeRow,
+            value: money(parts?.codPaise),
+            hidden: manual || !parts?.codPaise,
+          },
+          {
             label: page.insuranceRow,
             value: money(parts?.insurancePaise),
             hidden: manual || !parts?.insurancePaise,

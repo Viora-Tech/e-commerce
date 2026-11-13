@@ -92,9 +92,9 @@ export default async function AdminLayout({ children }: { children: ReactNode })
   const inboxUnread = channels.includes('inbox') ? await inboxUnreadCount() : null
   const navCounts: Record<string, number> = {
     ...(active ? appCounts : {}),
-    ...(active && toShip
-      ? { [routes.orders.list()]: toShip, [routes.orders.shipments()]: toShip }
-      : {}),
+    // Each page's count matches its list: Orders counts orders, Shipments the To ship rows (parcels).
+    ...(active && toShip?.orders ? { [routes.orders.list()]: toShip.orders } : {}),
+    ...(active && toShip?.parcels ? { [routes.orders.shipments()]: toShip.parcels } : {}),
     ...(inboxUnread ? { [routes.salesChannels.inboxConversations()]: inboxUnread } : {}),
     // Shoppers' unpaid checkout drafts that came in since the member last opened Drafts.
     ...(active && drafts ? { [routes.orders.drafts()]: drafts } : {}),

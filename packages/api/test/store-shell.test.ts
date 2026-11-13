@@ -98,7 +98,8 @@ describe('store.shell', () => {
       // No installed app declares an app bar read yet: nothing to show, nothing read.
       appBars: {},
       logo,
-      toShip,
+      // Orders waiting (the Orders count) and To book rows (the Shipments count): none yet.
+      toShip: { orders: toShip, parcels: 0 },
       usage,
       testMode: testMode.testMode,
       approvals,
@@ -121,7 +122,9 @@ describe('store.shell', () => {
     expect(shell.testMode).toBe(false)
     expect(shell.inbox).toBeNull()
     expect(shell.drafts).toBeNull()
-    expect(shell.toShip).toBe(await call(appRouter.orders.toShipCount, undefined, { context }))
+    expect(shell.toShip?.orders).toBe(
+      await call(appRouter.orders.toShipCount, undefined, { context }),
+    )
     expect(shell.approvals).toEqual(await call(appRouter.approvals.counts, undefined, { context }))
     await expect(call(appRouter.apps.list, undefined, { context })).rejects.toThrow()
   })

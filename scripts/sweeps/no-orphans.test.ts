@@ -1848,6 +1848,12 @@ const ALLOWLIST: AllowEntry[] = [
     reason:
       'used in the module; draft-preview.test.ts checks that a new draft save changes the preview cache version',
   },
+  {
+    file: 'packages/api/src/services/app-bar.service.ts',
+    names: ['APP_BAR_TTL_MS', 'clearAppBarCache'],
+    reason:
+      'the TTL is used in the module and app-bar-cache.test.ts steps the clock past it; clearAppBarCache resets the per-process cache between tests',
+  },
 ]
 
 function allowlistedNames(file: string): Set<string> {

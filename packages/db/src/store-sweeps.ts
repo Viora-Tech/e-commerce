@@ -25,6 +25,12 @@ export async function storesWithRolloutsDue(db: Db, at: Date): Promise<string[]>
 }
 
 /** Store ids with custom domains awaiting DNS or a certificate, for the worker. SECURITY DEFINER backed. */
+/** Every live store's primary hostname (at most 50), for the storefront warm-up after a deploy. SECURITY DEFINER backed (`live_storefront_hosts`, 0245). */
+export async function liveStorefrontHosts(db: Db): Promise<string[]> {
+  const rows = await db.execute<{ host: string }>(sql`select live_storefront_hosts() as host`)
+  return rows.map((r) => r.host)
+}
+
 export async function storesWithPendingDomains(db: Db): Promise<string[]> {
   const rows = await db.execute<{ id: string }>(sql`select stores_with_pending_domains() as id`)
   return rows.map((r) => r.id)
