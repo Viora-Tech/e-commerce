@@ -279,3 +279,17 @@ describe('bulk Create shipment: step 2 quote', () => {
     expect(quotes.map((q) => q.orderId)).toEqual([orderId])
   })
 })
+
+describe('shipments.schedulePickup input', () => {
+  it('refuses a start time that is not hh:mm before any courier is asked', async () => {
+    const m = await merchant('pickup-time@example.com', 'pickup-time')
+    // Typed in the Pickups tab's free-text box: Delhivery wants hh:mm:ss, so "2 pm" never books.
+    await expect(
+      call(
+        appRouter.shipments.schedulePickup,
+        { shipmentIds: [crypto.randomUUID()], date: '2099-01-01', timeFrom: '2 pm' },
+        { context: m.ctx },
+      ),
+    ).rejects.toMatchObject({ code: 'BAD_REQUEST' })
+  })
+})

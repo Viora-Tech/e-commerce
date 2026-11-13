@@ -24,6 +24,7 @@ export default [
     refreshTracking: 'ट्रैकिंग अपडेट करें',
     trackingUpdated: 'ट्रैकिंग अपडेट हो गई',
     failed: 'कूरियर तक रिक्वेस्ट नहीं पहुंची। थोड़ी देर में फिर कोशिश करें।',
+    pickupRefused: 'कूरियर ने पिकअप रिक्वेस्ट नहीं ली। फिर कोशिश करें, या उनके डैशबोर्ड पर बुक करें।',
   }),
   translation(shipmentPartsContent, {
     part: (n, of) => `${of} में से हिस्सा ${n}`,

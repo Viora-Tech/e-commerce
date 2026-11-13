@@ -44,11 +44,46 @@ type PickupResponse = {
   pr_exist?: boolean
   success?: boolean
   /** The refusal, by field: an unknown warehouse comes back under `pickup_location`. */
-  pickup_location?: string
-  error?: string
-  detail?: string
-  message?: string
+  pickup_location?: unknown
+  error?: unknown
+  detail?: unknown
+  message?: unknown
+  [field: string]: unknown
 }
+
+/** A refusal's words from one answer field: a string, a `{ message }`, or a list of either. */
+function wordsOf(value: unknown): string {
+  if (typeof value === 'string') return value.trim()
+  if (Array.isArray(value)) return value.map(wordsOf).filter(Boolean).join(' ')
+  if (value && typeof value === 'object') {
+    const { message, detail, error } = value as Record<string, unknown>
+    return wordsOf(message) || wordsOf(detail) || wordsOf(error)
+  }
+  return ''
+}
+
+/** Fields of a success answer, never a refusal's words. */
+const ANSWER_FIELDS = new Set(['pickup_id', 'pr_exist', 'success', 'status', 'code'])
+
+/**
+ * What Delhivery said, in its own words: the usual message fields first (`error`, `detail`,
+ * `message`, which may be `{ message }` objects), else the first field with words (a
+ * field-by-field refusal, `{"pickup_time": ["Enter a valid time."]}`, reads
+ * "pickup_time: Enter a valid time."), else the start of the raw text.
+ */
+function delhiverySaid(body: PickupResponse, text: string): string {
+  const plain = wordsOf(body.error) || wordsOf(body.detail) || wordsOf(body.message)
+  if (plain) return plain
+  for (const [field, value] of Object.entries(body)) {
+    if (ANSWER_FIELDS.has(field)) continue
+    const words = wordsOf(value)
+    if (words) return `${field}: ${words}`
+  }
+  return text.trim().slice(0, 200)
+}
+
+/** A 401/403 that is about the token itself, rather than one of the pickup endpoint's refusals. */
+const TOKEN_TROUBLE = /token|credential|authenticat|authori[sz]|permission/i
 
 /** Cancel Order API answer (`/api/p/edit`): `{ status, waybill, remark, order_id }`. */
 type CancelResponse = { status?: boolean | string; remark?: string; error?: string }
@@ -168,17 +203,17 @@ export async function requestDelhiveryPickup(
   })
   let body: PickupResponse = {}
   try {
-    body = JSON.parse(text) as PickupResponse
+    const parsed: unknown = JSON.parse(text)
+    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+      body = parsed as PickupResponse
+    }
   } catch {
     // A plain-text refusal; its words are read below.
   }
   if (res.ok && (body.pickup_id || body.pr_exist)) {
     return { providerPickupId: body.pickup_id ? String(body.pickup_id) : 'existing' }
   }
-  const said =
-    [body.pickup_location, body.error, body.detail, body.message].find(
-      (s): s is string => typeof s === 'string' && s.trim() !== '',
-    ) ?? text.slice(0, 200)
+  const said = delhiverySaid(body, text)
   if (NO_WAREHOUSE.test(said) || /invalid pickup location/i.test(said)) {
     throw new CourierError(
       'rejected',
@@ -190,10 +225,16 @@ export async function requestDelhiveryPickup(
   if (body.pr_exist || /already (exists|been|raised|created|scheduled)/i.test(said)) {
     return { providerPickupId: 'existing' }
   }
-  if (res.status === 401 || res.status === 403) {
-    throw new CourierError('auth', wire.id, 'Delhivery rejected the credentials.', {
-      status: res.status,
-    })
+  /* This endpoint answers its refusals with 401 too (the unknown warehouse above), so a 401 or
+     403 is a bad token only when Delhivery says so, or says nothing; otherwise its words are
+     the refusal. Either way the merchant reads what Delhivery said. */
+  if ((res.status === 401 || res.status === 403) && (!said || TOKEN_TROUBLE.test(said))) {
+    throw new CourierError(
+      'auth',
+      wire.id,
+      `Delhivery rejected the API token for the pickup request${said ? `: ${said}` : '.'} Check the token in Apps → Delhivery → Connect.`,
+      { status: res.status },
+    )
   }
   throw new CourierError(
     'rejected',
