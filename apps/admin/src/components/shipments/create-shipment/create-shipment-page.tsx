@@ -105,6 +105,8 @@ export default function CreateShipmentPage({ orderId, back, courier }: CreateShi
   /* The full order, loaded when the merchant edits the delivery address from this page. */
   const [editing, setEditing] = useState<OrderDetail | null>(null)
   const [revision, setRevision] = useState(0)
+  /* Bumped after a pickup from the Booked drawer: the shipment card reads the shipment again. */
+  const [detailsRead, setDetailsRead] = useState(0)
   const pickupLine = usePickupLine(
     pick && pick !== MANUAL ? quote?.options.find((o) => o.optionKey === pick)?.providerId : null,
   )
@@ -235,7 +237,8 @@ export default function CreateShipmentPage({ orderId, back, courier }: CreateShi
           customerName: order.customerName ?? null,
           deliveryBy: priced?.deliveryBy ?? null,
           chargedPaise: priced?.pricePaise ?? null,
-          insured: key !== MANUAL && insured,
+          // "+ insurance" only when a fee was known and added to this courier's price.
+          insured: key !== MANUAL && insured && priced?.insurance != null,
           walletLabel: paid?.providerLabel ?? null,
           walletLeftPaise: null,
         },
@@ -355,6 +358,7 @@ export default function CreateShipmentPage({ orderId, back, courier }: CreateShi
           <DataCard title={detailsCopy.heading}>
             {booked.shipmentId ? (
               <ShipmentDetailsLoader
+                key={detailsRead}
                 shipmentId={booked.shipmentId}
                 onChanged={() => router.refresh()}
               />
@@ -458,7 +462,10 @@ export default function CreateShipmentPage({ orderId, back, courier }: CreateShi
             booked={booked}
             liveWalletProvider={paidWallet}
             onChange={setBooked}
-            onPickup={() => router.refresh()}
+            onPickup={() => {
+              setDetailsRead((n) => n + 1)
+              router.refresh()
+            }}
           />
         ) : (
           <SummaryCard
