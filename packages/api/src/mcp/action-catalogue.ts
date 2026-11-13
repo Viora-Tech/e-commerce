@@ -158,6 +158,10 @@ const READ_NAMES = new Set([
 
 /** Reads whose name says otherwise. */
 const READ_PATHS = new Set([
+  // The admin layout's reads on every page, and the product page's sales card: neither changes
+  // anything, so neither may write an activity log row on each page view.
+  'store.shell',
+  'products.sales',
   'payments.setup',
   'rollouts.holds',
   'rollouts.results',

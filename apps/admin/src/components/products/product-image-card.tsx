@@ -5,17 +5,17 @@ import { Button } from '@commerce/ui/shadcn/button'
 import { type Announcements, closestCenter, DndContext } from '@dnd-kit/core'
 import { SortableContext, type SortingStrategy } from '@dnd-kit/sortable'
 import { AnimatePresence, motion } from 'motion/react'
+import dynamic from 'next/dynamic'
 import { type DragEvent, useId, useRef, useState } from 'react'
 import DataCard from '@/components/layout/data-card'
-import AltTextDialog from '@/components/media/alt-text-dialog'
 import ImageDragOverlay from '@/components/media/image-drag-overlay'
-import ImageEditorDialog from '@/components/media/image-editor-dialog'
-import MediaPickDialog, { type PickedMedia } from '@/components/media/media-pick-dialog'
+import type { PickedMedia } from '@/components/media/media-pick-dialog'
 import type { MediaTileItem } from '@/components/media/media-tile'
 import { useUploadQueue } from '@/components/media/use-upload-queue'
 import { productFormContent } from '@/data/product-form'
 import { useCopy } from '@/hooks/use-copy'
 import { IMAGE_ENTER_MS, inOrder, useImageDnd, useLiveOrder } from '@/hooks/use-image-dnd'
+import { useOpenedOnce } from '@/hooks/use-opened-once'
 import { isEditableImage } from '@/lib/image-edit'
 import ProductImagePending from './product-image-pending'
 import ProductImageTile, { imageName } from './product-image-tile'
@@ -29,6 +29,15 @@ type ProductImageCardProps = {
 }
 
 const ACCEPT = 'image/*,video/mp4'
+
+/* The dialogs (the image editor brings its cropper) load on first use, not with the page. */
+const AltTextDialog = dynamic(() => import('@/components/media/alt-text-dialog'), { ssr: false })
+const ImageEditorDialog = dynamic(() => import('@/components/media/image-editor-dialog'), {
+  ssr: false,
+})
+const MediaPickDialog = dynamic(() => import('@/components/media/media-pick-dialog'), {
+  ssr: false,
+})
 
 /* dnd-kit moves nothing itself: the card reorders its preview live and Motion glides the tiles. */
 const holdStill: SortingStrategy = () => null
@@ -61,6 +70,9 @@ export default function ProductImageCard({ items, onChange, onUploading }: Produ
   const [retouching, setRetouching] = useState<MediaTileItem | null>(null)
   const [picking, setPicking] = useState(false)
   const [fileOver, setFileOver] = useState(false)
+  const altUsed = useOpenedOnce(editing !== null)
+  const editorUsed = useOpenedOnce(retouching !== null)
+  const pickerUsed = useOpenedOnce(picking)
   const replaceRef = useRef<HTMLInputElement>(null)
   /* While a tile is carried the others glide to where it would land. */
   const { shown, active, handlers } = useLiveOrder(items, (ids) =>
@@ -253,24 +265,30 @@ export default function ProductImageCard({ items, onChange, onUploading }: Produ
           e.target.value = ''
         }}
       />
-      <AltTextDialog
-        key={`alt-${editing?.id ?? 'none'}`}
-        item={editing}
-        onClose={() => setEditing(null)}
-        onSaved={handleAltSaved}
-      />
-      <ImageEditorDialog
-        key={`edit-${retouching?.id ?? 'none'}`}
-        item={retouching}
-        onClose={() => setRetouching(null)}
-        onSaved={handleRetouched}
-      />
-      <MediaPickDialog
-        open={picking}
-        multiple
-        onClose={() => setPicking(false)}
-        onPickMany={handlePickMany}
-      />
+      {altUsed ? (
+        <AltTextDialog
+          key={`alt-${editing?.id ?? 'none'}`}
+          item={editing}
+          onClose={() => setEditing(null)}
+          onSaved={handleAltSaved}
+        />
+      ) : null}
+      {editorUsed ? (
+        <ImageEditorDialog
+          key={`edit-${retouching?.id ?? 'none'}`}
+          item={retouching}
+          onClose={() => setRetouching(null)}
+          onSaved={handleRetouched}
+        />
+      ) : null}
+      {pickerUsed ? (
+        <MediaPickDialog
+          open={picking}
+          multiple
+          onClose={() => setPicking(false)}
+          onPickMany={handlePickMany}
+        />
+      ) : null}
     </DataCard>
   )
 }

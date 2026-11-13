@@ -20,7 +20,7 @@ import {
 } from '@commerce/ui/shadcn/select'
 import { Switch } from '@commerce/ui/shadcn/switch'
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import KitField from '@/components/kit/kit-field'
 import DataCard from '@/components/layout/data-card'
 import { COUNTRIES } from '@/data/countries'
@@ -28,7 +28,6 @@ import { productFormContent } from '@/data/product-form'
 import { productShippingContent } from '@/data/product-shipping'
 import { variantBoxContent } from '@/data/variant-box'
 import { useCopy } from '@/hooks/use-copy'
-import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
 import { boxLabel } from './box-label'
 import type { VariantRow } from './form-state'
@@ -51,6 +50,8 @@ type ShippingCardProps = {
   onChange: (patch: Partial<VariantRow>) => void
   /** Package fields, applied to every variant that has no box of its own (#1517). */
   onPackage: (patch: Partial<VariantRow>) => void
+  /** The store's saved boxes (Settings › Shipping), read with the page; empty without settings access. */
+  boxPresets: BoxPreset[]
 }
 
 const NONE = '__none'
@@ -92,21 +93,14 @@ export default function ShippingCard({
   onTax,
   onChange,
   onPackage,
+  boxPresets,
 }: ShippingCardProps) {
   // Hooks
   const { shipping: copy } = useCopy(productFormContent)
   const physical = useCopy(productShippingContent)
   const boxCopy = useCopy(variantBoxContent)
-  const [boxPresets, setBoxPresets] = useState<BoxPreset[]>([])
   /* "Custom size" picked but no dimension typed yet still shows the inputs. */
   const [customPicked, setCustomPicked] = useState(false)
-
-  useEffect(() => {
-    api.store
-      .getShipping()
-      .then((r) => setBoxPresets(r.settings.boxPresets ?? []))
-      .catch(() => setBoxPresets([]))
-  }, [])
 
   // Event handlers
   const handlePackage = (next: string) => {

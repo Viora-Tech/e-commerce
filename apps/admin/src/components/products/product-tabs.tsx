@@ -3,6 +3,7 @@
 import { cn } from '@commerce/ui/lib/utils'
 import type { KeyboardEvent, ReactNode } from 'react'
 import CountBadge from '@/components/layout/count-badge'
+import { useVisited } from '@/hooks/use-visited'
 import type { ProductLayout } from '@/lib/product-layout'
 
 export type ProductTabItem = {
@@ -57,8 +58,9 @@ function panelDomId(id: string): string {
 
 /**
  * The product page's left column as real tabs: one tablist (a strip or a vertical rail, same
- * definitions) and one panel per tab. Every panel stays mounted and the inactive ones are
- * `hidden`, so cards keep their own state while you switch.
+ * definitions) and one panel per tab. A panel's cards mount when its tab is first opened (so a
+ * page load reads only the open tab's data: stock history, Search Console and app sections wait
+ * for theirs), then stay mounted and `hidden`, so cards keep their own state while you switch.
  */
 export default function ProductTabs({
   label,
@@ -69,6 +71,10 @@ export default function ProductTabs({
   onSelect,
   panels,
 }: ProductTabsProps) {
+  // Hooks
+  // A tab opened by a click, a link, a save error or the checklist stays mounted from then on.
+  const opened = useVisited(active)
+
   // Event handlers
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     const index = tabs.findIndex((t) => t.id === active)
@@ -147,7 +153,7 @@ export default function ProductTabs({
             className="flex min-w-0 flex-col gap-6"
           >
             <p className="text-body text-muted-foreground">{t.description}</p>
-            {panels[t.id]}
+            {opened.includes(t.id) ? panels[t.id] : null}
           </div>
         ))}
       </div>

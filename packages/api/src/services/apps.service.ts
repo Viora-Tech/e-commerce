@@ -24,20 +24,36 @@ export async function getStoreApps(tx: StoreTx, storeId: string): Promise<AppsSe
 }
 
 /**
- * Provider ids this store has actually enabled, across every kind. A
- * Connection app's card shows "connected" only when one of its own provider
- * ids is in here — installing the app alone is not enough, the merchant must
+ * The store's saved apps and the provider ids it has actually enabled, across every kind, from
+ * one read of the store row and only the columns they come from (the row also holds the theme,
+ * navigation and other wide settings). A Connection app's card shows "connected" only when one
+ * of its own provider ids is enabled: installing the app alone is not enough, the merchant must
  * have filled in and saved the account's credentials.
  */
-export async function getConnectedProviderIds(tx: StoreTx, storeId: string): Promise<Set<string>> {
-  const [s] = await tx.select().from(store).where(eq(store.id, storeId))
-  if (!s) return new Set()
-  return new Set([
-    ...parsePaymentSettings(s.payments).enabled,
-    ...parseShippingSettings(s.shipping).enabled,
-    ...parseNotificationSettings(s.notifications).enabled,
-    ...parseStorageSettings(s.storage).enabled,
-  ])
+export async function storeAppsAndProviders(
+  tx: StoreTx,
+  storeId: string,
+): Promise<{ apps: AppsSettings; connectedIds: Set<string> }> {
+  const [s] = await tx
+    .select({
+      apps: store.apps,
+      payments: store.payments,
+      shipping: store.shipping,
+      notifications: store.notifications,
+      storage: store.storage,
+    })
+    .from(store)
+    .where(eq(store.id, storeId))
+  if (!s) return { apps: parseAppsSettings(undefined), connectedIds: new Set() }
+  return {
+    apps: parseAppsSettings(s.apps),
+    connectedIds: new Set([
+      ...parsePaymentSettings(s.payments).enabled,
+      ...parseShippingSettings(s.shipping).enabled,
+      ...parseNotificationSettings(s.notifications).enabled,
+      ...parseStorageSettings(s.storage).enabled,
+    ]),
+  }
 }
 
 /** Registries limited to what this store installed; see registriesForStore. */
