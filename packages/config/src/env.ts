@@ -154,7 +154,8 @@ const DOC_A_RECORD = '192.0.2.10'
 /** The default CNAME target, for local work only. */
 const DOC_CNAME_TARGET = 'shops.waimers.localhost'
 
-const shape = z.object({
+/** Every env setting; split loaders (env-*.ts) pick from it. */
+export const shape = z.object({
   DATABASE_URL: z.string().url(),
   DATABASE_URL_OWNER: z.string().url(),
   /**
@@ -523,7 +524,7 @@ export type Env = z.infer<typeof schema>
  * hand an empty string for an option the operator left empty, and an optional `.url()` or
  * `.min(1)` would otherwise refuse to boot on it. Required keys left blank still fail, as missing.
  */
-function withoutBlanks(
+export function withoutBlanks(
   source: Record<string, string | undefined>,
 ): Record<string, string | undefined> {
   const out: Record<string, string | undefined> = {}
@@ -558,6 +559,7 @@ export function settingsSecret(): string {
   return loadEnv(process.env).SETTINGS_SECRET
 }
 
+export { loadBackupAlertEnv } from './env-backup-alert'
 export { previousSettingsSecrets, workerPublicUrl } from './env-runtime'
 export { merchantGoogleSignIn, reviewerSignIn } from './env-sign-in'
 
@@ -590,22 +592,6 @@ const backupSchema = shape.pick({
 })
 
 export type BackupEnv = z.infer<typeof backupSchema>
-
-/**
- * Only what `scripts/backup-alert.ts` reads. Its own pick, so a bad backup setting (the very
- * thing that may be failing the backup) never stops the alert. Blank values count as unset.
- */
-export function loadBackupAlertEnv(source: Record<string, string | undefined>) {
-  return shape
-    .pick({
-      BACKUP_ALERT_EMAIL: true,
-      BACKUP_ALERT_STATE_FILE: true,
-      PLATFORM_ADMIN_EMAILS: true,
-      BACKUP_R2_BUCKET: true,
-      BACKUP_LOCAL_DIR: true,
-    })
-    .parse(withoutBlanks(source))
-}
 
 /**
  * Only what `scripts/backup-db.ts` and `scripts/restore-db.ts` read: the backup job runs as its
