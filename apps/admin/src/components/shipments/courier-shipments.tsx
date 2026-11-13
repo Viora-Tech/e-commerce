@@ -107,11 +107,6 @@ function CourierShipmentsContent({ provider, providerLabel }: CourierShipmentsPr
     setSelected([])
     setReloadKey((k) => k + 1)
   }
-  const handlePrint = (ids: string[]) => {
-    for (const r of rows) {
-      if (ids.includes(r.id) && r.labelUrl) window.open(r.labelUrl, '_blank', 'noopener')
-    }
-  }
 
   // Render logic
   const { tab, query, page } = q
@@ -151,9 +146,7 @@ function CourierShipmentsContent({ provider, providerLabel }: CourierShipmentsPr
       onPageChange={(p) => setQ({ page: p })}
       onPerPageChange={(n) => setQ({ perPage: n, page: 1 })}
       selection={{ ids: selected, onChange: setSelected }}
-      bulkActions={(ids) => (
-        <ShipmentsBulkActions ids={ids} tab={tab} onPrint={handlePrint} onDone={handleDone} />
-      )}
+      bulkActions={(ids) => <ShipmentsBulkActions ids={ids} tab={tab} onDone={handleDone} />}
       empty={{ heading: hasShipmentFilters(q) ? filterCopy.noResults : copy.empty[tab] }}
     />
   )

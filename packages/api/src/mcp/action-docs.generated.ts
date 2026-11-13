@@ -759,7 +759,7 @@ export const ACTION_DOCS: Record<string, string> = {
   'searchConsole.view':
     "Connection state for the app's pages: account, property, last sync, refresh cooldown.",
   'shipments.counts':
-    'Rows per Shipments tab, plus "booked today" and "need attention" for the summary line; provider counts one courier\'s shipments only (a courier app\'s Shipments page).',
+    "Rows per Shipments tab plus the summary line; provider: one courier's (its app's page).",
   'shipments.courierOverview':
     "A courier app's Overview tiles: in transit and delayed, booked today and what it cost, RTO this month, and its newest shipment change.",
   'shipments.courierPickupPlaces':
