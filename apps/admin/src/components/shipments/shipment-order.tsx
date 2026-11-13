@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import type { OrderDetail } from '@/components/orders/order-detail-types'
 import OrderView from '@/components/orders/order-view'
 import CreateShipmentPage from '@/components/shipments/create-shipment/create-shipment-page'
@@ -21,6 +21,12 @@ type ShipmentOrderProps = {
 export default function ShipmentOrder({ order, appCards }: ShipmentOrderProps) {
   // Hooks
   const copy = useCopy(shipmentsContent)
+  /* Opened to book: stay on Create shipment after booking, so its Booked drawer (Figma
+     905:7783) shows over the booked parcel instead of the page swapping to the order. The next
+     visit opens the order at its shipment card. */
+  const [creating] = useState(
+    () => order.shipment === null || order.shipment.status === 'cancelled',
+  )
   useEffect(() => {
     if (order.shipment && order.shipment.status !== 'cancelled') {
       document.getElementById('order-shipment')?.scrollIntoView({ block: 'start' })
@@ -31,6 +37,6 @@ export default function ShipmentOrder({ order, appCards }: ShipmentOrderProps) {
   const back = { label: copy.title, href: routes.orders.shipments() }
   const booked = order.shipment !== null && order.shipment.status !== 'cancelled'
 
-  if (booked) return <OrderView order={order} appCards={appCards} back={back} />
+  if (booked && !creating) return <OrderView order={order} appCards={appCards} back={back} />
   return <CreateShipmentPage orderId={order.id} back={back} />
 }
