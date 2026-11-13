@@ -967,7 +967,6 @@ const ALLOWLIST: AllowEntry[] = [
     names: [
       'defaultNotificationSettings',
       'encryptNotificationSettings',
-      'decryptNotificationSettings',
       'maskNotificationSettings',
       'builtInNotificationRegistry',
     ],

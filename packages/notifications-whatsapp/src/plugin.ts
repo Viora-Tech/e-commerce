@@ -38,9 +38,13 @@ export const whatsappPlugin = definePlugin({
   admin: {
     icon: 'MessageSquare',
     pages: [
-      // The app opens on its Connect page; Settings → Notifications links here too.
-      { path: '', title: 'Connect WhatsApp', icon: 'Settings' },
-      { path: 'connect', title: 'Connect WhatsApp', navLabel: 'Connect', icon: 'Settings' },
+      // Figma 928:11726: Setup (the three steps), the send log, the templates to get approved,
+      // and Settings (the account fields). Settings → Notifications links to `connect`.
+      { path: '', title: 'WhatsApp setup', navLabel: 'Setup', icon: 'MessageSquare' },
+      { path: 'messages', title: 'WhatsApp messages', navLabel: 'Messages', icon: 'MessageSquare' },
+      { path: 'templates', title: 'WhatsApp templates', navLabel: 'Templates', icon: 'FileText' },
+      { path: 'settings', title: 'WhatsApp settings', navLabel: 'Settings', icon: 'Settings' },
+      { path: 'connect', title: 'Connect WhatsApp', icon: 'Settings' },
     ],
   },
 })

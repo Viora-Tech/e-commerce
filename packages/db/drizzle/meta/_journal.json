@@ -1618,6 +1618,13 @@
       "when": 1795189100000,
       "tag": "0246_cod_pay_online",
       "breakpoints": true
+    },
+    {
+      "idx": 231,
+      "version": "7",
+      "when": 1795189200000,
+      "tag": "0247_notification_channel_log",
+      "breakpoints": true
     }
   ]
 }

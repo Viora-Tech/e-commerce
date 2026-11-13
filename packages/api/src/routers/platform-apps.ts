@@ -1,4 +1,4 @@
-import { settingsSecret } from '@commerce/config'
+import { previousSettingsSecrets, settingsSecret } from '@commerce/config'
 import {
   completeWhatsappSignup,
   decryptSecret,
@@ -13,13 +13,38 @@ import {
   WhatsappSignupSchema,
   whatsappSignupApp,
 } from '@commerce/core'
+import type { TemplateId } from '@commerce/notifications'
 import { ORPCError } from '@orpc/server'
-import { can } from '../procedures'
+import { z } from 'zod'
+import { BULK_MAX, can } from '../procedures'
 import { storeRegistries } from '../services/apps.service'
 import { prepareProviderSettings } from '../services/provider-settings'
 import { getStore, updateStoreNotifications } from '../services/store.service'
+import {
+  submitWhatsappTemplates,
+  WHATSAPP_TEMPLATE_IDS,
+  type WhatsappDeps,
+  whatsappMessages,
+  whatsappSetup,
+  whatsappTemplates,
+} from '../services/whatsapp-setup.service'
 
 const WHATSAPP = 'whatsapp'
+
+/** The store's message apps and the keys that open their saved settings. */
+async function whatsappDeps(tx: Parameters<typeof storeRegistries>[0], storeId: string) {
+  return {
+    registry: (await storeRegistries(tx, storeId)).notifications,
+    secret: settingsSecret(),
+    previousSecrets: previousSettingsSecrets(),
+  } satisfies WhatsappDeps
+}
+
+const TemplateIdSchema = z
+  .string()
+  .refine((id): id is TemplateId => (WHATSAPP_TEMPLATE_IDS as readonly string[]).includes(id), {
+    message: 'Not a WhatsApp message',
+  })
 
 /** What the WhatsApp page shows about the connected account; the PIN never leaves the server. */
 function accountView(row: Awaited<ReturnType<typeof loadPlatformAccount>>) {
@@ -121,6 +146,52 @@ export const platformAppsRouter = {
       })
       return accountView(await loadPlatformAccount(ctx, WHATSAPP))
     }),
+
+  /** Apps → WhatsApp → Setup: the number, the Meta connection and the sample messages. */
+  whatsappSetup: can(permissions.SETTINGS_READ).handler(async ({ context }) => {
+    const { tx, scope } = context
+    return whatsappSetup(tx, scope.storeId, await whatsappDeps(tx, scope.storeId))
+  }),
+
+  /**
+   * Apps → WhatsApp → Templates: each message's template (name, body, examples) and Meta's
+   * review status, read with the saved access token when the account ID is saved too.
+   */
+  whatsappTemplates: can(permissions.SETTINGS_READ).handler(async ({ context }) => {
+    const { tx, scope } = context
+    return whatsappTemplates(tx, scope.storeId, await whatsappDeps(tx, scope.storeId))
+  }),
+
+  /** Submits message templates to Meta for review (Utility, the store's language). */
+  submitWhatsappTemplates: can(permissions.SETTINGS_MANAGE)
+    .input(z.object({ ids: z.array(TemplateIdSchema).min(1).max(BULK_MAX) }))
+    .handler(async ({ context, input }) => {
+      const { tx, scope } = context
+      const r = await submitWhatsappTemplates(
+        tx,
+        scope.storeId,
+        input.ids as TemplateId[],
+        await whatsappDeps(tx, scope.storeId),
+      )
+      if (r.access !== 'live')
+        throw new ORPCError('PRECONDITION_FAILED', {
+          message:
+            r.access === 'no_waba'
+              ? 'Add your WhatsApp Business Account ID in Settings first.'
+              : 'Connect WhatsApp first.',
+        })
+      return r.results
+    }),
+
+  /** Apps → WhatsApp → Messages: the store's WhatsApp sends, newest first, 50 at a time. */
+  whatsappMessages: can(permissions.SETTINGS_READ)
+    .input(
+      z.object({
+        before: z.iso.datetime().optional(),
+        status: z.enum(['queued', 'sent', 'failed']).optional(),
+      }),
+    )
+    .handler(({ context, input }) => whatsappMessages(context.tx, input)),
 
   /** Forget the Embedded Signup account: the channel turns off and its saved access goes. */
   disconnectWhatsapp: can(permissions.SETTINGS_MANAGE).handler(async ({ context }) => {

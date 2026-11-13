@@ -627,8 +627,16 @@ export const ACTION_DOCS: Record<string, string> = {
     "The popup finished: swap the code (it lives 30 seconds), subscribe, register the number, then save it as the store's WhatsApp channel and turn the channel on.",
   'platformApps.disconnectWhatsapp':
     'Forget the Embedded Signup account: the channel turns off and its saved access goes.',
+  'platformApps.submitWhatsappTemplates':
+    "Submits message templates to Meta for review (Utility, the store's language).",
   'platformApps.whatsapp':
     'Whether Embedded Signup is set up here, what the SDK needs, and the linked account.',
+  'platformApps.whatsappMessages':
+    "Apps → WhatsApp → Messages: the store's WhatsApp sends, newest first, 50 at a time.",
+  'platformApps.whatsappSetup':
+    'Apps → WhatsApp → Setup: the number, the Meta connection and the sample messages.',
+  'platformApps.whatsappTemplates':
+    "Apps → WhatsApp → Templates: each message's template (name, body, examples) and Meta's review status, read with the saved access token when the account ID is saved too.",
   'policies.template':
     "A policy's template filled from the store as it is now; the editor shows it, nothing is saved.",
   'preorders.campaigns.delete': 'Its products sell by their own pre-order settings again.',

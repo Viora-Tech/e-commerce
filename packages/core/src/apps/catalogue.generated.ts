@@ -924,7 +924,7 @@ export const APP_CATALOGUE_DATA: CatalogueEntry[] = [
         },
       ],
     },
-    adminPages: ['Connect'],
+    adminPages: ['Setup', 'Messages', 'Templates', 'Settings'],
     themeBlocks: [],
     credits: [],
   },
