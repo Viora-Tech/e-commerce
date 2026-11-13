@@ -6,6 +6,7 @@ import {
   ensureMainTheme,
   GstinSchema,
   GstRegistrationError,
+  keepOwnerOnlyPreferences,
   keepReplacedKeySets,
   liveThemeSettings,
   loadStoreStorageSettings,
@@ -17,7 +18,6 @@ import {
   parsePaymentSettings,
   parsePreferences,
   parsePreorderStoreSettings,
-  parsePreviousSecrets,
   parseShippingSettings,
   permissions,
   presentStoreGeneral,
@@ -72,7 +72,7 @@ import {
 import { savedOriginPincode, storeHealth } from '../services/store-health.service'
 import { shellProcedure } from './shell'
 
-const previousSecrets = () => parsePreviousSecrets(loadEnv(process.env).SETTINGS_SECRET_PREVIOUS)
+const previousSecrets = () => loadEnv(process.env).SETTINGS_SECRET_PREVIOUS
 
 /**
  * In-process fallback for hosts (and tests) that don't wire a Redis-backed
@@ -220,7 +220,12 @@ export const storeRouter = {
   updatePreferences: can(permissions.ONLINE_STORE_WRITE)
     .input(StorePreferencesSchema)
     .handler(async ({ context, input }) => {
-      const s = await updateStorePreferences(context.tx, context.scope.storeId, input)
+      // `delivery.honoProduct` is the owner's alone: anyone else's save keeps it as stored.
+      const stored = parsePreferences(
+        (await getStore(context.tx, context.scope.storeId))?.preferences,
+      )
+      const next = keepOwnerOnlyPreferences(input, stored, context.scope.isOwner)
+      const s = await updateStorePreferences(context.tx, context.scope.storeId, next)
       return parsePreferences(s?.preferences)
     }),
 

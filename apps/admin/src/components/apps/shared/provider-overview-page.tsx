@@ -16,6 +16,7 @@ import { type ReactNode, useEffect, useState } from 'react'
 import DataCard from '@/components/layout/data-card'
 import StatusChip from '@/components/layout/status-chip'
 import { routes } from '@/lib/routes'
+import { useStorageScope } from '@/lib/storage-scope'
 import {
   type FieldValues,
   loadProviderSettings,
@@ -74,6 +75,7 @@ export default function ProviderOverviewPage({
   footer,
 }: ProviderOverviewPageProps) {
   // Hooks
+  const storageScope = useStorageScope()
   const [status, setStatus] = useState<Status | null>(null)
   const [tested, setTested] = useState(false)
 
@@ -88,7 +90,7 @@ export default function ProviderOverviewPage({
         saved,
       })
     })
-    setTested(readTestedFlag(providerId))
+    setTested(readTestedFlag(storageScope, providerId))
     return () => {
       cancelled = true
     }

@@ -1,4 +1,9 @@
-import { type Permission, type Resource, statement } from '@commerce/core/permissions'
+import {
+  canNeedApproval,
+  type Permission,
+  type Resource,
+  statement,
+} from '@commerce/core/permissions'
 
 /** A role's grants and which of them ask first ("Needs approval"). */
 export type RoleAccess = { granted: Permission[]; asks: Permission[] }
@@ -61,14 +66,123 @@ export function setLevel(
     : apply(access, { on, unask: [permission] }, askEditable)
 }
 
-/** "Select all" grants every permission of the resource (keeping its ticks); "Clear" removes them. */
-export function toggleResource(
+/** What the member may change on this role (the same rules the server keeps). */
+export type EditRules = {
+  /** Grants are fixed: a built-in role, or a member without staff.manage. */
+  grantsLocked: boolean
+  /** Ask first can be changed: only the owner, and never on the owner role. */
+  askEditable: boolean
+  /** The owner role never asks, so its rows have no Ask first. */
+  showAsk: boolean
+}
+
+/** Whether the row of `permission` has an Ask first choice (reads and approving never ask). */
+export function askable(permission: Permission, showAsk: boolean): boolean {
+  return showAsk && canNeedApproval(permission)
+}
+
+/**
+ * Whether `level` can be picked on the row of `permission` right now. Built-in roles keep their
+ * grants (an off row stays off, an allowed row cannot be switched off); only the owner moves a
+ * row into or out of Ask first.
+ */
+export function canPick(
+  access: RoleAccess,
+  permission: Permission,
+  level: Level,
+  rules: EditRules,
+): boolean {
+  const current = levelOf(access, permission, rules.showAsk)
+  if (current === level) return true
+  if (level === 'off') return !rules.grantsLocked
+  if (rules.grantsLocked && current === 'off') return false
+  if (level === 'ask') return askable(permission, rules.showAsk) && rules.askEditable
+  return current !== 'ask' || rules.askEditable
+}
+
+/**
+ * One row's pick, within the rules: a pick that is not allowed leaves the access as it is, and a
+ * role whose grants are locked never gains or loses a grant (only its Ask first ticks move).
+ */
+export function pickLevel(
+  access: RoleAccess,
+  permission: Permission,
+  level: Level,
+  rules: EditRules,
+): RoleAccess {
+  if (levelOf(access, permission, rules.showAsk) === level) return access
+  if (!canPick(access, permission, level, rules)) return access
+  const next = setLevel(access, permission, level, rules.askEditable)
+  return rules.grantsLocked ? { granted: access.granted, asks: next.asks } : next
+}
+
+/**
+ * An area's quick action ("Allow all", "Ask first for all", "Turn all off"): every row of the
+ * resource that may take `level` takes it; rows that cannot (Ask first on a read) stay as they are.
+ */
+export function pickAreaLevel(
   access: RoleAccess,
   resource: Resource,
-  askEditable: boolean,
+  level: Level,
+  rules: EditRules,
 ): RoleAccess {
-  const all = resourcePermissions(resource)
-  return all.every((p) => access.granted.includes(p))
-    ? apply(access, { off: all }, askEditable)
-    : apply(access, { on: all }, askEditable)
+  let next = access
+  for (const permission of resourcePermissions(resource)) {
+    if (level === 'ask' && !askable(permission, rules.showAsk)) continue
+    next = pickLevel(next, permission, level, rules)
+  }
+  return next
+}
+
+/** Whether an area's quick action would change anything (otherwise its button is disabled). */
+export function areaActionChanges(
+  access: RoleAccess,
+  resource: Resource,
+  level: Level,
+  rules: EditRules,
+): boolean {
+  const next = pickAreaLevel(access, resource, level, rules)
+  return resourcePermissions(resource).some(
+    (p) => levelOf(next, p, rules.showAsk) !== levelOf(access, p, rules.showAsk),
+  )
+}
+
+/** Every permission on the statement, area by area. */
+export function allPermissions(): Permission[] {
+  return (Object.keys(statement) as Resource[]).flatMap(resourcePermissions)
+}
+
+export type LevelCounts = Record<Level, number>
+
+/** "12 allowed · 5 ask first · 20 off": the role page's summary bar and the roles list. */
+export function countLevels(
+  access: RoleAccess,
+  showAsk: boolean,
+  among: readonly Permission[] = allPermissions(),
+): LevelCounts {
+  const counts: LevelCounts = { off: 0, allowed: 0, ask: 0 }
+  for (const p of among) counts[levelOf(access, p, askable(p, showAsk))] += 1
+  return counts
+}
+
+/**
+ * The role editor's React key: the role and what is saved on it. A fresh server read that differs
+ * (after a save, a focus refresh, another member's change) mounts a new editor, so the form never
+ * keeps showing its copy of the role from before the save (#1623).
+ */
+export function roleEditorKey(role: {
+  id: string
+  name: string
+  description: string | null
+  permissions: readonly string[]
+  needsApproval?: readonly string[] | undefined
+}): string {
+  const sorted = (list: readonly string[] | undefined) => [...(list ?? [])].sort().join(',')
+  return [
+    role.id,
+    role.name,
+    role.description ?? '',
+    sorted(role.permissions),
+    sorted(role.needsApproval),
+  ].join('|')
 }

@@ -9,12 +9,11 @@ import StatusChip from '@/components/layout/status-chip'
 import { createShipmentContent } from '@/data/create-shipment'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { routes } from '@/lib/routes'
-import { courierInitials } from './courier-groups'
-import { courierLogoSrc } from './courier-logo'
+import CourierMark from './courier-mark'
 import { coverNotes } from './cover-notes'
 import { rowInsuranceState } from './insured-rows'
+import PriceBreakdownStrip from './price-breakdown-strip'
 import { type ParcelSize, priceCalculation } from './price-calculation'
-import PriceCalculationList from './price-calculation-list'
 
 type CourierTableProps = {
   rows: readonly CourierRateRow[]
@@ -66,7 +65,7 @@ export default function CourierTable({
       <table className="w-full min-w-[44rem] border-collapse text-body">
         <thead>
           <tr className="bg-muted/50 text-left text-caption uppercase tracking-wide text-muted-foreground">
-            <th className="px-4 py-2.5 font-medium">{d.columns.courier}</th>
+            <th className="px-4 py-2.5 font-medium md:pl-8">{d.columns.courier}</th>
             <th className="px-4 py-2.5 font-medium">{d.columns.delivery}</th>
             <th className="px-4 py-2.5 font-medium">{d.columns.weight}</th>
             <th className="px-4 py-2.5 font-medium">{d.columns.charges}</th>
@@ -79,7 +78,6 @@ export default function CourierTable({
           {rows.map((row) => {
             const blocked = row.problem !== null
             const picked = pick === row.optionKey
-            const logo = courierLogoSrc(row.providerLabel)
             const date = row.deliveryBy ? fmt.pattern(row.deliveryBy, SHORT_DATE) : null
             const badge = row.badges.includes('recommended')
               ? { label: c.recommended, tone: 'info' as const }
@@ -111,37 +109,15 @@ export default function CourierTable({
                     picked && 'bg-primary-soft',
                   )}
                 >
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-4 md:pl-8">
                     <div className="flex flex-col items-start gap-1.5">
                       <div className="flex items-center gap-3">
-                        {logo ? (
-                          <span
-                            aria-hidden
-                            className={cn(
-                              'flex h-8 w-14 shrink-0 items-center justify-center overflow-hidden rounded-md',
-                              logo.light && 'bg-white px-1',
-                            )}
-                          >
-                            {/* biome-ignore lint/performance/noImgElement: a small static logo from /public. */}
-                            <img
-                              src={logo.src}
-                              alt=""
-                              className="max-h-7 max-w-full object-contain"
-                            />
-                          </span>
-                        ) : (
-                          <span
-                            aria-hidden
-                            className="flex h-8 w-14 shrink-0 items-center justify-center rounded-md border border-border bg-muted text-caption font-semibold text-ink-strong"
-                          >
-                            {courierInitials(row.providerLabel)}
-                          </span>
-                        )}
+                        <CourierMark label={row.providerLabel} />
                         <div className="flex min-w-0 flex-col gap-0.5">
                           <span className="font-medium text-ink-strong">
                             {row.providerLabel}
                             {row.chosenAtCheckout ? (
-                              <StatusChip tone="attention" className="ml-2">
+                              <StatusChip tone="violet" variant="outline" className="ml-2">
                                 {c.chosenAtCheckout}
                               </StatusChip>
                             ) : null}
@@ -158,10 +134,14 @@ export default function CourierTable({
                           ) : null}
                         </div>
                       </div>
-                      {badge ? <StatusChip tone={badge.tone}>{badge.label}</StatusChip> : null}
+                      {badge ? (
+                        <StatusChip tone={badge.tone} variant="outline">
+                          {badge.label}
+                        </StatusChip>
+                      ) : null}
                     </div>
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-4">
                     {blocked ? (
                       '—'
                     ) : (
@@ -175,12 +155,12 @@ export default function CourierTable({
                       </div>
                     )}
                   </td>
-                  <td className="px-4 py-3 tabular-nums">
+                  <td className="px-4 py-4 tabular-nums">
                     {blocked || (row.chargeableWeightGrams ?? chargedGrams) === null
                       ? '—'
                       : `${fmt.number(kg(row.chargeableWeightGrams ?? chargedGrams ?? 0))} kg`}
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-4">
                     {blocked ? (
                       '—'
                     ) : row.pricePaise === null ? (
@@ -212,7 +192,7 @@ export default function CourierTable({
                       </div>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-right">
+                  <td className="px-4 py-4 text-right md:pr-8">
                     {onShipNow && !blocked ? (
                       <Button
                         size="sm"
@@ -231,11 +211,11 @@ export default function CourierTable({
                 </tr>
                 {picked && calc ? (
                   <tr className="bg-muted/40">
-                    <td colSpan={5} className="px-4 py-3">
-                      <PriceCalculationList
+                    <td colSpan={5} className="px-4 py-3.5 md:px-8">
+                      <PriceBreakdownStrip
                         calc={calc}
                         estimateHint={d.insuranceEstimateHint}
-                        className="max-w-[52rem] pl-[4.25rem]"
+                        className="md:pl-[4.25rem]"
                       />
                     </td>
                   </tr>

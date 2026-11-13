@@ -20,6 +20,7 @@ import bluedart from './bluedart'
 import bugReport from './bug-report'
 import bulkActions from './bulk-actions'
 import bulkEdit from './bulk-edit'
+import bulkShip from './bulk-ship'
 import businessGst from './business-gst'
 import catalogs from './catalogs'
 import chatwoot from './chatwoot'
@@ -37,6 +38,7 @@ import createShipment from './create-shipment'
 import customData from './custom-data'
 import customerAddresses from './customer-addresses'
 import customerGiftCards from './customer-gift-cards'
+import customerMerge from './customer-merge'
 import customerStoreCredit from './customer-store-credit'
 import customers from './customers'
 import customersBulkEdit from './customers-bulk-edit'
@@ -67,6 +69,7 @@ import growthReport from './growth-report'
 import growthbook from './growthbook'
 import gstInvoices from './gst-invoices'
 import home from './home'
+import honoProduct from './hono-product'
 import imageEditor from './image-editor'
 import inbox from './inbox'
 import inboxConversations from './inbox-conversations'
@@ -175,6 +178,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...apps,
   ...abandonedDetail,
   ...customerGiftCards,
+  ...customerMerge,
   ...customerStoreCredit,
   ...storeCreditGiftCards,
   ...storeCreditExpiry,
@@ -190,6 +194,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...bugReport,
   ...bulkActions,
   ...bulkEdit,
+  ...bulkShip,
   ...businessGst,
   ...checkoutRules,
   ...checkoutSettings,
@@ -230,6 +235,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...growthReport,
   ...gstInvoices,
   ...home,
+  ...honoProduct,
   ...imageEditor,
   ...indiaPost,
   ...installedApps,

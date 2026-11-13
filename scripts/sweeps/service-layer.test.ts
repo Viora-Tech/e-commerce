@@ -48,6 +48,18 @@ const ALLOWLIST: AllowEntry[] = [
       'plain-HTML page render reads the same store, market and page rows as the React route, inside withStore; kept beside the renderer so both paths cannot drift (#1367)',
   },
   {
+    path: 'apps/storefront-hono/src/product-data.ts',
+    exact: true,
+    reason:
+      'the Hono product page reads the same store, product and market rows as the Next product route and layout, under the same render cache keys, inside storeRead; kept beside the renderer so both paths cannot drift, as plain-html/render.ts (speed track step 6)',
+  },
+  {
+    path: 'apps/storefront-hono/src/routing.ts',
+    exact: true,
+    reason:
+      "the Hono service's direct (development) mode resolves the store and its markets with the same @commerce/db resolvers as the Next proxy (resolveHost, storeMarkets); production requests come signed from Next instead",
+  },
+  {
     path: 'apps/worker/src/edge-purge.ts',
     exact: true,
     reason:

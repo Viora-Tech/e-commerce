@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { previousSecrets, workerUrl } from './env-runtime'
 import { siteConfig } from './site'
 
 /**
@@ -214,6 +215,15 @@ const shape = z.object({
    */
   STOREFRONT_PLAIN_HTML: z.enum(['on', 'off']).optional(),
   /**
+   * The Bun + Hono product page service (`apps/storefront-hono`), e.g. `http://storefront-hono:3200`.
+   * Unset (the default) sends no page there, whatever a store's `delivery.honoProduct` switch says:
+   * the deployment-wide way back. Set, the Next storefront forwards `/products/<handle>` of the
+   * stores switched on and draws the page itself when the service fails or is slow.
+   */
+  STOREFRONT_HONO_URL: z.string().url().optional(),
+  /** How long the Next storefront waits for the Hono service before drawing the page itself; unset is 3000. */
+  STOREFRONT_HONO_TIMEOUT_MS: z.coerce.number().int().min(100).max(30_000).optional(),
+  /**
    * How many sections of an imported theme's page are sent first and drawn as the theme wrote
    * them; the rest stream in behind them in the same response, their images lazy and their
    * scripts started near the viewport. Unset is 3.
@@ -247,7 +257,11 @@ const shape = z.object({
    * `scripts/rotate-secrets.ts --apply` re-encrypts everything under the new
    * SETTINGS_SECRET. Decryption tries these after the current key.
    */
-  SETTINGS_SECRET_PREVIOUS: z.string().optional(),
+  SETTINGS_SECRET_PREVIOUS: previousSecrets,
+  /** The worker's public origin; server code reads it through `workerPublicUrl` (env-runtime.ts). */
+  NEXT_PUBLIC_WORKER_URL: optionalOrBlank(workerUrl),
+  /** Step-up re-auth (A5) for sensitive admin actions; off by default. Admin only (`apiHost`). */
+  STEP_UP_ENFORCE: flag,
   /**
    * Encrypts backup archives (`scripts/backup-db.ts`). Separate from
    * SETTINGS_SECRET so a compromised app secret can't also open the backups.
@@ -538,6 +552,7 @@ export function settingsSecret(): string {
   return loadEnv(process.env).SETTINGS_SECRET
 }
 
+export { previousSettingsSecrets, workerPublicUrl } from './env-runtime'
 export { merchantGoogleSignIn, reviewerSignIn } from './env-sign-in'
 
 const platformEmailSchema = z.object({ ...platformEmailShape, PLATFORM_DOMAINS: platformDomains })

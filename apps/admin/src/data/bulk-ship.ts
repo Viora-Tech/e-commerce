@@ -1,0 +1,176 @@
+/** Copy for the bulk ship drawer (Figma 908:8804), its result (909:9249) and Edit popup (913:9698). */
+const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`
+
+export const bulkShipContent = {
+  title: (n: number) => `Ship ${plural(n, 'order', 'orders')}`,
+  intro: 'Each order gets its own courier by the rule below. Change any row before booking.',
+  loading: 'Getting the orders ready…',
+  loadFailed: 'Could not load these orders. Close and try again.',
+  close: 'Close',
+  insurance: 'Shipping insurance',
+  insuranceOn: 'On for all · change per order',
+  insuranceOff: 'Off for all · change per order',
+  ruleLabel: 'Courier rule',
+  rules: {
+    recommended: 'Recommended',
+    cheapest: 'Cheapest',
+    fastest: 'Fastest',
+    one: 'One courier for all',
+  } as Record<'recommended' | 'cheapest' | 'fastest' | 'one', string>,
+  pickupLater: 'Pickup is made later on Booked, one per courier.',
+  oneCourier: 'Courier for every order',
+  oneCourierOption: (label: string, n: number, total: number) =>
+    `${label} · takes ${n} of ${total}`,
+  columns: {
+    order: 'Order',
+    shipTo: 'Ship to',
+    package: 'Package',
+    payment: 'Payment',
+    courier: 'Courier',
+    delivery: 'Delivery',
+    charge: 'Charge',
+    status: 'Status',
+    edit: 'Edit',
+  },
+  selectAll: 'Tick every ready order',
+  selectOrder: (n: number) => `Book order #${n}`,
+  checking: 'Asking couriers…',
+  quoteFailed: 'Could not get prices from your couriers.',
+  retry: 'Check again',
+  noCourierConnected: 'No courier is connected yet. Connect one in Apps to book.',
+  connect: 'Connect a courier',
+  charged: (kg: string) => `${kg} kg charged`,
+  kg: (kg: string) => `${kg} kg`,
+  ownBox: 'Own box',
+  customBox: 'Custom box',
+  noBox: 'No box chosen',
+  weightMissing: 'Weight missing',
+  shipsPart: (n: number, total: number) => `Ships ${n} of ${total} items`,
+  prepaid: 'Prepaid',
+  cod: 'COD',
+  rateOnBooking: 'Rate on booking',
+  noDate: 'No date',
+  source: {
+    shopper: 'Shopper’s pick',
+    hand: 'Your pick',
+    via: (name: string) => `via ${name}`,
+    own: 'Your account',
+  },
+  change: 'Change',
+  shopperChose: (name: string, price: string) => `Shopper chose ${name} · ${price}`,
+  free: 'Free',
+  ready: 'Ready',
+  problem: {
+    needsPackage: (box: boolean) => (box ? 'Needs weight and box' : 'Needs weight'),
+    noCod: 'No courier takes COD here',
+    noCourier: 'No courier delivers here',
+    notThisCourier: 'This courier can’t take it',
+    checkoutRoute: (route: string) => `${route} can’t be booked`,
+  },
+  fix: {
+    addWeight: 'Add weight',
+    payOnline: 'Ask to pay online',
+    change: 'Change courier',
+  },
+  edit: (n: number) => `Edit order #${n}`,
+  footer: {
+    ready: 'Ready',
+    readyValue: (n: number, total: number) => `${n} of ${total}`,
+    attention: 'Need attention',
+    attentionValue: (n: number) => `${n} · skipped unless fixed`,
+    total: 'Total',
+    totalValue: (amount: string, insured: boolean) =>
+      insured ? `${amount} incl. GST + insurance` : `${amount} incl. GST`,
+    /** Rows whose courier only prices at booking (no quote now): not in the total above. */
+    unpriced: (n: number) => ` · ${plural(n, 'order', 'orders')} priced at booking`,
+    wallets: 'Wallets',
+    walletLow: (label: string) => `${label} wallet is short for this batch`,
+  },
+  cancel: 'Cancel',
+  book: (n: number) => `Book ${plural(n, 'label', 'labels')}`,
+  booking: 'Booking…',
+  result: {
+    done: 'Done',
+    heading: (n: number) => `${plural(n, 'label', 'labels')} booked`,
+    intro: (skipped: number) =>
+      skipped > 0
+        ? `${plural(skipped, 'order', 'orders')} skipped and stay in To ship. Booked orders moved to Shipments › Booked.`
+        : 'Booked orders moved to Shipments › Booked.',
+    print: 'Print',
+    printHeading: (n: number) => (n === 1 ? 'The label' : `All ${n} labels`),
+    printHelp: 'Each courier’s label opens in its own tab, in the courier’s own size.',
+    printLabels: (n: number) =>
+      n === 0 ? 'Print labels' : `Print ${plural(n, 'label', 'labels')}`,
+    packingSlips: 'Packing slips',
+    noLabels: 'The couriers have not sent labels yet. They show on Shipments › Booked.',
+    skipped: (n: number) => `Skipped · ${n}`,
+    notBooked: 'Not booked',
+    pickups: 'Pickups',
+    pickupsHelp:
+      'One pickup per courier. Each request makes its manifest. You can also do this later on Booked.',
+    parcels: (n: number, kg: string) => `${plural(n, 'parcel', 'parcels')} · ${kg} kg`,
+    alreadyBooked: (time: string, ref: string | null) =>
+      `Pickup already booked · ${time}${ref ? ` · ID ${ref}` : ''}`,
+    newRequest: 'New pickup request',
+    dropOff: 'Drop off yourself',
+    slotLabel: 'Pickup day and time',
+    slot: (day: string, time: string) => `${day} · from ${time}`,
+    today: (date: string) => `Today, ${date}`,
+    tomorrow: (date: string) => `Tomorrow, ${date}`,
+    footnote: (fresh: number, joined: string[]) =>
+      `${[
+        fresh > 0 ? `${plural(fresh, 'new pickup request', 'new pickup requests')}` : null,
+        joined.length > 0 ? `${joined.join(', ')} parcels join the pickup already booked` : null,
+      ]
+        .filter(Boolean)
+        .join('; ')}. Parcels move to To be picked up.`,
+    later: 'Later',
+    create: 'Create pickups',
+    created: 'Pickups created. Parcels moved to To be picked up.',
+    createFailed: 'Could not create the pickups.',
+  },
+  editPopup: {
+    subtitle: (parts: string[]) => parts.filter(Boolean).join(' · '),
+    items: 'Items to send',
+    itemsCount: (n: number, total: number) => `${n} of ${total} items`,
+    partNote:
+      'This parcel holds part of the order. Split it differently from the order’s own Create shipment page.',
+    packageFor: 'Package for these items',
+    box: 'Box',
+    ownBox: 'Products’ own box',
+    customBox: 'Custom size',
+    weightDims: 'Weight (g) · L × W × H (cm)',
+    weight: 'Weight in grams',
+    length: 'Length in cm',
+    width: 'Width in cm',
+    height: 'Height in cm',
+    /** Short hints inside the four boxes, so an empty box still says what goes in it. */
+    hints: { weight: 'g', length: 'L cm', width: 'W cm', height: 'H cm' },
+    chargedNote: (kg: string) => `Charged ${kg} kg: the bigger of real and size weight.`,
+    shipping: 'Shipping',
+    courier: 'Courier',
+    courierOption: (label: string, date: string, price: string) =>
+      [label, date, price].filter(Boolean).join(' · '),
+    alternatives: (cheapest: string | null, fastest: string | null) =>
+      [cheapest ? `Cheapest: ${cheapest}` : null, fastest ? `Fastest: ${fastest}` : null]
+        .filter(Boolean)
+        .join(' · '),
+    repriceNote: 'Saving asks the couriers again for this package.',
+    noShopperChoice: 'No delivery option chosen at checkout',
+    payment: 'Payment',
+    prepaid: 'Prepaid',
+    codCollect: (amount: string) => `COD · collect ${amount}`,
+    prepaidHelp: 'Paid online, nothing to collect.',
+    codHelp:
+      'No courier takes cash here? Ask the shopper to pay online, then switch this to Prepaid.',
+    insurance: 'Insurance for this order',
+    insuranceCovers: (value: string) => `Covers ${value} if lost or damaged`,
+    charge: 'Charge',
+    chargeValue: (amount: string, insured: boolean) =>
+      insured ? `${amount} incl. GST + insurance` : `${amount} incl. GST`,
+    skip: 'Skip this order',
+    unskip: 'Book this order',
+    saveNote: 'Saving updates its row in the list',
+    close: 'Close',
+  },
+}

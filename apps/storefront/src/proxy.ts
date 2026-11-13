@@ -1,4 +1,5 @@
 import { loadEnv, settingsSecret } from '@commerce/config'
+import { readHonoPreviewToken } from '@commerce/core/hono-preview'
 import { CONSENT_COOKIE } from '@commerce/core/preferences'
 import { withQuery } from '@commerce/core/redirects'
 import { THEME_PREVIEW_PARAM } from '@commerce/core/theme'
@@ -18,6 +19,14 @@ import {
 } from './lib/csp'
 import { db } from './lib/db'
 import { edgeCacheControl, isSharedPage } from './lib/edge-cache'
+import {
+  HONO_COOKIE,
+  HONO_COOKIE_MAX_AGE,
+  honoPath,
+  honoPreviewLink,
+  wantsHono,
+} from './lib/hono-island/route'
+import { honoEnv, honoResting } from './lib/hono-island/state'
 import {
   MARKET_COOKIE,
   MARKET_COOKIE_MAX_AGE,
@@ -52,6 +61,7 @@ import {
   routeForStore,
 } from './lib/routing'
 
+import { watchResolvers } from './lib/store-changes'
 import { createStoreResolver, hostnameFromHeader } from './lib/store-resolver'
 import {
   ACCESS_COOKIE,
@@ -80,6 +90,8 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 const resolve = createStoreResolver<HostRoute>({
   lookup: (hostname) => resolveHost(db(), hostname),
+  // A miss belongs to no store: any store's change drops it (a domain may have been added).
+  storeOf: (_hostname, route) => route?.storeId ?? null,
 })
 
 /**
@@ -88,7 +100,14 @@ const resolve = createStoreResolver<HostRoute>({
  */
 const marketsOf = createStoreResolver<StoreMarketRoute[]>({
   lookup: (storeId) => storeMarkets(db(), storeId).catch(() => []),
+  storeOf: (storeId) => storeId,
 })
+
+/**
+ * Hosts and markets follow the store's writes (a domain or market saved in the admin) at once,
+ * through the storefront's cache notifications; their TTL only covers a lost listener.
+ */
+const watchRouting = watchResolvers(resolve, marketsOf)
 
 /** Cloudflare's edge country, forwarded for region defaults. Absent when not behind Cloudflare. */
 function visitorCountry(request: NextRequest): string | null {
@@ -101,6 +120,7 @@ function visitorCountry(request: NextRequest): string | null {
  * (`lib/csp.ts`); the forwarded request carries the same nonce for the page to use.
  */
 export async function proxy(request: NextRequest) {
+  watchRouting()
   // The plain HTML route handing an ineligible page back (`lib/plain-html/forward.ts`): the page
   // keeps the nonce the outer response's CSP names.
   const handedBack = plainSkipNonce(settingsSecret(), request.headers.get(PLAIN_SKIP_HEADER))
@@ -217,6 +237,30 @@ async function routeRequest(
     }
   }
 
+  // The faster product pages' link (`?hono=`, `lib/hono-island/route.ts`): this browser's
+  // `wc_hono` cookie, then the same page without the param. Only a token the admin signed for this
+  // store turns the preview on, so a shared link turns nothing on for anyone else.
+  if ((request.method === 'GET' || request.method === 'HEAD') && !request.headers.has('rsc')) {
+    const link = honoPreviewLink(request.nextUrl, (token) =>
+      readHonoPreviewToken({ secret: settingsSecret(), storeId, token }),
+    )
+    if (link) {
+      const back = NextResponse.redirect(new URL(link.location, request.nextUrl), 302)
+      back.headers.set('cache-control', 'private, no-store')
+      if (link.cookie === 'clear') back.cookies.delete(HONO_COOKIE)
+      else if (link.cookie !== 'keep') {
+        back.cookies.set(HONO_COOKIE, link.cookie, {
+          httpOnly: true,
+          sameSite: 'lax',
+          secure: request.nextUrl.protocol === 'https:',
+          path: '/',
+          maxAge: HONO_COOKIE_MAX_AGE,
+        })
+      }
+      return back
+    }
+  }
+
   // Markets (`lib/markets.ts`): the market, language and country this request is in. A prefix
   // comes off the path before routing, so `/ae/products/x` renders `/products/x` in that market.
   const markets = (await marketsOf(storeId)) ?? []
@@ -325,14 +369,33 @@ async function routeRequest(
       cookie: (name) => request.cookies.get(name)?.value,
       handedBack,
     })
-  if (plain && shared) headers.set('x-edge-cache-control', shared)
+  // A product page of a store on the Bun + Hono service (`lib/hono-island`); Next draws it on failure.
+  const hono =
+    !locked &&
+    !plain &&
+    wantsHono({
+      enabled: lock.honoProduct,
+      serviceUrl: honoEnv().url,
+      method: request.method,
+      pathname: pick.pathname,
+      searchParams: request.nextUrl.searchParams,
+      rsc: request.headers.has('rsc'),
+      personal: Boolean(preview) || posted !== null || referred,
+      marketPrefix: headers.get(MARKET_HEADERS.prefix) ?? '',
+      cookie: (name) => request.cookies.get(name)?.value,
+      handedBack,
+      resting: honoResting(),
+    })
+  if ((plain || hono) && shared) headers.set('x-edge-cache-control', shared)
 
   const url = request.nextUrl.clone()
   url.pathname = locked
     ? `${PASSWORD_PREFIX}/${storeId}`
     : plain
       ? plainPath(storeId, pick.pathname)
-      : route.path
+      : hono
+        ? honoPath(storeId, pick.pathname)
+        : route.path
   const response = NextResponse.rewrite(url, { request: { headers } })
   if (preview && param && request.headers.get('sec-fetch-dest') === 'document') {
     response.cookies.set(PREVIEW_COOKIE, param, {

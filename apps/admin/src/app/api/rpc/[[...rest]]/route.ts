@@ -1,9 +1,11 @@
-import { appRouter } from '@commerce/api'
+import { appRouter, createRequestMemo } from '@commerce/api'
 import { RPCHandler } from '@orpc/server/fetch'
+import { BatchHandlerPlugin } from '@orpc/server/plugins'
 import { apiHost, platformHost } from '@/lib/api'
 import { isCrossOriginBrowserRequest } from '@/lib/request-site'
 
-const handler = new RPCHandler(appRouter)
+// The admin's browser client batches calls made together (`/api/rpc/__batch__`, at most 10).
+const handler = new RPCHandler(appRouter, { plugins: [new BatchHandlerPlugin()] })
 
 async function handle(request: Request) {
   // Only the admin's own pages call this API; a form posted from a storefront on the same
@@ -13,7 +15,13 @@ async function handle(request: Request) {
   }
   const { response } = await handler.handle(request, {
     prefix: '/api/rpc',
-    context: { ...apiHost(), ...platformHost(), headers: request.headers },
+    // One memo per HTTP request: every call in a batch shares one session and membership lookup.
+    context: {
+      ...apiHost(),
+      ...platformHost(),
+      headers: request.headers,
+      memo: createRequestMemo(),
+    },
   })
   return response ?? new Response('Not found', { status: 404 })
 }

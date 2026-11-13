@@ -97,9 +97,16 @@ const VerificationSchema = z.object({
  * theme's home and content pages go out as the theme's own HTML and CSS with small scripts only
  * where a page must be live, without the React runtime (docs/design/storefront-plain-html.md).
  * Pages it cannot serve that way yet are drawn as before.
+ *
+ * `honoProduct` (off by default, per store, the store owner's alone): an imported theme's product
+ * page is drawn by the Bun + Hono service (`apps/storefront-hono`) with the buy box as a hydrated
+ * React island; the Next storefront forwards it there and draws the page itself on any failure
+ * (`apps/storefront/src/lib/hono-island`). Only the owner changes it (`keepOwnerOnlyPreferences`,
+ * `./hono-preview.ts`); runbook in docs/research/2026-11-storefront-hono-pilot.md.
  */
 const DeliverySchema = z.object({
   plainHtml: z.boolean().default(false),
+  honoProduct: z.boolean().default(false),
 })
 
 export const StorePreferencesSchema = z.object({

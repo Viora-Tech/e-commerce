@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation'
 import type { ReactNode } from 'react'
 import BugReportHost from '@/components/bug-report/bug-report-host'
 import AccentStyle from '@/components/layout/accent-style'
+import StorageScopeProvider from '@/components/layout/storage-scope-provider'
 import { getSession } from '@/lib/auth'
 
 /**
@@ -18,7 +19,7 @@ export default async function EditorLayout({ children }: { children: ReactNode }
     (session.session as { activeOrganizationId?: string | null }).activeOrganizationId ?? null
 
   return (
-    <>
+    <StorageScopeProvider storeId={activeOrganizationId} userId={session.user.id}>
       <AccentStyle organizationId={activeOrganizationId} />
       {children}
       {/* Testers report from the editor too (bottom-right, clear of the left rail). */}
@@ -32,6 +33,6 @@ export default async function EditorLayout({ children }: { children: ReactNode }
         />
       ) : null}
       <Toaster />
-    </>
+    </StorageScopeProvider>
   )
 }

@@ -8,6 +8,7 @@ import AdminFrame from '@/components/admin-frame'
 import AccentStyle from '@/components/layout/accent-style'
 import PaymentsTestBanner from '@/components/layout/payments-test-banner'
 import RefreshOnFocus from '@/components/layout/refresh-on-focus'
+import StorageScopeProvider from '@/components/layout/storage-scope-provider'
 import { billingContent } from '@/data/billing'
 import { appEntryHref } from '@/lib/apps-gallery'
 import { getSession } from '@/lib/auth'
@@ -15,8 +16,10 @@ import { feePercent } from '@/lib/billing'
 import { REQUEST_PATH_HEADER } from '@/lib/csp'
 import { routes, safeNext } from '@/lib/routes'
 import {
+  type AppBars,
   approvalsBadgeCount,
   inboxUnreadCount,
+  listAppBars,
   listApps,
   listStores,
   liveLogoUrl,
@@ -27,6 +30,12 @@ import {
 } from '@/lib/shell-data'
 import { storefrontOrigin } from '@/lib/storefront-origin'
 import SelectStore from './select-store/select-store'
+
+const NO_APP_BARS: AppBars = {}
+
+/** An app page's address from its manifest path (`''` is the app's first page). */
+const pageHref = (appId: string, path: string) =>
+  path ? routes.apps.page(appId, ...path.split('/')) : routes.apps.page(appId)
 
 export default async function AdminLayout({ children }: { children: ReactNode }) {
   const session = await getSession()
@@ -41,7 +50,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
   // Everything else needs only the session, so it is read at once rather than one after
   // another. Store calls for a stale active id answer "no store" on their own and are dropped
   // below unless that store is one of the member's.
-  const [orgs, apps, logo, storefrontUrl, toShip, plan, testMode, approvals, drafts] =
+  const [orgs, apps, logo, storefrontUrl, toShip, plan, testMode, approvals, drafts, bars] =
     await Promise.all([
       listStores(),
       activeId ? listApps().catch(() => []) : [],
@@ -52,6 +61,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
       activeId ? paymentsTestMode() : false,
       activeId ? approvalsBadgeCount() : null,
       activeId ? unseenDraftsCount() : null,
+      activeId ? listAppBars() : NO_APP_BARS,
     ])
   // No store at all yet: send them to create one, which shows the invite-only
   // screen instead of the wizard when they are not allowed to sign up.
@@ -68,22 +78,20 @@ export default async function AdminLayout({ children }: { children: ReactNode })
       name: a.name,
       icon: a.admin.icon,
       href: appEntryHref(a),
-      // The app's pages move into the sidebar under its name (owner, 11 Nov 2026).
+      // Each app is its own row under Apps with its pages nested (Figma 928:10728).
       pages: a.admin.pages.flatMap((p) =>
-        p.navLabel
-          ? [
-              {
-                href: p.path
-                  ? routes.apps.page(a.id, ...p.path.split('/'))
-                  : routes.apps.page(a.id),
-                label: p.navLabel,
-              },
-            ]
-          : [],
+        p.navLabel ? [{ href: pageHref(a.id, p.path), label: p.navLabel }] : [],
       ),
     }))
+  // An app's page counts ("Queue 6") join the sidebar's counts, keyed by the page's address.
+  const appCounts = Object.fromEntries(
+    appLinks.flatMap((a) =>
+      Object.entries(bars[a.id]?.pageCounts ?? {}).map(([path, n]) => [pageHref(a.id, path), n]),
+    ),
+  )
   const inboxUnread = channels.includes('inbox') ? await inboxUnreadCount() : null
   const navCounts: Record<string, number> = {
+    ...(active ? appCounts : {}),
     ...(active && toShip
       ? { [routes.orders.list()]: toShip, [routes.orders.shipments()]: toShip }
       : {}),
@@ -103,49 +111,52 @@ export default async function AdminLayout({ children }: { children: ReactNode })
       <AccentStyle organizationId={active?.id ?? null} />
       {/* Back on the tab after 30 s or more: the page is read again (new orders show). */}
       {active ? <RefreshOnFocus /> : null}
-      <AdminFrame
-        user={{
-          name: session.user.name,
-          email: session.user.email,
-          image: session.user.image ?? null,
-        }}
-        stores={storeOptions}
-        activeStoreId={active?.id ?? null}
-        storefrontUrl={storefrontUrl}
-        apps={appLinks}
-        logoUrl={logoUrl}
-        channels={channels}
-        navCounts={navCounts}
-        usage={
-          active && plan && !plan.unlimited
-            ? {
-                used: plan.used,
-                limit: plan.limit,
-                // Trial orders carry no fee, so the card warns only once the store is paying.
-                feePercent: plan.status === 'trialing' ? '0' : feePercent(plan.feeBasisPoints),
-                // "More room on Growth plan": the next plan up (none past Scale).
-                planName: nextUp ? billingContent.plans[nextUp].name : null,
-              }
-            : undefined
-        }
-        // Test server only. A report is filed against a store, so none before one is picked.
-        bugReports={loadEnv(process.env).BUG_REPORTS_ENABLED && active !== null}
-        bugReportsPublic={issuesArePublic({
-          issues: loadEnv(process.env).GITHUB_ISSUES_REPO,
-          code: loadEnv(process.env).GITHUB_CODE_REPO,
-        })}
-      >
-        {/* No active org yet: auto-pick it when the member belongs to exactly one store, else
+      {/* Browser-stored conveniences (recents, badges) are kept per store and member. */}
+      <StorageScopeProvider storeId={active?.id ?? null} userId={session.user.id}>
+        <AdminFrame
+          user={{
+            name: session.user.name,
+            email: session.user.email,
+            image: session.user.image ?? null,
+          }}
+          stores={storeOptions}
+          activeStoreId={active?.id ?? null}
+          storefrontUrl={storefrontUrl}
+          apps={appLinks}
+          logoUrl={logoUrl}
+          channels={channels}
+          navCounts={navCounts}
+          usage={
+            active && plan && !plan.unlimited
+              ? {
+                  used: plan.used,
+                  limit: plan.limit,
+                  // Trial orders carry no fee, so the card warns only once the store is paying.
+                  feePercent: plan.status === 'trialing' ? '0' : feePercent(plan.feeBasisPoints),
+                  // "More room on Growth plan": the next plan up (none past Scale).
+                  planName: nextUp ? billingContent.plans[nextUp].name : null,
+                }
+              : undefined
+          }
+          // Test server only. A report is filed against a store, so none before one is picked.
+          bugReports={loadEnv(process.env).BUG_REPORTS_ENABLED && active !== null}
+          bugReportsPublic={issuesArePublic({
+            issues: loadEnv(process.env).GITHUB_ISSUES_REPO,
+            code: loadEnv(process.env).GITHUB_CODE_REPO,
+          })}
+        >
+          {/* No active org yet: auto-pick it when the member belongs to exactly one store, else
             show the picker instead of letting every page below throw "Pick a store first". */}
-        {active ? (
-          <>
-            {testMode ? <PaymentsTestBanner /> : null}
-            {children}
-          </>
-        ) : (
-          <SelectStore stores={storeOptions} autoSelect />
-        )}
-      </AdminFrame>
+          {active ? (
+            <>
+              {testMode ? <PaymentsTestBanner /> : null}
+              {children}
+            </>
+          ) : (
+            <SelectStore stores={storeOptions} autoSelect />
+          )}
+        </AdminFrame>
+      </StorageScopeProvider>
     </>
   )
 }

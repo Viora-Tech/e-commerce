@@ -1,6 +1,7 @@
+import { Blocks } from '@commerce/ui/icons'
 import { describe, expect, it } from 'vitest'
 import { routes } from '@/lib/routes'
-import { activeChildHref } from './navigation'
+import { activeChildHref, isSectionActive, isSectionLinkActive } from './navigation'
 
 const children = [
   { href: routes.products.list(), label: 'All products' },
@@ -20,5 +21,39 @@ describe('activeChildHref', () => {
 
   it('returns null when nothing matches', () => {
     expect(activeChildHref('/orders', children)).toBeNull()
+  })
+})
+
+describe('an installed app row (Figma 928:10728)', () => {
+  const pages = [
+    { href: '/apps/gst-invoices', label: 'Queue' },
+    { href: '/apps/gst-invoices/invoices', label: 'Invoices' },
+  ]
+  const gst = {
+    href: '/apps/gst-invoices',
+    label: 'GST invoices',
+    icon: Blocks,
+    base: '/apps/gst-invoices',
+    children: pages,
+  }
+  const payments = {
+    href: '/settings/payments',
+    label: 'Razorpay',
+    icon: Blocks,
+    base: '/apps/razorpay',
+  }
+
+  it('is active on its pages and lights the most specific page', () => {
+    expect(isSectionActive('/apps/gst-invoices/invoices/abc', gst)).toBe(true)
+    expect(activeChildHref('/apps/gst-invoices/invoices/abc', pages)).toBe(
+      '/apps/gst-invoices/invoices',
+    )
+    expect(isSectionLinkActive('/apps/gst-invoices', gst)).toBe(false)
+  })
+
+  it('is active under its base, not under a shared settings page', () => {
+    expect(isSectionActive('/settings/payments', payments)).toBe(false)
+    expect(isSectionActive('/apps/razorpay/connect', payments)).toBe(true)
+    expect(isSectionActive('/apps/gst-invoices', payments)).toBe(false)
   })
 })

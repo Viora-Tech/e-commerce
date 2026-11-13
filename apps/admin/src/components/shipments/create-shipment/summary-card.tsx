@@ -9,6 +9,7 @@ import TotalsList from '@/components/layout/totals-list'
 import { createShipmentContent } from '@/data/create-shipment'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import type { DraftOrder, ParsedPackage } from './flow-state'
+import { priceCalculation, summaryParts } from './price-calculation'
 
 type SummaryCardProps = {
   order: DraftOrder
@@ -19,8 +20,10 @@ type SummaryCardProps = {
   courier: CourierRateRow | null
   /** What the couriers bill, once a quote is back. */
   chargedGrams: number | undefined
-  /** "Thu 16 Oct, 14:00" when a pickup will be requested after booking. */
+  /** The pickup the parcel joins, or when it is made ("Later, on Booked"). */
   pickupLine: string | null
+  /** Shipping insurance is on: the courier's price includes it. */
+  insured: boolean
   /** "Paid from your Delhivery wallet · ₹2,340 left" when that wallet's balance is known. */
   walletNote: string | null
   manual: boolean
@@ -42,6 +45,7 @@ export default function SummaryCard({
   courier,
   chargedGrams,
   pickupLine,
+  insured,
   walletNote,
   manual,
   canBook,
@@ -52,6 +56,10 @@ export default function SummaryCard({
   // Hooks
   const content = useCopy(createShipmentContent)
   const fmt = useFormat()
+
+  // Helpers
+  const money = (paise: number | null | undefined) =>
+    paise === null || paise === undefined ? '—' : fmt.money(paise)
 
   // Render logic
   const page = content.page
@@ -67,6 +75,8 @@ export default function SummaryCard({
     : kg
       ? page.weightValue(review.grams(pkg.weightGrams), kg)
       : review.grams(pkg.weightGrams)
+  const calc = courier ? priceCalculation(courier, { insured }) : null
+  const parts = calc ? summaryParts(calc) : null
   const charge =
     courier?.pricePaise != null
       ? fmt.money(courier.pricePaise)
@@ -98,7 +108,14 @@ export default function SummaryCard({
             value: courier?.deliveryBy ? fmt.pattern(courier.deliveryBy, SHORT_DATE) : '—',
             hidden: manual,
           },
-          { label: page.pickupRow, value: pickupLine, hidden: manual || pickupLine === null },
+          { label: page.pickupRow, value: pickupLine ?? '—', hidden: manual },
+          { label: page.freightRow, value: money(parts?.freightPaise), hidden: manual },
+          {
+            label: page.insuranceRow,
+            value: money(parts?.insurancePaise),
+            hidden: manual || !parts?.insurancePaise,
+          },
+          { label: page.gstRow, value: money(parts?.gstPaise), hidden: manual },
         ]}
       />
       <div className="mt-4 flex flex-col gap-3">

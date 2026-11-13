@@ -95,6 +95,8 @@ describe('store.shell', () => {
     ])
     expect(shell).toEqual({
       apps,
+      // No installed app declares an app bar read yet: nothing to show, nothing read.
+      appBars: {},
       logo,
       toShip,
       usage,
@@ -113,6 +115,7 @@ describe('store.shell', () => {
     const context = await memberWith(m, 'packer@example.com', ['orders.read'])
     const shell = await call(appRouter.store.shell, undefined, { context })
     expect(shell.apps).toBeNull()
+    expect(shell.appBars).toBeNull()
     expect(shell.usage).toBeNull()
     expect(shell.logo).toBeNull()
     expect(shell.testMode).toBe(false)
@@ -121,5 +124,31 @@ describe('store.shell', () => {
     expect(shell.toShip).toBe(await call(appRouter.orders.toShipCount, undefined, { context }))
     expect(shell.approvals).toEqual(await call(appRouter.approvals.counts, undefined, { context }))
     await expect(call(appRouter.apps.list, undefined, { context })).rejects.toThrow()
+  })
+})
+
+/**
+ * The app bar extras (Figma App layout v2): installed apps that declare `appBar` add their status
+ * pill and sidebar page counts to the same `store.shell` call; nothing else is read.
+ */
+describe('store.shell app bars', () => {
+  it('reads the GST invoices pill and queue count once installed', async () => {
+    const m = await merchant('bars@example.com', 'shell-bars')
+    const context = m.ctx
+    await owner.update(store).set({ gstin: '06ABCDE1234F1Z5' }).where(eq(store.id, m.storeId))
+    expect((await call(appRouter.store.shell, undefined, { context })).appBars).toEqual({})
+    await call(appRouter.apps.install, { id: 'gst-invoices' }, { context })
+    await call(appRouter.apps.install, { id: 'delhivery' }, { context })
+    const { appBars } = await call(appRouter.store.shell, undefined, { context })
+    expect(appBars?.['gst-invoices']?.statusPill?.label).toMatch(
+      /^GSTIN 06ABCDE1234F1Z5 · numbering \d{4}-\d{2}$/,
+    )
+    // An empty queue counts nothing, so the sidebar shows no pill.
+    expect(appBars?.['gst-invoices']?.pageCounts).toEqual({})
+    expect(appBars?.delhivery?.statusPill).toEqual({
+      label: 'No parcels booked yet',
+      tone: 'neutral',
+      at: null,
+    })
   })
 })

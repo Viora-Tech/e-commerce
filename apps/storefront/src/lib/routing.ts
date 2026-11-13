@@ -14,6 +14,8 @@ export const ACCOUNTS_PREFIX = '/-a'
 export const PLAIN_PREFIX = '/-h'
 /** Internal segment for the Inbox chat frame a plain HTML page opens (`lib/inbox-frame.ts`). */
 export const CHAT_FRAME_PREFIX = '/-c'
+/** Internal segment for a product page forwarded to the Bun + Hono service (`lib/hono-island`). */
+export const HONO_PREFIX = '/-x'
 
 const internal = (pathname: string, prefix: string) =>
   pathname === prefix || pathname.startsWith(`${prefix}/`)
@@ -29,7 +31,8 @@ export function routeForStore(storeId: string, pathname: string): Route {
     internal(pathname, PASSWORD_PREFIX) ||
     internal(pathname, ACCOUNTS_PREFIX) ||
     internal(pathname, PLAIN_PREFIX) ||
-    internal(pathname, CHAT_FRAME_PREFIX)
+    internal(pathname, CHAT_FRAME_PREFIX) ||
+    internal(pathname, HONO_PREFIX)
   ) {
     return { kind: 'forbidden' }
   }

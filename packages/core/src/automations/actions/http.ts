@@ -4,6 +4,11 @@ import { siteConfig } from '@commerce/config/site'
 import { automationSecret, type StoreTx } from '@commerce/db'
 import { and, eq, inArray } from 'drizzle-orm'
 import { BlockedUrlError, readCapped, safeFetch } from '../../net/safe-fetch'
+import {
+  type ConcurrencyStore,
+  concurrencyKey,
+  createMemoryConcurrencyStore,
+} from '../../rate-limit/concurrency'
 import { checkRateLimit, rateLimitKey } from '../../rate-limit/limiter'
 import { decryptSecret } from '../../secrets'
 import {
@@ -32,6 +37,11 @@ const MAX_RESPONSE_BYTES = 1024 * 1024
 const KEPT_BODY_CHARS = 4000
 const PER_STORE_RATE = { limit: 10, windowMs: 1000 }
 const PER_STORE_CONCURRENCY = 5
+/**
+ * How long a concurrency slot lives if it is never released (the worker died mid-call): the
+ * request timeout plus room to read the answer, so a live call never loses its slot.
+ */
+const SLOT_LEASE_MS = TIMEOUT_MS + 30_000
 const MASK = '•••'
 /** Headers the step may not set: the transport's own, and our signature. */
 const RESERVED_HEADERS = new Set([
@@ -159,7 +169,30 @@ function checkUrl(url: string): URL {
   return u
 }
 
-const running = new Map<string, number>()
+/** Used only when the host passes no shared store: caps this process alone. */
+const localSlots = createMemoryConcurrencyStore()
+
+const busy = () =>
+  new AutomationActionError('Too many requests at once from this store', {
+    retryable: true,
+    retryAfterMs: 1000,
+  })
+
+/** One of the store's slots, or a retryable "busy"; a Redis error is retried too. */
+async function takeSlot(store: ConcurrencyStore, key: string): Promise<string> {
+  let token: string | null
+  try {
+    token = await store.acquire(key, PER_STORE_CONCURRENCY, SLOT_LEASE_MS, Date.now())
+  } catch (err) {
+    throw new AutomationActionError('Could not reserve a request slot', {
+      retryable: true,
+      retryAfterMs: 1000,
+      cause: err,
+    })
+  }
+  if (!token) throw busy()
+  return token
+}
 
 /** Seconds from a `Retry-After` header (seconds or a date), in ms. */
 function retryAfterMs(res: Response): number | undefined {
@@ -207,6 +240,7 @@ type Outbound = {
   secrets: string[]
   fetch?: BuiltinActionDeps['fetch']
   lookup?: BuiltinActionDeps['lookup']
+  concurrency?: BuiltinActionDeps['concurrency']
 }
 
 async function prepareCall(
@@ -258,37 +292,35 @@ async function prepareCall(
     secrets: [...p.secrets.values()],
     ...(deps.fetch ? { fetch: deps.fetch } : {}),
     ...(deps.lookup ? { lookup: deps.lookup } : {}),
+    ...(deps.concurrency ? { concurrency: deps.concurrency } : {}),
   }
 }
 
 /** The call itself, with no database transaction open (`send`). */
 async function sendCall(o: Outbound, config: HttpConfig): Promise<ActionResult> {
-  const busy = running.get(o.storeId) ?? 0
-  if (busy >= PER_STORE_CONCURRENCY) {
-    throw new AutomationActionError('Too many requests at once from this store', {
-      retryable: true,
-      retryAfterMs: 1000,
-    })
-  }
-  running.set(o.storeId, busy + 1)
+  const slots = o.concurrency ?? localSlots
+  const key = concurrencyKey('automations-http', o.storeId)
+  const token = await takeSlot(slots, key)
   let res: Response
+  let text: string
   try {
-    res = await safeFetch(o.url, {
-      method: o.method,
-      headers: o.headers,
-      body: o.method === 'GET' ? undefined : o.body,
-      timeoutMs: TIMEOUT_MS,
-      ...(o.fetch ? { fetch: o.fetch } : {}),
-      ...(o.lookup ? { lookup: o.lookup } : {}),
-    })
-  } catch (err) {
-    throw networkFailure(err)
+    try {
+      res = await safeFetch(o.url, {
+        method: o.method,
+        headers: o.headers,
+        body: o.method === 'GET' ? undefined : o.body,
+        timeoutMs: TIMEOUT_MS,
+        ...(o.fetch ? { fetch: o.fetch } : {}),
+        ...(o.lookup ? { lookup: o.lookup } : {}),
+      })
+    } catch (err) {
+      throw networkFailure(err)
+    }
+    text = redact(await responseText(res), o.secrets)
   } finally {
-    const n = (running.get(o.storeId) ?? 1) - 1
-    if (n <= 0) running.delete(o.storeId)
-    else running.set(o.storeId, n)
+    // A failed release only means the slot stays taken until its lease runs out.
+    await slots.release(key, token).catch(() => undefined)
   }
-  const text = redact(await responseText(res), o.secrets)
   const output = { method: o.method, url: o.shownUrl, status: res.status, body: text }
   if (res.status < 400) {
     return { summary: `${o.method} ${o.shownUrl}: ${res.status}`, output }

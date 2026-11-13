@@ -65,6 +65,16 @@ export class LruCache<V> {
     this.#size -= entry.size
   }
 
+  /** Drops every entry `drop` picks (and any that expired on the way). */
+  deleteWhere(drop: (key: string, value: V) => boolean): void {
+    const now = this.#now()
+    for (const [key, entry] of this.#entries) {
+      if (entry.expiresAt > now && !drop(key, entry.value)) continue
+      this.#entries.delete(key)
+      this.#size -= entry.size
+    }
+  }
+
   clear(): void {
     this.#entries.clear()
     this.#size = 0

@@ -25,6 +25,7 @@ import { sectionName } from '@/lib/customize-insert'
 import { useCustomizePuck } from '@/lib/customize-puck'
 import { findBlock, locateBlock, slotOwner, stepActions, zoneItems } from '@/lib/customize-slots'
 import { UNZOOMED } from '@/lib/customize-zoom'
+import { useStorageScope } from '@/lib/storage-scope'
 import { BLOCK_TOOLBAR_FORMAT_SLOT } from './block-toolbar-format'
 import BlockToolbarMore from './block-toolbar-more'
 
@@ -77,6 +78,7 @@ export default function BlockToolbarBar({
   componentType,
 }: BlockToolbarBarProps) {
   // Hooks
+  const storageScope = useStorageScope()
   const dispatch = useCustomizePuck((s) => s.dispatch)
   const components = useCustomizePuck((s) => s.config.components)
   const data = useCustomizePuck((s) => s.appState.data as unknown as CustomizeDoc)
@@ -142,7 +144,7 @@ export default function BlockToolbarBar({
   const handleCopy = () => {
     const block = findBlock(data, componentId)
     if (!block) return
-    copyBlock(block)
+    copyBlock(storageScope, block)
     toast.success(copy.clipboard.copied(sectionName(block, labelOf(block.type))))
   }
 

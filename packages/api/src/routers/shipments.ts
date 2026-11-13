@@ -1,5 +1,6 @@
 import { settingsSecret } from '@commerce/config'
 import { permissions, splitFulfillmentOrder } from '@commerce/core'
+import { dayKey } from '@commerce/dates'
 import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
 import { BULK_MAX, can, heavy, PAGE_SIZE_MAX, SEARCH_MAX } from '../procedures'
@@ -11,6 +12,7 @@ import {
   createManifestForStore,
   listManifestsForStore,
   listNdrForStore,
+  listPickupOptionsForStore,
   listPickupsForStore,
   listUnpickedForStore,
   listWalletCards,
@@ -150,6 +152,19 @@ export const shipmentsRouter = {
         serviceOverrides: z.record(z.uuid(), z.string().min(1).max(64)).optional(),
         /** orderId -> the parcel quoted for it; it books that parcel on its own route. */
         parcelIds: z.record(z.uuid(), z.uuid()).optional(),
+        /** orderId -> what the merchant changed for that order alone (bulk drawer's Edit popup):
+         *  its weight and box, how it is paid, its insurance. Beats the batch-wide values. */
+        perOrder: z
+          .record(
+            z.uuid(),
+            z.object({
+              weightGrams: z.number().int().min(1).optional(),
+              dimensionsCm: dimensionsCm.optional(),
+              paymentMode: z.enum(['cod', 'prepaid']).optional(),
+              insured: z.boolean().optional(),
+            }),
+          )
+          .optional(),
       }),
     )
     .handler(async ({ context, input }) => {
@@ -230,7 +245,11 @@ export const shipmentsRouter = {
     .input(
       z.object({
         shipmentIds: z.array(z.uuid()).min(1).max(500),
-        date: z.string(),
+        /** "YYYY-MM-DD", today or later in India (couriers never collect on a past day). */
+        date: z
+          .string()
+          .regex(/^\d{4}-\d{2}-\d{2}$/)
+          .refine((d) => d >= dayKey(new Date()), 'Pick today or a later day for the pickup.'),
         timeFrom: z.string(),
         timeTo: z.string().optional(),
         /** "Add to pickup": a booked pickup to add these parcels to. */
@@ -255,6 +274,21 @@ export const shipmentsRouter = {
   listUnpicked: can(permissions.ORDERS_READ).handler(({ context }) =>
     listUnpickedForStore(context.tx, context.scope.storeId),
   ),
+
+  /** The Create pickup drawer: per courier and place, the parcels still without a pickup and
+   *  the pickups already booked there (Figma 905:8280, 906:8464). */
+  listPickupOptions: can(permissions.ORDERS_READ)
+    .input(z.object({ shipmentIds: z.array(z.uuid()).min(1).max(500) }))
+    .handler(async ({ context, input }) => {
+      const { shipping } = await storeRegistries(context.tx, context.scope.storeId)
+      return listPickupOptionsForStore(
+        context.tx,
+        context.scope.storeId,
+        shipping,
+        settingsSecret(),
+        input.shipmentIds,
+      )
+    }),
 
   createManifest: can(permissions.ORDERS_FULFIL)
     .input(

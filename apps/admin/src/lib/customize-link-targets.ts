@@ -1,4 +1,5 @@
 import { api } from '@/lib/api-client'
+import { type StorageScope, scopedStorageKey } from '@/lib/storage-scope'
 import {
   articleHref,
   collectionHref,
@@ -146,19 +147,26 @@ export async function searchAllLinkTargets(query: string): Promise<GroupedTarget
 
 const RECENT_KEY = 'customize.link.recent'
 
-/** The merchant's recent link picks in this browser (a convenience; empty when storage is blocked). */
-export function readRecentLinks(): RecentLink[] {
+/**
+ * The member's recent link picks for this store in this browser (a convenience; empty when
+ * storage is blocked or no store is picked).
+ */
+export function readRecentLinks(scope: StorageScope | null): RecentLink[] {
+  const key = scopedStorageKey(RECENT_KEY, scope)
+  if (!key) return []
   try {
-    return parseRecentLinks(window.localStorage.getItem(RECENT_KEY))
+    return parseRecentLinks(window.localStorage.getItem(key))
   } catch {
     return []
   }
 }
 
 /** Remembers a pick at the top of the recent list. */
-export function rememberLink(pick: RecentLink): void {
+export function rememberLink(scope: StorageScope | null, pick: RecentLink): void {
+  const key = scopedStorageKey(RECENT_KEY, scope)
+  if (!key) return
   try {
-    window.localStorage.setItem(RECENT_KEY, JSON.stringify(pushRecentLink(readRecentLinks(), pick)))
+    window.localStorage.setItem(key, JSON.stringify(pushRecentLink(readRecentLinks(scope), pick)))
   } catch {
     // Private mode or blocked storage: recents are optional.
   }

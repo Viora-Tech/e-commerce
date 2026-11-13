@@ -1,6 +1,6 @@
 'use client'
 
-import { LayoutGrid, Trash2 } from '@commerce/ui/icons'
+import { Settings, Trash2 } from '@commerce/ui/icons'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
@@ -11,10 +11,18 @@ import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
 
-type AppUninstallButtonProps = { appId: string; name: string }
+type AppUninstallButtonProps = {
+  appId: string
+  name: string
+  /** The app's own settings page, first in the menu; left out when the app has none. */
+  settingsHref?: string | undefined
+}
 
-/** The installed app's "more" menu (Figma "App more menu"): back to every installed app, and Uninstall with the list's confirmation. */
-export default function AppUninstallButton({ appId, name }: AppUninstallButtonProps) {
+/**
+ * The app bar's "…" menu (Figma App layout v2, 928:10728): the app's Settings, then Uninstall
+ * with the Installed apps list's confirmation.
+ */
+export default function AppUninstallButton({ appId, name, settingsHref }: AppUninstallButtonProps) {
   // Hooks
   const copy = useCopy(appsContent)
   const router = useRouter()
@@ -37,11 +45,11 @@ export default function AppUninstallButton({ appId, name }: AppUninstallButtonPr
     <>
       <ActionMenu
         label={copy.gallery.kebabLabel(name)}
-        trigger="kebab-vertical"
-        variant="outline"
+        trigger="kebab"
+        variant="ghost"
         size="md"
         items={[
-          { label: copy.allInstalled, icon: LayoutGrid, href: routes.apps.list() },
+          { label: copy.settings, icon: Settings, href: settingsHref, hidden: !settingsHref },
           {
             label: copy.uninstall,
             icon: Trash2,

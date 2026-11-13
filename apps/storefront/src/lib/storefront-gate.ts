@@ -12,6 +12,7 @@ import {
 import { store, withStore } from '@commerce/db'
 import { eq } from 'drizzle-orm'
 import { db } from './db'
+import { dropOnStoreChange, watchStoreChanges } from './store-changes'
 
 /** Cookie that keeps a theme preview (opened from the admin's Preview button) across pages. */
 export const PREVIEW_COOKIE = 'wc_theme_preview'
@@ -27,18 +28,27 @@ type Lock = {
   ai: boolean
   /** Preferences › Storefront speed: imported-theme pages go out as plain HTML (`lib/plain-html`). */
   plainHtml: boolean
+  /** The product page is drawn by the Bun + Hono service (`lib/hono-island`); off by default. */
+  honoProduct: boolean
 }
 
 const LOCK_TTL_MS = 10_000
 const locks = new Map<string, { lock: Lock; expiresAt: number }>()
 
+/** A save to the store row (its preferences) drops its lock at once (`store-changes.ts`). */
+const watch = watchStoreChanges(
+  dropOnStoreChange({ store: (storeId) => locks.delete(storeId), all: () => locks.clear() }),
+)
+
 /**
  * Whether the store's password page is on, its password, and which crawlers are welcome
  * (Preferences › Search engine visibility). Cached briefly per
  * process so the proxy does not read preferences on every request; turning the
- * password on or off takes effect within the TTL.
+ * password on or off takes effect at once (the store row notifies), within the TTL if the
+ * listener is down. One entry per store, so the map is bounded by the number of stores.
  */
 export async function storefrontLock(storeId: string): Promise<Lock> {
+  watch()
   const hit = locks.get(storeId)
   if (hit && hit.expiresAt > Date.now()) return hit.lock
   const prefs = await withStore(db(), storeId, async (tx) => {
@@ -55,6 +65,7 @@ export async function storefrontLock(storeId: string): Promise<Lock> {
     search,
     ai: search && prefs.indexing.aiCrawlers,
     plainHtml: prefs.delivery.plainHtml,
+    honoProduct: prefs.delivery.honoProduct,
   }
   locks.set(storeId, { lock, expiresAt: Date.now() + LOCK_TTL_MS })
   return lock

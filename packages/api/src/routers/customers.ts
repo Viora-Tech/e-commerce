@@ -46,6 +46,7 @@ import {
   saveSegment,
 } from '../services/customer-segment.service'
 import { customerSheet } from '../services/customer-sheet.service'
+import { customerMergeRoutes, refuseTakenEmail } from './customer-merge'
 
 const FiltersSchema = z.object({
   search: z.string().trim().max(SEARCH_MAX).optional(),
@@ -140,6 +141,7 @@ function parseGstin(raw: string | null | undefined): string | null | undefined {
 }
 
 export const customersRouter = {
+  ...customerMergeRoutes,
   list: can(permissions.CUSTOMERS_READ)
     .input(
       FiltersSchema.extend({
@@ -401,6 +403,8 @@ export const customersRouter = {
       z.object({
         id: z.uuid(),
         name: z.string().trim().max(200).nullable().optional(),
+        /** A new email; one another customer already has is refused (merge them instead). */
+        email: z.email().trim().toLowerCase().max(254).nullable().optional(),
         phone: lenientPhone(30).nullable().optional(),
         tags: z.array(z.string().trim().min(1).max(40)).max(50).optional(),
         note: z.string().trim().max(2000).nullable().optional(),
@@ -411,6 +415,7 @@ export const customersRouter = {
       }),
     )
     .handler(async ({ context, input: { id, acceptsMarketing, gstin, ...rest } }) => {
+      if (rest.email) await refuseTakenEmail(context, rest.email, id)
       const patch = {
         ...rest,
         ...(gstin === undefined ? {} : { gstin: parseGstin(gstin) }),

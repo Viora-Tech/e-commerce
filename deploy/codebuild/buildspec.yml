@@ -34,6 +34,8 @@ phases:
       - export GIT_SHA="$(git rev-parse HEAD)"
       - aws ecr get-login-password | docker login --username AWS --password-stdin "$ECR_REGISTRY"
       - docker buildx create --use --driver docker-container --name vextro || docker buildx use vextro
+      # Optional: the storefront-hono Dokploy app (set it once that service exists; unset skips its deploy).
+      - export DOKPLOY_APP_ID_STOREFRONT_HONO="$(aws ssm get-parameter --name /vextro/deploy/dokploy-app-id-storefront-hono --query Parameter.Value --output text 2>/dev/null || true)"
       - bash deploy/codebuild/detect-changes.sh > apps-to-build.txt
       - echo "apps to build:" "$(cat apps-to-build.txt)"
   build:
@@ -42,6 +44,6 @@ phases:
   post_build:
     commands:
       - |
-        if [ "$CODEBUILD_BUILD_SUCCEEDING" = "1" ] && [ "$SKIP_DEPLOY" != "1" ] && [ -n "$(cat apps-to-build.txt)" ]; then
-          node deploy/codebuild/deploy-dokploy.mjs "$(cat apps-to-build.txt)"
+        if [ "$CODEBUILD_BUILD_SUCCEEDING" = "1" ] && [ "$SKIP_DEPLOY" != "1" ] && [ -n "$(cat apps-built.txt 2>/dev/null)" ]; then
+          node deploy/codebuild/deploy-dokploy.mjs "$(cat apps-built.txt)"
         fi

@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { loadEnv, loadPlatformEmailEnv, merchantGoogleSignIn } from './env'
+import {
+  loadEnv,
+  loadPlatformEmailEnv,
+  merchantGoogleSignIn,
+  previousSettingsSecrets,
+  workerPublicUrl,
+} from './env'
 
 const valid = {
   DATABASE_URL: 'postgres://app:app@localhost:5432/commerce',
@@ -242,5 +248,77 @@ describe('platform email env', () => {
     expect(() => loadPlatformEmailEnv({ SENDER_EMAIL_FALLBACK: 'smtp' })).toThrow(
       /SENDER_EMAIL_FALLBACK/,
     )
+  })
+})
+
+describe('STEP_UP_ENFORCE', () => {
+  it('is off unless set to true', () => {
+    expect(loadEnv(valid).STEP_UP_ENFORCE).toBe(false)
+    expect(loadEnv({ ...valid, STEP_UP_ENFORCE: '' }).STEP_UP_ENFORCE).toBe(false)
+    expect(loadEnv({ ...valid, STEP_UP_ENFORCE: 'false' }).STEP_UP_ENFORCE).toBe(false)
+    expect(loadEnv({ ...valid, STEP_UP_ENFORCE: 'true' }).STEP_UP_ENFORCE).toBe(true)
+  })
+  it('refuses a value that is not a yes/no flag', () => {
+    expect(() => loadEnv({ ...valid, STEP_UP_ENFORCE: 'on please' })).toThrow(/STEP_UP_ENFORCE/)
+  })
+})
+
+describe('SETTINGS_SECRET_PREVIOUS', () => {
+  const old = 'old-settings-secret-value-1'
+  it('is a trimmed list, empty when unset or blank', () => {
+    expect(loadEnv(valid).SETTINGS_SECRET_PREVIOUS).toEqual([])
+    expect(loadEnv({ ...valid, SETTINGS_SECRET_PREVIOUS: ' ' }).SETTINGS_SECRET_PREVIOUS).toEqual(
+      [],
+    )
+    expect(
+      loadEnv({ ...valid, SETTINGS_SECRET_PREVIOUS: ` ${old} ,, ${old}-b ` })
+        .SETTINGS_SECRET_PREVIOUS,
+    ).toEqual([old, `${old}-b`])
+  })
+  it('refuses an entry shorter than a SETTINGS_SECRET, naming the key but not the value', () => {
+    expect(() => loadEnv({ ...valid, SETTINGS_SECRET_PREVIOUS: `${old},tooshort` })).toThrow(
+      /SETTINGS_SECRET_PREVIOUS/,
+    )
+    expect(() => loadEnv({ ...valid, SETTINGS_SECRET_PREVIOUS: 'tooshort' })).not.toThrow(
+      /tooshort/,
+    )
+  })
+  it('previousSettingsSecrets reads the same list without the database keys', () => {
+    expect(previousSettingsSecrets({ SETTINGS_SECRET_PREVIOUS: ` ${old} ` })).toEqual([old])
+    expect(previousSettingsSecrets({})).toEqual([])
+    expect(() => previousSettingsSecrets({ SETTINGS_SECRET_PREVIOUS: 'tooshort' })).toThrow(
+      'Invalid environment: SETTINGS_SECRET_PREVIOUS',
+    )
+  })
+})
+
+describe('workerPublicUrl', () => {
+  const env = (over: Record<string, string> = {}) => loadEnv({ ...valid, ...over })
+  it('uses the configured URL as given', () => {
+    expect(workerPublicUrl(env({ NEXT_PUBLIC_WORKER_URL: 'https://api.example.com' }), '')).toBe(
+      'https://api.example.com',
+    )
+  })
+  it('prefers the build-time (inlined) value over the runtime one', () => {
+    expect(
+      workerPublicUrl(
+        env({ NEXT_PUBLIC_WORKER_URL: 'https://runtime.example.com' }),
+        'https://built.example.com',
+      ),
+    ).toBe('https://built.example.com')
+  })
+  it('falls back to localhost on the worker port outside production', () => {
+    expect(workerPublicUrl(env({ WORKER_PORT: '4200' }), undefined)).toBe('http://localhost:4200')
+  })
+  it('throws in production when the URL is missing, instead of using localhost', () => {
+    const prod = env({ NODE_ENV: 'production', SETTINGS_SECRET: 'x'.repeat(32) })
+    expect(() => workerPublicUrl(prod, undefined)).toThrow(/NEXT_PUBLIC_WORKER_URL/)
+    expect(() => workerPublicUrl(prod, '  ')).toThrow(/NEXT_PUBLIC_WORKER_URL/)
+  })
+  it('refuses a malformed URL at load and at use', () => {
+    expect(() => env({ NEXT_PUBLIC_WORKER_URL: 'api.example.com' })).toThrow(
+      /NEXT_PUBLIC_WORKER_URL/,
+    )
+    expect(() => workerPublicUrl(env(), 'not a url')).toThrow(/NEXT_PUBLIC_WORKER_URL/)
   })
 })

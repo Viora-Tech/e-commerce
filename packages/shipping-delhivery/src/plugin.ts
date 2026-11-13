@@ -1,4 +1,5 @@
 import { definePlugin } from '@commerce/plugins'
+import { delhiveryAppBar } from './app-bar'
 import { deliveryCheckerBlocks } from './blocks'
 import { delhiveryFactory } from './delhivery'
 
@@ -58,6 +59,8 @@ export const delhiveryPlugin = definePlugin({
   },
   provides: { shipping: [delhiveryFactory] },
   storefront: { blocks: deliveryCheckerBlocks },
+  // The app bar's tracking pill and the parcels in transit on the sidebar's Overview row.
+  appBar: (ctx) => delhiveryAppBar(ctx),
   admin: {
     icon: 'Truck',
     pages: [

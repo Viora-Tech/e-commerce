@@ -109,7 +109,7 @@ export default function TopBar({
             {copy.viewStore}
           </Button>
         </TopBarTip>
-        <ActivityBell memberKey={user.email} className={ICON_BUTTON} />
+        <ActivityBell className={ICON_BUTTON} />
         <ThemeToggle className={ICON_BUTTON} />
         <UserMenu
           user={user}

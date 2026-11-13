@@ -73,7 +73,7 @@ export function datesFor(route: Route | null, option: DeliveryOption, input: Res
 export const cartProtect = (input: Pick<ResolveInput, 'cart' | 'config'>): ProtectQuote =>
   parcelProtect(input.cart.items, input.config.protect ?? DEFAULT_PROTECT_CARD)
 
-/** Route cost + markup + insurance, rounded up to ₹10, then caps and free-above. */
+/** Route cost + markup + insurance rounded up to ₹10 (a Shipping rate stays as typed unless insured), then caps and free-above. */
 export function priceRoute(
   route: Route,
   option: DeliveryOption,
@@ -87,10 +87,13 @@ export function priceRoute(
   const p = option.price
   const zoneRate = p.source === 'zone' ? cheapestZoneRate(input.zone) : null
   const markup = p.markupPaise + Math.ceil((base * p.markupPercent) / 100)
-  const raw = zoneRate
-    ? zoneRate.listPricePaise + (insurance ?? 0)
-    : base + markup + (insurance ?? 0)
-  let list = roundUpToTenRupees(raw)
+  /* A Shipping rate the merchant typed (₹99) is charged as typed; only a price the engine made
+     (courier cost + markup, or a rate plus insurance) is rounded up to the next ₹10. */
+  let list = zoneRate
+    ? insurance
+      ? roundUpToTenRupees(zoneRate.listPricePaise + insurance)
+      : zoneRate.listPricePaise
+    : roundUpToTenRupees(base + markup + (insurance ?? 0))
   if (p.minPaise != null) list = Math.max(list, p.minPaise)
   if (p.maxPaise != null) list = Math.min(list, p.maxPaise)
   const zoneFree = zoneRate !== null && zoneRate.pricePaise === 0

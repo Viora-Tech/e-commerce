@@ -89,7 +89,11 @@ describe('LinkPicker', () => {
     await openPicker(user, copy.open)
     await user.click(screen.getByRole('button', { name: new RegExp(copy.home) }))
     expect(onChange).toHaveBeenCalledWith('/')
-    expect(targets.rememberLink).toHaveBeenCalledWith({ href: '/', title: copy.home, kind: 'home' })
+    expect(targets.rememberLink).toHaveBeenCalledWith(null, {
+      href: '/',
+      title: copy.home,
+      kind: 'home',
+    })
     await waitFor(() => expect(screen.queryByPlaceholderText(copy.search)).toBeNull())
   })
 

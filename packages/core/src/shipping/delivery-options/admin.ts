@@ -156,6 +156,7 @@ export async function tryDeliveryPin(
   const { result, answers } = await quoteDelivery({
     storeId,
     providers,
+    providerSettings: settings.providers,
     config,
     query: {
       originPincode: policy.originPincode,

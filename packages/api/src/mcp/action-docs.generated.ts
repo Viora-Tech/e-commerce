@@ -229,9 +229,13 @@ export const ACTION_DOCS: Record<string, string> = {
   'customers.export': 'Rows for a CSV export of the current filter; the browser builds the file.',
   'customers.lookupPincode':
     'City and state for a PIN code, from the same directory as Settings → Checkout\'s "PIN code first".',
+  'customers.merge':
+    '"Merge with another customer": everything mergeId holds moves onto keepId in one transaction, with the email, phone and name chosen in keep; the other record is closed (erased stub) and its sign-ins…',
   'customers.noteWhatsappChat':
     "The merchant opened a click-to-chat WhatsApp: the line goes on the customer's Timeline.",
   'customers.overview': 'Headline figures and the weekly series behind the Customer Overview card.',
+  'customers.previewMerge':
+    "The merge dialog's summary: both customers and what would move from mergeId onto keepId (orders, addresses, store credit, gift cards, sign-ins, carts, notes, reviews).",
   'customers.previewSegment': 'Live count and a sample for the rule builder.',
   'customers.sendEmail':
     "\"Email customer\": a plain email with the merchant's subject and message, sent through the store's email channels, listed under the customer's messages and noted on their timeline.",
@@ -473,6 +477,8 @@ export const ACTION_DOCS: Record<string, string> = {
     'Cancel a booked shipment with its courier, before it is collected or put on a manifest.',
   'orders.capture':
     '"Capture payment" (#150): take the money a manual-capture checkout only authorised.',
+  'orders.changeCustomer':
+    '"Change customer" on the order page: the order moves to another existing customer (it keeps its own email, phone and addresses), with a line on its timeline and on both customers\'.',
   'orders.checkDraftDiscount':
     "Check a store discount code against a draft's lines and customer with checkout's rules (dates, minimums, products and collections, eligibility, per-customer cap).",
   'orders.collectPayment': 'Record money collected outside a gateway; the order becomes paid.',
@@ -498,6 +504,8 @@ export const ACTION_DOCS: Record<string, string> = {
     "The GST inside a draft's total as converting would bill it (each line's rate, the discount spread over the lines, shipping with the goods).",
   'orders.facets':
     'What the Orders filter panel offers: tags, discount codes, couriers and collections in use.',
+  'orders.findEmailOwner':
+    'The other existing customer who has this email, for the contact edit\'s "This email belongs to … also move this order to them?"; null when nobody else has it.',
   'orders.fulfil':
     'Pack some or all of the lines; the shopper is told once the parcel is complete.',
   'orders.fulfilAll':
@@ -573,7 +581,7 @@ export const ACTION_DOCS: Record<string, string> = {
   'orders.tiles': 'The stat cards above the Orders list.',
   'orders.toShipCount': 'How many orders are waiting to ship.',
   'orders.updateContact':
-    "\"Edit\" on the order page's customer card: this order's contact and shipping address, optionally copied to the customer's saved address.",
+    "\"Edit\" on the order page's customer card: this order's contact and shipping address, optionally copied to the customer's saved address, and optionally moved to the customer who has the new email.",
   'orders.whatsappChat':
     '"WhatsApp" click to chat on an order, draft or abandoned checkout: the phone, names and signed links the admin types the chat from.',
   'payments.connect': 'Save pasted keys and make that gateway the main way to get paid.',
@@ -751,6 +759,8 @@ export const ACTION_DOCS: Record<string, string> = {
     'Our own India Post address label (Code 128 article number), as a PDF.',
   'shipments.label':
     "A shipment's label PDF for the admin's /api/shipments/<id>/label route: the copy kept in the store's private storage (Blue Dart, DTDC, DHL Express, FedEx), else the courier's own, fetched server-side…",
+  'shipments.listPickupOptions':
+    'The Create pickup drawer: per courier and place, the parcels still without a pickup and the pickups already booked there (Figma 905:8280, 906:8464).',
   'shipments.quote':
     "Create shipment, step 2: every connected courier's price, delivery date and COD support per parcel, with Cheapest / Fastest / Recommended.",
   'shipments.readyToShip':

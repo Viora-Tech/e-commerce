@@ -42,8 +42,6 @@ export const appsContent = {
     runAgain: 'Run again',
   },
   statusError: 'Error',
-  /** The installed app's ⋯ menu: back to the Installed apps list. */
-  allInstalled: 'All installed apps',
   listing: {
     back: 'Installed apps',
     installed: 'Installed',
@@ -95,7 +93,6 @@ export const appsContent = {
   installed: 'Installed',
   builtIn: 'Built in',
   version: (v: string) => `v${v}`,
-  builtWith: 'Built with',
   creditLabel: (name: string, license: string) => `${name} (${license})`,
   loadFailed: 'Could not load apps',
   actionFailed: 'Could not update app',
