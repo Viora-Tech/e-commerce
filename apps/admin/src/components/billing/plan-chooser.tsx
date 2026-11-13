@@ -1,14 +1,17 @@
 'use client'
 
-import { PLAN_QUOTAS } from '@commerce/ai/client'
 import {
+  APP_PRICING,
   type BillingInterval,
-  OWN_IT_PRICES,
+  breakEvenOrders,
+  feesAtPace,
+  type MonthPace,
   PLAN_IDS,
   PLANS,
   type PlanId,
+  planRank,
 } from '@commerce/core/billing'
-import { CheckIcon, MinusIcon } from '@commerce/ui/icons'
+import { CheckIcon } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import { Badge } from '@commerce/ui/shadcn/badge'
 import { Button } from '@commerce/ui/shadcn/button'
@@ -17,6 +20,7 @@ import PillTabs from '@/components/layout/pill-tabs'
 import { billingContent } from '@/data/billing'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { feePercent, ownItContactUrl } from '@/lib/billing'
+import PlanCompareTable from './plan-compare-table'
 
 type PlanChooserProps = {
   current: PlanId
@@ -27,9 +31,27 @@ type PlanChooserProps = {
   onChoose: (plan: PlanId, interval: BillingInterval) => void
   /** The plan the store's orders point to (Figma 931:10521): marked Suggested. */
   suggested?: PlanId | null | undefined
+  /** This month's orders, for "Based on N orders" and each card's "at your pace" line. */
+  pace?: MonthPace | null | undefined
 }
 
-/** Figma "Change plan" (931:10521): Starter to Scale side by side, monthly or yearly, then Own it. */
+/** Paid apps a plan includes from, by name: Growth's "Reviews, Back in stock, Forms, Affiliates". */
+const appsFrom = (plan: PlanId): string =>
+  Object.values(APP_PRICING)
+    .filter((a) => a.includedFrom === plan)
+    .map((a) => a.name)
+    .join(', ')
+
+const APP_PRICES = Object.values(APP_PRICING).map((a) => a.pricePaise)
+
+/** Break-even orders read as "~400": rounded to the nearest 10. */
+const roughly = (n: number): number => Math.max(10, Math.round(n / 10) * 10)
+
+/**
+ * Figma "Change plan" (931:10521): Starter to Scale as cards with short highlights, each with its
+ * included orders and what it would cost at this month's pace, then "Compare everything" and Own
+ * it. Also the trial's Compare plans popup.
+ */
 export default function PlanChooser({
   current,
   currentInterval,
@@ -37,6 +59,7 @@ export default function PlanChooser({
   busy,
   onChoose,
   suggested = null,
+  pace = null,
 }: PlanChooserProps) {
   // Hooks
   const copy = useCopy(billingContent)
@@ -44,114 +67,116 @@ export default function PlanChooser({
   const [interval, setInterval] = useState<BillingInterval>(currentInterval)
 
   // Helpers
-  const tick = (on: boolean) =>
-    on ? (
-      <CheckIcon className="size-4 text-success" aria-label="Yes" />
-    ) : (
-      <MinusIcon className="size-4 text-muted-foreground" aria-label="No" />
-    )
+  const paceLine = (p: PlanId): string | null => {
+    const t = copy.changePlan
+    if (PLANS[p].feeBasisPoints === 0) return t.noFeeAtAll
+    if (!pace || pace.avgOrderPaise === null) return null
+    const past = planRank(p) > planRank(current) ? breakEvenOrders(p, pace.avgOrderPaise) : null
+    if (past !== null) return t.bestPast(format.number(roughly(past)))
+    return t.feesAtPace(format.moneyWhole(feesAtPace(p, pace) * 100))
+  }
 
   // Render logic
+  const c = copy.changePlan
   const d = copy.dialog
-  const ownIt = OWN_IT_PRICES.india
-  const rows: { id: string; label: string; cell: (p: PlanId) => React.ReactNode }[] = [
-    { id: 'orders', label: d.rows.orders, cell: (p) => format.number(PLANS[p].orders) },
-    { id: 'fee', label: d.rows.fee, cell: (p) => `${feePercent(PLANS[p].feeBasisPoints)}%` },
-    {
-      id: 'visits',
-      label: d.rows.visits,
-      cell: (p) => {
-        const visits = PLANS[p].visitsPerMonth
-        return visits === null ? d.fairUse : format.number(visits)
-      },
-    },
-    { id: 'staff', label: d.rows.staff, cell: (p) => format.number(PLANS[p].staff) },
-    {
-      id: 'storage',
-      label: d.rows.storage,
-      cell: (p) => copy.usage.gb(String(PLANS[p].storageGb)),
-    },
-    {
-      id: 'ai',
-      label: d.rows.ai,
-      cell: (p) => d.aiCredits(format.number(PLAN_QUOTAS[PLANS[p].ai].credits)),
-    },
-    { id: 'theme', label: d.rows.shopifyTheme, cell: (p) => tick(PLANS[p].features.shopifyTheme) },
-    { id: 'mcp', label: d.rows.mcpApi, cell: (p) => tick(PLANS[p].features.mcpApi) },
-    { id: 'loc', label: d.rows.multiLocation, cell: (p) => tick(PLANS[p].features.multiLocation) },
-    {
-      id: 'apps',
-      label: d.rows.apps,
-      cell: (p) => (PLANS[p].features.allApps ? d.apps.all : d.apps.core),
-    },
-    { id: 'support', label: d.rows.support, cell: (p) => d.support[PLANS[p].features.support] },
-  ]
+  const highlight: Record<PlanId, string> = {
+    starter: c.highlights.starter(
+      format.moneyWhole(Math.min(...APP_PRICES)),
+      format.moneyWhole(Math.max(...APP_PRICES)),
+    ),
+    growth: c.highlights.growth(appsFrom('growth')),
+    pro: c.highlights.pro,
+    scale: c.highlights.scale,
+  }
 
   return (
     <div className="flex flex-col gap-4">
-      <PillTabs
-        variant="segmented"
-        value={interval}
-        onChange={setInterval}
-        tabs={[
-          { value: 'month', label: copy.interval.month },
-          { value: 'year', label: `${copy.interval.year} · ${copy.yearlySaving}` },
-        ]}
-      />
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <PillTabs
+          variant="segmented"
+          value={interval}
+          onChange={setInterval}
+          tabs={[
+            { value: 'month', label: copy.interval.month },
+            { value: 'year', label: `${copy.interval.year} · ${copy.yearlySaving}` },
+          ]}
+        />
+        {pace && pace.orders > 0 ? (
+          <span className="text-caption text-muted-foreground">
+            {c.basedOn(format.number(pace.orders))}
+          </span>
+        ) : null}
+      </div>
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
         {PLAN_IDS.map((p) => {
+          const plan = PLANS[p]
           const isCurrent = paid && p === current && interval === currentInterval
-          const price = PLANS[p].pricePaise[interval]
+          const line = paceLine(p)
           return (
             <section
               key={p}
               className={cn(
                 'flex flex-col gap-3 rounded-lg border p-4',
-                isCurrent || p === suggested ? 'border-primary' : 'border-border',
+                p === suggested && !isCurrent ? 'border-2 border-primary' : 'border-border',
               )}
             >
               <div className="flex flex-col gap-1">
                 <h3 className="flex items-center gap-2 text-card-title text-ink-strong">
                   {copy.plans[p].name}
+                  {isCurrent ? <Badge variant="success">{c.current}</Badge> : null}
                   {p === suggested && !isCurrent ? (
                     <Badge variant="info">{d.suggested}</Badge>
                   ) : null}
                 </h3>
                 <p className="text-caption text-muted-foreground">{copy.plans[p].blurb}</p>
               </div>
-              <p className="text-section-title text-ink-strong tabular-nums">
-                {interval === 'year'
-                  ? copy.perYear(format.money(price))
-                  : copy.perMonth(format.money(price))}
-                <span className="ml-1 text-caption text-muted-foreground">{copy.gstExtra}</span>
+              <p className="flex items-baseline gap-1">
+                <span className="text-page-title text-ink-strong tabular-nums">
+                  {format.money(plan.pricePaise[interval])}
+                </span>
+                <span className="text-caption text-muted-foreground">
+                  {interval === 'year' ? c.perYearUnit : c.perMonthUnit}
+                </span>
               </p>
-              <dl className="flex flex-col divide-y divide-border text-body">
-                {rows.map((r) => (
-                  <div key={r.id} className="flex items-center justify-between gap-2 py-1.5">
-                    <dt className="text-muted-foreground">{r.label}</dt>
-                    <dd className="text-right text-foreground">{r.cell(p)}</dd>
-                  </div>
+              <div className="flex flex-col gap-0.5 rounded-md bg-muted px-3 py-2">
+                <span className="text-body text-ink-strong">
+                  {plan.feeBasisPoints > 0
+                    ? c.ordersThen(format.number(plan.orders), feePercent(plan.feeBasisPoints))
+                    : c.ordersNoFee(format.number(plan.orders))}
+                </span>
+                {line ? <span className="text-caption text-muted-foreground">{line}</span> : null}
+              </div>
+              <ul className="flex flex-col gap-1.5 text-body">
+                {[
+                  c.staff(format.number(plan.staff)),
+                  c.files(String(plan.storageGb)),
+                  highlight[p],
+                ].map((h) => (
+                  <li key={h} className="flex items-start gap-2">
+                    <CheckIcon className="mt-0.5 size-4 shrink-0 text-success" aria-hidden="true" />
+                    {h}
+                  </li>
                 ))}
-              </dl>
+              </ul>
               <Button
                 className="mt-auto"
-                variant={isCurrent ? 'outline' : 'default'}
+                variant={isCurrent ? 'outline' : p === suggested ? 'default' : 'outline'}
                 disabled={isCurrent || busy !== null}
                 onClick={() => onChoose(p, interval)}
               >
-                {isCurrent ? d.current : busy === p ? d.switching : d.choose(copy.plans[p].name)}
+                {isCurrent ? c.currentPlan : busy === p ? d.switching : c.move(copy.plans[p].name)}
               </Button>
             </section>
           )
         })}
       </div>
-      <section className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-muted/40 p-4">
+      <div id="compare" className="scroll-mt-4">
+        <PlanCompareTable />
+      </div>
+      <section className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border p-4">
         <div className="flex max-w-xl flex-col gap-1">
           <h3 className="text-card-title text-ink-strong">{d.ownIt.title}</h3>
           <p className="text-caption text-muted-foreground">{d.ownIt.body}</p>
-          <p className="text-body font-medium text-ink-strong tabular-nums">
-            {d.ownIt.price(format.money(ownIt.licence), format.money(ownIt.carePerMonth))}
-          </p>
         </div>
         <Button
           variant="outline"

@@ -1,7 +1,7 @@
 'use client'
 
 import type { AppBill } from '@commerce/core'
-import type { AppAccess } from '@commerce/core/billing'
+import { APP_PRICING, type AppAccess } from '@commerce/core/billing'
 import { CreditCard } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
@@ -10,6 +10,7 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
 import DataCard from '@/components/layout/data-card'
+import StatusChip from '@/components/layout/status-chip'
 import { billingContent } from '@/data/billing'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -26,7 +27,13 @@ export type BoughtApp = {
 
 type AppsCardProps = { apps: BoughtApp[] }
 
-/** Plan & billing → Paid apps: what was bought on top of the plan, its bill, and Stop renewing. */
+/** A paid app's monthly price before GST. */
+const priceOf = (id: string): number => APP_PRICING[id]?.pricePaise ?? 0
+
+/**
+ * Figma 931:9997 "Apps and your plan": each app that costs extra below a plan, whether the plan
+ * includes it, it was bought, or it can be bought, with Pay, Buy and Stop renewing.
+ */
 export default function AppsCard({ apps }: AppsCardProps) {
   // Hooks
   const copy = useCopy(billingContent)
@@ -34,6 +41,12 @@ export default function AppsCard({ apps }: AppsCardProps) {
   const router = useRouter()
   const [stopping, setStopping] = useState<BoughtApp | null>(null)
   const [busy, setBusy] = useState(false)
+
+  // Helpers
+  const includedName = (id: string) => {
+    const price = APP_PRICING[id]
+    return price ? copy.plans[price.includedFrom].name : ''
+  }
 
   // Event handlers
   const handleStop = async () => {
@@ -56,60 +69,71 @@ export default function AppsCard({ apps }: AppsCardProps) {
 
   // Render logic
   return (
-    <DataCard title={copy.apps.heading} subtitle={copy.apps.help}>
-      <ul className="flex flex-col divide-y divide-border">
-        {apps.map((a) => (
-          <li key={a.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
-            <div className="flex flex-col">
-              <span className="text-body font-medium text-ink-strong">{a.name}</span>
-              <span className="text-caption text-muted-foreground">
-                {[
-                  a.status?.state === 'included'
-                    ? copy.apps.included(copy.plans[a.status.plan].name)
-                    : null,
-                  a.status?.state === 'buy'
-                    ? `${copy.apps.buyFor(format.money(a.status.pricePaise))} · ${copy.apps.orIncluded(copy.plans[a.status.includedFrom].name)}`
-                    : null,
-                  a.access
-                    ? a.access.renews
-                      ? copy.apps.paidUntil(format.date(a.access.until))
-                      : copy.apps.endsOn(format.date(a.access.until))
-                    : null,
-                  a.due ? copy.apps.due(format.money(a.due.amountPaise)) : null,
-                ]
-                  .filter(Boolean)
-                  .join(' · ')}
-              </span>
-            </div>
-            <div className="flex gap-2">
-              {a.due?.url ? (
-                <Button
-                  size="sm"
-                  nativeButton={false}
-                  render={<a href={a.due.url} target="_blank" rel="noopener noreferrer" />}
-                >
-                  <CreditCard aria-hidden="true" />
-                  {copy.apps.pay}
-                </Button>
-              ) : null}
-              {a.status?.state === 'buy' ? (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  nativeButton={false}
-                  render={<Link href={routes.apps.page(a.id)} />}
-                >
-                  {copy.apps.buy}
-                </Button>
-              ) : null}
-              {a.access?.renews || a.due ? (
-                <Button size="sm" variant="outline" onClick={() => setStopping(a)}>
-                  {copy.apps.stop}
-                </Button>
-              ) : null}
-            </div>
-          </li>
-        ))}
+    <DataCard title={copy.apps.heading} subtitle={copy.apps.help(apps.length)} flush>
+      <ul className="flex flex-col divide-y divide-border border-t border-border">
+        {apps.map((a) => {
+          const s = a.status
+          const sub =
+            s?.state === 'buy'
+              ? copy.apps.orIncluded(copy.plans[s.includedFrom].name)
+              : a.access?.renews && s?.state === 'bought'
+                ? copy.apps.renewsIncluded(format.date(a.access.until), includedName(a.id))
+                : a.access
+                  ? copy.apps.endsOn(format.date(a.access.until))
+                  : a.due
+                    ? copy.apps.due(format.money(a.due.amountPaise))
+                    : null
+          return (
+            <li key={a.id} className="flex flex-wrap items-center justify-between gap-3 px-5 py-3">
+              <div className="flex flex-col">
+                <span className="text-body text-ink-strong">{a.name}</span>
+                {sub ? <span className="text-caption text-muted-foreground">{sub}</span> : null}
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                {s?.state === 'included' ? (
+                  <StatusChip tone="success" variant="outline">
+                    {copy.apps.included(copy.plans[s.plan].name)}
+                  </StatusChip>
+                ) : null}
+                {a.access ? (
+                  <StatusChip tone="info" variant="outline">
+                    {copy.apps.bought(format.money(priceOf(a.id)))}
+                  </StatusChip>
+                ) : null}
+                {s?.state === 'buy' ? (
+                  <StatusChip tone="neutral" variant="outline">
+                    {copy.apps.buyFor(format.money(s.pricePaise))}
+                  </StatusChip>
+                ) : null}
+                {a.due?.url ? (
+                  <Button
+                    size="sm"
+                    nativeButton={false}
+                    render={<a href={a.due.url} target="_blank" rel="noopener noreferrer" />}
+                  >
+                    <CreditCard aria-hidden="true" />
+                    {copy.apps.pay}
+                  </Button>
+                ) : null}
+                {s?.state === 'buy' ? (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    nativeButton={false}
+                    render={<Link href={routes.apps.page(a.id)} />}
+                  >
+                    {copy.apps.buy}
+                  </Button>
+                ) : null}
+                {a.access?.renews || a.due ? (
+                  <Button size="sm" variant="ghost" onClick={() => setStopping(a)}>
+                    {copy.apps.stop}
+                  </Button>
+                ) : null}
+              </div>
+            </li>
+          )
+        })}
       </ul>
       <ConfirmDialog
         open={stopping !== null}

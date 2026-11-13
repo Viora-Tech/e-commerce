@@ -156,6 +156,8 @@ export const ACTION_DOCS: Record<string, string> = {
   'billing.choose':
     'Pick a plan: billed now (pay link) or, for a downgrade, scheduled for the period end.',
   'billing.keepPlan': 'Cancel a scheduled downgrade.',
+  'billing.quote':
+    '"Move to Pro?": what picking a plan costs now (the new plan for the rest of the period, less the old plan\'s unused days, plus GST), or that it starts at the period end.',
   'billing.startAutopay':
     '"Turn on UPI AutoPay" for the current plan: the page where the owner approves the mandate.',
   'billing.stopApp': '"Stop renewing": the app keeps working until its paid month ends.',

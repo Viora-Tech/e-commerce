@@ -1,5 +1,6 @@
 import { loadEnv } from '@commerce/config'
 import {
+  AlreadyOnPlan,
   AppNotForSale,
   AutopayError,
   autopayConfig,
@@ -12,6 +13,7 @@ import {
   keepCurrentPlan,
   listAppBills,
   loadAutopay,
+  loadPlanChangeQuote,
   loadPlanView,
   PLAN_IDS,
   PLANS,
@@ -165,6 +167,22 @@ export const billingRouter = {
       return file
     }),
 
+  /**
+   * "Move to Pro?": what picking a plan costs now (the new plan for the rest of the period, less
+   * the old plan's unused days, plus GST), or that it starts at the period end. `choose` bills
+   * this same quote.
+   */
+  quote: can(permissions.SETTINGS_READ)
+    .input(z.object({ plan: z.enum(PLAN_IDS), interval: z.enum(['month', 'year']) }))
+    .handler(async ({ context, input }) => {
+      try {
+        return await loadPlanChangeQuote(context.db, context.scope.storeId, input)
+      } catch (err) {
+        if (err instanceof UnlimitedPlan) throw new ORPCError('CONFLICT', { message: err.message })
+        throw err
+      }
+    }),
+
   /** Pick a plan: billed now (pay link) or, for a downgrade, scheduled for the period end. */
   choose: can(permissions.BILLING_MANAGE)
     .input(z.object({ plan: z.enum(PLAN_IDS), interval: z.enum(['month', 'year']) }))
@@ -175,7 +193,8 @@ export const billingRouter = {
         if (err instanceof BillingNotReady) {
           throw new ORPCError('PRECONDITION_FAILED', { message: NOT_READY[err.reason] })
         }
-        if (err instanceof UnlimitedPlan) throw new ORPCError('CONFLICT', { message: err.message })
+        if (err instanceof UnlimitedPlan || err instanceof AlreadyOnPlan)
+          throw new ORPCError('CONFLICT', { message: err.message })
         throw err
       }
     }),

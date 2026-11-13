@@ -1,3 +1,4 @@
+import { projectNextBill } from '@commerce/core/billing'
 import type { Metadata } from 'next'
 import type { BoughtApp } from '@/components/billing/apps-card'
 import BillingPage from '@/components/billing/billing-page'
@@ -26,5 +27,12 @@ export default async function Page() {
     status: access,
     due: paid.bills.find((b) => b.pluginId === id && b.status === 'due') ?? null,
   }))
-  return <BillingPage view={view} apps={bought} autopay={autopay} />
+  // Figma "Next bill": the plan at renewal, this month's fees and the bought apps that renew.
+  const nextBill = projectNextBill({
+    ...view,
+    renewingApps: Object.entries(paid.access).flatMap(([id, a]) =>
+      a.state === 'bought' && a.renews ? [id] : [],
+    ),
+  })
+  return <BillingPage view={view} apps={bought} autopay={autopay} nextBill={nextBill} />
 }

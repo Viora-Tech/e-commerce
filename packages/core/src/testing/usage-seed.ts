@@ -97,6 +97,8 @@ export const ordersFrom = (n: number, from: Date, totalPaise = 1_00_000): SeedOr
 const SALES_SKUS: { sku: string; pricePaise: number }[] = [
   { sku: 'plan-starter-month', pricePaise: 49_900 },
   { sku: 'plan-growth-month', pricePaise: 1_99_900 },
+  // GST-inclusive, as the platform prices it (developer docs "Setting up the sales store").
+  { sku: 'plan-pro-month', pricePaise: 5_89_882 },
   { sku: 'usage-fee-starter', pricePaise: 0 },
   { sku: 'usage-fee-growth', pricePaise: 0 },
   { sku: 'usage-fee-pro', pricePaise: 0 },

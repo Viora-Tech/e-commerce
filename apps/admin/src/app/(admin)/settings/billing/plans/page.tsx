@@ -14,8 +14,18 @@ export async function generateMetadata(): Promise<Metadata> {
 /** Settings → Plan & billing → Change plan: the plans as a page (Figma 931:10521). */
 export default async function Page() {
   const context = await serverContext()
-  const view = await call(appRouter.billing.view, undefined, { context })
+  const [view, paid, apps] = await Promise.all([
+    call(appRouter.billing.view, undefined, { context }),
+    call(appRouter.billing.apps, undefined, { context }),
+    call(appRouter.apps.list, undefined, { context }).catch(() => []),
+  ])
   // A Koomerce store has nothing to choose.
   if (view.unlimited) redirect(routes.settings.billing())
-  return <ChangePlanPage view={view} />
+  // Bought apps by name: "EMI & pay later stops billing separately" on the confirm.
+  const boughtApps = Object.fromEntries(
+    Object.entries(paid.access).flatMap(([id, a]) =>
+      a.state === 'bought' ? [[id, apps.find((x) => x.id === id)?.name ?? id]] : [],
+    ),
+  )
+  return <ChangePlanPage view={view} boughtApps={boughtApps} />
 }

@@ -147,6 +147,13 @@ export const planPayment = pgTable(
     periodStart: timestamp('period_start', { withTimezone: true }).notNull(),
     periodEnd: timestamp('period_end', { withTimezone: true }).notNull(),
     status: text('status').$type<PlanPaymentStatus>().notNull().default('due'),
+    /**
+     * The rest of a period after an upgrade (migration 0246): paying it keeps `periodEnd`, so the
+     * renewal date does not move. False for a full interval (renewals, a first plan).
+     */
+    prorated: boolean('prorated').notNull().default(false),
+    /** The old plan's unused days taken off this bill, before GST, in paise. */
+    creditPaise: integer('credit_paise').notNull().default(0),
     paidAt: timestamp('paid_at', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },

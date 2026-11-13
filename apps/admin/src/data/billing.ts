@@ -1,11 +1,13 @@
 import { siteConfig } from '@commerce/config/site'
 import type { PlanId } from '@commerce/core/billing'
 
-/** Copy for Settings → Plan & billing and Compare plans (Figma 707:119179, 707:123189). */
+/** Copy for Settings → Plan & billing, Change plan and Move to (Figma 931:9997, 931:10521, 931:11086). */
 export const billingContent = {
   title: 'Plan & billing',
-  subtitle: `Your ${siteConfig.brand.name} plan, what your store used this month, and your invoices.`,
-  compare: 'Compare plans',
+  subtitle: 'Your plan, what this month used, and your bills.',
+  viewAllPlans: 'View all plans',
+  compareYes: 'Yes',
+  compareNo: 'No',
   plans: {
     starter: { name: 'Starter', blurb: 'For a new shop finding its first customers.' },
     growth: { name: 'Growth', blurb: 'For a shop selling every day.' },
@@ -30,28 +32,37 @@ export const billingContent = {
       days <= 0
         ? `Trial ended on ${date}`
         : `Trial ends ${date} · ${days} ${days === 1 ? 'day' : 'days'} left`,
-    renews: (date: string) => `Renews ${date}`,
+    renews: (date: string) => `renews ${date}`,
     ended: (date: string) => `Paid until ${date}`,
     switching: (plan: string, date: string) => `Moves to ${plan} on ${date}.`,
     keep: 'Keep current plan',
     kept: 'You stay on your current plan',
-    usageNote:
-      'Usage resets on the 1st of each month. Orders are never blocked: each one past your plan’s included orders carries a small fee, billed on the 1st.',
-    feeRate: (percent: string, orders: string) => `${percent}% per order after ${orders}`,
-    noFee: 'No per-order fee',
+    included: (orders: string, percent: string) =>
+      `${orders} orders included, then ${percent}% per order`,
+    includedNoFee: (orders: string) => `${orders} orders included, no per-order fee`,
+    perMonthGst: 'per month + 18% GST',
+    perYearGst: 'per year + 18% GST',
+  },
+  nudge: {
+    close: (orders: string, percent: string, plan: string, saving: string) =>
+      `You’re close to ${orders} orders. Orders never stop: each one after ${orders} adds ${percent}%. At your pace ${plan} would save about ${saving} a month.`,
+    past: (orders: string, percent: string, plan: string, saving: string) =>
+      `You’re past ${orders} orders. Orders never stop: each one after ${orders} adds ${percent}%. At your pace ${plan} would save about ${saving} a month.`,
+    see: (plan: string) => `See ${plan}`,
+  },
+  nextBill: {
+    heading: 'Next bill',
+    plan: (plan: string, month: string) => `${plan} · ${month}`,
+    fees: (month: string) => `Per-order fees · ${month}`,
+    apps: (names: string) => `Paid apps · ${names}`,
+    gst: 'GST 18%',
+    due: (date: string) => `Due ${date}`,
+    feesNote: 'Per-order fees are this month so far; they are billed on the 1st.',
   },
   unlimited: {
     name: 'Unlimited',
     line: `A ${siteConfig.brand.name} store: no limits, per-order fees or bills.`,
     aiCap: (used: string, cap: string) => `${used} of ${cap} (safety cap)`,
-  },
-  fees: {
-    heading: 'Per-order fees this month',
-    feeOrders: 'Orders with a fee',
-    estimate: 'Estimated fee so far',
-    carried: (amount: string) => `Includes ${amount} carried from earlier months.`,
-    trial: 'Orders during your free trial carry no fee.',
-    note: 'Billed on the 1st with a pay link. Under ₹100, it waits for the next month.',
   },
   usage: {
     orders: 'Orders this month',
@@ -61,12 +72,6 @@ export const billingContent = {
     of: (used: string, limit: string) => `${used} of ${limit}`,
     unlimited: 'No limit',
     gb: (gb: string) => `${gb} GB`,
-  },
-  over: {
-    upgrade: (plan: string) => `You are past this plan’s orders. Move to ${plan} for more room.`,
-    ownIt:
-      'You are past Scale’s orders. Talk to us about fair use, or Own it for unlimited orders on your own server.',
-    fee: (percent: string) => `Each order from here carries a ${percent}% fee.`,
   },
   banners: {
     trial: (days: number) =>
@@ -84,11 +89,8 @@ export const billingContent = {
       'Your store had more visits than this plan’s fair use two months running. Nothing is blocked. We will get in touch to find the right plan with you.',
   },
   payment: {
-    heading: 'Payment method',
-    body: 'Each bill comes with a secure link. Pay it with UPI, a card or netbanking, and the plan starts as soon as it is paid.',
     autopay: 'UPI AutoPay is coming soon, so renewals pay themselves.',
-    autopayOff:
-      'Turn on UPI AutoPay and renewals pay themselves from your UPI app. You approve it once.',
+    autopayOff: 'UPI AutoPay is off. Bills come with a pay link.',
     autopayOn:
       'UPI AutoPay is on. Each renewal is charged automatically and the invoice is emailed.',
     autopayPending: 'Approve the AutoPay mandate in your UPI app to finish turning it on.',
@@ -100,13 +102,14 @@ export const billingContent = {
     autopayStopped: 'AutoPay is off. Renewals come with a pay link again.',
     autopayFailed: 'Could not change AutoPay. Try again.',
     autopayFees: 'Per-order fees always come as a pay link, even with AutoPay on.',
-    invoiceEmail: 'Invoices go to',
-    invoiceEmailHelp: 'Your store’s contact email (Settings → Store details).',
     notReady: `Paying for plans online is not switched on yet. Contact ${siteConfig.brand.name} to change plans.`,
   },
   apps: {
     heading: 'Apps and your plan',
-    help: 'Couriers, payments and most apps are free on every plan. These cost extra below a plan.',
+    help: (count: number) =>
+      `Couriers, payments and most apps are free on every plan. ${count === 1 ? 'This one costs' : `These ${count} cost`} extra below a plan.`,
+    bought: (price: string) => `Bought · ${price}/month`,
+    renewsIncluded: (date: string, plan: string) => `Renews ${date} · included in ${plan}`,
     included: (plan: string) => `Included in ${plan}`,
     buyFor: (price: string) => `${price}/month`,
     orIncluded: (plan: string) => `Or included in ${plan}`,
@@ -125,14 +128,12 @@ export const billingContent = {
   },
   bills: {
     heading: 'Invoices',
-    number: 'Invoice',
-    date: 'Date',
-    amount: 'Amount',
-    status: 'Status',
     period: (plan: string, from: string, to: string) => `${plan} · ${from} – ${to}`,
     gst: 'incl. 18% GST',
     pay: 'Pay',
     view: 'View',
+    download: 'Download',
+    sentTo: (email: string) => `Invoices are emailed to ${email}.`,
     states: { due: 'Due', paid: 'Paid', cancelled: 'Cancelled' },
     empty: 'No invoices yet',
     emptyBody: 'Your first invoice shows up here once you pick a plan.',
@@ -158,67 +159,90 @@ export const billingContent = {
     empty: 'No per-order fees yet',
     emptyBody: 'A month with orders past your plan’s included ones shows up here.',
   },
-  change: {
-    heading: 'Downgrade or close',
-    body: (plan: string, date: string) =>
-      `Move to ${plan} any time. You keep everything until ${date}; after that ${plan} limits apply.`,
-    action: (plan: string) => `Move to ${plan}`,
-    confirmTitle: (plan: string) => `Move to ${plan}?`,
-    confirmBody: (plan: string, date: string) =>
-      `You keep your current plan until ${date}. Then ${plan}’s limits apply; orders are never blocked.`,
-    confirm: 'Move down',
-    cancel: 'Keep my plan',
-    scheduled: (plan: string) => `You move to ${plan} when this period ends`,
-  },
   changePlan: {
     title: 'Change plan',
     action: 'Change plan',
     subtitle:
       'Prices exclude 18% GST. Orders never stop: past the included orders, each one adds a small fee.',
     back: 'Plan & billing',
-    basedOn: (orders: string) => `Suggested from ${orders} orders this month`,
+    basedOn: (orders: string) => `Based on ${orders} orders this month`,
+    current: 'Current',
+    currentPlan: 'Current plan',
+    move: (plan: string) => `Move to ${plan}`,
+    ordersThen: (orders: string, percent: string) => `${orders} orders, then ${percent}%`,
+    ordersNoFee: (orders: string) => `${orders} orders, no fee`,
+    feesAtPace: (amount: string) => `≈ ${amount} fees at your pace`,
+    bestPast: (orders: string) => `Best value past ~${orders} orders`,
+    noFeeAtAll: 'No per-order fee at all',
+    staff: (n: string) => `${n} staff ${n === '1' ? 'account' : 'accounts'}`,
+    files: (gb: string) => `${gb} GB files`,
+    highlights: {
+      starter: (min: string, max: string) => `Core apps; others ${min}–${max} each`,
+      growth: (apps: string) => apps,
+      pro: 'Every app, Shopify themes, MCP & API',
+      scale: 'Everything in Pro, priority support',
+    },
+    compareHeading: 'Compare everything',
+    perMonthUnit: '/ month',
+    perYearUnit: '/ year',
     confirmTitle: (plan: string) => `Move to ${plan}?`,
-    upgradeBody: (plan: string, price: string) =>
-      `${plan} starts as soon as its bill (${price} + GST) is paid. You go to the secure payment page next.`,
     downgradeBody: (plan: string, date: string) =>
       `You keep your current plan until ${date}, then move to ${plan}. Nothing is charged now.`,
     confirm: (plan: string) => `Move to ${plan}`,
     cancel: 'Cancel',
+  },
+  move: {
+    bodyProrated: (plan: string, old: string) =>
+      `${plan} starts as soon as this bill is paid. Your ${old} days left this period are taken off.`,
+    bodyFull: (plan: string) => `${plan} starts as soon as this bill is paid.`,
+    planLine: (plan: string, from: string, to: string) => `${plan} · ${from} – ${to}`,
+    credit: (plan: string) => `${plan} days not used`,
+    fees: 'Unpaid per-order fees',
+    gst: 'GST 18%',
+    payNow: 'Pay now',
+    from: (date: string) => `From ${date}`,
+    renewal: (price: string) => `${price} + GST`,
+    youGet: 'You get',
+    getOrders: (orders: string, used: string) =>
+      `${orders} orders included (you have ${used} so far)`,
+    getStaff: (staff: string) => `${staff} staff accounts`,
+    everyApp: 'every app included',
+    stopsBilling: (apps: string) => `${apps} stops billing separately`,
+    pay: (amount: string) => `Pay ${amount} and move`,
+    loading: 'Working out the amount…',
+    failed: 'Could not work out the amount. Try again.',
+    already: 'You are already on this plan.',
   },
   dialog: {
     suggested: 'Suggested',
     title: 'Compare plans',
     subtitle:
       'Every plan has GST invoices, couriers, UPI payments and a Hindi admin. Prices before GST.',
-    current: 'Your plan',
-    choose: (plan: string) => `Choose ${plan}`,
     switching: 'Opening payment…',
     failed: 'Could not start that plan. Try again.',
     scheduledToast: (plan: string) => `You move to ${plan} when this period ends`,
     rows: {
-      orders: 'Orders included a month',
-      fee: 'Fee per order after that',
+      orders: 'Included orders',
+      fee: 'Fee after that',
       visits: 'Visits a month (fair use)',
       staff: 'Staff accounts',
       storage: 'File storage',
-      ai: 'AI',
-      shopifyTheme: 'Shopify theme import',
+      ai: 'AI credits / month',
+      shopifyTheme: 'Shopify themes',
       mcpApi: 'MCP & API',
-      multiLocation: 'Several locations',
+      multiLocation: 'Many locations',
       apps: 'Apps',
       support: 'Support',
     },
-    ai: { starter: 'Light use', growth: 'Daily use', pro: 'Heavy use', scale: 'Very heavy use' },
-    aiCredits: (n: string) => `${n} credits a month`,
     apps: { core: 'Core apps; buy others', all: 'All our apps included' },
     support: { email: 'Email', whatsapp: 'Email + WhatsApp', priority: 'Priority' },
     ownIt: {
       title: 'Own it',
-      body: `Run ${siteConfig.brand.name} on your own server with unlimited orders. One-time licence plus a small monthly fee for updates and support.`,
+      body: 'Unlimited orders on your own server, one-time price. Talk to us.',
       action: 'Talk to us',
-      price: (licence: string, care: string) => `${licence} once + ${care} a month for care`,
     },
     fairUse: 'Fair use',
+    noFee: 'None',
   },
   loadFailed: 'Could not load your plan. Try again.',
 } as const
