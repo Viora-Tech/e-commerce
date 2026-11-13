@@ -36,9 +36,9 @@ Branch `feat/billing-redesign`.
 - `billing/next-bill.ts`: `monthPace`, `feesAtPace`, `breakEvenOrders`, `upgradeNudge`,
   `projectNextBill` (existing prices only). `PlanView` gains `pace` and `nudge`; `planUsage`
   gains `salesPaise`.
-- **Migration `0246_plan_payment_proration`**: `plan_payment.prorated boolean default false`,
+- **Migration `0248_plan_payment_proration`**: `plan_payment.prorated boolean default false`,
   `plan_payment.credit_paise integer default 0`. Journal `when` 1795189163000 (another branch used
-  1795189100000 in the shared test databases; renumber if 0246 clashes).
+  1795189100000 in the shared test databases; renumber if 0248 clashes).
 
 ## How amounts change
 
