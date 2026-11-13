@@ -6,7 +6,7 @@ Prepaid locally and nothing reached the shopper.
 
 ## What changed
 
-- **Migration `0245_cod_pay_online`**: nullable `order.pay_online_requested_at` and
+- **Migration `0246_cod_pay_online`**: nullable `order.pay_online_requested_at` and
   `order.pay_online_reminded_at` (timestamptz; the order table's store RLS covers them) and the
   SECURITY DEFINER `stores_with_pay_online_requests()` for the worker sweep.
 - **`payOnlineInstead`** (`packages/core/src/payments/pay-online-instead.ts`) now also takes an

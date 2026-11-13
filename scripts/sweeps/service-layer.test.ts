@@ -60,6 +60,12 @@ const ALLOWLIST: AllowEntry[] = [
       "the Hono service's direct (development) mode resolves the store and its markets with the same @commerce/db resolvers as the Next proxy (resolveHost, storeMarkets); production requests come signed from Next instead",
   },
   {
+    path: 'apps/worker/src/storefront-warmup.ts',
+    exact: true,
+    reason:
+      'worker job that lists live storefront hostnames (SECURITY DEFINER live_storefront_hosts) and listens for storefront starts to warm the new process; no business rule',
+  },
+  {
     path: 'apps/worker/src/edge-purge.ts',
     exact: true,
     reason:

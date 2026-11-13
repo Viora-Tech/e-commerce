@@ -29,6 +29,7 @@ export {
   bugReportStoresForIssue,
   type HostRoute,
   isStoreSlugTaken,
+  liveStorefrontHosts,
   organizationMembership,
   resolveHost,
   resolveStore,

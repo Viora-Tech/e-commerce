@@ -344,6 +344,7 @@ export const createShipmentContent = {
     pickupLater: 'Later, on Booked',
     pickupJoins: (when: string) => `Joins the ${when} pickup`,
     freightRow: 'Freight',
+    codFeeRow: 'COD fee',
     insuranceRow: 'Insurance',
     gstRow: 'GST 18%',
     /** What the shopper picked at checkout (Delivery options app or zone rates). */
