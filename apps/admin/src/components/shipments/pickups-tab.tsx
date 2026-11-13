@@ -29,10 +29,19 @@ type Unpicked = Awaited<ReturnType<typeof api.shipments.listUnpicked>>
 type Pickups = Awaited<ReturnType<typeof api.shipments.listPickups>>
 type Manifests = Awaited<ReturnType<typeof api.shipments.listManifests>>
 
+type PickupsTabProps = {
+  /** One courier's parcels, pickups and manifests only (a courier app's Pickups page). */
+  provider?: string | undefined
+}
+
 const copy = shipmentsContent.pickups
 
+/** Keeps the rows of `provider`, or every row when none is given. */
+const ofProvider = <T extends { provider: string }>(rows: T[], provider: string | undefined) =>
+  provider ? rows.filter((r) => r.provider === provider) : rows
+
 /** Book a pickup for shipments waiting on one, then turn a pickup into a printable manifest. */
-export default function PickupsTab() {
+export default function PickupsTab({ provider }: PickupsTabProps = {}) {
   // Hooks
   const details = useCopy(shipmentDetailsContent)
   const [unpicked, setUnpicked] = useState<Unpicked>([])
@@ -54,17 +63,18 @@ export default function PickupsTab() {
       api.shipments.listUnpicked(),
       api.shipments.listPickups(),
       api.shipments.listManifests(),
-    ]).then(([u, p, m]) => {
+    ]).then(([allUnpicked, p, m]) => {
       if (cancelled) return
+      const u = ofProvider(allUnpicked, provider)
       setUnpicked(u)
-      setPickups(p)
-      setManifests(m)
+      setPickups(ofProvider(p, provider))
+      setManifests(ofProvider(m, provider))
       setSelected((prev) => prev.filter((id) => u.some((s) => s.id === id)))
     })
     return () => {
       cancelled = true
     }
-  }, [reloadKey])
+  }, [reloadKey, provider])
 
   // Event handlers
   const handleToggle = (id: string, on: boolean) =>

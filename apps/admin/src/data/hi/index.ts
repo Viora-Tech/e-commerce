@@ -47,6 +47,7 @@ import customizeAppEmbeds from './customize-app-embeds'
 import customizeInboxEmbed from './customize-inbox-embed'
 import dateRange from './date-range'
 import dates from './dates'
+import delhivery from './delhivery'
 import deliveryOptions from './delivery-options'
 import dhlExpress from './dhl-express'
 import discounts from './discounts'
@@ -215,6 +216,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...customizeAppEmbeds,
   ...customizeInboxEmbed,
   ...dates,
+  ...delhivery,
   ...dhlExpress,
   ...fedex,
   ...shipglobal,

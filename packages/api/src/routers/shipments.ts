@@ -5,6 +5,7 @@ import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
 import { BULK_MAX, can, heavy, PAGE_SIZE_MAX, SEARCH_MAX } from '../procedures'
 import { storeRegistries } from '../services/apps.service'
+import { courierOverview, courierPickupPlaces } from '../services/courier-overview.service'
 import { prepareShipments, quoteShipments } from '../services/create-shipment.service'
 import { indiaPostLabel, recordShipmentStatus } from '../services/india-post.service'
 import { listReadyToShip } from '../services/ready-to-ship.service'
@@ -120,8 +121,27 @@ export const shipmentsRouter = {
       })
     }),
 
-  /** Rows per Shipments tab, plus "booked today" and "need attention" for the summary line. */
-  counts: can(permissions.ORDERS_READ).handler(({ context }) => shipmentCounts(context.tx)),
+  /** Rows per Shipments tab, plus "booked today" and "need attention" for the summary line;
+   *  `provider` counts one courier's shipments only (a courier app's Shipments page). */
+  counts: can(permissions.ORDERS_READ)
+    .input(z.object({ provider: z.string().trim().min(1).max(60).optional() }).optional())
+    .handler(({ context, input }) => shipmentCounts(context.tx, new Date(), input?.provider)),
+
+  /** A courier app's Overview tiles: in transit and delayed, booked today and what it cost,
+   *  RTO this month, and its newest shipment change. This store's shipments with that courier. */
+  courierOverview: can(permissions.ORDERS_READ)
+    .input(z.object({ provider: z.string().trim().min(1).max(60) }))
+    .handler(({ context, input }) =>
+      courierOverview(context.tx, context.scope.storeId, input.provider),
+    ),
+
+  /** A courier app's Pickup locations: the account's own place, then every location with
+   *  courier pickup on, each with the next pickup booked there with that courier. */
+  courierPickupPlaces: can(permissions.ORDERS_READ)
+    .input(z.object({ provider: z.string().trim().min(1).max(60) }))
+    .handler(({ context, input }) =>
+      courierPickupPlaces(context.tx, context.scope.storeId, input.provider),
+    ),
 
   /** Ready to ship tab: paid, unfulfilled orders - the main Shopify-style booking flow. */
   readyToShip: can(permissions.ORDERS_READ)

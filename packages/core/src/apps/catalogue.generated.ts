@@ -234,7 +234,7 @@ export const APP_CATALOGUE_DATA: CatalogueEntry[] = [
         },
       ],
     },
-    adminPages: ['Overview', 'Connect'],
+    adminPages: ['Overview', 'Shipments', 'Pickups', 'Pickup locations', 'Connect'],
     themeBlocks: ['Delivery checker'],
     credits: [],
   },

@@ -59,12 +59,20 @@ export const delhiveryPlugin = definePlugin({
   },
   provides: { shipping: [delhiveryFactory] },
   storefront: { blocks: deliveryCheckerBlocks },
-  // The app bar's tracking pill and the parcels in transit on the sidebar's Overview row.
+  // The app bar's tracking pill and the parcels in transit on the sidebar's Shipments row.
   appBar: (ctx) => delhiveryAppBar(ctx),
   admin: {
     icon: 'Truck',
     pages: [
       { path: '', title: 'Delhivery', navLabel: 'Overview', icon: 'Truck' },
+      { path: 'shipments', title: 'Shipments', navLabel: 'Shipments', icon: 'Package' },
+      { path: 'pickups', title: 'Pickups', navLabel: 'Pickups', icon: 'Clock' },
+      {
+        path: 'pickup-locations',
+        title: 'Pickup locations',
+        navLabel: 'Pickup locations',
+        icon: 'MapPin',
+      },
       { path: 'connect', title: 'Connect Delhivery', navLabel: 'Connect', icon: 'Settings' },
     ],
   },
