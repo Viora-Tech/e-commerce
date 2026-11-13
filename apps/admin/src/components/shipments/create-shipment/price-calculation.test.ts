@@ -255,7 +255,7 @@ describe('weight calculation', () => {
 })
 
 describe('summary parts', () => {
-  it('splits the price into freight, insurance and GST that add up to it', () => {
+  it('splits the price into freight, COD fee, insurance and GST that add up to it', () => {
     const r = row({
       pricePaise: 10_000,
       charges: [
@@ -268,10 +268,18 @@ describe('summary parts', () => {
     const { calc } = shown(r, true)
     if (!calc) throw new Error('no calc')
     const parts = summaryParts(calc)
-    expect(parts).toEqual({ freightPaise: 8_500, insurancePaise: 2_000, gstPaise: 1_860 })
-    expect(parts.freightPaise + (parts.insurancePaise ?? 0) + (parts.gstPaise ?? 0)).toBe(
-      calc.totalPaise,
-    )
+    expect(parts).toEqual({
+      freightPaise: 7_500,
+      codPaise: 1_000,
+      insurancePaise: 2_000,
+      gstPaise: 1_860,
+    })
+    expect(
+      parts.freightPaise +
+        (parts.codPaise ?? 0) +
+        (parts.insurancePaise ?? 0) +
+        (parts.gstPaise ?? 0),
+    ).toBe(calc.totalPaise)
   })
 
   it('a courier total with no insurance is all freight', () => {
@@ -279,6 +287,7 @@ describe('summary parts', () => {
     if (!calc) throw new Error('no calc')
     expect(summaryParts(calc)).toEqual({
       freightPaise: 9_000,
+      codPaise: null,
       insurancePaise: null,
       gstPaise: null,
     })

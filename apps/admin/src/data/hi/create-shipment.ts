@@ -312,6 +312,7 @@ export default [
       pickupLater: 'बाद में, बुक्ड टैब से',
       pickupJoins: (when) => `${when} वाले पिकअप में जुड़ेगा`,
       freightRow: 'भाड़ा',
+      codFeeRow: 'COD शुल्क',
       insuranceRow: 'इंश्योरेंस',
       gstRow: 'GST 18%',
       shopperChose: (name, price, route) =>
