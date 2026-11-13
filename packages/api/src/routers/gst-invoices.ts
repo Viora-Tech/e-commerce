@@ -2,6 +2,7 @@ import { enqueueAppJob, listGstNumbers, permissions } from '@commerce/core'
 import { DocumentSnapshotSchema, InvoiceSettingsSchema } from '@commerce/invoices'
 import { mergePdfs, zipFiles } from '@commerce/invoices/render'
 import {
+  buyerPlace,
   cancelInvoice,
   defaultInvoiceDate,
   documentIssuer,
@@ -15,11 +16,12 @@ import {
   issueDrafts,
   listDocuments,
   listPeriods,
-  listQueue,
   loadSettings,
   markFiled,
   pdfBytes,
   pdfFilename,
+  queueRows,
+  queueStats,
   regenerateDocument,
   removeFromQueue,
   renderAndStore,
@@ -166,23 +168,40 @@ export const gstInvoicesRouter = {
       )
       .handler(async ({ context, input }) => {
         await requireInstalled(context)
-        const rows = await listQueue(context.tx, input)
-        return rows.map((r) => {
-          const doc = DocumentSnapshotSchema.parse(r.snapshot)
-          return {
-            id: r.id,
-            orderId: r.orderId,
-            orderName: doc.order.name,
-            placedAt: doc.order.placedAt,
-            buyerName: r.buyerName,
-            buyerGstin: r.buyerGstin,
-            export: doc.exportSupply?.countryName ?? null,
-            totalPaise: r.totalPaise,
-            eligibleAt: r.eligibleAt,
-            dispatchedAt: r.dispatchedAt,
-            defaultDate: defaultInvoiceDate(r),
-          }
-        })
+        const rows = await queueRows(context.tx, context.scope.storeId, input)
+        return rows.map(({ row: r, doc, status, fix }) => ({
+          id: r.id,
+          orderId: r.orderId,
+          orderName: doc.order.name,
+          placedAt: doc.order.placedAt,
+          buyerName: r.buyerName,
+          buyerPlace: buyerPlace(doc),
+          buyerGstin: r.buyerGstin,
+          export: doc.exportSupply?.countryName ?? null,
+          taxablePaise: r.taxablePaise,
+          gstPaise: r.cgstPaise + r.sgstPaise + r.igstPaise,
+          totalPaise: r.totalPaise,
+          eligibleAt: r.eligibleAt,
+          dispatchedAt: r.dispatchedAt,
+          defaultDate: defaultInvoiceDate(r),
+          /** Ready, Ready · B2B, Ready · Export, HSN missing, Buyer details missing. */
+          status,
+          /** Where the problem is fixed: a product's page or the order; null when ready. */
+          fix,
+        }))
+      }),
+    /**
+     * The four figures above the queue: issued this month and its taxable value, credit notes
+     * this month, and the next invoice number with the day its series starts again.
+     */
+    stats: can(permissions.ORDERS_READ)
+      .input(z.object({ gstRegistrationId: Gst }).optional())
+      .handler(async ({ context, input }) => {
+        await requireInstalled(context)
+        const picked = input?.gstRegistrationId
+        // Counts follow the picker (all GSTINs when none is picked); the next number is one GSTIN's.
+        const numberGst = await gstScope(context, picked)
+        return queueStats(context.tx, context.scope.storeId, picked, numberGst)
       }),
     /** Add orders by hand, or the Orders list's bulk action (`./gst-invoices-order-actions`). */
     add: addToQueue,
