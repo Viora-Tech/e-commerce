@@ -102,6 +102,10 @@ import ImportsPage from '@/components/apps/shopify-import/imports-page'
 import RunPage from '@/components/apps/shopify-import/run-page'
 import ShopifySettingsPage from '@/components/apps/shopify-import/settings-page'
 import UmamiSettingsPage from '@/components/apps/umami/settings-page'
+import WhatsappConnectHeaderButton from '@/components/apps/whatsapp/connect-header-button'
+import WhatsappMessagesPage from '@/components/apps/whatsapp/messages-page'
+import WhatsappSetupPage from '@/components/apps/whatsapp/setup-page'
+import WhatsappTemplatesPage from '@/components/apps/whatsapp/templates-page'
 import XpressbeesConnectPage from '@/components/apps/xpressbees/connect-page'
 import XpressbeesOverviewPage from '@/components/apps/xpressbees/overview-page'
 import AutomationsCustomerCard from '@/components/automations/records/customer-card'
@@ -358,8 +362,12 @@ export const ADMIN_APPS: Record<string, AdminApp> = {
     fullPages: ['connect'],
   },
   whatsapp: {
+    HeaderAction: WhatsappConnectHeaderButton,
     pages: {
-      '': WhatsappConnectPage,
+      '': WhatsappSetupPage,
+      messages: WhatsappMessagesPage,
+      templates: WhatsappTemplatesPage,
+      settings: WhatsappConnectPage,
       connect: WhatsappConnectPage,
     },
   },
