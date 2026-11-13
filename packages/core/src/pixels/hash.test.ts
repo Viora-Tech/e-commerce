@@ -1,17 +1,19 @@
 /** SOURCE OF TRUTH: Meta hashing tests — WHAT: email, Indian phone, Hindi and accented names, city, state code and PIN normalisation before SHA-256 / WHY: a value normalised differently from Meta never matches, and raw values must never be sent */
 import { createHash } from 'node:crypto'
 import { describe, expect, it } from 'vitest'
+import { hashMatchValues, hashUserData, sha256 } from './hash'
 import {
-  hashUserData,
+  browserMatchData,
   normaliseCity,
+  normaliseCountry,
+  normaliseCustomerFacts,
   normaliseEmail,
   normaliseMetaPhone,
   normaliseName,
   normalisePin,
   normaliseState,
-  sha256,
   splitName,
-} from './hash'
+} from './match'
 
 const h = (v: string) => createHash('sha256').update(v, 'utf8').digest('hex')
 
@@ -85,7 +87,68 @@ describe('hashUserData', () => {
     expect(JSON.stringify(out)).not.toContain('x@y.in')
   })
 
+  it('an address abroad carries its own country and no Indian state or PIN', () => {
+    const out = hashUserData({ email: 'a@b.ae', state: 'MH', pincode: '411001', country: 'AE' })
+    expect(out).toEqual({ em: [h('a@b.ae')], country: [h('ae')] })
+  })
+
   it('sha256 is lowercase hex', () => {
     expect(sha256('abc')).toMatch(/^[0-9a-f]{64}$/)
+  })
+})
+
+describe('normaliseCustomerFacts (shared by the browser pixel and the server)', () => {
+  it('normalises every field Meta matches on, country lowercase', () => {
+    expect(
+      normaliseCustomerFacts({
+        email: ' Asha@Example.com ',
+        phone: '+91 98765 43210',
+        name: 'Asha K. Rao',
+        city: 'Navi Mumbai',
+        state: 'MH',
+        pincode: '400 703',
+        country: 'IN',
+        externalId: 'cust-1',
+      }),
+    ).toEqual({
+      em: 'asha@example.com',
+      ph: '919876543210',
+      fn: 'asha',
+      ln: 'rao',
+      ct: 'navimumbai',
+      st: 'mh',
+      zp: '400703',
+      country: 'in',
+      external_id: 'cust-1',
+    })
+    expect(normaliseCountry(' ae ')).toBe('ae')
+    expect(normaliseCountry('India')).toBeNull()
+  })
+
+  it('hashMatchValues hashes the same normalised values the server sends', () => {
+    const facts = { email: 'Asha@Example.com', phone: '9876543210' }
+    const browser = hashMatchValues(facts)
+    const server = hashUserData(facts)
+    expect(browser.em).toBe(h('asha@example.com'))
+    expect(browser.ph).toBe(h('919876543210'))
+    expect(server.em?.[0]).toBe(browser.em)
+    expect(server.ph?.[0]).toBe(browser.ph)
+  })
+})
+
+describe('browserMatchData', () => {
+  it('keeps only known keys with SHA-256 hex values', () => {
+    const em = h('a@b.in')
+    expect(browserMatchData({ em, ph: '919876543210', other: em, country: h('in') })).toEqual({
+      em,
+      country: h('in'),
+    })
+  })
+
+  it('refuses plain values, junk and a lone default country', () => {
+    expect(browserMatchData({ em: 'a@b.in' })).toBeNull()
+    expect(browserMatchData({ country: h('in') })).toBeNull()
+    expect(browserMatchData(null)).toBeNull()
+    expect(browserMatchData('x')).toBeNull()
   })
 })

@@ -6,7 +6,12 @@
  * `/api/px`, which queues the server copy. Meta counts the pair once.
  */
 import { COMMERCE_TRACK_EVENT, type CommerceTrackDetail } from '@commerce/blocks'
-import { addToCartEventId, isPixelEventName, type PixelEventName } from '@commerce/core/pixels'
+import {
+  addToCartEventId,
+  isPixelEventName,
+  type MatchValues,
+  type PixelEventName,
+} from '@commerce/core/pixels'
 import { trackingAllowedOn } from '@/lib/tracking-paths'
 
 export type BrowserPixel = { id: string; events: PixelEventName[]; browserPurchase: boolean }
@@ -83,16 +88,16 @@ export function fbqData(detail: CommerceTrackDetail): Record<string, unknown> {
   return data
 }
 
-/** Meta's advanced matching fields: lower-case email, phone as digits with the country code. */
-export function matchData(match: CommerceTrackDetail['match']): Record<string, string> | null {
-  const email = match?.email?.trim().toLowerCase()
-  const digits = match?.phone?.replace(/[^0-9]/g, '') ?? ''
-  const phone = digits.length === 10 ? `91${digits}` : digits
-  const data = {
-    ...(email?.includes('@') ? { em: email } : {}),
-    ...(phone.length >= 11 ? { ph: phone } : {}),
+/**
+ * Initialise each pixel, with the hashed advanced-matching values when there are any (all SHA-256
+ * hex, `lib/pixels/match.ts`). Called before the first event, and again when checkout learns more
+ * about the shopper: Meta takes a second `init` with user data as an update for that pixel.
+ */
+export function initPixels(pixels: BrowserPixel[], match: MatchValues | null): void {
+  for (const p of pixels) {
+    if (match) fbq('init', p.id, match)
+    else fbq('init', p.id)
   }
-  return Object.keys(data).length ? data : null
 }
 
 function beacon(body: Record<string, unknown>): void {
@@ -118,13 +123,10 @@ export function sendPixelEvent(pixels: BrowserPixel[], detail: CommerceTrackDeta
   const name = detail.name
   const eventId = eventIdFor(detail)
   const data = fbqData(detail)
-  const match = matchData(detail.match)
   for (const p of pixels) {
     if (!p.events.includes(name)) continue
     // A paid or delivered server Purchase can arrive after Meta's 48 h dedup window.
     if (name === 'Purchase' && !p.browserPurchase) continue
-    // fbevents.js hashes these in the browser before anything leaves it.
-    if (match) fbq('init', p.id, match)
     fbq('trackSingle', p.id, name, data, { eventID: eventId })
   }
   beacon({

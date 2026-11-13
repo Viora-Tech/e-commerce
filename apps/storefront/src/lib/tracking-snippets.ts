@@ -15,10 +15,14 @@ export const FBQ_LOADER =
 
 const PIXEL_ID = /^[0-9]{10,20}$/
 
-/** fbevents.js once, then each pixel; the legacy single pixel also tracks its PageView. */
+/**
+ * fbevents.js. The Pixels app's pixels get only the loader: their listener (`PixelEvents`, the
+ * plain HTML pixels module) initialises each one itself, with the shopper's hashed advanced
+ * matching, before its first event. The legacy single pixel is initialised here and tracks its
+ * PageView.
+ */
 export function fbqInit(pixels: readonly string[], legacy: string | null): string {
-  const ids = pixels.filter((id) => PIXEL_ID.test(id))
-  if (ids.length) return FBQ_LOADER + ids.map((id) => `fbq('init','${id}');`).join('')
+  if (pixels.some((id) => PIXEL_ID.test(id))) return FBQ_LOADER
   return legacy ? `${FBQ_LOADER}fbq('init','${legacy}');fbq('track','PageView');` : ''
 }
 

@@ -11,6 +11,7 @@ import type {
  * `@commerce/core/pixels`. Design: docs/superpowers/specs/2026-10-24-pixels-design.md §4.
  */
 
+export * from './match'
 export type { PixelEventName, PixelPurchaseTrigger, PixelSkipReason, PixelTracking }
 
 export const PIXEL_EVENTS = [

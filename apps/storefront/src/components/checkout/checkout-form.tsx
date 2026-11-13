@@ -34,6 +34,7 @@ import {
   sectionHeadingId,
 } from '@/lib/checkout-sections'
 import { cleanPincode } from '@/lib/checkout-validation'
+import { useCheckoutMatch } from '@/lib/pixels/use-checkout-match'
 import { useCheckoutForm } from '@/lib/use-checkout-form'
 import { useCheckoutGst } from '@/lib/use-checkout-gst'
 
@@ -52,6 +53,7 @@ const FORM_ID = 'checkout-form'
 export default function CheckoutForm(props: CheckoutFormProps) {
   // Hooks
   const ck = useCheckoutForm(props)
+  useCheckoutMatch(ck.form, props.customer?.id)
   const gstPaise = useCheckoutGst({
     totalPaise: ck.totals.totalPaise,
     reductionPaise: (ck.discount?.amountPaise ?? 0) + Math.max(0, -ck.totals.adjustmentPaise),

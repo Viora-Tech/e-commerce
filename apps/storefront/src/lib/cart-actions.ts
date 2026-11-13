@@ -20,7 +20,12 @@ import {
 } from '@commerce/core'
 import { checkoutCountry, isAbroad } from '@commerce/core/checkout-address'
 import { CONSENT_COOKIE, currentConsent, decodeConsent } from '@commerce/core/consent'
-import { collectorStore, withdrawCartMarketingConsent } from '@commerce/core/pixels/server'
+import {
+  collectorStore,
+  FBC_COOKIE,
+  FBP_COOKIE,
+  syncCartMarketingConsent,
+} from '@commerce/core/pixels/server'
 import type { ParcelDeliveryEstimate } from '@commerce/db'
 import { logger } from '@commerce/observability/logging'
 import { revalidatePath } from 'next/cache'
@@ -276,7 +281,9 @@ export async function checkoutAction(submitted: CheckoutForm): Promise<CheckoutR
   /* Contact first: if anything below fails the cart is still recoverable. The latest
      marketing touch rides along so the order credits the email or ad that closed it. */
   const attribution = await readAttribution()
-  const consent = decodeConsent((await cookies()).get(CONSENT_COOKIE)?.value)
+  const jar = await cookies()
+  const consent = decodeConsent(jar.get(CONSENT_COOKIE)?.value)
+  const ua = (await headers()).get('user-agent')
   await inStore(storeId, async (tx) => {
     await captureCartContact({ storeId, tx }, cartId, {
       email: form.email,
@@ -284,10 +291,25 @@ export async function checkoutAction(submitted: CheckoutForm): Promise<CheckoutR
       name: form.name,
     })
     await setCartAttribution(tx, cartId, attribution)
-    // Pixels: a marketing yes taken back on the banner keeps the order's server Purchase off.
-    const { bannerVersion } = await collectorStore(tx, storeId)
-    const marketing = currentConsent(consent, bannerVersion)?.marketing === true
-    await withdrawCartMarketingConsent(tx, cartId, marketing, new Date())
+    // Pixels: the order copies the cart's tracking. The answer on the banner now decides: a yes
+    // taken back keeps the server Purchase off, a yes the collector never stamped (blocked or
+    // late beacon) is recorded with this request's browser details, a no records only the no.
+    const { installed, bannerVersion } = await collectorStore(tx, storeId)
+    if (installed) {
+      const answer = currentConsent(consent, bannerVersion)
+      await syncCartMarketingConsent(
+        tx,
+        cartId,
+        {
+          consent: answer && consent ? { ...answer, version: consent.version } : null,
+          fbp: jar.get(FBP_COOKIE)?.value,
+          fbc: jar.get(FBC_COOKIE)?.value,
+          ip,
+          ua,
+        },
+        new Date(),
+      )
+    }
   })
 
   // Gift cards are emailed, so a basket of only gift cards has nothing to ship.
