@@ -11,6 +11,7 @@ import {
   type TemplateCopy,
   transferTemplates,
 } from './content-parts'
+import { splitTemplates } from './content-split'
 
 /** A draft invoice's number after the #: "D12" while it is a draft, else the order number. */
 const draftRef = (d: TemplateData): string =>
@@ -25,6 +26,7 @@ export const templateContent: Record<TemplateId, TemplateCopy> = {
   ...returnTemplates,
   ...shipmentTemplates,
   ...orderUpdateTemplates,
+  ...splitTemplates,
   cod_confirm: {
     subject: (d) => `${d.storeName}: please confirm your cash on delivery order #${d.orderNumber}`,
     heading: (d) => `Hi ${d.customerName}, is this order yours?`,
@@ -355,6 +357,7 @@ export const sharedContent = {
   parcels: {
     title: (count: number) => `Ships in ${count} parcels`,
     note: 'Your order comes from more than one warehouse, so it arrives in separate parcels, each with its own invoice.',
+    splitNote: 'The items that are ready go first; each parcel has its own tracking.',
     parcel: (position: number, from: string) => `Parcel ${position} from ${from}`,
     item: (quantity: number, title: string) => `${quantity} × ${title}`,
     arrives: (range: string) => `Arrives ${range}`,

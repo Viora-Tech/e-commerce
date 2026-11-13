@@ -1,25 +1,37 @@
 'use client'
 
+import type { ParcelSplitReason } from '@commerce/core'
 import { Minus, Plus } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Checkbox } from '@commerce/ui/shadcn/checkbox'
-import { useState } from 'react'
-import { toast } from 'sonner'
+import { Select, SelectContent, SelectItem, SelectTrigger } from '@commerce/ui/shadcn/select'
+import { Switch } from '@commerce/ui/shadcn/switch'
+import StatusChip from '@/components/layout/status-chip'
 import ProductThumb from '@/components/products/product-thumb'
 import { createShipmentContent } from '@/data/create-shipment'
 import { useCopy, useFormat } from '@/hooks/use-copy'
-import { api } from '@/lib/api-client'
 import type { DraftParcel } from './flow-state'
+import { availabilityNote, isPartial, type SplitPlan } from './partial-plan'
 
 type PartialPickerProps = {
-  orderId: string
   /** The parcel's fulfilment order; null when the order ships whole (no parcel rows). */
   parcelId: string | null
   lines: DraftParcel['lines']
-  /** After the split: reload the order so the package matches what ships now. */
-  onSplit: () => void
+  /** Null until the parcel loads: nothing shows. */
+  plan: SplitPlan | null
+  onPlan: (next: SplitPlan) => void
+  /** How many parts the order ships in once this parcel is split. */
+  parts: number
 }
+
+const REASONS: ParcelSplitReason[] = [
+  'not_ready',
+  'preorder',
+  'out_of_stock',
+  'customer_asked',
+  'other',
+]
 
 /** "Glasspad, Wrist Rest × 2": the items a parcel holds. */
 const itemList = (rows: Array<{ title: string; n: number }>) =>
@@ -29,53 +41,47 @@ const itemList = (rows: Array<{ title: string; n: number }>) =>
     .join(', ')
 
 /**
- * Items in this parcel (Figma 916:10179): a tick on the left for each item that ships now, its
- * picture, price and weight, and how many of it go. Unticking some shows Parcel 1 (ships now)
- * beside Parcel 2 (stays in To ship); Ship only these moves the rest to that new parcel, so
- * nothing is cloned or added by hand. One unit in all: the list alone, nothing to pick.
+ * Items in this parcel (Figma 916:10179): a tick for each item that ships now, its picture, a
+ * chip when it waits ("Pre-order · arrives 22 Oct", "1 of 2 in stock") and how many of it go.
+ * What is on the shelf starts ticked. Unticking some shows Parcel 1 (ships now) beside Parcel 2
+ * (stays in To ship), the reason and whether the customer is told; the page splits the parcel
+ * as it books, so there is no separate step. One unit in all: the list alone, nothing to pick.
  */
-export default function PartialPicker({ orderId, parcelId, lines, onSplit }: PartialPickerProps) {
+export default function PartialPicker({
+  parcelId,
+  lines,
+  plan,
+  onPlan,
+  parts,
+}: PartialPickerProps) {
   // Hooks
   const copy = useCopy(createShipmentContent.partial)
   const pkg = useCopy(createShipmentContent.package)
   const fmt = useFormat()
-  const [counts, setCounts] = useState<Record<string, number>>(() =>
-    Object.fromEntries(lines.map((l) => [l.id, l.quantity])),
-  )
-  const [busy, setBusy] = useState(false)
 
   // Helpers
   const set = (id: string, next: number, max: number) =>
-    setCounts((c) => ({ ...c, [id]: Math.max(0, Math.min(max, next)) }))
+    plan && onPlan({ ...plan, counts: { ...plan.counts, [id]: Math.max(0, Math.min(max, next)) } })
+  const shortDate = (day: string) => fmt.pattern(day, { day: 'numeric', month: 'short' })
 
-  // Event handlers
-  const handleSplit = async () => {
-    if (!parcelId) return
-    setBusy(true)
-    try {
-      await api.shipments.splitParcel({
-        orderId,
-        fulfillmentOrderId: parcelId,
-        keep: lines.map((l) => ({ orderLineId: l.id, quantity: counts[l.id] ?? 0 })),
-      })
-      toast.success(copy.done)
-      onSplit()
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err))
-    } finally {
-      setBusy(false)
-    }
-  }
+  // Early returns
+  if (!plan) return null
 
   // Render logic
+  const { counts } = plan
   const units = lines.reduce((n, l) => n + l.quantity, 0)
   const pickable = parcelId !== null && units > 1
   const now = lines.reduce((n, l) => n + (counts[l.id] ?? 0), 0)
-  const partial = pickable && now > 0 && now < units
+  const partial = pickable && isPartial(lines, counts)
   const nowItems = itemList(lines.map((l) => ({ title: l.title, n: counts[l.id] ?? 0 })))
   const laterItems = itemList(
     lines.map((l) => ({ title: l.title, n: l.quantity - (counts[l.id] ?? 0) })),
   )
+  const thisParcel = lines
+    .filter((l) => (counts[l.id] ?? 0) > 0)
+    .map((l) => `${l.title} × ${counts[l.id]}`)
+    .join(' · ')
+  const reasonItems = Object.fromEntries(REASONS.map((r) => [r, copy.reasonValue(copy.reasons[r])]))
 
   return (
     <div className="flex flex-col gap-3">
@@ -87,6 +93,7 @@ export default function PartialPicker({ orderId, parcelId, lines, onSplit }: Par
         <ul className="flex flex-col divide-y divide-hairline">
           {lines.map((l) => {
             const n = counts[l.id] ?? 0
+            const note = availabilityNote(l.availability, l.quantity)
             const sub = [
               l.sku ? pkg.sku(l.sku) : null,
               fmt.money(l.unitPricePaise),
@@ -111,7 +118,18 @@ export default function PartialPicker({ orderId, parcelId, lines, onSplit }: Par
                 ) : null}
                 <ProductThumb url={l.imageUrl} alt={l.title} className="size-10" />
                 <div className="flex min-w-0 flex-1 flex-col">
-                  <span className="truncate text-body font-medium text-ink-strong">{l.title}</span>
+                  <span className="flex min-w-0 flex-wrap items-center gap-2">
+                    <span className="truncate text-body font-medium text-ink-strong">
+                      {l.title}
+                    </span>
+                    {note ? (
+                      <StatusChip tone="attention">
+                        {note.kind === 'preorder'
+                          ? copy.preorder(note.date ? shortDate(note.date) : null)
+                          : copy.inStock(note.n, l.quantity)}
+                      </StatusChip>
+                    ) : null}
+                  </span>
                   <span className="truncate text-caption text-muted-foreground">{sub}</span>
                 </div>
                 {pickable ? (
@@ -168,10 +186,38 @@ export default function PartialPicker({ orderId, parcelId, lines, onSplit }: Par
               <span className="text-caption text-muted-foreground">{copy.parcelLaterHelp}</span>
             </div>
           </div>
-          <Button size="sm" className="w-fit" loading={busy} onClick={() => void handleSplit()}>
-            {copy.split}
-          </Button>
+          <div className="grid items-center gap-3 sm:grid-cols-2">
+            <Select
+              items={reasonItems}
+              value={plan.reason}
+              onValueChange={(v) => v && onPlan({ ...plan, reason: v as ParcelSplitReason })}
+            >
+              <SelectTrigger aria-label={copy.reasonLabel} className="w-full bg-background">
+                {copy.reasonValue(copy.reasons[plan.reason])}
+              </SelectTrigger>
+              <SelectContent>
+                {REASONS.map((r) => (
+                  <SelectItem key={r} value={r}>
+                    {copy.reasons[r]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <span className="flex items-center gap-2">
+              <Switch
+                id="partial-notify"
+                checked={plan.notify}
+                onCheckedChange={(on) => onPlan({ ...plan, notify: on })}
+              />
+              <label htmlFor="partial-notify" className="text-caption text-ink-strong">
+                {copy.notify(parts)}
+              </label>
+            </span>
+          </div>
         </div>
+      ) : null}
+      {partial ? (
+        <p className="text-caption text-muted-foreground">{copy.thisParcel(thisParcel)}</p>
       ) : null}
     </div>
   )

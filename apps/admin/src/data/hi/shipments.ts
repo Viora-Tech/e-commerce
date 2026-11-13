@@ -1,4 +1,4 @@
-import { shipmentActionsContent } from '@/data/shipments'
+import { shipmentActionsContent, shipmentPartsContent } from '@/data/shipments'
 import { translation } from '@/lib/i18n'
 
 export default [
@@ -24,5 +24,14 @@ export default [
     refreshTracking: 'ट्रैकिंग अपडेट करें',
     trackingUpdated: 'ट्रैकिंग अपडेट हो गई',
     failed: 'कूरियर तक रिक्वेस्ट नहीं पहुंची। थोड़ी देर में फिर कोशिश करें।',
+  }),
+  translation(shipmentPartsContent, {
+    part: (n, of) => `${of} में से हिस्सा ${n}`,
+    shipped: (n, date) => `हिस्सा ${n} ${date} को भेजा`,
+    item: (title, quantity) => `${title} × ${quantity}`,
+    waiting: {
+      preorder: (date) => (date ? `इंतज़ार · प्री-ऑर्डर ${date}` : 'इंतज़ार · प्री-ऑर्डर'),
+      stock: (date) => (date ? `इंतज़ार · स्टॉक ${date}` : 'इंतज़ार · स्टॉक'),
+    },
   }),
 ]

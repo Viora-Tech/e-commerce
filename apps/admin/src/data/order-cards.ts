@@ -89,3 +89,24 @@ export const deliveryRouteCardContent = {
   margin: 'Shipping margin',
   marginUnknown: 'The margin shows once the parcel is booked and its courier charge is known.',
 }
+
+/** The order page's Partly shipped card (Figma 918:10852). Dates come formatted. */
+export const partlyShippedContent = {
+  title: (orderNumber: number) => `Order #${orderNumber}`,
+  chip: (shipped: number, of: number) => `Partly shipped · ${shipped} of ${of} parcels`,
+  parcel: (n: number) => `Parcel ${n}`,
+  toShip: 'To ship',
+  track: 'Track',
+  createShipment: 'Create shipment',
+  label: (courier: string, awb: string, shipped: string, deliveryBy: string | null) =>
+    [courier, `AWB ${awb}`, `shipped ${shipped}`, deliveryBy ? `delivery by ${deliveryBy}` : null]
+      .filter(Boolean)
+      .join(' · '),
+  preorder: (date: string | null) => (date ? `Pre-order · arrives ${date}` : 'Pre-order'),
+  moreInStock: (n: number, date: string | null) =>
+    date ? `${n} more in stock on ${date}` : `${n} more not in stock yet`,
+  readyWhen: (orderNumber: number, n: number, of: number) =>
+    `Ready when the items arrive; it then appears in Shipments › To ship as #${orderNumber} · Part ${n} of ${of}.`,
+  told: (date: string, parts: number) =>
+    `Customer was told on ${date} that the order ships in ${parts} parts.`,
+}

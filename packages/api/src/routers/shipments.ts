@@ -1,5 +1,5 @@
 import { settingsSecret } from '@commerce/config'
-import { permissions, splitFulfillmentOrder } from '@commerce/core'
+import { PARCEL_SPLIT_REASONS, permissions, splitFulfillmentOrder } from '@commerce/core'
 import { dayKey } from '@commerce/dates'
 import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
@@ -7,6 +7,7 @@ import { BULK_MAX, can, heavy, PAGE_SIZE_MAX, SEARCH_MAX } from '../procedures'
 import { storeRegistries } from '../services/apps.service'
 import { prepareShipments, quoteShipments } from '../services/create-shipment.service'
 import { indiaPostLabel, recordShipmentStatus } from '../services/india-post.service'
+import { listReadyToShip } from '../services/ready-to-ship.service'
 import {
   actOnNdr,
   createManifestForStore,
@@ -23,7 +24,6 @@ import {
 } from '../services/shipments-operations.service'
 import {
   bulkBookShipments,
-  listReadyToShip,
   listShipments,
   SHIPMENT_NDR_STATUSES,
   shipmentCounts,
@@ -184,6 +184,10 @@ export const shipmentsRouter = {
           .array(z.object({ orderLineId: z.uuid(), quantity: z.number().int().min(0) }))
           .min(1)
           .max(500),
+        /** Why the rest waits (the Reason select). */
+        reason: z.enum(PARCEL_SPLIT_REASONS).optional(),
+        /** "Tell the customer it ships in 2 parts": queues the `order_split` message. */
+        notifyCustomer: z.boolean().optional(),
       }),
     )
     .handler(({ context, input }) =>
@@ -192,6 +196,11 @@ export const shipmentsRouter = {
         input.orderId,
         input.fulfillmentOrderId,
         input.keep,
+        {
+          reason: input.reason,
+          notifyCustomer: input.notifyCustomer,
+          author: context.session.user.email,
+        },
       ),
     ),
 

@@ -20,6 +20,7 @@ export const TEMPLATE_IDS: TemplateId[] = [
   'payment_pending',
   'shipping_update',
   'order_link',
+  'order_split',
   'draft_invoice',
   'checkout_recovery',
   'document_copy',
@@ -90,6 +91,7 @@ export const TEMPLATE_NAMES: Record<TemplateId, string> = {
   payment_pending: 'Payment not finished',
   shipping_update: 'Shipping update',
   order_link: 'Order link',
+  order_split: 'Order ships in parts',
   draft_invoice: 'Draft invoice',
   checkout_recovery: 'Checkout recovery',
   document_copy: 'Document copy',
@@ -304,13 +306,14 @@ function parcelsText(d: TemplateData): string[] {
 }
 
 /** The same, as the email's parcels block. */
-function parcelsBlock(d: TemplateData) {
+function parcelsBlock(d: TemplateData, template: TemplateId) {
   const parcels = d.parcels ?? []
   if (parcels.length < 2) return undefined
   const p = shared.parcels
   return {
     title: p.title(parcels.length),
-    note: p.note,
+    // A split to send the ready items first, not a second warehouse.
+    note: template === 'order_split' ? p.splitNote : p.note,
     parcels: parcels.map((parcel, i) => ({
       heading: p.parcel(i + 1, parcel.from),
       items: parcel.items.map((item) => p.item(item.quantity, item.title)),
@@ -458,7 +461,7 @@ export async function renderEmail(template: TemplateId, d: TemplateData): Promis
       shipping: gc ? undefined : d.shipping,
       taxBreakdown: gc ? undefined : d.taxBreakdown,
       afterTotal: gc ? undefined : creditRows,
-      parcels: gc ? undefined : parcelsBlock(d),
+      parcels: gc ? undefined : parcelsBlock(d, template),
       giftCard: gc
         ? {
             label: shared.giftCardLabel,
