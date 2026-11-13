@@ -31,6 +31,7 @@ export {
 } from './estimate'
 export { type FakeShippingConfig, FakeShippingProvider, fakeShippingFactory } from './fake'
 export { LoginTokenCache } from './login-token'
+export { courierOrderRef } from './order-ref'
 export * from './pincode'
 export { ShippingRegistry } from './registry'
 export { remoteExtraDays } from './remote-areas'

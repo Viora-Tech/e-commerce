@@ -238,6 +238,31 @@ describe('ShiprocketProvider createShipment', () => {
     expect(await assignBody()).toEqual({ shipment_id: 2 })
   })
 
+  it('sends the order number as order_id (2471, then 2471-2), and keeps Shiprocket’s ids', async () => {
+    const f = fakeFetch(
+      withLogin({
+        '/v1/external/orders/create/adhoc': () => json({ order_id: 555, shipment_id: 777 }),
+        '/v1/external/courier/assign/awb': () => json({ response: { data: { awb_code: 'SR1' } } }),
+        '/v1/external/courier/generate/label': () => json({ label_url: 'https://l/777.pdf' }),
+      }),
+    )
+    const p = new ShiprocketProvider({ ...config, fetchImpl: f.impl })
+    const first = await p.createShipment({
+      ...sampleShipment,
+      orderId: 'uuid-1',
+      orderNumber: 2471,
+    })
+    await p.createShipment({ ...sampleShipment, orderNumber: 2471, shipmentNumber: 2 })
+    const pushed = await p.pushOrder({ ...sampleShipment, orderNumber: 2471 })
+    const sent = f.calls
+      .filter((c) => c.url.pathname.endsWith('/orders/create/adhoc'))
+      .map((c) => JSON.parse(c.init?.body as string).order_id)
+    expect(sent).toEqual(['2471', '2471-2', '2471'])
+    // Cancel goes by AWB (ref.waybill) and pushed-order cancel by Shiprocket's own order id.
+    expect(first.providerRef).toBe('777')
+    expect(pushed).toEqual({ externalOrderId: '555', externalShipmentId: '777' })
+  })
+
   it('surfaces a rejected order', async () => {
     const f = fakeFetch(
       withLogin({
