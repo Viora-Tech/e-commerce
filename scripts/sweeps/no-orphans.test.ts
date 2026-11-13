@@ -1324,8 +1324,13 @@ const ALLOWLIST: AllowEntry[] = [
   },
   {
     file: 'packages/plugin-back-in-stock/src/settings.ts',
-    names: ['defaultBackInStockStoreSettings', 'parseBackInStockStoreSettings'],
+    names: ['parseBackInStockStoreSettings'],
     reason: 'no external importer today — investigate before removing',
+  },
+  {
+    file: 'packages/plugin-back-in-stock/src/app-bar.ts',
+    names: ['waitingLabel'],
+    reason: 'the app bar pill text, exported for its unit test',
   },
   {
     file: 'packages/plugin-emi/src/plugin.ts',

@@ -213,6 +213,7 @@ export default async function ProductPage({ params, searchParams }: Params) {
               available: variant.available,
               isPreorder,
               whatsappEnabled: bis.whatsappEnabled,
+              buttonText: bis.buttonText,
               action: notifyMeAction,
             }
           : undefined,
@@ -242,7 +243,11 @@ export default async function ProductPage({ params, searchParams }: Params) {
             UnderPrice={UnderPrice}
             belowBuy={<DeliveryEstimateWidget />}
             NotifyMe={bis.installed ? NotifyMeForm : undefined}
-            notifyMeProps={bis.installed ? { whatsappEnabled: bis.whatsappEnabled } : undefined}
+            notifyMeProps={
+              bis.installed
+                ? { whatsappEnabled: bis.whatsappEnabled, buttonText: bis.buttonText }
+                : undefined
+            }
           />
         )
         return (

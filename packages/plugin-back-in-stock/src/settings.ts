@@ -1,7 +1,13 @@
 import type { StoreTx } from '@commerce/db'
 import { eq } from 'drizzle-orm'
-import { z } from 'zod'
 import { backInStockSettings } from './schema'
+import {
+  type BackInStockStoreSettings,
+  BackInStockStoreSettingsSchema,
+  defaultBackInStockStoreSettings,
+} from './settings-schema'
+
+export * from './settings-schema'
 
 /**
  * Platform-wide free quota and pause behaviour. Deployment config (env), not
@@ -23,28 +29,6 @@ export function loadPlatformQuota(env: NodeJS.ProcessEnv = process.env): Platfor
     freeWhatsappPerMonth: Number.isFinite(whatsapp) && whatsapp >= 0 ? whatsapp : 0,
   }
 }
-
-export const BackInStockStoreSettingsSchema = z.object({
-  emailEnabled: z.boolean().default(true),
-  whatsappEnabled: z.boolean().default(false),
-  /** Messages sent per minute per store while fanning out a restock. */
-  batchSize: z.number().int().min(1).max(2000).default(200),
-  confirmSubject: z.string().default(''),
-  confirmBody: z.string().default(''),
-  alertSubject: z.string().default(''),
-  alertBody: z.string().default(''),
-  /**
-   * Exempts this store from the free quota. Set via seed/config for a store
-   * that pays for its own sending (e.g. the platform's own store); never
-   * written by the signup or send paths themselves.
-   */
-  unlimited: z.boolean().default(false),
-})
-
-export type BackInStockStoreSettings = z.infer<typeof BackInStockStoreSettingsSchema>
-
-export const defaultBackInStockStoreSettings: BackInStockStoreSettings =
-  BackInStockStoreSettingsSchema.parse({})
 
 export function parseBackInStockStoreSettings(raw: unknown): BackInStockStoreSettings {
   const result = BackInStockStoreSettingsSchema.safeParse(raw ?? {})

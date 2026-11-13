@@ -14,6 +14,7 @@ import apps from './apps'
 import assistant from './assistant'
 import automationRecords from './automation-records'
 import automations from './automations'
+import backInStock from './back-in-stock'
 import backgroundWork from './background-work'
 import billing from './billing'
 import bluedart from './bluedart'
@@ -186,6 +187,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...assistant,
   ...automationRecords,
   ...automations,
+  ...backInStock,
   ...backgroundWork,
   ...billing,
   ...bluedart,

@@ -1,4 +1,5 @@
 /** Services for the API routers, the worker and the admin app. Server only. */
+export * from './app-bar'
 export * from './eligibility'
 export * from './messages'
 export * from './notify'

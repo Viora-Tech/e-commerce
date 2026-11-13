@@ -14,7 +14,7 @@ import {
   whatsappHref,
 } from '../sections/main-product-settings'
 import type { AddToCart } from '../store-actions'
-import type { ProductDetail } from '../types'
+import type { NotifyMeFormProps, ProductDetail } from '../types'
 import Breadcrumbs from './breadcrumbs'
 import Price from './price'
 import ProductAccordions, { type PolicyPanel } from './product-accordions'
@@ -47,9 +47,9 @@ type ProductViewProps = {
    * installed for this store. Follows variant switching (keyed by variant id,
    * so its own state resets when the shopper picks a different one).
    */
-  NotifyMe?: ComponentType<{ variantId: string; whatsappEnabled: boolean }> | undefined
+  NotifyMe?: ComponentType<NotifyMeFormProps> | undefined
   /** Server-resolved data `NotifyMe` needs beyond the selected variant id. */
-  notifyMeProps?: { whatsappEnabled: boolean } | undefined
+  notifyMeProps?: Omit<NotifyMeFormProps, 'variantId'> | undefined
   /** The MainProduct section's settings (`mainProductSettings(saved)`); defaults when omitted. */
   settings?: MainProductSettings | undefined
   /**
