@@ -152,6 +152,8 @@ export type OutboxEventType =
   | 'shipment.tracking_updated'
   /** Staff sent the shopper the link to their order page ("Send order link"). */
   | 'order.link_sent'
+  /** Staff split a parcel to ship part of the order now and chose to tell the shopper (`order_split`). */
+  | 'order.split'
   /**
    * A payment gateway refused the store's API keys (`payments/gateway-health.ts`): checkout hides
    * it and the owners are emailed, once per incident. No order.
@@ -366,6 +368,7 @@ export const OUTBOX_NOTIFICATION_TEMPLATE: Record<OutboxEventType, TemplateId | 
   'order.payment_pending': 'payment_pending',
   'shipment.tracking_updated': 'shipping_update',
   'order.link_sent': 'order_link',
+  'order.split': 'order_split',
   'payments.gateway_keys_refused': null,
 }
 
@@ -465,5 +468,6 @@ export const OUTBOX_APP_EVENT: Record<OutboxEventType, AppEvent | null> = {
   'order.payment_pending': null,
   'shipment.tracking_updated': null,
   'order.link_sent': null,
+  'order.split': null,
   'payments.gateway_keys_refused': null,
 }

@@ -29,6 +29,8 @@ export type TemplateId =
   | 'shipping_update'
   /** Staff sent the shopper the link to their order's status page ("Send order link"). */
   | 'order_link'
+  /** Staff shipped part of the order now; the rest follows in its own parcel ("ships in 2 parts"). */
+  | 'order_split'
   | 'draft_invoice'
   | 'checkout_recovery'
   /** A copy of an order document (invoice, credit note) sent on request, with the file attached. */

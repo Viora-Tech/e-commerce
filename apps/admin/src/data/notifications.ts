@@ -127,6 +127,10 @@ export const notificationsSettingsContent = {
       name: 'Shipping update',
       when: 'When the tracking number or courier of a shipped order changes.',
     },
+    order_split: {
+      name: 'Order ships in parts',
+      when: 'When you ship some items now and the rest later, and choose to tell the customer.',
+    },
     unpaid_cancelled: {
       name: 'Order cancelled for not paying',
       when: 'When an unpaid UPI or bank transfer order is cancelled.',

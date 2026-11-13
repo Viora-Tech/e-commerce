@@ -12,7 +12,12 @@ import {
   location,
   order,
   orderLine,
+  orderNote,
+  outboxEvent,
+  preorderCampaign,
   product,
+  purchaseOrder,
+  purchaseOrderLine,
   returnRequest,
   returnRequestLine,
   shipment,
@@ -26,6 +31,7 @@ import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import type { StoreContext } from '../context'
 import { FakePaymentProvider } from '../providers/payment'
 import { returnLocation, returnPickupLocation } from '../returns/service'
+import { builtInShippingRegistry } from '../shipping/settings'
 import { convertDraft } from './drafts'
 import { fulfilOrderLines, fulfilRemainingLines } from './fulfil'
 import {
@@ -34,6 +40,8 @@ import {
   groupIntoParcels,
   lineLocation,
 } from './fulfillment-orders'
+import { linesAvailability } from './parcel-availability'
+import { orderPartShipping } from './parcel-progress'
 import { splitFulfillmentOrder } from './parcel-split'
 import { orderParcelsView } from './parcel-view'
 import { placeOrder } from './place-order'
@@ -523,5 +531,147 @@ describe('splitFulfillmentOrder (partial shipment)', () => {
         splitFulfillmentOrder(ctx, orderId, first.id, [{ orderLineId: line.id, quantity: 3 }]),
       ),
     ).rejects.toThrow(/Nothing is left/)
+  })
+
+  it('keeps the reason, tells the customer and notes it on the timeline', async () => {
+    const t = await seed()
+    const { orderId, line } = await legacyOrder(t)
+    await owner.update(order).set({ email: 'riya@example.com' }).where(eq(order.id, orderId))
+    await inStore(t, (ctx) => ensureFulfillmentOrders(ctx, orderId))
+    const first = (await parcelsOf(orderId)).fos[0]
+    if (!first) throw new Error('no parcel')
+    const r = await inStore(t, (ctx) =>
+      splitFulfillmentOrder(ctx, orderId, first.id, [{ orderLineId: line.id, quantity: 2 }], {
+        reason: 'not_ready',
+        notifyCustomer: true,
+        author: 'staff@example.com',
+      }),
+    )
+    expect(r.customerToldAt).toBeInstanceOf(Date)
+    const [rest] = await owner
+      .select()
+      .from(fulfillmentOrder)
+      .where(eq(fulfillmentOrder.id, r.restId))
+    expect(rest).toMatchObject({ splitReason: 'not_ready' })
+    expect(rest?.customerToldAt).toBeInstanceOf(Date)
+    const events = await owner.select().from(outboxEvent).where(eq(outboxEvent.type, 'order.split'))
+    expect(events.map((e) => e.payload)).toEqual([{ orderId }])
+    const notes = await owner.select().from(orderNote).where(eq(orderNote.orderId, orderId))
+    expect(notes[0]?.body).toMatch(/2 items now, 1 in a new parcel.*some items not ready.*told/)
+    expect(notes[0]?.author).toBe('staff@example.com')
+
+    // The order page reads both parts and when the customer was told.
+    const parts = await inStore(t, async (ctx) =>
+      orderPartShipping(
+        ctx.tx,
+        orderId,
+        await orderParcelsView(ctx.tx, orderId),
+        builtInShippingRegistry(),
+      ),
+    )
+    expect(parts?.parcels.map((p) => p.shipment)).toEqual([null, null])
+    expect(parts?.customerToldAt).toEqual(rest?.customerToldAt)
+  })
+
+  it('does not tell a customer it cannot reach, nor when staff leave the toggle off', async () => {
+    const t = await seed()
+    const { orderId, line } = await legacyOrder(t)
+    await inStore(t, (ctx) => ensureFulfillmentOrders(ctx, orderId))
+    const first = (await parcelsOf(orderId)).fos[0]
+    if (!first) throw new Error('no parcel')
+    // No email or phone on the order: nothing is queued even with the toggle on.
+    const r = await inStore(t, (ctx) =>
+      splitFulfillmentOrder(ctx, orderId, first.id, [{ orderLineId: line.id, quantity: 1 }], {
+        reason: 'customer_asked',
+        notifyCustomer: true,
+      }),
+    )
+    expect(r.customerToldAt).toBeNull()
+    expect(
+      await owner.select().from(outboxEvent).where(eq(outboxEvent.type, 'order.split')),
+    ).toEqual([])
+  })
+})
+
+describe('linesAvailability', () => {
+  it('counts the units on the shelf where the parcel leaves from, at most what it holds', async () => {
+    const t = await seed()
+    const { line } = await legacyOrder(t)
+    const at = (locationId: string | null, quantity = 3) =>
+      inStore(t, (ctx) =>
+        linesAvailability(ctx.tx, [{ orderLineId: line.id, quantity, locationId }]),
+      )
+    expect(await at(t.haryana.id)).toEqual([{ inStock: 3, preorder: null, restockOn: null }])
+    await owner
+      .update(inventoryLevel)
+      .set({ onHand: 1 })
+      .where(
+        and(eq(inventoryLevel.variantId, t.variantId), eq(inventoryLevel.locationId, t.haryana.id)),
+      )
+    expect((await at(t.haryana.id))[0]?.inStock).toBe(1)
+    // Delhi has 5 but does not sell online: the store-wide count leaves it out.
+    expect((await at(null))[0]?.inStock).toBe(1)
+    expect((await at(t.delhi.id))[0]?.inStock).toBe(3)
+  })
+
+  it('dates a short line by the next purchase order due at that location', async () => {
+    const t = await seed()
+    const { line } = await legacyOrder(t)
+    await owner
+      .update(inventoryLevel)
+      .set({ onHand: 1 })
+      .where(eq(inventoryLevel.variantId, t.variantId))
+    const [po] = await owner
+      .insert(purchaseOrder)
+      .values({
+        storeId: t.storeId,
+        number: 1,
+        supplierName: 'Maker',
+        locationId: t.haryana.id,
+        status: 'ordered',
+        expectedAt: new Date('2026-10-20T06:00:00Z'),
+      })
+      .returning()
+    await owner.insert(purchaseOrderLine).values({
+      storeId: t.storeId,
+      purchaseOrderId: po?.id as string,
+      variantId: t.variantId,
+      quantity: 5,
+    })
+    const [a] = await inStore(t, (ctx) =>
+      linesAvailability(ctx.tx, [{ orderLineId: line.id, quantity: 3, locationId: t.haryana.id }]),
+    )
+    expect(a).toEqual({ inStock: 1, preorder: null, restockOn: '2026-10-20' })
+  })
+
+  it("dates a waiting pre-order by its campaign's ship date, else the line's own", async () => {
+    const t = await seed()
+    const { line } = await legacyOrder(t)
+    await owner
+      .update(inventoryLevel)
+      .set({ onHand: 0 })
+      .where(eq(inventoryLevel.variantId, t.variantId))
+    await owner
+      .update(orderLine)
+      .set({ preorder: true, preorderShipDate: new Date('2026-10-30T06:00:00Z') })
+      .where(eq(orderLine.id, line.id))
+    const ask = () =>
+      inStore(t, (ctx) =>
+        linesAvailability(ctx.tx, [
+          { orderLineId: line.id, quantity: 3, locationId: t.haryana.id },
+        ]),
+      )
+    expect((await ask())[0]?.preorder).toEqual({ arrivesOn: '2026-10-30' })
+    const [c] = await owner
+      .insert(preorderCampaign)
+      .values({ storeId: t.storeId, name: 'Launch', shipDate: new Date('2026-10-22T06:00:00Z') })
+      .returning()
+    await owner
+      .update(orderLine)
+      .set({ preorderCampaignId: c?.id as string })
+      .where(eq(orderLine.id, line.id))
+    expect(await ask()).toEqual([
+      { inStock: 0, preorder: { arrivesOn: '2026-10-22' }, restockOn: null },
+    ])
   })
 })

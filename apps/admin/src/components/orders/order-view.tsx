@@ -42,6 +42,7 @@ import OrderPageFrame from './order-page-frame'
 import OrderReturnsCard from './order-returns-card'
 import OrderSideColumn, { INVOICES_ANCHOR, INVOICES_APP } from './order-side-column'
 import ParcelsCard from './parcels-card'
+import PartlyShippedCard from './partly-shipped-card'
 import PaymentCard from './payment-card'
 import RefundDialog from './refund-dialog'
 import SendMessageDialog from './send-message-dialog'
@@ -362,7 +363,12 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
             onSendReminder={sendReminder}
             busy={busy}
           />
-          {readOnly || parcelsFirst ? null : <ParcelsCard order={order} />}
+          {/* An order shipping in parts shows each part's progress (Figma 918:10852). */}
+          {readOnly || parcelsFirst ? null : order.partShipping ? (
+            <PartlyShippedCard order={order} canShip={canShip} />
+          ) : (
+            <ParcelsCard order={order} />
+          )}
           {readOnly ? null : (
             <div id="order-shipment" className="scroll-mt-6">
               <ShipmentPanel

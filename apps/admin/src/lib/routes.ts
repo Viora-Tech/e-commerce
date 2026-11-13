@@ -61,12 +61,15 @@ export const routes = {
   orders: {
     list: () => '/orders',
     detail: (orderId: string) => `/orders/${id(orderId)}`,
-    ship: (orderId: string) => `/orders/${id(orderId)}/ship`,
+    /** `parcelId`: start on that parcel (a Part 2 still to book). */
+    ship: (orderId: string, parcelId?: string) =>
+      `/orders/${id(orderId)}/ship${parcelId ? `?parcel=${id(parcelId)}` : ''}`,
     /** Edit a placed order's items, shipping and discount (review, then save). */
     edit: (orderId: string) => `/orders/${id(orderId)}/edit`,
     /** An order opened from Shipments: Create shipment until it is booked, then the order page
      *  at its shipment card. Under /orders/shipments so the sidebar keeps Shipments lit. */
-    shipment: (orderId: string) => `/orders/shipments/${id(orderId)}`,
+    shipment: (orderId: string, parcelId?: string) =>
+      `/orders/shipments/${id(orderId)}${parcelId ? `?parcel=${id(parcelId)}` : ''}`,
     bulkEdit: () => '/orders/bulk-edit',
     /** Packing slips for these orders, one per page, printed straight away. */
     packingSlips: (orderIds: string[]) => `/orders/packing-slips?ids=${orderIds.map(id).join(',')}`,

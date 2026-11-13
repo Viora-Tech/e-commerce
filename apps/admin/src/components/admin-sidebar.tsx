@@ -1,6 +1,13 @@
 'use client'
 
-import { CheckIcon, ChevronsUpDown, ExternalLink, Globe, Store } from '@commerce/ui/icons'
+import {
+  CheckIcon,
+  ChevronsUpDown,
+  ExternalLink,
+  Globe,
+  LayoutGrid,
+  Store,
+} from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import {
   DropdownMenu,
@@ -31,9 +38,11 @@ import {
 } from '@/data/navigation'
 import { useCopy, useLocale } from '@/hooks/use-copy'
 import { usePermissions } from '@/hooks/use-permissions'
+import { useRecentApps } from '@/hooks/use-recent-apps'
 import { authClient } from '@/lib/auth-client'
 import { withSalesChannels } from '@/lib/nav-channels'
 import { localizeNavItems, navGroupName } from '@/lib/page-names'
+import { orderSidebarApps } from '@/lib/recent-apps'
 import { routes } from '@/lib/routes'
 import {
   SIDEBAR_BLOCK,
@@ -84,20 +93,29 @@ const SIDEBAR_MENU = 'w-60 rounded-sm p-1'
 const APP_PAGES_SHOWN = 4
 
 /**
- * Each installed app is its own row in the Apps group, after the Apps entry (Figma 928:10728):
- * its icon, a chevron, and its pages nested while one of them is open. Rows keep the installed
- * order, so a row never moves under the pointer. Page counts ("Queue 6") come in `navCounts`.
+ * The Apps group lists only the three apps this member opened most recently in this store
+ * (`orderSidebarApps`, the one on screen first), each its own row with its pages nested while
+ * open, then "All apps (n)" for the rest (owner, 13 Nov 2026: 20 installed apps made every-app
+ * rows too long). Page counts ("Queue 6") come in `navCounts`.
  */
-function withAppRows(items: NavItem[], apps: AdminSidebarProps['apps']): NavItem[] {
+function withAppRows(
+  items: NavItem[],
+  shown: AdminSidebarProps['apps'],
+  installed: number,
+  allAppsLabel: (n: number) => string,
+): NavItem[] {
   return [
     ...items,
-    ...apps.map((a) => ({
+    ...shown.map((a) => ({
       href: a.href,
       label: a.name,
       icon: appIcon(a.icon),
       base: routes.apps.page(a.id),
       ...((a.pages?.length ?? 0) >= 2 ? { children: a.pages, childLimit: APP_PAGES_SHOWN } : {}),
     })),
+    ...(installed > shown.length
+      ? [{ href: routes.apps.list(), label: allAppsLabel(installed), icon: LayoutGrid }]
+      : []),
   ]
 }
 
@@ -133,6 +151,11 @@ export default function AdminSidebar({
   const locale = useLocale()
   const pathname = usePathname()
   const { member } = usePermissions()
+  const { recent, currentId } = useRecentApps(
+    activeStoreId,
+    pathname,
+    apps.map((a) => a.id),
+  )
   const [switchingId, setSwitchingId] = useState<string | null>(null)
 
   // Event handlers
@@ -258,7 +281,12 @@ export default function AdminSidebar({
             label={group.label ? navGroupName(group.label, locale) : undefined}
             items={
               group.label === APPS_GROUP
-                ? withAppRows(localizeNavItems(group.items, locale), apps)
+                ? withAppRows(
+                    localizeNavItems(group.items, locale),
+                    orderSidebarApps(apps, recent, currentId),
+                    apps.length,
+                    copy.allApps,
+                  )
                 : localizeNavItems(group.items, locale)
             }
             pathname={pathname}

@@ -42,6 +42,7 @@ const line = (weightGrams: number | null = 300) => ({
   sku: null,
   unitPricePaise: 249900,
   weightGrams,
+  availability: { inStock: 1, preorder: null, restockOn: null },
 })
 
 const parcel = (over: Partial<DraftParcel> = {}): DraftParcel => ({

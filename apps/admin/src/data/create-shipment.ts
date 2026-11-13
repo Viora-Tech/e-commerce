@@ -84,10 +84,22 @@ export const createShipmentContent = {
     of: (n: number, total: number) => `${n} of ${total}`,
     less: (title: string) => `One less ${title}`,
     more: (title: string) => `One more ${title}`,
-    summary: (now: number, later: number) =>
-      `${now} item${now === 1 ? '' : 's'} ship now; ${later} stay in To ship as the next parcel.`,
-    split: 'Ship only these',
-    done: 'Split. The rest is a new parcel in To ship.',
+    /** Figma 916:10179's item chips. `date` is already formatted ("22 Oct"). */
+    preorder: (date: string | null) => (date ? `Pre-order · arrives ${date}` : 'Pre-order'),
+    inStock: (n: number, total: number) => `${n} of ${total} in stock`,
+    reasonLabel: 'Reason',
+    reasonValue: (reason: string) => `Reason: ${reason}`,
+    reasons: {
+      not_ready: 'Some items not ready',
+      preorder: 'Pre-order not arrived',
+      out_of_stock: 'Waiting for stock',
+      customer_asked: 'Customer asked',
+      other: 'Other',
+    } as Record<'not_ready' | 'preorder' | 'out_of_stock' | 'customer_asked' | 'other', string>,
+    notify: (parts: number) => `Tell the customer it ships in ${parts} parts`,
+    thisParcel: (items: string) => `This parcel: ${items}`,
+    /** Booking failed after the split: the rest is already its own parcel. */
+    splitKept: 'The rest is now its own parcel in To ship.',
   },
   drawer: {
     title: 'Select courier partner',
