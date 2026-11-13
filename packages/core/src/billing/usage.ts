@@ -6,6 +6,8 @@ import { and, eq, gte, ne, sql } from 'drizzle-orm'
 /** What a store used this calendar month (IST), against its plan's limits. */
 export type PlanUsage = {
   orders: number
+  /** What this month's orders took, in paise: the average order for the pace maths. */
+  salesPaise: number
   staff: number
   storageBytes: number
   ai: { calls: number; tokens: number; credits: number }
@@ -18,7 +20,10 @@ export async function planUsage(tx: StoreTx, now = new Date()): Promise<PlanUsag
   const month = dayKey(now).slice(0, 7)
   const [[orders], [staff], [storage], [ai]] = await Promise.all([
     tx
-      .select({ n: sql<number>`count(*)::int` })
+      .select({
+        n: sql<number>`count(*)::int`,
+        sales: sql<number>`coalesce(sum(${order.totalPaise}), 0)::bigint`,
+      })
       .from(order)
       .where(
         and(
@@ -45,6 +50,7 @@ export async function planUsage(tx: StoreTx, now = new Date()): Promise<PlanUsag
   ])
   return {
     orders: orders?.n ?? 0,
+    salesPaise: Number(orders?.sales ?? 0),
     staff: staff?.n ?? 0,
     storageBytes: Number(storage?.bytes ?? 0),
     ai: {

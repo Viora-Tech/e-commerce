@@ -1625,6 +1625,13 @@
       "when": 1795189200000,
       "tag": "0247_notification_channel_log",
       "breakpoints": true
+    },
+    {
+      "idx": 232,
+      "version": "7",
+      "when": 1795189300000,
+      "tag": "0248_plan_payment_proration",
+      "breakpoints": true
     }
   ]
 }

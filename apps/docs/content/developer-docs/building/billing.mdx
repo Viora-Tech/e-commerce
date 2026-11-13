@@ -37,6 +37,36 @@ The worker's hourly `{billing}-sweep` (`runBillingSweep`, `stores_with_plan_due`
 
 It is off while `PLATFORM_SALES_STORE_ID` is unset.
 
+## Changing plans (proration)
+
+`quotePlanChange` (`billing/proration.ts`, pure) decides what picking a plan costs; the admin's
+`billing.quote` shows it ("Move to Pro?") and `billing.choose` bills the same quote
+(`choosePlan` in `billing/plan-change.ts`), so Pay now is the sales order's total.
+
+- **Downgrade with paid time left** (smaller plan, or the same plan yearly → monthly): nothing
+  charged or refunded; `next_plan` is set and applies at the period end.
+- **Trialing, due, paused, or no paid time left:** the new plan's full price for one interval from
+  now, at the plan variant's price (as before).
+- **Upgrade, same interval:** the new plan for the days left (today counts as unused) minus the
+  old plan for the same days, each `round(price × daysLeft / periodDays)`; GST is 18% of the net,
+  rounded to the paisa; never below 0. The bill covers `[now, period end)` and is marked
+  `plan_payment.prorated` (migration `0246`, with `credit_paise`); paying it keeps the period end,
+  so renewals stay on the same date. Paid only after that end, it gives its days from the payment.
+- **Monthly → yearly:** a full year from now at the yearly price, less the month's unused days.
+- **Yearly → a bigger monthly plan:** the rest of the year at twelve times the monthly price, pro
+  rata, less the unused days; monthly renewals start when the year would have ended.
+- A prorated or credited bill's plan line is placed with `unitPricePaise` = net + GST (sales-store
+  prices hold their GST, which the order extracts back to exactly the quoted GST). Unpaid fee bills
+  still ride along as their own line.
+- Choosing the plan and interval the store is already on, with paid time left, is refused
+  (`AlreadyOnPlan`).
+
+The Plan & billing page's **Next bill** is `projectNextBill` (`billing/next-bill.ts`): the renewing
+plan, this month's per-order fees so far, renewing bought apps the plan does not include, and 18%
+GST. The usage nudge (`upgradeNudge`) and Change plan's "at your pace" lines project this month's
+orders at today's daily rate and use `monthlyCost`; the nudge shows only when a bigger plan is at
+least ₹100 a month cheaper.
+
 ## Per-order fees
 
 Each plan includes `PLANS[plan].orders` orders a month; every order after that carries

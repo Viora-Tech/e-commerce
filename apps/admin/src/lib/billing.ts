@@ -1,4 +1,5 @@
 import { siteConfig } from '@commerce/config/site'
+import { formatMoney } from '@commerce/money'
 
 const DAY_MS = 86_400_000
 
@@ -25,3 +26,10 @@ export const ownItContactUrl = (): string =>
 
 /** A fee in basis points as the percent people read: 100 → "1", 75 → "0.75". */
 export const feePercent = (basisPoints: number): string => String(basisPoints / 100)
+
+/** The last day a period covers: bills end at the start of the next one (1 Dec → 30 Nov). */
+export const lastDay = (end: Date | string): Date => new Date(new Date(end).getTime() - 1)
+
+/** A bill amount to the paisa, always with decimals (₹1,999.00), for bill breakdowns. */
+export const billAmount = (paise: number, intl: string): string =>
+  formatMoney(paise, 'INR', { showZeroDecimals: true, locale: intl })

@@ -13,7 +13,7 @@ export type AutopayState = Awaited<ReturnType<typeof api.billing.autopay>>
 
 type AutopayRowProps = { autopay: AutopayState; billingReady: boolean }
 
-/** Plan & billing → Payment method: UPI AutoPay on, waiting for the mandate, failed, or off. */
+/** Plan & billing → Next bill: UPI AutoPay on, waiting for the mandate, failed, or off. */
 export default function AutopayRow({ autopay, billingReady }: AutopayRowProps) {
   // Hooks
   const copy = useCopy(billingContent)
@@ -47,9 +47,9 @@ export default function AutopayRow({ autopay, billingReady }: AutopayRowProps) {
 
   // Early returns
   if (!billingReady)
-    return <p className="mt-3 text-caption text-muted-foreground">{copy.payment.notReady}</p>
+    return <p className="text-caption text-muted-foreground">{copy.payment.notReady}</p>
   if (!autopay.available)
-    return <p className="mt-3 text-caption text-muted-foreground">{copy.payment.autopay}</p>
+    return <p className="text-caption text-muted-foreground">{copy.payment.autopay}</p>
 
   // Render logic
   const status = autopay.mandate?.status ?? null
@@ -62,7 +62,7 @@ export default function AutopayRow({ autopay, billingReady }: AutopayRowProps) {
           ? copy.payment.autopayHalted
           : copy.payment.autopayOff
   return (
-    <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+    <div className="flex flex-col items-start gap-3">
       <p className="text-caption text-muted-foreground">{line}</p>
       <div className="flex gap-2">
         {status === 'created' && autopay.mandate?.approveUrl ? (
@@ -82,7 +82,7 @@ export default function AutopayRow({ autopay, billingReady }: AutopayRowProps) {
             {copy.payment.autopayStop}
           </Button>
         ) : (
-          <Button size="sm" loading={busy} onClick={handleStart}>
+          <Button size="sm" variant="outline" loading={busy} onClick={handleStart}>
             <CreditCard aria-hidden="true" />
             {copy.payment.autopayStart}
           </Button>

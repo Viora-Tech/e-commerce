@@ -5,6 +5,7 @@
  */
 
 import { siteConfig } from '@commerce/config/site'
+import { dayKey } from '@commerce/dates'
 import {
   aiSettings,
   type Db,
@@ -30,18 +31,21 @@ import { orderViewToken, thankYouPath } from '../preorder/balance-link'
 import { validateGstin } from '../tax/gstin'
 import { autopayActive } from './autopay'
 import { planBillWhat, sendPlanBillEmail } from './emails'
+import { type MonthPace, monthPace, type UpgradeNudge, upgradeNudge } from './next-bill'
+import { quoteNote } from './plan-change'
 import {
   addInterval,
   type BillingInterval,
   GRACE_DAYS,
   PLANS,
   type PlanId,
-  planRank,
   planSku,
   RENEW_AHEAD_DAYS,
   TRIAL_DAYS,
 } from './plans'
+import { type PlanChargeQuote, paidPeriodEnd } from './proration'
 import { type PlanUsage, planUsage } from './usage'
+import { feeBillChargePaise, withFeeGst } from './usage-fee'
 import { billingMonth, feeEstimate, previousMonth } from './usage-fee-service'
 
 const DAY_MS = 86_400_000
@@ -133,6 +137,10 @@ export type PlanView = {
   unpaidFees: number
   /** Last month closed two months running over the plan's fair-use visits. */
   fairUseNotice: boolean
+  /** This month's orders and where they are heading: Change plan's "at your pace" lines. */
+  pace: MonthPace
+  /** A bigger plan that would cost less at this pace (the "Pro would save about ₹1,100" box). */
+  nudge: UpgradeNudge | null
 }
 
 export type UsageBillView = {
@@ -204,13 +212,15 @@ export async function loadPlanView(
       .limit(12),
   ])
   const shown = bills.map((b) => toBill(env, b))
+  const pace = monthPace(usage.orders, usage.salesPaise, dayKey(now))
   const usageBills = feeBills.map(
     (b): UsageBillView => ({
       id: b.id,
       month: b.month,
       ordersCounted: b.ordersCounted,
       feeOrders: b.feeOrders,
-      totalPaise: b.totalPaise,
+      // What the store pays: the fee with 18% GST on top, as its sales order charges it.
+      totalPaise: feeBillChargePaise(b),
       status: b.status,
       paidAt: b.paidAt,
       url:
@@ -235,8 +245,10 @@ export async function loadPlanView(
     invoiceEmail: contact?.email ?? null,
     fees,
     usageBills,
-    unpaidFees: feeBills.filter((b) => b.status === 'due').reduce((n, b) => n + b.totalPaise, 0),
+    unpaidFees: usageBills.filter((b) => b.status === 'due').reduce((n, b) => n + b.totalPaise, 0),
     fairUseNotice: row.fairUseNoticeMonth === previousMonth(billingMonth(now)),
+    pace,
+    nudge: row.unlimited ? null : upgradeNudge(row.plan, pace),
   }
 }
 
@@ -373,10 +385,18 @@ async function salesOrderPaid(db: Db, env: BillingEnv, orderId: string): Promise
 export async function createPlanBill(
   db: Db,
   storeId: string,
-  input: { plan: PlanId; interval: BillingInterval; periodStart: Date },
+  input: {
+    plan: PlanId
+    interval: BillingInterval
+    periodStart: Date
+    /** A plan change (`quotePlanChange`): its period; prorated or credited, its plan total. */
+    quote?: PlanChargeQuote | undefined
+  },
   env: BillingEnv,
 ): Promise<PlanBill> {
-  const periodEnd = addInterval(input.periodStart, input.interval)
+  const { quote } = input
+  const computed = quote && (quote.prorated || quote.creditPaise > 0) ? quote : null
+  const periodEnd = quote ? quote.periodEnd : addInterval(input.periodStart, input.interval)
   const claimed = await withStore(db, storeId, async (tx) => {
     const replaced = await tx
       .select({ id: planPayment.salesOrderId })
@@ -414,11 +434,21 @@ export async function createPlanBill(
   const placeBill = (withFees: boolean) =>
     placeSalesOrder(db, env, storeId, {
       lines: [
-        { sku: planSku(input.plan, input.interval) },
-        ...(withFees ? [{ sku: usageFeeSku('carried'), unitPricePaise: feesPaise }] : []),
+        {
+          sku: planSku(input.plan, input.interval),
+          ...(computed ? { unitPricePaise: computed.planTotalPaise } : {}),
+        },
+        ...(withFees
+          ? [{ sku: usageFeeSku('carried'), unitPricePaise: withFeeGst(feesPaise) }]
+          : []),
       ],
       note: (buyer) =>
-        `${siteConfig.brand.name} ${input.plan} (${input.interval}) for ${buyer}, store ${storeId}`,
+        [
+          `${siteConfig.brand.name} ${input.plan} (${input.interval}) for ${buyer}, store ${storeId}`,
+          computed ? quoteNote(computed, input.periodStart, periodEnd) : null,
+        ]
+          .filter(Boolean)
+          .join('. '),
     })
   let withFees = feesPaise > 0
   let sale: Awaited<ReturnType<typeof placeSalesOrder>>
@@ -451,6 +481,8 @@ export async function createPlanBill(
         periodStart: input.periodStart,
         periodEnd,
         status: 'due',
+        prorated: quote?.prorated ?? false,
+        creditPaise: quote?.creditPaise ?? 0,
       })
       .returning()
     if (!row) throw new Error('plan bill insert returned nothing')
@@ -472,35 +504,6 @@ export async function createPlanBill(
       )
     }
   return toBill(env, bill)
-}
-
-/**
- * The owner picked a plan. An upgrade (or any plan while trialing, due or paused) is billed now
- * and starts when paid; a downgrade on an active plan waits for the period to end.
- */
-export async function choosePlan(
-  db: Db,
-  storeId: string,
-  input: { plan: PlanId; interval: BillingInterval },
-  env: BillingEnv,
-  now = new Date(),
-): Promise<{ bill: PlanBill | null; scheduled: boolean }> {
-  const row = await withStore(db, storeId, (tx) => ensureStorePlan(tx, storeId, now))
-  if (row.unlimited) throw new UnlimitedPlan()
-  const cheaper =
-    planRank(input.plan) < planRank(row.plan) ||
-    (input.plan === row.plan && input.interval === 'month' && row.interval === 'year')
-  if (row.status === 'active' && cheaper && row.periodEnd && row.periodEnd > now) {
-    await withStore(db, storeId, (tx) =>
-      tx
-        .update(storePlan)
-        .set({ nextPlan: input.plan, updatedAt: now })
-        .where(eq(storePlan.storeId, storeId)),
-    )
-    return { bill: null, scheduled: true }
-  }
-  const bill = await createPlanBill(db, storeId, { ...input, periodStart: now }, env)
-  return { bill, scheduled: false }
 }
 
 /** Drops a scheduled downgrade. */
@@ -533,7 +536,7 @@ export async function markPlanBillPaid(
     if (!bill || bill.status === 'paid') return
     // Paid late: the period starts when the money arrived, never in the past.
     const start = bill.periodStart > now ? bill.periodStart : now
-    const end = addInterval(start, bill.interval)
+    const end = paidPeriodEnd(bill, start, now)
     await tx
       .update(planPayment)
       .set({ status: 'paid', paidAt: now, periodStart: start, periodEnd: end })
@@ -586,7 +589,8 @@ export async function cancelPlanBill(db: Db, salesOrderId: string): Promise<void
 /** The sales-store SKU a fee line is billed on: one per plan rate, and one for carried fees. */
 export const usageFeeSku = (plan: PlanId | 'carried'): string => `usage-fee-${plan}`
 
-// Per-order fee bills live in their own module; re-exported so callers keep this path.
+// Plan changes and per-order fee bills live in their own modules; re-exported for callers.
+export { AlreadyOnPlan, choosePlan, loadPlanChangeQuote } from './plan-change'
 export {
   cancelUsageBill,
   markUsageBillPaid,

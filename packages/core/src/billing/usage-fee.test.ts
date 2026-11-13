@@ -1,6 +1,14 @@
 /** SOURCE OF TRUTH: per-order fee tests — WHAT: which orders carry the fee and how much / WHY: a bill must never charge an order the store didn't really get */
 import { describe, expect, it } from 'vitest'
-import { billable, type FeeOrder, feeOrderRows, monthFee, type PaidPeriod } from './usage-fee'
+import {
+  billable,
+  type FeeOrder,
+  feeBillChargePaise,
+  feeOrderRows,
+  monthFee,
+  type PaidPeriod,
+  withFeeGst,
+} from './usage-fee'
 
 const oct = (day: number, hour = 10) => new Date(Date.UTC(2026, 9, day, hour))
 const month: PaidPeriod[] = [
@@ -89,5 +97,25 @@ describe('feeOrderRows', () => {
       { ...list[50], plan: 'starter', feePaise: 1_000 },
       { ...list[51], plan: 'starter', feePaise: 1_000 },
     ])
+  })
+})
+
+describe('fee bill charge', () => {
+  it('adds 18% GST on top of each line and the carried amount', () => {
+    expect(withFeeGst(20_000)).toBe(23_600)
+    const lines = [{ feePaise: 20_000 }, { feePaise: 1_234 }]
+    expect(feeBillChargePaise({ lines, carriedInPaise: 5_000, totalPaise: 26_234 })).toBe(
+      23_600 + 1_456 + 5_900,
+    )
+  })
+
+  it('charges nothing extra when nothing was carried in', () => {
+    expect(
+      feeBillChargePaise({ lines: [{ feePaise: 10_000 }], carriedInPaise: 0, totalPaise: 10_000 }),
+    ).toBe(11_800)
+  })
+
+  it('charges a bill without plan lines as one line of its total', () => {
+    expect(feeBillChargePaise({ lines: [], carriedInPaise: 0, totalPaise: 20_000 })).toBe(23_600)
   })
 })

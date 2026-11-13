@@ -2,19 +2,19 @@
 
 import { PLAN_QUOTAS } from '@commerce/ai/client'
 import type { PlanView } from '@commerce/core'
-import { nextPlanUp, PLANS } from '@commerce/core/billing'
+import { PLANS } from '@commerce/core/billing'
+import { Card } from '@commerce/ui/shadcn/card'
 import { Progress } from '@commerce/ui/shadcn/progress'
 import KitButton from '@/components/kit/kit-button'
-import DataCard from '@/components/layout/data-card'
 import StatusChip from '@/components/layout/status-chip'
 import { billingContent } from '@/data/billing'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { bytesToGb, daysUntil, feePercent, usageShare } from '@/lib/billing'
+import { routes } from '@/lib/routes'
 
 type CurrentPlanCardProps = {
   view: PlanView
   onKeepPlan: () => void
-  onCompare: () => void
 }
 
 const STATUS_TONE = {
@@ -25,22 +25,21 @@ const STATUS_TONE = {
   cancelled: 'neutral',
 } as const
 
-/** Figma "Current plan": the plan, its price and renewal, and this month's usage bars. */
-export default function CurrentPlanCard({ view, onKeepPlan, onCompare }: CurrentPlanCardProps) {
+/**
+ * Figma 931:9997 plan card: the plan with its status chip, what it includes, the price, this
+ * month's usage bars and, when a bigger plan costs less at this pace, the "See Pro" nudge.
+ */
+export default function CurrentPlanCard({ view, onKeepPlan }: CurrentPlanCardProps) {
   // Hooks
   const copy = useCopy(billingContent)
   const format = useFormat()
 
   // Render logic
   const plan = PLANS[view.plan]
-  const name = copy.plans[view.plan].name
   const price = plan.pricePaise[view.interval]
-  const ai = PLAN_QUOTAS[plan.ai]
-  const overOrders = view.usage.orders > plan.orders
   const percent = feePercent(plan.feeBasisPoints)
-  const fees = view.fees
-  const up = nextPlanUp(view.plan)
-  const line =
+  const orders = format.number(plan.orders)
+  const when =
     view.status === 'trialing' && view.trialEndsAt
       ? copy.current.trialEnds(format.date(view.trialEndsAt), daysUntil(view.trialEndsAt))
       : view.periodEnd
@@ -51,38 +50,46 @@ export default function CurrentPlanCard({ view, onKeepPlan, onCompare }: Current
   const bars = [
     { id: 'orders', label: copy.usage.orders, used: view.usage.orders, limit: plan.orders },
     { id: 'staff', label: copy.usage.staff, used: view.usage.staff, limit: plan.staff },
-    { id: 'ai', label: copy.usage.ai, used: Math.ceil(view.usage.ai.credits), limit: ai.credits },
+    {
+      id: 'ai',
+      label: copy.usage.ai,
+      used: Math.ceil(view.usage.ai.credits),
+      limit: PLAN_QUOTAS[plan.ai].credits,
+    },
   ]
+  const nudge = view.nudge
+  const nudgeText = nudge
+    ? (view.usage.orders >= plan.orders ? copy.nudge.past : copy.nudge.close)(
+        orders,
+        percent,
+        copy.plans[nudge.plan].name,
+        format.moneyWhole(nudge.savingInr * 100),
+      )
+    : null
 
   return (
-    <DataCard title={copy.current.heading} bodyClassName="flex flex-col gap-5">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="flex flex-col gap-1">
+    <Card gap={5} inset={5}>
+      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-border pb-4">
+        <div className="flex min-w-0 flex-col gap-1">
           <div className="flex items-center gap-2">
-            <span className="text-section-title text-ink-strong">{name}</span>
-            <StatusChip tone={STATUS_TONE[view.status]} variant="dot">
-              {copy.status[view.status]}
-            </StatusChip>
+            <h2 className="text-section-title text-ink-strong">{copy.plans[view.plan].name}</h2>
+            <StatusChip tone={STATUS_TONE[view.status]}>{copy.status[view.status]}</StatusChip>
           </div>
-          <span className="text-caption text-muted-foreground">
-            {[
-              plan.feeBasisPoints > 0
-                ? copy.current.feeRate(percent, format.number(plan.orders))
-                : copy.current.noFee,
-              line,
-            ]
-              .filter(Boolean)
-              .join(' · ')}
-          </span>
+          <p className="text-caption text-muted-foreground">
+            {[copy.interval[view.interval], when].filter(Boolean).join(' · ')}
+          </p>
+          <p className="text-caption text-muted-foreground">
+            {plan.feeBasisPoints > 0
+              ? copy.current.included(orders, percent)
+              : copy.current.includedNoFee(orders)}
+          </p>
         </div>
-        <div className="flex flex-col items-end gap-0.5 text-right">
+        <div className="flex flex-col items-end text-right">
           <span className="text-section-title text-ink-strong tabular-nums">
-            {view.interval === 'year'
-              ? copy.perYear(format.money(price))
-              : copy.perMonth(format.money(price))}
+            {format.money(price)}
           </span>
           <span className="text-caption text-muted-foreground">
-            {copy.interval[view.interval]} · {copy.gstExtra}
+            {view.interval === 'year' ? copy.current.perYearGst : copy.current.perMonthGst}
           </span>
         </div>
       </div>
@@ -102,11 +109,9 @@ export default function CurrentPlanCard({ view, onKeepPlan, onCompare }: Current
             <div className="flex items-center justify-between gap-2 text-body">
               <span className="text-ink-strong">{b.label}</span>
               <span
-                className={`tabular-nums ${b.limit !== null && b.used > b.limit ? 'text-warning-foreground dark:text-warning' : 'text-muted-foreground'}`}
+                className={`tabular-nums ${b.used > b.limit ? 'text-warning-foreground dark:text-warning' : 'text-muted-foreground'}`}
               >
-                {b.limit === null
-                  ? copy.usage.unlimited
-                  : copy.usage.of(format.number(b.used), format.number(b.limit))}
+                {copy.usage.of(format.number(b.used), format.number(b.limit))}
               </span>
             </div>
             <Progress value={usageShare(b.used, b.limit)} />
@@ -125,46 +130,14 @@ export default function CurrentPlanCard({ view, onKeepPlan, onCompare }: Current
           <Progress value={usageShare(view.usage.storageBytes, plan.storageGb * 1024 ** 3)} />
         </div>
       </div>
-      {plan.feeBasisPoints > 0 ? (
-        <div className="flex flex-col gap-2 rounded-md border border-border px-3 py-3">
-          <span className="text-body font-medium text-ink-strong">{copy.fees.heading}</span>
-          <div className="flex items-center justify-between gap-2 text-body">
-            <span className="text-muted-foreground">{copy.fees.feeOrders}</span>
-            <span className="tabular-nums">{format.number(fees.feeOrders)}</span>
-          </div>
-          <div className="flex items-center justify-between gap-2 text-body">
-            <span className="text-muted-foreground">{copy.fees.estimate}</span>
-            <span className="font-medium text-ink-strong tabular-nums">
-              {format.money(fees.feePaise + fees.carriedInPaise)}
-            </span>
-          </div>
-          <p className="text-caption text-muted-foreground">
-            {[
-              fees.carriedInPaise > 0 ? copy.fees.carried(format.money(fees.carriedInPaise)) : null,
-              view.status === 'trialing' ? copy.fees.trial : null,
-              copy.fees.note,
-            ]
-              .filter(Boolean)
-              .join(' ')}
-          </p>
-        </div>
-      ) : null}
-      {overOrders ? (
-        <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-warning/30 bg-warning-soft px-3 py-2 text-body">
-          <span>
-            {[
-              plan.feeBasisPoints > 0 && view.status !== 'trialing' ? copy.over.fee(percent) : null,
-              up ? copy.over.upgrade(copy.plans[up].name) : copy.over.ownIt,
-            ]
-              .filter(Boolean)
-              .join(' ')}
-          </span>
-          <KitButton variant="secondary" onClick={onCompare}>
-            {copy.compare}
+      {nudge && nudgeText ? (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-md bg-muted px-3 py-3 text-caption text-foreground">
+          <p className="max-w-md">{nudgeText}</p>
+          <KitButton variant="secondary" href={routes.settings.billingPlans()}>
+            {copy.nudge.see(copy.plans[nudge.plan].name)}
           </KitButton>
         </div>
       ) : null}
-      <p className="text-caption text-muted-foreground">{copy.current.usageNote}</p>
-    </DataCard>
+    </Card>
   )
 }
