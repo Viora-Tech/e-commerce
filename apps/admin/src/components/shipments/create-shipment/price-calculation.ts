@@ -185,26 +185,30 @@ export function priceCalculation(
 }
 
 /**
- * The Create shipment summary's three rows (Figma 898:7376): Freight (every courier line but
- * GST, or the courier's single total), Insurance (fee, GST apart) and GST (the courier's and the
- * insurance's). Null where the row has nothing; the three always add up to the total.
+ * The Create shipment summary's rows (Figma 898:7376): Freight (every courier line but COD and
+ * GST, or the courier's single total), COD fee, Insurance (fee, GST apart) and GST (the
+ * courier's and the insurance's). Null where the row has nothing; they always add up to the total.
  */
 export function summaryParts(calc: PriceCalculation): {
   freightPaise: number
+  codPaise: number | null
   insurancePaise: number | null
   gstPaise: number | null
 } {
   let freight = 0
+  let cod: number | null = null
   let insurance: number | null = null
   let gst: number | null = null
   for (const line of calc.lines) {
     if ((line.kind === 'charge' && line.charge === 'gst') || line.kind === 'insuranceGst') {
       gst = (gst ?? 0) + line.paise
+    } else if (line.kind === 'charge' && line.charge === 'cod') {
+      cod = (cod ?? 0) + line.paise
     } else if (line.kind === 'insuranceFee') {
       insurance = (insurance ?? 0) + line.paise
     } else {
       freight += line.paise
     }
   }
-  return { freightPaise: freight, insurancePaise: insurance, gstPaise: gst }
+  return { freightPaise: freight, codPaise: cod, insurancePaise: insurance, gstPaise: gst }
 }
