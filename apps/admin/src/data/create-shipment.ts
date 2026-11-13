@@ -367,4 +367,95 @@ export const createShipmentContent = {
     chooseCourier: 'Pick a courier above to ask it for a pickup.',
     dayLabel: 'Pickup day',
   },
+  /** The Booked drawer after a single booking (Figma 905:7783). */
+  booked: {
+    badge: 'Booked',
+    title: (courier: string) => `Booked with ${courier}`,
+    body: 'Label is ready. The order moved to Shipments › Booked.',
+    noLabelBody: 'The courier has not sent the label yet. The order moved to Shipments › Booked.',
+    close: 'Close',
+    shipment: 'Shipment',
+    awb: 'AWB',
+    order: 'Order',
+    deliveryBy: 'Delivery by',
+    inDays: (n: number) => (n <= 0 ? 'today' : `in ${n} ${n === 1 ? 'day' : 'days'}`),
+    charged: 'Charged',
+    inclGst: 'incl. GST',
+    inclGstInsurance: 'incl. GST + insurance',
+    wallet: 'Wallet',
+    walletLeft: (amount: string) => `${amount} left`,
+    next: 'Next',
+    printStep: 'Print the label and stick it on the parcel',
+    printStepHelp: '4 × 6 in thermal or A4. You can print it again from Booked any time.',
+    pickupStep: 'Create a pickup',
+    pickupStepHelp:
+      'Now for just this parcel, or later from Shipments › Booked to send one pickup for the whole day.',
+    printLabel: 'Print label',
+    createPickup: 'Create pickup now',
+    backToOrders: 'Back to orders',
+    pickupBooked: (day: string) => `Pickup booked for ${day}. The parcel moved to To be picked up.`,
+  },
+  /** The Create pickup drawer (Figma 905:8280, and 906:8464 when a pickup is already booked). */
+  pickupDrawer: {
+    title: 'Create pickup',
+    subtitle: (courier: string) =>
+      `${courier} · the manifest is made with the pickup request. Parcels then move to To be picked up.`,
+    subtitleJoin: (courier: string) =>
+      `${courier} · joining an existing pickup updates its manifest. Parcels then move to To be picked up.`,
+    close: 'Close',
+    loading: 'Loading your booked parcels…',
+    failed: 'Could not load the pickup details. Close and try again.',
+    nothing: 'These parcels are already on a pickup, or their courier is not connected.',
+    location: 'Pickup location',
+    placeLabel: (place: string, city: string | null, pincode: string | null) =>
+      [place, [city, pincode].filter(Boolean).join(' ')].filter(Boolean).join(' · '),
+    placeWithCourier: (place: string, courier: string) => `${place} · ${courier}`,
+    registered: (courier: string) => `Registered with ${courier} as your pickup address.`,
+    day: 'Pickup day',
+    today: 'Today',
+    tomorrow: 'Tomorrow',
+    afterCutoff: 'after 2 pm cut-off',
+    beforeCutoff: 'book before 2 pm',
+    bookedTag: (time: string) => `Pickup booked · ${time}`,
+    time: 'Time',
+    from: 'From',
+    fromValue: (time: string) => `From ${time}`,
+    to: 'To (optional)',
+    toValue: (time: string) => `To ${time}`,
+    noEnd: 'No end time',
+    timeHelp: 'The courier comes in this window. 24-hour time.',
+    timeLocked: 'Set by the existing pickup. Pick another day for a new pickup.',
+    alreadyComing: (courier: string, day: string, time: string) =>
+      `${courier} is already coming ${day} from ${time}`,
+    alreadyDetail: (ref: string | null, n: number, place: string) =>
+      [
+        ref ? `Pickup ${ref}` : null,
+        `${n} ${n === 1 ? 'parcel' : 'parcels'}`,
+        `${place}. This parcel joins it; no new request is sent.`,
+      ]
+        .filter(Boolean)
+        .join(' · '),
+    viewPickup: 'View pickup',
+    parcels: 'Parcels in this pickup',
+    parcelsCount: (n: number) => `Parcels in this pickup · ${n}`,
+    parcelTitle: (orderNumber: number, awb: string) => `#${orderNumber} · AWB ${awb}`,
+    weight: (kg: string) => `${kg} kg`,
+    bookedEarlier: (when: string, courier: string) => `Booked ${when} · ${courier}`,
+    earlierToday: 'earlier today',
+    alreadyIn: (orders: string) => `Already in it: ${orders}`,
+    waiting: (n: number, courier: string) =>
+      `${n} more ${courier} ${n === 1 ? 'parcel is' : 'parcels are'} waiting in Booked. Tick them to send one pickup.`,
+    waitingJoin: (n: number, courier: string) =>
+      `${n} more ${courier} ${n === 1 ? 'parcel is' : 'parcels are'} waiting in Booked. Tick them to add them to the same pickup.`,
+    tick: (orderNumber: number) => `Include #${orderNumber}`,
+    create: (n: number) => `Create pickup · ${n} ${n === 1 ? 'parcel' : 'parcels'}`,
+    add: (n: number) => `Add to pickup · ${n} ${n === 1 ? 'parcel' : 'parcels'}`,
+    later: 'Later',
+    created: 'Pickup booked. The parcels moved to To be picked up.',
+    joined: (n: number) =>
+      `${n} ${n === 1 ? 'parcel' : 'parcels'} added to the pickup. Its manifest is updated.`,
+    refused:
+      "The courier didn't take the pickup request. Try again, or book it on their dashboard.",
+    nextPlace: 'Done. Now the parcels from the next pickup location.',
+  },
 }

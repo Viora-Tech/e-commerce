@@ -12,6 +12,7 @@ import {
   createManifestForStore,
   listManifestsForStore,
   listNdrForStore,
+  listPickupOptionsForStore,
   listPickupsForStore,
   listUnpickedForStore,
   listWalletCards,
@@ -273,6 +274,21 @@ export const shipmentsRouter = {
   listUnpicked: can(permissions.ORDERS_READ).handler(({ context }) =>
     listUnpickedForStore(context.tx, context.scope.storeId),
   ),
+
+  /** The Create pickup drawer: per courier and place, the parcels still without a pickup and
+   *  the pickups already booked there (Figma 905:8280, 906:8464). */
+  listPickupOptions: can(permissions.ORDERS_READ)
+    .input(z.object({ shipmentIds: z.array(z.uuid()).min(1).max(500) }))
+    .handler(async ({ context, input }) => {
+      const { shipping } = await storeRegistries(context.tx, context.scope.storeId)
+      return listPickupOptionsForStore(
+        context.tx,
+        context.scope.storeId,
+        shipping,
+        settingsSecret(),
+        input.shipmentIds,
+      )
+    }),
 
   createManifest: can(permissions.ORDERS_FULFIL)
     .input(
