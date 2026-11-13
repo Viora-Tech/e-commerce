@@ -63,6 +63,8 @@ export type DraftOrder = {
   paymentStatus: string
   fulfillmentStatus: string
   paymentMode: 'cod' | 'prepaid'
+  /** A COD order whose shopper was asked to pay online ("Ask to pay online"), still unpaid. */
+  payOnlineRequestedAt: Date | null
   totalPaise: number
   /** Why this order can't be booked here, if it can't. */
   blocked: 'no_address' | 'closed' | 'nothing_to_ship' | 'on_hold' | null

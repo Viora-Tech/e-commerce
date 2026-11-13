@@ -77,6 +77,7 @@ import inboxKnowledge from './inbox-knowledge'
 import indiaPost from './india-post'
 import installedApps from './installed-apps'
 import inventory from './inventory'
+import labelSheet from './label-sheet'
 import layout from './layout'
 import localDelivery from './local-delivery'
 import login from './login'
@@ -274,6 +275,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...collections,
   ...commandPalette,
   ...inventory,
+  ...labelSheet,
   ...productForm,
   ...productBulkShipping,
   ...productShipping,

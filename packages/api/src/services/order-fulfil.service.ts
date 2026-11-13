@@ -156,6 +156,8 @@ export async function collectOrderPayment(
         eq(payment.orderId, input.orderId),
         eq(payment.purpose, 'order'),
         inArray(payment.status, [...OPEN_ATTEMPT_STATUSES]),
+        // Cash on a COD order never captures the "pay online" gateway attempt left open beside it.
+        current.paymentMethod === 'cod' ? eq(payment.provider, 'cod') : undefined,
       ),
     )
     .orderBy(desc(payment.attempt))

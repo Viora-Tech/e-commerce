@@ -33,6 +33,8 @@ export type TemplateId =
   | 'order_link'
   /** Staff shipped part of the order now; the rest follows in its own parcel ("ships in 2 parts"). */
   | 'order_split'
+  /** Staff asked a cash on delivery shopper to pay online instead, with their order page link ("Ask to pay online"). */
+  | 'cod_pay_online'
   | 'draft_invoice'
   | 'checkout_recovery'
   /** A copy of an order document (invoice, credit note) sent on request, with the file attached. */

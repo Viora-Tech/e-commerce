@@ -72,6 +72,7 @@ export const sampleTemplateDataByTemplate: Record<TemplateId, TemplateData> = {
   },
   order_link: { ...base, orderUrl: 'https://waimers.example/orders/42' },
   order_split: { ...base, orderUrl: 'https://waimers.example/orders/42' },
+  cod_pay_online: { ...base, orderUrl: 'https://waimers.example/orders/42' },
   draft_invoice: { ...base, draftNumber: 12, actionUrl: 'https://waimers.example/pay/42' },
   checkout_recovery: {
     ...base,

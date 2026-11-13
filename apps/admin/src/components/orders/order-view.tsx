@@ -83,7 +83,7 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
   const [fulfilling, setFulfilling] = useState(() => asked.get('fulfil') === '1')
   /** The hand-sent message whose "Review email" dialog is open. */
   const [reviewing, setReviewing] = useState<
-    'balance_request' | 'payment_reminder' | 'order_link' | null
+    'balance_request' | 'payment_reminder' | 'order_link' | 'cod_pay_online' | null
   >(null)
   const [collecting, setCollecting] = useState(() => asked.get('collect') === '1')
   const [cancelling, setCancelling] = useState(false)
@@ -226,6 +226,18 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
   const sendOrderLink =
     live && (order.email || order.phone) ? () => setReviewing('order_link') : undefined
 
+  // An unpaid cash on delivery order nothing was packed for: its shopper can be asked to pay online.
+  const askPayOnline =
+    live &&
+    order.status === 'open' &&
+    !order.checkoutPaidAt &&
+    order.paymentMethod === 'cod' &&
+    order.fulfillmentStatus === 'unfulfilled' &&
+    (order.email || order.phone) &&
+    hasPermission(permissions.ORDERS_WRITE)
+      ? () => setReviewing('cod_pay_online')
+      : undefined
+
   const awaitingTransfer = live && !order.checkoutPaidAt && order.paymentMethod === 'manual'
   const stepKind = nextStepKind(order, { readOnly, canCollect, canFulfil, awaitingTransfer })
   const canFulfilOrders = hasPermission(permissions.ORDERS_FULFIL)
@@ -276,6 +288,7 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
               }
               onSendReminder={sendReminder}
               onSendOrderLink={sendOrderLink}
+              onAskPayOnline={askPayOnline}
               onViewStatusPage={handleViewStatusPage}
               onMarkNotDelivered={canArchive ? undo.markNotDelivered : undefined}
               onMarkNotShipped={canFulfilOrders ? undo.markNotShipped : undefined}
@@ -422,7 +435,9 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
             ? messages.requestBalance
             : reviewing === 'order_link'
               ? messages.sendOrderLink
-              : messages.sendReminder
+              : reviewing === 'cod_pay_online'
+                ? messages.askPayOnline
+                : messages.sendReminder
         }
         chooseChannel={
           reviewing === 'payment_reminder' ? { onChatOpened: handleReminderChat } : undefined

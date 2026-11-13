@@ -90,6 +90,12 @@ export async function storesWithPendingCodChecks(db: Db): Promise<string[]> {
   return rows.map((r) => r.id)
 }
 
+/** Store ids with a COD "Ask to pay online" still waiting for its reminder. SECURITY DEFINER backed. */
+export async function storesWithPayOnlineRequests(db: Db): Promise<string[]> {
+  const rows = await db.execute<{ id: string }>(sql`select stores_with_pay_online_requests() as id`)
+  return rows.map((r) => r.id)
+}
+
 /** Store ids with a pre-order balance still owed, for the balance job. SECURITY DEFINER backed. */
 export async function storesWithBalanceDue(db: Db): Promise<string[]> {
   const rows = await db.execute<{ id: string }>(sql`select stores_with_balance_due() as id`)

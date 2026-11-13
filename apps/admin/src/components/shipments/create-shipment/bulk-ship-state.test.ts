@@ -76,6 +76,7 @@ const order = (id: string, over: Partial<DraftOrder> = {}): DraftOrder => ({
   parcels: [parcel({ id: `p-${id}` })],
   unitsOrdered: 1,
   deliveryChoice: null,
+  payOnlineRequestedAt: null,
   ...over,
 })
 

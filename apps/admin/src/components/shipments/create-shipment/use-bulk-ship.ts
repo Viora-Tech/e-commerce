@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import { bulkShipContent } from '@/data/bulk-ship'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { repriced } from './bulk-edit-state'
 import {
@@ -24,6 +26,7 @@ type Wallets = Awaited<ReturnType<typeof api.shipments.wallets>>
  */
 export function useBulkShip(orderIds: string[], courier: string | undefined) {
   // Hooks
+  const copy = useCopy(bulkShipContent)
   const [draft, setDraft] = useState<ShipmentDraft | null>(null)
   const [failed, setFailed] = useState(false)
   const [quotes, setQuotes] = useState<Record<string, ParcelQuote>>({})
@@ -128,6 +131,28 @@ export function useBulkShip(orderIds: string[], courier: string | undefined) {
       else next.add(orderId)
       return next
     })
+  /** "Ask to pay online" on a COD row no courier takes: the shopper gets their payment link. */
+  const handleAskPayOnline = async (orderId: string) => {
+    setBusy(true)
+    try {
+      const { requestedAt, customerName } = await api.orders.requestOnlinePayment({ orderId })
+      setDraft((d) =>
+        d
+          ? {
+              ...d,
+              orders: d.orders.map((o) =>
+                o.orderId === orderId ? { ...o, payOnlineRequestedAt: requestedAt } : o,
+              ),
+            }
+          : d,
+      )
+      toast.success(copy.payOnlineSent(customerName))
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : String(err))
+    } finally {
+      setBusy(false)
+    }
+  }
   const handleBook = async () => {
     const request = bulkBookRequest(lines, unticked, edits)
     if (request.orderIds.length === 0) return false
@@ -174,6 +199,7 @@ export function useBulkShip(orderIds: string[], courier: string | undefined) {
     wallets,
     busy,
     book: handleBook,
+    askPayOnline: handleAskPayOnline,
     results,
   }
 }
