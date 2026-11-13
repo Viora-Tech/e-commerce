@@ -47,6 +47,11 @@ describe('startingPlan', () => {
     const all = [line('a', 2)]
     expect(startingPlan(all).counts).toEqual({ a: 2 })
   })
+
+  it('ships whole a parcel the server cannot split (no parcel row yet)', () => {
+    const lines = [line('glasspad', 1), line('skates', 1, { inStock: 0 })]
+    expect(startingPlan(lines, false).counts).toEqual({ glasspad: 1, skates: 1 })
+  })
 })
 
 describe('plannedParcel', () => {
@@ -63,6 +68,19 @@ describe('plannedParcel', () => {
       { orderLineId: 'a', quantity: 1 },
       { orderLineId: 'b', quantity: 1 },
     ])
+  })
+
+  it('products with no weight leave their unit share of the parcel weight, never all of it', () => {
+    // Two weightless products: the parcel is priced at the assumed 500 g. One stays behind:
+    // 250 g ship now (it used to be 500 - 500 = 1 g).
+    const p = {
+      ...parcel([
+        { ...line('a', 1), weightGrams: null },
+        { ...line('b', 1), weightGrams: null },
+      ]),
+      weightGrams: 500,
+    }
+    expect(plannedParcel(p, { a: 1, b: 0 }).weightGrams).toBe(250)
   })
 
   it('is the parcel itself when nothing is left behind', () => {

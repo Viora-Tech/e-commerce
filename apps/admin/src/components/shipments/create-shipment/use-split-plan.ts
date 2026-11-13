@@ -16,7 +16,7 @@ export function useSplitPlan(orderId: string) {
 
   /** A parcel opened: what is on the shelf starts ticked. Returns the parcel as it ships now. */
   const start = (parcel: DraftParcel): DraftParcel => {
-    const next = startingPlan(parcel.lines)
+    const next = startingPlan(parcel.lines, parcel.id !== null)
     setPlan(next)
     return plannedParcel(parcel, next.counts)
   }

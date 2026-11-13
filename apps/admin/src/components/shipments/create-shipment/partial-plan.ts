@@ -16,9 +16,6 @@ export type SplitPlan = {
 
 type Line = DraftParcel['lines'][number]
 
-/** The courier's weight for a product with none saved (`ASSUMED_WEIGHT_GRAMS` on the server). */
-const ASSUMED_GRAMS = 500
-
 /** What can go now: the units on the shelf; a waiting pre-order stays behind. */
 const readyUnits = (l: Line) => Math.min(l.quantity, Math.max(0, l.availability.inStock))
 
@@ -26,11 +23,13 @@ const readyUnits = (l: Line) => Math.min(l.quantity, Math.max(0, l.availability.
  * The start: every unit that is on the shelf is ticked. When nothing is, or everything is, the
  * whole parcel is ticked (a split needs something on each side).
  */
-export function startingPlan(lines: readonly Line[]): SplitPlan {
+export function startingPlan(lines: readonly Line[], splittable = true): SplitPlan {
   const ready = Object.fromEntries(lines.map((l) => [l.id, readyUnits(l)]))
   const now = lines.reduce((n, l) => n + (ready[l.id] ?? 0), 0)
   const units = lines.reduce((n, l) => n + l.quantity, 0)
-  const split = now > 0 && now < units
+  /* A parcel the server cannot split (no parcel row yet, e.g. an older or imported order) ships
+     whole: planning a part would price a lighter, cheaper parcel than the one booked. */
+  const split = splittable && now > 0 && now < units
   return {
     counts: split ? ready : Object.fromEntries(lines.map((l) => [l.id, l.quantity])),
     reason: 'not_ready',
@@ -52,10 +51,17 @@ export function plannedParcel(parcel: DraftParcel, counts: Record<string, number
     parcel.lines.reduce((t, l) => t + l.unitPricePaise * n(l), 0)
   const all = goods((l) => l.quantity)
   const kept = goods((l) => counts[l.id] ?? 0)
-  const removedGrams = parcel.lines.reduce(
-    (t, l) => t + (l.quantity - (counts[l.id] ?? 0)) * (l.weightGrams ?? ASSUMED_GRAMS),
-    0,
-  )
+  /* Lines with a weight leave exactly that much; the rest of the parcel's weight (lines with no
+     weight, which the parcel prices at an assumed weight, and the box) goes by unit share. */
+  const left = (l: Line) => l.quantity - (counts[l.id] ?? 0)
+  const known = parcel.lines.filter((l) => l.weightGrams != null)
+  const unknown = parcel.lines.filter((l) => l.weightGrams == null)
+  const knownGrams = known.reduce((t, l) => t + l.quantity * (l.weightGrams ?? 0), 0)
+  const rest = Math.max(0, parcel.weightGrams - knownGrams)
+  const restUnits = unknown.reduce((t, l) => t + l.quantity, 0)
+  const removedGrams =
+    known.reduce((t, l) => t + left(l) * (l.weightGrams ?? 0), 0) +
+    (restUnits > 0 ? (rest * unknown.reduce((t, l) => t + left(l), 0)) / restUnits : 0)
   return {
     ...parcel,
     lines: parcel.lines.flatMap((l) => {
