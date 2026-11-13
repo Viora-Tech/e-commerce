@@ -11,6 +11,7 @@ import {
   type TemplateData,
   type TemplateId,
 } from '@commerce/notifications'
+import { CODE_TEMPLATES } from './code-templates'
 import { whatsappTemplateSpecs } from './template-specs'
 import { fetchTemplateStatuses, postTemplate } from './templates-api'
 
@@ -193,16 +194,6 @@ function whatsappTo(phone: string | undefined): string | null {
   if (/^0?[6-9]\d{9}$/.test(digits)) return `91${digits.slice(-10)}`
   return digits
 }
-
-/**
- * Messages that carry a one-time code. Meta sends these as AUTHENTICATION templates: the body takes
- * only the code, and the copy-code button takes it again.
- */
-export const CODE_TEMPLATES: ReadonlySet<TemplateId> = new Set<TemplateId>([
-  'login_code',
-  'account_deletion_code',
-  'email_change_code',
-])
 
 export function buildPayload(config: WhatsappConfig, message: Message, to: string) {
   if (config.useTextMessages) {
