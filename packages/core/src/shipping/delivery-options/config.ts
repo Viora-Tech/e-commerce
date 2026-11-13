@@ -89,6 +89,17 @@ export const OptionCouriersSchema = z.object({
    * logo on any of this option's cards, whatever each courier's own setting says (#1521).
    */
   showNames: z.boolean().default(true),
+  /**
+   * The couriers this option may use, as `courierId`s (`delhivery:standard`); null: every
+   * connected courier (as before). Set from the Options page's courier list, where a courier
+   * the apps start offering later is off until the merchant turns it on.
+   */
+  allow: z.array(z.string().trim().min(1).max(80)).max(100).nullish(),
+  /** Every `courierId` the merchant has seen in that list; one not here is tagged New. */
+  known: z.array(z.string().trim().min(1).max(80)).max(200).default([]),
+  /** `difference`: a list card costs the pick's price plus what it costs the store more;
+   *  `none`: every card at the pick's price. */
+  extra: z.enum(['difference', 'none']).default('difference'),
 })
 export type OptionCouriers = z.infer<typeof OptionCouriersSchema>
 
@@ -175,8 +186,22 @@ export type RouteSetting = RouteSettingInput
 export const carrierSettingKey = (carrier: string, channel: string): string =>
   `carrier:${carrier}|channel:${channel}`
 
+/** One courier at one speed, as the courier list and `couriers.allow` name it. */
+export const courierId = (carrierKey: string, speed: DeliverySpeed): string =>
+  `${carrierKey}:${speed}`
+
+/**
+ * How checkout shows the options. `fixed`: each enabled option is its own card (as before).
+ * `list`: the courier list: only the first enabled option shows, every courier it allows as
+ * its own card (the cheapest included in its price, faster ones at the difference).
+ */
+export const DELIVERY_LAYOUTS = ['fixed', 'list'] as const
+export type DeliveryLayout = (typeof DELIVERY_LAYOUTS)[number]
+
 /** Everything the engine reads, as loaded for one store. */
 export type DeliveryConfig = {
+  /** Omitted: `fixed`. Saved in the app's own settings (`store.apps`), like the Protect card. */
+  layout?: DeliveryLayout | undefined
   options: DeliveryOption[]
   rules: RouteRule[]
   routeSettings: RouteSetting[]

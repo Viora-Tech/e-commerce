@@ -40,6 +40,10 @@ export type OptionForm = {
   roundTo9: boolean
   hideSlowerDearer: boolean
   showNames: boolean
+  /** Kept as saved: the Options page's courier list edits these (switches, New, extra). */
+  couriersAllow: string[] | null
+  couriersKnown: string[]
+  couriersExtra: DeliveryOptionInput['couriers']['extra']
   enabled: boolean
 }
 
@@ -76,6 +80,9 @@ export function formOf(o: DeliveryOption | null): OptionForm {
     roundTo9: x.couriers.roundTo9,
     hideSlowerDearer: x.couriers.hideSlowerDearer,
     showNames: x.couriers.showNames,
+    couriersAllow: x.couriers.allow ?? null,
+    couriersKnown: x.couriers.known,
+    couriersExtra: x.couriers.extra,
     enabled: x.enabled,
   }
 }
@@ -123,6 +130,9 @@ export function inputOf(f: OptionForm): DeliveryOptionInput {
       roundTo9: f.roundTo9,
       hideSlowerDearer: f.hideSlowerDearer,
       showNames: f.showNames,
+      allow: f.couriersAllow,
+      known: f.couriersKnown,
+      extra: f.couriersExtra,
     },
     enabled: f.enabled,
   })

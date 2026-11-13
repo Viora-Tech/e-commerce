@@ -10,6 +10,7 @@ import ConfirmDialog from '@/components/layout/confirm-dialog'
 import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
 import { deliveryOptionsContent } from '@/data/delivery-options'
+import { deliveryPagesContent } from '@/data/delivery-options-pages'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
@@ -22,6 +23,7 @@ const APP = 'delivery-options'
 export default function DeliveryOptionPage({ params }: AppPageProps) {
   // Hooks
   const copy = useCopy(deliveryOptionsContent)
+  const pages = useCopy(deliveryPagesContent)
   const router = useRouter()
   // The new page becomes the saved option's page after its first save.
   const [id, setId] = useState(() => (params.id === 'new' ? null : (params.id ?? null)))
@@ -72,7 +74,7 @@ export default function DeliveryOptionPage({ params }: AppPageProps) {
     try {
       await api.deliveryOptions.deleteOption({ id })
       toast.success(copy.deleted)
-      router.push(routes.apps.page(APP))
+      router.push(routes.apps.page(APP, 'options'))
     } catch (err) {
       toast.error(err instanceof Error ? err.message : copy.failed)
     }
@@ -97,7 +99,7 @@ export default function DeliveryOptionPage({ params }: AppPageProps) {
       />
       <PageHeader
         title={id ? form.name || copy.option.newTitle : copy.option.newTitle}
-        back={{ label: copy.option.back, href: routes.apps.page(APP) }}
+        back={{ label: pages.pages.options.title, href: routes.apps.page(APP, 'options') }}
       />
       <OptionForm form={form} onChange={setForm} />
       {id ? (

@@ -34,6 +34,7 @@ import DecentroConnectPage from '@/components/apps/decentro/connect-page'
 import DecentroOverviewPage from '@/components/apps/decentro/overview-page'
 import DelhiveryConnectPage from '@/components/apps/delhivery/connect-page'
 import DelhiveryOverviewPage from '@/components/apps/delhivery/overview-page'
+import DeliveryOptionsHeaderAction from '@/components/apps/delivery-options/header-action'
 import DeliveryOptionPage from '@/components/apps/delivery-options/option-page'
 import DeliveryOptionsSectionPage from '@/components/apps/delivery-options/options-section-page'
 import DeliveryOverviewSectionPage from '@/components/apps/delivery-options/overview-section-page'
@@ -197,6 +198,7 @@ export const ADMIN_APPS: Record<string, AdminApp> = {
     OrderCard: CodRtoOrderCard,
   },
   'delivery-options': {
+    HeaderAction: DeliveryOptionsHeaderAction,
     pages: {
       '': DeliveryOverviewSectionPage,
       options: DeliveryOptionsSectionPage,
