@@ -70,7 +70,7 @@ export function templateParams(template: TemplateId, d: TemplateData): string[] 
     case 'login_code':
     case 'account_deletion_code':
     case 'email_change_code':
-      return [d.code ?? '-', d.storeName]
+      return [d.code ?? '-']
     case 'email_changed':
       return [d.storeName, d.emailChange?.newEmail ?? '-']
     case 'bug_report_update':
@@ -193,6 +193,16 @@ function whatsappTo(phone: string | undefined): string | null {
   return digits
 }
 
+/**
+ * Messages that carry a one-time code. Meta sends these as AUTHENTICATION templates: the body takes
+ * only the code, and the copy-code button takes it again.
+ */
+export const CODE_TEMPLATES: ReadonlySet<TemplateId> = new Set<TemplateId>([
+  'login_code',
+  'account_deletion_code',
+  'email_change_code',
+])
+
 export function buildPayload(config: WhatsappConfig, message: Message, to: string) {
   if (config.useTextMessages) {
     return {
@@ -202,6 +212,14 @@ export function buildPayload(config: WhatsappConfig, message: Message, to: strin
       text: { body: renderWhatsapp(message.template, message.data).text },
     }
   }
+  const parameters = templateParams(message.template, message.data).map((text) => ({
+    type: 'text',
+    text: param(text),
+  }))
+  const components: unknown[] = [{ type: 'body', parameters }]
+  if (CODE_TEMPLATES.has(message.template)) {
+    components.push({ type: 'button', sub_type: 'url', index: '0', parameters })
+  }
   return {
     messaging_product: 'whatsapp',
     to,
@@ -209,15 +227,7 @@ export function buildPayload(config: WhatsappConfig, message: Message, to: strin
     template: {
       name: message.template,
       language: { code: config.templateLanguage },
-      components: [
-        {
-          type: 'body',
-          parameters: templateParams(message.template, message.data).map((text) => ({
-            type: 'text',
-            text: param(text),
-          })),
-        },
-      ],
+      components,
     },
   }
 }

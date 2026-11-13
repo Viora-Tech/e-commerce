@@ -89,6 +89,20 @@ describe('whatsapp specifics', () => {
     expect(p.template.components[0]?.parameters[0]?.text).toBe('-')
   })
 
+  it('sends a one-time code the way Meta authentication templates expect', () => {
+    for (const template of ['login_code', 'account_deletion_code', 'email_change_code'] as const) {
+      const p = buildPayload(
+        config,
+        { to: { phone: '1' }, template, data: { ...sampleTemplateData, code: '482913' } },
+        '1',
+      ) as { template: { components: unknown[] } }
+      expect(p.template.components).toEqual([
+        { type: 'body', parameters: [{ type: 'text', text: '482913' }] },
+        { type: 'button', sub_type: 'url', index: '0', parameters: [{ type: 'text', text: '482913' }] },
+      ])
+    }
+  })
+
   it('gives up on a Graph call that never answers', async () => {
     const hang = (_url: string, init: RequestInit) =>
       new Promise<Response>((_resolve, reject) => {

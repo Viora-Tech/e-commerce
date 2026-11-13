@@ -5,17 +5,13 @@ import {
   type TemplateData,
   type TemplateId,
 } from '@commerce/notifications'
-import { templateParams } from './whatsapp'
+import { CODE_TEMPLATES, templateParams } from './whatsapp'
 
 /**
- * Messages that carry a one-time code. Meta sends these as AUTHENTICATION templates, whose wording
- * Meta writes itself ("{{1}} is your verification code"), so they are submitted by hand.
+ * One-time code messages are AUTHENTICATION templates, whose wording Meta writes itself
+ * ("{{1}} is your verification code"), so they are submitted by hand.
  */
-const AUTHENTICATION: ReadonlySet<TemplateId> = new Set<TemplateId>([
-  'login_code',
-  'account_deletion_code',
-  'email_change_code',
-])
+const AUTHENTICATION = CODE_TEMPLATES
 
 type Plain = Record<string, unknown>
 

@@ -35,3 +35,10 @@ margin); `no-orphans` drops `decryptNotificationSettings` (now imported).
 
 Left alone: the app shell's "Needs setup" banner still shows above the page (the frame has none);
 login_code over WhatsApp sends two body params, which an Authentication template cannot take.
+
+## One-time code messages on WhatsApp
+
+`login_code`, `account_deletion_code` and `email_change_code` used to send two body parameters
+(code and store name). Meta Authentication templates take only the code in the body, plus the
+code again for the copy-code button, so these sends would be refused. `buildPayload` now sends
+`[code]` in the body and a `button` component (`sub_type: url`, `index: 0`) with the code.
