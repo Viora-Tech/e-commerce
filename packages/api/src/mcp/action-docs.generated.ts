@@ -204,6 +204,8 @@ export const ACTION_DOCS: Record<string, string> = {
   'collections.products': "The frame's table: every product, or only those in one collection.",
   'collections.searchProducts': 'Product picker inside a manual collection.',
   'collections.stats': 'Tiles above the category cards.',
+  'collections.update':
+    'Edit a collection: only the fields sent change; a left-out field keeps its value and null clears it (#1186).',
   'customerAccounts.saveApp': "Save the merchant's own Google / Apple / Facebook / Truecaller app.",
   'customerPrivacy.allowEmailAgain':
     '"Allow again": email this customer again; only later bounces count towards a new stop.',

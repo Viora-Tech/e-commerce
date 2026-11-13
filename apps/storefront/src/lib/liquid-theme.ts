@@ -22,6 +22,7 @@ import {
   resolveThemeProductId,
   type SignedInCustomer,
   sectionWrapper,
+  showsCookieSettingsLink,
   storeLiquidData,
   type TemplateKey,
   type ThemeBundle,
@@ -33,6 +34,7 @@ import { reviewsLiquidSource } from '@commerce/plugin-reviews/server'
 import { eq } from 'drizzle-orm'
 import { headers } from 'next/headers'
 import { cache } from 'react'
+import { privacyContent } from '@/data/privacy'
 import { readCartId } from './cart-cookie'
 import { NONCE_HEADER } from './csp'
 import { currentCustomer, customerIn } from './customer-session'
@@ -55,6 +57,7 @@ import {
 } from './liquid-cache'
 import { toLiquidCart } from './liquid-cart'
 import { revealConsentEarly } from './liquid-consent-reveal'
+import { withCookieSettingsLink } from './liquid-cookie-settings'
 import { cachedLiquidData } from './liquid-data-cache'
 import { deferThemeScripts } from './liquid-defer'
 import { belowTheFold } from './liquid-fold'
@@ -380,6 +383,10 @@ export async function mainProductStylesheetUrls(storeId: string, themeId: string
   )
 }
 
+/** The footer's "Cookie settings" link, added after the cache (`./liquid-cookie-settings.ts`). */
+const withCookieLink = (p: { cookieLink: boolean }, html: string) =>
+  p.cookieLink ? withCookieSettingsLink(html, privacyContent.cookieSettings) : html
+
 export async function renderLiquidSections(
   storeId: string,
   themeId: string,
@@ -409,6 +416,7 @@ export async function renderLiquidSections(
       section,
       belowFold,
       wrapper: sectionWrapper(theme.bundle, section),
+      cookieLink: showsCookieSettingsLink(type, item.props),
       key: cacheKey ? sectionCacheKey(cacheKey, { section, belowFold }) : null,
     }
   })
@@ -425,7 +433,7 @@ export async function renderLiquidSections(
         () => signedOut(storeId),
       ))
     ) {
-      out.set(p.id, { html: finish(hit.html, scope), ...p.wrapper })
+      out.set(p.id, { html: finish(withCookieLink(p, hit.html), scope), ...p.wrapper })
     } else missing.push(p)
   }
   if (missing.length === 0) return out
@@ -454,7 +462,7 @@ export async function renderLiquidSections(
     return done
   })
   for (const { p, html, trace } of rendered) {
-    out.set(p.id, { html: finish(html, scope), ...p.wrapper })
+    out.set(p.id, { html: finish(withCookieLink(p, html), scope), ...p.wrapper })
     if (p.key && keepable(trace, cart.itemCount === 0, customer !== null)) {
       const entry: CachedLiquid = { html, cart: trace.cart, customer: trace.customer }
       await rememberForStore(storeId, p.key, entry, {

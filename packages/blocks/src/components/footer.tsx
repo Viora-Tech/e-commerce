@@ -50,6 +50,7 @@ export default function Footer({
   showPaymentIcons,
   paymentIcons,
   showPolicies,
+  showCookieSettings,
   showNewsletter,
   newsletterHeading,
   newsletterButton,
@@ -142,7 +143,7 @@ export default function Footer({
       <FooterBottom
         storeName={storeName}
         policies={showPolicies ? policies : []}
-        cookieSettings={cookieSettings}
+        cookieSettings={showCookieSettings ? cookieSettings : null}
         grievance={grievance}
         themeToggle={themeToggle}
         paymentIcons={showPaymentIcons ? paymentIcons : []}

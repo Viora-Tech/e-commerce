@@ -43,6 +43,13 @@ export const CollectionWriteSchema = z.object({
 })
 export type CollectionWrite = z.infer<typeof CollectionWriteSchema>
 
+/**
+ * An edit (#1186): every field may be left out, and a left-out field keeps its saved value.
+ * `null` clears a clearable field (description, image, SEO, template).
+ */
+export const CollectionPatchSchema = CollectionWriteSchema.partial()
+export type CollectionPatch = z.infer<typeof CollectionPatchSchema>
+
 /** Thrown by the write path so the router can answer 400 rather than 500. */
 export class InvalidCollection extends Error {
   readonly errors: string[]

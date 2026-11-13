@@ -1,6 +1,10 @@
 'use client'
 
-import { type LiquidField, liquidSectionFields } from '@commerce/core/theme-import'
+import {
+  type LiquidField,
+  liquidSectionFields,
+  platformSectionFields,
+} from '@commerce/core/theme-import'
 import { useEffect, useState } from 'react'
 import { api } from './api-client'
 
@@ -39,9 +43,12 @@ export function useLiquidTheme(
     ? Object.fromEntries(
         Object.entries(info.schemas).map(([type, schema]) => [
           type,
-          liquidSectionFields(schema, info.schemaLocale, info.blockSchemas, {
-            colorSchemes: info.colorSchemes,
-          }),
+          {
+            ...liquidSectionFields(schema, info.schemaLocale, info.blockSchemas, {
+              colorSchemes: info.colorSchemes,
+            }),
+            ...platformSectionFields(type),
+          },
         ]),
       )
     : null

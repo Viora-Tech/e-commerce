@@ -1,4 +1,5 @@
 import {
+  CollectionPatchSchema,
   CollectionRulesSchema,
   CollectionWriteSchema,
   collectionsForProducts,
@@ -79,8 +80,9 @@ export const collectionsRouter = {
       })),
     ),
 
+  /** Edit a collection: only the fields sent change; a left-out field keeps its value and `null` clears it (#1186). */
   update: can(permissions.PRODUCTS_WRITE)
-    .input(z.object({ id: z.uuid(), write: CollectionWriteSchema }))
+    .input(z.object({ id: z.uuid(), write: CollectionPatchSchema }))
     .handler(({ context, input }) =>
       invalidToBadRequest(async () => {
         await updateCollection(context.tx, context.scope.storeId, input.id, input.write)
