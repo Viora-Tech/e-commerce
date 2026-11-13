@@ -7,7 +7,7 @@ import type {
   RouteSelector,
   RuleTargetKind,
 } from '@commerce/core/delivery-options'
-import { Save } from '@commerce/ui/icons'
+import { Save, Trash2 } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Checkbox } from '@commerce/ui/shadcn/checkbox'
 import { Dialog, DialogTitle } from '@commerce/ui/shadcn/dialog'
@@ -18,12 +18,14 @@ import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import ChoiceField from '@/components/apps/gst-invoices/choice-field'
 import { itemTabs } from '@/components/discounts/pick-sources'
+import ConfirmDialog from '@/components/layout/confirm-dialog'
 import DialogContent from '@/components/layout/dialog-content'
 import DialogFooter from '@/components/layout/dialog-footer'
 import DialogHeader from '@/components/layout/dialog-header'
 import ResourcePickDialog from '@/components/pickers/resource-pick-dialog'
 import SettingsToggleRow from '@/components/settings/settings-toggle-row'
 import { deliveryOptionsContent } from '@/data/delivery-options'
+import { deliveryPagesContent } from '@/data/delivery-options-pages'
 import { discountFormContent } from '@/data/discounts'
 import { useCopy, useLocale } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -101,12 +103,14 @@ export default function RuleDialog({
 }: RuleDialogProps) {
   // Hooks
   const copy = useCopy(deliveryOptionsContent)
+  const pages = useCopy(deliveryPagesContent)
   const discountCopy = useCopy(discountFormContent)
   const locale = useLocale()
   const [draft, setDraft] = useState<Draft>(() => draftOf(rule))
   const [attempted, setAttempted] = useState(false)
   const [picking, setPicking] = useState(false)
   const [busy, setBusy] = useState(false)
+  const [confirming, setConfirming] = useState(false)
 
   useEffect(() => {
     if (!open) return
@@ -147,6 +151,21 @@ export default function RuleDialog({
     try {
       await api.deliveryOptions.saveRule({ id: rule?.id ?? null, rule: input })
       toast.success(copy.saved)
+      onSaved()
+      onOpenChange(false)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : copy.failed)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const handleDelete = async () => {
+    if (!rule) return
+    setBusy(true)
+    try {
+      await api.deliveryOptions.deleteRule({ id: rule.id })
+      toast.success(copy.deleted)
       onSaved()
       onOpenChange(false)
     } catch (err) {
@@ -266,6 +285,17 @@ export default function RuleDialog({
           />
         </FieldGroup>
         <DialogFooter>
+          {rule ? (
+            <Button
+              variant="ghost"
+              className="mr-auto"
+              onClick={() => setConfirming(true)}
+              disabled={busy}
+            >
+              <Trash2 aria-hidden="true" />
+              {copy.delete}
+            </Button>
+          ) : null}
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             {copy.cancel}
           </Button>
@@ -274,6 +304,15 @@ export default function RuleDialog({
             {copy.save}
           </Button>
         </DialogFooter>
+        <ConfirmDialog
+          open={confirming}
+          onOpenChange={setConfirming}
+          title={copy.delete}
+          body={pages.ruleRows.deleteConfirm}
+          confirmLabel={copy.delete}
+          tone="destructive"
+          onConfirm={handleDelete}
+        />
         <ResourcePickDialog
           open={picking}
           title={d.pickTitle}

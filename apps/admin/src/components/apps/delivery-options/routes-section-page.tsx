@@ -1,8 +1,8 @@
 'use client'
 
-import DeliveryOptionsOverviewPage from './overview-page'
+import DeliveryRoutesPage from './routes-page'
 
-/** Apps → Delivery options → Routes: its own sidebar page (Figma 929). */
+/** Apps → Delivery options → Routes: its own sidebar page (Figma 929:12240). */
 export default function DeliveryRoutesSectionPage() {
-  return <DeliveryOptionsOverviewPage section="routes" />
+  return <DeliveryRoutesPage />
 }

@@ -151,7 +151,7 @@ export type OptionTrace = {
   winner: string | null
   why: WhyPicked | null
   /** Shown as "hidden: …" in Try a PIN. */
-  hidden: 'no_route' | 'couriers_down' | 'no_zone_rate' | 'disabled' | null
+  hidden: 'no_route' | 'couriers_down' | 'no_zone_rate' | 'disabled' | 'list_layout' | null
 }
 
 export type DeliveryResolveResult = {

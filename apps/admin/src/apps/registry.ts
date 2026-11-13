@@ -38,6 +38,7 @@ import DelhiveryPickupLocationsPage from '@/components/apps/delhivery/pickup-loc
 import DelhiveryPickupsPage from '@/components/apps/delhivery/pickups-page'
 import DelhiveryRechargeButton from '@/components/apps/delhivery/recharge-button'
 import DelhiveryShipmentsPage from '@/components/apps/delhivery/shipments-page'
+import DeliveryOptionsHeaderAction from '@/components/apps/delivery-options/header-action'
 import DeliveryOptionPage from '@/components/apps/delivery-options/option-page'
 import DeliveryOptionsSectionPage from '@/components/apps/delivery-options/options-section-page'
 import DeliveryOverviewSectionPage from '@/components/apps/delivery-options/overview-section-page'
@@ -201,6 +202,7 @@ export const ADMIN_APPS: Record<string, AdminApp> = {
     OrderCard: CodRtoOrderCard,
   },
   'delivery-options': {
+    HeaderAction: DeliveryOptionsHeaderAction,
     pages: {
       '': DeliveryOverviewSectionPage,
       options: DeliveryOptionsSectionPage,

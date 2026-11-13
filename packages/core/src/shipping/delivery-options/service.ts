@@ -31,6 +31,7 @@ import {
   CostCardSchema,
   DELIVERY_OPTIONS_APP_ID,
   type DeliveryConfig,
+  type DeliveryLayout,
   type DeliveryOption,
   DeliveryOptionInputSchema,
   PRESET_OPTIONS,
@@ -79,10 +80,38 @@ const protectCardOf = (apps: AppsSettings): ProtectCard => {
   )
 }
 
-/** The store's Delhivery Protect card; Delhivery's defaults when the merchant saved none. */
-async function loadProtectCard(tx: StoreTx, storeId: string): Promise<ProtectCard> {
+/** The checkout layout saved in the app's own entry; anything else (or nothing) is `fixed`. */
+const layoutOf = (apps: AppsSettings): DeliveryLayout => {
+  const own = appSettingsOf(apps, DELIVERY_OPTIONS_APP_ID)
+  const raw = own && typeof own === 'object' ? (own as { layout?: unknown }).layout : null
+  return raw === 'list' ? 'list' : 'fixed'
+}
+
+/** The app's own settings: the Delhivery Protect card (Delhivery's defaults when the merchant
+ *  saved none) and the checkout layout. */
+async function loadOwnSettings(
+  tx: StoreTx,
+  storeId: string,
+): Promise<{ protect: ProtectCard; layout: DeliveryLayout }> {
   const [s] = await tx.select({ apps: store.apps }).from(store).where(eq(store.id, storeId))
-  return protectCardOf(parseAppsSettings(s?.apps))
+  const apps = parseAppsSettings(s?.apps)
+  return { protect: protectCardOf(apps), layout: layoutOf(apps) }
+}
+
+/** Set how checkout shows the options (`fixed` or the courier `list`), leaving the rest alone. */
+export async function saveDeliveryLayout(
+  tx: StoreTx,
+  storeId: string,
+  layout: DeliveryLayout,
+): Promise<DeliveryLayout> {
+  const apps = await lockStoreApps(tx, storeId)
+  const own = appSettingsOf(apps, DELIVERY_OPTIONS_APP_ID)
+  const next = { ...(own && typeof own === 'object' ? own : {}), layout }
+  await tx
+    .update(store)
+    .set({ apps: withAppSettings(apps, DELIVERY_OPTIONS_APP_ID, next) })
+    .where(eq(store.id, storeId))
+  return layout
 }
 
 /** Replace the Protect card, leaving the install list and other apps' settings alone. */
@@ -105,20 +134,22 @@ export async function saveProtectCard(
 
 /** Everything the engine reads. `version` changes whenever any of it does. */
 export async function loadDeliveryConfig(tx: StoreTx, storeId: string): Promise<DeliveryConfig> {
-  const [options, rules, settings, protect] = await Promise.all([
+  const [options, rules, settings, own] = await Promise.all([
     tx.select().from(deliveryOption).orderBy(asc(deliveryOption.position), asc(deliveryOption.id)),
     tx
       .select()
       .from(deliveryRouteRule)
       .orderBy(asc(deliveryRouteRule.position), asc(deliveryRouteRule.id)),
     tx.select().from(deliveryRouteSetting).orderBy(asc(deliveryRouteSetting.key)),
-    loadProtectCard(tx, storeId),
+    loadOwnSettings(tx, storeId),
   ])
   const config = {
     options: options.flatMap((r) => toOption(r) ?? []),
     rules: rules.flatMap((r) => toRule(r) ?? []),
     routeSettings: settings.map(toSetting),
-    protect,
+    protect: own.protect,
+    // `fixed` stays out of the object, so a store that never chose keeps its config version.
+    ...(own.layout === 'list' ? { layout: own.layout } : {}),
   }
   const version = createHash('sha256').update(JSON.stringify(config)).digest('hex').slice(0, 16)
   return { ...config, version }

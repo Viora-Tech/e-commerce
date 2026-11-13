@@ -322,9 +322,24 @@ describe('health line and backup share', () => {
       calls: 4,
       successRate: 0.75,
       typicalMs: 400,
+      failures: 1,
       lastError: { message: 'late' },
       skippedSince: null,
     })
+  })
+
+  it('reports the typical answer time over every app (Overview tile)', async () => {
+    const store = memoryStore()
+    const at = Date.now()
+    for (const ms of [300, 500]) {
+      await recordCourierCall(store, 's1', 'delhivery', { at, ok: true, ms, error: null })
+    }
+    await recordCourierCall(store, 's1', 'shiprocket', { at, ok: true, ms: 1200, error: null })
+    await recordCourierCall(store, 's1', 'shiprocket', { at, ok: false, ms: 9000, error: 'x' })
+    const health = await deliveryHealth(store, 's1', ['delhivery', 'shiprocket'], at)
+    // 300, 500, 1200: the failed call's time is not an answer time.
+    expect(health.typicalMs).toBe(500)
+    expect(health.apps.map((a) => a.failures)).toEqual([0, 1])
   })
 
   it('counts checkouts and the ones that fell back to the zone rate', async () => {
