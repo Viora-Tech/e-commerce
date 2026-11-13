@@ -45,6 +45,7 @@ import {
 } from './plans'
 import { type PlanChargeQuote, paidPeriodEnd } from './proration'
 import { type PlanUsage, planUsage } from './usage'
+import { feeBillChargePaise, withFeeGst } from './usage-fee'
 import { billingMonth, feeEstimate, previousMonth } from './usage-fee-service'
 
 const DAY_MS = 86_400_000
@@ -218,7 +219,8 @@ export async function loadPlanView(
       month: b.month,
       ordersCounted: b.ordersCounted,
       feeOrders: b.feeOrders,
-      totalPaise: b.totalPaise,
+      // What the store pays: the fee with 18% GST on top, as its sales order charges it.
+      totalPaise: feeBillChargePaise(b),
       status: b.status,
       paidAt: b.paidAt,
       url:
@@ -243,7 +245,7 @@ export async function loadPlanView(
     invoiceEmail: contact?.email ?? null,
     fees,
     usageBills,
-    unpaidFees: feeBills.filter((b) => b.status === 'due').reduce((n, b) => n + b.totalPaise, 0),
+    unpaidFees: usageBills.filter((b) => b.status === 'due').reduce((n, b) => n + b.totalPaise, 0),
     fairUseNotice: row.fairUseNoticeMonth === previousMonth(billingMonth(now)),
     pace,
     nudge: row.unlimited ? null : upgradeNudge(row.plan, pace),
@@ -436,7 +438,9 @@ export async function createPlanBill(
           sku: planSku(input.plan, input.interval),
           ...(computed ? { unitPricePaise: computed.planTotalPaise } : {}),
         },
-        ...(withFees ? [{ sku: usageFeeSku('carried'), unitPricePaise: feesPaise }] : []),
+        ...(withFees
+          ? [{ sku: usageFeeSku('carried'), unitPricePaise: withFeeGst(feesPaise) }]
+          : []),
       ],
       note: (buyer) =>
         [

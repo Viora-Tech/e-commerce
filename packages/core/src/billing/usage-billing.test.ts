@@ -80,12 +80,12 @@ describe('runUsageBilling', () => {
       totalPaise: 20_000,
       status: 'due',
     })
-    // The sales order carries the fee as a computed line.
+    // The sales order carries the fee as a computed line, with 18% GST on top (sales prices include GST).
     const lines = await owner
       .select({ unit: orderLine.unitPricePaise })
       .from(orderLine)
       .where(eq(orderLine.orderId, bill?.salesOrderId as string))
-    expect(lines.map((l) => l.unit)).toEqual([20_000])
+    expect(lines.map((l) => l.unit)).toEqual([23_600])
 
     const again = await runUsageBilling(app, env, new Date(NOV_RUN.getTime() + 3_600_000))
     expect(again.billed).toBe(0)
@@ -212,7 +212,7 @@ describe('unpaid fee bills and the next plan bill', () => {
       .select({ unit: orderLine.unitPricePaise })
       .from(orderLine)
       .where(eq(orderLine.orderId, planOrder))
-    expect(lines.map((l) => l.unit).sort((a, b) => a - b)).toEqual([20_000, 49_900])
+    expect(lines.map((l) => l.unit).sort((a, b) => a - b)).toEqual([23_600, 49_900])
     expect((await rows(id))[0]).toMatchObject({
       status: 'merged',
       mergedIntoSalesOrderId: planOrder,
@@ -285,7 +285,7 @@ describe('fee bills never get lost or billed twice', () => {
     await choosePlan(app, id, { plan: 'growth', interval: 'month' }, env, NOV_RUN)
     const second = await duePlanOrder()
     expect(second).not.toBe(first)
-    expect(await lineUnits(second)).toEqual([20_000, 1_99_900])
+    expect(await lineUnits(second)).toEqual([23_600, 1_99_900])
     expect((await rows(id))[0]).toMatchObject({ status: 'merged', mergedIntoSalesOrderId: second })
   })
 
@@ -300,7 +300,7 @@ describe('fee bills never get lost or billed twice', () => {
       salesOrderId: null,
     })
     const view = await withStore(app, id, (tx) => loadPlanView(tx, id, env, NOV_RUN))
-    expect(view.unpaidFees).toBe(20_000)
+    expect(view.unpaidFees).toBe(23_600)
   })
 
   it('a fee already paid on its own link is not billed again', async () => {

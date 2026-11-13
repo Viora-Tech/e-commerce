@@ -58,3 +58,15 @@ Branch `feat/billing-redesign`.
 - Fee bills place the fee before GST as a GST-inclusive line, so their order total has no GST
   added, while the UI and reminder email say "+ 18% GST". Left alone (not this branch).
 - Same plan yearly → monthly is scheduled but the renewal keeps `interval = year` (existing).
+
+## Per-order fees: 18% GST on top (owner, 13 Nov 2026)
+
+Fee bills used to put the fee before GST on a sales-store line, and sales prices include GST, so
+the store paid the fee with GST inside it. The reminder emails added 18% on top, so a reminder
+asked for more than the order. Now every fee line (`withFeeGst`) is the fee plus 18% GST: the
+fee bill's own order, the carried line, and fees added to a plan bill. The reminder email and
+the admin (fee bill rows, unpaid-fees banner) show the same amount via `feeBillChargePaise`.
+The `usage_bill` row still keeps the fee before GST (`feePaise`, `totalPaise`).
+
+Bills that were made before this change keep their old orders. A reminder or admin row for one of
+those shows about 18% more than its order asks for, which is what reminders already did.

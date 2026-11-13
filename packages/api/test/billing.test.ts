@@ -143,7 +143,8 @@ describe('billing router', () => {
       expect.objectContaining({
         month: '2026-01',
         feeOrders: 10,
-        totalPaise: 20_000,
+        // Shown as the store pays it: the fee with 18% GST on top.
+        totalPaise: 23_600,
         status: 'paid',
       }),
     ])
