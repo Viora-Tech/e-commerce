@@ -137,7 +137,13 @@ export default function CheckoutForm(props: CheckoutFormProps) {
         ? content.stepIntro.signIn.phone
         : content.stepIntro.signIn.email
   const next = nextSection(step, sections)
-  const shippingValue = shippingRow(digitalOnly, shipping, rate, ck.totals.payment)
+  const shippingValue = shippingRow(
+    digitalOnly,
+    shipping,
+    rate,
+    ck.totals.payment,
+    ck.deliveryApp.insurance?.on === true,
+  )
   const shippingLine = rate
     ? `${rate.name || content.delivery.standard} · ${rate.pricePaise === 0 ? content.shippingFree : formatPaise(rate.pricePaise)}`
     : shippingValue?.kind === 'pending'
@@ -200,7 +206,7 @@ export default function CheckoutForm(props: CheckoutFormProps) {
             adjustmentLabel={
               totals.adjustment?.label || content.adjustmentFallback(totals.adjustmentPaise)
             }
-            shipping={shippingRow(digitalOnly, shipping, rate, ck.totals.payment)}
+            shipping={shippingValue}
             totalPaise={totals.totalPaise}
             gstPaise={gstPaise}
             cardRows={totals.cardRows}
