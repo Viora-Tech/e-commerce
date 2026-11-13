@@ -1,6 +1,6 @@
 # Apps → WhatsApp: Setup, Messages, Templates, Settings (Figma 928:11726)
 
-Branch `feat/whatsapp-setup`. Migration **0246_notification_channel_log** (an index only:
+Branch `feat/whatsapp-setup`. Migration **0247_notification_channel_log** (an index only:
 `notification (store_id, channel, created_at)` for the message log).
 
 - **Pages** (`packages/notifications-whatsapp/src/plugin.ts`, `apps/admin/src/apps/registry.ts`):
