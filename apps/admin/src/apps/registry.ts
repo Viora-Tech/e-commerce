@@ -55,6 +55,7 @@ import FedexConnectPage from '@/components/apps/fedex/connect-page'
 import FedexOverviewPage from '@/components/apps/fedex/overview-page'
 import SubmissionsList from '@/components/apps/forms/submissions-list'
 import GrowthbookExperimentsPage from '@/components/apps/growthbook/experiments-page'
+import GstExportButton from '@/components/apps/gst-invoices/gst-export-button'
 import InvoiceDetail from '@/components/apps/gst-invoices/invoice-detail'
 import InvoicesList from '@/components/apps/gst-invoices/invoices-list'
 import GstOrderCard from '@/components/apps/gst-invoices/order-card'
@@ -299,6 +300,7 @@ export const ADMIN_APPS: Record<string, AdminApp> = {
     },
   },
   'gst-invoices': {
+    HeaderAction: GstExportButton,
     pages: {
       '': QueuePage,
       invoices: InvoicesList,

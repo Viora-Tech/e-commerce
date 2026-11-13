@@ -8,9 +8,13 @@ function render(props: NotifyMeFields & { puck?: { metadata?: Record<string, unk
   const context = (
     props.puck?.metadata?.appBlockContext as { notifyMe?: NotifyMeBlockContext } | undefined
   )?.notifyMe
+  // A label typed on this block wins; the block's untouched default follows the app's
+  // "Button text" setting, so one setting changes every Notify me button.
+  const custom = props.buttonLabel && props.buttonLabel !== copy.buttonLabel
+  const buttonLabel = custom ? props.buttonLabel : context?.buttonText || props.buttonLabel
   return (
     <NotifyMeBlock
-      buttonLabel={props.buttonLabel}
+      buttonLabel={buttonLabel}
       helperText={props.helperText}
       align={props.align}
       context={context}

@@ -8,6 +8,7 @@ import {
   listSignups,
   maskContact,
   unsubscribeByToken,
+  waitingSummary,
 } from '../src/signups'
 
 const owner = createDb(process.env.DATABASE_URL_OWNER as string)
@@ -154,5 +155,19 @@ describe('maskContact', () => {
   })
   it('masks a phone keeping the first two and last two digits', () => {
     expect(maskContact(null, '919876543210')).toBe('91********10')
+  })
+})
+
+describe('waitingSummary', () => {
+  it('counts waiting shoppers and the variants they wait on, not unsubscribed ones', async () => {
+    const { storeId, variantId } = await seedVariant()
+    await withStore(app, storeId, async (tx) => {
+      await createSignup(tx, storeId, { variantId, email: 'a@example.com' })
+      await createSignup(tx, storeId, { variantId, email: 'b@example.com' })
+      const gone = await createSignup(tx, storeId, { variantId, email: 'c@example.com' })
+      await unsubscribeByToken(tx, gone.row.unsubscribeToken)
+    })
+    const summary = await withStore(app, storeId, (tx) => waitingSummary(tx, storeId))
+    expect(summary).toEqual({ shoppers: 2, variants: 1 })
   })
 })

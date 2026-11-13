@@ -1,7 +1,7 @@
 import { randomBytes } from 'node:crypto'
 import { CommerceError, insertOutboxEvent } from '@commerce/core'
 import { type StoreTx, variant } from '@commerce/db'
-import { and, eq, isNull, or } from 'drizzle-orm'
+import { and, eq, inArray, isNull, or, sql } from 'drizzle-orm'
 import { variantIsEligible } from './eligibility'
 import { backInStockSignup, type SignupStatus } from './schema'
 
@@ -200,4 +200,28 @@ export async function topVariantsByWaiting(tx: StoreTx, storeId: string, limit =
     counts.set(r.variantId, entry)
   }
   return [...counts.values()].sort((a, b) => b.waiting - a.waiting).slice(0, limit)
+}
+
+/**
+ * How many shoppers are waiting (confirmed or pending confirmation) and on how many variants,
+ * in one statement over the store/variant/status index. The app bar's "N shoppers waiting on
+ * M variants".
+ */
+export async function waitingSummary(
+  tx: StoreTx,
+  storeId: string,
+): Promise<{ shoppers: number; variants: number }> {
+  const [row] = await tx
+    .select({
+      shoppers: sql<number>`count(*)::int`,
+      variants: sql<number>`count(distinct ${backInStockSignup.variantId})::int`,
+    })
+    .from(backInStockSignup)
+    .where(
+      and(
+        eq(backInStockSignup.storeId, storeId),
+        inArray(backInStockSignup.status, ['confirmed', 'pending_confirmation']),
+      ),
+    )
+  return { shoppers: row?.shoppers ?? 0, variants: row?.variants ?? 0 }
 }

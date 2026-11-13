@@ -17,6 +17,8 @@ export type NotifyMeBlockContext = {
   available: number
   isPreorder: boolean
   whatsappEnabled: boolean
+  /** The app's "Button text" setting; null when the merchant kept the default. */
+  buttonText?: string | null | undefined
   action: (
     variantId: string,
     state: NotifyMeActionState,

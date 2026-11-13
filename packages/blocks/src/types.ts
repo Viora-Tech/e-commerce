@@ -270,3 +270,13 @@ export type CardCollection = {
   imageUrl: string | null
   productCount: number
 }
+
+/**
+ * What the product page's sold-out "notify me" form (the Back in stock app's, injected by the
+ * storefront) gets. `buttonText` is the app's "Button text" setting; null keeps the form's own.
+ */
+export type NotifyMeFormProps = {
+  variantId: string
+  whatsappEnabled: boolean
+  buttonText?: string | null | undefined
+}

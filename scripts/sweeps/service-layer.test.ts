@@ -354,6 +354,7 @@ const ALLOWLIST: AllowEntry[] = [
   { path: 'packages/plugin-gst-invoices/src/periods.ts', exact: true, reason: PLUGIN },
   { path: 'packages/plugin-gst-invoices/src/plugin.ts', exact: true, reason: PLUGIN },
   { path: 'packages/plugin-gst-invoices/src/queue.ts', exact: true, reason: PLUGIN },
+  { path: 'packages/plugin-gst-invoices/src/queue-status.ts', exact: true, reason: PLUGIN },
   { path: 'packages/plugin-gst-invoices/src/refund-allocation.ts', exact: true, reason: PLUGIN },
   { path: 'packages/plugin-gst-invoices/src/registration.ts', exact: true, reason: PLUGIN },
   { path: 'packages/plugin-gst-invoices/src/render.ts', exact: true, reason: PLUGIN },

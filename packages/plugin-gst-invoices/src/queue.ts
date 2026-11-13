@@ -415,13 +415,18 @@ export async function issueDrafts(
 /** Rule 46 proviso: B2C invoices of ₹50,000 or more need the buyer's name, delivery address and state. */
 export const B2C_DETAIL_THRESHOLD_PAISE = 50_000_00
 
-export function checkRule46(doc: DocumentSnapshot): void {
-  if (doc.buyer.gstin || doc.totals.totalPaise < B2C_DETAIL_THRESHOLD_PAISE) return
-  const missing = [
+/** What rule 46 still needs on this document before it can be issued: empty when nothing. */
+export function rule46Missing(doc: DocumentSnapshot): string[] {
+  if (doc.buyer.gstin || doc.totals.totalPaise < B2C_DETAIL_THRESHOLD_PAISE) return []
+  return [
     !doc.buyer.name.trim() || doc.buyer.name === 'Customer' ? 'name' : null,
     doc.buyer.address.length === 0 ? 'delivery address' : null,
     doc.buyer.state ? null : 'state',
-  ].filter(Boolean)
+  ].filter((m): m is string => m !== null)
+}
+
+export function checkRule46(doc: DocumentSnapshot): void {
+  const missing = rule46Missing(doc)
   if (missing.length) {
     throw new InvoiceError(
       'invalid',

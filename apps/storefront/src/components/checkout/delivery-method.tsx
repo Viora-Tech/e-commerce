@@ -1,13 +1,14 @@
 'use client'
 
 import { useFormatPaise } from '@commerce/blocks'
+import { useEffect, useState } from 'react'
 import CheckoutIcon from '@/components/checkout/checkout-icon'
 import CheckoutParcels from '@/components/checkout/checkout-parcels'
 import DeliveryRouteChoices from '@/components/checkout/delivery-route-choices'
 import InsuranceToggle from '@/components/checkout/insurance-toggle'
 import OptionCard from '@/components/checkout/option-card'
 import { checkoutContent as content } from '@/data/checkout'
-import { deliveryCardNote } from '@/lib/delivery-card-note'
+import { countdownIndex, deliveryCardLine, minutesUntil } from '@/lib/delivery-card-line'
 import type { CheckoutRate, CheckoutShipping } from '@/lib/shipping'
 
 type DeliveryMethodProps = {
@@ -59,6 +60,19 @@ export default function DeliveryMethod({
 }: DeliveryMethodProps) {
   // Hooks
   const money = useFormatPaise()
+  const [nowMs, setNowMs] = useState(() => Date.now())
+  useEffect(() => {
+    if (!shipping?.dispatchCutoffAt) return
+    const tick = () => setNowMs(Date.now())
+    // Catch up at once (the quote can land long after mount), then every 30 s: the countdown
+    // moves by the minute and is never more than half a minute behind.
+    const first = window.setTimeout(tick, 0)
+    const id = window.setInterval(tick, 30_000)
+    return () => {
+      window.clearTimeout(first)
+      window.clearInterval(id)
+    }
+  }, [shipping?.dispatchCutoffAt])
 
   // Helpers
   const price = (paise: number): string => (paise === 0 ? content.shippingFree : money(paise))
@@ -71,6 +85,23 @@ export default function DeliveryMethod({
     ) : (
       price(o.pricePaise)
     )
+  /** The card's third line (Figma 942:513). Only the first-arriving card counts down. */
+  const line = (
+    rateId: string,
+    title: string,
+    facts: { mode: 'air' | 'express' | 'surface' | null; codAllowed: boolean | null },
+    counts: boolean,
+  ) => {
+    const fastestAt = rates.findIndex((r) => r.fastest)
+    const countdownRate = rates[fastestAt >= 0 ? fastestAt : 0]?.id ?? null
+    return deliveryCardLine({
+      title,
+      ...facts,
+      codOffered,
+      minutesLeft:
+        counts && rateId === countdownRate ? minutesUntil(shipping?.dispatchCutoffAt, nowMs) : null,
+    })
+  }
 
   // Early returns
   if (checking || !shipping) {
@@ -107,6 +138,7 @@ export default function DeliveryMethod({
 
   // Render logic
   const free = shipping.rates.kind === 'free'
+  const minutesLeft = minutesUntil(shipping.dispatchCutoffAt, nowMs)
 
   return (
     <div className="flex flex-col gap-3">
@@ -122,6 +154,17 @@ export default function DeliveryMethod({
             icon="truck"
             description={shipping.nothingShips ? content.delivery.notNeededBody : shipping.arrives}
             meta={content.shippingFree}
+            note={
+              shipping.nothingShips
+                ? null
+                : deliveryCardLine({
+                    title: '',
+                    mode: null,
+                    codAllowed: null,
+                    codOffered,
+                    minutesLeft,
+                  })
+            }
           />
         ) : (
           rates.map((o) => {
@@ -131,7 +174,8 @@ export default function DeliveryMethod({
               // first is included at the option's price, the rest show what they add.
               const base = choices[0]?.pricePaise ?? o.pricePaise
               const current = routeKey ?? choices[0]?.routeKey
-              return choices.map((c) => {
+              const counter = countdownIndex(choices.map((c) => c.earliest ?? null))
+              return choices.map((c, i) => {
                 const on = selectedId === o.id && current === c.routeKey
                 const extra = c.pricePaise - base
                 return (
@@ -149,6 +193,12 @@ export default function DeliveryMethod({
                     title={c.label}
                     description={c.arrives}
                     meta={extra > 0 ? `+ ${money(extra)}` : price(c.pricePaise)}
+                    note={line(
+                      o.id,
+                      c.label,
+                      { mode: c.mode ?? null, codAllowed: o.delivery?.codAllowed ?? null },
+                      i === counter,
+                    )}
                   />
                 )
               })
@@ -184,7 +234,15 @@ export default function DeliveryMethod({
                     null
                   }
                   meta={sub ? price(sub.pricePaise) : meta(o)}
-                  note={deliveryCardNote(o, codOffered)}
+                  note={line(
+                    o.id,
+                    sub ? `${o.delivery?.optionName} · ${sub.label}` : o.name,
+                    {
+                      mode: (sub ? sub.mode : o.delivery?.mode) ?? null,
+                      codAllowed: o.delivery?.codAllowed ?? null,
+                    },
+                    true,
+                  )}
                 />
                 {picked && choices.length > 1 && onRoute ? (
                   <DeliveryRouteChoices

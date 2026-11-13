@@ -1,5 +1,6 @@
 import { definePlugin } from '@commerce/plugins'
 import { desc, eq } from 'drizzle-orm'
+import { backInStockAppBar } from './app-bar'
 import { backInStockBlocks } from './blocks'
 import { backInStockSignup } from './schema'
 
@@ -64,6 +65,8 @@ export const backInStockPlugin = definePlugin({
       .limit(1)
     return row ? { at: row.at, summary: 'Got a Notify me signup' } : null
   },
+  // The "N shoppers waiting on M variants" pill and the Signups count (Figma 928:12095).
+  appBar: (ctx) => backInStockAppBar(ctx),
   provides: {},
   storefront: { blocks: backInStockBlocks },
   admin: {

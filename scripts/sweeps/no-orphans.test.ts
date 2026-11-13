@@ -1242,11 +1242,6 @@ const ALLOWLIST: AllowEntry[] = [
     reason: 'no external importer today — investigate before removing',
   },
   {
-    file: 'packages/invoices/src/document.ts',
-    names: ['hsnFor'],
-    reason: 'no external importer today — investigate before removing',
-  },
-  {
     file: 'packages/invoices/src/gstr1.ts',
     names: ['B2CL_THRESHOLD_PAISE', 'documentsIssued'],
     reason: 'no external importer today — investigate before removing',
@@ -1324,8 +1319,13 @@ const ALLOWLIST: AllowEntry[] = [
   },
   {
     file: 'packages/plugin-back-in-stock/src/settings.ts',
-    names: ['defaultBackInStockStoreSettings', 'parseBackInStockStoreSettings'],
+    names: ['parseBackInStockStoreSettings'],
     reason: 'no external importer today — investigate before removing',
+  },
+  {
+    file: 'packages/plugin-back-in-stock/src/app-bar.ts',
+    names: ['waitingLabel'],
+    reason: 'the app bar pill text, exported for its unit test',
   },
   {
     file: 'packages/plugin-emi/src/plugin.ts',
@@ -1396,9 +1396,10 @@ const ALLOWLIST: AllowEntry[] = [
     reason: 'no external importer today — investigate before removing',
   },
   {
-    file: 'packages/plugin-gst-invoices/src/periods.ts',
-    names: ['periodOf'],
-    reason: 'no external importer today — investigate before removing',
+    file: 'packages/plugin-gst-invoices/src/queue-status.ts',
+    names: ['nextReset', 'queueStatus'],
+    reason:
+      'test-only: the Queue status rules and the numbering reset day, tested in queue-status.test.ts',
   },
   {
     file: 'packages/plugin-gst-invoices/src/queue.ts',
@@ -1511,7 +1512,6 @@ const ALLOWLIST: AllowEntry[] = [
       'isWorkingDay',
       'nextWorkingDay',
       'addWorkingDays',
-      'parseCutoff',
       'isValidTimeZone',
       'buildTrack',
     ],
