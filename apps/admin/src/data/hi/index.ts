@@ -49,6 +49,7 @@ import customizeInboxEmbed from './customize-inbox-embed'
 import dateRange from './date-range'
 import dates from './dates'
 import deliveryOptions from './delivery-options'
+import deliveryOptionsPages from './delivery-options-pages'
 import dhlExpress from './dhl-express'
 import discounts from './discounts'
 import documentTemplates from './document-templates'
@@ -204,6 +205,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...checkoutSettings,
   ...codRto,
   ...deliveryOptions,
+  ...deliveryOptionsPages,
   ...common,
   ...resourcePicker,
   ...connectAside,

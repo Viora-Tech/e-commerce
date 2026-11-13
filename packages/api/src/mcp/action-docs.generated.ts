@@ -260,8 +260,14 @@ export const ACTION_DOCS: Record<string, string> = {
   'dashboard.tiles': 'Which metric this member keeps in each Home tile (Customize).',
   'dashboard.todos':
     'Which to-do cards this store hides on Home ("Edit to-dos"); one setting for the whole store.',
+  'deliveryOptions.routeCatalogue':
+    "Routes: every courier x app x service the connected apps offer, asked on two long lanes from the store's origin through checkout's answer cache (live only when nothing is cached), with the route sett…",
+  'deliveryOptions.saveOptions':
+    "The Options page's Save: every edited option, the card order and the checkout layout in one transaction, so a half-saved page never reaches checkout.",
   'deliveryOptions.saveProtect':
     "Delhivery Protect's card: rates per category and product-type overrides (the overview returns it as protect).",
+  'deliveryOptions.status':
+    "The app bar's status pill: courier apps connected and the share priced live today.",
   'deliveryOptions.tryPin':
     "Try a PIN: the cards checkout would show, every route's quote, and why.",
   'documents.templates':

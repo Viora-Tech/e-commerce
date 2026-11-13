@@ -1,5 +1,6 @@
 /** SOURCE OF TRUTH: the Delivery options app manifest — WHAT: the built-in, free "Delivery options" app (listing, access, admin pages) / WHY: the App Store catalogue, Installed apps and the admin sidebar read apps from manifests; the engine is core (`packages/core/src/shipping/delivery-options/`) because it runs inside checkout and `placeOrder`, which a plugin hook cannot reach. Free on every plan because it is absent from `APP_PRICING`. Imported by commerce.config.ts. */
 import { definePlugin } from '@commerce/plugins'
+import { deliveryOptionsAppBar } from './app-bar'
 import { DELIVERY_OPTIONS_APP_ID } from './config'
 
 /**
@@ -57,6 +58,7 @@ export const deliveryOptionsPlugin = definePlugin({
     summary: 'shows courier delivery options at checkout',
   },
   provides: {},
+  appBar: (ctx) => deliveryOptionsAppBar(ctx),
   admin: {
     icon: 'Truck',
     pages: [

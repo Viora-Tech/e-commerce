@@ -692,3 +692,66 @@ describe('courier list (the option shows every allowed courier)', () => {
     expect(find(r, 'std')?.layout).toBe('one')
   })
 })
+
+describe('courier list layout and switches (Figma 938:12101)', () => {
+  it('the list layout shows only the first enabled option, as a list of every courier', () => {
+    const r = resolveDeliveryOptions(input({ config: config({ layout: 'list' }) }))
+    expect(r.options.map((o) => o.optionId)).toEqual(['std'])
+    const std = find(r, 'std')
+    expect(std?.layout).toBe('list')
+    // Express couriers ride in Standard's list at the difference, instead of their own card.
+    expect(std?.choices.map((c) => c.route.key)).toContain('delhivery:E')
+    expect(r.trace.options.find((t) => t.optionId === 'exp')?.hidden).toBe('list_layout')
+  })
+
+  it('the list layout skips a turned-off first option', () => {
+    const off = { ...STANDARD, enabled: false }
+    const r = resolveDeliveryOptions(
+      input({ config: config({ layout: 'list', options: [off, EXPRESS] }) }),
+    )
+    expect(r.options.map((o) => o.optionId)).toEqual(['exp'])
+    expect(find(r, 'exp')?.layout).toBe('list')
+  })
+
+  it('the fixed layout (or none saved) is unchanged', () => {
+    const before = resolveDeliveryOptions(input())
+    const fixed = resolveDeliveryOptions(input({ config: config({ layout: 'fixed' }) }))
+    expect(fixed.options).toEqual(before.options)
+    expect(before.options.map((o) => o.optionId)).toEqual(['std', 'exp'])
+  })
+
+  it('a courier not switched on never shows, in a list or as the pick', () => {
+    const allow = ['delhivery:standard', 'delhivery:express']
+    const list = option('std', {
+      name: 'Delivery',
+      couriers: { show: 'list', max: 4, allow },
+    })
+    const r = resolveDeliveryOptions(input({ config: config({ options: [list] }) }))
+    const keys = find(r, 'std')?.choices.map((c) => c.route.key)
+    // DTDC and Blue Dart via Shiprocket are off; Delhivery via Shiprocket is the same courier.
+    expect(keys).toEqual(['delhivery:S', 'delhivery:E'])
+    expect(dropOf(r, 'std', 'shiprocket:30')).toBe('not_allowed')
+    const one = option('std', { name: 'Standard', couriers: { allow: ['dtdc:standard'] } })
+    const picked = resolveDeliveryOptions(input({ config: config({ options: [one] }) }))
+    expect(find(picked, 'std')?.pick?.route.key).toBe('shiprocket:30')
+  })
+
+  it('an empty switch list shows no courier; no list saved allows every courier', () => {
+    const none = option('std', { name: 'Standard', couriers: { allow: [] } })
+    const r = resolveDeliveryOptions(input({ config: config({ options: [none] }) }))
+    expect(find(r, 'std')).toBeUndefined()
+    const all = resolveDeliveryOptions(input({ config: config({ options: [STANDARD] }) }))
+    expect(find(all, 'std')?.pick).not.toBeNull()
+  })
+
+  it('faster couriers at no extra cost when the option says so', () => {
+    const list = option('std', {
+      name: 'Delivery',
+      couriers: { show: 'list', max: 4, extra: 'none', hideSlowerDearer: false },
+    })
+    const r = resolveDeliveryOptions(input({ config: config({ options: [list] }) }))
+    const o = find(r, 'std')
+    expect(o?.choices.length).toBeGreaterThan(1)
+    expect(o?.choices.every((c) => c.pricePaise === o.pricePaise)).toBe(true)
+  })
+})
