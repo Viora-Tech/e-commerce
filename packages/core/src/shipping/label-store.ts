@@ -37,6 +37,17 @@ export async function storeShippingLabel(
   }
 }
 
+/**
+ * A reader for many stored labels (a batch print): the store's storage is looked up once, not
+ * per label. Each read gives the bytes, or null when that shipment has none on file.
+ */
+export async function shippingLabelReader(
+  ctx: StoreContext,
+): Promise<(shipmentId: string) => Promise<Uint8Array | null>> {
+  const storage = await documentStorage(ctx.tx, ctx.storeId)
+  return (shipmentId) => storage.get(labelKey(ctx.storeId, shipmentId))
+}
+
 /** The stored label's bytes, or null when this shipment has none on file. */
 export async function readShippingLabel(
   ctx: StoreContext,

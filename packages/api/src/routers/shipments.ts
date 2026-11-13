@@ -1,5 +1,11 @@
 import { settingsSecret } from '@commerce/config'
-import { PARCEL_SPLIT_REASONS, permissions, splitFulfillmentOrder } from '@commerce/core'
+import {
+  LABEL_SHEET_FORMATS,
+  LABEL_SHEET_MAX,
+  PARCEL_SPLIT_REASONS,
+  permissions,
+  splitFulfillmentOrder,
+} from '@commerce/core'
 import { dayKey } from '@commerce/dates'
 import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
@@ -7,6 +13,7 @@ import { BULK_MAX, can, heavy, PAGE_SIZE_MAX, SEARCH_MAX } from '../procedures'
 import { storeRegistries } from '../services/apps.service'
 import { prepareShipments, quoteShipments } from '../services/create-shipment.service'
 import { indiaPostLabel, recordShipmentStatus } from '../services/india-post.service'
+import { printLabelSheet } from '../services/label-sheet.service'
 import { listReadyToShip } from '../services/ready-to-ship.service'
 import {
   actOnNdr,
@@ -118,6 +125,41 @@ export const shipmentsRouter = {
       return new File([bytes as Uint8Array<ArrayBuffer>], `label-${input.id}.pdf`, {
         type: 'application/pdf',
       })
+    }),
+
+  /**
+   * A batch's labels as one PDF in the merchant's paper (Figma 909:9249, the bulk result's
+   * Print card; also Shipments › Booked's selection): 4 × 6 in thermal one per page, A4 four
+   * per sheet, or each courier's own pages. Ids outside the caller's store are skipped as not
+   * found; labels the courier has not sent, or that could not be fetched, are skipped and named.
+   * `file` is null when none could be printed.
+   */
+  labelSheet: can(permissions.ORDERS_READ)
+    .use(heavy('export'))
+    .input(
+      z.object({
+        ids: z.array(z.uuid()).min(1).max(LABEL_SHEET_MAX),
+        format: z.enum(LABEL_SHEET_FORMATS),
+      }),
+    )
+    .handler(async ({ context, input }) => {
+      const { shipping } = await storeRegistries(context.tx, context.scope.storeId)
+      const sheet = await printLabelSheet(
+        context.tx,
+        context.scope.storeId,
+        shipping,
+        settingsSecret(),
+        input.ids,
+        input.format,
+      )
+      const name = `labels-${dayKey(new Date())}.pdf`
+      return {
+        file: sheet.pdf
+          ? new File([sheet.pdf as Uint8Array<ArrayBuffer>], name, { type: 'application/pdf' })
+          : null,
+        printed: sheet.printed,
+        skipped: sheet.skipped,
+      }
     }),
 
   /** Rows per Shipments tab, plus "booked today" and "need attention" for the summary line. */

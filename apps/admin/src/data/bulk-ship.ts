@@ -97,8 +97,10 @@ export const bulkShipContent = {
         ? `${plural(skipped, 'order', 'orders')} skipped and stay in To ship. Booked orders moved to Shipments › Booked.`
         : 'Booked orders moved to Shipments › Booked.',
     print: 'Print',
-    printHeading: (n: number) => (n === 1 ? 'The label' : `All ${n} labels`),
-    printHelp: 'Each courier’s label opens in its own tab, in the courier’s own size.',
+    printHeading: (n: number) =>
+      n === 1 ? 'The label in one file' : `All ${n} labels in one file`,
+    printMissing: (n: number) =>
+      `${plural(n, 'label is', 'labels are')} not sent by the courier yet and stay out of the file.`,
     printLabels: (n: number) =>
       n === 0 ? 'Print labels' : `Print ${plural(n, 'label', 'labels')}`,
     packingSlips: 'Packing slips',
