@@ -44,7 +44,7 @@ export const unseenDraftsCount = cache(async () =>
     .catch(() => null),
 )
 
-/** Orders waiting to ship, for the sidebar's Orders count; null without permission. */
+/** Waiting to ship, for the sidebar: orders (Orders count) and To book parcels (Shipments count, the To ship tab's rows); null without permission. */
 export const ordersToShipCount = cache(async () =>
   shell()
     .then((s) => s.toShip)

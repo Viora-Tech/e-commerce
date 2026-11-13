@@ -6,6 +6,7 @@ import { installedAppBars } from '../services/app-bar.service'
 import { unseenCheckoutDrafts } from '../services/drafts-seen.service'
 import { readyToShipCount } from '../services/order.service'
 import { paymentsTestMode } from '../services/payments-setup.service'
+import { countReadyToShip } from '../services/ready-to-ship.service'
 import { listStoreApps } from './apps'
 import { planUsageCard } from './billing'
 
@@ -37,7 +38,12 @@ export const shellProcedure = storeProcedure.handler(async ({ context }) => {
         }))
       : null,
     can(permissions.ONLINE_STORE_READ) ? liveThemeLogoUrl(tx) : null,
-    can(permissions.ORDERS_READ) ? readyToShipCount(tx) : null,
+    can(permissions.ORDERS_READ)
+      ? Promise.all([readyToShipCount(tx), countReadyToShip(tx)]).then(([orders, parcels]) => ({
+          orders,
+          parcels,
+        }))
+      : null,
     settings ? planUsageCard(tx, storeId) : null,
     settings ? paymentsTestMode(tx, storeId) : false,
     approvalCounts({ storeId, tx }, scope),
@@ -55,6 +61,7 @@ export const shellProcedure = storeProcedure.handler(async ({ context }) => {
     /** By app id: each installed app's status pill and sidebar page counts; null without `settings.read`. */
     appBars: appsAndBars?.bars ?? null,
     logo,
+    /** Orders waiting to ship (Orders count) and To book rows, one per open parcel (Shipments count). */
     toShip,
     usage,
     testMode,
