@@ -4,8 +4,8 @@ import { ADMIN_APPS, matchAppPage } from '@/apps/registry'
 import AppListing from '@/components/apps/app-listing'
 import AppShell from '@/components/apps/app-shell'
 import PageBody from '@/components/layout/page-body'
-import { appRouter, call, serverContext } from '@/lib/api'
 import { routes } from '@/lib/routes'
+import { listAppBars, listApps } from '@/lib/shell-data'
 import { orNoStore } from '@/lib/store-guard'
 
 type Params = { params: Promise<{ pluginId: string; path?: string[] }> }
@@ -13,8 +13,8 @@ type Params = { params: Promise<{ pluginId: string; path?: string[] }> }
 /** The tab reads the app's name, with the page's tab label after the first page. */
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const { pluginId, path = [] } = await params
-  const context = await serverContext()
-  const apps = await call(appRouter.apps.list, undefined, { context }).catch(() => [])
+  // The layout's `store.shell` read (one call per request, shared with the layout and the page).
+  const apps = await listApps().catch(() => [])
   const app = apps.find((a) => a.id === pluginId)
   if (!app) return { title: 'Apps' }
   const page = app.installed ? matchAppPage(app.admin.pages, path)?.page : undefined
@@ -32,8 +32,7 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
  */
 export default async function AppPage({ params }: Params) {
   const { pluginId, path = [] } = await params
-  const context = await serverContext()
-  const apps = await call(appRouter.apps.list, undefined, { context }).catch(orNoStore(undefined))
+  const [apps, bars] = await Promise.all([listApps().catch(orNoStore(undefined)), listAppBars()])
   if (apps === undefined) redirect(routes.selectStore())
   const app = apps.find((a) => a.id === pluginId)
   if (!app) notFound()
@@ -64,8 +63,7 @@ export default async function AppPage({ params }: Params) {
       appId={app.id}
       name={app.name}
       icon={app.admin.icon}
-      description={app.description}
-      credits={app.credits}
+      statusPill={bars[app.id]?.statusPill ?? null}
       status={app.status}
       problem={app.problem}
       fixHref={
@@ -79,11 +77,8 @@ export default async function AppPage({ params }: Params) {
               ? routes.apps.settings(app.id)
               : undefined
       }
-      // A settings page that is already a tab needs no header button too (#77).
-      hasSettings={
-        app.admin.pages.some((p) => p.path === 'settings') &&
-        !(tabs.length > 1 && tabs.some((t) => t.path === 'settings'))
-      }
+      // The "…" menu's Settings item: the app's own settings page, when it has one.
+      hasSettings={app.admin.pages.some((p) => p.path === 'settings')}
       tabs={tabs}
       active={match.page.path}
       headerAction={registered.HeaderAction ? <registered.HeaderAction /> : undefined}

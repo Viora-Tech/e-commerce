@@ -1,4 +1,4 @@
-import { order, orderLine, type StoreTx } from '@commerce/db'
+import { order, orderLine, type StoreTx, store } from '@commerce/db'
 import {
   counterYear,
   type DocumentSnapshot,
@@ -25,7 +25,7 @@ import { takeNumber } from './numbers'
 import { invoiceParcels } from './parcels'
 import { assertPeriodOpen, PeriodError } from './periods'
 import { gstToken, orderIssuer, sameRegistration } from './registration'
-import { invoice } from './schema'
+import { invoice, invoiceSettings } from './schema'
 
 /**
  * The invoice queue. Orders wait here as unnumbered drafts; a GST number is
@@ -473,4 +473,18 @@ export async function cancelInvoice(
     .returning()
   if (!updated) throw new InvoiceError('not_found', 'Invoice not found')
   return updated
+}
+
+/** The app bar's one statement (`./app-bar`): queued tax invoices (when `count`) and the seller GSTIN. */
+export async function queueBarRead(tx: StoreTx, storeId: string, count: boolean) {
+  const waiting = count
+    ? sql`(select count(*)::int from ${invoice} where ${and(eq(invoice.storeId, storeId), queuedInvoiceDrafts())})`
+    : sql`0`
+  const [row] = await tx.execute<{ waiting: number; gstin: string | null }>(sql`
+    select ${waiting} as waiting, coalesce(
+      (select nullif(${invoiceSettings.settings}->'seller'->>'gstin', '') from ${invoiceSettings}
+        where ${invoiceSettings.storeId} = ${storeId}),
+      (select nullif(${store.gstin}, '') from ${store} where ${store.id} = ${storeId})) as gstin
+  `)
+  return { waiting: Number(row?.waiting ?? 0), gstin: row?.gstin ?? null }
 }

@@ -1,6 +1,6 @@
 'use client'
 
-import { ChevronRight, ExternalLink } from '@commerce/ui/icons'
+import { ChevronDown, ChevronRight, ExternalLink } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import {
   DropdownMenu,
@@ -15,18 +15,19 @@ import { useSidebar } from '@commerce/ui/shadcn/sidebar'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@commerce/ui/shadcn/tooltip'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import Link from 'next/link'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
+import { layoutContent } from '@/data/layout'
 import {
   activeChildHref,
   isSectionActive,
   isSectionLinkActive,
+  type NavChild,
   type NavItem,
   navigationContent,
 } from '@/data/navigation'
 import { useCopy } from '@/hooks/use-copy'
 import { base, instant, pill } from '@/lib/motion'
 import { SIDEBAR_CONTROL, SIDEBAR_LABEL } from '@/lib/sidebar-motion'
-import NavAppPages from './nav-app-pages'
 
 type NavSectionProps = {
   item: NavItem
@@ -68,6 +69,23 @@ function CountPill({ count, title }: { count: number; title: string }) {
   )
 }
 
+/**
+ * The children to list when the section caps them (an app's pages, Figma 928:10728): the first
+ * `limit`, swapping the last for the page on screen when that one sits past the cap.
+ */
+function cappedChildren(
+  children: NavChild[],
+  activeHref: string | null,
+  limit: number,
+): NavChild[] {
+  if (children.length <= limit) return children
+  const at = children.findIndex((c) => c.href === activeHref)
+  const current = children[at]
+  return at >= limit && current
+    ? [...children.slice(0, limit - 1), current]
+    : children.slice(0, limit)
+}
+
 /** A child that leaves the admin (the App Store website) opens in a new tab. */
 const EXTERNAL = { target: '_blank', rel: 'noopener noreferrer' } as const
 
@@ -75,13 +93,27 @@ const EXTERNAL = { target: '_blank', rel: 'noopener noreferrer' } as const
 export default function NavSection({ item, pathname, count = 0, counts = {} }: NavSectionProps) {
   // Hooks
   const copy = useCopy(navigationContent)
+  const layoutCopy = useCopy(layoutContent)
   const reduced = useReducedMotion()
   const { state: sidebarState, isMobile } = useSidebar()
   const [override, setOverride] = useState<OpenOverride | null>(null)
+  const [showAll, setShowAll] = useState(false)
+  const listRef = useRef<HTMLUListElement>(null)
 
   // Event handlers
   const handleToggle = () => {
     setOverride({ pathname, open: !open })
+  }
+  /* "View more" disappears once pressed, so keyboard focus moves to the first page it revealed. */
+  const handleShowAll = () => {
+    const first = children.find((c) => !listed.includes(c))
+    setShowAll(true)
+    if (!first) return
+    requestAnimationFrame(() => {
+      listRef.current
+        ?.querySelector<HTMLAnchorElement>(`a[href="${CSS.escape(first.href)}"]`)
+        ?.focus()
+    })
   }
 
   // Render logic
@@ -91,6 +123,9 @@ export default function NavSection({ item, pathname, count = 0, counts = {} }: N
   const activeHref = activeChildHref(pathname, children)
   const open =
     children.length > 0 && (override?.pathname === pathname ? override.open : sectionActive)
+  const listed =
+    item.childLimit && !showAll ? cappedChildren(children, activeHref, item.childLimit) : children
+  const hidden = children.length - listed.length
   const toggleLabel = open ? copy.collapseSection(item.label) : copy.expandSection(item.label)
   const slide = reduced ? instant : pill
   const reveal = reduced ? instant : base
@@ -194,13 +229,14 @@ export default function NavSection({ item, pathname, count = 0, counts = {} }: N
         {open ? (
           <motion.ul
             key="children"
+            ref={listRef}
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={reveal}
             className="relative mt-1 ml-4 flex flex-col gap-0.5 overflow-hidden pl-2.5 before:absolute before:inset-y-0 before:left-0 before:w-px before:bg-border group-data-[collapsible=icon]:hidden"
           >
-            {children.map((child) => {
+            {listed.map((child) => {
               const active = child.href === activeHref
               const childCount = counts[child.href] ?? 0
               return (
@@ -227,12 +263,19 @@ export default function NavSection({ item, pathname, count = 0, counts = {} }: N
                       <ExternalLink aria-hidden="true" className="size-3.5 shrink-0" />
                     ) : null}
                   </Link>
-                  {child.pages && active ? (
-                    <NavAppPages pages={child.pages} pathname={pathname} />
-                  ) : null}
                 </li>
               )
             })}
+            {hidden > 0 ? (
+              <li>
+                <button type="button" onClick={handleShowAll} className={cn(CHILD, 'gap-2')}>
+                  <span className="min-w-0 flex-1 truncate text-left">
+                    {layoutCopy.viewMorePages(hidden)}
+                  </span>
+                  <ChevronDown aria-hidden="true" className="size-3.5 shrink-0" />
+                </button>
+              </li>
+            ) : null}
           </motion.ul>
         ) : null}
       </AnimatePresence>

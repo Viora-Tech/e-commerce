@@ -86,6 +86,7 @@ export function definePlugin(input: DefinePluginInput): PluginManifest {
     listing: input.listing,
     setupState: input.setupState,
     lastUsed: input.lastUsed,
+    appBar: input.appBar,
     automations: input.automations,
     provides: {
       payments: input.provides.payments ?? [],

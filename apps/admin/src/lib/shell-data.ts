@@ -88,3 +88,17 @@ export const planUsageSummary = cache(async () =>
     .then((s) => s.usage)
     .catch(() => null),
 )
+
+/** Installed apps' app bar extras by app id. */
+export type AppBars = NonNullable<Awaited<ReturnType<typeof shell>>['appBars']>
+
+/**
+ * Installed apps' app bar extras by app id (status pill, sidebar page counts), read with the
+ * rest of the shell, so one call covers every app; empty when it cannot be read.
+ */
+export const listAppBars = cache(
+  async (): Promise<AppBars> =>
+    shell()
+      .then((s) => s.appBars ?? {})
+      .catch(() => ({})),
+)
