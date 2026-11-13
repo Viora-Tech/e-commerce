@@ -98,7 +98,12 @@ describe('whatsapp specifics', () => {
       ) as { template: { components: unknown[] } }
       expect(p.template.components).toEqual([
         { type: 'body', parameters: [{ type: 'text', text: '482913' }] },
-        { type: 'button', sub_type: 'url', index: '0', parameters: [{ type: 'text', text: '482913' }] },
+        {
+          type: 'button',
+          sub_type: 'url',
+          index: '0',
+          parameters: [{ type: 'text', text: '482913' }],
+        },
       ])
     }
   })
