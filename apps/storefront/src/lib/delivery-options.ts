@@ -55,6 +55,18 @@ export type DeliveryChoiceCard = {
   arrives: string | null
   /** The courier's logo when its name is shown (list cards). */
   logo: CourierLogo | null
+  /** How the route travels, for the card's fact line ("By air"). */
+  mode: DeliveryMode
+  /** First day it can arrive, "YYYY-MM-DD"; null when unknown. Picks the fastest list card. */
+  earliest: string | null
+}
+
+/** How a route travels, read from its service: Blue Dart Apex and "Air" services fly. */
+export type DeliveryMode = 'air' | 'express' | 'surface'
+
+export function deliveryMode(route: { serviceLabel: string; speed: string }): DeliveryMode {
+  if (/\bair\b|apex/i.test(route.serviceLabel)) return 'air'
+  return route.speed === 'express' ? 'express' : 'surface'
 }
 
 /** What checkout needs beyond a plain rate card, per delivery option. */
@@ -74,6 +86,8 @@ export type DeliveryCardExtras = {
   logo: CourierLogo | null
   /** `list`: each choice is its own card (the option's Couriers setting). */
   layout: 'one' | 'list'
+  /** How the picked route travels; null on backup (no route). */
+  mode: DeliveryMode | null
 }
 
 export type CourierLogo = {
@@ -167,12 +181,15 @@ export function cardExtras(
     optionName: o.name,
     logo: o.pick ? courierLogo(o.pick.route) : null,
     layout: o.layout,
+    mode: o.pick ? deliveryMode(o.pick.route) : null,
     choices: o.choices.map((c) => ({
       routeKey: c.route.key,
       label: choiceLabel(c.route),
       pricePaise: afterDiscount(c.pricePaise),
       arrives: deliveryArrives(c, policy, now),
       logo: courierLogo(c.route),
+      mode: deliveryMode(c.route),
+      earliest: c.etaEstimated ? null : c.earliest,
     })),
   }
 }

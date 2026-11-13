@@ -30,7 +30,9 @@ import {
   describeCourierFailure,
   estimateDelivery,
   formatDeliveryRange,
+  parseCutoff,
   parsePincode,
+  zonedNow,
 } from '@commerce/shipping'
 import { eq } from 'drizzle-orm'
 import {
@@ -164,6 +166,29 @@ export type CheckoutShipping = {
   deliveryQuote?: Pick<CheckoutDelivery, 'quoteId' | 'insurance'> | undefined
   /** Nothing in the cart needs shipping (services, downloads): no charge, no courier asked. */
   nothingShips?: true | undefined
+  /**
+   * Today's dispatch cut-off as an instant (ISO), while an order placed now still leaves today
+   * (the store's calendar and cut-off, Settings → Shipping). The cards count down to it.
+   */
+  dispatchCutoffAt?: string | null | undefined
+}
+
+/** Today's cut-off as an instant, when the estimate says the order still dispatches today. */
+export function dispatchCutoffAt(
+  delivery: DeliveryEstimate,
+  policy: { cutoff: string; timeZone: string },
+  now: Date,
+): string | null {
+  if (!delivery.ok || !delivery.serviceable || !delivery.dispatchesToday) return null
+  try {
+    const left = parseCutoff(policy.cutoff) - zonedNow(now, policy.timeZone).minutesSinceMidnight
+    if (left <= 0) return null
+    // Whole minutes from the start of this minute, so the countdown never runs past the cut-off.
+    const minuteStart = now.getTime() - (now.getTime() % 60_000)
+    return new Date(minuteStart + left * 60_000).toISOString()
+  } catch {
+    return null
+  }
 }
 
 /** Stands in for the courier's answer when nothing in the cart travels. */
@@ -285,6 +310,7 @@ export async function checkoutShipping(
     parcels,
     arrives,
     rates: { kind: 'rates', options: datedRates(quote.options, settings, delivery, now) },
+    dispatchCutoffAt: dispatchCutoffAt(delivery, toShippingPolicy(settings), now),
   }
 }
 
@@ -414,6 +440,7 @@ async function deliveryOptionsShipping(
     parcels: split.length > 1 ? split : [],
     arrives: rates[0]?.arrives ?? null,
     deliveryQuote: { quoteId: quote.quoteId, insurance: quote.insurance },
+    dispatchCutoffAt: dispatchCutoffAt(delivery, policy, now),
   }
 }
 

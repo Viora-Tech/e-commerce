@@ -1511,7 +1511,6 @@ const ALLOWLIST: AllowEntry[] = [
       'isWorkingDay',
       'nextWorkingDay',
       'addWorkingDays',
-      'parseCutoff',
       'isValidTimeZone',
       'buildTrack',
     ],

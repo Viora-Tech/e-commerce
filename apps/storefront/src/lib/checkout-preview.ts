@@ -340,12 +340,16 @@ export function shippingRow(
   rate: CheckoutRate | undefined,
   /** Paying on delivery ships Standard's COD route at its own price (Delivery options app). */
   payment?: string,
+  /** The parcel is insured: the row reads "Shipping · insured" (Figma 945:519), the price
+   *  already includes it. */
+  insured = false,
 ): ShippingRow | null {
   if (digitalOnly) return null
   if (s?.rates.kind === 'free') return { kind: 'price', paise: 0, name: null }
   if (!rate) return { kind: 'pending' }
   const cod = payment === 'cod' ? (rate.delivery?.codPricePaise ?? null) : null
-  return { kind: 'price', paise: cod ?? rate.pricePaise, name: rate.name }
+  const name = insured && rate.delivery ? appCopy.insured : rate.name
+  return { kind: 'price', paise: cod ?? rate.pricePaise, name }
 }
 
 /** The Pay button's amount and words, and the EMI line's monthly amount when the store offers EMI on it. */
