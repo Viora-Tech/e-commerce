@@ -1,61 +1,58 @@
 'use client'
 
 import type { IssueOn } from '@commerce/invoices'
-import { Eye, Plus, Trash2 } from '@commerce/ui/icons'
+import { X } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Checkbox } from '@commerce/ui/shadcn/checkbox'
-import { Input } from '@commerce/ui/shadcn/input'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@commerce/ui/shadcn/table'
-import Link from 'next/link'
+import { Table, TableBody, TableHead, TableHeader, TableRow } from '@commerce/ui/shadcn/table'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import SetupChecklist from '@/components/apps/setup-checklist'
-import DateField from '@/components/fields/date-field'
 import PageHeader from '@/components/layout/page-header'
-import RelativeTime from '@/components/layout/relative-time'
+import PillTabs from '@/components/layout/pill-tabs'
 import { gstInvoicesContent } from '@/data/gst-invoices'
+import { gstQueuePageContent } from '@/data/gst-queue-page'
+import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
-import { formatPaise } from '@/lib/money'
 import { routes } from '@/lib/routes'
 import GstNumberPicker from './gst-number-picker'
 import QueueEmpty from './queue-empty'
+import QueueMoreMenu, { type DateRange } from './queue-more-menu'
+import QueueRowView from './queue-row'
+import QueueStats from './queue-stats'
 import ReviewPanel from './review-panel'
-import { CELL, HEAD } from './table-classes'
+import { HEAD } from './table-classes'
 
 export type QueueRow = Awaited<ReturnType<typeof api.gstInvoices.queue.list>>[number]
 
-const copy = gstInvoicesContent.queue
+type Chip = 'all' | 'ready' | 'fix'
 
 const istStart = (day: string) => (day ? new Date(`${day}T00:00:00+05:30`) : undefined)
 const istEnd = (day: string) =>
   day ? new Date(new Date(`${day}T00:00:00+05:30`).getTime() + 86_400_000) : undefined
 
-/** Order numbers typed as "1042, 1043 1044". */
-const parseNumbers = (text: string) =>
-  [...new Set(text.split(/[\s,#]+/).map(Number))].filter((n) => Number.isInteger(n) && n > 0)
+const isReady = (r: QueueRow) => r.status.startsWith('ready')
 
 /**
- * The app's main page: orders waiting for a tax invoice. Select, review the
- * dates, see the numbers they will get, issue. Nothing here is numbered.
+ * The GST invoices Queue (Figma 928:10728): this month's figures, then every order waiting for
+ * a tax invoice with its taxable value, GST and status. Ready rows issue (all at once from the
+ * header, or one by one); the rest link to where the problem is fixed. Issuing goes through the
+ * review step, which confirms each invoice date before numbers are given.
  */
 export default function QueuePage() {
   // Hooks
+  const copy = useCopy(gstQueuePageContent)
+  const fmt = useFormat()
   const [rows, setRows] = useState<QueueRow[] | null>(null)
-  const [range, setRange] = useState({ from: '', to: '' })
+  const [range, setRange] = useState<DateRange>({ from: '', to: '' })
+  const [chip, setChip] = useState<Chip>('all')
   const [picked, setPicked] = useState<Set<string>>(new Set())
-  const [adding, setAdding] = useState('')
   const [reviewing, setReviewing] = useState<QueueRow[] | null>(null)
   const [busy, setBusy] = useState(false)
   const [gstin, setGstin] = useState<string | null | undefined>(undefined)
   const [gst, setGst] = useState<string | undefined>(undefined)
   const [issueOn, setIssueOn] = useState<IssueOn | null>(null)
+  const [reloadKey, setReloadKey] = useState(0)
 
   useEffect(() => {
     api.gstInvoices.settings
@@ -67,6 +64,7 @@ export default function QueuePage() {
       .catch(() => setGstin(null))
   }, [])
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `reloadKey` refetches after a change
   useEffect(() => {
     let cancelled = false
     api.gstInvoices.queue
@@ -77,18 +75,12 @@ export default function QueuePage() {
     return () => {
       cancelled = true
     }
-  }, [range, gst])
+  }, [range, gst, reloadKey])
 
   // Helpers
-  const reload = async () => {
-    setRows(
-      await api.gstInvoices.queue.list({
-        from: istStart(range.from),
-        to: istEnd(range.to),
-        gstRegistrationId: gst,
-      }),
-    )
+  const reload = () => {
     setPicked(new Set())
+    setReloadKey((k) => k + 1)
   }
 
   // Event handlers
@@ -99,27 +91,13 @@ export default function QueuePage() {
       else next.delete(id)
       return next
     })
-  const handleAdd = async () => {
-    const numbers = parseNumbers(adding)
-    if (!numbers.length) return
-    setBusy(true)
-    try {
-      const r = await api.gstInvoices.queue.add({ orderNumbers: numbers })
-      toast.success(copy.added(r?.added ?? 0))
-      if (r?.missing.length) toast.error(copy.notFound(r.missing.join(', ')))
-      setAdding('')
-      await reload()
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.failed)
-    } finally {
-      setBusy(false)
-    }
-  }
   const handleRemove = async () => {
     setBusy(true)
     try {
       await api.gstInvoices.queue.remove({ ids: [...picked] })
-      await reload()
+      reload()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : gstInvoicesContent.queue.failed)
     } finally {
       setBusy(false)
     }
@@ -128,10 +106,10 @@ export default function QueuePage() {
     setGst(id)
     setPicked(new Set())
   }
-  const handleIssued = async (n: number) => {
-    toast.success(copy.issued(n))
+  const handleIssued = (n: number) => {
+    toast.success(gstInvoicesContent.queue.issued(n))
     setReviewing(null)
-    await reload()
+    reload()
   }
 
   // Early returns
@@ -143,77 +121,97 @@ export default function QueuePage() {
 
   // Render logic
   const list = rows ?? []
+  const ready = list.filter(isReady)
+  const toFix = list.filter((r) => !isReady(r))
+  const shown = chip === 'ready' ? ready : chip === 'fix' ? toFix : list
+  const filtered = Boolean(range.from || range.to)
   const empty = rows !== null && list.length === 0
-  const allOn = list.length > 0 && list.every((r) => picked.has(r.id))
+  // The header issues the ticked ready rows, else every ready row.
+  const pickedReady = ready.filter((r) => picked.has(r.id))
+  const toIssue = pickedReady.length ? pickedReady : ready
+  const pickable = shown
+  const allOn = pickable.length > 0 && pickable.every((r) => picked.has(r.id))
+  const fromLabel = range.from ? fmt.date(`${range.from}T12:00:00+05:30`) : ''
+  const toLabel = range.to ? fmt.date(`${range.to}T12:00:00+05:30`) : ''
 
   return (
     <div className="flex flex-col gap-4">
       <PageHeader
         title={copy.title}
-        summary={copy.subtitle}
-        actions={<GstNumberPicker value={gst} onChange={handleGst} allowAll />}
+        summary={copy.subtitle[issueOn ?? 'payment']}
+        actions={
+          <span className="flex flex-wrap items-center gap-2">
+            <GstNumberPicker value={gst} onChange={handleGst} allowAll />
+            <QueueMoreMenu
+              range={range}
+              onRange={setRange}
+              pickedCount={picked.size}
+              onRemove={handleRemove}
+              onAdded={reload}
+              busy={busy}
+            />
+            <Button disabled={busy || toIssue.length === 0} onClick={() => setReviewing(toIssue)}>
+              {copy.issueMany(toIssue.length)}
+            </Button>
+          </span>
+        }
       />
       {gstin === null ? (
         <SetupChecklist
-          heading={copy.setup.heading}
-          body={copy.setup.body}
+          heading={gstInvoicesContent.queue.setup.heading}
+          body={gstInvoicesContent.queue.setup.body}
           steps={[
             {
-              label: copy.setup.gstin,
+              label: gstInvoicesContent.queue.setup.gstin,
               done: false,
               href: routes.apps.page('gst-invoices', 'settings'),
-              action: copy.setup.gstinAction,
+              action: gstInvoicesContent.queue.setup.gstinAction,
             },
           ]}
         />
       ) : null}
+      <QueueStats
+        gst={gst}
+        waiting={rows === null ? null : list.length}
+        needHsn={list.filter((r) => r.status === 'hsn_missing').length}
+        needFix={toFix.length}
+        reloadKey={reloadKey}
+      />
       <div className="overflow-hidden rounded-xl surface-card">
-        <div className="flex flex-col gap-3 p-4">
-          <div className="grid gap-3 md:grid-cols-[1fr_10rem_10rem]">
-            <div className="flex gap-2">
-              <Input
-                size="lg"
-                placeholder={copy.addPlaceholder}
-                value={adding}
-                onChange={(e) => setAdding(e.target.value)}
-              />
-              <Button variant="outline" disabled={busy || !adding.trim()} onClick={handleAdd}>
-                <Plus aria-hidden="true" />
-                {copy.add}
-              </Button>
-            </div>
-            <DateField
-              aria-label={copy.from}
-              value={range.from}
-              onChange={(v) => setRange((r) => ({ ...r, from: v }))}
-            />
-            <DateField
-              aria-label={copy.to}
-              value={range.to}
-              onChange={(v) => setRange((r) => ({ ...r, to: v }))}
-            />
-          </div>
+        <div className="flex flex-wrap items-center gap-2 p-4">
+          <PillTabs<Chip>
+            variant="pill"
+            value={chip}
+            onChange={setChip}
+            tabs={[
+              { value: 'all', label: copy.chips.all, count: list.length },
+              { value: 'ready', label: copy.chips.ready, count: ready.length },
+              { value: 'fix', label: copy.chips.fix, count: toFix.length },
+            ]}
+          />
+          {filtered ? (
+            <Button
+              size="sm"
+              variant="outline"
+              aria-label={copy.clearDates}
+              onClick={() => setRange({ from: '', to: '' })}
+            >
+              {copy.dateRange(fromLabel, toLabel)}
+              <X aria-hidden="true" />
+            </Button>
+          ) : null}
           {picked.size ? (
-            <div className="flex flex-wrap items-center gap-2 rounded-[0.5rem] bg-secondary px-3 py-2">
-              <span className="text-body">{copy.selected(picked.size)}</span>
-              <span className="flex-1" />
-              <Button size="sm" variant="outline" disabled={busy} onClick={handleRemove}>
-                <Trash2 aria-hidden="true" />
-                {copy.remove}
-              </Button>
-              <Button
-                size="sm"
-                disabled={busy}
-                onClick={() => setReviewing(list.filter((r) => picked.has(r.id)))}
-              >
-                <Eye aria-hidden="true" />
-                {copy.review}
-              </Button>
-            </div>
+            <span className="ml-auto text-caption text-muted-foreground">
+              {copy.selected(picked.size)}
+            </span>
           ) : null}
         </div>
         {empty ? (
-          <QueueEmpty issueOn={issueOn} filtered={Boolean(range.from || range.to)} />
+          <QueueEmpty issueOn={issueOn} filtered={filtered} />
+        ) : shown.length === 0 && rows !== null ? (
+          <p className="border-line border-t px-4 py-8 text-center text-body text-muted-foreground">
+            {chip === 'ready' ? copy.noneReady : copy.noneToFix}
+          </p>
         ) : (
           <Table>
             <TableHeader>
@@ -221,52 +219,34 @@ export default function QueuePage() {
                 <TableHead className={`${HEAD} w-10`}>
                   <Checkbox
                     checked={allOn}
-                    aria-label={copy.review}
+                    disabled={pickable.length === 0}
+                    aria-label={copy.selectAll}
                     onCheckedChange={(v) =>
-                      setPicked(v ? new Set(list.map((r) => r.id)) : new Set())
+                      setPicked(v ? new Set(pickable.map((r) => r.id)) : new Set())
                     }
                   />
                 </TableHead>
                 <TableHead className={HEAD}>{copy.columns.order}</TableHead>
-                <TableHead className={HEAD}>{copy.columns.buyer}</TableHead>
-                <TableHead className={HEAD}>{copy.columns.eligible}</TableHead>
-                <TableHead className={HEAD}>{copy.columns.dispatched}</TableHead>
-                <TableHead className={`${HEAD} text-right`}>{copy.columns.total}</TableHead>
+                <TableHead className={HEAD}>{copy.columns.customer}</TableHead>
+                <TableHead className={HEAD}>{copy.columns.gstin}</TableHead>
+                <TableHead className={`${HEAD} text-right`}>{copy.columns.taxable}</TableHead>
+                <TableHead className={`${HEAD} text-right`}>{copy.columns.gst}</TableHead>
+                <TableHead className={HEAD}>{copy.columns.status}</TableHead>
+                <TableHead className={HEAD}>
+                  <span className="sr-only">{copy.columns.action}</span>
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {list.map((r) => (
-                <TableRow key={r.id}>
-                  <TableCell className={CELL}>
-                    <Checkbox
-                      checked={picked.has(r.id)}
-                      aria-label={r.orderName}
-                      onCheckedChange={(v) => handleToggle(r.id, Boolean(v))}
-                    />
-                  </TableCell>
-                  <TableCell className={`${CELL} font-medium`}>
-                    <Link href={routes.orders.detail(r.orderId)} className="hover:underline">
-                      {r.orderName}
-                    </Link>
-                  </TableCell>
-                  <TableCell className={CELL}>
-                    <span className="flex flex-col">
-                      {r.buyerName}
-                      <span className="text-caption text-muted-foreground">
-                        {r.export ? copy.export(r.export) : (r.buyerGstin ?? '')}
-                      </span>
-                    </span>
-                  </TableCell>
-                  <TableCell className={CELL}>
-                    {r.eligibleAt ? <RelativeTime value={r.eligibleAt} /> : '-'}
-                  </TableCell>
-                  <TableCell className={CELL}>
-                    {r.dispatchedAt ? <RelativeTime value={r.dispatchedAt} /> : '-'}
-                  </TableCell>
-                  <TableCell className={`${CELL} text-right tabular-nums`}>
-                    {formatPaise(r.totalPaise)}
-                  </TableCell>
-                </TableRow>
+              {shown.map((r) => (
+                <QueueRowView
+                  key={r.id}
+                  row={r}
+                  picked={picked.has(r.id)}
+                  busy={busy}
+                  onPick={(on) => handleToggle(r.id, on)}
+                  onIssue={() => setReviewing([r])}
+                />
               ))}
             </TableBody>
           </Table>

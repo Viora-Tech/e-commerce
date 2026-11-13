@@ -68,6 +68,7 @@ import growthHome from './growth-home'
 import growthReport from './growth-report'
 import growthbook from './growthbook'
 import gstInvoices from './gst-invoices'
+import gstQueuePage from './gst-queue-page'
 import home from './home'
 import honoProduct from './hono-product'
 import imageEditor from './image-editor'
@@ -234,6 +235,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...growthHome,
   ...growthReport,
   ...gstInvoices,
+  ...gstQueuePage,
   ...home,
   ...honoProduct,
   ...imageEditor,
