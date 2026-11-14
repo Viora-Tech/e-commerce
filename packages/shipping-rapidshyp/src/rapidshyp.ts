@@ -471,18 +471,34 @@ export class RapidshypProvider implements ShippingProvider {
     }
   }
 
-  /** Track Order by order id: the shipment id of an order create_order just made (`./booking`). */
+  /**
+   * Track Order by order id: the shipment id of an order create_order just made (`./booking`).
+   * Asked by order id alone, then with the receiver's 10-digit phone (a `+91` number may not
+   * match); what each answered comes back for the staff message.
+   */
   private async findShipmentId(
     orderId: string,
     contact: { phone: string; email?: string | undefined },
-  ): Promise<string | undefined> {
-    const data = await this.postJson<TrackOrderResponse>('/rapidshyp/apis/v1/track_order', {
-      orderId,
-      contact: contact.phone,
-      ...(contact.email ? { email: contact.email } : {}),
-    })
-    const id = data.records?.flatMap((r) => r.shipment_details ?? []).find((d) => d.shipment_id)
-    return id?.shipment_id ? String(id.shipment_id) : undefined
+  ): Promise<{ id: string | undefined; said: string }> {
+    const phone = contact.phone.replace(/\D/g, '').slice(-10)
+    const asks = [{ orderId }, { orderId, contact: phone }]
+    const said: string[] = []
+    for (const body of asks) {
+      try {
+        const data = await this.postJson<TrackOrderResponse>('/rapidshyp/apis/v1/track_order', body)
+        const shipments = data.records?.flatMap((r) => r.shipment_details ?? []) ?? []
+        const hit = shipments.find((d) => d.shipment_id)
+        if (hit?.shipment_id) return { id: String(hit.shipment_id), said: '' }
+        said.push(
+          `${'contact' in body ? 'with phone' : 'by order id'}: success ${String(data.success)}, "${data.msg ?? ''}", ${data.records?.length ?? 0} records, ${shipments.length} shipments`,
+        )
+      } catch (error) {
+        said.push(
+          `${'contact' in body ? 'with phone' : 'by order id'}: ${error instanceof Error ? error.message : String(error)}`,
+        )
+      }
+    }
+    return { id: undefined, said: said.join('; ') }
   }
 
   /** Create Order only: the order shows in RapidShyp's panel without an AWB (`./booking`). */
