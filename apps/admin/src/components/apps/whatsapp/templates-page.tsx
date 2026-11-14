@@ -1,12 +1,16 @@
 'use client'
 
 import { permissions } from '@commerce/core/permissions'
+import { CircleAlert } from '@commerce/ui/icons'
+import { Alert, AlertDescription } from '@commerce/ui/shadcn/alert'
 import { Button } from '@commerce/ui/shadcn/button'
-import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import LoadFailedState from '@/components/apps/shared/load-failed-state'
+import DataCardSkeleton from '@/components/layout/data-card-skeleton'
 import NoticeBar from '@/components/layout/notice-bar'
 import PageHeader from '@/components/layout/page-header'
+import { appsContent } from '@/data/apps'
 import { notificationsSettingsContent } from '@/data/notifications'
 import { whatsappAppContent } from '@/data/whatsapp-app'
 import { useCopy } from '@/hooks/use-copy'
@@ -25,21 +29,27 @@ type Templates = Awaited<ReturnType<typeof api.platformApps.whatsappTemplates>>
 export default function WhatsappTemplatesPage() {
   // Hooks
   const copy = useCopy(whatsappAppContent)
+  const apps = useCopy(appsContent)
   const settingsCopy = useCopy(notificationsSettingsContent)
   const { hasPermission } = usePermissions()
   const [data, setData] = useState<Templates | null>(null)
   const [busy, setBusy] = useState<string | null>(null)
+  /** The templates read failed: Try again instead of bars that never fill. */
+  const [failed, setFailed] = useState(false)
+  const [attempt, setAttempt] = useState(0)
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `attempt` is Try again
   useEffect(() => {
     let live = true
+    setFailed(false)
     api.platformApps
       .whatsappTemplates()
       .then((r) => live && setData(r))
-      .catch((err: unknown) => toast.error(err instanceof Error ? err.message : String(err)))
+      .catch(() => live && setFailed(true))
     return () => {
       live = false
     }
-  }, [])
+  }, [attempt])
 
   // Helpers
   const labelOf = (id: string) =>
@@ -101,14 +111,26 @@ export default function WhatsappTemplatesPage() {
         }
       />
       {notice ? (
-        <NoticeBar className={notice.danger ? 'text-destructive' : undefined}>
-          {notice.text}
-        </NoticeBar>
+        notice.danger ? (
+          <Alert tone="danger">
+            <CircleAlert aria-hidden="true" />
+            <AlertDescription>{notice.text}</AlertDescription>
+          </Alert>
+        ) : (
+          <NoticeBar>{notice.text}</NoticeBar>
+        )
       ) : null}
-      {!data ? (
+      {!data && failed ? (
+        <LoadFailedState
+          size="page"
+          heading={apps.couldNotLoad.templates}
+          onRetry={() => setAttempt((n) => n + 1)}
+        />
+      ) : !data ? (
+        // Two template cards (name and status, the body, its parameters).
         <div className="flex flex-col gap-3" role="status" aria-label={words.loading}>
-          <Skeleton className="h-36 w-full" />
-          <Skeleton className="h-36 w-full" />
+          <DataCardSkeleton fields={0} lines={4} />
+          <DataCardSkeleton fields={0} lines={4} />
         </div>
       ) : (
         <ul className="flex flex-col gap-3">

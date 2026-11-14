@@ -1,5 +1,6 @@
 'use client'
 
+import { Alert, AlertDescription } from '@commerce/ui/shadcn/alert'
 import { Button } from '@commerce/ui/shadcn/button'
 import {
   Table,
@@ -10,38 +11,50 @@ import {
   TableRow,
 } from '@commerce/ui/shadcn/table'
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
 import AffiliateTrendCard from '@/components/apps/affiliates/affiliate-trend-card'
 import { CELL, HEAD } from '@/components/apps/gst-invoices/table-classes'
+import LoadFailedState from '@/components/apps/shared/load-failed-state'
+import DataCard from '@/components/layout/data-card'
+import DataCardSkeleton from '@/components/layout/data-card-skeleton'
 import StatStrip from '@/components/layout/stat-strip'
 import LinkRow from '@/components/table/link-row'
 import TableEmptyRow from '@/components/table/table-empty-row'
 import { affiliatesContent } from '@/data/affiliates'
+import { appsContent } from '@/data/apps'
 import { useCopy, useFormat } from '@/hooks/use-copy'
+import { useLoad } from '@/hooks/use-load'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
-
-type Overview = Awaited<ReturnType<typeof api.affiliates.overview>>
 
 /** Sales from affiliates, money on hold and owed, who waits for you, trends, top products and affiliates. */
 export default function OverviewPage() {
   // Hooks
   const { overview: copy } = useCopy(affiliatesContent)
+  const apps = useCopy(appsContent)
   const f = useFormat()
-  const [data, setData] = useState<Overview | null>(null)
-
-  useEffect(() => {
-    let cancelled = false
-    api.affiliates.overview().then((r) => {
-      if (!cancelled) setData(r)
-    })
-    return () => {
-      cancelled = true
-    }
-  }, [])
+  const { data, failed, retry } = useLoad(() => api.affiliates.overview())
 
   // Early returns
-  if (!data) return null
+  if (failed) {
+    return (
+      <LoadFailedState
+        size="page"
+        heading={apps.couldNotLoad.overview}
+        failed={failed}
+        onRetry={retry}
+      />
+    )
+  }
+  if (!data) {
+    // Five figures, the trend card and the top affiliates table.
+    return (
+      <div className="flex flex-col gap-5" aria-busy="true">
+        <StatStrip tiles={[]} loading placeholders={5} />
+        <DataCardSkeleton fields={0} lines={4} />
+        <DataCardSkeleton fields={0} lines={3} />
+      </div>
+    )
+  }
 
   // Render logic
   const t = data.totals
@@ -49,7 +62,11 @@ export default function OverviewPage() {
   return (
     <div className="flex flex-col gap-5">
       {/* The app header above already names the app (#77). */}
-      {data.active ? null : <p className="text-body text-destructive">{copy.paused}</p>}
+      {data.active ? null : (
+        <Alert tone="danger">
+          <AlertDescription>{copy.paused}</AlertDescription>
+        </Alert>
+      )}
       <StatStrip
         tiles={[
           {
@@ -70,38 +87,45 @@ export default function OverviewPage() {
         ]}
       />
       {data.waitingApproval > 0 || data.readyToPay > 0 ? (
-        <div className="flex flex-col gap-3 rounded-lg surface-card px-5 py-4">
+        <div className="flex flex-col gap-3">
           {data.waitingApproval > 0 ? (
-            <div className="flex items-center justify-between gap-4">
-              <span className="text-body">{copy.waiting(data.waitingApproval)}</span>
-              <Button
-                variant="outline"
-                size="sm"
-                nativeButton={false}
-                render={<Link href={routes.apps.page('affiliates', 'affiliates')} />}
-              >
-                {copy.review}
-              </Button>
-            </div>
+            <Alert
+              tone="info"
+              action={
+                <Button
+                  variant="outline"
+                  size="sm"
+                  nativeButton={false}
+                  render={<Link href={routes.apps.page('affiliates', 'affiliates')} />}
+                >
+                  {copy.review}
+                </Button>
+              }
+            >
+              <AlertDescription>{copy.waiting(data.waitingApproval)}</AlertDescription>
+            </Alert>
           ) : null}
           {data.readyToPay > 0 ? (
-            <div className="flex items-center justify-between gap-4">
-              <span className="text-body">{copy.readyToPay(data.readyToPay)}</span>
-              <Button
-                variant="outline"
-                size="sm"
-                nativeButton={false}
-                render={<Link href={routes.apps.page('affiliates', 'payouts')} />}
-              >
-                {copy.pay}
-              </Button>
-            </div>
+            <Alert
+              tone="info"
+              action={
+                <Button
+                  variant="outline"
+                  size="sm"
+                  nativeButton={false}
+                  render={<Link href={routes.apps.page('affiliates', 'payouts')} />}
+                >
+                  {copy.pay}
+                </Button>
+              }
+            >
+              <AlertDescription>{copy.readyToPay(data.readyToPay)}</AlertDescription>
+            </Alert>
           ) : null}
         </div>
       ) : null}
       <AffiliateTrendCard />
-      <div className="overflow-hidden rounded-lg surface-card">
-        <h2 className="px-6 pt-5 pb-3 text-body font-semibold text-ink-strong">{copy.topTitle}</h2>
+      <DataCard title={copy.topTitle} flush>
         <Table>
           <TableHeader>
             <TableRow>
@@ -136,7 +160,7 @@ export default function OverviewPage() {
             ))}
           </TableBody>
         </Table>
-      </div>
+      </DataCard>
       <p className="text-caption text-muted-foreground">{copy.signupPage}</p>
     </div>
   )

@@ -4,9 +4,12 @@ import type { RouteRule } from '@commerce/core/delivery-options'
 import { Button } from '@commerce/ui/shadcn/button'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import LoadFailedState from '@/components/apps/shared/load-failed-state'
 import EmptyState from '@/components/layout/empty-state'
 import SectionHead from '@/components/layout/section-head'
+import SectionPageSkeleton from '@/components/layout/section-page-skeleton'
 import SortableStack from '@/components/layout/sortable-stack'
+import { appsContent } from '@/data/apps'
 import { reorderLabels } from '@/data/common'
 import { deliveryOptionsContent } from '@/data/delivery-options'
 import { deliveryPagesContent } from '@/data/delivery-options-pages'
@@ -22,10 +25,11 @@ import { useDeliveryOverview } from './use-delivery-overview'
  */
 export default function DeliveryRulesPage() {
   // Hooks
+  const apps = useCopy(appsContent)
   const copy = useCopy(deliveryOptionsContent)
   const pages = useCopy(deliveryPagesContent)
   const sortLabels = useCopy(reorderLabels)
-  const { overview, reload } = useDeliveryOverview()
+  const { overview, failed: overviewFailed, reload } = useDeliveryOverview()
   const [rules, setRules] = useState<RouteRule[]>([])
   const [editing, setEditing] = useState<RouteRule | null>(null)
   const [open, setOpen] = useState(false)
@@ -55,7 +59,10 @@ export default function DeliveryRulesPage() {
   }
 
   // Early returns
-  if (!overview) return null
+  if (!overview && overviewFailed) {
+    return <LoadFailedState size="page" heading={apps.couldNotLoad.settings} onRetry={reload} />
+  }
+  if (!overview) return <SectionPageSkeleton cards={2} />
 
   // Render logic
   const names = new Map(overview.options.map((o) => [o.id, o.name]))

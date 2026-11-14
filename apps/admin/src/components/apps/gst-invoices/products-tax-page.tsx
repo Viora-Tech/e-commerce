@@ -1,14 +1,18 @@
 'use client'
 
 import { Button } from '@commerce/ui/shadcn/button'
+import { Card } from '@commerce/ui/shadcn/card'
 import { Checkbox } from '@commerce/ui/shadcn/checkbox'
 import { Input } from '@commerce/ui/shadcn/input'
 import { Table, TableBody, TableHead, TableHeader, TableRow } from '@commerce/ui/shadcn/table'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import TableFailedRow from '@/components/apps/shared/table-failed-row'
 import PageHeader from '@/components/layout/page-header'
 import PillTabs from '@/components/layout/pill-tabs'
 import TableEmptyRow from '@/components/table/table-empty-row'
+import TableSkeletonRows from '@/components/table/table-skeleton-rows'
+import { appsContent } from '@/data/apps'
 import { gstProductTaxContent } from '@/data/gst-product-tax'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -32,6 +36,7 @@ const NONE = ''
 export default function ProductsTaxPage() {
   // Hooks
   const copy = useCopy(gstProductTaxContent)
+  const apps = useCopy(appsContent)
   const [filter, setFilter] = useState<Filter>('all')
   const [search, setSearch] = useState('')
   const [query, setQuery] = useState('')
@@ -42,6 +47,8 @@ export default function ProductsTaxPage() {
   const [bulkHsn, setBulkHsn] = useState('')
   const [busy, setBusy] = useState(false)
   const [reload, setReload] = useState(0)
+  /** The last read failed: the table says so with Try again, not the old rows. */
+  const [failed, setFailed] = useState(false)
 
   useEffect(() => {
     const timer = setTimeout(() => setQuery(search.trim()), SEARCH_SETTLE_MS)
@@ -51,16 +58,21 @@ export default function ProductsTaxPage() {
   // biome-ignore lint/correctness/useExhaustiveDependencies: `reload` refetches after a save
   useEffect(() => {
     let active = true
+    setFailed(false)
     api.gstInvoicesProducts
       .list({ filter, search: query || undefined, page, perPage: PER_PAGE })
       .then(
-        (next) => active && setData(next),
-        () => active && toast.error(copy.loadFailed),
+        (next) => {
+          if (active) setData(next)
+        },
+        () => {
+          if (active) setFailed(true)
+        },
       )
     return () => {
       active = false
     }
-  }, [filter, query, page, reload, copy.loadFailed])
+  }, [filter, query, page, reload])
 
   // Event handlers
   const save = async (to: Target, change: Change) => {
@@ -109,7 +121,7 @@ export default function ProductsTaxPage() {
   }
 
   // Render logic
-  const items = data?.items ?? []
+  const items = failed ? [] : (data?.items ?? [])
   const total = data?.total ?? 0
   const pages = Math.max(1, Math.ceil(total / PER_PAGE))
   const storeRate = data?.storeRatePercent ?? 18
@@ -204,7 +216,7 @@ export default function ProductsTaxPage() {
         </div>
       ) : null}
 
-      <div className="overflow-hidden rounded-lg border border-border bg-card">
+      <Card gap="none" inset="y-none" className="overflow-hidden">
         <Table>
           <TableHeader>
             <TableRow>
@@ -222,7 +234,17 @@ export default function ProductsTaxPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {data && items.length === 0 ? <TableEmptyRow colSpan={5} message={copy.empty} /> : null}
+            {failed ? (
+              <TableFailedRow
+                colSpan={5}
+                heading={apps.couldNotLoad.products}
+                onRetry={() => setReload((n) => n + 1)}
+              />
+            ) : data === null ? (
+              <TableSkeletonRows columns={5} rows={6} label={copy.title} />
+            ) : items.length === 0 ? (
+              <TableEmptyRow colSpan={5} message={copy.empty} />
+            ) : null}
             {items.map((row) => (
               <ProductsTaxRow
                 key={`${row.id}|${row.hsCode ?? ''}`}
@@ -236,7 +258,7 @@ export default function ProductsTaxPage() {
             ))}
           </TableBody>
         </Table>
-      </div>
+      </Card>
 
       {pages > 1 ? (
         <div className="flex items-center justify-end gap-3">

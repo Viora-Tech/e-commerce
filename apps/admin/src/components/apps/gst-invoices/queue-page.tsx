@@ -3,15 +3,18 @@
 import type { IssueOn } from '@commerce/invoices'
 import { X } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
+import { Card } from '@commerce/ui/shadcn/card'
 import { Checkbox } from '@commerce/ui/shadcn/checkbox'
 import { Table, TableBody, TableHead, TableHeader, TableRow } from '@commerce/ui/shadcn/table'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import SetupChecklist from '@/components/apps/setup-checklist'
+import LoadFailedState from '@/components/apps/shared/load-failed-state'
+import EmptyState from '@/components/layout/empty-state'
 import PageHeader from '@/components/layout/page-header'
 import PillTabs from '@/components/layout/pill-tabs'
-import InlineState from '@/components/states/inline-state'
 import TableSkeletonRows from '@/components/table/table-skeleton-rows'
+import { appsContent } from '@/data/apps'
 import { gstInvoicesContent } from '@/data/gst-invoices'
 import { gstQueuePageContent } from '@/data/gst-queue-page'
 import { statesContent } from '@/data/states'
@@ -47,6 +50,7 @@ export default function QueuePage() {
   const copy = useCopy(gstQueuePageContent)
   const fmt = useFormat()
   const states = useCopy(statesContent)
+  const apps = useCopy(appsContent)
   const [rows, setRows] = useState<QueueRow[] | null>(null)
   /** The queue did not load: say so rather than show an empty queue. */
   const [failed, setFailed] = useState(false)
@@ -191,7 +195,7 @@ export default function QueuePage() {
         needFix={toFix.length}
         reloadKey={reloadKey}
       />
-      <div className="overflow-hidden rounded-lg surface-card">
+      <Card gap="none" inset="y-none" className="overflow-hidden">
         <div className="flex flex-wrap items-center gap-2 p-4">
           <PillTabs<Chip>
             variant="pill"
@@ -221,13 +225,19 @@ export default function QueuePage() {
           ) : null}
         </div>
         {failed ? (
-          <InlineState kind="error" className="border-line border-t" onRetry={reload} />
+          <LoadFailedState
+            heading={apps.couldNotLoad.queue}
+            className="border-line border-t"
+            onRetry={reload}
+          />
         ) : empty ? (
           <QueueEmpty issueOn={issueOn} filtered={filtered} />
         ) : shown.length === 0 && rows !== null ? (
-          <p className="border-line border-t px-4 py-8 text-center text-body text-muted-foreground">
-            {chip === 'ready' ? copy.noneReady : copy.noneToFix}
-          </p>
+          <EmptyState
+            variant="plain"
+            className="border-line border-t"
+            body={chip === 'ready' ? copy.noneReady : copy.noneToFix}
+          />
         ) : (
           <Table>
             <TableHeader>
@@ -270,7 +280,7 @@ export default function QueuePage() {
             </TableBody>
           </Table>
         )}
-      </div>
+      </Card>
     </div>
   )
 }

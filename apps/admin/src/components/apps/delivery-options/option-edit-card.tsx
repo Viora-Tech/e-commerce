@@ -81,7 +81,7 @@ export default function OptionEditCard({
   return (
     <div
       className={cn(
-        'flex flex-col rounded-xl border border-panel-border bg-card',
+        'flex flex-col rounded-lg border border-panel-border bg-card',
         isDragging && 'shadow-popover',
         !option.enabled && 'opacity-70',
       )}

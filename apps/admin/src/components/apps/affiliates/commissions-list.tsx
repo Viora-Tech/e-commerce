@@ -14,6 +14,7 @@ import { appliedFromGroups } from '@/components/table/filter-panel'
 import ResourceTable from '@/components/table/resource-table'
 import { affiliateFiltersContent } from '@/data/affiliate-filters'
 import { affiliatesContent } from '@/data/affiliates'
+import { appsContent } from '@/data/apps'
 import { filterPanelContent } from '@/data/filter-panel'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import {
@@ -39,6 +40,7 @@ export default function CommissionsList() {
 function CommissionsTable() {
   // Hooks
   const copy = useCopy(affiliatesContent)
+  const apps = useCopy(appsContent)
   const filtersCopy = useCopy(affiliateFiltersContent)
   const panelCopy = useCopy(filterPanelContent)
   const f = useFormat()
@@ -56,6 +58,8 @@ function CommissionsTable() {
   const [reload, setReload] = useState(0)
   const [busy, setBusy] = useState(false)
   const [dueCount, setDueCount] = useState(0)
+  /** The last read failed: the table says so with Try again. */
+  const [failed, setFailed] = useState(false)
 
   // Search and filters run on the server; paging stays in the browser (newest 1000 matches).
   // biome-ignore lint/correctness/useExhaustiveDependencies: `reload` re-runs the load after a change
@@ -63,9 +67,16 @@ function CommissionsTable() {
     let cancelled = false
     api.affiliates.commissions
       .list({ search: q.query || undefined, ...commissionFilterInput(q) })
-      .then((r) => {
-        if (!cancelled) setRows(r)
-      })
+      .then(
+        (r) => {
+          if (cancelled) return
+          setFailed(false)
+          setRows(r)
+        },
+        () => {
+          if (!cancelled) setFailed(true)
+        },
+      )
     return () => {
       cancelled = true
     }
@@ -127,7 +138,10 @@ function CommissionsTable() {
         getId={(r) => r.id}
         href={(r) => routes.orders.detail(r.orderId)}
         selectable={false}
-        loading={rows === null}
+        loading={rows === null && !failed}
+        error={
+          failed ? { heading: apps.couldNotLoad.commissions, onRetry: handleChanged } : undefined
+        }
         query={q.query}
         onQueryChange={(query) => setQ({ query, page: 1 }, { history: 'replace' })}
         onClearAll={() => setQ({ ...CLEAR_COMMISSION_FILTERS, query: '', page: 1 })}

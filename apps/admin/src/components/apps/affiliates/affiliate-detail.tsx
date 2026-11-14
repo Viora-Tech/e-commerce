@@ -6,7 +6,6 @@ import {
   type PromoteChannel,
 } from '@commerce/plugin-affiliates/settings'
 import { Button } from '@commerce/ui/shadcn/button'
-import { FieldLabel } from '@commerce/ui/shadcn/field'
 import { Textarea } from '@commerce/ui/shadcn/textarea'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
@@ -18,11 +17,17 @@ import CodesCard from '@/components/apps/affiliates/codes-card'
 import { commissionColumns } from '@/components/apps/affiliates/commission-columns'
 import ReviewCard from '@/components/apps/affiliates/review-card'
 import { statusTone } from '@/components/apps/affiliates/tones'
+import LoadFailedState from '@/components/apps/shared/load-failed-state'
+import BackLink from '@/components/layout/back-link'
+import DataCard from '@/components/layout/data-card'
+import DataCardSkeleton from '@/components/layout/data-card-skeleton'
 import PageHeader from '@/components/layout/page-header'
+import PageHeaderSkeleton from '@/components/layout/page-header-skeleton'
 import StatStrip from '@/components/layout/stat-strip'
 import StatusChip from '@/components/layout/status-chip'
 import ResourceTable from '@/components/table/resource-table'
 import { affiliatesContent } from '@/data/affiliates'
+import { appsContent } from '@/data/apps'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
@@ -34,8 +39,11 @@ export default function AffiliateDetail({ params }: AppPageProps) {
   // Hooks
   const router = useRouter()
   const copy = useCopy(affiliatesContent)
+  const apps = useCopy(appsContent)
   const f = useFormat()
   const [data, setData] = useState<Detail | null>(null)
+  /** The read failed: Try again instead of a blank page. */
+  const [failed, setFailed] = useState(false)
   const [note, setNote] = useState('')
   const [reload, setReload] = useState(0)
   const [origin, setOrigin] = useState('')
@@ -43,11 +51,17 @@ export default function AffiliateDetail({ params }: AppPageProps) {
   // biome-ignore lint/correctness/useExhaustiveDependencies: `reload` re-runs the load after a change
   useEffect(() => {
     let cancelled = false
-    api.affiliates.get({ id: params.id ?? '' }).then((r) => {
-      if (cancelled) return
-      setData(r)
-      setNote(r.affiliate.note)
-    })
+    setFailed(false)
+    api.affiliates.get({ id: params.id ?? '' }).then(
+      (r) => {
+        if (cancelled) return
+        setData(r)
+        setNote(r.affiliate.note)
+      },
+      () => {
+        if (!cancelled) setFailed(true)
+      },
+    )
     api.store.origin().then((o) => {
       if (!cancelled) setOrigin(o)
     })
@@ -68,7 +82,31 @@ export default function AffiliateDetail({ params }: AppPageProps) {
   }
 
   // Early returns
-  if (!data) return null
+  if (!data && failed) {
+    return (
+      <div className="flex flex-col gap-5">
+        <BackLink href={routes.apps.page('affiliates', 'affiliates')} label={copy.detail.back} />
+        <LoadFailedState
+          size="page"
+          heading={apps.couldNotLoad.affiliate}
+          onRetry={handleChanged}
+        />
+      </div>
+    )
+  }
+  if (!data) {
+    // Back link, name with its actions, the figures and the two cards side by side.
+    return (
+      <div className="flex flex-col gap-5" aria-busy="true">
+        <PageHeaderSkeleton back actions={2} />
+        <StatStrip tiles={[]} loading placeholders={4} />
+        <div className="grid gap-4 lg:grid-cols-2">
+          <DataCardSkeleton fields={0} lines={4} />
+          <DataCardSkeleton fields={2} />
+        </div>
+      </div>
+    )
+  }
 
   // Render logic
   const a = data.affiliate
@@ -149,15 +187,20 @@ export default function AffiliateDetail({ params }: AppPageProps) {
             </div>
           ) : null}
         </dl>
-        <div className="flex flex-col gap-3 rounded-lg surface-card px-5 py-4">
-          <FieldLabel htmlFor="aff-note">{d.note}</FieldLabel>
-          <Textarea id="aff-note" value={note} onChange={(e) => setNote(e.target.value)} rows={5} />
+        <DataCard title={d.note} bodyClassName="flex flex-col gap-3">
+          <Textarea
+            id="aff-note"
+            aria-label={d.note}
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            rows={5}
+          />
           <div>
             <Button variant="outline" onClick={handleSaveNote}>
               {d.saveNote}
             </Button>
           </div>
-        </div>
+        </DataCard>
       </div>
       {a.status === 'approved' ? (
         <CodesCard

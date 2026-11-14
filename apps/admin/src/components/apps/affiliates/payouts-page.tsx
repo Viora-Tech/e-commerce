@@ -14,10 +14,15 @@ import { toast } from 'sonner'
 import MarkPaidDialog from '@/components/apps/affiliates/mark-paid-dialog'
 import TdsReportDialog from '@/components/apps/affiliates/tds-report-dialog'
 import { CELL, HEAD } from '@/components/apps/gst-invoices/table-classes'
+import LoadFailedState from '@/components/apps/shared/load-failed-state'
+import DataCard from '@/components/layout/data-card'
+import DataCardSkeleton from '@/components/layout/data-card-skeleton'
 import PageHeader from '@/components/layout/page-header'
+import PageHeaderSkeleton from '@/components/layout/page-header-skeleton'
 import StatusChip from '@/components/layout/status-chip'
 import TableEmptyRow from '@/components/table/table-empty-row'
 import { affiliatesContent } from '@/data/affiliates'
+import { appsContent } from '@/data/apps'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 
@@ -38,6 +43,7 @@ function download(name: string, text: string) {
 export default function PayoutsPage() {
   // Hooks
   const { payouts: copy, failed } = useCopy(affiliatesContent)
+  const apps = useCopy(appsContent)
   const f = useFormat()
   const [candidates, setCandidates] = useState<Candidate[] | null>(null)
   const [payouts, setPayouts] = useState<Payout[] | null>(null)
@@ -46,15 +52,21 @@ export default function PayoutsPage() {
   /** Which action is running: `create`, or the id of the payout being cancelled. */
   const [busy, setBusy] = useState<string | null>(null)
   const [reporting, setReporting] = useState(false)
+  /** The first read failed: Try again instead of a blank page. */
+  const [loadFailed, setLoadFailed] = useState(false)
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: `reload` re-runs the load after a change
   useEffect(() => {
     let cancelled = false
+    setLoadFailed(false)
     Promise.all([api.affiliates.payouts.candidates(), api.affiliates.payouts.list()]).then(
       ([c, p]) => {
         if (cancelled) return
         setCandidates(c)
         setPayouts(p)
+      },
+      () => {
+        if (!cancelled) setLoadFailed(true)
       },
     )
     return () => {
@@ -93,7 +105,28 @@ export default function PayoutsPage() {
   }
 
   // Early returns
-  if (!candidates || !payouts) return null
+  if ((!candidates || !payouts) && loadFailed) {
+    return (
+      <div className="flex flex-col gap-5">
+        <PageHeader title={copy.title} summary={copy.subtitle} />
+        <LoadFailedState
+          size="page"
+          heading={apps.couldNotLoad.payouts}
+          onRetry={() => setReload((n) => n + 1)}
+        />
+      </div>
+    )
+  }
+  if (!candidates || !payouts) {
+    // Header with its three buttons, the ready-to-pay and history tables.
+    return (
+      <div className="flex flex-col gap-5" aria-busy="true">
+        <PageHeaderSkeleton title={copy.title} actions={3} />
+        <DataCardSkeleton fields={0} lines={3} />
+        <DataCardSkeleton fields={0} lines={3} />
+      </div>
+    )
+  }
 
   // Render logic
   const ready = candidates.filter((c) => c.ready).length
@@ -123,10 +156,7 @@ export default function PayoutsPage() {
           </>
         }
       />
-      <div className="overflow-hidden rounded-lg surface-card">
-        <h2 className="px-6 pt-5 pb-3 text-body font-semibold text-ink-strong">
-          {copy.readyTitle}
-        </h2>
+      <DataCard title={copy.readyTitle} flush>
         <Table>
           <TableHeader>
             <TableRow>
@@ -172,11 +202,8 @@ export default function PayoutsPage() {
             ))}
           </TableBody>
         </Table>
-      </div>
-      <div className="overflow-hidden rounded-lg surface-card">
-        <h2 className="px-6 pt-5 pb-3 text-body font-semibold text-ink-strong">
-          {copy.historyTitle}
-        </h2>
+      </DataCard>
+      <DataCard title={copy.historyTitle} flush>
         <Table>
           <TableHeader>
             <TableRow>
@@ -236,7 +263,7 @@ export default function PayoutsPage() {
             ))}
           </TableBody>
         </Table>
-      </div>
+      </DataCard>
       <p className="text-caption text-muted-foreground">{copy.exportNote}</p>
       <TdsReportDialog open={reporting} onOpenChange={setReporting} onDownload={download} />
       <MarkPaidDialog

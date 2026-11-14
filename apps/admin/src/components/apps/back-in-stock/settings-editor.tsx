@@ -7,11 +7,15 @@ import {
   restockMinutes,
 } from '@commerce/plugin-back-in-stock/settings-schema'
 import { Button } from '@commerce/ui/shadcn/button'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { toast } from 'sonner'
+import LoadFailedState from '@/components/apps/shared/load-failed-state'
 import LeaveGuard from '@/components/layout/leave-guard'
+import SectionPageSkeleton from '@/components/layout/section-page-skeleton'
+import { appsContent } from '@/data/apps'
 import { backInStockContent } from '@/data/back-in-stock'
 import { useCopy } from '@/hooks/use-copy'
+import { useLoad } from '@/hooks/use-load'
 import { api } from '@/lib/api-client'
 import SelectField from './select-field'
 import SettingsSection from './settings-section'
@@ -44,16 +48,16 @@ function buttonTexts(current: string): string[] {
 export default function SettingsEditor() {
   // Hooks
   const { settings: copy } = useCopy(backInStockContent)
+  const apps = useCopy(appsContent)
   const [form, setForm] = useState<Settings | null>(null)
   const [saved, setSaved] = useState<Settings | null>(null)
   const [busy, setBusy] = useState(false)
-
-  useEffect(() => {
-    api.backInStock.settings.get().then((s) => {
-      setForm(s)
-      setSaved(s)
-    })
-  }, [])
+  const { failed, retry } = useLoad(async () => {
+    const s = await api.backInStock.settings.get()
+    setForm(s)
+    setSaved(s)
+    return s
+  })
 
   // Helpers
   const patch = (next: Partial<Settings>) => setForm((f) => (f ? { ...f, ...next } : f))
@@ -78,7 +82,17 @@ export default function SettingsEditor() {
   const handleDiscard = () => setForm(saved)
 
   // Early returns
-  if (!form) return null
+  if (!form && failed) {
+    return (
+      <LoadFailedState
+        size="page"
+        heading={apps.couldNotLoad.settings}
+        failed={failed}
+        onRetry={retry}
+      />
+    )
+  }
+  if (!form) return <SectionPageSkeleton cards={3} title={copy.title} subtitle={copy.subtitle} />
 
   // Render logic
   const dirty = JSON.stringify(form) !== JSON.stringify(saved)

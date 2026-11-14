@@ -3,6 +3,7 @@
 import { siteConfig } from '@commerce/config/site'
 import { Trash2 } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
+import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
@@ -10,7 +11,6 @@ import AppStoreLink from '@/components/apps/app-store-link'
 import InstallFlow from '@/components/apps/install/install-flow'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
 import ProoflyListPage from '@/components/layout/proofly-list-page'
-import InlineState from '@/components/states/inline-state'
 import ResourceTable from '@/components/table/resource-table'
 import RowMenu from '@/components/table/row-menu'
 import ViewSelect from '@/components/table/view-select'
@@ -154,22 +154,9 @@ export default function InstalledApps({ installId }: InstalledAppsProps) {
     if (installId) router.replace(routes.apps.list())
   }
 
-  // Early returns
-  if (failed) {
-    return (
-      <ProoflyListPage title={copy.title}>
-        <InlineState
-          kind="error"
-          heading={copy.loadFailed.heading}
-          body={copy.loadFailed.body}
-          onRetry={() => void load()}
-        />
-      </ProoflyListPage>
-    )
-  }
-
   // Render logic
-  const installed = installedApps(apps ?? [])
+  // A failed read shows in the table under the header (Try again), like every list.
+  const installed = failed ? [] : installedApps(apps ?? [])
   const counts = statusCounts(installed)
   const shown = installed.filter(
     (a) => (status === null || a.status === status) && matchesQuery(a, query),
@@ -189,7 +176,16 @@ export default function InstalledApps({ installId }: InstalledAppsProps) {
   return (
     <ProoflyListPage
       title={copy.title}
-      summary={apps === null ? undefined : summary}
+      summary={
+        failed ? undefined : apps === null ? (
+          // The summary line's height while the apps load, so the header does not grow.
+          <span className="flex h-5 items-center" aria-hidden="true">
+            <Skeleton className="h-3.5 w-48" />
+          </span>
+        ) : (
+          summary
+        )
+      }
       actions={<AppStoreLink>{copy.browseStore}</AppStoreLink>}
       controls={
         installed.length > 0 ? (
@@ -208,7 +204,16 @@ export default function InstalledApps({ installId }: InstalledAppsProps) {
         items={pageItems}
         getId={(a) => a.id}
         href={(a) => openHref(a) ?? routes.apps.page(a.id)}
-        loading={apps === null}
+        loading={apps === null && !failed}
+        error={
+          failed
+            ? {
+                heading: copy.loadFailed.heading,
+                body: copy.loadFailed.body,
+                onRetry: () => void load(),
+              }
+            : undefined
+        }
         query={query}
         onQueryChange={handleQueryChange}
         onClearAll={() => handleStatusChange(null)}

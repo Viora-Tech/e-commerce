@@ -10,6 +10,7 @@ import {
   Send,
 } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
+import { Card } from '@commerce/ui/shadcn/card'
 import { Checkbox } from '@commerce/ui/shadcn/checkbox'
 import { Input } from '@commerce/ui/shadcn/input'
 import {
@@ -23,6 +24,7 @@ import {
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import TableFailedRow from '@/components/apps/shared/table-failed-row'
 import CopyButton from '@/components/fields/copy-button'
 import PageHeader from '@/components/layout/page-header'
 import PillTabs from '@/components/layout/pill-tabs'
@@ -30,9 +32,11 @@ import RelativeTime from '@/components/layout/relative-time'
 import OrderChip from '@/components/orders/order-chip'
 import TableEmptyRow from '@/components/table/table-empty-row'
 import TableSkeletonRows from '@/components/table/table-skeleton-rows'
+import { appsContent } from '@/data/apps'
 import { gstInvoiceBulkRefreshContent as refreshCopy } from '@/data/gst-invoice-refresh'
 import { gstInvoicesContent } from '@/data/gst-invoices'
 import { tableContent as tableCopy } from '@/data/table'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { formatPattern } from '@/lib/format-date'
 import { formatPaise } from '@/lib/money'
@@ -104,6 +108,7 @@ function filterOf(q: string, tab: Tab, month: Month, gst: string | undefined) {
 /** Issued documents by type and month, with search, bulk zip, print, email and GSTR-1 export. */
 export default function InvoicesList() {
   // Hooks
+  const apps = useCopy(appsContent)
   const [q, setQ] = useState('')
   const [tab, setTab] = useState<Tab>('tax_invoice')
   const [month, setMonth] = useState(thisMonth)
@@ -111,6 +116,8 @@ export default function InvoicesList() {
   const [data, setData] = useState<Page | null>(null)
   /** The view `data` answers; until it matches the current one the list is still loading. */
   const [loadedKey, setLoadedKey] = useState<string | null>(null)
+  /** The last read failed: the table says so with Try again (was a toast over an empty table). */
+  const [failed, setFailed] = useState(false)
   const [picked, setPicked] = useState<Set<string>>(new Set())
   const [everything, setEverything] = useState(false)
   const [busy, setBusy] = useState<string | null>(null)
@@ -129,13 +136,14 @@ export default function InvoicesList() {
         .then((d) => {
           if (cancelled) return
           setData(d)
+          setFailed(false)
           setLoadedKey(key)
         })
-        .catch((err: unknown) => {
+        .catch(() => {
           if (cancelled) return
           setData(null)
+          setFailed(true)
           setLoadedKey(key)
-          toast.error(err instanceof Error ? err.message : tableCopy.loadFailed(listName))
         })
     }, 250)
     return () => {
@@ -170,6 +178,11 @@ export default function InvoicesList() {
   }
 
   // Event handlers
+  /** Try again: skeleton rows while the same view is read again. */
+  const handleRetry = () => {
+    setLoadedKey(null)
+    setVersion((v) => v + 1)
+  }
   const handleToggle = (id: string, on: boolean) => {
     setEverything(false)
     setPicked((p) => {
@@ -232,7 +245,7 @@ export default function InvoicesList() {
         summary={copy.subtitle}
         actions={<GstNumberPicker value={gst} onChange={handleGst} allowAll />}
       />
-      <div className="overflow-hidden rounded-lg surface-card">
+      <Card gap="none" inset="y-none" className="overflow-hidden">
         <div className="flex flex-col gap-3 p-4">
           <PillTabs<Tab>
             value={tab}
@@ -360,6 +373,12 @@ export default function InvoicesList() {
                 cellClassName={CELL}
                 label={tableCopy.loading(listName)}
               />
+            ) : failed ? (
+              <TableFailedRow
+                colSpan={9}
+                heading={apps.couldNotLoad.invoices}
+                onRetry={handleRetry}
+              />
             ) : rows.length === 0 ? (
               <TableEmptyRow colSpan={9} message={copy.empty} />
             ) : null}
@@ -431,7 +450,7 @@ export default function InvoicesList() {
             {copy.next}
           </Button>
         </div>
-      </div>
+      </Card>
     </div>
   )
 }

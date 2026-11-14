@@ -1,14 +1,16 @@
 'use client'
 
 import { Button } from '@commerce/ui/shadcn/button'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import NewProgramDialog from '@/components/apps/affiliates/new-program-dialog'
 import { ruleLabel } from '@/components/apps/affiliates/rule-label'
 import PageHeader from '@/components/layout/page-header'
 import StatusChip from '@/components/layout/status-chip'
 import ResourceTable, { type ResourceColumnSpec } from '@/components/table/resource-table'
 import { affiliatesContent } from '@/data/affiliates'
+import { appsContent } from '@/data/apps'
 import { useCopy, useFormat } from '@/hooks/use-copy'
+import { useLoad } from '@/hooks/use-load'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
 
@@ -18,20 +20,11 @@ type Row = Awaited<ReturnType<typeof api.affiliates.programs.list>>[number]
 export default function ProgramsPage() {
   // Hooks
   const { programs: copy } = useCopy(affiliatesContent)
+  const apps = useCopy(appsContent)
   const f = useFormat()
-  const [rows, setRows] = useState<Row[] | null>(null)
+  const { data: rows, failed, retry } = useLoad(() => api.affiliates.programs.list())
   const [query, setQuery] = useState('')
   const [adding, setAdding] = useState(false)
-
-  useEffect(() => {
-    let cancelled = false
-    api.affiliates.programs.list().then((r) => {
-      if (!cancelled) setRows(r)
-    })
-    return () => {
-      cancelled = true
-    }
-  }, [])
 
   // Render logic
   const columns: ResourceColumnSpec<Row>[] = [
@@ -94,7 +87,8 @@ export default function ProgramsPage() {
         getId={(r) => r.id}
         href={(r) => routes.apps.page('affiliates', 'programs', r.id)}
         selectable={false}
-        loading={rows === null}
+        loading={rows === null && !failed}
+        error={failed ? { heading: apps.couldNotLoad.programs, onRetry: retry } : undefined}
         query={query}
         onQueryChange={setQuery}
         page={1}

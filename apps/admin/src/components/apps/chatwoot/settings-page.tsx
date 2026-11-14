@@ -7,10 +7,14 @@ import { NativeSelect, NativeSelectOption } from '@commerce/ui/shadcn/native-sel
 import { Switch } from '@commerce/ui/shadcn/switch'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import LoadFailedState from '@/components/apps/shared/load-failed-state'
+import NoticeBar from '@/components/layout/notice-bar'
 import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
+import SectionPageSkeleton from '@/components/layout/section-page-skeleton'
 import SettingsCard from '@/components/settings/settings-card'
 import SettingsRow from '@/components/settings/settings-row'
+import { appsContent } from '@/data/apps'
 import { chatwootContent } from '@/data/chatwoot'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -66,17 +70,26 @@ function statusOf(copy: Copy, view: View): string {
  */
 export default function SettingsPage() {
   // Hooks
+  const apps = useCopy(appsContent)
   const copy = useCopy(chatwootContent)
   const [view, setView] = useState<View | null>(null)
   const [form, setForm] = useState<Form | null>(null)
   const [busy, setBusy] = useState<Busy>(null)
 
+  /** The first read failed: Try again instead of a blank page. */
+  const [loadFailed, setLoadFailed] = useState(false)
+  const [loadAttempt, setLoadAttempt] = useState(0)
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `loadAttempt` is Try again
   useEffect(() => {
-    api.chatwoot.settings.get().then((v) => {
-      setView(v)
-      setForm(formOf(v))
-    })
-  }, [])
+    setLoadFailed(false)
+    api.chatwoot.settings.get().then(
+      (v) => {
+        setView(v)
+        setForm(formOf(v))
+      },
+      () => setLoadFailed(true),
+    )
+  }, [loadAttempt])
 
   // Helpers
   const patch = (next: Partial<Form>) => setForm((f) => (f ? { ...f, ...next } : f))
@@ -135,7 +148,16 @@ export default function SettingsPage() {
   const handleDiscard = () => setForm(view ? formOf(view) : null)
 
   // Early returns
-  if (!view || !form) return null
+  if ((!view || !form) && loadFailed) {
+    return (
+      <LoadFailedState
+        size="page"
+        heading={apps.couldNotLoad.settings}
+        onRetry={() => setLoadAttempt((n) => n + 1)}
+      />
+    )
+  }
+  if (!view || !form) return <SectionPageSkeleton cards={2} />
 
   // Render logic
   const tokenReady = view.hasApiToken || form.apiToken.trim() !== ''
@@ -154,20 +176,23 @@ export default function SettingsPage() {
         saving={busy === 'save'}
       />
       <PageHeader title={copy.title} summary={copy.subtitle} />
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl surface-banner px-4 py-3">
-        <p className="text-body text-foreground">{statusOf(copy, view)}</p>
-        {view.dashboardUrl ? (
-          <a
-            href={view.dashboardUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex items-center gap-1 text-body font-medium underline"
-          >
-            {copy.open}
-            <ExternalLink className="size-3.5" />
-          </a>
-        ) : null}
-      </div>
+      <NoticeBar
+        action={
+          view.dashboardUrl ? (
+            <a
+              href={view.dashboardUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1 text-body font-medium underline"
+            >
+              {copy.open}
+              <ExternalLink className="size-3.5" />
+            </a>
+          ) : null
+        }
+      >
+        {statusOf(copy, view)}
+      </NoticeBar>
       <SettingsCard title={copy.connect.title} description={copy.connect.description}>
         <SettingsRow
           label={copy.connect.baseUrl.label}

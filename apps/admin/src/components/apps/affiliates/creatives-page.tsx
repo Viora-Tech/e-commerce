@@ -3,15 +3,19 @@
 import { Button } from '@commerce/ui/shadcn/button'
 import { Input } from '@commerce/ui/shadcn/input'
 import { NativeSelect, NativeSelectOption } from '@commerce/ui/shadcn/native-select'
+import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { Textarea } from '@commerce/ui/shadcn/textarea'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import LoadFailedState from '@/components/apps/shared/load-failed-state'
+import DataCard from '@/components/layout/data-card'
+import EmptyState from '@/components/layout/empty-state'
 import PageHeader from '@/components/layout/page-header'
 import MediaPickDialog from '@/components/media/media-pick-dialog'
 import type { PickedMedia } from '@/components/media/media-pick-types'
-import SettingsCard from '@/components/settings/settings-card'
 import { affiliateCreativesContent } from '@/data/affiliate-creatives'
 import { affiliatesContent } from '@/data/affiliates'
+import { appsContent } from '@/data/apps'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 
@@ -34,16 +38,20 @@ export default function CreativesPage() {
   // Hooks
   const copy = useCopy(affiliateCreativesContent)
   const { failed } = useCopy(affiliatesContent)
+  const apps = useCopy(appsContent)
   const [rows, setRows] = useState<Creative[] | null>(null)
   const [programs, setPrograms] = useState<{ id: string; name: string }[]>([])
   const [picking, setPicking] = useState(false)
   const [draft, setDraft] = useState<Draft | null>(null)
   const [busy, setBusy] = useState(false)
   const [reload, setReload] = useState(0)
+  /** The creatives read failed: Try again instead of a blank page. */
+  const [loadFailed, setLoadFailed] = useState(false)
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: `reload` re-runs the load after a change
   useEffect(() => {
-    api.affiliates.creatives.list().then(setRows)
+    setLoadFailed(false)
+    api.affiliates.creatives.list().then(setRows, () => setLoadFailed(true))
     api.affiliates.programs
       .list()
       .then((p) =>
@@ -87,10 +95,27 @@ export default function CreativesPage() {
     }
   }
 
-  // Early returns
-  if (!rows) return null
-
   // Render logic
+  const body = !rows ? (
+    loadFailed ? (
+      <LoadFailedState
+        size="page"
+        heading={apps.couldNotLoad.creatives}
+        onRetry={() => setReload((n) => n + 1)}
+      />
+    ) : (
+      // Three creative tiles while they load.
+      <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" aria-busy="true">
+        {[0, 1, 2].map((i) => (
+          <li key={i} className="flex flex-col gap-2 rounded-lg surface-card p-3">
+            <Skeleton className="aspect-square w-full rounded-lg" />
+            <Skeleton className="h-4 w-2/3" />
+            <Skeleton className="h-3 w-1/2" />
+          </li>
+        ))}
+      </ul>
+    )
+  ) : null
 
   return (
     <div className="flex flex-col gap-5">
@@ -100,7 +125,7 @@ export default function CreativesPage() {
         actions={<Button onClick={() => setPicking(true)}>{copy.add}</Button>}
       />
       {draft ? (
-        <SettingsCard title={draft.id ? copy.edit : copy.add}>
+        <DataCard title={draft.id ? copy.edit : copy.add}>
           <div className="flex flex-col gap-4 sm:flex-row">
             {/* biome-ignore lint/performance/noImgElement: a preview of the store's own media */}
             <img src={draft.url} alt="" className="size-32 shrink-0 rounded-lg object-cover" />
@@ -142,12 +167,12 @@ export default function CreativesPage() {
               </div>
             </div>
           </div>
-        </SettingsCard>
+        </DataCard>
       ) : null}
-      {rows.length === 0 ? (
-        <p className="rounded-lg surface-card px-5 py-8 text-center text-body text-muted-foreground">
-          {copy.empty}
-        </p>
+      {!rows ? (
+        body
+      ) : rows.length === 0 ? (
+        <EmptyState variant="page" body={copy.empty} />
       ) : (
         <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {rows.map((c) => (

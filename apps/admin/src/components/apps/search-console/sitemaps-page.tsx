@@ -3,8 +3,6 @@
 import { SEARCH_CONSOLE_APP_ID } from '@commerce/core/search-console'
 import { CircleAlert, ListTree, Send } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import { Card } from '@commerce/ui/shadcn/card'
-import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
@@ -12,6 +10,7 @@ import DataCard from '@/components/layout/data-card'
 import DataCardSkeleton from '@/components/layout/data-card-skeleton'
 import EmptyState from '@/components/layout/empty-state'
 import PageHeader from '@/components/layout/page-header'
+import PageHeaderSkeleton from '@/components/layout/page-header-skeleton'
 import StatusChip from '@/components/layout/status-chip'
 import { searchConsoleContent } from '@/data/search-console'
 import { useCopy, useFormat } from '@/hooks/use-copy'
@@ -69,28 +68,28 @@ export default function SitemapsPage() {
   // Early returns
   if (error) {
     return (
-      <Card>
-        <EmptyState
-          heading={copy.sitemaps.loadFailed}
-          body={error}
-          icon={CircleAlert}
-          action={
-            <Button
-              variant="outline"
-              nativeButton={false}
-              render={<Link href={routes.apps.settings(SEARCH_CONSOLE_APP_ID)} />}
-            >
-              {copy.states.notConnected.action}
-            </Button>
-          }
-        />
-      </Card>
+      <EmptyState
+        variant="page"
+        tone="danger"
+        heading={copy.sitemaps.loadFailed}
+        body={error}
+        icon={CircleAlert}
+        action={
+          <Button
+            variant="outline"
+            nativeButton={false}
+            render={<Link href={routes.apps.settings(SEARCH_CONSOLE_APP_ID)} />}
+          >
+            {copy.states.notConnected.action}
+          </Button>
+        }
+      />
     )
   }
   if (!data) {
     return (
       <div className="flex flex-col gap-4">
-        <Skeleton className="h-10 w-1/3" />
+        <PageHeaderSkeleton actions={1} />
         <DataCardSkeleton fields={0} lines={3} />
       </div>
     )

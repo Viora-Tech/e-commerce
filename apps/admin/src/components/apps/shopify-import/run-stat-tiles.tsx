@@ -10,7 +10,10 @@ type StatKey = keyof (typeof shopifyImportRunContent)['stats']
 
 const KEYS: StatKey[] = ['total', 'created', 'updated', 'skipped', 'failed']
 
-/** Five figures for the whole run; a zero reads muted, and Failed turns red only above zero. */
+/**
+ * Five figures for the whole run, drawn as the joined stat strip (`StatStrip`'s card and
+ * hairlines); a zero reads muted, and Failed turns red only above zero.
+ */
 export default function RunStatTiles({ run }: RunStatTilesProps) {
   // Hooks
   const copy = useCopy(shopifyImportRunContent)
@@ -21,14 +24,14 @@ export default function RunStatTiles({ run }: RunStatTilesProps) {
   if (sum.total === 0) return null
 
   return (
-    <dl className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+    <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-border bg-border shadow-[var(--shadow-card)] sm:grid-cols-3 lg:grid-cols-5">
       {KEYS.map((key) => {
         const value = sum[key]
         return (
           <div
             key={key}
             className={cn(
-              'flex flex-col gap-1 rounded-lg surface-card p-4 first:col-span-2 sm:first:col-span-1',
+              'flex flex-col gap-1 bg-card bg-[image:var(--card-surface)] p-4 first:col-span-2 sm:first:col-span-1',
               value === 0 && 'bg-none',
             )}
           >
