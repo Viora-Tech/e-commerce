@@ -109,6 +109,8 @@ export type RapidshypConfig = {
   baseUrl?: string | undefined
   /** Injected for tests; defaults to global fetch. */
   fetchImpl?: typeof fetch | undefined
+  /** Injected for tests: the pause between shipment id lookups (`./booking`). */
+  wait?: ((ms: number) => Promise<void>) | undefined
 }
 
 type ServiceableCourier = {
@@ -461,10 +463,26 @@ export class RapidshypProvider implements ShippingProvider {
       config: this.config,
       post: <T>(path: string, body: unknown) => this.postJson<T>(path, body),
       assignAwb: (shipmentId, courierCode) => this.assignAwb(shipmentId, courierCode),
+      findShipmentId: (orderRef, contact) => this.findShipmentId(orderRef, contact),
+      ...(this.config.wait ? { wait: this.config.wait } : {}),
       cancel: (orderId) => this.cancel(orderId),
       schedulePickup: (shipmentId, awb) => this.schedulePickupForShipment(shipmentId, awb),
       generateLabel: (shipmentIds) => this.generateLabel(shipmentIds),
     }
+  }
+
+  /** Track Order by order id: the shipment id of an order create_order just made (`./booking`). */
+  private async findShipmentId(
+    orderId: string,
+    contact: { phone: string; email?: string | undefined },
+  ): Promise<string | undefined> {
+    const data = await this.postJson<TrackOrderResponse>('/rapidshyp/apis/v1/track_order', {
+      orderId,
+      contact: contact.phone,
+      ...(contact.email ? { email: contact.email } : {}),
+    })
+    const id = data.records?.flatMap((r) => r.shipment_details ?? []).find((d) => d.shipment_id)
+    return id?.shipment_id ? String(id.shipment_id) : undefined
   }
 
   /** Create Order only: the order shows in RapidShyp's panel without an AWB (`./booking`). */

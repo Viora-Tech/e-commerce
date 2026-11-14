@@ -12,7 +12,10 @@
  *  - no courier picked: the wrapper, as before;
  *  - a courier picked in the rate table: `create_order` (no courier), then `assign_awb` with
  *    that courier's code, then pickup and label. The shipment id is read tolerantly from the
- *    create answer (`shipment[0]`, one object, or top level; `shipmentId` or `shipment_id`).
+ *    create answer (`shipment[0]`, one object, or top level; `shipmentId` or `shipment_id`);
+ *    the documented answer has `shipment: []`, so when it is missing it is looked up through
+ *    Track Order by order id (`shipment_details[0].shipment_id`), a few times over a few seconds
+ *    (seen 14 Nov 2026: "created order 2471-2 but sent back no shipment id").
  *    If the courier is refused, the order just created is cancelled so nothing is left behind;
  *  - an order pushed earlier as pending: `assign_awb` on its shipment; refused, it stays as it
  *    was (it was there before this booking).
@@ -45,6 +48,13 @@ export type BookingCalls = {
   config: Pick<RapidshypConfig, 'storeName' | 'pickupAddressName'>
   post: <T>(path: string, body: unknown) => Promise<T>
   assignAwb: (shipmentId: string, courierCode?: string) => Promise<{ awb: string }>
+  /** The order's shipment id from Track Order by order id: create_order's answer has none. */
+  findShipmentId: (
+    orderRef: string,
+    contact: { phone: string; email?: string | undefined },
+  ) => Promise<string | undefined>
+  /** Waits between lookups; tests pass one that does not. */
+  wait?: (ms: number) => Promise<void>
   cancel: (orderId: string) => Promise<void>
   schedulePickup: (shipmentId: string, awb: string) => Promise<unknown>
   generateLabel: (shipmentIds: string[]) => Promise<string | undefined>
@@ -91,6 +101,29 @@ function createdShipmentId(r: CreateOrderOnlyResponse): string | undefined {
   const list = Array.isArray(r.shipment) ? r.shipment : r.shipment ? [r.shipment] : []
   const id = list[0]?.shipmentId ?? list[0]?.shipment_id ?? r.shipmentId ?? r.shipment_id
   return id != null && String(id) !== '' ? String(id) : undefined
+}
+
+/** Seconds between Track Order lookups for a new order's shipment id: it can take a moment. */
+const SHIPMENT_LOOKUP_WAITS_MS = [0, 1500, 3000]
+
+/** The shipment id of an order just created: from its answer, else from Track Order. */
+async function shipmentIdOf(
+  calls: BookingCalls,
+  input: CreateShipmentInput,
+  result: CreateOrderOnlyResponse,
+  orderRef: string,
+): Promise<string | undefined> {
+  const direct = createdShipmentId(result)
+  if (direct) return direct
+  const wait = calls.wait ?? ((ms: number) => new Promise<void>((r) => setTimeout(r, ms)))
+  for (const ms of SHIPMENT_LOOKUP_WAITS_MS) {
+    if (ms > 0) await wait(ms)
+    const id = await calls
+      .findShipmentId(orderRef, { phone: input.to.phone, email: input.to.email })
+      .catch(() => undefined)
+    if (id) return id
+  }
+  return undefined
 }
 
 /** The picked courier as the merchant saw it, for messages. */
@@ -173,13 +206,14 @@ export async function pushRapidshypOrder(
   input: CreateShipmentInput,
 ): Promise<PushOrderResult> {
   const { ref, result } = await sendOrder<CreateOrderOnlyResponse>(calls, input, CREATE_ORDER)
-  const shipmentId = createdShipmentId(result)
-  if (!result.order_id && !shipmentId) {
+  if (!result.order_id && !createdShipmentId(result)) {
     throw orderRefused(calls.provider, 'RapidShyp rejected the order', result.remarks)
   }
+  const externalOrderId = result.order_id ? String(result.order_id) : ref
+  // Without it a later booking would make a second order on RapidShyp: look it up now.
   return {
-    externalOrderId: result.order_id ? String(result.order_id) : ref,
-    externalShipmentId: shipmentId,
+    externalOrderId,
+    externalShipmentId: await shipmentIdOf(calls, input, result, externalOrderId),
   }
 }
 
@@ -219,12 +253,12 @@ async function bookChosen(
   courierCode: string,
 ): Promise<CreateShipmentResult> {
   const { ref, result } = await sendOrder<CreateOrderOnlyResponse>(calls, input, CREATE_ORDER)
-  const shipmentId = createdShipmentId(result)
-  if (!result.order_id && !shipmentId) {
+  if (!result.order_id && !createdShipmentId(result)) {
     throw orderRefused(calls.provider, 'RapidShyp rejected the order', result.remarks)
   }
   // cancel_order takes the id RapidShyp echoes back, which is the one we sent for "DEFAULT".
   const orderRef = result.order_id ? String(result.order_id) : ref
+  const shipmentId = await shipmentIdOf(calls, input, result, orderRef)
   if (!shipmentId) {
     const note = await takeBack(calls, orderRef)
     throw new CourierError(

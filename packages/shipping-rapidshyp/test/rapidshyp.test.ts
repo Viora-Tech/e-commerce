@@ -315,6 +315,70 @@ describe('RapidshypProvider createShipment (wrapper API)', () => {
     expect(JSON.parse(assign?.init?.body as string)).toMatchObject({ shipment_id: '77' })
   })
 
+  it('finds the shipment id through Track Order when create_order sends none (shipment: [])', async () => {
+    let lookups = 0
+    const f = fakeFetch({
+      '/rapidshyp/apis/v1/create_order': () =>
+        json({
+          status: 'SUCCESS',
+          remarks: 'order created successfully.',
+          order_id: '2471-2',
+          shipment: [],
+        }),
+      '/rapidshyp/apis/v1/track_order': () => {
+        lookups += 1
+        // Not there on the first look: RapidShyp is still making the shipment.
+        return lookups < 2
+          ? json({ success: true, records: [{ shipment_details: [] }] })
+          : json({ success: true, records: [{ shipment_details: [{ shipment_id: 'S26103461' }] }] })
+      },
+      '/rapidshyp/apis/v1/assign_awb': () => json({ awb: 'BD-9' }),
+      '/rapidshyp/apis/v1/schedule_pickup': () => json({ status: 'SUCCESS' }),
+      '/rapidshyp/apis/v1/generate_label': () => json({ status: true, labelData: [] }),
+    })
+    const waits: number[] = []
+    const p = new RapidshypProvider({
+      ...config,
+      fetchImpl: f.impl,
+      wait: async (ms) => {
+        waits.push(ms)
+      },
+    })
+    const r = await p.createShipment({
+      ...sampleShipment,
+      orderNumber: 2471,
+      serviceId: 'BD',
+      serviceLabel: 'Blue Dart Air',
+    })
+    expect(r.waybill).toBe('BD-9')
+    expect(waits).toEqual([1500])
+    const track = f.calls.find((c) => c.url.pathname.endsWith('/track_order'))
+    expect(JSON.parse(track?.init?.body as string)).toMatchObject({ orderId: '2471-2' })
+    const assign = f.calls.find((c) => c.url.pathname.endsWith('/assign_awb'))
+    expect(JSON.parse(assign?.init?.body as string)).toMatchObject({
+      shipment_id: 'S26103461',
+      courier_code: 'BD',
+    })
+  })
+
+  it('cancels and says so when Track Order never shows the shipment', async () => {
+    const f = fakeFetch({
+      '/rapidshyp/apis/v1/create_order': () =>
+        json({ status: 'SUCCESS', order_id: '2471', shipment: [] }),
+      '/rapidshyp/apis/v1/track_order': () => json({ success: true, records: [] }),
+      '/rapidshyp/apis/v1/cancel_order': () => json({ status: true, remarks: 'cancelled' }),
+    })
+    const p = new RapidshypProvider({ ...config, fetchImpl: f.impl, wait: async () => {} })
+    await expect(
+      p.createShipment({ ...sampleShipment, orderNumber: 2471, serviceId: 'BD' }),
+    ).rejects.toMatchObject({
+      kind: 'bad_response',
+      message: expect.stringContaining('We cancelled order 2471 on RapidShyp'),
+    })
+    expect(f.calls.filter((c) => c.url.pathname.endsWith('/track_order'))).toHaveLength(3)
+    expect(f.calls.some((c) => c.url.pathname.endsWith('/assign_awb'))).toBe(false)
+  })
+
   it('cancels the order it just created when RapidShyp refuses the picked courier', async () => {
     const f = fakeFetch({
       '/rapidshyp/apis/v1/create_order': () =>
