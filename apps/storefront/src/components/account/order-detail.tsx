@@ -8,6 +8,7 @@ import {
   formatAccountDate,
   orderStatusLabels,
   paymentLabels,
+  paymentPillShown,
   shipmentLabels,
   shipmentTone,
 } from '@/data/account'
@@ -80,10 +81,12 @@ export default function OrderDetail({
             ) : (
               <StatusPill label={shipmentLabels[o.shipment]} tone={shipmentTone[o.shipment]} />
             )}
-            <StatusPill
-              label={paymentLabels[o.payment]}
-              tone={o.payment === 'paid' ? 'good' : o.payment === 'failed' ? 'bad' : 'neutral'}
-            />
+            {paymentPillShown(o.status, o.payment) ? (
+              <StatusPill
+                label={paymentLabels[o.payment]}
+                tone={o.payment === 'paid' ? 'good' : o.payment === 'failed' ? 'bad' : 'neutral'}
+              />
+            ) : null}
           </div>
           <p className="text-[0.875rem] text-ck-muted">
             {copy.placedOn(formatAccountDate(o.placedAt, timeZone))}
