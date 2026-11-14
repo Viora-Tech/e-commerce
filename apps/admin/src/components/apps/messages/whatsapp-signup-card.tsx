@@ -2,7 +2,6 @@
 
 import { Badge } from '@commerce/ui/shadcn/badge'
 import { Button } from '@commerce/ui/shadcn/button'
-import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { whatsappSignupContent } from '@/data/whatsapp-signup'
@@ -133,30 +132,34 @@ export default function WhatsappSignupCard() {
       {account ? <p className="text-caption text-muted-foreground">{copy.billing}</p> : null}
       <div className="flex flex-wrap items-center gap-2">
         {loaded.signup ? (
-          <Button type="button" onClick={() => handleConnect(false)} disabled={busy !== 'idle'}>
-            {busy === 'popup' || busy === 'saving' ? <Spinner /> : null}
+          <Button
+            loading={busy === 'popup' || busy === 'saving'}
+            type="button"
+            onClick={() => handleConnect(false)}
+            disabled={busy !== 'idle'}
+          >
             {busy === 'popup' ? copy.connecting : busy === 'saving' ? copy.saving : copy.connect}
           </Button>
         ) : null}
         {loaded.signup && !account ? (
           <Button
+            loading={busy === 'popup-app'}
             type="button"
             variant="outline"
             onClick={() => handleConnect(true)}
             disabled={busy !== 'idle'}
           >
-            {busy === 'popup-app' ? <Spinner /> : null}
-            {busy === 'popup-app' ? copy.connecting : copy.connectApp}
+            {copy.connectApp}
           </Button>
         ) : null}
         {account ? (
           <Button
+            loading={busy === 'disconnecting'}
             type="button"
             variant="ghost"
             onClick={handleDisconnect}
             disabled={busy !== 'idle'}
           >
-            {busy === 'disconnecting' ? <Spinner /> : null}
             {copy.disconnect}
           </Button>
         ) : null}

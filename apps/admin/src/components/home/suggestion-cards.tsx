@@ -16,6 +16,7 @@ import {
   WhatsappLogo,
   X,
 } from '@commerce/ui/icons'
+import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
@@ -163,7 +164,22 @@ export default function SuggestionCards({
   const handleAsk = (prompt: string) => openAssistant(prompt)
 
   // Early returns
-  if (dismissed === null) return null
+  // The hidden list is read just after the first paint: hold the cards' place (a card is a
+  // 6rem picture in 0.875rem padding) so the section does not pop in under the charts.
+  if (dismissed === null) {
+    return suggestions.length === 0 ? null : (
+      <section className="flex flex-col gap-3.5" aria-busy="true">
+        <SectionHead title={title} aside={note} />
+        <ul className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          {suggestions.map((s) => (
+            <li key={s.id}>
+              <Skeleton className="h-31 w-full rounded-lg" />
+            </li>
+          ))}
+        </ul>
+      </section>
+    )
+  }
 
   // Render logic
   const visible = suggestions.filter((s) => !dismissed.includes(s.id))

@@ -183,12 +183,13 @@ export default function CodeVersionPanel({
           </Button>
           {canRestoreTheme && pickedVersion.batchId ? (
             <Button
+              loading={restoring}
               variant="outline"
               onClick={() => void handleRestoreTheme()}
               disabled={restoring}
               title={copy.restoreThemeHelp}
             >
-              {restoring ? <Spinner /> : <RotateCcw aria-hidden="true" />}
+              <RotateCcw aria-hidden="true" />
               {copy.restoreTheme}
             </Button>
           ) : null}

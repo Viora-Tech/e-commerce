@@ -182,7 +182,7 @@ export default function MetafieldsCard({
           {dirty && canWrite ? (
             <Button loading={busy} onClick={handleSave} disabled={busy}>
               <Save aria-hidden="true" />
-              {busy ? copy.saving : copy.save}
+              {copy.save}
             </Button>
           ) : canManage ? (
             <Button variant="ghost" render={<Link href={manageHref} />} nativeButton={false}>

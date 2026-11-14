@@ -12,7 +12,6 @@ import {
 } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
-import { Spinner } from '@commerce/ui/shadcn/spinner'
 import type { ReactNode } from 'react'
 import { themeCodeContent } from '@/data/theme-code'
 import { useCopy } from '@/hooks/use-copy'
@@ -139,11 +138,12 @@ export default function CodeTopBar({
           {copy.preview}
         </Button>
         <Button
+          loading={saving}
           variant={drafts ? 'outline' : 'default'}
           onClick={onSave}
           disabled={!canSave || saving}
         >
-          {saving ? <Spinner /> : <Save aria-hidden="true" />}
+          <Save aria-hidden="true" />
           {copy.save}
         </Button>
         {drafts ? (
@@ -158,9 +158,14 @@ export default function CodeTopBar({
             <Button variant="ghost" onClick={onDiscard} disabled={publishing}>
               {copy.drafts.discard}
             </Button>
-            <Button onClick={onPublish} disabled={publishing} title={copy.drafts.help}>
-              {publishing ? <Spinner /> : <Globe aria-hidden="true" />}
-              {publishing ? copy.drafts.publishing : copy.drafts.publish}
+            <Button
+              loading={publishing}
+              onClick={onPublish}
+              disabled={publishing}
+              title={copy.drafts.help}
+            >
+              <Globe aria-hidden="true" />
+              {copy.drafts.publish}
             </Button>
           </>
         ) : null}

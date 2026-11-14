@@ -9,6 +9,7 @@ import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import Link from 'next/link'
 import { type ReactNode, useState } from 'react'
 import { toast } from 'sonner'
+import DataCardSkeleton from '@/components/layout/data-card-skeleton'
 import EmptyState from '@/components/layout/empty-state'
 import PageHeader from '@/components/layout/page-header'
 import { searchConsoleContent } from '@/data/search-console'
@@ -70,8 +71,8 @@ export default function ReportFrame({ title, summary, children }: ReportFramePro
     return (
       <div className="flex flex-col gap-4">
         <Skeleton className="h-10 w-1/3" />
-        <Skeleton className="h-28 w-full" />
-        <Skeleton className="h-64 w-full" />
+        <DataCardSkeleton fields={0} lines={3} />
+        <DataCardSkeleton fields={0} lines={5} />
       </div>
     )
   }

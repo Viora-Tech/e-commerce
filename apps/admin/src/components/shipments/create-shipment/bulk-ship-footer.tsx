@@ -60,8 +60,8 @@ export default function BulkShipFooter({
           {copy.cancel}
         </Button>
         <Button onClick={onBook} disabled={busy || summary.ready === 0} loading={busy}>
-          {busy ? null : <Truck aria-hidden="true" />}
-          {busy ? copy.booking : copy.book(summary.ready)}
+          <Truck aria-hidden="true" />
+          {copy.book(summary.ready)}
         </Button>
       </div>
     </div>

@@ -3,13 +3,14 @@
 import { RefreshCw, Trash2 } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card, CardContent } from '@commerce/ui/shadcn/card'
-import { Skeleton } from '@commerce/ui/shadcn/skeleton'
-import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
+import DataCardSkeleton from '@/components/layout/data-card-skeleton'
 import StatusChip from '@/components/layout/status-chip'
+import LoadFailed from '@/components/states/load-failed'
 import { senderEmailContent as copy } from '@/data/sender-email'
+import { useLoad } from '@/hooks/use-load'
 import { useSetupNext } from '@/hooks/use-setup-next'
 import { api } from '@/lib/api-client'
 import SenderDnsTable from './sender-dns-table'
@@ -51,9 +52,11 @@ export default function SenderEmailCard() {
   const [error, setError] = useState<string | null>(null)
   const [confirmRemove, setConfirmRemove] = useState(false)
 
-  useEffect(() => {
-    api.notifications.senderEmail().then(setData)
-  }, [])
+  const { failed, retry } = useLoad(async () => {
+    const next = await api.notifications.senderEmail()
+    setData(next)
+    return next
+  })
 
   // While the domain waits on DNS, re-read the status the worker keeps up to date.
   useEffect(() => {
@@ -123,14 +126,8 @@ export default function SenderEmailCard() {
   const handleCancelEdit = () => setEditing(false)
 
   // Early returns
-  if (!data) {
-    return (
-      <Card gap={3} inset={6}>
-        <Skeleton className="h-5 w-48" />
-        <Skeleton className="h-10 w-full" />
-      </Card>
-    )
-  }
+  if (failed && !data) return <LoadFailed failed={failed} onRetry={retry} size="inline" />
+  if (!data) return <DataCardSkeleton fields={1} />
 
   // Render logic
   const sender = data.sender
@@ -175,9 +172,14 @@ export default function SenderEmailCard() {
             </div>
             <div className="flex flex-col gap-2 sm:flex-row">
               {sender.status !== 'verified' ? (
-                <Button onClick={handleCheck} disabled={busy !== null} className="w-full sm:w-auto">
-                  {busy === 'check' ? <Spinner /> : <RefreshCw aria-hidden="true" />}
-                  {busy === 'check' ? copy.checking : copy.checkNow}
+                <Button
+                  loading={busy === 'check'}
+                  onClick={handleCheck}
+                  disabled={busy !== null}
+                  className="w-full sm:w-auto"
+                >
+                  <RefreshCw aria-hidden="true" />
+                  {copy.checkNow}
                 </Button>
               ) : null}
               <Button variant="outline" onClick={handleEdit} className="w-full sm:w-auto">

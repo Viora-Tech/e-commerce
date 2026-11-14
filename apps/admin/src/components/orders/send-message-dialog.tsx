@@ -270,8 +270,8 @@ export default function SendMessageDialog({
           <Button variant="outline" onClick={onClose} disabled={sending}>
             {copy.cancel}
           </Button>
-          <Button onClick={handleSend} disabled={sending || !preview || !to}>
-            {sending ? <Spinner /> : <Send aria-hidden="true" />}
+          <Button loading={sending} onClick={handleSend} disabled={sending || !preview || !to}>
+            <Send aria-hidden="true" />
             {t.send}
           </Button>
         </DialogFooter>

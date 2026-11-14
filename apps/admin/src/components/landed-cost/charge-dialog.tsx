@@ -212,7 +212,7 @@ export default function ChargeDialog({
           </Button>
           <Button loading={busy} onClick={handleSave} disabled={busy}>
             <Save aria-hidden="true" />
-            {busy ? copy.dialog.saving : copy.dialog.save}
+            {copy.dialog.save}
           </Button>
         </DialogFooter>
       </DialogContent>

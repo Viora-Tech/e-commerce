@@ -2,7 +2,6 @@
 
 import { ExternalLink } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
@@ -144,8 +143,13 @@ export default function PaymentsOverview({ setup, onReload, onOpenGuide }: Payme
     </>
   )
   const actions = (
-    <Button variant="outline" className="gap-1.5" onClick={handleTestOrder} disabled={opening}>
-      {opening ? <Spinner /> : null}
+    <Button
+      loading={opening}
+      variant="outline"
+      className="gap-1.5"
+      onClick={handleTestOrder}
+      disabled={opening}
+    >
       {copy.testOrder}
       <ExternalLink aria-hidden="true" className="size-3.5" />
     </Button>

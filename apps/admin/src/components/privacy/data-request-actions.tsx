@@ -27,6 +27,8 @@ export default function DataRequestActions({
 }: DataRequestActionsProps) {
   // Hooks
   const [busy, setBusy] = useState(false)
+  /** The status being set, so only that button spins while `busy`. */
+  const [pending, setPending] = useState<'in_progress' | 'completed' | null>(null)
   const [erasing, setErasing] = useState(false)
   const [declining, setDeclining] = useState(false)
 
@@ -47,8 +49,10 @@ export default function DataRequestActions({
   }
 
   // Event handlers
-  const handleStatus = (status: 'in_progress' | 'completed') =>
-    run(() => api.customerPrivacy.updateRequest({ id: request.id, status }), copy.updated)
+  const handleStatus = (status: 'in_progress' | 'completed') => {
+    setPending(status)
+    return run(() => api.customerPrivacy.updateRequest({ id: request.id, status }), copy.updated)
+  }
 
   const handleExport = (format: ExportFormat) => {
     if (!customer) return
@@ -100,7 +104,12 @@ export default function DataRequestActions({
         </p>
         <div className="flex flex-wrap gap-2">
           {request.status === 'open' ? (
-            <Button variant="outline" disabled={busy} onClick={() => handleStatus('in_progress')}>
+            <Button
+              variant="outline"
+              disabled={busy}
+              loading={busy && pending === 'in_progress'}
+              onClick={() => handleStatus('in_progress')}
+            >
               <Play aria-hidden="true" />
               {copy.start}
             </Button>
@@ -123,7 +132,11 @@ export default function DataRequestActions({
               {copy.erase}
             </Button>
           ) : (
-            <Button disabled={busy} onClick={() => handleStatus('completed')}>
+            <Button
+              disabled={busy}
+              loading={busy && pending === 'completed'}
+              onClick={() => handleStatus('completed')}
+            >
               <CircleCheck aria-hidden="true" />
               {copy.complete}
             </Button>

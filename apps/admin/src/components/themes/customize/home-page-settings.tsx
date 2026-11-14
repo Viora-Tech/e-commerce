@@ -5,6 +5,7 @@ import { RotateCcw, Save, X } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Input } from '@commerce/ui/shadcn/input'
+import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { Textarea } from '@commerce/ui/shadcn/textarea'
 import Image from 'next/image'
 import { useEffect, useState } from 'react'
@@ -98,7 +99,7 @@ export default function HomePageSettings({ title, domain }: HomePageSettingsProp
     return (
       <div aria-busy className="flex flex-col gap-4">
         {[0, 1, 2, 3].map((i) => (
-          <span key={i} className="h-16 animate-pulse rounded-[0.625rem] bg-muted" />
+          <Skeleton key={i} className="h-16 rounded-[0.625rem]" />
         ))}
       </div>
     )

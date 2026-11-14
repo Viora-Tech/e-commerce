@@ -3,7 +3,6 @@
 import { Inbox, MessageSquare } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card, CardContent } from '@commerce/ui/shadcn/card'
-import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
@@ -81,12 +80,12 @@ export default function SendingCard({ email, whatsapp, platformEmail }: SendingC
                 </div>
               </div>
               <Button
+                loading={opening === c.appId}
                 variant={connected || viaPlatform ? 'outline' : 'default'}
                 className="w-full sm:w-auto"
                 disabled={opening === c.appId}
                 onClick={() => handleConnect(c)}
               >
-                {opening === c.appId ? <Spinner /> : null}
                 {connected ? copy.manage : viaPlatform ? copy.useOwn : copy.connect}
               </Button>
             </div>

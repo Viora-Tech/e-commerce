@@ -1,11 +1,10 @@
 'use client'
 
-import { Card } from '@commerce/ui/shadcn/card'
-import { Skeleton } from '@commerce/ui/shadcn/skeleton'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { toast } from 'sonner'
 import AppStoreLink from '@/components/apps/app-store-link'
 import SaveBar from '@/components/layout/save-bar'
+import SectionPageSkeleton from '@/components/layout/section-page-skeleton'
 import HelpFooter from '@/components/payments/help-footer'
 import BoxPresetsFields from '@/components/settings/box-presets-fields'
 import CourierRuleFields from '@/components/settings/courier-rule-fields'
@@ -17,9 +16,11 @@ import ShippingTryPin from '@/components/settings/shipping-try-pin'
 import SplitShippingCard from '@/components/settings/split-shipping-card'
 import WhatsThisHelp from '@/components/settings/whats-this-help'
 import ShippingProfilesCard from '@/components/shipping-zones/shipping-profiles-card'
+import LoadFailed from '@/components/states/load-failed'
 import { settingsRowsContent } from '@/data/settings-rows'
 import { shippingSettingsContent } from '@/data/shipping'
 import { useCopy } from '@/hooks/use-copy'
+import { useLoad } from '@/hooks/use-load'
 import { useSetupNext } from '@/hooks/use-setup-next'
 import { api } from '@/lib/api-client'
 import DemoCourierSection from './demo-courier-section'
@@ -48,13 +49,13 @@ export default function ShippingPage() {
   const [saved, setSaved] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
 
-  useEffect(() => {
-    api.store.getShipping().then((r) => {
-      setLoaded(r)
-      setForm(r.settings)
-      setSaved(JSON.stringify(r.settings))
-    })
-  }, [])
+  const { failed, retry } = useLoad(async () => {
+    const r = await api.store.getShipping()
+    setLoaded(r)
+    setForm(r.settings)
+    setSaved(JSON.stringify(r.settings))
+    return r
+  })
 
   // Helpers
   const patch = (next: Partial<Settings>) => setForm((f) => (f ? { ...f, ...next } : f))
@@ -98,18 +99,8 @@ export default function ShippingPage() {
     )
 
   // Early returns
-  if (!loaded || !form) {
-    return (
-      <div className="flex flex-col gap-4">
-        <Skeleton className="h-8 w-40" />
-        <Skeleton className="h-16 w-full" />
-        <Card gap={4} inset={6}>
-          <Skeleton className="h-5 w-56" />
-          <Skeleton className="h-10 w-full" />
-        </Card>
-      </div>
-    )
-  }
+  if (failed && !loaded) return <LoadFailed failed={failed} onRetry={retry} />
+  if (!loaded || !form) return <SectionPageSkeleton />
 
   // Render logic
   const dirty = saved !== null && JSON.stringify(form) !== saved

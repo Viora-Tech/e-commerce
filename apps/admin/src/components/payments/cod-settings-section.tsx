@@ -3,12 +3,13 @@
 import type { CheckoutSettingsView, PaymentAdjustment } from '@commerce/core'
 import type { CodRules } from '@commerce/core/checkout-settings'
 import { Button } from '@commerce/ui/shadcn/button'
-import { Skeleton } from '@commerce/ui/shadcn/skeleton'
-import { Spinner } from '@commerce/ui/shadcn/spinner'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { toast } from 'sonner'
+import DataCardSkeleton from '@/components/layout/data-card-skeleton'
 import CodRulesCard from '@/components/settings/cod-rules-card'
+import LoadFailed from '@/components/states/load-failed'
 import { checkoutSettingsContent as copy } from '@/data/checkout-settings'
+import { useLoad } from '@/hooks/use-load'
 import { api } from '@/lib/api-client'
 
 type CodSettingsSectionProps = {
@@ -31,12 +32,12 @@ export default function CodSettingsSection({ codOn }: CodSettingsSectionProps) {
   const [key, setKey] = useState(0)
   const [saving, setSaving] = useState(false)
 
-  useEffect(() => {
-    api.checkoutSettings.get().then((v) => {
-      setLoaded(v)
-      setDraft(draftOf(v))
-    })
-  }, [])
+  const { failed, retry } = useLoad(async () => {
+    const v = await api.checkoutSettings.get()
+    setLoaded(v)
+    setDraft(draftOf(v))
+    return v
+  })
 
   // Event handlers
   const handleSave = async () => {
@@ -65,7 +66,8 @@ export default function CodSettingsSection({ codOn }: CodSettingsSectionProps) {
 
   // Early returns
   if (!codOn) return null
-  if (!loaded || !draft) return <Skeleton className="h-64 w-full rounded-2xl" />
+  if (failed && !loaded) return <LoadFailed failed={failed} onRetry={retry} size="inline" />
+  if (!loaded || !draft) return <DataCardSkeleton fields={3} />
 
   // Render logic
   const dirty = JSON.stringify(draft) !== JSON.stringify(draftOf(loaded))
@@ -85,8 +87,7 @@ export default function CodSettingsSection({ codOn }: CodSettingsSectionProps) {
           <Button variant="outline" disabled={saving} onClick={handleDiscard}>
             {copy.cod.discard}
           </Button>
-          <Button disabled={saving} onClick={handleSave}>
-            {saving ? <Spinner /> : null}
+          <Button loading={saving} disabled={saving} onClick={handleSave}>
             {copy.save}
           </Button>
         </div>

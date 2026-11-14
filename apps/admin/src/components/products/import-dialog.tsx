@@ -167,7 +167,7 @@ export default function ImportDialog({ open, onOpenChange, onImported }: ImportD
             disabled={busy || !summary || summary.total === 0}
           >
             <Upload aria-hidden="true" />
-            {busy ? copy.running : copy.start}
+            {copy.start}
           </Button>
         </DialogFooter>
       </DialogContent>

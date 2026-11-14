@@ -134,7 +134,7 @@ export default function NewContentType() {
                 </Button>
                 <Button loading={busy} size="lg" disabled={busy} onClick={handleCreate}>
                   <Plus aria-hidden="true" />
-                  {busy ? copy.name.creating : copy.name.create}
+                  {copy.name.create}
                 </Button>
               </div>
             </CardContent>

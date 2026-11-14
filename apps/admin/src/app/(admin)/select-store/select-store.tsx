@@ -1,8 +1,9 @@
 'use client'
 
-import { ArrowRight, Loader2Icon, Plus, Store } from '@commerce/ui/icons'
+import { ArrowRight, Plus, Store } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card, CardContent } from '@commerce/ui/shadcn/card'
+import { Spinner } from '@commerce/ui/shadcn/spinner'
 import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
@@ -75,7 +76,7 @@ export default function SelectStore({ stores, autoSelect = false }: SelectStoreP
     return (
       <PageBody width="narrow">
         <div className="flex items-center justify-center gap-2 py-16 text-body text-muted-foreground">
-          <Loader2Icon className="size-4 animate-spin" />
+          <Spinner />
           {copy.opening}
         </div>
       </PageBody>
@@ -101,8 +102,12 @@ export default function SelectStore({ stores, autoSelect = false }: SelectStoreP
                   <span className="truncate text-card-title">{s.name}</span>
                   <span className="text-caption text-muted-foreground-soft">{s.slug}</span>
                 </div>
-                <Button type="button" disabled={busyId !== null} onClick={() => handlePick(s.id)}>
-                  {busyId === s.id ? <Loader2Icon className="size-4 animate-spin" /> : null}
+                <Button
+                  loading={busyId === s.id}
+                  type="button"
+                  disabled={busyId !== null}
+                  onClick={() => handlePick(s.id)}
+                >
                   {copy.open(s.name)}
                   <ArrowRight />
                 </Button>

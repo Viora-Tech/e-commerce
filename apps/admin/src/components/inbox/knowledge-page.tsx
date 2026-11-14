@@ -3,7 +3,6 @@
 import { permissions } from '@commerce/core/permissions'
 import { ArrowDown, ArrowUp, Pencil, Plus, Trash2 } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { Switch } from '@commerce/ui/shadcn/switch'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
@@ -12,10 +11,12 @@ import ConfirmDialog from '@/components/layout/confirm-dialog'
 import EmptyState from '@/components/layout/empty-state'
 import NoticeBar from '@/components/layout/notice-bar'
 import PageHeader from '@/components/layout/page-header'
+import SectionPageSkeleton from '@/components/layout/section-page-skeleton'
 import SettingsCard from '@/components/settings/settings-card'
 import SettingsTable from '@/components/settings/settings-table'
 import SettingsTableCell from '@/components/settings/settings-table-cell'
 import SettingsTableRow from '@/components/settings/settings-table-row'
+import InlineState from '@/components/states/inline-state'
 import { inboxKnowledgeContent } from '@/data/inbox-knowledge'
 import { useCopy } from '@/hooks/use-copy'
 import { usePermissions } from '@/hooks/use-permissions'
@@ -50,14 +51,21 @@ export default function KnowledgePage({ aiOn }: KnowledgePageProps) {
   const [deleting, setDeleting] = useState<KnowledgeEntry | null>(null)
   const [bringing, setBringing] = useState(false)
   const [reloadKey, setReloadKey] = useState(0)
+  const [failed, setFailed] = useState(false)
 
   useEffect(() => {
     // reloadKey re-runs the fetch after a save, move, publish or delete.
     if (reloadKey < 0) return
     let live = true
-    api.inbox.knowledge.list().then((v) => {
-      if (live) setView(v)
-    })
+    setFailed(false)
+    api.inbox.knowledge
+      .list()
+      .then((v) => {
+        if (live) setView(v)
+      })
+      .catch(() => {
+        if (live) setFailed(true)
+      })
     return () => {
       live = false
     }
@@ -179,8 +187,10 @@ export default function KnowledgePage({ aiOn }: KnowledgePageProps) {
           <p className="text-body text-muted-foreground">{copy.bringOver.note}</p>
         </SettingsCard>
       ) : null}
-      {!view ? (
-        <Skeleton className="h-64 w-full rounded-2xl" />
+      {failed && !view ? (
+        <InlineState kind="error" onRetry={() => setReloadKey((k) => k + 1)} />
+      ) : !view ? (
+        <SectionPageSkeleton header={false} cards={1} />
       ) : (
         <SettingsTable
           heading={copy.listTitle}

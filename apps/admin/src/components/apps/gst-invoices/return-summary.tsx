@@ -2,9 +2,9 @@
 
 import { Download } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import DataCardSkeleton from '@/components/layout/data-card-skeleton'
 import EmptyState from '@/components/layout/empty-state'
 import { gstReturnsContent } from '@/data/gst-invoices'
 import { useCopy, useLocale } from '@/hooks/use-copy'
@@ -82,8 +82,8 @@ export default function ReturnSummary({ gst, period }: ReturnSummaryProps) {
   if (!summary) {
     return (
       <div role="status" className="flex flex-col gap-4" aria-label={copy.loading}>
-        <Skeleton className="h-32 w-full" />
-        <Skeleton className="h-64 w-full" />
+        <DataCardSkeleton fields={0} lines={3} />
+        <DataCardSkeleton fields={0} lines={5} />
       </div>
     )
   }

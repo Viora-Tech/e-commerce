@@ -4,7 +4,6 @@ import { PlugConnect, Search } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Dialog, DialogDescription, DialogTitle } from '@commerce/ui/shadcn/dialog'
 import { Input } from '@commerce/ui/shadcn/input'
-import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { ToggleGroup, ToggleGroupItem } from '@commerce/ui/shadcn/toggle-group'
 import { useState } from 'react'
 import DialogContent from '@/components/layout/dialog-content'
@@ -120,9 +119,14 @@ export default function AddGatewayDialog({
                   {app?.connected ? (
                     <StatusChip tone="success">{copy.connected}</StatusChip>
                   ) : canConnect ? (
-                    <Button size="sm" onClick={() => handleConnect(g.id)} disabled={busy !== null}>
-                      {busy === g.id ? <Spinner /> : <PlugConnect aria-hidden="true" />}
-                      {busy === g.id ? copy.installing : copy.connect}
+                    <Button
+                      loading={busy === g.id}
+                      size="sm"
+                      onClick={() => handleConnect(g.id)}
+                      disabled={busy !== null}
+                    >
+                      <PlugConnect aria-hidden="true" />
+                      {copy.connect}
                     </Button>
                   ) : (
                     <StatusChip tone="neutral">{copy.comingSoon}</StatusChip>

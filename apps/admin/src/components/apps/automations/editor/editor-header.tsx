@@ -1,15 +1,10 @@
 'use client'
 
 import type { WorkflowDetail } from '@commerce/core/automations'
-import {
-  ChevronLeftIcon,
-  CircleAlert,
-  CircleCheck,
-  ClipboardList,
-  Loader2Icon,
-} from '@commerce/ui/icons'
+import { ChevronLeftIcon, CircleAlert, CircleCheck, ClipboardList } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Input } from '@commerce/ui/shadcn/input'
+import { Spinner } from '@commerce/ui/shadcn/spinner'
 import Link from 'next/link'
 import StatusChip from '@/components/layout/status-chip'
 import { automationEditorContent } from '@/data/automations'
@@ -93,7 +88,7 @@ export default function EditorHeader({
             className="hidden items-center gap-1 text-caption text-muted-foreground sm:inline-flex"
           >
             {saveState === 'saving' ? (
-              <Loader2Icon className="size-3.5 animate-spin" aria-hidden="true" />
+              <Spinner className="size-3.5" />
             ) : saveState === 'failed' ? (
               <CircleAlert className="size-3.5 text-danger" aria-hidden="true" />
             ) : (

@@ -1,5 +1,5 @@
-import DashboardSkeleton from '@/components/layout/dashboard-skeleton'
+import AnalyticsSkeleton from '@/components/analytics/analytics-skeleton'
 
 export default function Loading() {
-  return <DashboardSkeleton />
+  return <AnalyticsSkeleton />
 }

@@ -149,7 +149,7 @@ export default function ReviewDialog({ id, onOpenChange, onApplied, onReset }: R
           </Button>
           <Button loading={busy} onClick={handleApply} disabled={busy || !state || applied}>
             <CheckIcon aria-hidden="true" />
-            {busy ? copy.applying : copy.apply}
+            {copy.apply}
           </Button>
         </DialogFooter>
       </DialogContent>

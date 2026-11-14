@@ -401,6 +401,7 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
               key={`${order.status}:${order.fulfillmentStatus}`}
               orderId={order.id}
               readOnly={readOnly}
+              expected={!readOnly && order.fulfillmentStatus !== 'unfulfilled'}
               onChanged={refresh}
             />
           </div>

@@ -65,9 +65,13 @@ export default function AutopilotProposalsCard({ view, onChange }: AutopilotProp
       title={p.title}
       subtitle={subtitle}
       action={
-        <Button disabled={!enabled || planning} onClick={() => void handlePlan()}>
+        <Button
+          loading={planning}
+          disabled={!enabled || planning}
+          onClick={() => void handlePlan()}
+        >
           <Sparkle aria-hidden />
-          {planning ? p.planning : p.plan}
+          {p.plan}
         </Button>
       }
     >
@@ -80,16 +84,17 @@ export default function AutopilotProposalsCard({ view, onChange }: AutopilotProp
               key={proposal.id}
               proposal={proposal}
               busy={busy !== null}
+              approving={busy === `approve:${proposal.id}`}
               onApprove={() =>
                 void run(
-                  proposal.id,
+                  `approve:${proposal.id}`,
                   () => api.marketing.autopilot.approve({ id: proposal.id }),
                   proposal.kind === 'automation' ? p.automationOn : p.approved,
                 )
               }
               onDismiss={() =>
                 void run(
-                  proposal.id,
+                  `dismiss:${proposal.id}`,
                   () => api.marketing.autopilot.dismiss({ id: proposal.id }),
                   p.dismissed,
                 )

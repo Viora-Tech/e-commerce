@@ -4,7 +4,6 @@ import { Button } from '@commerce/ui/shadcn/button'
 import { Card, CardContent } from '@commerce/ui/shadcn/card'
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
-import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import DataCard from '@/components/layout/data-card'
@@ -84,8 +83,7 @@ export default function LegacyTokenForm({ onConnected }: LegacyTokenFormProps) {
               </Field>
             </FieldGroup>
             <div className="flex justify-end">
-              <Button type="submit" disabled={!ready}>
-                {busy ? <Spinner /> : null}
+              <Button loading={busy} type="submit" disabled={!ready}>
                 {copy.token.submit}
               </Button>
             </div>

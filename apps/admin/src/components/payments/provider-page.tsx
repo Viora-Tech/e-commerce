@@ -3,21 +3,23 @@
 import { CircleCheck, Pause, PlugConnect, StarIcon } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card, CardContent } from '@commerce/ui/shadcn/card'
-import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { toast } from 'sonner'
 import ActionMenu from '@/components/layout/action-menu'
 import BackLink from '@/components/layout/back-link'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
 import PageHeader from '@/components/layout/page-header'
+import SectionPageSkeleton from '@/components/layout/section-page-skeleton'
 import StatusChip from '@/components/layout/status-chip'
 import SettingsCard from '@/components/settings/settings-card'
+import LoadFailed from '@/components/states/load-failed'
 import { paymentModesContent } from '@/data/payment-modes'
 import { paymentProvidersContent } from '@/data/payment-providers'
 import { gatewayCatalogue, PAYMENTS_PAGE_HREF, paymentsSetupContent } from '@/data/payments-setup'
 import { razorpayWebsitesContent } from '@/data/razorpay-websites'
 import { useCopy } from '@/hooks/use-copy'
+import { useLoad } from '@/hooks/use-load'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
 import GatewayLogo from './gateway-logo'
@@ -55,14 +57,14 @@ export default function ProviderPage({ providerId }: ProviderPageProps) {
   const sites = useCopy(razorpayWebsitesContent)
   const [setup, setSetup] = useState<PaymentsSetup | null>(null)
 
-  useEffect(() => {
-    api.payments.setup().then((s) => {
-      setSetup(s)
-      // An `#anchor` (the websites card) only exists once the page has loaded.
-      const hash = window.location.hash.slice(1)
-      if (hash) requestAnimationFrame(() => document.getElementById(hash)?.scrollIntoView())
-    })
-  }, [])
+  const { failed, retry } = useLoad(async () => {
+    const s = await api.payments.setup()
+    setSetup(s)
+    // An `#anchor` (the websites card) only exists once the page has loaded.
+    const hash = window.location.hash.slice(1)
+    if (hash) requestAnimationFrame(() => document.getElementById(hash)?.scrollIntoView())
+    return s
+  })
 
   // Helpers
   const reload = async () => {
@@ -70,17 +72,8 @@ export default function ProviderPage({ providerId }: ProviderPageProps) {
   }
 
   // Early returns
-  if (!setup) {
-    return (
-      <div className="flex flex-col gap-4">
-        <Skeleton className="h-8 w-48" />
-        <Card gap={4} inset={6}>
-          <Skeleton className="h-5 w-40" />
-          <Skeleton className="h-10 w-full" />
-        </Card>
-      </div>
-    )
-  }
+  if (failed && !setup) return <LoadFailed failed={failed} onRetry={retry} />
+  if (!setup) return <SectionPageSkeleton />
 
   const gateway = setup.gateways.find((g) => g.id === providerId)
   const entry = catalogue.find((g) => g.id === providerId)

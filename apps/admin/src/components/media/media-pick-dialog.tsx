@@ -1,6 +1,6 @@
 'use client'
 
-import { CheckIcon, Loader2Icon } from '@commerce/ui/icons'
+import { CheckIcon } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import {
   Dialog,
@@ -10,6 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@commerce/ui/shadcn/dialog'
+import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { type ChangeEvent, type DragEvent, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { mediaContent } from '@/data/media'
@@ -377,7 +378,7 @@ export default function MediaPickDialog({
               ) : null}
               {loading ? (
                 <div className="flex h-64 items-center justify-center text-muted-foreground">
-                  <Loader2Icon className="size-5 animate-spin" aria-hidden />
+                  <Spinner className="size-5" />
                   <span className="sr-only">{copy.loading}</span>
                 </div>
               ) : null}
@@ -404,7 +405,7 @@ export default function MediaPickDialog({
               {!restricted ? <div ref={sentinelRef} className="h-1" /> : null}
               {loadingMore ? (
                 <div className="flex justify-center py-3 text-muted-foreground">
-                  <Loader2Icon className="size-4 animate-spin" aria-hidden />
+                  <Spinner />
                 </div>
               ) : null}
             </section>

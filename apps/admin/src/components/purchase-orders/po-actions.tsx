@@ -10,6 +10,8 @@ type PoActionsProps = {
   /** Null while the order is being created. */
   status: PurchaseOrderStatus | null
   busy: boolean
+  /** The action running while `busy`: its button spins. */
+  pending?: 'save' | 'markOrdered' | null
   /** Nothing has arrived yet, so the order can still be called off. */
   cancellable: boolean
   /** A closed order with units still outstanding, or a cancelled one. */
@@ -34,6 +36,7 @@ type PoActionsProps = {
 export default function PoActions({
   status,
   busy,
+  pending = null,
   cancellable,
   reopenable,
   onSave,
@@ -111,11 +114,11 @@ export default function PoActions({
           {copy.delete}
         </Button>
       ) : null}
-      <Button variant="outline" onClick={onSave} disabled={busy}>
+      <Button loading={pending === 'save'} variant="outline" onClick={onSave} disabled={busy}>
         <Save aria-hidden="true" />
-        {busy ? copy.saving : copy.save}
+        {copy.save}
       </Button>
-      <Button onClick={onMarkOrdered} disabled={busy}>
+      <Button onClick={onMarkOrdered} disabled={busy} loading={pending === 'markOrdered'}>
         <CircleCheck aria-hidden="true" />
         {copy.markOrdered}
       </Button>

@@ -2,7 +2,6 @@
 
 import { PlugConnect } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import { Spinner } from '@commerce/ui/shadcn/spinner'
 import Link from 'next/link'
 import { useState } from 'react'
 import { toast } from 'sonner'
@@ -50,9 +49,8 @@ export default function GatewayProblem({
   const connectHref = routes.apps.connect(gatewayId)
   const action =
     problem.code === 'webhook_silent' && problem.fix === 'reregister' ? (
-      <Button size="sm" onClick={handleFixWebhook} disabled={fixing}>
-        {fixing ? <Spinner /> : null}
-        {fixing ? copy.fixing : copy.fix}
+      <Button loading={fixing} size="sm" onClick={handleFixWebhook} disabled={fixing}>
+        {copy.fix}
       </Button>
     ) : problem.code === 'webhook_silent' ? (
       <Button size="sm" variant="outline" nativeButton={false} render={<Link href={connectHref} />}>

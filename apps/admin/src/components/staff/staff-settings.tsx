@@ -10,18 +10,22 @@ import { toast } from 'sonner'
 import { revalidateStaff } from '@/app/(admin)/settings/staff/actions'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
 import PageHeader from '@/components/layout/page-header'
+import SectionPageSkeleton from '@/components/layout/section-page-skeleton'
 import SettingsDrill from '@/components/settings/settings-drill'
 import SettingsDrillPanel from '@/components/settings/settings-drill-panel'
 import InviteDialog from '@/components/staff/invite-dialog'
 import MembersCard, { type StaffMemberRow } from '@/components/staff/members-card'
 import PendingInvitesCard, { type PendingInviteRow } from '@/components/staff/pending-invites-card'
 import RolesCard, { type RoleRow } from '@/components/staff/roles-card'
+import LoadFailed from '@/components/states/load-failed'
 import { settingsRowsContent } from '@/data/settings-rows'
 import { staffContent } from '@/data/staff'
 import { useCopy } from '@/hooks/use-copy'
+import type { LoadFailure } from '@/hooks/use-load'
 import { refreshPermissions, usePermissions } from '@/hooks/use-permissions'
 import { api } from '@/lib/api-client'
 import { ADMIN_REFRESH_EVENT } from '@/lib/focus-refresh'
+import { isForbidden } from '@/lib/forbidden'
 import { routes } from '@/lib/routes'
 
 type Team = { members: StaffMemberRow[]; roles: RoleRow[]; invites: PendingInviteRow[] }
@@ -55,8 +59,8 @@ export default function StaffSettings() {
   const [pendingRemove, setPendingRemove] = useState<StaffMemberRow | null>(null)
   const [pendingDelete, setPendingDelete] = useState<RoleRow | null>(null)
   const [open] = useQueryState('open')
+  const [failed, setFailed] = useState<LoadFailure | false>(false)
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: load the team once per mount
   useEffect(() => {
     let live = true
     fetchTeam()
@@ -66,8 +70,8 @@ export default function StaffSettings() {
         setRoles(team.roles)
         setInvites(team.invites)
       })
-      .catch(() => {
-        if (live) toast.error(copy.errors.load)
+      .catch((error: unknown) => {
+        if (live) setFailed(isForbidden(error) ? 'no-access' : 'error')
       })
     // Coming back to the tab reads the team again, like every server-rendered page (#1623).
     const onRefresh = () => {
@@ -98,6 +102,7 @@ export default function StaffSettings() {
     refreshPermissions()
     try {
       applyTeam(await fetchTeam())
+      setFailed(false)
     } catch {
       toast.error(copy.errors.load)
     }
@@ -129,6 +134,16 @@ export default function StaffSettings() {
     } catch (err) {
       toast.error(err instanceof Error ? err.message : copy.errors.load)
     }
+  }
+
+  // Early returns
+  // Until the team arrives the rows would show blank values; a failed read says so.
+  if (!members) {
+    return failed ? (
+      <LoadFailed failed={failed} onRetry={() => void reload()} />
+    ) : (
+      <SectionPageSkeleton />
+    )
   }
 
   // Render logic

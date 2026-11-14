@@ -3,14 +3,15 @@
 import { ACCENT_PRESETS, DEFAULT_ACCENT } from '@commerce/core/admin-accent'
 import { CheckIcon, Save } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import { Card } from '@commerce/ui/shadcn/card'
-import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { useRouter } from 'next/navigation'
 import { useTheme } from 'next-themes'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { toast } from 'sonner'
 import PageHeader from '@/components/layout/page-header'
+import SectionPageSkeleton from '@/components/layout/section-page-skeleton'
+import LoadFailed from '@/components/states/load-failed'
 import { appearanceContent } from '@/data/appearance'
+import { useLoad } from '@/hooks/use-load'
 import { writeAccentCookie } from '@/lib/accent-cookie'
 import { api } from '@/lib/api-client'
 import type { ProductLayout } from '@/lib/product-layout'
@@ -63,21 +64,18 @@ export default function AppearanceSettings({ productLayout }: AppearanceSettings
   const { theme } = useTheme()
   const [loaded, setLoaded] = useState<Loaded | null>(null)
   const [draft, setDraft] = useState(DEFAULT_ACCENT)
-  const [busy, setBusy] = useState(false)
-  useEffect(() => {
-    api.appearance
-      .get()
-      .then((r) => {
-        setLoaded(r)
-        setDraft(r.effective ?? DEFAULT_ACCENT)
-      })
-      .catch(() => toast.error(copy.accent.failed))
-  }, [])
+  const [busy, setBusy] = useState<string | null>(null)
+  const { failed, retry } = useLoad(async () => {
+    const r = await api.appearance.get()
+    setLoaded(r)
+    setDraft(r.effective ?? DEFAULT_ACCENT)
+    return r
+  })
 
   // Helpers
   /** Stores the answer, caches it for the next server render and re-renders the layout. */
-  const run = async (save: () => Promise<Loaded>, done: string) => {
-    setBusy(true)
+  const run = async (action: string, save: () => Promise<Loaded>, done: string) => {
+    setBusy(action)
     try {
       const r = await save()
       setLoaded(r)
@@ -88,32 +86,23 @@ export default function AppearanceSettings({ productLayout }: AppearanceSettings
     } catch (err) {
       toast.error(err instanceof Error ? err.message : copy.accent.failed)
     } finally {
-      setBusy(false)
+      setBusy(null)
     }
   }
 
   // Event handlers
-  const handleSave = () => run(() => api.appearance.setMine({ accent: draft }), copy.accent.saved)
+  const handleSave = () =>
+    run('save', () => api.appearance.setMine({ accent: draft }), copy.accent.saved)
   const handleReset = () =>
-    run(() => api.appearance.setMine({ accent: null }), copy.accent.resetDone)
+    run('reset', () => api.appearance.setMine({ accent: null }), copy.accent.resetDone)
   const handleStoreDefault = () =>
-    run(() => api.appearance.setStoreDefault({ accent: draft }), copy.store.saved)
+    run('storeDefault', () => api.appearance.setStoreDefault({ accent: draft }), copy.store.saved)
   const handleStoreReset = () =>
-    run(() => api.appearance.setStoreDefault({ accent: null }), copy.store.resetDone)
+    run('storeReset', () => api.appearance.setStoreDefault({ accent: null }), copy.store.resetDone)
 
   // Early returns
-  if (!loaded) {
-    return (
-      <div className="flex flex-col gap-6">
-        <PageHeader title={copy.title} subtitle={copy.intro} />
-        <Card gap={4} inset={6}>
-          <Skeleton className="h-5 w-40" />
-          <Skeleton className="h-9 w-full" />
-          <Skeleton className="h-48 w-full" />
-        </Card>
-      </div>
-    )
-  }
+  if (failed && !loaded) return <LoadFailed failed={failed} onRetry={retry} />
+  if (!loaded) return <SectionPageSkeleton />
 
   // Render logic
   const unchanged = draft === (loaded.effective ?? DEFAULT_ACCENT)
@@ -145,11 +134,20 @@ export default function AppearanceSettings({ productLayout }: AppearanceSettings
           >
             <AccentPicker value={draft} onChange={setDraft} help={sourceLine(loaded)} />
             <div className="flex flex-wrap items-center gap-2">
-              <Button onClick={handleSave} disabled={busy || unchanged}>
+              <Button
+                onClick={handleSave}
+                loading={busy === 'save'}
+                disabled={busy !== null || unchanged}
+              >
                 <Save aria-hidden="true" />
                 {copy.accent.save}
               </Button>
-              <Button variant="ghost" onClick={handleReset} disabled={busy || !loaded.mine}>
+              <Button
+                variant="ghost"
+                onClick={handleReset}
+                loading={busy === 'reset'}
+                disabled={busy !== null || !loaded.mine}
+              >
                 {copy.accent.reset}
               </Button>
             </div>
@@ -171,7 +169,8 @@ export default function AppearanceSettings({ productLayout }: AppearanceSettings
                 <Button
                   variant="outline"
                   onClick={handleStoreDefault}
-                  disabled={busy || storeUnchanged}
+                  loading={busy === 'storeDefault'}
+                  disabled={busy !== null || storeUnchanged}
                 >
                   <CheckIcon aria-hidden="true" />
                   {copy.store.apply}
@@ -179,7 +178,8 @@ export default function AppearanceSettings({ productLayout }: AppearanceSettings
                 <Button
                   variant="ghost"
                   onClick={handleStoreReset}
-                  disabled={busy || !loaded.storeDefault}
+                  loading={busy === 'storeReset'}
+                  disabled={busy !== null || !loaded.storeDefault}
                 >
                   {copy.store.reset}
                 </Button>

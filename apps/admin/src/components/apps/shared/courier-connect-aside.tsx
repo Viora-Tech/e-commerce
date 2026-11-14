@@ -11,7 +11,6 @@
 import { siteConfig } from '@commerce/config/site'
 import { CheckIcon, CircleCheck, ExternalLink, RefreshCw } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import { Spinner } from '@commerce/ui/shadcn/spinner'
 import DataCard from '@/components/layout/data-card'
 import KeyValueList from '@/components/layout/key-value-list'
 import RelativeTime from '@/components/layout/relative-time'
@@ -82,9 +81,15 @@ export default function CourierConnectAside({
       >
         <div className="flex flex-col gap-3">
           <KeyValueList rows={rows} variant="grid" />
-          <Button variant="outline" className="self-end" onClick={ctx.runTest} disabled={testing}>
-            {testing ? <Spinner /> : <RefreshCw aria-hidden="true" />}
-            {testing ? copy.testing : copy.testAgain}
+          <Button
+            loading={testing}
+            variant="outline"
+            className="self-end"
+            onClick={ctx.runTest}
+            disabled={testing}
+          >
+            <RefreshCw aria-hidden="true" />
+            {copy.testAgain}
           </Button>
         </div>
       </DataCard>

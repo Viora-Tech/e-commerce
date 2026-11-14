@@ -1,9 +1,9 @@
 'use client'
 
-import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { useEffect, useState } from 'react'
 import type { AppPageProps } from '@/apps/registry'
 import PageHeader from '@/components/layout/page-header'
+import SectionPageSkeleton from '@/components/layout/section-page-skeleton'
 import BackgroundWorkNotice from '@/components/media/background-work-notice'
 import { shopifyImportContent } from '@/data/shopify-import'
 import { useCopy, useFormat } from '@/hooks/use-copy'
@@ -82,7 +82,7 @@ export default function RunPage({ params }: AppPageProps) {
 
   // Early returns
   const back = { label: copy.back, href: base }
-  if (run === undefined) return <Skeleton className="h-64 w-full" />
+  if (run === undefined) return <SectionPageSkeleton header={false} />
   if (run === null) {
     return <PageHeader title={copy.notFound} back={back} />
   }

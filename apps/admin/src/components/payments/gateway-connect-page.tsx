@@ -3,15 +3,16 @@
 import { siteConfig } from '@commerce/config/site'
 import { ExternalLink } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import { Card } from '@commerce/ui/shadcn/card'
-import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import AppLogo from '@/components/apps/app-logo'
 import PageHeader from '@/components/layout/page-header'
+import SectionPageSkeleton from '@/components/layout/section-page-skeleton'
+import LoadFailed from '@/components/states/load-failed'
 import { appsContent } from '@/data/apps'
 import { gatewayGuides, PAYMENTS_PAGE_HREF, paymentsSetupContent } from '@/data/payments-setup'
 import { useCopy } from '@/hooks/use-copy'
+import { useLoad } from '@/hooks/use-load'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
 import GatewayConnectForm from './gateway-connect-form'
@@ -31,9 +32,11 @@ export default function GatewayConnectPage({ providerId }: GatewayConnectPagePro
   const router = useRouter()
   const [setup, setSetup] = useState<PaymentsSetup | null>(null)
 
-  useEffect(() => {
-    api.payments.setup().then(setSetup)
-  }, [])
+  const { failed, retry } = useLoad(async () => {
+    const next = await api.payments.setup()
+    setSetup(next)
+    return next
+  })
 
   // Event handlers
   const handleConnected = () => router.push(routes.settings.payments())
@@ -68,12 +71,10 @@ export default function GatewayConnectPage({ providerId }: GatewayConnectPagePro
           onConnected={handleConnected}
           twoColumn
         />
+      ) : failed ? (
+        <LoadFailed failed={failed} onRetry={retry} size="inline" />
       ) : (
-        <Card gap={4} inset={6}>
-          <Skeleton className="h-5 w-40" />
-          <Skeleton className="h-10 w-full" />
-          <Skeleton className="h-10 w-full" />
-        </Card>
+        <SectionPageSkeleton header={false} cards={1} />
       )}
     </div>
   )

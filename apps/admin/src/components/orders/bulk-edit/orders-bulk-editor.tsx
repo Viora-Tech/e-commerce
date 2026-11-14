@@ -114,7 +114,7 @@ export default function OrdersBulkEditor({ sheet }: OrdersBulkEditorProps) {
             </Button>
             <Button disabled={changed === 0} loading={saving} onClick={handleSave}>
               <Save aria-hidden="true" />
-              {saving ? copy.saving : copy.save}
+              {copy.save}
             </Button>
           </>
         }

@@ -4,12 +4,12 @@ import type { DataRequestRow, PrivacyAuditEntry } from '@commerce/core'
 import { daysUntilDue, requestUrgency } from '@commerce/core/privacy'
 import { ShieldCheck } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import DataCard from '@/components/layout/data-card'
 import PageColumns from '@/components/layout/page-columns'
 import PageHeader from '@/components/layout/page-header'
+import SectionPageSkeleton from '@/components/layout/section-page-skeleton'
 import AuditTrail from '@/components/privacy/audit-trail'
 import DataRequestActions from '@/components/privacy/data-request-actions'
 import DataRequestStatusBadge from '@/components/privacy/data-request-status-badge'
@@ -58,7 +58,7 @@ export default function DataRequestDetail({ id }: DataRequestDetailProps) {
 
   // Early returns
   if (failed) return <p className="text-body text-muted-foreground">{copy.loadFailed}</p>
-  if (!detail) return <Skeleton className="h-96 w-full rounded-2xl" />
+  if (!detail) return <SectionPageSkeleton header={false} />
 
   // Render logic
   const r = detail.request

@@ -43,7 +43,8 @@ export default function PayoutsPage() {
   const [payouts, setPayouts] = useState<Payout[] | null>(null)
   const [paying, setPaying] = useState<string | null>(null)
   const [reload, setReload] = useState(0)
-  const [busy, setBusy] = useState(false)
+  /** Which action is running: `create`, or the id of the payout being cancelled. */
+  const [busy, setBusy] = useState<string | null>(null)
   const [reporting, setReporting] = useState(false)
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: `reload` re-runs the load after a change
@@ -62,23 +63,23 @@ export default function PayoutsPage() {
   }, [reload])
 
   // Helpers
-  const run = async (fn: () => Promise<string>) => {
-    setBusy(true)
+  const run = async (action: string, fn: () => Promise<string>) => {
+    setBusy(action)
     try {
       toast.success(await fn())
       setReload((n) => n + 1)
     } catch (err) {
       toast.error(err instanceof Error ? err.message : failed)
     } finally {
-      setBusy(false)
+      setBusy(null)
     }
   }
 
   // Event handlers
   const handleCreate = () =>
-    run(async () => copy.created((await api.affiliates.payouts.create({})).created))
+    run('create', async () => copy.created((await api.affiliates.payouts.create({})).created))
   const handleCancel = (id: string) =>
-    run(async () => {
+    run(id, async () => {
       await api.affiliates.payouts.cancel({ id })
       return copy.cancelled
     })
@@ -112,7 +113,11 @@ export default function PayoutsPage() {
             <Button variant="outline" onClick={handleExport} disabled={pending === 0}>
               {copy.export}
             </Button>
-            <Button onClick={handleCreate} disabled={busy || ready === 0}>
+            <Button
+              onClick={handleCreate}
+              disabled={busy !== null || ready === 0}
+              loading={busy === 'create'}
+            >
               {copy.create}
             </Button>
           </>
@@ -216,7 +221,8 @@ export default function PayoutsPage() {
                         size="sm"
                         variant="ghost"
                         onClick={() => handleCancel(p.id)}
-                        disabled={busy}
+                        disabled={busy !== null}
+                        loading={busy === p.id}
                       >
                         {copy.cancel}
                       </Button>

@@ -119,12 +119,12 @@ export default function MoveFilesCard({ targetProviderId, targetLabel }: MoveFil
       ) : null}
       <div>
         <Button
+          loading={starting}
           type="button"
           variant="outline"
           disabled={starting || running}
           onClick={() => setConfirmOpen(true)}
         >
-          {starting ? <Spinner /> : null}
           {copy.action(targetLabel)}
         </Button>
       </div>

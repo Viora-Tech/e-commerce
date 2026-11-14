@@ -184,7 +184,7 @@ export default function LoginForm({ google, googleError, reviewerHash, next }: L
             {error ? <FieldError>{error}</FieldError> : null}
           </Field>
           <Button type="submit" size="lg" className="w-full" loading={busy}>
-            {busy ? copy.password.signingIn : copy.password.submit}
+            {copy.password.submit}
           </Button>
         </form>
         <button
@@ -226,7 +226,7 @@ export default function LoginForm({ google, googleError, reviewerHash, next }: L
             loading={busy}
             disabled={otp.length < 6}
           >
-            {busy ? copy.otp.verifying : copy.otp.submit}
+            {copy.otp.submit}
           </Button>
         </form>
         <div className="flex items-center justify-between text-body">
@@ -276,7 +276,7 @@ export default function LoginForm({ google, googleError, reviewerHash, next }: L
           {error ? <FieldError>{error}</FieldError> : null}
         </Field>
         <Button type="submit" size="lg" className="w-full" loading={busy}>
-          {busy ? copy.sending : head.submit}
+          {head.submit}
         </Button>
       </form>
       {mode === 'sign-in' ? <PasskeySignIn next={next} /> : null}

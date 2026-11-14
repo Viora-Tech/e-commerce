@@ -2,7 +2,6 @@
 
 import { CheckIcon, FileText } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import { Spinner } from '@commerce/ui/shadcn/spinner'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { type ChangeEvent, useRef, useState } from 'react'
@@ -166,11 +165,11 @@ export default function ImportPage() {
               ) : (
                 <div className="flex flex-col items-start gap-2">
                   <Button
+                    loading={reading}
                     variant="outline"
                     onClick={() => input.current?.click()}
                     disabled={reading}
                   >
-                    {reading ? <Spinner /> : null}
                     {copy.step2.choose}
                   </Button>
                   <span className="text-caption text-muted-foreground">{copy.step2.hint}</span>
