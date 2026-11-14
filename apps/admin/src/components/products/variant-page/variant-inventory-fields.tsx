@@ -10,8 +10,8 @@ import { variantPageContent } from '@/data/variant-page'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { routes } from '@/lib/routes'
 import type { VariantRow } from '../form-state'
+import SwitchRow from '../switch-row'
 import type { VariantPreorderContext } from '../variant-preorder-limit'
-import SwitchRow from './switch-row'
 
 type VariantInventoryFieldsProps = {
   productId: string

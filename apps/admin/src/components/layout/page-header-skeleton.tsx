@@ -8,6 +8,8 @@ type PageHeaderSkeletonProps = {
   actions?: number
   /** Draw the small "‹ Back" link above the title (detail and form pages). */
   back?: boolean
+  /** Draw the 3rem record tile before the title (product and variant pages). */
+  lead?: boolean
 }
 
 /* Bar widths for the header buttons, the key primary last. */
@@ -30,6 +32,7 @@ export default function PageHeaderSkeleton({
   title,
   actions = 1,
   back = false,
+  lead = false,
 }: PageHeaderSkeletonProps) {
   // Render logic
   const buttons =
@@ -50,21 +53,24 @@ export default function PageHeaderSkeleton({
     </span>
   ) : null
 
-  return title && !back ? (
+  return title && !back && !lead ? (
     <PageHeader title={title} summary={SUMMARY} actions={buttons} />
   ) : (
     <div className="flex flex-col gap-3" aria-hidden="true">
       {backBar}
       <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3">
-        <div className="flex min-w-[min(100%,16rem)] flex-1 flex-col gap-1">
-          <span className="flex h-9 items-center">
-            {title ? (
-              <span className="truncate text-page-title text-ink-strong">{title}</span>
-            ) : (
-              <Skeleton className="h-7 w-40" />
-            )}
-          </span>
-          {SUMMARY}
+        <div className="flex min-w-[min(100%,16rem)] flex-1 items-start gap-4">
+          {lead ? <Skeleton className="size-12 shrink-0 rounded-xl" /> : null}
+          <div className="flex min-w-0 flex-1 flex-col gap-1">
+            <span className="flex h-9 items-center">
+              {title ? (
+                <span className="truncate text-page-title text-ink-strong">{title}</span>
+              ) : (
+                <Skeleton className="h-7 w-40" />
+              )}
+            </span>
+            {SUMMARY}
+          </div>
         </div>
         {buttons}
       </div>

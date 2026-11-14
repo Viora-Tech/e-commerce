@@ -35,6 +35,7 @@ import VariantInventoryFields from './variant-inventory-fields'
 import VariantList from './variant-list'
 import VariantMetafieldsCard from './variant-metafields-card'
 import VariantOptionsFields from './variant-options-fields'
+import VariantPageColumns from './variant-page-columns'
 import VariantPageHeader from './variant-page-header'
 import { optionClash, variantPageWrite, withoutVariant } from './variant-page-state'
 import VariantPricingFields from './variant-pricing-fields'
@@ -198,8 +199,8 @@ export default function VariantPage({ product, variantId }: VariantPageProps) {
       />
       {/* A change sent for approval shows as a calm notice, not "Save failed" (#1531). */}
       {serverError ? <SaveErrorAlert title={formCopy.toasts.failed} message={serverError} /> : null}
-      <div className="grid gap-6 lg:grid-cols-[18rem_minmax(0,1fr)] lg:items-start">
-        <aside className="lg:sticky lg:top-4">
+      <VariantPageColumns
+        list={
           <VariantList
             productId={product.id}
             variants={form.variants}
@@ -207,53 +208,55 @@ export default function VariantPage({ product, variantId }: VariantPageProps) {
             currentId={variantId}
             onPick={handlePick}
           />
-        </aside>
-        <div className="flex min-w-0 flex-col gap-6">
-          <DataCard title={copy.options.heading}>
-            <VariantOptionsFields
-              options={form.options}
-              draft={draft}
-              clash={clash}
-              onPatch={patch}
+        }
+        main={
+          <>
+            <DataCard title={copy.options.heading}>
+              <VariantOptionsFields
+                options={form.options}
+                draft={draft}
+                clash={clash}
+                onPatch={patch}
+              />
+            </DataCard>
+            <DataCard title={copy.image.heading} subtitle={copy.image.help}>
+              <VariantImagePicker
+                media={form.media}
+                mediaIds={draft.mediaIds}
+                label={title}
+                onChange={(mediaIds) => patch({ mediaIds })}
+                onAddMedia={addMedia}
+              />
+            </DataCard>
+            <DataCard title={copy.pricing.heading}>
+              <VariantPricingFields draft={draft} onPatch={patch} />
+            </DataCard>
+            <DataCard title={copy.inventory.heading}>
+              <VariantInventoryFields
+                productId={product.id}
+                draft={draft}
+                onPatch={patch}
+                onGenerateSku={handleGenerateSku}
+                preorder={variantPreorderContext(form)}
+              />
+            </DataCard>
+            <DataCard title={copy.shipping.heading}>
+              <VariantShippingFields
+                draft={draft}
+                onPatch={patch}
+                tax={form.tax}
+                productBox={productBoxOf(form.variants)}
+              />
+            </DataCard>
+            <VariantMetafieldsCard
+              definitions={fields.definitions}
+              values={fields.values}
+              errors={fields.errors}
+              onChange={fields.change}
             />
-          </DataCard>
-          <DataCard title={copy.image.heading} subtitle={copy.image.help}>
-            <VariantImagePicker
-              media={form.media}
-              mediaIds={draft.mediaIds}
-              label={title}
-              onChange={(mediaIds) => patch({ mediaIds })}
-              onAddMedia={addMedia}
-            />
-          </DataCard>
-          <DataCard title={copy.pricing.heading}>
-            <VariantPricingFields draft={draft} onPatch={patch} />
-          </DataCard>
-          <DataCard title={copy.inventory.heading}>
-            <VariantInventoryFields
-              productId={product.id}
-              draft={draft}
-              onPatch={patch}
-              onGenerateSku={handleGenerateSku}
-              preorder={variantPreorderContext(form)}
-            />
-          </DataCard>
-          <DataCard title={copy.shipping.heading}>
-            <VariantShippingFields
-              draft={draft}
-              onPatch={patch}
-              tax={form.tax}
-              productBox={productBoxOf(form.variants)}
-            />
-          </DataCard>
-          <VariantMetafieldsCard
-            definitions={fields.definitions}
-            values={fields.values}
-            errors={fields.errors}
-            onChange={fields.change}
-          />
-        </div>
-      </div>
+          </>
+        }
+      />
       <ConfirmDialog
         open={confirmDelete}
         onOpenChange={setConfirmDelete}

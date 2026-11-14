@@ -5,6 +5,7 @@ import { Button } from '@commerce/ui/shadcn/button'
 import { Dialog, DialogDescription, DialogTitle } from '@commerce/ui/shadcn/dialog'
 import { Field, FieldLabel } from '@commerce/ui/shadcn/field'
 import { NativeSelect, NativeSelectOption } from '@commerce/ui/shadcn/native-select'
+import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { useEffect, useState } from 'react'
 import DialogContent from '@/components/layout/dialog-content'
 import DialogFooter from '@/components/layout/dialog-footer'
@@ -65,7 +66,11 @@ export default function AddToCollectionDialog({
           <DialogDescription>{copy.help(count)}</DialogDescription>
         </DialogHeader>
         {collections === null ? (
-          <p className="text-body text-muted-foreground">{copy.loading}</p>
+          <div className="flex flex-col gap-2" aria-busy="true">
+            <span className="sr-only">{copy.loading}</span>
+            <Skeleton className="h-4 w-24" />
+            <Skeleton className="h-9 w-full" />
+          </div>
         ) : collections.length === 0 ? (
           <EmptyState variant="inline" body={copy.none} />
         ) : (
