@@ -407,6 +407,7 @@ export default function ProductForm({
             form={form}
             single={single}
             busy={working}
+            saving={busy}
             dirty={isDirty}
             storefrontOrigin={storefrontOrigin}
             onSave={() => void handleSave()}
@@ -466,6 +467,7 @@ export default function ProductForm({
       }
     >
       <ConfirmDialog
+        tone="destructive"
         open={confirmDelete}
         onOpenChange={setConfirmDelete}
         title={copy.delete.title(product?.title ?? '')}

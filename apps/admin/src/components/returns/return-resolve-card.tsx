@@ -227,6 +227,7 @@ export default function ReturnResolveCard({ detail: r, onChanged }: ReturnResolv
         ) : null}
         <div>
           <Button
+            loading={busy}
             size="lg"
             onClick={handleConfirm}
             disabled={

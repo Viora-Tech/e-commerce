@@ -242,6 +242,7 @@ function ProviderActions({ setup, gateway, onChanged }: ProviderActionsProps) {
         ]}
       />
       <ConfirmDialog
+        tone="destructive"
         open={asking}
         onOpenChange={setAsking}
         title={activeCopy.offTitle}

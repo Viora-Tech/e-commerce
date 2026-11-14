@@ -5,6 +5,7 @@ import { Button } from '@commerce/ui/shadcn/button'
 import { Checkbox } from '@commerce/ui/shadcn/checkbox'
 import { Field, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
+import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import {
   Table,
   TableBody,
@@ -18,9 +19,12 @@ import { toast } from 'sonner'
 import CopyButton from '@/components/fields/copy-button'
 import DateField from '@/components/fields/date-field'
 import DataCard from '@/components/layout/data-card'
+import InlineState from '@/components/states/inline-state'
 import TableEmptyRow from '@/components/table/table-empty-row'
+import TableSkeletonRows from '@/components/table/table-skeleton-rows'
 import { shipmentActionsContent, shipmentsContent } from '@/data/shipments'
 import { shipmentDetailsContent } from '@/data/shipping'
+import { statesContent } from '@/data/states'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { todayKey } from '@/lib/format-date'
@@ -46,6 +50,7 @@ export default function PickupsTab({ provider }: PickupsTabProps = {}) {
   // Hooks
   const details = useCopy(shipmentDetailsContent)
   const actions = useCopy(shipmentActionsContent)
+  const states = useCopy(statesContent)
   const [unpicked, setUnpicked] = useState<Unpicked>([])
   const [pickups, setPickups] = useState<Pickups>([])
   const [manifests, setManifests] = useState<Manifests>([])
@@ -56,6 +61,8 @@ export default function PickupsTab({ provider }: PickupsTabProps = {}) {
   const [timeTo, setTimeTo] = useState('')
   const [busy, setBusy] = useState(false)
   const [reloadKey, setReloadKey] = useState(0)
+  /** The lists start unknown, so nothing says "no pickups" before the first answer or after a failure. */
+  const [status, setStatus] = useState<'loading' | 'ready' | 'failed'>('loading')
 
   useEffect(() => {
     // reloadKey has no bearing on the query; bumping it just re-runs this effect
@@ -66,14 +73,20 @@ export default function PickupsTab({ provider }: PickupsTabProps = {}) {
       api.shipments.listUnpicked(),
       api.shipments.listPickups(),
       api.shipments.listManifests(),
-    ]).then(([allUnpicked, p, m]) => {
-      if (cancelled) return
-      const u = ofProvider(allUnpicked, provider)
-      setUnpicked(u)
-      setPickups(ofProvider(p, provider))
-      setManifests(ofProvider(m, provider))
-      setSelected((prev) => prev.filter((id) => u.some((s) => s.id === id)))
-    })
+    ]).then(
+      ([allUnpicked, p, m]) => {
+        if (cancelled) return
+        const u = ofProvider(allUnpicked, provider)
+        setUnpicked(u)
+        setPickups(ofProvider(p, provider))
+        setManifests(ofProvider(m, provider))
+        setSelected((prev) => prev.filter((id) => u.some((s) => s.id === id)))
+        setStatus('ready')
+      },
+      () => {
+        if (!cancelled) setStatus('failed')
+      },
+    )
     return () => {
       cancelled = true
     }
@@ -85,6 +98,11 @@ export default function PickupsTab({ provider }: PickupsTabProps = {}) {
     selected.length > 0 && date !== '' && date >= todayKey() && TIME_24H.test(timeFrom.trim())
 
   // Event handlers
+  const handleRetry = () => {
+    setStatus('loading')
+    setReloadKey((k) => k + 1)
+  }
+
   const handleToggle = (id: string, on: boolean) =>
     setSelected((s) => (on ? [...s, id] : s.filter((x) => x !== id)))
 
@@ -126,12 +144,34 @@ export default function PickupsTab({ provider }: PickupsTabProps = {}) {
     }
   }
 
+  // Early returns
+  if (status === 'failed') {
+    return (
+      <DataCard title={copy.heading}>
+        <InlineState kind="error" onRetry={handleRetry} />
+      </DataCard>
+    )
+  }
+
+  // Render logic
+  const loading = status === 'loading'
+
   return (
     <div className="flex flex-col gap-4">
       <DataCard title={copy.heading}>
         <div className="flex flex-col gap-4">
           <p className="text-body text-muted-foreground">{copy.help}</p>
-          {unpicked.length === 0 ? (
+          {loading ? (
+            <div
+              className="flex flex-col gap-2"
+              role="status"
+              aria-busy="true"
+              aria-label={states.loading}
+            >
+              <Skeleton className="h-4 w-48" />
+              <Skeleton className="h-4 w-40" />
+            </div>
+          ) : unpicked.length === 0 ? (
             <p className="text-body text-muted-foreground">{copy.empty}</p>
           ) : (
             <ul className="flex flex-col gap-2">
@@ -202,7 +242,11 @@ export default function PickupsTab({ provider }: PickupsTabProps = {}) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {pickups.length === 0 ? <TableEmptyRow colSpan={6} message={copy.empty} /> : null}
+            {loading ? (
+              <TableSkeletonRows columns={6} rows={3} label={states.loading} />
+            ) : pickups.length === 0 ? (
+              <TableEmptyRow colSpan={6} message={copy.empty} />
+            ) : null}
             {pickups.map((p) => (
               <TableRow key={p.id}>
                 <TableCell>{p.scheduledFor}</TableCell>
@@ -239,7 +283,9 @@ export default function PickupsTab({ provider }: PickupsTabProps = {}) {
         <p className="px-4 pt-4 text-caption text-muted-foreground">{copy.manifestHelp}</p>
         <Table>
           <TableBody>
-            {manifests.length === 0 ? (
+            {loading ? (
+              <TableSkeletonRows columns={2} rows={2} label={states.loading} />
+            ) : manifests.length === 0 ? (
               <TableEmptyRow colSpan={2} message={copy.manifestsEmpty} />
             ) : null}
             {manifests.map((m) => (

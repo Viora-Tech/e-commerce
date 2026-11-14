@@ -136,7 +136,7 @@ export default function CreativesPage() {
                 <Button variant="outline" onClick={() => setDraft(null)} disabled={busy}>
                   {copy.cancel}
                 </Button>
-                <Button onClick={handleSave} disabled={busy}>
+                <Button loading={busy} onClick={handleSave} disabled={busy}>
                   {copy.save}
                 </Button>
               </div>

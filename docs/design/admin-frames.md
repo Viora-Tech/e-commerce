@@ -90,10 +90,14 @@ Routes and IA stay Shopify-shaped. Credits: `apps/admin/THIRD_PARTY_LICENSES.md`
   a grey meta line, a title glyph and `tone="muted"` for grouped sub-sections.
 - `PageHeader`: square outlined back button, title with pills, grey meta line, actions
   (icon buttons first, the ink primary last).
-- `KitListPage`: header on a hairline, an optional strip (`StatStrip` for summaries), the
-  `ResourceTable` edge to edge: underline status tabs, search + Filter (count) + sort and
-  columns, removable chips, a small ink header row, 44px rows, range and arrow pager.
-- Fields: 36px controls, 6px radius, white on the `--input` hairline that darkens on hover.
+- `ProoflyListPage` (`layout/proofly-list-page.tsx`, the one list shell; the old
+  `KitListPage` was removed on 14 Nov 2026): `PageHeader`, optional controls, an optional
+  `StatStrip`, then the `ResourceTable` card: view select, search + Filter (count) + sort and
+  columns, removable chips, a small header row, 3.75rem rows, range and arrow pager.
+- Page frame: one 1.5rem side gutter (`px-4 md:px-6`) on list and detail pages; detail pages
+  centre at 75rem with a 23.5rem side column, 1.5rem (`gap-6`) between cards.
+- Fields: 2.25rem (`h-9`) controls, the same height as Select and Button, white on the
+  `--input` hairline that darkens on hover.
 
 The sections below record the earlier Dealport measurements; where they conflict, this
 section wins.
@@ -109,18 +113,18 @@ into code.
 
 | Thing | Frame | Shipped |
 | --- | --- | --- |
-| Page title | 22px/700 | `text-page-title` 1rem/600 |
-| Card / section title | 18px/700 | `text-card-title` 0.875rem/600 |
-| Body, table cells | 15px | `text-body` 0.75rem; primary cell text `text-body-strong` 0.8125rem/500 |
-| Captions, table headers | 13-15px | 0.75rem/500 muted |
+| Page title | 22px/700 | `text-page-title` 1.75rem/600 |
+| Card / section title | 18px/700 | `text-card-title` 1rem/600 |
+| Body, table cells | 15px | `text-body` 0.875rem; primary cell text `text-body-strong` 0.875rem/500 |
+| Captions, table headers | 13-15px | `text-caption` / `text-table-head` 0.8125rem/500 muted |
 | Sidebar items | 16px, 40px rows | `text-nav` 0.8125rem/500, h-8; sub-items 0.8125rem indented |
-| Stat numbers | 32px/700 | `text-stat` 1.25rem/600 |
+| Stat numbers | 32px/700 | `text-stat` 1.875rem/600 |
 | Table rows / header band | 68px / 56px | h-12 / h-10 |
 | Card padding | 24px | p-5 (1.25rem) |
 | Sidebar width | 260px | 15rem |
 | Top bar | 96px | h-14 (3.5rem) |
-| Buttons | 42-48px, 15/700 | h-8, text-xs/500; `size="lg"` h-9 for the page's primary action |
-| Inputs | 48px | h-8 in toolbars, h-9 (`size="lg"`) in forms |
+| Buttons | 42-48px, 15/700 | h-9 (`size="sm"` h-8 in dense rows) |
+| Inputs | 48px | h-9 by default, like Select and Button; `size="sm"` h-8 in dense rows |
 
 ## Frame-size pages (no density overlay)
 

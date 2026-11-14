@@ -147,7 +147,7 @@ export default function AutopilotSettingsCard({ settings, onSaved }: AutopilotSe
           </Label>
         </div>
       </fieldset>
-      <Button className="self-end" disabled={busy} onClick={() => void handleSave()}>
+      <Button loading={busy} className="self-end" disabled={busy} onClick={() => void handleSave()}>
         {s.save}
       </Button>
     </DataCard>

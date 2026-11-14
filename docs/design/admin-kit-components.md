@@ -36,14 +36,12 @@ Type tokens (`text-kit-*`): `display` 57/700, `h2` 32/400, `title` 18/26/700 -2%
 | 14:357 delta | `layout/delta-chip.tsx` `size="kit"` | delta, invert |
 | 14:363 / 14:832 Details pill | `layout/details-link.tsx`, `kit/kit-button.tsx` `variant="pill"` | href, label |
 | 14:366 report card | `layout/chart-card.tsx` | title, periods, tabs, formatValue, menu |
-| 14:369 week toggle | `kit/kit-week-toggle.tsx` | options, value, onChange |
 | 14:403 stat tabs | `layout/stat-tabs.tsx` | items, active, onChange |
 | 14:426 users card | `home/activity-card.tsx` | ordersLast24h, perHour, salesByState |
 | 14:428 bar strip | `layout/mini-bars.tsx` | data |
 | 14:508 progress line | `kit/kit-progress.tsx` | value 0..1 |
 | 14:860 top products | `home/top-products-card.tsx` → `kit/kit-list-row.tsx` | href, image, title, meta, value |
 | 14:865 / 14:988 search | `kit/kit-search.tsx` | size `card` / `toolbar` |
-| 14:910 add new product | `home/low-stock-card.tsx` → `kit/kit-category-row.tsx`, `kit/kit-product-row.tsx` | href/image/label/count; image/title/price/action |
 | 14:945 Add pill | `kit/kit-button.tsx` `variant="add"` | |
 | 14:977 tab pill group | `layout/pill-tabs.tsx` `size="frame"` | tabs, value, onChange |
 | 14:992 icon button | `kit/kit-icon-button.tsx` | label, children |
@@ -51,7 +49,6 @@ Type tokens (`text-kit-*`): `display` 57/700, `h2` 32/400, `title` 18/26/700 -2%
 | 14:1029 thumb 40 / 14:874 thumb 56 / 14:918 thumb 46 | `kit/kit-thumb.tsx` | size `table` / `list` / `category` |
 | 14:1037 payment dot | `kit/kit-dot-label.tsx` | tone |
 | 14:1041 status glyph | `kit/kit-glyph-label.tsx` | icon, tone |
-| 14:1280 pagination | `kit/kit-pagination.tsx` | page, pageCount, onChange |
 | 14:1636 field | `kit/kit-field.tsx` + `<Input size="kit">` / `<Textarea size="kit">` | label, help, error |
 | 14:1629 / 14:1631 buttons | `kit/kit-button.tsx` `variant="primary"` / `"secondary"` | |
 | 14:1708 edit chip | `kit/kit-button.tsx` `variant="chip"` | |
@@ -70,8 +67,10 @@ Row 1: three `StatCard size="lg"` (Pending & cancelled uses `children`). Row 2: 
 
 ## The list page: one shell for every index screen
 
-`kit/kit-list-page.tsx` is the shared shell for `/orders`, `/products` and
-`/products/collections`, drawn to frames 5:2353 and 5:3936:
+`layout/proofly-list-page.tsx` (`ProoflyListPage`) is now the shared shell for every list. The
+kit shell described below (`kit/kit-list-page.tsx`) was removed on 14 Nov 2026 with the other
+unused kit parts (week toggle, category and product rows, pagination); this section is history.
+It was drawn to frames 5:2353 and 5:3936:
 
 | Slot | What it holds |
 | --- | --- |

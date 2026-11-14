@@ -272,7 +272,7 @@ export default function AddRegistrationDialog({
             <DialogClose render={<Button variant="outline" type="button" />}>
               {copy.cancel}
             </DialogClose>
-            <Button type="submit" disabled={saving || !form.gstin}>
+            <Button loading={saving} type="submit" disabled={saving || !form.gstin}>
               <CheckIcon aria-hidden="true" />
               {copy.submit}
             </Button>

@@ -289,6 +289,7 @@ export default function VariantsCard({
         />
       ) : null}
       <ConfirmDialog
+        tone="destructive"
         open={pending !== null}
         onOpenChange={(open) => !open && setPending(null)}
         title={copy.confirmRemoveTitle}

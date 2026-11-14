@@ -72,7 +72,7 @@ export default function TestSendDialog({
           {error ? <FieldError>{error}</FieldError> : null}
         </Field>
         <DialogFooter>
-          <Button onClick={handleSend} disabled={busy || !to.includes('@')}>
+          <Button loading={busy} onClick={handleSend} disabled={busy || !to.includes('@')}>
             <Send aria-hidden="true" />
             {copy.send}
           </Button>

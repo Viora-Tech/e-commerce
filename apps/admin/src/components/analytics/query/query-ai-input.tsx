@@ -78,6 +78,7 @@ export default function QueryAiInput({ state, current, onAnswer }: QueryAiInputP
       </label>
       <div className="flex gap-2">
         <Input
+          size="sm"
           id={id}
           value={request}
           maxLength={QUERY_WRITER_REQUEST_MAX}

@@ -64,6 +64,7 @@ export default function AutomationRowMenu({ automation }: AutomationRowMenuProps
         ]}
       />
       <ConfirmDialog
+        tone="destructive"
         open={deleting}
         onOpenChange={setDeleting}
         title={copy.row.deleteTitle(automation.name)}

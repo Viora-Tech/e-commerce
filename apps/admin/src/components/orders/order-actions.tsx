@@ -353,6 +353,7 @@ export default function OrderActions({
       />
 
       <ConfirmDialog
+        tone="destructive"
         open={confirm === 'cancelShipment'}
         onOpenChange={(o) => !o && setConfirm(null)}
         title={list.row.cancelShipmentTitle}

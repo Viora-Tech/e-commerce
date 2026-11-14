@@ -80,7 +80,7 @@ export default function ArchiveProgramDialog({
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
             {copy.cancel}
           </Button>
-          <Button onClick={handleArchive} disabled={busy || !selected}>
+          <Button loading={busy} onClick={handleArchive} disabled={busy || !selected}>
             {copy.archiveConfirm}
           </Button>
         </DialogFooter>

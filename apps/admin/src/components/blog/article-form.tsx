@@ -141,7 +141,7 @@ export default function ArticleForm({
                 </Button>
               ) : null
             ) : (
-              <Button onClick={handleSave} disabled={busy}>
+              <Button loading={busy} onClick={handleSave} disabled={busy}>
                 <Save aria-hidden="true" />
                 {busy ? copy.saving : copy.save}
               </Button>
@@ -215,6 +215,7 @@ export default function ArticleForm({
         saving={busy}
       />
       <ConfirmDialog
+        tone="destructive"
         open={confirmDelete}
         onOpenChange={setConfirmDelete}
         title={deleteCopy.title(1)}

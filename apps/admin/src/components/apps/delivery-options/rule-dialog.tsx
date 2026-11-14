@@ -299,7 +299,7 @@ export default function RuleDialog({
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             {copy.cancel}
           </Button>
-          <Button onClick={handleSave} disabled={busy}>
+          <Button loading={busy} onClick={handleSave} disabled={busy}>
             <Save aria-hidden="true" />
             {copy.save}
           </Button>

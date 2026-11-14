@@ -222,7 +222,7 @@ export default function AutomationEditor({
             {testing ? <X /> : <ArrowRight />}
             {testing ? copy.stopTest : copy.testRun}
           </Button>
-          <Button onClick={handleSave} disabled={busy || !dirty}>
+          <Button loading={busy} onClick={handleSave} disabled={busy || !dirty}>
             <Save aria-hidden="true" />
             {copy.saveBar.save}
           </Button>
@@ -314,6 +314,7 @@ export default function AutomationEditor({
         </>
       )}
       <ConfirmDialog
+        tone="destructive"
         open={confirmDelete}
         onOpenChange={setConfirmDelete}
         title={copy.delete.title}

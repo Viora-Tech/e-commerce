@@ -76,7 +76,7 @@ export default function SendDialog({
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             {copy.cancel}
           </Button>
-          <Button onClick={handleConfirm} disabled={busy || invalid}>
+          <Button loading={busy} onClick={handleConfirm} disabled={busy || invalid}>
             <Send aria-hidden="true" />
             {mode === 'now' ? copy.confirmNow(reach ?? 0) : copy.confirmLater}
           </Button>

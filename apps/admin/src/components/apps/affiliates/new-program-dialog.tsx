@@ -74,7 +74,7 @@ export default function NewProgramDialog({ open, onOpenChange }: NewProgramDialo
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               {copy.cancel}
             </Button>
-            <Button type="submit" disabled={busy || !name.trim()}>
+            <Button loading={busy} type="submit" disabled={busy || !name.trim()}>
               {copy.create}
             </Button>
           </DialogFooter>

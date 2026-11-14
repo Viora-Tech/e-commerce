@@ -57,7 +57,7 @@ export default function ConsentForm({
         <div className="flex items-center gap-3">
           <McpClientLogo client={mcpClientOf(client)} size="lg" />
           <div className="flex flex-col gap-0.5">
-            <h1 className="text-section-title text-ink-strong">
+            <h1 className="text-page-title text-ink-strong">
               {copy.consent.title(client, store.name)}
             </h1>
             <p className="text-caption text-muted-foreground">{copy.consent.signedInAs(email)}</p>

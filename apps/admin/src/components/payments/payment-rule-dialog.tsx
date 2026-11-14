@@ -236,7 +236,7 @@ export default function PaymentRuleDialog({
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>
             {copy.cancel}
           </Button>
-          <Button onClick={handleSave} disabled={saving}>
+          <Button loading={saving} onClick={handleSave} disabled={saving}>
             {copy.save}
           </Button>
         </DialogFooter>

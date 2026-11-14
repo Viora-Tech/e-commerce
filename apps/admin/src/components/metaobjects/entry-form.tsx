@@ -194,6 +194,7 @@ export default function EntryForm({ definition, entry, title }: EntryFormProps) 
         saving={busy}
       />
       <ConfirmDialog
+        tone="destructive"
         open={confirmDelete}
         onOpenChange={setConfirmDelete}
         title={listCopy.bulk.confirmTitle(1)}

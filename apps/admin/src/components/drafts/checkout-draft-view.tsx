@@ -319,6 +319,7 @@ export default function CheckoutDraftView({ draft: d }: CheckoutDraftViewProps) 
         onConfirm={handleConvert}
       />
       <ConfirmDialog
+        tone="destructive"
         open={asking === 'delete'}
         onOpenChange={(open) => !open && setAsking(null)}
         title={listCopy.deleteTitle(1)}

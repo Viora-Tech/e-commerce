@@ -87,7 +87,7 @@ export default function EditTodosDialog({ hidden }: EditTodosDialogProps) {
           <Button type="button" variant="outline" onClick={() => handleOpenChange(false)}>
             {c.cancel}
           </Button>
-          <Button type="button" onClick={handleSave} disabled={saving}>
+          <Button loading={saving} type="button" onClick={handleSave} disabled={saving}>
             {c.save}
           </Button>
         </DialogFooter>

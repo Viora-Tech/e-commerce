@@ -162,6 +162,7 @@ export default function SessionsPage() {
         </p>
       </SettingsCard>
       <ConfirmDialog
+        tone="destructive"
         open={target !== null}
         title={copy.signOutDialog.title(target ? deviceName(target.device, content) : '')}
         body={copy.signOutDialog.body}
@@ -172,6 +173,7 @@ export default function SessionsPage() {
         onConfirm={handleSignOut}
       />
       <ConfirmDialog
+        tone="destructive"
         open={othersOpen}
         title={copy.othersDialog.title}
         body={copy.othersDialog.body}

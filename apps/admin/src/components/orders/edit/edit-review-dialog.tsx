@@ -224,7 +224,7 @@ export default function EditReviewDialog({
           <Button type="button" variant="outline" onClick={onClose} disabled={busy}>
             {copy.keepEditing}
           </Button>
-          <Button type="button" onClick={handleSave} disabled={busy || !preview}>
+          <Button loading={busy} type="button" onClick={handleSave} disabled={busy || !preview}>
             <CircleCheck aria-hidden="true" />
             {copy.save}
           </Button>

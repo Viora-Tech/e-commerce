@@ -291,6 +291,7 @@ export default function BuilderTemplatesDialog({
                       }}
                     >
                       <Input
+                        size="sm"
                         aria-label={g.renameTitle}
                         value={renaming.name}
                         maxLength={120}
@@ -352,6 +353,7 @@ export default function BuilderTemplatesDialog({
         )}
       </DialogContent>
       <ConfirmDialog
+        tone="destructive"
         open={pending !== null}
         onOpenChange={(o) => !o && setPending(null)}
         title={copy.templates.replaceTitle}

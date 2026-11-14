@@ -18,6 +18,8 @@ type ProductHeaderProps = {
   /** No options: one variant, so the line reads "No options" rather than "1 variant". */
   single: boolean
   busy: boolean
+  /** The save itself is running (not an image upload): the Save button shows a spinner. */
+  saving: boolean
   /** Unsaved edits: Save is on. A new product can always be saved. */
   dirty: boolean
   storefrontOrigin: string
@@ -38,6 +40,7 @@ export default function ProductHeader({
   form,
   single,
   busy,
+  saving,
   dirty,
   storefrontOrigin,
   onSave,
@@ -54,7 +57,7 @@ export default function ProductHeader({
   const s = copy.summary
   const archived = form.status === 'archived'
   const saveButton = (
-    <Button disabled={busy || (Boolean(product) && !dirty)} onClick={onSave}>
+    <Button loading={saving} disabled={busy || (Boolean(product) && !dirty)} onClick={onSave}>
       <Save aria-hidden="true" />
       {copy.saveBar.save}
     </Button>

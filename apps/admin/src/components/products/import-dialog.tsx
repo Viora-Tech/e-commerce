@@ -161,7 +161,11 @@ export default function ImportDialog({ open, onOpenChange, onImported }: ImportD
           <Button variant="outline" onClick={() => handleOpenChange(false)} disabled={busy}>
             {copy.cancel}
           </Button>
-          <Button onClick={handleImport} disabled={busy || !summary || summary.total === 0}>
+          <Button
+            loading={busy}
+            onClick={handleImport}
+            disabled={busy || !summary || summary.total === 0}
+          >
             <Upload aria-hidden="true" />
             {busy ? copy.running : copy.start}
           </Button>

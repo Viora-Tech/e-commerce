@@ -222,7 +222,7 @@ export default function LogRequestDialog({
             <Button type="button" variant="outline" onClick={onClose} disabled={busy}>
               {copy.cancel}
             </Button>
-            <Button type="submit" disabled={busy}>
+            <Button loading={busy} type="submit" disabled={busy}>
               <Plus aria-hidden="true" />
               {copy.submit}
             </Button>

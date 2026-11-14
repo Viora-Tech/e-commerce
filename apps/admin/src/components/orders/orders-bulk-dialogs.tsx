@@ -219,6 +219,7 @@ export default function OrdersBulkDialogs({
         onConfirm={handleRemind}
       />
       <ConfirmDialog
+        tone="destructive"
         open={cancelling}
         onOpenChange={handleOpenChange}
         title={bulkCopy.cancelTitle(toCancel.due.length)}

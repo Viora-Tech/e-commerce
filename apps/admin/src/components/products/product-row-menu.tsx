@@ -112,6 +112,7 @@ export default function ProductRowMenu({
         ]}
       />
       <ConfirmDialog
+        tone="destructive"
         open={deleting}
         onOpenChange={setDeleting}
         title={form.delete.title(product.title)}

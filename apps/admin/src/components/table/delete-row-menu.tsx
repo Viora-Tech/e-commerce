@@ -57,6 +57,7 @@ export default function DeleteRowMenu({
         ]}
       />
       <ConfirmDialog
+        tone="destructive"
         open={open}
         onOpenChange={setOpen}
         title={confirm.title}

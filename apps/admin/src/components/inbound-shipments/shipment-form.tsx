@@ -185,7 +185,7 @@ export default function ShipmentForm({ shipment, costs, aiReading }: ShipmentFor
                 {copy.delete}
               </Button>
             ) : null}
-            <Button onClick={handleSave} disabled={busy}>
+            <Button loading={busy} onClick={handleSave} disabled={busy}>
               <Save aria-hidden="true" />
               {busy ? copy.saving : copy.save}
             </Button>
@@ -247,6 +247,7 @@ export default function ShipmentForm({ shipment, costs, aiReading }: ShipmentFor
         onDone={() => router.refresh()}
       />
       <ConfirmDialog
+        tone="destructive"
         open={deleting}
         onOpenChange={setDeleting}
         title={copy.confirmDelete.title}

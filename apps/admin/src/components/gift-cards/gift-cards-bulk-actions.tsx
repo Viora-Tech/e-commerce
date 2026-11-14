@@ -62,6 +62,7 @@ export default function GiftCardsBulkActions({ ids, onDone }: GiftCardsBulkActio
         onConfirm={handleResend}
       />
       <ConfirmDialog
+        tone="destructive"
         open={confirm === 'disable'}
         onOpenChange={(open) => !open && setConfirm(null)}
         title={copy.confirmDisable.title(ids.length)}

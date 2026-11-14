@@ -172,6 +172,7 @@ export default function StoresPage() {
         <p className="px-1 text-caption text-muted-foreground">{copy.ownerCannotLeave}</p>
       ) : null}
       <ConfirmDialog
+        tone="destructive"
         open={leaving !== null}
         title={copy.leaveDialog.title(leaving?.name ?? '')}
         body={

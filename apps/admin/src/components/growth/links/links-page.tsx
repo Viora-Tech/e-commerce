@@ -181,7 +181,7 @@ export default function LinksPage({ storefrontOrigin, tabs }: LinksPageProps) {
   )
 
   return (
-    <div className="flex w-full flex-col gap-6 px-4 pt-4 pb-6 md:px-8 md:pt-5 md:pb-8">
+    <div className="flex w-full flex-col gap-6 px-4 pt-4 pb-6 md:px-6 md:pt-5 md:pb-8">
       <PageHeader
         title={tabs ? tabsCopy.title : copy.title}
         summary={
@@ -265,6 +265,7 @@ export default function LinksPage({ storefrontOrigin, tabs }: LinksPageProps) {
       ) : null}
       {deleting ? (
         <ConfirmDialog
+          tone="destructive"
           open
           onOpenChange={(open) => !open && setDeleting(null)}
           title={copy.deleteDialog.title(deleting.name)}
@@ -276,6 +277,7 @@ export default function LinksPage({ storefrontOrigin, tabs }: LinksPageProps) {
       ) : null}
       {bulkDeleting ? (
         <ConfirmDialog
+          tone="destructive"
           open
           onOpenChange={(open) => !open && setBulkDeleting(null)}
           title={copy.bulkDelete.title(bulkDeleting.ids.length)}

@@ -87,6 +87,7 @@ export default function WorkflowRowMenu({ workflow, onChanged }: WorkflowRowMenu
         ]}
       />
       <ConfirmDialog
+        tone="destructive"
         open={deleting}
         onOpenChange={setDeleting}
         title={list.row.deleteTitle(workflow.name)}

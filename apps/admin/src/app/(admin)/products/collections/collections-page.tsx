@@ -196,6 +196,7 @@ function CollectionsContent({ initial }: { initial: CollectionsInitial }) {
         }
       />
       <ConfirmDialog
+        tone="destructive"
         open={deleting !== null}
         onOpenChange={(open) => !open && setDeleting(null)}
         title={deleteCopy.heading}
@@ -205,6 +206,7 @@ function CollectionsContent({ initial }: { initial: CollectionsInitial }) {
         onConfirm={() => void handleConfirmDelete()}
       />
       <ConfirmDialog
+        tone="destructive"
         open={bulkDeleting !== null}
         onOpenChange={(open) => !open && setBulkDeleting(null)}
         title={copy.list.bulk.title(bulkDeleting?.ids.length ?? 0)}

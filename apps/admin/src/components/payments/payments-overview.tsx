@@ -250,6 +250,7 @@ export default function PaymentsOverview({ setup, onReload, onOpenGuide }: Payme
         onConnect={handleConnect}
       />
       <ConfirmDialog
+        tone="destructive"
         open={confirmingCodOff}
         onOpenChange={setConfirmingCodOff}
         title={copy.methods.lastWayTitle}

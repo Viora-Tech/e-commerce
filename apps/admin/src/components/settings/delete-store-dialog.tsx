@@ -83,7 +83,12 @@ export default function DeleteStoreDialog({
         </Field>
         <AlertDialogFooter>
           <AlertDialogCancel disabled={busy}>{copy.cancel}</AlertDialogCancel>
-          <Button variant="destructive" onClick={handleConfirm} disabled={!ok || busy}>
+          <Button
+            loading={busy}
+            variant="destructive"
+            onClick={handleConfirm}
+            disabled={!ok || busy}
+          >
             <Trash2 aria-hidden="true" />
             {busy ? copy.deleting : copy.confirm}
           </Button>

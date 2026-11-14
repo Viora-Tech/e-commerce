@@ -170,7 +170,7 @@ export default function CampaignEditor({
   const title = campaign ? form.name : form.kind === 'email' ? copy.newEmail : copy.newWhatsapp
 
   return (
-    <div className="flex w-full flex-col gap-6 px-4 pt-4 pb-6 md:px-8 md:pt-5 md:pb-8">
+    <div className="flex w-full flex-col gap-6 px-4 pt-4 pb-6 md:px-6 md:pt-5 md:pb-8">
       <SaveBar
         open={dirty}
         message={copy.saveBar.message}
@@ -313,6 +313,7 @@ export default function CampaignEditor({
         onConfirm={handleSend}
       />
       <ConfirmDialog
+        tone="destructive"
         open={dialog === 'delete'}
         onOpenChange={(o) => setDialog(o ? 'delete' : null)}
         title={copy.delete.title}

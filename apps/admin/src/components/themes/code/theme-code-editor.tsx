@@ -277,6 +277,7 @@ export default function ThemeCodeEditor({ theme, origin, me, initialFile }: Them
         onCreated={handleCreated}
       />
       <ConfirmDialog
+        tone="destructive"
         open={leaving}
         onOpenChange={setLeaving}
         title={copy.leave.title}

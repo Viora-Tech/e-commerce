@@ -143,7 +143,7 @@ export default function RolloutForm({ rollout, data, results = null }: RolloutFo
       <RolloutActions rollout={rollout} dirty={dirty} />
     ) : null
   ) : canManage ? (
-    <Button onClick={handleSave} disabled={busy || !dirty}>
+    <Button loading={busy} onClick={handleSave} disabled={busy || !dirty}>
       <Save aria-hidden="true" />
       {copy.saveBar.save}
     </Button>

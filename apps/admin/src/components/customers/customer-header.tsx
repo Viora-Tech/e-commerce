@@ -145,6 +145,7 @@ export default function CustomerHeader({
         }
       />
       <ConfirmDialog
+        tone="destructive"
         open={confirming}
         onOpenChange={setConfirming}
         title={copy.actions.deleteHeading}

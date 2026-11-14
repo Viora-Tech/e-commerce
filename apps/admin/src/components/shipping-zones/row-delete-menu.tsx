@@ -58,6 +58,7 @@ export default function RowDeleteMenu({ name, editHref, onDelete, confirm }: Row
         ]}
       />
       <ConfirmDialog
+        tone="destructive"
         open={asking}
         onOpenChange={setAsking}
         title={confirm.title(name)}

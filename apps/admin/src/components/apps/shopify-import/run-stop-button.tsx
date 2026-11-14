@@ -60,6 +60,7 @@ export default function RunStopButton({ run, onStopped }: RunStopButtonProps) {
         {copy.stop.button}
       </Button>
       <ConfirmDialog
+        tone="destructive"
         open={open}
         onOpenChange={setOpen}
         title={copy.stop.title}

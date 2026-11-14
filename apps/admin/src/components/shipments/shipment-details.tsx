@@ -167,6 +167,7 @@ export default function ShipmentDetails({ shipment, onChanged, actions }: Shipme
       ) : null}
 
       <ConfirmDialog
+        tone="destructive"
         open={confirming}
         onOpenChange={setConfirming}
         title={copy.cancelTitle}

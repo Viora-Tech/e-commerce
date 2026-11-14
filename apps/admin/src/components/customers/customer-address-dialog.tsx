@@ -240,7 +240,7 @@ export default function CustomerAddressDialog({
             <Button type="button" variant="outline" onClick={onClose}>
               {d.cancel}
             </Button>
-            <Button type="submit" disabled={saving}>
+            <Button loading={saving} type="submit" disabled={saving}>
               <Save aria-hidden="true" />
               {d.save}
             </Button>

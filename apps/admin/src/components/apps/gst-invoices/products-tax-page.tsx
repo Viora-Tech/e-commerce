@@ -158,6 +158,7 @@ export default function ProductsTaxPage() {
           ) : null}
           <div className="flex items-center gap-2">
             <Input
+              size="sm"
               value={bulkHsn}
               inputMode="numeric"
               maxLength={8}

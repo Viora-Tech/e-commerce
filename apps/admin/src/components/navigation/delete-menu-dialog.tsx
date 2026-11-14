@@ -37,6 +37,7 @@ export default function DeleteMenuDialog({ menu, onClose, onDeleted }: DeleteMen
   // Render logic
   return (
     <ConfirmDialog
+      tone="destructive"
       open
       onOpenChange={(open) => !open && onClose()}
       title={copy.title}

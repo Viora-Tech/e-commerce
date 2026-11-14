@@ -118,7 +118,7 @@ export default function InventoryBulkDialog({
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             {copy.cancel}
           </Button>
-          <Button onClick={handleApply} disabled={!valid || busy}>
+          <Button loading={busy} onClick={handleApply} disabled={!valid || busy}>
             <CheckIcon aria-hidden="true" />
             {copy.apply}
           </Button>
