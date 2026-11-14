@@ -14,6 +14,7 @@ import {
   InvoiceError,
   type InvoiceRow,
   insertDocument,
+  liveDocuments,
   loadSettings,
   orderSnapshot,
   seriesContextOf,
@@ -436,7 +437,7 @@ export function checkRule46(doc: DocumentSnapshot): void {
 }
 
 /**
- * Cancel an issued invoice. Allowed only until its month's GSTR-1 is marked
+ * Cancel an issued invoice or credit note. Allowed only until its month's GSTR-1 is marked
  * filed; after that the correction is a credit note. The number stays used
  * and shows as cancelled in Table 13.
  */
@@ -447,8 +448,8 @@ export async function cancelInvoice(
 ): Promise<InvoiceRow> {
   const [row] = await tx.select().from(invoice).where(eq(invoice.id, invoiceId))
   if (!row) throw new InvoiceError('not_found', 'Invoice not found')
-  if (row.kind !== 'tax_invoice' || row.status !== 'issued') {
-    throw new InvoiceError('invalid', 'Only an issued tax invoice can be cancelled')
+  if ((row.kind !== 'tax_invoice' && row.kind !== 'credit_note') || row.status !== 'issued') {
+    throw new InvoiceError('invalid', 'Only an issued tax invoice or credit note can be cancelled')
   }
   if (row.reportedPeriod) {
     throw new InvoiceError(
@@ -456,11 +457,9 @@ export async function cancelInvoice(
       `${row.number} is reported in GSTR-1 for ${row.reportedPeriod}. Issue a credit note instead.`,
     )
   }
-  const notes = await tx
-    .select({ id: invoice.id })
-    .from(invoice)
-    .where(and(eq(invoice.orderId, row.orderId), eq(invoice.kind, 'credit_note')))
-  if (notes.length) {
+  // A credit note can go on its own; an invoice only once no live credit note stands against it.
+  const notes = await liveDocuments(tx, row.orderId, 'credit_note')
+  if (row.kind === 'tax_invoice' && notes.length) {
     throw new InvoiceError(
       'locked',
       `${row.number} has credit notes against it and cannot be cancelled`,

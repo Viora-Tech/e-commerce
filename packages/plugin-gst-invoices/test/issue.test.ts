@@ -27,6 +27,7 @@ import { markFiled, setClosed } from '../src/periods'
 import { cancelInvoice, enqueueOrder, issueDrafts, listQueue } from '../src/queue'
 import { gstr1ForPeriod } from '../src/reports'
 import { invoice, invoiceSequence } from '../src/schema'
+import { voidUnshippedSale } from '../src/void-unshipped'
 import { issueReceiptVoucher, issueRefundVoucher } from '../src/vouchers'
 
 const owner = createDb(process.env.DATABASE_URL_OWNER as string)
@@ -676,5 +677,55 @@ describe('isolation', () => {
     expect(seen).toHaveLength(0)
     const all = await owner.select().from(invoice).where(eq(invoice.storeId, a.storeId))
     expect(all).toHaveLength(1)
+  })
+})
+
+describe('a sale cancelled before dispatch (owner, 14 Nov 2026, #2471)', () => {
+  const cancelOrder = (orderId: string) =>
+    owner.update(order).set({ status: 'cancelled' }).where(eq(order.id, orderId))
+
+  it('cancels the invoice and the credit note made for its refund: nothing to report', async () => {
+    const { storeId, variantId } = await seedStore()
+    const orderId = await seedOrder(storeId, variantId, 1)
+    const inv = await issueOn(storeId, orderId, d('2026-11-14T06:00:00Z'))
+    const refundId = await seedRefund(storeId, orderId, inv.row.totalPaise)
+    const note = await inStore(storeId, (tx) =>
+      issueCreditNote(tx, storeId, refundId, { at: d('2026-11-14T09:00:00Z') }),
+    )
+    await cancelOrder(orderId)
+    const gone = await inStore(storeId, (tx) => voidUnshippedSale(tx, orderId))
+    expect(gone).toEqual([note?.row.number, inv.row.number])
+    const rows = await owner.select().from(invoice).where(eq(invoice.orderId, orderId))
+    expect(rows.every((r) => r.status === 'cancelled')).toBe(true)
+  })
+
+  it('leaves an open order, a part refund and a filed month to the credit note', async () => {
+    const { storeId, variantId } = await seedStore()
+    const orderId = await seedOrder(storeId, variantId, 1)
+    const inv = await issueOn(storeId, orderId, d('2026-11-14T06:00:00Z'))
+    await seedRefund(storeId, orderId, inv.row.totalPaise - 100)
+    expect(await inStore(storeId, (tx) => voidUnshippedSale(tx, orderId))).toBeNull()
+    await cancelOrder(orderId)
+    // Part refund: the sale still partly stands.
+    expect(await inStore(storeId, (tx) => voidUnshippedSale(tx, orderId))).toBeNull()
+    await seedRefund(storeId, orderId, 100)
+    await inStore(storeId, (tx) => markFiled(tx, storeId, '2026-11', true, null))
+    expect(await inStore(storeId, (tx) => voidUnshippedSale(tx, orderId))).toBeNull()
+  })
+
+  it('lets staff cancel a credit note, then the invoice it stood against', async () => {
+    const { storeId, variantId } = await seedStore()
+    const orderId = await seedOrder(storeId, variantId, 1)
+    const inv = await issueOn(storeId, orderId, d('2026-11-14T06:00:00Z'))
+    const refundId = await seedRefund(storeId, orderId, inv.row.totalPaise)
+    const note = await inStore(storeId, (tx) =>
+      issueCreditNote(tx, storeId, refundId, { at: d('2026-11-14T09:00:00Z') }),
+    )
+    await expect(
+      inStore(storeId, (tx) => cancelInvoice(tx, inv.row.id, 'Never shipped')),
+    ).rejects.toThrow(/credit notes against it/)
+    await inStore(storeId, (tx) => cancelInvoice(tx, note?.row.id as string, 'Never shipped'))
+    const done = await inStore(storeId, (tx) => cancelInvoice(tx, inv.row.id, 'Never shipped'))
+    expect(done.status).toBe('cancelled')
   })
 })
