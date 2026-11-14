@@ -1,6 +1,6 @@
 import DetailPageSkeleton from '@/components/layout/detail-page-skeleton'
 
-/** A catalog opens as a form, so it loads as one, not as the list (#84). */
+/* A new catalog opens as a form (#84): back link, details, prices and products. */
 export default function Loading() {
-  return <DetailPageSkeleton frame="narrow" side={0} />
+  return <DetailPageSkeleton frame="narrow" back actions={0} main={3} side={0} />
 }

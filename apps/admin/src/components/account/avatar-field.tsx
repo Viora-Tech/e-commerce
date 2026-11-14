@@ -79,7 +79,7 @@ export default function AvatarField({ name, email, image, onUpload, onRemove }: 
         email={email}
         image={image}
         className="size-10 shrink-0"
-        fallbackClassName="bg-avatar text-sm text-avatar-foreground"
+        fallbackClassName="bg-avatar text-body text-avatar-foreground"
       />
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
         <p className="text-body font-medium text-ink-strong">{copy.body}</p>

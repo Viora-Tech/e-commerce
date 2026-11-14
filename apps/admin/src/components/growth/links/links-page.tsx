@@ -3,7 +3,6 @@
 import { shortLinkPath, tagSummary } from '@commerce/core/marketing'
 import { ExternalLink, Plus, Trash2 } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import { Card } from '@commerce/ui/shadcn/card'
 import { type ReactNode, useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
@@ -120,14 +119,21 @@ export default function LinksPage({ storefrontOrigin, tabs }: LinksPageProps) {
     null,
   )
   const [reloadKey, setReloadKey] = useState(0)
+  /* A failed read shows "Could not load links" with Try again in the table, not a spinner. */
+  const [failed, setFailed] = useState(false)
   // The page of links, and the totals across all of them.
   useEffect(() => {
     if (reloadKey < 0) return
     let live = true
+    setFailed(false)
     api.shortLinks
       .list({ page, perPage: PER_PAGE, search: query || undefined })
       .then((r) => live && setResult(r))
-    api.shortLinks.totals().then((t) => live && setTotals(t))
+      .catch(() => live && setFailed(true))
+    api.shortLinks
+      .totals()
+      .then((t) => live && setTotals(t))
+      .catch(() => undefined)
     return () => {
       live = false
     }
@@ -198,21 +204,21 @@ export default function LinksPage({ storefrontOrigin, tabs }: LinksPageProps) {
       {tabs}
       <LinksTrendCard reloadKey={reloadKey} />
       {empty ? (
-        <Card>
-          <EmptyState
-            icon={ExternalLink}
-            heading={copy.empty.heading}
-            body={copy.empty.body}
-            action={newButton}
-          />
-        </Card>
+        <EmptyState
+          variant="page"
+          icon={ExternalLink}
+          heading={copy.empty.heading}
+          body={copy.empty.body}
+          action={newButton}
+        />
       ) : (
         <ResourceTable
           resourceName={copy.resource}
           columns={linkColumns(copy, fmt, host)}
           items={result?.items ?? []}
           getId={(l) => l.id}
-          loading={result === null}
+          loading={result === null && !failed}
+          error={failed ? { heading: copy.loadFailed, onRetry: reload } : undefined}
           selectable
           bulkActions={(ids, clear) => (
             <Button

@@ -97,7 +97,7 @@ export const accountContent = {
     unsaved: 'Unsaved changes',
     saved: 'Profile saved',
     failed: 'Could not save your profile. Try again.',
-    loadFailed: 'Your profile did not load.',
+    loadFailed: 'Could not load your profile',
     retry: 'Try again',
     danger: {
       heading: 'Delete my account',
@@ -163,7 +163,7 @@ export const accountContent = {
     unsaved: 'Unsaved changes',
     saved: 'Notifications saved',
     failed: 'Could not save. Try again.',
-    loadFailed: 'Your notifications did not load.',
+    loadFailed: 'Could not load your notifications',
     retry: 'Try again',
   },
   /** "Chrome on Windows", "Safari on iPhone"; any part may be unknown. */
@@ -209,6 +209,7 @@ export const accountContent = {
     },
     passkeys: {
       heading: 'Passkeys',
+      loadFailed: 'Could not load your passkeys',
       body: 'Sign in with your fingerprint, face or screen lock instead of a code. Each device or password manager keeps its own passkey.',
       add: 'Add a passkey',
       empty: 'No passkeys yet. Add one on each device you use.',
@@ -246,7 +247,7 @@ export const accountContent = {
         other: 'Other',
       },
     },
-    loadFailed: 'This page did not load.',
+    loadFailed: 'Could not load your security settings',
     retry: 'Try again',
   },
   sessions: {
@@ -278,7 +279,7 @@ export const accountContent = {
     signedOut: 'Device signed out',
     othersSignedOut: 'Signed out everywhere else',
     failed: 'That did not work. Try again.',
-    loadFailed: 'Your devices did not load.',
+    loadFailed: 'Could not load your devices',
     retry: 'Try again',
   },
   stores: {
@@ -304,7 +305,7 @@ export const accountContent = {
       done: (store: string) => `You left ${store}`,
       failed: 'Could not leave the store. Try again.',
     },
-    loadFailed: 'Your stores did not load.',
+    loadFailed: 'Could not load your stores',
     retry: 'Try again',
   },
   language: {

@@ -1,7 +1,13 @@
 'use client'
 
 import type { CatalogView } from '@commerce/core'
-import { Field, FieldGroup, FieldLabel } from '@commerce/ui/shadcn/field'
+import {
+  Field,
+  FieldContent,
+  FieldDescription,
+  FieldGroup,
+  FieldLabel,
+} from '@commerce/ui/shadcn/field'
 import { Switch } from '@commerce/ui/shadcn/switch'
 import DataCard from '@/components/layout/data-card'
 import PickedField from '@/components/pickers/picked-field'
@@ -40,7 +46,7 @@ export default function CatalogProductsCard({
   return (
     <DataCard title={copy.products}>
       <FieldGroup>
-        <label htmlFor="catalog-auto-include" className="flex items-start gap-3">
+        <Field orientation="horizontal" className="items-start gap-3">
           <Switch
             id="catalog-auto-include"
             className="mt-0.5"
@@ -48,13 +54,18 @@ export default function CatalogProductsCard({
             disabled={disabled}
             onCheckedChange={(on) => onChange({ scope: on ? 'all' : 'chosen' })}
           />
-          <span className="flex min-w-0 flex-col">
-            <span className="text-body font-medium text-ink-strong">{copy.autoInclude}</span>
-            <span className="text-caption text-muted-foreground">
+          <FieldContent className="gap-0">
+            <FieldLabel
+              htmlFor="catalog-auto-include"
+              className="text-body leading-5 text-ink-strong"
+            >
+              {copy.autoInclude}
+            </FieldLabel>
+            <FieldDescription>
               {scope === 'all' ? copy.autoIncludeHelp : copy.scopeHelp.chosen}
-            </span>
-          </span>
-        </label>
+            </FieldDescription>
+          </FieldContent>
+        </Field>
         {scope === 'chosen' ? (
           <>
             <Field>

@@ -1,5 +1,6 @@
 'use client'
 
+import { FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import { NativeSelect, NativeSelectOption } from '@commerce/ui/shadcn/native-select'
 import type { ReactNode } from 'react'
@@ -146,12 +147,9 @@ export default function CatalogPricesCard({
 function PriceRow({ label, htmlFor, children }: PriceRowProps) {
   return (
     <div className="flex flex-col gap-2 p-3 sm:flex-row sm:items-start">
-      <label
-        htmlFor={htmlFor}
-        className="w-40 shrink-0 pt-1.5 text-body font-medium text-ink-strong"
-      >
+      <FieldLabel htmlFor={htmlFor} className="w-40 shrink-0 pt-1.5 text-body leading-5">
         {label}
-      </label>
+      </FieldLabel>
       <div className="flex min-w-0 flex-1 flex-col gap-1.5">{children}</div>
     </div>
   )

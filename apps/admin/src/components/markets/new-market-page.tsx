@@ -24,6 +24,7 @@ import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import type { StoreDefaults } from '@/app/(admin)/markets/load'
+import DataCard from '@/components/layout/data-card'
 import EmptyState from '@/components/layout/empty-state'
 import PageBody from '@/components/layout/page-body'
 import PageHeader from '@/components/layout/page-header'
@@ -264,9 +265,11 @@ export default function NewMarketPage({
         }
       />
 
-      <section className="flex flex-col gap-3 rounded-lg border border-border bg-card p-4">
+      <DataCard title={h.name} bodyClassName="flex flex-col gap-3">
         <Field data-invalid={shown.name ? true : undefined}>
-          <FieldLabel htmlFor="new-market-name">{d.name}</FieldLabel>
+          <FieldLabel htmlFor="new-market-name" className="sr-only">
+            {d.name}
+          </FieldLabel>
           <Input
             id="new-market-name"
             value={form.name}
@@ -278,12 +281,12 @@ export default function NewMarketPage({
           {shown.name ? <FieldError>{shown.name}</FieldError> : null}
         </Field>
         <div className="flex flex-col gap-2 rounded-lg border border-border p-3 sm:flex-row sm:items-start">
-          <label
+          <FieldLabel
             htmlFor="new-market-countries"
-            className="w-40 shrink-0 pt-1.5 text-body font-medium text-ink-strong"
+            className="w-40 shrink-0 pt-1.5 text-body leading-5"
           >
             {h.includes}
-          </label>
+          </FieldLabel>
           <Field className="min-w-0 flex-1" data-invalid={shown.countries ? true : undefined}>
             <CountryPicker
               id="new-market-countries"
@@ -299,20 +302,17 @@ export default function NewMarketPage({
             )}
           </Field>
         </div>
-      </section>
+      </DataCard>
 
-      <section className="flex flex-col gap-2">
-        <h2 className="text-card-title text-ink-strong">{h.customized}</h2>
-        <div className="rounded-lg border border-border bg-card">
-          {customized.length === 0 ? (
-            <EmptyState variant="inline" body={h.customizedEmpty} className="m-4" />
-          ) : (
-            <div className="p-1">
-              <RowList rows={customized} changeLabel={n.change} onOpen={setPart} />
-            </div>
-          )}
-        </div>
-      </section>
+      <DataCard title={h.customized} flush={customized.length > 0}>
+        {customized.length === 0 ? (
+          <EmptyState variant="inline" body={h.customizedEmpty} />
+        ) : (
+          <div className="px-2">
+            <RowList rows={customized} changeLabel={n.change} onOpen={setPart} />
+          </div>
+        )}
+      </DataCard>
 
       <section className="flex flex-col gap-2">
         <h2 className="text-card-title text-ink-strong">{h.inherited}</h2>

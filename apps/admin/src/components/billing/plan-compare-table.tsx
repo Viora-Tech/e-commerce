@@ -3,16 +3,10 @@
 import { PLAN_QUOTAS } from '@commerce/ai/client'
 import { PLAN_IDS, PLANS, type PlanId } from '@commerce/core/billing'
 import { CheckIcon, MinusIcon } from '@commerce/ui/icons'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@commerce/ui/shadcn/table'
+import { TableCell, TableRow } from '@commerce/ui/shadcn/table'
 import type { ReactNode } from 'react'
 import DataCard from '@/components/layout/data-card'
+import SimpleTable from '@/components/table/simple-table'
 import { billingContent } from '@/data/billing'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { feePercent } from '@/lib/billing'
@@ -73,30 +67,24 @@ export default function PlanCompareTable() {
 
   return (
     <DataCard title={copy.changePlan.compareHeading} flush>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead className="pl-5" />
+      <SimpleTable
+        className="min-w-[40rem]"
+        columns={[
+          { key: 'row', label: '' },
+          ...PLAN_IDS.map((p) => ({ key: p, label: copy.plans[p].name })),
+        ]}
+      >
+        {rows.map((r) => (
+          <TableRow key={r.id}>
+            <TableCell className="text-ink-strong">{r.label}</TableCell>
             {PLAN_IDS.map((p) => (
-              <TableHead key={p} className="text-caption uppercase">
-                {copy.plans[p].name}
-              </TableHead>
+              <TableCell key={p} className="tabular-nums">
+                {r.cell(p)}
+              </TableCell>
             ))}
           </TableRow>
-        </TableHeader>
-        <TableBody>
-          {rows.map((r) => (
-            <TableRow key={r.id}>
-              <TableCell className="pl-5 text-ink-strong">{r.label}</TableCell>
-              {PLAN_IDS.map((p) => (
-                <TableCell key={p} className="tabular-nums">
-                  {r.cell(p)}
-                </TableCell>
-              ))}
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+        ))}
+      </SimpleTable>
     </DataCard>
   )
 }

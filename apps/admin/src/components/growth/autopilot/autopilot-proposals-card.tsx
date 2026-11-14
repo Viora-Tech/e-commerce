@@ -6,6 +6,7 @@ import { Button } from '@commerce/ui/shadcn/button'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import DataCard from '@/components/layout/data-card'
+import EmptyState from '@/components/layout/empty-state'
 import { growthAutopilotContent } from '@/data/growth-home'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -76,7 +77,7 @@ export default function AutopilotProposalsCard({ view, onChange }: AutopilotProp
       }
     >
       {view.proposals.length === 0 ? (
-        <p className="text-body text-muted-foreground">{enabled ? p.empty : p.offHint}</p>
+        <EmptyState variant="inline" body={enabled ? p.empty : p.offHint} />
       ) : (
         <ul className="flex flex-col divide-y divide-border">
           {view.proposals.map((proposal) => (
@@ -85,6 +86,7 @@ export default function AutopilotProposalsCard({ view, onChange }: AutopilotProp
               proposal={proposal}
               busy={busy !== null}
               approving={busy === `approve:${proposal.id}`}
+              dismissing={busy === `dismiss:${proposal.id}`}
               onApprove={() =>
                 void run(
                   `approve:${proposal.id}`,

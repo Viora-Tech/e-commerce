@@ -2,15 +2,9 @@
 
 import type { AbArmResult, RolloutAbResults, RolloutView } from '@commerce/core'
 import { TrendingUp } from '@commerce/ui/icons'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@commerce/ui/shadcn/table'
+import { TableCell, TableRow } from '@commerce/ui/shadcn/table'
 import DataCard from '@/components/layout/data-card'
+import SimpleTable from '@/components/table/simple-table'
 import { rolloutsContent } from '@/data/rollouts'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 
@@ -115,28 +109,26 @@ export default function RolloutResultsCard({ results, outcome }: RolloutResultsC
           </div>
         </div>
 
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>{copy.metric}</TableHead>
-              <TableHead className="text-right">{audience.control}</TableHead>
-              <TableHead className="text-right">{audience.treatment}</TableHead>
+        <SimpleTable
+          density="compact"
+          columns={[
+            { key: 'metric', label: copy.metric },
+            { key: 'control', label: audience.control, align: 'end' },
+            { key: 'treatment', label: audience.treatment, align: 'end' },
+          ]}
+        >
+          {METRICS.map((key) => (
+            <TableRow key={key}>
+              <TableCell className="text-muted-foreground">{copy.metrics[key]}</TableCell>
+              <TableCell className={cellClass(leader === 'control')}>
+                {cell(results.control, key)}
+              </TableCell>
+              <TableCell className={cellClass(leader === 'treatment')}>
+                {cell(results.treatment, key)}
+              </TableCell>
             </TableRow>
-          </TableHeader>
-          <TableBody>
-            {METRICS.map((key) => (
-              <TableRow key={key}>
-                <TableCell className="text-muted-foreground">{copy.metrics[key]}</TableCell>
-                <TableCell className={cellClass(leader === 'control')}>
-                  {cell(results.control, key)}
-                </TableCell>
-                <TableCell className={cellClass(leader === 'treatment')}>
-                  {cell(results.treatment, key)}
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+          ))}
+        </SimpleTable>
       </div>
     </DataCard>
   )
