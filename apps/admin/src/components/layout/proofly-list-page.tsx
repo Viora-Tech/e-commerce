@@ -16,6 +16,12 @@ type ProoflyListPageProps = {
   children: ReactNode
 }
 
+/**
+ * The list frame on top of PageBody's gutter (1rem, 1.5rem from `md`): 1.5rem between header,
+ * tiles and table, and 1.5rem (2rem from `md`) under the table. ListPageSkeleton draws the same.
+ */
+export const LIST_PAGE_FRAME = 'gap-6 pb-6 md:pb-8'
+
 /** The one list-page shell (Orders, Products, Customers…): header, optional stat tiles, then the table card. */
 export default function ProoflyListPage({
   title,
@@ -28,7 +34,7 @@ export default function ProoflyListPage({
 }: ProoflyListPageProps) {
   // Render logic
   return (
-    <PageBody className="gap-6 md:pt-5 md:pb-8">
+    <PageBody className={LIST_PAGE_FRAME}>
       <PageHeader title={title} summary={summary} back={back} actions={actions} />
       {controls}
       {stats}

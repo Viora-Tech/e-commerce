@@ -57,7 +57,7 @@ export default function ColumnsMenu<T extends RowData>({
 
   return (
     <Popover>
-      <PopoverTrigger aria-label={tableCopy.toggleColumns} className={cn(trigger, 'size-8')}>
+      <PopoverTrigger aria-label={tableCopy.toggleColumns} className={cn(trigger, 'size-9')}>
         <Columns />
       </PopoverTrigger>
       <PopoverContent align="end" sideOffset={8} className="w-64 gap-0 p-0">

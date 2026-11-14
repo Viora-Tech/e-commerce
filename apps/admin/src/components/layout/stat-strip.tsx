@@ -26,11 +26,19 @@ type StatStripProps<T extends string> = {
   active?: T | null
   /** Called with the picked filter, or `null` when the active tile is pressed again. */
   onChange?: (filter: T | null) => void
+  /** The figures are loading: every cell draws grey bars in place of its figures (same height). */
   loading?: boolean
+  /**
+   * With no `tiles` yet (a route's loading screen): how many placeholder cells to draw while
+   * `loading`, so the strip is as tall and as wide as the loaded one.
+   */
+  placeholders?: number
   /** `3`: a fixed three-column grid (Analytics KPIs, two rows of three). Default: one row. */
   columns?: 3
 }
 
+const STRIP =
+  'grid gap-px overflow-hidden rounded-lg border border-border bg-border shadow-[var(--shadow-card)]'
 const LAYOUT = 'grid-cols-2 lg:grid-flow-col lg:grid-cols-none lg:auto-cols-fr'
 const THREE = 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'
 
@@ -43,7 +51,8 @@ export default function StatStrip<T extends string>({
   tiles,
   active = null,
   onChange,
-  loading,
+  loading = false,
+  placeholders = 0,
   columns,
 }: StatStripProps<T>) {
   // Event handlers
@@ -51,15 +60,18 @@ export default function StatStrip<T extends string>({
     onChange?.(filter !== null && active === filter ? null : filter)
 
   // Render logic
+  const cells: StatStripTile<T>[] =
+    loading && tiles.length === 0
+      ? Array.from({ length: placeholders }, (_, i) => ({
+          id: `placeholder-${i.toString()}`,
+          label: '',
+          value: '',
+        }))
+      : tiles
+
   return (
-    <div
-      className={cn(
-        'grid gap-px overflow-hidden rounded-lg border border-border bg-border shadow-[var(--shadow-card)]',
-        columns === 3 ? THREE : LAYOUT,
-      )}
-      aria-busy={loading || undefined}
-    >
-      {tiles.map((tile) => {
+    <div className={cn(STRIP, columns === 3 ? THREE : LAYOUT)} aria-busy={loading || undefined}>
+      {cells.map((tile) => {
         const filter = tile.filter
         const pickable = onChange !== undefined && filter !== undefined
         return (
@@ -73,8 +85,9 @@ export default function StatStrip<T extends string>({
             note={tile.note}
             invert={tile.invert}
             spark={tile.spark}
+            loading={loading}
             active={pickable && active === filter}
-            onSelect={pickable ? () => handlePick(filter) : undefined}
+            onSelect={pickable && !loading ? () => handlePick(filter) : undefined}
           />
         )
       })}

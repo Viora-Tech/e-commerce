@@ -24,7 +24,7 @@ type SortMenuProps<T extends RowData> = {
   sortOrder: string[]
   /** Direction words per column ("Newest first" / "Oldest first" for a date). */
   sortLabels: Record<string, { desc: string; asc: string; first?: 'asc' | 'desc' | undefined }>
-  /** The toolbar's 32px icon-button trigger. */
+  /** The toolbar's 2.25rem icon-button trigger. */
   trigger: ComponentProps<'button'>['className']
 }
 
@@ -68,7 +68,7 @@ export default function SortMenu<T extends RowData>({
     <DropdownMenu>
       <DropdownMenuTrigger
         aria-label={tableCopy.sort}
-        className={cn(trigger, 'size-8', sortedBy && 'bg-muted text-foreground')}
+        className={cn(trigger, 'size-9', sortedBy && 'bg-muted text-foreground')}
       >
         <ArrowUpDown />
       </DropdownMenuTrigger>

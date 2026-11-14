@@ -49,7 +49,7 @@ export default function OrderLinesPopover({ orderId, lineCount, label }: OrderLi
       <PopoverTrigger
         onClick={stop}
         aria-label={peek.open(lineCount)}
-        className="inline-flex items-center gap-0.5 rounded-sm text-xs text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
+        className="inline-flex items-center gap-0.5 rounded-sm text-period text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
       >
         {label}
         <ChevronDown className="size-3" aria-hidden />
@@ -71,16 +71,16 @@ export default function OrderLinesPopover({ orderId, lineCount, label }: OrderLi
               <li key={l.id} className="flex items-center gap-2.5">
                 <ProductThumb url={l.image} alt={l.title ?? ''} className="rounded-[0.375rem]" />
                 <span className="min-w-0 flex-1">
-                  <span className="line-clamp-1 text-[0.8125rem] text-foreground">
+                  <span className="line-clamp-1 text-caption font-normal text-foreground">
                     {l.title ?? peek.untitled}
                   </span>
                   {l.variantTitle ? (
-                    <span className="line-clamp-1 text-xs text-muted-foreground">
+                    <span className="line-clamp-1 text-period text-muted-foreground">
                       {l.variantTitle}
                     </span>
                   ) : null}
                 </span>
-                <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
+                <span className="shrink-0 text-period text-muted-foreground tabular-nums">
                   {peek.quantity(l.quantity)}
                 </span>
               </li>
