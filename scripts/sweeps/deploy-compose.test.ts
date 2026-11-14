@@ -22,6 +22,8 @@ const NOT_FOR_APPS: Record<string, string> = {
   BACKUP_R2_SECRET_ACCESS_KEY: 'backup service only',
   BACKUP_R2_BUCKET: 'backup service only',
   BACKUP_LOCAL_DIR: 'dev backups only',
+  BACKUP_ALERT_EMAIL: 'backup service only (its own environment block)',
+  BACKUP_ALERT_STATE_FILE: 'backup service only, defaults to /tmp inside its container',
   LOCAL_STORAGE_DIR: 'local disk storage is not used in production',
   NODE_ENV: 'set by the images and x-app-env itself (production), never by the operator',
   DOKPLOY_URL: 'worker only (its own environment block)',

@@ -10,6 +10,7 @@ export type ChannelStatus = keyof typeof salesChannelsContent.status
 const TONE: Record<ChannelStatus, ChipTone> = {
   connected: 'success',
   requested: 'attention',
+  listed: 'info',
   not_connected: 'neutral',
   attention: 'danger',
   syncing: 'info',

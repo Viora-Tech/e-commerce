@@ -17,6 +17,15 @@ export function chipStatus(s: ChannelState): ChannelStatus {
   return 'not_connected'
 }
 
+/**
+ * The same for an AI agent: its `requested` is a waiting list (nothing is sent to the agent,
+ * none can be joined automatically yet), so it shows "On the list", never "Waiting for approval".
+ */
+export function agentChipStatus(s: ChannelState): ChannelStatus {
+  const status = chipStatus(s)
+  return status === 'requested' ? 'listed' : status
+}
+
 /** What the card's button does next. */
 export type ChannelAction = 'connect' | 'view_request' | 'reconnect' | 'manage'
 
