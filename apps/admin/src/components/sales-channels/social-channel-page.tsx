@@ -38,6 +38,7 @@ import IssueRow from './issue-row'
 import ManageChannelDialog from './manage-channel-dialog'
 import MetaConnectionCard from './meta-connection-card'
 import RequestDialog from './request-dialog'
+import WaitingSteps from './waiting-steps'
 
 type SocialChannelPageProps = {
   data: SocialOverview & { connectNow: boolean }
@@ -186,6 +187,13 @@ export default function SocialChannelPage({ data, issues }: SocialChannelPagePro
         onReconnect={() => setConnecting(true)}
         onWithdraw={() => setViewing(true)}
       />
+      {requested ? (
+        <WaitingSteps
+          partner={info.partner}
+          connectNow={data.connectNow}
+          onConnect={() => setConnecting(true)}
+        />
+      ) : null}
       <StatStrip
         tiles={[
           {
