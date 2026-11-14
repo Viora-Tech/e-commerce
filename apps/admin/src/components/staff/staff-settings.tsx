@@ -13,6 +13,7 @@ import PageHeader from '@/components/layout/page-header'
 import SectionPageSkeleton from '@/components/layout/section-page-skeleton'
 import SettingsDrill from '@/components/settings/settings-drill'
 import SettingsDrillPanel from '@/components/settings/settings-drill-panel'
+import { SETTINGS_SKELETON_ROWS } from '@/components/settings/settings-skeleton-rows'
 import InviteDialog from '@/components/staff/invite-dialog'
 import MembersCard, { type StaffMemberRow } from '@/components/staff/members-card'
 import PendingInvitesCard, { type PendingInviteRow } from '@/components/staff/pending-invites-card'
@@ -142,7 +143,7 @@ export default function StaffSettings() {
     return failed ? (
       <LoadFailed failed={failed} onRetry={() => void reload()} />
     ) : (
-      <SectionPageSkeleton />
+      <SectionPageSkeleton rows={SETTINGS_SKELETON_ROWS.staff} />
     )
   }
 

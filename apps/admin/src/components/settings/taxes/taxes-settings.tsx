@@ -1,10 +1,11 @@
 'use client'
 
 import { financialYear, formatSeriesNumber } from '@commerce/invoices'
-import { type ReactNode, useEffect, useRef, useState } from 'react'
+import { type ReactNode, useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import SaveBar from '@/components/layout/save-bar'
 import SectionPageSkeleton from '@/components/layout/section-page-skeleton'
+import { SETTINGS_SKELETON_ROWS } from '@/components/settings/settings-skeleton-rows'
 import LoadFailed from '@/components/states/load-failed'
 import { settingsRowsContent } from '@/data/settings-rows'
 import { taxesContent as copy } from '@/data/taxes'
@@ -28,13 +29,9 @@ type TaxesSettingsProps = {
   gstCount: number
   /** The GST numbers detail (businesses and registrations), owned by the page. */
   gstNumbers: ReactNode
-  /** Tells the page header whether there is something to save, and how to save it. */
-  onSaveState: (state: TaxesSaveState) => void
   /** The page header, drawn here so an open row takes it over (one "‹ GST & invoices"). */
   header?: DrillHeader
 }
-
-export type TaxesSaveState = { dirty: boolean; busy: boolean; save: () => void }
 
 const same = (a: TaxesFormState, b: TaxesFormState) => JSON.stringify(a) === JSON.stringify(b)
 
@@ -59,7 +56,6 @@ export default function TaxesSettings({
   refreshKey,
   gstCount,
   gstNumbers,
-  onSaveState,
   header,
 }: TaxesSettingsProps) {
   // Hooks
@@ -71,7 +67,6 @@ export default function TaxesSettings({
   const [attempted, setAttempted] = useState(false)
   const [failed, setFailed] = useState<LoadFailure | false>(false)
   const [attempt, setAttempt] = useState(0)
-  const saveRef = useRef<() => void>(() => undefined)
   // biome-ignore lint/correctness/useExhaustiveDependencies: reload when GST numbers change, not on every edit.
   useEffect(() => {
     api.taxes
@@ -88,16 +83,6 @@ export default function TaxesSettings({
         else toast.error(copy.loadFailed)
       })
   }, [refreshKey, attempt])
-
-  // Report the save state to the page header; `saveRef` always points at the latest handleSave.
-  useEffect(() => {
-    saveRef.current = handleSave
-  })
-  // biome-ignore lint/correctness/useExhaustiveDependencies: `onSaveState` is a state setter.
-  useEffect(() => {
-    const dirty = form !== null && view !== null && !same(form, formOf(view))
-    onSaveState({ dirty, busy, save: () => saveRef.current() })
-  }, [form, view, busy])
 
   // Helpers
   const patch = (p: Partial<TaxesFormState>) => setForm((f) => (f ? { ...f, ...p } : f))
@@ -200,7 +185,7 @@ export default function TaxesSettings({
           }}
         />
       ) : !form || !view ? (
-        <SectionPageSkeleton header={Boolean(header)} />
+        <SectionPageSkeleton header={Boolean(header)} rows={SETTINGS_SKELETON_ROWS.taxes} />
       ) : (
         <SettingsDrill rows={rows} backLabel={t.back} header={header}>
           <SettingsDrillPanel id="gst-numbers">{gstNumbers}</SettingsDrillPanel>

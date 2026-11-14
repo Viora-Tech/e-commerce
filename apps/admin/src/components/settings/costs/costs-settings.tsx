@@ -20,6 +20,7 @@ import SectionPageSkeleton from '@/components/layout/section-page-skeleton'
 import SettingsCard from '@/components/settings/settings-card'
 import SettingsDrill from '@/components/settings/settings-drill'
 import SettingsDrillPanel from '@/components/settings/settings-drill-panel'
+import { SETTINGS_SKELETON_ROWS } from '@/components/settings/settings-skeleton-rows'
 import LoadFailed from '@/components/states/load-failed'
 import { profitCostsContent } from '@/data/profit-costs'
 import { settingsContent } from '@/data/settings'
@@ -233,7 +234,7 @@ export default function CostsSettings() {
       {failed && !view ? (
         <LoadFailed failed={failed} onRetry={retry} />
       ) : !view || !form ? (
-        <SectionPageSkeleton />
+        <SectionPageSkeleton rows={SETTINGS_SKELETON_ROWS.costs} />
       ) : (
         <SettingsDrill
           rows={rows}
@@ -241,7 +242,6 @@ export default function CostsSettings() {
           header={{
             title: copy.title,
             subtitle: copy.intro,
-            save: { dirty, saving: busy, onSave: handleSave, label: copy.save },
           }}
         >
           {view.methodRatesOn ? (

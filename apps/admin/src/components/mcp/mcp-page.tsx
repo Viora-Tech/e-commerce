@@ -104,7 +104,6 @@ export default function McpPage({ overview, grants, serverUrl }: McpPageProps) {
         header={{
           title: copy.title,
           subtitle: copy.subtitle(store),
-          save: { dirty, saving, onSave: handleSave, label: copy.save },
           notice: (
             <McpStatusCard
               connected={live}

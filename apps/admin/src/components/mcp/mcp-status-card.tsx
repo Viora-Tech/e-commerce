@@ -2,6 +2,7 @@
 
 import { API_RATE_LIMIT } from '@commerce/core/api-access'
 import { cn } from '@commerce/ui/lib/utils'
+import DataCard from '@/components/layout/data-card'
 import StatusChip from '@/components/layout/status-chip'
 import { mcpContent } from '@/data/mcp'
 import { useCopy, useFormat } from '@/hooks/use-copy'
@@ -27,29 +28,27 @@ export default function McpStatusCard({ connected, lastRequestAt, serverUrl }: M
   ]
 
   return (
-    <section className="flex flex-col gap-5 rounded-lg surface-card p-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex min-w-0 flex-col gap-1">
-          <h2
-            className={cn(
-              'text-card-title',
-              connected ? 'text-ink-strong' : 'text-muted-foreground',
-            )}
-          >
-            {connected ? copy.status.connected(connected) : copy.status.notConnected}
-          </h2>
-          <p className="text-caption text-muted-foreground">
-            {connected
-              ? lastRequestAt
-                ? copy.status.lastRequest(format.ago(lastRequestAt))
-                : copy.status.noRequests
-              : copy.status.notConnectedBody}
-          </p>
-        </div>
+    <DataCard
+      title={
+        <span className={cn(!connected && 'text-muted-foreground')}>
+          {connected ? copy.status.connected(connected) : copy.status.notConnected}
+        </span>
+      }
+      subtitle={
+        connected
+          ? lastRequestAt
+            ? copy.status.lastRequest(format.ago(lastRequestAt))
+            : copy.status.noRequests
+          : copy.status.notConnectedBody
+      }
+      action={
         <StatusChip tone={connected ? 'success' : 'neutral'} variant="dot">
           {connected ? copy.status.live : copy.status.waiting}
         </StatusChip>
-      </div>
+      }
+      className="h-auto"
+      bodyClassName="flex flex-col gap-5"
+    >
       <div className="flex flex-col gap-1.5">
         <CodeSnippet value={serverUrl} what={copy.status.url} label={copy.status.url} />
         <p className="text-caption text-muted-foreground">{copy.status.urlHelp}</p>
@@ -62,6 +61,6 @@ export default function McpStatusCard({ connected, lastRequestAt, serverUrl }: M
           </div>
         ))}
       </dl>
-    </section>
+    </DataCard>
   )
 }

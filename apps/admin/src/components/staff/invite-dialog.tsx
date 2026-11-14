@@ -1,7 +1,7 @@
 'use client'
 
+import { Field, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
-import { Label } from '@commerce/ui/shadcn/label'
 import {
   Select,
   SelectContent,
@@ -84,8 +84,8 @@ export default function InviteDialog({ open, roles, onOpenChange, onInvited }: I
       onSubmit={handleSend}
     >
       <div className="flex flex-col gap-4">
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="invite-email">{copy.invite.email}</Label>
+        <Field>
+          <FieldLabel htmlFor="invite-email">{copy.invite.email}</FieldLabel>
           <Input
             id="invite-email"
             type="email"
@@ -93,9 +93,9 @@ export default function InviteDialog({ open, roles, onOpenChange, onInvited }: I
             placeholder={copy.invite.emailPlaceholder}
             onChange={(e) => setEmail(e.target.value)}
           />
-        </div>
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="invite-role">{copy.invite.role}</Label>
+        </Field>
+        <Field>
+          <FieldLabel htmlFor="invite-role">{copy.invite.role}</FieldLabel>
           <Select items={roleItems} value={roleId} onValueChange={(v) => v && setRoleId(v)}>
             <SelectTrigger id="invite-role" className="w-full">
               <SelectValue />
@@ -108,7 +108,7 @@ export default function InviteDialog({ open, roles, onOpenChange, onInvited }: I
               ))}
             </SelectContent>
           </Select>
-        </div>
+        </Field>
       </div>
     </FormDialog>
   )
