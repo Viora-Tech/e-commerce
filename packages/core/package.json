@@ -65,6 +65,7 @@
     "./gift-card-code": "./src/gift-cards/code.ts",
     "./domains": "./src/domains/client.ts",
     "./sender-email": "./src/sender-email/client.ts",
+    "./platform-email": "./src/sender-email/platform.ts",
     "./metaobjects": "./src/metaobjects/client.ts",
     "./redirects": "./src/redirects/paths.ts",
     "./search-console": "./src/search-console/insights.ts",

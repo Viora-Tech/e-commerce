@@ -2,10 +2,13 @@
 
 import { useEffect, useState } from 'react'
 import { accountContent } from '@/data/account'
+import { ACCOUNT_LINK } from '@/lib/account-classes'
 
 type ResendCodeProps = {
   disabled: boolean
   onResend: () => void
+  /** "Get it on WhatsApp": the same number by the store's other phone method, once the wait is over. */
+  other?: { label: string; onSend: () => void } | null
 }
 
 const copy = accountContent.login
@@ -14,10 +17,11 @@ const copy = accountContent.login
 const WAIT = 30
 
 /**
- * "Send a new code", counting down first (Figma 948:15578). Keyed by the address, so a new
- * code (or a new address) starts the count again.
+ * "Resend code in 0:24", then "Send a new code" (Figma 948:15578). Keyed by the address, so a
+ * new code (or a new address) starts the count again. The other channel waits for the same
+ * count, since the server holds every new code for 30 seconds.
  */
-export default function ResendCode({ disabled, onResend }: ResendCodeProps) {
+export default function ResendCode({ disabled, onResend, other = null }: ResendCodeProps) {
   // Hooks
   const [left, setLeft] = useState(WAIT)
 
@@ -33,17 +37,28 @@ export default function ResendCode({ disabled, onResend }: ResendCodeProps) {
     setLeft(WAIT)
   }
 
+  const handleOther = () => {
+    other?.onSend()
+    setLeft(WAIT)
+  }
+
   // Render logic
-  return left > 0 ? (
-    <span className="text-muted tabular-nums">{copy.resendIn(left)}</span>
-  ) : (
-    <button
-      type="button"
-      className="underline underline-offset-4 disabled:opacity-50"
-      onClick={handleResend}
-      disabled={disabled}
-    >
-      {copy.resend}
-    </button>
+  return (
+    <div className="flex min-h-11 flex-wrap items-center justify-between gap-x-4">
+      {left > 0 ? (
+        <span className="text-[0.8125rem] text-ck-muted tabular-nums" aria-live="off">
+          {copy.resendIn(left)}
+        </span>
+      ) : (
+        <button type="button" className={ACCOUNT_LINK} onClick={handleResend} disabled={disabled}>
+          {copy.resend}
+        </button>
+      )}
+      {other && left <= 0 ? (
+        <button type="button" className={ACCOUNT_LINK} onClick={handleOther} disabled={disabled}>
+          {other.label}
+        </button>
+      ) : null}
+    </div>
   )
 }

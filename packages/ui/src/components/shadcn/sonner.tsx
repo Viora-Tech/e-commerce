@@ -55,7 +55,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
         classNames: {
           /* Proofly toast: glass for plain toasts; success/error/warning/info are tinted (rich colours). */
           toast:
-            'cn-toast !rounded-lg !shadow-glass !px-4 !py-3 !gap-3 !text-body [&:not([data-type=success]):not([data-type=error]):not([data-type=warning]):not([data-type=info])]:!border-glass-border [&:not([data-type=success]):not([data-type=error]):not([data-type=warning]):not([data-type=info])]:!bg-glass-popover [&:not([data-type=success]):not([data-type=error]):not([data-type=warning]):not([data-type=info])]:!backdrop-blur-xl [&:not([data-type=success]):not([data-type=error]):not([data-type=warning]):not([data-type=info])]:!backdrop-saturate-150 [@media(prefers-reduced-transparency:reduce)]:!backdrop-filter-none [@media(prefers-reduced-transparency:reduce)]:[&:not([data-type=success]):not([data-type=error]):not([data-type=warning]):not([data-type=info])]:!bg-raised',
+            'cn-toast !rounded-lg !shadow-glass !px-4 !py-3 !gap-3 !text-body [&:not([data-type=success]):not([data-type=error]):not([data-type=warning]):not([data-type=info])]:!border-glass-border [&:not([data-type=success]):not([data-type=error]):not([data-type=warning]):not([data-type=info])]:!bg-glass-popover [@media(prefers-reduced-transparency:reduce)]:[&:not([data-type=success]):not([data-type=error]):not([data-type=warning]):not([data-type=info])]:!bg-raised',
           title: '!font-medium',
           description: '!text-caption !text-current !opacity-80',
           actionButton: '!bg-primary-soft !text-link !rounded-md !text-caption !font-medium',

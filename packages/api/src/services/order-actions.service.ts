@@ -5,8 +5,7 @@ import {
   type OrderAction,
   type PluginSummary,
 } from '@commerce/plugins'
-import { getConnectedProviderIds } from './apps.service'
-import { storeAppSummaries } from './installed-apps.service'
+import { storeAppStates } from './installed-apps.service'
 
 /** One app's order actions, under its name and icon (the menus' "by app" grouping). */
 export type OrderActionGroup = {
@@ -51,15 +50,15 @@ export function orderActionGroups(apps: readonly AppState[], opts: GroupOptions)
   return groups
 }
 
-/** `orderActionGroups` for one store and member. */
+/**
+ * `orderActionGroups` for one store and member: one read of the store row (saved apps and
+ * enabled providers), not the Installed apps list's history and activity reads.
+ */
 export async function storeOrderActions(
   tx: StoreTx,
   storeId: string,
   can: (permission: Permission) => boolean,
 ): Promise<OrderActionGroup[]> {
-  const [apps, enabledProviderIds] = await Promise.all([
-    storeAppSummaries(tx, storeId),
-    getConnectedProviderIds(tx, storeId),
-  ])
-  return orderActionGroups(apps, { can, enabledProviderIds })
+  const { apps, connectedIds } = await storeAppStates(tx, storeId)
+  return orderActionGroups(apps, { can, enabledProviderIds: connectedIds })
 }

@@ -53,6 +53,7 @@ import {
   courierBaseUrlProblem,
   courierFetch,
   courierJson,
+  courierOrderRef,
   courierTimeToIso,
   isValidPincode,
   type NdrActionInput,
@@ -382,7 +383,8 @@ export class ShiprocketProvider implements ShippingProvider {
   buildOrderPayload(input: CreateShipmentInput) {
     const rupees = (paise: number) => Math.round(paise) / 100
     return {
-      order_id: input.orderId,
+      // The order number merchants search for in Shiprocket (`2471`, then `2471-2`), not our UUID.
+      order_id: courierOrderRef(input),
       order_date: new Date().toISOString().slice(0, 19).replace('T', ' '),
       pickup_location: input.pickupLocationName || this.config.pickupLocationName,
       billing_customer_name: input.to.name,
@@ -411,7 +413,12 @@ export class ShiprocketProvider implements ShippingProvider {
     }
   }
 
-  /** The order lands in Shiprocket's Orders as "New", with no courier assigned yet. */
+  /**
+   * The order lands in Shiprocket's Orders as "New", with no courier assigned yet.
+   * `externalOrderId` is Shiprocket's own numeric order id, which `/orders/cancel` takes - not the
+   * `2471` we sent as `order_id`. Its fallback stays our UUID on purpose: `cancelPushedOrder`
+   * reads a number, and `2471` would be read as Shiprocket's order 2471, a different order.
+   */
   async pushOrder(input: CreateShipmentInput): Promise<PushOrderResult> {
     const order = await this.createOrder(input)
     return {

@@ -3,6 +3,7 @@ import type { Metadata } from 'next'
 import OrderList from '@/components/account/order-list'
 import { accountContent } from '@/data/account'
 import { storeTimeZone } from '@/lib/account'
+import { ACCOUNT_TITLE } from '@/lib/account-classes'
 import { requireCustomer } from '@/lib/customer-session'
 import { inStore } from '@/lib/store-context'
 
@@ -19,7 +20,7 @@ export default async function OrdersPage({ params }: OrdersPageProps) {
   }))
   return (
     <>
-      <h1 className="account-page__title">{accountContent.orders.title}</h1>
+      <h1 className={`${ACCOUNT_TITLE} mb-5!`}>{accountContent.orders.title}</h1>
       <OrderList orders={orders} timeZone={timeZone} />
     </>
   )

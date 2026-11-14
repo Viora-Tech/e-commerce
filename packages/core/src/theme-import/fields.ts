@@ -379,6 +379,36 @@ function settingsFields(
 }
 
 /**
+ * Our own "Cookie settings" link in an imported theme's footer (`sections/footer.liquid`): the
+ * storefront adds it to the footer's policy links, so a shopper can change their cookie answer
+ * (the theme's banner and ours both open on `#cookie-settings`). On unless this prop is `false`.
+ */
+const COOKIE_SETTINGS_LINK_PROP = '_cookieSettingsLink'
+
+/** Whether an imported footer section gets the "Cookie settings" link. */
+export function showsCookieSettingsLink(sectionType: string, props: Record<string, unknown>) {
+  return sectionType === 'footer' && props[COOKIE_SETTINGS_LINK_PROP] !== false
+}
+
+/** Fields we add to an imported section beside its theme's own (Customize). */
+export function platformSectionFields(sectionType: string): Record<string, LiquidField> {
+  if (sectionType !== 'footer') return {}
+  return {
+    [COOKIE_SETTINGS_LINK_PROP]: {
+      type: 'radio',
+      label: 'Cookie settings link',
+      options: [
+        { label: 'Show', value: true },
+        { label: 'Hide', value: false },
+      ],
+      metadata: {
+        help: 'Adds "Cookie settings" beside the policy links, so shoppers can change their cookie choice. Shown unless you hide it.',
+      },
+    },
+  }
+}
+
+/**
  * All editor fields for one imported section: its settings, then its blocks. Blocks
  * differ by type, so the array item's `settings` object carries every type's fields in
  * `metadata.liquidBlockFields`; Customize shows the item's own type only.

@@ -90,8 +90,8 @@ export default function AgenticOverviewPage({ data }: AgenticOverviewPageProps) 
       ) : requested.length > 0 ? (
         <SyncStatusBar
           tone="pending"
-          title={shared.bar.requested(requested.map((a) => shared.agents[a.agent].name).join(', '))}
-          detail={shared.bar.notConnectedBody}
+          title={shared.agentList.bar(requested.map((a) => shared.agents[a.agent].name).join(', '))}
+          detail={shared.agentList.barBody}
         />
       ) : null}
       <StatStrip

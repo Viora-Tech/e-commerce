@@ -30,6 +30,8 @@ export type CheckoutIconName =
   | 'whatsapp'
   | 'refresh'
   | 'key'
+  | 'arrow'
+  | 'download'
 
 type CheckoutIconProps = {
   name: CheckoutIconName
@@ -166,6 +168,8 @@ const PATHS: Record<CheckoutIconName, ReactNode> = {
     </>
   ),
   spinner: <path d="M12 3.5a8.5 8.5 0 1 1-8.5 8.5" />,
+  arrow: <path d="M5 12h14M13 6l6 6-6 6" />,
+  download: <path d="M12 4v11M7 10.5l5 5 5-5M5 19.5h14" />,
 }
 
 /** Small line icons for the checkout, drawn inline so they need no request and no font. */

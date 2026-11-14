@@ -13,12 +13,15 @@ import { Suspense, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import type { OrderActionGroup } from '@/apps/order-actions'
 import ProoflyListPage from '@/components/layout/proofly-list-page'
-import BulkFulfilDialog from '@/components/orders/bulk-fulfil-dialog'
-import DeleteTestOrdersDialog from '@/components/orders/delete-test-orders-dialog'
+import {
+  BulkFulfilDialog,
+  DeleteTestOrdersDialog,
+  OrdersBulkDialogs,
+} from '@/components/orders/lazy-dialogs'
 import OrderRowMenu from '@/components/orders/order-row-menu'
 import { orderRowDone } from '@/components/orders/order-stage'
 import OrdersBulkActions from '@/components/orders/orders-bulk-actions'
-import OrdersBulkDialogs, { type OrdersBulkRequest } from '@/components/orders/orders-bulk-dialogs'
+import type { OrdersBulkRequest } from '@/components/orders/orders-bulk-dialogs'
 import OrdersHeaderActions from '@/components/orders/orders-header-actions'
 import OrdersTiles, { type OrderTilesData } from '@/components/orders/orders-tiles'
 import ProductFilterPicker, {
@@ -40,6 +43,7 @@ import {
 } from '@/data/orders'
 import { ordersBulkContent } from '@/data/orders-bulk'
 import { useCopy, useFormat } from '@/hooks/use-copy'
+import { useOpenedOnce } from '@/hooks/use-opened-once'
 import { api, isApprovalQueued } from '@/lib/api-client'
 import { ADMIN_REFRESH_EVENT } from '@/lib/focus-refresh'
 import { type ListQuery, sameListQuery } from '@/lib/list-query'
@@ -143,6 +147,9 @@ function OrdersContent({ initial }: { initial: OrdersInitial }) {
   const [askDeleteTests, setAskDeleteTests] = useState(false)
   const [bulkRequest, setBulkRequest] = useState<OrdersBulkRequest | null>(null)
   const [bulkFulfil, setBulkFulfil] = useState<{ ids: string[]; clear: () => void } | null>(null)
+  const bulkUsed = useOpenedOnce(bulkRequest !== null)
+  const fulfilUsed = useOpenedOnce(bulkFulfil !== null)
+  const deleteTestsUsed = useOpenedOnce(askDeleteTests)
 
   const hydrated = useRef(false)
   // The Product filter chip names its picks, also ones that came in with the URL.
@@ -445,32 +452,38 @@ function OrdersContent({ initial }: { initial: OrdersInitial }) {
         )}
         empty={searching ? copy.noResults : status !== null ? tabEmpty : copy.empty}
       />
-      <OrdersBulkDialogs
-        request={bulkRequest}
-        items={items}
-        tagSuggestions={tagSuggestions}
-        onClose={() => setBulkRequest(null)}
-        onDone={() => {
-          setBulkRequest(null)
-          reload().catch(() => setFailed(true))
-        }}
-      />
-      <BulkFulfilDialog
-        ids={bulkFulfil?.ids ?? null}
-        items={items}
-        onClose={() => setBulkFulfil(null)}
-        onDone={() => {
-          bulkFulfil?.clear()
-          setBulkFulfil(null)
-          reload().catch(() => setFailed(true))
-        }}
-      />
-      <DeleteTestOrdersDialog
-        open={askDeleteTests}
-        onOpenChange={setAskDeleteTests}
-        count={testOrders}
-        onDeleted={handleTestsDeleted}
-      />
+      {bulkUsed ? (
+        <OrdersBulkDialogs
+          request={bulkRequest}
+          items={items}
+          tagSuggestions={tagSuggestions}
+          onClose={() => setBulkRequest(null)}
+          onDone={() => {
+            setBulkRequest(null)
+            reload().catch(() => setFailed(true))
+          }}
+        />
+      ) : null}
+      {fulfilUsed ? (
+        <BulkFulfilDialog
+          ids={bulkFulfil?.ids ?? null}
+          items={items}
+          onClose={() => setBulkFulfil(null)}
+          onDone={() => {
+            bulkFulfil?.clear()
+            setBulkFulfil(null)
+            reload().catch(() => setFailed(true))
+          }}
+        />
+      ) : null}
+      {deleteTestsUsed ? (
+        <DeleteTestOrdersDialog
+          open={askDeleteTests}
+          onOpenChange={setAskDeleteTests}
+          count={testOrders}
+          onDeleted={handleTestsDeleted}
+        />
+      ) : null}
     </ProoflyListPage>
   )
 }

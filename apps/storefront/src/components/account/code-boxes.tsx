@@ -1,56 +1,66 @@
 'use client'
 
+import { OTPInput, REGEXP_ONLY_DIGITS } from 'input-otp'
+import CheckoutCodeSlot from '@/components/checkout/checkout-code-slot'
+import { CK_LABEL } from '@/lib/checkout-classes'
+
 type CodeBoxesProps = {
+  id: string
   value: string
   onChange: (digits: string) => void
+  /** The sixth digit is in (typed, pasted or filled from the SMS): the form sends it. */
+  onComplete?: () => void
   label: string
   disabled?: boolean
+  /** Id of the error line, when the code was refused. */
+  errorId?: string | null
 }
 
-const LENGTH = 6
+const SLOTS = [0, 1, 2, 3, 4, 5]
 
 /**
- * The six-digit code as six boxes (Figma 948:15578). One real input lies over the boxes, so
- * paste, SMS autofill (`one-time-code`) and screen readers see a single field; the boxes only
- * draw what it holds and where the next digit goes.
+ * The six-digit code as six boxes (Figma 948:15578), the checkout's own code field: input-otp
+ * keeps one real input under the boxes, so paste, SMS autofill (`one-time-code`) and screen
+ * readers see a single field. Refused, every box takes the danger edge.
  */
-export default function CodeBoxes({ value, onChange, label, disabled = false }: CodeBoxesProps) {
+export default function CodeBoxes({
+  id,
+  value,
+  onChange,
+  onComplete,
+  label,
+  disabled = false,
+  errorId = null,
+}: CodeBoxesProps) {
   // Render logic
-  const digits = value.slice(0, LENGTH).split('')
-  const next = Math.min(digits.length, LENGTH - 1)
+  const invalid = errorId !== null
 
   return (
-    <div className="relative">
-      <div aria-hidden="true" className="grid grid-cols-6 gap-2.5">
-        {Array.from({ length: LENGTH }, (_, i) => (
-          <span
-            // biome-ignore lint/suspicious/noArrayIndexKey: fixed six slots.
-            key={i}
-            className={`grid h-14 place-items-center rounded-xl border text-[1.375rem] font-semibold tabular-nums transition-colors ${
-              i === next && !disabled
-                ? 'border-[var(--color-ink)] ring-2 ring-[color-mix(in_oklab,var(--color-ink)_18%,transparent)]'
-                : 'border-[color-mix(in_oklab,var(--color-ink)_18%,transparent)]'
-            }`}
-          >
-            {digits[i] ?? ''}
-          </span>
-        ))}
-      </div>
-      <input
-        aria-label={label}
-        className="absolute inset-0 h-full w-full cursor-text opacity-0"
+    <div className="flex flex-col gap-2">
+      <label htmlFor={id} className={`${CK_LABEL} sr-only`}>
+        {label}
+      </label>
+      <OTPInput
+        id={id}
         name="code"
+        maxLength={6}
+        pattern={REGEXP_ONLY_DIGITS}
         inputMode="numeric"
         autoComplete="one-time-code"
-        pattern="[0-9]{6}"
-        maxLength={LENGTH}
         required
         disabled={disabled}
-        // biome-ignore lint/a11y/noAutofocus: the only field on this step, reached by the shopper's own submit.
         autoFocus
         value={value}
-        onChange={(e) => onChange(e.target.value.replace(/\D/g, '').slice(0, LENGTH))}
-      />
+        onChange={onChange}
+        {...(onComplete ? { onComplete } : {})}
+        containerClassName="grid grid-cols-6 gap-2 sm:gap-2.5"
+        aria-invalid={invalid ? true : undefined}
+        aria-describedby={errorId ?? undefined}
+      >
+        {SLOTS.map((index) => (
+          <CheckoutCodeSlot key={index} index={index} invalid={invalid} fluid />
+        ))}
+      </OTPInput>
     </div>
   )
 }

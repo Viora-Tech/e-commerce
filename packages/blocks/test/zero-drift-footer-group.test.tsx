@@ -83,6 +83,14 @@ describe('Footer (Zero Drift footer)', () => {
     expect(html).toContain('Cookie settings')
   })
 
+  it('hides the cookie settings link when the setting is off, and keeps it on old saved footers', () => {
+    const off = render('Footer', { showCookieSettings: false }, { metadata: footerMeta() })
+    expect(off).not.toContain('#cookie-settings')
+    const old = render('Footer', { tagline: 'Old footer' }, { metadata: footerMeta() })
+    expect(old).toContain('href="#cookie-settings"')
+    expect(footerSettings({}).showCookieSettings).toBe(true)
+  })
+
   it('renders inline-edited copy passed as React nodes', () => {
     const node = (k: string) => createElement('span', { 'data-inline': k }, 'x')
     const html = render(
@@ -152,6 +160,8 @@ describe('CookieBanner (Zero Drift cookie banner)', () => {
     expect(html).toContain('Accept all')
     expect(html).toContain('Reject all')
     expect(html).toContain('Preferences')
+    // The footer has a Cookie settings link, so the banner can say an answer is not final.
+    expect(html).toContain('you can change this any time from Cookie settings')
   })
 
   it('lets the store-level privacy message win and never leaves a button unlabelled', () => {

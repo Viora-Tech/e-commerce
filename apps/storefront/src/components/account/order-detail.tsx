@@ -1,8 +1,8 @@
 import { formatPaise } from '@commerce/blocks'
 import type { ShopperOrderDetail } from '@commerce/core'
-import { gstRowsToShow } from '@commerce/core/gst'
 import Link from 'next/link'
 import type { ReactNode } from 'react'
+import CheckoutIcon from '@/components/checkout/checkout-icon'
 import {
   accountContent,
   formatAccountDate,
@@ -13,8 +13,16 @@ import {
 } from '@/data/account'
 import { INDIAN_STATES } from '@/data/indian-states'
 import { reorderAction } from '@/lib/account-actions'
+import {
+  ACCOUNT_CARD,
+  ACCOUNT_CARD_TITLE,
+  ACCOUNT_LINK,
+  ACCOUNT_TITLE,
+} from '@/lib/account-classes'
+import { CK_BUTTON_SECONDARY, CK_LIFT } from '@/lib/checkout-classes'
 import { shopperParcels } from '@/lib/parcels'
 import OrderParcels from './order-parcels'
+import OrderSummaryCard from './order-summary-card'
 import StatusPill from './status-pill'
 import TrackingTimeline from './tracking-timeline'
 
@@ -37,9 +45,11 @@ const copy = accountContent.order
 
 const stateName = (code: string) => INDIAN_STATES.find(([c]) => c === code)?.[1] ?? code
 
-const signed = (paise: number) => `${paise < 0 ? '−' : '+'}${formatPaise(Math.abs(paise))}`
-
-/** One order: status, lines, totals with the GST split, delivery tracking and documents. */
+/**
+ * One order (Figma 705:114449, 705:114664): back to the list, the number with its state, then
+ * cards for tracking, parcels, items and returns; summary, address with payment and documents
+ * beside them from `lg`, under them on a phone. Each card rises in on load.
+ */
 export default function OrderDetail({
   order: o,
   timeZone,
@@ -52,24 +62,19 @@ export default function OrderDetail({
   // Render logic
   const canReorder = o.lines.some((l) => l.purchasable)
   const buyAgain = reorderAction.bind(null, o.number)
-  const gst = o.gst
-  // Parcels from different states put both CGST + SGST and IGST on one order.
-  const gstRows = gst ? gstRowsToShow(gst) : null
-  const card = 'flex flex-col gap-4 rounded-[var(--radius-card)] bg-surface p-5'
-  const row = 'flex justify-between gap-4 text-body'
+  const card = ACCOUNT_CARD
+  const title = ACCOUNT_CARD_TITLE
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="flex flex-col gap-2">
-          <Link href="/account" className="text-small text-muted hover:text-ink">
-            ← {copy.back}
+    <div className="flex flex-col gap-4 sm:gap-6">
+      <div className={`flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between ${CK_LIFT}`}>
+        <div className="flex flex-col gap-1.5">
+          <Link href="/account" className={`${ACCOUNT_LINK} -my-2 self-start text-ck-muted!`}>
+            <CheckoutIcon name="back" className="size-3.5" />
+            {copy.back}
           </Link>
-          <h2 className="h3">{accountContent.orders.order(o.number)}</h2>
-          <p className="text-small text-muted">
-            {copy.placedOn(formatAccountDate(o.placedAt, timeZone))}
-          </p>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+            <h1 className={ACCOUNT_TITLE}>{accountContent.orders.order(o.number)}</h1>
             {o.status === 'cancelled' ? (
               <StatusPill label={orderStatusLabels.cancelled} tone="bad" />
             ) : (
@@ -80,38 +85,48 @@ export default function OrderDetail({
               tone={o.payment === 'paid' ? 'good' : o.payment === 'failed' ? 'bad' : 'neutral'}
             />
           </div>
+          <p className="text-[0.875rem] text-ck-muted">
+            {copy.placedOn(formatAccountDate(o.placedAt, timeZone))}
+          </p>
         </div>
         {canReorder ? (
           <form action={buyAgain}>
-            <button type="submit" className="btn btn--primary">
+            <button type="submit" className={`${CK_BUTTON_SECONDARY} w-full sm:w-auto`}>
+              <CheckoutIcon name="refresh" className="size-4" />
               {copy.buyAgain}
             </button>
           </form>
         ) : null}
       </div>
       {reorderEmpty ? (
-        <p className="text-body text-danger" role="status">
+        <p className="text-[0.9375rem] text-ck-danger" role="status">
           {copy.reorderNone}
         </p>
       ) : null}
       {o.status === 'cancelled' ? (
-        <div className="rounded-xl border border-line px-4 py-3" role="note">
-          <p className="text-body font-medium text-ink">{copy.notices.cancelled}</p>
-          <p className="text-small text-muted">{copy.notices.cancelledBody}</p>
+        <div className="rounded-ck border border-ck-line bg-ck-soft px-4 py-3" role="note">
+          <p className="text-[0.9375rem] font-medium text-ck-ink">{copy.notices.cancelled}</p>
+          <p className="text-[0.8125rem] text-ck-muted">{copy.notices.cancelledBody}</p>
         </div>
       ) : o.shipment === 'rto' ? (
-        <div className="rounded-xl border border-danger px-4 py-3 text-danger" role="alert">
-          <p className="text-body font-medium">{copy.notices.failed}</p>
-          <p className="text-small">{copy.notices.failedBody}</p>
+        <div
+          className="flex gap-3 rounded-ck border border-ck-danger/40 bg-ck-danger-soft px-4 py-3 text-ck-danger"
+          role="alert"
+        >
+          <CheckoutIcon name="alert" className="mt-0.5! size-4" />
+          <div className="flex flex-col gap-0.5">
+            <p className="text-[0.9375rem] font-medium">{copy.notices.failed}</p>
+            <p className="text-[0.8125rem]">{copy.notices.failedBody}</p>
+          </div>
         </div>
       ) : null}
 
-      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
-        <div className="flex flex-col gap-6">
+      <div className="grid items-start gap-4 sm:gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
+        <div className="flex flex-col gap-4 sm:gap-6">
           <section className={card} aria-labelledby="order-tracking">
-            <h3 id="order-tracking" className="h4">
+            <h2 id="order-tracking" className={title}>
               {copy.tracking}
-            </h3>
+            </h2>
             <TrackingTimeline
               tracking={o.tracking}
               timeZone={timeZone}
@@ -122,38 +137,40 @@ export default function OrderDetail({
           <OrderParcels parcels={shopperParcels(o.parcels)} />
 
           <section className={card} aria-labelledby="order-items">
-            <h3 id="order-items" className="h4">
+            <h2 id="order-items" className={title}>
               {copy.items}
-            </h3>
-            <ul className="flex flex-col divide-y divide-line">
+            </h2>
+            <ul className="flex flex-col divide-y divide-ck-line">
               {o.lines.map((l) => (
                 <li key={l.id} className="flex gap-4 py-4 first:pt-0 last:pb-0">
                   {/* No picture, no empty grey box (#163). */}
                   {l.imageUrl ? (
-                    <div className="size-16 shrink-0 overflow-hidden rounded-xl bg-surface">
+                    <div className="size-14 shrink-0 overflow-hidden rounded-ck bg-ck-soft sm:size-16">
                       {/* biome-ignore lint/performance/noImgElement: product media is on the store's CDN. */}
-                      <img src={l.imageUrl} alt="" className="size-full object-cover" />
+                      <img src={l.imageUrl} alt="" className="size-full! object-cover" />
                     </div>
                   ) : null}
                   <div className="flex min-w-0 flex-1 flex-col gap-1">
                     {l.productHandle ? (
                       <Link
                         href={`/products/${l.productHandle}`}
-                        className="text-body font-medium hover:underline"
+                        className="text-[0.9375rem] font-medium text-ck-ink! no-underline hover:underline"
                       >
                         {l.title}
                       </Link>
                     ) : (
-                      <span className="text-body font-medium">{l.title}</span>
+                      <span className="text-[0.9375rem] font-medium">{l.title}</span>
                     )}
                     {l.variantTitle && l.variantTitle !== 'Default' ? (
-                      <span className="text-small text-muted">{l.variantTitle}</span>
+                      <span className="text-[0.8125rem] text-ck-muted">{l.variantTitle}</span>
                     ) : null}
-                    <span className="text-small text-muted">
+                    <span className="text-[0.8125rem] text-ck-muted">
                       {copy.quantity(l.quantity)} × {formatPaise(l.unitPricePaise)}
                     </span>
                   </div>
-                  <span className="text-body font-medium">{formatPaise(l.linePaise)}</span>
+                  <span className="text-[0.9375rem] font-medium tabular-nums">
+                    {formatPaise(l.linePaise)}
+                  </span>
                 </li>
               ))}
             </ul>
@@ -161,113 +178,63 @@ export default function OrderDetail({
           {returns}
         </div>
 
-        <div className="flex flex-col gap-6">
+        <div className="flex flex-col gap-4 sm:gap-6">
           {balance}
-          <section className={card} aria-labelledby="order-summary">
-            <h3 id="order-summary" className="h4">
-              {copy.summary}
-            </h3>
-            <div className="flex flex-col gap-2">
-              <div className={row}>
-                <span>{copy.subtotal}</span>
-                <span>{formatPaise(o.subtotalPaise)}</span>
-              </div>
-              {o.discountPaise > 0 ? (
-                <div className={`${row} text-success`}>
-                  <span>{o.discountLabel ?? copy.discount}</span>
-                  <span>−{formatPaise(o.discountPaise)}</span>
-                </div>
-              ) : null}
-              <div className={row}>
-                <span>{copy.shipping}</span>
-                <span>
-                  {o.shippingPaise > 0 ? formatPaise(o.shippingPaise) : copy.shippingFree}
-                </span>
-              </div>
-              {o.paymentAdjustmentPaise !== 0 ? (
-                <div className={row}>
-                  <span>
-                    {o.paymentAdjustmentLabel ?? copy.adjustmentFallback(o.paymentAdjustmentPaise)}
-                  </span>
-                  <span>{signed(o.paymentAdjustmentPaise)}</span>
-                </div>
-              ) : null}
-              <div className={`${row} border-t border-line pt-3 font-semibold`}>
-                <span>{copy.total}</span>
-                <span>{formatPaise(o.totalPaise)}</span>
-              </div>
-              {gst && gst.taxPaise > 0 ? (
-                <div className="flex flex-col gap-1 pt-1 text-small text-muted">
-                  <span>{copy.gstIncluded(formatPaise(gst.taxPaise))}</span>
-                  {gstRows?.intraState ? (
+          <OrderSummaryCard order={o} />
+
+          {/* Address and payment share one card, as in the design. */}
+          <section className={card} aria-labelledby={o.address ? 'order-address' : 'order-payment'}>
+            {o.address ? (
+              <div className="flex flex-col gap-2">
+                <h2 id="order-address" className={title}>
+                  {copy.shipTo}
+                </h2>
+                <address className="text-[0.9375rem] leading-relaxed text-ck-muted not-italic">
+                  <span className="text-ck-ink">{o.address.name}</span>
+                  <br />
+                  {o.address.line1}
+                  {o.address.line2 ? (
                     <>
-                      <div className="flex justify-between">
-                        <span>{copy.cgst(gst.ratePercent)}</span>
-                        <span>{formatPaise(gst.cgstPaise)}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>{copy.sgst(gst.ratePercent)}</span>
-                        <span>{formatPaise(gst.sgstPaise)}</span>
-                      </div>
+                      <br />
+                      {o.address.line2}
                     </>
                   ) : null}
-                  {gstRows?.interState ? (
-                    <div className="flex justify-between">
-                      <span>{copy.igst(gst.ratePercent)}</span>
-                      <span>{formatPaise(gst.igstPaise)}</span>
-                    </div>
-                  ) : null}
-                </div>
+                  <br />
+                  {o.address.city}, {stateName(o.address.stateCode)} {o.address.pincode}
+                  <br />
+                  {o.address.phone}
+                </address>
+              </div>
+            ) : null}
+            <div
+              className={`flex flex-col gap-1.5 ${o.address ? 'border-t border-ck-line pt-4' : ''}`}
+            >
+              <h2 id="order-payment" className={o.address ? `${title} text-[0.9375rem]!` : title}>
+                {copy.payment}
+              </h2>
+              <p className="text-[0.9375rem]">
+                {paymentMethodLabel ?? paymentLabels[o.payment]}
+                {/* "Cash on delivery" is both the method and the state: say it once. */}
+                {paymentMethodLabel && paymentMethodLabel !== paymentLabels[o.payment] ? (
+                  <span className="text-ck-muted"> · {paymentLabels[o.payment]}</span>
+                ) : null}
+              </p>
+              {o.email ? (
+                <p className="text-[0.8125rem] break-all text-ck-muted">{o.email}</p>
               ) : null}
             </div>
           </section>
 
-          {o.address ? (
-            <section className={card} aria-labelledby="order-address">
-              <h3 id="order-address" className="h4">
-                {copy.shipTo}
-              </h3>
-              <address className="text-body not-italic">
-                {o.address.name}
-                <br />
-                {o.address.line1}
-                {o.address.line2 ? (
-                  <>
-                    <br />
-                    {o.address.line2}
-                  </>
-                ) : null}
-                <br />
-                {o.address.city}, {stateName(o.address.stateCode)} {o.address.pincode}
-                <br />
-                {o.address.phone}
-              </address>
-            </section>
-          ) : null}
-
-          <section className={card} aria-labelledby="order-payment">
-            <h3 id="order-payment" className="h4">
-              {copy.payment}
-            </h3>
-            <p className="text-body">
-              {paymentMethodLabel ?? paymentLabels[o.payment]}
-              {/* "Cash on delivery" is both the method and the state: say it once. */}
-              {paymentMethodLabel && paymentMethodLabel !== paymentLabels[o.payment] ? (
-                <span className="block text-small text-muted">{paymentLabels[o.payment]}</span>
-              ) : null}
-            </p>
-            {o.email ? <p className="text-small text-muted">{o.email}</p> : null}
-          </section>
-
           {links.length > 0 ? (
             <section className={card} aria-labelledby="order-documents">
-              <h3 id="order-documents" className="h4">
+              <h2 id="order-documents" className={title}>
                 {copy.documents}
-              </h3>
+              </h2>
               <ul className="flex flex-col gap-2">
                 {links.map((l) => (
                   <li key={l.url}>
-                    <a href={l.url} className="text-body underline underline-offset-4">
+                    <a href={l.url} className={`${CK_BUTTON_SECONDARY} w-full`}>
+                      <CheckoutIcon name="download" className="size-4" />
                       {l.label}
                     </a>
                   </li>

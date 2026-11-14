@@ -31,12 +31,18 @@ export const customerPrivacyContent = {
       'Every shopper is asked again on their next visit. Until they answer, analytics and marketing tags stay off for them.',
     askAgainConfirm: 'Ask everyone again',
     askedAgain: 'Everyone will see the banner again',
-    shown: (n: number) =>
-      n === 0 ? '' : n === 1 ? 'The banner was shown once.' : `The banner was shown ${n} times.`,
-    stats: (total: number, analytics: number, marketing: number) =>
-      total === 0
-        ? 'No answers in the last 30 days yet.'
-        : `Last 30 days: ${total} answers. ${analytics} allowed analytics, ${marketing} allowed marketing.`,
+    /**
+     * Shown / answered / accepted marketing for the last 30 days. "Shown" is once per visit (a
+     * plain daily count, no cookie), so shown minus answered is roughly the visits that ignored it.
+     */
+    stats: (shown: number, total: number, analytics: number, marketing: number) => {
+      if (shown === 0 && total === 0) return 'No answers in the last 30 days yet.'
+      const answers = `${total} ${total === 1 ? 'answer' : 'answers'}. ${analytics} allowed analytics, ${marketing} allowed marketing.`
+      if (shown === 0) return `Last 30 days: ${answers}`
+      const times = shown === 1 ? 'once' : `${shown} times`
+      const ignored = shown - total
+      return `Last 30 days: banner shown ${times}, ${answers}${ignored > 0 ? ` ${ignored} left it unanswered.` : ''}`
+    },
   },
   requests: {
     heading: 'Data requests',

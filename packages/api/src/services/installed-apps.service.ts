@@ -1,10 +1,10 @@
-import { appInstallations, appSettingsOf } from '@commerce/core'
+import { type AppsSettings, appInstallations, appSettingsOf } from '@commerce/core'
 import { getRegistries } from '@commerce/core/registries'
 import { authSchema, media, type StoreTx } from '@commerce/db'
 import type { PluginSummary } from '@commerce/plugins'
 import { eq, inArray, max } from 'drizzle-orm'
 import { connectFormFor } from './app-connect.service'
-import { getConnectedProviderIds, getStoreApps } from './apps.service'
+import { storeAppsAndProviders } from './apps.service'
 
 /** Connected: working. Needs setup: installed but no account yet. Error: a recorded failure. */
 export type AppStatus = 'connected' | 'needsSetup' | 'error'
@@ -102,14 +102,57 @@ async function derivedActivity(
 }
 
 /**
+ * Every app this deployment ships with whether this store installed it and whether it is set up,
+ * from the saved apps and the enabled provider ids alone. Pure; `storeAppSummaries` adds the
+ * history and status on top, `storeAppStates` is what menus that only filter by it read.
+ */
+function appStates(apps: AppsSettings, connectedIds: ReadonlySet<string>) {
+  const { plugins } = getRegistries()
+  return getRegistries()
+    .summaries()
+    .map((p) => {
+      const manifest = plugins.find((m) => m.id === p.id)
+      const providerIds = providerIdsOf(p)
+      // A connection with saved working credentials counts as installed even if this store
+      // saved them before "Apps → Install" existed, or connected directly from Settings —
+      // otherwise the list shows "Install" on a gateway or courier that is taking orders.
+      const hasCredentials =
+        p.kind === 'connection' && providerIds.some((id) => connectedIds.has(id))
+      const installed = p.builtIn || apps.installed.includes(p.id) || hasCredentials
+      const own = manifest?.setupState?.(appSettingsOf(apps, p.id)) ?? null
+      const connected =
+        p.kind === 'builtin'
+          ? installed
+          : providerIds.length > 0
+            ? hasCredentials
+            : (own?.connected ?? installed)
+      return { ...p, installed, connected, hasCredentials, own }
+    })
+}
+
+/**
+ * Each app's installed and set-up state with the store's enabled provider ids, from one read of
+ * the store row: what the order menus filter by, without the Installed apps list's history,
+ * installers and last activity (`storeAppSummaries`).
+ */
+export async function storeAppStates(tx: StoreTx, storeId: string) {
+  const { apps, connectedIds } = await storeAppsAndProviders(tx, storeId)
+  return {
+    apps: appStates(apps, connectedIds).map(({ own: _own, hasCredentials: _h, ...a }) => a),
+    connectedIds,
+  }
+}
+
+/**
  * Every app this deployment ships, with this store's state: installed or not, its status for
  * the Installed apps list (derived from saved accounts, the app's own setup state and recorded
  * failures), and its history (installed when and by whom, last activity).
  */
 export async function storeAppSummaries(tx: StoreTx, storeId: string): Promise<StoreAppSummary[]> {
-  const apps = await getStoreApps(tx, storeId)
-  const connectedIds = await getConnectedProviderIds(tx, storeId)
-  const history = await appInstallations(tx, storeId)
+  const [{ apps, connectedIds }, history] = await Promise.all([
+    storeAppsAndProviders(tx, storeId),
+    appInstallations(tx, storeId),
+  ])
   const userIds = [...new Set([...history.values()].flatMap((r) => r.installedBy ?? []))]
   const users = userIds.length
     ? await tx
@@ -119,30 +162,14 @@ export async function storeAppSummaries(tx: StoreTx, storeId: string): Promise<S
     : []
   const names = new Map(users.map((u) => [u.id, u.name]))
   const { plugins } = getRegistries()
-  const summaries = getRegistries().summaries()
-  const connectedProvider = (p: PluginSummary) =>
-    p.kind === 'connection' && providerIdsOf(p).some((id) => connectedIds.has(id))
-  const installedIds = new Set(
-    summaries
-      .filter((p) => p.builtIn || apps.installed.includes(p.id) || connectedProvider(p))
-      .map((p) => p.id),
-  )
+  const states = appStates(apps, connectedIds)
+  const installedIds = new Set(states.filter((a) => a.installed).map((a) => a.id))
   const derived = await derivedActivity(tx, storeId, installedIds)
-  return summaries.map((p) => {
+  return states.map(({ own, hasCredentials, ...state }) => {
+    const p: PluginSummary = state
+    const { installed, connected } = state
     const manifest = plugins.find((m) => m.id === p.id)
     const providerIds = providerIdsOf(p)
-    // A connection with saved working credentials counts as installed even if this store
-    // saved them before "Apps → Install" existed, or connected directly from Settings —
-    // otherwise the list shows "Install" on a gateway or courier that is taking orders.
-    const hasCredentials = p.kind === 'connection' && providerIds.some((id) => connectedIds.has(id))
-    const installed = p.builtIn || apps.installed.includes(p.id) || hasCredentials
-    const own = manifest?.setupState?.(appSettingsOf(apps, p.id)) ?? null
-    const connected =
-      p.kind === 'builtin'
-        ? installed
-        : providerIds.length > 0
-          ? hasCredentials
-          : (own?.connected ?? installed)
     const row = history.get(p.id)
     const recorded = row?.lastActivityAt
       ? { at: row.lastActivityAt, summary: row.lastActivity ?? null }

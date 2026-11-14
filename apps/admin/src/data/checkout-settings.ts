@@ -22,17 +22,6 @@ export const checkoutSettingsContent = {
     directoryMissing:
       'PIN code lookup data is not installed on this server yet, so shoppers type city and state themselves for now.',
   },
-  recommended: {
-    title: 'Recommended way to pay',
-    hint: 'Shows a Recommended badge at checkout. Automatic uses the first way to pay.',
-    options: {
-      '': 'Automatic',
-      manual: 'UPI ID or bank transfer',
-      razorpay: 'Razorpay',
-      cashfree: 'Cashfree',
-      decentro: 'Decentro UPI',
-    },
-  },
   gstin: {
     heading: 'Business buyers',
     toggle: 'Let buyers add a GSTIN',
@@ -74,6 +63,27 @@ export const checkoutSettingsContent = {
   save: 'Save',
   saved: 'Checkout settings saved.',
   failed: 'Could not save. Please try again.',
+} as const
+
+/**
+ * Settings → Checkout → Recommended way to pay: which way to pay wears the Recommended badge at
+ * checkout. Options are the ways to pay switched on in Settings → Payments.
+ */
+export const checkoutRecommendedContent = {
+  title: 'Recommended way to pay',
+  hint: 'Shows a Recommended badge on it at checkout. If it is not available for an order, for example cash on delivery to a blocked PIN code, no badge shows.',
+  automatic: 'Automatic (first way to pay)',
+  none: 'None',
+  /** Provider ids as Settings → Payments names them; an unknown one shows its id. */
+  methods: {
+    cod: 'Cash on delivery',
+    manual: 'UPI ID or bank transfer',
+    decentro: 'UPI (Decentro)',
+    razorpay: 'Razorpay (UPI, cards, netbanking, wallets)',
+    cashfree: 'Cashfree (UPI, cards, netbanking, wallets)',
+  } as Record<string, string>,
+  /** A saved choice that Settings → Payments has since switched off. */
+  off: (name: string) => `${name} (switched off)`,
 } as const
 
 /** Settings → Checkout tabs and the Branding tab (logo, colours, type, live preview). */

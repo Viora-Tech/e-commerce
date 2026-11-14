@@ -16,9 +16,10 @@ export default async function Page({ searchParams }: Props) {
   const query = parseListQuery(params, ORDER_LIST_FILTERS)
   const perPage = parseRowsPerPage(params.perPage)
   const context = await serverContext()
-  const [result, counts, tiles, appActions, apps] = await Promise.all([
+  // Rows, tab badges, stat cards and the apps' order actions in one call and one transaction.
+  const [{ result, counts, tiles, appActions }, apps] = await Promise.all([
     call(
-      appRouter.orders.list,
+      appRouter.orders.listPage,
       {
         page: query.page,
         perPage,
@@ -27,10 +28,6 @@ export default async function Page({ searchParams }: Props) {
       },
       { context },
     ),
-    // Every tab badge in one query, not a full list read per tab.
-    call(appRouter.orders.tabCounts, undefined, { context }),
-    call(appRouter.orders.tiles, undefined, { context }),
-    call(appRouter.apps.orderActions, undefined, { context }).catch(() => []),
     listApps().catch(() => []),
   ])
 

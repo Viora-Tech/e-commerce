@@ -59,11 +59,6 @@ export type CommerceTrackDetail = {
   valuePaise?: number | undefined
   contentIds?: string[] | undefined
   numItems?: number | undefined
-  /**
-   * What the shopper typed at checkout, for the browser pixel's advanced matching. Stays in the
-   * browser: it never goes to our own `/api/px`.
-   */
-  match?: { email?: string | undefined; phone?: string | undefined } | undefined
   /** Set by the listener once sent, so a late listener does not send it twice. */
   handled?: boolean | undefined
 }

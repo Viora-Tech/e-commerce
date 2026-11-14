@@ -1,7 +1,11 @@
 'use client'
 
 import { useEffect, useState, useTransition } from 'react'
+import AccountError from '@/components/account/account-error'
+import CheckoutIcon from '@/components/checkout/checkout-icon'
 import { accountContent } from '@/data/account'
+import { ACCOUNT_TITLE } from '@/lib/account-classes'
+import { CK_BUTTON_PRIMARY, CK_BUTTON_SECONDARY, CK_CARD, CK_LIFT } from '@/lib/checkout-classes'
 import { redeemMagicLinkAction } from '@/lib/login-actions'
 
 type MagicLinkSignInProps = {
@@ -36,27 +40,34 @@ export default function MagicLinkSignIn({ token }: MagicLinkSignInProps) {
   const message = token ? error : copy.invalid
 
   return (
-    <div className="mx-auto flex w-full max-w-[26rem] flex-col gap-5 rounded-[var(--radius-card)] bg-surface p-6 md:p-8">
-      <h1 className="h3">{copy.title}</h1>
+    <div
+      className={`mx-auto! flex w-full max-w-[27.5rem] flex-col gap-5 p-5 sm:p-6 ${CK_CARD} ${CK_LIFT}`}
+    >
+      <h1 className={ACCOUNT_TITLE}>{copy.title}</h1>
       {message ? (
-        <p className="text-body text-danger" role="alert">
-          {message}
-        </p>
+        <AccountError message={message} />
       ) : (
-        <p className="text-body text-muted">{copy.intro}</p>
+        <p className="text-[0.9375rem] text-ck-muted">{copy.intro}</p>
       )}
       {token && !error ? (
         <button
           type="button"
-          className={`btn btn--primary w-full${pending ? ' is-loading' : ''}`}
+          className={CK_BUTTON_PRIMARY}
           onClick={handleClick}
           disabled={pending}
+          aria-busy={pending || undefined}
         >
-          <span className="btn__label">{pending ? copy.working : copy.button}</span>
+          {pending ? (
+            <CheckoutIcon
+              name="spinner"
+              className="size-4 animate-spin motion-reduce:animate-none"
+            />
+          ) : null}
+          {pending ? copy.working : copy.button}
         </button>
       ) : (
-        <a className="btn btn--secondary w-full" href="/account/login">
-          <span className="btn__label">{copy.again}</span>
+        <a className={`${CK_BUTTON_SECONDARY} h-12! w-full`} href="/account/login">
+          {copy.again}
         </a>
       )}
     </div>

@@ -13,7 +13,7 @@ import { todayKey } from '@/lib/format-date'
 import { upcomingPickups } from '../pickup-fields'
 import type { PickupGroup } from './bulk-ship-state'
 import CourierMark from './courier-mark'
-import { PICKUP_DAYS, pickupDayKey, startingPickupPlan } from './pickup-plan'
+import { PICKUP_DAYS, pickupDayKey, pickupRefusal, startingPickupPlan } from './pickup-plan'
 
 type BulkPickupsCardProps = {
   groups: PickupGroup[]
@@ -62,7 +62,7 @@ export default function BulkPickupsCard({ groups, onLater }: BulkPickupsCardProp
     const [date = '', timeFrom = '14:00'] = slot.split('|')
     setBusy(true)
     try {
-      const made: Array<{ id: string; status: string }> = []
+      const made: Array<{ id: string; status: string; error: string | null }> = []
       const fresh: string[] = []
       for (const g of groups.filter((x) => x.canPickup)) {
         const join = joinable(g.providerId)
@@ -83,6 +83,12 @@ export default function BulkPickupsCard({ groups, onLater }: BulkPickupsCardProp
       for (const p of made) {
         if (p.status === 'failed') continue
         await api.shipments.createManifest({ pickupId: p.id }).catch(() => undefined)
+      }
+      // A courier's refusal is recorded as a failed pickup, not thrown: say why, keep the button.
+      const refused = pickupRefusal(made, copy.createFailed)
+      if (refused) {
+        toast.error(refused)
+        return
       }
       toast.success(copy.created)
       setDone(true)

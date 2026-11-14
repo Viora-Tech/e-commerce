@@ -4,6 +4,7 @@ import { eq, inArray, sql } from 'drizzle-orm'
 import { productFirstImages } from '../cart/cart'
 import type { StoreContext } from '../context'
 import { type PaymentAdjustment, PaymentAdjustmentSchema } from '../payments/adjustments'
+import { isGatewayInactive } from '../payments/modes'
 import { parsePaymentSettings } from '../payments/settings'
 import { liveThemeSettings } from '../theme/library'
 import { type CheckoutBranding, DEFAULT_CHECKOUT_COLOURS } from './branding'
@@ -13,6 +14,8 @@ export type CheckoutSettingsView = {
   settings: CheckoutSettings
   /** Cash on delivery is switched on in Settings → Payments. */
   codEnabled: boolean
+  /** The ways to pay switched on in Settings → Payments (provider ids), for the Recommended choice. */
+  paymentMethods: string[]
   /** The COD fee (or discount) from Settings → Payments; null when there is none. */
   codFee: PaymentAdjustment | null
   /** For the Branding preview's header when no logo is picked. */
@@ -30,6 +33,7 @@ export async function loadCheckoutSettings(ctx: StoreContext): Promise<CheckoutS
   return {
     settings: { ...settings, branding },
     codEnabled: payments.enabled.includes('cod'),
+    paymentMethods: payments.enabled.filter((id) => !isGatewayInactive(payments, id)),
     codFee: payments.adjustments.cod ?? null,
     storeName: s?.name ?? '',
   }

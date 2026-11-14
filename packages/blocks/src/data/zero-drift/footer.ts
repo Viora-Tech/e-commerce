@@ -90,6 +90,7 @@ export const footerContent = {
     paymentIcons: 'Payment methods shown',
     paymentMethod: 'Method',
     showPolicies: 'Policy links',
+    showCookieSettings: 'Cookie settings link (reopens the cookie banner)',
     showNewsletter: 'Newsletter sign-up',
     newsletterHeading: 'Newsletter heading',
     newsletterButton: 'Newsletter button',

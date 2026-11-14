@@ -1,6 +1,6 @@
 'use client'
 
-import type { SalesChannelId } from '@commerce/core/sales-channels'
+import { AI_AGENTS, type SalesChannelId } from '@commerce/core/sales-channels'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import KitButton from '@/components/kit/kit-button'
@@ -19,7 +19,13 @@ type RequestDialogProps = {
   onWithdrawn: () => void
 }
 
-/** "View request": when access was asked for, and a way to withdraw it. */
+/** True for an AI agent, whose request is a waiting list rather than an approval. */
+const isAgent = (channel: SalesChannelId) => (AI_AGENTS as readonly string[]).includes(channel)
+
+/**
+ * "View request": when access was asked for, and a way to withdraw it. For an AI agent it is
+ * "on the list, not live yet": nothing is sent to the agent until it opens to stores in India.
+ */
 export default function RequestDialog({
   open,
   onOpenChange,
@@ -32,6 +38,7 @@ export default function RequestDialog({
   const copy = useCopy(salesChannelsContent.bar)
   const failed = useCopy(salesChannelsContent.connect.failed)
   const live = useCopy(salesChannelsContent.live)
+  const agentList = useCopy(salesChannelsContent.agentList)
   const format = useFormat()
   const [feed, setFeed] = useState(false)
 
@@ -48,14 +55,20 @@ export default function RequestDialog({
   }
 
   // Render logic
+  const date = requestedAt ? format.date(requestedAt) : ''
+  const agent = isAgent(channel)
   return (
     <>
       <FormDialog
         open={open}
         onOpenChange={onOpenChange}
-        title={copy.requested(name)}
-        description={copy.requestedBody(requestedAt ? format.date(requestedAt) : '')}
-        submitLabel={copy.withdraw}
+        title={agent ? agentList.title(name) : copy.requested(name)}
+        description={
+          agent
+            ? `${agentList.body(name)}${date ? ` ${agentList.since(date)}` : ''}`
+            : copy.requestedBody(date)
+        }
+        submitLabel={agent ? agentList.withdraw : copy.withdraw}
         onSubmit={handleWithdraw}
       >
         {channel === 'chatgpt' ? (

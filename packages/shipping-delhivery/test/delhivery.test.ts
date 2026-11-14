@@ -577,6 +577,70 @@ describe('DelhiveryProvider pickup, NDR and webhook', () => {
     ).rejects.toMatchObject({ kind: 'auth' })
   })
 
+  const pickupInput = {
+    pickupLocationName: 'Waimers Sonipat',
+    date: '2026-09-26',
+    timeFrom: '14:00',
+    expectedPackageCount: 1,
+  }
+
+  it('a 401 that is not about the token keeps Delhivery’s own words, not "rejected the credentials"', async () => {
+    // The pickup endpoint answers refusals with 401 (the unknown-warehouse one is documented as
+    // 401), so a 401 is only a bad token when Delhivery says so.
+    const f = fakeFetch({
+      '/fm/request/new/': () =>
+        json({ pickup_location: 'Pickup location Waimers Sonipat is not active' }, 401),
+    })
+    const err = await new DelhiveryProvider({ ...config, fetchImpl: f.impl })
+      .schedulePickup(pickupInput)
+      .catch((e: unknown) => e)
+    expect(err).toMatchObject({ kind: 'rejected', status: 401 })
+    expect((err as Error).message).toContain('Pickup location Waimers Sonipat is not active')
+  })
+
+  it('a bad token on the pickup call says what Delhivery said', async () => {
+    const f = fakeFetch({
+      '/fm/request/new/': () => json({ detail: 'Invalid token.' }, 401),
+    })
+    const err = await new DelhiveryProvider({ ...config, fetchImpl: f.impl })
+      .schedulePickup(pickupInput)
+      .catch((e: unknown) => e)
+    expect(err).toMatchObject({ kind: 'auth' })
+    expect((err as Error).message).toContain('Invalid token.')
+  })
+
+  it('reads a refusal nested in an object or a field list, not the raw JSON', async () => {
+    const nested = fakeFetch({
+      '/fm/request/new/': () =>
+        json({ success: false, error: { code: 2001, message: 'Pickup time has passed' } }, 400),
+    })
+    const a = await new DelhiveryProvider({ ...config, fetchImpl: nested.impl })
+      .schedulePickup(pickupInput)
+      .catch((e: unknown) => e)
+    expect((a as Error).message).toBe(
+      'Delhivery did not take the pickup request: Pickup time has passed',
+    )
+    const fields = fakeFetch({
+      '/fm/request/new/': () => json({ pickup_time: ['Enter a valid time.'] }, 400),
+    })
+    const b = await new DelhiveryProvider({ ...config, fetchImpl: fields.impl })
+      .schedulePickup(pickupInput)
+      .catch((e: unknown) => e)
+    expect((b as Error).message).toBe(
+      'Delhivery did not take the pickup request: pickup_time: Enter a valid time.',
+    )
+  })
+
+  it('pr_exist counts as already booked whatever the status code', async () => {
+    const f = fakeFetch({
+      '/fm/request/new/': () =>
+        json({ pr_exist: true, error: 'Pickup request exists for this date' }, 409),
+    })
+    expect(
+      await new DelhiveryProvider({ ...config, fetchImpl: f.impl }).schedulePickup(pickupInput),
+    ).toEqual({ providerPickupId: 'existing' })
+  })
+
   it('rejects a pickup response with no pickup_id and no pr_exist', async () => {
     const f = fakeFetch({ '/fm/request/new/': () => json({}) })
     const p = new DelhiveryProvider({ ...config, fetchImpl: f.impl })

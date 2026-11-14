@@ -1,7 +1,10 @@
 'use client'
 
 import type { CheckoutSettingsView, PaymentAdjustment, RolloutHold } from '@commerce/core'
-import type { CheckoutSettings as Settings } from '@commerce/core/checkout-settings'
+import {
+  RECOMMENDED_METHOD,
+  type CheckoutSettings as Settings,
+} from '@commerce/core/checkout-settings'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Field, FieldLabel } from '@commerce/ui/shadcn/field'
 import { NativeSelect, NativeSelectOption } from '@commerce/ui/shadcn/native-select'
@@ -22,7 +25,11 @@ import RupeeInput from '@/components/settings/rupee-input'
 import SettingsDrill from '@/components/settings/settings-drill'
 import SettingsDrillPanel from '@/components/settings/settings-drill-panel'
 import { checkoutRulesContent } from '@/data/checkout-rules'
-import { checkoutBrandingContent, checkoutSettingsContent as copy } from '@/data/checkout-settings'
+import {
+  checkoutBrandingContent,
+  checkoutRecommendedContent,
+  checkoutSettingsContent as copy,
+} from '@/data/checkout-settings'
 import { PAYMENTS_PAGE_HREF } from '@/data/payments-setup'
 import { settingsContent } from '@/data/settings'
 import { useCopy, useFormat } from '@/hooks/use-copy'
@@ -33,8 +40,8 @@ type Form = { settings: Settings; codFee: PaymentAdjustment | null }
 
 type Loaded = CheckoutSettingsView & { pincodeDirectory: boolean }
 
-/** The ways to pay a store can recommend; empty is automatic. */
-const RECOMMENDED_METHODS = ['', 'manual', 'razorpay', 'cashfree', 'decentro'] as const
+/** A way to pay's name for the Recommended choice; a provider without copy shows its id. */
+const methodName = (names: Record<string, string>, id: string) => names[id] ?? id
 
 const formOf = (v: Loaded): Form => ({ settings: v.settings, codFee: v.codFee })
 
@@ -46,6 +53,7 @@ const formOf = (v: Loaded): Form => ({ settings: v.settings, codFee: v.codFee })
 export default function CheckoutSettings() {
   // Hooks
   const brandingCopy = useCopy(checkoutBrandingContent)
+  const recCopy = useCopy(checkoutRecommendedContent)
   const rules = useCopy(checkoutRulesContent)
   const fmt = useFormat()
   const [loaded, setLoaded] = useState<Loaded | null>(null)
@@ -104,6 +112,26 @@ export default function CheckoutSettings() {
   const dirty = form !== null && saved !== null && JSON.stringify(form) !== saved
   const s = form?.settings
   const r = brandingCopy.rows
+  // Recommended: automatic, the ways to pay that are on, a saved one since switched off, none.
+  const savedOff =
+    s &&
+    loaded &&
+    s.recommendedMethod !== RECOMMENDED_METHOD.automatic &&
+    s.recommendedMethod !== RECOMMENDED_METHOD.none &&
+    !loaded.paymentMethods.includes(s.recommendedMethod)
+      ? s.recommendedMethod
+      : null
+  const recommendedOptions = [
+    { value: RECOMMENDED_METHOD.automatic, label: recCopy.automatic },
+    ...(loaded?.paymentMethods ?? []).map((id) => ({
+      value: id,
+      label: methodName(recCopy.methods, id),
+    })),
+    ...(savedOff
+      ? [{ value: savedOff, label: recCopy.off(methodName(recCopy.methods, savedOff)) }]
+      : []),
+    { value: RECOMMENDED_METHOD.none, label: recCopy.none },
+  ]
   const textEdits = s ? editedCount(s.content.en) + editedCount(s.content.hi) : 0
   const rows =
     s && loaded
@@ -156,17 +184,17 @@ export default function CheckoutSettings() {
           {
             // One choice: in the row itself, like the PIN code switch.
             id: 'recommended',
-            title: copy.recommended.title,
-            value: copy.recommended.hint,
+            title: recCopy.title,
+            value: recCopy.hint,
             control: (
               <NativeSelect
-                aria-label={copy.recommended.title}
+                aria-label={recCopy.title}
                 value={s.recommendedMethod}
                 onChange={(e) => patch({ recommendedMethod: e.target.value })}
               >
-                {RECOMMENDED_METHODS.map((id) => (
-                  <NativeSelectOption key={id} value={id}>
-                    {copy.recommended.options[id]}
+                {recommendedOptions.map((o) => (
+                  <NativeSelectOption key={o.value} value={o.value}>
+                    {o.label}
                   </NativeSelectOption>
                 ))}
               </NativeSelect>

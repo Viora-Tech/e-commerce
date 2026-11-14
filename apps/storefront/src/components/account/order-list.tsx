@@ -1,6 +1,8 @@
 import { formatPaise } from '@commerce/blocks'
 import type { ShopperOrderSummary } from '@commerce/core'
 import Link from 'next/link'
+import type { CSSProperties } from 'react'
+import CheckoutIcon from '@/components/checkout/checkout-icon'
 import {
   accountContent,
   formatAccountDate,
@@ -9,6 +11,8 @@ import {
   shipmentLabels,
   shipmentTone,
 } from '@/data/account'
+import { ACCOUNT_CARD, ACCOUNT_CARD_TITLE, ACCOUNT_STAGGER } from '@/lib/account-classes'
+import { CK_BUTTON_PRIMARY, CK_CARD, CK_LIFT } from '@/lib/checkout-classes'
 import StatusPill from './status-pill'
 
 type OrderListProps = {
@@ -21,15 +25,28 @@ const copy = accountContent.orders
 const paymentTone = (p: ShopperOrderSummary['payment']) =>
   p === 'paid' ? 'good' : p === 'failed' || p === 'refunded' ? 'bad' : 'neutral'
 
-/** The shopper's orders as cards: number, date, total, payment and delivery state. */
+/** The pictures a card shows: its thumbnails, or the one first image an older summary carries. */
+const pictures = (o: ShopperOrderSummary) =>
+  o.thumbnails.length > 0 ? o.thumbnails : o.firstImage ? [o.firstImage] : []
+
+/**
+ * The shopper's orders as cards (Figma 705:114276): number and date with the delivery state on
+ * the right, then the products' pictures and the total. Payment shows only when it is not
+ * simply paid (cash on delivery, pending, failed, refunded). Cards rise in one after another.
+ */
 export default function OrderList({ orders, timeZone }: OrderListProps) {
   // Early returns
   if (orders.length === 0) {
     return (
-      <div className="flex flex-col items-start gap-3 rounded-[var(--radius-card)] bg-surface p-8">
-        <h2 className="h4">{copy.emptyTitle}</h2>
-        <p className="text-body text-muted">{copy.emptyBody}</p>
-        <Link href="/collections" className="btn btn--primary mt-2">
+      <div
+        className={`${CK_CARD} ${CK_LIFT} flex flex-col items-center gap-3 px-6 py-10 text-center`}
+      >
+        <span className="grid size-12 place-items-center rounded-full bg-ck-soft text-ck-muted">
+          <CheckoutIcon name="bag" className="size-5" />
+        </span>
+        <h2 className={ACCOUNT_CARD_TITLE}>{copy.emptyTitle}</h2>
+        <p className="max-w-[22rem] text-[0.9375rem] text-ck-muted">{copy.emptyBody}</p>
+        <Link href="/collections" className={`${CK_BUTTON_PRIMARY} mt-2 w-auto!`}>
           {copy.shop}
         </Link>
       </div>
@@ -38,44 +55,60 @@ export default function OrderList({ orders, timeZone }: OrderListProps) {
 
   // Render logic
   return (
-    <ul className="grid gap-4">
-      {orders.map((o) => (
-        <li key={o.id}>
-          <Link
-            href={`/account/orders/${o.number}`}
-            className="flex h-full gap-4 rounded-[var(--radius-card)] bg-surface p-5 transition-[scale] duration-(--duration-press) ease-out active:scale-(--motion-card-press-scale)"
-          >
-            {/* No picture, no empty box (#163). */}
-            {o.firstImage ? (
-              <div className="size-16 shrink-0 overflow-hidden rounded-xl bg-surface">
-                {/* biome-ignore lint/performance/noImgElement: product media is on the store's CDN, as in the blocks package. */}
-                <img
-                  src={o.firstImage.url}
-                  alt={o.firstImage.alt ?? ''}
-                  className="size-full object-cover"
-                />
+    <ul className="grid gap-3 sm:gap-4">
+      {orders.map((o, i) => {
+        const shots = pictures(o)
+        return (
+          <li key={o.id}>
+            <Link
+              href={`/account/orders/${o.number}`}
+              style={{ '--i': i } as CSSProperties}
+              className={`${ACCOUNT_CARD} ${ACCOUNT_STAGGER} gap-4! text-ck-ink! no-underline outline-none transition-[scale,box-shadow] duration-(--duration-press) ease-out focus-visible:[box-shadow:0_0_0_3px_var(--ck-ring)] active:scale-(--motion-card-press-scale)`}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex min-w-0 flex-col gap-0.5">
+                  <span className="text-[1rem] font-semibold">{copy.order(o.number)}</span>
+                  <span className="text-[0.8125rem] text-ck-muted">
+                    {copy.placedOn(formatAccountDate(o.placedAt, timeZone))} ·{' '}
+                    {copy.items(o.itemCount)}
+                  </span>
+                </div>
+                <div className="flex flex-col items-end gap-1.5">
+                  {o.status === 'cancelled' ? (
+                    <StatusPill label={orderStatusLabels.cancelled} tone="bad" />
+                  ) : (
+                    <StatusPill
+                      label={shipmentLabels[o.shipment]}
+                      tone={shipmentTone[o.shipment]}
+                    />
+                  )}
+                  {o.payment === 'paid' ? null : (
+                    <StatusPill label={paymentLabels[o.payment]} tone={paymentTone(o.payment)} />
+                  )}
+                </div>
               </div>
-            ) : null}
-            <div className="flex min-w-0 flex-1 flex-col gap-2">
-              <div className="flex items-baseline justify-between gap-3">
-                <span className="text-body font-semibold">{copy.order(o.number)}</span>
-                <span className="text-body font-semibold">{formatPaise(o.totalPaise)}</span>
+              <div className="flex items-end justify-between gap-3">
+                {/* No picture, no empty box (#163). */}
+                <div className="flex min-w-0 items-center gap-2">
+                  {shots.map((s, n) => (
+                    <span
+                      // biome-ignore lint/suspicious/noArrayIndexKey: two products may share one picture.
+                      key={n}
+                      className="size-12 shrink-0 overflow-hidden rounded-ck bg-ck-soft sm:size-14"
+                    >
+                      {/* biome-ignore lint/performance/noImgElement: product media is on the store's CDN, as in the blocks package. */}
+                      <img src={s.url} alt={s.alt ?? ''} className="size-full! object-cover" />
+                    </span>
+                  ))}
+                </div>
+                <span className="text-[1rem] font-semibold tabular-nums">
+                  {formatPaise(o.totalPaise)}
+                </span>
               </div>
-              <span className="text-small text-muted">
-                {copy.placedOn(formatAccountDate(o.placedAt, timeZone))} · {copy.items(o.itemCount)}
-              </span>
-              <div className="flex flex-wrap gap-2">
-                {o.status === 'cancelled' ? (
-                  <StatusPill label={orderStatusLabels.cancelled} tone="bad" />
-                ) : (
-                  <StatusPill label={shipmentLabels[o.shipment]} tone={shipmentTone[o.shipment]} />
-                )}
-                <StatusPill label={paymentLabels[o.payment]} tone={paymentTone(o.payment)} />
-              </div>
-            </div>
-          </Link>
-        </li>
-      ))}
+            </Link>
+          </li>
+        )
+      })}
     </ul>
   )
 }

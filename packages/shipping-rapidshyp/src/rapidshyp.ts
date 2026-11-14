@@ -41,18 +41,7 @@
  *   POST /rapidshyp/apis/v1/create/pickup_location  register a new pickup location
  *        (.../Pickup%20Location/POST%20Create%20Pickup%20Location)
  *
- * WHY /wrapper INSTEAD OF /create_order FOR createShipment: the plain Create
- * Order API's own response is documented only as `{ status, remarks, order_id,
- * shipment: [] }` with no field-level detail inside `shipment` ("structure not
- * detailed" - the reason this file used to stop after create_order and guess).
- * The Wrapper API takes the same order fields and chains create + assign AWB +
- * generate label + schedule pickup server-side, and its response sample is
- * fully specified (`awbGenerated`, `awb`, `labelURL`, `pickupScheduled`,
- * `shipmentId`, `orderId`, ...). Using the one call with a confirmed shape
- * beats guessing at the shorter call's unconfirmed one. `assignAwb`,
- * `schedulePickupForShipment` and `generateLabel` are still implemented and
- * used as best-effort fallbacks when the wrapper's own attempt at any of
- * those three sub-steps did not succeed.
+ * HOW createShipment BOOKS, AND ORDER IDS: see `./booking`.
  *
  * NOT IMPLEMENTED:
  *  - Approve Order (`/approve_orders`) - RapidShyp's own docs describe orders
@@ -99,8 +88,10 @@ import {
   type Tracking,
   type TrackingEvent,
 } from '@commerce/shipping'
+import { type BookingCalls, bookRapidshypShipment, pushRapidshypOrder } from './booking'
 import { RAPIDSHYP_CAPABILITIES } from './client'
 import { eddDaysFromToday } from './edd'
+import { explainRapidshypRemark, rapidshypRefusal } from './remarks'
 import { mapRapidshypStatus } from './status'
 
 export const RAPIDSHYP_BASE_URL = 'https://api.rapidshyp.com'
@@ -135,33 +126,6 @@ type ServiceabilityResponse = {
   status?: boolean
   remark?: string
   serviceable_courier_list?: ServiceableCourier[]
-}
-
-type WrapperShipment = {
-  shipmentId?: string | number
-  awbGenerated?: boolean
-  labelGenerated?: boolean
-  pickupScheduled?: boolean
-  awb?: string
-  courierCode?: string
-  courierName?: string
-  labelURL?: string
-  manifestURL?: string
-}
-
-type WrapperResponse = {
-  status?: string
-  remarks?: string
-  orderId?: string
-  orderCreated?: boolean
-  shipment?: WrapperShipment[]
-}
-
-type CreateOrderOnlyResponse = {
-  status?: string
-  remarks?: string
-  order_id?: string
-  shipment?: { shipmentId?: string | number; shipment_id?: string | number }[]
 }
 
 type AssignAwbResponse = {
@@ -280,6 +244,8 @@ export class RapidshypProvider implements ShippingProvider {
       body: JSON.stringify(body),
       fetchImpl: this.fetchImpl,
       timeoutMs: COURIER_TIMEOUT_MS,
+    }).catch((error: unknown) => {
+      throw this.explained(error)
     })
     return courierJson<T>(this.id, res)
   }
@@ -289,8 +255,24 @@ export class RapidshypProvider implements ShippingProvider {
       headers: this.headers(),
       fetchImpl: this.fetchImpl,
       timeoutMs: COURIER_TIMEOUT_MS,
+    }).catch((error: unknown) => {
+      throw this.explained(error)
     })
     return courierJson<T>(this.id, res)
+  }
+
+  /**
+   * A 4xx refusal whose remark we know ("Invalid store name") becomes a refusal in the
+   * merchant's words, RapidShyp's own at the end in brackets. Anything else passes as it was.
+   */
+  private explained(error: unknown): unknown {
+    if (!(error instanceof CourierError) || !error.reason) return error
+    if (!explainRapidshypRemark(error.reason)) return error
+    return new CourierError('rejected', this.id, rapidshypRefusal('', error.reason), {
+      status: error.status,
+      reason: error.reason,
+      cause: error,
+    })
   }
 
   /** Shared by checkServiceability, quoteRate, quoteOptions and createReturnPickup -
@@ -435,37 +417,7 @@ export class RapidshypProvider implements ShippingProvider {
     })
   }
 
-  buildOrderPayload(input: CreateShipmentInput) {
-    return {
-      orderId: input.orderId,
-      orderDate: new Date().toISOString().slice(0, 10),
-      storeName: this.config.storeName,
-      billingIsShipping: true,
-      pickupAddressName: this.config.pickupAddressName,
-      shippingAddress: {
-        firstName: input.to.name,
-        addressLine1: input.to.line1,
-        addressLine2: input.to.line2 ?? '',
-        pinCode: input.to.pincode,
-        phone: input.to.phone,
-      },
-      orderItems: input.lines.map((l) => ({
-        itemName: l.title.slice(0, 250),
-        units: l.quantity,
-        unitPrice: Math.round(l.unitPricePaise) / 100,
-        tax: 0,
-      })),
-      paymentMethod: input.paymentMode === 'cod' ? 'COD' : 'PREPAID',
-      packageDetails: {
-        packageLength: 10,
-        packageBreadth: 10,
-        packageHeight: 10,
-        packageWeight: Math.max(input.weightGrams, 1),
-      },
-    }
-  }
-
-  /** Assign AWB API - explicit fallback for when a create call did not come back with one. */
+  /** Assign AWB API: puts a courier (by its code; empty lets RapidShyp choose) on a shipment. */
   async assignAwb(shipmentId: string, courierCode?: string): Promise<{ awb: string }> {
     const result = await this.postJson<AssignAwbResponse>('/rapidshyp/apis/v1/assign_awb', {
       shipment_id: shipmentId,
@@ -475,7 +427,8 @@ export class RapidshypProvider implements ShippingProvider {
       throw new CourierError(
         'rejected',
         this.id,
-        `RapidShyp did not assign an AWB: ${result.remarks || 'no detail returned'}`,
+        rapidshypRefusal('RapidShyp did not assign an AWB', result.remarks),
+        { reason: result.remarks?.trim() || undefined },
       )
     }
     return { awb: result.awb }
@@ -501,29 +454,22 @@ export class RapidshypProvider implements ShippingProvider {
     return result.labelData?.[0]?.labelURL
   }
 
-  /**
-   * Create Order only: the order shows in RapidShyp's panel without an AWB. Its response is
-   * documented as `{ status, remarks, order_id, shipment: [] }`; the shipment id is read when
-   * present, and booking later falls back to the order id we sent.
-   */
-  async pushOrder(input: CreateShipmentInput): Promise<PushOrderResult> {
-    const r = await this.postJson<CreateOrderOnlyResponse>(
-      '/rapidshyp/apis/v1/create_order',
-      this.buildOrderPayload(input),
-    )
-    const shipment = r.shipment?.[0]
-    const shipmentId = shipment?.shipmentId ?? shipment?.shipment_id
-    if (!r.order_id && !shipmentId) {
-      throw new CourierError(
-        'rejected',
-        this.id,
-        `RapidShyp rejected the order: ${r.remarks || 'no detail returned'}`,
-      )
-    }
+  /** Booking calls for `./booking`, which holds the create-shipment flow. */
+  private calls(): BookingCalls {
     return {
-      externalOrderId: String(r.order_id ?? input.orderId),
-      externalShipmentId: shipmentId != null ? String(shipmentId) : undefined,
+      provider: this.id,
+      config: this.config,
+      post: <T>(path: string, body: unknown) => this.postJson<T>(path, body),
+      assignAwb: (shipmentId, courierCode) => this.assignAwb(shipmentId, courierCode),
+      cancel: (orderId) => this.cancel(orderId),
+      schedulePickup: (shipmentId, awb) => this.schedulePickupForShipment(shipmentId, awb),
+      generateLabel: (shipmentIds) => this.generateLabel(shipmentIds),
     }
+  }
+
+  /** Create Order only: the order shows in RapidShyp's panel without an AWB (`./booking`). */
+  async pushOrder(input: CreateShipmentInput): Promise<PushOrderResult> {
+    return pushRapidshypOrder(this.calls(), input)
   }
 
   /** The pending order goes the same way as a booked one: `cancel_order` by order id. */
@@ -531,79 +477,9 @@ export class RapidshypProvider implements ShippingProvider {
     await this.cancel(pushed.externalOrderId)
   }
 
+  /** Wrapper, or create_order then assign_awb for a picked courier: see `./booking`. */
   async createShipment(input: CreateShipmentInput): Promise<CreateShipmentResult> {
-    const pushedShipment = input.pushed?.externalShipmentId
-    // Sent here earlier as a pending order: assign a courier to that shipment instead.
-    const order: WrapperResponse = pushedShipment
-      ? {
-          orderCreated: true,
-          orderId: input.pushed?.externalOrderId ?? input.orderId,
-          shipment: [{ shipmentId: pushedShipment }],
-        }
-      : await this.postJson<WrapperResponse>(
-          '/rapidshyp/apis/v1/wrapper',
-          this.buildOrderPayload(input),
-        )
-    if (!order.orderCreated) {
-      throw new CourierError(
-        'rejected',
-        this.id,
-        `RapidShyp rejected the order: ${order.remarks || 'no detail returned'}`,
-      )
-    }
-    const first = order.shipment?.[0]
-    const shipmentId = first?.shipmentId != null ? String(first.shipmentId) : undefined
-    if (!shipmentId) {
-      throw new CourierError(
-        'bad_response',
-        this.id,
-        'RapidShyp created the order but returned no shipment id.',
-      )
-    }
-
-    let awb = first?.awb
-    let labelUrl = first?.labelURL
-    let pickupScheduled = first?.pickupScheduled === true
-    /* The wrapper books by the account's courier priority. When the merchant picked another
-       courier in the rate table, reassign the shipment to it (assign_awb reassigns by
-       shipment id); the label and pickup then follow the new AWB. */
-    if (awb && input.serviceId && first?.courierCode && first.courierCode !== input.serviceId) {
-      const reassigned = await this.assignAwb(shipmentId, input.serviceId)
-      awb = reassigned.awb
-      labelUrl = undefined
-      pickupScheduled = false
-    }
-    if (!awb) {
-      // The wrapper's own AWB assignment did not come back with one (e.g. no
-      // courier matched its rule/priority) - one explicit retry, letting
-      // RapidShyp pick the default courier again.
-      const assigned = await this.assignAwb(shipmentId, input.serviceId).catch(() => null)
-      awb = assigned?.awb
-    }
-    if (!awb) {
-      throw new CourierError(
-        'rejected',
-        this.id,
-        `RapidShyp created shipment ${shipmentId} but could not assign a courier: ${order.remarks || 'no detail returned'}`,
-      )
-    }
-
-    if (!pickupScheduled) {
-      // Best-effort: pickup failing here never invalidates the booking - the
-      // merchant can retry it from the Shipments workspace's pickup tab.
-      await this.schedulePickupForShipment(shipmentId, awb).catch(() => undefined)
-    }
-    if (!labelUrl) {
-      labelUrl = await this.generateLabel([shipmentId]).catch(() => undefined)
-    }
-
-    return {
-      waybill: awb,
-      // cancel_order takes RapidShyp's own order id, echoed back here (falls back to the seller
-      // orderId we sent, which RapidShyp's docs say coincide for the "DEFAULT" store/channel).
-      providerRef: order.orderId || input.orderId,
-      labelUrl,
-    }
+    return bookRapidshypShipment(this.calls(), input)
   }
 
   /** B2C Tracking API. Looks the AWB up directly - no order id needed. */

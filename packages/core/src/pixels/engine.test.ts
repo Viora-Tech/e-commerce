@@ -1,4 +1,5 @@
 /** SOURCE OF TRUTH: Pixels engine tests (database) — WHAT: the relay queues Pixels jobs only for stores with the app, the order job picks pixels by trigger and logs skips, send jobs record success, retries, failures and a refused token (Error plus one owner alert), admin reads never carry the token, and the prune clears old rows and IPs / WHY: these are the once-only, consent and no-token rules the design promises; a fake fetch keeps Meta out */
+import { createHash } from 'node:crypto'
 import {
   address,
   createDb,
@@ -266,6 +267,39 @@ describe('send job', () => {
     expect(JSON.stringify(log)).not.toContain('asha')
     const [day] = await owner.select().from(pixelEventDay)
     expect(day?.sent).toBe(1)
+  })
+
+  it('the server Purchase carries the full hashed user_data plus the browser ids', async () => {
+    const s = await seed({
+      tracking: {
+        fbp: 'fb.1.1792800000000.1234567890',
+        fbc: 'fb.1.1792800000000.IwAR2abc',
+        ip: '203.0.113.7',
+        ua: 'UA',
+        consent,
+      },
+    })
+    const meta = fakeFetch(200, { events_received: 1, fbtrace_id: 'TR' })
+    expect(
+      await runPixelSendJob(app, purchase(s), { settingsSecret: SECRET, fetch: meta.fn }),
+    ).toBe('sent')
+    const sha = (v: string) => createHash('sha256').update(v, 'utf8').digest('hex')
+    const sent = meta.calls[0]?.body as { data: { user_data: Record<string, unknown> }[] }
+    const user = sent.data[0]?.user_data
+    expect(user).toEqual({
+      em: [sha('asha@example.com')],
+      ph: [sha('919876543210')],
+      fn: [sha('asha')],
+      ln: [sha('rao')],
+      ct: [sha('pune')],
+      st: [sha('mh')],
+      zp: [sha('411001')],
+      country: [sha('in')],
+      fbp: 'fb.1.1792800000000.1234567890',
+      fbc: 'fb.1.1792800000000.IwAR2abc',
+      client_ip_address: '203.0.113.7',
+      client_user_agent: 'UA',
+    })
   })
 
   it('throws to retry on throttling, and records failed on the last attempt', async () => {

@@ -6,6 +6,15 @@ import { courierOverview, courierPickupPlaces } from '../services/courier-overvi
 
 const provider = z.object({ provider: z.string().trim().min(1).max(60) })
 
+/**
+ * A pickup start or end time as couriers take it (`shipments.schedulePickup`): 24h "14:00" (or
+ * "14:00:00"). Anything else ("2 pm", typed in the Pickups tab's box) only comes back refused.
+ */
+export const pickupTime = z
+  .string()
+  .trim()
+  .regex(/^([01]?\d|2[0-3]):[0-5]\d(:[0-5]\d)?$/, 'Type the pickup time as 24h, e.g. 14:00.')
+
 export const courierAppProcedures = {
   /** A courier app's Overview tiles: in transit and delayed, booked today and what it cost,
    *  RTO this month, and its newest shipment change. This store's shipments with that courier. */

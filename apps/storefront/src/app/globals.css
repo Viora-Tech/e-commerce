@@ -211,8 +211,9 @@
   }
 }
 
-/* The theme's mobile dock pads <body> for itself; the checkout hides the dock, so not here. */
-body:has(.ck) {
+/* The theme's mobile dock pads <body> for itself; the checkout hides the dock, so not here.
+   The account pages wear the checkout's look (`ck-account`) but keep the theme and its dock. */
+body:has(.ck:not(.ck-account)) {
   padding-bottom: 0;
 }
 

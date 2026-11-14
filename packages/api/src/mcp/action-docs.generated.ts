@@ -204,6 +204,8 @@ export const ACTION_DOCS: Record<string, string> = {
   'collections.products': "The frame's table: every product, or only those in one collection.",
   'collections.searchProducts': 'Product picker inside a manual collection.',
   'collections.stats': 'Tiles above the category cards.',
+  'collections.update':
+    'Edit a collection: only the fields sent change; a left-out field keeps its value and null clears it (#1186).',
   'customerAccounts.saveApp': "Save the merchant's own Google / Apple / Facebook / Truecaller app.",
   'customerPrivacy.allowEmailAgain':
     '"Allow again": email this customer again; only later bounces count towards a new stop.',
@@ -534,6 +536,8 @@ export const ACTION_DOCS: Record<string, string> = {
   'orders.listAbandoned':
     'Abandoned checkouts from recent days, a page at a time, by recovery status or a search.',
   'orders.listDrafts': 'Draft orders, a page at a time, filtered by status or a search.',
+  'orders.listPage':
+    "The Orders page's server render in one call and one transaction: the first page of rows (as list), the tab badges (tabCounts), the stat cards (tiles) and the installed apps' order actions (apps.order…",
   'orders.markDraftSeen':
     "The member opened one draft: it leaves the sidebar's unseen checkout drafts count.",
   'orders.markNotDelivered':
@@ -653,6 +657,8 @@ export const ACTION_DOCS: Record<string, string> = {
   'products.bulkEditSheet':
     "The bulk editor's sheet: every live variant of the chosen products, with stock per location.",
   'products.exportRows': 'Rows for the CSV the browser downloads, honouring the current filter.',
+  'products.getPage':
+    'The product page\'s server render in one call and one transaction: get, facets, the "Write with AI" switch (ai.status) and the store\'s shipping boxes (only for a member who may read settings, as store…',
   'products.pick': 'Rows for the shared "Select products" dialog, variants included.',
   'products.previewImport': 'Dry run: parse the file and say what would change, writing nothing.',
   'products.removeVariants':

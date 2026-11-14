@@ -40,10 +40,15 @@ function run(world: World) {
             customerPrivacy: { shouldShowBanner: () => world.ask ?? true },
           },
   }
+  const removed: string[] = []
   const localStorage = {
     getItem: (key: string) => {
       if (world.storageThrows) throw new Error('blocked')
       return key === 'k' ? (world.stamp ?? null) : null
+    },
+    removeItem: (key: string) => {
+      if (world.storageThrows) throw new Error('blocked')
+      removed.push(key)
     },
   }
   const document = { currentScript: { previousElementSibling: banner } }
@@ -55,7 +60,7 @@ function run(world: World) {
     'location',
     scriptOf(revealConsentEarly(BANNER, 'N')),
   )(window, document, localStorage, location)
-  return { shown: !banner.hidden, focused: focused.length > 0 }
+  return { shown: !banner.hidden, focused: focused.length > 0, removed }
 }
 
 describe('revealConsentEarly', () => {
@@ -71,16 +76,22 @@ describe('revealConsentEarly', () => {
   })
 
   it('shows the banner, focused, when the shopper has not answered', () => {
-    expect(run({})).toEqual({ shown: true, focused: true })
+    expect(run({})).toMatchObject({ shown: true, focused: true })
   })
 
   it('stays hidden when the consent cookie already holds an answer', () => {
     expect(run({ ask: false }).shown).toBe(false)
   })
 
-  it("stays hidden inside the theme's answered-recently window", () => {
-    expect(run({ stamp: String(Date.now() - 1000) }).shown).toBe(false)
-    expect(run({ stamp: String(Date.now() - 200 * 86_400_000) }).shown).toBe(true)
+  it("asks despite the theme's answered-recently stamp (set on Shopify, not our consent), and clears it", () => {
+    expect(run({ stamp: String(Date.now() - 1000) })).toMatchObject({ shown: true, removed: ['k'] })
+  })
+
+  it('keeps the stamp when our cookie already holds an answer', () => {
+    expect(run({ ask: false, stamp: String(Date.now() - 1000) })).toMatchObject({
+      shown: false,
+      removed: [],
+    })
   })
 
   it('leaves the banner to the theme with no shim, in the editor, or for a Cookie settings link', () => {

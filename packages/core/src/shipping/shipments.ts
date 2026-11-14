@@ -25,7 +25,7 @@ import { bookedCarrier } from './delivery-options/routes'
 import { shipmentDocumentsAsLabel } from './label-documents'
 import { storeShippingLabel } from './label-store'
 import { syncNdrFromTracking } from './ndr'
-import { courierOrderFor, markCourierOrderBooked } from './order-push'
+import { courierOrderFor, courierShipmentNumber, markCourierOrderBooked } from './order-push'
 import {
   effectiveWeightGrams,
   parcelBoxPreset,
@@ -318,6 +318,7 @@ export async function createShipmentForOrder(
     ...(pushed ? { pushed } : {}),
     orderId: o.id,
     orderNumber: o.number,
+    shipmentNumber: await courierShipmentNumber(ctx, o.id, provider.id, Boolean(pushed)),
     to: {
       name: to.name,
       line1: to.line1,
@@ -345,6 +346,7 @@ export async function createShipmentForOrder(
     insured,
     weightGrams,
     ...(options.serviceId ? { serviceId: options.serviceId } : {}),
+    serviceLabel: options.serviceLabel?.trim() || undefined,
     ...(options.trackingNumber ? { trackingNumber: options.trackingNumber } : {}),
     ...(parcelPackage
       ? {

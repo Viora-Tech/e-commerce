@@ -9,7 +9,7 @@ import {
 import KitButton from '@/components/kit/kit-button'
 import { salesChannelsContent } from '@/data/sales-channels'
 import { useCopy, useFormat } from '@/hooks/use-copy'
-import { channelAction, chipStatus } from '@/lib/channel-status'
+import { agentChipStatus, channelAction } from '@/lib/channel-status'
 import ChannelLogo from './channel-logo'
 import ChannelStatusChip from './channel-status-chip'
 
@@ -41,7 +41,7 @@ export default function AgentCard({
     <article className="flex flex-col gap-4 rounded-lg border border-border bg-card bg-[image:var(--card-surface)] p-4 shadow-[var(--shadow-card)]">
       <div className="flex items-start justify-between gap-2">
         <ChannelLogo channel={agent} />
-        <ChannelStatusChip status={chipStatus(state)} />
+        <ChannelStatusChip status={agentChipStatus(state)} />
       </div>
       <div className="flex flex-1 flex-col gap-1">
         <h3 className="text-[0.9375rem] font-semibold text-ink-strong">{info.name}</h3>

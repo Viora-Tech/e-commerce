@@ -40,7 +40,7 @@ import {
   shipmentDetails,
   shipmentLabelFile,
 } from '../services/shipping.service'
-import { courierAppProcedures } from './shipments-courier'
+import { courierAppProcedures, pickupTime } from './shipments-courier'
 
 const ndrAction = z.enum(['reattempt', 'change_address', 'rto'])
 
@@ -306,8 +306,8 @@ export const shipmentsRouter = {
           .string()
           .regex(/^\d{4}-\d{2}-\d{2}$/)
           .refine((d) => d >= dayKey(new Date()), 'Pick today or a later day for the pickup.'),
-        timeFrom: z.string(),
-        timeTo: z.string().optional(),
+        timeFrom: pickupTime,
+        timeTo: pickupTime.optional(),
         /** "Add to pickup": a booked pickup to add these parcels to. */
         joinPickupId: z.uuid().optional(),
       }),

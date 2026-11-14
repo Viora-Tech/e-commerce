@@ -1,4 +1,18 @@
 export {
+  BACKUP_ALERT_FAILURES,
+  BACKUP_ALERT_STALE_HOURS,
+  type BackupAlertMessage,
+  type BackupAlertOptions,
+  type BackupAlertState,
+  type BackupAlertStep,
+  backupAlertEmail,
+  checkStale,
+  initialAlertState,
+  nightOf,
+  parseAlertState,
+  recordAttempt,
+} from './alert'
+export {
   BACKUP_CHUNK_SIZE,
   BACKUP_FORMAT_VERSION,
   BACKUP_MAGIC,

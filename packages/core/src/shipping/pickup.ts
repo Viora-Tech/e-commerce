@@ -1,5 +1,6 @@
 import { dayKey } from '@commerce/dates'
 import { shipment, shipmentManifest, shipmentPickup } from '@commerce/db'
+import { logger } from '@commerce/observability/logging'
 import type { ShippingProvider } from '@commerce/shipping'
 import { and, eq, inArray, isNull } from 'drizzle-orm'
 import type { StoreContext } from '../context'
@@ -96,6 +97,16 @@ export async function schedulePickup(
     } catch (err) {
       status = 'failed'
       error = err instanceof Error ? err.message : String(err)
+      // The one line to look for when a merchant says the pickup "did not go through".
+      logger.warn('courier pickup request refused', {
+        storeId: ctx.storeId,
+        provider: provider.id,
+        pickupLocationName: place,
+        date: input.date,
+        timeFrom: input.timeFrom,
+        parcels: input.shipmentIds.length,
+        reason: error,
+      })
     }
   }
 

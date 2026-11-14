@@ -71,7 +71,7 @@ export default function GlobeOverlay({
         </div>
       ) : null}
       {onZoom ? (
-        <div className="absolute top-2 right-2 z-10 flex flex-row gap-1 rounded-lg border border-border bg-popover/90 p-1 shadow-lift backdrop-blur-sm">
+        <div className="absolute top-2 right-2 z-10 flex flex-row gap-1 rounded-lg border border-border bg-popover p-1 shadow-lift">
           {settingsButton}
           {zoomButtons.map(({ label, icon: Icon, direction }) => (
             <Button

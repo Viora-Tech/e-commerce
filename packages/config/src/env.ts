@@ -154,7 +154,8 @@ const DOC_A_RECORD = '192.0.2.10'
 /** The default CNAME target, for local work only. */
 const DOC_CNAME_TARGET = 'shops.waimers.localhost'
 
-const shape = z.object({
+/** Every env setting; split loaders (env-*.ts) pick from it. */
+export const shape = z.object({
   DATABASE_URL: z.string().url(),
   DATABASE_URL_OWNER: z.string().url(),
   /**
@@ -466,6 +467,12 @@ const shape = z.object({
   BACKUP_R2_BUCKET: z.string().min(1).optional(),
   /** Write backups to this local folder instead of R2. Takes priority over BACKUP_R2_* when set. */
   BACKUP_LOCAL_DIR: z.string().min(1).optional(),
+  /**
+   * Who hears when the nightly backup fails (comma-separated). Blank: PLATFORM_ADMIN_EMAILS.
+   */
+  BACKUP_ALERT_EMAIL: platformAdminEmails,
+  /** Where the backup alert keeps its counts between attempts. */
+  BACKUP_ALERT_STATE_FILE: z.string().min(1).default('/tmp/backup-alert.json'),
   /** Folder the built-in local storage provider reads and writes. Default ./.data/uploads. */
   LOCAL_STORAGE_DIR: z.string().min(1).optional(),
   ...platformEmailShape,
@@ -517,7 +524,7 @@ export type Env = z.infer<typeof schema>
  * hand an empty string for an option the operator left empty, and an optional `.url()` or
  * `.min(1)` would otherwise refuse to boot on it. Required keys left blank still fail, as missing.
  */
-function withoutBlanks(
+export function withoutBlanks(
   source: Record<string, string | undefined>,
 ): Record<string, string | undefined> {
   const out: Record<string, string | undefined> = {}
@@ -552,6 +559,7 @@ export function settingsSecret(): string {
   return loadEnv(process.env).SETTINGS_SECRET
 }
 
+export { loadBackupAlertEnv } from './env-backup-alert'
 export { previousSettingsSecrets, workerPublicUrl } from './env-runtime'
 export { merchantGoogleSignIn, reviewerSignIn } from './env-sign-in'
 

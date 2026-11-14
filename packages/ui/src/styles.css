@@ -439,9 +439,16 @@
   --avatar: #171717; /* initials disc when a member has no photo */
   --avatar-foreground: #fafafa;
 
-  /* Glass: floating layers only (top bar once scrolled, menus, floating bars, toasts, scrims). */
-  --glass-bar: rgb(255 255 255 / 0.72);
-  --glass-popover: rgb(255 255 255 / 0.85);
+  /* Glass: floating layers only (top bar once scrolled, menus, floating bars, toasts, scrims).
+     The admin draws them solid with no backdrop blur (docs/conventions.md, "Smooth UI"): a blur
+     behind a menu, a fixed bar or a full-screen scrim is redrawn on every scroll and animation
+     frame, which made Chromium on Windows drop frames. The *-filter tokens stay `none` here; the
+     marketing site (apps/www) sets them, and translucent fills, to keep its frosted look. */
+  --glass-bar: var(--raised);
+  --glass-popover: var(--popover);
+  --glass-bar-filter: none;
+  --glass-popover-filter: none;
+  --glass-scrim-filter: none;
   --glass-border: rgb(255 255 255 / 0.85);
   --glass-highlight: rgb(255 255 255 / 0.9);
   --glass-scrim: rgb(10 10 10 / 0.18);
@@ -595,8 +602,8 @@
   --avatar: #262626;
   --avatar-foreground: #fafafa;
 
-  --glass-bar: rgb(23 23 23 / 0.68);
-  --glass-popover: rgb(23 23 23 / 0.85);
+  --glass-bar: var(--raised);
+  --glass-popover: var(--popover);
   --glass-border: rgb(255 255 255 / 0.1);
   --glass-highlight: rgb(255 255 255 / 0.05);
   --glass-scrim: rgb(0 0 0 / 0.45);
@@ -660,7 +667,7 @@
 
   /* Dark primary button: white glass (owner, 2026-10-16: keep it white, add a glass feel).
      A slightly translucent white top-to-bottom, a bright top sheen, a light rim and a soft
-     white glow; key-primary frosts what sits behind it. */
+     white glow. */
   --key-top: rgb(255 255 255 / 0.96);
   --key-bottom: rgb(229 229 229 / 0.82);
   --key-border: rgb(255 255 255 / 0.55);
@@ -757,15 +764,17 @@
 }
 
 /*
- * Glass, subtle, floating layers only (Figma Glass/Bar, Glass/Popover, Glass/Scrim): a translucent
- * surface, backdrop blur + saturate and a 1px inner highlight edge. Without backdrop-filter, or with
+ * Glass, subtle, floating layers only (Figma Glass/Bar, Glass/Popover, Glass/Scrim): the surface
+ * colour, a soft shadow and a 1px inner highlight edge. In the admin the surface is solid and
+ * there is no backdrop blur (the tokens above, "Smooth UI"); the marketing site sets
+ * `--glass-*-filter` and translucent fills for a frosted look. Without backdrop-filter, or with
  * "reduce transparency", the surface is solid so text never sits on a busy backdrop.
  */
 @utility glass-bar {
   background-color: var(--glass-bar);
   box-shadow: var(--shadow-glass);
-  -webkit-backdrop-filter: blur(20px) saturate(1.5);
-  backdrop-filter: blur(20px) saturate(1.5);
+  -webkit-backdrop-filter: var(--glass-bar-filter);
+  backdrop-filter: var(--glass-bar-filter);
   @supports not (backdrop-filter: blur(1px)) {
     background-color: var(--raised);
   }
@@ -779,8 +788,8 @@
 @utility glass-popover {
   background-color: var(--glass-popover);
   box-shadow: var(--shadow-glass);
-  -webkit-backdrop-filter: blur(16px) saturate(1.5);
-  backdrop-filter: blur(16px) saturate(1.5);
+  -webkit-backdrop-filter: var(--glass-popover-filter);
+  backdrop-filter: var(--glass-popover-filter);
   @supports not (backdrop-filter: blur(1px)) {
     background-color: var(--popover);
   }
@@ -791,10 +800,12 @@
   }
 }
 
+/* Full-screen behind dialogs and sheets: a tint only in the admin. A blur here re-blurs the whole
+   window for every frame of the open animation and of anything moving behind it. */
 @utility glass-scrim {
   background-color: var(--glass-scrim);
-  -webkit-backdrop-filter: blur(8px);
-  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: var(--glass-scrim-filter);
+  backdrop-filter: var(--glass-scrim-filter);
   @media (prefers-reduced-transparency: reduce) {
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
@@ -842,9 +853,9 @@
     linear-gradient(135deg, var(--key-sheen) 0%, transparent 55%),
     linear-gradient(to bottom, var(--key-top), var(--key-bottom));
   color: var(--key-ink);
-  /* Glass: the translucent fill frosts whatever sits behind it. */
-  -webkit-backdrop-filter: blur(12px) saturate(1.4);
-  backdrop-filter: blur(12px) saturate(1.4);
+  /* No backdrop blur: the fill is opaque in light mode and 82–96% white in dark, so a blur behind
+     it never showed, yet every primary button on screen (sticky headers, the save bar) cost the
+     GPU a blur pass on each scroll frame ("Smooth UI", docs/conventions.md). */
   box-shadow:
     inset 0 1px 0 var(--key-highlight),
     inset 0 -1px 0 var(--key-edge),

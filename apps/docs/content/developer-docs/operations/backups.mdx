@@ -110,6 +110,32 @@ Run it once a day, off-peak. Two common setups:
   `apps/docs/content/developer-docs/operations/deployment.mdx` for the rest of the production
   runbook.
 
+## Failure alerts
+
+`deploy/backup-cron.sh` passes every attempt's exit code to `scripts/backup-alert.ts`, a separate
+small process. That matters: a backup the out-of-memory killer ends ("Killed", exit 137) never
+reaches its own error handling, but the loop around it still sees the exit code. In November 2026
+every attempt was killed for two nights and nobody knew; this is the fix.
+
+- **Failing**: one email after 3 failed attempts in one night, or when no backup has worked for 26
+  hours (the loop checks once an hour, so a backup that never runs at all is caught too). At most
+  one per night, not one per 5-minute retry. If the email itself fails, the next attempt tries
+  again.
+- **Recovered**: one email on the first success after a failing alert.
+
+| Variable | What it does |
+| --- | --- |
+| `BACKUP_ALERT_EMAIL` | Who is emailed, comma-separated. Blank: `PLATFORM_ADMIN_EMAILS`. Both blank: only logged. |
+| `BACKUP_ALERT_STATE_FILE` | Where the counts live. Default `/tmp/backup-alert.json` (lost on a container restart, which only restarts the 26-hour clock). |
+
+The email goes through the platform email account, so the backup service also needs
+`SENDER_EMAIL_PROVIDER`, `PLATFORM_EMAIL_FROM` and the `SES_*` or `RESEND_API_KEY` keys (the
+compose `backup` service passes them; on Dokploy set them on the `backup` app). The counting and
+once-per-night rule are pure functions in `packages/backup/src/alert.ts`, tested in
+`packages/backup/test/alert.test.ts`. A Dokploy Scheduled Job that runs `backup-db.ts` directly
+gets none of this; wrap it the same way (`bun scripts/backup-alert.ts attempt $?` after the run)
+if you switch.
+
 ## Restoring
 
 ```sh filename="Terminal"

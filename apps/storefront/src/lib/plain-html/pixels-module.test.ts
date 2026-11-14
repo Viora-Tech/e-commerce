@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { fbqData, matchData } from '../pixels/track'
+import { fbqData } from '../pixels/track'
 import { islandScript } from './islands'
 import { ISLAND_MODULES, islandModuleOf, islandModuleUrl } from './modules'
 import { PIXELS_MODULE } from './pixels-module'
@@ -7,7 +7,12 @@ import { PIXELS_MODULE } from './pixels-module'
 type Call = unknown[]
 
 /** Runs the pixels module against a stand-in browser and returns what it sent. */
-function run(pixels: unknown[], queued: Record<string, unknown>[] = [], path = '/') {
+function run(
+  pixels: unknown[],
+  queued: Record<string, unknown>[] = [],
+  path = '/',
+  fetchImpl?: (url: string) => Promise<unknown>,
+) {
   const fbq: Call[] = []
   const sent: { path: string; body: Record<string, unknown> }[] = []
   const inlined: string[] = []
@@ -28,7 +33,7 @@ function run(pixels: unknown[], queued: Record<string, unknown>[] = [], path = '
         },
       ),
   }
-  new Function('window', 'location', 'sessionStorage', 'crypto', PIXELS_MODULE)(
+  new Function('window', 'location', 'sessionStorage', 'crypto', 'fetch', PIXELS_MODULE)(
     win,
     { pathname: path, href: `https://shop.test${path}` },
     {
@@ -36,6 +41,7 @@ function run(pixels: unknown[], queued: Record<string, unknown>[] = [], path = '
       setItem: (k: string, v: string) => store.set(k, v),
     },
     { randomUUID: () => '00000000-0000-4000-8000-000000000000' },
+    fetchImpl,
   )
   return {
     fbq,
@@ -56,6 +62,7 @@ describe('pixels island module', () => {
     const r = run([pixel(['PageView'])])
     expect(r.inlined).toEqual(['INIT'])
     expect(r.fbq).toEqual([
+      ['init', '1440778408027080'],
       [
         'trackSingle',
         '1440778408027080',
@@ -68,17 +75,16 @@ describe('pixels island module', () => {
     expect(r.sent[0]?.body).toMatchObject({ name: 'PageView', url: 'https://shop.test/' })
   })
 
-  it('builds the same custom data and matching fields as the React listener', () => {
+  it('builds the same custom data as the React listener', () => {
     const r = run([pixel(['AddToCart', 'Purchase'], true)])
     const detail = {
       name: 'AddToCart' as const,
       variantId: 'v1',
       valuePaise: 129_900,
       numItems: 2,
-      match: { email: ' A@B.in ', phone: '98765 43210' },
     }
     r.fire({ ...detail })
-    expect(r.fbq[0]).toEqual(['init', '1440778408027080', matchData(detail.match)])
+    expect(r.fbq[0]).toEqual(['init', '1440778408027080'])
     expect(r.fbq[1]).toEqual([
       'trackSingle',
       '1440778408027080',
@@ -87,8 +93,35 @@ describe('pixels island module', () => {
       { eventID: 'atc_v1_1' },
     ])
     expect(r.sent.at(-1)?.body).toMatchObject({ name: 'AddToCart', quantity: 2, variantId: 'v1' })
-    r.fire({ ...detail, match: undefined })
+    r.fire({ ...detail })
     expect(r.fbq.at(-1)?.[4]).toEqual({ eventID: 'atc_v1_2' })
+  })
+
+  it('initialises with the hashed matching from /api/px/me before the first event', async () => {
+    const em = 'a'.repeat(64)
+    const asked: string[] = []
+    const r = run([pixel(['PageView'])], [], '/', (url) => {
+      asked.push(url)
+      return Promise.resolve({
+        ok: true,
+        status: 200,
+        json: () => Promise.resolve({ match: { em, ph: '919876543210', zz: em } }),
+      })
+    })
+    expect(r.fbq).toHaveLength(0)
+    await new Promise((res) => setTimeout(res, 0))
+    expect(asked).toEqual(['/api/px/me'])
+    // Plain values and unknown keys never reach fbevents.js.
+    expect(r.fbq[0]).toEqual(['init', '1440778408027080', { em }])
+    expect(r.fbq[1]?.[0]).toBe('trackSingle')
+  })
+
+  it('starts without matching when /api/px/me has nothing', async () => {
+    const r = run([pixel(['PageView'])], [], '/', () =>
+      Promise.resolve({ ok: true, status: 204, json: () => Promise.resolve(null) }),
+    )
+    await new Promise((res) => setTimeout(res, 0))
+    expect(r.fbq[0]).toEqual(['init', '1440778408027080'])
   })
 
   it('skips events a pixel has off, browser Purchase unless allowed, and queued handled ones', () => {
@@ -96,15 +129,15 @@ describe('pixels island module', () => {
       [pixel(['ViewContent'])],
       [{ name: 'ViewContent', handled: true }, { name: 'ViewContent' }],
     )
-    expect(r.fbq.map((c) => c[2])).toEqual(['ViewContent'])
+    expect(r.fbq.filter((c) => c[0] === 'trackSingle').map((c) => c[2])).toEqual(['ViewContent'])
     r.fire({ name: 'Purchase', eventId: 'ord_1' })
-    expect(r.fbq).toHaveLength(1)
+    expect(r.fbq.filter((c) => c[0] === 'trackSingle')).toHaveLength(1)
     expect(r.sent.at(-1)?.body).toMatchObject({ name: 'Purchase', eventId: 'ord_1' })
   })
 
   it('sends nothing from a private page', () => {
     const r = run([pixel(['PageView'])], [], '/account/login/link')
-    expect(r.fbq).toHaveLength(0)
+    expect(r.fbq.filter((c) => c[0] === 'trackSingle')).toHaveLength(0)
     expect(r.sent).toHaveLength(0)
   })
 })

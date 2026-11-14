@@ -35,6 +35,14 @@ export const CHECKOUT_LIMITS = {
   businessName: 120,
 } as const
 
+/** The two `recommendedMethod` values that are not a way to pay. */
+export const RECOMMENDED_METHOD = {
+  /** The first way to pay on offer, unless that is cash on delivery (the default). */
+  automatic: '',
+  /** No badge at all. */
+  none: 'none',
+} as const
+
 export const CodRulesSchema = z.object({
   /** Largest order value (items after discount, plus shipping) that can be paid on delivery; 0 means no limit. */
   maxOrderPaise: z.number().int().min(0).default(0),
@@ -58,7 +66,11 @@ export const CheckoutSettingsSchema = z.object({
   gstin: z.boolean().default(false),
   /** Let shoppers leave a note with their order. */
   orderNotes: z.boolean().default(false),
-  /** Which way to pay wears Recommended (a method id); empty means the first one on offer. */
+  /**
+   * Which way to pay wears Recommended at checkout: a method id (`razorpay`, `cod`, ...),
+   * `RECOMMENDED_METHOD.automatic` (empty, the first one on offer, as before the choice existed)
+   * or `RECOMMENDED_METHOD.none`.
+   */
   recommendedMethod: z.string().trim().max(40).default(''),
   /** Smallest order (items after discount, before shipping) the store accepts; 0 means none. */
   minimumOrderPaise: z.number().int().min(0).default(0),
