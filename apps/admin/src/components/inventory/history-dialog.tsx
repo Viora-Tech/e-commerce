@@ -5,6 +5,7 @@ import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { useEffect, useState } from 'react'
 import DialogContent from '@/components/layout/dialog-content'
 import DialogHeader from '@/components/layout/dialog-header'
+import EmptyState from '@/components/layout/empty-state'
 import RelativeTime from '@/components/layout/relative-time'
 import { inventoryContent, REASON_LABELS } from '@/data/inventory'
 import { api } from '@/lib/api-client'
@@ -65,7 +66,7 @@ export default function HistoryDialog({
               <Skeleton className="h-10 w-4/5" />
             </div>
           ) : rows.length === 0 ? (
-            <p className="text-body text-muted-foreground">{copy.empty}</p>
+            <EmptyState variant="inline" body={copy.empty} />
           ) : (
             <ul className="flex flex-col">
               {rows.map((row) => (

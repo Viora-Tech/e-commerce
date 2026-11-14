@@ -6,6 +6,7 @@ import { Input } from '@commerce/ui/shadcn/input'
 import { NativeSelect, NativeSelectOption } from '@commerce/ui/shadcn/native-select'
 import { Switch } from '@commerce/ui/shadcn/switch'
 import NumberField from '@/components/apps/affiliates/number-field'
+import EmptyState from '@/components/layout/empty-state'
 import SettingsCard from '@/components/settings/settings-card'
 import SettingsRow from '@/components/settings/settings-row'
 import { affiliatesContent } from '@/data/affiliates'
@@ -99,7 +100,7 @@ export default function CommissionSettings({ form, onChange }: CommissionSetting
       </SettingsCard>
       <SettingsCard title={copy.overrides} description={copy.overridesHelp}>
         {form.overrides.length === 0 ? (
-          <p className="text-caption text-muted-foreground">{copy.overrideNone}</p>
+          <EmptyState variant="inline" body={copy.overrideNone} />
         ) : null}
         {form.overrides.map((o, i) => (
           <div

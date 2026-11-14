@@ -4,6 +4,7 @@ import type { DashboardSummary } from '@commerce/api'
 import dynamic from 'next/dynamic'
 import ChartLoading from '@/components/layout/chart-loading'
 import DataCard from '@/components/layout/data-card'
+import EmptyState from '@/components/layout/empty-state'
 import { homeContent } from '@/data/home'
 import { useCopy } from '@/hooks/use-copy'
 import type { DonutSlice as Slice } from './donut-plot'
@@ -85,7 +86,7 @@ function Donut({ title, slices, line, empty }: DonutProps) {
   return (
     <DataCard title={title} className="h-full">
       {total === 0 ? (
-        <p className="text-body text-muted-foreground">{empty}</p>
+        <EmptyState variant="inline" body={empty} />
       ) : (
         <div className="flex items-center gap-4">
           <div className="size-32 shrink-0">

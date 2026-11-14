@@ -22,7 +22,7 @@ export default function InstallSteps({ steps, current }: InstallStepsProps) {
           >
             <span
               className={cn(
-                'flex size-5 items-center justify-center rounded-full text-[0.6875rem] font-medium',
+                'flex size-5 items-center justify-center rounded-full text-micro font-medium',
                 i < current && 'bg-success-soft text-success',
                 i === current && 'bg-foreground text-background',
                 i > current && 'bg-muted text-muted-foreground',

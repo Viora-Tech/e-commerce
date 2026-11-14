@@ -24,6 +24,7 @@ import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import type { StoreDefaults } from '@/app/(admin)/markets/load'
+import EmptyState from '@/components/layout/empty-state'
 import PageBody from '@/components/layout/page-body'
 import PageHeader from '@/components/layout/page-header'
 import { marketsContent } from '@/data/markets'
@@ -304,7 +305,7 @@ export default function NewMarketPage({
         <h2 className="text-card-title text-ink-strong">{h.customized}</h2>
         <div className="rounded-lg border border-border bg-card">
           {customized.length === 0 ? (
-            <p className="p-4 text-body text-muted-foreground">{h.customizedEmpty}</p>
+            <EmptyState variant="inline" body={h.customizedEmpty} className="m-4" />
           ) : (
             <div className="p-1">
               <RowList rows={customized} changeLabel={n.change} onOpen={setPart} />

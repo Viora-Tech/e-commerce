@@ -19,6 +19,7 @@ import { toast } from 'sonner'
 import CopyButton from '@/components/fields/copy-button'
 import DateField from '@/components/fields/date-field'
 import DataCard from '@/components/layout/data-card'
+import EmptyState from '@/components/layout/empty-state'
 import InlineState from '@/components/states/inline-state'
 import TableEmptyRow from '@/components/table/table-empty-row'
 import TableSkeletonRows from '@/components/table/table-skeleton-rows'
@@ -172,7 +173,7 @@ export default function PickupsTab({ provider }: PickupsTabProps = {}) {
               <Skeleton className="h-4 w-40" />
             </div>
           ) : unpicked.length === 0 ? (
-            <p className="text-body text-muted-foreground">{copy.empty}</p>
+            <EmptyState variant="inline" body={copy.empty} />
           ) : (
             <ul className="flex flex-col gap-2">
               {unpicked.map((s) => (

@@ -11,6 +11,7 @@ import { Plus, RotateCcw, Save } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import EmptyState from '@/components/layout/empty-state'
 import PageHeader from '@/components/layout/page-header'
 import SettingsCard from '@/components/settings/settings-card'
 import { searchFiltersContent } from '@/data/search-filters'
@@ -135,14 +136,12 @@ export default function FiltersPage() {
         }
       >
         {loaded.config ? null : (
-          <p className="rounded-md bg-muted px-3 py-2 text-[0.8125rem] leading-[1.1875rem] text-muted-foreground">
+          <p className="rounded-md bg-muted px-3 py-2 text-caption font-normal leading-[1.1875rem] text-muted-foreground">
             {copy.list.usingDefault}
           </p>
         )}
         {groups.length === 0 ? (
-          <p className="text-[0.8125rem] leading-[1.1875rem] text-muted-foreground">
-            {copy.list.empty}
-          </p>
+          <EmptyState variant="inline" body={copy.list.empty} />
         ) : (
           <ul className="flex flex-col divide-y divide-border">
             {groups.map((g, i) => {

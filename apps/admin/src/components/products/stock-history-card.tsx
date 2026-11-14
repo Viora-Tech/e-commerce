@@ -3,6 +3,7 @@
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { useEffect, useState } from 'react'
 import DataCard from '@/components/layout/data-card'
+import EmptyState from '@/components/layout/empty-state'
 import ScrollSection from '@/components/layout/scroll-section'
 import { productFormContent } from '@/data/product-form'
 import { useCopy, useFormat } from '@/hooks/use-copy'
@@ -51,7 +52,7 @@ export default function StockHistoryCard({ productId }: StockHistoryCardProps) {
           <Skeleton className="h-5 w-3/5" />
         </div>
       ) : rows.length === 0 ? (
-        <p className="text-body text-muted-foreground">{copy.empty}</p>
+        <EmptyState variant="inline" body={copy.empty} />
       ) : (
         <ScrollSection
           id={`stock-history-${productId}`}

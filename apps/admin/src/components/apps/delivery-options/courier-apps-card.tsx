@@ -2,6 +2,7 @@
 
 import AppLogo from '@/components/apps/app-logo'
 import AppStoreLink from '@/components/apps/app-store-link'
+import EmptyState from '@/components/layout/empty-state'
 import StatusChip from '@/components/layout/status-chip'
 import { deliveryPagesContent } from '@/data/delivery-options-pages'
 import { useCopy, useFormat } from '@/hooks/use-copy'
@@ -56,7 +57,7 @@ export default function CourierAppsCard({ overview, catalogue }: CourierAppsCard
         </AppStoreLink>
       </div>
       {rows.length === 0 ? (
-        <p className="px-4 py-3 text-body text-muted-foreground">{a.none}</p>
+        <EmptyState variant="inline" body={a.none} className="mx-4 my-3" />
       ) : (
         <ul className="flex flex-col">
           {rows.map(({ app, skipped, answering, line }) => (

@@ -21,6 +21,7 @@ import {
 import { SortableList } from '@commerce/ui/sortable'
 import { useState } from 'react'
 import DataCard from '@/components/layout/data-card'
+import EmptyState from '@/components/layout/empty-state'
 import FormDialog from '@/components/layout/form-dialog'
 import SelectProductsDialog, {
   type PickedProducts,
@@ -190,7 +191,7 @@ export default function CollectionProductsCard({
       {rows.length === 0 ? (
         <div className="flex flex-col items-center gap-1 px-4 py-10 text-center">
           <p className="text-body font-medium text-foreground">{emptyHeading}</p>
-          {emptyBody ? <p className="text-body text-muted-foreground">{emptyBody}</p> : null}
+          {emptyBody ? <EmptyState variant="inline" body={emptyBody} /> : null}
         </div>
       ) : draggable ? (
         <SortableList

@@ -143,7 +143,7 @@ export default function AiPanel({ storeId, enabled, page, theme, target }: AiPan
                   <button
                     type="button"
                     onClick={() => handleSend(chip)}
-                    className="flex min-h-[2.8125rem] w-full items-center gap-2 rounded-[0.625rem] border border-border bg-card px-3 py-2.5 text-left text-[0.8125rem] leading-[1.1875rem] text-foreground transition-colors hover:border-border-strong hover:bg-muted/60 focus-visible:ring-2 focus-visible:ring-ring/70 focus-visible:outline-none"
+                    className="flex min-h-[2.8125rem] w-full items-center gap-2 rounded-[0.625rem] border border-border bg-card px-3 py-2.5 text-left text-caption font-normal leading-[1.1875rem] text-foreground transition-colors hover:border-border-strong hover:bg-muted/60 focus-visible:ring-2 focus-visible:ring-ring/70 focus-visible:outline-none"
                   >
                     <AiIcon
                       aria-hidden

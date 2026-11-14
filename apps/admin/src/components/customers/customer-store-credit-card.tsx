@@ -6,6 +6,7 @@ import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import DataCard from '@/components/layout/data-card'
+import EmptyState from '@/components/layout/empty-state'
 import { customerStoreCreditContent } from '@/data/customer-store-credit'
 import { useCopy, useLocale } from '@/hooks/use-copy'
 import { usePermissions } from '@/hooks/use-permissions'
@@ -93,7 +94,7 @@ export default function CustomerStoreCreditCard({ customerId }: CustomerStoreCre
             <span className="text-card-title tabular-nums text-ink-strong">{money(balance)}</span>
           </div>
           {account.entries.length === 0 ? (
-            <p className="text-caption text-muted-foreground">{copy.empty}</p>
+            <EmptyState variant="inline" body={copy.empty} />
           ) : (
             <ul aria-label={copy.history} className="flex flex-col divide-y divide-line">
               {account.entries.map((e) => (

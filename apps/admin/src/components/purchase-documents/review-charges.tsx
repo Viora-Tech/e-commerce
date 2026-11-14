@@ -4,6 +4,7 @@ import type { PurchaseChargeKind } from '@commerce/core/inventory'
 import { Checkbox } from '@commerce/ui/shadcn/checkbox'
 import { Input } from '@commerce/ui/shadcn/input'
 import OptionSelect from '@/components/landed-cost/option-select'
+import EmptyState from '@/components/layout/empty-state'
 import { documentReviewContent } from '@/data/purchase-documents'
 import { chargesContent, PURCHASE_CHARGE_KINDS } from '@/data/purchasing'
 import { useCopy } from '@/hooks/use-copy'
@@ -32,7 +33,7 @@ export default function ReviewCharges({ state, onChange }: ReviewChargesProps) {
   return (
     <ReviewSection heading={copy.heading}>
       {state.charges.length === 0 ? (
-        <p className="text-body text-muted-foreground">{copy.none}</p>
+        <EmptyState variant="inline" body={copy.none} />
       ) : (
         <ul className="flex flex-col divide-y divide-line">
           {state.charges.map((c) => (

@@ -6,6 +6,7 @@ import { Card } from '@commerce/ui/shadcn/card'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
+import EmptyState from '@/components/layout/empty-state'
 import PageHeader from '@/components/layout/page-header'
 import StatusChip from '@/components/layout/status-chip'
 import SettingsCard from '@/components/settings/settings-card'
@@ -103,7 +104,7 @@ export default function SecurityPage() {
             <Skeleton className="h-10 w-full" />
           </div>
         ) : security.recentSignIns.length === 0 ? (
-          <p className="text-body text-muted-foreground">{copy.recent.empty}</p>
+          <EmptyState variant="inline" body={copy.recent.empty} />
         ) : (
           <ul className="flex flex-col">
             {security.recentSignIns.map((s) => (

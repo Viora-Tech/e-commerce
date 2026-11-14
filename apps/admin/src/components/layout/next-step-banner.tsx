@@ -70,7 +70,7 @@ export default function NextStepBanner({
           <div className="flex min-w-0 flex-col gap-0.5">
             <span
               className={cn(
-                'font-mono text-[0.6875rem] leading-4 font-medium tracking-[0.06em] uppercase',
+                'font-mono text-micro leading-4 font-medium tracking-[0.06em] uppercase',
                 EYEBROW[tone],
               )}
             >
@@ -79,7 +79,9 @@ export default function NextStepBanner({
             <h2 className="text-xl leading-7 font-semibold tracking-[-0.01em] text-ink-strong">
               {title}
             </h2>
-            <p className="text-[0.8125rem] leading-[1.1875rem] text-muted-foreground">{body}</p>
+            <p className="text-caption font-normal leading-[1.1875rem] text-muted-foreground">
+              {body}
+            </p>
           </div>
         </div>
         {actions ? <div className="flex flex-wrap items-center gap-2">{actions}</div> : null}

@@ -29,7 +29,7 @@ export default function ShortcutList({ columns = 1 }: ShortcutListProps) {
         <dl key={col[0]?.id} className="flex min-w-0 flex-1 flex-col gap-2">
           {col.map(({ id, keys }) => (
             <div key={id} className="flex min-h-[1.3125rem] items-center gap-2">
-              <dt className="min-w-0 flex-1 truncate text-[0.8125rem] leading-[1.1875rem] text-foreground">
+              <dt className="min-w-0 flex-1 truncate text-caption font-normal leading-[1.1875rem] text-foreground">
                 {copy.keys[id]}
               </dt>
               <dd>

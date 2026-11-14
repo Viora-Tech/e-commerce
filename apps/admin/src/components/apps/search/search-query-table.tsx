@@ -7,6 +7,7 @@ import Link from 'next/link'
 import KitTable from '@/components/kit/kit-table'
 import KitTableHead from '@/components/kit/kit-table-head'
 import KitTableRow from '@/components/kit/kit-table-row'
+import EmptyState from '@/components/layout/empty-state'
 import { searchDiscoveryContent } from '@/data/search-discovery'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { formatRate } from '@/lib/analytics-range'
@@ -38,7 +39,7 @@ export default function SearchQueryTable({ rows, empty, shortcuts }: SearchQuery
   const fmt = useFormat()
 
   // Early returns
-  if (rows.length === 0) return <p className="px-5 py-6 text-body text-muted-foreground">{empty}</p>
+  if (rows.length === 0) return <EmptyState variant="inline" body={empty} className="mx-5 my-6" />
 
   // Render logic
   const o = copy.overview

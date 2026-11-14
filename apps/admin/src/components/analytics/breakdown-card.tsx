@@ -1,5 +1,6 @@
 import KitProgress from '@/components/kit/kit-progress'
 import DataCard from '@/components/layout/data-card'
+import EmptyState from '@/components/layout/empty-state'
 import { formatRate } from '@/lib/analytics-range'
 import { formatPaiseWhole } from '@/lib/money'
 
@@ -23,7 +24,7 @@ export default function BreakdownCard({ title, rows, empty }: BreakdownCardProps
   return (
     <DataCard title={title}>
       {rows.length === 0 ? (
-        <p className="text-kit-body text-muted-foreground">{empty}</p>
+        <EmptyState variant="inline" body={empty} />
       ) : (
         <ul className="flex flex-col gap-4">
           {rows.map((row) => (

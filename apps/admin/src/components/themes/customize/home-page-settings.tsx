@@ -87,7 +87,7 @@ export default function HomePageSettings({ title, domain }: HomePageSettingsProp
   if (failed) {
     return (
       <div className="flex flex-col items-start gap-2">
-        <p className="text-[0.8125rem] text-muted-foreground">{copy.loadFailed}</p>
+        <p className="text-caption font-normal text-muted-foreground">{copy.loadFailed}</p>
         <Button variant="outline" size="sm" onClick={() => setAttempt((n) => n + 1)}>
           <RotateCcw aria-hidden="true" />
           {copy.retry}
@@ -119,7 +119,7 @@ export default function HomePageSettings({ title, domain }: HomePageSettingsProp
       <FieldFrame label={copy.handle} htmlFor="page-handle">
         <Input id="page-handle" value="/" readOnly className={FIELD_INPUT} />
       </FieldFrame>
-      <p className="text-[0.625rem] leading-[1.0625rem] font-medium tracking-[0.05em] text-muted-foreground uppercase">
+      <p className="text-micro leading-[1.0625rem] font-medium tracking-[0.05em] text-muted-foreground uppercase">
         {copy.listing}
       </p>
       <FieldFrame label={copy.seoTitle} htmlFor="page-seo-title">
@@ -158,7 +158,7 @@ export default function HomePageSettings({ title, domain }: HomePageSettingsProp
             <Image src={image.url} alt="" fill sizes="4.5rem" className="object-cover" />
           ) : null}
         </span>
-        <span className="min-w-0 flex-1 truncate text-[0.8125rem] leading-[1.1875rem] font-medium text-foreground">
+        <span className="min-w-0 flex-1 truncate text-caption leading-[1.1875rem] font-medium text-foreground">
           {copy.socialImage}
         </span>
         {image ? (

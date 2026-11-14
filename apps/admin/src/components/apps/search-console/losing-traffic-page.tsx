@@ -5,6 +5,7 @@ import KitTable from '@/components/kit/kit-table'
 import KitTableHead from '@/components/kit/kit-table-head'
 import KitTableRow from '@/components/kit/kit-table-row'
 import DataCard from '@/components/layout/data-card'
+import EmptyState from '@/components/layout/empty-state'
 import { searchConsoleContent } from '@/data/search-console'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import ReportFrame from './report-frame'
@@ -23,7 +24,7 @@ export default function LosingTrafficPage() {
   // Helpers
   const table = (first: string, rows: Drop[], empty: string) =>
     rows.length === 0 ? (
-      <p className="py-6 text-body text-muted-foreground">{empty}</p>
+      <EmptyState variant="inline" body={empty} className="my-6" />
     ) : (
       <div className="overflow-x-auto">
         <KitTable className="min-w-[36rem]">

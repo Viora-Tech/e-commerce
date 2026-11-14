@@ -1,10 +1,10 @@
 'use client'
 
 import { ExternalLink, MessageSquare } from '@commerce/ui/icons'
-import { Badge } from '@commerce/ui/shadcn/badge'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import DataCard from '@/components/layout/data-card'
+import StatusChip from '@/components/layout/status-chip'
 import { chatwootContent } from '@/data/chatwoot'
 import { useCopy, useLocale } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -28,7 +28,7 @@ const loadFor = (kind: ConversationsCardProps['kind'], id: string): Promise<View
 
 const STATUS_TONE = {
   open: 'info',
-  pending: 'warning',
+  pending: 'attention',
   snoozed: 'neutral',
   resolved: 'success',
 } as const
@@ -114,7 +114,7 @@ export default function ConversationsCard({ kind, id }: ConversationsCardProps) 
                 {c.unreadCount > 0 ? ` · ${copy.unread(c.unreadCount)}` : ''}
               </span>
             </span>
-            <Badge variant={STATUS_TONE[c.status]}>{copy.statuses[c.status]}</Badge>
+            <StatusChip tone={STATUS_TONE[c.status]}>{copy.statuses[c.status]}</StatusChip>
           </a>
         ))}
       </div>

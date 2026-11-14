@@ -2,12 +2,12 @@
 
 import type { FieldDefinition } from '@commerce/core/metaobjects'
 import { Pencil, Plus, Trash2 } from '@commerce/ui/icons'
-import { Badge } from '@commerce/ui/shadcn/badge'
 import { Button } from '@commerce/ui/shadcn/button'
 import { SortableList } from '@commerce/ui/sortable'
 import { useState } from 'react'
 import DataCard from '@/components/layout/data-card'
 import EmptyState from '@/components/layout/empty-state'
+import StatusChip from '@/components/layout/status-chip'
 import { reorderLabels } from '@/data/common'
 import { definitionFormContent, fieldTypeContent } from '@/data/metaobjects'
 import { useCopy } from '@/hooks/use-copy'
@@ -64,8 +64,12 @@ export default function DefinitionFieldsCard({
                 <div className="flex min-w-0 flex-1 flex-col">
                   <span className="flex flex-wrap items-center gap-2">
                     <span className="truncate text-body-strong">{f.name}</span>
-                    {f.required ? <Badge variant="secondary">{copy.required}</Badge> : null}
-                    {f.list ? <Badge variant="outline">{copy.list}</Badge> : null}
+                    {f.required ? <StatusChip dot={false}>{copy.required}</StatusChip> : null}
+                    {f.list ? (
+                      <StatusChip variant="outline" dot={false}>
+                        {copy.list}
+                      </StatusChip>
+                    ) : null}
                   </span>
                   <span className="truncate text-caption text-muted-foreground">
                     {types[f.type].label} · {f.key}

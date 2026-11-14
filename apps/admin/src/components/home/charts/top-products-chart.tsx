@@ -5,6 +5,7 @@ import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import dynamic from 'next/dynamic'
 import ChartLoading from '@/components/layout/chart-loading'
 import DataCard from '@/components/layout/data-card'
+import EmptyState from '@/components/layout/empty-state'
 import { homeContent } from '@/data/home'
 import { useCopy } from '@/hooks/use-copy'
 
@@ -44,7 +45,7 @@ export default function TopProductsChart({ data, loading }: TopProductsChartProp
       {loading ? (
         <Skeleton className="h-64 w-full" />
       ) : points.length === 0 ? (
-        <p className="text-body text-muted-foreground">{c.topProductsEmpty}</p>
+        <EmptyState variant="inline" body={c.topProductsEmpty} />
       ) : (
         <div className="flex flex-col gap-3">
           <div className="h-64 w-full">

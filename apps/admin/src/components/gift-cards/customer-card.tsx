@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import DataCard from '@/components/layout/data-card'
+import EmptyState from '@/components/layout/empty-state'
 import { giftCardDetailContent } from '@/data/gift-cards'
 import { routes } from '@/lib/routes'
 
@@ -35,7 +36,7 @@ export default function CustomerCard({ card }: CustomerCardProps) {
           ) : null}
         </div>
       ) : (
-        <p className="text-body text-muted-foreground">{copy.none}</p>
+        <EmptyState variant="inline" body={copy.none} />
       )}
       {recipient ? (
         <div className="mt-3 flex flex-col gap-0.5 border-t border-border pt-3">

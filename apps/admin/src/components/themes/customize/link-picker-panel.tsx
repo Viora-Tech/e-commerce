@@ -144,7 +144,7 @@ export default function LinkPickerPanel({ value, onPick, newTab, onNewTab }: Lin
             onChange={(e) => setQuery(e.target.value)}
             placeholder={kind ? copy.searchIn(copy.tabs[kind]) : copy.search}
             aria-label={kind ? copy.searchIn(copy.tabs[kind]) : copy.search}
-            className="h-8 rounded-lg pl-8 text-[0.8125rem]"
+            className="h-8 rounded-lg pl-8 text-caption font-normal"
           />
         </div>
       </div>

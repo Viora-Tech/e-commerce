@@ -49,7 +49,7 @@ const copy = customizeContent.templates
 const LOOK =
   'bg-transparent **:data-[slot=command-input-wrapper]:p-0 **:data-[slot=input-group]:h-10! **:data-[slot=input-group]:rounded-[0.625rem]! **:data-[slot=command-group]:p-0 **:[[cmdk-group-heading]]:sr-only'
 const ITEM =
-  'min-h-[2.1875rem] rounded-lg px-2 text-[0.8125rem] data-[checked=true]:bg-primary-soft data-[checked=true]:font-medium data-[checked=true]:text-primary [&>svg:last-child]:hidden'
+  'min-h-[2.1875rem] rounded-lg px-2 text-caption font-normal data-[checked=true]:bg-primary-soft data-[checked=true]:font-medium data-[checked=true]:text-primary [&>svg:last-child]:hidden'
 
 /** Each kind's glyph, from the editor set (Hugeicons). */
 const KIND_ICONS: Record<TemplateKind, IconComponent> = {

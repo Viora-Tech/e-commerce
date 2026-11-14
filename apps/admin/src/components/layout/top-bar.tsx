@@ -125,7 +125,7 @@ export default function TopBar({
               email={user.email}
               image={user.image}
               className="size-9"
-              fallbackClassName="bg-primary text-[0.8125rem] text-primary-foreground"
+              fallbackClassName="bg-primary text-caption font-normal text-primary-foreground"
             />
           }
         />

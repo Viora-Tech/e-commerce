@@ -8,6 +8,7 @@ import { Input } from '@commerce/ui/shadcn/input'
 import { useState } from 'react'
 import ChoiceField from '@/components/apps/gst-invoices/choice-field'
 import DataCard from '@/components/layout/data-card'
+import EmptyState from '@/components/layout/empty-state'
 import StatusChip from '@/components/layout/status-chip'
 import { shippingRatesContent } from '@/data/shipping-rates'
 import { useCopy } from '@/hooks/use-copy'
@@ -96,7 +97,7 @@ export default function ZonePincodesCard({ value, onChange, disabled }: ZonePinc
         </div>
         {error ? <FieldError>{copy[error]}</FieldError> : null}
         {value.length === 0 ? (
-          <p className="text-body text-muted-foreground">{copy.none}</p>
+          <EmptyState variant="inline" body={copy.none} />
         ) : (
           <ul className="flex flex-wrap gap-2">
             {value.map((r, i) => (

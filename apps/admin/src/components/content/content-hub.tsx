@@ -37,7 +37,9 @@ function HubCard({ icon, title, facts, body, open, href }: HubCardProps) {
           {icon}
         </div>
         <div className="flex min-w-0 flex-col gap-0.5">
-          <h2 className="truncate text-[1rem] leading-6 font-semibold text-ink-strong">{title}</h2>
+          <h2 className="truncate text-card-title leading-6 font-semibold text-ink-strong">
+            {title}
+          </h2>
           {facts ? <p className="truncate text-caption text-muted-foreground">{facts}</p> : null}
         </div>
       </div>

@@ -1,6 +1,6 @@
 'use client'
 
-import { CircleAlert, Compass, Inbox, Lock, Plus, WifiOff } from '@commerce/ui/icons'
+import { CircleAlert, Compass, Lock, WifiOff } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
 import type { ReactNode } from 'react'
@@ -10,10 +10,10 @@ import { useCopy } from '@/hooks/use-copy'
 import { routes } from '@/lib/routes'
 
 type PageStateProps = {
-  kind: 'error' | 'offline' | 'no-access' | 'not-found' | 'empty'
+  kind: 'error' | 'offline' | 'no-access' | 'not-found'
   /** Retry (error, offline); renders the key button. */
   onRetry?: () => void
-  /** Replaces the default button: an empty state's "Add item", say. */
+  /** Replaces the default button. Empty lists and cards use EmptyState, not PageState. */
   action?: ReactNode
   /** Override the default words for this kind. */
   heading?: string
@@ -27,7 +27,6 @@ const ICON = {
   offline: WifiOff,
   'no-access': Lock,
   'not-found': Compass,
-  empty: Inbox,
 } as const
 
 /**
@@ -59,7 +58,6 @@ export default function PageState({
       body: copy.notFound.body,
       cta: copy.notFound.home,
     },
-    empty: { heading: copy.empty.heading, body: copy.empty.body, cta: copy.empty.add },
   }[kind]
   const defaultAction =
     kind === 'not-found' ? (
@@ -68,11 +66,6 @@ export default function PageState({
       </Button>
     ) : onRetry ? (
       <Button onClick={onRetry}>{words.cta}</Button>
-    ) : kind === 'empty' ? (
-      <Button>
-        <Plus aria-hidden />
-        {words.cta}
-      </Button>
     ) : null
 
   return (

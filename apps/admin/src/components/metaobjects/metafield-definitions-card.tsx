@@ -2,7 +2,6 @@
 
 import type { MetafieldOwnerType } from '@commerce/core/metaobjects'
 import { Braces, Pencil, Plus, Trash2 } from '@commerce/ui/icons'
-import { Badge } from '@commerce/ui/shadcn/badge'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { SortableList } from '@commerce/ui/sortable'
@@ -12,6 +11,7 @@ import ActionMenu from '@/components/layout/action-menu'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
 import DataCard from '@/components/layout/data-card'
 import EmptyState from '@/components/layout/empty-state'
+import StatusChip from '@/components/layout/status-chip'
 import { reorderLabels } from '@/data/common'
 import { customDataContent, fieldTypeContent } from '@/data/metaobjects'
 import { useCopy } from '@/hooks/use-copy'
@@ -82,8 +82,8 @@ export default function MetafieldDefinitionsCard({
       <div className="flex min-w-0 flex-1 flex-col">
         <span className="flex flex-wrap items-center gap-2">
           <span className="truncate text-body-strong">{d.name}</span>
-          {d.storefrontAccess ? null : <Badge variant="neutral">{copy.metafields.hidden}</Badge>}
-          {d.filterable ? <Badge variant="neutral">{copy.metafields.filter}</Badge> : null}
+          {d.storefrontAccess ? null : <StatusChip>{copy.metafields.hidden}</StatusChip>}
+          {d.filterable ? <StatusChip dot={false}>{copy.metafields.filter}</StatusChip> : null}
         </span>
         <span className="truncate font-mono text-caption text-muted-foreground">
           {d.namespace}.{d.key}

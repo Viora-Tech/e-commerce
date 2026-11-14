@@ -28,6 +28,7 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 import ActionMenu from '@/components/layout/action-menu'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
+import EmptyState from '@/components/layout/empty-state'
 import PageBody from '@/components/layout/page-body'
 import PageHeader from '@/components/layout/page-header'
 import StatusChip from '@/components/layout/status-chip'
@@ -322,7 +323,7 @@ export default function MarketPage({ market, markets, domains, catalog }: Market
         <h2 className="text-card-title text-ink-strong">{h.customized}</h2>
         <div className={CARD}>
           {customized.length === 0 ? (
-            <p className="p-4 text-body text-muted-foreground">{h.customizedEmpty}</p>
+            <EmptyState variant="inline" body={h.customizedEmpty} className="m-4" />
           ) : (
             <ul className="flex flex-col divide-y divide-border">
               {customized.map((s) => (

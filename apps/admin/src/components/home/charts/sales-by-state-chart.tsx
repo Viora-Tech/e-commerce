@@ -4,6 +4,7 @@ import type { DashboardSummary } from '@commerce/api'
 import dynamic from 'next/dynamic'
 import ChartLoading from '@/components/layout/chart-loading'
 import DataCard from '@/components/layout/data-card'
+import EmptyState from '@/components/layout/empty-state'
 import { homeContent } from '@/data/home'
 import { stateName } from '@/data/india'
 import { useCopy } from '@/hooks/use-copy'
@@ -36,7 +37,7 @@ export default function SalesByStateChart({ salesByState }: SalesByStateChartPro
   return (
     <DataCard title={c.stateTitle}>
       {points.length === 0 ? (
-        <p className="text-body text-muted-foreground">{c.stateEmpty}</p>
+        <EmptyState variant="inline" body={c.stateEmpty} />
       ) : (
         <div className="flex flex-col gap-3">
           <div className="h-48 w-full">

@@ -43,7 +43,7 @@ export default function AppsTab({ query, hovered, onHover, labelOf, onAdd }: App
         <span className="flex size-8 items-center justify-center rounded-lg bg-chart-2/14 text-chart-2">
           <Puzzle aria-hidden weight="regular" className="size-4" />
         </span>
-        <p className="text-[0.8125rem] font-medium text-foreground">{copy.appsEmpty.title}</p>
+        <p className="text-caption font-medium text-foreground">{copy.appsEmpty.title}</p>
         <p className="text-xs text-muted-foreground">{copy.appsEmpty.body}</p>
         <a
           href={appStoreUrl()}

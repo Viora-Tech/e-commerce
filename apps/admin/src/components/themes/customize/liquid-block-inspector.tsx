@@ -164,7 +164,9 @@ export default function LiquidBlockInspector({
           ))}
         </InspectorCard>
       ) : (
-        <p className="px-1 text-[0.8125rem] text-muted-foreground">{inspector.emptyFields}</p>
+        <p className="px-1 text-caption font-normal text-muted-foreground">
+          {inspector.emptyFields}
+        </p>
       )}
     </motion.section>
   )

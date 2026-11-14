@@ -111,10 +111,10 @@ export default function LiveNow({ initial }: LiveNowProps) {
             value={fmt.compact(visitors)}
             className="font-[family-name:var(--font-display)] text-[2.5rem] leading-[2.875rem] font-semibold tracking-[-0.0625rem] text-ink-strong tabular-nums"
           />
-          <p className="text-[0.8125rem] leading-[1.1875rem] text-muted-foreground">
+          <p className="text-caption font-normal leading-[1.1875rem] text-muted-foreground">
             {copy.visitors(visitors)}
           </p>
-          <p className="text-[0.8125rem] leading-[1.1875rem] font-medium text-foreground">
+          <p className="text-caption leading-[1.1875rem] font-medium text-foreground">
             {copy.today(
               copy.ordersWord(data.today.ordersCount),
               fmt.moneyWhole(data.today.salesPaise),

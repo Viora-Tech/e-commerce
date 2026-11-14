@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import KitProgress from '@/components/kit/kit-progress'
 import DataCard from '@/components/layout/data-card'
+import EmptyState from '@/components/layout/empty-state'
 import { formatRate } from '@/lib/analytics-range'
 import { formatCompact } from '@/lib/money'
 
@@ -20,7 +21,7 @@ export default function VisitorListCard({ title, rows, empty, action }: VisitorL
   return (
     <DataCard title={title} action={action}>
       {rows.length === 0 ? (
-        <p className="text-kit-body text-muted-foreground">{empty}</p>
+        <EmptyState variant="inline" body={empty} />
       ) : (
         <ul className="flex flex-col gap-4">
           {rows.map((row) => (

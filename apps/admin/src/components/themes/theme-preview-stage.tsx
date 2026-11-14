@@ -40,7 +40,7 @@ export default function ThemePreviewStage({
               <span className="size-2 rounded-full bg-muted-foreground/30" />
               <span className="size-2 rounded-full bg-muted-foreground/30" />
             </span>
-            <span className="mx-auto max-w-[60%] flex-1 truncate rounded-md bg-muted px-3 py-0.5 text-center text-[0.6875rem] text-muted-foreground">
+            <span className="mx-auto max-w-[60%] flex-1 truncate rounded-md bg-muted px-3 py-0.5 text-center text-micro text-muted-foreground">
               {host}
             </span>
           </div>

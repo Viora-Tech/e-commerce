@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import DataCard from '@/components/layout/data-card'
+import EmptyState from '@/components/layout/empty-state'
 import StatusLabel from '@/components/status/status-label'
 import { supplierFormContent } from '@/data/purchasing'
 import { useCopy } from '@/hooks/use-copy'
@@ -21,7 +22,7 @@ export default function SupplierOrdersCard({ orders }: SupplierOrdersCardProps) 
   return (
     <DataCard title={copy.heading}>
       {orders.length === 0 ? (
-        <p className="text-body text-muted-foreground">{copy.empty}</p>
+        <EmptyState variant="inline" body={copy.empty} />
       ) : (
         <ul className="flex flex-col gap-2">
           {orders.map((o) => (

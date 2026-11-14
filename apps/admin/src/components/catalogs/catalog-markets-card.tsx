@@ -3,6 +3,7 @@
 import type { CatalogSummary, MarketView } from '@commerce/core'
 import { Globe, XIcon } from '@commerce/ui/icons'
 import ActionMenu from '@/components/layout/action-menu'
+import EmptyState from '@/components/layout/empty-state'
 import { catalogsContent } from '@/data/catalogs'
 import { useCopy } from '@/hooks/use-copy'
 
@@ -52,7 +53,7 @@ export default function CatalogMarketsCard({
       </span>
       <div className="flex min-w-0 flex-1 flex-col gap-2">
         {markets.length === 0 ? (
-          <p className="pt-1 text-body text-muted-foreground">{copy.noMarketsYet}</p>
+          <EmptyState variant="inline" body={copy.noMarketsYet} className="mt-1" />
         ) : (
           <div className="flex flex-wrap items-center gap-2">
             {picked.map((m) => (

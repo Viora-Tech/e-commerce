@@ -14,6 +14,7 @@ import {
 } from '@commerce/ui/shadcn/table'
 import { ToggleGroup, ToggleGroupItem } from '@commerce/ui/shadcn/toggle-group'
 import { useState } from 'react'
+import EmptyState from '@/components/layout/empty-state'
 import { CHANNEL_LABELS, growthOverviewContent } from '@/data/growth'
 import { growthSplitContent } from '@/data/growth-report'
 import { useCopy } from '@/hooks/use-copy'
@@ -64,9 +65,9 @@ export default function ChannelTableCard({ rows }: ChannelTableCardProps) {
         ) : null}
       </div>
       {rows.length === 0 ? (
-        <p className="mt-5 text-kit-body text-muted-foreground">{copy.empty}</p>
+        <EmptyState variant="inline" body={copy.empty} className="mt-5" />
       ) : shown.length === 0 ? (
-        <p className="mt-5 text-kit-body text-muted-foreground">{split.filter.empty}</p>
+        <EmptyState variant="inline" body={split.filter.empty} className="mt-5" />
       ) : (
         <Table className="mt-3">
           <TableHeader>

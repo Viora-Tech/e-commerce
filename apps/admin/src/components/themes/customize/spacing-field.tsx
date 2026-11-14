@@ -123,7 +123,7 @@ export default function SpacingField({ value, max, onChange }: SpacingFieldProps
         />
       </div>
       <div className="flex flex-col items-center gap-1.5 rounded-xl border border-primary bg-muted p-2.5">
-        <span className="text-[0.625rem] leading-[1.0625rem] font-medium tracking-[0.05em] text-muted-foreground uppercase">
+        <span className="text-micro leading-[1.0625rem] font-medium tracking-[0.05em] text-muted-foreground uppercase">
           {copy.padding}
         </span>
         {side('paddingTop')}

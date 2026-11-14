@@ -1,5 +1,6 @@
 import type { DashboardSummary } from '@commerce/api'
 import Link from 'next/link'
+import EmptyState from '@/components/layout/empty-state'
 import RelativeTime from '@/components/layout/relative-time'
 import SectionHead from '@/components/layout/section-head'
 import StatusChip from '@/components/layout/status-chip'
@@ -63,7 +64,7 @@ export default async function LatestOrders({ orders }: LatestOrdersProps) {
       />
       <div className="flex-1 rounded-lg surface-card">
         {rows.length === 0 ? (
-          <p className="p-5 text-body text-muted-foreground">{c.empty}</p>
+          <EmptyState variant="inline" body={c.empty} className="m-5" />
         ) : (
           <ul className="flex flex-col divide-y divide-border">
             {rows.map((order) => {
@@ -89,7 +90,7 @@ export default async function LatestOrders({ orders }: LatestOrdersProps) {
                       <span className="block truncate text-body-strong text-ink-strong">
                         {name}
                       </span>
-                      <span className="block truncate text-[0.8125rem] leading-[1.1875rem] text-muted-foreground">
+                      <span className="block truncate text-caption font-normal leading-[1.1875rem] text-muted-foreground">
                         #{order.number} · <RelativeTime value={order.placedAt} />
                       </span>
                     </span>

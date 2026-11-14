@@ -58,7 +58,7 @@ const ICONS: Record<ImportedGroupIcon, IconComponent> = {
 }
 
 const ROW = `flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left transition-colors hover:bg-muted/60 ${CHROME_FOCUS}`
-const ROW_TITLE = 'truncate text-[0.8125rem] leading-[1.1875rem] font-medium text-foreground'
+const ROW_TITLE = 'truncate text-caption leading-[1.1875rem] font-medium text-foreground'
 const ROW_SUMMARY = 'truncate text-xs leading-[1.0625rem] text-muted-foreground'
 
 /**

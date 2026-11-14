@@ -8,6 +8,7 @@ import Link from 'next/link'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
+import EmptyState from '@/components/layout/empty-state'
 import PageHeader from '@/components/layout/page-header'
 import ProoflyPageBody from '@/components/layout/proofly-page-body'
 import StatusChip from '@/components/layout/status-chip'
@@ -208,7 +209,7 @@ export default function ThemesLibrary({
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-4 py-4 md:px-5">
           <div className="flex min-w-0 flex-col gap-0.5">
             <h2 className="text-card-title">{copy.libraryHeading}</h2>
-            <p className="text-[0.8125rem] leading-[1.1875rem] text-muted-foreground">
+            <p className="text-caption font-normal leading-[1.1875rem] text-muted-foreground">
               {copy.libraryBody}
             </p>
           </div>
@@ -221,10 +222,10 @@ export default function ThemesLibrary({
         </div>
         {library.length === 0 ? (
           <div className="flex flex-col items-center gap-2.5 py-9 text-center">
-            <p className="text-[0.9375rem] leading-[1.375rem] font-semibold text-foreground">
+            <p className="text-card-title leading-[1.375rem] font-semibold text-foreground">
               {copy.emptyTitle}
             </p>
-            <p className="text-body text-muted-foreground">{copy.emptyBody}</p>
+            <EmptyState variant="inline" body={copy.emptyBody} />
             <div className="flex flex-wrap justify-center gap-2.5">
               {live ? (
                 <Button
@@ -264,7 +265,7 @@ export default function ThemesLibrary({
         </span>
         <div className="flex min-w-0 flex-1 basis-64 flex-col gap-0.5">
           <p className="text-body font-medium text-foreground">{copy.importHeading}</p>
-          <p className="text-[0.8125rem] leading-[1.1875rem] text-muted-foreground">
+          <p className="text-caption font-normal leading-[1.1875rem] text-muted-foreground">
             {copy.importBody}
           </p>
         </div>

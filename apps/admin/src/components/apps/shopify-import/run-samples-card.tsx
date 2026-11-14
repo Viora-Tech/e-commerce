@@ -4,6 +4,7 @@ import { IMPORT_RESOURCES, type PreviewSample } from '@commerce/plugin-shopify-i
 import { Tabs, TabsList, TabsTrigger } from '@commerce/ui/shadcn/tabs'
 import { useState } from 'react'
 import DataCard from '@/components/layout/data-card'
+import EmptyState from '@/components/layout/empty-state'
 import ScrollSection from '@/components/layout/scroll-section'
 import { shopifyImportContent } from '@/data/shopify-import'
 import { shopifyImportRunContent } from '@/data/shopify-import-run'
@@ -61,7 +62,7 @@ export default function RunSamplesCard({ samples, progress }: RunSamplesCardProp
             </ul>
           </ScrollSection>
         ) : (
-          <p className="text-body text-muted-foreground">{view.samples.empty}</p>
+          <EmptyState variant="inline" body={view.samples.empty} />
         )}
         {more > 0 ? (
           <p className="text-caption text-muted-foreground">{view.samples.more(more)}</p>

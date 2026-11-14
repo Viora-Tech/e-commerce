@@ -16,6 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@commerce/ui/shadcn/select'
+import EmptyState from '@/components/layout/empty-state'
 import { segmentsContent as copy } from '@/data/customers'
 import ConditionRow from './condition-row'
 
@@ -73,7 +74,7 @@ export default function ConditionBuilder({ rules, onChange }: ConditionBuilderPr
       </div>
 
       {rules.conditions.length === 0 ? (
-        <p className="text-body text-muted-foreground">{copy.builder.empty}</p>
+        <EmptyState variant="inline" body={copy.builder.empty} />
       ) : (
         <div className="flex flex-col gap-3">
           {rules.conditions.map((condition, index) => (

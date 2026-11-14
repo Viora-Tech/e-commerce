@@ -2,6 +2,7 @@
 
 import type { CampaignReport } from '@commerce/api'
 import DataCard from '@/components/layout/data-card'
+import EmptyState from '@/components/layout/empty-state'
 import { campaignPerformanceContent } from '@/data/growth-report'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 
@@ -28,7 +29,7 @@ export default function CampaignSplitCard({ split }: CampaignSplitCardProps) {
   return (
     <DataCard title={copy.title}>
       {empty ? (
-        <p className="text-body text-muted-foreground">{copy.empty}</p>
+        <EmptyState variant="inline" body={copy.empty} />
       ) : (
         <ul className="flex flex-col">
           {rows.map((r) => (

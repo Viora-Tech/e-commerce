@@ -190,7 +190,7 @@ export default function SectionRow({
             onFocus={(e) => e.currentTarget.select()}
             aria-label={copy.renameLabel(name)}
             maxLength={60}
-            className="h-6 min-w-0 flex-1 rounded-md border border-ring bg-card px-1.5 text-[0.8125rem] outline-none focus-visible:ring-2 focus-visible:ring-ring/30"
+            className="h-6 min-w-0 flex-1 rounded-md border border-ring bg-card px-1.5 text-caption font-normal outline-none focus-visible:ring-2 focus-visible:ring-ring/30"
           />
         </span>
       ) : (

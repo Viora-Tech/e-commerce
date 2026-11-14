@@ -1,5 +1,6 @@
 'use client'
 
+import EmptyState from '@/components/layout/empty-state'
 import { deliveryOptionsContent } from '@/data/delivery-options'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import type { TryPinResult } from './format'
@@ -34,7 +35,7 @@ export default function TryPinCards({ result }: TryPinCardsProps) {
       {result.status === 'unserviceable' ? (
         <p className="text-body text-danger">{t.unserviceable}</p>
       ) : result.options.length === 0 ? (
-        <p className="text-body text-muted-foreground">{t.noCards}</p>
+        <EmptyState variant="inline" body={t.noCards} />
       ) : (
         result.options.map((o) => (
           <div

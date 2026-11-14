@@ -2,6 +2,7 @@ import { Plus } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
 import DataCard from '@/components/layout/data-card'
+import EmptyState from '@/components/layout/empty-state'
 import StatusLabel from '@/components/status/status-label'
 import { giftCardProductsContent as copy } from '@/data/gift-cards'
 import { formatPaise } from '@/lib/money'
@@ -33,7 +34,7 @@ export default function GiftCardProductsCard({ products, onAdd }: GiftCardProduc
       }
     >
       {products.length === 0 ? (
-        <p className="text-body text-muted-foreground">{copy.empty}</p>
+        <EmptyState variant="inline" body={copy.empty} />
       ) : (
         <ul className="flex flex-col divide-y divide-border">
           {products.map((p) => (

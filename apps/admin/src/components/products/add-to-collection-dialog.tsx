@@ -9,6 +9,7 @@ import { useEffect, useState } from 'react'
 import DialogContent from '@/components/layout/dialog-content'
 import DialogFooter from '@/components/layout/dialog-footer'
 import DialogHeader from '@/components/layout/dialog-header'
+import EmptyState from '@/components/layout/empty-state'
 import { productsListContent } from '@/data/products'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -66,7 +67,7 @@ export default function AddToCollectionDialog({
         {collections === null ? (
           <p className="text-body text-muted-foreground">{copy.loading}</p>
         ) : collections.length === 0 ? (
-          <p className="text-body text-muted-foreground">{copy.none}</p>
+          <EmptyState variant="inline" body={copy.none} />
         ) : (
           <Field>
             <FieldLabel htmlFor="bulk-collection">{copy.label}</FieldLabel>

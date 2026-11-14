@@ -142,7 +142,7 @@ export default function ImageField({ value, onChange }: ImageFieldProps) {
             <span className="flex size-9 items-center justify-center rounded-xl bg-card text-muted-foreground shadow-card">
               <ImagePlus aria-hidden className="size-4" />
             </span>
-            <p className="text-[0.8125rem] font-medium text-foreground">{copy.drop}</p>
+            <p className="text-caption font-medium text-foreground">{copy.drop}</p>
             <p className="text-xs text-muted-foreground">{copy.dropHint}</p>
           </div>
         )}

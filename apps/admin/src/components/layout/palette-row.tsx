@@ -49,7 +49,7 @@ function Thumb({ src, fallback }: { src: string | null; fallback: ReactNode }) {
 function Lines({ title, sub }: { title: ReactNode; sub?: ReactNode }) {
   return (
     <span className="flex min-w-0 flex-1 flex-col">
-      <span className="truncate text-[0.9375rem] leading-5 text-foreground">{title}</span>
+      <span className="truncate text-body leading-5 text-foreground">{title}</span>
       {sub ? (
         <span className="mt-0.5 flex min-w-0 items-center gap-2 truncate text-caption text-muted-foreground">
           {sub}

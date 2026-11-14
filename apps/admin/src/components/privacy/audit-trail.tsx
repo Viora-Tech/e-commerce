@@ -1,4 +1,5 @@
 import type { PrivacyAuditEntry } from '@commerce/core'
+import EmptyState from '@/components/layout/empty-state'
 import { auditContent as copy, STATUS_LABEL } from '@/data/customer-privacy'
 import { formatDateTime } from '@/lib/format-date'
 
@@ -24,7 +25,7 @@ function extra(entry: PrivacyAuditEntry): string | null {
 /** Who did what and when, newest first: the privacy audit trail. */
 export default function AuditTrail({ entries }: AuditTrailProps) {
   // Early returns
-  if (entries.length === 0) return <p className="text-body text-muted-foreground">{copy.empty}</p>
+  if (entries.length === 0) return <EmptyState variant="inline" body={copy.empty} />
 
   // Render logic
   return (

@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import type { ProductSectionProps } from '@/apps/product-sections'
+import EmptyState from '@/components/layout/empty-state'
 import OrderChip from '@/components/orders/order-chip'
 import { productPageContent } from '@/data/product-page'
 import { reviewToolsContent } from '@/data/review-tools'
@@ -48,7 +49,7 @@ export default function ProductSection({ productId }: ProductSectionProps) {
     <div className="flex flex-col gap-3">
       <ProductSummary productId={productId} />
       {page.total === 0 ? (
-        <p className="text-body text-muted-foreground">{copy.reviews.empty}</p>
+        <EmptyState variant="inline" body={copy.reviews.empty} />
       ) : (
         <>
           <p className="text-body-strong">{copy.reviews.count(page.total)}</p>

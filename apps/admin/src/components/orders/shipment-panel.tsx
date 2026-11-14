@@ -4,6 +4,7 @@ import type { Tracking } from '@commerce/core'
 import { PackageCheck, RefreshCw, Truck } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import DataCard from '@/components/layout/data-card'
+import EmptyState from '@/components/layout/empty-state'
 import RelativeTime from '@/components/layout/relative-time'
 import ShipmentDetails from '@/components/shipments/shipment-details'
 import { shipmentPanelContent } from '@/data/shipping'
@@ -44,7 +45,7 @@ export default function ShipmentPanel({
     return (
       <DataCard title={copy.heading}>
         <div className="flex items-center justify-between gap-4">
-          <p className="text-body text-muted-foreground">{copy.none}</p>
+          <EmptyState variant="inline" body={copy.none} />
           {bookable ? (
             <Button onClick={onBook} disabled={busy}>
               <Truck aria-hidden="true" />
@@ -89,7 +90,7 @@ export default function ShipmentPanel({
         <div>
           <p className="mb-3 text-eyebrow">{copy.events}</p>
           {events.length === 0 ? (
-            <p className="text-body text-muted-foreground">{copy.noEvents}</p>
+            <EmptyState variant="inline" body={copy.noEvents} />
           ) : (
             <ol className="relative flex flex-col gap-3 border-border border-l pl-4">
               {events.map((e) => (

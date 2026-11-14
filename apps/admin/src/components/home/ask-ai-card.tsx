@@ -109,12 +109,12 @@ export default function AskAiCard({
             onBlur={handleResume}
             placeholder={showHint ? '' : (placeholder ?? copy.ask.placeholder)}
             aria-label={label ?? copy.ask.label}
-            className="h-full w-full bg-transparent text-[0.9375rem] leading-5 text-foreground outline-none placeholder:text-muted-foreground"
+            className="h-full w-full bg-transparent text-body leading-5 text-foreground outline-none placeholder:text-muted-foreground"
           />
           {showHint ? (
             <span
               aria-hidden="true"
-              className="pointer-events-none absolute inset-0 flex items-center overflow-hidden text-[0.9375rem] leading-5 text-muted-foreground"
+              className="pointer-events-none absolute inset-0 flex items-center overflow-hidden text-body leading-5 text-muted-foreground"
             >
               <RollingText text={chips[hint % chips.length] ?? ''} className="w-full" />
             </span>
@@ -128,14 +128,14 @@ export default function AskAiCard({
       </form>
       <ul className="flex flex-wrap items-center gap-2">
         {chipsLabel ? (
-          <li className="text-[0.8125rem] text-muted-foreground">{chipsLabel}</li>
+          <li className="text-caption font-normal text-muted-foreground">{chipsLabel}</li>
         ) : null}
         {chips.map((chip) => (
           <li key={chip}>
             <button
               type="button"
               onClick={() => handleAsk(chip)}
-              className="h-[2.0625rem] rounded-full border border-border bg-background px-3.5 text-[0.8125rem] leading-[1.1875rem] text-muted-foreground shadow-lift transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="h-[2.0625rem] rounded-full border border-border bg-background px-3.5 text-caption font-normal leading-[1.1875rem] text-muted-foreground shadow-lift transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               {chip}
             </button>

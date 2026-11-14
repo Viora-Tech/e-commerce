@@ -18,6 +18,7 @@ import {
 } from '@commerce/ui/shadcn/dropdown-menu'
 import { SortableList } from '@commerce/ui/sortable'
 import { useState } from 'react'
+import EmptyState from '@/components/layout/empty-state'
 import { reorderLabels } from '@/data/common'
 import { campaignEditorContent } from '@/data/marketing-campaigns'
 import { useCopy } from '@/hooks/use-copy'
@@ -105,9 +106,7 @@ export default function EmailContentCard({
         </DropdownMenu>
       </CardHeader>
       <CardContent className={cn('flex flex-col gap-2', bare && 'px-0')}>
-        {blocks.length === 0 ? (
-          <p className="text-body text-muted-foreground">{copy.content.empty}</p>
-        ) : null}
+        {blocks.length === 0 ? <EmptyState variant="inline" body={copy.content.empty} /> : null}
         <SortableList
           items={blocks}
           onReorder={onChange}

@@ -2,6 +2,7 @@
 
 import type { SourceRow } from '@commerce/api'
 import { Card } from '@commerce/ui/shadcn/card'
+import EmptyState from '@/components/layout/empty-state'
 import { SOURCE_LABELS } from '@/data/growth'
 import { growthHomeContent } from '@/data/growth-home'
 import { useCopy, useFormat } from '@/hooks/use-copy'
@@ -26,7 +27,7 @@ export default function TopSourceCards({ sources }: TopSourceCardsProps) {
     .slice(0, SHOWN)
 
   if (top.length === 0) {
-    return <p className="text-caption text-muted-foreground">{copy.empty}</p>
+    return <EmptyState variant="inline" body={copy.empty} />
   }
 
   return (

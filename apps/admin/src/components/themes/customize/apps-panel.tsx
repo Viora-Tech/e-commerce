@@ -68,7 +68,7 @@ export default function AppsPanel({ installed, theme, onChange }: AppsPanelProps
         <span className="flex size-8 items-center justify-center rounded-lg bg-chart-2/14 text-chart-2">
           <Puzzle aria-hidden weight="regular" className="size-4" />
         </span>
-        <p className="text-[0.8125rem] font-medium text-foreground">{copy.emptyTitle}</p>
+        <p className="text-caption font-medium text-foreground">{copy.emptyTitle}</p>
         <p className="text-xs text-muted-foreground">{copy.emptyBody}</p>
         <a
           href={appStoreUrl()}
@@ -97,7 +97,9 @@ export default function AppsPanel({ installed, theme, onChange }: AppsPanelProps
         className={FIELD_INPUT}
       />
       {matched.length === 0 && !inboxMatched ? (
-        <p className="py-6 text-center text-[0.8125rem] text-muted-foreground">{copy.noMatch}</p>
+        <p className="py-6 text-center text-caption font-normal text-muted-foreground">
+          {copy.noMatch}
+        </p>
       ) : (
         <ul className="flex flex-col gap-2">
           {inboxMatched ? (
