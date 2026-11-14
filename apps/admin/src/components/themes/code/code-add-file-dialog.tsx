@@ -84,7 +84,6 @@ export default function CodeAddFileDialog({
       cancelLabel={copy.cancel}
       submitDisabled={!name.trim()}
       onSubmit={handleSubmit}
-      size="lg"
     >
       <fieldset className="flex flex-col gap-2">
         <legend className="mb-2 text-body font-medium text-foreground">{copy.kindLabel}</legend>

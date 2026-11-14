@@ -70,7 +70,6 @@ export default function BookByNumberDialog({
       submitLabel={copy.book.submit}
       submitDisabled={numbersInput.trim() === ''}
       onSubmit={handleFind}
-      size="md"
     >
       <Field>
         <FieldLabel htmlFor="book-orders">{copy.book.help}</FieldLabel>

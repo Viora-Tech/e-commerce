@@ -64,7 +64,6 @@ export default function DuplicateProductDialog({
       description={copy.body}
       submitLabel={copy.submit}
       onSubmit={handleSubmit}
-      size="md"
     >
       <div className="flex flex-col gap-4">
         {rows.map((row) => (

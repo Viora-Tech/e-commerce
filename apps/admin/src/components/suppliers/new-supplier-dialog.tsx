@@ -92,7 +92,6 @@ export default function NewSupplierDialog({
       cancelLabel={copy.cancel}
       busy={busy}
       onSubmit={handleCreate}
-      size="md"
     >
       <FieldGroup>
         <Field>

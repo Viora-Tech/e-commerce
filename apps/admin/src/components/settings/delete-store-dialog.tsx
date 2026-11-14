@@ -1,19 +1,9 @@
 'use client'
 
-import { Trash2 } from '@commerce/ui/icons'
-import {
-  AlertDialog,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@commerce/ui/shadcn/alert-dialog'
-import { Button } from '@commerce/ui/shadcn/button'
 import { Field, FieldError, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import { useState } from 'react'
+import ConfirmDialog from '@/components/layout/confirm-dialog'
 import { storeDataContent } from '@/data/store-data'
 import { useCopy } from '@/hooks/use-copy'
 
@@ -32,7 +22,8 @@ const matches = (typed: string, name: string) =>
 
 /**
  * The last step before closing a store: says plainly what goes, and only enables the
- * button once the owner has typed the store's name.
+ * button once the owner has typed the store's name. A ConfirmDialog with a typed check
+ * (audit 9b): the same shell, X and footer as every other confirm.
  */
 export default function DeleteStoreDialog({
   open,
@@ -61,39 +52,32 @@ export default function DeleteStoreDialog({
   const showMismatch = typed.trim().length >= storeName.trim().length && !ok
 
   return (
-    <AlertDialog open={open} onOpenChange={handleOpenChange}>
-      <AlertDialogContent className="max-h-[min(85svh,48rem)] overflow-y-auto overscroll-contain data-[size=default]:max-w-[calc(100%-2rem)] data-[size=default]:sm:max-w-[38rem]">
-        <AlertDialogHeader>
-          <AlertDialogTitle>{copy.title}</AlertDialogTitle>
-          <AlertDialogDescription>{copy.body}</AlertDialogDescription>
-        </AlertDialogHeader>
-        <Field>
-          <FieldLabel htmlFor="delete-store-confirm">{copy.typeToConfirm(storeName)}</FieldLabel>
-          <Input
-            id="delete-store-confirm"
-            size="lg"
-            autoComplete="off"
-            placeholder={copy.placeholder}
-            value={typed}
-            onChange={(e) => setTyped(e.target.value)}
-            disabled={busy}
-            aria-invalid={showMismatch || undefined}
-          />
-          {showMismatch ? <FieldError>{copy.mismatch}</FieldError> : null}
-        </Field>
-        <AlertDialogFooter>
-          <AlertDialogCancel disabled={busy}>{copy.cancel}</AlertDialogCancel>
-          <Button
-            loading={busy}
-            variant="destructive"
-            onClick={handleConfirm}
-            disabled={!ok || busy}
-          >
-            <Trash2 aria-hidden="true" />
-            {busy ? copy.deleting : copy.confirm}
-          </Button>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+    <ConfirmDialog
+      open={open}
+      onOpenChange={handleOpenChange}
+      title={copy.title}
+      body={copy.body}
+      confirmLabel={copy.confirm}
+      cancelLabel={copy.cancel}
+      tone="destructive"
+      busy={busy}
+      confirmDisabled={!ok}
+      onConfirm={handleConfirm}
+    >
+      <Field>
+        <FieldLabel htmlFor="delete-store-confirm">{copy.typeToConfirm(storeName)}</FieldLabel>
+        <Input
+          id="delete-store-confirm"
+          size="lg"
+          autoComplete="off"
+          placeholder={copy.placeholder}
+          value={typed}
+          onChange={(e) => setTyped(e.target.value)}
+          disabled={busy}
+          aria-invalid={showMismatch || undefined}
+        />
+        {showMismatch ? <FieldError>{copy.mismatch}</FieldError> : null}
+      </Field>
+    </ConfirmDialog>
   )
 }

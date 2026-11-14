@@ -62,7 +62,6 @@ export default function QuickReplyDialog({ reply, onClose, onSaved }: QuickReply
       title={reply ? d.editTitle : d.addTitle}
       submitLabel={reply ? d.save : d.add}
       onSubmit={handleSubmit}
-      size="md"
     >
       <div className="flex flex-col gap-4">
         <Field>

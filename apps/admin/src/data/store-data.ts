@@ -43,7 +43,6 @@ export const storeDataContent = {
     mismatch: 'That is not the store name.',
     cancel: 'Keep my store',
     confirm: 'Delete store',
-    deleting: 'Deleting…',
     done: 'Your store has been deleted.',
     failed: 'Could not delete the store. Nothing was deleted. Try again.',
   },

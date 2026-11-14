@@ -197,7 +197,6 @@ export default function CreateTokenDialog({
       busy={busy}
       submitDisabled={!name.trim() || !Object.keys(scopes).length}
       onSubmit={handleSubmit}
-      size="lg"
     >
       <div className="flex flex-col gap-4">
         <div className="flex flex-col gap-1.5">
