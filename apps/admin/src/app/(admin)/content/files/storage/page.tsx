@@ -11,7 +11,7 @@ export default async function Page() {
   const context = await serverContext()
   const usage = await call(appRouter.media.usage, undefined, { context })
   return (
-    <PageBody width="narrow" className="gap-4">
+    <PageBody width="narrow">
       <StorageUsage usage={usage} />
       <FilesSettings />
     </PageBody>

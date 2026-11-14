@@ -8,6 +8,7 @@ import { Spinner } from '@commerce/ui/shadcn/spinner'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import PageColumns from '@/components/layout/page-columns'
 import { whatsappAppContent } from '@/data/whatsapp-app'
 import { useCopy } from '@/hooks/use-copy'
 import { usePermissions } from '@/hooks/use-permissions'
@@ -127,7 +128,7 @@ export default function WhatsappSetupPage() {
     unknown: setup.connected ? words.templates.unknown : words.templates.todo,
   }[step3]
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-1">
         <h2 className="text-[1.125rem] leading-6 font-semibold text-ink-strong">
           {done === steps.length ? words.doneTitle : words.title}
@@ -136,67 +137,76 @@ export default function WhatsappSetupPage() {
           {done === steps.length ? words.doneIntro : words.intro}
         </p>
       </div>
-      <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_22.5rem]">
-        <section className="overflow-hidden rounded-xl border border-panel-border bg-card">
-          <div className="flex flex-col gap-0.5 px-4 pt-3.5 pb-3">
-            <h3 className="text-body font-semibold text-ink-strong">{words.card}</h3>
-            <p className="text-caption text-muted-foreground">
-              {words.progress(done, steps.length)}
-            </p>
-          </div>
-          <div className="flex gap-1 px-4 pb-3" aria-hidden="true">
-            {steps.map((d, i) => (
-              <span
-                key={STEP_KEYS[i]}
-                className={cn('h-1 flex-1 rounded-full', d ? 'bg-success' : 'bg-muted')}
+      <PageColumns
+        main={
+          <section className="overflow-hidden rounded-xl border border-panel-border bg-card">
+            <div className="flex flex-col gap-0.5 px-4 pt-3.5 pb-3">
+              <h3 className="text-body font-semibold text-ink-strong">{words.card}</h3>
+              <p className="text-caption text-muted-foreground">
+                {words.progress(done, steps.length)}
+              </p>
+            </div>
+            <div className="flex gap-1 px-4 pb-3" aria-hidden="true">
+              {steps.map((d, i) => (
+                <span
+                  key={STEP_KEYS[i]}
+                  className={cn('h-1 flex-1 rounded-full', d ? 'bg-success' : 'bg-muted')}
+                />
+              ))}
+            </div>
+            <ol>
+              <SetupStepRow
+                title={words.number.title}
+                detail={numberDetail}
+                done={steps[0] ?? false}
+                stateLabel={stateLabel(steps[0] ?? false)}
+                action={setup.number ? undefined : linkButton(settingsHref, words.number.action)}
               />
-            ))}
-          </div>
-          <ol>
-            <SetupStepRow
-              title={words.number.title}
-              detail={numberDetail}
-              done={steps[0] ?? false}
-              stateLabel={stateLabel(steps[0] ?? false)}
-              action={setup.number ? undefined : linkButton(settingsHref, words.number.action)}
-            />
-            <SetupStepRow
-              title={words.meta.title}
-              detail={
-                setup.connected
-                  ? setup.testMode
-                    ? words.meta.testMode
-                    : words.meta.done
-                  : words.meta.todo
-              }
-              done={setup.connected}
-              stateLabel={stateLabel(setup.connected)}
-              action={setup.connected ? undefined : linkButton(settingsHref, words.meta.action)}
-            />
-            <SetupStepRow
-              title={words.templates.title}
-              detail={templatesDetail}
-              done={step3 === 'done'}
-              stateLabel={stateLabel(step3 === 'done')}
-              action={
-                step3 === 'todo' && setup.access === 'live' && canManage ? (
-                  <Button variant="outline" size="sm" onClick={handleSubmit} disabled={submitting}>
-                    {submitting ? <Spinner /> : null}
-                    {submitting ? words.templates.submitting : words.templates.action}
-                  </Button>
-                ) : step3 === 'done' ? undefined : (
-                  linkButton(templatesHref, words.templates.manual)
-                )
-              }
-            />
-          </ol>
-        </section>
-        <ShoppersPreviewCard
-          title={words.previewTitle}
-          help={words.previewHelp}
-          messages={setup.previews.map((p) => p.text)}
-        />
-      </div>
+              <SetupStepRow
+                title={words.meta.title}
+                detail={
+                  setup.connected
+                    ? setup.testMode
+                      ? words.meta.testMode
+                      : words.meta.done
+                    : words.meta.todo
+                }
+                done={setup.connected}
+                stateLabel={stateLabel(setup.connected)}
+                action={setup.connected ? undefined : linkButton(settingsHref, words.meta.action)}
+              />
+              <SetupStepRow
+                title={words.templates.title}
+                detail={templatesDetail}
+                done={step3 === 'done'}
+                stateLabel={stateLabel(step3 === 'done')}
+                action={
+                  step3 === 'todo' && setup.access === 'live' && canManage ? (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleSubmit}
+                      disabled={submitting}
+                    >
+                      {submitting ? <Spinner /> : null}
+                      {submitting ? words.templates.submitting : words.templates.action}
+                    </Button>
+                  ) : step3 === 'done' ? undefined : (
+                    linkButton(templatesHref, words.templates.manual)
+                  )
+                }
+              />
+            </ol>
+          </section>
+        }
+        side={
+          <ShoppersPreviewCard
+            title={words.previewTitle}
+            help={words.previewHelp}
+            messages={setup.previews.map((p) => p.text)}
+          />
+        }
+      />
     </div>
   )
 }

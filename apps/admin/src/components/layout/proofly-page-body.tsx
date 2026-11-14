@@ -1,5 +1,5 @@
-import { cn } from '@commerce/ui/lib/utils'
 import type { ReactNode } from 'react'
+import PageBody from './page-body'
 
 type ProoflyPageBodyProps = {
   children: ReactNode
@@ -8,17 +8,8 @@ type ProoflyPageBodyProps = {
   width?: 'detail' | 'full'
 }
 
-/** Page frame of the Proofly detail and form screens: centred column with the page gutter. */
+/** Detail and form screens without columns: PageBody at the detail width. */
 export default function ProoflyPageBody({ children, width = 'detail' }: ProoflyPageBodyProps) {
   // Render logic
-  return (
-    <div
-      className={cn(
-        'flex w-full flex-col gap-6 px-4 pt-4 pb-6 md:px-6 md:pt-5 md:pb-8',
-        width === 'detail' && 'mx-auto max-w-[75rem]',
-      )}
-    >
-      {children}
-    </div>
-  )
+  return <PageBody width={width}>{children}</PageBody>
 }

@@ -11,6 +11,7 @@ import { toast } from 'sonner'
 import SaveErrorAlert from '@/components/approvals/save-error-alert'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
 import DataCard from '@/components/layout/data-card'
+import PageBody from '@/components/layout/page-body'
 import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
 import { campaignEditorContent as copy } from '@/data/marketing-campaigns'
@@ -170,7 +171,7 @@ export default function CampaignEditor({
   const title = campaign ? form.name : form.kind === 'email' ? copy.newEmail : copy.newWhatsapp
 
   return (
-    <div className="flex w-full flex-col gap-6 px-4 pt-4 pb-6 md:px-6 md:pt-5 md:pb-8">
+    <PageBody>
       <SaveBar
         open={dirty}
         message={copy.saveBar.message}
@@ -323,6 +324,6 @@ export default function CampaignEditor({
         busy={busy}
         onConfirm={() => void handleDelete()}
       />
-    </div>
+    </PageBody>
   )
 }

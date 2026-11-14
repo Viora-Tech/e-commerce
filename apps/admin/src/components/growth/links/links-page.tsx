@@ -8,6 +8,7 @@ import { type ReactNode, useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
 import EmptyState from '@/components/layout/empty-state'
+import PageBody from '@/components/layout/page-body'
 import PageHeader from '@/components/layout/page-header'
 import ResourceTable, { type ResourceColumnSpec } from '@/components/table/resource-table'
 import RowMenu from '@/components/table/row-menu'
@@ -181,7 +182,7 @@ export default function LinksPage({ storefrontOrigin, tabs }: LinksPageProps) {
   )
 
   return (
-    <div className="flex w-full flex-col gap-6 px-4 pt-4 pb-6 md:px-6 md:pt-5 md:pb-8">
+    <PageBody>
       <PageHeader
         title={tabs ? tabsCopy.title : copy.title}
         summary={
@@ -287,6 +288,6 @@ export default function LinksPage({ storefrontOrigin, tabs }: LinksPageProps) {
           onConfirm={handleBulkDelete}
         />
       ) : null}
-    </div>
+    </PageBody>
   )
 }

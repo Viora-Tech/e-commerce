@@ -230,7 +230,7 @@ export default function DraftForm({ draft, invoiceSent = false, initial }: Draft
     .join(' · ')
 
   return (
-    <PageBody className="gap-6 md:pt-5 md:pb-8">
+    <PageBody>
       <SaveBar
         open={dirty}
         message={copy.unsaved}

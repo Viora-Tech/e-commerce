@@ -32,7 +32,7 @@ export default function SeoReportPage({ report, aiBulk }: SeoReportPageProps) {
   }
 
   return (
-    <PageBody className="gap-6 md:pt-5 md:pb-8">
+    <PageBody>
       <PageHeader title={copy.title} subtitle={copy.subtitle} />
       <div className="grid gap-4 md:grid-cols-2">
         <SeoScoreCard report={report} />

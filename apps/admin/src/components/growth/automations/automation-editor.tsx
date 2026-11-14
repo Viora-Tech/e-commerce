@@ -26,6 +26,7 @@ import SaveErrorAlert from '@/components/approvals/save-error-alert'
 import { blockId } from '@/components/growth/campaigns/form-state'
 import type { TemplatesResult } from '@/components/growth/campaigns/whatsapp-template-card'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
+import PageBody from '@/components/layout/page-body'
 import PillTabs from '@/components/layout/pill-tabs'
 import SaveBar from '@/components/layout/save-bar'
 import StatusChip from '@/components/layout/status-chip'
@@ -171,7 +172,7 @@ export default function AutomationEditor({
   ]
 
   return (
-    <div className="flex w-full flex-col gap-4 px-4 py-4 md:px-6">
+    <PageBody>
       <SaveBar
         open={dirty}
         message={copy.saveBar.message}
@@ -324,6 +325,6 @@ export default function AutomationEditor({
         busy={busy}
         onConfirm={() => void handleDelete()}
       />
-    </div>
+    </PageBody>
   )
 }

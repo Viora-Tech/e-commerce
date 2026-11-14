@@ -8,6 +8,7 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 import KitButton from '@/components/kit/kit-button'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
+import PageBody from '@/components/layout/page-body'
 import PageHeader from '@/components/layout/page-header'
 import SectionHead from '@/components/layout/section-head'
 import { analyticsContent } from '@/data/analytics'
@@ -67,7 +68,7 @@ export default function ReportsHome({ reports, saved: initialSaved, assistant }:
 
   // Render logic
   return (
-    <div className="flex w-full flex-col gap-8 px-4 pt-4 pb-6 md:px-6 md:pt-5 md:pb-8">
+    <PageBody>
       <div className="flex flex-col gap-6">
         <PageHeader
           title={c.title}
@@ -159,6 +160,6 @@ export default function ReportsHome({ reports, saved: initialSaved, assistant }:
         cancelLabel={c.remove.cancel}
         onConfirm={handleDelete}
       />
-    </div>
+    </PageBody>
   )
 }

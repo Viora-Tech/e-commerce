@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import PageBody from '@/components/layout/page-body'
-import StickyColumns from '@/components/layout/sticky-columns'
+import PageColumns from '@/components/layout/page-columns'
 
 type OrderPageFrameProps = {
   header: ReactNode
@@ -24,16 +24,10 @@ export default function OrderPageFrame({
     <>
       {/* Detail pages are centred at 75rem (1,200px) like Shopify's: at full width the order
           page ran 1,615px wide and felt crowded (audit #14). Lists stay full width. */}
-      <PageBody className="mx-auto max-w-[75rem] gap-6 md:pt-5 md:pb-8 print:hidden">
+      <PageBody width="detail" className="print:hidden">
         {header}
         {nextStep}
-        <StickyColumns
-          main={main}
-          side={side}
-          sideAs="aside"
-          gap={6}
-          className="gap-6 lg:grid-cols-[minmax(0,1fr)_23.5rem]"
-        />
+        <PageColumns main={main} side={side} sideAs="aside" />
       </PageBody>
       {children}
     </>

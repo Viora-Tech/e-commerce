@@ -13,7 +13,7 @@ type SettingsLayoutProps = { children: ReactNode }
  */
 export default function SettingsLayout({ children }: SettingsLayoutProps) {
   return (
-    <PageBody className="mx-auto max-w-[68rem] md:flex-row md:items-start md:gap-8">
+    <PageBody width="settings" className="md:flex-row md:items-start md:gap-8">
       <SettingsNav />
       {/* The menu is taller than the screen: capped to it and scrolling on its own, it stays put
           while the page scrolls (owner 2026-11-01). */}

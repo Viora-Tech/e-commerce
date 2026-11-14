@@ -8,6 +8,7 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
 import NoticeBar from '@/components/layout/notice-bar'
+import PageBody from '@/components/layout/page-body'
 import PageHeader from '@/components/layout/page-header'
 import StatusChip from '@/components/layout/status-chip'
 import { bulkEditContent } from '@/data/bulk-edit'
@@ -205,7 +206,7 @@ export default function BulkEditor({ sheet, productIds, stockFocus }: BulkEditor
   const expandable = expandableProductIds(rows)
   const allOpen = expandable.length > 0 && expandable.every((id) => expanded.has(id))
   return (
-    <div className="flex w-full flex-col gap-6 px-4 pt-4 pb-6 md:px-6 md:pt-5 md:pb-8">
+    <PageBody>
       <PageHeader
         title={copy.title}
         summary={copy.summary(products, rows.length)}
@@ -308,6 +309,6 @@ export default function BulkEditor({ sheet, productIds, stockFocus }: BulkEditor
         tone="destructive"
         onConfirm={handleRemoveVariants}
       />
-    </div>
+    </PageBody>
   )
 }

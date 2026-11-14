@@ -63,7 +63,7 @@ export default function AgenticOverviewPage({ data }: AgenticOverviewPageProps) 
   if (!featured) return <AgenticGetReady data={data} />
 
   return (
-    <PageBody className="gap-6 md:pt-5 md:pb-8">
+    <PageBody>
       <PageHeader
         title={copy.title}
         subtitle={copy.subtitle}

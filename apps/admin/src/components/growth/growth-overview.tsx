@@ -80,7 +80,7 @@ export default function GrowthOverviewPage({
   const attribution = `${routes.growth.attribution()}${rangeQuery(range)}`
 
   return (
-    <PageBody className="gap-8 md:pt-5 md:pb-8">
+    <PageBody>
       <PageHeader title={copy.title} summary={copy.summary} />
       <AutopilotHero enabled={autopilot.enabled} waiting={autopilot.waiting} />
       <section className="flex flex-col gap-4" aria-busy={loading || undefined}>

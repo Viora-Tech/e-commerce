@@ -240,7 +240,7 @@ export default function NewMarketPage({
   const inherited = rows.filter((r) => !r.changed)
   return (
     // One column, centred, as Shopify's New market: name and countries, then settings.
-    <PageBody className="mx-auto max-w-[52rem] gap-4">
+    <PageBody width="form">
       <PageHeader
         title={n.title}
         summary={n.summary}

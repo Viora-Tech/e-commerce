@@ -6,6 +6,7 @@ import { Alert, AlertDescription, AlertTitle } from '@commerce/ui/shadcn/alert'
 import { Button } from '@commerce/ui/shadcn/button'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import PageBody from '@/components/layout/page-body'
 import PageHeader from '@/components/layout/page-header'
 import { ordersBulkEditContent } from '@/data/orders-bulk-edit'
 import { useCopy } from '@/hooks/use-copy'
@@ -98,7 +99,7 @@ export default function OrdersBulkEditor({ sheet }: OrdersBulkEditorProps) {
   const changed = dirtyCount(rows, base)
   const shown = attempted ? [...validation] : []
   return (
-    <div className="flex w-full flex-col gap-6 px-4 pt-4 pb-6 md:px-6 md:pt-5 md:pb-8">
+    <PageBody>
       <PageHeader
         title={copy.title}
         summary={copy.summary(rows.length)}
@@ -137,6 +138,6 @@ export default function OrdersBulkEditor({ sheet }: OrdersBulkEditorProps) {
         </Alert>
       ) : null}
       <OrdersBulkGrid rows={rows} base={base} errors={errors} onRowsChange={handleRowsChange} />
-    </div>
+    </PageBody>
   )
 }
