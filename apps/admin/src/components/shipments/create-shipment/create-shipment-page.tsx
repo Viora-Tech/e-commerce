@@ -7,7 +7,6 @@ import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import ChoiceField from '@/components/apps/gst-invoices/choice-field'
 import DataCard from '@/components/layout/data-card'
-import DetailPageSkeleton from '@/components/layout/detail-page-skeleton'
 import PageHeader from '@/components/layout/page-header'
 import ProoflyDetailPage from '@/components/layout/proofly-detail-page'
 import EditOrderContactDialog from '@/components/orders/edit-order-contact-dialog'
@@ -42,6 +41,7 @@ import PackageCard from './package-card'
 import { plannedDraft } from './partial-plan'
 import { startingPickupPlan } from './pickup-plan'
 import RouteCard from './route-card'
+import ShipPageSkeleton from './ship-page-skeleton'
 import ShipPageUnavailable from './ship-page-unavailable'
 import SummaryCard from './summary-card'
 import { usePickupLine } from './use-pickup-line'
@@ -114,6 +114,8 @@ export default function CreateShipmentPage({
   /* The full order, loaded when the merchant edits the delivery address from this page. */
   const [editing, setEditing] = useState<OrderDetail | null>(null)
   const [revision, setRevision] = useState(0)
+  /** Bumped by Try again when the order did not load. */
+  const [attempt, setAttempt] = useState(0)
   /* Bumped after a pickup from the Booked drawer: the shipment card reads the shipment again. */
   const [detailsRead, setDetailsRead] = useState(0)
   const pickupLine = usePickupLine(
@@ -121,6 +123,7 @@ export default function CreateShipmentPage({
   )
   // biome-ignore lint/correctness/useExhaustiveDependencies: `partial.start` only sets the plan; loading again on each render would loop
   useEffect(() => {
+    if (attempt < 0) return
     let live = true
     api.shipments
       .prepare({ orderIds: [orderId] })
@@ -139,7 +142,7 @@ export default function CreateShipmentPage({
     return () => {
       live = false
     }
-  }, [orderId, revision, startParcel])
+  }, [orderId, revision, startParcel, attempt])
 
   useEffect(() => {
     api.shipments
@@ -171,6 +174,10 @@ export default function CreateShipmentPage({
       },
       () => setFailed(true),
     )
+  }
+  const handleRetry = () => {
+    setFailed(false)
+    setAttempt((n) => n + 1)
   }
   const handleEditCustomer = async () => {
     try {
@@ -274,10 +281,16 @@ export default function CreateShipmentPage({
   const order = draft?.orders[0]
   const parcel = order?.parcels.find((p) => p.id === parcelId) ?? order?.parcels[0]
   if (failed || (draft && (!order || order.blocked || !parcel || !form))) {
-    return <ShipPageUnavailable orderId={orderId} blocked={order?.blocked ?? null} />
+    return (
+      <ShipPageUnavailable
+        orderId={orderId}
+        blocked={order?.blocked ?? null}
+        onRetry={failed ? handleRetry : undefined}
+      />
+    )
   }
   // The route's own skeleton stays up until the draft arrives (no spinner in between).
-  if (!draft || !order || !parcel || !form) return <DetailPageSkeleton />
+  if (!draft || !order || !parcel || !form) return <ShipPageSkeleton />
 
   // Render logic
   const shown = partial.shown(parcel)
