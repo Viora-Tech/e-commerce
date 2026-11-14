@@ -53,7 +53,7 @@ export default function RunLeftGroup({ resource, left, defaultOpen }: RunLeftGro
   const hidden = left.length - PREVIEW_ROWS
 
   return (
-    <li className="rounded-xl border border-hairline bg-card">
+    <li className="rounded-lg border border-hairline bg-card">
       <Collapsible defaultOpen={defaultOpen} className="group/left">
         <CollapsibleTrigger className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left outline-none transition-colors duration-150 hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring">
           <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground [&_svg]:size-4">

@@ -1,6 +1,6 @@
-import { Card } from '@commerce/ui/shadcn/card'
 import type { ReactNode } from 'react'
 import KitProgress from '@/components/kit/kit-progress'
+import DataCard from '@/components/layout/data-card'
 import { formatRate } from '@/lib/analytics-range'
 import { formatCompact } from '@/lib/money'
 
@@ -18,15 +18,11 @@ type VisitorListCardProps = {
 export default function VisitorListCard({ title, rows, empty, action }: VisitorListCardProps) {
   // Render logic
   return (
-    <Card gap="none" inset={5}>
-      <div className="flex items-center justify-between gap-3">
-        <p className="text-kit-title text-foreground">{title}</p>
-        {action}
-      </div>
+    <DataCard title={title} action={action}>
       {rows.length === 0 ? (
-        <p className="mt-5 text-kit-body text-muted-foreground">{empty}</p>
+        <p className="text-kit-body text-muted-foreground">{empty}</p>
       ) : (
-        <ul className="mt-5 flex flex-col gap-4">
+        <ul className="flex flex-col gap-4">
           {rows.map((row) => (
             <li key={row.key} className="flex flex-col gap-2">
               <div className="flex items-baseline justify-between gap-3">
@@ -50,6 +46,6 @@ export default function VisitorListCard({ title, rows, empty, action }: VisitorL
           ))}
         </ul>
       )}
-    </Card>
+    </DataCard>
   )
 }

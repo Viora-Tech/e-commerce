@@ -1,21 +1,41 @@
 import { cn } from '@commerce/ui/lib/utils'
-import type { ReactNode } from 'react'
+import type { ComponentProps, ReactNode } from 'react'
 
-type PageBodyProps = {
+export type PageWidth = 'full' | 'detail' | 'settings' | 'form' | 'narrow'
+
+type PageBodyProps = Omit<ComponentProps<'div'>, 'children'> & {
   children: ReactNode
-  /** Kept for callers; every page fills the panel width now (owner, 2026-10-17: "make all take
-      full width"), so the value no longer changes the layout. */
-  width?: 'wide' | 'frame' | 'narrow'
-  className?: string
+  /**
+   * How wide the page runs. `full` (default): the panel's whole width, for lists.
+   * `detail` 75rem: detail pages (order, product, customer). `settings` 68rem: Home, Settings,
+   * Account. `form` 52rem: single-column forms (market, catalog, rollout). `narrow` 48rem:
+   * small screens with one message or one choice (not found, pick a store).
+   * Every width other than `full` is centred.
+   */
+  width?: PageWidth
 }
 
-/** Page frame: padding and the vertical rhythm between header and cards; no max width. */
-export default function PageBody({ children, className }: PageBodyProps) {
+const WIDTH_CLASS: Record<PageWidth, string> = {
+  full: '',
+  detail: 'mx-auto max-w-[75rem]',
+  settings: 'mx-auto max-w-[68rem]',
+  form: 'mx-auto max-w-[52rem]',
+  narrow: 'mx-auto max-w-[48rem]',
+}
+
+/**
+ * The one page shell: the page gutter (1rem, 1.5rem from `md`), 1.5rem between the header and
+ * each block, and 1.5rem (2rem from `md`) under the last one. ProoflyListPage,
+ * ProoflyDetailPage, ProoflyPageBody and the order page frame are thin wrappers on it, so a
+ * list and the detail page opened from it line up.
+ */
+export default function PageBody({ children, width = 'full', className, ...rest }: PageBodyProps) {
   return (
     <div
+      {...rest}
       className={cn(
-        /* Saleor rhythm: 24px page inset (16px on phones), 20px between header and cards. */
-        'flex w-full flex-col gap-5 px-4 pt-4 pb-5 md:px-6 md:pt-5 md:pb-6',
+        'flex w-full flex-col gap-6 px-4 pt-4 pb-6 md:px-6 md:pt-5 md:pb-8',
+        WIDTH_CLASS[width],
         className,
       )}
     >

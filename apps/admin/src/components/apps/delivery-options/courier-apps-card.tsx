@@ -48,7 +48,7 @@ export default function CourierAppsCard({ overview, catalogue }: CourierAppsCard
   })
 
   return (
-    <section className="flex flex-col rounded-xl border border-panel-border bg-card">
+    <section className="flex flex-col rounded-lg border border-panel-border bg-card">
       <div className="flex items-center justify-between gap-3 border-b border-hairline px-4 py-3">
         <h2 className="text-card-title text-ink-strong">{a.title}</h2>
         <AppStoreLink category="shipping" variant="ghost" size="sm">

@@ -59,7 +59,7 @@ export default function BulkResult({ results, lines, couriers, onClose }: BulkRe
         <div className="flex flex-col gap-4">
           <BulkPrintCard booked={booked} />
           {skipped.length > 0 ? (
-            <section className="flex flex-col gap-3 rounded-xl border border-border bg-card p-5">
+            <section className="flex flex-col gap-3 rounded-lg border border-border bg-card p-5">
               <p className="text-caption font-medium tracking-wide text-muted-foreground uppercase">
                 {r.skipped(skipped.length)}
               </p>

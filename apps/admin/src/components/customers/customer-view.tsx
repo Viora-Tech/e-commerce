@@ -168,7 +168,7 @@ export default function CustomerView({
     CONSENT_CHANNELS.some((c) => draft.consent[c] !== saved.consent[c])
 
   return (
-    <PageBody width="frame" className="mx-auto max-w-[75rem] gap-6">
+    <PageBody width="detail">
       <SaveBar
         open={dirty}
         message={detail.changes.unsaved}

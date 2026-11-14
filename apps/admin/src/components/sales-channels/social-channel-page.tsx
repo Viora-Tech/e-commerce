@@ -139,7 +139,7 @@ export default function SocialChannelPage({ data, issues }: SocialChannelPagePro
   )
 
   return (
-    <PageBody className="gap-6 md:pt-5 md:pb-8">
+    <PageBody>
       <PageHeader
         title={name}
         subtitle={info.blurb}

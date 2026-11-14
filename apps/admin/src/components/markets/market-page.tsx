@@ -233,7 +233,7 @@ export default function MarketPage({ market, markets, domains, catalog }: Market
 
   return (
     // One column, centred, as Shopify's market page and our Catalogs and Rollouts.
-    <PageBody className="mx-auto max-w-[52rem] gap-4">
+    <PageBody width="form">
       <PageHeader
         title={market.name}
         summary={address}

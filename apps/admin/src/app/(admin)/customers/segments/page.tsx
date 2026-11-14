@@ -24,7 +24,7 @@ export default async function Page() {
   if (segments === undefined) redirect(routes.selectStore())
 
   return (
-    <PageBody width="frame" className="gap-6">
+    <PageBody>
       <PageHeader
         title={copy.title}
         summary={copy.summary(segments.length)}

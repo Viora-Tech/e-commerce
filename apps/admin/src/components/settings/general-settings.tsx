@@ -294,7 +294,7 @@ export default function GeneralSettings() {
             </SettingsCard>
             <div
               id="tax"
-              className="flex scroll-mt-6 flex-col gap-3 rounded-xl border border-border bg-card p-4 sm:flex-row sm:items-center"
+              className="flex scroll-mt-6 flex-col gap-3 rounded-lg border border-border bg-card p-4 sm:flex-row sm:items-center"
             >
               <p className="flex-1 text-body text-foreground">{movedCopy.body}</p>
               <Button variant="outline" render={<Link href={TAXES_HREF} />} nativeButton={false}>

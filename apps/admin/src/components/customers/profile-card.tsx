@@ -35,7 +35,6 @@ export default function ProfileCard({ customer, onEdit, onChanged }: ProfileCard
   return (
     <DataCard
       title={c.heading}
-      className="rounded-xl"
       action={
         <Button variant="ghost" size="sm" onClick={onEdit}>
           <Pencil aria-hidden="true" />

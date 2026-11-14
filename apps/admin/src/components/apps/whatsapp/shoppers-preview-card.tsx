@@ -13,7 +13,7 @@ type ShoppersPreviewCardProps = {
 export default function ShoppersPreviewCard({ title, help, messages }: ShoppersPreviewCardProps) {
   return (
     <section
-      className="flex flex-col rounded-xl border border-panel-border bg-card pb-4"
+      className="flex flex-col rounded-lg border border-panel-border bg-card pb-4"
       aria-describedby="whatsapp-preview-help"
     >
       <h3 className="px-4 pt-3.5 pb-2.5 text-body font-semibold text-ink-strong">{title}</h3>

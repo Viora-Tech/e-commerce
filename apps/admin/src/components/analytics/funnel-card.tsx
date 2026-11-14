@@ -1,6 +1,6 @@
 import type { AnalyticsOverview } from '@commerce/api'
-import { Card } from '@commerce/ui/shadcn/card'
 import KitProgress from '@/components/kit/kit-progress'
+import DataCard from '@/components/layout/data-card'
 import { analyticsContent as copy } from '@/data/analytics'
 import { formatRate } from '@/lib/analytics-range'
 import { formatCompact } from '@/lib/money'
@@ -17,12 +17,11 @@ export default function FunnelCard({ steps }: FunnelCardProps) {
   const shareLabel = steps[0]?.value === widest ? c.ofSessions : c.ofPeak
 
   return (
-    <Card gap="none" inset={5}>
-      <p className="text-kit-title text-foreground">{c.title}</p>
+    <DataCard title={c.title}>
       {empty ? (
-        <p className="mt-5 text-kit-body text-muted-foreground">{c.help}</p>
+        <p className="text-kit-body text-muted-foreground">{c.help}</p>
       ) : (
-        <ul className="mt-5 flex flex-col gap-5">
+        <ul className="flex flex-col gap-5">
           {steps.map((step) => (
             <li key={step.id} className="flex flex-col gap-2">
               <div className="flex items-baseline justify-between gap-3">
@@ -48,6 +47,6 @@ export default function FunnelCard({ steps }: FunnelCardProps) {
           ))}
         </ul>
       )}
-    </Card>
+    </DataCard>
   )
 }

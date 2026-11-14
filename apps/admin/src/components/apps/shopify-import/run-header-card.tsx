@@ -75,7 +75,7 @@ export default function RunHeaderCard({
   ].filter(Boolean)
 
   return (
-    <section className="flex flex-col gap-4 rounded-2xl surface-card p-5">
+    <section className="flex flex-col gap-4 rounded-lg surface-card p-5">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex min-w-0 items-start gap-3.5">
           <IconBadge

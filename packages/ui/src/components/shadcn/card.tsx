@@ -30,10 +30,11 @@ function Card({
       data-slot="card"
       data-size={size}
       className={cn(
-        /* White surface on a 1px hairline (--shadow-card), 8px radius, 20px padding. Inside a
+        /* White surface on a 1px hairline (--shadow-card), the one card radius (rounded-lg,
+         0.75rem, the same as DataCard), 1.25rem padding. Inside a
          [data-layout=sections] panel (detail and list pages) it becomes a flat section:
          no radius or ring, 24px inset, a hairline under it (Saleor Dashboard layout). */
-        'group/card flex flex-col gap-(--card-spacing) overflow-hidden rounded-xl surface-card py-(--card-spacing) text-body text-card-foreground [--card-spacing:--spacing(5)] has-data-[slot=card-footer]:pb-0 has-[>img:first-child]:pt-0 data-[size=sm]:[--card-spacing:--spacing(3)] data-[size=sm]:has-data-[slot=card-footer]:pb-0 data-[size=form]:[--card-spacing:--spacing(5)] *:[img:first-child]:rounded-t-xl *:[img:last-child]:rounded-b-xl in-data-[layout=sections]:rounded-none in-data-[layout=sections]:border-b in-data-[layout=sections]:border-border in-data-[layout=sections]:bg-none in-data-[layout=sections]:shadow-none in-data-[layout=sections]:[--card-spacing:--spacing(6)]',
+        'group/card flex flex-col gap-(--card-spacing) overflow-hidden rounded-lg surface-card py-(--card-spacing) text-body text-card-foreground [--card-spacing:--spacing(5)] has-data-[slot=card-footer]:pb-0 has-[>img:first-child]:pt-0 data-[size=sm]:[--card-spacing:--spacing(3)] data-[size=sm]:has-data-[slot=card-footer]:pb-0 data-[size=form]:[--card-spacing:--spacing(5)] *:[img:first-child]:rounded-t-lg *:[img:last-child]:rounded-b-lg in-data-[layout=sections]:rounded-none in-data-[layout=sections]:border-b in-data-[layout=sections]:border-border in-data-[layout=sections]:bg-none in-data-[layout=sections]:shadow-none in-data-[layout=sections]:[--card-spacing:--spacing(6)]',
         gap && CARD_GAP[gap],
         inset && CARD_INSET[inset],
         className,
@@ -97,7 +98,7 @@ function CardFooter({ className, ...props }: React.ComponentProps<'div'>) {
     <div
       data-slot="card-footer"
       className={cn(
-        'flex items-center rounded-b-xl border-t bg-muted/50 p-(--card-spacing)',
+        'flex items-center rounded-b-lg border-t bg-muted/50 p-(--card-spacing)',
         className,
       )}
       {...props}

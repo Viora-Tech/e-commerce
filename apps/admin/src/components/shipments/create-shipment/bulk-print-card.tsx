@@ -37,7 +37,7 @@ export default function BulkPrintCard({ booked }: BulkPrintCardProps) {
   const missing = booked.length - ids.length
 
   return (
-    <section className="flex flex-col gap-3 rounded-xl border border-border bg-card p-5">
+    <section className="flex flex-col gap-3 rounded-lg border border-border bg-card p-5">
       <p className="text-caption font-medium tracking-wide text-muted-foreground uppercase">
         {r.print}
       </p>

@@ -32,7 +32,7 @@ export default function GeneralCompletion({ details }: GeneralCompletionProps) {
   const missing = keys.filter((k) => !done[k]).map((k) => copy.items[k])
 
   return (
-    <div role="status" className="flex flex-col gap-2 rounded-xl border border-border bg-card p-4">
+    <div role="status" className="flex flex-col gap-2 rounded-lg border border-border bg-card p-4">
       <div className="flex items-center gap-3">
         <Progress
           value={Math.round((count / keys.length) * 100)}

@@ -191,7 +191,7 @@ export default function QueuePage() {
         needFix={toFix.length}
         reloadKey={reloadKey}
       />
-      <div className="overflow-hidden rounded-xl surface-card">
+      <div className="overflow-hidden rounded-lg surface-card">
         <div className="flex flex-wrap items-center gap-2 p-4">
           <PillTabs<Chip>
             variant="pill"

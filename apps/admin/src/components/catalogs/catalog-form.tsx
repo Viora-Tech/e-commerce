@@ -152,7 +152,7 @@ export default function CatalogForm({ catalog, markets, catalogs }: CatalogFormP
 
   return (
     // One form column, centred, as Rollouts.
-    <PageBody className="mx-auto max-w-[52rem] gap-4">
+    <PageBody width="form">
       <SaveBar
         open={dirty && canManage}
         message={f.unsaved}

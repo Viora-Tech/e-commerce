@@ -81,7 +81,7 @@ export default function RiskyOrdersPage() {
           </Label>
         </div>
       </div>
-      <div className="overflow-hidden rounded-xl surface-card">
+      <div className="overflow-hidden rounded-lg surface-card">
         <Table>
           <TableHeader>
             <TableRow>

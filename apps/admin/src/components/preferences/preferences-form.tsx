@@ -98,7 +98,7 @@ export default function PreferencesForm({
   const errors = attempted ? validate(form) : {}
 
   return (
-    <PageBody className="gap-6 md:pt-5 md:pb-8">
+    <PageBody>
       <SaveBar
         open={dirty}
         message={copy.unsaved}

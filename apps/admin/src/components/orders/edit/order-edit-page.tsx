@@ -62,7 +62,7 @@ export default function OrderEditPage({ order }: OrderEditPageProps) {
 
   return (
     // The order page's centred 75rem frame, so editing does not jump wider and left (#19).
-    <PageBody className="mx-auto max-w-[75rem] gap-6 md:pt-5 md:pb-8">
+    <PageBody width="detail">
       <PageHeader
         title={copy.pageTitle(order.number)}
         subtitle={copy.intro}

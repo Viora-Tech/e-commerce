@@ -8,6 +8,7 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import DataCard from '@/components/layout/data-card'
+import PageBody from '@/components/layout/page-body'
 import PageHeader from '@/components/layout/page-header'
 import { analyticsContent } from '@/data/analytics'
 import { useCopy, useFormat } from '@/hooks/use-copy'
@@ -77,7 +78,7 @@ export default function AnswerReportView({ saved: initialSaved }: AnswerReportVi
   if (snapshot === undefined) return null
   if (!snapshot) {
     return (
-      <div className="flex w-full flex-col gap-6 px-4 pt-4 pb-6 md:px-6 md:pt-5 md:pb-8">
+      <PageBody>
         <PageHeader
           title={c.answer.title}
           back={{ label: c.back, href: routes.analytics.reports() }}
@@ -85,7 +86,7 @@ export default function AnswerReportView({ saved: initialSaved }: AnswerReportVi
         <p className="rounded-xl border border-border border-dashed px-5 py-6 text-body text-muted-foreground">
           {c.answer.empty}
         </p>
-      </div>
+      </PageBody>
     )
   }
 
@@ -94,7 +95,7 @@ export default function AnswerReportView({ saved: initialSaved }: AnswerReportVi
   const { report, result } = answerReport(snapshot, title)
 
   return (
-    <div className="flex w-full flex-col gap-6 px-4 pt-4 pb-6 md:px-6 md:pt-5 md:pb-8">
+    <PageBody>
       <PageHeader
         title={title}
         summary={snapshot.question ? c.answer.asked(snapshot.question) : undefined}
@@ -128,6 +129,6 @@ export default function AnswerReportView({ saved: initialSaved }: AnswerReportVi
           onConfirm={handleSave}
         />
       ) : null}
-    </div>
+    </PageBody>
   )
 }

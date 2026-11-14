@@ -19,7 +19,7 @@ export default function BestSourceCallout({ source }: BestSourceCalloutProps) {
   const title = copy.title.replace('{source}', SOURCE_LABELS[source.source])
 
   return (
-    <section className="flex h-full flex-col gap-4 rounded-xl border border-border bg-card p-5">
+    <section className="flex h-full flex-col gap-4 rounded-lg border border-border bg-card p-5">
       <span className="flex size-10 items-center justify-center rounded-lg border border-border">
         <SourceIcon source={source.source} className="size-5" />
       </span>

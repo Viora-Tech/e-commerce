@@ -1,6 +1,6 @@
 import type { AnalyticsOverview } from '@commerce/api'
-import { Card } from '@commerce/ui/shadcn/card'
 import KitListRow from '@/components/kit/kit-list-row'
+import DataCard from '@/components/layout/data-card'
 import { analyticsContent as copy } from '@/data/analytics'
 import { formatPaiseWhole } from '@/lib/money'
 
@@ -12,12 +12,11 @@ export default function TopProductsCard({ products }: TopProductsCardProps) {
   const c = copy.topProducts
 
   return (
-    <Card gap="none" inset={5}>
-      <p className="text-kit-title text-foreground">{c.title}</p>
+    <DataCard title={c.title}>
       {products.length === 0 ? (
-        <p className="mt-5 text-kit-body text-muted-foreground">{c.empty}</p>
+        <p className="text-kit-body text-muted-foreground">{c.empty}</p>
       ) : (
-        <ul className="mt-5 flex flex-col gap-4">
+        <ul className="flex flex-col gap-4">
           {products.map((p) => (
             <li key={p.productId}>
               <KitListRow
@@ -31,6 +30,6 @@ export default function TopProductsCard({ products }: TopProductsCardProps) {
           ))}
         </ul>
       )}
-    </Card>
+    </DataCard>
   )
 }

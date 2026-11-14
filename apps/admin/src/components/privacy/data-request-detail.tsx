@@ -8,6 +8,7 @@ import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import DataCard from '@/components/layout/data-card'
+import PageColumns from '@/components/layout/page-columns'
 import PageHeader from '@/components/layout/page-header'
 import AuditTrail from '@/components/privacy/audit-trail'
 import DataRequestActions from '@/components/privacy/data-request-actions'
@@ -70,7 +71,7 @@ export default function DataRequestDetail({ id }: DataRequestDetailProps) {
   const cu = r.customer
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-6">
       <PageHeader
         title={copy.title(r.number)}
         subtitle={KIND_LABEL[r.kind]}
@@ -78,56 +79,62 @@ export default function DataRequestDetail({ id }: DataRequestDetailProps) {
         badges={<DataRequestStatusBadge status={r.status} />}
         lead={{ kind: 'icon', node: <ShieldCheck aria-hidden="true" /> }}
       />
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_20rem]">
-        <div className="flex flex-col gap-4">
-          <DataRequestActions request={r} customer={cu} onChanged={() => setReload((n) => n + 1)} />
-          <DataCard title={copy.trail}>
-            <AuditTrail entries={detail.audit} />
-          </DataCard>
-        </div>
-        {/* Not stretched to the main column's height: DataCard is h-full, so the two cards
-            would shrink into it and cut off the last details (Answer by). */}
-        <div className="flex flex-col gap-4 self-start">
-          <DataCard title={copy.customer}>
-            {cu ? (
-              <div className="flex flex-col gap-2">
-                <p className="text-body">
-                  {cu.anonymisedAt ? dataRequestsContent.erasedCustomer : (cu.name ?? cu.email)}
-                </p>
-                {cu.anonymisedAt ? (
-                  <p className="text-caption text-muted-foreground">{copy.erased}</p>
-                ) : (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-fit"
-                    render={<Link href={`/customers/${cu.id}`} />}
-                    nativeButton={false}
-                  >
-                    {copy.openCustomer}
-                  </Button>
-                )}
-              </div>
-            ) : (
-              <p className="text-body text-muted-foreground">{copy.noCustomer}</p>
-            )}
-          </DataCard>
-          <DataCard title={copy.details}>
-            <dl className="flex flex-col gap-3">
-              <Row label={copy.kind} value={KIND_LABEL[r.kind]} />
-              <Row label={copy.source} value={SOURCE_LABEL[r.source]} />
-              <Row label={copy.received} value={formatDate(new Date(r.createdAt))} />
-              <Row label={copy.due} value={due} />
-              <Row
-                label={copy.contact}
-                value={[r.contactEmail, r.contactPhone].filter(Boolean).join(' · ') || null}
-              />
-              <Row label={copy.note} value={r.note} />
-              <Row label={copy.resolution} value={r.resolution} />
-            </dl>
-          </DataCard>
-        </div>
-      </div>
+      <PageColumns
+        main={
+          <>
+            <DataRequestActions
+              request={r}
+              customer={cu}
+              onChanged={() => setReload((n) => n + 1)}
+            />
+            <DataCard title={copy.trail}>
+              <AuditTrail entries={detail.audit} />
+            </DataCard>
+          </>
+        }
+        side={
+          <>
+            <DataCard title={copy.customer}>
+              {cu ? (
+                <div className="flex flex-col gap-2">
+                  <p className="text-body">
+                    {cu.anonymisedAt ? dataRequestsContent.erasedCustomer : (cu.name ?? cu.email)}
+                  </p>
+                  {cu.anonymisedAt ? (
+                    <p className="text-caption text-muted-foreground">{copy.erased}</p>
+                  ) : (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-fit"
+                      render={<Link href={`/customers/${cu.id}`} />}
+                      nativeButton={false}
+                    >
+                      {copy.openCustomer}
+                    </Button>
+                  )}
+                </div>
+              ) : (
+                <p className="text-body text-muted-foreground">{copy.noCustomer}</p>
+              )}
+            </DataCard>
+            <DataCard title={copy.details}>
+              <dl className="flex flex-col gap-3">
+                <Row label={copy.kind} value={KIND_LABEL[r.kind]} />
+                <Row label={copy.source} value={SOURCE_LABEL[r.source]} />
+                <Row label={copy.received} value={formatDate(new Date(r.createdAt))} />
+                <Row label={copy.due} value={due} />
+                <Row
+                  label={copy.contact}
+                  value={[r.contactEmail, r.contactPhone].filter(Boolean).join(' · ') || null}
+                />
+                <Row label={copy.note} value={r.note} />
+                <Row label={copy.resolution} value={r.resolution} />
+              </dl>
+            </DataCard>
+          </>
+        }
+      />
     </div>
   )
 }

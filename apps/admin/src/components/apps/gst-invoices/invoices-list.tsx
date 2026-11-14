@@ -232,7 +232,7 @@ export default function InvoicesList() {
         summary={copy.subtitle}
         actions={<GstNumberPicker value={gst} onChange={handleGst} allowAll />}
       />
-      <div className="overflow-hidden rounded-xl surface-card">
+      <div className="overflow-hidden rounded-lg surface-card">
         <div className="flex flex-col gap-3 p-4">
           <PillTabs<Tab>
             value={tab}

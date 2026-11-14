@@ -7,6 +7,7 @@ import { Card } from '@commerce/ui/shadcn/card'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import DataCard from '@/components/layout/data-card'
+import PageBody from '@/components/layout/page-body'
 import PageHeader from '@/components/layout/page-header'
 import PillTabs from '@/components/layout/pill-tabs'
 import StatusChip from '@/components/layout/status-chip'
@@ -86,7 +87,7 @@ export default function ReportView({ report, initialRange, initial }: ReportView
   const understood = report.ranged || Boolean(data.previousTotals)
 
   return (
-    <div className="flex w-full flex-col gap-6 px-4 pt-4 pb-6 md:px-6 md:pt-5 md:pb-8">
+    <PageBody>
       <PageHeader
         title={report.title}
         summary={report.description}
@@ -149,6 +150,6 @@ export default function ReportView({ report, initialRange, initial }: ReportView
       <DataCard title={c.details}>
         <ReportTable report={report} data={data} />
       </DataCard>
-    </div>
+    </PageBody>
   )
 }

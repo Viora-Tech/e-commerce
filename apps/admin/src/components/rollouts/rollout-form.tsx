@@ -157,7 +157,7 @@ export default function RolloutForm({ rollout, data, results = null }: RolloutFo
 
   return (
     // One form column, centred at the width it had beside the Settings nav.
-    <PageBody className="mx-auto max-w-[52rem] gap-4">
+    <PageBody width="form">
       <SaveBar
         open={dirty && canManage && !ended}
         message={copy.saveBar.message}

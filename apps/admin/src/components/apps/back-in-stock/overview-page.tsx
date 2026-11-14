@@ -11,6 +11,7 @@ import {
 } from '@commerce/ui/shadcn/table'
 import { useEffect, useState } from 'react'
 import { CELL, HEAD } from '@/components/apps/gst-invoices/table-classes'
+import DataCard from '@/components/layout/data-card'
 import PageHeader from '@/components/layout/page-header'
 import TableEmptyRow from '@/components/table/table-empty-row'
 import { backInStockContent } from '@/data/back-in-stock'
@@ -29,7 +30,7 @@ function usageCard(
   const pct =
     usage.unlimited || usage.quota <= 0 ? 0 : Math.min(100, (usage.sent / usage.quota) * 100)
   return (
-    <div className="flex flex-col gap-2 rounded-xl surface-card px-5 py-4">
+    <div className="flex flex-col gap-2 rounded-lg surface-card px-5 py-4">
       <span className="text-caption text-muted-foreground">{label}</span>
       <span className="text-xl font-semibold text-ink-strong tabular-nums">
         {usage.unlimited ? copy.unlimited : copy.ofQuota(usage.sent, usage.quota)}
@@ -71,10 +72,7 @@ export default function OverviewPage() {
         {usageCard(copy.emailUsage, data.usage.email, null)}
         {usageCard(copy.whatsappUsage, data.usage.whatsapp, copy.whatsappVia)}
       </div>
-      <div className="overflow-hidden rounded-xl surface-card">
-        <h2 className="px-6 pt-5 pb-3 text-body font-semibold text-ink-strong">
-          {copy.demandTitle}
-        </h2>
+      <DataCard title={copy.demandTitle} flush>
         <Table>
           <TableHeader>
             <TableRow>
@@ -92,7 +90,7 @@ export default function OverviewPage() {
             ))}
           </TableBody>
         </Table>
-      </div>
+      </DataCard>
     </div>
   )
 }

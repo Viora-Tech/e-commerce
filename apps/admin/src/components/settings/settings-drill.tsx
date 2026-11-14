@@ -160,7 +160,7 @@ export default function SettingsDrill({
           ) : home !== undefined ? (
             home
           ) : (
-            <ul className="flex flex-col overflow-hidden rounded-xl surface-card">
+            <ul className="flex flex-col overflow-hidden rounded-lg surface-card">
               {rows.map((r) => (
                 <li key={r.id} className="border-hairline border-b last:border-b-0">
                   {r.control ? (

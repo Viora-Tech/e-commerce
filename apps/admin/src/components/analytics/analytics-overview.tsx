@@ -5,6 +5,7 @@ import { Download } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { useEffect, useState } from 'react'
 import ChartCard from '@/components/layout/chart-card'
+import PageBody from '@/components/layout/page-body'
 import PageHeader from '@/components/layout/page-header'
 import { methodLabel } from '@/components/orders/order-detail-types'
 import { analyticsContent } from '@/data/analytics'
@@ -110,7 +111,7 @@ export default function AnalyticsOverviewPage({
   )
 
   return (
-    <div className="flex w-full flex-col gap-6 px-4 pt-4 pb-6 md:px-6 md:pt-5 md:pb-8">
+    <PageBody>
       <PageHeader
         title={copy.title}
         summary={copy.intro}
@@ -164,6 +165,6 @@ export default function AnalyticsOverviewPage({
         />
       </div>
       <VisitorsSection range={range} />
-    </div>
+    </PageBody>
   )
 }
