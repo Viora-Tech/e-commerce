@@ -1,6 +1,13 @@
 /** SOURCE OF TRUTH: Pixels storefront collector — WHAT: what `/api/px` does with one browser event: refuses without marketing consent on the current banner, reads or mints the first-party _fbp/_fbc, stamps the cart's tracking, and plans one send job per server pixel with the event on / WHY: the server copy of a browser event must carry the same event id and the shopper's consent, and the collector must never block a page */
-import { cart, type PixelTracking, pixelConnection, type StoreTx, store } from '@commerce/db'
-import { and, eq, sql } from 'drizzle-orm'
+import {
+  cart,
+  customer,
+  type PixelTracking,
+  pixelConnection,
+  type StoreTx,
+  store,
+} from '@commerce/db'
+import { and, eq, isNull, sql } from 'drizzle-orm'
 import { parseAppsSettings } from '../apps/settings'
 import { parseCustomerPrivacySettings } from '../privacy/client'
 import {
@@ -16,6 +23,7 @@ import {
   pixelPageUrl,
 } from './client'
 import { PIXELS_APP_ID, type PixelStorefrontSendJob } from './jobs'
+import type { CustomerFacts } from './match'
 
 /** Largest body the collector reads. */
 export const PIXEL_BEACON_MAX_BYTES = 4096
@@ -164,6 +172,120 @@ export async function withdrawCartMarketingConsent(
         sql`(${cart.tracking}->'consent'->>'marketing')::boolean is true`,
       ),
     )
+}
+
+/** What checkout knows of the shopper's browser when the order is placed. */
+export type CheckoutTracking = {
+  /** The shopper's answer on the store's current banner; null when unanswered or outdated. */
+  consent: { marketing: boolean; analytics: boolean; version: number } | null
+  fbp?: string | null | undefined
+  fbc?: string | null | undefined
+  ip?: string | null | undefined
+  ua?: string | null | undefined
+}
+
+/**
+ * The cart's tracking as checkout places the order (the order copies it). Until now only
+ * `/api/px` stamped the cart, so a shopper who said yes but whose browser beacon never reached
+ * us after the cart existed (a blocker on `/api/px`, a yes given on the last page) left an order
+ * with no tracking at all, and its server Purchase was skipped as `no_tracking`.
+ *
+ * - A yes now: the consent and the browser details from this request are added; anything the
+ *   collector stamped earlier (its first landing page, an earlier `_fbc`) is kept.
+ * - No yes now (a no, or no answer on the current banner): a yes on the cart is withdrawn, and a
+ *   cart with no tracking records just the no, so the order is skipped as `no_consent` rather
+ *   than "no browser details". Nothing about the browser is kept without a yes.
+ */
+export async function syncCartMarketingConsent(
+  tx: StoreTx,
+  cartId: string,
+  t: CheckoutTracking,
+  now: Date,
+): Promise<void> {
+  const marketing = t.consent?.marketing === true
+  if (!marketing) {
+    await withdrawCartMarketingConsent(tx, cartId, false, now)
+    const no: PixelTracking = {
+      consent: {
+        marketing: false,
+        analytics: t.consent?.analytics === true,
+        version: t.consent?.version ?? 0,
+        at: now.toISOString(),
+      },
+    }
+    await tx
+      .update(cart)
+      .set({ tracking: no })
+      .where(and(eq(cart.id, cartId), eq(cart.status, 'open'), isNull(cart.tracking)))
+    return
+  }
+  const consent = t.consent as NonNullable<CheckoutTracking['consent']>
+  const seen: PixelTracking = {
+    ...(isValidFbp(t.fbp) ? { fbp: t.fbp } : {}),
+    ...(isValidFbc(t.fbc) ? { fbc: t.fbc, fbclid: fbclidOf(t.fbc) } : {}),
+    ...(t.ip && t.ip !== 'unknown' ? { ip: t.ip.slice(0, 100) } : {}),
+    ...(t.ua ? { ua: t.ua.slice(0, 500) } : {}),
+  }
+  const yes = {
+    consent: {
+      marketing: true,
+      analytics: consent.analytics,
+      version: consent.version,
+      at: now.toISOString(),
+    },
+  }
+  await tx
+    .update(cart)
+    .set({
+      // Request details fill gaps only; the consent is the answer given now.
+      tracking: sql`${JSON.stringify(seen)}::jsonb || coalesce(${cart.tracking}, '{}'::jsonb) || ${JSON.stringify(yes)}::jsonb`,
+    })
+    .where(and(eq(cart.id, cartId), eq(cart.status, 'open')))
+}
+
+/**
+ * What the store knows of this shopper for the browser pixel's manual advanced matching: the
+ * contact and address typed at checkout (the cart), else the signed-in customer and the address
+ * of their latest order. Hashed by the caller (`hashMatchValues`) before it leaves the server.
+ * The caller checks marketing consent first.
+ */
+export async function shopperMatchFacts(
+  tx: StoreTx,
+  input: {
+    customer: { id: string; email: string | null; phone: string | null; name: string | null } | null
+    cartId: string | null
+    visitorId: string | null
+  },
+): Promise<CustomerFacts> {
+  const [c] = input.cartId
+    ? await tx
+        .select({
+          email: cart.email,
+          phone: cart.phone,
+          name: cart.customerName,
+          country: cart.countryCode,
+        })
+        .from(cart)
+        .where(eq(cart.id, input.cartId))
+    : []
+  const me = input.customer
+  const [row] = me
+    ? await tx
+        .select({ address: customer.defaultAddress })
+        .from(customer)
+        .where(eq(customer.id, me.id))
+    : []
+  const a = row?.address ?? null
+  return {
+    email: c?.email || me?.email,
+    phone: c?.phone || me?.phone || a?.phone,
+    name: c?.name || me?.name || a?.name,
+    city: a?.city,
+    state: a?.stateCode,
+    pincode: a?.pincode,
+    country: a?.country ?? c?.country,
+    externalId: me?.id ?? input.visitorId,
+  }
 }
 
 /** What the collector needs of the store: is Pixels installed, and the banner version now shown. */

@@ -21,11 +21,7 @@ const reported = new Set<string>()
  * ids), and only after a yes to marketing (the listener's rule); picking a method again is not
  * a new event, picking another one is.
  */
-function trackPaymentInfo(
-  cart: CartView,
-  methodId: string,
-  match: { email: string; phone: string },
-): void {
+function trackPaymentInfo(cart: CartView, methodId: string): void {
   const eventId = addPaymentInfoEventId(cart.id, methodId)
   if (reported.has(eventId)) return
   reported.add(eventId)
@@ -35,7 +31,6 @@ function trackPaymentInfo(
     valuePaise: cart.subtotalPaise,
     contentIds: cart.lines.map((l) => l.variantId),
     numItems: cart.lines.reduce((n, l) => n + l.quantity, 0),
-    match,
   })
 }
 
@@ -55,7 +50,7 @@ export default function CheckoutPaymentStep({ ck }: CheckoutPaymentStepProps) {
   // Event handlers
   const handleSelect = (id: string) => {
     ck.handlePayment(id)
-    trackPaymentInfo(ck.cart, id, { email: ck.form.email, phone: ck.form.phone })
+    trackPaymentInfo(ck.cart, id)
   }
 
   // Render logic

@@ -3,6 +3,7 @@ import {
   cart,
   cartLine,
   createDb,
+  customer,
   pixelConnection,
   product,
   store,
@@ -13,8 +14,19 @@ import { resetDb } from '@commerce/db/test'
 import { eq } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import { encryptSecret } from '../secrets'
-import { addPaymentInfoEventId, hasMarketingConsent, pixelPageUrl } from './client'
-import { collectPixelEvent, parsePixelBeacon, withdrawCartMarketingConsent } from './collect'
+import {
+  addPaymentInfoEventId,
+  hasMarketingConsent,
+  pixelPageUrl,
+  purchaseSkipReason,
+} from './client'
+import {
+  collectPixelEvent,
+  parsePixelBeacon,
+  shopperMatchFacts,
+  syncCartMarketingConsent,
+  withdrawCartMarketingConsent,
+} from './collect'
 import type { FetchLike } from './meta'
 import { runPixelSendJob } from './send'
 
@@ -188,5 +200,145 @@ describe('consent at checkout', () => {
     const after = await read()
     expect(hasMarketingConsent(after)).toBe(false)
     expect(after?.consent?.version).toBe(1)
+  })
+
+  const FBP = 'fb.1.1729764000000.1234567890'
+  const FBC = 'fb.1.1729764000000.IwAR2abc'
+  const facts = { isTest: false, importedFrom: null, placedAt: now }
+
+  async function bareCart() {
+    const s = await seedCart()
+    const [c] = await owner.insert(cart).values({ storeId: s.storeId }).returning()
+    const cartId = c?.id as string
+    const read = async () =>
+      (await owner.select().from(cart).where(eq(cart.id, cartId)))[0]?.tracking ?? null
+    return { storeId: s.storeId, cartId, read }
+  }
+
+  it('a yes with no collector stamp: the order still gets tracking, so Purchase is not skipped', async () => {
+    const c = await bareCart()
+    await withStore(app, c.storeId, (tx) =>
+      syncCartMarketingConsent(
+        tx,
+        c.cartId,
+        {
+          consent: { marketing: true, analytics: true, version: 2 },
+          fbp: FBP,
+          fbc: FBC,
+          ip: '203.0.113.9',
+          ua: 'Mozilla/5.0',
+        },
+        now,
+      ),
+    )
+    const t = await c.read()
+    expect(t).toMatchObject({
+      fbp: FBP,
+      fbc: FBC,
+      fbclid: 'IwAR2abc',
+      ip: '203.0.113.9',
+      ua: 'Mozilla/5.0',
+    })
+    expect(t?.consent).toMatchObject({ marketing: true, version: 2 })
+    expect(purchaseSkipReason({ ...facts, tracking: t }, now)).toBeNull()
+  })
+
+  it('a yes keeps what the collector stamped earlier and ignores malformed cookies', async () => {
+    const s = await seedCart()
+    await owner
+      .update(cart)
+      .set({ tracking: { consent, fbp: FBP, landingUrl: 'https://w.in/?utm_source=ig' } })
+      .where(eq(cart.id, s.cartId))
+    await withStore(app, s.storeId, (tx) =>
+      syncCartMarketingConsent(
+        tx,
+        s.cartId,
+        {
+          consent: { marketing: true, analytics: false, version: 1 },
+          fbp: 'fb.1.999.1',
+          fbc: 'junk',
+        },
+        now,
+      ),
+    )
+    const [row] = await owner.select().from(cart).where(eq(cart.id, s.cartId))
+    expect(row?.tracking).toMatchObject({ fbp: FBP, landingUrl: 'https://w.in/?utm_source=ig' })
+    expect(row?.tracking?.fbc).toBeUndefined()
+  })
+
+  it('no yes: nothing about the browser is kept, and the skip says no consent', async () => {
+    const c = await bareCart()
+    await withStore(app, c.storeId, (tx) =>
+      syncCartMarketingConsent(
+        tx,
+        c.cartId,
+        { consent: null, fbp: FBP, fbc: FBC, ip: '203.0.113.9', ua: 'Mozilla/5.0' },
+        now,
+      ),
+    )
+    const t = await c.read()
+    expect(t).toEqual({
+      consent: { marketing: false, analytics: false, version: 0, at: now.toISOString() },
+    })
+    expect(purchaseSkipReason({ ...facts, tracking: t }, now)).toBe('no_consent')
+  })
+
+  it('a no withdraws an earlier yes without touching the rest', async () => {
+    const s = await seedCart()
+    await withStore(app, s.storeId, (tx) =>
+      syncCartMarketingConsent(
+        tx,
+        s.cartId,
+        { consent: { marketing: false, analytics: true, version: 1 }, fbp: FBP },
+        now,
+      ),
+    )
+    const [row] = await owner.select().from(cart).where(eq(cart.id, s.cartId))
+    expect(hasMarketingConsent(row?.tracking)).toBe(false)
+    expect(row?.tracking?.fbp).toBeUndefined()
+  })
+})
+
+describe('shopper facts for browser matching', () => {
+  it('checkout contact first, then the signed-in customer and their latest address', async () => {
+    const s = await seedCart()
+    const [c] = await owner
+      .insert(customer)
+      .values({
+        storeId: s.storeId,
+        email: 'asha@example.com',
+        name: 'Asha Rao',
+        defaultAddress: {
+          name: 'Asha Rao',
+          line1: '1 MG Road',
+          city: 'Pune',
+          stateCode: 'MH',
+          pincode: '411001',
+          phone: '9876543210',
+        },
+      })
+      .returning()
+    const me = { id: c?.id as string, email: 'asha@example.com', phone: null, name: 'Asha Rao' }
+    await owner
+      .update(cart)
+      .set({ email: 'typed@example.com', phone: '9123456789' })
+      .where(eq(cart.id, s.cartId))
+    const facts = await withStore(app, s.storeId, (tx) =>
+      shopperMatchFacts(tx, { customer: me, cartId: s.cartId, visitorId: 'v1' }),
+    )
+    expect(facts).toMatchObject({
+      email: 'typed@example.com',
+      phone: '9123456789',
+      name: 'Asha Rao',
+      city: 'Pune',
+      state: 'MH',
+      pincode: '411001',
+      externalId: me.id,
+    })
+    const guest = await withStore(app, s.storeId, (tx) =>
+      shopperMatchFacts(tx, { customer: null, cartId: null, visitorId: 'v1' }),
+    )
+    expect(guest).toMatchObject({ externalId: 'v1' })
+    expect(guest.email).toBeUndefined()
   })
 })

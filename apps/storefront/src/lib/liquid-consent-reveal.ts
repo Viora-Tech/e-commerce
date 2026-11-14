@@ -7,10 +7,16 @@
  * seconds after the page, and as the biggest thing painted that late on a text page it set the
  * page's Largest Contentful Paint (about 6.5 s on a phone).
  *
- * So a small inline script right after the element makes the same decision the theme's script
- * makes, while the page is still being parsed: ask only if `Shopify.customerPrivacy` says to (our
- * shim, `lib/liquid-shim.ts`, answers from the consent cookie) and the theme's own "answered
- * recently" stamp in localStorage is not set. Nothing else changes: the theme's script still
+ * So a small inline script right after the element decides while the page is still being parsed:
+ * ask when `Shopify.customerPrivacy` says to (our shim, `lib/liquid-shim.ts`, answers from our
+ * consent cookie, the only record of consent here).
+ *
+ * The theme's own "answered recently" stamp in localStorage is not consent and is not trusted: it
+ * was set by the same theme on Shopify (same domain, same section key), and by an older banner
+ * version, so a shopper who answered on Shopify within 180 days was never asked on Koomerce, had
+ * no consent cookie, and no marketing event or server Purchase was ever sent for them. When our
+ * cookie holds no answer the stale stamp is removed (so the theme's script agrees) and the banner
+ * shows. Once answered, our cookie hides it. Nothing else changes: the theme's script still
  * binds the buttons later (its `show()` does nothing for a banner already shown), every answer
  * still goes through the shim to `ConsentManager`, and no tag loads before a yes. The script only
  * ever reveals; when in doubt (no shim, a theme preview, a `#cookie-settings` link the theme
@@ -20,7 +26,7 @@
 const BANNER_END = '</cookie-banner>'
 
 /** Runs in the browser, as the element's next sibling; plain ES5 like the theme's own code. */
-const REVEAL = `(function(){try{var s=document.currentScript,b=s&&s.previousElementSibling;if(!b||b.localName!=='cookie-banner'||!b.hidden)return;var S=window.Shopify,p=S&&S.customerPrivacy;if(!p||S.designMode||location.hash==='#cookie-settings'||!p.shouldShowBanner())return;var d=Number(b.getAttribute('data-remember-days'));if(!isFinite(d)||d<1)d=180;var t=0;try{t=Number(localStorage.getItem(b.getAttribute('data-storage-key')||'glide:cookie-consent'))}catch(e){}if(t&&Date.now()-t<d*864e5)return;b.hidden=false;var r=b.querySelector('[data-cookie-region]');if(r)r.focus({preventScroll:true})}catch(e){}})()`
+const REVEAL = `(function(){try{var s=document.currentScript,b=s&&s.previousElementSibling;if(!b||b.localName!=='cookie-banner'||!b.hidden)return;var S=window.Shopify,p=S&&S.customerPrivacy;if(!p||S.designMode||location.hash==='#cookie-settings'||!p.shouldShowBanner())return;try{localStorage.removeItem(b.getAttribute('data-storage-key')||'glide:cookie-consent')}catch(e){}b.hidden=false;var r=b.querySelector('[data-cookie-region]');if(r)r.focus({preventScroll:true})}catch(e){}})()`
 
 /**
  * Section HTML with the reveal script after each theme cookie banner. `nonceMark` is what the

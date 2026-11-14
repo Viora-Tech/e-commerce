@@ -107,6 +107,7 @@ async function orderEvent(
         city: addr?.city,
         state: addr?.stateCode,
         pincode: addr?.pincode,
+        country: addr?.country,
         externalId: o.customerId,
       }),
       ip: t.ip,
@@ -150,6 +151,8 @@ async function storefrontEvent(
   let contents: MetaContent[] = []
   let email: string | null = null
   let phone: string | null = null
+  let name: string | null = null
+  let country: string | null = null
   let customerId: string | null = null
   if (
     job.cartId &&
@@ -167,11 +170,19 @@ async function storefrontEvent(
     const added = job.eventName === 'AddToCart' ? job.quantity : undefined
     if (added) contents = contents.map((c) => ({ ...c, quantity: Math.min(c.quantity, added) }))
     const [c] = await tx
-      .select({ email: cart.email, phone: cart.phone, customerId: cart.customerId })
+      .select({
+        email: cart.email,
+        phone: cart.phone,
+        name: cart.customerName,
+        country: cart.countryCode,
+        customerId: cart.customerId,
+      })
       .from(cart)
       .where(eq(cart.id, job.cartId))
     email = c?.email ?? null
     phone = c?.phone ?? null
+    name = c?.name ?? null
+    country = c?.country ?? null
     customerId = c?.customerId ?? null
   } else if (job.eventName === 'ViewContent' && job.variantId) {
     const [v] = await tx
@@ -190,7 +201,7 @@ async function storefrontEvent(
       eventId: job.eventId,
       at: new Date(job.at),
       url: job.url,
-      user: hashUserData({ email, phone, externalId: customerId ?? job.visitorId }),
+      user: hashUserData({ email, phone, name, country, externalId: customerId ?? job.visitorId }),
       ip: job.ip,
       ua: job.ua,
       fbp: job.fbp,

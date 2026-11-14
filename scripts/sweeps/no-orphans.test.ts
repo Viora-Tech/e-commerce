@@ -331,16 +331,27 @@ const ALLOWLIST: AllowEntry[] = [
   },
   {
     file: 'packages/core/src/pixels/hash.ts',
+    names: ['sha256'],
+    reason: 'the hash behind hashUserData; exported for its unit test',
+  },
+  {
+    file: 'packages/core/src/pixels/match.ts',
     names: [
-      'sha256',
       'normaliseEmail',
       'normaliseMetaPhone',
       'normaliseName',
       'normaliseCity',
       'normaliseState',
       'normalisePin',
+      'normaliseCountry',
     ],
-    reason: 'the Meta normalisers behind hashUserData; exported for their unit tests',
+    reason:
+      'the Meta normalisers behind normaliseCustomerFacts (server hashUserData and the browser pixel); exported for their unit tests',
+  },
+  {
+    file: 'packages/core/src/pixels/collect.ts',
+    names: ['withdrawCartMarketingConsent'],
+    reason: 'the withdraw half of syncCartMarketingConsent (checkout); exported for its unit test',
   },
   {
     file: 'packages/core/src/pixels/meta.ts',
