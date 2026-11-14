@@ -2,6 +2,7 @@
 
 import { Button } from '@commerce/ui/shadcn/button'
 import { Dialog, DialogDescription, DialogTitle } from '@commerce/ui/shadcn/dialog'
+import { FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import { useState } from 'react'
 import DialogContent from '@/components/layout/dialog-content'
@@ -48,9 +49,7 @@ export default function PreviewCheckoutDialog({ open, onOpenChange }: PreviewChe
           }}
         >
           <div className="flex flex-1 flex-col gap-1">
-            <label htmlFor="preview-checkout-pin" className="text-caption text-muted-foreground">
-              {h.pin}
-            </label>
+            <FieldLabel htmlFor="preview-checkout-pin">{h.pin}</FieldLabel>
             <Input
               id="preview-checkout-pin"
               value={typed}

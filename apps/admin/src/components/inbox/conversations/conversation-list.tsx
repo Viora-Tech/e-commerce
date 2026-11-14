@@ -1,10 +1,9 @@
 'use client'
 
-import { Search } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
-import { Input } from '@commerce/ui/shadcn/input'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
+import SearchField from '@/components/fields/search-field'
 import EmptyState from '@/components/layout/empty-state'
 import RelativeTime from '@/components/layout/relative-time'
 import { inboxConversationsContent } from '@/data/inbox-conversations'
@@ -57,17 +56,11 @@ export default function ConversationList({
 
   return (
     <div className={cn('flex min-h-0 flex-col', className)}>
-      <div className="relative border-b border-hairline p-3">
-        <Search
-          className="pointer-events-none absolute top-1/2 left-5.5 size-4 -translate-y-1/2 text-muted-foreground"
-          aria-hidden="true"
-        />
-        <Input
-          type="search"
+      <div className="border-b border-hairline p-3">
+        <SearchField
           value={search}
           placeholder={l.search}
           aria-label={l.search}
-          className="pl-8"
           onChange={(e) => onSearch(e.target.value)}
         />
       </div>

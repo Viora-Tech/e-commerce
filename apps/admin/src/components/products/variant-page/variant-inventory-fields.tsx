@@ -1,10 +1,10 @@
 'use client'
 
 import { Button } from '@commerce/ui/shadcn/button'
+import { Field, FieldDescription, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import Link from 'next/link'
 import MoneyInput from '@/components/fields/money-input'
-import KitField from '@/components/kit/kit-field'
 import { productFormContent } from '@/data/product-form'
 import { variantPageContent } from '@/data/variant-page'
 import { useCopy, useFormat } from '@/hooks/use-copy'
@@ -52,7 +52,8 @@ export default function VariantInventoryFields({
   return (
     <div className="flex flex-col gap-4">
       <div className="grid gap-4 md:grid-cols-2">
-        <KitField label={inventory.sku} htmlFor="variant-sku">
+        <Field>
+          <FieldLabel htmlFor="variant-sku">{inventory.sku}</FieldLabel>
           <div className="flex gap-2">
             <Input
               size="kit"
@@ -71,8 +72,9 @@ export default function VariantInventoryFields({
               {inventory.skuGenerate}
             </Button>
           </div>
-        </KitField>
-        <KitField label={inventory.barcode} htmlFor="variant-barcode">
+        </Field>
+        <Field>
+          <FieldLabel htmlFor="variant-barcode">{inventory.barcode}</FieldLabel>
           <Input
             size="kit"
             id="variant-barcode"
@@ -80,7 +82,7 @@ export default function VariantInventoryFields({
             onChange={(e) => onPatch({ barcode: e.target.value })}
             autoComplete="off"
           />
-        </KitField>
+        </Field>
       </div>
       <SwitchRow
         id="variant-track"
@@ -90,11 +92,8 @@ export default function VariantInventoryFields({
         onChange={(trackInventory) => onPatch({ trackInventory })}
       />
       <div className="flex flex-wrap items-end gap-4">
-        <KitField
-          label={inventory.quantity}
-          htmlFor="variant-quantity"
-          className="md:max-w-[12rem]"
-        >
+        <Field className="min-w-0 flex-1 md:max-w-[12rem]">
+          <FieldLabel htmlFor="variant-quantity">{inventory.quantity}</FieldLabel>
           {draft.trackInventory ? (
             <MoneyInput
               size="kit"
@@ -106,7 +105,7 @@ export default function VariantInventoryFields({
           ) : (
             <Input size="kit" id="variant-quantity" value={inventory.unlimitedValue} readOnly />
           )}
-        </KitField>
+        </Field>
         {draft.trackInventory ? (
           <Button
             variant="link"
@@ -126,11 +125,8 @@ export default function VariantInventoryFields({
         onChange={(preorderAllowed) => onPatch({ preorderAllowed })}
       />
       {preorder.on && draft.preorderAllowed ? (
-        <KitField
-          label={copy.preorderLimit}
-          htmlFor="variant-preorder-limit"
-          help={copy.preorderLimitHelp}
-        >
+        <Field>
+          <FieldLabel htmlFor="variant-preorder-limit">{copy.preorderLimit}</FieldLabel>
           <Input
             size="kit"
             id="variant-preorder-limit"
@@ -141,7 +137,8 @@ export default function VariantInventoryFields({
             inputMode="numeric"
             className="md:max-w-[12rem]"
           />
-        </KitField>
+          <FieldDescription>{copy.preorderLimitHelp}</FieldDescription>
+        </Field>
       ) : null}
     </div>
   )

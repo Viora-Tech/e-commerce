@@ -1,6 +1,7 @@
 'use client'
 
 import type { Theme } from '@commerce/core/theme'
+import { FieldLabel } from '@commerce/ui/shadcn/field'
 import { Textarea } from '@commerce/ui/shadcn/textarea'
 import { themesContent as copy } from '@/data/themes'
 
@@ -17,9 +18,7 @@ export default function CustomCssSettings({ theme, onChange }: CustomCssSettings
   // Render logic
   return (
     <div className="flex flex-col gap-1.5">
-      <label htmlFor="theme-custom-css" className="text-xs font-medium text-foreground">
-        {copy.css.label}
-      </label>
+      <FieldLabel htmlFor="theme-custom-css">{copy.css.label}</FieldLabel>
       <Textarea
         id="theme-custom-css"
         value={theme.customCss}

@@ -55,13 +55,13 @@ export default function SaveBar({
           type="button"
           variant="ghost"
           size="sm"
-          className="ml-1 rounded-full"
+          className="ml-1"
           onClick={onDiscard}
           disabled={saving}
         >
           {discardLabel}
         </Button>
-        <Button type="button" size="sm" className="rounded-full" onClick={onSave} loading={saving}>
+        <Button type="button" size="sm" onClick={onSave} loading={saving}>
           {saveLabel}
         </Button>
       </FloatingBar>

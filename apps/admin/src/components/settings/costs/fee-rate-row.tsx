@@ -1,5 +1,6 @@
 'use client'
 
+import { FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import SettingsRow from '@/components/settings/settings-row'
 import { profitCostsContent } from '@/data/profit-costs'
@@ -25,9 +26,7 @@ export default function FeeRateRow({ id, label, value, onChange, disabled }: Fee
     <SettingsRow label={label} htmlFor={`${id}-percent`}>
       <div className="flex flex-wrap items-end gap-3">
         <div className="flex flex-col gap-1">
-          <label htmlFor={`${id}-percent`} className="text-caption text-muted-foreground">
-            {copy.percent}
-          </label>
+          <FieldLabel htmlFor={`${id}-percent`}>{copy.percent}</FieldLabel>
           <Input
             size="lg"
             id={`${id}-percent`}
@@ -39,9 +38,7 @@ export default function FeeRateRow({ id, label, value, onChange, disabled }: Fee
           />
         </div>
         <div className="flex flex-col gap-1">
-          <label htmlFor={`${id}-fixed`} className="text-caption text-muted-foreground">
-            {copy.fixed}
-          </label>
+          <FieldLabel htmlFor={`${id}-fixed`}>{copy.fixed}</FieldLabel>
           <Input
             size="lg"
             id={`${id}-fixed`}

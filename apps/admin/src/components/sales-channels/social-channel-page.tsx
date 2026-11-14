@@ -11,10 +11,11 @@ import {
   type SocialChannel,
 } from '@commerce/core/sales-channels'
 import { PlugConnect } from '@commerce/ui/icons'
+import { Button } from '@commerce/ui/shadcn/button'
+import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import KitButton from '@/components/kit/kit-button'
 import ChartCard from '@/components/layout/chart-card'
 import DataCard from '@/components/layout/data-card'
 import EmptyState from '@/components/layout/empty-state'
@@ -150,25 +151,25 @@ export default function SocialChannelPage({ data, issues }: SocialChannelPagePro
         badges={<ChannelStatusChip status={chipStatus(state)} />}
         actions={
           requested ? (
-            <KitButton variant="secondary" onClick={() => setViewing(true)}>
+            <Button variant="outline" onClick={() => setViewing(true)}>
               {shared.card.viewRequest}
-            </KitButton>
+            </Button>
           ) : needsReconnect(state) ? (
-            <KitButton onClick={() => setConnecting(true)}>{shared.bar.reconnect}</KitButton>
+            <Button onClick={() => setConnecting(true)}>{shared.bar.reconnect}</Button>
           ) : isLive(state) && state.status !== 'disconnected' ? (
-            <KitButton variant="secondary" onClick={() => setManaging(true)}>
+            <Button variant="outline" onClick={() => setManaging(true)}>
               {live.manage}
-            </KitButton>
+            </Button>
           ) : joinsMeta ? (
-            <KitButton onClick={handleJoinMeta} disabled={joining}>
+            <Button onClick={handleJoinMeta} loading={joining}>
               <PlugConnect />
               {copy.meta.turnOnCta(name)}
-            </KitButton>
+            </Button>
           ) : (
-            <KitButton onClick={() => setConnecting(true)}>
+            <Button onClick={() => setConnecting(true)}>
               <PlugConnect />
               {copy.connectCta(name)}
-            </KitButton>
+            </Button>
           )
         }
       />
@@ -235,9 +236,15 @@ export default function SocialChannelPage({ data, issues }: SocialChannelPagePro
             count={blocking.length}
             flush
             action={
-              <KitButton variant="linkSm" href={routes.salesChannels.agenticReadiness()}>
+              <Button
+                variant="link"
+                size="xs"
+                nativeButton={false}
+                render={<Link href={routes.salesChannels.agenticReadiness()} />}
+                className="h-auto px-0"
+              >
                 {shared.readiness.title}
-              </KitButton>
+              </Button>
             }
           >
             {blocking.length === 0 ? (
@@ -265,18 +272,24 @@ export default function SocialChannelPage({ data, issues }: SocialChannelPagePro
                             : copy.rules[i.rule](info.partner)
                     }
                     action={
-                      <KitButton
-                        variant="pill"
-                        href={
-                          i.kind === 'policy'
-                            ? routes.settings.policy(i.ref)
-                            : routes.products.detail(i.ref)
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        nativeButton={false}
+                        render={
+                          <Link
+                            href={
+                              i.kind === 'policy'
+                                ? routes.settings.policy(i.ref)
+                                : routes.products.detail(i.ref)
+                            }
+                          />
                         }
                       >
                         {i.fix === 'ai'
                           ? shared.readiness.fixes.attributes
                           : shared.readiness.fixes[i.fix]}
-                      </KitButton>
+                      </Button>
                     }
                   />
                 ))}

@@ -1,9 +1,10 @@
 'use client'
 
 import { HOME_METRICS, type HomeMetric } from '@commerce/core/home-metrics'
-import { CheckIcon, Search, X } from '@commerce/ui/icons'
+import { CheckIcon, X } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import { useState } from 'react'
+import SearchField from '@/components/fields/search-field'
 import EmptyState from '@/components/layout/empty-state'
 import { homePageContent } from '@/data/home'
 import { useCopy } from '@/hooks/use-copy'
@@ -43,18 +44,15 @@ export default function MetricPicker({ current, onPick, onClose }: MetricPickerP
           <X className="size-4" aria-hidden="true" />
         </button>
       </div>
-      <label className="flex h-8 items-center gap-2 rounded-sm border border-input px-2.5 focus-within:ring-2 focus-within:ring-ring">
-        <Search className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-        <input
-          // biome-ignore lint/a11y/noAutofocus: the picker opens to search.
-          autoFocus
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder={copy.searchMetrics}
-          aria-label={copy.searchMetrics}
-          className="min-w-0 flex-1 bg-transparent text-body outline-none placeholder:text-muted-foreground"
-        />
-      </label>
+      <SearchField
+        size="sm"
+        type="text"
+        autoFocus
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        placeholder={copy.searchMetrics}
+        aria-label={copy.searchMetrics}
+      />
       {shown.length === 0 ? (
         <EmptyState variant="plain" size="sm" className="px-1" body={copy.noMetric} />
       ) : (

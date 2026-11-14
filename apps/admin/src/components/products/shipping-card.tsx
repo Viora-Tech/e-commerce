@@ -21,7 +21,6 @@ import {
 import { Switch } from '@commerce/ui/shadcn/switch'
 import Link from 'next/link'
 import { useState } from 'react'
-import KitField from '@/components/kit/kit-field'
 import DataCard from '@/components/layout/data-card'
 import { COUNTRIES } from '@/data/countries'
 import { productFormContent } from '@/data/product-form'
@@ -183,15 +182,18 @@ export default function ShippingCard({
         {/* One form style across the product page: label above the field (audit #28). */}
         {singleVariant && variant.requiresShipping ? (
           <div className="grid gap-4 md:grid-cols-2">
-            <KitField label={copy.weight} help={copy.weightHelp} htmlFor="variant-weight">
+            <Field>
+              <FieldLabel htmlFor="variant-weight">{copy.weight}</FieldLabel>
               <WeightInput
                 id="variant-weight"
                 weight={variant.weight}
                 unit={variant.weightUnit}
                 onChange={onChange}
               />
-            </KitField>
-            <KitField label={copy.country} help={copy.countryHelp} htmlFor="variant-origin">
+              <FieldDescription>{copy.weightHelp}</FieldDescription>
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="variant-origin">{copy.country}</FieldLabel>
               <Select
                 items={items}
                 value={variant.countryOfOrigin || NONE}
@@ -211,10 +213,12 @@ export default function ShippingCard({
                   ))}
                 </SelectContent>
               </Select>
-            </KitField>
+              <FieldDescription>{copy.countryHelp}</FieldDescription>
+            </Field>
           </div>
         ) : null}
-        <KitField label={copy.package} htmlFor="variant-package">
+        <Field>
+          <FieldLabel htmlFor="variant-package">{copy.package}</FieldLabel>
           <Select
             items={packageItems}
             value={packageValue}
@@ -247,7 +251,7 @@ export default function ShippingCard({
               {allOwn ? boxCopy.allOwn : boxCopy.ownVariants(ownList)}
             </FieldDescription>
           ) : null}
-        </KitField>
+        </Field>
         {packageValue === CUSTOM && !allOwn ? (
           <div className="grid gap-4 md:grid-cols-3">
             <Field>

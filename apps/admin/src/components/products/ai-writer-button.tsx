@@ -1,9 +1,9 @@
 'use client'
 
 import { AiIcon } from '@commerce/ui/icons'
+import { Button } from '@commerce/ui/shadcn/button'
 import dynamic from 'next/dynamic'
 import { useState } from 'react'
-import KitButton from '@/components/kit/kit-button'
 import { aiContent } from '@/data/ai'
 import { useCopy } from '@/hooks/use-copy'
 import { useOpenedOnce } from '@/hooks/use-opened-once'
@@ -28,10 +28,10 @@ export default function AiWriterButton({ form, onApply }: AiWriterButtonProps) {
   // Render logic
   return (
     <>
-      <KitButton variant="chip" onClick={() => setOpen(true)}>
+      <Button variant="outline" size="sm" onClick={() => setOpen(true)}>
         <AiIcon className="text-primary" aria-hidden="true" />
         {copy.writer.button}
-      </KitButton>
+      </Button>
       {used ? (
         <AiWriterDialog open={open} onOpenChange={setOpen} form={form} onApply={onApply} />
       ) : null}

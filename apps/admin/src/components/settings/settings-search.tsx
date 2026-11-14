@@ -1,10 +1,9 @@
 'use client'
 
-import { Search } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
-import { Input } from '@commerce/ui/shadcn/input'
 import { useRouter } from 'next/navigation'
 import { type KeyboardEvent, useId, useState } from 'react'
+import SearchField from '@/components/fields/search-field'
 import { settingsSearchContent as copy, SETTINGS_SEARCH_INDEX } from '@/data/settings-search'
 import { isExternalHref } from '@/lib/routes'
 import { searchSettings, settingsPageOf } from '@/lib/settings-search'
@@ -70,12 +69,7 @@ export default function SettingsSearch() {
 
   return (
     <div className="relative w-full">
-      <Search
-        aria-hidden="true"
-        className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
-      />
-      <Input
-        type="search"
+      <SearchField
         role="combobox"
         aria-label={copy.label}
         aria-expanded={showList}
@@ -89,7 +83,6 @@ export default function SettingsSearch() {
         onFocus={handleFocus}
         onBlur={handleBlur}
         autoComplete="off"
-        className="h-9 pl-9"
       />
       {showList ? (
         <div className="absolute top-full right-0 left-0 z-30 mt-1 overflow-hidden rounded-lg border border-border bg-popover shadow-dialog">

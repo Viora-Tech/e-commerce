@@ -12,13 +12,12 @@ import { richTextToPlainText } from '@commerce/richtext'
 import { AiIcon, CircleAlert, StarIcon, XIcon } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import { Alert, AlertDescription } from '@commerce/ui/shadcn/alert'
+import { Button } from '@commerce/ui/shadcn/button'
 import { Field, FieldDescription, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
-import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { type KeyboardEvent, useState } from 'react'
 import { toast } from 'sonner'
-import KitButton from '@/components/kit/kit-button'
 import DataCard from '@/components/layout/data-card'
 import EmptyState from '@/components/layout/empty-state'
 import LeaveGuard from '@/components/layout/leave-guard'
@@ -122,15 +121,17 @@ export default function SeoKeywordsCard({ productId, form, aiOn, onChange }: Seo
         subtitle={copy.intro}
         action={
           aiOn ? (
-            <KitButton
-              variant="chip"
+            <Button
+              variant="outline"
+              size="sm"
               onClick={() => void handleSuggest()}
-              disabled={busy || needsTitle}
+              disabled={needsTitle}
+              loading={busy}
               title={needsTitle ? copy.needTitle : undefined}
             >
-              {busy ? <Spinner /> : <AiIcon className="text-primary" aria-hidden="true" />}
+              <AiIcon className="text-primary" aria-hidden="true" />
               {suggestions ? copy.suggestAgain : copy.suggest}
-            </KitButton>
+            </Button>
           ) : null
         }
         bodyClassName="flex flex-col gap-4"
@@ -209,9 +210,9 @@ export default function SeoKeywordsCard({ productId, form, aiOn, onChange }: Seo
               disabled={full}
               autoComplete="off"
             />
-            <KitButton variant="secondary" onClick={handleAdd} disabled={full || !draft.trim()}>
+            <Button variant="outline" onClick={handleAdd} disabled={full || !draft.trim()}>
               {copy.add}
-            </KitButton>
+            </Button>
           </div>
           {full ? <FieldDescription>{copy.full(SEO_KEYWORDS_MAX)}</FieldDescription> : null}
         </Field>

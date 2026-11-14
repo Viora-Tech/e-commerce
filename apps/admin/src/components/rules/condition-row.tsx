@@ -7,6 +7,7 @@ import {
   type SegmentField,
 } from '@commerce/core/segments'
 import { Trash2 } from '@commerce/ui/icons'
+import { Button } from '@commerce/ui/shadcn/button'
 import { Input } from '@commerce/ui/shadcn/input'
 import {
   Select,
@@ -16,7 +17,6 @@ import {
   SelectValue,
 } from '@commerce/ui/shadcn/select'
 import MoneyInput from '@/components/fields/money-input'
-import KitIconButton from '@/components/kit/kit-icon-button'
 import { segmentsContent as copy } from '@/data/customers'
 import { INDIAN_STATES } from '@/data/india'
 import SegmentProductField from './segment-product-field'
@@ -183,9 +183,15 @@ export default function ConditionRow({ condition, fields, onChange, onRemove }: 
         />
       )}
 
-      <KitIconButton label={copy.builder.remove} onClick={onRemove}>
+      <Button
+        variant="outline"
+        size="icon"
+        aria-label={copy.builder.remove}
+        title={copy.builder.remove}
+        onClick={onRemove}
+      >
         <Trash2 />
-      </KitIconButton>
+      </Button>
     </div>
   )
 }

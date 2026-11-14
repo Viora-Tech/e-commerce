@@ -1,14 +1,14 @@
 'use client'
 
 import { MAX_MANUAL_RECORDS, type ManualWorkflow } from '@commerce/core/automations'
-import { Search, Workflow } from '@commerce/ui/icons'
+import { Workflow } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
-import { Input } from '@commerce/ui/shadcn/input'
 import { Spinner } from '@commerce/ui/shadcn/spinner'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import SearchField from '@/components/fields/search-field'
 import EmptyState from '@/components/layout/empty-state'
 import FormDialog from '@/components/layout/form-dialog'
 import { type AutomationRecordType, automationRecordsContent } from '@/data/automation-records'
@@ -134,19 +134,12 @@ export default function RunAutomationDialog({
         />
       ) : (
         <div className="flex flex-col gap-3">
-          <div className="relative">
-            <Search
-              aria-hidden="true"
-              className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground"
-            />
-            <Input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder={copy.dialog.search}
-              aria-label={copy.dialog.search}
-              className="pl-8"
-            />
-          </div>
+          <SearchField
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder={copy.dialog.search}
+            aria-label={copy.dialog.search}
+          />
           <fieldset
             aria-label={copy.dialog.title}
             className="flex max-h-80 flex-col gap-1.5 overflow-y-auto overscroll-contain"

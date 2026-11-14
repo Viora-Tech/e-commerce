@@ -6,6 +6,7 @@ import {
   type PromoteChannel,
 } from '@commerce/plugin-affiliates/settings'
 import { Button } from '@commerce/ui/shadcn/button'
+import { FieldLabel } from '@commerce/ui/shadcn/field'
 import { Textarea } from '@commerce/ui/shadcn/textarea'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
@@ -149,9 +150,7 @@ export default function AffiliateDetail({ params }: AppPageProps) {
           ) : null}
         </dl>
         <div className="flex flex-col gap-3 rounded-lg surface-card px-5 py-4">
-          <label htmlFor="aff-note" className="text-caption text-muted-foreground">
-            {d.note}
-          </label>
+          <FieldLabel htmlFor="aff-note">{d.note}</FieldLabel>
           <Textarea id="aff-note" value={note} onChange={(e) => setNote(e.target.value)} rows={5} />
           <div>
             <Button variant="outline" onClick={handleSaveNote}>

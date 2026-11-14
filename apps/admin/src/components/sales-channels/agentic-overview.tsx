@@ -9,9 +9,10 @@ import {
   needsReconnect,
 } from '@commerce/core/sales-channels'
 import { AgenticSales, PlugConnect, SlidersHorizontal } from '@commerce/ui/icons'
+import { Button } from '@commerce/ui/shadcn/button'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
-import KitButton from '@/components/kit/kit-button'
 import EmptyState from '@/components/layout/empty-state'
 import PageBody from '@/components/layout/page-body'
 import PageHeader from '@/components/layout/page-header'
@@ -69,14 +70,18 @@ export default function AgenticOverviewPage({ data }: AgenticOverviewPageProps) 
         subtitle={copy.subtitle}
         actions={
           <>
-            <KitButton variant="secondary" href={routes.salesChannels.agenticControls()}>
+            <Button
+              variant="outline"
+              nativeButton={false}
+              render={<Link href={routes.salesChannels.agenticControls()} />}
+            >
               <SlidersHorizontal />
               {copy.controls}
-            </KitButton>
-            <KitButton onClick={() => setConnecting({ agent: null })}>
+            </Button>
+            <Button onClick={() => setConnecting({ agent: null })}>
               <PlugConnect />
               {copy.connect}
-            </KitButton>
+            </Button>
           </>
         }
       />
@@ -132,9 +137,9 @@ export default function AgenticOverviewPage({ data }: AgenticOverviewPageProps) 
           heading={copy.emptyHeading}
           body={copy.emptyBody}
           action={
-            <KitButton variant="secondary" onClick={() => setConnecting({ agent: null })}>
+            <Button variant="outline" onClick={() => setConnecting({ agent: null })}>
               {copy.connect}
-            </KitButton>
+            </Button>
           }
         />
       ) : null}

@@ -4,7 +4,6 @@ import { Pencil, Plus, Trash2 } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import KitIconButton from '@/components/kit/kit-icon-button'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
 import DataCard from '@/components/layout/data-card'
 import EmptyState from '@/components/layout/empty-state'
@@ -143,20 +142,24 @@ export default function ChargesCard({
               </span>
               {editable && ownedBy(c, owner) ? (
                 <span className="flex gap-1">
-                  <KitIconButton
-                    label={copy.edit}
-                    className="size-9"
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    aria-label={copy.edit}
+                    title={copy.edit}
                     onClick={() => setEditing({ charge: c })}
                   >
                     <Pencil aria-hidden="true" />
-                  </KitIconButton>
-                  <KitIconButton
-                    label={copy.remove}
-                    className="size-9"
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    aria-label={copy.remove}
+                    title={copy.remove}
                     onClick={() => setRemoving(c.id)}
                   >
                     <Trash2 aria-hidden="true" />
-                  </KitIconButton>
+                  </Button>
                 </span>
               ) : null}
             </li>

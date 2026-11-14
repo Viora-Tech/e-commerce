@@ -1,6 +1,6 @@
 'use client'
 
-import KitButton from '@/components/kit/kit-button'
+import { Button } from '@commerce/ui/shadcn/button'
 import DataCard from '@/components/layout/data-card'
 import { salesChannelsContent } from '@/data/sales-channels'
 import { useCopy } from '@/hooks/use-copy'
@@ -27,7 +27,7 @@ export default function WaitingSteps({ partner, connectNow, onConnect }: Waiting
       <DataCard title={copy.title}>
         <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-body text-ink-strong">{copy.ready(partner)}</p>
-          <KitButton onClick={onConnect}>{copy.connectNow}</KitButton>
+          <Button onClick={onConnect}>{copy.connectNow}</Button>
         </div>
       </DataCard>
     )

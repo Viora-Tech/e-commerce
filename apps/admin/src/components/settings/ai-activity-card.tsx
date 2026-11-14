@@ -1,11 +1,10 @@
 'use client'
 
 import { AiIcon, RotateCcw } from '@commerce/ui/icons'
+import { Button } from '@commerce/ui/shadcn/button'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
-import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import KitButton from '@/components/kit/kit-button'
 import DataCard from '@/components/layout/data-card'
 import EmptyState from '@/components/layout/empty-state'
 import StatusChip from '@/components/layout/status-chip'
@@ -119,32 +118,34 @@ export default function AiActivityCard() {
                     {copy.card.status[item.status] ?? item.status}
                   </StatusChip>
                   {item.status === 'proposed' ? (
-                    <KitButton variant="pill" onClick={() => setReviewing(item.id)}>
+                    <Button variant="outline" size="sm" onClick={() => setReviewing(item.id)}>
                       {copy.activity.review}
-                    </KitButton>
+                    </Button>
                   ) : null}
                   {item.canUndo ? (
-                    <KitButton
-                      variant="pill"
+                    <Button
+                      variant="outline"
+                      size="sm"
                       onClick={() => void handleUndo(item.id)}
                       disabled={undoing !== null}
+                      loading={undoing === item.id}
                     >
-                      {undoing === item.id ? (
-                        <Spinner />
-                      ) : (
-                        <RotateCcw className="size-3.5" aria-hidden="true" />
-                      )}
+                      <RotateCcw className="size-3.5" aria-hidden="true" />
                       {copy.activity.undo}
-                    </KitButton>
+                    </Button>
                   ) : null}
                 </div>
               </li>
             ))}
           </ul>
           {hasMore ? (
-            <KitButton variant="link" onClick={() => setPage((p) => p + 1)} className="self-end">
+            <Button
+              variant="link"
+              onClick={() => setPage((p) => p + 1)}
+              className="h-auto px-0 self-end"
+            >
               {copy.activity.more}
-            </KitButton>
+            </Button>
           ) : null}
         </div>
       )}

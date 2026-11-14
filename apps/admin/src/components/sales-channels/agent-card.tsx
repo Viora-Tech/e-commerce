@@ -6,7 +6,7 @@ import {
   isLive,
   needsReconnect,
 } from '@commerce/core/sales-channels'
-import KitButton from '@/components/kit/kit-button'
+import { Button } from '@commerce/ui/shadcn/button'
 import { salesChannelsContent } from '@/data/sales-channels'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { agentChipStatus, channelAction } from '@/lib/channel-status'
@@ -63,13 +63,13 @@ export default function AgentCard({
         </div>
       </dl>
       {action === 'view_request' || action === 'manage' ? (
-        <KitButton variant="secondary" className="w-full" onClick={onViewRequest}>
+        <Button variant="outline" onClick={onViewRequest} className="w-full">
           {action === 'manage' ? copy.manage : copy.viewRequest}
-        </KitButton>
+        </Button>
       ) : (
-        <KitButton className="w-full" onClick={onConnect}>
+        <Button onClick={onConnect} className="w-full">
           {action === 'reconnect' ? copy.reconnect : copy.connect}
-        </KitButton>
+        </Button>
       )}
     </article>
   )
