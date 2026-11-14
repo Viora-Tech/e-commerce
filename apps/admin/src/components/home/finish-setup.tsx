@@ -7,6 +7,7 @@ import SectionHead from '@/components/layout/section-head'
 import { homePageContent } from '@/data/home'
 import { getCopy } from '@/lib/copy-server'
 import { routes } from '@/lib/routes'
+import { HOME_SECTION } from './home-layout'
 import type { HomeSignals } from './home-signals'
 import SetupTick from './setup-tick'
 
@@ -68,7 +69,7 @@ export default async function FinishSetup({ productCount, signals }: FinishSetup
   if (doneCount === steps.length) return null
 
   return (
-    <section className="flex flex-col gap-3.5">
+    <section className={HOME_SECTION}>
       <SectionHead title={c.title} aside={c.progress(doneCount, steps.length)} />
       <ul className="grid grid-cols-1 gap-3 md:grid-cols-3">
         {steps.map((step, i) => (
