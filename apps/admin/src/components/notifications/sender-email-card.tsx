@@ -178,8 +178,8 @@ export default function SenderEmailCard() {
                   disabled={busy !== null}
                   className="w-full sm:w-auto"
                 >
-                  {busy === 'check' ? null : <RefreshCw aria-hidden="true" />}
-                  {busy === 'check' ? copy.checking : copy.checkNow}
+                  <RefreshCw aria-hidden="true" />
+                  {copy.checkNow}
                 </Button>
               ) : null}
               <Button variant="outline" onClick={handleEdit} className="w-full sm:w-auto">

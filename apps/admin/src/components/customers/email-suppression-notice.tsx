@@ -70,8 +70,14 @@ export default function EmailSuppressionNotice({ customerId }: EmailSuppressionN
         ) : null}
         {reason === 'complaint' ? <p className="text-caption">{copy.complaintWarning}</p> : null}
         <div>
-          <Button variant="outline" size="sm" onClick={handleAllow} disabled={allowing}>
-            {allowing ? copy.allowing : copy.allowAgain}
+          <Button
+            loading={allowing}
+            variant="outline"
+            size="sm"
+            onClick={handleAllow}
+            disabled={allowing}
+          >
+            {copy.allowAgain}
           </Button>
         </div>
       </AlertDescription>

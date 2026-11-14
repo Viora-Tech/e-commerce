@@ -128,7 +128,7 @@ export default function SectionProposer({ page }: SectionProposerProps) {
               onClick={() => void handlePropose()}
               disabled={busy}
             >
-              {busy ? null : <RefreshCw aria-hidden="true" />}
+              <RefreshCw aria-hidden="true" />
               {ai.builder.again}
             </Button>
             <Button size="sm" variant="ghost" onClick={() => setProposal(null)} disabled={busy}>
@@ -156,8 +156,8 @@ export default function SectionProposer({ page }: SectionProposerProps) {
             onClick={() => void handlePropose()}
             disabled={busy || request.trim().length < 3}
           >
-            {busy ? null : <AiIcon aria-hidden="true" />}
-            {busy ? ai.builder.proposing : ai.builder.propose}
+            <AiIcon aria-hidden="true" />
+            {ai.builder.propose}
           </Button>
         </>
       )}

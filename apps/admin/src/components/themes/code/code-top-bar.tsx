@@ -143,7 +143,7 @@ export default function CodeTopBar({
           onClick={onSave}
           disabled={!canSave || saving}
         >
-          {saving ? null : <Save aria-hidden="true" />}
+          <Save aria-hidden="true" />
           {copy.save}
         </Button>
         {drafts ? (
@@ -164,8 +164,8 @@ export default function CodeTopBar({
               disabled={publishing}
               title={copy.drafts.help}
             >
-              {publishing ? null : <Globe aria-hidden="true" />}
-              {publishing ? copy.drafts.publishing : copy.drafts.publish}
+              <Globe aria-hidden="true" />
+              {copy.drafts.publish}
             </Button>
           </>
         ) : null}

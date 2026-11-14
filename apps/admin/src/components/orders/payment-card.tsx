@@ -134,13 +134,14 @@ export default function PaymentCard({
                   {shown ? <OrderChip kind="payment" value={shown} /> : null}
                   {p.status === 'authorized' && onCapture ? (
                     <Button
+                      loading={busy}
                       size="sm"
                       variant="outline"
                       onClick={() => onCapture(p)}
                       disabled={busy}
                     >
                       <CreditCard aria-hidden="true" />
-                      {busy ? captureCopy.capturing : captureCopy.capture}
+                      {captureCopy.capture}
                     </Button>
                   ) : null}
                   {refundable && onRefund ? (

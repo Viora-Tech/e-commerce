@@ -85,8 +85,8 @@ export default function SenderEmailForm({
       {changing ? <p className="text-caption text-muted-foreground">{copy.changeWarning}</p> : null}
       <div className="flex flex-col gap-2 sm:flex-row">
         <Button loading={saving} type="submit" disabled={!canSave} className="w-full sm:w-auto">
-          {saving ? null : <Save aria-hidden="true" />}
-          {saving ? copy.saving : copy.save}
+          <Save aria-hidden="true" />
+          {copy.save}
         </Button>
         {onCancel ? (
           <Button type="button" variant="outline" className="w-full sm:w-auto" onClick={onCancel}>

@@ -271,7 +271,7 @@ export default function SendMessageDialog({
             {copy.cancel}
           </Button>
           <Button loading={sending} onClick={handleSend} disabled={sending || !preview || !to}>
-            {sending ? null : <Send aria-hidden="true" />}
+            <Send aria-hidden="true" />
             {t.send}
           </Button>
         </DialogFooter>

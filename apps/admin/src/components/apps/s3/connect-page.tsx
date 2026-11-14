@@ -273,8 +273,8 @@ export default function ConnectPage() {
                 onClick={handleTest}
                 disabled={test.status === 'testing'}
               >
-                {test.status === 'testing' ? null : <RefreshCw aria-hidden="true" />}
-                {test.status === 'testing' ? copy.testing : copy.testConnection}
+                <RefreshCw aria-hidden="true" />
+                {copy.testConnection}
               </Button>
               {test.status === 'ok' ? (
                 <p className="flex items-center gap-1.5 text-body font-medium text-success">

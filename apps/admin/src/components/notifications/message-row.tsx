@@ -97,7 +97,7 @@ export default function MessageRow({
             onClick={onTest}
             disabled={testing}
           >
-            {testing ? null : <Send aria-hidden="true" className="size-4" />}
+            <Send aria-hidden="true" className="size-4" />
           </Button>
         </RowActionsCell>
       </SettingsTableCell>

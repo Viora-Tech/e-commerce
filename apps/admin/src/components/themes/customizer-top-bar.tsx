@@ -127,7 +127,7 @@ export default function CustomizerTopBar({
           onClick={onSave}
           disabled={!dirty || saving}
         >
-          {saving ? null : <Save aria-hidden="true" />}
+          <Save aria-hidden="true" />
           {themesContent.save}
         </Button>
         {!live && canPublish ? (
@@ -137,8 +137,8 @@ export default function CustomizerTopBar({
             disabled={dirty || publishing}
             title={dirty ? copy.publishUnsaved : undefined}
           >
-            {publishing ? null : <Globe aria-hidden="true" />}
-            {publishing ? copy.publishing : copy.publish}
+            <Globe aria-hidden="true" />
+            {copy.publish}
           </Button>
         ) : null}
       </div>

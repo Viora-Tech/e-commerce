@@ -50,7 +50,7 @@ export default function GatewayProblem({
   const action =
     problem.code === 'webhook_silent' && problem.fix === 'reregister' ? (
       <Button loading={fixing} size="sm" onClick={handleFixWebhook} disabled={fixing}>
-        {fixing ? copy.fixing : copy.fix}
+        {copy.fix}
       </Button>
     ) : problem.code === 'webhook_silent' ? (
       <Button size="sm" variant="outline" nativeButton={false} render={<Link href={connectHref} />}>

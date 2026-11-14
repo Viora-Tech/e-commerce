@@ -177,7 +177,7 @@ export default function EditorVersionsPanel({
                         onClick={() => void handleRestore(b.batchId)}
                         disabled={restoring}
                       >
-                        {restoring ? null : <RotateCcw aria-hidden="true" />}
+                        <RotateCcw aria-hidden="true" />
                         {copy.restore}
                       </Button>
                     </div>

@@ -156,9 +156,14 @@ export default function TransferForm({ transfer, locations }: TransferFormProps)
                   {copy.delete}
                 </Button>
               ) : null}
-              <Button variant="outline" onClick={handleSave} disabled={busy || sameRoute}>
+              <Button
+                loading={busy}
+                variant="outline"
+                onClick={handleSave}
+                disabled={busy || sameRoute}
+              >
                 <Save aria-hidden="true" />
-                {busy ? copy.saving : copy.save}
+                {copy.save}
               </Button>
               <Button onClick={handleShip} disabled={busy || sameRoute}>
                 <Truck aria-hidden="true" />

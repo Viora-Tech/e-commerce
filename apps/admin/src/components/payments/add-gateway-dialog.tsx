@@ -125,8 +125,8 @@ export default function AddGatewayDialog({
                       onClick={() => handleConnect(g.id)}
                       disabled={busy !== null}
                     >
-                      {busy === g.id ? null : <PlugConnect aria-hidden="true" />}
-                      {busy === g.id ? copy.installing : copy.connect}
+                      <PlugConnect aria-hidden="true" />
+                      {copy.connect}
                     </Button>
                   ) : (
                     <StatusChip tone="neutral">{copy.comingSoon}</StatusChip>

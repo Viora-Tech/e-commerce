@@ -249,7 +249,7 @@ export default function SingleShipmentFlow({
             )}
             {step === 'review' ? (
               <Button loading={busy} onClick={handleBook} disabled={busy}>
-                {busy ? null : <Truck aria-hidden="true" />}
+                <Truck aria-hidden="true" />
                 {busy
                   ? copy.review.booking
                   : pick === MANUAL

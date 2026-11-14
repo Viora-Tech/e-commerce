@@ -125,8 +125,8 @@ export default function ManualParcelRow({
           ))}
         </NativeSelect>
         <Button loading={saving} size="sm" onClick={handleSave} disabled={!changed || saving}>
-          {saving ? null : <Save aria-hidden="true" />}
-          {saving ? copy.saving : copy.update}
+          <Save aria-hidden="true" />
+          {copy.update}
         </Button>
         {parcel.labelUrl ? (
           <Button

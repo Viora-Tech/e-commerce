@@ -65,9 +65,13 @@ export default function AutopilotProposalsCard({ view, onChange }: AutopilotProp
       title={p.title}
       subtitle={subtitle}
       action={
-        <Button disabled={!enabled || planning} onClick={() => void handlePlan()}>
+        <Button
+          loading={planning}
+          disabled={!enabled || planning}
+          onClick={() => void handlePlan()}
+        >
           <Sparkle aria-hidden />
-          {planning ? p.planning : p.plan}
+          {p.plan}
         </Button>
       }
     >

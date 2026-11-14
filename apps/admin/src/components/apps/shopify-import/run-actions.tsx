@@ -131,7 +131,7 @@ export default function RunActions({ run, onQueued }: RunActionsProps) {
         </Button>
       ) : canRetry ? (
         <Button loading={busy} type="button" onClick={handleRetry} disabled={busy}>
-          {busy ? null : <RotateCcw aria-hidden="true" />}
+          <RotateCcw aria-hidden="true" />
           {copy.retryMissed(run.retryable)}
         </Button>
       ) : (

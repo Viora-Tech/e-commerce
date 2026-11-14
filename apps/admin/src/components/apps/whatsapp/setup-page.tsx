@@ -186,7 +186,7 @@ export default function WhatsappSetupPage() {
                     onClick={handleSubmit}
                     disabled={submitting}
                   >
-                    {submitting ? words.templates.submitting : words.templates.action}
+                    {words.templates.action}
                   </Button>
                 ) : step3 === 'done' ? undefined : (
                   linkButton(templatesHref, words.templates.manual)

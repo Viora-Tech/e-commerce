@@ -166,8 +166,8 @@ export default function BugReportDialog({
               {copy.cancel}
             </Button>
             <Button loading={sending} type="submit" disabled={!canSend}>
-              {sending ? null : <Send aria-hidden="true" />}
-              {sending ? copy.sending : copy.send}
+              <Send aria-hidden="true" />
+              {copy.send}
             </Button>
           </DialogFooter>
         </form>

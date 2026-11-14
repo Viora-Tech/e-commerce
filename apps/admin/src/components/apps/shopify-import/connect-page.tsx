@@ -247,7 +247,7 @@ export default function ConnectPage() {
           onClick={handlePreview}
           disabled={busy || stopped || importable.length === 0}
         >
-          {busy ? null : <Eye aria-hidden="true" />}
+          <Eye aria-hidden="true" />
           {copy.preview}
         </Button>
       </div>

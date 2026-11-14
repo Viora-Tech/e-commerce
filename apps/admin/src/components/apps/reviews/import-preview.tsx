@@ -177,8 +177,8 @@ export default function ImportPreview({
             {copy.cancel}
           </Button>
           <Button loading={importing} onClick={onImport} disabled={importing || toImport === 0}>
-            {importing ? null : <Upload aria-hidden="true" />}
-            {importing ? copy.running : copy.run(toImport)}
+            <Upload aria-hidden="true" />
+            {copy.run(toImport)}
           </Button>
         </div>
       </div>

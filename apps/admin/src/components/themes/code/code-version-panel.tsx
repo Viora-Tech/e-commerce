@@ -189,7 +189,7 @@ export default function CodeVersionPanel({
               disabled={restoring}
               title={copy.restoreThemeHelp}
             >
-              {restoring ? null : <RotateCcw aria-hidden="true" />}
+              <RotateCcw aria-hidden="true" />
               {copy.restoreTheme}
             </Button>
           ) : null}

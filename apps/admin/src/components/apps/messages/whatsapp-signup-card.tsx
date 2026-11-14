@@ -149,7 +149,7 @@ export default function WhatsappSignupCard() {
             onClick={() => handleConnect(true)}
             disabled={busy !== 'idle'}
           >
-            {busy === 'popup-app' ? copy.connecting : copy.connectApp}
+            {copy.connectApp}
           </Button>
         ) : null}
         {account ? (

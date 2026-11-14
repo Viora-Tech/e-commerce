@@ -100,7 +100,7 @@ export default function CreatePageDialog({ open, onOpenChange }: CreatePageDialo
             onClick={handleCreate}
             disabled={!title.trim() || busy}
           >
-            {busy ? null : <Plus aria-hidden="true" />}
+            <Plus aria-hidden="true" />
             {copy.confirm}
           </Button>
         </DialogFooter>

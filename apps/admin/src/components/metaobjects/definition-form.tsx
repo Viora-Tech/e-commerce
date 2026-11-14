@@ -135,7 +135,7 @@ export default function DefinitionForm({ definition, targets }: DefinitionFormPr
             ) : (
               <Button loading={busy} onClick={handleSave} disabled={busy}>
                 <Save aria-hidden="true" />
-                {busy ? copy.saving : copy.save}
+                {copy.save}
               </Button>
             )
           }

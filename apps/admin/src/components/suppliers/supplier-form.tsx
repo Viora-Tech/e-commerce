@@ -190,7 +190,7 @@ export default function SupplierForm({ supplier }: SupplierFormProps) {
             ) : null}
             <Button loading={busy} onClick={handleSave} disabled={busy}>
               <Save aria-hidden="true" />
-              {busy ? copy.saving : copy.save}
+              {copy.save}
             </Button>
           </>
         }

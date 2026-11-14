@@ -145,7 +145,7 @@ export default function SettingsPage() {
         onClick={handleCheck}
         disabled={busy !== null}
       >
-        {busy === 'check' ? null : <RefreshCw aria-hidden="true" />}
+        <RefreshCw aria-hidden="true" />
         {plan ? copy.checkAgain : copy.check}
       </Button>
     </div>
@@ -195,7 +195,7 @@ export default function SettingsPage() {
               onClick={handleImport}
               disabled={busy !== null || chosen.length === 0}
             >
-              {busy === 'import' ? null : <Upload aria-hidden="true" />}
+              <Upload aria-hidden="true" />
               {copy.import(chosen.length)}
             </Button>
           </div>

@@ -126,7 +126,7 @@ export default function AddThemeDialog({
             disabled={busy}
             onClick={() => onAdd({ start, name: finalName })}
           >
-            {busy ? null : <Plus aria-hidden="true" />}
+            <Plus aria-hidden="true" />
             {copy.confirm}
           </Button>
         </DialogFooter>

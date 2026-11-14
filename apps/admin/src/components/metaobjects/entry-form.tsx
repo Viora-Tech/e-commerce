@@ -148,9 +148,9 @@ export default function EntryForm({ definition, entry, title }: EntryFormProps) 
                 </Button>
               </>
             ) : (
-              <Button className="max-sm:hidden" onClick={handleSave} disabled={busy}>
+              <Button loading={busy} className="max-sm:hidden" onClick={handleSave} disabled={busy}>
                 <Save aria-hidden="true" />
-                {busy ? copy.saving : copy.save}
+                {copy.save}
               </Button>
             )
           }

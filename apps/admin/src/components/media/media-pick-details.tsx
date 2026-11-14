@@ -96,6 +96,7 @@ export default function MediaPickDetails({ item, onAltSaved }: MediaPickDetailsP
         </p>
       </div>
       <Button
+        loading={saving}
         type="button"
         variant="outline"
         size="sm"
@@ -104,7 +105,7 @@ export default function MediaPickDetails({ item, onAltSaved }: MediaPickDetailsP
         className="self-end"
       >
         {saving ? <Loader2Icon className="size-4 animate-spin" aria-hidden="true" /> : null}
-        {saving ? copy.saving : copy.save}
+        {copy.save}
       </Button>
     </div>
   )

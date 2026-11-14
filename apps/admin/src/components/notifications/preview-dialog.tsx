@@ -116,7 +116,7 @@ export default function PreviewDialog({ messageId, onClose, onTest, testing }: P
         )}
         <DialogFooter>
           <Button loading={testing} variant="outline" onClick={onTest} disabled={testing}>
-            {testing ? null : <Send aria-hidden="true" />}
+            <Send aria-hidden="true" />
             {copy.sendTest}
           </Button>
           <Button onClick={onClose}>{copy.close}</Button>

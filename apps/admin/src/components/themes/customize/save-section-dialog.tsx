@@ -79,8 +79,8 @@ export default function SaveSectionDialog({ block, defaultName, onClose }: SaveS
               {copy.cancel}
             </Button>
             <Button loading={busy} type="submit" disabled={!name.trim() || busy}>
-              {busy ? null : <Bookmark aria-hidden="true" />}
-              {busy ? copy.saving : copy.confirm}
+              <Bookmark aria-hidden="true" />
+              {copy.confirm}
             </Button>
           </DialogFooter>
         </form>

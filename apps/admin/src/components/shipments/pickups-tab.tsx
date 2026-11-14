@@ -222,9 +222,14 @@ export default function PickupsTab({ provider }: PickupsTabProps = {}) {
               />
             </Field>
           </div>
-          <Button className="w-fit self-end" onClick={handleSchedule} disabled={busy || !ready()}>
+          <Button
+            loading={busy}
+            className="w-fit self-end"
+            onClick={handleSchedule}
+            disabled={busy || !ready()}
+          >
             <Truck aria-hidden="true" />
-            {busy ? copy.scheduling : copy.submit}
+            {copy.submit}
           </Button>
         </div>
       </DataCard>

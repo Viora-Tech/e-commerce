@@ -109,8 +109,8 @@ export default function InstallConnectStep({
             onClick={onTest}
             disabled={testing || !filled}
           >
-            {testing ? null : <RefreshCw aria-hidden="true" />}
-            {testing ? copy.connect.testing : copy.connect.test}
+            <RefreshCw aria-hidden="true" />
+            {copy.connect.test}
           </Button>
           <span className="text-caption text-muted-foreground">
             {copy.connect.testHint(appName)}

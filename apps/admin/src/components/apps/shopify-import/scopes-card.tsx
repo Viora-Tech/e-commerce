@@ -48,7 +48,7 @@ export default function ScopesCard() {
           onClick={handleTest}
           disabled={busy}
         >
-          {busy ? null : <RefreshCw aria-hidden="true" />}
+          <RefreshCw aria-hidden="true" />
           {copy.test}
         </Button>
       </CardHeader>

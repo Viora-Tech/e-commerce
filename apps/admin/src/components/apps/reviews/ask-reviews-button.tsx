@@ -147,7 +147,7 @@ export default function AskReviewsButton() {
               {past.cancel}
             </Button>
             <Button loading={busy} onClick={handleSend} disabled={busy || orders === 0}>
-              {busy ? null : <Send aria-hidden="true" />}
+              <Send aria-hidden="true" />
               {past.send(orders)}
             </Button>
           </DialogFooter>

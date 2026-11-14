@@ -153,8 +153,8 @@ export default function TryPinCard({ result, onResult }: TryPinCardProps) {
       />
       <div className="flex justify-end">
         <Button loading={busy} onClick={handleRun} disabled={!ready || busy}>
-          {busy ? null : <Search aria-hidden />}
-          {busy ? t.running : t.run}
+          <Search aria-hidden />
+          {t.run}
         </Button>
       </div>
       {result ? (

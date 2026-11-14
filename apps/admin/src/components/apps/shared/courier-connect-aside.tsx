@@ -88,8 +88,8 @@ export default function CourierConnectAside({
             onClick={ctx.runTest}
             disabled={testing}
           >
-            {testing ? null : <RefreshCw aria-hidden="true" />}
-            {testing ? copy.testing : copy.testAgain}
+            <RefreshCw aria-hidden="true" />
+            {copy.testAgain}
           </Button>
         </div>
       </DataCard>

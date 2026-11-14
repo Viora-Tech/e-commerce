@@ -335,6 +335,7 @@ export default function ProviderConnectPage<R extends TestOutcome>({
 
                 <div className="flex flex-col gap-2">
                   <Button
+                    loading={testState.status === 'testing'}
                     type="button"
                     variant="outline"
                     className="w-fit"
@@ -346,7 +347,7 @@ export default function ProviderConnectPage<R extends TestOutcome>({
                     ) : (
                       <RefreshCw aria-hidden="true" />
                     )}
-                    {testState.status === 'testing' ? copy.testing : copy.testConnection}
+                    {copy.testConnection}
                   </Button>
                   {testState.status === 'ok' ? (
                     <p className="flex items-center gap-1.5 text-body font-medium text-success">

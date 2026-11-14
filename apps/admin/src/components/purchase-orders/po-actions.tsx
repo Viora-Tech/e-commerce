@@ -111,9 +111,9 @@ export default function PoActions({
           {copy.delete}
         </Button>
       ) : null}
-      <Button variant="outline" onClick={onSave} disabled={busy}>
+      <Button loading={busy} variant="outline" onClick={onSave} disabled={busy}>
         <Save aria-hidden="true" />
-        {busy ? copy.saving : copy.save}
+        {copy.save}
       </Button>
       <Button onClick={onMarkOrdered} disabled={busy}>
         <CircleCheck aria-hidden="true" />

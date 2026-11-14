@@ -97,7 +97,7 @@ export default function ShippingTryPin() {
           onClick={handleCheck}
           disabled={checking || pincode.length < 6}
         >
-          {checking ? copy.tryPin.checking : copy.tryPin.button}
+          {copy.tryPin.button}
         </Button>
       </div>
       {shown ? <ResultAlert tone={shown.tone} lines={shown.lines} /> : null}

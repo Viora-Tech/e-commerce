@@ -150,7 +150,7 @@ export default function PixelDialog({ open, onOpenChange, pixel, onSaved }: Pixe
               {copy.cancel}
             </Button>
             <Button loading={busy} type="submit" disabled={busy}>
-              {busy ? copy.saving : copy.save}
+              {copy.save}
             </Button>
           </DialogFooter>
         </form>

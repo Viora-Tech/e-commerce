@@ -245,7 +245,7 @@ export default function CustomizeTopBar({
             onClick={onSave}
             disabled={saving || publishing}
           >
-            {saving && !publishing ? null : <Save aria-hidden="true" />}
+            <Save aria-hidden="true" />
             {copy.save}
           </Button>
         ) : null}
@@ -257,13 +257,13 @@ export default function CustomizeTopBar({
             disabled={!dirty || saving}
             title={copy.saveLiveHint}
           >
-            {saving ? null : <Save aria-hidden="true" />}
+            <Save aria-hidden="true" />
             {copy.save}
           </Button>
         ) : canPublish ? (
           <Button loading={publishing} onClick={onPublish} disabled={saving || publishing}>
-            {publishing ? null : <Globe aria-hidden="true" />}
-            {publishing ? editor.publishing : copy.publish}
+            <Globe aria-hidden="true" />
+            {copy.publish}
           </Button>
         ) : null}
         <UserMenu

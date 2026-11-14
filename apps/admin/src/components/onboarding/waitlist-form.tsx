@@ -100,9 +100,9 @@ export default function WaitlistForm({ defaultEmail }: WaitlistFormProps) {
           />
         </Field>
         {error ? <FieldError>{error}</FieldError> : null}
-        <Button type="submit" size="lg" className="w-full" disabled={!canSubmit}>
+        <Button loading={sending} type="submit" size="lg" className="w-full" disabled={!canSubmit}>
           {sending ? <Loader2Icon className="size-4 animate-spin" /> : null}
-          {sending ? copy.waitlist.sending : copy.waitlist.submit}
+          {copy.waitlist.submit}
         </Button>
       </FieldGroup>
     </form>

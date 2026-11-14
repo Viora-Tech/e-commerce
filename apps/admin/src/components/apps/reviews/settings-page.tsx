@@ -72,7 +72,7 @@ export default function SettingsPage() {
         back={{ label: copy.detail.back, href: routes.apps.page('reviews') }}
         actions={
           <Button loading={busy} onClick={handleSave} disabled={busy || !dirty}>
-            {busy ? null : <Save aria-hidden="true" />}
+            <Save aria-hidden="true" />
             {copy.settings.save}
           </Button>
         }

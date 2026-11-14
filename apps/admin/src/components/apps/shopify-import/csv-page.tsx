@@ -83,7 +83,7 @@ export default function CsvPage() {
         </DataCard>
         <div className="flex flex-col items-end gap-1.5">
           <Button loading={busy} type="button" onClick={handlePreview} disabled={!file || busy}>
-            {busy ? null : <Eye aria-hidden="true" />}
+            <Eye aria-hidden="true" />
             {copy.preview}
           </Button>
           {file ? null : <p className="text-caption text-muted-foreground">{copy.previewHint}</p>}

@@ -96,7 +96,7 @@ export default function AcceptInvitation({
               onClick={handleSignOut}
               disabled={busy}
             >
-              {busy ? null : <LogOut aria-hidden="true" />}
+              <LogOut aria-hidden="true" />
               {copy.otherAccount.signOut}
             </Button>
           </>
@@ -104,7 +104,7 @@ export default function AcceptInvitation({
           <>
             {error ? <FieldError>{error}</FieldError> : null}
             <Button loading={busy} className="w-full" onClick={handleAccept} disabled={busy}>
-              {busy ? null : <CheckIcon aria-hidden="true" />}
+              <CheckIcon aria-hidden="true" />
               {copy.accept}
             </Button>
           </>

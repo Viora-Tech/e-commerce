@@ -94,7 +94,7 @@ export default function ReplyCard({ reviewId, reply, onSaved }: ReplyCardProps) 
               onClick={handleWrite}
               disabled={writing || busy}
             >
-              {writing ? null : <AiIcon />}
+              <AiIcon />
               {writing ? copy.aiBusy : copy.ai}
             </Button>
           ) : null}
@@ -104,7 +104,7 @@ export default function ReplyCard({ reviewId, reply, onSaved }: ReplyCardProps) 
             onClick={() => save(text)}
             disabled={busy || writing || !text.trim() || !changed}
           >
-            {busy ? null : <Send aria-hidden="true" />}
+            <Send aria-hidden="true" />
             {reply ? copy.update : copy.post}
           </Button>
           {reply ? (

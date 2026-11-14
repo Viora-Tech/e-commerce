@@ -126,7 +126,7 @@ export default function ProductCollectionsCard({
         productId && dirty ? (
           <Button loading={busy} size="sm" onClick={() => void handleSave()} disabled={busy}>
             <Save aria-hidden="true" />
-            {busy ? copy.saving : copy.save}
+            {copy.save}
           </Button>
         ) : null
       }

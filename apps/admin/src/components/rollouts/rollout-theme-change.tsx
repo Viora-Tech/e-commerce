@@ -99,9 +99,9 @@ export default function RolloutThemeChange({
               </Button>
             ) : null}
             {canCopy ? (
-              <Button variant="outline" onClick={handleCopy} disabled={copying}>
+              <Button loading={copying} variant="outline" onClick={handleCopy} disabled={copying}>
                 <Copy aria-hidden="true" />
-                {copying ? copy.copying : copy.editCopy}
+                {copy.editCopy}
               </Button>
             ) : null}
           </>

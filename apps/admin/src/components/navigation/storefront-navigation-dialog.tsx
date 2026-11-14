@@ -217,7 +217,7 @@ export default function StorefrontNavigationDialog({
         <DialogFooter className="m-0 flex-row justify-end gap-2">
           <DialogClose render={<Button variant="outline" />}>{copy.cancel}</DialogClose>
           <Button loading={saving} type="button" onClick={handleSave} disabled={saving}>
-            {saving ? null : <Save aria-hidden="true" />}
+            <Save aria-hidden="true" />
             {copy.save}
           </Button>
         </DialogFooter>

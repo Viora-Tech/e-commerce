@@ -65,7 +65,7 @@ export default function AppInstallForm() {
           </FieldGroup>
           <div className="flex justify-end">
             <Button loading={busy} type="submit" disabled={!ready}>
-              {busy ? install.redirecting : install.submit}
+              {install.submit}
             </Button>
           </div>
         </form>

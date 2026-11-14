@@ -284,7 +284,7 @@ export default function GatewayConnectForm({
         onClick={handleOAuth}
         disabled={redirecting}
       >
-        {redirecting ? null : <PlugConnect aria-hidden="true" />}
+        <PlugConnect aria-hidden="true" />
         {copy.oneClick(guide.name)}
       </Button>
       <p className="text-caption text-muted-foreground">{copy.oneClickHelp}</p>
@@ -307,8 +307,8 @@ export default function GatewayConnectForm({
           onClick={handleTest}
           disabled={!filled || test.status === 'testing'}
         >
-          {test.status === 'testing' ? null : <RefreshCw aria-hidden="true" />}
-          {test.status === 'testing' ? copy.testing : copy.testConnection}
+          <RefreshCw aria-hidden="true" />
+          {copy.testConnection}
         </Button>
         <Button
           loading={saving}
@@ -317,8 +317,8 @@ export default function GatewayConnectForm({
           onClick={handleSave}
           disabled={!filled || saving || mismatch}
         >
-          {saving ? null : <Save aria-hidden="true" />}
-          {saving ? copy.saving : copy.save}
+          <Save aria-hidden="true" />
+          {copy.save}
         </Button>
       </div>
       {test.status === 'ok' ? (
