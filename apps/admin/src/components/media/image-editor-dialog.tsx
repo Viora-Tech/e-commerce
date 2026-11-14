@@ -243,7 +243,11 @@ export default function ImageEditorDialog({
             <Button variant="outline" onClick={onClose} disabled={busy}>
               {copy.cancel}
             </Button>
-            <Button onClick={() => void handleSave()} disabled={busy || !img || !area}>
+            <Button
+              loading={busy}
+              onClick={() => void handleSave()}
+              disabled={busy || !img || !area}
+            >
               <Save aria-hidden="true" />
               {busy ? copy.saving : copy.save}
             </Button>

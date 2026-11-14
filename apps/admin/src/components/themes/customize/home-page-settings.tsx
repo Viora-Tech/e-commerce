@@ -212,7 +212,7 @@ export default function HomePageSettings({ title, domain }: HomePageSettingsProp
           <Button size="sm" variant="ghost" onClick={() => setForm(saved)} disabled={busy}>
             {copy.discard}
           </Button>
-          <Button size="sm" onClick={handleSave} disabled={busy || shortPassword}>
+          <Button loading={busy} size="sm" onClick={handleSave} disabled={busy || shortPassword}>
             <Save aria-hidden="true" />
             {copy.save}
           </Button>

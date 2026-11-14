@@ -137,7 +137,7 @@ export default function ZoneForm({ zone, profileId = null }: ZoneFormProps) {
               {copy.delete.action}
             </Button>
           ) : (
-            <Button onClick={handleSave} disabled={busy || !dirty}>
+            <Button loading={busy} onClick={handleSave} disabled={busy || !dirty}>
               <Save aria-hidden="true" />
               {copy.saveBar.save}
             </Button>

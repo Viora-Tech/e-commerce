@@ -221,7 +221,7 @@ export default function CollectPaymentDialog({
             <Button type="button" variant="outline" onClick={handleClose} disabled={busy}>
               {copy.collectDialog.cancel}
             </Button>
-            <Button type="submit" disabled={!valid || busy}>
+            <Button loading={busy} type="submit" disabled={!valid || busy}>
               <CircleCheck aria-hidden="true" />
               {copy.collectDialog.confirm}
             </Button>

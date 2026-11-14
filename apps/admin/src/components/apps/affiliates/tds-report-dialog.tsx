@@ -91,7 +91,7 @@ export default function TdsReportDialog({ open, onOpenChange, onDownload }: TdsR
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
             {copy.cancel}
           </Button>
-          <Button onClick={handleDownload} disabled={busy}>
+          <Button loading={busy} onClick={handleDownload} disabled={busy}>
             {copy.download}
           </Button>
         </DialogFooter>

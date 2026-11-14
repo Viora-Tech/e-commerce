@@ -136,6 +136,7 @@ export default function PublishDialog({
         </div>
         <DialogFooter>
           <Button
+            loading={busy}
             disabled={blocked || !nameOk || busy}
             onClick={() =>
               onPublish({

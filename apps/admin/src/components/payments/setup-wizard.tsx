@@ -208,6 +208,7 @@ export default function SetupWizard({ setup, onReload, onDone }: SetupWizardProp
               <>
                 <MethodsList methods={methods} hasGateway onChange={setMethods} />
                 <Button
+                  loading={busy === 'methods'}
                   size="lg"
                   className="w-full sm:w-fit"
                   onClick={handleSaveMethods}

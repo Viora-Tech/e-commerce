@@ -210,7 +210,7 @@ export default function ChargeDialog({
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             {copy.dialog.cancel}
           </Button>
-          <Button onClick={handleSave} disabled={busy}>
+          <Button loading={busy} onClick={handleSave} disabled={busy}>
             <Save aria-hidden="true" />
             {busy ? copy.dialog.saving : copy.dialog.save}
           </Button>

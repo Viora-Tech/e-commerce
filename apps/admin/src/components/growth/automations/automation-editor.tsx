@@ -222,7 +222,7 @@ export default function AutomationEditor({
             {testing ? <X /> : <ArrowRight />}
             {testing ? copy.stopTest : copy.testRun}
           </Button>
-          <Button onClick={handleSave} disabled={busy || !dirty}>
+          <Button loading={busy} onClick={handleSave} disabled={busy || !dirty}>
             <Save aria-hidden="true" />
             {copy.saveBar.save}
           </Button>

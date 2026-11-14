@@ -93,7 +93,7 @@ export default function PreorderNoteSettings({ onSaveState }: PreorderNoteSettin
         </Field>
         {onSaveState ? null : (
           <div>
-            <Button onClick={handleSave} disabled={saving}>
+            <Button loading={saving} onClick={handleSave} disabled={saving}>
               <Save aria-hidden="true" />
               {copy.save}
             </Button>

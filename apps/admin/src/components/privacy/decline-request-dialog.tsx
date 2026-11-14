@@ -56,7 +56,12 @@ export default function DeclineRequestDialog({
             <Button type="button" variant="outline" onClick={onClose} disabled={busy}>
               {copy.cancel}
             </Button>
-            <Button type="submit" variant="destructive" disabled={busy || !reason.trim()}>
+            <Button
+              loading={busy}
+              type="submit"
+              variant="destructive"
+              disabled={busy || !reason.trim()}
+            >
               <CancelCircle aria-hidden="true" />
               {copy.declineConfirm}
             </Button>

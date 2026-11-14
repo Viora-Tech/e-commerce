@@ -225,7 +225,7 @@ export default function RefundDialog({
             <Button type="button" variant="outline" onClick={onClose} disabled={busy}>
               {copy.refundDialog.close}
             </Button>
-            <Button type="submit" disabled={!valid || busy || loadingCredit}>
+            <Button loading={busy} type="submit" disabled={!valid || busy || loadingCredit}>
               <RotateCcw aria-hidden="true" />
               {copy.refundDialog.confirm}
               {valid ? ` ${fmt.money(paise)}` : ''}

@@ -269,7 +269,7 @@ export default function MetafieldDefinitionDialog({
           <Button variant="outline" onClick={onClose} disabled={busy}>
             {copy.cancel}
           </Button>
-          <Button onClick={handleSave} disabled={busy}>
+          <Button loading={busy} onClick={handleSave} disabled={busy}>
             <Save aria-hidden="true" />
             {busy ? copy.saving : copy.save}
           </Button>

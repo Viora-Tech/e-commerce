@@ -183,7 +183,7 @@ export default function RunPage({ params }: AppPageProps) {
               </Button>
             ) : null}
             {run.canRetry ? (
-              <Button disabled={busy} onClick={() => void handleRetry()}>
+              <Button loading={busy} disabled={busy} onClick={() => void handleRetry()}>
                 <RotateCcw aria-hidden="true" />
                 {copy.retry}
               </Button>

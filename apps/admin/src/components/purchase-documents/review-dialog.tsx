@@ -147,7 +147,7 @@ export default function ReviewDialog({ id, onOpenChange, onApplied, onReset }: R
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             {copy.cancel}
           </Button>
-          <Button onClick={handleApply} disabled={busy || !state || applied}>
+          <Button loading={busy} onClick={handleApply} disabled={busy || !state || applied}>
             <CheckIcon aria-hidden="true" />
             {busy ? copy.applying : copy.apply}
           </Button>

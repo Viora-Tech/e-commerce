@@ -139,7 +139,12 @@ export default function OrderCard({ orderId }: OrderCardProps) {
             </Button>
           ) : null}
           {canConfirm ? (
-            <Button size="sm" disabled={busy !== null} onClick={handleConfirm}>
+            <Button
+              loading={busy === 'confirm'}
+              size="sm"
+              disabled={busy !== null}
+              onClick={handleConfirm}
+            >
               {copy.card.markConfirmed}
             </Button>
           ) : null}

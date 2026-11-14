@@ -68,7 +68,12 @@ export default function RejectDialog({ returnId, open, onClose, onDone }: Reject
             <Button type="button" variant="outline" onClick={onClose} disabled={busy}>
               {returnDetailContent.cancel}
             </Button>
-            <Button type="submit" variant="destructive" disabled={busy || !note.trim()}>
+            <Button
+              loading={busy}
+              type="submit"
+              variant="destructive"
+              disabled={busy || !note.trim()}
+            >
               <CancelCircle aria-hidden="true" />
               {copy.confirm}
             </Button>

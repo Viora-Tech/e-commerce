@@ -187,7 +187,7 @@ export default function NdrTab() {
             <Button variant="outline" onClick={() => setDialog(null)}>
               Cancel
             </Button>
-            <Button onClick={handleApply} disabled={busy}>
+            <Button loading={busy} onClick={handleApply} disabled={busy}>
               <CheckIcon aria-hidden="true" />
               {copy.apply}
             </Button>

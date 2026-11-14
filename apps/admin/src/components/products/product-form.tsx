@@ -407,6 +407,7 @@ export default function ProductForm({
             form={form}
             single={single}
             busy={working}
+            saving={busy}
             dirty={isDirty}
             storefrontOrigin={storefrontOrigin}
             onSave={() => void handleSave()}

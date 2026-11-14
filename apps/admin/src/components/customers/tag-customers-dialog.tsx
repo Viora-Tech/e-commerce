@@ -75,7 +75,11 @@ export default function TagCustomersDialog({
           <Button variant="outline" onClick={onClose}>
             {copy.cancel}
           </Button>
-          <Button onClick={handleApply} disabled={saving || tag.trim().length === 0}>
+          <Button
+            loading={saving}
+            onClick={handleApply}
+            disabled={saving || tag.trim().length === 0}
+          >
             {action === 'remove' ? <Trash2 aria-hidden="true" /> : <Tag aria-hidden="true" />}
             {action === 'remove' ? copy.removeTag : copy.addTag}
           </Button>

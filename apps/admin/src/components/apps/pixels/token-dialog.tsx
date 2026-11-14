@@ -69,7 +69,7 @@ export default function TokenDialog({ open, onOpenChange, pixelId, onSaved }: To
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               {copy.cancel}
             </Button>
-            <Button type="submit" disabled={busy || token.trim().length === 0}>
+            <Button loading={busy} type="submit" disabled={busy || token.trim().length === 0}>
               {busy ? copy.saving : copy.save}
             </Button>
           </DialogFooter>

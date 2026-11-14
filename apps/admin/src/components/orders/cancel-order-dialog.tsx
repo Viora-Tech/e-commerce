@@ -353,6 +353,7 @@ export default function CancelOrderDialog({
               {copy.keep}
             </Button>
             <Button
+              loading={busy}
               type="submit"
               variant="destructive"
               disabled={

@@ -124,7 +124,7 @@ export default function ProductCollectionsCard({
       title={copy.heading}
       action={
         productId && dirty ? (
-          <Button size="sm" onClick={() => void handleSave()} disabled={busy}>
+          <Button loading={busy} size="sm" onClick={() => void handleSave()} disabled={busy}>
             <Save aria-hidden="true" />
             {busy ? copy.saving : copy.save}
           </Button>

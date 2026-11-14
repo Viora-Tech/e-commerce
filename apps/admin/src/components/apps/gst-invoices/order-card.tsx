@@ -264,7 +264,12 @@ export default function OrderCard({ orderId }: OrderCardProps) {
         ) : null}
         <div className="flex flex-wrap gap-2">
           {!invoice && data.enabled.tax_invoice ? (
-            <Button size="sm" disabled={busy !== null} onClick={handleQueue}>
+            <Button
+              loading={busy === 'queue'}
+              size="sm"
+              disabled={busy !== null}
+              onClick={handleQueue}
+            >
               <Plus strokeWidth={1.6} aria-hidden="true" />
               {copy.queue}
             </Button>

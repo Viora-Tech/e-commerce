@@ -159,6 +159,7 @@ export default function PlanChooser({
                 ))}
               </ul>
               <Button
+                loading={busy === p}
                 className="mt-auto"
                 variant={isCurrent ? 'outline' : p === suggested ? 'default' : 'outline'}
                 disabled={isCurrent || busy !== null}

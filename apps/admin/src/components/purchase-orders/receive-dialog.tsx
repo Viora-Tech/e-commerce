@@ -179,7 +179,7 @@ export default function ReceiveDialog({
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             {copy.cancel}
           </Button>
-          <Button onClick={handleReceive} disabled={busy}>
+          <Button loading={busy} onClick={handleReceive} disabled={busy}>
             <PackageCheck aria-hidden="true" />
             {copy.confirm}
           </Button>

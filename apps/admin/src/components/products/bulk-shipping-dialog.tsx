@@ -123,7 +123,7 @@ export default function BulkShippingDialog({ ids, onClose, onDone }: BulkShippin
           <Button variant="outline" onClick={handleClose}>
             {copy.cancel}
           </Button>
-          <Button onClick={() => void handleApply()} disabled={!ready || saving}>
+          <Button loading={saving} onClick={() => void handleApply()} disabled={!ready || saving}>
             <CheckIcon aria-hidden="true" />
             {copy.apply}
           </Button>

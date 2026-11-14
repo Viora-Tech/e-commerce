@@ -79,7 +79,7 @@ export default function AltTextDialog({ item, onClose, onSaved }: AltTextDialogP
             <Button type="button" variant="outline" onClick={onClose} disabled={busy}>
               {copy.cancel}
             </Button>
-            <Button type="submit" disabled={busy}>
+            <Button loading={busy} type="submit" disabled={busy}>
               <Save aria-hidden="true" />
               {copy.save}
             </Button>
