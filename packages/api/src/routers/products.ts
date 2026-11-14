@@ -28,9 +28,9 @@ import {
 import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
 import { BULK_MAX, can, heavy, inputField, PAGE_SIZE_MAX, SEARCH_MAX } from '../procedures'
+import { aiStatus } from '../services/ai/settings.service'
 import { loadBulkEditSheet } from '../services/bulk-edit.service'
 import {
-  getProduct,
   listProductHandles,
   listProductIds,
   listProducts,
@@ -38,6 +38,7 @@ import {
   updateProduct,
   updateVariant,
 } from '../services/product.service'
+import { getProduct, productPage } from '../services/product-page.service'
 import { pickProducts, searchVariants } from '../services/product-picker.service'
 import { productSales } from '../services/product-sales.service'
 import { productAdjustments, productStats } from '../services/product-stats.service'
@@ -105,6 +106,21 @@ export const productsRouter = {
   get: can(permissions.PRODUCTS_READ)
     .input(z.object({ id: z.uuid() }))
     .handler(({ context, input }) => getProduct(context.tx, input.id)),
+
+  /**
+   * The product page's server render in one call and one transaction: `get`, `facets`, the
+   * "Write with AI" switch (`ai.status`) and the store's shipping boxes (only for a member who
+   * may read settings, as `store.getShipping`). Without an id ("Add product") `product` is null.
+   */
+  getPage: can(permissions.PRODUCTS_READ)
+    .input(z.object({ id: z.uuid().optional() }))
+    .handler(({ context, input }) => {
+      const { tx, scope } = context
+      return productPage(tx, scope.storeId, input.id, {
+        boxPresets: scope.can(permissions.SETTINGS_READ),
+        aiWriter: async () => (await aiStatus({ storeId: scope.storeId, tx }, scope)).productWriter,
+      })
+    }),
 
   facets: can(permissions.PRODUCTS_READ).handler(({ context }) =>
     productFacets(context.tx, context.scope.storeId),

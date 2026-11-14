@@ -31,6 +31,7 @@ import {
   listOrders,
   orderCouriers,
   orderFacets,
+  orderListPage,
   orderStats,
   orderTabCounts,
   orderTiles,
@@ -38,6 +39,7 @@ import {
   refundOrderPayment,
   setOrderStatus,
 } from '../services/order.service'
+import { storeOrderActions } from '../services/order-actions.service'
 import {
   collectOrderPayment,
   customerOrderCount,
@@ -64,20 +66,37 @@ import { listFilters } from './order-list-filters'
 import { orderMessageRoutes } from './order-messages'
 import { orderUndoRoutes } from './order-undo'
 
+/** A page of the Orders list: its filters, the page and the order status. */
+const listPageInput = listFilters.extend({
+  page: z.number().int().min(1).default(1),
+  perPage: z.number().int().min(1).max(PAGE_SIZE_MAX).default(25),
+  status: z.enum(['open', 'completed', 'cancelled']).optional(),
+})
+
 /** What "Mark as" on the order page records; the statuses are then derived. */
 const change = z.enum(ORDER_MARKS)
 
 export const ordersRouter = {
   /** Orders, a page at a time, by list tab, status, payment, fulfilment, date, product or a search. */
   list: can(permissions.ORDERS_READ)
-    .input(
-      listFilters.extend({
-        page: z.number().int().min(1).default(1),
-        perPage: z.number().int().min(1).max(PAGE_SIZE_MAX).default(25),
-        status: z.enum(['open', 'completed', 'cancelled']).optional(),
-      }),
-    )
+    .input(listPageInput)
     .handler(({ context, input }) => listOrders(context.tx, input)),
+
+  /**
+   * The Orders page's server render in one call and one transaction: the first page of rows
+   * (as `list`), the tab badges (`tabCounts`), the stat cards (`tiles`) and the installed apps'
+   * order actions (`apps.orderActions`). The browser still pages and filters with `list`.
+   */
+  listPage: can(permissions.ORDERS_READ)
+    .input(listPageInput)
+    .handler(async ({ context, input }) => {
+      const { tx, scope } = context
+      const [page, appActions] = await Promise.all([
+        orderListPage(tx, input),
+        storeOrderActions(tx, scope.storeId, scope.can),
+      ])
+      return { ...page, appActions }
+    }),
 
   /** Every order id the list's filters match (the table's "Select all N orders"), up to 5,000. */
   ids: can(permissions.ORDERS_READ)

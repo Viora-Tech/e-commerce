@@ -15,21 +15,23 @@ export const metadata: Metadata = { title: productFormContent.newTitle }
 
 export default async function NewProductPage() {
   const context = await serverContext()
-  const [facets, ai, installed] = await Promise.all([
-    call(appRouter.products.facets, undefined, { context }).catch(orNoStore(null)),
-    // AI is optional: any failure just hides the button.
-    call(appRouter.ai.status, undefined, { context }).catch(() => null),
+  const [page, installed, origin, cookieJar] = await Promise.all([
+    // The store's suggestions, "Write with AI" and the shipping boxes in one call.
+    call(appRouter.products.getPage, {}, { context }).catch(orNoStore(null)),
     // Installed apps' sections wait for the first save; without settings access the list is empty.
     listApps().catch(() => []),
+    storefrontOrigin(),
+    cookies(),
   ])
-  if (!facets) redirect(routes.selectStore())
+  if (!page) redirect(routes.selectStore())
   return (
     <ProductForm
       product={null}
-      facets={facets}
-      storefrontOrigin={await storefrontOrigin()}
-      aiWriter={ai?.productWriter ?? false}
-      layout={parseProductLayout((await cookies()).get(PRODUCT_LAYOUT_COOKIE)?.value)}
+      facets={page.facets}
+      boxPresets={page.boxPresets}
+      storefrontOrigin={origin}
+      aiWriter={page.aiWriter}
+      layout={parseProductLayout(cookieJar.get(PRODUCT_LAYOUT_COOKIE)?.value)}
       apps={installed
         .filter((a) => a.installed)
         .map((a) => ({ id: a.id, name: a.name, icon: a.admin.icon }))}

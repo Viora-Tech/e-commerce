@@ -1,13 +1,14 @@
 'use client'
 
+import type { BoxPreset } from '@commerce/core'
 import type { ProductStatus } from '@commerce/core/catalog'
+import dynamic from 'next/dynamic'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { type ReactNode, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import type { ProductApp } from '@/apps/product-actions'
 import type { ProductSectionProps } from '@/apps/product-sections'
 import SaveErrorAlert from '@/components/approvals/save-error-alert'
-import RunAutomationDialog from '@/components/automations/records/run-automation-dialog'
 import { useRunAutomation } from '@/components/automations/records/use-run-automation'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
 import DataCard from '@/components/layout/data-card'
@@ -18,11 +19,11 @@ import MetafieldsCard from '@/components/metaobjects/metafields-card'
 import { productFormContent } from '@/data/product-form'
 import { productPageContent } from '@/data/product-page'
 import { useCopy, useFormat } from '@/hooks/use-copy'
+import { useOpenedOnce } from '@/hooks/use-opened-once'
 import { api } from '@/lib/api-client'
 import type { ProductLayout } from '@/lib/product-layout'
 import { routes } from '@/lib/routes'
 import AiWriterButton from './ai-writer-button'
-import DuplicateProductDialog from './duplicate-product-dialog'
 import {
   emptyForm,
   type Facets,
@@ -65,7 +66,16 @@ type ProductFormProps = {
   layout?: ProductLayout
   /** Installed apps, for their sections on the More tab and their More actions. */
   apps?: readonly ProductApp[]
+  /** The store's saved shipping boxes for the Package select; empty without settings access. */
+  boxPresets?: BoxPreset[] | undefined
 }
+
+/* Dialogs closed at load: their code loads when one first opens. */
+const DuplicateProductDialog = dynamic(() => import('./duplicate-product-dialog'), { ssr: false })
+const RunAutomationDialog = dynamic(
+  () => import('@/components/automations/records/run-automation-dialog'),
+  { ssr: false },
+)
 
 function initialForm(product: LoadedProduct | null): ProductFormState {
   return product ? fromProduct(product) : emptyForm()
@@ -78,6 +88,7 @@ export default function ProductForm({
   aiWriter = false,
   layout = 'tabs',
   apps = [],
+  boxPresets = [],
 }: ProductFormProps) {
   // Hooks
   const copy = useCopy(productFormContent)
@@ -103,6 +114,8 @@ export default function ProductForm({
     'product',
     apps.some((a) => a.id === 'automations'),
   )
+  const duplicateUsed = useOpenedOnce(duplicating)
+  const automationUsed = useOpenedOnce(automation.target !== null)
 
   /* Browser guard: a reload or a close with edits pending asks first. */
   useEffect(() => {
@@ -351,6 +364,7 @@ export default function ProductForm({
         onTax={(tax) => patch({ tax })}
         onChange={(vp) => patchVariant(0, vp)}
         onPackage={patchPackage}
+        boxPresets={boxPresets}
       />
     ),
     seo: (
@@ -461,18 +475,20 @@ export default function ProductForm({
         busy={busy}
         onConfirm={handleRemove}
       />
-      {product ? (
+      {product && duplicateUsed ? (
         <DuplicateProductDialog
           productId={product.id}
           open={duplicating}
           onOpenChange={setDuplicating}
         />
       ) : null}
-      <RunAutomationDialog
-        subjectType="product"
-        ids={automation.target}
-        onClose={automation.close}
-      />
+      {automationUsed ? (
+        <RunAutomationDialog
+          subjectType="product"
+          ids={automation.target}
+          onClose={automation.close}
+        />
+      ) : null}
     </ProoflyDetailPage>
   )
 }

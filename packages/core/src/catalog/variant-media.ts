@@ -37,6 +37,26 @@ export async function loadVariantMedia(
   return out
 }
 
+/**
+ * `loadVariantMedia` for every variant of one product, read by the product id (one statement,
+ * no variant ids needed first). Only variants with list rows are in the map; a variant without
+ * reads as its `media_id` alone, which the caller already has.
+ */
+export async function loadProductVariantMedia(
+  tx: StoreTx,
+  productId: string,
+): Promise<Map<string, string[]>> {
+  const rows = await tx
+    .select({ variantId: variantMedia.variantId, mediaId: variantMedia.mediaId })
+    .from(variantMedia)
+    .innerJoin(variant, eq(variant.id, variantMedia.variantId))
+    .where(eq(variant.productId, productId))
+    .orderBy(asc(variantMedia.variantId), asc(variantMedia.position))
+  const out = new Map<string, string[]>()
+  for (const r of rows) out.set(r.variantId, [...(out.get(r.variantId) ?? []), r.mediaId])
+  return out
+}
+
 /** Ids without repeats, first occurrence wins. */
 function uniqueIds(ids: readonly string[]): string[] {
   return [...new Set(ids)]

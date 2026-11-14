@@ -2,7 +2,6 @@ import {
   DEFAULT_GST_RATE_PERCENT,
   LOW_STOCK_THRESHOLD,
   listedPriceRange,
-  loadVariantMedia,
   noteProductEvent,
   noteProductsChanged,
   notSystemTest,
@@ -27,7 +26,6 @@ import {
   sellableStockForProducts,
   store,
   variant,
-  variantOptionValue,
 } from '@commerce/db'
 import { and, asc, count, desc, eq, gte, ilike, inArray, isNull, lt, or, sql } from 'drizzle-orm'
 
@@ -246,108 +244,6 @@ export async function listProducts(
   }
 }
 
-export async function getProduct(tx: StoreTx, id: string) {
-  const [p] = await tx.select().from(product).where(eq(product.id, id))
-  if (!p) return null
-  const variants = await tx
-    .select({
-      id: variant.id,
-      title: variant.title,
-      sku: variant.sku,
-      barcode: variant.barcode,
-      pricePaise: variant.pricePaise,
-      mrpPaise: variant.mrpPaise,
-      costPaise: variant.costPaise,
-      taxable: variant.taxable,
-      trackInventory: variant.trackInventory,
-      hiddenOnStore: variant.hiddenOnStore,
-      preorderOverride: variant.preorderOverride,
-      requiresShipping: variant.requiresShipping,
-      weightGrams: variant.weightGrams,
-      weightUnit: variant.weightUnit,
-      hsCode: variant.hsCode,
-      countryOfOrigin: variant.countryOfOrigin,
-      gstRatePercent: variant.gstRatePercent,
-      boxPresetId: variant.boxPresetId,
-      packageLengthCm: variant.packageLengthCm,
-      packageWidthCm: variant.packageWidthCm,
-      packageHeightCm: variant.packageHeightCm,
-      boxOwn: variant.boxOwn,
-      mediaId: variant.mediaId,
-      onHand: sellableStock.onHand,
-      reserved: sellableStock.reserved,
-    })
-    .from(variant)
-    .leftJoin(sellableStock, eq(sellableStock.variantId, variant.id))
-    .where(and(eq(variant.productId, id), isNull(variant.archivedAt)))
-    .orderBy(asc(variant.position))
-  const options = await tx
-    .select()
-    .from(productOption)
-    .where(eq(productOption.productId, id))
-    .orderBy(asc(productOption.position))
-  const values = options.length
-    ? await tx
-        .select()
-        .from(productOptionValue)
-        .where(
-          inArray(
-            productOptionValue.optionId,
-            options.map((o) => o.id),
-          ),
-        )
-        .orderBy(asc(productOptionValue.position))
-    : []
-  const links = variants.length
-    ? await tx
-        .select()
-        .from(variantOptionValue)
-        .where(
-          inArray(
-            variantOptionValue.variantId,
-            variants.map((v) => v.id),
-          ),
-        )
-    : []
-  const images = await tx
-    .select({ id: media.id, url: media.url, alt: media.alt, contentType: media.contentType })
-    .from(productMedia)
-    .innerJoin(media, eq(media.id, productMedia.mediaId))
-    .where(eq(productMedia.productId, id))
-    .orderBy(asc(productMedia.position))
-  const valueById = new Map(values.map((v) => [v.id, v]))
-  const variantImages = await loadVariantMedia(
-    tx,
-    variants.map((v) => v.id),
-  )
-  return {
-    ...p,
-    images,
-    options: options.map((o) => ({
-      id: o.id,
-      name: o.name,
-      values: values.filter((v) => v.optionId === o.id).map((v) => ({ id: v.id, value: v.value })),
-    })),
-    variants: variants.map(({ preorderOverride, ...v }) => ({
-      ...v,
-      /** The variant's "Allow pre-order" switch (on unless its override turns it off). */
-      preorderAllowed: preorderOverride?.enabled !== false,
-      /** The variant's own pre-order limit; null uses the product's (or campaign's) limit. */
-      preorderLimit: preorderOverride?.limit ?? null,
-      /** The variant's images in order; the first is `mediaId`. */
-      mediaIds: variantImages.get(v.id) ?? (v.mediaId ? [v.mediaId] : []),
-      /** Values in option order, so the form can rebuild the matrix row. */
-      optionValues: options.map(
-        (o) =>
-          links
-            .filter((l) => l.variantId === v.id)
-            .map((l) => valueById.get(l.optionValueId))
-            .find((val) => val?.optionId === o.id)?.value ?? '',
-      ),
-    })),
-  }
-}
-
 /** Distinct vendors, types and tags already used in the store, for autocomplete. */
 /** Most option names (and values per name) offered as suggestions on the product page. */
 const OPTION_FACETS_MAX = 50
@@ -365,8 +261,14 @@ export async function productFacets(tx: StoreTx, storeId: string) {
       .selectDistinct({ v: sql<string | null>`unnest(${product.tags})` })
       .from(product)
       .where(notSystemTest),
+    // Distinct rows: a store's products mostly repeat the same sizes and colours, and
+    // `optionFacets` keeps the first of each anyway.
     tx
-      .select({ name: productOption.name, value: productOptionValue.value })
+      .selectDistinct({
+        name: productOption.name,
+        value: productOptionValue.value,
+        position: productOptionValue.position,
+      })
       .from(productOptionValue)
       .innerJoin(productOption, eq(productOption.id, productOptionValue.optionId))
       .orderBy(asc(productOption.name), asc(productOptionValue.position)),

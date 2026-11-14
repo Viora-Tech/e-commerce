@@ -7,12 +7,16 @@ import { appRouter, call, serverContext } from '@/lib/api'
 import { PRODUCT_LAYOUT_COOKIE, parseProductLayout } from '@/lib/product-layout'
 import { routes } from '@/lib/routes'
 import { listApps } from '@/lib/shell-data'
-import { orNoStore, orNoStoreOrMissing } from '@/lib/store-guard'
+import { orNoStoreOrMissing } from '@/lib/store-guard'
 import { storefrontOrigin } from '@/lib/storefront-origin'
 
-/** One read of the product per server render: the tab title and the page share it. */
-const loadProduct = cache(async (id: string) =>
-  call(appRouter.products.get, { id }, { context: await serverContext() }),
+/**
+ * One read per server render, in one call and one transaction: the product, the store's
+ * suggestions, the "Write with AI" switch and the shipping boxes (`products.getPage`). The tab
+ * title and the page share it.
+ */
+const loadPage = cache(async (id: string) =>
+  call(appRouter.products.getPage, { id }, { context: await serverContext() }),
 )
 
 type Params = { params: Promise<{ id: string }> }
@@ -20,35 +24,30 @@ type Params = { params: Promise<{ id: string }> }
 /** The product's name in the browser tab, not "Admin". */
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const { id } = await params
-  const product = await loadProduct(id).catch(() => null)
-  return { title: product?.title || 'Product' }
+  const page = await loadPage(id).catch(() => null)
+  return { title: page?.product?.title || 'Product' }
 }
 
 export default async function ProductEditPage({ params }: Params) {
   const { id } = await params
-  const context = await serverContext()
   // Installed apps add sections and More actions; without settings access the list is empty.
   const installed = listApps().catch(() => [])
-  const [product, facets, ai] = await Promise.all([
-    // A malformed id (/products/pre-orders) is "Page not found", not a crash.
-    loadProduct(id).catch(orNoStoreOrMissing(undefined)),
-    call(appRouter.products.facets, undefined, { context }),
-    // AI is optional: any failure just hides the button.
-    call(appRouter.ai.status, undefined, { context }).catch(() => null),
-  ]).catch(orNoStore([undefined, undefined, null] as const))
-  if (product === undefined || !facets) redirect(routes.selectStore())
-  if (!product) notFound()
-  const apps = (await installed)
-    .filter((a) => a.installed)
-    .map((a) => ({ id: a.id, name: a.name, icon: a.admin.icon }))
+  // A malformed id (/products/pre-orders) is "Page not found", not a crash.
+  const page = await loadPage(id).catch(orNoStoreOrMissing(undefined))
+  if (page === undefined) redirect(routes.selectStore())
+  if (!page?.product) notFound()
+  const [apps, origin, cookieJar] = await Promise.all([installed, storefrontOrigin(), cookies()])
   return (
     <ProductForm
-      product={product}
-      facets={facets}
-      storefrontOrigin={await storefrontOrigin()}
-      aiWriter={ai?.productWriter ?? false}
-      layout={parseProductLayout((await cookies()).get(PRODUCT_LAYOUT_COOKIE)?.value)}
-      apps={apps}
+      product={page.product}
+      facets={page.facets}
+      boxPresets={page.boxPresets}
+      storefrontOrigin={origin}
+      aiWriter={page.aiWriter}
+      layout={parseProductLayout(cookieJar.get(PRODUCT_LAYOUT_COOKIE)?.value)}
+      apps={apps
+        .filter((a) => a.installed)
+        .map((a) => ({ id: a.id, name: a.name, icon: a.admin.icon }))}
     />
   )
 }
