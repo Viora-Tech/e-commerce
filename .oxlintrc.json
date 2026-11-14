@@ -3,7 +3,13 @@
   "categories": {
     "correctness": "off"
   },
-  "jsPlugins": ["@shadcn/lint"],
+  "jsPlugins": [
+    "@shadcn/lint",
+    {
+      "name": "shadcn-guard",
+      "specifier": "./scripts/lint/shadcn-guard.mjs"
+    }
+  ],
   "settings": {
     "shadcn": {
       "ui": "@commerce/ui/shadcn",
@@ -41,8 +47,14 @@
             "pattern": "^Card(Title|Description)$",
             "allow": ["layout", "typography", "color", "spacing"]
           },
-          { "pattern": "^Input$", "allow": ["layout", "typography", "spacing", "color"] },
-          { "pattern": "^Textarea$", "allow": ["layout", "typography"] },
+          {
+            "pattern": "^Input$",
+            "allow": ["layout", "typography", "spacing", "color"]
+          },
+          {
+            "pattern": "^Textarea$",
+            "allow": ["layout", "typography"]
+          },
           {
             "pattern": "^(Label|Field(Label|Description|Group)?)$",
             "allow": ["layout", "typography", "spacing", "color", "shape"]
@@ -51,7 +63,10 @@
             "pattern": "^(Dialog|AlertDialog|Sheet)(Header|Footer|Title|Description|Content)$",
             "allow": ["layout", "typography", "spacing", "shape", "color"]
           },
-          { "pattern": "^Button$", "allow": ["layout", "color", "gap-*", "rounded-*"] },
+          {
+            "pattern": "^Button$",
+            "allow": ["layout", "color", "gap-*", "rounded-*"]
+          },
           {
             "pattern": "^(Skeleton|ToggleGroup|ToggleGroupItem|RadioGroup)$",
             "allow": ["layout", "spacing", "shape", "color", "typography"]
@@ -59,6 +74,10 @@
           {
             "pattern": "^(Badge|Spinner|Alert|AlertDescription|Empty|EmptyHeader|EmptyTitle|EmptyDescription|PopoverContent)$",
             "allow": ["layout", "spacing", "typography", "color", "shape", "effects"]
+          },
+          {
+            "pattern": "^(?:Button|DataCard|DataCardSkeleton|Card|Input|Textarea|NativeSelect|SearchField|Label|Field|FieldLabel|FieldDescription|FieldGroup|FieldSet|FieldContent|FieldError|Skeleton|DialogContent|DialogHeader|DialogFooter|DialogTitle|DialogDescription|FormDialog|ConfirmDialog|Table|TableHeader|TableBody|TableRow|TableHead|TableCell|SimpleTable|ResourceTable|Alert|AlertTitle|AlertDescription|Badge|StatusChip|EmptyState|Empty|EmptyHeader|EmptyTitle|EmptyDescription|PageHeader|PageBody|PageColumns|PillTabs|ToggleGroup|ToggleGroupItem|StatTile|RecordCombobox)$",
+            "allow": ["*"]
           }
         ]
       }
@@ -70,13 +89,626 @@
       }
     ],
     "shadcn/require-static-classes": "warn",
-    "shadcn/no-inline-styles": "warn"
+    "shadcn/no-inline-styles": "warn",
+    "shadcn-guard/no-restyle": [
+      "error",
+      {
+        "allow": ["layout"],
+        "contracts": [
+          {
+            "pattern": "^(?!(?:Button|DataCard|DataCardSkeleton|Card|Input|Textarea|NativeSelect|SearchField|Label|Field|FieldLabel|FieldDescription|FieldGroup|FieldSet|FieldContent|FieldError|Skeleton|DialogContent|DialogHeader|DialogFooter|DialogTitle|DialogDescription|FormDialog|ConfirmDialog|Table|TableHeader|TableBody|TableRow|TableHead|TableCell|SimpleTable|ResourceTable|Alert|AlertTitle|AlertDescription|Badge|StatusChip|EmptyState|Empty|EmptyHeader|EmptyTitle|EmptyDescription|PageHeader|PageBody|PageColumns|PillTabs|ToggleGroup|ToggleGroupItem|StatTile|RecordCombobox)$)",
+            "allow": ["*"]
+          },
+          {
+            "pattern": "^Button$",
+            "allow": [
+              "layout",
+              "color",
+              "gap-*",
+              "rounded-*",
+              "p-0",
+              "px-0",
+              "truncate",
+              "tabular-nums"
+            ]
+          },
+          {
+            "pattern": "^(DataCard|DataCardSkeleton)$",
+            "allow": [
+              "layout",
+              "typography",
+              "gap-*",
+              "divide-*",
+              "no-scrollbar",
+              "text-body",
+              "text-body-strong",
+              "text-caption",
+              "text-micro",
+              "text-period",
+              "text-nav",
+              "text-table-head",
+              "text-card-title",
+              "text-section-title",
+              "text-stat",
+              "text-stat-sm",
+              "text-page-title"
+            ]
+          },
+          {
+            "pattern": "^Card$",
+            "allow": [
+              "layout",
+              "typography",
+              "gap-*",
+              "divide-*",
+              "no-scrollbar",
+              "text-body",
+              "text-body-strong",
+              "text-caption",
+              "text-micro",
+              "text-period",
+              "text-nav",
+              "text-table-head",
+              "text-card-title",
+              "text-section-title",
+              "text-stat",
+              "text-stat-sm",
+              "text-page-title"
+            ]
+          },
+          {
+            "pattern": "^(Input|NativeSelect|SearchField)$",
+            "allow": [
+              "layout",
+              "typography",
+              "spacing",
+              "color",
+              "text-body",
+              "text-body-strong",
+              "text-caption",
+              "text-micro",
+              "text-period",
+              "text-nav",
+              "text-table-head",
+              "text-card-title",
+              "text-section-title",
+              "text-stat",
+              "text-stat-sm",
+              "text-page-title"
+            ]
+          },
+          {
+            "pattern": "^Textarea$",
+            "allow": [
+              "layout",
+              "typography",
+              "text-body",
+              "text-body-strong",
+              "text-caption",
+              "text-micro",
+              "text-period",
+              "text-nav",
+              "text-table-head",
+              "text-card-title",
+              "text-section-title",
+              "text-stat",
+              "text-stat-sm",
+              "text-page-title"
+            ]
+          },
+          {
+            "pattern": "^(Label|Field(Label|Description|Group|Error)?)$",
+            "allow": [
+              "layout",
+              "typography",
+              "spacing",
+              "color",
+              "shape",
+              "motion",
+              "text-body",
+              "text-body-strong",
+              "text-caption",
+              "text-micro",
+              "text-period",
+              "text-nav",
+              "text-table-head",
+              "text-card-title",
+              "text-section-title",
+              "text-stat",
+              "text-stat-sm",
+              "text-page-title"
+            ]
+          },
+          {
+            "pattern": "^(FieldSet|FieldContent)$",
+            "allow": ["layout", "gap-*"]
+          },
+          {
+            "pattern": "^Skeleton$",
+            "allow": [
+              "layout",
+              "spacing",
+              "shape",
+              "color",
+              "typography",
+              "motion",
+              "text-body",
+              "text-body-strong",
+              "text-caption",
+              "text-micro",
+              "text-period",
+              "text-nav",
+              "text-table-head",
+              "text-card-title",
+              "text-section-title",
+              "text-stat",
+              "text-stat-sm",
+              "text-page-title"
+            ]
+          },
+          {
+            "pattern": "^Dialog(Header|Footer|Title|Description|Content)$",
+            "allow": [
+              "layout",
+              "typography",
+              "spacing",
+              "shape",
+              "color",
+              "text-body",
+              "text-body-strong",
+              "text-caption",
+              "text-micro",
+              "text-period",
+              "text-nav",
+              "text-table-head",
+              "text-card-title",
+              "text-section-title",
+              "text-stat",
+              "text-stat-sm",
+              "text-page-title"
+            ]
+          },
+          {
+            "pattern": "^(Table|SimpleTable)$",
+            "allow": [
+              "layout",
+              "typography",
+              "text-body",
+              "text-body-strong",
+              "text-caption",
+              "text-micro",
+              "text-period",
+              "text-nav",
+              "text-table-head",
+              "text-card-title",
+              "text-section-title",
+              "text-stat",
+              "text-stat-sm",
+              "text-page-title"
+            ]
+          },
+          {
+            "pattern": "^Table(Cell|Head)$",
+            "allow": [
+              "layout",
+              "typography",
+              "spacing",
+              "color",
+              "shape",
+              "effects",
+              "text-body",
+              "text-body-strong",
+              "text-caption",
+              "text-micro",
+              "text-period",
+              "text-nav",
+              "text-table-head",
+              "text-card-title",
+              "text-section-title",
+              "text-stat",
+              "text-stat-sm",
+              "text-page-title"
+            ]
+          },
+          {
+            "pattern": "^TableRow$",
+            "allow": [
+              "layout",
+              "typography",
+              "color",
+              "shape",
+              "motion",
+              "text-body",
+              "text-body-strong",
+              "text-caption",
+              "text-micro",
+              "text-period",
+              "text-nav",
+              "text-table-head",
+              "text-card-title",
+              "text-section-title",
+              "text-stat",
+              "text-stat-sm",
+              "text-page-title"
+            ]
+          },
+          {
+            "pattern": "^(ToggleGroup|ToggleGroupItem)$",
+            "allow": [
+              "layout",
+              "spacing",
+              "shape",
+              "color",
+              "typography",
+              "text-body",
+              "text-body-strong",
+              "text-caption",
+              "text-micro",
+              "text-period",
+              "text-nav",
+              "text-table-head",
+              "text-card-title",
+              "text-section-title",
+              "text-stat",
+              "text-stat-sm",
+              "text-page-title"
+            ]
+          },
+          {
+            "pattern": "^(Badge|Alert|AlertTitle|AlertDescription|Empty|EmptyHeader|EmptyTitle|EmptyDescription)$",
+            "allow": [
+              "layout",
+              "spacing",
+              "typography",
+              "color",
+              "shape",
+              "effects",
+              "text-body",
+              "text-body-strong",
+              "text-caption",
+              "text-micro",
+              "text-period",
+              "text-nav",
+              "text-table-head",
+              "text-card-title",
+              "text-section-title",
+              "text-stat",
+              "text-stat-sm",
+              "text-page-title"
+            ]
+          }
+        ]
+      }
+    ]
   },
   "overrides": [
     {
       "files": ["packages/ui/src/**"],
       "rules": {
-        "shadcn/no-restyle": "off"
+        "shadcn/no-restyle": "off",
+        "shadcn-guard/no-restyle": "off"
+      }
+    },
+    {
+      "files": [
+        "apps/admin/src/components/layout/data-card.tsx",
+        "apps/admin/src/components/layout/command-palette.tsx",
+        "apps/admin/src/components/table/simple-table.tsx",
+        "apps/admin/src/components/table/resource-table/index.tsx",
+        "apps/admin/src/components/table/resource-table/columns.tsx",
+        "apps/admin/src/components/table/resource-table/pagination.tsx",
+        "apps/admin/src/components/table/resource-table-skeleton.tsx",
+        "apps/admin/src/components/analytics/live-view.tsx",
+        "apps/admin/src/components/growth/campaigns/whatsapp-template-card.tsx",
+        "apps/admin/src/components/growth/campaigns/email-content-card.tsx",
+        "apps/admin/src/components/growth/overview/top-source-cards.tsx",
+        "apps/admin/src/components/mcp/consent-state.tsx",
+        "apps/admin/src/components/mcp/consent-form.tsx",
+        "apps/admin/src/components/settings/store-data-section.tsx",
+        "apps/admin/src/components/shipments/create-shipment/courier-option.tsx",
+        "apps/admin/src/app/(admin)/products/gift-cards/gift-cards-page.tsx",
+        "apps/admin/src/components/products/variants-card.tsx",
+        "apps/admin/src/components/products/variant-matrix.tsx",
+        "apps/admin/src/components/products/product-image-tile.tsx",
+        "apps/admin/src/components/apps/shopify-import/remaining-card.tsx",
+        "apps/admin/src/components/media/media-library.tsx",
+        "apps/admin/src/components/themes/code/code-add-file-dialog.tsx",
+        "apps/admin/src/components/apps/automations/editor/editor-header.tsx",
+        "apps/admin/src/components/themes/customize/**",
+        "apps/admin/src/components/inbox/conversations/composer.tsx",
+        "apps/admin/src/components/customers/customer-address-dialog.tsx"
+      ],
+      "rules": {
+        "shadcn-guard/no-restyle": [
+          "warn",
+          {
+            "allow": ["layout"],
+            "contracts": [
+              {
+                "pattern": "^(?!(?:Button|DataCard|DataCardSkeleton|Card|Input|Textarea|NativeSelect|SearchField|Label|Field|FieldLabel|FieldDescription|FieldGroup|FieldSet|FieldContent|FieldError|Skeleton|DialogContent|DialogHeader|DialogFooter|DialogTitle|DialogDescription|FormDialog|ConfirmDialog|Table|TableHeader|TableBody|TableRow|TableHead|TableCell|SimpleTable|ResourceTable|Alert|AlertTitle|AlertDescription|Badge|StatusChip|EmptyState|Empty|EmptyHeader|EmptyTitle|EmptyDescription|PageHeader|PageBody|PageColumns|PillTabs|ToggleGroup|ToggleGroupItem|StatTile|RecordCombobox)$)",
+                "allow": ["*"]
+              },
+              {
+                "pattern": "^Button$",
+                "allow": [
+                  "layout",
+                  "color",
+                  "gap-*",
+                  "rounded-*",
+                  "p-0",
+                  "px-0",
+                  "truncate",
+                  "tabular-nums"
+                ]
+              },
+              {
+                "pattern": "^(DataCard|DataCardSkeleton)$",
+                "allow": [
+                  "layout",
+                  "typography",
+                  "gap-*",
+                  "divide-*",
+                  "no-scrollbar",
+                  "text-body",
+                  "text-body-strong",
+                  "text-caption",
+                  "text-micro",
+                  "text-period",
+                  "text-nav",
+                  "text-table-head",
+                  "text-card-title",
+                  "text-section-title",
+                  "text-stat",
+                  "text-stat-sm",
+                  "text-page-title"
+                ]
+              },
+              {
+                "pattern": "^Card$",
+                "allow": [
+                  "layout",
+                  "typography",
+                  "gap-*",
+                  "divide-*",
+                  "no-scrollbar",
+                  "text-body",
+                  "text-body-strong",
+                  "text-caption",
+                  "text-micro",
+                  "text-period",
+                  "text-nav",
+                  "text-table-head",
+                  "text-card-title",
+                  "text-section-title",
+                  "text-stat",
+                  "text-stat-sm",
+                  "text-page-title"
+                ]
+              },
+              {
+                "pattern": "^(Input|NativeSelect|SearchField)$",
+                "allow": [
+                  "layout",
+                  "typography",
+                  "spacing",
+                  "color",
+                  "text-body",
+                  "text-body-strong",
+                  "text-caption",
+                  "text-micro",
+                  "text-period",
+                  "text-nav",
+                  "text-table-head",
+                  "text-card-title",
+                  "text-section-title",
+                  "text-stat",
+                  "text-stat-sm",
+                  "text-page-title"
+                ]
+              },
+              {
+                "pattern": "^Textarea$",
+                "allow": [
+                  "layout",
+                  "typography",
+                  "text-body",
+                  "text-body-strong",
+                  "text-caption",
+                  "text-micro",
+                  "text-period",
+                  "text-nav",
+                  "text-table-head",
+                  "text-card-title",
+                  "text-section-title",
+                  "text-stat",
+                  "text-stat-sm",
+                  "text-page-title"
+                ]
+              },
+              {
+                "pattern": "^(Label|Field(Label|Description|Group|Error)?)$",
+                "allow": [
+                  "layout",
+                  "typography",
+                  "spacing",
+                  "color",
+                  "shape",
+                  "motion",
+                  "text-body",
+                  "text-body-strong",
+                  "text-caption",
+                  "text-micro",
+                  "text-period",
+                  "text-nav",
+                  "text-table-head",
+                  "text-card-title",
+                  "text-section-title",
+                  "text-stat",
+                  "text-stat-sm",
+                  "text-page-title"
+                ]
+              },
+              {
+                "pattern": "^(FieldSet|FieldContent)$",
+                "allow": ["layout", "gap-*"]
+              },
+              {
+                "pattern": "^Skeleton$",
+                "allow": [
+                  "layout",
+                  "spacing",
+                  "shape",
+                  "color",
+                  "typography",
+                  "motion",
+                  "text-body",
+                  "text-body-strong",
+                  "text-caption",
+                  "text-micro",
+                  "text-period",
+                  "text-nav",
+                  "text-table-head",
+                  "text-card-title",
+                  "text-section-title",
+                  "text-stat",
+                  "text-stat-sm",
+                  "text-page-title"
+                ]
+              },
+              {
+                "pattern": "^Dialog(Header|Footer|Title|Description|Content)$",
+                "allow": [
+                  "layout",
+                  "typography",
+                  "spacing",
+                  "shape",
+                  "color",
+                  "text-body",
+                  "text-body-strong",
+                  "text-caption",
+                  "text-micro",
+                  "text-period",
+                  "text-nav",
+                  "text-table-head",
+                  "text-card-title",
+                  "text-section-title",
+                  "text-stat",
+                  "text-stat-sm",
+                  "text-page-title"
+                ]
+              },
+              {
+                "pattern": "^(Table|SimpleTable)$",
+                "allow": [
+                  "layout",
+                  "typography",
+                  "text-body",
+                  "text-body-strong",
+                  "text-caption",
+                  "text-micro",
+                  "text-period",
+                  "text-nav",
+                  "text-table-head",
+                  "text-card-title",
+                  "text-section-title",
+                  "text-stat",
+                  "text-stat-sm",
+                  "text-page-title"
+                ]
+              },
+              {
+                "pattern": "^Table(Cell|Head)$",
+                "allow": [
+                  "layout",
+                  "typography",
+                  "spacing",
+                  "color",
+                  "shape",
+                  "effects",
+                  "text-body",
+                  "text-body-strong",
+                  "text-caption",
+                  "text-micro",
+                  "text-period",
+                  "text-nav",
+                  "text-table-head",
+                  "text-card-title",
+                  "text-section-title",
+                  "text-stat",
+                  "text-stat-sm",
+                  "text-page-title"
+                ]
+              },
+              {
+                "pattern": "^TableRow$",
+                "allow": [
+                  "layout",
+                  "typography",
+                  "color",
+                  "shape",
+                  "motion",
+                  "text-body",
+                  "text-body-strong",
+                  "text-caption",
+                  "text-micro",
+                  "text-period",
+                  "text-nav",
+                  "text-table-head",
+                  "text-card-title",
+                  "text-section-title",
+                  "text-stat",
+                  "text-stat-sm",
+                  "text-page-title"
+                ]
+              },
+              {
+                "pattern": "^(ToggleGroup|ToggleGroupItem)$",
+                "allow": [
+                  "layout",
+                  "spacing",
+                  "shape",
+                  "color",
+                  "typography",
+                  "text-body",
+                  "text-body-strong",
+                  "text-caption",
+                  "text-micro",
+                  "text-period",
+                  "text-nav",
+                  "text-table-head",
+                  "text-card-title",
+                  "text-section-title",
+                  "text-stat",
+                  "text-stat-sm",
+                  "text-page-title"
+                ]
+              },
+              {
+                "pattern": "^(Badge|Alert|AlertTitle|AlertDescription|Empty|EmptyHeader|EmptyTitle|EmptyDescription)$",
+                "allow": [
+                  "layout",
+                  "spacing",
+                  "typography",
+                  "color",
+                  "shape",
+                  "effects",
+                  "text-body",
+                  "text-body-strong",
+                  "text-caption",
+                  "text-micro",
+                  "text-period",
+                  "text-nav",
+                  "text-table-head",
+                  "text-card-title",
+                  "text-section-title",
+                  "text-stat",
+                  "text-stat-sm",
+                  "text-page-title"
+                ]
+              }
+            ]
+          }
+        ]
       }
     },
     {
