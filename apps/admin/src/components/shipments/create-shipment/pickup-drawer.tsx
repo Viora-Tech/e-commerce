@@ -1,6 +1,7 @@
 'use client'
 
 import { XIcon } from '@commerce/ui/icons'
+import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
 import {
   Drawer,
@@ -17,6 +18,7 @@ import { createShipmentContent } from '@/data/create-shipment'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
+import { BESIDE_SIDEBAR } from '@/lib/sidebar-motion'
 import PickupDayCards from './pickup-day-cards'
 import PickupParcelList, { type PickupGroup } from './pickup-parcel-list'
 import { PICKUP_TIMES, pickupDays, startingPickupDay } from './pickup-plan'
@@ -25,7 +27,7 @@ import PickupSelect from './pickup-select'
 type PickupDrawerProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
-  /** The booked parcels the pickup is for; the courier's other booked parcels can be ticked too. */
+  /** The parcels just booked; only these go on the pickup (other booked parcels: Shipments → Booked). */
   shipmentIds: string[]
   /** After the last pickup location's pickup was booked or joined, with its day. */
   onDone: (date: string) => void
@@ -40,9 +42,11 @@ const pickupOn = (group: PickupGroup | undefined, date: string) =>
 
 /**
  * Create pickup (Figma 905:8280): a bottom drawer with the pickup location, day and time on the
- * left and the parcels it collects on the right. When the courier is already coming that day the
- * banner says so, the time is the pickup's own and the button adds the parcels to it (Figma
- * 906:8464). Parcels from several couriers or places get one pickup each, one place at a time.
+ * left and the parcel just booked on the right (only that one: other booked parcels are sent from
+ * Shipments → Booked). When the courier is already coming that day the banner says so, the time
+ * is the pickup's own and the button adds the parcel to it (Figma 906:8464). A split order's
+ * parcels with several couriers or places get one pickup each, one place at a time. Later leaves
+ * the parcel in Booked.
  */
 export default function PickupDrawer({
   open,
@@ -56,7 +60,6 @@ export default function PickupDrawer({
   const [groups, setGroups] = useState<PickupGroup[] | null>(null)
   const [failed, setFailed] = useState(false)
   const [groupKey, setGroupKey] = useState('')
-  const [picked, setPicked] = useState<string[]>([])
   const [date, setDate] = useState('')
   const [timeFrom, setTimeFrom] = useState(DEFAULT_FROM)
   const [timeTo, setTimeTo] = useState('')
@@ -85,7 +88,6 @@ export default function PickupDrawer({
   // Helpers
   const startOn = (group: PickupGroup) => {
     setGroupKey(group.key)
-    setPicked(group.parcels.filter((p) => p.anchor).map((p) => p.shipmentId))
     setDate(startingPickupDay(pickupDays(), (d) => pickupOn(group, d) !== null))
     setTimeFrom(DEFAULT_FROM)
     setTimeTo('')
@@ -96,8 +98,6 @@ export default function PickupDrawer({
     const next = groups?.find((g) => g.key === key)
     if (next) startOn(next)
   }
-  const handleToggle = (shipmentId: string, on: boolean) =>
-    setPicked((ids) => (on ? [...ids, shipmentId] : ids.filter((id) => id !== shipmentId)))
   const handleSubmit = async () => {
     if (!group || picked.length === 0) return
     setBusy(true)
@@ -143,6 +143,8 @@ export default function PickupDrawer({
   const group = groups?.find((g) => g.key === groupKey) ?? groups?.[0]
   const days = pickupDays()
   const existing = pickupOn(group, date)
+  // Only the parcels the drawer was opened for (the server also lists the courier's others).
+  const picked = group?.parcels.filter((p) => p.anchor).map((p) => p.shipmentId) ?? []
   const courier = group?.providerLabel ?? ''
   const several = new Set(groups?.map((g) => g.providerId)).size > 1
   const placeOptions = (groups ?? []).map((g) => {
@@ -242,12 +244,7 @@ export default function PickupDrawer({
         </fieldset>
       </section>
       <section className="flex flex-col justify-between gap-5 rounded-xl border border-hairline p-5">
-        <PickupParcelList
-          group={group}
-          picked={picked}
-          onToggle={handleToggle}
-          alreadyIn={existing ? existing.orderNumbers : null}
-        />
+        <PickupParcelList group={group} />
         <div className="flex flex-wrap items-center gap-2">
           <Button onClick={() => void handleSubmit()} disabled={!ready} loading={busy}>
             {existing ? copy.add(picked.length) : copy.create(picked.length)}
@@ -262,7 +259,9 @@ export default function PickupDrawer({
 
   return (
     <Drawer open={open} onOpenChange={onOpenChange} showSwipeHandle>
-      <DrawerContent className="mx-auto max-h-[calc(100dvh-4rem)] max-w-[90rem]">
+      <DrawerContent
+        className={cn('mx-auto max-h-[calc(100dvh-4rem)] max-w-[90rem]', BESIDE_SIDEBAR)}
+      >
         <DrawerHeader className="flex flex-row items-start justify-between gap-4 px-4 pt-2 text-left md:px-8">
           <div className="flex min-w-0 flex-col items-start gap-1 text-left">
             <DrawerTitle className="text-lg font-semibold text-ink-strong">

@@ -19,6 +19,7 @@ import AppStoreLink from '@/components/apps/app-store-link'
 import ChoiceField from '@/components/apps/gst-invoices/choice-field'
 import { bulkShipContent } from '@/data/bulk-ship'
 import { useCopy } from '@/hooks/use-copy'
+import { BESIDE_SIDEBAR } from '@/lib/sidebar-motion'
 import BulkEditDialog from './bulk-edit-dialog'
 import BulkResult from './bulk-result'
 import BulkShipFooter from './bulk-ship-footer'
@@ -72,7 +73,7 @@ export default function BulkShipDrawer({
 
   return (
     <Drawer open={open} onOpenChange={(next) => !next && onClose()} showSwipeHandle>
-      <DrawerContent className="mx-auto h-[calc(100dvh-4rem)] max-w-[90rem]">
+      <DrawerContent className={cn('mx-auto h-[calc(100dvh-4rem)] max-w-[90rem]', BESIDE_SIDEBAR)}>
         {b.results && draft ? (
           <BulkResult
             results={b.results}

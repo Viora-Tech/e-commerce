@@ -8,6 +8,7 @@ import { type CSSProperties, type ReactNode, useEffect, useRef, useState } from 
 import { hasOwnHeading, layoutContent, pagePrefixFor, pageTitleFor } from '@/data/layout'
 import { useCopy, useLocale } from '@/hooks/use-copy'
 import { pageName } from '@/lib/page-names'
+import { SIDEBAR_WIDTH, SIDEBAR_WIDTH_ICON } from '@/lib/sidebar-motion'
 import AdminSidebar from './admin-sidebar'
 import AssistantHost from './assistant/assistant-host'
 import BugReportHost from './bug-report/bug-report-host'
@@ -45,8 +46,6 @@ type AdminFrameProps = {
   /** "Orders this month · 142 of 200" above the user row; left out when unknown. */
   usage?: SidebarUsage | undefined
 }
-
-const SIDEBAR_WIDTH = '16rem'
 
 /**
  * Shell (Figma Home frame): the sidebar and the top bar share the shell colour; the content
@@ -89,7 +88,12 @@ export default function AdminFrame({
   return (
     <SidebarProvider
       className="h-svh overflow-hidden [--sidebar-ms:320ms] in-data-[sidebar-instant]:[--sidebar-ms:0ms] motion-reduce:[--sidebar-ms:0ms] [&_[data-slot=sidebar-container]]:duration-(--sidebar-ms) [&_[data-slot=sidebar-container]]:ease-drawer [&_[data-slot=sidebar-gap]]:duration-(--sidebar-ms) [&_[data-slot=sidebar-gap]]:ease-drawer"
-      style={{ '--sidebar-width': SIDEBAR_WIDTH } as CSSProperties}
+      style={
+        {
+          '--sidebar-width': SIDEBAR_WIDTH,
+          '--sidebar-width-icon': SIDEBAR_WIDTH_ICON,
+        } as CSSProperties
+      }
     >
       <SidebarShortcutGuard />
       <AdminSidebar

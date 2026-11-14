@@ -416,18 +416,9 @@ export default [
           .filter(Boolean)
           .join(' · '),
       viewPickup: 'पिकअप देखें',
-      parcels: 'इस पिकअप के पार्सल',
-      parcelsCount: (n) => `इस पिकअप के पार्सल · ${n}`,
+      parcels: (n) => (n === 1 ? 'यह पार्सल' : `ये पार्सल · ${n}`),
       parcelTitle: (orderNumber, awb) => `#${orderNumber} · AWB ${awb}`,
       weight: (kg) => `${kg} किग्रा`,
-      bookedEarlier: (when, courier) => `${when} बुक · ${courier}`,
-      earlierToday: 'आज पहले',
-      alreadyIn: (orders) => `पहले से इसमें: ${orders}`,
-      waiting: (n, courier) =>
-        `${courier} के ${n} और पार्सल Booked में रुके हैं। एक ही पिकअप भेजने के लिए उन्हें चुनें।`,
-      waitingJoin: (n, courier) =>
-        `${courier} के ${n} और पार्सल Booked में रुके हैं। उसी पिकअप में जोड़ने के लिए उन्हें चुनें।`,
-      tick: (orderNumber) => `#${orderNumber} शामिल करें`,
       create: (n) => `पिकअप बनाएं · ${n} पार्सल`,
       add: (n) => `पिकअप में जोड़ें · ${n} पार्सल`,
       later: 'बाद में',
