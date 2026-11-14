@@ -3,7 +3,6 @@
 import type { SegmentRules } from '@commerce/core/segments'
 import { BadgePercent, Send } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import { Card, CardContent } from '@commerce/ui/shadcn/card'
 import { Field, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import Link from 'next/link'
@@ -11,9 +10,8 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import DataCard from '@/components/layout/data-card'
-import PageBody from '@/components/layout/page-body'
-import PageColumns from '@/components/layout/page-columns'
 import PageHeader from '@/components/layout/page-header'
+import ProoflyDetailPage from '@/components/layout/proofly-detail-page'
 import SaveBar from '@/components/layout/save-bar'
 import ConditionBuilder from '@/components/rules/condition-builder'
 import { segmentsContent } from '@/data/customers'
@@ -74,7 +72,59 @@ export default function SegmentForm({ id, initialName, initialRules }: SegmentFo
   const dirty = JSON.stringify({ initialName: name, initialRules: rules }) !== saved
 
   return (
-    <PageBody>
+    <ProoflyDetailPage
+      header={
+        <PageHeader
+          title={id ? name || builder.editHeading : builder.newHeading}
+          subtitle={id ? undefined : builder.newIntro}
+          back={{ label: builder.back, href: routes.customers.segments() }}
+          actions={
+            id ? (
+              <>
+                <DeleteSegmentButton id={id} />
+                <Button
+                  variant="outline"
+                  nativeButton={false}
+                  render={<Link href={routes.discounts.new({ segment: id })} />}
+                >
+                  <BadgePercent aria-hidden="true" />
+                  {builder.discountIt}
+                </Button>
+                <Button
+                  variant="outline"
+                  nativeButton={false}
+                  render={<Link href={routes.growth.newCampaign({ segment: id })} />}
+                >
+                  <Send aria-hidden="true" />
+                  {builder.emailIt}
+                </Button>
+              </>
+            ) : null
+          }
+          save={{ dirty: true, saving, onSave: handleSave, label: builder.save }}
+        />
+      }
+      main={
+        <>
+          <DataCard title={builder.details}>
+            <Field>
+              <FieldLabel htmlFor="segment-name">{builder.name}</FieldLabel>
+              <Input
+                id="segment-name"
+                size="lg"
+                value={name}
+                placeholder={builder.namePlaceholder}
+                onChange={(e) => setName(e.target.value)}
+              />
+            </Field>
+          </DataCard>
+          <DataCard title={builder.conditions}>
+            <ConditionBuilder rules={rules} onChange={setRules} />
+          </DataCard>
+        </>
+      }
+      side={<SegmentPreview rules={rules} />}
+    >
       <SaveBar
         open={dirty}
         message={builder.conditions}
@@ -84,59 +134,6 @@ export default function SegmentForm({ id, initialName, initialRules }: SegmentFo
         onDiscard={handleDiscard}
         saving={saving}
       />
-      <PageHeader
-        title={id ? name || builder.editHeading : builder.newHeading}
-        subtitle={id ? undefined : builder.newIntro}
-        back={{ label: builder.back, href: routes.customers.segments() }}
-        actions={
-          id ? (
-            <>
-              <DeleteSegmentButton id={id} />
-              <Button
-                variant="outline"
-                nativeButton={false}
-                render={<Link href={routes.discounts.new({ segment: id })} />}
-              >
-                <BadgePercent aria-hidden="true" />
-                {builder.discountIt}
-              </Button>
-              <Button
-                variant="outline"
-                nativeButton={false}
-                render={<Link href={routes.growth.newCampaign({ segment: id })} />}
-              >
-                <Send aria-hidden="true" />
-                {builder.emailIt}
-              </Button>
-            </>
-          ) : null
-        }
-        save={{ dirty: true, saving, onSave: handleSave, label: builder.save }}
-      />
-      <PageColumns
-        main={
-          <>
-            <Card size="form">
-              <CardContent>
-                <Field>
-                  <FieldLabel htmlFor="segment-name">{builder.name}</FieldLabel>
-                  <Input
-                    id="segment-name"
-                    size="lg"
-                    value={name}
-                    placeholder={builder.namePlaceholder}
-                    onChange={(e) => setName(e.target.value)}
-                  />
-                </Field>
-              </CardContent>
-            </Card>
-            <DataCard title={builder.conditions}>
-              <ConditionBuilder rules={rules} onChange={setRules} />
-            </DataCard>
-          </>
-        }
-        side={<SegmentPreview rules={rules} />}
-      />
-    </PageBody>
+    </ProoflyDetailPage>
   )
 }

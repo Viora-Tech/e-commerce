@@ -3,12 +3,15 @@
 import { permissions } from '@commerce/core/permissions'
 import { dayStart } from '@commerce/dates'
 import { Button } from '@commerce/ui/shadcn/button'
+import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import DataCard from '@/components/layout/data-card'
 import EmptyState from '@/components/layout/empty-state'
+import InlineState from '@/components/states/inline-state'
 import { customerStoreCreditContent } from '@/data/customer-store-credit'
 import { useCopy, useLocale } from '@/hooks/use-copy'
+import { useLoad } from '@/hooks/use-load'
 import { usePermissions } from '@/hooks/use-permissions'
 import { api } from '@/lib/api-client'
 import { formatDay, formatPattern } from '@/lib/format-date'
@@ -29,25 +32,12 @@ export default function CustomerStoreCreditCard({ customerId }: CustomerStoreCre
   const copy = useCopy(customerStoreCreditContent)
   const locale = useLocale()
   const { hasPermission } = usePermissions()
-  const [account, setAccount] = useState<Account | null>(null)
-  const [failed, setFailed] = useState(false)
+  const {
+    data: account,
+    failed,
+    retry,
+  } = useLoad<Account>(() => api.storeCredit.get({ customerId }), [customerId])
   const [mode, setMode] = useState<'add' | 'remove' | null>(null)
-
-  useEffect(() => {
-    let live = true
-    setFailed(false)
-    api.storeCredit
-      .get({ customerId })
-      .then((a) => {
-        if (live) setAccount(a)
-      })
-      .catch(() => {
-        if (live) setFailed(true)
-      })
-    return () => {
-      live = false
-    }
-  }, [customerId])
 
   // Helpers
   const money = (paise: number) => formatPaise(paise, locale)
@@ -57,10 +47,8 @@ export default function CustomerStoreCreditCard({ customerId }: CustomerStoreCre
   // Event handlers
   const handleDone = () => {
     setMode(null)
-    api.storeCredit
-      .get({ customerId })
-      .then(setAccount)
-      .catch(() => setFailed(true))
+    // Read the balance again; the old one stays on screen until the new one arrives.
+    retry()
   }
 
   // Render logic
@@ -86,8 +74,22 @@ export default function CustomerStoreCreditCard({ customerId }: CustomerStoreCre
       }
     >
       {failed ? (
-        <p className="text-caption text-muted-foreground">{copy.loadFailed}</p>
-      ) : !account ? null : (
+        failed === 'no-access' ? (
+          <InlineState kind="no-access" />
+        ) : (
+          <InlineState kind="error" heading={copy.loadFailed} onRetry={retry} />
+        )
+      ) : !account ? (
+        // The balance row and two history lines, so the card does not grow when it fills in.
+        <div className="flex flex-col gap-3" aria-busy="true">
+          <div className="flex items-center justify-between gap-3">
+            <Skeleton className="h-3.5 w-20" />
+            <Skeleton className="h-5 w-24" />
+          </div>
+          <Skeleton className="h-3.5 w-2/3" />
+          <Skeleton className="h-3.5 w-1/2" />
+        </div>
+      ) : (
         <div className="flex flex-col gap-3">
           <div className="flex items-baseline justify-between gap-3">
             <span className="text-caption text-muted-foreground">{copy.balance}</span>
