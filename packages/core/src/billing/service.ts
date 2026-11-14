@@ -77,12 +77,18 @@ export class UnlimitedPlan extends CommerceError {
 type StorePlanRow = typeof storePlan.$inferSelect
 type BillRow = typeof planPayment.$inferSelect
 
-/** The store's plan row, made on first read: a 14-day Growth trial. */
+/**
+ * The store's plan row, made on first read: a 14-day Growth trial. Read first: the row exists
+ * for every store after its first page, and the admin layout asks on every page, so the insert
+ * runs only when it is missing.
+ */
 export async function ensureStorePlan(
   tx: StoreTx,
   storeId: string,
   now = new Date(),
 ): Promise<StorePlanRow> {
+  const [found] = await tx.select().from(storePlan).where(eq(storePlan.storeId, storeId))
+  if (found) return found
   await tx
     .insert(storePlan)
     .values({
