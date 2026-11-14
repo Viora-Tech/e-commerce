@@ -10,6 +10,7 @@
       "!**/.shopify",
       "!**/coverage",
       "!**/.next",
+      "!**/routeTree.gen.ts",
       "!apps/www/out",
       "!apps/docs/out",
       "!**/.wrangler",

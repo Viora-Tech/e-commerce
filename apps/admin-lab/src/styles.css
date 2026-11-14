@@ -1,0 +1,14 @@
+/* The admin's own stylesheet, unchanged, plus the fonts next/font self-hosts in the admin
+   (fontsource does the same here). */
+@import "../../admin/src/app/globals.css";
+@import "@fontsource-variable/plus-jakarta-sans";
+@import "@fontsource-variable/geist-mono";
+
+/* Tailwind scans from this app's folder; the admin's sources (which Next scans automatically
+   from apps/admin) are named here. */
+@source "../../admin/src";
+
+:root {
+  --font-primary: "Plus Jakarta Sans Variable", system-ui, sans-serif;
+  --font-mono-code: "Geist Mono Variable", ui-monospace, monospace;
+}
