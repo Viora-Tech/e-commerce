@@ -328,7 +328,8 @@ describe('RapidshypProvider createShipment (wrapper API)', () => {
       '/rapidshyp/apis/v1/track_order': () => {
         lookups += 1
         // Not there on the first look: RapidShyp is still making the shipment.
-        return lookups < 2
+        // Both first-round asks (by id, then with phone) come back empty.
+        return lookups < 3
           ? json({ success: true, records: [{ shipment_details: [] }] })
           : json({ success: true, records: [{ shipment_details: [{ shipment_id: 'S26103461' }] }] })
       },
@@ -373,9 +374,15 @@ describe('RapidshypProvider createShipment (wrapper API)', () => {
       p.createShipment({ ...sampleShipment, orderNumber: 2471, serviceId: 'BD' }),
     ).rejects.toMatchObject({
       kind: 'bad_response',
-      message: expect.stringContaining('We cancelled order 2471 on RapidShyp'),
+      message: expect.stringMatching(
+        /We cancelled order 2471 on RapidShyp.*track_order: by order id: success true, "", 0 records, 0 shipments; with phone/,
+      ),
     })
-    expect(f.calls.filter((c) => c.url.pathname.endsWith('/track_order'))).toHaveLength(3)
+    // Three rounds, each by order id and then with the 10-digit phone.
+    const tracks = f.calls.filter((c) => c.url.pathname.endsWith('/track_order'))
+    expect(tracks).toHaveLength(6)
+    expect(JSON.parse(tracks[1]?.init?.body as string)).toMatchObject({ orderId: '2471' })
+    expect(JSON.parse(tracks[1]?.init?.body as string).contact).toMatch(/^\d{10}$/)
     expect(f.calls.some((c) => c.url.pathname.endsWith('/assign_awb'))).toBe(false)
   })
 
