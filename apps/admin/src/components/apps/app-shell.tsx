@@ -49,8 +49,8 @@ const hrefFor = (appId: string, path: string) =>
 /**
  * An installed app's pages under the compact app bar (Figma App layout v2, 928:10728): the
  * "Apps / <Name>" breadcrumb, a small logo, name and status chip, the app's status pill, its one
- * primary action and the "…" menu (Settings, Uninstall), then a divider. On desktop the app's
- * pages live in the main sidebar under its name; phones keep the in-page menu.
+ * primary action and the "…" menu (Settings, Uninstall), then a divider. The app's pages are
+ * its own menu beside the page (a row of tabs on phones).
  */
 export default async function AppShell({
   appId,
@@ -166,18 +166,16 @@ export default async function AppShell({
       </div>
       <div className="flex flex-col gap-5 md:flex-row md:items-start md:gap-8">
         {showNav ? (
-          // Desktop: the app's pages live in the main sidebar under its name; the in-page menu
-          // stays for phones, where the sidebar is closed.
-          <div className="md:hidden">
-            <AppNav
-              label={name}
-              tabs={tabs.map((t) => ({
-                href: hrefFor(appId, t.path),
-                label: t.label,
-                active: t.path === section,
-              }))}
-            />
-          </div>
+          // The app's own menu beside its pages (a row on phones); the main sidebar lists only
+          // the recent apps by name (owner, 14 Nov 2026).
+          <AppNav
+            label={name}
+            tabs={tabs.map((t) => ({
+              href: hrefFor(appId, t.path),
+              label: t.label,
+              active: t.path === section,
+            }))}
+          />
         ) : null}
         <div className="flex min-w-0 flex-1 flex-col gap-5">{children}</div>
       </div>

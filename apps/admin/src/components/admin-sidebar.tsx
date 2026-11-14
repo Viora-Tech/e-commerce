@@ -89,33 +89,26 @@ const ROW_TRIGGER =
 /* Figma sidebar menus (store switcher, user menu): 240px glass, radius 8, 4px inset. */
 const SIDEBAR_MENU = 'w-60 rounded-sm p-1'
 
-/** An app's pages shown under its row before "View more" (owner, 11 Nov 2026). */
-const APP_PAGES_SHOWN = 4
-
 /**
- * The Apps group lists only the three apps this member opened most recently in this store
- * (`orderSidebarApps`, the one on screen first), each its own row with its pages nested while
- * open, then "All apps (n)" for the rest (owner, 13 Nov 2026: 20 installed apps made every-app
- * rows too long). Page counts ("Queue 6") come in `navCounts`.
+ * The Apps group (owner, 14 Nov 2026): the three apps this member opened most recently in this
+ * store (`orderSidebarApps`, the one on screen first) as plain links, no pages nested under them
+ * (each app keeps its own menu inside its page), then "View more" to every app. With no app
+ * installed, the group keeps its one Apps link.
  */
 function withAppRows(
   items: NavItem[],
   shown: AdminSidebarProps['apps'],
-  installed: number,
-  allAppsLabel: (n: number) => string,
+  viewMore: string,
 ): NavItem[] {
+  if (shown.length === 0) return items
   return [
-    ...items,
     ...shown.map((a) => ({
       href: a.href,
       label: a.name,
       icon: appIcon(a.icon),
       base: routes.apps.page(a.id),
-      ...((a.pages?.length ?? 0) >= 2 ? { children: a.pages, childLimit: APP_PAGES_SHOWN } : {}),
     })),
-    ...(installed > shown.length
-      ? [{ href: routes.apps.list(), label: allAppsLabel(installed), icon: LayoutGrid }]
-      : []),
+    { href: routes.apps.list(), label: viewMore, icon: LayoutGrid },
   ]
 }
 
@@ -284,8 +277,7 @@ export default function AdminSidebar({
                 ? withAppRows(
                     localizeNavItems(group.items, locale),
                     orderSidebarApps(apps, recent, currentId),
-                    apps.length,
-                    copy.allApps,
+                    copy.viewMoreApps,
                   )
                 : localizeNavItems(group.items, locale)
             }

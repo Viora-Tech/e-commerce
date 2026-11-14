@@ -188,7 +188,7 @@ export const hindiNavGroups: Record<string, string> = {
 
 export default [
   translation(navigationContent, {
-    allApps: (n) => `सभी ऐप (${n})`,
+    viewMoreApps: 'और देखें',
     pickStore: 'स्टोर चुनें',
     mainMenu: 'मुख्य मेन्यू',
     stores: 'स्टोर',
