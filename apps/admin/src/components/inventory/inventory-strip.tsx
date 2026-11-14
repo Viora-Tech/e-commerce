@@ -65,7 +65,10 @@ export default function InventoryStrip({
       </div>
       <div className="flex flex-wrap items-end gap-4">
         <div className="flex flex-col gap-1.5">
-          <span id="inventory-group-label" className="text-caption text-muted-foreground">
+          <span
+            id="inventory-group-label"
+            className="text-xs leading-4 font-medium text-ink-strong"
+          >
             {copy.group.label}
           </span>
           <ToggleGroup

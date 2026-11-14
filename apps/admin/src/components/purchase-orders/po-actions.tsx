@@ -11,7 +11,7 @@ type PoActionsProps = {
   status: PurchaseOrderStatus | null
   busy: boolean
   /** The action running while `busy`: its button spins. */
-  pending?: 'save' | 'markOrdered' | null
+  pending?: 'save' | 'markOrdered' | 'reopen' | null
   /** Nothing has arrived yet, so the order can still be called off. */
   cancellable: boolean
   /** A closed order with units still outstanding, or a cancelled one. */
@@ -76,7 +76,12 @@ export default function PoActions({
           </Button>
         ) : null}
         {reopenable ? (
-          <Button variant="outline" onClick={onReopen} disabled={busy}>
+          <Button
+            variant="outline"
+            onClick={onReopen}
+            disabled={busy}
+            loading={pending === 'reopen'}
+          >
             <RotateCcw aria-hidden="true" />
             {copy.reopen}
           </Button>

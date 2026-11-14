@@ -12,9 +12,8 @@ import LandedCostCard from '@/components/landed-cost/landed-cost-card'
 import type { CostPreview } from '@/components/landed-cost/types'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
 import NoticeBar from '@/components/layout/notice-bar'
-import PageColumns from '@/components/layout/page-columns'
 import PageHeader from '@/components/layout/page-header'
-import ProoflyPageBody from '@/components/layout/proofly-page-body'
+import ProoflyDetailPage from '@/components/layout/proofly-detail-page'
 import SaveBar from '@/components/layout/save-bar'
 import OrderChip from '@/components/orders/order-chip'
 import DocumentsCard from '@/components/purchase-documents/documents-card'
@@ -144,7 +143,94 @@ export default function ShipmentForm({ shipment, costs, aiReading }: ShipmentFor
   const hasOrders = (shipment?.orders.length ?? 0) > 0
 
   return (
-    <ProoflyPageBody>
+    <ProoflyDetailPage
+      header={
+        <PageHeader
+          title={shipment ? copy.title(shipment.number) : copy.newTitle}
+          summary={
+            shipment
+              ? [d.reference, d.billOfEntryNo ? copy.billOfEntry(d.billOfEntryNo) : null, d.port]
+                  .filter(Boolean)
+                  .join(' · ')
+              : undefined
+          }
+          lead={{ kind: 'icon', node: <Truck aria-hidden="true" /> }}
+          badges={shipment ? <OrderChip kind="inboundShipment" value={shipment.status} /> : null}
+          back={{ label: copy.back, href: LIST }}
+          actions={
+            <>
+              {shipment && shipment.status !== 'delivered' && shipment.status !== 'cancelled' ? (
+                <Button
+                  variant="outline"
+                  onClick={() => setDelivering(shipment.id)}
+                  disabled={busy}
+                >
+                  <PackageCheck aria-hidden="true" />
+                  {copy.deliver.action}
+                </Button>
+              ) : null}
+              {shipment ? (
+                <Button variant="outline" onClick={() => setDeleting(true)} disabled={busy}>
+                  <Trash2 aria-hidden="true" />
+                  {copy.delete}
+                </Button>
+              ) : null}
+              <Button loading={busy} onClick={handleSave} disabled={busy}>
+                <Save aria-hidden="true" />
+                {copy.save}
+              </Button>
+            </>
+          }
+        />
+      }
+      main={
+        <>
+          <ShipmentDetailsCard draft={d} onChange={patch} />
+          {shipment ? (
+            <ShipmentOrdersCard
+              shipmentId={shipment.id}
+              orders={shipment.orders}
+              onChanged={() => router.refresh()}
+            />
+          ) : (
+            <NoticeBar>{copy.saveFirst}</NoticeBar>
+          )}
+          <ChargesCard
+            costs={costs}
+            owner={shipment ? { inboundShipmentId: shipment.id } : null}
+            editable={shipment !== null}
+            onChanged={() => router.refresh()}
+          />
+          {costs ? <LandedCostCard costs={costs} /> : null}
+          <DocumentsCard
+            owner={shipment ? { inboundShipmentId: shipment.id } : null}
+            aiReading={aiReading}
+            onApplied={() => router.refresh()}
+          />
+        </>
+      }
+      side={
+        <>
+          <ShipmentTrackingCard
+            draft={d}
+            trackedAt={shipment?.trackedAt ?? null}
+            canTrack={Boolean(shipment?.trackingNumber) && !dirty}
+            tracking={tracking}
+            onChange={patch}
+            onTrack={handleTrack}
+          />
+          <NotesCard
+            id="shipment-note"
+            heading={copy.notes.heading}
+            placeholder={copy.notes.placeholder}
+            value={d.note}
+            disabled={false}
+            onChange={(note) => patch({ note })}
+          />
+          {shipment ? <ShipmentGlanceCard orders={shipment.orders} costs={costs} /> : null}
+        </>
+      }
+    >
       <SaveBar
         open={dirty && shipment !== null}
         message={copy.unsaved}
@@ -153,93 +239,6 @@ export default function ShipmentForm({ shipment, costs, aiReading }: ShipmentFor
         onSave={handleSave}
         onDiscard={() => setD(JSON.parse(saved) as ShipmentDraft)}
         saving={busy}
-      />
-      <PageHeader
-        title={shipment ? copy.title(shipment.number) : copy.newTitle}
-        summary={
-          shipment
-            ? [d.reference, d.billOfEntryNo ? copy.billOfEntry(d.billOfEntryNo) : null, d.port]
-                .filter(Boolean)
-                .join(' · ')
-            : undefined
-        }
-        lead={{ kind: 'icon', node: <Truck aria-hidden="true" /> }}
-        badges={shipment ? <OrderChip kind="inboundShipment" value={shipment.status} /> : null}
-        back={{ label: copy.back, href: LIST }}
-        actions={
-          <>
-            {shipment && shipment.status !== 'delivered' && shipment.status !== 'cancelled' ? (
-              <Button variant="outline" onClick={() => setDelivering(shipment.id)} disabled={busy}>
-                <PackageCheck aria-hidden="true" />
-                {copy.deliver.action}
-              </Button>
-            ) : null}
-            {shipment ? (
-              <Button
-                variant="ghost"
-                className="text-destructive hover:text-destructive"
-                onClick={() => setDeleting(true)}
-                disabled={busy}
-              >
-                <Trash2 aria-hidden="true" />
-                {copy.delete}
-              </Button>
-            ) : null}
-            <Button loading={busy} onClick={handleSave} disabled={busy}>
-              <Save aria-hidden="true" />
-              {copy.save}
-            </Button>
-          </>
-        }
-      />
-      <PageColumns
-        main={
-          <>
-            <ShipmentDetailsCard draft={d} onChange={patch} />
-            {shipment ? (
-              <ShipmentOrdersCard
-                shipmentId={shipment.id}
-                orders={shipment.orders}
-                onChanged={() => router.refresh()}
-              />
-            ) : (
-              <NoticeBar>{copy.saveFirst}</NoticeBar>
-            )}
-            <ChargesCard
-              costs={costs}
-              owner={shipment ? { inboundShipmentId: shipment.id } : null}
-              editable={shipment !== null}
-              onChanged={() => router.refresh()}
-            />
-            {costs ? <LandedCostCard costs={costs} /> : null}
-            <DocumentsCard
-              owner={shipment ? { inboundShipmentId: shipment.id } : null}
-              aiReading={aiReading}
-              onApplied={() => router.refresh()}
-            />
-          </>
-        }
-        side={
-          <>
-            <ShipmentTrackingCard
-              draft={d}
-              trackedAt={shipment?.trackedAt ?? null}
-              canTrack={Boolean(shipment?.trackingNumber) && !dirty}
-              tracking={tracking}
-              onChange={patch}
-              onTrack={handleTrack}
-            />
-            <NotesCard
-              id="shipment-note"
-              heading={copy.notes.heading}
-              placeholder={copy.notes.placeholder}
-              value={d.note}
-              disabled={false}
-              onChange={(note) => patch({ note })}
-            />
-            {shipment ? <ShipmentGlanceCard orders={shipment.orders} costs={costs} /> : null}
-          </>
-        }
       />
       <MarkDeliveredDialog
         shipmentId={delivering}
@@ -258,6 +257,6 @@ export default function ShipmentForm({ shipment, costs, aiReading }: ShipmentFor
         confirmDisabled={hasOrders}
         onConfirm={handleDelete}
       />
-    </ProoflyPageBody>
+    </ProoflyDetailPage>
   )
 }
