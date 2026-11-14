@@ -2,6 +2,7 @@
 
 import type { AnalyticsOverview } from '@commerce/api'
 import { Download } from '@commerce/ui/icons'
+import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
 import { useEffect, useState } from 'react'
 import ChartCard from '@/components/layout/chart-card'
@@ -11,14 +12,17 @@ import { methodLabel } from '@/components/orders/order-detail-types'
 import { analyticsContent } from '@/data/analytics'
 import { INDIAN_STATES } from '@/data/india'
 import { useCopy } from '@/hooks/use-copy'
+import type { LoadFailure } from '@/hooks/use-load'
 import { formatDay, type RangeState, rangeQuery, sameRange } from '@/lib/analytics-range'
 import { api } from '@/lib/api-client'
 import { downloadCsv, toCsv } from '@/lib/csv'
+import { isForbidden } from '@/lib/forbidden'
 import { formatPaiseCompact, formatPaiseWhole } from '@/lib/money'
 import { routes } from '@/lib/routes'
 import BreakdownCard, { type BreakdownRow } from './breakdown-card'
 import FunnelCard from './funnel-card'
 import KpiStrip from './kpi-strip'
+import RangeFailed from './range-failed'
 import RangePicker from './range-picker'
 import SalesBreakdownCard from './sales-breakdown-card'
 import TopProductsCard from './top-products-card'
@@ -64,10 +68,15 @@ export default function AnalyticsOverviewPage({
   const [range, setRange] = useState(initialRange)
   const [data, setData] = useState(initial)
   const [loading, setLoading] = useState(false)
+  const [failed, setFailed] = useState<LoadFailure | false>(false)
+  const [attempt, setAttempt] = useState(0)
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `attempt` re-runs the read (Try again)
   useEffect(() => {
+    setFailed(false)
     if (sameRange(range, initialRange)) {
       setData(initial)
+      setLoading(false)
       return
     }
     let live = true
@@ -77,13 +86,16 @@ export default function AnalyticsOverviewPage({
       .then((next) => {
         if (live) setData(next)
       })
+      .catch((err: unknown) => {
+        if (live) setFailed(isForbidden(err) ? 'no-access' : 'error')
+      })
       .finally(() => {
         if (live) setLoading(false)
       })
     return () => {
       live = false
     }
-  }, [range, initialRange, initial])
+  }, [range, initialRange, initial, attempt])
 
   // Event handlers
   const handleRange = (next: RangeState) => {
@@ -131,39 +143,59 @@ export default function AnalyticsOverviewPage({
       </div>
       {/* Figma 306:16434: KPIs in one row, the sales chart full width, then funnel + top
           products side by side; the state and payment breakdowns follow. */}
-      <KpiStrip kpis={data.kpis} loading={loading} />
-      <ChartCard
-        title={copy.salesOverTime.title}
-        subtitle={copy.salesOverTime.subtitle(
-          formatPaiseWhole(totalPaise),
-          copy.salesOverTime.spans[range.key],
-          best ? formatDay(best.label) : null,
-        )}
-        periods={[
-          { id: 'day', label: copy.salesOverTime.day, data: dayPoints, partialLast: live },
-          { id: 'week', label: copy.salesOverTime.week, data: weekPoints, partialLast: live },
-        ]}
-        seriesKey={`sales-${range.key}`}
-        seriesLabel={copy.salesOverTime.series}
-        formatValue={formatPaiseCompact}
-      />
-      <div className="grid grid-cols-1 items-stretch gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
-        <FunnelCard steps={data.funnel} />
-        <TopProductsCard products={data.topProducts} />
-      </div>
-      <SalesBreakdownCard copy={copy.salesBreakdown} breakdown={data.salesBreakdown} />
-      <div className="grid grid-cols-1 items-stretch gap-6 lg:grid-cols-2">
-        <BreakdownCard
-          title={copy.byState.title}
-          rows={toStateRows(data)}
-          empty={copy.byState.empty}
+      {failed ? (
+        <RangeFailed
+          failed={failed}
+          heading={copy.loadFailed}
+          onRetry={() => setAttempt((n) => n + 1)}
         />
-        <BreakdownCard
-          title={copy.paymentMethods.title}
-          rows={toMethodRows(data)}
-          empty={copy.paymentMethods.empty}
-        />
-      </div>
+      ) : (
+        <>
+          <KpiStrip kpis={data.kpis} loading={loading} />
+          <ChartCard
+            title={copy.salesOverTime.title}
+            subtitle={copy.salesOverTime.subtitle(
+              formatPaiseWhole(totalPaise),
+              copy.salesOverTime.spans[range.key],
+              best ? formatDay(best.label) : null,
+            )}
+            periods={[
+              { id: 'day', label: copy.salesOverTime.day, data: dayPoints, partialLast: live },
+              { id: 'week', label: copy.salesOverTime.week, data: weekPoints, partialLast: live },
+            ]}
+            seriesKey={`sales-${range.key}`}
+            seriesLabel={copy.salesOverTime.series}
+            formatValue={formatPaiseCompact}
+            loading={loading}
+          />
+          {/* The cards under the chart dim while the new range loads (no stale-looking figures). */}
+          <div
+            aria-busy={loading || undefined}
+            className={cn(
+              'flex flex-col gap-6 transition-opacity duration-150',
+              loading && 'pointer-events-none opacity-50',
+            )}
+          >
+            <div className="grid grid-cols-1 items-stretch gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
+              <FunnelCard steps={data.funnel} />
+              <TopProductsCard products={data.topProducts} />
+            </div>
+            <SalesBreakdownCard copy={copy.salesBreakdown} breakdown={data.salesBreakdown} />
+            <div className="grid grid-cols-1 items-stretch gap-6 lg:grid-cols-2">
+              <BreakdownCard
+                title={copy.byState.title}
+                rows={toStateRows(data)}
+                empty={copy.byState.empty}
+              />
+              <BreakdownCard
+                title={copy.paymentMethods.title}
+                rows={toMethodRows(data)}
+                empty={copy.paymentMethods.empty}
+              />
+            </div>
+          </div>
+        </>
+      )}
       <VisitorsSection range={range} />
     </PageBody>
   )

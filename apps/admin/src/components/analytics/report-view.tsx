@@ -2,8 +2,8 @@
 
 import type { ReportDefinition, ReportResult } from '@commerce/api'
 import { Bookmark, Download } from '@commerce/ui/icons'
+import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
-import { Card } from '@commerce/ui/shadcn/card'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import DataCard from '@/components/layout/data-card'
@@ -12,12 +12,15 @@ import PageHeader from '@/components/layout/page-header'
 import PillTabs from '@/components/layout/pill-tabs'
 import StatusChip from '@/components/layout/status-chip'
 import { analyticsContent } from '@/data/analytics'
+import type { LoadFailure } from '@/hooks/use-load'
 import { type RangeState, rangeQuery, sameRange } from '@/lib/analytics-range'
 import { api } from '@/lib/api-client'
 import { downloadCsv } from '@/lib/csv'
+import { isForbidden } from '@/lib/forbidden'
 import { csvOf } from '@/lib/report-csv'
 import { routes } from '@/lib/routes'
 import ProfitInsightsCard from './profit-insights-card'
+import RangeFailed from './range-failed'
 import RangePicker from './range-picker'
 import ReportChart from './report-chart'
 import ReportNameDialog from './report-name-dialog'
@@ -43,20 +46,35 @@ export default function ReportView({ report, initialRange, initial }: ReportView
   const [data, setData] = useState(initial)
   const [shape, setShape] = useState<Shape>(report.chart)
   const [saving, setSaving] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [failed, setFailed] = useState<LoadFailure | false>(false)
+  const [attempt, setAttempt] = useState(0)
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `attempt` re-runs the read (Try again)
   useEffect(() => {
+    setFailed(false)
     if (sameRange(range, initialRange)) {
       setData(initial)
+      setLoading(false)
       return
     }
     let live = true
-    api.analytics.report({ slug: report.slug, range }).then((next) => {
-      if (live) setData(next)
-    })
+    setLoading(true)
+    api.analytics
+      .report({ slug: report.slug, range })
+      .then((next) => {
+        if (live) setData(next)
+      })
+      .catch((err: unknown) => {
+        if (live) setFailed(isForbidden(err) ? 'no-access' : 'error')
+      })
+      .finally(() => {
+        if (live) setLoading(false)
+      })
     return () => {
       live = false
     }
-  }, [range, initialRange, initial, report.slug])
+  }, [range, initialRange, initial, report.slug, attempt])
 
   // Event handlers
   const handleRange = (next: RangeState) => {
@@ -105,26 +123,13 @@ export default function ReportView({ report, initialRange, initial }: ReportView
           </>
         }
       />
-      <Card gap="none" inset={5}>
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          {/* Headed only when something sits under it (audit #51). */}
-          {understood ? (
-            <p className="text-caption text-muted-foreground">{c.understood}</p>
-          ) : (
-            <span />
-          )}
-          <PillTabs
-            variant="segmented"
-            value={shape}
-            onChange={(next) => setShape(next ?? report.chart)}
-            tabs={[
-              { value: 'bars' as Shape, label: c.chartType.bars },
-              { value: 'series' as Shape, label: c.chartType.line },
-            ]}
-          />
-        </div>
+      {/* The controls row, like the overview's range row: dates and comparison on the left
+          (headed "What I understood" only when they are there, audit #51), the chart shape on
+          the right. */}
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
         {understood ? (
-          <div className="mt-3 flex flex-wrap items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="text-caption text-muted-foreground">{c.understood}</span>
             {report.ranged ? <RangePicker value={range} onChange={handleRange} /> : null}
             {data.previousTotals ? (
               <span className="flex items-center gap-2 text-caption text-muted-foreground">
@@ -133,10 +138,41 @@ export default function ReportView({ report, initialRange, initial }: ReportView
               </span>
             ) : null}
           </div>
-        ) : null}
-      </Card>
-      {data.profit ? <ProfitInsightsCard insights={data.profit} /> : null}
-      <ReportChart report={report} data={data} shape={shape} />
+        ) : (
+          <span />
+        )}
+        <PillTabs
+          variant="segmented"
+          value={shape}
+          onChange={(next) => setShape(next ?? report.chart)}
+          tabs={[
+            { value: 'bars' as Shape, label: c.chartType.bars },
+            { value: 'series' as Shape, label: c.chartType.line },
+          ]}
+        />
+      </div>
+      {failed ? (
+        <RangeFailed
+          failed={failed}
+          heading={c.loadFailed}
+          onRetry={() => setAttempt((n) => n + 1)}
+        />
+      ) : (
+        /* The figures dim while the new range loads, so the old ones are not read as new. */
+        <div
+          aria-busy={loading || undefined}
+          className={cn(
+            'flex flex-col gap-6 transition-opacity duration-150',
+            loading && 'pointer-events-none opacity-50',
+          )}
+        >
+          {data.profit ? <ProfitInsightsCard insights={data.profit} /> : null}
+          <ReportChart report={report} data={data} shape={shape} />
+          <DataCard title={c.details}>
+            <ReportTable report={report} data={data} />
+          </DataCard>
+        </div>
+      )}
       {saving ? (
         <ReportNameDialog
           title={c.save.title}
@@ -147,9 +183,6 @@ export default function ReportView({ report, initialRange, initial }: ReportView
           onConfirm={handleSave}
         />
       ) : null}
-      <DataCard title={c.details}>
-        <ReportTable report={report} data={data} />
-      </DataCard>
     </PageBody>
   )
 }

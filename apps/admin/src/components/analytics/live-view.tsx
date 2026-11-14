@@ -36,9 +36,13 @@ export default function LiveView({ initial, globe }: LiveViewProps) {
     if (paused) return
     let live = true
     const tick = () => {
-      api.analytics.live().then((next) => {
-        if (live) setData(next)
-      })
+      /* A missed poll keeps the last figures; the next tick asks again. */
+      api.analytics
+        .live()
+        .then((next) => {
+          if (live) setData(next)
+        })
+        .catch(() => undefined)
     }
     const timer = setInterval(tick, POLL_MS)
     return () => {
