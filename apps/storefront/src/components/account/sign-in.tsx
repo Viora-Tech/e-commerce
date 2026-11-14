@@ -6,11 +6,14 @@ import type {
   SignInOptions,
 } from '@commerce/core/customer-accounts'
 import { useState } from 'react'
+import AccountError from '@/components/account/account-error'
 import GoogleOneTap from '@/components/account/google-one-tap'
 import LoginForm from '@/components/account/login-form'
 import PhoneLoginForm from '@/components/account/phone-login-form'
 import QuickSignIn from '@/components/account/quick-sign-in'
 import { accountContent } from '@/data/account'
+import { ACCOUNT_LINK } from '@/lib/account-classes'
+import { CK_CARD, CK_LIFT } from '@/lib/checkout-classes'
 import type { LoginError } from '@/lib/login-errors'
 
 type SignInProps = {
@@ -33,9 +36,9 @@ const copy = accountContent.login
 const isPhone = (m: LoginMethod): m is 'sms' | 'whatsapp' => m !== 'email'
 
 /**
- * The sign-in card: the store's first code method, with a link to the other kind
- * (email or mobile) when both are on, then the one-tap ways in the store switched on.
- * One question at a time.
+ * The sign-in card in the checkout's look (Figma 948:15521, 948:15578): the store's first code
+ * method, the one-tap ways in, the switch to the other kind (email or mobile) and passkeys,
+ * then who an account is for. The code step shows only the code. One question at a time.
  */
 export default function SignIn({
   returnTo,
@@ -51,83 +54,90 @@ export default function SignIn({
     confirmEmail || methods[0] === 'email' ? 'email' : 'phone',
   )
   const [remember, setRemember] = useState(true)
-
-  // Helpers
-  /** A link to the other kind of sign-in, only when the store offers both. */
-  const switcher = (to: 'email' | 'phone') =>
-    methods.includes('email') && methods.some(isPhone) ? (
-      <button
-        type="button"
-        className="text-small underline underline-offset-4"
-        onClick={() => setMode(to)}
-      >
-        {to === 'phone' ? copy.usePhone : copy.useEmail}
-      </button>
-    ) : null
+  const [codeStep, setCodeStep] = useState(false)
 
   // Render logic
   const phoneMethods = methods.filter(isPhone)
+  const both = methods.includes('email') && phoneMethods.length > 0
   const note = checkout === 'account_required' ? copy.accountNote : copy.guestNote
   const offerRemember = options?.rememberDevice === true
   // Unticked counts only when the store offers the choice; otherwise sessions keep their usual length.
   const keep = offerRemember ? remember : true
+  const phone = mode === 'phone' && phoneMethods.length > 0
+  const switcher =
+    both && !confirmEmail ? (
+      <button
+        type="button"
+        className={ACCOUNT_LINK}
+        onClick={() => setMode(phone ? 'email' : 'phone')}
+      >
+        {phone ? copy.useEmail : copy.usePhone}
+      </button>
+    ) : null
+  const rememberControl = offerRemember ? (
+    <label className="flex min-h-11 cursor-pointer items-center gap-3 text-[0.875rem] text-ck-ink">
+      <input
+        type="checkbox"
+        className="size-[1.125rem] shrink-0 accent-[var(--ck-accent)]"
+        checked={remember}
+        onChange={(e) => setRemember(e.target.checked)}
+      />
+      {copy.remember}
+    </label>
+  ) : null
 
   // `mx-auto!`: an imported theme's own unlayered margin reset beat the centring (#118).
   return (
     <div className="mx-auto! flex w-full max-w-[27.5rem] flex-col items-center gap-5">
-      <div className="flex w-full flex-col gap-6 rounded-[1.25rem] border border-line bg-surface p-6 shadow-[0_1.5rem_4rem_rgba(0,0,0,0.28)] md:p-8">
-        {error ? (
-          <p className="text-small text-danger" role="alert">
-            {copy.providerErrors[error]}
-          </p>
-        ) : null}
-        {mode === 'phone' && phoneMethods.length > 0 ? (
+      <div className={`${CK_CARD} ${CK_LIFT} flex w-full flex-col gap-5 p-5 sm:p-6`}>
+        <AccountError message={error ? copy.providerErrors[error] : null} />
+        {phone ? (
           <PhoneLoginForm
+            key="phone"
             returnTo={returnTo}
             methods={phoneMethods}
-            note={note}
-            alternative={switcher('email')}
             remember={keep}
+            rememberControl={rememberControl}
+            onStep={setCodeStep}
           />
         ) : (
           <LoginForm
+            key="email"
             returnTo={returnTo}
-            note={note}
-            alternative={switcher('phone')}
             remember={keep}
+            rememberControl={rememberControl}
             magicLink={options?.magicLink === true}
             confirmEmail={confirmEmail ?? null}
+            onStep={setCodeStep}
           />
         )}
-        {options && !confirmEmail ? (
-          <QuickSignIn options={options} returnTo={returnTo} remember={keep} />
-        ) : null}
-        {offerRemember ? (
-          <label className="flex items-start gap-3 text-body">
-            <input
-              type="checkbox"
-              className="mt-1 size-4 accent-[var(--color-ink)]"
-              checked={remember}
-              onChange={(e) => setRemember(e.target.checked)}
-            />
-            <span className="flex flex-col">
-              <span>{copy.remember}</span>
-              <span className="text-small text-muted">{copy.rememberHint}</span>
-            </span>
-          </label>
-        ) : null}
+        {codeStep ? null : (
+          <>
+            {options && !confirmEmail ? (
+              <QuickSignIn
+                options={options}
+                returnTo={returnTo}
+                remember={keep}
+                switcher={switcher}
+              />
+            ) : (
+              switcher
+            )}
+            {rememberControl}
+            <p className="border-t border-ck-line pt-4 text-[0.8125rem] leading-relaxed text-ck-muted">
+              {note}
+            </p>
+          </>
+        )}
         {oneTapClientId && !confirmEmail ? (
           <GoogleOneTap clientId={oneTapClientId} returnTo={returnTo} remember={keep} />
         ) : null}
       </div>
       {/* What an account gives, under the card (Figma 948:15521). */}
-      <ul className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-small text-muted">
+      <ul className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-[0.8125rem] text-ck-muted">
         {copy.perks.map((p) => (
           <li key={p} className="flex items-center gap-2">
-            <span
-              aria-hidden="true"
-              className="size-1.5 rounded-full bg-[var(--color-ink)] opacity-60"
-            />
+            <span aria-hidden="true" className="size-1.5 rounded-full bg-ck-accent-lift" />
             {p}
           </li>
         ))}
