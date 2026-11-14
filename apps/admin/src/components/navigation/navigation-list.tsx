@@ -8,13 +8,13 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import ProoflyListPage from '@/components/layout/proofly-list-page'
-import StatusChip from '@/components/layout/status-chip'
-import ResourceTable, { type ResourceColumnSpec } from '@/components/table/resource-table'
+import ResourceTable from '@/components/table/resource-table'
 import { type MenuListItem, menusContent } from '@/data/menus'
 import { useCopy } from '@/hooks/use-copy'
 import { routes } from '@/lib/routes'
 import CreateMenuDialog from './create-menu-dialog'
 import MenuActions from './menu-actions'
+import { menuColumns } from './menu-columns'
 import { placementsFor, type ThemeMenuPlacements } from './placements'
 import StorefrontNavigationDialog from './storefront-navigation-dialog'
 
@@ -68,47 +68,7 @@ export default function NavigationList({
     ...new Set(initialMenus.flatMap((m) => usedIn(m)).map((p) => copy.where[p])),
   ])
 
-  const columns: ResourceColumnSpec<MenuListItem>[] = [
-    {
-      id: 'title',
-      title: copy.columns.title,
-      sortValue: (m) => m.title,
-      hideable: false,
-      render: (m) => (
-        <span className="flex min-w-0 flex-col">
-          <span className="truncate font-medium text-ink-strong">{m.title}</span>
-          <span className="truncate text-caption text-muted-foreground">{m.handle}</span>
-        </span>
-      ),
-    },
-    {
-      id: 'items',
-      title: copy.columns.items,
-      sortValue: (m) => m.itemCount,
-      render: (m) => <span className="tabular-nums">{copy.itemCount(m.itemCount)}</span>,
-    },
-    {
-      id: 'usedIn',
-      title: copy.columns.usedIn,
-      render: (m) => {
-        const placements = usedIn(m)
-        return placements.length > 0 ? (
-          placements.map((p) => copy.usage[p]).join(', ')
-        ) : (
-          <span className="text-muted-foreground">{copy.notUsed}</span>
-        )
-      },
-    },
-    {
-      id: 'status',
-      title: copy.columns.status,
-      render: (m) => (
-        <StatusChip tone={usedIn(m).length > 0 ? 'success' : 'neutral'}>
-          {usedIn(m).length > 0 ? copy.status.active : copy.status.unused}
-        </StatusChip>
-      ),
-    },
-  ]
+  const columns = menuColumns(copy, usedIn)
 
   const addButton = (
     <Button type="button" onClick={() => setCreating(true)}>

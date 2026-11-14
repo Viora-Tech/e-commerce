@@ -9,6 +9,7 @@ import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import DataCard from '@/components/layout/data-card'
+import EmptyState from '@/components/layout/empty-state'
 import PageHeader from '@/components/layout/page-header'
 import ProoflyDetailPage from '@/components/layout/proofly-detail-page'
 import SaveBar from '@/components/layout/save-bar'
@@ -128,26 +129,23 @@ export default function MenuEditor({ menu, placements }: MenuEditorProps) {
         />
       }
       main={
-        <div className="overflow-hidden rounded-lg border surface-card">
-          <div className="flex flex-col gap-0.5 border-b border-line px-5 py-4">
-            <h2 className="text-card-title text-ink-strong">{copy.editor.itemsHeading}</h2>
-            <p className="text-caption text-muted-foreground">{copy.editor.hint}</p>
+        <DataCard title={copy.editor.itemsHeading} subtitle={copy.editor.hint} flush>
+          {/* A hairline under the title, then the banner and the rows edge to edge. */}
+          <div className="border-t border-line">
+            <LinkCheckBanner count={problems.size} />
+            {draft.items.length === 0 ? (
+              <EmptyState variant="plain" size="sm" body={copy.editor.empty} />
+            ) : null}
+            <MenuTree
+              items={draft.items}
+              onChange={handleItemsChange}
+              onEdit={handleEdit}
+              onRemove={handleRemove}
+              onAdd={handleAdd}
+              problems={problems}
+            />
           </div>
-          <LinkCheckBanner count={problems.size} />
-          {draft.items.length === 0 ? (
-            <p className="px-4 pt-8 pb-4 text-center text-body text-muted-foreground">
-              {copy.editor.empty}
-            </p>
-          ) : null}
-          <MenuTree
-            items={draft.items}
-            onChange={handleItemsChange}
-            onEdit={handleEdit}
-            onRemove={handleRemove}
-            onAdd={handleAdd}
-            problems={problems}
-          />
-        </div>
+        </DataCard>
       }
       side={
         <>

@@ -192,6 +192,7 @@ export const definitionFormContent = {
   discard: 'Discard',
   nameRequired: 'Type a name first, like Size guide',
   details: {
+    heading: 'Details',
     name: 'Name',
     namePlaceholder: 'Size guide',
     type: 'Handle',
@@ -290,6 +291,7 @@ export const fieldDialogContent = {
 
 export const entryListContent = {
   add: 'Add entry',
+  loadFailed: 'Could not load entries',
   summary: (n: number) => (n === 1 ? '1 entry' : `${n} entries`),
   editDefinition: 'Edit definition',
   back: 'Content types',
@@ -317,6 +319,7 @@ export const entryListContent = {
 
 export const entryFormContent = {
   newTitle: (name: string) => `Add ${name.toLowerCase()}`,
+  fieldsHeading: 'Fields',
   save: 'Save',
   saving: 'Saving',
   saved: 'Entry saved',

@@ -56,7 +56,8 @@ export default function DiscountForm({ discount, segmentId = null }: DiscountFor
   const { hasPermission } = usePermissions()
   const [form, setForm] = useState<DiscountFormState>(() => initialForm(discount, segmentId))
   const [saved, setSaved] = useState(() => JSON.stringify(initialForm(discount, segmentId)))
-  const [busy, setBusy] = useState(false)
+  /** Which header action is running, so only its button spins (the others wait, dimmed). */
+  const [pending, setPending] = useState<'save' | 'status' | 'duplicate' | 'delete' | null>(null)
   const [serverError, setServerError] = useState<string | null>(null)
   const [attempted, setAttempted] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
@@ -67,9 +68,10 @@ export default function DiscountForm({ discount, segmentId = null }: DiscountFor
 
   // Event handlers
   const handleSave = async () => {
+    if (pending) return
     setAttempted(true)
     if (Object.keys(formErrors(form, copy.errors)).length) return
-    setBusy(true)
+    setPending('save')
     setServerError(null)
     try {
       const data = toInput(form)
@@ -92,7 +94,7 @@ export default function DiscountForm({ discount, segmentId = null }: DiscountFor
     } catch (err) {
       setServerError(err instanceof Error ? err.message : copy.toasts.failed)
     } finally {
-      setBusy(false)
+      setPending(null)
     }
   }
 
@@ -104,7 +106,7 @@ export default function DiscountForm({ discount, segmentId = null }: DiscountFor
 
   const handleStatus = async (status: 'active' | 'disabled') => {
     if (!discount) return
-    setBusy(true)
+    setPending('status')
     setServerError(null)
     try {
       const result = await api.discounts.toggle({ id: discount.id, status })
@@ -116,14 +118,14 @@ export default function DiscountForm({ discount, segmentId = null }: DiscountFor
     } catch (err) {
       setServerError(err instanceof Error ? err.message : copy.toasts.failed)
     } finally {
-      setBusy(false)
+      setPending(null)
       setConfirmPause(false)
     }
   }
 
   const handleDuplicate = async () => {
     if (!discount) return
-    setBusy(true)
+    setPending('duplicate')
     setServerError(null)
     try {
       const copied = await api.discounts.duplicate({ id: discount.id })
@@ -134,13 +136,13 @@ export default function DiscountForm({ discount, segmentId = null }: DiscountFor
     } catch (err) {
       setServerError(err instanceof Error ? err.message : copy.toasts.failed)
     } finally {
-      setBusy(false)
+      setPending(null)
     }
   }
 
   const handleRemove = async () => {
     if (!discount) return
-    setBusy(true)
+    setPending('delete')
     try {
       const result = await api.discounts.delete({ id: discount.id })
       toast.success(result?.outcome === 'deleted' ? copy.toasts.deleted : copy.toasts.disabled)
@@ -148,12 +150,13 @@ export default function DiscountForm({ discount, segmentId = null }: DiscountFor
       router.refresh()
     } catch (err) {
       setServerError(err instanceof Error ? err.message : copy.toasts.failed)
-      setBusy(false)
+      setPending(null)
       setConfirmDelete(false)
     }
   }
 
   // Render logic
+  const busy = pending !== null
   const dirty = JSON.stringify(form) !== saved
   const errors = attempted ? formErrors(form, copy.errors) : {}
   const title = discount ? discount.title : copy.newTitle
@@ -184,6 +187,7 @@ export default function DiscountForm({ discount, segmentId = null }: DiscountFor
                   {canWrite ? (
                     <Button
                       variant="outline"
+                      loading={pending === 'status'}
                       disabled={busy}
                       onClick={paused ? () => handleStatus('active') : () => setConfirmPause(true)}
                     >
@@ -192,20 +196,29 @@ export default function DiscountForm({ discount, segmentId = null }: DiscountFor
                     </Button>
                   ) : null}
                   {canWrite ? (
-                    <Button variant="outline" disabled={busy} onClick={handleDuplicate}>
+                    <Button
+                      variant="outline"
+                      loading={pending === 'duplicate'}
+                      disabled={busy}
+                      onClick={handleDuplicate}
+                    >
                       <Copy />
                       {copy.duplicate.action}
                     </Button>
                   ) : null}
                   {canWrite ? (
-                    <Button variant="outline" onClick={() => setConfirmDelete(true)}>
+                    <Button
+                      variant="outline"
+                      disabled={busy}
+                      onClick={() => setConfirmDelete(true)}
+                    >
                       <Trash2 />
                       {copy.delete.action}
                     </Button>
                   ) : null}
                 </>
               ) : dirty ? null : (
-                <Button onClick={handleSave} loading={busy}>
+                <Button onClick={handleSave} loading={pending === 'save'} disabled={busy}>
                   <Save aria-hidden="true" />
                   {copy.saveBar.save}
                 </Button>
@@ -269,7 +282,7 @@ export default function DiscountForm({ discount, segmentId = null }: DiscountFor
         discardLabel={copy.saveBar.discard}
         onSave={handleSave}
         onDiscard={handleDiscard}
-        saving={busy}
+        saving={pending === 'save'}
       />
       <ConfirmDialog
         open={confirmPause}

@@ -2,10 +2,10 @@
 
 import { Pencil, Plus, Trash2 } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import { Card, CardContent } from '@commerce/ui/shadcn/card'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
+import DataCard from '@/components/layout/data-card'
 import PageHeader from '@/components/layout/page-header'
 import ProoflyDetailPage from '@/components/layout/proofly-detail-page'
 import { blogsManageContent } from '@/data/blog'
@@ -71,8 +71,8 @@ export default function BlogsManager({ initial }: BlogsManagerProps) {
         />
       }
       main={
-        <Card>
-          <CardContent className="flex flex-col divide-y divide-line p-0">
+        <DataCard title={copy.listTitle} count={blogs.length} flush>
+          <div className="flex flex-col divide-y divide-line border-t border-line">
             {blogs.map((blog) => (
               <div key={blog.id} className="flex items-center gap-4 px-5 py-4">
                 <div className="flex min-w-0 flex-1 flex-col gap-0.5">
@@ -100,8 +100,8 @@ export default function BlogsManager({ initial }: BlogsManagerProps) {
                 </Button>
               </div>
             ))}
-          </CardContent>
-        </Card>
+          </div>
+        </DataCard>
       }
     >
       <BlogDialog

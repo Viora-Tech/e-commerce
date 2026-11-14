@@ -41,6 +41,7 @@ export const blogListContent = {
     published: 'Published',
     image: 'Has a featured image',
   },
+  loadFailed: 'Could not load blog posts',
   noResults: {
     heading: 'No posts match these filters',
     body: 'Try a different search or clear the filters.',
@@ -89,6 +90,7 @@ export const articleFormContent = {
   titleRequired: 'Give the post a title',
   viewLive: 'View on store',
   main: {
+    heading: 'Post',
     title: 'Title',
     titlePlaceholder: 'e.g. Blog about your latest products or deals',
     content: 'Content',
@@ -155,6 +157,7 @@ export const blogsManageContent = {
   heading: 'Manage blogs',
   back: 'Blog posts',
   add: 'Create blog',
+  listTitle: 'Blogs',
   posts: (n: number) => `${n} ${n === 1 ? 'post' : 'posts'}`,
   edit: 'Edit',
   delete: 'Delete',

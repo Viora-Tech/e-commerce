@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import AppliesToPicker from './applies-to-picker'
 
@@ -57,5 +57,16 @@ describe('AppliesToPicker', () => {
     render(<AppliesToPicker kind="collections" ids={[SALE]} onChange={() => undefined} />)
     expect(await screen.findByText('Diwali sale')).toBeTruthy()
     expect(screen.getByText('12 products')).toBeTruthy()
+  })
+
+  it('says the picked rows could not be read, with Try again, instead of looking empty', async () => {
+    products.list.mockReset().mockRejectedValueOnce(new Error('offline'))
+    products.list.mockImplementation(async () => ({ items: [row(OLD, 'Old pad')], total: 1 }))
+    render(<AppliesToPicker kind="products" ids={[OLD]} onChange={() => undefined} />)
+    const retry = await screen.findByRole('button', { name: /try again/i })
+    expect(screen.queryByText('Old pad')).toBeNull()
+    fireEvent.click(retry)
+    expect(await screen.findByText('Old pad')).toBeTruthy()
+    expect(screen.queryByRole('button', { name: /try again/i })).toBeNull()
   })
 })

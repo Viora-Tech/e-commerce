@@ -35,6 +35,7 @@ export default [
       published: 'कब छपा',
       image: 'मुख्य फ़ोटो है',
     },
+    loadFailed: 'ब्लॉग पोस्ट लोड नहीं हो पाए',
     noResults: {
       heading: 'इन फ़िल्टर से कोई पोस्ट नहीं मिली',
       body: 'कोई और सर्च आज़माएँ या फ़िल्टर हटाएँ।',
@@ -83,6 +84,7 @@ export default [
     titleRequired: 'पोस्ट का नाम लिखें',
     viewLive: 'स्टोर पर देखें',
     main: {
+      heading: 'पोस्ट',
       title: 'नाम',
       titlePlaceholder: 'जैसे: हमारे नए प्रोडक्ट या ऑफ़र के बारे में',
       content: 'कंटेंट',
@@ -140,6 +142,7 @@ export default [
     heading: 'ब्लॉग संभालें',
     back: 'ब्लॉग पोस्ट',
     add: 'ब्लॉग बनाएं',
+    listTitle: 'ब्लॉग',
     posts: (n) => `${n} पोस्ट`,
     edit: 'बदलें',
     delete: 'हटाएं',
