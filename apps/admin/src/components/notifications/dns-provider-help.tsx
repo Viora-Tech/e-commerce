@@ -9,7 +9,8 @@ import {
   PopoverTitle,
   PopoverTrigger,
 } from '@commerce/ui/shadcn/popover'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@commerce/ui/shadcn/tabs'
+import { useState } from 'react'
+import PillTabs from '@/components/layout/pill-tabs'
 import { type DnsProviderId, senderEmailContent } from '@/data/sender-email'
 
 const copy = senderEmailContent.where
@@ -18,6 +19,9 @@ const PROVIDERS: DnsProviderId[] = ['cloudflare', 'godaddy', 'hostinger', 'namec
 
 /** "Where do I add these?": short steps for the four registrars most Indian shops use. */
 export default function DnsProviderHelp() {
+  // Hooks
+  const [provider, setProvider] = useState<DnsProviderId>('cloudflare')
+
   return (
     <Popover>
       <PopoverTrigger className="inline-flex items-center gap-1 text-body font-medium text-foreground underline underline-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
@@ -29,24 +33,20 @@ export default function DnsProviderHelp() {
           <PopoverTitle>{copy.title}</PopoverTitle>
           <PopoverDescription>{copy.intro}</PopoverDescription>
         </PopoverHeader>
-        <Tabs defaultValue="cloudflare" className="mt-2">
-          <TabsList className="w-full flex-wrap">
-            {PROVIDERS.map((p) => (
-              <TabsTrigger key={p} value={p}>
-                {copy.providers[p].name}
-              </TabsTrigger>
+        <div className="mt-2 flex flex-col gap-2">
+          <PillTabs
+            variant="segmented"
+            className="max-w-full flex-wrap"
+            value={provider}
+            onChange={setProvider}
+            tabs={PROVIDERS.map((p) => ({ value: p, label: copy.providers[p].name }))}
+          />
+          <ol className="mt-2 flex list-decimal flex-col gap-1.5 pl-5 text-body text-foreground">
+            {copy.providers[provider].steps.map((step) => (
+              <li key={step}>{step}</li>
             ))}
-          </TabsList>
-          {PROVIDERS.map((p) => (
-            <TabsContent key={p} value={p}>
-              <ol className="mt-2 flex list-decimal flex-col gap-1.5 pl-5 text-body text-foreground">
-                {copy.providers[p].steps.map((step) => (
-                  <li key={step}>{step}</li>
-                ))}
-              </ol>
-            </TabsContent>
-          ))}
-        </Tabs>
+          </ol>
+        </div>
         <p className="mt-3 text-caption text-muted-foreground">{copy.other}</p>
       </PopoverContent>
     </Popover>

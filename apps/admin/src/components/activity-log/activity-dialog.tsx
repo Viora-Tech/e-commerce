@@ -2,10 +2,12 @@
 
 import { Button } from '@commerce/ui/shadcn/button'
 import { Dialog, DialogDescription, DialogTitle } from '@commerce/ui/shadcn/dialog'
+import { TableCell, TableRow } from '@commerce/ui/shadcn/table'
 import type { ActivityRow } from '@/components/activity-log/activity-columns'
 import DialogContent from '@/components/layout/dialog-content'
 import DialogFooter from '@/components/layout/dialog-footer'
 import DialogHeader from '@/components/layout/dialog-header'
+import SimpleTable from '@/components/table/simple-table'
 import { activityLogContent } from '@/data/activity-log'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 
@@ -112,24 +114,26 @@ export default function ActivityDialog({ row, onClose }: ActivityDialogProps) {
             <p className="text-body font-medium">{d.changes}</p>
             {lines.length ? (
               <div className="overflow-x-auto rounded-md border border-border">
-                <table className="w-full text-left text-body">
-                  <thead className="bg-muted text-caption text-muted-foreground">
-                    <tr>
-                      <th className="px-3 py-2 font-medium">{d.field}</th>
-                      {hasPair ? <th className="px-3 py-2 font-medium">{d.before}</th> : null}
-                      <th className="px-3 py-2 font-medium">{hasPair ? d.after : d.value}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {lines.map((line) => (
-                      <tr key={line.field} className="border-t border-border align-top">
-                        <td className="px-3 py-2 text-muted-foreground">{line.field}</td>
-                        {hasPair ? <td className="break-all px-3 py-2">{line.before}</td> : null}
-                        <td className="break-all px-3 py-2">{line.after}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                <SimpleTable
+                  density="compact"
+                  columns={[
+                    { key: 'field', label: d.field },
+                    ...(hasPair ? [{ key: 'before', label: d.before }] : []),
+                    { key: 'after', label: hasPair ? d.after : d.value },
+                  ]}
+                >
+                  {lines.map((line) => (
+                    <TableRow key={line.field} className="align-top">
+                      <TableCell className="whitespace-normal text-muted-foreground">
+                        {line.field}
+                      </TableCell>
+                      {hasPair ? (
+                        <TableCell className="whitespace-normal break-all">{line.before}</TableCell>
+                      ) : null}
+                      <TableCell className="whitespace-normal break-all">{line.after}</TableCell>
+                    </TableRow>
+                  ))}
+                </SimpleTable>
               </div>
             ) : (
               <p className="text-body text-muted-foreground">{d.nothing}</p>

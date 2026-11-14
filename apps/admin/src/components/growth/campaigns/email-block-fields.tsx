@@ -112,12 +112,11 @@ export default function EmailBlockFields({ block, onChange }: EmailBlockFieldsPr
           <Field>
             <FieldLabel>{copy.align}</FieldLabel>
             <ToggleGroup
+              variant="segmented"
               value={[block.align]}
               onValueChange={(v) =>
                 v[0] && onChange({ ...block, align: v[0] as 'left' | 'center' })
               }
-              variant="outline"
-              spacing={0}
             >
               <ToggleGroupItem value="left">{copy.alignLeft}</ToggleGroupItem>
               <ToggleGroupItem value="center">{copy.alignCenter}</ToggleGroupItem>

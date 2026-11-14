@@ -26,10 +26,9 @@ export default function BooleanSection({ group }: BooleanSectionProps) {
 
   return (
     <ToggleGroup
+      variant="segmented"
       value={[current]}
       onValueChange={handleChange}
-      variant="outline"
-      spacing={0}
       aria-label={group.label}
       className="w-full"
     >

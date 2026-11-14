@@ -59,10 +59,9 @@ export default function BuilderProductsDialog({
         <Field>
           <FieldLabel>{copy.columns}</FieldLabel>
           <ToggleGroup
+            variant="segmented"
             value={[String(perRow)]}
             onValueChange={(v) => v[0] && setColumns(Number(v[0]) as 1 | 2 | 3)}
-            variant="outline"
-            size="sm"
           >
             {COLUMNS.map((c) => (
               <ToggleGroupItem key={c} value={c}>

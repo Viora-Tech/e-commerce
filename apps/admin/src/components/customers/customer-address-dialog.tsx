@@ -151,11 +151,10 @@ export default function CustomerAddressDialog({
           <Field>
             <FieldLabel id="customer-address-role-label">{d.role.label}</FieldLabel>
             <ToggleGroup
+              variant="segmented"
               aria-labelledby="customer-address-role-label"
               value={draft.role ? [draft.role] : []}
               onValueChange={handleRole}
-              variant="outline"
-              spacing={0}
               className="w-full"
             >
               {ADDRESS_ROLES.map((r) => (

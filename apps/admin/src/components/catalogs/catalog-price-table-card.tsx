@@ -9,6 +9,7 @@ import DataCard from '@/components/layout/data-card'
 import EmptyState from '@/components/layout/empty-state'
 import PillTabs from '@/components/layout/pill-tabs'
 import ProductThumb from '@/components/products/product-thumb'
+import SimpleTable from '@/components/table/simple-table'
 import { catalogsContent } from '@/data/catalogs'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -155,72 +156,76 @@ export default function CatalogPriceTableCard({
           />
         ) : (
           <div className="overflow-x-auto rounded-lg border border-border">
-            <table className="w-full text-body">
-              <thead className="bg-muted/50 text-caption text-muted-foreground">
-                <tr>
-                  <th className="px-3 py-2 text-left font-medium">{copy.product}</th>
-                  <th className="w-32 px-3 py-2 text-right font-medium">{copy.basePrice}</th>
-                  {tab === 'included' ? (
-                    <th className="w-40 px-3 py-2 text-right font-medium">{copy.catalogPrice}</th>
-                  ) : null}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {rows.flatMap((p) =>
-                  p.variants.map((v, i) => {
-                    const sub = variantName(v.title, p.variants.length)
-                    const label = sub ? `${p.title} · ${sub}` : p.title
-                    const fixed = prices.find((x) => x.variantId === v.variantId)?.amount ?? ''
-                    return (
-                      <tr key={v.variantId}>
-                        <td className="px-3 py-2">
-                          <span className="flex min-w-0 items-center gap-3">
-                            {i === 0 ? (
-                              <ProductThumb url={p.imageUrl} />
-                            ) : (
-                              <span aria-hidden="true" className="w-8 shrink-0" />
-                            )}
-                            <span className="flex min-w-0 flex-col">
-                              <span className={i === 0 ? 'truncate text-ink-strong' : 'sr-only'}>
-                                {p.title}
-                              </span>
-                              {sub ? (
-                                <span className="truncate text-caption text-muted-foreground">
-                                  {sub}
-                                </span>
-                              ) : null}
+            <SimpleTable
+              columns={[
+                { key: 'product', label: copy.product },
+                { key: 'base', label: copy.basePrice, align: 'end', className: 'w-32' },
+                ...(tab === 'included'
+                  ? [
+                      {
+                        key: 'catalog',
+                        label: copy.catalogPrice,
+                        align: 'end' as const,
+                        className: 'w-40',
+                      },
+                    ]
+                  : []),
+              ]}
+            >
+              {rows.flatMap((p) =>
+                p.variants.map((v, i) => {
+                  const sub = variantName(v.title, p.variants.length)
+                  const label = sub ? `${p.title} · ${sub}` : p.title
+                  const fixed = prices.find((x) => x.variantId === v.variantId)?.amount ?? ''
+                  return (
+                    <tr key={v.variantId}>
+                      <td className="px-3 py-2">
+                        <span className="flex min-w-0 items-center gap-3">
+                          {i === 0 ? (
+                            <ProductThumb url={p.imageUrl} />
+                          ) : (
+                            <span aria-hidden="true" className="w-8 shrink-0" />
+                          )}
+                          <span className="flex min-w-0 flex-col">
+                            <span className={i === 0 ? 'truncate text-ink-strong' : 'sr-only'}>
+                              {p.title}
                             </span>
+                            {sub ? (
+                              <span className="truncate text-caption text-muted-foreground">
+                                {sub}
+                              </span>
+                            ) : null}
                           </span>
+                        </span>
+                      </td>
+                      <td className="px-3 py-2 text-right tabular-nums text-muted-foreground">
+                        {v.pricePaise === null ? copy.noPrice : fmt.money(v.pricePaise)}
+                      </td>
+                      {tab === 'included' ? (
+                        <td className="px-3 py-2 text-right tabular-nums">
+                          {editable ? (
+                            <Input
+                              inputMode="decimal"
+                              aria-label={`${copy.catalogPrice}: ${label}`}
+                              placeholder={copy.auto}
+                              title={copy.autoHelp}
+                              value={fixed}
+                              disabled={disabled}
+                              onChange={(e) => handleAmount(v.variantId, label, e.target.value)}
+                              className="ml-auto w-32 text-right"
+                            />
+                          ) : v.pricePaise === null ? (
+                            copy.noPrice
+                          ) : (
+                            fmt.money(adjusted(v.pricePaise))
+                          )}
                         </td>
-                        <td className="px-3 py-2 text-right tabular-nums text-muted-foreground">
-                          {v.pricePaise === null ? copy.noPrice : fmt.money(v.pricePaise)}
-                        </td>
-                        {tab === 'included' ? (
-                          <td className="px-3 py-2 text-right tabular-nums">
-                            {editable ? (
-                              <Input
-                                inputMode="decimal"
-                                aria-label={`${copy.catalogPrice}: ${label}`}
-                                placeholder={copy.auto}
-                                title={copy.autoHelp}
-                                value={fixed}
-                                disabled={disabled}
-                                onChange={(e) => handleAmount(v.variantId, label, e.target.value)}
-                                className="ml-auto w-32 text-right"
-                              />
-                            ) : v.pricePaise === null ? (
-                              copy.noPrice
-                            ) : (
-                              fmt.money(adjusted(v.pricePaise))
-                            )}
-                          </td>
-                        ) : null}
-                      </tr>
-                    )
-                  }),
-                )}
-              </tbody>
-            </table>
+                      ) : null}
+                    </tr>
+                  )
+                }),
+              )}
+            </SimpleTable>
           </div>
         )}
         {total > PER_PAGE ? (

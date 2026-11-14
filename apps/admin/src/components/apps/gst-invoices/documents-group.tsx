@@ -11,7 +11,7 @@ import {
 import { Checkbox } from '@commerce/ui/shadcn/checkbox'
 import { Input } from '@commerce/ui/shadcn/input'
 import { Label } from '@commerce/ui/shadcn/label'
-import { Tabs, TabsList, TabsTrigger } from '@commerce/ui/shadcn/tabs'
+import PillTabs from '@/components/layout/pill-tabs'
 import { gstInvoicesContent } from '@/data/gst-invoices'
 import ChoiceField from './choice-field'
 import EditorGroup from './editor-group'
@@ -44,15 +44,13 @@ export default function DocumentsGroup({ settings, onChange, kind, onKind }: Doc
 
   return (
     <EditorGroup title={copy.title} body={copy.body} defaultOpen>
-      <Tabs value={kind} onValueChange={(v) => onKind(v as DocumentKind)}>
-        <TabsList className="w-full flex-wrap">
-          {DOCUMENT_KINDS.map((k) => (
-            <TabsTrigger key={k} value={k}>
-              {copy.kinds[k]}
-            </TabsTrigger>
-          ))}
-        </TabsList>
-      </Tabs>
+      <PillTabs
+        variant="segmented"
+        className="max-w-full flex-wrap"
+        value={kind}
+        onChange={onKind}
+        tabs={DOCUMENT_KINDS.map((k) => ({ value: k, label: copy.kinds[k] }))}
+      />
       <ToggleRow
         id="gst-doc-on"
         label={copy.enabled}

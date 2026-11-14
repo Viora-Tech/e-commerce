@@ -1,12 +1,11 @@
 'use client'
 
 import type { SearchStats } from '@commerce/core/search-console'
+import { TableCell, TableRow } from '@commerce/ui/shadcn/table'
 import type { ReactNode } from 'react'
-import KitTable from '@/components/kit/kit-table'
-import KitTableHead from '@/components/kit/kit-table-head'
-import KitTableRow from '@/components/kit/kit-table-row'
 import DeltaChip from '@/components/layout/delta-chip'
 import EmptyState from '@/components/layout/empty-state'
+import SimpleTable, { type SimpleTableColumn } from '@/components/table/simple-table'
 import { searchConsoleContent } from '@/data/search-console'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { formatRate } from '@/lib/analytics-range'
@@ -29,9 +28,6 @@ type SearchStatsTableProps = {
   withChange?: boolean
 }
 
-const COLUMNS = 'minmax(12rem,1fr) 5rem 6rem 6rem 5.5rem'
-const COLUMNS_WITH_CHANGE = `${COLUMNS} 6rem`
-
 /** A ranked table of Google numbers: clicks, views, click rate, position and the change in clicks. */
 export default function SearchStatsTable({
   first,
@@ -47,34 +43,37 @@ export default function SearchStatsTable({
   if (rows.length === 0) return <EmptyState variant="inline" body={empty} className="my-6" />
 
   // Render logic
-  const columns = withChange ? COLUMNS_WITH_CHANGE : COLUMNS
+  const columns: SimpleTableColumn[] = [
+    { key: 'label', label: first },
+    { key: 'clicks', label: copy.columns.clicks, align: 'end', className: 'w-20' },
+    { key: 'views', label: copy.columns.views, align: 'end', className: 'w-24' },
+    { key: 'ctr', label: copy.columns.ctr, align: 'end', className: 'w-24' },
+    { key: 'position', label: copy.columns.position, align: 'end', className: 'w-22' },
+    ...(withChange
+      ? [{ key: 'change', label: copy.columns.change, align: 'end' as const, className: 'w-24' }]
+      : []),
+  ]
 
   return (
-    <div className="overflow-x-auto">
-      <KitTable className="min-w-[44rem]">
-        <KitTableHead columns={columns}>
-          <span>{first}</span>
-          <span className="justify-end">{copy.columns.clicks}</span>
-          <span className="justify-end">{copy.columns.views}</span>
-          <span className="justify-end">{copy.columns.ctr}</span>
-          <span className="justify-end">{copy.columns.position}</span>
-          {withChange ? <span className="justify-end">{copy.columns.change}</span> : null}
-        </KitTableHead>
-        {rows.map((row) => (
-          <KitTableRow key={row.key} columns={columns}>
-            <div className="flex-col items-start! gap-0.5">{row.label}</div>
-            <span className="justify-end tabular-nums">{fmt.number(row.stats.clicks)}</span>
-            <span className="justify-end tabular-nums">{fmt.number(row.stats.impressions)}</span>
-            <span className="justify-end tabular-nums">{formatRate(row.stats.ctr)}</span>
-            <span className="justify-end tabular-nums">{row.stats.position.toFixed(1)}</span>
-            {withChange ? (
-              <span className="justify-end">
-                <DeltaChip delta={row.change ?? null} />
-              </span>
-            ) : null}
-          </KitTableRow>
-        ))}
-      </KitTable>
-    </div>
+    <SimpleTable className="min-w-[44rem]" columns={columns}>
+      {rows.map((row) => (
+        <TableRow key={row.key}>
+          <TableCell className="whitespace-normal">
+            <div className="flex flex-col items-start gap-0.5">{row.label}</div>
+          </TableCell>
+          <TableCell className="text-right tabular-nums">{fmt.number(row.stats.clicks)}</TableCell>
+          <TableCell className="text-right tabular-nums">
+            {fmt.number(row.stats.impressions)}
+          </TableCell>
+          <TableCell className="text-right tabular-nums">{formatRate(row.stats.ctr)}</TableCell>
+          <TableCell className="text-right tabular-nums">{row.stats.position.toFixed(1)}</TableCell>
+          {withChange ? (
+            <TableCell className="text-right">
+              <DeltaChip delta={row.change ?? null} />
+            </TableCell>
+          ) : null}
+        </TableRow>
+      ))}
+    </SimpleTable>
   )
 }

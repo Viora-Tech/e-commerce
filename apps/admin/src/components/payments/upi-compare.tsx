@@ -8,6 +8,7 @@ import {
   PopoverTitle,
   PopoverTrigger,
 } from '@commerce/ui/shadcn/popover'
+import SimpleTable from '@/components/table/simple-table'
 import { paymentsSetupContent } from '@/data/payments-setup'
 import { useCopy } from '@/hooks/use-copy'
 
@@ -28,26 +29,25 @@ export default function UpiCompare() {
         <PopoverHeader>
           <PopoverTitle>{copy.title}</PopoverTitle>
         </PopoverHeader>
-        <table className="w-full text-caption">
-          <thead>
-            <tr className="text-left text-muted-foreground">
-              <th className="py-1 pr-2 font-medium" />
-              <th className="py-1 pr-2 font-medium">{copy.autoHeading}</th>
-              <th className="py-1 font-medium">{copy.manualHeading}</th>
+        <SimpleTable
+          density="compact"
+          className="text-caption"
+          columns={[
+            { key: 'what', label: <span className="sr-only">{copy.title}</span> },
+            { key: 'auto', label: copy.autoHeading },
+            { key: 'manual', label: copy.manualHeading },
+          ]}
+        >
+          {copy.rows.map((r) => (
+            <tr key={r.label} className="border-t border-border align-top">
+              <th scope="row" className="py-1.5 pr-2 text-left font-medium text-foreground">
+                {r.label}
+              </th>
+              <td className="py-1.5 pr-2 text-muted-foreground">{r.auto}</td>
+              <td className="py-1.5 text-muted-foreground">{r.manual}</td>
             </tr>
-          </thead>
-          <tbody>
-            {copy.rows.map((r) => (
-              <tr key={r.label} className="border-t border-border align-top">
-                <th scope="row" className="py-1.5 pr-2 text-left font-medium text-foreground">
-                  {r.label}
-                </th>
-                <td className="py-1.5 pr-2 text-muted-foreground">{r.auto}</td>
-                <td className="py-1.5 text-muted-foreground">{r.manual}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+          ))}
+        </SimpleTable>
       </PopoverContent>
     </Popover>
   )

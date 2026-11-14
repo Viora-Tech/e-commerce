@@ -43,6 +43,8 @@ function ToggleGroup({
       style={{ '--gap': spacing } as React.CSSProperties}
       className={cn(
         'group/toggle-group flex w-fit flex-row items-center gap-[--spacing(var(--gap))] rounded-lg data-[size=sm]:rounded-[min(var(--radius-md),10px)] data-vertical:flex-col data-vertical:items-stretch',
+        // `segmented`: the PillTabs segmented track, a muted rounded bar the pressed option sits in.
+        'data-[variant=segmented]:gap-0.5 data-[variant=segmented]:rounded-[0.6875rem] data-[variant=segmented]:bg-muted data-[variant=segmented]:p-[0.1875rem]',
         className,
       )}
       {...props}

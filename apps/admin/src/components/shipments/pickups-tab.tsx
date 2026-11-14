@@ -6,14 +6,7 @@ import { Checkbox } from '@commerce/ui/shadcn/checkbox'
 import { Field, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@commerce/ui/shadcn/table'
+import { Table, TableBody, TableCell, TableRow } from '@commerce/ui/shadcn/table'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import CopyButton from '@/components/fields/copy-button'
@@ -21,6 +14,7 @@ import DateField from '@/components/fields/date-field'
 import DataCard from '@/components/layout/data-card'
 import EmptyState from '@/components/layout/empty-state'
 import InlineState from '@/components/states/inline-state'
+import SimpleTable from '@/components/table/simple-table'
 import TableEmptyRow from '@/components/table/table-empty-row'
 import TableSkeletonRows from '@/components/table/table-skeleton-rows'
 import { shipmentActionsContent, shipmentsContent } from '@/data/shipments'
@@ -236,53 +230,50 @@ export default function PickupsTab({ provider }: PickupsTabProps = {}) {
       </DataCard>
 
       <DataCard title={copy.listHeading} flush>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>{copy.columns.date}</TableHead>
-              <TableHead>{copy.columns.window}</TableHead>
-              <TableHead>{copy.columns.packages}</TableHead>
-              <TableHead>{copy.columns.status}</TableHead>
-              <TableHead>{copy.columns.reference}</TableHead>
-              <TableHead />
+        <SimpleTable
+          columns={[
+            { key: 'date', label: copy.columns.date },
+            { key: 'window', label: copy.columns.window },
+            { key: 'packages', label: copy.columns.packages },
+            { key: 'status', label: copy.columns.status },
+            { key: 'reference', label: copy.columns.reference },
+            { key: 'actions', label: null },
+          ]}
+        >
+          {loading ? (
+            <TableSkeletonRows columns={6} rows={3} label={states.loading} />
+          ) : pickups.length === 0 ? (
+            <TableEmptyRow colSpan={6} message={copy.empty} />
+          ) : null}
+          {pickups.map((p) => (
+            <TableRow key={p.id}>
+              <TableCell>{p.scheduledFor}</TableCell>
+              <TableCell>
+                {p.timeFrom}
+                {p.timeTo ? `–${p.timeTo}` : ''}
+              </TableCell>
+              <TableCell>{p.expectedPackageCount}</TableCell>
+              <TableCell>
+                <span className="capitalize">{p.status}</span>
+                {p.status === 'failed' && p.error ? (
+                  <span className="block max-w-80 text-caption whitespace-normal text-destructive">
+                    {p.error}
+                  </span>
+                ) : null}
+              </TableCell>
+              <TableCell className="font-mono text-caption">{p.providerRef ?? '–'}</TableCell>
+              <TableCell className="text-right">
+                {/* A failed request holds no parcels, so there is nothing to manifest. */}
+                {p.status === 'failed' ? null : (
+                  <Button variant="outline" size="sm" onClick={() => handleManifest(p.id)}>
+                    <ClipboardList aria-hidden="true" />
+                    {copy.createManifestFor}
+                  </Button>
+                )}
+              </TableCell>
             </TableRow>
-          </TableHeader>
-          <TableBody>
-            {loading ? (
-              <TableSkeletonRows columns={6} rows={3} label={states.loading} />
-            ) : pickups.length === 0 ? (
-              <TableEmptyRow colSpan={6} message={copy.empty} />
-            ) : null}
-            {pickups.map((p) => (
-              <TableRow key={p.id}>
-                <TableCell>{p.scheduledFor}</TableCell>
-                <TableCell>
-                  {p.timeFrom}
-                  {p.timeTo ? `–${p.timeTo}` : ''}
-                </TableCell>
-                <TableCell>{p.expectedPackageCount}</TableCell>
-                <TableCell>
-                  <span className="capitalize">{p.status}</span>
-                  {p.status === 'failed' && p.error ? (
-                    <span className="block max-w-80 text-caption whitespace-normal text-destructive">
-                      {p.error}
-                    </span>
-                  ) : null}
-                </TableCell>
-                <TableCell className="font-mono text-caption">{p.providerRef ?? '–'}</TableCell>
-                <TableCell className="text-right">
-                  {/* A failed request holds no parcels, so there is nothing to manifest. */}
-                  {p.status === 'failed' ? null : (
-                    <Button variant="outline" size="sm" onClick={() => handleManifest(p.id)}>
-                      <ClipboardList aria-hidden="true" />
-                      {copy.createManifestFor}
-                    </Button>
-                  )}
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+          ))}
+        </SimpleTable>
       </DataCard>
 
       <DataCard title={copy.manifestsHeading} flush>

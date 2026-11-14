@@ -3,8 +3,8 @@
 import type { McpClientId } from '@commerce/core/api-access'
 import { ExternalLink, InfoIcon, Plus, TriangleAlert } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import { Tabs, TabsList, TabsTrigger } from '@commerce/ui/shadcn/tabs'
 import { type ReactNode, useState } from 'react'
+import PillTabs from '@/components/layout/pill-tabs'
 import SettingsCard from '@/components/settings/settings-card'
 import { mcpContent } from '@/data/mcp'
 import { useCopy } from '@/hooks/use-copy'
@@ -41,8 +41,6 @@ const WEB_APPS: GuideId[] = ['claude', 'chatgpt']
 
 /** Apps that can send a token header when they cannot open a sign-in page. */
 const TOKEN_APPS: GuideId[] = ['claudeCode', 'cursor', 'vscode', 'other']
-
-const isGuide = (v: unknown): v is GuideId => GUIDES.some((g) => g.id === v)
 
 /**
  * "Connect an AI app": one tab per app with its exact steps, the real server URL, and commands
@@ -87,18 +85,20 @@ export default function McpConnectGuide({ serverUrl, onCreateToken }: McpConnect
 
   return (
     <SettingsCard title={copy.guide.heading} description={copy.guide.help} bodyClassName="gap-5">
-      <Tabs value={active} onValueChange={(v) => (isGuide(v) ? setActive(v) : null)}>
-        <div className="-mx-1 overflow-x-auto px-1 pb-1">
-          <TabsList variant="line" className="h-auto w-max gap-1">
-            {GUIDES.map((g) => (
-              <TabsTrigger key={g.id} value={g.id} className="h-9 flex-none gap-2 px-3">
-                <McpClientLogo client={g.logo} className="size-5 rounded-md [&_svg]:size-3" />
-                {copy.guide.tabs[g.id]}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-        </div>
-      </Tabs>
+      <PillTabs
+        className="no-scrollbar max-w-full overflow-x-auto"
+        value={active}
+        onChange={setActive}
+        tabs={GUIDES.map((g) => ({
+          value: g.id,
+          label: (
+            <>
+              <McpClientLogo client={g.logo} className="size-5 rounded-md [&_svg]:size-3" />
+              {copy.guide.tabs[g.id]}
+            </>
+          ),
+        }))}
+      />
 
       {privateUrl ? (
         <p className="flex items-start gap-2 rounded-lg bg-warning-soft px-3 py-2 text-caption text-warning-foreground dark:text-warning">

@@ -3,11 +3,11 @@
 import type { QuestionStatus } from '@commerce/plugin-reviews/schema'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Input } from '@commerce/ui/shadcn/input'
-import { Tabs, TabsList, TabsTrigger } from '@commerce/ui/shadcn/tabs'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import DataCardSkeleton from '@/components/layout/data-card-skeleton'
 import PageHeader from '@/components/layout/page-header'
+import PillTabs from '@/components/layout/pill-tabs'
 import { reviewToolsContent } from '@/data/review-tools'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -74,15 +74,12 @@ export default function QuestionsPage() {
         back={{ label: copy.back, href: routes.apps.page('reviews') }}
       />
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <Tabs value={tab} onValueChange={handleTab}>
-          <TabsList>
-            {TABS.map((t) => (
-              <TabsTrigger key={t} value={t}>
-                {copy.tabs[t]} ({counts[t]})
-              </TabsTrigger>
-            ))}
-          </TabsList>
-        </Tabs>
+        <PillTabs
+          variant="segmented"
+          value={tab}
+          onChange={handleTab}
+          tabs={TABS.map((t) => ({ value: t, label: copy.tabs[t], count: counts[t] }))}
+        />
         <Input
           type="search"
           className="sm:max-w-xs"

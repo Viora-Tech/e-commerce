@@ -3,11 +3,10 @@
 import { discoveryRate, type SearchQueryStat } from '@commerce/core/discovery'
 import { SEARCH_ID } from '@commerce/plugin-search'
 import { Button } from '@commerce/ui/shadcn/button'
+import { TableCell, TableRow } from '@commerce/ui/shadcn/table'
 import Link from 'next/link'
-import KitTable from '@/components/kit/kit-table'
-import KitTableHead from '@/components/kit/kit-table-head'
-import KitTableRow from '@/components/kit/kit-table-row'
 import EmptyState from '@/components/layout/empty-state'
+import SimpleTable from '@/components/table/simple-table'
 import { searchDiscoveryContent } from '@/data/search-discovery'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { formatRate } from '@/lib/analytics-range'
@@ -21,8 +20,6 @@ type SearchQueryTableProps = {
   /** The fixes offered beside each search. */
   shortcuts: Shortcut[]
 }
-
-const COLUMNS = 'minmax(10rem,1fr) 5.5rem 5rem 6rem minmax(12rem,auto)'
 
 /** Where a shortcut opens: Synonyms with a new line, or Boosts with the pin dialog, for this search. */
 export function shortcutHref(shortcut: Shortcut, query: string): string {
@@ -46,26 +43,30 @@ export default function SearchQueryTable({ rows, empty, shortcuts }: SearchQuery
   const labels: Record<Shortcut, string> = { synonym: o.addSynonym, pin: o.pinProduct }
 
   return (
-    <div className="overflow-x-auto">
-      <KitTable className="min-w-[44rem]">
-        <KitTableHead columns={COLUMNS}>
-          <span>{o.columns.search}</span>
-          <span className="justify-end">{o.columns.searches}</span>
-          <span className="justify-end">{o.columns.results}</span>
-          <span className="justify-end">{o.columns.clickRate}</span>
-          <span className="justify-end">{o.columns.action}</span>
-        </KitTableHead>
-        {rows.map((row) => (
-          <KitTableRow key={row.query} columns={COLUMNS}>
-            <span className="truncate font-medium" title={row.query}>
+    <SimpleTable
+      className="min-w-[44rem]"
+      columns={[
+        { key: 'search', label: o.columns.search },
+        { key: 'searches', label: o.columns.searches, align: 'end', className: 'w-22' },
+        { key: 'results', label: o.columns.results, align: 'end', className: 'w-20' },
+        { key: 'rate', label: o.columns.clickRate, align: 'end', className: 'w-24' },
+        { key: 'action', label: o.columns.action, align: 'end' },
+      ]}
+    >
+      {rows.map((row) => (
+        <TableRow key={row.query}>
+          <TableCell className="max-w-0 min-w-40 font-medium">
+            <span className="block truncate" title={row.query}>
               {row.query}
             </span>
-            <span className="justify-end tabular-nums">{fmt.number(row.searches)}</span>
-            <span className="justify-end tabular-nums">{fmt.number(row.results)}</span>
-            <span className="justify-end tabular-nums">
-              {formatRate(discoveryRate(row.clickedSessions, row.sessions))}
-            </span>
-            <span className="justify-end gap-2">
+          </TableCell>
+          <TableCell className="text-right tabular-nums">{fmt.number(row.searches)}</TableCell>
+          <TableCell className="text-right tabular-nums">{fmt.number(row.results)}</TableCell>
+          <TableCell className="text-right tabular-nums">
+            {formatRate(discoveryRate(row.clickedSessions, row.sessions))}
+          </TableCell>
+          <TableCell>
+            <span className="flex justify-end gap-2">
               {shortcuts.map((s) => (
                 <Button
                   key={s}
@@ -78,9 +79,9 @@ export default function SearchQueryTable({ rows, empty, shortcuts }: SearchQuery
                 </Button>
               ))}
             </span>
-          </KitTableRow>
-        ))}
-      </KitTable>
-    </div>
+          </TableCell>
+        </TableRow>
+      ))}
+    </SimpleTable>
   )
 }

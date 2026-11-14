@@ -1,5 +1,7 @@
 import type { AnalyticsOverview } from '@commerce/api'
+import { TableCell, TableRow } from '@commerce/ui/shadcn/table'
 import DataCard from '@/components/layout/data-card'
+import SimpleTable from '@/components/table/simple-table'
 import { formatPaiseWhole } from '@/lib/money'
 
 type SalesBreakdownCardProps = {
@@ -25,33 +27,30 @@ export default function SalesBreakdownCard({ copy, breakdown }: SalesBreakdownCa
   return (
     <DataCard title={copy.title}>
       {/* Compact: the figures sit by their labels, both columns headed (audit #49). */}
-      <table className="w-full max-w-2xl text-kit-body tabular-nums">
-        <thead>
-          <tr className="text-kit-mini text-muted-foreground">
-            <th className="pb-2 text-left font-normal">
-              <span className="sr-only">{copy.title}</span>
-            </th>
-            <th className="w-36 pb-2 text-right font-normal">{copy.previous}</th>
-            <th className="w-36 pb-2 text-right font-normal">{copy.current}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {breakdown.current.map((line) => (
-            <tr
-              key={line.key}
-              className={line.subtotal ? 'border-t border-border font-medium text-foreground' : ''}
-            >
-              <td className={`py-2 ${line.key === 'tax' ? 'text-muted-foreground' : ''}`}>
-                {copy.lines[line.key]}
-              </td>
-              <td className="py-2 text-right text-muted-foreground">
-                {money(before.get(line.key) ?? 0)}
-              </td>
-              <td className="py-2 text-right">{money(line.paise)}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <SimpleTable
+        density="compact"
+        className="max-w-2xl tabular-nums"
+        columns={[
+          { key: 'line', label: <span className="sr-only">{copy.title}</span> },
+          { key: 'previous', label: copy.previous, align: 'end', className: 'w-36' },
+          { key: 'current', label: copy.current, align: 'end', className: 'w-36' },
+        ]}
+      >
+        {breakdown.current.map((line) => (
+          <TableRow
+            key={line.key}
+            className={line.subtotal ? 'font-medium text-foreground' : undefined}
+          >
+            <TableCell className={line.key === 'tax' ? 'text-muted-foreground' : undefined}>
+              {copy.lines[line.key]}
+            </TableCell>
+            <TableCell className="text-right text-muted-foreground">
+              {money(before.get(line.key) ?? 0)}
+            </TableCell>
+            <TableCell className="text-right">{money(line.paise)}</TableCell>
+          </TableRow>
+        ))}
+      </SimpleTable>
     </DataCard>
   )
 }

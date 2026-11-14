@@ -11,11 +11,11 @@ import { Button } from '@commerce/ui/shadcn/button'
 import { Dialog, DialogDescription, DialogTitle } from '@commerce/ui/shadcn/dialog'
 import { FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
-import { Tabs, TabsList, TabsTrigger } from '@commerce/ui/shadcn/tabs'
 import { useState } from 'react'
 import DialogContent from '@/components/layout/dialog-content'
 import DialogFooter from '@/components/layout/dialog-footer'
 import DialogHeader from '@/components/layout/dialog-header'
+import PillTabs from '@/components/layout/pill-tabs'
 import { checkoutRulesContent } from '@/data/checkout-rules'
 import { useCopy } from '@/hooks/use-copy'
 
@@ -75,12 +75,16 @@ export default function CheckoutTextDialog({
           <DialogTitle>{copy.dialogTitle}</DialogTitle>
           <DialogDescription>{copy.description}</DialogDescription>
         </DialogHeader>
-        <Tabs value={lang} onValueChange={(v) => setLang(v === 'hi' ? 'hi' : 'en')}>
-          <TabsList>
-            <TabsTrigger value="en">{copy.languages.en}</TabsTrigger>
-            <TabsTrigger value="hi">{copy.languages.hi}</TabsTrigger>
-          </TabsList>
-        </Tabs>
+        <PillTabs
+          variant="segmented"
+          className="self-start"
+          value={lang}
+          onChange={setLang}
+          tabs={[
+            { value: 'en' as const, label: copy.languages.en },
+            { value: 'hi' as const, label: copy.languages.hi },
+          ]}
+        />
         <div className="flex max-h-[55vh] flex-col gap-5 overflow-y-auto pr-1">
           {GROUPS.map((group) => (
             <section key={group} className="flex flex-col gap-3">
