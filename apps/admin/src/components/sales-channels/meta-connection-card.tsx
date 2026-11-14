@@ -81,6 +81,7 @@ export default function MetaConnectionCard({ channel, surfaces }: MetaConnection
                   <Button
                     variant="outline"
                     size="sm"
+                    loading={busy === s.channel}
                     disabled={busy !== null}
                     onClick={() => handleTurnOn(s.channel)}
                   >

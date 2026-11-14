@@ -14,6 +14,7 @@ export default [
     moveUp: 'ऊपर करें',
     moveDown: 'नीचे करें',
     listTitle: 'आपके जवाब',
+    loadFailed: 'आपके जवाब लोड नहीं हो सके',
     empty: 'अभी कोई जवाब नहीं। वे सवाल जोड़ें जो ख़रीदार रोज़ पूछते हैं, ताकि AI वैसे ही जवाब दे जैसे आप देते।',
     columns: { title: 'सवाल', answer: 'जवाब', published: 'पब्लिश' },
     publish: (title) => `"${title}" पब्लिश करें`,

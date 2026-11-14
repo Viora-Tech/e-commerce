@@ -2,17 +2,17 @@
 
 import { permissions } from '@commerce/core/permissions'
 import { Button } from '@commerce/ui/shadcn/button'
-import { Skeleton } from '@commerce/ui/shadcn/skeleton'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { toast } from 'sonner'
 import EmptyState from '@/components/layout/empty-state'
-import SettingsTable from '@/components/settings/settings-table'
 import SettingsTableCell from '@/components/settings/settings-table-cell'
 import SettingsTableRow from '@/components/settings/settings-table-row'
 import { inboxContent } from '@/data/inbox'
 import { useCopy, useFormat } from '@/hooks/use-copy'
+import { useLoad } from '@/hooks/use-load'
 import { usePermissions } from '@/hooks/use-permissions'
 import { api } from '@/lib/api-client'
+import InboxTable from './inbox-table'
 
 type Block = Awaited<ReturnType<typeof api.inbox.blocks.list>>[number]
 
@@ -22,23 +22,13 @@ export default function BlockedSenders() {
   const copy = useCopy(inboxContent)
   const fmt = useFormat()
   const { hasPermission } = usePermissions()
-  const [blocks, setBlocks] = useState<Block[] | null>(null)
   const [busy, setBusy] = useState<string | null>(null)
-
-  useEffect(() => {
-    let live = true
-    api.inbox.blocks
-      .list()
-      .then((rows) => {
-        if (live) setBlocks(rows)
-      })
-      .catch(() => {
-        if (live) setBlocks([])
-      })
-    return () => {
-      live = false
-    }
-  }, [])
+  const {
+    data: blocks,
+    setData: setBlocks,
+    failed,
+    retry,
+  } = useLoad<Block[]>(() => api.inbox.blocks.list())
 
   // Event handlers
   const handleUnblock = async (id: string) => {
@@ -54,15 +44,12 @@ export default function BlockedSenders() {
     }
   }
 
-  // Early returns
-  if (!blocks) return <Skeleton className="h-32 w-full rounded-2xl" />
-
   // Render logic
   const b = copy.blocks
   const canReply = hasPermission(permissions.INBOX_REPLY)
 
   return (
-    <SettingsTable
+    <InboxTable
       heading={b.title}
       description={b.description}
       columns={[
@@ -71,9 +58,13 @@ export default function BlockedSenders() {
         { label: b.columns.until, className: 'hidden md:table-cell' },
       ]}
       actions={canReply}
-      after={blocks.length === 0 ? <EmptyState heading={b.empty} /> : undefined}
+      loading={!blocks}
+      failed={failed}
+      failedHeading={b.loadFailed}
+      onRetry={retry}
+      after={blocks?.length === 0 ? <EmptyState heading={b.empty} /> : undefined}
     >
-      {blocks.map((block) => (
+      {blocks?.map((block) => (
         <SettingsTableRow key={block.id}>
           <SettingsTableCell>
             <span className="flex flex-col">
@@ -104,6 +95,6 @@ export default function BlockedSenders() {
           ) : null}
         </SettingsTableRow>
       ))}
-    </SettingsTable>
+    </InboxTable>
   )
 }

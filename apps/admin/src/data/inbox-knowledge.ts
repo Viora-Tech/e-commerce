@@ -11,6 +11,7 @@ export const inboxKnowledgeContent = {
   moveUp: 'Move up',
   moveDown: 'Move down',
   listTitle: 'Your answers',
+  loadFailed: 'Could not load your answers',
   empty:
     'No answers yet. Add the questions shoppers ask every day, so the AI can answer them the way you would.',
   columns: { title: 'Question', answer: 'Answer', published: 'Published' },

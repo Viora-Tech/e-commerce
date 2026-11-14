@@ -131,8 +131,7 @@ export default function AgenticOverviewPage({ data }: AgenticOverviewPageProps) 
       />
       {!anyActive ? (
         <EmptyState
-          variant="section"
-          className="rounded-lg border border-border bg-card bg-[image:var(--card-surface)] shadow-[var(--shadow-card)]"
+          variant="page"
           icon={AgenticSales}
           heading={copy.emptyHeading}
           body={copy.emptyBody}

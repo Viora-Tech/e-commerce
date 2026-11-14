@@ -38,7 +38,7 @@ export default function AgentCard({
   const action = channelAction(state)
   const visible = isLive(state) ? (state.sync.sent ?? state.sync.total) : null
   return (
-    <article className="flex flex-col gap-4 rounded-lg border border-border bg-card bg-[image:var(--card-surface)] p-4 shadow-[var(--shadow-card)]">
+    <article className="flex flex-col gap-4 rounded-lg border border-border surface-card p-4">
       <div className="flex items-start justify-between gap-2">
         <ChannelLogo channel={agent} />
         <ChannelStatusChip status={agentChipStatus(state)} />

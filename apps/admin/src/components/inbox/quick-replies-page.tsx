@@ -3,20 +3,19 @@
 import { permissions } from '@commerce/core/permissions'
 import { ArrowDown, ArrowUp, Pencil, Plus, Trash2 } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { toast } from 'sonner'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
 import EmptyState from '@/components/layout/empty-state'
 import PageHeader from '@/components/layout/page-header'
-import SectionPageSkeleton from '@/components/layout/section-page-skeleton'
-import SettingsTable from '@/components/settings/settings-table'
 import SettingsTableCell from '@/components/settings/settings-table-cell'
 import SettingsTableRow from '@/components/settings/settings-table-row'
-import InlineState from '@/components/states/inline-state'
 import { inboxContent } from '@/data/inbox'
 import { useCopy } from '@/hooks/use-copy'
+import { useLoad } from '@/hooks/use-load'
 import { usePermissions } from '@/hooks/use-permissions'
 import { api } from '@/lib/api-client'
+import InboxTable from './inbox-table'
 import QuickReplyDialog, { type QuickReply } from './quick-reply-dialog'
 
 /** The dialog open: a new reply, or the one being changed. */
@@ -27,32 +26,16 @@ export default function QuickRepliesPage() {
   // Hooks
   const copy = useCopy(inboxContent)
   const { hasPermission } = usePermissions()
-  const [replies, setReplies] = useState<QuickReply[] | null>(null)
   const [editing, setEditing] = useState<Editing>(null)
   const [deleting, setDeleting] = useState<QuickReply | null>(null)
-  const [reloadKey, setReloadKey] = useState(0)
-  const [failed, setFailed] = useState(false)
-
-  useEffect(() => {
-    // reloadKey re-runs the fetch after a save, move or delete.
-    if (reloadKey < 0) return
-    let live = true
-    setFailed(false)
-    api.inbox.quickReplies
-      .list()
-      .then((rows) => {
-        if (live) setReplies(rows)
-      })
-      .catch(() => {
-        if (live) setFailed(true)
-      })
-    return () => {
-      live = false
-    }
-  }, [reloadKey])
+  const {
+    data: replies,
+    setData: setReplies,
+    failed,
+    retry: reload,
+  } = useLoad(() => api.inbox.quickReplies.list())
 
   // Helpers
-  const reload = () => setReloadKey((k) => k + 1)
   const fail = (err: unknown) =>
     toast.error(err instanceof Error && err.message ? err.message : copy.failed)
 
@@ -99,76 +82,74 @@ export default function QuickRepliesPage() {
   ) : null
 
   return (
-    <div className="flex flex-col gap-6">
+    <>
       <PageHeader title={q.title} subtitle={q.subtitle} actions={addButton} />
-      {failed && !replies ? (
-        <InlineState kind="error" onRetry={() => setReloadKey((k) => k + 1)} />
-      ) : !replies ? (
-        <SectionPageSkeleton header={false} cards={1} />
-      ) : (
-        <SettingsTable
-          heading={q.listTitle}
-          columns={[
-            { label: q.columns.shortcut },
-            { label: q.columns.title },
-            { label: q.columns.body, className: 'hidden md:table-cell' },
-          ]}
-          actions={canManage}
-          after={replies.length === 0 ? <EmptyState heading={q.empty} /> : undefined}
-        >
-          {replies.map((r, i) => (
-            <SettingsTableRow key={r.id}>
-              <SettingsTableCell>
-                <code className="text-body font-mono">/{r.shortcut}</code>
+      <InboxTable
+        heading={q.listTitle}
+        columns={[
+          { label: q.columns.shortcut },
+          { label: q.columns.title },
+          { label: q.columns.body, className: 'hidden md:table-cell' },
+        ]}
+        actions={canManage}
+        loading={!replies}
+        failed={failed}
+        failedHeading={q.loadFailed}
+        onRetry={reload}
+        after={replies?.length === 0 ? <EmptyState heading={q.empty} /> : undefined}
+      >
+        {replies?.map((r, i) => (
+          <SettingsTableRow key={r.id}>
+            <SettingsTableCell>
+              <code className="text-body font-mono">/{r.shortcut}</code>
+            </SettingsTableCell>
+            <SettingsTableCell>{r.title}</SettingsTableCell>
+            <SettingsTableCell className="hidden max-w-md truncate md:table-cell">
+              {r.body}
+            </SettingsTableCell>
+            {canManage ? (
+              <SettingsTableCell className="text-right">
+                <span className="inline-flex gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    aria-label={q.moveUp}
+                    disabled={i === 0}
+                    onClick={() => handleMove(i, -1)}
+                  >
+                    <ArrowUp className="size-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    aria-label={q.moveDown}
+                    disabled={i === (replies?.length ?? 0) - 1}
+                    onClick={() => handleMove(i, 1)}
+                  >
+                    <ArrowDown className="size-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    aria-label={q.edit}
+                    onClick={() => setEditing({ reply: r })}
+                  >
+                    <Pencil className="size-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    aria-label={q.delete}
+                    onClick={() => setDeleting(r)}
+                  >
+                    <Trash2 className="size-4" />
+                  </Button>
+                </span>
               </SettingsTableCell>
-              <SettingsTableCell>{r.title}</SettingsTableCell>
-              <SettingsTableCell className="hidden max-w-md truncate md:table-cell">
-                {r.body}
-              </SettingsTableCell>
-              {canManage ? (
-                <SettingsTableCell className="text-right">
-                  <span className="inline-flex gap-1">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      aria-label={q.moveUp}
-                      disabled={i === 0}
-                      onClick={() => handleMove(i, -1)}
-                    >
-                      <ArrowUp className="size-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      aria-label={q.moveDown}
-                      disabled={i === replies.length - 1}
-                      onClick={() => handleMove(i, 1)}
-                    >
-                      <ArrowDown className="size-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      aria-label={q.edit}
-                      onClick={() => setEditing({ reply: r })}
-                    >
-                      <Pencil className="size-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      aria-label={q.delete}
-                      onClick={() => setDeleting(r)}
-                    >
-                      <Trash2 className="size-4" />
-                    </Button>
-                  </span>
-                </SettingsTableCell>
-              ) : null}
-            </SettingsTableRow>
-          ))}
-        </SettingsTable>
-      )}
+            ) : null}
+          </SettingsTableRow>
+        ))}
+      </InboxTable>
       {editing ? (
         <QuickReplyDialog
           reply={editing.reply}
@@ -187,6 +168,6 @@ export default function QuickRepliesPage() {
         tone="destructive"
         onConfirm={handleDelete}
       />
-    </div>
+    </>
   )
 }

@@ -1,7 +1,7 @@
 'use client'
 
+import { Field, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
-import { Label } from '@commerce/ui/shadcn/label'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
@@ -52,8 +52,8 @@ export default function OpenAiFeedDialog({ open, onOpenChange }: OpenAiFeedDialo
       onSubmit={handleSave}
     >
       <div className="flex flex-col gap-4">
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="openai-endpoint">{copy.openai.endpoint}</Label>
+        <Field>
+          <FieldLabel htmlFor="openai-endpoint">{copy.openai.endpoint}</FieldLabel>
           <Input
             id="openai-endpoint"
             type="url"
@@ -62,9 +62,9 @@ export default function OpenAiFeedDialog({ open, onOpenChange }: OpenAiFeedDialo
             onChange={(e) => setEndpoint(e.target.value)}
             autoComplete="off"
           />
-        </div>
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="openai-key">{copy.openai.key}</Label>
+        </Field>
+        <Field>
+          <FieldLabel htmlFor="openai-key">{copy.openai.key}</FieldLabel>
           <Input
             id="openai-key"
             type="password"
@@ -72,7 +72,7 @@ export default function OpenAiFeedDialog({ open, onOpenChange }: OpenAiFeedDialo
             onChange={(e) => setApiKey(e.target.value)}
             autoComplete="off"
           />
-        </div>
+        </Field>
       </div>
     </FormDialog>
   )
