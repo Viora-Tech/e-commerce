@@ -5,6 +5,7 @@ import Link from 'next/link'
 import PageBody from '@/components/layout/page-body'
 import PageHeader from '@/components/layout/page-header'
 import SectionEmpty from '@/components/layout/section-empty'
+import ServerLoadFailed from '@/components/states/server-load-failed'
 import ImportReportPages from '@/components/themes/import-report-pages'
 import ImportReportSections from '@/components/themes/import-report-sections'
 import ImportReportSummary from '@/components/themes/import-report-summary'
@@ -15,10 +16,18 @@ import { themeImportContent } from '@/data/theme-import'
 import { themesContent } from '@/data/themes'
 import { appRouter, call, serverContext } from '@/lib/api'
 import { getCopy } from '@/lib/copy-server'
+import { didFail, loadFailure } from '@/lib/load-failure'
 import { routes } from '@/lib/routes'
 import { storefrontOrigin } from '@/lib/storefront-origin'
 
 type Props = { params: Promise<{ id: string }> }
+
+/** NOT_FOUND (not imported, no such theme) or a malformed id: the page says "not imported". */
+function orMissingOrFailed(error: unknown) {
+  const code = (error as { code?: unknown } | null)?.code
+  if (code === 'NOT_FOUND' || code === 'BAD_REQUEST') return null
+  return loadFailure(error)
+}
 
 export const metadata: Metadata = { title: 'Import report' }
 
@@ -28,9 +37,11 @@ export default async function Page({ params }: Props) {
   const copy = (await getCopy(themeImportContent)).report
   const context = await serverContext()
   const [found, theme] = await Promise.all([
-    call(appRouter.themes.import.report, { id }, { context }).catch(() => null),
-    call(appRouter.themes.get, { id }, { context }).catch(() => null),
+    call(appRouter.themes.import.report, { id }, { context }).catch(orMissingOrFailed),
+    call(appRouter.themes.get, { id }, { context }).catch(orMissingOrFailed),
   ])
+  if (didFail(found)) return <ServerLoadFailed failed={found.failed} heading={copy.loadFailed} />
+  if (didFail(theme)) return <ServerLoadFailed failed={theme.failed} heading={copy.loadFailed} />
   if (!found || !theme) {
     return <SectionEmpty {...themesContent.unavailable} body={copy.notFound} icon={Palette} />
   }

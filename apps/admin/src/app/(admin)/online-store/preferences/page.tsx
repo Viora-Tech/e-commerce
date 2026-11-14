@@ -1,10 +1,10 @@
-import { SlidersHorizontal } from '@commerce/ui/icons'
 import type { Metadata } from 'next'
-import SectionEmpty from '@/components/layout/section-empty'
 import PreferencesForm from '@/components/preferences/preferences-form'
+import ServerLoadFailed from '@/components/states/server-load-failed'
 import { preferencesContent } from '@/data/preferences'
 import { appRouter, call, serverContext } from '@/lib/api'
 import { getSession } from '@/lib/auth'
+import { didFail, loadFailure } from '@/lib/load-failure'
 import { listStores } from '@/lib/shell-data'
 import { storefrontOrigin } from '@/lib/storefront-origin'
 
@@ -13,7 +13,7 @@ export const metadata: Metadata = { title: 'Preferences' }
 export default async function Page() {
   const context = await serverContext()
   const [prefs, session, stores, me] = await Promise.all([
-    call(appRouter.store.getPreferences, undefined, { context }).catch(() => null),
+    call(appRouter.store.getPreferences, undefined, { context }).catch(loadFailure),
     getSession(),
     listStores().catch(() => []),
     call(appRouter.staff.me, {}, { context }).catch(() => null),
@@ -28,7 +28,9 @@ export default async function Page() {
   // A blank home page title falls back to this name on the storefront, so the previews use it too.
   const storeName = stores.find((s) => s.id === activeId)?.name ?? ''
 
-  if (!prefs) return <SectionEmpty {...preferencesContent.unavailable} icon={SlidersHorizontal} />
+  if (didFail(prefs)) {
+    return <ServerLoadFailed failed={prefs.failed} heading={preferencesContent.loadFailed} />
+  }
   return (
     <PreferencesForm
       initial={prefs}

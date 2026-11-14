@@ -1,5 +1,5 @@
 import DetailPageSkeleton from '@/components/layout/detail-page-skeleton'
 
 export default function Loading() {
-  return <DetailPageSkeleton frame="columns" />
+  return <DetailPageSkeleton frame="columns" back={false} />
 }

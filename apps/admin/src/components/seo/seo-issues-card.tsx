@@ -1,11 +1,11 @@
 'use client'
 
 import type { SeoIssue, SeoSeverity } from '@commerce/core'
-import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
 import { useState } from 'react'
 import EmptyState from '@/components/layout/empty-state'
+import PillTabs from '@/components/layout/pill-tabs'
 import StatusChip from '@/components/layout/status-chip'
 import SettingsCard from '@/components/settings/settings-card'
 import { seoReportContent } from '@/data/seo-report'
@@ -65,24 +65,14 @@ export default function SeoIssuesCard({ issues }: SeoIssuesCardProps) {
   return (
     <SettingsCard title={copy.heading} description={copy.body}>
       <div className="flex flex-col gap-3">
-        <div className="flex flex-wrap gap-1.5">
-          {FILTERS.map((f) => (
-            <button
-              key={f}
-              type="button"
-              aria-pressed={filter === f}
-              onClick={() => handleFilter(f)}
-              className={cn(
-                'h-8 rounded-md border px-3 text-body font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-                filter === f
-                  ? 'border-border-strong bg-muted text-foreground'
-                  : 'border-input bg-card text-muted-foreground hover:text-foreground',
-              )}
-            >
-              {copy.filters[f]}
-            </button>
-          ))}
-        </div>
+        <PillTabs
+          variant="pill"
+          label={copy.heading}
+          tabs={FILTERS.map((f) => ({ value: f, label: copy.filters[f] }))}
+          value={filter}
+          onChange={handleFilter}
+          className="flex-wrap"
+        />
         {matching.length === 0 ? (
           <EmptyState variant="inline" body={copy.empty} />
         ) : (

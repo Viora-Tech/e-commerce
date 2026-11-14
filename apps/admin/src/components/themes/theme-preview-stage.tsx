@@ -67,7 +67,7 @@ export default function ThemePreviewStage({
           </div>
         </div>
         <div
-          className="absolute right-[-1.5rem] bottom-0 hidden w-[10.5rem] overflow-hidden rounded-[1.75rem] border-[5px] border-foreground/80 bg-card shadow-2xl sm:block"
+          className="absolute right-[-1.5rem] bottom-0 hidden w-[10.5rem] overflow-hidden rounded-[1.75rem] border-[0.3125rem] border-foreground/80 bg-card shadow-2xl sm:block"
           aria-hidden="true"
         >
           <div className="relative aspect-[390/800] overflow-hidden">

@@ -51,6 +51,7 @@ export default [
     },
     add: 'पेज जोड़ें',
     open: 'पेज खोलें',
+    loadFailed: 'पेज लोड नहीं हो पाए',
     row: {
       show: 'स्टोर पर दिखाएं',
       hide: 'छिपाएं',
@@ -102,6 +103,7 @@ export default [
       },
     },
     form: {
+      heading: 'पेज',
       back: 'पेज',
       backSeo: 'SEO',
       title: 'नाम',

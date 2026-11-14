@@ -20,6 +20,8 @@ type ThemeLibraryRowProps = {
   /** The unended rollout that will publish this theme. */
   hold?: RolloutHold | undefined
   busy: boolean
+  /** This row's Publish is running: its button spins. */
+  publishing?: boolean
   canPublish: boolean
   onPublish: () => void
   onAction: (action: ThemeAction) => void
@@ -36,6 +38,7 @@ export default function ThemeLibraryRow({
   theme,
   hold,
   busy,
+  publishing = false,
   canPublish,
   onPublish,
   onAction,
@@ -97,7 +100,7 @@ export default function ThemeLibraryRow({
       </div>
       <div className="flex items-center gap-2">
         {canPublish ? (
-          <Button variant="outline" disabled={busy} onClick={onPublish}>
+          <Button variant="outline" disabled={busy} loading={publishing} onClick={onPublish}>
             <Globe aria-hidden="true" />
             {copy.publish}
           </Button>

@@ -2,15 +2,17 @@
 
 import type { RolloutHold, WebPerformance } from '@commerce/core'
 import type { ThemePackId } from '@commerce/core/theme'
-import { Copy, Plus, Upload } from '@commerce/ui/icons'
+import { Copy, Palette, Plus, Upload } from '@commerce/ui/icons'
+import { Alert, AlertDescription, AlertTitle } from '@commerce/ui/shadcn/alert'
 import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
+import DataCard from '@/components/layout/data-card'
 import EmptyState from '@/components/layout/empty-state'
+import PageBody from '@/components/layout/page-body'
 import PageHeader from '@/components/layout/page-header'
-import ProoflyPageBody from '@/components/layout/proofly-page-body'
 import StatusChip from '@/components/layout/status-chip'
 import { themesContent } from '@/data/themes'
 import { useCopy } from '@/hooks/use-copy'
@@ -80,7 +82,8 @@ export default function ThemesLibrary({
 }: ThemesLibraryProps) {
   // Hooks
   const [themes, setThemes] = useState(initial)
-  const [busy, setBusy] = useState(false)
+  /** What is running ('publish:<id>', 'duplicate:<id>', 'add'…), so only the pressed button spins. */
+  const [pending, setPending] = useState<string | null>(null)
   /** The Add theme dialog, open on a preset or on "Start from scratch"; null when closed. */
   const [adding, setAdding] = useState<'preset' | 'blank' | null>(null)
   const { title } = useCopy(themesContent)
@@ -90,14 +93,14 @@ export default function ThemesLibrary({
   const [versioning, setVersioning] = useState<ThemeItem | null>(null)
 
   // Helpers
-  const run = async (work: () => Promise<void>) => {
-    setBusy(true)
+  const run = async (key: string, work: () => Promise<void>) => {
+    setPending(key)
     try {
       await work()
     } catch (err) {
       toast.error(err instanceof Error && err.message ? err.message : copy.failed)
     } finally {
-      setBusy(false)
+      setPending(null)
     }
   }
   const upsert = (next: ThemeItem) =>
@@ -105,7 +108,7 @@ export default function ThemesLibrary({
 
   // Event handlers
   const handleAdd = ({ start, name }: { start: ThemeStart; name: string }) =>
-    run(async () => {
+    run('add', async () => {
       const created =
         start === 'blank'
           ? await api.themes.createBlank({ name })
@@ -119,14 +122,14 @@ export default function ThemesLibrary({
     setThemes((list) => list.map((t) => (t.id === themeId ? { ...t, packs } : t)))
 
   const handleRename = (id: string, name: string) =>
-    run(async () => {
+    run('rename', async () => {
       upsert(await api.themes.rename({ id, name }))
       setRenaming(null)
       toast.success(copy.renamed)
     })
 
   const handlePublish = (theme: ThemeItem) =>
-    run(async () => {
+    run(`publish:${theme.id}`, async () => {
       const live = await api.themes.publish({ id: theme.id })
       setThemes((list) =>
         order(list.map((t) => (t.id === live.id ? live : { ...t, role: 'unpublished' as const }))),
@@ -143,16 +146,15 @@ export default function ThemesLibrary({
   }
 
   const handleDelete = (id: string) =>
-    run(async () => {
+    run('delete', async () => {
       await api.themes.delete({ id })
       setThemes((list) => list.filter((t) => t.id !== id))
       setDeleting(null)
       toast.success(copy.deleted)
     })
 
-  const handleConfirmDelete = () => {
-    if (deleting) void handleDelete(deleting.id)
-  }
+  /* The dialog stays open and spins until the theme is gone; a failure leaves it open. */
+  const handleConfirmDelete = () => (deleting ? handleDelete(deleting.id) : undefined)
 
   const handleAction = (theme: ThemeItem, action: ThemeAction) => {
     if (action === 'rename') setRenaming(theme)
@@ -160,7 +162,7 @@ export default function ThemesLibrary({
     else if (action === 'download') download(theme)
     else if (action === 'versions') setVersioning(theme)
     else
-      run(async () => {
+      run(`duplicate:${theme.id}`, async () => {
         const copied = await api.themes.duplicate({ id: theme.id })
         upsert(copied)
         toast.success(copy.duplicated(copied.name))
@@ -170,9 +172,18 @@ export default function ThemesLibrary({
   // Render logic
   const live = themes.find((t) => t.role === 'main')
   const library = themes.filter((t) => t.role !== 'main')
+  const busy = pending !== null
+  const addMenu = (
+    <AddThemeMenu
+      disabled={busy}
+      onAddPreset={() => setAdding('preset')}
+      onStartBlank={() => setAdding('blank')}
+      onDuplicateLive={live ? () => handleAction(live, 'duplicate') : undefined}
+    />
+  )
 
   return (
-    <ProoflyPageBody width="full">
+    <PageBody>
       <PageHeader
         title={title}
         summary={copy.subtitle}
@@ -187,12 +198,7 @@ export default function ThemesLibrary({
                 {passwordOn ? copy.visibility.locked : copy.visibility.public}
               </StatusChip>
             </Link>
-            <AddThemeMenu
-              disabled={busy}
-              onAddPreset={() => setAdding('preset')}
-              onStartBlank={() => setAdding('blank')}
-              onDuplicateLive={live ? () => handleAction(live, 'duplicate') : undefined}
-            />
+            {addMenu}
           </>
         }
       />
@@ -205,52 +211,42 @@ export default function ThemesLibrary({
         />
       ) : null}
       {performance ? <WebPerformanceStrip data={performance} /> : null}
-      <section className="overflow-hidden rounded-lg border border-border surface-card">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-4 py-4 md:px-5">
-          <div className="flex min-w-0 flex-col gap-0.5">
-            <h2 className="text-card-title">{copy.libraryHeading}</h2>
-            <p className="text-caption font-normal leading-[1.1875rem] text-muted-foreground">
-              {copy.libraryBody}
-            </p>
-          </div>
-          <AddThemeMenu
-            disabled={busy}
-            onAddPreset={() => setAdding('preset')}
-            onStartBlank={() => setAdding('blank')}
-            onDuplicateLive={live ? () => handleAction(live, 'duplicate') : undefined}
-          />
-        </div>
+      <DataCard title={copy.libraryHeading} subtitle={copy.libraryBody} action={addMenu} flush>
         {library.length === 0 ? (
-          <div className="flex flex-col items-center gap-2.5 py-9 text-center">
-            <p className="text-card-title leading-[1.375rem] font-semibold text-foreground">
-              {copy.emptyTitle}
-            </p>
-            <EmptyState variant="inline" body={copy.emptyBody} />
-            <div className="flex flex-wrap justify-center gap-2.5">
-              {live ? (
-                <Button
-                  variant="outline"
-                  disabled={busy}
-                  onClick={() => handleAction(live, 'duplicate')}
-                >
-                  <Copy aria-hidden="true" />
-                  {copy.duplicateCurrent}
+          <EmptyState
+            icon={Palette}
+            heading={copy.emptyTitle}
+            body={copy.emptyBody}
+            className="border-t border-border"
+            action={
+              <div className="flex flex-wrap justify-center gap-2">
+                {live ? (
+                  <Button
+                    variant="outline"
+                    disabled={busy}
+                    loading={pending === `duplicate:${live.id}`}
+                    onClick={() => handleAction(live, 'duplicate')}
+                  >
+                    <Copy aria-hidden="true" />
+                    {copy.duplicateCurrent}
+                  </Button>
+                ) : null}
+                <Button variant="outline" disabled={busy} onClick={() => setAdding('preset')}>
+                  <Plus aria-hidden />
+                  {copy.addFromPreset}
                 </Button>
-              ) : null}
-              <Button variant="outline" disabled={busy} onClick={() => setAdding('preset')}>
-                <Plus aria-hidden />
-                {copy.addFromPreset}
-              </Button>
-            </div>
-          </div>
+              </div>
+            }
+          />
         ) : (
-          <ul className="divide-y divide-border">
+          <ul className="divide-y divide-border border-t border-border">
             {library.map((t) => (
               <ThemeLibraryRow
                 key={t.id}
                 theme={t}
                 hold={holds[t.id]}
                 busy={busy}
+                publishing={pending === `publish:${t.id}`}
                 canPublish={canPublish}
                 onPublish={() => handlePublish(t)}
                 onAction={(action) => handleAction(t, action)}
@@ -258,32 +254,29 @@ export default function ThemesLibrary({
             ))}
           </ul>
         )}
-      </section>
-      <section className="flex flex-wrap items-center gap-4 rounded-lg border border-border surface-card px-4 py-4 md:px-5">
-        <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-muted text-foreground">
-          <Upload aria-hidden="true" className="size-[1.125rem]" />
-        </span>
-        <div className="flex min-w-0 flex-1 basis-64 flex-col gap-0.5">
-          <p className="text-body font-medium text-foreground">{copy.importHeading}</p>
-          <p className="text-caption font-normal leading-[1.1875rem] text-muted-foreground">
-            {copy.importBody}
-          </p>
-        </div>
-        <Button
-          variant="outline"
-          nativeButton={false}
-          render={<Link href={routes.onlineStore.themeImportNew()} />}
-        >
-          <Upload aria-hidden="true" />
-          {copy.importAction}
-        </Button>
-      </section>
+      </DataCard>
+      <Alert
+        action={
+          <Button
+            variant="outline"
+            nativeButton={false}
+            render={<Link href={routes.onlineStore.themeImportNew()} />}
+          >
+            <Upload aria-hidden="true" />
+            {copy.importAction}
+          </Button>
+        }
+      >
+        <Upload aria-hidden="true" />
+        <AlertTitle className="text-body">{copy.importHeading}</AlertTitle>
+        <AlertDescription className="text-caption">{copy.importBody}</AlertDescription>
+      </Alert>
       {canManagePacks ? <ThemePacksCard themes={themes} onSaved={handlePacks} /> : null}
       <AddThemeDialog
         // Remounted per opening, so "Start from scratch" opens with the blank choice picked.
         key={adding ?? 'closed'}
         open={adding !== null}
-        busy={busy}
+        busy={pending === 'add'}
         initialStart={adding === 'blank' ? 'blank' : undefined}
         onOpenChange={(open) => !open && setAdding(null)}
         onAdd={handleAdd}
@@ -292,7 +285,7 @@ export default function ThemesLibrary({
         <RenameThemeDialog
           key={renaming.id}
           theme={renaming}
-          busy={busy}
+          busy={pending === 'rename'}
           onCancel={() => setRenaming(null)}
           onRename={handleRename}
         />
@@ -314,8 +307,9 @@ export default function ThemesLibrary({
         body={deleteCopy.body}
         confirmLabel={deleteCopy.confirm}
         cancelLabel={deleteCopy.cancel}
+        busy={pending === 'delete'}
         onConfirm={handleConfirmDelete}
       />
-    </ProoflyPageBody>
+    </PageBody>
   )
 }

@@ -49,7 +49,7 @@ export default function SeoScoreCard({ report }: SeoScoreCardProps) {
           const n = report.issues.filter((i) => i.resource === r).length
           return (
             <div key={r} className="flex flex-col gap-1">
-              <dt className="font-mono text-xs tracking-wide text-muted-foreground uppercase">
+              <dt className="font-mono text-period tracking-wide text-muted-foreground uppercase">
                 {copy.resources[r]}
               </dt>
               <dd className={cn('text-body', n > 0 ? 'text-ink-strong' : 'text-muted-foreground')}>
