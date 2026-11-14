@@ -76,7 +76,10 @@ export function describeCourierFailure(error: unknown): string {
  */
 export function describeCourierFailureForStaff(error: unknown): string {
   if (error instanceof CourierError) {
-    if (error.kind === 'rejected') return error.message
+    // Our own sentence for an answer we could not use ("RapidShyp created order 2471 but sent back
+    // no shipment id… cancel it there before booking again"): staff need it, not "answered with
+    // an error" (owner, 14 Nov 2026).
+    if (error.kind === 'rejected' || error.kind === 'bad_response') return error.message
     if (error.reason) return `The courier refused it: ${error.reason}`
   }
   return describeCourierFailure(error)

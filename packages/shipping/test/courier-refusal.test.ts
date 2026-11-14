@@ -30,6 +30,16 @@ describe('courier refusals keep their reason for staff', () => {
     expect(await courierRefusalReason(new Response(''))).toBe(undefined)
   })
 
+  it('shows staff our own sentence for an answer we could not use', () => {
+    const err = new CourierError(
+      'bad_response',
+      'rapidshyp',
+      'RapidShyp created order 2471 but sent back no shipment id. Cancel it there before booking again.',
+    )
+    expect(describeCourierFailureForStaff(err)).toBe(err.message)
+    expect(describeCourierFailure(err)).toBe('The courier answered with an error.')
+  })
+
   it('keeps a 5xx as did not answer', async () => {
     const err = await courierFetch('rapidshyp', 'https://x.test', {
       fetchImpl: reply(502, JSON.stringify({ message: 'upstream' })),

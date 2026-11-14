@@ -44,7 +44,7 @@ export const VariantInputSchema = z.object({
   preorderLimit: z.number().int().min(1).max(1_000_000).nullable().optional(),
   /** Shopify's "This is a physical product" (default on). Undefined leaves it as it is. */
   requiresShipping: z.boolean().optional(),
-  weightGrams: z.number().int().min(0).max(1_000_000).nullable().optional(),
+  weightGrams: z.number().int().min(0).max(100_000).nullable().optional(),
   /** Unit the product page shows the weight in; grams stay the source of truth. Null shows kg. */
   weightUnit: WeightUnitSchema.nullable().optional(),
   hsCode: z.string().trim().max(20).nullable().optional(),
