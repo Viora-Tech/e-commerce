@@ -8,6 +8,7 @@ import {
   formatAccountDate,
   orderStatusLabels,
   paymentLabels,
+  paymentPillShown,
   shipmentLabels,
   shipmentTone,
 } from '@/data/account'
@@ -82,7 +83,7 @@ export default function OrderList({ orders, timeZone }: OrderListProps) {
                       tone={shipmentTone[o.shipment]}
                     />
                   )}
-                  {o.payment === 'paid' ? null : (
+                  {o.payment === 'paid' || !paymentPillShown(o.status, o.payment) ? null : (
                     <StatusPill label={paymentLabels[o.payment]} tone={paymentTone(o.payment)} />
                   )}
                 </div>
