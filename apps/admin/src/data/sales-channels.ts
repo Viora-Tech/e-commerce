@@ -1,5 +1,6 @@
 /** Copy for Sales channels → Agentic sales and Social media. */
 import { siteConfig } from '@commerce/config/site'
+import { salesChannelsWaitingContent } from './sales-channels-waiting'
 
 export const salesChannelsContent = {
   /** The order page's "Sold through ChatGPT" card and "via ChatGPT" chip. */
@@ -468,6 +469,7 @@ export const salesChannelsContent = {
     partner: 'Partner',
     requestedOn: 'Requested on',
     checkout: 'Checkout',
+    waiting: salesChannelsWaitingContent,
     checkoutWhere: 'where shoppers pay',
     recentHeading: (name: string) => `Recent orders from ${name}`,
     recentEmpty: (name: string) =>

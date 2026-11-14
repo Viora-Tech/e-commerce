@@ -140,6 +140,27 @@ describe('OrderList', () => {
     expect(html).not.toContain('<img')
   })
 
+  it('shows only Cancelled on a cancelled order that was never paid', () => {
+    const html = renderToStaticMarkup(
+      createElement(OrderList, {
+        orders: [order({ status: 'cancelled', payment: 'pending' })],
+        timeZone: 'Asia/Kolkata',
+      }),
+    )
+    expect(html).toContain('Cancelled')
+    expect(html).not.toContain('Payment pending')
+  })
+
+  it('still says a cancelled order was refunded', () => {
+    const html = renderToStaticMarkup(
+      createElement(OrderList, {
+        orders: [order({ status: 'cancelled', payment: 'refunded' })],
+        timeZone: 'Asia/Kolkata',
+      }),
+    )
+    expect(html).toContain('Refunded')
+  })
+
   it('offers the shop when there are no orders yet', () => {
     const html = renderToStaticMarkup(
       createElement(OrderList, { orders: [], timeZone: 'Asia/Kolkata' }),

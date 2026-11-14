@@ -22,6 +22,9 @@ export async function register() {
     // searches with SQL just because the search page has not loaded yet.
     const { registerSearchEngine } = await import('./lib/search-engine-register')
     registerSearchEngine()
+    // Memory every ten minutes, so a slow leak shows in the logs before it crashes the process.
+    const { startMemoryReport } = await import('./lib/memory-report')
+    startMemoryReport()
     // A new build may be live: the worker purges pages a CDN still holds, which point at the old
     // build's scripts (`apps/worker/src/edge-purge.ts`). Never holds up the boot.
     const { announceStorefrontStart } = await import('@commerce/db')

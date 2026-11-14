@@ -274,6 +274,13 @@ export const shipmentLabels: Record<ShopperShipmentState, string> = {
   cancelled: 'Shipment cancelled',
 }
 
+/**
+ * Whether the payment pill shows next to an order's status. A cancelled order that was never
+ * paid ("Payment pending", "Cash on delivery") has nothing left to pay, so "Cancelled" says it all.
+ */
+export const paymentPillShown = (status: string, payment: ShopperPaymentState): boolean =>
+  !(status === 'cancelled' && (payment === 'pending' || payment === 'cod'))
+
 export const orderStatusLabels = {
   cancelled: 'Cancelled',
 } as const
