@@ -13,6 +13,7 @@ import { Button } from '@commerce/ui/shadcn/button'
 import { Input } from '@commerce/ui/shadcn/input'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import EmptyState from '@/components/layout/empty-state'
 import SaveBar from '@/components/layout/save-bar'
 import SectionPageSkeleton from '@/components/layout/section-page-skeleton'
 import SettingsCard from '@/components/settings/settings-card'
@@ -271,7 +272,7 @@ export default function CostsSettings() {
           <SettingsDrillPanel id="gateways">
             <SettingsCard>
               {view.gateways.length === 0 ? (
-                <p className="text-body text-muted-foreground">{copy.gateways.none}</p>
+                <EmptyState variant="inline" body={copy.gateways.none} />
               ) : (
                 view.gateways.map((id) => (
                   <FeeRateRow

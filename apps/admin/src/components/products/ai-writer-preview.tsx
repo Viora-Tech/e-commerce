@@ -3,9 +3,9 @@
 import { containsKeyword, type ProductCopy } from '@commerce/ai/client'
 import { type RichTextValue, richTextToPlainText } from '@commerce/richtext'
 import { cn } from '@commerce/ui/lib/utils'
-import { Badge } from '@commerce/ui/shadcn/badge'
 import { Checkbox } from '@commerce/ui/shadcn/checkbox'
 import type { ReactNode } from 'react'
+import StatusChip from '@/components/layout/status-chip'
 import { aiContent } from '@/data/ai'
 import { seoKeywordsContent } from '@/data/seo-keywords'
 import { useCopy } from '@/hooks/use-copy'
@@ -138,9 +138,9 @@ export default function AiWriterPreview({
       >
         <div className="flex flex-wrap gap-1.5">
           {copy.tags.map((t) => (
-            <Badge key={t} variant={added.includes(t) ? 'default' : 'neutral'}>
+            <StatusChip key={t} tone={added.includes(t) ? 'success' : 'neutral'} dot={false}>
               {t}
-            </Badge>
+            </StatusChip>
           ))}
         </div>
       </PickRow>

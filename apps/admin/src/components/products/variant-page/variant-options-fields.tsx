@@ -9,6 +9,7 @@ import {
   SelectValue,
 } from '@commerce/ui/shadcn/select'
 import KitField from '@/components/kit/kit-field'
+import EmptyState from '@/components/layout/empty-state'
 import { variantPageContent } from '@/data/variant-page'
 import { useCopy } from '@/hooks/use-copy'
 import type { OptionRow, VariantRow } from '../form-state'
@@ -45,7 +46,7 @@ export default function VariantOptionsFields({
   return (
     <div className="flex flex-col gap-4">
       {options.length === 0 ? (
-        <p className="text-caption text-muted-foreground">{copy.options.none}</p>
+        <EmptyState variant="inline" body={copy.options.none} />
       ) : (
         <>
           <div className="grid gap-4 md:grid-cols-3">

@@ -28,7 +28,7 @@ export default function InspectorCard({ title, changed, children }: InspectorCar
       <CollapsibleTrigger
         className={`group flex w-full items-center gap-2 rounded-xl py-2.5 pr-2.5 pl-3 text-left ${CHROME_FOCUS}`}
       >
-        <span className="text-[0.8125rem] leading-[1.1875rem] font-semibold text-foreground">
+        <span className="text-caption leading-[1.1875rem] font-semibold text-foreground">
           {title}
         </span>
         {changed ? <span aria-hidden className="size-1.5 rounded-full bg-primary" /> : null}

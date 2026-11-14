@@ -9,6 +9,7 @@ import KitTable from '@/components/kit/kit-table'
 import KitTableHead from '@/components/kit/kit-table-head'
 import KitTableRow from '@/components/kit/kit-table-row'
 import DataCard from '@/components/layout/data-card'
+import EmptyState from '@/components/layout/empty-state'
 import PageHeader from '@/components/layout/page-header'
 import SelectProductsDialog, {
   type PickedProducts,
@@ -68,7 +69,7 @@ export default function RecommendationsPage() {
       />
       <DataCard title={c.listTitle} count={rows.length} flush>
         {rows.length === 0 ? (
-          <p className="px-5 py-6 text-body text-muted-foreground">{c.empty}</p>
+          <EmptyState variant="inline" body={c.empty} className="mx-5 my-6" />
         ) : (
           <div className="overflow-x-auto">
             <KitTable className="min-w-[32rem]">

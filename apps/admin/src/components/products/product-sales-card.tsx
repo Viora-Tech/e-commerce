@@ -5,6 +5,7 @@ import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import DataCard from '@/components/layout/data-card'
+import EmptyState from '@/components/layout/empty-state'
 import { productFormContent } from '@/data/product-form'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -81,7 +82,7 @@ export default function ProductSalesCard({ productId, productTitle }: ProductSal
           <Skeleton className="h-10" />
         </div>
       ) : sales.orders === 0 ? (
-        <p className="text-body text-muted-foreground">{copy.empty}</p>
+        <EmptyState variant="inline" body={copy.empty} />
       ) : (
         <dl className="grid grid-cols-3 gap-3">
           {stats.map((s) => (

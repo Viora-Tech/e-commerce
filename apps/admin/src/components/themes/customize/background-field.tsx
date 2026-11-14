@@ -161,7 +161,7 @@ export default function BackgroundField({
               />
             </div>
           ) : null}
-          <p className="flex items-center justify-between text-[0.8125rem] leading-[1.1875rem]">
+          <p className="flex items-center justify-between text-caption font-normal leading-[1.1875rem]">
             <span className="text-muted-foreground">{copy.current}</span>
             <span className="text-foreground tabular-nums">{currentLabel}</span>
           </p>

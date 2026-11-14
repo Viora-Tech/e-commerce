@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import type { ProductSectionProps } from '@/apps/product-sections'
+import EmptyState from '@/components/layout/empty-state'
 import { productPageContent } from '@/data/product-page'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -45,7 +46,7 @@ export default function ProductSection({ variants }: ProductSectionProps) {
   return (
     <div className="flex flex-col gap-3">
       {waiting.length === 0 && pending === 0 ? (
-        <p className="text-body text-muted-foreground">{c.empty}</p>
+        <EmptyState variant="inline" body={c.empty} />
       ) : (
         <>
           <p className="text-body-strong">

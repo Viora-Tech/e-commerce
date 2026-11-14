@@ -88,7 +88,7 @@ export default function DomainsSettings({ domains, apexRedirectOnly }: DomainsSe
             <span className="truncate">{primary.hostname}</span>
           </Link>
         ) : (
-          <p className="text-body text-muted-foreground">{copy.primary.none}</p>
+          <EmptyState variant="inline" body={copy.primary.none} />
         )}
         {canManage && eligible.length > 1 ? (
           <Button variant="outline" size="sm" onClick={() => setPrimaryOpen(true)}>

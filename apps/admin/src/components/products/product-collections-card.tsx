@@ -1,13 +1,13 @@
 'use client'
 
 import { Save } from '@commerce/ui/icons'
-import { Badge } from '@commerce/ui/shadcn/badge'
 import { Button } from '@commerce/ui/shadcn/button'
 import { FieldDescription, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import DataCard from '@/components/layout/data-card'
+import StatusChip from '@/components/layout/status-chip'
 import { productCollectionsCardContent, productCollectionsContent } from '@/data/collections'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -148,7 +148,7 @@ export default function ProductCollectionsCard({
               <ul className="flex flex-wrap gap-2">
                 {loaded.automatic.map((c) => (
                   <li key={c.id}>
-                    <Badge variant="secondary">{c.title}</Badge>
+                    <StatusChip dot={false}>{c.title}</StatusChip>
                   </li>
                 ))}
               </ul>

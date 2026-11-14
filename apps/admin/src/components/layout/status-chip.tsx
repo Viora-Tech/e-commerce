@@ -11,14 +11,20 @@ type StatusChipProps = {
   tone?: ChipTone
   /** `soft`: tinted fill and border (default). `outline`: border only. `dot`: no box, a dot and ink text. */
   variant?: 'soft' | 'dot' | 'outline'
+  /**
+   * Draw the leading dot (default). Plain labels and tags that are not a state ("Required",
+   * a tag name, a keyword) turn it off; ignored by `variant="dot"`.
+   */
+  dot?: boolean
   children: ReactNode
   className?: string
 }
 
-/** Status chip (Figma "Badge"): 22px, radius 6, dot + label, one tone per state. The one chip in the admin. */
+/** Status chip (Figma "Badge"): 1.375rem tall, 0.375rem radius, dot + label, one tone per state. The one chip in the admin. */
 export default function StatusChip({
   tone = 'neutral',
   variant = 'soft',
+  dot: showDot = true,
   children,
   className,
 }: StatusChipProps) {
@@ -55,7 +61,7 @@ export default function StatusChip({
         className,
       )}
     >
-      {dot}
+      {showDot ? dot : null}
       {children}
     </span>
   )

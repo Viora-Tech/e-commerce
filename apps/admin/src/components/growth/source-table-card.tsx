@@ -16,6 +16,7 @@ import {
 import Link from 'next/link'
 import type { CSSProperties } from 'react'
 import { Fragment, useState } from 'react'
+import EmptyState from '@/components/layout/empty-state'
 import { growthOverviewContent as copy, SOURCE_LABELS } from '@/data/growth'
 import { growthSplitContent } from '@/data/growth-report'
 import { useCopy } from '@/hooks/use-copy'
@@ -55,7 +56,7 @@ export default function SourceTableCard({ rows, campaigns }: SourceTableCardProp
     <Card gap="none" inset={5}>
       <p className="text-kit-title text-foreground">{copy.sources.title}</p>
       {rows.length === 0 ? (
-        <p className="mt-5 text-kit-body text-muted-foreground">{copy.sources.empty}</p>
+        <EmptyState variant="inline" body={copy.sources.empty} className="mt-5" />
       ) : (
         <Table className="mt-3">
           <TableHeader>

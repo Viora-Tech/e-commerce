@@ -44,7 +44,7 @@ export default function WebPerformanceStrip({ data }: WebPerformanceStripProps) 
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="flex min-w-0 flex-col gap-0.5">
           <h2 className="text-card-title">{copy.heading}</h2>
-          <p className="text-[0.8125rem] leading-[1.1875rem] text-muted-foreground">
+          <p className="text-caption font-normal leading-[1.1875rem] text-muted-foreground">
             {data.ready ? copy.body(data.windowDays) : copy.collectingBody}
           </p>
         </div>
@@ -59,7 +59,7 @@ export default function WebPerformanceStrip({ data }: WebPerformanceStripProps) 
           >
             <dt className="text-caption text-muted-foreground">{copy.metrics[m.metric]}</dt>
             <dd className="flex flex-wrap items-center gap-2">
-              <span className="text-[1.25rem] leading-7 font-semibold text-ink-strong tabular-nums">
+              <span className="text-section-title leading-7 font-semibold text-ink-strong tabular-nums">
                 {m.p75 === null ? '—' : formatValue(m.metric, m.p75)}
               </span>
               {m.rating ? (

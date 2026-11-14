@@ -4,6 +4,7 @@ import type { RouteRule } from '@commerce/core/delivery-options'
 import { Button } from '@commerce/ui/shadcn/button'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import EmptyState from '@/components/layout/empty-state'
 import SectionHead from '@/components/layout/section-head'
 import SortableStack from '@/components/layout/sortable-stack'
 import { reorderLabels } from '@/data/common'
@@ -68,7 +69,7 @@ export default function DeliveryRulesPage() {
       />
       <section className="rounded-lg border border-panel-border bg-card">
         {rules.length === 0 ? (
-          <p className="px-4 py-3 text-body text-muted-foreground">{copy.rules.empty}</p>
+          <EmptyState variant="inline" body={copy.rules.empty} className="mx-4 my-3" />
         ) : (
           <SortableStack
             items={rules}

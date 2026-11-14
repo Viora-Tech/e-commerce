@@ -8,6 +8,7 @@ import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import DataCard from '@/components/layout/data-card'
+import EmptyState from '@/components/layout/empty-state'
 import { growthRecommendationsContent } from '@/data/growth-report'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { formatRate } from '@/lib/analytics-range'
@@ -93,7 +94,7 @@ export default function RecommendationsCard({ initial }: RecommendationsCardProp
   return (
     <DataCard title={copy.title} subtitle={copy.subtitle}>
       {items.length === 0 ? (
-        <p className="text-body text-muted-foreground">{copy.empty}</p>
+        <EmptyState variant="inline" body={copy.empty} />
       ) : (
         <ul className="grid grid-cols-1 gap-4 lg:grid-cols-3">
           {items.map((r) => (

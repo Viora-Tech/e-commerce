@@ -32,7 +32,7 @@ type Item = LiquidBlockRow & { id: string }
 const copy = customizeContent.tree
 
 const ADD_ROW = cn(
-  'flex h-8 w-full items-center gap-2 rounded-lg pl-2 text-left text-[0.8125rem] font-medium text-link data-[popup-open]:bg-muted/60',
+  'flex h-8 w-full items-center gap-2 rounded-lg pl-2 text-left text-caption font-medium text-link data-[popup-open]:bg-muted/60',
   CHROME_ROW_HOVER,
   CHROME_TRANSITION,
   CHROME_FOCUS,
@@ -119,7 +119,7 @@ export default function LiquidSectionBlocks({
               onClick={() => onSelect(row)}
               aria-label={copy.selectBlock(row.title)}
               className={cn(
-                'flex h-full min-w-0 flex-1 items-center gap-1 text-left text-[0.8125rem]',
+                'flex h-full min-w-0 flex-1 items-center gap-1 text-left text-caption font-normal',
                 row.hidden ? 'text-muted-foreground/70' : 'text-foreground/85',
                 CHROME_FOCUS,
               )}

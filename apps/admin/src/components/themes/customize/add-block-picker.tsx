@@ -122,12 +122,12 @@ export default function AddBlockPicker({ zone, index, count, onAdd }: AddBlockPi
           onChange={(e) => setQuery(e.target.value)}
           placeholder={copy.search}
           aria-label={copy.search}
-          className="h-9 w-full rounded-lg border border-border bg-background pr-3 pl-8 text-[0.8125rem] text-foreground placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
+          className="h-9 w-full rounded-lg border border-border bg-background pr-3 pl-8 text-caption font-normal text-foreground placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
         />
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-2 pb-2">
         {groups.length === 0 ? (
-          <p className="px-2 py-3 text-[0.8125rem] text-muted-foreground">{copy.empty}</p>
+          <p className="px-2 py-3 text-caption font-normal text-muted-foreground">{copy.empty}</p>
         ) : (
           groups.map((g) => (
             <section
@@ -135,7 +135,7 @@ export default function AddBlockPicker({ zone, index, count, onAdd }: AddBlockPi
               aria-label={copy.groups[g.id]}
               className="flex flex-col gap-0.5 pb-2"
             >
-              <h3 className="px-2 py-1 text-[0.625rem] leading-4 font-medium tracking-[0.06em] text-muted-foreground uppercase">
+              <h3 className="px-2 py-1 text-micro leading-4 font-medium tracking-[0.06em] text-muted-foreground uppercase">
                 {copy.groups[g.id]}
               </h3>
               <div className="grid grid-cols-2 gap-0.5">
@@ -147,7 +147,7 @@ export default function AddBlockPicker({ zone, index, count, onAdd }: AddBlockPi
                       type="button"
                       onClick={() => handleAdd(type)}
                       className={cn(
-                        'flex h-8 items-center gap-2 rounded-md px-2 text-left text-[0.8125rem] text-foreground transition-colors hover:bg-muted',
+                        'flex h-8 items-center gap-2 rounded-md px-2 text-left text-caption font-normal text-foreground transition-colors hover:bg-muted',
                         CHROME_FOCUS,
                       )}
                     >

@@ -65,7 +65,7 @@ export default function ThemeColoursGroup({ theme, mode, onChange }: ThemeColour
             className="size-7 shrink-0 rounded-[0.5rem] border border-border"
             style={{ backgroundColor: fill }}
           />
-          <span className="min-w-0 flex-1 truncate text-[0.8125rem] leading-[1.1875rem] font-medium text-foreground">
+          <span className="min-w-0 flex-1 truncate text-caption leading-[1.1875rem] font-medium text-foreground">
             {copy.swatches.buttons}
           </span>
           <span className="px-1.5 text-xs leading-[1.0625rem] text-muted-foreground uppercase tabular-nums">

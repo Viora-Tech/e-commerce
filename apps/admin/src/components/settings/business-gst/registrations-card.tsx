@@ -4,6 +4,7 @@ import type { Business, GstRegistrationView } from '@commerce/core'
 import { Plus } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import DataCard from '@/components/layout/data-card'
+import EmptyState from '@/components/layout/empty-state'
 import { businessGstContent } from '@/data/business-gst'
 import { useCopy } from '@/hooks/use-copy'
 import RegistrationRow from './registration-row'
@@ -45,7 +46,7 @@ export default function RegistrationsCard({
       }
     >
       {registrations.length === 0 ? (
-        <p className="text-body text-muted-foreground">{copy.empty}</p>
+        <EmptyState variant="inline" body={copy.empty} />
       ) : (
         <ul className="flex flex-col divide-y divide-border rounded-lg border border-border">
           {registrations.map((r) => (

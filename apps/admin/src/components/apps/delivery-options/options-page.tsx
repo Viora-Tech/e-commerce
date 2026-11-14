@@ -10,6 +10,7 @@ import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import EmptyState from '@/components/layout/empty-state'
 import SectionHead from '@/components/layout/section-head'
 import SortableStack from '@/components/layout/sortable-stack'
 import { reorderLabels } from '@/data/common'
@@ -202,7 +203,7 @@ export default function DeliveryOptionsPage() {
 
       {drafts.length === 0 ? (
         <div className="flex flex-col items-start gap-2 rounded-lg border border-panel-border bg-card p-4">
-          <p className="text-body text-muted-foreground">{copy.options.empty}</p>
+          <EmptyState variant="inline" body={copy.options.empty} />
           <p className="text-caption text-muted-foreground">{copy.options.presetHelp}</p>
           <Button onClick={handlePreset} disabled={busy !== null} loading={busy === 'preset'}>
             {copy.options.preset}

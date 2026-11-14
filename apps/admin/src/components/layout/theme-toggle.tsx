@@ -29,7 +29,7 @@ const CHOICES: readonly { value: ThemeChoice; icon: IconComponent }[] = [
 /* Figma "Theme menu": 210px, radius 12, 6px inset, solid popover with a hairline and shadow-lg. */
 const MENU = 'w-[13.125rem] rounded-lg! border border-border bg-popover! p-1.5 shadow-popover!'
 /* Figma menu "Item": 32px, 10px sides and gap, radius 8, 16px icon, 13px label. */
-const ITEM = 'min-h-8 gap-2.5 rounded-sm px-2.5 py-2 text-[0.8125rem] leading-4'
+const ITEM = 'min-h-8 gap-2.5 rounded-sm px-2.5 py-2 text-caption font-normal leading-4'
 
 /* Nothing to subscribe to: the snapshot only differs between the server and the browser. */
 const noSubscription = () => () => {}
@@ -81,7 +81,7 @@ export default function ThemeToggle({ className }: ThemeToggleProps) {
             <span className="flex min-w-0 flex-1 flex-col gap-px">
               <span className="text-foreground">{copy.theme[choice.value]}</span>
               {choice.value === 'system' ? (
-                <span className="text-[0.6875rem] leading-[0.875rem] text-muted-foreground">
+                <span className="text-micro leading-[0.875rem] text-muted-foreground">
                   {copy.theme.systemHint}
                 </span>
               ) : null}

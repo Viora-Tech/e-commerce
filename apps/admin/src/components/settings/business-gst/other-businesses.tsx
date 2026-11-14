@@ -9,6 +9,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@commerce/ui/shadcn/collapsible'
+import EmptyState from '@/components/layout/empty-state'
 import { businessGstContent } from '@/data/business-gst'
 import { useCopy } from '@/hooks/use-copy'
 
@@ -56,7 +57,7 @@ export default function OtherBusinesses({
               <p className="text-body text-muted-foreground">{copy.help}</p>
             </div>
             {businesses.length === 0 ? (
-              <p className="text-body text-muted-foreground">{copy.none}</p>
+              <EmptyState variant="inline" body={copy.none} />
             ) : (
               <ul className="flex flex-col divide-y divide-border rounded-lg border border-border">
                 {businesses.map((b) => (

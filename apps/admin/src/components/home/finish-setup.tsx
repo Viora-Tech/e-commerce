@@ -95,7 +95,7 @@ export default async function FinishSetup({ productCount, signals }: FinishSetup
                 <span className="block truncate text-body font-semibold text-ink-strong">
                   {step.title}
                 </span>
-                <span className="mt-1 block truncate text-[0.8125rem] leading-[1.1875rem] text-muted-foreground">
+                <span className="mt-1 block truncate text-caption font-normal leading-[1.1875rem] text-muted-foreground">
                   {step.body}
                 </span>
               </span>

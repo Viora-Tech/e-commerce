@@ -115,7 +115,7 @@ export default function SectionCard({
           <SectionLivePreview type={type} className="aspect-video w-full" />
         )}
         <div className="flex flex-col gap-0.5 px-1 pb-1">
-          <span className="text-[0.8125rem] font-medium text-foreground">{label}</span>
+          <span className="text-caption font-medium text-foreground">{label}</span>
           <span className="text-xs text-muted-foreground">{description}</span>
           {source ? <span className={cn('pt-1', CHROME_META)}>{copy.by(source.name)}</span> : null}
         </div>
@@ -147,7 +147,7 @@ export default function SectionCard({
           >
             {layout === 'tile' ? (
               <>
-                <span className="truncate text-[0.625rem] leading-[1.0625rem] font-medium tracking-[0.06em] text-muted-foreground uppercase">
+                <span className="truncate text-micro leading-[1.0625rem] font-medium tracking-[0.06em] text-muted-foreground uppercase">
                   {label}
                 </span>
                 <span className="relative flex aspect-[128/88] w-full overflow-hidden rounded-[0.625rem] border border-border bg-muted transition-[border-color,box-shadow] group-hover/card:border-primary group-hover/card:shadow-lift group-focus-visible/card:border-primary">
@@ -179,7 +179,7 @@ export default function SectionCard({
                   ) : null}
                 </span>
                 <span className="flex min-w-0 flex-1 flex-col">
-                  <span className="truncate text-[0.8125rem] leading-5 font-medium text-foreground">
+                  <span className="truncate text-caption leading-5 font-medium text-foreground">
                     {label}
                   </span>
                   <span className="truncate text-xs leading-4 text-muted-foreground">

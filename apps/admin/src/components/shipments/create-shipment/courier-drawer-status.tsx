@@ -4,6 +4,7 @@ import { RefreshCw } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Spinner } from '@commerce/ui/shadcn/spinner'
 import AppStoreLink from '@/components/apps/app-store-link'
+import EmptyState from '@/components/layout/empty-state'
 import { createShipmentContent } from '@/data/create-shipment'
 import { useCopy } from '@/hooks/use-copy'
 
@@ -38,7 +39,7 @@ export default function CourierDrawerStatus({
   return !quoted ? (
     noCourier ? (
       <div className="flex flex-col items-start gap-3 py-6">
-        <p className="text-body text-muted-foreground">{content.courier.noCourier}</p>
+        <EmptyState variant="inline" body={content.courier.noCourier} />
         <AppStoreLink category="shipping" className="w-fit">
           {content.courier.connect}
         </AppStoreLink>

@@ -50,11 +50,13 @@ export default function ThemePacksCard({ themes, onSaved }: ThemePacksCardProps)
     >
       <div className="flex min-w-0 flex-col gap-0.5">
         <h2 className="text-card-title">{copy.heading}</h2>
-        <p className="text-[0.8125rem] leading-[1.1875rem] text-muted-foreground">{copy.body}</p>
+        <p className="text-caption font-normal leading-[1.1875rem] text-muted-foreground">
+          {copy.body}
+        </p>
       </div>
       <div className="flex flex-col gap-1">
         <h3 className="text-body font-medium text-foreground">{copy.zeroDrift}</h3>
-        <p className="text-[0.8125rem] leading-[1.1875rem] text-muted-foreground">
+        <p className="text-caption font-normal leading-[1.1875rem] text-muted-foreground">
           {copy.zeroDriftHelp}
         </p>
       </div>

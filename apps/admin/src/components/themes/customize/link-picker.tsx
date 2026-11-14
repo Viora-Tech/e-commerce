@@ -83,7 +83,7 @@ export default function LinkPicker({
           id={id}
           disabled={readOnly}
           aria-label={empty ? copy.open : `${copy.open}: ${shown}, ${copy.kinds[kindKey]}`}
-          className="flex min-h-9 w-full items-center gap-2 rounded-lg border border-input bg-card py-1 pr-8 pl-1 text-left text-[0.8125rem] transition-colors duration-150 hover:border-border-strong focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none disabled:opacity-50 data-[popup-open]:border-ring"
+          className="flex min-h-9 w-full items-center gap-2 rounded-lg border border-input bg-card py-1 pr-8 pl-1 text-left text-caption font-normal transition-colors duration-150 hover:border-border-strong focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none disabled:opacity-50 data-[popup-open]:border-ring"
         >
           {empty ? (
             <>
@@ -99,7 +99,7 @@ export default function LinkPicker({
                 <Icon aria-hidden weight="regular" className="size-3.5" />
               </span>
               <span className="min-w-0 truncate font-medium">{shown}</span>
-              <span className="shrink-0 text-[0.6875rem] text-muted-foreground tabular-nums">
+              <span className="shrink-0 text-micro text-muted-foreground tabular-nums">
                 {copy.kinds[kindKey]}
               </span>
               {newTab ? (

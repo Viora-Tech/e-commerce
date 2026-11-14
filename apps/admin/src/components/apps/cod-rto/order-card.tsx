@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import DataCard from '@/components/layout/data-card'
+import EmptyState from '@/components/layout/empty-state'
 import StatusChip from '@/components/layout/status-chip'
 import { codRtoContent } from '@/data/cod-rto'
 import { useCopy, useFormat } from '@/hooks/use-copy'
@@ -89,7 +90,7 @@ export default function OrderCard({ orderId }: OrderCardProps) {
               />
             </div>
             {risk.factors.length === 0 ? (
-              <p className="text-caption text-muted-foreground">{copy.card.noFactors}</p>
+              <EmptyState variant="inline" body={copy.card.noFactors} />
             ) : (
               <ul className="flex flex-col gap-1">
                 {risk.factors.map((f) => (

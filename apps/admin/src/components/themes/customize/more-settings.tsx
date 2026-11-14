@@ -24,7 +24,7 @@ export default function MoreSettings({ label, children }: MoreSettingsProps) {
   return (
     <Collapsible className="flex flex-col">
       <CollapsibleTrigger
-        className={`group flex w-fit items-center gap-1 rounded-sm text-[0.8125rem] leading-[1.1875rem] font-medium text-link hover:underline ${CHROME_FOCUS}`}
+        className={`group flex w-fit items-center gap-1 rounded-sm text-caption leading-[1.1875rem] font-medium text-link hover:underline ${CHROME_FOCUS}`}
       >
         {label}
         <ChevronDown

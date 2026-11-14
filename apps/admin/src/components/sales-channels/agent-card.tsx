@@ -44,7 +44,7 @@ export default function AgentCard({
         <ChannelStatusChip status={agentChipStatus(state)} />
       </div>
       <div className="flex flex-1 flex-col gap-1">
-        <h3 className="text-[0.9375rem] font-semibold text-ink-strong">{info.name}</h3>
+        <h3 className="text-card-title font-semibold text-ink-strong">{info.name}</h3>
         <p className="text-caption text-muted-foreground">{info.blurb}</p>
       </div>
       <dl className="grid grid-cols-2 gap-2 text-caption">

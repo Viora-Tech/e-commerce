@@ -1,6 +1,7 @@
 import type { AnalyticsOverview } from '@commerce/api'
 import KitListRow from '@/components/kit/kit-list-row'
 import DataCard from '@/components/layout/data-card'
+import EmptyState from '@/components/layout/empty-state'
 import { analyticsContent as copy } from '@/data/analytics'
 import { formatPaiseWhole } from '@/lib/money'
 
@@ -14,7 +15,7 @@ export default function TopProductsCard({ products }: TopProductsCardProps) {
   return (
     <DataCard title={c.title}>
       {products.length === 0 ? (
-        <p className="text-kit-body text-muted-foreground">{c.empty}</p>
+        <EmptyState variant="inline" body={c.empty} />
       ) : (
         <ul className="flex flex-col gap-4">
           {products.map((p) => (

@@ -6,6 +6,7 @@ import { Input } from '@commerce/ui/shadcn/input'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { useEffect, useState } from 'react'
 import DataCard from '@/components/layout/data-card'
+import EmptyState from '@/components/layout/empty-state'
 import PillTabs from '@/components/layout/pill-tabs'
 import ProductThumb from '@/components/products/product-thumb'
 import { catalogsContent } from '@/data/catalogs'
@@ -147,9 +148,11 @@ export default function CatalogPriceTableCard({
             <Skeleton className="h-10 w-4/5" />
           </div>
         ) : rows.length === 0 ? (
-          <p className="py-4 text-body text-muted-foreground">
-            {tab === 'included' ? copy.emptyIncluded : copy.emptyExcluded}
-          </p>
+          <EmptyState
+            variant="inline"
+            body={tab === 'included' ? copy.emptyIncluded : copy.emptyExcluded}
+            className="my-4"
+          />
         ) : (
           <div className="overflow-x-auto rounded-lg border border-border">
             <table className="w-full text-body">

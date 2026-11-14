@@ -4,6 +4,7 @@ import { Button } from '@commerce/ui/shadcn/button'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import Link from 'next/link'
 import DataCard from '@/components/layout/data-card'
+import EmptyState from '@/components/layout/empty-state'
 import StatusChip from '@/components/layout/status-chip'
 import { delhiveryAppContent } from '@/data/delhivery'
 import { useCopy, useFormat } from '@/hooks/use-copy'
@@ -44,7 +45,7 @@ export default function PickupLocationsCard({ places }: PickupLocationsCardProps
       {places === null ? (
         <Skeleton className="h-10 rounded" />
       ) : places.length === 0 ? (
-        <p className="text-caption text-muted-foreground">{p.empty}</p>
+        <EmptyState variant="inline" body={p.empty} />
       ) : (
         <ul className="flex flex-col gap-3">
           {places.map((place) => (

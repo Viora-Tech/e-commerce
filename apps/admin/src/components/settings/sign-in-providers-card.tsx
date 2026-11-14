@@ -6,11 +6,11 @@ import {
   type LoginProvider,
   type ProviderReadiness,
 } from '@commerce/core/customer-accounts'
-import { Badge } from '@commerce/ui/shadcn/badge'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Checkbox } from '@commerce/ui/shadcn/checkbox'
 import { Field, FieldDescription, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Switch } from '@commerce/ui/shadcn/switch'
+import StatusChip from '@/components/layout/status-chip'
 import { customerAccountsContent, PROVIDER_COPY } from '@/data/customer-accounts'
 import { useCopy } from '@/hooks/use-copy'
 import SettingsCard from './settings-card'
@@ -84,7 +84,7 @@ export default function SignInProvidersCard({
                 <>
                   {text.label}
                   {s.enabled && !ready ? (
-                    <Badge variant="neutral">{content.providers.setUp}</Badge>
+                    <StatusChip tone="attention">{content.providers.setUp}</StatusChip>
                   ) : null}
                 </>
               }

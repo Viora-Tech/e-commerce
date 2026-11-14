@@ -158,11 +158,11 @@ function MemberFaces({ holders }: { holders: StaffMemberRow[] }) {
               email={m.email}
               image={m.image}
               className="size-6 ring-2 ring-card"
-              fallbackClassName="text-[0.625rem]"
+              fallbackClassName="text-micro"
             />
           ))}
           {more > 0 ? (
-            <span className="flex size-6 items-center justify-center rounded-full bg-muted text-[0.625rem] font-semibold text-muted-foreground ring-2 ring-card">
+            <span className="flex size-6 items-center justify-center rounded-full bg-muted text-micro font-semibold text-muted-foreground ring-2 ring-card">
               {copy.roles.moreMembers(more)}
             </span>
           ) : null}

@@ -16,6 +16,7 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import AppStoreLink from '@/components/apps/app-store-link'
 import DataCard from '@/components/layout/data-card'
+import EmptyState from '@/components/layout/empty-state'
 import { shippingSettingsContent } from '@/data/shipping'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -103,7 +104,7 @@ export default function CourierRuleFields({ value, onChange }: CourierRuleFields
         <p className="text-body text-muted-foreground">{copy.intro}</p>
 
         {couriers !== null && couriers.length === 0 ? (
-          <p className="text-body text-muted-foreground">{copy.noCourier}</p>
+          <EmptyState variant="inline" body={copy.noCourier} />
         ) : couriers !== null && couriers.length === 1 ? (
           <p className="text-body text-muted-foreground">{copy.oneCourier}</p>
         ) : (

@@ -48,9 +48,7 @@ export default function AddSectionStyles({
           <ChevronLeftIcon aria-hidden className="size-4" />
         </button>
         <div className="flex min-w-0 flex-col">
-          <p className="truncate text-[0.8125rem] font-semibold text-foreground">
-            {copy.title(label)}
-          </p>
+          <p className="truncate text-caption font-semibold text-foreground">{copy.title(label)}</p>
           <p className="truncate text-xs text-muted-foreground">{copy.hint}</p>
         </div>
       </div>
@@ -72,7 +70,7 @@ export default function AddSectionStyles({
                 <StylePicture type={type} presetId={preset.id} label={label} style={preset.label} />
               </span>
               <span className="text-xs font-medium text-foreground">{preset.label}</span>
-              <span className="text-[0.6875rem] leading-4 text-muted-foreground">
+              <span className="text-micro leading-4 text-muted-foreground">
                 {preset.description}
               </span>
             </button>

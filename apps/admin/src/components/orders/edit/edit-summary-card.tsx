@@ -2,6 +2,7 @@
 
 import { Button } from '@commerce/ui/shadcn/button'
 import DataCard from '@/components/layout/data-card'
+import EmptyState from '@/components/layout/empty-state'
 import KeyValueList from '@/components/layout/key-value-list'
 import { orderEditContent } from '@/data/order-edit'
 import { useCopy, useFormat } from '@/hooks/use-copy'
@@ -68,7 +69,7 @@ export default function EditSummaryCard({
           </ul>
         </div>
       ) : (
-        <p className="mb-4 text-body text-muted-foreground">{copy.noChanges}</p>
+        <EmptyState variant="inline" body={copy.noChanges} className="mb-4" />
       )}
       {/* Label left, amount right, like the order page's payment summary (#19). */}
       <KeyValueList

@@ -1,6 +1,5 @@
 import type { CampaignRow } from '@commerce/api'
 import { formatNumber } from '@commerce/money'
-import { Badge } from '@commerce/ui/shadcn/badge'
 import { Card } from '@commerce/ui/shadcn/card'
 import {
   Table,
@@ -11,6 +10,8 @@ import {
   TableRow,
 } from '@commerce/ui/shadcn/table'
 import Link from 'next/link'
+import EmptyState from '@/components/layout/empty-state'
+import StatusChip from '@/components/layout/status-chip'
 import LinkRow from '@/components/table/link-row'
 import { growthOverviewContent } from '@/data/growth'
 import { formatPaiseWhole } from '@/lib/money'
@@ -33,7 +34,7 @@ export default function TopCampaignsCard({ rows }: TopCampaignsCardProps) {
     <Card gap="none" inset={5}>
       <p className="text-kit-title text-foreground">{copy.title}</p>
       {rows.length === 0 ? (
-        <p className="mt-5 text-kit-body text-muted-foreground">{copy.empty}</p>
+        <EmptyState variant="inline" body={copy.empty} className="mt-5" />
       ) : (
         <Table className="mt-3">
           <TableHeader>
@@ -61,7 +62,7 @@ export default function TopCampaignsCard({ rows }: TopCampaignsCardProps) {
                   {row.kind === 'utm' ? (
                     <span className="text-muted-foreground">{sourceLabel(row)}</span>
                   ) : (
-                    <Badge variant="secondary">{sourceLabel(row)}</Badge>
+                    <StatusChip dot={false}>{sourceLabel(row)}</StatusChip>
                   )}
                 </TableCell>
                 <TableCell className="text-right tabular-nums">

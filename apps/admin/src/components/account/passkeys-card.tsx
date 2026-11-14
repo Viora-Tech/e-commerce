@@ -8,6 +8,7 @@ import { useEffect, useState, useSyncExternalStore } from 'react'
 import { toast } from 'sonner'
 import ActionMenu from '@/components/layout/action-menu'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
+import EmptyState from '@/components/layout/empty-state'
 import StatusChip from '@/components/layout/status-chip'
 import SettingsCard from '@/components/settings/settings-card'
 import { accountContent } from '@/data/account'
@@ -106,7 +107,7 @@ export default function PasskeysCard() {
         {passkeys === null ? (
           <Skeleton className="h-12 w-full" />
         ) : passkeys.length === 0 ? (
-          <p className="text-body text-muted-foreground">{copy.empty}</p>
+          <EmptyState variant="inline" body={copy.empty} />
         ) : (
           <ul className="flex flex-col">
             {passkeys.map((p) => (

@@ -5,6 +5,7 @@ import { cn } from '@commerce/ui/lib/utils'
 import Link from 'next/link'
 import { useState } from 'react'
 import KitButton from '@/components/kit/kit-button'
+import EmptyState from '@/components/layout/empty-state'
 import StatusChip from '@/components/layout/status-chip'
 import SettingsCard from '@/components/settings/settings-card'
 import { seoReportContent } from '@/data/seo-report'
@@ -83,7 +84,7 @@ export default function SeoIssuesCard({ issues }: SeoIssuesCardProps) {
           ))}
         </div>
         {matching.length === 0 ? (
-          <p className="text-body text-muted-foreground">{copy.empty}</p>
+          <EmptyState variant="inline" body={copy.empty} />
         ) : (
           <ul className="flex flex-col divide-y divide-border rounded-lg border border-border">
             {visible.map((issue) => (

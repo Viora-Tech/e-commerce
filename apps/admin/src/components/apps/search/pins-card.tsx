@@ -4,6 +4,7 @@ import type { SearchPinGroup } from '@commerce/core'
 import { Plus } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import DataCard from '@/components/layout/data-card'
+import EmptyState from '@/components/layout/empty-state'
 import { searchDiscoveryContent } from '@/data/search-discovery'
 import { useCopy } from '@/hooks/use-copy'
 
@@ -37,7 +38,7 @@ export default function PinsCard({ groups, onAdd, onEdit, onRemove, busy }: Pins
       flush
     >
       {groups.length === 0 ? (
-        <p className="px-5 py-6 text-body text-muted-foreground">{c.empty}</p>
+        <EmptyState variant="inline" body={c.empty} className="mx-5 my-6" />
       ) : (
         <ul className="divide-y divide-line">
           {groups.map((g) => (

@@ -49,7 +49,7 @@ export default function SwatchRow({ label, value, onChange }: SwatchRowProps) {
           className="absolute inset-0 size-full cursor-pointer opacity-0"
         />
       </label>
-      <span className="min-w-0 flex-1 truncate text-[0.8125rem] leading-[1.1875rem] font-medium text-foreground">
+      <span className="min-w-0 flex-1 truncate text-caption leading-[1.1875rem] font-medium text-foreground">
         {label}
       </span>
       <input

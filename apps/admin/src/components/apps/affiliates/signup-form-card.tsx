@@ -10,6 +10,7 @@ import { Button } from '@commerce/ui/shadcn/button'
 import { Input } from '@commerce/ui/shadcn/input'
 import { NativeSelect, NativeSelectOption } from '@commerce/ui/shadcn/native-select'
 import { Switch } from '@commerce/ui/shadcn/switch'
+import EmptyState from '@/components/layout/empty-state'
 import SettingsCard from '@/components/settings/settings-card'
 import { affiliatesContent } from '@/data/affiliates'
 import { useCopy } from '@/hooks/use-copy'
@@ -44,7 +45,7 @@ export default function SignupFormCard({ fields, onChange }: SignupFormCardProps
 
   return (
     <SettingsCard title={f.title} description={f.description}>
-      {fields.length === 0 ? <p className="text-body text-muted-foreground">{f.empty}</p> : null}
+      {fields.length === 0 ? <EmptyState variant="inline" body={f.empty} /> : null}
       <ol className="flex flex-col gap-3">
         {fields.map((field, i) => (
           <li key={field.id} className="flex flex-col gap-2 rounded-lg border border-hairline p-3">

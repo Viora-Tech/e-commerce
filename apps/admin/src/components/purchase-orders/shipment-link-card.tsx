@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import DataCard from '@/components/layout/data-card'
+import EmptyState from '@/components/layout/empty-state'
 import { poShipmentContent } from '@/data/purchasing'
 import { useCopy } from '@/hooks/use-copy'
 import { routes } from '@/lib/routes'
@@ -26,7 +27,7 @@ export default function ShipmentLinkCard({ shipment }: ShipmentLinkCardProps) {
           {copy.on(shipment.number, shipment.reference)}
         </Link>
       ) : (
-        <p className="text-muted-foreground">{copy.none}</p>
+        <EmptyState variant="inline" body={copy.none} />
       )}
     </DataCard>
   )

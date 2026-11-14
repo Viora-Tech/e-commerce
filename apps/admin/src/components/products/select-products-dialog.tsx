@@ -10,6 +10,7 @@ import { useEffect, useId, useState } from 'react'
 import DialogContent from '@/components/layout/dialog-content'
 import DialogFooter from '@/components/layout/dialog-footer'
 import DialogHeader from '@/components/layout/dialog-header'
+import EmptyState from '@/components/layout/empty-state'
 import InlineState from '@/components/states/inline-state'
 import { selectProductsContent } from '@/data/select-products'
 import { useCopy } from '@/hooks/use-copy'
@@ -201,7 +202,10 @@ export default function SelectProductsDialog({
             </div>
           ) : empty ? (
             <div className="p-4">
-              <InlineState kind="empty" heading={selectedOnly ? copy.emptySelected : copy.empty} />
+              <EmptyState
+                variant="inline"
+                heading={selectedOnly ? copy.emptySelected : copy.empty}
+              />
             </div>
           ) : (
             <ul>

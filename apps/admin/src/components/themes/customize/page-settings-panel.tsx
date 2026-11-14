@@ -23,7 +23,7 @@ type PageSettingsPanelProps = {
   onOpenTheme: () => void
 }
 
-const LINK = `flex w-fit items-center gap-1 rounded-sm text-[0.8125rem] leading-[1.1875rem] font-medium text-link hover:underline ${CHROME_FOCUS}`
+const LINK = `flex w-fit items-center gap-1 rounded-sm text-caption leading-[1.1875rem] font-medium text-link hover:underline ${CHROME_FOCUS}`
 
 type SharedKind = ResourceKind | 'blog' | 'article'
 
@@ -69,7 +69,7 @@ export default function PageSettingsPanel({
       ) : kind && links ? (
         <div className="flex flex-col gap-2 rounded-[0.625rem] bg-muted p-3">
           {resource?.title ? (
-            <p className="text-[0.8125rem] leading-[1.1875rem] font-medium text-foreground">
+            <p className="text-caption leading-[1.1875rem] font-medium text-foreground">
               {copy.previewing(resource.title)}
             </p>
           ) : null}

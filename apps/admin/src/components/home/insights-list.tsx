@@ -2,6 +2,7 @@ import type { DashboardSummary } from '@commerce/api'
 import { formatPercent } from '@commerce/money'
 import { Sparkle } from '@commerce/ui/icons'
 import DataCard from '@/components/layout/data-card'
+import EmptyState from '@/components/layout/empty-state'
 import { homeContent } from '@/data/home'
 import { getCopy, getLocale } from '@/lib/copy-server'
 import { INTL_LOCALE, type Locale } from '@/lib/i18n'
@@ -47,7 +48,7 @@ export default async function InsightsList({ insight, needsYou, streakDays }: In
   return (
     <DataCard title={c.title}>
       {lines.length === 0 ? (
-        <p className="text-body text-muted-foreground">{c.noData}</p>
+        <EmptyState variant="inline" body={c.noData} />
       ) : (
         <ul className="flex flex-col gap-3">
           {lines.map((line) => (

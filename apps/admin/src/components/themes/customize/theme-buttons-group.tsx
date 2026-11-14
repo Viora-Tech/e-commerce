@@ -63,7 +63,7 @@ export default function ThemeButtonsGroup({ theme, mode, onChange }: ThemeButton
         style={{ backgroundColor: scheme.background }}
       >
         <span
-          className="border px-4 py-2 text-[0.8125rem] leading-[1.1875rem] font-semibold"
+          className="border px-4 py-2 text-caption leading-[1.1875rem] font-semibold"
           style={{
             backgroundColor: theme.buttons.style === 'outline' ? 'transparent' : fill,
             color: theme.buttons.style === 'outline' ? fill : ink,
@@ -75,7 +75,7 @@ export default function ThemeButtonsGroup({ theme, mode, onChange }: ThemeButton
           {copy.sample.primary}
         </span>
         <span
-          className="border px-4 py-2 text-[0.8125rem] leading-[1.1875rem] font-semibold"
+          className="border px-4 py-2 text-caption leading-[1.1875rem] font-semibold"
           style={{ color: fill, borderColor: fill, borderRadius: radius, ...letterCase }}
         >
           {copy.sample.secondary}
