@@ -14,12 +14,11 @@ import { Badge } from '@commerce/ui/shadcn/badge'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Progress } from '@commerce/ui/shadcn/progress'
 import { RadioGroup, RadioGroupItem } from '@commerce/ui/shadcn/radio-group'
-import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import DataCard from '@/components/layout/data-card'
-import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
+import SectionPageSkeleton from '@/components/layout/section-page-skeleton'
 import { aiContent } from '@/data/ai'
 import { settingsContent } from '@/data/settings'
 import { settingsRowsContent } from '@/data/settings-rows'
@@ -161,14 +160,7 @@ export default function AiSettings() {
         saving={busy}
       />
       {!loaded || !features || !usage ? (
-        <>
-          <PageHeader
-            title={copy.settings.title}
-            subtitle={copy.settings.subtitle}
-            save={{ dirty: false, saving: busy, onSave: handleSave, label: copy.settings.save }}
-          />
-          <Skeleton className="h-96 w-full rounded-2xl" />
-        </>
+        <SectionPageSkeleton />
       ) : (
         <SettingsDrill
           rows={rows}

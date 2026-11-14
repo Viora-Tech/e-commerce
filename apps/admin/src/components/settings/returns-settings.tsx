@@ -2,16 +2,17 @@
 
 import { RETURN_REASONS, type ReturnPolicy, type ReturnReason } from '@commerce/core/returns'
 import { Input } from '@commerce/ui/shadcn/input'
-import { Skeleton } from '@commerce/ui/shadcn/skeleton'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { toast } from 'sonner'
-import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
+import SectionPageSkeleton from '@/components/layout/section-page-skeleton'
 import ChoiceList from '@/components/returns/choice-list'
+import LoadFailed from '@/components/states/load-failed'
 import { returnSettingsContent as copy, returnsContent } from '@/data/returns'
 import { settingsContent } from '@/data/settings'
 import { settingsRowsContent } from '@/data/settings-rows'
 import { useCopy } from '@/hooks/use-copy'
+import { useLoad } from '@/hooks/use-load'
 import { api } from '@/lib/api-client'
 import ReturnCustomReasons from './return-custom-reasons'
 import ReturnsRulesCard from './returns-rules-card'
@@ -37,12 +38,12 @@ export default function ReturnsSettings() {
   const [saved, setSaved] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
 
-  useEffect(() => {
-    api.returns.policy().then((p) => {
-      setForm(p)
-      setSaved(JSON.stringify(p))
-    })
-  }, [])
+  const { failed, retry } = useLoad(async () => {
+    const p = await api.returns.policy()
+    setForm(p)
+    setSaved(JSON.stringify(p))
+    return p
+  })
 
   // Helpers
   const patch = (p: Partial<ReturnPolicy>) => setForm((f) => (f ? { ...f, ...p } : f))
@@ -120,15 +121,10 @@ export default function ReturnsSettings() {
         onDiscard={handleDiscard}
         saving={busy}
       />
-      {!form ? (
-        <>
-          <PageHeader
-            title={copy.title}
-            subtitle={copy.subtitle}
-            save={{ dirty: false, onSave: handleSave, label: copy.save }}
-          />
-          <Skeleton className="h-64 w-full rounded-2xl" />
-        </>
+      {failed && !form ? (
+        <LoadFailed failed={failed} onRetry={retry} />
+      ) : !form ? (
+        <SectionPageSkeleton />
       ) : (
         <SettingsDrill
           rows={rows}

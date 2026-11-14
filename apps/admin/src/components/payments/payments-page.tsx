@@ -1,12 +1,13 @@
 'use client'
 
-import { Card } from '@commerce/ui/shadcn/card'
-import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import SectionPageSkeleton from '@/components/layout/section-page-skeleton'
+import LoadFailed from '@/components/states/load-failed'
 import { paymentsSetupContent } from '@/data/payments-setup'
 import { useCopy } from '@/hooks/use-copy'
+import { useLoad } from '@/hooks/use-load'
 import { api } from '@/lib/api-client'
 import PaymentsOverview from './payments-overview'
 import SetupWizard from './setup-wizard'
@@ -28,14 +29,14 @@ export default function PaymentsPage() {
   const [setup, setSetup] = useState<PaymentsSetup | null>(null)
   const [view, setView] = useState<View | null>(null)
 
-  useEffect(() => {
-    api.payments.setup().then((s) => {
-      setSetup(s)
-      // `?view=page` opens the full page without skipping the guide (nothing is saved).
-      const forcePage = new URLSearchParams(window.location.search).get('view') === 'page'
-      setView((v) => v ?? (s.showSetup && !forcePage ? 'guide' : 'page'))
-    })
-  }, [])
+  const { failed, retry } = useLoad(async () => {
+    const s = await api.payments.setup()
+    setSetup(s)
+    // `?view=page` opens the full page without skipping the guide (nothing is saved).
+    const forcePage = new URLSearchParams(window.location.search).get('view') === 'page'
+    setView((v) => v ?? (s.showSetup && !forcePage ? 'guide' : 'page'))
+    return s
+  })
 
   // Back from "Connect Razorpay": say how it went, then drop the query.
   useEffect(() => {
@@ -63,18 +64,8 @@ export default function PaymentsPage() {
   const handleOpenGuide = () => setView('guide')
 
   // Early returns
-  if (!setup || !view) {
-    return (
-      <div className="flex flex-col gap-4">
-        <Skeleton className="h-8 w-40" />
-        <Card gap={4} inset={6}>
-          <Skeleton className="h-5 w-56" />
-          <Skeleton className="h-10 w-full" />
-          <Skeleton className="h-10 w-full" />
-        </Card>
-      </div>
-    )
-  }
+  if (failed && !setup) return <LoadFailed failed={failed} onRetry={retry} />
+  if (!setup || !view) return <SectionPageSkeleton />
 
   return view === 'guide' ? (
     <SetupWizard setup={setup} onReload={reload} onDone={handleDone} />

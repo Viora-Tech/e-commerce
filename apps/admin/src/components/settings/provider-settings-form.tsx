@@ -2,15 +2,17 @@
 
 import { Puzzle } from '@commerce/ui/icons'
 import { Card } from '@commerce/ui/shadcn/card'
-import { Skeleton } from '@commerce/ui/shadcn/skeleton'
-import { type ReactNode, useEffect, useState } from 'react'
+import { type ReactNode, useState } from 'react'
 import { toast } from 'sonner'
 import SaveErrorAlert from '@/components/approvals/save-error-alert'
 import AppStoreLink from '@/components/apps/app-store-link'
 import EmptyState from '@/components/layout/empty-state'
 import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
+import SectionPageSkeleton from '@/components/layout/section-page-skeleton'
+import LoadFailed from '@/components/states/load-failed'
 import { providerSettingsContent as copy } from '@/data/provider-settings'
+import { useLoad } from '@/hooks/use-load'
 import ProviderCard, { type ProviderDef } from './provider-card'
 import SectionTabs, { type SectionTab } from './section-tabs'
 import SettingsSection from './settings-section'
@@ -71,20 +73,6 @@ function split<Extra>(blob: ProviderState & Extra): FormState<Extra> {
   return { enabled, providers, extra: rest as Extra }
 }
 
-function LoadingCards() {
-  return (
-    <>
-      {[0, 1].map((i) => (
-        <Card key={i} gap={4} inset={6}>
-          <Skeleton className="h-5 w-40" />
-          <Skeleton className="h-10 w-full" />
-          <Skeleton className="h-10 w-full" />
-        </Card>
-      ))}
-    </>
-  )
-}
-
 /**
  * Generic "enable providers and fill their credentials" page used by
  * Payments, Shipping and Notifications. The provider list and its fields come
@@ -118,13 +106,13 @@ export default function ProviderSettingsForm<Extra extends object>({
   const [saved, setSaved] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  useEffect(() => {
-    load().then((d) => {
-      const next = split(d.settings)
-      setAvailable(d.available)
-      setForm(next)
-      setSaved(JSON.stringify(next))
-    })
+  const { failed, retry } = useLoad(async () => {
+    const d = await load()
+    const next = split(d.settings)
+    setAvailable(d.available)
+    setForm(next)
+    setSaved(JSON.stringify(next))
+    return d
   }, [load])
 
   // Helpers
@@ -201,8 +189,10 @@ export default function ProviderSettingsForm<Extra extends object>({
             id={providersSectionId ?? 'section-providers'}
             className="flex flex-col gap-4"
           >
-            {available === null ? (
-              <LoadingCards />
+            {failed && available === null ? (
+              <LoadFailed failed={failed} onRetry={retry} size="inline" />
+            ) : available === null ? (
+              <SectionPageSkeleton header={false} />
             ) : available.length === 0 ? (
               <Card>
                 <EmptyState

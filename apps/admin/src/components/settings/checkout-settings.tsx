@@ -8,13 +8,12 @@ import {
 import { Button } from '@commerce/ui/shadcn/button'
 import { Field, FieldLabel } from '@commerce/ui/shadcn/field'
 import { NativeSelect, NativeSelectOption } from '@commerce/ui/shadcn/native-select'
-import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { Switch } from '@commerce/ui/shadcn/switch'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
+import SectionPageSkeleton from '@/components/layout/section-page-skeleton'
 import ChoiceList from '@/components/returns/choice-list'
 import RolloutHoldChip from '@/components/rollouts/rollout-hold-chip'
 import CartLimitCard from '@/components/settings/cart-limit-card'
@@ -24,6 +23,7 @@ import CheckoutTextCard, { editedCount } from '@/components/settings/checkout-te
 import RupeeInput from '@/components/settings/rupee-input'
 import SettingsDrill from '@/components/settings/settings-drill'
 import SettingsDrillPanel from '@/components/settings/settings-drill-panel'
+import LoadFailed from '@/components/states/load-failed'
 import { checkoutRulesContent } from '@/data/checkout-rules'
 import {
   checkoutBrandingContent,
@@ -33,6 +33,7 @@ import {
 import { PAYMENTS_PAGE_HREF } from '@/data/payments-setup'
 import { settingsContent } from '@/data/settings'
 import { useCopy, useFormat } from '@/hooks/use-copy'
+import { useLoad } from '@/hooks/use-load'
 import { api } from '@/lib/api-client'
 import SettingsCard from './settings-card'
 
@@ -70,12 +71,14 @@ export default function CheckoutSettings() {
       .holds()
       .then((h) => setHold(h.checkout))
       .catch(() => undefined)
-    api.checkoutSettings.get().then((v) => {
-      setLoaded(v)
-      setForm(formOf(v))
-      setSaved(JSON.stringify(formOf(v)))
-    })
   }, [])
+  const { failed, retry } = useLoad(async () => {
+    const v = await api.checkoutSettings.get()
+    setLoaded(v)
+    setForm(formOf(v))
+    setSaved(JSON.stringify(formOf(v)))
+    return v
+  })
 
   // Helpers
   const patch = (p: Partial<Settings>) =>
@@ -243,15 +246,10 @@ export default function CheckoutSettings() {
         onDiscard={handleDiscard}
         saving={busy}
       />
-      {!form || !s || !loaded ? (
-        <>
-          <PageHeader
-            title={copy.title}
-            subtitle={copy.subtitle}
-            save={{ dirty: false, saving: busy, onSave: handleSave, label: copy.save }}
-          />
-          <Skeleton className="h-96 w-full rounded-2xl" />
-        </>
+      {failed && !loaded ? (
+        <LoadFailed failed={failed} onRetry={retry} />
+      ) : !form || !s || !loaded ? (
+        <SectionPageSkeleton />
       ) : (
         <SettingsDrill
           rows={rows}

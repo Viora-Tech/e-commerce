@@ -6,7 +6,6 @@ import type { RichTextValue } from '@commerce/richtext'
 import { ExternalLink, Sparkle, TriangleAlert } from '@commerce/ui/icons'
 import { Alert, AlertDescription, AlertTitle } from '@commerce/ui/shadcn/alert'
 import { Button } from '@commerce/ui/shadcn/button'
-import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
@@ -14,9 +13,11 @@ import RichTextField from '@/components/fields/rich-text-field'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
 import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
+import SectionPageSkeleton from '@/components/layout/section-page-skeleton'
 import SettingsCard from '@/components/settings/settings-card'
 import SettingsTextRow from '@/components/settings/settings-text-row'
 import SettingsToggleRow from '@/components/settings/settings-toggle-row'
+import InlineState from '@/components/states/inline-state'
 import { policyEditorContent as copy, policiesContent } from '@/data/policies'
 import { settingsContent } from '@/data/settings'
 import { useSetupNext } from '@/hooks/use-setup-next'
@@ -58,29 +59,38 @@ export default function PolicyEditor({
   const [confirming, setConfirming] = useState(false)
   const [filling, setFilling] = useState(false)
   const [busy, setBusy] = useState(false)
+  const [failed, setFailed] = useState(false)
+  const [attempt, setAttempt] = useState(0)
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `attempt` re-runs the read (Try again)
   useEffect(() => {
     let cancelled = false
-    api.policies.list().then(async (r) => {
-      const found = r.policies.find((p) => p.type === type)
-      if (!found || cancelled) return
-      const loaded = draftOf(found)
-      setPolicy(found)
-      setDraft(loaded)
-      setSaved(JSON.stringify(loaded))
-      if (startFromTemplate && found.pageId === null) {
-        const t = await api.policies.template({ type })
-        if (cancelled) return
-        // Shown on the store only once nothing is missing: a [gap] must never reach shoppers.
-        setDraft({ ...loaded, body: t.body as RichTextValue, published: t.missing.length === 0 })
-        setMissing(t.missing)
-        setEditorKey((k) => k + 1)
-      }
-    })
+    setFailed(false)
+    api.policies
+      .list()
+      .then(async (r) => {
+        const found = r.policies.find((p) => p.type === type)
+        if (!found || cancelled) return
+        const loaded = draftOf(found)
+        setPolicy(found)
+        setDraft(loaded)
+        setSaved(JSON.stringify(loaded))
+        if (startFromTemplate && found.pageId === null) {
+          const t = await api.policies.template({ type })
+          if (cancelled) return
+          // Shown on the store only once nothing is missing: a [gap] must never reach shoppers.
+          setDraft({ ...loaded, body: t.body as RichTextValue, published: t.missing.length === 0 })
+          setMissing(t.missing)
+          setEditorKey((k) => k + 1)
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setFailed(true)
+      })
     return () => {
       cancelled = true
     }
-  }, [type, startFromTemplate])
+  }, [type, startFromTemplate, attempt])
 
   // Helpers
   const fillTemplate = async () => {
@@ -178,8 +188,10 @@ export default function PolicyEditor({
           ) : null
         }
       />
-      {!draft ? (
-        <Skeleton className="h-96 w-full rounded-2xl" />
+      {failed && !draft ? (
+        <InlineState kind="error" onRetry={() => setAttempt((n) => n + 1)} />
+      ) : !draft ? (
+        <SectionPageSkeleton header={false} cards={1} fields={4} />
       ) : (
         <>
           {missing.length > 0 ? (

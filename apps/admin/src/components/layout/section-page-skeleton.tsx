@@ -10,6 +10,8 @@ type SectionPageSkeletonProps = {
   /** The page's own title and line, once the page knows them (it renders this while it loads). */
   title?: string
   subtitle?: string
+  /** `false` when the page already shows its real header above the cards. */
+  header?: boolean
 }
 
 /**
@@ -24,11 +26,12 @@ export default function SectionPageSkeleton({
   fields = 3,
   title,
   subtitle,
+  header = true,
 }: SectionPageSkeletonProps) {
   // Render logic
   return (
     <div className="flex flex-col gap-4" aria-busy="true">
-      {title ? (
+      {!header ? null : title ? (
         <PageHeader title={title} subtitle={subtitle} />
       ) : (
         <PageHeaderSkeleton actions={0} />

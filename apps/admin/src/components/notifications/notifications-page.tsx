@@ -2,22 +2,23 @@
 
 import { PlugConnect } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import { Card } from '@commerce/ui/shadcn/card'
-import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import Link from 'next/link'
 import { useQueryState } from 'nuqs'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import SectionPageSkeleton from '@/components/layout/section-page-skeleton'
 import HelpFooter from '@/components/payments/help-footer'
 import HealthLine from '@/components/settings/health-line'
 import SettingsDrill from '@/components/settings/settings-drill'
 import SettingsDrillPanel from '@/components/settings/settings-drill-panel'
 import SettingsTable from '@/components/settings/settings-table'
 import WhatsThisHelp from '@/components/settings/whats-this-help'
+import LoadFailed from '@/components/states/load-failed'
 import { type MessageGroupId, notificationsSettingsContent } from '@/data/notifications'
 import { senderEmailContent } from '@/data/sender-email'
 import { settingsRowsContent } from '@/data/settings-rows'
 import { useCopy } from '@/hooks/use-copy'
+import { useLoad } from '@/hooks/use-load'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
 import AdvancedSection from './advanced-section'
@@ -67,9 +68,11 @@ export default function NotificationsPage() {
   const [senderEmail, setSenderEmail] = useState<SenderEmailOverview | null>(null)
   const [openRow] = useQueryState('open')
 
-  useEffect(() => {
-    api.notifications.overview().then(setData)
-  }, [])
+  const { failed, retry } = useLoad(async () => {
+    const overview = await api.notifications.overview()
+    setData(overview)
+    return overview
+  })
   // The Sender email row shows the address (#68); reload it on the way back from its detail.
   // biome-ignore lint/correctness/useExhaustiveDependencies: `openRow` re-runs the load
   useEffect(() => {
@@ -158,19 +161,8 @@ export default function NotificationsPage() {
   }
 
   // Early returns
-  if (!data) {
-    return (
-      <div className="flex flex-col gap-4">
-        <Skeleton className="h-8 w-48" />
-        <Skeleton className="h-16 w-full" />
-        <Card gap={4} inset={6}>
-          <Skeleton className="h-5 w-56" />
-          <Skeleton className="h-12 w-full" />
-          <Skeleton className="h-12 w-full" />
-        </Card>
-      </div>
-    )
-  }
+  if (failed && !data) return <LoadFailed failed={failed} onRetry={retry} />
+  if (!data) return <SectionPageSkeleton />
 
   // Render logic
   // The platform's SES account sends for the store when it has no email app of its own.

@@ -6,12 +6,12 @@ import { InfoIcon } from '@commerce/ui/icons'
 import { Alert, AlertDescription, AlertTitle } from '@commerce/ui/shadcn/alert'
 import { Badge } from '@commerce/ui/shadcn/badge'
 import { Button } from '@commerce/ui/shadcn/button'
-import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
+import SectionPageSkeleton from '@/components/layout/section-page-skeleton'
 import StatusChip from '@/components/layout/status-chip'
 import { policiesContent as copy } from '@/data/policies'
 import { settingsContent } from '@/data/settings'
@@ -152,7 +152,7 @@ export default function PoliciesSettings() {
             save={{ dirty: false, saving: busy, onSave: handleSave, label: copy.save }}
           />
           {disclaimer}
-          <Skeleton className="h-64 w-full rounded-2xl" />
+          <SectionPageSkeleton header={false} />
         </>
       ) : (
         <SettingsDrill

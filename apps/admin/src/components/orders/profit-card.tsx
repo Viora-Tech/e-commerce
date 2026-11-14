@@ -9,6 +9,7 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import DataCard from '@/components/layout/data-card'
+import DataCardSkeleton from '@/components/layout/data-card-skeleton'
 import StatusChip from '@/components/layout/status-chip'
 import TotalsList, { type TotalsLine } from '@/components/layout/totals-list'
 import { profitCardContent } from '@/data/order-cards'
@@ -49,6 +50,7 @@ export default function ProfitCard({ orderId, shipment }: ProfitCardProps) {
   )
   const [saving, setSaving] = useState(false)
   const [reloadKey, setReloadKey] = useState(0)
+  const [hidden, setHidden] = useState(false)
 
   useEffect(() => {
     // reloadKey re-runs the fetch after a courier charge is saved.
@@ -59,8 +61,10 @@ export default function ProfitCard({ orderId, shipment }: ProfitCardProps) {
       .then((p) => {
         if (live) setProfit(p)
       })
-      // Staff without analytics access see no profit card.
-      .catch(() => undefined)
+      // Staff without analytics access (or a failed read) see no profit card.
+      .catch(() => {
+        if (live) setHidden(true)
+      })
     return () => {
       live = false
     }
@@ -87,7 +91,9 @@ export default function ProfitCard({ orderId, shipment }: ProfitCardProps) {
   }
 
   // Early returns
-  if (!profit) return null
+  if (hidden && !profit) return null
+  // A card of the loaded one's size while the figures load, so the side column does not jump.
+  if (!profit) return <DataCardSkeleton fields={0} lines={7} />
 
   // Render logic
   // [label, paise, a cost taken off (shown with a minus), shown at all]

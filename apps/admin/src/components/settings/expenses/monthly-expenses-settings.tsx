@@ -4,15 +4,16 @@ import type { ExpenseVersion } from '@commerce/core/expenses'
 import { permissions } from '@commerce/core/permissions'
 import { Plus, Trash2 } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
 import EmptyState from '@/components/layout/empty-state'
 import PageHeader from '@/components/layout/page-header'
+import SectionPageSkeleton from '@/components/layout/section-page-skeleton'
 import StatStrip from '@/components/layout/stat-strip'
 import SettingsLinkRow from '@/components/settings/settings-link-row'
 import SettingsList from '@/components/settings/settings-list'
+import InlineState from '@/components/states/inline-state'
 import { monthlyExpensesContent } from '@/data/monthly-expenses'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { usePermissions } from '@/hooks/use-permissions'
@@ -37,14 +38,21 @@ export default function MonthlyExpensesSettings() {
   const [editing, setEditing] = useState<Editing>(null)
   const [deleting, setDeleting] = useState<ExpenseVersion | null>(null)
   const [reloadKey, setReloadKey] = useState(0)
+  const [failed, setFailed] = useState(false)
 
   useEffect(() => {
     // reloadKey re-runs the fetch after a save or delete.
     if (reloadKey < 0) return
     let live = true
-    api.monthlyExpenses.list().then((v) => {
-      if (live) setView(v)
-    })
+    setFailed(false)
+    api.monthlyExpenses
+      .list()
+      .then((v) => {
+        if (live) setView(v)
+      })
+      .catch(() => {
+        if (live) setFailed(true)
+      })
     return () => {
       live = false
     }
@@ -90,8 +98,10 @@ export default function MonthlyExpensesSettings() {
   return (
     <div className="flex flex-col gap-4">
       <PageHeader title={copy.title} subtitle={copy.intro} actions={addButton} />
-      {!view ? (
-        <Skeleton className="h-64 w-full rounded-2xl" />
+      {failed && !view ? (
+        <InlineState kind="error" onRetry={() => setReloadKey((k) => k + 1)} />
+      ) : !view ? (
+        <SectionPageSkeleton header={false} cards={1} />
       ) : (
         <>
           <StatStrip
