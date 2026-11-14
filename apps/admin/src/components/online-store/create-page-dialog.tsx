@@ -58,7 +58,7 @@ export default function CreatePageDialog({ open, onOpenChange }: CreatePageDialo
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent busy={busy}>
         <DialogHeader>
           <DialogTitle>{copy.title}</DialogTitle>
         </DialogHeader>

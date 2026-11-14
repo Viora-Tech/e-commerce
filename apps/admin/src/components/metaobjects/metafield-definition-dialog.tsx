@@ -151,7 +151,7 @@ export default function MetafieldDefinitionDialog({
 
   return (
     <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
-      <DialogContent>
+      <DialogContent busy={busy}>
         <DialogHeader>
           <DialogTitle>{definition ? copy.editTitle : copy.addTitle(owner)}</DialogTitle>
         </DialogHeader>

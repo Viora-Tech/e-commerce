@@ -75,7 +75,7 @@ export default function ImportRedirectsDialog({ onClose, onImported }: ImportRed
 
   return (
     <Dialog open onOpenChange={(open) => (!open ? onClose() : undefined)}>
-      <DialogContent>
+      <DialogContent busy={busy}>
         <DialogHeader>
           <DialogTitle>{copy.title}</DialogTitle>
           <DialogDescription>{copy.body}</DialogDescription>

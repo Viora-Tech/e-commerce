@@ -188,7 +188,7 @@ export default function RuleDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent size="wide">
+      <DialogContent busy={busy} size="wide">
         <DialogHeader>
           <DialogTitle>{rule ? d.editTitle : d.addTitle}</DialogTitle>
         </DialogHeader>

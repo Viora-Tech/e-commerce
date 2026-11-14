@@ -177,7 +177,7 @@ export default function NdrTab() {
       </Table>
 
       <Dialog open={dialog !== null} onOpenChange={(open) => !open && setDialog(null)}>
-        <DialogContent>
+        <DialogContent busy={busy}>
           <DialogHeader>
             <DialogTitle>{dialog ? copy.actions[dialog.action] : ''}</DialogTitle>
           </DialogHeader>

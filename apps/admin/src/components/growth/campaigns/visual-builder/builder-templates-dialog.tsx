@@ -187,7 +187,7 @@ export default function BuilderTemplatesDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent size="wide">
+      <DialogContent busy={busy} size="wide">
         <DialogHeader>
           <DialogTitle>{g.title}</DialogTitle>
           <DialogDescription>{g.body}</DialogDescription>

@@ -97,7 +97,7 @@ export default function DeleteAccountDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent>
+      <DialogContent busy={busy}>
         <form onSubmit={codeSent ? handleDelete : handleSendCode} className="flex flex-col gap-4">
           <DialogHeader>
             <DialogTitle>{copy.title}</DialogTitle>

@@ -84,7 +84,7 @@ export default function ManageChannelDialog({
   return (
     <>
       <Dialog open={open && !confirming} onOpenChange={onOpenChange}>
-        <DialogContent>
+        <DialogContent busy={busy !== null}>
           <DialogHeader>
             <DialogTitle>{copy.title(name)}</DialogTitle>
             <DialogDescription className="sr-only">{copy.title(name)}</DialogDescription>

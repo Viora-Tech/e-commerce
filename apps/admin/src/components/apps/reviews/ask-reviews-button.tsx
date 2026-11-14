@@ -102,7 +102,7 @@ export default function AskReviewsButton() {
         {copy.ask}
       </Button>
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent>
+        <DialogContent busy={busy}>
           <DialogHeader>
             <DialogTitle>{past.title}</DialogTitle>
             <DialogDescription>{past.body}</DialogDescription>

@@ -47,7 +47,7 @@ export default function RejectDialog({ returnId, open, onClose, onDone }: Reject
 
   return (
     <Dialog open={open} onOpenChange={(o) => (!o ? onClose() : undefined)}>
-      <DialogContent>
+      <DialogContent busy={busy} dirty={note.trim() !== ''}>
         <form onSubmit={handleSubmit} className="flex flex-col gap-5">
           <DialogHeader>
             <DialogTitle>{copy.title}</DialogTitle>

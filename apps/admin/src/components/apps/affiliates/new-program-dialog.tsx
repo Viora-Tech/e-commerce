@@ -53,7 +53,7 @@ export default function NewProgramDialog({ open, onOpenChange }: NewProgramDialo
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent busy={busy}>
         <form onSubmit={handleCreate} className="flex flex-col gap-4">
           <DialogHeader>
             <DialogTitle>{copy.title}</DialogTitle>

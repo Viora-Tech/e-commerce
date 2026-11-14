@@ -110,7 +110,7 @@ export default function CreateTokenDialog({
     const shown = `${created.token.slice(0, 13)}${'â€¢'.repeat(16)}${created.token.slice(-4)}`
     return (
       <Dialog open={open} onOpenChange={(o) => (o ? null : handleDone())}>
-        <DialogContent>
+        <DialogContent busy={busy}>
           <DialogHeader>
             <DialogTitle>{copy.shown.title}</DialogTitle>
             <DialogDescription>{copy.shown.intro}</DialogDescription>
