@@ -48,11 +48,14 @@ export type BookingCalls = {
   config: Pick<RapidshypConfig, 'storeName' | 'pickupAddressName'>
   post: <T>(path: string, body: unknown) => Promise<T>
   assignAwb: (shipmentId: string, courierCode?: string) => Promise<{ awb: string }>
-  /** The order's shipment id from Track Order by order id: create_order's answer has none. */
+  /**
+   * The order's shipment id from Track Order by order id (create_order's answer has none), and
+   * what Track Order said, for the staff message when it is not there.
+   */
   findShipmentId: (
     orderRef: string,
     contact: { phone: string; email?: string | undefined },
-  ) => Promise<string | undefined>
+  ) => Promise<{ id: string | undefined; said: string }>
   /** Waits between lookups; tests pass one that does not. */
   wait?: (ms: number) => Promise<void>
   cancel: (orderId: string) => Promise<void>
@@ -112,19 +115,28 @@ async function shipmentIdOf(
   input: CreateShipmentInput,
   result: CreateOrderOnlyResponse,
   orderRef: string,
-): Promise<string | undefined> {
+): Promise<{ id: string | undefined; said: string }> {
   const direct = createdShipmentId(result)
-  if (direct) return direct
+  if (direct) return { id: direct, said: '' }
   const wait = calls.wait ?? ((ms: number) => new Promise<void>((r) => setTimeout(r, ms)))
+  let said = 'not asked'
   for (const ms of SHIPMENT_LOOKUP_WAITS_MS) {
     if (ms > 0) await wait(ms)
-    const id = await calls
+    const found = await calls
       .findShipmentId(orderRef, { phone: input.to.phone, email: input.to.email })
-      .catch(() => undefined)
-    if (id) return id
+      .catch((error: unknown) => ({
+        id: undefined,
+        said: `failed: ${error instanceof Error ? error.message : String(error)}`,
+      }))
+    if (found.id) return found
+    said = found.said
   }
-  return undefined
+  return { id: undefined, said }
 }
+
+/** What create_order answered, short, for a staff message: its remark and the fields it had. */
+const createAnswer = (r: CreateOrderOnlyResponse) =>
+  `"${r.remarks ?? r.status ?? ''}", fields ${Object.keys(r).join(', ') || 'none'}, shipment ${JSON.stringify(r.shipment ?? null).slice(0, 80)}`
 
 /** The picked courier as the merchant saw it, for messages. */
 const courierName = (input: CreateShipmentInput) =>
@@ -213,7 +225,7 @@ export async function pushRapidshypOrder(
   // Without it a later booking would make a second order on RapidShyp: look it up now.
   return {
     externalOrderId,
-    externalShipmentId: await shipmentIdOf(calls, input, result, externalOrderId),
+    externalShipmentId: (await shipmentIdOf(calls, input, result, externalOrderId)).id,
   }
 }
 
@@ -258,13 +270,14 @@ async function bookChosen(
   }
   // cancel_order takes the id RapidShyp echoes back, which is the one we sent for "DEFAULT".
   const orderRef = result.order_id ? String(result.order_id) : ref
-  const shipmentId = await shipmentIdOf(calls, input, result, orderRef)
+  const lookup = await shipmentIdOf(calls, input, result, orderRef)
+  const shipmentId = lookup.id
   if (!shipmentId) {
     const note = await takeBack(calls, orderRef)
     throw new CourierError(
       'bad_response',
       calls.provider,
-      `RapidShyp created order ${orderRef} but sent back no shipment id, so ${courierName(input)} could not be assigned. ${note}`,
+      `RapidShyp created order ${orderRef} but sent back no shipment id, so ${courierName(input)} could not be assigned. ${note} (create_order: ${createAnswer(result)}; track_order: ${lookup.said})`,
     )
   }
   let awb: string
