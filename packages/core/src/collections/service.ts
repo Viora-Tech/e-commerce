@@ -11,7 +11,7 @@ import { and, asc, eq, inArray, isNull, sql } from 'drizzle-orm'
 import { slugify } from '../catalog/products'
 import { onHandleChange } from '../redirects/handle-change'
 import { type CollectionRules, type RuleProduct, selectMembers } from './rules'
-import { type CollectionWrite, InvalidCollection } from './schemas'
+import { type CollectionPatch, type CollectionWrite, InvalidCollection } from './schemas'
 
 /** First free handle: `slug`, then `slug-2`… ignoring the collection being edited. */
 export async function uniqueCollectionHandle(
@@ -171,7 +171,7 @@ export async function previewRules(tx: StoreTx, rules: CollectionRules): Promise
   return selectMembers(products, rules).length
 }
 
-function validate(write: CollectionWrite): void {
+function validate(write: Pick<CollectionWrite, 'kind' | 'rules'>): void {
   const errors: string[] = []
   if (write.kind === 'automatic' && (write.rules?.conditions.length ?? 0) === 0) {
     errors.push('An automatic collection needs at least one condition')
@@ -196,21 +196,21 @@ function collectionRow(write: CollectionWrite) {
 
 /**
  * A save changes only what it sends: a left-out field keeps its value, and `null` clears it.
- * Sent with `title` and `kind` alone, the row used to lose its image and description (#1186).
+ * Sent with `title` alone, the row used to lose its image and description (#1186).
  */
-function collectionPatch(write: CollectionWrite) {
-  const row = collectionRow(write)
+function collectionPatch(write: CollectionPatch) {
+  const has = (key: keyof CollectionPatch) => write[key] !== undefined
   return {
-    title: row.title,
-    kind: row.kind,
-    ...(write.description === undefined ? {} : { description: row.description }),
-    ...(write.imageMediaId === undefined ? {} : { imageMediaId: row.imageMediaId }),
-    ...(write.rules === undefined ? {} : { rules: row.rules }),
-    ...(write.sortOrder === undefined ? {} : { sortOrder: row.sortOrder }),
-    ...(write.seoTitle === undefined ? {} : { seoTitle: row.seoTitle }),
-    ...(write.seoDescription === undefined ? {} : { seoDescription: row.seoDescription }),
-    ...(write.templateSuffix === undefined ? {} : { templateSuffix: row.templateSuffix }),
-    ...(write.status === undefined ? {} : { status: row.status }),
+    ...(has('title') ? { title: write.title } : {}),
+    ...(has('kind') ? { kind: write.kind } : {}),
+    ...(has('description') ? { description: write.description ?? null } : {}),
+    ...(has('imageMediaId') ? { imageMediaId: write.imageMediaId ?? null } : {}),
+    ...(has('rules') ? { rules: write.rules } : {}),
+    ...(has('sortOrder') ? { sortOrder: write.sortOrder } : {}),
+    ...(has('seoTitle') ? { seoTitle: write.seoTitle || null } : {}),
+    ...(has('seoDescription') ? { seoDescription: write.seoDescription || null } : {}),
+    ...(has('templateSuffix') ? { templateSuffix: write.templateSuffix || null } : {}),
+    ...(has('status') ? { status: write.status } : {}),
   }
 }
 
@@ -232,19 +232,24 @@ export async function updateCollection(
   tx: StoreTx,
   storeId: string,
   id: string,
-  write: CollectionWrite,
+  write: CollectionPatch,
 ): Promise<void> {
-  validate(write)
-  const before = (
-    await tx.select({ handle: collection.handle }).from(collection).where(eq(collection.id, id))
-  ).at(0)?.handle
-  const handle = write.handle ? await uniqueCollectionHandle(tx, write.handle, id) : before
+  const [before] = await tx
+    .select({ handle: collection.handle, kind: collection.kind, rules: collection.rules })
+    .from(collection)
+    .where(eq(collection.id, id))
+  if (!before) return
+  /* Check the collection as it will be after the save, not only what was sent: switching to
+     automatic without rules is fine when it already has some. */
+  const kind = write.kind ?? before.kind
+  validate({ kind, rules: write.rules ?? (before.rules as CollectionRules | null) ?? undefined })
+  const handle = write.handle ? await uniqueCollectionHandle(tx, write.handle, id) : before.handle
   await tx
     .update(collection)
     .set({ ...collectionPatch(write), handle, updatedAt: new Date() })
     .where(eq(collection.id, id))
-  await onHandleChange(tx, storeId, 'collection', before, handle)
-  if (write.kind === 'automatic') await syncAutomaticCollection(tx, storeId, id)
+  await onHandleChange(tx, storeId, 'collection', before.handle, handle)
+  if (kind === 'automatic') await syncAutomaticCollection(tx, storeId, id)
   else if (write.productIds) await writeMembers(tx, storeId, id, write.productIds)
 }
 

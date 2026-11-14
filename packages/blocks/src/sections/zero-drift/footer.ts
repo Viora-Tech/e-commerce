@@ -30,6 +30,8 @@ export type FooterSettings = {
   showPaymentIcons: boolean
   paymentIcons: { method: PaymentMethod }[]
   showPolicies: boolean
+  /** "Cookie settings" in the bottom bar, so a shopper can change their cookie answer. */
+  showCookieSettings: boolean
   showNewsletter: boolean
   newsletterHeading: ReactNode
   newsletterButton: ReactNode
@@ -48,6 +50,7 @@ const DEFAULTS: FooterSettings = {
   showPaymentIcons: true,
   paymentIcons: copy.paymentIcons.map((p) => ({ ...p })),
   showPolicies: true,
+  showCookieSettings: true,
   showNewsletter: true,
   newsletterHeading: copy.newsletterHeading,
   newsletterButton: copy.newsletterButton,
@@ -95,6 +98,7 @@ const FIELDS = {
     },
   },
   showPolicies: showHide(copy.fields.showPolicies),
+  showCookieSettings: showHide(copy.fields.showCookieSettings),
   showNewsletter: showHide(copy.fields.showNewsletter),
   newsletterHeading: inlineText(copy.fields.newsletterHeading),
   newsletterButton: inlineText(copy.fields.newsletterButton),
@@ -138,6 +142,8 @@ export function footerSettings(s: Record<string, unknown>): FooterSettings {
       .filter((m): m is PaymentMethod => typeof m === 'string' && PAYMENTS.has(m))
       .map((method) => ({ method })),
     showPolicies: flag(s.showPolicies, DEFAULTS.showPolicies),
+    // On unless turned off: a footer saved before this setting keeps its link.
+    showCookieSettings: flag(s.showCookieSettings, DEFAULTS.showCookieSettings),
     showNewsletter: flag(s.showNewsletter, DEFAULTS.showNewsletter),
     newsletterHeading: copyValue(s.newsletterHeading, DEFAULTS.newsletterHeading),
     newsletterButton: copyValue(s.newsletterButton, DEFAULTS.newsletterButton),

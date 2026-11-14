@@ -4,7 +4,7 @@ export const cookieBannerContent = {
   regionLabel: 'Cookie consent',
   heading: 'We use cookies',
   message:
-    '<p>We use cookies to run the store, remember what is in your cart and understand how the site is used. You choose what else we may use them for.</p>',
+    '<p>We use cookies to run the store, remember what is in your cart and understand how the site is used. You choose what else we may use them for, and you can change this any time from Cookie settings at the bottom of the page.</p>',
   policyLabel: 'Read our privacy policy',
   acceptLabel: 'Accept all',
   declineLabel: 'Reject all',

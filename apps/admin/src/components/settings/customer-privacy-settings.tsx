@@ -184,11 +184,11 @@ export default function CustomerPrivacySettings() {
                   />
                   <p className="text-caption text-muted-foreground">
                     {copy.banner.stats(
+                      overview.bannerShown30Days,
                       overview.consent30Days.total,
                       overview.consent30Days.analytics,
                       overview.consent30Days.marketing,
-                    )}{' '}
-                    {copy.banner.shown(overview.bannerShown30Days)}
+                    )}
                   </p>
                 </SettingsRow>
                 <div className="flex flex-col gap-2 pt-5 sm:flex-row sm:items-center sm:justify-between">
