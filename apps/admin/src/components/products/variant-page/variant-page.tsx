@@ -172,7 +172,7 @@ export default function VariantPage({ product, variantId }: VariantPageProps) {
   const imageUrl = chosenItems(draft.mediaIds, form.media)[0]?.url ?? form.media[0]?.url
 
   return (
-    <div className="mx-auto flex w-full max-w-[75rem] flex-col gap-6 px-4 pt-4 pb-6 md:px-8 md:pt-5 md:pb-8">
+    <div className="mx-auto flex w-full max-w-[75rem] flex-col gap-6 px-4 pt-4 pb-6 md:px-6 md:pt-5 md:pb-8">
       <SaveBar
         open={dirty}
         message={formCopy.saveBar.message}

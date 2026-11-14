@@ -163,7 +163,7 @@ export default function QueryReportView({
   const dirty = saved !== null && (history.text !== saved.source || name !== saved.name)
 
   return (
-    <div className="flex w-full flex-col gap-5 px-4 py-6 md:px-8">
+    <div className="flex w-full flex-col gap-5 px-4 py-6 md:px-6">
       <QueryHeader
         name={name}
         ran={ran}

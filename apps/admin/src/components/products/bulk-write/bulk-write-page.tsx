@@ -164,7 +164,7 @@ export default function BulkWritePage({
 
   return (
     // The detail pages' centred frame (proofly-detail-page), so the page has its side gutters.
-    <div className="mx-auto flex w-full max-w-[75rem] flex-col gap-4 px-4 pt-4 pb-6 md:px-8 md:pt-5 md:pb-8">
+    <div className="mx-auto flex w-full max-w-[75rem] flex-col gap-4 px-4 pt-4 pb-6 md:px-6 md:pt-5 md:pb-8">
       <PageHeader
         title={copy.bulk.title}
         subtitle={copy.bulk.subtitle(count)}

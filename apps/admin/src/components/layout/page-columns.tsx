@@ -8,7 +8,8 @@ type PageColumnsProps = {
 
 /**
  * Detail-page layout after the Saleor Dashboard (BSD-3): a fluid main column and a
- * fixed side column of summary cards (status, organisation, customer), 20px apart.
+ * fixed 23.5rem side column of summary cards (status, organisation, customer), 1.5rem apart,
+ * the same as the Proofly detail frame and the order page.
  * On desktop the shorter column stays in view. Stacks main then side below 64rem.
  */
 export default function PageColumns({ main, side }: PageColumnsProps) {
@@ -16,7 +17,8 @@ export default function PageColumns({ main, side }: PageColumnsProps) {
     <StickyColumns
       main={main}
       side={side}
-      className="gap-5 lg:grid-cols-[minmax(0,1fr)_20rem] xl:grid-cols-[minmax(0,1fr)_22rem]"
+      gap={6}
+      className="gap-6 lg:grid-cols-[minmax(0,1fr)_23.5rem]"
     />
   )
 }
