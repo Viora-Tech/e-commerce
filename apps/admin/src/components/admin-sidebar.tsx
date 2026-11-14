@@ -98,6 +98,7 @@ const SIDEBAR_MENU = 'w-60 rounded-sm p-1'
 function withAppRows(
   items: NavItem[],
   shown: AdminSidebarProps['apps'],
+  installed: AdminSidebarProps['apps'],
   viewMore: string,
 ): NavItem[] {
   if (shown.length === 0) return items
@@ -108,7 +109,13 @@ function withAppRows(
       icon: appIcon(a.icon),
       base: routes.apps.page(a.id),
     })),
-    { href: routes.apps.list(), label: viewMore, icon: LayoutGrid },
+    {
+      href: routes.apps.list(),
+      label: viewMore,
+      icon: LayoutGrid,
+      // An app's own pages sit under `/apps` too: only its row lights up there, not View more.
+      excludes: installed.map((a) => routes.apps.page(a.id)),
+    },
   ]
 }
 
@@ -277,6 +284,7 @@ export default function AdminSidebar({
                 ? withAppRows(
                     localizeNavItems(group.items, locale),
                     orderSidebarApps(apps, recent, currentId),
+                    apps,
                     copy.viewMoreApps,
                   )
                 : localizeNavItems(group.items, locale)
