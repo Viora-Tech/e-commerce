@@ -109,6 +109,7 @@ export default function RecommendationsCard({ initial }: RecommendationsCardProp
                   variant="ghost"
                   size="icon-sm"
                   aria-label={copy.dismiss}
+                  loading={busy === `dismiss:${r.id}`}
                   disabled={busy !== null}
                   onClick={() => void handleDismiss(r)}
                 >

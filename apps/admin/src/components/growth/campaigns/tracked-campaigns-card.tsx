@@ -1,15 +1,9 @@
 'use client'
 
 import type { CampaignPerformanceRow } from '@commerce/api'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@commerce/ui/shadcn/table'
+import { TableCell, TableRow } from '@commerce/ui/shadcn/table'
 import DataCard from '@/components/layout/data-card'
+import SimpleTable from '@/components/table/simple-table'
 import { growthCampaignTabsContent } from '@/data/growth-home'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 
@@ -29,30 +23,28 @@ export default function TrackedCampaignsCard({ rows }: TrackedCampaignsCardProps
 
   return (
     <DataCard title={copy.title} subtitle={copy.subtitle} flush>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>{c.campaign}</TableHead>
-            <TableHead className="text-right">{c.links}</TableHead>
-            <TableHead className="text-right">{c.sessions}</TableHead>
-            <TableHead className="text-right">{c.orders}</TableHead>
-            <TableHead className="text-right">{c.sales}</TableHead>
-            <TableHead className="text-right">{c.updated}</TableHead>
+      <SimpleTable
+        className="min-w-[40rem]"
+        columns={[
+          { key: 'campaign', label: c.campaign },
+          { key: 'links', label: c.links, align: 'end' },
+          { key: 'sessions', label: c.sessions, align: 'end' },
+          { key: 'orders', label: c.orders, align: 'end' },
+          { key: 'sales', label: c.sales, align: 'end' },
+          { key: 'updated', label: c.updated, align: 'end' },
+        ]}
+      >
+        {rows.map((r) => (
+          <TableRow key={r.key}>
+            <TableCell className="text-body-strong">{r.name}</TableCell>
+            <TableCell className="text-right tabular-nums">{fmt.number(r.links)}</TableCell>
+            <TableCell className="text-right tabular-nums">{fmt.number(r.sessions)}</TableCell>
+            <TableCell className="text-right tabular-nums">{fmt.number(r.orders)}</TableCell>
+            <TableCell className="text-right tabular-nums">{fmt.money(r.salesPaise)}</TableCell>
+            <TableCell className="text-right">{fmt.date(r.updatedAt)}</TableCell>
           </TableRow>
-        </TableHeader>
-        <TableBody>
-          {rows.map((r) => (
-            <TableRow key={r.key}>
-              <TableCell className="text-body-strong">{r.name}</TableCell>
-              <TableCell className="text-right tabular-nums">{fmt.number(r.links)}</TableCell>
-              <TableCell className="text-right tabular-nums">{fmt.number(r.sessions)}</TableCell>
-              <TableCell className="text-right tabular-nums">{fmt.number(r.orders)}</TableCell>
-              <TableCell className="text-right tabular-nums">{fmt.money(r.salesPaise)}</TableCell>
-              <TableCell className="text-right">{fmt.date(r.updatedAt)}</TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+        ))}
+      </SimpleTable>
     </DataCard>
   )
 }

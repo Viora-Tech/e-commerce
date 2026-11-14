@@ -1,8 +1,7 @@
 'use client'
 
-import { Pencil, RotateCcw } from '@commerce/ui/icons'
+import { Pencil } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import { Card } from '@commerce/ui/shadcn/card'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
@@ -11,6 +10,7 @@ import PageHeader from '@/components/layout/page-header'
 import StatusChip from '@/components/layout/status-chip'
 import SettingsCard from '@/components/settings/settings-card'
 import SettingsRow from '@/components/settings/settings-row'
+import PageState from '@/components/states/page-state'
 import { accountContent } from '@/data/account'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -62,21 +62,15 @@ export default function SecurityPage() {
   const copy = content.security
   if (failed) {
     return (
-      <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-6">
         <PageHeader title={copy.title} />
-        <Card gap={3} inset={6} className="items-start">
-          <p className="text-body text-muted-foreground">{copy.loadFailed}</p>
-          <Button variant="outline" onClick={handleRetry}>
-            <RotateCcw aria-hidden="true" />
-            {copy.retry}
-          </Button>
-        </Card>
+        <PageState kind="error" heading={copy.loadFailed} onRetry={handleRetry} />
       </div>
     )
   }
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-6">
       <PageHeader title={copy.title} subtitle={copy.intro} />
       <SettingsCard id="email" title={copy.email.heading} description={copy.email.body}>
         <SettingsRow label={copy.email.label}>

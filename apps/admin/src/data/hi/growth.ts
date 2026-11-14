@@ -115,6 +115,7 @@ export default [
   translation(growthLinksContent, {
     title: 'लिंक',
     resource: { singular: 'लिंक', plural: 'लिंक' },
+    loadFailed: 'लिंक लोड नहीं हो पाए',
     summary: (links: number, clicks: string, orders: string) =>
       `${links} छोटे लिंक · ${clicks} क्लिक · ${orders} ऑर्डर`,
     trend: {

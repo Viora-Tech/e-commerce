@@ -28,7 +28,7 @@ export default function RolloutConflictsBanner({ conflicts }: RolloutConflictsBa
   const Icon = blocking ? CircleAlert : TriangleAlert
 
   return (
-    <Alert variant={blocking ? 'destructive' : 'default'}>
+    <Alert tone={blocking ? 'danger' : 'warning'}>
       <Icon />
       <AlertTitle>{blocking ? copy.block : copy.warn}</AlertTitle>
       <AlertDescription>

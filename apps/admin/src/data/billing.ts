@@ -128,6 +128,7 @@ export const billingContent = {
   },
   bills: {
     heading: 'Invoices',
+    columns: { invoice: 'Invoice', period: 'Plan and period', amount: 'Amount', status: 'Status' },
     period: (plan: string, from: string, to: string) => `${plan} · ${from} – ${to}`,
     gst: 'incl. 18% GST',
     pay: 'Pay',

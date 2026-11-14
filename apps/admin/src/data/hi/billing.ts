@@ -121,6 +121,7 @@ export default [
     },
     bills: {
       heading: 'इनवॉइस',
+      columns: { invoice: 'इनवॉइस', period: 'प्लान और अवधि', amount: 'रकम', status: 'स्थिति' },
       period: (plan, from, to) => `${plan} · ${from} – ${to}`,
       gst: '18% GST सहित',
       pay: 'भरें',

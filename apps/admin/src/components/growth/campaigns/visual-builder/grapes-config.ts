@@ -299,6 +299,9 @@ export function createEmailEditor(opts: EmailEditorOptions): Editor {
     fromElement: false,
     storageManager: false,
     assetManager: { custom: true },
+    // The builder sits in a modal dialog: a colour picker on <body> would be outside it (a click
+    // there reads as a click outside, and the focus trap pulls focus back), so it opens inside.
+    colorPicker: { appendTo: opts.container },
     plugins: [
       (e) =>
         mjmlPlugin(e, {

@@ -1,7 +1,7 @@
 'use client'
 
 import type { StoreFunnel } from '@commerce/api'
-import { Card } from '@commerce/ui/shadcn/card'
+import DataCard from '@/components/layout/data-card'
 import EmptyState from '@/components/layout/empty-state'
 import { growthAttributionContent } from '@/data/growth-home'
 import { useCopy, useFormat } from '@/hooks/use-copy'
@@ -40,11 +40,7 @@ export default function FunnelCard({ funnel }: FunnelCardProps) {
   const top = Math.max(funnel.visits, funnel.addedToCart, 1)
 
   return (
-    <Card inset={5} gap={4}>
-      <div className="flex flex-col gap-1">
-        <p className="text-body-strong text-foreground">{copy.title}</p>
-        <p className="text-caption text-muted-foreground">{copy.body}</p>
-      </div>
+    <DataCard title={copy.title} subtitle={copy.body}>
       {funnel.visits === 0 && funnel.addedToCart === 0 ? (
         <EmptyState variant="inline" body={copy.empty} />
       ) : (
@@ -71,6 +67,6 @@ export default function FunnelCard({ funnel }: FunnelCardProps) {
           })}
         </ol>
       )}
-    </Card>
+    </DataCard>
   )
 }

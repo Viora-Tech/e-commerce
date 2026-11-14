@@ -1,14 +1,15 @@
 'use client'
 
-import { Search } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Input } from '@commerce/ui/shadcn/input'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { useEffect, useState } from 'react'
+import SearchField from '@/components/fields/search-field'
 import DataCard from '@/components/layout/data-card'
 import EmptyState from '@/components/layout/empty-state'
 import PillTabs from '@/components/layout/pill-tabs'
 import ProductThumb from '@/components/products/product-thumb'
+import InlineState from '@/components/states/inline-state'
 import SimpleTable from '@/components/table/simple-table'
 import { catalogsContent } from '@/data/catalogs'
 import { useCopy, useFormat } from '@/hooks/use-copy'
@@ -60,12 +61,14 @@ export default function CatalogPriceTableCard({
   const [page, setPage] = useState(1)
   const [data, setData] = useState<Page | null>(null)
   const [failed, setFailed] = useState(false)
+  const [attempt, setAttempt] = useState(0)
 
   useEffect(() => {
     const timer = setTimeout(() => setSearch(query.trim()), SEARCH_DELAY_MS)
     return () => clearTimeout(timer)
   }, [query])
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `attempt` (Try again) re-runs the read
   useEffect(() => {
     let cancelled = false
     setFailed(false)
@@ -82,7 +85,7 @@ export default function CatalogPriceTableCard({
     return () => {
       cancelled = true
     }
-  }, [catalogId, tab, search, page])
+  }, [catalogId, tab, search, page, attempt])
 
   // Helpers
   const adjusted = (paise: number) =>
@@ -128,20 +131,21 @@ export default function CatalogPriceTableCard({
               { value: 'excluded' as Tab, label: copy.excluded },
             ]}
           />
-          <div className="relative w-full sm:w-64">
-            <Search className="absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              value={query}
-              onChange={(e) => handleQuery(e.target.value)}
-              placeholder={copy.search}
-              aria-label={copy.search}
-              className="pl-8"
-              autoComplete="off"
-            />
-          </div>
+          <SearchField
+            className="w-full sm:w-64"
+            value={query}
+            onChange={(e) => handleQuery(e.target.value)}
+            placeholder={copy.search}
+            aria-label={copy.search}
+            autoComplete="off"
+          />
         </div>
         {failed ? (
-          <p className="py-4 text-body text-destructive">{copy.failed}</p>
+          <InlineState
+            kind="error"
+            heading={copy.failed}
+            onRetry={() => setAttempt((n) => n + 1)}
+          />
         ) : data === null ? (
           <div className="flex flex-col gap-2" role="status" aria-label={copy.loading}>
             <Skeleton className="h-10 w-full" />

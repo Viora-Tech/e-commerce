@@ -18,6 +18,7 @@ export default [
     builder: {
       title: 'विज़ुअल ईमेल बिल्डर',
       loading: 'बिल्डर खुल रहा है…',
+      loadFailed: 'बिल्डर लोड नहीं हो सका',
       done: 'डिज़ाइन सेव करें',
       cancel: 'रद्द करें',
       discardTitle: 'सेव किए बिना निकलें?',

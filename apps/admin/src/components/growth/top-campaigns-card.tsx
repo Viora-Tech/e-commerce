@@ -1,18 +1,12 @@
 import type { CampaignRow } from '@commerce/api'
 import { formatNumber } from '@commerce/money'
-import { Card } from '@commerce/ui/shadcn/card'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@commerce/ui/shadcn/table'
+import { TableCell } from '@commerce/ui/shadcn/table'
 import Link from 'next/link'
+import DataCard from '@/components/layout/data-card'
 import EmptyState from '@/components/layout/empty-state'
 import StatusChip from '@/components/layout/status-chip'
 import LinkRow from '@/components/table/link-row'
+import SimpleTable from '@/components/table/simple-table'
 import { growthOverviewContent } from '@/data/growth'
 import { formatPaiseWhole } from '@/lib/money'
 
@@ -31,54 +25,48 @@ export default function TopCampaignsCard({ rows }: TopCampaignsCardProps) {
   const c = copy.columns
 
   return (
-    <Card gap="none" inset={5}>
-      <p className="text-kit-title text-foreground">{copy.title}</p>
+    <DataCard title={copy.title} flush={rows.length > 0}>
       {rows.length === 0 ? (
-        <EmptyState variant="inline" body={copy.empty} className="mt-5" />
+        <EmptyState variant="inline" body={copy.empty} />
       ) : (
-        <Table className="mt-3">
-          <TableHeader>
-            <TableRow>
-              <TableHead>{c.campaign}</TableHead>
-              <TableHead>{c.source}</TableHead>
-              <TableHead className="text-right">{c.sessions}</TableHead>
-              <TableHead className="text-right">{c.orders}</TableHead>
-              <TableHead className="text-right">{c.sales}</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {rows.map((row) => (
-              <LinkRow href={row.href ?? undefined} key={row.key}>
-                <TableCell className="max-w-64 truncate font-medium">
-                  {row.href ? (
-                    <Link href={row.href} className="hover:underline">
-                      {row.name}
-                    </Link>
-                  ) : (
-                    row.name
-                  )}
-                </TableCell>
-                <TableCell>
-                  {row.kind === 'utm' ? (
-                    <span className="text-muted-foreground">{sourceLabel(row)}</span>
-                  ) : (
-                    <StatusChip dot={false}>{sourceLabel(row)}</StatusChip>
-                  )}
-                </TableCell>
-                <TableCell className="text-right tabular-nums">
-                  {formatNumber(row.sessions)}
-                </TableCell>
-                <TableCell className="text-right tabular-nums">
-                  {formatNumber(row.orders)}
-                </TableCell>
-                <TableCell className="text-right tabular-nums">
-                  {formatPaiseWhole(row.salesPaise)}
-                </TableCell>
-              </LinkRow>
-            ))}
-          </TableBody>
-        </Table>
+        <SimpleTable
+          columns={[
+            { key: 'campaign', label: c.campaign },
+            { key: 'source', label: c.source },
+            { key: 'sessions', label: c.sessions, align: 'end' },
+            { key: 'orders', label: c.orders, align: 'end' },
+            { key: 'sales', label: c.sales, align: 'end' },
+          ]}
+        >
+          {rows.map((row) => (
+            <LinkRow href={row.href ?? undefined} key={row.key}>
+              <TableCell className="max-w-64 truncate font-medium">
+                {row.href ? (
+                  <Link href={row.href} className="hover:underline">
+                    {row.name}
+                  </Link>
+                ) : (
+                  row.name
+                )}
+              </TableCell>
+              <TableCell>
+                {row.kind === 'utm' ? (
+                  <span className="text-muted-foreground">{sourceLabel(row)}</span>
+                ) : (
+                  <StatusChip dot={false}>{sourceLabel(row)}</StatusChip>
+                )}
+              </TableCell>
+              <TableCell className="text-right tabular-nums">
+                {formatNumber(row.sessions)}
+              </TableCell>
+              <TableCell className="text-right tabular-nums">{formatNumber(row.orders)}</TableCell>
+              <TableCell className="text-right tabular-nums">
+                {formatPaiseWhole(row.salesPaise)}
+              </TableCell>
+            </LinkRow>
+          ))}
+        </SimpleTable>
       )}
-    </Card>
+    </DataCard>
   )
 }

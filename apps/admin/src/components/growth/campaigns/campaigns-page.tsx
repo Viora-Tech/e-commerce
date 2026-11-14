@@ -4,7 +4,6 @@ import type { CampaignPerformanceRow } from '@commerce/api'
 import { siteConfig } from '@commerce/config/site'
 import { Send } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import { Card } from '@commerce/ui/shadcn/card'
 import Link from 'next/link'
 import { type ReactNode, useState } from 'react'
 import EmptyState from '@/components/layout/empty-state'
@@ -79,14 +78,13 @@ export default function CampaignsPage({ campaigns, performance, tabs }: Campaign
         actions={actions}
         controls={tabs}
       >
-        <Card inset="y-10">
-          <EmptyState
-            heading={copy.empty.heading}
-            body={copy.empty.body}
-            icon={Send}
-            action={<CreateCampaignMenu />}
-          />
-        </Card>
+        <EmptyState
+          variant="page"
+          heading={copy.empty.heading}
+          body={copy.empty.body}
+          icon={Send}
+          action={<CreateCampaignMenu />}
+        />
         <TrackedCampaignsCard rows={tracked} />
       </ProoflyListPage>
     )

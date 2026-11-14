@@ -33,7 +33,8 @@ type DetailPageSkeletonProps = {
   strip?: number
 }
 
-const NARROW = 'mx-auto max-w-[52rem] gap-4'
+/* PageBody `width="form"`: the market, catalog and rollout forms (1.5rem between cards, as loaded). */
+const NARROW = 'mx-auto max-w-[52rem]'
 const FULL = 'gap-6 md:pt-5 md:pb-8'
 
 /** `n` DataCard skeletons, each with the given field bars and text lines. */

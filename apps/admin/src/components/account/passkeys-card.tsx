@@ -11,6 +11,7 @@ import ConfirmDialog from '@/components/layout/confirm-dialog'
 import EmptyState from '@/components/layout/empty-state'
 import StatusChip from '@/components/layout/status-chip'
 import SettingsCard from '@/components/settings/settings-card'
+import InlineState from '@/components/states/inline-state'
 import { accountContent } from '@/data/account'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { authClient, authErrorCode } from '@/lib/auth-client'
@@ -40,18 +41,26 @@ export default function PasskeysCard() {
   const fmt = useFormat()
   const supported = useSyncExternalStore(noSubscription, browserSupportsPasskeys, () => true)
   const [passkeys, setPasskeys] = useState<Passkey[] | null>(null)
+  const [failed, setFailed] = useState(false)
   const [version, setVersion] = useState(0)
   const [naming, setNaming] = useState<Naming | null>(null)
   const [removing, setRemoving] = useState<Passkey | null>(null)
   const [busy, setBusy] = useState(false)
   // biome-ignore lint/correctness/useExhaustiveDependencies: `version` re-runs the load after a change
   useEffect(() => {
-    // A failed or refused list shows the empty line and the add button, never a grey box that
-    // stays forever (#80).
+    // A failed list says so with Try again (and keeps the add button), never a grey box that
+    // stays forever (#80) nor an empty line that reads as "no passkeys".
+    setFailed(false)
     authClient.passkey
       .listUserPasskeys()
-      .then(({ data }) => setPasskeys(data ?? []))
-      .catch(() => setPasskeys([]))
+      .then(({ data, error }) => {
+        if (error) throw error
+        setPasskeys(data ?? [])
+      })
+      .catch(() => {
+        setPasskeys([])
+        setFailed(true)
+      })
   }, [version])
 
   // Helpers
@@ -106,6 +115,12 @@ export default function PasskeysCard() {
       <div className="flex flex-col gap-4">
         {passkeys === null ? (
           <Skeleton className="h-12 w-full" />
+        ) : failed ? (
+          <InlineState
+            kind="error"
+            heading={copy.loadFailed}
+            onRetry={() => setVersion((n) => n + 1)}
+          />
         ) : passkeys.length === 0 ? (
           <EmptyState variant="inline" body={copy.empty} />
         ) : (
