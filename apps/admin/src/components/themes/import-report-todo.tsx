@@ -1,5 +1,5 @@
 import type { ImportReport } from '@commerce/core/theme-import'
-import { Card, CardContent, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
+import DataCard from '@/components/layout/data-card'
 import EmptyState from '@/components/layout/empty-state'
 import ScrollSection from '@/components/layout/scroll-section'
 import type { themeImportContent } from '@/data/theme-import'
@@ -30,27 +30,18 @@ export default function ImportReportTodo({ copy, report }: ImportReportTodoProps
     .join(' ')
 
   return (
-    <Card gap="none" inset="none">
-      <CardHeader className="border-b border-border px-5 py-4">
-        <CardTitle>{copy.todoHeading}</CardTitle>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-2 px-5 py-4 text-body">
-        {items.length === 0 ? <EmptyState variant="inline" body={copy.todoNone} /> : null}
-        {items.length ? (
-          <ScrollSection
-            id="theme-report-todo"
-            label={copy.todoHeading}
-            maxHeight="min(20rem, 50vh)"
-          >
-            <ul className="flex list-disc flex-col gap-1.5 pl-5 text-foreground">
-              {items.map((item) => (
-                <li key={item}>{item}</li>
-              ))}
-            </ul>
-          </ScrollSection>
-        ) : null}
-        {done ? <p className="text-muted-foreground">{done}</p> : null}
-      </CardContent>
-    </Card>
+    <DataCard title={copy.todoHeading} bodyClassName="flex flex-col gap-2 text-body">
+      {items.length === 0 ? <EmptyState variant="inline" body={copy.todoNone} /> : null}
+      {items.length ? (
+        <ScrollSection id="theme-report-todo" label={copy.todoHeading} maxHeight="min(20rem, 50vh)">
+          <ul className="flex list-disc flex-col gap-1.5 pl-5 text-foreground">
+            {items.map((item) => (
+              <li key={item}>{item}</li>
+            ))}
+          </ul>
+        </ScrollSection>
+      ) : null}
+      {done ? <p className="text-muted-foreground">{done}</p> : null}
+    </DataCard>
   )
 }

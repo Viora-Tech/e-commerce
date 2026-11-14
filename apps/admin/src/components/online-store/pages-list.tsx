@@ -1,37 +1,24 @@
 'use client'
 
 import { siteConfig } from '@commerce/config/site'
-import { POLICY_TYPES } from '@commerce/core/policies'
 import { Plus } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } from 'nuqs'
 import { Suspense, useEffect, useState } from 'react'
 import ProoflyListPage from '@/components/layout/proofly-list-page'
-import StatusChip from '@/components/layout/status-chip'
-import InlineState from '@/components/states/inline-state'
-import ResourceTable, { type ResourceColumnSpec } from '@/components/table/resource-table'
+import ResourceTable from '@/components/table/resource-table'
 import ViewSelect from '@/components/table/view-select'
 import { pagesListContent } from '@/data/content'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
 import CreatePageDialog from './create-page-dialog'
+import { type PageItem, pageColumns, pageUrl } from './page-columns'
 import PageRowMenu from './page-row-menu'
-
-type Item = Awaited<ReturnType<typeof api.pages.list>>[number]
 
 type PagesListProps = { storefrontOrigin: string }
 
 const TABS = ['live', 'hidden'] as const
-
-const pageUrl = (handle: string) => (handle === 'home' ? '/' : `/pages/${handle}`)
-
-/** "landing-page" becomes "Landing page"; no suffix is the theme's default template. */
-const templateName = (suffix: string | null, fallback: string) => {
-  if (!suffix) return fallback
-  const words = suffix.replace(/-/g, ' ')
-  return words.charAt(0).toUpperCase() + words.slice(1)
-}
 
 function PagesContent({ storefrontOrigin }: PagesListProps) {
   // Hooks
@@ -46,9 +33,9 @@ function PagesContent({ storefrontOrigin }: PagesListProps) {
     },
     { shallow: true },
   )
-  const [items, setItems] = useState<Item[]>([])
+  const [items, setItems] = useState<PageItem[]>([])
   const [loading, setLoading] = useState(true)
-  /** The first load failed: say so instead of "No pages yet". */
+  /** The last read failed: the table says so (with Try again) instead of "No pages yet". */
   const [failed, setFailed] = useState(false)
   const [creating, setCreating] = useState(false)
   const [attempt, setAttempt] = useState(0)
@@ -67,11 +54,15 @@ function PagesContent({ storefrontOrigin }: PagesListProps) {
   }, [attempt])
 
   // Helpers
+  /* After a row action: a failed read lands in the table too, not as stale rows. */
   const reload = () => {
-    api.pages
-      .list()
-      .then(setItems)
-      .catch(() => undefined)
+    api.pages.list().then(
+      (list) => {
+        setItems(list)
+        setFailed(false)
+      },
+      () => setFailed(true),
+    )
   }
 
   // Event handlers
@@ -92,50 +83,7 @@ function PagesContent({ storefrontOrigin }: PagesListProps) {
   )
   const pageRows = matching.slice((q.page - 1) * q.perPage, q.page * q.perPage)
 
-  const columns: ResourceColumnSpec<Item>[] = [
-    {
-      id: 'title',
-      title: copy.columns.title,
-      sortValue: (p) => p.title,
-      hideable: false,
-      render: (p) => (
-        <span className="flex min-w-0 flex-col">
-          <span className="flex min-w-0 items-center gap-2">
-            <span className="truncate text-ink-strong">{p.title}</span>
-            {/* Policies sat among the store's own pages unmarked (audit #133). */}
-            {(POLICY_TYPES as readonly string[]).includes(p.handle) ? (
-              <StatusChip tone="neutral" variant="outline">
-                {copy.policy}
-              </StatusChip>
-            ) : null}
-          </span>
-          <span className="truncate text-caption text-muted-foreground">{pageUrl(p.handle)}</span>
-        </span>
-      ),
-    },
-    {
-      id: 'template',
-      title: copy.columns.template,
-      sortValue: (p) => p.templateSuffix ?? '',
-      render: (p) => templateName(p.templateSuffix, copy.template.default),
-    },
-    {
-      id: 'visibility',
-      title: copy.columns.visibility,
-      sortValue: (p) => (p.publishedAt ? 1 : 0),
-      render: (p) => (
-        <StatusChip tone={p.publishedAt ? 'success' : 'neutral'}>
-          {p.publishedAt ? copy.visibility.live : copy.visibility.hidden}
-        </StatusChip>
-      ),
-    },
-    {
-      id: 'updated',
-      title: copy.columns.updated,
-      sortValue: (p) => new Date(p.updatedAt),
-      render: (p) => <span title={fmt.dateTime(p.updatedAt)}>{fmt.when(p.updatedAt)}</span>,
-    },
-  ]
+  const columns = pageColumns(copy, fmt)
 
   const addButton = (
     <Button type="button" onClick={() => setCreating(true)}>
@@ -150,51 +98,48 @@ function PagesContent({ storefrontOrigin }: PagesListProps) {
       summary={copy.summary(items.length, live, hidden)}
       actions={addButton}
     >
-      {failed ? (
-        <InlineState kind="error" onRetry={handleRetry} />
-      ) : (
-        <ResourceTable
-          resourceName={copy.resource}
-          columns={columns}
-          items={pageRows}
-          getId={(p) => p.id}
-          href={(p) => routes.onlineStore.page(p.id)}
-          rowActions={(p) => (
-            <PageRowMenu
-              page={p}
-              path={pageUrl(p.handle)}
-              storefrontOrigin={storefrontOrigin}
-              onChanged={reload}
-            />
-          )}
-          loading={loading}
-          query={q.query}
-          onQueryChange={(query) => setQ({ query, page: 1 }, { history: 'replace' })}
-          onClearAll={() => setQ({ query: '', tab: null, page: 1 })}
-          views={
-            <ViewSelect
-              value={q.tab}
-              onChange={(tab) => setQ({ tab, page: 1 })}
-              options={[
-                { value: null, label: copy.tabs.all, count: items.length },
-                { value: 'live', label: copy.tabs.live, count: live },
-                { value: 'hidden', label: copy.tabs.hidden, count: hidden },
-              ]}
-            />
-          }
-          page={q.page}
-          perPage={q.perPage}
-          total={matching.length}
-          onPageChange={(page) => setQ({ page })}
-          onPerPageChange={(perPage) => setQ({ perPage, page: 1 })}
-          selectable={false}
-          empty={
-            items.length === 0
-              ? { heading: copy.empty.heading, body: copy.empty.body, action: addButton }
-              : { heading: copy.noMatch.heading, body: copy.noMatch.body }
-          }
-        />
-      )}
+      <ResourceTable
+        resourceName={copy.resource}
+        columns={columns}
+        items={pageRows}
+        getId={(p) => p.id}
+        href={(p) => routes.onlineStore.page(p.id)}
+        rowActions={(p) => (
+          <PageRowMenu
+            page={p}
+            path={pageUrl(p.handle)}
+            storefrontOrigin={storefrontOrigin}
+            onChanged={reload}
+          />
+        )}
+        loading={loading}
+        error={failed ? { heading: copy.loadFailed, onRetry: handleRetry } : undefined}
+        query={q.query}
+        onQueryChange={(query) => setQ({ query, page: 1 }, { history: 'replace' })}
+        onClearAll={() => setQ({ query: '', tab: null, page: 1 })}
+        views={
+          <ViewSelect
+            value={q.tab}
+            onChange={(tab) => setQ({ tab, page: 1 })}
+            options={[
+              { value: null, label: copy.tabs.all, count: items.length },
+              { value: 'live', label: copy.tabs.live, count: live },
+              { value: 'hidden', label: copy.tabs.hidden, count: hidden },
+            ]}
+          />
+        }
+        page={q.page}
+        perPage={q.perPage}
+        total={matching.length}
+        onPageChange={(page) => setQ({ page })}
+        onPerPageChange={(perPage) => setQ({ perPage, page: 1 })}
+        selectable={false}
+        empty={
+          items.length === 0
+            ? { heading: copy.empty.heading, body: copy.empty.body, action: addButton }
+            : { heading: copy.noMatch.heading, body: copy.noMatch.body }
+        }
+      />
       <CreatePageDialog open={creating} onOpenChange={setCreating} />
     </ProoflyListPage>
   )

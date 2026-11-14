@@ -6,10 +6,7 @@ export default [
     title: 'SEO',
     subtitle:
       'Google, Bing और AI सर्च (ChatGPT, Perplexity) आपके प्रोडक्ट, कलेक्शन और पेज कितनी अच्छी तरह ढूंढ और दिखा पाते हैं।',
-    unavailable: {
-      heading: 'SEO रिपोर्ट उपलब्ध नहीं',
-      body: 'इसकी SEO रिपोर्ट देखने के लिए आपको ऑनलाइन स्टोर का एक्सेस चाहिए।',
-    },
+    loadFailed: 'SEO रिपोर्ट लोड नहीं हो पाई',
     score: {
       label: 'SEO स्कोर',
       outOf: '100 में से',

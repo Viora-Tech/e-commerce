@@ -2,8 +2,8 @@
 
 import { isRichTextEmpty, type RichTextValue } from '@commerce/richtext'
 import { ExternalLink } from '@commerce/ui/icons'
+import { Alert, AlertDescription } from '@commerce/ui/shadcn/alert'
 import { Button } from '@commerce/ui/shadcn/button'
-import { Card, CardContent } from '@commerce/ui/shadcn/card'
 import { Field, FieldGroup, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import Link from 'next/link'
@@ -11,6 +11,7 @@ import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import RichTextField from '@/components/fields/rich-text-field'
+import DataCard from '@/components/layout/data-card'
 import PageHeader from '@/components/layout/page-header'
 import ProoflyDetailPage from '@/components/layout/proofly-detail-page'
 import SaveBar from '@/components/layout/save-bar'
@@ -131,43 +132,41 @@ export default function PageForm({
       }
       main={
         <>
-          <Card size="form">
-            <CardContent>
-              <FieldGroup>
-                <Field>
-                  <FieldLabel htmlFor="page-title">{copy.title}</FieldLabel>
-                  <Input
-                    id="page-title"
-                    size="lg"
-                    value={form.title}
-                    onChange={(e) => patch({ title: e.target.value })}
-                  />
-                </Field>
-                {fromTemplate ? (
-                  <div className="flex flex-col gap-3 rounded-lg border border-dashed border-line p-4">
-                    <p className="text-body text-foreground">
-                      {copy.template.inTemplate(form.templateSuffix)}
-                    </p>
-                    <div className="flex flex-wrap gap-2">
+          <DataCard title={copy.heading}>
+            <FieldGroup>
+              <Field>
+                <FieldLabel htmlFor="page-title">{copy.title}</FieldLabel>
+                <Input
+                  id="page-title"
+                  size="lg"
+                  value={form.title}
+                  onChange={(e) => patch({ title: e.target.value })}
+                />
+              </Field>
+              {fromTemplate ? (
+                <Alert tone="info">
+                  <AlertDescription className="flex flex-col gap-3 text-body text-foreground">
+                    <span>{copy.template.inTemplate(form.templateSuffix)}</span>
+                    <span className="flex flex-wrap gap-2">
                       <Button nativeButton={false} render={<Link href={contentHref} />}>
                         {copy.template.editContent}
                       </Button>
                       <Button variant="ghost" onClick={() => setWriting(true)}>
                         {copy.template.writeHere}
                       </Button>
-                    </div>
-                  </div>
-                ) : (
-                  <RichTextField
-                    label={copy.content}
-                    value={form.body}
-                    onChange={(body) => patch({ body })}
-                    minHeight={240}
-                  />
-                )}
-              </FieldGroup>
-            </CardContent>
-          </Card>
+                    </span>
+                  </AlertDescription>
+                </Alert>
+              ) : (
+                <RichTextField
+                  label={copy.content}
+                  value={form.body}
+                  onChange={(body) => patch({ body })}
+                  minHeight={240}
+                />
+              )}
+            </FieldGroup>
+          </DataCard>
           <PageSeoCard
             handle={form.handle}
             seoTitle={form.seoTitle}

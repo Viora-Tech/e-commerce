@@ -3,6 +3,7 @@
 import type { ThemePackId } from '@commerce/core/theme'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import DataCard from '@/components/layout/data-card'
 import { themesContent } from '@/data/themes'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -44,23 +45,12 @@ export default function ThemePacksCard({ themes, onSaved }: ThemePacksCardProps)
 
   // Render logic
   return (
-    <section
-      aria-busy={busy !== null || undefined}
-      className="flex flex-col gap-4 rounded-lg border border-border surface-card px-4 py-4 md:px-5"
-    >
-      <div className="flex min-w-0 flex-col gap-0.5">
-        <h2 className="text-card-title">{copy.heading}</h2>
-        <p className="text-caption font-normal leading-[1.1875rem] text-muted-foreground">
-          {copy.body}
-        </p>
-      </div>
+    <DataCard title={copy.heading} subtitle={copy.body} bodyClassName="flex flex-col gap-4">
       <div className="flex flex-col gap-1">
         <h3 className="text-body font-medium text-foreground">{copy.zeroDrift}</h3>
-        <p className="text-caption font-normal leading-[1.1875rem] text-muted-foreground">
-          {copy.zeroDriftHelp}
-        </p>
+        <p className="text-caption font-normal text-muted-foreground">{copy.zeroDriftHelp}</p>
       </div>
-      <ul className="flex flex-col gap-3">
+      <ul className="flex flex-col gap-3" aria-busy={busy !== null || undefined}>
         {themes.map((t) => (
           <li key={t.id}>
             <SwitchField
@@ -72,6 +62,6 @@ export default function ThemePacksCard({ themes, onSaved }: ThemePacksCardProps)
           </li>
         ))}
       </ul>
-    </section>
+    </DataCard>
   )
 }

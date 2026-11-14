@@ -2,6 +2,7 @@
 
 import { Eye, Palette } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
+import { Card } from '@commerce/ui/shadcn/card'
 import Link from 'next/link'
 import StatusChip from '@/components/layout/status-chip'
 import { themeImportContent } from '@/data/theme-import'
@@ -34,7 +35,7 @@ export default function CurrentThemeCard({ theme, origin, busy, onAction }: Curr
 
   // Render logic
   return (
-    <section className="overflow-hidden rounded-lg border border-border surface-card">
+    <Card gap="none" inset="none">
       <ThemePreviewStage
         name={theme.name}
         origin={origin}
@@ -96,6 +97,6 @@ export default function CurrentThemeCard({ theme, origin, busy, onAction }: Curr
           </Button>
         </div>
       </div>
-    </section>
+    </Card>
   )
 }
