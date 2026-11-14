@@ -984,6 +984,13 @@
   --text-stat--font-weight: 600;
   --text-stat--letter-spacing: -0.02em;
 
+  /* Koomerce/Number L: 24/29 semibold, the Home hero's metric tiles (a sparkline sits beside
+     the figure, so the 1.875rem stat would not fit a seven-digit rupee total). */
+  --text-stat-md: 1.5rem;
+  --text-stat-md--line-height: 1.8125rem;
+  --text-stat-md--font-weight: 600;
+  --text-stat-md--letter-spacing: -0.02em;
+
   --text-stat-sm: 1rem;
   --text-stat-sm--line-height: 1.25rem;
   --text-stat-sm--font-weight: 600;

@@ -6,12 +6,13 @@ import dynamic from 'next/dynamic'
 import { useTheme } from 'next-themes'
 import { useEffect, useState } from 'react'
 import { buildGlobeData } from '@/components/analytics/live-globe/build-globe-data'
-import SectionHead from '@/components/layout/section-head'
+import DataCard from '@/components/layout/data-card'
 import { homePageContent } from '@/data/home'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { useLiveGlobeData } from '@/hooks/use-live-globe-data'
 import { MOTION_MS } from '@/lib/motion'
 import { isWebglSupported } from '@/lib/webgl'
+import { LIVE_GLOBE } from './home-layout'
 import RollingNumber from './rolling-number'
 
 type LiveNowProps = {
@@ -83,73 +84,73 @@ export default function LiveNow({ initial }: LiveNowProps) {
   const cities = topCities(data.mapOrders)
 
   return (
-    <section className="flex min-w-0 flex-col gap-3.5">
-      <SectionHead
-        title={
-          <span className="flex items-center gap-2">
-            <span className="relative flex size-4 items-center justify-center" aria-hidden="true">
-              {!reducedMotion && tabVisible ? (
-                <motion.span
-                  animate={{ scale: [1, 2.4], opacity: [0.7, 0] }}
-                  transition={{
-                    duration: MOTION_MS.ambient / 1000,
-                    repeat: Infinity,
-                    ease: 'easeOut',
-                  }}
-                  className="absolute inline-flex size-2 rounded-full bg-foreground"
-                />
-              ) : null}
-              <span className="relative inline-flex size-2 rounded-full bg-foreground ring-4 ring-foreground/15" />
-            </span>
-            {copy.title}
-          </span>
-        }
-      />
-      <div className="flex flex-1 flex-col overflow-hidden rounded-lg surface-card">
-        <div className="flex flex-col gap-0.5 px-6 pt-6">
-          <RollingNumber
-            value={fmt.compact(visitors)}
-            className="font-[family-name:var(--font-display)] text-[2.5rem] leading-[2.875rem] font-semibold tracking-[-0.0625rem] text-ink-strong tabular-nums"
-          />
-          <p className="text-caption font-normal leading-[1.1875rem] text-muted-foreground">
-            {copy.visitors(visitors)}
-          </p>
-          <p className="text-caption leading-[1.1875rem] font-medium text-foreground">
-            {copy.today(
-              copy.ordersWord(data.today.ordersCount),
-              fmt.moneyWhole(data.today.salesPaise),
-            )}
-          </p>
-          {cities.length > 0 ? (
-            <ul className="mt-1.5 flex flex-wrap gap-1.5">
-              {cities.map((c) => (
-                <li
-                  key={c.city}
-                  className="rounded-full border border-border px-2 py-0.5 text-caption whitespace-nowrap text-muted-foreground tabular-nums"
-                >
-                  {c.city} · {c.count}
-                </li>
-              ))}
-            </ul>
-          ) : null}
-        </div>
-        {webglOk ? (
-          <div className="relative mt-auto h-[14rem] overflow-hidden">
-            <div className="h-full w-full">
-              <LiveGlobeCanvas
-                markers={markers}
-                arcs={arcs}
-                reducedMotion={Boolean(reducedMotion)}
-                dark={resolvedTheme === 'dark'}
-                focus={INDIA_FOCUS}
-                activeId={activeId}
-                onActiveChange={setActiveId}
-                brand
+    <DataCard
+      className="min-w-0"
+      bodyClassName="flex flex-1 flex-col"
+      title={
+        <span className="flex items-center gap-2">
+          <span className="relative flex size-4 items-center justify-center" aria-hidden="true">
+            {!reducedMotion && tabVisible ? (
+              <motion.span
+                animate={{ scale: [1, 2.4], opacity: [0.7, 0] }}
+                transition={{
+                  duration: MOTION_MS.ambient / 1000,
+                  repeat: Infinity,
+                  ease: 'easeOut',
+                }}
+                className="absolute inline-flex size-2 rounded-full bg-foreground"
               />
-            </div>
-          </div>
+            ) : null}
+            <span className="relative inline-flex size-2 rounded-full bg-foreground ring-4 ring-foreground/15" />
+          </span>
+          {copy.title}
+        </span>
+      }
+    >
+      <div className="flex flex-col gap-0.5">
+        <RollingNumber
+          value={fmt.compact(visitors)}
+          className="font-[family-name:var(--font-display)] text-[2.5rem] leading-[2.875rem] font-semibold tracking-[-0.0625rem] text-ink-strong tabular-nums"
+        />
+        <p className="text-caption font-normal leading-[1.1875rem] text-muted-foreground">
+          {copy.visitors(visitors)}
+        </p>
+        <p className="text-caption leading-[1.1875rem] font-medium text-foreground">
+          {copy.today(
+            copy.ordersWord(data.today.ordersCount),
+            fmt.moneyWhole(data.today.salesPaise),
+          )}
+        </p>
+        {cities.length > 0 ? (
+          <ul className="mt-1.5 flex flex-wrap gap-1.5">
+            {cities.map((c) => (
+              <li
+                key={c.city}
+                className="rounded-full border border-border px-2 py-0.5 text-caption whitespace-nowrap text-muted-foreground tabular-nums"
+              >
+                {c.city} · {c.count}
+              </li>
+            ))}
+          </ul>
         ) : null}
       </div>
-    </section>
+      {webglOk ? (
+        /* Edge to edge at the foot of the card, the globe cropped to its top half. */
+        <div className={`relative -mx-5 mt-auto -mb-5 overflow-hidden ${LIVE_GLOBE}`}>
+          <div className="h-full w-full">
+            <LiveGlobeCanvas
+              markers={markers}
+              arcs={arcs}
+              reducedMotion={Boolean(reducedMotion)}
+              dark={resolvedTheme === 'dark'}
+              focus={INDIA_FOCUS}
+              activeId={activeId}
+              onActiveChange={setActiveId}
+              brand
+            />
+          </div>
+        </div>
+      ) : null}
+    </DataCard>
   )
 }

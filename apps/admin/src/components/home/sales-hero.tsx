@@ -16,6 +16,7 @@ import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import DateRangePicker from '@/components/layout/date-range-picker'
+import InlineState from '@/components/states/inline-state'
 import { homePageContent } from '@/data/home'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -36,6 +37,14 @@ import {
   shapeHourly,
 } from './analytics/metric-meta'
 import HeroGlass from './hero-glass'
+import {
+  HERO_CHART_ROW,
+  HERO_FOOTER,
+  HERO_PILL_HEIGHT,
+  HERO_SHELL,
+  HERO_TILES_ROW,
+  HERO_TOOLBAR,
+} from './home-layout'
 import SalesHeroChart, { type SalesChartPoint } from './sales-hero-chart'
 import SalesMetricTiles from './sales-metric-tiles'
 
@@ -54,8 +63,7 @@ type SalesHeroProps = {
 const SHORT_DATE_OPTIONS = { day: 'numeric', month: 'short' } as const
 
 /** Figma "Analytics · Filter button" (580:694): 32px pill, 14px lead icon, 13/20 medium. */
-const PILL =
-  'inline-flex h-8 items-center gap-1.5 rounded-full border border-glass-border bg-background/60 pr-2 pl-2.5 text-caption leading-5 font-medium whitespace-nowrap text-foreground shadow-lift [&_svg]:size-3.5 [&_svg]:shrink-0'
+const PILL = `inline-flex ${HERO_PILL_HEIGHT} items-center gap-1.5 rounded-full border border-glass-border bg-background/60 pr-2 pl-2.5 text-caption leading-5 font-medium whitespace-nowrap text-foreground shadow-lift [&_svg]:size-3.5 [&_svg]:shrink-0`
 const MENU_PILL = `${PILL} cursor-pointer transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring data-[popup-open]:bg-muted`
 
 /** The chart's points for one metric: hour by hour for a single day (running totals), else by day. */
@@ -97,11 +105,15 @@ export default function SalesHero({ initial, liveNow }: SalesHeroProps) {
   const [channel, setChannel] = useState<Channel>('all')
   const [data, setData] = useState(initial.analytics)
   const [loading, setLoading] = useState(false)
+  // A refetch that failed: the last figures stay, under an error line with Try again.
+  const [failed, setFailed] = useState(false)
+  const [attempt, setAttempt] = useState(0)
   const [tiles, setTiles] = useState(initial.tiles)
   const [metric, setMetric] = useState<HomeMetric>(openingMetric(initial.tiles))
   const [customizing, setCustomizing] = useState(false)
   const first = useRef(true)
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `attempt` re-runs the read (Try again)
   useEffect(() => {
     // The server already rendered the opening range.
     if (first.current) {
@@ -113,15 +125,16 @@ export default function SalesHero({ initial, liveNow }: SalesHeroProps) {
     document.cookie = `${HOME_RANGE_COOKIE}=${encodeHomeRange(range, compare)}; path=/; max-age=${HOME_RANGE_MAX_AGE}; samesite=lax`
     let live = true
     setLoading(true)
+    setFailed(false)
     api.dashboard
       .analytics({ from: range.from, to: range.to, compare })
       .then((next) => live && setData(next))
-      .catch(() => live && toast.error(content.sales.loadFailed))
+      .catch(() => live && setFailed(true))
       .finally(() => live && setLoading(false))
     return () => {
       live = false
     }
-  }, [range, compare, content.sales.loadFailed])
+  }, [range, compare, attempt])
 
   // Helpers
   const dayLabel = (iso: string) =>
@@ -131,6 +144,10 @@ export default function SalesHero({ initial, liveNow }: SalesHeroProps) {
   const handleApply = (next: HomeRange, nextCompare: RangeCompare) => {
     setRange(next)
     setCompare(nextCompare)
+  }
+
+  const handleRetry = () => {
+    setAttempt((n) => n + 1)
   }
 
   const handleCompare = (next: unknown) => {
@@ -166,12 +183,9 @@ export default function SalesHero({ initial, liveNow }: SalesHeroProps) {
         : copy.empty
 
   return (
-    <section
-      aria-busy={loading}
-      className="relative isolate flex flex-col overflow-hidden rounded-xl surface-glass"
-    >
+    <section aria-busy={loading} className={HERO_SHELL}>
       <HeroGlass />
-      <div className="flex flex-wrap items-center gap-2 pt-4 pr-4 pb-2 pl-5">
+      <div className={HERO_TOOLBAR}>
         <DateRangePicker
           range={range}
           compare={compare}
@@ -223,9 +237,18 @@ export default function SalesHero({ initial, liveNow }: SalesHeroProps) {
       {customizing ? (
         <p className="px-5 pb-1 text-period text-muted-foreground">{copy.customizeHint}</p>
       ) : null}
+      {failed ? (
+        <InlineState
+          kind="error"
+          body={copy.loadFailed}
+          onRetry={handleRetry}
+          className="mx-5 mb-2"
+        />
+      ) : null}
       <div
         className={cn(
-          'px-3 py-1 transition-opacity duration-200 ease-out',
+          HERO_TILES_ROW,
+          'transition-opacity duration-200 ease-out',
           loading && 'opacity-60',
         )}
       >
@@ -253,7 +276,7 @@ export default function SalesHero({ initial, liveNow }: SalesHeroProps) {
         />
       </div>
       <div
-        className={cn('min-w-0 px-5 pt-3 transition-opacity duration-200', loading && 'opacity-60')}
+        className={cn(HERO_CHART_ROW, 'transition-opacity duration-200', loading && 'opacity-60')}
       >
         <SalesHeroChart
           points={points}
@@ -265,7 +288,7 @@ export default function SalesHero({ initial, liveNow }: SalesHeroProps) {
           formatTick={(v) => formatTick(fmt, metric, v)}
         />
       </div>
-      <div className="flex flex-wrap items-center justify-between gap-3 px-5 pt-3 pb-4">
+      <div className={HERO_FOOTER}>
         <p className="flex flex-wrap items-center gap-x-5 gap-y-1 text-caption font-normal leading-5 text-muted-foreground">
           <span className="inline-flex items-center gap-2">
             <span className="h-0.5 w-3.5 rounded-full bg-primary" aria-hidden="true" />

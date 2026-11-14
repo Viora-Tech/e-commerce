@@ -26,6 +26,7 @@ import { api } from '@/lib/api-client'
 import { openAssistant } from '@/lib/assistant-events'
 import { EASE_OUT, ENTER_SCALE, instant, layout, MOTION_MS } from '@/lib/motion'
 import { useScopedStorageKey } from '@/lib/storage-scope'
+import { HOME_SECTION, SUGGEST_CARD_HEIGHT, SUGGEST_GRID } from './home-layout'
 
 export type Suggestion = {
   id: string
@@ -168,12 +169,12 @@ export default function SuggestionCards({
   // 6rem picture in 0.875rem padding) so the section does not pop in under the charts.
   if (dismissed === null) {
     return suggestions.length === 0 ? null : (
-      <section className="flex flex-col gap-3.5" aria-busy="true">
+      <section className={HOME_SECTION} aria-busy="true">
         <SectionHead title={title} aside={note} />
-        <ul className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <ul className={SUGGEST_GRID}>
           {suggestions.map((s) => (
             <li key={s.id}>
-              <Skeleton className="h-31 w-full rounded-lg" />
+              <Skeleton className={`${SUGGEST_CARD_HEIGHT} w-full rounded-lg`} />
             </li>
           ))}
         </ul>
@@ -187,9 +188,9 @@ export default function SuggestionCards({
   const leave = reduced ? instant : { duration: MOTION_MS.press / 1000, ease: EASE_OUT }
 
   return (
-    <section className="flex flex-col gap-3.5">
+    <section className={HOME_SECTION}>
       <SectionHead title={title} aside={note} />
-      <ul className="grid grid-cols-1 gap-4 md:grid-cols-2">
+      <ul className={SUGGEST_GRID}>
         <AnimatePresence initial={false}>
           {visible.map((s) => {
             const Icon = ICONS[s.icon]

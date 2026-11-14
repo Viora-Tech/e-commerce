@@ -9,13 +9,7 @@ import { useId, useState } from 'react'
 import CountUp from '@/components/layout/count-up'
 import { instant, pill } from '@/lib/motion'
 import MetricPicker from './analytics/metric-picker'
-
-/** Figma "Analytics · Metric tab" (580:739): 13/20 medium label with a dotted underline. */
-const LABEL =
-  'text-caption leading-5 font-medium text-muted-foreground underline decoration-dotted underline-offset-4'
-/** 24/29 semibold, -0.48px tracking. */
-const VALUE =
-  'text-2xl leading-[1.8125rem] font-semibold tracking-[-0.03rem] whitespace-nowrap text-ink-strong tabular-nums'
+import { TILE_BOX, TILE_GRID, TILE_LABEL, TILE_NOTE, TILE_VALUE } from './home-layout'
 
 export type MetricTileData = {
   metric: HomeMetric
@@ -65,7 +59,7 @@ export default function SalesMetricTiles({
   const slide = reduced ? instant : pill
 
   return (
-    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
+    <div className={TILE_GRID}>
       {tiles.map((tile, slot) => {
         const body = (
           <MetricTile
@@ -134,7 +128,8 @@ function MetricTile({
       aria-pressed={customizing ? undefined : selected}
       onClick={customizing ? undefined : onSelect}
       className={cn(
-        'relative isolate flex flex-col gap-1 rounded-lg border px-4 py-3 text-left transition-[border-color,background-color] duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+        TILE_BOX,
+        'transition-[border-color,background-color] duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
         customizing
           ? 'border-dashed border-border-strong hover:bg-card/50'
           : selected
@@ -150,15 +145,15 @@ function MetricTile({
           aria-hidden
         />
       ) : null}
-      <span className={cn(LABEL, selected && 'text-foreground')}>{tile.label}</span>
+      <span className={cn(TILE_LABEL, selected && 'text-foreground')}>{tile.label}</span>
       <span className="flex items-center gap-2.5">
-        <span className={VALUE}>
+        <span className={TILE_VALUE}>
           <CountUp value={tile.display} />
         </span>
         <Sparkline values={tile.spark} dim={!selected} />
       </span>
       {tile.note ? (
-        <span className="truncate text-period text-muted-foreground">{tile.note}</span>
+        <span className={cn(TILE_NOTE, 'truncate')}>{tile.note}</span>
       ) : (
         <MetricDelta
           change={tile.change}
@@ -184,7 +179,7 @@ function MetricDelta({ change, comparedTo, unit = '%', lowerIsBetter }: MetricDe
   const up = change >= 0
   const good = lowerIsBetter ? change <= 0 : up
   return (
-    <span className="flex flex-wrap items-center gap-1 text-period text-muted-foreground">
+    <span className={cn(TILE_NOTE, 'flex flex-wrap items-center gap-1')}>
       <span
         className={cn(
           'inline-flex items-center gap-1 font-semibold',

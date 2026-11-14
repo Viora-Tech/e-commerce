@@ -3,6 +3,7 @@
 import dynamic from 'next/dynamic'
 import ChartLoading from '@/components/layout/chart-loading'
 import EmptyState from '@/components/layout/empty-state'
+import { HERO_CHART } from './home-layout'
 
 export type SalesChartPoint = { label: string; value: number | null; before: number | null }
 
@@ -44,7 +45,7 @@ export default function SalesHeroChart({
   }
 
   return (
-    <div className="h-55 w-full">
+    <div className={HERO_CHART}>
       <SalesHeroPlot
         points={points}
         valueLabel={valueLabel}

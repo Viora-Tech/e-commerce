@@ -13,6 +13,7 @@ import {
   WarningIcon,
 } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
+import { Card } from '@commerce/ui/shadcn/card'
 import Link from 'next/link'
 import IconBadge from '@/components/layout/icon-badge'
 import SectionHead from '@/components/layout/section-head'
@@ -20,6 +21,7 @@ import StatusChip from '@/components/layout/status-chip'
 import { homeContent, homePageContent } from '@/data/home'
 import { getCopy } from '@/lib/copy-server'
 import EditTodosDialog from './edit-todos-dialog'
+import { HOME_SECTION, TODO_GRID, TODO_TILE } from './home-layout'
 
 type TodoCardsProps = {
   needsYou: DashboardSummary['needsYou']
@@ -120,7 +122,7 @@ export default async function TodoCards({ needsYou, hidden }: TodoCardsProps) {
   const rows = buildRows(needsYou, c.rows, hidden ?? [])
 
   return (
-    <section className="flex flex-col gap-3.5">
+    <section className={HOME_SECTION}>
       <SectionHead
         title={page.title}
         action={
@@ -133,27 +135,22 @@ export default async function TodoCards({ needsYou, hidden }: TodoCardsProps) {
         }
       />
       {rows.length === 0 ? (
-        <div className="flex items-center gap-3 rounded-lg surface-card p-4">
+        <Card inset={4} gap={3} className="flex-row items-center">
           <IconBadge icon={CircleCheckIcon} tone="success" />
           <div>
             <p className="text-body-strong text-ink-strong">{c.allClearHeading}</p>
             <p className="text-body text-muted-foreground">{c.allClearBody}</p>
           </div>
-        </div>
+        </Card>
       ) : (
-        <ul className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <ul className={TODO_GRID}>
           {rows.map((row) => (
-            <li
-              key={row.key}
-              className="flex h-full flex-col items-start gap-3.5 rounded-lg p-5 surface-card card-lift"
-            >
+            <li key={row.key} className={`${TODO_TILE} card-lift`}>
               <span className="flex size-10 items-center justify-center rounded-lg bg-muted text-foreground shadow-input [&_svg]:size-5">
                 <row.icon aria-hidden="true" />
               </span>
               <div className="flex min-w-0 flex-col gap-1">
-                <p className="text-card-title leading-5 font-semibold text-ink-strong">
-                  {row.label}
-                </p>
+                <p className="text-card-title text-ink-strong">{row.label}</p>
                 <p className="text-caption font-normal leading-[1.1875rem] text-muted-foreground">
                   {row.help}
                 </p>
