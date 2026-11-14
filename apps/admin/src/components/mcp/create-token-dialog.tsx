@@ -210,7 +210,7 @@ export default function CreateTokenDialog({
           />
         </Field>
         <Field>
-          <FieldTitle className="text-xs leading-4 text-ink-strong">
+          <FieldTitle className="text-period leading-4 text-ink-strong">
             {copy.create.canAccess}
           </FieldTitle>
           <ScopePicker value={scopes} onChange={setScopes} idPrefix="token" />
