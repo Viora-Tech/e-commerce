@@ -329,6 +329,16 @@ short-lived surfaces only (a drag-and-drop hint, the sign-in illustration). **Fi
 surface (`glass-bar`, `glass-popover`, `bg-raised`, `bg-popover`) and named transition
 properties. Ratchet: new fails, stale fails.
 
+### ab. `popup-shell` (`scripts/sweeps/popup-shell.test.ts`)
+
+Every admin dialog draws with the one popup shell, `components/layout/dialog-content` with
+`dialog-header` and `dialog-footer` (or FormDialog / ConfirmDialog, which sit on it): one set of
+widths (`standard`, `wide`, `full`), `panel` for pickers with their own scrolling panes, the title
+clear of the X, a sticky footer, and the `busy` / `dirty` close guards. Importing
+`DialogContent`, `DialogHeader` or `DialogFooter` from `@commerce/ui/shadcn/dialog`, or any
+`AlertDialog*` part, outside the shell fails. Allowed: the shell's own files and the command
+palette. **Fix**: import the layout parts instead. Ratchet: new fails, stale fails.
+
 ## `server-only`
 
 The `server-only` npm package throws unconditionally when the bundler resolving it does

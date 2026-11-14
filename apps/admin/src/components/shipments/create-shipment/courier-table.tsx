@@ -67,7 +67,7 @@ export default function CourierTable({
       <table className="w-full min-w-[44rem] border-collapse text-body">
         <thead>
           <tr className="bg-muted/50 text-left text-caption uppercase tracking-wide text-muted-foreground">
-            <th className="px-4 py-2.5 font-medium md:pl-8">{d.columns.courier}</th>
+            <th className="px-4 py-2.5 font-medium">{d.columns.courier}</th>
             <th className="px-4 py-2.5 font-medium">{d.columns.delivery}</th>
             <th className="px-4 py-2.5 font-medium">{d.columns.weight}</th>
             <th className="px-4 py-2.5 font-medium">{d.columns.charges}</th>
@@ -110,7 +110,7 @@ export default function CourierTable({
                     courierRowClass(picked, blocked),
                   )}
                 >
-                  <td className="px-4 py-4 md:pl-8">
+                  <td className="px-4 py-4">
                     <div className="flex flex-col items-start gap-1.5">
                       <div className="flex items-center gap-3">
                         <CourierMark label={row.providerLabel} />
@@ -193,7 +193,7 @@ export default function CourierTable({
                       </div>
                     )}
                   </td>
-                  <td className="px-4 py-4 text-right md:pr-8">
+                  <td className="px-4 py-4 text-right">
                     {onShipNow && !blocked ? (
                       <Button
                         size="sm"
@@ -214,7 +214,7 @@ export default function CourierTable({
                     the new one opens, instead of the rows below jumping. */}
                 <tr className="bg-muted/40">
                   <td colSpan={5} className="p-0">
-                    <BreakdownReveal open={calc !== null} className="px-4 py-3.5 md:px-8">
+                    <BreakdownReveal open={calc !== null} className="px-4 py-3.5">
                       {calc ? (
                         <PriceBreakdownStrip
                           calc={calc}

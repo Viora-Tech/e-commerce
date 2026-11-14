@@ -32,6 +32,12 @@ type DialogContentProps = ComponentProps<typeof BaseDialogContent> & {
    * typed?". The footer's Cancel still closes straight away (the caller handles it).
    */
   dirty?: boolean
+  /**
+   * For pickers and tools with their own scrolling panes (a toolbar, a grid beside a details
+   * pane): the shell keeps the width, height, scrim and X but does not scroll; the children are a
+   * column (header, a `min-h-0 flex-1 overflow-y-auto` body, footer) and pad themselves.
+   */
+  panel?: boolean
 }
 
 /** Spacing a dialog sets for its own content (`gap-5`, `p-6`): it belongs on the scroller. */
@@ -54,6 +60,7 @@ export default function DialogContent({
   size = 'standard',
   busy = false,
   dirty = false,
+  panel = false,
   className,
   children,
   ...props
@@ -100,7 +107,13 @@ export default function DialogContent({
       )}
     >
       <div
-        className={cn('grid min-h-0 flex-1 gap-4 overflow-y-auto overscroll-contain p-4', inner)}
+        data-dialog-body={panel ? 'panel' : 'scroll'}
+        className={cn(
+          panel
+            ? 'flex min-h-0 flex-1 flex-col'
+            : 'grid min-h-0 flex-1 gap-4 overflow-y-auto overscroll-contain p-4',
+          inner,
+        )}
       >
         {children}
       </div>

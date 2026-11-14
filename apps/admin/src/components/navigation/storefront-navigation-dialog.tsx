@@ -3,15 +3,7 @@
 import type { NavigationSettings } from '@commerce/core/navigation'
 import { Plus, Save, Trash2 } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@commerce/ui/shadcn/dialog'
+import { Dialog, DialogClose, DialogDescription, DialogTitle } from '@commerce/ui/shadcn/dialog'
 import {
   Field,
   FieldDescription,
@@ -31,6 +23,9 @@ import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { SortableList } from '@commerce/ui/sortable'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import DialogContent from '@/components/layout/dialog-content'
+import DialogFooter from '@/components/layout/dialog-footer'
+import DialogHeader from '@/components/layout/dialog-header'
 import { reorderLabels } from '@/data/common'
 import { storefrontContent } from '@/data/menus'
 import { useCopy } from '@/hooks/use-copy'
@@ -132,12 +127,12 @@ export default function StorefrontNavigationDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex max-h-[calc(100dvh-2rem)] flex-col gap-0 p-0 sm:max-w-md">
-        <DialogHeader className="gap-0.5 p-4 pr-12">
+      <DialogContent busy={saving}>
+        <DialogHeader>
           <DialogTitle>{copy.editTitle}</DialogTitle>
           <DialogDescription>{copy.editDescription}</DialogDescription>
         </DialogHeader>
-        <div className="flex flex-1 flex-col gap-5 overflow-y-auto px-4 pb-4">
+        <div className="flex flex-col gap-5">
           <Field>
             <FieldLabel htmlFor="header-menu">{copy.headerLabel}</FieldLabel>
             <Select value={main ?? NONE} onValueChange={(v) => handleMainChange(String(v))}>
@@ -215,7 +210,7 @@ export default function StorefrontNavigationDialog({
             </FieldGroup>
           </FieldSet>
         </div>
-        <DialogFooter className="m-0 flex-row justify-end gap-2">
+        <DialogFooter>
           <DialogClose render={<Button variant="outline" />}>{copy.cancel}</DialogClose>
           <Button type="button" onClick={handleSave} disabled={saving}>
             {saving ? <Spinner /> : <Save aria-hidden="true" />}

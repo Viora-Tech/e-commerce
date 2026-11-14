@@ -2,17 +2,14 @@
 
 import { Plus, Search } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@commerce/ui/shadcn/dialog'
+import { Dialog, DialogTitle } from '@commerce/ui/shadcn/dialog'
 import { Input } from '@commerce/ui/shadcn/input'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { Switch } from '@commerce/ui/shadcn/switch'
 import { useEffect, useId, useState } from 'react'
+import DialogContent from '@/components/layout/dialog-content'
+import DialogFooter from '@/components/layout/dialog-footer'
+import DialogHeader from '@/components/layout/dialog-header'
 import InlineState from '@/components/states/inline-state'
 import { selectProductsContent } from '@/data/select-products'
 import { useCopy } from '@/hooks/use-copy'
@@ -146,9 +143,9 @@ export default function SelectProductsDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex max-h-[85vh] flex-col gap-0 p-0 sm:max-w-[42rem]">
-        <DialogHeader className="px-4 pt-4 pb-3">
-          <DialogTitle className="text-base font-semibold">{copy.title}</DialogTitle>
+      <DialogContent panel className="h-[min(85svh,48rem)]">
+        <DialogHeader className="pb-3">
+          <DialogTitle>{copy.title}</DialogTitle>
         </DialogHeader>
         <div className="flex flex-col gap-3 px-4 pb-3">
           <div className="flex flex-wrap items-center gap-2">
@@ -191,7 +188,7 @@ export default function SelectProductsDialog({
             <label htmlFor={switchId}>{copy.showSelectedOnly}</label>
           </div>
         </div>
-        <div className="min-h-0 flex-1 overflow-y-auto border-line border-t">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain border-t">
           {loading ? (
             <div className="flex flex-col gap-3 p-4">
               {[0, 1, 2, 3].map((i) => (
@@ -221,7 +218,7 @@ export default function SelectProductsDialog({
             </ul>
           )}
         </div>
-        <DialogFooter className="m-0 items-center justify-between rounded-b-xl border-line border-t bg-transparent px-4 py-3 sm:flex-row">
+        <DialogFooter className="items-center sm:justify-between">
           <span className="text-caption text-muted-foreground">
             {anyVariants ? copy.summary(picked.size, variantTotal) : copy.productsOnly(picked.size)}
           </span>

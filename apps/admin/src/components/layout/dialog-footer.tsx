@@ -14,6 +14,7 @@ export default function DialogFooter({ className, ...props }: DialogFooterProps)
       {...props}
       className={cn(
         'sticky -bottom-4 z-10 bg-[color-mix(in_oklab,var(--muted)_50%,var(--popover))]',
+        'in-data-[dialog-body=panel]:static in-data-[dialog-body=panel]:m-0',
         className,
       )}
     />

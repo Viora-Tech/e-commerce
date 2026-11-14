@@ -3,17 +3,13 @@
 import { CheckIcon, Loader2Icon, Search } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Checkbox } from '@commerce/ui/shadcn/checkbox'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@commerce/ui/shadcn/dialog'
+import { Dialog, DialogDescription, DialogTitle } from '@commerce/ui/shadcn/dialog'
 import { Input } from '@commerce/ui/shadcn/input'
 import { Tabs, TabsList, TabsTrigger } from '@commerce/ui/shadcn/tabs'
 import { useEffect, useId, useRef, useState } from 'react'
+import DialogContent from '@/components/layout/dialog-content'
+import DialogFooter from '@/components/layout/dialog-footer'
+import DialogHeader from '@/components/layout/dialog-header'
 import { resourcePickerContent } from '@/data/resource-picker'
 import { useCopy } from '@/hooks/use-copy'
 import ResourcePickRow from './resource-pick-row'
@@ -195,14 +191,10 @@ export default function ResourcePickDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="flex h-[min(90svh,40rem)] w-full flex-col gap-0 p-0 sm:max-w-[42rem]">
-        <DialogHeader className="gap-3 border-b p-4">
-          <DialogTitle className="text-base font-medium">{title}</DialogTitle>
-          {description ? (
-            <DialogDescription className="text-caption text-muted-foreground">
-              {description}
-            </DialogDescription>
-          ) : null}
+      <DialogContent panel className="h-[min(85svh,40rem)]">
+        <DialogHeader className="gap-3 border-b">
+          <DialogTitle>{title}</DialogTitle>
+          {description ? <DialogDescription>{description}</DialogDescription> : null}
           {tabs.length > 1 ? (
             <Tabs value={tab} onValueChange={handleTab}>
               <TabsList>
@@ -288,7 +280,7 @@ export default function ResourcePickDialog({
           ) : null}
         </div>
 
-        <DialogFooter className="mx-0 mb-0 items-center gap-2 rounded-b-xl border-t bg-muted/50 p-4 sm:justify-between">
+        <DialogFooter className="items-center sm:justify-between">
           <span
             className="flex items-center gap-2 text-caption text-muted-foreground"
             aria-live="polite"

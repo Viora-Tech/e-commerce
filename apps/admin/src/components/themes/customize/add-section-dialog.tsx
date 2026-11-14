@@ -1,12 +1,8 @@
 'use client'
 
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@commerce/ui/shadcn/dialog'
+import { Dialog, DialogDescription, DialogTitle } from '@commerce/ui/shadcn/dialog'
+import DialogContent from '@/components/layout/dialog-content'
+import DialogHeader from '@/components/layout/dialog-header'
 import { customizeContent } from '@/data/customize'
 import type { CustomizeDoc } from '@/lib/customize-doc'
 import { groupForZone, type InsertTarget } from '@/lib/customize-insert'
@@ -35,10 +31,11 @@ export default function AddSectionDialog({ target, onClose }: AddSectionDialogPr
 
   return (
     <Dialog open={target !== null} onOpenChange={(open) => (open ? undefined : onClose())}>
-      <DialogContent className="flex h-[min(36rem,80vh)] w-full max-w-[24rem] flex-col gap-0 p-0">
-        <DialogHeader className="gap-1 border-b border-border px-4 pt-4 pb-3">
-          <DialogTitle className="text-base font-medium">{copy.title}</DialogTitle>
-          <DialogDescription className="text-xs">{copy.description}</DialogDescription>
+      {/* A narrow list (24rem from `sm` up); on phones the shell keeps its 1rem gutter. */}
+      <DialogContent panel className="h-[min(36rem,80svh)] sm:max-w-[24rem]">
+        <DialogHeader className="border-b">
+          <DialogTitle>{copy.title}</DialogTitle>
+          <DialogDescription>{copy.description}</DialogDescription>
         </DialogHeader>
         {target ? (
           <AddSectionBrowser
