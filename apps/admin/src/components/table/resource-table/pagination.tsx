@@ -64,21 +64,20 @@ export default function ResourceTablePagination({
   return (
     <nav
       aria-label="Pagination"
-      className="flex min-h-14 flex-wrap items-center justify-between gap-3 border-border border-t px-4 py-2.5 text-[0.8125rem] leading-[1.1875rem] text-muted-foreground"
+      className="flex min-h-14 flex-wrap items-center justify-between gap-3 border-border border-t px-4 py-2.5 text-caption font-normal text-muted-foreground"
     >
       <span className="tabular-nums">{tableCopy.showing(from, to, total)}</span>
       <div className="flex items-center gap-4">
         {onPerPageChange ? (
           <div className="hidden items-center gap-2 sm:flex">
             <span>{tableCopy.rowsPerPage}</span>
-            {/* Figma "Rows": an outline sm button, the number then its chevron (owner); the menu lists the
-                choices and closes on pick. */}
+            {/* Figma "Rows": an outline button, the number then its chevron (owner); 2.25rem like
+                the page buttons beside it. The menu lists the choices and closes on pick. */}
             <DropdownMenu>
               <DropdownMenuTrigger
                 render={
                   <Button
                     variant="outline"
-                    size="sm"
                     className="gap-1.5 px-3 tabular-nums"
                     aria-label={tableCopy.rowsPerPage}
                   />

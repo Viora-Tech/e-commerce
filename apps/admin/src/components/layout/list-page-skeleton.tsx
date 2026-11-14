@@ -1,46 +1,41 @@
-import { Card } from '@commerce/ui/shadcn/card'
-import { Skeleton } from '@commerce/ui/shadcn/skeleton'
+import type { ReactNode } from 'react'
 import PageBody from '@/components/layout/page-body'
+import PageHeaderSkeleton from '@/components/layout/page-header-skeleton'
+import { LIST_PAGE_FRAME } from '@/components/layout/proofly-list-page'
+import StatStrip from '@/components/layout/stat-strip'
+import ResourceTableSkeleton from '@/components/table/resource-table-skeleton'
 
-const ROWS = 8
+type ListPageSkeletonProps = {
+  /** The page's title, when the loader knows it. */
+  title?: string | undefined
+  /** Header buttons on the right. */
+  actions?: number
+  /** Cells in the stat strip; `0` for a list without one. */
+  tiles?: number
+  /**
+   * The table card. A page that knows its columns passes its real `ResourceTable` with
+   * `loading` (as Orders does), so the header labels and column widths match too.
+   */
+  table?: ReactNode
+}
 
-/** Shape of a list page while the first fetch runs: header, tiles, then the table card. */
-export default function ListPageSkeleton() {
+/**
+ * A list page while its route loads, built from the loaded page's own parts: the ProoflyListPage
+ * frame, the page header's boxes, the joined StatStrip with skeleton cells and the table card at
+ * ResourceTable's heights. The table therefore starts where it will stay when the data arrives.
+ */
+export default function ListPageSkeleton({
+  title,
+  actions = 1,
+  tiles = 4,
+  table,
+}: ListPageSkeletonProps) {
+  // Render logic
   return (
-    <PageBody>
-      <div className="flex h-8 items-center justify-between">
-        <Skeleton className="h-6 w-40" />
-        <Skeleton className="h-8 w-28" />
-      </div>
-      <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
-        {Array.from({ length: 4 }, (_, i) => (
-          <Skeleton key={i.toString()} className="h-24 rounded-lg" />
-        ))}
-      </div>
-      <Card gap="none" inset="y-none">
-        <div className="flex h-11 items-center gap-5 border-b border-border px-4">
-          <Skeleton className="h-3.5 w-20" />
-          <Skeleton className="h-3.5 w-14" />
-          <Skeleton className="h-3.5 w-14" />
-        </div>
-        <div className="flex items-center gap-2 px-4 py-3">
-          <Skeleton className="h-8 w-72" />
-          <Skeleton className="h-8 w-20" />
-        </div>
-        <div className="h-10 border-b border-border" />
-        {Array.from({ length: ROWS }, (_, i) => (
-          <div
-            key={i.toString()}
-            className="flex h-12 items-center gap-6 border-b border-line px-4 last:border-0"
-          >
-            <Skeleton className="size-4" />
-            <Skeleton className="size-8 rounded-md" />
-            <Skeleton className="h-3.5 w-48" />
-            <Skeleton className="ml-auto h-3.5 w-20" />
-            <Skeleton className="h-3.5 w-20" />
-          </div>
-        ))}
-      </Card>
+    <PageBody className={LIST_PAGE_FRAME}>
+      <PageHeaderSkeleton title={title} actions={actions} />
+      {tiles > 0 ? <StatStrip loading tiles={[]} placeholders={tiles} /> : null}
+      {table ?? <ResourceTableSkeleton />}
     </PageBody>
   )
 }

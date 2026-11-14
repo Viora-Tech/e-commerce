@@ -30,8 +30,7 @@ import ProductFilterPicker, {
 import { useOrderAppActions } from '@/components/orders/use-order-app-actions'
 import { useProductFilterNames } from '@/components/orders/use-product-filter-names'
 import type { PickRow } from '@/components/products/select-products-row'
-import InlineState from '@/components/states/inline-state'
-import ResourceTable, { type TableSort } from '@/components/table/resource-table'
+import ResourceTable from '@/components/table/resource-table'
 import ViewSelect from '@/components/table/view-select'
 import { approvalsContent } from '@/data/approvals'
 import {
@@ -59,6 +58,13 @@ import {
   orderFilterGroups,
   orderFilterInput,
 } from '@/lib/order-list-filters'
+import {
+  ORDER_COLUMNS_KEY,
+  ORDER_DEFAULT_SORT,
+  ORDER_HIDDEN_COLUMNS,
+  orderSortParam,
+  parseOrderSort,
+} from '@/lib/order-list-table'
 import { undeliverableInBulk } from '@/lib/order-next-move'
 import { usePrimaryAction } from '@/lib/primary-action'
 import { routes } from '@/lib/routes'
@@ -67,20 +73,6 @@ import { runBatched } from '@/lib/run-batched'
 
 /** Most ids one `orders.archiveMany` call takes (the API's BULK_MAX). */
 const ARCHIVE_CHUNK = 200
-
-const DEFAULT_SORT: TableSort = { id: 'date', desc: true }
-
-/** `?sort=total.asc` as the table's sort; anything else (or none) is the default. */
-function parseSort(param: string | null): TableSort | null {
-  const match = /^([a-z]+)\.(asc|desc)$/.exec(param ?? '')
-  return match?.[1] ? { id: match[1], desc: match[2] === 'desc' } : null
-}
-
-/** The table's sort as `?sort=`; the default sort leaves the URL clean. */
-function sortParam(sort: TableSort | null): string | null {
-  if (!sort || (sort.id === DEFAULT_SORT.id && sort.desc === DEFAULT_SORT.desc)) return null
-  return `${sort.id}.${sort.desc ? 'desc' : 'asc'}`
-}
 
 /** The API refused this one order for a reason that is a skip, not a failure. */
 function isBadRequest(err: unknown): boolean {
@@ -229,6 +221,14 @@ function OrdersContent({ initial }: { initial: OrdersInitial }) {
     if (row) productNames.remember(row)
     setFilters(next)
   }
+  /* Try again on a failed read: the rows are read again in place, under the same header. */
+  const handleRetry = () => {
+    setFailed(false)
+    setLoading(true)
+    reload()
+      .catch(() => setFailed(true))
+      .finally(() => setLoading(false))
+  }
   const handleTestsDeleted = () => {
     // The tiles and tab counts come from the server render; the rows are fetched again here.
     router.refresh()
@@ -353,9 +353,6 @@ function OrdersContent({ initial }: { initial: OrdersInitial }) {
         />
       }
     >
-      {failed ? (
-        <InlineState kind="error" heading={copy.loadFailed} onRetry={() => setQ({ page })} />
-      ) : null}
       <ResourceTable
         resourceName={copy.resource}
         columns={columns}
@@ -393,13 +390,14 @@ function OrdersContent({ initial }: { initial: OrdersInitial }) {
           />
         )}
         loading={loading}
-        defaultSort={DEFAULT_SORT}
+        // A failed read shows in the table body with Try again, never as "No orders".
+        error={failed ? { heading: copy.loadFailed, onRetry: handleRetry } : undefined}
+        defaultSort={ORDER_DEFAULT_SORT}
         // The sort rides in the URL beside the filters (#7); the columns are remembered (#9).
-        sort={parseSort(sort)}
-        onSortChange={(s) => setSort(sortParam(s))}
-        columnsStorageKey="orders:columns"
-        // Delivery and Tags show on the row by default (#1007); the rest stay in the columns menu.
-        defaultHidden={['fulfilment', 'channel', 'items', 'phone', 'city']}
+        sort={parseOrderSort(sort)}
+        onSortChange={(s) => setSort(orderSortParam(s))}
+        columnsStorageKey={ORDER_COLUMNS_KEY}
+        defaultHidden={ORDER_HIDDEN_COLUMNS}
         query={query}
         onQueryChange={(query) => setQ({ query, page: 1 }, { history: 'replace' })}
         onClearAll={() => setQ({ query: '', status: null, ...NO_FILTERS, page: 1 })}
@@ -451,6 +449,7 @@ function OrdersContent({ initial }: { initial: OrdersInitial }) {
           />
         )}
         empty={searching ? copy.noResults : status !== null ? tabEmpty : copy.empty}
+        noResults={copy.noResults}
       />
       {bulkUsed ? (
         <OrdersBulkDialogs

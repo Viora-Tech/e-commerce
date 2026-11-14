@@ -4,7 +4,7 @@ export const statesContent = {
   error: {
     heading: 'Something went wrong',
     body: 'We could not load this. Try again in a moment.',
-    retry: 'Retry',
+    retry: 'Try again',
     support: 'Contact support',
   },
   offline: {

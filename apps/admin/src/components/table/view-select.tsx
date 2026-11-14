@@ -9,6 +9,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from '@commerce/ui/shadcn/dropdown-menu'
+import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { tableContent } from '@/data/table'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 
@@ -24,6 +25,8 @@ type ViewSelectProps<V extends string | null> = {
   formatCount?: (n: number) => string
   /** Filters are applied: the trigger reads "Custom" with the result count, no view is ticked. */
   custom?: { label: string; count: number } | undefined
+  /** The counts are still loading (the list's skeleton): a bar stands where the count goes. */
+  pending?: boolean
 }
 
 /** The radio value for a view; `null` (the "all" view) travels as an empty string. */
@@ -42,6 +45,7 @@ export default function ViewSelect<V extends string | null>({
   label,
   formatCount,
   custom,
+  pending = false,
 }: ViewSelectProps<V>) {
   // Hooks
   const tableCopy = useCopy(tableContent)
@@ -56,11 +60,13 @@ export default function ViewSelect<V extends string | null>({
     <DropdownMenu>
       <DropdownMenuTrigger
         aria-label={label ?? tableCopy.view}
-        className="flex h-8 shrink-0 items-center gap-1.5 rounded-sm pr-2 pl-2.5 text-body font-medium text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring data-[popup-open]:bg-muted"
+        className="flex h-9 shrink-0 items-center gap-1.5 rounded-sm pr-2 pl-2.5 text-body font-medium text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring data-[popup-open]:bg-muted"
       >
         {current?.label}
-        {current?.count !== undefined ? (
-          <span className="text-xs font-normal text-muted-foreground tabular-nums">
+        {pending ? (
+          <Skeleton className="h-3 w-8" />
+        ) : current?.count !== undefined ? (
+          <span className="text-period font-normal text-muted-foreground tabular-nums">
             {count(current.count)}
           </span>
         ) : null}
@@ -80,7 +86,7 @@ export default function ViewSelect<V extends string | null>({
                 </span>
                 <span className={on ? 'flex-1 font-medium' : 'flex-1'}>{o.label}</span>
                 {o.count !== undefined ? (
-                  <span className="ml-4 text-xs text-muted-foreground tabular-nums">
+                  <span className="ml-4 text-period text-muted-foreground tabular-nums">
                     {count(o.count)}
                   </span>
                 ) : null}

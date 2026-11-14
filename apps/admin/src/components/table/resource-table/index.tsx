@@ -1,10 +1,7 @@
 'use client'
 
-import { SearchX } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
-import { Button } from '@commerce/ui/shadcn/button'
 import { Card } from '@commerce/ui/shadcn/card'
-import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import {
   Table,
   TableBody,
@@ -16,9 +13,9 @@ import {
 import { createColumnHelper, type RowData, useTable } from '@tanstack/react-table'
 import { useRouter } from 'next/navigation'
 import { type CSSProperties, type ReactNode, useEffect, useState } from 'react'
-import EmptyState from '@/components/layout/empty-state'
 import { type FilterGroup, hasFilter } from '@/components/table/filter-panel'
 import RowActionsCell from '@/components/table/row-actions-cell'
+import TableSkeletonRows from '@/components/table/table-skeleton-rows'
 import { tableContent } from '@/data/table'
 import { useCopy } from '@/hooks/use-copy'
 import { publishListSelection } from '@/lib/list-selection'
@@ -34,6 +31,8 @@ import { type ResourceTableFeatures, resourceTableFeatures } from './features'
 import ResourceTablePagination from './pagination'
 import { useExpanded, useRowSelection, viewOf } from './row-state'
 import SelectionBar from './selection-bar'
+import { CELL, HEAD, SKELETON_ROWS } from './styles'
+import TableFeedback from './table-feedback'
 import {
   listScopeKey,
   type TableSort,
@@ -97,6 +96,11 @@ export type ResourceTableProps<T extends RowData> = {
   /** Replaces the generic "No results" when a search or filter finds nothing. */
   noResults?: { heading: string; body?: string; action?: ReactNode } | undefined
   /**
+   * The rows could not be read: the body shows the error with Try again in place of the rows
+   * (and never "No orders"), under the same header row, so nothing moves.
+   */
+  error?: { heading?: string; body?: string; onRetry: () => void } | undefined
+  /**
    * Per-row actions, drawn in a trailing cell. The cell's own controls must stop
    * propagation: a table with `href` navigates from a click anywhere in the row.
    */
@@ -136,8 +140,6 @@ export type ResourceTableProps<T extends RowData> = {
     | undefined
 }
 
-const SKELETON_ROWS = 6
-
 /* Icon cells are 44px squares (the row height); the column drops its padding so the
    dividers run the full row height. */
 const ICON_CELL_WIDTH = {
@@ -154,14 +156,6 @@ const ALIGN: Record<CellAlign, string> = {
   center: 'text-center',
   end: 'text-right',
 }
-
-/* Proofly table (Figma "Table · Header / Row"): 40px header with small muted labels, 48px rows on
-   thin dividers, cells inset to the page gutter. */
-/* Figma "Table / Cell": header 40px, 12/16 regular muted; rows 60px; 12px sides; rows split by
-   the border colour. */
-const HEAD =
-  'h-10 bg-transparent px-3 py-0 text-xs font-normal text-muted-foreground first:pl-3 last:pr-3'
-const CELL = 'h-15 border-t border-border px-3 py-1.5 text-body first:pl-3 last:pr-3'
 
 /**
  * The one table: a hairline card holding the filter bar, the grid and the pager.
@@ -328,9 +322,14 @@ export default function ResourceTable<T extends RowData>(props: ResourceTablePro
   const minWidth = {
     '--table-min-width': `${tableMinWidth(visibleColumns.map((c) => (c.columnDef.meta ?? {}) as CellMeta))}rem`,
   } as CSSProperties
+  const showError = !props.loading && Boolean(props.error)
   const isEmpty = !props.loading && props.items.length === 0
   /** A search or a filter is narrowing the list (so empty means "no results", not "none yet"). */
   const narrowed = props.query.length > 0 || (props.filterGroups ?? []).some(hasFilter)
+  const feedback = showError ? 'error' : isEmpty ? (narrowed ? 'noResults' : 'empty') : null
+  /* A refetch keeps the height of the rows on screen, so the pager does not jump under the
+     pointer; a first load draws a few rows. */
+  const skeletonRows = Math.max(1, Math.min(props.items.length || SKELETON_ROWS, props.perPage))
 
   return (
     <Card gap="none" inset="y-none" className="overflow-hidden">
@@ -395,88 +394,78 @@ export default function ResourceTable<T extends RowData>(props: ResourceTablePro
               ))}
             </TableHeader>
             <TableBody>
-              {props.loading
-                ? Array.from({ length: SKELETON_ROWS }, (_, i) => (
-                    <TableRow key={`skeleton-${i.toString()}`} className="hover:bg-transparent">
-                      {Array.from({ length: visibleCount }, (_, j) => (
-                        <TableCell
-                          key={`skeleton-${i.toString()}-${j.toString()}`}
-                          className={CELL}
-                        >
-                          <Skeleton className={cn('h-3.5', j === 0 ? 'w-4' : 'w-full max-w-32')} />
-                        </TableCell>
-                      ))}
+              {props.loading ? (
+                <TableSkeletonRows
+                  columns={visibleCount}
+                  rows={skeletonRows}
+                  cellClassName={CELL}
+                  label={tableCopy.loading(props.resourceName.plural)}
+                />
+              ) : showError ? null : (
+                rows.map((row) => {
+                  const target = props.href?.(row.original)
+                  const folds = Boolean(props.tree) && row.getCanExpand()
+                  return (
+                    <TableRow
+                      key={row.id}
+                      data-state={row.getIsSelected() ? 'selected' : undefined}
+                      className={cn(
+                        'group/row border-0 tabular-nums transition-colors duration-150 hover:bg-row-hover data-[state=selected]:bg-primary-soft motion-reduce:transition-none',
+                        (target || folds) && 'cursor-pointer',
+                        props.rowMuted?.(row.original) &&
+                          '[&>td]:opacity-40 [&>td]:grayscale [&>td]:transition-opacity hover:[&>td]:opacity-80',
+                      )}
+                      onClick={
+                        target
+                          ? (e) => openRow(e, target, (to) => router.push(to))
+                          : folds
+                            ? () => row.toggleExpanded()
+                            : undefined
+                      }
+                      onAuxClick={
+                        target ? (e) => openRow(e, target, (to) => router.push(to)) : undefined
+                      }
+                    >
+                      {row.getVisibleCells().map((cell) => {
+                        const meta = cell.column.columnDef.meta as CellMeta | undefined
+                        return (
+                          <TableCell
+                            key={cell.id}
+                            className={cn(
+                              CELL,
+                              'text-foreground',
+                              ALIGN[meta?.align ?? 'start'],
+                              meta?.className,
+                            )}
+                          >
+                            <table.FlexRender cell={cell} />
+                          </TableCell>
+                        )
+                      })}
                     </TableRow>
-                  ))
-                : rows.map((row) => {
-                    const target = props.href?.(row.original)
-                    const folds = Boolean(props.tree) && row.getCanExpand()
-                    return (
-                      <TableRow
-                        key={row.id}
-                        data-state={row.getIsSelected() ? 'selected' : undefined}
-                        className={cn(
-                          'group/row border-0 tabular-nums transition-colors duration-150 hover:bg-row-hover data-[state=selected]:bg-primary-soft motion-reduce:transition-none',
-                          (target || folds) && 'cursor-pointer',
-                          props.rowMuted?.(row.original) &&
-                            '[&>td]:opacity-40 [&>td]:grayscale [&>td]:transition-opacity hover:[&>td]:opacity-80',
-                        )}
-                        onClick={
-                          target
-                            ? (e) => openRow(e, target, (to) => router.push(to))
-                            : folds
-                              ? () => row.toggleExpanded()
-                              : undefined
-                        }
-                        onAuxClick={
-                          target ? (e) => openRow(e, target, (to) => router.push(to)) : undefined
-                        }
-                      >
-                        {row.getVisibleCells().map((cell) => {
-                          const meta = cell.column.columnDef.meta as CellMeta | undefined
-                          return (
-                            <TableCell
-                              key={cell.id}
-                              className={cn(
-                                CELL,
-                                'text-foreground',
-                                ALIGN[meta?.align ?? 'start'],
-                                meta?.className,
-                              )}
-                            >
-                              <table.FlexRender cell={cell} />
-                            </TableCell>
-                          )
-                        })}
-                      </TableRow>
-                    )
-                  })}
+                  )
+                })
+              )}
             </TableBody>
           </Table>
-          {isEmpty && narrowed ? (
-            // Figma "Feedback state · No results": the search or filters found nothing.
-            <EmptyState
-              icon={SearchX}
-              heading={props.noResults?.heading ?? tableCopy.noResults}
-              body={props.noResults?.body ?? tableCopy.noResultsBody}
-              action={
-                props.noResults?.action ?? (
-                  <Button variant="outline" size="sm" onClick={handleClearNarrowing}>
-                    {tableCopy.clearSearchAndFilters}
-                  </Button>
-                )
+          {feedback ? (
+            <TableFeedback
+              kind={feedback}
+              plural={props.resourceName.plural}
+              words={
+                feedback === 'error'
+                  ? props.error
+                  : feedback === 'noResults'
+                    ? props.noResults
+                    : props.empty
               }
-            />
-          ) : isEmpty ? (
-            <EmptyState
-              heading={props.empty?.heading ?? tableCopy.emptyHeading(props.resourceName.plural)}
-              body={props.empty?.body}
-              action={props.empty?.action}
+              onRetry={props.error?.onRetry}
+              onClear={handleClearNarrowing}
             />
           ) : null}
         </div>
       </div>
-      {props.total > 0 ? (
+      {props.total > 0 && !showError ? (
         <ResourceTablePagination
           page={props.page}
           perPage={props.perPage}

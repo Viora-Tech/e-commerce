@@ -1,13 +1,7 @@
 'use client'
 
-import { Bell, CancelCircle, ChevronDown, Download, Pencil, Printer } from '@commerce/ui/icons'
+import { Bell, CancelCircle, Download, Pencil, Printer } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@commerce/ui/shadcn/dropdown-menu'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
@@ -116,6 +110,11 @@ export default function OrdersBulkActions({
 
   // Render logic
   const appItems = apps.items('bulk', null, ids)
+  const markItems: ActionItem[] = BULK_MARKS.map((m) => ({
+    id: m,
+    label: copy.marks[m],
+    onSelect: () => onMark(ids, m),
+  }))
   const moreItems: ActionItem[] = [
     { label: bulkCopy.addTags, onSelect: () => onRequest('addTags', ids) },
     { label: bulkCopy.removeTags, onSelect: () => onRequest('removeTags', ids) },
@@ -161,27 +160,21 @@ export default function OrdersBulkActions({
         <Pencil />
         {copy.bulk.bulkEdit}
       </Button>
-      <DropdownMenu>
-        <DropdownMenuTrigger render={<Button variant="outline" size="sm" />}>
-          {copy.bulk.markAs}
-          <ChevronDown />
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="start">
-          {/* Cancel is not a mark here: More actions > Cancel orders asks about refunds (#1408). */}
-          {BULK_MARKS.map((s) => (
-            <DropdownMenuItem key={s} onClick={() => onMark(ids, s)}>
-              {copy.marks[s]}
-            </DropdownMenuItem>
-          ))}
-        </DropdownMenuContent>
-      </DropdownMenu>
+      {/* Cancel is not a mark here: More actions > Cancel orders asks about refunds (#1408). */}
+      <ActionMenu
+        label={copy.bulk.markAs}
+        trigger="button"
+        buttonSize="sm"
+        align="start"
+        items={markItems}
+      />
       <ActionMenu
         label={appCopy.bulkMenu}
         trigger="button"
+        buttonSize="sm"
         align="start"
         items={moreItems}
         disabled={apps.busy}
-        triggerClassName="h-8 rounded-sm px-3"
         // Wide enough that "Send payment reminders" fits on one line. Its height stays the
         // menu's own cap so a long list scrolls rather than running off the screen.
         contentClassName="min-w-64"
