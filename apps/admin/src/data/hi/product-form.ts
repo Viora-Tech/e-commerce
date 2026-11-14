@@ -318,6 +318,8 @@ export default [
       weightUnit: 'वज़न की इकाई',
       weightUnits: { g: 'g', kg: 'kg', lb: 'lb', oz: 'oz' },
       weightHelp: 'कूरियर रेट के लिए। खाली रहे तो स्टोर का डिफ़ॉल्ट लगेगा।',
+      weightTooHeavy: (kg) =>
+        `यह ${kg} किलो है, किसी पार्सल के लिए बहुत ज़्यादा। इकाई जाँचें: ग्राम के लिए g चुनें।`,
       hsCode: 'HS (harmonised system) कोड',
       hsCodeHelp: 'कस्टम फ़ॉर्म पर लगता है और GST इनवॉइस पर छपता है।',
       gstRate: 'GST रेट (%)',
