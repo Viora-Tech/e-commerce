@@ -8,7 +8,7 @@ import {
   type ShippingProvider,
   servesDestination,
 } from '@commerce/shipping'
-import { and, eq, gte, inArray, isNotNull, ne, notExists, or, sql } from 'drizzle-orm'
+import { and, count, eq, gte, inArray, isNotNull, ne, notExists, or, sql } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 import type { ShippingSettings } from './settings'
 
@@ -302,6 +302,38 @@ export async function courierOrderFor(
     externalOrderId: row.externalOrderId,
     externalShipmentId: row.externalShipmentId ?? undefined,
   }
+}
+
+/**
+ * Which of the order's bookings the next one is (`CreateShipmentInput.shipmentNumber`): 1 for
+ * its first, then one more for every shipment it already has, cancelled ones too, since the
+ * courier still holds their ids (`2471`, `2471-2`). A pending order this courier holds and the
+ * booking does not reuse (a later parcel of a split order) has taken `2471` there as well.
+ */
+export async function courierShipmentNumber(
+  ctx: StoreContext,
+  orderId: string,
+  providerId: string,
+  reusesPushed: boolean,
+): Promise<number> {
+  const [shipments] = await ctx.tx
+    .select({ n: count() })
+    .from(shipment)
+    .where(eq(shipment.orderId, orderId))
+  const held = reusesPushed
+    ? []
+    : await ctx.tx
+        .select({ id: courierOrder.id })
+        .from(courierOrder)
+        .where(
+          and(
+            eq(courierOrder.orderId, orderId),
+            eq(courierOrder.provider, providerId),
+            inArray(courierOrder.status, ['pushed', 'cancelled']),
+          ),
+        )
+        .limit(1)
+  return (shipments?.n ?? 0) + (held.length > 0 ? 1 : 0) + 1
 }
 
 /** After booking here: that pending order is now a shipment. */

@@ -107,7 +107,7 @@ const ALLOWLIST: Record<string, { lines: number; reason: string }> = {
     reason: 'one courier adapter implementing the whole provider contract',
   },
   'packages/shipping-rapidshyp/src/rapidshyp.ts': {
-    lines: 910,
+    lines: 797,
     reason: 'one courier adapter implementing the whole provider contract',
   },
   'packages/shipping-shiprocket/src/shiprocket.ts': {

@@ -15,7 +15,7 @@ import {
 import { resetDb } from '@commerce/db/test'
 import { FakeShippingProvider, type Tracking } from '@commerce/shipping'
 import { eq } from 'drizzle-orm'
-import { afterAll, beforeEach, describe, expect, it } from 'vitest'
+import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { buildTemplateData } from '../notifications/deliver'
 import { pushPendingOrders } from './order-push'
 import { schedulePickup } from './pickup'
@@ -348,18 +348,24 @@ describe('shipments', () => {
   it('a cancelled label frees the parcel: it books again with the packed units', async () => {
     const { storeId, orderId } = await seedOrder()
     const provider = new FakeShippingProvider()
+    const booked = vi.spyOn(provider, 'createShipment')
     const first = await withStore(app, storeId, (tx) =>
       createShipmentForOrder({ storeId, tx }, provider, orderId),
     )
     expect(first.fulfillmentOrderId).not.toBeNull()
+    expect(booked.mock.calls[0]?.[0].shipmentNumber).toBe(1)
     await withStore(app, storeId, (tx) => cancelShipment({ storeId, tx }, provider, first.id))
     expect(await withStore(app, storeId, (tx) => rebookableParcels(tx, orderId))).toEqual(
       new Set([first.fulfillmentOrderId]),
     )
 
-    const captured: Array<{ lines: Array<{ quantity: number }> }> = []
+    const captured: Array<{
+      lines: Array<{ quantity: number }>
+      orderNumber: number
+      shipmentNumber?: number | undefined
+    }> = []
     const again = Object.assign(new FakeShippingProvider(), {
-      createShipment: async (input: { lines: Array<{ quantity: number }> }) => {
+      createShipment: async (input: (typeof captured)[number]) => {
         captured.push(input)
         return { waybill: 'WB-AGAIN', providerRef: 'WB-AGAIN' }
       },
@@ -372,6 +378,8 @@ describe('shipments', () => {
     )
     expect(second.waybill).toBe('WB-AGAIN')
     expect(captured[0]?.lines.map((l) => l.quantity)).toEqual([2])
+    // The cancelled booking keeps its id at the courier: this one is the order's second (2471-2).
+    expect(captured[0]?.shipmentNumber).toBe(2)
     expect(await withStore(app, storeId, (tx) => rebookableParcels(tx, orderId))).toEqual(new Set())
   })
 

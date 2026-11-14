@@ -114,6 +114,10 @@ export type CreateShipmentInput = {
    * aggregator's courier. Absent: the courier's own default, as before.
    */
   serviceId?: string | undefined
+  /** That service's name as the merchant picked it ("Blue Dart Air"), for refusal messages. */
+  serviceLabel?: string | undefined
+  /** The order's 1st, 2nd... booking: aggregators send `2471`, `2471-2` (`courierOrderRef`). */
+  shipmentNumber?: number | undefined
   /**
    * The tracking number the merchant already has, for a courier booked outside the platform
    * (India Post at the post office counter: the article number on the receipt). Only couriers
@@ -124,10 +128,7 @@ export type CreateShipmentInput = {
   dimensionsCm?: { length: number; width: number; height: number } | undefined
   /** The store's GSTIN, printed on an export's commercial invoice. */
   exporterGstin?: string | undefined
-  /**
-   * The order already sits at this courier as a pending order (`pushOrder`): book that one
-   * instead of creating a second order there.
-   */
+  /** Already a pending order at this courier (`pushOrder`): book that one, not a second. */
   pushed?: PushOrderResult | undefined
 }
 
