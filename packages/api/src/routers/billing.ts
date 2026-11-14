@@ -18,7 +18,7 @@ import {
   PLAN_IDS,
   PLANS,
   permissions,
-  planUsage,
+  planOrdersUsed,
   resolveBillingEnv,
   startAutopay,
   stopAppRenewal,
@@ -49,14 +49,14 @@ const NOT_READY: Record<BillingNotReady['reason'], string> = {
 
 /** The sidebar's plan usage card; `billing.usage` and the admin shell. */
 export async function planUsageCard(tx: StoreTx, storeId: string) {
-  const row = await ensureStorePlan(tx, storeId)
-  const usage = await planUsage(tx)
+  // The card shows orders alone: the full `planUsage` (staff, storage, AI) is the Plan page's.
+  const [row, used] = await Promise.all([ensureStorePlan(tx, storeId), planOrdersUsed(tx)])
   return {
     plan: row.plan,
     status: row.status,
     // Koomerce's own store: no allowance, so the sidebar shows no usage card.
     unlimited: row.unlimited,
-    used: usage.orders,
+    used,
     limit: PLANS[row.plan].orders,
     // What each order past `limit` costs: the sidebar's "Each further order: 1%".
     feeBasisPoints: PLANS[row.plan].feeBasisPoints,

@@ -306,6 +306,11 @@ afterAll(async () => {
 describe('admin page statement counts', () => {
   it('Orders list', async () => {
     const shell = await count(shellOnly)
+    dump('shell', shell.sql)
+    // The layout on every page: reads only (the plan row is written once, on the store's first
+    // page), and the usage card counts orders alone.
+    expect(shell.sql.filter((q) => /^\s*(insert|update|delete)\b/i.test(q))).toEqual([])
+    expect(shell.n).toBeLessThanOrEqual(23)
     const server = await count(ordersServer)
     const client = await count(ordersClient)
     dump('orders-server', server.sql)

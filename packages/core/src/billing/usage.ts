@@ -13,27 +13,38 @@ export type PlanUsage = {
   ai: { calls: number; tokens: number; credits: number }
 }
 
+/** This month's orders and what they took; drafts, cancelled and test-mode orders left out. */
+function monthOrders(tx: StoreTx, monthStart: Date) {
+  return tx
+    .select({
+      n: sql<number>`count(*)::int`,
+      sales: sql<number>`coalesce(sum(${order.totalPaise}), 0)::bigint`,
+    })
+    .from(order)
+    .where(
+      and(
+        ne(order.status, 'draft'),
+        ne(order.status, 'cancelled'),
+        // Test-mode orders (gateway test keys) do not use up the plan's order allowance.
+        eq(order.isTest, false),
+        gte(order.placedAt, monthStart),
+      ),
+    )
+}
+
+/** Orders placed this month alone: the admin sidebar's usage card needs nothing else. */
+export async function planOrdersUsed(tx: StoreTx, now = new Date()): Promise<number> {
+  const [row] = await monthOrders(tx, startOfMonth(now))
+  return row?.n ?? 0
+}
+
 /** Orders placed this month, active staff, stored file bytes and this month's AI use. */
 export async function planUsage(tx: StoreTx, now = new Date()): Promise<PlanUsage> {
   const monthStart = startOfMonth(now)
   // The AI usage bucket is the IST month, `YYYY-MM` (packages/ai aiMonth).
   const month = dayKey(now).slice(0, 7)
   const [[orders], [staff], [storage], [ai]] = await Promise.all([
-    tx
-      .select({
-        n: sql<number>`count(*)::int`,
-        sales: sql<number>`coalesce(sum(${order.totalPaise}), 0)::bigint`,
-      })
-      .from(order)
-      .where(
-        and(
-          ne(order.status, 'draft'),
-          ne(order.status, 'cancelled'),
-          // Test-mode orders (gateway test keys) do not use up the plan's order allowance.
-          eq(order.isTest, false),
-          gte(order.placedAt, monthStart),
-        ),
-      ),
+    monthOrders(tx, monthStart),
     tx
       .select({ n: sql<number>`count(*)::int` })
       .from(storeMember)
