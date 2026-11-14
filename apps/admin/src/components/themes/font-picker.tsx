@@ -44,7 +44,7 @@ export default function FontPicker({ label, value, kind, onChange, compact }: Fo
       {compact ? null : <span className="text-body text-foreground">{label}</span>}
       <Select items={items} value={value} onValueChange={handleChange}>
         <SelectTrigger
-          className={compact ? 'h-8! w-full rounded-[0.5rem] text-[0.8125rem]' : 'w-full'}
+          className={compact ? 'h-8! w-full rounded-[0.5rem] text-caption font-normal' : 'w-full'}
           aria-label={label}
           style={family(value)}
         >

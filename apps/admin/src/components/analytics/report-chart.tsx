@@ -5,6 +5,7 @@ import dynamic from 'next/dynamic'
 import ChartLoading from '@/components/layout/chart-loading'
 import DataCard from '@/components/layout/data-card'
 import DeltaChip from '@/components/layout/delta-chip'
+import EmptyState from '@/components/layout/empty-state'
 import { analyticsContent as copy } from '@/data/analytics'
 import { formatDay } from '@/lib/analytics-range'
 import { change, formatCell, LOWER_IS_BETTER } from '@/lib/report-format'
@@ -82,7 +83,7 @@ export default function ReportChart({ report, data, shape }: ReportChartProps) {
       }
     >
       {points.length === 0 ? (
-        <p className="text-kit-body text-muted-foreground">{c.empty}</p>
+        <EmptyState variant="inline" body={c.empty} />
       ) : (
         <div className="h-[16rem] w-full">
           <ReportChartPlot

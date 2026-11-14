@@ -6,6 +6,7 @@ import { Button } from '@commerce/ui/shadcn/button'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
+import EmptyState from '@/components/layout/empty-state'
 import StatusChip from '@/components/layout/status-chip'
 import SettingsCard from '@/components/settings/settings-card'
 import { paymentRulesContent } from '@/data/payment-rules'
@@ -102,7 +103,7 @@ export default function PaymentRulesCard({ setup, onReload }: PaymentRulesCardPr
       }
     >
       {rules.length === 0 ? (
-        <p className="text-body text-muted-foreground">{copy.rules.empty}</p>
+        <EmptyState variant="inline" body={copy.rules.empty} />
       ) : (
         <ul className="flex flex-col divide-y divide-hairline">
           {rules.map((r) => (

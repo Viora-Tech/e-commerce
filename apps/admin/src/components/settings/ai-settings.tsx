@@ -10,7 +10,6 @@ import {
 import { AI_CREDIT_PACK } from '@commerce/core/billing'
 import { CircleAlert, CreditCard, ShieldCheck } from '@commerce/ui/icons'
 import { Alert, AlertDescription, AlertTitle } from '@commerce/ui/shadcn/alert'
-import { Badge } from '@commerce/ui/shadcn/badge'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Progress } from '@commerce/ui/shadcn/progress'
 import { RadioGroup, RadioGroupItem } from '@commerce/ui/shadcn/radio-group'
@@ -19,6 +18,7 @@ import { toast } from 'sonner'
 import DataCard from '@/components/layout/data-card'
 import SaveBar from '@/components/layout/save-bar'
 import SectionPageSkeleton from '@/components/layout/section-page-skeleton'
+import StatusChip from '@/components/layout/status-chip'
 import { aiContent } from '@/data/ai'
 import { settingsContent } from '@/data/settings'
 import { settingsRowsContent } from '@/data/settings-rows'
@@ -183,9 +183,9 @@ export default function AiSettings() {
               title={
                 <>
                   {copy.settings.usage.heading}
-                  <Badge variant="neutral">
+                  <StatusChip variant="outline" dot={false}>
                     {copy.settings.usage.plan}: {copy.settings.usage.plans[loaded.plan]}
-                  </Badge>
+                  </StatusChip>
                 </>
               }
               subtitle={copy.settings.usage.help(

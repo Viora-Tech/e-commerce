@@ -53,7 +53,7 @@ export default function ThemePresets({ theme, onChange, bare, compact }: ThemePr
               )}
             >
               <span
-                className="flex h-8 w-full items-center justify-center gap-1 rounded-md text-[0.8125rem] font-semibold"
+                className="flex h-8 w-full items-center justify-center gap-1 rounded-md text-caption font-semibold"
                 style={{
                   backgroundColor: p.dark.background,
                   color: p.dark.text,
@@ -67,7 +67,7 @@ export default function ThemePresets({ theme, onChange, bare, compact }: ThemePr
                   style={{ backgroundColor: p.dark.accent }}
                 />
               </span>
-              <span className="text-[0.6875rem] leading-4 text-foreground">
+              <span className="text-micro leading-4 text-foreground">
                 {copy.presets.items[id].label}
               </span>
             </button>

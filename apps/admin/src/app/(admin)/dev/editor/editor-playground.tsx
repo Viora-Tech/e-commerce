@@ -51,7 +51,7 @@ export default function EditorPlayground() {
           </pre>
         </DataCard>
         <DataCard title={copy.jsonHeading}>
-          <pre className="max-h-96 overflow-auto whitespace-pre-wrap font-mono text-[0.6875rem] text-foreground">
+          <pre className="max-h-96 overflow-auto whitespace-pre-wrap font-mono text-micro text-foreground">
             {JSON.stringify(value, null, 2)}
           </pre>
         </DataCard>

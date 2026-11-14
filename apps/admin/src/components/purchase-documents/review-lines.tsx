@@ -2,6 +2,7 @@
 
 import { Checkbox } from '@commerce/ui/shadcn/checkbox'
 import { Label } from '@commerce/ui/shadcn/label'
+import EmptyState from '@/components/layout/empty-state'
 import { documentReviewContent } from '@/data/purchase-documents'
 import { useCopy } from '@/hooks/use-copy'
 import ReviewLineItem from './review-line-item'
@@ -54,7 +55,7 @@ export default function ReviewLines({ review, state, onChange }: ReviewLinesProp
         </Label>
       ) : null}
       {state.lines.length === 0 ? (
-        <p className="text-body text-muted-foreground">{copy.lines.noLines}</p>
+        <EmptyState variant="inline" body={copy.lines.noLines} />
       ) : (
         <ul className="flex flex-col divide-y divide-line">
           {state.lines.map((line) => (

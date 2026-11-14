@@ -74,7 +74,7 @@ export default function AuditPanel({ onOpenTheme }: AuditPanelProps) {
         <span className="flex size-9 items-center justify-center rounded-full bg-success-soft text-success">
           <CircleCheck aria-hidden weight="regular" className="size-5" />
         </span>
-        <p className="text-[0.8125rem] font-medium text-foreground">{copy.empty}</p>
+        <p className="text-caption font-medium text-foreground">{copy.empty}</p>
         <p className="text-xs text-muted-foreground">{copy.emptyHint}</p>
       </div>
     )
@@ -119,7 +119,7 @@ export default function AuditPanel({ onOpenTheme }: AuditPanelProps) {
                   <SectionIcon type={issue.type ?? ''} tile="sm" />
                 )}
                 <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-                  <span className="text-[0.8125rem] leading-5 font-medium text-foreground">
+                  <span className="text-caption leading-5 font-medium text-foreground">
                     {message}
                   </span>
                   <span className="truncate text-xs text-muted-foreground">

@@ -6,6 +6,7 @@ import { Button } from '@commerce/ui/shadcn/button'
 import { Card } from '@commerce/ui/shadcn/card'
 import { useEffect, useState } from 'react'
 import CountUp from '@/components/layout/count-up'
+import EmptyState from '@/components/layout/empty-state'
 import MiniBars from '@/components/layout/mini-bars'
 import PageHeader from '@/components/layout/page-header'
 import { analyticsContent } from '@/data/analytics'
@@ -100,7 +101,7 @@ export default function LiveView({ initial, globe }: LiveViewProps) {
           <Card className={FLOATING_CARD}>
             <p className="text-card-title text-foreground">{c.events}</p>
             {data.events.length === 0 ? (
-              <p className="mt-4 text-body text-muted-foreground">{c.eventsEmpty}</p>
+              <EmptyState variant="inline" body={c.eventsEmpty} className="mt-4" />
             ) : (
               <ul className="mt-4 flex flex-col gap-4">
                 {data.events.map((event) => (

@@ -13,10 +13,10 @@ import {
 } from '@commerce/core/billing'
 import { CheckIcon } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
-import { Badge } from '@commerce/ui/shadcn/badge'
 import { Button } from '@commerce/ui/shadcn/button'
 import { useState } from 'react'
 import PillTabs from '@/components/layout/pill-tabs'
+import StatusChip from '@/components/layout/status-chip'
 import { billingContent } from '@/data/billing'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { feePercent, ownItContactUrl } from '@/lib/billing'
@@ -123,9 +123,9 @@ export default function PlanChooser({
               <div className="flex flex-col gap-1">
                 <h3 className="flex items-center gap-2 text-card-title text-ink-strong">
                   {copy.plans[p].name}
-                  {isCurrent ? <Badge variant="success">{c.current}</Badge> : null}
+                  {isCurrent ? <StatusChip tone="success">{c.current}</StatusChip> : null}
                   {p === suggested && !isCurrent ? (
-                    <Badge variant="info">{d.suggested}</Badge>
+                    <StatusChip tone="info">{d.suggested}</StatusChip>
                   ) : null}
                 </h3>
                 <p className="text-caption text-muted-foreground">{copy.plans[p].blurb}</p>

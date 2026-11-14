@@ -178,10 +178,10 @@ export default function RoleEditor({ initial }: RoleEditorProps) {
         </div>
       </SettingsCard>
       <header className="flex flex-col gap-0.5 pt-2">
-        <h2 className="text-[0.9375rem] leading-[1.375rem] font-semibold text-ink-strong">
+        <h2 className="text-card-title leading-[1.375rem] font-semibold text-ink-strong">
           {copy.roleForm.permissions}
         </h2>
-        <p className="text-[0.8125rem] leading-[1.1875rem] text-muted-foreground">{help}</p>
+        <p className="text-caption font-normal leading-[1.1875rem] text-muted-foreground">{help}</p>
       </header>
       <RolePermissions value={access} onChange={setAccess} rules={rules} />
       <RoleSummaryBar

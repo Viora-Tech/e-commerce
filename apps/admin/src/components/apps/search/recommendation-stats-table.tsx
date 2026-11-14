@@ -4,6 +4,7 @@ import { discoveryRate, type RecommendationStat } from '@commerce/core/discovery
 import KitTable from '@/components/kit/kit-table'
 import KitTableHead from '@/components/kit/kit-table-head'
 import KitTableRow from '@/components/kit/kit-table-row'
+import EmptyState from '@/components/layout/empty-state'
 import { searchDiscoveryContent } from '@/data/search-discovery'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { formatRate } from '@/lib/analytics-range'
@@ -48,6 +49,6 @@ export default function RecommendationStatsTable({ rows }: RecommendationStatsTa
       </KitTable>
     </div>
   ) : (
-    <p className="px-5 py-6 text-body text-muted-foreground">{r.empty}</p>
+    <EmptyState variant="inline" body={r.empty} className="mx-5 my-6" />
   )
 }

@@ -26,7 +26,7 @@ export default function DynamicSourceChip({
         onClick={onChange}
         disabled={disabled}
         title={copy.change}
-        className="flex min-w-0 flex-1 items-center gap-2 rounded-md py-1.5 text-left text-[0.8125rem] text-foreground focus-visible:ring-2 focus-visible:ring-ring/70 focus-visible:outline-none"
+        className="flex min-w-0 flex-1 items-center gap-2 rounded-md py-1.5 text-left text-caption font-normal text-foreground focus-visible:ring-2 focus-visible:ring-ring/70 focus-visible:outline-none"
       >
         <DynamicSource aria-hidden className="size-3.5 shrink-0 text-primary" />
         <span className="sr-only">{copy.connectedTo}</span>

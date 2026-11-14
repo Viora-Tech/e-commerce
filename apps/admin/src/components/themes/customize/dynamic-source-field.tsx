@@ -96,7 +96,7 @@ export default function DynamicSourceField({
           onChange={() => setPicking(true)}
           onDisconnect={handleDisconnect}
         />
-        <p className="text-[0.6875rem] leading-4 text-muted-foreground">{copy.fallbackNote}</p>
+        <p className="text-micro leading-4 text-muted-foreground">{copy.fallbackNote}</p>
         {picker}
       </FieldFrame>
     )

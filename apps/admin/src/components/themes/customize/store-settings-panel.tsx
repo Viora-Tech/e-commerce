@@ -46,20 +46,20 @@ export default function StoreSettingsPanel({ onOpenTheme }: StoreSettingsPanelPr
     <div className="flex flex-col gap-1 px-2 pb-3">
       <button type="button" onClick={onOpenTheme} className={ROW}>
         <span className="flex min-w-0 flex-1 flex-col">
-          <span className="text-[0.8125rem] leading-5 font-medium text-foreground">
+          <span className="text-caption leading-5 font-medium text-foreground">
             {copy.theme.title}
           </span>
           <span className="text-xs text-muted-foreground">{copy.theme.hint}</span>
         </span>
         <ChevronRight aria-hidden className="size-4 shrink-0 text-muted-foreground" />
       </button>
-      <p className="px-3 pt-3 pb-1 text-[0.6875rem] leading-4 font-medium text-muted-foreground">
+      <p className="px-3 pt-3 pb-1 text-micro leading-4 font-medium text-muted-foreground">
         {copy.heading}
       </p>
       {LINKS.map((link) => (
         <a key={link.key} href={link.href} target="_blank" rel="noreferrer" className={ROW}>
           <span className="flex min-w-0 flex-1 flex-col">
-            <span className="text-[0.8125rem] leading-5 font-medium text-foreground">
+            <span className="text-caption leading-5 font-medium text-foreground">
               {copy.links[link.key].title}
             </span>
             <span className="text-xs text-muted-foreground">{copy.links[link.key].hint}</span>

@@ -1,5 +1,6 @@
 import CountBadge from '@/components/layout/count-badge'
 import DataCard from '@/components/layout/data-card'
+import EmptyState from '@/components/layout/empty-state'
 import LineItemRow from '@/components/layout/line-item-row'
 import TotalsList from '@/components/layout/totals-list'
 import { abandonedDetailContent } from '@/data/abandoned-detail'
@@ -28,7 +29,7 @@ export default function AbandonedCartCard({ checkout }: AbandonedCartCardProps) 
     >
       <div className="flex flex-col gap-4">
         {checkout.lines.length === 0 ? (
-          <p className="text-body text-muted-foreground">{copy.empty}</p>
+          <EmptyState variant="inline" body={copy.empty} />
         ) : (
           <ul className="flex flex-col divide-y divide-hairline">
             {checkout.lines.map((line) => (

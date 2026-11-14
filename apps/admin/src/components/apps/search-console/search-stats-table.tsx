@@ -6,6 +6,7 @@ import KitTable from '@/components/kit/kit-table'
 import KitTableHead from '@/components/kit/kit-table-head'
 import KitTableRow from '@/components/kit/kit-table-row'
 import DeltaChip from '@/components/layout/delta-chip'
+import EmptyState from '@/components/layout/empty-state'
 import { searchConsoleContent } from '@/data/search-console'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { formatRate } from '@/lib/analytics-range'
@@ -43,7 +44,7 @@ export default function SearchStatsTable({
   const fmt = useFormat()
 
   // Early returns
-  if (rows.length === 0) return <p className="py-6 text-body text-muted-foreground">{empty}</p>
+  if (rows.length === 0) return <EmptyState variant="inline" body={empty} className="my-6" />
 
   // Render logic
   const columns = withChange ? COLUMNS_WITH_CHANGE : COLUMNS

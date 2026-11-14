@@ -78,7 +78,7 @@ export default function LoopLinkedPanel({
         <DynamicSource aria-hidden className="mt-0.5 size-4 shrink-0 text-primary" />
         <div className="flex min-w-0 flex-col">
           <span className={CHROME_META}>{copy.linked}</span>
-          <span className="truncate text-[0.8125rem] font-medium text-foreground">
+          <span className="truncate text-caption font-medium text-foreground">
             {sourceLabel(spec.source, catalog)}
           </span>
           <span className="text-xs text-muted-foreground">

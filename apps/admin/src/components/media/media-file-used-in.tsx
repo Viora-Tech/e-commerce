@@ -2,6 +2,7 @@
 
 import type { MediaReference } from '@commerce/core'
 import Link from 'next/link'
+import EmptyState from '@/components/layout/empty-state'
 import { mediaContent } from '@/data/media'
 import { useCopy } from '@/hooks/use-copy'
 import { routes } from '@/lib/routes'
@@ -35,7 +36,7 @@ export default function MediaFileUsedIn({ rows }: MediaFileUsedInProps) {
 
   // Early returns
   if (rows.length === 0) {
-    return <p className="text-caption text-muted-foreground">{copy.usedInEmpty}</p>
+    return <EmptyState variant="inline" body={copy.usedInEmpty} />
   }
 
   return (

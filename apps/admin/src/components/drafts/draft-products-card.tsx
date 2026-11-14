@@ -8,6 +8,7 @@ import DraftCustomItemDialog from '@/components/drafts/draft-custom-item-dialog'
 import type { DraftLine } from '@/components/drafts/draft-form-state'
 import DraftMoneyInput from '@/components/drafts/draft-money-input'
 import DataCard from '@/components/layout/data-card'
+import EmptyState from '@/components/layout/empty-state'
 import LineItemRow from '@/components/layout/line-item-row'
 import SelectProductsDialog, {
   type PickedProducts,
@@ -121,7 +122,7 @@ export default function DraftProductsCard({ lines, onChange }: DraftProductsCard
           </Button>
         </div>
         {lines.length === 0 ? (
-          <p className="text-body text-muted-foreground">{copy.products.empty}</p>
+          <EmptyState variant="inline" body={copy.products.empty} />
         ) : (
           <ul className="flex flex-col divide-y divide-line">
             {lines.map((l) => (

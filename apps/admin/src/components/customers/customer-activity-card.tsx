@@ -4,6 +4,7 @@ import { CancelCircle, MessageSquare, RotateCcw, ShoppingBag, Undo } from '@comm
 import { Button } from '@commerce/ui/shadcn/button'
 import { useState } from 'react'
 import DataCard from '@/components/layout/data-card'
+import EmptyState from '@/components/layout/empty-state'
 import Timeline from '@/components/layout/timeline'
 import { CHANNEL_LABEL } from '@/data/customer-privacy'
 import { customerDetailContent } from '@/data/customers'
@@ -76,7 +77,7 @@ export default function CustomerActivityCard({ customer }: CustomerActivityCardP
   return (
     <DataCard title={copy.activity.heading}>
       {events.length === 0 ? (
-        <p className="text-body text-muted-foreground">{copy.activity.empty}</p>
+        <EmptyState variant="inline" body={copy.activity.empty} />
       ) : (
         <>
           <Timeline

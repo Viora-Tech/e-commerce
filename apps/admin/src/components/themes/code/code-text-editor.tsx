@@ -33,7 +33,7 @@ const TONES: Record<CodeTone, string> = {
 }
 
 /* Text and backdrop share one box model so every character sits over its colour. */
-const TEXT = 'py-2 pr-8 pl-2 font-mono text-[0.8125rem] leading-5 whitespace-pre'
+const TEXT = 'py-2 pr-8 pl-2 font-mono text-caption font-normal leading-5 whitespace-pre'
 
 /**
  * The code area (Figma 699:93624): line numbers in a gutter, the text coloured line by line,
@@ -83,7 +83,7 @@ export default function CodeTextEditor({
       <div className="flex w-max min-w-full">
         <div
           aria-hidden
-          className="sticky left-0 z-10 shrink-0 bg-background py-2 font-mono text-[0.8125rem] leading-5 select-none"
+          className="sticky left-0 z-10 shrink-0 bg-background py-2 font-mono text-caption font-normal leading-5 select-none"
         >
           {lines.map((_, i) => {
             const no = i + 1

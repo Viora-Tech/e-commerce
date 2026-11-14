@@ -303,10 +303,10 @@
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
 
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 0.25rem);
+  --radius-md: calc(var(--radius) - 0.125rem);
   --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
+  --radius-xl: calc(var(--radius) + 0.25rem);
 
   --shadow-card: var(--shadow-card);
   --shadow-glass: var(--shadow-glass);
@@ -357,7 +357,7 @@
  * member's own accent pick (@commerce/core/admin-accent) still overrides --primary* at runtime.
  */
 :root {
-  --radius: 0.75rem; /* 12px cards; controls radius-md (10px), chips radius-sm (8px), panel radius-xl (16px) */
+  --radius: 0.75rem; /* 0.75rem cards; controls radius-md (0.625rem), chips radius-sm (0.5rem), panel radius-xl (1rem) */
 
   /* Depth (Figma depth/*). */
   --depth-ring: rgb(0 0 0 / 0.06);
@@ -369,7 +369,7 @@
   --btn-top: rgb(255 255 255 / 0.18);
   --btn-bottom: rgb(0 0 0 / 0.4);
   --glow-primary: rgb(23 23 23 / 0.28);
-  --glow-destructive: rgb(231 0 11 / 0.3);
+  --glow-destructive: rgb(185 28 28 / 0.3);
   --ai-glow: rgb(23 23 23 / 0.1);
   /* The AI colour: the assistant's orb and its glow. Neutral, as in Figma (owner, 2026-10-16). */
   --ai: #171717;
@@ -483,9 +483,11 @@
   --chip-neutral: #f5f5f5; /* done / neutral status chips */
 
   /* Status: fg, soft fill and border per tone (Figma status/*). */
-  --destructive: #e7000b;
-  --destructive-foreground: #ffffff;
+  /* One red (design audit, 14 Nov 2026): the destructive button, error text and failed chips
+     all draw with --danger. --destructive stays as a name for the shadcn parts. */
   --danger: #b91c1c;
+  --destructive: var(--danger);
+  --destructive-foreground: #ffffff;
   --danger-foreground: var(--destructive-foreground);
   --danger-soft: #fef2f2;
   --danger-border: #fecaca;
@@ -512,7 +514,7 @@
 
   /* Lines and focus */
   --border: #e5e5e5;
-  --hairline: #ebebeb;
+  --hairline: var(--border); /* one hairline grey: an alias of --border (design audit) */
   --border-strong: #d4d4d4;
   --border-soft: #ebebeb;
   --line: #f0f0f0; /* table row dividers */
@@ -571,7 +573,7 @@
   --btn-top: rgb(255 255 255 / 0.6);
   --btn-bottom: rgb(0 0 0 / 0.18);
   --glow-primary: rgb(255 255 255 / 0.16);
-  --glow-destructive: rgb(255 100 103 / 0.3);
+  --glow-destructive: rgb(248 113 113 / 0.3);
   --ai-glow: rgb(255 255 255 / 0.07);
   --ai: #fafafa;
   --shadow-kit-3: 0 0 0 1px var(--depth-ring), 0 10px 24px -6px rgb(0 0 0 / 0.6);
@@ -632,9 +634,9 @@
   --accent-foreground: #fafafa;
   --chip-neutral: rgb(255 255 255 / 0.06);
 
-  --destructive: #ff6467;
-  --destructive-foreground: #ffffff;
   --danger: #f87171;
+  --destructive: var(--danger);
+  --destructive-foreground: #ffffff;
   --danger-soft: rgb(239 68 68 / 0.12);
   --danger-border: rgb(239 68 68 / 0.28);
   --success: #4ade80;
@@ -657,7 +659,7 @@
   --neutral-border: rgb(255 255 255 / 0.12);
 
   --border: rgb(255 255 255 / 0.1);
-  --hairline: rgb(255 255 255 / 0.07);
+  --hairline: var(--border);
   --border-strong: rgb(255 255 255 / 0.15);
   --border-soft: rgb(255 255 255 / 0.07);
   --line: rgb(255 255 255 / 0.06);
@@ -1008,6 +1010,15 @@
 
   --text-period: 0.75rem;
   --text-period--line-height: 1rem;
+
+  /* Count pills, kbd hints, eyebrow labels and other badge-size text (0.6875rem). */
+  --text-micro: 0.6875rem;
+  --text-micro--line-height: 1rem;
+
+  /* Section headings inside a page (plan names, the current theme, app settings). */
+  --text-section-title: 1.25rem;
+  --text-section-title--line-height: 1.75rem;
+  --text-section-title--font-weight: 600;
 
   /* Kit type scale (5:5870 typography sheet + 14:99 component sheet), px → rem, family from --font-primary.
      Sheet: Display 57/700 -0.25%, H2 32/400, Dashboard title 18/700 -2%, Body large 22/500, Body 16/500 lh 140%, Button 16/700.

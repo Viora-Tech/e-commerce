@@ -8,7 +8,7 @@ import { EDITOR_HELP_URL } from './customize-rail'
 import ShortcutList from './shortcut-list'
 
 const LABEL =
-  'text-[0.625rem] leading-[1.0625rem] font-medium tracking-[0.05em] text-muted-foreground uppercase'
+  'text-micro leading-[1.0625rem] font-medium tracking-[0.05em] text-muted-foreground uppercase'
 
 /**
  * The rail's Help tab (Figma 381:8563): the keyboard shortcuts with their keys (the same list as
@@ -39,7 +39,7 @@ export default function HelpPanel() {
         {copy.news.map((item) => (
           <li
             key={item}
-            className="flex gap-2 text-[0.8125rem] leading-[1.1875rem] text-muted-foreground"
+            className="flex gap-2 text-caption font-normal leading-[1.1875rem] text-muted-foreground"
           >
             <CheckIcon aria-hidden className="mt-0.5 size-3.5 shrink-0 text-primary" />
             {item}

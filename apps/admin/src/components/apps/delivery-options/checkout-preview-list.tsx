@@ -1,6 +1,7 @@
 'use client'
 
 import { cn } from '@commerce/ui/lib/utils'
+import EmptyState from '@/components/layout/empty-state'
 import CourierMark from '@/components/shipments/create-shipment/courier-mark'
 import { deliveryPagesContent } from '@/data/delivery-options-pages'
 import { useCopy, useFormat } from '@/hooks/use-copy'
@@ -91,7 +92,7 @@ export default function CheckoutPreviewList({
   const empty = result.status === 'unserviceable' ? p.unserviceable : p.none
 
   return cards.length === 0 ? (
-    <p className="text-body text-muted-foreground">{empty}</p>
+    <EmptyState variant="inline" body={empty} />
   ) : (
     <ul className={cn('flex flex-col gap-2.5 transition-opacity', loading && 'opacity-60')}>
       {cards.map((card, i) => (

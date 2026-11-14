@@ -62,7 +62,7 @@ function CountPill({ count, title }: { count: number; title: string }) {
   return (
     <span
       title={title}
-      className="flex h-4.5 min-w-5 shrink-0 items-center justify-center rounded-full bg-badge-count px-1.5 text-[0.6875rem] leading-3.5 font-semibold text-foreground tabular-nums group-data-[collapsible=icon]:hidden"
+      className="flex h-4.5 min-w-5 shrink-0 items-center justify-center rounded-full bg-badge-count px-1.5 text-micro leading-3.5 font-semibold text-foreground tabular-nums group-data-[collapsible=icon]:hidden"
     >
       {count > 99 ? '99+' : count}
     </span>

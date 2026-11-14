@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import RunStatusChip from '@/components/apps/automations/run-status-chip'
 import DataCard from '@/components/layout/data-card'
+import EmptyState from '@/components/layout/empty-state'
 import { type AutomationRecordType, automationRecordsContent } from '@/data/automation-records'
 import { useCopy, useLocale } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -73,9 +74,7 @@ export default function AutomationHistoryCard({ type, id }: AutomationHistoryCar
       <div className="flex flex-col gap-2">
         {failed ? <p className="text-body text-muted-foreground">{copy.history.error}</p> : null}
         {!failed && rows.length === 0 ? (
-          <p className="text-body text-muted-foreground">
-            {copy.history.empty(copy.nouns[type].one)}
-          </p>
+          <EmptyState variant="inline" body={copy.history.empty(copy.nouns[type].one)} />
         ) : null}
         {rows.map((r) => (
           <Link

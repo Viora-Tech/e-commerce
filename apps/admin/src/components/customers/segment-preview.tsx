@@ -4,6 +4,7 @@ import type { SegmentRules } from '@commerce/core/segments'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import DataCard from '@/components/layout/data-card'
+import EmptyState from '@/components/layout/empty-state'
 import { customersContent, segmentsContent } from '@/data/customers'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -56,7 +57,7 @@ export default function SegmentPreview({ rules }: SegmentPreviewProps) {
         {rules.conditions.length === 0 ? copy.previewAll : copy.previewLive}
       </p>
       {total === 0 && !loading ? (
-        <p className="mt-3 text-body text-muted-foreground">{copy.previewEmpty}</p>
+        <EmptyState variant="inline" body={copy.previewEmpty} className="mt-3" />
       ) : (
         <ul className="mt-4 flex flex-col gap-1">
           {(preview?.sample ?? []).map((c) => (

@@ -14,6 +14,7 @@ import { NativeSelect, NativeSelectOption } from '@commerce/ui/shadcn/native-sel
 import { RadioGroup } from '@commerce/ui/shadcn/radio-group'
 import MoneyInput from '@/components/fields/money-input'
 import DataCard from '@/components/layout/data-card'
+import EmptyState from '@/components/layout/empty-state'
 import StatusChip from '@/components/layout/status-chip'
 import RolloutOption from '@/components/rollouts/rollout-option'
 import { preordersContent } from '@/data/preorders'
@@ -113,7 +114,7 @@ export default function CampaignRulesCard({
           <legend className="text-body font-medium">{copy.markets}</legend>
           <p className="text-caption text-muted-foreground">{copy.marketsHelp}</p>
           {markets.length === 0 ? (
-            <p className="text-caption text-muted-foreground">{copy.noMarkets}</p>
+            <EmptyState variant="inline" body={copy.noMarkets} />
           ) : (
             <div className="flex flex-wrap gap-x-4 gap-y-2">
               {markets.map((m) => (
@@ -142,7 +143,7 @@ export default function CampaignRulesCard({
           <legend className="text-body font-medium">{copy.locations}</legend>
           <p className="text-caption text-muted-foreground">{copy.locationsHelp}</p>
           {locations.length === 0 ? (
-            <p className="text-caption text-muted-foreground">{copy.noLocations}</p>
+            <EmptyState variant="inline" body={copy.noLocations} />
           ) : (
             <div className="flex flex-wrap gap-x-4 gap-y-2">
               {locations.map((l) => (

@@ -90,7 +90,7 @@ export default function SectionsTab({
         <span className="flex size-8 items-center justify-center rounded-lg bg-muted text-muted-foreground">
           <SearchX aria-hidden className="size-4" />
         </span>
-        <p className="text-[0.8125rem] font-medium text-foreground">{copy.empty}</p>
+        <p className="text-caption font-medium text-foreground">{copy.empty}</p>
         <p className="text-xs text-muted-foreground">{copy.emptyHint}</p>
       </div>
     )

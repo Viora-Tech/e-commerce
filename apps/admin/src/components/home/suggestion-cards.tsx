@@ -215,14 +215,14 @@ export default function SuggestionCards({
                 </div>
                 <div className="flex min-w-0 flex-1 flex-col items-start gap-1 pt-1 pr-7.5">
                   <p className="text-body font-semibold text-ink-strong">{s.title}</p>
-                  <p className="line-clamp-2 text-[0.8125rem] leading-[1.1875rem] text-muted-foreground">
+                  <p className="line-clamp-2 text-caption font-normal leading-[1.1875rem] text-muted-foreground">
                     {s.body}
                   </p>
                   {s.prompt ? (
                     <button
                       type="button"
                       onClick={() => handleAsk(s.prompt ?? '')}
-                      className="inline-flex items-center gap-1 pt-1.5 text-[0.8125rem] leading-[1.1875rem] font-medium text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      className="inline-flex items-center gap-1 pt-1.5 text-caption leading-[1.1875rem] font-medium text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     >
                       {s.cta}
                       <ArrowRight className="size-3.5" aria-hidden="true" />
@@ -230,7 +230,7 @@ export default function SuggestionCards({
                   ) : (
                     <Link
                       href={s.href}
-                      className="inline-flex items-center gap-1 pt-1.5 text-[0.8125rem] leading-[1.1875rem] font-medium text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      className="inline-flex items-center gap-1 pt-1.5 text-caption leading-[1.1875rem] font-medium text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     >
                       {s.cta}
                       <ArrowRight className="size-3.5" aria-hidden="true" />

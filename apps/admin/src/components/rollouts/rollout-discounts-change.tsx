@@ -11,6 +11,7 @@ import {
 } from '@commerce/ui/shadcn/select'
 import { useRef, useState } from 'react'
 import DataCard from '@/components/layout/data-card'
+import EmptyState from '@/components/layout/empty-state'
 import ResourcePickDialog, {
   type PickResult,
   type PickTab,
@@ -116,7 +117,7 @@ export default function RolloutDiscountsChange({
       flush
     >
       {discounts.length === 0 ? (
-        <p className="px-4 py-3 text-body text-muted-foreground md:px-6">{copy.empty}</p>
+        <EmptyState variant="inline" body={copy.empty} className="mx-4 my-3 md:mx-6" />
       ) : (
         <ul className="divide-y divide-border">
           {discounts.map((d) => (

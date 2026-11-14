@@ -68,7 +68,7 @@ export default function SectionBlocks({ lists, onSelect, onAdd, onRemove }: Sect
               onClick={onSelect}
               aria-label={copy.selectBlock(block.title)}
               className={cn(
-                'flex h-8 w-full items-center gap-2 rounded-lg pr-8 pl-2 text-left text-[0.8125rem] text-foreground/80',
+                'flex h-8 w-full items-center gap-2 rounded-lg pr-8 pl-2 text-left text-caption font-normal text-foreground/80',
                 CHROME_ROW_HOVER,
                 CHROME_TRANSITION,
                 CHROME_FOCUS,

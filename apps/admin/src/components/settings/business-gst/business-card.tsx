@@ -3,6 +3,7 @@
 import type { Business } from '@commerce/core'
 import { Pencil } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
+import EmptyState from '@/components/layout/empty-state'
 import SettingsCard from '@/components/settings/settings-card'
 import { businessGstContent } from '@/data/business-gst'
 import { useCopy } from '@/hooks/use-copy'
@@ -43,7 +44,7 @@ export default function BusinessCard({ business, canManage, onEdit }: BusinessCa
           ) : null}
         </div>
       ) : (
-        <p className="text-body text-muted-foreground">{copy.empty}</p>
+        <EmptyState variant="inline" body={copy.empty} />
       )}
     </SettingsCard>
   )

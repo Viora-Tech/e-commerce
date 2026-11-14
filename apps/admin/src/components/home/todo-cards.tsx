@@ -152,7 +152,7 @@ export default async function TodoCards({ needsYou, hidden }: TodoCardsProps) {
               </span>
               <div className="flex min-w-0 flex-col gap-1">
                 <p className="text-base leading-5 font-semibold text-ink-strong">{row.label}</p>
-                <p className="text-[0.8125rem] leading-[1.1875rem] text-muted-foreground">
+                <p className="text-caption font-normal leading-[1.1875rem] text-muted-foreground">
                   {row.help}
                 </p>
                 {row.badge ? (

@@ -150,7 +150,7 @@ export default function SectionInspector() {
       ) : (
         <div className="flex flex-1 flex-col items-center justify-center gap-2 px-6 text-center">
           <SectionIcon type={selected.type} handle={sectionHandle(selected)} tile="md" />
-          <p className="text-[0.8125rem] text-muted-foreground">{copy.emptyFields}</p>
+          <p className="text-caption font-normal text-muted-foreground">{copy.emptyFields}</p>
         </div>
       )}
       {liquidType ? <ImportedSectionNote sectionType={liquidType} place="bottom" /> : null}

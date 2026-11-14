@@ -1,5 +1,6 @@
 import type { MarketingRunStatus } from '@commerce/core/marketing'
 import DataCard from '@/components/layout/data-card'
+import EmptyState from '@/components/layout/empty-state'
 import RelativeTime from '@/components/layout/relative-time'
 import { automationEditorContent } from '@/data/marketing-automations'
 import type { api } from '@/lib/api-client'
@@ -24,7 +25,7 @@ export default function AutomationRunsCard({ runs, stepCount }: AutomationRunsCa
   return (
     <DataCard title={copy.title}>
       {runs.length === 0 ? (
-        <p className="text-body text-muted-foreground">{copy.empty}</p>
+        <EmptyState variant="inline" body={copy.empty} />
       ) : (
         <ul className="flex flex-col divide-y divide-border">
           {runs.map((r) => (

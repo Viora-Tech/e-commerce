@@ -5,6 +5,7 @@ import { Button } from '@commerce/ui/shadcn/button'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
+import EmptyState from '@/components/layout/empty-state'
 import RelativeTime from '@/components/layout/relative-time'
 import StatusChip from '@/components/layout/status-chip'
 import { inboxConversationsContent } from '@/data/inbox-conversations'
@@ -156,7 +157,7 @@ export default function CustomerPanel({
           {!canReadOrders ? (
             <p className="text-caption text-muted-foreground">{p.ordersHidden}</p>
           ) : panel.orders.length === 0 ? (
-            <p className="text-caption text-muted-foreground">{p.noOrders}</p>
+            <EmptyState variant="inline" body={p.noOrders} />
           ) : (
             <ul className="flex flex-col gap-1.5">
               {panel.orders.map((o) => (

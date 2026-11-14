@@ -1,13 +1,11 @@
 import { siteConfig } from '@commerce/config/site'
 import { CircleAlert, TriangleAlert } from '@commerce/ui/icons'
-import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
 import type { ReactNode } from 'react'
 import NextStepBanner from '@/components/layout/next-step-banner'
 import PageBody from '@/components/layout/page-body'
 import StatusChip from '@/components/layout/status-chip'
-import { CHIP_DOT } from '@/components/status/tone'
 import { appsContent } from '@/data/apps'
 import { layoutContent } from '@/data/layout'
 import { getCopy, getLocale } from '@/lib/copy-server'
@@ -107,22 +105,17 @@ export default async function AppShell({
               <h1 className="truncate text-[1.25rem] leading-6.5 font-semibold text-ink-strong">
                 {name}
               </h1>
-              <StatusChip tone={tone} className="h-5 shrink-0 text-xs">
+              <StatusChip tone={tone} className="shrink-0">
                 {statusLabel}
               </StatusChip>
             </div>
           </div>
           <div className="flex max-w-full min-w-0 items-center gap-3.5">
             {pillText && statusPill ? (
-              <span
-                title={pillText}
-                className="flex h-7.5 max-w-[22rem] min-w-0 items-center gap-1.5 rounded-full border border-hairline px-2.5 text-caption text-muted-foreground"
-              >
-                <span
-                  aria-hidden="true"
-                  className={cn('size-2 shrink-0 rounded-full', CHIP_DOT[statusPill.tone])}
-                />
-                <span className="truncate">{pillText}</span>
+              <span title={pillText} className="flex max-w-[22rem] min-w-0">
+                <StatusChip tone={statusPill.tone} variant="outline" className="min-w-0">
+                  <span className="truncate">{pillText}</span>
+                </StatusChip>
               </span>
             ) : null}
             {headerAction}

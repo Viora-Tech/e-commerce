@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import DataCard from '@/components/layout/data-card'
 import DeltaChip from '@/components/layout/delta-chip'
+import EmptyState from '@/components/layout/empty-state'
 import { searchConsoleContent } from '@/data/search-console'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { formatRate } from '@/lib/analytics-range'
@@ -95,7 +96,7 @@ export default function SearchConsoleCard({ productId }: SearchConsoleCardProps)
           <div className="flex flex-col gap-2">
             <span className="text-body-strong">{p.queries}</span>
             {card.stats.queries.length === 0 ? (
-              <p className="text-body text-muted-foreground">{p.noQueries}</p>
+              <EmptyState variant="inline" body={p.noQueries} />
             ) : (
               <ul className="flex flex-col">
                 {card.stats.queries.map((q) => (

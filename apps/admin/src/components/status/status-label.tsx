@@ -1,7 +1,8 @@
 'use client'
 
 import { cn } from '@commerce/ui/lib/utils'
-import { CHIP_DOT, CHIP_TEXT, toneFor } from '@/components/status/tone'
+import StatusChip from '@/components/layout/status-chip'
+import { CHIP_TEXT, toneFor } from '@/components/status/tone'
 import { type StatusKind, type StatusValue, statusEntry } from '@/data/status'
 import { useLocale } from '@/hooks/use-copy'
 import { localizeStatusLabel } from '@/lib/status-labels'
@@ -9,7 +10,7 @@ import { localizeStatusLabel } from '@/lib/status-labels'
 type StatusLabelProps<K extends StatusKind> = {
   kind: K
   value: StatusValue<K> | (string & {})
-  /** `dot`: 8px dot + label (payment cell 5:2620). `glyph`: 24px glyph + coloured label (status cell 5:2624). */
+  /** `dot`: StatusChip `variant="dot"` (payment cell 5:2620). `glyph`: 1.5rem glyph + coloured label (status cell 5:2624). */
   variant?: 'dot' | 'glyph'
   size?: 'sm' | 'md'
   /** Overrides the mapped label (e.g. raw gateway text). */
@@ -36,23 +37,20 @@ export default function StatusLabel<K extends StatusKind>({
   const text = label ?? localizeStatusLabel(entry.label, locale)
   const Glyph = variant === 'glyph' ? entry.glyph : undefined
 
-  return (
+  return variant === 'dot' ? (
+    <StatusChip tone={toneFor(entry.tone)} variant="dot" className={cn(SIZE[size], className)}>
+      {text}
+    </StatusChip>
+  ) : (
     <span
       className={cn(
         'inline-flex items-center gap-2',
         SIZE[size],
-        variant === 'glyph' ? CHIP_TEXT[toneFor(entry.tone)] : 'text-foreground',
+        CHIP_TEXT[toneFor(entry.tone)],
         className,
       )}
     >
-      {Glyph ? (
-        <Glyph className="size-6 shrink-0" aria-hidden="true" />
-      ) : (
-        <span
-          className={cn('size-2 shrink-0 rounded-full', CHIP_DOT[toneFor(entry.tone)])}
-          aria-hidden="true"
-        />
-      )}
+      {Glyph ? <Glyph className="size-6 shrink-0" aria-hidden="true" /> : null}
       {text}
     </span>
   )

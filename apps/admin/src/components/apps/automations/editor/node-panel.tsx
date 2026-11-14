@@ -18,6 +18,7 @@ import { CircleAlert, Trash2 } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Field, FieldDescription, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
+import EmptyState from '@/components/layout/empty-state'
 import {
   automationEditorContent,
   automationLoopContent,
@@ -85,7 +86,7 @@ export default function NodePanel({
     )
   }
   const node = selected ? def.nodes[selected] : undefined
-  if (!node) return <p className="text-body text-muted-foreground">{copy.panel.empty}</p>
+  if (!node) return <EmptyState variant="inline" body={copy.panel.empty} />
 
   // Render logic
   const view = nodeView(node, { catalogue, pieces, locale, copy, loop, def })

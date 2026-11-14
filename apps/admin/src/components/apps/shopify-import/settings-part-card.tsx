@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader } from '@commerce/ui/shadcn/card'
 import { Checkbox } from '@commerce/ui/shadcn/checkbox'
 import Link from 'next/link'
 import { useState } from 'react'
+import EmptyState from '@/components/layout/empty-state'
 import StatusChip from '@/components/layout/status-chip'
 import { shopifyImportContent } from '@/data/shopify-import'
 import { shopifyImportSettingsContent } from '@/data/shopify-import-settings'
@@ -109,7 +110,7 @@ export default function SettingsPartCard({
         ) : null}
         {error ? <p className="break-words text-body text-destructive">{error}</p> : null}
         {items.length === 0 && !missingScopes?.length && !error ? (
-          <p className="text-body text-muted-foreground">{copy.empty}</p>
+          <EmptyState variant="inline" body={copy.empty} />
         ) : null}
         {items.length ? (
           <ul className="flex flex-col divide-y divide-border">

@@ -115,7 +115,7 @@ export default function SectionGroup({ title, everyPage, zone, group }: SectionG
         />
         <span className="min-w-0 flex-1 truncate">{title}</span>
         {everyPage ? (
-          <span className="shrink-0 rounded-full bg-muted px-1.5 py-px text-[0.6875rem] leading-4 font-medium text-muted-foreground">
+          <span className="shrink-0 rounded-full bg-muted px-1.5 py-px text-micro leading-4 font-medium text-muted-foreground">
             {groups.everyPage}
           </span>
         ) : null}

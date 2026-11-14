@@ -65,7 +65,7 @@ export default function CustomizeArrayItem({
           />
         ) : null}
         <CollapsibleTrigger className="group flex min-w-0 flex-1 items-center gap-1.5 text-left">
-          <span className="truncate text-[0.8125rem] leading-5 font-medium text-foreground">
+          <span className="truncate text-caption leading-5 font-medium text-foreground">
             {title}
           </span>
           <ChevronDown

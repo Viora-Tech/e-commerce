@@ -24,7 +24,7 @@ export default function SchemeChips({ label, options, value, onChange }: SchemeC
 
   return (
     <div className="flex flex-col gap-1.5">
-      <span id={id} className="text-[0.8125rem] leading-[1.1875rem] font-medium text-foreground">
+      <span id={id} className="text-caption leading-[1.1875rem] font-medium text-foreground">
         {label}
       </span>
       <div role="radiogroup" aria-labelledby={id} className="flex flex-wrap gap-1.5">

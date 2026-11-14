@@ -65,7 +65,7 @@ export default function AddSectionPopover({
       <button
         type="button"
         className={cn(
-          'group/add flex h-8 w-full items-center gap-2 rounded-lg pl-[1.375rem] text-left text-[0.8125rem] text-muted-foreground data-[popup-open]:bg-muted/60 data-[popup-open]:text-foreground',
+          'group/add flex h-8 w-full items-center gap-2 rounded-lg pl-[1.375rem] text-left text-caption font-normal text-muted-foreground data-[popup-open]:bg-muted/60 data-[popup-open]:text-foreground',
           CHROME_ROW_HOVER,
           CHROME_TRANSITION,
           CHROME_FOCUS,

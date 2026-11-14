@@ -77,7 +77,7 @@ export default function CodeSearch({ paths, onOpen, ref }: CodeSearchProps) {
         onKeyDown={handleKeyDown}
         className="h-8 w-full rounded-lg border border-border bg-background pr-12 pl-9 text-body text-foreground placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
       />
-      <kbd className="pointer-events-none absolute top-1/2 right-2 -translate-y-1/2 rounded border border-border px-1 font-mono text-[0.6875rem] text-muted-foreground">
+      <kbd className="pointer-events-none absolute top-1/2 right-2 -translate-y-1/2 rounded border border-border px-1 font-mono text-micro text-muted-foreground">
         ⌘P
       </kbd>
       {showList ? (

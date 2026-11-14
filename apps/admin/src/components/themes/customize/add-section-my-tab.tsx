@@ -65,7 +65,7 @@ export default function MySectionsTab({ query, onAdd }: MySectionsTabProps) {
         <span className="flex size-8 items-center justify-center rounded-lg bg-muted text-muted-foreground">
           <Bookmark aria-hidden className="size-4" />
         </span>
-        <p className="text-[0.8125rem] font-medium text-foreground">{copy.empty}</p>
+        <p className="text-caption font-medium text-foreground">{copy.empty}</p>
         <p className="text-xs text-muted-foreground">{copy.emptyHint}</p>
       </div>
     )
@@ -100,7 +100,7 @@ export default function MySectionsTab({ query, onAdd }: MySectionsTabProps) {
               <SectionIcon type={section.block.type} tile="md" />
             )}
             <span className="flex min-w-0 flex-1 flex-col">
-              <span className="truncate text-[0.8125rem] leading-5 font-medium text-foreground">
+              <span className="truncate text-caption leading-5 font-medium text-foreground">
                 {section.name}
               </span>
               <span className={cn('truncate', CHROME_META)}>

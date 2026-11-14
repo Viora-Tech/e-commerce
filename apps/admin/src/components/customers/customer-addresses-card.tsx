@@ -6,6 +6,7 @@ import { type ReactNode, useState } from 'react'
 import { toast } from 'sonner'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
 import DataCard from '@/components/layout/data-card'
+import EmptyState from '@/components/layout/empty-state'
 import { customerAddressesContent } from '@/data/customer-addresses'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -191,7 +192,7 @@ export default function CustomerAddressesCard({ customer, onChanged }: CustomerA
           />
         ) : (
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <p className="text-body text-muted-foreground">{copy.shipping.empty}</p>
+            <EmptyState variant="inline" body={copy.shipping.empty} />
             {addButton(copy.shipping.add, 'shipping')}
           </div>
         )}

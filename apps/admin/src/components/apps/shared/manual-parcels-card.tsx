@@ -3,6 +3,7 @@
 import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { useEffect, useState } from 'react'
 import DataCard from '@/components/layout/data-card'
+import EmptyState from '@/components/layout/empty-state'
 import { api } from '@/lib/api-client'
 import ManualParcelRow, { type ManualParcelsCopy, type Parcel } from './manual-parcel-row'
 
@@ -54,7 +55,7 @@ export default function ManualParcelsCard({
       <Spinner />
     </p>
   ) : parcels.length === 0 ? (
-    <p className="text-body text-muted-foreground">{copy.empty}</p>
+    <EmptyState variant="inline" body={copy.empty} />
   ) : (
     <ul className="flex flex-col divide-y divide-hairline">
       {parcels.map((p) => (

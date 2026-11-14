@@ -3,6 +3,7 @@
 import { Switch } from '@commerce/ui/shadcn/switch'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import EmptyState from '@/components/layout/empty-state'
 import SettingsCard from '@/components/settings/settings-card'
 import { paymentProvidersContent } from '@/data/payment-providers'
 import { gatewayCatalogue, type MethodId, methodNames } from '@/data/payments-setup'
@@ -68,7 +69,7 @@ export default function ProviderMethodsCard({
       description={copy.help(gateway.name)}
       bodyClassName="gap-0 divide-y divide-hairline"
     >
-      {rows.length ? null : <p className="text-body text-muted-foreground">{copy.none}</p>}
+      {rows.length ? null : <EmptyState variant="inline" body={copy.none} />}
       {rows.map((m) => {
         const name = names[m.id as MethodId]?.name ?? m.id
         const routed = several

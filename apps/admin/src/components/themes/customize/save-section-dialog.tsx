@@ -56,7 +56,7 @@ export default function SaveSectionDialog({ block, defaultName, onClose }: SaveS
           <DialogHeader>
             <div className="flex items-center gap-2.5">
               <SectionIcon type={block.type} tile="md" />
-              <DialogTitle className="text-[0.9375rem] font-semibold tracking-tight">
+              <DialogTitle className="text-card-title font-semibold tracking-tight">
                 {copy.title}
               </DialogTitle>
             </div>

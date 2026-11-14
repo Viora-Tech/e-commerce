@@ -47,7 +47,7 @@ export default function MoreNumbers({ children, salesPreview, ordersPreview }: M
       >
         <span className="flex min-w-0 flex-col">
           <span className="text-base leading-5 font-semibold text-ink-strong">{c.title}</span>
-          <span className="text-[0.8125rem] leading-[1.1875rem] text-muted-foreground">
+          <span className="text-caption font-normal leading-[1.1875rem] text-muted-foreground">
             {c.subtitle}
           </span>
         </span>

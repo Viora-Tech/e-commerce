@@ -19,6 +19,7 @@ import { toast } from 'sonner'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
 import DialogContent from '@/components/layout/dialog-content'
 import DialogHeader from '@/components/layout/dialog-header'
+import EmptyState from '@/components/layout/empty-state'
 import { emailBuilderContent } from '@/data/email-builder'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -278,7 +279,7 @@ export default function BuilderTemplatesDialog({
               </Button>
             </div>
             {rows && rows.length === 0 ? (
-              <p className="text-body text-muted-foreground">{copy.templates.empty}</p>
+              <EmptyState variant="inline" body={copy.templates.empty} />
             ) : null}
             <ul className="flex flex-col divide-y divide-border rounded-xl border border-border">
               {(rows ?? []).map((r) => (

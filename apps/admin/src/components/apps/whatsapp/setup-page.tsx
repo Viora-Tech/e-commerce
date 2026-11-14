@@ -130,7 +130,7 @@ export default function WhatsappSetupPage() {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-1">
-        <h2 className="text-[1.125rem] leading-6 font-semibold text-ink-strong">
+        <h2 className="text-section-title leading-6 font-semibold text-ink-strong">
           {done === steps.length ? words.doneTitle : words.title}
         </h2>
         <p className="text-caption text-muted-foreground">

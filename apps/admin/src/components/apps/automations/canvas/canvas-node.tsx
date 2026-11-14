@@ -40,7 +40,7 @@ function Badge({
   return (
     <span
       className={cn(
-        'inline-flex h-5 items-center gap-1 rounded-[0.375rem] px-1.5 text-[0.6875rem] font-medium [&_svg]:size-3',
+        'inline-flex h-5 items-center gap-1 rounded-[0.375rem] px-1.5 text-micro font-medium [&_svg]:size-3',
         className,
       )}
     >

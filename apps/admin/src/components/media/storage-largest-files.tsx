@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import DataCard from '@/components/layout/data-card'
+import EmptyState from '@/components/layout/empty-state'
 import { mediaContent } from '@/data/media'
 import { getCopy, getLocale } from '@/lib/copy-server'
 import { formatters } from '@/lib/format'
@@ -28,7 +29,7 @@ export default async function StorageLargestFiles({ files }: StorageLargestFiles
   return (
     <DataCard title={copy.heading} bodyClassName="flex flex-col gap-3">
       {files.length === 0 ? (
-        <p className="text-body text-muted-foreground">{copy.empty}</p>
+        <EmptyState variant="inline" body={copy.empty} />
       ) : (
         <table className="w-full text-body">
           <thead>

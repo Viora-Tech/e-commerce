@@ -14,6 +14,7 @@ import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { CELL, HEAD } from '@/components/apps/gst-invoices/table-classes'
 import DataCard from '@/components/layout/data-card'
+import EmptyState from '@/components/layout/empty-state'
 import TableEmptyRow from '@/components/table/table-empty-row'
 import { affiliatesContent } from '@/data/affiliates'
 import { useCopy, useFormat } from '@/hooks/use-copy'
@@ -97,7 +98,7 @@ export default function AffiliateTrendCard() {
         bodyClassName="flex flex-col gap-4"
       >
         {data.points.length === 0 ? (
-          <p className="text-body text-muted-foreground">{t.empty}</p>
+          <EmptyState variant="inline" body={t.empty} />
         ) : (
           <ol className="flex h-40 items-end gap-1.5" aria-label={t.title}>
             {data.points.map((p) => (
@@ -107,7 +108,7 @@ export default function AffiliateTrendCard() {
                   style={{ height: `${Math.max(2, (p.salesPaise / max) * 100)}%` }}
                   title={t.bar(f.money(p.salesPaise), p.orders, p.clicks)}
                 />
-                <span className="truncate text-[0.625rem] text-muted-foreground">
+                <span className="truncate text-micro text-muted-foreground">
                   {f.pattern(
                     new Date(`${p.period}T00:00:00+05:30`),
                     by === 'week' ? { day: 'numeric', month: 'short' } : { month: 'short' },

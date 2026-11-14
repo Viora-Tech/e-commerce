@@ -9,7 +9,7 @@ type FieldFrameProps = {
   children: ReactNode
 }
 
-const LABEL = 'min-w-0 truncate text-[0.8125rem] leading-[1.1875rem] font-medium text-foreground'
+const LABEL = 'min-w-0 truncate text-caption leading-[1.1875rem] font-medium text-foreground'
 
 /**
  * The label + control every field-type override in Customize's right panel

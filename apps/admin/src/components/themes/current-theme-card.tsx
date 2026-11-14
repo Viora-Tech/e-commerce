@@ -44,7 +44,7 @@ export default function CurrentThemeCard({ theme, origin, busy, onAction }: Curr
       <div className="flex flex-wrap items-center justify-between gap-4 px-4 py-4 md:px-6 md:py-5">
         <div className="flex min-w-0 flex-col gap-1">
           <div className="flex min-w-0 flex-wrap items-center gap-2.5">
-            <h2 className="min-w-0 truncate text-[1.25rem] leading-7 font-semibold text-ink-strong">
+            <h2 className="min-w-0 truncate text-section-title leading-7 font-semibold text-ink-strong">
               {theme.name}
             </h2>
             <StatusChip tone="success">{copy.live}</StatusChip>

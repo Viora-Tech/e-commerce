@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import DataCard from '@/components/layout/data-card'
 import DataCardSkeleton from '@/components/layout/data-card-skeleton'
+import EmptyState from '@/components/layout/empty-state'
 import CreateReturnDialog from '@/components/returns/create-return-dialog'
 import StatusLabel from '@/components/status/status-label'
 import { orderReturnsContent, returnsContent } from '@/data/returns'
@@ -127,7 +128,7 @@ export default function OrderReturnsCard({
           </div>
         ))}
         {state.returns.length === 0 ? (
-          <p className="text-body text-muted-foreground">{copy.none}</p>
+          <EmptyState variant="inline" body={copy.none} />
         ) : (
           <ul className="flex flex-col divide-y divide-border">
             {state.returns.map((r) => (

@@ -33,7 +33,7 @@ export default function OverviewTile({
         {value === null ? (
           <Skeleton className="h-6 w-16 rounded" />
         ) : (
-          <p className="truncate text-[1.5rem] leading-8 font-semibold text-ink-strong tabular-nums">
+          <p className="truncate text-stat leading-8 font-semibold text-ink-strong tabular-nums">
             {value}
           </p>
         )}

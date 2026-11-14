@@ -1,8 +1,8 @@
 'use client'
 
-import { Badge } from '@commerce/ui/shadcn/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@commerce/ui/shadcn/tabs'
 import { useEffect, useState } from 'react'
+import StatusChip from '@/components/layout/status-chip'
 import { shopifyAppInstallContent } from '@/data/shopify-app-install'
 import { shopifyImportContent } from '@/data/shopify-import'
 import { useCopy } from '@/hooks/use-copy'
@@ -53,12 +53,12 @@ export default function ConnectForm({ onConnected }: ConnectFormProps) {
         {installable ? (
           <TabsTrigger value="install" className={TRIGGER}>
             {copy.mode.install}
-            <Badge variant="secondary">{install.badge}</Badge>
+            <StatusChip dot={false}>{install.badge}</StatusChip>
           </TabsTrigger>
         ) : null}
         <TabsTrigger value="app" className={TRIGGER}>
           {copy.mode.app}
-          {installable ? null : <Badge variant="secondary">{copy.app.badge}</Badge>}
+          {installable ? null : <StatusChip dot={false}>{copy.app.badge}</StatusChip>}
         </TabsTrigger>
         <TabsTrigger value="token" className={TRIGGER}>
           {copy.mode.token}

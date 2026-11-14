@@ -2,7 +2,6 @@
 
 import type { ScopeHandle } from '@commerce/plugin-shopify-import/client'
 import { RefreshCw } from '@commerce/ui/icons'
-import { Badge } from '@commerce/ui/shadcn/badge'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
 import { useState } from 'react'
@@ -76,9 +75,9 @@ export default function ScopesCard() {
               <span className="text-caption text-muted-foreground">{copy.scopesGranted}</span>
               <div className="flex flex-wrap gap-1.5">
                 {check.granted.map((handle) => (
-                  <Badge key={handle} variant="secondary">
+                  <StatusChip key={handle} dot={false}>
                     {scopeLabel(handle)}
-                  </Badge>
+                  </StatusChip>
                 ))}
               </div>
             </div>

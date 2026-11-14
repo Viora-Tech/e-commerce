@@ -11,6 +11,7 @@ import {
 } from '@commerce/ui/shadcn/table'
 import type { ReactNode } from 'react'
 import DataCard from '@/components/layout/data-card'
+import EmptyState from '@/components/layout/empty-state'
 import { gstReturnsContent } from '@/data/gst-invoices'
 import { useCopy, useLocale } from '@/hooks/use-copy'
 import { formatPaise } from '@/lib/money'
@@ -39,7 +40,7 @@ export default function Gstr1Card({ totals, documents, action }: Gstr1CardProps)
   return (
     <DataCard title={g.title} action={action} flush>
       {totals.length === 0 ? (
-        <p className="px-5 text-body text-muted-foreground">{g.empty}</p>
+        <EmptyState variant="inline" body={g.empty} className="mx-5" />
       ) : (
         <Table>
           <TableHeader>

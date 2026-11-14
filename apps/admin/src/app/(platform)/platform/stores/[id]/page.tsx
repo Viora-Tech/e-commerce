@@ -4,6 +4,7 @@ import { Button } from '@commerce/ui/shadcn/button'
 import { notFound } from 'next/navigation'
 import CopyButton from '@/components/fields/copy-button'
 import DataCard from '@/components/layout/data-card'
+import EmptyState from '@/components/layout/empty-state'
 import KeyValueList from '@/components/layout/key-value-list'
 import PageBody from '@/components/layout/page-body'
 import PageHeader from '@/components/layout/page-header'
@@ -166,7 +167,7 @@ export default async function PlatformStorePage({ params }: StorePageProps) {
 
         <DataCard title={t.domainsTitle} count={d.domains.length}>
           {d.domains.length === 0 ? (
-            <p className="text-body text-muted-foreground">{t.noDomains}</p>
+            <EmptyState variant="inline" body={t.noDomains} />
           ) : (
             <ul className="flex flex-col divide-y divide-border">
               {d.domains.map((x) => (
@@ -188,7 +189,7 @@ export default async function PlatformStorePage({ params }: StorePageProps) {
 
         <DataCard title={t.staffTitle} count={d.staff.length}>
           {d.staff.length === 0 ? (
-            <p className="text-body text-muted-foreground">{t.noStaff}</p>
+            <EmptyState variant="inline" body={t.noStaff} />
           ) : (
             <ul className="flex flex-col divide-y divide-border">
               {d.staff.map((m) => (
@@ -210,7 +211,7 @@ export default async function PlatformStorePage({ params }: StorePageProps) {
 
         <DataCard title={t.appsTitle} count={d.apps.length}>
           {d.apps.length === 0 ? (
-            <p className="text-body text-muted-foreground">{t.noApps}</p>
+            <EmptyState variant="inline" body={t.noApps} />
           ) : (
             <ul className="flex flex-col divide-y divide-border">
               {d.apps.map((a) => (
@@ -248,7 +249,7 @@ export default async function PlatformStorePage({ params }: StorePageProps) {
 
         <DataCard title={t.errorsTitle} count={d.errors.length}>
           {d.errors.length === 0 ? (
-            <p className="text-body text-muted-foreground">{t.noErrors}</p>
+            <EmptyState variant="inline" body={t.noErrors} />
           ) : (
             <ul className="flex flex-col divide-y divide-border">
               {d.errors.map((e) => (
