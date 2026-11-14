@@ -135,7 +135,7 @@ export default function BusinessDialog({
             <DialogClose render={<Button variant="outline" type="button" />}>
               {copy.cancel}
             </DialogClose>
-            <Button type="submit" disabled={saving}>
+            <Button loading={saving} type="submit" disabled={saving}>
               <Save aria-hidden="true" />
               {copy.save}
             </Button>

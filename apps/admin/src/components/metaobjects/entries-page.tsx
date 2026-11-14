@@ -232,6 +232,7 @@ export default function EntriesPage({ definition, initial, initialPerPage }: Ent
       }
     >
       <ConfirmDialog
+        tone="destructive"
         open={deleting !== null}
         onOpenChange={(open) => !open && setDeleting(null)}
         title={copy.bulk.confirmTitle(deleting?.ids.length ?? 0)}

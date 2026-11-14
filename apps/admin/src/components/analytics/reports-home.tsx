@@ -67,7 +67,7 @@ export default function ReportsHome({ reports, saved: initialSaved, assistant }:
 
   // Render logic
   return (
-    <div className="flex w-full flex-col gap-8 px-4 pt-4 pb-6 md:px-8 md:pt-5 md:pb-8">
+    <div className="flex w-full flex-col gap-8 px-4 pt-4 pb-6 md:px-6 md:pt-5 md:pb-8">
       <div className="flex flex-col gap-6">
         <PageHeader
           title={c.title}
@@ -150,6 +150,7 @@ export default function ReportsHome({ reports, saved: initialSaved, assistant }:
         />
       ) : null}
       <ConfirmDialog
+        tone="destructive"
         open={deleting !== null}
         onOpenChange={(open) => !open && setDeleting(null)}
         title={c.remove.title(deleting?.name ?? '')}

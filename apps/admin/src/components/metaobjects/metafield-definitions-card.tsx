@@ -169,6 +169,7 @@ export default function MetafieldDefinitionsCard({
         onSaved={onChanged}
       />
       <ConfirmDialog
+        tone="destructive"
         open={removing !== null}
         onOpenChange={(open) => !open && setRemoving(null)}
         title={copy.remove.title(removing?.name ?? '')}

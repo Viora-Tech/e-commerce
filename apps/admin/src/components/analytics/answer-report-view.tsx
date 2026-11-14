@@ -77,7 +77,7 @@ export default function AnswerReportView({ saved: initialSaved }: AnswerReportVi
   if (snapshot === undefined) return null
   if (!snapshot) {
     return (
-      <div className="flex w-full flex-col gap-6 px-4 pt-4 pb-6 md:px-8 md:pt-5 md:pb-8">
+      <div className="flex w-full flex-col gap-6 px-4 pt-4 pb-6 md:px-6 md:pt-5 md:pb-8">
         <PageHeader
           title={c.answer.title}
           back={{ label: c.back, href: routes.analytics.reports() }}
@@ -94,7 +94,7 @@ export default function AnswerReportView({ saved: initialSaved }: AnswerReportVi
   const { report, result } = answerReport(snapshot, title)
 
   return (
-    <div className="flex w-full flex-col gap-6 px-4 pt-4 pb-6 md:px-8 md:pt-5 md:pb-8">
+    <div className="flex w-full flex-col gap-6 px-4 pt-4 pb-6 md:px-6 md:pt-5 md:pb-8">
       <PageHeader
         title={title}
         summary={snapshot.question ? c.answer.asked(snapshot.question) : undefined}

@@ -91,6 +91,7 @@ export default function CustomerRowActions({
         ]}
       />
       <ConfirmDialog
+        tone="destructive"
         open={confirming}
         onOpenChange={setConfirming}
         title={copy.deleteHeading}

@@ -120,6 +120,7 @@ export default function CodesCard({
         </div>
       ) : null}
       <ConfirmDialog
+        tone="destructive"
         open={confirming}
         onOpenChange={setConfirming}
         title={c.rotateConfirm}

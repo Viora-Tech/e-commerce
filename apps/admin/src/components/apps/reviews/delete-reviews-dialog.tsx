@@ -38,6 +38,7 @@ export default function DeleteReviewsDialog({
   // Render logic
   return (
     <ConfirmDialog
+      tone="destructive"
       open={open}
       onOpenChange={onOpenChange}
       title={copy.deleteTitle(ids.length)}

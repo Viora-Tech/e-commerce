@@ -139,7 +139,7 @@ export default function ProfileForm({ profile, othersHaveAreas = false }: Profil
               {copy.delete.action}
             </Button>
           ) : (
-            <Button onClick={handleSave} disabled={busy || !dirty}>
+            <Button loading={busy} onClick={handleSave} disabled={busy || !dirty}>
               <Save aria-hidden="true" />
               {copy.saveBar.save}
             </Button>
@@ -190,6 +190,7 @@ export default function ProfileForm({ profile, othersHaveAreas = false }: Profil
       )}
 
       <ConfirmDialog
+        tone="destructive"
         open={confirmDelete}
         onOpenChange={setConfirmDelete}
         title={copy.delete.title(profile?.name ?? '')}

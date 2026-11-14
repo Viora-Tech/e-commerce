@@ -132,7 +132,7 @@ export default function NewContentType() {
                 <Button variant="outline" size="lg" disabled={busy} onClick={() => setPreset(null)}>
                   {copy.name.change}
                 </Button>
-                <Button size="lg" disabled={busy} onClick={handleCreate}>
+                <Button loading={busy} size="lg" disabled={busy} onClick={handleCreate}>
                   <Plus aria-hidden="true" />
                   {busy ? copy.name.creating : copy.name.create}
                 </Button>

@@ -210,6 +210,7 @@ export default function SenderEmailCard() {
       </CardContent>
 
       <ConfirmDialog
+        tone="destructive"
         open={confirmRemove}
         onOpenChange={setConfirmRemove}
         title={copy.remove}

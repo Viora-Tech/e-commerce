@@ -183,6 +183,7 @@ export default function ChargesCard({
         />
       ) : null}
       <ConfirmDialog
+        tone="destructive"
         open={removing !== null}
         onOpenChange={(open) => !open && setRemoving(null)}
         title={copy.confirmRemove.title}

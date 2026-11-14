@@ -98,7 +98,7 @@ export default function OrdersBulkEditor({ sheet }: OrdersBulkEditorProps) {
   const changed = dirtyCount(rows, base)
   const shown = attempted ? [...validation] : []
   return (
-    <div className="flex w-full flex-col gap-6 px-4 pt-4 pb-6 md:px-8 md:pt-5 md:pb-8">
+    <div className="flex w-full flex-col gap-6 px-4 pt-4 pb-6 md:px-6 md:pt-5 md:pb-8">
       <PageHeader
         title={copy.title}
         summary={copy.summary(rows.length)}

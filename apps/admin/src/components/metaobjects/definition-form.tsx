@@ -133,7 +133,7 @@ export default function DefinitionForm({ definition, targets }: DefinitionFormPr
                 </Button>
               </>
             ) : (
-              <Button onClick={handleSave} disabled={busy}>
+              <Button loading={busy} onClick={handleSave} disabled={busy}>
                 <Save aria-hidden="true" />
                 {busy ? copy.saving : copy.save}
               </Button>
@@ -179,6 +179,7 @@ export default function DefinitionForm({ definition, targets }: DefinitionFormPr
         saving={busy}
       />
       <ConfirmDialog
+        tone="destructive"
         open={confirmDelete}
         onOpenChange={setConfirmDelete}
         title={copy.delete.title(definition?.name ?? '')}

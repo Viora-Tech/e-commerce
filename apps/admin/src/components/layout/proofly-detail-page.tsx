@@ -22,7 +22,7 @@ export default function ProoflyDetailPage({
   // Render logic
   return (
     // Centred at 75rem like the order page (audit #14).
-    <div className="mx-auto flex w-full max-w-[75rem] flex-col gap-6 px-4 pt-4 pb-6 md:px-8 md:pt-5 md:pb-8">
+    <div className="mx-auto flex w-full max-w-[75rem] flex-col gap-6 px-4 pt-4 pb-6 md:px-6 md:pt-5 md:pb-8">
       {header}
       {/* Two columns only with a side column; without one the main column takes the width
           (an empty content type left half the page blank, audit #184). */}

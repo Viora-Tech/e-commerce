@@ -205,7 +205,7 @@ export default function BulkEditor({ sheet, productIds, stockFocus }: BulkEditor
   const expandable = expandableProductIds(rows)
   const allOpen = expandable.length > 0 && expandable.every((id) => expanded.has(id))
   return (
-    <div className="flex w-full flex-col gap-6 px-4 pt-4 pb-6 md:px-8 md:pt-5 md:pb-8">
+    <div className="flex w-full flex-col gap-6 px-4 pt-4 pb-6 md:px-6 md:pt-5 md:pb-8">
       <PageHeader
         title={copy.title}
         summary={copy.summary(products, rows.length)}

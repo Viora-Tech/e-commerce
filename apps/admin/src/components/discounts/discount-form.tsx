@@ -282,6 +282,7 @@ export default function DiscountForm({ discount, segmentId = null }: DiscountFor
         onConfirm={() => handleStatus('disabled')}
       />
       <ConfirmDialog
+        tone="destructive"
         open={confirmDelete}
         onOpenChange={setConfirmDelete}
         title={copy.delete.title(discount?.title ?? '')}

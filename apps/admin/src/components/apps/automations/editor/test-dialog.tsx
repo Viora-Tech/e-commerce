@@ -128,6 +128,7 @@ export default function TestDialog({
             <p className="text-caption text-muted-foreground">{t.noSubject}</p>
           )}
           <Button
+            loading={busy}
             className="self-start"
             disabled={busy || (pickable && !record)}
             onClick={() => void handleRun()}

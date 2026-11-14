@@ -253,6 +253,7 @@ export default function DomainDetail({ initial, primaryHostname }: DomainDetailP
       ) : null}
 
       <ConfirmDialog
+        tone="destructive"
         open={confirmRemove}
         onOpenChange={setConfirmRemove}
         title={copy.removeTitle(domain.hostname)}

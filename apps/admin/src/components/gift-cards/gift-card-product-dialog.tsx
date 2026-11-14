@@ -134,7 +134,11 @@ export default function GiftCardProductDialog({
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={busy}>
             {copy.cancel}
           </Button>
-          <Button onClick={handleCreate} disabled={busy || !title.trim() || values.length === 0}>
+          <Button
+            loading={busy}
+            onClick={handleCreate}
+            disabled={busy || !title.trim() || values.length === 0}
+          >
             <Plus aria-hidden="true" />
             {busy ? copy.creating : copy.create}
           </Button>

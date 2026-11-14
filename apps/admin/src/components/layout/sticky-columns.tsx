@@ -6,9 +6,9 @@ import { type CSSProperties, type ReactNode, useEffect, useRef, useState } from 
 type StickyColumnsProps = {
   main: ReactNode
   side?: ReactNode
-  /** The grid: its gap and the desktop column template (`lg:grid-cols-[minmax(0,1fr)_20rem]`). */
+  /** The grid: its gap and the desktop column template (`lg:grid-cols-[minmax(0,1fr)_23.5rem]`). */
   className: string
-  /** The gap between cards: 1.25rem on the Saleor pages, 1.5rem on the Proofly and order frames. */
+  /** The gap between cards: 1.5rem on every detail frame (PageColumns, Proofly, order page). */
   gap?: 5 | 6
   /** `aside` for the side column on the order page; a plain `div` elsewhere. */
   sideAs?: 'div' | 'aside'

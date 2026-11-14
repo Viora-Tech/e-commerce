@@ -251,6 +251,7 @@ function BlogPostsContent({ initial, storefrontOrigin }: BlogPostsPageProps) {
       />
 
       <ConfirmDialog
+        tone="destructive"
         open={deleting !== null}
         onOpenChange={(open) => !open && setDeleting(null)}
         title={copy.bulk.confirmDelete.title(deleting?.ids.length ?? 0)}

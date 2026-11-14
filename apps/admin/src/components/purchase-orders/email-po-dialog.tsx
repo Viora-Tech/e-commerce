@@ -108,7 +108,7 @@ export default function EmailPoDialog({
           >
             {copy.cancel}
           </Button>
-          <Button type="button" onClick={handleSend} disabled={busy || !valid}>
+          <Button loading={busy} type="button" onClick={handleSend} disabled={busy || !valid}>
             <Send aria-hidden="true" />
             {busy ? copy.sending : copy.send}
           </Button>

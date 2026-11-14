@@ -316,7 +316,7 @@ export default function EditOrderContactDialog({
             <Button type="button" variant="outline" onClick={() => handleOpenChange(false)}>
               {c.cancel}
             </Button>
-            <Button type="submit" disabled={saving}>
+            <Button loading={saving} type="submit" disabled={saving}>
               <Save aria-hidden="true" />
               {c.save}
             </Button>

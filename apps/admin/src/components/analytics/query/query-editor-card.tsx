@@ -115,7 +115,7 @@ export default function QueryEditorCard(props: QueryEditorCardProps) {
         <Button variant="ghost" size="sm" onClick={props.onFormat}>
           {copy.format}
         </Button>
-        <Button size="sm" onClick={props.onRun} disabled={busy}>
+        <Button loading={busy} size="sm" onClick={props.onRun} disabled={busy}>
           <ArrowRight />
           {copy.run}
         </Button>

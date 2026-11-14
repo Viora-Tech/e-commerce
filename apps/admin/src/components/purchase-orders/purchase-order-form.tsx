@@ -410,6 +410,7 @@ export default function PurchaseOrderForm({
         onConfirm={handleClose}
       />
       <ConfirmDialog
+        tone="destructive"
         open={dialog === 'cancel'}
         onOpenChange={(open) => setDialog(open ? 'cancel' : null)}
         title={copy.confirmCancel.title}
@@ -419,6 +420,7 @@ export default function PurchaseOrderForm({
         onConfirm={handleCancel}
       />
       <ConfirmDialog
+        tone="destructive"
         open={dialog === 'delete'}
         onOpenChange={(open) => setDialog(open ? 'delete' : null)}
         title={copy.confirmDelete.title}

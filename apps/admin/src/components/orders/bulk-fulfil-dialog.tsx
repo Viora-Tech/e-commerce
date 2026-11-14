@@ -202,7 +202,11 @@ export default function BulkFulfilDialog({ ids, items, onClose, onDone }: BulkFu
             <Button type="button" variant="outline" onClick={onClose} disabled={busy}>
               {shared.cancel}
             </Button>
-            <Button type="submit" disabled={busy || !courier || plan.due.length === 0}>
+            <Button
+              loading={busy}
+              type="submit"
+              disabled={busy || !courier || plan.due.length === 0}
+            >
               <PackageCheck aria-hidden="true" />
               {copy.fulfilConfirm}
             </Button>

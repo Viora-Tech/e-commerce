@@ -47,7 +47,7 @@ export default function PauseDialog({
               </Button>
             </>
           ) : (
-            <Button disabled={busy} onClick={() => onPause('finish')}>
+            <Button loading={busy} disabled={busy} onClick={() => onPause('finish')}>
               {copy.confirm}
             </Button>
           )}

@@ -22,10 +22,13 @@ import DialogContent from '@/components/layout/dialog-content'
 import DialogFooter from '@/components/layout/dialog-footer'
 import DialogHeader from '@/components/layout/dialog-header'
 import RelativeTime from '@/components/layout/relative-time'
+import InlineState from '@/components/states/inline-state'
 import LinkRow from '@/components/table/link-row'
 import TableEmptyRow from '@/components/table/table-empty-row'
+import TableSkeletonRows from '@/components/table/table-skeleton-rows'
 import { shipmentsContent } from '@/data/shipments'
 import { shipmentDetailsContent } from '@/data/shipping'
+import { statesContent } from '@/data/states'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
@@ -39,7 +42,10 @@ const copy = shipmentsContent.ndr
 export default function NdrTab() {
   // Hooks
   const details = useCopy(shipmentDetailsContent)
-  const [rows, setRows] = useState<NdrRow[]>([])
+  const states = useCopy(statesContent)
+  /** `null` until the first answer, so the table never says "nothing here" before it knows. */
+  const [rows, setRows] = useState<NdrRow[] | null>(null)
+  const [failed, setFailed] = useState(false)
   const [dialog, setDialog] = useState<{ row: NdrRow; action: Action } | null>(null)
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
@@ -52,15 +58,28 @@ export default function NdrTab() {
     // after an NDR action, same idiom as customers-page.tsx.
     if (reloadKey < 0) return
     let cancelled = false
-    api.shipments.listNdr().then((r) => {
-      if (!cancelled) setRows(r)
-    })
+    api.shipments.listNdr().then(
+      (r) => {
+        if (cancelled) return
+        setRows(r)
+        setFailed(false)
+      },
+      () => {
+        if (!cancelled) setFailed(true)
+      },
+    )
     return () => {
       cancelled = true
     }
   }, [reloadKey])
 
   // Event handlers
+  const handleRetry = () => {
+    setFailed(false)
+    setRows(null)
+    setReloadKey((k) => k + 1)
+  }
+
   const handleOpen = (row: NdrRow, action: Action) => {
     setName('')
     setPhone('')
@@ -103,8 +122,18 @@ export default function NdrTab() {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {rows.length === 0 ? <TableEmptyRow colSpan={5} message={copy.empty} /> : null}
-          {rows.map((r) => (
+          {failed ? (
+            <TableRow>
+              <TableCell colSpan={5}>
+                <InlineState kind="error" onRetry={handleRetry} />
+              </TableCell>
+            </TableRow>
+          ) : rows === null ? (
+            <TableSkeletonRows columns={5} rows={3} label={states.loading} />
+          ) : rows.length === 0 ? (
+            <TableEmptyRow colSpan={5} message={copy.empty} />
+          ) : null}
+          {(failed ? null : rows)?.map((r) => (
             <LinkRow href={routes.orders.detail(r.orderId)} key={r.id}>
               <TableCell>
                 <Link
@@ -187,7 +216,7 @@ export default function NdrTab() {
             <Button variant="outline" onClick={() => setDialog(null)}>
               Cancel
             </Button>
-            <Button onClick={handleApply} disabled={busy}>
+            <Button loading={busy} onClick={handleApply} disabled={busy}>
               <CheckIcon aria-hidden="true" />
               {copy.apply}
             </Button>

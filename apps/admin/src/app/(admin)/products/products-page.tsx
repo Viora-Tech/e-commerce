@@ -329,6 +329,7 @@ function ProductsContent({ initial }: { initial: ProductsInitial }) {
         count={tagging?.ids.length ?? 0}
       />
       <ConfirmDialog
+        tone="destructive"
         open={deleting !== null}
         onOpenChange={(open) => !open && setDeleting(null)}
         title={copy.bulk.confirmDelete.title(deleting?.ids.length ?? 0)}

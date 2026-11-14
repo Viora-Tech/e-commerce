@@ -86,7 +86,7 @@ export default function ReportView({ report, initialRange, initial }: ReportView
   const understood = report.ranged || Boolean(data.previousTotals)
 
   return (
-    <div className="flex w-full flex-col gap-6 px-4 pt-4 pb-6 md:px-8 md:pt-5 md:pb-8">
+    <div className="flex w-full flex-col gap-6 px-4 pt-4 pb-6 md:px-6 md:pt-5 md:pb-8">
       <PageHeader
         title={report.title}
         summary={report.description}

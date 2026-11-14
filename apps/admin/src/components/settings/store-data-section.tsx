@@ -109,7 +109,7 @@ export default function StoreDataSection() {
           bodyClassName="flex flex-col gap-4"
         >
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-            <Button onClick={handleExport} disabled={requesting || working}>
+            <Button loading={requesting} onClick={handleExport} disabled={requesting || working}>
               <Download aria-hidden="true" />
               {working ? copy.export.working : copy.export.action}
             </Button>

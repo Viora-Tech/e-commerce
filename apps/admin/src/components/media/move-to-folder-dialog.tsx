@@ -85,7 +85,7 @@ export default function MoveToFolderDialog({
             <Button type="button" variant="outline" onClick={onClose} disabled={busy}>
               {copy.cancel}
             </Button>
-            <Button type="submit" disabled={busy || unchanged}>
+            <Button loading={busy} type="submit" disabled={busy || unchanged}>
               {copy.move}
             </Button>
           </DialogFooter>

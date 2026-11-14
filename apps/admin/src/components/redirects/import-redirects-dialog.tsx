@@ -125,6 +125,7 @@ export default function ImportRedirectsDialog({ onClose, onImported }: ImportRed
             {copy.cancel}
           </Button>
           <Button
+            loading={busy && preview !== null}
             type="button"
             onClick={handleImport}
             disabled={busy || !preview || preview.rows === 0}

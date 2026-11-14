@@ -35,6 +35,7 @@ export default function TemplateManagerDialogs({ manager }: TemplateManagerDialo
   const used = usedLabel(manager, pending.kind, pending.suffix)
   return (
     <ConfirmDialog
+      tone="destructive"
       open
       onOpenChange={(open) => !open && manager.setPending(null)}
       title={deleteCopy.title(copy.alternate(copy.names[pending.kind], pending.suffix))}

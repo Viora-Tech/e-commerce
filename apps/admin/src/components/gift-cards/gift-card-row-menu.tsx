@@ -77,6 +77,7 @@ export default function GiftCardRowMenu({ card, onChanged }: GiftCardRowMenuProp
         ]}
       />
       <ConfirmDialog
+        tone="destructive"
         open={disabling}
         onOpenChange={setDisabling}
         title={copy.confirmDisable.title(1)}

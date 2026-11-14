@@ -306,6 +306,7 @@ export default function ThemesLibrary({
         />
       ) : null}
       <ConfirmDialog
+        tone="destructive"
         open={deleting !== null}
         onOpenChange={(open) => !open && setDeleting(null)}
         title={deleteCopy.title(deleting?.name ?? '')}

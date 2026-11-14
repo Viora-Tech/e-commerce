@@ -449,6 +449,7 @@ function MediaLibraryContent({ initial }: { initial: MediaLibraryInitial }) {
       ) : null}
       {deleting ? (
         <ConfirmDialog
+          tone="destructive"
           open
           onOpenChange={(open) => !open && setDeleting(null)}
           title={copy.deleteTitle}

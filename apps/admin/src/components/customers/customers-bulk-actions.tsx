@@ -162,6 +162,7 @@ export default function CustomersBulkActions({
         onDone={onSegmentSaved}
       />
       <ConfirmDialog
+        tone="destructive"
         open={deleting}
         onOpenChange={setDeleting}
         title={copy.deleteTitle(ids.length)}

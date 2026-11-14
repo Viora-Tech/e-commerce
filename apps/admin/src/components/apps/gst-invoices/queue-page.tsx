@@ -10,8 +10,11 @@ import { toast } from 'sonner'
 import SetupChecklist from '@/components/apps/setup-checklist'
 import PageHeader from '@/components/layout/page-header'
 import PillTabs from '@/components/layout/pill-tabs'
+import InlineState from '@/components/states/inline-state'
+import TableSkeletonRows from '@/components/table/table-skeleton-rows'
 import { gstInvoicesContent } from '@/data/gst-invoices'
 import { gstQueuePageContent } from '@/data/gst-queue-page'
+import { statesContent } from '@/data/states'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
@@ -43,7 +46,10 @@ export default function QueuePage() {
   // Hooks
   const copy = useCopy(gstQueuePageContent)
   const fmt = useFormat()
+  const states = useCopy(statesContent)
   const [rows, setRows] = useState<QueueRow[] | null>(null)
+  /** The queue did not load: say so rather than show an empty queue. */
+  const [failed, setFailed] = useState(false)
   const [range, setRange] = useState<DateRange>({ from: '', to: '' })
   const [chip, setChip] = useState<Chip>('all')
   const [picked, setPicked] = useState<Set<string>>(new Set())
@@ -61,7 +67,8 @@ export default function QueuePage() {
         setGstin(s.settings.seller.gstin || null)
         setIssueOn(s.settings.issueOn)
       })
-      .catch(() => setGstin(null))
+      // A failed read leaves the GSTIN unknown; null would show the "add your GSTIN" checklist.
+      .catch(() => undefined)
   }, [])
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: `reloadKey` refetches after a change
@@ -69,9 +76,16 @@ export default function QueuePage() {
     let cancelled = false
     api.gstInvoices.queue
       .list({ from: istStart(range.from), to: istEnd(range.to), gstRegistrationId: gst })
-      .then((r) => {
-        if (!cancelled) setRows(r)
-      })
+      .then(
+        (r) => {
+          if (cancelled) return
+          setRows(r)
+          setFailed(false)
+        },
+        () => {
+          if (!cancelled) setFailed(true)
+        },
+      )
     return () => {
       cancelled = true
     }
@@ -206,7 +220,9 @@ export default function QueuePage() {
             </span>
           ) : null}
         </div>
-        {empty ? (
+        {failed ? (
+          <InlineState kind="error" className="border-line border-t" onRetry={reload} />
+        ) : empty ? (
           <QueueEmpty issueOn={issueOn} filtered={filtered} />
         ) : shown.length === 0 && rows !== null ? (
           <p className="border-line border-t px-4 py-8 text-center text-body text-muted-foreground">
@@ -238,6 +254,9 @@ export default function QueuePage() {
               </TableRow>
             </TableHeader>
             <TableBody>
+              {rows === null ? (
+                <TableSkeletonRows columns={8} rows={4} label={states.loading} />
+              ) : null}
               {shown.map((r) => (
                 <QueueRowView
                   key={r.id}

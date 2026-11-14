@@ -60,7 +60,7 @@ export default function CustomersBulkLoader() {
 
   // Early returns
   if (state.phase === 'loading')
-    return <p className="px-4 py-6 text-caption text-muted-foreground md:px-8">{copy.loading}</p>
+    return <p className="px-4 py-6 text-caption text-muted-foreground md:px-6">{copy.loading}</p>
   if (state.phase === 'failed') return <InlineState kind="error" heading={copy.loadFailed} />
   if (state.phase === 'empty' || state.sheet.length === 0) {
     const { heading, body, action } = copy.empty

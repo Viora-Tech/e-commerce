@@ -154,6 +154,7 @@ export default function EditCustomerDialog({
         </FieldGroup>
       </FormDialog>
       <ConfirmDialog
+        tone="destructive"
         open={askDiscard}
         onOpenChange={setAskDiscard}
         title={copy.edit.discardTitle}

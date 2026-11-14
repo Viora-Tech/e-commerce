@@ -158,6 +158,7 @@ export default function PasskeysCard() {
         onSubmit={handleName}
       />
       <ConfirmDialog
+        tone="destructive"
         open={removing !== null}
         title={copy.removeDialog.title(removing ? labelOf(removing) : '')}
         body={copy.removeDialog.body}

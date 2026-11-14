@@ -78,7 +78,11 @@ export default function ChangePrimaryDialog({
           <DialogClose render={<Button variant="outline" />}>
             {copy.detail.removeCancel}
           </DialogClose>
-          <Button disabled={saving || !selected || selected === currentId} onClick={handleSave}>
+          <Button
+            loading={saving}
+            disabled={saving || !selected || selected === currentId}
+            onClick={handleSave}
+          >
             <CheckIcon aria-hidden="true" />
             {copy.detail.makePrimary}
           </Button>

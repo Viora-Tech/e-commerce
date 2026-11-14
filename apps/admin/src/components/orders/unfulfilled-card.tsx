@@ -161,7 +161,11 @@ export default function UnfulfilledCard({
             <Printer aria-hidden="true" />
             {copy.actions.print}
           </Button>
-          <Button onClick={() => void handleConfirm()} disabled={busy || selected === 0}>
+          <Button
+            loading={busy}
+            onClick={() => void handleConfirm()}
+            disabled={busy || selected === 0}
+          >
             <PackageCheck aria-hidden="true" />
             {copy.fulfilDialog.confirmShort}
           </Button>

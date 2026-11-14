@@ -256,6 +256,7 @@ export default function CollectionForm({ collection, storefrontOrigin }: Collect
         saving={busy}
       />
       <ConfirmDialog
+        tone="destructive"
         open={confirmDelete}
         onOpenChange={setConfirmDelete}
         title={copy.delete.heading}

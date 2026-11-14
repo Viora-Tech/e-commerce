@@ -40,6 +40,7 @@ export default function DeleteSegmentButton({ id }: DeleteSegmentButtonProps) {
         <Trash2 />
       </Button>
       <ConfirmDialog
+        tone="destructive"
         open={open}
         onOpenChange={setOpen}
         title={copy.deleteHeading}

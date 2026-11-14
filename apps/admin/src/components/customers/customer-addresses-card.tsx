@@ -279,6 +279,7 @@ export default function CustomerAddressesCard({ customer, onChanged }: CustomerA
       ) : null}
 
       <ConfirmDialog
+        tone="destructive"
         open={deleting !== null}
         onOpenChange={(open) => !open && setDeleting(null)}
         title={copy.confirm.title}

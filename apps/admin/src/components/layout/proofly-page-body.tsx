@@ -14,7 +14,7 @@ export default function ProoflyPageBody({ children, width = 'detail' }: ProoflyP
   return (
     <div
       className={cn(
-        'flex w-full flex-col gap-6 px-4 pt-4 pb-6 md:px-8 md:pt-5 md:pb-8',
+        'flex w-full flex-col gap-6 px-4 pt-4 pb-6 md:px-6 md:pt-5 md:pb-8',
         width === 'detail' && 'mx-auto max-w-[75rem]',
       )}
     >

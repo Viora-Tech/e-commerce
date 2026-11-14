@@ -20,6 +20,7 @@ export default function EraseCustomerDialog({
   // Render logic
   return (
     <ConfirmDialog
+      tone="destructive"
       open={open}
       onOpenChange={onOpenChange}
       title={copy.eraseTitle}

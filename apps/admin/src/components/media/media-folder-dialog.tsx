@@ -78,7 +78,7 @@ export default function MediaFolderDialog({ folder, onClose, onSaved }: MediaFol
             <Button type="button" variant="outline" onClick={onClose} disabled={busy}>
               {copy.cancel}
             </Button>
-            <Button type="submit" disabled={busy || !name.trim() || unchanged}>
+            <Button loading={busy} type="submit" disabled={busy || !name.trim() || unchanged}>
               {folder ? copy.save : copy.create}
             </Button>
           </DialogFooter>

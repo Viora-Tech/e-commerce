@@ -97,7 +97,7 @@ export function pageTitleFor(pathname: string): string {
  */
 const UNHEADED: string[] = []
 
-/** True when the page draws its own h1 (PageHeader, KitListPage or the dashboard). */
+/** True when the page draws its own h1 (PageHeader, ProoflyListPage or the dashboard). */
 export function hasOwnHeading(pathname: string): boolean {
   return !UNHEADED.includes(pathname)
 }

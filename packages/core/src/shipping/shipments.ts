@@ -158,7 +158,7 @@ export async function createShipmentForOrder(
   orderId: string,
   options: CreateShipmentOptions = {},
 ): Promise<ShipmentRow> {
-  const [o] = await ctx.tx.select().from(order).where(eq(order.id, orderId))
+  const [o] = await ctx.tx.select().from(order).where(eq(order.id, orderId)).for('update')
   if (!o) throw new Error('order not found')
   if (!o.shippingAddressId) throw new Error('order has no shipping address')
   /* A live booking is reused (for the parcel, when one was named); a cancelled label or a

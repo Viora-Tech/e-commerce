@@ -223,6 +223,7 @@ export default function RedirectsList({ initial }: RedirectsListProps) {
       ) : null}
       {removing ? (
         <ConfirmDialog
+          tone="destructive"
           open
           onOpenChange={(open) => !open && setRemoving(null)}
           title={copy.actions.confirmTitle(removing.ids.length)}

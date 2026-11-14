@@ -71,7 +71,7 @@ export default function TemplatePreviewDialog({
           />
         ) : null}
         <DialogFooter>
-          <Button disabled={busy} onClick={onUse}>
+          <Button loading={busy} disabled={busy} onClick={onUse}>
             {copy.use}
           </Button>
         </DialogFooter>

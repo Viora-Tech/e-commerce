@@ -156,7 +156,12 @@ export default function CreateReturnDialog({
           <Button type="button" variant="outline" onClick={onClose} disabled={busy}>
             {returnDetailContent.cancel}
           </Button>
-          <Button type="button" onClick={handleCreate} disabled={busy || picked.length === 0}>
+          <Button
+            loading={busy}
+            type="button"
+            onClick={handleCreate}
+            disabled={busy || picked.length === 0}
+          >
             <Undo aria-hidden="true" />
             {copy.confirm}
           </Button>

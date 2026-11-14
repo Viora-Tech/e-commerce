@@ -126,6 +126,7 @@ export default function ShipmentRowMenu({ row, onChanged }: ShipmentRowMenuProps
         />
       ) : null}
       <ConfirmDialog
+        tone="destructive"
         open={confirmCancel}
         onOpenChange={setConfirmCancel}
         title={list.row.cancelShipmentTitle}

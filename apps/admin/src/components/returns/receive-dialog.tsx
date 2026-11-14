@@ -111,7 +111,7 @@ export default function ReceiveDialog({
           <Button type="button" variant="outline" onClick={onClose} disabled={busy}>
             {returnDetailContent.cancel}
           </Button>
-          <Button type="button" onClick={handleConfirm} disabled={busy}>
+          <Button loading={busy} type="button" onClick={handleConfirm} disabled={busy}>
             <PackageCheck aria-hidden="true" />
             {copy.confirm}
           </Button>

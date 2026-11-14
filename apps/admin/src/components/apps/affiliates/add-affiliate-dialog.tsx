@@ -119,7 +119,7 @@ export default function AddAffiliateDialog({
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               {copy.cancel}
             </Button>
-            <Button type="submit" disabled={busy}>
+            <Button loading={busy} type="submit" disabled={busy}>
               {copy.save}
             </Button>
           </DialogFooter>
