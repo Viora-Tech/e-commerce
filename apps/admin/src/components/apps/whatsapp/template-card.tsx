@@ -62,7 +62,7 @@ export default function TemplateCard({
   const showStatus = statusKnown || template.status !== 'not_submitted'
 
   return (
-    <li className="flex flex-col gap-3 rounded-xl border border-panel-border bg-card p-4">
+    <li className="flex flex-col gap-3 rounded-lg border border-panel-border bg-card p-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex min-w-0 flex-col gap-0.5">
           <p className="text-body font-semibold text-ink-strong">{label}</p>

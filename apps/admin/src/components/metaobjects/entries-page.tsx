@@ -164,7 +164,7 @@ export default function EntriesPage({ definition, initial, initialPerPage }: Ent
       }
       main={
         !hasFields ? (
-          <div className="rounded-2xl border surface-card">
+          <div className="rounded-lg border surface-card">
             <EmptyState
               icon={Braces}
               heading={copy.noFields.heading}
@@ -181,7 +181,7 @@ export default function EntriesPage({ definition, initial, initialPerPage }: Ent
             />
           </div>
         ) : noEntries ? (
-          <div className="rounded-2xl border surface-card">
+          <div className="rounded-lg border surface-card">
             <EmptyState
               icon={Braces}
               size="lg"

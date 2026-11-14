@@ -1,5 +1,5 @@
 import type { AnalyticsOverview } from '@commerce/api'
-import { Card } from '@commerce/ui/shadcn/card'
+import DataCard from '@/components/layout/data-card'
 import { formatPaiseWhole } from '@/lib/money'
 
 type SalesBreakdownCardProps = {
@@ -23,10 +23,9 @@ export default function SalesBreakdownCard({ copy, breakdown }: SalesBreakdownCa
   const before = new Map(breakdown.previous.map((l) => [l.key, l.paise]))
 
   return (
-    <Card gap="none" inset={5}>
-      <p className="text-kit-title text-foreground">{copy.title}</p>
+    <DataCard title={copy.title}>
       {/* Compact: the figures sit by their labels, both columns headed (audit #49). */}
-      <table className="mt-5 w-full max-w-2xl text-kit-body tabular-nums">
+      <table className="w-full max-w-2xl text-kit-body tabular-nums">
         <thead>
           <tr className="text-kit-mini text-muted-foreground">
             <th className="pb-2 text-left font-normal">
@@ -53,6 +52,6 @@ export default function SalesBreakdownCard({ copy, breakdown }: SalesBreakdownCa
           ))}
         </tbody>
       </table>
-    </Card>
+    </DataCard>
   )
 }

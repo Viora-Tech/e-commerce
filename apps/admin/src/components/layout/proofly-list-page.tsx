@@ -17,11 +17,11 @@ type ProoflyListPageProps = {
 }
 
 /**
- * PageBody's own rhythm, which every page now shares (1.5rem between header, tiles and table;
- * 1.5rem, 2rem from `md`, under the table). Kept as an export for ListPageSkeleton; it changes
- * nothing on top of PageBody.
+ * Extra classes of the list frame on top of PageBody: none, since PageBody's own rhythm
+ * (1.5rem between header, tiles and table; 1.5rem, 2rem from `md`, under the table) is the list
+ * rhythm. Kept as an export so ListPageSkeleton draws exactly what the loaded list draws.
  */
-export const LIST_PAGE_FRAME = 'gap-6 pb-6 md:pb-8'
+export const LIST_PAGE_FRAME = ''
 
 /** The list-page template on PageBody (full width) (Orders, Products, Customers…): header, optional stat tiles, then the table card. */
 export default function ProoflyListPage({

@@ -23,7 +23,7 @@ export default function OverviewTile({
   return (
     <section
       className={cn(
-        'flex min-w-0 flex-col gap-1.5 rounded-xl border border-border surface-card p-4',
+        'flex min-w-0 flex-col gap-1.5 rounded-lg border border-border surface-card p-4',
         attention && 'border-warning/40',
       )}
     >

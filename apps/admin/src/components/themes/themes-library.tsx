@@ -204,7 +204,7 @@ export default function ThemesLibrary({
         />
       ) : null}
       {performance ? <WebPerformanceStrip data={performance} /> : null}
-      <section className="overflow-hidden rounded-2xl border border-border surface-card">
+      <section className="overflow-hidden rounded-lg border border-border surface-card">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-4 py-4 md:px-5">
           <div className="flex min-w-0 flex-col gap-0.5">
             <h2 className="text-card-title">{copy.libraryHeading}</h2>
@@ -258,7 +258,7 @@ export default function ThemesLibrary({
           </ul>
         )}
       </section>
-      <section className="flex flex-wrap items-center gap-4 rounded-2xl border border-border surface-card px-4 py-4 md:px-5">
+      <section className="flex flex-wrap items-center gap-4 rounded-lg border border-border surface-card px-4 py-4 md:px-5">
         <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-muted text-foreground">
           <Upload aria-hidden="true" className="size-[1.125rem]" />
         </span>

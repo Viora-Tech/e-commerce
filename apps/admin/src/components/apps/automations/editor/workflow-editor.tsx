@@ -206,7 +206,7 @@ export default function WorkflowEditor({
         issues={issues}
         onShow={(nodeId) => setSelected(nodeId ?? 'trigger')}
       />
-      <div className="grid min-h-[36rem] grid-cols-1 overflow-hidden rounded-xl border border-border bg-card lg:h-[calc(100dvh-13rem)] lg:grid-cols-[minmax(0,1fr)_24rem]">
+      <div className="grid min-h-[36rem] grid-cols-1 overflow-hidden rounded-lg border border-border bg-card lg:h-[calc(100dvh-13rem)] lg:grid-cols-[minmax(0,1fr)_24rem]">
         <WorkflowCanvas ctx={ctx} onRemove={handleRemove} className="min-h-[24rem]" />
         <aside
           aria-label={copy.panel.trigger}

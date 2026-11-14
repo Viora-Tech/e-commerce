@@ -77,7 +77,7 @@ export default function ReturnReasonsPage() {
             : []
         }
       />
-      <div className="overflow-hidden rounded-xl surface-card">
+      <div className="overflow-hidden rounded-lg surface-card">
         <h2 className="px-6 pt-5 pb-3 text-body font-semibold text-ink-strong">{c.reasonsTitle}</h2>
         <Table>
           <TableHeader>
@@ -115,7 +115,7 @@ export default function ReturnReasonsPage() {
           </TableBody>
         </Table>
       </div>
-      <div className="overflow-hidden rounded-xl surface-card">
+      <div className="overflow-hidden rounded-lg surface-card">
         <h2 className="px-6 pt-5 pb-3 text-body font-semibold text-ink-strong">
           {c.productsTitle}
         </h2>

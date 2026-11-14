@@ -4,6 +4,7 @@ import { Button } from '@commerce/ui/shadcn/button'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
+import DataCard from '@/components/layout/data-card'
 import { affiliatesContent } from '@/data/affiliates'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -64,8 +65,7 @@ export default function CodesCard({
   const retired = history.filter((h) => h.status === 'retired')
 
   return (
-    <div className="flex flex-col gap-4 rounded-xl surface-card px-5 py-4">
-      <h2 className="text-body font-semibold text-ink-strong">{c.title}</h2>
+    <DataCard title={c.title} bodyClassName="flex flex-col gap-4">
       <dl className="grid gap-3 sm:grid-cols-2">
         <div className="flex flex-col gap-0.5">
           <dt className="text-caption text-muted-foreground">{c.link}</dt>
@@ -129,6 +129,6 @@ export default function CodesCard({
         busy={busy}
         onConfirm={handleRotate}
       />
-    </div>
+    </DataCard>
   )
 }

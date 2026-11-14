@@ -1,6 +1,5 @@
 'use client'
 
-import { Card } from '@commerce/ui/shadcn/card'
 import Link from 'next/link'
 import RowMenu from '@/components/table/row-menu'
 import { analyticsContent } from '@/data/analytics'
@@ -46,7 +45,7 @@ export default function SavedReportCard({ saved, onRename, onDelete }: SavedRepo
       : copy.ranges[r.key]
 
   return (
-    <Card className="relative h-full gap-3 p-5 motion-press hover:shadow-card-hover">
+    <div className="relative flex h-full flex-col gap-3 rounded-lg p-5 surface-card card-lift">
       <div aria-hidden className="flex h-10 items-end gap-1">
         {BARS.map((h, i) => (
           <span
@@ -76,6 +75,6 @@ export default function SavedReportCard({ saved, onRename, onDelete }: SavedRepo
           ]}
         />
       </div>
-    </Card>
+    </div>
   )
 }

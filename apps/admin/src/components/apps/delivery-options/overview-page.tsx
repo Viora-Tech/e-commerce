@@ -42,7 +42,7 @@ export default function DeliveryOptionsOverviewPage() {
       <DeliveryWarnings warnings={overview.warnings} />
       <OverviewTiles overview={overview} />
       <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[minmax(0,1.65fr)_minmax(0,1fr)]">
-        <section className="flex flex-col gap-3 rounded-xl border border-panel-border bg-card p-4">
+        <section className="flex flex-col gap-3 rounded-lg border border-panel-border bg-card p-4">
           <div className="flex items-start justify-between gap-3">
             <div className="flex flex-col gap-0.5">
               <h2 className="text-card-title text-ink-strong">{pages.preview.atCheckout}</h2>

@@ -29,7 +29,7 @@ export default function CustomerTagsCard({ tags, onChange }: TagsCardProps) {
   }
 
   return (
-    <DataCard title={copy.tags.heading} className="rounded-xl">
+    <DataCard title={copy.tags.heading}>
       <div className="flex flex-col gap-3">
         {tags.length > 0 ? (
           <ul className="flex flex-wrap gap-2">

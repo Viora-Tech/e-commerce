@@ -145,7 +145,7 @@ export default function CreativesPage() {
         </SettingsCard>
       ) : null}
       {rows.length === 0 ? (
-        <p className="rounded-xl surface-card px-5 py-8 text-center text-body text-muted-foreground">
+        <p className="rounded-lg surface-card px-5 py-8 text-center text-body text-muted-foreground">
           {copy.empty}
         </p>
       ) : (
@@ -153,7 +153,7 @@ export default function CreativesPage() {
           {rows.map((c) => (
             <li
               key={c.id}
-              className={`flex flex-col gap-2 rounded-xl surface-card p-3 ${c.archivedAt ? 'opacity-60' : ''}`}
+              className={`flex flex-col gap-2 rounded-lg surface-card p-3 ${c.archivedAt ? 'opacity-60' : ''}`}
             >
               {/* biome-ignore lint/performance/noImgElement: the store's own media */}
               <img

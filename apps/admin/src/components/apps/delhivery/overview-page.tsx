@@ -97,7 +97,7 @@ export default function OverviewPage() {
     return (
       <div className="flex flex-col gap-4">
         <PageHeader title={copy.title} subtitle={copy.subtitle} />
-        <div className="flex flex-col items-start gap-3 rounded-xl border border-border surface-card p-5">
+        <div className="flex flex-col items-start gap-3 rounded-lg border border-border surface-card p-5">
           <p className="text-body text-muted-foreground">{copy.notConnected}</p>
           <Button render={<Link href={routes.apps.connect(PROVIDER)} />} nativeButton={false}>
             <PlugConnect aria-hidden="true" />

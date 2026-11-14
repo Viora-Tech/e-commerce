@@ -27,7 +27,7 @@ export default function McpStatusCard({ connected, lastRequestAt, serverUrl }: M
   ]
 
   return (
-    <section className="flex flex-col gap-5 rounded-xl surface-card p-6">
+    <section className="flex flex-col gap-5 rounded-lg surface-card p-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex min-w-0 flex-col gap-1">
           <h2

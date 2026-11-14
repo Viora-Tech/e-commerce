@@ -11,6 +11,7 @@ import {
 } from '@commerce/ui/shadcn/table'
 import Link from 'next/link'
 import { CELL, HEAD } from '@/components/apps/gst-invoices/table-classes'
+import DataCard from '@/components/layout/data-card'
 import OrderChip from '@/components/orders/order-chip'
 import TableEmptyRow from '@/components/table/table-empty-row'
 import { delhiveryAppContent } from '@/data/delhivery'
@@ -35,9 +36,9 @@ export default function RecentShipmentsCard({ items }: RecentShipmentsCardProps)
   const c = copy.recent.columns
 
   return (
-    <section className="overflow-hidden rounded-xl border border-border surface-card">
-      <div className="flex items-center justify-between gap-3 px-4 py-3">
-        <h2 className="text-body font-semibold text-ink-strong">{copy.recent.title}</h2>
+    <DataCard
+      title={copy.recent.title}
+      action={
         <Button
           variant="ghost"
           size="sm"
@@ -46,7 +47,9 @@ export default function RecentShipmentsCard({ items }: RecentShipmentsCardProps)
         >
           {copy.recent.viewAll}
         </Button>
-      </div>
+      }
+      flush
+    >
       <Table>
         <TableHeader>
           <TableRow>
@@ -88,6 +91,6 @@ export default function RecentShipmentsCard({ items }: RecentShipmentsCardProps)
           ))}
         </TableBody>
       </Table>
-    </section>
+    </DataCard>
   )
 }

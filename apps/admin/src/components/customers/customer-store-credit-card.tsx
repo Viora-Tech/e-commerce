@@ -69,7 +69,6 @@ export default function CustomerStoreCreditCard({ customerId }: CustomerStoreCre
   return (
     <DataCard
       title={copy.heading}
-      className="rounded-xl"
       action={
         canEdit && account ? (
           <div className="flex gap-1.5">

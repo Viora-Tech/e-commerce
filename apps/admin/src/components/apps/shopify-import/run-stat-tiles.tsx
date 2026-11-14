@@ -28,7 +28,7 @@ export default function RunStatTiles({ run }: RunStatTilesProps) {
           <div
             key={key}
             className={cn(
-              'flex flex-col gap-1 rounded-xl surface-card p-4 first:col-span-2 sm:first:col-span-1',
+              'flex flex-col gap-1 rounded-lg surface-card p-4 first:col-span-2 sm:first:col-span-1',
               value === 0 && 'bg-none',
             )}
           >

@@ -1,9 +1,9 @@
 'use client'
 
 import type { ReportColumn, ReportDefinition, ReportResult } from '@commerce/api'
-import { Card } from '@commerce/ui/shadcn/card'
 import dynamic from 'next/dynamic'
 import ChartLoading from '@/components/layout/chart-loading'
+import DataCard from '@/components/layout/data-card'
 import DeltaChip from '@/components/layout/delta-chip'
 import { analyticsContent as copy } from '@/data/analytics'
 import { formatDay } from '@/lib/analytics-range'
@@ -60,32 +60,31 @@ export default function ReportChart({ report, data, shape }: ReportChartProps) {
     : data.previousTotals?.[metric.id]
 
   return (
-    <Card gap="none" inset={5}>
-      <div className="flex flex-wrap items-baseline justify-between gap-3">
-        <div className="flex flex-col gap-1">
-          <p className="text-kit-mini text-muted-foreground">{label}</p>
-          <div className="flex items-baseline gap-2">
-            <p className="text-kit-title text-foreground tabular-nums">
-              {total === undefined ? '' : formatCell(metric.kind, total)}
-            </p>
-            {data.previousTotals ? (
-              <DeltaChip
-                delta={change(total, previousTotal)}
-                invert={LOWER_IS_BETTER.has(metric.id)}
-              />
-            ) : null}
-          </div>
-        </div>
-        <p className="text-kit-mini text-muted-foreground">
+    <DataCard
+      meta={label}
+      title={
+        <span className="flex items-baseline gap-2 tabular-nums">
+          {total === undefined ? '' : formatCell(metric.kind, total)}
+          {data.previousTotals ? (
+            <DeltaChip
+              delta={change(total, previousTotal)}
+              invert={LOWER_IS_BETTER.has(metric.id)}
+            />
+          ) : null}
+        </span>
+      }
+      action={
+        <p className="text-caption text-muted-foreground">
           {data.previousRange
             ? c.comparedWith(formatDay(data.previousRange.from), formatDay(data.previousRange.to))
             : c.snapshot}
         </p>
-      </div>
+      }
+    >
       {points.length === 0 ? (
-        <p className="mt-6 text-kit-body text-muted-foreground">{c.empty}</p>
+        <p className="text-kit-body text-muted-foreground">{c.empty}</p>
       ) : (
-        <div className="mt-6 h-[16rem] w-full">
+        <div className="h-[16rem] w-full">
           <ReportChartPlot
             points={points}
             label={label}
@@ -96,6 +95,6 @@ export default function ReportChart({ report, data, shape }: ReportChartProps) {
           />
         </div>
       )}
-    </Card>
+    </DataCard>
   )
 }

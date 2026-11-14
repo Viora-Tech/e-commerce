@@ -64,7 +64,7 @@ export default function PickupLocationsPage() {
           </Button>
         }
       />
-      <div className="overflow-hidden rounded-xl border border-border surface-card">
+      <div className="overflow-hidden rounded-lg border border-border surface-card">
         <Table>
           <TableHeader>
             <TableRow>

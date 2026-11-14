@@ -108,7 +108,7 @@ export default function CustomersBulkGrid({
   return (
     <div
       onPasteCapture={handlePaste}
-      className="overflow-hidden rounded-2xl border border-border surface-card"
+      className="overflow-hidden rounded-lg border border-border surface-card"
     >
       <DataGrid
         aria-label={copy.title}

@@ -116,7 +116,7 @@ export default function SegmentForm({ id, initialName, initialRules }: SegmentFo
       <PageColumns
         main={
           <>
-            <Card size="form" className="rounded-xl">
+            <Card size="form">
               <CardContent>
                 <Field>
                   <FieldLabel htmlFor="segment-name">{builder.name}</FieldLabel>
@@ -130,7 +130,7 @@ export default function SegmentForm({ id, initialName, initialRules }: SegmentFo
                 </Field>
               </CardContent>
             </Card>
-            <DataCard title={builder.conditions} className="rounded-xl">
+            <DataCard title={builder.conditions}>
               <ConditionBuilder rules={rules} onChange={setRules} />
             </DataCard>
           </>

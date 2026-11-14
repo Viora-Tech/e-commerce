@@ -2,7 +2,6 @@
 
 import type { ReportCategory, ReportDefinition } from '@commerce/api'
 import { ChevronRightIcon, ListTree } from '@commerce/ui/icons'
-import { Card } from '@commerce/ui/shadcn/card'
 import Link from 'next/link'
 import { useState } from 'react'
 import { toast } from 'sonner'
@@ -113,16 +112,19 @@ export default function ReportsHome({ reports, saved: initialSaved, assistant }:
                 {items.map((report) =>
                   report.available ? (
                     <Link key={report.slug} href={routes.analytics.report(report.slug)}>
-                      <Card className="h-full gap-1 p-5 motion-press hover:shadow-card-hover">
+                      <div className="flex h-full flex-col gap-1 rounded-lg p-5 surface-card card-lift">
                         <div className="flex items-start justify-between gap-2">
                           <p className="text-body-strong text-foreground">{report.title}</p>
                           <ChevronRightIcon className="size-4 shrink-0 text-muted-foreground" />
                         </div>
                         <p className="text-caption text-muted-foreground">{report.description}</p>
-                      </Card>
+                      </div>
                     </Link>
                   ) : (
-                    <Card key={report.slug} className="h-full gap-1 p-5 opacity-60">
+                    <div
+                      key={report.slug}
+                      className="flex h-full flex-col gap-1 rounded-lg p-5 surface-card opacity-60"
+                    >
                       <div className="flex items-start justify-between gap-2">
                         <p className="text-body-strong text-foreground">{report.title}</p>
                         <span className="shrink-0 text-caption text-muted-foreground">
@@ -133,7 +135,7 @@ export default function ReportsHome({ reports, saved: initialSaved, assistant }:
                       {report.missing ? (
                         <p className="mt-1 text-caption text-muted-foreground">{report.missing}</p>
                       ) : null}
-                    </Card>
+                    </div>
                   ),
                 )}
               </div>

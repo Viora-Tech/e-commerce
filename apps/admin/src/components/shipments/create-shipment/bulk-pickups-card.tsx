@@ -115,7 +115,7 @@ export default function BulkPickupsCard({ groups, onLater }: BulkPickupsCardProp
   const fresh = pickable.length - joined.length
 
   return (
-    <section className="flex flex-col overflow-hidden rounded-xl border border-border bg-card">
+    <section className="flex flex-col overflow-hidden rounded-lg border border-border bg-card">
       <div className="flex flex-wrap items-start justify-between gap-3 p-5">
         <div className="flex min-w-0 flex-col gap-0.5">
           <h3 className="text-body font-semibold text-ink-strong">{copy.pickups}</h3>

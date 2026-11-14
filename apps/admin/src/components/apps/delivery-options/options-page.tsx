@@ -196,7 +196,7 @@ export default function DeliveryOptionsPage() {
       <LayoutPicker value={layout} onChange={setLayout} />
 
       {drafts.length === 0 ? (
-        <div className="flex flex-col items-start gap-2 rounded-xl border border-panel-border bg-card p-4">
+        <div className="flex flex-col items-start gap-2 rounded-lg border border-panel-border bg-card p-4">
           <p className="text-body text-muted-foreground">{copy.options.empty}</p>
           <p className="text-caption text-muted-foreground">{copy.options.presetHelp}</p>
           <Button onClick={handlePreset} disabled={busy}>
@@ -217,7 +217,7 @@ export default function DeliveryOptionsPage() {
               />
               <PriceIncludesCard option={listOption} onChange={update} />
             </div>
-            <section className="flex flex-col gap-3 rounded-xl border border-panel-border bg-card p-4 lg:sticky lg:top-4">
+            <section className="flex flex-col gap-3 rounded-lg border border-panel-border bg-card p-4 lg:sticky lg:top-4">
               <div className="flex flex-col gap-0.5">
                 <h2 className="text-card-title text-ink-strong">{pages.preview.previewTitle}</h2>
                 <p className="text-caption text-muted-foreground">
@@ -259,7 +259,7 @@ export default function DeliveryOptionsPage() {
               />
             )}
           />
-          <p className="rounded-xl border border-panel-border bg-card px-4 py-3 text-caption text-muted-foreground">
+          <p className="rounded-lg border border-panel-border bg-card px-4 py-3 text-caption text-muted-foreground">
             {backupName ? pages.optionCards.fallback(backupName) : pages.optionCards.fallbackNone}
           </p>
         </>

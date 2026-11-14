@@ -158,7 +158,7 @@ export default function RouteCard({
   const choice = order.deliveryChoice
 
   return (
-    <section className="overflow-hidden rounded-xl border border-border bg-card">
+    <section className="overflow-hidden rounded-lg border border-border bg-card">
       <div className="flex items-center gap-4 border-b border-border px-4 py-3">
         <Endpoint
           place={origin}

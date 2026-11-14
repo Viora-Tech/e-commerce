@@ -24,7 +24,7 @@ export default function SettingsList({
   footer,
 }: SettingsListProps) {
   return (
-    <section className="flex flex-col overflow-hidden rounded-xl surface-card">
+    <section className="flex flex-col overflow-hidden rounded-lg surface-card">
       {heading ? (
         <header className="flex flex-col gap-0.5 border-hairline border-b px-5 pt-4 pb-3">
           <h2 className="text-body font-semibold text-ink-strong">{heading}</h2>

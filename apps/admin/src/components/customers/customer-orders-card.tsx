@@ -39,7 +39,6 @@ export default function CustomerOrdersCard({ customer }: CustomerOrdersCardProps
   return (
     <DataCard
       title={copy.heading}
-      className="rounded-xl"
       flush
       icon={
         <span className="rounded-md bg-chip-neutral px-1.5 text-caption font-medium text-muted-foreground tabular-nums">

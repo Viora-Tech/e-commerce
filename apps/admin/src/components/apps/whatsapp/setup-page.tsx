@@ -139,7 +139,7 @@ export default function WhatsappSetupPage() {
       </div>
       <PageColumns
         main={
-          <section className="overflow-hidden rounded-xl border border-panel-border bg-card">
+          <section className="overflow-hidden rounded-lg border border-panel-border bg-card">
             <div className="flex flex-col gap-0.5 px-4 pt-3.5 pb-3">
               <h3 className="text-body font-semibold text-ink-strong">{words.card}</h3>
               <p className="text-caption text-muted-foreground">

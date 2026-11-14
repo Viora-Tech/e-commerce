@@ -119,7 +119,6 @@ export default function StoreCreditCardsCard({ onMoved }: StoreCreditCardsCardPr
   return (
     <DataCard
       title={copy.heading}
-      className="rounded-xl"
       action={
         canMove ? (
           <Button size="sm" disabled={picked.size === 0} onClick={() => setConfirming(true)}>

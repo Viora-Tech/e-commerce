@@ -65,7 +65,7 @@ export default function EmptyState({
       <div
         role={role}
         className={cn(
-          'flex flex-col items-center gap-3 rounded-xl surface-card px-6 py-12 text-center',
+          'flex flex-col items-center gap-3 rounded-lg surface-card px-6 py-12 text-center',
           className,
         )}
       >

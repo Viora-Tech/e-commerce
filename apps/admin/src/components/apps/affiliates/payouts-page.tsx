@@ -118,7 +118,7 @@ export default function PayoutsPage() {
           </>
         }
       />
-      <div className="overflow-hidden rounded-xl surface-card">
+      <div className="overflow-hidden rounded-lg surface-card">
         <h2 className="px-6 pt-5 pb-3 text-body font-semibold text-ink-strong">
           {copy.readyTitle}
         </h2>
@@ -168,7 +168,7 @@ export default function PayoutsPage() {
           </TableBody>
         </Table>
       </div>
-      <div className="overflow-hidden rounded-xl surface-card">
+      <div className="overflow-hidden rounded-lg surface-card">
         <h2 className="px-6 pt-5 pb-3 text-body font-semibold text-ink-strong">
           {copy.historyTitle}
         </h2>

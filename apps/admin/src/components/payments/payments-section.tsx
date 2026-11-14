@@ -35,7 +35,7 @@ export default function PaymentsSection({
         </div>
         {action}
       </header>
-      <div className="overflow-hidden rounded-xl surface-card">
+      <div className="overflow-hidden rounded-lg surface-card">
         {empty ?? (
           <ul className="flex flex-col [&>li]:border-hairline [&>li]:border-b [&>li:last-child]:border-b-0">
             {children}

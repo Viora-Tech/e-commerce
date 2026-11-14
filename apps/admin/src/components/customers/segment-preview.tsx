@@ -45,7 +45,7 @@ export default function SegmentPreview({ rules }: SegmentPreviewProps) {
   const total = preview?.total ?? 0
 
   return (
-    <DataCard title={copy.preview} className="rounded-xl">
+    <DataCard title={copy.preview}>
       <p
         className={`text-stat text-ink-strong tabular-nums transition-opacity ${loading ? 'opacity-60' : ''}`}
         aria-busy={loading}

@@ -160,7 +160,6 @@ export default function CustomerAddressesCard({ customer, onChanged }: CustomerA
   return (
     <DataCard
       title={copy.heading}
-      className="rounded-xl"
       action={
         <Button
           type="button"

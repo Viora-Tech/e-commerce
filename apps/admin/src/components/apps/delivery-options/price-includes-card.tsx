@@ -2,6 +2,7 @@
 
 import type { DeliveryOption } from '@commerce/core/delivery-options'
 import ChoiceField from '@/components/apps/gst-invoices/choice-field'
+import DataCard from '@/components/layout/data-card'
 import SettingsToggleRow from '@/components/settings/settings-toggle-row'
 import { deliveryPagesContent } from '@/data/delivery-options-pages'
 import { useCopy, useFormat } from '@/hooks/use-copy'
@@ -30,8 +31,7 @@ export default function PriceIncludesCard({ option, onChange }: PriceIncludesCar
   const free = option.price.freeAbovePaise
 
   return (
-    <section className="flex flex-col gap-4 rounded-xl border border-panel-border bg-card p-4">
-      <h2 className="text-card-title text-ink-strong">{c.priceTitle}</h2>
+    <DataCard title={c.priceTitle} bodyClassName="flex flex-col gap-4">
       <ChoiceField
         id="courier-list-included"
         label={c.includedService}
@@ -86,6 +86,6 @@ export default function PriceIncludesCard({ option, onChange }: PriceIncludesCar
           />
         </div>
       </div>
-    </section>
+    </DataCard>
   )
 }

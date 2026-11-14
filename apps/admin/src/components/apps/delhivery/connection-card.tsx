@@ -2,6 +2,7 @@
 
 import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
+import DataCard from '@/components/layout/data-card'
 import { delhiveryAppContent } from '@/data/delhivery'
 import { useCopy } from '@/hooks/use-copy'
 import { routes } from '@/lib/routes'
@@ -35,9 +36,9 @@ export default function ConnectionCard({ saved, tested }: ConnectionCardProps) {
   ]
 
   return (
-    <section className="flex flex-col gap-3 rounded-xl border border-border surface-card p-4">
-      <div className="flex items-center justify-between gap-3">
-        <h2 className="text-body font-semibold text-ink-strong">{copy.title}</h2>
+    <DataCard
+      title={copy.title}
+      action={
         <Button
           variant="ghost"
           size="sm"
@@ -46,7 +47,9 @@ export default function ConnectionCard({ saved, tested }: ConnectionCardProps) {
         >
           {copy.edit}
         </Button>
-      </div>
+      }
+      bodyClassName="flex flex-col gap-3"
+    >
       <dl className="flex flex-col gap-1.5">
         {rows.map((r) => (
           <div key={r.label} className="flex items-baseline justify-between gap-3">
@@ -55,6 +58,6 @@ export default function ConnectionCard({ saved, tested }: ConnectionCardProps) {
           </div>
         ))}
       </dl>
-    </section>
+    </DataCard>
   )
 }

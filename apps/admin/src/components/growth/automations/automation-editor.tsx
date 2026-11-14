@@ -239,7 +239,7 @@ export default function AutomationEditor({
       </header>
       {error ? <SaveErrorAlert message={error} /> : null}
       {tab === 'builder' ? (
-        <div className="grid min-h-[40rem] grid-cols-1 overflow-hidden rounded-xl border border-border bg-card lg:h-[calc(100dvh-10rem)] lg:grid-cols-[15rem_minmax(0,1fr)_22rem]">
+        <div className="grid min-h-[40rem] grid-cols-1 overflow-hidden rounded-lg border border-border bg-card lg:h-[calc(100dvh-10rem)] lg:grid-cols-[15rem_minmax(0,1fr)_22rem]">
           <AutomationPalette
             trigger={trigger}
             onAdd={(type) => handleInsert(type, form.steps.length)}

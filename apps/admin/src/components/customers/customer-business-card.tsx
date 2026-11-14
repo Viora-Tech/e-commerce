@@ -25,11 +25,7 @@ export default function CustomerBusinessCard({
   const detail = useCopy(customerDetailContent)
 
   return (
-    <DataCard
-      title={detail.business.heading}
-      className="rounded-xl"
-      bodyClassName="flex flex-col gap-4"
-    >
+    <DataCard title={detail.business.heading} bodyClassName="flex flex-col gap-4">
       <Field data-invalid={gstinError ? true : undefined}>
         <FieldLabel htmlFor="customer-gstin">{detail.business.gstin}</FieldLabel>
         <Input

@@ -128,7 +128,7 @@ export default function MenuEditor({ menu, placements }: MenuEditorProps) {
         />
       }
       main={
-        <div className="overflow-hidden rounded-2xl border surface-card">
+        <div className="overflow-hidden rounded-lg border surface-card">
           <div className="flex flex-col gap-0.5 border-b border-line px-5 py-4">
             <h2 className="text-card-title text-ink-strong">{copy.editor.itemsHeading}</h2>
             <p className="text-caption text-muted-foreground">{copy.editor.hint}</p>

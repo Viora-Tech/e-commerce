@@ -47,7 +47,7 @@ export default function ReportsAsk({ enabled }: ReportsAskProps) {
         onAsk={handleAsk}
       />
       {turns.length ? (
-        <section className="flex flex-col gap-4 rounded-xl border border-border bg-card p-4 md:p-5">
+        <section className="flex flex-col gap-4 rounded-lg border border-border bg-card p-4 md:p-5">
           <ul className="flex flex-col gap-6">
             {turns.map((turn) => (
               <AssistantTurnView key={turn.id} turn={turn} onAction={conversation.replaceAction} />

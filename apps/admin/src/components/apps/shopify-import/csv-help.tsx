@@ -1,6 +1,7 @@
 'use client'
 
 import type { CsvResource } from '@commerce/plugin-shopify-import/client'
+import DataCard from '@/components/layout/data-card'
 import { shopifyImportContent } from '@/data/shopify-import'
 import { useCopy } from '@/hooks/use-copy'
 
@@ -18,8 +19,7 @@ export default function CsvHelp({ resource }: CsvHelpProps) {
   const kind = copy.kinds[resource]
 
   return (
-    <aside className="flex flex-col gap-4 rounded-xl border border-hairline bg-card p-5">
-      <h2 className="text-card-title text-ink-strong">{copy.howTo.heading}</h2>
+    <DataCard title={copy.howTo.heading} bodyClassName="flex flex-col gap-4">
       <ol className="flex flex-col gap-3">
         {copy.howTo.steps.map((step, i) => (
           <li key={step} className="flex items-start gap-3">
@@ -37,6 +37,6 @@ export default function CsvHelp({ resource }: CsvHelpProps) {
         <p className="text-body-strong text-ink-strong">{copy.howTo.moreFor(kind.label)}</p>
         <p className="text-body text-muted-foreground">{kind.help}</p>
       </div>
-    </aside>
+    </DataCard>
   )
 }

@@ -18,7 +18,7 @@ export default function SettingsSection({ title, help, children }: SettingsSecti
         <h3 className="text-body font-semibold text-ink-strong">{title}</h3>
         <p className="text-caption text-muted-foreground">{help}</p>
       </div>
-      <div className="flex min-w-0 flex-col gap-4 rounded-xl surface-card p-4">{children}</div>
+      <div className="flex min-w-0 flex-col gap-4 rounded-lg surface-card p-4">{children}</div>
     </section>
   )
 }

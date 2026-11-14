@@ -34,7 +34,7 @@ export default function CurrentThemeCard({ theme, origin, busy, onAction }: Curr
 
   // Render logic
   return (
-    <section className="overflow-hidden rounded-2xl border border-border surface-card">
+    <section className="overflow-hidden rounded-lg border border-border surface-card">
       <ThemePreviewStage
         name={theme.name}
         origin={origin}

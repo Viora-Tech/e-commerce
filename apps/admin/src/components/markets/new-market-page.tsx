@@ -263,7 +263,7 @@ export default function NewMarketPage({
         }
       />
 
-      <section className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4">
+      <section className="flex flex-col gap-3 rounded-lg border border-border bg-card p-4">
         <Field data-invalid={shown.name ? true : undefined}>
           <FieldLabel htmlFor="new-market-name">{d.name}</FieldLabel>
           <Input
@@ -302,7 +302,7 @@ export default function NewMarketPage({
 
       <section className="flex flex-col gap-2">
         <h2 className="text-card-title text-ink-strong">{h.customized}</h2>
-        <div className="rounded-xl border border-border bg-card">
+        <div className="rounded-lg border border-border bg-card">
           {customized.length === 0 ? (
             <p className="p-4 text-body text-muted-foreground">{h.customizedEmpty}</p>
           ) : (

@@ -46,7 +46,7 @@ export default function ThemePacksCard({ themes, onSaved }: ThemePacksCardProps)
   return (
     <section
       aria-busy={busy !== null || undefined}
-      className="flex flex-col gap-4 rounded-2xl border border-border surface-card px-4 py-4 md:px-5"
+      className="flex flex-col gap-4 rounded-lg border border-border surface-card px-4 py-4 md:px-5"
     >
       <div className="flex min-w-0 flex-col gap-0.5">
         <h2 className="text-card-title">{copy.heading}</h2>

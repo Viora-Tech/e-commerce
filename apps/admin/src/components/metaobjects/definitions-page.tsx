@@ -137,7 +137,7 @@ export default function DefinitionsPage({ definitions }: DefinitionsPageProps) {
       }
     >
       {definitions.length === 0 ? (
-        <div className="rounded-2xl border surface-card">
+        <div className="rounded-lg border surface-card">
           <EmptyState
             icon={Braces}
             heading={copy.empty.heading}
