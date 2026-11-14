@@ -91,14 +91,15 @@ const SIDEBAR_MENU = 'w-60 rounded-sm p-1'
 
 /**
  * The Apps group (owner, 14 Nov 2026): the three apps this member opened most recently in this
- * store (`orderSidebarApps`, the one on screen first) as plain links, no pages nested under them
- * (each app keeps its own menu inside its page), then "View more" to every app. With no app
- * installed, the group keeps its one Apps link.
+ * store (`orderSidebarApps`, the one on screen first), then "View more" to every app. Only the
+ * app open on screen shows its own pages under its row (owner, 14 Nov 2026: no menu column
+ * inside the page). With no app installed, the group keeps its one Apps link.
  */
 function withAppRows(
   items: NavItem[],
   shown: AdminSidebarProps['apps'],
   installed: AdminSidebarProps['apps'],
+  openId: string | null | undefined,
   viewMore: string,
 ): NavItem[] {
   if (shown.length === 0) return items
@@ -108,6 +109,7 @@ function withAppRows(
       label: a.name,
       icon: appIcon(a.icon),
       base: routes.apps.page(a.id),
+      ...(a.id === openId && (a.pages?.length ?? 0) >= 2 ? { children: a.pages } : {}),
     })),
     {
       href: routes.apps.list(),
@@ -285,6 +287,7 @@ export default function AdminSidebar({
                     localizeNavItems(group.items, locale),
                     orderSidebarApps(apps, recent, currentId),
                     apps,
+                    currentId,
                     copy.viewMoreApps,
                   )
                 : localizeNavItems(group.items, locale)
