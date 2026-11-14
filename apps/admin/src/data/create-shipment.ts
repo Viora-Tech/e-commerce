@@ -456,18 +456,10 @@ export const createShipmentContent = {
         .filter(Boolean)
         .join(' · '),
     viewPickup: 'View pickup',
-    parcels: 'Parcels in this pickup',
-    parcelsCount: (n: number) => `Parcels in this pickup · ${n}`,
+    /** Only the parcel just booked (a split order: its parcels for this courier and place). */
+    parcels: (n: number) => (n === 1 ? 'This parcel' : `These parcels · ${n}`),
     parcelTitle: (orderNumber: number, awb: string) => `#${orderNumber} · AWB ${awb}`,
     weight: (kg: string) => `${kg} kg`,
-    bookedEarlier: (when: string, courier: string) => `Booked ${when} · ${courier}`,
-    earlierToday: 'earlier today',
-    alreadyIn: (orders: string) => `Already in it: ${orders}`,
-    waiting: (n: number, courier: string) =>
-      `${n} more ${courier} ${n === 1 ? 'parcel is' : 'parcels are'} waiting in Booked. Tick them to send one pickup.`,
-    waitingJoin: (n: number, courier: string) =>
-      `${n} more ${courier} ${n === 1 ? 'parcel is' : 'parcels are'} waiting in Booked. Tick them to add them to the same pickup.`,
-    tick: (orderNumber: number) => `Include #${orderNumber}`,
     create: (n: number) => `Create pickup · ${n} ${n === 1 ? 'parcel' : 'parcels'}`,
     add: (n: number) => `Add to pickup · ${n} ${n === 1 ? 'parcel' : 'parcels'}`,
     later: 'Later',
