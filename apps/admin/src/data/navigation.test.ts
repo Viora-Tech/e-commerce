@@ -51,6 +51,18 @@ describe('an installed app row (Figma 928:10728)', () => {
     expect(isSectionLinkActive('/apps/gst-invoices', gst)).toBe(false)
   })
 
+  it('View more lights only on the apps list, not on an app of its own', () => {
+    const viewMore = {
+      href: '/apps',
+      label: 'View more',
+      icon: Blocks,
+      excludes: ['/apps/rapidshyp', '/apps/razorpay'],
+    }
+    expect(isSectionActive('/apps', viewMore)).toBe(true)
+    expect(isSectionActive('/apps/rapidshyp', viewMore)).toBe(false)
+    expect(isSectionActive('/apps/razorpay/connect', viewMore)).toBe(false)
+  })
+
   it('is active under its base, not under a shared settings page', () => {
     expect(isSectionActive('/settings/payments', payments)).toBe(false)
     expect(isSectionActive('/apps/razorpay/connect', payments)).toBe(true)
