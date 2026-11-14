@@ -71,7 +71,7 @@ export default function AssistantPanel({
         >
           <AiIcon className="size-3.5" />
         </span>
-        <h2 className="min-w-0 flex-1 truncate text-[0.9375rem] leading-5 font-semibold text-ink-strong">
+        <h2 className="min-w-0 flex-1 truncate text-card-title leading-5 font-semibold text-ink-strong">
           {copy.panel.title}
         </h2>
         <span className="shrink-0 rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">

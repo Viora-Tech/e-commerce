@@ -3,6 +3,7 @@
 import { type InventoryReason, type StockState, stockStateOf } from '@commerce/core/catalog'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Checkbox } from '@commerce/ui/shadcn/checkbox'
+import { Field, FieldDescription, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import {
   Select,
@@ -13,7 +14,6 @@ import {
 } from '@commerce/ui/shadcn/select'
 import { Switch } from '@commerce/ui/shadcn/switch'
 import MoneyInput from '@/components/fields/money-input'
-import KitField from '@/components/kit/kit-field'
 import StatusChip from '@/components/layout/status-chip'
 import type { ChipTone } from '@/components/status/tone'
 import { productFormContent } from '@/data/product-form'
@@ -80,7 +80,8 @@ export default function ProductStockSection({
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-4 md:flex-row md:gap-4">
         <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-          <KitField label={copy.stockQuantity} htmlFor="variant-quantity">
+          <Field>
+            <FieldLabel htmlFor="variant-quantity">{copy.stockQuantity}</FieldLabel>
             {unlimited ? (
               <Input size="kit" id="variant-quantity" value={copy.unlimitedValue} readOnly />
             ) : (
@@ -92,7 +93,7 @@ export default function ProductStockSection({
                 onChange={(quantity) => onVariant({ quantity })}
               />
             )}
-          </KitField>
+          </Field>
           <div className="flex items-center gap-3">
             <Switch
               id="variant-unlimited"
@@ -104,15 +105,18 @@ export default function ProductStockSection({
             </label>
           </div>
         </div>
-        <KitField label={copy.stockStatus} help={unlimited ? copy.unlimitedHelp : undefined}>
+        <Field className="min-w-0 flex-1">
+          <FieldLabel>{copy.stockStatus}</FieldLabel>
           <div className="flex h-9 items-center">
             <StatusChip tone={STOCK_TONE[state]}>{copy.stockStates[state]}</StatusChip>
           </div>
-        </KitField>
+          {unlimited ? <FieldDescription>{copy.unlimitedHelp}</FieldDescription> : null}
+        </Field>
       </div>
 
       <div className="flex flex-col gap-4 md:flex-row md:gap-4">
-        <KitField label={copy.sku} htmlFor="variant-sku">
+        <Field className="min-w-0 flex-1">
+          <FieldLabel htmlFor="variant-sku">{copy.sku}</FieldLabel>
           <div className="flex gap-2">
             <Input
               size="kit"
@@ -132,8 +136,9 @@ export default function ProductStockSection({
               {copy.skuGenerate}
             </Button>
           </div>
-        </KitField>
-        <KitField label={copy.barcode} htmlFor="variant-barcode">
+        </Field>
+        <Field className="min-w-0 flex-1">
+          <FieldLabel htmlFor="variant-barcode">{copy.barcode}</FieldLabel>
           <Input
             size="kit"
             id="variant-barcode"
@@ -141,11 +146,12 @@ export default function ProductStockSection({
             onChange={(e) => onVariant({ barcode: e.target.value })}
             autoComplete="off"
           />
-        </KitField>
+        </Field>
       </div>
 
       {quantityChanged ? (
-        <KitField label={copy.reason} htmlFor="inventory-reason">
+        <Field>
+          <FieldLabel htmlFor="inventory-reason">{copy.reason}</FieldLabel>
           <Select
             items={reasonItems}
             value={reason}
@@ -162,7 +168,7 @@ export default function ProductStockSection({
               ))}
             </SelectContent>
           </Select>
-        </KitField>
+        </Field>
       ) : null}
 
       <div className="flex items-center gap-2">

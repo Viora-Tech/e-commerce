@@ -101,11 +101,11 @@ export default function EditorVersionsPanel({
         </DialogHeader>
         <ul className="-mx-2 flex max-h-[60vh] min-h-0 flex-col gap-1 overflow-y-auto">
           <li className="flex items-center gap-3 rounded-lg px-2 py-2">
-            <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-muted text-[0.6875rem] font-semibold text-foreground">
+            <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-muted text-micro font-semibold text-foreground">
               {initials(me)}
             </span>
             <span className="flex min-w-0 flex-1 flex-col">
-              <span className="text-[0.8125rem] font-medium text-foreground">{copy.now}</span>
+              <span className="text-caption font-medium text-foreground">{copy.now}</span>
               <span className="truncate text-xs text-muted-foreground">{me}</span>
             </span>
             <StatusChip tone="attention">{copy.current}</StatusChip>
@@ -136,11 +136,11 @@ export default function EditorVersionsPanel({
                       selected ? '' : 'px-2 py-2 hover:bg-muted/60',
                     )}
                   >
-                    <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-muted text-[0.6875rem] font-semibold text-foreground ring-1 ring-border">
+                    <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-muted text-micro font-semibold text-foreground ring-1 ring-border">
                       {initials(b.createdBy)}
                     </span>
                     <span className="flex min-w-0 flex-1 flex-col">
-                      <span className="text-[0.8125rem] font-medium text-foreground">
+                      <span className="text-caption font-medium text-foreground">
                         {formatWhen(b.createdAt)}
                       </span>
                       {b.createdBy ? (

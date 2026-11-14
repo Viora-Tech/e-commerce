@@ -6,6 +6,7 @@ import { Button } from '@commerce/ui/shadcn/button'
 import { Puck } from '@puckeditor/core'
 import { motion, useReducedMotion } from 'motion/react'
 import { type MouseEvent, useState } from 'react'
+import PillTabs from '@/components/layout/pill-tabs'
 import { customizeContent } from '@/data/customize'
 import { useCopy } from '@/hooks/use-copy'
 import { deleteWithCollapse } from '@/lib/customize-canvas-motion'
@@ -23,7 +24,6 @@ import InspectorEmpty from './inspector-empty'
 import LiquidBlockInspector from './liquid-block-inspector'
 import PoliciesSourceNote from './policies-source-note'
 import SectionIcon from './section-icon'
-import SegmentedTabs from './segmented-tabs'
 
 type Tab = 'basic' | 'advanced'
 
@@ -122,14 +122,14 @@ export default function SectionInspector() {
       {liquidType ? <PoliciesSourceNote names={[liquidType, label]} /> : null}
       {hasAdvanced ? (
         <>
-          <SegmentedTabs
-            tabs={TABS}
+          <PillTabs
+            variant="segmented"
+            fill
+            tabs={TABS.map((id) => ({ value: id, label: copy.tabs[id] }))}
             value={active}
             onChange={setTab}
             label={copy.label}
-            size="md"
             className="shrink-0"
-            render={(id) => copy.tabs[id]}
           />
           <p className="text-xs leading-[1.0625rem] text-muted-foreground">
             {copy.tabHints[active]}
@@ -150,7 +150,7 @@ export default function SectionInspector() {
       ) : (
         <div className="flex flex-1 flex-col items-center justify-center gap-2 px-6 text-center">
           <SectionIcon type={selected.type} handle={sectionHandle(selected)} tile="md" />
-          <p className="text-[0.8125rem] text-muted-foreground">{copy.emptyFields}</p>
+          <p className="text-caption font-normal text-muted-foreground">{copy.emptyFields}</p>
         </div>
       )}
       {liquidType ? <ImportedSectionNote sectionType={liquidType} place="bottom" /> : null}

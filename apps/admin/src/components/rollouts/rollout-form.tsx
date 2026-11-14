@@ -10,6 +10,7 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 import SaveErrorAlert from '@/components/approvals/save-error-alert'
 import DataCard from '@/components/layout/data-card'
+import EmptyState from '@/components/layout/empty-state'
 import PageBody from '@/components/layout/page-body'
 import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
@@ -213,7 +214,7 @@ export default function RolloutForm({ rollout, data, results = null }: RolloutFo
         }
       >
         {noChanges ? (
-          <p className="text-body text-muted-foreground">{copy.changes.empty}</p>
+          <EmptyState variant="inline" body={copy.changes.empty} />
         ) : (
           <div className="flex flex-col gap-4">
             {form.themeId !== null ? (

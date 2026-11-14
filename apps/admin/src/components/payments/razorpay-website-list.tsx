@@ -1,4 +1,5 @@
 import CopyButton from '@/components/fields/copy-button'
+import EmptyState from '@/components/layout/empty-state'
 import { razorpayWebsitesContent } from '@/data/razorpay-websites'
 import { useCopy } from '@/hooks/use-copy'
 
@@ -16,7 +17,7 @@ export default function RazorpayWebsiteList({ websites, labelledBy }: RazorpayWe
 
   // Early returns
   if (websites.length === 0) {
-    return <p className="text-body text-muted-foreground">{copy.empty}</p>
+    return <EmptyState variant="inline" body={copy.empty} />
   }
 
   return (

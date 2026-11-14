@@ -9,12 +9,13 @@ import {
 } from '@commerce/core/checkout-settings'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Dialog, DialogDescription, DialogTitle } from '@commerce/ui/shadcn/dialog'
+import { FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
-import { Tabs, TabsList, TabsTrigger } from '@commerce/ui/shadcn/tabs'
 import { useState } from 'react'
 import DialogContent from '@/components/layout/dialog-content'
 import DialogFooter from '@/components/layout/dialog-footer'
 import DialogHeader from '@/components/layout/dialog-header'
+import PillTabs from '@/components/layout/pill-tabs'
 import { checkoutRulesContent } from '@/data/checkout-rules'
 import { useCopy } from '@/hooks/use-copy'
 
@@ -74,12 +75,16 @@ export default function CheckoutTextDialog({
           <DialogTitle>{copy.dialogTitle}</DialogTitle>
           <DialogDescription>{copy.description}</DialogDescription>
         </DialogHeader>
-        <Tabs value={lang} onValueChange={(v) => setLang(v === 'hi' ? 'hi' : 'en')}>
-          <TabsList>
-            <TabsTrigger value="en">{copy.languages.en}</TabsTrigger>
-            <TabsTrigger value="hi">{copy.languages.hi}</TabsTrigger>
-          </TabsList>
-        </Tabs>
+        <PillTabs
+          variant="segmented"
+          className="self-start"
+          value={lang}
+          onChange={setLang}
+          tabs={[
+            { value: 'en' as const, label: copy.languages.en },
+            { value: 'hi' as const, label: copy.languages.hi },
+          ]}
+        />
         <div className="flex max-h-[55vh] flex-col gap-5 overflow-y-auto pr-1">
           {GROUPS.map((group) => (
             <section key={group} className="flex flex-col gap-3">
@@ -89,9 +94,7 @@ export default function CheckoutTextDialog({
                   key={key}
                   className="grid gap-1.5 md:grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)] md:items-center md:gap-4"
                 >
-                  <label htmlFor={`checkout-text-${key}`} className="text-body font-medium">
-                    {copy.keys[key]}
-                  </label>
+                  <FieldLabel htmlFor={`checkout-text-${key}`}>{copy.keys[key]}</FieldLabel>
                   <Input
                     id={`checkout-text-${key}`}
                     maxLength={CHECKOUT_TEXT_MAX}

@@ -1,6 +1,7 @@
 'use client'
 
 import DataCard from '@/components/layout/data-card'
+import EmptyState from '@/components/layout/empty-state'
 import RelativeTime from '@/components/layout/relative-time'
 import StatusChip from '@/components/layout/status-chip'
 import { customerDetailContent } from '@/data/customers'
@@ -31,7 +32,7 @@ export default function MessagesCard({ messages }: MessagesCardProps) {
   return (
     <DataCard title={copy.heading}>
       {messages.length === 0 ? (
-        <p className="text-body text-muted-foreground">{copy.empty}</p>
+        <EmptyState variant="inline" body={copy.empty} />
       ) : (
         <ul className="flex flex-col divide-y divide-line">
           {messages.slice(0, SHOWN).map((m) => (

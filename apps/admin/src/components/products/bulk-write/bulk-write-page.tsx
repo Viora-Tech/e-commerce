@@ -7,12 +7,12 @@ import {
   type WriterTone,
 } from '@commerce/ai/client'
 import { AiIcon } from '@commerce/ui/icons'
+import { Button } from '@commerce/ui/shadcn/button'
 import { Progress } from '@commerce/ui/shadcn/progress'
 import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
-import KitButton from '@/components/kit/kit-button'
 import DataCard from '@/components/layout/data-card'
 import PageBody from '@/components/layout/page-body'
 import PageHeader from '@/components/layout/page-header'
@@ -180,32 +180,27 @@ export default function BulkWritePage({
           job ? (
             <>
               {live ? (
-                <KitButton variant="secondary" onClick={() => void handleStop()}>
+                <Button variant="outline" onClick={() => void handleStop()}>
                   {copy.bulk.cancelRun}
-                </KitButton>
+                </Button>
               ) : (
-                <KitButton variant="secondary" onClick={() => router.push(backHref)}>
+                <Button variant="outline" onClick={() => router.push(backHref)}>
                   {copy.bulk.close}
-                </KitButton>
+                </Button>
               )}
-              <KitButton
-                variant="primary"
-                onClick={() => void handleApply()}
-                disabled={busy || !selected.length}
-              >
-                {busy ? <Spinner /> : null}
+              <Button onClick={() => void handleApply()} disabled={!selected.length} loading={busy}>
                 {copy.bulk.apply(selected.length)}
-              </KitButton>
+              </Button>
             </>
           ) : (
-            <KitButton
-              variant="primary"
+            <Button
               onClick={() => void handleStart()}
-              disabled={busy || !fields.length || !productIds?.length}
+              disabled={!fields.length || !productIds?.length}
+              loading={busy}
             >
-              {busy ? <Spinner /> : <AiIcon className="size-4" aria-hidden="true" />}
+              <AiIcon className="size-4" aria-hidden="true" />
               {busy ? copy.bulk.starting : copy.bulk.start}
-            </KitButton>
+            </Button>
           )
         }
       >

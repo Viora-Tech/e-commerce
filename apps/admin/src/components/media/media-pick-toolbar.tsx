@@ -1,7 +1,6 @@
 'use client'
 
-import { LayoutGrid, ListView, Search } from '@commerce/ui/icons'
-import { Input } from '@commerce/ui/shadcn/input'
+import { LayoutGrid, ListView } from '@commerce/ui/icons'
 import {
   Select,
   SelectContent,
@@ -10,6 +9,7 @@ import {
   SelectValue,
 } from '@commerce/ui/shadcn/select'
 import { ToggleGroup, ToggleGroupItem } from '@commerce/ui/shadcn/toggle-group'
+import SearchField from '@/components/fields/search-field'
 import { mediaContent } from '@/data/media'
 import { useCopy } from '@/hooks/use-copy'
 import type { MediaFolder } from './use-media-folders'
@@ -94,16 +94,13 @@ export default function MediaPickToolbar({
   return (
     <>
       <div className="flex flex-wrap items-center gap-2">
-        <div className="relative min-w-40 flex-1">
-          <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            value={query}
-            onChange={(e) => onQuery(e.target.value)}
-            placeholder={copy.search}
-            className="pl-8"
-            aria-label={copy.search}
-          />
-        </div>
+        <SearchField
+          className="min-w-40 flex-1"
+          value={query}
+          onChange={(e) => onQuery(e.target.value)}
+          placeholder={copy.search}
+          aria-label={copy.search}
+        />
         {!restricted ? (
           <Select
             items={SORT_ITEMS}
@@ -123,10 +120,9 @@ export default function MediaPickToolbar({
           </Select>
         ) : null}
         <ToggleGroup
+          variant="segmented"
           value={[view]}
           onValueChange={(v) => typeof v[0] === 'string' && onView(v[0] as MediaViewMode)}
-          variant="outline"
-          spacing={0}
         >
           <ToggleGroupItem value="grid" aria-label={copy.view.grid} title={copy.view.grid}>
             <LayoutGrid aria-hidden />

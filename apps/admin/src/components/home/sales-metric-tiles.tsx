@@ -12,7 +12,7 @@ import MetricPicker from './analytics/metric-picker'
 
 /** Figma "Analytics · Metric tab" (580:739): 13/20 medium label with a dotted underline. */
 const LABEL =
-  'text-[0.8125rem] leading-5 font-medium text-muted-foreground underline decoration-dotted underline-offset-4'
+  'text-caption leading-5 font-medium text-muted-foreground underline decoration-dotted underline-offset-4'
 /** 24/29 semibold, -0.48px tracking. */
 const VALUE =
   'text-2xl leading-[1.8125rem] font-semibold tracking-[-0.03rem] whitespace-nowrap text-ink-strong tabular-nums'

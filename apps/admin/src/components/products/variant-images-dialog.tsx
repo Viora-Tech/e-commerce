@@ -8,6 +8,7 @@ import { type ChangeEvent, type DragEvent, useRef, useState } from 'react'
 import DialogContent from '@/components/layout/dialog-content'
 import DialogFooter from '@/components/layout/dialog-footer'
 import DialogHeader from '@/components/layout/dialog-header'
+import EmptyState from '@/components/layout/empty-state'
 import { useUploadQueue } from '@/components/media/use-upload-queue'
 import { productFormContent } from '@/data/product-form'
 import { useCopy } from '@/hooks/use-copy'
@@ -167,7 +168,7 @@ export default function VariantImagesDialog({
           <section aria-label={copy.productPhotos} className="flex flex-col gap-2">
             <h3 className="text-body-strong">{copy.productPhotos}</h3>
             {photos.length === 0 ? (
-              <p className="text-body text-muted-foreground">{copy.productPhotosEmpty}</p>
+              <EmptyState variant="inline" body={copy.productPhotosEmpty} />
             ) : (
               <ul className="grid grid-cols-4 gap-2 sm:grid-cols-6">
                 {photos.map((item, i) => {

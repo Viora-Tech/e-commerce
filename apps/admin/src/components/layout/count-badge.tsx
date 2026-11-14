@@ -22,7 +22,7 @@ export default function CountBadge({ n, tone = 'muted', className }: CountBadgeP
         tone === 'outline' &&
           'rounded-md border border-border px-1.5 py-0.5 text-caption text-muted-foreground',
         tone === 'inverse' &&
-          'flex h-4 min-w-4 items-center justify-center rounded-sm bg-foreground px-1 text-[0.6875rem] font-semibold text-background',
+          'flex h-4 min-w-4 items-center justify-center rounded-sm bg-foreground px-1 text-micro font-semibold text-background',
         className,
       )}
     >

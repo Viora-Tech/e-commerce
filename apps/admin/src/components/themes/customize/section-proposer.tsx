@@ -92,7 +92,7 @@ export default function SectionProposer({ page }: SectionProposerProps) {
     <section className="flex flex-col gap-2.5 rounded-[0.625rem] border border-border bg-card p-3">
       <div className="flex items-center gap-2">
         <AiIcon aria-hidden weight="regular" className="size-3.5 text-primary" />
-        <h3 className="text-[0.8125rem] font-semibold text-foreground">{ai.builder.title}</h3>
+        <h3 className="text-caption font-semibold text-foreground">{ai.builder.title}</h3>
         <span className="ml-auto text-caption text-muted-foreground">{ai.builder.credits}</span>
       </div>
       {proposal ? (
@@ -102,9 +102,7 @@ export default function SectionProposer({ page }: SectionProposerProps) {
               {ai.builder.types[proposal.type]}
             </span>
             {typeof proposal.props.heading === 'string' ? (
-              <p className="text-[0.8125rem] font-semibold text-foreground">
-                {proposal.props.heading}
-              </p>
+              <p className="text-caption font-semibold text-foreground">{proposal.props.heading}</p>
             ) : null}
             <ul className="flex flex-col gap-0.5">
               {previewLines(proposal.props).map((line) => (
@@ -147,7 +145,7 @@ export default function SectionProposer({ page }: SectionProposerProps) {
             placeholder={ai.builder.placeholder}
             onChange={(e) => setRequest(e.target.value)}
             onKeyDown={handleKey}
-            className="text-[0.8125rem]"
+            className="text-caption font-normal"
           />
           <Button
             loading={busy}

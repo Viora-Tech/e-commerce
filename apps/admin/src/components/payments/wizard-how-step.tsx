@@ -1,7 +1,7 @@
 'use client'
 
-import { Badge } from '@commerce/ui/shadcn/badge'
 import { Spinner } from '@commerce/ui/shadcn/spinner'
+import StatusChip from '@/components/layout/status-chip'
 import { gatewayCatalogue, paymentsSetupContent } from '@/data/payments-setup'
 import { useCopy } from '@/hooks/use-copy'
 import GatewayLogo from './gateway-logo'
@@ -43,7 +43,11 @@ export default function WizardHowStep({ gateways, busy, onPick }: WizardHowStepP
           <span className="flex min-w-0 flex-1 flex-col gap-0.5">
             <span className="flex flex-wrap items-center gap-2 text-body font-semibold text-foreground">
               {g.name}
-              {i === 0 ? <Badge variant="info">{copy.recommended}</Badge> : null}
+              {i === 0 ? (
+                <StatusChip tone="info" dot={false}>
+                  {copy.recommended}
+                </StatusChip>
+              ) : null}
             </span>
             <span className="text-caption text-muted-foreground">{g.blurb}</span>
           </span>

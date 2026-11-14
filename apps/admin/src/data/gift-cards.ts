@@ -128,13 +128,7 @@ export const giftCardIssueContent = {
   noExpiry: 'No expiration date',
   setExpiry: 'Set expiration date',
   customer: 'Customer',
-  // Fits the field without being cut off (audit #71).
-  customerSearch: 'Search customers',
-  customerSearching: 'Searching…',
-  customerNone: 'No customers match',
-  customerFailed: 'Could not load customers',
   customerHelp: 'The card shows on the customer and can be emailed to them.',
-  clear: 'Remove',
   recipient: 'Or send to an email address',
   recipientName: 'Recipient name',
   message: 'Message',

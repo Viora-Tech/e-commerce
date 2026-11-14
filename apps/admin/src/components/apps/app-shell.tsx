@@ -1,15 +1,13 @@
 import { siteConfig } from '@commerce/config/site'
 import { CircleAlert, TriangleAlert } from '@commerce/ui/icons'
-import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
 import type { ReactNode } from 'react'
 import NextStepBanner from '@/components/layout/next-step-banner'
 import PageBody from '@/components/layout/page-body'
+import PageHeader from '@/components/layout/page-header'
 import StatusChip from '@/components/layout/status-chip'
-import { CHIP_DOT } from '@/components/status/tone'
 import { appsContent } from '@/data/apps'
-import { layoutContent } from '@/data/layout'
 import { getCopy, getLocale } from '@/lib/copy-server'
 import { formatAgo } from '@/lib/format-date'
 import { routes } from '@/lib/routes'
@@ -47,10 +45,10 @@ const hrefFor = (appId: string, path: string) =>
   path ? routes.apps.page(appId, ...path.split('/')) : routes.apps.page(appId)
 
 /**
- * An installed app's pages under the compact app bar (Figma App layout v2, 928:10728): the
- * "Apps / <Name>" breadcrumb, a small logo, name and status chip, the app's status pill, its one
- * primary action and the "…" menu (Settings, Uninstall), then a divider. On desktop the app's
- * pages live in the main sidebar under its row; phones keep the in-page menu.
+ * An installed app's pages under the page header every admin page has (`PageHeader`): the
+ * "‹ Apps" back link, the app's logo, its name at the page-title size with its status chip, then
+ * the app's status pill, its one primary action and the "…" menu (Settings, Uninstall). On
+ * desktop the app's pages live in the main sidebar under its row; phones keep the in-page menu.
  */
 export default async function AppShell({
   appId,
@@ -68,7 +66,6 @@ export default async function AppShell({
 }: AppShellProps) {
   // Render logic
   const copy = await getCopy(appsContent)
-  const layoutCopy = await getCopy(layoutContent)
   const locale = await getLocale()
   const section = active.split('/')[0] ?? ''
   const showNav = tabs.length >= 2
@@ -84,55 +81,29 @@ export default async function AppShell({
   return (
     <PageBody>
       <div className="flex flex-col gap-4">
-        <header className="flex flex-wrap items-center gap-x-3.5 gap-y-3 border-panel-border border-b pb-4">
-          <AppLogo id={appId} icon={icon} size={44} />
-          <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-            <nav aria-label={layoutCopy.breadcrumb}>
-              <ol className="flex items-center gap-1.5 text-caption text-muted-foreground">
-                <li>
-                  <Link
-                    href={routes.apps.list()}
-                    className="rounded-sm hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  >
-                    {copy.title}
-                  </Link>
-                </li>
-                <li aria-hidden="true">/</li>
-                <li aria-current="page" className="truncate">
-                  {name}
-                </li>
-              </ol>
-            </nav>
-            <div className="flex min-w-0 items-center gap-2">
-              <h1 className="truncate text-[1.25rem] leading-6.5 font-semibold text-ink-strong">
-                {name}
-              </h1>
-              <StatusChip tone={tone} className="h-5 shrink-0 text-xs">
-                {statusLabel}
-              </StatusChip>
-            </div>
-          </div>
-          <div className="flex max-w-full min-w-0 items-center gap-3.5">
-            {pillText && statusPill ? (
-              <span
-                title={pillText}
-                className="flex h-7.5 max-w-[22rem] min-w-0 items-center gap-1.5 rounded-full border border-hairline px-2.5 text-caption text-muted-foreground"
-              >
-                <span
-                  aria-hidden="true"
-                  className={cn('size-2 shrink-0 rounded-full', CHIP_DOT[statusPill.tone])}
-                />
-                <span className="truncate">{pillText}</span>
-              </span>
-            ) : null}
-            {headerAction}
-            <AppUninstallButton
-              appId={appId}
-              name={name}
-              settingsHref={hasSettings ? hrefFor(appId, 'settings') : undefined}
-            />
-          </div>
-        </header>
+        <PageHeader
+          back={{ label: copy.title, href: routes.apps.list() }}
+          lead={{ kind: 'logo', node: <AppLogo id={appId} icon={icon} size={48} /> }}
+          title={name}
+          badges={<StatusChip tone={tone}>{statusLabel}</StatusChip>}
+          actions={
+            <>
+              {pillText && statusPill ? (
+                <span title={pillText} className="flex max-w-[22rem] min-w-0">
+                  <StatusChip tone={statusPill.tone} variant="outline" className="min-w-0">
+                    <span className="truncate">{pillText}</span>
+                  </StatusChip>
+                </span>
+              ) : null}
+              {headerAction}
+              <AppUninstallButton
+                appId={appId}
+                name={name}
+                settingsHref={hasSettings ? hrefFor(appId, 'settings') : undefined}
+              />
+            </>
+          }
+        />
         {status === 'needsSetup' || status === 'error' ? (
           // Figma "WhatsApp · Needs setup": the raised card with what is wrong and the way out.
           <NextStepBanner

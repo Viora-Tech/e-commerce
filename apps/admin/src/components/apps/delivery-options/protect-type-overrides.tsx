@@ -5,6 +5,7 @@ import { Plus, Trash2 } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Input } from '@commerce/ui/shadcn/input'
 import ChoiceField from '@/components/apps/gst-invoices/choice-field'
+import EmptyState from '@/components/layout/empty-state'
 import { deliveryOptionsContent } from '@/data/delivery-options'
 import { useCopy } from '@/hooks/use-copy'
 import type { ProtectDraft } from './protect-draft'
@@ -41,7 +42,7 @@ export default function ProtectTypeOverrides({ overrides, onChange }: ProtectTyp
         <p className="text-caption text-muted-foreground">{p.overridesHelp}</p>
       </div>
       {overrides.length === 0 ? (
-        <p className="text-caption text-muted-foreground">{p.overridesEmpty}</p>
+        <EmptyState variant="inline" body={p.overridesEmpty} />
       ) : (
         <ul className="flex flex-col gap-2">
           {overrides.map((o, i) => (

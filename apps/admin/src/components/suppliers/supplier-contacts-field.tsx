@@ -11,7 +11,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@commerce/ui/shadcn/select'
-import KitIconButton from '@/components/kit/kit-icon-button'
 import { supplierFormContent } from '@/data/purchasing'
 import { useCopy } from '@/hooks/use-copy'
 
@@ -78,13 +77,15 @@ export default function SupplierContactsField({ contacts, onChange }: SupplierCo
             value={c.label}
             onChange={(e) => patchAt(i, { label: e.target.value })}
           />
-          <KitIconButton
-            label={copy.remove}
-            className="size-9"
+          <Button
+            variant="outline"
+            size="icon"
+            aria-label={copy.remove}
+            title={copy.remove}
             onClick={() => onChange(contacts.filter((_, j) => j !== i))}
           >
             <Trash2 aria-hidden="true" />
-          </KitIconButton>
+          </Button>
         </div>
       ))}
       {contacts.length < MAX_CONTACTS ? (

@@ -12,13 +12,14 @@ import { Dialog, DialogDescription, DialogTitle } from '@commerce/ui/shadcn/dial
 import { Field, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import { Spinner } from '@commerce/ui/shadcn/spinner'
-import { Tabs, TabsList, TabsTrigger } from '@commerce/ui/shadcn/tabs'
 import type { Editor } from 'grapesjs'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
 import DialogContent from '@/components/layout/dialog-content'
 import DialogHeader from '@/components/layout/dialog-header'
+import EmptyState from '@/components/layout/empty-state'
+import PillTabs from '@/components/layout/pill-tabs'
 import { emailBuilderContent } from '@/data/email-builder'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -193,15 +194,16 @@ export default function BuilderTemplatesDialog({
           <DialogTitle>{g.title}</DialogTitle>
           <DialogDescription>{g.body}</DialogDescription>
         </DialogHeader>
-        <Tabs value={tab} onValueChange={(v) => setTab(v as 'ready' | 'saved')}>
-          <TabsList>
-            <TabsTrigger value="ready">{g.readyTab}</TabsTrigger>
-            <TabsTrigger value="saved">
-              {g.savedTab}
-              {rows?.length ? ` (${rows.length})` : ''}
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
+        <PillTabs
+          variant="segmented"
+          className="self-start"
+          value={tab}
+          onChange={setTab}
+          tabs={[
+            { value: 'ready' as const, label: g.readyTab },
+            { value: 'saved' as const, label: g.savedTab, count: rows?.length || undefined },
+          ]}
+        />
 
         {tab === 'ready' ? (
           <div className="flex flex-col gap-3">
@@ -278,7 +280,7 @@ export default function BuilderTemplatesDialog({
               </Button>
             </div>
             {rows && rows.length === 0 ? (
-              <p className="text-body text-muted-foreground">{copy.templates.empty}</p>
+              <EmptyState variant="inline" body={copy.templates.empty} />
             ) : null}
             <ul className="flex flex-col divide-y divide-border rounded-xl border border-border">
               {(rows ?? []).map((r) => (

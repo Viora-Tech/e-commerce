@@ -1,5 +1,4 @@
 import type { SenderDnsRecord } from '@commerce/core/sender-email'
-import { Badge } from '@commerce/ui/shadcn/badge'
 import {
   Table,
   TableBody,
@@ -9,6 +8,7 @@ import {
   TableRow,
 } from '@commerce/ui/shadcn/table'
 import CopyButton from '@/components/fields/copy-button'
+import StatusChip from '@/components/layout/status-chip'
 import { senderEmailContent } from '@/data/sender-email'
 import DnsProviderHelp from './dns-provider-help'
 
@@ -44,9 +44,13 @@ export default function SenderDnsTable({ records }: SenderDnsTableProps) {
               <TableRow key={`${r.type}-${r.name}-${r.value}`} className="group/row align-top">
                 <TableCell className="pl-3">
                   <span className="block font-mono text-body-strong">{r.type}</span>
-                  <Badge variant={r.purpose === 'dkim' ? 'warning' : 'neutral'} className="mt-1">
+                  <StatusChip
+                    tone={r.purpose === 'dkim' ? 'attention' : 'neutral'}
+                    dot={false}
+                    className="mt-1"
+                  >
                     {copy.purpose[r.purpose]}
-                  </Badge>
+                  </StatusChip>
                 </TableCell>
                 <TableCell className="min-w-40">
                   <span className="flex items-center gap-1 font-mono text-body">

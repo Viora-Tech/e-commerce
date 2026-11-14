@@ -32,11 +32,10 @@ export default function LanguageField({ onChanged }: LanguageFieldProps) {
 
   return (
     <ToggleGroup
+      variant="segmented"
       aria-label={copy.language.label}
       value={[locale]}
       onValueChange={handleChange}
-      variant="outline"
-      spacing={0}
     >
       {LOCALES.map((id) => (
         <ToggleGroupItem key={id} value={id} lang={id} className="px-3">

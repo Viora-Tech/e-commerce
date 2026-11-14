@@ -1,6 +1,7 @@
 'use client'
 
 import type { VariantBox } from '@commerce/core/catalog'
+import { Field, FieldDescription, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import {
   Select,
@@ -9,7 +10,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@commerce/ui/shadcn/select'
-import KitField from '@/components/kit/kit-field'
 import { COUNTRIES } from '@/data/countries'
 import { productFormContent } from '@/data/product-form'
 import { productShippingContent } from '@/data/product-shipping'
@@ -64,19 +64,22 @@ export default function VariantShippingFields({
       />
       {draft.requiresShipping ? (
         <div className="grid gap-4 md:grid-cols-2">
-          <KitField label={shipping.weight} htmlFor="variant-weight" help={shipping.weightHelp}>
+          <Field>
+            <FieldLabel htmlFor="variant-weight">{shipping.weight}</FieldLabel>
             <WeightInput
               id="variant-weight"
               weight={draft.weight}
               unit={draft.weightUnit}
               onChange={onPatch}
             />
-          </KitField>
+            <FieldDescription>{shipping.weightHelp}</FieldDescription>
+          </Field>
           <VariantBoxField draft={draft} productBox={productBox} onPatch={onPatch} />
         </div>
       ) : null}
       <div className="grid gap-4 md:grid-cols-2">
-        <KitField label={shipping.country} htmlFor="variant-origin">
+        <Field>
+          <FieldLabel htmlFor="variant-origin">{shipping.country}</FieldLabel>
           <Select
             items={countries}
             value={draft.countryOfOrigin || NONE}
@@ -96,9 +99,10 @@ export default function VariantShippingFields({
               ))}
             </SelectContent>
           </Select>
-        </KitField>
+        </Field>
         {tax.perVariant ? (
-          <KitField label={shipping.hsCode} htmlFor="variant-hs" help={shipping.hsCodeHelp}>
+          <Field>
+            <FieldLabel htmlFor="variant-hs">{shipping.hsCode}</FieldLabel>
             <Input
               size="kit"
               id="variant-hs"
@@ -108,10 +112,12 @@ export default function VariantShippingFields({
               autoComplete="off"
               inputMode="numeric"
             />
-          </KitField>
+            <FieldDescription>{shipping.hsCodeHelp}</FieldDescription>
+          </Field>
         ) : null}
         {tax.perVariant && draft.taxable ? (
-          <KitField label={shipping.gstRate} htmlFor="variant-gst" help={shipping.gstRateHelp}>
+          <Field>
+            <FieldLabel htmlFor="variant-gst">{shipping.gstRate}</FieldLabel>
             <Input
               size="kit"
               id="variant-gst"
@@ -121,7 +127,8 @@ export default function VariantShippingFields({
               autoComplete="off"
               inputMode="numeric"
             />
-          </KitField>
+            <FieldDescription>{shipping.gstRateHelp}</FieldDescription>
+          </Field>
         ) : null}
       </div>
       {tax.perVariant ? null : (

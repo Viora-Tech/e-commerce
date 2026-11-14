@@ -3,6 +3,7 @@
 import { Button } from '@commerce/ui/shadcn/button'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import EmptyState from '@/components/layout/empty-state'
 import { emailSuppressionContent } from '@/data/email-suppression'
 import { useCopy, useLocale } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -53,7 +54,7 @@ export default function SuppressedEmailsList() {
       <h3 className="text-body font-medium text-foreground">{copy.heading}</h3>
       <p className="text-caption text-muted-foreground">{copy.help}</p>
       {rows.length === 0 ? (
-        <p className="text-caption text-muted-foreground">{copy.empty}</p>
+        <EmptyState variant="inline" body={copy.empty} />
       ) : (
         <ul className="flex flex-col divide-y divide-border rounded-lg border border-border">
           {rows.map((r) => (

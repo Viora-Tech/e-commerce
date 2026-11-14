@@ -1,9 +1,9 @@
 'use client'
 
 import { X } from '@commerce/ui/icons'
-import { Badge } from '@commerce/ui/shadcn/badge'
 import { Input } from '@commerce/ui/shadcn/input'
 import { type KeyboardEvent, useId, useState } from 'react'
+import StatusChip from '@/components/layout/status-chip'
 import { productFormContent } from '@/data/product-form'
 import { useCopy } from '@/hooks/use-copy'
 
@@ -73,7 +73,7 @@ export default function TagInput({ id, tags, suggestions, onChange, placeholder 
       {tags.length ? (
         <div className="flex flex-wrap gap-1.5">
           {tags.map((tag) => (
-            <Badge key={tag} variant="secondary" className="gap-1 pr-1">
+            <StatusChip key={tag} dot={false} className="pr-1">
               {tag}
               <button
                 type="button"
@@ -83,7 +83,7 @@ export default function TagInput({ id, tags, suggestions, onChange, placeholder 
               >
                 <X className="size-3" />
               </button>
-            </Badge>
+            </StatusChip>
           ))}
         </div>
       ) : null}

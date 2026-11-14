@@ -224,7 +224,7 @@ export default function ActivityBell({ className }: ActivityBellProps) {
         {unread > 0 ? (
           <span
             aria-hidden="true"
-            className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-danger px-1 text-[0.625rem] leading-none font-semibold text-danger-foreground tabular-nums ring-2 ring-card"
+            className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-danger px-1 text-micro leading-none font-semibold text-danger-foreground tabular-nums ring-2 ring-card"
           >
             {unread > 9 ? '9+' : unread}
           </span>

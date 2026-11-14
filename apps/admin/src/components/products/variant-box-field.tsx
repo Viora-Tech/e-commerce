@@ -2,6 +2,7 @@
 
 import type { BoxPreset } from '@commerce/core'
 import { type VariantBox, variantBox } from '@commerce/core/catalog'
+import { Field, FieldDescription, FieldLabel } from '@commerce/ui/shadcn/field'
 import {
   Select,
   SelectContent,
@@ -10,7 +11,6 @@ import {
   SelectValue,
 } from '@commerce/ui/shadcn/select'
 import { useEffect, useState } from 'react'
-import KitField from '@/components/kit/kit-field'
 import { variantBoxContent } from '@/data/variant-box'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -81,7 +81,8 @@ export default function VariantBoxField({ draft, productBox, onPatch }: VariantB
   const items = Object.fromEntries(entries)
 
   return (
-    <KitField label={copy.label} help={copy.help} htmlFor="edit-variant-box">
+    <Field>
+      <FieldLabel htmlFor="edit-variant-box">{copy.label}</FieldLabel>
       <Select items={items} value={value} onValueChange={(next) => handleChange(String(next))}>
         <SelectTrigger size="lg" id="edit-variant-box" className="w-full">
           <SelectValue />
@@ -94,6 +95,7 @@ export default function VariantBoxField({ draft, productBox, onPatch }: VariantB
           ))}
         </SelectContent>
       </Select>
-    </KitField>
+      <FieldDescription>{copy.help}</FieldDescription>
+    </Field>
   )
 }

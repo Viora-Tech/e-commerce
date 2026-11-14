@@ -15,6 +15,13 @@ export default [
     hint: 'कम से कम 2 अक्षर लिखें।',
     unnamed: 'नाम नहीं',
     orders: (n: number) => `${n} ऑर्डर`,
+    lookup: {
+      search: 'ग्राहक खोजें',
+      searching: 'खोज रहे हैं…',
+      none: 'कोई ग्राहक नहीं मिला',
+      failed: 'ग्राहक लोड नहीं हो सके',
+      clear: 'हटाएँ',
+    },
   }),
   translation(customerMergeContent, {
     menu: 'दूसरे ग्राहक के साथ मिलाएँ…',

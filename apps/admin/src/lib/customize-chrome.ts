@@ -22,22 +22,22 @@ export const CHROME_FOCUS =
   'outline-none focus-visible:ring-2 focus-visible:ring-ring/70 focus-visible:ring-inset'
 
 /** 13px body text. */
-export const CHROME_BODY = 'text-[0.8125rem] leading-5'
+export const CHROME_BODY = 'text-caption font-normal leading-5'
 
 /** 12px label text. */
 export const CHROME_LABEL = 'text-xs leading-4 font-medium'
 
 /** 11px meta text: counts, hints, "by <app>". */
-export const CHROME_META = 'text-[0.6875rem] leading-4 text-muted-foreground tabular-nums'
+export const CHROME_META = 'text-micro leading-4 text-muted-foreground tabular-nums'
 
 /** A group heading inside a panel: 11px medium muted, sentence case (never all caps). */
-export const CHROME_GROUP_LABEL = 'text-[0.6875rem] leading-4 font-medium text-muted-foreground'
+export const CHROME_GROUP_LABEL = 'text-micro leading-4 font-medium text-muted-foreground'
 
 /** Panel and dialog titles: 13px semibold, tight tracking. */
-export const CHROME_HEADING = 'text-[0.8125rem] leading-5 font-semibold tracking-tight'
+export const CHROME_HEADING = 'text-caption leading-5 font-semibold tracking-tight'
 
 /** The 32px row every list in the sidebars uses. */
-export const CHROME_ROW = 'relative flex h-8 items-center rounded-lg text-[0.8125rem]'
+export const CHROME_ROW = 'relative flex h-8 items-center rounded-lg text-caption font-normal'
 
 /** Row hover. */
 export const CHROME_ROW_HOVER = 'hover:bg-muted/60 hover:text-foreground'

@@ -10,7 +10,7 @@ import { useCustomizePuck } from '@/lib/customize-puck'
 import { isFullViewShortcut, isTypingTarget, useEditorView } from '@/lib/customize-view'
 
 const SEGMENT =
-  'flex h-7 items-center gap-1.5 rounded-full px-3 text-[0.8125rem] leading-5 font-medium transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none motion-reduce:transition-none'
+  'flex h-7 items-center gap-1.5 rounded-full px-3 text-caption leading-5 font-medium transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none motion-reduce:transition-none'
 
 /**
  * Full view's controls and keys: a floating pill at the bottom of the page while full view is

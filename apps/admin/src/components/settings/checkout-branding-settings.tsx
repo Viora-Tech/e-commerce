@@ -187,12 +187,7 @@ export default function CheckoutBrandingSettings({
           title={copy.preview.heading}
           subtitle={copy.preview.description}
           action={
-            <ToggleGroup
-              value={[device]}
-              onValueChange={handleDevice}
-              variant="outline"
-              spacing={0}
-            >
+            <ToggleGroup variant="segmented" value={[device]} onValueChange={handleDevice}>
               <ToggleGroupItem
                 value="desktop"
                 aria-label={copy.preview.desktop}

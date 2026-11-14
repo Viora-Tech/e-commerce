@@ -3,6 +3,7 @@
 import { cn } from '@commerce/ui/lib/utils'
 import type { KeyboardEvent, ReactNode } from 'react'
 import CountBadge from '@/components/layout/count-badge'
+import PillTabs from '@/components/layout/pill-tabs'
 import { useVisited } from '@/hooks/use-visited'
 import type { ProductLayout } from '@/lib/product-layout'
 
@@ -32,11 +33,8 @@ type ProductTabsProps = {
 const FOCUS =
   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2'
 
-/* "tabs" look: Figma's underline strip (631:7713), a 2px ink rule under the open tab. */
-const STRIP = 'no-scrollbar flex max-w-full gap-6 overflow-x-auto border-b border-border'
-const STRIP_TAB =
-  'relative -mb-px h-11 border-b-2 border-transparent px-1 text-body text-muted-foreground hover:text-foreground'
-const STRIP_TAB_ACTIVE = 'border-foreground font-medium text-ink-strong'
+/* "tabs" look: Figma's underline strip (631:7713), the shared PillTabs `underline` tabs. */
+const STRIP = 'no-scrollbar max-w-full overflow-x-auto border-b border-border'
 
 /* "settings" look: the Settings rail and the app pages' AppNav; a scrolling row on phones. */
 const RAIL =
@@ -47,6 +45,31 @@ const RAIL_TAB_ACTIVE = 'bg-sidebar-accent text-sidebar-accent-foreground hover:
 
 const NEXT_KEYS = ['ArrowRight', 'ArrowDown']
 const PREV_KEYS = ['ArrowLeft', 'ArrowUp']
+
+/** A tab's label: its name, then its count, an amber "look at this" dot or a red error dot. */
+function tabLabel(t: ProductTabItem, selected: boolean, rail: boolean, errorLabel: string) {
+  return (
+    <>
+      <span className="min-w-0 truncate">{t.label}</span>
+      {t.count ? (
+        <CountBadge
+          n={t.count}
+          tone={selected && !rail ? 'inverse' : 'muted'}
+          className={selected && !rail ? 'h-4.5 rounded-full px-1.5' : 'py-0'}
+        />
+      ) : null}
+      {t.warn && !t.error ? (
+        <span aria-hidden className="size-1.5 shrink-0 rounded-full bg-warning" />
+      ) : null}
+      {t.error ? (
+        <>
+          <span aria-hidden className="size-1.5 shrink-0 rounded-full bg-destructive" />
+          <span className="sr-only">{errorLabel}</span>
+        </>
+      ) : null}
+    </>
+  )
+}
 
 function tabDomId(id: string): string {
   return `product-tab-${id}`
@@ -95,53 +118,54 @@ export default function ProductTabs({
 
   return (
     <div className={cn('flex min-w-0 flex-col gap-6', rail && 'md:flex-row md:items-start')}>
-      <div
-        role="tablist"
-        aria-label={label}
-        aria-orientation={rail ? 'vertical' : 'horizontal'}
-        onKeyDown={handleKeyDown}
-        className={rail ? RAIL : STRIP}
-      >
-        {tabs.map((t) => {
-          const selected = t.id === active
-          return (
-            <button
-              key={t.id}
-              type="button"
-              role="tab"
-              id={tabDomId(t.id)}
-              aria-selected={selected}
-              aria-controls={panelDomId(t.id)}
-              tabIndex={selected ? 0 : -1}
-              onClick={() => onSelect(t.id)}
-              className={cn(
-                'flex min-w-0 shrink-0 items-center gap-2 whitespace-nowrap transition-colors',
-                FOCUS,
-                rail ? RAIL_TAB : STRIP_TAB,
-                selected && (rail ? RAIL_TAB_ACTIVE : STRIP_TAB_ACTIVE),
-              )}
-            >
-              <span className="min-w-0 truncate">{t.label}</span>
-              {t.count ? (
-                <CountBadge
-                  n={t.count}
-                  tone={selected && !rail ? 'inverse' : 'muted'}
-                  className={selected && !rail ? 'h-4.5 rounded-full px-1.5' : 'py-0'}
-                />
-              ) : null}
-              {t.warn && !t.error ? (
-                <span aria-hidden className="size-1.5 shrink-0 rounded-full bg-warning" />
-              ) : null}
-              {t.error ? (
-                <>
-                  <span aria-hidden className="size-1.5 shrink-0 rounded-full bg-destructive" />
-                  <span className="sr-only">{errorLabel}</span>
-                </>
-              ) : null}
-            </button>
-          )
-        })}
-      </div>
+      {rail ? (
+        <div
+          role="tablist"
+          aria-label={label}
+          aria-orientation="vertical"
+          onKeyDown={handleKeyDown}
+          className={RAIL}
+        >
+          {tabs.map((t) => {
+            const selected = t.id === active
+            return (
+              <button
+                key={t.id}
+                type="button"
+                role="tab"
+                id={tabDomId(t.id)}
+                aria-selected={selected}
+                aria-controls={panelDomId(t.id)}
+                tabIndex={selected ? 0 : -1}
+                onClick={() => onSelect(t.id)}
+                className={cn(
+                  'flex min-w-0 shrink-0 items-center gap-2 whitespace-nowrap transition-colors',
+                  FOCUS,
+                  RAIL_TAB,
+                  selected && RAIL_TAB_ACTIVE,
+                )}
+              >
+                {tabLabel(t, selected, true, errorLabel)}
+              </button>
+            )
+          })}
+        </div>
+      ) : (
+        <PillTabs
+          label={label}
+          className={STRIP}
+          roving
+          onKeyDown={handleKeyDown}
+          value={active}
+          onChange={(id) => onSelect(id)}
+          tabs={tabs.map((t) => ({
+            value: t.id,
+            id: tabDomId(t.id),
+            controls: panelDomId(t.id),
+            label: tabLabel(t, t.id === active, false, errorLabel),
+          }))}
+        />
+      )}
       <div className="flex min-w-0 flex-1 flex-col">
         {tabs.map((t) => (
           <div

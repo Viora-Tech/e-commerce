@@ -85,7 +85,7 @@ export default function CustomizerTopBar({
         <StatusChip tone={live ? 'success' : 'neutral'}>{live ? copy.live : copy.draft}</StatusChip>
       </div>
       <div className="flex items-center gap-2">
-        <ToggleGroup value={[device]} onValueChange={handleDevice} variant="outline" spacing={0}>
+        <ToggleGroup variant="segmented" value={[device]} onValueChange={handleDevice}>
           {DEVICES.map(({ value, icon: Icon }) => (
             <ToggleGroupItem
               key={value}
@@ -98,7 +98,7 @@ export default function CustomizerTopBar({
           ))}
         </ToggleGroup>
         {darkMode ? (
-          <ToggleGroup value={[mode]} onValueChange={handleMode} variant="outline" spacing={0}>
+          <ToggleGroup variant="segmented" value={[mode]} onValueChange={handleMode}>
             {MODES.map(({ value, icon: Icon }) => (
               <ToggleGroupItem
                 key={value}

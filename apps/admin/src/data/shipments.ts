@@ -131,6 +131,7 @@ export const shipmentsContent = {
       waybill: 'Waybill',
       reason: 'Courier said',
       raised: 'Raised',
+      actions: 'Actions',
     },
     actions: {
       reattempt: 'Try delivery again',

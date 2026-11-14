@@ -2,12 +2,12 @@
 
 import { optionsFor, type SettingKind, type SourceOption } from '@commerce/core/dynamic-sources'
 import type { TemplateKey } from '@commerce/core/theme'
-import { DynamicSource, Search, SearchX } from '@commerce/ui/icons'
+import { DynamicSource, SearchX } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Dialog, DialogDescription, DialogTitle } from '@commerce/ui/shadcn/dialog'
-import { Input } from '@commerce/ui/shadcn/input'
 import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { type KeyboardEvent, useEffect, useId, useState } from 'react'
+import SearchField from '@/components/fields/search-field'
 import DialogContent from '@/components/layout/dialog-content'
 import DialogFooter from '@/components/layout/dialog-footer'
 import DialogHeader from '@/components/layout/dialog-header'
@@ -114,26 +114,19 @@ export default function DynamicSourcePicker({
         <DialogHeader className="gap-3 border-b">
           <DialogTitle>{copy.title}</DialogTitle>
           <DialogDescription>{copy.intro[kind]}</DialogDescription>
-          <div className="relative">
-            <Search
-              aria-hidden
-              className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground"
-            />
-            <Input
-              value={query}
-              onChange={(e) => handleQuery(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder={copy.search}
-              aria-label={copy.search}
-              role="combobox"
-              aria-expanded
-              aria-controls={listId}
-              aria-activedescendant={activeId}
-              aria-autocomplete="list"
-              className="pl-8"
-              autoFocus
-            />
-          </div>
+          <SearchField
+            value={query}
+            onChange={(e) => handleQuery(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder={copy.search}
+            aria-label={copy.search}
+            role="combobox"
+            aria-expanded
+            aria-controls={listId}
+            aria-activedescendant={activeId}
+            aria-autocomplete="list"
+            autoFocus
+          />
         </DialogHeader>
 
         <div id={listId} role="listbox" className="min-h-0 flex-1 overflow-y-auto p-2">

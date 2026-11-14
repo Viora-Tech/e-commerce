@@ -10,9 +10,11 @@ import {
 } from '@commerce/core/profit'
 import { parseRupees } from '@commerce/money'
 import { Button } from '@commerce/ui/shadcn/button'
+import { FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import EmptyState from '@/components/layout/empty-state'
 import SaveBar from '@/components/layout/save-bar'
 import SectionPageSkeleton from '@/components/layout/section-page-skeleton'
 import SettingsCard from '@/components/settings/settings-card'
@@ -271,7 +273,7 @@ export default function CostsSettings() {
           <SettingsDrillPanel id="gateways">
             <SettingsCard>
               {view.gateways.length === 0 ? (
-                <p className="text-body text-muted-foreground">{copy.gateways.none}</p>
+                <EmptyState variant="inline" body={copy.gateways.none} />
               ) : (
                 view.gateways.map((id) => (
                   <FeeRateRow
@@ -294,9 +296,7 @@ export default function CostsSettings() {
           <SettingsDrillPanel id="delivery">
             <SettingsCard id="delivery-cost">
               <div className="flex flex-col gap-1">
-                <label htmlFor="default-delivery" className="text-caption text-muted-foreground">
-                  {copy.delivery.label}
-                </label>
+                <FieldLabel htmlFor="default-delivery">{copy.delivery.label}</FieldLabel>
                 <Input
                   size="lg"
                   id="default-delivery"

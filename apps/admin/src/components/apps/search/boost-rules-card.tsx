@@ -21,6 +21,7 @@ import {
 } from '@commerce/ui/shadcn/select'
 import { useEffect, useId, useState } from 'react'
 import DataCard from '@/components/layout/data-card'
+import EmptyState from '@/components/layout/empty-state'
 import { searchDiscoveryContent } from '@/data/search-discovery'
 import { useCopy } from '@/hooks/use-copy'
 
@@ -96,7 +97,7 @@ export default function BoostRulesCard({ rules, choices, onSave }: BoostRulesCar
       }
     >
       {draft.length === 0 ? (
-        <p className="text-body text-muted-foreground">{c.empty}</p>
+        <EmptyState variant="inline" body={c.empty} />
       ) : (
         <ul className="flex flex-col gap-3">
           {draft.map((rule, i) => (

@@ -28,7 +28,7 @@ export type { Row as LinkRow }
 const copy = customizeContent.link
 
 const ROW =
-  'flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-left text-[0.8125rem] outline-none transition-colors duration-150 hover:bg-muted focus-visible:bg-muted motion-reduce:transition-none'
+  'flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-left text-caption font-normal outline-none transition-colors duration-150 hover:bg-muted focus-visible:bg-muted motion-reduce:transition-none'
 
 /**
  * One titled list in the link picker: recent picks, the kinds to browse
@@ -49,7 +49,7 @@ export default function LinkTargetRows({
   return (
     <div className="flex flex-col gap-0.5">
       {heading ? (
-        <p className="px-2 pt-2 pb-1 text-[0.6875rem] leading-4 font-medium text-muted-foreground">
+        <p className="px-2 pt-2 pb-1 text-micro leading-4 font-medium text-muted-foreground">
           {heading}
         </p>
       ) : null}
@@ -98,7 +98,7 @@ export default function LinkTargetRows({
             </Glyph>
             <span className="min-w-0 flex-1 truncate">{pick.title}</span>
             {row.type === 'recent' || row.type === 'home' ? (
-              <span className="shrink-0 text-[0.6875rem] text-muted-foreground tabular-nums">
+              <span className="shrink-0 text-micro text-muted-foreground tabular-nums">
                 {copy.kinds[pick.kind]}
               </span>
             ) : null}

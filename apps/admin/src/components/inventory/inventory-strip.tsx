@@ -2,6 +2,7 @@
 
 import { ChevronsUpDown } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
+import { FieldLabel } from '@commerce/ui/shadcn/field'
 import { ToggleGroup, ToggleGroupItem } from '@commerce/ui/shadcn/toggle-group'
 import StatusChip from '@/components/layout/status-chip'
 import { inventoryContent, type ManualReasonValue } from '@/data/inventory'
@@ -50,9 +51,7 @@ export default function InventoryStrip({
   return (
     <div className="flex flex-wrap items-end justify-between gap-4">
       <div className="flex flex-col gap-1.5">
-        <label htmlFor="inventory-location" className="text-caption text-muted-foreground">
-          {copy.location}
-        </label>
+        <FieldLabel htmlFor="inventory-location">{copy.location}</FieldLabel>
         <div className="flex items-center gap-4">
           <LocationSelect
             id="inventory-location"
@@ -70,12 +69,10 @@ export default function InventoryStrip({
             {copy.group.label}
           </span>
           <ToggleGroup
+            variant="segmented"
             aria-labelledby="inventory-group-label"
             value={[byProduct ? 'products' : 'skus']}
             onValueChange={handleGroupChange}
-            variant="outline"
-            spacing={0}
-            className="bg-card"
           >
             <ToggleGroupItem value="skus">{copy.group.skus}</ToggleGroupItem>
             <ToggleGroupItem value="products">{copy.group.products}</ToggleGroupItem>
@@ -89,9 +86,7 @@ export default function InventoryStrip({
         ) : null}
         {reason ? (
           <div className="flex flex-col gap-1.5">
-            <label htmlFor="inventory-reason" className="text-caption text-muted-foreground">
-              {copy.reason}
-            </label>
+            <FieldLabel htmlFor="inventory-reason">{copy.reason}</FieldLabel>
             <ReasonSelect
               id="inventory-reason"
               value={reason}

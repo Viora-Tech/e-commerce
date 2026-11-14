@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import DataCard from '@/components/layout/data-card'
+import EmptyState from '@/components/layout/empty-state'
 import { discountFormContent } from '@/data/discounts'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { routes } from '@/lib/routes'
@@ -41,7 +42,7 @@ export default function UsageStatsCard({ usage }: UsageStatsCardProps) {
       <div className="flex flex-col gap-2">
         <p className="text-caption text-muted-foreground">{copy.recent}</p>
         {usage.recent.length === 0 ? (
-          <p className="text-body text-muted-foreground">{copy.empty}</p>
+          <EmptyState variant="inline" body={copy.empty} />
         ) : (
           <ul className="flex flex-col divide-y divide-line">
             {usage.recent.map((r) => (

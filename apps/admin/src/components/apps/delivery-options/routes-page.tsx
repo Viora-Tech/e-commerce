@@ -6,6 +6,7 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 import AppStoreLink from '@/components/apps/app-store-link'
 import SectionHead from '@/components/layout/section-head'
+import SimpleTable from '@/components/table/simple-table'
 import { deliveryOptionsContent } from '@/data/delivery-options'
 import { deliveryPagesContent } from '@/data/delivery-options-pages'
 import { useCopy } from '@/hooks/use-copy'
@@ -115,46 +116,33 @@ export default function DeliveryRoutesPage() {
             </button>
           ))}
         </fieldset>
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[60rem]">
-            <thead className="bg-muted/40 text-left text-caption font-medium tracking-wide text-muted-foreground uppercase">
-              <tr>
-                {COLUMNS.map((c, i) => (
-                  <th
-                    key={c}
-                    className={cn(
-                      'py-2 pr-3 font-medium',
-                      i === 0 && 'pl-4',
-                      c === 'on' && 'pr-4 text-right',
-                    )}
-                  >
-                    {t.columns[c]}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {shown.map((row) => (
-                <RouteTableRow
-                  key={row.id}
-                  row={row}
-                  health={overview.health.apps.find((h) => h.providerId === row.providerId)}
-                  appPrices={overview.apps.find((a) => a.id === row.providerId)?.prices ?? false}
-                  courierRate={catalogue?.courierRates[row.providerId]}
-                  busy={busy}
-                  onOpen={() =>
-                    setTarget({
-                      kind: 'exact',
-                      key: row.settingKey,
-                      label: `${row.carrier} (${row.providerLabel})`,
-                    })
-                  }
-                  onSet={(patch) => handleSet(row.settingKey, patch)}
-                />
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <SimpleTable
+          className="min-w-[60rem]"
+          columns={COLUMNS.map((c) => ({
+            key: c,
+            label: t.columns[c],
+            align: c === 'on' ? ('end' as const) : ('start' as const),
+          }))}
+        >
+          {shown.map((row) => (
+            <RouteTableRow
+              key={row.id}
+              row={row}
+              health={overview.health.apps.find((h) => h.providerId === row.providerId)}
+              appPrices={overview.apps.find((a) => a.id === row.providerId)?.prices ?? false}
+              courierRate={catalogue?.courierRates[row.providerId]}
+              busy={busy}
+              onOpen={() =>
+                setTarget({
+                  kind: 'exact',
+                  key: row.settingKey,
+                  label: `${row.carrier} (${row.providerLabel})`,
+                })
+              }
+              onSet={(patch) => handleSet(row.settingKey, patch)}
+            />
+          ))}
+        </SimpleTable>
         {rows.length === 0 ? (
           <p className="border-t border-hairline px-4 py-3 text-body text-muted-foreground">
             {loading ? t.loading : t.empty}

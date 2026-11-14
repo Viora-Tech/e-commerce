@@ -10,6 +10,7 @@ import { type ReactNode, useState } from 'react'
 import { toast } from 'sonner'
 import { saveFile } from '@/components/apps/gst-invoices/save-file'
 import DataCard from '@/components/layout/data-card'
+import EmptyState from '@/components/layout/empty-state'
 import LogRequestDialog from '@/components/privacy/log-request-dialog'
 import { CHANNEL_LABEL, consentCardContent as copy } from '@/data/customer-privacy'
 import { customerDetailContent } from '@/data/customers'
@@ -129,7 +130,7 @@ export default function MarketingConsentCard({
       <div className="mt-4 border-t border-border pt-4">
         <p className="text-eyebrow">{copy.history}</p>
         {recent.length === 0 ? (
-          <p className="mt-1 text-caption text-muted-foreground">{copy.noHistory}</p>
+          <EmptyState variant="inline" body={copy.noHistory} className="mt-1" />
         ) : (
           <ul className="mt-1 flex flex-col gap-1">
             {recent.map((h) => (

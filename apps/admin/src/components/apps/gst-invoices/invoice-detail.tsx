@@ -2,6 +2,7 @@
 
 import { Download, Printer, RefreshCw, Save } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
+import { FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
@@ -206,9 +207,7 @@ export default function InvoiceDetail({ params }: AppPageProps) {
               onChange={setShipField('shippingBillNumber')}
             />
             <div className="flex flex-col gap-1.5">
-              <label htmlFor="exp-date" className="text-body font-medium">
-                {copy.billDate}
-              </label>
+              <FieldLabel htmlFor="exp-date">{copy.billDate}</FieldLabel>
               <DateField
                 id="exp-date"
                 value={ship.shippingBillDate}

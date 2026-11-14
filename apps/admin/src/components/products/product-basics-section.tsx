@@ -1,9 +1,10 @@
 'use client'
 
 import type { RichTextValue } from '@commerce/richtext'
+import { Field, FieldError, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
+import RequiredMark from '@/components/fields/required-mark'
 import RichTextField from '@/components/fields/rich-text-field'
-import KitField from '@/components/kit/kit-field'
 import { productFormContent } from '@/data/product-form'
 import { useCopy } from '@/hooks/use-copy'
 
@@ -30,12 +31,11 @@ export default function ProductBasicsSection({
   // Render logic
   return (
     <div className="flex flex-col gap-4">
-      <KitField
-        label={copy.title}
-        htmlFor="product-title"
-        required
-        error={titleError ? formCopy.errors.title : undefined}
-      >
+      <Field>
+        <FieldLabel htmlFor="product-title">
+          {copy.title}
+          <RequiredMark />
+        </FieldLabel>
         <Input
           size="kit"
           id="product-title"
@@ -45,7 +45,8 @@ export default function ProductBasicsSection({
           autoComplete="off"
           aria-invalid={Boolean(titleError)}
         />
-      </KitField>
+        {titleError ? <FieldError>{formCopy.errors.title}</FieldError> : null}
+      </Field>
       <RichTextField
         label={copy.description}
         value={description}

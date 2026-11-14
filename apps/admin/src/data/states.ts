@@ -22,9 +22,4 @@ export const statesContent = {
     body: 'It may have moved or been deleted.',
     home: 'Go to home',
   },
-  empty: {
-    heading: 'Nothing here yet',
-    body: 'Add your first item to get started.',
-    add: 'Add item',
-  },
 } as const

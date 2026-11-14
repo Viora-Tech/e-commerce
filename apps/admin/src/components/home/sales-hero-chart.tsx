@@ -2,6 +2,7 @@
 
 import dynamic from 'next/dynamic'
 import ChartLoading from '@/components/layout/chart-loading'
+import EmptyState from '@/components/layout/empty-state'
 
 export type SalesChartPoint = { label: string; value: number | null; before: number | null }
 
@@ -39,7 +40,7 @@ export default function SalesHeroChart({
   // Early returns
   const hasData = points.some((p) => (p.value ?? 0) > 0 || (p.before ?? 0) > 0)
   if (!hasData) {
-    return <p className="text-body text-muted-foreground">{emptyText}</p>
+    return <EmptyState variant="inline" body={emptyText} />
   }
 
   return (

@@ -1,7 +1,7 @@
 'use client'
 
-import { Badge } from '@commerce/ui/shadcn/badge'
 import { useEffect, useState } from 'react'
+import StatusChip from '@/components/layout/status-chip'
 import SettingsCard from '@/components/settings/settings-card'
 import { growthbookContent } from '@/data/growthbook'
 import { useCopy, useFormat } from '@/hooks/use-copy'
@@ -74,11 +74,13 @@ export default function ExperimentList({ version, openUrl }: ExperimentListProps
             <li key={e.id} className="flex flex-col gap-1.5 py-3 first:pt-0 last:pb-0">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="font-medium text-foreground">{e.name}</span>
-                <Badge variant={STATUS_VARIANT[e.status]}>
+                <StatusChip tone={STATUS_VARIANT[e.status]}>
                   {copy.experiments.status[e.status]}
-                </Badge>
+                </StatusChip>
                 {resultLabel(e.result) ? (
-                  <Badge variant="outline">{resultLabel(e.result)}</Badge>
+                  <StatusChip variant="outline" dot={false}>
+                    {resultLabel(e.result)}
+                  </StatusChip>
                 ) : null}
               </div>
               <p className="text-caption text-muted-foreground">

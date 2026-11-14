@@ -1,6 +1,7 @@
 'use client'
 
-import KitButton from '@/components/kit/kit-button'
+import { Button } from '@commerce/ui/shadcn/button'
+import Link from 'next/link'
 import DataCard from '@/components/layout/data-card'
 import KeyValueList from '@/components/layout/key-value-list'
 import { salesChannelsContent } from '@/data/sales-channels'
@@ -25,16 +26,23 @@ export default function SalesChannelCard({ channel, cameFrom, campaign }: SalesC
     <DataCard
       title={copy.title(channel.name)}
       action={
-        <KitButton
-          variant="linkSm"
-          href={
-            channel.agent
-              ? routes.salesChannels.agentic()
-              : routes.salesChannels.socialChannel(channel.id)
+        <Button
+          variant="link"
+          size="xs"
+          nativeButton={false}
+          render={
+            <Link
+              href={
+                channel.agent
+                  ? routes.salesChannels.agentic()
+                  : routes.salesChannels.socialChannel(channel.id)
+              }
+            />
           }
+          className="h-auto px-0"
         >
           {channel.agent ? copy.agentic : copy.social}
-        </KitButton>
+        </Button>
       }
     >
       <KeyValueList

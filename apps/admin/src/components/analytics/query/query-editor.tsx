@@ -109,7 +109,7 @@ export default function QueryEditor({
   const caretLine = value.slice(0, caret).split('\n').length
 
   return (
-    <div className="relative flex min-h-56 font-mono text-[0.8125rem] leading-6">
+    <div className="relative flex min-h-56 font-mono text-caption font-normal leading-6">
       <ol
         aria-hidden="true"
         className="select-none border-border border-r px-3 py-3 text-right text-muted-foreground tabular-nums"

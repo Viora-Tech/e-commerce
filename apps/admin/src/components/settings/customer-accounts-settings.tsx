@@ -7,13 +7,14 @@ import {
   type LoginProvider,
   type ProviderReadiness,
 } from '@commerce/core/customer-accounts'
-import { Badge } from '@commerce/ui/shadcn/badge'
 import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import EmptyState from '@/components/layout/empty-state'
 import SaveBar from '@/components/layout/save-bar'
 import SectionPageSkeleton from '@/components/layout/section-page-skeleton'
+import StatusChip from '@/components/layout/status-chip'
 import ChoiceList from '@/components/returns/choice-list'
 import LoginAppDialog from '@/components/settings/login-app-dialog'
 import SignInExtrasCard from '@/components/settings/sign-in-extras-card'
@@ -179,7 +180,7 @@ export default function CustomerAccountsSettings() {
                 ]}
               />
               {loaded.available.length === 0 ? (
-                <p className="pt-3 text-caption text-muted-foreground">{copy.checkout.noSender}</p>
+                <EmptyState variant="inline" body={copy.checkout.noSender} className="mt-3" />
               ) : null}
             </SettingsCard>
           </SettingsDrillPanel>
@@ -196,7 +197,7 @@ export default function CustomerAccountsSettings() {
                     label={
                       <>
                         {text.label}
-                        {can ? null : <Badge variant="neutral">{copy.methods.unavailable}</Badge>}
+                        {can ? null : <StatusChip>{copy.methods.unavailable}</StatusChip>}
                       </>
                     }
                     description={can ? text.hint : text.needs}

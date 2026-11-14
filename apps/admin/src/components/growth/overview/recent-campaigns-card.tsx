@@ -12,6 +12,7 @@ import {
   TableRow,
 } from '@commerce/ui/shadcn/table'
 import Link from 'next/link'
+import EmptyState from '@/components/layout/empty-state'
 import LinkRow from '@/components/table/link-row'
 import { growthHomeContent } from '@/data/growth-home'
 import { useCopy, useFormat } from '@/hooks/use-copy'
@@ -62,7 +63,7 @@ export default function RecentCampaignsCard({ rows }: RecentCampaignsCardProps) 
       <Card inset="none" gap="none">
         {shown.length === 0 ? (
           <div className="flex flex-wrap items-center justify-between gap-3 p-5">
-            <p className="text-body text-muted-foreground">{copy.empty}</p>
+            <EmptyState variant="inline" body={copy.empty} />
             <Button
               variant="outline"
               render={<Link href={routes.growth.newCampaign()} />}

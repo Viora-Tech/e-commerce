@@ -4,6 +4,7 @@ import { RefreshCw } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import EmptyState from '@/components/layout/empty-state'
 import { reviewToolsContent } from '@/data/review-tools'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -67,7 +68,7 @@ export default function ProductSummary({ productId }: ProductSummaryProps) {
       {row?.summary ? (
         <p className="text-body">{row.summary}</p>
       ) : (
-        <p className="text-body text-muted-foreground">{copy.none}</p>
+        <EmptyState variant="inline" body={copy.none} />
       )}
       {row?.generatedAt && (
         <span className="text-caption text-muted-foreground">

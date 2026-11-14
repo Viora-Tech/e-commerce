@@ -12,6 +12,7 @@ import {
 } from '@commerce/ui/shadcn/table'
 import { useState } from 'react'
 import DataCard from '@/components/layout/data-card'
+import EmptyState from '@/components/layout/empty-state'
 import { shippingRatesContent } from '@/data/shipping-rates'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { describeCondition, describeDelivery, describePrice, type RateDraft } from './form-state'
@@ -69,7 +70,7 @@ export default function ZoneRatesCard({ value, onChange, disabled, cod }: ZoneRa
       flush={value.length > 0}
     >
       {value.length === 0 ? (
-        <p className="text-body text-muted-foreground">{copy.none}</p>
+        <EmptyState variant="inline" body={copy.none} />
       ) : (
         <Table>
           <TableHeader>

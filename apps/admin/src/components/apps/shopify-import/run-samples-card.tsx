@@ -1,9 +1,10 @@
 'use client'
 
 import { IMPORT_RESOURCES, type PreviewSample } from '@commerce/plugin-shopify-import/client'
-import { Tabs, TabsList, TabsTrigger } from '@commerce/ui/shadcn/tabs'
 import { useState } from 'react'
 import DataCard from '@/components/layout/data-card'
+import EmptyState from '@/components/layout/empty-state'
+import PillTabs from '@/components/layout/pill-tabs'
 import ScrollSection from '@/components/layout/scroll-section'
 import { shopifyImportContent } from '@/data/shopify-import'
 import { shopifyImportRunContent } from '@/data/shopify-import-run'
@@ -35,19 +36,17 @@ export default function RunSamplesCard({ samples, progress }: RunSamplesCardProp
 
   return (
     <DataCard title={copy.sampleHeading}>
-      <Tabs value={current?.resource ?? ''} onValueChange={(value) => setPicked(String(value))}>
-        <div className="-mx-1 overflow-x-auto px-1 pb-1">
-          <TabsList variant="line" className="h-auto w-max gap-1">
-            {tabs.map((t) => (
-              <TabsTrigger key={t.resource} value={t.resource} className="h-9 flex-none px-3">
-                {resources[t.resource]}
-                <span className="text-caption text-muted-foreground tabular-nums">
-                  {t.rows.length}
-                </span>
-              </TabsTrigger>
-            ))}
-          </TabsList>
-        </div>
+      <div className="flex flex-col gap-2">
+        <PillTabs
+          className="no-scrollbar max-w-full overflow-x-auto"
+          value={current?.resource ?? null}
+          onChange={(value) => setPicked(value)}
+          tabs={tabs.map((t) => ({
+            value: t.resource,
+            label: resources[t.resource],
+            count: t.rows.length,
+          }))}
+        />
         {current ? (
           <ScrollSection
             id={`shopify-import-samples-${current.resource}`}
@@ -61,12 +60,12 @@ export default function RunSamplesCard({ samples, progress }: RunSamplesCardProp
             </ul>
           </ScrollSection>
         ) : (
-          <p className="text-body text-muted-foreground">{view.samples.empty}</p>
+          <EmptyState variant="inline" body={view.samples.empty} />
         )}
         {more > 0 ? (
           <p className="text-caption text-muted-foreground">{view.samples.more(more)}</p>
         ) : null}
-      </Tabs>
+      </div>
     </DataCard>
   )
 }

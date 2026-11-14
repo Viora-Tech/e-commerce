@@ -2,6 +2,7 @@
 
 import { ArrowDown, ArrowUp, X } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
+import EmptyState from '@/components/layout/empty-state'
 
 /** One product in an ordered pick list (pins, recommendations). */
 export type PickedItem = { id: string; title: string; status: string }
@@ -33,7 +34,7 @@ export default function PickedList({
   statusLabel,
 }: PickedListProps) {
   // Early returns
-  if (items.length === 0) return <p className="py-3 text-body text-muted-foreground">{empty}</p>
+  if (items.length === 0) return <EmptyState variant="inline" body={empty} className="my-3" />
 
   // Render logic
   return (

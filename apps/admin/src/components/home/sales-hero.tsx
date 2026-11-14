@@ -55,7 +55,7 @@ const SHORT_DATE_OPTIONS = { day: 'numeric', month: 'short' } as const
 
 /** Figma "Analytics · Filter button" (580:694): 32px pill, 14px lead icon, 13/20 medium. */
 const PILL =
-  'inline-flex h-8 items-center gap-1.5 rounded-full border border-glass-border bg-background/60 pr-2 pl-2.5 text-[0.8125rem] leading-5 font-medium whitespace-nowrap text-foreground shadow-lift [&_svg]:size-3.5 [&_svg]:shrink-0'
+  'inline-flex h-8 items-center gap-1.5 rounded-full border border-glass-border bg-background/60 pr-2 pl-2.5 text-caption leading-5 font-medium whitespace-nowrap text-foreground shadow-lift [&_svg]:size-3.5 [&_svg]:shrink-0'
 const MENU_PILL = `${PILL} cursor-pointer transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring data-[popup-open]:bg-muted`
 
 /** The chart's points for one metric: hour by hour for a single day (running totals), else by day. */
@@ -200,7 +200,7 @@ export default function SalesHero({ initial, liveNow }: SalesHeroProps) {
         </DropdownMenu>
         <ChannelMenu value={channel} onChange={setChannel} className={MENU_PILL} />
         <span className="flex-1" aria-hidden="true" />
-        <span className="inline-flex items-center gap-2 pr-2 text-[0.8125rem] leading-5 font-medium text-foreground">
+        <span className="inline-flex items-center gap-2 pr-2 text-caption leading-5 font-medium text-foreground">
           <span className="flex size-3.5 items-center justify-center" aria-hidden="true">
             <span className="size-2 rounded-full bg-foreground ring-3 ring-foreground/15" />
           </span>
@@ -266,7 +266,7 @@ export default function SalesHero({ initial, liveNow }: SalesHeroProps) {
         />
       </div>
       <div className="flex flex-wrap items-center justify-between gap-3 px-5 pt-3 pb-4">
-        <p className="flex flex-wrap items-center gap-x-5 gap-y-1 text-[0.8125rem] leading-5 text-muted-foreground">
+        <p className="flex flex-wrap items-center gap-x-5 gap-y-1 text-caption font-normal leading-5 text-muted-foreground">
           <span className="inline-flex items-center gap-2">
             <span className="h-0.5 w-3.5 rounded-full bg-primary" aria-hidden="true" />
             {valueLabel}
@@ -289,7 +289,7 @@ export default function SalesHero({ initial, liveNow }: SalesHeroProps) {
         </p>
         <Link
           href={routes.analytics.reports()}
-          className="inline-flex items-center gap-1 text-[0.8125rem] leading-5 font-medium text-foreground transition-colors hover:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="inline-flex items-center gap-1 text-caption leading-5 font-medium text-foreground transition-colors hover:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           {copy.viewReport}
           <ArrowRight className="size-3.5" aria-hidden="true" />

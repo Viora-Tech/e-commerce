@@ -1,8 +1,8 @@
 'use client'
 
+import { Field, FieldDescription, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import { Switch } from '@commerce/ui/shadcn/switch'
-import KitField from '@/components/kit/kit-field'
 import { productFormContent } from '@/data/product-form'
 import { useCopy } from '@/hooks/use-copy'
 import type { ProductTax } from './product-tax'
@@ -43,11 +43,8 @@ export default function ProductTaxFields({
       {customs || rate ? (
         <div className="grid gap-4 md:grid-cols-2">
           {customs ? (
-            <KitField
-              label={copy.hsCode}
-              help={singleVariant ? copy.hsCodeHelp : copy.hsCodeAllHelp}
-              htmlFor="product-hs"
-            >
+            <Field>
+              <FieldLabel htmlFor="product-hs">{copy.hsCode}</FieldLabel>
               <Input
                 size="kit"
                 id="product-hs"
@@ -56,10 +53,14 @@ export default function ProductTaxFields({
                 autoComplete="off"
                 inputMode="numeric"
               />
-            </KitField>
+              <FieldDescription>
+                {singleVariant ? copy.hsCodeHelp : copy.hsCodeAllHelp}
+              </FieldDescription>
+            </Field>
           ) : null}
           {rate ? (
-            <KitField label={copy.gstRate} help={copy.gstRateHelp} htmlFor="product-gst">
+            <Field>
+              <FieldLabel htmlFor="product-gst">{copy.gstRate}</FieldLabel>
               <Input
                 size="kit"
                 id="product-gst"
@@ -68,7 +69,8 @@ export default function ProductTaxFields({
                 autoComplete="off"
                 inputMode="numeric"
               />
-            </KitField>
+              <FieldDescription>{copy.gstRateHelp}</FieldDescription>
+            </Field>
           ) : null}
         </div>
       ) : null}

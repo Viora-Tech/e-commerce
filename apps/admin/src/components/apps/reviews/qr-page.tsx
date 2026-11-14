@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import type { AppPageProps } from '@/apps/registry'
 import DataCardSkeleton from '@/components/layout/data-card-skeleton'
+import EmptyState from '@/components/layout/empty-state'
 import PageHeader from '@/components/layout/page-header'
 import { reviewToolsContent } from '@/data/review-tools'
 import { useCopy } from '@/hooks/use-copy'
@@ -43,7 +44,7 @@ export default function QrPage({ params }: AppPageProps) {
         back={{ label: copy.back, href: routes.apps.page('reviews') }}
       />
       {empty ? (
-        <p className="text-body text-muted-foreground">{copy.empty}</p>
+        <EmptyState variant="inline" body={copy.empty} />
       ) : !cards ? (
         <DataCardSkeleton fields={0} lines={8} />
       ) : (

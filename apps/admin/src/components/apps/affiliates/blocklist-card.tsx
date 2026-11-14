@@ -6,6 +6,7 @@ import { Input } from '@commerce/ui/shadcn/input'
 import { NativeSelect, NativeSelectOption } from '@commerce/ui/shadcn/native-select'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import EmptyState from '@/components/layout/empty-state'
 import SettingsCard from '@/components/settings/settings-card'
 import { affiliatesContent } from '@/data/affiliates'
 import { useCopy } from '@/hooks/use-copy'
@@ -94,7 +95,7 @@ export default function BlocklistCard() {
         </Button>
       </form>
       {entries && entries.length === 0 ? (
-        <p className="text-body text-muted-foreground">{b.empty}</p>
+        <EmptyState variant="inline" body={b.empty} />
       ) : (
         <ul className="flex flex-col divide-y divide-hairline">
           {(entries ?? []).map((x) => (

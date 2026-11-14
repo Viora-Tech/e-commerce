@@ -1,6 +1,6 @@
 'use client'
 
-import { CircleAlert, Inbox, Lock, RotateCcw, WifiOff } from '@commerce/ui/icons'
+import { CircleAlert, Lock, RotateCcw, WifiOff } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import type { ReactNode } from 'react'
 import EmptyState from '@/components/layout/empty-state'
@@ -8,7 +8,7 @@ import { statesContent } from '@/data/states'
 import { useCopy } from '@/hooks/use-copy'
 
 type InlineStateProps = {
-  kind: 'error' | 'offline' | 'empty' | 'no-access'
+  kind: 'error' | 'offline' | 'no-access'
   heading?: string
   body?: string
   onRetry?: () => void
@@ -16,11 +16,12 @@ type InlineStateProps = {
   className?: string
 }
 
-const ICON = { error: CircleAlert, offline: WifiOff, empty: Inbox, 'no-access': Lock } as const
+const ICON = { error: CircleAlert, offline: WifiOff, 'no-access': Lock } as const
 
 /**
  * Small state for one card or section (Figma "State · Inline"): icon, a line of words, and a
- * plain button. Use it where a whole-page state would be too much.
+ * plain button. Use it where a whole-page state would be too much. Empty cards use EmptyState
+ * `variant="inline"`.
  */
 export default function InlineState({
   kind,

@@ -55,23 +55,18 @@ export default function CustomizeRadioField({
   return (
     <FieldFrame label={label}>
       <ToggleGroup
+        variant="segmented"
         id={id}
         value={[stringValue]}
         disabled={readOnly}
-        spacing={0}
-        variant="outline"
-        className="w-full rounded-lg bg-muted/70 p-0.5"
+        className="w-full"
         onValueChange={(values) => {
           const option = field.options.find((o) => String(o.value) === String(values[0]))
           if (option) onChange(option.value)
         }}
       >
         {field.options.map((o) => (
-          <ToggleGroupItem
-            key={String(o.value)}
-            value={String(o.value)}
-            className="h-7 flex-1 rounded-md border-0 text-xs font-medium text-muted-foreground data-[pressed]:bg-card data-[pressed]:text-foreground data-[pressed]:shadow-card"
-          >
+          <ToggleGroupItem key={String(o.value)} value={String(o.value)} className="flex-1">
             {o.label}
           </ToggleGroupItem>
         ))}

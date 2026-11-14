@@ -17,6 +17,7 @@ import { Table, TableBody, TableHead, TableHeader, TableRow } from '@commerce/ui
 import { useState } from 'react'
 import AppStoreLink from '@/components/apps/app-store-link'
 import ChoiceField from '@/components/apps/gst-invoices/choice-field'
+import EmptyState from '@/components/layout/empty-state'
 import { bulkShipContent } from '@/data/bulk-ship'
 import { useCopy } from '@/hooks/use-copy'
 import { BESIDE_SIDEBAR } from '@/lib/sidebar-motion'
@@ -157,7 +158,7 @@ export default function BulkShipDrawer({
                 <>
                   {draft.couriers.length === 0 ? (
                     <div className="flex flex-col items-start gap-3 px-4 py-3">
-                      <p className="text-body text-muted-foreground">{copy.noCourierConnected}</p>
+                      <EmptyState variant="inline" body={copy.noCourierConnected} />
                       <AppStoreLink category="shipping" className="w-fit">
                         {copy.connect}
                       </AppStoreLink>

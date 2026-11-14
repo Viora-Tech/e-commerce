@@ -1,10 +1,9 @@
 'use client'
 
 import type { IconComponent } from '@commerce/ui/icons'
-import { Search } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
-import { Input } from '@commerce/ui/shadcn/input'
 import { type ReactNode, useState } from 'react'
+import SearchField from '@/components/fields/search-field'
 import EmptyState from '@/components/layout/empty-state'
 
 export type PickerItem = {
@@ -57,22 +56,15 @@ export default function GroupedPicker({
 
   return (
     <div className="flex min-h-0 flex-col gap-3">
-      <div className="relative">
-        <Search
-          aria-hidden="true"
-          className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
-        />
-        <Input
-          size="lg"
-          className="pl-9"
-          value={query}
-          aria-label={searchLabel}
-          placeholder={searchLabel}
-          autoFocus
-          onChange={(e) => setQuery(e.target.value)}
-          onKeyDown={handleKeyDown}
-        />
-      </div>
+      <SearchField
+        size="lg"
+        value={query}
+        aria-label={searchLabel}
+        placeholder={searchLabel}
+        autoFocus
+        onChange={(e) => setQuery(e.target.value)}
+        onKeyDown={handleKeyDown}
+      />
       <div className="-mx-2 max-h-[26rem] min-h-[8rem] overflow-y-auto overscroll-contain">
         {shown.length === 0 ? (
           <EmptyState variant="plain" size="lg" className="px-2" body={emptyLabel} />

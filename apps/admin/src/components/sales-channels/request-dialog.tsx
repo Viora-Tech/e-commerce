@@ -1,9 +1,9 @@
 'use client'
 
 import { AI_AGENTS, type SalesChannelId } from '@commerce/core/sales-channels'
+import { Button } from '@commerce/ui/shadcn/button'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import KitButton from '@/components/kit/kit-button'
 import FormDialog from '@/components/layout/form-dialog'
 import { salesChannelsContent } from '@/data/sales-channels'
 import { useCopy, useFormat } from '@/hooks/use-copy'
@@ -74,9 +74,9 @@ export default function RequestDialog({
         {channel === 'chatgpt' ? (
           <div className="flex flex-col items-start gap-2 rounded-md border border-border bg-muted/40 p-3">
             <p className="text-caption text-muted-foreground">{live.openai.approvedHint}</p>
-            <KitButton variant="secondary" onClick={() => setFeed(true)}>
+            <Button variant="outline" onClick={() => setFeed(true)}>
               {live.openai.add}
-            </KitButton>
+            </Button>
           </div>
         ) : null}
       </FormDialog>

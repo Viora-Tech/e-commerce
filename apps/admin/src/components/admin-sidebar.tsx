@@ -260,7 +260,7 @@ export default function AdminSidebar({
                 rel="noreferrer"
                 aria-label={copy.openStoreAddress(domain)}
                 className={cn(
-                  'key-neutral flex h-8 items-center gap-2 rounded-sm pr-2 pl-2.5 text-[0.8125rem] leading-5 font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                  'key-neutral flex h-8 items-center gap-2 rounded-sm pr-2 pl-2.5 text-caption leading-5 font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
                   SIDEBAR_BLOCK,
                 )}
               />
@@ -323,7 +323,7 @@ export default function AdminSidebar({
                 email={user.email}
                 image={user.image}
                 className="size-8"
-                fallbackClassName="bg-primary text-[0.8125rem] text-primary-foreground"
+                fallbackClassName="bg-primary text-caption font-normal text-primary-foreground"
               />
               <span className={cn('flex min-w-0 flex-1 flex-col', SIDEBAR_LABEL)}>
                 <span className="truncate text-body font-medium text-sidebar-foreground">

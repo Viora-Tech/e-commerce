@@ -1,4 +1,9 @@
-/** The Proofly table cell classes (header 40px, rows 48px on hairlines) for the GST app's plain tables. */
-export const HEAD =
-  'h-10 border-b border-line bg-card px-4 text-caption font-medium text-muted-foreground'
-export const CELL = 'h-12 border-b border-line px-4 py-1.5 text-body'
+import { HEAD as LIST_HEAD } from '@/components/table/resource-table/styles'
+
+/*
+ * The apps' plain tables (GST invoices, COD/RTO, affiliates, back in stock, Delhivery, MCP) drawn
+ * with the list table's measurements (`ResourceTable`, like `SimpleTable`): a 2.5rem header with
+ * 0.75rem muted labels and 3.75rem rows on hairlines, 0.75rem sides.
+ */
+export const HEAD = `${LIST_HEAD} border-b border-border bg-card`
+export const CELL = 'h-15 border-b border-border px-3 py-1.5 text-body'

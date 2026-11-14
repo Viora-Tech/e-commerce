@@ -9,6 +9,7 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
 import DataCard from '@/components/layout/data-card'
+import EmptyState from '@/components/layout/empty-state'
 import PageHeader from '@/components/layout/page-header'
 import ProoflyDetailPage from '@/components/layout/proofly-detail-page'
 import StatusChip from '@/components/layout/status-chip'
@@ -233,7 +234,7 @@ export default function CheckoutDraftView({ draft: d }: CheckoutDraftViewProps) 
           </DataCard>
           <DataCard title={copy.attempts} count={d.attempts.length}>
             {d.attempts.length === 0 ? (
-              <p className="text-body text-muted-foreground">{copy.noAttempts}</p>
+              <EmptyState variant="inline" body={copy.noAttempts} />
             ) : (
               <ul className="flex flex-col gap-2">
                 {d.attempts.map((a) => (

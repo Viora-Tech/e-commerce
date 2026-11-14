@@ -2,10 +2,10 @@
 
 import { AiIcon } from '@commerce/ui/icons'
 import { Alert } from '@commerce/ui/shadcn/alert'
+import { Button } from '@commerce/ui/shadcn/button'
 import { Progress } from '@commerce/ui/shadcn/progress'
 import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { useEffect, useState } from 'react'
-import KitButton from '@/components/kit/kit-button'
 import { assistantContent } from '@/data/assistant'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -62,9 +62,9 @@ export default function BulkWriteBanner({ refreshKey = 0, onOpen }: BulkWriteBan
       role="status"
       className="mb-4 items-center"
       action={
-        <KitButton variant="secondary" onClick={() => onOpen(latest.id)}>
+        <Button variant="outline" onClick={() => onOpen(latest.id)}>
           {copy.bulk.view}
-        </KitButton>
+        </Button>
       }
     >
       <div className="flex min-w-0 items-center gap-3">

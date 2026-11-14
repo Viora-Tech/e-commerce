@@ -2,6 +2,7 @@
 
 import { Download } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
+import EmptyState from '@/components/layout/empty-state'
 import StatusChip from '@/components/layout/status-chip'
 import { storeDataContent } from '@/data/store-data'
 import { useCopy, useFormat } from '@/hooks/use-copy'
@@ -51,7 +52,7 @@ export default function StoreExportList({
 
   // Early returns
   if (exports.length === 0) {
-    return <p className="text-body text-muted-foreground">{content.export.none}</p>
+    return <EmptyState variant="inline" body={content.export.none} />
   }
 
   // Render logic

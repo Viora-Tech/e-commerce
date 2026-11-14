@@ -3,6 +3,7 @@
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { useDeferredValue, useState } from 'react'
 import CountBadge from '@/components/layout/count-badge'
+import PillTabs from '@/components/layout/pill-tabs'
 import { customizeContent } from '@/data/customize'
 import { useCopy } from '@/hooks/use-copy'
 import { auditTemplate } from '@/lib/customize-audit'
@@ -11,7 +12,6 @@ import { useCustomizePuck } from '@/lib/customize-puck'
 import { useThemePreview } from '@/lib/customize-theme-context'
 import AuditPanel from './audit-panel'
 import SectionsTree from './sections-tree'
-import SegmentedTabs from './segmented-tabs'
 
 type SectionsPanelProps = {
   onOpenTheme: () => void
@@ -48,17 +48,21 @@ export default function SectionsPanel({ onOpenTheme, templateLabel }: SectionsPa
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="px-3 pt-3">
-        <SegmentedTabs
-          tabs={TABS}
+        <PillTabs
+          variant="segmented"
+          fill
+          tabs={TABS.map((id) => ({
+            value: id,
+            label: (
+              <>
+                {copy.tabs[id]}
+                {id === 'audit' && count > 0 ? <CountBadge n={count} /> : null}
+              </>
+            ),
+          }))}
           value={tab}
           onChange={setTab}
           label={copy.tabsLabel}
-          render={(id) => (
-            <>
-              {copy.tabs[id]}
-              {id === 'audit' && count > 0 ? <CountBadge n={count} /> : null}
-            </>
-          )}
         />
       </div>
       <AnimatePresence mode="wait" initial={false}>

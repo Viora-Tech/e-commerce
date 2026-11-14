@@ -6,6 +6,7 @@ import dynamic from 'next/dynamic'
 import { useState } from 'react'
 import ChartLoading from '@/components/layout/chart-loading'
 import DataCard from '@/components/layout/data-card'
+import EmptyState from '@/components/layout/empty-state'
 import PillTabs from '@/components/layout/pill-tabs'
 import { homeContent } from '@/data/home'
 import { useCopy, useFormat } from '@/hooks/use-copy'
@@ -90,7 +91,7 @@ export default function SalesOrdersChart({ data, loading }: SalesOrdersChartProp
       {loading ? (
         <Skeleton className="h-64 w-full" />
       ) : !hasData ? (
-        <p className="text-body text-muted-foreground">{c.salesEmpty}</p>
+        <EmptyState variant="inline" body={c.salesEmpty} />
       ) : (
         <div className="flex flex-col gap-3">
           <div className="h-64 w-full">

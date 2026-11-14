@@ -9,7 +9,8 @@ type CodeDiffViewProps = {
   rightTitle: string
 }
 
-const CELL = 'flex h-5 min-w-0 items-center font-mono text-[0.8125rem] leading-5 whitespace-pre'
+const CELL =
+  'flex h-5 min-w-0 items-center font-mono text-caption font-normal leading-5 whitespace-pre'
 
 /**
  * Version history · diff (Figma 699:94938): the saved version on the left, the open file on the

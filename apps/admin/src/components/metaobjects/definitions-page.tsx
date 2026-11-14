@@ -2,7 +2,6 @@
 
 import { siteConfig } from '@commerce/config/site'
 import { Braces, Plus } from '@commerce/ui/icons'
-import { Badge } from '@commerce/ui/shadcn/badge'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Kbd } from '@commerce/ui/shadcn/kbd'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@commerce/ui/shadcn/tooltip'
@@ -11,6 +10,7 @@ import { useState } from 'react'
 import EmptyState from '@/components/layout/empty-state'
 import PillTabs from '@/components/layout/pill-tabs'
 import ProoflyListPage from '@/components/layout/proofly-list-page'
+import StatusChip from '@/components/layout/status-chip'
 import ResourceTable, { type ResourceColumnSpec } from '@/components/table/resource-table'
 import { metaobjectListContent } from '@/data/metaobjects'
 import { useCopy, useFormat } from '@/hooks/use-copy'
@@ -37,7 +37,7 @@ const columnsFor = (
       <span className="flex flex-col text-left">
         <span className="flex items-center gap-2">
           <span className="text-ink-strong">{d.name}</span>
-          {d.storefrontAccess ? null : <Badge variant="neutral">{copy.hidden}</Badge>}
+          {d.storefrontAccess ? null : <StatusChip>{copy.hidden}</StatusChip>}
         </span>
         <span className="text-caption text-muted-foreground">{d.type}</span>
       </span>

@@ -33,12 +33,12 @@ export default function ImportedSectionCard({ name, onAdd }: ImportedSectionCard
         CHROME_FOCUS,
       )}
     >
-      <span className="truncate text-[0.625rem] leading-[1.0625rem] font-medium tracking-[0.06em] text-muted-foreground uppercase">
+      <span className="truncate text-micro leading-[1.0625rem] font-medium tracking-[0.06em] text-muted-foreground uppercase">
         {name}
       </span>
       <span className="relative flex aspect-[128/88] w-full items-center justify-center overflow-hidden rounded-[0.625rem] border border-border bg-muted transition-[border-color,box-shadow] group-hover/card:border-primary group-hover/card:shadow-lift group-focus-visible/card:border-primary">
         <Store aria-hidden className="size-6 text-muted-foreground" />
-        <span className="absolute top-1.5 left-1.5 rounded bg-card px-1.5 text-[0.625rem] leading-4 font-semibold text-foreground ring-1 ring-border">
+        <span className="absolute top-1.5 left-1.5 rounded bg-card px-1.5 text-micro leading-4 font-semibold text-foreground ring-1 ring-border">
           {copy.badge}
         </span>
         <span className="pointer-events-none absolute inset-0 flex items-center justify-center opacity-0 transition-opacity group-hover/card:opacity-100 group-focus-visible/card:opacity-100 motion-reduce:transition-none">

@@ -40,7 +40,7 @@ export default function SidebarUsageCard({ usage }: SidebarUsageCardProps) {
     <div className={`flex flex-col gap-0.5 ${SIDEBAR_BLOCK}`}>
       {/* Figma "Usage card": depth/card, radius 10, 12px inset, an 8px bar on the primary. */}
       <div className="flex flex-col gap-2 rounded-md surface-card p-3">
-        <p className="text-[0.8125rem] leading-5 font-medium text-foreground">{copy.usage.title}</p>
+        <p className="text-caption leading-5 font-medium text-foreground">{copy.usage.title}</p>
         <div
           role="progressbar"
           aria-label={copy.usage.title}

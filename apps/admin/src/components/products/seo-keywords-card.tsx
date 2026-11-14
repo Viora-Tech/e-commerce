@@ -12,17 +12,16 @@ import { richTextToPlainText } from '@commerce/richtext'
 import { AiIcon, CircleAlert, StarIcon, XIcon } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import { Alert, AlertDescription } from '@commerce/ui/shadcn/alert'
-import { Badge } from '@commerce/ui/shadcn/badge'
+import { Button } from '@commerce/ui/shadcn/button'
 import { Field, FieldDescription, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
-import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { type KeyboardEvent, useState } from 'react'
 import { toast } from 'sonner'
-import KitButton from '@/components/kit/kit-button'
 import DataCard from '@/components/layout/data-card'
-
+import EmptyState from '@/components/layout/empty-state'
 import LeaveGuard from '@/components/layout/leave-guard'
+import StatusChip from '@/components/layout/status-chip'
 import { rupees } from '@/data/products'
 import { seoKeywordsContent } from '@/data/seo-keywords'
 import { useCopy } from '@/hooks/use-copy'
@@ -122,15 +121,17 @@ export default function SeoKeywordsCard({ productId, form, aiOn, onChange }: Seo
         subtitle={copy.intro}
         action={
           aiOn ? (
-            <KitButton
-              variant="chip"
+            <Button
+              variant="outline"
+              size="sm"
               onClick={() => void handleSuggest()}
-              disabled={busy || needsTitle}
+              disabled={needsTitle}
+              loading={busy}
               title={needsTitle ? copy.needTitle : undefined}
             >
-              {busy ? <Spinner /> : <AiIcon className="text-primary" aria-hidden="true" />}
+              <AiIcon className="text-primary" aria-hidden="true" />
               {suggestions ? copy.suggestAgain : copy.suggest}
-            </KitButton>
+            </Button>
           ) : null
         }
         bodyClassName="flex flex-col gap-4"
@@ -176,7 +177,11 @@ export default function SeoKeywordsCard({ productId, form, aiOn, onChange }: Seo
                   <span className="sr-only">{i === 0 ? copy.primary : copy.makePrimary}</span>
                 </button>
                 <span className="min-w-0 flex-1 truncate text-body text-foreground">{keyword}</span>
-                {i === 0 ? <Badge variant="info">{copy.primary}</Badge> : null}
+                {i === 0 ? (
+                  <StatusChip tone="info" dot={false}>
+                    {copy.primary}
+                  </StatusChip>
+                ) : null}
                 <button
                   type="button"
                   onClick={() => onChange(keywords.filter((k) => k !== keyword))}
@@ -189,7 +194,7 @@ export default function SeoKeywordsCard({ productId, form, aiOn, onChange }: Seo
             ))}
           </ul>
         ) : (
-          <p className="text-body text-muted-foreground">{aiOn ? copy.empty : copy.emptyNoAi}</p>
+          <EmptyState variant="inline" body={aiOn ? copy.empty : copy.emptyNoAi} />
         )}
         <Field>
           <FieldLabel htmlFor="seo-keyword-add">{copy.addLabel}</FieldLabel>
@@ -205,9 +210,9 @@ export default function SeoKeywordsCard({ productId, form, aiOn, onChange }: Seo
               disabled={full}
               autoComplete="off"
             />
-            <KitButton variant="secondary" onClick={handleAdd} disabled={full || !draft.trim()}>
+            <Button variant="outline" onClick={handleAdd} disabled={full || !draft.trim()}>
               {copy.add}
-            </KitButton>
+            </Button>
           </div>
           {full ? <FieldDescription>{copy.full(SEO_KEYWORDS_MAX)}</FieldDescription> : null}
         </Field>

@@ -2,7 +2,6 @@
 
 import { newTags } from '@commerce/ai/client'
 import { StarIcon } from '@commerce/ui/icons'
-import { Badge } from '@commerce/ui/shadcn/badge'
 import { Checkbox } from '@commerce/ui/shadcn/checkbox'
 import { Spinner } from '@commerce/ui/shadcn/spinner'
 import StatusChip from '@/components/layout/status-chip'
@@ -77,15 +76,15 @@ export default function BulkWriteReview({ job, selected, onSelected }: BulkWrite
                     <dt className="text-muted-foreground">{keywordCopy.heading}</dt>
                     <dd className="flex flex-wrap gap-1">
                       {keywords.map((k) => (
-                        <Badge
+                        <StatusChip
                           key={k.keyword}
-                          variant={
-                            item.current.seoKeywords.includes(k.keyword) ? 'neutral' : 'info'
-                          }
+                          dot={false}
+                          className="[&>svg]:size-3"
+                          tone={item.current.seoKeywords.includes(k.keyword) ? 'neutral' : 'info'}
                         >
                           {k.primary ? <StarIcon fill="currentColor" aria-hidden="true" /> : null}
                           {k.keyword}
-                        </Badge>
+                        </StatusChip>
                       ))}
                     </dd>
                   </>
@@ -109,9 +108,9 @@ export default function BulkWriteReview({ job, selected, onSelected }: BulkWrite
                     <dt className="text-muted-foreground">{copy.bulk.fields.tags}</dt>
                     <dd className="flex flex-wrap gap-1">
                       {added.map((tag) => (
-                        <Badge key={tag} variant="neutral">
+                        <StatusChip key={tag} dot={false}>
                           +{tag}
-                        </Badge>
+                        </StatusChip>
                       ))}
                     </dd>
                   </>

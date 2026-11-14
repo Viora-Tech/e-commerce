@@ -44,12 +44,12 @@ export default function SettingsCard({
       {heading || description ? (
         <header className="flex flex-col gap-0.5">
           {heading ? (
-            <h2 className="text-[0.9375rem] leading-[1.375rem] font-semibold text-ink-strong">
+            <h2 className="text-card-title leading-[1.375rem] font-semibold text-ink-strong">
               {heading}
             </h2>
           ) : null}
           {description ? (
-            <p className="text-[0.8125rem] leading-[1.1875rem] text-muted-foreground">
+            <p className="text-caption font-normal leading-[1.1875rem] text-muted-foreground">
               {description}
             </p>
           ) : null}

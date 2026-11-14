@@ -2,8 +2,8 @@
 
 import { API_ACTIVITY_FILTERS, type ApiActivityFilter } from '@commerce/core/api-access'
 import { cn } from '@commerce/ui/lib/utils'
+import { Button } from '@commerce/ui/shadcn/button'
 import { useEffect, useState } from 'react'
-import KitButton from '@/components/kit/kit-button'
 import DataCard from '@/components/layout/data-card'
 import DataCardSkeleton from '@/components/layout/data-card-skeleton'
 import EmptyState from '@/components/layout/empty-state'
@@ -181,9 +181,14 @@ export default function McpActivityTab() {
             </section>
           ))}
           {next ? (
-            <KitButton variant="link" onClick={handleMore} disabled={loading} className="self-end">
+            <Button
+              variant="link"
+              onClick={handleMore}
+              loading={loading}
+              className="h-auto px-0 self-end"
+            >
               {loading ? copy.activity.loading : copy.activity.loadOlder}
-            </KitButton>
+            </Button>
           ) : null}
         </div>
       )}

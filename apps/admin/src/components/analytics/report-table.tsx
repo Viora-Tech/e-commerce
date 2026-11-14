@@ -9,6 +9,7 @@ import {
   TableRow,
 } from '@commerce/ui/shadcn/table'
 import DeltaChip from '@/components/layout/delta-chip'
+import EmptyState from '@/components/layout/empty-state'
 import { analyticsContent as copy } from '@/data/analytics'
 import { change, formatCell, isNumericKind, LOWER_IS_BETTER } from '@/lib/report-format'
 
@@ -24,7 +25,7 @@ const alignOf = (column: ReportColumn) =>
 export default function ReportTable({ report, data }: ReportTableProps) {
   // Early returns
   if (data.rows.length === 0) {
-    return <p className="text-kit-body text-muted-foreground">{copy.reports.empty}</p>
+    return <EmptyState variant="inline" body={copy.reports.empty} />
   }
 
   // Render logic

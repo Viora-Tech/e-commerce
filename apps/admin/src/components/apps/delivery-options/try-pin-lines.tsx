@@ -4,6 +4,7 @@ import { Plus, X } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Input } from '@commerce/ui/shadcn/input'
 import { useState } from 'react'
+import EmptyState from '@/components/layout/empty-state'
 import LineItemRow from '@/components/layout/line-item-row'
 import SelectProductsDialog, {
   type PickedProducts,
@@ -76,7 +77,7 @@ export default function TryPinLines({ lines, onChange }: TryPinLinesProps) {
   return (
     <div className="flex flex-col gap-3">
       {lines.length === 0 ? (
-        <p className="text-body text-muted-foreground">{t.noLines}</p>
+        <EmptyState variant="inline" body={t.noLines} />
       ) : (
         <ul className="flex flex-col divide-y divide-line">
           {lines.map((l) => (

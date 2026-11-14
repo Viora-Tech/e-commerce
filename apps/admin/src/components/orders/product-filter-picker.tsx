@@ -118,12 +118,10 @@ export default function ProductFilterPicker({ value, onChange }: ProductFilterPi
         <div className="flex items-center gap-2">
           <span className="text-xs text-muted-foreground">{copy.matchLabel}</span>
           <ToggleGroup
+            variant="segmented"
             aria-label={copy.matchLabel}
             value={[value.productNot ? 'is_not' : 'is']}
             onValueChange={handleMatch}
-            variant="outline"
-            size="sm"
-            spacing={0}
           >
             <ToggleGroupItem value="is" className="px-2.5">
               {copy.is}

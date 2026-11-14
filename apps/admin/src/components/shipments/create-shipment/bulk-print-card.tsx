@@ -3,6 +3,7 @@
 import { Printer } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
+import EmptyState from '@/components/layout/empty-state'
 import { bulkShipContent } from '@/data/bulk-ship'
 import { useCopy } from '@/hooks/use-copy'
 import { routes } from '@/lib/routes'
@@ -41,7 +42,7 @@ export default function BulkPrintCard({ booked }: BulkPrintCardProps) {
       </p>
       <p className="text-body text-ink-strong">{r.printHeading(booked.length)}</p>
       {ids.length === 0 ? (
-        <p className="text-caption text-muted-foreground">{r.noLabels}</p>
+        <EmptyState variant="inline" body={r.noLabels} />
       ) : missing > 0 ? (
         <p className="text-caption text-muted-foreground">{r.printMissing(missing)}</p>
       ) : null}

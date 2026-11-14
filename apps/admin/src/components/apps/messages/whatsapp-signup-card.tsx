@@ -1,9 +1,9 @@
 'use client'
 
-import { Badge } from '@commerce/ui/shadcn/badge'
 import { Button } from '@commerce/ui/shadcn/button'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import StatusChip from '@/components/layout/status-chip'
 import { whatsappSignupContent } from '@/data/whatsapp-signup'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -13,10 +13,10 @@ type Loaded = Awaited<ReturnType<typeof api.platformApps.whatsapp>>
 
 type Busy = 'idle' | 'popup' | 'popup-app' | 'saving' | 'disconnecting'
 
-const STATUS_TONE: Record<string, 'secondary' | 'destructive'> = {
-  restricted: 'destructive',
-  disabled: 'destructive',
-  disconnected: 'destructive',
+const STATUS_TONE: Record<string, 'neutral' | 'danger'> = {
+  restricted: 'danger',
+  disabled: 'danger',
+  disconnected: 'danger',
 }
 
 /**
@@ -108,9 +108,9 @@ export default function WhatsappSignupCard() {
           {account ? null : <p className="text-caption text-muted-foreground">{copy.intro}</p>}
         </div>
         {account ? (
-          <Badge variant={STATUS_TONE[status] ?? 'secondary'}>
+          <StatusChip tone={STATUS_TONE[status] ?? 'neutral'}>
             {copy.status[status] ?? status}
-          </Badge>
+          </StatusChip>
         ) : null}
       </div>
       {rows.length ? (

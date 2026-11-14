@@ -1,10 +1,10 @@
 'use client'
 
 import { TrendingUp } from '@commerce/ui/icons'
+import { Field, FieldDescription, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Switch } from '@commerce/ui/shadcn/switch'
 import DateField from '@/components/fields/date-field'
 import MoneyInput from '@/components/fields/money-input'
-import KitField from '@/components/kit/kit-field'
 import ChoiceCard from '@/components/layout/choice-card'
 import { productFormContent } from '@/data/product-form'
 import { rupees } from '@/data/products'
@@ -78,6 +78,7 @@ export default function ProductPricingSection({
     rupees.toPaise(variant.price) != null &&
     saving === null &&
     variant.mrp.trim() !== ''
+  const mrpHelp = mrpBelow ? copy.mrpBelowPrice : saving ? copy.saving(fmt.money(saving)) : null
 
   const profit = margin(variant.price, variant.cost)
   const billedRate = variantTax(tax, variant).gstRate
@@ -100,7 +101,8 @@ export default function ProductPricingSection({
   return (
     <div className="flex flex-col gap-4">
       <div className="grid gap-4 md:grid-cols-2">
-        <KitField label={copy.price} htmlFor="variant-price" help={copy.priceHelp}>
+        <Field>
+          <FieldLabel htmlFor="variant-price">{copy.price}</FieldLabel>
           <MoneyInput
             size="kit"
             id="variant-price"
@@ -108,30 +110,31 @@ export default function ProductPricingSection({
             onChange={(price) => onVariant({ price })}
           />
           <ZeroPriceWarning variant={variant} />
-        </KitField>
-        <KitField
-          label={`${copy.mrp} ${copy.mrpOptional}`}
-          htmlFor="variant-mrp"
-          help={mrpBelow ? copy.mrpBelowPrice : saving ? copy.saving(fmt.money(saving)) : undefined}
-        >
+          <FieldDescription>{copy.priceHelp}</FieldDescription>
+        </Field>
+        <Field>
+          <FieldLabel htmlFor="variant-mrp">{`${copy.mrp} ${copy.mrpOptional}`}</FieldLabel>
           <MoneyInput
             size="kit"
             id="variant-mrp"
             value={variant.mrp}
             onChange={(mrp) => onVariant({ mrp })}
           />
-        </KitField>
+          {mrpHelp ? <FieldDescription>{mrpHelp}</FieldDescription> : null}
+        </Field>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
-        <KitField label={copy.cost} htmlFor="variant-cost" help={copy.costHelp}>
+        <Field>
+          <FieldLabel htmlFor="variant-cost">{copy.cost}</FieldLabel>
           <MoneyInput
             size="kit"
             id="variant-cost"
             value={variant.cost}
             onChange={(cost) => onVariant({ cost })}
           />
-        </KitField>
+          <FieldDescription>{copy.costHelp}</FieldDescription>
+        </Field>
       </div>
 
       {profit ? (
@@ -164,7 +167,8 @@ export default function ProductPricingSection({
           <ProductTaxFields tax={tax} singleVariant part="rate" onChange={onTax} />
         ) : null}
         {variant.taxable ? (
-          <KitField label={copy.taxIncluded} help={copy.taxIncludedHelp}>
+          <Field>
+            <FieldLabel>{copy.taxIncluded}</FieldLabel>
             <div className="grid gap-2 md:grid-cols-2">
               <ChoiceCard
                 layout="row"
@@ -181,16 +185,16 @@ export default function ProductPricingSection({
                 onSelect={() => onTaxIncluded(false)}
               />
             </div>
-          </KitField>
+            <FieldDescription>{copy.taxIncludedHelp}</FieldDescription>
+          </Field>
         ) : null}
       </div>
 
-      <KitField label={copy.expiration} help={copy.expirationHelp}>
+      <Field>
+        <FieldLabel>{copy.expiration}</FieldLabel>
         <div className="flex flex-col gap-4 md:flex-row">
           <div className="flex flex-col gap-1.5 md:flex-1">
-            <label htmlFor="sale-starts-at" className="text-caption text-muted-foreground">
-              {copy.expirationStart}
-            </label>
+            <FieldLabel htmlFor="sale-starts-at">{copy.expirationStart}</FieldLabel>
             <DateField
               id="sale-starts-at"
               value={saleStartsAt}
@@ -198,13 +202,12 @@ export default function ProductPricingSection({
             />
           </div>
           <div className="flex flex-col gap-1.5 md:flex-1">
-            <label htmlFor="sale-ends-at" className="text-caption text-muted-foreground">
-              {copy.expirationEnd}
-            </label>
+            <FieldLabel htmlFor="sale-ends-at">{copy.expirationEnd}</FieldLabel>
             <DateField id="sale-ends-at" value={saleEndsAt} onChange={(v) => onSaleEndsAt(v)} />
           </div>
         </div>
-      </KitField>
+        <FieldDescription>{copy.expirationHelp}</FieldDescription>
+      </Field>
     </div>
   )
 }

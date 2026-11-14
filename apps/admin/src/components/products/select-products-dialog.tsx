@@ -1,15 +1,16 @@
 'use client'
 
-import { Plus, Search } from '@commerce/ui/icons'
+import { Plus } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Dialog, DialogTitle } from '@commerce/ui/shadcn/dialog'
-import { Input } from '@commerce/ui/shadcn/input'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { Switch } from '@commerce/ui/shadcn/switch'
 import { useEffect, useId, useState } from 'react'
+import SearchField from '@/components/fields/search-field'
 import DialogContent from '@/components/layout/dialog-content'
 import DialogFooter from '@/components/layout/dialog-footer'
 import DialogHeader from '@/components/layout/dialog-header'
+import EmptyState from '@/components/layout/empty-state'
 import InlineState from '@/components/states/inline-state'
 import { selectProductsContent } from '@/data/select-products'
 import { useCopy } from '@/hooks/use-copy'
@@ -149,19 +150,13 @@ export default function SelectProductsDialog({
         </DialogHeader>
         <div className="flex flex-col gap-3 px-4 pb-3">
           <div className="flex flex-wrap items-center gap-2">
-            <div className="relative min-w-40 flex-1">
-              <Search
-                className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground"
-                aria-hidden
-              />
-              <Input
-                aria-label={copy.searchLabel}
-                placeholder={copy.search}
-                value={request.search}
-                onChange={(e) => patch({ search: e.target.value })}
-                className="pl-8"
-              />
-            </div>
+            <SearchField
+              className="min-w-40 flex-1"
+              aria-label={copy.searchLabel}
+              placeholder={copy.search}
+              value={request.search}
+              onChange={(e) => patch({ search: e.target.value })}
+            />
             {collectionId ? null : (
               <SelectProductsFilter
                 label={copy.collection}
@@ -201,7 +196,10 @@ export default function SelectProductsDialog({
             </div>
           ) : empty ? (
             <div className="p-4">
-              <InlineState kind="empty" heading={selectedOnly ? copy.emptySelected : copy.empty} />
+              <EmptyState
+                variant="inline"
+                heading={selectedOnly ? copy.emptySelected : copy.empty}
+              />
             </div>
           ) : (
             <ul>

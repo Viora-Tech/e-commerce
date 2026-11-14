@@ -1,16 +1,16 @@
 'use client'
 
-import { CheckIcon, Search } from '@commerce/ui/icons'
+import { CheckIcon } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Checkbox } from '@commerce/ui/shadcn/checkbox'
 import { Dialog, DialogDescription, DialogTitle } from '@commerce/ui/shadcn/dialog'
-import { Input } from '@commerce/ui/shadcn/input'
 import { Spinner } from '@commerce/ui/shadcn/spinner'
-import { Tabs, TabsList, TabsTrigger } from '@commerce/ui/shadcn/tabs'
 import { useEffect, useId, useRef, useState } from 'react'
+import SearchField from '@/components/fields/search-field'
 import DialogContent from '@/components/layout/dialog-content'
 import DialogFooter from '@/components/layout/dialog-footer'
 import DialogHeader from '@/components/layout/dialog-header'
+import PillTabs from '@/components/layout/pill-tabs'
 import { resourcePickerContent } from '@/data/resource-picker'
 import { useCopy } from '@/hooks/use-copy'
 import ResourcePickRow from './resource-pick-row'
@@ -197,26 +197,20 @@ export default function ResourcePickDialog({
           <DialogTitle>{title}</DialogTitle>
           {description ? <DialogDescription>{description}</DialogDescription> : null}
           {tabs.length > 1 ? (
-            <Tabs value={tab} onValueChange={handleTab}>
-              <TabsList>
-                {tabs.map((t) => (
-                  <TabsTrigger key={t.key} value={t.key}>
-                    {t.label}
-                  </TabsTrigger>
-                ))}
-              </TabsList>
-            </Tabs>
-          ) : null}
-          <div className="relative">
-            <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder={active?.search}
-              aria-label={active?.search}
-              className="pl-8"
+            <PillTabs
+              variant="segmented"
+              className="self-start"
+              value={tab}
+              onChange={handleTab}
+              tabs={tabs.map((t) => ({ value: t.key, label: t.label }))}
             />
-          </div>
+          ) : null}
+          <SearchField
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder={active?.search}
+            aria-label={active?.search}
+          />
           {otherTabPicks ? (
             <p className="text-caption text-muted-foreground">{copy.oneKind}</p>
           ) : null}

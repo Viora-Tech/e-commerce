@@ -39,7 +39,7 @@ export default function PaletteScopeChips({ scope, onChange }: PaletteScopeChips
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => onChange(value)}
             className={cn(
-              'relative h-[1.875rem] shrink-0 rounded-full px-3 text-[0.8125rem] font-medium transition-colors',
+              'relative h-[1.875rem] shrink-0 rounded-full px-3 text-caption font-medium transition-colors',
               active ? 'text-glass-active-ink' : 'text-muted-foreground hover:text-foreground',
             )}
           >

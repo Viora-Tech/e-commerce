@@ -10,6 +10,7 @@ import {
   TableRow,
 } from '@commerce/ui/shadcn/table'
 import DataCard from '@/components/layout/data-card'
+import EmptyState from '@/components/layout/empty-state'
 import { campaignPerformanceContent } from '@/data/growth-report'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 
@@ -30,7 +31,7 @@ export default function CampaignLinksCard({ links }: CampaignLinksCardProps) {
   return (
     <DataCard title={copy.title} subtitle={copy.subtitle}>
       {links.length === 0 ? (
-        <p className="text-body text-muted-foreground">{copy.empty}</p>
+        <EmptyState variant="inline" body={copy.empty} />
       ) : (
         <Table>
           <TableHeader>

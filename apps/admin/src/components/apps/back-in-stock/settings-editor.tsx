@@ -97,7 +97,9 @@ export default function SettingsEditor() {
       <LeaveGuard when={dirty && !busy} />
       <header className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3 border-hairline border-b pb-5">
         <div className="flex min-w-0 flex-col gap-0.5">
-          <h2 className="text-[1.125rem] leading-6 font-semibold text-ink-strong">{copy.title}</h2>
+          <h2 className="text-section-title leading-6 font-semibold text-ink-strong">
+            {copy.title}
+          </h2>
           <p className="text-body text-muted-foreground">{copy.subtitle}</p>
         </div>
         <div className="flex items-center gap-2">

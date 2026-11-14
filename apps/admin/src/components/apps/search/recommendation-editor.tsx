@@ -5,8 +5,8 @@ import { SEARCH_ID } from '@commerce/plugin-search'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import type { AppPageProps } from '@/apps/registry'
+import EmptyState from '@/components/layout/empty-state'
 import PageHeader from '@/components/layout/page-header'
-import InlineState from '@/components/states/inline-state'
 import { searchDiscoveryContent } from '@/data/search-discovery'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -49,7 +49,7 @@ export default function RecommendationEditor({ params: { productId = '' } }: App
     return (
       <div className="flex flex-col gap-5">
         <PageHeader title={copy.recommendations.title} back={back} />
-        <InlineState kind="empty" body={copy.editor.notFound} />
+        <EmptyState variant="inline" body={copy.editor.notFound} />
       </div>
     )
   }

@@ -1,11 +1,11 @@
 'use client'
 
-import { PlugConnect, Search } from '@commerce/ui/icons'
+import { PlugConnect } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Dialog, DialogDescription, DialogTitle } from '@commerce/ui/shadcn/dialog'
-import { Input } from '@commerce/ui/shadcn/input'
 import { ToggleGroup, ToggleGroupItem } from '@commerce/ui/shadcn/toggle-group'
 import { useState } from 'react'
+import SearchField from '@/components/fields/search-field'
 import DialogContent from '@/components/layout/dialog-content'
 import DialogHeader from '@/components/layout/dialog-header'
 import StatusChip from '@/components/layout/status-chip'
@@ -72,20 +72,13 @@ export default function AddGatewayDialog({
           <DialogTitle>{copy.title}</DialogTitle>
           <DialogDescription>{copy.description}</DialogDescription>
         </DialogHeader>
-        <div className="relative">
-          <Search
-            aria-hidden="true"
-            className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
-          />
-          <Input
-            size="lg"
-            className="pl-9"
-            aria-label={copy.search}
-            placeholder={copy.search}
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-          />
-        </div>
+        <SearchField
+          size="lg"
+          aria-label={copy.search}
+          placeholder={copy.search}
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+        />
         <ToggleGroup
           value={[filter]}
           onValueChange={handleFilter}

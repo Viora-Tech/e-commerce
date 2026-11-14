@@ -2,6 +2,7 @@
 
 import type { StoreFunnel } from '@commerce/api'
 import { Card } from '@commerce/ui/shadcn/card'
+import EmptyState from '@/components/layout/empty-state'
 import { growthAttributionContent } from '@/data/growth-home'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 
@@ -45,7 +46,7 @@ export default function FunnelCard({ funnel }: FunnelCardProps) {
         <p className="text-caption text-muted-foreground">{copy.body}</p>
       </div>
       {funnel.visits === 0 && funnel.addedToCart === 0 ? (
-        <p className="text-body text-muted-foreground">{copy.empty}</p>
+        <EmptyState variant="inline" body={copy.empty} />
       ) : (
         <ol className="grid grid-cols-2 gap-4 lg:grid-cols-4">
           {steps.map((s) => {
