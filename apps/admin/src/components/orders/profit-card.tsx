@@ -4,7 +4,7 @@ import type { OrderProfit } from '@commerce/core/profit'
 import { formatPercent, parseRupees } from '@commerce/money'
 import { Save } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import { FieldLabel } from '@commerce/ui/shadcn/field'
+import { Field, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
@@ -171,7 +171,7 @@ export default function ProfitCard({ orderId, shipment }: ProfitCardProps) {
       ) : null}
       {shipment ? (
         <div className="mt-3 flex items-end gap-2">
-          <div className="flex flex-1 flex-col gap-1">
+          <Field className="flex-1">
             <FieldLabel htmlFor="profit-courier-charge">{copy.courierLabel}</FieldLabel>
             <Input
               id="profit-courier-charge"
@@ -180,8 +180,8 @@ export default function ProfitCard({ orderId, shipment }: ProfitCardProps) {
               onChange={(e) => setCharge(e.target.value)}
               disabled={saving}
             />
-          </div>
-          <Button variant="outline" onClick={handleSaveCharge} disabled={saving}>
+          </Field>
+          <Button variant="outline" onClick={handleSaveCharge} loading={saving} disabled={saving}>
             <Save aria-hidden="true" />
             {copy.courierSave}
           </Button>

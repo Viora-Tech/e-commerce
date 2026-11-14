@@ -40,9 +40,13 @@ export default function OrderHeader({ order, actions, back }: OrderHeaderProps) 
 
   useEffect(() => {
     let live = true
-    api.orders.neighbours({ id: order.id }).then((n) => {
-      if (live) setNeighbours(n)
-    })
+    api.orders
+      .neighbours({ id: order.id })
+      .then((n) => {
+        if (live) setNeighbours(n)
+      })
+      // The arrows stay off: the page works without them.
+      .catch(() => undefined)
     return () => {
       live = false
     }

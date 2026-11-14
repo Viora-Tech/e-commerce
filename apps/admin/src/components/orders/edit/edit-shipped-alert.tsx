@@ -11,7 +11,7 @@ export default function EditShippedAlert() {
   const copy = useCopy(orderEditContent)
 
   return (
-    <Alert>
+    <Alert tone="warning">
       <TriangleAlert aria-hidden="true" />
       <AlertTitle>{copy.shippedTitle}</AlertTitle>
       <AlertDescription>{copy.shippedBody}</AlertDescription>

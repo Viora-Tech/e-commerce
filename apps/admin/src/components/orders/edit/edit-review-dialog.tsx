@@ -6,6 +6,7 @@ import { Button } from '@commerce/ui/shadcn/button'
 import { Dialog, DialogDescription, DialogTitle } from '@commerce/ui/shadcn/dialog'
 import { Field, FieldDescription, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Label } from '@commerce/ui/shadcn/label'
+import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { Switch } from '@commerce/ui/shadcn/switch'
 import { Textarea } from '@commerce/ui/shadcn/textarea'
 import { useEffect, useState } from 'react'
@@ -154,7 +155,7 @@ export default function EditReviewDialog({
           </DialogDescription>
         </DialogHeader>
         {preview ? (
-          <div className="flex flex-col gap-5">
+          <>
             {shipped ? <EditShippedAlert /> : null}
             <ul className="flex list-disc flex-col gap-1 pl-5 text-body">
               {changes.map((c) => (
@@ -218,8 +219,19 @@ export default function EditReviewDialog({
                 placeholder={copy.notePlaceholder}
               />
             </Field>
+          </>
+        ) : error ? null : (
+          // The review's place while the new total is worked out, so Save does not jump down.
+          <div className="flex flex-col gap-4" aria-busy="true">
+            <div className="flex flex-col gap-2">
+              <Skeleton className="h-3.5 w-3/4" />
+              <Skeleton className="h-3.5 w-1/2" />
+            </div>
+            <Skeleton className="h-10 w-full rounded-md" />
+            <Skeleton className="h-9 w-full" />
+            <Skeleton className="h-16 w-full" />
           </div>
-        ) : null}
+        )}
         <DialogFooter>
           <Button type="button" variant="outline" onClick={onClose} disabled={busy}>
             {copy.keepEditing}

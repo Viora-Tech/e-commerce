@@ -89,7 +89,13 @@ export default function TimelineCard({ order, onChanged }: TimelineCardProps) {
           rows={2}
         />
         <div className="flex justify-end">
-          <Button type="submit" size="sm" variant="outline" disabled={saving || !note.trim()}>
+          <Button
+            type="submit"
+            size="sm"
+            variant="outline"
+            loading={saving}
+            disabled={saving || !note.trim()}
+          >
             <Plus aria-hidden="true" />
             {copy.timeline.addNote}
           </Button>

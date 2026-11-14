@@ -5,6 +5,7 @@ import { Input } from '@commerce/ui/shadcn/input'
 import { type KeyboardEvent, useState } from 'react'
 import { toast } from 'sonner'
 import DataCard from '@/components/layout/data-card'
+import StatusChip from '@/components/layout/status-chip'
 import { orderDetailContent } from '@/data/order-detail'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -47,22 +48,22 @@ export default function TagsCard({ orderId, tags, onChanged }: TagsCardProps) {
     <DataCard title={copy.tags.heading} className="print:hidden">
       <div className="flex flex-col gap-3">
         {tags.length > 0 ? (
-          <ul className="flex flex-wrap gap-2">
+          // The tag chips of every tag field (`fields/tag-input.tsx`): a neutral chip with an ×.
+          <ul className="flex flex-wrap gap-1.5">
             {tags.map((t) => (
-              <li
-                key={t}
-                className="inline-flex h-6 items-center gap-1 rounded-sm border border-border bg-muted pr-0.5 pl-2 text-caption text-foreground"
-              >
-                {t}
-                <button
-                  type="button"
-                  onClick={() => handleSave(tags.filter((x) => x !== t))}
-                  disabled={saving}
-                  className="flex size-5 items-center justify-center rounded-sm text-muted-foreground hover:bg-foreground/10 hover:text-foreground"
-                  aria-label={`Remove ${t}`}
-                >
-                  <X className="size-3" />
-                </button>
+              <li key={t}>
+                <StatusChip dot={false} className="pr-1">
+                  {t}
+                  <button
+                    type="button"
+                    onClick={() => handleSave(tags.filter((x) => x !== t))}
+                    disabled={saving}
+                    className="rounded-sm opacity-60 hover:opacity-100 disabled:opacity-30"
+                    aria-label={copy.tags.remove(t)}
+                  >
+                    <X className="size-3" />
+                  </button>
+                </StatusChip>
               </li>
             ))}
           </ul>
