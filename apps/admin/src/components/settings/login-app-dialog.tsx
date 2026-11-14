@@ -95,7 +95,6 @@ export default function LoginAppDialog({
       busy={busy}
       submitDisabled={!complete}
       onSubmit={handleSave}
-      size="lg"
       secondaryAction={
         saved ? (
           <Button type="button" variant="ghost" onClick={handleRemove} disabled={busy}>

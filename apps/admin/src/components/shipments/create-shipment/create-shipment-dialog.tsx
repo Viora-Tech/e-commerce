@@ -1,8 +1,9 @@
 'use client'
 
-import { Dialog, DialogContent, DialogTitle } from '@commerce/ui/shadcn/dialog'
+import { Dialog, DialogTitle } from '@commerce/ui/shadcn/dialog'
 import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { useEffect, useState } from 'react'
+import DialogContent from '@/components/layout/dialog-content'
 import { createShipmentContent } from '@/data/create-shipment'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -60,7 +61,7 @@ export default function CreateShipmentDialog({
     <>
       <BulkShipDrawer orderIds={orderIds} courier={courier} onClose={onClose} onBooked={onBooked} />
       <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
-        <DialogContent className="max-h-[90dvh] grid-rows-[auto_minmax(0,1fr)_auto] sm:max-w-2xl">
+        <DialogContent>
           {!draft ? (
             <>
               <DialogTitle className="sr-only">{copy.bulkTitle(orderIds.length)}</DialogTitle>

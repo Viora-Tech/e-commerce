@@ -125,7 +125,10 @@ export default function BulkFulfilDialog({ ids, items, onClose, onDone }: BulkFu
 
   return (
     <Dialog open={ids !== null} onOpenChange={(open) => (!open ? onClose() : undefined)}>
-      <DialogContent>
+      <DialogContent
+        busy={busy}
+        dirty={otherName.trim() !== '' || Object.values(tracking).some((t) => t.trim() !== '')}
+      >
         <form onSubmit={handleSubmit} className="contents">
           <DialogHeader>
             <DialogTitle>{copy.fulfilTitle(plan.due.length)}</DialogTitle>

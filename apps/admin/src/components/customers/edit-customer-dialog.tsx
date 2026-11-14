@@ -108,7 +108,6 @@ export default function EditCustomerDialog({
         cancelLabel={copy.edit.cancel}
         busy={saving}
         onSubmit={handleSave}
-        size="lg"
       >
         <FieldGroup>
           <Field>

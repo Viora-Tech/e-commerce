@@ -75,7 +75,7 @@ export default function PinDialog({ open, onOpenChange, term, products, onSave }
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent>
+        <DialogContent busy={saving}>
           <DialogHeader>
             <DialogTitle>{d.title}</DialogTitle>
             <DialogDescription>{copy.boosts.pins.description}</DialogDescription>

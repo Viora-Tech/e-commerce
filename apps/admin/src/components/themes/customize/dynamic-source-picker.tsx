@@ -4,17 +4,13 @@ import { optionsFor, type SettingKind, type SourceOption } from '@commerce/core/
 import type { TemplateKey } from '@commerce/core/theme'
 import { DynamicSource, Search, SearchX } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@commerce/ui/shadcn/dialog'
+import { Dialog, DialogDescription, DialogTitle } from '@commerce/ui/shadcn/dialog'
 import { Input } from '@commerce/ui/shadcn/input'
 import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { type KeyboardEvent, useEffect, useId, useState } from 'react'
+import DialogContent from '@/components/layout/dialog-content'
+import DialogFooter from '@/components/layout/dialog-footer'
+import DialogHeader from '@/components/layout/dialog-header'
 import { dynamicSourcePickerContent } from '@/data/dynamic-sources'
 import { useCopy } from '@/hooks/use-copy'
 import { groupSources, sectionPaths, startsOpen } from '@/lib/dynamic-source-groups'
@@ -114,12 +110,10 @@ export default function DynamicSourcePicker({
 
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="flex h-[min(85svh,40rem)] w-full flex-col gap-0 p-0 sm:max-w-xl">
-        <DialogHeader className="gap-3 border-b p-4">
-          <DialogTitle className="text-base font-medium">{copy.title}</DialogTitle>
-          <DialogDescription className="text-caption text-muted-foreground">
-            {copy.intro[kind]}
-          </DialogDescription>
+      <DialogContent panel className="h-[min(85svh,40rem)]">
+        <DialogHeader className="gap-3 border-b">
+          <DialogTitle>{copy.title}</DialogTitle>
+          <DialogDescription>{copy.intro[kind]}</DialogDescription>
           <div className="relative">
             <Search
               aria-hidden
@@ -191,7 +185,7 @@ export default function DynamicSourcePicker({
           )}
         </div>
 
-        <DialogFooter className="mx-0 mb-0 items-center gap-2 rounded-b-xl border-t bg-muted/50 px-4 py-3 sm:justify-between">
+        <DialogFooter className="items-center sm:justify-between">
           <span className="hidden text-caption text-muted-foreground sm:block">{copy.keys}</span>
           <Button type="button" variant="outline" onClick={onClose}>
             {copy.cancel}

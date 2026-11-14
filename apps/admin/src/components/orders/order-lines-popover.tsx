@@ -58,7 +58,7 @@ export default function OrderLinesPopover({ orderId, lineCount, label }: OrderLi
         align="start"
         sideOffset={6}
         onClick={stop}
-        className="max-h-[min(24rem,70svh)] w-[min(20rem,calc(100vw-2rem))] cursor-default overflow-y-auto"
+        className="max-h-[min(24rem,70svh)] w-80 max-w-[calc(100vw-2rem)] cursor-default overflow-y-auto"
       >
         <p className="text-body font-medium text-popover-foreground">{peek.title(lineCount)}</p>
         {failed ? (

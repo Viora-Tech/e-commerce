@@ -55,7 +55,7 @@ export default function EmailSuppressionNotice({ customerId }: EmailSuppressionN
   const reason = suppression.reason
 
   return (
-    <Alert variant="destructive" className="rounded-xl">
+    <Alert tone="danger">
       <TriangleAlert aria-hidden="true" />
       <AlertTitle>{copy.title[reason]}</AlertTitle>
       <AlertDescription className="flex flex-col gap-2">

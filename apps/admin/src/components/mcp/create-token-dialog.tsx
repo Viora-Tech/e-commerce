@@ -110,7 +110,7 @@ export default function CreateTokenDialog({
     const shown = `${created.token.slice(0, 13)}${'â€¢'.repeat(16)}${created.token.slice(-4)}`
     return (
       <Dialog open={open} onOpenChange={(o) => (o ? null : handleDone())}>
-        <DialogContent>
+        <DialogContent busy={busy}>
           <DialogHeader>
             <DialogTitle>{copy.shown.title}</DialogTitle>
             <DialogDescription>{copy.shown.intro}</DialogDescription>
@@ -197,7 +197,6 @@ export default function CreateTokenDialog({
       busy={busy}
       submitDisabled={!name.trim() || !Object.keys(scopes).length}
       onSubmit={handleSubmit}
-      size="lg"
     >
       <div className="flex flex-col gap-4">
         <div className="flex flex-col gap-1.5">

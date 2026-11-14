@@ -1,5 +1,6 @@
 import { InfoIcon } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
+import { Alert, AlertDescription } from '@commerce/ui/shadcn/alert'
 import type { ReactNode } from 'react'
 
 type NoticeBarProps = {
@@ -9,19 +10,20 @@ type NoticeBarProps = {
   className?: string
 }
 
-/** Figma "Notice bar": a quiet hairline strip with an info glyph, for a fact about the whole page. */
+/**
+ * Figma "Notice bar": a quiet hairline strip with an info glyph, for a fact about the whole page.
+ * The one banner (`Alert`) in its neutral tone (audit step 10).
+ */
 export default function NoticeBar({ children, action, className }: NoticeBarProps) {
   return (
-    <div
+    <Alert
+      tone="neutral"
       role="note"
-      className={cn(
-        'flex items-center gap-3 rounded-lg border border-border bg-card px-4 py-2.5 text-body text-muted-foreground',
-        className,
-      )}
+      action={action}
+      className={cn('items-center py-2.5 *:[svg]:row-span-1 *:[svg]:translate-y-0', className)}
     >
       <InfoIcon className="size-4 shrink-0" aria-hidden="true" />
-      <p className="min-w-0 flex-1">{children}</p>
-      {action}
-    </div>
+      <AlertDescription className="text-body">{children}</AlertDescription>
+    </Alert>
   )
 }

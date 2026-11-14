@@ -76,7 +76,7 @@ export default function ThemeVersionsDialog({
   return (
     <>
       <Dialog open onOpenChange={(open) => !open && onClose()}>
-        <DialogContent>
+        <DialogContent busy={busy}>
           <DialogHeader>
             <DialogTitle>{copy.title(theme.name)}</DialogTitle>
             <DialogDescription>{copy.body}</DialogDescription>

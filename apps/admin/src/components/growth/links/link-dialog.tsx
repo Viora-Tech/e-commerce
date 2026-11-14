@@ -106,7 +106,7 @@ export default function LinkDialog({ link, origin, onClose, onSaved }: LinkDialo
 
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
-      <DialogContent>
+      <DialogContent busy={busy}>
         <DialogHeader>
           <DialogTitle>{link ? copy.editTitle : copy.newTitle}</DialogTitle>
         </DialogHeader>

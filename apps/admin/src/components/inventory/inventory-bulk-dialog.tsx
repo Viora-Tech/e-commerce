@@ -68,7 +68,7 @@ export default function InventoryBulkDialog({
 
   return (
     <Dialog open={mode !== null} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent busy={busy}>
         <DialogHeader>
           <DialogTitle>{copy.title(mode ?? 'adjust', count)}</DialogTitle>
           <DialogDescription>{mode === 'set' ? copy.setHint : copy.adjustHint}</DialogDescription>

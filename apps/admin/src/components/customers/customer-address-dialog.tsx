@@ -137,11 +137,13 @@ export default function CustomerAddressDialog({
   const editing = Boolean(address?.id)
   const shippingLocked = Boolean(address?.id && address.isDefault)
   const billsHere = draft.role === 'billing' || draft.role === 'both'
+  // Typed input is never dropped by a stray click outside (audit 9c).
+  const dirty = JSON.stringify(draft) !== JSON.stringify(draftFrom(address, initialRole))
   const roleHelp = d.role.help[draft.role ?? 'none']
 
   return (
     <Dialog open onOpenChange={(next) => !next && onClose()}>
-      <DialogContent>
+      <DialogContent busy={saving} dirty={dirty}>
         <form onSubmit={handleSubmit} className="flex flex-col gap-5">
           <DialogHeader>
             <DialogTitle>{editing ? d.editTitle : d.addTitle}</DialogTitle>

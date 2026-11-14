@@ -95,7 +95,6 @@ export default function ExpenseDialog({ expense, month, onClose, onSaved }: Expe
       description={expense ? d.editHelp : undefined}
       submitLabel={expense ? d.save : d.add}
       onSubmit={handleSubmit}
-      size="md"
     >
       <div className="flex flex-col gap-4">
         <Field>

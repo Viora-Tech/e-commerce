@@ -92,7 +92,7 @@ export default function ImportDialog({ open, onOpenChange, onImported }: ImportD
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent>
+      <DialogContent busy={busy}>
         <DialogHeader>
           <DialogTitle>{copy.title}</DialogTitle>
           <DialogDescription>{copy.intro}</DialogDescription>

@@ -92,7 +92,6 @@ export default function SupplierBulkActions({ ids, onDone }: SupplierBulkActions
         cancelLabel={copy.cancel}
         busy={busy}
         onSubmit={handleApply}
-        size="md"
       >
         <FieldGroup>
           <Field>

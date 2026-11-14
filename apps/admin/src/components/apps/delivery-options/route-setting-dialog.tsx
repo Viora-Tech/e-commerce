@@ -149,7 +149,7 @@ export default function RouteSettingDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent busy={busy !== null}>
         <DialogHeader>
           <DialogTitle>
             {target.kind === 'exact' ? d.editTitle(target.label) : d.addTitle}

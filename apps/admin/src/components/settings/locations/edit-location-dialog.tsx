@@ -84,7 +84,6 @@ export default function EditLocationDialog({
       busy={busy}
       submitDisabled={draft.name.trim() === ''}
       onSubmit={handleSave}
-      size="md"
     >
       <LocationAddressFields draft={draft} onChange={setDraft} />
     </FormDialog>

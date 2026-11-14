@@ -84,7 +84,7 @@ export default function BusinessDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent busy={saving}>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <DialogHeader>
             <DialogTitle>{business ? copy.editTitle : copy.addTitle}</DialogTitle>

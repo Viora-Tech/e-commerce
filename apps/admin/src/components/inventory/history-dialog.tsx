@@ -1,14 +1,10 @@
 'use client'
 
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@commerce/ui/shadcn/dialog'
+import { Dialog, DialogDescription, DialogTitle } from '@commerce/ui/shadcn/dialog'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { useEffect, useState } from 'react'
+import DialogContent from '@/components/layout/dialog-content'
+import DialogHeader from '@/components/layout/dialog-header'
 import RelativeTime from '@/components/layout/relative-time'
 import { inventoryContent, REASON_LABELS } from '@/data/inventory'
 import { api } from '@/lib/api-client'
@@ -53,15 +49,15 @@ export default function HistoryDialog({
   // Render logic
   return (
     <Dialog open={variantId !== null} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="flex max-h-[calc(100dvh-2rem)] flex-col gap-0 p-0 sm:max-w-md">
-        <DialogHeader className="gap-0.5 p-4 pr-12 border-line border-b">
+      <DialogContent>
+        <DialogHeader>
           <DialogTitle>{copy.title}</DialogTitle>
           <DialogDescription>
             {name}
             {sku ? ` (${sku})` : ''}
           </DialogDescription>
         </DialogHeader>
-        <div className="flex-1 overflow-y-auto px-4 pb-4">
+        <div>
           {rows === null ? (
             <div className="flex flex-col gap-3">
               <Skeleton className="h-10 w-full" />

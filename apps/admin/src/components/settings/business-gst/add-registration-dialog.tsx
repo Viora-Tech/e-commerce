@@ -139,7 +139,7 @@ export default function AddRegistrationDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex flex-col">
+      <DialogContent busy={saving} className="flex flex-col">
         {/* Header and footer stay put; only the fields scroll, so Save is always in view (#107). */}
         <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col gap-4">
           <DialogHeader>

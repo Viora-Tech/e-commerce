@@ -66,7 +66,7 @@ export default function EditTodosDialog({ hidden }: EditTodosDialogProps) {
         <SlidersHorizontal aria-hidden="true" />
         {c.edit}
       </Button>
-      <DialogContent>
+      <DialogContent busy={saving}>
         <DialogHeader>
           <DialogTitle>{c.editTitle}</DialogTitle>
           <DialogDescription>{c.editBody}</DialogDescription>

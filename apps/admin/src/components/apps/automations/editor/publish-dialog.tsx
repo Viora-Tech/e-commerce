@@ -67,7 +67,7 @@ export default function PublishDialog({
         onOpenChange(next)
       }}
     >
-      <DialogContent>
+      <DialogContent busy={busy}>
         <DialogHeader>
           <DialogTitle>{copy.title}</DialogTitle>
           <DialogDescription>{copy.body}</DialogDescription>

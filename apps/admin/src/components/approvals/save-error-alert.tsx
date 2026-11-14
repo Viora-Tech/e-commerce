@@ -1,7 +1,6 @@
 'use client'
 
 import { CircleAlert, Clock } from '@commerce/ui/icons'
-import { cn } from '@commerce/ui/lib/utils'
 import { Alert, AlertDescription, AlertTitle } from '@commerce/ui/shadcn/alert'
 import Link from 'next/link'
 import { approvalsContent } from '@/data/approvals'
@@ -29,7 +28,7 @@ export default function SaveErrorAlert({ message, title, className }: SaveErrorA
   // Early returns
   if (!isApprovalNotice(message)) {
     return (
-      <Alert variant="destructive" className={className}>
+      <Alert tone="danger" className={className}>
         <CircleAlert />
         {title ? <AlertTitle>{title}</AlertTitle> : null}
         <AlertDescription>{message}</AlertDescription>
@@ -39,16 +38,10 @@ export default function SaveErrorAlert({ message, title, className }: SaveErrorA
 
   // Render logic
   return (
-    <Alert
-      role="status"
-      className={cn(
-        'border-warning/30 bg-warning-soft text-warning-foreground dark:text-warning',
-        className,
-      )}
-    >
+    <Alert tone="warning" role="status" className={className}>
       <Clock />
       <AlertTitle>{copy.sentTitle}</AlertTitle>
-      <AlertDescription className="text-warning-foreground dark:text-warning">
+      <AlertDescription>
         <p>{message}</p>
         <Link href={routes.settings.approvals()} className="underline underline-offset-2">
           {copy.openApprovals}

@@ -58,7 +58,6 @@ export default function PasskeyNameDialog({
       busy={busy}
       submitDisabled={!name.trim()}
       onSubmit={handleSubmit}
-      size="md"
     >
       <Field>
         <FieldLabel htmlFor="passkey-name">{copy.nameLabel}</FieldLabel>

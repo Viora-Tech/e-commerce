@@ -75,7 +75,7 @@ export default function EditTrackingDialog({
 
   return (
     <Dialog open={shipment !== null} onOpenChange={(open) => !open && !saving && onClose()}>
-      <DialogContent>
+      <DialogContent busy={saving}>
         <DialogHeader>
           <DialogTitle>{copy.title}</DialogTitle>
           <DialogDescription>{copy.body}</DialogDescription>

@@ -51,7 +51,7 @@ export default function SaveSectionDialog({ block, defaultName, onClose }: SaveS
   // Render logic
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
-      <DialogContent>
+      <DialogContent busy={busy}>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <DialogHeader>
             <div className="flex items-center gap-2.5">

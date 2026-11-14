@@ -144,7 +144,6 @@ export default function DraftStoreCreditCard({
         cancelLabel={copy.dialog.cancel}
         submitDisabled={!valid}
         onSubmit={handleSubmit}
-        size="md"
       >
         <Field data-invalid={tooMuch || undefined}>
           <FieldLabel htmlFor={amountId}>{copy.dialog.amount}</FieldLabel>

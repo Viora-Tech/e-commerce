@@ -1,17 +1,11 @@
 'use client'
 
-import { X } from '@commerce/ui/icons'
-import {
-  AlertDialog,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@commerce/ui/shadcn/alert-dialog'
 import { Button } from '@commerce/ui/shadcn/button'
+import { Dialog, DialogDescription, DialogTitle } from '@commerce/ui/shadcn/dialog'
 import { type ReactNode, useState } from 'react'
+import DialogContent from '@/components/layout/dialog-content'
+import DialogFooter from '@/components/layout/dialog-footer'
+import DialogHeader from '@/components/layout/dialog-header'
 import { dialogContent } from '@/data/common'
 import { useCopy } from '@/hooks/use-copy'
 
@@ -23,9 +17,10 @@ type ConfirmDialogProps = {
   confirmLabel: string
   /** Defaults to the shared "Cancel". */
   cancelLabel?: string
-  /** `default` (the primary button) unless the action deletes, cancels, refunds, removes,
-   *  uninstalls, discards or disconnects: then pass `destructive` for the red button. */
-  tone?: 'destructive' | 'default'
+  /** Required (audit 9a): `destructive` (the red button) when the action deletes, cancels,
+   *  refunds, removes, uninstalls, discards, disconnects or turns something off; `default`
+   *  (the primary button) for everything else. */
+  tone: 'destructive' | 'default'
   /** Busy state owned by the caller, who then also closes the dialog; without it the dialog tracks `onConfirm` itself. */
   busy?: boolean
   /** Keeps the confirm button off, e.g. while the item is still in use. */
@@ -37,7 +32,12 @@ type ConfirmDialogProps = {
   children?: ReactNode
 }
 
-/** The one "Are you sure?" popup: title, plain words, a cancel and a confirm button. */
+/**
+ * The one "Are you sure?" popup: title, plain words, a cancel and a confirm button. Built on the
+ * admin popup shell (audit 9b), so it is left-aligned on phones, keeps its title clear of the X
+ * and its buttons stay put while extra content scrolls. Never closes on a click outside, and
+ * nothing closes it while it works.
+ */
 export default function ConfirmDialog({
   open,
   onOpenChange,
@@ -45,7 +45,7 @@ export default function ConfirmDialog({
   body,
   confirmLabel,
   cancelLabel,
-  tone = 'default',
+  tone,
   busy,
   confirmDisabled = false,
   onConfirm,
@@ -81,29 +81,21 @@ export default function ConfirmDialog({
   // Render logic
   const working = pending || Boolean(busy)
   return (
-    <AlertDialog open={open} onOpenChange={handleOpenChange}>
-      <AlertDialogContent
-        className="max-h-[min(85svh,48rem)] overflow-y-auto overscroll-contain data-[size=default]:max-w-[calc(100%-2rem)] data-[size=default]:sm:max-w-[38rem]"
+    <Dialog open={open} onOpenChange={handleOpenChange} disablePointerDismissal>
+      <DialogContent
+        role="alertdialog"
+        busy={working}
         onClick={stopPropagation ? (event) => event.stopPropagation() : undefined}
       >
-        {/* Figma confirm dialogs (e.g. 638:5415) close from the corner too. */}
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          className="absolute top-2 right-2 text-muted-foreground"
-          onClick={() => handleOpenChange(false)}
-          disabled={working}
-          aria-label={shared.close}
-        >
-          <X aria-hidden />
-        </Button>
-        <AlertDialogHeader>
-          <AlertDialogTitle>{title}</AlertDialogTitle>
-          {body ? <AlertDialogDescription>{body}</AlertDialogDescription> : null}
-        </AlertDialogHeader>
+        <DialogHeader>
+          <DialogTitle>{title}</DialogTitle>
+          {body ? <DialogDescription>{body}</DialogDescription> : null}
+        </DialogHeader>
         {children}
-        <AlertDialogFooter>
-          <AlertDialogCancel disabled={working}>{cancelLabel ?? shared.cancel}</AlertDialogCancel>
+        <DialogFooter>
+          <Button variant="outline" disabled={working} onClick={() => handleOpenChange(false)}>
+            {cancelLabel ?? shared.cancel}
+          </Button>
           <Button
             variant={tone === 'destructive' ? 'destructive' : 'default'}
             onClick={handleConfirm}
@@ -112,8 +104,8 @@ export default function ConfirmDialog({
           >
             {confirmLabel}
           </Button>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   )
 }

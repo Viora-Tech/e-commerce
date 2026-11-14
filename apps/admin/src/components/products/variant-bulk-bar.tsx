@@ -78,7 +78,10 @@ export default function VariantBulkBar({
               </Button>
             }
           />
-          <PopoverContent align="start" className="flex w-64 flex-col gap-2 p-3">
+          <PopoverContent
+            align="start"
+            className="flex w-64 max-w-[calc(100vw-2rem)] flex-col gap-2 p-3"
+          >
             <form
               className="flex items-center gap-2"
               onSubmit={(e) => {

@@ -40,7 +40,7 @@ export default function PauseDialog({
   // Render logic
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent busy={busy}>
         <DialogHeader>
           <DialogTitle>{copy.title}</DialogTitle>
           <DialogDescription>{copy.body(openRuns)}</DialogDescription>

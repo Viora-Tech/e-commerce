@@ -58,7 +58,7 @@ export default function AddToCollectionDialog({
 
   return (
     <Dialog open={count > 0} onOpenChange={(open) => !open && !busy && onClose()}>
-      <DialogContent>
+      <DialogContent busy={busy}>
         <DialogHeader>
           <DialogTitle>{copy.title}</DialogTitle>
           <DialogDescription>{copy.help(count)}</DialogDescription>

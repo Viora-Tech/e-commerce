@@ -58,7 +58,7 @@ export default function ConnectSteps({
   const last = at === steps.length - 1
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="gap-5">
+      <DialogContent busy={busy} className="gap-5">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           {intro ? <DialogDescription>{intro}</DialogDescription> : null}

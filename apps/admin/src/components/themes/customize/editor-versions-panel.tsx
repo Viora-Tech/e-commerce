@@ -94,7 +94,7 @@ export default function EditorVersionsPanel({
   return (
     // A dialog, not a right-side drawer (audit #143).
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent busy={restoring}>
         <DialogHeader>
           <DialogTitle>{copy.title}</DialogTitle>
           <DialogDescription>{copy.body(displayThemeName(theme.name))}</DialogDescription>

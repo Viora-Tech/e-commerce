@@ -55,7 +55,7 @@ export default function TagCustomersDialog({
   // Render logic
   return (
     <Dialog open={action !== null} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent>
+      <DialogContent busy={saving}>
         <DialogHeader>
           <DialogTitle>{copy.tagHeading}</DialogTitle>
         </DialogHeader>
