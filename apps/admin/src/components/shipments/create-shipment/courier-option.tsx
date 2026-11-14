@@ -6,8 +6,10 @@ import { Button } from '@commerce/ui/shadcn/button'
 import StatusChip from '@/components/layout/status-chip'
 import { createShipmentContent } from '@/data/create-shipment'
 import { useCopy, useFormat } from '@/hooks/use-copy'
+import BreakdownReveal from './breakdown-reveal'
 import { courierInitials } from './courier-groups'
 import { courierLogoSrc } from './courier-logo'
+import { courierCardClass } from './courier-row-style'
 import { type ParcelSize, priceCalculation } from './price-calculation'
 import PriceCalculationList from './price-calculation-list'
 
@@ -66,9 +68,8 @@ export default function CourierOption({
           disabled={blocked}
           onClick={onSelect}
           className={cn(
-            'motion-press flex w-full items-center gap-3 rounded-lg border bg-card p-3 text-left',
-            selected ? 'border-primary ring-1 ring-primary' : 'border-hairline',
-            blocked ? 'cursor-not-allowed opacity-60' : 'hover:border-border-strong',
+            'motion-press flex w-full items-center gap-3 rounded-lg border bg-card p-3 text-left motion-reduce:transition-none',
+            courierCardClass(selected, blocked),
           )}
         >
           <span
@@ -157,13 +158,15 @@ export default function CourierOption({
           </Button>
         ) : null}
       </div>
-      {calc ? (
-        <PriceCalculationList
-          calc={calc}
-          estimateHint={drawerCopy.insuranceEstimateHint}
-          className="rounded-lg border border-hairline bg-muted/40 px-3 py-2.5"
-        />
-      ) : null}
+      <BreakdownReveal open={calc !== null}>
+        {calc ? (
+          <PriceCalculationList
+            calc={calc}
+            estimateHint={drawerCopy.insuranceEstimateHint}
+            className="rounded-lg border border-hairline bg-muted/40 px-3 py-2.5"
+          />
+        ) : null}
+      </BreakdownReveal>
     </div>
   )
 }

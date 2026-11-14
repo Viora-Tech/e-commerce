@@ -9,7 +9,9 @@ import StatusChip from '@/components/layout/status-chip'
 import { createShipmentContent } from '@/data/create-shipment'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { routes } from '@/lib/routes'
+import BreakdownReveal from './breakdown-reveal'
 import CourierMark from './courier-mark'
+import { courierRowClass } from './courier-row-style'
 import { coverNotes } from './cover-notes'
 import { rowInsuranceState } from './insured-rows'
 import PriceBreakdownStrip from './price-breakdown-strip'
@@ -39,7 +41,7 @@ const kg = (grams: number) => Math.round(grams / 10) / 100
 /**
  * The Select courier drawer's table (Figma 898:7790): logo with its badge under it, name and
  * how it is booked, delivery date and days, charged weight, charges, and Ship now. The picked
- * row opens its price worked out under it (`priceCalculation`). A courier that cannot take the parcel is dimmed and
+ * row opens its price worked out under it (`priceCalculation`, `BreakdownReveal`). A courier that cannot take the parcel is dimmed and
  * says why; the rest stay bookable.
  */
 export default function CourierTable({
@@ -105,8 +107,7 @@ export default function CourierTable({
                   onClick={blocked ? undefined : () => onPick(row.optionKey)}
                   className={cn(
                     'border-t border-hairline align-middle',
-                    blocked ? 'opacity-50' : 'cursor-pointer hover:bg-row-hover',
-                    picked && 'bg-primary-soft',
+                    courierRowClass(picked, blocked),
                   )}
                 >
                   <td className="px-4 py-4 md:pl-8">
@@ -209,17 +210,21 @@ export default function CourierTable({
                     ) : null}
                   </td>
                 </tr>
-                {picked && calc ? (
-                  <tr className="bg-muted/40">
-                    <td colSpan={5} className="px-4 py-3.5 md:px-8">
-                      <PriceBreakdownStrip
-                        calc={calc}
-                        estimateHint={d.insuranceEstimateHint}
-                        className="md:pl-[4.25rem]"
-                      />
-                    </td>
-                  </tr>
-                ) : null}
+                {/* Always here (empty: no height) so the old pick's breakdown can close while
+                    the new one opens, instead of the rows below jumping. */}
+                <tr className="bg-muted/40">
+                  <td colSpan={5} className="p-0">
+                    <BreakdownReveal open={calc !== null} className="px-4 py-3.5 md:px-8">
+                      {calc ? (
+                        <PriceBreakdownStrip
+                          calc={calc}
+                          estimateHint={d.insuranceEstimateHint}
+                          className="md:pl-[4.25rem]"
+                        />
+                      ) : null}
+                    </BreakdownReveal>
+                  </td>
+                </tr>
               </Fragment>
             )
           })}

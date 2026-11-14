@@ -1,6 +1,7 @@
 'use client'
 
 import { XIcon } from '@commerce/ui/icons'
+import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
 import {
   Drawer,
@@ -12,6 +13,7 @@ import {
 import StatusChip from '@/components/layout/status-chip'
 import { createShipmentContent } from '@/data/create-shipment'
 import { useCopy } from '@/hooks/use-copy'
+import { BESIDE_SIDEBAR } from '@/lib/sidebar-motion'
 import DoneStep, { type BookedShipment } from './done-step'
 
 type BookedDrawerProps = {
@@ -39,7 +41,9 @@ export default function BookedDrawer({
   // Render logic
   return (
     <Drawer open={open} onOpenChange={onOpenChange} showSwipeHandle>
-      <DrawerContent className="mx-auto max-h-[calc(100dvh-4rem)] max-w-[90rem]">
+      <DrawerContent
+        className={cn('mx-auto max-h-[calc(100dvh-4rem)] max-w-[90rem]', BESIDE_SIDEBAR)}
+      >
         <DrawerHeader className="flex flex-row items-start justify-between gap-4 px-4 pt-2 text-left md:px-8">
           <div className="flex min-w-0 flex-col items-start gap-1 text-left">
             <StatusChip tone="success">{copy.badge}</StatusChip>
