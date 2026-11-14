@@ -11,6 +11,7 @@ import DialogContent from '@/components/layout/dialog-content'
 import DialogFooter from '@/components/layout/dialog-footer'
 import DialogHeader from '@/components/layout/dialog-header'
 import { inventoryContent, type ManualReasonValue } from '@/data/inventory'
+import { useCopy } from '@/hooks/use-copy'
 import ReasonSelect from './reason-select'
 
 export type BulkEdit = {
@@ -29,8 +30,6 @@ type InventoryBulkDialogProps = {
   onApply: (edit: BulkEdit) => void
 }
 
-const copy = inventoryContent.bulk
-
 /**
  * "Set to" an absolute on hand count or "Adjust by" a +/- delta for every selected SKU at the
  * chosen location, with the reason logged. The server refuses an adjust that takes any SKU below zero.
@@ -44,6 +43,7 @@ export default function InventoryBulkDialog({
   onApply,
 }: InventoryBulkDialogProps) {
   // Hooks
+  const { bulk: copy } = useCopy(inventoryContent)
   const [value, setValue] = useState('')
   const [reason, setReason] = useState<ManualReasonValue>('correction')
   const [note, setNote] = useState('')

@@ -8,6 +8,7 @@ import {
   SelectValue,
 } from '@commerce/ui/shadcn/select'
 import { inventoryContent } from '@/data/inventory'
+import { useCopy } from '@/hooks/use-copy'
 import type { api } from '@/lib/api-client'
 
 export type StoreLocation = Awaited<ReturnType<typeof api.inventory.locations>>[number]
@@ -30,6 +31,9 @@ export default function LocationSelect({
   className,
   disabled,
 }: LocationSelectProps) {
+  // Hooks
+  const copy = useCopy(inventoryContent)
+
   // Render logic
   const items = Object.fromEntries(locations.map((l) => [l.id, l.name]))
 
@@ -49,9 +53,7 @@ export default function LocationSelect({
             <span className="flex items-center gap-2">
               {l.name}
               {l.fulfilsOnlineOrders ? (
-                <span className="text-caption text-muted-foreground">
-                  {inventoryContent.defaultBadge}
-                </span>
+                <span className="text-caption text-muted-foreground">{copy.defaultBadge}</span>
               ) : null}
             </span>
           </SelectItem>

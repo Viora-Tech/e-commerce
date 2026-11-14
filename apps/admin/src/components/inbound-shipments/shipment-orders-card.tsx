@@ -2,10 +2,10 @@
 
 import { Plus, Trash2 } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import DataCard from '@/components/layout/data-card'
 import EmptyState from '@/components/layout/empty-state'
 import RecordCombobox from '@/components/pickers/record-combobox'
 import StatusLabel from '@/components/status/status-label'
@@ -81,11 +81,8 @@ export default function ShipmentOrdersCard({
   const addable = results.filter((r) => !onIt.has(r.id) && r.status !== 'cancelled')
 
   return (
-    <Card size="form" gap="none" inset="y-none">
-      <CardHeader className="py-5">
-        <CardTitle>{copy.heading}</CardTitle>
-      </CardHeader>
-      <CardContent className="pb-4">
+    <DataCard title={copy.heading} count={orders.length} flush>
+      <div className="px-5 pb-4">
         <RecordCombobox
           placeholder={copy.search}
           disabled={busy}
@@ -105,7 +102,7 @@ export default function ShipmentOrdersCard({
             </>
           )}
         />
-      </CardContent>
+      </div>
       {orders.length === 0 ? (
         <EmptyState
           variant="plain"
@@ -145,6 +142,6 @@ export default function ShipmentOrdersCard({
           ))}
         </ul>
       )}
-    </Card>
+    </DataCard>
   )
 }

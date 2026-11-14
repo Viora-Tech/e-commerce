@@ -35,7 +35,7 @@ import {
 } from '@/components/inventory/inventory-tree'
 import type { StoreLocation } from '@/components/inventory/location-select'
 import ProoflyListPage from '@/components/layout/proofly-list-page'
-import { appliedFromGroups, type FilterGroup, facetOptions } from '@/components/table/filter-panel'
+import { appliedFromGroups } from '@/components/table/filter-panel'
 import ResourceTable from '@/components/table/resource-table'
 import ViewSelect from '@/components/table/view-select'
 import { filterPanelContent } from '@/data/filter-panel'
@@ -48,8 +48,10 @@ import { routes } from '@/lib/routes'
 import {
   CLEAR_FILTERS,
   INVENTORY_GROUPS,
+  type InventoryFacets,
   type InventoryGroup,
   type InventoryQuery,
+  inventoryFilterGroups,
   listFilters,
   PER_PAGE,
   PRODUCT_STATUS_FILTERS,
@@ -58,7 +60,6 @@ import {
 } from './inventory-query'
 
 type ListResult = Awaited<ReturnType<typeof api.inventory.list>>
-type Facets = Awaited<ReturnType<typeof api.inventory.facets>>
 
 /** First page rendered on the server so the table never paints empty. */
 export type InventoryInitial = {
@@ -69,7 +70,7 @@ export type InventoryInitial = {
   locations: StoreLocation[]
   result: ListResult
   stats: InventoryStats
-  facets: Facets
+  facets: InventoryFacets
 }
 
 /** One page of rows plus the tiles for the same location. */
@@ -114,6 +115,7 @@ function InventoryContent({ initial }: { initial: InventoryInitial }) {
   // Hooks
   const copy = useCopy(inventoryContent)
   const panelCopy = useCopy(filterPanelContent)
+  const locationCopy = useCopy(locationsContent)
   const { hasPermission } = usePermissions()
   const [q, setQ] = useQueryStates(
     {
@@ -137,8 +139,10 @@ function InventoryContent({ initial }: { initial: InventoryInitial }) {
   const [total, setTotal] = useState(initial.result.total)
   const [stats, setStats] = useState(initial.stats)
   const [loading, setLoading] = useState(false)
+  const [failed, setFailed] = useState(false)
   const router = useRouter()
   const [busy, setBusy] = useState(false)
+  const [exporting, setExporting] = useState(false)
   const [reason, setReason] = useState<ManualReasonValue>('correction')
   const [bulk, setBulk] = useState<{ mode: 'adjust' | 'set'; ids: string[]; clear: () => void }>()
   const [history, setHistory] = useState<InventoryRow | null>(null)
@@ -151,6 +155,7 @@ function InventoryContent({ initial }: { initial: InventoryInitial }) {
     if (untouched(initial, locationId, q)) return
     let cancelled = false
     setLoading(true)
+    setFailed(false)
     fetchPage(locationId, q)
       .then(([list, s]) => {
         if (cancelled) return
@@ -158,6 +163,7 @@ function InventoryContent({ initial }: { initial: InventoryInitial }) {
         setTotal(list.total)
         setStats(s)
       })
+      .catch(() => !cancelled && setFailed(true))
       .finally(() => !cancelled && setLoading(false))
     return () => {
       cancelled = true
@@ -184,7 +190,7 @@ function InventoryContent({ initial }: { initial: InventoryInitial }) {
         reason,
       })
       toast.success(copy.cell.saved(rowName(row), onHand - row.committed))
-      await refresh()
+      await refresh().catch(() => setFailed(true))
       return true
     } catch (err) {
       toast.error(err instanceof Error ? err.message : copy.cell.failed)
@@ -193,6 +199,15 @@ function InventoryContent({ initial }: { initial: InventoryInitial }) {
   }
 
   // Event handlers
+  /* Try again on a failed read: the rows and tiles are read again in place, under the same header. */
+  const handleRetry = () => {
+    setFailed(false)
+    setLoading(true)
+    refresh()
+      .catch(() => setFailed(true))
+      .finally(() => setLoading(false))
+  }
+
   const handleBulk = async (edit: BulkEdit) => {
     if (!bulk) return
     setBusy(true)
@@ -205,7 +220,7 @@ function InventoryContent({ initial }: { initial: InventoryInitial }) {
       toast.success(copy.bulk.done(updated))
       bulk.clear()
       setBulk(undefined)
-      await refresh()
+      await refresh().catch(() => setFailed(true))
     } catch (err) {
       toast.error(err instanceof Error ? err.message : copy.bulk.failed)
     } finally {
@@ -228,7 +243,7 @@ function InventoryContent({ initial }: { initial: InventoryInitial }) {
   }
 
   const handleExport = async () => {
-    setBusy(true)
+    setExporting(true)
     try {
       const locationId = currentLocation()
       const all = await api.inventory.exportRows(listFilters(locationId, q))
@@ -240,7 +255,7 @@ function InventoryContent({ initial }: { initial: InventoryInitial }) {
     } catch (err) {
       toast.error(err instanceof Error ? err.message : copy.exporting.failed)
     } finally {
-      setBusy(false)
+      setExporting(false)
     }
   }
 
@@ -256,70 +271,7 @@ function InventoryContent({ initial }: { initial: InventoryInitial }) {
   const foldable = lines.some(isProductLine)
   const allOpen = foldable && lines.filter(isProductLine).every((l) => expanded[l.variantId])
   const canEdit = hasPermission(permissions.INVENTORY_WRITE)
-  const groups: FilterGroup[] = [
-    {
-      key: 'stock',
-      label: copy.filters.stock,
-      type: 'select',
-      options: copy.filters.stockOptions,
-      value: q.stock,
-      onChange: (next) => setQ({ stock: STOCK_FILTERS.find((s) => s === next) ?? null, page: 1 }),
-      anyLabel: copy.filters.any,
-    },
-    {
-      key: 'changed',
-      label: copy.filters.changed,
-      type: 'select',
-      options: copy.filters.changedOptions,
-      value: q.changed,
-      onChange: (next) => setQ({ changed: STOCK_CHANGED.find((c) => c === next) ?? null, page: 1 }),
-      anyLabel: copy.filters.any,
-    },
-    {
-      key: 'collection',
-      label: copy.filters.collection,
-      type: 'multi',
-      options: initial.facets.collections.map((c) => ({ value: c.id, label: c.title })),
-      value: q.collection,
-      onChange: (collection) => setQ({ collection, page: 1 }),
-    },
-    {
-      key: 'vendor',
-      label: copy.filters.vendor,
-      type: 'multi',
-      options: facetOptions(initial.facets.vendors),
-      value: q.vendor,
-      onChange: (vendor) => setQ({ vendor, page: 1 }),
-    },
-    {
-      key: 'type',
-      label: copy.filters.productType,
-      type: 'multi',
-      options: facetOptions(initial.facets.types),
-      value: q.productType,
-      onChange: (productType) => setQ({ productType, page: 1 }),
-    },
-    {
-      key: 'tag',
-      label: copy.filters.tag,
-      type: 'multi',
-      options: facetOptions(initial.facets.tags),
-      value: q.tag,
-      onChange: (tag) => setQ({ tag, page: 1 }),
-    },
-    {
-      key: 'productStatus',
-      label: copy.filters.productStatus,
-      type: 'checks',
-      options: copy.filters.productStatusOptions,
-      value: q.productStatus,
-      onChange: (next) =>
-        setQ({
-          productStatus: PRODUCT_STATUS_FILTERS.filter((s) => next.includes(s)),
-          page: 1,
-        }),
-    },
-  ]
+  const groups = inventoryFilterGroups(q, copy.filters, initial.facets, (patch) => setQ(patch))
   const applied = appliedFromGroups(groups, panelCopy)
   const filtered = applied.length > 0 || q.query !== ''
 
@@ -329,14 +281,14 @@ function InventoryContent({ initial }: { initial: InventoryInitial }) {
       summary={copy.summary(stats.skus, stats.outOfStock)}
       actions={
         <>
-          <Button variant="outline" onClick={handleExport} disabled={busy}>
+          <Button variant="outline" onClick={handleExport} loading={exporting} disabled={exporting}>
             <Download strokeWidth={1.6} />
             {copy.export}
           </Button>
           {canEdit ? (
             <Button onClick={() => setAddingLocation(true)}>
               <Plus strokeWidth={1.6} />
-              {locationsContent.add}
+              {locationCopy.add}
             </Button>
           ) : null}
         </>
@@ -394,6 +346,7 @@ function InventoryContent({ initial }: { initial: InventoryInitial }) {
           )
         }
         loading={loading}
+        error={failed ? { onRetry: handleRetry } : undefined}
         query={q.query}
         onQueryChange={(query) => setQ({ query, page: 1 }, { history: 'replace' })}
         onClearAll={() => setQ({ ...CLEAR_FILTERS, query: '', page: 1 })}

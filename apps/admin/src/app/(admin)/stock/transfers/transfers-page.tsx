@@ -86,6 +86,7 @@ function TransfersContent({ initial }: { initial: TransfersInitial }) {
   const [rows, setRows] = useState(initial.result.rows)
   const [total, setTotal] = useState(initial.result.total)
   const [loading, setLoading] = useState(false)
+  const [failed, setFailed] = useState(false)
   const [adding, setAdding] = useState(false)
 
   const hydrated = useRef(false)
@@ -104,6 +105,7 @@ function TransfersContent({ initial }: { initial: TransfersInitial }) {
       return
     let cancelled = false
     setLoading(true)
+    setFailed(false)
     api.transfers
       .list(listInput(q))
       .then((r) => {
@@ -111,6 +113,7 @@ function TransfersContent({ initial }: { initial: TransfersInitial }) {
         setRows(r.rows)
         setTotal(r.total)
       })
+      .catch(() => !cancelled && setFailed(true))
       .finally(() => !cancelled && setLoading(false))
     return () => {
       cancelled = true
@@ -122,6 +125,19 @@ function TransfersContent({ initial }: { initial: TransfersInitial }) {
     const r = await api.transfers.list(listInput(q))
     setRows(r.rows)
     setTotal(r.total)
+  }
+
+  // Event handlers
+  /* Try again on a failed read: the rows are read again in place, under the same header. */
+  const handleRetry = () => {
+    setFailed(false)
+    setLoading(true)
+    refresh()
+      .catch(() => setFailed(true))
+      .finally(() => setLoading(false))
+  }
+  const handleChanged = () => {
+    refresh().catch(() => setFailed(true))
   }
 
   // Render logic
@@ -164,16 +180,15 @@ function TransfersContent({ initial }: { initial: TransfersInitial }) {
       ) : (
         <ResourceTable
           resourceName={copy.resource}
-          columns={transferColumns}
+          columns={transferColumns(copy)}
           items={rows}
           getId={(r) => r.id}
           href={(r) => routes.stock.transfer(r.id)}
           rowActions={
-            canWrite
-              ? (r) => <TransferRowMenu transfer={r} onChanged={() => void refresh()} />
-              : undefined
+            canWrite ? (r) => <TransferRowMenu transfer={r} onChanged={handleChanged} /> : undefined
           }
           loading={loading}
+          error={failed ? { onRetry: handleRetry } : undefined}
           selectable={false}
           query={q.query}
           onQueryChange={(query) => setQ({ query, page: 1 }, { history: 'replace' })}
