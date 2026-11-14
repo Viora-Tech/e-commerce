@@ -1,8 +1,8 @@
 'use client'
 
 import { TrendingUp } from '@commerce/ui/icons'
+import { Alert, AlertDescription } from '@commerce/ui/shadcn/alert'
 import { Field, FieldDescription, FieldLabel } from '@commerce/ui/shadcn/field'
-import { Switch } from '@commerce/ui/shadcn/switch'
 import DateField from '@/components/fields/date-field'
 import MoneyInput from '@/components/fields/money-input'
 import ChoiceCard from '@/components/layout/choice-card'
@@ -12,6 +12,7 @@ import { useCopy, useFormat } from '@/hooks/use-copy'
 import { type Facets, margin, type VariantRow } from './form-state'
 import { type ProductTax, variantTax } from './product-tax'
 import ProductTaxFields from './product-tax-fields'
+import SwitchRow from './switch-row'
 import ZeroPriceWarning from './zero-price-warning'
 
 type ProductPricingSectionProps = {
@@ -138,31 +139,28 @@ export default function ProductPricingSection({
       </div>
 
       {profit ? (
-        <p className="flex items-center gap-2 rounded-md border border-success/30 bg-success-soft px-3 py-2 text-body text-success">
-          <TrendingUp className="size-4 shrink-0" aria-hidden="true" />
-          {copy.margin(`${profit.pct}%`, fmt.money(profit.profitPaise))}
-        </p>
+        <Alert tone="success">
+          <TrendingUp aria-hidden="true" />
+          <AlertDescription className="text-body text-foreground">
+            {copy.margin(`${profit.pct}%`, fmt.money(profit.profitPaise))}
+          </AlertDescription>
+        </Alert>
       ) : null}
 
       <div className="flex flex-col gap-3 border-border border-t pt-4">
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex flex-col gap-0.5">
-            <label htmlFor="variant-taxable" className="text-body text-foreground">
-              {copy.taxable}
-            </label>
-            <p className="text-caption text-muted-foreground">{copy.taxableHelp}</p>
-            {taxLine ? (
-              <p className="text-caption text-ink-strong tabular-nums" aria-live="polite">
-                {taxLine}
-              </p>
-            ) : null}
-          </div>
-          <Switch
-            id="variant-taxable"
-            checked={variant.taxable}
-            onCheckedChange={(taxable) => onVariant({ taxable })}
-          />
-        </div>
+        <SwitchRow
+          id="variant-taxable"
+          label={copy.taxable}
+          help={copy.taxableHelp}
+          checked={variant.taxable}
+          onChange={(taxable) => onVariant({ taxable })}
+        >
+          {taxLine ? (
+            <p className="text-caption text-ink-strong tabular-nums" aria-live="polite">
+              {taxLine}
+            </p>
+          ) : null}
+        </SwitchRow>
         {variant.taxable ? (
           <ProductTaxFields tax={tax} singleVariant part="rate" onChange={onTax} />
         ) : null}

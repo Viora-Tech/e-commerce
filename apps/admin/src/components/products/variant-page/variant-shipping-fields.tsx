@@ -17,9 +17,9 @@ import { variantPageContent } from '@/data/variant-page'
 import { useCopy } from '@/hooks/use-copy'
 import type { VariantRow } from '../form-state'
 import type { ProductTax } from '../product-tax'
+import SwitchRow from '../switch-row'
 import VariantBoxField from '../variant-box-field'
 import WeightInput from '../weight-input'
-import SwitchRow from './switch-row'
 
 type VariantShippingFieldsProps = {
   draft: VariantRow

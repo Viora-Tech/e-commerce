@@ -137,7 +137,7 @@ export default function SeoKeywordsCard({ productId, form, aiOn, onChange }: Seo
         bodyClassName="flex flex-col gap-4"
       >
         {error ? (
-          <Alert variant="destructive">
+          <Alert tone="danger">
             <CircleAlert />
             <AlertDescription>{error}</AlertDescription>
           </Alert>
@@ -145,7 +145,7 @@ export default function SeoKeywordsCard({ productId, form, aiOn, onChange }: Seo
         {busy ? (
           <div className="flex flex-col gap-2" aria-live="polite">
             <p className="text-body text-muted-foreground">{copy.suggesting}</p>
-            <Skeleton className="h-24 w-full rounded-xl" />
+            <Skeleton className="h-24 w-full rounded-lg" />
           </div>
         ) : suggestions ? (
           <SeoKeywordSuggestions

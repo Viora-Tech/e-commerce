@@ -182,7 +182,7 @@ function PickRow({
   return (
     <section
       className={cn(
-        'flex flex-col gap-3 rounded-xl border p-4 transition-colors',
+        'flex flex-col gap-3 rounded-lg border p-4 transition-colors',
         checked ? 'border-primary/40 bg-primary/5' : 'border-border bg-card',
       )}
     >

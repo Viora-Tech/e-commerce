@@ -8,9 +8,12 @@ import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import DataCard from '@/components/layout/data-card'
 import StatusChip from '@/components/layout/status-chip'
+import LoadFailed from '@/components/states/load-failed'
 import { productCollectionsCardContent, productCollectionsContent } from '@/data/collections'
 import { useCopy } from '@/hooks/use-copy'
+import type { LoadFailure } from '@/hooks/use-load'
 import { api } from '@/lib/api-client'
+import { isForbidden } from '@/lib/forbidden'
 import { collectionIdsToSave } from './collection-pick'
 import ProductCollectionsField, { type CollectionOption } from './product-collections-field'
 
@@ -46,26 +49,32 @@ export default function ProductCollectionsCard({
   const [value, setValue] = useState<string[]>([])
   const [saved, setSaved] = useState<string[]>([])
   const [busy, setBusy] = useState(false)
+  /* A failed read shows Try again instead of an empty picker, so a save cannot drop the
+     collections the product is already in. `attempt` reads again. */
+  const [failed, setFailed] = useState<LoadFailure | false>(false)
+  const [attempt, setAttempt] = useState(0)
 
   // A new product: the manual collections to pick from, nothing chosen yet.
   useEffect(() => {
-    if (productId) return
+    if (productId || attempt < 0) return
     let live = true
+    setFailed(false)
     api.collections
       .list()
       .then((all) => {
         if (!live) return
         setLoaded({ manual: all.filter((c) => c.kind === 'manual'), automatic: [], memberOf: [] })
       })
-      .catch(() => live && setLoaded({ manual: [], automatic: [], memberOf: [] }))
+      .catch((error: unknown) => live && setFailed(isForbidden(error) ? 'no-access' : 'error'))
     return () => {
       live = false
     }
-  }, [productId])
+  }, [productId, attempt])
 
   useEffect(() => {
-    if (!productId || revision < 0) return
+    if (!productId || revision < 0 || attempt < 0) return
     let live = true
+    setFailed(false)
     Promise.all([api.collections.list(), api.collections.forProduct({ productId })])
       .then(([all, memberOf]) => {
         if (!live) return
@@ -76,11 +85,11 @@ export default function ProductCollectionsCard({
         setValue(manualIds)
         setSaved(manualIds)
       })
-      .catch(() => live && setLoaded({ manual: [], automatic: [], memberOf: [] }))
+      .catch((error: unknown) => live && setFailed(isForbidden(error) ? 'no-access' : 'error'))
     return () => {
       live = false
     }
-  }, [productId, revision])
+  }, [productId, revision, attempt])
 
   // Event handlers
   const handleSave = async () => {
@@ -132,7 +141,9 @@ export default function ProductCollectionsCard({
       }
       bodyClassName="flex flex-col gap-4"
     >
-      {loaded === null ? (
+      {failed && loaded === null ? (
+        <LoadFailed failed={failed} onRetry={() => setAttempt((n) => n + 1)} size="inline" />
+      ) : loaded === null ? (
         <Skeleton className="h-16 w-full" />
       ) : (
         <>

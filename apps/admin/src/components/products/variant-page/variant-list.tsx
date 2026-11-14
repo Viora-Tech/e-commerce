@@ -2,6 +2,7 @@
 
 import { variantTitle } from '@commerce/core/catalog'
 import { cn } from '@commerce/ui/lib/utils'
+import { FieldLabel } from '@commerce/ui/shadcn/field'
 import {
   Select,
   SelectContent,
@@ -61,9 +62,9 @@ export default function VariantList({
   return (
     <>
       <div className="lg:hidden">
-        <label htmlFor="variant-pick" className="sr-only">
+        <FieldLabel htmlFor="variant-pick" className="sr-only">
           {copy.list.pick}
-        </label>
+        </FieldLabel>
         <Select items={items} value={currentId} onValueChange={(next) => onPick(String(next))}>
           <SelectTrigger size="lg" id="variant-pick" className="w-full">
             <SelectValue />

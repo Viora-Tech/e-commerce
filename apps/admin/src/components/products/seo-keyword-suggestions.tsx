@@ -50,7 +50,7 @@ export default function SeoKeywordSuggestions({
   const room = SEO_KEYWORDS_MAX - current.length
 
   return (
-    <section className="flex flex-col gap-3 rounded-xl border border-primary/40 bg-primary/5 p-3.5">
+    <section className="flex flex-col gap-3 rounded-lg border border-primary/40 bg-primary/5 p-3.5">
       <div className="flex flex-col gap-0.5">
         <h3 className="text-body-strong text-ink-strong">{copy.suggestions.heading}</h3>
         <p className="text-caption text-muted-foreground">{copy.suggestions.hint}</p>

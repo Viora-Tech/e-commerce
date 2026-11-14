@@ -130,7 +130,7 @@ export default function AiWriterDialog({ open, onOpenChange, form, onApply }: Ai
               onNotes={setNotes}
             />
           ) : (
-            <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-muted/60 px-3 py-2">
+            <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-muted/60 px-3 py-2">
               <span className="text-body text-muted-foreground">
                 {copy.writer.optionsSummary(
                   copy.writer.tones[tone],
@@ -156,7 +156,7 @@ export default function AiWriterDialog({ open, onOpenChange, form, onApply }: Ai
             </p>
           ) : null}
           {error ? (
-            <Alert variant="destructive">
+            <Alert tone="danger">
               <CircleAlert />
               <AlertDescription>{error}</AlertDescription>
             </Alert>
@@ -164,9 +164,9 @@ export default function AiWriterDialog({ open, onOpenChange, form, onApply }: Ai
           {busy ? (
             <div className="flex flex-col gap-3" aria-live="polite">
               <p className="text-body text-muted-foreground">{copy.writer.workingHint}</p>
-              <Skeleton className="h-28 w-full rounded-xl" />
-              <Skeleton className="h-16 w-full rounded-xl" />
-              <Skeleton className="h-16 w-full rounded-xl" />
+              <Skeleton className="h-28 w-full rounded-lg" />
+              <Skeleton className="h-16 w-full rounded-lg" />
+              <Skeleton className="h-16 w-full rounded-lg" />
             </div>
           ) : result ? (
             <div className="flex flex-col gap-3">

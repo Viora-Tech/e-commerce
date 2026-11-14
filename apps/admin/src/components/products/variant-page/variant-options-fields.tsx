@@ -12,7 +12,7 @@ import EmptyState from '@/components/layout/empty-state'
 import { variantPageContent } from '@/data/variant-page'
 import { useCopy } from '@/hooks/use-copy'
 import type { OptionRow, VariantRow } from '../form-state'
-import SwitchRow from './switch-row'
+import SwitchRow from '../switch-row'
 
 type VariantOptionsFieldsProps = {
   options: OptionRow[]
