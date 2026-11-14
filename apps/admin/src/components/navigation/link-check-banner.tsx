@@ -1,6 +1,7 @@
 'use client'
 
 import { CircleAlert } from '@commerce/ui/icons'
+import { Alert, AlertDescription, AlertTitle } from '@commerce/ui/shadcn/alert'
 import { menusContent } from '@/data/menus'
 import { useCopy } from '@/hooks/use-copy'
 
@@ -21,15 +22,15 @@ export default function LinkCheckBanner({ count }: LinkCheckBannerProps) {
 
   // Render logic
   return (
-    <div
+    // The warning banner as a strip across the top of the menu card (flush with its edges).
+    <Alert
+      tone="warning"
       role="status"
-      className="flex items-start gap-3 border-line border-b bg-warning-soft px-5 py-3 text-body"
+      className="rounded-none border-x-0 border-t-0 px-5 text-body"
     >
-      <CircleAlert className="mt-0.5 size-4 shrink-0 text-warning" aria-hidden="true" />
-      <div className="flex flex-col gap-0.5">
-        <span className="font-medium text-ink-strong">{copy.heading(count)}</span>
-        <span className="text-caption text-muted-foreground">{copy.body}</span>
-      </div>
-    </div>
+      <CircleAlert aria-hidden="true" />
+      <AlertTitle>{copy.heading(count)}</AlertTitle>
+      <AlertDescription className="text-caption">{copy.body}</AlertDescription>
+    </Alert>
   )
 }

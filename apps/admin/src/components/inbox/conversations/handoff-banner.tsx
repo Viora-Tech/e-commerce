@@ -1,6 +1,7 @@
 'use client'
 
 import { AiIcon } from '@commerce/ui/icons'
+import { Alert, AlertDescription, AlertTitle } from '@commerce/ui/shadcn/alert'
 import { inboxConversationsContent } from '@/data/inbox-conversations'
 import { useCopy } from '@/hooks/use-copy'
 
@@ -18,13 +19,14 @@ export default function HandoffBanner({ summary }: HandoffBannerProps) {
   const h = copy.thread.handoff
 
   return (
-    <div className="flex items-start gap-2.5 border-b border-hairline bg-muted/50 px-4 py-3">
-      <AiIcon className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-      <div className="flex min-w-0 flex-col gap-0.5">
-        <p className="text-body-strong">{h.title}</p>
-        {summary ? <p className="text-body text-muted-foreground">{summary}</p> : null}
-        <p className="text-caption text-muted-foreground">{h.hint}</p>
-      </div>
-    </div>
+    // The neutral banner as a strip across the top of the thread.
+    <Alert tone="neutral" role="status" className="rounded-none border-x-0 border-t-0">
+      <AiIcon aria-hidden="true" />
+      <AlertTitle className="text-body-strong">{h.title}</AlertTitle>
+      <AlertDescription>
+        {summary ? <p className="text-body">{summary}</p> : null}
+        <p className="text-caption">{h.hint}</p>
+      </AlertDescription>
+    </Alert>
   )
 }

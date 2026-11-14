@@ -1,4 +1,5 @@
 import { cn } from '@commerce/ui/lib/utils'
+import { Alert, type AlertTone } from '@commerce/ui/shadcn/alert'
 import type { ReactNode } from 'react'
 
 /** action: work to do (blue). attention: a decision waiting on you (amber). done / closed. */
@@ -16,13 +17,13 @@ type NextStepBannerProps = {
   extra?: ReactNode
 }
 
-/* Figma "Order · Next step": an open step is the raised glass card; done the success tint,
-   closed a quiet muted card. */
-const CARD: Record<NextStepTone, string> = {
-  action: 'border-transparent surface-glass',
-  attention: 'border-transparent surface-glass',
-  done: 'border-success-border bg-success-soft',
-  closed: 'border-border bg-muted/60',
+/* Drawn with the one banner (`Alert`, audit step 10): work to do in the info tint, a decision in
+   the warning tint, done in the success tint, closed quiet. */
+const ALERT_TONE: Record<NextStepTone, AlertTone> = {
+  action: 'info',
+  attention: 'warning',
+  done: 'success',
+  closed: 'neutral',
 }
 
 const TILE: Record<NextStepTone, string> = {
@@ -50,9 +51,11 @@ export default function NextStepBanner({
   extra,
 }: NextStepBannerProps) {
   return (
-    <section
+    <Alert
+      tone={ALERT_TONE[tone]}
+      role="region"
       aria-label={eyebrow}
-      className={cn('flex flex-col gap-4 rounded-xl border p-4 md:px-5 print:hidden', CARD[tone])}
+      className="flex flex-col gap-4 p-4 md:px-5 print:hidden"
     >
       <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3">
         <div className="flex min-w-0 items-start gap-3">
@@ -82,6 +85,6 @@ export default function NextStepBanner({
         {actions ? <div className="flex flex-wrap items-center gap-2">{actions}</div> : null}
       </div>
       {extra}
-    </section>
+    </Alert>
   )
 }

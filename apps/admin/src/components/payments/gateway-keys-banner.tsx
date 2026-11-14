@@ -41,7 +41,7 @@ export default function GatewayKeysBanner({ className }: GatewayKeysBannerProps)
   return (
     <div className={`flex flex-col gap-3 ${className ?? ''}`}>
       {alerts.map((a) => (
-        <Alert key={a.gateway} variant="destructive" className="rounded-xl p-4">
+        <Alert key={a.gateway} tone="danger" className="p-4">
           <CircleAlert />
           <AlertTitle>{copy.title(a.name)}</AlertTitle>
           <AlertDescription className="flex flex-col gap-1">

@@ -176,7 +176,7 @@ export default function PackageStep({
         </div>
         {weightAlert}
         {kg ? (
-          <Alert className="border-info-border bg-info-soft text-info">
+          <Alert tone="info">
             <InfoIcon aria-hidden="true" />
             <AlertDescription className="text-info">{copy.charged(kg)}</AlertDescription>
           </Alert>
