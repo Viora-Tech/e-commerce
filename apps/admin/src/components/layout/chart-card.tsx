@@ -1,5 +1,6 @@
 'use client'
 
+import { cn } from '@commerce/ui/lib/utils'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import dynamic from 'next/dynamic'
 import { type ReactNode, useState } from 'react'
@@ -33,6 +34,11 @@ type ChartCardProps = {
   formatValue: (n: number) => string
   /** Links behind the header kebab. */
   menu?: readonly ActionItem[]
+  /**
+   * New figures are on the way (a range change): the chart frame draws a skeleton and the
+   * subtitle and tabs dim, so the old curve and totals are not read as the new ones.
+   */
+  loading?: boolean
   className?: string
 }
 
@@ -55,6 +61,7 @@ export default function ChartCard({
   seriesLabel,
   formatValue,
   menu,
+  loading = false,
   className,
 }: ChartCardProps) {
   // Hooks
@@ -69,7 +76,7 @@ export default function ChartCard({
   return (
     <DataCard
       title={title}
-      subtitle={subtitle}
+      subtitle={subtitle && loading ? <span className="opacity-50">{subtitle}</span> : subtitle}
       menu={menu}
       className={className}
       action={
@@ -83,26 +90,34 @@ export default function ChartCard({
         ) : null
       }
     >
-      {tabs ? <div className="mb-6 px-1">{tabs}</div> : null}
+      {tabs ? (
+        <div className={cn('mb-6 px-1', loading && 'pointer-events-none opacity-50')}>{tabs}</div>
+      ) : null}
       {/* Each metric/period pair mounts its own chart: the curve draws itself once, the previous one fades out. */}
-      <AnimatePresence mode="wait" initial={false}>
-        <motion.div
-          key={`${seriesKey}-${periodId}`}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={fade}
-        >
-          <div className="h-[14.5rem] w-full">
-            <ChartCardPlot
-              data={period?.data ?? []}
-              partial={partial}
-              seriesLabel={seriesLabel}
-              formatValue={formatValue}
-            />
-          </div>
-        </motion.div>
-      </AnimatePresence>
+      {loading ? (
+        <div className="h-[14.5rem] w-full" aria-busy="true">
+          <ChartLoading />
+        </div>
+      ) : (
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.div
+            key={`${seriesKey}-${periodId}`}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={fade}
+          >
+            <div className="h-[14.5rem] w-full">
+              <ChartCardPlot
+                data={period?.data ?? []}
+                partial={partial}
+                seriesLabel={seriesLabel}
+                formatValue={formatValue}
+              />
+            </div>
+          </motion.div>
+        </AnimatePresence>
+      )}
     </DataCard>
   )
 }
