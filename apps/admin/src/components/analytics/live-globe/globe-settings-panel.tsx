@@ -111,7 +111,7 @@ export default function GlobeSettingsPanel({
       <PopoverContent
         align="end"
         sideOffset={8}
-        className="h-[min(34rem,calc(var(--available-height,34rem)-0.75rem))] w-[22rem] max-w-[calc(100vw-1.5rem)] gap-0 overflow-hidden bg-popover/95 p-0 backdrop-blur-md"
+        className="h-[min(34rem,calc(var(--available-height,34rem)-0.75rem))] w-[22rem] max-w-[calc(100vw-1.5rem)] gap-0 overflow-hidden bg-popover p-0"
       >
         <div className="flex shrink-0 flex-col gap-3 px-4 pt-4 pb-3">
           <div className="flex flex-col gap-0.5">

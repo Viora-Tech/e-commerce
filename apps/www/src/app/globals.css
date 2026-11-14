@@ -41,6 +41,20 @@
   --text-micro--line-height: 1rem;
 }
 
+/* The site keeps the frosted glass the admin dropped for speed (@commerce/ui styles.css,
+   "Smooth UI"): translucent fills and the backdrop blur the glass-* utilities read. */
+:root {
+  --glass-bar: rgb(255 255 255 / 0.72);
+  --glass-popover: rgb(255 255 255 / 0.85);
+  --glass-bar-filter: blur(20px) saturate(1.5);
+  --glass-popover-filter: blur(16px) saturate(1.5);
+  --glass-scrim-filter: blur(8px);
+}
+.dark {
+  --glass-bar: rgb(23 23 23 / 0.68);
+  --glass-popover: rgb(23 23 23 / 0.85);
+}
+
 @layer base {
   html {
     scroll-behavior: smooth;

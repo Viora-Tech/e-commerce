@@ -148,13 +148,17 @@ export default function LiveGlobeCanvas({
 
     // Motion spec 09: pause the auto-rotate/reveal/pulse loop while the tab is hidden so
     // no animation time passes there; on return shift the time bases forward by the gap.
+    // Also paused while the card is scrolled out of view: a 32k-dot WebGL draw every frame
+    // competed with scrolling the rest of Home ("Smooth UI", docs/conventions.md).
     let hiddenAt: number | null = null
-    const handleVisibility = () => {
-      if (document.visibilityState === 'hidden') {
+    let onScreen = true
+    const syncLoop = () => {
+      const run = onScreen && document.visibilityState === 'visible'
+      if (!run && hiddenAt === null) {
         hiddenAt = performance.now()
         cancelAnimationFrame(rafId)
         rafId = 0
-      } else if (hiddenAt !== null) {
+      } else if (run && hiddenAt !== null) {
         const gap = performance.now() - hiddenAt
         hiddenAt = null
         s.startedAt += gap
@@ -162,7 +166,13 @@ export default function LiveGlobeCanvas({
         if (!rafId) rafId = requestAnimationFrame(tick)
       }
     }
+    const handleVisibility = () => syncLoop()
     document.addEventListener('visibilitychange', handleVisibility)
+    const viewObserver = new IntersectionObserver(([entry]) => {
+      onScreen = entry?.isIntersecting ?? true
+      syncLoop()
+    })
+    viewObserver.observe(container)
 
     const detach = attachControls(canvas, s, reducedMotion)
     const handleResize = () => {
@@ -175,6 +185,7 @@ export default function LiveGlobeCanvas({
       globe.destroy()
       detach()
       document.removeEventListener('visibilitychange', handleVisibility)
+      viewObserver.disconnect()
       window.removeEventListener('resize', handleResize)
     }
     // Re-run on theme/focus changes; markers/arcs update through the refs above so drag state

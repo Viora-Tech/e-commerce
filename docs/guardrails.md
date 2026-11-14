@@ -318,6 +318,17 @@ on Waimers, #1523). A file that writes `apps` on the `store` table must call `lo
 (`packages/core/src/apps/locked.ts`, SELECT … FOR UPDATE) before it reads what it writes back.
 Ratchet with an empty allow-list: a new unlocked writer fails, stale entries fail.
 
+### aa. `smooth-ui` (`scripts/sweeps/smooth-ui.test.ts`)
+
+The "Smooth UI" rules (`docs/conventions.md`) over `apps/admin/src`, `packages/ui/src` and
+`packages/editor/src` (`.ts`, `.tsx` and `.css`): no `transition-all` / `transition: all`; no
+backdrop blur in a class string that also makes the element `fixed` or `sticky`; and every other
+backdrop blur (class, inline `backdropFilter`, or a CSS `backdrop-filter` that is not `none` or a
+`var(--glass-*-filter)` token) is allow-listed per file with a reason: small, static or
+short-lived surfaces only (a drag-and-drop hint, the sign-in illustration). **Fix**: a solid
+surface (`glass-bar`, `glass-popover`, `bg-raised`, `bg-popover`) and named transition
+properties. Ratchet: new fails, stale fails.
+
 ## `server-only`
 
 The `server-only` npm package throws unconditionally when the bundler resolving it does
