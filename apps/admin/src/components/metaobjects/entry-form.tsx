@@ -44,7 +44,7 @@ export default function EntryForm({ definition, entry, title }: EntryFormProps) 
   const [form, setForm] = useState<EntryFormState>(() => entryForm(entry))
   const [saved, setSaved] = useState(() => JSON.stringify(entryForm(entry)))
   const [errors, setErrors] = useState<Record<string, string>>({})
-  const [busy, setBusy] = useState(false)
+  const [busy, setBusy] = useState<string | null>(null)
   const [confirmDelete, setConfirmDelete] = useState(false)
 
   // Helpers
@@ -64,7 +64,7 @@ export default function EntryForm({ definition, entry, title }: EntryFormProps) 
       toast.error(copy.fixErrors)
       return
     }
-    setBusy(true)
+    setBusy('save')
     const write = {
       definitionId: definition.id,
       status: form.status,
@@ -89,13 +89,13 @@ export default function EntryForm({ definition, entry, title }: EntryFormProps) 
       setErrors(fieldErrorsOf(err))
       toast.error(err instanceof Error ? err.message : copy.failed)
     } finally {
-      setBusy(false)
+      setBusy(null)
     }
   }
 
   const handleDuplicate = async () => {
     if (!entry) return
-    setBusy(true)
+    setBusy('duplicate')
     try {
       /* The saved version, as a draft; the server derives a fresh unique handle. */
       const { id } = await api.metaobjects.createEntry({
@@ -107,21 +107,21 @@ export default function EntryForm({ definition, entry, title }: EntryFormProps) 
       router.push(`${entriesPath(definition.type)}/${id}`)
     } catch (err) {
       toast.error(err instanceof Error ? err.message : copy.failed)
-      setBusy(false)
+      setBusy(null)
     }
   }
 
   const handleDelete = async () => {
     if (!entry) return
     setConfirmDelete(false)
-    setBusy(true)
+    setBusy('delete')
     try {
       await api.metaobjects.deleteEntries({ ids: [entry.id] })
       toast.success(copy.deleted)
       router.push(entriesPath(definition.type))
     } catch (err) {
       toast.error(err instanceof Error ? err.message : copy.failed)
-      setBusy(false)
+      setBusy(null)
     }
   }
 
@@ -138,17 +138,31 @@ export default function EntryForm({ definition, entry, title }: EntryFormProps) 
           actions={
             entry ? (
               <>
-                <Button variant="outline" onClick={handleDuplicate} disabled={busy}>
+                <Button
+                  variant="outline"
+                  onClick={handleDuplicate}
+                  loading={busy === 'duplicate'}
+                  disabled={busy !== null}
+                >
                   <Copy />
                   {copy.duplicate}
                 </Button>
-                <Button variant="outline" onClick={() => setConfirmDelete(true)} disabled={busy}>
+                <Button
+                  variant="outline"
+                  onClick={() => setConfirmDelete(true)}
+                  disabled={busy !== null}
+                >
                   <Trash2 aria-hidden="true" />
                   {copy.delete}
                 </Button>
               </>
             ) : (
-              <Button loading={busy} className="max-sm:hidden" onClick={handleSave} disabled={busy}>
+              <Button
+                loading={busy === 'save'}
+                className="max-sm:hidden"
+                onClick={handleSave}
+                disabled={busy !== null}
+              >
                 <Save aria-hidden="true" />
                 {copy.save}
               </Button>
@@ -191,7 +205,7 @@ export default function EntryForm({ definition, entry, title }: EntryFormProps) 
           setForm(JSON.parse(saved) as EntryFormState)
           setErrors({})
         }}
-        saving={busy}
+        saving={busy === 'save'}
       />
       <ConfirmDialog
         tone="destructive"
@@ -201,7 +215,7 @@ export default function EntryForm({ definition, entry, title }: EntryFormProps) 
         body={listCopy.bulk.confirmBody}
         confirmLabel={listCopy.bulk.confirm}
         cancelLabel={listCopy.bulk.cancel}
-        busy={busy}
+        busy={busy === 'delete'}
         onConfirm={() => void handleDelete()}
       />
     </ProoflyDetailPage>

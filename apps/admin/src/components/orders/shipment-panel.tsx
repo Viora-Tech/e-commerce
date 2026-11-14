@@ -46,7 +46,7 @@ export default function ShipmentPanel({
         <div className="flex items-center justify-between gap-4">
           <p className="text-body text-muted-foreground">{copy.none}</p>
           {bookable ? (
-            <Button loading={busy} onClick={onBook} disabled={busy}>
+            <Button onClick={onBook} disabled={busy}>
               <Truck aria-hidden="true" />
               {copy.book}
             </Button>

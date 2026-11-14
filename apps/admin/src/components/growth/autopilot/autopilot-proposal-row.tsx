@@ -13,6 +13,8 @@ import { routes } from '@/lib/routes'
 type AutopilotProposalRowProps = {
   proposal: AutopilotProposalView
   busy: boolean
+  /** This row's Approve is the action running: its button spins. */
+  approving?: boolean
   onApprove: () => void
   onDismiss: () => void
 }
@@ -41,6 +43,7 @@ function reasonOf(p: AutopilotProposalView, copy: Copy, fmt: Formatters): string
 export default function AutopilotProposalRow({
   proposal: p,
   busy,
+  approving = false,
   onApprove,
   onDismiss,
 }: AutopilotProposalRowProps) {
@@ -92,7 +95,7 @@ export default function AutopilotProposalRow({
               {copy.open}
             </Button>
           ) : null}
-          <Button disabled={busy} onClick={onApprove}>
+          <Button disabled={busy} loading={approving} onClick={onApprove}>
             {p.kind === 'automation' ? copy.turnOn : copy.approve}
           </Button>
         </div>

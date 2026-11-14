@@ -97,6 +97,8 @@ export default function PurchaseOrderForm({
   const [form, setForm] = useState<PoForm>(() => initialForm(po, locations))
   const [saved, setSaved] = useState(() => JSON.stringify(initialForm(po, locations)))
   const [busy, setBusy] = useState(false)
+  /** Save or Mark as ordered, whichever was pressed, so only its button spins while `busy`. */
+  const [pending, setPending] = useState<'save' | 'markOrdered' | null>(null)
   const [dialog, setDialog] = useState<Dialog>(null)
 
   // Helpers
@@ -152,16 +154,19 @@ export default function PurchaseOrderForm({
     })
 
   // Event handlers
-  const handleSave = () =>
-    run(async () => {
+  const handleSave = () => {
+    setPending('save')
+    return run(async () => {
       const id = await persist()
       if (!id) return
       toast.success(po ? copy.saved : copy.created)
       reopen(id)
     })
+  }
 
-  const handleMarkOrdered = () =>
-    run(async () => {
+  const handleMarkOrdered = () => {
+    setPending('markOrdered')
+    return run(async () => {
       if (form.lines.length === 0) {
         toast.error(copy.needLines)
         return
@@ -171,6 +176,7 @@ export default function PurchaseOrderForm({
       toast.success(copy.ordered)
       reopen(id)
     })
+  }
 
   const handlePickSupplier = (s: PickedSupplier) => {
     const draft = !po || po.status === 'draft'
@@ -290,6 +296,7 @@ export default function PurchaseOrderForm({
           <PoActions
             status={status}
             busy={busy}
+            pending={busy ? pending : null}
             cancellable={status === 'ordered' && nothingArrived}
             reopenable={status === 'cancelled' || (status === 'closed' && outstanding)}
             onSave={handleSave}

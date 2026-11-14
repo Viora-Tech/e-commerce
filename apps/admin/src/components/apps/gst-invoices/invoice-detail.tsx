@@ -48,7 +48,7 @@ export default function InvoiceDetail({ params }: AppPageProps) {
   const [doc, setDoc] = useState<Doc | null>(null)
   const [reason, setReason] = useState('')
   const [ship, setShip] = useState<Shipping | null>(null)
-  const [busy, setBusy] = useState(false)
+  const [busy, setBusy] = useState<string | null>(null)
 
   useEffect(() => {
     api.gstInvoices.get({ id: params.id ?? '' }).then((d) => {
@@ -58,8 +58,8 @@ export default function InvoiceDetail({ params }: AppPageProps) {
   }, [params.id])
 
   // Helpers
-  const run = async (fn: () => Promise<void>, done?: string) => {
-    setBusy(true)
+  const run = async (action: string, fn: () => Promise<void>, done?: string) => {
+    setBusy(action)
     try {
       await fn()
       const d = await api.gstInvoices.get({ id: params.id ?? '' })
@@ -68,7 +68,7 @@ export default function InvoiceDetail({ params }: AppPageProps) {
     } catch (err) {
       toast.error(err instanceof Error ? err.message : copy.cancel)
     } finally {
-      setBusy(false)
+      setBusy(null)
     }
   }
 
@@ -77,33 +77,43 @@ export default function InvoiceDetail({ params }: AppPageProps) {
 
   // Event handlers
   const handleDownload = () =>
-    run(async () => saveFile(await api.gstInvoices.download({ id: params.id ?? '' })))
+    run('download', async () => saveFile(await api.gstInvoices.download({ id: params.id ?? '' })))
   // Opens the PDF in a new tab, where the browser's viewer prints it (as the list's bulk Print does).
   const handlePrint = () =>
-    run(async () => saveFile(await api.gstInvoices.download({ id: params.id ?? '' }), 'open'))
+    run('print', async () =>
+      saveFile(await api.gstInvoices.download({ id: params.id ?? '' }), 'open'),
+    )
   const handleCancel = () =>
-    run(async () => {
-      await api.gstInvoices.cancel({ id: params.id ?? '', reason })
-    }, copy.cancelled)
+    run(
+      'cancel',
+      async () => {
+        await api.gstInvoices.cancel({ id: params.id ?? '', reason })
+      },
+      copy.cancelled,
+    )
   const handleRefreshGst = () =>
-    run(async () => {
+    run('refresh', async () => {
       const r = await api.gstInvoices.refreshGst({ id: params.id ?? '' })
       toast.success(refreshCopy.done(r.changedLines))
     })
   const handleShipping = () =>
-    run(async () => {
-      if (!ship) return
-      await api.gstInvoices.regenerate({
-        id: params.id ?? '',
-        exportDetails: {
-          portCode: ship.portCode || null,
-          shippingBillNumber: ship.shippingBillNumber || null,
-          shippingBillDate: ship.shippingBillDate || null,
-          currency: ship.currency ? ship.currency.toUpperCase() : null,
-          exchangeRate: ship.exchangeRate ? Number(ship.exchangeRate) : null,
-        },
-      })
-    }, copy.saved)
+    run(
+      'shipping',
+      async () => {
+        if (!ship) return
+        await api.gstInvoices.regenerate({
+          id: params.id ?? '',
+          exportDetails: {
+            portCode: ship.portCode || null,
+            shippingBillNumber: ship.shippingBillNumber || null,
+            shippingBillDate: ship.shippingBillDate || null,
+            currency: ship.currency ? ship.currency.toUpperCase() : null,
+            exchangeRate: ship.exchangeRate ? Number(ship.exchangeRate) : null,
+          },
+        })
+      },
+      copy.saved,
+    )
 
   // Early returns
   if (!doc || !ship) return null
@@ -135,11 +145,21 @@ export default function InvoiceDetail({ params }: AppPageProps) {
         }
         actions={
           <>
-            <Button variant="outline" disabled={busy} onClick={handlePrint}>
+            <Button
+              variant="outline"
+              disabled={busy !== null}
+              onClick={handlePrint}
+              loading={busy === 'print'}
+            >
               <Printer />
               {copy.print}
             </Button>
-            <Button variant="outline" disabled={busy} onClick={handleDownload}>
+            <Button
+              variant="outline"
+              disabled={busy !== null}
+              onClick={handleDownload}
+              loading={busy === 'download'}
+            >
               <Download />
               {copy.download}
             </Button>
@@ -214,8 +234,9 @@ export default function InvoiceDetail({ params }: AppPageProps) {
           <Button
             className="mt-3 self-end"
             variant="outline"
-            disabled={busy}
+            disabled={busy !== null}
             onClick={handleShipping}
+            loading={busy === 'shipping'}
           >
             <Save aria-hidden="true" />
             {copy.saveShipping}
@@ -228,8 +249,9 @@ export default function InvoiceDetail({ params }: AppPageProps) {
           <Button
             className="mt-3 self-start"
             variant="outline"
-            disabled={busy}
+            disabled={busy !== null}
             onClick={handleRefreshGst}
+            loading={busy === 'refresh'}
           >
             <RefreshCw aria-hidden="true" />
             {refreshCopy.button}
@@ -249,8 +271,9 @@ export default function InvoiceDetail({ params }: AppPageProps) {
             />
             <Button
               variant="destructive"
-              disabled={busy || reason.trim().length < 3}
+              disabled={busy !== null || reason.trim().length < 3}
               onClick={handleCancel}
+              loading={busy === 'cancel'}
             >
               {copy.cancel}
             </Button>

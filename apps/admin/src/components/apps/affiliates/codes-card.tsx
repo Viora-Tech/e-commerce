@@ -29,14 +29,16 @@ export default function CodesCard({
   // Hooks
   const { detail, failed } = useCopy(affiliatesContent)
   const [confirming, setConfirming] = useState(false)
-  const [busy, setBusy] = useState(false)
+  /** Which action is running, so only its button spins (the others just wait). */
+  const [busy, setBusy] = useState<'rotate' | 'approve' | 'decline' | null>(null)
 
   // Event handlers
   const run = async (
+    action: 'rotate' | 'approve' | 'decline',
     fn: () => Promise<{ couponCode: string | null }>,
     done: (r: { couponCode: string | null }) => string,
   ) => {
-    setBusy(true)
+    setBusy(action)
     try {
       const r = await fn()
       toast.success(done(r))
@@ -44,17 +46,19 @@ export default function CodesCard({
     } catch (err) {
       toast.error(err instanceof Error ? err.message : failed)
     } finally {
-      setBusy(false)
+      setBusy(null)
       setConfirming(false)
     }
   }
   const handleRotate = () =>
     run(
+      'rotate',
       () => api.affiliates.rotateCoupon({ id: affiliateId }),
       (r) => c.rotated(r.couponCode ?? ''),
     )
   const handleDecide = (decision: 'approve' | 'decline') =>
     run(
+      decision,
       () => api.affiliates.decideCode({ id: affiliateId, decision }),
       () => (decision === 'approve' ? c.approved : c.declined),
     )
@@ -80,14 +84,20 @@ export default function CodesCard({
         <div className="flex flex-wrap items-center gap-3 rounded-lg bg-muted/50 px-3 py-2">
           <span className="text-body">{c.request(request.code)}</span>
           <span className="flex gap-2">
-            <Button size="sm" onClick={() => handleDecide('approve')} disabled={busy}>
+            <Button
+              size="sm"
+              onClick={() => handleDecide('approve')}
+              disabled={busy !== null}
+              loading={busy === 'approve'}
+            >
               {c.approve}
             </Button>
             <Button
               size="sm"
               variant="outline"
               onClick={() => handleDecide('decline')}
-              disabled={busy}
+              disabled={busy !== null}
+              loading={busy === 'decline'}
             >
               {c.decline}
             </Button>
@@ -97,7 +107,7 @@ export default function CodesCard({
       {couponCode ? (
         <div className="flex flex-col gap-1">
           <div>
-            <Button variant="outline" onClick={() => setConfirming(true)} disabled={busy}>
+            <Button variant="outline" onClick={() => setConfirming(true)} disabled={busy !== null}>
               {c.rotate}
             </Button>
           </div>
@@ -126,7 +136,7 @@ export default function CodesCard({
         title={c.rotateConfirm}
         body={c.rotateHelp}
         confirmLabel={c.rotate}
-        busy={busy}
+        busy={busy === 'rotate'}
         onConfirm={handleRotate}
       />
     </div>

@@ -64,7 +64,7 @@ export default function AppearanceSettings({ productLayout }: AppearanceSettings
   const { theme } = useTheme()
   const [loaded, setLoaded] = useState<Loaded | null>(null)
   const [draft, setDraft] = useState(DEFAULT_ACCENT)
-  const [busy, setBusy] = useState(false)
+  const [busy, setBusy] = useState<string | null>(null)
   const { failed, retry } = useLoad(async () => {
     const r = await api.appearance.get()
     setLoaded(r)
@@ -74,8 +74,8 @@ export default function AppearanceSettings({ productLayout }: AppearanceSettings
 
   // Helpers
   /** Stores the answer, caches it for the next server render and re-renders the layout. */
-  const run = async (save: () => Promise<Loaded>, done: string) => {
-    setBusy(true)
+  const run = async (action: string, save: () => Promise<Loaded>, done: string) => {
+    setBusy(action)
     try {
       const r = await save()
       setLoaded(r)
@@ -86,18 +86,19 @@ export default function AppearanceSettings({ productLayout }: AppearanceSettings
     } catch (err) {
       toast.error(err instanceof Error ? err.message : copy.accent.failed)
     } finally {
-      setBusy(false)
+      setBusy(null)
     }
   }
 
   // Event handlers
-  const handleSave = () => run(() => api.appearance.setMine({ accent: draft }), copy.accent.saved)
+  const handleSave = () =>
+    run('save', () => api.appearance.setMine({ accent: draft }), copy.accent.saved)
   const handleReset = () =>
-    run(() => api.appearance.setMine({ accent: null }), copy.accent.resetDone)
+    run('reset', () => api.appearance.setMine({ accent: null }), copy.accent.resetDone)
   const handleStoreDefault = () =>
-    run(() => api.appearance.setStoreDefault({ accent: draft }), copy.store.saved)
+    run('storeDefault', () => api.appearance.setStoreDefault({ accent: draft }), copy.store.saved)
   const handleStoreReset = () =>
-    run(() => api.appearance.setStoreDefault({ accent: null }), copy.store.resetDone)
+    run('storeReset', () => api.appearance.setStoreDefault({ accent: null }), copy.store.resetDone)
 
   // Early returns
   if (failed && !loaded) return <LoadFailed failed={failed} onRetry={retry} />
@@ -133,11 +134,20 @@ export default function AppearanceSettings({ productLayout }: AppearanceSettings
           >
             <AccentPicker value={draft} onChange={setDraft} help={sourceLine(loaded)} />
             <div className="flex flex-wrap items-center gap-2">
-              <Button onClick={handleSave} disabled={busy || unchanged}>
+              <Button
+                onClick={handleSave}
+                loading={busy === 'save'}
+                disabled={busy !== null || unchanged}
+              >
                 <Save aria-hidden="true" />
                 {copy.accent.save}
               </Button>
-              <Button variant="ghost" onClick={handleReset} disabled={busy || !loaded.mine}>
+              <Button
+                variant="ghost"
+                onClick={handleReset}
+                loading={busy === 'reset'}
+                disabled={busy !== null || !loaded.mine}
+              >
                 {copy.accent.reset}
               </Button>
             </div>
@@ -159,7 +169,8 @@ export default function AppearanceSettings({ productLayout }: AppearanceSettings
                 <Button
                   variant="outline"
                   onClick={handleStoreDefault}
-                  disabled={busy || storeUnchanged}
+                  loading={busy === 'storeDefault'}
+                  disabled={busy !== null || storeUnchanged}
                 >
                   <CheckIcon aria-hidden="true" />
                   {copy.store.apply}
@@ -167,7 +178,8 @@ export default function AppearanceSettings({ productLayout }: AppearanceSettings
                 <Button
                   variant="ghost"
                   onClick={handleStoreReset}
-                  disabled={busy || !loaded.storeDefault}
+                  loading={busy === 'storeReset'}
+                  disabled={busy !== null || !loaded.storeDefault}
                 >
                   {copy.store.reset}
                 </Button>

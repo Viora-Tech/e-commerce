@@ -113,7 +113,7 @@ export default function InvoicesList() {
   const [loadedKey, setLoadedKey] = useState<string | null>(null)
   const [picked, setPicked] = useState<Set<string>>(new Set())
   const [everything, setEverything] = useState(false)
-  const [busy, setBusy] = useState(false)
+  const [busy, setBusy] = useState<string | null>(null)
   const [progress, setProgress] = useState<Progress | null>(null)
   const [gst, setGst] = useState<string | undefined>(undefined)
   // Bumped after a bulk change so the open page reads its rows again.
@@ -156,8 +156,8 @@ export default function InvoicesList() {
   // Helpers
   const selection = () =>
     everything ? { filter: filterOf(q, tab, month, gst) } : { ids: [...picked] }
-  const bulk = async (fn: () => Promise<void>) => {
-    setBusy(true)
+  const bulk = async (action: string, fn: () => Promise<void>) => {
+    setBusy(action)
     const id = toast.loading(copy.working)
     try {
       await fn()
@@ -165,7 +165,7 @@ export default function InvoicesList() {
     } catch (err) {
       toast.error(err instanceof Error ? err.message : copy.failed, { id })
     } finally {
-      setBusy(false)
+      setBusy(null)
     }
   }
 
@@ -198,17 +198,17 @@ export default function InvoicesList() {
     setPicked(on ? new Set(data?.rows.map((r) => r.id)) : new Set())
   }
   const handleDownload = () =>
-    bulk(async () => saveFile(await api.gstInvoices.bulkDownload(selection())))
+    bulk('download', async () => saveFile(await api.gstInvoices.bulkDownload(selection())))
   const handlePrint = () =>
-    bulk(async () => saveFile(await api.gstInvoices.bulkPrint(selection()), 'open'))
+    bulk('print', async () => saveFile(await api.gstInvoices.bulkPrint(selection()), 'open'))
   const handleRecalculate = () =>
-    bulk(async () => {
+    bulk('recalculate', async () => {
       const r = await api.gstInvoices.bulkRefreshGst(selection())
       toast.success(refreshCopy.done(r.updated, r.unchanged, r.skipped))
       setVersion((v) => v + 1)
     })
   const handleEmail = () =>
-    bulk(async () => {
+    bulk('email', async () => {
       const r = await api.gstInvoices.bulkEmail(selection())
       setProgress({ batchId: r.batchId, total: r.total, sent: 0, failed: 0 })
       toast.success(copy.emailQueued(r.total))
@@ -284,21 +284,44 @@ export default function InvoicesList() {
                 </Button>
               ) : null}
               <span className="flex-1" />
-              <Button size="sm" variant="outline" disabled={busy} onClick={handleDownload}>
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={busy !== null}
+                onClick={handleDownload}
+                loading={busy === 'download'}
+              >
                 <Download />
                 {copy.download}
               </Button>
-              <Button size="sm" variant="outline" disabled={busy} onClick={handlePrint}>
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={busy !== null}
+                onClick={handlePrint}
+                loading={busy === 'print'}
+              >
                 <Printer />
                 {copy.print}
               </Button>
               {tab === 'tax_invoice' ? (
-                <Button size="sm" variant="outline" disabled={busy} onClick={handleRecalculate}>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={busy !== null}
+                  onClick={handleRecalculate}
+                  loading={busy === 'recalculate'}
+                >
                   <RefreshCw />
                   {refreshCopy.button}
                 </Button>
               ) : null}
-              <Button size="sm" disabled={busy} onClick={handleEmail}>
+              <Button
+                size="sm"
+                disabled={busy !== null}
+                onClick={handleEmail}
+                loading={busy === 'email'}
+              >
                 <Send />
                 {copy.email}
               </Button>

@@ -88,7 +88,8 @@ export default function RouteSettingDialog({
   // Hooks
   const copy = useCopy(deliveryOptionsContent)
   const [draft, setDraft] = useState<Draft>(() => draftOf(current))
-  const [busy, setBusy] = useState(false)
+  /** Which action is running, so only its button spins. */
+  const [busy, setBusy] = useState<'save' | 'remove' | null>(null)
 
   useEffect(() => {
     if (open) setDraft(draftOf(current))
@@ -98,8 +99,8 @@ export default function RouteSettingDialog({
   const patch = (p: Partial<Draft>) => setDraft((d) => ({ ...d, ...p }))
   const keyOf = () =>
     target.kind === 'exact' ? target.key : carrierSettingKey(draft.carrier, draft.channel)
-  const run = async (work: () => Promise<unknown>) => {
-    setBusy(true)
+  const run = async (action: 'save' | 'remove', work: () => Promise<unknown>) => {
+    setBusy(action)
     try {
       await work()
       toast.success(copy.saved)
@@ -108,14 +109,14 @@ export default function RouteSettingDialog({
     } catch (err) {
       toast.error(err instanceof Error ? err.message : copy.failed)
     } finally {
-      setBusy(false)
+      setBusy(null)
     }
   }
 
   // Event handlers
   const handleSave = () => {
     const first = parseRupees(draft.first)
-    return run(() =>
+    return run('save', () =>
       api.deliveryOptions.saveRouteSetting({
         key: keyOf(),
         insures: draft.insures === 'default' ? null : draft.insures === 'yes',
@@ -134,7 +135,8 @@ export default function RouteSettingDialog({
       }),
     )
   }
-  const handleRemove = () => run(() => api.deliveryOptions.deleteRouteSetting({ key: keyOf() }))
+  const handleRemove = () =>
+    run('remove', () => api.deliveryOptions.deleteRouteSetting({ key: keyOf() }))
 
   // Render logic
   const d = copy.routeDialog
@@ -244,7 +246,13 @@ export default function RouteSettingDialog({
         </FieldGroup>
         <DialogFooter>
           {current ? (
-            <Button variant="ghost" className="mr-auto" onClick={handleRemove} disabled={busy}>
+            <Button
+              variant="ghost"
+              className="mr-auto"
+              onClick={handleRemove}
+              disabled={busy !== null}
+              loading={busy === 'remove'}
+            >
               <Trash2 aria-hidden />
               {d.remove}
             </Button>
@@ -252,7 +260,11 @@ export default function RouteSettingDialog({
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             {copy.cancel}
           </Button>
-          <Button onClick={handleSave} disabled={busy || percentBad}>
+          <Button
+            onClick={handleSave}
+            disabled={busy !== null || percentBad}
+            loading={busy === 'save'}
+          >
             <Save aria-hidden="true" />
             {copy.save}
           </Button>

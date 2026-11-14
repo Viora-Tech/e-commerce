@@ -21,11 +21,12 @@ export default function UsageLimitCard({ card, onChanged }: UsageLimitCardProps)
   // Hooks
   const [editing, setEditing] = useState(false)
   const [value, setValue] = useState(card.usageLimit ? String(card.usageLimit) : '')
-  const [busy, setBusy] = useState(false)
+  /** `set` or `clear` while saving, so only the pressed button spins. */
+  const [busy, setBusy] = useState<'set' | 'clear' | null>(null)
 
   // Helpers
   const save = async (usageLimit: number | null) => {
-    setBusy(true)
+    setBusy(usageLimit === null ? 'clear' : 'set')
     try {
       await api.giftCards.update({ id: card.id, usageLimit })
       toast.success(copy.saved)
@@ -34,7 +35,7 @@ export default function UsageLimitCard({ card, onChanged }: UsageLimitCardProps)
     } catch {
       toast.error(giftCardDetailContent.failed)
     } finally {
-      setBusy(false)
+      setBusy(null)
     }
   }
 
@@ -78,15 +79,31 @@ export default function UsageLimitCard({ card, onChanged }: UsageLimitCardProps)
           {/* Footer order (audit #31): Remove limit on the left; Cancel then Save on the right. */}
           <div className="flex flex-wrap items-center gap-2">
             {card.usageLimit !== null ? (
-              <Button size="sm" variant="outline" onClick={() => save(null)} disabled={busy}>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => save(null)}
+                disabled={busy !== null}
+                loading={busy === 'clear'}
+              >
                 {copy.remove}
               </Button>
             ) : null}
             <div className="ml-auto flex gap-2">
-              <Button size="sm" variant="outline" onClick={() => setEditing(false)} disabled={busy}>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setEditing(false)}
+                disabled={busy !== null}
+              >
                 {copy.cancel}
               </Button>
-              <Button size="sm" onClick={() => save(limit)} disabled={busy || !valid}>
+              <Button
+                size="sm"
+                onClick={() => save(limit)}
+                disabled={busy !== null || !valid}
+                loading={busy === 'set'}
+              >
                 <Save aria-hidden="true" />
                 {copy.save}
               </Button>

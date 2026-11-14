@@ -59,7 +59,7 @@ export default function PickupsTab({ provider }: PickupsTabProps = {}) {
   const [date, setDate] = useState(() => startingPickupPlan().date)
   const [timeFrom, setTimeFrom] = useState('14:00')
   const [timeTo, setTimeTo] = useState('')
-  const [busy, setBusy] = useState(false)
+  const [busy, setBusy] = useState<string | null>(null)
   const [reloadKey, setReloadKey] = useState(0)
   /** The lists start unknown, so nothing says "no pickups" before the first answer or after a failure. */
   const [status, setStatus] = useState<'loading' | 'ready' | 'failed'>('loading')
@@ -108,7 +108,7 @@ export default function PickupsTab({ provider }: PickupsTabProps = {}) {
 
   const handleSchedule = async () => {
     if (!ready()) return
-    setBusy(true)
+    setBusy('schedule')
     try {
       const made = await api.shipments.schedulePickup({
         shipmentIds: selected,
@@ -128,19 +128,19 @@ export default function PickupsTab({ provider }: PickupsTabProps = {}) {
     } catch (err) {
       toast.error(err instanceof Error ? err.message : String(err))
     } finally {
-      setBusy(false)
+      setBusy(null)
     }
   }
 
   const handleManifest = async (pickupId: string) => {
-    setBusy(true)
+    setBusy('manifest')
     try {
       await api.shipments.createManifest({ pickupId })
       setReloadKey((k) => k + 1)
     } catch (err) {
       toast.error(err instanceof Error ? err.message : String(err))
     } finally {
-      setBusy(false)
+      setBusy(null)
     }
   }
 
@@ -223,10 +223,10 @@ export default function PickupsTab({ provider }: PickupsTabProps = {}) {
             </Field>
           </div>
           <Button
-            loading={busy}
+            loading={busy === 'schedule'}
             className="w-fit self-end"
             onClick={handleSchedule}
-            disabled={busy || !ready()}
+            disabled={busy !== null || !ready()}
           >
             <Truck aria-hidden="true" />
             {copy.submit}
