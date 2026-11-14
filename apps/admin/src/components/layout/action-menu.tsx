@@ -41,6 +41,8 @@ type ActionMenuProps = {
   trigger?: 'kebab' | 'kebab-vertical' | 'button'
   /** `sm` is the 7x7 row/card kebab, `md` the 8x8 one. */
   size?: 'sm' | 'md'
+  /** The `button` trigger's height: `default` 2.25rem, `sm` 2rem (a table's bulk bar). */
+  buttonSize?: 'default' | 'sm'
   /** Kebabs sit in clickable rows, so their events stay in the menu by default. */
   stopPropagation?: boolean
   align?: 'start' | 'end'
@@ -78,6 +80,7 @@ export default function ActionMenu({
   label,
   trigger = 'kebab',
   size = 'sm',
+  buttonSize = 'default',
   stopPropagation = trigger !== 'button',
   align = 'end',
   items,
@@ -109,6 +112,7 @@ export default function ActionMenu({
           render={
             <Button
               variant={variant === 'key-neutral' || variant === 'default' ? variant : 'outline'}
+              size={buttonSize}
               {...triggerEvents}
             />
           }

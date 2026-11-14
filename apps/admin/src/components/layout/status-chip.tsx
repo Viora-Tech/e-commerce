@@ -37,7 +37,7 @@ export default function StatusChip({
     return (
       <span
         className={cn(
-          'inline-flex h-5.5 items-center gap-1.5 text-xs font-medium whitespace-nowrap text-foreground',
+          'inline-flex h-5.5 items-center gap-1.5 text-period font-medium whitespace-nowrap text-foreground',
           className,
         )}
       >
@@ -50,7 +50,7 @@ export default function StatusChip({
   return (
     <span
       className={cn(
-        'inline-flex h-5.5 items-center gap-1 rounded-[0.375rem] border px-2 text-xs font-medium whitespace-nowrap',
+        'inline-flex h-5.5 items-center gap-1 rounded-[0.375rem] border px-2 text-period font-medium whitespace-nowrap',
         variant === 'outline' ? CHIP_OUTLINE[tone] : CHIP_SOFT[tone],
         className,
       )}

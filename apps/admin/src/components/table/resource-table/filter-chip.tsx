@@ -34,7 +34,7 @@ export default function FilterChip({ group, open, onOpenChange }: FilterChipProp
 
   return (
     <Popover open={open} onOpenChange={onOpenChange}>
-      <span className="inline-flex h-7 max-w-full items-center rounded-full border border-border bg-muted/60 text-xs text-foreground">
+      <span className="inline-flex h-7 max-w-full items-center rounded-full border border-border bg-muted/60 text-period text-foreground">
         <PopoverTrigger
           render={
             <button
@@ -79,12 +79,12 @@ export default function FilterChip({ group, open, onOpenChange }: FilterChipProp
         )}
       >
         <div className="flex h-10 shrink-0 items-center justify-between border-border border-b px-3.5">
-          <p className="text-xs font-medium text-muted-foreground">{group.label}</p>
+          <p className="text-period font-medium text-muted-foreground">{group.label}</p>
           {chip ? (
             <button
               type="button"
               onClick={() => clearGroup(group)}
-              className="-mr-1.5 rounded-sm px-1.5 py-0.5 text-xs font-medium text-foreground transition-colors hover:bg-muted"
+              className="-mr-1.5 rounded-sm px-1.5 py-0.5 text-period font-medium text-foreground transition-colors hover:bg-muted"
             >
               {panelCopy.clear}
             </button>

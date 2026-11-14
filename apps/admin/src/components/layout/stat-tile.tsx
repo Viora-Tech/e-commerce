@@ -1,5 +1,6 @@
 import { ArrowDown, ArrowUp } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
+import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 
 type StatTileProps = {
   label: string
@@ -18,6 +19,11 @@ type StatTileProps = {
   active?: boolean
   /** Points for a small trend line at the right of the tile (Figma Analytics KPI card). */
   spark?: number[] | undefined
+  /**
+   * The figures are loading: grey bars stand in the same line boxes (label, figure, note), so
+   * the strip keeps its height when they arrive. A tile with no label is a placeholder.
+   */
+  loading?: boolean
   className?: string
 }
 
@@ -47,8 +53,9 @@ function Spark({ points }: { points: number[] }) {
   )
 }
 
-/* Figma "Stat strip" cell: 16px inset, 6px gaps, 13px label, 28/34 semibold figure. The strip
-   (StatStrip) draws the card and the hairlines between cells. */
+/* Figma "Stat strip" cell: 1rem inset, 0.375rem gaps, the caption label (0.8125/1.125rem), the
+   stat figure (`text-stat`, 1.875/2.25rem semibold) and a 0.75/1rem note. The strip (StatStrip)
+   draws the card and the hairlines between cells. */
 const CELL =
   'flex min-w-0 flex-col gap-1.5 bg-transparent p-4 text-left transition-colors duration-150 ease-out'
 
@@ -63,21 +70,44 @@ export default function StatTile({
   onSelect,
   active = false,
   spark,
+  loading = false,
   className,
 }: StatTileProps) {
+  // Early returns
+  if (loading) {
+    const noted = !label || note !== undefined || trendNote !== undefined || trend !== undefined
+    return (
+      <div className={cn(CELL, className)} aria-hidden="true">
+        {label ? (
+          <span className="text-caption font-normal text-muted-foreground">{label}</span>
+        ) : (
+          <span className="flex h-4.5 items-center">
+            <Skeleton className="h-3 w-24" />
+          </span>
+        )}
+        <span className="flex h-9 items-center">
+          <Skeleton className="h-7 w-20" />
+        </span>
+        {noted ? (
+          <span className="flex h-4 items-center">
+            <Skeleton className="h-2.5 w-28" />
+          </span>
+        ) : null}
+      </div>
+    )
+  }
+
   // Render logic
   const up = (trend ?? 0) > 0
   const good = invert ? !up : up
   const figures = (
     <>
-      <span className="text-[0.8125rem] leading-[1.1875rem] text-muted-foreground">{label}</span>
-      <span className="text-[1.75rem] leading-[2.125rem] font-semibold tracking-[-0.02em] text-ink-strong tabular-nums">
-        {value}
-      </span>
+      <span className="text-caption font-normal text-muted-foreground">{label}</span>
+      <span className="text-stat text-ink-strong tabular-nums">{value}</span>
       {typeof trend === 'number' ? (
         <span
           className={cn(
-            'inline-flex items-center gap-1 text-xs font-medium',
+            'inline-flex items-center gap-1 text-period font-medium',
             trend === 0 ? 'text-muted-foreground' : good ? 'text-foreground' : 'text-danger',
           )}
         >
@@ -93,7 +123,7 @@ export default function StatTile({
         </span>
       ) : note || (trendNote && trend === undefined) ? (
         /* A trend of null means there is nothing to compare against: no lone "vs last week". */
-        <span className="text-xs text-muted-foreground">{note ?? trendNote}</span>
+        <span className="text-period text-muted-foreground">{note ?? trendNote}</span>
       ) : null}
     </>
   )

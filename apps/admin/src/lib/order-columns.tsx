@@ -48,7 +48,7 @@ function CustomerCell({ item }: { item: Item }) {
       <span className="min-w-0">
         <span className="line-clamp-1 text-body font-medium text-ink-strong">{who}</span>
         {item.customerName && item.email ? (
-          <span className="line-clamp-1 text-xs text-muted-foreground">{item.email}</span>
+          <span className="line-clamp-1 text-period text-muted-foreground">{item.email}</span>
         ) : null}
       </span>
     </span>
@@ -68,7 +68,7 @@ function ProductCell({ item }: { item: Item }) {
       {/* No picture, or one that fails to load, shows the image icon (Figma Thumb cell). */}
       <ProductThumb url={item.firstLineImage} className="rounded-[0.375rem]" />
       <span className="min-w-0">
-        <span className="line-clamp-1 text-[0.8125rem] leading-[1.1875rem] text-foreground">
+        <span className="line-clamp-1 text-caption font-normal text-foreground">
           {item.firstLineTitle ?? copy.guest}
         </span>
         {extra > 0 ? (
@@ -149,7 +149,7 @@ export function orderColumns(
       sortRank: 0,
       minWidth: 7.5,
       render: (o) => (
-        <span className="text-[0.8125rem] text-muted-foreground tabular-nums">
+        <span className="text-caption font-normal text-muted-foreground tabular-nums">
           {fmt.when(o.placedAt)}
         </span>
       ),
@@ -222,7 +222,7 @@ export function orderColumns(
       className: 'w-[7%]',
       minWidth: 6,
       render: (o) => (
-        <span className="block truncate text-[0.8125rem] text-muted-foreground">
+        <span className="block truncate text-caption font-normal text-muted-foreground">
           {CHANNEL_LABELS[o.channel as OverviewChannel] ?? CHANNEL_LABELS.untracked}
         </span>
       ),
@@ -245,7 +245,7 @@ export function orderColumns(
               </StatusChip>
             ))}
             {o.tags.length > 2 ? (
-              <span className="text-xs text-muted-foreground">+{o.tags.length - 2}</span>
+              <span className="text-period text-muted-foreground">+{o.tags.length - 2}</span>
             ) : null}
           </span>
         ) : null,

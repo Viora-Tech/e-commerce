@@ -17,6 +17,7 @@ import type { ResourceTableFeatures } from './features'
 import FilterChip from './filter-chip'
 import FilterMenu from './filter-menu'
 import SortMenu from './sort-menu'
+import { CONTROL_HEIGHT, TOOLBAR_ROW } from './styles'
 
 export type AppliedFilter = {
   key: string
@@ -51,9 +52,12 @@ type ToolbarProps<T extends RowData> = {
 }
 
 /* Figma "Table / Toolbar": the top row of the table card. View select, a divider, a borderless
-   search that fills the row, then 32px ghost icon buttons (filter, sort, columns). */
-const CONTROL =
-  'inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-sm text-body font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring data-[popup-open]:bg-muted data-[popup-open]:text-foreground [&_svg]:size-4 [&_svg]:shrink-0'
+   search that fills the row, then ghost buttons (filter, sort, columns), all 2.25rem tall like
+   every other control. */
+const CONTROL = cn(
+  CONTROL_HEIGHT,
+  'inline-flex shrink-0 items-center justify-center gap-1.5 rounded-sm text-body font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring data-[popup-open]:bg-muted data-[popup-open]:text-foreground [&_svg]:size-4 [&_svg]:shrink-0',
+)
 
 export default function ResourceTableToolbar<T extends RowData>({
   table,
@@ -84,7 +88,7 @@ export default function ResourceTableToolbar<T extends RowData>({
 
   return (
     <div className="flex flex-col border-border border-b">
-      <div className="flex flex-wrap items-center gap-2 py-2 pr-2 pl-1.5">
+      <div className={TOOLBAR_ROW}>
         {views ? (
           <>
             {views}
@@ -95,7 +99,7 @@ export default function ResourceTableToolbar<T extends RowData>({
           {/* One "Search and filter" bar, as Shopify does it: the applied filters sit inside it as
               pills ("Payment is Paid ×") before the text, not in a second row under it. A pill
               reopens its own small popover; the Filter button adds another. */}
-          <div className="flex min-h-8 min-w-0 flex-1 flex-wrap items-center gap-1.5 rounded-sm px-2 py-0.5 transition-colors focus-within:bg-muted/50">
+          <div className="flex min-h-9 min-w-0 flex-1 flex-wrap items-center gap-1.5 rounded-sm px-2 py-0.5 transition-colors focus-within:bg-muted/50">
             <Search className="size-4 shrink-0 text-muted-foreground" />
             {chips.map((g) => (
               <FilterChip
@@ -119,14 +123,14 @@ export default function ResourceTableToolbar<T extends RowData>({
               onChange={(e) => onQueryChange(e.target.value)}
               placeholder={chips.length > 0 ? tableCopy.searchMore : tableCopy.search(plural)}
               aria-label={tableCopy.search(plural)}
-              className="h-7 min-w-32 flex-1 bg-transparent text-[0.8125rem] leading-[1.1875rem] text-foreground outline-none placeholder:text-muted-foreground"
+              className="h-7 min-w-32 flex-1 bg-transparent text-caption font-normal text-foreground outline-none placeholder:text-muted-foreground"
             />
           </div>
           {filterGroups.length > 0 ? (
             <FilterMenu
               groups={filterGroups}
               onPick={setOpenKey}
-              className={cn(CONTROL, 'min-w-8 px-2')}
+              className={cn(CONTROL, 'min-w-9 px-2')}
               label={tableCopy.filter}
             >
               <SlidersHorizontal />
