@@ -45,7 +45,7 @@ export const BulkEditVariantPatchSchema = z
     costPaise: paise.nullable(),
     sku: z.string().trim().max(100).nullable(),
     barcode: z.string().trim().max(100).nullable(),
-    weightGrams: z.number().int().min(0).max(1_000_000).nullable(),
+    weightGrams: z.number().int().min(0).max(100_000).nullable(),
     hsCode: z.string().trim().max(20).nullable(),
     /** Null uses the store's GST rate. */
     gstRatePercent: z.number().int().min(0).max(40).nullable(),

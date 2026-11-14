@@ -48,6 +48,13 @@ export const createShipmentContent = {
     width: 'Width (cm)',
     height: 'Height (cm)',
     charged: (kg: string) => `Couriers charge for ${kg} kg (the bigger of real and size weight).`,
+    /** A weight no parcel here should have: a product saved in the wrong unit (owner, 14 Nov). */
+    weightCheck: {
+      title: 'Check the weight before you book',
+      item: (title: string, kg: string) => `${title} is saved as ${kg} kg each.`,
+      parcel: (kg: string) => `This parcel weighs ${kg} kg.`,
+      body: 'That looks too heavy. Couriers charge by weight: fix it in the product (Products › weight) or in Weight above.',
+    },
     payment: 'Payment',
     prepaid: 'Prepaid',
     prepaidHelp: 'Paid online, nothing to collect',

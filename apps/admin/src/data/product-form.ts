@@ -279,6 +279,9 @@ export const productFormContent = {
     weightUnit: 'Weight unit',
     weightUnits: { g: 'g', kg: 'kg', lb: 'lb', oz: 'oz' },
     weightHelp: 'Used for courier rates. Empty means the store default.',
+    /** Typed in the wrong unit (the field starts on kg): a 1 kg pad saved as 1,000 kg, owner 14 Nov. */
+    weightTooHeavy: (kg: string) =>
+      `That is ${kg} kg, more than any parcel should weigh. Check the unit: for grams, pick g.`,
     hsCode: 'HS (harmonised system) code',
     hsCodeHelp: 'Used on customs forms and printed on GST invoices.',
     gstRate: 'GST rate (%)',

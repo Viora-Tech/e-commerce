@@ -1,7 +1,7 @@
 'use client'
 
-import { CreditCard, InfoIcon, QrCodeIcon } from '@commerce/ui/icons'
-import { Alert, AlertDescription } from '@commerce/ui/shadcn/alert'
+import { CreditCard, InfoIcon, QrCodeIcon, TriangleAlert } from '@commerce/ui/icons'
+import { Alert, AlertDescription, AlertTitle } from '@commerce/ui/shadcn/alert'
 import { Field, FieldDescription, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import ChoiceField from '@/components/apps/gst-invoices/choice-field'
@@ -9,6 +9,7 @@ import ChoiceCard from '@/components/layout/choice-card'
 import PillTabs from '@/components/layout/pill-tabs'
 import { createShipmentContent } from '@/data/create-shipment'
 import { useCopy, useFormat } from '@/hooks/use-copy'
+import { suspectWeights } from '@/lib/weight-check'
 import BoxSelect from './box-select'
 import {
   CUSTOM_BOX,
@@ -52,6 +53,7 @@ export default function PackageStep({
 
   // Helpers
   const set = (patch: Partial<PackageForm>) => onChange({ ...form, ...patch })
+  const kgOf = (grams: number) => fmt.number(Math.round(grams / 10) / 100)
 
   // Event handlers
   const handlePickup = (value: string) =>
@@ -93,6 +95,29 @@ export default function PackageStep({
         <p className="text-caption text-muted-foreground">{copy.parcelHelp}</p>
       </div>
     ) : null
+  const typedGrams = Number(form.weightGrams)
+  const suspect = suspectWeights(
+    parcel.lines,
+    Number.isFinite(typedGrams) && typedGrams > 0 ? typedGrams : null,
+  )
+  // A product saved in the wrong unit: checked before the courier quotes for it (owner, 14 Nov).
+  const weightAlert = suspect ? (
+    <Alert variant="destructive">
+      <TriangleAlert aria-hidden="true" />
+      <AlertTitle>{copy.weightCheck.title}</AlertTitle>
+      <AlertDescription>
+        {suspect.items.map((i) => (
+          <span key={i.title} className="block">
+            {copy.weightCheck.item(i.title, kgOf(i.grams))}
+          </span>
+        ))}
+        {suspect.parcel && suspect.items.length === 0 ? (
+          <span className="block">{copy.weightCheck.parcel(kgOf(typedGrams))}</span>
+        ) : null}
+        <span className="block">{copy.weightCheck.body}</span>
+      </AlertDescription>
+    </Alert>
+  ) : null
   const codField =
     form.paymentMode === 'cod' ? (
       <Field>
@@ -149,6 +174,7 @@ export default function PackageStep({
             </Field>
           ))}
         </div>
+        {weightAlert}
         {kg ? (
           <Alert className="border-info-border bg-info-soft text-info">
             <InfoIcon aria-hidden="true" />
@@ -233,6 +259,7 @@ export default function PackageStep({
           <FieldDescription>{copy.weightHelp}</FieldDescription>
         </Field>
       </div>
+      {weightAlert}
       <div className="grid grid-cols-3 gap-3">
         {(['length', 'width', 'height'] as const).map((key) => (
           <Field key={key}>
