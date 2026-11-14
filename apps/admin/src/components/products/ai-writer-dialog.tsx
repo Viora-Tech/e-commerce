@@ -4,12 +4,11 @@ import type { WriterLanguage, WriterTone } from '@commerce/ai/client'
 import { richTextToPlainText } from '@commerce/richtext'
 import { AiIcon, CircleAlert } from '@commerce/ui/icons'
 import { Alert, AlertDescription } from '@commerce/ui/shadcn/alert'
+import { Button } from '@commerce/ui/shadcn/button'
 import { Dialog, DialogDescription, DialogTitle } from '@commerce/ui/shadcn/dialog'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
-import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import KitButton from '@/components/kit/kit-button'
 import DialogContent from '@/components/layout/dialog-content'
 import DialogFooter from '@/components/layout/dialog-footer'
 import DialogHeader from '@/components/layout/dialog-header'
@@ -138,9 +137,14 @@ export default function AiWriterDialog({ open, onOpenChange, form, onApply }: Ai
                   copy.writer.languages[language],
                 )}
               </span>
-              <KitButton variant="linkSm" onClick={() => setEditing(true)}>
+              <Button
+                variant="link"
+                size="xs"
+                onClick={() => setEditing(true)}
+                className="h-auto px-0"
+              >
                 {copy.writer.change}
-              </KitButton>
+              </Button>
             </div>
           )}
           <p className="text-caption text-muted-foreground">
@@ -189,27 +193,22 @@ export default function AiWriterDialog({ open, onOpenChange, form, onApply }: Ai
         <DialogFooter>
           {result ? (
             <>
-              <KitButton variant="secondary" onClick={() => void handleGenerate()} disabled={busy}>
-                {busy ? <Spinner /> : null}
+              <Button variant="outline" onClick={() => void handleGenerate()} loading={busy}>
                 {copy.writer.regenerate}
-              </KitButton>
-              <KitButton variant="primary" onClick={handleApply} disabled={busy}>
+              </Button>
+              <Button onClick={handleApply} disabled={busy}>
                 {copy.writer.apply}
-              </KitButton>
+              </Button>
             </>
           ) : (
             <>
-              <KitButton variant="secondary" onClick={() => onOpenChange(false)}>
+              <Button variant="outline" onClick={() => onOpenChange(false)}>
                 {copy.writer.cancel}
-              </KitButton>
-              <KitButton
-                variant="primary"
-                onClick={() => void handleGenerate()}
-                disabled={busy || needsTitle}
-              >
-                {busy ? <Spinner /> : <AiIcon className="size-4" aria-hidden="true" />}
+              </Button>
+              <Button onClick={() => void handleGenerate()} disabled={needsTitle} loading={busy}>
+                <AiIcon className="size-4" aria-hidden="true" />
                 {busy ? copy.writer.working : copy.writer.generate}
-              </KitButton>
+              </Button>
             </>
           )}
         </DialogFooter>

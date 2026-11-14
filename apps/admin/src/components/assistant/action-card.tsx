@@ -14,11 +14,11 @@ import {
   TrendingUp,
   TriangleAlert,
 } from '@commerce/ui/icons'
-import { Spinner } from '@commerce/ui/shadcn/spinner'
+import { Button } from '@commerce/ui/shadcn/button'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import KitButton from '@/components/kit/kit-button'
 import StatusChip from '@/components/layout/status-chip'
 import { approvalsContent } from '@/data/approvals'
 import { assistantContent } from '@/data/assistant'
@@ -175,31 +175,37 @@ export default function ActionCard({ action, onChange }: ActionCardProps) {
           <span className="mr-auto text-caption text-muted-foreground">
             {copy.card.waitingForOther}
           </span>
-          <KitButton variant="link" onClick={handleCancel} disabled={busy !== null}>
-            {busy === 'cancel' ? <Spinner /> : null}
+          <Button
+            variant="link"
+            onClick={handleCancel}
+            disabled={busy !== null}
+            loading={busy === 'cancel'}
+            className="h-auto px-0"
+          >
             {copy.card.withdraw}
-          </KitButton>
+          </Button>
         </footer>
       ) : null}
 
       {open && !editing && !waitsForOther ? (
         <footer className="flex flex-wrap items-center justify-end gap-2 border-border border-t bg-muted/30 px-4 py-2.5">
-          <KitButton variant="link" onClick={handleCancel} disabled={busy !== null}>
+          <Button
+            variant="link"
+            onClick={handleCancel}
+            disabled={busy !== null}
+            loading={busy === 'cancel'}
+            className="h-auto px-0"
+          >
             {action.needsApprover ? copy.card.reject : copy.card.cancel}
-          </KitButton>
+          </Button>
           {action.editable.length && !action.needsApprover ? (
-            <KitButton
-              variant="secondary"
-              onClick={() => setEditing(true)}
-              disabled={busy !== null}
-            >
+            <Button variant="outline" onClick={() => setEditing(true)} disabled={busy !== null}>
               {copy.card.edit}
-            </KitButton>
+            </Button>
           ) : null}
-          <KitButton variant="primary" onClick={handleApprove} disabled={busy !== null}>
-            {busy === 'approve' ? <Spinner /> : null}
+          <Button onClick={handleApprove} disabled={busy !== null} loading={busy === 'approve'}>
             {copy.card.approve}
-          </KitButton>
+          </Button>
         </footer>
       ) : null}
 
@@ -213,16 +219,27 @@ export default function ActionCard({ action, onChange }: ActionCardProps) {
             {action.status === 'undone' ? action.undoMessage : action.message}
           </span>
           {action.href && action.status === 'executed' ? (
-            <KitButton variant="linkSm" href={action.href}>
+            <Button
+              variant="link"
+              size="xs"
+              nativeButton={false}
+              render={<Link href={action.href} />}
+              className="h-auto px-0"
+            >
               {copy.card.open}
               <ExternalLink className="size-3" aria-hidden="true" />
-            </KitButton>
+            </Button>
           ) : null}
           {action.canUndo ? (
-            <KitButton variant="pill" onClick={handleUndo} disabled={busy !== null}>
-              {busy === 'undo' ? <Spinner /> : null}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleUndo}
+              disabled={busy !== null}
+              loading={busy === 'undo'}
+            >
               {copy.card.undo}
-            </KitButton>
+            </Button>
           ) : null}
         </footer>
       ) : null}

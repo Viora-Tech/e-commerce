@@ -7,6 +7,7 @@ import {
   NUMERIC_COLLECTION_FIELDS,
 } from '@commerce/core/collections'
 import { Trash2 } from '@commerce/ui/icons'
+import { Button } from '@commerce/ui/shadcn/button'
 import { Input } from '@commerce/ui/shadcn/input'
 import {
   Select,
@@ -15,7 +16,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@commerce/ui/shadcn/select'
-import KitIconButton from '@/components/kit/kit-icon-button'
 import { collectionFormContent as copy, FIELD_LABELS, OP_LABELS } from '@/data/collections'
 
 type CollectionRuleRowProps = {
@@ -84,9 +84,15 @@ export default function CollectionRuleRow({
         onChange={(e) => handleValue(e.target.value)}
         aria-label={FIELD_LABELS[condition.field]}
       />
-      <KitIconButton label={copy.products.remove} onClick={onRemove}>
+      <Button
+        variant="outline"
+        size="icon"
+        aria-label={copy.products.remove}
+        title={copy.products.remove}
+        onClick={onRemove}
+      >
         <Trash2 aria-hidden="true" />
-      </KitIconButton>
+      </Button>
     </div>
   )
 }

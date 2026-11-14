@@ -2,10 +2,11 @@
 
 import type { SocialOverview } from '@commerce/core'
 import { isLive, type MetaChannel, type SocialChannel } from '@commerce/core/sales-channels'
+import { Button } from '@commerce/ui/shadcn/button'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import KitButton from '@/components/kit/kit-button'
 import DataCard from '@/components/layout/data-card'
 import { salesChannelsContent } from '@/data/sales-channels'
 import { useCopy, useFormat } from '@/hooks/use-copy'
@@ -77,17 +78,23 @@ export default function MetaConnectionCard({ channel, surfaces }: MetaConnection
                     {copy.thisPage}
                   </span>
                 ) : signedIn && !on ? (
-                  <KitButton
-                    variant="pill"
+                  <Button
+                    variant="outline"
+                    size="sm"
                     disabled={busy !== null}
                     onClick={() => handleTurnOn(s.channel)}
                   >
                     {copy.turnOn}
-                  </KitButton>
+                  </Button>
                 ) : (
-                  <KitButton variant="pill" href={routes.salesChannels.socialChannel(s.channel)}>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    nativeButton={false}
+                    render={<Link href={routes.salesChannels.socialChannel(s.channel)} />}
+                  >
                     {copy.open}
-                  </KitButton>
+                  </Button>
                 )}
               </div>
             </li>

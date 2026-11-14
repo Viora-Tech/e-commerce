@@ -1,9 +1,9 @@
 'use client'
 
+import { Button } from '@commerce/ui/shadcn/button'
 import { Input } from '@commerce/ui/shadcn/input'
 import { Textarea } from '@commerce/ui/shadcn/textarea'
 import { useState } from 'react'
-import KitButton from '@/components/kit/kit-button'
 import { assistantContent } from '@/data/assistant'
 import type { ActionView } from '@/hooks/use-assistant'
 import { useCopy } from '@/hooks/use-copy'
@@ -70,12 +70,12 @@ export default function ActionEditForm({ fields, busy, onSave, onBack }: ActionE
         </div>
       ))}
       <div className="flex items-center gap-2">
-        <KitButton type="submit" variant="primary" disabled={busy}>
+        <Button type="submit" disabled={busy}>
           {copy.card.save}
-        </KitButton>
-        <KitButton variant="secondary" onClick={onBack} disabled={busy}>
+        </Button>
+        <Button variant="outline" onClick={onBack} disabled={busy}>
           {copy.card.back}
-        </KitButton>
+        </Button>
       </div>
     </form>
   )

@@ -7,7 +7,6 @@ import { Input } from '@commerce/ui/shadcn/input'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@commerce/ui/shadcn/tooltip'
 import { useState } from 'react'
 import { variantLabel } from '@/components/inventory/variant-picker'
-import KitIconButton from '@/components/kit/kit-icon-button'
 import KitThumb from '@/components/kit/kit-thumb'
 import DataCard from '@/components/layout/data-card'
 import EmptyState from '@/components/layout/empty-state'
@@ -195,13 +194,15 @@ export default function PoLinesCard({
               {locked || line.received + line.rejected > 0 ? (
                 <span />
               ) : (
-                <KitIconButton
-                  label={copy.remove}
-                  className="size-9"
+                <Button
+                  variant="outline"
+                  size="icon"
+                  aria-label={copy.remove}
+                  title={copy.remove}
                   onClick={() => handleRemove(i)}
                 >
                   <Trash2 aria-hidden="true" />
-                </KitIconButton>
+                </Button>
               )}
             </li>
           ))}

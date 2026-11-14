@@ -4,7 +4,6 @@ import { AiIcon, Download, FileText, RotateCcw, Trash2 } from '@commerce/ui/icon
 import { Button } from '@commerce/ui/shadcn/button'
 import { toast } from 'sonner'
 import { saveFile } from '@/components/apps/gst-invoices/save-file'
-import KitIconButton from '@/components/kit/kit-icon-button'
 import StatusChip from '@/components/layout/status-chip'
 import { purchaseDocumentsContent } from '@/data/purchase-documents'
 import { useCopy, useFormat } from '@/hooks/use-copy'
@@ -90,12 +89,24 @@ export default function DocumentRow({
             {doc.status === 'failed' ? copy.readAgain : copy.read}
           </Button>
         ) : null}
-        <KitIconButton label={copy.download} className="size-9" onClick={handleDownload}>
+        <Button
+          variant="outline"
+          size="icon"
+          aria-label={copy.download}
+          title={copy.download}
+          onClick={handleDownload}
+        >
           <Download aria-hidden="true" />
-        </KitIconButton>
-        <KitIconButton label={copy.remove} className="size-9" onClick={onRemove}>
+        </Button>
+        <Button
+          variant="outline"
+          size="icon"
+          aria-label={copy.remove}
+          title={copy.remove}
+          onClick={onRemove}
+        >
           <Trash2 aria-hidden="true" />
-        </KitIconButton>
+        </Button>
       </span>
     </li>
   )

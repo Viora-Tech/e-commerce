@@ -2,9 +2,9 @@
 
 import type { ThemeEditChange } from '@commerce/ai/client'
 import { CircleCheck, FileEdit, TriangleAlert } from '@commerce/ui/icons'
+import { Button } from '@commerce/ui/shadcn/button'
 import { type Data, useGetPuck } from '@puckeditor/core'
 import { toast } from 'sonner'
-import KitButton from '@/components/kit/kit-button'
 import { customizeAiContent } from '@/data/customize-ai'
 import type { ThemeEditCard as ThemeEditCardView } from '@/hooks/use-assistant'
 import { useCopy } from '@/hooks/use-copy'
@@ -140,16 +140,14 @@ export default function ThemeEditCard({ edit, live, onStatus }: ThemeEditCardPro
             {live ? copy.liveNote : copy.draftNote}
           </p>
           <div className="flex flex-wrap items-center gap-2">
-            <KitButton variant="primary" onClick={handleApply}>
-              {copy.apply}
-            </KitButton>
-            <KitButton
+            <Button onClick={handleApply}>{copy.apply}</Button>
+            <Button
               variant="link"
               onClick={() => onStatus(edit.id, 'dismissed')}
-              className="ml-auto"
+              className="h-auto px-0 ml-auto"
             >
               {copy.dismiss}
-            </KitButton>
+            </Button>
           </div>
         </footer>
       ) : null}

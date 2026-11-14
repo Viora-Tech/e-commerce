@@ -2,10 +2,10 @@
 
 import type { ReportCategory, ReportDefinition } from '@commerce/api'
 import { ChevronRightIcon, ListTree } from '@commerce/ui/icons'
+import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import KitButton from '@/components/kit/kit-button'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
 import PageBody from '@/components/layout/page-body'
 import PageHeader from '@/components/layout/page-header'
@@ -73,10 +73,14 @@ export default function ReportsHome({ reports, saved: initialSaved, assistant }:
           title={c.title}
           summary={c.home.intro}
           actions={
-            <KitButton variant="secondary" href={routes.analytics.query()}>
+            <Button
+              variant="outline"
+              nativeButton={false}
+              render={<Link href={routes.analytics.query()} />}
+            >
               <ListTree />
               {queryCopy.open}
-            </KitButton>
+            </Button>
           }
         />
         <ReportsAsk enabled={assistant} />
