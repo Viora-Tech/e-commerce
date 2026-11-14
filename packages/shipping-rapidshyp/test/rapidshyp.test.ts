@@ -327,9 +327,8 @@ describe('RapidshypProvider createShipment (wrapper API)', () => {
         }),
       '/rapidshyp/apis/v1/track_order': () => {
         lookups += 1
-        // Not there on the first look: RapidShyp is still making the shipment.
-        // Both first-round asks (by id, then with phone) come back empty.
-        return lookups < 3
+        // The ask by order id alone comes back empty; the one with the phone finds it.
+        return lookups < 2
           ? json({ success: true, records: [{ shipment_details: [] }] })
           : json({ success: true, records: [{ shipment_details: [{ shipment_id: 'S26103461' }] }] })
       },
@@ -352,7 +351,7 @@ describe('RapidshypProvider createShipment (wrapper API)', () => {
       serviceLabel: 'Blue Dart Air',
     })
     expect(r.waybill).toBe('BD-9')
-    expect(waits).toEqual([1500])
+    expect(waits).toEqual([])
     const track = f.calls.find((c) => c.url.pathname.endsWith('/track_order'))
     expect(JSON.parse(track?.init?.body as string)).toMatchObject({ orderId: '2471-2' })
     const assign = f.calls.find((c) => c.url.pathname.endsWith('/assign_awb'))
@@ -362,27 +361,34 @@ describe('RapidshypProvider createShipment (wrapper API)', () => {
     })
   })
 
-  it('cancels and says so when Track Order never shows the shipment', async () => {
+  it('leaves the order on RapidShyp for the merchant when no shipment id can be found', async () => {
     const f = fakeFetch({
       '/rapidshyp/apis/v1/create_order': () =>
         json({ status: 'SUCCESS', order_id: '2471', shipment: [] }),
-      '/rapidshyp/apis/v1/track_order': () => json({ success: true, records: [] }),
+      '/rapidshyp/apis/v1/track_order': () =>
+        json({ status: false, remarks: 'Tracking data not found for your request.' }, 400),
       '/rapidshyp/apis/v1/cancel_order': () => json({ status: true, remarks: 'cancelled' }),
     })
     const p = new RapidshypProvider({ ...config, fetchImpl: f.impl, wait: async () => {} })
-    await expect(
-      p.createShipment({ ...sampleShipment, orderNumber: 2471, serviceId: 'BD' }),
-    ).rejects.toMatchObject({
-      kind: 'bad_response',
-      message: expect.stringMatching(
-        /We cancelled order 2471 on RapidShyp.*track_order: by order id: success true, "", 0 records, 0 shipments; with phone/,
-      ),
-    })
-    // Three rounds, each by order id and then with the 10-digit phone.
-    const tracks = f.calls.filter((c) => c.url.pathname.endsWith('/track_order'))
-    expect(tracks).toHaveLength(6)
-    expect(JSON.parse(tracks[1]?.init?.body as string)).toMatchObject({ orderId: '2471' })
-    expect(JSON.parse(tracks[1]?.init?.body as string).contact).toMatch(/^\d{10}$/)
+    const err = (await p
+      .createShipment({
+        ...sampleShipment,
+        orderNumber: 2471,
+        serviceId: 'BD',
+        serviceLabel: 'Blue Dart Air',
+      })
+      .catch((e: unknown) => e)) as CourierError
+    expect(err).toBeInstanceOf(CourierError)
+    expect(err.kind).toBe('rejected')
+    expect(err.message).toBe(
+      'Order 2471 is now on RapidShyp without a courier: RapidShyp does not let us assign Blue Dart Air to a new order. Open order 2471 in RapidShyp and assign Blue Dart Air there, then add its AWB here with Ship › Shipped yourself.',
+    )
+    expect(err.reason).toContain('track_order: by order id:')
+    // Staff see the instruction itself, not "the courier refused it".
+    expect(describeCourierFailureForStaff(err)).toBe(err.message)
+    // Kept, not cancelled; one quick round of asks (by order id, then with the phone).
+    expect(f.calls.some((c) => c.url.pathname.endsWith('/cancel_order'))).toBe(false)
+    expect(f.calls.filter((c) => c.url.pathname.endsWith('/track_order'))).toHaveLength(2)
     expect(f.calls.some((c) => c.url.pathname.endsWith('/assign_awb'))).toBe(false)
   })
 

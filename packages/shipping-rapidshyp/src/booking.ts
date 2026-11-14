@@ -13,9 +13,9 @@
  *  - a courier picked in the rate table: `create_order` (no courier), then `assign_awb` with
  *    that courier's code, then pickup and label. The shipment id is read tolerantly from the
  *    create answer (`shipment[0]`, one object, or top level; `shipmentId` or `shipment_id`);
- *    the documented answer has `shipment: []`, so when it is missing it is looked up through
- *    Track Order by order id (`shipment_details[0].shipment_id`), a few times over a few seconds
- *    (seen 14 Nov 2026: "created order 2471-2 but sent back no shipment id").
+ *    the documented answer has `shipment: []`, and Track Order says "not found" until an AWB
+ *    exists, so with no id the order is left on RapidShyp for the merchant to assign the courier
+ *    there (owner, 14 Nov 2026), and staff are told so.
  *    If the courier is refused, the order just created is cancelled so nothing is left behind;
  *  - an order pushed earlier as pending: `assign_awb` on its shipment; refused, it stays as it
  *    was (it was there before this booking).
@@ -107,7 +107,8 @@ function createdShipmentId(r: CreateOrderOnlyResponse): string | undefined {
 }
 
 /** Seconds between Track Order lookups for a new order's shipment id: it can take a moment. */
-const SHIPMENT_LOOKUP_WAITS_MS = [0, 1500, 3000]
+// Track Order answers "not found" until an AWB exists (seen 14 Nov 2026), so one quick ask.
+const SHIPMENT_LOOKUP_WAITS_MS = [0]
 
 /** The shipment id of an order just created: from its answer, else from Track Order. */
 async function shipmentIdOf(
@@ -273,11 +274,14 @@ async function bookChosen(
   const lookup = await shipmentIdOf(calls, input, result, orderRef)
   const shipmentId = lookup.id
   if (!shipmentId) {
-    const note = await takeBack(calls, orderRef)
+    // RapidShyp's API gives no way to put a courier on a new order (create_order returns
+    // `shipment: []`): the order stays there for the merchant to assign the courier in RapidShyp
+    // (owner, 14 Nov 2026), instead of being cancelled.
     throw new CourierError(
-      'bad_response',
+      'rejected',
       calls.provider,
-      `RapidShyp created order ${orderRef} but sent back no shipment id, so ${courierName(input)} could not be assigned. ${note} (create_order: ${createAnswer(result)}; track_order: ${lookup.said})`,
+      `Order ${orderRef} is now on RapidShyp without a courier: RapidShyp does not let us assign ${courierName(input)} to a new order. Open order ${orderRef} in RapidShyp and assign ${courierName(input)} there, then add its AWB here with Ship › Shipped yourself.`,
+      { reason: `create_order: ${createAnswer(result)}; track_order: ${lookup.said}` },
     )
   }
   let awb: string
