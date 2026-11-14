@@ -2,7 +2,6 @@
 
 import { Eye, Send } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { Switch } from '@commerce/ui/shadcn/switch'
 import Link from 'next/link'
 import StatusChip from '@/components/layout/status-chip'
@@ -91,13 +90,14 @@ export default function MessageRow({
             <Eye aria-hidden="true" className="size-4" />
           </Button>
           <Button
+            loading={testing}
             size="icon"
             variant="ghost"
             aria-label={testing ? copy.list.sending : copy.list.sendTest}
             onClick={onTest}
             disabled={testing}
           >
-            {testing ? <Spinner /> : <Send aria-hidden="true" className="size-4" />}
+            {testing ? null : <Send aria-hidden="true" className="size-4" />}
           </Button>
         </RowActionsCell>
       </SettingsTableCell>

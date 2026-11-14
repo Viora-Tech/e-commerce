@@ -4,7 +4,6 @@ import type { ReviewsSettings } from '@commerce/plugin-reviews/settings'
 import { Save } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
-import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import PageHeader from '@/components/layout/page-header'
@@ -72,8 +71,8 @@ export default function SettingsPage() {
         subtitle={copy.settings.subtitle}
         back={{ label: copy.detail.back, href: routes.apps.page('reviews') }}
         actions={
-          <Button onClick={handleSave} disabled={busy || !dirty}>
-            {busy ? <Spinner /> : <Save aria-hidden="true" />}
+          <Button loading={busy} onClick={handleSave} disabled={busy || !dirty}>
+            {busy ? null : <Save aria-hidden="true" />}
             {copy.settings.save}
           </Button>
         }

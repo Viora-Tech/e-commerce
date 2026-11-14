@@ -12,7 +12,6 @@ import { PlugConnect, RefreshCw, Upload } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card, CardContent } from '@commerce/ui/shadcn/card'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
-import { Spinner } from '@commerce/ui/shadcn/spinner'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
@@ -140,8 +139,13 @@ export default function SettingsPage() {
           <p className="text-caption text-muted-foreground">{copy.comparing(plan.shopName)}</p>
         ) : null}
       </div>
-      <Button variant="outline" onClick={handleCheck} disabled={busy !== null}>
-        {busy === 'check' ? <Spinner /> : <RefreshCw aria-hidden="true" />}
+      <Button
+        loading={busy === 'check'}
+        variant="outline"
+        onClick={handleCheck}
+        disabled={busy !== null}
+      >
+        {busy === 'check' ? null : <RefreshCw aria-hidden="true" />}
         {plan ? copy.checkAgain : copy.check}
       </Button>
     </div>
@@ -186,8 +190,12 @@ export default function SettingsPage() {
             />
           ))}
           <div className="flex justify-end">
-            <Button onClick={handleImport} disabled={busy !== null || chosen.length === 0}>
-              {busy === 'import' ? <Spinner /> : <Upload aria-hidden="true" />}
+            <Button
+              loading={busy === 'import'}
+              onClick={handleImport}
+              disabled={busy !== null || chosen.length === 0}
+            >
+              {busy === 'import' ? null : <Upload aria-hidden="true" />}
               {copy.import(chosen.length)}
             </Button>
           </div>

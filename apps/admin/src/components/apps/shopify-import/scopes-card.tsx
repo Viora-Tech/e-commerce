@@ -5,7 +5,6 @@ import { RefreshCw } from '@commerce/ui/icons'
 import { Badge } from '@commerce/ui/shadcn/badge'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
-import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import StatusChip from '@/components/layout/status-chip'
@@ -41,8 +40,15 @@ export default function ScopesCard() {
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>{copy.testHeading}</CardTitle>
-        <Button type="button" variant="outline" size="sm" onClick={handleTest} disabled={busy}>
-          {busy ? <Spinner /> : <RefreshCw aria-hidden="true" />}
+        <Button
+          loading={busy}
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={handleTest}
+          disabled={busy}
+        >
+          {busy ? null : <RefreshCw aria-hidden="true" />}
           {copy.test}
         </Button>
       </CardHeader>

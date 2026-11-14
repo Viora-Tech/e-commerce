@@ -4,7 +4,6 @@ import { permissions } from '@commerce/core/permissions'
 import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
-import { Spinner } from '@commerce/ui/shadcn/spinner'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
@@ -180,8 +179,13 @@ export default function WhatsappSetupPage() {
               stateLabel={stateLabel(step3 === 'done')}
               action={
                 step3 === 'todo' && setup.access === 'live' && canManage ? (
-                  <Button variant="outline" size="sm" onClick={handleSubmit} disabled={submitting}>
-                    {submitting ? <Spinner /> : null}
+                  <Button
+                    loading={submitting}
+                    variant="outline"
+                    size="sm"
+                    onClick={handleSubmit}
+                    disabled={submitting}
+                  >
                     {submitting ? words.templates.submitting : words.templates.action}
                   </Button>
                 ) : step3 === 'done' ? undefined : (

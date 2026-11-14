@@ -5,7 +5,6 @@ import { Upload } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Checkbox } from '@commerce/ui/shadcn/checkbox'
-import { Spinner } from '@commerce/ui/shadcn/spinner'
 import {
   Table,
   TableBody,
@@ -177,8 +176,8 @@ export default function ImportPreview({
           <Button variant="outline" onClick={onCancel} disabled={importing}>
             {copy.cancel}
           </Button>
-          <Button onClick={onImport} disabled={importing || toImport === 0}>
-            {importing ? <Spinner /> : <Upload aria-hidden="true" />}
+          <Button loading={importing} onClick={onImport} disabled={importing || toImport === 0}>
+            {importing ? null : <Upload aria-hidden="true" />}
             {importing ? copy.running : copy.run(toImport)}
           </Button>
         </div>

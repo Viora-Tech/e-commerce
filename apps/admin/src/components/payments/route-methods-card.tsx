@@ -8,7 +8,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@commerce/ui/shadcn/select'
-import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import SettingsCard from '@/components/settings/settings-card'
@@ -76,8 +75,7 @@ export default function RouteMethodsCard({ setup, methods, onReload }: RouteMeth
   // Render logic
   const changed = ONLINE.some((m) => routes[m] !== setup.routing.methods[m])
   const footer = (
-    <Button onClick={handleSave} disabled={saving || !changed}>
-      {saving ? <Spinner /> : null}
+    <Button loading={saving} onClick={handleSave} disabled={saving || !changed}>
       {copy.save}
     </Button>
   )

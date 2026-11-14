@@ -3,7 +3,6 @@
 import { CircleAlert, CircleCheck } from '@commerce/ui/icons'
 import { Alert, AlertDescription } from '@commerce/ui/shadcn/alert'
 import { Button } from '@commerce/ui/shadcn/button'
-import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { useState } from 'react'
 import { mediaContent } from '@/data/media'
 import { api } from '@/lib/api-client'
@@ -41,8 +40,14 @@ export default function StorageVerify() {
       bodyClassName="flex flex-col gap-4"
     >
       <div>
-        <Button type="button" variant="outline" onClick={handleVerify} disabled={busy}>
-          {busy ? <Spinner /> : <CircleCheck aria-hidden="true" />}
+        <Button
+          loading={busy}
+          type="button"
+          variant="outline"
+          onClick={handleVerify}
+          disabled={busy}
+        >
+          {busy ? null : <CircleCheck aria-hidden="true" />}
           {busy ? copy.verifying : copy.verify}
         </Button>
       </div>

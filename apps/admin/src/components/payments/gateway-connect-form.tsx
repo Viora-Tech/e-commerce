@@ -6,7 +6,6 @@ import { Button } from '@commerce/ui/shadcn/button'
 import { Card, CardContent } from '@commerce/ui/shadcn/card'
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
-import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { useRouter } from 'next/navigation'
 import { useRef, useState } from 'react'
 import { toast } from 'sonner'
@@ -279,12 +278,13 @@ export default function GatewayConnectForm({
   const oauthBlock = oauth ? (
     <div className="flex flex-col gap-2">
       <Button
+        loading={redirecting}
         size="lg"
         className="w-full gap-2 sm:w-fit"
         onClick={handleOAuth}
         disabled={redirecting}
       >
-        {redirecting ? <Spinner /> : <PlugConnect aria-hidden="true" />}
+        {redirecting ? null : <PlugConnect aria-hidden="true" />}
         {copy.oneClick(guide.name)}
       </Button>
       <p className="text-caption text-muted-foreground">{copy.oneClickHelp}</p>
@@ -300,22 +300,24 @@ export default function GatewayConnectForm({
     <div className="flex flex-col gap-2">
       <div className="flex flex-wrap gap-2">
         <Button
+          loading={test.status === 'testing'}
           type="button"
           variant="outline"
           size="lg"
           onClick={handleTest}
           disabled={!filled || test.status === 'testing'}
         >
-          {test.status === 'testing' ? <Spinner /> : <RefreshCw aria-hidden="true" />}
+          {test.status === 'testing' ? null : <RefreshCw aria-hidden="true" />}
           {test.status === 'testing' ? copy.testing : copy.testConnection}
         </Button>
         <Button
+          loading={saving}
           type="button"
           size="lg"
           onClick={handleSave}
           disabled={!filled || saving || mismatch}
         >
-          {saving ? <Spinner /> : <Save aria-hidden="true" />}
+          {saving ? null : <Save aria-hidden="true" />}
           {saving ? copy.saving : copy.save}
         </Button>
       </div>

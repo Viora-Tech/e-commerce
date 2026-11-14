@@ -11,7 +11,6 @@ import { Button } from '@commerce/ui/shadcn/button'
 import { CardContent } from '@commerce/ui/shadcn/card'
 import { Checkbox } from '@commerce/ui/shadcn/checkbox'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
-import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
@@ -243,11 +242,12 @@ export default function ConnectPage() {
       <PreflightCard checks={checks} />
       <div className="flex justify-end">
         <Button
+          loading={busy}
           type="button"
           onClick={handlePreview}
           disabled={busy || stopped || importable.length === 0}
         >
-          {busy ? <Spinner /> : <Eye aria-hidden="true" />}
+          {busy ? null : <Eye aria-hidden="true" />}
           {copy.preview}
         </Button>
       </div>

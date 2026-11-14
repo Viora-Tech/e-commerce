@@ -5,7 +5,6 @@ import { Search } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Field, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
-import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { ToggleGroup, ToggleGroupItem } from '@commerce/ui/shadcn/toggle-group'
 import { useState } from 'react'
 import { toast } from 'sonner'
@@ -153,8 +152,8 @@ export default function TryPinCard({ result, onResult }: TryPinCardProps) {
         onChange={setDeclineInsurance}
       />
       <div className="flex justify-end">
-        <Button onClick={handleRun} disabled={!ready || busy}>
-          {busy ? <Spinner /> : <Search aria-hidden />}
+        <Button loading={busy} onClick={handleRun} disabled={!ready || busy}>
+          {busy ? null : <Search aria-hidden />}
           {busy ? t.running : t.run}
         </Button>
       </div>

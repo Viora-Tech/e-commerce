@@ -4,7 +4,6 @@ import { CheckIcon, LogOut } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
 import { FieldError } from '@commerce/ui/shadcn/field'
-import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { invitationContent } from '@/data/invitations'
@@ -90,16 +89,22 @@ export default function AcceptInvitation({
             <p className="text-body text-muted-foreground">
               {copy.otherAccount.body(signedInEmail ?? '', email)}
             </p>
-            <Button className="w-full" variant="outline" onClick={handleSignOut} disabled={busy}>
-              {busy ? <Spinner /> : <LogOut aria-hidden="true" />}
+            <Button
+              loading={busy}
+              className="w-full"
+              variant="outline"
+              onClick={handleSignOut}
+              disabled={busy}
+            >
+              {busy ? null : <LogOut aria-hidden="true" />}
               {copy.otherAccount.signOut}
             </Button>
           </>
         ) : signedInAsInvitee ? (
           <>
             {error ? <FieldError>{error}</FieldError> : null}
-            <Button className="w-full" onClick={handleAccept} disabled={busy}>
-              {busy ? <Spinner /> : <CheckIcon aria-hidden="true" />}
+            <Button loading={busy} className="w-full" onClick={handleAccept} disabled={busy}>
+              {busy ? null : <CheckIcon aria-hidden="true" />}
               {copy.accept}
             </Button>
           </>

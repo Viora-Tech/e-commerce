@@ -3,7 +3,6 @@
 import { ExternalLink, Printer, Save } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { NativeSelect, NativeSelectOption } from '@commerce/ui/shadcn/native-select'
-import { Spinner } from '@commerce/ui/shadcn/spinner'
 import Link from 'next/link'
 import { useState } from 'react'
 import { toast } from 'sonner'
@@ -125,8 +124,8 @@ export default function ManualParcelRow({
             </NativeSelectOption>
           ))}
         </NativeSelect>
-        <Button size="sm" onClick={handleSave} disabled={!changed || saving}>
-          {saving ? <Spinner /> : <Save aria-hidden="true" />}
+        <Button loading={saving} size="sm" onClick={handleSave} disabled={!changed || saving}>
+          {saving ? null : <Save aria-hidden="true" />}
           {saving ? copy.saving : copy.update}
         </Button>
         {parcel.labelUrl ? (

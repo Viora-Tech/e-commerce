@@ -3,7 +3,6 @@
 import { RefreshCw, Trash2 } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card, CardContent } from '@commerce/ui/shadcn/card'
-import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
@@ -173,8 +172,13 @@ export default function SenderEmailCard() {
             </div>
             <div className="flex flex-col gap-2 sm:flex-row">
               {sender.status !== 'verified' ? (
-                <Button onClick={handleCheck} disabled={busy !== null} className="w-full sm:w-auto">
-                  {busy === 'check' ? <Spinner /> : <RefreshCw aria-hidden="true" />}
+                <Button
+                  loading={busy === 'check'}
+                  onClick={handleCheck}
+                  disabled={busy !== null}
+                  className="w-full sm:w-auto"
+                >
+                  {busy === 'check' ? null : <RefreshCw aria-hidden="true" />}
                   {busy === 'check' ? copy.checking : copy.checkNow}
                 </Button>
               ) : null}

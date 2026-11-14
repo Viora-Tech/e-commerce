@@ -5,7 +5,6 @@ import { Button } from '@commerce/ui/shadcn/button'
 import { Card, CardDescription, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
-import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import SaveErrorAlert from '@/components/approvals/save-error-alert'
@@ -267,13 +266,14 @@ export default function ConnectPage() {
               <p className="text-body font-medium text-foreground">{copy.steps.four.title}</p>
               <p className="text-caption text-muted-foreground">{copy.steps.four.body}</p>
               <Button
+                loading={test.status === 'testing'}
                 type="button"
                 variant="outline"
                 className="w-fit"
                 onClick={handleTest}
                 disabled={test.status === 'testing'}
               >
-                {test.status === 'testing' ? <Spinner /> : <RefreshCw aria-hidden="true" />}
+                {test.status === 'testing' ? null : <RefreshCw aria-hidden="true" />}
                 {test.status === 'testing' ? copy.testing : copy.testConnection}
               </Button>
               {test.status === 'ok' ? (

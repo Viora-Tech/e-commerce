@@ -6,7 +6,6 @@ import { Checkbox } from '@commerce/ui/shadcn/checkbox'
 import { Dialog, DialogDescription, DialogTitle } from '@commerce/ui/shadcn/dialog'
 import { Field, FieldDescription, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
-import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { Textarea } from '@commerce/ui/shadcn/textarea'
 import { type FormEvent, useState } from 'react'
 import { toast } from 'sonner'
@@ -166,8 +165,8 @@ export default function BugReportDialog({
             >
               {copy.cancel}
             </Button>
-            <Button type="submit" disabled={!canSend}>
-              {sending ? <Spinner /> : <Send aria-hidden="true" />}
+            <Button loading={sending} type="submit" disabled={!canSend}>
+              {sending ? null : <Send aria-hidden="true" />}
               {sending ? copy.sending : copy.send}
             </Button>
           </DialogFooter>

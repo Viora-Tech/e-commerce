@@ -2,7 +2,6 @@
 
 import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
-import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { Switch } from '@commerce/ui/shadcn/switch'
 import { SortableList } from '@commerce/ui/sortable'
 import { useState } from 'react'
@@ -65,8 +64,7 @@ export default function ActiveProvidersCard({ setup, onReload }: ActiveProviders
   const firstOn = rows.find((g) => g.active)?.id
   const changed = JSON.stringify(rows) !== JSON.stringify(setup.routing.gateways)
   const footer = (
-    <Button onClick={handleSave} disabled={saving || !changed}>
-      {saving ? <Spinner /> : null}
+    <Button loading={saving} onClick={handleSave} disabled={saving || !changed}>
       {copy.save}
     </Button>
   )

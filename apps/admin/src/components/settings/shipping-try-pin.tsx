@@ -5,7 +5,6 @@ import { Alert, AlertDescription } from '@commerce/ui/shadcn/alert'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Field, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
-import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { useState } from 'react'
 import { shippingSettingsContent } from '@/data/shipping'
 import { useCopy } from '@/hooks/use-copy'
@@ -92,12 +91,12 @@ export default function ShippingTryPin() {
           />
         </Field>
         <Button
+          loading={checking}
           type="button"
           variant="outline"
           onClick={handleCheck}
           disabled={checking || pincode.length < 6}
         >
-          {checking ? <Spinner /> : null}
           {checking ? copy.tryPin.checking : copy.tryPin.button}
         </Button>
       </div>

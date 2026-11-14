@@ -3,7 +3,6 @@
 import type { CheckoutSettingsView, PaymentAdjustment } from '@commerce/core'
 import type { CodRules } from '@commerce/core/checkout-settings'
 import { Button } from '@commerce/ui/shadcn/button'
-import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import DataCardSkeleton from '@/components/layout/data-card-skeleton'
@@ -88,8 +87,7 @@ export default function CodSettingsSection({ codOn }: CodSettingsSectionProps) {
           <Button variant="outline" disabled={saving} onClick={handleDiscard}>
             {copy.cod.discard}
           </Button>
-          <Button disabled={saving} onClick={handleSave}>
-            {saving ? <Spinner /> : null}
+          <Button loading={saving} disabled={saving} onClick={handleSave}>
             {copy.save}
           </Button>
         </div>

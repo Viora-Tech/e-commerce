@@ -7,7 +7,6 @@ import {
 } from '@commerce/plugin-shopify-import/client'
 import { Eye, Package, ShoppingBag, Users } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
@@ -83,8 +82,8 @@ export default function CsvPage() {
           <CsvDropzone file={file} error={error} onFile={handleFile} />
         </DataCard>
         <div className="flex flex-col items-end gap-1.5">
-          <Button type="button" onClick={handlePreview} disabled={!file || busy}>
-            {busy ? <Spinner /> : <Eye aria-hidden="true" />}
+          <Button loading={busy} type="button" onClick={handlePreview} disabled={!file || busy}>
+            {busy ? null : <Eye aria-hidden="true" />}
             {copy.preview}
           </Button>
           {file ? null : <p className="text-caption text-muted-foreground">{copy.previewHint}</p>}

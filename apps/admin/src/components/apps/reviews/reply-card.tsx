@@ -2,7 +2,6 @@
 
 import { AiIcon, Send, Trash2 } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { Textarea } from '@commerce/ui/shadcn/textarea'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
@@ -89,21 +88,23 @@ export default function ReplyCard({ reviewId, reply, onSaved }: ReplyCardProps) 
         <div className="flex flex-wrap items-center gap-2">
           {aiOn ? (
             <Button
+              loading={writing}
               type="button"
               variant="outline"
               onClick={handleWrite}
               disabled={writing || busy}
             >
-              {writing ? <Spinner /> : <AiIcon />}
+              {writing ? null : <AiIcon />}
               {writing ? copy.aiBusy : copy.ai}
             </Button>
           ) : null}
           <Button
+            loading={busy}
             type="button"
             onClick={() => save(text)}
             disabled={busy || writing || !text.trim() || !changed}
           >
-            {busy ? <Spinner /> : <Send aria-hidden="true" />}
+            {busy ? null : <Send aria-hidden="true" />}
             {reply ? copy.update : copy.post}
           </Button>
           {reply ? (

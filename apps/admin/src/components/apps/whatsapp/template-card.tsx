@@ -2,7 +2,6 @@
 
 import { Copy } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { toast } from 'sonner'
 import StatusChip from '@/components/layout/status-chip'
 import type { ChipTone } from '@/components/status/tone'
@@ -83,8 +82,13 @@ export default function TemplateCard({
             {copy.copy}
           </Button>
           {onSubmit && !auth && template.status === 'not_submitted' ? (
-            <Button variant="outline" size="sm" onClick={onSubmit} disabled={submitting}>
-              {submitting ? <Spinner /> : null}
+            <Button
+              loading={submitting}
+              variant="outline"
+              size="sm"
+              onClick={onSubmit}
+              disabled={submitting}
+            >
               {copy.submit}
             </Button>
           ) : null}
