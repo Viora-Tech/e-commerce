@@ -2,9 +2,9 @@
 
 import { SEO_KEYWORDS_MAX, type SuggestedKeyword } from '@commerce/ai/client'
 import { StarIcon } from '@commerce/ui/icons'
+import { Button } from '@commerce/ui/shadcn/button'
 import { Checkbox } from '@commerce/ui/shadcn/checkbox'
 import { useState } from 'react'
-import KitButton from '@/components/kit/kit-button'
 import StatusChip from '@/components/layout/status-chip'
 import { seoKeywordsContent } from '@/data/seo-keywords'
 import { useCopy } from '@/hooks/use-copy'
@@ -96,12 +96,12 @@ export default function SeoKeywordSuggestions({
         })}
       </ul>
       <div className="flex flex-wrap justify-end gap-2">
-        <KitButton variant="secondary" onClick={onDismiss}>
+        <Button variant="outline" onClick={onDismiss}>
           {copy.suggestions.dismiss}
-        </KitButton>
-        <KitButton variant="primary" onClick={handleUse} disabled={!picked.length}>
+        </Button>
+        <Button onClick={handleUse} disabled={!picked.length}>
           {copy.suggestions.use(picked.length)}
-        </KitButton>
+        </Button>
       </div>
     </section>
   )

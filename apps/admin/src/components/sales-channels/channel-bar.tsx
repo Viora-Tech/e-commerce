@@ -1,7 +1,7 @@
 'use client'
 
 import type { ChannelState } from '@commerce/core/sales-channels'
-import KitButton from '@/components/kit/kit-button'
+import { Button } from '@commerce/ui/shadcn/button'
 import { salesChannelsContent } from '@/data/sales-channels'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { channelBar } from '@/lib/channel-status'
@@ -41,11 +41,11 @@ export default function ChannelBar({ state, name, onReconnect, onWithdraw }: Cha
         progress={bar.progress}
         action={
           bar.action === 'reconnect' ? (
-            <KitButton onClick={onReconnect}>{copy.bar.reconnect}</KitButton>
+            <Button onClick={onReconnect}>{copy.bar.reconnect}</Button>
           ) : bar.action === 'withdraw' ? (
-            <KitButton variant="secondary" onClick={onWithdraw}>
+            <Button variant="outline" onClick={onWithdraw}>
               {copy.card.viewRequest}
-            </KitButton>
+            </Button>
           ) : undefined
         }
       />

@@ -8,9 +8,10 @@ import {
 } from '@commerce/core/sales-channels'
 import { AiIcon, RefreshCw } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
+import { Button } from '@commerce/ui/shadcn/button'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
-import KitButton from '@/components/kit/kit-button'
 import DataCard from '@/components/layout/data-card'
 import EmptyState from '@/components/layout/empty-state'
 import PageBody from '@/components/layout/page-body'
@@ -67,14 +68,14 @@ export default function ReadinessPage({ report, aiBulk }: ReadinessPageProps) {
   }
   const action = (i: ReadinessIssue) =>
     i.fix === 'ai' && aiBulk ? (
-      <KitButton variant="chip" onClick={() => handleWrite([i.ref])}>
+      <Button variant="outline" size="sm" onClick={() => handleWrite([i.ref])}>
         <AiIcon />
         {copy.fixes.ai}
-      </KitButton>
+      </Button>
     ) : (
-      <KitButton variant="pill" href={fixHref(i)}>
+      <Button variant="outline" size="sm" nativeButton={false} render={<Link href={fixHref(i)} />}>
         {i.fix === 'ai' ? copy.fixes.attributes : copy.fixes[i.fix]}
-      </KitButton>
+      </Button>
     )
 
   // Render logic
@@ -92,15 +93,15 @@ export default function ReadinessPage({ report, aiBulk }: ReadinessPageProps) {
         back={{ label: salesChannelsContent.overview.title, href: routes.salesChannels.agentic() }}
         actions={
           <>
-            <KitButton variant="secondary" onClick={() => router.refresh()}>
+            <Button variant="outline" onClick={() => router.refresh()}>
               <RefreshCw />
               {copy.checkAgain}
-            </KitButton>
+            </Button>
             {aiBulk && aiCount > 0 ? (
-              <KitButton onClick={() => handleWrite(report.aiFixable.slice(0, AI_RUN_MAX))}>
+              <Button onClick={() => handleWrite(report.aiFixable.slice(0, AI_RUN_MAX))}>
                 <AiIcon />
                 {copy.fixWithAi(aiCount)}
-              </KitButton>
+              </Button>
             ) : null}
           </>
         }
@@ -186,9 +187,14 @@ export default function ReadinessPage({ report, aiBulk }: ReadinessPageProps) {
           )}
           {matching.length > visible.length ? (
             <div className="flex justify-end border-t border-border px-4 py-3">
-              <KitButton variant="linkSm" onClick={() => setShown(shown + PAGE)}>
+              <Button
+                variant="link"
+                size="xs"
+                onClick={() => setShown(shown + PAGE)}
+                className="h-auto px-0"
+              >
                 {copy.more(Math.min(PAGE, matching.length - visible.length))}
-              </KitButton>
+              </Button>
             </div>
           ) : null}
           {!aiBulk && report.aiFixable.length > 0 ? (

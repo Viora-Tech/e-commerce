@@ -9,6 +9,14 @@ export const customerPickerContent = {
   hint: 'Type at least 2 letters.',
   unnamed: 'No name',
   orders: (n: number) => (n === 1 ? '1 order' : `${n} orders`),
+  /** The drop-down picker (gift cards): recent customers on focus, the pick as a removable row. */
+  lookup: {
+    search: 'Search customers',
+    searching: 'Searching…',
+    none: 'No customers match',
+    failed: 'Could not load customers',
+    clear: 'Remove',
+  },
 } as const
 
 /** Customer page › More actions › "Merge with another customer…". */

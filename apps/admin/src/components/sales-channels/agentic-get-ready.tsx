@@ -4,12 +4,12 @@ import type { AgenticOverview } from '@commerce/core'
 import { AI_AGENTS } from '@commerce/core/sales-channels'
 import { ChevronRight, CircleCheck, SlidersHorizontal } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
+import { Button } from '@commerce/ui/shadcn/button'
 import { Switch } from '@commerce/ui/shadcn/switch'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import KitButton from '@/components/kit/kit-button'
 import DataCard from '@/components/layout/data-card'
 import PageBody from '@/components/layout/page-body'
 import PageHeader from '@/components/layout/page-header'
@@ -93,10 +93,14 @@ export default function AgenticGetReady({ data }: AgenticGetReadyProps) {
         title={shared.overview.title}
         subtitle={shared.overview.subtitle}
         actions={
-          <KitButton variant="secondary" href={routes.salesChannels.agenticControls()}>
+          <Button
+            variant="outline"
+            nativeButton={false}
+            render={<Link href={routes.salesChannels.agenticControls()} />}
+          >
             <SlidersHorizontal />
             {shared.overview.controls}
-          </KitButton>
+          </Button>
         }
       />
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,20rem)]">

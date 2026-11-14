@@ -34,25 +34,25 @@ Type tokens (`text-kit-*`): `display` 57/700, `h2` 32/400, `title` 18/26/700 -2%
 | 14:348 stat card (361×222) | `layout/stat-card.tsx` `size="lg"` | title, period, value, unit, delta, previous, detailsHref, menu, children |
 | 14:847 stat card (270×135) | `layout/stat-card.tsx` `size="sm"` | title, value, delta, period |
 | 14:357 delta | `layout/delta-chip.tsx` `size="kit"` | delta, invert |
-| 14:363 / 14:832 Details pill | `layout/details-link.tsx`, `kit/kit-button.tsx` `variant="pill"` | href, label |
+| 14:363 / 14:832 Details pill | `layout/details-link.tsx`, Button `variant="outline" size="sm"` | href, label |
 | 14:366 report card | `layout/chart-card.tsx` | title, periods, tabs, formatValue, menu |
 | 14:403 stat tabs | `layout/stat-tabs.tsx` | items, active, onChange |
 | 14:426 users card | `home/activity-card.tsx` | ordersLast24h, perHour, salesByState |
 | 14:428 bar strip | `layout/mini-bars.tsx` | data |
 | 14:508 progress line | `kit/kit-progress.tsx` | value 0..1 |
 | 14:860 top products | `home/top-products-card.tsx` → `kit/kit-list-row.tsx` | href, image, title, meta, value |
-| 14:865 / 14:988 search | `kit/kit-search.tsx` | size `card` / `toolbar` |
-| 14:945 Add pill | `kit/kit-button.tsx` `variant="add"` | |
+| 14:865 / 14:988 search | `fields/search-field.tsx` (type-ahead pickers: `pickers/record-combobox.tsx`) | size `sm` / `default` / `lg` |
+| 14:945 Add pill | Button `size="xs"` | |
 | 14:977 tab pill group | `layout/pill-tabs.tsx` `size="frame"` | tabs, value, onChange |
-| 14:992 icon button | `kit/kit-icon-button.tsx` | label, children |
+| 14:992 icon button | Button `variant="outline" size="icon"` + `aria-label` | |
 | 14:1006 table | `kit/kit-table.tsx`, `kit/kit-table-head.tsx`, `kit/kit-table-row.tsx` | columns (grid template) |
 | 14:1029 thumb 40 / 14:874 thumb 56 / 14:918 thumb 46 | `kit/kit-thumb.tsx` | size `table` / `list` / `category` |
 | 14:1037 payment dot | `kit/kit-dot-label.tsx` | tone |
 | 14:1041 status glyph | `kit/kit-glyph-label.tsx` | icon, tone |
-| 14:1636 field | `kit/kit-field.tsx` + `<Input size="kit">` / `<Textarea size="kit">` | label, help, error |
-| 14:1629 / 14:1631 buttons | `kit/kit-button.tsx` `variant="primary"` / `"secondary"` | |
-| 14:1708 edit chip | `kit/kit-button.tsx` `variant="chip"` | |
-| 14:864 / 14:915 text links | `kit/kit-button.tsx` `variant="link"` / `"linkSm"` | |
+| 14:1636 field | `Field` + `FieldLabel` + `FieldDescription` / `FieldError` (`@commerce/ui/shadcn/field`) | |
+| 14:1629 / 14:1631 buttons | Button default / `variant="outline"` | |
+| 14:1708 edit chip | Button `variant="outline" size="sm"` | |
+| 14:864 / 14:915 text links | Button `variant="link"` (`size="xs"` for the small one) | |
 
 Not yet built (values in the sheet, no page needs them today): payment-method card `14:1376`,
 profile card `14:1538`, change-password form `14:1594`, upload-product-image `14:1489`, customer

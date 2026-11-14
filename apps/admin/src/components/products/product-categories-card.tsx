@@ -1,9 +1,9 @@
 'use client'
 
+import { Field, FieldDescription, FieldLabel } from '@commerce/ui/shadcn/field'
 import type { CSSProperties } from 'react'
 import SuggestInput from '@/components/fields/suggest-input'
 import TagInput from '@/components/fields/tag-input'
-import KitField from '@/components/kit/kit-field'
 import DataCard from '@/components/layout/data-card'
 import { productFormContent } from '@/data/product-form'
 import { useCopy } from '@/hooks/use-copy'
@@ -69,10 +69,13 @@ export default function ProductCategoriesCard({
   return (
     <DataCard title={copy.heading}>
       <div className="flex flex-col gap-4">
-        <KitField label={copy.category} htmlFor="product-category" help={copy.categoryHelp}>
+        <Field>
+          <FieldLabel htmlFor="product-category">{copy.category}</FieldLabel>
           <ProductCategoryPicker id="product-category" value={categoryId} onChange={onCategoryId} />
-        </KitField>
-        <KitField label={copy.type} htmlFor="product-type">
+          <FieldDescription>{copy.categoryHelp}</FieldDescription>
+        </Field>
+        <Field>
+          <FieldLabel htmlFor="product-type">{copy.type}</FieldLabel>
           <SuggestInput
             id="product-type"
             size="kit"
@@ -81,8 +84,9 @@ export default function ProductCategoriesCard({
             placeholder={copy.typePlaceholder}
             onChange={onProductType}
           />
-        </KitField>
-        <KitField label={copy.tag} htmlFor="product-tags">
+        </Field>
+        <Field>
+          <FieldLabel htmlFor="product-tags">{copy.tag}</FieldLabel>
           <TagInput
             id="product-tags"
             tags={tags}
@@ -90,9 +94,10 @@ export default function ProductCategoriesCard({
             onChange={onTags}
             placeholder={formCopy.organisation.tagsPlaceholder}
           />
-        </KitField>
+        </Field>
         {colours.length ? (
-          <KitField label={copy.colour} help={copy.colourHelp}>
+          <Field>
+            <FieldLabel>{copy.colour}</FieldLabel>
             <ul className="flex flex-wrap gap-2">
               {colours.map((colour) => {
                 const swatch = swatchFor(colour)
@@ -115,7 +120,8 @@ export default function ProductCategoriesCard({
                 )
               })}
             </ul>
-          </KitField>
+            <FieldDescription>{copy.colourHelp}</FieldDescription>
+          </Field>
         ) : null}
       </div>
     </DataCard>

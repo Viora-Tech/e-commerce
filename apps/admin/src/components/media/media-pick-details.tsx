@@ -1,6 +1,7 @@
 'use client'
 
 import { Button } from '@commerce/ui/shadcn/button'
+import { FieldLabel } from '@commerce/ui/shadcn/field'
 import { Textarea } from '@commerce/ui/shadcn/textarea'
 import { useId, useState } from 'react'
 import { toast } from 'sonner'
@@ -79,9 +80,7 @@ export default function MediaPickDetails({ item, onAltSaved }: MediaPickDetailsP
         </p>
       </div>
       <div className="flex flex-col gap-1.5">
-        <label htmlFor={fieldId} className="text-caption font-medium text-foreground">
-          {copy.alt}
-        </label>
+        <FieldLabel htmlFor={fieldId}>{copy.alt}</FieldLabel>
         <Textarea
           id={fieldId}
           value={alt}

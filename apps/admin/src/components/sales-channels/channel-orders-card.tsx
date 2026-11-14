@@ -1,8 +1,8 @@
 'use client'
 
 import type { ChannelOrder } from '@commerce/core'
+import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
-import KitButton from '@/components/kit/kit-button'
 import DataCard from '@/components/layout/data-card'
 import EmptyState from '@/components/layout/empty-state'
 import StatusChip from '@/components/layout/status-chip'
@@ -44,9 +44,15 @@ export default function ChannelOrdersCard({
       title={title}
       flush
       action={
-        <KitButton variant="linkSm" href={routes.orders.list()}>
+        <Button
+          variant="link"
+          size="xs"
+          nativeButton={false}
+          render={<Link href={routes.orders.list()} />}
+          className="h-auto px-0"
+        >
           {card.viewInOrders}
-        </KitButton>
+        </Button>
       }
     >
       {orders.length === 0 ? (

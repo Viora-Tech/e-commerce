@@ -1,6 +1,7 @@
 'use client'
 
 import type { ProductStatus } from '@commerce/core/catalog'
+import { Field, FieldDescription, FieldLabel } from '@commerce/ui/shadcn/field'
 import {
   Select,
   SelectContent,
@@ -10,7 +11,6 @@ import {
 } from '@commerce/ui/shadcn/select'
 import { useEffect, useState } from 'react'
 import ComboInput from '@/components/fields/combo-input'
-import KitField from '@/components/kit/kit-field'
 import DataCard from '@/components/layout/data-card'
 import { productFormContent } from '@/data/product-form'
 import { useCopy } from '@/hooks/use-copy'
@@ -65,11 +65,8 @@ export default function StatusCard({
   return (
     <DataCard title={copy.status.heading}>
       <div className="flex flex-col gap-4">
-        <KitField
-          label={copy.status.label}
-          htmlFor="product-status"
-          help={copy.status.help[status]}
-        >
+        <Field>
+          <FieldLabel htmlFor="product-status">{copy.status.label}</FieldLabel>
           <Select
             items={statusItems}
             value={status}
@@ -86,8 +83,10 @@ export default function StatusCard({
               ))}
             </SelectContent>
           </Select>
-        </KitField>
-        <KitField label={copy.organisation.vendor} htmlFor="product-vendor">
+          <FieldDescription>{copy.status.help[status]}</FieldDescription>
+        </Field>
+        <Field>
+          <FieldLabel htmlFor="product-vendor">{copy.organisation.vendor}</FieldLabel>
           <ComboInput
             id="product-vendor"
             value={vendor}
@@ -95,7 +94,7 @@ export default function StatusCard({
             onChange={onVendor}
             placeholder={copy.organisation.vendorPlaceholder}
           />
-        </KitField>
+        </Field>
       </div>
     </DataCard>
   )

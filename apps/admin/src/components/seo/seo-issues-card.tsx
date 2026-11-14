@@ -2,9 +2,9 @@
 
 import type { SeoIssue, SeoSeverity } from '@commerce/core'
 import { cn } from '@commerce/ui/lib/utils'
+import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
 import { useState } from 'react'
-import KitButton from '@/components/kit/kit-button'
 import EmptyState from '@/components/layout/empty-state'
 import StatusChip from '@/components/layout/status-chip'
 import SettingsCard from '@/components/settings/settings-card'
@@ -114,13 +114,9 @@ export default function SeoIssuesCard({ issues }: SeoIssuesCardProps) {
           </ul>
         )}
         {rest > 0 ? (
-          <KitButton
-            variant="secondary"
-            className="self-end"
-            onClick={() => setShown((n) => n + PAGE)}
-          >
+          <Button variant="outline" onClick={() => setShown((n) => n + PAGE)} className="self-end">
             {copy.more(Math.min(rest, PAGE))}
-          </KitButton>
+          </Button>
         ) : null}
       </div>
     </SettingsCard>

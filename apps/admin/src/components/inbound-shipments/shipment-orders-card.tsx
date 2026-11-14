@@ -1,13 +1,13 @@
 'use client'
 
 import { Plus, Trash2 } from '@commerce/ui/icons'
+import { Button } from '@commerce/ui/shadcn/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import KitIconButton from '@/components/kit/kit-icon-button'
-import KitSearch from '@/components/kit/kit-search'
 import EmptyState from '@/components/layout/empty-state'
+import RecordCombobox from '@/components/pickers/record-combobox'
 import StatusLabel from '@/components/status/status-label'
 import { inboundShipmentFormContent } from '@/data/purchasing'
 import { useCopy } from '@/hooks/use-copy'
@@ -86,35 +86,25 @@ export default function ShipmentOrdersCard({
         <CardTitle>{copy.heading}</CardTitle>
       </CardHeader>
       <CardContent className="pb-4">
-        <KitSearch
-          size="toolbar"
-          className="w-full"
+        <RecordCombobox
           placeholder={copy.search}
-          aria-label={copy.search}
-          value={search}
           disabled={busy}
-          onChange={(e) => setSearch(e.target.value)}
+          query={search}
+          onQueryChange={setSearch}
+          items={addable}
+          itemKey={(r) => r.id}
+          onPick={(r) => handleAdd(r.id)}
+          renderItem={(r) => (
+            <>
+              <span className="text-body-strong">{copy.number(r.number)}</span>
+              <span className="min-w-0 flex-1 truncate text-body">{r.supplierName}</span>
+              {r.inboundShipmentId ? (
+                <span className="text-caption text-muted-foreground">{copy.elsewhere}</span>
+              ) : null}
+              <Plus className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+            </>
+          )}
         />
-        {addable.length > 0 ? (
-          <ul className="mt-1 w-full overflow-hidden rounded-lg border border-line bg-card">
-            {addable.map((r) => (
-              <li key={r.id}>
-                <button
-                  type="button"
-                  onClick={() => handleAdd(r.id)}
-                  className="flex w-full items-center gap-3 px-3 py-2 text-left transition-colors hover:bg-background"
-                >
-                  <span className="text-body-strong">{copy.number(r.number)}</span>
-                  <span className="min-w-0 flex-1 truncate text-body">{r.supplierName}</span>
-                  {r.inboundShipmentId ? (
-                    <span className="text-caption text-muted-foreground">{copy.elsewhere}</span>
-                  ) : null}
-                  <Plus className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-                </button>
-              </li>
-            ))}
-          </ul>
-        ) : null}
       </CardContent>
       {orders.length === 0 ? (
         <EmptyState
@@ -141,14 +131,16 @@ export default function ShipmentOrdersCard({
                 {copy.units(o.units)}
               </span>
               <StatusLabel kind="purchaseOrder" value={o.status} />
-              <KitIconButton
-                label={copy.remove}
-                className="size-9"
+              <Button
+                variant="outline"
+                size="icon"
+                aria-label={copy.remove}
+                title={copy.remove}
                 disabled={busy}
                 onClick={() => handleRemove(o.id)}
               >
                 <Trash2 aria-hidden="true" />
-              </KitIconButton>
+              </Button>
             </li>
           ))}
         </ul>

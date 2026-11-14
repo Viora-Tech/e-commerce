@@ -1,8 +1,7 @@
 'use client'
 
-import { Search } from '@commerce/ui/icons'
-import { Input } from '@commerce/ui/shadcn/input'
 import { useEffect, useState } from 'react'
+import SearchField from '@/components/fields/search-field'
 import { orderEditContent } from '@/data/order-edit'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -59,16 +58,12 @@ export default function EditAddSearch({ onAdd }: EditAddSearchProps) {
   // Render logic
   return (
     <div className="flex flex-col gap-2">
-      <div className="relative">
-        <Search className="-translate-y-1/2 absolute top-1/2 left-3 size-4 text-muted-foreground" />
-        <Input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder={copy.search}
-          aria-label={copy.search}
-          className="pl-9"
-        />
-      </div>
+      <SearchField
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        placeholder={copy.search}
+        aria-label={copy.search}
+      />
       {results.length > 0 ? (
         <ul className="flex max-h-80 flex-col gap-1 overflow-y-auto rounded-lg border border-border p-1">
           {results.map((r) => (

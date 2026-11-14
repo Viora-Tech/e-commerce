@@ -1,10 +1,10 @@
 'use client'
 
-import { CheckIcon, Search } from '@commerce/ui/icons'
+import { CheckIcon } from '@commerce/ui/icons'
 import { Dialog, DialogTitle } from '@commerce/ui/shadcn/dialog'
-import { Input } from '@commerce/ui/shadcn/input'
 import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { useEffect, useState } from 'react'
+import SearchField from '@/components/fields/search-field'
 import DialogContent from '@/components/layout/dialog-content'
 import DialogHeader from '@/components/layout/dialog-header'
 import EmptyState from '@/components/layout/empty-state'
@@ -68,21 +68,14 @@ export default function RecordPickerDialog({
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
         </DialogHeader>
-        <div className="relative">
-          <Search
-            aria-hidden="true"
-            className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
-          />
-          <Input
-            size="lg"
-            className="pl-9"
-            value={query}
-            aria-label={placeholder ?? copy.searchRecords}
-            placeholder={placeholder ?? copy.searchRecords}
-            autoFocus
-            onChange={(e) => setQuery(e.target.value)}
-          />
-        </div>
+        <SearchField
+          size="lg"
+          value={query}
+          aria-label={placeholder ?? copy.searchRecords}
+          placeholder={placeholder ?? copy.searchRecords}
+          autoFocus
+          onChange={(e) => setQuery(e.target.value)}
+        />
         <div className="-mx-2 max-h-[22rem] min-h-[8rem] overflow-y-auto overscroll-contain">
           {options === null ? (
             <div className="flex h-32 items-center justify-center text-muted-foreground">

@@ -1,8 +1,7 @@
 'use client'
 
-import { Search } from '@commerce/ui/icons'
-import { Input } from '@commerce/ui/shadcn/input'
 import { NativeSelect, NativeSelectOption } from '@commerce/ui/shadcn/native-select'
+import SearchField from '@/components/fields/search-field'
 import { productFormContent } from '@/data/product-form'
 import { useCopy } from '@/hooks/use-copy'
 
@@ -42,21 +41,14 @@ export default function VariantToolbar({
 
   return (
     <div className="flex flex-wrap items-center gap-3">
-      <div className="relative min-w-48 flex-1">
-        <Search
-          aria-hidden="true"
-          className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground"
-        />
-        <Input
-          type="search"
-          value={query}
-          onChange={(e) => onQuery(e.target.value)}
-          placeholder={copy.search}
-          aria-label={copy.search}
-          className="pl-8"
-          autoComplete="off"
-        />
-      </div>
+      <SearchField
+        className="min-w-48 flex-1"
+        value={query}
+        onChange={(e) => onQuery(e.target.value)}
+        placeholder={copy.search}
+        aria-label={copy.search}
+        autoComplete="off"
+      />
       {canGroup ? (
         <div className="flex items-center gap-2 text-body text-muted-foreground">
           <label htmlFor="variant-group-by">{copy.groupBy}</label>

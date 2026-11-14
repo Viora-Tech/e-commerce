@@ -1,10 +1,10 @@
 'use client'
 
 import { Trash2 } from '@commerce/ui/icons'
+import { Button } from '@commerce/ui/shadcn/button'
 
 import { Input } from '@commerce/ui/shadcn/input'
 import VariantPicker, { type VariantHit, variantLabel } from '@/components/inventory/variant-picker'
-import KitIconButton from '@/components/kit/kit-icon-button'
 import KitThumb from '@/components/kit/kit-thumb'
 import DataCard from '@/components/layout/data-card'
 import EmptyState from '@/components/layout/empty-state'
@@ -102,13 +102,15 @@ export default function TransferLinesCard({
                 onChange={(e) => handleQuantity(i, e.target.value)}
               />
               {locked ? null : (
-                <KitIconButton
-                  label={copy.remove}
-                  className="size-9"
+                <Button
+                  variant="outline"
+                  size="icon"
+                  aria-label={copy.remove}
+                  title={copy.remove}
                   onClick={() => handleRemove(i)}
                 >
                   <Trash2 aria-hidden="true" />
-                </KitIconButton>
+                </Button>
               )}
             </li>
           ))}

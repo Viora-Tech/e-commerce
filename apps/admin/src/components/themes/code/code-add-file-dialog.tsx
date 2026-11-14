@@ -3,6 +3,7 @@
 import { NEW_FILE_KINDS, type NewFileKind } from '@commerce/core/theme-code'
 import { Braces, FileText, LayoutGrid, SquareTerminal } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
+import { FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import { useId, useState } from 'react'
 import { toast } from 'sonner'
@@ -117,9 +118,7 @@ export default function CodeAddFileDialog({
         </div>
       </fieldset>
       <div className="flex flex-col gap-1.5">
-        <label htmlFor={nameId} className="text-body font-medium text-foreground">
-          {copy.nameLabel}
-        </label>
+        <FieldLabel htmlFor={nameId}>{copy.nameLabel}</FieldLabel>
         <div className="flex h-9 items-stretch overflow-hidden rounded-md border border-input focus-within:ring-2 focus-within:ring-ring/50">
           <span className="flex items-center border-r border-input bg-muted px-3 font-mono text-caption text-muted-foreground">
             {folder}/

@@ -1,6 +1,6 @@
 'use client'
 
-import { FieldError } from '@commerce/ui/shadcn/field'
+import { Field, FieldError, FieldLabel } from '@commerce/ui/shadcn/field'
 import {
   Select,
   SelectContent,
@@ -8,7 +8,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@commerce/ui/shadcn/select'
-import KitField from '@/components/kit/kit-field'
 import EmptyState from '@/components/layout/empty-state'
 import { variantPageContent } from '@/data/variant-page'
 import { useCopy } from '@/hooks/use-copy'
@@ -56,11 +55,8 @@ export default function VariantOptionsFields({
               // A value since removed from the option still shows until another is picked.
               const all = values.includes(current) || !current ? values : [current, ...values]
               return (
-                <KitField
-                  key={option.id ?? option.name}
-                  label={option.name}
-                  htmlFor={`variant-option-${i}`}
-                >
+                <Field key={option.id ?? option.name}>
+                  <FieldLabel htmlFor={`variant-option-${i}`}>{option.name}</FieldLabel>
                   <Select
                     items={Object.fromEntries(all.map((v) => [v, v]))}
                     value={current}
@@ -77,7 +73,7 @@ export default function VariantOptionsFields({
                       ))}
                     </SelectContent>
                   </Select>
-                </KitField>
+                </Field>
               )
             })}
           </div>

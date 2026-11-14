@@ -3,9 +3,10 @@
 import { PLAN_QUOTAS } from '@commerce/ai/client'
 import type { PlanView } from '@commerce/core'
 import { PLANS } from '@commerce/core/billing'
+import { Button } from '@commerce/ui/shadcn/button'
 import { Card } from '@commerce/ui/shadcn/card'
 import { Progress } from '@commerce/ui/shadcn/progress'
-import KitButton from '@/components/kit/kit-button'
+import Link from 'next/link'
 import StatusChip from '@/components/layout/status-chip'
 import { billingContent } from '@/data/billing'
 import { useCopy, useFormat } from '@/hooks/use-copy'
@@ -98,9 +99,9 @@ export default function CurrentPlanCard({ view, onKeepPlan }: CurrentPlanCardPro
           <span>
             {copy.current.switching(copy.plans[view.nextPlan].name, format.date(view.periodEnd))}
           </span>
-          <KitButton variant="linkSm" onClick={onKeepPlan}>
+          <Button variant="link" size="xs" onClick={onKeepPlan} className="h-auto px-0">
             {copy.current.keep}
-          </KitButton>
+          </Button>
         </div>
       ) : null}
       <div className="flex flex-col gap-4">
@@ -133,9 +134,13 @@ export default function CurrentPlanCard({ view, onKeepPlan }: CurrentPlanCardPro
       {nudge && nudgeText ? (
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-md bg-muted px-3 py-3 text-caption text-foreground">
           <p className="max-w-md">{nudgeText}</p>
-          <KitButton variant="secondary" href={routes.settings.billingPlans()}>
+          <Button
+            variant="outline"
+            nativeButton={false}
+            render={<Link href={routes.settings.billingPlans()} />}
+          >
             {copy.nudge.see(copy.plans[nudge.plan].name)}
-          </KitButton>
+          </Button>
         </div>
       ) : null}
     </Card>
