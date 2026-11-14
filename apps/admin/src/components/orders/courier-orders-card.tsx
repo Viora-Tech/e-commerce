@@ -72,6 +72,7 @@ export default function CourierOrdersCard({
             {r.error ? <span className="text-caption text-muted-foreground">{r.error}</span> : null}
             {r.status === 'failed' && canRetry ? (
               <Button
+                loading={retrying === r.provider}
                 variant="outline"
                 size="sm"
                 className="self-start"
@@ -79,7 +80,7 @@ export default function CourierOrdersCard({
                 onClick={() => handleRetry(r.provider)}
               >
                 <RefreshCw aria-hidden="true" />
-                {retrying === r.provider ? copy.retrying : copy.retry}
+                {copy.retry}
               </Button>
             ) : null}
           </li>

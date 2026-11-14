@@ -27,12 +27,12 @@ export default function QuestionCard({ question, onChanged }: QuestionCardProps)
   const { questions: copy } = useCopy(reviewToolsContent)
   const format = useFormat()
   const [answer, setAnswer] = useState(question.answer ?? '')
-  const [busy, setBusy] = useState(false)
+  const [busy, setBusy] = useState<string | null>(null)
   const [deleting, setDeleting] = useState(false)
 
   // Helpers
-  const run = async (work: () => Promise<unknown>, done: string) => {
-    setBusy(true)
+  const run = async (action: string, work: () => Promise<unknown>, done: string) => {
+    setBusy(action)
     try {
       await work()
       toast.success(done)
@@ -40,20 +40,26 @@ export default function QuestionCard({ question, onChanged }: QuestionCardProps)
     } catch (err) {
       toast.error(err instanceof Error ? err.message : copy.failed)
     } finally {
-      setBusy(false)
+      setBusy(null)
     }
   }
 
   // Event handlers
   const handlePublish = () =>
     run(
+      'publish',
       () => api.reviews.questions.answer({ id: question.id, answer, publish: true }),
       answer.trim() ? copy.published : copy.saved,
     )
   const handleSave = () =>
-    run(() => api.reviews.questions.answer({ id: question.id, answer, publish: false }), copy.saved)
+    run(
+      'save',
+      () => api.reviews.questions.answer({ id: question.id, answer, publish: false }),
+      copy.saved,
+    )
   const handleHide = () =>
     run(
+      'hide',
       () => api.reviews.questions.setStatus({ ids: [question.id], status: 'hidden' }),
       copy.hidden,
     )
@@ -92,20 +98,34 @@ export default function QuestionCard({ question, onChanged }: QuestionCardProps)
         onChange={(e) => setAnswer(e.target.value)}
       />
       <div className="flex flex-wrap justify-end gap-2">
-        <Button variant="ghost" onClick={() => setDeleting(true)} disabled={busy}>
+        <Button variant="ghost" onClick={() => setDeleting(true)} disabled={busy !== null}>
           <Trash2 aria-hidden="true" />
           {copy.delete}
         </Button>
         {question.status !== 'hidden' && (
-          <Button variant="outline" onClick={handleHide} disabled={busy}>
+          <Button
+            variant="outline"
+            onClick={handleHide}
+            loading={busy === 'hide'}
+            disabled={busy !== null}
+          >
             <EyeOff aria-hidden="true" />
             {copy.hide}
           </Button>
         )}
-        <Button variant="outline" onClick={handleSave} disabled={busy || !changed}>
+        <Button
+          variant="outline"
+          onClick={handleSave}
+          loading={busy === 'save'}
+          disabled={busy !== null || !changed}
+        >
           {copy.save}
         </Button>
-        <Button onClick={handlePublish} disabled={busy || !answer.trim()}>
+        <Button
+          onClick={handlePublish}
+          loading={busy === 'publish'}
+          disabled={busy !== null || !answer.trim()}
+        >
           <Send aria-hidden="true" />
           {question.status === 'published' && !changed ? copy.republish : copy.publish}
         </Button>

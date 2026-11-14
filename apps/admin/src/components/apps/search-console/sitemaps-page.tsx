@@ -9,6 +9,7 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import DataCard from '@/components/layout/data-card'
+import DataCardSkeleton from '@/components/layout/data-card-skeleton'
 import EmptyState from '@/components/layout/empty-state'
 import PageHeader from '@/components/layout/page-header'
 import StatusChip from '@/components/layout/status-chip'
@@ -90,7 +91,7 @@ export default function SitemapsPage() {
     return (
       <div className="flex flex-col gap-4">
         <Skeleton className="h-10 w-1/3" />
-        <Skeleton className="h-40 w-full" />
+        <DataCardSkeleton fields={0} lines={3} />
       </div>
     )
   }

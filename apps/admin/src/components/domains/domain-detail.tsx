@@ -182,9 +182,15 @@ export default function DomainDetail({ initial, primaryHostname }: DomainDetailP
           <div className="flex flex-wrap items-center justify-between gap-3">
             <span className="text-caption text-muted-foreground">{lastChecked}</span>
             {canManage ? (
-              <Button variant="outline" size="sm" disabled={checking} onClick={handleVerify}>
+              <Button
+                loading={checking}
+                variant="outline"
+                size="sm"
+                disabled={checking}
+                onClick={handleVerify}
+              >
                 <RefreshCw aria-hidden="true" />
-                {checking ? copy.verification.verifying : copy.verification.verify}
+                {copy.verification.verify}
               </Button>
             ) : null}
           </div>

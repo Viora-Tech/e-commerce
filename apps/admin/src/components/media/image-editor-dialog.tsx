@@ -249,7 +249,7 @@ export default function ImageEditorDialog({
               disabled={busy || !img || !area}
             >
               <Save aria-hidden="true" />
-              {busy ? copy.saving : copy.save}
+              {copy.save}
             </Button>
           </div>
         </DialogFooter>

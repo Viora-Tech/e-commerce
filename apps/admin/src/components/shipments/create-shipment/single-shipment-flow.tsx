@@ -3,7 +3,6 @@
 import { Truck } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { DialogFooter, DialogHeader, DialogTitle } from '@commerce/ui/shadcn/dialog'
-import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import {
@@ -249,8 +248,8 @@ export default function SingleShipmentFlow({
               </Button>
             )}
             {step === 'review' ? (
-              <Button onClick={handleBook} disabled={busy}>
-                {busy ? <Spinner /> : <Truck aria-hidden="true" />}
+              <Button loading={busy} onClick={handleBook} disabled={busy}>
+                <Truck aria-hidden="true" />
                 {busy
                   ? copy.review.booking
                   : pick === MANUAL

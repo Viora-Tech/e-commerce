@@ -3,15 +3,16 @@
 import { permissions } from '@commerce/core/permissions'
 import { ArrowDown, ArrowUp, Pencil, Plus, Trash2 } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
 import EmptyState from '@/components/layout/empty-state'
 import PageHeader from '@/components/layout/page-header'
+import SectionPageSkeleton from '@/components/layout/section-page-skeleton'
 import SettingsTable from '@/components/settings/settings-table'
 import SettingsTableCell from '@/components/settings/settings-table-cell'
 import SettingsTableRow from '@/components/settings/settings-table-row'
+import InlineState from '@/components/states/inline-state'
 import { inboxContent } from '@/data/inbox'
 import { useCopy } from '@/hooks/use-copy'
 import { usePermissions } from '@/hooks/use-permissions'
@@ -30,14 +31,21 @@ export default function QuickRepliesPage() {
   const [editing, setEditing] = useState<Editing>(null)
   const [deleting, setDeleting] = useState<QuickReply | null>(null)
   const [reloadKey, setReloadKey] = useState(0)
+  const [failed, setFailed] = useState(false)
 
   useEffect(() => {
     // reloadKey re-runs the fetch after a save, move or delete.
     if (reloadKey < 0) return
     let live = true
-    api.inbox.quickReplies.list().then((rows) => {
-      if (live) setReplies(rows)
-    })
+    setFailed(false)
+    api.inbox.quickReplies
+      .list()
+      .then((rows) => {
+        if (live) setReplies(rows)
+      })
+      .catch(() => {
+        if (live) setFailed(true)
+      })
     return () => {
       live = false
     }
@@ -93,8 +101,10 @@ export default function QuickRepliesPage() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader title={q.title} subtitle={q.subtitle} actions={addButton} />
-      {!replies ? (
-        <Skeleton className="h-64 w-full rounded-2xl" />
+      {failed && !replies ? (
+        <InlineState kind="error" onRetry={() => setReloadKey((k) => k + 1)} />
+      ) : !replies ? (
+        <SectionPageSkeleton header={false} cards={1} />
       ) : (
         <SettingsTable
           heading={q.listTitle}

@@ -4,10 +4,10 @@ import { permissions } from '@commerce/core/permissions'
 import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
-import { Spinner } from '@commerce/ui/shadcn/spinner'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import DataCardSkeleton from '@/components/layout/data-card-skeleton'
 import PageColumns from '@/components/layout/page-columns'
 import { whatsappAppContent } from '@/data/whatsapp-app'
 import { useCopy } from '@/hooks/use-copy'
@@ -99,7 +99,7 @@ export default function WhatsappSetupPage() {
     return (
       <div className="flex flex-col gap-5">
         <Skeleton className="h-11 w-80" />
-        <Skeleton className="h-64 w-full" />
+        <DataCardSkeleton fields={0} lines={5} />
       </div>
     )
   }
@@ -183,13 +183,13 @@ export default function WhatsappSetupPage() {
                 action={
                   step3 === 'todo' && setup.access === 'live' && canManage ? (
                     <Button
+                      loading={submitting}
                       variant="outline"
                       size="sm"
                       onClick={handleSubmit}
                       disabled={submitting}
                     >
-                      {submitting ? <Spinner /> : null}
-                      {submitting ? words.templates.submitting : words.templates.action}
+                      {words.templates.action}
                     </Button>
                   ) : step3 === 'done' ? undefined : (
                     linkButton(templatesHref, words.templates.manual)

@@ -12,7 +12,6 @@ import {
   InputGroupInput,
   InputGroupText,
 } from '@commerce/ui/shadcn/input-group'
-import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
@@ -95,8 +94,13 @@ export default function CreatePageDialog({ open, onOpenChange }: CreatePageDialo
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
             {copy.cancel}
           </Button>
-          <Button type="button" onClick={handleCreate} disabled={!title.trim() || busy}>
-            {busy ? <Spinner /> : <Plus aria-hidden="true" />}
+          <Button
+            loading={busy}
+            type="button"
+            onClick={handleCreate}
+            disabled={!title.trim() || busy}
+          >
+            <Plus aria-hidden="true" />
             {copy.confirm}
           </Button>
         </DialogFooter>

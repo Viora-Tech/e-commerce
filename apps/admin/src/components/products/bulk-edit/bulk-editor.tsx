@@ -248,7 +248,7 @@ export default function BulkEditor({ sheet, productIds, stockFocus }: BulkEditor
             </Button>
             <Button disabled={changed === 0} loading={saving} onClick={handleSave}>
               <Save aria-hidden="true" />
-              {saving ? copy.saving : copy.save}
+              {copy.save}
             </Button>
           </>
         }

@@ -154,8 +154,14 @@ export default function OverviewPage() {
             {data.unscored > 0 ? (
               <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-muted px-3 py-2">
                 <p className="text-caption text-muted-foreground">{o.unscored(data.unscored)}</p>
-                <Button size="sm" variant="outline" disabled={scoring} onClick={handleScoreOpen}>
-                  {scoring ? o.scoring : o.scoreOpen}
+                <Button
+                  loading={scoring}
+                  size="sm"
+                  variant="outline"
+                  disabled={scoring}
+                  onClick={handleScoreOpen}
+                >
+                  {o.scoreOpen}
                 </Button>
               </div>
             ) : null}

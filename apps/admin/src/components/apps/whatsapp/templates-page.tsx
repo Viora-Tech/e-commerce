@@ -3,7 +3,6 @@
 import { permissions } from '@commerce/core/permissions'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
-import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import NoticeBar from '@/components/layout/notice-bar'
@@ -95,8 +94,7 @@ export default function WhatsappTemplatesPage() {
         summary={words.intro}
         actions={
           canSubmit && notSubmitted > 0 ? (
-            <Button onClick={handleSubmitAll} disabled={busy !== null}>
-              {busy === 'all' ? <Spinner /> : null}
+            <Button loading={busy === 'all'} onClick={handleSubmitAll} disabled={busy !== null}>
               {words.submitAll}
             </Button>
           ) : null

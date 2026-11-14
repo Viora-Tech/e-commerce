@@ -23,11 +23,12 @@ export default function ExpiryCard({ card, onChanged }: ExpiryCardProps) {
   // Hooks
   const [editing, setEditing] = useState(false)
   const [value, setValue] = useState(card.expiresOn ?? '')
-  const [busy, setBusy] = useState(false)
+  /** `set` or `clear` while saving, so only the pressed button spins. */
+  const [busy, setBusy] = useState<'set' | 'clear' | null>(null)
 
   // Helpers
   const save = async (expiresOn: string | null) => {
-    setBusy(true)
+    setBusy(expiresOn === null ? 'clear' : 'set')
     try {
       await api.giftCards.update({ id: card.id, expiresOn })
       toast.success(copy.saved)
@@ -36,7 +37,7 @@ export default function ExpiryCard({ card, onChanged }: ExpiryCardProps) {
     } catch {
       toast.error(giftCardDetailContent.failed)
     } finally {
-      setBusy(false)
+      setBusy(null)
     }
   }
 
@@ -69,16 +70,32 @@ export default function ExpiryCard({ card, onChanged }: ExpiryCardProps) {
         <div className="flex flex-col gap-3">
           <DateField min={card.today} value={value} onChange={(v) => setValue(v)} />
           <div className="flex flex-wrap gap-2">
-            <Button size="sm" onClick={() => save(value || null)} disabled={busy || !value}>
+            <Button
+              size="sm"
+              onClick={() => save(value || null)}
+              disabled={busy !== null || !value}
+              loading={busy === 'set'}
+            >
               <Save aria-hidden="true" />
               {copy.save}
             </Button>
             {card.expiresOn ? (
-              <Button size="sm" variant="outline" onClick={() => save(null)} disabled={busy}>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => save(null)}
+                disabled={busy !== null}
+                loading={busy === 'clear'}
+              >
                 {copy.remove}
               </Button>
             ) : null}
-            <Button size="sm" variant="ghost" onClick={() => setEditing(false)} disabled={busy}>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => setEditing(false)}
+              disabled={busy !== null}
+            >
               {copy.cancel}
             </Button>
           </div>

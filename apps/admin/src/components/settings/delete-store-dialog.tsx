@@ -90,7 +90,7 @@ export default function DeleteStoreDialog({
             disabled={!ok || busy}
           >
             <Trash2 aria-hidden="true" />
-            {busy ? copy.deleting : copy.confirm}
+            {copy.confirm}
           </Button>
         </AlertDialogFooter>
       </AlertDialogContent>

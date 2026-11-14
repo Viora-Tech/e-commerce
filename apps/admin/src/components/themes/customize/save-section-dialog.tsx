@@ -6,7 +6,6 @@ import { Button } from '@commerce/ui/shadcn/button'
 import { Dialog, DialogDescription, DialogTitle } from '@commerce/ui/shadcn/dialog'
 import { Field, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
-import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { type FormEvent, useState } from 'react'
 import { toast } from 'sonner'
 import DialogContent from '@/components/layout/dialog-content'
@@ -79,9 +78,9 @@ export default function SaveSectionDialog({ block, defaultName, onClose }: SaveS
             <Button type="button" variant="outline" onClick={onClose}>
               {copy.cancel}
             </Button>
-            <Button type="submit" disabled={!name.trim() || busy}>
-              {busy ? <Spinner /> : <Bookmark aria-hidden="true" />}
-              {busy ? copy.saving : copy.confirm}
+            <Button loading={busy} type="submit" disabled={!name.trim() || busy}>
+              <Bookmark aria-hidden="true" />
+              {copy.confirm}
             </Button>
           </DialogFooter>
         </form>

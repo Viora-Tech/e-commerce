@@ -1,6 +1,7 @@
 'use client'
 
 import { Button } from '@commerce/ui/shadcn/button'
+import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import Link from 'next/link'
 import DataCard from '@/components/layout/data-card'
 import StatusChip from '@/components/layout/status-chip'
@@ -41,7 +42,7 @@ export default function PickupLocationsCard({ places }: PickupLocationsCardProps
       }
     >
       {places === null ? (
-        <span className="h-10 animate-pulse rounded bg-muted" />
+        <Skeleton className="h-10 rounded" />
       ) : places.length === 0 ? (
         <p className="text-caption text-muted-foreground">{p.empty}</p>
       ) : (

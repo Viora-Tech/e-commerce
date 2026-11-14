@@ -187,7 +187,7 @@ export default function ShipmentForm({ shipment, costs, aiReading }: ShipmentFor
             ) : null}
             <Button loading={busy} onClick={handleSave} disabled={busy}>
               <Save aria-hidden="true" />
-              {busy ? copy.saving : copy.save}
+              {copy.save}
             </Button>
           </>
         }

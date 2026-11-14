@@ -11,18 +11,19 @@ import {
 import { parseRupees } from '@commerce/money'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Input } from '@commerce/ui/shadcn/input'
-import { Skeleton } from '@commerce/ui/shadcn/skeleton'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { toast } from 'sonner'
-import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
+import SectionPageSkeleton from '@/components/layout/section-page-skeleton'
 import SettingsCard from '@/components/settings/settings-card'
 import SettingsDrill from '@/components/settings/settings-drill'
 import SettingsDrillPanel from '@/components/settings/settings-drill-panel'
+import LoadFailed from '@/components/states/load-failed'
 import { profitCostsContent } from '@/data/profit-costs'
 import { settingsContent } from '@/data/settings'
 import { settingsRowsContent } from '@/data/settings-rows'
 import { useCopy, useFormat } from '@/hooks/use-copy'
+import { useLoad } from '@/hooks/use-load'
 import { usePermissions } from '@/hooks/use-permissions'
 import { api } from '@/lib/api-client'
 import FeeRateRow, { type FeeRateText } from './fee-rate-row'
@@ -90,12 +91,12 @@ export default function CostsSettings() {
   const [form, setForm] = useState<Form | null>(null)
   const [busy, setBusy] = useState(false)
 
-  useEffect(() => {
-    api.profitCosts.get().then((v) => {
-      setView(v)
-      setForm(formOf(v))
-    })
-  }, [])
+  const { failed, retry } = useLoad(async () => {
+    const v = await api.profitCosts.get()
+    setView(v)
+    setForm(formOf(v))
+    return v
+  })
 
   // Helpers
   const nameOf = (id: string) =>
@@ -227,15 +228,10 @@ export default function CostsSettings() {
         onDiscard={handleDiscard}
         saving={busy}
       />
-      {!view || !form ? (
-        <>
-          <PageHeader
-            title={copy.title}
-            subtitle={copy.intro}
-            save={{ dirty: false, saving: busy, onSave: handleSave, label: copy.save }}
-          />
-          <Skeleton className="h-64 w-full rounded-2xl" />
-        </>
+      {failed && !view ? (
+        <LoadFailed failed={failed} onRetry={retry} />
+      ) : !view || !form ? (
+        <SectionPageSkeleton />
       ) : (
         <SettingsDrill
           rows={rows}

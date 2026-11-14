@@ -2,7 +2,6 @@
 
 import { ExternalLink, Eye, RotateCcw, Upload } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
@@ -131,13 +130,12 @@ export default function RunActions({ run, onQueued }: RunActionsProps) {
           <ExternalLink />
         </Button>
       ) : canRetry ? (
-        <Button type="button" onClick={handleRetry} disabled={busy}>
-          {busy ? <Spinner /> : <RotateCcw aria-hidden="true" />}
+        <Button loading={busy} type="button" onClick={handleRetry} disabled={busy}>
+          <RotateCcw aria-hidden="true" />
           {copy.retryMissed(run.retryable)}
         </Button>
       ) : (
-        <Button type="button" onClick={handleStart} disabled={busy}>
-          {busy ? <Spinner /> : null}
+        <Button loading={busy} type="button" onClick={handleStart} disabled={busy}>
           {label}
         </Button>
       )}

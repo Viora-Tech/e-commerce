@@ -2,7 +2,6 @@
 
 import { ArrowLeft, Globe, Monitor, Moon, Save, Smartphone, Sun, Tablet } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { ToggleGroup, ToggleGroupItem } from '@commerce/ui/shadcn/toggle-group'
 import Link from 'next/link'
 import StatusChip from '@/components/layout/status-chip'
@@ -122,18 +121,24 @@ export default function CustomizerTopBar({
             {copy.discard}
           </Button>
         ) : null}
-        <Button variant={live ? 'default' : 'outline'} onClick={onSave} disabled={!dirty || saving}>
-          {saving ? <Spinner /> : <Save aria-hidden="true" />}
+        <Button
+          loading={saving}
+          variant={live ? 'default' : 'outline'}
+          onClick={onSave}
+          disabled={!dirty || saving}
+        >
+          <Save aria-hidden="true" />
           {themesContent.save}
         </Button>
         {!live && canPublish ? (
           <Button
+            loading={publishing}
             onClick={onPublish}
             disabled={dirty || publishing}
             title={dirty ? copy.publishUnsaved : undefined}
           >
-            {publishing ? <Spinner /> : <Globe aria-hidden="true" />}
-            {publishing ? copy.publishing : copy.publish}
+            <Globe aria-hidden="true" />
+            {copy.publish}
           </Button>
         ) : null}
       </div>

@@ -1,7 +1,6 @@
 'use client'
 
 import { Button } from '@commerce/ui/shadcn/button'
-import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
@@ -50,13 +49,13 @@ export default function RunStopButton({ run, onStopped }: RunStopButtonProps) {
   return (
     <>
       <Button
+        loading={busy || asked}
         type="button"
         variant="outline"
         className="text-destructive"
         onClick={() => setOpen(true)}
         disabled={busy || asked}
       >
-        {busy || asked ? <Spinner /> : null}
         {copy.stop.button}
       </Button>
       <ConfirmDialog

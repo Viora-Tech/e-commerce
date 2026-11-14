@@ -5,16 +5,17 @@ import { Button } from '@commerce/ui/shadcn/button'
 import { Card, CardDescription, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
-import { Skeleton } from '@commerce/ui/shadcn/skeleton'
-import { Spinner } from '@commerce/ui/shadcn/spinner'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { toast } from 'sonner'
 import SaveErrorAlert from '@/components/approvals/save-error-alert'
 import DataCard from '@/components/layout/data-card'
+import DataCardSkeleton from '@/components/layout/data-card-skeleton'
 import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
 import type { ProviderDef, ProviderState } from '@/components/settings/provider-settings-form'
+import LoadFailed from '@/components/states/load-failed'
 import { s3AppContent as appCopy, s3CorsRule, s3IamPolicy } from '@/data/s3'
+import { useLoad } from '@/hooks/use-load'
 import { api } from '@/lib/api-client'
 import CodeBlock from './code-block'
 import MoveFilesCard from './move-files-card'
@@ -50,16 +51,16 @@ export default function ConnectPage() {
   const [error, setError] = useState<string | null>(null)
   const [test, setTest] = useState<TestResult>({ status: 'idle' })
 
-  useEffect(() => {
-    api.store.getStorage().then((r) => {
-      const def = r.available.find((p) => p.id === PROVIDER_ID) ?? null
-      const saved = { ...emptyValues, ...(r.settings.providers[PROVIDER_ID] ?? {}) }
-      setProvider(def)
-      setBlob(r.settings as Blob)
-      setValues(saved)
-      setSnapshot(JSON.stringify(saved))
-    })
-  }, [])
+  const { failed, retry } = useLoad(async () => {
+    const r = await api.store.getStorage()
+    const def = r.available.find((p) => p.id === PROVIDER_ID) ?? null
+    const saved = { ...emptyValues, ...(r.settings.providers[PROVIDER_ID] ?? {}) }
+    setProvider(def)
+    setBlob(r.settings as Blob)
+    setValues(saved)
+    setSnapshot(JSON.stringify(saved))
+    return r
+  })
 
   // Event handlers
   const setField = (key: string, value: string) => {
@@ -137,12 +138,10 @@ export default function ConnectPage() {
       />
       {error ? <SaveErrorAlert title={'Could not save'} message={error} /> : null}
 
-      {provider === null ? (
-        <Card gap={4} inset={6}>
-          <Skeleton className="h-5 w-40" />
-          <Skeleton className="h-10 w-full" />
-          <Skeleton className="h-10 w-full" />
-        </Card>
+      {failed && provider === null ? (
+        <LoadFailed failed={failed} onRetry={retry} size="inline" />
+      ) : provider === null ? (
+        <DataCardSkeleton fields={2} />
       ) : (
         <>
           <DataCard
@@ -267,14 +266,15 @@ export default function ConnectPage() {
               <p className="text-body font-medium text-foreground">{copy.steps.four.title}</p>
               <p className="text-caption text-muted-foreground">{copy.steps.four.body}</p>
               <Button
+                loading={test.status === 'testing'}
                 type="button"
                 variant="outline"
                 className="w-fit"
                 onClick={handleTest}
                 disabled={test.status === 'testing'}
               >
-                {test.status === 'testing' ? <Spinner /> : <RefreshCw aria-hidden="true" />}
-                {test.status === 'testing' ? copy.testing : copy.testConnection}
+                <RefreshCw aria-hidden="true" />
+                {copy.testConnection}
               </Button>
               {test.status === 'ok' ? (
                 <p className="flex items-center gap-1.5 text-body font-medium text-success">

@@ -4,7 +4,6 @@ import { Send } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Dialog, DialogDescription, DialogTitle } from '@commerce/ui/shadcn/dialog'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
-import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { useEffect, useState } from 'react'
 import DialogContent from '@/components/layout/dialog-content'
 import DialogFooter from '@/components/layout/dialog-footer'
@@ -116,8 +115,8 @@ export default function PreviewDialog({ messageId, onClose, onTest, testing }: P
           </div>
         )}
         <DialogFooter>
-          <Button variant="outline" onClick={onTest} disabled={testing}>
-            {testing ? <Spinner /> : <Send aria-hidden="true" />}
+          <Button loading={testing} variant="outline" onClick={onTest} disabled={testing}>
+            <Send aria-hidden="true" />
             {copy.sendTest}
           </Button>
           <Button onClick={onClose}>{copy.close}</Button>

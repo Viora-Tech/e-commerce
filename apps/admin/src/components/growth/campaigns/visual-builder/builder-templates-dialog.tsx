@@ -6,11 +6,12 @@ import {
   type EmailStarterCategory,
   starterMjml,
 } from '@commerce/core/marketing'
-import { Loader2Icon, Pencil, Save, Trash2 } from '@commerce/ui/icons'
+import { Pencil, Save, Trash2 } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Dialog, DialogDescription, DialogTitle } from '@commerce/ui/shadcn/dialog'
 import { Field, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
+import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { Tabs, TabsList, TabsTrigger } from '@commerce/ui/shadcn/tabs'
 import type { Editor } from 'grapesjs'
 import { useEffect, useState } from 'react'
@@ -70,7 +71,7 @@ export default function BuilderTemplatesDialog({
   const [failed, setFailed] = useState(false)
   const [rows, setRows] = useState<Row[] | null>(null)
   const [name, setName] = useState('')
-  const [busy, setBusy] = useState(false)
+  const [busy, setBusy] = useState<string | null>(null)
   const [pending, setPending] = useState<Pending | null>(null)
   const [openedId, setOpenedId] = useState<string | null>(null)
   const [renaming, setRenaming] = useState<{ id: string; name: string } | null>(null)
@@ -113,7 +114,7 @@ export default function BuilderTemplatesDialog({
       toast.error(copy.builder.compileFailed)
       return
     }
-    setBusy(true)
+    setBusy('save')
     try {
       const row = await api.marketing.emailTemplates.create({ name: name.trim(), design })
       toast.success(copy.templates.saved)
@@ -123,7 +124,7 @@ export default function BuilderTemplatesDialog({
     } catch (err) {
       toast.error(err instanceof Error ? err.message : String(err))
     } finally {
-      setBusy(false)
+      setBusy(null)
     }
   }
 
@@ -134,13 +135,13 @@ export default function BuilderTemplatesDialog({
       toast.error(copy.builder.compileFailed)
       return
     }
-    setBusy(true)
+    setBusy('update')
     try {
       await api.marketing.emailTemplates.update({ id: row.id, design })
       toast.success(copy.gallery.updated)
       await refresh()
     } finally {
-      setBusy(false)
+      setBusy(null)
     }
   }
 
@@ -182,7 +183,7 @@ export default function BuilderTemplatesDialog({
 
   // Render logic
   const g = copy.gallery
-  const canSave = !busy && name.trim().length > 0
+  const canSave = busy === null && name.trim().length > 0
   const shown = (starters ?? []).filter((s) => category === 'all' || s.category === category)
 
   return (
@@ -219,7 +220,7 @@ export default function BuilderTemplatesDialog({
             {failed ? <p className="text-body text-destructive">{g.failed}</p> : null}
             {!starters && !failed ? (
               <p className="flex items-center gap-2 text-body text-muted-foreground">
-                <Loader2Icon className="size-4 animate-spin" aria-hidden="true" />
+                <Spinner />
                 {g.loading}
               </p>
             ) : null}
@@ -271,7 +272,7 @@ export default function BuilderTemplatesDialog({
                   onChange={(e) => setName(e.target.value)}
                 />
               </Field>
-              <Button onClick={handleSave} disabled={!canSave}>
+              <Button onClick={handleSave} disabled={!canSave} loading={busy === 'save'}>
                 <Save aria-hidden="true" />
                 {copy.templates.nameSave}
               </Button>
@@ -323,7 +324,8 @@ export default function BuilderTemplatesDialog({
                     <Button
                       size="sm"
                       onClick={() => void handleUpdate(r)}
-                      disabled={busy}
+                      disabled={busy !== null}
+                      loading={busy === 'update'}
                       title={g.updateHint(r.name)}
                     >
                       <Save aria-hidden="true" />

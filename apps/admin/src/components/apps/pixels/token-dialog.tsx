@@ -70,7 +70,7 @@ export default function TokenDialog({ open, onOpenChange, pixelId, onSaved }: To
               {copy.cancel}
             </Button>
             <Button loading={busy} type="submit" disabled={busy || token.trim().length === 0}>
-              {busy ? copy.saving : copy.save}
+              {copy.save}
             </Button>
           </DialogFooter>
         </form>

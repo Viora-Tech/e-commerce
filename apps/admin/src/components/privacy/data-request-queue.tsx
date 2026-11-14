@@ -5,10 +5,10 @@ import { daysUntilDue, requestUrgency } from '@commerce/core/privacy'
 import { Plus, ShieldCheck } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card, CardContent } from '@commerce/ui/shadcn/card'
-import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { Tabs, TabsList, TabsTrigger } from '@commerce/ui/shadcn/tabs'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
+import DataCardSkeleton from '@/components/layout/data-card-skeleton'
 import EmptyState from '@/components/layout/empty-state'
 import PageHeader from '@/components/layout/page-header'
 import StatusChip from '@/components/layout/status-chip'
@@ -83,7 +83,7 @@ export default function DataRequestQueue() {
       {failed ? (
         <p className="text-body text-muted-foreground">{copy.loadFailed}</p>
       ) : !rows ? (
-        <Skeleton className="h-48 w-full rounded-2xl" />
+        <DataCardSkeleton fields={0} lines={4} />
       ) : rows.length === 0 ? (
         <Card>
           <CardContent>

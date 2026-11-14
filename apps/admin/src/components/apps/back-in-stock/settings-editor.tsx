@@ -105,7 +105,7 @@ export default function SettingsEditor() {
             {copy.discard}
           </Button>
           <Button type="button" onClick={handleSave} disabled={!dirty} loading={busy}>
-            {busy ? copy.saving : copy.save}
+            {copy.save}
           </Button>
         </div>
       </header>

@@ -110,7 +110,7 @@ export default function EmailPoDialog({
           </Button>
           <Button loading={busy} type="button" onClick={handleSend} disabled={busy || !valid}>
             <Send aria-hidden="true" />
-            {busy ? copy.sending : copy.send}
+            {copy.send}
           </Button>
         </DialogFooter>
       </DialogContent>

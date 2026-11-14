@@ -1,10 +1,11 @@
 'use client'
 
 import type { EmailBlock, EmailDesign, EmailEditor } from '@commerce/core/marketing'
-import { Blocks, Loader2Icon, Palette } from '@commerce/ui/icons'
+import { Blocks, Palette } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
+import { Spinner } from '@commerce/ui/shadcn/spinner'
 import dynamic from 'next/dynamic'
 import { useState } from 'react'
 import { emailBuilderContent } from '@/data/email-builder'
@@ -24,7 +25,7 @@ const VisualBuilder = dynamic(() => import('./visual-builder/visual-builder'), {
   ssr: false,
   loading: () => (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-background">
-      <Loader2Icon className="size-5 animate-spin text-muted-foreground" aria-hidden="true" />
+      <Spinner className="size-5 text-muted-foreground" />
     </div>
   ),
 })

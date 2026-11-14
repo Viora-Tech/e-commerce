@@ -71,20 +71,20 @@ export default function TransferForm({ transfer, locations }: TransferFormProps)
   // Hooks
   const router = useRouter()
   const [form, setForm] = useState<Form>(() => initialForm(transfer, locations))
-  const [busy, setBusy] = useState(false)
+  const [busy, setBusy] = useState<string | null>(null)
   const [confirmDelete, setConfirmDelete] = useState(false)
 
   // Helpers
   const patch = (next: Partial<Form>) => setForm((f) => ({ ...f, ...next }))
 
-  const run = async (work: () => Promise<void>) => {
-    setBusy(true)
+  const run = async (action: string, work: () => Promise<void>) => {
+    setBusy(action)
     try {
       await work()
     } catch (err) {
       toast.error(err instanceof Error ? err.message : copy.saveFailed)
     } finally {
-      setBusy(false)
+      setBusy(null)
     }
   }
 
@@ -102,7 +102,7 @@ export default function TransferForm({ transfer, locations }: TransferFormProps)
 
   // Event handlers
   const handleSave = () =>
-    run(async () => {
+    run('save', async () => {
       const id = await persist()
       if (!id) return
       toast.success(transfer ? copy.saved : copy.created)
@@ -110,7 +110,7 @@ export default function TransferForm({ transfer, locations }: TransferFormProps)
     })
 
   const handleShip = () =>
-    run(async () => {
+    run('ship', async () => {
       const id = await persist()
       if (!id) return
       await api.transfers.ship({ id })
@@ -119,7 +119,7 @@ export default function TransferForm({ transfer, locations }: TransferFormProps)
     })
 
   const handleReceive = () =>
-    run(async () => {
+    run('receive', async () => {
       if (!transfer) return
       await api.transfers.receive({ id: transfer.id })
       toast.success(copy.received)
@@ -127,7 +127,7 @@ export default function TransferForm({ transfer, locations }: TransferFormProps)
     })
 
   const handleDelete = () =>
-    run(async () => {
+    run('delete', async () => {
       if (!transfer) return
       await api.transfers.delete({ id: transfer.id })
       toast.success(copy.deleted)
@@ -151,22 +151,35 @@ export default function TransferForm({ transfer, locations }: TransferFormProps)
           draft ? (
             <>
               {transfer ? (
-                <Button variant="outline" onClick={() => setConfirmDelete(true)} disabled={busy}>
+                <Button
+                  variant="outline"
+                  onClick={() => setConfirmDelete(true)}
+                  disabled={busy !== null}
+                >
                   <Trash2 aria-hidden="true" />
                   {copy.delete}
                 </Button>
               ) : null}
-              <Button variant="outline" onClick={handleSave} disabled={busy || sameRoute}>
+              <Button
+                loading={busy === 'save'}
+                variant="outline"
+                onClick={handleSave}
+                disabled={busy !== null || sameRoute}
+              >
                 <Save aria-hidden="true" />
-                {busy ? copy.saving : copy.save}
+                {copy.save}
               </Button>
-              <Button onClick={handleShip} disabled={busy || sameRoute}>
+              <Button
+                onClick={handleShip}
+                loading={busy === 'ship'}
+                disabled={busy !== null || sameRoute}
+              >
                 <Truck aria-hidden="true" />
                 {copy.ship}
               </Button>
             </>
           ) : status === 'in_transit' ? (
-            <Button onClick={handleReceive} disabled={busy}>
+            <Button onClick={handleReceive} loading={busy === 'receive'} disabled={busy !== null}>
               <PackageCheck aria-hidden="true" />
               {copy.receive}
             </Button>

@@ -1,8 +1,8 @@
 'use client'
 
-import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { useEffect, useState } from 'react'
 import type { AppPageProps } from '@/apps/registry'
+import DataCardSkeleton from '@/components/layout/data-card-skeleton'
 import PageHeader from '@/components/layout/page-header'
 import { reviewToolsContent } from '@/data/review-tools'
 import { useCopy } from '@/hooks/use-copy'
@@ -45,7 +45,7 @@ export default function QrPage({ params }: AppPageProps) {
       {empty ? (
         <p className="text-body text-muted-foreground">{copy.empty}</p>
       ) : !cards ? (
-        <Skeleton className="h-96 w-full rounded-lg" />
+        <DataCardSkeleton fields={0} lines={8} />
       ) : (
         <>
           <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">

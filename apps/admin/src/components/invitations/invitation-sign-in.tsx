@@ -9,7 +9,6 @@ import {
   FieldLabel,
 } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
-import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { type FormEvent, useState } from 'react'
 import { invitationContent } from '@/data/invitations'
 import { authClient } from '@/lib/auth-client'
@@ -95,8 +94,12 @@ export default function InvitationSignIn({ email, onSignedIn }: InvitationSignIn
         ) : error ? (
           <FieldError>{error}</FieldError>
         ) : null}
-        <Button type="submit" className="w-full" disabled={busy || (sent && otp.length < 6)}>
-          {busy ? <Spinner /> : null}
+        <Button
+          loading={busy}
+          type="submit"
+          className="w-full"
+          disabled={busy || (sent && otp.length < 6)}
+        >
           {sent ? copy.signInAndAccept : copy.sendCode}
         </Button>
       </FieldGroup>

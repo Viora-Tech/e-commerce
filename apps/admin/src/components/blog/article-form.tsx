@@ -143,7 +143,7 @@ export default function ArticleForm({
             ) : (
               <Button loading={busy} onClick={handleSave} disabled={busy}>
                 <Save aria-hidden="true" />
-                {busy ? copy.saving : copy.save}
+                {copy.save}
               </Button>
             )
           }

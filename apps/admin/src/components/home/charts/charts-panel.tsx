@@ -4,6 +4,7 @@ import type { DashboardChartsData } from '@commerce/api'
 import { useEffect, useState } from 'react'
 import PillTabs from '@/components/layout/pill-tabs'
 import SectionHead from '@/components/layout/section-head'
+import InlineState from '@/components/states/inline-state'
 import { homeContent } from '@/data/home'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -28,8 +29,12 @@ export default function ChartsPanel({ initialRange, initial }: ChartsPanelProps)
   const [range, setRange] = useState<7 | 30 | 90>(initialRange)
   const [data, setData] = useState(initial)
   const [loading, setLoading] = useState(false)
+  const [failed, setFailed] = useState(false)
+  const [attempt, setAttempt] = useState(0)
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `attempt` re-runs the read (Try again)
   useEffect(() => {
+    setFailed(false)
     if (range === initialRange) {
       setData(initial)
       setLoading(false)
@@ -37,15 +42,23 @@ export default function ChartsPanel({ initialRange, initial }: ChartsPanelProps)
     }
     let live = true
     setLoading(true)
-    api.dashboard.charts({ range }).then((next) => {
-      if (!live) return
-      setData(next)
-      setLoading(false)
-    })
+    api.dashboard
+      .charts({ range })
+      .then((next) => {
+        if (!live) return
+        setData(next)
+        setLoading(false)
+      })
+      .catch(() => {
+        // The charts keep the last range's figures, no longer dimmed, under an error line.
+        if (!live) return
+        setLoading(false)
+        setFailed(true)
+      })
     return () => {
       live = false
     }
-  }, [range, initialRange, initial])
+  }, [range, initialRange, initial, attempt])
 
   // Render logic
   const c = copy.charts
@@ -69,6 +82,7 @@ export default function ChartsPanel({ initialRange, initial }: ChartsPanelProps)
           />
         }
       />
+      {failed ? <InlineState kind="error" onRetry={() => setAttempt((n) => n + 1)} /> : null}
       <div className="grid grid-cols-1 items-start gap-5 xl:grid-cols-[minmax(0,739fr)_minmax(0,361fr)]">
         <SalesOrdersChart data={data} loading={loading} />
         <TopProductsChart data={data} loading={loading} />

@@ -9,12 +9,11 @@ import {
 } from '@commerce/core/customer-accounts'
 import { Badge } from '@commerce/ui/shadcn/badge'
 import { Button } from '@commerce/ui/shadcn/button'
-import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
+import SectionPageSkeleton from '@/components/layout/section-page-skeleton'
 import ChoiceList from '@/components/returns/choice-list'
 import LoginAppDialog from '@/components/settings/login-app-dialog'
 import SignInExtrasCard from '@/components/settings/sign-in-extras-card'
@@ -152,14 +151,7 @@ export default function CustomerAccountsSettings() {
         saving={busy}
       />
       {!form || !loaded ? (
-        <>
-          <PageHeader
-            title={copy.title}
-            subtitle={copy.subtitle}
-            save={{ dirty: dirty && !none, saving: busy, onSave: handleSave, label: copy.save }}
-          />
-          <Skeleton className="h-96 w-full rounded-2xl" />
-        </>
+        <SectionPageSkeleton />
       ) : (
         <SettingsDrill
           rows={rows}

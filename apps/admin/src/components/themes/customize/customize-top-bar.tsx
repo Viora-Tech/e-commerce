@@ -23,7 +23,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@commerce/ui/shadcn/dropdown-menu'
-import { Spinner } from '@commerce/ui/shadcn/spinner'
 import Link from 'next/link'
 import type { ReactNode } from 'react'
 import StatusChip from '@/components/layout/status-chip'
@@ -240,21 +239,31 @@ export default function CustomizeTopBar({
           </DropdownMenuContent>
         </DropdownMenu>
         {!live && dirty ? (
-          <Button variant="outline" onClick={onSave} disabled={saving || publishing}>
-            {saving && !publishing ? <Spinner /> : <Save aria-hidden="true" />}
+          <Button
+            loading={saving && !publishing}
+            variant="outline"
+            onClick={onSave}
+            disabled={saving || publishing}
+          >
+            <Save aria-hidden="true" />
             {copy.save}
           </Button>
         ) : null}
         {live ? (
           // On the live theme saving is going live: one Save, named as such, like Shopify's.
-          <Button onClick={onSave} disabled={!dirty || saving} title={copy.saveLiveHint}>
-            {saving ? <Spinner /> : <Save aria-hidden="true" />}
+          <Button
+            loading={saving}
+            onClick={onSave}
+            disabled={!dirty || saving}
+            title={copy.saveLiveHint}
+          >
+            <Save aria-hidden="true" />
             {copy.save}
           </Button>
         ) : canPublish ? (
-          <Button onClick={onPublish} disabled={saving || publishing}>
-            {publishing ? <Spinner /> : <Globe aria-hidden="true" />}
-            {publishing ? editor.publishing : copy.publish}
+          <Button loading={publishing} onClick={onPublish} disabled={saving || publishing}>
+            <Globe aria-hidden="true" />
+            {copy.publish}
           </Button>
         ) : null}
         <UserMenu

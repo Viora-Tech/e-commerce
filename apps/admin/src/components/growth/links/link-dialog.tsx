@@ -18,7 +18,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@commerce/ui/shadcn/select'
-import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import DialogContent from '@/components/layout/dialog-content'
@@ -216,8 +215,8 @@ export default function LinkDialog({ link, origin, onClose, onSaved }: LinkDialo
           <Button variant="outline" onClick={onClose}>
             {copy.cancel}
           </Button>
-          <Button onClick={handleSave} disabled={busy}>
-            {busy ? <Spinner /> : link ? <Save aria-hidden="true" /> : <Plus aria-hidden="true" />}
+          <Button onClick={handleSave} disabled={busy} loading={busy}>
+            {link ? <Save aria-hidden="true" /> : <Plus aria-hidden="true" />}
             {link ? copy.save : copy.create}
           </Button>
         </DialogFooter>

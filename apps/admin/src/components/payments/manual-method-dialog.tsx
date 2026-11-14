@@ -5,7 +5,6 @@ import { Button } from '@commerce/ui/shadcn/button'
 import { Dialog, DialogDescription, DialogTitle } from '@commerce/ui/shadcn/dialog'
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
-import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { Switch } from '@commerce/ui/shadcn/switch'
 import { Textarea } from '@commerce/ui/shadcn/textarea'
 import { useState } from 'react'
@@ -150,8 +149,7 @@ export default function ManualMethodDialog({
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>
             {copy.cancel}
           </Button>
-          <Button onClick={handleSave} disabled={!canSave}>
-            {saving ? <Spinner /> : null}
+          <Button loading={saving} onClick={handleSave} disabled={!canSave}>
             {copy.save}
           </Button>
         </DialogFooter>

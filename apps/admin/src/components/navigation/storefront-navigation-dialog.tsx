@@ -27,7 +27,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@commerce/ui/shadcn/select'
-import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { SortableList } from '@commerce/ui/sortable'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
@@ -217,8 +216,8 @@ export default function StorefrontNavigationDialog({
         </div>
         <DialogFooter className="m-0 flex-row justify-end gap-2">
           <DialogClose render={<Button variant="outline" />}>{copy.cancel}</DialogClose>
-          <Button type="button" onClick={handleSave} disabled={saving}>
-            {saving ? <Spinner /> : <Save aria-hidden="true" />}
+          <Button loading={saving} type="button" onClick={handleSave} disabled={saving}>
+            <Save aria-hidden="true" />
             {copy.save}
           </Button>
         </DialogFooter>
