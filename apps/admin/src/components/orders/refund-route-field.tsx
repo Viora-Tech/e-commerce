@@ -65,7 +65,7 @@ export default function RefundRouteField({
           <label
             key={r.id}
             htmlFor={`${idPrefix}-${r.id}`}
-            className="flex items-start gap-3 rounded-md border border-border px-3 py-2.5 text-body has-data-checked:border-primary"
+            className="flex items-start gap-3 rounded-lg border border-border px-3 py-2.5 text-body has-data-checked:border-primary"
           >
             <RadioGroupItem id={`${idPrefix}-${r.id}`} value={r.id} className="mt-0.5" />
             <span className="flex flex-col gap-0.5">

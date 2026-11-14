@@ -164,6 +164,8 @@ export default function EditOrderContactDialog({
   const c = copy.editContact
   const hasAddress = order.shippingAddress !== null || draft.address.line1.trim() !== ''
   const canSaveToCustomer = order.customer !== null && hasAddress
+  // Anything changed from the order's own details: Esc or a click outside asks first.
+  const dirty = moveToOwner || JSON.stringify(draft) !== JSON.stringify(draftFrom(order))
   // An imported order's GSTIN and company are the tax record it came with.
   const taxLocked = Boolean(order.importedFrom)
   const billingErrors = Object.fromEntries(
@@ -174,7 +176,7 @@ export default function EditOrderContactDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent busy={saving}>
+      <DialogContent busy={saving} dirty={dirty}>
         <form onSubmit={handleSubmit} className="flex flex-col gap-6">
           <DialogHeader>
             <DialogTitle>{c.title}</DialogTitle>
@@ -313,7 +315,12 @@ export default function EditOrderContactDialog({
           ) : null}
 
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => handleOpenChange(false)}>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={saving}
+              onClick={() => handleOpenChange(false)}
+            >
               {c.cancel}
             </Button>
             <Button loading={saving} type="submit" disabled={saving}>
