@@ -12,6 +12,7 @@ import {
   minimumOrderShortfall,
   parseCheckoutSettings,
   parsePincodeList,
+  RECOMMENDED_METHOD,
   validateCheckoutContact,
 } from './settings'
 
@@ -45,6 +46,15 @@ describe('checkout settings', () => {
       cartLimit: { maxPerProduct: 0, overrides: [] },
       content: { en: {}, hi: {} },
     })
+  })
+
+  it('keeps the Recommended way to pay: automatic by default, a method id, or none', () => {
+    expect(defaultCheckoutSettings.recommendedMethod).toBe(RECOMMENDED_METHOD.automatic)
+    expect(settings({ recommendedMethod: ' cod ' }).recommendedMethod).toBe('cod')
+    expect(settings({ recommendedMethod: RECOMMENDED_METHOD.none }).recommendedMethod).toBe('none')
+    expect(CheckoutSettingsSchema.safeParse({ recommendedMethod: 'x'.repeat(41) }).success).toBe(
+      false,
+    )
   })
 
   it('checks the form field rules on the server when a name is sent (#154)', () => {

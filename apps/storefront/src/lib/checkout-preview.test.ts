@@ -289,14 +289,28 @@ describe('checkoutTotals with the Delivery options app', () => {
 
 describe('recommendedMethodId', () => {
   const method = (id: string) => ({ id }) as CheckoutMethod
+  const offered = [method('decentro'), method('razorpay'), method('cod')]
 
-  it('uses the store choice when it is on offer', () => {
-    expect(recommendedMethodId([method('razorpay'), method('manual')], 'manual')).toBe('manual')
+  it('puts the badge on the way to pay the store chose', () => {
+    expect(recommendedMethodId(offered, 'razorpay')).toBe('razorpay')
+    expect(recommendedMethodId(offered, 'cod')).toBe('cod')
   })
 
-  it('falls back to the first way to pay', () => {
+  it('shows no badge when the chosen way to pay is not on offer for this order', () => {
+    // Switched off since, or hidden by a payment rule for this cart.
+    expect(recommendedMethodId([method('razorpay'), method('manual')], 'cashfree')).toBeNull()
+    // Cash on delivery is listed but cannot be picked (PIN code, order limit, Express).
+    expect(recommendedMethodId(offered, 'cod', true)).toBeNull()
+    expect(recommendedMethodId(offered, 'razorpay', true)).toBe('razorpay')
+  })
+
+  it('shows no badge when the store chose none', () => {
+    expect(recommendedMethodId(offered, 'none')).toBeNull()
+  })
+
+  it('defaults to the first way to pay, as before the choice existed', () => {
     expect(recommendedMethodId([method('razorpay'), method('manual')], '')).toBe('razorpay')
-    expect(recommendedMethodId([method('razorpay'), method('manual')], 'cashfree')).toBe('razorpay')
+    expect(recommendedMethodId(offered, '', true)).toBe('decentro')
   })
 
   it('never picks cash on delivery by itself, and needs a choice to make', () => {

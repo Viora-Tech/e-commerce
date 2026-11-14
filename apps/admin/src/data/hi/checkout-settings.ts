@@ -1,7 +1,21 @@
-import { checkoutBrandingContent } from '@/data/checkout-settings'
+import { checkoutBrandingContent, checkoutRecommendedContent } from '@/data/checkout-settings'
 import { translation } from '@/lib/i18n'
 
 export default [
+  translation(checkoutRecommendedContent, {
+    title: 'पेमेंट का सुझाया गया तरीका',
+    hint: 'चेकआउट पर इस तरीके पर "सुझाया गया" बैज दिखता है। अगर किसी ऑर्डर के लिए यह तरीका उपलब्ध न हो, जैसे ब्लॉक किए गए PIN कोड पर कैश ऑन डिलीवरी, तो कोई बैज नहीं दिखता।',
+    automatic: 'अपने-आप (पेमेंट का पहला तरीका)',
+    none: 'कोई नहीं',
+    methods: {
+      cod: 'कैश ऑन डिलीवरी',
+      manual: 'UPI ID या बैंक ट्रांसफ़र',
+      decentro: 'UPI (Decentro)',
+      razorpay: 'Razorpay (UPI, कार्ड, नेटबैंकिंग, वॉलेट)',
+      cashfree: 'Cashfree (UPI, कार्ड, नेटबैंकिंग, वॉलेट)',
+    },
+    off: (name: string) => `${name} (बंद है)`,
+  }),
   translation(checkoutBrandingContent, {
     tabs: {
       form: { id: 'form', label: 'चेकआउट फ़ॉर्म' },
