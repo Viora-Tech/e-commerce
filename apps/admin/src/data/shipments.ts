@@ -172,6 +172,9 @@ export const shipmentActionsContent = {
   refreshTracking: 'Refresh tracking',
   trackingUpdated: 'Tracking updated',
   failed: 'The courier request did not go through. Try again in a moment.',
+  /** A pickup request the courier refused without saying why (its words are shown when it does). */
+  pickupRefused:
+    "The courier didn't take the pickup request. Try again, or book it on their dashboard.",
 }
 
 /** Shipments › To book, a parcel of an order that ships in parts (Figma 918:10520). Dates come formatted ("22 Oct"). */

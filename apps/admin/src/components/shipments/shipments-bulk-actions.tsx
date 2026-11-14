@@ -9,6 +9,7 @@ import ConfirmDialog from '@/components/layout/confirm-dialog'
 import { shipmentActionsContent, shipmentsContent } from '@/data/shipments'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { pickupRefusal, startingPickupPlan } from './create-shipment/pickup-plan'
 import LabelPaperSelect from './label-paper-select'
 import PickupFields, { type PickupValue } from './pickup-fields'
 import { useLabelSheet } from './use-label-sheet'
@@ -34,12 +35,13 @@ export default function ShipmentsBulkActions({ ids, tab, onDone }: ShipmentsBulk
   const actions = useCopy(shipmentActionsContent)
   const sheet = useLabelSheet()
   const [dialog, setDialog] = useState<Dialog>(null)
-  const [pickup, setPickup] = useState<PickupValue>({
-    date: '',
+  // Starts on a day (today, or tomorrow from noon), so the request can go straight away.
+  const [pickup, setPickup] = useState<PickupValue>(() => ({
+    date: startingPickupPlan().date,
     timeFrom: '14:00',
     timeTo: '',
     joinPickupId: null,
-  })
+  }))
 
   // Helpers
   const fail = (err: unknown) => {
@@ -49,29 +51,38 @@ export default function ShipmentsBulkActions({ ids, tab, onDone }: ShipmentsBulk
 
   // Event handlers
   const handlePickup = async () => {
+    let pickups: Awaited<ReturnType<typeof api.shipments.schedulePickup>>
     try {
       // One step (owner, 10 Nov 2026): the courier's pickup request, then its manifest; the
       // labels move to To be picked up.
-      const pickups = await api.shipments.schedulePickup({
+      pickups = await api.shipments.schedulePickup({
         shipmentIds: ids,
         date: pickup.date,
-        timeFrom: pickup.timeFrom,
-        timeTo: pickup.timeTo || undefined,
+        timeFrom: pickup.timeFrom.trim(),
+        timeTo: pickup.timeTo.trim() || undefined,
         joinPickupId: pickup.joinPickupId ?? undefined,
       })
-      for (const pickup of pickups) {
-        if (pickup.status === 'failed') continue
-        await api.shipments.createManifest({ pickupId: pickup.id }).catch(() => undefined)
+      for (const made of pickups) {
+        if (made.status === 'failed') continue
+        await api.shipments.createManifest({ pickupId: made.id }).catch(() => undefined)
       }
-      toast.success(
-        pickup.joinPickupId
-          ? actions.joinedDone(ids.length)
-          : actions.pickupAndManifestDone(ids.length),
-      )
-      onDone()
     } catch (err) {
-      fail(err)
+      return fail(err)
     }
+    /* A courier's refusal is recorded as a failed pickup, not thrown: say so in its words and
+       keep the dialog open. Parcels another courier or place took have moved on, so re-read. */
+    const refused = pickupRefusal(pickups, actions.pickupRefused)
+    if (refused) {
+      toast.error(refused)
+      if (pickups.some((p) => p.status !== 'failed')) onDone()
+      throw new Error(refused)
+    }
+    toast.success(
+      pickup.joinPickupId
+        ? actions.joinedDone(ids.length)
+        : actions.pickupAndManifestDone(ids.length),
+    )
+    onDone()
   }
 
   const handleManifest = async () => {

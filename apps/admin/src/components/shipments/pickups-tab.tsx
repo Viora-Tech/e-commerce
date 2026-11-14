@@ -19,11 +19,12 @@ import CopyButton from '@/components/fields/copy-button'
 import DateField from '@/components/fields/date-field'
 import DataCard from '@/components/layout/data-card'
 import TableEmptyRow from '@/components/table/table-empty-row'
-import { shipmentsContent } from '@/data/shipments'
+import { shipmentActionsContent, shipmentsContent } from '@/data/shipments'
 import { shipmentDetailsContent } from '@/data/shipping'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { todayKey } from '@/lib/format-date'
+import { pickupRefusal, startingPickupPlan, TIME_24H } from './create-shipment/pickup-plan'
 
 type Unpicked = Awaited<ReturnType<typeof api.shipments.listUnpicked>>
 type Pickups = Awaited<ReturnType<typeof api.shipments.listPickups>>
@@ -44,11 +45,13 @@ const ofProvider = <T extends { provider: string }>(rows: T[], provider: string 
 export default function PickupsTab({ provider }: PickupsTabProps = {}) {
   // Hooks
   const details = useCopy(shipmentDetailsContent)
+  const actions = useCopy(shipmentActionsContent)
   const [unpicked, setUnpicked] = useState<Unpicked>([])
   const [pickups, setPickups] = useState<Pickups>([])
   const [manifests, setManifests] = useState<Manifests>([])
   const [selected, setSelected] = useState<string[]>([])
-  const [date, setDate] = useState('')
+  // Starts on a day (today, or tomorrow from noon) so ticking parcels is all it takes.
+  const [date, setDate] = useState(() => startingPickupPlan().date)
   const [timeFrom, setTimeFrom] = useState('14:00')
   const [timeTo, setTimeTo] = useState('')
   const [busy, setBusy] = useState(false)
@@ -76,23 +79,34 @@ export default function PickupsTab({ provider }: PickupsTabProps = {}) {
     }
   }, [reloadKey, provider])
 
+  // Helpers
+  /** Parcels ticked, today or later, and a 24h start time: what the courier needs. */
+  const ready = () =>
+    selected.length > 0 && date !== '' && date >= todayKey() && TIME_24H.test(timeFrom.trim())
+
   // Event handlers
   const handleToggle = (id: string, on: boolean) =>
     setSelected((s) => (on ? [...s, id] : s.filter((x) => x !== id)))
 
   const handleSchedule = async () => {
-    if (selected.length === 0 || !date || date < todayKey() || !timeFrom) return
+    if (!ready()) return
     setBusy(true)
     try {
-      await api.shipments.schedulePickup({
+      const made = await api.shipments.schedulePickup({
         shipmentIds: selected,
         date,
-        timeFrom,
-        timeTo: timeTo || undefined,
+        timeFrom: timeFrom.trim(),
+        timeTo: timeTo.trim() || undefined,
       })
-      setSelected([])
       setReloadKey((k) => k + 1)
-      toast.success(copy.submit)
+      // A refusal comes back as a failed pickup, not an error: say so, in the courier's words.
+      const refused = pickupRefusal(made, actions.pickupRefused)
+      if (refused) {
+        toast.error(refused)
+        return
+      }
+      setSelected([])
+      toast.success(actions.pickupDone(selected.length))
     } catch (err) {
       toast.error(err instanceof Error ? err.message : String(err))
     } finally {
@@ -168,11 +182,7 @@ export default function PickupsTab({ provider }: PickupsTabProps = {}) {
               />
             </Field>
           </div>
-          <Button
-            className="w-fit self-end"
-            onClick={handleSchedule}
-            disabled={busy || selected.length === 0 || !date || date < todayKey()}
-          >
+          <Button className="w-fit self-end" onClick={handleSchedule} disabled={busy || !ready()}>
             <Truck aria-hidden="true" />
             {busy ? copy.scheduling : copy.submit}
           </Button>
@@ -201,13 +211,23 @@ export default function PickupsTab({ provider }: PickupsTabProps = {}) {
                   {p.timeTo ? `–${p.timeTo}` : ''}
                 </TableCell>
                 <TableCell>{p.expectedPackageCount}</TableCell>
-                <TableCell className="capitalize">{p.status}</TableCell>
+                <TableCell>
+                  <span className="capitalize">{p.status}</span>
+                  {p.status === 'failed' && p.error ? (
+                    <span className="block max-w-80 text-caption whitespace-normal text-destructive">
+                      {p.error}
+                    </span>
+                  ) : null}
+                </TableCell>
                 <TableCell className="font-mono text-caption">{p.providerRef ?? '–'}</TableCell>
                 <TableCell className="text-right">
-                  <Button variant="outline" size="sm" onClick={() => handleManifest(p.id)}>
-                    <ClipboardList aria-hidden="true" />
-                    {copy.createManifestFor}
-                  </Button>
+                  {/* A failed request holds no parcels, so there is nothing to manifest. */}
+                  {p.status === 'failed' ? null : (
+                    <Button variant="outline" size="sm" onClick={() => handleManifest(p.id)}>
+                      <ClipboardList aria-hidden="true" />
+                      {copy.createManifestFor}
+                    </Button>
+                  )}
                 </TableCell>
               </TableRow>
             ))}

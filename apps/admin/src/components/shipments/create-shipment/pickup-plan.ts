@@ -87,3 +87,18 @@ export function startingPickupDay(days: PickupDay[], bookedOn: (date: string) =>
   const open = days.find((d) => !d.pastCutoff)
   return (booked ?? open ?? days[0])?.date ?? ''
 }
+
+/**
+ * Why a pickup request did not go through, from what `shipments.schedulePickup` answered: a
+ * courier's refusal is recorded as a `failed` pickup (not thrown), so every caller reads it here
+ * rather than saying "booked". The courier's own words when it gave some, else `fallback`;
+ * null when every pickup was booked or joined.
+ */
+export function pickupRefusal(
+  pickups: ReadonlyArray<{ status: string; error?: string | null | undefined }>,
+  fallback: string,
+): string | null {
+  const refused = pickups.find((p) => p.status === 'failed')
+  if (!refused) return null
+  return refused.error?.trim() || fallback
+}

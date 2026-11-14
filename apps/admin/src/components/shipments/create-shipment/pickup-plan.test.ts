@@ -1,5 +1,5 @@
-import { describe, expect, test } from 'vitest'
-import { PICKUP_TIMES, pickupDays, startingPickupDay } from './pickup-plan'
+import { describe, expect, it, test } from 'vitest'
+import { PICKUP_TIMES, pickupDays, pickupRefusal, startingPickupDay } from './pickup-plan'
 
 describe('pickup day cards', () => {
   test('before 2 pm in India today is open', () => {
@@ -42,5 +42,21 @@ describe('pickup day cards', () => {
     expect(PICKUP_TIMES[0]).toBe('09:00')
     expect(PICKUP_TIMES).toContain('14:00')
     expect(PICKUP_TIMES.at(-1)).toBe('19:00')
+  })
+})
+
+describe('pickupRefusal', () => {
+  it('reads the courier’s words off a failed pickup, null when all went through', () => {
+    expect(pickupRefusal([{ status: 'scheduled', error: null }], 'generic')).toBeNull()
+    expect(
+      pickupRefusal(
+        [
+          { status: 'scheduled', error: null },
+          { status: 'failed', error: 'Delhivery did not take the pickup request: no slots' },
+        ],
+        'generic',
+      ),
+    ).toBe('Delhivery did not take the pickup request: no slots')
+    expect(pickupRefusal([{ status: 'failed', error: ' ' }], 'generic')).toBe('generic')
   })
 })
