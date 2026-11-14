@@ -1,21 +1,16 @@
 'use client'
 
-import { Dialog, DialogTitle } from '@commerce/ui/shadcn/dialog'
-import { Spinner } from '@commerce/ui/shadcn/spinner'
-import { useEffect, useState } from 'react'
-import DialogContent from '@/components/layout/dialog-content'
-import { createShipmentContent } from '@/data/create-shipment'
-import { useCopy } from '@/hooks/use-copy'
-import { api } from '@/lib/api-client'
+import { useRouter } from 'next/navigation'
+import { useEffect } from 'react'
+import { shipmentHref } from '@/apps/order-actions'
+import { routes } from '@/lib/routes'
 import BulkShipDrawer from './bulk-ship-drawer'
-import type { ShipmentDraft } from './flow-state'
-import SingleShipmentFlow from './single-shipment-flow'
 
 type CreateShipmentDialogProps = {
-  /** The orders to ship. One order opens this dialog's full flow; several open the bulk ship
-   *  drawer (Figma 908:8804). */
+  /** The orders to ship. Several open the bulk ship drawer (Figma 908:8804); one opens that
+   *  order's Create shipment page. */
   orderIds: string[]
-  /** A courier's provider id to start the bulk flow on (a courier app's Create shipment). */
+  /** A courier's provider id to start on (a courier app's Create shipment). */
   courier?: string | undefined
   onClose: () => void
   /** After a booking, so the page behind reloads (order status, Shipments tabs). */
@@ -23,9 +18,9 @@ type CreateShipmentDialogProps = {
 }
 
 /**
- * Create shipment: the one flow every "Ship" button in the admin opens (order page, Orders →
- * Shipments, book by order number, bulk). Package → Courier (every connected courier with its
- * live rate, or ship it yourself) → Review → Booked (AWB, label, pickup).
+ * Create shipment from a list: one surface per job (audit 3.3 #7). One order goes to its Create
+ * shipment page (Figma 616:16737), the same page the order page and Shipments open; several open
+ * the bulk ship drawer. The 42rem single-order dialog that used to sit here is gone.
  */
 export default function CreateShipmentDialog({
   orderIds,
@@ -34,53 +29,16 @@ export default function CreateShipmentDialog({
   onBooked,
 }: CreateShipmentDialogProps) {
   // Hooks
-  const copy = useCopy(createShipmentContent)
-  const [draft, setDraft] = useState<ShipmentDraft | null>(null)
-  const [failed, setFailed] = useState(false)
-  // A fresh draft each time the dialog opens for a new set of orders.
+  const router = useRouter()
+  // One order: hand it to its page (with the courier, when a courier app asked for one).
   useEffect(() => {
-    if (orderIds.length !== 1) return
-    let live = true
-    setDraft(null)
-    setFailed(false)
-    api.shipments
-      .prepare({ orderIds })
-      .then((d) => live && setDraft(d))
-      .catch(() => live && setFailed(true))
-    return () => {
-      live = false
-    }
-  }, [orderIds])
-
-  // Render logic
-  const open = orderIds.length === 1
-  const single = orderIds.length === 1 ? draft?.orders[0] : undefined
-  const key = orderIds.join(',')
+    const only = orderIds.length === 1 ? orderIds[0] : undefined
+    if (!only) return
+    router.push(courier ? shipmentHref(only, courier) : routes.orders.ship(only))
+    onClose()
+  }, [orderIds, courier, router, onClose])
 
   return (
-    <>
-      <BulkShipDrawer orderIds={orderIds} courier={courier} onClose={onClose} onBooked={onBooked} />
-      <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
-        <DialogContent>
-          {!draft ? (
-            <>
-              <DialogTitle className="sr-only">{copy.bulkTitle(orderIds.length)}</DialogTitle>
-              <p className="flex items-center gap-2 py-8 text-body text-muted-foreground">
-                {failed ? null : <Spinner />}
-                {failed ? copy.loadFailed : copy.loading}
-              </p>
-            </>
-          ) : single ? (
-            <SingleShipmentFlow
-              key={key}
-              draft={draft}
-              order={single}
-              onClose={onClose}
-              onBooked={onBooked}
-            />
-          ) : null}
-        </DialogContent>
-      </Dialog>
-    </>
+    <BulkShipDrawer orderIds={orderIds} courier={courier} onClose={onClose} onBooked={onBooked} />
   )
 }

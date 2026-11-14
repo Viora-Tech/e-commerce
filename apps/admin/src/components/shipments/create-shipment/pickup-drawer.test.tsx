@@ -92,4 +92,14 @@ describe('PickupDrawer (after booking one parcel)', () => {
     expect(screen.queryByText(/#2390/)).toBeNull()
     expect(screen.getByRole('button', { name: /Add to pickup · 1 parcel/ })).toBeTruthy()
   })
+
+  it('a failed read shows the reason with Try again, which reads again', async () => {
+    listPickupOptions.mockRejectedValueOnce(new Error('down'))
+    listPickupOptions.mockResolvedValue({ today: '', groups: [group()] })
+    open()
+    expect(await screen.findByText('Could not load the pickup details.')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
+    expect(await screen.findByText('#2424 · AWB AWB2424')).toBeTruthy()
+    expect(listPickupOptions).toHaveBeenCalledTimes(2)
+  })
 })

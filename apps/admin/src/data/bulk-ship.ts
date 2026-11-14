@@ -5,7 +5,7 @@ export const bulkShipContent = {
   title: (n: number) => `Ship ${plural(n, 'order', 'orders')}`,
   intro: 'Each order gets its own courier by the rule below. Change any row before booking.',
   loading: 'Getting the orders ready…',
-  loadFailed: 'Could not load these orders. Close and try again.',
+  loadFailed: 'Could not load these orders.',
   close: 'Close',
   insurance: 'Shipping insurance',
   insuranceOn: 'On for all · change per order',

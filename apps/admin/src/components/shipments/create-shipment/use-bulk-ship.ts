@@ -42,11 +42,13 @@ export function useBulkShip(orderIds: string[], courier: string | undefined) {
   const [busy, setBusy] = useState(false)
   const [results, setResults] = useState<BookResult[] | null>(null)
   const [retry, setRetry] = useState(0)
+  /** Bumped by Try again when the orders did not load. */
+  const [attempt, setAttempt] = useState(0)
   const key = orderIds.join(',')
 
-  // A fresh batch each time the drawer opens for a new set of orders.
+  // A fresh batch each time the drawer opens for a new set of orders (and on Try again).
   useEffect(() => {
-    if (!key) return
+    if (!key || attempt < 0) return
     let live = true
     setDraft(null)
     setFailed(false)
@@ -66,7 +68,7 @@ export function useBulkShip(orderIds: string[], courier: string | undefined) {
     return () => {
       live = false
     }
-  }, [key])
+  }, [key, attempt])
 
   // Every bookable order's couriers, in one ask.
   // biome-ignore lint/correctness/useExhaustiveDependencies: asked once per batch (and on retry); edits re-ask one order
@@ -181,6 +183,7 @@ export function useBulkShip(orderIds: string[], courier: string | undefined) {
   return {
     draft,
     failed,
+    reload: () => setAttempt((n) => n + 1),
     lines,
     quotes,
     quoteError,

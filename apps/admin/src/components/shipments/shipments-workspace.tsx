@@ -6,9 +6,8 @@ import {
   SHIPMENT_TABS,
   type ShipmentTab,
 } from '@commerce/core/shipment-tabs'
-import { Clock, RotateCcw, Settings, Truck } from '@commerce/ui/icons'
+import { Clock, Settings, Truck } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import { Card } from '@commerce/ui/shadcn/card'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } from 'nuqs'
@@ -22,7 +21,6 @@ import BookByNumberDialog from '@/components/shipments/book-by-number-dialog'
 import ResourceTable from '@/components/table/resource-table'
 import { shipmentFiltersContent } from '@/data/order-list-filters'
 import { shipmentPartsContent, shipmentsContent } from '@/data/shipments'
-import { statesContent } from '@/data/states'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
@@ -83,7 +81,6 @@ function ShipmentsContent() {
   const copy = useCopy(shipmentsContent)
   const partsCopy = useCopy(shipmentPartsContent)
   const filterCopy = useCopy(shipmentFiltersContent)
-  const states = useCopy(statesContent)
   const router = useRouter()
   const fmt = useFormat()
   const [q, setQ] = useQueryStates(
@@ -119,7 +116,11 @@ function ShipmentsContent() {
   useEffect(() => {
     if (reloadKey < 0) return
     let live = true
-    api.shipments.counts().then((c) => live && setCounts(c))
+    // A failed count leaves the tab numbers and summary off; the table says its own failure.
+    api.shipments.counts().then(
+      (c) => live && setCounts(c),
+      () => undefined,
+    )
     api.orders.couriers().then(
       (c) => live && setUsedCouriers(c),
       () => undefined,
@@ -128,13 +129,16 @@ function ShipmentsContent() {
     fetchWallets()
       .then((w) => live && setWallets(w))
       .catch(() => undefined)
-    api.store.getShipping().then((r) => {
-      if (!live) return
-      setCouriers({
-        labels: new Map(r.available.map((p) => [p.id, p.label])),
-        enabled: r.settings.enabled,
-      })
-    })
+    api.store.getShipping().then(
+      (r) => {
+        if (!live) return
+        setCouriers({
+          labels: new Map(r.available.map((p) => [p.id, p.label])),
+          enabled: r.settings.enabled,
+        })
+      },
+      () => undefined,
+    )
     return () => {
       live = false
     }
@@ -177,6 +181,7 @@ function ShipmentsContent() {
     // To book lists orders, which the shipment filters don't apply to.
     setQ({ tab: next, page: 1, ...(next === 'toBook' ? CLEAR_SHIPMENT_FILTERS : {}) })
   }
+  const handleRetry = () => setReloadKey((k) => k + 1)
   const handleBooked = () => {
     setSelected([])
     setReloadKey((k) => k + 1)
@@ -279,18 +284,17 @@ function ShipmentsContent() {
       }
     >
       {noCourier ? (
-        <Card>
-          <EmptyState
-            icon={Truck}
-            heading={copy.noCourier.heading}
-            body={copy.noCourier.body}
-            action={
-              <AppStoreLink category="shipping" variant="default">
-                {copy.noCourier.browse}
-              </AppStoreLink>
-            }
-          />
-        </Card>
+        <EmptyState
+          variant="page"
+          icon={Truck}
+          heading={copy.noCourier.heading}
+          body={copy.noCourier.body}
+          action={
+            <AppStoreLink category="shipping" variant="default">
+              {copy.noCourier.browse}
+            </AppStoreLink>
+          }
+        />
       ) : (
         <>
           <WalletStrip wallets={liveWallets} />
@@ -354,27 +358,11 @@ function ShipmentsContent() {
                 <ShipmentsBulkActions ids={ids} tab={tab} onDone={handleBooked} />
               )
             }
-            empty={
-              failed
-                ? {
-                    heading: states.error.heading,
-                    body: states.error.body,
-                    action: (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setReloadKey((k) => k + 1)}
-                      >
-                        <RotateCcw aria-hidden="true" />
-                        {states.error.retry}
-                      </Button>
-                    ),
-                  }
-                : {
-                    heading:
-                      filterable && hasShipmentFilters(q) ? filterCopy.noResults : copy.empty[tab],
-                  }
-            }
+            // A failed read: the error with Try again under the same header (never "nothing here").
+            error={failed ? { onRetry: handleRetry } : undefined}
+            empty={{
+              heading: filterable && hasShipmentFilters(q) ? filterCopy.noResults : copy.empty[tab],
+            }}
           />
         </>
       )}

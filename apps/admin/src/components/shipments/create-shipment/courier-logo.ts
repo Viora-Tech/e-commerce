@@ -2,7 +2,7 @@
  * WHAT:  The logo file for a courier row, read from its label ("Xpressbees Surface via
  *        Shiprocket" → Xpressbees), from the app logos in `public/app-logos`.
  * WHY:   The Select courier drawer shows real logos (Figma 898:7790), not initials.
- * WHERE: courier-option.tsx; null falls back to the initials tile.
+ * WHERE: courier-mark.tsx; null falls back to the initials tile.
  */
 
 const LOGOS: ReadonlyArray<{ match: RegExp; src: string; light?: boolean }> = [
