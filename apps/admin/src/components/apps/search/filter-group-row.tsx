@@ -39,8 +39,8 @@ export default function FilterGroupRow({
   return (
     <li className="flex flex-col gap-3 py-3 sm:flex-row sm:items-center">
       <div className="flex min-w-0 flex-1 flex-col">
-        <span className="truncate text-sm font-medium text-ink-strong">{name}</span>
-        <span className="truncate text-xs text-muted-foreground">{detail}</span>
+        <span className="truncate text-body font-medium text-ink-strong">{name}</span>
+        <span className="truncate text-period text-muted-foreground">{detail}</span>
       </div>
       <label htmlFor={inputId} className="sr-only">
         {copy.labelFor(name)}

@@ -30,7 +30,7 @@ export default function CartSettings({ theme, onChange }: CartSettingsProps) {
         options={TYPES}
         onChange={(type) => setCart({ type })}
       />
-      <p className="text-xs text-muted-foreground">{copy.cart.typeHelp}</p>
+      <p className="text-period text-muted-foreground">{copy.cart.typeHelp}</p>
       <SwitchField
         label={copy.cart.freeShippingBar}
         help={copy.cart.freeShippingHelp}

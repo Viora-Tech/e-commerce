@@ -20,21 +20,23 @@ export default async function Page({ params }: PageProps) {
 
   return (
     <div className="mx-auto flex max-w-[48rem] flex-col gap-4 p-8">
-      <Link href="/dev/emails" className="text-sm text-muted-foreground hover:underline">
+      <Link href="/dev/emails" className="text-body text-muted-foreground hover:underline">
         ← All templates
       </Link>
       <div>
         <h1 className="text-xl font-semibold">{TEMPLATE_NAMES[id]}</h1>
-        <p className="text-sm text-muted-foreground">Subject: {email.subject}</p>
+        <p className="text-body text-muted-foreground">Subject: {email.subject}</p>
       </div>
       <iframe
         title={`${id} preview`}
         srcDoc={email.html}
-        className="h-[42rem] w-full rounded-2xl border border-border bg-white"
+        className="h-[42rem] w-full rounded-lg border border-border bg-white"
       />
-      <details className="rounded-2xl border border-border p-4">
-        <summary className="cursor-pointer text-sm font-medium">Plain text version</summary>
-        <pre className="mt-3 whitespace-pre-wrap text-xs text-muted-foreground">{email.text}</pre>
+      <details className="rounded-lg border border-border p-4">
+        <summary className="cursor-pointer text-body font-medium">Plain text version</summary>
+        <pre className="mt-3 whitespace-pre-wrap text-period text-muted-foreground">
+          {email.text}
+        </pre>
       </details>
     </div>
   )

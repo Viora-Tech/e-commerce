@@ -42,7 +42,9 @@ export default function PageChecklist({
   return (
     <nav aria-label={heading} className="rounded-lg border border-border bg-card p-2">
       <div className="flex items-center justify-between px-2 pt-1 pb-2">
-        <p className="font-mono text-xs tracking-wide text-muted-foreground uppercase">{heading}</p>
+        <p className="font-mono text-period tracking-wide text-muted-foreground uppercase">
+          {heading}
+        </p>
         <p className={cn('text-caption', fixing ? 'text-warning' : 'text-muted-foreground')}>
           {summary}
         </p>

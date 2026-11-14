@@ -81,7 +81,7 @@ export default async function LatestOrders({ orders }: LatestOrdersProps) {
                     className="flex min-w-0 flex-1 items-center gap-3.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
                     <span
-                      className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-medium text-foreground"
+                      className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-period font-medium text-foreground"
                       aria-hidden="true"
                     >
                       {initials(order.customerName, order.email ?? String(order.number))}
@@ -106,14 +106,14 @@ export default async function LatestOrders({ orders }: LatestOrdersProps) {
                       {canShip(order) ? (
                         <Link
                           href={detail}
-                          className="rounded-[0.4375rem] bg-primary px-2.5 py-1.25 text-xs font-medium text-primary-foreground transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                          className="rounded-[0.4375rem] bg-primary px-2.5 py-1.25 text-period font-medium text-primary-foreground transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                         >
                           {c.ship}
                         </Link>
                       ) : null}
                       <Link
                         href={detail}
-                        className="rounded-[0.4375rem] border border-border px-2.5 py-1.25 text-xs font-medium text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        className="rounded-[0.4375rem] border border-border px-2.5 py-1.25 text-period font-medium text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       >
                         {c.view}
                       </Link>

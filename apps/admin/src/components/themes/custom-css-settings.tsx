@@ -27,9 +27,9 @@ export default function CustomCssSettings({ theme, onChange }: CustomCssSettings
         spellCheck={false}
         placeholder={copy.css.placeholder}
         onChange={(e) => onChange({ ...theme, customCss: e.target.value })}
-        className="font-mono text-xs"
+        className="font-mono text-period"
       />
-      <p className="text-xs text-muted-foreground tabular-nums">
+      <p className="text-period text-muted-foreground tabular-nums">
         {copy.css.limit(theme.customCss.length, MAX)}
       </p>
     </div>

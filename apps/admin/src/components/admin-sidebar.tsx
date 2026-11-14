@@ -212,7 +212,9 @@ export default function AdminSidebar({
               <span className="truncate text-body font-semibold text-sidebar-foreground">
                 {storeName}
               </span>
-              {role ? <span className="truncate text-xs text-muted-foreground">{role}</span> : null}
+              {role ? (
+                <span className="truncate text-period text-muted-foreground">{role}</span>
+              ) : null}
             </span>
             <ChevronsUpDown
               className={cn('size-4 shrink-0 text-muted-foreground', SIDEBAR_CONTROL)}
@@ -220,7 +222,7 @@ export default function AdminSidebar({
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className={SIDEBAR_MENU}>
             <DropdownMenuGroup>
-              <DropdownMenuLabel className="text-xs font-medium text-muted-foreground">
+              <DropdownMenuLabel className="text-period font-medium text-muted-foreground">
                 {copy.stores}
               </DropdownMenuLabel>
             </DropdownMenuGroup>
@@ -329,7 +331,7 @@ export default function AdminSidebar({
                 <span className="truncate text-body font-medium text-sidebar-foreground">
                   {user.name}
                 </span>
-                <span className="truncate text-xs text-muted-foreground">{user.email}</span>
+                <span className="truncate text-period text-muted-foreground">{user.email}</span>
               </span>
               <ChevronsUpDown
                 className={cn('size-4 shrink-0 text-muted-foreground', SIDEBAR_CONTROL)}

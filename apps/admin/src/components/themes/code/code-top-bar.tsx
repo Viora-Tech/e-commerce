@@ -99,7 +99,7 @@ export default function CodeTopBar({
         <ArrowLeft aria-hidden className="size-4" />
       </button>
       <div className="flex min-w-0 flex-col">
-        <h1 className="text-sm leading-5 font-semibold text-foreground">{copy.title}</h1>
+        <h1 className="text-body leading-5 font-semibold text-foreground">{copy.title}</h1>
         <span className="truncate text-caption text-muted-foreground">{themeName}</span>
       </div>
       <span

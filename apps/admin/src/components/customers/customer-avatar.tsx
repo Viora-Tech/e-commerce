@@ -13,7 +13,7 @@ export default function CustomerAvatar({ name, email, className }: CustomerAvata
     <span
       aria-hidden="true"
       className={cn(
-        'flex size-8 shrink-0 items-center justify-center rounded-full bg-primary-soft text-xs font-semibold text-primary',
+        'flex size-8 shrink-0 items-center justify-center rounded-full bg-primary-soft text-period font-semibold text-primary',
         className,
       )}
     >

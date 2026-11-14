@@ -116,7 +116,7 @@ export default function ProductFilterPicker({ value, onChange }: ProductFilterPi
     <div className="-mx-3.5 -my-3 flex flex-col">
       <div className="flex flex-col gap-2 border-border border-b px-3.5 py-2.5">
         <div className="flex items-center gap-2">
-          <span className="text-xs text-muted-foreground">{copy.matchLabel}</span>
+          <span className="text-period text-muted-foreground">{copy.matchLabel}</span>
           <ToggleGroup
             variant="segmented"
             aria-label={copy.matchLabel}

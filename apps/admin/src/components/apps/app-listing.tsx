@@ -52,10 +52,10 @@ export default function AppListing({ app }: AppListingProps) {
         lead={{ kind: 'logo', node: <AppLogo id={app.id} icon={app.admin.icon} size={72} /> }}
         badges={
           <>
-            <StatusChip className="h-5 text-xs">{copy.version(app.version)}</StatusChip>
+            <StatusChip className="h-5 text-period">{copy.version(app.version)}</StatusChip>
             {app.tested ? null : (
               <span title={copy.untestedHint}>
-                <StatusChip tone="attention" className="h-5 text-xs">
+                <StatusChip tone="attention" className="h-5 text-period">
                   {copy.untested}
                 </StatusChip>
               </span>

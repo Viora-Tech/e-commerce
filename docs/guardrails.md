@@ -339,6 +339,67 @@ clear of the X, a sticky footer, and the `busy` / `dirty` close guards. Importin
 `AlertDialog*` part, outside the shell fails. Allowed: the shell's own files and the command
 palette. **Fix**: import the layout parts instead. Ratchet: new fails, stale fails.
 
+### ac. `design-guard` (`scripts/sweeps/design-guard.test.ts`)
+
+Keeps what the admin design audit removed (14 Nov 2026) from coming back, over `apps/admin/src`:
+
+1. **Arbitrary type sizes** (`text-[0.8125rem]`, `text-[11px]`): use the named scale in
+   `packages/ui/src/styles.css` (`text-body`, `text-caption`, `text-micro`, `text-period`,
+   `text-card-title`, `text-section-title`, `text-stat`…). Allowed: the checkout preview
+   miniature, SVG illustration text, the Home live-now figure, the score ring, the command
+   palette input and the Preferences text-size preview.
+2. **Raw `text-xs` / `text-sm` / `text-base`**: `text-period` (0.75rem/1rem) and `text-body`
+   (0.875rem/1.25rem) are the same sizes under a name; 1rem text is `text-card-title`. The theme
+   customizer chrome (`themes/customize/`, `lib/customize-*`) is skipped. Allowed: the phone-size
+   input that stops iOS zoom, search-result previews, storefront look-alike previews, the gift card
+   code, and order/product page files the wave 3 page passes own.
+3. **Retired kit parts**: imports of `components/kit/` parts other than `kit-list-row`,
+   `kit-progress` and `kit-thumb` fail, and so does a new file in `components/kit/`. Use Button,
+   Field, SearchField and SimpleTable.
+4. **`rounded-2xl` / `rounded-3xl`**: cards are `rounded-lg`. Allowed: logo and icon tiles, chat
+   bubbles and reply pills, the command palette, the live globe glass label, two banners.
+5. **shadcn `Badge`** in the admin: use StatusChip (states, tags) or CountBadge (counts).
+
+Raw `DialogContent` is the popup-shell sweep (ab). Ratchet: new fails, stale fails.
+
+### The `no-restyle` guard (`bun run lint:design`)
+
+`.oxlintrc.json` runs `@shadcn/lint`'s `no-restyle` twice. `shadcn/no-restyle` warns for every
+component, as before. `shadcn-guard/no-restyle` (the same plugin under a second name,
+`scripts/lint/shadcn-guard.mjs`, because oxlint sets severity per plugin) is an **error** for the
+shared parts the design audit settled: Button, DataCard, Card, Input, Textarea, NativeSelect,
+SearchField, Label and the Field parts, Skeleton, the dialog parts, FormDialog, ConfirmDialog,
+Table and its parts, SimpleTable, ResourceTable, Alert parts, Badge, StatusChip, EmptyState and the
+Empty parts, PageHeader, PageBody, PageColumns, PillTabs, ToggleGroup, StatTile, RecordCombobox.
+Its contracts say what callers may still set (layout everywhere; `gap-*` on cards and field sets;
+the named type tokens where typography is open; `px-0` / `p-0` on inline link buttons). A wrapper
+that forwards `className` to a guarded part is checked against that part. To add a part, add its
+name to both the guard's catch-all pattern and the main rule's last contract, and its contract.
+
+Files where the guard only **warns** (the override block next to the rule), with the reason (paths under `apps/admin/src/components/` unless they start with `app/`):
+
+| File | Why |
+| --- | --- |
+| `layout/data-card.tsx` | DataCard itself: it styles the Card it wraps |
+| `table/simple-table.tsx`, `table/resource-table/index.tsx`, `columns.tsx`, `pagination.tsx`, `table/resource-table-skeleton.tsx` | the shared tables style the primitives they wrap |
+| `layout/command-palette.tsx` | glass search panel, not a dialog (same as popup-shell) |
+| `analytics/live-view.tsx` | floating glass cards over the map |
+| `growth/campaigns/whatsapp-template-card.tsx`, `email-content-card.tsx` | flat message previews inside a card |
+| `growth/overview/top-source-cards.tsx` | Growth overview hero spacing |
+| `mcp/consent-state.tsx`, `mcp/consent-form.tsx` | OAuth consent screen, its own padding |
+| `settings/store-data-section.tsx` | red-bordered delete-store card |
+| `shipments/create-shipment/courier-option.tsx` | courier drawer Figma frame (898:7790) |
+| `app/(admin)/products/gift-cards/gift-cards-page.tsx` | empty state inside a padded card |
+| `products/variants-card.tsx`, `variant-matrix.tsx`, `product-image-tile.tsx` | product page: wave 3 page pass 3 owns them |
+| `apps/shopify-import/remaining-card.tsx` | edge-to-edge table inside a card |
+| `media/media-library.tsx`, `themes/code/code-add-file-dialog.tsx`, `apps/automations/editor/editor-header.tsx` | borderless inputs in toolbars and title bars |
+| `themes/customize/**` | theme customizer chrome |
+| `inbox/conversations/composer.tsx` | borderless chat composer |
+| `customers/customer-address-dialog.tsx` | boxed field set in the address dialog |
+
+The plugin loads the Tailwind theme in a worker; on a busy machine the warning counts can differ
+by one or two between runs. The guard lists the named type tokens explicitly so its errors do not.
+
 ## `server-only`
 
 The `server-only` npm package throws unconditionally when the bundler resolving it does
