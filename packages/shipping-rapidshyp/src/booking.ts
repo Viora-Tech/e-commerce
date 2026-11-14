@@ -22,7 +22,9 @@
  *
  * ORDER IDS: orders go to RapidShyp under our order number (`2471`), with a suffix for the
  * order's later bookings (`2471-2`; `courierOrderRef`), so merchants find them by number on
- * RapidShyp's panel. "Order ... already exists" moves to the next suffix. `providerRef` (what
+ * RapidShyp's panel. "Order ... already exists" moves to the next suffix, except for a picked
+ * courier: that order is the one an earlier click left there for the merchant, so staff are sent
+ * to it instead of a second copy being made (owner, 14 Nov 2026). `providerRef` (what
  * `cancel_order` takes) is RapidShyp's echo of the id, else the id we sent. Known refusal
  * remarks are put in the merchant's words (`./remarks`), RapidShyp's own in brackets after them.
  */
@@ -193,10 +195,11 @@ async function sendOrder<T extends { status?: string; remarks?: string; orderCre
   calls: BookingCalls,
   input: CreateShipmentInput,
   path: string,
+  tries = MAX_ORDER_REF_TRIES,
 ): Promise<{ ref: string; result: T }> {
   for (let skip = 0; ; skip += 1) {
     const ref = courierOrderRef(input, skip)
-    const last = skip >= MAX_ORDER_REF_TRIES - 1
+    const last = skip >= tries - 1
     try {
       const result = await calls.post<T>(path, buildOrderPayload(calls.config, input, ref))
       const created =
@@ -265,7 +268,16 @@ async function bookChosen(
   input: CreateShipmentInput,
   courierCode: string,
 ): Promise<CreateShipmentResult> {
-  const { ref, result } = await sendOrder<CreateOrderOnlyResponse>(calls, input, CREATE_ORDER)
+  const { ref, result } = await sendOrder<CreateOrderOnlyResponse>(
+    calls,
+    input,
+    CREATE_ORDER,
+    1,
+  ).catch((error: unknown) => {
+    const reason = error instanceof CourierError ? error.reason : undefined
+    throw isDuplicateOrderRemark(reason) ? alreadyThere(calls, input, reason, error) : error
+  })
+  if (isDuplicateOrderRemark(result.remarks)) throw alreadyThere(calls, input, result.remarks)
   if (!result.order_id && !createdShipmentId(result)) {
     throw orderRefused(calls.provider, 'RapidShyp rejected the order', result.remarks)
   }
@@ -292,6 +304,22 @@ async function bookChosen(
     throw courierRefused(calls, input, error, await takeBack(calls, orderRef))
   }
   return finishBooking(calls, shipmentId, awb, { orderRef })
+}
+
+/** RapidShyp already holds this order number: an earlier booking left it there, no courier. */
+function alreadyThere(
+  calls: BookingCalls,
+  input: CreateShipmentInput,
+  reason: string | undefined,
+  cause?: unknown,
+): CourierError {
+  const ref = courierOrderRef(input)
+  return new CourierError(
+    'rejected',
+    calls.provider,
+    `Order ${ref} is already on RapidShyp from an earlier booking. Open order ${ref} in RapidShyp (Orders, search ${ref}) and assign ${courierName(input)} there, then add its AWB here with Ship › Shipped yourself.`,
+    { reason, cause },
+  )
 }
 
 /** No courier picked: the wrapper books by the account's courier priority, in one call. */
