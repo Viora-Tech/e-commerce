@@ -65,6 +65,8 @@ function DiscountsContent({ initial }: { initial: DiscountsInitial }) {
   const [items, setItems] = useState(initial.result.items)
   const [total, setTotal] = useState(initial.result.total)
   const [loading, setLoading] = useState(false)
+  /* A failed read shows "Could not load discounts" with Try again in the table, not old rows. */
+  const [failed, setFailed] = useState(false)
   /** Bumped by a row's menu after a pause, resume or delete, so the page re-reads its rows. */
   const [reload, setReload] = useState(0)
   const hydrated = useRef(false)
@@ -84,6 +86,7 @@ function DiscountsContent({ initial }: { initial: DiscountsInitial }) {
       return
     let cancelled = false
     setLoading(true)
+    setFailed(false)
     api.discounts
       .list({
         page: q.page,
@@ -97,6 +100,7 @@ function DiscountsContent({ initial }: { initial: DiscountsInitial }) {
         setItems(r.items)
         setTotal(r.total)
       })
+      .catch(() => !cancelled && setFailed(true))
       .finally(() => !cancelled && setLoading(false))
     return () => {
       cancelled = true
@@ -147,6 +151,9 @@ function DiscountsContent({ initial }: { initial: DiscountsInitial }) {
           <DiscountRowMenu discount={d} onChanged={() => setReload((n) => n + 1)} />
         )}
         loading={loading}
+        error={
+          failed ? { heading: copy.loadFailed, onRetry: () => setReload((n) => n + 1) } : undefined
+        }
         query={q.query}
         onQueryChange={(next) => setQ({ query: next, page: 1 }, { history: 'replace' })}
         onClearAll={() => setQ({ ...CLEAR_DISCOUNT_FILTERS, query: '', status: null, page: 1 })}

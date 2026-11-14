@@ -89,8 +89,8 @@ export default function MediaTile({
     >
       <div
         className={cn(
-          'relative w-full overflow-hidden border bg-muted',
-          wide ? 'aspect-[4/3] rounded-xl' : 'aspect-square rounded-lg',
+          'relative w-full overflow-hidden rounded-lg border bg-muted',
+          wide ? 'aspect-[4/3]' : 'aspect-square',
           sortable?.dragging && ROW_STATE_CLASS.placeholder,
         )}
       >
@@ -149,10 +149,7 @@ export default function MediaTile({
         <Link
           href={href}
           aria-label={details.open(caption ?? item.alt ?? '')}
-          className={cn(
-            'absolute inset-0 z-10 outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
-            wide ? 'rounded-xl' : 'rounded-lg',
-          )}
+          className="absolute inset-0 z-10 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
         />
       ) : null}
     </motion.li>

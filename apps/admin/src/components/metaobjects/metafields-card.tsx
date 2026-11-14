@@ -8,24 +8,20 @@ import {
 import { permissions } from '@commerce/core/permissions'
 import { Plus, Save } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import {
-  Card,
-  CardAction,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@commerce/ui/shadcn/card'
 import { FieldGroup } from '@commerce/ui/shadcn/field'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import Link from 'next/link'
 import { type ReactNode, useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import DataCard from '@/components/layout/data-card'
+import LoadFailed from '@/components/states/load-failed'
 import { CUSTOM_DATA_OWNERS } from '@/data/custom-data'
 import { metafieldsCardContent } from '@/data/metaobjects'
 import { useCopy } from '@/hooks/use-copy'
+import type { LoadFailure } from '@/hooks/use-load'
 import { usePermissions } from '@/hooks/use-permissions'
 import { api } from '@/lib/api-client'
+import { isForbidden } from '@/lib/forbidden'
 import { routes } from '@/lib/routes'
 import FieldInput from './field-input'
 import { fieldErrorsOf } from './form-state'
@@ -88,6 +84,8 @@ export default function MetafieldsCard({
   const [adding, setAdding] = useState(false)
   const [targets, setTargets] = useState<{ id: string; name: string }[]>([])
   const [reload, setReload] = useState(0)
+  /* A failed read shows Try again instead of "no extra fields", which looked like none exist. */
+  const [failed, setFailed] = useState<LoadFailure | false>(false)
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: `reload` re-runs the fetch after a field is added here.
   useEffect(() => {
@@ -99,6 +97,7 @@ export default function MetafieldsCard({
             .metafieldDefinitions({ ownerType })
             .then((definitions) => ({ definitions, values: {} }))
     setLoaded(null)
+    setFailed(false)
     request
       .then((r) => {
         if (!live) return
@@ -107,7 +106,7 @@ export default function MetafieldsCard({
         setSaved(JSON.stringify(r.values))
         setErrors({})
       })
-      .catch(() => live && setLoaded({ definitions: [], values: {} }))
+      .catch((error: unknown) => live && setFailed(isForbidden(error) ? 'no-access' : 'error'))
     return () => {
       live = false
     }
@@ -172,67 +171,61 @@ export default function MetafieldsCard({
       : definitions
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{title ?? copy.heading}</CardTitle>
-        {loaded && definitions.length === 0 ? (
-          <CardDescription>{copy.empty}</CardDescription>
-        ) : null}
-        <CardAction>
-          {dirty && canWrite ? (
-            <Button loading={busy} onClick={handleSave} disabled={busy}>
-              <Save aria-hidden="true" />
-              {copy.save}
-            </Button>
-          ) : canManage ? (
-            <Button variant="ghost" render={<Link href={manageHref} />} nativeButton={false}>
-              {copy.manage}
-            </Button>
-          ) : null}
-        </CardAction>
-      </CardHeader>
-      {children ? <CardContent>{children}</CardContent> : null}
-      {loaded === null ? (
-        <CardContent>
-          <Skeleton className="h-16 w-full" />
-        </CardContent>
+    <DataCard
+      title={title ?? copy.heading}
+      subtitle={loaded && definitions.length === 0 ? copy.empty : undefined}
+      action={
+        dirty && canWrite ? (
+          <Button loading={busy} onClick={handleSave} disabled={busy}>
+            <Save aria-hidden="true" />
+            {copy.save}
+          </Button>
+        ) : canManage ? (
+          <Button variant="ghost" render={<Link href={manageHref} />} nativeButton={false}>
+            {copy.manage}
+          </Button>
+        ) : null
+      }
+      bodyClassName="flex flex-col gap-4"
+    >
+      {children}
+      {failed ? (
+        <LoadFailed size="inline" failed={failed} onRetry={() => setReload((n) => n + 1)} />
+      ) : loaded === null ? (
+        <Skeleton className="h-16 w-full" />
       ) : definitions.length === 0 ? (
         canManage ? (
-          <CardContent className="flex justify-end">
+          <div className="flex justify-end">
             <Button variant="outline" onClick={handleAdd}>
               <Plus aria-hidden="true" />
               {copy.addField}
             </Button>
-          </CardContent>
+          </div>
         ) : null
+      ) : ready ? (
+        <FieldGroup>
+          {visible.map((d) => (
+            <FieldInput
+              key={d.id}
+              rule={{ ...d, validations: d.validations as FieldValidations }}
+              value={values[d.id]}
+              error={errors[d.id]}
+              onChange={(value) => handleChange(d.id, value)}
+            />
+          ))}
+          {emptyCount > 0 ? (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="self-start"
+              onClick={() => setShowEmpty((v) => !v)}
+            >
+              {showEmpty ? copy.hideEmpty : copy.showEmpty(emptyCount)}
+            </Button>
+          ) : null}
+        </FieldGroup>
       ) : (
-        <CardContent>
-          {ready ? (
-            <FieldGroup>
-              {visible.map((d) => (
-                <FieldInput
-                  key={d.id}
-                  rule={{ ...d, validations: d.validations as FieldValidations }}
-                  value={values[d.id]}
-                  error={errors[d.id]}
-                  onChange={(value) => handleChange(d.id, value)}
-                />
-              ))}
-              {emptyCount > 0 ? (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="self-start"
-                  onClick={() => setShowEmpty((v) => !v)}
-                >
-                  {showEmpty ? copy.hideEmpty : copy.showEmpty(emptyCount)}
-                </Button>
-              ) : null}
-            </FieldGroup>
-          ) : (
-            <p className="text-body text-muted-foreground">{copy.saveFirst}</p>
-          )}
-        </CardContent>
+        <p className="text-body text-muted-foreground">{copy.saveFirst}</p>
       )}
       <MetafieldDefinitionDialog
         open={adding}
@@ -242,6 +235,6 @@ export default function MetafieldsCard({
         onClose={() => setAdding(false)}
         onSaved={() => setReload((n) => n + 1)}
       />
-    </Card>
+    </DataCard>
   )
 }

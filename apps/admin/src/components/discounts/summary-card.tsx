@@ -130,35 +130,40 @@ export default function SummaryCard({ form, discount }: SummaryCardProps) {
 
   return (
     <DataCard title={copy.heading} bodyClassName="flex flex-col gap-4">
-      <div>
-        <p className="text-body-strong">{title}</p>
-        <p className="text-caption">{code}</p>
+      <div className="flex flex-col gap-0.5">
+        <p className="text-body-strong text-ink-strong">{title}</p>
+        <p className="text-caption text-muted-foreground">{code}</p>
       </div>
-      <div>
-        <p className="text-caption">{copy.typeAndMethod}</p>
-        <p className="text-body">
-          {all.type.options[form.type].label}
-          {valueText ? `, ${valueText.toLowerCase()}` : ''}
-        </p>
-      </div>
-      <div>
-        <p className="text-caption">{copy.details}</p>
-        <ul className="list-disc pl-4 text-body">
-          {detailLines(copy, form, discount).map((line, i) => (
-            // biome-ignore lint/suspicious/noArrayIndexKey: two combos can read the same; the position keeps keys apart
-            <li key={`${i}-${line}`}>{line}</li>
-          ))}
-        </ul>
-      </div>
-      {discount ? (
-        <div>
-          <p className="text-caption">{copy.performance}</p>
-          <p className="text-body">
-            {copy.orders(discount.usage.orders)},{' '}
-            {copy.amount(formatPaise(discount.usage.amountPaise))}
-          </p>
+      {/* Label over value, like the Usage card: grey caption labels, body-size values. */}
+      <dl className="flex flex-col gap-4">
+        <div className="flex flex-col gap-0.5">
+          <dt className="text-caption text-muted-foreground">{copy.typeAndMethod}</dt>
+          <dd className="text-body">
+            {all.type.options[form.type].label}
+            {valueText ? `, ${valueText.toLowerCase()}` : ''}
+          </dd>
         </div>
-      ) : null}
+        <div className="flex flex-col gap-0.5">
+          <dt className="text-caption text-muted-foreground">{copy.details}</dt>
+          <dd>
+            <ul className="flex list-disc flex-col gap-1 pl-4 text-body">
+              {detailLines(copy, form, discount).map((line, i) => (
+                // biome-ignore lint/suspicious/noArrayIndexKey: two combos can read the same; the position keeps keys apart
+                <li key={`${i}-${line}`}>{line}</li>
+              ))}
+            </ul>
+          </dd>
+        </div>
+        {discount ? (
+          <div className="flex flex-col gap-0.5">
+            <dt className="text-caption text-muted-foreground">{copy.performance}</dt>
+            <dd className="text-body tabular-nums">
+              {copy.orders(discount.usage.orders)},{' '}
+              {copy.amount(formatPaise(discount.usage.amountPaise))}
+            </dd>
+          </div>
+        ) : null}
+      </dl>
     </DataCard>
   )
 }

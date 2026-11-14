@@ -2,8 +2,12 @@
 
 import { Search, X } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
+import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { type ReactNode, useEffect, useState } from 'react'
 import ProductThumb from '@/components/products/product-thumb'
+import LoadFailed from '@/components/states/load-failed'
+import type { LoadFailure } from '@/hooks/use-load'
+import { isForbidden } from '@/lib/forbidden'
 import ResourcePickDialog from './resource-pick-dialog'
 import type { PickItem, PickResult, PickTab } from './resource-pick-types'
 
@@ -27,6 +31,9 @@ type PickedFieldProps = {
   onBrowse?: (() => void) | undefined
 }
 
+/* At most this many placeholder rows while picked rows are read. */
+const MAX_SKELETON_ROWS = 3
+
 /**
  * A form field for picking things through the Browse dialog: a search field and Browse button
  * that open it, then the picks as removable rows with thumbnails (or initials).
@@ -46,11 +53,18 @@ export default function PickedField({
   // Hooks
   const [open, setOpen] = useState(false)
   const [known, setKnown] = useState<PickItem[]>([])
+  /* The picked rows being read, or why that failed: a failure shows Try again instead of an
+     empty field that looks like nothing is picked. `attempt` reads again. */
+  const [reading, setReading] = useState(false)
+  const [failed, setFailed] = useState<LoadFailure | false>(false)
+  const [attempt, setAttempt] = useState(0)
   // biome-ignore lint/correctness/useExhaustiveDependencies: loadPicked is rebuilt every render
   useEffect(() => {
     const missing = ids.filter((id) => !known.some((p) => p.id === id))
-    if (missing.length === 0) return
+    if (missing.length === 0 || attempt < 0) return
     let cancelled = false
+    setReading(true)
+    setFailed(false)
     loadPicked(kind, missing)
       .then((found) => {
         if (cancelled) return
@@ -61,11 +75,14 @@ export default function PickedField({
           return fresh.length > 0 ? [...prev, ...fresh] : prev
         })
       })
-      .catch(() => undefined)
+      .catch(
+        (error: unknown) => !cancelled && setFailed(isForbidden(error) ? 'no-access' : 'error'),
+      )
+      .finally(() => !cancelled && setReading(false))
     return () => {
       cancelled = true
     }
-  }, [kind, ids, known])
+  }, [kind, ids, known, attempt])
 
   // Event handlers
   const handleDone = (result: PickResult) => {
@@ -82,6 +99,7 @@ export default function PickedField({
   const chosen = ids
     .map((id) => known.find((p) => p.id === id))
     .filter((p): p is PickItem => Boolean(p))
+  const waiting = reading ? Math.min(ids.length - chosen.length, MAX_SKELETON_ROWS) : 0
 
   return (
     <div className="flex flex-col gap-3">
@@ -131,7 +149,23 @@ export default function PickedField({
           ))}
         </ul>
       ) : ids.length === 0 ? (
-        <p className="text-caption">{labels.nothingPicked}</p>
+        <p className="text-caption text-muted-foreground">{labels.nothingPicked}</p>
+      ) : null}
+      {waiting > 0 ? (
+        <ul
+          aria-hidden="true"
+          className="flex flex-col divide-y divide-border rounded-lg border border-border"
+        >
+          {Array.from({ length: waiting }, (_, i) => (
+            <li key={`wait-${i.toString()}`} className="flex items-center gap-3 px-3 py-2">
+              <Skeleton className="size-8 shrink-0 rounded-md" />
+              <Skeleton className="h-3.5 w-48 max-w-full" />
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      {failed && chosen.length < ids.length ? (
+        <LoadFailed size="inline" failed={failed} onRetry={() => setAttempt((n) => n + 1)} />
       ) : null}
       <ResourcePickDialog
         open={open}

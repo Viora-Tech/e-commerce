@@ -150,6 +150,7 @@ export const discountsContent = {
     heading: 'No discounts yet',
     body: 'Discount codes and automatic offers: a percentage off, a fixed amount or free shipping, applied at checkout.',
   },
+  loadFailed: 'Could not load discounts',
   noResults: {
     heading: 'No discounts match these filters',
     body: 'Try a different search or clear the filters.',

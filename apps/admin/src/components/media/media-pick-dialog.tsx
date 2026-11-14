@@ -9,6 +9,8 @@ import { toast } from 'sonner'
 import DialogContent from '@/components/layout/dialog-content'
 import DialogFooter from '@/components/layout/dialog-footer'
 import DialogHeader from '@/components/layout/dialog-header'
+import EmptyState from '@/components/layout/empty-state'
+import InlineState from '@/components/states/inline-state'
 import { mediaContent } from '@/data/media'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -122,6 +124,9 @@ export default function MediaPickDialog({
   const [urlValue, setUrlValue] = useState('')
   const [urlBusy, setUrlBusy] = useState(false)
   const [recent, setRecent] = useState<MediaItem[]>([])
+  /* A failed read says so with Try again, instead of "No files match" over an empty grid. */
+  const [failed, setFailed] = useState(false)
+  const [attempt, setAttempt] = useState(0)
   const { folders } = useMediaFolders(open && fixedItems === undefined)
   const inputRef = useRef<HTMLInputElement>(null)
   const sentinelRef = useRef<HTMLDivElement>(null)
@@ -152,22 +157,25 @@ export default function MediaPickDialog({
       setUrlValue('')
       return
     }
-    if (fixedItems !== undefined) return
+    // `attempt` (Try again) re-runs the read.
+    if (fixedItems !== undefined || attempt < 0) return
     const handle = setTimeout(
       () => {
         setLoading(true)
+        setFailed(false)
         fetchMediaPage({ page: 1, query, sort, fileType, size: sizeFilter, used, folder })
           .then((r) => {
             setItems(r.items)
             setTotal(r.total)
             setPage(1)
           })
+          .catch(() => setFailed(true))
           .finally(() => setLoading(false))
       },
       query ? 250 : 0,
     )
     return () => clearTimeout(handle)
-  }, [open, fixedItems, query, sort, fileType, sizeFilter, used, folder])
+  }, [open, fixedItems, query, sort, fileType, sizeFilter, used, folder, attempt])
 
   useEffect(() => {
     if (!open || fixedItems !== undefined) return
@@ -176,7 +184,7 @@ export default function MediaPickDialog({
     const hasMore = items.length < total
     const observer = new IntersectionObserver(
       (entries) => {
-        if (!entries[0]?.isIntersecting || !hasMore || loading || loadingMore) return
+        if (!entries[0]?.isIntersecting || !hasMore || loading || loadingMore || failed) return
         const nextPage = page + 1
         setLoadingMore(true)
         fetchMediaPage({
@@ -193,6 +201,7 @@ export default function MediaPickDialog({
             setTotal(r.total)
             setPage(nextPage)
           })
+          .catch(() => setFailed(true))
           .finally(() => setLoadingMore(false))
       },
       { rootMargin: '200px' },
@@ -206,6 +215,7 @@ export default function MediaPickDialog({
     total,
     loading,
     loadingMore,
+    failed,
     page,
     query,
     sort,
@@ -299,7 +309,7 @@ export default function MediaPickDialog({
   const restricted = fixedItems !== undefined
   const needle = query.trim().toLowerCase()
   const results = restricted ? fixedItems.filter((i) => matchesMediaQuery(i, needle)) : items
-  const showEmpty = !loading && results.length === 0 && queue.pending.length === 0
+  const showEmpty = !loading && !failed && results.length === 0 && queue.pending.length === 0
   const doneDisabled = selectedIds.length === 0
   const showRecent = !restricted && !needle && recent.length > 0
   const lastPicked = selectedIds.at(-1)
@@ -374,12 +384,20 @@ export default function MediaPickDialog({
                   <span className="sr-only">{copy.loading}</span>
                 </div>
               ) : null}
+              {failed && !loading && results.length === 0 ? (
+                <InlineState
+                  kind="error"
+                  heading={copy.loadFailed}
+                  onRetry={() => setAttempt((n) => n + 1)}
+                  className="py-10"
+                />
+              ) : null}
               {showEmpty ? (
-                <div className="flex h-48 flex-col items-center justify-center gap-1 text-center">
-                  <p className="text-body-strong">
-                    {query || !restricted ? copy.noResults : (empty ?? copy.empty)}
-                  </p>
-                </div>
+                <EmptyState
+                  variant="plain"
+                  size="lg"
+                  body={query || !restricted ? copy.noResults : (empty ?? copy.empty)}
+                />
               ) : null}
               {!loading && (results.length > 0 || queue.pending.length > 0) ? (
                 <MediaPickGrid
@@ -399,6 +417,14 @@ export default function MediaPickDialog({
                 <div className="flex justify-center py-3 text-muted-foreground">
                   <Spinner />
                 </div>
+              ) : null}
+              {failed && !loading && results.length > 0 ? (
+                /* The next page failed: the files so far stay; Try again asks for it again. */
+                <InlineState
+                  kind="error"
+                  heading={copy.loadFailed}
+                  onRetry={() => setFailed(false)}
+                />
               ) : null}
             </section>
           </div>

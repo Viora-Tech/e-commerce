@@ -1,5 +1,6 @@
-import ListPageSkeleton from '@/components/layout/list-page-skeleton'
+import ContentHubSkeleton from '@/components/content/content-hub-skeleton'
 
+/* The hub's own skeleton: its title and the four cards. Routes below have their own. */
 export default function Loading() {
-  return <ListPageSkeleton tiles={0} />
+  return <ContentHubSkeleton />
 }

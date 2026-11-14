@@ -45,7 +45,7 @@ export default function MediaPickDropzone({
     <div className="flex flex-col gap-2">
       <div
         className={cn(
-          'flex flex-col items-center gap-3 rounded-xl border border-border-strong border-dashed bg-muted/40 px-4 py-5 text-center transition-colors duration-150 motion-reduce:transition-none sm:flex-row sm:text-left',
+          'flex flex-col items-center gap-3 rounded-lg border border-border-strong border-dashed bg-muted/40 px-4 py-5 text-center transition-colors duration-150 motion-reduce:transition-none sm:flex-row sm:text-left',
           dragOver && 'border-primary bg-primary-soft/60',
         )}
       >
