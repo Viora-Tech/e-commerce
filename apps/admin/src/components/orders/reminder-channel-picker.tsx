@@ -56,11 +56,10 @@ export default function ReminderChannelPicker({
             {copy.sendBy}
           </span>
           <ToggleGroup
+            variant="segmented"
             aria-labelledby="reminder-channel-label"
             value={[channel]}
             onValueChange={handleChange}
-            variant="outline"
-            spacing={0}
           >
             <ToggleGroupItem value="email">{copy.email}</ToggleGroupItem>
             <ToggleGroupItem value="whatsapp">{copy.whatsapp}</ToggleGroupItem>

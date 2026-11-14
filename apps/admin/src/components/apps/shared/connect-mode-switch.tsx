@@ -83,11 +83,10 @@ export default function ConnectModeSwitch({
           {mode.copy.label}
         </span>
         <ToggleGroup
+          variant="segmented"
           aria-labelledby={`${providerId}-mode-label`}
           value={[current]}
           onValueChange={handleModeChange}
-          variant="outline"
-          spacing={0}
         >
           <ToggleGroupItem value="test">{mode.copy.test}</ToggleGroupItem>
           <ToggleGroupItem value="live">{mode.copy.live}</ToggleGroupItem>

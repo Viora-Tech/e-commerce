@@ -32,7 +32,12 @@ export default function SourceOrChannelCard({
 
   // Render logic
   const toggle = (
-    <ToggleGroup value={[view]} onValueChange={handleView} className="mb-3 self-start">
+    <ToggleGroup
+      variant="segmented"
+      value={[view]}
+      onValueChange={handleView}
+      className="mb-3 self-start"
+    >
       <ToggleGroupItem value="source">{copy.view.bySource}</ToggleGroupItem>
       <ToggleGroupItem value="channel">{copy.view.byChannel}</ToggleGroupItem>
     </ToggleGroup>

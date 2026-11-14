@@ -331,13 +331,12 @@ function MediaLibraryContent({ initial }: { initial: MediaLibraryInitial }) {
                 />
               </form>
               <ToggleGroup
+                variant="segmented"
                 value={[view]}
                 onValueChange={(v) => {
                   const next = VIEWS.find((x) => x === v[0])
                   if (next) setQ({ view: next })
                 }}
-                variant="outline"
-                spacing={0}
               >
                 <ToggleGroupItem value="grid" aria-label={copy.view.grid} title={copy.view.grid}>
                   <LayoutGrid aria-hidden />

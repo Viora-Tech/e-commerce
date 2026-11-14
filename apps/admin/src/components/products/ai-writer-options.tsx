@@ -78,11 +78,10 @@ export default function AiWriterOptions({
       <Field>
         <FieldLabel id="ai-language-label">{copy.writer.languageLabel}</FieldLabel>
         <ToggleGroup
+          variant="segmented"
           aria-labelledby="ai-language-label"
           value={[language]}
           onValueChange={handleLanguage}
-          variant="outline"
-          spacing={0}
           disabled={disabled}
         >
           {WRITER_LANGUAGES.map((l) => (

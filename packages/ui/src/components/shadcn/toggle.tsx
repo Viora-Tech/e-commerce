@@ -11,6 +11,9 @@ const toggleVariants = cva(
       variant: {
         default: 'bg-transparent',
         outline: 'border border-input bg-transparent hover:bg-muted',
+        /** One option of a segmented switch (the admin's PillTabs `segmented` look); the group draws the track. */
+        segmented:
+          'border border-transparent bg-transparent text-muted-foreground hover:bg-transparent aria-pressed:border-border aria-pressed:bg-card aria-pressed:font-semibold aria-pressed:text-ink-strong aria-pressed:shadow-lift',
       },
       size: {
         default:
@@ -19,6 +22,13 @@ const toggleVariants = cva(
         lg: 'h-9 min-w-9 px-2.5 has-data-[icon=inline-end]:pr-2 has-data-[icon=inline-start]:pl-2',
       },
     },
+    /* Every size of a segmented option is the PillTabs segmented tab: 1.875rem, body text. */
+    compoundVariants: [
+      {
+        variant: 'segmented',
+        className: 'h-[1.875rem] min-w-0 rounded-[0.5rem] px-3 text-body',
+      },
+    ],
     defaultVariants: {
       variant: 'default',
       size: 'default',

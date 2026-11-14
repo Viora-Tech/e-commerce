@@ -74,11 +74,10 @@ export default function InventoryBulkDialog({
           <DialogDescription>{mode === 'set' ? copy.setHint : copy.adjustHint}</DialogDescription>
         </DialogHeader>
         <ToggleGroup
+          variant="segmented"
           aria-label={copy.modeLabel}
           value={mode ? [mode] : []}
           onValueChange={handleModeChange}
-          variant="outline"
-          spacing={0}
           className="w-full"
         >
           <ToggleGroupItem value="set" className="flex-1">

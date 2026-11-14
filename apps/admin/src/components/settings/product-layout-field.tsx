@@ -32,11 +32,10 @@ export default function ProductLayoutField({ initial }: ProductLayoutFieldProps)
   // Render logic
   return (
     <ToggleGroup
+      variant="segmented"
       aria-label={copy.label}
       value={[layout]}
       onValueChange={handleChange}
-      variant="outline"
-      spacing={0}
     >
       <ToggleGroupItem value="settings" className="px-3">
         {copy.settings}

@@ -65,11 +65,10 @@ export default function LanguageRegionPage() {
       <SettingsCard title={copy.region.heading} description={copy.region.body}>
         <SettingsRow label={copy.region.clock.label} description={copy.region.clock.help}>
           <ToggleGroup
+            variant="segmented"
             aria-label={copy.region.clock.label}
             value={[region.clock]}
             onValueChange={handleClock}
-            variant="outline"
-            spacing={0}
           >
             {CLOCKS.map((id) => (
               <ToggleGroupItem key={id} value={id} className="px-3">
@@ -80,11 +79,10 @@ export default function LanguageRegionPage() {
         </SettingsRow>
         <SettingsRow label={copy.region.weekStart.label} description={copy.region.weekStart.help}>
           <ToggleGroup
+            variant="segmented"
             aria-label={copy.region.weekStart.label}
             value={[region.weekStart]}
             onValueChange={handleWeekStart}
-            variant="outline"
-            spacing={0}
           >
             {WEEK_STARTS.map((id) => (
               <ToggleGroupItem key={id} value={id} className="px-3">

@@ -98,11 +98,10 @@ export default function TryPinCard({ result, onResult }: TryPinCardProps) {
       <Field>
         <FieldLabel>{t.mode}</FieldLabel>
         <ToggleGroup
+          variant="segmented"
           aria-label={t.mode}
           value={[mode]}
           onValueChange={handleMode}
-          variant="outline"
-          spacing={0}
         >
           {MODES.map((m) => (
             <ToggleGroupItem key={m} value={m} className="px-3">
