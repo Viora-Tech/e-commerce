@@ -1,6 +1,6 @@
 'use client'
 
-import { CheckIcon, Loader2Icon, Search } from '@commerce/ui/icons'
+import { CheckIcon, Search } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Checkbox } from '@commerce/ui/shadcn/checkbox'
 import {
@@ -12,6 +12,7 @@ import {
   DialogTitle,
 } from '@commerce/ui/shadcn/dialog'
 import { Input } from '@commerce/ui/shadcn/input'
+import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { Tabs, TabsList, TabsTrigger } from '@commerce/ui/shadcn/tabs'
 import { useEffect, useId, useRef, useState } from 'react'
 import { resourcePickerContent } from '@/data/resource-picker'
@@ -246,7 +247,7 @@ export default function ResourcePickDialog({
           ) : null}
           {loading ? (
             <div className="flex h-48 items-center justify-center text-muted-foreground">
-              <Loader2Icon className="size-5 animate-spin" aria-hidden />
+              <Spinner className="size-5" />
               <span className="sr-only">{copy.loading}</span>
             </div>
           ) : null}
@@ -283,7 +284,7 @@ export default function ResourcePickDialog({
           <div ref={sentinelRef} className="h-1 shrink-0" />
           {loadingMore ? (
             <div className="flex justify-center py-3 text-muted-foreground">
-              <Loader2Icon className="size-4 animate-spin" aria-hidden />
+              <Spinner />
             </div>
           ) : null}
         </div>

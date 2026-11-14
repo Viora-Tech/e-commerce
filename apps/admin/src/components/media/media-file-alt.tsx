@@ -1,6 +1,5 @@
 'use client'
 
-import { Loader2Icon } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Textarea } from '@commerce/ui/shadcn/textarea'
 import { useId, useState } from 'react'
@@ -68,7 +67,6 @@ export default function MediaFileAlt({ id, alt, onSaved }: MediaFileAltProps) {
         onClick={() => void handleSave()}
         className="self-end"
       >
-        {saving ? <Loader2Icon className="size-4 animate-spin" aria-hidden="true" /> : null}
         {copy.saveAlt}
       </Button>
     </section>

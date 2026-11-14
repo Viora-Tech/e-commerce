@@ -1,6 +1,7 @@
 'use client'
 
 import { Button } from '@commerce/ui/shadcn/button'
+import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import Link from 'next/link'
 import StatusChip from '@/components/layout/status-chip'
 import { delhiveryAppContent } from '@/data/delhivery'
@@ -39,7 +40,7 @@ export default function PickupLocationsCard({ places }: PickupLocationsCardProps
         </Button>
       </div>
       {places === null ? (
-        <span className="h-10 animate-pulse rounded bg-muted" />
+        <Skeleton className="h-10 rounded" />
       ) : places.length === 0 ? (
         <p className="text-caption text-muted-foreground">{p.empty}</p>
       ) : (

@@ -7,6 +7,7 @@ import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import DataCardSkeleton from '@/components/layout/data-card-skeleton'
 import { whatsappAppContent } from '@/data/whatsapp-app'
 import { useCopy } from '@/hooks/use-copy'
 import { usePermissions } from '@/hooks/use-permissions'
@@ -97,7 +98,7 @@ export default function WhatsappSetupPage() {
     return (
       <div className="flex flex-col gap-5">
         <Skeleton className="h-11 w-80" />
-        <Skeleton className="h-64 w-full" />
+        <DataCardSkeleton fields={0} lines={5} />
       </div>
     )
   }

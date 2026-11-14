@@ -2,10 +2,10 @@
 
 import { API_ACTIVITY_FILTERS, type ApiActivityFilter } from '@commerce/core/api-access'
 import { cn } from '@commerce/ui/lib/utils'
-import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { useEffect, useState } from 'react'
 import KitButton from '@/components/kit/kit-button'
 import DataCard from '@/components/layout/data-card'
+import DataCardSkeleton from '@/components/layout/data-card-skeleton'
 import EmptyState from '@/components/layout/empty-state'
 import { mcpContent } from '@/data/mcp'
 import { useCopy, useFormat } from '@/hooks/use-copy'
@@ -121,7 +121,7 @@ export default function McpActivityTab() {
       {failed ? (
         <p className="text-body text-muted-foreground">{copy.activity.loadFailed}</p>
       ) : items === null ? (
-        <Skeleton className="h-48 w-full rounded-xl" />
+        <DataCardSkeleton fields={0} lines={4} />
       ) : items.length === 0 ? (
         <EmptyState
           variant="dashed"

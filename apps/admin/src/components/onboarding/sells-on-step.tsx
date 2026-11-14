@@ -4,7 +4,6 @@ import { SELLS_ON, type SellsOn } from '@commerce/core/onboarding'
 import {
   type IconComponent,
   InstagramLogo,
-  Loader2Icon,
   Marketplace,
   NewShop,
   Store,
@@ -74,7 +73,6 @@ export default function SellsOnStep({
         disabled={!value || submitting}
         onClick={onSubmit}
       >
-        {submitting ? <Loader2Icon className="size-4 animate-spin" /> : null}
         {copy.submit}
       </Button>
     </div>

@@ -3,7 +3,6 @@
 import { CircleCheck, Eye, EyeOff, StarIcon } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card } from '@commerce/ui/shadcn/card'
-import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { Spinner } from '@commerce/ui/shadcn/spinner'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -13,6 +12,7 @@ import type { AppPageProps } from '@/apps/registry'
 import EmptyState from '@/components/layout/empty-state'
 import PageColumns from '@/components/layout/page-columns'
 import PageHeader from '@/components/layout/page-header'
+import SectionPageSkeleton from '@/components/layout/section-page-skeleton'
 import OrderChip from '@/components/orders/order-chip'
 import { reviewsContent } from '@/data/reviews'
 import { useCopy } from '@/hooks/use-copy'
@@ -87,7 +87,7 @@ export default function ReviewDetail({ params }: AppPageProps) {
       </Card>
     )
   }
-  if (!detail) return <Skeleton className="h-96 w-full rounded-lg" />
+  if (!detail) return <SectionPageSkeleton header={false} />
 
   // Render logic
   const r = detail.review

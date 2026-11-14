@@ -1,4 +1,5 @@
 import { cn } from '@commerce/ui/lib/utils'
+import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import type { ReactNode } from 'react'
 
 type OverviewTileProps = {
@@ -30,7 +31,7 @@ export default function OverviewTile({
       <h2 className="text-caption text-muted-foreground">{label}</h2>
       <div className="flex min-h-9 items-center justify-between gap-3">
         {value === null ? (
-          <span className="h-6 w-16 animate-pulse rounded bg-muted" />
+          <Skeleton className="h-6 w-16 rounded" />
         ) : (
           <p className="truncate text-[1.5rem] leading-8 font-semibold text-ink-strong tabular-nums">
             {value}

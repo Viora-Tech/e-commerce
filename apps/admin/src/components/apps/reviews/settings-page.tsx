@@ -3,10 +3,10 @@
 import type { ReviewsSettings } from '@commerce/plugin-reviews/settings'
 import { Save } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import PageHeader from '@/components/layout/page-header'
+import SectionPageSkeleton from '@/components/layout/section-page-skeleton'
 import { reviewsContent } from '@/data/reviews'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -59,7 +59,7 @@ export default function SettingsPage() {
   }
 
   // Early returns
-  if (!form) return <Skeleton className="h-96 w-full rounded-lg" />
+  if (!form) return <SectionPageSkeleton header={false} />
 
   // Render logic
   const dirty = JSON.stringify(form) !== saved

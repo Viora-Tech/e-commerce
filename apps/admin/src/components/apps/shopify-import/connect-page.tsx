@@ -10,11 +10,11 @@ import { Eye } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { CardContent } from '@commerce/ui/shadcn/card'
 import { Checkbox } from '@commerce/ui/shadcn/checkbox'
-import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import DataCard from '@/components/layout/data-card'
+import DataCardSkeleton from '@/components/layout/data-card-skeleton'
 import { shopifyAppInstallContent } from '@/data/shopify-app-install'
 import { shopifyImportContent } from '@/data/shopify-import'
 import { useCopy, useFormat } from '@/hooks/use-copy'
@@ -128,7 +128,7 @@ export default function ConnectPage() {
   if (connection === undefined) {
     return (
       <div className="flex flex-col gap-4">
-        <Skeleton className="h-48 w-full" />
+        <DataCardSkeleton fields={0} lines={4} />
       </div>
     )
   }

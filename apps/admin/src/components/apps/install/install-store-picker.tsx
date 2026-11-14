@@ -1,6 +1,6 @@
 'use client'
 
-import { ArrowRight, CheckIcon, Loader2Icon, Store } from '@commerce/ui/icons'
+import { ArrowRight, CheckIcon, Store } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card, CardContent } from '@commerce/ui/shadcn/card'
 import { useState } from 'react'
@@ -79,12 +79,12 @@ export default function InstallStorePicker({
                   )}
                 </div>
                 <Button
+                  loading={busyId === s.id}
                   type="button"
                   variant={installed ? 'outline' : 'default'}
                   disabled={busyId !== null}
                   onClick={() => handlePick(s.id)}
                 >
-                  {busyId === s.id ? <Loader2Icon className="size-4 animate-spin" /> : null}
                   {installed ? copy.openIn(s.name) : copy.choose(s.name)}
                   <ArrowRight />
                 </Button>

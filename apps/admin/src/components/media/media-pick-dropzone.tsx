@@ -1,6 +1,6 @@
 'use client'
 
-import { ImagePlus, LinkIcon, Loader2Icon, Upload } from '@commerce/ui/icons'
+import { ImagePlus, LinkIcon, Upload } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Input } from '@commerce/ui/shadcn/input'
@@ -106,8 +106,13 @@ export default function MediaPickDropzone({
             }}
             autoFocus
           />
-          <Button type="button" size="sm" disabled={urlBusy || !urlValue.trim()} onClick={onUrlAdd}>
-            {urlBusy ? <Loader2Icon className="size-4 animate-spin" aria-hidden="true" /> : null}
+          <Button
+            loading={urlBusy}
+            type="button"
+            size="sm"
+            disabled={urlBusy || !urlValue.trim()}
+            onClick={onUrlAdd}
+          >
             {urlBusy ? copy.fromUrlBusy : copy.fromUrlAdd}
           </Button>
         </div>

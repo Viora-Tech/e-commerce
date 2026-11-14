@@ -6,11 +6,12 @@ import {
   type EmailStarterCategory,
   starterMjml,
 } from '@commerce/core/marketing'
-import { Loader2Icon, Pencil, Save, Trash2 } from '@commerce/ui/icons'
+import { Pencil, Save, Trash2 } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Dialog, DialogDescription, DialogTitle } from '@commerce/ui/shadcn/dialog'
 import { Field, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
+import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { Tabs, TabsList, TabsTrigger } from '@commerce/ui/shadcn/tabs'
 import type { Editor } from 'grapesjs'
 import { useEffect, useState } from 'react'
@@ -219,7 +220,7 @@ export default function BuilderTemplatesDialog({
             {failed ? <p className="text-body text-destructive">{g.failed}</p> : null}
             {!starters && !failed ? (
               <p className="flex items-center gap-2 text-body text-muted-foreground">
-                <Loader2Icon className="size-4 animate-spin" aria-hidden="true" />
+                <Spinner />
                 {g.loading}
               </p>
             ) : null}
