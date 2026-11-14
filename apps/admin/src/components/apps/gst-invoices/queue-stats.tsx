@@ -87,7 +87,7 @@ export default function QueueStats({ gst, waiting, needHsn, needFix, reloadKey }
   return (
     <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
       {tiles.map((t) => (
-        <div key={t.label} className="min-w-0 rounded-xl surface-card">
+        <div key={t.label} className="min-w-0 rounded-lg surface-card">
           <StatTile label={t.label} value={t.value} {...(t.note ? { note: t.note } : {})} />
         </div>
       ))}

@@ -246,6 +246,7 @@ export default function RemainingCard({ connected }: RemainingCardProps) {
       flush
       action={
         <Button
+          loading={busy === 'all'}
           type="button"
           onClick={() =>
             handleStart(
@@ -262,7 +263,6 @@ export default function RemainingCard({ connected }: RemainingCardProps) {
             busy !== null
           }
         >
-          {busy === 'all' ? <Spinner /> : null}
           {headerLabel}
         </Button>
       }

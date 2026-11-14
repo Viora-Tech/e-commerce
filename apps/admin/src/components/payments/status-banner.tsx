@@ -1,5 +1,5 @@
 import { CircleAlert, CircleCheck } from '@commerce/ui/icons'
-import { cn } from '@commerce/ui/lib/utils'
+import { Alert, AlertDescription, AlertTitle } from '@commerce/ui/shadcn/alert'
 import { paymentsSetupContent } from '@/data/payments-setup'
 import { useCopy } from '@/hooks/use-copy'
 
@@ -17,37 +17,15 @@ export default function StatusBanner({ canTakePayments, canTakeOnline }: StatusB
   const title = canTakeOnline ? copy.ready : canTakePayments ? copy.readyOffline : copy.notReady
   const help = canTakeOnline ? null : canTakePayments ? copy.offlineHelp : copy.notReadyHelp
   const Icon = canTakeOnline ? CircleCheck : CircleAlert
+  const tone = canTakeOnline ? 'success' : canTakePayments ? 'neutral' : 'danger'
 
   return (
-    <div
-      role="status"
-      className={cn(
-        'flex items-start gap-3 rounded-xl border p-4',
-        canTakeOnline
-          ? 'border-success/30 bg-success-soft'
-          : canTakePayments
-            ? 'border-transparent surface-card'
-            : 'border-destructive/30 bg-destructive/5',
-      )}
-    >
+    <Alert role="status" tone={tone} className="p-4">
       {canTakePayments && !canTakeOnline ? null : (
-        <Icon
-          aria-hidden="true"
-          weight="fill"
-          className={cn(
-            'mt-0.5 size-5 shrink-0',
-            canTakeOnline
-              ? 'text-success'
-              : canTakePayments
-                ? 'text-warning-foreground dark:text-warning'
-                : 'text-destructive',
-          )}
-        />
+        <Icon aria-hidden="true" weight="fill" className="size-5" />
       )}
-      <div className="flex flex-col gap-0.5">
-        <p className="text-body font-semibold text-foreground">{title}</p>
-        {help ? <p className="text-body text-muted-foreground">{help}</p> : null}
-      </div>
-    </div>
+      <AlertTitle className="text-body font-semibold">{title}</AlertTitle>
+      {help ? <AlertDescription className="text-body">{help}</AlertDescription> : null}
+    </Alert>
   )
 }

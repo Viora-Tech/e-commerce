@@ -102,7 +102,7 @@ export default function AskReviewsButton() {
         {copy.ask}
       </Button>
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent>
+        <DialogContent busy={busy}>
           <DialogHeader>
             <DialogTitle>{past.title}</DialogTitle>
             <DialogDescription>{past.body}</DialogDescription>
@@ -146,8 +146,8 @@ export default function AskReviewsButton() {
             <Button variant="outline" onClick={() => setOpen(false)}>
               {past.cancel}
             </Button>
-            <Button onClick={handleSend} disabled={busy || orders === 0}>
-              {busy ? <Spinner /> : <Send aria-hidden="true" />}
+            <Button loading={busy} onClick={handleSend} disabled={busy || orders === 0}>
+              <Send aria-hidden="true" />
               {past.send(orders)}
             </Button>
           </DialogFooter>

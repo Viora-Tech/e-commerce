@@ -1,16 +1,14 @@
 'use client'
 
-import { cn } from '@commerce/ui/lib/utils'
-import { Card } from '@commerce/ui/shadcn/card'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import dynamic from 'next/dynamic'
 import { type ReactNode, useState } from 'react'
 import PillTabs from '@/components/layout/pill-tabs'
-import { layoutContent } from '@/data/layout'
 import { base, instant } from '@/lib/motion'
-import ActionMenu, { type ActionItem } from './action-menu'
+import type { ActionItem } from './action-menu'
 import type { ChartPoint } from './chart-config'
 import ChartLoading from './chart-loading'
+import DataCard from './data-card'
 
 type PeriodOption = {
   id: string
@@ -45,9 +43,8 @@ const ChartCardPlot = dynamic(() => import('./chart-card-plot'), {
 })
 
 /**
- * Sheet 14:366 (739 x 460, 20px padding): 38px header row with the period
- * toggle (Aqua Spring track, white active tab) and a kebab, the stat tabs 20px
- * below, then the area chart: 14px y labels, 12px day labels, green curve with a 4% fill.
+ * A DataCard with a chart body (Sheet 14:366): the card title, the period toggle and a kebab in
+ * the header, the stat tabs under it, then the area chart (green curve with a 4% fill).
  */
 export default function ChartCard({
   title,
@@ -70,25 +67,23 @@ export default function ChartCard({
   const fade = reduced ? instant : base
 
   return (
-    <Card className={cn('gap-0 p-5', className)}>
-      <div className="flex min-h-[2.375rem] items-center justify-between gap-3">
-        <div className="flex min-w-0 flex-col">
-          <p className="text-kit-title text-foreground">{title}</p>
-          {subtitle ? <p className="text-kit-mini text-muted-foreground-soft">{subtitle}</p> : null}
-        </div>
-        <div className="flex items-center gap-2">
-          {periods.length > 1 ? (
-            <PillTabs
-              variant="segmented"
-              tabs={periods.map((p) => ({ value: p.id, label: p.label }))}
-              value={periodId}
-              onChange={setPeriodId}
-            />
-          ) : null}
-          {menu ? <ActionMenu label={layoutContent.moreActions} size="sm" items={menu} /> : null}
-        </div>
-      </div>
-      {tabs ? <div className="mt-5 px-1">{tabs}</div> : null}
+    <DataCard
+      title={title}
+      subtitle={subtitle}
+      menu={menu}
+      className={className}
+      action={
+        periods.length > 1 ? (
+          <PillTabs
+            variant="segmented"
+            tabs={periods.map((p) => ({ value: p.id, label: p.label }))}
+            value={periodId}
+            onChange={setPeriodId}
+          />
+        ) : null
+      }
+    >
+      {tabs ? <div className="mb-6 px-1">{tabs}</div> : null}
       {/* Each metric/period pair mounts its own chart: the curve draws itself once, the previous one fades out. */}
       <AnimatePresence mode="wait" initial={false}>
         <motion.div
@@ -97,7 +92,6 @@ export default function ChartCard({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={fade}
-          className="mt-6"
         >
           <div className="h-[14.5rem] w-full">
             <ChartCardPlot
@@ -109,6 +103,6 @@ export default function ChartCard({
           </div>
         </motion.div>
       </AnimatePresence>
-    </Card>
+    </DataCard>
   )
 }

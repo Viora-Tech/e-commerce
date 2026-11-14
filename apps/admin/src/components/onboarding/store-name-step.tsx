@@ -1,7 +1,7 @@
 'use client'
 
 import { slugifyStoreName } from '@commerce/core/onboarding'
-import { CircleAlert, CircleCheck, Loader2Icon } from '@commerce/ui/icons'
+import { CircleAlert, CircleCheck } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import {
   Field,
@@ -11,6 +11,7 @@ import {
   FieldLabel,
 } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
+import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { type FormEvent, useEffect, useRef, useState } from 'react'
 import { onboardingContent } from '@/data/onboarding'
 import { useCopy } from '@/hooks/use-copy'
@@ -121,7 +122,7 @@ export default function StoreNameStep({
               {copy.slug.suffix(platformDomain)}
             </span>
             {check.status === 'checking' ? (
-              <Loader2Icon className="size-4 shrink-0 animate-spin text-muted-foreground" />
+              <Spinner className="shrink-0 text-muted-foreground" />
             ) : check.status === 'available' ? (
               <CircleCheck className="size-4 shrink-0 text-success" />
             ) : check.status === 'problem' ? (

@@ -141,7 +141,7 @@ export default function EditReviewDialog({
 
   return (
     <Dialog open={input !== null} onOpenChange={(open) => (!open ? onClose() : undefined)}>
-      <DialogContent>
+      <DialogContent busy={busy}>
         <DialogHeader>
           <DialogTitle>{copy.reviewTitle}</DialogTitle>
           <DialogDescription>

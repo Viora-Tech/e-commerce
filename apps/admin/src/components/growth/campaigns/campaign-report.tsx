@@ -10,6 +10,7 @@ import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import DataCard from '@/components/layout/data-card'
 import KeyValueList from '@/components/layout/key-value-list'
+import PageBody from '@/components/layout/page-body'
 import PageHeader from '@/components/layout/page-header'
 import StatStrip from '@/components/layout/stat-strip'
 import OrderChip from '@/components/orders/order-chip'
@@ -135,7 +136,7 @@ export default function CampaignReport({
       ]
 
   return (
-    <div className="flex w-full flex-col gap-6 px-4 pt-4 pb-6 md:px-6 md:pt-5 md:pb-8">
+    <PageBody>
       <PageHeader
         title={campaign.name}
         summary={headline(campaign)}
@@ -293,6 +294,6 @@ export default function CampaignReport({
           </DataCard>
         </div>
       </div>
-    </div>
+    </PageBody>
   )
 }

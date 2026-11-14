@@ -4,7 +4,6 @@ import { Printer } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
 import { bulkShipContent } from '@/data/bulk-ship'
-import { labelSheetContent } from '@/data/label-sheet'
 import { useCopy } from '@/hooks/use-copy'
 import { routes } from '@/lib/routes'
 import LabelPaperSelect from '../label-paper-select'
@@ -23,7 +22,6 @@ type BulkPrintCardProps = {
 export default function BulkPrintCard({ booked }: BulkPrintCardProps) {
   // Hooks
   const copy = useCopy(bulkShipContent)
-  const sheetCopy = useCopy(labelSheetContent)
   const sheet = useLabelSheet()
 
   // Event handlers
@@ -37,7 +35,7 @@ export default function BulkPrintCard({ booked }: BulkPrintCardProps) {
   const missing = booked.length - ids.length
 
   return (
-    <section className="flex flex-col gap-3 rounded-xl border border-border bg-card p-5">
+    <section className="flex flex-col gap-3 rounded-lg border border-border bg-card p-5">
       <p className="text-caption font-medium tracking-wide text-muted-foreground uppercase">
         {r.print}
       </p>
@@ -49,9 +47,13 @@ export default function BulkPrintCard({ booked }: BulkPrintCardProps) {
       ) : null}
       <LabelPaperSelect value={sheet.format} onChange={sheet.setFormat} className="w-full" />
       <div className="flex flex-wrap gap-2">
-        <Button onClick={handlePrint} disabled={ids.length === 0 || sheet.printing}>
+        <Button
+          loading={sheet.printing}
+          onClick={handlePrint}
+          disabled={ids.length === 0 || sheet.printing}
+        >
           <Printer aria-hidden="true" />
-          {sheet.printing ? sheetCopy.making : r.printLabels(ids.length)}
+          {r.printLabels(ids.length)}
         </Button>
         <Button
           variant="outline"

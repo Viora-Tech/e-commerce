@@ -112,7 +112,7 @@ export default function LogRequestDialog({
     <Dialog open={open} onOpenChange={(o) => (!o ? onClose() : undefined)}>
       {/* Wide enough for the email and phone side by side; the default width left the phone box
           about 50px wide (#110). */}
-      <DialogContent>
+      <DialogContent busy={busy}>
         <form onSubmit={handleSubmit} className="flex flex-col gap-5">
           <DialogHeader>
             <DialogTitle>{copy.title}</DialogTitle>

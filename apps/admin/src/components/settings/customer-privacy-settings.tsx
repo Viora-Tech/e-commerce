@@ -5,13 +5,12 @@ import { PRIVACY_LIMITS } from '@commerce/core/privacy'
 import { Eye, Pencil } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Input } from '@commerce/ui/shadcn/input'
-import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { Textarea } from '@commerce/ui/shadcn/textarea'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
+import SectionPageSkeleton from '@/components/layout/section-page-skeleton'
 import AskAgainDialog from '@/components/settings/ask-again-dialog'
 import { customerPrivacyContent as copy } from '@/data/customer-privacy'
 import { settingsContent } from '@/data/settings'
@@ -144,14 +143,7 @@ export default function CustomerPrivacySettings() {
         saving={busy}
       />
       {!overview || !form ? (
-        <>
-          <PageHeader
-            title={copy.title}
-            subtitle={copy.subtitle}
-            save={{ dirty: false, saving: busy, onSave: handleSave, label: copy.save }}
-          />
-          <Skeleton className="h-96 w-full rounded-2xl" />
-        </>
+        <SectionPageSkeleton />
       ) : (
         <>
           <SettingsDrill

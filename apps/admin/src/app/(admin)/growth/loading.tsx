@@ -1,5 +1,5 @@
-import ListPageSkeleton from '@/components/layout/list-page-skeleton'
+import DetailPageSkeleton from '@/components/layout/detail-page-skeleton'
 
 export default function Loading() {
-  return <ListPageSkeleton />
+  return <DetailPageSkeleton frame="full" side={0} />
 }

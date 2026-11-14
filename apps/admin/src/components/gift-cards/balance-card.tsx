@@ -87,7 +87,7 @@ export default function BalanceCard({ card, onChanged }: BalanceCardProps) {
         </p>
       </div>
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent>
+        <DialogContent busy={busy}>
           <DialogHeader>
             <DialogTitle>{copy.adjust.title}</DialogTitle>
             <DialogDescription>{copy.adjust.body}</DialogDescription>
@@ -123,9 +123,9 @@ export default function BalanceCard({ card, onChanged }: BalanceCardProps) {
             <Button variant="outline" onClick={() => setOpen(false)} disabled={busy}>
               {copy.adjust.cancel}
             </Button>
-            <Button onClick={() => handleSave(delta)} disabled={!canSave}>
+            <Button loading={busy} onClick={() => handleSave(delta)} disabled={!canSave}>
               <Save aria-hidden="true" />
-              {busy ? copy.adjust.saving : copy.adjust.save}
+              {copy.adjust.save}
             </Button>
           </DialogFooter>
         </DialogContent>

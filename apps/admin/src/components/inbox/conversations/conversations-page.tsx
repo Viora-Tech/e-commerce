@@ -203,7 +203,7 @@ export default function ConversationsPage({ initialView, initialId }: Conversati
   const canReply = hasPermission(permissions.INBOX_REPLY)
 
   return (
-    <div className="flex h-[calc(100dvh-6.5rem)] min-h-[30rem] overflow-hidden rounded-2xl surface-card">
+    <div className="flex h-[calc(100dvh-6.5rem)] min-h-[30rem] overflow-hidden rounded-lg surface-card">
       <InboxFilters
         view={view}
         counts={counts}

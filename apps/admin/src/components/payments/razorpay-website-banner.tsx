@@ -26,7 +26,7 @@ export default function RazorpayWebsiteBanner({
   const sites = websites.length ? websites.join(', ') : copy.yourWebsite
 
   return (
-    <Alert variant="destructive" className="rounded-xl p-4">
+    <Alert tone="danger" className="p-4">
       <CircleAlert />
       <AlertTitle>{copy.title}</AlertTitle>
       <AlertDescription className="flex flex-col gap-1">

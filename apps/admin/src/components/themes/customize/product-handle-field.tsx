@@ -106,7 +106,7 @@ export default function ProductHandleField({
           </span>
           <ChevronDown aria-hidden className="size-3.5 shrink-0 text-muted-foreground" />
         </PopoverTrigger>
-        <PopoverContent align="start" className="w-72 gap-0 p-0">
+        <PopoverContent align="start" className="w-80 max-w-[calc(100vw-2rem)] gap-0 p-0">
           <Command shouldFilter={false}>
             <CommandInput
               value={query}

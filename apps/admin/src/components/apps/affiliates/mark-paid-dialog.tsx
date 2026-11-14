@@ -43,6 +43,7 @@ export default function MarkPaidDialog({ payoutId, onOpenChange, onPaid }: MarkP
       title={copy.markPaidTitle}
       body={copy.markPaidBody}
       confirmLabel={copy.confirm}
+      tone="default"
       onConfirm={handleConfirm}
     >
       <div className="flex flex-col gap-2">

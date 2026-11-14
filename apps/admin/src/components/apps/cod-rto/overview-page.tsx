@@ -13,6 +13,7 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { CELL, HEAD } from '@/components/apps/gst-invoices/table-classes'
+import DataCard from '@/components/layout/data-card'
 import PageHeader from '@/components/layout/page-header'
 import StatStrip from '@/components/layout/stat-strip'
 import TableEmptyRow from '@/components/table/table-empty-row'
@@ -125,7 +126,7 @@ export default function OverviewPage() {
               },
             ]}
           />
-          <div className="flex flex-col gap-3 rounded-xl surface-card px-5 py-4">
+          <div className="flex flex-col gap-3 rounded-lg surface-card px-5 py-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex flex-col">
                 <h2 className="text-body font-semibold text-ink-strong">{o.riskTitle}</h2>
@@ -153,16 +154,19 @@ export default function OverviewPage() {
             {data.unscored > 0 ? (
               <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-muted px-3 py-2">
                 <p className="text-caption text-muted-foreground">{o.unscored(data.unscored)}</p>
-                <Button size="sm" variant="outline" disabled={scoring} onClick={handleScoreOpen}>
-                  {scoring ? o.scoring : o.scoreOpen}
+                <Button
+                  loading={scoring}
+                  size="sm"
+                  variant="outline"
+                  disabled={scoring}
+                  onClick={handleScoreOpen}
+                >
+                  {o.scoreOpen}
                 </Button>
               </div>
             ) : null}
           </div>
-          <div className="overflow-hidden rounded-xl surface-card">
-            <h2 className="px-6 pt-5 pb-3 text-body font-semibold text-ink-strong">
-              {o.pincodesTitle}
-            </h2>
+          <DataCard title={o.pincodesTitle} flush>
             <Table>
               <TableHeader>
                 <TableRow>
@@ -196,7 +200,7 @@ export default function OverviewPage() {
                 ))}
               </TableBody>
             </Table>
-          </div>
+          </DataCard>
         </>
       ) : (
         <StatStrip tiles={[]} loading />

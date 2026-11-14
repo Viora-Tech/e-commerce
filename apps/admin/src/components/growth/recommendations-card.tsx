@@ -68,7 +68,7 @@ export default function RecommendationsCard({ initial }: RecommendationsCardProp
 
   // Event handlers
   const handleDismiss = async (r: GrowthRecommendation) => {
-    setBusy(r.id)
+    setBusy(`dismiss:${r.id}`)
     try {
       setItems(await api.marketing.dismissRecommendation({ id: r.id }))
       toast.success(copy.dismissed)
@@ -79,7 +79,7 @@ export default function RecommendationsCard({ initial }: RecommendationsCardProp
 
   const handleCreate = async (r: GrowthRecommendation) => {
     if (r.action.kind !== 'create_automation') return
-    setBusy(r.id)
+    setBusy(`create:${r.id}`)
     try {
       const row = await api.marketing.automations.create({ template: r.action.template })
       toast.success(copy.created)
@@ -100,7 +100,7 @@ export default function RecommendationsCard({ initial }: RecommendationsCardProp
             <li
               key={r.id}
               className="flex flex-col gap-3 rounded-lg border border-border p-4"
-              aria-busy={busy === r.id || undefined}
+              aria-busy={busy?.endsWith(`:${r.id}`) || undefined}
             >
               <div className="flex items-start justify-between gap-2">
                 <p className="text-body-strong text-foreground">{copy.cards[r.id].title}</p>
@@ -128,6 +128,7 @@ export default function RecommendationsCard({ initial }: RecommendationsCardProp
                 <Button
                   className="self-end"
                   disabled={busy !== null}
+                  loading={busy === `create:${r.id}`}
                   onClick={() => void handleCreate(r)}
                 >
                   {actionLabel(r, copy)}

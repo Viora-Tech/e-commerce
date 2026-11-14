@@ -82,7 +82,7 @@ export default function DraftForm({ draft, invoiceSent = false, initial }: Draft
     draft ? draftToForm(draft) : (initial ?? emptyDraft()),
   )
   const [form, setForm] = useState<DraftFormState>(saved)
-  const [busy, setBusy] = useState(false)
+  const [busy, setBusy] = useState<string | null>(null)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [reviewing, setReviewing] = useState(false)
   const [chatting, setChatting] = useState(false)
@@ -126,20 +126,20 @@ export default function DraftForm({ draft, invoiceSent = false, initial }: Draft
 
   // Event handlers
   const handleSave = async () => {
-    setBusy(true)
+    setBusy('save')
     try {
       await persist()
       toast.success(copy.saved)
     } catch (err) {
       toast.error(message(err, copy.saveFailed))
     } finally {
-      setBusy(false)
+      setBusy(null)
     }
   }
 
   const handleSendInvoice = async (custom?: CustomMessage) => {
     if (!id) return
-    setBusy(true)
+    setBusy('invoice')
     try {
       const r = await api.orders.sendInvoice({ id, custom })
       setSent(true)
@@ -147,20 +147,20 @@ export default function DraftForm({ draft, invoiceSent = false, initial }: Draft
     } catch (err) {
       toast.error(message(err, copy.actions.invoiceFailed))
     } finally {
-      setBusy(false)
+      setBusy(null)
     }
   }
 
   const handleConvert = async () => {
     if (!id) return
-    setBusy(true)
+    setBusy('convert')
     try {
       await api.orders.convertDraft({ id, paymentMethod: form.paymentMethod })
       toast.success(copy.actions.converted)
       router.push(routes.orders.detail(id))
     } catch (err) {
       toast.error(message(err, copy.actions.convertFailed))
-      setBusy(false)
+      setBusy(null)
     }
   }
 
@@ -178,14 +178,14 @@ export default function DraftForm({ draft, invoiceSent = false, initial }: Draft
 
   const handleDelete = async () => {
     if (!id) return
-    setBusy(true)
+    setBusy('delete')
     try {
       await api.orders.deleteDraft({ id })
       toast.success(copy.actions.deleted)
       router.push(routes.orders.drafts())
     } catch (err) {
       toast.error(message(err, copy.actions.deleteFailed))
-      setBusy(false)
+      setBusy(null)
       throw err
     }
   }
@@ -214,7 +214,11 @@ export default function DraftForm({ draft, invoiceSent = false, initial }: Draft
             ? copy.terms.needsDate
             : null
   const convertButton = (
-    <Button disabled={busy || convertHint !== null} onClick={handleConvert}>
+    <Button
+      disabled={busy !== null || convertHint !== null}
+      onClick={handleConvert}
+      loading={busy === 'convert'}
+    >
       <CircleCheck aria-hidden="true" />
       {copy.actions.convert}
     </Button>
@@ -230,7 +234,7 @@ export default function DraftForm({ draft, invoiceSent = false, initial }: Draft
     .join(' · ')
 
   return (
-    <PageBody className="gap-6 md:pt-5 md:pb-8">
+    <PageBody>
       <SaveBar
         open={dirty}
         message={copy.unsaved}
@@ -238,7 +242,7 @@ export default function DraftForm({ draft, invoiceSent = false, initial }: Draft
         discardLabel={copy.discard}
         onSave={handleSave}
         onDiscard={handleDiscard}
-        saving={busy}
+        saving={busy === 'save'}
       />
       <PageHeader
         title={number ? copy.editTitle(number) : copy.newTitle}
@@ -247,7 +251,7 @@ export default function DraftForm({ draft, invoiceSent = false, initial }: Draft
           <>
             <Button
               variant="outline"
-              disabled={!id || dirty || busy || paidByCredit}
+              disabled={!id || dirty || busy !== null || paidByCredit}
               title={paidByCredit ? creditCopy.nothingToInvoice : undefined}
               onClick={() => setReviewing(true)}
             >
@@ -270,7 +274,7 @@ export default function DraftForm({ draft, invoiceSent = false, initial }: Draft
               label={copy.actions.more}
               variant="outline"
               size="md"
-              disabled={busy}
+              disabled={busy !== null}
               items={[
                 {
                   label: chatCopy.action,

@@ -102,7 +102,7 @@ export default function BulkShipRow({
 
   return (
     <TableRow className={cn('align-middle', muted && 'bg-muted/20')}>
-      <TableCell className="w-10 py-4 pl-4 md:pl-8">
+      <TableCell className="w-10 py-4 pl-4">
         <Checkbox
           checked={ticked}
           disabled={line.status !== 'ready'}
@@ -222,7 +222,7 @@ export default function BulkShipRow({
           </Button>
         ) : null}
       </TableCell>
-      <TableCell className="w-12 py-4 pr-4 text-right md:pr-8">
+      <TableCell className="w-12 py-4 pr-4 text-right">
         {line.status === 'problem' && problem?.kind === 'blocked' ? null : (
           <Button
             type="button"

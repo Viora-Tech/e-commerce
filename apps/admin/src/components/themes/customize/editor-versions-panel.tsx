@@ -5,7 +5,6 @@ import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Dialog, DialogDescription, DialogTitle } from '@commerce/ui/shadcn/dialog'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
-import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import DialogContent from '@/components/layout/dialog-content'
@@ -95,7 +94,7 @@ export default function EditorVersionsPanel({
   return (
     // A dialog, not a right-side drawer (audit #143).
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent busy={restoring}>
         <DialogHeader>
           <DialogTitle>{copy.title}</DialogTitle>
           <DialogDescription>{copy.body(displayThemeName(theme.name))}</DialogDescription>
@@ -173,11 +172,12 @@ export default function EditorVersionsPanel({
                         {copy.preview}
                       </Button>
                       <Button
+                        loading={restoring}
                         size="sm"
                         onClick={() => void handleRestore(b.batchId)}
                         disabled={restoring}
                       >
-                        {restoring ? <Spinner /> : <RotateCcw aria-hidden="true" />}
+                        <RotateCcw aria-hidden="true" />
                         {copy.restore}
                       </Button>
                     </div>

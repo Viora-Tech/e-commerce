@@ -35,7 +35,7 @@ export default async function SettingsHome() {
           >
             {groups[group.id]}
           </h3>
-          <ul className="flex flex-col overflow-hidden rounded-xl surface-card">
+          <ul className="flex flex-col overflow-hidden rounded-lg surface-card">
             {group.sections.map((s) => (
               <li key={s.href} className="border-hairline border-b last:border-b-0">
                 <Link

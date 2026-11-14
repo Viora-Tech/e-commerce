@@ -4,7 +4,6 @@ import { Button } from '@commerce/ui/shadcn/button'
 import { Dialog, DialogDescription, DialogTitle } from '@commerce/ui/shadcn/dialog'
 import { Input } from '@commerce/ui/shadcn/input'
 import { Label } from '@commerce/ui/shadcn/label'
-import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import DialogContent from '@/components/layout/dialog-content'
@@ -76,7 +75,7 @@ export default function EditTrackingDialog({
 
   return (
     <Dialog open={shipment !== null} onOpenChange={(open) => !open && !saving && onClose()}>
-      <DialogContent>
+      <DialogContent busy={saving}>
         <DialogHeader>
           <DialogTitle>{copy.title}</DialogTitle>
           <DialogDescription>{copy.body}</DialogDescription>
@@ -117,8 +116,7 @@ export default function EditTrackingDialog({
           <Button variant="outline" onClick={onClose} disabled={saving}>
             {copy.cancel}
           </Button>
-          <Button onClick={handleSave} disabled={!canSave}>
-            {saving ? <Spinner /> : null}
+          <Button loading={saving} onClick={handleSave} disabled={!canSave}>
             {copy.save}
           </Button>
         </DialogFooter>

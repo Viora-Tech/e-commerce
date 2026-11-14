@@ -85,7 +85,7 @@ export default function GiftCardProductDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent busy={busy}>
         <DialogHeader>
           <DialogTitle>{copy.title}</DialogTitle>
           <DialogDescription>{copy.body}</DialogDescription>
@@ -140,7 +140,7 @@ export default function GiftCardProductDialog({
             disabled={busy || !title.trim() || values.length === 0}
           >
             <Plus aria-hidden="true" />
-            {busy ? copy.creating : copy.create}
+            {copy.create}
           </Button>
         </DialogFooter>
       </DialogContent>

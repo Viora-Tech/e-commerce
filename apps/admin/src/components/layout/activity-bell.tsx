@@ -18,6 +18,7 @@ import {
 import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@commerce/ui/shadcn/popover'
+import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import EmptyState from '@/components/layout/empty-state'
@@ -237,7 +238,11 @@ export default function ActivityBell({ className }: ActivityBellProps) {
           />
         ) : null}
       </PopoverTrigger>
-      <PopoverContent align="end" sideOffset={8} className="flex w-[24rem] flex-col gap-0 p-0">
+      <PopoverContent
+        align="end"
+        sideOffset={8}
+        className="flex w-96 max-w-[calc(100vw-2rem)] flex-col gap-0 p-0"
+      >
         <header className="flex flex-col gap-2.5 border-b border-border px-4 pt-3 pb-3">
           <span className="flex items-center justify-between gap-3">
             <span className="text-body-strong text-foreground">{copy.label}</span>
@@ -284,11 +289,11 @@ export default function ActivityBell({ className }: ActivityBellProps) {
           {feed === null && !failed
             ? SKELETON_ROWS.map((row) => (
                 <div key={row} className="flex items-center gap-3 px-3 py-2.5">
-                  <span className="size-8 shrink-0 animate-pulse rounded-xl bg-muted" />
-                  <span className="flex flex-1 flex-col gap-1.5">
-                    <span className="h-3 w-2/3 animate-pulse rounded bg-muted" />
-                    <span className="h-2.5 w-1/3 animate-pulse rounded bg-muted" />
-                  </span>
+                  <Skeleton className="size-8 shrink-0 rounded-xl" />
+                  <div className="flex flex-1 flex-col gap-1.5">
+                    <Skeleton className="h-3 w-2/3 rounded" />
+                    <Skeleton className="h-2.5 w-1/3 rounded" />
+                  </div>
                 </div>
               ))
             : null}

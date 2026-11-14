@@ -96,7 +96,6 @@ export default function DraftDiscountDialog({
       cancelLabel={copy.discountDialog.cancel}
       submitDisabled={!ready}
       onSubmit={handleSubmit}
-      size="md"
     >
       <div className="flex flex-col gap-4">
         <PillTabs<Mode>

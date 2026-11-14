@@ -74,7 +74,7 @@ export default function CustomerActivityCard({ customer }: CustomerActivityCardP
   if (events.length === 0) return null
 
   return (
-    <DataCard title={copy.activity.heading} className="rounded-xl">
+    <DataCard title={copy.activity.heading}>
       {events.length === 0 ? (
         <p className="text-body text-muted-foreground">{copy.activity.empty}</p>
       ) : (

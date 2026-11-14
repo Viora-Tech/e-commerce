@@ -90,7 +90,7 @@ export default function RoleAreaTable({ resource, value, onChange, rules }: Role
   const shownActions = actions.filter((a) => a.shown)
 
   return (
-    <section aria-labelledby={headingId} className="flex flex-col rounded-xl surface-card">
+    <section aria-labelledby={headingId} className="flex flex-col rounded-lg surface-card">
       <header className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2 px-4 pt-4 pb-3 md:px-6">
         <div className="min-w-0">
           <h3 id={headingId} className="text-body font-semibold text-ink-strong">

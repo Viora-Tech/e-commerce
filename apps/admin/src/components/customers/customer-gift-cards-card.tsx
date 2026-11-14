@@ -42,7 +42,7 @@ export default function CustomerGiftCardsCard({ customerId }: CustomerGiftCardsC
 
   // Render logic
   return (
-    <DataCard title={copy.heading} className="rounded-xl">
+    <DataCard title={copy.heading}>
       <ul className="flex flex-col divide-y divide-line">
         {cards.map((c) => (
           <li key={c.id} className="py-2.5 first:pt-0 last:pb-0">

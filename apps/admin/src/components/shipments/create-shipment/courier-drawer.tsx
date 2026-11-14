@@ -115,11 +115,9 @@ export default function CourierDrawer({
     <Drawer open={open} onOpenChange={onOpenChange} showSwipeHandle>
       {/* One height whatever the number of couriers (owner, 11 Nov): a single service leaves room below, the drawer does not shrink. */}
       <DrawerContent className={cn('mx-auto h-[calc(100dvh-6rem)] max-w-[90rem]', BESIDE_SIDEBAR)}>
-        <DrawerHeader className="flex flex-row flex-wrap items-start justify-between gap-4 px-4 pt-2 text-left md:px-8">
+        <DrawerHeader className="flex flex-row flex-wrap items-start justify-between gap-4 px-4 pt-2 text-left">
           <div className="flex min-w-0 flex-col items-start gap-1 text-left">
-            <DrawerTitle className="text-lg font-semibold text-ink-strong">
-              {copy.title}
-            </DrawerTitle>
+            <DrawerTitle>{copy.title}</DrawerTitle>
             <DrawerDescription className="text-body text-muted-foreground">
               {summary}
             </DrawerDescription>
@@ -167,7 +165,7 @@ export default function CourierDrawer({
           </div>
         </DrawerHeader>
 
-        <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-4 pb-6 md:px-8">
+        <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-4 pb-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex flex-wrap items-center gap-2">
               {MODES.map((m) => (
@@ -212,7 +210,7 @@ export default function CourierDrawer({
           </div>
           {status}
           {rows ? (
-            <div className="-mx-4 md:-mx-8">
+            <div className="-mx-4 ">
               <CourierTable
                 rows={shown}
                 pick={pick}

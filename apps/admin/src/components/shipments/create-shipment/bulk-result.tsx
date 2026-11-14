@@ -41,12 +41,10 @@ export default function BulkResult({ results, lines, couriers, onClose }: BulkRe
 
   return (
     <>
-      <DrawerHeader className="flex flex-row items-start justify-between gap-4 px-4 pt-2 text-left md:px-8">
+      <DrawerHeader className="flex flex-row items-start justify-between gap-4 px-4 pt-2 text-left">
         <div className="flex min-w-0 flex-col items-start gap-1.5 text-left">
           <StatusChip tone="success">{r.done}</StatusChip>
-          <DrawerTitle className="text-lg font-semibold text-ink-strong">
-            {r.heading(booked.length)}
-          </DrawerTitle>
+          <DrawerTitle>{r.heading(booked.length)}</DrawerTitle>
           <DrawerDescription className="text-body text-muted-foreground">
             {r.intro(skipped.length)}
           </DrawerDescription>
@@ -55,11 +53,11 @@ export default function BulkResult({ results, lines, couriers, onClose }: BulkRe
           <XIcon aria-hidden="true" />
         </Button>
       </DrawerHeader>
-      <div className="grid min-h-0 flex-1 gap-4 overflow-y-auto overscroll-contain px-4 pb-6 md:px-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
+      <div className="grid min-h-0 flex-1 gap-4 overflow-y-auto overscroll-contain px-4 pb-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
         <div className="flex flex-col gap-4">
           <BulkPrintCard booked={booked} />
           {skipped.length > 0 ? (
-            <section className="flex flex-col gap-3 rounded-xl border border-border bg-card p-5">
+            <section className="flex flex-col gap-3 rounded-lg border border-border bg-card p-5">
               <p className="text-caption font-medium tracking-wide text-muted-foreground uppercase">
                 {r.skipped(skipped.length)}
               </p>

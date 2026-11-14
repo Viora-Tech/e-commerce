@@ -1,9 +1,10 @@
 'use client'
 
+import { Spinner } from '@commerce/ui/shadcn/spinner'
 import 'grapesjs/dist/css/grapes.min.css'
 import type { EmailBrand, EmailDesign } from '@commerce/core/marketing'
 import { discountMjml, productGridMjml } from '@commerce/core/marketing'
-import { CheckIcon, LayoutGrid, Loader2Icon } from '@commerce/ui/icons'
+import { CheckIcon, LayoutGrid } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import type { AssetsCustomData, Editor } from 'grapesjs'
 import { useEffect, useRef, useState } from 'react'
@@ -178,7 +179,7 @@ export default function VisualBuilder({
       <div className="relative min-h-0 flex-1">
         {brand ? null : (
           <div className="absolute inset-0 flex items-center justify-center gap-2 text-body text-muted-foreground">
-            <Loader2Icon className="size-4 animate-spin" aria-hidden="true" />
+            <Spinner />
             {copy.builder.loading}
           </div>
         )}

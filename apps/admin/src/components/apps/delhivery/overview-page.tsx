@@ -5,6 +5,7 @@ import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { loadProviderSettings, readTestedFlag } from '@/components/apps/shared/provider-settings'
+import PageColumns from '@/components/layout/page-columns'
 import PageHeader from '@/components/layout/page-header'
 import { delhiveryAppContent } from '@/data/delhivery'
 import { useCopy, useFormat } from '@/hooks/use-copy'
@@ -96,7 +97,7 @@ export default function OverviewPage() {
     return (
       <div className="flex flex-col gap-4">
         <PageHeader title={copy.title} subtitle={copy.subtitle} />
-        <div className="flex flex-col items-start gap-3 rounded-xl border border-border surface-card p-5">
+        <div className="flex flex-col items-start gap-3 rounded-lg border border-border surface-card p-5">
           <p className="text-body text-muted-foreground">{copy.notConnected}</p>
           <Button render={<Link href={routes.apps.connect(PROVIDER)} />} nativeButton={false}>
             <PlugConnect aria-hidden="true" />
@@ -116,7 +117,7 @@ export default function OverviewPage() {
       : null
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-6">
       <PageHeader title={copy.title} subtitle={copy.subtitle} />
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <WalletTile
@@ -146,13 +147,15 @@ export default function OverviewPage() {
           note={a ? (rtoPercent ? t.rtoOf(rtoPercent, a.bookedThisMonth) : t.noneThisMonth) : null}
         />
       </div>
-      <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[minmax(0,1fr)_22rem]">
-        <RecentShipmentsCard items={recent} />
-        <div className="flex flex-col gap-4">
-          <PickupLocationsCard places={places} />
-          <ConnectionCard saved={account?.saved ?? null} tested={tested} />
-        </div>
-      </div>
+      <PageColumns
+        main={<RecentShipmentsCard items={recent} />}
+        side={
+          <>
+            <PickupLocationsCard places={places} />
+            <ConnectionCard saved={account?.saved ?? null} tested={tested} />
+          </>
+        }
+      />
     </div>
   )
 }

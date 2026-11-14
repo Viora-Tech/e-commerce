@@ -7,6 +7,7 @@ import { Alert, AlertDescription, AlertTitle } from '@commerce/ui/shadcn/alert'
 import { Button } from '@commerce/ui/shadcn/button'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import PageBody from '@/components/layout/page-body'
 import PageHeader from '@/components/layout/page-header'
 import { useHiddenColumns } from '@/components/products/bulk-edit/use-hidden-columns'
 import { customersBulkEditContent } from '@/data/customers-bulk-edit'
@@ -118,7 +119,7 @@ export default function CustomersBulkEditor({ sheet, sendable }: CustomersBulkEd
   const keys = shownKeys(hidden)
   const changeKeys = setAllKeys(keys)
   return (
-    <div className="flex w-full flex-col gap-6 px-4 pt-4 pb-6 md:px-6 md:pt-5 md:pb-8">
+    <PageBody>
       <PageHeader
         title={copy.title}
         summary={copy.summary(rows.length)}
@@ -138,7 +139,7 @@ export default function CustomersBulkEditor({ sheet, sendable }: CustomersBulkEd
             </Button>
             <Button disabled={changed === 0} loading={saving} onClick={handleSave}>
               <Save aria-hidden="true" />
-              {saving ? copy.saving : copy.save}
+              {copy.save}
             </Button>
           </>
         }
@@ -175,6 +176,6 @@ export default function CustomersBulkEditor({ sheet, sendable }: CustomersBulkEd
         onOpenChange={setSetAllOpen}
         onApply={handleSetAll}
       />
-    </div>
+    </PageBody>
   )
 }

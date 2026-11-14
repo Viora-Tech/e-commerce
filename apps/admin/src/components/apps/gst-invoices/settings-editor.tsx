@@ -1,12 +1,14 @@
 'use client'
 
 import { type DocumentKind, type InvoiceSettings, InvoiceSettingsSchema } from '@commerce/invoices'
-import { Skeleton } from '@commerce/ui/shadcn/skeleton'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { toast } from 'sonner'
 import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
+import SectionPageSkeleton from '@/components/layout/section-page-skeleton'
+import LoadFailed from '@/components/states/load-failed'
 import { gstInvoicesContent } from '@/data/gst-invoices'
+import { useLoad } from '@/hooks/use-load'
 import { api } from '@/lib/api-client'
 import DocumentsGroup from './documents-group'
 import IssuingGroup from './issuing-group'
@@ -43,24 +45,24 @@ export default function SettingsEditor() {
   const [kind, setKind] = useState<DocumentKind>('tax_invoice')
   const [busy, setBusy] = useState(false)
 
-  useEffect(() => {
-    api.gstInvoices.settings.get().then((r) => {
-      const loaded: Loaded = {
-        settings: r.settings,
-        storeName: r.storeName,
-        logo:
-          r.settings.logoMediaId && r.media.logo
-            ? { id: r.settings.logoMediaId, url: r.media.logo }
-            : null,
-        signature:
-          r.settings.signatureMediaId && r.media.signature
-            ? { id: r.settings.signatureMediaId, url: r.media.signature }
-            : null,
-      }
-      setForm(loaded)
-      setSaved(JSON.stringify(loaded))
-    })
-  }, [])
+  const { failed, retry } = useLoad(async () => {
+    const r = await api.gstInvoices.settings.get()
+    const loaded: Loaded = {
+      settings: r.settings,
+      storeName: r.storeName,
+      logo:
+        r.settings.logoMediaId && r.media.logo
+          ? { id: r.settings.logoMediaId, url: r.media.logo }
+          : null,
+      signature:
+        r.settings.signatureMediaId && r.media.signature
+          ? { id: r.settings.signatureMediaId, url: r.media.signature }
+          : null,
+    }
+    setForm(loaded)
+    setSaved(JSON.stringify(loaded))
+    return r
+  })
 
   // Helpers
   const setSettings = (settings: InvoiceSettings) => setForm((f) => (f ? { ...f, settings } : f))
@@ -95,14 +97,8 @@ export default function SettingsEditor() {
   }
 
   // Early returns
-  if (!form) {
-    return (
-      <div className="flex flex-col gap-3">
-        <Skeleton className="h-8 w-48" />
-        <Skeleton className="h-96 w-full" />
-      </div>
-    )
-  }
+  if (failed && !form) return <LoadFailed failed={failed} onRetry={retry} />
+  if (!form) return <SectionPageSkeleton />
 
   // Render logic
   const dirty = saved !== null && JSON.stringify(form) !== saved

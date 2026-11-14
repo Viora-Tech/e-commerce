@@ -66,9 +66,15 @@ export default function ShipmentTrackingCard({
       title={copy.heading}
       action={
         canTrack && live ? (
-          <Button variant="outline" size="sm" onClick={onTrack} disabled={tracking}>
+          <Button
+            loading={tracking}
+            variant="outline"
+            size="sm"
+            onClick={onTrack}
+            disabled={tracking}
+          >
             <RefreshCw aria-hidden="true" />
-            {tracking ? copy.checking : copy.check}
+            {copy.check}
           </Button>
         ) : null
       }

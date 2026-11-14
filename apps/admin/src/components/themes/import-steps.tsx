@@ -1,7 +1,8 @@
 'use client'
 
-import { CheckIcon, Loader2Icon } from '@commerce/ui/icons'
+import { CheckIcon } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
+import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { useEffect, useState } from 'react'
 import { themeImportContent } from '@/data/theme-import'
 import { useCopy } from '@/hooks/use-copy'
@@ -39,7 +40,7 @@ export default function ImportSteps() {
           {i < current ? (
             <CheckIcon className="size-4 text-success" aria-hidden="true" />
           ) : i === current ? (
-            <Loader2Icon className="size-4 animate-spin" aria-hidden="true" />
+            <Spinner />
           ) : (
             <span aria-hidden="true" className="size-4" />
           )}

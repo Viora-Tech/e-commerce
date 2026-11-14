@@ -4,7 +4,6 @@ import { Save } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Field, FieldDescription, FieldError, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
-import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { type FormEvent, useState } from 'react'
 import { senderEmailContent as setupCopy } from '@/data/sender-email'
 
@@ -85,9 +84,9 @@ export default function SenderEmailForm({
       </div>
       {changing ? <p className="text-caption text-muted-foreground">{copy.changeWarning}</p> : null}
       <div className="flex flex-col gap-2 sm:flex-row">
-        <Button type="submit" disabled={!canSave} className="w-full sm:w-auto">
-          {saving ? <Spinner /> : <Save aria-hidden="true" />}
-          {saving ? copy.saving : copy.save}
+        <Button loading={saving} type="submit" disabled={!canSave} className="w-full sm:w-auto">
+          <Save aria-hidden="true" />
+          {copy.save}
         </Button>
         {onCancel ? (
           <Button type="button" variant="outline" className="w-full sm:w-auto" onClick={onCancel}>

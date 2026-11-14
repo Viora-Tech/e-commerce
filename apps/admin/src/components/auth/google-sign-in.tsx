@@ -1,7 +1,7 @@
 'use client'
 
-import { Loader2Icon } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
+import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { useState } from 'react'
 import { loginContent } from '@/data/login'
 import { useCopy } from '@/hooks/use-copy'
@@ -56,10 +56,10 @@ export default function GoogleSignIn({ errorCode, next }: GoogleSignInProps) {
   // Figma "Signing you in with Google": the page waits while the browser leaves for Google.
   if (busy) {
     return (
-      <div className="flex flex-col items-center gap-3 rounded-xl surface-card p-6 text-center">
+      <div className="flex flex-col items-center gap-3 rounded-lg surface-card p-6 text-center">
         {/* biome-ignore lint/performance/noImgElement: Google's own mark, unaltered (sign-in branding guidelines) */}
         <img src="/brand/google-g.svg" alt="" aria-hidden="true" className="size-6" />
-        <Loader2Icon className="size-4 animate-spin text-muted-foreground" aria-hidden="true" />
+        <Spinner className="text-muted-foreground" />
         <p className="text-card-title text-ink-strong">{copy.signingIn}</p>
         <p className="text-caption text-muted-foreground">{copy.signingInBody}</p>
         <Button type="button" variant="ghost" onClick={() => setBusy(false)}>

@@ -31,7 +31,7 @@ export default function QueryHelpPopover() {
       <PopoverContent
         align="end"
         sideOffset={8}
-        className="flex max-h-[min(32rem,75svh)] w-[min(24rem,calc(100vw-2rem))] flex-col gap-3 overflow-y-auto p-3"
+        className="flex max-h-[min(32rem,75svh)] w-96 max-w-[calc(100vw-2rem)] flex-col gap-3 overflow-y-auto p-3"
       >
         <p className="text-body font-medium text-popover-foreground">{copy.title}</p>
         <dl className="flex flex-col gap-2">

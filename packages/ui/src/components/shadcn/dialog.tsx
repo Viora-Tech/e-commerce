@@ -6,8 +6,48 @@ import { XIcon } from '../../icons'
 import { cn } from '../../lib/utils'
 import { Button } from './button'
 
-function Dialog({ ...props }: DialogPrimitive.Root.Props) {
-  return <DialogPrimitive.Root data-slot="dialog" {...props} />
+/**
+ * A close guard the popup body can register (the admin shell's `busy` and `dirty`). It gets the
+ * reason Base UI gives (`escape-key`, `outside-press`, `close-press`, ...) and returns true to
+ * keep the dialog open. `close` finishes a close the guard held back (after "Discard?").
+ */
+type DialogGuard = {
+  block: (reason: DialogPrimitive.Root.ChangeEventReason) => boolean
+}
+
+type DialogGuardContextValue = {
+  guard: React.RefObject<DialogGuard | null>
+  close: () => void
+}
+
+const DialogGuardContext = React.createContext<DialogGuardContextValue | null>(null)
+
+/** The guard slot of the nearest `Dialog`; null outside one. */
+function useDialogGuard() {
+  return React.useContext(DialogGuardContext)
+}
+
+function Dialog({ onOpenChange, ...props }: DialogPrimitive.Root.Props) {
+  const guard = React.useRef<DialogGuard | null>(null)
+  const held = React.useRef<DialogPrimitive.Root.ChangeEventDetails | null>(null)
+  const handleOpenChange: DialogPrimitive.Root.Props['onOpenChange'] = (open, details) => {
+    if (!open && details.reason !== 'imperative-action' && guard.current?.block(details.reason)) {
+      held.current = details
+      details.cancel()
+      return
+    }
+    onOpenChange?.(open, details)
+  }
+  const close = () => {
+    const details = held.current
+    held.current = null
+    if (details) onOpenChange?.(false, details)
+  }
+  return (
+    <DialogGuardContext.Provider value={{ guard, close }}>
+      <DialogPrimitive.Root data-slot="dialog" onOpenChange={handleOpenChange} {...props} />
+    </DialogGuardContext.Provider>
+  )
 }
 
 function DialogTrigger({ ...props }: DialogPrimitive.Trigger.Props) {
@@ -36,9 +76,12 @@ function DialogContent({
   className,
   children,
   showCloseButton = true,
+  closeDisabled = false,
   ...props
 }: DialogPrimitive.Popup.Props & {
   showCloseButton?: boolean
+  /** Greys the corner X out (the admin shell while it saves). */
+  closeDisabled?: boolean
 }) {
   return (
     <DialogPortal>
@@ -55,6 +98,7 @@ function DialogContent({
         {showCloseButton && (
           <DialogPrimitive.Close
             data-slot="dialog-close"
+            disabled={closeDisabled}
             render={<Button variant="ghost" className="absolute top-2 right-2" size="icon-sm" />}
           >
             <XIcon />
@@ -120,6 +164,7 @@ function DialogDescription({ className, ...props }: DialogPrimitive.Description.
   )
 }
 
+export type { DialogGuard }
 export {
   Dialog,
   DialogClose,
@@ -131,4 +176,5 @@ export {
   DialogPortal,
   DialogTitle,
   DialogTrigger,
+  useDialogGuard,
 }

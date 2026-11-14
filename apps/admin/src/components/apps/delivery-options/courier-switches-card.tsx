@@ -1,6 +1,7 @@
 'use client'
 
 import { Switch } from '@commerce/ui/shadcn/switch'
+import DataCard from '@/components/layout/data-card'
 import StatusChip from '@/components/layout/status-chip'
 import CourierMark from '@/components/shipments/create-shipment/courier-mark'
 import { deliveryPagesContent } from '@/data/delivery-options-pages'
@@ -45,9 +46,7 @@ export default function CourierSwitchesCard({
   const c = pages.courierList
 
   return (
-    <section className="flex flex-col gap-1 rounded-xl border border-panel-border bg-card p-4">
-      <h2 className="text-card-title text-ink-strong">{c.title}</h2>
-      <p className="text-caption text-muted-foreground">{c.help}</p>
+    <DataCard title={c.title} subtitle={c.help}>
       {rows.length === 0 ? (
         <p className="pt-3 text-body text-muted-foreground">{loading ? c.loading : c.empty}</p>
       ) : (
@@ -75,6 +74,6 @@ export default function CourierSwitchesCard({
           })}
         </ul>
       )}
-    </section>
+    </DataCard>
   )
 }

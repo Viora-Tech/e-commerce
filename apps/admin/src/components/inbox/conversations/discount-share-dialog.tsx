@@ -61,7 +61,7 @@ export default function DiscountShareDialog({ onClose, onShare }: DiscountShareD
         if (!open) onClose()
       }}
     >
-      <DialogContent>
+      <DialogContent busy={busy !== null}>
         <DialogHeader>
           <DialogTitle>{d.title}</DialogTitle>
           <DialogDescription>{d.description}</DialogDescription>

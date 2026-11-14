@@ -70,7 +70,7 @@ export default function MarketsGraph({ markets, domains, catalogs, defaults }: M
     <div className="flex flex-col gap-0 lg:flex-row lg:items-stretch">
       <section
         aria-labelledby="store-defaults"
-        className="flex flex-col gap-3 self-stretch rounded-xl border border-line bg-card p-4 shadow-card lg:w-80 lg:shrink-0 lg:self-center"
+        className="flex flex-col gap-3 self-stretch rounded-lg border border-line bg-card p-4 shadow-card lg:w-80 lg:shrink-0 lg:self-center"
       >
         <header className="flex items-center gap-2">
           <Store aria-hidden="true" className="size-4 text-muted-foreground" />
@@ -134,7 +134,7 @@ export default function MarketsGraph({ markets, domains, catalogs, defaults }: M
                   />
                   <Link
                     href={routes.markets.detail(m.id)}
-                    className="flex w-full min-w-0 flex-col gap-2 rounded-xl border border-line bg-card p-3.5 shadow-card motion-press hover:shadow-card-hover focus-visible:outline-2 focus-visible:outline-ring"
+                    className="flex w-full min-w-0 flex-col gap-2 rounded-lg border border-line bg-card p-3.5 shadow-card motion-press hover:shadow-card-hover focus-visible:outline-2 focus-visible:outline-ring"
                   >
                     <span className="flex min-w-0 items-center gap-2">
                       <Earth aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />

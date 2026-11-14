@@ -92,7 +92,7 @@ export default function DeliveryRoutesPage() {
         action={<AppStoreLink category="shipping">{copy.routes.connect}</AppStoreLink>}
       />
       <DeliveryWarnings warnings={overview.warnings} />
-      <section className="flex flex-col rounded-xl border border-panel-border bg-card">
+      <section className="flex flex-col rounded-lg border border-panel-border bg-card">
         <fieldset className="flex flex-wrap gap-2 p-4">
           <legend className="sr-only">{t.filtersLabel}</legend>
           {FILTERS.map((f) => (

@@ -1,4 +1,5 @@
 import { TriangleAlert } from '@commerce/ui/icons'
+import { Alert, AlertTitle } from '@commerce/ui/shadcn/alert'
 import Link from 'next/link'
 import { paymentModesContent } from '@/data/payment-modes'
 import { getCopy } from '@/lib/copy-server'
@@ -10,15 +11,18 @@ export default async function PaymentsTestBanner() {
   const { testBar: copy } = await getCopy(paymentModesContent)
 
   return (
-    <div
+    <Alert
+      tone="warning"
       role="status"
-      className="mb-4 flex flex-wrap items-center gap-2 rounded-lg border border-warning-border bg-warning-soft px-4 py-2.5 text-body text-foreground"
+      className="mb-4 items-center py-2.5 text-body *:[svg]:row-span-1 *:[svg]:translate-y-0"
+      action={
+        <Link href={routes.settings.payments()} className="font-medium text-foreground underline">
+          {copy.bannerLink}
+        </Link>
+      }
     >
-      <TriangleAlert aria-hidden="true" weight="fill" className="size-4 shrink-0 text-warning" />
-      <p className="min-w-0 flex-1 font-medium">{copy.banner}</p>
-      <Link href={routes.settings.payments()} className="font-medium text-foreground underline">
-        {copy.bannerLink}
-      </Link>
-    </div>
+      <TriangleAlert aria-hidden="true" weight="fill" />
+      <AlertTitle>{copy.banner}</AlertTitle>
+    </Alert>
   )
 }

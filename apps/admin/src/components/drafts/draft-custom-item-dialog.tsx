@@ -79,7 +79,6 @@ export default function DraftCustomItemDialog({
       submitLabel={copy.add}
       cancelLabel={copy.cancel}
       onSubmit={handleSubmit}
-      size="md"
     >
       <div className="flex flex-col gap-4">
         <Field data-invalid={errors.includes('title') || undefined}>

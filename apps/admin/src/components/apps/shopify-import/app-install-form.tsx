@@ -3,7 +3,6 @@
 import { Button } from '@commerce/ui/shadcn/button'
 import { Field, FieldGroup, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
-import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import DataCard from '@/components/layout/data-card'
@@ -65,9 +64,8 @@ export default function AppInstallForm() {
             </Field>
           </FieldGroup>
           <div className="flex justify-end">
-            <Button type="submit" disabled={!ready}>
-              {busy ? <Spinner /> : null}
-              {busy ? install.redirecting : install.submit}
+            <Button loading={busy} type="submit" disabled={!ready}>
+              {install.submit}
             </Button>
           </div>
         </form>

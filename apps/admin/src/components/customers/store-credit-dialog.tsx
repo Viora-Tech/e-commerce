@@ -86,7 +86,7 @@ export default function StoreCreditDialog({
 
   return (
     <Dialog open={mode !== null} onOpenChange={(open) => (!open ? handleClose() : undefined)}>
-      <DialogContent>
+      <DialogContent busy={busy}>
         <form onSubmit={handleSubmit} className="flex flex-col gap-5">
           <DialogHeader>
             <DialogTitle>{mode === 'remove' ? d.removeTitle : d.addTitle}</DialogTitle>

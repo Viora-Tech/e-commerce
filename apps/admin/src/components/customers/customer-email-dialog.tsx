@@ -72,7 +72,6 @@ export default function CustomerEmailDialog({
       cancelLabel={copy.cancel}
       submitDisabled={!ready}
       onSubmit={handleSubmit}
-      size="lg"
     >
       <div className="flex flex-col gap-4">
         <Field>

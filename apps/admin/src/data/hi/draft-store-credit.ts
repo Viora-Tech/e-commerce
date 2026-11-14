@@ -19,7 +19,7 @@ export default [
       fillMax: (amount: string) => `${amount} लगाएँ`,
       tooMuch: (amount: string) => `यह ${amount} से ज़्यादा है।`,
       apply: 'लगाएँ',
-      cancel: 'कैंसिल',
+      cancel: 'रद्द करें',
     },
     line: 'स्टोर क्रेडिट',
     toPay: 'देना है',

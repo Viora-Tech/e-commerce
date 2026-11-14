@@ -55,7 +55,8 @@ export default function DeliveryOptionsPage() {
   const [layout, setLayout] = useState<DeliveryLayout>('fixed')
   const [drafts, setDrafts] = useState<DeliveryOption[] | null>(null)
   const [savedKey, setSavedKey] = useState('')
-  const [busy, setBusy] = useState(false)
+  /** Which action is running, so only its button spins. */
+  const [busy, setBusy] = useState<'preset' | 'save' | null>(null)
   const { catalogue, loading } = useRouteCatalogue(layout === 'list')
   const preview = useCheckoutPreview(
     { layout, options: positionedOf(drafts) },
@@ -102,19 +103,19 @@ export default function DeliveryOptionsPage() {
     })
   }
   const handlePreset = async () => {
-    setBusy(true)
+    setBusy('preset')
     try {
       await api.deliveryOptions.addPreset()
       reload()
     } catch (err) {
       toast.error(err instanceof Error ? err.message : copy.failed)
     } finally {
-      setBusy(false)
+      setBusy(null)
     }
   }
   const handleSave = async () => {
     if (!drafts) return
-    setBusy(true)
+    setBusy('save')
     const allIds = idsNow()
     const listId = layout === 'list' ? listOptionOf(drafts)?.id : null
     try {
@@ -141,7 +142,7 @@ export default function DeliveryOptionsPage() {
     } catch (err) {
       toast.error(err instanceof Error ? err.message : copy.failed)
     } finally {
-      setBusy(false)
+      setBusy(null)
     }
   }
 
@@ -186,7 +187,11 @@ export default function DeliveryOptionsPage() {
                 {copy.options.add}
               </Button>
             )}
-            <Button onClick={handleSave} disabled={!dirty || busy}>
+            <Button
+              onClick={handleSave}
+              disabled={!dirty || busy !== null}
+              loading={busy === 'save'}
+            >
               {copy.save}
             </Button>
           </div>
@@ -196,10 +201,10 @@ export default function DeliveryOptionsPage() {
       <LayoutPicker value={layout} onChange={setLayout} />
 
       {drafts.length === 0 ? (
-        <div className="flex flex-col items-start gap-2 rounded-xl border border-panel-border bg-card p-4">
+        <div className="flex flex-col items-start gap-2 rounded-lg border border-panel-border bg-card p-4">
           <p className="text-body text-muted-foreground">{copy.options.empty}</p>
           <p className="text-caption text-muted-foreground">{copy.options.presetHelp}</p>
-          <Button onClick={handlePreset} disabled={busy}>
+          <Button onClick={handlePreset} disabled={busy !== null} loading={busy === 'preset'}>
             {copy.options.preset}
           </Button>
         </div>
@@ -217,7 +222,7 @@ export default function DeliveryOptionsPage() {
               />
               <PriceIncludesCard option={listOption} onChange={update} />
             </div>
-            <section className="flex flex-col gap-3 rounded-xl border border-panel-border bg-card p-4 lg:sticky lg:top-4">
+            <section className="flex flex-col gap-3 rounded-lg border border-panel-border bg-card p-4 lg:sticky lg:top-4">
               <div className="flex flex-col gap-0.5">
                 <h2 className="text-card-title text-ink-strong">{pages.preview.previewTitle}</h2>
                 <p className="text-caption text-muted-foreground">
@@ -259,7 +264,7 @@ export default function DeliveryOptionsPage() {
               />
             )}
           />
-          <p className="rounded-xl border border-panel-border bg-card px-4 py-3 text-caption text-muted-foreground">
+          <p className="rounded-lg border border-panel-border bg-card px-4 py-3 text-caption text-muted-foreground">
             {backupName ? pages.optionCards.fallback(backupName) : pages.optionCards.fallbackNone}
           </p>
         </>

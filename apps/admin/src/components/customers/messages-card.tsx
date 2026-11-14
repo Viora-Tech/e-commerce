@@ -29,7 +29,7 @@ export default function MessagesCard({ messages }: MessagesCardProps) {
   const copy = detail.timeline
 
   return (
-    <DataCard title={copy.heading} className="rounded-xl">
+    <DataCard title={copy.heading}>
       {messages.length === 0 ? (
         <p className="text-body text-muted-foreground">{copy.empty}</p>
       ) : (

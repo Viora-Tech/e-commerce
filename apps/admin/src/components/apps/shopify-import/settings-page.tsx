@@ -11,11 +11,11 @@ import {
 import { PlugConnect, RefreshCw, Upload } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card, CardContent } from '@commerce/ui/shadcn/card'
-import { Skeleton } from '@commerce/ui/shadcn/skeleton'
-import { Spinner } from '@commerce/ui/shadcn/spinner'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import DataCardSkeleton from '@/components/layout/data-card-skeleton'
+import SectionPageSkeleton from '@/components/layout/section-page-skeleton'
 import { shopifyImportContent } from '@/data/shopify-import'
 import { shopifyImportSettingsContent } from '@/data/shopify-import-settings'
 import { useCopy } from '@/hooks/use-copy'
@@ -116,7 +116,7 @@ export default function SettingsPage() {
   }
 
   // Early returns
-  if (connected === undefined) return <Skeleton className="h-64 w-full" />
+  if (connected === undefined) return <SectionPageSkeleton header={false} />
   if (!connected) {
     return (
       <Card>
@@ -140,8 +140,13 @@ export default function SettingsPage() {
           <p className="text-caption text-muted-foreground">{copy.comparing(plan.shopName)}</p>
         ) : null}
       </div>
-      <Button variant="outline" onClick={handleCheck} disabled={busy !== null}>
-        {busy === 'check' ? <Spinner /> : <RefreshCw aria-hidden="true" />}
+      <Button
+        loading={busy === 'check'}
+        variant="outline"
+        onClick={handleCheck}
+        disabled={busy !== null}
+      >
+        <RefreshCw aria-hidden="true" />
         {plan ? copy.checkAgain : copy.check}
       </Button>
     </div>
@@ -166,7 +171,7 @@ export default function SettingsPage() {
           ))}
         </>
       ) : plan === null ? (
-        <Skeleton className="h-64 w-full" />
+        <DataCardSkeleton fields={0} lines={5} />
       ) : (
         <>
           <p className="text-body text-muted-foreground">{copy.choose}</p>
@@ -186,8 +191,12 @@ export default function SettingsPage() {
             />
           ))}
           <div className="flex justify-end">
-            <Button onClick={handleImport} disabled={busy !== null || chosen.length === 0}>
-              {busy === 'import' ? <Spinner /> : <Upload aria-hidden="true" />}
+            <Button
+              loading={busy === 'import'}
+              onClick={handleImport}
+              disabled={busy !== null || chosen.length === 0}
+            >
+              <Upload aria-hidden="true" />
               {copy.import(chosen.length)}
             </Button>
           </div>

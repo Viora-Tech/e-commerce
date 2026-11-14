@@ -2,11 +2,11 @@
 
 import { CircleAlert, CircleCheck, Lock, RefreshCw } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import { DialogDescription, DialogFooter, DialogTitle } from '@commerce/ui/shadcn/dialog'
+import { DialogDescription, DialogTitle } from '@commerce/ui/shadcn/dialog'
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
-import { Spinner } from '@commerce/ui/shadcn/spinner'
 import CopyButton from '@/components/fields/copy-button'
+import DialogFooter from '@/components/layout/dialog-footer'
 import { appInstallContent } from '@/data/app-install'
 import { useCopy } from '@/hooks/use-copy'
 import type { api } from '@/lib/api-client'
@@ -104,9 +104,14 @@ export default function InstallConnectStep({
       </FieldGroup>
       <div className="flex flex-col gap-2">
         <div className="flex flex-wrap items-center gap-3">
-          <Button variant="outline" onClick={onTest} disabled={testing || !filled}>
-            {testing ? <Spinner /> : <RefreshCw aria-hidden="true" />}
-            {testing ? copy.connect.testing : copy.connect.test}
+          <Button
+            loading={testing}
+            variant="outline"
+            onClick={onTest}
+            disabled={testing || !filled}
+          >
+            <RefreshCw aria-hidden="true" />
+            {copy.connect.test}
           </Button>
           <span className="text-caption text-muted-foreground">
             {copy.connect.testHint(appName)}

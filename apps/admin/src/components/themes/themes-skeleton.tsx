@@ -1,7 +1,8 @@
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import ProoflyPageBody from '@/components/layout/proofly-page-body'
 
-/** Online Store › Themes while the library loads: header, tabs, the live card, the library card. */
+/** Online Store › Themes while the library loads: header, the live card, the library card (the
+ * library has no tab row, so none is drawn). */
 export default function ThemesSkeleton() {
   // Render logic
   return (
@@ -16,8 +17,7 @@ export default function ThemesSkeleton() {
           <Skeleton className="h-9 w-32" />
         </div>
       </div>
-      <Skeleton className="h-[2.375rem] w-48 rounded-[0.6875rem]" />
-      <div className="flex flex-col gap-6 rounded-2xl border border-border surface-card px-4 py-4 md:flex-row md:px-[1.375rem] md:py-5">
+      <div className="flex flex-col gap-6 rounded-lg border border-border surface-card px-4 py-4 md:flex-row md:px-[1.375rem] md:py-5">
         <Skeleton className="aspect-[420/260] w-full rounded-xl md:w-[26.25rem]" />
         <div className="flex flex-1 flex-col gap-3">
           <Skeleton className="h-7 w-48" />
@@ -30,7 +30,7 @@ export default function ThemesSkeleton() {
           </div>
         </div>
       </div>
-      <div className="flex flex-col gap-2 rounded-2xl border border-border surface-card px-4 py-4 md:px-[1.375rem] md:py-5">
+      <div className="flex flex-col gap-2 rounded-lg border border-border surface-card px-4 py-4 md:px-[1.375rem] md:py-5">
         <Skeleton className="h-5 w-32" />
         <Skeleton className="h-4 w-80 max-w-full" />
         <Skeleton className="mx-auto mt-8 mb-6 h-24 w-80 max-w-full" />

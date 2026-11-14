@@ -25,8 +25,10 @@ type FormDialogProps = {
   onSubmit: () => void | Promise<void>
   /** The fields, rendered between the header and the footer. */
   children: ReactNode
-  /** Every form is the one standard width now; `wide` only for a dialog that needs room. */
-  size?: 'default' | 'md' | 'lg' | 'wide'
+  /** The shell sizes: `standard` (every form) or `wide` for a dialog that needs room. */
+  size?: 'standard' | 'wide'
+  /** True once something was typed: Esc, the X or a click outside first ask before dropping it. */
+  dirty?: boolean
   /** For dialogs rendered inside a clickable row. */
   stopPropagation?: boolean
   /** A quieter action at the far left of the footer ("Remove"). */
@@ -45,7 +47,8 @@ export default function FormDialog({
   submitDisabled = false,
   onSubmit,
   children,
-  size = 'default',
+  size = 'standard',
+  dirty = false,
   stopPropagation = false,
   secondaryAction,
 }: FormDialogProps) {
@@ -78,7 +81,9 @@ export default function FormDialog({
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent
-        size={size === 'wide' ? 'wide' : 'standard'}
+        size={size}
+        busy={working}
+        dirty={dirty}
         onClick={stopPropagation ? (event) => event.stopPropagation() : undefined}
       >
         <form onSubmit={handleSubmit} className="contents">

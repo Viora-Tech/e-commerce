@@ -98,7 +98,7 @@ export default function DoneStep({
 
   return (
     <div className="grid gap-4 md:grid-cols-2">
-      <section className="flex flex-col gap-3 rounded-xl border border-hairline p-5">
+      <section className="flex flex-col gap-3 rounded-lg border border-hairline p-5">
         <p className="text-caption font-medium tracking-wide text-muted-foreground uppercase">
           {bookedCopy.shipment}
         </p>
@@ -138,7 +138,7 @@ export default function DoneStep({
         </dl>
       </section>
 
-      <section className="flex flex-col justify-between gap-5 rounded-xl border border-hairline p-5">
+      <section className="flex flex-col justify-between gap-5 rounded-lg border border-hairline p-5">
         <div className="flex flex-col gap-3">
           <p className="text-caption font-medium tracking-wide text-muted-foreground uppercase">
             {bookedCopy.next}

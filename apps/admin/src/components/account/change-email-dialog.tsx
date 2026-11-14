@@ -104,7 +104,7 @@ export default function ChangeEmailDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent>
+      <DialogContent busy={busy}>
         {step === 'email' ? (
           <form onSubmit={handleSend} className="flex flex-col gap-4">
             <DialogHeader>

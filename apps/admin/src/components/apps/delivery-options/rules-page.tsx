@@ -66,7 +66,7 @@ export default function DeliveryRulesPage() {
         intro={pages.pages.rules.intro}
         action={<Button onClick={handleAdd}>{copy.rules.add}</Button>}
       />
-      <section className="rounded-xl border border-panel-border bg-card">
+      <section className="rounded-lg border border-panel-border bg-card">
         {rules.length === 0 ? (
           <p className="px-4 py-3 text-body text-muted-foreground">{copy.rules.empty}</p>
         ) : (

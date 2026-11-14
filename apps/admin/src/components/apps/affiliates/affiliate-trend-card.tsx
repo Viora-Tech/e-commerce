@@ -13,6 +13,7 @@ import {
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { CELL, HEAD } from '@/components/apps/gst-invoices/table-classes'
+import DataCard from '@/components/layout/data-card'
 import TableEmptyRow from '@/components/table/table-empty-row'
 import { affiliatesContent } from '@/data/affiliates'
 import { useCopy, useFormat } from '@/hooks/use-copy'
@@ -70,9 +71,9 @@ export default function AffiliateTrendCard() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-col gap-4 rounded-xl surface-card px-5 py-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-body font-semibold text-ink-strong">{t.title}</h2>
+      <DataCard
+        title={t.title}
+        action={
           <div className="flex items-center gap-2">
             <Button
               size="sm"
@@ -92,7 +93,9 @@ export default function AffiliateTrendCard() {
               {t.csv}
             </Button>
           </div>
-        </div>
+        }
+        bodyClassName="flex flex-col gap-4"
+      >
         {data.points.length === 0 ? (
           <p className="text-body text-muted-foreground">{t.empty}</p>
         ) : (
@@ -119,11 +122,8 @@ export default function AffiliateTrendCard() {
             ? t.noClicks
             : t.conversion(conversion, f.number(clicks), f.number(orders))}
         </p>
-      </div>
-      <div className="overflow-hidden rounded-xl surface-card">
-        <h2 className="px-6 pt-5 pb-3 text-body font-semibold text-ink-strong">
-          {t.productsTitle}
-        </h2>
+      </DataCard>
+      <DataCard title={t.productsTitle} flush>
         <Table>
           <TableHeader>
             <TableRow>
@@ -153,7 +153,7 @@ export default function AffiliateTrendCard() {
             ))}
           </TableBody>
         </Table>
-      </div>
+      </DataCard>
     </div>
   )
 }

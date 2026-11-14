@@ -4,9 +4,9 @@ import { siteConfig } from '@commerce/config/site'
 import { Settings, Store, Upload } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card, CardContent } from '@commerce/ui/shadcn/card'
-import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
+import DataCardSkeleton from '@/components/layout/data-card-skeleton'
 import BackgroundWorkNotice from '@/components/media/background-work-notice'
 import ResourceTable, { type ResourceColumnSpec } from '@/components/table/resource-table'
 import { shopifyImportContent } from '@/data/shopify-import'
@@ -160,7 +160,7 @@ export default function ImportsPage() {
       <StorageNotice />
       <BackgroundWorkNotice />
       {shop === undefined ? (
-        <Skeleton className="h-64 w-full" />
+        <DataCardSkeleton fields={0} lines={5} />
       ) : (
         <RemainingCard connected={shop !== null} />
       )}

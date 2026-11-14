@@ -7,7 +7,6 @@ import { Button } from '@commerce/ui/shadcn/button'
 import { Dialog, DialogDescription, DialogTitle } from '@commerce/ui/shadcn/dialog'
 import { Field, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
-import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { useState } from 'react'
 import DialogContent from '@/components/layout/dialog-content'
 import DialogFooter from '@/components/layout/dialog-footer'
@@ -57,7 +56,7 @@ export default function AddThemeDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent busy={busy}>
         <DialogHeader>
           <DialogTitle>{copy.title}</DialogTitle>
           <DialogDescription>{copy.body}</DialogDescription>
@@ -121,8 +120,13 @@ export default function AddThemeDialog({
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
             {copy.cancel}
           </Button>
-          <Button type="button" disabled={busy} onClick={() => onAdd({ start, name: finalName })}>
-            {busy ? <Spinner /> : <Plus aria-hidden="true" />}
+          <Button
+            loading={busy}
+            type="button"
+            disabled={busy}
+            onClick={() => onAdd({ start, name: finalName })}
+          >
+            <Plus aria-hidden="true" />
             {copy.confirm}
           </Button>
         </DialogFooter>

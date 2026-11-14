@@ -2,7 +2,6 @@
 
 import { Copy } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { toast } from 'sonner'
 import StatusChip from '@/components/layout/status-chip'
 import type { ChipTone } from '@/components/status/tone'
@@ -62,7 +61,7 @@ export default function TemplateCard({
   const showStatus = statusKnown || template.status !== 'not_submitted'
 
   return (
-    <li className="flex flex-col gap-3 rounded-xl border border-panel-border bg-card p-4">
+    <li className="flex flex-col gap-3 rounded-lg border border-panel-border bg-card p-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex min-w-0 flex-col gap-0.5">
           <p className="text-body font-semibold text-ink-strong">{label}</p>
@@ -83,8 +82,13 @@ export default function TemplateCard({
             {copy.copy}
           </Button>
           {onSubmit && !auth && template.status === 'not_submitted' ? (
-            <Button variant="outline" size="sm" onClick={onSubmit} disabled={submitting}>
-              {submitting ? <Spinner /> : null}
+            <Button
+              loading={submitting}
+              variant="outline"
+              size="sm"
+              onClick={onSubmit}
+              disabled={submitting}
+            >
               {copy.submit}
             </Button>
           ) : null}

@@ -560,21 +560,45 @@ describe('RapidshypProvider order ids', () => {
 
   it('moves to the next suffix when RapidShyp already holds the id, and returns what it sent', async () => {
     const f = fakeFetch({
-      '/rapidshyp/apis/v1/create_order': (_url, init) => {
+      '/rapidshyp/apis/v1/wrapper': (_url, init) => {
         const { orderId } = JSON.parse(init?.body as string)
         return orderId === '2471'
           ? json({ status: false, remarks: 'Order id already exists' }, 400)
-          : json({ status: 'SUCCESS', shipment: [{ shipmentId: 'ship-2' }] })
+          : json({
+              orderCreated: true,
+              shipment: [
+                { shipmentId: 's', awb: 'A1', pickupScheduled: true, labelURL: 'https://l' },
+              ],
+            })
       },
-      '/rapidshyp/apis/v1/assign_awb': () => json({ awb: 'BD-4' }),
-      '/rapidshyp/apis/v1/schedule_pickup': () => json({ status: 'SUCCESS' }),
-      '/rapidshyp/apis/v1/generate_label': () => json({ status: true, labelData: [] }),
     })
     const p = new RapidshypProvider({ ...config, fetchImpl: f.impl })
-    const r = await p.createShipment({ ...sampleShipment, orderNumber: 2471, serviceId: 'BD' })
+    const r = await p.createShipment({ ...sampleShipment, orderNumber: 2471 })
     expect([sentOrderId(f, 0), sentOrderId(f, 1)]).toEqual(['2471', '2471-2'])
-    // No order_id echoed: cancel and tracking use the id that was sent.
+    // No orderId echoed: cancel and tracking use the id that was sent.
     expect(r.providerRef).toBe('2471-2')
+  })
+
+  it('sends staff to the order already there for a picked courier, never a second copy', async () => {
+    const f = fakeFetch({
+      '/rapidshyp/apis/v1/create_order': () =>
+        json({ status: false, remarks: 'Order already exists with this orderId' }, 400),
+    })
+    const p = new RapidshypProvider({ ...config, fetchImpl: f.impl })
+    const err = (await p
+      .createShipment({
+        ...sampleShipment,
+        orderNumber: 2473,
+        serviceId: 'BD',
+        serviceLabel: 'Blue Dart Air',
+      })
+      .catch((e: unknown) => e)) as CourierError
+    expect(err).toBeInstanceOf(CourierError)
+    expect(err.message).toBe(
+      'Order 2473 is already on RapidShyp from an earlier booking. Open order 2473 in RapidShyp (Orders, search 2473) and assign Blue Dart Air there, then add its AWB here with Ship › Shipped yourself.',
+    )
+    expect(describeCourierFailureForStaff(err)).toBe(err.message)
+    expect(f.calls.filter((c) => c.url.pathname.endsWith('/create_order'))).toHaveLength(1)
   })
 
   it('pushes a pending order under the order number', async () => {

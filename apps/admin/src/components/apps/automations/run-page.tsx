@@ -193,7 +193,7 @@ export default function RunPage({ params }: AppPageProps) {
       </header>
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_26rem]">
         <WorkflowCanvas
-          className="h-[32rem] rounded-xl border border-border bg-card lg:h-[calc(100dvh-14rem)]"
+          className="h-[32rem] rounded-lg border border-border bg-card lg:h-[calc(100dvh-14rem)]"
           ctx={{
             def: run.definition,
             catalogue,

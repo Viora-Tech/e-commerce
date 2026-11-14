@@ -40,8 +40,14 @@ export default function TrafficCard() {
           <h2 className="font-semibold text-ink-strong">{copy.title}</h2>
           <p className="text-body text-muted-foreground">{copy.body}</p>
         </div>
-        <Button variant="outline" className="mt-auto" disabled={busy} onClick={handleImport}>
-          {busy ? copy.working : copy.action}
+        <Button
+          loading={busy}
+          variant="outline"
+          className="mt-auto"
+          disabled={busy}
+          onClick={handleImport}
+        >
+          {copy.action}
         </Button>
       </CardContent>
     </Card>

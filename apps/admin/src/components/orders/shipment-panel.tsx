@@ -48,7 +48,7 @@ export default function ShipmentPanel({
           {bookable ? (
             <Button onClick={onBook} disabled={busy}>
               <Truck aria-hidden="true" />
-              {busy ? copy.booking : copy.book}
+              {copy.book}
             </Button>
           ) : null}
         </div>

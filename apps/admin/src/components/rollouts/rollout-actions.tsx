@@ -145,6 +145,7 @@ export default function RolloutActions({ rollout: r, dirty }: RolloutActionsProp
         title={copy.confirmStart.title(r.name)}
         body={abTest ? copy.confirmStartAb : copy.confirmStart.body}
         confirmLabel={copy.confirmStart.confirm}
+        tone="default"
         onConfirm={handleStart}
       />
       <ConfirmDialog
@@ -153,6 +154,7 @@ export default function RolloutActions({ rollout: r, dirty }: RolloutActionsProp
         title={copy.confirmPause.title(r.name)}
         body={abTest ? copy.confirmPauseAb : copy.confirmPause.body}
         confirmLabel={copy.confirmPause.confirm}
+        tone="default"
         onConfirm={handlePause}
       />
       <ConfirmDialog
@@ -161,6 +163,7 @@ export default function RolloutActions({ rollout: r, dirty }: RolloutActionsProp
         title={copy.confirmShip.title(r.name)}
         body={copy.confirmShip.body}
         confirmLabel={copy.confirmShip.confirm}
+        tone="default"
         onConfirm={handleShip}
       />
       <ConfirmDialog
@@ -169,6 +172,7 @@ export default function RolloutActions({ rollout: r, dirty }: RolloutActionsProp
         title={copy.confirmKeep.title(r.name)}
         body={copy.confirmKeep.body}
         confirmLabel={copy.confirmKeep.confirm}
+        tone="default"
         onConfirm={handleKeep}
       />
       <ConfirmDialog

@@ -81,7 +81,7 @@ export default function ChargeDialog({
 
   return (
     <Dialog open onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent busy={busy}>
         <DialogHeader>
           <DialogTitle>{charge ? copy.dialog.editTitle : copy.dialog.addTitle}</DialogTitle>
         </DialogHeader>
@@ -212,7 +212,7 @@ export default function ChargeDialog({
           </Button>
           <Button loading={busy} onClick={handleSave} disabled={busy}>
             <Save aria-hidden="true" />
-            {busy ? copy.dialog.saving : copy.dialog.save}
+            {copy.dialog.save}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -72,7 +72,7 @@ export default function ThemeColoursGroup({ theme, mode, onChange }: ThemeColour
             {fill}
           </span>
         </PopoverTrigger>
-        <PopoverContent align="end" className="w-64">
+        <PopoverContent align="end" className="w-64 max-w-[calc(100vw-2rem)]">
           <SettingsSegmented
             label={copy.buttonColour}
             value={theme.buttons.colour}

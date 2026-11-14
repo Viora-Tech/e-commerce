@@ -227,7 +227,7 @@ function CustomersContent({ initial }: { initial: CustomersInitial }) {
         ].join(' · ')
 
   return (
-    <PageBody width="frame" className="gap-6">
+    <PageBody>
       <PageHeader
         title={copy.heading}
         summary={summary}

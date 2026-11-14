@@ -3,10 +3,10 @@
 import type { QuestionStatus } from '@commerce/plugin-reviews/schema'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Input } from '@commerce/ui/shadcn/input'
-import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { Tabs, TabsList, TabsTrigger } from '@commerce/ui/shadcn/tabs'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import DataCardSkeleton from '@/components/layout/data-card-skeleton'
 import PageHeader from '@/components/layout/page-header'
 import { reviewToolsContent } from '@/data/review-tools'
 import { useCopy } from '@/hooks/use-copy'
@@ -96,7 +96,7 @@ export default function QuestionsPage() {
         />
       </div>
       {!result ? (
-        <Skeleton className="h-64 w-full rounded-lg" />
+        <DataCardSkeleton fields={0} lines={5} />
       ) : result.rows.length === 0 ? (
         <div className="rounded-lg border border-border bg-card p-8 text-center">
           <p className="text-body-strong">{copy.empty.heading}</p>

@@ -12,6 +12,7 @@ import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import DataCard from '@/components/layout/data-card'
 import PageBody from '@/components/layout/page-body'
+import PageColumns from '@/components/layout/page-columns'
 import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
 import ConditionBuilder from '@/components/rules/condition-builder'
@@ -73,7 +74,7 @@ export default function SegmentForm({ id, initialName, initialRules }: SegmentFo
   const dirty = JSON.stringify({ initialName: name, initialRules: rules }) !== saved
 
   return (
-    <PageBody width="frame" className="gap-6">
+    <PageBody>
       <SaveBar
         open={dirty}
         message={builder.conditions}
@@ -112,28 +113,30 @@ export default function SegmentForm({ id, initialName, initialRules }: SegmentFo
         }
         save={{ dirty: true, saving, onSave: handleSave, label: builder.save }}
       />
-      <div className="grid grid-cols-1 items-start gap-5 xl:grid-cols-[minmax(0,1fr)_22rem]">
-        <div className="flex flex-col gap-5">
-          <Card size="form" className="rounded-xl">
-            <CardContent>
-              <Field>
-                <FieldLabel htmlFor="segment-name">{builder.name}</FieldLabel>
-                <Input
-                  id="segment-name"
-                  size="lg"
-                  value={name}
-                  placeholder={builder.namePlaceholder}
-                  onChange={(e) => setName(e.target.value)}
-                />
-              </Field>
-            </CardContent>
-          </Card>
-          <DataCard title={builder.conditions} className="rounded-xl">
-            <ConditionBuilder rules={rules} onChange={setRules} />
-          </DataCard>
-        </div>
-        <SegmentPreview rules={rules} />
-      </div>
+      <PageColumns
+        main={
+          <>
+            <Card size="form">
+              <CardContent>
+                <Field>
+                  <FieldLabel htmlFor="segment-name">{builder.name}</FieldLabel>
+                  <Input
+                    id="segment-name"
+                    size="lg"
+                    value={name}
+                    placeholder={builder.namePlaceholder}
+                    onChange={(e) => setName(e.target.value)}
+                  />
+                </Field>
+              </CardContent>
+            </Card>
+            <DataCard title={builder.conditions}>
+              <ConditionBuilder rules={rules} onChange={setRules} />
+            </DataCard>
+          </>
+        }
+        side={<SegmentPreview rules={rules} />}
+      />
     </PageBody>
   )
 }

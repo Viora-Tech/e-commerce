@@ -91,7 +91,6 @@ export default function ConnectDomainDialog({
       busy={saving}
       submitDisabled={!value.trim()}
       onSubmit={handleSubmit}
-      size="md"
     >
       <div className="flex flex-col gap-2">
         <Label htmlFor="domain-hostname">{copy.dialog.label}</Label>

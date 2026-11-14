@@ -39,7 +39,7 @@ export default function StorePreviewPanel({
         <h2 className="text-page-title text-ink-strong">{p.heading(name.trim())}</h2>
         <p className="text-body text-muted-foreground">{p.body}</p>
       </div>
-      <div className="w-full max-w-sm rounded-xl surface-card p-4">
+      <div className="w-full max-w-sm rounded-lg surface-card p-4">
         <div className="mb-3 flex items-center gap-3">
           <span className="flex size-9 items-center justify-center rounded-md bg-card text-body-strong text-ink-strong shadow-input">
             {initial}

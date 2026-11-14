@@ -44,12 +44,10 @@ export default function BookedDrawer({
       <DrawerContent
         className={cn('mx-auto max-h-[calc(100dvh-4rem)] max-w-[90rem]', BESIDE_SIDEBAR)}
       >
-        <DrawerHeader className="flex flex-row items-start justify-between gap-4 px-4 pt-2 text-left md:px-8">
+        <DrawerHeader className="flex flex-row items-start justify-between gap-4 px-4 pt-2 text-left">
           <div className="flex min-w-0 flex-col items-start gap-1 text-left">
             <StatusChip tone="success">{copy.badge}</StatusChip>
-            <DrawerTitle className="text-lg font-semibold text-ink-strong">
-              {copy.title(booked.courier)}
-            </DrawerTitle>
+            <DrawerTitle>{copy.title(booked.courier)}</DrawerTitle>
             <DrawerDescription className="text-body text-muted-foreground">
               {booked.labelUrl ? copy.body : copy.noLabelBody}
             </DrawerDescription>
@@ -63,7 +61,7 @@ export default function BookedDrawer({
             <XIcon aria-hidden="true" />
           </Button>
         </DrawerHeader>
-        <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-6 md:px-8">
+        <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-6">
           <DoneStep booked={booked} onCreatePickup={onCreatePickup} backHref={backHref} />
         </div>
       </DrawerContent>

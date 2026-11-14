@@ -92,7 +92,7 @@ export default function ImportDialog({ open, onOpenChange, onImported }: ImportD
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent>
+      <DialogContent busy={busy}>
         <DialogHeader>
           <DialogTitle>{copy.title}</DialogTitle>
           <DialogDescription>{copy.intro}</DialogDescription>
@@ -167,7 +167,7 @@ export default function ImportDialog({ open, onOpenChange, onImported }: ImportD
             disabled={busy || !summary || summary.total === 0}
           >
             <Upload aria-hidden="true" />
-            {busy ? copy.running : copy.start}
+            {copy.start}
           </Button>
         </DialogFooter>
       </DialogContent>

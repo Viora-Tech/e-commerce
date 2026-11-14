@@ -1,8 +1,9 @@
 'use client'
 
 import type { AlternateKind, TemplateKind } from '@commerce/core/theme'
-import { ChevronDown, Home, Loader2Icon } from '@commerce/ui/icons'
+import { ChevronDown, Home } from '@commerce/ui/icons'
 import { Popover, PopoverContent, PopoverTrigger } from '@commerce/ui/shadcn/popover'
+import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { useState } from 'react'
 import { customizeContent } from '@/data/customize'
 import { type TemplateChange, useTemplateManager } from '@/lib/use-template-manager'
@@ -74,7 +75,7 @@ export default function TemplatePicker({
               className="flex h-[2.375rem] w-60 items-center gap-2 rounded-[0.625rem] bg-muted pr-2.5 pl-3 text-left text-sm leading-5 font-semibold text-foreground transition-colors duration-150 hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring/70 focus-visible:outline-none motion-reduce:transition-none data-[popup-open]:bg-accent"
             >
               {loading || manager.busy ? (
-                <Loader2Icon className="size-4 shrink-0 animate-spin" aria-hidden />
+                <Spinner className="shrink-0" />
               ) : (
                 <Home className="size-4 shrink-0" aria-hidden weight="regular" />
               )}
@@ -83,7 +84,7 @@ export default function TemplatePicker({
             </button>
           }
         />
-        <PopoverContent align="center" className="w-[22.5rem] gap-0 p-0">
+        <PopoverContent align="center" className="w-96 max-w-[calc(100vw-2rem)] gap-0 p-0">
           <TemplateList
             value={value}
             alternates={alternates}

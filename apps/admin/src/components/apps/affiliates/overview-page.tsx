@@ -70,7 +70,7 @@ export default function OverviewPage() {
         ]}
       />
       {data.waitingApproval > 0 || data.readyToPay > 0 ? (
-        <div className="flex flex-col gap-3 rounded-xl surface-card px-5 py-4">
+        <div className="flex flex-col gap-3 rounded-lg surface-card px-5 py-4">
           {data.waitingApproval > 0 ? (
             <div className="flex items-center justify-between gap-4">
               <span className="text-body">{copy.waiting(data.waitingApproval)}</span>
@@ -100,7 +100,7 @@ export default function OverviewPage() {
         </div>
       ) : null}
       <AffiliateTrendCard />
-      <div className="overflow-hidden rounded-xl surface-card">
+      <div className="overflow-hidden rounded-lg surface-card">
         <h2 className="px-6 pt-5 pb-3 text-body font-semibold text-ink-strong">{copy.topTitle}</h2>
         <Table>
           <TableHeader>

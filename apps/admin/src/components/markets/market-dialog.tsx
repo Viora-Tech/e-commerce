@@ -137,7 +137,6 @@ export default function MarketDialog({
       title={market ? d.editTitle(market.name) : d.addTitle}
       submitLabel={market ? d.save : d.add}
       onSubmit={handleSubmit}
-      size={part === 'all' ? 'lg' : 'md'}
     >
       <div className="-mx-4 flex max-h-[60dvh] flex-col gap-5 overflow-y-auto overscroll-contain px-4">
         {isPrimary ? <NoticeBar>{d.primaryNote}</NoticeBar> : null}

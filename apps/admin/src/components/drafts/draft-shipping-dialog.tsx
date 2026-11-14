@@ -52,7 +52,6 @@ export default function DraftShippingDialog({
       cancelLabel={copy.shippingDialog.cancel}
       submitDisabled={!valid}
       onSubmit={handleSubmit}
-      size="md"
     >
       <Field>
         <FieldLabel htmlFor={amountId}>{copy.shippingDialog.amount}</FieldLabel>

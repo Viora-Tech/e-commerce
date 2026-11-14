@@ -26,6 +26,7 @@ import InlineState from '@/components/states/inline-state'
 import LinkRow from '@/components/table/link-row'
 import TableEmptyRow from '@/components/table/table-empty-row'
 import TableSkeletonRows from '@/components/table/table-skeleton-rows'
+import { dialogContent } from '@/data/common'
 import { shipmentsContent } from '@/data/shipments'
 import { shipmentDetailsContent } from '@/data/shipping'
 import { statesContent } from '@/data/states'
@@ -43,6 +44,7 @@ export default function NdrTab() {
   // Hooks
   const details = useCopy(shipmentDetailsContent)
   const states = useCopy(statesContent)
+  const shared = useCopy(dialogContent)
   /** `null` until the first answer, so the table never says "nothing here" before it knows. */
   const [rows, setRows] = useState<NdrRow[] | null>(null)
   const [failed, setFailed] = useState(false)
@@ -177,7 +179,7 @@ export default function NdrTab() {
       </Table>
 
       <Dialog open={dialog !== null} onOpenChange={(open) => !open && setDialog(null)}>
-        <DialogContent>
+        <DialogContent busy={busy}>
           <DialogHeader>
             <DialogTitle>{dialog ? copy.actions[dialog.action] : ''}</DialogTitle>
           </DialogHeader>
@@ -213,8 +215,8 @@ export default function NdrTab() {
             </div>
           ) : null}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDialog(null)}>
-              Cancel
+            <Button variant="outline" onClick={() => setDialog(null)} disabled={busy}>
+              {shared.cancel}
             </Button>
             <Button loading={busy} onClick={handleApply} disabled={busy}>
               <CheckIcon aria-hidden="true" />

@@ -2,16 +2,12 @@
 
 import { CheckIcon } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@commerce/ui/shadcn/dialog'
+import { Dialog, DialogDescription, DialogTitle } from '@commerce/ui/shadcn/dialog'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import DialogContent from '@/components/layout/dialog-content'
+import DialogFooter from '@/components/layout/dialog-footer'
+import DialogHeader from '@/components/layout/dialog-header'
 import { documentReviewContent, purchaseDocumentsContent } from '@/data/purchase-documents'
 import { chargesContent } from '@/data/purchasing'
 import { useCopy, useFormat } from '@/hooks/use-copy'
@@ -114,8 +110,8 @@ export default function ReviewDialog({ id, onOpenChange, onApplied, onReset }: R
 
   return (
     <Dialog open onOpenChange={onOpenChange}>
-      <DialogContent className="flex h-[92dvh] max-h-[92dvh] w-full flex-col gap-0 p-0 sm:max-w-[min(96vw,90rem)]">
-        <DialogHeader className="border-line border-b px-6 py-4">
+      <DialogContent size="full" panel busy={busy}>
+        <DialogHeader className="border-b">
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>{failed ? copy.loadFailed : copy.intro}</DialogDescription>
         </DialogHeader>
@@ -143,13 +139,13 @@ export default function ReviewDialog({ id, onOpenChange, onApplied, onReset }: R
             )}
           </div>
         </div>
-        <DialogFooter className="border-line border-t px-6 py-3">
+        <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             {copy.cancel}
           </Button>
           <Button loading={busy} onClick={handleApply} disabled={busy || !state || applied}>
             <CheckIcon aria-hidden="true" />
-            {busy ? copy.applying : copy.apply}
+            {copy.apply}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -38,7 +38,7 @@ export default function BulkShipFooter({
   const total = `${f.totalValue(fmt.money(summary.totalPaise), insured)}${summary.unpriced > 0 ? f.unpriced(summary.unpriced) : ''}`
 
   return (
-    <div className="flex flex-col gap-4 border-t border-hairline px-4 py-4 md:flex-row md:items-center md:justify-between md:px-8">
+    <div className="flex flex-col gap-4 border-t bg-[color-mix(in_oklab,var(--muted)_50%,var(--popover))] p-4 md:flex-row md:items-center md:justify-between">
       <dl className="flex flex-wrap gap-x-8 gap-y-3 text-body">
         <Stat label={f.ready} value={f.readyValue(summary.ready, summary.total)} />
         {summary.attention > 0 ? (
@@ -56,12 +56,12 @@ export default function BulkShipFooter({
         ) : null}
       </dl>
       <div className="flex shrink-0 items-center justify-end gap-2">
-        <Button variant="ghost" onClick={onCancel} disabled={busy}>
+        <Button variant="outline" onClick={onCancel} disabled={busy}>
           {copy.cancel}
         </Button>
         <Button onClick={onBook} disabled={busy || summary.ready === 0} loading={busy}>
-          {busy ? null : <Truck aria-hidden="true" />}
-          {busy ? copy.booking : copy.book(summary.ready)}
+          <Truck aria-hidden="true" />
+          {copy.book(summary.ready)}
         </Button>
       </div>
     </div>

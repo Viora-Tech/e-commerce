@@ -1,6 +1,7 @@
 'use client'
 
 import { ExternalLink, TriangleAlert } from '@commerce/ui/icons'
+import { Alert } from '@commerce/ui/shadcn/alert'
 import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
 import CopyButton from '@/components/fields/copy-button'
@@ -35,10 +36,7 @@ export default function NoPickupLocationAlert({ name }: NoPickupLocationAlertPro
   const copy = useCopy(shipmentDetailsContent.noPickupLocation)
 
   return (
-    <div
-      role="alert"
-      className="flex flex-col gap-3 rounded-lg border border-danger-border bg-danger-soft p-4"
-    >
+    <Alert tone="danger" className="flex flex-col gap-3 p-4 text-body">
       <p className="flex items-center gap-2 font-medium text-ink-strong">
         <TriangleAlert aria-hidden="true" className="size-4 shrink-0 text-danger" />
         {copy.title}
@@ -72,6 +70,6 @@ export default function NoPickupLocationAlert({ name }: NoPickupLocationAlertPro
           {copy.openDelhivery}
         </Button>
       </div>
-    </div>
+    </Alert>
   )
 }

@@ -1,4 +1,5 @@
 import { CircleAlert } from '@commerce/ui/icons'
+import { Alert, AlertDescription } from '@commerce/ui/shadcn/alert'
 import { Button } from '@commerce/ui/shadcn/button'
 import { automationEditorContent } from '@/data/automations'
 import { useCopy } from '@/hooks/use-copy'
@@ -34,23 +35,28 @@ export default function EditorNotices({
       {readOnly ? <p className="text-caption text-muted-foreground">{copy.readOnly}</p> : null}
       {growth ? <p className="text-caption text-muted-foreground">{copy.growthOrigin}</p> : null}
       {unpublished ? (
-        <p className="rounded-md border border-info/30 bg-info-soft px-3 py-2 text-body text-info">
-          {copy.unpublished}
-        </p>
+        <Alert tone="info" role="status" className="py-2">
+          <AlertDescription className="text-body text-foreground">
+            {copy.unpublished}
+          </AlertDescription>
+        </Alert>
       ) : null}
       {first && !readOnly ? (
-        <div
+        <Alert
+          tone="danger"
           role="status"
-          className="flex items-center justify-between gap-3 rounded-md border border-danger/30 bg-danger-soft px-3 py-2 text-body text-danger"
+          className="items-center py-2 *:[svg]:row-span-1 *:[svg]:translate-y-0"
+          action={
+            <Button variant="outline" size="sm" onClick={() => onShow(first.nodeId)}>
+              {copy.issues.show}
+            </Button>
+          }
         >
-          <span className="flex items-center gap-2">
-            <CircleAlert className="size-4 shrink-0" aria-hidden="true" />
+          <CircleAlert aria-hidden="true" />
+          <AlertDescription className="text-body text-foreground">
             {copy.issues.title(issues.length)}: {first.message}
-          </span>
-          <Button variant="outline" size="sm" onClick={() => onShow(first.nodeId)}>
-            {copy.issues.show}
-          </Button>
-        </div>
+          </AlertDescription>
+        </Alert>
       ) : null}
     </>
   )

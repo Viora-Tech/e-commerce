@@ -82,7 +82,7 @@ export default function SaveSelectionSegmentDialog({
 
   return (
     <Dialog open={ids.length > 0} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent>
+      <DialogContent busy={saving}>
         <DialogHeader>
           <DialogTitle>{bulk.saveSelection.title(ids.length)}</DialogTitle>
           <DialogDescription>{bulk.saveSelection.body}</DialogDescription>

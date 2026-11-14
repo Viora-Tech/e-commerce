@@ -5,15 +5,15 @@ import { Database, Plus } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
-import { toast } from 'sonner'
 import EmptyState from '@/components/layout/empty-state'
 import PageHeader from '@/components/layout/page-header'
 import SettingsLinkRow from '@/components/settings/settings-link-row'
 import SettingsList from '@/components/settings/settings-list'
+import LoadFailed from '@/components/states/load-failed'
 import { CUSTOM_DATA_OWNERS, customDataOverviewContent } from '@/data/custom-data'
 import { customDataContent } from '@/data/metaobjects'
 import { useCopy } from '@/hooks/use-copy'
+import { useLoad } from '@/hooks/use-load'
 import { usePermissions } from '@/hooks/use-permissions'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
@@ -48,17 +48,7 @@ export default function CustomDataSettings() {
   const copy = useCopy(customDataContent)
   const page = useCopy(customDataOverviewContent)
   const { hasPermission } = usePermissions()
-  const [data, setData] = useState<Loaded | null>(null)
-
-  useEffect(() => {
-    let live = true
-    load()
-      .then((d) => live && setData(d))
-      .catch(() => live && toast.error(copy.loadFailed))
-    return () => {
-      live = false
-    }
-  }, [copy.loadFailed])
+  const { data, failed, retry } = useLoad(load)
 
   // Render logic
   const canManage = hasPermission(permissions.CONTENT_MANAGE_TYPES)
@@ -93,7 +83,9 @@ export default function CustomDataSettings() {
                 description={page.ownerHints[o.owner]}
                 value={
                   n === undefined ? (
-                    <Skeleton className="h-4 w-16" />
+                    failed ? null : (
+                      <Skeleton className="h-4 w-16" />
+                    )
                   ) : (
                     <span className="tabular-nums">{page.overview.count(n)}</span>
                   )
@@ -120,7 +112,11 @@ export default function CustomDataSettings() {
           }
           footer={data && data.metaobjects.length > 0 ? addType : null}
         >
-          {data === null ? (
+          {failed && data === null ? (
+            <li>
+              <LoadFailed failed={failed} onRetry={retry} size="inline" />
+            </li>
+          ) : data === null ? (
             <li className="px-5 py-4">
               <Skeleton className="h-4 w-40" />
             </li>

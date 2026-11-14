@@ -44,7 +44,7 @@ export default function RunTypeCard({ resource, progress, live, preview }: RunTy
   const credit = progress.credit
 
   return (
-    <li className="flex flex-col gap-3 rounded-xl border border-hairline bg-card p-4">
+    <li className="flex flex-col gap-3 rounded-lg border border-hairline bg-card p-4">
       <div className="flex items-center gap-2.5">
         <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground [&_svg]:size-4">
           <Icon />

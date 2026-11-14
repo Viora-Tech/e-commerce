@@ -80,7 +80,6 @@ export default function EditLineDiscountDialog({
       submitLabel={copy.apply}
       cancelLabel={copy.cancel}
       onSubmit={handleSubmit}
-      size="md"
     >
       <PillTabs<Mode>
         variant="segmented"

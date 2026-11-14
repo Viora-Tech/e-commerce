@@ -55,7 +55,7 @@ export default function EmailSuppressionNotice({ customerId }: EmailSuppressionN
   const reason = suppression.reason
 
   return (
-    <Alert variant="destructive" className="rounded-xl">
+    <Alert tone="danger">
       <TriangleAlert aria-hidden="true" />
       <AlertTitle>{copy.title[reason]}</AlertTitle>
       <AlertDescription className="flex flex-col gap-2">
@@ -70,8 +70,14 @@ export default function EmailSuppressionNotice({ customerId }: EmailSuppressionN
         ) : null}
         {reason === 'complaint' ? <p className="text-caption">{copy.complaintWarning}</p> : null}
         <div>
-          <Button variant="outline" size="sm" onClick={handleAllow} disabled={allowing}>
-            {allowing ? copy.allowing : copy.allowAgain}
+          <Button
+            loading={allowing}
+            variant="outline"
+            size="sm"
+            onClick={handleAllow}
+            disabled={allowing}
+          >
+            {copy.allowAgain}
           </Button>
         </div>
       </AlertDescription>

@@ -88,7 +88,7 @@ export default function AgenticGetReady({ data }: AgenticGetReadyProps) {
   ]
 
   return (
-    <PageBody className="gap-6 md:pt-5 md:pb-8">
+    <PageBody>
       <PageHeader
         title={shared.overview.title}
         subtitle={shared.overview.subtitle}

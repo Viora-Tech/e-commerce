@@ -2,8 +2,9 @@
 
 import { CircleCheck, Download } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import { DialogDescription, DialogFooter, DialogTitle } from '@commerce/ui/shadcn/dialog'
+import { DialogDescription, DialogTitle } from '@commerce/ui/shadcn/dialog'
 import AppAccessList from '@/components/apps/app-access-list'
+import DialogFooter from '@/components/layout/dialog-footer'
 import { appInstallContent } from '@/data/app-install'
 import { appsContent } from '@/data/apps'
 import { useCopy } from '@/hooks/use-copy'

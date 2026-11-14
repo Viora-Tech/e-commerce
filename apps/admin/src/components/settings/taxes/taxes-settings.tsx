@@ -1,17 +1,18 @@
 'use client'
 
 import { financialYear, formatSeriesNumber } from '@commerce/invoices'
-import { Card } from '@commerce/ui/shadcn/card'
-import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { type ReactNode, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
-import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
+import SectionPageSkeleton from '@/components/layout/section-page-skeleton'
+import LoadFailed from '@/components/states/load-failed'
 import { settingsRowsContent } from '@/data/settings-rows'
 import { taxesContent as copy } from '@/data/taxes'
 import { useCopy } from '@/hooks/use-copy'
+import type { LoadFailure } from '@/hooks/use-load'
 import { useSetupNext } from '@/hooks/use-setup-next'
 import { api } from '@/lib/api-client'
+import { isForbidden } from '@/lib/forbidden'
 import SettingsDrill, { type DrillHeader } from '../settings-drill'
 import SettingsDrillPanel from '../settings-drill-panel'
 import ChargingCard from './charging-card'
@@ -49,20 +50,6 @@ function orFix(broken: Set<string>, id: string, value: string, needsFix: string)
   return broken.has(id) ? needsFix : value
 }
 
-function LoadingCards() {
-  return (
-    <>
-      {[0, 1, 2].map((i) => (
-        <Card key={i} gap={4} inset={6}>
-          <Skeleton className="h-5 w-40" />
-          <Skeleton className="h-10 w-full" />
-          <Skeleton className="h-10 w-full" />
-        </Card>
-      ))}
-    </>
-  )
-}
-
 /**
  * The rows of Settings › Taxes & GST (#147): GST numbers, registration, how GST is charged (with
  * a short explainer), invoice numbers and e-invoicing. The form lives above the row details, so
@@ -82,6 +69,8 @@ export default function TaxesSettings({
   const [form, setForm] = useState<TaxesFormState | null>(null)
   const [busy, setBusy] = useState(false)
   const [attempted, setAttempted] = useState(false)
+  const [failed, setFailed] = useState<LoadFailure | false>(false)
+  const [attempt, setAttempt] = useState(0)
   const saveRef = useRef<() => void>(() => undefined)
   // biome-ignore lint/correctness/useExhaustiveDependencies: reload when GST numbers change, not on every edit.
   useEffect(() => {
@@ -94,8 +83,11 @@ export default function TaxesSettings({
         setForm((f) => (f && view && !same(f, formOf(view)) ? f : formOf(v)))
         setView(v)
       })
-      .catch(() => toast.error(copy.loadFailed))
-  }, [refreshKey])
+      .catch((error: unknown) => {
+        if (!view) setFailed(isForbidden(error) ? 'no-access' : 'error')
+        else toast.error(copy.loadFailed)
+      })
+  }, [refreshKey, attempt])
 
   // Report the save state to the page header; `saveRef` always points at the latest handleSave.
   useEffect(() => {
@@ -199,11 +191,16 @@ export default function TaxesSettings({
         onDiscard={handleDiscard}
         saving={busy}
       />
-      {!form || !view ? (
-        <>
-          {header ? <PageHeader {...header} /> : null}
-          <LoadingCards />
-        </>
+      {failed && !view ? (
+        <LoadFailed
+          failed={failed}
+          onRetry={() => {
+            setFailed(false)
+            setAttempt((n) => n + 1)
+          }}
+        />
+      ) : !form || !view ? (
+        <SectionPageSkeleton header={Boolean(header)} />
       ) : (
         <SettingsDrill rows={rows} backLabel={t.back} header={header}>
           <SettingsDrillPanel id="gst-numbers">{gstNumbers}</SettingsDrillPanel>

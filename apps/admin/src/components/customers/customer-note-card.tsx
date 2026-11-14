@@ -16,7 +16,7 @@ export default function CustomerNoteCard({ value, onChange }: NoteCardProps) {
   const detail = useCopy(customerDetailContent)
 
   return (
-    <DataCard title={detail.note.heading} className="rounded-xl">
+    <DataCard title={detail.note.heading}>
       <Textarea
         value={value}
         onChange={(e) => onChange(e.target.value)}

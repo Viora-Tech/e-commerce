@@ -2,8 +2,9 @@
 
 import { ChevronLeftIcon, ChevronRightIcon } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import { Dialog, DialogDescription, DialogFooter, DialogTitle } from '@commerce/ui/shadcn/dialog'
+import { Dialog, DialogDescription, DialogTitle } from '@commerce/ui/shadcn/dialog'
 import DialogContent from '@/components/layout/dialog-content'
+import DialogFooter from '@/components/layout/dialog-footer'
 import DialogHeader from '@/components/layout/dialog-header'
 import StatusChip from '@/components/layout/status-chip'
 import { bulkShipContent } from '@/data/bulk-ship'

@@ -10,6 +10,7 @@ import {
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import PageBody from '@/components/layout/page-body'
 import SaveBar from '@/components/layout/save-bar'
 import { analyticsContent } from '@/data/analytics'
 import { useCopy } from '@/hooks/use-copy'
@@ -163,7 +164,7 @@ export default function QueryReportView({
   const dirty = saved !== null && (history.text !== saved.source || name !== saved.name)
 
   return (
-    <div className="flex w-full flex-col gap-5 px-4 py-6 md:px-6">
+    <PageBody>
       <QueryHeader
         name={name}
         ran={ran}
@@ -211,6 +212,6 @@ export default function QueryReportView({
         onDiscard={handleDiscard}
         saving={saving}
       />
-    </div>
+    </PageBody>
   )
 }

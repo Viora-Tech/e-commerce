@@ -75,7 +75,7 @@ export default function AttributionPage({ initialRange, initial }: AttributionPa
   const bestRow = data.sources.find((r) => r.source === data.bestSource) ?? null
 
   return (
-    <PageBody className="gap-6 md:pt-5 md:pb-8">
+    <PageBody>
       <PageHeader
         title={copy.title}
         summary={copy.summary}

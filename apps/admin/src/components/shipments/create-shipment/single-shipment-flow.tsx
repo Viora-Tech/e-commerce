@@ -2,10 +2,11 @@
 
 import { Truck } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import { DialogFooter, DialogHeader, DialogTitle } from '@commerce/ui/shadcn/dialog'
-import { Spinner } from '@commerce/ui/shadcn/spinner'
+import { DialogTitle } from '@commerce/ui/shadcn/dialog'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import DialogFooter from '@/components/layout/dialog-footer'
+import DialogHeader from '@/components/layout/dialog-header'
 import {
   EMPTY_TRACKING,
   type TrackingDraft,
@@ -172,7 +173,9 @@ export default function SingleShipmentFlow({
           {copy.bulkPackage.blocked[order.blocked ?? 'nothing_to_ship']}
         </p>
         <DialogFooter>
-          <Button onClick={onClose}>{copy.close}</Button>
+          <Button variant="outline" onClick={onClose}>
+            {copy.close}
+          </Button>
         </DialogFooter>
       </>
     )
@@ -195,7 +198,7 @@ export default function SingleShipmentFlow({
         <DialogTitle>{copy.title(order.orderNumber)}</DialogTitle>
         <FlowSteps steps={STEPS} current={step} labels={copy.steps} />
       </DialogHeader>
-      <div className="-mx-4 min-h-0 overflow-y-auto px-4">
+      <div>
         {step === 'package' && form ? (
           <PackageStep
             draft={draft}
@@ -236,7 +239,9 @@ export default function SingleShipmentFlow({
       </div>
       <DialogFooter>
         {step === 'done' ? (
-          <Button onClick={onClose}>{copy.close}</Button>
+          <Button variant="outline" onClick={onClose}>
+            {copy.close}
+          </Button>
         ) : (
           <>
             {step === 'package' ? (
@@ -249,8 +254,8 @@ export default function SingleShipmentFlow({
               </Button>
             )}
             {step === 'review' ? (
-              <Button onClick={handleBook} disabled={busy}>
-                {busy ? <Spinner /> : <Truck aria-hidden="true" />}
+              <Button loading={busy} onClick={handleBook} disabled={busy}>
+                <Truck aria-hidden="true" />
                 {busy
                   ? copy.review.booking
                   : pick === MANUAL

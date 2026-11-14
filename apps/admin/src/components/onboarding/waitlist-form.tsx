@@ -1,6 +1,6 @@
 'use client'
 
-import { CircleCheck, Loader2Icon } from '@commerce/ui/icons'
+import { CircleCheck } from '@commerce/ui/icons'
 import PhoneInput from '@commerce/ui/phone-input'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Field, FieldError, FieldGroup, FieldLabel } from '@commerce/ui/shadcn/field'
@@ -100,9 +100,8 @@ export default function WaitlistForm({ defaultEmail }: WaitlistFormProps) {
           />
         </Field>
         {error ? <FieldError>{error}</FieldError> : null}
-        <Button type="submit" size="lg" className="w-full" disabled={!canSubmit}>
-          {sending ? <Loader2Icon className="size-4 animate-spin" /> : null}
-          {sending ? copy.waitlist.sending : copy.waitlist.submit}
+        <Button loading={sending} type="submit" size="lg" className="w-full" disabled={!canSubmit}>
+          {copy.waitlist.submit}
         </Button>
       </FieldGroup>
     </form>

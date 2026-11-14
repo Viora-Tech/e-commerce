@@ -1,7 +1,9 @@
 'use client'
 
 import { Button } from '@commerce/ui/shadcn/button'
+import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import Link from 'next/link'
+import DataCard from '@/components/layout/data-card'
 import StatusChip from '@/components/layout/status-chip'
 import { delhiveryAppContent } from '@/data/delhivery'
 import { useCopy, useFormat } from '@/hooks/use-copy'
@@ -26,9 +28,9 @@ export default function PickupLocationsCard({ places }: PickupLocationsCardProps
   const p = copy.pickup
 
   return (
-    <section className="flex flex-col gap-3 rounded-xl border border-border surface-card p-4">
-      <div className="flex items-center justify-between gap-3">
-        <h2 className="text-body font-semibold text-ink-strong">{p.title}</h2>
+    <DataCard
+      title={p.title}
+      action={
         <Button
           variant="ghost"
           size="sm"
@@ -37,9 +39,10 @@ export default function PickupLocationsCard({ places }: PickupLocationsCardProps
         >
           {p.add}
         </Button>
-      </div>
+      }
+    >
       {places === null ? (
-        <span className="h-10 animate-pulse rounded bg-muted" />
+        <Skeleton className="h-10 rounded" />
       ) : places.length === 0 ? (
         <p className="text-caption text-muted-foreground">{p.empty}</p>
       ) : (
@@ -69,6 +72,6 @@ export default function PickupLocationsCard({ places }: PickupLocationsCardProps
           ))}
         </ul>
       )}
-    </section>
+    </DataCard>
   )
 }

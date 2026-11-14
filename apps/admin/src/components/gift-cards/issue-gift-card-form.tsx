@@ -96,9 +96,9 @@ export default function IssueGiftCardForm({ today }: IssueGiftCardFormProps) {
             <Button variant="outline" onClick={() => router.push(routes.products.giftCards())}>
               {copy.cancel}
             </Button>
-            <Button onClick={handleSave} disabled={!canSave}>
+            <Button loading={busy} onClick={handleSave} disabled={!canSave}>
               <Save aria-hidden="true" />
-              {busy ? copy.saving : copy.save}
+              {copy.save}
             </Button>
           </>
         }

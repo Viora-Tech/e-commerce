@@ -2,6 +2,7 @@
 
 import { Button } from '@commerce/ui/shadcn/button'
 import { Dialog, DialogDescription, DialogTitle } from '@commerce/ui/shadcn/dialog'
+import { useState } from 'react'
 import DialogContent from '@/components/layout/dialog-content'
 import DialogFooter from '@/components/layout/dialog-footer'
 import DialogHeader from '@/components/layout/dialog-header'
@@ -27,11 +28,19 @@ export default function PauseDialog({
 }: PauseDialogProps) {
   // Hooks
   const { pause: copy } = useCopy(automationEditorContent)
+  /* Which choice was pressed, so only that button spins while `busy`. */
+  const [picked, setPicked] = useState<'cancel' | 'finish'>('finish')
+
+  // Event handlers
+  const handlePick = (choice: 'cancel' | 'finish') => {
+    setPicked(choice)
+    onPause(choice)
+  }
 
   // Render logic
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent busy={busy}>
         <DialogHeader>
           <DialogTitle>{copy.title}</DialogTitle>
           <DialogDescription>{copy.body(openRuns)}</DialogDescription>
@@ -39,10 +48,19 @@ export default function PauseDialog({
         <DialogFooter>
           {openRuns > 0 ? (
             <>
-              <Button variant="outline" disabled={busy} onClick={() => onPause('cancel')}>
+              <Button
+                variant="outline"
+                disabled={busy}
+                loading={busy && picked === 'cancel'}
+                onClick={() => handlePick('cancel')}
+              >
                 {copy.cancel}
               </Button>
-              <Button disabled={busy} onClick={() => onPause('finish')}>
+              <Button
+                disabled={busy}
+                loading={busy && picked === 'finish'}
+                onClick={() => handlePick('finish')}
+              >
                 {copy.finish}
               </Button>
             </>

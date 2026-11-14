@@ -1,17 +1,14 @@
 'use client'
 
-import { CheckIcon, Loader2Icon } from '@commerce/ui/icons'
+import { CheckIcon } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@commerce/ui/shadcn/dialog'
+import { Dialog, DialogDescription, DialogTitle } from '@commerce/ui/shadcn/dialog'
+import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { type ChangeEvent, type DragEvent, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
+import DialogContent from '@/components/layout/dialog-content'
+import DialogFooter from '@/components/layout/dialog-footer'
+import DialogHeader from '@/components/layout/dialog-header'
 import { mediaContent } from '@/data/media'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -312,16 +309,12 @@ export default function MediaPickDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      {/* The kit dialog caps width at `sm:max-w-sm`; the library needs room for a grid and
-          the details pane, so the cap is set at the same breakpoint. */}
-      <DialogContent className="flex h-[min(90svh,48rem)] w-full flex-col gap-0 p-0 sm:max-w-[64rem]">
-        <DialogHeader className="gap-3 border-b p-4">
-          <DialogTitle className="text-base font-medium">{title ?? copy.title}</DialogTitle>
-          {description ? (
-            <DialogDescription className="text-caption text-muted-foreground">
-              {description}
-            </DialogDescription>
-          ) : null}
+      {/* The library needs room for a grid and the details pane: the shell's wide size, as a
+          panel so the grid and the pane scroll on their own. */}
+      <DialogContent size="wide" panel className="h-[min(85svh,48rem)]">
+        <DialogHeader className="gap-3 border-b">
+          <DialogTitle>{title ?? copy.title}</DialogTitle>
+          {description ? <DialogDescription>{description}</DialogDescription> : null}
           <MediaPickToolbar
             restricted={restricted}
             query={query}
@@ -377,7 +370,7 @@ export default function MediaPickDialog({
               ) : null}
               {loading ? (
                 <div className="flex h-64 items-center justify-center text-muted-foreground">
-                  <Loader2Icon className="size-5 animate-spin" aria-hidden />
+                  <Spinner className="size-5" />
                   <span className="sr-only">{copy.loading}</span>
                 </div>
               ) : null}
@@ -404,7 +397,7 @@ export default function MediaPickDialog({
               {!restricted ? <div ref={sentinelRef} className="h-1" /> : null}
               {loadingMore ? (
                 <div className="flex justify-center py-3 text-muted-foreground">
-                  <Loader2Icon className="size-4 animate-spin" aria-hidden />
+                  <Spinner />
                 </div>
               ) : null}
             </section>
@@ -420,7 +413,7 @@ export default function MediaPickDialog({
           )}
         </div>
 
-        <DialogFooter className="mx-0 mb-0 items-center gap-2 rounded-b-xl border-t bg-muted/50 p-4 sm:justify-between">
+        <DialogFooter className="items-center sm:justify-between">
           <span
             className="flex items-center gap-2 text-caption text-muted-foreground"
             aria-live="polite"

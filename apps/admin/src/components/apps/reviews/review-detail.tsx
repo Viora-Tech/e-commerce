@@ -3,8 +3,6 @@
 import { CircleCheck, Eye, EyeOff, StarIcon } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card } from '@commerce/ui/shadcn/card'
-import { Skeleton } from '@commerce/ui/shadcn/skeleton'
-import { Spinner } from '@commerce/ui/shadcn/spinner'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
@@ -13,6 +11,7 @@ import type { AppPageProps } from '@/apps/registry'
 import EmptyState from '@/components/layout/empty-state'
 import PageColumns from '@/components/layout/page-columns'
 import PageHeader from '@/components/layout/page-header'
+import SectionPageSkeleton from '@/components/layout/section-page-skeleton'
 import OrderChip from '@/components/orders/order-chip'
 import { reviewsContent } from '@/data/reviews'
 import { useCopy } from '@/hooks/use-copy'
@@ -33,6 +32,8 @@ export default function ReviewDetail({ params }: AppPageProps) {
   const [detail, setDetail] = useState<Detail | null>(null)
   const [missing, setMissing] = useState(false)
   const [busy, setBusy] = useState(false)
+  /** The status being set, so only that button spins while `busy`. */
+  const [pending, setPending] = useState<'published' | 'hidden' | null>(null)
   const [version, setVersion] = useState(0)
   // biome-ignore lint/correctness/useExhaustiveDependencies: `version` re-runs the load after a change
   useEffect(() => {
@@ -51,6 +52,7 @@ export default function ReviewDetail({ params }: AppPageProps) {
 
   // Event handlers
   const handleStatus = async (status: 'published' | 'hidden') => {
+    setPending(status)
     setBusy(true)
     try {
       await api.reviews.setStatus({ ids: [params.id ?? ''], status })
@@ -87,7 +89,7 @@ export default function ReviewDetail({ params }: AppPageProps) {
       </Card>
     )
   }
-  if (!detail) return <Skeleton className="h-96 w-full rounded-lg" />
+  if (!detail) return <SectionPageSkeleton header={false} />
 
   // Render logic
   const r = detail.review
@@ -101,16 +103,23 @@ export default function ReviewDetail({ params }: AppPageProps) {
         actions={
           <>
             {r.status !== 'hidden' ? (
-              <Button variant="outline" disabled={busy} onClick={() => handleStatus('hidden')}>
+              <Button
+                variant="outline"
+                disabled={busy}
+                loading={busy && pending === 'hidden'}
+                onClick={() => handleStatus('hidden')}
+              >
                 <EyeOff aria-hidden="true" />
                 {copy.hide}
               </Button>
             ) : null}
             {r.status !== 'published' ? (
-              <Button disabled={busy} onClick={() => handleStatus('published')}>
-                {busy ? (
-                  <Spinner />
-                ) : r.status === 'hidden' ? (
+              <Button
+                disabled={busy}
+                loading={busy && pending === 'published'}
+                onClick={() => handleStatus('published')}
+              >
+                {r.status === 'hidden' ? (
                   <Eye aria-hidden="true" />
                 ) : (
                   <CircleCheck aria-hidden="true" />

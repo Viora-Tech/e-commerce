@@ -45,7 +45,7 @@ export default function ReviewPanel({ rows, onBack, onIssued }: ReviewPanelProps
     rows.map((row) => ({ row, day: istDay(row.defaultDate) })),
   )
   const [numbers, setNumbers] = useState<Record<string, string> | null>(null)
-  const [busy, setBusy] = useState(false)
+  const [busy, setBusy] = useState<string | null>(null)
 
   // Helpers
   const payload = () => ({
@@ -54,14 +54,14 @@ export default function ReviewPanel({ rows, onBack, onIssued }: ReviewPanelProps
       invoiceDate: i.day === istDay(new Date()) ? new Date() : atIstNoon(i.day),
     })),
   })
-  const call = async (fn: () => Promise<void>) => {
-    setBusy(true)
+  const call = async (action: string, fn: () => Promise<void>) => {
+    setBusy(action)
     try {
       await fn()
     } catch (err) {
       toast.error(err instanceof Error ? err.message : copy.failed)
     } finally {
-      setBusy(false)
+      setBusy(null)
     }
   }
 
@@ -75,7 +75,7 @@ export default function ReviewPanel({ rows, onBack, onIssued }: ReviewPanelProps
     setItems(next.map((n) => n.item))
   }
   const handlePreview = () =>
-    call(async () => {
+    call('preview', async () => {
       const plan = (await api.gstInvoices.queue.preview(payload())) ?? []
       setNumbers(Object.fromEntries(plan.map((p) => [p.id, p.number])))
       // Show rows in the order they will be numbered.
@@ -85,7 +85,7 @@ export default function ReviewPanel({ rows, onBack, onIssued }: ReviewPanelProps
       )
     })
   const handleIssue = () =>
-    call(async () => {
+    call('issue', async () => {
       const plan = (await api.gstInvoices.queue.issue(payload())) ?? []
       onIssued(plan.length)
     })
@@ -127,14 +127,23 @@ export default function ReviewPanel({ rows, onBack, onIssued }: ReviewPanelProps
           }}
         />
         <div className="flex flex-wrap justify-end gap-2">
-          <Button variant="ghost" onClick={onBack} disabled={busy}>
+          <Button variant="ghost" onClick={onBack} disabled={busy !== null}>
             {copy.back}
           </Button>
-          <Button variant="outline" onClick={handlePreview} disabled={busy}>
+          <Button
+            variant="outline"
+            onClick={handlePreview}
+            loading={busy === 'preview'}
+            disabled={busy !== null}
+          >
             <Eye aria-hidden="true" />
             {copy.preview}
           </Button>
-          <Button onClick={handleIssue} disabled={busy || !numbers}>
+          <Button
+            onClick={handleIssue}
+            loading={busy === 'issue'}
+            disabled={busy !== null || !numbers}
+          >
             <ReceiptIcon aria-hidden="true" />
             {copy.confirm(items.length)}
           </Button>

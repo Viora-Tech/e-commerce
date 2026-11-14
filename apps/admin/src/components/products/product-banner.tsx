@@ -2,6 +2,7 @@
 
 import { stockStateOf } from '@commerce/core/catalog'
 import { TriangleAlert } from '@commerce/ui/icons'
+import { Alert, AlertDescription, AlertTitle } from '@commerce/ui/shadcn/alert'
 import { Button } from '@commerce/ui/shadcn/button'
 import { productBannerContent } from '@/data/products'
 import { useCopy } from '@/hooks/use-copy'
@@ -59,18 +60,18 @@ export default function ProductBanner({
   if (!banner) return null
 
   return (
-    <div
+    <Alert
+      tone="warning"
       role="status"
-      className="flex flex-wrap items-center gap-3 rounded-xl bg-warning-soft px-4 py-3 text-warning"
+      action={
+        <Button variant="outline" size="sm" onClick={banner.onAction}>
+          {banner.action}
+        </Button>
+      }
     >
-      <TriangleAlert className="size-5 shrink-0" aria-hidden />
-      <div className="flex min-w-0 flex-1 flex-col">
-        <span className="text-body font-semibold text-foreground">{banner.heading}</span>
-        <span className="text-caption text-muted-foreground">{banner.body}</span>
-      </div>
-      <Button variant="outline" size="sm" onClick={banner.onAction}>
-        {banner.action}
-      </Button>
-    </div>
+      <TriangleAlert aria-hidden />
+      <AlertTitle className="text-body">{banner.heading}</AlertTitle>
+      <AlertDescription className="text-caption">{banner.body}</AlertDescription>
+    </Alert>
   )
 }

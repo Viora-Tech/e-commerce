@@ -57,7 +57,7 @@ export default function ArchiveProgramDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent busy={busy}>
         <DialogHeader>
           <DialogTitle>{copy.archiveTitle}</DialogTitle>
           <DialogDescription>{copy.archiveBody}</DialogDescription>

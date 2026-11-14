@@ -27,7 +27,7 @@ type GiftCardDetailProps = { initial: GiftCardDetailData }
 export default function GiftCardDetail({ initial }: GiftCardDetailProps) {
   // Hooks
   const [card, setCard] = useState(initial)
-  const [busy, setBusy] = useState(false)
+  const [busy, setBusy] = useState<string | null>(null)
 
   // Helpers
   const reload = async () => {
@@ -37,7 +37,7 @@ export default function GiftCardDetail({ initial }: GiftCardDetailProps) {
 
   // Event handlers
   const handleToggle = async () => {
-    setBusy(true)
+    setBusy('toggle')
     try {
       const disabled = !card.disabledAt
       await api.giftCards.setDisabled({ id: card.id, disabled })
@@ -46,12 +46,12 @@ export default function GiftCardDetail({ initial }: GiftCardDetailProps) {
     } catch {
       toast.error(copy.failed)
     } finally {
-      setBusy(false)
+      setBusy(null)
     }
   }
 
   const handleResend = async () => {
-    setBusy(true)
+    setBusy('resend')
     try {
       const r = await api.giftCards.resend({ id: card.id })
       const ok = r.find((d) => d.ok)
@@ -61,7 +61,7 @@ export default function GiftCardDetail({ initial }: GiftCardDetailProps) {
     } catch (err) {
       toast.error(err instanceof Error ? err.message : copy.resendFailed)
     } finally {
-      setBusy(false)
+      setBusy(null)
     }
   }
 
@@ -79,7 +79,12 @@ export default function GiftCardDetail({ initial }: GiftCardDetailProps) {
         actions={
           <>
             {canResend ? (
-              <Button variant="outline" onClick={handleResend} disabled={busy}>
+              <Button
+                variant="outline"
+                onClick={handleResend}
+                loading={busy === 'resend'}
+                disabled={busy !== null}
+              >
                 <Send aria-hidden="true" />
                 {copy.resend}
               </Button>
@@ -87,7 +92,8 @@ export default function GiftCardDetail({ initial }: GiftCardDetailProps) {
             <Button
               variant={card.disabledAt ? 'default' : 'outline'}
               onClick={handleToggle}
-              disabled={busy}
+              loading={busy === 'toggle'}
+              disabled={busy !== null}
             >
               {card.disabledAt ? (
                 <CircleCheck aria-hidden="true" />

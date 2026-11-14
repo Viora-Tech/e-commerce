@@ -81,7 +81,7 @@ export default function ImportThemeScreen() {
     return (
       <ProoflyPageBody>
         <PageHeader title={screen.workingTitle} summary={screen.workingSubtitle} back={back} />
-        <div className="surface-card flex flex-col gap-4 rounded-xl p-5">
+        <div className="surface-card flex flex-col gap-4 rounded-lg p-5">
           <p className="text-body font-semibold text-ink-strong">{screen.progress}</p>
           <div
             role="progressbar"
@@ -128,7 +128,7 @@ export default function ImportThemeScreen() {
       />
       <div
         className={cn(
-          'surface-card flex flex-col items-center gap-3 rounded-2xl border border-dashed border-border px-6 text-center',
+          'surface-card flex flex-col items-center gap-3 rounded-lg border border-dashed border-border px-6 text-center',
           file || failed ? 'py-10' : 'py-16',
         )}
       >
@@ -146,7 +146,7 @@ export default function ImportThemeScreen() {
         </p>
       </div>
       {file ? (
-        <div className="surface-card flex flex-col gap-5 rounded-xl p-5">
+        <div className="surface-card flex flex-col gap-5 rounded-lg p-5">
           <p className="text-body text-muted-foreground">{copy.howTo}</p>
           <Field>
             <FieldLabel htmlFor="shopify-host">{copy.host}</FieldLabel>

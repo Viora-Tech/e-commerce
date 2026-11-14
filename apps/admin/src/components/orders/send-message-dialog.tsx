@@ -166,6 +166,7 @@ export default function SendMessageDialog({
   return (
     <Dialog open={orderId !== null} onOpenChange={(open) => !open && !sending && onClose()}>
       <DialogContent
+        busy={sending}
         size="wide"
         onClick={stopPropagation ? (event) => event.stopPropagation() : undefined}
       >
@@ -270,8 +271,8 @@ export default function SendMessageDialog({
           <Button variant="outline" onClick={onClose} disabled={sending}>
             {copy.cancel}
           </Button>
-          <Button onClick={handleSend} disabled={sending || !preview || !to}>
-            {sending ? <Spinner /> : <Send aria-hidden="true" />}
+          <Button loading={sending} onClick={handleSend} disabled={sending || !preview || !to}>
+            <Send aria-hidden="true" />
             {t.send}
           </Button>
         </DialogFooter>

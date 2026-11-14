@@ -11,7 +11,6 @@ import {
   EarthIcon,
   Flag02Icon,
   HighlighterIcon,
-  KeyboardIcon as Keyboard,
   LeftToRightListBulletIcon as ListBullets,
   LeftToRightListNumberIcon as ListNumbers,
   MinusSignIcon as Minus,
@@ -55,8 +54,6 @@ export const ExitFullViewIcon = defineIcon(CornersIn, 'ExitFullView')
 export const SidebarToggleIcon = defineIcon(SidebarSimple, 'SidebarToggle')
 /** A pointer: "click it". */
 export const Cursor = defineIcon(PhCursor, 'Cursor')
-/** Keyboard shortcuts. */
-export const KeyboardIcon = defineIcon(Keyboard, 'KeyboardIcon')
 
 /* Glyphs a few call sites use under their plain names. */
 export const Circle = defineIcon(CircleIcon, 'Circle')

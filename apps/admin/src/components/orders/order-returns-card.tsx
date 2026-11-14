@@ -5,6 +5,7 @@ import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import DataCard from '@/components/layout/data-card'
+import DataCardSkeleton from '@/components/layout/data-card-skeleton'
 import CreateReturnDialog from '@/components/returns/create-return-dialog'
 import StatusLabel from '@/components/status/status-label'
 import { orderReturnsContent, returnsContent } from '@/data/returns'
@@ -18,6 +19,12 @@ type OrderReturnsCardProps = {
   orderId: string
   /** Imported orders are a record: no new returns. */
   readOnly: boolean
+  /**
+   * The card will most likely show (a shipped order can be returned): hold its place with a
+   * skeleton while it loads instead of popping in. An unshipped order draws nothing meanwhile,
+   * since its card usually stays hidden.
+   */
+  expected?: boolean
   onChanged: () => void
 }
 
@@ -36,7 +43,12 @@ function windowLine(
 }
 
 /** The order page's Returns card: an RTO task banner first, then every return on the order. */
-export default function OrderReturnsCard({ orderId, readOnly, onChanged }: OrderReturnsCardProps) {
+export default function OrderReturnsCard({
+  orderId,
+  readOnly,
+  expected = false,
+  onChanged,
+}: OrderReturnsCardProps) {
   // Hooks
   const copy = useCopy(orderReturnsContent)
   const fmt = useFormat()
@@ -44,14 +56,21 @@ export default function OrderReturnsCard({ orderId, readOnly, onChanged }: Order
   const [state, setState] = useState<State | null>(null)
   const [creating, setCreating] = useState(false)
   const [reloadKey, setReloadKey] = useState(0)
+  const [hidden, setHidden] = useState(false)
 
   useEffect(() => {
     // reloadKey only re-runs the fetch after a return is created.
     if (reloadKey < 0) return
     let live = true
-    api.returns.forOrder({ orderId }).then((s) => {
-      if (live) setState(s)
-    })
+    api.returns
+      .forOrder({ orderId })
+      .then((s) => {
+        if (live) setState(s)
+      })
+      // A failed read hides the card, as one with nothing to show.
+      .catch(() => {
+        if (live) setHidden(true)
+      })
     return () => {
       live = false
     }
@@ -65,7 +84,7 @@ export default function OrderReturnsCard({ orderId, readOnly, onChanged }: Order
   }
 
   // Early returns
-  if (!state) return null
+  if (!state) return expected && !hidden ? <DataCardSkeleton fields={1} lines={1} /> : null
 
   // Render logic
   const openRto = state.returns.filter((r) => r.kind === 'rto' && r.status === 'received')

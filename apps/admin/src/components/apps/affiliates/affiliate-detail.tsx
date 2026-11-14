@@ -134,7 +134,7 @@ export default function AffiliateDetail({ params }: AppPageProps) {
         <ReviewCard affiliateId={a.id} reasons={a.reviewReasons} onChanged={handleChanged} />
       ) : null}
       <div className="grid gap-4 lg:grid-cols-2">
-        <dl className="flex flex-col gap-3 rounded-xl surface-card px-5 py-4">
+        <dl className="flex flex-col gap-3 rounded-lg surface-card px-5 py-4">
           {facts.map((x) => (
             <div key={x.label} className="flex flex-col gap-0.5">
               <dt className="text-caption text-muted-foreground">{x.label}</dt>
@@ -148,7 +148,7 @@ export default function AffiliateDetail({ params }: AppPageProps) {
             </div>
           ) : null}
         </dl>
-        <div className="flex flex-col gap-3 rounded-xl surface-card px-5 py-4">
+        <div className="flex flex-col gap-3 rounded-lg surface-card px-5 py-4">
           <label htmlFor="aff-note" className="text-caption text-muted-foreground">
             {d.note}
           </label>

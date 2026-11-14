@@ -4,7 +4,6 @@ import { type StoreGeneral, StoreGeneralSchema } from '@commerce/core/store-sett
 import { formatStoreMoney, isMoneyFormat } from '@commerce/money'
 import { MapPinLineIcon } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import { Card } from '@commerce/ui/shadcn/card'
 import { Input } from '@commerce/ui/shadcn/input'
 import {
   Select,
@@ -13,15 +12,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@commerce/ui/shadcn/select'
-import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
+import SectionPageSkeleton from '@/components/layout/section-page-skeleton'
+import LoadFailed from '@/components/states/load-failed'
 import { settingsContent } from '@/data/settings'
 import { taxesContent } from '@/data/taxes'
+import { useLoad } from '@/hooks/use-load'
 import { useSetupNext } from '@/hooks/use-setup-next'
 import { api } from '@/lib/api-client'
 import GeneralCompletion, { detailsDone } from './general-completion'
@@ -60,20 +60,6 @@ function validate(form: StoreGeneral): Errors {
   return Object.fromEntries(r.error.issues.map((i) => [i.path.join('.'), i.message]))
 }
 
-function LoadingCards() {
-  return (
-    <>
-      {[0, 1, 2].map((i) => (
-        <Card key={i} gap={4} inset={6}>
-          <Skeleton className="h-5 w-40" />
-          <Skeleton className="h-10 w-full" />
-          <Skeleton className="h-10 w-full" />
-        </Card>
-      ))}
-    </>
-  )
-}
-
 /**
  * Settings › Store details (once "General") in three cards (store details, business address,
  * currency and time), each with a help line, plus how many details are done
@@ -92,13 +78,14 @@ export default function GeneralSettings() {
     // Old links to the tax card (General's #tax, which redirects to this page) land on Taxes & GST.
     if (window.location.hash === '#tax') router.replace(TAXES_HREF)
   }, [router])
-  useEffect(() => {
-    api.store.getGeneral().then((g) => {
-      if (!g) return
+  const { failed, retry } = useLoad(async () => {
+    const g = await api.store.getGeneral()
+    if (g) {
       setForm(g)
       setSaved(JSON.stringify(g))
-    })
-  }, [])
+    }
+    return g
+  })
 
   // Helpers
   const patch = (p: Partial<Loaded>) => setForm((f) => (f ? { ...f, ...p } : f))
@@ -180,15 +167,10 @@ export default function GeneralSettings() {
         onDiscard={handleDiscard}
         saving={busy}
       />
-      {!form ? (
-        <>
-          <PageHeader
-            title={copy.title}
-            subtitle={copy.intro}
-            save={{ dirty: false, saving: busy, onSave: handleSave, label: copy.save }}
-          />
-          <LoadingCards />
-        </>
+      {failed && !form ? (
+        <LoadFailed failed={failed} onRetry={retry} />
+      ) : !form ? (
+        <SectionPageSkeleton />
       ) : (
         <SettingsDrill
           rows={rows}
@@ -294,7 +276,7 @@ export default function GeneralSettings() {
             </SettingsCard>
             <div
               id="tax"
-              className="flex scroll-mt-6 flex-col gap-3 rounded-xl border border-border bg-card p-4 sm:flex-row sm:items-center"
+              className="flex scroll-mt-6 flex-col gap-3 rounded-lg border border-border bg-card p-4 sm:flex-row sm:items-center"
             >
               <p className="flex-1 text-body text-foreground">{movedCopy.body}</p>
               <Button variant="outline" render={<Link href={TAXES_HREF} />} nativeButton={false}>

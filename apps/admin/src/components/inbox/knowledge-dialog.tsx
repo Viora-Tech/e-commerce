@@ -68,7 +68,6 @@ export default function KnowledgeDialog({ entry, onClose, onSaved }: KnowledgeDi
       title={entry ? d.editTitle : d.addTitle}
       submitLabel={entry ? d.save : d.add}
       onSubmit={handleSubmit}
-      size="md"
     >
       <div className="flex flex-col gap-4">
         <Field>

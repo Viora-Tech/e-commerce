@@ -50,7 +50,7 @@ export default function AltTextDialog({ item, onClose, onSaved }: AltTextDialogP
 
   return (
     <Dialog open={item !== null} onOpenChange={handleOpenChange}>
-      <DialogContent>
+      <DialogContent busy={busy}>
         <form onSubmit={handleSubmit} className="flex flex-col gap-5">
           <DialogHeader>
             <DialogTitle>{copy.title}</DialogTitle>
