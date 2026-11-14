@@ -6,7 +6,7 @@ import {
   SHIPMENT_TABS,
   type ShipmentTab,
 } from '@commerce/core/shipment-tabs'
-import { Clock, Settings, Truck } from '@commerce/ui/icons'
+import { Clock, RotateCcw, Settings, Truck } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card } from '@commerce/ui/shadcn/card'
 import Link from 'next/link'
@@ -22,6 +22,7 @@ import BookByNumberDialog from '@/components/shipments/book-by-number-dialog'
 import ResourceTable from '@/components/table/resource-table'
 import { shipmentFiltersContent } from '@/data/order-list-filters'
 import { shipmentPartsContent, shipmentsContent } from '@/data/shipments'
+import { statesContent } from '@/data/states'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
@@ -82,6 +83,7 @@ function ShipmentsContent() {
   const copy = useCopy(shipmentsContent)
   const partsCopy = useCopy(shipmentPartsContent)
   const filterCopy = useCopy(shipmentFiltersContent)
+  const states = useCopy(statesContent)
   const router = useRouter()
   const fmt = useFormat()
   const [q, setQ] = useQueryStates(
@@ -97,6 +99,8 @@ function ShipmentsContent() {
   const [rows, setRows] = useState<ShipmentRow[]>([])
   const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(true)
+  /** The open tab's rows did not load: the table says so instead of "nothing here". */
+  const [failed, setFailed] = useState(false)
   const [counts, setCounts] = useState<Counts | null>(null)
   const [wallets, setWallets] = useState<Wallets | null>(null)
   const [couriers, setCouriers] = useState<{ labels: Map<string, string>; enabled: string[] }>({
@@ -120,9 +124,10 @@ function ShipmentsContent() {
       (c) => live && setUsedCouriers(c),
       () => undefined,
     )
+    // A failed read stays unknown (null): an empty list would claim no courier is connected.
     fetchWallets()
       .then((w) => live && setWallets(w))
-      .catch(() => live && setWallets([]))
+      .catch(() => undefined)
     api.store.getShipping().then((r) => {
       if (!live) return
       setCouriers({
@@ -140,14 +145,23 @@ function ShipmentsContent() {
     let live = true
     setLoading(true)
     fetchTab(q, parseRowsPerPage(q.perPage))
-      .then((r) => {
-        if (!live) return
-        setRows(r.items)
-        setTotal(r.total)
-        setRowOrders(
-          (m) => new Map([...m, ...r.items.map((i): [string, string] => [i.id, i.orderId])]),
-        )
-      })
+      .then(
+        (r) => {
+          if (!live) return
+          setFailed(false)
+          setRows(r.items)
+          setTotal(r.total)
+          setRowOrders(
+            (m) => new Map([...m, ...r.items.map((i): [string, string] => [i.id, i.orderId])]),
+          )
+        },
+        () => {
+          if (!live) return
+          setFailed(true)
+          setRows([])
+          setTotal(0)
+        },
+      )
       .finally(() => live && setLoading(false))
     return () => {
       live = false
@@ -340,9 +354,27 @@ function ShipmentsContent() {
                 <ShipmentsBulkActions ids={ids} tab={tab} onDone={handleBooked} />
               )
             }
-            empty={{
-              heading: filterable && hasShipmentFilters(q) ? filterCopy.noResults : copy.empty[tab],
-            }}
+            empty={
+              failed
+                ? {
+                    heading: states.error.heading,
+                    body: states.error.body,
+                    action: (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setReloadKey((k) => k + 1)}
+                      >
+                        <RotateCcw aria-hidden="true" />
+                        {states.error.retry}
+                      </Button>
+                    ),
+                  }
+                : {
+                    heading:
+                      filterable && hasShipmentFilters(q) ? filterCopy.noResults : copy.empty[tab],
+                  }
+            }
           />
         </>
       )}

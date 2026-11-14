@@ -2,12 +2,12 @@
 
 import { PackageOpen, Truck } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import ChoiceField from '@/components/apps/gst-invoices/choice-field'
 import DataCard from '@/components/layout/data-card'
+import DetailPageSkeleton from '@/components/layout/detail-page-skeleton'
 import PageHeader from '@/components/layout/page-header'
 import ProoflyDetailPage from '@/components/layout/proofly-detail-page'
 import EditOrderContactDialog from '@/components/orders/edit-order-contact-dialog'
@@ -276,14 +276,8 @@ export default function CreateShipmentPage({
   if (failed || (draft && (!order || order.blocked || !parcel || !form))) {
     return <ShipPageUnavailable orderId={orderId} blocked={order?.blocked ?? null} />
   }
-  if (!draft || !order || !parcel || !form) {
-    return (
-      <div className="flex items-center justify-center gap-2 py-24 text-body text-muted-foreground">
-        <Spinner />
-        {content.loading}
-      </div>
-    )
-  }
+  // The route's own skeleton stays up until the draft arrives (no spinner in between).
+  if (!draft || !order || !parcel || !form) return <DetailPageSkeleton />
 
   // Render logic
   const shown = partial.shown(parcel)
