@@ -89,9 +89,9 @@ export default function RunProblemGroups({ runId, version }: RunProblemGroupsPro
           const { icon: Severity, tone } = SEVERITY[g.cause]
           const types = g.resources.map((r) => (isResource(r, labels) ? labels[r] : r)).join(', ')
           return (
-            <li key={`${g.cause}-${g.resources.join('-')}`} className="rounded-xl bg-card">
+            <li key={`${g.cause}-${g.resources.join('-')}`} className="rounded-lg bg-card">
               <Collapsible defaultOpen={i === 0} className="group/problem">
-                <CollapsibleTrigger className="flex w-full items-start gap-3 rounded-xl px-4 py-3 text-left outline-none transition-colors duration-150 hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring">
+                <CollapsibleTrigger className="flex w-full items-start gap-3 rounded-lg px-4 py-3 text-left outline-none transition-colors duration-150 hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring">
                   <Severity className={`mt-0.5 size-4 shrink-0 ${tone}`} aria-hidden />
                   <span className="flex min-w-0 flex-1 flex-col gap-0.5">
                     <span className="font-medium text-ink-strong">{p.cause[g.cause](g.count)}</span>

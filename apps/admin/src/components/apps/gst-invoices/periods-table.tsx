@@ -11,8 +11,11 @@ import {
 } from '@commerce/ui/shadcn/table'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import LoadFailedState from '@/components/apps/shared/load-failed-state'
 import DataCard from '@/components/layout/data-card'
 import StatusChip from '@/components/layout/status-chip'
+import TableSkeletonRows from '@/components/table/table-skeleton-rows'
+import { appsContent } from '@/data/apps'
 import { gstReturnsContent } from '@/data/gst-invoices'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -34,18 +37,30 @@ type PeriodsTableProps = {
 export default function PeriodsTable({ gst, selected, onSelect, onChanged }: PeriodsTableProps) {
   // Hooks
   const copy = useCopy(gstReturnsContent)
-  const [periods, setPeriods] = useState<Period[]>([])
+  const apps = useCopy(appsContent)
+  /** Null until the filed and closed marks are read, so no month shows "Open" by mistake. */
+  const [periods, setPeriods] = useState<Period[] | null>(null)
+  const [failed, setFailed] = useState(false)
+  const [attempt, setAttempt] = useState(0)
   const [busy, setBusy] = useState<string | null>(null)
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `attempt` is Try again
   useEffect(() => {
     let cancelled = false
-    api.gstInvoices.periods.list({ gstRegistrationId: gst }).then((p) => {
-      if (!cancelled) setPeriods(p)
-    })
+    setPeriods(null)
+    setFailed(false)
+    api.gstInvoices.periods.list({ gstRegistrationId: gst }).then(
+      (p) => {
+        if (!cancelled) setPeriods(p)
+      },
+      () => {
+        if (!cancelled) setFailed(true)
+      },
+    )
     return () => {
       cancelled = true
     }
-  }, [gst])
+  }, [gst, attempt])
 
   // Helpers
   const run = async (key: string, fn: () => Promise<unknown>) => {
@@ -73,66 +88,78 @@ export default function PeriodsTable({ gst, selected, onSelect, onChanged }: Per
 
   // Render logic
   const p = copy.periods
-  const byPeriod = new Map(periods.map((row) => [row.period, row]))
+  const byPeriod = new Map((periods ?? []).map((row) => [row.period, row]))
 
   return (
     <DataCard title={p.title} flush>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead className={HEAD}>{p.month}</TableHead>
-            <TableHead className={`${HEAD} text-center`}>{p.status}</TableHead>
-            <TableHead className={`${HEAD} text-right`} />
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {recentMonths().map((m) => {
-            const row = byPeriod.get(m)
-            const filed = Boolean(row?.gstr1FiledAt)
-            const closed = Boolean(row?.closedAt)
-            return (
-              <TableRow key={m} data-state={m === selected ? 'selected' : undefined}>
-                <TableCell className={`${CELL} font-medium`}>{monthLabel(m)}</TableCell>
-                <TableCell className={`${CELL} text-center`}>
-                  <StatusChip tone={filed || closed ? 'neutral' : 'attention'}>
-                    {[filed ? p.filed : null, closed ? p.closed : null]
-                      .filter(Boolean)
-                      .join(', ') || p.open}
-                  </StatusChip>
-                </TableCell>
-                <TableCell className={CELL}>
-                  <span className="flex flex-wrap justify-end gap-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      disabled={m === selected}
-                      onClick={() => onSelect(m)}
-                    >
-                      {p.view}
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      disabled={busy !== null}
-                      onClick={() => handleFiled(m, !filed)}
-                    >
-                      {filed ? p.unmarkFiled : p.markFiled}
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      disabled={busy !== null}
-                      onClick={() => handleClosed(m, !closed)}
-                    >
-                      {closed ? p.reopen : p.close}
-                    </Button>
-                  </span>
-                </TableCell>
-              </TableRow>
-            )
-          })}
-        </TableBody>
-      </Table>
+      {failed ? (
+        <LoadFailedState
+          heading={apps.couldNotLoad.summary}
+          onRetry={() => setAttempt((n) => n + 1)}
+        />
+      ) : (
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className={HEAD}>{p.month}</TableHead>
+              <TableHead className={`${HEAD} text-center`}>{p.status}</TableHead>
+              <TableHead className={`${HEAD} text-right`} />
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {periods === null ? (
+              <TableSkeletonRows columns={3} rows={4} cellClassName={CELL} label={p.title} />
+            ) : null}
+            {(periods === null ? [] : recentMonths()).map((m) => {
+              const row = byPeriod.get(m)
+              const filed = Boolean(row?.gstr1FiledAt)
+              const closed = Boolean(row?.closedAt)
+              return (
+                <TableRow key={m} data-state={m === selected ? 'selected' : undefined}>
+                  <TableCell className={`${CELL} font-medium`}>{monthLabel(m)}</TableCell>
+                  <TableCell className={`${CELL} text-center`}>
+                    <StatusChip tone={filed || closed ? 'neutral' : 'attention'}>
+                      {[filed ? p.filed : null, closed ? p.closed : null]
+                        .filter(Boolean)
+                        .join(', ') || p.open}
+                    </StatusChip>
+                  </TableCell>
+                  <TableCell className={CELL}>
+                    <span className="flex flex-wrap justify-end gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={m === selected}
+                        onClick={() => onSelect(m)}
+                      >
+                        {p.view}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        disabled={busy !== null}
+                        loading={busy === `f-${m}`}
+                        onClick={() => handleFiled(m, !filed)}
+                      >
+                        {filed ? p.unmarkFiled : p.markFiled}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        disabled={busy !== null}
+                        loading={busy === `c-${m}`}
+                        onClick={() => handleClosed(m, !closed)}
+                      >
+                        {closed ? p.reopen : p.close}
+                      </Button>
+                    </span>
+                  </TableCell>
+                </TableRow>
+              )
+            })}
+          </TableBody>
+        </Table>
+      )}
       <p className="px-5 pt-4 text-caption text-muted-foreground">{p.note}</p>
     </DataCard>
   )

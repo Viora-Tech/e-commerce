@@ -97,7 +97,7 @@ export default function TemplateInput({
               <DropdownMenuItem
                 key={tag}
                 onClick={() => handleInsert(tag)}
-                className="font-mono text-xs"
+                className="font-mono text-period"
               >
                 {`{${tag}}`}
               </DropdownMenuItem>

@@ -24,14 +24,15 @@ export default function OverviewTile({
   return (
     <section
       className={cn(
-        'flex min-w-0 flex-col gap-1.5 rounded-lg border border-border surface-card p-4',
-        attention && 'border-warning/40',
+        // A cell of the joined stat strip (`StatStrip`): the strip draws the card and hairlines.
+        'flex min-w-0 flex-col gap-1.5 bg-card bg-[image:var(--card-surface)] p-4',
+        attention && 'bg-warning-soft bg-none',
       )}
     >
       <h2 className="text-caption text-muted-foreground">{label}</h2>
       <div className="flex min-h-9 items-center justify-between gap-3">
         {value === null ? (
-          <Skeleton className="h-6 w-16 rounded" />
+          <Skeleton className="h-6 w-16" />
         ) : (
           <p className="truncate text-stat leading-8 font-semibold text-ink-strong tabular-nums">
             {value}

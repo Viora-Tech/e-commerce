@@ -53,7 +53,7 @@ export default function RunSamplesCard({ samples, progress }: RunSamplesCardProp
             label={copy.sampleHeading}
             count={current.rows.length}
           >
-            <ul className="flex flex-col divide-y divide-hairline rounded-xl border border-hairline">
+            <ul className="flex flex-col divide-y divide-hairline rounded-lg border border-hairline">
               {current.rows.map((s) => (
                 <RunSampleRow key={`${s.resource}-${s.key}`} sample={s} />
               ))}

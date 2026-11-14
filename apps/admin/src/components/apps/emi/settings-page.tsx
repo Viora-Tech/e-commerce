@@ -8,11 +8,16 @@ import { Switch } from '@commerce/ui/shadcn/switch'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import LoadFailedState from '@/components/apps/shared/load-failed-state'
+import NoticeBar from '@/components/layout/notice-bar'
 import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
+import SectionPageSkeleton from '@/components/layout/section-page-skeleton'
 import SettingsCard from '@/components/settings/settings-card'
 import SettingsRow from '@/components/settings/settings-row'
+import { appsContent } from '@/data/apps'
 import { emiContent as copy } from '@/data/emi'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { formatPaise } from '@/lib/money'
 import { routes } from '@/lib/routes'
@@ -55,16 +60,25 @@ function statusOf(view: View) {
 /** On/off, which gateway, lowest price, and a preview of the shopper's line. */
 export default function SettingsPage() {
   // Hooks
+  const apps = useCopy(appsContent)
   const [view, setView] = useState<View | null>(null)
   const [form, setForm] = useState<Settings | null>(null)
   const [busy, setBusy] = useState(false)
 
+  /** The first read failed: Try again instead of a blank page. */
+  const [loadFailed, setLoadFailed] = useState(false)
+  const [loadAttempt, setLoadAttempt] = useState(0)
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `loadAttempt` is Try again
   useEffect(() => {
-    api.emi.settings.get().then((v) => {
-      setView(v)
-      setForm(v.settings)
-    })
-  }, [])
+    setLoadFailed(false)
+    api.emi.settings.get().then(
+      (v) => {
+        setView(v)
+        setForm(v.settings)
+      },
+      () => setLoadFailed(true),
+    )
+  }, [loadAttempt])
 
   // Helpers
   const patch = (next: Partial<Settings>) => setForm((f) => (f ? { ...f, ...next } : f))
@@ -93,7 +107,16 @@ export default function SettingsPage() {
   }
 
   // Early returns
-  if (!view || !form) return null
+  if ((!view || !form) && loadFailed) {
+    return (
+      <LoadFailedState
+        size="page"
+        heading={apps.couldNotLoad.settings}
+        onRetry={() => setLoadAttempt((n) => n + 1)}
+      />
+    )
+  }
+  if (!view || !form) return <SectionPageSkeleton cards={2} />
 
   // Render logic
   const status = statusOf(view)
@@ -113,14 +136,14 @@ export default function SettingsPage() {
         saving={busy}
       />
       <PageHeader title={copy.title} summary={copy.subtitle} />
-      <p className="rounded-xl surface-banner px-4 py-3 text-body text-foreground">
+      <NoticeBar>
         {status.text}{' '}
         {status.link ? (
           <Link href={status.link.href} className="font-medium underline">
             {status.link.label}
           </Link>
         ) : null}
-      </p>
+      </NoticeBar>
       <SettingsCard>
         <SettingsRow label={copy.show.label} description={copy.show.help} htmlFor="emi-enabled">
           <Switch

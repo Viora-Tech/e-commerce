@@ -3,11 +3,13 @@
 import { type DocumentKind, type InvoiceSettings, InvoiceSettingsSchema } from '@commerce/invoices'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import LoadFailedState from '@/components/apps/shared/load-failed-state'
 import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
 import SectionPageSkeleton from '@/components/layout/section-page-skeleton'
-import LoadFailed from '@/components/states/load-failed'
+import { appsContent } from '@/data/apps'
 import { gstInvoicesContent } from '@/data/gst-invoices'
+import { useCopy } from '@/hooks/use-copy'
 import { useLoad } from '@/hooks/use-load'
 import { api } from '@/lib/api-client'
 import DocumentsGroup from './documents-group'
@@ -40,6 +42,7 @@ function validate(settings: InvoiceSettings): Record<string, string> {
  */
 export default function SettingsEditor() {
   // Hooks
+  const apps = useCopy(appsContent)
   const [form, setForm] = useState<Loaded | null>(null)
   const [saved, setSaved] = useState<string | null>(null)
   const [kind, setKind] = useState<DocumentKind>('tax_invoice')
@@ -97,7 +100,16 @@ export default function SettingsEditor() {
   }
 
   // Early returns
-  if (failed && !form) return <LoadFailed failed={failed} onRetry={retry} />
+  if (failed && !form) {
+    return (
+      <LoadFailedState
+        size="page"
+        heading={apps.couldNotLoad.settings}
+        failed={failed}
+        onRetry={retry}
+      />
+    )
+  }
   if (!form) return <SectionPageSkeleton />
 
   // Render logic

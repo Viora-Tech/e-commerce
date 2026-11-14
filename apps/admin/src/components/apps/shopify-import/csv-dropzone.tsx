@@ -56,7 +56,7 @@ export default function CsvDropzone({ file, error, onFile }: CsvDropzoneProps) {
         onDragLeave={() => setDragging(false)}
         onDrop={handleDrop}
         className={cn(
-          'flex min-h-44 w-full flex-col items-center justify-center gap-2 rounded-xl border border-dashed px-6 py-8 text-center outline-none transition-colors duration-150 ease-out focus-visible:ring-3 focus-visible:ring-ring/40 motion-reduce:transition-none',
+          'flex min-h-44 w-full flex-col items-center justify-center gap-2 rounded-lg border border-dashed px-6 py-8 text-center outline-none transition-colors duration-150 ease-out focus-visible:ring-3 focus-visible:ring-ring/40 motion-reduce:transition-none',
           dragging || file
             ? 'border-primary bg-primary-soft'
             : 'border-border-strong bg-muted/40 hover:bg-muted/70',

@@ -8,9 +8,12 @@ import { Textarea } from '@commerce/ui/shadcn/textarea'
 import { useSearchParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import LoadFailedState from '@/components/apps/shared/load-failed-state'
 import PageHeader from '@/components/layout/page-header'
+import SectionPageSkeleton from '@/components/layout/section-page-skeleton'
 import SettingsCard from '@/components/settings/settings-card'
 import SettingsRow from '@/components/settings/settings-row'
+import { appsContent } from '@/data/apps'
 import { searchAppContent } from '@/data/search-app'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -29,19 +32,27 @@ function withNewLine(groups: string[][], add: string): string {
 /** The Search & discovery app's Synonyms page: one group of same-meaning words per line. */
 export default function SynonymsPage() {
   // Hooks
+  const apps = useCopy(appsContent)
   const copy = useCopy(searchAppContent)
   const searchParams = useSearchParams()
   const [saved, setSaved] = useState<string[][] | null>(null)
   const [text, setText] = useState('')
   const [saving, setSaving] = useState(false)
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: the shortcut's word is read once, on load.
+  /** The first read failed: Try again instead of a blank page. */
+  const [loadFailed, setLoadFailed] = useState(false)
+  const [loadAttempt, setLoadAttempt] = useState(0)
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `loadAttempt` is Try again
   useEffect(() => {
-    api.search.synonyms.get().then((groups) => {
-      setSaved(groups)
-      setText(withNewLine(groups, searchParams.get('add') ?? ''))
-    })
-  }, [])
+    setLoadFailed(false)
+    api.search.synonyms.get().then(
+      (groups) => {
+        setSaved(groups)
+        setText(withNewLine(groups, searchParams.get('add') ?? ''))
+      },
+      () => setLoadFailed(true),
+    )
+  }, [loadAttempt])
 
   // Event handlers
   const handleSave = async () => {
@@ -59,7 +70,16 @@ export default function SynonymsPage() {
   }
 
   // Early returns
-  if (!saved) return null
+  if (!saved && loadFailed) {
+    return (
+      <LoadFailedState
+        size="page"
+        heading={apps.couldNotLoad.settings}
+        onRetry={() => setLoadAttempt((n) => n + 1)}
+      />
+    )
+  }
+  if (!saved) return <SectionPageSkeleton cards={1} fields={1} />
 
   // Render logic
   const dirty = synonymLines(parseSynonymLines(text)) !== synonymLines(saved)
