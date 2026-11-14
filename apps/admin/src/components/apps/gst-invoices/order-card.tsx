@@ -241,6 +241,7 @@ export default function OrderCard({ orderId }: OrderCardProps) {
             </Label>
             <div className="flex gap-2">
               <Input
+                size="sm"
                 id={`buyer-gstin-${orderId}`}
                 value={gstin}
                 maxLength={15}

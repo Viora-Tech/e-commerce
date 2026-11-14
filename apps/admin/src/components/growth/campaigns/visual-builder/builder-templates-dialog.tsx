@@ -291,6 +291,7 @@ export default function BuilderTemplatesDialog({
                       }}
                     >
                       <Input
+                        size="sm"
                         aria-label={g.renameTitle}
                         value={renaming.name}
                         maxLength={120}
