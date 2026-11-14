@@ -192,6 +192,7 @@ export default function ZoneForm({ zone, profileId = null }: ZoneFormProps) {
       ) : null}
 
       <ConfirmDialog
+        tone="destructive"
         open={confirmDelete}
         onOpenChange={setConfirmDelete}
         title={copy.delete.title(zone?.name ?? '')}

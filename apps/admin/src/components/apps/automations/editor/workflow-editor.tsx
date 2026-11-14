@@ -277,6 +277,7 @@ export default function WorkflowEditor({
         onPause={(waitingRuns) => void handleStatus('off', waitingRuns)}
       />
       <ConfirmDialog
+        tone="destructive"
         open={removing !== null}
         onOpenChange={(open) => !open && setRemoving(null)}
         title={copy.panel.removeTitle(removing ? removalCount(def, removing) : 1)}

@@ -88,6 +88,7 @@ export default function DiscountRowMenu({ discount, onChanged }: DiscountRowMenu
         onConfirm={() => handleStatus('disabled')}
       />
       <ConfirmDialog
+        tone="destructive"
         open={confirm === 'delete'}
         onOpenChange={(open) => !open && setConfirm(null)}
         title={copy.delete.title(discount.title)}

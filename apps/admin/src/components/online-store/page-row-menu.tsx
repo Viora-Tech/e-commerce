@@ -78,6 +78,7 @@ export default function PageRowMenu({ page, path, storefrontOrigin, onChanged }:
         ]}
       />
       <ConfirmDialog
+        tone="destructive"
         open={deleting}
         onOpenChange={setDeleting}
         title={list.row.deleteTitle(page.title)}

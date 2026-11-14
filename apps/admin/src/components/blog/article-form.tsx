@@ -215,6 +215,7 @@ export default function ArticleForm({
         saving={busy}
       />
       <ConfirmDialog
+        tone="destructive"
         open={confirmDelete}
         onOpenChange={setConfirmDelete}
         title={deleteCopy.title(1)}

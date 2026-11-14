@@ -139,6 +139,7 @@ export default function PaymentRulesCard({ setup, onReload }: PaymentRulesCardPr
         </ul>
       )}
       <ConfirmDialog
+        tone="destructive"
         open={deleting !== null}
         onOpenChange={(open) => (open ? undefined : setDeleting(null))}
         title={copy.rules.deleteDialog.title(deleting?.name || copy.rules.untitled)}

@@ -61,6 +61,7 @@ export default function TransferRowMenu({ transfer, onChanged }: TransferRowMenu
         ]}
       />
       <ConfirmDialog
+        tone="destructive"
         open={deleting}
         onOpenChange={setDeleting}
         title={copy.confirmDelete.title}

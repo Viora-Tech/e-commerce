@@ -111,6 +111,7 @@ export default function BlogsManager({ initial }: BlogsManagerProps) {
         onSaved={() => void refresh()}
       />
       <ConfirmDialog
+        tone="destructive"
         open={deleting !== null}
         onOpenChange={(open) => !open && setDeleting(null)}
         title={copy.confirmDelete.title(deleting?.title ?? '')}

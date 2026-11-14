@@ -136,6 +136,7 @@ export default function SupplierBulkActions({ ids, onDone }: SupplierBulkActions
         </FieldGroup>
       </FormDialog>
       <ConfirmDialog
+        tone="destructive"
         open={deleting}
         onOpenChange={setDeleting}
         title={copy.confirmDelete.title(ids.length)}

@@ -275,6 +275,7 @@ export default function InstalledApps({ installId }: InstalledAppsProps) {
       />
 
       <ConfirmDialog
+        tone="destructive"
         open={uninstalling !== null}
         onOpenChange={(open) => !open && setUninstalling(null)}
         title={copy.confirmUninstall.title(uninstalling?.name ?? '')}
@@ -284,6 +285,7 @@ export default function InstalledApps({ installId }: InstalledAppsProps) {
         onConfirm={handleUninstall}
       />
       <ConfirmDialog
+        tone="destructive"
         open={bulk !== null}
         onOpenChange={(open) => !open && setBulk(null)}
         title={copy.confirmBulk.title(bulkNames.length)}
@@ -293,6 +295,7 @@ export default function InstalledApps({ installId }: InstalledAppsProps) {
         onConfirm={handleBulkUninstall}
       />
       <ConfirmDialog
+        tone="destructive"
         open={disconnecting !== null}
         onOpenChange={(open) => !open && setDisconnecting(null)}
         title={copy.confirmDisconnect.title(disconnecting?.name ?? '')}

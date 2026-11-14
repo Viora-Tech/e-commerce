@@ -353,6 +353,7 @@ export default function BuilderTemplatesDialog({
         )}
       </DialogContent>
       <ConfirmDialog
+        tone="destructive"
         open={pending !== null}
         onOpenChange={(o) => !o && setPending(null)}
         title={copy.templates.replaceTitle}

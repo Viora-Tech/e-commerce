@@ -362,6 +362,7 @@ export default function OrderRowMenu({
         onDone={handleCancelled}
       />
       <ConfirmDialog
+        tone="destructive"
         open={dialog === 'cancelShipment'}
         onOpenChange={(o) => !o && setDialog(null)}
         title={list.row.cancelShipmentTitle}

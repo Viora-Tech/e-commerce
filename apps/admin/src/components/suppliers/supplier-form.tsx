@@ -311,6 +311,7 @@ export default function SupplierForm({ supplier }: SupplierFormProps) {
         }
       />
       <ConfirmDialog
+        tone="destructive"
         open={deleting}
         onOpenChange={setDeleting}
         title={copy.confirmDelete.title}

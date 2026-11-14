@@ -336,6 +336,7 @@ function DraftsContent({ initial }: { initial: DraftsInitial }) {
       ) : null}
       {removing ? (
         <ConfirmDialog
+          tone="destructive"
           open
           onOpenChange={(open) => !open && setRemoving(null)}
           title={copy.deleteTitle(removing.ids.length)}

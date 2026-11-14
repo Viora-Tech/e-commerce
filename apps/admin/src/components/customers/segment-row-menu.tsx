@@ -46,6 +46,7 @@ export default function SegmentRowMenu({ id }: SegmentRowMenuProps) {
         ]}
       />
       <ConfirmDialog
+        tone="destructive"
         open={deleting}
         onOpenChange={setDeleting}
         title={copy.deleteHeading}

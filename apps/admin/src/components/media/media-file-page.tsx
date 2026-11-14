@@ -188,6 +188,7 @@ export default function MediaFilePage({ file, usedIn, neighbours, filter }: Medi
         onSaved={(_, edited) => router.push(routes.content.file(edited.id, filter))}
       />
       <ConfirmDialog
+        tone="destructive"
         open={deleting}
         onOpenChange={setDeleting}
         title={library.deleteTitle}

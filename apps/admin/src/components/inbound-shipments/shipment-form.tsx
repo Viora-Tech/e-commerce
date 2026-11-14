@@ -247,6 +247,7 @@ export default function ShipmentForm({ shipment, costs, aiReading }: ShipmentFor
         onDone={() => router.refresh()}
       />
       <ConfirmDialog
+        tone="destructive"
         open={deleting}
         onOpenChange={setDeleting}
         title={copy.confirmDelete.title}

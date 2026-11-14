@@ -81,6 +81,7 @@ export default function ArticleRowMenu({
         ]}
       />
       <ConfirmDialog
+        tone="destructive"
         open={deleting}
         onOpenChange={setDeleting}
         title={copy.row.deleteTitle(article.title)}

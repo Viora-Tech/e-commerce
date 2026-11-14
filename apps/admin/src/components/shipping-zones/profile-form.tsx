@@ -190,6 +190,7 @@ export default function ProfileForm({ profile, othersHaveAreas = false }: Profil
       )}
 
       <ConfirmDialog
+        tone="destructive"
         open={confirmDelete}
         onOpenChange={setConfirmDelete}
         title={copy.delete.title(profile?.name ?? '')}

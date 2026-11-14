@@ -211,6 +211,7 @@ export default function TransferForm({ transfer, locations }: TransferFormProps)
         }
       />
       <ConfirmDialog
+        tone="destructive"
         open={confirmDelete}
         onOpenChange={setConfirmDelete}
         title={copy.confirmDelete.title}

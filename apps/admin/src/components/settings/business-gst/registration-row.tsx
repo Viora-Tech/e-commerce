@@ -96,6 +96,7 @@ export default function RegistrationRow({
         />
       ) : null}
       <ConfirmDialog
+        tone="destructive"
         open={confirmCancel}
         onOpenChange={setConfirmCancel}
         title={copy.cancelTitle}

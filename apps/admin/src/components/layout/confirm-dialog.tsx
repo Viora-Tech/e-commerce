@@ -23,6 +23,8 @@ type ConfirmDialogProps = {
   confirmLabel: string
   /** Defaults to the shared "Cancel". */
   cancelLabel?: string
+  /** `default` (the primary button) unless the action deletes, cancels, refunds, removes,
+   *  uninstalls, discards or disconnects: then pass `destructive` for the red button. */
   tone?: 'destructive' | 'default'
   /** Busy state owned by the caller, who then also closes the dialog; without it the dialog tracks `onConfirm` itself. */
   busy?: boolean
@@ -43,7 +45,7 @@ export default function ConfirmDialog({
   body,
   confirmLabel,
   cancelLabel,
-  tone = 'destructive',
+  tone = 'default',
   busy,
   confirmDisabled = false,
   onConfirm,

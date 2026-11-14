@@ -467,6 +467,7 @@ export default function ProductForm({
       }
     >
       <ConfirmDialog
+        tone="destructive"
         open={confirmDelete}
         onOpenChange={setConfirmDelete}
         title={copy.delete.title(product?.title ?? '')}

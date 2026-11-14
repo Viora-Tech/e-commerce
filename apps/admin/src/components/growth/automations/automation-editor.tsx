@@ -314,6 +314,7 @@ export default function AutomationEditor({
         </>
       )}
       <ConfirmDialog
+        tone="destructive"
         open={confirmDelete}
         onOpenChange={setConfirmDelete}
         title={copy.delete.title}

@@ -150,6 +150,7 @@ export default function ReportsHome({ reports, saved: initialSaved, assistant }:
         />
       ) : null}
       <ConfirmDialog
+        tone="destructive"
         open={deleting !== null}
         onOpenChange={(open) => !open && setDeleting(null)}
         title={c.remove.title(deleting?.name ?? '')}

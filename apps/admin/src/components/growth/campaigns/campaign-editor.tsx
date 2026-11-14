@@ -313,6 +313,7 @@ export default function CampaignEditor({
         onConfirm={handleSend}
       />
       <ConfirmDialog
+        tone="destructive"
         open={dialog === 'delete'}
         onOpenChange={(o) => setDialog(o ? 'delete' : null)}
         title={copy.delete.title}

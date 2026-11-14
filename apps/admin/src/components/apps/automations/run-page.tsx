@@ -224,6 +224,7 @@ export default function RunPage({ params }: AppPageProps) {
         </section>
       </div>
       <ConfirmDialog
+        tone="destructive"
         open={cancelling}
         onOpenChange={setCancelling}
         title={copy.cancelTitle}

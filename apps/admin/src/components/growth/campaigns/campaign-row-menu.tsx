@@ -99,6 +99,7 @@ export default function CampaignRowMenu({ campaign }: CampaignRowMenuProps) {
         onConfirm={handleUnschedule}
       />
       <ConfirmDialog
+        tone="destructive"
         open={confirm === 'delete'}
         onOpenChange={(open) => !open && setConfirm(null)}
         title={copy.deleteTitle(campaign.name)}

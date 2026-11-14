@@ -265,6 +265,7 @@ export default function LinksPage({ storefrontOrigin, tabs }: LinksPageProps) {
       ) : null}
       {deleting ? (
         <ConfirmDialog
+          tone="destructive"
           open
           onOpenChange={(open) => !open && setDeleting(null)}
           title={copy.deleteDialog.title(deleting.name)}
@@ -276,6 +277,7 @@ export default function LinksPage({ storefrontOrigin, tabs }: LinksPageProps) {
       ) : null}
       {bulkDeleting ? (
         <ConfirmDialog
+          tone="destructive"
           open
           onOpenChange={(open) => !open && setBulkDeleting(null)}
           title={copy.bulkDelete.title(bulkDeleting.ids.length)}

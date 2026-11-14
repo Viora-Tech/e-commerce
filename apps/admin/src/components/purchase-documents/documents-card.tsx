@@ -180,6 +180,7 @@ export default function DocumentsCard({ owner, aiReading, onApplied }: Documents
         />
       ) : null}
       <ConfirmDialog
+        tone="destructive"
         open={removing !== null}
         onOpenChange={(open) => !open && setRemoving(null)}
         title={copy.confirmRemove.title}

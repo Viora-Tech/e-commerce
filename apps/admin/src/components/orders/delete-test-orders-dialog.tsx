@@ -39,6 +39,7 @@ export default function DeleteTestOrdersDialog({
 
   return (
     <ConfirmDialog
+      tone="destructive"
       open={open}
       onOpenChange={onOpenChange}
       title={copy.title(count)}

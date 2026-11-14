@@ -237,6 +237,7 @@ export default function PolicyEditor({
         </>
       )}
       <ConfirmDialog
+        tone="destructive"
         open={confirming}
         onOpenChange={setConfirming}
         title={copy.confirmTitle}

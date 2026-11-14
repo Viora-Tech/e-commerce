@@ -179,6 +179,7 @@ export default function DefinitionForm({ definition, targets }: DefinitionFormPr
         saving={busy}
       />
       <ConfirmDialog
+        tone="destructive"
         open={confirmDelete}
         onOpenChange={setConfirmDelete}
         title={copy.delete.title(definition?.name ?? '')}

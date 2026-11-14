@@ -214,6 +214,7 @@ export default function StaffSettings() {
       />
 
       <ConfirmDialog
+        tone="destructive"
         open={pendingDelete !== null}
         onOpenChange={() => setPendingDelete(null)}
         title={copy.roles.confirmDelete.title}
