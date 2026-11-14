@@ -83,7 +83,7 @@ export default function TemplatePicker({
             </button>
           }
         />
-        <PopoverContent align="center" className="w-[22.5rem] gap-0 p-0">
+        <PopoverContent align="center" className="w-96 max-w-[calc(100vw-2rem)] gap-0 p-0">
           <TemplateList
             value={value}
             alternates={alternates}

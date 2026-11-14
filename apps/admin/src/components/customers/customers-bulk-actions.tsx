@@ -1,17 +1,9 @@
 'use client'
 
 import { CONSENT_CHANNELS, type ConsentChannel } from '@commerce/core/privacy'
-import { ChevronDown, Download, Pencil, Save, Send, Trash2 } from '@commerce/ui/icons'
+import { Download, Pencil, Save, Send, Trash2 } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@commerce/ui/shadcn/dropdown-menu'
-import { Fragment, useState } from 'react'
+import { useState } from 'react'
 import RunAutomationDialog from '@/components/automations/records/run-automation-dialog'
 import { useRunAutomation } from '@/components/automations/records/use-run-automation'
 import ActionMenu, { type ActionItem } from '@/components/layout/action-menu'
@@ -92,6 +84,25 @@ export default function CustomersBulkActions({
 
   // Render logic
   const mail = bulkMailto(rows)
+  const tagItems: ActionItem[] = [
+    { label: copy.addTag, onSelect: () => onTag('add') },
+    { label: copy.removeTag, onSelect: () => onTag('remove') },
+  ]
+  /* One group per channel; a channel the store cannot send on yet is headed with why. */
+  const marketingItems: ActionItem[] = CONSENT_CHANNELS.flatMap((channel, i) => [
+    {
+      id: `${channel}:on`,
+      label: copy.subscribe(CHANNEL_LABEL[channel]),
+      onSelect: () => onConsent(channel, true),
+      separatorBefore: i > 0,
+      heading: sendable.includes(channel) ? undefined : copy.notSendable(CHANNEL_LABEL[channel]),
+    },
+    {
+      id: `${channel}:off`,
+      label: copy.unsubscribe(CHANNEL_LABEL[channel]),
+      onSelect: () => onConsent(channel, false),
+    },
+  ])
   const moreItems: ActionItem[] = [
     { label: copy.export, icon: Download, onSelect: onExport },
     { label: copy.email, icon: Send, hidden: !mail, href: mail ?? undefined },
@@ -105,40 +116,20 @@ export default function CustomersBulkActions({
         <Pencil />
         {copy.bulkEdit}
       </Button>
-      <DropdownMenu>
-        <DropdownMenuTrigger render={<Button variant="outline" size="sm" />}>
-          {copy.addTag}
-          <ChevronDown />
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="start">
-          <DropdownMenuItem onClick={() => onTag('add')}>{copy.addTag}</DropdownMenuItem>
-          <DropdownMenuItem onClick={() => onTag('remove')}>{copy.removeTag}</DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-      <DropdownMenu>
-        <DropdownMenuTrigger render={<Button variant="outline" size="sm" />}>
-          {copy.marketing}
-          <ChevronDown />
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="start">
-          {CONSENT_CHANNELS.map((channel, i) => (
-            <Fragment key={channel}>
-              {i > 0 ? <DropdownMenuSeparator /> : null}
-              {sendable.includes(channel) ? null : (
-                <DropdownMenuLabel className="text-caption font-normal text-muted-foreground">
-                  {copy.notSendable(CHANNEL_LABEL[channel])}
-                </DropdownMenuLabel>
-              )}
-              <DropdownMenuItem onClick={() => onConsent(channel, true)}>
-                {copy.subscribe(CHANNEL_LABEL[channel])}
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onConsent(channel, false)}>
-                {copy.unsubscribe(CHANNEL_LABEL[channel])}
-              </DropdownMenuItem>
-            </Fragment>
-          ))}
-        </DropdownMenuContent>
-      </DropdownMenu>
+      <ActionMenu
+        label={copy.addTag}
+        trigger="button"
+        buttonSize="sm"
+        align="start"
+        items={tagItems}
+      />
+      <ActionMenu
+        label={copy.marketing}
+        trigger="button"
+        buttonSize="sm"
+        align="start"
+        items={marketingItems}
+      />
       <Button variant="outline" size="sm" onClick={() => setSavingSegment(true)}>
         <Save />
         {copy.saveSelection.action}

@@ -18,7 +18,10 @@ describe('ShortcutsDialog', () => {
   it('closes from Close', async () => {
     const onOpenChange = vi.fn()
     render(<ShortcutsDialog open onOpenChange={onOpenChange} />)
-    await userEvent.setup().click(screen.getByRole('button', { name: copy.close }))
-    expect(onOpenChange).toHaveBeenCalledWith(false, expect.anything())
+    // The footer's Close and the corner X share the name; each closes the dialog.
+    for (const button of screen.getAllByRole('button', { name: copy.close })) {
+      await userEvent.setup().click(button)
+    }
+    expect(onOpenChange.mock.calls.map((c) => c[0])).toEqual([false, false])
   })
 })

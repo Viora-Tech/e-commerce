@@ -237,7 +237,11 @@ export default function ActivityBell({ className }: ActivityBellProps) {
           />
         ) : null}
       </PopoverTrigger>
-      <PopoverContent align="end" sideOffset={8} className="flex w-[24rem] flex-col gap-0 p-0">
+      <PopoverContent
+        align="end"
+        sideOffset={8}
+        className="flex w-96 max-w-[calc(100vw-2rem)] flex-col gap-0 p-0"
+      >
         <header className="flex flex-col gap-2.5 border-b border-border px-4 pt-3 pb-3">
           <span className="flex items-center justify-between gap-3">
             <span className="text-body-strong text-foreground">{copy.label}</span>

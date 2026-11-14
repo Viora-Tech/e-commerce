@@ -111,7 +111,11 @@ export default function LinkPicker({
             </span>
           )}
         </PopoverTrigger>
-        <PopoverContent align="start" side="bottom" className="w-80 gap-0 p-0">
+        <PopoverContent
+          align="start"
+          side="bottom"
+          className="w-80 max-w-[calc(100vw-2rem)] gap-0 p-0"
+        >
           <LinkPickerPanel value={href} onPick={handlePick} newTab={newTab} onNewTab={onNewTab} />
         </PopoverContent>
       </Popover>
