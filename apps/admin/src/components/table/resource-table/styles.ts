@@ -20,3 +20,15 @@ export const CELL = 'h-15 border-t border-border px-3 py-1.5 text-body first:pl-
 
 /** Placeholder rows when the table has no rows yet to keep the height of. */
 export const SKELETON_ROWS = 6
+
+/**
+ * `SimpleTable`'s body cells, set from the table so plain `TableRow`/`TableCell` rows get the list
+ * table's 3.75rem rows and 0.75rem sides without each file repeating them (`list`), or 2.5rem
+ * rows for a small table inside a popup or a statement card (`compact`). A cell that spans the
+ * row (`colSpan`: the empty line, a reveal row) keeps its own spacing.
+ */
+export const SIMPLE_BODY = {
+  list: '[&_tbody_td:not([colspan])]:h-15 [&_tbody_td:not([colspan])]:px-3 [&_tbody_td:not([colspan])]:py-1.5 [&_tbody_th]:h-15 [&_tbody_th]:px-3 [&_tbody_th]:py-1.5',
+  compact:
+    '[&_tbody_td:not([colspan])]:h-10 [&_tbody_td:not([colspan])]:px-3 [&_tbody_td:not([colspan])]:py-1.5 [&_tbody_th]:h-10 [&_tbody_th]:px-3 [&_tbody_th]:py-1.5',
+} as const

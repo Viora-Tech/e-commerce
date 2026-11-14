@@ -5,14 +5,7 @@ import { Button } from '@commerce/ui/shadcn/button'
 import { Dialog, DialogTitle } from '@commerce/ui/shadcn/dialog'
 import { Field, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@commerce/ui/shadcn/table'
+import { TableCell, TableRow } from '@commerce/ui/shadcn/table'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
@@ -24,6 +17,7 @@ import DialogHeader from '@/components/layout/dialog-header'
 import RelativeTime from '@/components/layout/relative-time'
 import InlineState from '@/components/states/inline-state'
 import LinkRow from '@/components/table/link-row'
+import SimpleTable from '@/components/table/simple-table'
 import TableEmptyRow from '@/components/table/table-empty-row'
 import TableSkeletonRows from '@/components/table/table-skeleton-rows'
 import { dialogContent } from '@/data/common'
@@ -113,70 +107,60 @@ export default function NdrTab() {
   return (
     <DataCard title={copy.heading} flush>
       <p className="px-4 pt-4 text-body text-muted-foreground">{copy.help}</p>
-      <Table>
-        <TableHeader>
+      <SimpleTable
+        columns={[
+          { key: 'order', label: copy.columns.order },
+          { key: 'waybill', label: copy.columns.waybill },
+          { key: 'reason', label: copy.columns.reason },
+          { key: 'raised', label: copy.columns.raised },
+          { key: 'actions', label: copy.columns.actions, align: 'end' },
+        ]}
+      >
+        {failed ? (
           <TableRow>
-            <TableHead>{copy.columns.order}</TableHead>
-            <TableHead>{copy.columns.waybill}</TableHead>
-            <TableHead>{copy.columns.reason}</TableHead>
-            <TableHead>{copy.columns.raised}</TableHead>
-            <TableHead className="text-right">Actions</TableHead>
+            <TableCell colSpan={5}>
+              <InlineState kind="error" onRetry={handleRetry} />
+            </TableCell>
           </TableRow>
-        </TableHeader>
-        <TableBody>
-          {failed ? (
-            <TableRow>
-              <TableCell colSpan={5}>
-                <InlineState kind="error" onRetry={handleRetry} />
-              </TableCell>
-            </TableRow>
-          ) : rows === null ? (
-            <TableSkeletonRows columns={5} rows={3} label={states.loading} />
-          ) : rows.length === 0 ? (
-            <TableEmptyRow colSpan={5} message={copy.empty} />
-          ) : null}
-          {(failed ? null : rows)?.map((r) => (
-            <LinkRow href={routes.orders.detail(r.orderId)} key={r.id}>
-              <TableCell>
-                <Link
-                  href={routes.orders.detail(r.orderId)}
-                  className="font-medium hover:underline"
-                >
-                  #{r.orderNumber}
-                </Link>
-              </TableCell>
-              <TableCell className="font-mono text-caption">
-                <span className="flex items-center gap-1">
-                  {r.waybill}
-                  <CopyButton value={r.waybill} what={details.awb} visible />
-                </span>
-              </TableCell>
-              <TableCell className="max-w-xs truncate">{r.ndrReason}</TableCell>
-              <TableCell>{r.ndrRaisedAt ? <RelativeTime value={r.ndrRaisedAt} /> : null}</TableCell>
-              <TableCell>
-                <div className="flex justify-end gap-2">
-                  <Button variant="outline" size="sm" onClick={() => handleOpen(r, 'reattempt')}>
-                    <RotateCcw aria-hidden="true" />
-                    {copy.actions.reattempt}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleOpen(r, 'change_address')}
-                  >
-                    <Pencil aria-hidden="true" />
-                    {copy.actions.change_address}
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={() => handleOpen(r, 'rto')}>
-                    <Undo aria-hidden="true" />
-                    {copy.actions.rto}
-                  </Button>
-                </div>
-              </TableCell>
-            </LinkRow>
-          ))}
-        </TableBody>
-      </Table>
+        ) : rows === null ? (
+          <TableSkeletonRows columns={5} rows={3} label={states.loading} />
+        ) : rows.length === 0 ? (
+          <TableEmptyRow colSpan={5} message={copy.empty} />
+        ) : null}
+        {(failed ? null : rows)?.map((r) => (
+          <LinkRow href={routes.orders.detail(r.orderId)} key={r.id}>
+            <TableCell>
+              <Link href={routes.orders.detail(r.orderId)} className="font-medium hover:underline">
+                #{r.orderNumber}
+              </Link>
+            </TableCell>
+            <TableCell className="font-mono text-caption">
+              <span className="flex items-center gap-1">
+                {r.waybill}
+                <CopyButton value={r.waybill} what={details.awb} visible />
+              </span>
+            </TableCell>
+            <TableCell className="max-w-xs truncate">{r.ndrReason}</TableCell>
+            <TableCell>{r.ndrRaisedAt ? <RelativeTime value={r.ndrRaisedAt} /> : null}</TableCell>
+            <TableCell>
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" size="sm" onClick={() => handleOpen(r, 'reattempt')}>
+                  <RotateCcw aria-hidden="true" />
+                  {copy.actions.reattempt}
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => handleOpen(r, 'change_address')}>
+                  <Pencil aria-hidden="true" />
+                  {copy.actions.change_address}
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => handleOpen(r, 'rto')}>
+                  <Undo aria-hidden="true" />
+                  {copy.actions.rto}
+                </Button>
+              </div>
+            </TableCell>
+          </LinkRow>
+        ))}
+      </SimpleTable>
 
       <Dialog open={dialog !== null} onOpenChange={(open) => !open && setDialog(null)}>
         <DialogContent busy={busy}>

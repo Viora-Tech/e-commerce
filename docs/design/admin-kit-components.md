@@ -45,7 +45,7 @@ Type tokens (`text-kit-*`): `display` 57/700, `h2` 32/400, `title` 18/26/700 -2%
 | 14:945 Add pill | `kit/kit-button.tsx` `variant="add"` | |
 | 14:977 tab pill group | `layout/pill-tabs.tsx` `size="frame"` | tabs, value, onChange |
 | 14:992 icon button | `kit/kit-icon-button.tsx` | label, children |
-| 14:1006 table | `kit/kit-table.tsx`, `kit/kit-table-head.tsx`, `kit/kit-table-row.tsx` | columns (grid template) |
+| 14:1006 table | retired 14 Nov 2026: `table/simple-table.tsx` (the list table's header and rows) | columns |
 | 14:1029 thumb 40 / 14:874 thumb 56 / 14:918 thumb 46 | `kit/kit-thumb.tsx` | size `table` / `list` / `category` |
 | 14:1037 payment dot | `kit/kit-dot-label.tsx` | tone |
 | 14:1041 status glyph | `kit/kit-glyph-label.tsx` | icon, tone |
