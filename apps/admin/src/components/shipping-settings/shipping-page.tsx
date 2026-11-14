@@ -11,6 +11,7 @@ import CourierRuleFields from '@/components/settings/courier-rule-fields'
 import HealthLine from '@/components/settings/health-line'
 import SettingsDrill from '@/components/settings/settings-drill'
 import SettingsDrillPanel from '@/components/settings/settings-drill-panel'
+import { SETTINGS_SKELETON_ROWS } from '@/components/settings/settings-skeleton-rows'
 import ShippingPolicyFields from '@/components/settings/shipping-policy-fields'
 import ShippingTryPin from '@/components/settings/shipping-try-pin'
 import SplitShippingCard from '@/components/settings/split-shipping-card'
@@ -100,7 +101,7 @@ export default function ShippingPage() {
 
   // Early returns
   if (failed && !loaded) return <LoadFailed failed={failed} onRetry={retry} />
-  if (!loaded || !form) return <SectionPageSkeleton />
+  if (!loaded || !form) return <SectionPageSkeleton rows={SETTINGS_SKELETON_ROWS.shipping} />
 
   // Render logic
   const dirty = saved !== null && JSON.stringify(form) !== saved
@@ -173,7 +174,6 @@ export default function ShippingPage() {
               />
             </span>
           ),
-          save: { dirty, saving: busy, onSave: handleSave, label: copy.save },
         }}
         before={
           <HealthLine

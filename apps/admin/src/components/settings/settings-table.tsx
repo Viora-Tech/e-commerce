@@ -1,9 +1,8 @@
 'use client'
 
-import { cn } from '@commerce/ui/lib/utils'
-import { Card } from '@commerce/ui/shadcn/card'
-import { Table, TableBody, TableHead, TableHeader, TableRow } from '@commerce/ui/shadcn/table'
 import type { ReactNode } from 'react'
+import DataCard from '@/components/layout/data-card'
+import SimpleTable from '@/components/table/simple-table'
 import { tableContent } from '@/data/table'
 import { useCopy } from '@/hooks/use-copy'
 
@@ -33,15 +32,14 @@ type SettingsTableProps = {
   footer?: ReactNode
 }
 
-/* Proofly table (Figma "Table · Header / Row"), the same density as the resource tables. */
-const HEAD =
-  'h-10 border-b border-line bg-card px-3 py-0 text-caption font-medium text-muted-foreground first:pl-4 last:pr-4 md:first:pl-6 md:last:pr-6'
+/** Body cell classes, for rows that pass them to `TableCell` (or use `SettingsTableCell`). The
+ *  row height and sides come from `SimpleTable`. */
+export const SETTINGS_CELL = 'text-body'
 
-/** Class for a body cell: pass to `TableCell` (or use `SettingsTableCell`). */
-export const SETTINGS_CELL =
-  'h-12 border-b border-line px-3 py-1.5 text-body first:pl-4 last:pr-4 md:first:pl-6 md:last:pr-6'
-
-/** A short table inside a card, for settings lists (team, domains, zones, messages). */
+/**
+ * A short table inside a card, for settings lists (team, domains, zones, messages): a `DataCard`
+ * with the card title and a `SimpleTable`, so the header and rows match the main lists.
+ */
 export default function SettingsTable({
   columns,
   children,
@@ -55,38 +53,26 @@ export default function SettingsTable({
   // Hooks
   const copy = useCopy(tableContent)
 
+  // Render logic
+  const tableColumns = [
+    ...columns.map((c, i) => ({
+      key: `${i.toString()}-${c.label}`,
+      label: c.label,
+      align: c.center ? ('center' as const) : ('start' as const),
+      className: c.className,
+    })),
+    ...(actions ? [{ key: 'actions', label: '', className: 'w-16' }] : []),
+  ]
+
   return (
-    <Card gap="none" inset="none">
-      {heading ? (
-        <header className="flex flex-col gap-0.5 px-4 pt-4 pb-3 md:px-6">
-          <h2 className="text-body font-semibold text-ink-strong">{heading}</h2>
-          {description ? <p className="text-caption text-muted-foreground">{description}</p> : null}
-        </header>
-      ) : null}
-      <Table>
-        <TableHeader>
-          <TableRow className="hover:bg-transparent">
-            {columns.map((c) => (
-              <TableHead key={c.label} className={cn(HEAD, c.center && 'text-center', c.className)}>
-                {c.label}
-              </TableHead>
-            ))}
-            {actions ? <TableHead className={cn(HEAD, 'w-16')} /> : null}
-          </TableRow>
-        </TableHeader>
-        <TableBody>{children}</TableBody>
-      </Table>
+    <DataCard title={heading} subtitle={description} footer={footer} className="h-auto" flush>
+      <SimpleTable columns={tableColumns}>{children}</SimpleTable>
       {after}
-      {footer ? (
-        <div className="flex flex-wrap items-center justify-end gap-2 px-4 py-3 md:px-6">
-          {footer}
-        </div>
-      ) : null}
       {total === undefined || total === 0 ? null : (
-        <p className="px-4 py-3 text-caption text-muted-foreground md:px-6">
+        <p className="px-5 pt-3 text-caption text-muted-foreground">
           {copy.showing(1, total, total)}
         </p>
       )}
-    </Card>
+    </DataCard>
   )
 }

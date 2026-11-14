@@ -11,6 +11,7 @@ import HelpFooter from '@/components/payments/help-footer'
 import HealthLine from '@/components/settings/health-line'
 import SettingsDrill from '@/components/settings/settings-drill'
 import SettingsDrillPanel from '@/components/settings/settings-drill-panel'
+import { SETTINGS_SKELETON_ROWS } from '@/components/settings/settings-skeleton-rows'
 import SettingsTable from '@/components/settings/settings-table'
 import WhatsThisHelp from '@/components/settings/whats-this-help'
 import LoadFailed from '@/components/states/load-failed'
@@ -162,7 +163,7 @@ export default function NotificationsPage() {
 
   // Early returns
   if (failed && !data) return <LoadFailed failed={failed} onRetry={retry} />
-  if (!data) return <SectionPageSkeleton />
+  if (!data) return <SectionPageSkeleton rows={SETTINGS_SKELETON_ROWS.notifications} />
 
   // Render logic
   // The platform's SES account sends for the store when it has no email app of its own.

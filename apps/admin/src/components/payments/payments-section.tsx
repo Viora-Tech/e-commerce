@@ -28,7 +28,7 @@ export default function PaymentsSection({
     <section id={id} aria-labelledby={`${id}-heading`} className="flex scroll-mt-6 flex-col gap-3">
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-          <h2 id={`${id}-heading`} className="text-card font-semibold text-ink-strong">
+          <h2 id={`${id}-heading`} className="text-card-title text-ink-strong">
             {heading}
           </h2>
           <p className="text-caption text-muted-foreground">{description}</p>

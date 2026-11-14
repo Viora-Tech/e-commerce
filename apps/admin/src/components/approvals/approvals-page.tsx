@@ -70,7 +70,7 @@ export default function ApprovalsPage() {
           <SettingsDrillPanel id="waiting">
             <DataCard title={copy.waiting.heading} subtitle={copy.waiting.help}>
               {waiting === null ? (
-                <Skeleton className="h-40 w-full rounded-xl" />
+                <Skeleton className="h-40 w-full rounded-lg" />
               ) : waiting.length === 0 ? (
                 <EmptyState variant="dashed" size="sm" body={copy.waiting.empty} />
               ) : (
@@ -87,7 +87,7 @@ export default function ApprovalsPage() {
           <SettingsDrillPanel id="mine">
             <DataCard title={copy.mine.heading} subtitle={copy.mine.help}>
               {mine === null ? (
-                <Skeleton className="h-24 w-full rounded-xl" />
+                <Skeleton className="h-24 w-full rounded-lg" />
               ) : mine.length === 0 ? (
                 <EmptyState variant="dashed" size="sm" body={copy.mine.empty} />
               ) : (

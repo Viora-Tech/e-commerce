@@ -9,6 +9,7 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 import PageHeader from '@/components/layout/page-header'
 import SectionPageSkeleton from '@/components/layout/section-page-skeleton'
+import { SETTINGS_SKELETON_ROWS } from '@/components/settings/settings-skeleton-rows'
 import LoadFailed from '@/components/states/load-failed'
 import { appearanceContent } from '@/data/appearance'
 import { useLoad } from '@/hooks/use-load'
@@ -102,7 +103,7 @@ export default function AppearanceSettings({ productLayout }: AppearanceSettings
 
   // Early returns
   if (failed && !loaded) return <LoadFailed failed={failed} onRetry={retry} />
-  if (!loaded) return <SectionPageSkeleton />
+  if (!loaded) return <SectionPageSkeleton rows={SETTINGS_SKELETON_ROWS.appearance} />
 
   // Render logic
   const unchanged = draft === (loaded.effective ?? DEFAULT_ACCENT)
@@ -118,7 +119,7 @@ export default function AppearanceSettings({ productLayout }: AppearanceSettings
   ]
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-4">
       <PageHeader title={copy.title} subtitle={copy.intro} />
       <SettingsDrill rows={rows} backLabel={copy.title}>
         <SettingsDrillPanel id="mode">

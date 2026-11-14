@@ -180,7 +180,6 @@ export default function ProviderSettingsForm<Extra extends object>({
         subtitle={intro}
         actions={headerActions}
         back={back?.href ? { label: back.label, href: back.href } : undefined}
-        save={{ dirty, saving: busy, onSave: handleSave, label: copy.save }}
       />
       {error ? <SaveErrorAlert title={copy.couldNotSave} message={error} /> : null}
       <SectionTabs tabs={sections ?? []}>
