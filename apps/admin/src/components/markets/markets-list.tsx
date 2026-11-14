@@ -122,11 +122,10 @@ export default function MarketsList({
   ) : null
   const viewSwitch = (
     <ToggleGroup
+      variant="segmented"
       aria-label={copy.view.label}
       value={[view]}
       onValueChange={handleView}
-      variant="outline"
-      spacing={0}
       className="self-start"
     >
       <ToggleGroupItem value="list">{copy.view.list}</ToggleGroupItem>

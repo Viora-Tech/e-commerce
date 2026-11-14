@@ -5,12 +5,12 @@ import { Button } from '@commerce/ui/shadcn/button'
 import { Checkbox } from '@commerce/ui/shadcn/checkbox'
 import { Dialog, DialogDescription, DialogTitle } from '@commerce/ui/shadcn/dialog'
 import { Spinner } from '@commerce/ui/shadcn/spinner'
-import { Tabs, TabsList, TabsTrigger } from '@commerce/ui/shadcn/tabs'
 import { useEffect, useId, useRef, useState } from 'react'
 import SearchField from '@/components/fields/search-field'
 import DialogContent from '@/components/layout/dialog-content'
 import DialogFooter from '@/components/layout/dialog-footer'
 import DialogHeader from '@/components/layout/dialog-header'
+import PillTabs from '@/components/layout/pill-tabs'
 import { resourcePickerContent } from '@/data/resource-picker'
 import { useCopy } from '@/hooks/use-copy'
 import ResourcePickRow from './resource-pick-row'
@@ -197,15 +197,13 @@ export default function ResourcePickDialog({
           <DialogTitle>{title}</DialogTitle>
           {description ? <DialogDescription>{description}</DialogDescription> : null}
           {tabs.length > 1 ? (
-            <Tabs value={tab} onValueChange={handleTab}>
-              <TabsList>
-                {tabs.map((t) => (
-                  <TabsTrigger key={t.key} value={t.key}>
-                    {t.label}
-                  </TabsTrigger>
-                ))}
-              </TabsList>
-            </Tabs>
+            <PillTabs
+              variant="segmented"
+              className="self-start"
+              value={tab}
+              onChange={handleTab}
+              tabs={tabs.map((t) => ({ value: t.key, label: t.label }))}
+            />
           ) : null}
           <SearchField
             value={query}

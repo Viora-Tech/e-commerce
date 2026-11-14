@@ -26,11 +26,9 @@ export default function ChoiceField<T extends string>({
     <div className="flex flex-col gap-1.5">
       <span className="text-body text-foreground">{label}</span>
       <ToggleGroup
+        variant="segmented"
         value={[value]}
         onValueChange={handleChange}
-        variant="outline"
-        size="sm"
-        spacing={0}
         aria-label={label}
         className="w-full"
       >

@@ -1,10 +1,9 @@
 'use client'
 
 import { discoveryRate, type RecommendationStat } from '@commerce/core/discovery'
-import KitTable from '@/components/kit/kit-table'
-import KitTableHead from '@/components/kit/kit-table-head'
-import KitTableRow from '@/components/kit/kit-table-row'
+import { TableCell, TableRow } from '@commerce/ui/shadcn/table'
 import EmptyState from '@/components/layout/empty-state'
+import SimpleTable from '@/components/table/simple-table'
 import { searchDiscoveryContent } from '@/data/search-discovery'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { formatRate } from '@/lib/analytics-range'
@@ -12,8 +11,6 @@ import { formatRate } from '@/lib/analytics-range'
 type RecommendationStatsTableProps = {
   rows: RecommendationStat[]
 }
-
-const COLUMNS = 'minmax(10rem,1fr) 6rem 5rem 6rem 6rem'
 
 /** The recommendation rows' numbers: times seen, clicks, click rate and adds to cart. */
 export default function RecommendationStatsTable({ rows }: RecommendationStatsTableProps) {
@@ -26,28 +23,28 @@ export default function RecommendationStatsTable({ rows }: RecommendationStatsTa
   const seen = rows.some((row) => row.impressions > 0 || row.clicks > 0)
 
   return seen ? (
-    <div className="overflow-x-auto">
-      <KitTable className="min-w-[36rem]">
-        <KitTableHead columns={COLUMNS}>
-          <span>{r.intent}</span>
-          <span className="justify-end">{r.impressions}</span>
-          <span className="justify-end">{r.clicks}</span>
-          <span className="justify-end">{r.clickRate}</span>
-          <span className="justify-end">{r.adds}</span>
-        </KitTableHead>
-        {rows.map((row) => (
-          <KitTableRow key={row.intent} columns={COLUMNS}>
-            <span className="font-medium">{copy.overview.intents[row.intent]}</span>
-            <span className="justify-end tabular-nums">{fmt.number(row.impressions)}</span>
-            <span className="justify-end tabular-nums">{fmt.number(row.clicks)}</span>
-            <span className="justify-end tabular-nums">
-              {formatRate(discoveryRate(row.clicks, row.impressions))}
-            </span>
-            <span className="justify-end tabular-nums">{fmt.number(row.adds)}</span>
-          </KitTableRow>
-        ))}
-      </KitTable>
-    </div>
+    <SimpleTable
+      className="min-w-[36rem]"
+      columns={[
+        { key: 'intent', label: r.intent },
+        { key: 'impressions', label: r.impressions, align: 'end', className: 'w-24' },
+        { key: 'clicks', label: r.clicks, align: 'end', className: 'w-20' },
+        { key: 'rate', label: r.clickRate, align: 'end', className: 'w-24' },
+        { key: 'adds', label: r.adds, align: 'end', className: 'w-24' },
+      ]}
+    >
+      {rows.map((row) => (
+        <TableRow key={row.intent}>
+          <TableCell className="font-medium">{copy.overview.intents[row.intent]}</TableCell>
+          <TableCell className="text-right tabular-nums">{fmt.number(row.impressions)}</TableCell>
+          <TableCell className="text-right tabular-nums">{fmt.number(row.clicks)}</TableCell>
+          <TableCell className="text-right tabular-nums">
+            {formatRate(discoveryRate(row.clicks, row.impressions))}
+          </TableCell>
+          <TableCell className="text-right tabular-nums">{fmt.number(row.adds)}</TableCell>
+        </TableRow>
+      ))}
+    </SimpleTable>
   ) : (
     <EmptyState variant="inline" body={r.empty} className="mx-5 my-6" />
   )

@@ -1,6 +1,7 @@
 'use client'
 
 import StatusChip from '@/components/layout/status-chip'
+import SimpleTable from '@/components/table/simple-table'
 import { deliveryOptionsContent } from '@/data/delivery-options'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import type { TryPinResult } from './format'
@@ -64,60 +65,57 @@ export default function TryPinTrace({ result }: TryPinTraceProps) {
               {t.rulesOverruled(o.rulesOverruled.map((r) => r.name).join(', '))}
             </p>
           ) : null}
-          <div className="overflow-x-auto">
-            <table className="w-full text-caption">
-              <thead className="text-left text-muted-foreground">
-                <tr>
-                  <th className="py-1.5 pr-3 font-medium">{t.columns.route}</th>
-                  <th className="py-1.5 pr-3 font-medium">{t.columns.cost}</th>
-                  <th className="py-1.5 pr-3 font-medium">{t.columns.insurance}</th>
-                  <th className="py-1.5 pr-3 font-medium">{t.columns.arrives}</th>
-                  <th className="py-1.5 pr-3 font-medium">{t.columns.cod}</th>
-                  <th className="py-1.5 pr-3 font-medium">{t.columns.source}</th>
-                  <th className="py-1.5 font-medium">{t.columns.result}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {o.routes.map((r) => (
-                  <tr
-                    key={r.key}
-                    className={`border-t border-hairline ${r.dropped && r.dropped !== 'wrong_speed' ? 'text-muted-foreground' : 'text-ink-strong'}`}
-                  >
-                    <td className="py-1.5 pr-3">
-                      {r.carrier} · {r.serviceLabel} ({r.providerLabel})
-                    </td>
-                    <td className="py-1.5 pr-3 tabular-nums">
-                      {r.costPaise === null ? '—' : fmt.money(r.costPaise)}
-                    </td>
-                    <td className="py-1.5 pr-3 tabular-nums">
-                      {r.insures
-                        ? r.insurancePaise === null
-                          ? '—'
-                          : fmt.money(r.insurancePaise)
-                        : copy.routes.no}
-                    </td>
-                    <td className="py-1.5 pr-3">
-                      {r.latest ? fmt.pattern(r.latest, SHORT_DATE) : '—'}
-                      {r.etaEstimated ? ` (${t.estimated})` : ''}
-                    </td>
-                    <td className="py-1.5 pr-3">
-                      {r.codAvailable === false ? copy.routes.no : copy.routes.yes}
-                    </td>
-                    <td className="py-1.5 pr-3">{r.source === 'cache' ? t.cache : t.live(r.ms)}</td>
-                    <td className="py-1.5">
-                      {o.winner === r.key ? (
-                        <StatusChip tone="success">{t.winner}</StatusChip>
-                      ) : r.dropped ? (
-                        t.dropped[r.dropped]
-                      ) : (
-                        t.fits
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <SimpleTable
+            density="compact"
+            className="text-caption"
+            columns={[
+              { key: 'route', label: t.columns.route },
+              { key: 'cost', label: t.columns.cost },
+              { key: 'insurance', label: t.columns.insurance },
+              { key: 'arrives', label: t.columns.arrives },
+              { key: 'cod', label: t.columns.cod },
+              { key: 'source', label: t.columns.source },
+              { key: 'result', label: t.columns.result },
+            ]}
+          >
+            {o.routes.map((r) => (
+              <tr
+                key={r.key}
+                className={`border-t border-hairline ${r.dropped && r.dropped !== 'wrong_speed' ? 'text-muted-foreground' : 'text-ink-strong'}`}
+              >
+                <td className="py-1.5 pr-3">
+                  {r.carrier} · {r.serviceLabel} ({r.providerLabel})
+                </td>
+                <td className="py-1.5 pr-3 tabular-nums">
+                  {r.costPaise === null ? '—' : fmt.money(r.costPaise)}
+                </td>
+                <td className="py-1.5 pr-3 tabular-nums">
+                  {r.insures
+                    ? r.insurancePaise === null
+                      ? '—'
+                      : fmt.money(r.insurancePaise)
+                    : copy.routes.no}
+                </td>
+                <td className="py-1.5 pr-3">
+                  {r.latest ? fmt.pattern(r.latest, SHORT_DATE) : '—'}
+                  {r.etaEstimated ? ` (${t.estimated})` : ''}
+                </td>
+                <td className="py-1.5 pr-3">
+                  {r.codAvailable === false ? copy.routes.no : copy.routes.yes}
+                </td>
+                <td className="py-1.5 pr-3">{r.source === 'cache' ? t.cache : t.live(r.ms)}</td>
+                <td className="py-1.5">
+                  {o.winner === r.key ? (
+                    <StatusChip tone="success">{t.winner}</StatusChip>
+                  ) : r.dropped ? (
+                    t.dropped[r.dropped]
+                  ) : (
+                    t.fits
+                  )}
+                </td>
+              </tr>
+            ))}
+          </SimpleTable>
         </div>
       ))}
     </div>

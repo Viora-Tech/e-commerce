@@ -94,9 +94,9 @@ export default function BalanceCard({ card, onChanged }: BalanceCardProps) {
           </DialogHeader>
           <FieldGroup>
             <ToggleGroup
+              variant="segmented"
               value={[direction]}
               onValueChange={(v) => v[0] && setDirection(v[0] as 'add' | 'remove')}
-              variant="outline"
             >
               <ToggleGroupItem value="add">{copy.adjust.add}</ToggleGroupItem>
               <ToggleGroupItem value="remove">{copy.adjust.remove}</ToggleGroupItem>

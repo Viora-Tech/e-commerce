@@ -52,6 +52,7 @@ export default function ChannelTableCard({ rows }: ChannelTableCardProps) {
         <p className="text-kit-title text-foreground">{copy.title}</p>
         {rows.length > 0 ? (
           <ToggleGroup
+            variant="segmented"
             value={[filter]}
             onValueChange={handleFilter}
             aria-label={split.filter.label}

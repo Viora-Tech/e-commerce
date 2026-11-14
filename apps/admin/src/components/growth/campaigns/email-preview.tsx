@@ -76,9 +76,9 @@ export default function EmailPreview({
       <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
         <p className="text-card-title">{copy.title}</p>
         <ToggleGroup
+          variant="segmented"
           value={[device]}
           onValueChange={(v) => v[0] && setDevice(v[0] as 'desktop' | 'mobile')}
-          size="sm"
         >
           <ToggleGroupItem value="desktop" aria-label={copy.desktop}>
             <Monitor />

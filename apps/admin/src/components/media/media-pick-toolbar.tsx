@@ -120,10 +120,9 @@ export default function MediaPickToolbar({
           </Select>
         ) : null}
         <ToggleGroup
+          variant="segmented"
           value={[view]}
           onValueChange={(v) => typeof v[0] === 'string' && onView(v[0] as MediaViewMode)}
-          variant="outline"
-          spacing={0}
         >
           <ToggleGroupItem value="grid" aria-label={copy.view.grid} title={copy.view.grid}>
             <LayoutGrid aria-hidden />

@@ -3,25 +3,24 @@
 import { SEARCH_ID } from '@commerce/plugin-search'
 import { Plus } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
+import { TableCell } from '@commerce/ui/shadcn/table'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
-import KitTable from '@/components/kit/kit-table'
-import KitTableHead from '@/components/kit/kit-table-head'
-import KitTableRow from '@/components/kit/kit-table-row'
 import DataCard from '@/components/layout/data-card'
 import EmptyState from '@/components/layout/empty-state'
 import PageHeader from '@/components/layout/page-header'
 import SelectProductsDialog, {
   type PickedProducts,
 } from '@/components/products/select-products-dialog'
+import LinkRow from '@/components/table/link-row'
+import SimpleTable from '@/components/table/simple-table'
 import { searchDiscoveryContent } from '@/data/search-discovery'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
 
 type Row = Awaited<ReturnType<typeof api.search.recommendations.list>>[number]
-
-const COLUMNS = 'minmax(12rem,1fr) 9rem 9rem'
 
 /** The editor for one product's picks. */
 export const editorHref = (productId: string) =>
@@ -71,22 +70,33 @@ export default function RecommendationsPage() {
         {rows.length === 0 ? (
           <EmptyState variant="inline" body={c.empty} className="mx-5 my-6" />
         ) : (
-          <div className="overflow-x-auto">
-            <KitTable className="min-w-[32rem]">
-              <KitTableHead columns={COLUMNS}>
-                <span>{c.columns.product}</span>
-                <span className="justify-end">{c.columns.related}</span>
-                <span className="justify-end">{c.columns.complementary}</span>
-              </KitTableHead>
-              {rows.map((row) => (
-                <KitTableRow key={row.id} columns={COLUMNS} href={editorHref(row.id)}>
-                  <span className="truncate font-medium">{row.title}</span>
-                  <span className="justify-end tabular-nums">{fmt.number(row.related)}</span>
-                  <span className="justify-end tabular-nums">{fmt.number(row.complementary)}</span>
-                </KitTableRow>
-              ))}
-            </KitTable>
-          </div>
+          <SimpleTable
+            className="min-w-[32rem]"
+            columns={[
+              { key: 'product', label: c.columns.product },
+              { key: 'related', label: c.columns.related, align: 'end', className: 'w-36' },
+              {
+                key: 'complementary',
+                label: c.columns.complementary,
+                align: 'end',
+                className: 'w-36',
+              },
+            ]}
+          >
+            {rows.map((row) => (
+              <LinkRow key={row.id} href={editorHref(row.id)}>
+                <TableCell className="max-w-0 font-medium">
+                  <Link href={editorHref(row.id)} className="block truncate hover:underline">
+                    {row.title}
+                  </Link>
+                </TableCell>
+                <TableCell className="text-right tabular-nums">{fmt.number(row.related)}</TableCell>
+                <TableCell className="text-right tabular-nums">
+                  {fmt.number(row.complementary)}
+                </TableCell>
+              </LinkRow>
+            ))}
+          </SimpleTable>
         )}
       </DataCard>
       <SelectProductsDialog open={choosing} onOpenChange={setChoosing} onConfirm={handleChosen} />

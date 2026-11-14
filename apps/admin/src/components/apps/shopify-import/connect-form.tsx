@@ -1,7 +1,7 @@
 'use client'
 
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@commerce/ui/shadcn/tabs'
 import { useEffect, useState } from 'react'
+import PillTabs from '@/components/layout/pill-tabs'
 import StatusChip from '@/components/layout/status-chip'
 import { shopifyAppInstallContent } from '@/data/shopify-app-install'
 import { shopifyImportContent } from '@/data/shopify-import'
@@ -18,13 +18,6 @@ type ConnectFormProps = {
 }
 
 type Mode = 'install' | 'app' | 'token'
-
-const MODES: readonly Mode[] = ['install', 'app', 'token']
-
-// Roomier than the shared tabs' compact h-8: these are the main choice on the page.
-const TRIGGER = 'gap-2 px-3 py-2'
-
-const isMode = (value: string): value is Mode => (MODES as readonly string[]).includes(value)
 
 /**
  * The ways to connect: the Koomerce app on Shopify (one click, when this deployment has it),
@@ -48,33 +41,43 @@ export default function ConnectForm({ onConnected }: ConnectFormProps) {
   }, [])
 
   return (
-    <Tabs value={mode} onValueChange={(v) => isMode(v) && setMode(v)}>
-      <TabsList className="w-fit max-w-full p-1 group-data-horizontal/tabs:h-auto">
-        {installable ? (
-          <TabsTrigger value="install" className={TRIGGER}>
-            {copy.mode.install}
-            <StatusChip dot={false}>{install.badge}</StatusChip>
-          </TabsTrigger>
-        ) : null}
-        <TabsTrigger value="app" className={TRIGGER}>
-          {copy.mode.app}
-          {installable ? null : <StatusChip dot={false}>{copy.app.badge}</StatusChip>}
-        </TabsTrigger>
-        <TabsTrigger value="token" className={TRIGGER}>
-          {copy.mode.token}
-        </TabsTrigger>
-      </TabsList>
-      {installable ? (
-        <TabsContent value="install" className="pt-4">
-          <AppInstallForm />
-        </TabsContent>
-      ) : null}
-      <TabsContent value="app" className="pt-4">
-        <AppCredentialsForm onConnected={onConnected} />
-      </TabsContent>
-      <TabsContent value="token" className="pt-4">
-        <LegacyTokenForm onConnected={onConnected} />
-      </TabsContent>
-    </Tabs>
+    <div className="flex flex-col gap-2">
+      <PillTabs
+        variant="segmented"
+        className="max-w-full"
+        value={mode}
+        onChange={setMode}
+        tabs={[
+          ...(installable
+            ? [
+                {
+                  value: 'install' as const,
+                  label: (
+                    <>
+                      {copy.mode.install}
+                      <StatusChip dot={false}>{install.badge}</StatusChip>
+                    </>
+                  ),
+                },
+              ]
+            : []),
+          {
+            value: 'app' as const,
+            label: (
+              <>
+                {copy.mode.app}
+                {installable ? null : <StatusChip dot={false}>{copy.app.badge}</StatusChip>}
+              </>
+            ),
+          },
+          { value: 'token' as const, label: copy.mode.token },
+        ]}
+      />
+      <div className="pt-4">
+        {mode === 'install' && installable ? <AppInstallForm /> : null}
+        {mode === 'app' ? <AppCredentialsForm onConnected={onConnected} /> : null}
+        {mode === 'token' ? <LegacyTokenForm onConnected={onConnected} /> : null}
+      </div>
+    </div>
   )
 }

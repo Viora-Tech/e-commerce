@@ -1,17 +1,14 @@
 'use client'
 
+import { TableCell, TableRow } from '@commerce/ui/shadcn/table'
 import type { ReactNode } from 'react'
-import KitTable from '@/components/kit/kit-table'
-import KitTableHead from '@/components/kit/kit-table-head'
-import KitTableRow from '@/components/kit/kit-table-row'
 import DataCard from '@/components/layout/data-card'
 import EmptyState from '@/components/layout/empty-state'
+import SimpleTable from '@/components/table/simple-table'
 import { searchConsoleContent } from '@/data/search-console'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import ReportFrame from './report-frame'
 import SearchPageLabel from './search-page-label'
-
-const COLUMNS = 'minmax(12rem,1fr) 6rem 6rem 7rem'
 
 type Drop = { key: string; label: ReactNode; before: number; now: number; lost: number }
 
@@ -26,26 +23,28 @@ export default function LosingTrafficPage() {
     rows.length === 0 ? (
       <EmptyState variant="inline" body={empty} className="my-6" />
     ) : (
-      <div className="overflow-x-auto">
-        <KitTable className="min-w-[36rem]">
-          <KitTableHead columns={COLUMNS}>
-            <span>{first}</span>
-            <span className="justify-end">{copy.columns.before}</span>
-            <span className="justify-end">{copy.columns.now}</span>
-            <span className="justify-end">{copy.columns.lost}</span>
-          </KitTableHead>
-          {rows.map((row) => (
-            <KitTableRow key={row.key} columns={COLUMNS}>
-              <div className="flex-col items-start! gap-0.5">{row.label}</div>
-              <span className="justify-end tabular-nums">{fmt.number(row.before)}</span>
-              <span className="justify-end tabular-nums">{fmt.number(row.now)}</span>
-              <span className="justify-end font-medium text-destructive tabular-nums">
-                −{fmt.number(row.lost)}
-              </span>
-            </KitTableRow>
-          ))}
-        </KitTable>
-      </div>
+      <SimpleTable
+        className="min-w-[36rem]"
+        columns={[
+          { key: 'label', label: first },
+          { key: 'before', label: copy.columns.before, align: 'end', className: 'w-24' },
+          { key: 'now', label: copy.columns.now, align: 'end', className: 'w-24' },
+          { key: 'lost', label: copy.columns.lost, align: 'end', className: 'w-28' },
+        ]}
+      >
+        {rows.map((row) => (
+          <TableRow key={row.key}>
+            <TableCell className="whitespace-normal">
+              <div className="flex flex-col items-start gap-0.5">{row.label}</div>
+            </TableCell>
+            <TableCell className="text-right tabular-nums">{fmt.number(row.before)}</TableCell>
+            <TableCell className="text-right tabular-nums">{fmt.number(row.now)}</TableCell>
+            <TableCell className="text-right font-medium text-destructive tabular-nums">
+              −{fmt.number(row.lost)}
+            </TableCell>
+          </TableRow>
+        ))}
+      </SimpleTable>
     )
 
   // Render logic

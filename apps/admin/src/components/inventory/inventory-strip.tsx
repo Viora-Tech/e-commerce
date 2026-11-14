@@ -69,12 +69,10 @@ export default function InventoryStrip({
             {copy.group.label}
           </span>
           <ToggleGroup
+            variant="segmented"
             aria-labelledby="inventory-group-label"
             value={[byProduct ? 'products' : 'skus']}
             onValueChange={handleGroupChange}
-            variant="outline"
-            spacing={0}
-            className="bg-card"
           >
             <ToggleGroupItem value="skus">{copy.group.skus}</ToggleGroupItem>
             <ToggleGroupItem value="products">{copy.group.products}</ToggleGroupItem>

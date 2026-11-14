@@ -5,12 +5,12 @@ import { daysUntilDue, requestUrgency } from '@commerce/core/privacy'
 import { Plus, ShieldCheck } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card, CardContent } from '@commerce/ui/shadcn/card'
-import { Tabs, TabsList, TabsTrigger } from '@commerce/ui/shadcn/tabs'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import DataCardSkeleton from '@/components/layout/data-card-skeleton'
 import EmptyState from '@/components/layout/empty-state'
 import PageHeader from '@/components/layout/page-header'
+import PillTabs from '@/components/layout/pill-tabs'
 import StatusChip from '@/components/layout/status-chip'
 import DataRequestStatusBadge from '@/components/privacy/data-request-status-badge'
 import LogRequestDialog from '@/components/privacy/log-request-dialog'
@@ -33,8 +33,6 @@ const URGENCY_VARIANT = {
 } as const
 
 const TABS: Tab[] = ['open', 'closed', 'all']
-
-const isTab = (v: unknown): v is Tab => typeof v === 'string' && (TABS as string[]).includes(v)
 
 /** The data request queue: open work first, soonest due at the top. */
 export default function DataRequestQueue() {
@@ -71,15 +69,13 @@ export default function DataRequestQueue() {
         }
         lead={{ kind: 'icon', node: <ShieldCheck aria-hidden="true" /> }}
       />
-      <Tabs value={tab} onValueChange={(v) => isTab(v) && setTab(v)}>
-        <TabsList>
-          {TABS.map((t) => (
-            <TabsTrigger key={t} value={t}>
-              {copy.tabs[t]}
-            </TabsTrigger>
-          ))}
-        </TabsList>
-      </Tabs>
+      <PillTabs
+        variant="segmented"
+        className="self-start"
+        value={tab}
+        onChange={setTab}
+        tabs={TABS.map((t) => ({ value: t, label: copy.tabs[t] }))}
+      />
       {failed ? (
         <p className="text-body text-muted-foreground">{copy.loadFailed}</p>
       ) : !rows ? (
