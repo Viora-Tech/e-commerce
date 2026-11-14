@@ -5,23 +5,22 @@ import { ArrowDown, ArrowUp, Pencil, Plus, Trash2 } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Switch } from '@commerce/ui/shadcn/switch'
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { toast } from 'sonner'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
 import EmptyState from '@/components/layout/empty-state'
 import NoticeBar from '@/components/layout/notice-bar'
 import PageHeader from '@/components/layout/page-header'
-import SectionPageSkeleton from '@/components/layout/section-page-skeleton'
 import SettingsCard from '@/components/settings/settings-card'
-import SettingsTable from '@/components/settings/settings-table'
 import SettingsTableCell from '@/components/settings/settings-table-cell'
 import SettingsTableRow from '@/components/settings/settings-table-row'
-import InlineState from '@/components/states/inline-state'
 import { inboxKnowledgeContent } from '@/data/inbox-knowledge'
 import { useCopy } from '@/hooks/use-copy'
+import { useLoad } from '@/hooks/use-load'
 import { usePermissions } from '@/hooks/use-permissions'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
+import InboxTable from './inbox-table'
 import KnowledgeDialog, { type KnowledgeEntry } from './knowledge-dialog'
 
 type KnowledgePageProps = {
@@ -46,33 +45,17 @@ export default function KnowledgePage({ aiOn }: KnowledgePageProps) {
   // Hooks
   const copy = useCopy(inboxKnowledgeContent)
   const { hasPermission } = usePermissions()
-  const [view, setView] = useState<KnowledgeView | null>(null)
   const [editing, setEditing] = useState<Editing>(null)
   const [deleting, setDeleting] = useState<KnowledgeEntry | null>(null)
   const [bringing, setBringing] = useState(false)
-  const [reloadKey, setReloadKey] = useState(0)
-  const [failed, setFailed] = useState(false)
-
-  useEffect(() => {
-    // reloadKey re-runs the fetch after a save, move, publish or delete.
-    if (reloadKey < 0) return
-    let live = true
-    setFailed(false)
-    api.inbox.knowledge
-      .list()
-      .then((v) => {
-        if (live) setView(v)
-      })
-      .catch(() => {
-        if (live) setFailed(true)
-      })
-    return () => {
-      live = false
-    }
-  }, [reloadKey])
+  const {
+    data: view,
+    setData: setView,
+    failed,
+    retry: reload,
+  } = useLoad<KnowledgeView>(() => api.inbox.knowledge.list())
 
   // Helpers
-  const reload = () => setReloadKey((k) => k + 1)
   const fail = (err: unknown) =>
     toast.error(err instanceof Error && err.message ? err.message : copy.failed)
 
@@ -148,7 +131,7 @@ export default function KnowledgePage({ aiOn }: KnowledgePageProps) {
   const showBringOver = canManage && imported && imported.remaining > 0
 
   return (
-    <div className="flex flex-col gap-6">
+    <>
       <PageHeader
         title={copy.title}
         subtitle={
@@ -179,7 +162,7 @@ export default function KnowledgePage({ aiOn }: KnowledgePageProps) {
           title={copy.bringOver.title}
           description={copy.bringOver.body(imported.remaining, imported.entries)}
           footer={
-            <Button onClick={handleBringOver} disabled={bringing}>
+            <Button onClick={handleBringOver} loading={bringing}>
               {copy.bringOver.action}
             </Button>
           }
@@ -187,86 +170,84 @@ export default function KnowledgePage({ aiOn }: KnowledgePageProps) {
           <p className="text-body text-muted-foreground">{copy.bringOver.note}</p>
         </SettingsCard>
       ) : null}
-      {failed && !view ? (
-        <InlineState kind="error" onRetry={() => setReloadKey((k) => k + 1)} />
-      ) : !view ? (
-        <SectionPageSkeleton header={false} cards={1} />
-      ) : (
-        <SettingsTable
-          heading={copy.listTitle}
-          columns={[
-            { label: copy.columns.title },
-            { label: copy.columns.answer, className: 'hidden md:table-cell' },
-            { label: copy.columns.published, center: true },
-          ]}
-          actions={canManage}
-          after={entries.length === 0 ? <EmptyState heading={copy.empty} /> : undefined}
-        >
-          {entries.map((e, i) => (
-            <SettingsTableRow key={e.id}>
-              <SettingsTableCell className="max-w-xs">
-                <span className="flex flex-col gap-0.5">
-                  <span className="truncate">{e.title}</span>
-                  {e.imported ? (
-                    <span className="text-caption text-muted-foreground">{copy.imported}</span>
-                  ) : null}
+      <InboxTable
+        heading={copy.listTitle}
+        columns={[
+          { label: copy.columns.title },
+          { label: copy.columns.answer, className: 'hidden md:table-cell' },
+          { label: copy.columns.published, center: true },
+        ]}
+        actions={canManage}
+        loading={!view}
+        failed={failed}
+        failedHeading={copy.loadFailed}
+        onRetry={reload}
+        after={view && entries.length === 0 ? <EmptyState heading={copy.empty} /> : undefined}
+      >
+        {entries.map((e, i) => (
+          <SettingsTableRow key={e.id}>
+            <SettingsTableCell className="max-w-xs">
+              <span className="flex flex-col gap-0.5">
+                <span className="truncate">{e.title}</span>
+                {e.imported ? (
+                  <span className="text-caption text-muted-foreground">{copy.imported}</span>
+                ) : null}
+              </span>
+            </SettingsTableCell>
+            <SettingsTableCell className="hidden max-w-md truncate md:table-cell">
+              {e.answer}
+            </SettingsTableCell>
+            <SettingsTableCell className="text-center">
+              <Switch
+                checked={e.published}
+                disabled={!canManage}
+                aria-label={copy.publish(e.title)}
+                onCheckedChange={(published) => handlePublish(e, published)}
+              />
+            </SettingsTableCell>
+            {canManage ? (
+              <SettingsTableCell className="text-right">
+                <span className="inline-flex gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    aria-label={copy.moveUp}
+                    disabled={i === 0}
+                    onClick={() => handleMove(i, -1)}
+                  >
+                    <ArrowUp className="size-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    aria-label={copy.moveDown}
+                    disabled={i === entries.length - 1}
+                    onClick={() => handleMove(i, 1)}
+                  >
+                    <ArrowDown className="size-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    aria-label={copy.edit}
+                    onClick={() => setEditing({ entry: e })}
+                  >
+                    <Pencil className="size-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    aria-label={copy.delete}
+                    onClick={() => setDeleting(e)}
+                  >
+                    <Trash2 className="size-4" />
+                  </Button>
                 </span>
               </SettingsTableCell>
-              <SettingsTableCell className="hidden max-w-md truncate md:table-cell">
-                {e.answer}
-              </SettingsTableCell>
-              <SettingsTableCell className="text-center">
-                <Switch
-                  checked={e.published}
-                  disabled={!canManage}
-                  aria-label={copy.publish(e.title)}
-                  onCheckedChange={(published) => handlePublish(e, published)}
-                />
-              </SettingsTableCell>
-              {canManage ? (
-                <SettingsTableCell className="text-right">
-                  <span className="inline-flex gap-1">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      aria-label={copy.moveUp}
-                      disabled={i === 0}
-                      onClick={() => handleMove(i, -1)}
-                    >
-                      <ArrowUp className="size-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      aria-label={copy.moveDown}
-                      disabled={i === entries.length - 1}
-                      onClick={() => handleMove(i, 1)}
-                    >
-                      <ArrowDown className="size-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      aria-label={copy.edit}
-                      onClick={() => setEditing({ entry: e })}
-                    >
-                      <Pencil className="size-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      aria-label={copy.delete}
-                      onClick={() => setDeleting(e)}
-                    >
-                      <Trash2 className="size-4" />
-                    </Button>
-                  </span>
-                </SettingsTableCell>
-              ) : null}
-            </SettingsTableRow>
-          ))}
-        </SettingsTable>
-      )}
+            ) : null}
+          </SettingsTableRow>
+        ))}
+      </InboxTable>
       {editing ? (
         <KnowledgeDialog
           entry={editing.entry}
@@ -285,6 +266,6 @@ export default function KnowledgePage({ aiOn }: KnowledgePageProps) {
         tone="destructive"
         onConfirm={handleDelete}
       />
-    </div>
+    </>
   )
 }

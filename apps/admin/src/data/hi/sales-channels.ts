@@ -1,8 +1,10 @@
 import { salesChannelsContent } from '@/data/sales-channels'
+import { salesChannelsLoadContent } from '@/data/sales-channels-load'
 import { translation, untranslated } from '@/lib/i18n'
 
 /** Only the connection states and the AI agents' waiting list so far; the rest stays English. */
 export default [
+  translation(salesChannelsLoadContent, { failed: 'सेल्स चैनल लोड नहीं हो सके' }),
   translation(salesChannelsContent, {
     orderCard: untranslated,
     unavailable: untranslated,

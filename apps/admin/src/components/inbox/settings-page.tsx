@@ -69,7 +69,7 @@ export default function SettingsPage({ settings, timeZone }: SettingsPageProps) 
   const dirty = JSON.stringify(form) !== JSON.stringify(saved)
 
   return (
-    <div className="flex flex-col gap-5">
+    <>
       <SaveBar
         open={dirty && canManage}
         message={s.unsaved}
@@ -80,7 +80,7 @@ export default function SettingsPage({ settings, timeZone }: SettingsPageProps) 
         saving={saving}
       />
       <PageHeader title={s.title} summary={s.subtitle} />
-      <fieldset disabled={!canManage} className="flex min-w-0 flex-col gap-5">
+      <fieldset disabled={!canManage} className="flex min-w-0 flex-col gap-6">
         <SettingsCard title={s.chat.title}>
           <SettingsRow
             label={s.chat.greeting.label}
@@ -238,6 +238,6 @@ export default function SettingsPage({ settings, timeZone }: SettingsPageProps) 
         </SettingsCard>
       </fieldset>
       <BlockedSenders />
-    </div>
+    </>
   )
 }

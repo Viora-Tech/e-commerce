@@ -4,12 +4,13 @@ import {
   isSocialChannel,
   type MetaChannel,
 } from '@commerce/core/sales-channels'
-import { SocialMedia } from '@commerce/ui/icons'
 import type { Metadata } from 'next'
 import { notFound, redirect } from 'next/navigation'
-import SectionEmpty from '@/components/layout/section-empty'
+import ReadFailedPage from '@/components/sales-channels/read-failed-page'
+import { failed, read } from '@/components/sales-channels/server-read'
 import SocialChannelPage from '@/components/sales-channels/social-channel-page'
 import { salesChannelsContent } from '@/data/sales-channels'
+import { salesChannelsLoadContent } from '@/data/sales-channels-load'
 import { appRouter, call, serverContext } from '@/lib/api'
 import { getCopy } from '@/lib/copy-server'
 import { routes } from '@/lib/routes'
@@ -25,9 +26,9 @@ const META = 'meta'
 
 type Context = Awaited<ReturnType<typeof serverContext>>
 
-/** One channel's page data; null when the store cannot show it. */
+/** One channel's page data, or why it did not load. */
 const loadSocial = (context: Context, channel: MetaChannel | 'google') =>
-  call(appRouter.salesChannels.social, { channel }, { context }).catch(() => null)
+  read(call(appRouter.salesChannels.social, { channel }, { context }))
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { channel } = await params
@@ -49,18 +50,23 @@ export default async function Page({ params, searchParams }: PageProps) {
   if (channel !== META && !isSocialChannel(channel)) notFound()
   const context = await serverContext()
   const asked = isMetaChannel(surface) ? surface : null
-  const [first, readiness, copy] = await Promise.all([
+  const [first, readiness, copy, load] = await Promise.all([
     loadSocial(context, channel === META ? (asked ?? 'facebook') : (channel as 'google')),
     call(appRouter.salesChannels.readiness, undefined, { context }).catch(() => null),
     getCopy(salesChannelsContent.unavailable),
+    getCopy(salesChannelsLoadContent),
   ])
   // No tab asked for: open the first Meta surface that is on.
-  const on = first?.meta.find((s) => isLive(s.state) && s.state.status !== 'disconnected')
+  const on = failed(first)
+    ? undefined
+    : first.meta.find((s) => isLive(s.state) && s.state.status !== 'disconnected')
   const data =
-    channel === META && !asked && on && on.channel !== first?.channel
+    channel === META && !asked && on && !failed(first) && on.channel !== first.channel
       ? await loadSocial(context, on.channel)
       : first
 
-  if (!data) return <SectionEmpty {...copy} icon={SocialMedia} />
+  if (failed(data)) {
+    return <ReadFailedPage failure={data} heading={load.failed} noAccess={copy} />
+  }
   return <SocialChannelPage data={data} issues={readiness?.issues ?? []} />
 }

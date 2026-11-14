@@ -2,6 +2,7 @@
 export const inboxContent = {
   channel: 'Inbox',
   failed: 'Something went wrong. Try again.',
+  loadFailed: 'Could not load the inbox',
   notInstalled: {
     heading: 'Inbox is not installed',
     body: 'Install Inbox to chat with shoppers on your store. It is free on every plan.',
@@ -127,6 +128,7 @@ export const inboxContent = {
     title: 'Blocked senders',
     description: 'Messages from these browsers, emails and addresses never reach your inbox.',
     empty: 'Nobody is blocked.',
+    loadFailed: 'Could not load blocked senders',
     columns: { sender: 'Sender', reason: 'Reason', until: 'Blocked' },
     kinds: { visitor: 'Browser', email: 'Email', ip: 'Internet address' } as Record<string, string>,
     reasons: { spam: 'Spam filter', staff: 'Blocked by your team' } as Record<string, string>,
@@ -146,6 +148,7 @@ export const inboxContent = {
     moveDown: 'Move down',
     empty: 'No quick replies yet. Save the answers you type every day: sizes, COD, delivery time.',
     listTitle: 'Your quick replies',
+    loadFailed: 'Could not load quick replies',
     columns: { shortcut: 'Shortcut', title: 'Title', body: 'Message' },
     saved: 'Quick reply saved',
     deleted: 'Quick reply deleted',
