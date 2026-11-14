@@ -1,28 +1,40 @@
-import { Card } from '@commerce/ui/shadcn/card'
-import { Skeleton } from '@commerce/ui/shadcn/skeleton'
+import DataCardSkeleton from '@/components/layout/data-card-skeleton'
+import PageHeader from '@/components/layout/page-header'
+import PageHeaderSkeleton from '@/components/layout/page-header-skeleton'
 
-const CARDS = 2
-const FIELDS = 3
+type SectionPageSkeletonProps = {
+  /** Form cards under the header. */
+  cards?: number
+  /** Field bars (2.25rem, the field height) in each card. */
+  fields?: number
+  /** The page's own title and line, once the page knows them (it renders this while it loads). */
+  title?: string
+  subtitle?: string
+}
 
 /**
- * Shape of a Settings or Account page while it loads, inside the section's own layout (its nav
- * rail stays): title and subtitle, then two form cards. Moving between pages of one section
- * shows this at once instead of holding the old page until the server answers.
+ * The one loading shape for Settings, Account and app settings pages, inside the section's own
+ * layout (its nav rail stays): the page header at its loaded height, then DataCards with field
+ * bars. The route's `loading.tsx` draws it, and each page draws the same thing (with its title,
+ * card and field counts) while its own data loads, so the screen does not swap one skeleton for
+ * another on the way in.
  */
-export default function SectionPageSkeleton() {
+export default function SectionPageSkeleton({
+  cards = 2,
+  fields = 3,
+  title,
+  subtitle,
+}: SectionPageSkeletonProps) {
+  // Render logic
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-2">
-        <Skeleton className="h-7 w-56" />
-        <Skeleton className="h-4 w-80 max-w-full" />
-      </div>
-      {Array.from({ length: CARDS }, (_, card) => (
-        <Card key={card.toString()} gap={4} inset={5}>
-          <Skeleton className="h-5 w-40" />
-          {Array.from({ length: FIELDS }, (_, field) => (
-            <Skeleton key={field.toString()} className="h-9 w-full" />
-          ))}
-        </Card>
+    <div className="flex flex-col gap-4" aria-busy="true">
+      {title ? (
+        <PageHeader title={title} subtitle={subtitle} />
+      ) : (
+        <PageHeaderSkeleton actions={0} />
+      )}
+      {Array.from({ length: cards }, (_, card) => (
+        <DataCardSkeleton key={`card-${card.toString()}`} fields={fields} />
       ))}
     </div>
   )

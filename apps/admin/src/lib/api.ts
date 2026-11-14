@@ -20,11 +20,12 @@ import {
   storeExportQueue,
   themeScreenshotQueue,
 } from '@commerce/queue'
-import { call } from '@orpc/server'
+import { ORPCError, call as orpcCall } from '@orpc/server'
 import { headers } from 'next/headers'
 import { cache } from 'react'
 import { auth, getSession } from './auth'
 import { db, ownerDb } from './db'
+import { FORBIDDEN_DIGEST } from './forbidden'
 import { reportError } from './sentry-report'
 
 /** Everything the router needs from this host, minus the request headers. */
@@ -82,5 +83,22 @@ export const serverContext = cache(async () => {
   void remember(memo, 'session', getSession)
   return { ...apiHost(), ...platformHost(), headers: await headers(), memo }
 })
+
+/**
+ * `call` from oRPC, plus one thing: a FORBIDDEN answer carries a fixed `digest`. Next keeps an
+ * error's own digest when it sends a server render's failure to the route's error page (and
+ * blanks the message in production), so `RouteError` can say "You do not have access" to a
+ * member whose role does not allow the read, instead of "Something went wrong".
+ */
+const call = (async (...args: unknown[]) => {
+  try {
+    return await (orpcCall as (...a: unknown[]) => Promise<unknown>)(...args)
+  } catch (error) {
+    if (error instanceof ORPCError && error.code === 'FORBIDDEN') {
+      Object.assign(error, { digest: FORBIDDEN_DIGEST })
+    }
+    throw error
+  }
+}) as typeof orpcCall
 
 export { appRouter, call }

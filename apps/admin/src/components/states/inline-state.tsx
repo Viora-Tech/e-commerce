@@ -1,6 +1,6 @@
 'use client'
 
-import { CircleAlert, Inbox, RotateCcw, WifiOff } from '@commerce/ui/icons'
+import { CircleAlert, Inbox, Lock, RotateCcw, WifiOff } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import type { ReactNode } from 'react'
 import EmptyState from '@/components/layout/empty-state'
@@ -8,7 +8,7 @@ import { statesContent } from '@/data/states'
 import { useCopy } from '@/hooks/use-copy'
 
 type InlineStateProps = {
-  kind: 'error' | 'offline' | 'empty'
+  kind: 'error' | 'offline' | 'empty' | 'no-access'
   heading?: string
   body?: string
   onRetry?: () => void
@@ -16,7 +16,7 @@ type InlineStateProps = {
   className?: string
 }
 
-const ICON = { error: CircleAlert, offline: WifiOff, empty: Inbox } as const
+const ICON = { error: CircleAlert, offline: WifiOff, empty: Inbox, 'no-access': Lock } as const
 
 /**
  * Small state for one card or section (Figma "State · Inline"): icon, a line of words, and a
@@ -34,8 +34,8 @@ export default function InlineState({
   const copy = useCopy(statesContent)
 
   // Render logic
-  const words = copy[kind]
-  const retry = kind === 'empty' ? null : copy[kind].retry
+  const words = kind === 'no-access' ? copy.noAccess : copy[kind]
+  const retry = kind === 'error' || kind === 'offline' ? copy[kind].retry : null
 
   return (
     <EmptyState
