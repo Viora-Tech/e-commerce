@@ -3,15 +3,11 @@
 import { CheckIcon, ImageIcon, Upload } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@commerce/ui/shadcn/dialog'
+import { Dialog, DialogDescription, DialogTitle } from '@commerce/ui/shadcn/dialog'
 import { type ChangeEvent, type DragEvent, useRef, useState } from 'react'
+import DialogContent from '@/components/layout/dialog-content'
+import DialogFooter from '@/components/layout/dialog-footer'
+import DialogHeader from '@/components/layout/dialog-header'
 import { useUploadQueue } from '@/components/media/use-upload-queue'
 import { productFormContent } from '@/data/product-form'
 import { useCopy } from '@/hooks/use-copy'
@@ -105,17 +101,15 @@ export default function VariantImagesDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="flex max-h-[min(90svh,48rem)] w-full flex-col gap-0 p-0 sm:max-w-[48rem]">
-        <DialogHeader className="gap-1 border-b p-4">
-          <DialogTitle className="text-base font-medium">{copy.title(label)}</DialogTitle>
-          <DialogDescription className="text-caption text-muted-foreground">
-            {copy.description}
-          </DialogDescription>
+      <DialogContent size="wide" panel>
+        <DialogHeader className="border-b">
+          <DialogTitle>{copy.title(label)}</DialogTitle>
+          <DialogDescription>{copy.description}</DialogDescription>
         </DialogHeader>
 
         {/* biome-ignore lint/a11y/noStaticElementInteractions: file drop target only; the Upload button is the accessible route. */}
         <div
-          className="relative flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto p-4"
+          className="relative flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto overscroll-contain p-4"
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
@@ -220,7 +214,7 @@ export default function VariantImagesDialog({
           ) : null}
         </div>
 
-        <DialogFooter className="mx-0 mb-0 items-center gap-2 rounded-b-xl border-t bg-muted/50 p-4 sm:justify-between">
+        <DialogFooter className="items-center sm:justify-between">
           <span className="text-caption text-muted-foreground" aria-live="polite">
             {uploading ? copy.uploading(pending.length) : copy.count(chosen.length)}
           </span>

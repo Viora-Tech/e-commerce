@@ -115,11 +115,14 @@ export default function PreviewDialog({ messageId, onClose, onTest, testing }: P
           </div>
         )}
         <DialogFooter>
-          <Button loading={testing} variant="outline" onClick={onTest} disabled={testing}>
+          {/* Close is never filled (audit 9e): dismiss first, the one primary last. */}
+          <Button variant="outline" onClick={onClose}>
+            {copy.close}
+          </Button>
+          <Button loading={testing} onClick={onTest} disabled={testing}>
             <Send aria-hidden="true" />
             {copy.sendTest}
           </Button>
-          <Button onClick={onClose}>{copy.close}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

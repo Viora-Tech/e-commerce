@@ -80,7 +80,7 @@ export default function BulkShippingDialog({ ids, onClose, onDone }: BulkShippin
 
   return (
     <Dialog open={open} onOpenChange={(next) => !next && handleClose()}>
-      <DialogContent>
+      <DialogContent busy={saving}>
         <DialogHeader>
           <DialogTitle>{copy.title}</DialogTitle>
           <DialogDescription>{copy.help(ids.length)}</DialogDescription>

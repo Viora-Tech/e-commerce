@@ -85,7 +85,10 @@ export default function AddSectionPopover({
         align="start"
         side="right"
         sideOffset={12}
-        className={cn('relative flex flex-col gap-0 p-0', slot ? 'w-[14.25rem]' : 'w-[22rem]')}
+        className={cn(
+          'relative flex max-w-[calc(100vw-2rem)] flex-col gap-0 p-0',
+          slot ? 'w-64' : 'w-96',
+        )}
       >
         {/* A section's own slot gets the compact block picker (Figma 696:87552). */}
         {slot ? (

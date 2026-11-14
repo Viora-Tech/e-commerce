@@ -117,7 +117,7 @@ export default function PaymentRuleDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent busy={saving}>
         <DialogHeader>
           <DialogTitle>{rule ? copy.editTitle : copy.addTitle}</DialogTitle>
           <DialogDescription>{copy.description}</DialogDescription>

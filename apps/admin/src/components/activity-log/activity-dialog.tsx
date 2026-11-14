@@ -1,15 +1,11 @@
 'use client'
 
 import { Button } from '@commerce/ui/shadcn/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@commerce/ui/shadcn/dialog'
+import { Dialog, DialogDescription, DialogTitle } from '@commerce/ui/shadcn/dialog'
 import type { ActivityRow } from '@/components/activity-log/activity-columns'
+import DialogContent from '@/components/layout/dialog-content'
+import DialogFooter from '@/components/layout/dialog-footer'
+import DialogHeader from '@/components/layout/dialog-header'
 import { activityLogContent } from '@/data/activity-log'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 
@@ -98,12 +94,12 @@ export default function ActivityDialog({ row, onClose }: ActivityDialogProps) {
 
   return (
     <Dialog open={row !== null} onOpenChange={(open) => (open ? null : onClose())}>
-      <DialogContent className="sm:max-w-[42rem]">
+      <DialogContent>
         <DialogHeader>
           <DialogTitle>{d.title}</DialogTitle>
           <DialogDescription>{row?.summary}</DialogDescription>
         </DialogHeader>
-        <div className="flex max-h-[60dvh] flex-col gap-4 overflow-y-auto">
+        <div className="flex flex-col gap-4">
           <dl className="grid grid-cols-[minmax(0,8rem)_1fr] gap-x-4 gap-y-2 text-body">
             {facts.map(([label, value]) => (
               <div key={label} className="contents">

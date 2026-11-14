@@ -19,6 +19,10 @@ export default [
   translation(dialogContent, {
     cancel: 'रद्द करें',
     close: 'बंद करें',
+    discardTitle: 'जो लिखा है उसे हटाएँ?',
+    discardBody: 'इस पॉपअप के बदलाव अभी सेव नहीं हुए। बंद करने पर वे खो जाएँगे।',
+    discard: 'हटाएँ',
+    keepEditing: 'बदलाव जारी रखें',
   }),
   translation(quantityInputContent, {
     less: 'एक कम',

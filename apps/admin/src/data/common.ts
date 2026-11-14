@@ -10,6 +10,11 @@ export const copyButtonContent = {
 export const dialogContent = {
   cancel: 'Cancel',
   close: 'Close',
+  /** Asked when a popup with typed input is closed by Esc, the X or a click outside. */
+  discardTitle: 'Discard what you typed?',
+  discardBody: 'This popup has changes that are not saved. If you close it, they are lost.',
+  discard: 'Discard',
+  keepEditing: 'Keep editing',
 } as const
 
 /** The − and + beside a quantity box (`components/fields/quantity-input.tsx`). */

@@ -146,7 +146,7 @@ export default function NewCustomerDialog({ onClose }: NewCustomerDialogProps) {
 
   return (
     <Dialog open onOpenChange={handleOpenChange}>
-      <DialogContent>
+      <DialogContent busy={saving}>
         <form onSubmit={handleSubmit} className="flex flex-col gap-5">
           <DialogHeader>
             <DialogTitle>{copy.title}</DialogTitle>

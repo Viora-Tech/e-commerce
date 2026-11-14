@@ -184,7 +184,6 @@ export default function StepUpProvider({ children }: StepUpProviderProps) {
         busy={busy}
         submitDisabled={submitDisabled}
         onSubmit={handleSubmit}
-        size="md"
         secondaryAction={
           phase === 'passkey' ? (
             <button

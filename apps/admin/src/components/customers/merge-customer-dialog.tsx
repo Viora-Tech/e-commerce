@@ -116,7 +116,6 @@ export default function MergeCustomerDialog({
       busy={saving}
       submitDisabled={!preview}
       onSubmit={handleSubmit}
-      size="lg"
     >
       <div className="flex flex-col gap-6">
         <CustomerPicker

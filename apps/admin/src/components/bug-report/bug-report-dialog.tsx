@@ -95,7 +95,7 @@ export default function BugReportDialog({
 
   return (
     <Dialog open={open} onOpenChange={(o) => (sending ? undefined : onOpenChange(o))}>
-      <DialogContent>
+      <DialogContent busy={sending}>
         <form onSubmit={handleSubmit} className="flex flex-col gap-5">
           <DialogHeader>
             <DialogTitle>{copy.title}</DialogTitle>

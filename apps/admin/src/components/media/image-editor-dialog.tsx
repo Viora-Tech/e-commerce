@@ -131,7 +131,7 @@ export default function ImageEditorDialog({
 
   return (
     <Dialog open={item !== null} onOpenChange={(open) => !open && !busy && onClose()}>
-      <DialogContent size="wide">
+      <DialogContent busy={busy} size="wide">
         <DialogHeader>
           <DialogTitle>{copy.title}</DialogTitle>
           <DialogDescription>{copy.description}</DialogDescription>

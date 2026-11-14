@@ -48,7 +48,7 @@ export default function TokenDialog({ open, onOpenChange, pixelId, onSaved }: To
   // Render logic
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent busy={busy}>
         <form onSubmit={handleSave} className="flex flex-col gap-4">
           <DialogHeader>
             <DialogTitle>{copy.title}</DialogTitle>

@@ -195,7 +195,11 @@ export default function CancelOrderDialog({
 
   return (
     <Dialog open={order !== null} onOpenChange={(open) => (!open ? onClose() : undefined)}>
-      <DialogContent onClick={stopPropagation ? (event) => event.stopPropagation() : undefined}>
+      <DialogContent
+        busy={busy}
+        dirty={reason.trim() !== ''}
+        onClick={stopPropagation ? (event) => event.stopPropagation() : undefined}
+      >
         <form onSubmit={handleSubmit} className="contents">
           <DialogHeader>
             <DialogTitle>{order ? copy.title(order.number) : ''}</DialogTitle>

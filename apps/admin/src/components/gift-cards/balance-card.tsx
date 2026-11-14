@@ -87,7 +87,7 @@ export default function BalanceCard({ card, onChanged }: BalanceCardProps) {
         </p>
       </div>
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent>
+        <DialogContent busy={busy}>
           <DialogHeader>
             <DialogTitle>{copy.adjust.title}</DialogTitle>
             <DialogDescription>{copy.adjust.body}</DialogDescription>

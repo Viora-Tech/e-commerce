@@ -95,7 +95,7 @@ export default function ManualMethodDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent busy={saving}>
         <DialogHeader>
           <DialogTitle>{kind === 'upi' ? copy.upiTitle : copy.bankTitle}</DialogTitle>
           <DialogDescription>{copy.description}</DialogDescription>

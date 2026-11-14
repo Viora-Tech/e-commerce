@@ -166,6 +166,7 @@ export default function SendMessageDialog({
   return (
     <Dialog open={orderId !== null} onOpenChange={(open) => !open && !sending && onClose()}>
       <DialogContent
+        busy={sending}
         size="wide"
         onClick={stopPropagation ? (event) => event.stopPropagation() : undefined}
       >

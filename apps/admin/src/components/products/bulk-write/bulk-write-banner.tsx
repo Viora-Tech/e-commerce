@@ -1,6 +1,7 @@
 'use client'
 
 import { AiIcon } from '@commerce/ui/icons'
+import { Alert } from '@commerce/ui/shadcn/alert'
 import { Progress } from '@commerce/ui/shadcn/progress'
 import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { useEffect, useState } from 'react'
@@ -56,28 +57,36 @@ export default function BulkWriteBanner({ refreshKey = 0, onOpen }: BulkWriteBan
   const finished = latest.done + latest.failed
 
   return (
-    <div className="mb-4 flex flex-wrap items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 shadow-xs">
-      <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-        {live ? (
-          <Spinner className="text-primary" />
-        ) : (
-          <AiIcon className="size-4 text-primary" aria-hidden="true" />
-        )}
-      </span>
-      <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-        <p className="text-body font-medium text-ink-strong">
-          {live ? copy.bulk.banner(finished, latest.total) : copy.bulk.bannerReady(latest.ready)}
-        </p>
-        {live ? (
-          <Progress
-            value={latest.total ? (finished / latest.total) * 100 : 0}
-            className="max-w-sm"
-          />
-        ) : null}
+    <Alert
+      tone="neutral"
+      role="status"
+      className="mb-4 items-center"
+      action={
+        <KitButton variant="secondary" onClick={() => onOpen(latest.id)}>
+          {copy.bulk.view}
+        </KitButton>
+      }
+    >
+      <div className="flex min-w-0 items-center gap-3">
+        <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+          {live ? (
+            <Spinner className="text-primary" />
+          ) : (
+            <AiIcon className="size-4 text-primary" aria-hidden="true" />
+          )}
+        </span>
+        <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+          <p className="text-body font-medium text-ink-strong">
+            {live ? copy.bulk.banner(finished, latest.total) : copy.bulk.bannerReady(latest.ready)}
+          </p>
+          {live ? (
+            <Progress
+              value={latest.total ? (finished / latest.total) * 100 : 0}
+              className="max-w-sm"
+            />
+          ) : null}
+        </div>
       </div>
-      <KitButton variant="secondary" onClick={() => onOpen(latest.id)}>
-        {copy.bulk.view}
-      </KitButton>
-    </div>
+    </Alert>
   )
 }

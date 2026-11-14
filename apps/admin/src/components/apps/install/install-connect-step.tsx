@@ -2,10 +2,11 @@
 
 import { CircleAlert, CircleCheck, Lock, RefreshCw } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import { DialogDescription, DialogFooter, DialogTitle } from '@commerce/ui/shadcn/dialog'
+import { DialogDescription, DialogTitle } from '@commerce/ui/shadcn/dialog'
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import CopyButton from '@/components/fields/copy-button'
+import DialogFooter from '@/components/layout/dialog-footer'
 import { appInstallContent } from '@/data/app-install'
 import { useCopy } from '@/hooks/use-copy'
 import type { api } from '@/lib/api-client'

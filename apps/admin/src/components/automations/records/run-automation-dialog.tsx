@@ -110,7 +110,6 @@ export default function RunAutomationDialog({
       submitLabel={copy.dialog.submit}
       submitDisabled={!selected?.allowed}
       onSubmit={handleSubmit}
-      size="lg"
       stopPropagation
     >
       {workflows === null ? (

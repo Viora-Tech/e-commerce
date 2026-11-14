@@ -113,7 +113,6 @@ export default function NewMarketPartDialog({
       title={title}
       submitLabel={n.apply}
       onSubmit={handleSubmit}
-      size={part === 'prices' || part === 'address' ? 'lg' : 'md'}
     >
       <div className="-mx-4 flex max-h-[60dvh] flex-col gap-5 overflow-y-auto overscroll-contain px-4">
         {part === 'prices' ? (

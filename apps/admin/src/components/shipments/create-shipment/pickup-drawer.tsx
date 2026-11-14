@@ -94,6 +94,11 @@ export default function PickupDrawer({
   }
 
   // Event handlers
+  /* Swipe, Esc, a click outside and the X wait while the pickup is being booked (audit 9c). */
+  const handleOpenChange = (next: boolean) => {
+    if (!next && busy) return
+    onOpenChange(next)
+  }
   const handleGroup = (key: string) => {
     const next = groups?.find((g) => g.key === key)
     if (next) startOn(next)
@@ -245,12 +250,13 @@ export default function PickupDrawer({
       </section>
       <section className="flex flex-col justify-between gap-5 rounded-xl border border-hairline p-5">
         <PickupParcelList group={group} />
-        <div className="flex flex-wrap items-center gap-2">
+        {/* The dialog footer order (audit 3.4): the dismiss button, then the one primary. */}
+        <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={busy}>
+            {copy.later}
+          </Button>
           <Button onClick={() => void handleSubmit()} disabled={!ready} loading={busy}>
             {existing ? copy.add(picked.length) : copy.create(picked.length)}
-          </Button>
-          <Button variant="ghost" onClick={() => onOpenChange(false)}>
-            {copy.later}
           </Button>
         </div>
       </section>
@@ -258,15 +264,13 @@ export default function PickupDrawer({
   )
 
   return (
-    <Drawer open={open} onOpenChange={onOpenChange} showSwipeHandle>
+    <Drawer open={open} onOpenChange={handleOpenChange} showSwipeHandle>
       <DrawerContent
         className={cn('mx-auto max-h-[calc(100dvh-4rem)] max-w-[90rem]', BESIDE_SIDEBAR)}
       >
-        <DrawerHeader className="flex flex-row items-start justify-between gap-4 px-4 pt-2 text-left md:px-8">
+        <DrawerHeader className="flex flex-row items-start justify-between gap-4 px-4 pt-2 text-left">
           <div className="flex min-w-0 flex-col items-start gap-1 text-left">
-            <DrawerTitle className="text-lg font-semibold text-ink-strong">
-              {copy.title}
-            </DrawerTitle>
+            <DrawerTitle>{copy.title}</DrawerTitle>
             <DrawerDescription className="text-body text-muted-foreground">
               {group ? (existing ? copy.subtitleJoin(courier) : copy.subtitle(courier)) : null}
             </DrawerDescription>
@@ -275,12 +279,13 @@ export default function PickupDrawer({
             variant="ghost"
             size="icon-sm"
             aria-label={copy.close}
-            onClick={() => onOpenChange(false)}
+            onClick={() => handleOpenChange(false)}
+            disabled={busy}
           >
             <XIcon aria-hidden="true" />
           </Button>
         </DrawerHeader>
-        <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-6 md:px-8">{body}</div>
+        <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-6">{body}</div>
       </DrawerContent>
     </Drawer>
   )

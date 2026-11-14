@@ -138,7 +138,7 @@ export default function RefundDialog({
 
   return (
     <Dialog open={payment !== null} onOpenChange={(open) => (!open ? onClose() : undefined)}>
-      <DialogContent>
+      <DialogContent busy={busy} dirty={amount.trim() !== '' || reason.trim() !== ''}>
         <form onSubmit={handleSubmit} className="flex flex-col gap-5">
           <DialogHeader>
             <DialogTitle>{copy.refundDialog.title}</DialogTitle>

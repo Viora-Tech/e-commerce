@@ -82,7 +82,6 @@ export default function InviteDialog({ open, roles, onOpenChange, onInvited }: I
       busy={sending}
       submitDisabled={!email.trim() || !roleId}
       onSubmit={handleSend}
-      size="md"
     >
       <div className="flex flex-col gap-4">
         <div className="flex flex-col gap-2">

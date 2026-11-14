@@ -81,7 +81,7 @@ export default function ChargeDialog({
 
   return (
     <Dialog open onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent busy={busy}>
         <DialogHeader>
           <DialogTitle>{charge ? copy.dialog.editTitle : copy.dialog.addTitle}</DialogTitle>
         </DialogHeader>

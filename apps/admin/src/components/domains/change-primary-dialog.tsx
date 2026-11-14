@@ -59,7 +59,7 @@ export default function ChangePrimaryDialog({
   // Render logic
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent busy={saving}>
         <DialogHeader>
           <DialogTitle>{copy.primary.change}</DialogTitle>
           <DialogDescription>{copy.primary.body}</DialogDescription>

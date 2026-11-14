@@ -83,11 +83,9 @@ export default function BulkShipDrawer({
           />
         ) : (
           <>
-            <DrawerHeader className="flex flex-row flex-wrap items-start justify-between gap-4 px-4 pt-2 text-left md:px-8">
+            <DrawerHeader className="flex flex-row flex-wrap items-start justify-between gap-4 px-4 pt-2 text-left">
               <div className="flex min-w-0 flex-col items-start gap-1 text-left">
-                <DrawerTitle className="text-lg font-semibold text-ink-strong">
-                  {copy.title(orderIds.length)}
-                </DrawerTitle>
+                <DrawerTitle>{copy.title(orderIds.length)}</DrawerTitle>
                 <DrawerDescription className="text-body text-muted-foreground">
                   {copy.intro}
                 </DrawerDescription>
@@ -111,7 +109,7 @@ export default function BulkShipDrawer({
               </div>
             </DrawerHeader>
 
-            <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 md:px-8">
+            <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="mr-1 text-body text-ink-strong">{copy.ruleLabel}</span>
                 {BULK_RULES.map((r) => (
@@ -151,14 +149,14 @@ export default function BulkShipDrawer({
 
             <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
               {!draft ? (
-                <p className="flex items-center gap-2 px-4 py-10 text-body text-muted-foreground md:px-8">
+                <p className="flex items-center gap-2 px-4 py-10 text-body text-muted-foreground">
                   {b.failed ? null : <Spinner />}
                   {b.failed ? copy.loadFailed : copy.loading}
                 </p>
               ) : (
                 <>
                   {draft.couriers.length === 0 ? (
-                    <div className="flex flex-col items-start gap-3 px-4 py-3 md:px-8">
+                    <div className="flex flex-col items-start gap-3 px-4 py-3">
                       <p className="text-body text-muted-foreground">{copy.noCourierConnected}</p>
                       <AppStoreLink category="shipping" className="w-fit">
                         {copy.connect}
@@ -185,7 +183,7 @@ export default function BulkShipDrawer({
                     <Table className="min-w-[68rem]">
                       <TableHeader>
                         <TableRow className="bg-muted/50 text-caption tracking-wide uppercase">
-                          <TableHead className="w-10 pl-4 md:pl-8">
+                          <TableHead className="w-10 pl-4">
                             <Checkbox
                               checked={allTicked}
                               disabled={ready.length === 0}
@@ -203,7 +201,7 @@ export default function BulkShipDrawer({
                           <TableHead>
                             <span className="sr-only">{copy.columns.status}</span>
                           </TableHead>
-                          <TableHead className="pr-4 md:pr-8">
+                          <TableHead className="pr-4">
                             <span className="sr-only">{copy.columns.edit}</span>
                           </TableHead>
                         </TableRow>

@@ -1,14 +1,9 @@
 'use client'
 
-import { ChevronDown, PackageCheck, Trash2 } from '@commerce/ui/icons'
+import { PackageCheck, Trash2 } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@commerce/ui/shadcn/dropdown-menu'
 import { useState } from 'react'
+import ActionMenu from '@/components/layout/action-menu'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
 import { bulkActionsContent } from '@/data/bulk-actions'
 import {
@@ -67,19 +62,16 @@ export default function ShipmentBulkActions({ ids, onDone }: ShipmentBulkActions
         <PackageCheck aria-hidden="true" />
         {copy.bulk.deliver}
       </Button>
-      <DropdownMenu>
-        <DropdownMenuTrigger render={<Button variant="outline" size="sm" />}>
-          {copy.bulk.changeStatus}
-          <ChevronDown />
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="start">
-          {STAGES.map((stage) => (
-            <DropdownMenuItem key={stage} onClick={() => void handleStatus(stage)}>
-              {copy.status[stage]}
-            </DropdownMenuItem>
-          ))}
-        </DropdownMenuContent>
-      </DropdownMenu>
+      <ActionMenu
+        label={copy.bulk.changeStatus}
+        trigger="button"
+        buttonSize="sm"
+        align="start"
+        items={STAGES.map((stage) => ({
+          label: copy.status[stage],
+          onSelect: () => void handleStatus(stage),
+        }))}
+      />
       <Button variant="outline" size="sm" onClick={() => setConfirming('delete')}>
         <Trash2 aria-hidden="true" />
         {copy.bulk.delete}

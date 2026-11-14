@@ -2,17 +2,13 @@
 
 import { Trash2 } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@commerce/ui/shadcn/dialog'
+import { Dialog, DialogDescription, DialogTitle } from '@commerce/ui/shadcn/dialog'
 import type { ReactNode } from 'react'
 import AppAccessList from '@/components/apps/app-access-list'
 import AppLogo from '@/components/apps/app-logo'
+import DialogContent from '@/components/layout/dialog-content'
+import DialogFooter from '@/components/layout/dialog-footer'
+import DialogHeader from '@/components/layout/dialog-header'
 import RelativeTime from '@/components/layout/relative-time'
 import { installedAppsContent } from '@/data/installed-apps'
 import { useCopy, useFormat } from '@/hooks/use-copy'
@@ -51,16 +47,16 @@ export default function PermissionsDialog({
 
   return (
     <Dialog open={app !== null} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="flex max-h-[calc(100dvh-2rem)] flex-col gap-0 p-0 sm:max-w-[30rem]">
+      <DialogContent>
         {app ? (
           <>
-            <DialogHeader className="gap-0.5 p-4 pr-12">
+            <DialogHeader>
               <DialogTitle>{copy.sheet.title(app.name)}</DialogTitle>
               <DialogDescription>
                 {storeName ? copy.sheet.intro(storeName) : copy.sheet.introNoStore}
               </DialogDescription>
             </DialogHeader>
-            <div className="flex flex-1 flex-col gap-6 overflow-y-auto px-4 pb-4">
+            <div className="flex flex-col gap-6">
               <div className="flex items-center gap-3">
                 <AppLogo id={app.id} icon={app.admin.icon} size={48} />
                 <div className="flex min-w-0 flex-col">
@@ -131,7 +127,7 @@ export default function PermissionsDialog({
                 <p className="text-body text-muted-foreground">{copy.sheet.removeAnyTime}</p>
               </section>
             </div>
-            <DialogFooter className="m-0 flex-row justify-end gap-2">
+            <DialogFooter>
               <Button variant="outline" onClick={onClose}>
                 {copy.sheet.close}
               </Button>

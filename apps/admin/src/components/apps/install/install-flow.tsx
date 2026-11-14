@@ -153,7 +153,7 @@ export default function InstallFlow({ appId, apps, onClose, onInstalled }: Insta
 
   return (
     <Dialog open={app !== null} onOpenChange={(open) => !open && !busy && onClose()}>
-      <DialogContent className="flex flex-col gap-5">
+      <DialogContent busy={busy} className="flex flex-col gap-5">
         {app ? (
           <>
             {step === 'buy' ? null : <InstallSteps steps={steps} current={index} />}

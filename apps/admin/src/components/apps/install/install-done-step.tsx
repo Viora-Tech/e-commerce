@@ -1,9 +1,10 @@
 'use client'
 
 import { Button } from '@commerce/ui/shadcn/button'
-import { DialogDescription, DialogFooter, DialogTitle } from '@commerce/ui/shadcn/dialog'
+import { DialogDescription, DialogTitle } from '@commerce/ui/shadcn/dialog'
 import Link from 'next/link'
 import AppLogo from '@/components/apps/app-logo'
+import DialogFooter from '@/components/layout/dialog-footer'
 import StatusChip from '@/components/layout/status-chip'
 import { appInstallContent } from '@/data/app-install'
 import { installedAppsContent } from '@/data/installed-apps'
