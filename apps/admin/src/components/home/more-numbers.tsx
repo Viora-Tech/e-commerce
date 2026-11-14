@@ -46,7 +46,7 @@ export default function MoreNumbers({ children, salesPreview, ordersPreview }: M
         className="flex cursor-pointer items-center justify-between gap-3 rounded-lg p-1 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
         <span className="flex min-w-0 flex-col">
-          <span className="text-base leading-5 font-semibold text-ink-strong">{c.title}</span>
+          <span className="text-card-title leading-5 font-semibold text-ink-strong">{c.title}</span>
           <span className="text-caption font-normal leading-[1.1875rem] text-muted-foreground">
             {c.subtitle}
           </span>

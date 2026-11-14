@@ -19,7 +19,7 @@ type BoundProps = {
 function Bound({ input, title, label, value, onChange }: BoundProps) {
   return (
     <div className="flex min-w-0 flex-1 flex-col gap-1">
-      <span className="text-xs text-muted-foreground">{label}</span>
+      <span className="text-period text-muted-foreground">{label}</span>
       {input === 'money' ? (
         <MoneyInput aria-label={`${title}: ${label}`} value={value} onChange={onChange} />
       ) : (

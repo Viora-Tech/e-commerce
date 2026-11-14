@@ -55,7 +55,7 @@ export default function BlockedSenders() {
   }
 
   // Early returns
-  if (!blocks) return <Skeleton className="h-32 w-full rounded-2xl" />
+  if (!blocks) return <Skeleton className="h-32 w-full rounded-lg" />
 
   // Render logic
   const b = copy.blocks

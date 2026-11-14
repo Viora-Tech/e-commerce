@@ -53,7 +53,7 @@ export function installedColumns(
             <span className="flex min-w-0 items-center gap-1.5">
               <span className={MAIN}>{a.name}</span>
               {a.tested ? null : (
-                <StatusChip tone="attention" className="h-4.5 shrink-0 text-xs">
+                <StatusChip tone="attention" className="h-4.5 shrink-0 text-period">
                   {copy.untested}
                 </StatusChip>
               )}

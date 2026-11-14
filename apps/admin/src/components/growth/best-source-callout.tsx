@@ -24,7 +24,7 @@ export default function BestSourceCallout({ source }: BestSourceCalloutProps) {
         <SourceIcon source={source.source} className="size-5" />
       </span>
       <div className="flex flex-col gap-1.5">
-        <p className="font-mono text-xs tracking-wide text-muted-foreground uppercase">
+        <p className="font-mono text-period tracking-wide text-muted-foreground uppercase">
           {copy.eyebrow}
         </p>
         <p className="text-card-title text-ink-strong">{title}</p>

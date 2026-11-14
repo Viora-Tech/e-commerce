@@ -158,7 +158,7 @@ function MetricTile({
         <Sparkline values={tile.spark} dim={!selected} />
       </span>
       {tile.note ? (
-        <span className="truncate text-xs text-muted-foreground">{tile.note}</span>
+        <span className="truncate text-period text-muted-foreground">{tile.note}</span>
       ) : (
         <MetricDelta
           change={tile.change}
@@ -184,7 +184,7 @@ function MetricDelta({ change, comparedTo, unit = '%', lowerIsBetter }: MetricDe
   const up = change >= 0
   const good = lowerIsBetter ? change <= 0 : up
   return (
-    <span className="flex flex-wrap items-center gap-1 text-xs text-muted-foreground">
+    <span className="flex flex-wrap items-center gap-1 text-period text-muted-foreground">
       <span
         className={cn(
           'inline-flex items-center gap-1 font-semibold',

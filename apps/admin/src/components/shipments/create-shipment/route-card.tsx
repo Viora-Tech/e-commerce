@@ -88,7 +88,7 @@ function Side({ label, place, chip, actions, empty }: SideProps) {
   return (
     <div className="flex flex-col gap-3 p-4">
       <div className="flex min-h-5.5 items-center justify-between gap-2">
-        <p className="flex items-center gap-2 font-mono text-xs tracking-wide text-muted-foreground uppercase">
+        <p className="flex items-center gap-2 font-mono text-period tracking-wide text-muted-foreground uppercase">
           <span aria-hidden="true" className="size-1.5 rounded-full border border-current" />
           {label}
         </p>

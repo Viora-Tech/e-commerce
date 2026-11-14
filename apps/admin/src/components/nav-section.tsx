@@ -170,7 +170,7 @@ export default function NavSection({ item, pathname, count = 0, counts = {} }: N
             <DropdownMenuTrigger openOnHover delay={80} nativeButton={false} render={link} />
             <DropdownMenuContent side="right" align="start" sideOffset={8} className="min-w-48">
               <DropdownMenuGroup>
-                <DropdownMenuLabel className="text-xs font-medium text-muted-foreground">
+                <DropdownMenuLabel className="text-period font-medium text-muted-foreground">
                   {item.label}
                 </DropdownMenuLabel>
               </DropdownMenuGroup>

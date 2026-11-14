@@ -84,7 +84,7 @@ export default async function FinishSetup({ productCount, signals }: FinishSetup
             >
               <span
                 className={cn(
-                  'flex size-[1.625rem] shrink-0 items-center justify-center rounded-full text-xs font-medium',
+                  'flex size-[1.625rem] shrink-0 items-center justify-center rounded-full text-period font-medium',
                   // Figma 224:591 "Tick done": the key material (gradient, rim, lip, glow).
                   step.done ? 'key-primary' : 'border border-border text-muted-foreground',
                 )}

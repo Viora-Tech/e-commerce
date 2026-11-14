@@ -56,7 +56,7 @@ export default function SocialSettings({ theme, onChange }: SocialSettingsProps)
               onChange={(e) => handleChange(platform, e.target.value)}
               className="h-8"
             />
-            {invalid ? <p className="text-xs text-destructive">{copy.social.invalid}</p> : null}
+            {invalid ? <p className="text-period text-destructive">{copy.social.invalid}</p> : null}
           </div>
         )
       })}

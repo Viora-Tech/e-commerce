@@ -11,7 +11,7 @@ type LabeledGroupProps = {
 export default function LabeledGroup({ label, children, className }: LabeledGroupProps) {
   return (
     <div className={cn('flex flex-col gap-1', className)}>
-      <p className="text-xs font-medium text-muted-foreground">{label}</p>
+      <p className="text-period font-medium text-muted-foreground">{label}</p>
       {children}
     </div>
   )

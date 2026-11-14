@@ -221,7 +221,7 @@ export default function SalesHero({ initial, liveNow }: SalesHeroProps) {
         </Button>
       </div>
       {customizing ? (
-        <p className="px-5 pb-1 text-xs text-muted-foreground">{copy.customizeHint}</p>
+        <p className="px-5 pb-1 text-period text-muted-foreground">{copy.customizeHint}</p>
       ) : null}
       <div
         className={cn(
