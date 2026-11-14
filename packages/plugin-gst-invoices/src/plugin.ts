@@ -12,6 +12,7 @@ import { enqueueOrderParcels, isPreorder, issueDrafts, removeFromQueue } from '.
 import { pdfBytes, pdfFilename, renderAndStore } from './render'
 import { documentsByIds } from './reports'
 import { invoiceBatch } from './schema'
+import { voidUnshippedSale } from './void-unshipped'
 import { issueReceiptVoucher, issueRefundVoucher } from './vouchers'
 
 export const GST_INVOICES_ID = 'gst-invoices'
@@ -83,6 +84,8 @@ async function onOrderEvent(ctx: AppHookContext, orderId: string, event: 'paid' 
 
 /** Money back: a credit note against the invoice, or a refund voucher for an undispatched advance. */
 async function onRefund(ctx: AppHookContext, orderId: string, refundId: string) {
+  // Cancelled before anything left and nothing filed: the invoice goes, no credit note.
+  if (await voidSale(ctx, orderId)) return
   try {
     // One credit note per GSTIN the refund reduces (an order billed in parcels has several).
     const notes = await ctx.inStore((tx) => issueCreditNotes(tx, ctx.storeId, refundId))
@@ -119,8 +122,19 @@ async function onRefund(ctx: AppHookContext, orderId: string, refundId: string) 
   ctx.reportActivity?.(`Issued refund voucher ${voucher.row.number}`)
 }
 
+/** Cancels the invoices of a sale that never happened (`voidUnshippedSale`); true when it did. */
+async function voidSale(ctx: AppHookContext, orderId: string): Promise<boolean> {
+  const numbers = await ctx.inStore((tx) => voidUnshippedSale(tx, orderId))
+  if (!numbers?.length) return false
+  ctx.log(`order ${orderId} cancelled before dispatch: cancelled ${numbers.join(', ')}`)
+  ctx.reportActivity?.(`Cancelled ${numbers.join(', ')}: order cancelled before dispatch`)
+  return true
+}
+
 /** The order was cancelled: its queued (unnumbered) tax invoices go; issued ones stay for a credit note. */
 async function onOrderCancelled(ctx: AppHookContext, orderId: string) {
+  // The refund may have come first (and made a credit note): undo both when nothing left.
+  await voidSale(ctx, orderId)
   const drafts = (await ctx.inStore((tx) => liveDocuments(tx, orderId, 'tax_invoice'))).filter(
     (d) => d.status === 'draft',
   )
