@@ -9,6 +9,7 @@ import {
 } from '@commerce/core/checkout-settings'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Dialog, DialogDescription, DialogTitle } from '@commerce/ui/shadcn/dialog'
+import { FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import { Tabs, TabsList, TabsTrigger } from '@commerce/ui/shadcn/tabs'
 import { useState } from 'react'
@@ -89,9 +90,7 @@ export default function CheckoutTextDialog({
                   key={key}
                   className="grid gap-1.5 md:grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)] md:items-center md:gap-4"
                 >
-                  <label htmlFor={`checkout-text-${key}`} className="text-body font-medium">
-                    {copy.keys[key]}
-                  </label>
+                  <FieldLabel htmlFor={`checkout-text-${key}`}>{copy.keys[key]}</FieldLabel>
                   <Input
                     id={`checkout-text-${key}`}
                     maxLength={CHECKOUT_TEXT_MAX}

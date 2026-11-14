@@ -12,6 +12,7 @@ import { Textarea } from '@commerce/ui/shadcn/textarea'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import CustomerPicker, { type PickedCustomer } from '@/components/customers/customer-picker'
 import DateField from '@/components/fields/date-field'
 import MoneyInput from '@/components/fields/money-input'
 import DataCard from '@/components/layout/data-card'
@@ -23,7 +24,6 @@ import { useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
 import CodeRevealDialog, { type IssuedCard } from './code-reveal-dialog'
-import CustomerPicker, { type PickedCustomer } from './customer-picker'
 
 type IssueGiftCardFormProps = {
   /** Today in the store's time zone (YYYY-MM-DD), the earliest expiry allowed. */
@@ -179,7 +179,7 @@ export default function IssueGiftCardForm({ today }: IssueGiftCardFormProps) {
           <>
             <DataCard title={copy.customer}>
               <div className="flex flex-col gap-4">
-                <CustomerPicker value={customer} onChange={setCustomer} />
+                <CustomerPicker mode="dropdown" value={customer} onChange={setCustomer} />
                 <p className="text-caption text-muted-foreground">{copy.customerHelp}</p>
                 <Field>
                   <FieldLabel htmlFor="gc-recipient">{copy.recipient}</FieldLabel>

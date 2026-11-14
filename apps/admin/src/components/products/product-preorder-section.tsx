@@ -2,6 +2,7 @@
 
 import { PREORDER_OWN_FIELDS, type PreorderOwnField } from '@commerce/core/preorder'
 import { Checkbox } from '@commerce/ui/shadcn/checkbox'
+import { Field, FieldDescription, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import { NativeSelect, NativeSelectOption } from '@commerce/ui/shadcn/native-select'
 import { RadioGroup, RadioGroupItem } from '@commerce/ui/shadcn/radio-group'
@@ -11,7 +12,6 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import DateField from '@/components/fields/date-field'
 import MoneyInput from '@/components/fields/money-input'
-import KitField from '@/components/kit/kit-field'
 import { productFormContent } from '@/data/product-form'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -81,7 +81,8 @@ export default function ProductPreorderSection({
 
   return (
     <div className="flex flex-col gap-4">
-      <KitField label={copy.campaign} htmlFor="preorder-campaign" help={copy.campaignHelp}>
+      <Field>
+        <FieldLabel htmlFor="preorder-campaign">{copy.campaign}</FieldLabel>
         <NativeSelect
           id="preorder-campaign"
           value={form.preorderCampaignId ?? ''}
@@ -97,7 +98,8 @@ export default function ProductPreorderSection({
             </NativeSelectOption>
           ))}
         </NativeSelect>
-      </KitField>
+        <FieldDescription>{copy.campaignHelp}</FieldDescription>
+      </Field>
       <Link
         href={
           form.preorderCampaignId
@@ -148,18 +150,16 @@ export default function ProductPreorderSection({
 
       {shows('shipping') ? (
         <div className="flex flex-col gap-4 md:flex-row md:gap-4">
-          <KitField label={copy.shipDate} htmlFor="preorder-ship-date">
+          <Field className="min-w-0 flex-1">
+            <FieldLabel htmlFor="preorder-ship-date">{copy.shipDate}</FieldLabel>
             <DateField
               id="preorder-ship-date"
               value={form.preorderShipDate}
               onChange={(v) => onPatch({ preorderShipDate: v })}
             />
-          </KitField>
-          <KitField
-            label={copy.shipsInDays}
-            htmlFor="preorder-ships-in-days"
-            help={copy.shipsInDaysHelp}
-          >
+          </Field>
+          <Field className="min-w-0 flex-1">
+            <FieldLabel htmlFor="preorder-ships-in-days">{copy.shipsInDays}</FieldLabel>
             <Input
               size="kit"
               type="number"
@@ -168,14 +168,16 @@ export default function ProductPreorderSection({
               value={form.preorderShipsInDays}
               onChange={(e) => onPatch({ preorderShipsInDays: e.target.value })}
             />
-          </KitField>
+            <FieldDescription>{copy.shipsInDaysHelp}</FieldDescription>
+          </Field>
         </div>
       ) : null}
 
       {shows('limit') || shows('button') ? (
         <div className="flex flex-col gap-4 md:flex-row md:gap-4">
           {shows('limit') ? (
-            <KitField label={copy.limit} htmlFor="preorder-limit" help={copy.limitHelp}>
+            <Field className="min-w-0 flex-1">
+              <FieldLabel htmlFor="preorder-limit">{copy.limit}</FieldLabel>
               <Input
                 size="kit"
                 type="number"
@@ -184,23 +186,26 @@ export default function ProductPreorderSection({
                 value={form.preorderLimit}
                 onChange={(e) => onPatch({ preorderLimit: e.target.value })}
               />
-            </KitField>
+              <FieldDescription>{copy.limitHelp}</FieldDescription>
+            </Field>
           ) : null}
           {shows('button') ? (
-            <KitField label={copy.buttonLabel} htmlFor="preorder-button-label">
+            <Field className="min-w-0 flex-1">
+              <FieldLabel htmlFor="preorder-button-label">{copy.buttonLabel}</FieldLabel>
               <Input
                 size="kit"
                 id="preorder-button-label"
                 value={form.preorderButtonLabel}
                 onChange={(e) => onPatch({ preorderButtonLabel: e.target.value })}
               />
-            </KitField>
+            </Field>
           ) : null}
         </div>
       ) : null}
 
       {shows('note') ? (
-        <KitField label={copy.note} htmlFor="preorder-note" help={copy.noteHelp}>
+        <Field>
+          <FieldLabel htmlFor="preorder-note">{copy.note}</FieldLabel>
           <Textarea
             id="preorder-note"
             rows={3}
@@ -209,11 +214,13 @@ export default function ProductPreorderSection({
             value={form.preorderNote}
             onChange={(e) => onPatch({ preorderNote: e.target.value })}
           />
-        </KitField>
+          <FieldDescription>{copy.noteHelp}</FieldDescription>
+        </Field>
       ) : null}
 
       {shows('payment') ? (
-        <KitField label={copy.paymentMode} help={depositError}>
+        <Field>
+          <FieldLabel>{copy.paymentMode}</FieldLabel>
           <RadioGroup
             value={form.preorderPaymentMode}
             onValueChange={handleMode}
@@ -261,7 +268,8 @@ export default function ProductPreorderSection({
               ) : null}
             </div>
           </RadioGroup>
-        </KitField>
+          {depositError ? <FieldDescription>{depositError}</FieldDescription> : null}
+        </Field>
       ) : null}
 
       {anyShown || inCampaign ? (
@@ -281,14 +289,16 @@ export default function ProductPreorderSection({
 
       <div className="flex flex-col gap-1.5 border-border border-t pt-4">
         <span className="text-body text-foreground">{copy.launchHeading}</span>
-        <KitField label={copy.launchAt} htmlFor="launch-at" help={copy.launchAtHelp}>
+        <Field>
+          <FieldLabel htmlFor="launch-at">{copy.launchAt}</FieldLabel>
           <DateField
             mode="datetime"
             id="launch-at"
             value={form.launchAt}
             onChange={(v) => onPatch({ launchAt: v })}
           />
-        </KitField>
+          <FieldDescription>{copy.launchAtHelp}</FieldDescription>
+        </Field>
       </div>
     </div>
   )

@@ -1,6 +1,7 @@
 'use client'
 
 import { SOCIAL_PLATFORMS, type SocialPlatform, type Theme } from '@commerce/core/theme'
+import { FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import { useState } from 'react'
 import { themesContent as copy } from '@/data/themes'
@@ -44,9 +45,7 @@ export default function SocialSettings({ theme, onChange }: SocialSettingsProps)
         const id = `social-${platform}`
         return (
           <div key={platform} className="flex flex-col gap-1">
-            <label htmlFor={id} className="text-xs font-medium text-foreground">
-              {copy.social.platforms[platform]}
-            </label>
+            <FieldLabel htmlFor={id}>{copy.social.platforms[platform]}</FieldLabel>
             <Input
               id={id}
               type="url"

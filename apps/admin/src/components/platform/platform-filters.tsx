@@ -1,7 +1,7 @@
-import { Search } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Input } from '@commerce/ui/shadcn/input'
 import Link from 'next/link'
+import SearchField from '@/components/fields/search-field'
 import { platformContent } from '@/data/platform'
 import { getCopy } from '@/lib/copy-server'
 
@@ -58,25 +58,16 @@ export default async function PlatformFilters({
             />
           </label>
         ) : (
-          <label
+          <SearchField
             key={f.name}
-            htmlFor={`platform-filter-${f.name}`}
-            className="relative min-w-0 flex-1 basis-56"
-          >
-            <Search
-              className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground"
-              aria-hidden="true"
-            />
-            <Input
-              id={`platform-filter-${f.name}`}
-              type="search"
-              name={f.name}
-              defaultValue={f.value}
-              placeholder={f.placeholder}
-              aria-label={f.placeholder}
-              className="h-8 pl-8"
-            />
-          </label>
+            size="sm"
+            className="min-w-0 flex-1 basis-56"
+            id={`platform-filter-${f.name}`}
+            name={f.name}
+            defaultValue={f.value}
+            placeholder={f.placeholder}
+            aria-label={f.placeholder}
+          />
         ),
       )}
       <Button type="submit" size="sm">

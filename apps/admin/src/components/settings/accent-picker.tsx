@@ -3,6 +3,7 @@
 import { ACCENT_PRESETS, accentForeground, normaliseAccent } from '@commerce/core/admin-accent'
 import { CheckIcon } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
+import { FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import { useId, useState } from 'react'
 import { appearanceContent } from '@/data/appearance'
@@ -102,9 +103,7 @@ export default function AccentPicker({ value, onChange, help }: AccentPickerProp
           }}
         />
         <div className="flex min-w-48 flex-1 flex-col gap-1.5">
-          <label htmlFor={id} className="text-caption font-medium text-foreground">
-            {copy.custom}
-          </label>
+          <FieldLabel htmlFor={id}>{copy.custom}</FieldLabel>
           <Input
             id={id}
             value={draft ?? value}

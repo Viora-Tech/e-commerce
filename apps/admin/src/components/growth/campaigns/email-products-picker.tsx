@@ -1,10 +1,10 @@
 'use client'
 
 import type { EmailBlock } from '@commerce/core/marketing'
-import { Search, X } from '@commerce/ui/icons'
+import { X } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import { Input } from '@commerce/ui/shadcn/input'
 import { useEffect, useState } from 'react'
+import SearchField from '@/components/fields/search-field'
 import ProductThumb from '@/components/products/product-thumb'
 import { campaignEditorContent } from '@/data/marketing-campaigns'
 import { api } from '@/lib/api-client'
@@ -89,15 +89,11 @@ export default function EmailProductsPicker({ items, onChange }: EmailProductsPi
       ) : null}
       {items.length < MAX ? (
         <>
-          <div className="relative">
-            <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder={copy.pickProducts}
-              className="pl-9"
-            />
-          </div>
+          <SearchField
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder={copy.pickProducts}
+          />
           <ul className="flex max-h-60 flex-col overflow-y-auto">
             {results
               .filter((p) => !picked.has(p.id))

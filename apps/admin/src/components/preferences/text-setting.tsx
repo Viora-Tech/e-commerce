@@ -1,5 +1,6 @@
 'use client'
 
+import { FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import { Textarea } from '@commerce/ui/shadcn/textarea'
 import { preferencesContent as copy } from '@/data/preferences'
@@ -43,9 +44,7 @@ export default function TextSetting({
 
   return (
     <div className="flex min-w-0 flex-col gap-1.5">
-      <label htmlFor={id} className="text-body-strong text-foreground">
-        {label}
-      </label>
+      <FieldLabel htmlFor={id}>{label}</FieldLabel>
       {multiline ? (
         <Textarea {...shared} rows={3} onChange={(e) => onChange(e.target.value)} />
       ) : (

@@ -1,8 +1,8 @@
 'use client'
 
 import { TrendingUp } from '@commerce/ui/icons'
+import { Field, FieldDescription, FieldLabel } from '@commerce/ui/shadcn/field'
 import MoneyInput from '@/components/fields/money-input'
-import KitField from '@/components/kit/kit-field'
 import { productFormContent } from '@/data/product-form'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { margin, type VariantRow } from '../form-state'
@@ -26,30 +26,35 @@ export default function VariantPricingFields({ draft, onPatch }: VariantPricingF
   return (
     <div className="flex flex-col gap-4">
       <div className="grid gap-4 md:grid-cols-3">
-        <KitField label={pricing.price} htmlFor="variant-price" help={pricing.priceHelp}>
+        <Field>
+          <FieldLabel htmlFor="variant-price">{pricing.price}</FieldLabel>
           <MoneyInput
             size="kit"
             id="variant-price"
             value={draft.price}
             onChange={(price) => onPatch({ price })}
           />
-        </KitField>
-        <KitField label={`${pricing.mrp} ${pricing.mrpOptional}`} htmlFor="variant-mrp">
+          <FieldDescription>{pricing.priceHelp}</FieldDescription>
+        </Field>
+        <Field>
+          <FieldLabel htmlFor="variant-mrp">{`${pricing.mrp} ${pricing.mrpOptional}`}</FieldLabel>
           <MoneyInput
             size="kit"
             id="variant-mrp"
             value={draft.mrp}
             onChange={(mrp) => onPatch({ mrp })}
           />
-        </KitField>
-        <KitField label={pricing.cost} htmlFor="variant-cost" help={pricing.costHelp}>
+        </Field>
+        <Field>
+          <FieldLabel htmlFor="variant-cost">{pricing.cost}</FieldLabel>
           <MoneyInput
             size="kit"
             id="variant-cost"
             value={draft.cost}
             onChange={(cost) => onPatch({ cost })}
           />
-        </KitField>
+          <FieldDescription>{pricing.costHelp}</FieldDescription>
+        </Field>
       </div>
       <ZeroPriceWarning variant={draft} />
       {profit ? (

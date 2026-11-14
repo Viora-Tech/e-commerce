@@ -1,12 +1,13 @@
 'use client'
 
-import { Plus, Search, X } from '@commerce/ui/icons'
+import { Plus, X } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Input } from '@commerce/ui/shadcn/input'
 import { useState } from 'react'
 import DraftCustomItemDialog from '@/components/drafts/draft-custom-item-dialog'
 import type { DraftLine } from '@/components/drafts/draft-form-state'
 import DraftMoneyInput from '@/components/drafts/draft-money-input'
+import SearchField from '@/components/fields/search-field'
 import DataCard from '@/components/layout/data-card'
 import LineItemRow from '@/components/layout/line-item-row'
 import SelectProductsDialog, {
@@ -99,19 +100,13 @@ export default function DraftProductsCard({ lines, onChange }: DraftProductsCard
     <DataCard title={copy.products.heading}>
       <div className="flex flex-col gap-4">
         <div className="flex flex-wrap gap-2">
-          <div className="relative min-w-48 flex-1">
-            <Search
-              aria-hidden="true"
-              className="-translate-y-1/2 pointer-events-none absolute top-1/2 left-3 size-4 text-muted-foreground"
-            />
-            <Input
-              value={search}
-              onChange={(e) => handleSearch(e.target.value)}
-              placeholder={copy.products.search}
-              aria-label={copy.products.search}
-              className="pl-9"
-            />
-          </div>
+          <SearchField
+            className="min-w-48 flex-1"
+            value={search}
+            onChange={(e) => handleSearch(e.target.value)}
+            placeholder={copy.products.search}
+            aria-label={copy.products.search}
+          />
           <Button variant="outline" onClick={() => setPicking(true)}>
             {copy.products.browse}
           </Button>

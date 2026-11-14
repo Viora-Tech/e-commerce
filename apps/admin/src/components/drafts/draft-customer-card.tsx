@@ -1,6 +1,5 @@
 'use client'
 
-import { Search } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Field, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
@@ -12,6 +11,7 @@ import {
   type DraftFormState,
 } from '@/components/drafts/draft-form-state'
 import DataCard from '@/components/layout/data-card'
+import RecordCombobox from '@/components/pickers/record-combobox'
 import { draftEditorContent } from '@/data/drafts'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -105,36 +105,24 @@ export default function DraftCustomerCard({ form, onChange }: DraftCustomerCardP
       bodyClassName="flex flex-col gap-4"
     >
       {form.customerId ? null : (
-        <div className="relative">
-          <Search className="-translate-y-1/2 absolute top-1/2 left-3 size-4 text-muted-foreground" />
-          <Input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder={copy.customer.search}
-            className="pl-9 [&::-webkit-search-cancel-button]:hidden"
-            type="search"
-            name="draft-customer-lookup"
-            autoComplete="off"
-            data-1p-ignore
-            data-lpignore="true"
-          />
-          {results.length > 0 ? (
-            <ul className="absolute z-20 mt-1 w-full overflow-hidden rounded-lg border border-border bg-card p-1 shadow-popover">
-              {results.map((c) => (
-                <li key={c.id}>
-                  <button
-                    type="button"
-                    onClick={() => handlePick(c)}
-                    className="flex w-full flex-col items-start rounded-md px-2 py-2 text-left hover:bg-muted"
-                  >
-                    <span className="text-body text-foreground">{c.name ?? c.email}</span>
-                    <span className="text-caption text-muted-foreground">{c.email}</span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          ) : null}
-        </div>
+        // The matches float over the fields below while there are any.
+        <RecordCombobox
+          list="popover"
+          open
+          name="draft-customer-lookup"
+          placeholder={copy.customer.search}
+          query={search}
+          onQueryChange={setSearch}
+          items={results}
+          itemKey={(c) => c.id}
+          onPick={(c) => void handlePick(c)}
+          renderItem={(c) => (
+            <span className="flex min-w-0 flex-col items-start">
+              <span className="text-body text-foreground">{c.name ?? c.email}</span>
+              <span className="text-caption text-muted-foreground">{c.email}</span>
+            </span>
+          )}
+        />
       )}
       <Field>
         <FieldLabel htmlFor="draft-customer-name">{copy.customer.name}</FieldLabel>

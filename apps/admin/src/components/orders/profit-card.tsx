@@ -4,6 +4,7 @@ import type { OrderProfit } from '@commerce/core/profit'
 import { formatPercent, parseRupees } from '@commerce/money'
 import { Save } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
+import { FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
@@ -171,9 +172,7 @@ export default function ProfitCard({ orderId, shipment }: ProfitCardProps) {
       {shipment ? (
         <div className="mt-3 flex items-end gap-2">
           <div className="flex flex-1 flex-col gap-1">
-            <label htmlFor="profit-courier-charge" className="text-caption text-muted-foreground">
-              {copy.courierLabel}
-            </label>
+            <FieldLabel htmlFor="profit-courier-charge">{copy.courierLabel}</FieldLabel>
             <Input
               id="profit-courier-charge"
               inputMode="decimal"
