@@ -91,6 +91,7 @@ export const assistantContent = {
     productDetails: 'the product',
     listCollections: 'collections',
     orderDetails: 'the order',
+    analyticsQuery: 'store numbers',
   } as Record<string, string>,
 
   /** A table and chart under an answer (#192), straight from the store's numbers. */
@@ -100,6 +101,8 @@ export const assistantContent = {
     open: 'Open as report',
     live: 'Opens as a custom query, so the numbers stay up to date.',
     snapshot: 'Opens as a snapshot: these numbers will not update.',
+    /** Above the query an analytics answer ran, shown with its table (Sidekick-style). */
+    queryUsed: 'Query used',
   },
 
   /** "Show query": which lookup ran and with what, in plain words. */

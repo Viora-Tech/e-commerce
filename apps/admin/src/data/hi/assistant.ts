@@ -84,6 +84,7 @@ export default [
       productDetails: 'प्रोडक्ट',
       listCollections: 'कलेक्शन',
       orderDetails: 'ऑर्डर',
+      analyticsQuery: 'स्टोर के आंकड़े',
     },
 
     table: {
@@ -92,6 +93,7 @@ export default [
       open: 'रिपोर्ट की तरह खोलें',
       live: 'कस्टम क्वेरी की तरह खुलेगा, आंकड़े ताज़ा रहेंगे।',
       snapshot: 'कॉपी की तरह खुलेगा: ये आंकड़े अपडेट नहीं होंगे।',
+      queryUsed: 'इस्तेमाल हुई क्वेरी',
     },
 
     query: {

@@ -25,7 +25,7 @@ const ALLOWLIST: AllowEntry[] = [
   { site: 'packages/api/src/services/invitation.service.ts: InvitationError', reason: MOVE },
   { site: 'packages/api/src/services/taxes.service.ts: TaxesError', reason: MOVE },
   {
-    site: 'packages/core/src/analytics-query/parse.ts: Problem',
+    site: 'packages/core/src/analytics-query/tokenize.ts: Problem',
     reason:
       'parser control flow: thrown and caught inside parseQuery, returned as a QueryError value, never reaches a caller',
   },

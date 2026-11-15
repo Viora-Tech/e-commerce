@@ -50,16 +50,22 @@ export default function AssistantQuery({ sources }: AssistantQueryProps) {
                 <span className="font-medium text-ink-strong">
                   {q.ran(copy.tools[source.tool] ?? source.tool)}
                 </span>
-                <span className="text-muted-foreground">
-                  {inputs.length
-                    ? inputs
-                        .map(
-                          (i) =>
-                            `${q.inputs[i.key] ?? i.key}: ${i.key === 'period' ? (q.periods[i.value] ?? i.value) : i.value}`,
-                        )
-                        .join(' · ')
-                    : q.noInputs}
-                </span>
+                {source.tool === 'analyticsQuery' && inputs[0] ? (
+                  <pre className="font-mono whitespace-pre-wrap text-muted-foreground">
+                    {inputs[0].value}
+                  </pre>
+                ) : (
+                  <span className="text-muted-foreground">
+                    {inputs.length
+                      ? inputs
+                          .map(
+                            (i) =>
+                              `${q.inputs[i.key] ?? i.key}: ${i.key === 'period' ? (q.periods[i.value] ?? i.value) : i.value}`,
+                          )
+                          .join(' · ')
+                      : q.noInputs}
+                  </span>
+                )}
               </li>
             )
           })}

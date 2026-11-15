@@ -126,12 +126,24 @@ export const analyticsContent = {
       label: 'Query language help',
       title: 'Query language',
       clauses: [
-        { code: 'FROM sales', text: 'The table: sales or products.' },
+        { code: 'FROM sales', text: 'The table: sales, products or refunds.' },
         { code: 'SHOW net_sales, orders', text: 'The numbers, one or more.' },
-        { code: 'GROUP BY state', text: 'Splits rows by one field.' },
+        {
+          code: "WHERE product_title CONTAINS 'triaina'",
+          text: "Which rows count: =, !=, IN ('a', 'b'), CONTAINS, STARTS WITH, with AND, OR, NOT. Text in quotes, any case.",
+        },
+        {
+          code: 'GROUP BY product_title, variant_title',
+          text: 'Splits rows by up to three fields.',
+        },
+        { code: 'HAVING orders >= 2', text: 'Keeps groups by their totals (money in ₹).' },
         {
           code: 'SINCE -30d UNTIL today',
-          text: 'Dates: -7d, -4w, -3m, today, yesterday or 2026-10-01.',
+          text: 'Dates: -7d, -4w, -3m, -2y, today, yesterday or 2026-10-01.',
+        },
+        {
+          code: 'DURING last_month',
+          text: 'Or a named range: this_month, last_year, this_financial_year, all_time and more.',
         },
         { code: 'COMPARE TO previous_period', text: 'Or previous_year.' },
         { code: 'ORDER BY net_sales DESC', text: 'Sorts by a shown or grouped field.' },

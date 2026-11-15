@@ -36,6 +36,39 @@ The ready-made reports are grouped by topic: **Sales**, **Finance**, **Orders**,
 delivery**, **Returns**, **Customers**, **Inventory** and **Marketing**. Each one shows a chart
 and a table for the dates you pick, and **Export CSV** downloads the table.
 
+## Custom query
+
+**Write a query** opens the query editor: a few lines in a small query language, much like
+Shopify's ShopifyQL. It only reads your store's data. Koomerce AI writes these same queries when
+you ask it about your numbers, and shows the query it used under its answer, so you can open it
+here and change it.
+
+```
+FROM products
+  SHOW net_quantity, gross_sales
+  WHERE product_title CONTAINS 'triaina'
+  GROUP BY variant_title
+  DURING all_time
+```
+
+That one answers "how many TRIAINA mice have we sold, ever, by colour". The parts:
+
+| Line | What it does |
+|---|---|
+| `FROM sales` | The table: `sales` (one row per order), `products` (one row per item sold) or `refunds` |
+| `SHOW net_sales, orders` | The numbers you want |
+| `WHERE vendor = 'Waizowl'` | Which rows count. Text goes in single quotes and capitals don't matter. Use `=`, `!=`, `IN ('a', 'b')`, `CONTAINS`, `STARTS WITH`, `ENDS WITH`, joined with `AND`, `OR`, `NOT` and brackets |
+| `GROUP BY month` | Splits the rows, by up to three fields (`GROUP BY product_title, variant_title`) |
+| `HAVING orders >= 2` | Keeps only groups whose totals pass (money in rupees) |
+| `SINCE -3m UNTIL today` | The dates: `-30d`, `-4w`, `-3m`, `-2y`, `today`, `yesterday` or a date like `2026-10-01` |
+| `DURING last_month` | A named range instead: `this_week`, `last_week`, `this_month`, `last_month`, `this_quarter`, `last_quarter`, `this_year`, `last_year`, `this_financial_year`, `last_financial_year`, `all_time` |
+| `COMPARE TO previous_period` | Adds the numbers from just before (or `previous_year`) |
+| `ORDER BY net_sales DESC` and `LIMIT 10` | Sort and how many rows |
+
+`all_time` starts from your store's first order. A query can cover up to 20 years; a longer range
+gets an error rather than a shortened answer. Cancelled orders, drafts and test orders never count.
+Customer names show only to staff who can see customers.
+
 ## Related guides
 
 <RelatedGuides ids={['growth', 'payments', 'shipments']} />

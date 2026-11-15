@@ -30,6 +30,7 @@ import { readTools } from '../services/ai/assistant/read-tools'
 import { ACTIONS, READ_TOOL_PERMISSION } from '../services/ai/assistant/registry'
 import { ALREADY_REQUESTED, approveAction, proposeAction } from '../services/ai/assistant/service'
 import { freshTaint } from '../services/ai/assistant/taint'
+import { queryTools } from '../services/ai/query-tool'
 import { type Fact, storeTools, type ToolEnv } from '../services/ai/store-tools'
 import { findCustomerForMcp } from '../services/mcp.service'
 import { adminActionTools, callAdminActionTool } from './admin-actions'
@@ -38,6 +39,7 @@ import { adminActionTools, callAdminActionTool } from './admin-actions'
 const READ_LABELS: Record<string, string> = {
   salesSummary: 'read sales',
   topProducts: 'read top products',
+  analyticsQuery: 'ran an analytics query',
   abandonedCheckouts: 'read abandoned checkouts',
   pendingOrders: 'read orders waiting to ship',
   orderDetails: 'read an order',
@@ -120,7 +122,11 @@ function customerDetailsTool(env: McpEnv): AiTool {
 
 /** Read tools this grant may call, by name. */
 function readToolsFor(env: McpEnv, toolEnv: ToolEnv): AiToolSet {
-  const all: AiToolSet = { ...storeTools(toolEnv), ...readTools(toolEnv) }
+  const all: AiToolSet = {
+    ...storeTools(toolEnv),
+    ...readTools(toolEnv),
+    ...queryTools(toolEnv, { readCustomers: can(env, permissions.CUSTOMERS_READ) }),
+  }
   const allowed = Object.fromEntries(
     Object.entries(all).filter(([name]) => {
       const permission = READ_TOOL_PERMISSION[name]

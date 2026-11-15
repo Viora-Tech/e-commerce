@@ -1,6 +1,7 @@
 /** SOURCE OF TRUTH: custom analytics query controls — WHAT: edits a parsed query the way the editor's controls do / WHY: the controls and the text stay one query */
-import { dayKey } from '@commerce/dates'
-import type { ParsedQuery, QueryTime } from './parse'
+import { conditionFields } from './condition'
+import type { ParsedQuery } from './parse'
+import { type QueryTime, timeDay } from './period'
 import {
   fieldsOf,
   QUERY_LIMIT_MAX,
@@ -18,27 +19,41 @@ import {
 export const metricsOf = (table: QueryTable): QueryField[] =>
   fieldsOf(table).filter((f) => f.role === 'metric')
 
+/** Dimensions rows can be grouped by (filter-only ones like collection left out). */
 export const dimensionsOf = (table: QueryTable): QueryField[] =>
+  fieldsOf(table).filter((f) => f.role === 'dimension' && !f.filterOnly)
+
+/** Every field WHERE can filter on. */
+const filtersOf = (table: QueryTable): QueryField[] =>
   fieldsOf(table).filter((f) => f.role === 'dimension')
 
 /** Drops a sort that no longer points at a shown or grouped field, as the parser would refuse it. */
 function keepSort(q: ParsedQuery): ParsedQuery {
   if (!q.orderBy) return q
-  const ok = q.show.includes(q.orderBy.field) || q.orderBy.field === q.groupBy
+  const ok = q.show.includes(q.orderBy.field) || q.groupBy.includes(q.orderBy.field)
   return ok ? q : { ...q, orderBy: null }
 }
 
-/** Another table: keeps the metrics and dimension it also has, else its first metric. */
+/**
+ * Another table: keeps the metrics, dimensions and filters it also has, else its first metric.
+ * A WHERE or HAVING that reads a field the new table lacks is dropped whole, never half-kept.
+ */
 export function setTable(q: ParsedQuery, table: QueryTable): ParsedQuery {
   if (table === q.table) return q
   const metrics = metricsOf(table).map((f) => f.name)
   const dims = dimensionsOf(table).map((f) => f.name)
+  const filters = filtersOf(table).map((f) => f.name)
   const show = q.show.filter((m) => metrics.includes(m))
+  const keeps = (c: ParsedQuery['where'], names: string[]) =>
+    conditionFields(c).every((f) => names.includes(f)) ? c : null
+  const groupBy = q.groupBy.filter((d) => dims.includes(d))
   return keepSort({
     ...q,
     table,
     show: show.length ? show : metrics.slice(0, 1),
-    groupBy: q.groupBy && dims.includes(q.groupBy) ? q.groupBy : null,
+    groupBy,
+    where: keeps(q.where, filters),
+    having: groupBy.length ? keeps(q.having, metrics) : null,
   })
 }
 
@@ -57,9 +72,11 @@ export function toggleMetric(q: ParsedQuery, metric: string): ParsedQuery {
   )
 }
 
+/** The leading dimension (the Dimension control); any further GROUP BY fields stay after it. */
 export function setGroupBy(q: ParsedQuery, groupBy: string | null): ParsedQuery {
-  const ok = groupBy === null || dimensionsOf(q.table).some((f) => f.name === groupBy)
-  return ok ? keepSort({ ...q, groupBy }) : q
+  if (groupBy === null) return keepSort({ ...q, groupBy: [], having: null })
+  if (!dimensionsOf(q.table).some((f) => f.name === groupBy)) return q
+  return keepSort({ ...q, groupBy: [groupBy, ...q.groupBy.slice(1).filter((d) => d !== groupBy)] })
 }
 
 export function setOrderBy(
@@ -81,7 +98,7 @@ export function setCompare(q: ParsedQuery, compare: QueryCompare | null): Parsed
 }
 
 export function setRange(q: ParsedQuery, since: QueryTime, until: QueryTime): ParsedQuery {
-  return { ...q, since, until }
+  return { ...q, since, until, during: null }
 }
 
 /** The quick ranges the Reports date picker offers, as SINCE / UNTIL. */
@@ -96,22 +113,15 @@ export function rangeTimes(key: QueryRangeKey): { since: QueryTime; until: Query
 }
 
 /** Which quick range the query's SINCE / UNTIL is, or null for anything else. */
-export function rangeKeyOf(q: Pick<ParsedQuery, 'since' | 'until'>): QueryRangeKey | null {
+export function rangeKeyOf(
+  q: Pick<ParsedQuery, 'since' | 'until'> & { during?: ParsedQuery['during'] },
+): QueryRangeKey | null {
+  if (q.during) return q.during === 'today' ? 'today' : null
   if (q.until.kind !== 'word' || q.until.word !== 'today') return null
   if (q.since.kind === 'word') return q.since.word === 'today' ? 'today' : null
   if (q.since.kind !== 'relative' || q.since.unit !== 'd') return null
   return QUERY_RANGE_KEYS.find((k) => k === `${(q.since as { amount: number }).amount}d`) ?? null
 }
 
-const DAY_MS = 86_400_000
-
 /** The IST calendar day a SINCE / UNTIL value points at, the way the server reads it. */
-export function queryDay(t: QueryTime, now: Date = new Date()): string {
-  if (t.kind === 'date') return t.iso
-  if (t.kind === 'word')
-    return dayKey(new Date(now.getTime() - (t.word === 'yesterday' ? DAY_MS : 0)))
-  const d = new Date(now)
-  if (t.unit === 'm') d.setUTCMonth(d.getUTCMonth() - t.amount)
-  else d.setTime(d.getTime() - t.amount * (t.unit === 'w' ? 7 : 1) * DAY_MS)
-  return dayKey(d)
-}
+export const queryDay = (t: QueryTime, now: Date = new Date()): string => timeDay(t, now)

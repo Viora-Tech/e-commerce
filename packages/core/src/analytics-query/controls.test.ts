@@ -34,7 +34,7 @@ describe('query controls', () => {
     const q = setTable(starter(), 'products')
     expect(q.table).toBe('products')
     expect(q.show).toEqual(['orders'])
-    expect(q.groupBy).toBe('state')
+    expect(q.groupBy).toEqual(['state'])
     expect(q.orderBy).toBeNull()
     roundTrips(q)
   })
@@ -56,7 +56,7 @@ describe('query controls', () => {
   })
 
   test('dimension, sort, limit and compare', () => {
-    expect(setGroupBy(starter(), 'orders').groupBy).toBe('state')
+    expect(setGroupBy(starter(), 'orders').groupBy).toEqual(['state'])
     const daily = setOrderBy(setGroupBy(starter(), 'day'), 'day', 'asc')
     expect(daily.orderBy).toEqual({ field: 'day', dir: 'asc' })
     roundTrips(daily)

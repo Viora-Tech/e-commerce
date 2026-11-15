@@ -4,7 +4,7 @@ import {
   COMPARE_OPTIONS,
   type ParsedQuery,
   type QueryCompare,
-  queryDay,
+  queryDays,
   rangeKeyOf,
   rangeTimes,
   setCompare,
@@ -24,10 +24,12 @@ type QueryRangeBarProps = {
   onChange: (next: ParsedQuery) => void
 }
 
-/** SINCE / UNTIL as the Reports range: a quick key when it is one, else the two days. */
+/** SINCE / UNTIL or DURING as the Reports range: a quick key when it is one, else the two days. */
 function toRange(q: ParsedQuery): RangeState {
   const key = rangeKeyOf(q)
-  return key ? { key } : { key: 'custom', from: queryDay(q.since), to: queryDay(q.until) }
+  if (key) return { key }
+  const days = queryDays(q)
+  return { key: 'custom', from: days.from, to: days.to }
 }
 
 /** Shopify-style pills above the editor: the date range and Compare, read from and written to the query. */

@@ -46,6 +46,7 @@ export function actionFor(tool: string): ActionDefinition | null {
 export const READ_TOOL_PERMISSION: Record<string, Permission> = {
   salesSummary: permissions.ANALYTICS_READ,
   topProducts: permissions.ANALYTICS_READ,
+  analyticsQuery: permissions.ANALYTICS_READ,
   abandonedCheckouts: permissions.ORDERS_READ,
   pendingOrders: permissions.ORDERS_READ,
   orderDetails: permissions.ORDERS_READ,
