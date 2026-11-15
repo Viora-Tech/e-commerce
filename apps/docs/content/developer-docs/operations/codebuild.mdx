@@ -90,7 +90,9 @@ Until an app is switched, its server-side build path keeps working untouched.
 
 ## Rollback
 
-Every build is tagged with its git sha. In Dokploy set the app's image to
+One command does it: `deploy/rollback.sh <app>` (dry run) then `--apply`; see
+[Deployment → One-step rollback](/developer-docs/operations/deployment#one-step-rollback).
+By hand: every build is tagged with its git sha. In Dokploy set the app's image to
 `<ecr>/vextro/<app>:<previous sha>` and press Deploy. Also reset
 `/vextro/deploy/last-sha/<app>` to that sha so the next night rebuilds what you rolled back from.
 Schema migrations run in the worker and are forward-only: roll the worker back only if the older
