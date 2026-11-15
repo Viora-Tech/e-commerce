@@ -10,6 +10,8 @@ type HeaderMenuPanelProps = {
   /** Grouped columns (a three-level menu) rather than a single list of links. */
   columns: boolean
   cards: MenuCard[]
+  /** Draw the cards' photos: once the dropdown has been opened (or is about to be). */
+  media: boolean
 }
 
 /**
@@ -17,7 +19,7 @@ type HeaderMenuPanelProps = {
  * item's links on the left, as grouped columns for a three-level menu, and its cards in the
  * right-hand zone when it has any.
  */
-export default function HeaderMenuPanel({ link, columns, cards }: HeaderMenuPanelProps) {
+export default function HeaderMenuPanel({ link, columns, cards, media }: HeaderMenuPanelProps) {
   // Render logic
   const children = link.children ?? []
   const withCards = cards.length > 0
@@ -83,7 +85,7 @@ export default function HeaderMenuPanel({ link, columns, cards }: HeaderMenuPane
                 )}
               >
                 {cards.map((card) => (
-                  <HeaderMenuCard key={card.key} card={card} />
+                  <HeaderMenuCard key={card.key} card={card} media={media} />
                 ))}
               </div>
             </div>
