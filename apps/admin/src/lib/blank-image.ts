@@ -24,6 +24,29 @@ const FLAT_SHARE = 0.995
  */
 const HEADER_SHARE = 0.25
 
+/**
+ * Below the header, a brightness spread (standard deviation, 0–255) under this is a page with
+ * nothing on it, even with a faint glow or a few slider dots: Waimers' black-poster picture
+ * measured 3.6, while a real hero photo spreads far wider.
+ */
+const FEATURELESS_SPREAD = 8
+
+/** True when RGBA pixels barely vary in brightness: no picture, only a ground. */
+export function isFeatureless(data: ArrayLike<number>): boolean {
+  const count = Math.floor(data.length / 4)
+  if (count === 0) return true
+  let sum = 0
+  let sumSq = 0
+  for (let p = 0; p < count; p++) {
+    const [r, g, b] = rgbAt(data, p * 4)
+    const lum = 0.299 * r + 0.587 * g + 0.114 * b
+    sum += lum
+    sumSq += lum * lum
+  }
+  const mean = sum / count
+  return Math.sqrt(Math.max(0, sumSq / count - mean * mean)) < FEATURELESS_SPREAD
+}
+
 /** One RGBA pixel as an opaque colour: transparency is drawn over white, as the card shows it. */
 function rgbAt(data: ArrayLike<number>, i: number): [number, number, number] {
   const a = (data[i + 3] ?? 255) / 255
@@ -96,7 +119,7 @@ export async function isBlankImage(url: string): Promise<boolean | null> {
     if (!response.ok) return null
     const pixels = await samplePixels(await response.blob())
     if (!pixels) return null
-    return isBlankPixels(pixels.data) || isBlankPixels(bodyPixels(pixels.data, pixels.width))
+    return isBlankPixels(pixels.data) || isFeatureless(bodyPixels(pixels.data, pixels.width))
   } catch {
     return null
   }

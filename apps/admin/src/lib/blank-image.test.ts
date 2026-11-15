@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { bodyPixels, isBlankPixels } from './blank-image'
+import { bodyPixels, isBlankPixels, isFeatureless } from './blank-image'
 
 /** `width × height` RGBA pixels, each coloured by `paint(x, y)`. */
 function pixels(
@@ -66,11 +66,34 @@ describe('bodyPixels', () => {
   })
 
   it('sees a white body under a header as blank', () => {
-    expect(isBlankPixels(bodyPixels(headerOver(() => [255, 255, 255]), 64))).toBe(true)
+    expect(
+      isBlankPixels(
+        bodyPixels(
+          headerOver(() => [255, 255, 255]),
+          64,
+        ),
+      ),
+    ).toBe(true)
   })
 
   it('keeps a real hero under a header', () => {
     const page = headerOver((x, y) => [(x * 4) % 256, (y * 6) % 256, 90])
     expect(isBlankPixels(bodyPixels(page, 64))).toBe(false)
+  })
+})
+
+describe('isFeatureless', () => {
+  it('sees a dark page with a faint glow and slider dots as featureless', () => {
+    const page = pixels(64, 30, (x, y) => {
+      if (y === 27 && x > 28 && x < 36) return [140, 140, 140]
+      const glow = Math.round(10 * Math.exp(-((x - 32) ** 2 + (y - 15) ** 2) / 300))
+      return [18 + glow, 18, 20 + glow * 2]
+    })
+    expect(isBlankPixels(page)).toBe(false)
+    expect(isFeatureless(page)).toBe(true)
+  })
+
+  it('keeps a real photo', () => {
+    expect(isFeatureless(pixels(64, 30, (x, y) => [(x * 4) % 256, (y * 8) % 256, 90]))).toBe(false)
   })
 })
