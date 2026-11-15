@@ -119,7 +119,7 @@ const innerImage = (v: Record<string, unknown>): unknown =>
   (v instanceof Drop ? v.value : undefined)
 
 /** The image URL a value stands for: an image object, a URL string, or a product/variant. */
-export function imageSrc(value: unknown): string {
+function imageSrc(value: unknown): string {
   if (value instanceof ImageDrop) return value.src
   if (value instanceof ImageUrl) return value.url
   if (typeof value === 'string') return value

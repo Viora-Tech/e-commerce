@@ -1190,6 +1190,11 @@ const ALLOWLIST: AllowEntry[] = [
       'no external importer today — investigate before removing (moved from schema.ts in 0177)',
   },
   {
+    file: 'packages/core/src/theme-import/srcset.ts',
+    names: ['honestSrcset'],
+    reason: 'one srcset made honest; exported for srcset.test.ts, engine uses honestSrcsets',
+  },
+  {
     file: 'packages/db/src/seed-back-in-stock.ts',
     names: ['seedWaimersBackInStock', 'seedBackInStock'],
     reason: 'no external importer today — investigate before removing',
