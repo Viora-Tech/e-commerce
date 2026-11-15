@@ -9,6 +9,7 @@ import { toMinor } from '@commerce/money'
 import { count, eq, inArray } from 'drizzle-orm'
 import { z } from 'zod'
 import { createDiscount, DiscountCodeTaken, setDiscountStatus } from '../../../discount.service'
+import { lateDateCheck } from './late-checks'
 import {
   dayOf,
   findCollections,
@@ -217,6 +218,7 @@ export const discountAction = defineAction<Raw, Resolved>({
     }
   },
   execute: async (env, resolved) => {
+    lateDateCheck(env, resolved.discount)
     try {
       // Stored as JSON: dates come back as strings, so parse again (the schema coerces them).
       const input = DiscountInputSchema.parse(resolved.discount)
