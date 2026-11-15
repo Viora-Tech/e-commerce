@@ -15,6 +15,7 @@ export const CHECKOUT_TEXT_KEYS = [
   'fields.phoneHint',
   'fields.email',
   'fields.emailOptional',
+  'marketing.shareOrder',
   'fields.name',
   'fields.firstName',
   'fields.lastName',

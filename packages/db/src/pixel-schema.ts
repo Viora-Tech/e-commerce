@@ -74,6 +74,12 @@ export type PixelTracking = {
   ua?: string | undefined
   landingUrl?: string | undefined
   consent?: { marketing: boolean; analytics: boolean; version: number; at: string } | undefined
+  /**
+   * The shopper ticked "Share this order with our advertising partners" at checkout: consent to
+   * send this one order's Purchase to the store's ad pixels (server side), whatever the cookie
+   * banner says. Never set without the tick; the browser pixel still follows the banner.
+   */
+  orderSharing?: { at: string; source: 'checkout' } | undefined
 }
 
 /**

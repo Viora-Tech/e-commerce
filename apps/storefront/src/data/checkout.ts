@@ -184,6 +184,8 @@ export const checkoutContent = {
   marketing: {
     email: 'Email me news and offers',
     whatsapp: 'Send me offers on WhatsApp',
+    /** Only when the store has an ad pixel with the Conversions API; never ticked for the shopper. */
+    shareOrder: 'Share this order with our advertising partners to improve the ads you see',
   },
   title: 'Checkout',
   backToCart: 'Back to cart',

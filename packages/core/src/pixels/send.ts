@@ -17,7 +17,7 @@ import { recordAppActivity, recordAppError } from '../apps/installation'
 import { CommerceError } from '../errors'
 import { insertOutboxEvent } from '../outbox/write'
 import { decryptSecret } from '../secrets'
-import { hasMarketingConsent } from './client'
+import { maySendOrderPurchase } from './client'
 import { hashUserData } from './hash'
 import {
   PIXELS_APP_ID,
@@ -73,7 +73,7 @@ async function orderEvent(
 ): Promise<{ event: MetaEventInput; valuePaise: number } | 'no_consent' | null> {
   const [o] = await tx.select().from(order).where(eq(order.id, job.orderId))
   if (!o) return null
-  if (!hasMarketingConsent(o.tracking)) return 'no_consent'
+  if (!maySendOrderPurchase(o.tracking)) return 'no_consent'
   const [addr] = o.shippingAddressId
     ? await tx.select().from(address).where(eq(address.id, o.shippingAddressId))
     : []
