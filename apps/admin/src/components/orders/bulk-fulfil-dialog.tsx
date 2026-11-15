@@ -29,8 +29,10 @@ import { approvalsContent } from '@/data/approvals'
 import { dialogContent } from '@/data/common'
 import { ordersContent } from '@/data/orders'
 import { ordersBulkContent } from '@/data/orders-bulk'
+import { sharedParcelContent } from '@/data/shared-parcel'
 import { useCopy } from '@/hooks/use-copy'
 import { api, isApprovalQueued } from '@/lib/api-client'
+import { awbClash } from '@/lib/awb-clash'
 import { bulkFulfilPlan } from '@/lib/order-next-move'
 import { runBatched } from '@/lib/run-batched'
 
@@ -63,6 +65,7 @@ export default function BulkFulfilDialog({ ids, items, onClose, onDone }: BulkFu
   const copy = useCopy(ordersBulkContent)
   const list = useCopy(ordersContent)
   const approvals = useCopy(approvalsContent)
+  const parcelCopy = useCopy(sharedParcelContent)
   const shared = useCopy(dialogContent)
   const [courierId, setCourierId] = useState<CourierId>('other')
   const [otherName, setOtherName] = useState('')
@@ -99,8 +102,12 @@ export default function BulkFulfilDialog({ ids, items, onClose, onDone }: BulkFu
           })
           packed += 1
         } catch (err) {
+          const clash = awbClash(err)
+          // Named, not skipped: the merchant typed a number another order already has.
+          if (clash)
+            toast.error(parcelCopy.awbOnOther(clash.waybill, clash.orderNumber, clash.live))
           if (isApprovalQueued(err)) queued += 1
-          else if (isSkip(err)) skipped += 1
+          else if (!clash && isSkip(err)) skipped += 1
           else throw err
         }
       })

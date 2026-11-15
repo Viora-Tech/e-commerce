@@ -12,8 +12,10 @@ import DataCard from '@/components/layout/data-card'
 import StatusChip from '@/components/layout/status-chip'
 import ProductThumb from '@/components/products/product-thumb'
 import { orderDetailContent } from '@/data/order-detail'
+import { sharedParcelContent } from '@/data/shared-parcel'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { awbClash } from '@/lib/awb-clash'
 import { routes } from '@/lib/routes'
 import { type OrderDetail, unfulfilledLines } from './order-detail-types'
 import OrderLinesTable from './order-lines-table'
@@ -47,6 +49,7 @@ export default function UnfulfilledCard({
 }: UnfulfilledCardProps) {
   // Hooks
   const copy = useCopy(orderDetailContent)
+  const shared = useCopy(sharedParcelContent)
   const [picks, setPicks] = useState<Record<string, number>>({})
   const [unticked, setUnticked] = useState<Record<string, true>>({})
   const [tracking, setTracking] = useState<TrackingDraft>(EMPTY_TRACKING)
@@ -104,7 +107,14 @@ export default function UnfulfilledCard({
       reset()
       onDone()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.fulfilDialog.failed)
+      const clash = awbClash(err)
+      toast.error(
+        clash
+          ? shared.awbOnOther(clash.waybill, clash.orderNumber, clash.live)
+          : err instanceof Error
+            ? err.message
+            : copy.fulfilDialog.failed,
+      )
     } finally {
       setBusy(false)
     }

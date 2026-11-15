@@ -10,6 +10,7 @@ import {
 } from './fulfillment-orders'
 import { packingSnapshot } from './profit-parcels'
 import { recomputeOrderStatuses } from './recompute'
+import { assertWaybillFree, TrackingNumberTaken } from './waybill-owner'
 
 export type FulfilLineInput = { lineId: string; quantity: number }
 
@@ -203,6 +204,10 @@ export async function fulfilOrderLines(
   // A held order packs nothing by hand either, not only through a courier booking (#1011).
   await assertNotHeld(ctx, input.orderId)
   const byId = new Map(lines.map((l) => [l.id, l]))
+  const waybill = input.trackingNumber?.trim()
+  const provider = input.providerId?.trim() || input.courier?.trim() || MANUAL_PROVIDER
+  // Another order's AWB is refused, never taken over (#2462/#2464, 15 Nov 2026).
+  if (waybill) await assertWaybillFree(ctx, { provider, waybill, orderId: input.orderId })
 
   const wanted = input.lines.filter((l) => l.quantity > 0)
   if (wanted.length === 0) throw new NothingToFulfil(input.orderId, ctx.storeId)
@@ -239,10 +244,10 @@ export async function fulfilOrderLines(
   const complete = after.every((l) => l.fulfilledQuantity >= l.quantity)
 
   let shipmentId: string | null = null
-  const waybill = input.trackingNumber?.trim()
   if (waybill) {
-    /* One shipment row per waybill: re-packing under the same number updates it
-       rather than creating a duplicate the tracking poller would fight over. */
+    /* One shipment row per waybill: this order re-packing under its own number updates it
+       rather than creating a duplicate the tracking poller would fight over (another order's
+       number was refused above). One closed by "Mark as not shipped" carries a parcel again. */
     const packing = await packingSnapshot(ctx.tx, picks)
     const [row] = await ctx.tx
       .insert(shipment)
@@ -250,7 +255,7 @@ export async function fulfilOrderLines(
         storeId: ctx.storeId,
         orderId: input.orderId,
         fulfillmentOrderId,
-        provider: input.providerId?.trim() || input.courier?.trim() || MANUAL_PROVIDER,
+        provider,
         waybill,
         status: 'created',
         trackingUrl: input.trackingUrl?.trim() || null,
@@ -258,10 +263,20 @@ export async function fulfilOrderLines(
       })
       .onConflictDoUpdate({
         target: [shipment.provider, shipment.waybill],
-        set: { orderId: input.orderId, fulfillmentOrderId, updatedAt: new Date() },
+        set: {
+          fulfillmentOrderId,
+          status: sql`case when ${shipment.status} = 'cancelled' then 'created' else ${shipment.status} end`,
+          updatedAt: new Date(),
+        },
+        // Never another order's row, even one written after the check above.
+        setWhere: eq(shipment.orderId, input.orderId),
       })
       .returning({ id: shipment.id })
-    shipmentId = row?.id ?? null
+    if (!row) {
+      await assertWaybillFree(ctx, { provider, waybill, orderId: input.orderId })
+      throw new TrackingNumberTaken(waybill, ctx.storeId)
+    }
+    shipmentId = row.id
   }
 
   /* Packing moves only the fulfilment status; an unpaid (cash on delivery)

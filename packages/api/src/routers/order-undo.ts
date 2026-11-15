@@ -1,5 +1,4 @@
 import {
-  CommerceError,
   fulfilAllLines,
   permissions,
   restoreCancelledOrder,
@@ -9,6 +8,7 @@ import {
 import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
 import { can } from '../procedures'
+import { fulfilRpcError } from '../services/order-fulfil.service'
 import { assertNotImported } from './imported-order'
 
 /**
@@ -39,12 +39,7 @@ export const orderUndoRoutes = {
       return fulfilAllLines(
         { tx: context.tx, storeId: context.scope.storeId },
         { ...rest, ...(trackingNumber ? { trackingNumber } : {}) },
-      ).catch((err) => {
-        if (err instanceof CommerceError) {
-          throw new ORPCError('BAD_REQUEST', { message: err.message })
-        }
-        throw err
-      })
+      ).catch(fulfilRpcError)
     }),
 
   /** "Mark as not delivered": undo a "Mark as delivered" pressed by mistake. */

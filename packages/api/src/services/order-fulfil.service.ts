@@ -1,6 +1,7 @@
 import {
   applyPaymentStatus,
   balanceOwed,
+  CommerceError,
   type FulfilOrderInput,
   fulfilOrderLines,
   type ManualCollection,
@@ -8,6 +9,7 @@ import {
   OrderNotFound,
   recomputeOrderStatuses,
   recordBalancePaid,
+  TrackingNumberOnAnotherOrder,
   withManualCollection,
 } from '@commerce/core'
 import type { StoreTx } from '@commerce/db'
@@ -65,7 +67,29 @@ export async function customerOrderIndex(
 }
 
 export async function fulfilOrder(tx: StoreTx, storeId: string, input: FulfilOrderInput) {
-  return fulfilOrderLines({ tx, storeId }, input)
+  return fulfilOrderLines({ tx, storeId }, input).catch(fulfilRpcError)
+}
+
+/**
+ * A packing refusal as the admin reads it. A tracking number already on another order is a
+ * CONFLICT carrying that order, so the pack form and the bulk dialog name it (and point at "Same
+ * box as #A"); every other rule is a plain BAD_REQUEST, which the bulk dialog counts as skipped.
+ */
+export function fulfilRpcError(err: unknown): never {
+  if (err instanceof TrackingNumberOnAnotherOrder) {
+    throw new ORPCError('CONFLICT', {
+      message: err.message,
+      data: {
+        reason: 'awb_on_another_order',
+        waybill: err.waybill,
+        orderId: err.otherOrderId,
+        orderNumber: err.otherOrderNumber,
+        live: err.live,
+      },
+    })
+  }
+  if (err instanceof CommerceError) throw new ORPCError('BAD_REQUEST', { message: err.message })
+  throw err
 }
 
 export type OrderBalance = {

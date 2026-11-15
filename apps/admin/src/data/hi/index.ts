@@ -139,6 +139,7 @@ import seoReport from './seo-report'
 import settings from './settings'
 import settingsRows from './settings-rows'
 import shadowfax from './shadowfax'
+import sharedParcel from './shared-parcel'
 import shipglobal from './shipglobal'
 import shipments from './shipments'
 import shipping from './shipping'
@@ -176,6 +177,7 @@ import xpressbees from './xpressbees'
  */
 export const hindiCopy: readonly TranslationPair[] = [
   ...activity,
+  ...sharedParcel,
   ...activityLog,
   ...account,
   ...affiliates,

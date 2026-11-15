@@ -212,14 +212,8 @@ export const ordersRouter = {
           input.providerId,
         )
       }
-      try {
-        // order.fulfilled is written by the recompute inside, on the last unit packed.
-        return await fulfilOrder(context.tx, context.scope.storeId, input)
-      } catch (err) {
-        if (err instanceof CommerceError)
-          throw new ORPCError('BAD_REQUEST', { message: err.message })
-        throw err
-      }
+      // order.fulfilled is written by the recompute inside, on the last unit packed.
+      return fulfilOrder(context.tx, context.scope.storeId, input)
     }),
 
   /** Record money collected outside a gateway; the order becomes paid. */
