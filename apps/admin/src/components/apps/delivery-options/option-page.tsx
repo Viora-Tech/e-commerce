@@ -6,13 +6,18 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import type { AppPageProps } from '@/apps/registry'
+import LoadFailedState from '@/components/apps/shared/load-failed-state'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
 import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
+import SectionPageSkeleton from '@/components/layout/section-page-skeleton'
+import { appsContent } from '@/data/apps'
 import { deliveryOptionsContent } from '@/data/delivery-options'
 import { deliveryPagesContent } from '@/data/delivery-options-pages'
 import { useCopy } from '@/hooks/use-copy'
+import type { LoadFailure } from '@/hooks/use-load'
 import { api } from '@/lib/api-client'
+import { isForbidden } from '@/lib/forbidden'
 import { routes } from '@/lib/routes'
 import OptionForm from './option-form'
 import { type OptionForm as Form, formOf, inputOf } from './option-form-state'
@@ -22,6 +27,7 @@ const APP = 'delivery-options'
 /** One delivery option, as a full page with a save bar (`/apps/delivery-options/options/<id>`, `new`). */
 export default function DeliveryOptionPage({ params }: AppPageProps) {
   // Hooks
+  const apps = useCopy(appsContent)
   const copy = useCopy(deliveryOptionsContent)
   const pages = useCopy(deliveryPagesContent)
   const router = useRouter()
@@ -31,9 +37,14 @@ export default function DeliveryOptionPage({ params }: AppPageProps) {
   const [saved, setSaved] = useState<string>(JSON.stringify(formOf(null)))
   const [busy, setBusy] = useState(false)
   const [confirming, setConfirming] = useState(false)
+  /** The option read failed: Try again (or no-access) instead of a blank page. */
+  const [loadFailed, setLoadFailed] = useState<LoadFailure | false>(false)
+  const [loadAttempt, setLoadAttempt] = useState(0)
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `loadAttempt` is Try again
   useEffect(() => {
     if (!id) return
+    setLoadFailed(false)
     api.deliveryOptions
       .option({ id })
       .then((o) => {
@@ -41,8 +52,8 @@ export default function DeliveryOptionPage({ params }: AppPageProps) {
         setForm(f)
         setSaved(JSON.stringify(f))
       })
-      .catch((err) => toast.error(err instanceof Error ? err.message : copy.failed))
-  }, [id, copy.failed])
+      .catch((err: unknown) => setLoadFailed(isForbidden(err) ? 'no-access' : 'error'))
+  }, [id, loadAttempt])
 
   // Event handlers
   const handleSave = async () => {
@@ -81,7 +92,17 @@ export default function DeliveryOptionPage({ params }: AppPageProps) {
   }
 
   // Early returns
-  if (!form) return null
+  if (!form && loadFailed) {
+    return (
+      <LoadFailedState
+        size="page"
+        heading={apps.couldNotLoad.option}
+        failed={loadFailed}
+        onRetry={() => setLoadAttempt((n) => n + 1)}
+      />
+    )
+  }
+  if (!form) return <SectionPageSkeleton cards={3} />
 
   // Render logic
   const dirty = !id || JSON.stringify(form) !== saved

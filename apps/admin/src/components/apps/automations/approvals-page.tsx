@@ -8,37 +8,45 @@ import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import LoadFailedState from '@/components/apps/shared/load-failed-state'
 import EmptyState from '@/components/layout/empty-state'
 import RelativeTime from '@/components/layout/relative-time'
 import SectionHead from '@/components/layout/section-head'
+import { appsContent } from '@/data/apps'
 import { automationPiecesContent, automationsContent } from '@/data/automations'
 import { useAutomationCatalogue } from '@/hooks/use-automation-catalogue'
 import { useCopy, useLocale } from '@/hooks/use-copy'
+import type { LoadFailure } from '@/hooks/use-load'
 import { automationApi } from '@/lib/automation-api'
 import { actionLabel } from '@/lib/automation-labels'
 import { automationRoutes, recordHref } from '@/lib/automation-routes'
+import { isForbidden } from '@/lib/forbidden'
 
 /** Needs approval: steps set to "Ask before running" waiting for a member to approve or decline. */
 export default function ApprovalsPage() {
   // Hooks
+  const apps = useCopy(appsContent)
   const all = useCopy(automationsContent)
   const pieces = useCopy(automationPiecesContent)
   const locale = useLocale()
   const catalogue = useAutomationCatalogue()
   const [items, setItems] = useState<ApprovalItem[] | null>(null)
-  const [failed, setFailed] = useState(false)
+  const [failed, setFailed] = useState<LoadFailure | false>(false)
+  const [attempt, setAttempt] = useState(0)
   const [deciding, setDeciding] = useState<string | null>(null)
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `attempt` is Try again
   useEffect(() => {
     let live = true
+    setFailed(false)
     automationApi.approvals
       .list()
       .then((rows) => live && setItems(rows))
-      .catch(() => live && setFailed(true))
+      .catch((err: unknown) => live && setFailed(isForbidden(err) ? 'no-access' : 'error'))
     return () => {
       live = false
     }
-  }, [])
+  }, [attempt])
 
   // Event handlers
   const handleDecide = async (item: ApprovalItem, approve: boolean) => {
@@ -55,7 +63,16 @@ export default function ApprovalsPage() {
   }
 
   // Early returns
-  if (failed) return <EmptyState variant="page" tone="danger" body={all.loadFailed} />
+  if (failed) {
+    return (
+      <LoadFailedState
+        size="page"
+        heading={apps.couldNotLoad.approvals}
+        failed={failed}
+        onRetry={() => setAttempt((n) => n + 1)}
+      />
+    )
+  }
 
   // Render logic
   const copy = all.approvals

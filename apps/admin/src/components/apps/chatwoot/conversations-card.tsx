@@ -3,11 +3,15 @@
 import { ExternalLink, MessageSquare } from '@commerce/ui/icons'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
+import LoadFailedState from '@/components/apps/shared/load-failed-state'
 import DataCard from '@/components/layout/data-card'
 import StatusChip from '@/components/layout/status-chip'
+import { appsContent } from '@/data/apps'
 import { chatwootContent } from '@/data/chatwoot'
 import { useCopy, useLocale } from '@/hooks/use-copy'
+import type { LoadFailure } from '@/hooks/use-load'
 import { api } from '@/lib/api-client'
+import { isForbidden } from '@/lib/forbidden'
 import { formatAgo } from '@/lib/format-date'
 
 type View = Awaited<ReturnType<typeof api.chatwoot.conversations.customer>>
@@ -40,25 +44,42 @@ const STATUS_TONE = {
  */
 export default function ConversationsCard({ kind, id }: ConversationsCardProps) {
   // Hooks
+  const apps = useCopy(appsContent)
   const content = useCopy(chatwootContent)
   const locale = useLocale()
   const [view, setView] = useState<View | null>(null)
+  /** Our own read failed (not Chatwoot): the card says so with Try again (or no-access). */
+  const [failed, setFailed] = useState<LoadFailure | false>(false)
+  const [attempt, setAttempt] = useState(0)
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `attempt` is Try again
   useEffect(() => {
     let live = true
+    setFailed(false)
     loadFor(kind, id)
       .then((v) => {
         if (live) setView(v)
       })
-      .catch(() => {
-        if (live) setView({ state: 'error', message: '' })
+      .catch((err: unknown) => {
+        if (live) setFailed(isForbidden(err) ? 'no-access' : 'error')
       })
     return () => {
       live = false
     }
-  }, [kind, id])
+  }, [kind, id, attempt])
 
   // Early returns
+  if (failed && !view) {
+    return (
+      <DataCard title={content.card.title}>
+        <LoadFailedState
+          heading={apps.couldNotLoad.conversations}
+          failed={failed}
+          onRetry={() => setAttempt((n) => n + 1)}
+        />
+      </DataCard>
+    )
+  }
   if (!view || view.state === 'not-installed') return null
   // Nothing to show is no card: order and customer pages stacked empty ones (audit #12, #84).
   if (view.state === 'not-connected' || view.state === 'no-contact') return null

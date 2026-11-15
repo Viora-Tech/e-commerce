@@ -13,12 +13,16 @@ import { Checkbox } from '@commerce/ui/shadcn/checkbox'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import LoadFailedState from '@/components/apps/shared/load-failed-state'
 import DataCard from '@/components/layout/data-card'
 import DataCardSkeleton from '@/components/layout/data-card-skeleton'
+import { appsContent } from '@/data/apps'
 import { shopifyAppInstallContent } from '@/data/shopify-app-install'
 import { shopifyImportContent } from '@/data/shopify-import'
 import { useCopy, useFormat } from '@/hooks/use-copy'
+import type { LoadFailure } from '@/hooks/use-load'
 import { api } from '@/lib/api-client'
+import { isForbidden } from '@/lib/forbidden'
 import ConnectForm from './connect-form'
 import PreflightCard from './preflight-card'
 import ScopesCard from './scopes-card'
@@ -34,6 +38,7 @@ const base = shopifyImportContent.base
  */
 export default function ConnectPage() {
   // Hooks
+  const apps = useCopy(appsContent)
   const copy = useCopy(shopifyImportContent.connect)
   const installCopy = useCopy(shopifyAppInstallContent)
   const resources = useCopy(shopifyImportContent.resources)
@@ -45,13 +50,18 @@ export default function ConnectPage() {
   const [busy, setBusy] = useState(false)
   const [includeUnused, setIncludeUnused] = useState(false)
   const [checks, setChecks] = useState<PreflightCheck[]>([])
+  /** The connection read failed: Try again, not the connect form (it may be connected). */
+  const [loadFailed, setLoadFailed] = useState<LoadFailure | false>(false)
+  const [loadAttempt, setLoadAttempt] = useState(0)
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `loadAttempt` is Try again
   useEffect(() => {
+    setLoadFailed(false)
     api.shopifyImport
       .connection()
       .then(setConnection)
-      .catch(() => setConnection(null))
-  }, [])
+      .catch((err: unknown) => setLoadFailed(isForbidden(err) ? 'no-access' : 'error'))
+  }, [loadAttempt])
 
   // Back from installing the Koomerce app on Shopify (`?connect=` from the OAuth callback).
   useEffect(() => {
@@ -125,6 +135,16 @@ export default function ConnectPage() {
   }
 
   // Early returns
+  if (connection === undefined && loadFailed) {
+    return (
+      <LoadFailedState
+        size="page"
+        heading={apps.couldNotLoad.connection}
+        failed={loadFailed}
+        onRetry={() => setLoadAttempt((n) => n + 1)}
+      />
+    )
+  }
   if (connection === undefined) {
     return (
       <div className="flex flex-col gap-4">

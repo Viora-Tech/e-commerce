@@ -6,10 +6,14 @@ import { Progress } from '@commerce/ui/shadcn/progress'
 import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import LoadFailedState from '@/components/apps/shared/load-failed-state'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
 import DataCard from '@/components/layout/data-card'
 import { appsContent } from '@/data/apps'
+import { useCopy } from '@/hooks/use-copy'
+import type { LoadFailure } from '@/hooks/use-load'
 import { api } from '@/lib/api-client'
+import { isForbidden } from '@/lib/forbidden'
 
 type Migration = Awaited<ReturnType<typeof api.store.storageMigrationStatus>>
 
@@ -30,16 +34,28 @@ const POLL_MS = 2000
  */
 export default function MoveFilesCard({ targetProviderId, targetLabel }: MoveFilesCardProps) {
   // Hooks
+  const apps = useCopy(appsContent)
   const [migration, setMigration] = useState<Migration | null>(null)
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [starting, setStarting] = useState(false)
+  /** The status read failed: say so with Try again, so a running move never reads as none. */
+  const [statusFailed, setStatusFailed] = useState<LoadFailure | false>(false)
+  const [attempt, setAttempt] = useState(0)
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `attempt` is Try again
   useEffect(() => {
     let cancelled = false
     let timer: ReturnType<typeof setTimeout> | undefined
     const poll = async () => {
-      const status = await api.store.storageMigrationStatus().catch(() => null)
+      let status: Migration | null
+      try {
+        status = await api.store.storageMigrationStatus()
+      } catch (err) {
+        if (!cancelled) setStatusFailed(isForbidden(err) ? 'no-access' : 'error')
+        return
+      }
       if (cancelled) return
+      setStatusFailed(false)
       setMigration(status)
       if (status?.status === 'running') timer = setTimeout(poll, POLL_MS)
     }
@@ -48,7 +64,7 @@ export default function MoveFilesCard({ targetProviderId, targetLabel }: MoveFil
       cancelled = true
       if (timer) clearTimeout(timer)
     }
-  }, [])
+  }, [attempt])
 
   // Event handlers
   const handleConfirm = async () => {
@@ -116,6 +132,12 @@ export default function MoveFilesCard({ targetProviderId, targetLabel }: MoveFil
             </p>
           )}
         </div>
+      ) : statusFailed ? (
+        <LoadFailedState
+          heading={apps.couldNotLoad.moveStatus}
+          failed={statusFailed}
+          onRetry={() => setAttempt((n) => n + 1)}
+        />
       ) : null}
       <div>
         <Button
