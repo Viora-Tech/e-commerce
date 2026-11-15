@@ -71,6 +71,11 @@ row becomes a GitHub issue (label `bug` + `test-server`) and blocks the release.
 - All rows ticked → open the release PR `dev` → `main` and paste the ticked table into its body.
 - Any row failed → issue on GitHub, fix PR into `dev`, re-run the failed rows (and any row the fix
   touches) after the next deploy.
+- Production broke after a release → roll the app back first, fix after:
+  `deploy/rollback.sh <worker|admin|storefront>` shows what it would do, add `--apply` to do it
+  (`--to <sha>` for a chosen build). It needs `DOKPLOY_URL`, `DOKPLOY_API_KEY` and
+  `DOKPLOY_APP_ID_<APP>` in the environment. Rolling the worker back does not undo a migration; see
+  [Deployment → One-step rollback](/developer-docs/operations/deployment#one-step-rollback).
 
 ## Bugs
 

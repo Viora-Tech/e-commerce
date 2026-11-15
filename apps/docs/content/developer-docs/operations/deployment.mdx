@@ -102,6 +102,59 @@ at an older tag: no rebuild.
    taken **before** it ran (see [Restore](#restore)).
 4. Fix forward on `dev` (preferably `git revert` the bad commit) and release again.
 
+### One-step rollback
+
+Production apps are separate Dokploy applications that run ECR images tagged with the commit sha
+(see [Builds on CodeBuild](/developer-docs/operations/codebuild)). `deploy/rollback.sh` points one
+of them back at an earlier image and redeploys it, in one command, with no rebuild:
+
+```bash
+export DOKPLOY_URL=https://<dokploy host>
+export DOKPLOY_API_KEY=<token>            # Dokploy → Settings → Profile → API keys; never commit it
+export DOKPLOY_APP_ID_ADMIN=<application id>
+
+deploy/rollback.sh admin                   # dry run: shows the live image, recent tags, the plan
+deploy/rollback.sh admin --apply           # back to the image pushed before the live one
+deploy/rollback.sh admin --to <sha> --apply   # back to a chosen tag
+```
+
+- Apps: `worker`, `admin`, `storefront`, one per run (`DOKPLOY_APP_ID_WORKER`, `_ADMIN`,
+  `_STOREFRONT`, the same names `deploy/codebuild/deploy-dokploy.mjs` reads).
+- It reads the live image from the Dokploy application (`application.one`), lists the last 20
+  images of `924422830513.dkr.ecr.ap-south-1.amazonaws.com/vextro/<app>` (`aws ecr
+  describe-images`, newest first; `:buildcache` and the moving `latest` tags are left out) and
+  picks the one pushed just before the live tag. `--to <tag>` chooses instead; `--last <n>` lists
+  more. `ECR_REGISTRY`, `ECR_PREFIX` and `AWS_REGION` override the defaults.
+- **Dry run by default**: nothing changes without `--apply`. With it: `application.saveDockerProvider`
+  with the older image (registry fields empty, as the deploy script does: the server pulls with
+  its instance role), `application.deploy` titled "Rollback to <sha>", SSM
+  `/vextro/deploy/last-sha/<app>` set to that sha (so the next build rebuilds the app from
+  there), then it waits for the deploy (`--no-wait` to skip, `DEPLOY_TIMEOUT_MIN`, default 15).
+- Needs `curl`, `node` (JSON) and the AWS CLI with `ecr:DescribeImages` and `ssm:PutParameter`.
+  The token is passed to curl through a file descriptor, never on the command line.
+- The worker runs migrations, and a rollback does not undo them: roll the worker back only if the
+  older code works with the newer schema (write migrations additively).
+
+Example dry run (output from a run against stubbed `curl` and `aws`, admin live on `cccc3333`):
+
+```text
+App:        admin (app1)
+Live image: 924422830513.dkr.ecr.ap-south-1.amazonaws.com/vextro/admin:cccc3333
+Recent ECR tags in vextro/admin, newest first:
+  dddd4444
+  cccc3333
+  bbbb2222
+  aaaa1111
+
+Plan:
+  1. Dokploy application.saveDockerProvider: 924422830513.dkr.ecr.ap-south-1.amazonaws.com/vextro/admin:cccc3333
+                                          -> 924422830513.dkr.ecr.ap-south-1.amazonaws.com/vextro/admin:bbbb2222
+  2. Dokploy application.deploy ("Rollback to bbbb2222")
+  3. SSM /vextro/deploy/last-sha/admin = bbbb2222 (the next build rebuilds admin from there)
+
+Dry run: nothing changed. Run again with --apply to roll back.
+```
+
 ## Server sizing
 
 4 GB / 2 vCPU holds Postgres, Dragonfly, the three apps and Dokploy's agent with a 2 GB swap file
