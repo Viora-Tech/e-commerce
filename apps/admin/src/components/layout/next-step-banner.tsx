@@ -55,7 +55,7 @@ export default function NextStepBanner({
       tone={ALERT_TONE[tone]}
       role="region"
       aria-label={eyebrow}
-      className="flex flex-col gap-4 p-4 md:px-5 print:hidden"
+      className="flex flex-col items-stretch gap-4 p-4 md:px-5 print:hidden"
     >
       <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3">
         <div className="flex min-w-0 items-start gap-3">
