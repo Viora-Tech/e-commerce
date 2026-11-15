@@ -414,6 +414,7 @@ export const orderDetailContent = {
     heading: 'Tags',
     placeholder: 'Add a tag and press Enter',
     saved: 'Tags saved',
+    remove: (tag: string) => `Remove ${tag}`,
   },
   print: {
     title: 'Packing slip',

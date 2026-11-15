@@ -21,7 +21,7 @@ export default function TopBarTip({ label, children }: TopBarTipProps) {
       <TooltipContent
         side="bottom"
         sideOffset={8}
-        className="rounded-[0.375rem] px-3 py-1.5 text-xs leading-4 *:hidden"
+        className="rounded-[0.375rem] px-3 py-1.5 text-period leading-4 *:hidden"
       >
         {label}
       </TooltipContent>

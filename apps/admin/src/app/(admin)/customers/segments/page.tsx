@@ -5,8 +5,7 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import SegmentTemplates from '@/components/customers/segment-templates'
 import SegmentsList from '@/components/customers/segments-list'
-import PageBody from '@/components/layout/page-body'
-import PageHeader from '@/components/layout/page-header'
+import ProoflyListPage from '@/components/layout/proofly-list-page'
 import { segmentsContent } from '@/data/customers'
 import { appRouter, call, serverContext } from '@/lib/api'
 import { getCopy } from '@/lib/copy-server'
@@ -24,20 +23,19 @@ export default async function Page() {
   if (segments === undefined) redirect(routes.selectStore())
 
   return (
-    <PageBody>
-      <PageHeader
-        title={copy.title}
-        summary={copy.summary(segments.length)}
-        back={{ label: copy.back, href: routes.customers.list() }}
-        actions={
-          <Button render={<Link href={routes.customers.newSegment()} />} nativeButton={false}>
-            <Plus />
-            {copy.create}
-          </Button>
-        }
-      />
+    <ProoflyListPage
+      title={copy.title}
+      summary={copy.summary(segments.length)}
+      back={{ label: copy.back, href: routes.customers.list() }}
+      actions={
+        <Button render={<Link href={routes.customers.newSegment()} />} nativeButton={false}>
+          <Plus />
+          {copy.create}
+        </Button>
+      }
+    >
       <SegmentsList segments={segments} />
       <SegmentTemplates savedNames={segments.map((s) => s.name)} />
-    </PageBody>
+    </ProoflyListPage>
   )
 }

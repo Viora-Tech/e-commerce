@@ -1,13 +1,14 @@
 'use client'
 
 import { TrendingUp } from '@commerce/ui/icons'
+import { Alert, AlertDescription } from '@commerce/ui/shadcn/alert'
 import { Field, FieldDescription, FieldLabel } from '@commerce/ui/shadcn/field'
 import MoneyInput from '@/components/fields/money-input'
 import { productFormContent } from '@/data/product-form'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { margin, type VariantRow } from '../form-state'
+import SwitchRow from '../switch-row'
 import ZeroPriceWarning from '../zero-price-warning'
-import SwitchRow from './switch-row'
 
 type VariantPricingFieldsProps = {
   draft: VariantRow
@@ -58,10 +59,12 @@ export default function VariantPricingFields({ draft, onPatch }: VariantPricingF
       </div>
       <ZeroPriceWarning variant={draft} />
       {profit ? (
-        <p className="flex items-center gap-2 rounded-md border border-success/30 bg-success-soft px-3 py-2 text-body text-success">
-          <TrendingUp className="size-4 shrink-0" aria-hidden="true" />
-          {pricing.margin(`${profit.pct}%`, fmt.money(profit.profitPaise))}
-        </p>
+        <Alert tone="success">
+          <TrendingUp aria-hidden="true" />
+          <AlertDescription className="text-body text-foreground">
+            {pricing.margin(`${profit.pct}%`, fmt.money(profit.profitPaise))}
+          </AlertDescription>
+        </Alert>
       ) : null}
       <SwitchRow
         id="variant-taxable"

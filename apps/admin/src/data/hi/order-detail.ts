@@ -386,6 +386,7 @@ export default [
       heading: 'टैग',
       placeholder: 'टैग लिखें और Enter दबाएं',
       saved: 'टैग सेव हो गए',
+      remove: (tag) => `${tag} हटाएं`,
     },
     print: {
       title: 'पैकिंग स्लिप',

@@ -1,6 +1,7 @@
 'use client'
 
 import { Plus, TriangleAlert } from '@commerce/ui/icons'
+import { Alert, AlertDescription, AlertTitle } from '@commerce/ui/shadcn/alert'
 import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
@@ -108,24 +109,23 @@ export default function OrderReturnsCard({
     >
       <div className="flex flex-col gap-4">
         {openRto.map((r) => (
-          <div
+          <Alert
             key={r.id}
-            className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-danger-soft px-3 py-2"
+            tone="danger"
+            action={
+              <Button
+                size="sm"
+                render={<Link href={`/orders/returns/${r.id}`} />}
+                nativeButton={false}
+              >
+                {copy.open}
+              </Button>
+            }
           >
-            <span className="flex items-start gap-2 text-body text-danger">
-              <TriangleAlert className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-              <span>
-                <span className="font-medium">{copy.rtoBanner}</span> {copy.rtoHint}
-              </span>
-            </span>
-            <Button
-              size="sm"
-              render={<Link href={`/orders/returns/${r.id}`} />}
-              nativeButton={false}
-            >
-              {copy.open}
-            </Button>
-          </div>
+            <TriangleAlert aria-hidden="true" />
+            <AlertTitle>{copy.rtoBanner}</AlertTitle>
+            <AlertDescription>{copy.rtoHint}</AlertDescription>
+          </Alert>
         ))}
         {state.returns.length === 0 ? (
           <EmptyState variant="inline" body={copy.none} />

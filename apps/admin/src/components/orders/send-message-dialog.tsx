@@ -2,10 +2,11 @@
 
 import { Send } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
+import { Alert, AlertDescription } from '@commerce/ui/shadcn/alert'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Dialog, DialogDescription, DialogTitle } from '@commerce/ui/shadcn/dialog'
+import { Field, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
-import { Label } from '@commerce/ui/shadcn/label'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { Textarea } from '@commerce/ui/shadcn/textarea'
@@ -14,6 +15,7 @@ import DialogContent from '@/components/layout/dialog-content'
 import DialogFooter from '@/components/layout/dialog-footer'
 import DialogHeader from '@/components/layout/dialog-header'
 import PillTabs from '@/components/layout/pill-tabs'
+import InlineState from '@/components/states/inline-state'
 import { sendMessageContent } from '@/data/orders'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -95,6 +97,8 @@ export default function SendMessageDialog({
   const [subject, setSubject] = useState('')
   const [message, setMessage] = useState('')
   const [channel, setChannel] = useState<SendChannel>('both')
+  /** Bumped by Try again after a failed preview, so the read runs once more. */
+  const [attempt, setAttempt] = useState(0)
 
   // Each opening (orderId goes null → id) starts from the template's own words.
   useEffect(() => {
@@ -107,6 +111,7 @@ export default function SendMessageDialog({
     setMessage('')
   }, [orderId])
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `attempt` is the Try again button's re-run.
   useEffect(() => {
     if (!orderId) return
     let live = true
@@ -129,9 +134,13 @@ export default function SendMessageDialog({
       live = false
       clearTimeout(timer)
     }
-  }, [orderId, template, subject, message])
+  }, [orderId, template, subject, message, attempt])
 
   // Event handlers
+  const handleRetry = () => {
+    setFailed(false)
+    setAttempt((n) => n + 1)
+  }
   const handleChannel = (next: SendChannel) => {
     setChannel(next)
     if (next !== 'both') setTab(next)
@@ -175,7 +184,7 @@ export default function SendMessageDialog({
           <DialogDescription>{copy.help}</DialogDescription>
         </DialogHeader>
         {failed ? (
-          <p className="text-body text-destructive">{copy.failed}</p>
+          <InlineState kind="error" body={copy.failed} onRetry={handleRetry} />
         ) : !preview ? (
           <div className="flex flex-col gap-3" aria-busy="true">
             <span className="sr-only">{copy.loading}</span>
@@ -186,9 +195,9 @@ export default function SendMessageDialog({
         ) : (
           <div className="flex flex-col gap-4">
             {preview.on ? null : (
-              <p className="rounded-lg border border-warning/35 bg-warning-soft px-3 py-2 text-body text-foreground">
-                {copy.off}
-              </p>
+              <Alert tone="warning">
+                <AlertDescription className="text-foreground">{copy.off}</AlertDescription>
+              </Alert>
             )}
             {chooseChannel ? (
               <ReminderChannelPicker
@@ -204,23 +213,23 @@ export default function SendMessageDialog({
                 onChatOpened={() => chooseChannel.onChatOpened?.()}
               />
             ) : null}
-            <div className="flex flex-col gap-1.5">
-              <Label>{copy.to}</Label>
+            <Field>
+              <FieldLabel>{copy.to}</FieldLabel>
               <p className="truncate rounded-md border border-border bg-muted px-3 py-2 text-body text-foreground">
                 {to || copy.noContact}
               </p>
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="send-message-subject">{copy.subject}</Label>
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="send-message-subject">{copy.subject}</FieldLabel>
               <Input
                 id="send-message-subject"
                 value={subject}
                 maxLength={200}
                 onChange={(e) => setSubject(e.target.value)}
               />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="send-message-note">{copy.message}</Label>
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="send-message-note">{copy.message}</FieldLabel>
               <Textarea
                 id="send-message-note"
                 value={message}
@@ -229,7 +238,7 @@ export default function SendMessageDialog({
                 placeholder={copy.messagePlaceholder}
                 onChange={(e) => setMessage(e.target.value)}
               />
-            </div>
+            </Field>
             <div className="flex flex-col gap-2">
               <div className="flex items-center justify-between gap-3">
                 <span className="text-body font-medium text-foreground">{copy.previewHeading}</span>

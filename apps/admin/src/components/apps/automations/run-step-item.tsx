@@ -40,7 +40,7 @@ function DataBlock({ label, data }: { label: string; data: Record<string, unknow
   return (
     <div className="flex flex-col gap-1">
       <span className="text-eyebrow text-muted-foreground">{label}</span>
-      <pre className="max-h-48 overflow-auto rounded-md bg-muted px-3 py-2 font-mono text-xs whitespace-pre-wrap break-all">
+      <pre className="max-h-48 overflow-auto rounded-md bg-muted px-3 py-2 font-mono text-period whitespace-pre-wrap break-all">
         {JSON.stringify(data, null, 2)}
       </pre>
     </div>

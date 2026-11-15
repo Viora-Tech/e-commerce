@@ -46,7 +46,7 @@ export default function NavGroupBlock({ label, items, pathname, counts = {} }: N
       {label ? (
         <p
           className={cn(
-            'px-2 pt-3.5 pb-1.5 text-xs font-medium text-muted-foreground group-data-[collapsible=icon]:-mb-5',
+            'px-2 pt-3.5 pb-1.5 text-period font-medium text-muted-foreground group-data-[collapsible=icon]:-mb-5',
             SIDEBAR_LABEL,
             'transition-[opacity,margin]',
           )}

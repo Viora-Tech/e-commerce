@@ -15,6 +15,7 @@ import SalesByStateChart from './charts/sales-by-state-chart'
 import FinishSetup from './finish-setup'
 import HomeEnter from './home-enter'
 import HomeGreeting from './home-greeting'
+import { HOME_NARROW, HOME_RHYTHM, HOME_SPLIT } from './home-layout'
 import type { HomeSignals } from './home-signals'
 import InsightsList from './insights-list'
 import LatestOrders from './latest-orders'
@@ -66,10 +67,10 @@ export default function DashboardPage({
   hiddenTodos,
 }: DashboardPageProps) {
   return (
-    <PageBody width="settings" className="gap-10">
+    <PageBody width="settings" className={HOME_RHYTHM}>
       {/* Owner 2026-10-17: Home keeps its 68rem column; the greeting and the Ask AI box sit in a
           narrower 48rem column centred above the rest. */}
-      <div className="mx-auto flex w-full max-w-[48rem] flex-col gap-10">
+      <div className={HOME_NARROW}>
         <HomeEnter index={0}>
           <HomeGreeting
             firstName={firstName}
@@ -104,7 +105,7 @@ export default function DashboardPage({
         <TodoCards needsYou={summary.needsYou} hidden={hiddenTodos} />
       </HomeEnter>
       <HomeEnter index={5}>
-        <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,640fr)_minmax(0,424fr)]">
+        <div className={HOME_SPLIT}>
           <LatestOrders orders={summary.recentOrders} />
           <LiveNow initial={summary} />
         </div>

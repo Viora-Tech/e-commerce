@@ -53,6 +53,7 @@ export default function SegmentRowMenu({ id }: SegmentRowMenuProps) {
         body={copy.deleteBody}
         confirmLabel={copy.confirm}
         cancelLabel={copy.cancel}
+        stopPropagation
         onConfirm={handleDelete}
       />
     </>

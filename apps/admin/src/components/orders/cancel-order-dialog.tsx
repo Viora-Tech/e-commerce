@@ -17,6 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@commerce/ui/shadcn/select'
+import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { type FormEvent, useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import StoreCreditExpiryField from '@/components/customers/store-credit-expiry-field'
@@ -24,6 +25,7 @@ import DateField from '@/components/fields/date-field'
 import DialogContent from '@/components/layout/dialog-content'
 import DialogFooter from '@/components/layout/dialog-footer'
 import DialogHeader from '@/components/layout/dialog-header'
+import InlineState from '@/components/states/inline-state'
 import { orderDetailContent } from '@/data/order-detail'
 import { orderCancelContent, refundRouteContent } from '@/data/order-edit'
 import { storeCreditExpiryContent } from '@/data/store-credit-expiry'
@@ -66,6 +68,9 @@ const defaultRoute = (options: RefundOptions): RefundRoute => {
 const liveLabel = (o: OrderDetail) =>
   o.status === 'open' && o.shipment?.labelUrl && o.shipment.cancelBlock === null ? o.shipment : null
 
+/** Placeholder rows for the usual three refund choices (original, store credit, later). */
+const REFUND_ROW_SKELETONS = ['first', 'second', 'third'] as const
+
 /** Today in the browser, `yyyy-mm-dd`: store credit cannot expire before it is issued. */
 const today = () => {
   const d = new Date()
@@ -102,10 +107,12 @@ export default function CancelOrderDialog({
   const [expiresOn, setExpiresOn] = useState('')
   const [backExpiresOn, setBackExpiresOn] = useState('')
   const [busy, setBusy] = useState(false)
+  const [optionsFailed, setOptionsFailed] = useState(false)
+  /** Bumped by Try again when the refund choices did not load. */
+  const [attempt, setAttempt] = useState(0)
 
   useEffect(() => {
     if (!order) return
-    let live = true
     setReasonCode('customer')
     setReason('')
     setRestock(!wasImported(order))
@@ -114,15 +121,28 @@ export default function CancelOrderDialog({
     setExpires(false)
     setExpiresOn('')
     setOptions(null)
-    api.orders.refundOptions({ orderId: order.id }).then((o) => {
-      if (!live) return
-      setOptions(o)
-      setRoute(defaultRoute(o))
-    })
+  }, [order])
+
+  // The refund choices; a failure says so with Try again instead of leaving Cancel order off.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: attempt re-runs the read
+  useEffect(() => {
+    if (!order) return
+    let live = true
+    setOptionsFailed(false)
+    api.orders
+      .refundOptions({ orderId: order.id })
+      .then((o) => {
+        if (!live) return
+        setOptions(o)
+        setRoute(defaultRoute(o))
+      })
+      .catch(() => {
+        if (live) setOptionsFailed(true)
+      })
     return () => {
       live = false
     }
-  }, [order])
+  }, [order, attempt])
 
   useEffect(() => {
     setBackExpiresOn(creditBack?.expiresOn ?? '')
@@ -272,7 +292,23 @@ export default function CancelOrderDialog({
             </Field>
           ) : options ? (
             <p className="text-body text-muted-foreground">{copy.nothingToRefund}</p>
-          ) : null}
+          ) : optionsFailed ? (
+            <InlineState
+              kind="error"
+              body={copy.optionsFailed}
+              onRetry={() => setAttempt((n) => n + 1)}
+            />
+          ) : (
+            // The refund choices' place while they load, so the fields below do not jump.
+            <Field aria-busy="true">
+              <FieldLabel>{copy.refundHeading}</FieldLabel>
+              <div className="flex flex-col gap-2">
+                {REFUND_ROW_SKELETONS.map((key) => (
+                  <Skeleton key={key} className="h-15 w-full rounded-lg" />
+                ))}
+              </div>
+            </Field>
+          )}
           {creditBack && creditBack.spentPaise > 0 ? (
             <div className="flex flex-col gap-2">
               <p className="text-body text-muted-foreground">

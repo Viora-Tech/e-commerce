@@ -18,7 +18,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@commerce/ui/shadcn/select'
-import { Switch } from '@commerce/ui/shadcn/switch'
 import Link from 'next/link'
 import { useState } from 'react'
 import DataCard from '@/components/layout/data-card'
@@ -32,6 +31,7 @@ import { boxLabel } from './box-label'
 import type { VariantRow } from './form-state'
 import type { ProductTax } from './product-tax'
 import ProductTaxFields from './product-tax-fields'
+import SwitchRow from './switch-row'
 import WeightInput from './weight-input'
 import { toGrams } from './weight-units'
 
@@ -165,19 +165,13 @@ export default function ShippingCard({
         )}
         {/* Shopify's "This is a physical product"; with options each variant sets its own. */}
         {singleVariant ? (
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex flex-col gap-0.5">
-              <label htmlFor="variant-physical" className="text-body text-foreground">
-                {physical.physical}
-              </label>
-              <p className="text-caption text-muted-foreground">{physical.physicalHelp}</p>
-            </div>
-            <Switch
-              id="variant-physical"
-              checked={variant.requiresShipping}
-              onCheckedChange={(requiresShipping) => onChange({ requiresShipping })}
-            />
-          </div>
+          <SwitchRow
+            id="variant-physical"
+            label={physical.physical}
+            help={physical.physicalHelp}
+            checked={variant.requiresShipping}
+            onChange={(requiresShipping) => onChange({ requiresShipping })}
+          />
         ) : null}
         {/* One form style across the product page: label above the field (audit #28). */}
         {singleVariant && variant.requiresShipping ? (

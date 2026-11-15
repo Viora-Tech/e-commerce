@@ -2,10 +2,10 @@
 
 import { Field, FieldDescription, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
-import { Switch } from '@commerce/ui/shadcn/switch'
 import { productFormContent } from '@/data/product-form'
 import { useCopy } from '@/hooks/use-copy'
 import type { ProductTax } from './product-tax'
+import SwitchRow from './switch-row'
 
 type ProductTaxFieldsProps = {
   tax: ProductTax
@@ -75,21 +75,13 @@ export default function ProductTaxFields({
         </div>
       ) : null}
       {singleVariant || !customs ? null : (
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex flex-col gap-0.5">
-            <label htmlFor="product-tax-per-variant" className="text-body-strong text-foreground">
-              {copy.taxPerVariant}
-            </label>
-            <p className="text-caption text-muted-foreground">
-              {tax.perVariant ? copy.taxPerVariantOnHelp : copy.taxPerVariantOffHelp}
-            </p>
-          </div>
-          <Switch
-            id="product-tax-per-variant"
-            checked={tax.perVariant}
-            onCheckedChange={(perVariant) => onChange({ ...tax, perVariant })}
-          />
-        </div>
+        <SwitchRow
+          id="product-tax-per-variant"
+          label={copy.taxPerVariant}
+          help={tax.perVariant ? copy.taxPerVariantOnHelp : copy.taxPerVariantOffHelp}
+          checked={tax.perVariant}
+          onChange={(perVariant) => onChange({ ...tax, perVariant })}
+        />
       )}
     </>
   )

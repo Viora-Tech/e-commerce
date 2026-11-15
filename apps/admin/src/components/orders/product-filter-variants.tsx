@@ -37,7 +37,7 @@ export default function ProductFilterVariants({
       <button
         type="button"
         onClick={onBack}
-        className="flex h-9 shrink-0 items-center gap-1.5 border-border border-b px-2.5 text-left text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:bg-muted focus-visible:outline-none"
+        className="flex h-9 shrink-0 items-center gap-1.5 border-border border-b px-2.5 text-left text-period font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:bg-muted focus-visible:outline-none"
       >
         <ChevronLeftIcon className="size-4" aria-hidden />
         {copy.back}

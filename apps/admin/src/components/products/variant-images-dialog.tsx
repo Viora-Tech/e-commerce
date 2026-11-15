@@ -129,9 +129,7 @@ export default function VariantImagesDialog({
               </Button>
             </div>
             {chosen.length === 0 && pending.length === 0 ? (
-              <p className="rounded-lg border border-border-strong border-dashed px-4 py-6 text-center text-body text-muted-foreground">
-                {copy.chosenEmpty}
-              </p>
+              <EmptyState variant="dashed" size="sm" body={copy.chosenEmpty} />
             ) : (
               <ul className="grid grid-cols-3 gap-3 sm:grid-cols-5">
                 {chosen.map((item, index) => (

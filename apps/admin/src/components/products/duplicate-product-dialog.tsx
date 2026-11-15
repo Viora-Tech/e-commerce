@@ -1,6 +1,5 @@
 'use client'
 
-import { Switch } from '@commerce/ui/shadcn/switch'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
@@ -9,6 +8,7 @@ import { productFormContent } from '@/data/product-form'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
+import SwitchRow from './switch-row'
 
 type DuplicateProductDialogProps = {
   productId: string
@@ -67,15 +67,14 @@ export default function DuplicateProductDialog({
     >
       <div className="flex flex-col gap-4">
         {rows.map((row) => (
-          <div key={row.id} className="flex items-start justify-between gap-4">
-            <div className="flex flex-col gap-0.5">
-              <label htmlFor={row.id} className="text-body-strong text-foreground">
-                {row.label}
-              </label>
-              <p className="text-caption text-muted-foreground">{row.help}</p>
-            </div>
-            <Switch id={row.id} checked={row.on} onCheckedChange={row.set} />
-          </div>
+          <SwitchRow
+            key={row.id}
+            id={row.id}
+            label={row.label}
+            help={row.help}
+            checked={row.on}
+            onChange={row.set}
+          />
         ))}
       </div>
     </FormDialog>

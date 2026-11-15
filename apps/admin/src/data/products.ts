@@ -21,6 +21,8 @@ export const productsListContent = {
   add: 'Add product',
   export: 'Export',
   import: 'Import',
+  /** The list's read failed: shown in the table with Try again. */
+  loadFailed: 'Could not load products',
   tabs: { all: 'All products' },
   /** The view picker while a search or filter is applied. */
   customView: 'Custom',

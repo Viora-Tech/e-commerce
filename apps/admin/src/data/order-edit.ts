@@ -52,6 +52,7 @@ export const orderCancelContent = {
   cancelLabelRequired:
     'Everything is packed under this label, so the label has to be cancelled with the order.',
   nothingToRefund: 'Nothing was paid, so there is nothing to refund.',
+  optionsFailed: 'Could not load how the money can go back.',
   confirm: 'Cancel order',
   keep: 'Keep order',
   done: 'Order cancelled',

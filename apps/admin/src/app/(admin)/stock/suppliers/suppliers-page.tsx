@@ -69,6 +69,7 @@ function SuppliersContent({ initial }: { initial: SuppliersInitial }) {
   )
   const [result, setResult] = useState(initial.result)
   const [loading, setLoading] = useState(false)
+  const [failed, setFailed] = useState(false)
 
   useEffect(() => {
     const unchanged =
@@ -79,9 +80,11 @@ function SuppliersContent({ initial }: { initial: SuppliersInitial }) {
     if (unchanged) return
     let stale = false
     setLoading(true)
+    setFailed(false)
     api.suppliers
       .list(listInput(state))
       .then((next) => !stale && setResult(next))
+      .catch(() => !stale && setFailed(true))
       .finally(() => !stale && setLoading(false))
     return () => {
       stale = true
@@ -91,6 +94,19 @@ function SuppliersContent({ initial }: { initial: SuppliersInitial }) {
   // Helpers
   const refresh = async () => {
     setResult(await api.suppliers.list(listInput(state)))
+  }
+
+  // Event handlers
+  /* Try again on a failed read: the rows are read again in place, under the same header. */
+  const handleRetry = () => {
+    setFailed(false)
+    setLoading(true)
+    refresh()
+      .catch(() => setFailed(true))
+      .finally(() => setLoading(false))
+  }
+  const handleChanged = () => {
+    refresh().catch(() => setFailed(true))
   }
 
   // Render logic
@@ -121,16 +137,17 @@ function SuppliersContent({ initial }: { initial: SuppliersInitial }) {
             deleted={form.deleted}
             failed={form.deleteFailed}
             onDelete={() => api.suppliers.delete({ id: r.id })}
-            onChanged={() => void refresh()}
+            onChanged={handleChanged}
           />
         )}
         loading={loading}
+        error={failed ? { onRetry: handleRetry } : undefined}
         bulkActions={(ids, clear) => (
           <SupplierBulkActions
             ids={ids}
             onDone={() => {
               clear()
-              void refresh()
+              handleChanged()
             }}
           />
         )}

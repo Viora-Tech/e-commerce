@@ -17,9 +17,8 @@ import LandedCostCard from '@/components/landed-cost/landed-cost-card'
 import type { CostPreview } from '@/components/landed-cost/types'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
 import NoticeBar from '@/components/layout/notice-bar'
-import PageColumns from '@/components/layout/page-columns'
 import PageHeader from '@/components/layout/page-header'
-import ProoflyPageBody from '@/components/layout/proofly-page-body'
+import ProoflyDetailPage from '@/components/layout/proofly-detail-page'
 import SaveBar from '@/components/layout/save-bar'
 import OrderChip from '@/components/orders/order-chip'
 import DocumentsCard from '@/components/purchase-documents/documents-card'
@@ -97,8 +96,8 @@ export default function PurchaseOrderForm({
   const [form, setForm] = useState<PoForm>(() => initialForm(po, locations))
   const [saved, setSaved] = useState(() => JSON.stringify(initialForm(po, locations)))
   const [busy, setBusy] = useState(false)
-  /** Save or Mark as ordered, whichever was pressed, so only its button spins while `busy`. */
-  const [pending, setPending] = useState<'save' | 'markOrdered' | null>(null)
+  /** Save, Mark as ordered or Reopen, whichever was pressed, so only its button spins while `busy`. */
+  const [pending, setPending] = useState<'save' | 'markOrdered' | 'reopen' | null>(null)
   const [dialog, setDialog] = useState<Dialog>(null)
 
   // Helpers
@@ -193,7 +192,10 @@ export default function PurchaseOrderForm({
 
   const handleClose = () => act((id) => api.purchaseOrders.close({ id }), copy.closed)
   const handleCancel = () => act((id) => api.purchaseOrders.cancel({ id }), copy.cancelled)
-  const handleReopen = () => act((id) => api.purchaseOrders.reopen({ id }), copy.reopened)
+  const handleReopen = () => {
+    setPending('reopen')
+    return act((id) => api.purchaseOrders.reopen({ id }), copy.reopened)
+  }
 
   const handleDelete = () =>
     run(async () => {
@@ -274,7 +276,113 @@ export default function PurchaseOrderForm({
     : undefined
 
   return (
-    <ProoflyPageBody>
+    <ProoflyDetailPage
+      header={
+        <>
+          <PageHeader
+            title={
+              po
+                ? po.name
+                  ? copy.named(po.number, po.name)
+                  : copy.title(po.number)
+                : copy.newTitle
+            }
+            summary={summary}
+            lead={{ kind: 'icon', node: <Package aria-hidden="true" /> }}
+            badges={status ? <OrderChip kind="purchaseOrder" value={status} /> : null}
+            back={{ label: copy.back, href: LIST }}
+            actions={
+              <PoActions
+                status={status}
+                busy={busy}
+                pending={busy ? pending : null}
+                cancellable={status === 'ordered' && nothingArrived}
+                reopenable={status === 'cancelled' || (status === 'closed' && outstanding)}
+                onSave={handleSave}
+                onMarkOrdered={handleMarkOrdered}
+                onReceive={() => setDialog('receive')}
+                onClose={() => setDialog('close')}
+                onCancel={() => setDialog('cancel')}
+                onReopen={handleReopen}
+                onDelete={() => setDialog('delete')}
+                onPrint={() => handlePdf('open')}
+                onDownload={() => handlePdf('download')}
+                onEmail={() => setDialog('email')}
+                onDuplicate={handleDuplicate}
+              />
+            }
+          />
+          {notice ? <NoticeBar>{notice}</NoticeBar> : null}
+        </>
+      }
+      main={
+        <>
+          <SupplierCard
+            supplierId={form.supplierId}
+            name={form.supplierName}
+            email={form.supplierEmail}
+            phone={form.supplierPhone}
+            disabled={finished}
+            onChange={patch}
+            onPick={handlePickSupplier}
+          />
+          <PoLinesCard
+            lines={form.lines}
+            currency={form.currency}
+            locked={finished || arrivedAll || shipmentLocked}
+            pricesLocked={finished || shipmentLocked}
+            hsnLocked={finished}
+            showReceived={!draft}
+            purchaseOrderId={po?.id ?? null}
+            weights={weights}
+            onChange={(lines) => patch({ lines })}
+          />
+          <ChargesCard
+            costs={costs}
+            owner={po ? { purchaseOrderId: po.id } : null}
+            editable={po !== null && status !== 'cancelled'}
+            shipmentNumber={po?.shipment?.number ?? null}
+            onChanged={() => router.refresh()}
+          />
+          {po && costs ? <LandedCostCard costs={costs} purchaseOrderId={po.id} /> : null}
+          <DocumentsCard
+            owner={po ? { purchaseOrderId: po.id } : null}
+            aiReading={aiReading}
+            onApplied={() => router.refresh()}
+          />
+        </>
+      }
+      side={
+        <>
+          <PoNameCard value={form.name} disabled={finished} onChange={(name) => patch({ name })} />
+          <DestinationCard
+            locations={locations}
+            locationId={form.locationId}
+            expectedAt={form.expectedAt}
+            locationLocked={!draft}
+            disabled={finished}
+            onChange={patch}
+          />
+          <CurrencyCard
+            currency={form.currency}
+            fxRate={form.fxRate}
+            currencyLocked={!draft}
+            disabled={finished}
+            onChange={patch}
+          />
+          {po ? <ShipmentLinkCard shipment={po.shipment} /> : null}
+          <CostSummaryCard form={form} chargesPaise={po?.totals.chargesPaise ?? 0} />
+          <NotesCard
+            id="po-note"
+            heading={copy.notes.heading}
+            placeholder={copy.notes.placeholder}
+            value={form.note}
+            disabled={finished}
+            onChange={(note) => patch({ note })}
+          />
+        </>
+      }
+    >
       <SaveBar
         open={dirty && po !== null && !finished}
         message={copy.unsaved}
@@ -283,109 +391,6 @@ export default function PurchaseOrderForm({
         onSave={handleSave}
         onDiscard={handleDiscard}
         saving={busy}
-      />
-      <PageHeader
-        title={
-          po ? (po.name ? copy.named(po.number, po.name) : copy.title(po.number)) : copy.newTitle
-        }
-        summary={summary}
-        lead={{ kind: 'icon', node: <Package aria-hidden="true" /> }}
-        badges={status ? <OrderChip kind="purchaseOrder" value={status} /> : null}
-        back={{ label: copy.back, href: LIST }}
-        actions={
-          <PoActions
-            status={status}
-            busy={busy}
-            pending={busy ? pending : null}
-            cancellable={status === 'ordered' && nothingArrived}
-            reopenable={status === 'cancelled' || (status === 'closed' && outstanding)}
-            onSave={handleSave}
-            onMarkOrdered={handleMarkOrdered}
-            onReceive={() => setDialog('receive')}
-            onClose={() => setDialog('close')}
-            onCancel={() => setDialog('cancel')}
-            onReopen={handleReopen}
-            onDelete={() => setDialog('delete')}
-            onPrint={() => handlePdf('open')}
-            onDownload={() => handlePdf('download')}
-            onEmail={() => setDialog('email')}
-            onDuplicate={handleDuplicate}
-          />
-        }
-      />
-      {notice ? <NoticeBar>{notice}</NoticeBar> : null}
-      <PageColumns
-        main={
-          <>
-            <SupplierCard
-              supplierId={form.supplierId}
-              name={form.supplierName}
-              email={form.supplierEmail}
-              phone={form.supplierPhone}
-              disabled={finished}
-              onChange={patch}
-              onPick={handlePickSupplier}
-            />
-            <PoLinesCard
-              lines={form.lines}
-              currency={form.currency}
-              locked={finished || arrivedAll || shipmentLocked}
-              pricesLocked={finished || shipmentLocked}
-              hsnLocked={finished}
-              showReceived={!draft}
-              purchaseOrderId={po?.id ?? null}
-              weights={weights}
-              onChange={(lines) => patch({ lines })}
-            />
-            <ChargesCard
-              costs={costs}
-              owner={po ? { purchaseOrderId: po.id } : null}
-              editable={po !== null && status !== 'cancelled'}
-              shipmentNumber={po?.shipment?.number ?? null}
-              onChanged={() => router.refresh()}
-            />
-            {po && costs ? <LandedCostCard costs={costs} purchaseOrderId={po.id} /> : null}
-            <DocumentsCard
-              owner={po ? { purchaseOrderId: po.id } : null}
-              aiReading={aiReading}
-              onApplied={() => router.refresh()}
-            />
-          </>
-        }
-        side={
-          <>
-            <PoNameCard
-              value={form.name}
-              disabled={finished}
-              onChange={(name) => patch({ name })}
-            />
-            <DestinationCard
-              locations={locations}
-              locationId={form.locationId}
-              expectedAt={form.expectedAt}
-              locationLocked={!draft}
-              disabled={finished}
-              onChange={patch}
-            />
-            <CurrencyCard
-              currency={form.currency}
-              fxRate={form.fxRate}
-              currencyLocked={!draft}
-              disabled={finished}
-              onChange={patch}
-            />
-            {po ? <ShipmentLinkCard shipment={po.shipment} /> : null}
-            <CostSummaryCard form={form} chargesPaise={po?.totals.chargesPaise ?? 0} />
-            <NotesCard
-              id="po-note"
-              heading={copy.notes.heading}
-              placeholder={copy.notes.placeholder}
-              value={form.note}
-              disabled={finished}
-              onChange={(note) => patch({ note })}
-            />
-          </>
-        }
       />
       {po ? (
         <ReceiveDialog
@@ -436,6 +441,6 @@ export default function PurchaseOrderForm({
         cancelLabel={copy.confirmDelete.cancel}
         onConfirm={handleDelete}
       />
-    </ProoflyPageBody>
+    </ProoflyDetailPage>
   )
 }

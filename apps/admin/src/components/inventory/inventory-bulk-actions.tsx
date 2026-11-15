@@ -3,6 +3,7 @@
 import { ArrowUpDown, LayoutGrid, Pencil } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { inventoryContent } from '@/data/inventory'
+import { useCopy } from '@/hooks/use-copy'
 
 type InventoryBulkActionsProps = {
   busy: boolean
@@ -11,14 +12,15 @@ type InventoryBulkActionsProps = {
   onBulkEdit: () => void
 }
 
-const copy = inventoryContent.bulk
-
 /** Buttons inside the selection bar of the inventory table. */
 export default function InventoryBulkActions({
   busy,
   onPick,
   onBulkEdit,
 }: InventoryBulkActionsProps) {
+  // Hooks
+  const { bulk: copy } = useCopy(inventoryContent)
+
   return (
     <>
       <Button variant="outline" size="sm" disabled={busy} onClick={() => onPick('adjust')}>

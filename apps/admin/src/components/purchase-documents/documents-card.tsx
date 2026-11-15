@@ -6,6 +6,7 @@ import {
   type PurchaseDocumentKind,
 } from '@commerce/core/inventory'
 import { CardContent } from '@commerce/ui/shadcn/card'
+import { Field, FieldLabel } from '@commerce/ui/shadcn/field'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import OptionSelect from '@/components/landed-cost/option-select'
@@ -128,8 +129,8 @@ export default function DocumentsCard({ owner, aiReading, onApplied }: Documents
     <DataCard title={copy.heading} subtitle={copy.summary} flush>
       {owner ? (
         <CardContent className="flex flex-col gap-3 pb-5 sm:flex-row sm:items-stretch">
-          <div className="flex flex-col gap-1.5 sm:w-56">
-            <span className="text-caption font-medium text-muted-foreground">{copy.kindLabel}</span>
+          <Field className="sm:w-56">
+            <FieldLabel htmlFor="document-kind">{copy.kindLabel}</FieldLabel>
             <OptionSelect
               id="document-kind"
               options={PURCHASE_DOCUMENT_KINDS}
@@ -137,7 +138,7 @@ export default function DocumentsCard({ owner, aiReading, onApplied }: Documents
               value={kind}
               onChange={setKind}
             />
-          </div>
+          </Field>
           <div className="min-w-0 flex-1">
             <DocumentDrop disabled={uploading} uploading={uploading} onFiles={handleFiles} />
           </div>

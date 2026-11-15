@@ -51,17 +51,17 @@ export default function SidebarUsageCard({ usage }: SidebarUsageCardProps) {
         >
           <div className="h-full rounded-full bg-primary" style={{ width: `${percent}%` }} />
         </div>
-        <p className="text-xs text-muted-foreground tabular-nums">
+        <p className="text-period text-muted-foreground tabular-nums">
           {copy.usage.of(format.number(usage.used), format.number(usage.limit))}
         </p>
         {warning ? (
-          <p className="text-xs text-warning-foreground dark:text-warning">{warning}</p>
+          <p className="text-period text-warning-foreground dark:text-warning">{warning}</p>
         ) : null}
       </div>
       {usage.planName ? (
         <Link
           href={routes.settings.billing()}
-          className="flex h-7 items-center gap-1.5 rounded-sm pt-2 pb-1 pl-2 text-xs text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="flex h-7 items-center gap-1.5 rounded-sm pt-2 pb-1 pl-2 text-period text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           <ChevronUpIcon className="size-3.5 shrink-0" aria-hidden />
           {copy.usage.moreRoom(usage.planName)}

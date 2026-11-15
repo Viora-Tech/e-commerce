@@ -56,14 +56,14 @@ export default function AddFilterDialog({
         </DialogHeader>
         <div className="flex max-h-[60dvh] flex-col gap-5 overflow-y-auto overscroll-contain">
           {choices.length === 0 ? (
-            <p className="text-sm text-muted-foreground">{copy.nothing}</p>
+            <p className="text-body text-muted-foreground">{copy.nothing}</p>
           ) : null}
           {KINDS.map((kind) => {
             const rows = choices.filter((c) => c.kind === kind)
             if (rows.length === 0) return null
             return (
               <section key={kind} className="flex flex-col gap-1">
-                <h3 className="text-xs font-semibold text-muted-foreground">{copy[kind]}</h3>
+                <h3 className="text-period font-semibold text-muted-foreground">{copy[kind]}</h3>
                 <ul className="flex flex-col">
                   {rows.map((c) => (
                     <li key={c.id}>
@@ -77,10 +77,12 @@ export default function AddFilterDialog({
                           className="size-4 shrink-0 text-muted-foreground"
                         />
                         <span className="flex min-w-0 flex-col">
-                          <span className="truncate text-sm font-medium text-ink-strong">
+                          <span className="truncate text-body font-medium text-ink-strong">
                             {c.name}
                           </span>
-                          <span className="truncate text-xs text-muted-foreground">{c.detail}</span>
+                          <span className="truncate text-period text-muted-foreground">
+                            {c.detail}
+                          </span>
                         </span>
                       </button>
                     </li>
@@ -92,7 +94,7 @@ export default function AddFilterDialog({
           <form onSubmit={handleAddPrefix} className="flex flex-col gap-1">
             <label
               htmlFor="filter-tag-prefix"
-              className="text-xs font-semibold text-muted-foreground"
+              className="text-period font-semibold text-muted-foreground"
             >
               {copy.customPrefix}
             </label>
@@ -109,7 +111,7 @@ export default function AddFilterDialog({
                 {copy.customPrefixAdd}
               </Button>
             </div>
-            <p className="text-xs text-muted-foreground">{copy.customPrefixHelp}</p>
+            <p className="text-period text-muted-foreground">{copy.customPrefixHelp}</p>
           </form>
         </div>
         <DialogFooter>

@@ -83,6 +83,8 @@ export default function ProductBulkActions({
   const [working, setWorking] = useState(false)
   const [picking, setPicking] = useState(false)
   const [weighing, setWeighing] = useState(false)
+  /* The status button pressed last: it spins while the page's bulk call runs. */
+  const [pressed, setPressed] = useState<'active' | 'draft' | null>(null)
 
   // Event handlers
   const handleAddToCollection = async (collectionId: string) => {
@@ -108,6 +110,11 @@ export default function ProductBulkActions({
     } finally {
       setWorking(false)
     }
+  }
+
+  const handleStatus = (status: 'active' | 'draft') => {
+    setPressed(status)
+    onStatus(status)
   }
 
   // Render logic
@@ -137,11 +144,23 @@ export default function ProductBulkActions({
         <Pencil aria-hidden="true" />
         {copy.bulkEdit}
       </Button>
-      <Button variant="outline" size="sm" disabled={disabled} onClick={() => onStatus('active')}>
+      <Button
+        variant="outline"
+        size="sm"
+        disabled={disabled}
+        loading={busy && pressed === 'active'}
+        onClick={() => handleStatus('active')}
+      >
         <CircleCheck aria-hidden="true" />
         {copy.setActive}
       </Button>
-      <Button variant="outline" size="sm" disabled={disabled} onClick={() => onStatus('draft')}>
+      <Button
+        variant="outline"
+        size="sm"
+        disabled={disabled}
+        loading={busy && pressed === 'draft'}
+        onClick={() => handleStatus('draft')}
+      >
         <FileEdit aria-hidden="true" />
         {copy.setDraft}
       </Button>
@@ -151,7 +170,7 @@ export default function ProductBulkActions({
         align="start"
         items={moreItems}
         disabled={disabled}
-        triggerClassName="h-8 rounded-sm px-3"
+        buttonSize="sm"
       />
       <AddToCollectionDialog
         count={picking ? ids.length : 0}

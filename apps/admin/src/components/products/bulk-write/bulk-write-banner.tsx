@@ -60,7 +60,7 @@ export default function BulkWriteBanner({ refreshKey = 0, onOpen }: BulkWriteBan
     <Alert
       tone="neutral"
       role="status"
-      className="mb-4 items-center"
+      className="items-center"
       action={
         <Button variant="outline" onClick={() => onOpen(latest.id)}>
           {copy.bulk.view}

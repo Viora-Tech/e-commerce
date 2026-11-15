@@ -4,6 +4,7 @@ import { variantTitle } from '@commerce/core/catalog'
 import { cn } from '@commerce/ui/lib/utils'
 import { Checkbox } from '@commerce/ui/shadcn/checkbox'
 import { Table, TableBody, TableHead, TableHeader, TableRow } from '@commerce/ui/shadcn/table'
+import EmptyState from '@/components/layout/empty-state'
 import { productFormContent } from '@/data/product-form'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { routes } from '@/lib/routes'
@@ -129,9 +130,7 @@ export default function VariantMatrix({
         </TableBody>
       </Table>
       {lines.length === 0 ? (
-        <p className="px-5 py-6 text-center text-body text-muted-foreground">
-          {variantsCopy.noMatches}
-        </p>
+        <EmptyState variant="plain" size="sm" className="px-5" body={variantsCopy.noMatches} />
       ) : null}
       {best ? (
         <div className="flex flex-wrap items-center justify-end gap-2 px-5 py-3 text-caption text-muted-foreground">

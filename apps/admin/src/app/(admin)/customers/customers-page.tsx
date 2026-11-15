@@ -21,9 +21,7 @@ import CustomersBulkActions from '@/components/customers/customers-bulk-actions'
 import NewCustomerDialog from '@/components/customers/new-customer-dialog'
 import TagCustomersDialog from '@/components/customers/tag-customers-dialog'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
-import PageBody from '@/components/layout/page-body'
-import PageHeader from '@/components/layout/page-header'
-import PageState from '@/components/states/page-state'
+import ProoflyListPage from '@/components/layout/proofly-list-page'
 import { appliedFromGroups } from '@/components/table/filter-panel'
 import ResourceTable from '@/components/table/resource-table'
 import ViewSelect from '@/components/table/view-select'
@@ -227,116 +225,118 @@ function CustomersContent({ initial }: { initial: CustomersInitial }) {
         ].join(' · ')
 
   return (
-    <PageBody>
-      <PageHeader
-        title={copy.heading}
-        summary={summary}
-        actions={
-          <>
-            {applied.length > 0 ? (
-              <Button variant="outline" render={<Link href={segmentHref} />} nativeButton={false}>
-                <Save strokeWidth={1.6} aria-hidden="true" />
-                {copy.saveSegment}
-              </Button>
-            ) : null}
-            <Button variant="outline" onClick={handleExportAll}>
-              <Download strokeWidth={1.6} />
-              {copy.exportAll}
+    <ProoflyListPage
+      title={copy.heading}
+      summary={summary}
+      actions={
+        <>
+          {applied.length > 0 ? (
+            <Button variant="outline" render={<Link href={segmentHref} />} nativeButton={false}>
+              <Save strokeWidth={1.6} aria-hidden="true" />
+              {copy.saveSegment}
             </Button>
-            <Button
-              variant="outline"
-              render={<Link href={routes.customers.segments()} />}
-              nativeButton={false}
-            >
-              <Users strokeWidth={1.6} />
-              {copy.segmentsLink}
-            </Button>
-            <Button onClick={() => setQ({ new: true })}>
-              <Plus strokeWidth={1.6} aria-hidden="true" />
-              {newCopy.button}
-            </Button>
-          </>
+          ) : null}
+          <Button variant="outline" onClick={handleExportAll}>
+            <Download strokeWidth={1.6} />
+            {copy.exportAll}
+          </Button>
+          <Button
+            variant="outline"
+            render={<Link href={routes.customers.segments()} />}
+            nativeButton={false}
+          >
+            <Users strokeWidth={1.6} />
+            {copy.segmentsLink}
+          </Button>
+          <Button onClick={() => setQ({ new: true })}>
+            <Plus strokeWidth={1.6} aria-hidden="true" />
+            {newCopy.button}
+          </Button>
+        </>
+      }
+      stats={
+        <CustomerTiles
+          stats={initial.stats}
+          active={q.status}
+          onSelect={(s) => setQ({ status: s, page: 1 })}
+        />
+      }
+    >
+      <ResourceTable
+        resourceName={copy.resource}
+        columns={columns}
+        items={items}
+        getId={(c) => c.id}
+        href={(c) => routes.customers.detail(c.id)}
+        rowActions={(c) => (
+          <CustomerRowActions
+            id={c.id}
+            name={c.name ?? c.email ?? copy.unnamed}
+            email={c.email}
+            phone={c.phone}
+            onAddTag={() => handleBulkTag([c.id], 'add')}
+            onDeleted={handleReload}
+          />
+        )}
+        loading={loading}
+        // A failed read shows in the table body with Try again, never as "No customers".
+        error={
+          failed
+            ? {
+                heading: copy.loadFailed.heading,
+                body: copy.loadFailed.body,
+                onRetry: handleReload,
+              }
+            : undefined
         }
+        query={q.query}
+        onQueryChange={(next) => setQ({ query: next, page: 1 }, { history: 'replace' })}
+        onClearAll={handleClearAll}
+        filterGroups={groups}
+        views={
+          <ViewSelect
+            value={q.status}
+            onChange={(s) => setQ({ status: s, page: 1 })}
+            options={[
+              { value: null, label: copy.tabs.all, count: initial.allCount },
+              ...CUSTOMER_SEGMENTS.map((s) => ({ value: s, label: copy.tabs[s] })),
+            ]}
+          />
+        }
+        page={q.page}
+        perPage={q.perPage}
+        total={total}
+        onPageChange={(p) => setQ({ page: p })}
+        onPerPageChange={(n) => setQ({ perPage: n, page: 1 })}
+        bulkActions={(ids, clear) => (
+          <CustomersBulkActions
+            ids={ids}
+            rows={items.filter((i) => ids.includes(i.id))}
+            sendable={sendable}
+            onBulkEdit={() => handleBulkEdit(ids)}
+            onTag={(action) => handleBulkTag(ids, action)}
+            onConsent={(channel, granted) => setConsentChange({ ids, channel, granted })}
+            onExport={() => {
+              exportRows(
+                items.filter((i) => ids.includes(i.id)),
+                copy.exported,
+              )
+              clear()
+            }}
+            onDeleted={() => {
+              clear()
+              handleReload()
+            }}
+            automations={initial.automations}
+            onAutomationDone={clear}
+            onSegmentSaved={() => {
+              clear()
+              handleReload()
+            }}
+          />
+        )}
+        empty={filtered ? copy.noResults : copy.empty}
       />
-      <CustomerTiles
-        stats={initial.stats}
-        active={q.status}
-        onSelect={(s) => setQ({ status: s, page: 1 })}
-      />
-      {failed ? (
-        <PageState
-          kind="error"
-          heading={copy.loadFailed.heading}
-          body={copy.loadFailed.body}
-          onRetry={handleReload}
-        />
-      ) : (
-        <ResourceTable
-          resourceName={copy.resource}
-          columns={columns}
-          items={items}
-          getId={(c) => c.id}
-          href={(c) => routes.customers.detail(c.id)}
-          rowActions={(c) => (
-            <CustomerRowActions
-              id={c.id}
-              name={c.name ?? c.email ?? copy.unnamed}
-              email={c.email}
-              phone={c.phone}
-              onAddTag={() => handleBulkTag([c.id], 'add')}
-              onDeleted={handleReload}
-            />
-          )}
-          loading={loading}
-          query={q.query}
-          onQueryChange={(next) => setQ({ query: next, page: 1 }, { history: 'replace' })}
-          onClearAll={handleClearAll}
-          filterGroups={groups}
-          views={
-            <ViewSelect
-              value={q.status}
-              onChange={(s) => setQ({ status: s, page: 1 })}
-              options={[
-                { value: null, label: copy.tabs.all, count: initial.allCount },
-                ...CUSTOMER_SEGMENTS.map((s) => ({ value: s, label: copy.tabs[s] })),
-              ]}
-            />
-          }
-          page={q.page}
-          perPage={q.perPage}
-          total={total}
-          onPageChange={(p) => setQ({ page: p })}
-          onPerPageChange={(n) => setQ({ perPage: n, page: 1 })}
-          bulkActions={(ids, clear) => (
-            <CustomersBulkActions
-              ids={ids}
-              rows={items.filter((i) => ids.includes(i.id))}
-              sendable={sendable}
-              onBulkEdit={() => handleBulkEdit(ids)}
-              onTag={(action) => handleBulkTag(ids, action)}
-              onConsent={(channel, granted) => setConsentChange({ ids, channel, granted })}
-              onExport={() => {
-                exportRows(
-                  items.filter((i) => ids.includes(i.id)),
-                  copy.exported,
-                )
-                clear()
-              }}
-              onDeleted={() => {
-                clear()
-                handleReload()
-              }}
-              automations={initial.automations}
-              onAutomationDone={clear}
-              onSegmentSaved={() => {
-                clear()
-                handleReload()
-              }}
-            />
-          )}
-          empty={filtered ? copy.noResults : copy.empty}
-        />
-      )}
       {q.new ? <NewCustomerDialog onClose={() => setQ({ new: null })} /> : null}
       <TagCustomersDialog
         ids={tagIds}
@@ -374,7 +374,7 @@ function CustomersContent({ initial }: { initial: CustomersInitial }) {
         tone={consentChange?.granted === false ? 'destructive' : 'default'}
         onConfirm={handleConfirmConsent}
       />
-    </PageBody>
+    </ProoflyListPage>
   )
 }
 

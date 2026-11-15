@@ -139,7 +139,7 @@ export default function RefundDialog({
   return (
     <Dialog open={payment !== null} onOpenChange={(open) => (!open ? onClose() : undefined)}>
       <DialogContent busy={busy} dirty={amount.trim() !== '' || reason.trim() !== ''}>
-        <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+        <form onSubmit={handleSubmit} className="contents">
           <DialogHeader>
             <DialogTitle>{copy.refundDialog.title}</DialogTitle>
             <DialogDescription>
@@ -178,10 +178,19 @@ export default function RefundDialog({
           {ways.length > 0 ? (
             <FieldSet>
               <FieldLegend variant="label">{r.how}</FieldLegend>
-              <RadioGroup value={chosen ?? ''} onValueChange={(v) => setWay(v as Way)}>
+              {/* The bordered rows of Cancel order and the edit review: one look for a refund choice. */}
+              <RadioGroup
+                value={chosen ?? ''}
+                onValueChange={(v) => setWay(v as Way)}
+                className="flex flex-col gap-2"
+              >
                 {ways.map((w) => (
-                  <Field key={w.id} orientation="horizontal">
-                    <RadioGroupItem id={`refund-way-${w.id}`} value={w.id} />
+                  <Field
+                    key={w.id}
+                    orientation="horizontal"
+                    className="items-start rounded-lg border border-border px-3 py-2.5 has-data-checked:border-primary"
+                  >
+                    <RadioGroupItem id={`refund-way-${w.id}`} value={w.id} className="mt-0.5" />
                     <FieldContent>
                       <FieldLabel htmlFor={`refund-way-${w.id}`}>{w.label}</FieldLabel>
                       <FieldDescription>{w.hint}</FieldDescription>
