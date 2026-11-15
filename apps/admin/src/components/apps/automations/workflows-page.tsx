@@ -8,16 +8,20 @@ import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import LoadFailedState from '@/components/apps/shared/load-failed-state'
 import EmptyState from '@/components/layout/empty-state'
 import type { FilterGroup } from '@/components/table/filter-panel'
 import ResourceTable from '@/components/table/resource-table'
 import ViewSelect from '@/components/table/view-select'
+import { appsContent } from '@/data/apps'
 import { automationPiecesContent, automationsContent } from '@/data/automations'
 import { useAutomationCatalogue } from '@/hooks/use-automation-catalogue'
 import { useCopy, useFormat, useLocale } from '@/hooks/use-copy'
+import type { LoadFailure } from '@/hooks/use-load'
 import { automationApi } from '@/lib/automation-api'
 import { triggerLabel } from '@/lib/automation-labels'
 import { automationRoutes } from '@/lib/automation-routes'
+import { isForbidden } from '@/lib/forbidden'
 import { routes } from '@/lib/routes'
 import TriggerPickerDialog from './trigger-picker-dialog'
 import UsageMeter from './usage-meter'
@@ -37,6 +41,7 @@ const originOf = (params: { get: (name: string) => string | null }) => {
 /** Automations home: every workflow with its trigger, status and recent runs, and the plan meter. */
 export default function WorkflowsPage() {
   // Hooks
+  const apps = useCopy(appsContent)
   const all = useCopy(automationsContent)
   const pieces = useCopy(automationPiecesContent)
   const locale = useLocale()
@@ -46,7 +51,7 @@ export default function WorkflowsPage() {
   const catalogue = useAutomationCatalogue()
   const [items, setItems] = useState<WorkflowSummary[] | null>(null)
   const [usage, setUsage] = useState<AutomationUsage | null>(null)
-  const [failed, setFailed] = useState(false)
+  const [failed, setFailed] = useState<LoadFailure | false>(false)
   const [view, setView] = useState<WorkflowView | null>(null)
   const [query, setQuery] = useState('')
   const [page, setPage] = useState(1)
@@ -57,13 +62,14 @@ export default function WorkflowsPage() {
   // biome-ignore lint/correctness/useExhaustiveDependencies: `round` is the reload trigger after a row action
   useEffect(() => {
     let live = true
+    setFailed(false)
     Promise.all([automationApi.list(originOf(searchParams)), automationApi.usage()])
       .then(([list, use]) => {
         if (!live) return
         setItems(list)
         setUsage(use)
       })
-      .catch(() => live && setFailed(true))
+      .catch((err: unknown) => live && setFailed(isForbidden(err) ? 'no-access' : 'error'))
     return () => {
       live = false
     }
@@ -86,7 +92,16 @@ export default function WorkflowsPage() {
   }
 
   // Early returns
-  if (failed) return <EmptyState variant="page" tone="danger" body={all.loadFailed} />
+  if (failed === 'no-access') {
+    return (
+      <LoadFailedState
+        size="page"
+        heading={apps.couldNotLoad.workflows}
+        failed={failed}
+        onRetry={reload}
+      />
+    )
+  }
 
   // Render logic
   const copy = all.list
@@ -167,7 +182,8 @@ export default function WorkflowsPage() {
           items={shown}
           getId={(w) => w.id}
           href={(w) => automationRoutes.workflow(w.id)}
-          loading={items === null}
+          loading={items === null && !failed}
+          error={failed ? { heading: apps.couldNotLoad.workflows, onRetry: reload } : undefined}
           rowActions={(w) => <WorkflowRowMenu workflow={w} onChanged={reload} />}
           query={query}
           onQueryChange={(next) => {

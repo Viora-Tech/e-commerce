@@ -382,7 +382,6 @@ export default [
       secretsBody:
         'API की एक बार सेव करें और Send HTTP request में {secrets.name} की तरह इस्तेमाल करें। ये रन लॉग में कभी नहीं दिखतीं।',
     },
-    loadFailed: 'यह लोड नहीं हुआ। फिर से कोशिश करने के लिए पेज रीफ़्रेश करें।',
   }),
   translation(automationEditorContent, {
     back: 'वर्कफ़्लो',

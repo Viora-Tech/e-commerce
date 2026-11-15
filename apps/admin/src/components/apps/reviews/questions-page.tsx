@@ -4,13 +4,16 @@ import type { QuestionStatus } from '@commerce/plugin-reviews/schema'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Input } from '@commerce/ui/shadcn/input'
 import { useEffect, useState } from 'react'
-import { toast } from 'sonner'
+import LoadFailedState from '@/components/apps/shared/load-failed-state'
 import DataCardSkeleton from '@/components/layout/data-card-skeleton'
 import PageHeader from '@/components/layout/page-header'
 import PillTabs from '@/components/layout/pill-tabs'
+import { appsContent } from '@/data/apps'
 import { reviewToolsContent } from '@/data/review-tools'
 import { useCopy } from '@/hooks/use-copy'
+import type { LoadFailure } from '@/hooks/use-load'
 import { api } from '@/lib/api-client'
+import { isForbidden } from '@/lib/forbidden'
 import { routes } from '@/lib/routes'
 import QuestionCard from './question-card'
 
@@ -33,21 +36,23 @@ function tabInput(tab: Tab): { status?: QuestionStatus; unanswered?: boolean } {
  */
 export default function QuestionsPage() {
   // Hooks
+  const apps = useCopy(appsContent)
   const { questions: copy } = useCopy(reviewToolsContent)
   const [tab, setTab] = useState<Tab>('unanswered')
   const [query, setQuery] = useState('')
   const [page, setPage] = useState(1)
   const [result, setResult] = useState<Page | null>(null)
   const [version, setVersion] = useState(0)
-  // biome-ignore lint/correctness/useExhaustiveDependencies: `version` re-runs the load after a change
+  /** The list read failed: "Could not load the questions" with Try again, not old or no rows. */
+  const [failed, setFailed] = useState<LoadFailure | false>(false)
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `version` re-runs the load after a change (and is Try again)
   useEffect(() => {
     let live = true
+    setFailed(false)
     api.reviews.questions
       .list({ ...tabInput(tab), q: query.trim() || undefined, page, perPage: PER_PAGE })
       .then((r) => live && setResult(r))
-      .catch((err: unknown) =>
-        toast.error(err instanceof Error ? err.message : reviewToolsContent.questions.failed),
-      )
+      .catch((err: unknown) => live && setFailed(isForbidden(err) ? 'no-access' : 'error'))
     return () => {
       live = false
     }
@@ -92,7 +97,14 @@ export default function QuestionsPage() {
           }}
         />
       </div>
-      {!result ? (
+      {failed ? (
+        <LoadFailedState
+          size="page"
+          heading={apps.couldNotLoad.questions}
+          failed={failed}
+          onRetry={handleChanged}
+        />
+      ) : !result ? (
         <DataCardSkeleton fields={0} lines={5} />
       ) : result.rows.length === 0 ? (
         <div className="rounded-lg border border-border bg-card p-8 text-center">
@@ -106,7 +118,7 @@ export default function QuestionsPage() {
           ))}
         </div>
       )}
-      {pages > 1 && (
+      {!failed && pages > 1 && (
         <div className="flex items-center justify-end gap-2">
           <Button variant="outline" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
             {copy.previous}

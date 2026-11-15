@@ -4,9 +4,10 @@ import { RUN_STATUSES, type RunStatus, type RunSummary } from '@commerce/core/au
 import { Button } from '@commerce/ui/shadcn/button'
 import { useSearchParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
-import EmptyState from '@/components/layout/empty-state'
+import LoadFailedState from '@/components/apps/shared/load-failed-state'
 import ResourceTable from '@/components/table/resource-table'
 import ViewSelect from '@/components/table/view-select'
+import { appsContent } from '@/data/apps'
 import {
   automationPiecesContent,
   automationRunStatusContent,
@@ -14,9 +15,11 @@ import {
 } from '@/data/automations'
 import { useAutomationCatalogue } from '@/hooks/use-automation-catalogue'
 import { useCopy, useLocale } from '@/hooks/use-copy'
+import type { LoadFailure } from '@/hooks/use-load'
 import { automationApi } from '@/lib/automation-api'
 import { triggerLabel } from '@/lib/automation-labels'
 import { automationRoutes } from '@/lib/automation-routes'
+import { isForbidden } from '@/lib/forbidden'
 import { runColumns } from './run-columns'
 
 const PER_PAGE = 50
@@ -38,6 +41,7 @@ function filterOf(params: { get: (name: string) => string | null }): {
 /** Every run, newest first: status, workflow and trigger, the record it was about, when and how long. */
 export default function RunsPage() {
   // Hooks
+  const apps = useCopy(appsContent)
   const all = useCopy(automationsContent)
   const statuses = useCopy(automationRunStatusContent)
   const pieces = useCopy(automationPiecesContent)
@@ -47,14 +51,17 @@ export default function RunsPage() {
   const [status, setStatus] = useState<RunStatus | null>(null)
   const [runs, setRuns] = useState<RunSummary[] | null>(null)
   const [cursor, setCursor] = useState<string | null>(null)
-  const [failed, setFailed] = useState(false)
+  const [failed, setFailed] = useState<LoadFailure | false>(false)
+  const [attempt, setAttempt] = useState(0)
   const [query, setQuery] = useState('')
   const [page, setPage] = useState(1)
   const [loadingMore, setLoadingMore] = useState(false)
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `attempt` is Try again
   useEffect(() => {
     let live = true
     setRuns(null)
+    setFailed(false)
     automationApi.runs
       .list({ ...filterOf(searchParams), ...(status ? { status } : {}) })
       .then((p) => {
@@ -63,17 +70,18 @@ export default function RunsPage() {
         setCursor(p.nextCursor)
         setPage(1)
       })
-      .catch(() => live && setFailed(true))
+      .catch((err: unknown) => live && setFailed(isForbidden(err) ? 'no-access' : 'error'))
     return () => {
       live = false
     }
-  }, [searchParams, status])
+  }, [searchParams, status, attempt])
 
   // Helpers
   const triggerName = (id: string) =>
     triggerLabel(pieces, locale, catalogue?.triggers.find((t) => t.id === id) ?? null, id)
 
   // Event handlers
+  const handleRetry = () => setAttempt((n) => n + 1)
   const handleMore = async () => {
     if (!cursor) return
     setLoadingMore(true)
@@ -91,7 +99,16 @@ export default function RunsPage() {
   }
 
   // Early returns
-  if (failed) return <EmptyState variant="page" tone="danger" body={all.loadFailed} />
+  if (failed === 'no-access') {
+    return (
+      <LoadFailedState
+        size="page"
+        heading={apps.couldNotLoad.runs}
+        failed={failed}
+        onRetry={handleRetry}
+      />
+    )
+  }
 
   // Render logic
   const copy = all.runs
@@ -108,7 +125,8 @@ export default function RunsPage() {
         items={filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE)}
         getId={(r) => r.id}
         href={(r) => automationRoutes.run(r.id)}
-        loading={runs === null}
+        loading={runs === null && !failed}
+        error={failed ? { heading: apps.couldNotLoad.runs, onRetry: handleRetry } : undefined}
         query={query}
         onQueryChange={(next) => {
           setQuery(next)

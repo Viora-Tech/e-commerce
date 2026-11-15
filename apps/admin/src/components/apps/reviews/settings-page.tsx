@@ -5,11 +5,15 @@ import { Save } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import LoadFailedState from '@/components/apps/shared/load-failed-state'
 import PageHeader from '@/components/layout/page-header'
 import SectionPageSkeleton from '@/components/layout/section-page-skeleton'
+import { appsContent } from '@/data/apps'
 import { reviewsContent } from '@/data/reviews'
 import { useCopy } from '@/hooks/use-copy'
+import type { LoadFailure } from '@/hooks/use-load'
 import { api } from '@/lib/api-client'
+import { isForbidden } from '@/lib/forbidden'
 import { routes } from '@/lib/routes'
 import AiSummarySettings from './ai-summary-settings'
 import CollectSettings from './collect-settings'
@@ -19,26 +23,30 @@ import ShowSettings from './show-settings'
 /** Review settings (Apps, Reviews 20:1408): publishing, who can review, spam, emails, display. */
 export default function SettingsPage() {
   // Hooks
+  const apps = useCopy(appsContent)
   const copy = useCopy(reviewsContent)
   const [form, setForm] = useState<ReviewsSettings | null>(null)
   const [storeName, setStoreName] = useState('')
   const [saved, setSaved] = useState('')
   const [busy, setBusy] = useState(false)
+  /** The settings read failed: Try again (or no-access) instead of a skeleton forever. */
+  const [loadFailed, setLoadFailed] = useState<LoadFailure | false>(false)
+  const [loadAttempt, setLoadAttempt] = useState(0)
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `loadAttempt` is Try again
   useEffect(() => {
+    setLoadFailed(false)
     api.reviews.settings
       .get()
       .then((s) => {
         setForm(s)
         setSaved(JSON.stringify(s))
       })
-      .catch((err: unknown) =>
-        toast.error(err instanceof Error ? err.message : reviewsContent.list.failed),
-      )
+      .catch((err: unknown) => setLoadFailed(isForbidden(err) ? 'no-access' : 'error'))
     api.store
       .current()
       .then((s) => setStoreName(s?.name ?? ''))
       .catch(() => undefined)
-  }, [])
+  }, [loadAttempt])
 
   // Event handlers
   const handlePatch = (patch: Partial<ReviewsSettings>) =>
@@ -59,6 +67,16 @@ export default function SettingsPage() {
   }
 
   // Early returns
+  if (!form && loadFailed) {
+    return (
+      <LoadFailedState
+        size="page"
+        heading={apps.couldNotLoad.settings}
+        failed={loadFailed}
+        onRetry={() => setLoadAttempt((n) => n + 1)}
+      />
+    )
+  }
   if (!form) return <SectionPageSkeleton header={false} />
 
   // Render logic

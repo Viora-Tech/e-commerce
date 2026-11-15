@@ -392,7 +392,6 @@ export const automationsContent = {
     secretsBody:
       'Store API keys once and use them in Send HTTP request as {secrets.name}. They never show in run logs.',
   },
-  loadFailed: 'Could not load this. Refresh to try again.',
 }
 
 export const automationEditorContent = {
