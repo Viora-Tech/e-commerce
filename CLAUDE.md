@@ -13,8 +13,8 @@
   It prints each file's purpose and exports in one go, so search less and open only what you need.
 - Branches: `dev` is the default branch. Feature/fix branches start from `origin/dev` and open
   PRs **into `dev`**; `main` only moves by a `dev` → `main` release PR. Merged branches are deleted
-  (GitHub auto-delete is on). The test server (vioratech.in) deploys `dev`. See developer docs
-  "Deployment" → "Branches". Before a `dev` → `main` release, run the smoke checklist
+  (GitHub auto-delete is on). The test server (vioratech.in) runs `dev`, deployed by hand (auto
+  deploy is off). See developer docs "Deployment" → "Branches". Before a `dev` → `main` release, run the smoke checklist
   (developer docs "Release checklist"). Every bug is a GitHub issue (`bug` label); fix PRs say `Fixes #n`.
 - Every PR records what it changed as a new file in `docs/handoff/changes/`
   (`YYYY-MM-DD-short-title.md`), never by editing `docs/handoff.md`, so parallel PRs don't conflict.
