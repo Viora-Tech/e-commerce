@@ -38,6 +38,7 @@ import { balanceUrl, thankYouUrl } from '../preorder/balance-link'
 import { parsePreorderStoreSettings } from '../preorder/store-settings'
 import { returnTemplateData } from '../returns/notify'
 import { storeNotificationChannels } from '../sender-email/channels'
+import { carriesOrder } from '../shipping/carries-order'
 import { balanceData } from './balance-data'
 import {
   BALANCE_ASKS,
@@ -127,7 +128,8 @@ export async function buildTemplateData(
     })
     .from(shipment)
     // The live booking, newest first: a label cancelled and booked again carries the new AWB.
-    .where(and(eq(shipment.orderId, orderId), ne(shipment.status, 'cancelled')))
+    // An order packed in another order's box tells the shopper that box's AWB.
+    .where(and(carriesOrder(orderId), ne(shipment.status, 'cancelled')))
     .orderBy(desc(shipment.createdAt))
     .limit(1)
   const method = o.paymentMethod ?? ''

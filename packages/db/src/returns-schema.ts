@@ -110,8 +110,11 @@ export const returnRequest = pgTable(
     uniqueIndex('return_request_store_number').on(t.storeId, t.number),
     index('return_request_store_status').on(t.storeId, t.status, t.requestedAt),
     index('return_request_order').on(t.orderId),
-    /* One RTO task per returned shipment: re-applying the same tracking scan is a no-op. */
-    uniqueIndex('return_request_rto_shipment').on(t.shipmentId).where(sql`${t.kind} = 'rto'`),
+    /* One RTO task per returned shipment and order it carried (a shared box opens one per
+       order): re-applying the same tracking scan is a no-op. */
+    uniqueIndex('return_request_rto_shipment')
+      .on(t.shipmentId, t.orderId)
+      .where(sql`${t.kind} = 'rto'`),
     check(
       'return_request_status_check',
       sql`${t.status} in ('requested', 'approved', 'rejected', 'in_transit', 'received', 'resolved', 'cancelled')`,

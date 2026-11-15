@@ -243,6 +243,7 @@ export const STOREFRONT_CACHE_EXEMPT: Record<string, string> = {
   sender_email: ADMIN,
   shipment: SHOPPER,
   shipment_manifest: ADMIN,
+  shipment_shared_order: SHOPPER,
   shipment_pickup: ADMIN,
   shipment_webhook_event: LOG,
   shopify_import_connection: ADMIN,

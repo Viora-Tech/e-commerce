@@ -572,6 +572,8 @@ export const ACTION_DOCS: Record<string, string> = {
   'orders.restore': '"Restore order": a cancel pressed by mistake; refused once money went back.',
   'orders.retryCourierPush':
     "Send the order to a courier's panel again after it refused (order push).",
+  'orders.sameBoxChoices':
+    '"Same box as #A" on Fulfil items: the same customer\'s other orders with a live parcel.',
   'orders.saveDraft':
     "Create a draft order (no id) or replace an existing draft's lines, customer and addresses.",
   'orders.sendInvoice': 'Email the shopper a pay link for the draft.',

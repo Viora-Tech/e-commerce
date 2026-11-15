@@ -7,6 +7,7 @@ import { recomputeOrderStatuses } from '../order/recompute'
 import { insertOutboxEvent } from '../outbox/write'
 import { recordRtoForShipment } from '../returns/rto'
 import { syncNdrFromTracking } from './ndr'
+import { sharedOrdersOf } from './shared-parcel'
 import type { ShipmentRow } from './shipments'
 
 /** When the delivered scan happened, from the courier's events; now when it gave no time. */
@@ -16,7 +17,11 @@ function deliveredAt(tracking: Tracking): Date {
   return Number.isNaN(d.getTime()) ? new Date() : d
 }
 
-/** Store a fresh Tracking answer; flips the order to delivered when the courier says so. */
+/**
+ * Store a fresh Tracking answer; flips the order to delivered when the courier says so. Every
+ * order in the box moves with it: the one it was booked for and any packed in the same box
+ * ("Same box as #A"), each with its own events and, when it comes back, its own RTO task.
+ */
 export async function applyTracking(
   ctx: StoreContext,
   shipmentId: string,
@@ -42,18 +47,29 @@ export async function applyTracking(
   const becameDelivered = before.status !== 'delivered' && tracking.status === 'delivered'
   const becameOutForDelivery =
     before.status !== 'out_for_delivery' && row.status === 'out_for_delivery'
-  // Courier events (in transit, delivered, RTO) move the fulfilment status.
-  if (before.status !== row.status) await recomputeOrderStatuses(ctx, row.orderId)
-  if (becameOutForDelivery) {
-    await insertOutboxEvent(ctx.tx, ctx.storeId, 'shipment.out_for_delivery', {
-      orderId: row.orderId,
-    })
+  const orders =
+    before.status === row.status
+      ? []
+      : [
+          { orderId: row.orderId, fulfillmentOrderId: row.fulfillmentOrderId },
+          ...(await sharedOrdersOf(ctx, row.id)),
+        ]
+  for (const carried of orders) {
+    // Courier events (in transit, delivered, RTO) move the fulfilment status.
+    await recomputeOrderStatuses(ctx, carried.orderId)
+    if (becameOutForDelivery) {
+      await insertOutboxEvent(ctx.tx, ctx.storeId, 'shipment.out_for_delivery', {
+        orderId: carried.orderId,
+      })
+    }
+    if (becameDelivered) {
+      await insertOutboxEvent(ctx.tx, ctx.storeId, 'order.delivered', { orderId: carried.orderId })
+    }
+    // The parcel came back undelivered: open the order's RTO task (once per shipment and order).
+    if (before.status !== 'rto' && row.status === 'rto') {
+      await recordRtoForShipment(ctx, row, carried)
+    }
   }
-  if (becameDelivered) {
-    await insertOutboxEvent(ctx.tx, ctx.storeId, 'order.delivered', { orderId: row.orderId })
-  }
-  // The parcel came back undelivered: open the order's RTO task (once per shipment).
-  if (before.status !== 'rto' && row.status === 'rto') await recordRtoForShipment(ctx, row)
   // Raises or clears the delivery-problem flag from this same scan; see `syncNdrFromTracking`.
   const final = await syncNdrFromTracking(ctx, row, tracking)
   return { shipment: final, becameDelivered }

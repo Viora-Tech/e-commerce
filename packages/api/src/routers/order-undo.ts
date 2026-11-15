@@ -2,6 +2,7 @@ import {
   fulfilAllLines,
   permissions,
   restoreCancelledOrder,
+  sameBoxChoices,
   undoDelivered,
   undoPacked,
 } from '@commerce/core'
@@ -16,6 +17,13 @@ import { assertNotImported } from './imported-order'
  * (router file-size sweep).
  */
 export const orderUndoRoutes = {
+  /** "Same box as #A" on Fulfil items: the same customer's other orders with a live parcel. */
+  sameBoxChoices: can(permissions.ORDERS_READ)
+    .input(z.object({ orderId: z.uuid() }))
+    .handler(({ context, input }) =>
+      sameBoxChoices({ tx: context.tx, storeId: context.scope.storeId }, input.orderId),
+    ),
+
   /**
    * Bulk "Mark as fulfilled" on the orders list: one order at a time, everything left packed
    * under the courier picked once for the selection, with this order's tracking number if typed.

@@ -2,6 +2,7 @@ import { fulfillmentOrderLine, order, orderLine, shipment } from '@commerce/db'
 import { and, eq, sql } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 import { BalanceDue, CommerceError } from '../errors'
+import { assertSameBox, joinSameBox } from '../shipping/shared-parcel'
 import { assertNotHeld } from './fulfillment-hold'
 import {
   ensureFulfillmentOrders,
@@ -28,6 +29,12 @@ export type FulfilOrderInput = {
   trackingUrl?: string | undefined
   /** False: no "order shipped" message to the shopper (the merchant's "Notify customer"). */
   notifyCustomer?: boolean | undefined
+  /**
+   * "Same box as #A": the shipment of the same customer's other order these units went out in.
+   * No shipment of this order's own is written; it rides on that one (shipping/shared-parcel.ts).
+   * The courier and tracking fields are ignored.
+   */
+  sameBoxAs?: string | undefined
 }
 
 export type FulfilOrderResult = {
@@ -204,7 +211,8 @@ export async function fulfilOrderLines(
   // A held order packs nothing by hand either, not only through a courier booking (#1011).
   await assertNotHeld(ctx, input.orderId)
   const byId = new Map(lines.map((l) => [l.id, l]))
-  const waybill = input.trackingNumber?.trim()
+  const box = input.sameBoxAs ? await assertSameBox(ctx, input.orderId, input.sameBoxAs) : null
+  const waybill = box ? undefined : input.trackingNumber?.trim()
   const provider = input.providerId?.trim() || input.courier?.trim() || MANUAL_PROVIDER
   // Another order's AWB is refused, never taken over (#2462/#2464, 15 Nov 2026).
   if (waybill) await assertWaybillFree(ctx, { provider, waybill, orderId: input.orderId })
@@ -243,7 +251,8 @@ export async function fulfilOrderLines(
   const after = await ctx.tx.select().from(orderLine).where(eq(orderLine.orderId, input.orderId))
   const complete = after.every((l) => l.fulfilledQuantity >= l.quantity)
 
-  let shipmentId: string | null = null
+  let shipmentId: string | null = box?.shipmentId ?? null
+  if (box) await joinSameBox(ctx, { orderId: input.orderId, box, fulfillmentOrderId })
   if (waybill) {
     /* One shipment row per waybill: this order re-packing under its own number updates it
        rather than creating a duplicate the tracking poller would fight over (another order's
