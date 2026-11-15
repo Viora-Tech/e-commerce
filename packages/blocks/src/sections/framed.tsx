@@ -12,6 +12,7 @@ import {
 import type { MediaImage } from '../types'
 import type { SectionMetadata } from './dynamic'
 import { inlineText } from './inline-fields'
+import { richtextProps } from './richtext-props'
 
 /**
  * Every section carries a `settings` object (layout/spacing/style/advanced —
@@ -102,7 +103,8 @@ export function framed<P extends Frame>(
     fields: { ...fields, ...frame } as unknown as Fields,
     defaultProps: extra.defaultProps ?? { ...frameDefaults, ...defaults },
     render: ({ puck, ...props }) => {
-      const p = props as unknown as P
+      // Body copy sanitised here, so client sections never need the sanitiser in the browser.
+      const p = richtextProps(props as unknown as P, fields)
       const settings = migrateSectionSettings(p as unknown as LegacySectionProps)
       return (
         <SectionFrame settings={settings}>

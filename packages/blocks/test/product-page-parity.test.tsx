@@ -6,6 +6,7 @@ import ProductRating from '../src/components/product-rating'
 import { swatchFile, swatchImages } from '../src/components/product-variant-picker'
 import ProductView from '../src/components/product-view'
 import { specCells, specRows, specTable } from '../src/product-specs'
+import { mainProductRichtext, productFieldsRichtext } from '../src/richtext-node'
 import { mainProductSettings } from '../src/sections/main-product-settings'
 import type { ProductDetail, ProductFieldText } from '../src/types'
 
@@ -278,7 +279,13 @@ describe('buy box parity', () => {
         { title: 'Warranty', body: '<p>One year.</p>', metafieldKey: '' },
       ],
     })
-    const out = html(createElement(ProductView, { product, settings }))
+    // Body copy sanitised on the server, as the storefront's product page prepares it.
+    const out = html(
+      createElement(ProductView, {
+        product: { ...product, fields: productFieldsRichtext(product.fields) },
+        settings: mainProductRichtext(settings),
+      }),
+    )
     expect(out).toContain('spec-grid__item')
     expect(out).toContain('icon--sensor')
     // Specification: no written spec, so the sheet from the rows (weight left out).

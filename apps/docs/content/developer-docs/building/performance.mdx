@@ -74,6 +74,29 @@ When a client component genuinely needs a schema, load it on demand. The theme p
 does this: it fetches `@commerce/core/theme` (schema and CSS builder) with `import()` only
 after the admin's preview token verifies, inside the editor's frame. No shopper downloads it.
 
+### Body copy is sanitised on the server
+
+`sanitize-html` and its HTML parser are about 64 kB gzip. They used to reach every storefront page
+because client sections (newsletter, FAQ accordion, carousel slides, hero copy, the buy box's
+accordions and offer panel, the cookie banner) drew body copy with `RichCopy`, which sanitised
+in the component. Now:
+
+- `framed()` runs every section's `richtext` fields through `richtextNode`
+  (`packages/blocks/src/richtext-node.ts`) on the server: the same `richtextHtml` allow-list,
+  wrapped as a `RichHtml` element (a tiny client component). The product page does the same for
+  `MainProduct`'s accordions, offer panel and product fields (`mainProductRichtext`,
+  `productFieldsRichtext`), and the store layout for the cookie banner's message.
+- `RichCopy` imports no sanitiser. Given that element it draws it with its own class (through
+  `RichCopyScope` when the element reaches a client section as an unresolved reference). Given a
+  stored string it uses the sanitiser where `richtext-html.ts` is loaded (the server, the admin,
+  the Hono island), and in a bundle without it shows the text, escaped, never the markup.
+- `packages/blocks/test/richtext-server.test.tsx` checks the output is identical to what
+  `RichCopy` drew before for every kind of stored copy, and fails when a `'use client'` module in
+  the package imports `sanitize-html` through its imports.
+
+A new client component that draws merchant HTML takes it as a `richtextNode` element from its
+server parent; it never imports `richtext-html.ts`.
+
 ### Motion loads lazily
 
 Blocks use Motion's vanilla API through `packages/blocks/src/lazy-motion.ts`:
