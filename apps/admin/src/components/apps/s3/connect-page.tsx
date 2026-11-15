@@ -8,13 +8,15 @@ import { Input } from '@commerce/ui/shadcn/input'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import SaveErrorAlert from '@/components/approvals/save-error-alert'
+import LoadFailedState from '@/components/apps/shared/load-failed-state'
 import DataCard from '@/components/layout/data-card'
 import DataCardSkeleton from '@/components/layout/data-card-skeleton'
 import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
 import type { ProviderDef, ProviderState } from '@/components/settings/provider-settings-form'
-import LoadFailed from '@/components/states/load-failed'
+import { appsContent } from '@/data/apps'
 import { s3AppContent as appCopy, s3CorsRule, s3IamPolicy } from '@/data/s3'
+import { useCopy } from '@/hooks/use-copy'
 import { useLoad } from '@/hooks/use-load'
 import { api } from '@/lib/api-client'
 import CodeBlock from './code-block'
@@ -43,6 +45,7 @@ const adminOrigin = () => (typeof window === 'undefined' ? '' : window.location.
  *  JSON to paste into AWS, a read-only "Test connection" check, and "Move existing files". */
 export default function ConnectPage() {
   // Hooks
+  const apps = useCopy(appsContent)
   const [provider, setProvider] = useState<ProviderDef | null>(null)
   const [blob, setBlob] = useState<Blob | null>(null)
   const [values, setValues] = useState<FieldValues>(emptyValues)
@@ -139,7 +142,7 @@ export default function ConnectPage() {
       {error ? <SaveErrorAlert title={'Could not save'} message={error} /> : null}
 
       {failed && provider === null ? (
-        <LoadFailed failed={failed} onRetry={retry} size="inline" />
+        <LoadFailedState heading={apps.couldNotLoad.connection} failed={failed} onRetry={retry} />
       ) : provider === null ? (
         <DataCardSkeleton fields={2} />
       ) : (

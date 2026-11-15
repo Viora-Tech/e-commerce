@@ -14,12 +14,16 @@ import { Card, CardContent } from '@commerce/ui/shadcn/card'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import LoadFailedState from '@/components/apps/shared/load-failed-state'
 import DataCardSkeleton from '@/components/layout/data-card-skeleton'
 import SectionPageSkeleton from '@/components/layout/section-page-skeleton'
+import { appsContent } from '@/data/apps'
 import { shopifyImportContent } from '@/data/shopify-import'
 import { shopifyImportSettingsContent } from '@/data/shopify-import-settings'
 import { useCopy } from '@/hooks/use-copy'
+import type { LoadFailure } from '@/hooks/use-load'
 import { api } from '@/lib/api-client'
+import { isForbidden } from '@/lib/forbidden'
 import SettingsPartCard from './settings-part-card'
 
 type Plan = Awaited<ReturnType<typeof api.shopifyImport.settingsPreview>>
@@ -48,17 +52,31 @@ const chosenFrom = (parts: SettingsPartPlan[]): SettingsPart[] =>
 /** Shopify importer › Store settings: check what Shopify has, choose parts, import, read the report. */
 export default function SettingsPage() {
   // Hooks
+  const apps = useCopy(appsContent)
   const copy = useCopy(shopifyImportSettingsContent)
   const [connected, setConnected] = useState<boolean | undefined>(undefined)
   const [plan, setPlan] = useState<Plan | null>(null)
   const [results, setResults] = useState<SettingsPartResult[] | null>(null)
   const [chosen, setChosen] = useState<SettingsPart[]>([])
   const [busy, setBusy] = useState<'check' | 'import' | null>(null)
+  /** The connection read failed: Try again, not "not connected" (it may be connected). */
+  const [loadFailed, setLoadFailed] = useState<LoadFailure | false>(false)
+  const [loadAttempt, setLoadAttempt] = useState(0)
+  /** The Shopify check failed before any plan: Try again in place of its skeleton. */
+  const [checkFailed, setCheckFailed] = useState(false)
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `loadAttempt` is Try again
   useEffect(() => {
     let live = true
+    setLoadFailed(false)
     const load = async () => {
-      const connection = await api.shopifyImport.connection().catch(() => null)
+      let connection: Awaited<ReturnType<typeof api.shopifyImport.connection>>
+      try {
+        connection = await api.shopifyImport.connection()
+      } catch (err) {
+        if (live) setLoadFailed(isForbidden(err) ? 'no-access' : 'error')
+        return
+      }
       if (!live) return
       setConnected(connection !== null)
       if (!connection) return
@@ -69,8 +87,8 @@ export default function SettingsPage() {
         if (!live) return
         setPlan(next)
         setChosen(chosenFrom(next.parts))
-      } catch (err) {
-        if (live) toast.error(err instanceof Error ? err.message : copy.checkFailed)
+      } catch {
+        if (live) setCheckFailed(true)
       } finally {
         if (live) setBusy(null)
       }
@@ -79,7 +97,7 @@ export default function SettingsPage() {
     return () => {
       live = false
     }
-  }, [copy.checkFailed])
+  }, [loadAttempt])
 
   // Event handlers
   const handleToggle = (part: SettingsPart, on: boolean) =>
@@ -92,11 +110,13 @@ export default function SettingsPage() {
   const handleCheck = async () => {
     setBusy('check')
     setResults(null)
+    setCheckFailed(false)
     try {
       const next = await api.shopifyImport.settingsPreview()
       setPlan(next)
       setChosen(chosenFrom(next.parts))
     } catch (err) {
+      setCheckFailed(true)
       toast.error(err instanceof Error ? err.message : copy.checkFailed)
     } finally {
       setBusy(null)
@@ -116,6 +136,16 @@ export default function SettingsPage() {
   }
 
   // Early returns
+  if (connected === undefined && loadFailed) {
+    return (
+      <LoadFailedState
+        size="page"
+        heading={apps.couldNotLoad.connection}
+        failed={loadFailed}
+        onRetry={() => setLoadAttempt((n) => n + 1)}
+      />
+    )
+  }
   if (connected === undefined) return <SectionPageSkeleton header={false} />
   if (!connected) {
     return (
@@ -170,6 +200,8 @@ export default function SettingsPage() {
             />
           ))}
         </>
+      ) : plan === null && checkFailed && busy === null ? (
+        <LoadFailedState heading={apps.couldNotLoad.settings} onRetry={handleCheck} />
       ) : plan === null ? (
         <DataCardSkeleton fields={0} lines={5} />
       ) : (

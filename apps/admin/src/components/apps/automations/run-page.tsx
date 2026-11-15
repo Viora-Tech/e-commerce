@@ -9,22 +9,26 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import type { AppPageProps } from '@/apps/registry'
+import LoadFailedState from '@/components/apps/shared/load-failed-state'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
 import EmptyState from '@/components/layout/empty-state'
 import RelativeTime from '@/components/layout/relative-time'
 import StatusChip from '@/components/layout/status-chip'
+import { appsContent } from '@/data/apps'
 import {
   automationEditorContent,
   automationPiecesContent,
   automationRunContent,
   automationRunStatusContent,
 } from '@/data/automations'
-import { useAutomationCatalogue } from '@/hooks/use-automation-catalogue'
+import { useAutomationCatalogueLoad } from '@/hooks/use-automation-catalogue'
 import { useCopy, useLocale } from '@/hooks/use-copy'
+import type { LoadFailure } from '@/hooks/use-load'
 import { usePermissions } from '@/hooks/use-permissions'
 import { automationApi } from '@/lib/automation-api'
 import { nodeView } from '@/lib/automation-node-view'
 import { automationRoutes, recordHref } from '@/lib/automation-routes'
+import { isForbidden } from '@/lib/forbidden'
 import type { NodeMark } from './canvas/types'
 import WorkflowCanvas from './canvas/workflow-canvas'
 import RunStatusChip from './run-status-chip'
@@ -45,39 +49,53 @@ const MARK: Record<StepRunView['status'], NodeMark> = {
 
 const noop = () => undefined
 
+/** The API error's code (`NOT_FOUND` when the run is gone), if it has one. */
+const codeOf = (err: unknown) =>
+  typeof err === 'object' && err !== null ? (err as { code?: unknown }).code : undefined
+
 /** One run: the path it took drawn over the workflow, and each step's input, result, error and approval. */
 export default function RunPage({ params }: AppPageProps) {
   // Hooks
+  const apps = useCopy(appsContent)
   const copy = useCopy(automationRunContent)
   const statuses = useCopy(automationRunStatusContent)
   const editor = useCopy(automationEditorContent)
   const pieces = useCopy(automationPiecesContent)
   const locale = useLocale()
-  const catalogue = useAutomationCatalogue()
+  const catalogueLoad = useAutomationCatalogueLoad()
   const { hasPermission } = usePermissions()
   const [run, setRun] = useState<RunDetail | null | undefined>(undefined)
+  /** The run read failed for a reason other than "not here": Try again (or no-access). */
+  const [failed, setFailed] = useState<LoadFailure | false>(false)
+  const [attempt, setAttempt] = useState(0)
   const [selected, setSelected] = useState<string | null>(null)
   const [cancelling, setCancelling] = useState(false)
   const [busy, setBusy] = useState(false)
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `attempt` is Try again
   useEffect(() => {
     const id = params.id
     if (!id) return
     let live = true
+    setFailed(false)
     automationApi.runs
       .get(id)
       .then((r) => live && setRun(r))
-      .catch(() => live && setRun(null))
+      .catch((err: unknown) => {
+        if (!live) return
+        if (codeOf(err) === 'NOT_FOUND') setRun(null)
+        else setFailed(isForbidden(err) ? 'no-access' : 'error')
+      })
     return () => {
       live = false
     }
-  }, [params.id])
+  }, [params.id, attempt])
 
   // Helpers
   const titleOf = (nodeId: string) => {
     const node = run?.definition.nodes[nodeId]
-    return node && catalogue
-      ? nodeView(node, { catalogue, pieces, locale, copy: editor }).title
+    return node && catalogueLoad.data
+      ? nodeView(node, { catalogue: catalogueLoad.data, pieces, locale, copy: editor }).title
       : nodeId
   }
 
@@ -106,8 +124,24 @@ export default function RunPage({ params }: AppPageProps) {
     }
   }
 
+  const handleLoadRetry = () => {
+    if (failed) setAttempt((n) => n + 1)
+    if (catalogueLoad.failed) catalogueLoad.retry()
+  }
+
   // Early returns
+  if (failed || catalogueLoad.failed) {
+    return (
+      <LoadFailedState
+        size="page"
+        heading={apps.couldNotLoad.run}
+        failed={failed || catalogueLoad.failed || undefined}
+        onRetry={handleLoadRetry}
+      />
+    )
+  }
   if (run === null) return <EmptyState variant="page" body={copy.notFound} />
+  const catalogue = catalogueLoad.data
   if (run === undefined || !catalogue) return <Skeleton className="h-[36rem] w-full" />
 
   // Render logic

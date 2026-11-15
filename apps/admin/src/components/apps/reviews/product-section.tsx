@@ -1,14 +1,17 @@
 'use client'
 
+import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
 import type { ProductSectionProps } from '@/apps/product-sections'
+import LoadFailedState from '@/components/apps/shared/load-failed-state'
 import EmptyState from '@/components/layout/empty-state'
 import OrderChip from '@/components/orders/order-chip'
+import { appsContent } from '@/data/apps'
 import { productPageContent } from '@/data/product-page'
 import { reviewToolsContent } from '@/data/review-tools'
 import { reviewsContent } from '@/data/reviews'
 import { useCopy } from '@/hooks/use-copy'
+import { useLoad } from '@/hooks/use-load'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
 import ProductSummary from './product-summary'
@@ -21,26 +24,30 @@ const LATEST = 3
 /** The Reviews app on a product's More tab: how many reviews it has and the latest few. */
 export default function ProductSection({ productId }: ProductSectionProps) {
   // Hooks
+  const apps = useCopy(appsContent)
   const copy = useCopy(productPageContent)
   const reviewsCopy = useCopy(reviewsContent)
   const { qr: qrCopy } = useCopy(reviewToolsContent)
-  const [page, setPage] = useState<Page | null>(null)
-  const [failed, setFailed] = useState(false)
-
-  useEffect(() => {
-    let cancelled = false
-    api.reviews
-      .list({ productId, perPage: LATEST })
-      .then((p) => !cancelled && setPage(p))
-      .catch(() => !cancelled && setFailed(true))
-    return () => {
-      cancelled = true
-    }
-  }, [productId])
+  /** Skeleton lines while it loads; "Could not load the reviews" with Try again when it fails. */
+  const {
+    data: page,
+    failed,
+    retry,
+  } = useLoad<Page>(() => api.reviews.list({ productId, perPage: LATEST }), [productId])
 
   // Early returns
-  if (failed) return <p className="text-body text-muted-foreground">{copy.apps.failed}</p>
-  if (!page) return null
+  if (failed) {
+    return <LoadFailedState heading={apps.couldNotLoad.reviews} failed={failed} onRetry={retry} />
+  }
+  if (!page) {
+    return (
+      <div className="flex flex-col gap-3" aria-busy="true">
+        <Skeleton className="h-3.5 w-1/2" />
+        <Skeleton className="h-3.5 w-full" />
+        <Skeleton className="h-3.5 w-2/3" />
+      </div>
+    )
+  }
 
   // Render logic
   const href = `${routes.apps.page('reviews')}?product=${encodeURIComponent(productId)}`

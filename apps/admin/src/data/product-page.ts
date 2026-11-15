@@ -8,7 +8,6 @@ export const productPageContent = {
     emptyBody:
       'Apps like Reviews, Back in stock and GST invoices add their own sections to every product. Install one and it shows up here.',
     browse: 'Browse the App Store',
-    failed: 'Could not load this section.',
   },
   /** "Apps" group in the product's More actions menu. */
   actions: {

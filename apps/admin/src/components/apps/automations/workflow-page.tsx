@@ -5,31 +5,38 @@ import { permissions } from '@commerce/core/permissions'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { useEffect, useState } from 'react'
 import type { AppPageProps } from '@/apps/registry'
-import EmptyState from '@/components/layout/empty-state'
-import { automationsContent } from '@/data/automations'
-import { useAutomationCatalogue } from '@/hooks/use-automation-catalogue'
+import LoadFailedState from '@/components/apps/shared/load-failed-state'
+import { appsContent } from '@/data/apps'
+import { useAutomationCatalogueLoad } from '@/hooks/use-automation-catalogue'
 import { useCopy } from '@/hooks/use-copy'
+import type { LoadFailure } from '@/hooks/use-load'
 import { usePermissions } from '@/hooks/use-permissions'
 import { automationApi } from '@/lib/automation-api'
+import { isForbidden } from '@/lib/forbidden'
 import WorkflowEditor from './editor/workflow-editor'
 
 /** `/apps/automations/workflows/<id>`: loads the workflow, the catalogue and the plan, then the editor. */
 export default function WorkflowPage({ params }: AppPageProps) {
   // Hooks
-  const copy = useCopy(automationsContent)
-  const catalogue = useAutomationCatalogue()
+  const apps = useCopy(appsContent)
+  const catalogueLoad = useAutomationCatalogueLoad()
   const { member, loading, hasPermission } = usePermissions()
-  const [workflow, setWorkflow] = useState<WorkflowDetail | null | undefined>(undefined)
+  const [workflow, setWorkflow] = useState<WorkflowDetail | null>(null)
+  /** The workflow read failed: Try again (or no-access) instead of a dead end. */
+  const [failed, setFailed] = useState<LoadFailure | false>(false)
+  const [attempt, setAttempt] = useState(0)
   const [usage, setUsage] = useState<AutomationUsage | null>(null)
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `attempt` is Try again
   useEffect(() => {
     const id = params.id
     if (!id) return
     let live = true
+    setFailed(false)
     automationApi
       .get(id)
       .then((w) => live && setWorkflow(w))
-      .catch(() => live && setWorkflow(null))
+      .catch((err: unknown) => live && setFailed(isForbidden(err) ? 'no-access' : 'error'))
     automationApi
       .usage()
       .then((u) => live && setUsage(u))
@@ -37,12 +44,27 @@ export default function WorkflowPage({ params }: AppPageProps) {
     return () => {
       live = false
     }
-  }, [params.id])
+  }, [params.id, attempt])
+
+  // Event handlers
+  const handleRetry = () => {
+    if (failed) setAttempt((n) => n + 1)
+    if (catalogueLoad.failed) catalogueLoad.retry()
+  }
 
   // Early returns
-  if (workflow === null) return <EmptyState variant="page" tone="danger" body={copy.loadFailed} />
-  if (workflow === undefined || !catalogue || loading)
-    return <Skeleton className="h-[36rem] w-full" />
+  if (failed || catalogueLoad.failed) {
+    return (
+      <LoadFailedState
+        size="page"
+        heading={apps.couldNotLoad.workflow}
+        failed={failed || catalogueLoad.failed || undefined}
+        onRetry={handleRetry}
+      />
+    )
+  }
+  const catalogue = catalogueLoad.data
+  if (!workflow || !catalogue || loading) return <Skeleton className="h-[36rem] w-full" />
 
   // Render logic
   // Growth workflows also need marketing.write to edit here (design §8.7).

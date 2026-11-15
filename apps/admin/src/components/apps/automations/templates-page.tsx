@@ -15,15 +15,18 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import EmptyState from '@/components/layout/empty-state'
+import LoadFailedState from '@/components/apps/shared/load-failed-state'
 import PillTabs from '@/components/layout/pill-tabs'
 import SectionHead from '@/components/layout/section-head'
+import { appsContent } from '@/data/apps'
 import { automationPiecesContent, automationsContent } from '@/data/automations'
 import { useAutomationCatalogue } from '@/hooks/use-automation-catalogue'
 import { useCopy, useLocale } from '@/hooks/use-copy'
+import type { LoadFailure } from '@/hooks/use-load'
 import { automationApi } from '@/lib/automation-api'
 import { triggerLabel } from '@/lib/automation-labels'
 import { automationRoutes } from '@/lib/automation-routes'
+import { isForbidden } from '@/lib/forbidden'
 import { routes } from '@/lib/routes'
 import TemplatePreviewDialog from './template-preview-dialog'
 import TriggerPickerDialog from './trigger-picker-dialog'
@@ -33,28 +36,32 @@ type Category = (typeof TEMPLATE_CATEGORIES)[number] | 'all'
 /** The template gallery: prefilled workflows by category, each previewed on the canvas and copied with one click. */
 export default function TemplatesPage() {
   // Hooks
+  const apps = useCopy(appsContent)
   const all = useCopy(automationsContent)
   const pieces = useCopy(automationPiecesContent)
   const locale = useLocale()
   const router = useRouter()
   const catalogue = useAutomationCatalogue()
   const [templates, setTemplates] = useState<TemplateView[] | null>(null)
-  const [failed, setFailed] = useState(false)
+  const [failed, setFailed] = useState<LoadFailure | false>(false)
+  const [attempt, setAttempt] = useState(0)
   const [category, setCategory] = useState<Category>('all')
   const [previewing, setPreviewing] = useState<TemplateView | null>(null)
   const [blank, setBlank] = useState(false)
   const [busy, setBusy] = useState(false)
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `attempt` is Try again
   useEffect(() => {
     let live = true
+    setFailed(false)
     automationApi
       .templates()
       .then((t) => live && setTemplates(t))
-      .catch(() => live && setFailed(true))
+      .catch((err: unknown) => live && setFailed(isForbidden(err) ? 'no-access' : 'error'))
     return () => {
       live = false
     }
-  }, [])
+  }, [attempt])
 
   // Helpers
   const nameOf = (t: TemplateView) => t.name ?? (t.nameKey ? pieces[t.nameKey] : undefined) ?? t.id
@@ -79,7 +86,16 @@ export default function TemplatesPage() {
   }
 
   // Early returns
-  if (failed) return <EmptyState variant="page" tone="danger" body={all.loadFailed} />
+  if (failed) {
+    return (
+      <LoadFailedState
+        size="page"
+        heading={apps.couldNotLoad.templates}
+        failed={failed}
+        onRetry={() => setAttempt((n) => n + 1)}
+      />
+    )
+  }
 
   // Render logic
   const copy = all.templates

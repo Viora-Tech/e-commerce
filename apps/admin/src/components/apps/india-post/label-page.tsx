@@ -6,35 +6,56 @@ import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { useEffect, useState } from 'react'
 import type { AppPageProps } from '@/apps/registry'
 import { saveFile } from '@/components/apps/gst-invoices/save-file'
+import LoadFailedState from '@/components/apps/shared/load-failed-state'
 import DataCard from '@/components/layout/data-card'
 import PageHeader from '@/components/layout/page-header'
+import { appsContent } from '@/data/apps'
 import { indiaPostAppContent } from '@/data/india-post'
 import { useCopy } from '@/hooks/use-copy'
+import type { LoadFailure } from '@/hooks/use-load'
 import { api } from '@/lib/api-client'
+import { isForbidden } from '@/lib/forbidden'
 import { routes } from '@/lib/routes'
 
 /** `/apps/india-post/labels/<article number>`: our address label as a PDF, to print or save.
  *  This is the shipment's `labelUrl`, so "Print label" anywhere in the admin lands here. */
 export default function LabelPage({ params }: AppPageProps) {
   // Hooks
+  const apps = useCopy(appsContent)
   const copy = useCopy(indiaPostAppContent)
   const [file, setFile] = useState<File | null>(null)
-  const [failed, setFailed] = useState<string | null>(null)
+  /** The label read failed: "Could not load the label" with the reason and Try again. */
+  const [failed, setFailed] = useState<{ kind: LoadFailure; reason: string } | null>(null)
+  const [attempt, setAttempt] = useState(0)
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `attempt` is Try again
   useEffect(() => {
     let live = true
+    setFailed(null)
     api.shipments
       .indiaPostLabel({ waybill: params.waybill ?? '' })
       .then((f) => live && setFile(f))
-      .catch((err) => live && setFailed(err instanceof Error ? err.message : copy.label.failed))
+      .catch(
+        (err: unknown) =>
+          live &&
+          setFailed({
+            kind: isForbidden(err) ? 'no-access' : 'error',
+            reason: err instanceof Error && err.message ? err.message : copy.label.failed,
+          }),
+      )
     return () => {
       live = false
     }
-  }, [params.waybill, copy.label.failed])
+  }, [params.waybill, copy.label.failed, attempt])
 
   // Render logic
   const waybill = params.waybill ?? ''
   const body = failed ? (
-    <p className="text-body text-muted-foreground">{failed}</p>
+    <LoadFailedState
+      heading={apps.couldNotLoad.label}
+      body={failed.reason}
+      failed={failed.kind}
+      onRetry={() => setAttempt((n) => n + 1)}
+    />
   ) : !file ? (
     <p className="flex items-center gap-2 text-body text-muted-foreground">
       <Spinner />

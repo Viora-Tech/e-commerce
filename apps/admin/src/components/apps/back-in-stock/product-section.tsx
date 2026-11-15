@@ -1,11 +1,14 @@
 'use client'
 
+import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
 import type { ProductSectionProps } from '@/apps/product-sections'
+import LoadFailedState from '@/components/apps/shared/load-failed-state'
 import EmptyState from '@/components/layout/empty-state'
+import { appsContent } from '@/data/apps'
 import { productPageContent } from '@/data/product-page'
 import { useCopy } from '@/hooks/use-copy'
+import { useLoad } from '@/hooks/use-load'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
 
@@ -14,24 +17,24 @@ type Signup = Awaited<ReturnType<typeof api.backInStock.signups.list>>[number]
 /** The Back in stock app on a product's More tab: who is waiting for which of its variants. */
 export default function ProductSection({ variants }: ProductSectionProps) {
   // Hooks
+  const apps = useCopy(appsContent)
   const copy = useCopy(productPageContent)
-  const [signups, setSignups] = useState<Signup[] | null>(null)
-  const [failed, setFailed] = useState(false)
-
-  useEffect(() => {
-    let cancelled = false
-    api.backInStock.signups
-      .list({})
-      .then((rows) => !cancelled && setSignups(rows))
-      .catch(() => !cancelled && setFailed(true))
-    return () => {
-      cancelled = true
-    }
-  }, [])
+  /** Skeleton lines while it loads; "Could not load the signups" with Try again when it fails. */
+  const { data: signups, failed, retry } = useLoad<Signup[]>(() => api.backInStock.signups.list({}))
 
   // Early returns
-  if (failed) return <p className="text-body text-muted-foreground">{copy.apps.failed}</p>
-  if (!signups) return null
+  if (failed) {
+    return <LoadFailedState heading={apps.couldNotLoad.signups} failed={failed} onRetry={retry} />
+  }
+  if (!signups) {
+    return (
+      <div className="flex flex-col gap-3" aria-busy="true">
+        <Skeleton className="h-3.5 w-1/2" />
+        <Skeleton className="h-3.5 w-full" />
+        <Skeleton className="h-3.5 w-2/3" />
+      </div>
+    )
+  }
 
   // Render logic
   const c = copy.backInStock
