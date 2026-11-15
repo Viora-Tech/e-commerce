@@ -26,7 +26,7 @@ import type { ThemeAction } from './theme-actions-menu'
 import ThemeLibraryRow from './theme-library-row'
 import ThemePacksCard from './theme-packs-card'
 import type { ThemeItem } from './theme-types'
-import ThemeVersionsDialog from './theme-versions-dialog'
+import ThemeVersionHistory from './theme-version-history'
 import WebPerformanceStrip from './web-performance-strip'
 
 type ThemesLibraryProps = {
@@ -291,11 +291,14 @@ export default function ThemesLibrary({
         />
       ) : null}
       {versioning ? (
-        <ThemeVersionsDialog
+        <ThemeVersionHistory
           key={versioning.id}
+          open
           theme={versioning}
           origin={origin}
-          onClose={() => setVersioning(null)}
+          where="library"
+          hasDraft={versioning.hasDraft}
+          onOpenChange={(next) => !next && setVersioning(null)}
           onRestored={handleRestored}
         />
       ) : null}
