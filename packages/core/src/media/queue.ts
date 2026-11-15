@@ -38,9 +38,11 @@ export type MediaProcessQueue = {
 export async function addMediaProcessJob(
   queue: MediaProcessQueue,
   job: MediaProcessJob,
+  /** A file replaced behind the same row needs its own job id: the old one may still be kept. */
+  jobId: string = job.mediaId,
 ): Promise<void> {
   await queue.add('process', job, {
-    jobId: job.mediaId,
+    jobId,
     attempts: 5,
     backoff: { type: 'exponential', delay: 5_000 },
   })
@@ -57,9 +59,10 @@ export async function addMediaProcessJob(
 export async function enqueueMediaProcess(
   queue: MediaProcessQueue,
   job: MediaProcessJob,
+  jobId?: string,
 ): Promise<void> {
   try {
-    await addMediaProcessJob(queue, job)
+    await addMediaProcessJob(queue, job, jobId)
   } catch (err) {
     logger.error('could not enqueue media processing', {
       storeId: job.storeId,

@@ -21,11 +21,14 @@ import {
   moveMediaToFolder,
   onPlatformStorage,
   permissions,
+  ReplaceFromUrlSchema,
   renameMediaFolder,
+  replaceImageFromUrl,
   storageRoom,
   UploadIntentSchema,
   updateMedia,
 } from '@commerce/core'
+import { BlockedUrlError } from '@commerce/core/safe-fetch'
 import { importInProgress } from '@commerce/plugin-shopify-import/server'
 import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
@@ -112,6 +115,38 @@ export const mediaRouter = {
         return row
       } catch (err) {
         if (err instanceof InvalidUpload)
+          throw new ORPCError('BAD_REQUEST', { message: err.message })
+        throw err
+      }
+    }),
+
+  /**
+   * "Replace from link": the photo behind this media row becomes the image at an https link
+   * (fetched by the server, public hosts only), keeping its place in every gallery and its
+   * variant links. The pipeline is queued again, as after an upload.
+   */
+  replaceFromUrl: can(permissions.CONTENT_WRITE)
+    .input(ReplaceFromUrlSchema)
+    .handler(async ({ context, input }) => {
+      const { storage } = await storeRegistries(context.tx, context.scope.storeId)
+      const provider = await storageProviderFor(
+        context.tx,
+        context.scope.storeId,
+        storage,
+        settingsSecret(),
+      )
+      try {
+        const row = await replaceImageFromUrl(context.tx, context.scope.storeId, provider, input)
+        if (context.mediaProcess) {
+          await enqueueMediaProcess(
+            context.mediaProcess,
+            { storeId: context.scope.storeId, mediaId: row.id },
+            `${row.id}-replace-${Date.now()}`,
+          )
+        }
+        return row
+      } catch (err) {
+        if (err instanceof InvalidUpload || err instanceof BlockedUrlError)
           throw new ORPCError('BAD_REQUEST', { message: err.message })
         throw err
       }
