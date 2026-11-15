@@ -1,0 +1,65 @@
+---
+title: Data model by area
+description: Every table group in packages/db and the app packages, what each area holds, the rules every table follows (store_id, RLS, UUIDv7, paise, text statuses) and where to read more.
+---
+
+# Data model by area
+
+<Diagram
+  name="data-model"
+  alt="Tables grouped by area: platform, store setup, catalog, stock and buying, customers and carts, orders and money, shipping, online store, growth and messages, platform plumbing, and the apps' own tables."
+/>
+
+## Rules every table follows
+
+- **`store_id` and RLS.** Every table except the platform ones has `store_id uuid not null` and
+  the `store_isolation` policy ([Stores and tenancy](/developer-docs/how-it-works/stores-and-tenancy)).
+- **IDs are UUIDv7** made in the app (`newId()`), never sequences. The only counters are per
+  store and explicit (`store.next_order_number`, `store_counter`, `invoice_sequence`).
+- **Money is integer paise** in `*_paise` columns.
+- **Statuses are text with a CHECK**, not Postgres enums, so adding one is a plain migration.
+- **Secrets and phones are encrypted** (AES-256-GCM) in the column, never stored plain.
+- **References from a request are read under RLS before they are stored**: foreign keys bypass
+  RLS, so the database alone would accept another store's id.
+
+## Where the schema lives
+
+| File (`packages/db/src/`) | Area |
+| --- | --- |
+| `schema.ts` | The core: store, catalog, inventory, customers, carts, orders, payments, discounts, gift cards, roles, outbox |
+| `auth-schema.ts` | Better Auth: user, session, account, organization, member, invitation, passkey |
+| `theme-schema.ts`, `content-schema.ts`, `metafield-schema.ts`, `market-schema.ts` | Online store: themes, pages, menus, redirects, extra fields, content types, markets, catalogs, translations |
+| `shipping-schema.ts`, `delivery-schema.ts` | Shipments, pickups, manifests, webhooks, wallets, zones, rates, profiles, delivery options |
+| `purchasing-schema.ts` | Suppliers, purchase orders, charges, receipts, inbound shipments, documents |
+| `returns-schema.ts`, `store-credit-schema.ts` | Returns, store credit accounts and entries |
+| `marketing-schema.ts`, `automation-schema.ts`, `pixel-schema.ts`, `inbox-schema.ts`, `rollout-schema.ts` | Growth: sessions, campaigns, links, Web Vitals, workflows and runs, pixels, inbox, rollouts |
+| `ai-schema.ts`, `api-access-schema.ts` | AI settings, usage, proposed actions, bulk jobs; OAuth clients, grants, API activity |
+| `billing-schema.ts` | Plans, usage bills, plan payments, app purchases, AI credits, AutoPay |
+| `privacy-schema.ts`, `shopper-login-schema.ts` | Cookie consent, data requests, privacy audit; shopper identities and passkeys |
+| `store-activity-schema.ts`, `store-data-schema.ts`, `bug-report-schema.ts`, `email-suppression-schema.ts`, others | Activity log, exports, platform audit, bug reports, email suppression |
+
+Apps own their tables in their packages: `plugin-gst-invoices/src/schema.ts` (invoices),
+`plugin-reviews`, `plugin-affiliates`, `plugin-back-in-stock`, `plugin-forms`,
+`plugin-growthbook`, `plugin-shopify-import`. Their migrations live with everyone else's in
+`packages/db/drizzle/` (234 files, newest `0249_shipment_shared_order`).
+
+## The order spine
+
+```text
+cart ─► order ─┬─► order_line
+               ├─► fulfillment_order (parcel, one location, one GSTIN) ─► fulfillment_order_line
+               │       └─► shipment (+ shipment_shared_order when another order rides in the box)
+               ├─► payment ◄── payment_event (webhooks, deduplicated)
+               ├─► refund ─► store_credit_entry (when refunded as credit)
+               ├─► return_request ─► return_request_line
+               └─► invoice (GST app, one per parcel) ─► credit notes
+```
+
+Order statuses (`payment_status`, `fulfillment_status`, `status`) are derived by
+`recomputeOrderStatuses`; nothing else writes them.
+
+## Deeper
+
+[Data model overview](/developer-docs/core-concepts/data-model) has the main tables column by
+column, parcels, returns, purchasing and landed cost, retention, and how to add a table (schema,
+migration, `apply_store_rls()`, seed).

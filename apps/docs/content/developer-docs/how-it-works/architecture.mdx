@@ -1,0 +1,99 @@
+---
+title: Architecture
+description: The three apps and what sits around them, what runs where in production, and the path of a shopper request, a merchant click and a webhook.
+---
+
+# Architecture
+
+<Diagram
+  name="system-overview"
+  alt="Shoppers, merchants and AI apps reach Cloudflare; the storefront, admin and worker run on one server with Postgres and Dragonfly; R2 holds files; the worker talks to gateways, couriers, email, WhatsApp and the AI gateway."
+/>
+
+## The three apps
+
+| App | Port (local) | Public address | Made of | Does |
+| --- | --- | --- | --- | --- |
+| `apps/storefront` | 3100 | each store's own domain (`www.waimers.in`) and `<slug>.koomerce.app` | Next 16, React 19, server actions | Theme pages, cart, checkout, shopper accounts, store JSON endpoints |
+| `apps/admin` | 3200 | `admin.koomerce.app` | Next 16, oRPC (`packages/api`), Better Auth | The merchant admin, the API it calls (`/api/rpc`), the token API (`/api/v1`), MCP (`/api/mcp/<slug>`), OAuth |
+| `apps/worker` | 4100 | `api.koomerce.app` | Bun, Hono, BullMQ | Webhooks from gateways, couriers, Meta and Shopify; every queue and scheduled job |
+
+Two more run beside them: `apps/storefront-hono`, a Bun + Hono pilot that serves an imported
+theme's product page for previews (see [Performance and caching](/developer-docs/how-it-works/performance-and-caching)),
+and `apps/monitor`, a Cloudflare Worker that checks the public health URLs every five minutes and
+emails when one stays down (`apps/monitor/src/checks.ts`). `apps/docs` (this site) and
+`apps/www` (`koomerce.app`) run on Cloudflare Workers, away from the main server.
+
+**Why three apps and not one.** The storefront must stay fast and small for shoppers on phones;
+the admin carries heavy editors (Puck, Lexical, GrapesJS, a spreadsheet grid) that shoppers never
+download; the worker must keep running jobs when nobody has a page open. They share all business
+code through packages, so splitting them costs nothing in duplication.
+
+## The packages
+
+Business rules live in `packages/core` (catalog, cart, `placeOrder`, payments, shipping, GST,
+discounts, apps, outbox). The apps call core; core calls `packages/db`. The `service-layer`
+sweep keeps database imports out of the apps and routers
+([Testing and guardrails](/developer-docs/how-it-works/testing-and-guardrails)).
+
+| Package | What |
+| --- | --- |
+| `packages/db` | Drizzle schema (`src/*-schema.ts`), 234 migrations in `drizzle/` (newest `0249`), `withStore`, the SECURITY DEFINER lookups (`src/resolve-store.ts`) |
+| `packages/core` | Domain services and rules, the outbox, the app registries (`registriesForStore`) |
+| `packages/api` | The oRPC routers (`src/routers`), services, procedures (`src/procedures/store.ts`: membership, permissions, approvals), the MCP server (`src/mcp`) |
+| `packages/plugins` | `definePlugin`, `loadPlugins`, the manifest types |
+| `packages/payments`, `shipping`, `notifications`, `storage` | Contracts each app implements, with conformance tests |
+| `packages/queue` | Queue names, connections, per-store fairness (`src/fair.ts`) |
+| `packages/blocks`, `editor`, `richtext`, `ui` | Storefront sections, the Puck editor, Lexical, the admin's component kit |
+| `packages/ai` | One interface over the AI gateway, quotas and metering |
+| `packages/invoices` | Invoice PDFs (adapted from invoicely, MIT) |
+| `packages/config` | Environment schema (`src/env.ts`) and `siteConfig` |
+
+`commerce.config.ts` at the root lists every app package; nothing else imports them.
+
+## What runs where
+
+Production is one AWS server in Mumbai managed by Dokploy (whose panel runs on a separate small
+server); layout and limits are in `deploy/dokploy/README.md`.
+
+| Service | Image | Memory limit | Notes |
+| --- | --- | --- | --- |
+| postgres | `postgres:17-alpine` | 1 GB | Owner role for migrations; the `app` role (`NOBYPASSRLS`) for everything else |
+| dragonfly | Dragonfly (Redis API) | 384 MB | Queues, caches, rate limits; snapshots every 15 minutes |
+| worker | ECR `vextro/worker:<sha>` | 384 MB | Deployed first |
+| admin | ECR `vextro/admin:<sha>` | 640 MB | |
+| storefront | ECR `vextro/storefront:<sha>` | 640 MB | |
+
+Files (product images, invoices, exports) live in object storage (Cloudflare R2 or S3, chosen per
+store through a storage app), not on the server. Cloudflare sits in front of every public name:
+merchant domains through Cloudflare for SaaS custom hostnames on the `koomerce.app` zone, with a
+cache rule that keeps store pages at the edge (see
+[Performance and caching](/developer-docs/how-it-works/performance-and-caching)).
+
+## One request, three ways
+
+**A shopper opens a page.** `apps/storefront/src/proxy.ts` reads the host, asks Postgres
+`resolve_host(host)` (a SECURITY DEFINER function that returns only a store id) and rewrites the
+request to the internal route `/-s/<storeId>/…`. The page reads through `withStore`, which sets
+`app.store_id` for its transaction, so row-level security shows only that store's rows. Details:
+[Stores and tenancy](/developer-docs/how-it-works/stores-and-tenancy).
+
+**A merchant clicks Save.** The admin page calls an oRPC procedure at `/api/rpc`. The
+`storeProcedure` middleware (`packages/api/src/procedures/store.ts`) checks the session, finds the
+store from the active organisation, checks the member's role has the permission (and queues the
+call for approval if the role says so), then runs the handler inside `withStore`. Handlers call
+services in `packages/api/src/services`, which call `packages/core`.
+
+**A gateway or courier calls back.** `POST /webhooks/payments/:provider/:storeId` or
+`/webhooks/shipments/:provider/:storeId` on the worker (`apps/worker/src/payments.ts`,
+`shipments-webhook.ts`). The store id is in the path; the payload is verified with that store's
+secret, stored once (deduplicated) and applied. Changes write outbox rows; the relay fans them out
+within five seconds. Step by step: [Request flow](/developer-docs/core-concepts/request-flow).
+
+## Deeper pages
+
+- [Architecture (detailed, with the scale roadmap)](/developer-docs/getting-started/architecture).
+  Its section 5 was written as a plan; several items have since been built (outbox, read caching,
+  search, observability). This section describes what runs today.
+- [Request flow](/developer-docs/core-concepts/request-flow): every hop with sequence diagrams.
+- [Security](/developer-docs/core-concepts/security): encryption at rest, keys, access control.

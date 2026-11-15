@@ -1,0 +1,63 @@
+---
+title: GST and invoices
+description: How GST is worked out per parcel from the shipping location's GSTIN, how the GST invoices app queues, numbers and issues documents, credit notes and vouchers, and how GSTR-1 and GSTR-3B are built.
+---
+
+# GST and invoices
+
+Two separate things work together: **tax** is computed by core at checkout for every store, and
+**documents** (invoices, credit notes, vouchers, packing slips) come from the GST invoices app.
+A store under the GST threshold can skip the app and still charge prices that include tax.
+
+## Tax: per parcel, from the shipping location
+
+- The store's business details and GST numbers are in `business` and `gst_registration`; each
+  `location` (warehouse) belongs to one GSTIN.
+- Each product (or variant) carries an HSN code and GST rate, set on the product page (fields the
+  GST invoices app adds through `productFields`) or in bulk on the app's Products page.
+- At place order the cart is split into parcels by location
+  ([Orders end to end](/developer-docs/how-it-works/orders)). `computeParcelGst`
+  (`packages/core/src/tax/parcel-gst.ts`) taxes each parcel from **its** location's state: same
+  state as the ship-to address gives CGST + SGST, another state gives IGST. The order stores the
+  sum (`mergeOrderGst`).
+
+Why per parcel: one order shipped from Delhi and from Mumbai is two supplies under two GSTINs.
+Billing it as one would put the wrong GSTIN and the wrong tax split on the invoice. Merchant
+guide: [Several warehouses and GST](/merchant-guide/money-and-gst/several-warehouses-and-gst).
+
+## Documents: the GST invoices app
+
+`packages/plugin-gst-invoices` (id `gst-invoices`), templates and PDFs in `packages/invoices`
+(adapted from invoicely, MIT), settings schema in `packages/invoices/src/settings.ts`.
+
+| Document | When |
+| --- | --- |
+| Tax invoice | One per parcel. `issueOn`: on payment (default), on fulfilment, or manual. Queued as a draft, numbered only when issued |
+| Receipt voucher | A paid pre-order (an advance) before its goods ship; the tax invoice follows at dispatch unless the store invoices pre-orders at payment |
+| Credit note | A refund that reduces an issued invoice: one per invoice it reduces |
+| Refund voucher | A refund of an advance (receipt voucher) |
+| Packing slip, order confirmation | On demand, or attached to the order email |
+
+- **Numbering**: each GSTIN has its own series (`invoice_sequence`); a number is taken only at
+  issue, never for a draft, so there are no gaps from cancelled drafts.
+- **The queue**: Apps → GST invoices → Queue lists drafts waiting to be issued; issuing renders
+  PDFs in the `{apps}-jobs` queue. Emailing many copies from the Invoices list runs as a batch
+  (`invoice_batch`) the admin polls for progress.
+- **Edits and cancels**: `order.edited` rebuilds queued invoices and replaces an issued one that
+  is now wrong; `order.cancelled` cancels invoices of a sale that never shipped.
+- **Shopper downloads**: a signed link (`/documents/<id>` on the storefront) on the order page and
+  in emails.
+
+The full hook list is on [Apps: worked example](/developer-docs/how-it-works/apps#worked-example-gst-invoices-builtin).
+
+## Returns: GSTR-1 and GSTR-3B
+
+The app's Returns page builds GSTR-1 (JSON in the government's shape) and a GSTR-3B summary per
+GSTIN per month from issued documents. Filing a month (`invoice_period`) marks its invoices
+reported, so they can no longer be cancelled; closing it stops issuing or backdating into it. Details:
+[GST returns](/developer-docs/building/gst-returns).
+
+## Merchant guides
+
+[GST invoices](/merchant-guide/money-and-gst/gst-invoices),
+[GST returns](/merchant-guide/money-and-gst/gst-returns), [Taxes](/merchant-guide/settings/taxes).

@@ -13,6 +13,12 @@ plugins' providers show up under **Settings → Payments / Shipping /
 Notifications**. Nothing about a provider is hard-coded in the admin — the
 form is generated from the fields your factory declares.
 
+<Diagram
+  name="app-lifecycle"
+  alt="Manifest, install, set up or connect, events through the outbox and worker to the app's hook, admin pages, uninstall; with GST invoices and Delhivery as examples."
+  caption="The whole lifecycle in one picture; the walkthrough is on Apps: how one installs and runs."
+/>
+
 ```
 commerce.config.ts          which plugins this deployment ships
 packages/plugins            definePlugin, defineConfig, loadPlugins

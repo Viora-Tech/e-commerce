@@ -9,11 +9,11 @@ architecture as the app server) builds them, pushes them to Amazon ECR, and then
 through the Dokploy API. The server only pulls and restarts, so a build can no longer starve
 production of memory.
 
-<Callout type="warning">
-  **Status (10 October 2026): code only.** The scripts and this guide are in the repo. No AWS
-  resource has been created yet, Dokploy still builds on the server, and the Dokploy field names
-  the deploy script uses come from the API's tool schemas, not from a run against the live
-  server. The first real run should use `SKIP_DEPLOY=1` (see "Try it safely"), then one app.
+<Callout type="info">
+  **Status (15 November 2026):** production images are built either here or locally with Docker
+  on an x86 machine, then pushed to the same ECR repositories and rolled out in Dokploy
+  ([Deployment](/developer-docs/operations/deployment)). GitHub Actions is not used (stopped by
+  billing).
 </Callout>
 
 ```mermaid

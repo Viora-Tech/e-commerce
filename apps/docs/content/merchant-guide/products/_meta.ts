@@ -4,5 +4,6 @@ export default {
   'search-keywords': 'Search keywords',
   'bulk-edit': 'Bulk edit',
   'extra-fields': 'Extra fields',
+  'gift-cards': 'Gift cards',
   'pre-orders': 'Pre-orders',
 }

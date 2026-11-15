@@ -1,0 +1,104 @@
+---
+title: 'Overview: what Koomerce is and why it is built this way'
+description: Start here. What the platform does, who uses it, the parts it is made of, the choices behind them, and the order to read the rest of this section.
+---
+
+# How Koomerce works
+
+This section explains the whole product from top to bottom: what each part is, why it is built
+that way and how it works, with a diagram for each big idea. Read it in order the first time.
+The pages under Getting started, Core concepts, Building and Operations go deeper; every page
+here links to them.
+
+## What it is
+
+Koomerce is an online-store platform for Indian D2C brands, shaped like Shopify. A merchant signs
+up, gets a store, picks or imports a theme, adds products and takes orders paid by UPI, card,
+net banking or cash on delivery. Couriers, GST invoices, WhatsApp messages and the rest come as
+**apps** the store installs. Waimers (gaming peripherals, `www.waimers.in`) is the first store and
+runs on it today; it is store number one, not a special case in the code.
+
+Three kinds of people use it:
+
+| Who | Where | What they do |
+| --- | --- | --- |
+| Shoppers | The storefront, on the merchant's own domain | Browse, buy, track, return |
+| Merchants and their staff | The admin (`admin.koomerce.app`) | Run the store: orders, stock, products, theme, apps, money |
+| Platform staff | The platform console in the admin (`/platform`) | Look after every store; see [Platform console](/developer-docs/operations/platform-console) |
+
+AI apps (Claude, ChatGPT and others) can also act for a merchant over MCP, with the same
+permissions and approvals as a person. See [AI and MCP](/developer-docs/how-it-works/ai-and-mcp).
+
+## The parts
+
+<Diagram
+  name="system-overview"
+  alt="Shoppers, merchants and AI apps reach Cloudflare. Cloudflare sends store pages to the storefront, the admin and API to the admin and worker. The apps use Postgres, Dragonfly and R2 storage, and the worker talks to payment gateways, couriers, email, WhatsApp and the AI gateway."
+  caption="The whole system on one page."
+/>
+
+| Part | Code | One line |
+| --- | --- | --- |
+| Storefront | `apps/storefront` | Next 16. Every store's shop: theme pages, cart, checkout, shopper accounts |
+| Admin | `apps/admin` | Next 16. The merchant's back office, the oRPC API (`packages/api`) and the MCP endpoint |
+| Worker | `apps/worker` | Bun + Hono + BullMQ. Webhooks in, jobs out: emails, app hooks, tracking, imports, sweeps |
+| Domain code | `packages/core` | Business rules: catalog, cart, orders, payments, shipping, GST, discounts, apps |
+| Database | `packages/db` | Drizzle schema and migrations on Postgres 17 with row-level security |
+| Apps | `packages/plugin-*`, `packages/shipping-*`, `packages/payments-*`, … | One package per app, each with a `definePlugin` manifest |
+| Storefront blocks | `packages/blocks` | The sections native themes are built from (Puck) |
+| Docs, landing, monitor | `apps/docs`, `apps/www`, `apps/monitor` | This site, `koomerce.app`, and the uptime checker |
+
+## Why it is built this way
+
+These choices come up again and again in the code. Each has a page that explains it.
+
+1. **One database, many stores, isolated by Postgres.** Every store's rows sit in the same tables
+   with a `store_id`, and row-level security shows a transaction only its own store's rows. A
+   forgotten `where` cannot leak another store's data. See
+   [Stores and tenancy](/developer-docs/how-it-works/stores-and-tenancy).
+2. **Apps, not special cases.** Couriers, gateways, invoices and channels are packages behind a
+   contract, installed per store. Core never imports a courier directly. See
+   [Apps](/developer-docs/how-it-works/apps).
+3. **Side effects through an outbox.** A change and the events it causes are written in one
+   transaction; the worker sends the emails and runs app hooks afterwards. Nothing is lost when a
+   queue is down. See [Worker and jobs](/developer-docs/how-it-works/worker-and-jobs).
+4. **Cheapest setup that still holds.** One server runs the three apps, Postgres and Dragonfly;
+   Cloudflare sits in front and caches store pages. Build machines never serve traffic. See
+   [Deploy and operations](/developer-docs/how-it-works/deploy-and-operations).
+5. **India first.** Rupees in paise, GST per GSTIN and per parcel, UPI and COD, Indian couriers,
+   WhatsApp, Hindi in the admin. See [GST and invoices](/developer-docs/how-it-works/gst-and-invoices).
+6. **Checks in code, not in memory.** Guardrail sweeps, a cross-store leak test and a component
+   checker fail the build when a rule is broken. See
+   [Testing and guardrails](/developer-docs/how-it-works/testing-and-guardrails).
+
+## Reading order
+
+1. [Architecture](/developer-docs/how-it-works/architecture): the apps, what runs where, one
+   request through the system.
+2. [Stores and tenancy](/developer-docs/how-it-works/stores-and-tenancy): how a request finds its
+   store, members and roles.
+3. [Apps](/developer-docs/how-it-works/apps): how an app installs and runs, with GST invoices and
+   Delhivery as examples.
+4. [Orders end to end](/developer-docs/how-it-works/orders), then
+   [Shipping](/developer-docs/how-it-works/shipping), [Payments](/developer-docs/how-it-works/payments)
+   and [GST and invoices](/developer-docs/how-it-works/gst-and-invoices).
+5. [Themes and storefront](/developer-docs/how-it-works/themes-and-storefront) and
+   [Admin](/developer-docs/how-it-works/admin): the two front ends.
+6. [Worker and jobs](/developer-docs/how-it-works/worker-and-jobs),
+   [Data model](/developer-docs/how-it-works/data-model),
+   [AI and MCP](/developer-docs/how-it-works/ai-and-mcp).
+7. [Performance and caching](/developer-docs/how-it-works/performance-and-caching),
+   [Deploy and operations](/developer-docs/how-it-works/deploy-and-operations),
+   [Testing and guardrails](/developer-docs/how-it-works/testing-and-guardrails).
+8. [Glossary](/developer-docs/how-it-works/glossary) for any word you meet.
+
+Then set up a machine with [Running locally](/developer-docs/getting-started/running-locally) and
+build something with [Build your first app](/developer-docs/building/first-app).
+
+## The diagrams
+
+Every diagram in this section is an Excalidraw file in `apps/docs/public/diagrams/`. To change
+one, open the `.excalidraw` file in [excalidraw.com](https://excalidraw.com) (Open, pick the
+file), edit it, save it back over the same file, and run `bun run --cwd apps/docs diagrams` to
+redraw its light and dark SVGs (`scripts/render-diagrams.mjs`, drawn with Rough.js, the library
+Excalidraw draws with).

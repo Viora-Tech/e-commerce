@@ -1,0 +1,83 @@
+---
+title: Deploy and operations
+description: How a change goes from a branch to production - local checks, PR into dev, the release PR, images built off the server, ECR, Dokploy, migrations, health checks, monitoring and rollback - and what keeps running day to day.
+---
+
+# Deploy and operations
+
+<Diagram
+  name="release-and-deploy"
+  alt="A feature branch from origin/dev passes local checks, becomes a PR into dev with a handoff note, is merged to dev (the test server), then a release PR dev to main. Images are built off the server, pushed to ECR, and Dokploy deploys worker, admin, then storefront, with migrations first. Health checks and the monitor confirm it is live; rollback redeploys the previous tag."
+/>
+
+## Branches
+
+| Branch | What goes in | Deployed to |
+| --- | --- | --- |
+| `feat/…`, `fix/…`, `docs/…` | One piece of work, from `origin/dev` | nowhere |
+| `dev` (default) | Every reviewed PR | the test server (vioratech.in), deployed by hand |
+| `main` | Only a release PR `dev` → `main` | production |
+
+Every PR adds a note in `docs/handoff/changes/` (`YYYY-MM-DD-short-title.md`) and says
+`Fixes #n` for a bug. GitHub deletes a branch when its PR merges; a release PR's merge deletes
+`dev`, so it is restored straight after. Details: [Deployment, Branches](/developer-docs/operations/deployment).
+
+## Checks before a PR
+
+GitHub Actions is stopped (billing), so checks run on the developer's machine before every PR:
+`bun run lint` (Biome and the component checker), `bun run lint:design`, `bun run typecheck`,
+`bun run test` (needs Postgres), `bun run test:sweeps`, and `bun run --cwd apps/docs build` when
+docs change. Before a release, the smoke checklist runs on the test server
+([Release checklist](/developer-docs/operations/release-checklist)). See
+[Testing and guardrails](/developer-docs/how-it-works/testing-and-guardrails).
+
+## Building and shipping images
+
+Production is one AWS Lightsail server in Mumbai (4 GB / 2 vCPU, the server **LightSail** in
+Dokploy). **Nothing is built on it.** Building the admin takes several GB of memory; on the
+server that serves shoppers it crashed Docker once. Images are built on another machine:
+
+1. Build `worker`, `admin` and `storefront` images for x86 from the monorepo root, each tagged
+   with the commit (`apps/<app>/Dockerfile`; the admin takes `NEXT_PUBLIC_WORKER_URL` as a build
+   argument). Locally with Docker, or with CodeBuild (`deploy/codebuild/`,
+   [Builds on CodeBuild](/developer-docs/operations/codebuild)).
+2. Push them to Amazon ECR as
+   `924422830513.dkr.ecr.ap-south-1.amazonaws.com/vextro/<app>:<sha>`.
+3. In Dokploy, switch each app to the new tag and redeploy, one at a time: **worker first** (it
+   applies pending migrations when it starts; its log says `migrations applied`), then
+   admin, then storefront (`deploy/codebuild/deploy-dokploy.mjs` does this through Dokploy's API
+   and stops at the first failure). Auto deploy is off on every app.
+4. Check health: the worker's `/health`, the storefront's `/api/health`, the admin's login
+   page, and a real store page.
+
+**Rollback** is redeploying the previous `<sha>` tag in Dokploy. That only works when the
+previous code still runs on the new schema, so migrations are written additively (a new
+nullable column, not a rename) when a same-day rollback matters
+([Deployment, Migrations](/developer-docs/operations/deployment#migrations)).
+
+The production layout (servers, memory limits, network) is in `deploy/dokploy/README.md`; the
+full compose file with every env key is `deploy/docker-compose.prod.yml` (the `deploy-compose`
+sweep keeps it in line with `packages/config/src/env.ts`).
+
+## Monitoring and alerts
+
+- **Monitor** (`apps/monitor`): a Cloudflare Worker checks the API, admin, storefront, Waimers'
+  home page, the landing site and the docs every five minutes, and sends an alert when a check
+  fails twice in a row (`FAILS_BEFORE_DOWN`).
+- **Server thresholds**: `apps/monitor/scripts/server-threshold-alerts.sh` sets up the server's
+  own resource alerts.
+- **Errors and logs**: `packages/observability` sends browser and server errors to a
+  Sentry-compatible tracker (GlitchTip) and writes structured logs, with personal data scrubbed
+  (`scrub-pii.ts`).
+
+## Day to day
+
+| Job | How |
+| --- | --- |
+| Database and uploads backup | Nightly to R2 by the `backup` service ([Backups](/developer-docs/operations/backups)) |
+| Restore | [Deployment, Restore](/developer-docs/operations/deployment#restore) |
+| Rotating `SETTINGS_SECRET` | [Key rotation](/developer-docs/operations/key-rotation) |
+| Merchant domains | Cloudflare for SaaS custom hostnames, checked by the worker ([Custom domains](/developer-docs/building/custom-domains)) |
+| Sender email domains | SES identities per store ([Email sending](/developer-docs/operations/email-sending)) |
+| Bug reports from merchants | "Report a bug" → GitHub issues ([Bug reports](/developer-docs/operations/bug-reports)) |
+| Looking after stores | [Platform console](/developer-docs/operations/platform-console) |

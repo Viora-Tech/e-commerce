@@ -158,6 +158,16 @@ Candidate projects, with verified licences and what to take from each: [`docs/op
 - Used in: `apps/docs` (renders Mermaid diagrams in MDX pages)
 - Licence: MIT — https://github.com/dimaMachina/nextra (The Guild)
 
+## Rough.js and the Excalidraw file format
+
+- Used in: `apps/docs` (dev dependency). `scripts/render-diagrams.mjs` draws the docs diagrams
+  (`apps/docs/public/diagrams/*.excalidraw`) to SVG with [Rough.js](https://github.com/rough-stuff/rough)
+  4.6.6, the library Excalidraw itself draws with, so the SVGs keep Excalidraw's hand-drawn look.
+- Licences: Rough.js MIT, Copyright (c) 2019 Preet Shihn (read from its LICENSE, 2026-11-15). The
+  `.excalidraw` files follow the open [Excalidraw](https://github.com/excalidraw/excalidraw) JSON
+  format (Excalidraw is MIT); no Excalidraw code is copied or bundled. The rendering script and the
+  dark-mode colour filter (Excalidraw's own `invert(93%) hue-rotate(180deg)`) are our own code.
+
 ## @shadcn/lint and Oxlint
 
 - Used in: repo root dev tooling (`bun run lint:design`, `.oxlintrc.json`): design-system lint

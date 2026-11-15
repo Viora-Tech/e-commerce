@@ -1,0 +1,115 @@
+---
+title: Customer list, segments and bulk edit
+description: Find customers with the tabs and filters, save a filter as a segment (top spenders, repeat buyers, no order in 90 days), use it for a campaign or a discount, and edit many customers at once in a spreadsheet.
+---
+
+# Customer list, segments and bulk edit
+
+## What this is for
+
+**Customers** is everyone who bought from you, made an account or signed up for your messages.
+You use it to find one person quickly, and to pick groups: "people who bought twice in 60 days",
+"big spenders who stopped ordering", "customers in Maharashtra". A saved group is a **segment**.
+You can email a segment, give it a discount, or use it in campaigns and automations.
+
+## The customer list
+
+- The tabs at the top are quick groups: **All customers**, **New**, **Returning** and
+  **Subscribed** (agreed to hear from you).
+- The cards show how many customers you have, how many are repeat customers, and how many can get
+  your emails.
+- Search and filters narrow the list. **Save as segment** keeps the filter you built.
+- Open a customer to see their orders, addresses, store credit, notes and tags. Editing one
+  customer is in [Customers](/merchant-guide/customers/customers).
+
+## Segments
+
+A segment is a saved filter. It is never a fixed list: open it and you see who is in it **right
+now**. A customer who places a second order moves into "Repeat buyers" by themselves.
+
+### Start from a template
+
+**Customers → Segments** shows ready-made segments most stores use. Select **Use template**, change
+the numbers to suit your store, and save:
+
+| Template | Who is in it |
+| --- | --- |
+| **Top spenders** | Spent ₹10,000 or more with you |
+| **Repeat buyers** | Ordered at least twice |
+| **One-time buyers** | Ordered once; a nudge can make them repeat buyers |
+| **Bought in the last 30 days** | Fresh, happy customers |
+| **No order in 90 days** | Customers drifting away; win them back with an offer |
+| **Big spenders slipping away** | Spent ₹5,000 or more but no order in 60 days |
+| **Subscribed to marketing** | Agreed to hear from you, so you can message them |
+| **Business customers** | Saved a GSTIN; send them bulk offers or GST-ready invoices |
+
+### Make your own
+
+<Steps>
+
+### Create
+
+Select **Create segment** and give it a **Segment name**, for example "Repeat buyers in
+Maharashtra".
+
+### Add conditions
+
+Select **Add condition** and pick what to check: **Total spent**, **Order count**, **Average
+order value**, **Days since last order**, **Days since first order**, **Days as a customer**,
+**State**, **City**, **Tag**, **Marketing consent**, **Customer type**, **Bought a product**,
+**Cash on delivery orders**, **Returned to origin (RTO)** or **Abandoned a cart (30 days)**.
+Then a comparison (**is at least**, **is at most**, **is between**, **is**, **includes**, …)
+and a value.
+
+### Match all or any
+
+**Customers must match all conditions** (every rule) or **any condition** (at least one).
+**Matching customers** shows the count live as you change things. With no conditions, every
+customer matches.
+
+### Save and use it
+
+Select **Save segment**. From the segment you can **View customers**, **Email this segment**
+(opens a campaign) or **Create discount for it** (a discount only those customers can use).
+
+</Steps>
+
+<Callout>
+  Messaging a segment only reaches customers who agreed to marketing on that channel. Add
+  "Marketing consent" as a condition to see how many you can actually reach.
+</Callout>
+
+Deleting a segment removes the saved filter only; customers are not affected.
+
+## Edit many customers at once
+
+Tick customers on the list; the bar that appears also has **Add tag**, **Remove tag**, **Email**
+and **More actions** (export, delete). Choose **Bulk edit**, and **Edit
+customers** opens a spreadsheet:
+
+- Click a cell and type. Paste from a spreadsheet, drag the corner to fill down, or press
+  **Ctrl+D** to copy the cell above.
+- **Columns** picks what to show: name, phone, business name, GSTIN, city, state, PIN code (these
+  three edit the default address), tags, note, and **Email marketing**, **WhatsApp marketing**,
+  **SMS marketing**.
+- **Change for all** applies one change to every row: **Add tags**, **Remove tags**, **Replace
+  all tags with**, add to or replace the note, **Subscribe everyone** or **Unsubscribe everyone**.
+- Save when done; **Discard** throws away unsaved changes.
+
+Only subscribe someone to marketing if they agreed to it. Every change is kept in their consent
+history ([Privacy and data requests](/merchant-guide/settings/customer-privacy)).
+
+## Common problems and fixes
+
+| Problem | Fix |
+| --- | --- |
+| A segment shows 0 customers | Loosen one condition, or switch to **any condition**; check the numbers (₹ and days) |
+| "A GSTIN has 15 characters" in bulk edit | Fix the GSTIN in that cell, like 06AAACW1234A1Z5 |
+| A campaign to a segment reached fewer people | Only customers who agreed to that channel get marketing messages |
+
+## Related guides
+
+- [Customers](/merchant-guide/customers/customers)
+- [Campaigns](/merchant-guide/growth/campaigns)
+- [Discounts](/merchant-guide/discounts)
+- [Automations](/merchant-guide/apps/automations)

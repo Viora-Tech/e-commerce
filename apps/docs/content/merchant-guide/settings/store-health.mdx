@@ -1,0 +1,52 @@
+---
+title: Store health
+description: One page that lists setups that will break or hurt checkout and orders - shipping, payments, products and store details - each with a button to fix it.
+---
+
+# Store health
+
+## What this is for
+
+Some mistakes do not show until a shopper is stuck at checkout: no way to pay, a shipping zone
+without a rate, payments still in test mode. **Settings → Store health** checks your store for
+these and lists each problem with a button that takes you straight to the fix. Check it before
+you go live, after a Shopify import, and whenever orders look wrong.
+
+## How it works
+
+The page checks four areas and shows only what needs fixing. When everything is right it says
+**Nothing to fix**.
+
+| Area | Examples of what it finds |
+| --- | --- |
+| **Shipping** | A zone with no rate (checkout skips it); several zones covering the same place; no PIN code to ship from; no courier connected |
+| **Payments** | No way to pay at checkout; only cash on delivery; a payment gateway still in test mode; a gateway whose webhook is not set up |
+| **Products** | Variants priced at ₹0 that shoppers can order for free; products without photos |
+| **Store** | Missing or incomplete policies; order emails sent from our address instead of yours |
+
+Each problem has a button such as **Open zone**, **Add PIN code**, **Browse couriers**, **Set
+up payments**, **Go live**, **Show products** or **Add your email**. After fixing, select **Check
+again**.
+
+The same check runs at the end of a Shopify import (**Store health after this import**), and
+Settings shows a short summary with **See what to fix**.
+
+<Callout>
+  A gateway in test mode takes no real money: orders paid with test keys are hidden as tests.
+  Switch it to Live before you announce your store.
+</Callout>
+
+## Common problems and fixes
+
+| Problem | Fix |
+| --- | --- |
+| "Could not check your store" | Wait a moment and select Check again |
+| A problem stays after I fixed it | Select **Check again**; the page does not refresh by itself |
+
+## Related guides
+
+- [Going live](/merchant-guide/start-here/going-live)
+- [Shipping settings](/merchant-guide/settings/shipping)
+- [Payment settings](/merchant-guide/settings/payments)
+- [Policies](/merchant-guide/settings/policies)
+- [Send emails from your own address](/merchant-guide/settings/sender-email)

@@ -1,0 +1,41 @@
+---
+title: Glossary
+description: The words used across the code and these docs, in one place, with where each lives.
+---
+
+# Glossary
+
+Shop words (AWB, NDR, RTO, GSTIN, HSN) are explained for merchants in the
+[merchant glossary](/merchant-guide/help/glossary). These are the platform's own words.
+
+| Word | Meaning | Where |
+| --- | --- | --- |
+| **Store** | One merchant's shop; a tenant. One `store` row, one Better Auth organisation | `packages/db/src/schema.ts` |
+| **Member, role, permission** | A person on a store's team, the set of permissions they have, and one permission such as `orders.refund` | `@commerce/core/permissions` |
+| **Needs approval** | A tick on a role's permission: that member's changes wait for an approver | `role_approval` |
+| **RLS** | Postgres row-level security; the `store_isolation` policy shows a transaction only its store's rows | every `store_id` table |
+| **`withStore`** | Opens a transaction with `app.store_id` set | `packages/db/src/with-store.ts` |
+| **SECURITY DEFINER function** | A database function that may look across stores and returns ids only | `packages/db/src/resolve-store.ts` |
+| **App / plugin** | A package with a `definePlugin` manifest that a store installs | `packages/plugins` |
+| **builtin / connection** | An app that is our own feature, or one that needs another company's account | manifest `kind` |
+| **Provider, factory, registry** | An implementation of a contract (a courier), the thing that builds it from a store's settings, and the set of factories for one contract | `packages/{payments,shipping,notifications,storage}` |
+| **Hook** | An app function run on an event such as `order.paid` | manifest `hooks` |
+| **Outbox** | Events written in the same transaction as the change, sent by the worker afterwards | `outbox_event`, `packages/core/src/outbox` |
+| **Relay** | The worker job that reads the outbox every 5 seconds and fans events out | `{outbox}-relay` |
+| **Sweep (worker)** | A scheduled job that walks every store with work | `{system}-sweeps` |
+| **Sweep (guardrail)** | A test that reads the source tree and enforces a rule | `scripts/sweeps/` |
+| **Saga / workflow / compensate** | Steps run in order, each with an undo run in reverse on failure | `runWorkflow`, `packages/core/src/workflow` |
+| **Parcel** | One order's goods from one location under one GSTIN | `fulfillment_order` |
+| **Shared parcel** | An order packed in another order's box, under its AWB | `shipment_shared_order` |
+| **Paise** | Money as an integer, 1/100 of a rupee | `*_paise` columns |
+| **Store version** | A counter bumped on every write to a store's page data; part of every storefront cache key | `storefront_cache` channel |
+| **Edge cache, purge** | Cloudflare keeping store pages; the worker telling it to drop a store's pages | `lib/edge-cache.ts`, `edge-purge.ts` |
+| **Native theme / imported theme** | A theme made of our sections (Puck) / a Shopify Liquid theme | `theme_template` / `theme_file` |
+| **Section, block, app block** | A band of a page, a part inside it, a block an app adds | `packages/blocks`, manifest `storefront.blocks` |
+| **Puck** | The open-source page editor (MIT) behind Customize for native themes | `packages/blocks` (sections and config) |
+| **Proposal** | A change the AI suggests, stored until a person approves it | `ai_action` |
+| **MCP** | Model Context Protocol: how outside AI apps call the store's tools | `packages/api/src/mcp` |
+| **Market, catalog** | A country or region with its own currency and language; the products and prices it sells | `market`, `catalog` |
+| **Rollout** | A scheduled change (a new theme, checkout look, discounts) that goes live on its own, or an A/B test of one | `rollout` |
+| **Handoff note** | The file each PR adds to say what changed | `docs/handoff/changes/` |
+| **dev / main** | The branch every PR goes into / the branch production runs | [Deploy and operations](/developer-docs/how-it-works/deploy-and-operations) |

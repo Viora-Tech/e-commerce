@@ -2,6 +2,13 @@
 
 No secrets here: names, sizes and ids only. Env values live in Dokploy and are pasted by the owner.
 
+**Update 15 Nov 2026 (owner):** production apps now run on an **AWS Lightsail** server in Mumbai
+(4 GB / 2 vCPU), named **LightSail** in Dokploy. Images come from ECR
+(`924422830513.dkr.ecr.ap-south-1.amazonaws.com/vextro/<app>:<sha>`), built locally or on
+CodeBuild; the worker applies migrations when it starts. The `vextro-app` (EC2) rows below record
+the earlier layout; services, limits and env work the same way. Current runbook:
+`apps/docs/content/developer-docs/operations/deployment.mdx`.
+
 ## Servers
 
 | Server | Where | Size | Runs |

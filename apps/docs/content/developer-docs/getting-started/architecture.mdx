@@ -4,17 +4,16 @@ title: Architecture
 
 # Architecture
 
-How the platform is built today, what keeps it multi-tenant, and the order in
-which we grow it toward Shopify/Medusa-class scale. Sections 2–4 describe
-**what exists**; section 5 is the **roadmap**. Nothing in section 5 is built
-unless it says so.
+How the platform is built today and what keeps it multi-tenant. Sections 2–4 describe
+**what exists**; section 5 points to what comes next. For a guided tour with diagrams start at
+[How Koomerce works](/developer-docs/how-it-works/overview).
 
 ## 1. Goals
 
 - **Indian D2C SaaS.** Many stores per deployment: INR, GST, UPI/COD, Delhivery,
   WhatsApp. Waimers is store #1, not a special case in code.
-- **Cheapest viable infra.** One Postgres, one Dragonfly, three containers on
-  ECS behind Cloudflare's free tier. Every design choice must still hold when
+- **Cheapest viable infra.** One Postgres, one Dragonfly and the three apps on
+  one server (Dokploy) behind Cloudflare. Every design choice must still hold when
   that becomes several Postgres clusters.
 - **Plugin-first.** Gateways, couriers and channels are packages behind a
   contract, installed per store from Admin → Apps. The platform never imports
@@ -55,7 +54,7 @@ flowchart LR
 | Storefront | `apps/storefront` | Host → store via `proxy.ts` rewrite to `/-s/<storeId>/…`; server actions for cart/checkout; Puck-rendered pages from `@commerce/blocks`. |
 | Admin | `apps/admin` | Better Auth (email OTP + organisations; one org = one store); oRPC router in `packages/api`; Puck editor; Lexical editor. |
 | Worker | `apps/worker` | Payment webhooks, notification delivery, shipment tracking poll, heartbeat. |
-| Data | `packages/db` | Drizzle schema, 23 migrations (`0000`–`0022`), `withStore`, SECURITY DEFINER lookups. |
+| Data | `packages/db` | Drizzle schema, migrations in `drizzle/` (234 files to `0249` on 15 Nov 2026), `withStore`, SECURITY DEFINER lookups. |
 | Domain | `packages/core` | Workflows, settings + encrypted secrets, catalog, cart, order, payments/shipping/notifications glue, plugin registries. |
 | Contracts | `packages/{payments,shipping,notifications}` | Provider interfaces, registries, conformance suites. |
 | AI | `packages/ai` | One interface over the Vercel AI SDK, a platform gateway key (Vercel AI Gateway or OpenRouter), per-store quotas and metering; see [AI engine](/developer-docs/building/ai-engine). |
@@ -187,7 +186,7 @@ flowchart LR
 - Webhooks are deduplicated by `(store_id, provider, event_id)` in
   `payment_event`.
 
-**Sharding-readiness rules** (keep these true so section 5h stays possible)
+**Sharding-readiness rules** (keep these true so a pod split stays possible, section 5)
 
 1. No query joins across stores. If you need it, it is a SECURITY DEFINER
    function that returns ids, run outside `withStore`.
@@ -286,106 +285,17 @@ What is **not** modular yet: catalog, cart, orders and settings live in
 `packages/core` and share tables directly. That is fine for one team; the
 seams to cut later are the service files under `packages/core/src/<domain>`.
 
-## 5. Scale roadmap
+## 5. What comes next
 
-Ordered by leverage and dependency. Effort: S ≤ 2 days, M ≤ 1 week, L > 1 week.
+The scale roadmap that used to be here was written as a plan in September 2026; most of it is
+built now (the outbox, read caching with invalidation and the Cloudflare edge cache, rate limits
+and per-store queue caps, search, error tracking). What runs today is described in
+[How Koomerce works](/developer-docs/how-it-works/overview); what is planned next is in
+`docs/roadmap.md`.
 
-### a. Domain events + transactional outbox — **M, first**
-
-- *They do:* Medusa emits events from modules and delivers them through the
-  Event Module to subscribers ([docs](https://docs.medusajs.com/learn/fundamentals/events-and-subscribers)).
-  Shopify delivers webhooks at-least-once with retries and signs them.
-- *We have:* direct enqueues after `placeOrder`, in the webhook path and on
-  admin status changes (`packages/core/src/notifications/enqueue.ts`).
-- *Change:* `domain_event` table (store_id, type, payload, created_at,
-  published_at) written **in the same transaction** as the state change; a
-  worker relay publishes to BullMQ; subscribers (notifications, search
-  indexing, outbound webhooks) consume by type. Removes the "we committed but
-  the enqueue failed" gap and gives every later item one hook.
-
-### b. Read caching with tag invalidation — **S**
-
-- *They do:* Shopify caches storefront reads aggressively at the edge; Medusa
-  ships a Cache Module.
-- *We have:* Dragonfly cache helpers in `@commerce/queue` (serviceability, 24h).
-- *Change:* cache product/collection/page reads per store in Dragonfly keyed
-  `store:<id>:<kind>:<key>` with tags; Next `revalidateTag('store:<id>:product:<handle>')`
-  from admin mutations via the event bus (a). Cloudflare page cache for
-  anonymous HTML with `Cache-Tag` headers once the event bus exists.
-
-### c. Idempotency keys — **S**
-
-- *They do:* Shopify and Stripe accept `Idempotency-Key` on mutating calls.
-- *We have:* webhook dedupe only.
-- *Change:* `idempotency_key` table (store_id, key, request_hash, response);
-  `checkoutAction`/`placeOrder` and admin create/update procedures take a key
-  from the client (generated per form submit) and return the stored response
-  on replay. Prevents double orders on flaky mobile networks.
-
-### d. Rate limiting and per-store quotas — **S**
-
-- *They do:* Shopify's leaky bucket per app/shop ([docs](https://shopify.dev/docs/api/usage/rate-limits)).
-- *We have:* a Dragonfly sliding-window limiter on OTPs, checkout, webhooks and the heavy
-  admin actions (per store), and per-store worker caps (section 3, "Noisy neighbours").
-- *Change:* Cloudflare WAF rate rules on `/checkout`, `/api/rpc`, `/webhooks`;
-  in-app token bucket in Dragonfly keyed by store + IP for server actions and
-  oRPC, returning 429 with `Retry-After`. Quotas per plan later.
-
-### e. Search module — **M**
-
-- *We have:* none (product page by handle only).
-- *Change:* Postgres FTS (`tsvector` column on product, GIN index, per-store)
-  behind a `SearchProvider` contract; Meilisearch as a plugin later using the
-  same contract, indexed from events (a). Filters/sort for collections come
-  with it.
-
-### f. Observability — **S**
-
-- *We have:* console logs, `/health` on the worker.
-- *Change:* structured JSON logs with `store_id`, `request_id`, `user_id`
-  bound in `AsyncLocalStorage`; OpenTelemetry traces from Next + Hono to a
-  cheap backend (Grafana Cloud free tier); BullMQ queue depth/failure metrics;
-  error tracking (Sentry). Required before real merchants.
-
-### g. Versioned Storefront API — **M, later**
-
-- *They do:* Shopify's Storefront API is versioned quarterly
-  ([docs](https://shopify.dev/docs/api/usage/versioning)).
-- *We have:* server actions + oRPC used only by our own apps.
-- *Change:* expose a public, read-mostly `/api/storefront/v1` (oRPC with
-  OpenAPI) once third parties (headless themes, mobile apps) need it. Keep
-  contracts additive within a version; date-stamped versions like Shopify.
-
-### h. Database growth path — **L, staged**
-
-- *They do:* Shopify runs **pods** — fully isolated datastores for a set of
-  shops, with shared stateless app servers that talk to one pod per request
-  and a router ("Sorting Hat") that picks the pod
-  ([engineering post](https://shopify.engineering/a-pods-architecture-to-allow-shopify-to-scale)).
-- *We have:* one Postgres; the section 3 rules already make every tenant
-  query pod-shaped.
-- *Stages:*
-  1. Connection pooling (PgBouncer/RDS Proxy) and read replicas for admin
-     reports; `withStore` gains a `readOnly` flag that routes to a replica.
-  2. Partition the hottest tables (`order`, `order_line`, `payment_event`,
-     `notification`) by `store_id` hash — invisible to code.
-  3. **Pods:** `store.pod` column in the global database; `resolve_store`
-     returns `{ id, pod }`; a `dbForPod(pod)` factory replaces the single
-     `db` import; the worker and admin resolve the pod before `withStore`.
-     Moving a store = copy rows by `store_id`, flip `store.pod`, drop old rows.
-- *Must stay true in code:* rules 1–5 in section 3; no cross-store joins; no
-  global sequences; migrations must be runnable per pod.
-
-### i. Media and CDN — **S**
-
-- *We have:* media table with external URLs (imported from Shopify CDN).
-- *Change:* uploads to Cloudflare R2 via presigned URLs from admin; Cloudflare
-  Images (or `next/image` with a custom loader) for resizing; `media.key` +
-  store-prefixed paths so a store's assets can be moved with its pod.
-
-Recommended order: **a → f → c → b → d → i → e → h → g**. Events first because
-caching, search, outbound webhooks and audit all hang off them; observability
-second because every later item needs measuring.
+One idea from it still shapes the code: if one database ever stops being enough, groups of stores
+move to their own database (a **pod**, as Shopify does), chosen per store by a `store.pod` column.
+The sharding-readiness rules in section 3 keep that possible.
 
 ## 6. Non-goals for now
 
@@ -395,7 +305,7 @@ second because every later item needs measuring.
 - Multi-region. India first; Cloudflare handles the edge.
 - Runtime plugin installation without a deploy (marketplace). Plugins are
   npm packages listed in `commerce.config.ts`; per-store install is a flag.
-- Per-tenant databases from day one. RLS in one database until section 5h.
+- Per-tenant databases from day one. RLS in one database until a pod split is needed (section 5).
 
 ## 7. Glossary
 
@@ -414,5 +324,6 @@ second because every later item needs measuring.
 - **Registry** — the set of factories for one contract, filtered per store by
   installed apps.
 - **Outbox** — events written in the same transaction as the change and
-  relayed asynchronously (planned, 5a).
-- **Pod** — a fully isolated datastore for a group of stores (planned, 5h).
+  relayed asynchronously by the worker (`outbox_event`, built; see
+  [Worker and jobs](/developer-docs/how-it-works/worker-and-jobs)).
+- **Pod** — a fully isolated datastore for a group of stores (an idea, not built; section 5).
