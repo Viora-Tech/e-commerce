@@ -175,6 +175,7 @@
         "@types/react-dom": "^19.2.3",
         "pagefind": "^1.4.0",
         "roughjs": "4.6.6",
+        "sharp": "^0.35.5",
         "tailwindcss": "^4.3.3",
         "typescript": "~5.9.3",
         "wrangler": "4.151.1",

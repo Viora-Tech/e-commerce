@@ -99,10 +99,16 @@ function placedAt(dayOffset: number, r: () => number): Date {
   return ahead > 0 ? new Date(now - (ahead % (3 * 60 * 60_000)) - 60_000) : d
 }
 
-export async function seedDemoOrders(ownerUrl: string, opts: { clean?: boolean } = {}) {
+export async function seedDemoOrders(
+  ownerUrl: string,
+  opts: { clean?: boolean; storeSlug?: string } = {},
+) {
   const db = createDb(ownerUrl)
   try {
-    const [s] = await db.select().from(store).where(eq(store.slug, 'waimers'))
+    const [s] = await db
+      .select()
+      .from(store)
+      .where(eq(store.slug, opts.storeSlug ?? 'waimers'))
     if (!s) throw new Error('seed the store first (bun run db:seed)')
     const storeId = s.id
 
