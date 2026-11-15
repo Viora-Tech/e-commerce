@@ -37,18 +37,29 @@ export function useCodeBuffers(themeId: string) {
   const [publishing, setPublishing] = useState(false)
   /** Files the last Publish put live, until the page is left. */
   const [justPublished, setJustPublished] = useState<ReadonlySet<string>>(new Set())
+  /** Customize's unsaved templates: Publish here puts them live too. */
+  const [customizeDrafts, setCustomizeDrafts] = useState(0)
+
+  const loadCounts = () =>
+    api.themes.code.counts({ themeId }).then(
+      (c) => setCustomizeDrafts(c.templates),
+      () => undefined,
+    )
 
   const loadList = async () => {
     setListFailed(false)
     try {
       setList(await api.themes.code.files({ themeId }))
+      void loadCounts()
     } catch {
       setListFailed(true)
     }
   }
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `loadCounts` only reads `themeId`.
   useEffect(() => {
     let current = true
+    void loadCounts()
     api.themes.code
       .files({ themeId })
       .then((l) => {
@@ -129,15 +140,18 @@ export function useCodeBuffers(themeId: string) {
     }
   }
 
-  /** Imported themes: puts every unpublished save live together. */
+  /** Imported themes: puts every unpublished save live together, with Customize's drafts. */
   const publish = async () => {
     setPublishing(true)
     try {
       const changed = list?.files.filter((f) => f.draft) ?? []
-      const { published } = await api.themes.code.publish({ themeId })
+      const { published, saved } = await api.themes.code.publishAll({ themeId })
       const { names, more } = unpublishedNames(changed)
-      toast.success(copy.drafts.published(published), {
-        description: more ? copy.drafts.moreFiles(names, more) : names,
+      const files = more ? copy.drafts.moreFiles(names, more) : names
+      toast.success(copy.drafts.publishedAll(published, saved), {
+        description: saved
+          ? [files, copy.drafts.customizeSaved(saved)].filter(Boolean).join(' ')
+          : files,
       })
       setJustPublished(new Set(changed.map((f) => f.path)))
       await loadList()
@@ -173,6 +187,7 @@ export function useCodeBuffers(themeId: string) {
     saving,
     publishing,
     justPublished,
+    customizeDrafts,
     loadList,
     open,
     edit,

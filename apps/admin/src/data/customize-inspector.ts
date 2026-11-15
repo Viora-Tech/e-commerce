@@ -37,6 +37,11 @@ export const inspectorContent = {
     leftoverTitle: 'You have changes from your last visit',
     leftoverBody: 'They are not on your store yet. Keep editing and save, or discard them.',
     saveLiveHint: 'Saving puts your changes on your live store.',
+    /** An imported theme with files saved in Edit code but not published: Save publishes them. */
+    codeDrafts: (n: number) =>
+      `Save also publishes ${n === 1 ? '1 file' : `${n} files`} saved in Edit code, so one step puts everything live.`,
+    codePublished: (n: number) =>
+      n === 1 ? '1 file from Edit code published too.' : `${n} files from Edit code published too.`,
     upToDate: 'All changes saved',
     draftFailed: 'Could not keep your draft. Check your connection.',
     discard: 'Discard',

@@ -30,6 +30,8 @@ type CodeTopBarProps = {
   previewHref: string
   /** Imported themes: files saved but not published yet. */
   drafts: number
+  /** Customize's unsaved templates for this theme: Publish here puts them live too. */
+  customizeDrafts: number
   publishing: boolean
   onBack: () => void
   onUndo: () => void
@@ -58,6 +60,7 @@ export default function CodeTopBar({
   versionsOpen,
   previewHref,
   drafts,
+  customizeDrafts,
   publishing,
   onBack,
   onUndo,
@@ -70,6 +73,8 @@ export default function CodeTopBar({
   const copy = useCopy(themeCodeContent)
 
   // Render logic
+  // Only imported themes keep code drafts; Customize's drafts count there too (one Publish).
+  const pending = imported && (drafts > 0 || customizeDrafts > 0)
   const state = problems ? (
     <span className="flex items-center gap-1.5 text-body text-destructive">
       <CircleAlert aria-hidden className="size-4" />
@@ -139,30 +144,43 @@ export default function CodeTopBar({
         </Button>
         <Button
           loading={saving}
-          variant={drafts ? 'outline' : 'default'}
+          variant={pending ? 'outline' : 'default'}
           onClick={onSave}
           disabled={!canSave || saving}
         >
           <Save aria-hidden="true" />
           {copy.save}
         </Button>
-        {drafts ? (
+        {pending ? (
           <>
-            <span
-              className="hidden items-center gap-1.5 text-body text-warning xl:flex"
-              title={copy.drafts.help}
-            >
-              <span aria-hidden className="size-1.5 rounded-full bg-warning" />
-              {copy.drafts.count(drafts)}
-            </span>
-            <Button variant="ghost" onClick={onDiscard} disabled={publishing}>
-              {copy.drafts.discard}
-            </Button>
+            {drafts ? (
+              <span
+                className="hidden items-center gap-1.5 text-body text-warning xl:flex"
+                title={copy.drafts.help}
+              >
+                <span aria-hidden className="size-1.5 rounded-full bg-warning" />
+                {copy.drafts.count(drafts)}
+              </span>
+            ) : null}
+            {customizeDrafts ? (
+              <span
+                className="hidden items-center gap-1.5 text-body text-warning xl:flex"
+                title={copy.drafts.customizeHelp}
+              >
+                <span aria-hidden className="size-1.5 rounded-full bg-warning" />
+                {copy.drafts.customizeCount(customizeDrafts)}
+              </span>
+            ) : null}
+            {drafts ? (
+              <Button variant="ghost" onClick={onDiscard} disabled={publishing}>
+                {copy.drafts.discard}
+              </Button>
+            ) : null}
             <Button
               loading={publishing}
               onClick={onPublish}
               disabled={publishing}
-              title={copy.drafts.help}
+              title={customizeDrafts ? copy.drafts.customizeHelp : copy.drafts.help}
             >
               <Globe aria-hidden="true" />
               {copy.drafts.publish}
