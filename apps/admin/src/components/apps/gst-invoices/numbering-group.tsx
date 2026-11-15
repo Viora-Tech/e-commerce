@@ -26,6 +26,12 @@ const RULE_OPTIONS = SERIES_RULES.map((r) => ({ value: r, label: copy.rules[r] }
 const PADS = [3, 4, 5, 6].map((n) => ({ value: String(n), label: String(n) }))
 const HSN_DIGITS = [4, 6, 8].map((n) => ({ value: String(n), label: String(n) }))
 
+/** The previous system's last number for this financial year; blank clears it. */
+function carriedFrom(value: string, fyStartYear: number): Series['carriedFrom'] {
+  const last = value.trim().toUpperCase()
+  return last ? { last, fyStartYear } : undefined
+}
+
 /** What each saved series prints next; a series missing from it is not saved yet. */
 function loadNext(set: (next: Record<string, string>) => void) {
   api.gstInvoices
@@ -126,6 +132,15 @@ export default function NumberingGroup({ settings, onChange, errors }: GroupProp
                 <Trash2 />
               </Button>
             </div>
+            <TextField
+              id={`series-previous-${s.id}`}
+              label={copy.previous}
+              help={copy.previousHelp}
+              value={s.carriedFrom?.fyStartYear === fy.startYear ? s.carriedFrom.last : ''}
+              maxLength={20}
+              onChange={(v) => patch(i, { carriedFrom: carriedFrom(v, fy.startYear) })}
+              error={errors[`series.${i}.carriedFrom.last`]}
+            />
             <div className="flex flex-wrap items-end justify-between gap-2">
               <SeriesNextField
                 seriesId={s.id}

@@ -18,6 +18,18 @@ type AllowEntry = { file: string; names: string[]; reason: string }
 
 const ALLOWLIST: AllowEntry[] = [
   {
+    file: 'packages/plugin-gst-invoices/src/sales-register-xlsx.ts',
+    names: [
+      'GOODS_HEADERS',
+      'SERVICE_HEADERS',
+      'INTERNATIONAL_HEADERS',
+      'CREDIT_NOTE_HEADERS',
+      'SUMMARY_HEADERS',
+    ],
+    reason:
+      'the CA sales register headers, used in the module and asserted directly by sales-register.test.ts',
+  },
+  {
     file: 'packages/core/src/catalog/search-words.ts',
     names: ['VOCABULARY_MAX_ENTRIES', 'searchVocabulary', 'clearSearchVocabularies'],
     reason:

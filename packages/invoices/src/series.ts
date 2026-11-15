@@ -68,6 +68,17 @@ export const SeriesSchema = z.object({
    * stay unique within a financial year, as rule 46(b) asks.
    */
   resetEachYear: z.boolean().optional(),
+  /**
+   * The last number the store's previous billing system issued in this series' place during
+   * financial year `fyStartYear`, e.g. `VI/EXP/26-27/001`. Only printed (the sales register's
+   * numbering note); the counter itself is moved with "Next number".
+   */
+  carriedFrom: z
+    .object({
+      last: z.string().trim().toUpperCase().min(1).max(20),
+      fyStartYear: z.number().int().min(2017).max(2100),
+    })
+    .optional(),
 })
 export type Series = z.infer<typeof SeriesSchema>
 

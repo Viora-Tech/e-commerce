@@ -14,20 +14,22 @@
     "typecheck": "bun ../../scripts/typecheck.ts"
   },
   "dependencies": {
-    "@commerce/dates": "workspace:*",
     "@commerce/core": "workspace:*",
+    "@commerce/dates": "workspace:*",
     "@commerce/db": "workspace:*",
     "@commerce/invoices": "workspace:*",
     "@commerce/notifications": "workspace:*",
     "@commerce/plugins": "workspace:*",
     "@commerce/storage": "workspace:*",
     "drizzle-orm": "^0.45.2",
+    "write-excel-file": "4.1.1",
     "zod": "^4.6.7"
   },
   "devDependencies": {
     "@commerce/config": "workspace:*",
     "@types/node": "^22.20.4",
     "dotenv": "^18.0.1",
+    "fflate": "^0.8.3",
     "typescript": "~5.9.3",
     "vitest": "^4.1.11"
   }

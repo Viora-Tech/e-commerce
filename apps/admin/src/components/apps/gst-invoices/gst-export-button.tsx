@@ -14,7 +14,8 @@ import { saveFile } from './save-file'
 /**
  * The app bar's "Export GSTR-1" (Figma 928:10728): the portal JSON (Returns › GSTR-1 › Prepare
  * offline › Upload) for last month, the one due for filing, or this month so far, for the main
- * GST number. Other GST numbers and months, the CSVs and GSTR-3B stay on the Returns tab.
+ * GST number, and the CA's sales register (Excel) for the same months. Other GST numbers and
+ * months, the CSVs and GSTR-3B stay on the Returns tab.
  */
 export default function GstExportButton() {
   // Hooks
@@ -22,10 +23,13 @@ export default function GstExportButton() {
   const [busy, setBusy] = useState(false)
 
   // Event handlers
-  const handleExport = async (period: string) => {
+  const handleExport = async (period: string, kind: 'gstr1' | 'register' = 'gstr1') => {
     setBusy(true)
     try {
-      const file = await api.gstInvoices.returns.gstr1Json({ period })
+      const file =
+        kind === 'register'
+          ? await api.gstInvoices.returns.salesRegister({ period })
+          : await api.gstInvoices.returns.gstr1Json({ period })
       saveFile(file)
     } catch (err) {
       toast.error(err instanceof Error && err.message ? err.message : copy.failed)
@@ -53,6 +57,17 @@ export default function GstExportButton() {
           label: copy.thisMonth(monthLabel(thisMonth)),
           icon: Download,
           onSelect: () => handleExport(thisMonth),
+        },
+        {
+          label: copy.register(monthLabel(lastMonth)),
+          icon: Download,
+          onSelect: () => handleExport(lastMonth, 'register'),
+          separatorBefore: true,
+        },
+        {
+          label: copy.register(monthLabel(thisMonth)),
+          icon: Download,
+          onSelect: () => handleExport(thisMonth, 'register'),
         },
         {
           label: copy.returns,
