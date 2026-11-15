@@ -70,13 +70,17 @@ export async function storeSender(tx: StoreTx, storeId: string): Promise<StoreSe
     .select({ name: store.name, address: store.address })
     .from(store)
     .where(eq(store.id, storeId))
-  const a = StoreAddressSchema.safeParse(s?.address ?? {})
-  const address = a.success
-    ? [a.data.line1, a.data.line2, a.data.city, a.data.state, a.data.pincode]
-        .filter(Boolean)
-        .join(', ')
-    : ''
-  return { storeName: s?.name ?? '', storeAddress: address || undefined }
+  return { storeName: s?.name ?? '', storeAddress: emailFooterAddress(s?.address) }
+}
+
+/** The store address one line long for email footers, or undefined when it is empty or switched off. */
+function emailFooterAddress(raw: unknown): string | undefined {
+  const a = StoreAddressSchema.safeParse(raw ?? {})
+  if (!a.success || a.data.showInEmails === false) return undefined
+  const line = [a.data.line1, a.data.line2, a.data.city, a.data.state, a.data.pincode]
+    .filter(Boolean)
+    .join(', ')
+  return line || undefined
 }
 
 /** First name for `{first_name}`; "there" reads naturally in "Hi there". */

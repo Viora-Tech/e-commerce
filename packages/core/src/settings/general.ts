@@ -17,6 +17,8 @@ export const StoreAddressSchema = z.object({
     .refine((v) => v === '' || /^[1-9][0-9]{5}$/.test(v), 'PIN code should be 6 digits')
     .default(''),
   country: z.string().trim().max(2).default('IN'),
+  /** False keeps the address out of every email footer (order emails and campaigns); invoices still print it. */
+  showInEmails: z.boolean().optional(),
 })
 
 export type StoreAddress = z.infer<typeof StoreAddressSchema>
