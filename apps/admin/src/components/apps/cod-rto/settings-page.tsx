@@ -1,15 +1,19 @@
 'use client'
 
 import type { CodRtoSettings } from '@commerce/core/cod-rto'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { toast } from 'sonner'
+import LoadFailedState from '@/components/apps/shared/load-failed-state'
 import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
+import SectionPageSkeleton from '@/components/layout/section-page-skeleton'
 import ChoiceList from '@/components/returns/choice-list'
 import SettingsCard from '@/components/settings/settings-card'
 import SettingsToggleRow from '@/components/settings/settings-toggle-row'
+import { appsContent } from '@/data/apps'
 import { codRtoContent } from '@/data/cod-rto'
 import { useCopy } from '@/hooks/use-copy'
+import { useLoad } from '@/hooks/use-load'
 import { api } from '@/lib/api-client'
 import NumberRow from './number-row'
 
@@ -23,16 +27,16 @@ const RUPEE = 100
 export default function SettingsPage() {
   // Hooks
   const copy = useCopy(codRtoContent)
+  const apps = useCopy(appsContent)
   const [form, setForm] = useState<CodRtoSettings | null>(null)
   const [saved, setSaved] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
-
-  useEffect(() => {
-    api.codRto.settings.get().then((s) => {
-      setForm(s)
-      setSaved(JSON.stringify(s))
-    })
-  }, [])
+  const { failed, retry } = useLoad(async () => {
+    const s = await api.codRto.settings.get()
+    setForm(s)
+    setSaved(JSON.stringify(s))
+    return s
+  })
 
   // Helpers
   const setV = (p: Partial<Verification>) =>
@@ -70,7 +74,28 @@ export default function SettingsPage() {
   }
 
   // Early returns
-  if (!form) return null
+  if (!form && failed) {
+    return (
+      <div className="flex flex-col gap-4">
+        <PageHeader title={copy.settings.title} summary={copy.settings.subtitle} />
+        <LoadFailedState
+          size="page"
+          heading={apps.couldNotLoad.settings}
+          failed={failed}
+          onRetry={retry}
+        />
+      </div>
+    )
+  }
+  if (!form) {
+    return (
+      <SectionPageSkeleton
+        cards={3}
+        title={copy.settings.title}
+        subtitle={copy.settings.subtitle}
+      />
+    )
+  }
 
   // Render logic
   const s = copy.settings

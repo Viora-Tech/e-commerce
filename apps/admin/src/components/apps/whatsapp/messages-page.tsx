@@ -10,6 +10,7 @@ import StatusChip from '@/components/layout/status-chip'
 import type { ChipTone } from '@/components/status/tone'
 import ResourceTable, { type ResourceColumnSpec } from '@/components/table/resource-table'
 import ViewSelect from '@/components/table/view-select'
+import { appsContent } from '@/data/apps'
 import { notificationsSettingsContent } from '@/data/notifications'
 import { whatsappAppContent } from '@/data/whatsapp-app'
 import { useCopy } from '@/hooks/use-copy'
@@ -29,6 +30,7 @@ const TONE: Record<string, ChipTone> = { sent: 'success', failed: 'danger', queu
 export default function WhatsappMessagesPage() {
   // Hooks
   const appCopy = useCopy(whatsappAppContent)
+  const apps = useCopy(appsContent)
   const settingsCopy = useCopy(notificationsSettingsContent)
   const [status, setStatus] = useState<Status>(null)
   const [rows, setRows] = useState<Row[] | null>(null)
@@ -37,10 +39,15 @@ export default function WhatsappMessagesPage() {
   const [page, setPage] = useState(1)
   const [perPage, setPerPage] = useState<number>(siteConfig.ui.rowsPerPage.default)
   const [loadingMore, setLoadingMore] = useState(false)
+  /** The messages read failed: the table says so with Try again. */
+  const [failed, setFailed] = useState(false)
+  const [attempt, setAttempt] = useState(0)
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `attempt` is Try again
   useEffect(() => {
     let live = true
     setRows(null)
+    setFailed(false)
     api.platformApps
       .whatsappMessages(status ? { status } : {})
       .then((r) => {
@@ -48,11 +55,11 @@ export default function WhatsappMessagesPage() {
         setRows(r.rows)
         setNext(r.next)
       })
-      .catch((err: unknown) => toast.error(err instanceof Error ? err.message : String(err)))
+      .catch(() => live && setFailed(true))
     return () => {
       live = false
     }
-  }, [status])
+  }, [status, attempt])
 
   // Helpers
   const labelOf = (id: string) =>
@@ -165,7 +172,12 @@ export default function WhatsappMessagesPage() {
         getId={(r) => r.id}
         href={(r) => (r.orderId ? routes.orders.detail(r.orderId) : '')}
         selectable={false}
-        loading={rows === null}
+        loading={rows === null && !failed}
+        error={
+          failed
+            ? { heading: apps.couldNotLoad.messages, onRetry: () => setAttempt((n) => n + 1) }
+            : undefined
+        }
         query={query}
         onQueryChange={handleQuery}
         views={
@@ -189,7 +201,7 @@ export default function WhatsappMessagesPage() {
       />
       {next ? (
         <div className="flex justify-center">
-          <Button variant="outline" onClick={handleMore} disabled={loadingMore}>
+          <Button variant="outline" onClick={handleMore} loading={loadingMore}>
             {copy.more}
           </Button>
         </div>

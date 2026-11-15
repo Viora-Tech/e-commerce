@@ -5,8 +5,11 @@ import { cn } from '@commerce/ui/lib/utils'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import AppStoreLink from '@/components/apps/app-store-link'
+import LoadFailedState from '@/components/apps/shared/load-failed-state'
 import SectionHead from '@/components/layout/section-head'
+import SectionPageSkeleton from '@/components/layout/section-page-skeleton'
 import SimpleTable from '@/components/table/simple-table'
+import { appsContent } from '@/data/apps'
 import { deliveryOptionsContent } from '@/data/delivery-options'
 import { deliveryPagesContent } from '@/data/delivery-options-pages'
 import { useCopy } from '@/hooks/use-copy'
@@ -41,9 +44,10 @@ const COLUMNS = [
  */
 export default function DeliveryRoutesPage() {
   // Hooks
+  const apps = useCopy(appsContent)
   const copy = useCopy(deliveryOptionsContent)
   const pages = useCopy(deliveryPagesContent)
-  const { overview, reload } = useDeliveryOverview()
+  const { overview, failed: overviewFailed, reload } = useDeliveryOverview()
   const { catalogue, loading, reload: reloadRoutes } = useRouteCatalogue()
   const [filter, setFilter] = useState<Filter>('all')
   const [target, setTarget] = useState<RouteSettingTarget | null>(null)
@@ -72,7 +76,10 @@ export default function DeliveryRoutesPage() {
   }
 
   // Early returns
-  if (!overview) return null
+  if (!overview && overviewFailed) {
+    return <LoadFailedState size="page" heading={apps.couldNotLoad.settings} onRetry={reload} />
+  }
+  if (!overview) return <SectionPageSkeleton cards={2} />
 
   // Render logic
   const t = pages.routeTable

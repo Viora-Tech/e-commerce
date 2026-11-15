@@ -4,16 +4,23 @@ import { Download, Printer, RefreshCw, Save } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { toast } from 'sonner'
 import type { AppPageProps } from '@/apps/registry'
+import LoadFailedState from '@/components/apps/shared/load-failed-state'
 import CopyButton from '@/components/fields/copy-button'
 import DateField from '@/components/fields/date-field'
+import BackLink from '@/components/layout/back-link'
+import DataCard from '@/components/layout/data-card'
+import DataCardSkeleton from '@/components/layout/data-card-skeleton'
 import PageHeader from '@/components/layout/page-header'
+import PageHeaderSkeleton from '@/components/layout/page-header-skeleton'
 import OrderChip from '@/components/orders/order-chip'
-import SettingsCard from '@/components/settings/settings-card'
+import { appsContent } from '@/data/apps'
 import { gstInvoiceRefreshContent as refreshCopy } from '@/data/gst-invoice-refresh'
 import { gstInvoicesContent } from '@/data/gst-invoices'
+import { useCopy } from '@/hooks/use-copy'
+import { useLoad } from '@/hooks/use-load'
 import { api } from '@/lib/api-client'
 import { formatDay } from '@/lib/format-date'
 import { formatPaise } from '@/lib/money'
@@ -46,17 +53,20 @@ const shippingOf = (doc: Doc): Shipping => ({
 /** One issued document: its facts, the PDF, export details and cancellation. */
 export default function InvoiceDetail({ params }: AppPageProps) {
   // Hooks
-  const [doc, setDoc] = useState<Doc | null>(null)
-  const [reason, setReason] = useState('')
+  const apps = useCopy(appsContent)
   const [ship, setShip] = useState<Shipping | null>(null)
-  const [busy, setBusy] = useState<string | null>(null)
-
-  useEffect(() => {
-    api.gstInvoices.get({ id: params.id ?? '' }).then((d) => {
-      setDoc(d)
-      setShip(shippingOf(d))
-    })
+  const {
+    data: doc,
+    failed,
+    retry,
+    setData: setDoc,
+  } = useLoad(async () => {
+    const d = await api.gstInvoices.get({ id: params.id ?? '' })
+    setShip(shippingOf(d))
+    return d
   }, [params.id])
+  const [reason, setReason] = useState('')
+  const [busy, setBusy] = useState<string | null>(null)
 
   // Helpers
   const run = async (action: string, fn: () => Promise<void>, done?: string) => {
@@ -117,7 +127,29 @@ export default function InvoiceDetail({ params }: AppPageProps) {
     )
 
   // Early returns
-  if (!doc || !ship) return null
+  if (failed) {
+    return (
+      <div className="flex flex-col gap-4">
+        <BackLink href={routes.apps.page('gst-invoices', 'invoices')} label={copy.back} />
+        <LoadFailedState
+          size="page"
+          heading={apps.couldNotLoad.invoice}
+          failed={failed}
+          onRetry={retry}
+        />
+      </div>
+    )
+  }
+  if (!doc || !ship) {
+    // The page's frame: back link, title with Print and Download, the buyer and lines cards.
+    return (
+      <div className="flex flex-col gap-4" aria-busy="true">
+        <PageHeaderSkeleton back actions={2} />
+        <DataCardSkeleton fields={0} lines={3} />
+        <DataCardSkeleton fields={0} lines={4} />
+      </div>
+    )
+  }
 
   // Render logic
   const s = doc.snapshot
@@ -167,7 +199,7 @@ export default function InvoiceDetail({ params }: AppPageProps) {
           </>
         }
       />
-      <SettingsCard title={s.buyer.name}>
+      <DataCard bodyClassName="flex flex-col" title={s.buyer.name}>
         <dl className="grid gap-3 sm:grid-cols-3">
           {facts.map((f) => (
             <div key={f.label} className="flex flex-col gap-0.5">
@@ -187,10 +219,10 @@ export default function InvoiceDetail({ params }: AppPageProps) {
         {doc.reportedPeriod && s.buyer.gstin ? (
           <p className="mt-1 text-caption text-muted-foreground">{copy.b2bCreditNotice}</p>
         ) : null}
-      </SettingsCard>
+      </DataCard>
       <InvoiceLinesCard snapshot={s} />
       {s.exportSupply && doc.status !== 'cancelled' && !doc.reportedPeriod ? (
-        <SettingsCard title={copy.shipping}>
+        <DataCard bodyClassName="flex flex-col" title={copy.shipping}>
           <div className="grid gap-3 md:grid-cols-3">
             <TextField
               id="exp-port"
@@ -240,10 +272,10 @@ export default function InvoiceDetail({ params }: AppPageProps) {
             <Save aria-hidden="true" />
             {copy.saveShipping}
           </Button>
-        </SettingsCard>
+        </DataCard>
       ) : null}
       {cancellable ? (
-        <SettingsCard title={refreshCopy.title}>
+        <DataCard bodyClassName="flex flex-col" title={refreshCopy.title}>
           <p className="text-body text-muted-foreground">{refreshCopy.body}</p>
           <Button
             className="mt-3 self-start"
@@ -255,10 +287,10 @@ export default function InvoiceDetail({ params }: AppPageProps) {
             <RefreshCw aria-hidden="true" />
             {refreshCopy.button}
           </Button>
-        </SettingsCard>
+        </DataCard>
       ) : null}
       {cancellable ? (
-        <SettingsCard title={copy.cancel}>
+        <DataCard bodyClassName="flex flex-col" title={copy.cancel}>
           <div className="flex flex-col gap-2 sm:flex-row">
             <Input
               size="lg"
@@ -277,7 +309,7 @@ export default function InvoiceDetail({ params }: AppPageProps) {
               {copy.cancel}
             </Button>
           </div>
-        </SettingsCard>
+        </DataCard>
       ) : null}
     </div>
   )

@@ -214,7 +214,7 @@ export default function CampaignEditor({
         }
       />
       {channelMissing && form.kind === 'email' ? (
-        <Alert>
+        <Alert tone="warning">
           <CircleAlert />
           <AlertDescription>
             {copy.channel.noEmail}{' '}
@@ -226,7 +226,7 @@ export default function CampaignEditor({
       ) : null}
       {error ? <SaveErrorAlert message={error} /> : null}
       {problems.length && (campaign || dirty) ? (
-        <Alert>
+        <Alert tone="warning">
           <CircleAlert />
           <AlertTitle>{copy.fixThese}</AlertTitle>
           <AlertDescription>
@@ -239,7 +239,7 @@ export default function CampaignEditor({
         </Alert>
       ) : null}
       <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
-        <div className="flex min-w-0 flex-col gap-5">
+        <div className="flex min-w-0 flex-col gap-6">
           <CampaignSettingsCard form={form} segments={segments} reach={reach} onChange={patch} />
           {form.kind === 'email' ? (
             <EmailContentSwitch
@@ -267,7 +267,7 @@ export default function CampaignEditor({
             designHtml={form.editor === 'visual' ? form.design?.html : undefined}
           />
         ) : (
-          <div className="flex min-w-0 flex-col gap-5">
+          <div className="flex min-w-0 flex-col gap-6">
             <WhatsappPreview
               value={form.whatsapp}
               body={chosen?.body ?? null}

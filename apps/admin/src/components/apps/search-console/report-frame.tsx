@@ -4,14 +4,14 @@ import { SEARCH_CONSOLE_APP_ID } from '@commerce/core/search-console'
 import { CircleAlert, RefreshCw, Search } from '@commerce/ui/icons'
 import { Alert, AlertDescription } from '@commerce/ui/shadcn/alert'
 import { Button } from '@commerce/ui/shadcn/button'
-import { Card } from '@commerce/ui/shadcn/card'
-import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import Link from 'next/link'
 import { type ReactNode, useState } from 'react'
 import { toast } from 'sonner'
+import LoadFailedState from '@/components/apps/shared/load-failed-state'
 import DataCardSkeleton from '@/components/layout/data-card-skeleton'
 import EmptyState from '@/components/layout/empty-state'
 import PageHeader from '@/components/layout/page-header'
+import PageHeaderSkeleton from '@/components/layout/page-header-skeleton'
 import { searchConsoleContent } from '@/data/search-console'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { type SearchConsoleReady, useSearchConsoleReport } from '@/hooks/use-search-console-report'
@@ -58,19 +58,18 @@ export default function ReportFrame({ title, summary, children }: ReportFramePro
   // Early returns
   if (failed) {
     return (
-      <Card>
-        <EmptyState
-          heading={copy.loadFailed.title}
-          body={copy.loadFailed.body}
-          icon={CircleAlert}
-        />
-      </Card>
+      <LoadFailedState
+        size="page"
+        heading={copy.loadFailed.title}
+        body={copy.loadFailed.body}
+        onRetry={reload}
+      />
     )
   }
   if (!report) {
     return (
       <div className="flex flex-col gap-4">
-        <Skeleton className="h-10 w-1/3" />
+        <PageHeaderSkeleton actions={1} />
         <DataCardSkeleton fields={0} lines={3} />
         <DataCardSkeleton fields={0} lines={5} />
       </div>
@@ -85,23 +84,22 @@ export default function ReportFrame({ title, summary, children }: ReportFramePro
           ? copy.states.notConnected
           : { ...copy.states.unavailable, action: null }
     return (
-      <Card>
-        <EmptyState
-          heading={empty.title}
-          body={empty.body}
-          icon={Search}
-          action={
-            empty.action ? (
-              <Button
-                nativeButton={false}
-                render={<Link href={routes.apps.settings(SEARCH_CONSOLE_APP_ID)} />}
-              >
-                {empty.action}
-              </Button>
-            ) : undefined
-          }
-        />
-      </Card>
+      <EmptyState
+        variant="page"
+        heading={empty.title}
+        body={empty.body}
+        icon={Search}
+        action={
+          empty.action ? (
+            <Button
+              nativeButton={false}
+              render={<Link href={routes.apps.settings(SEARCH_CONSOLE_APP_ID)} />}
+            >
+              {empty.action}
+            </Button>
+          ) : undefined
+        }
+      />
     )
   }
 
@@ -135,7 +133,7 @@ export default function ReportFrame({ title, summary, children }: ReportFramePro
         {refreshAfter ? ` · ${copy.refreshWait(fmt.when(refreshAfter))}` : null}
       </p>
       {reconnect ? (
-        <Alert variant="destructive">
+        <Alert tone="danger">
           <CircleAlert />
           <AlertDescription>{copy.states.reconnect}</AlertDescription>
         </Alert>
@@ -143,13 +141,12 @@ export default function ReportFrame({ title, summary, children }: ReportFramePro
       {ready ? (
         children(ready)
       ) : (
-        <Card>
-          <EmptyState
-            heading={copy.states.pending.title}
-            body={lastError || copy.states.pending.body}
-            icon={Search}
-          />
-        </Card>
+        <EmptyState
+          variant="page"
+          heading={copy.states.pending.title}
+          body={lastError || copy.states.pending.body}
+          icon={Search}
+        />
       )}
     </div>
   )

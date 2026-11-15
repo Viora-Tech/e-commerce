@@ -3,17 +3,11 @@
 import type { CampaignPerformanceRow } from '@commerce/api'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card } from '@commerce/ui/shadcn/card'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@commerce/ui/shadcn/table'
+import { TableCell } from '@commerce/ui/shadcn/table'
 import Link from 'next/link'
 import EmptyState from '@/components/layout/empty-state'
 import LinkRow from '@/components/table/link-row'
+import SimpleTable from '@/components/table/simple-table'
 import { growthHomeContent } from '@/data/growth-home'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { routes } from '@/lib/routes'
@@ -73,44 +67,46 @@ export default function RecentCampaignsCard({ rows }: RecentCampaignsCardProps) 
             </Button>
           </div>
         ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>{c.campaign}</TableHead>
-                <TableHead>{c.updated}</TableHead>
-                <TableHead>{c.created}</TableHead>
-                <TableHead className="text-right">
-                  <MetricLabel help={copy.help.sessions}>{c.sessions}</MetricLabel>
-                </TableHead>
-                <TableHead className="text-right">
-                  <MetricLabel help={copy.help.sales}>{c.sales}</MetricLabel>
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {shown.map((r) => (
-                <LinkRow href={r.id ? routes.growth.campaign(r.id) : undefined} key={r.key}>
-                  <TableCell className="text-body-strong">
-                    {r.id ? (
-                      <Link href={routes.growth.campaign(r.id)} className="hover:underline">
-                        {r.name}
-                      </Link>
-                    ) : (
-                      r.name
-                    )}
-                  </TableCell>
-                  <TableCell>{fmt.date(r.updatedAt)}</TableCell>
-                  <TableCell>{fmt.date(r.createdAt)}</TableCell>
-                  <TableCell className="text-right tabular-nums">
-                    {r.sessions ? fmt.number(r.sessions) : dash}
-                  </TableCell>
-                  <TableCell className="text-right tabular-nums">
-                    {r.salesPaise ? fmt.moneyWhole(r.salesPaise) : dash}
-                  </TableCell>
-                </LinkRow>
-              ))}
-            </TableBody>
-          </Table>
+          <SimpleTable
+            className="min-w-[36rem]"
+            columns={[
+              { key: 'campaign', label: c.campaign },
+              { key: 'updated', label: c.updated },
+              { key: 'created', label: c.created },
+              {
+                key: 'sessions',
+                label: <MetricLabel help={copy.help.sessions}>{c.sessions}</MetricLabel>,
+                align: 'end',
+              },
+              {
+                key: 'sales',
+                label: <MetricLabel help={copy.help.sales}>{c.sales}</MetricLabel>,
+                align: 'end',
+              },
+            ]}
+          >
+            {shown.map((r) => (
+              <LinkRow href={r.id ? routes.growth.campaign(r.id) : undefined} key={r.key}>
+                <TableCell className="text-body-strong">
+                  {r.id ? (
+                    <Link href={routes.growth.campaign(r.id)} className="hover:underline">
+                      {r.name}
+                    </Link>
+                  ) : (
+                    r.name
+                  )}
+                </TableCell>
+                <TableCell>{fmt.date(r.updatedAt)}</TableCell>
+                <TableCell>{fmt.date(r.createdAt)}</TableCell>
+                <TableCell className="text-right tabular-nums">
+                  {r.sessions ? fmt.number(r.sessions) : dash}
+                </TableCell>
+                <TableCell className="text-right tabular-nums">
+                  {r.salesPaise ? fmt.moneyWhole(r.salesPaise) : dash}
+                </TableCell>
+              </LinkRow>
+            ))}
+          </SimpleTable>
         )}
       </Card>
     </section>

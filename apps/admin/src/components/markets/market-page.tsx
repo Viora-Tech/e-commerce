@@ -28,6 +28,7 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 import ActionMenu from '@/components/layout/action-menu'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
+import DataCard from '@/components/layout/data-card'
 import EmptyState from '@/components/layout/empty-state'
 import PageBody from '@/components/layout/page-body'
 import PageHeader from '@/components/layout/page-header'
@@ -70,8 +71,6 @@ type SettingRowProps = {
   openLabel: string
   onOpen: (part: MarketPart) => void
 }
-
-const CARD = 'rounded-xl border border-border bg-card'
 
 /**
  * A market's own page, laid out as Shopify's: the name with its status beside it and the
@@ -266,9 +265,8 @@ export default function MarketPage({ market, markets, domains, catalog }: Market
         }
       />
 
-      <section className={`${CARD} flex flex-col gap-3 p-4`}>
+      <DataCard title={h.name} bodyClassName="flex flex-col gap-3">
         <div className="flex flex-col gap-1.5">
-          <span className="text-body font-medium text-ink-strong">{h.name}</span>
           <div className="flex gap-2">
             <button
               type="button"
@@ -317,29 +315,26 @@ export default function MarketPage({ market, markets, domains, catalog }: Market
             ) : null}
           </div>
         </div>
-      </section>
+      </DataCard>
 
-      <section className="flex flex-col gap-2">
-        <h2 className="text-card-title text-ink-strong">{h.customized}</h2>
-        <div className={CARD}>
-          {customized.length === 0 ? (
-            <EmptyState variant="inline" body={h.customizedEmpty} className="m-4" />
-          ) : (
-            <ul className="flex flex-col divide-y divide-border">
-              {customized.map((s) => (
-                <SettingRow
-                  key={s.key}
-                  setting={s}
-                  canManage={canManage}
-                  customizeLabel={h.customize(s.label)}
-                  openLabel={h.open(s.label)}
-                  onOpen={setPart}
-                />
-              ))}
-            </ul>
-          )}
-        </div>
-      </section>
+      <DataCard title={h.customized} flush={customized.length > 0}>
+        {customized.length === 0 ? (
+          <EmptyState variant="inline" body={h.customizedEmpty} />
+        ) : (
+          <ul className="flex flex-col divide-y divide-border px-2">
+            {customized.map((s) => (
+              <SettingRow
+                key={s.key}
+                setting={s}
+                canManage={canManage}
+                customizeLabel={h.customize(s.label)}
+                openLabel={h.open(s.label)}
+                onOpen={setPart}
+              />
+            ))}
+          </ul>
+        )}
+      </DataCard>
 
       <section className="flex flex-col gap-2">
         <h2 className="text-card-title text-ink-strong">{h.inherited}</h2>

@@ -2,6 +2,7 @@
 
 import { RISK_ORDER_FILTERS, type RiskOrderFilter } from '@commerce/core/cod-rto'
 import { Button } from '@commerce/ui/shadcn/button'
+import { Card } from '@commerce/ui/shadcn/card'
 import { Label } from '@commerce/ui/shadcn/label'
 import { Switch } from '@commerce/ui/shadcn/switch'
 import {
@@ -13,20 +14,22 @@ import {
   TableRow,
 } from '@commerce/ui/shadcn/table'
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { CELL, HEAD } from '@/components/apps/gst-invoices/table-classes'
+import TableFailedRow from '@/components/apps/shared/table-failed-row'
 import PageHeader from '@/components/layout/page-header'
 import PillTabs from '@/components/layout/pill-tabs'
 import StatusChip from '@/components/layout/status-chip'
 import LinkRow from '@/components/table/link-row'
 import TableEmptyRow from '@/components/table/table-empty-row'
+import TableSkeletonRows from '@/components/table/table-skeleton-rows'
+import { appsContent } from '@/data/apps'
 import { codRtoContent } from '@/data/cod-rto'
 import { useCopy, useFormat } from '@/hooks/use-copy'
+import { useLoad } from '@/hooks/use-load'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
 import RiskChip from './risk-chip'
-
-type Page = Awaited<ReturnType<typeof api.codRto.orders>>
 
 const PER_PAGE = 25
 
@@ -34,21 +37,15 @@ const PER_PAGE = 25
 export default function RiskyOrdersPage() {
   // Hooks
   const copy = useCopy(codRtoContent)
+  const apps = useCopy(appsContent)
   const f = useFormat()
   const [filter, setFilter] = useState<RiskOrderFilter>('risky')
   const [openOnly, setOpenOnly] = useState(true)
   const [page, setPage] = useState(1)
-  const [data, setData] = useState<Page | null>(null)
-
-  useEffect(() => {
-    let cancelled = false
-    api.codRto.orders({ filter, openOnly, page, perPage: PER_PAGE }).then((r) => {
-      if (!cancelled) setData(r)
-    })
-    return () => {
-      cancelled = true
-    }
-  }, [filter, openOnly, page])
+  const { data, failed, retry } = useLoad(
+    () => api.codRto.orders({ filter, openOnly, page, perPage: PER_PAGE }),
+    [filter, openOnly, page],
+  )
 
   // Event handlers
   const handleFilter = (next: RiskOrderFilter) => {
@@ -81,7 +78,7 @@ export default function RiskyOrdersPage() {
           </Label>
         </div>
       </div>
-      <div className="overflow-hidden rounded-lg surface-card">
+      <Card gap="none" inset="y-none" className="overflow-hidden">
         <Table>
           <TableHeader>
             <TableRow>
@@ -95,10 +92,14 @@ export default function RiskyOrdersPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {data && data.items.length === 0 ? (
+            {failed ? (
+              <TableFailedRow colSpan={7} heading={apps.couldNotLoad.orders} onRetry={retry} />
+            ) : data === null ? (
+              <TableSkeletonRows columns={7} cellClassName={CELL} label={c.title} />
+            ) : data.items.length === 0 ? (
               <TableEmptyRow colSpan={7} message={c.empty} />
             ) : null}
-            {(data?.items ?? []).map((o) => (
+            {(failed ? [] : (data?.items ?? [])).map((o) => (
               <LinkRow href={routes.orders.detail(o.id)} key={o.id}>
                 <TableCell className={`${CELL} font-medium`}>
                   <Link href={routes.orders.detail(o.id)} className="hover:underline">
@@ -138,7 +139,7 @@ export default function RiskyOrdersPage() {
             ))}
           </TableBody>
         </Table>
-      </div>
+      </Card>
       {pages > 1 ? (
         <div className="flex justify-end gap-2">
           <Button

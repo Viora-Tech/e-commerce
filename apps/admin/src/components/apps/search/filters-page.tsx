@@ -11,9 +11,12 @@ import { Plus, RotateCcw, Save } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import LoadFailedState from '@/components/apps/shared/load-failed-state'
 import EmptyState from '@/components/layout/empty-state'
 import PageHeader from '@/components/layout/page-header'
+import SectionPageSkeleton from '@/components/layout/section-page-skeleton'
 import SettingsCard from '@/components/settings/settings-card'
+import { appsContent } from '@/data/apps'
 import { searchFiltersContent } from '@/data/search-filters'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -41,18 +44,27 @@ const snapshot = (groups: FilterGroupConfig[]): string =>
  */
 export default function FiltersPage() {
   // Hooks
+  const apps = useCopy(appsContent)
   const copy = useCopy(searchFiltersContent)
   const [loaded, setLoaded] = useState<Loaded | null>(null)
   const [groups, setGroups] = useState<FilterGroupConfig[]>([])
   const [adding, setAdding] = useState(false)
   const [saving, setSaving] = useState(false)
 
+  /** The first read failed: Try again instead of a blank page. */
+  const [loadFailed, setLoadFailed] = useState(false)
+  const [loadAttempt, setLoadAttempt] = useState(0)
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `loadAttempt` is Try again
   useEffect(() => {
-    api.search.filters.get().then((data) => {
-      setLoaded(data)
-      setGroups(data.config?.groups ?? defaultFilterGroups(data.sources))
-    })
-  }, [])
+    setLoadFailed(false)
+    api.search.filters.get().then(
+      (data) => {
+        setLoaded(data)
+        setGroups(data.config?.groups ?? defaultFilterGroups(data.sources))
+      },
+      () => setLoadFailed(true),
+    )
+  }, [loadAttempt])
 
   // Helpers
   const persist = async (config: StorefrontFilterConfig | null, message: string) => {
@@ -104,7 +116,16 @@ export default function FiltersPage() {
   const handleReset = () => persist(null, copy.list.resetDone)
 
   // Early returns
-  if (!loaded) return null
+  if (!loaded && loadFailed) {
+    return (
+      <LoadFailedState
+        size="page"
+        heading={apps.couldNotLoad.settings}
+        onRetry={() => setLoadAttempt((n) => n + 1)}
+      />
+    )
+  }
+  if (!loaded) return <SectionPageSkeleton cards={2} />
 
   // Render logic
   const choices = filterChoices(loaded.sources, copy)

@@ -17,6 +17,7 @@ import SectionPageSkeleton from '@/components/layout/section-page-skeleton'
 import StatusChip from '@/components/layout/status-chip'
 import ChoiceList from '@/components/returns/choice-list'
 import LoginAppDialog from '@/components/settings/login-app-dialog'
+import { SETTINGS_SKELETON_ROWS } from '@/components/settings/settings-skeleton-rows'
 import SignInExtrasCard from '@/components/settings/sign-in-extras-card'
 import SignInProvidersCard from '@/components/settings/sign-in-providers-card'
 import {
@@ -152,7 +153,7 @@ export default function CustomerAccountsSettings() {
         saving={busy}
       />
       {!form || !loaded ? (
-        <SectionPageSkeleton />
+        <SectionPageSkeleton rows={SETTINGS_SKELETON_ROWS.customerAccounts} />
       ) : (
         <SettingsDrill
           rows={rows}
@@ -160,7 +161,6 @@ export default function CustomerAccountsSettings() {
           header={{
             title: copy.title,
             subtitle: copy.subtitle,
-            save: { dirty: dirty && !none, saving: busy, onSave: handleSave, label: copy.save },
           }}
         >
           <SettingsDrillPanel id="checkout">

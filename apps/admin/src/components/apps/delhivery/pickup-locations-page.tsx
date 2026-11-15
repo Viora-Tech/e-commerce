@@ -1,6 +1,7 @@
 'use client'
 
 import { Button } from '@commerce/ui/shadcn/button'
+import { Card } from '@commerce/ui/shadcn/card'
 import {
   Table,
   TableBody,
@@ -10,19 +11,19 @@ import {
   TableRow,
 } from '@commerce/ui/shadcn/table'
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
 import { CELL, HEAD } from '@/components/apps/gst-invoices/table-classes'
+import TableFailedRow from '@/components/apps/shared/table-failed-row'
 import PageHeader from '@/components/layout/page-header'
 import StatusChip from '@/components/layout/status-chip'
 import TableEmptyRow from '@/components/table/table-empty-row'
 import TableSkeletonRows from '@/components/table/table-skeleton-rows'
+import { appsContent } from '@/data/apps'
 import { delhiveryAppContent } from '@/data/delhivery'
 import { useCopy, useFormat } from '@/hooks/use-copy'
+import { useLoad } from '@/hooks/use-load'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
 import { pickupWhen } from './pickup-when'
-
-type Places = Awaited<ReturnType<typeof api.shipments.courierPickupPlaces>>
 
 /**
  * `/apps/delhivery/pickup-locations`: where Delhivery collects this store's parcels. The
@@ -32,18 +33,13 @@ type Places = Awaited<ReturnType<typeof api.shipments.courierPickupPlaces>>
 export default function PickupLocationsPage() {
   // Hooks
   const all = useCopy(delhiveryAppContent)
+  const apps = useCopy(appsContent)
   const format = useFormat()
-  const [places, setPlaces] = useState<Places | null>(null)
-  useEffect(() => {
-    let live = true
-    api.shipments
-      .courierPickupPlaces({ provider: 'delhivery' })
-      .then((p) => live && setPlaces(p))
-      .catch(() => live && setPlaces([]))
-    return () => {
-      live = false
-    }
-  }, [])
+  const {
+    data: places,
+    failed,
+    retry,
+  } = useLoad(() => api.shipments.courierPickupPlaces({ provider: 'delhivery' }))
 
   // Render logic
   const copy = all.pickupLocationsPage
@@ -64,7 +60,7 @@ export default function PickupLocationsPage() {
           </Button>
         }
       />
-      <div className="overflow-hidden rounded-lg border border-border surface-card">
+      <Card gap="none" inset="y-none" className="overflow-hidden">
         <Table>
           <TableHeader>
             <TableRow>
@@ -76,8 +72,15 @@ export default function PickupLocationsPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {places === null ? <TableSkeletonRows columns={5} rows={2} label={copy.title} /> : null}
-            {places !== null && places.length === 0 ? (
+            {failed ? (
+              <TableFailedRow
+                colSpan={5}
+                heading={apps.couldNotLoad.pickupLocations}
+                onRetry={retry}
+              />
+            ) : places === null ? (
+              <TableSkeletonRows columns={5} rows={2} cellClassName={CELL} label={copy.title} />
+            ) : places.length === 0 ? (
               <TableEmptyRow colSpan={5} message={copy.empty} />
             ) : null}
             {(places ?? []).map((p) => (
@@ -124,7 +127,7 @@ export default function PickupLocationsPage() {
             ))}
           </TableBody>
         </Table>
-      </div>
+      </Card>
     </div>
   )
 }

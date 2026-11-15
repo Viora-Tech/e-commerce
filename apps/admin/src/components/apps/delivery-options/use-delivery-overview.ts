@@ -1,27 +1,33 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { toast } from 'sonner'
-import { deliveryOptionsContent } from '@/data/delivery-options'
-import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import type { Overview, RouteCatalogue } from './format'
 
-/** The app's overview (options, rules, route settings, apps, health), with a reload. */
-export function useDeliveryOverview(): { overview: Overview | null; reload: () => void } {
-  const copy = useCopy(deliveryOptionsContent)
+/**
+ * The app's overview (options, rules, route settings, apps, health), with a reload. `failed`:
+ * the last read did not answer, so a page with no overview yet shows "Could not load" with Try
+ * again (`reload`) instead of staying blank.
+ */
+export function useDeliveryOverview(): {
+  overview: Overview | null
+  failed: boolean
+  reload: () => void
+} {
   const [overview, setOverview] = useState<Overview | null>(null)
+  const [failed, setFailed] = useState(false)
   const [version, setVersion] = useState(0)
 
   useEffect(() => {
     if (version < 0) return
+    setFailed(false)
     api.deliveryOptions
       .overview()
       .then(setOverview)
-      .catch((err) => toast.error(err instanceof Error ? err.message : copy.failed))
-  }, [version, copy.failed])
+      .catch(() => setFailed(true))
+  }, [version])
 
-  return { overview, reload: () => setVersion((v) => v + 1) }
+  return { overview, failed, reload: () => setVersion((v) => v + 1) }
 }
 
 /**

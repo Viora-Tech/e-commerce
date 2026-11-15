@@ -15,6 +15,8 @@ type AutopilotProposalRowProps = {
   busy: boolean
   /** This row's Approve is the action running: its button spins. */
   approving?: boolean
+  /** This row's Dismiss is the action running. */
+  dismissing?: boolean
   onApprove: () => void
   onDismiss: () => void
 }
@@ -44,6 +46,7 @@ export default function AutopilotProposalRow({
   proposal: p,
   busy,
   approving = false,
+  dismissing = false,
   onApprove,
   onDismiss,
 }: AutopilotProposalRowProps) {
@@ -83,7 +86,7 @@ export default function AutopilotProposalRow({
       <p className="text-caption text-muted-foreground">{meta.join(' · ')}</p>
       {waiting ? (
         <div className="flex flex-wrap items-center justify-end gap-2">
-          <Button variant="ghost" disabled={busy} onClick={onDismiss}>
+          <Button variant="ghost" disabled={busy} loading={dismissing} onClick={onDismiss}>
             {copy.dismiss}
           </Button>
           {p.campaignId && p.campaign ? (

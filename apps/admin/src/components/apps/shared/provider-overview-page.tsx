@@ -11,12 +11,17 @@
 
 import { CircleCheck, InfoIcon, PlugConnect } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
+import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import Link from 'next/link'
 import { type ReactNode, useEffect, useState } from 'react'
 import DataCard from '@/components/layout/data-card'
 import StatusChip from '@/components/layout/status-chip'
+import { appsContent } from '@/data/apps'
+import { useCopy } from '@/hooks/use-copy'
+import { useLoad } from '@/hooks/use-load'
 import { routes } from '@/lib/routes'
 import { useStorageScope } from '@/lib/storage-scope'
+import LoadFailedState from './load-failed-state'
 import {
   type FieldValues,
   loadProviderSettings,
@@ -76,24 +81,21 @@ export default function ProviderOverviewPage({
 }: ProviderOverviewPageProps) {
   // Hooks
   const storageScope = useStorageScope()
-  const [status, setStatus] = useState<Status | null>(null)
+  const apps = useCopy(appsContent)
+  const {
+    data: status,
+    failed,
+    retry,
+  } = useLoad<Status>(async () => {
+    const r = await loadProviderSettings(kind)
+    const saved = r.settings.providers[providerId] ?? {}
+    return { connected: r.settings.enabled.includes(providerId) && isConnected(saved), saved }
+  })
   const [tested, setTested] = useState(false)
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: load once per mount
+  // biome-ignore lint/correctness/useExhaustiveDependencies: read once per mount
   useEffect(() => {
-    let cancelled = false
-    loadProviderSettings(kind).then((r) => {
-      const saved = r.settings.providers[providerId] ?? {}
-      if (cancelled) return
-      setStatus({
-        connected: r.settings.enabled.includes(providerId) && isConnected(saved),
-        saved,
-      })
-    })
     setTested(readTestedFlag(storageScope, providerId))
-    return () => {
-      cancelled = true
-    }
   }, [])
 
   // Render logic
@@ -116,7 +118,17 @@ export default function ProviderOverviewPage({
         }
         icon={status?.connected ? undefined : icon}
       >
-        {status === null ? null : status.connected ? (
+        {failed ? (
+          <LoadFailedState heading={apps.couldNotLoad.connection} failed={failed} onRetry={retry} />
+        ) : status === null ? (
+          // The not-connected line and its button, so the card keeps its height.
+          <div className="flex flex-col gap-3" aria-hidden="true">
+            <span className="flex h-5 items-center">
+              <Skeleton className="h-3.5 w-2/3" />
+            </span>
+            <Skeleton className="h-9 w-32 rounded-sm" />
+          </div>
+        ) : status.connected ? (
           <div className="flex flex-col items-start gap-3">{connectedBody(status.saved)}</div>
         ) : (
           <div className="flex flex-col gap-3">

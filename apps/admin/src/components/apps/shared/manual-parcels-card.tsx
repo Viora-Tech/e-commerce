@@ -1,10 +1,11 @@
 'use client'
 
-import { Spinner } from '@commerce/ui/shadcn/spinner'
+import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { useEffect, useState } from 'react'
 import DataCard from '@/components/layout/data-card'
 import EmptyState from '@/components/layout/empty-state'
 import { api } from '@/lib/api-client'
+import LoadFailedState from './load-failed-state'
 import ManualParcelRow, { type ManualParcelsCopy, type Parcel } from './manual-parcel-row'
 
 type ManualParcelsCardProps = {
@@ -31,6 +32,7 @@ export default function ManualParcelsCard({
   // biome-ignore lint/correctness/useExhaustiveDependencies: reload on each saved status
   useEffect(() => {
     let live = true
+    setFailed(false)
     api.shipments
       .list({ provider: providerId, status: OPEN, perPage: 50 })
       .then((r) => live && setParcels(r.items))
@@ -44,16 +46,25 @@ export default function ManualParcelsCard({
   if (failed) {
     return (
       <DataCard title={copy.heading}>
-        <p className="text-body text-muted-foreground">{copy.loadFailed}</p>
+        <LoadFailedState heading={copy.loadFailed} onRetry={() => setRevision((n) => n + 1)} />
       </DataCard>
     )
   }
 
   // Render logic
   const body = !parcels ? (
-    <p className="flex items-center gap-2 text-body text-muted-foreground">
-      <Spinner />
-    </p>
+    // Two parcel rows (name and status line, status control) while they load.
+    <ul className="flex flex-col divide-y divide-hairline" aria-busy="true">
+      {[0, 1].map((i) => (
+        <li key={i} className="flex items-center justify-between gap-3 py-3">
+          <span className="flex flex-col gap-1.5">
+            <Skeleton className="h-3.5 w-32" />
+            <Skeleton className="h-3 w-48" />
+          </span>
+          <Skeleton className="h-9 w-36 rounded-sm" />
+        </li>
+      ))}
+    </ul>
   ) : parcels.length === 0 ? (
     <EmptyState variant="inline" body={copy.empty} />
   ) : (

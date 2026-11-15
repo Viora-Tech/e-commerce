@@ -151,6 +151,7 @@ export default function AutomationsPage({ automations }: AutomationsPageProps) {
                   variant="outline"
                   size="sm"
                   onClick={() => handleUse(t.id)}
+                  loading={busy === t.id}
                   disabled={busy !== null}
                 >
                   {copy.use}

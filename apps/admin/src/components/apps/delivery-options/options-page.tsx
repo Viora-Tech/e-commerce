@@ -10,9 +10,12 @@ import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import LoadFailedState from '@/components/apps/shared/load-failed-state'
 import EmptyState from '@/components/layout/empty-state'
 import SectionHead from '@/components/layout/section-head'
+import SectionPageSkeleton from '@/components/layout/section-page-skeleton'
 import SortableStack from '@/components/layout/sortable-stack'
+import { appsContent } from '@/data/apps'
 import { reorderLabels } from '@/data/common'
 import { deliveryOptionsContent } from '@/data/delivery-options'
 import { deliveryPagesContent } from '@/data/delivery-options-pages'
@@ -49,10 +52,11 @@ const listOptionOf = (drafts: DeliveryOption[] | null) =>
  */
 export default function DeliveryOptionsPage() {
   // Hooks
+  const apps = useCopy(appsContent)
   const copy = useCopy(deliveryOptionsContent)
   const pages = useCopy(deliveryPagesContent)
   const sortLabels = useCopy(reorderLabels)
-  const { overview, reload } = useDeliveryOverview()
+  const { overview, failed: overviewFailed, reload } = useDeliveryOverview()
   const [layout, setLayout] = useState<DeliveryLayout>('fixed')
   const [drafts, setDrafts] = useState<DeliveryOption[] | null>(null)
   const [savedKey, setSavedKey] = useState('')
@@ -148,7 +152,10 @@ export default function DeliveryOptionsPage() {
   }
 
   // Early returns
-  if (!overview || !drafts) return null
+  if (!overview && overviewFailed) {
+    return <LoadFailedState size="page" heading={apps.couldNotLoad.settings} onRetry={reload} />
+  }
+  if (!overview || !drafts) return <SectionPageSkeleton cards={2} />
 
   // Render logic
   const listed = layout === 'list'
@@ -254,7 +261,7 @@ export default function DeliveryOptionsPage() {
             getTitle={(o) => o.name}
             labels={sortLabels}
             className="flex flex-col gap-4"
-            itemClassName="rounded-xl"
+            itemClassName="rounded-lg"
             renderItem={(o, { handle, isDragging }) => (
               <OptionEditCard
                 option={o}

@@ -7,8 +7,11 @@ import CountBadge from './count-badge'
 import DetailsLink from './details-link'
 
 type DataCardProps = {
-  /** Usually text; a chip or icon can sit inline beside it. */
-  title: ReactNode
+  /**
+   * Usually text; a chip or icon can sit inline beside it. Optional: a card with no title, line
+   * or action draws no header row at all (a settings card whose title the page header shows).
+   */
+  title?: ReactNode
   /** Small grey line above the title (a fulfilment group's origin, date and tracking). */
   meta?: ReactNode
   /** A small glyph after the title (the status icon of a fulfilment group). */
@@ -65,6 +68,9 @@ export default function DataCard({
   flush,
   tone = 'default',
 }: DataCardProps) {
+  // Render logic
+  const header = Boolean(title || meta || icon || subtitle || action || menu || count !== undefined)
+
   return (
     <Card
       id={id}
@@ -75,32 +81,47 @@ export default function DataCard({
         className,
       )}
     >
-      <div className="flex min-h-9 items-start justify-between gap-3">
-        <div className="flex min-w-0 flex-col gap-1">
-          {meta ? (
-            <div className="text-caption font-normal text-muted-foreground">{meta}</div>
-          ) : null}
-          <div className="flex items-center gap-2">
-            <h2 className="flex items-center gap-2 text-card-title text-ink-strong">{title}</h2>
-            {icon ? (
-              <span className="flex text-muted-foreground [&_svg]:size-4">{icon}</span>
+      {header ? (
+        <div
+          className={cn(
+            'flex items-start justify-between gap-3',
+            (title || action || menu) && 'min-h-9',
+          )}
+        >
+          <div className="flex min-w-0 flex-col gap-1">
+            {meta ? (
+              <div className="text-caption font-normal text-muted-foreground">{meta}</div>
             ) : null}
-            {count === undefined ? null : <CountBadge n={count} />}
+            {title || icon || count !== undefined ? (
+              <div className="flex items-center gap-2">
+                {title ? (
+                  <h2 className="flex items-center gap-2 text-card-title text-ink-strong">
+                    {title}
+                  </h2>
+                ) : null}
+                {icon ? (
+                  <span className="flex text-muted-foreground [&_svg]:size-4">{icon}</span>
+                ) : null}
+                {count === undefined ? null : <CountBadge n={count} />}
+              </div>
+            ) : null}
+            {subtitle ? (
+              <p className="text-caption font-normal text-muted-foreground">{subtitle}</p>
+            ) : null}
           </div>
-          {subtitle ? (
-            <p className="text-caption font-normal text-muted-foreground">{subtitle}</p>
+          {action || menu ? (
+            <div className="flex shrink-0 items-center gap-2">
+              {action}
+              {menu ? (
+                <ActionMenu label={layoutContent.moreActions} size="sm" items={menu} />
+              ) : null}
+            </div>
           ) : null}
         </div>
-        {action || menu ? (
-          <div className="flex shrink-0 items-center gap-2">
-            {action}
-            {menu ? <ActionMenu label={layoutContent.moreActions} size="sm" items={menu} /> : null}
-          </div>
-        ) : null}
-      </div>
+      ) : null}
       <div
         className={cn(
-          'mt-4',
+          header && 'mt-4',
           bodyClassName,
           flush && '-mx-5 in-data-[layout=sections]:-mx-4 md:in-data-[layout=sections]:-mx-6',
         )}

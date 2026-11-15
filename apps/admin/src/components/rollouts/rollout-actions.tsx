@@ -24,7 +24,7 @@ type Confirming = 'start' | 'pause' | 'delete' | 'ship' | 'keep' | null
 
 /**
  * The rollout page's header actions: start now, pause or resume, end now, archive, delete. A
- * running A/B test ends with "Keep Control" or "Ship Treatment" instead of "End now".
+ * running A/B test ends with "Keep control" or "Ship treatment" instead of "End now".
  */
 export default function RolloutActions({ rollout: r, dirty }: RolloutActionsProps) {
   // Hooks
@@ -32,11 +32,12 @@ export default function RolloutActions({ rollout: r, dirty }: RolloutActionsProp
   const router = useRouter()
   const [confirming, setConfirming] = useState<Confirming>(null)
   const [ending, setEnding] = useState(false)
-  const [busy, setBusy] = useState(false)
+  /* The action that runs: Resume spins on its own button; the confirms spin in their popup. */
+  const [busyKey, setBusyKey] = useState<string | null>(null)
 
   // Helpers
-  const run = async (work: () => Promise<unknown>, done: string) => {
-    setBusy(true)
+  const run = async (work: () => Promise<unknown>, done: string, key = 'confirm') => {
+    setBusyKey(key)
     try {
       await work()
       toast.success(done)
@@ -45,7 +46,7 @@ export default function RolloutActions({ rollout: r, dirty }: RolloutActionsProp
       toast.error(err instanceof Error ? err.message : copy.toasts.failed)
       throw err
     } finally {
-      setBusy(false)
+      setBusyKey(null)
     }
   }
 
@@ -53,7 +54,9 @@ export default function RolloutActions({ rollout: r, dirty }: RolloutActionsProp
   const handleStart = () => run(() => api.rollouts.startNow({ id: r.id }), copy.toasts.started)
   const handlePause = () => run(() => api.rollouts.pause({ id: r.id }), copy.toasts.paused)
   const handleResume = () =>
-    run(() => api.rollouts.resume({ id: r.id }), copy.toasts.resumed).catch(() => undefined)
+    run(() => api.rollouts.resume({ id: r.id }), copy.toasts.resumed, 'resume').catch(
+      () => undefined,
+    )
   const handleEnd = (action: RolloutView['endAction']) =>
     run(() => api.rollouts.end({ id: r.id, action }), copy.toasts.ended).then(() =>
       setEnding(false),
@@ -63,13 +66,16 @@ export default function RolloutActions({ rollout: r, dirty }: RolloutActionsProp
   const handleKeep = () =>
     run(() => api.rollouts.end({ id: r.id, action: 'rollback' }), copy.toasts.kept)
   const handleArchive = () =>
-    run(() => api.rollouts.archive({ id: r.id }), copy.toasts.archived).catch(() => undefined)
+    run(() => api.rollouts.archive({ id: r.id }), copy.toasts.archived, 'archive').catch(
+      () => undefined,
+    )
   const handleDelete = async () => {
     await run(() => api.rollouts.delete({ id: r.id }), copy.toasts.deleted)
     router.push(routes.rollouts.list())
   }
 
   // Render logic
+  const busy = busyKey !== null
   const canStart = r.status === 'draft' || r.status === 'scheduled'
   const running = r.status === 'active' || r.status === 'paused'
   const abTest = r.audience !== null
@@ -108,7 +114,12 @@ export default function RolloutActions({ rollout: r, dirty }: RolloutActionsProp
         </Button>
       ) : null}
       {r.status === 'paused' ? (
-        <Button variant="outline" disabled={busy} onClick={handleResume}>
+        <Button
+          variant="outline"
+          loading={busyKey === 'resume'}
+          disabled={busy}
+          onClick={handleResume}
+        >
           <Play aria-hidden="true" />
           {copy.actions.resume}
         </Button>

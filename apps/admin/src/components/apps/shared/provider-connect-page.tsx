@@ -15,22 +15,23 @@ import { CircleAlert, CircleCheck, ExternalLink, RefreshCw } from '@commerce/ui/
 import { Alert, AlertDescription, AlertTitle } from '@commerce/ui/shadcn/alert'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card, CardContent } from '@commerce/ui/shadcn/card'
-import { Skeleton } from '@commerce/ui/shadcn/skeleton'
-import { Spinner } from '@commerce/ui/shadcn/spinner'
 import Link from 'next/link'
 import { type ReactNode, useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import SaveErrorAlert from '@/components/approvals/save-error-alert'
 import AppLogo from '@/components/apps/app-logo'
+import DataCardSkeleton from '@/components/layout/data-card-skeleton'
 import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
 import type { ProviderDef } from '@/components/settings/provider-settings-form'
 import { appsContent } from '@/data/apps'
 import { useCopy } from '@/hooks/use-copy'
+import { isForbidden } from '@/lib/forbidden'
 import { routes } from '@/lib/routes'
 import { useStorageScope } from '@/lib/storage-scope'
 import { initialKeySetMode, keySetValues, withEditedKeySet } from './connect-key-sets'
 import ConnectModeSwitch, { type ModeSwitch } from './connect-mode-switch'
+import LoadFailedState from './load-failed-state'
 import {
   type FieldValues,
   loadProviderSettings,
@@ -143,25 +144,32 @@ export default function ProviderConnectPage<R extends TestOutcome>({
   const [testState, setTestState] = useState<TestState>({ status: 'idle' })
   const [lastPassed, setLastPassed] = useState<R | null>(null)
   const [checkedAt, setCheckedAt] = useState<Date | null>(null)
+  /** The settings read failed: say so with Try again instead of a skeleton that never fills. */
+  const [loadFailed, setLoadFailed] = useState<'error' | 'no-access' | false>(false)
+  const [attempt, setAttempt] = useState(0)
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: load once per mount, like every settings page
+  // biome-ignore lint/correctness/useExhaustiveDependencies: load once per mount (and on Try again), like every settings page
   useEffect(() => {
-    loadProviderSettings(kind).then((r) => {
-      const stored = mode?.keySets
-        ? keySetValues(
-            r.settings.providers,
-            providerId,
-            initialKeySetMode(r.settings.providers, providerId, window.location.search),
-            emptyValues,
-          )
-        : { ...emptyValues, ...(r.settings.providers[providerId] ?? {}) }
-      const saved = prepare ? prepare(stored) : stored
-      setProvider(r.available.find((p) => p.id === providerId) ?? null)
-      setBlob(r.settings)
-      setValues(saved)
-      setSnapshot(JSON.stringify(saved))
-    })
-  }, [])
+    setLoadFailed(false)
+    loadProviderSettings(kind).then(
+      (r) => {
+        const stored = mode?.keySets
+          ? keySetValues(
+              r.settings.providers,
+              providerId,
+              initialKeySetMode(r.settings.providers, providerId, window.location.search),
+              emptyValues,
+            )
+          : { ...emptyValues, ...(r.settings.providers[providerId] ?? {}) }
+        const saved = prepare ? prepare(stored) : stored
+        setProvider(r.available.find((p) => p.id === providerId) ?? null)
+        setBlob(r.settings)
+        setValues(saved)
+        setSnapshot(JSON.stringify(saved))
+      },
+      (err: unknown) => setLoadFailed(isForbidden(err) ? 'no-access' : 'error'),
+    )
+  }, [attempt])
 
   // Helpers
   const setField = (key: string, value: string) => {
@@ -288,12 +296,31 @@ export default function ProviderConnectPage<R extends TestOutcome>({
       />
       {error ? <SaveErrorAlert title={copy.saveFailedTitle} message={error} /> : null}
 
-      {loading ? (
-        <Card gap={4} inset={6}>
-          <Skeleton className="h-5 w-40" />
-          <Skeleton className="h-10 w-full" />
-          <Skeleton className="h-10 w-full" />
-        </Card>
+      {loadFailed ? (
+        <LoadFailedState
+          size="page"
+          heading={apps.couldNotLoad.connection}
+          failed={loadFailed}
+          onRetry={() => setAttempt((n) => n + 1)}
+        />
+      ) : loading ? (
+        // The page's own columns: the guide beside the form, or the guide over the form with
+        // the side cards on the right.
+        <div
+          aria-busy="true"
+          className={
+            aside
+              ? 'grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,20rem)]'
+              : 'grid gap-6 lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)]'
+          }
+        >
+          {aside ? null : <DataCardSkeleton fields={0} lines={4} />}
+          <div className="flex flex-col gap-6">
+            {aside ? <DataCardSkeleton fields={0} lines={3} /> : null}
+            <DataCardSkeleton fields={3} />
+          </div>
+          {aside ? <DataCardSkeleton fields={0} lines={3} /> : null}
+        </div>
       ) : (
         <div
           className={
@@ -307,7 +334,7 @@ export default function ProviderConnectPage<R extends TestOutcome>({
           <div className="flex flex-col gap-6">
             {aside ? guide(ctx) : null}
             {connected ? (
-              <Alert>
+              <Alert tone="success">
                 <CircleCheck />
                 <AlertTitle>{apps.connectedHeading}</AlertTitle>
                 <AlertDescription>
@@ -342,11 +369,8 @@ export default function ProviderConnectPage<R extends TestOutcome>({
                     onClick={handleTest}
                     disabled={testState.status === 'testing' || !canTest(values)}
                   >
-                    {testState.status === 'testing' ? (
-                      <Spinner />
-                    ) : (
-                      <RefreshCw aria-hidden="true" />
-                    )}
+                    {/* `loading` draws the spinner in place of the icon. */}
+                    <RefreshCw aria-hidden="true" />
                     {copy.testConnection}
                   </Button>
                   {testState.status === 'ok' ? (
@@ -358,7 +382,7 @@ export default function ProviderConnectPage<R extends TestOutcome>({
                     </p>
                   ) : testState.status === 'error' ? (
                     // Figma "Test connection failed": the reason in a red box under the button.
-                    <Alert variant="destructive">
+                    <Alert tone="danger">
                       <CircleAlert />
                       <AlertDescription>{testState.message}</AlertDescription>
                     </Alert>

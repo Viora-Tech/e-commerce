@@ -23,6 +23,7 @@ export const growthHomeContent = {
   performance: {
     title: 'Performance',
     viewDetails: 'View details',
+    loadFailed: 'Could not load growth for these dates',
     /** The charts live on Attribution only (audit #152). */
     more: 'Sales over time, channels and traffic types are on Attribution.',
     open: 'Open Attribution',
@@ -124,6 +125,7 @@ export const growthAttributionContent = {
   summary: 'Where your sessions and sales come from, by source, channel and campaign.',
   back: 'Growth',
   compare: 'Compared with the previous period of the same length',
+  loadFailed: 'Could not load attribution for these dates',
   model: {
     title: 'How sales are credited',
     body: 'Last non-direct click: an order is credited to the last channel, link or campaign the shopper came from in the 30 days before buying. A later direct visit does not take the credit away. Orders with no tracked visit (imports, drafts, API) count as not tracked.',

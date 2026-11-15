@@ -73,14 +73,18 @@ export default function CatalogsList({ catalogs }: CatalogsListProps) {
               { label: copy.columns.adjustment, className: 'hidden md:table-cell' },
               { label: copy.columns.products, className: 'text-right' },
             ]}
+            after={
+              shown.length === 0 ? (
+                <div className="border-line border-t">
+                  <EmptyState variant="plain" body={copy.noneInTab} />
+                </div>
+              ) : undefined
+            }
           >
             {shown.map((c) => (
               <CatalogRow key={c.id} catalog={c} />
             ))}
           </SettingsTable>
-          {shown.length === 0 ? (
-            <p className="text-center text-body text-muted-foreground">{copy.noneInTab}</p>
-          ) : null}
         </div>
       )}
     </ProoflyListPage>

@@ -5,10 +5,14 @@ import { Button } from '@commerce/ui/shadcn/button'
 import { Input } from '@commerce/ui/shadcn/input'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import LoadFailedState from '@/components/apps/shared/load-failed-state'
+import NoticeBar from '@/components/layout/notice-bar'
 import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
+import SectionPageSkeleton from '@/components/layout/section-page-skeleton'
 import SettingsCard from '@/components/settings/settings-card'
 import SettingsRow from '@/components/settings/settings-row'
+import { appsContent } from '@/data/apps'
 import { meilisearchContent } from '@/data/meilisearch'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -41,17 +45,26 @@ function statusOf(copy: Copy, view: View): string {
  */
 export default function SettingsPage() {
   // Hooks
+  const apps = useCopy(appsContent)
   const copy = useCopy(meilisearchContent)
   const [view, setView] = useState<View | null>(null)
   const [form, setForm] = useState<Form | null>(null)
   const [busy, setBusy] = useState<Busy>(null)
 
+  /** The first read failed: Try again instead of a blank page. */
+  const [loadFailed, setLoadFailed] = useState(false)
+  const [loadAttempt, setLoadAttempt] = useState(0)
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `loadAttempt` is Try again
   useEffect(() => {
-    api.meilisearch.get().then((v) => {
-      setView(v)
-      setForm(formOf(v))
-    })
-  }, [])
+    setLoadFailed(false)
+    api.meilisearch.get().then(
+      (v) => {
+        setView(v)
+        setForm(formOf(v))
+      },
+      () => setLoadFailed(true),
+    )
+  }, [loadAttempt])
 
   // Helpers
   const patch = (next: Partial<Form>) => setForm((f) => (f ? { ...f, ...next } : f))
@@ -109,7 +122,16 @@ export default function SettingsPage() {
     })
 
   // Early returns
-  if (!view || !form) return null
+  if ((!view || !form) && loadFailed) {
+    return (
+      <LoadFailedState
+        size="page"
+        heading={apps.couldNotLoad.settings}
+        onRetry={() => setLoadAttempt((n) => n + 1)}
+      />
+    )
+  }
+  if (!view || !form) return <SectionPageSkeleton cards={2} />
 
   // Render logic
   const canTest = form.host.trim() !== '' && (view.hasAdminKey || form.adminKey.trim() !== '')
@@ -127,10 +149,12 @@ export default function SettingsPage() {
         saving={busy === 'save'}
       />
       <PageHeader title={copy.title} summary={copy.subtitle} />
-      <div className="flex flex-col gap-1 rounded-xl surface-banner px-4 py-3 text-body text-foreground">
-        <p>{statusOf(copy, view)}</p>
-        <p className="text-caption text-muted-foreground">{copy.status.fallback}</p>
-      </div>
+      <NoticeBar>
+        <span className="flex flex-col gap-1">
+          <span>{statusOf(copy, view)}</span>
+          <span className="text-caption text-muted-foreground">{copy.status.fallback}</span>
+        </span>
+      </NoticeBar>
       <SettingsCard title={copy.connect.title} description={copy.connect.description}>
         <SettingsRow
           label={copy.connect.host.label}

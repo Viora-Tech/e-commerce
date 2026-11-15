@@ -1,6 +1,7 @@
 'use client'
 
 import { ChevronDown, InfoIcon } from '@commerce/ui/icons'
+import { Alert, AlertDescription } from '@commerce/ui/shadcn/alert'
 import {
   Collapsible,
   CollapsibleContent,
@@ -31,10 +32,10 @@ function webhookHint() {
       <code className="w-fit rounded bg-muted px-1 py-0.5 font-mono text-caption text-foreground">
         {`${WORKER_URL}/webhooks/shipments/delhivery/<store id>`}
       </code>
-      <p className="flex items-start gap-2 rounded-lg border border-info/30 bg-info-soft px-3 py-2.5 text-body text-info">
-        <InfoIcon aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
-        {copy.webhookNeedsDomain}
-      </p>
+      <Alert tone="info">
+        <InfoIcon aria-hidden="true" />
+        <AlertDescription>{copy.webhookNeedsDomain}</AlertDescription>
+      </Alert>
     </div>
   )
 }

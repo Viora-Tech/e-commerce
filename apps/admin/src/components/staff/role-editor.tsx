@@ -6,8 +6,8 @@ import {
   type Permission,
   permissions,
 } from '@commerce/core/permissions'
+import { Field, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
-import { Label } from '@commerce/ui/shadcn/label'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
@@ -156,8 +156,8 @@ export default function RoleEditor({ initial }: RoleEditorProps) {
         back={{ label: copy.roleForm.back, href: routes.settings.staffRoles() }}
       />
       <SettingsCard bodyClassName="gap-5">
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="role-name">{copy.roleForm.name}</Label>
+        <Field>
+          <FieldLabel htmlFor="role-name">{copy.roleForm.name}</FieldLabel>
           <Input
             id="role-name"
             value={name}
@@ -165,9 +165,9 @@ export default function RoleEditor({ initial }: RoleEditorProps) {
             placeholder={copy.roleForm.namePlaceholder}
             onChange={(e) => setName(e.target.value)}
           />
-        </div>
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="role-description">{copy.roleForm.description}</Label>
+        </Field>
+        <Field>
+          <FieldLabel htmlFor="role-description">{copy.roleForm.description}</FieldLabel>
           <Input
             id="role-description"
             value={description}
@@ -175,13 +175,11 @@ export default function RoleEditor({ initial }: RoleEditorProps) {
             placeholder={copy.roleForm.descriptionPlaceholder}
             onChange={(e) => setDescription(e.target.value)}
           />
-        </div>
+        </Field>
       </SettingsCard>
       <header className="flex flex-col gap-0.5 pt-2">
-        <h2 className="text-card-title leading-[1.375rem] font-semibold text-ink-strong">
-          {copy.roleForm.permissions}
-        </h2>
-        <p className="text-caption font-normal leading-[1.1875rem] text-muted-foreground">{help}</p>
+        <h2 className="text-card-title text-ink-strong">{copy.roleForm.permissions}</h2>
+        <p className="text-caption font-normal text-muted-foreground">{help}</p>
       </header>
       <RolePermissions value={access} onChange={setAccess} rules={rules} />
       <RoleSummaryBar

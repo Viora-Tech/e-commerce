@@ -27,8 +27,6 @@ export type DrillHeader = {
   /** First screen only. */
   actions?: ReactNode
   badges?: ReactNode
-  /** The page-wide Save: on every screen, since every detail edits the same form. */
-  save?: { dirty: boolean; saving?: boolean; onSave: () => void; label?: string }
   /** A page-wide notice right under the header, on every screen ("AI is off"). */
   notice?: ReactNode
 }
@@ -134,7 +132,6 @@ export default function SettingsDrill({
                 subtitle={currentRow.help}
                 back={{ label: backLabel, onClick: () => handleOpen(null) }}
                 actions={currentRow.actions}
-                save={header.save}
               />
             ) : (
               <PageHeader
@@ -142,7 +139,6 @@ export default function SettingsDrill({
                 subtitle={header.subtitle}
                 badges={header.badges}
                 actions={header.actions}
-                save={header.save}
               />
             )
           ) : null}

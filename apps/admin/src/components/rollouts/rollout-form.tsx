@@ -176,7 +176,7 @@ export default function RolloutForm({ rollout, data, results = null }: RolloutFo
         actions={headerActions}
       />
       {rollout?.error ? (
-        <Alert variant="destructive">
+        <Alert tone="danger">
           <CircleAlert />
           <AlertTitle>{copy.error}</AlertTitle>
           <AlertDescription>{rollout.error}</AlertDescription>

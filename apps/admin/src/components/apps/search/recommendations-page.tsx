@@ -7,14 +7,17 @@ import { TableCell } from '@commerce/ui/shadcn/table'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
+import LoadFailedState from '@/components/apps/shared/load-failed-state'
 import DataCard from '@/components/layout/data-card'
 import EmptyState from '@/components/layout/empty-state'
 import PageHeader from '@/components/layout/page-header'
+import SectionPageSkeleton from '@/components/layout/section-page-skeleton'
 import SelectProductsDialog, {
   type PickedProducts,
 } from '@/components/products/select-products-dialog'
 import LinkRow from '@/components/table/link-row'
 import SimpleTable from '@/components/table/simple-table'
+import { appsContent } from '@/data/apps'
 import { searchDiscoveryContent } from '@/data/search-discovery'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -32,15 +35,21 @@ export const editorHref = (productId: string) =>
  */
 export default function RecommendationsPage() {
   // Hooks
+  const apps = useCopy(appsContent)
   const copy = useCopy(searchDiscoveryContent)
   const fmt = useFormat()
   const router = useRouter()
   const [rows, setRows] = useState<Row[] | null>(null)
   const [choosing, setChoosing] = useState(false)
 
+  /** The first read failed: Try again instead of a blank page. */
+  const [loadFailed, setLoadFailed] = useState(false)
+  const [loadAttempt, setLoadAttempt] = useState(0)
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `loadAttempt` is Try again
   useEffect(() => {
-    api.search.recommendations.list().then(setRows)
-  }, [])
+    setLoadFailed(false)
+    api.search.recommendations.list().then(setRows, () => setLoadFailed(true))
+  }, [loadAttempt])
 
   // Event handlers
   const handleChosen = (picked: PickedProducts) => {
@@ -49,7 +58,16 @@ export default function RecommendationsPage() {
   }
 
   // Early returns
-  if (!rows) return null
+  if (!rows && loadFailed) {
+    return (
+      <LoadFailedState
+        size="page"
+        heading={apps.couldNotLoad.recommendations}
+        onRetry={() => setLoadAttempt((n) => n + 1)}
+      />
+    )
+  }
+  if (!rows) return <SectionPageSkeleton cards={1} fields={0} />
 
   // Render logic
   const c = copy.recommendations

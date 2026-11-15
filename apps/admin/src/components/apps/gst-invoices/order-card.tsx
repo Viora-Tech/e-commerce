@@ -9,8 +9,12 @@ import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { GST_INVOICES_CHANGED } from '@/apps/order-action-procedures'
+import LoadFailedState from '@/components/apps/shared/load-failed-state'
 import DataCard from '@/components/layout/data-card'
+import DataCardSkeleton from '@/components/layout/data-card-skeleton'
+import { appsContent } from '@/data/apps'
 import { gstInvoicesContent } from '@/data/gst-invoices'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { formatDay } from '@/lib/format-date'
 import { formatPaise } from '@/lib/money'
@@ -44,17 +48,26 @@ const isWaiting = (d: Data) =>
  */
 export default function OrderCard({ orderId }: OrderCardProps) {
   // Hooks
+  const apps = useCopy(appsContent)
   const [data, setData] = useState<Data | null>(null)
+  /** The first read failed: the card says so with Try again instead of hiding itself. */
+  const [failed, setFailed] = useState(false)
+  const [attempt, setAttempt] = useState(0)
   const [busy, setBusy] = useState<string | null>(null)
   const [gstin, setGstin] = useState('')
   const polls = useRef(0)
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `attempt` is Try again
   useEffect(() => {
-    api.gstInvoices.forOrder({ orderId }).then((d) => {
-      setData(d)
-      setGstin(d.documents.find((x) => x.kind === 'tax_invoice')?.buyerGstin ?? '')
-    })
-  }, [orderId])
+    setFailed(false)
+    api.gstInvoices.forOrder({ orderId }).then(
+      (d) => {
+        setData(d)
+        setGstin(d.documents.find((x) => x.kind === 'tax_invoice')?.buyerGstin ?? '')
+      },
+      () => setFailed(true),
+    )
+  }, [orderId, attempt])
 
   // "Generate GST invoice" and "Add to invoice queue" in the page's menus say so (issue 1009).
   useEffect(() => {
@@ -108,7 +121,17 @@ export default function OrderCard({ orderId }: OrderCardProps) {
     run(`cn-${refundId}`, () => api.gstInvoices.creditNote({ refundId }))
 
   // Early returns
-  if (!data) return null
+  if (!data && failed) {
+    return (
+      <DataCard title={copy.title}>
+        <LoadFailedState
+          heading={apps.couldNotLoad.details}
+          onRetry={() => setAttempt((n) => n + 1)}
+        />
+      </DataCard>
+    )
+  }
+  if (!data) return <DataCardSkeleton fields={0} lines={2} />
 
   // Render logic
   const invoice = data.documents.find((d) => d.kind === 'tax_invoice' && d.status !== 'cancelled')

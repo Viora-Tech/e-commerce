@@ -7,6 +7,7 @@ import { Progress } from '@commerce/ui/shadcn/progress'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
+import DataCard from '@/components/layout/data-card'
 import { type SetupItemId, settingsHomeContent } from '@/data/settings'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -46,21 +47,19 @@ export default function SetupChecklistCard() {
   const percent = total ? Math.round((done / total) * 100) : 0
 
   return (
-    <SettingsCard>
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex flex-col gap-0.5">
-          <h2 className="text-body font-semibold text-ink-strong">{copy.heading}</h2>
-          <p className="text-caption text-muted-foreground">
-            {items && done === total ? copy.allDone : copy.help}
-          </p>
-        </div>
-        {items ? (
+    <DataCard
+      title={copy.heading}
+      subtitle={items && done === total ? copy.allDone : copy.help}
+      action={
+        items ? (
           <span className="shrink-0 rounded-lg bg-chip-neutral px-2 py-1 text-caption font-medium text-muted-foreground">
             {copy.progress(done, total)}
           </span>
-        ) : null}
-      </div>
-      <Progress value={percent} aria-label={copy.progressLabel} className="mt-4" />
+        ) : null
+      }
+      className="h-auto"
+    >
+      <Progress value={percent} aria-label={copy.progressLabel} />
       {items === null ? (
         <div className="mt-4 flex flex-col gap-2">
           {[0, 1, 2, 3].map((i) => (
@@ -117,6 +116,6 @@ export default function SetupChecklistCard() {
           })}
         </ul>
       )}
-    </SettingsCard>
+    </DataCard>
   )
 }

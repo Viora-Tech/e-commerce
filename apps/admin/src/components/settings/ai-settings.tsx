@@ -19,6 +19,7 @@ import DataCard from '@/components/layout/data-card'
 import SaveBar from '@/components/layout/save-bar'
 import SectionPageSkeleton from '@/components/layout/section-page-skeleton'
 import StatusChip from '@/components/layout/status-chip'
+import { SETTINGS_SKELETON_ROWS } from '@/components/settings/settings-skeleton-rows'
 import { aiContent } from '@/data/ai'
 import { settingsContent } from '@/data/settings'
 import { settingsRowsContent } from '@/data/settings-rows'
@@ -160,7 +161,7 @@ export default function AiSettings() {
         saving={busy}
       />
       {!loaded || !features || !usage ? (
-        <SectionPageSkeleton />
+        <SectionPageSkeleton rows={SETTINGS_SKELETON_ROWS.ai} />
       ) : (
         <SettingsDrill
           rows={rows}
@@ -168,7 +169,6 @@ export default function AiSettings() {
           header={{
             title: copy.settings.title,
             subtitle: copy.settings.subtitle,
-            save: { dirty, saving: busy, onSave: handleSave, label: copy.settings.save },
             notice: loaded.configured ? null : (
               <Alert>
                 <CircleAlert />

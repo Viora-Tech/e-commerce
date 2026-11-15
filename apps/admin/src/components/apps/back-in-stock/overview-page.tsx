@@ -9,15 +9,17 @@ import {
   TableHeader,
   TableRow,
 } from '@commerce/ui/shadcn/table'
-import { useEffect, useState } from 'react'
 import { CELL, HEAD } from '@/components/apps/gst-invoices/table-classes'
+import LoadFailedState from '@/components/apps/shared/load-failed-state'
 import DataCard from '@/components/layout/data-card'
+import DataCardSkeleton from '@/components/layout/data-card-skeleton'
 import PageHeader from '@/components/layout/page-header'
 import TableEmptyRow from '@/components/table/table-empty-row'
+import { appsContent } from '@/data/apps'
 import { backInStockContent } from '@/data/back-in-stock'
+import { useCopy } from '@/hooks/use-copy'
+import { useLoad } from '@/hooks/use-load'
 import { api } from '@/lib/api-client'
-
-type Overview = Awaited<ReturnType<typeof api.backInStock.overview>>
 
 const copy = backInStockContent.overview
 
@@ -30,9 +32,8 @@ function usageCard(
   const pct =
     usage.unlimited || usage.quota <= 0 ? 0 : Math.min(100, (usage.sent / usage.quota) * 100)
   return (
-    <div className="flex flex-col gap-2 rounded-lg surface-card px-5 py-4">
-      <span className="text-caption text-muted-foreground">{label}</span>
-      <span className="text-xl font-semibold text-ink-strong tabular-nums">
+    <DataCard title={label} bodyClassName="flex flex-col gap-2">
+      <span className="text-stat font-semibold text-ink-strong tabular-nums">
         {usage.unlimited ? copy.unlimited : copy.ofQuota(usage.sent, usage.quota)}
       </span>
       {usage.unlimited ? null : <Progress value={pct} />}
@@ -40,27 +41,41 @@ function usageCard(
         <p className="text-caption text-destructive">{copy.paused}</p>
       ) : null}
       {note ? <p className="text-caption text-muted-foreground">{note}</p> : null}
-    </div>
+    </DataCard>
   )
 }
 
 /** Usage this month vs quota, and the sold-out variants with the biggest waiting list. */
 export default function OverviewPage() {
   // Hooks
-  const [data, setData] = useState<Overview | null>(null)
-
-  useEffect(() => {
-    let cancelled = false
-    api.backInStock.overview().then((r) => {
-      if (!cancelled) setData(r)
-    })
-    return () => {
-      cancelled = true
-    }
-  }, [])
+  const apps = useCopy(appsContent)
+  const { data, failed, retry } = useLoad(() => api.backInStock.overview())
 
   // Early returns
-  if (!data) return null
+  if (!data) {
+    return (
+      <div className="flex flex-col gap-5">
+        <PageHeader title={copy.title} summary={copy.subtitle} />
+        {failed ? (
+          <LoadFailedState
+            size="page"
+            heading={apps.couldNotLoad.overview}
+            failed={failed}
+            onRetry={retry}
+          />
+        ) : (
+          // The two usage cards and the waiting-list table.
+          <>
+            <div className="grid gap-4 md:grid-cols-2" aria-busy="true">
+              <DataCardSkeleton fields={0} lines={2} />
+              <DataCardSkeleton fields={0} lines={2} />
+            </div>
+            <DataCardSkeleton fields={0} lines={4} />
+          </>
+        )}
+      </div>
+    )
+  }
 
   // Render logic
   const top = data.topVariants

@@ -3,12 +3,14 @@
 import { designHtmlOf, type EmailBlock, parseEmailBlocks, utmName } from '@commerce/core/marketing'
 import { formatNumber } from '@commerce/money'
 import { Copy, InfoIcon, Send, TriangleAlert, WhatsappLogo } from '@commerce/ui/icons'
+import { Alert, AlertDescription } from '@commerce/ui/shadcn/alert'
 import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import DataCard from '@/components/layout/data-card'
+import EmptyState from '@/components/layout/empty-state'
 import KeyValueList from '@/components/layout/key-value-list'
 import PageBody from '@/components/layout/page-body'
 import PageHeader from '@/components/layout/page-header'
@@ -69,7 +71,8 @@ export default function CampaignReport({
 }: CampaignReportProps) {
   // Hooks
   const router = useRouter()
-  const [busy, setBusy] = useState(false)
+  /* Which header action runs, so it spins on its own button and the other waits. */
+  const [busy, setBusy] = useState<'cancel' | 'duplicate' | null>(null)
 
   // Refresh while the worker is still sending, so the numbers move without a reload.
   useEffect(() => {
@@ -84,25 +87,29 @@ export default function CampaignReport({
 
   // Event handlers
   const handleDuplicate = async () => {
-    setBusy(true)
-    const copyRow = await api.marketing.campaigns.duplicate({
-      id: campaign.id,
-      prefix: copy.copyPrefix,
-    })
-    setBusy(false)
+    setBusy('duplicate')
+    let copyRow: Awaited<ReturnType<typeof api.marketing.campaigns.duplicate>>
+    try {
+      copyRow = await api.marketing.campaigns.duplicate({
+        id: campaign.id,
+        prefix: copy.copyPrefix,
+      })
+    } finally {
+      setBusy(null)
+    }
     if (!copyRow) return
     toast.success(copy.duplicated)
     router.push(routes.growth.campaign(copyRow.id))
   }
 
   const handleCancel = async () => {
-    setBusy(true)
+    setBusy('cancel')
     try {
       await api.marketing.campaigns.cancel({ id: campaign.id })
       toast.success(campaign.status === 'scheduled' ? copy.unscheduled : copy.stopped)
       router.refresh()
     } finally {
-      setBusy(false)
+      setBusy(null)
     }
   }
 
@@ -149,11 +156,21 @@ export default function CampaignReport({
         actions={
           <>
             {campaign.status === 'scheduled' || campaign.status === 'sending' ? (
-              <Button variant="outline" onClick={handleCancel} disabled={busy}>
+              <Button
+                variant="outline"
+                onClick={handleCancel}
+                loading={busy === 'cancel'}
+                disabled={busy !== null}
+              >
                 {campaign.status === 'scheduled' ? copy.unschedule : copy.stop}
               </Button>
             ) : null}
-            <Button variant="outline" onClick={handleDuplicate} disabled={busy}>
+            <Button
+              variant="outline"
+              onClick={handleDuplicate}
+              loading={busy === 'duplicate'}
+              disabled={busy !== null}
+            >
               <Copy />
               {copy.duplicate}
             </Button>
@@ -201,24 +218,28 @@ export default function CampaignReport({
         ]}
       />
       {waiting && campaign.scheduledAt ? (
-        <p className="flex items-center gap-2 rounded-lg border border-info/30 bg-info-soft px-4 py-2.5 text-body text-info">
-          <InfoIcon className="size-4 shrink-0" aria-hidden="true" />
-          {copy.scheduledNote(formatDateTime(campaign.scheduledAt), campaign.audienceCount)}
-        </p>
+        <Alert tone="info">
+          <InfoIcon aria-hidden="true" />
+          <AlertDescription>
+            {copy.scheduledNote(formatDateTime(campaign.scheduledAt), campaign.audienceCount)}
+          </AlertDescription>
+        </Alert>
       ) : null}
       {s.failed > 0 || s.queued > 0 ? (
-        <p className="flex items-center gap-2 rounded-lg border border-warning/30 bg-warning-soft px-4 py-2.5 text-body text-warning-foreground dark:text-warning">
-          <TriangleAlert className="size-4 shrink-0" aria-hidden="true" />
-          {[
-            s.failed ? (email ? copy.failed(s.failed) : copy.failedWhatsapp(s.failed)) : null,
-            s.queued ? copy.queued(s.queued) : null,
-          ]
-            .filter(Boolean)
-            .join(' ')}
-        </p>
+        <Alert tone="warning">
+          <TriangleAlert aria-hidden="true" />
+          <AlertDescription>
+            {[
+              s.failed ? (email ? copy.failed(s.failed) : copy.failedWhatsapp(s.failed)) : null,
+              s.queued ? copy.queued(s.queued) : null,
+            ]
+              .filter(Boolean)
+              .join(' ')}
+          </AlertDescription>
+        </Alert>
       ) : null}
       {campaign.report ? <CampaignPerformance report={campaign.report} /> : null}
-      <div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,22rem)]">
+      <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,23.5rem)]">
         <DataCard title={copy.content}>
           <div className="grid gap-4 md:grid-cols-[minmax(0,16rem)_minmax(0,1fr)]">
             {email ? (
@@ -239,7 +260,7 @@ export default function CampaignReport({
             </div>
           </div>
         </DataCard>
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-6">
           <DataCard title={copy.audience}>
             <KeyValueList
               variant="grid"
@@ -266,9 +287,7 @@ export default function CampaignReport({
           </DataCard>
           <DataCard title={copy.ordersHeading}>
             {campaign.recentOrders.length === 0 ? (
-              <p className="text-body text-muted-foreground">
-                {waiting ? copy.ordersEmpty : copy.ordersNone}
-              </p>
+              <EmptyState variant="inline" body={waiting ? copy.ordersEmpty : copy.ordersNone} />
             ) : (
               <ul className="flex flex-col gap-3">
                 {campaign.recentOrders.map((o) => (

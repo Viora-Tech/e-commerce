@@ -23,6 +23,7 @@ import CheckoutTextCard, { editedCount } from '@/components/settings/checkout-te
 import RupeeInput from '@/components/settings/rupee-input'
 import SettingsDrill from '@/components/settings/settings-drill'
 import SettingsDrillPanel from '@/components/settings/settings-drill-panel'
+import { SETTINGS_SKELETON_ROWS } from '@/components/settings/settings-skeleton-rows'
 import LoadFailed from '@/components/states/load-failed'
 import { checkoutRulesContent } from '@/data/checkout-rules'
 import {
@@ -249,7 +250,7 @@ export default function CheckoutSettings() {
       {failed && !loaded ? (
         <LoadFailed failed={failed} onRetry={retry} />
       ) : !form || !s || !loaded ? (
-        <SectionPageSkeleton />
+        <SectionPageSkeleton rows={SETTINGS_SKELETON_ROWS.checkout} />
       ) : (
         <SettingsDrill
           rows={rows}
@@ -257,7 +258,6 @@ export default function CheckoutSettings() {
           header={{
             title: copy.title,
             subtitle: copy.subtitle,
-            save: { dirty, saving: busy, onSave: handleSave, label: copy.save },
           }}
         >
           <SettingsDrillPanel id="contact">

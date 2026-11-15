@@ -14,12 +14,17 @@ import CommissionSettings from '@/components/apps/affiliates/commission-settings
 import ProgramExcludesCard from '@/components/apps/affiliates/program-excludes-card'
 import ProgramLevelsCard from '@/components/apps/affiliates/program-levels-card'
 import SignupFormCard from '@/components/apps/affiliates/signup-form-card'
+import LoadFailedState from '@/components/apps/shared/load-failed-state'
+import BackLink from '@/components/layout/back-link'
+import DataCardSkeleton from '@/components/layout/data-card-skeleton'
 import PageHeader from '@/components/layout/page-header'
+import PageHeaderSkeleton from '@/components/layout/page-header-skeleton'
 import SaveBar from '@/components/layout/save-bar'
 import StatusChip from '@/components/layout/status-chip'
 import SettingsCard from '@/components/settings/settings-card'
 import SettingsRow from '@/components/settings/settings-row'
 import { affiliatesContent } from '@/data/affiliates'
+import { appsContent } from '@/data/apps'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
@@ -42,6 +47,7 @@ function cleanRules(rules: ProgramRules): ProgramRules {
 export default function ProgramEditor({ params }: AppPageProps) {
   // Hooks
   const copy = useCopy(affiliatesContent)
+  const apps = useCopy(appsContent)
   const [program, setProgram] = useState<Program | null>(null)
   const [form, setForm] = useState<Form | null>(null)
   const [targets, setTargets] = useState<Target[]>([])
@@ -49,26 +55,34 @@ export default function ProgramEditor({ params }: AppPageProps) {
   const [busy, setBusy] = useState(false)
   const [archiving, setArchiving] = useState(false)
   const [reload, setReload] = useState(0)
+  /** The read failed: Try again instead of a blank page. */
+  const [failed, setFailed] = useState(false)
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: `reload` re-runs the load after a change
   useEffect(() => {
     let cancelled = false
     const id = params.id ?? ''
+    setFailed(false)
     Promise.all([
       api.affiliates.programs.get({ id }),
       api.affiliates.programs.list(),
       api.store.origin(),
-    ]).then(([p, all, o]) => {
-      if (cancelled) return
-      setProgram(p)
-      setForm({ name: p.name, slug: p.slug, rules: p.rules })
-      setTargets(
-        all
-          .filter((x) => x.id !== p.id && !x.archivedAt)
-          .map((x) => ({ id: x.id, name: x.name, isDefault: x.isDefault })),
-      )
-      setOrigin(o)
-    })
+    ]).then(
+      ([p, all, o]) => {
+        if (cancelled) return
+        setProgram(p)
+        setForm({ name: p.name, slug: p.slug, rules: p.rules })
+        setTargets(
+          all
+            .filter((x) => x.id !== p.id && !x.archivedAt)
+            .map((x) => ({ id: x.id, name: x.name, isDefault: x.isDefault })),
+        )
+        setOrigin(o)
+      },
+      () => {
+        if (!cancelled) setFailed(true)
+      },
+    )
     return () => {
       cancelled = true
     }
@@ -106,7 +120,28 @@ export default function ProgramEditor({ params }: AppPageProps) {
   }
 
   // Early returns
-  if (!program || !form) return null
+  if ((!program || !form) && failed) {
+    return (
+      <div className="flex flex-col gap-5">
+        <BackLink href={routes.apps.page('affiliates', 'programs')} label={copy.program.back} />
+        <LoadFailedState
+          size="page"
+          heading={apps.couldNotLoad.program}
+          onRetry={() => setReload((n) => n + 1)}
+        />
+      </div>
+    )
+  }
+  if (!program || !form) {
+    return (
+      <div className="flex flex-col gap-5" aria-busy="true">
+        <PageHeaderSkeleton back actions={1} />
+        <DataCardSkeleton fields={2} />
+        <DataCardSkeleton fields={3} />
+        <DataCardSkeleton fields={0} lines={3} />
+      </div>
+    )
+  }
 
   // Render logic
   const c = copy.program

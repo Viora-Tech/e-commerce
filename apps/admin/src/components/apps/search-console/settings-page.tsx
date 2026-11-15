@@ -5,9 +5,12 @@ import { Button } from '@commerce/ui/shadcn/button'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import LoadFailedState from '@/components/apps/shared/load-failed-state'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
 import PageHeader from '@/components/layout/page-header'
+import SectionPageSkeleton from '@/components/layout/section-page-skeleton'
 import SettingsCard from '@/components/settings/settings-card'
+import { appsContent } from '@/data/apps'
 import { searchConsoleContent } from '@/data/search-console'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -32,6 +35,7 @@ const errorText = (fallback: string, err: unknown) =>
  */
 export default function SettingsPage() {
   // Hooks
+  const apps = useCopy(appsContent)
   const copy = useCopy(searchConsoleContent)
   const fmt = useFormat()
   const router = useRouter()
@@ -41,9 +45,14 @@ export default function SettingsPage() {
   const [busy, setBusy] = useState<Busy>(null)
   const [confirming, setConfirming] = useState(false)
 
+  /** The first read failed: Try again instead of a blank page. */
+  const [loadFailed, setLoadFailed] = useState(false)
+  const [loadAttempt, setLoadAttempt] = useState(0)
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `loadAttempt` is Try again
   useEffect(() => {
-    api.searchConsole.view().then(setView)
-  }, [])
+    setLoadFailed(false)
+    api.searchConsole.view().then(setView, () => setLoadFailed(true))
+  }, [loadAttempt])
 
   // Back from Google's consent screen: say how it went, then drop the query.
   useEffect(() => {
@@ -81,7 +90,16 @@ export default function SettingsPage() {
   }
 
   // Early returns
-  if (!view) return null
+  if (!view && loadFailed) {
+    return (
+      <LoadFailedState
+        size="page"
+        heading={apps.couldNotLoad.settings}
+        onRetry={() => setLoadAttempt((n) => n + 1)}
+      />
+    )
+  }
+  if (!view) return <SectionPageSkeleton cards={2} />
 
   // Render logic
   const c = copy.settings.connection

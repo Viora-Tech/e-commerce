@@ -1,11 +1,13 @@
 'use client'
 
 import { siteConfig } from '@commerce/config/site'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import RelativeTime from '@/components/layout/relative-time'
 import ResourceTable, { type ResourceColumnSpec } from '@/components/table/resource-table'
+import { appsContent } from '@/data/apps'
 import { formsContent } from '@/data/forms'
 import { useCopy } from '@/hooks/use-copy'
+import { useLoad } from '@/hooks/use-load'
 import { api } from '@/lib/api-client'
 
 type Row = Awaited<ReturnType<typeof api.forms.submissions.list>>[number]
@@ -14,20 +16,11 @@ type Row = Awaited<ReturnType<typeof api.forms.submissions.list>>[number]
 export default function SubmissionsList() {
   // Hooks
   const copy = useCopy(formsContent.submissions)
-  const [rows, setRows] = useState<Row[] | null>(null)
+  const apps = useCopy(appsContent)
+  const { data: rows, failed, retry } = useLoad(() => api.forms.submissions.list())
   const [query, setQuery] = useState('')
   const [page, setPage] = useState(1)
   const [perPage, setPerPage] = useState<number>(siteConfig.ui.rowsPerPage.default)
-
-  useEffect(() => {
-    let cancelled = false
-    api.forms.submissions.list().then((r) => {
-      if (!cancelled) setRows(r)
-    })
-    return () => {
-      cancelled = true
-    }
-  }, [])
 
   // Event handlers
   const handleQuery = (next: string) => {
@@ -102,7 +95,8 @@ export default function SubmissionsList() {
         items={visible}
         getId={(r) => r.id}
         selectable={false}
-        loading={rows === null}
+        loading={rows === null && !failed}
+        error={failed ? { heading: apps.couldNotLoad.submissions, onRetry: retry } : undefined}
         query={query}
         onQueryChange={handleQuery}
         page={page}

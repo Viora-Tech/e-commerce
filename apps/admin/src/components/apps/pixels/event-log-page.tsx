@@ -9,6 +9,7 @@ import PageHeader from '@/components/layout/page-header'
 import { appliedFromGroups, type FilterGroup } from '@/components/table/filter-panel'
 import ResourceTable from '@/components/table/resource-table'
 import ViewSelect from '@/components/table/view-select'
+import { appsContent } from '@/data/apps'
 import { filterPanelContent } from '@/data/filter-panel'
 import { pixelsContent } from '@/data/pixels'
 import { useCopy, useFormat } from '@/hooks/use-copy'
@@ -26,6 +27,7 @@ const ORIGINS: Origin[] = ['storefront', 'order', 'test']
 export default function EventLogPage() {
   // Hooks
   const copy = useCopy(pixelsContent)
+  const apps = useCopy(appsContent)
   const panelCopy = useCopy(filterPanelContent)
   const f = useFormat()
   const [pixels, setPixels] = useState<Pixel[]>([])
@@ -39,6 +41,9 @@ export default function EventLogPage() {
   const [page, setPage] = useState(1)
   const [perPage, setPerPage] = useState<number>(siteConfig.ui.rowsPerPage.default)
   const [open, setOpen] = useState<LogRow | null>(null)
+  /** The log read failed: the table says so with Try again. */
+  const [failed, setFailed] = useState(false)
+  const [attempt, setAttempt] = useState(0)
 
   useEffect(() => {
     let cancelled = false
@@ -50,6 +55,7 @@ export default function EventLogPage() {
     }
   }, [])
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `attempt` is Try again
   useEffect(() => {
     let cancelled = false
     api.pixels.log
@@ -61,15 +67,21 @@ export default function EventLogPage() {
         limit: perPage,
         offset: (page - 1) * perPage,
       })
-      .then((r) => {
-        if (cancelled) return
-        setRows(r.rows)
-        setTotal(r.total)
-      })
+      .then(
+        (r) => {
+          if (cancelled) return
+          setFailed(false)
+          setRows(r.rows)
+          setTotal(r.total)
+        },
+        () => {
+          if (!cancelled) setFailed(true)
+        },
+      )
     return () => {
       cancelled = true
     }
-  }, [status, connectionId, eventName, origin, page, perPage])
+  }, [status, connectionId, eventName, origin, page, perPage, attempt])
 
   // Helpers
   const pick = (set: (v: string | null) => void) => (next: string | null) => {
@@ -141,7 +153,12 @@ export default function EventLogPage() {
         items={visible}
         getId={(r) => r.id}
         selectable={false}
-        loading={rows === null}
+        loading={rows === null && !failed}
+        error={
+          failed
+            ? { heading: apps.couldNotLoad.events, onRetry: () => setAttempt((n) => n + 1) }
+            : undefined
+        }
         query={query}
         onQueryChange={setQuery}
         onClearAll={handleClearAll}

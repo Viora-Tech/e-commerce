@@ -1,11 +1,10 @@
 'use client'
 
 import type { BusinessGstView } from '@commerce/core'
-import { useState } from 'react'
 import { settingsContent } from '@/data/settings'
 import { useCopy } from '@/hooks/use-copy'
 import BusinessGstSettings from '../business-gst/business-gst-settings'
-import TaxesSettings, { type TaxesSaveState } from './taxes-settings'
+import TaxesSettings from './taxes-settings'
 
 type TaxesGstPageProps = {
   view: BusinessGstView
@@ -23,7 +22,6 @@ function gstKey(view: BusinessGstView): string {
 export default function TaxesGstPage({ view }: TaxesGstPageProps) {
   // Hooks
   const copy = useCopy(settingsContent)
-  const [saveState, setSaveState] = useState<TaxesSaveState | null>(null)
 
   return (
     <div className="flex flex-col gap-4">
@@ -34,11 +32,7 @@ export default function TaxesGstPage({ view }: TaxesGstPageProps) {
         header={{
           title: copy.taxesPage.title,
           subtitle: copy.taxesPage.intro,
-          save: saveState
-            ? { dirty: saveState.dirty, saving: saveState.busy, onSave: saveState.save }
-            : undefined,
         }}
-        onSaveState={setSaveState}
       />
     </div>
   )
