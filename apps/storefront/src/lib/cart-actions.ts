@@ -228,6 +228,11 @@ export type CheckoutForm = {
   label?: string
   /** The marketing ticks under Contact; unticked sends nothing. */
   marketing?: { email: boolean; whatsapp: boolean }
+  /**
+   * "Share this order with our advertising partners", never ticked for the shopper: lets this
+   * order's server Purchase reach the store's ad pixels without a yes on the cookie banner.
+   */
+  shareOrder?: boolean
   /** "Yes, order again" after being asked about the same items ordered a little while ago. */
   orderAgain?: boolean
 }
@@ -306,6 +311,7 @@ export async function checkoutAction(submitted: CheckoutForm): Promise<CheckoutR
           fbc: jar.get(FBC_COOKIE)?.value,
           ip,
           ua,
+          shareOrder: form.shareOrder === true,
         },
         new Date(),
       )

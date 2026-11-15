@@ -53,6 +53,11 @@ export type CheckoutFormInput = {
   countries?: string[]
   /** The country a new address opens in: the shopper's market country when offered. */
   defaultCountry?: string
+  /**
+   * Offer "Share this order with our advertising partners": the store sends Purchase to an ad
+   * pixel server side and the shopper has not already said yes to marketing on the banner.
+   */
+  orderSharing?: boolean
 }
 
 export type ChangeHandler = (

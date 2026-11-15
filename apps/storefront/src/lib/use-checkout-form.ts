@@ -271,6 +271,8 @@ export function useCheckoutForm(input: CheckoutFormInput) {
         orderAgain,
         giftCards: giftCards.map((c) => c.code),
         useStoreCredit: tender.spendablePaise > 0 && !digitalOnly,
+        // Only a tick the shopper could see counts (a tab's old draft may still carry one).
+        shareOrder: input.orderSharing === true && form.shareOrder === true,
         ...ship.formFields,
       })
       const next = dropUnavailable(r)
@@ -357,6 +359,7 @@ export function useCheckoutForm(input: CheckoutFormInput) {
       ...prev,
       marketing: { email: false, whatsapp: false, ...prev.marketing, [channel]: on },
     }))
+  const handleShareOrder = (on: boolean) => setForm((prev) => ({ ...prev, shareOrder: on }))
   const handleGuest = (on: boolean) => {
     setGuest(on)
     setAttempted(false)
@@ -476,6 +479,7 @@ export function useCheckoutForm(input: CheckoutFormInput) {
     handleLeave,
     handleBusiness,
     handleMarketing,
+    handleShareOrder,
     handlePayment,
     handlePhone,
     handleGuest,
