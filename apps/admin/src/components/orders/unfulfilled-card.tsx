@@ -12,11 +12,14 @@ import DataCard from '@/components/layout/data-card'
 import StatusChip from '@/components/layout/status-chip'
 import ProductThumb from '@/components/products/product-thumb'
 import { orderDetailContent } from '@/data/order-detail'
+import { sharedParcelContent } from '@/data/shared-parcel'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { awbClash } from '@/lib/awb-clash'
 import { routes } from '@/lib/routes'
 import { type OrderDetail, unfulfilledLines } from './order-detail-types'
 import OrderLinesTable from './order-lines-table'
+import SameBoxField from './same-box-field'
 import TrackingFields, {
   EMPTY_TRACKING,
   type TrackingDraft,
@@ -47,10 +50,12 @@ export default function UnfulfilledCard({
 }: UnfulfilledCardProps) {
   // Hooks
   const copy = useCopy(orderDetailContent)
+  const shared = useCopy(sharedParcelContent)
   const [picks, setPicks] = useState<Record<string, number>>({})
   const [unticked, setUnticked] = useState<Record<string, true>>({})
   const [tracking, setTracking] = useState<TrackingDraft>(EMPTY_TRACKING)
   const [notify, setNotify] = useState(true)
+  const [sameBox, setSameBox] = useState('')
   const [busy, setBusy] = useState(false)
 
   // Helpers
@@ -61,6 +66,7 @@ export default function UnfulfilledCard({
     setUnticked({})
     setTracking(EMPTY_TRACKING)
     setNotify(true)
+    setSameBox('')
   }
 
   // Event handlers
@@ -97,14 +103,22 @@ export default function UnfulfilledCard({
       await api.orders.fulfil({
         orderId: order.id,
         lines,
-        ...trackingPayload(tracking),
+        // In another order's box: that parcel's courier and AWB, so no tracking of its own.
+        ...(sameBox ? { sameBoxAs: sameBox } : trackingPayload(tracking)),
         notifyCustomer: notify,
       })
       toast.success(copy.fulfilDialog.done)
       reset()
       onDone()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.fulfilDialog.failed)
+      const clash = awbClash(err)
+      toast.error(
+        clash
+          ? shared.awbOnOther(clash.waybill, clash.orderNumber, clash.live)
+          : err instanceof Error
+            ? err.message
+            : copy.fulfilDialog.failed,
+      )
     } finally {
       setBusy(false)
     }
@@ -231,7 +245,8 @@ export default function UnfulfilledCard({
         </ul>
       </div>
 
-      <TrackingFields value={tracking} onChange={setTracking} />
+      <SameBoxField orderId={order.id} value={sameBox} onChange={setSameBox} />
+      {sameBox ? null : <TrackingFields value={tracking} onChange={setTracking} />}
 
       <div className="flex items-start gap-3">
         <Switch id="fulfil-notify" checked={notify} onCheckedChange={setNotify} />

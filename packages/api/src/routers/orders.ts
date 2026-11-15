@@ -48,12 +48,12 @@ import {
   orderBalance,
   orderNeighbours,
 } from '../services/order-fulfil.service'
+import { shipmentDetailsForOrder } from '../services/order-shipment.service'
 import {
   assertCourierConnected,
   bookShipment,
   cancelStoreShipment,
   refreshShipmentTracking,
-  shipmentDetailsForOrder,
 } from '../services/shipping.service'
 import { courierArgs } from './courier-args'
 import { assertNotImported } from './imported-order'
@@ -197,11 +197,13 @@ export const ordersRouter = {
           .optional(),
         /** False: pack without the "order shipped" message (Shopify's "Notify customer"). */
         notifyCustomer: z.boolean().optional(),
+        /** "Same box as #A": the live shipment of the customer's other order these went in. */
+        sameBoxAs: z.uuid().optional(),
       }),
     )
     .handler(async ({ context, input }) => {
       await assertNotImported(context.tx, { orderId: input.orderId })
-      if (input.providerId) {
+      if (input.providerId && !input.sameBoxAs) {
         const { shipping } = await storeRegistries(context.tx, context.scope.storeId)
         const { storeId } = context.scope
         await assertCourierConnected(
@@ -212,14 +214,8 @@ export const ordersRouter = {
           input.providerId,
         )
       }
-      try {
-        // order.fulfilled is written by the recompute inside, on the last unit packed.
-        return await fulfilOrder(context.tx, context.scope.storeId, input)
-      } catch (err) {
-        if (err instanceof CommerceError)
-          throw new ORPCError('BAD_REQUEST', { message: err.message })
-        throw err
-      }
+      // order.fulfilled is written by the recompute inside, on the last unit packed.
+      return fulfilOrder(context.tx, context.scope.storeId, input)
     }),
 
   /** Record money collected outside a gateway; the order becomes paid. */

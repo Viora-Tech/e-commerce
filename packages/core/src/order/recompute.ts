@@ -13,6 +13,7 @@ import { COD_RTO_TAGS } from '../cod-rto/settings'
 import type { StoreContext } from '../context'
 import { insertOutboxEvent } from '../outbox/write'
 import { isSplitTender } from '../payments/split-tender'
+import { carriesOrder } from '../shipping/carries-order'
 import {
   asLifecycle,
   deriveFulfillmentStatus,
@@ -181,7 +182,8 @@ export async function recomputeOrderStatuses(
       })
       .from(orderLine)
       .where(eq(orderLine.orderId, orderId)),
-    ctx.tx.select({ status: shipment.status }).from(shipment).where(eq(shipment.orderId, orderId)),
+    // Its own shipments and any box it shares with another order (shipping/shared-parcel.ts).
+    ctx.tx.select({ status: shipment.status }).from(shipment).where(carriesOrder(orderId)),
     // Units customers sent back that reached the merchant (RTOs count through the shipment).
     ctx.tx
       .select({ units: sql<number>`coalesce(sum(${returnRequestLine.quantity}), 0)::int` })

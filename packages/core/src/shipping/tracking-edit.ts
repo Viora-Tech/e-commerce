@@ -1,5 +1,5 @@
 /** SOURCE OF TRUTH: editing a shipment's tracking — WHAT: the merchant corrects a hand-entered shipment's tracking number, courier or tracking link; the order timeline records it and the shopper gets `shipping_update` / WHY: a typo'd AWB or a parcel handed to a different courier left the shopper tracking the wrong number */
-import { orderNote, shipment } from '@commerce/db'
+import { order, orderNote, shipment } from '@commerce/db'
 import { and, eq, ne } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 import { CommerceError } from '../errors'
@@ -66,8 +66,9 @@ export async function updateShipmentTracking(
   }
   if (waybill !== before.waybill) {
     const [taken] = await ctx.tx
-      .select({ id: shipment.id })
+      .select({ id: shipment.id, orderId: shipment.orderId, number: order.number })
       .from(shipment)
+      .innerJoin(order, eq(order.id, shipment.orderId))
       .where(
         and(
           eq(shipment.provider, before.provider),
@@ -78,7 +79,9 @@ export async function updateShipmentTracking(
       .limit(1)
     if (taken) {
       throw new TrackingEditRefused(
-        'Another shipment already uses this tracking number.',
+        taken.orderId === before.orderId
+          ? 'Another shipment on this order already uses this tracking number.'
+          : `Tracking number ${waybill} is already on order #${taken.number}.`,
         ctx.storeId,
       )
     }

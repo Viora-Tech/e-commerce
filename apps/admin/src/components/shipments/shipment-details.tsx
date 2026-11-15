@@ -17,6 +17,8 @@ import EditTrackingDialog from './edit-tracking-dialog'
 export type ShipmentDetailsData = Awaited<ReturnType<typeof api.shipments.get>>
 
 type ShipmentDetailsProps = {
+  /** Shown for an order riding in another order's box: no pickup, tracking edit or cancel here. */
+  readOnly?: boolean | undefined
   shipment: ShipmentDetailsData
   /** After a cancel or a pickup request, so the page (or list) behind reads it again. */
   onChanged?: () => void
@@ -32,7 +34,12 @@ const HHMM = /^(\d{1,2}):(\d{2})$/
  * Cancel shipment. Cancel asks first in a centred dialog; when it is not possible any more the
  * card says why instead. A parcel with no pickup request yet offers "Request pickup" inline.
  */
-export default function ShipmentDetails({ shipment, onChanged, actions }: ShipmentDetailsProps) {
+export default function ShipmentDetails({
+  readOnly,
+  shipment,
+  onChanged,
+  actions,
+}: ShipmentDetailsProps) {
   // Hooks
   const copy = useCopy(shipmentDetailsContent)
   const editCopy = useCopy(editTrackingContent)
@@ -81,7 +88,7 @@ export default function ShipmentDetails({ shipment, onChanged, actions }: Shipme
     : shipment.status === 'created'
       ? copy.noPickup
       : null
-  const block = shipment.cancelBlock
+  const block = readOnly ? undefined : shipment.cancelBlock
 
   return (
     <div className="flex flex-col gap-4">
@@ -162,9 +169,7 @@ export default function ShipmentDetails({ shipment, onChanged, actions }: Shipme
           </Button>
         ) : null}
       </div>
-      {block !== null ? (
-        <p className="text-caption text-muted-foreground">{copy.blocked[block]}</p>
-      ) : null}
+      {block ? <p className="text-caption text-muted-foreground">{copy.blocked[block]}</p> : null}
 
       <ConfirmDialog
         tone="destructive"

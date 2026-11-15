@@ -39,9 +39,14 @@ import {
 import { notDraft, type OrderListFilters, onHoldSql, orderListWhere } from './order-list-where'
 import { pendingUpiTile } from './order-views'
 
-const latestShipment = <T>(column: string) =>
-  sql<T>`(select ${sql.raw(column)} from shipment s where s.order_id = ${order.id}
-    order by s.created_at desc limit 1)`
+/* The order's newest shipment; with `shared`, also a box it rides in with another order
+   ("Same box as #A"), so its Delivery chip follows that box. */
+const latestShipment = <T>(column: string, shared = true) =>
+  sql<T>`(select ${sql.raw(column)} from shipment s where (s.order_id = ${order.id}${
+    shared
+      ? sql` or exists (select 1 from shipment_shared_order sso where sso.shipment_id = s.id and sso.order_id = ${order.id})`
+      : sql``
+  }) order by s.created_at desc limit 1)`
 
 type OrderListPageInput = OrderListFilters & { page: number; perPage: number }
 
@@ -78,7 +83,7 @@ function orderRows(tx: StoreTx, input: OrderListPageInput) {
       /* The optional Items, Delivery, Phone and City columns (audit #7, #49). */
       itemCount: sql<number>`(select coalesce(sum(ol.quantity), 0)::int from ${orderLine} ol where ol.order_id = ${order.id})`,
       deliveryStatus: latestShipment<string | null>('s.status'),
-      labelLive: latestShipment<boolean | null>('s.label_url is not null'),
+      labelLive: latestShipment<boolean | null>('s.label_url is not null', false),
       trackingUrl: latestShipment<string | null>('s.tracking_url'), // the Delivery chip's link (#1008)
       shipCity: sql<
         string | null
