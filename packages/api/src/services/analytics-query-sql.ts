@@ -81,6 +81,13 @@ const RETURNED = sql`(select coalesce(sum(${returnRequestLine.quantity}), 0)
   where ${returnRequestLine.orderLineId} = ${orderLine.id}
     and ${returnRequest.status} not in ('rejected', 'cancelled'))`
 
+/**
+ * Units a line kept: ordered minus what came back (never below zero), like Shopify's net
+ * quantity. Returns count against the order's date, so a month's figure can still drop when a
+ * later return arrives for one of its orders. Sum it over order lines joined to `order`.
+ */
+export const NET_UNITS = sql`(${orderLine.quantity} - least(${RETURNED}, ${orderLine.quantity}))`
+
 export function tableSql(table: QueryTable, names: CustomerNames): TableSql {
   if (table === 'sales') {
     return {
@@ -117,7 +124,8 @@ export function tableSql(table: QueryTable, names: CustomerNames): TableSql {
   if (table === 'products') {
     return {
       exprs: {
-        net_quantity: sql`coalesce(sum(${orderLine.quantity}), 0)::int`,
+        net_quantity: sql`coalesce(sum(${NET_UNITS}), 0)::int`,
+        ordered_quantity: sql`coalesce(sum(${orderLine.quantity}), 0)::int`,
         gross_sales: sql`coalesce(sum(${orderLine.quantity} * ${orderLine.unitPricePaise}), 0)::bigint`,
         cost: sql`coalesce(sum(${orderLine.quantity} * ${orderLine.costAtSalePaise}), 0)::bigint`,
         orders: sql`count(distinct ${order.id})::int`,

@@ -69,6 +69,11 @@ That one answers "how many TRIAINA mice have we sold, ever, by colour". The part
 gets an error rather than a shortened answer. Cancelled orders, drafts and test orders never count.
 Customer names show only to staff who can see customers.
 
+Units on `products`, as in Shopify: `net_quantity` is units sold, meaning units ordered minus units
+returned; `ordered_quantity` is before returns and `returned_quantity` is what came back (returns
+and RTO that were not rejected or cancelled). A return counts on the date of its order, so last
+month's `net_quantity` can drop when a return for one of its orders arrives this month.
+
 ## Related guides
 
 <RelatedGuides ids={['growth', 'payments', 'shipments']} />

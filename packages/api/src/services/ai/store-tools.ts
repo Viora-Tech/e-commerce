@@ -24,6 +24,7 @@ import {
 import { type Currency, formatMoney } from '@commerce/money'
 import { and, asc, count, desc, eq, gte, inArray, isNull, lt, lte, ne, sql, sum } from 'drizzle-orm'
 import { z } from 'zod'
+import { NET_UNITS } from '../analytics-query-sql'
 import {
   type AnswerTable,
   answerTable,
@@ -260,7 +261,7 @@ export function storeTools(env: ToolEnv): AiToolSet {
 
     topProducts: defineAiTool({
       description:
-        'Best-selling products by units sold in a period ("this month" is period this_month), with revenue. For one product or variant, a collection, all time or any other range, use analyticsQuery.',
+        'Best-selling products by units sold (ordered minus returned) in a period ("this month" is period this_month), with revenue. For one product or variant, a collection, all time or any other range, use analyticsQuery.',
       input: z.object({
         ...periodInput(30),
         limit: z.number().int().min(1).max(10).default(5),
@@ -272,7 +273,8 @@ export function storeTools(env: ToolEnv): AiToolSet {
           const rows = await tx
             .select({
               title: product.title,
-              units: sum(orderLine.quantity).mapWith(Number),
+              // Net units, as the query's net_quantity counts them: ordered minus returned.
+              units: sum(NET_UNITS).mapWith(Number),
               revenue: sum(sql`${orderLine.quantity} * ${orderLine.unitPricePaise}`).mapWith(
                 Number,
               ),
@@ -283,7 +285,7 @@ export function storeTools(env: ToolEnv): AiToolSet {
             .innerJoin(product, eq(product.id, variant.productId))
             .where(and(live, gte(order.placedAt, p.from), lt(order.placedAt, p.to)))
             .groupBy(product.id, product.title)
-            .orderBy(desc(sum(orderLine.quantity)))
+            .orderBy(desc(sum(NET_UNITS)))
             .limit(input.limit)
           if (!rows.length)
             return {
