@@ -100,6 +100,9 @@ export default function NavSection({ item, pathname, count = 0, counts = {} }: N
   const [showAll, setShowAll] = useState(false)
   const listRef = useRef<HTMLUListElement>(null)
 
+  // Derived
+  const hint = (n: number) => (item.countKind === 'unread' ? copy.unreadHint(n) : copy.countHint(n))
+
   // Event handlers
   const handleToggle = () => {
     setOverride({ pathname, open: !open })
@@ -156,7 +159,7 @@ export default function NavSection({ item, pathname, count = 0, counts = {} }: N
       ) : null}
       <item.icon className={item.iconClassName} />
       <span className={cn('min-w-0 flex-1 truncate', SIDEBAR_LABEL)}>{item.label}</span>
-      {count > 0 ? <CountPill count={count} title={copy.countHint(count)} /> : null}
+      {count > 0 ? <CountPill count={count} title={hint(count)} /> : null}
     </Link>
   )
 
@@ -257,7 +260,7 @@ export default function NavSection({ item, pathname, count = 0, counts = {} }: N
                     ) : null}
                     <span className="min-w-0 flex-1 truncate">{child.label}</span>
                     {childCount > 0 ? (
-                      <CountPill count={childCount} title={copy.countHint(childCount)} />
+                      <CountPill count={childCount} title={hint(childCount)} />
                     ) : null}
                     {child.external ? (
                       <ExternalLink aria-hidden="true" className="size-3.5 shrink-0" />
