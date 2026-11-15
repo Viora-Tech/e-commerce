@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { type CSSProperties, useRef, useState } from 'react'
 import { mainProductContent as copy } from '../data/zero-drift/main-product'
 import Lens, { LENS_ZOOM_FACTOR } from '../effects/lens'
 import type { MediaImage } from '../types'
@@ -29,6 +29,11 @@ const wrap = (index: number, length: number) => (index + length) % length
 
 /** The stage's width from 990px up, where the lens runs; below it the stage is the full width. */
 const STAGE_SIZES = '(min-width: 990px) 50vw, 100vw'
+
+/** Caps a stage photo at its own pixel width (see `.product-gallery__zoom img`), so a small file is never stretched. */
+function photoWidthStyle(img: MediaImage): CSSProperties | undefined {
+  return img.width ? ({ '--photo-width': `${img.width}px` } as CSSProperties) : undefined
+}
 /**
  * What the lens copy asks for: the stage magnified, so the browser fetches the file that stays
  * sharp at that scale (up to the largest copy), not the stage's own file scaled 2.4 times.
@@ -128,6 +133,7 @@ export default function ProductGallery({
                 height={1200}
                 fill
                 placeholder={false}
+                style={photoWidthStyle(img)}
                 loading={i === slide ? 'eager' : 'lazy'}
                 fetchPriority={i === slide ? 'high' : undefined}
                 sizes={STAGE_SIZES}
