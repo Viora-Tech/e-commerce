@@ -1,4 +1,4 @@
-/** Copy for the bulk ship drawer (Figma 908:8804), its result (909:9249) and Edit popup (913:9698). */
+/** Copy for the bulk ship drawer (Figma 908:8804), its result (909:9249) and its inline row edit (913:9698). */
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`
 
 export const bulkShipContent = {
@@ -136,6 +136,7 @@ export const bulkShipContent = {
     createFailed: 'Could not create the pickups.',
   },
   editPopup: {
+    title: (n: number) => `Edit shipment · #${n}`,
     subtitle: (parts: string[]) => parts.filter(Boolean).join(' · '),
     items: 'Items to send',
     itemsCount: (n: number, total: number) => `${n} of ${total} items`,
@@ -161,7 +162,7 @@ export const bulkShipContent = {
       [cheapest ? `Cheapest: ${cheapest}` : null, fastest ? `Fastest: ${fastest}` : null]
         .filter(Boolean)
         .join(' · '),
-    repriceNote: 'Saving asks the couriers again for this package.',
+    repriceNote: 'Apply asks the couriers again for this package.',
     noShopperChoice: 'No delivery option chosen at checkout',
     payment: 'Payment',
     prepaid: 'Prepaid',
@@ -176,7 +177,8 @@ export const bulkShipContent = {
       insured ? `${amount} incl. GST + insurance` : `${amount} incl. GST`,
     skip: 'Skip this order',
     unskip: 'Book this order',
-    saveNote: 'Saving updates its row in the list',
-    close: 'Close',
+    applyNote: 'Apply updates this row. Esc cancels.',
+    cancel: 'Cancel',
+    apply: 'Apply',
   },
 }

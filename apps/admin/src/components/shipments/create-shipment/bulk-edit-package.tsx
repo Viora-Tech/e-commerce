@@ -24,7 +24,7 @@ type BulkEditPackageProps = {
 
 const kg = (grams: number) => Math.round(grams / 10) / 100
 
-/** The Edit popup's left half (Figma 913:9698): the items in this parcel, then its box,
+/** The row editor's left half (Figma 913:9698): the items in this parcel, then its box,
  *  weight and size, and the weight the couriers will charge. */
 export default function BulkEditPackage({ line, form, onChange, boxes }: BulkEditPackageProps) {
   // Hooks

@@ -2,23 +2,11 @@ import { volumetricWeightGrams } from '@commerce/core/parcel'
 import type { BulkLine, OrderEdit } from './bulk-ship-state'
 import type { Dimensions, ShipmentDraft } from './flow-state'
 
-/** The minimum the bulk edit popup needs to find an order in its batch. */
-type BatchOrder = { orderId: string }
-
-/** Where `orderId` sits in the batch: its index (-1 when absent) and the order itself. */
-export function batchPosition<T extends BatchOrder>(
-  orders: T[],
-  orderId: string | null,
-): { index: number; order: T | undefined } {
-  const index = orders.findIndex((o) => o.orderId === orderId)
-  return { index, order: index >= 0 ? orders[index] : undefined }
-}
-
-/** The Edit popup's box choice besides the store's boxes. */
+/** The row editor's box choice besides the store's boxes. */
 export const OWN_BOX = 'own'
 export const CUSTOM_SIZE = 'custom'
 
-/** The Edit popup (Figma 913:9698) as typed: text fields stay text until saved. */
+/** The row editor (Figma 913:9698) as typed: text fields stay text until applied. */
 export type EditForm = {
   boxId: string
   weight: string
@@ -38,7 +26,7 @@ const sameDims = (a: Dimensions | null | undefined, b: Dimensions | null | undef
   (a?.width ?? 0) === (b?.width ?? 0) &&
   (a?.height ?? 0) === (b?.height ?? 0)
 
-/** The popup's starting values for one order: what it books with now. */
+/** The row editor's starting values for one order: what it books with now. */
 export function editForm(
   line: BulkLine,
   edit: OrderEdit | undefined,
@@ -95,7 +83,7 @@ const positive = (s: string): number | null => {
 }
 
 /**
- * What the popup saves: only what differs from the order's own package and payment, so an
+ * What the row editor applies: only what differs from the order's own package and payment, so an
  * untouched order keeps booking exactly as it did. Insurance is always kept: the batch switch
  * may change, the order's own choice should not.
  */
@@ -134,20 +122,11 @@ export function typedChargedGrams(form: EditForm): number | null {
 const sameEditDims = (a: Dimensions | undefined, b: Dimensions | undefined) =>
   a === b || (a !== undefined && b !== undefined && sameDims(a, b))
 
-/** The popup changed what the couriers price (weight, size or payment): ask them again. */
+/** The row editor changed what the couriers price (weight, size or payment): ask them again. */
 export function repriced(before: OrderEdit | undefined, after: OrderEdit): boolean {
   return (
     (before?.weightGrams ?? null) !== (after.weightGrams ?? null) ||
     !sameEditDims(before?.dimensionsCm, after.dimensionsCm) ||
     (before?.paymentMode ?? null) !== (after.paymentMode ?? null)
   )
-}
-
-/** `batchPosition` over the drawer's lines (each keyed by its order). */
-export function linePosition(
-  lines: readonly BulkLine[],
-  orderId: string | null,
-): { index: number; line: BulkLine | undefined } {
-  const index = lines.findIndex((l) => l.order.orderId === orderId)
-  return { index, line: index >= 0 ? lines[index] : undefined }
 }
