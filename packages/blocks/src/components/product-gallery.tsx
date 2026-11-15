@@ -109,6 +109,9 @@ export default function ProductGallery({
       <div className="product-gallery__stage">
         <div className="product-gallery__main" data-direction={direction}>
           {images.map((img, i) => {
+            // The slide the page opens on is the shopper's first view and the page's LCP: a
+            // variant with its own photo opens on that one, not on slide 0 (which was eager
+            // while the shown slide waited as lazy, 5.3 s LCP on Waimers, 15 Nov 2026).
             const picture = (
               <Picture
                 image={img}
@@ -117,8 +120,8 @@ export default function ProductGallery({
                 height={1200}
                 fill
                 placeholder={false}
-                loading={i === 0 ? 'eager' : 'lazy'}
-                fetchPriority={i === 0 ? 'high' : undefined}
+                loading={i === slide ? 'eager' : 'lazy'}
+                fetchPriority={i === slide ? 'high' : undefined}
                 sizes="(min-width: 990px) 50vw, 100vw"
               />
             )
