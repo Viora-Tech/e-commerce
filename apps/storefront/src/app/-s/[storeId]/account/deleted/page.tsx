@@ -13,12 +13,15 @@ export default async function AccountDeletedPage({ params }: AccountDeletedPageP
   const copy = privacyContent.deleted
   return (
     <AccountFrame storeId={storeId}>
-      <div className="mx-auto flex max-w-[30rem] flex-col gap-4 py-12 text-center">
-        <h1 className="h2">{copy.title}</h1>
-        <p className="text-body text-muted">{copy.body}</p>
-        <Link href="/" className="btn btn--primary mx-auto">
-          <span className="btn__label">{copy.home}</span>
-        </Link>
+      {/* Centred by flex, not `mx-auto`: an unlayered `* { margin: 0 }` reset beats margin utilities. */}
+      <div className="flex justify-center py-12">
+        <div className="flex w-full max-w-[30rem] flex-col items-center gap-4 text-center">
+          <h1 className="h2">{copy.title}</h1>
+          <p className="text-body text-muted">{copy.body}</p>
+          <Link href="/" className="btn btn--primary">
+            <span className="btn__label">{copy.home}</span>
+          </Link>
+        </div>
       </div>
     </AccountFrame>
   )
