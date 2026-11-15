@@ -36,6 +36,12 @@ const PLUGIN = 'plugin owns its own schema/queries; not yet routed through packa
 
 const ALLOWLIST: AllowEntry[] = [
   {
+    path: 'apps/docs/scripts/screenshots/seed.ts',
+    exact: true,
+    reason:
+      'docs screenshot seed: writes the fictional Asha Handlooms store into its own local commerce_shots database (refuses any other); a dev-only script, never shipped',
+  },
+  {
     path: 'apps/worker/src/refund-sync.ts',
     exact: true,
     reason:

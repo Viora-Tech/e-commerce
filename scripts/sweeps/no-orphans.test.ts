@@ -1217,16 +1217,6 @@ const ALLOWLIST: AllowEntry[] = [
     reason: 'no external importer today — investigate before removing',
   },
   {
-    file: 'packages/db/src/seed-demo-drafts.ts',
-    names: ['seedDemoDrafts'],
-    reason: 'no external importer today — investigate before removing',
-  },
-  {
-    file: 'packages/db/src/seed-demo-orders.ts',
-    names: ['seedDemoOrders'],
-    reason: 'no external importer today — investigate before removing',
-  },
-  {
     file: 'packages/db/src/seed-navigation.ts',
     names: ['seedNavigation'],
     reason: 'no external importer today — investigate before removing',
