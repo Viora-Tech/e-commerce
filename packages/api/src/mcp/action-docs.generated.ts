@@ -313,6 +313,8 @@ export const ACTION_DOCS: Record<string, string> = {
   'gstInvoices.returns.gstr1Json': 'The GSTR-1 JSON for the portal\'s "Prepare offline → Upload".',
   'gstInvoices.returns.gstr3b': 'GSTR-3B 3.1 and 3.2 as a CSV or a one-page PDF.',
   'gstInvoices.returns.summary': 'Totals, warnings and the GSTR-3B figures for the Returns tab.',
+  'gstInvoices.series.setNext':
+    "Set one series' next number for a GST number, never below a number already used.",
   'gstInvoices.seriesNext':
     'The next number each series will print this financial year, for the settings preview.',
   'gstInvoices.snapshot': 'Snapshot of a document, for the admin to show what was printed.',

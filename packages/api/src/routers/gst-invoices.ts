@@ -38,18 +38,11 @@ import {
   orderRefunds,
   storeName,
 } from '../services/gst-invoices.service'
-import {
-  asOrpc,
-  Gst,
-  gstScope,
-  nextNumbers,
-  Period,
-  renderDeps,
-  requireInstalled,
-} from './gst-invoices-context'
+import { asOrpc, Gst, gstScope, Period, renderDeps, requireInstalled } from './gst-invoices-context'
 import { addToQueue, generateInvoice, invoiceFixProcedures } from './gst-invoices-order-actions'
 import { returnsProcedures } from './gst-invoices-returns'
 import { Filter, Selection, selectedIds } from './gst-invoices-selection'
+import { seriesNext, seriesProcedures } from './gst-invoices-series'
 
 const IssueBatch = z.object({
   items: z
@@ -299,13 +292,8 @@ export const gstInvoicesRouter = {
   returns: returnsProcedures,
 
   /** The next number each series will print this financial year, for the settings preview. */
-  seriesNext: can(permissions.SETTINGS_READ)
-    .input(z.object({ gstRegistrationId: Gst }).optional())
-    .handler(async ({ context, input }) => {
-      await requireInstalled(context)
-      const settings = await loadSettings(context.tx, context.scope.storeId)
-      return nextNumbers(context, settings, await gstScope(context, input?.gstRegistrationId))
-    }),
+  seriesNext,
+  series: seriesProcedures,
 
   regenerate: can(permissions.ORDERS_WRITE)
     .input(
