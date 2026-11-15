@@ -19,7 +19,7 @@ import NextStepBanner, { type NextStepTone } from '@/components/layout/next-step
 import { orderDetailContent } from '@/data/order-detail'
 import { orderNextStepContent } from '@/data/order-next-step'
 import { useCopy, useFormat } from '@/hooks/use-copy'
-import { methodLabel, type OrderDetail, unfulfilledLines } from './order-detail-types'
+import { methodLabel, type OrderDetail, paidMethod, unfulfilledLines } from './order-detail-types'
 import type { NextStepKind } from './order-next-step-kind'
 import OrderTransitSteps from './order-transit-steps'
 
@@ -81,7 +81,8 @@ export default function OrderNextStep({
   const shipment = order.shipment && order.shipment.status !== 'cancelled' ? order.shipment : null
   const tracking = (shipment?.tracking ?? null) as Tracking | null
   const name = (order.shippingAddress?.name || order.customer?.name || '').split(' ')[0] ?? ''
-  const method = order.paymentMethod ? methodLabel(order.paymentMethod, detail) : ''
+  const paidVia = paidMethod(order)
+  const method = paidVia ? methodLabel(paidVia, detail) : ''
   const toPack = unfulfilledLines(order).reduce((n, l) => n + l.remaining, 0)
   const sentAt = order.paymentReminderSentAt ? new Date(order.paymentReminderSentAt) : null
 
