@@ -11,6 +11,7 @@ import { themesContent } from '@/data/themes'
 import { useCopy } from '@/hooks/use-copy'
 import { formatWhen } from '@/lib/format-date'
 import { routes } from '@/lib/routes'
+import { useShownPicture } from '@/lib/use-shown-picture'
 import ThemeActionsMenu, { type ThemeAction } from './theme-actions-menu'
 import ThemeSwatch from './theme-swatch'
 import { savedLine, type ThemeItem } from './theme-types'
@@ -46,15 +47,16 @@ export default function ThemeLibraryRow({
   // Hooks
   const importCopy = useCopy(themeImportContent)
   const copy = useCopy(themesContent.library)
+  const picture = useShownPicture(theme.thumbnailUrl)
 
   // Render logic
   return (
     <li className="flex flex-wrap items-center gap-x-4 gap-y-3 px-4 py-4 md:px-5">
       <span className="flex aspect-[104/68] w-26 shrink-0 overflow-hidden rounded-md border border-border bg-muted">
-        {theme.thumbnailUrl ? (
+        {picture ? (
           // biome-ignore lint/performance/noImgElement: a small stored webp from the store's storage.
           <img
-            src={theme.thumbnailUrl}
+            src={picture}
             alt={copy.thumbnail(theme.name)}
             loading="lazy"
             decoding="async"

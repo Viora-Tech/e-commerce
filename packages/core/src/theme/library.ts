@@ -420,10 +420,15 @@ export async function deleteTheme(tx: StoreTx, id: string): Promise<void> {
 }
 
 /**
- * Stores the theme's home page picture. Not a save: "Last saved" and its author stay as they
- * are, so a picture taken after Save never moves the library order.
+ * Stores the theme's home page picture, or forgets it (null: the stored one is blank). Not a
+ * save: "Last saved" and its author stay as they are, so a picture taken after Save never moves
+ * the library order.
  */
-export async function setThemeThumbnail(tx: StoreTx, id: string, url: string): Promise<void> {
+export async function setThemeThumbnail(
+  tx: StoreTx,
+  id: string,
+  url: string | null,
+): Promise<void> {
   await mustGet(tx, id)
   await tx.update(theme).set({ thumbnailUrl: url }).where(eq(theme.id, id))
 }

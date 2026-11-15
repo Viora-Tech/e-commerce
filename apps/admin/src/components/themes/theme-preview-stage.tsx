@@ -3,13 +3,17 @@
 import type { Theme } from '@commerce/core/theme'
 import { themesContent } from '@/data/themes'
 import { useCopy } from '@/hooks/use-copy'
+import { useShownPicture } from '@/lib/use-shown-picture'
 import ThemeSwatch from './theme-swatch'
 
 type ThemePreviewStageProps = {
   name: string
   origin: string
   settings: Theme
-  /** The home page picture Customize took on Save; a swatch in the theme's colours until then. */
+  /**
+   * The home page picture Customize took on Save; a swatch in the theme's colours until then, or
+   * when the stored picture is blank.
+   */
   picture: string | null
 }
 
@@ -22,10 +26,11 @@ export default function ThemePreviewStage({
   name,
   origin,
   settings,
-  picture,
+  picture: stored,
 }: ThemePreviewStageProps) {
   // Hooks
   const copy = useCopy(themesContent.library)
+  const picture = useShownPicture(stored)
 
   // Render logic
   const host = origin.replace(/^https?:\/\//, '')

@@ -366,14 +366,18 @@ export const themesRouter = {
   /**
    * The home page picture Customize takes on Save (a webp data URL, see
    * theme-thumbnail.service). Not a save itself: the theme's "Last saved" stays put.
+   * `image: null` forgets a stored picture Customize found blank and could not retake, so the
+   * Themes page shows its placeholder and the worker (where it has a browser) tries instead.
    */
   thumbnail: can(permissions.ONLINE_STORE_WRITE)
-    .input(z.object({ id: z.string().uuid(), image: z.string().max(THUMBNAIL_DATA_URL_MAX) }))
+    .input(
+      z.object({ id: z.string().uuid(), image: z.string().max(THUMBNAIL_DATA_URL_MAX).nullable() }),
+    )
     .handler(({ context, input }) =>
       libraryErrors(async () => {
-        let bytes: Uint8Array
+        let bytes: Uint8Array | null = null
         try {
-          bytes = decodeThumbnail(input.image)
+          if (input.image !== null) bytes = decodeThumbnail(input.image)
         } catch (err) {
           if (err instanceof InvalidThumbnail) {
             throw new ORPCError('BAD_REQUEST', { message: err.message })
@@ -385,6 +389,11 @@ export const themesRouter = {
           throw new ORPCError('NOT_FOUND', { message: 'Theme not found' })
         }
         const { storeId } = context.scope
+        if (!bytes) {
+          await setThemeThumbnail(context.tx, input.id, null)
+          await queueThemeScreenshot(context.themeScreenshots, { storeId, themeId: input.id })
+          return { url: null }
+        }
         const { storage: registry } = await storeRegistries(context.tx, storeId)
         const storage = await storageProviderFor(context.tx, storeId, registry, settingsSecret())
         const url = await uploadThumbnail(storage, { storeId, themeId: input.id, bytes })
