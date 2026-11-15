@@ -1,6 +1,7 @@
 /**
  * Whether a picture shows nothing: one flat colour (a white page that never painted, a body a
- * theme hides until its script runs). The theme picture is checked with it before it is saved,
+ * theme hides until its script runs), or a header over one flat colour (a white body, or a hero
+ * video whose poster is its black first frame, Waimers 16 Nov 2026). The theme picture is checked with it before it is saved,
  * and a stored one when Customize opens, so a blank picture is retaken instead of kept.
  */
 
@@ -15,6 +16,13 @@ const SAME_COLOUR = 24
 
 /** Blank when at least this share of the pixels is the one colour. */
 const FLAT_SHARE = 0.995
+
+/**
+ * The top of a theme picture is its header (announcement bar, menu, logo), which has colour
+ * even when the page under it never painted. The page is judged on what lies below this share
+ * of the height: a white body or a black first-frame video poster under a header is blank too.
+ */
+const HEADER_SHARE = 0.25
 
 /** One RGBA pixel as an opaque colour: transparency is drawn over white, as the card shows it. */
 function rgbAt(data: ArrayLike<number>, i: number): [number, number, number] {
@@ -50,8 +58,17 @@ export function isBlankPixels(data: ArrayLike<number>): boolean {
   return same / count >= FLAT_SHARE
 }
 
+/** The pixels below the header band (`HEADER_SHARE`), from RGBA data `width` pixels across. */
+export function bodyPixels(data: Uint8ClampedArray, width: number): Uint8ClampedArray {
+  const rows = Math.floor(data.length / 4 / Math.max(1, width))
+  const skip = Math.floor(rows * HEADER_SHARE)
+  return data.subarray(skip * width * 4)
+}
+
 /** The picture's pixels at `SAMPLE_WIDTH` across, or null when the browser cannot read them. */
-async function samplePixels(blob: Blob): Promise<Uint8ClampedArray | null> {
+async function samplePixels(
+  blob: Blob,
+): Promise<{ data: Uint8ClampedArray; width: number } | null> {
   const bitmap = await createImageBitmap(blob)
   const width = Math.min(SAMPLE_WIDTH, bitmap.width)
   const height = Math.max(1, Math.round((bitmap.height * width) / Math.max(1, bitmap.width)))
@@ -66,7 +83,7 @@ async function samplePixels(blob: Blob): Promise<Uint8ClampedArray | null> {
   if (!ctx) return null
   ctx.drawImage(bitmap, 0, 0, width, height)
   bitmap.close()
-  return ctx.getImageData(0, 0, width, height).data
+  return { data: ctx.getImageData(0, 0, width, height).data, width }
 }
 
 /**
@@ -78,7 +95,8 @@ export async function isBlankImage(url: string): Promise<boolean | null> {
     const response = await fetch(url, { cache: 'no-store' })
     if (!response.ok) return null
     const pixels = await samplePixels(await response.blob())
-    return pixels ? isBlankPixels(pixels) : null
+    if (!pixels) return null
+    return isBlankPixels(pixels.data) || isBlankPixels(bodyPixels(pixels.data, pixels.width))
   } catch {
     return null
   }
