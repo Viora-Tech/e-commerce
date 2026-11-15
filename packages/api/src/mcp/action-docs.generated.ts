@@ -444,6 +444,8 @@ export const ACTION_DOCS: Record<string, string> = {
     "The files before and after one in the library's order, for the file page's arrows.",
   'media.presign':
     'Step 1 of an upload: reserve the row and get a presigned request for the browser.',
+  'media.replaceFromUrl':
+    '"Replace from link": the photo behind this media row becomes the image at an https link (fetched by the server, public hosts only), keeping its place in every gallery and its variant links.',
   'media.usedIn': 'The products using one file, for the file page.',
   'meilisearch.reindex': "Queues a full rebuild of the store's search index in the worker.",
   'meilisearch.test':
