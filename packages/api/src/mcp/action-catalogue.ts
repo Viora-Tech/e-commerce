@@ -128,6 +128,7 @@ const READ_NAMES = new Set([
   'review',
   'roles',
   'rtoSummary',
+  'salesRegister',
   'savedReports',
   'segment',
   'segments',

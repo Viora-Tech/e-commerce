@@ -25,6 +25,12 @@ const RULE_OPTIONS = SERIES_RULES.map((r) => ({ value: r, label: copy.rules[r] }
 const PADS = [3, 4, 5, 6].map((n) => ({ value: String(n), label: String(n) }))
 const HSN_DIGITS = [4, 6, 8].map((n) => ({ value: String(n), label: String(n) }))
 
+/** The previous system's last number for this financial year; blank clears it. */
+function carriedFrom(value: string, fyStartYear: number): Series['carriedFrom'] {
+  const last = value.trim().toUpperCase()
+  return last ? { last, fyStartYear } : undefined
+}
+
 function newSeries(taken: readonly Series[]): Series {
   let n = taken.length + 1
   while (taken.some((s) => s.id === `series-${n}`)) n++
@@ -120,6 +126,15 @@ export default function NumberingGroup({ settings, onChange, errors }: GroupProp
                 <Trash2 />
               </Button>
             </div>
+            <TextField
+              id={`series-previous-${s.id}`}
+              label={copy.previous}
+              help={copy.previousHelp}
+              value={s.carriedFrom?.fyStartYear === fy.startYear ? s.carriedFrom.last : ''}
+              maxLength={20}
+              onChange={(v) => patch(i, { carriedFrom: carriedFrom(v, fy.startYear) })}
+              error={errors[`series.${i}.carriedFrom.last`]}
+            />
             <p className="font-mono text-caption text-muted-foreground">
               {copy.next(next[s.id] ?? formatSeriesNumber(s, fy, 1))}
             </p>

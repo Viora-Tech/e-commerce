@@ -44,6 +44,9 @@ export default [
       tableCsvs: 'GSTR-1 टेबल (CSV zip)',
       gstr3bCsv: 'GSTR-3B (CSV)',
       gstr3bPdf: 'GSTR-3B (PDF)',
+      salesRegister: 'सेल्स रजिस्टर (Excel)',
+      salesRegisterHelp:
+        'आपके CA के लिए: सामान, सेवा, एक्सपोर्ट और क्रेडिट नोट टैब और सारांश, हर इनवॉइस लाइन की एक पंक्ति।',
     },
     warnings: {
       title: 'अपलोड से पहले जाँचें',
