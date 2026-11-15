@@ -55,7 +55,13 @@ merchant ─ Approve ─▶ ai.approveAction ─▶ same member? still open? rol
   to any member whose role holds the action's permission (it is in Settings → AI → Activity).
 - **The exact change they saw runs.** A price change stores each variant's old and new price; a
   variant whose price changed since the proposal is left alone.
-- Proposals **expire** after `ASSISTANT_LIMITS.proposalTtlMinutes` (60).
+- Proposals **expire** after `ASSISTANT_LIMITS.proposalTtlMinutes` (24 hours, so one made in
+  the evening can be approved the next morning). A request waiting for a different member in
+  Approvals gets 7 days (`approvalTtlMs`). Approving re-checks what it can: prices changed since
+  are left alone, a taken discount code or a deleted product, collection or order is refused, and
+  a queued admin action re-runs the procedure with the approver's role. A product text update
+  writes the proposed fields (tags as the full list worked out when proposed), so edits made to
+  those fields in between are overwritten; Undo puts them back.
 - **Edit** re-runs the action's `propose` with the merchant's values (`reviseAction`), with the
   same checks as the model's input.
 - A failed run is rolled back to its savepoint and stored as `failed` with a plain reason.
