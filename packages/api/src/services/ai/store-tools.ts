@@ -273,7 +273,6 @@ export function storeTools(env: ToolEnv): AiToolSet {
           const rows = await tx
             .select({
               title: product.title,
-              // Net units, as the query's net_quantity counts them: ordered minus returned.
               units: sum(NET_UNITS).mapWith(Number),
               revenue: sum(sql`${orderLine.quantity} * ${orderLine.unitPricePaise}`).mapWith(
                 Number,

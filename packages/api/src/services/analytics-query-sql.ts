@@ -4,7 +4,7 @@
  * merchant's (or a model's) text only ever reaches the database as a parameter: field names
  * pick from these maps, values are bound, operators come from a closed list.
  */
-import { notTestOrder } from '@commerce/core'
+import { NET_UNITS, notTestOrder, RETURNED_UNITS } from '@commerce/core'
 import type { QueryCondition, QueryOperator, QueryTable } from '@commerce/core/analytics-query'
 import { fieldOf } from '@commerce/core/analytics-query'
 import { INDIAN_STATE_NAMES } from '@commerce/core/states'
@@ -17,11 +17,12 @@ import {
   orderLine,
   product,
   refund,
-  returnRequest,
-  returnRequestLine,
   variant,
 } from '@commerce/db'
 import { type SQL, sql } from 'drizzle-orm'
+
+/** Units sold on a line (ordered minus returned), for tools that sum it beside the query. */
+export { NET_UNITS }
 
 const IST = sql.raw(`'Asia/Kolkata'`)
 
@@ -75,19 +76,6 @@ const LIVE_ORDER = sql`${order.status} not in ('draft', 'cancelled') and ${notTe
 const ORDER_JOINS = sql`left join ${address} on ${address.id} = ${order.shippingAddressId}
   left join ${customer} on ${customer.id} = ${order.customerId}`
 
-/** Units on a line that came back: returns and RTO not rejected or cancelled. */
-const RETURNED = sql`(select coalesce(sum(${returnRequestLine.quantity}), 0)
-  from ${returnRequestLine} join ${returnRequest} on ${returnRequest.id} = ${returnRequestLine.returnRequestId}
-  where ${returnRequestLine.orderLineId} = ${orderLine.id}
-    and ${returnRequest.status} not in ('rejected', 'cancelled'))`
-
-/**
- * Units a line kept: ordered minus what came back (never below zero), like Shopify's net
- * quantity. Returns count against the order's date, so a month's figure can still drop when a
- * later return arrives for one of its orders. Sum it over order lines joined to `order`.
- */
-export const NET_UNITS = sql`(${orderLine.quantity} - least(${RETURNED}, ${orderLine.quantity}))`
-
 export function tableSql(table: QueryTable, names: CustomerNames): TableSql {
   if (table === 'sales') {
     return {
@@ -130,7 +118,7 @@ export function tableSql(table: QueryTable, names: CustomerNames): TableSql {
         cost: sql`coalesce(sum(${orderLine.quantity} * ${orderLine.costAtSalePaise}), 0)::bigint`,
         orders: sql`count(distinct ${order.id})::int`,
         customers: sql`count(distinct ${order.customerId})::int`,
-        returned_quantity: sql`coalesce(sum(${RETURNED}), 0)::int`,
+        returned_quantity: sql`coalesce(sum(${RETURNED_UNITS}), 0)::int`,
         product_title: sql`coalesce(${product.title}, ${orderLine.title}, '')`,
         variant_title: sql`coalesce(${variant.title}, ${orderLine.variantTitle}, '')`,
         sku: sql`coalesce(${variant.sku}, '')`,

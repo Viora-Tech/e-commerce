@@ -269,6 +269,7 @@ export default [
         abcClass: 'श्रेणी',
         orders: 'ऑर्डर',
         units: 'यूनिट',
+        unitsSold: 'बिके यूनिट',
         unitsPerOrder: 'प्रति ऑर्डर यूनिट',
         cancelled: 'रद्द',
         grossSales: 'कुल बिक्री (छूट से पहले)',
