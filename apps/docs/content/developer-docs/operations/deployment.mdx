@@ -356,7 +356,7 @@ deploy/rollback.sh admin --to <sha> --apply   # back to a chosen tag
   more. `ECR_REGISTRY`, `ECR_PREFIX` and `AWS_REGION` override the defaults.
 - **Dry run by default**: nothing changes without `--apply`. With it: `application.saveDockerProvider`
   with the older image (registry fields empty, as the deploy script does: the server pulls with
-  its instance role), `application.deploy` titled "Rollback to <sha>", SSM
+  its instance role), `application.deploy` titled `Rollback to <sha>`, SSM
   `/vextro/deploy/last-sha/<app>` set to that sha (so the next build rebuilds the app from
   there), then it waits for the deploy (`--no-wait` to skip, `DEPLOY_TIMEOUT_MIN`, default 15).
 - Needs `curl`, `node` (JSON) and the AWS CLI with `ecr:DescribeImages` and `ssm:PutParameter`.
