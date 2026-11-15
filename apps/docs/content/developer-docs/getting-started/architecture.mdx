@@ -13,8 +13,8 @@ unless it says so.
 
 - **Indian D2C SaaS.** Many stores per deployment: INR, GST, UPI/COD, Delhivery,
   WhatsApp. Waimers is store #1, not a special case in code.
-- **Cheapest viable infra.** One Postgres, one Dragonfly, three containers on
-  ECS behind Cloudflare's free tier. Every design choice must still hold when
+- **Cheapest viable infra.** One Postgres, one Dragonfly and the three apps on
+  one server (Dokploy) behind Cloudflare. Every design choice must still hold when
   that becomes several Postgres clusters.
 - **Plugin-first.** Gateways, couriers and channels are packages behind a
   contract, installed per store from Admin → Apps. The platform never imports
@@ -55,7 +55,7 @@ flowchart LR
 | Storefront | `apps/storefront` | Host → store via `proxy.ts` rewrite to `/-s/<storeId>/…`; server actions for cart/checkout; Puck-rendered pages from `@commerce/blocks`. |
 | Admin | `apps/admin` | Better Auth (email OTP + organisations; one org = one store); oRPC router in `packages/api`; Puck editor; Lexical editor. |
 | Worker | `apps/worker` | Payment webhooks, notification delivery, shipment tracking poll, heartbeat. |
-| Data | `packages/db` | Drizzle schema, 23 migrations (`0000`–`0022`), `withStore`, SECURITY DEFINER lookups. |
+| Data | `packages/db` | Drizzle schema, migrations in `drizzle/` (234 files to `0249` on 15 Nov 2026), `withStore`, SECURITY DEFINER lookups. |
 | Domain | `packages/core` | Workflows, settings + encrypted secrets, catalog, cart, order, payments/shipping/notifications glue, plugin registries. |
 | Contracts | `packages/{payments,shipping,notifications}` | Provider interfaces, registries, conformance suites. |
 | AI | `packages/ai` | One interface over the Vercel AI SDK, a platform gateway key (Vercel AI Gateway or OpenRouter), per-store quotas and metering; see [AI engine](/developer-docs/building/ai-engine). |
@@ -290,6 +290,14 @@ seams to cut later are the service files under `packages/core/src/<domain>`.
 
 Ordered by leverage and dependency. Effort: S ≤ 2 days, M ≤ 1 week, L > 1 week.
 
+<Callout type="info">
+  Written as a plan. Built since: the outbox (a, `packages/core/src/outbox`), read caching with
+  invalidation on every write and the Cloudflare edge cache with purge (b), rate limits and
+  per-store queue caps (d), search with filters and the Meilisearch app (e), and error tracking
+  with structured logs (f). For what runs today read
+  [How Koomerce works](/developer-docs/how-it-works/overview).
+</Callout>
+
 ### a. Domain events + transactional outbox — **M, first**
 
 - *They do:* Medusa emits events from modules and delivers them through the
@@ -414,5 +422,6 @@ second because every later item needs measuring.
 - **Registry** — the set of factories for one contract, filtered per store by
   installed apps.
 - **Outbox** — events written in the same transaction as the change and
-  relayed asynchronously (planned, 5a).
+  relayed asynchronously by the worker (`outbox_event`, built; see
+  [Worker and jobs](/developer-docs/how-it-works/worker-and-jobs)).
 - **Pod** — a fully isolated datastore for a group of stores (planned, 5h).

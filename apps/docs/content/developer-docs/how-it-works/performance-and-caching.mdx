@@ -1,0 +1,83 @@
+---
+title: Performance and caching
+description: The three cache layers between a shopper and Postgres (Cloudflare's edge, the storefront's own render cache, Next's per-request memo), how each is invalidated, warm-up after deploys, and the plain HTML and Hono paths for lighter pages.
+---
+
+# Performance and caching
+
+The goal is a store page that opens in about a second on a mid-range phone in India, from one
+small server. Three caches stand between a shopper and the database.
+
+## 1. Cloudflare's edge cache
+
+`apps/storefront/src/lib/edge-cache.ts` decides, per request in the proxy, whether a shared cache
+may keep the page and for how long.
+
+- **Which pages**: home, product, collection, page, blog, policy and search pages, viewed by a
+  visitor with **none of our personal cookies** (no cart, account, saved market, theme
+  preview). A client-side navigation (`RSC: 1`), cart, checkout, account, actions and API routes
+  never qualify.
+- **How long**: `s-maxage` is `STOREFRONT_EDGE_TTL` seconds, set to **600** in production since
+  15 November 2026 (default 30), with stale-while-revalidate of ten TTLs, capped at an hour.
+  A Cloudflare cache rule on the `koomerce.app` zone makes the edge honour it for every merchant
+  hostname.
+- **Purge**: the worker purges a store's hostnames about 5 seconds after its writes settle (at
+  most every 30 seconds per store), and the whole zone twice after a storefront deploy, because
+  cached HTML from an old build points at scripts that no longer exist (`apps/worker/src/edge-purge.ts`).
+
+**Why 600 seconds is safe:** the purge, not the TTL, is what makes changes appear. The TTL only
+bounds how long a page could be stale if a purge were missed.
+
+**What stays uncached on purpose:** a shopper who answered the cookie banner carries a consent
+cookie (and, with analytics, visitor ids), so the edge never serves them a cached page. Caching
+them needs consent read in the browser first; recorded in `docs/handoff/changes/2026-11-09-edge-cache-purge.md`.
+
+## 2. The storefront's own render cache
+
+Behind the edge, the storefront caches what pages are made of: imported theme sections and
+layout, theme data Liquid reads, templates, layout data, product, collection and search results
+(table in [Storefront performance, Caching](/developer-docs/building/performance#caching)).
+
+- Every key carries the **store's version**. A Postgres trigger on every table a page renders
+  sends `NOTIFY storefront_cache, '<store id>'` when a write commits (migration `0115`, list in
+  `packages/db/src/storefront-cache.ts`); the storefront listens on one connection and bumps that
+  store's version. Nothing in the app has to remember to invalidate.
+- Theme **draft** saves do not notify (migration `0232`): editing a theme never empties the live
+  store's cache. Publish does.
+- Never cached: the cart for a shopper with items, the signed-in customer, checkout, accounts,
+  theme previews.
+
+## 3. Per request
+
+`React.cache` and `memoPerRequest` make one page read the store row, apps record and settings
+once, however many components ask (`packages/core/src/request-memo.ts`).
+
+## Warm-up after a deploy
+
+A fresh storefront process renders slowly the first time (4 to 12 seconds were measured on
+13 November). After it starts, the worker loads each live store's home and `/collections/all`
+once (`apps/worker/src/storefront-warmup.ts`), so shoppers do not pay for the cold start.
+
+## Lighter pages for imported themes
+
+An imported Shopify theme already produces finished HTML, but a Next page still sends React,
+our stylesheets and inline RSC data on top (about 390 KB of gzipped JS on Waimers). Two paths
+remove that weight; both are switched per store and off by default:
+
+- **Plain HTML** (`/-h/...`, `lib/plain-html/`): the page is sent as plain HTML with small
+  islands for the parts that need JavaScript. Design and measurements:
+  `docs/design/storefront-plain-html.md`.
+- **Hono product page** (`/-x/...`, `apps/storefront-hono`): the product page served by Bun +
+  Hono with the same modules as Next and the buy box as a React island; about 163 KB of gzipped
+  JS against 410 KB, and much higher cached throughput in the pilot. Owner-only switch in
+  Online store → Preferences. Research and runbook:
+  `docs/research/2026-11-storefront-hono-pilot.md`.
+
+## Images and scripts
+
+Images are processed at upload, not per request: AVIF and WebP variants, a ThumbHash placeholder
+and stripped GPS data, served through one `<Picture>` component
+([Image pipeline](/developer-docs/building/media-pipeline)). Client code follows strict rules (no
+zod in the browser, Motion loaded late, hydrate less), measured per route
+([Storefront performance](/developer-docs/building/performance)). The admin's own speed work is in
+[Admin performance](/developer-docs/building/admin-performance).

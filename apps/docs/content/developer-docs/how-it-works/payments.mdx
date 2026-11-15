@@ -1,0 +1,82 @@
+---
+title: Payments
+description: The payment methods a store can offer, how a payment attempt runs and is confirmed, how several gateways share checkout, and how refunds, fees and unpaid orders are handled.
+---
+
+# Payments
+
+All amounts are integers in **paise** (`*_paise` columns); formatting happens once, in the
+money module (the `money-format` sweep keeps it there).
+
+## What a store can offer
+
+| Method | Comes from | How it is confirmed |
+| --- | --- | --- |
+| Cards, UPI, net banking, wallets, EMI, pay later | A gateway app: Razorpay (`tested`), Cashfree | The gateway's signed webhook, or the browser's return checked with the gateway |
+| UPI by QR code or link | Razorpay QR, Decentro | Automatically, by the gateway's webhook (`qr-attempts.ts`, `upi-qr`) |
+| UPI to the merchant's own UPI ID, bank transfer | Core `manual` provider (`packages/core/src/providers/manual.ts`) | By staff (**Mark as paid**) once the money shows in their bank; the checkout is kept as a draft until then |
+| Cash on delivery | Core `cod` provider | On delivery; optional COD fee, rules per cart, and the COD & RTO app's confirm link and risk score |
+
+Settings → Payments turns methods on and off, sets per-method price changes (a COD fee, a UPI
+discount: `adjustments.ts`, recomputed on the server at place order) and rules
+(`method-rules.ts`: e.g. no COD above an amount). Merchant guide:
+[Payments](/merchant-guide/money-and-gst/payments).
+
+**Several gateways at once.** A store can switch on more than one gateway and route methods to
+each (`routing.ts`). If the first cannot open a payment, checkout tries the next that takes the
+same method (`fallback.ts`). Gateway errors are counted per store (`gateway-health.ts`,
+`payment_gateway_health`), and owners are emailed when a gateway refuses the store's API keys
+(`gateway-alert.ts`).
+
+## One payment, step by step
+
+1. `placeOrder` commits the order (or, with **Keep unpaid checkouts as drafts**, a draft that
+   becomes the order when paid: `checkout-drafts.ts`) with a payment attempt in status `created`
+   (`attempts.ts`; idempotency key `<orderId>:<attempt>`).
+2. The storefront asks the gateway app to `createPayment` and sends the shopper to the
+   gateway's page or opens its checkout in the page.
+3. The gateway calls `POST /webhooks/payments/<provider>/<storeId>` on the worker
+   (`apps/worker/src/payments.ts`). The app's `parseWebhook` checks the signature with that
+   store's secret (constant-time compare); the event is stored once in `payment_event`
+   (unique on store, provider and event id), so a repeated webhook does nothing.
+4. `applyPaymentStatus` (`confirm.ts`) moves the attempt forward only
+   (created → pending → authorized → captured → refunded, `transitions.ts`), records the
+   `payment`, and `recomputeOrderStatuses` updates the order. The outbox gets `order.paid`.
+5. If the webhook never comes, `{payments}-unpaid-expiry` asks the gateway before cancelling an
+   unpaid online order after the store's window (`expiry.ts`).
+
+Why the order is created before the payment: a shopper who pays and loses signal must still have
+an order. The gateway's answer only ever moves an existing order forward.
+
+## Other payment flows
+
+- **Pre-order deposits and balances**: a deposit at checkout, then `{payments}-preorder-balance`
+  asks for the rest, reminds, and applies the store's unpaid rule
+  ([Pre-orders](/merchant-guide/products/pre-orders)).
+- **Ask to pay online**: staff ask a COD shopper to pay through the gateway instead, with one
+  automatic reminder two days later (`cod-pay-online.ts`); used when no courier takes COD to
+  that PIN code.
+- **Draft invoices**: staff send a draft order's pay link (`/checkout/invoice/<token>`).
+- **Split tender**: gift cards and store credit pay part, the gateway the rest (`split-tender.ts`).
+- **Test order**: a ₹1 basket lets the merchant try checkout end to end without a real product
+  (`test-order.ts`).
+
+## Refunds
+
+A refund from the order page, a return or an order edit calls the gateway app's refund for the
+original payment, records it as a manual refund (cash, bank transfer) or adds store credit. A
+`refund` row is written and `refund.created` goes to the outbox (credit note, affiliate
+reversal, email). Gateway refunds that settle later are synced (`refund-sync.ts`).
+
+## Fees
+
+Gateways charge a fee per payment. When the capture webhook does not carry it,
+`{payments}-fees` asks the gateway afterwards (`apps/worker/src/payment-fees.ts`); fees feed
+Profit.
+
+## Where the code is
+
+`packages/payments` (contract, registry, conformance suite), `packages/payments-razorpay`,
+`payments-cashfree`, `payments-decentro`, `packages/core/src/payments/` (everything above),
+`packages/core/src/providers/` (COD and manual). Adding a gateway:
+[Plugins SDK](/developer-docs/building/plugins).

@@ -1,0 +1,81 @@
+---
+title: 'Admin: how pages are built'
+description: How an admin page is put together - the route, layout parts, copy files and Hindi, the API call, permissions and approvals, loading and failure states - and the checks that keep pages consistent.
+---
+
+# Admin: how pages are built
+
+The admin (`apps/admin`) is a Next 16 app. Every page follows the same recipe, and the build fails
+when a page breaks it. This keeps 188 routes looking and behaving like one product.
+
+## One page, piece by piece
+
+Take **Orders → Returns** as an example.
+
+| Piece | Where | Rule |
+| --- | --- | --- |
+| Route | `src/app/(admin)/orders/returns/page.tsx` | Server component: reads the store and permissions, loads the first data, renders the page component |
+| Path helpers | `src/lib/routes.ts` | Every link uses `routes.orders.returns()`, never a typed string (the `admin-routes` sweep) |
+| Sidebar entry | `src/data/navigation.ts` | Label, icon and the permission that shows it |
+| Page component | `src/components/returns/…` | One component per file, fixed order inside (below) |
+| Layout parts | `src/components/layout/` | `PageHeader`, `PageBody`, `PageColumns`, `DataCard`, `PillTabs`, `StatusChip`, `EmptyState`, `SaveBar`, the list and detail skeletons |
+| Copy | `src/data/returns.ts`, Hindi in `src/data/hi/` | No words inside components; read with `useCopy` / `getCopy` |
+| Data | oRPC through `src/lib/api-client.ts` → `packages/api/src/routers/returns.ts` → service → `packages/core` | The router checks the permission and runs under RLS |
+
+**Component structure** (`docs/conventions.md`, checked by `bun run lint:components`): props
+`type`, helpers at module scope, one `export default` component; inside it hooks, then derived
+values, then `handleX` arrow functions, then early returns, then one `return`. No `useMemo`,
+`useCallback` or `memo`: the React Compiler does that. Client components never import server
+values from `@commerce/core`; they use its pure subpaths (`@commerce/core/catalog`, …).
+
+## Look and feel
+
+The design system is described in [Admin design system](/developer-docs/core-concepts/admin-design-system):
+one blue, DM Sans for text, layered surfaces, status chips coloured only when someone must act,
+sizes in rem, Tailwind only. The shared parts are not restyled per page: `bun run lint:design`
+(Oxlint with the shadcn `no-restyle` rule) errors when a page overrides Button, DataCard, Table,
+StatusChip and the other settled parts, and the `design-guard` sweep bans raw text sizes, big
+radii and retired kit parts. Frames and decisions per page: `docs/design/admin-frames.md`.
+
+## Copy and Hindi
+
+All words live in `src/data/<feature>.ts` as plain English. A Hindi overlay in
+`src/data/hi/<feature>.ts` replaces what it translates; members who pick Hindi get it, everyone
+else never loads it. Money, numbers and dates format by the member's language. See
+[Admin languages](/developer-docs/core-concepts/admin-languages). Copy has no em or en dashes.
+
+## Permissions and approvals
+
+The sidebar hides what a member's role cannot read, and each procedure checks its permission
+again on the server: hiding a button is never the only guard. A change the role must have
+approved comes back as `APPROVAL_QUEUED`; the API client turns that into "Sent for approval" so
+every page shows it without its own code. Details:
+[MCP and API, Role approvals](/developer-docs/building/mcp-and-api#role-approvals).
+
+## Loading, empty and failure states
+
+Every page has all four states, and they look the same everywhere:
+
+- **Loading**: the matching skeleton (`list-page-skeleton`, `detail-page-skeleton`,
+  `section-page-skeleton`) in the page's `loading.tsx`, so navigation is instant.
+- **Empty**: `EmptyState` with one sentence and the one action that fills it.
+- **Failed**: "Could not load the …" with **Try again** (`route-error.tsx` for a page,
+  `load-failed-state.tsx` for app pages, the table's `error` prop for lists). Never a skeleton
+  that spins for ever, and never a toast over old data.
+- **No access**: "You do not have access", without Try again, when the read is `FORBIDDEN`.
+
+## Speed
+
+The shell reads the member, store and counts in one call, pages stream behind their skeletons,
+and heavy editors (Puck, Lexical, GrapesJS, the bulk grid) load only on the pages that use them.
+See [Admin performance](/developer-docs/building/admin-performance).
+
+## Adding a page
+
+1. Add the path to `src/lib/routes.ts` and, if it belongs in the sidebar, to `src/data/navigation.ts`.
+2. Add the procedure to a router in `packages/api/src/routers` with `can(permission)`, and the
+   logic to a service or `packages/core`.
+3. Write the copy in `src/data/<feature>.ts` (and Hindi in `src/data/hi/`).
+4. Build the page from the layout parts with its four states.
+5. Run `bun run lint`, `bun run lint:design` and `bun run test:sweeps`.
+6. Add or update the merchant guide page for it, and a handoff note.

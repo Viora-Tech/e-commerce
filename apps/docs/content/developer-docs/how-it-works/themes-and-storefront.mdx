@@ -1,0 +1,83 @@
+---
+title: Themes and storefront
+description: The two kinds of theme (native Puck themes and imported Shopify Liquid themes), how Customize, Edit code, Publish, versions and thumbnails work, and how the storefront draws a page and our own pages inside a theme.
+---
+
+# Themes and storefront
+
+<Diagram
+  name="theme-system"
+  alt="Native themes keep Puck data in theme_template and are edited in Customize. Imported Shopify themes come from a zip into theme_import and theme_file and are edited in Edit code and Customize. Publish makes one theme live and snapshots a theme_version. Customize captures a thumbnail. The storefront renders native sections with React or Liquid sections with the Liquid engine, puts our own pages inside the theme's shell, and sends HTML to the edge cache."
+/>
+
+## Two kinds of theme
+
+| | Native theme | Imported Shopify theme |
+| --- | --- | --- |
+| Made of | Sections from `packages/blocks`, arranged per template as Puck data | The theme's own Liquid, JSON templates and assets |
+| Stored in | `theme`, `theme_template` | `theme`, `theme_file` (plus `theme_import` for the upload run) |
+| Edited in | **Customize** (Puck editor) | **Customize** (section settings) and **Edit code** |
+| Drawn by | React on our server | Our Liquid engine (LiquidJS with Shopify's tags and objects added), then our React page around it |
+
+**Why both.** Merchants moving from Shopify bring a theme they paid for and know; rebuilding it
+by hand would stop the move. Native themes are faster, fully ours and editable without code, so
+new stores start there. Both read the same products, menus and pages.
+
+## Editing and publishing
+
+- **Customize** (`/online-store/themes/[id]/editor`) saves a draft 600 ms after each change
+  (`theme_template.draft`). Drafts never touch the live store, and since migration 0232 draft
+  saves do not clear the storefront cache either.
+- **Edit code** (`/online-store/themes/[id]/code`) edits an imported theme's files as drafts
+  (`theme_file.draft_body`), with file history (`theme_file_version`).
+- **Publish** makes one theme the store's live theme, or publishes the live theme's drafts. Each
+  publish snapshots its templates into `theme_version` (newest 20 per template); a preview link
+  with `?theme-version=<batch>` shows an old one, and Version history can restore it.
+- **Preview** links render an unpublished theme for whoever has the signed link; previews are
+  never cached or indexed.
+- **Thumbnails**: Customize captures the top of its canvas as a 640 × 400 picture on Save; a
+  worker screenshot job is the fallback for a theme with none.
+
+Details: [Theme editor](/developer-docs/building/theme-editor),
+[Shopify theme import](/developer-docs/building/shopify-theme-import),
+[Section settings](/developer-docs/building/section-settings),
+[Dynamic sources](/developer-docs/building/dynamic-sources).
+
+## How the storefront draws a page
+
+1. The proxy finds the store from the host and rewrites to `/-s/<storeId>/<path>`
+   ([Stores and tenancy](/developer-docs/how-it-works/stores-and-tenancy)). It also handles the
+   market subfolder (`/ae/...`), the primary-domain redirect, URL redirects, and sends a locked
+   store to its password page (`/-p/...`).
+2. `app/-s/[storeId]/layout.tsx` reads the live theme, its settings and menus (cached per store
+   version).
+3. The page reads its data (product, collection, page) and the template for it, then:
+   - **native**: renders the template's Puck sections with React (`lib/template-render.tsx`);
+   - **imported**: renders each Liquid section (`lib/liquid-theme.ts`), cached per theme version,
+     path and settings (`lib/liquid-cache.ts`), inside the theme's own `layout/theme.liquid`.
+4. The answer goes back with cache headers that let Cloudflare keep it if it is a plain page
+   view with no personal cookies ([Performance and caching](/developer-docs/how-it-works/performance-and-caching)).
+
+## Our own pages inside a theme
+
+Some pages are ours, not the theme's, because they hold money, accounts or data the theme cannot
+be trusted with: **cart**, **account** (login, orders, returns, addresses, store credit, privacy),
+**search**, **track order**, **wishlist**, **policies**, **404** and errors. With an imported
+theme they render inside the theme's shell (its header, footer, stylesheets and cart drawer
+around our `<main>`), so they look like the rest of the shop. **Checkout** never does: it stays
+locked to our own layout, without the theme's header, footer or scripts.
+
+Theme forms post to `/theme-actions/<action>` (add to cart, newsletter, contact, localisation);
+apps add their own endpoints (`/reviews/...`, `/inbox/...`, the chat frame at `/-c/...`).
+
+## App blocks
+
+Apps add blocks to themes through `storefront.blocks` in their manifest (`<app id>/<Name>`), for
+example the Delhivery pincode checker or Reviews stars. They appear in Customize's Add panel
+only while the app is installed. See [Plugins SDK, section 7](/developer-docs/building/plugins#7-storefront-app-blocks).
+
+## Merchant guides
+
+[Themes](/merchant-guide/online-store/themes), [Website builder](/merchant-guide/online-store/website-builder),
+[Import a Shopify theme](/merchant-guide/online-store/import-a-shopify-theme),
+[Build your own section](/merchant-guide/online-store/build-your-own-section).
