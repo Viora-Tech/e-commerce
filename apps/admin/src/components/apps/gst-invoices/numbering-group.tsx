@@ -15,6 +15,7 @@ import { gstInvoicesContent } from '@/data/gst-invoices'
 import { api } from '@/lib/api-client'
 import ChoiceField from './choice-field'
 import EditorGroup from './editor-group'
+import SeriesNextField from './series-next-field'
 import TextField from './text-field'
 import type { GroupProps } from './types'
 
@@ -29,6 +30,14 @@ const HSN_DIGITS = [4, 6, 8].map((n) => ({ value: String(n), label: String(n) })
 function carriedFrom(value: string, fyStartYear: number): Series['carriedFrom'] {
   const last = value.trim().toUpperCase()
   return last ? { last, fyStartYear } : undefined
+}
+
+/** What each saved series prints next; a series missing from it is not saved yet. */
+function loadNext(set: (next: Record<string, string>) => void) {
+  api.gstInvoices
+    .seriesNext()
+    .then(set)
+    .catch(() => set({}))
 }
 
 function newSeries(taken: readonly Series[]): Series {
@@ -54,10 +63,7 @@ export default function NumberingGroup({ settings, onChange, errors }: GroupProp
   const [next, setNext] = useState<Record<string, string>>({})
 
   useEffect(() => {
-    api.gstInvoices
-      .seriesNext()
-      .then(setNext)
-      .catch(() => setNext({}))
+    loadNext(setNext)
   }, [])
 
   // Helpers
@@ -135,9 +141,16 @@ export default function NumberingGroup({ settings, onChange, errors }: GroupProp
               onChange={(v) => patch(i, { carriedFrom: carriedFrom(v, fy.startYear) })}
               error={errors[`series.${i}.carriedFrom.last`]}
             />
-            <p className="font-mono text-caption text-muted-foreground">
-              {copy.next(next[s.id] ?? formatSeriesNumber(s, fy, 1))}
-            </p>
+            <div className="flex flex-wrap items-end justify-between gap-2">
+              <SeriesNextField
+                seriesId={s.id}
+                saved={s.id in next}
+                onSet={() => loadNext(setNext)}
+              />
+              <p className="font-mono text-caption text-muted-foreground">
+                {copy.next(next[s.id] ?? formatSeriesNumber(s, fy, 1))}
+              </p>
+            </div>
           </div>
         ))}
       </div>

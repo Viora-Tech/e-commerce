@@ -315,6 +315,8 @@ export const ACTION_DOCS: Record<string, string> = {
   'gstInvoices.returns.salesRegister':
     "The month's sales register for the CA as an Excel file: goods, service, international and credit notes tabs plus a summary (totals net of credit notes, number ranges, cancelled).",
   'gstInvoices.returns.summary': 'Totals, warnings and the GSTR-3B figures for the Returns tab.',
+  'gstInvoices.series.setNext':
+    "Set one series' next number for a GST number, never below a number already used.",
   'gstInvoices.seriesNext':
     'The next number each series will print this financial year, for the settings preview.',
   'gstInvoices.snapshot': 'Snapshot of a document, for the admin to show what was printed.',

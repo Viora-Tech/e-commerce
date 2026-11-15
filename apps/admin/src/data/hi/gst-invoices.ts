@@ -2,6 +2,7 @@ import {
   gstNumberPickerContent,
   gstQueueEmptyContent,
   gstReturnsContent,
+  gstSeriesNextContent,
 } from '@/data/gst-invoices'
 import { gstProductTaxContent } from '@/data/gst-product-tax'
 import { translation } from '@/lib/i18n'
@@ -26,6 +27,16 @@ export default [
     option: (state: string, gstin: string) => `${state} · ${gstin}`,
     main: '(मुख्य)',
     cancelled: '(रद्द)',
+  }),
+  translation(gstSeriesNextContent, {
+    label: 'अगला नंबर',
+    help: 'अपने पिछले बिलिंग सिस्टम के बाद से आगे बढ़ें। इस वित्त वर्ष में इस्तेमाल हो चुके नंबर दोबारा नहीं चुने जा सकते।',
+    placeholder: 'जैसे 2',
+    set: 'सेट करें',
+    setting: 'सेट हो रहा है',
+    saved: (n: string) => `इस सीरीज़ का अगला इनवॉइस: ${n}`,
+    unsaved: 'पहले सीरीज़ सेव करें, फिर उसका अगला नंबर सेट करें।',
+    failed: 'अगला नंबर सेट नहीं हो सका',
   }),
   translation(gstReturnsContent, {
     title: 'रिटर्न',
