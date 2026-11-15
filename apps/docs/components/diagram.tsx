@@ -26,6 +26,7 @@ export default function Diagram({ name, alt, caption }: DiagramProps) {
         rel="noreferrer"
         className="block overflow-x-auto rounded-xl border border-(--docs-border) [.dark_&]:hidden"
       >
+        {/* biome-ignore lint/performance/noImgElement: a static SVG from public/ in a static export, nothing to optimise */}
         <img src={light} alt={alt} loading="lazy" className="h-auto w-full min-w-[40rem]" />
       </a>
       <a
@@ -34,6 +35,7 @@ export default function Diagram({ name, alt, caption }: DiagramProps) {
         rel="noreferrer"
         className="hidden overflow-x-auto rounded-xl border border-(--docs-border) [.dark_&]:block"
       >
+        {/* biome-ignore lint/performance/noImgElement: a static SVG from public/ in a static export, nothing to optimise */}
         <img src={dark} alt={alt} loading="lazy" className="h-auto w-full min-w-[40rem]" />
       </a>
       <figcaption className="text-center text-[0.8125rem] leading-relaxed text-(--docs-muted)">

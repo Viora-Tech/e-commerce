@@ -22,7 +22,7 @@ const PAD = 24
 
 const FONTS = {
   1: "Virgil, Excalifont, 'Segoe Print', 'Comic Sans MS', cursive",
-  2: "Helvetica, Arial, sans-serif",
+  2: 'Helvetica, Arial, sans-serif',
   3: "'Cascadia Code', Consolas, ui-monospace, monospace",
   5: "Excalifont, Virgil, 'Segoe Print', 'Comic Sans MS', cursive",
   6: "Nunito, 'Segoe UI', system-ui, -apple-system, Roboto, sans-serif",
@@ -48,7 +48,13 @@ function parseHex(color) {
 }
 
 const toHex = (rgb) =>
-  `#${rgb.map((v) => Math.round(Math.min(255, Math.max(0, v))).toString(16).padStart(2, '0')).join('')}`
+  `#${rgb
+    .map((v) =>
+      Math.round(Math.min(255, Math.max(0, v)))
+        .toString(16)
+        .padStart(2, '0'),
+    )
+    .join('')}`
 
 /** CSS `invert(93%) hue-rotate(180deg)`, the filter Excalidraw's dark theme puts on the canvas. */
 function darkColor(color) {
@@ -177,7 +183,9 @@ function shapeSvg(gen, el, paint) {
           ? `<path d="M ${pts.map((p) => p.join(' ')).join(' L ')}" stroke="${o.stroke}" stroke-width="${o.strokeWidth}" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`
           : drawablePaths(
               gen,
-              el.roundness && pts.length > 2 ? gen.curve(pts, lineOpts) : gen.linearPath(pts, lineOpts),
+              el.roundness && pts.length > 2
+                ? gen.curve(pts, lineOpts)
+                : gen.linearPath(pts, lineOpts),
             )
       const heads = el.type === 'arrow' ? arrowheadLines(el, pts) : []
       const headOpts = { ...lineOpts, strokeLineDash: undefined, disableMultiStroke: false }
@@ -244,7 +252,12 @@ function bounds(elements) {
     }
     if (el.type === 'frame') minY = Math.min(minY, el.y - 24)
   }
-  return { minX: minX - PAD, minY: minY - PAD, width: maxX - minX + PAD * 2, height: maxY - minY + PAD * 2 }
+  return {
+    minX: minX - PAD,
+    minY: minY - PAD,
+    width: maxX - minX + PAD * 2,
+    height: maxY - minY + PAD * 2,
+  }
 }
 
 function render(scene, dark) {
@@ -256,7 +269,8 @@ function render(scene, dark) {
   const box = bounds(elements)
   const body = elements
     .map((el) => {
-      const inner = el.type === 'text' ? textSvg(el, paint, background, arrowIds) : shapeSvg(gen, el, paint)
+      const inner =
+        el.type === 'text' ? textSvg(el, paint, background, arrowIds) : shapeSvg(gen, el, paint)
       const opacity = (el.opacity ?? 100) < 100 ? ` opacity="${el.opacity / 100}"` : ''
       const rotate = el.angle
         ? ` transform="rotate(${(el.angle * 180) / Math.PI} ${el.x + el.width / 2} ${el.y + el.height / 2})"`
@@ -264,9 +278,14 @@ function render(scene, dark) {
       return opacity || rotate ? `<g${opacity}${rotate}>${inner}</g>` : inner
     })
     .join('\n')
+  const titleEl = elements
+    .filter((el) => el.type === 'text' && !el.containerId)
+    .sort((a, b) => (b.fontSize ?? 0) - (a.fontSize ?? 0))[0]
+  const title = escapeXml(titleEl?.text?.replaceAll('\n', ' ') ?? 'Diagram')
   const w = Math.ceil(box.width)
   const h = Math.ceil(box.height)
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${box.minX} ${box.minY} ${w} ${h}" width="${w}" height="${h}">
+  return `<svg xmlns="http://www.w3.org/2000/svg" role="img" viewBox="${box.minX} ${box.minY} ${w} ${h}" width="${w}" height="${h}">
+<title>${title}</title>
 <rect x="${box.minX}" y="${box.minY}" width="${w}" height="${h}" fill="${background}"/>
 ${body}
 </svg>
