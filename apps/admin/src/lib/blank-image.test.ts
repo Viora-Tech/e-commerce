@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { isBlankPixels } from './blank-image'
+import { bodyPixels, isBlankPixels } from './blank-image'
 
 /** `width × height` RGBA pixels, each coloured by `paint(x, y)`. */
 function pixels(
@@ -51,5 +51,26 @@ describe('isBlankPixels', () => {
 
   it('calls no pixels at all blank', () => {
     expect(isBlankPixels(new Uint8ClampedArray(0))).toBe(true)
+  })
+})
+
+describe('bodyPixels', () => {
+  /** A purple header over a body painted by `body`, 64 × 40 like the sampled picture. */
+  const headerOver = (body: (x: number, y: number) => [number, number, number]) =>
+    pixels(64, 40, (x, y) => (y < 6 ? [120, 60, 200] : y < 9 ? [20, 20, 22] : body(x, y)))
+
+  it('sees a black first-frame poster under a header as blank', () => {
+    const page = headerOver(() => [18, 18, 18])
+    expect(isBlankPixels(page)).toBe(false)
+    expect(isBlankPixels(bodyPixels(page, 64))).toBe(true)
+  })
+
+  it('sees a white body under a header as blank', () => {
+    expect(isBlankPixels(bodyPixels(headerOver(() => [255, 255, 255]), 64))).toBe(true)
+  })
+
+  it('keeps a real hero under a header', () => {
+    const page = headerOver((x, y) => [(x * 4) % 256, (y * 6) % 256, 90])
+    expect(isBlankPixels(bodyPixels(page, 64))).toBe(false)
   })
 })
