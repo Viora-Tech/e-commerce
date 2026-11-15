@@ -348,6 +348,18 @@ export const gstNumberPickerContent = {
   cancelled: '(cancelled)',
 } as const
 
+/** Numbering settings: move one saved series' next number (e.g. exports carrying on from an old system). */
+export const gstSeriesNextContent = {
+  label: 'Next number',
+  help: 'Carry on from your previous billing system. Numbers already used this financial year cannot be picked again.',
+  placeholder: 'e.g. 2',
+  set: 'Set',
+  setting: 'Setting',
+  saved: (n: string) => `Next invoice in this series: ${n}`,
+  unsaved: 'Save the series first, then set its next number.',
+  failed: 'Could not set the next number',
+} as const
+
 /** The Returns tab: one GST number's GSTR-1 and GSTR-3B for a month, and the filing switches. */
 export const gstReturnsContent = {
   title: 'Returns',
