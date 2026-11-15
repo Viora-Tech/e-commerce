@@ -362,6 +362,16 @@ Keeps what the admin design audit removed (14 Nov 2026) from coming back, over `
 
 Raw `DialogContent` is the popup-shell sweep (ab). Ratchet: new fails, stale fails.
 
+### ad. `storefront-margins` (`scripts/sweeps/storefront-margins.test.ts`)
+
+Margin utilities (`mx-auto`, `my-16`, `mb-2`, `-mt-1`, `space-y-4`) in `apps/storefront/src` never
+apply. Tailwind v4 puts utilities in `@layer utilities`, and an unlayered rule beats a layered one
+whatever its specificity; every storefront page carries an unlayered `* { margin: 0 }` (our blocks'
+`base.css`, and an imported Shopify theme's own copy). Lay storefront UI out with `gap`, padding and
+`justify-center` (`components/system/system-panel.tsx` for a system page's card), or write the
+margin important (`mx-auto!`). Ratchet per file with a count: new fails, a listed file gaining one
+fails, stale fails.
+
 ### The `no-restyle` guard (`bun run lint:design`)
 
 `.oxlintrc.json` runs `@shadcn/lint`'s `no-restyle` twice. `shadcn/no-restyle` warns for every

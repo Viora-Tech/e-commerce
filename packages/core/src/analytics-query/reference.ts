@@ -64,7 +64,7 @@ export const QUERY_EXAMPLES: readonly { ask: string; query: string }[] = [
   {
     ask: 'products with the most returns in 2025',
     query:
-      'FROM products\n  SHOW returned_quantity, net_quantity\n  GROUP BY product_title\n  HAVING returned_quantity > 0\n  SINCE 2025-01-01 UNTIL 2025-12-31\n  ORDER BY returned_quantity DESC\n  LIMIT 10',
+      'FROM products\n  SHOW ordered_quantity, returned_quantity, net_quantity\n  GROUP BY product_title\n  HAVING returned_quantity > 0\n  SINCE 2025-01-01 UNTIL 2025-12-31\n  ORDER BY returned_quantity DESC\n  LIMIT 10',
   },
 ]
 
@@ -95,6 +95,7 @@ export function queryLanguageReference(): string {
     'A time is -30d (days ago), -4w (weeks), -3m (months), -2y (years), today, yesterday or a date like 2026-10-01.',
     `"All time" or "ever" is DURING all_time (from the store's first order). "Last month" is DURING last_month (the calendar month); "this month" is DURING this_month. A range covers at most ${QUERY_RANGE_MAX_YEARS} years and is never cut short: a longer one is refused.`,
     'Dates are India time. Cancelled, draft and test orders are never counted.',
+    '"Units sold" (how many sold) is net_quantity: units ordered minus units returned, a return counted on its order\'s date. ordered_quantity is before returns; returned_quantity is what came back.',
     'There are no joins, functions or other clauses.',
     '',
     ...tables,

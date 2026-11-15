@@ -1,0 +1,119 @@
+---
+title: Worker and jobs
+description: What the worker does, the outbox and its relay, every queue and scheduled sweep with how often it runs, per-store fairness, retries and failure, and the webhook endpoints.
+---
+
+# Worker and jobs
+
+`apps/worker` is one Bun process with two sides: an HTTP side (Hono) that takes webhooks, and a
+job side (BullMQ on Dragonfly) that runs everything that should not happen inside a page
+request. Its entry point is `apps/worker/src/index.ts`.
+
+**Why a separate process:** emails, PDFs, courier calls and imports are slow and can fail; a
+shopper or merchant should never wait for them, and a retry must still happen when nobody has a
+page open.
+
+## The outbox: how work reaches the worker
+
+1. A change (order paid, return approved, product saved) writes an `outbox_event` row **in the
+   same transaction** (`packages/core/src/outbox/write.ts`).
+2. `{outbox}-relay` runs every 5 seconds (and an admin action can nudge its own store's rows out
+   at once). It claims undispatched rows store by store (`relayStoreOutbox`,
+   `packages/core/src/outbox/relay.ts`).
+3. Each row fans out to its consumers: a shopper message on `{notifications}-send`, one
+   `{apps}-events` job per app with a hook for it, automation triggers, pixel conversions,
+   restock alerts, domain routes, Meilisearch index syncs.
+
+If the relay or Redis is down, rows wait in Postgres and go out when it is back. Pattern from
+Trigger.dev's event log and Temporal's history (credited in `outbox/write.ts`).
+
+## Queues that run on demand
+
+| Queue | What one job is | Per store at once |
+| --- | --- | --- |
+| `{notifications}-send` | One shopper or staff message (email, WhatsApp, SMS) | 3 |
+| `{apps}-events` | One app's hook for one event ([Apps](/developer-docs/how-it-works/apps)) | 2 |
+| `{apps}-jobs` | An app's own job: an invoice PDF batch, a Shopify import run | 2 |
+| `{marketing}-send` | One campaign, sent in batches | 1 |
+| `{media}-process` | One uploaded image: variants, ThumbHash, metadata stripped | 1 |
+| `{back-in-stock}-restock` | Alerts for a variant back in stock | 1 |
+| `{store}-export` | A full store data export | 1 |
+| `{ai}-bulk-write` | One product of a bulk "Write with AI" run | 1 |
+| `{ai}-purchase-documents` | AI read of a supplier invoice or Bill of Entry | 1 |
+| `{automations}-trigger`, `{automations}-step` | One workflow trigger, one run step | 4 |
+| `{pixels}-order`, `{pixels}-send` | Order events to Meta and Google conversions | 2, 3 |
+| `{inbox}-ai-reply` | One AI reply to a shopper message | 2 |
+| `{themes}-screenshot` | A theme thumbnail when Customize could not take one | — |
+| `{domains}-route` | Add or remove a custom domain's HTTPS route (platform work, one at a time) | — |
+| `{channels}-sync` | Catalogue sync to Meta and Google (also every 6 hours) | — |
+| `{reviews}-summaries` | Refresh a product's AI review summary | — |
+
+The per-store caps are `QUEUE_LIMITS` (`packages/queue/src/index.ts`), applied by
+`fairProcessor` (`packages/queue/src/fair.ts`): a store at its cap has its job put back for 1.5
+to 3 seconds and the worker takes another store's job. Why: one store's 5,000-image import must
+not hold up every other store's order emails.
+
+## Scheduled work
+
+Most schedules run as named jobs on one queue, `{system}-sweeps` (`apps/worker/src/sweeps.ts`),
+so they share one Redis connection; their old queue names are cleaned up on boot. Each finds the
+stores with work through a SECURITY DEFINER function, then opens one `withStore` per store.
+
+| Job | Every | Does |
+| --- | --- | --- |
+| outbox relay (`{outbox}-relay`) | 5 s | Above |
+| heartbeat (`{system}-heartbeat`) | 1 min | Logs that the worker is alive |
+| unpaid-order-expiry | 1 min | Cancels unpaid online orders after the store's window, asking the gateway first; transfer follow-ups |
+| preorder-balance | 1 min | Asks for, reminds and applies the rule for pre-order balances |
+| domain-certificate | 1 min | Checks store addresses and custom domains over TLS, retries missing certificates |
+| domain-verify | 2 min | Re-checks domains waiting on DNS |
+| rollouts-tick | 1 min | Starts and ends scheduled rollouts and A/B tests |
+| marketing-tick, automations-tick | 30 s | Starts due campaigns; advances waiting automation runs |
+| order-push | 5 min | Sends new orders to Shiprocket and RapidShyp as pending orders |
+| sender-email-verify | 5 min | Checks sender email domains (verified ones daily) |
+| review-requests | 10 min | Queues review request and reminder emails |
+| member-daily-summary | 10 min | Sends each member their summary at the hour they chose |
+| bug-report-sync | 15 min | Re-reads open bug reports from GitHub (when a token is set) |
+| review-summaries | 15 min | Refreshes review summaries with new reviews |
+| shipping-tracker (`{shipping}-track`) | 30 min | Polls tracking for every open shipment |
+| payment-fees | 30 min | Asks gateways for fees their webhook did not carry |
+| store-credit-expiry, import-snapshot-cleanup, affiliate-commissions, home-cards, search-console-sweep, billing-sweep | 1 h | Expire credit; delete week-old import previews; approve commissions past their hold; rebuild Home cards; queue Search Console syncs; bill plans, mark due, pause after grace |
+| refund-sync, api-activity-prune, store-activity-prune, automations-prune, pixels-prune, shopify-token-sweep | 1 day | Settle late refunds; delete old MCP/API activity (90 days), activity log (1 year), automation and pixel logs; swap Shopify tokens |
+| retention-prune | daily schedule | Deletes data past each table's retention |
+| fx-rates | 21:30 IST daily | Exchange rates for markets |
+
+Abandoned checkout and cart reminders are automations now, run by the marketing tick; the old
+hourly `{abandoned}-sweep` is removed on boot (`retireAbandonedSweep`).
+
+## Edge purge
+
+`apps/worker/src/edge-purge.ts` listens on the database's `storefront_cache` channel (the same
+one the storefront uses to drop its own cache) and purges that store's hostnames from
+Cloudflare about 5 seconds after its writes settle, at most every 30 seconds per store; after a
+storefront deploy it purges the whole zone twice. Off unless `CLOUDFLARE_CACHE_PURGE_TOKEN` is
+set. See [Performance and caching](/developer-docs/how-it-works/performance-and-caching).
+
+## Webhooks in
+
+| Path | From |
+| --- | --- |
+| `POST /webhooks/payments/:provider/:storeId` | Payment gateways |
+| `POST /webhooks/shipments/:provider/:storeId`, `/webhooks/shipments/c/:code/:storeId` | Couriers |
+| `/webhooks/platform/meta`, `/webhooks/platform/shopify` | Meta (WhatsApp, catalogue) and the Shopify migration app |
+| SES feedback | Bounces and complaints (`email-feedback.ts`) |
+| `GET /health` | Docker health check and the monitor |
+
+Webhooks are rate limited per IP and verified with the store's own secret before anything is
+stored. See [Platform apps](/developer-docs/building/platform-apps).
+
+## Retries, failure and memory
+
+- Jobs retry (with exponential backoff where a job sets it). A job that fails every attempt is kept 14 days for inspection;
+  finished jobs are trimmed (`KEEP_FINISHED`) so Dragonfly never fills (it did once, in a week,
+  before the cap).
+- An app job that fails for good shows on the Installed apps list; app jobs can declare a
+  `jobFailed` handler.
+- `memory-guard.ts` watches the worker's own memory against its container limit: near it, bulk
+  queues pause and the rest slow down; close to it, everything but payments, order emails and the
+  outbox pauses; a long stay there restarts the process cleanly. Why: the worker shares a 4 GB
+  server with the other apps and Postgres, and an out-of-memory kill could take any of them down.

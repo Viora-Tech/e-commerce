@@ -3,6 +3,7 @@ import { createElement, type ReactElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 import Header from '../src/components/header'
+import HeaderMenuCard from '../src/components/header-menu-card'
 import { announcementBarContent } from '../src/data/zero-drift/announcement-bar'
 import { mobileDockContent } from '../src/data/zero-drift/mobile-dock'
 import { searchShortcuts } from '../src/header-menu'
@@ -160,8 +161,10 @@ describe('Header (Zero Drift header group)', () => {
     // The theme's quiz card, under Explore, as a dark text card.
     expect(html).toContain('Take the 2-minute quiz')
     expect(html).toContain('header__expansion-card--text')
-    // Shop's child collection lends its image.
-    expect(html).toContain('src="/media/mice.jpg"')
+    // Shop's child collection lends its card; its photo waits for the first open (a closed
+    // panel is only visibility: hidden, so the browser fetched it on every page view).
+    expect(html).toContain('header__expansion-card-media')
+    expect(html).not.toContain('src="/media/mice.jpg"')
     const off = renderToStaticMarkup(
       <Header
         {...headerProps}
@@ -170,6 +173,22 @@ describe('Header (Zero Drift header group)', () => {
       />,
     )
     expect(off).not.toContain('header__expansion-card')
+  })
+
+  it('draws a menu card photo only once its dropdown has been opened', () => {
+    const card = {
+      key: 'mice',
+      href: '/collections/mice',
+      title: 'Mice',
+      eyebrow: null,
+      tone: 'light' as const,
+      image: { url: '/media/mice.jpg', alt: 'Mice' },
+    }
+    const closed = renderToStaticMarkup(<HeaderMenuCard card={card} media={false} />)
+    expect(closed).toContain('href="/collections/mice"')
+    expect(closed).toContain('header__expansion-card-media')
+    expect(closed).not.toContain('<img')
+    expect(renderToStaticMarkup(<HeaderMenuCard card={card} />)).toContain('src="/media/mice.jpg"')
   })
 
   it('renders feature card copy passed as editor nodes', () => {

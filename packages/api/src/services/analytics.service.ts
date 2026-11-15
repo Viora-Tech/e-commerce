@@ -1,4 +1,4 @@
-import { importedMethod, notTestOrder } from '@commerce/core'
+import { importedMethod, NET_UNITS, notTestOrder } from '@commerce/core'
 import type { StoreTx } from '@commerce/db'
 import {
   address,
@@ -291,7 +291,7 @@ export async function analyticsOverview(
         .select({
           productId: variant.productId,
           title: product.title,
-          units: sum(orderLine.quantity).mapWith(Number),
+          units: sum(NET_UNITS).mapWith(Number),
           revenuePaise: lineRevenue.mapWith(Number),
         })
         .from(orderLine)

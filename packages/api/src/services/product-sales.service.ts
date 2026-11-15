@@ -1,3 +1,4 @@
+import { NET_UNITS } from '@commerce/core'
 import type { StoreTx } from '@commerce/db'
 import { order, orderLine, refund, variant } from '@commerce/db'
 import { and, eq, gte, inArray, sql } from 'drizzle-orm'
@@ -10,7 +11,7 @@ const PRODUCT_SALES_DAYS = 90
 export type ProductSalesCard = ProductSales & { days: number; from: Date }
 
 /**
- * "Sales past 90 days" on the product page (#56): units, buyers and net revenue of the
+ * "Sales past 90 days" on the product page (#56): units sold (net of returns), buyers and net revenue of the
  * product's variants, by the reports' rules: drafts, test-mode and cancelled orders never count
  * (`counted`), and refunds are the processed or manual ones, as in the sales reports.
  */
@@ -25,6 +26,7 @@ export async function productSales(
       orderId: order.id,
       buyerKey: sql<string>`coalesce(${order.customerId}::text, lower(${order.email}), ${order.id}::text)`,
       quantity: orderLine.quantity,
+      netUnits: sql<number>`${NET_UNITS}`.mapWith(Number),
       unitPricePaise: orderLine.unitPricePaise,
       orderSubtotalPaise: order.subtotalPaise,
       orderDiscountPaise: order.discountPaise,

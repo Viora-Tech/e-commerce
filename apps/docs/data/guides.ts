@@ -261,6 +261,11 @@ export const screenshotCopy = {
   placeholder: 'Placeholder, not a real screenshot yet',
 }
 
+export const diagramCopy = {
+  editBefore: 'To edit, open ',
+  editAfter: ' in excalidraw.com, then save it back over the same file.',
+}
+
 export const readingTimeCopy = {
   suffix: 'min read',
 }

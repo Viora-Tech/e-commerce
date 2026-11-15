@@ -37,6 +37,7 @@ copying: projects relicense (Unleash moved to AGPL, Cal.com moved to MIT).
 | Automations | [Trigger.dev](https://github.com/triggerdotdev/trigger.dev) | Apache-2.0 | Durable jobs, retries, schedules | Backend hardening |
 | Automations | [Temporal](https://github.com/temporalio/temporal) | MIT | Durable workflow patterns | Backend hardening |
 | Automations | [n8n](https://github.com/n8n-io/n8n) | Sustainable Use License | | Ideas only |
+| Spreadsheets | [write-excel-file](https://gitlab.com/catamphetamine/write-excel-file) | MIT (package LICENSE, 2026-11-15) | Small .xlsx writer: several sheets, number and date formats, bold, fills, column widths, frozen header; one dependency (fflate, already ours) | In use: GST app sales register (`packages/plugin-gst-invoices/src/sales-register-xlsx.ts`, 2026-11-15). Chosen over ExcelJS (MIT, last release 2023, nine dependencies incl. archiver/unzipper) and SheetJS CE (Apache-2.0, npm build stale, CDN-only installs) for memory and size |
 | Email | [React Email](https://github.com/resend/react-email) | MIT | Responsive email components | Campaign and transactional emails |
 | Messaging | [Novu](https://github.com/novuhq/novu) | MIT outside `enterprise/packages` | Notification workflows, digests, preference centre | Notifications |
 | Marketing | [Dittofeed](https://github.com/dittofeed/dittofeed) | MIT | Journeys, segments | Automations |

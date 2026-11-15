@@ -1,0 +1,126 @@
+---
+title: Orders end to end
+description: One order from cart to analytics - checkout, placeOrder, payment, invoices, parcels, courier booking, tracking, delivery, NDR and RTO, returns, refunds, credit notes - and where each step lives in the code.
+---
+
+# Orders end to end
+
+<Diagram
+  name="order-lifecycle"
+  alt="Cart, checkout, placeOrder, placed or paid, GST invoice. Then parcels, courier booking, tracking, and delivered or NDR then RTO. Then returns, refunds or store credit, credit notes, analytics. Cancel releases stock."
+  caption="Each change writes an outbox event that emails, WhatsApp, app hooks, automations and pixels react to."
+/>
+
+## 1. Cart
+
+The cart (`cart`, `cart_line`) lives in the storefront; its id is in a cookie. Discounts
+(codes and automatic offers), gift cards and store credit are worked out by core
+(`packages/core/src/discounts`, gift cards, `store_credit_account`) every time the cart changes,
+and again at place order: the price the browser shows is never trusted.
+
+## 2. Checkout
+
+`apps/storefront/src/app/-s/[storeId]/checkout` collects contact, address, delivery option and
+payment method. What it offers comes from the store's settings and installed apps:
+
+- **Delivery options**: the Delivery options app quotes the connected couriers for the PIN code
+  ([Delivery options engine](/developer-docs/building/delivery-options)), or plain zone rates
+  from Settings → Shipping.
+- **Payment methods**: online through a gateway app (Razorpay, Cashfree), UPI to the merchant's
+  own UPI ID or bank transfer (the core `manual` provider), and cash on delivery (core `cod`,
+  with an optional fee and rules). See [Payments](/developer-docs/how-it-works/payments).
+
+## 3. Place order
+
+`placeOrder` runs as a saga (`runWorkflow`, `packages/core/src/workflow`): each step has an undo,
+run in reverse when a later step fails. In order: lock the cart (a second submit returns the
+same order), check launch rules, resolve discount and shipping, **route and reserve stock into
+parcels**, create the order (writes outbox `order.placed`), redeem gift cards, record the payment
+attempt, mark the cart converted. Steps and pitfalls:
+[Request flow, section 3](/developer-docs/core-concepts/request-flow#3-a-shopper-checks-out-and-pays).
+
+**Parcels.** `routeAndReserve` (`packages/core/src/order/routing-service.ts`) splits the cart
+over the locations that sell online: one location with everything, else the fewest parcels,
+else the default location tops up and the parcel needs a transfer. Each parcel is a
+`fulfillment_order` with its own lines, GST and cost. Why per parcel: stock, the GSTIN that bills
+it and the pickup address all depend on which location ships it.
+
+## 4. Paid
+
+The order commits **before** the gateway is called, so a gateway error never loses an order.
+Payment confirmation comes from the gateway's webhook (`/webhooks/payments/:provider/:storeId`),
+the browser's return, a staff **Mark as paid**, or the expiry sweep asking the gateway. All go
+through `applyPaymentStatus` (`packages/core/src/payments/confirm.ts`). Order statuses are never
+set by hand: `recomputeOrderStatuses` (`packages/core/src/order/recompute.ts`) derives
+`payment_status` and `fulfillment_status` from payments, refunds and parcels.
+
+**Unpaid checkouts are drafts.** With **Keep unpaid checkouts as drafts** on (Settings →
+Payments → Repeated checkouts), a checkout paid online or by UPI or bank transfer stays a draft
+(`#D57`) until the money arrives, then becomes a numbered order; only COD and fully gift card or
+store credit checkouts become orders at once (`packages/core/src/payments/checkout-drafts.ts`).
+Why: failed card retries used to make a row of cancelled orders and use up order numbers. With
+the setting off, the order is created at once and `{payments}-unpaid-expiry` cancels it after the
+store's unpaid window, asking the gateway first. Merchant guide:
+[Drafts](/merchant-guide/orders/drafts). Pre-orders may take a deposit; the balance is asked for, reminded
+and collected by `{payments}-preorder-balance`.
+
+## 5. Invoice
+
+If the GST invoices app is installed, its `order.paid` or `order.fulfilled` hook issues a tax
+invoice per parcel (or a receipt voucher for an advance).
+See [GST and invoices](/developer-docs/how-it-works/gst-and-invoices).
+
+## 6. Fulfil and ship
+
+Staff pack the order on its page or in bulk (**Orders → Shipments**). Packing a parcel books a
+courier through the store's shipping app (rate, AWB, label, pickup) or records a tracking number
+typed by hand. Orders can be **held** (no shipment until released), and several orders for one
+customer can go in **one box** under one AWB (`shipment_shared_order`; a tracking number already
+on another order is refused, `packages/core/src/order/waybill-owner.ts`).
+See [Shipping](/developer-docs/how-it-works/shipping).
+
+## 7. Tracking, delivery, NDR and RTO
+
+Tracking arrives by courier webhook and by the `{shipping}-track` poller every 30 minutes.
+`applyTracking` moves the shipment along; **delivered** completes the parcel (outbox
+`order.delivered`). A failed attempt raises an **NDR** (`shipment.ndr_raised`) that staff answer
+with reattempt or return; a parcel that comes back is **RTO** (`order.rto`), which opens an RTO
+task on the order for staff to close.
+
+## 8. Returns, refunds, credit notes
+
+A shopper (from their account) or staff asks for a return (`return_request`); staff approve,
+receive and refund it. Money goes back to the original payment through the gateway, by hand, or
+as **store credit** (`store_credit_entry`, a balance on the customer, never a gift card). Each
+refund writes `refund.created`, and the GST invoices app issues a credit note. Exchanges become a
+new order from a draft. Merchant guide: [Returns and RTO](/merchant-guide/orders/returns-and-rto).
+
+## 9. Edit and cancel
+
+**Edit order** (`/orders/[id]/edit`, `packages/api/src/routers/order-edit.ts`) changes a placed
+order: add catalogue or custom items, remove items (with or without restock), change quantities,
+prices of unpacked lines, shipping and discount. Stock, parcels and GST follow; items added after
+fulfilment go in a new parcel; a higher total opens a balance sent as a pay link, a lower one is
+refunded the way staff choose. It fires `order.edited` once. **Cancel** can cancel the courier label first (if the courier refuses, nothing is cancelled),
+releases stock, refunds what staff choose, and fires `order.cancelled`. Both may wait for approval when the member's role ticks
+it. Merchant guide: [Edit an order](/merchant-guide/orders/edit-an-order).
+
+## 10. Analytics
+
+Orders and sales on Home and Analytics leave out cancelled orders; sessions count real shoppers
+only. Profit uses each line's cost at sale
+(`order_line.cost_at_sale_paise`, from the weighted average cost purchase orders keep). Merchant
+guide: [Analytics](/merchant-guide/analytics/overview).
+
+## Who hears about it
+
+Every step above writes an `outbox_event` in the same transaction. The relay turns them into:
+
+| Consumer | Example |
+| --- | --- |
+| Shopper messages (email, WhatsApp) | `order.paid` → payment received; `shipment.out_for_delivery` → out for delivery |
+| App hooks | GST invoices on `order.paid`; Affiliates on `order.paid`, `order.delivered`, `refund.created` |
+| Automations | Workflows triggered by Order placed, COD order placed, Return requested, … |
+| Pixels | Meta and Google conversions for the order |
+
+The full list of event types is `OutboxEventType` (`packages/core/src/outbox/types.ts`).

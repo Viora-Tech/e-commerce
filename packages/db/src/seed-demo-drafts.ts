@@ -78,10 +78,16 @@ function quietSince(dayOffset: number, r: () => number): Date {
   return d.getTime() > twoHoursAgo ? new Date(twoHoursAgo) : d
 }
 
-export async function seedDemoDrafts(ownerUrl: string, opts: { clean?: boolean } = {}) {
+export async function seedDemoDrafts(
+  ownerUrl: string,
+  opts: { clean?: boolean; storeSlug?: string } = {},
+) {
   const db = createDb(ownerUrl)
   try {
-    const [s] = await db.select().from(store).where(eq(store.slug, 'waimers'))
+    const [s] = await db
+      .select()
+      .from(store)
+      .where(eq(store.slug, opts.storeSlug ?? 'waimers'))
     if (!s) throw new Error('seed the store first (bun run db:seed)')
     const storeId = s.id
 

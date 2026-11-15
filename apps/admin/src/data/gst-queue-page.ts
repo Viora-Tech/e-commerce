@@ -78,6 +78,7 @@ export const gstExportContent = {
   label: 'Export GSTR-1',
   month: (label: string) => `GSTR-1 JSON, ${label}`,
   thisMonth: (label: string) => `GSTR-1 JSON, ${label} so far`,
+  register: (label: string) => `Sales register (Excel), ${label}`,
   returns: 'All returns and downloads',
   failed: 'Could not export GSTR-1',
 } as const

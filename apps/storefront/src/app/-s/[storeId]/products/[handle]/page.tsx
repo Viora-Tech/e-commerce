@@ -4,6 +4,7 @@ import {
   ReviewsWidget,
   variantOnPreorder,
 } from '@commerce/blocks'
+import { mainProductRichtext, productFieldsRichtext } from '@commerce/blocks/richtext-node'
 import { loadProductPageExtras } from '@commerce/core'
 import { seoSnippet } from '@commerce/core/catalog'
 import { isAbroad } from '@commerce/core/checkout-address'
@@ -163,7 +164,11 @@ export default async function ProductPage({ params, searchParams }: Params) {
       : extras.rating
         ? { rating: extras.rating.value, count: extras.rating.count }
         : null
-  const shown = { ...product, fields: extras.fields, collection: extras.collection }
+  const shown = {
+    ...product,
+    fields: productFieldsRichtext(extras.fields),
+    collection: extras.collection,
+  }
   // Before the EMI & pay later app is installed, the older built-in hint still shows.
   const legacyEmi = emiApp.installed
     ? false
@@ -232,7 +237,8 @@ export default async function ProductPage({ params, searchParams }: Params) {
             product={shown}
             onAddToCart={addLineAction}
             settings={{
-              ...mainProductSettings(s),
+              // Body copy sanitised here, so the browser never loads the sanitiser.
+              ...mainProductRichtext(mainProductSettings(s)),
               ...(abroad ? { showPaymentSignals: false } : {}),
               ratingValue: rated?.rating ?? 0,
               ratingCount: rated?.count ?? 0,

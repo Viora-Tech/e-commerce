@@ -9,11 +9,11 @@ architecture as the app server) builds them, pushes them to Amazon ECR, and then
 through the Dokploy API. The server only pulls and restarts, so a build can no longer starve
 production of memory.
 
-<Callout type="warning">
-  **Status (10 October 2026): code only.** The scripts and this guide are in the repo. No AWS
-  resource has been created yet, Dokploy still builds on the server, and the Dokploy field names
-  the deploy script uses come from the API's tool schemas, not from a run against the live
-  server. The first real run should use `SKIP_DEPLOY=1` (see "Try it safely"), then one app.
+<Callout type="info">
+  **Status (15 November 2026):** production images are built either here or locally with Docker
+  on an x86 machine, then pushed to the same ECR repositories and rolled out in Dokploy
+  ([Deployment](/developer-docs/operations/deployment)). GitHub Actions is not used (stopped by
+  billing).
 </Callout>
 
 ```mermaid
@@ -90,7 +90,9 @@ Until an app is switched, its server-side build path keeps working untouched.
 
 ## Rollback
 
-Every build is tagged with its git sha. In Dokploy set the app's image to
+One command does it: `deploy/rollback.sh <app>` (dry run) then `--apply`; see
+[Deployment → One-step rollback](/developer-docs/operations/deployment#one-step-rollback).
+By hand: every build is tagged with its git sha. In Dokploy set the app's image to
 `<ecr>/vextro/<app>:<previous sha>` and press Deploy. Also reset
 `/vextro/deploy/last-sha/<app>` to that sha so the next night rebuilds what you rolled back from.
 Schema migrations run in the worker and are forward-only: roll the worker back only if the older

@@ -18,6 +18,18 @@ type AllowEntry = { file: string; names: string[]; reason: string }
 
 const ALLOWLIST: AllowEntry[] = [
   {
+    file: 'packages/plugin-gst-invoices/src/sales-register-xlsx.ts',
+    names: [
+      'GOODS_HEADERS',
+      'SERVICE_HEADERS',
+      'INTERNATIONAL_HEADERS',
+      'CREDIT_NOTE_HEADERS',
+      'SUMMARY_HEADERS',
+    ],
+    reason:
+      'the CA sales register headers, used in the module and asserted directly by sales-register.test.ts',
+  },
+  {
     file: 'packages/core/src/catalog/search-words.ts',
     names: ['VOCABULARY_MAX_ENTRIES', 'searchVocabulary', 'clearSearchVocabularies'],
     reason:
@@ -1190,6 +1202,11 @@ const ALLOWLIST: AllowEntry[] = [
       'no external importer today — investigate before removing (moved from schema.ts in 0177)',
   },
   {
+    file: 'packages/core/src/theme-import/srcset.ts',
+    names: ['honestSrcset'],
+    reason: 'one srcset made honest; exported for srcset.test.ts, engine uses honestSrcsets',
+  },
+  {
     file: 'packages/db/src/seed-back-in-stock.ts',
     names: ['seedWaimersBackInStock', 'seedBackInStock'],
     reason: 'no external importer today — investigate before removing',
@@ -1197,16 +1214,6 @@ const ALLOWLIST: AllowEntry[] = [
   {
     file: 'packages/db/src/seed-demo-collections.ts',
     names: ['seedDemoCollections'],
-    reason: 'no external importer today — investigate before removing',
-  },
-  {
-    file: 'packages/db/src/seed-demo-drafts.ts',
-    names: ['seedDemoDrafts'],
-    reason: 'no external importer today — investigate before removing',
-  },
-  {
-    file: 'packages/db/src/seed-demo-orders.ts',
-    names: ['seedDemoOrders'],
     reason: 'no external importer today — investigate before removing',
   },
   {

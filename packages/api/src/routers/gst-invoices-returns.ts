@@ -9,7 +9,14 @@ import { gstStateName } from '@commerce/core/gstin'
 import { formatInZone } from '@commerce/dates'
 import { gstr1SummaryCsv, gstr3bCsv } from '@commerce/invoices'
 import { renderGstr3bToBuffer } from '@commerce/invoices/render'
-import { GstReturnError, gstReturn, periodRange } from '@commerce/plugin-gst-invoices/server'
+import {
+  GstReturnError,
+  gstReturn,
+  periodRange,
+  salesRegister,
+  salesRegisterFilename,
+  salesRegisterXlsx,
+} from '@commerce/plugin-gst-invoices/server'
 import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
 import { can } from '../procedures'
@@ -104,5 +111,22 @@ export const returnsProcedures = {
         stateName: stateLabel,
       })
       return file(bytes, `${base}.pdf`, 'application/pdf')
+    }),
+
+  /**
+   * The month's sales register for the CA as an Excel file: goods, service, international and
+   * credit notes tabs plus a summary (totals net of credit notes, number ranges, cancelled).
+   */
+  salesRegister: can(permissions.ORDERS_READ)
+    .input(Input)
+    .handler(async ({ context, input }) => {
+      await requireInstalled(context)
+      const gst = await gstScope(context, input.gstRegistrationId)
+      const register = await salesRegister(context.tx, context.scope.storeId, input.period, gst)
+      return file(
+        await salesRegisterXlsx(register),
+        salesRegisterFilename(register),
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      )
     }),
 }

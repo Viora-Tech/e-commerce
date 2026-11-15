@@ -31,7 +31,9 @@ type Group = 'sections' | 'contact' | 'delivery' | 'payment'
 /** Where each editable string sits on the checkout, for the dialog's headings. */
 const groupOf = (key: CheckoutTextKey): Group => {
   if (key.startsWith('sections.') || key === 'express.heading') return 'sections'
-  if (key === 'fields.phone' || key === 'fields.phoneHint' || key.startsWith('fields.email')) {
+  const contact =
+    key === 'fields.phone' || key === 'fields.phoneHint' || key === 'marketing.shareOrder'
+  if (contact || key.startsWith('fields.email')) {
     return 'contact'
   }
   if (key.startsWith('fields.') && !key.startsWith('fields.note')) return 'delivery'

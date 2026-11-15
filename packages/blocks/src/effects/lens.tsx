@@ -14,6 +14,12 @@ import { cx } from '../slot-types'
 
 type LensProps = {
   children: ReactNode
+  /**
+   * What the lens magnifies; `children` when left out. For a picture, pass a copy whose
+   * `sizes` is `zoomFactor` times wider so the browser fetches a file sharp at that scale
+   * (the same file scaled 2.4 times was blurry, 2026-11-15). It mounts on the first hover.
+   */
+  zoomed?: ReactNode | undefined
   zoomFactor?: number | undefined
   /** Diameter of the lens. */
   lensSizeRem?: number | undefined
@@ -26,6 +32,9 @@ type Spot = { x: number; y: number } | null
 /** Zero Drift's lens zoom ran only on desktop layouts with a real pointer. */
 const LENS_MEDIA = '(hover: hover) and (pointer: fine) and (min-width: 990px)'
 
+/** How much the lens magnifies by default. */
+export const LENS_ZOOM_FACTOR = 2.4
+
 function lensStyle(spot: { x: number; y: number }, radiusPx: number): CSSProperties {
   const mask = `radial-gradient(circle ${radiusPx}px at ${spot.x}px ${spot.y}px, black 100%, transparent 100%)`
   return { maskImage: mask, WebkitMaskImage: mask }
@@ -33,7 +42,8 @@ function lensStyle(spot: { x: number; y: number }, radiusPx: number): CSSPropert
 
 export default function Lens({
   children,
-  zoomFactor = 2.4,
+  zoomed,
+  zoomFactor = LENS_ZOOM_FACTOR,
   lensSizeRem = 8.75,
   className,
 }: LensProps) {
@@ -74,7 +84,7 @@ export default function Lens({
             className="absolute inset-0"
             style={{ transform: `scale(${zoomFactor})`, transformOrigin: origin }}
           >
-            {children}
+            {zoomed ?? children}
           </div>
           <span
             className="absolute rounded-full border-2 border-[var(--color-bg)] shadow-[0_0.875rem_2.125rem_rgb(0_0_0/0.35)]"

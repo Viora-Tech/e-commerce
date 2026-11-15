@@ -8,9 +8,11 @@ export default function PolicyPage({ title, body, updatedAt }: PolicyPageProps) 
   // Render logic
   const value = parseRichText(body)
   return (
-    <article className="page-width mx-auto max-w-3xl py-12">
-      <h1 className="section-title mb-2">{title}</h1>
-      <p className="mb-8 text-small text-muted">{copy.updated(updatedAt)}</p>
+    // Spaced by gap and padding: an unlayered `* { margin: 0 }` reset (an imported theme's, and
+    // our blocks' base.css) beats margin utilities, which left the date over the title.
+    <article className="page-width flex flex-col gap-2 py-12">
+      <h1 className="section-title">{title}</h1>
+      <p className="pb-6 text-small text-muted">{copy.updated(updatedAt)}</p>
       <RichTextRenderer data={value} className="rte" />
     </article>
   )

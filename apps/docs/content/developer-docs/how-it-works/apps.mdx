@@ -1,0 +1,146 @@
+---
+title: 'Apps: how one installs and runs on a store'
+description: What an app is, the manifest, install, set up and connect, hooks on order events through the outbox and worker, admin pages, uninstall, with GST invoices and Delhivery as worked examples.
+---
+
+# Apps: how one installs and runs on a store
+
+Almost everything a store can switch on is an **app**: couriers, payment gateways, GST invoices,
+reviews, WhatsApp, file storage, search. Each app is one package with a manifest. The platform
+loads every app at boot; a store only **uses** the ones it installed.
+
+<Diagram
+  name="app-lifecycle"
+  alt="1. The manifest declares id, kind, access, provides, hooks, jobs, admin pages, product fields, order links, storefront blocks and automations. 2. Install adds the id to store.apps.installed and an app_installation row. 3. Set up: a builtin app's settings page or a connection app's Connect page. 4. On an order change an outbox row is written, the worker relay sends one apps-events job per app, and the hook runs under RLS. 5. Uninstall switches providers off and keeps credentials. Examples: GST invoices and Delhivery."
+/>
+
+**Why apps:** a courier or gateway is code we do not control and that changes often. Behind a
+contract (`ShippingProvider`, `PaymentProvider`, `NotificationChannel`, `StorageProvider`) each
+one can be added, tested and switched off without touching orders or checkout. Core never imports
+an app package; only `commerce.config.ts` does.
+
+## 1. The manifest
+
+Every app exports one `definePlugin({...})` from `src/plugin.ts`
+(`packages/plugins/src/define.ts` validates it at import time, so a typo fails the build, not a
+merchant's page).
+
+| Field | What it does |
+| --- | --- |
+| `id`, `name`, `version`, `description` | Identity. `id` is lowercase with dashes and is stored on the store |
+| `kind` | `builtin` (our own feature, no outside account: GST invoices, Reviews) or `connection` (needs another company's account: Delhivery, Razorpay, R2) |
+| `category`, `company`, `tested` | App Store grouping, "by Delhivery", and whether we have run it end to end on a live store (no "Untested" badge) |
+| `access` | What it reads and writes, and why, shown before install; `shares` says what leaves the platform |
+| `listing` | The App Store page: tagline, highlights, a guide link into this site, FAQ |
+| `provides` | Factories for `payments`, `shipping`, `notifications`, `storage`; each declares its settings form `fields` |
+| `hooks` | Functions for order and customer events (below) |
+| `jobs`, `jobFailed` | Named background jobs the app queues for itself (PDF renders, imports) |
+| `admin.pages` | Pages under `/apps/<id>/<path>`, with nav labels and icons |
+| `orderLinks`, `orderActions`, `productFields` | Links and buttons on the order page, extra fields on the product page |
+| `storefront.blocks` | Theme blocks, namespaced `<id>/<Name>` |
+| `automations` | Triggers and actions the Automations app can use |
+| `setupState`, `appBar`, `lastUsed` | What the Installed list and the app bar show |
+
+Full reference: [Plugins SDK](/developer-docs/building/plugins). Step by step:
+[Build your first app](/developer-docs/building/first-app).
+
+## 2. Loading
+
+`commerce.config.ts` lists every app; `loadPlugins` builds one registry per contract and refuses
+duplicate ids. Per request, `registriesForStore(tx, storeId)` filters them to the store's
+installed apps and enabled providers. A provider only exists for a store once its app is
+installed **and** set up.
+
+## 3. Install
+
+**Apps → App Store → Install** calls `apps.install`, which runs `installStoreApp`
+(`packages/api/src/services/apps.service.ts`): it locks the store's `apps` record, adds the id to
+`store.apps.installed`, and writes an `app_installation` row (who and when; it later holds the
+app's last activity and last error, shown on the Installed list). Paid apps are charged through
+billing (`APP_PRICING`, see [Plans and billing](/developer-docs/building/billing)). Automations
+is installed on every new store (`PREINSTALLED_APPS`).
+
+## 4. Set up or connect
+
+- A **builtin** app opens its own pages; its settings live in the app's tables or the store's
+  settings blobs.
+- A **connection** app opens its Connect page (`/apps/<id>/connect`). The merchant pastes keys or
+  signs in with OAuth; secrets are encrypted (AES-256-GCM under `SETTINGS_SECRET`) and the app's
+  provider id is added to the matching `enabled` list (`store.shipping.enabled`, …). The card says
+  **Connected** only then; installed alone shows **Needs setup**.
+
+## 5. Running on events
+
+```text
+order marked paid ──► same transaction writes outbox_event { type: 'order.paid' }
+                      │
+worker {outbox}-relay (every 5 s, or nudged) ──► one {apps}-events job per installed app with that hook
+                      │
+dispatchAppEvent ──► hook(ctx, { storeId, orderId }) ──► ctx.inStore(tx => …) under RLS
+```
+
+- Events an app can hook (`AppEvent`, `packages/plugins/src/types.ts`): `order.paid`,
+  `order.fulfilled`, `order.delivered`, `order.cancelled`, `order.rto`, `order.edited`,
+  `refund.created`, `customer.created`, `customer.updated`.
+- The relay (`packages/core/src/outbox/relay.ts`) writes one job per app, so a hook that throws
+  retries only its own job; every other app's hook already ran.
+- Hooks must be idempotent: BullMQ retries a failed job. When every retry fails, the error shows
+  on the Installed list (`recordAppEventFailure`).
+- `ctx` gives the hook `inStore` (a transaction with RLS set to this store), the store's storage,
+  `notify` (send an order email with attachments), `processMedia`, `log`, `reportActivity`.
+- The app-events queue runs at most two jobs per store at a time (`QUEUE_LIMITS.appEvents`).
+
+Why the outbox: if the hook were called straight from `markPaid`, a crash or a queue outage
+between the commit and the enqueue would lose it. The outbox row commits with the change, and the
+relay retries until it is delivered.
+
+## 6. Admin pages
+
+The admin route `apps/admin/src/app/(admin)/apps/[pluginId]/[[...path]]/page.tsx` matches the path
+against `admin.pages`, and the admin registry (`apps/admin/src/apps/registry.ts`) maps each page path
+to its React component. The app's pages get their own sidebar group. Settings and Connect have
+fixed paths so the shell can link to them.
+
+## 7. Uninstall and disconnect
+
+- **Uninstall** (`uninstallStoreApp`) takes the id off the installed list, takes its providers
+  out of every `enabled` list, deletes the `app_installation` row and pauses workflows that used
+  its triggers or actions. Saved credentials stay, so a reinstall picks up where it left off.
+- **Disconnect** switches the providers off but leaves the app installed (Needs setup).
+- Automations cannot be uninstalled while marketing workflows exist.
+
+## Worked example: GST invoices (builtin)
+
+`packages/plugin-gst-invoices/src/plugin.ts`, id `gst-invoices`.
+
+| Event | What it does |
+| --- | --- |
+| `order.paid`, `order.fulfilled` | Issues the tax invoice for each parcel when the store's rule says so (on payment or on dispatch); an advance on a pre-order gets a receipt voucher first |
+| `refund.created` | Issues a credit note for each invoice the refund reduces (a refund voucher for an advance) |
+| `order.edited` | Rebuilds queued invoices; cancels and reissues an issued one that is now wrong |
+| `order.cancelled` | Cancels invoices of a sale that never shipped and drops queued ones |
+
+Its `jobs` render PDFs and email copies; its pages are Queue, Invoices, Returns (GSTR-1 and
+GSTR-3B), Products (HSN and GST rates) and Settings; its own tables are `invoice_settings`, `invoice_sequence`, `invoice`, `invoice_line`,
+`invoice_batch`, `invoice_period`. More: [GST and invoices](/developer-docs/how-it-works/gst-and-invoices).
+
+## Worked example: Delhivery (connection)
+
+`packages/shipping-delhivery/src/plugin.ts`, id `delhivery`, `tested: true`.
+
+- `provides: { shipping: [delhiveryFactory] }`: the factory's fields are the API token, client
+  name and pickup location name, filled on `/apps/delhivery/connect`.
+- Once enabled, the shared Shipments workspace offers Delhivery rates, books waybills, prints
+  labels and requests pickups through the factory's provider.
+- Tracking comes back two ways: Delhivery's webhook to
+  `/webhooks/shipments/delhivery/<storeId>` on the worker, and the `{shipping}-track` poller every
+  30 minutes for open shipments.
+- `storefront.blocks` adds a pincode delivery checker block; `appBar` shows parcels in transit.
+
+More: [Shipping](/developer-docs/how-it-works/shipping).
+
+## Every app today
+
+The list, with kinds, categories and which guide covers each, is in the docs coverage audit
+(`docs/audits/2026-11-15-docs-coverage.md`, "Apps"). Merchant view:
+[Apps and the App Store](/merchant-guide/apps/app-store).

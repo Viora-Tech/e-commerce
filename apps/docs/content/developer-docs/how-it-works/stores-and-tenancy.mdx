@@ -1,0 +1,93 @@
+---
+title: Stores and tenancy
+description: What a store owns, how a shopper request and a staff request each find their store, how row-level security keeps stores apart, and how members and roles work.
+---
+
+# Stores and tenancy
+
+A **store** is one merchant's shop: one `store` row, one Better Auth organisation, any number of
+domains, one published theme, its members, its installed apps and every product, order and
+customer it has. All stores share one database and one set of apps.
+
+<Diagram
+  name="stores-and-tenancy"
+  alt="The platform holds many stores. Each store has domains, themes, members and roles, installed apps and its own rows. A shopper request goes from the host through resolve_host, a rewrite to /-s/storeId, withStore and the store_isolation policy. A staff request goes from the session to the organisation, the member's role and storeProcedure, then the same withStore."
+/>
+
+## What a store owns
+
+| Thing | Where |
+| --- | --- |
+| The store row: name, slug, settings blobs (`payments`, `shipping`, `apps`, `storage`, `theme`, …) | `store` (`packages/db/src/schema.ts`) |
+| Domains: `<slug>.<PLATFORM_STORE_DOMAIN>` always, plus the merchant's own; one is primary | `store_domain`; see [Custom domains](/developer-docs/building/custom-domains) |
+| Members, roles, permissions, approval ticks | `store_member`, `role`, `role_permission`, `role_approval` |
+| Business details and GST numbers, locations | `business`, `gst_registration`, `location` |
+| Installed apps | `store.apps.installed` plus an `app_installation` row each |
+| Everything else | Every other table, each with `store_id` |
+
+## How a shopper request finds its store
+
+1. `apps/storefront/src/proxy.ts` takes the `Host` header.
+2. It calls `resolve_host(hostname)` (`packages/db/src/resolve-store.ts`), a SECURITY DEFINER
+   function: it runs with the owner's rights so it can look across stores, and returns only an
+   id. A host that is not the store's primary domain is redirected to it.
+3. The proxy rewrites the request to `/-s/<storeId>/<path>`. A request that arrives with `/-s/`
+   (or any other internal prefix, `lib/routing.ts`) already in it is refused, so a shopper can
+   never pick a store id.
+4. Pages and server actions read the store id from that route segment (`requestStoreId`), never
+   from the caller. The `storefront-action-store` sweep enforces this.
+
+## How a staff request finds its store
+
+1. Better Auth's session names the member's **active organisation**. One organisation is one
+   store (`resolve_store_for_organization`).
+2. `storeProcedure` (`packages/api/src/procedures/store.ts`) loads the member's role and its
+   permissions, and each procedure declares the one it needs with `can(permission)`.
+3. If the member's role ticks **Needs approval** for that permission, the call is stored for an
+   approver instead of running (see [AI and MCP](/developer-docs/how-it-works/ai-and-mcp)).
+4. The handler runs inside `withStore` for that store.
+
+Members can belong to several stores; **Select store** (`/select-store`) switches the active one.
+
+## Row-level security: why a missing `where` cannot leak
+
+- `withStore(db, storeId, fn)` (`packages/db/src/with-store.ts`) opens a transaction and sets
+  `app.store_id` for it.
+- Every table with `store_id` has row-level security turned on **and forced**, with the policy
+  `store_isolation`: a row is visible only when its `store_id` equals `app.store_id`. Migrations
+  end with `apply_store_rls()` so new tables get it; a test fails any table without it.
+- The apps connect as the role `app`, which is `NOBYPASSRLS`. Only migrations use the owner role.
+- Work that must look across stores (the worker's sweeps, host lookup) goes through SECURITY
+  DEFINER functions that return ids only, then opens one `withStore` per store.
+- The cross-store leak test (`packages/api/test/cross-store-leak.test.ts`) calls every procedure
+  as store A with store B's ids and fails if anything of B shows or changes.
+
+**Why RLS and not a database per store:** one database is far cheaper to run and back up at our
+size, and RLS makes isolation a property of the database rather than of every query. The code
+keeps the rules that would let stores move to separate databases later (no cross-store joins, no
+global sequences, every job carries its `storeId`); see
+[Architecture, section 3](/developer-docs/getting-started/architecture#3-tenancy-model).
+
+## Fairness between stores
+
+One store's big job must not hold up the rest. Worker queues cap how many jobs one store may run
+at once (`QUEUE_LIMITS` in `packages/queue/src/index.ts`, `fairProcessor`), and heavy admin actions
+(imports, bulk edits, exports) have a per-store budget (`packages/api/src/procedures/heavy.ts`).
+See [Worker and jobs](/developer-docs/how-it-works/worker-and-jobs).
+
+## Members and roles
+
+The owner has every permission and is never asked for approval. Other members get a role: a set
+of permissions (`@commerce/core/permissions`) such as `orders.read`, `orders.refund`,
+`products.write`. A role can tick **Needs approval** per change permission; new stores start with
+refunds, cancellations, deletes, discounts, payments, billing and staff ticked
+(`DEFAULT_APPROVAL_PERMISSIONS`). Merchant guide: [Staff](/merchant-guide/settings/staff) and
+[Approvals](/merchant-guide/settings/approvals).
+
+## A store's life
+
+Sign-up and onboarding create the store, its organisation and owner, and install the
+pre-installed apps (`PREINSTALLED_APPS`: Automations). **Download your data** exports every `store_id` table, and
+**Delete store** removes its files and rows in one transaction, leaving a record in
+`platform_audit_event` (`packages/core/src/store-data/`). See
+[Store data](/merchant-guide/settings/store-data).

@@ -1,0 +1,124 @@
+---
+title: Automations
+description: Do the same small jobs on every order, customer and product automatically - tag, hold, note, alert your team, message shoppers - with a trigger, conditions and actions, a test run, approvals and a run log.
+---
+
+# Automations
+
+## What this is for
+
+Some jobs are the same every time: tag orders over ₹5,000 as "high value", hold risky cash on
+delivery orders, WhatsApp the packer when an order is paid, email the team when stock runs low.
+**Automations** does them for you, on every order, customer or product, the moment something
+happens. It works like Shopify Flow.
+
+Automations is a free app that every store has from the start. Your marketing flows (abandoned
+checkout, welcome, win-back) live here too.
+
+## How it works
+
+A **workflow** has three parts:
+
+1. A **trigger**: what starts it. For example **Order paid**, **COD order placed**, **Return
+   requested**, **Customer created**, **First order placed**, **Customer lapsed**, **Stock running
+   low**, **Out of stock**, **Checkout abandoned**, a **Scheduled time**, or **Run on an order /
+   customer / product** by hand.
+2. **Conditions**: checks such as **Order total**, **Is cash on delivery**, **Shipping state**,
+   **Shipping PIN code**, **Order tags**, **Sales channel** or **Number of items**. **Then** runs
+   when the check is true, **Otherwise** when it is not.
+3. **Actions**: what to do. **Add order tags**, **Add customer tags**, **Add order note**, **Set
+   order extra field**, **Add product to collection**, **Hold fulfilment**, **Release fulfilment
+   hold**, **Fulfil order**, **Cancel order**, **Email your team**, **WhatsApp your team**, **Send
+   marketing email**, **Send marketing WhatsApp**, **Send order update to customer**, **Send HTTP
+   request**, and more. A **Wait** step pauses from 1 minute to 60 days.
+
+Workflows run in the background a few seconds after the event. Every run is logged step by step,
+and each order, customer and product shows the automations that touched it. Other apps can add
+their own triggers and actions.
+
+## Start from a template
+
+Go to **Apps → Automations → Templates**. Each template makes a **paused** copy you can change
+before you switch it on.
+
+| Template | What it does |
+| --- | --- |
+| **Tag high-value orders** | Orders of ₹5,000 or more get a "High value" tag and your team gets an email |
+| **Hold risky COD orders** | Large cash on delivery orders are held from fulfilment with a note until you check them |
+| **Tag repeat customers** | Customers with three or more orders get a "Repeat" tag |
+| **Low stock alert** | Emails your team when a product is running low |
+| **New arrivals collection** | Adds every new product to a collection you pick |
+| **Alert on return requests** | Emails your team when a shopper asks to return an order |
+| **WhatsApp the packer** | Sends your packer a WhatsApp message when an order is paid |
+| **Remind unpaid orders** | Every morning, reminds shoppers of UPI and bank transfer orders still unpaid after 3 days |
+| **Cancel unconfirmed COD orders** | Cancels COD orders not confirmed in 48 hours, after you approve each one |
+
+Templates that need an app you have not installed say so.
+
+## Build or change a workflow
+
+<Steps>
+
+### Create
+
+Select **Create workflow**, then a template or **Start from scratch**, and pick the trigger.
+
+### Add steps
+
+On the canvas, add a condition ("Check something, then go one way or the other"), an action, or
+a wait. Select a step to set it up on the right. Your changes are saved as a **draft**; the live
+version keeps running until you publish.
+
+### Test it
+
+Select **Test with a record** and pick a real order, customer or product. The test walks the
+draft and shows what each step would do. **Nothing changes and no message is sent.**
+
+### Publish
+
+Select **Publish** and tick **Switch it on now**. The new version starts with the next event;
+runs already going finish on the version they started on. Workflows with sensitive steps (such as
+cancelling orders) ask you to type the workflow name.
+
+</Steps>
+
+## Safety
+
+- **Ask before running**: any step can wait for a person. The run stops at that step and waits in
+  **Needs approval** until someone with the step's permission approves or declines it. Cancelling
+  orders asks first by default, and only the owner can turn that off.
+- **If this step fails**: stop the run, or **Carry on to the next step**.
+- **Run once per record every**: stops a workflow running twice for the same order or customer in
+  a short time.
+- Steps that **message customers** follow consent and unsubscribe rules; shoppers who did not
+  agree to marketing are skipped.
+- **Pause** a workflow from the list any time; runs already going can finish or stop.
+
+<Callout>
+  Test every new workflow on a real order before you switch it on. The test shows the exact path
+  it would take, with nothing changed.
+</Callout>
+
+## Runs, limits and settings
+
+- **Runs** lists every run with its status (**Completed**, **Waiting**, **Failed**, **Skipped**,
+  …). Open one to see each step and why it went the way it did.
+- **Settings** shows this month's active workflows and runs against your plan's limit. Near the
+  limit you are warned; at the limit new runs are skipped until next month or a bigger plan.
+  Marketing automations from Growth are not counted. Secrets for **Send HTTP request** steps are
+  kept here.
+
+## Common problems and fixes
+
+| Problem | Fix |
+| --- | --- |
+| "Does not work with this trigger" | The action needs a different record (an order action on a customer trigger). Pick another action or trigger |
+| A workflow shows **Turned off** | A step stopped working, often because its app was uninstalled. Open it to see the problem |
+| Nothing ran | Check the workflow is active, the trigger happened after you published, and **Runs** for a skipped run's reason |
+
+## Related guides
+
+- [Growth and campaigns](/merchant-guide/growth/campaigns)
+- [COD & RTO](/merchant-guide/apps/cod-rto)
+- [Customer segments](/merchant-guide/customers/segments)
+- [Approvals](/merchant-guide/settings/approvals)

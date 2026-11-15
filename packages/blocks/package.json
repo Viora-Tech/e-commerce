@@ -4,7 +4,8 @@
   "private": true,
   "type": "module",
   "sideEffects": [
-    "*.css"
+    "*.css",
+    "./src/richtext-html.ts"
   ],
   "exports": {
     ".": "./src/index.ts",
@@ -14,6 +15,8 @@
     "./styles.css": "./src/styles/index.css",
     "./embed": "./src/embed-sanitize.ts",
     "./canvas-html": "./src/canvas-sanitize.ts",
+    "./richtext-html": "./src/richtext-html.ts",
+    "./richtext-node": "./src/richtext-node.ts",
     "./slots": "./src/slots.tsx",
     "./element-style": "./src/element-style.ts",
     "./editor-selection": "./src/editor-selection.ts",

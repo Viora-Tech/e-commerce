@@ -2,6 +2,7 @@ import type { MDXComponents } from 'mdx/types'
 import { Steps, Tabs } from 'nextra/components'
 import { useMDXComponents as getDocsMDXComponents } from 'nextra-theme-docs'
 import Callout from './components/callout'
+import Diagram from './components/diagram'
 import Faq from './components/faq'
 import FaqItem from './components/faq-item'
 import Find from './components/find'
@@ -16,6 +17,7 @@ export function useMDXComponents(components?: MDXComponents): MDXComponents {
   return {
     ...docsComponents,
     Callout,
+    Diagram,
     Faq,
     FaqItem,
     Find,

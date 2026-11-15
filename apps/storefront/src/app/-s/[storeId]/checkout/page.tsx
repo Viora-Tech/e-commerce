@@ -13,8 +13,10 @@ import {
   storefrontOriginFor,
 } from '@commerce/core'
 import { defaultCheckoutCountry } from '@commerce/core/checkout-address'
+import { CONSENT_COOKIE, currentConsent, decodeConsent } from '@commerce/core/consent'
 import { initiateCheckoutEventId } from '@commerce/core/pixels'
-import { headers } from 'next/headers'
+import { collectorStore, orderSharingOffered } from '@commerce/core/pixels/server'
+import { cookies, headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import PixelTrack from '@/components/analytics/pixel-track'
 import CheckoutForm from '@/components/checkout/checkout-form'
@@ -106,6 +108,14 @@ export default async function CheckoutPage({ params }: Params) {
   // Settings → Checkout → Checkout content (#158): the store's wording in the shopper's language.
   const requestHeaders = await headers()
   const text = checkoutTextFor(settings.content, requestHeaders.get(MARKET_HEADERS.locale) ?? 'en')
+  // "Share this order with our advertising partners": only when the store sends Purchase to an
+  // ad pixel server side, and not when the banner already has their yes to marketing.
+  const consent = decodeConsent((await cookies()).get(CONSENT_COOKIE)?.value)
+  const orderSharing = await inStore(storeId, async (tx) => {
+    if (!(await orderSharingOffered(tx, storeId))) return false
+    const { bannerVersion } = await collectorStore(tx, storeId)
+    return currentConsent(consent, bannerVersion)?.marketing !== true
+  })
   // A new address opens in the shopper's market country, or the country they browse from.
   const defaultCountry = defaultCheckoutCountry(
     requestHeaders.get(MARKET_HEADERS.country),
@@ -139,6 +149,7 @@ export default async function CheckoutPage({ params }: Params) {
         methodRules={methodRules}
         countries={countries}
         defaultCountry={defaultCountry}
+        orderSharing={orderSharing}
         policies={policies}
         look={look}
         emiMinPaise={emiMinPaise}

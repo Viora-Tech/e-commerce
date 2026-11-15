@@ -48,7 +48,13 @@ import type {
 } from './drops'
 import { loadImportedFiles } from './imported-files'
 import { uuidPrefixOf } from './numeric-id'
-import { collectionsProducts, loadProducts, productsByHandles } from './product-data'
+import {
+  activeCollectionRows,
+  collectionsProductHandles,
+  collectionsProducts,
+  loadProducts,
+  productsByHandles,
+} from './product-data'
 import {
   firstAvailable,
   MAX_RECOMMENDATIONS,
@@ -212,23 +218,7 @@ export async function storeLiquidData(
 
   const collectionList = (): Promise<LiquidCollectionData[]> =>
     once('collections', async () => {
-      const rows = await tx
-        .select({
-          id: collection.id,
-          handle: collection.handle,
-          title: collection.title,
-          description: collection.description,
-          imageUrl: media.url,
-          imageAlt: media.alt,
-          imageVariants: media.variants,
-          width: media.width,
-          height: media.height,
-          count: sql<number>`(select count(*) from ${collectionProduct} cp join ${product} p on p.id = cp.product_id where cp.collection_id = ${collection.id} and p.status = 'active' and ${soldInRequestCatalog(sql`p.id`)})`,
-        })
-        .from(collection)
-        .leftJoin(media, eq(media.id, collection.imageMediaId))
-        .where(eq(collection.status, 'active'))
-        .orderBy(asc(collection.title))
+      const rows = await activeCollectionRows(tx)
       return rows.map((r) => ({
         id: r.id,
         handle: r.handle,
@@ -315,6 +305,7 @@ export async function storeLiquidData(
         )
       }),
     collectionsProducts: (handles, limit) => collectionsProducts(tx, handles, limit, pricing),
+    collectionsProductHandles: (handles, limit) => collectionsProductHandles(tx, handles, limit),
     collections: collectionList,
     relatedProducts: (productId, limit, intent = 'related') =>
       once(`rel:${productId}:${limit}:${intent}`, async () => {

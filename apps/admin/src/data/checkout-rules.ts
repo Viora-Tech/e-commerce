@@ -85,6 +85,7 @@ export const checkoutRulesContent = {
       'fields.phoneHint': 'Mobile number hint',
       'fields.email': 'Email label',
       'fields.emailOptional': 'Email label when optional',
+      'marketing.shareOrder': 'Share with advertising partners tick box (stores with an ad pixel)',
       'fields.name': 'Full name label',
       'fields.firstName': 'First name label',
       'fields.lastName': 'Last name label',
@@ -114,6 +115,8 @@ export const checkoutRulesContent = {
       'fields.phoneHint': 'The courier calls this number on delivery.',
       'fields.email': 'Email for the receipt',
       'fields.emailOptional': 'Email for the receipt (optional)',
+      'marketing.shareOrder':
+        'Share this order with our advertising partners to improve the ads you see',
       'fields.name': 'Full name',
       'fields.firstName': 'First name',
       'fields.lastName': 'Last name',

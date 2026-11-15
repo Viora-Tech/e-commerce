@@ -44,6 +44,8 @@ type CustomizeTopBarProps = {
   name: string
   live: boolean
   dirty: boolean
+  /** Imported themes: files saved in Edit code, not published; Save publishes them too. */
+  codeDrafts?: number | undefined
   saving: boolean
   publishing: boolean
   canPublish: boolean
@@ -89,6 +91,7 @@ export default function CustomizeTopBar({
   name,
   live,
   dirty,
+  codeDrafts = 0,
   saving,
   publishing,
   canPublish,
@@ -244,6 +247,7 @@ export default function CustomizeTopBar({
             variant="outline"
             onClick={onSave}
             disabled={saving || publishing}
+            title={codeDrafts ? copy.codeDrafts(codeDrafts) : undefined}
           >
             <Save aria-hidden="true" />
             {copy.save}
@@ -255,7 +259,7 @@ export default function CustomizeTopBar({
             loading={saving}
             onClick={onSave}
             disabled={!dirty || saving}
-            title={copy.saveLiveHint}
+            title={codeDrafts ? copy.codeDrafts(codeDrafts) : copy.saveLiveHint}
           >
             <Save aria-hidden="true" />
             {copy.save}

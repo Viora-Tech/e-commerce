@@ -10,6 +10,12 @@ Postgres 17, one database, every tenant table carrying `store_id` and row-level 
 from the Drizzle schema files in `packages/db/src` (`schema.ts` plus feature schemas such as
 `marketing-schema.ts`; auth tables are separate, see below) and each app's own `schema.ts`.
 
+<Diagram
+  name="data-model"
+  alt="Tables grouped by area: platform, store setup, catalog, stock and buying, customers and carts, orders and money, shipping, online store, growth and messages, platform plumbing, and the apps' own tables."
+  caption="Tables by area. A shorter tour: Data model by area."
+/>
+
 ## The main tables
 
 The commerce core, from `packages/db/src/schema.ts`. Money is always integer paise

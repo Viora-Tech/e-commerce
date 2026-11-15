@@ -34,6 +34,7 @@ import { previewDefaultMode, useDeviceDark } from '@/lib/customize-preview-root'
 import { useThemePacks } from '@/lib/customize-theme-context'
 import { scopeFor } from '@/lib/dynamic-sources'
 import { routes } from '@/lib/routes'
+import { useCodeDrafts } from '@/lib/use-code-drafts'
 import { useCustomizePreview } from '@/lib/use-customize-preview'
 import { useImportedThemeSettings } from '@/lib/use-imported-theme-settings'
 import { type LiquidEditorInfo, useLiquidTheme } from '@/lib/use-liquid-theme'
@@ -127,6 +128,7 @@ export default function CustomizeEditor({
   const themePacks = useThemePacks()
   const [config] = useState(() => createCustomizeConfig(new Set(installedApps), themePacks))
   const drafts = useTemplateDrafts(record.id, () => toast.error(copy.draftFailed))
+  const codeDrafts = useCodeDrafts(record.id, record.imported)
   const preview = useCustomizePreview(ref.key, initial.resource)
   const deviceDark = useDeviceDark()
   // An imported Shopify theme: section fields from each `{% schema %}`; its own Theme settings
@@ -219,7 +221,7 @@ export default function CustomizeEditor({
     setSaving(true)
     try {
       await drafts.flush()
-      await api.themes.templates.commit({ themeId: record.id })
+      const { published } = await codeDrafts.commit()
       if (JSON.stringify(settings) !== JSON.stringify(record.settings)) {
         const next = await api.themes.update({ id: record.id, settings })
         setRecord(next)
@@ -227,8 +229,9 @@ export default function CustomizeEditor({
       }
       await importedSettings.save()
       setTemplatesDirty(false)
+      const saved = record.role === 'main' ? copy.savedLive : copy.savedDraft
       toast.success(copy.saved, {
-        description: record.role === 'main' ? copy.savedLive : copy.savedDraft,
+        description: published ? `${saved} ${copy.codePublished(published)}` : saved,
       })
       if (isDesktopHome(loaded, device)) thumbnail.refresh()
       return true
@@ -262,7 +265,7 @@ export default function CustomizeEditor({
 
   /** Makes this theme the live one, saving unsaved changes first. */
   const handlePublish = async () => {
-    if ((templatesDirty || settingsDirty || importedSettings.dirty) && !(await handleSave())) return
+    if (dirty && !(await handleSave())) return
     setPublishing(true)
     try {
       setRecord(await api.themes.publish({ id: record.id }))
@@ -303,6 +306,7 @@ export default function CustomizeEditor({
 
   // Render logic
   const settingsDirty = JSON.stringify(settings) !== JSON.stringify(record.settings)
+  const dirty = templatesDirty || settingsDirty || importedSettings.dirty || codeDrafts.count > 0
   const mode = settings.darkMode.enabled
     ? (modePick ?? previewDefaultMode(settings.darkMode, deviceDark))
     : 'light'
@@ -340,7 +344,8 @@ export default function CustomizeEditor({
     <CustomizeTopBar
       name={record.name}
       live={record.role === 'main'}
-      dirty={templatesDirty || settingsDirty || importedSettings.dirty}
+      dirty={dirty}
+      codeDrafts={codeDrafts.count}
       saving={saving}
       publishing={publishing}
       canPublish={canPublish}
@@ -473,7 +478,7 @@ export default function CustomizeEditor({
         name={record.name}
         liveName={liveName}
         domain={store.domain}
-        dirty={templatesDirty || settingsDirty || importedSettings.dirty}
+        dirty={dirty}
         onOpenChange={setConfirmPublish}
         onConfirm={handlePublish}
       />

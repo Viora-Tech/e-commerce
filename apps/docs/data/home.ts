@@ -9,7 +9,7 @@ export const footerLinks = [
   { href: 'https://github.com/Viora-Tech/e-commerce', label: 'GitHub' },
   { href: 'https://github.com/Viora-Tech/e-commerce/issues/new', label: 'Report an issue' },
   { href: '/merchant-guide/start-here/welcome', label: 'Merchant guide' },
-  { href: '/developer-docs/getting-started/architecture', label: 'Developers' },
+  { href: '/developer-docs/how-it-works/overview', label: 'Developers' },
 ]
 
 export const pathCards = [
@@ -20,10 +20,10 @@ export const pathCards = [
     description: 'Run your store: orders, shipping, payments and GST, in short steps.',
   },
   {
-    href: '/developer-docs/getting-started/architecture',
+    href: '/developer-docs/how-it-works/overview',
     icon: 'code',
     title: 'Developers',
-    description: 'Architecture, conventions, the plugins SDK and running it locally.',
+    description: `How ${siteConfig.brand.name} works from A to Z, with diagrams; then the SDK and running it locally.`,
   },
 ] as const
 

@@ -312,7 +312,11 @@ export const ACTION_DOCS: Record<string, string> = {
   'gstInvoices.returns.gstr1Csv': 'The GSTR-1 totals per table, as a CSV for Excel.',
   'gstInvoices.returns.gstr1Json': 'The GSTR-1 JSON for the portal\'s "Prepare offline → Upload".',
   'gstInvoices.returns.gstr3b': 'GSTR-3B 3.1 and 3.2 as a CSV or a one-page PDF.',
+  'gstInvoices.returns.salesRegister':
+    "The month's sales register for the CA as an Excel file: goods, service, international and credit notes tabs plus a summary (totals net of credit notes, number ranges, cancelled).",
   'gstInvoices.returns.summary': 'Totals, warnings and the GSTR-3B figures for the Returns tab.',
+  'gstInvoices.series.setNext':
+    "Set one series' next number for a GST number, never below a number already used.",
   'gstInvoices.seriesNext':
     'The next number each series will print this financial year, for the settings preview.',
   'gstInvoices.snapshot': 'Snapshot of a document, for the admin to show what was printed.',
@@ -903,6 +907,10 @@ export const ACTION_DOCS: Record<string, string> = {
   'suppliers.bulkUpdate':
     'Bulk edit on the suppliers list (#1064): currency, country or payment terms for many.',
   'suppliers.facets': "The countries and currencies in use, for the list's filter pickers.",
+  'themes.code.counts':
+    "What waits to go live: Customize's template drafts and Edit code's unpublished files.",
+  'themes.code.publishAll':
+    "Publish everything: Customize's drafts saved and Edit code's files live in one step, with one version history entry (Customize Save and Edit code Publish both use it).",
   'themes.createBlank':
     '"Start from scratch": base settings and empty templates, nothing from the live theme.',
   'themes.customSections.list': 'The saved sections.',

@@ -21,6 +21,7 @@ export const formsPlugin = definePlugin({
   listing: {
     tagline: 'Makes the contact forms of an imported theme work, with every message saved.',
     highlights: ['Saves every message on a Submissions page', 'Emails each one to your store'],
+    guide: '/merchant-guide/apps/forms',
     worksWith: ['Themes imported from Shopify'],
     keywords: ['contact form', 'messages'],
     faq: [

@@ -263,6 +263,7 @@ export const analyticsContent = {
       abcClass: 'Class',
       orders: 'Orders',
       units: 'Units',
+      unitsSold: 'Units sold',
       unitsPerOrder: 'Units per order',
       cancelled: 'Cancelled',
       grossSales: 'Gross sales',

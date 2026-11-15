@@ -14,7 +14,7 @@ import {
 } from '@commerce/ui/shadcn/drawer'
 import { Switch } from '@commerce/ui/shadcn/switch'
 import { Table, TableBody, TableHead, TableHeader, TableRow } from '@commerce/ui/shadcn/table'
-import { useState } from 'react'
+import { Fragment, useState } from 'react'
 import AppStoreLink from '@/components/apps/app-store-link'
 import ChoiceField from '@/components/apps/gst-invoices/choice-field'
 import EmptyState from '@/components/layout/empty-state'
@@ -23,11 +23,11 @@ import TableSkeletonRows from '@/components/table/table-skeleton-rows'
 import { bulkShipContent } from '@/data/bulk-ship'
 import { useCopy } from '@/hooks/use-copy'
 import { BESIDE_SIDEBAR } from '@/lib/sidebar-motion'
-import BulkEditDialog from './bulk-edit-dialog'
+import BulkEditInline from './bulk-edit-inline'
 import BulkResult from './bulk-result'
 import BulkShipFooter from './bulk-ship-footer'
-import BulkShipRow from './bulk-ship-row'
-import { BULK_RULES, type BulkRule, bulkSummary, isTicked } from './bulk-ship-state'
+import BulkShipRow, { editButtonId } from './bulk-ship-row'
+import { BULK_RULES, type BulkRule, bulkSummary, isTicked, type OrderEdit } from './bulk-ship-state'
 import { courierTotals } from './flow-state'
 import { useBulkShip } from './use-bulk-ship'
 
@@ -41,10 +41,14 @@ type BulkShipDrawerProps = {
   onBooked: () => void
 }
 
+/** The table's columns: tick, order, ship to, package, payment, courier, delivery, charge,
+ *  status, edit. */
+const COLUMNS = 10
+
 /**
  * Ship several orders (Figma 908:8804): a full-width bottom drawer with one table. Each order
  * gets its courier by the rule (Recommended, Cheapest, Fastest, One courier for all) or by
- * hand in its Edit popup (913:9698); a row that cannot book stays in the table, unticked, with
+ * hand in its row's edit, which opens in place under the row (913:9698); a row that cannot book stays in the table, unticked, with
  * the button that fixes it. Booked, it turns into the result (909:9249): labels, skipped
  * orders and one pickup per courier.
  */
@@ -59,7 +63,33 @@ export default function BulkShipDrawer({
   const b = useBulkShip(orderIds, courier)
   const [editing, setEditing] = useState<string | null>(null)
 
+  // Helpers
+  /** Closes the open editor and puts focus back on its row's pencil. */
+  const closeEditor = () => {
+    const id = editing
+    setEditing(null)
+    if (id) requestAnimationFrame(() => document.getElementById(editButtonId(id))?.focus())
+  }
+
   // Event handlers
+  const handleApply = (orderId: string, edit: OrderEdit) => {
+    b.saveEdit(orderId, edit)
+    closeEditor()
+  }
+  const handleSkip = (orderId: string, skip: boolean) => {
+    b.tick(orderId, !skip)
+    closeEditor()
+  }
+  /** Esc with a row open cancels that row's edit; the drawer stays. */
+  const handleOpenChange = (next: boolean, details: { reason: string; cancel: () => void }) => {
+    if (next) return
+    if (editing && details.reason === 'escape-key') {
+      details.cancel()
+      closeEditor()
+      return
+    }
+    onClose()
+  }
   const handleBook = async () => {
     if (await b.book()) onBooked()
   }
@@ -75,7 +105,7 @@ export default function BulkShipDrawer({
   const totals = courierTotals(Object.values(b.quotes), draft?.couriers ?? [])
 
   return (
-    <Drawer open={open} onOpenChange={(next) => !next && onClose()} showSwipeHandle>
+    <Drawer open={open} onOpenChange={handleOpenChange} showSwipeHandle>
       <DrawerContent className={cn('mx-auto h-[calc(100dvh-4rem)] max-w-[90rem]', BESIDE_SIDEBAR)}>
         {b.results && draft ? (
           <BulkResult
@@ -181,7 +211,8 @@ export default function BulkShipDrawer({
                       </Alert>
                     </div>
                   ) : null}
-                  <div className="overflow-x-auto">
+                  {/* A container, so an open row's editor can be as wide as the visible table. */}
+                  <div className="@container overflow-x-auto">
                     <Table className="min-w-[68rem]">
                       <TableHeader>
                         <TableRow className="bg-muted/50 text-caption tracking-wide uppercase">
@@ -212,25 +243,44 @@ export default function BulkShipDrawer({
                         {/* Loading: the table's own header over placeholder rows, no spinner. */}
                         {!draft ? (
                           <TableSkeletonRows
-                            columns={10}
+                            columns={COLUMNS}
                             rows={Math.min(orderIds.length, 8)}
                             label={copy.loading}
                           />
                         ) : null}
-                        {b.lines.map((line) => (
-                          <BulkShipRow
-                            key={line.order.orderId}
-                            line={line}
-                            edit={b.edits[line.order.orderId]}
-                            rule={b.rule}
-                            boxes={draft?.boxes ?? []}
-                            ticked={isTicked(line, b.unticked)}
-                            onTick={(on) => b.tick(line.order.orderId, on)}
-                            onEdit={() => setEditing(line.order.orderId)}
-                            onAskPayOnline={() => void b.askPayOnline(line.order.orderId)}
-                            busy={b.busy}
-                          />
-                        ))}
+                        {b.lines.map((line) => {
+                          const id = line.order.orderId
+                          const expanded = editing === id && draft !== null
+                          return (
+                            <Fragment key={id}>
+                              <BulkShipRow
+                                line={line}
+                                edit={b.edits[id]}
+                                rule={b.rule}
+                                boxes={draft?.boxes ?? []}
+                                ticked={isTicked(line, b.unticked)}
+                                onTick={(on) => b.tick(id, on)}
+                                onEdit={() => setEditing(id)}
+                                expanded={expanded}
+                                onCollapse={closeEditor}
+                                onAskPayOnline={() => void b.askPayOnline(id)}
+                                busy={b.busy}
+                              />
+                              {expanded && draft ? (
+                                <BulkEditInline
+                                  line={line}
+                                  edit={b.edits[id]}
+                                  boxes={draft.boxes}
+                                  columns={COLUMNS}
+                                  skipped={b.unticked.has(id)}
+                                  onApply={(edit) => handleApply(id, edit)}
+                                  onCancel={closeEditor}
+                                  onSkip={(skip) => handleSkip(id, skip)}
+                                />
+                              ) : null}
+                            </Fragment>
+                          )
+                        })}
                       </TableBody>
                     </Table>
                   </div>
@@ -246,18 +296,6 @@ export default function BulkShipDrawer({
               onCancel={onClose}
               onBook={() => void handleBook()}
             />
-            {draft ? (
-              <BulkEditDialog
-                lines={b.lines}
-                orderId={editing}
-                onOrderChange={setEditing}
-                edits={b.edits}
-                boxes={draft.boxes}
-                unticked={b.unticked}
-                onSave={b.saveEdit}
-                onSkip={(orderId, skip) => b.tick(orderId, !skip)}
-              />
-            ) : null}
           </>
         )}
       </DrawerContent>
