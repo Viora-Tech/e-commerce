@@ -4,4 +4,5 @@ export default {
   'build-your-own-section': 'Build your own section',
   'import-a-shopify-theme': 'Import a Shopify theme',
   preferences: 'Preferences',
+  seo: 'SEO',
 }

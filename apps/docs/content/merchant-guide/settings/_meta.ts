@@ -2,6 +2,7 @@
 export default {
   index: 'Overview and Store details',
   '-- store': { type: 'separator', title: 'Store' },
+  'store-health': 'Store health',
   locations: 'Locations & warehouses',
   domains: 'Domains and security certificates',
   'plan-and-billing': 'Plan & billing',
@@ -24,6 +25,7 @@ export default {
   'sender-email': 'Send emails from your own address',
   '-- team': { type: 'separator', title: 'Team & advanced' },
   staff: 'Staff',
+  approvals: 'Approvals',
   'activity-log': 'Activity log',
   ai: 'AI',
   'mcp-and-api': 'MCP & API',

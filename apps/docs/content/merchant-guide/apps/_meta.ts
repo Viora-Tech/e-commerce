@@ -1,5 +1,6 @@
 export default {
   'app-store': 'App store',
+  automations: 'Automations',
   reviews: 'Reviews',
   couriers: 'Couriers',
   'india-post': 'India Post',
@@ -17,4 +18,5 @@ export default {
   meilisearch: 'Meilisearch search',
   inbox: 'Inbox',
   chatwoot: 'Chatwoot',
+  forms: 'Forms',
 }
