@@ -55,7 +55,7 @@ export default function QueryControls({ query, enabled, onChange }: QueryControl
   // Render logic
   const metrics = metricsOf(query.table)
   const dims = dimensionsOf(query.table)
-  const sortable = [...query.show, ...(query.groupBy ? [query.groupBy] : [])]
+  const sortable = [...query.show, ...query.groupBy]
 
   return (
     <div className="flex flex-col gap-3">
@@ -123,7 +123,7 @@ export default function QueryControls({ query, enabled, onChange }: QueryControl
             id={`${id}-dim`}
             size="sm"
             className="w-full"
-            value={query.groupBy ?? ''}
+            value={query.groupBy[0] ?? ''}
             onChange={(e) => onChange(setGroupBy(query, e.target.value || null))}
           >
             <NativeSelectOption value="">{copy.controls.none}</NativeSelectOption>

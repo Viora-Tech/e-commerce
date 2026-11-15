@@ -30,6 +30,7 @@ import { withStore } from '@commerce/db'
 import { z } from 'zod'
 import { type AnswerTable, type CallInput, callInputs, detachTable } from '../answer-table'
 import { type AiCallContext, finishAiCall, type StartedAiCall, startAiCall } from '../guard'
+import { queryTools } from '../query-tool'
 import { type Fact, storeTools, type ToolEnv } from '../store-tools'
 import { ProposalProblem } from './actions/resolve'
 import { type FoundImage, findImages } from './find-images'
@@ -120,7 +121,11 @@ function toolsFor(
   calls: Map<string, ReadCall>,
 ): AiToolSet {
   const env: ToolEnv = { db: context.db, store: call.store, now: () => new Date(), taint }
-  const reads = { ...storeTools(env), ...readTools(env) }
+  const reads = {
+    ...storeTools(env),
+    ...readTools(env),
+    ...queryTools(env, { readCustomers: context.scope.can(permissions.CUSTOMERS_READ) }),
+  }
   const allowedReads = Object.fromEntries(
     Object.entries(reads).filter(([name]) => {
       const permission = READ_TOOL_PERMISSION[name]
@@ -297,6 +302,7 @@ export async function runAssistant(
       page,
       canPropose: Object.keys(tools).filter((name) => name in ACTIONS),
       themeEditor: guarded ? { outline: guarded.text, canEdit: canEditTheme } : undefined,
+      canQuery: 'analyticsQuery' in tools,
     }),
     messages: [...input.history, { role: 'user', content: input.message }],
     tools,

@@ -33,6 +33,14 @@ export function isNumericKind(kind: ReportColumnKind): boolean {
   return NUMERIC_KINDS.has(kind)
 }
 
+/** A column's header: its label, else a query field read as words (`net_quantity` → "Net quantity"). */
+export function columnLabel(labels: Record<string, string>, id: string): string {
+  const label = labels[id]
+  if (label) return label
+  const words = id.replaceAll('_', ' ')
+  return words.charAt(0).toUpperCase() + words.slice(1)
+}
+
 /** Text for words-like values: states, methods, fixed keys, dates. */
 function formatWord(kind: ReportColumnKind, value: string): string {
   if (kind === 'state') return STATE_NAMES.get(value) ?? value

@@ -128,12 +128,24 @@ export default [
         label: 'क्वेरी भाषा की मदद',
         title: 'क्वेरी भाषा',
         clauses: [
-          { code: 'FROM sales', text: 'टेबल: sales या products।' },
+          { code: 'FROM sales', text: 'टेबल: sales, products या refunds।' },
           { code: 'SHOW net_sales, orders', text: 'नंबर, एक या ज़्यादा।' },
-          { code: 'GROUP BY state', text: 'एक फ़ील्ड के हिसाब से पंक्तियाँ बाँटें।' },
+          {
+            code: "WHERE product_title CONTAINS 'triaina'",
+            text: "कौन सी पंक्तियाँ गिनें: =, !=, IN ('a', 'b'), CONTAINS, STARTS WITH, साथ में AND, OR, NOT। टेक्स्ट कोट में, छोटे-बड़े अक्षर से फ़र्क नहीं।",
+          },
+          {
+            code: 'GROUP BY product_title, variant_title',
+            text: 'ज़्यादा से ज़्यादा तीन फ़ील्ड के हिसाब से पंक्तियाँ बाँटें।',
+          },
+          { code: 'HAVING orders >= 2', text: 'कुल नंबर के हिसाब से ग्रुप रखें (पैसे ₹ में)।' },
           {
             code: 'SINCE -30d UNTIL today',
-            text: 'तारीखें: -7d, -4w, -3m, today, yesterday या 2026-10-01।',
+            text: 'तारीखें: -7d, -4w, -3m, -2y, today, yesterday या 2026-10-01।',
+          },
+          {
+            code: 'DURING last_month',
+            text: 'या कोई तय समय: this_month, last_year, this_financial_year, all_time वगैरह।',
           },
           { code: 'COMPARE TO previous_period', text: 'या previous_year।' },
           { code: 'ORDER BY net_sales DESC', text: 'दिखाए गए या बाँटे गए फ़ील्ड से क्रम लगाएं।' },

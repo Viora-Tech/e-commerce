@@ -31,6 +31,17 @@ function themeEditorLines(editor: { outline: string; canEdit: boolean }): string
 }
 
 /**
+ * How to answer questions about numbers (Shopify Sidekick's approach): write one analytics
+ * query rather than give up or stitch an answer together from the fixed lookups.
+ */
+const QUERY_LINES = [
+  'Questions about numbers, history or trends (how many of a product sold, sales of a product or variant, sales by month or year, orders by channel, source or state, top customers, discount codes, refunds, returns, "all time", "ever", comparisons) are answered with analyticsQuery: write one query in its language and call it.',
+  '- Use analyticsQuery whenever the question names a product, variant, collection, vendor, channel, customer or code, or a range salesSummary and topProducts do not offer. Never say you cannot answer a numbers question before trying a query.',
+  '- Match a product by the most distinctive word of its name with product_title CONTAINS (case does not matter). If the result is zero or a query problem, fix the query (another word of the name, or findProducts to get the exact title) and try again, at most twice.',
+  '- Answer with the number first, then the dates the query covered, Sidekick-style. The merchant sees the table and the query under your answer, so do not paste the query or every row.',
+]
+
+/**
  * System instructions for one assistant message. `page` is one plain line about where the
  * merchant is (built by the API from ids it resolved under RLS, never from the browser's text).
  */
@@ -43,6 +54,8 @@ export function assistantInstructions(opts: {
   canPropose: string[]
   /** In the theme editor: the open page's outline (already guarded) and whether they may edit it. */
   themeEditor?: { outline: string; canEdit: boolean } | undefined
+  /** The member has `analyticsQuery`: questions about numbers go through it. */
+  canQuery?: boolean | undefined
 }): string {
   const proposing = opts.canPropose.length
     ? [
@@ -68,6 +81,7 @@ export function assistantInstructions(opts: {
     LANGUAGE[opts.language],
     `The merchant is looking at: ${opts.page}.`,
     'Use the read tools to look things up before you answer.',
+    ...(opts.canQuery ? QUERY_LINES : []),
     ...proposing,
     'Rules:',
     '- Every number, amount, count, date or product name in your answer must come from a tool result in this conversation. Never estimate or invent one.',

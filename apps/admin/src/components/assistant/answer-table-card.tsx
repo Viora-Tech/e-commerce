@@ -16,7 +16,7 @@ import { analyticsContent } from '@/data/analytics'
 import { assistantContent } from '@/data/assistant'
 import { useCopy } from '@/hooks/use-copy'
 import { openAsReportHref, snapshotOf, stashAnswer } from '@/lib/answer-report'
-import { formatCell, isNumericKind } from '@/lib/report-format'
+import { columnLabel, formatCell, isNumericKind } from '@/lib/report-format'
 import { useStorageScope } from '@/lib/storage-scope'
 import AnswerChart from './answer-chart'
 
@@ -52,6 +52,8 @@ export default function AnswerTableCard({ table, tool, question }: AnswerTableCa
 
   // Render logic
   const what = copy.tools[tool] ?? tool
+  // An analytics query answer shows the query it ran, as Shopify Sidekick does.
+  const isQuery = tool === 'analyticsQuery' && Boolean(table.query)
 
   return (
     <div className="flex flex-col gap-2 rounded-xl border border-border bg-card p-3">
@@ -69,7 +71,7 @@ export default function AnswerTableCard({ table, tool, question }: AnswerTableCa
                   key={column.id}
                   className={`h-8 px-2 ${isNumericKind(column.kind) ? 'text-right' : ''}`}
                 >
-                  {columns[column.id] ?? column.id}
+                  {columnLabel(columns, column.id)}
                 </TableHead>
               ))}
             </TableRow>
@@ -90,6 +92,14 @@ export default function AnswerTableCard({ table, tool, question }: AnswerTableCa
           </TableBody>
         </Table>
       </div>
+      {isQuery ? (
+        <div className="flex flex-col gap-1">
+          <p className="text-caption font-medium text-muted-foreground">{copy.table.queryUsed}</p>
+          <pre className="max-h-40 overflow-auto rounded-lg border border-border bg-muted/30 px-2.5 py-2 font-mono text-caption whitespace-pre-wrap text-ink-strong">
+            {table.query}
+          </pre>
+        </div>
+      ) : null}
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="min-w-0 flex-1 text-caption text-muted-foreground">
           {table.query ? copy.table.live : copy.table.snapshot}

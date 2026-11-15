@@ -3,6 +3,7 @@ import { tokenize } from './parse'
 import {
   COMPARE_OPTIONS,
   fieldsOf,
+  QUERY_PERIODS,
   QUERY_TABLE_NAMES,
   type QueryFieldType,
   type QueryTable,
@@ -37,7 +38,10 @@ export function suggest(source: string, cursor: number): QuerySuggestion[] {
   const lastTwo = before.slice(-2).join(' ')
   const clause = [...before]
     .reverse()
-    .find((w) => ['SHOW', 'BY', 'SINCE', 'UNTIL', 'TO', 'FROM', 'LIMIT'].includes(w))
+    .find((w) =>
+      ['SHOW', 'BY', 'SINCE', 'UNTIL', 'TO', 'FROM', 'LIMIT', 'WHERE', 'HAVING'].includes(w),
+    )
+  const joins = last === 'AND' || last === 'OR' || last === 'NOT' || last === '('
 
   let options: QuerySuggestion[] = []
   if (last === 'FROM') {
@@ -46,10 +50,23 @@ export function suggest(source: string, cursor: number): QuerySuggestion[] {
     options = fields
       .filter((f) => f.role === 'metric')
       .map((f) => ({ value: f.name, detail: f.description, type: f.type }))
-  } else if (lastTwo === 'GROUP BY') {
+  } else if (
+    lastTwo === 'GROUP BY' ||
+    (clause === 'BY' && last === ',' && before.includes('GROUP'))
+  ) {
+    options = fields
+      .filter((f) => f.role === 'dimension' && !f.filterOnly)
+      .map((f) => ({ value: f.name, detail: f.description, type: f.type }))
+  } else if (last === 'WHERE' || (clause === 'WHERE' && joins)) {
     options = fields
       .filter((f) => f.role === 'dimension')
       .map((f) => ({ value: f.name, detail: f.description, type: f.type }))
+  } else if (last === 'HAVING' || (clause === 'HAVING' && joins)) {
+    options = fields
+      .filter((f) => f.role === 'metric')
+      .map((f) => ({ value: f.name, detail: f.description, type: f.type }))
+  } else if (last === 'DURING') {
+    options = QUERY_PERIODS.map((v) => ({ value: v, detail: 'range', type: 'word' as const }))
   } else if (lastTwo === 'ORDER BY') {
     const shown = before.slice(before.indexOf('SHOW') + 1).filter((w) => w !== ',')
     options = fields
@@ -58,13 +75,14 @@ export function suggest(source: string, cursor: number): QuerySuggestion[] {
   } else if (lastTwo === 'COMPARE TO') {
     options = COMPARE_OPTIONS.map((o) => ({ value: o, detail: 'compare', type: 'word' as const }))
   } else if (last === 'SINCE' || last === 'UNTIL') {
-    options = ['-7d', '-30d', '-90d', '-12m', ...TIME_WORDS].map((v) => ({
+    options = ['-7d', '-30d', '-90d', '-12m', '-5y', ...TIME_WORDS].map((v) => ({
       value: v,
       detail: 'time',
       type: 'word' as const,
     }))
   } else if (table) {
-    options = ['GROUP BY', 'SINCE', 'UNTIL', 'COMPARE TO', 'ORDER BY', 'LIMIT'].map((k) => ({
+    const clauses = ['WHERE', 'GROUP BY', 'HAVING', 'SINCE', 'UNTIL', 'DURING', 'COMPARE TO']
+    options = [...clauses, 'ORDER BY', 'LIMIT'].map((k) => ({
       value: k,
       detail: 'clause',
       type: 'keyword' as const,

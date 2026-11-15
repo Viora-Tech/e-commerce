@@ -97,7 +97,8 @@ export function callInputs(input: unknown): CallInput[] {
       return [{ key, value: String(value) }]
     }
     if (typeof value === 'string' && value.trim()) {
-      return [{ key, value: value.trim().slice(0, 100) }]
+      // An analytics query is shown whole under "Show query"; other inputs are short.
+      return [{ key, value: value.trim().slice(0, key === 'query' ? 4000 : 100) }]
     }
     return []
   })

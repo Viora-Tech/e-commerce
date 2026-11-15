@@ -12,7 +12,7 @@ describe('parseQuery', () => {
     expect(r.query).toMatchObject({
       table: 'sales',
       show: ['net_sales', 'orders', 'average_order_value'],
-      groupBy: 'state',
+      groupBy: ['state'],
       compare: 'previous_period',
       orderBy: { field: 'net_sales', dir: 'desc' },
       limit: 10,
