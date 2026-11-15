@@ -232,7 +232,7 @@ export default function BuilderTemplatesDialog({
                   <button
                     type="button"
                     onClick={() => setPending({ kind: 'blank' })}
-                    className="flex h-full w-full flex-col gap-2 rounded-xl border border-border p-2 text-left hover:border-primary focus-visible:outline-2 focus-visible:outline-ring"
+                    className="flex h-full w-full flex-col gap-2 rounded-lg border border-border p-2 text-left hover:border-primary focus-visible:outline-2 focus-visible:outline-ring"
                   >
                     <div className="flex h-64 items-center justify-center rounded-lg border border-dashed border-border text-muted-foreground">
                       +
@@ -250,7 +250,7 @@ export default function BuilderTemplatesDialog({
                       type="button"
                       onClick={() => setPending({ kind: 'starter', mjml: s.mjml })}
                       aria-label={`${g.use}: ${meta?.name ?? s.id}`}
-                      className="flex h-full w-full flex-col gap-2 rounded-xl border border-border p-2 text-left hover:border-primary focus-visible:outline-2 focus-visible:outline-ring"
+                      className="flex h-full w-full flex-col gap-2 rounded-lg border border-border p-2 text-left hover:border-primary focus-visible:outline-2 focus-visible:outline-ring"
                     >
                       <Thumb html={s.html} title={meta?.name ?? s.id} />
                       <span className="text-body-strong">{meta?.name ?? s.id}</span>
@@ -282,7 +282,7 @@ export default function BuilderTemplatesDialog({
             {rows && rows.length === 0 ? (
               <EmptyState variant="inline" body={copy.templates.empty} />
             ) : null}
-            <ul className="flex flex-col divide-y divide-border rounded-xl border border-border">
+            <ul className="flex flex-col divide-y divide-border rounded-lg border border-border">
               {(rows ?? []).map((r) => (
                 <li key={r.id} className="flex flex-wrap items-center gap-2 px-3 py-2">
                   {renaming?.id === r.id ? (

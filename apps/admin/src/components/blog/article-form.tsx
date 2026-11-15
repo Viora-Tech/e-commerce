@@ -68,6 +68,7 @@ export default function ArticleForm({
   )
   const [blogs, setBlogs] = useState(initialBlogs)
   const [busy, setBusy] = useState(false)
+  const [deleting, setDeleting] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
 
   // Helpers
@@ -105,6 +106,7 @@ export default function ArticleForm({
     if (!article) return
     setConfirmDelete(false)
     setBusy(true)
+    setDeleting(true)
     try {
       await api.blog.delete({ ids: [article.id] })
       toast.success(copy.deletedToast)
@@ -112,6 +114,7 @@ export default function ArticleForm({
     } catch (err) {
       toast.error(err instanceof Error ? err.message : copy.saveFailed)
       setBusy(false)
+      setDeleting(false)
     }
   }
 
@@ -172,7 +175,12 @@ export default function ArticleForm({
           {/* Delete sits at the bottom, away from View on store, like Shopify (audit #94). */}
           {article ? (
             <div className="flex justify-start">
-              <Button variant="destructive" onClick={() => setConfirmDelete(true)} disabled={busy}>
+              <Button
+                variant="destructive"
+                onClick={() => setConfirmDelete(true)}
+                loading={deleting}
+                disabled={busy}
+              >
                 <Trash2 aria-hidden="true" />
                 {copy.delete.action}
               </Button>

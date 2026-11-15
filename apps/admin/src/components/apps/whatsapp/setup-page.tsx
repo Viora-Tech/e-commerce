@@ -7,8 +7,10 @@ import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import LoadFailedState from '@/components/apps/shared/load-failed-state'
 import DataCardSkeleton from '@/components/layout/data-card-skeleton'
 import PageColumns from '@/components/layout/page-columns'
+import { appsContent } from '@/data/apps'
 import { whatsappAppContent } from '@/data/whatsapp-app'
 import { useCopy } from '@/hooks/use-copy'
 import { usePermissions } from '@/hooks/use-permissions'
@@ -45,17 +47,23 @@ function templatesStep(setup: Setup, templates: Templates | null): TemplatesStep
 export default function WhatsappSetupPage() {
   // Hooks
   const copy = useCopy(whatsappAppContent)
+  const apps = useCopy(appsContent)
   const { hasPermission } = usePermissions()
   const [setup, setSetup] = useState<Setup | null>(null)
   const [templates, setTemplates] = useState<Templates | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  /** The setup read failed: Try again instead of a skeleton that never fills. */
+  const [failed, setFailed] = useState(false)
+  const [attempt, setAttempt] = useState(0)
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `attempt` is Try again
   useEffect(() => {
     let live = true
+    setFailed(false)
     api.platformApps
       .whatsappSetup()
       .then((r) => live && setSetup(r))
-      .catch((err: unknown) => toast.error(err instanceof Error ? err.message : String(err)))
+      .catch(() => live && setFailed(true))
     api.platformApps
       .whatsappTemplates()
       .then((r) => live && setTemplates(r))
@@ -63,7 +71,7 @@ export default function WhatsappSetupPage() {
     return () => {
       live = false
     }
-  }, [])
+  }, [attempt])
 
   // Helpers
   const reportSubmit = (results: SubmitResults) => {
@@ -95,6 +103,15 @@ export default function WhatsappSetupPage() {
   }
 
   // Early returns
+  if (!setup && failed) {
+    return (
+      <LoadFailedState
+        size="page"
+        heading={apps.couldNotLoad.page}
+        onRetry={() => setAttempt((n) => n + 1)}
+      />
+    )
+  }
   if (!setup) {
     return (
       <div className="flex flex-col gap-5">

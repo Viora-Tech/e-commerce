@@ -71,7 +71,7 @@ export default function ArticleSeoCard({
     >
       {previewTitle ? (
         <div className="flex flex-col gap-0.5">
-          <span className="truncate text-xs text-muted-foreground">{url}</span>
+          <span className="truncate text-period text-muted-foreground">{url}</span>
           <span className="text-base font-medium text-primary">{previewTitle}</span>
           <span className="text-body text-muted-foreground">{previewDescription}</span>
         </div>

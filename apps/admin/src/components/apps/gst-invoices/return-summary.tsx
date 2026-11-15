@@ -4,8 +4,9 @@ import { Download } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import LoadFailedState from '@/components/apps/shared/load-failed-state'
 import DataCardSkeleton from '@/components/layout/data-card-skeleton'
-import EmptyState from '@/components/layout/empty-state'
+import { appsContent } from '@/data/apps'
 import { gstReturnsContent } from '@/data/gst-invoices'
 import { useCopy, useLocale } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -27,11 +28,14 @@ type ReturnSummaryProps = {
 export default function ReturnSummary({ gst, period }: ReturnSummaryProps) {
   // Hooks
   const copy = useCopy(gstReturnsContent)
+  const apps = useCopy(appsContent)
   const locale = useLocale()
   const [summary, setSummary] = useState<Summary | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState<string | null>(null)
+  const [attempt, setAttempt] = useState(0)
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `attempt` is Try again
   useEffect(() => {
     let cancelled = false
     setSummary(null)
@@ -47,7 +51,7 @@ export default function ReturnSummary({ gst, period }: ReturnSummaryProps) {
     return () => {
       cancelled = true
     }
-  }, [gst, period, copy.failed])
+  }, [gst, period, attempt, copy.failed])
 
   // Helpers
   const download = async (key: string, fn: () => Promise<File>) => {
@@ -78,7 +82,16 @@ export default function ReturnSummary({ gst, period }: ReturnSummaryProps) {
     )
 
   // Early returns
-  if (error) return <EmptyState variant="page" tone="danger" heading={copy.failed} body={error} />
+  if (error) {
+    return (
+      <LoadFailedState
+        size="page"
+        heading={apps.couldNotLoad.summary}
+        body={error}
+        onRetry={() => setAttempt((n) => n + 1)}
+      />
+    )
+  }
   if (!summary) {
     return (
       <div role="status" className="flex flex-col gap-4" aria-label={copy.loading}>

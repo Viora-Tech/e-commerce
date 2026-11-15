@@ -9,7 +9,7 @@ type SettingsTableCellProps = {
   className?: string
 }
 
-/** A body cell at the settings table's density. */
+/** A body cell of a settings table; the row height and sides come from `SimpleTable`. */
 export default function SettingsTableCell({ children, center, className }: SettingsTableCellProps) {
   return (
     <TableCell className={cn(SETTINGS_CELL, center && 'text-center', className)}>

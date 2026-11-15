@@ -84,7 +84,7 @@ export default function AiActivityCard() {
       {failed ? (
         <p className="text-body text-muted-foreground">{copy.activity.failed}</p>
       ) : items === null ? (
-        <Skeleton className="h-32 w-full rounded-xl" />
+        <Skeleton className="h-32 w-full rounded-lg" />
       ) : items.length === 0 ? (
         <EmptyState variant="dashed" size="sm" body={copy.activity.empty} />
       ) : (

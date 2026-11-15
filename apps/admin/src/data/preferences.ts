@@ -10,10 +10,7 @@ export const preferencesContent = {
   discard: 'Discard',
   saved: 'Preferences saved',
   failed: 'Could not save preferences',
-  unavailable: {
-    heading: 'Preferences unavailable',
-    body: 'You need access to the online store to change its preferences.',
-  },
+  loadFailed: 'Could not load preferences',
   seo: {
     heading: 'Title and meta description',
     body: 'Search engines and AI assistants show these for your home page.',

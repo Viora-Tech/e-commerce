@@ -2,13 +2,17 @@
 
 import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { toast } from 'sonner'
+import LoadFailedState from '@/components/apps/shared/load-failed-state'
 import DataCard from '@/components/layout/data-card'
+import DataCardSkeleton from '@/components/layout/data-card-skeleton'
 import EmptyState from '@/components/layout/empty-state'
 import StatusChip from '@/components/layout/status-chip'
+import { appsContent } from '@/data/apps'
 import { codRtoContent } from '@/data/cod-rto'
 import { useCopy, useFormat } from '@/hooks/use-copy'
+import { useLoad } from '@/hooks/use-load'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
 import RiskChip from './risk-chip'
@@ -29,12 +33,12 @@ export default function OrderCard({ orderId }: OrderCardProps) {
   // Hooks
   const copy = useCopy(codRtoContent)
   const format = useFormat()
-  const [data, setData] = useState<Data | null>(null)
+  const apps = useCopy(appsContent)
+  const { data, failed, retry, setData } = useLoad<Data>(
+    () => api.codRto.forOrder({ orderId }),
+    [orderId],
+  )
   const [busy, setBusy] = useState<'score' | 'confirm' | null>(null)
-
-  useEffect(() => {
-    api.codRto.forOrder({ orderId }).then(setData)
-  }, [orderId])
 
   // Helpers
   const run = async (key: 'score' | 'confirm', fn: () => Promise<unknown>, done: string) => {
@@ -56,7 +60,14 @@ export default function OrderCard({ orderId }: OrderCardProps) {
     run('confirm', () => api.codRto.markConfirmed({ orderId }), copy.card.marked)
 
   // Early returns
-  if (!data) return null
+  if (!data && failed) {
+    return (
+      <DataCard title={copy.card.title}>
+        <LoadFailedState heading={apps.couldNotLoad.details} failed={failed} onRetry={retry} />
+      </DataCard>
+    )
+  }
+  if (!data) return <DataCardSkeleton fields={0} lines={3} />
 
   // Render logic
   const risk = data.risk

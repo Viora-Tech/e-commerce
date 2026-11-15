@@ -5,6 +5,7 @@ import { Field, FieldError, FieldLabel } from '@commerce/ui/shadcn/field'
 import LocationSelect, { type StoreLocation } from '@/components/inventory/location-select'
 import DataCard from '@/components/layout/data-card'
 import { transferFormContent } from '@/data/inventory'
+import { useCopy } from '@/hooks/use-copy'
 
 type RouteCardProps = {
   locations: StoreLocation[]
@@ -14,8 +15,6 @@ type RouteCardProps = {
   onChange: (patch: { fromLocationId?: string; toLocationId?: string }) => void
 }
 
-const copy = transferFormContent.route
-
 /** Origin and destination of the transfer. */
 export default function RouteCard({
   locations,
@@ -24,6 +23,9 @@ export default function RouteCard({
   disabled,
   onChange,
 }: RouteCardProps) {
+  // Hooks
+  const { route: copy } = useCopy(transferFormContent)
+
   // Render logic
   const same = fromLocationId !== '' && fromLocationId === toLocationId
 

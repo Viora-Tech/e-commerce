@@ -95,6 +95,8 @@ function ProductsContent({ initial }: { initial: ProductsInitial }) {
   const [items, setItems] = useState(initial.result.items)
   const [total, setTotal] = useState(initial.result.total)
   const [loading, setLoading] = useState(false)
+  const [failed, setFailed] = useState(false)
+  const [exporting, setExporting] = useState(false)
   const [importing, setImporting] = useState(false)
   const [tagging, setTagging] = useState<{
     ids: string[]
@@ -118,6 +120,7 @@ function ProductsContent({ initial }: { initial: ProductsInitial }) {
     if (firstRun && sameQuery && !hasProductFilters(q) && q.perPage === DEFAULT_PER_PAGE) return
     let cancelled = false
     setLoading(true)
+    setFailed(false)
     api.products
       .list({ page: q.page, perPage: q.perPage, ...listInput(q) })
       .then((r) => {
@@ -125,6 +128,7 @@ function ProductsContent({ initial }: { initial: ProductsInitial }) {
         setItems(r.items)
         setTotal(r.total)
       })
+      .catch(() => !cancelled && setFailed(true))
       .finally(() => !cancelled && setLoading(false))
     return () => {
       cancelled = true
@@ -136,6 +140,7 @@ function ProductsContent({ initial }: { initial: ProductsInitial }) {
     const r = await api.products.list({ page: q.page, perPage: q.perPage, ...listInput(q) })
     setItems(r.items)
     setTotal(r.total)
+    setFailed(false)
   }
 
   const runBulk = async (
@@ -158,8 +163,18 @@ function ProductsContent({ initial }: { initial: ProductsInitial }) {
   }
 
   // Event handlers
+  /* Try again on a failed read: the rows are read again in place, under the same header. */
+  const handleRetry = () => {
+    setFailed(false)
+    setLoading(true)
+    refresh()
+      .catch(() => setFailed(true))
+      .finally(() => setLoading(false))
+  }
+
   const handleExport = async () => {
     setBusy(true)
+    setExporting(true)
     try {
       const rows = await api.products.exportRows(listInput(q))
       if (rows.length === 0) {
@@ -171,6 +186,7 @@ function ProductsContent({ initial }: { initial: ProductsInitial }) {
       toast.error(err instanceof Error ? err.message : copy.exporting.failed)
     } finally {
       setBusy(false)
+      setExporting(false)
     }
   }
 
@@ -219,7 +235,7 @@ function ProductsContent({ initial }: { initial: ProductsInitial }) {
             <Upload strokeWidth={1.6} />
             {copy.import}
           </Button>
-          <Button variant="outline" onClick={handleExport} disabled={busy}>
+          <Button variant="outline" onClick={handleExport} disabled={busy} loading={exporting}>
             <Download strokeWidth={1.6} />
             {copy.export}
           </Button>
@@ -254,10 +270,11 @@ function ProductsContent({ initial }: { initial: ProductsInitial }) {
           <ProductRowMenu
             product={p}
             storefrontOrigin={initial.storefrontOrigin}
-            onChanged={() => void refresh()}
+            onChanged={() => refresh().catch(() => setFailed(true))}
           />
         )}
         loading={loading}
+        error={failed ? { heading: copy.loadFailed, onRetry: handleRetry } : undefined}
         query={q.query}
         onQueryChange={(query) => setQ({ query, page: 1 }, { history: 'replace' })}
         onClearAll={() => setQ({ ...CLEAR_PRODUCT_FILTERS, query: '', status: null, page: 1 })}
@@ -304,7 +321,7 @@ function ProductsContent({ initial }: { initial: ProductsInitial }) {
             automations={initial.automations}
             onDone={() => {
               clear()
-              void refresh()
+              refresh().catch(() => setFailed(true))
             }}
           />
         )}
@@ -320,7 +337,11 @@ function ProductsContent({ initial }: { initial: ProductsInitial }) {
         }}
       />
 
-      <ImportDialog open={importing} onOpenChange={setImporting} onImported={refresh} />
+      <ImportDialog
+        open={importing}
+        onOpenChange={setImporting}
+        onImported={() => refresh().catch(() => setFailed(true))}
+      />
       <BulkTagDialog
         open={tagging !== null}
         onOpenChange={(open) => !open && setTagging(null)}

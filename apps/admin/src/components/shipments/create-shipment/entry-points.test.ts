@@ -56,6 +56,17 @@ describe('Create shipment entry points', () => {
     expect(read('app/(admin)/orders/[id]/ship/page.tsx')).toContain('<CreateShipmentPage')
   })
 
+  it('a list hands one order to its page and keeps no single-order dialog (audit 3.3 #7)', () => {
+    const dialog = read('components/shipments/create-shipment/create-shipment-dialog.tsx')
+    expect(dialog).toContain('routes.orders.ship(only)')
+    expect(dialog).toContain('shipmentHref(only, courier)')
+    expect(dialog).not.toContain('DialogContent')
+    const paths = files.map((f) => f.path)
+    expect(paths).not.toContain(
+      ['components', 'shipments', 'create-shipment', 'single-shipment-flow.tsx'].join(sep),
+    )
+  })
+
   it('the order page sends Create shipment (next step and shipment card) to the flow', () => {
     const view = read('components/orders/order-view.tsx')
     expect(view).toMatch(/onShip=\{handleShip\}/)

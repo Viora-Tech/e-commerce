@@ -1,6 +1,7 @@
 'use client'
 
 import { TriangleAlert } from '@commerce/ui/icons'
+import { Alert, AlertDescription, AlertTitle } from '@commerce/ui/shadcn/alert'
 import { Button } from '@commerce/ui/shadcn/button'
 import { useState } from 'react'
 import { toast } from 'sonner'
@@ -36,27 +37,24 @@ export default function ReviewCard({ affiliateId, reasons, onChanged }: ReviewCa
 
   // Render logic
   return (
-    <div className="flex flex-col gap-3 rounded-xl border border-warning/40 bg-warning-soft px-5 py-4">
-      <div className="flex items-start gap-2.5">
-        <TriangleAlert
-          className="mt-0.5 size-4 shrink-0 text-warning-foreground dark:text-warning"
-          aria-hidden="true"
-        />
-        <div className="flex flex-col gap-1">
-          <p className="text-body-strong">{d.review.title}</p>
-          <ul className="flex list-disc flex-col gap-0.5 pl-4 text-body">
-            {reasons.map((r) => (
-              <li key={r}>{d.review.reasons[r] ?? r}</li>
-            ))}
-          </ul>
-          <p className="text-caption text-muted-foreground">{d.review.help}</p>
-        </div>
-      </div>
-      <div>
-        <Button variant="outline" onClick={handleClear} disabled={busy}>
+    <Alert
+      tone="warning"
+      action={
+        <Button variant="outline" onClick={handleClear} loading={busy}>
           {d.review.clear}
         </Button>
-      </div>
-    </div>
+      }
+    >
+      <TriangleAlert aria-hidden="true" />
+      <AlertTitle>{d.review.title}</AlertTitle>
+      <AlertDescription className="flex flex-col gap-1">
+        <ul className="flex list-disc flex-col gap-0.5 pl-4 text-body text-foreground">
+          {reasons.map((r) => (
+            <li key={r}>{d.review.reasons[r] ?? r}</li>
+          ))}
+        </ul>
+        <span className="text-caption">{d.review.help}</span>
+      </AlertDescription>
+    </Alert>
   )
 }

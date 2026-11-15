@@ -117,33 +117,37 @@ export default function ProductPreorderSection({
           <p className="text-caption text-muted-foreground">{copy.ownHelp}</p>
           <div className="flex flex-wrap gap-x-4 gap-y-2">
             {PREORDER_OWN_FIELDS.map((field) => (
-              <label
-                key={field}
-                htmlFor={`preorder-own-${field}`}
-                className="flex items-center gap-2 text-body"
-              >
+              <Field key={field} orientation="horizontal" className="w-auto">
                 <Checkbox
                   id={`preorder-own-${field}`}
                   checked={form.preorderOwn.includes(field)}
                   onCheckedChange={(on) => handleOwn(field, on === true)}
                 />
-                {copy.own[field]}
-              </label>
+                <FieldLabel
+                  htmlFor={`preorder-own-${field}`}
+                  className="text-body leading-5 font-normal text-foreground"
+                >
+                  {copy.own[field]}
+                </FieldLabel>
+              </Field>
             ))}
           </div>
         </fieldset>
       ) : (
         <>
-          <div className="flex items-center gap-3">
+          <Field orientation="horizontal" className="gap-3">
             <Switch
               id="preorder-enabled"
               checked={form.preorderEnabled}
               onCheckedChange={(value) => onPatch({ preorderEnabled: Boolean(value) })}
             />
-            <label htmlFor="preorder-enabled" className="text-body text-foreground">
+            <FieldLabel
+              htmlFor="preorder-enabled"
+              className="text-body leading-5 font-normal text-foreground"
+            >
               {copy.enable}
-            </label>
-          </div>
+            </FieldLabel>
+          </Field>
           <p className="text-caption text-muted-foreground">{copy.enableHelp}</p>
         </>
       )}
@@ -226,17 +230,23 @@ export default function ProductPreorderSection({
             onValueChange={handleMode}
             className="flex flex-col gap-2"
           >
-            <div className="flex items-center gap-2">
+            <Field orientation="horizontal" className="gap-3">
               <RadioGroupItem id="preorder-mode-full" value="full" />
-              <label htmlFor="preorder-mode-full" className="text-body text-foreground">
+              <FieldLabel
+                htmlFor="preorder-mode-full"
+                className="text-body leading-5 font-normal text-foreground"
+              >
                 {copy.paymentModeFull}
-              </label>
-            </div>
+              </FieldLabel>
+            </Field>
             <div className="flex items-center gap-3">
               <RadioGroupItem id="preorder-mode-fixed" value="fixed" />
-              <label htmlFor="preorder-mode-fixed" className="text-body text-foreground">
+              <FieldLabel
+                htmlFor="preorder-mode-fixed"
+                className="text-body leading-5 font-normal text-foreground"
+              >
                 {copy.paymentModeFixed}
-              </label>
+              </FieldLabel>
               {form.preorderPaymentMode === 'fixed' ? (
                 <MoneyInput
                   size="kit"
@@ -250,9 +260,12 @@ export default function ProductPreorderSection({
             </div>
             <div className="flex items-center gap-3">
               <RadioGroupItem id="preorder-mode-percentage" value="percentage" />
-              <label htmlFor="preorder-mode-percentage" className="text-body text-foreground">
+              <FieldLabel
+                htmlFor="preorder-mode-percentage"
+                className="text-body leading-5 font-normal text-foreground"
+              >
                 {copy.paymentModePercentage}
-              </label>
+              </FieldLabel>
               {form.preorderPaymentMode === 'percentage' ? (
                 <Input
                   size="kit"
@@ -273,7 +286,7 @@ export default function ProductPreorderSection({
       ) : null}
 
       {anyShown || inCampaign ? (
-        <div className="flex items-center gap-3">
+        <Field orientation="horizontal" className="gap-3">
           <Switch
             id="preorder-hide-until-launch"
             checked={form.preorderHideFromCollectionsUntilLaunch}
@@ -281,10 +294,13 @@ export default function ProductPreorderSection({
               onPatch({ preorderHideFromCollectionsUntilLaunch: Boolean(value) })
             }
           />
-          <label htmlFor="preorder-hide-until-launch" className="text-body text-foreground">
+          <FieldLabel
+            htmlFor="preorder-hide-until-launch"
+            className="text-body leading-5 font-normal text-foreground"
+          >
             {copy.hideUntilLaunch}
-          </label>
-        </div>
+          </FieldLabel>
+        </Field>
       ) : null}
 
       <div className="flex flex-col gap-1.5 border-border border-t pt-4">

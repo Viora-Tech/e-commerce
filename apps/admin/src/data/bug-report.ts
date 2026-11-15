@@ -54,6 +54,6 @@ export const myBugReportsContent = {
     body: 'When something does not work, use Report a bug in your account menu. You can follow it here.',
   },
   reportBug: 'Report a bug',
-  loadFailed: 'Your reports could not be loaded.',
+  loadFailed: 'Could not load your reports',
   retry: 'Try again',
 }

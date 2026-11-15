@@ -3,7 +3,12 @@
 import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
 import { useState } from 'react'
+import LoadFailedState from '@/components/apps/shared/load-failed-state'
+import DataCard from '@/components/layout/data-card'
+import DataCardSkeleton from '@/components/layout/data-card-skeleton'
 import SectionHead from '@/components/layout/section-head'
+import StatStrip from '@/components/layout/stat-strip'
+import { appsContent } from '@/data/apps'
 import { deliveryPagesContent } from '@/data/delivery-options-pages'
 import { useCopy } from '@/hooks/use-copy'
 import { routes } from '@/lib/routes'
@@ -25,13 +30,33 @@ const APP = 'delivery-options'
 export default function DeliveryOptionsOverviewPage() {
   // Hooks
   const pages = useCopy(deliveryPagesContent)
-  const { overview } = useDeliveryOverview()
+  const apps = useCopy(appsContent)
+  const { overview, failed, reload } = useDeliveryOverview()
   const { catalogue } = useRouteCatalogue()
   const preview = useCheckoutPreview(null)
   const [tried, setTried] = useState<TryPinResult | null>(null)
 
   // Early returns
-  if (!overview) return null
+  if (!overview) {
+    return (
+      <div className="flex flex-col gap-5">
+        <SectionHead title={pages.pages.overview.title} intro={pages.pages.overview.intro} />
+        {failed ? (
+          <LoadFailedState size="page" heading={apps.couldNotLoad.overview} onRetry={reload} />
+        ) : (
+          // The four tiles, the checkout preview beside the courier apps, and Try a PIN.
+          <>
+            <StatStrip tiles={[]} loading placeholders={4} />
+            <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[minmax(0,1.65fr)_minmax(0,1fr)]">
+              <DataCardSkeleton fields={0} lines={4} />
+              <DataCardSkeleton fields={0} lines={3} />
+            </div>
+            <DataCardSkeleton fields={1} />
+          </>
+        )}
+      </div>
+    )
+  }
 
   // Render logic
   const kg = String(PREVIEW_CART.weightGrams / 1000)
@@ -42,14 +67,10 @@ export default function DeliveryOptionsOverviewPage() {
       <DeliveryWarnings warnings={overview.warnings} />
       <OverviewTiles overview={overview} />
       <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[minmax(0,1.65fr)_minmax(0,1fr)]">
-        <section className="flex flex-col gap-3 rounded-lg border border-panel-border bg-card p-4">
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex flex-col gap-0.5">
-              <h2 className="text-card-title text-ink-strong">{pages.preview.atCheckout}</h2>
-              <p className="text-caption text-muted-foreground">
-                {pages.preview.forPin(PREVIEW_PIN, kg)}
-              </p>
-            </div>
+        <DataCard
+          title={pages.preview.atCheckout}
+          subtitle={pages.preview.forPin(PREVIEW_PIN, kg)}
+          action={
             <Button
               variant="ghost"
               size="sm"
@@ -58,9 +79,10 @@ export default function DeliveryOptionsOverviewPage() {
             >
               {pages.preview.editOptions}
             </Button>
-          </div>
+          }
+        >
           <CheckoutPreviewList {...preview} />
-        </section>
+        </DataCard>
         <CourierAppsCard overview={overview} catalogue={catalogue} />
       </div>
       <TryPinCard result={tried} onResult={setTried} />

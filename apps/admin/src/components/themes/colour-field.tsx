@@ -61,7 +61,7 @@ export default function ColourField({ label, value, onChange }: ColourFieldProps
           title={invalid ? copy.colours.hexInvalid : undefined}
           spellCheck={false}
           maxLength={7}
-          className="h-8 w-24 font-mono text-xs uppercase"
+          className="h-8 w-24 font-mono text-period uppercase"
         />
       </div>
     </div>

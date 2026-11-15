@@ -40,6 +40,7 @@ const FONT_SIZE_TOKENS = [
   'period',
   'section-title',
   'stat',
+  'stat-md',
   'stat-sm',
   'table-head',
 ]

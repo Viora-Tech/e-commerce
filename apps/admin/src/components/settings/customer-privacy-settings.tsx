@@ -12,6 +12,7 @@ import { toast } from 'sonner'
 import SaveBar from '@/components/layout/save-bar'
 import SectionPageSkeleton from '@/components/layout/section-page-skeleton'
 import AskAgainDialog from '@/components/settings/ask-again-dialog'
+import { SETTINGS_SKELETON_ROWS } from '@/components/settings/settings-skeleton-rows'
 import { customerPrivacyContent as copy } from '@/data/customer-privacy'
 import { settingsContent } from '@/data/settings'
 import { settingsRowsContent } from '@/data/settings-rows'
@@ -143,7 +144,7 @@ export default function CustomerPrivacySettings() {
         saving={busy}
       />
       {!overview || !form ? (
-        <SectionPageSkeleton />
+        <SectionPageSkeleton rows={SETTINGS_SKELETON_ROWS.privacy} />
       ) : (
         <>
           <SettingsDrill
@@ -152,7 +153,6 @@ export default function CustomerPrivacySettings() {
             header={{
               title: copy.title,
               subtitle: copy.subtitle,
-              save: { dirty, saving: busy, onSave: handleSave, label: copy.save },
             }}
           >
             <SettingsDrillPanel id="banner">

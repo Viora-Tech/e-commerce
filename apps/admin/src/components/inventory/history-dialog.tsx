@@ -8,6 +8,7 @@ import DialogHeader from '@/components/layout/dialog-header'
 import EmptyState from '@/components/layout/empty-state'
 import RelativeTime from '@/components/layout/relative-time'
 import { inventoryContent, REASON_LABELS } from '@/data/inventory'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 
 type Entry = Awaited<ReturnType<typeof api.inventory.history>>[number]
@@ -21,8 +22,6 @@ type HistoryDialogProps = {
   onClose: () => void
 }
 
-const copy = inventoryContent.history
-
 /** Every stock change for one SKU at the selected location, newest first. */
 export default function HistoryDialog({
   variantId,
@@ -32,6 +31,7 @@ export default function HistoryDialog({
   onClose,
 }: HistoryDialogProps) {
   // Hooks
+  const { history: copy } = useCopy(inventoryContent)
   const [rows, setRows] = useState<Entry[] | null>(null)
 
   useEffect(() => {

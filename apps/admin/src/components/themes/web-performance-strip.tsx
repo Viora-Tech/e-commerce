@@ -1,6 +1,7 @@
 'use client'
 
 import type { WebPerformance, WebVitalRating, WebVitalSummary } from '@commerce/core'
+import DataCard from '@/components/layout/data-card'
 import StatusChip from '@/components/layout/status-chip'
 import type { ChipTone } from '@/components/status/tone'
 import { themesContent } from '@/data/themes'
@@ -40,22 +41,18 @@ export default function WebPerformanceStrip({ data }: WebPerformanceStripProps) 
   ]
 
   return (
-    <section className="flex flex-col gap-4 rounded-lg border border-border surface-card px-4 py-4 md:px-5">
-      <div className="flex flex-wrap items-start justify-between gap-2">
-        <div className="flex min-w-0 flex-col gap-0.5">
-          <h2 className="text-card-title">{copy.heading}</h2>
-          <p className="text-caption font-normal leading-[1.1875rem] text-muted-foreground">
-            {data.ready ? copy.body(data.windowDays) : copy.collectingBody}
-          </p>
-        </div>
-        {data.ready ? null : <StatusChip tone="info">{copy.collecting}</StatusChip>}
-      </div>
+    <DataCard
+      title={copy.heading}
+      subtitle={data.ready ? copy.body(data.windowDays) : copy.collectingBody}
+      action={data.ready ? null : <StatusChip tone="info">{copy.collecting}</StatusChip>}
+      bodyClassName="flex flex-col gap-4"
+    >
       <dl className="grid gap-3 sm:grid-cols-3">
         {data.metrics.map((m) => (
           <div
             key={m.metric}
             title={copy.hints[m.metric]}
-            className="flex flex-col gap-1.5 rounded-xl border border-border px-3 py-3"
+            className="flex flex-col gap-1.5 rounded-lg border border-border px-3 py-3"
           >
             <dt className="text-caption text-muted-foreground">{copy.metrics[m.metric]}</dt>
             <dd className="flex flex-wrap items-center gap-2">
@@ -100,6 +97,6 @@ export default function WebPerformanceStrip({ data }: WebPerformanceStripProps) 
           ))}
         </ul>
       </div>
-    </section>
+    </DataCard>
   )
 }

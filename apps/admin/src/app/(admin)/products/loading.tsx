@@ -1,5 +1,5 @@
-import ListPageSkeleton from '@/components/layout/list-page-skeleton'
+import ProductsListSkeleton from '@/components/products/products-list-skeleton'
 
 export default function Loading() {
-  return <ListPageSkeleton />
+  return <ProductsListSkeleton />
 }

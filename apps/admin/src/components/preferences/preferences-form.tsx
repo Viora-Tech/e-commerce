@@ -5,6 +5,7 @@ import {
   type StorePreferences,
   StorePreferencesSchema,
 } from '@commerce/core/preferences'
+import { Alert, AlertDescription } from '@commerce/ui/shadcn/alert'
 import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
 import { useState } from 'react'
@@ -193,9 +194,11 @@ export default function PreferencesForm({
 
             <SettingsCard title={copy.indexing.heading} description={copy.indexing.body}>
               {form.password.enabled ? (
-                <p className="mb-4 rounded-lg bg-muted px-3 py-2 text-caption text-muted-foreground">
-                  {copy.indexing.locked}
-                </p>
+                <Alert tone="info" className="mb-4">
+                  <AlertDescription className="text-caption">
+                    {copy.indexing.locked}
+                  </AlertDescription>
+                </Alert>
               ) : null}
               <SettingsToggleRow
                 id="indexing-search"

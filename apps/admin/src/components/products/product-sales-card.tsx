@@ -3,11 +3,12 @@
 import { Button } from '@commerce/ui/shadcn/button'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
 import DataCard from '@/components/layout/data-card'
 import EmptyState from '@/components/layout/empty-state'
+import LoadFailed from '@/components/states/load-failed'
 import { productFormContent } from '@/data/product-form'
 import { useCopy, useFormat } from '@/hooks/use-copy'
+import { useLoad } from '@/hooks/use-load'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
 
@@ -33,22 +34,15 @@ export default function ProductSalesCard({ productId, productTitle }: ProductSal
   // Hooks
   const { sales: copy } = useCopy(productFormContent)
   const fmt = useFormat()
-  const [sales, setSales] = useState<Sales | null>(null)
-  const [failed, setFailed] = useState(false)
-
-  useEffect(() => {
-    let cancelled = false
-    api.products
-      .sales({ productId })
-      .then((r) => !cancelled && setSales(r))
-      .catch(() => !cancelled && setFailed(true))
-    return () => {
-      cancelled = true
-    }
-  }, [productId])
+  const {
+    data: sales,
+    failed,
+    retry,
+  } = useLoad<Sales>(() => api.products.sales({ productId }), [productId])
 
   // Early returns
-  if (failed) return null
+  // A role without sales access sees no card, as before; any other failure offers Try again.
+  if (failed === 'no-access') return null
 
   // Render logic
   const stats = sales
@@ -75,7 +69,9 @@ export default function ProductSalesCard({ productId, productTitle }: ProductSal
         ) : undefined
       }
     >
-      {sales === null ? (
+      {failed ? (
+        <LoadFailed failed={failed} onRetry={retry} size="inline" />
+      ) : sales === null ? (
         <div className="grid grid-cols-3 gap-3">
           <Skeleton className="h-10" />
           <Skeleton className="h-10" />

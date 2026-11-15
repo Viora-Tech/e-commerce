@@ -4,6 +4,7 @@ import { useQueryState } from 'nuqs'
 import { createContext, type ReactNode, useContext, useEffect } from 'react'
 import PillTabs from '@/components/layout/pill-tabs'
 import { settingsContent } from '@/data/settings'
+import { useCopy } from '@/hooks/use-copy'
 
 export type SectionTab = { id: string; label: string }
 
@@ -25,6 +26,7 @@ export function useActiveSection(): string | null {
 /** Horizontal tabs for a settings page; the URL (`?tab=`) remembers the choice. */
 export default function SectionTabs({ tabs, children, hashTabs }: SectionTabsProps) {
   // Hooks
+  const copy = useCopy(settingsContent)
   const [tab, setTab] = useQueryState('tab', { defaultValue: tabs[0]?.id ?? '' })
   useEffect(() => {
     const target = hashTabs?.[window.location.hash.slice(1)]
@@ -49,7 +51,7 @@ export default function SectionTabs({ tabs, children, hashTabs }: SectionTabsPro
   return (
     <ActiveSectionContext.Provider value={active}>
       {showStrip ? (
-        <nav aria-label={settingsContent.nav.label} className="w-full">
+        <nav aria-label={copy.nav.label} className="w-full">
           <PillTabs
             className="no-scrollbar w-full overflow-x-auto overflow-y-hidden border-border border-b"
             value={active}

@@ -5,7 +5,10 @@ import { normaliseSearchQuery, type SearchBoostRule } from '@commerce/core/disco
 import { useSearchParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import LoadFailedState from '@/components/apps/shared/load-failed-state'
 import PageHeader from '@/components/layout/page-header'
+import SectionPageSkeleton from '@/components/layout/section-page-skeleton'
+import { appsContent } from '@/data/apps'
 import { searchDiscoveryContent } from '@/data/search-discovery'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -30,6 +33,7 @@ const errorText = (err: unknown, fallback: string) =>
  */
 export default function BoostsPage() {
   // Hooks
+  const apps = useCopy(appsContent)
   const copy = useCopy(searchDiscoveryContent)
   const searchParams = useSearchParams()
   const [loaded, setLoaded] = useState<Loaded | null>(null)
@@ -37,20 +41,27 @@ export default function BoostsPage() {
   const [editing, setEditing] = useState<Editing | null>(null)
   const [busy, setBusy] = useState(false)
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: the shortcut's search is read once, on load.
+  /** The first read failed: Try again instead of a blank page. */
+  const [loadFailed, setLoadFailed] = useState(false)
+  const [loadAttempt, setLoadAttempt] = useState(0)
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `loadAttempt` is Try again
   useEffect(() => {
-    api.search.boosts.get().then((data) => {
-      const pinParam = searchParams.get('pin') ?? ''
-      setLoaded(data)
-      if (!pinParam) return
-      const existing = data.pins.find((g) => g.term === normaliseSearchQuery(pinParam))
-      setEditing({ term: existing?.term ?? pinParam, products: existing?.products ?? [] })
-    })
+    setLoadFailed(false)
+    api.search.boosts.get().then(
+      (data) => {
+        const pinParam = searchParams.get('pin') ?? ''
+        setLoaded(data)
+        if (!pinParam) return
+        const existing = data.pins.find((g) => g.term === normaliseSearchQuery(pinParam))
+        setEditing({ term: existing?.term ?? pinParam, products: existing?.products ?? [] })
+      },
+      () => setLoadFailed(true),
+    )
     api.products
       .facets()
       .then((f) => setChoices({ tag: f.tags, type: f.productTypes, vendor: f.vendors }))
       .catch(() => undefined)
-  }, [])
+  }, [loadAttempt])
 
   // Event handlers
   const handleSavePins = async (term: string, productIds: string[]) => {
@@ -93,7 +104,16 @@ export default function BoostsPage() {
   }
 
   // Early returns
-  if (!loaded) return null
+  if (!loaded && loadFailed) {
+    return (
+      <LoadFailedState
+        size="page"
+        heading={apps.couldNotLoad.settings}
+        onRetry={() => setLoadAttempt((n) => n + 1)}
+      />
+    )
+  }
+  if (!loaded) return <SectionPageSkeleton cards={2} />
 
   return (
     <div className="flex flex-col gap-5">

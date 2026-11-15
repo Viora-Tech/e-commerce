@@ -3,19 +3,13 @@
 import type { UsageBillView } from '@commerce/core'
 import { Download, ExternalLink, ReceiptIcon } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@commerce/ui/shadcn/table'
+import { TableCell, TableRow } from '@commerce/ui/shadcn/table'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import DataCard from '@/components/layout/data-card'
 import EmptyState from '@/components/layout/empty-state'
 import StatusChip from '@/components/layout/status-chip'
+import SimpleTable from '@/components/table/simple-table'
 import { billingContent } from '@/data/billing'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -71,64 +65,62 @@ export default function UsageBillsCard({ bills }: UsageBillsCardProps) {
 
   return (
     <DataCard title={b.heading} flush>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead className="pl-4">{b.month}</TableHead>
-            <TableHead className="text-right">{b.orders}</TableHead>
-            <TableHead className="text-right">{b.amount}</TableHead>
-            <TableHead>{b.status}</TableHead>
-            <TableHead className="pr-4" />
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {bills.map((bill) => (
-            <TableRow key={bill.id}>
-              <TableCell className="pl-4 font-medium text-foreground">
-                {format.pattern(`${bill.month}-15T00:00:00Z`, { month: 'short', year: 'numeric' })}
-              </TableCell>
-              <TableCell className="text-right tabular-nums">
-                {format.number(bill.feeOrders)}
-              </TableCell>
-              <TableCell className="text-right">
-                <div className="flex flex-col items-end">
-                  <span className="tabular-nums">{format.money(bill.totalPaise)}</span>
-                  <span className="text-caption text-muted-foreground">{b.gst}</span>
-                </div>
-              </TableCell>
-              <TableCell>
-                <StatusChip tone={TONE[bill.status]} variant="dot">
-                  {b.states[bill.status]}
-                </StatusChip>
-              </TableCell>
-              <TableCell className="pr-4">
-                <div className="flex items-center justify-end gap-1">
+      <SimpleTable
+        className="min-w-[40rem]"
+        columns={[
+          { key: 'month', label: b.month },
+          { key: 'orders', label: b.orders, align: 'end' },
+          { key: 'amount', label: b.amount, align: 'end' },
+          { key: 'status', label: b.status },
+          { key: 'actions', label: '' },
+        ]}
+      >
+        {bills.map((bill) => (
+          <TableRow key={bill.id}>
+            <TableCell className="font-medium text-foreground">
+              {format.pattern(`${bill.month}-15T00:00:00Z`, { month: 'short', year: 'numeric' })}
+            </TableCell>
+            <TableCell className="text-right tabular-nums">
+              {format.number(bill.feeOrders)}
+            </TableCell>
+            <TableCell className="text-right">
+              <div className="flex flex-col items-end">
+                <span className="tabular-nums">{format.money(bill.totalPaise)}</span>
+                <span className="text-caption text-muted-foreground">{b.gst}</span>
+              </div>
+            </TableCell>
+            <TableCell>
+              <StatusChip tone={TONE[bill.status]} variant="dot">
+                {b.states[bill.status]}
+              </StatusChip>
+            </TableCell>
+            <TableCell>
+              <div className="flex items-center justify-end gap-1">
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  loading={downloading === bill.id}
+                  onClick={() => void handleCsv(bill.id)}
+                >
+                  <Download />
+                  {b.csv}
+                </Button>
+                {bill.url && (bill.status === 'due' || bill.status === 'paid') ? (
                   <Button
                     size="sm"
-                    variant="ghost"
-                    disabled={downloading === bill.id}
-                    onClick={() => void handleCsv(bill.id)}
+                    variant={bill.status === 'due' ? 'default' : 'ghost'}
+                    nativeButton={false}
+                    render={<a href={bill.url} target="_blank" rel="noopener noreferrer" />}
                   >
-                    <Download />
-                    {b.csv}
+                    {bill.status === 'due' ? b.pay : b.view}
+                    <ExternalLink />
                   </Button>
-                  {bill.url && (bill.status === 'due' || bill.status === 'paid') ? (
-                    <Button
-                      size="sm"
-                      variant={bill.status === 'due' ? 'default' : 'ghost'}
-                      nativeButton={false}
-                      render={<a href={bill.url} target="_blank" rel="noopener noreferrer" />}
-                    >
-                      {bill.status === 'due' ? b.pay : b.view}
-                      <ExternalLink />
-                    </Button>
-                  ) : null}
-                </div>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+                ) : null}
+              </div>
+            </TableCell>
+          </TableRow>
+        ))}
+      </SimpleTable>
     </DataCard>
   )
 }

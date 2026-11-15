@@ -18,6 +18,7 @@ export default [
       apply: 'लगाएं',
     },
     compare: 'पिछली अवधि से',
+    loadFailed: 'इन तारीखों का एनालिटिक्स लोड नहीं हो सका',
     kpis: {
       sessions: {
         label: 'सेशन',
@@ -416,6 +417,7 @@ export default [
         confirm: 'हटाएं',
       },
       understood: 'मैंने क्या समझा',
+      loadFailed: 'इन तारीखों की रिपोर्ट लोड नहीं हो सकी',
       dateLabel: 'तारीख',
       compareLabel: 'तुलना',
       chartType: { bars: 'बार', line: 'लाइन' },

@@ -3,9 +3,11 @@
 import type { PlanBill } from '@commerce/core'
 import { ExternalLink, ReceiptIcon } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
+import { TableCell, TableRow } from '@commerce/ui/shadcn/table'
 import DataCard from '@/components/layout/data-card'
 import EmptyState from '@/components/layout/empty-state'
 import StatusChip from '@/components/layout/status-chip'
+import SimpleTable from '@/components/table/simple-table'
 import { billingContent } from '@/data/billing'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { billAmount, lastDay } from '@/lib/billing'
@@ -42,29 +44,37 @@ export default function BillsCard({ bills, invoiceEmail = null }: BillsCardProps
           body={b.emptyBody}
         />
       ) : (
-        <ul className="flex flex-col divide-y divide-border border-t border-border">
+        <SimpleTable
+          className="min-w-[40rem]"
+          columns={[
+            { key: 'invoice', label: b.columns.invoice },
+            { key: 'period', label: b.columns.period },
+            { key: 'amount', label: b.columns.amount, align: 'end' },
+            { key: 'status', label: b.columns.status },
+            { key: 'action', label: '' },
+          ]}
+        >
           {bills.map((bill) => (
-            <li
-              key={bill.id}
-              className="grid grid-cols-[auto_1fr] items-center gap-x-6 gap-y-2 px-5 py-3 md:grid-cols-[8rem_1fr_auto_auto_6rem]"
-            >
-              <span className="text-body font-medium text-ink-strong tabular-nums">
+            <TableRow key={bill.id}>
+              <TableCell className="font-medium text-ink-strong tabular-nums">
                 #{bill.number}
-              </span>
-              <span className="text-body text-muted-foreground">
+              </TableCell>
+              <TableCell className="text-muted-foreground">
                 {b.period(
                   copy.plans[bill.plan].name,
                   format.date(bill.periodStart),
                   format.date(lastDay(bill.periodEnd)),
                 )}
-              </span>
-              <span className="text-body text-ink-strong tabular-nums md:text-right" title={b.gst}>
+              </TableCell>
+              <TableCell className="text-right text-ink-strong tabular-nums" title={b.gst}>
                 {billAmount(bill.amountPaise, format.intl)}
-              </span>
-              <StatusChip tone={TONE[bill.status]} variant="outline">
-                {b.states[bill.status]}
-              </StatusChip>
-              <span className="col-span-2 md:col-span-1 md:text-right">
+              </TableCell>
+              <TableCell>
+                <StatusChip tone={TONE[bill.status]} variant="outline">
+                  {b.states[bill.status]}
+                </StatusChip>
+              </TableCell>
+              <TableCell className="text-right">
                 {bill.url && bill.status !== 'cancelled' ? (
                   <Button
                     size="sm"
@@ -76,10 +86,10 @@ export default function BillsCard({ bills, invoiceEmail = null }: BillsCardProps
                     {bill.status === 'due' ? <ExternalLink /> : null}
                   </Button>
                 ) : null}
-              </span>
-            </li>
+              </TableCell>
+            </TableRow>
           ))}
-        </ul>
+        </SimpleTable>
       )}
     </DataCard>
   )

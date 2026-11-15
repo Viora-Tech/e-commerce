@@ -22,7 +22,7 @@ export default function ContrastWarnings({ warnings }: ContrastWarningsProps) {
         {warnings.map((w) => (
           <li key={`${w.mode}:${w.pair}`} className="flex items-center gap-2">
             <span
-              className="flex size-6 shrink-0 items-center justify-center rounded-sm border border-border text-xs font-semibold"
+              className="flex size-6 shrink-0 items-center justify-center rounded-sm border border-border text-period font-semibold"
               style={{ color: w.foreground, backgroundColor: w.background }}
               aria-hidden
             >

@@ -5,10 +5,14 @@ import { Button } from '@commerce/ui/shadcn/button'
 import { Input } from '@commerce/ui/shadcn/input'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import LoadFailedState from '@/components/apps/shared/load-failed-state'
+import NoticeBar from '@/components/layout/notice-bar'
 import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
+import SectionPageSkeleton from '@/components/layout/section-page-skeleton'
 import SettingsCard from '@/components/settings/settings-card'
 import SettingsRow from '@/components/settings/settings-row'
+import { appsContent } from '@/data/apps'
 import { growthbookContent } from '@/data/growthbook'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -55,18 +59,27 @@ function statusOf(copy: Copy, view: View): string {
  */
 export default function ExperimentsPage() {
   // Hooks
+  const apps = useCopy(appsContent)
   const copy = useCopy(growthbookContent)
   const [view, setView] = useState<View | null>(null)
   const [form, setForm] = useState<Form | null>(null)
   const [busy, setBusy] = useState<Busy>(null)
   const [version, setVersion] = useState(0)
 
+  /** The first read failed: Try again instead of a blank page. */
+  const [loadFailed, setLoadFailed] = useState(false)
+  const [loadAttempt, setLoadAttempt] = useState(0)
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `loadAttempt` is Try again
   useEffect(() => {
-    api.growthbook.settings.get().then((v) => {
-      setView(v)
-      setForm(formOf(v))
-    })
-  }, [])
+    setLoadFailed(false)
+    api.growthbook.settings.get().then(
+      (v) => {
+        setView(v)
+        setForm(formOf(v))
+      },
+      () => setLoadFailed(true),
+    )
+  }, [loadAttempt])
 
   // Helpers
   const patch = (next: Partial<Form>) => setForm((f) => (f ? { ...f, ...next } : f))
@@ -125,7 +138,16 @@ export default function ExperimentsPage() {
     })
 
   // Early returns
-  if (!view || !form) return null
+  if ((!view || !form) && loadFailed) {
+    return (
+      <LoadFailedState
+        size="page"
+        heading={apps.couldNotLoad.settings}
+        onRetry={() => setLoadAttempt((n) => n + 1)}
+      />
+    )
+  }
+  if (!view || !form) return <SectionPageSkeleton cards={2} />
 
   // Render logic
   const canTest = form.apiHost.trim() !== '' && form.clientKey.trim() !== ''
@@ -143,14 +165,14 @@ export default function ExperimentsPage() {
         saving={busy === 'save'}
       />
       <PageHeader title={copy.title} summary={copy.subtitle} />
-      <p className="rounded-xl surface-banner px-4 py-3 text-body text-foreground">
+      <NoticeBar>
         {statusOf(copy, view)}{' '}
         {view.openUrl ? (
           <a href={view.openUrl} target="_blank" rel="noreferrer" className="font-medium underline">
             {copy.status.open}
           </a>
         ) : null}
-      </p>
+      </NoticeBar>
       <SettingsCard title={copy.connect.title} description={copy.connect.description}>
         {TEXT_FIELDS.map((key) => (
           <SettingsRow

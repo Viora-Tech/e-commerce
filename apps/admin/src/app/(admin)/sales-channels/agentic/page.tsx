@@ -1,8 +1,9 @@
-import { AgenticSales } from '@commerce/ui/icons'
 import type { Metadata } from 'next'
-import SectionEmpty from '@/components/layout/section-empty'
 import AgenticOverviewPage from '@/components/sales-channels/agentic-overview'
+import ReadFailedPage from '@/components/sales-channels/read-failed-page'
+import { failed, read } from '@/components/sales-channels/server-read'
 import { salesChannelsContent } from '@/data/sales-channels'
+import { salesChannelsLoadContent } from '@/data/sales-channels-load'
 import { appRouter, call, serverContext } from '@/lib/api'
 import { getCopy } from '@/lib/copy-server'
 
@@ -10,11 +11,14 @@ export const metadata: Metadata = { title: 'Agentic sales' }
 
 export default async function Page() {
   const context = await serverContext()
-  const [data, copy] = await Promise.all([
-    call(appRouter.salesChannels.agentic, undefined, { context }).catch(() => null),
+  const [data, copy, load] = await Promise.all([
+    read(call(appRouter.salesChannels.agentic, undefined, { context })),
     getCopy(salesChannelsContent.unavailable),
+    getCopy(salesChannelsLoadContent),
   ])
 
-  if (!data) return <SectionEmpty {...copy} icon={AgenticSales} />
+  if (failed(data)) {
+    return <ReadFailedPage failure={data} heading={load.failed} noAccess={copy} />
+  }
   return <AgenticOverviewPage data={data} />
 }

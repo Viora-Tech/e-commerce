@@ -1,12 +1,14 @@
 'use client'
 
-import { ArrowRight, Plus } from '@commerce/ui/icons'
-import { cn } from '@commerce/ui/lib/utils'
+import { Plus } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
+import { TableCell } from '@commerce/ui/shadcn/table'
 import Link from 'next/link'
 import DataCard from '@/components/layout/data-card'
 import EmptyState from '@/components/layout/empty-state'
 import RelativeTime from '@/components/layout/relative-time'
+import LinkRow from '@/components/table/link-row'
+import SimpleTable from '@/components/table/simple-table'
 import { customerDetailContent } from '@/data/customers'
 import { useCopy } from '@/hooks/use-copy'
 import { formatPaise } from '@/lib/money'
@@ -20,9 +22,6 @@ type CustomerOrdersCardProps = {
 
 /** How many orders the card lists; the rest are one click away on the orders page. */
 const RECENT = 5
-
-/* Order, date, status (centred), total, then the open arrow. */
-const ROW = 'grid grid-cols-[5rem_minmax(0,1fr)_7rem_6.5rem_1.5rem] items-center gap-x-3 px-5'
 
 /** The last few orders, newest first, each linking into the order page. */
 export default function CustomerOrdersCard({ customer }: CustomerOrdersCardProps) {
@@ -40,11 +39,7 @@ export default function CustomerOrdersCard({ customer }: CustomerOrdersCardProps
     <DataCard
       title={copy.heading}
       flush
-      icon={
-        <span className="rounded-md bg-chip-neutral px-1.5 text-caption font-medium text-muted-foreground tabular-nums">
-          {orders.length}
-        </span>
-      }
+      count={orders.length}
       action={
         orders.length > 0 ? (
           <Button variant="ghost" size="sm" render={<Link href={viewAll} />} nativeButton={false}>
@@ -70,36 +65,40 @@ export default function CustomerOrdersCard({ customer }: CustomerOrdersCardProps
         />
       ) : (
         <>
-          <div
-            className={cn(ROW, 'h-10 bg-muted/60 text-caption font-medium text-muted-foreground')}
-          >
-            <span>{copy.columns.order}</span>
-            <span>{copy.columns.date}</span>
-            <span className="text-center">{copy.columns.status}</span>
-            <span className="text-right">{copy.columns.total}</span>
-            <span />
-          </div>
-          {recent.map((o) => (
-            <Link
-              key={o.id}
-              href={routes.orders.detail(o.id)}
-              className={cn(
-                ROW,
-                'group/order h-12 border-b border-line text-body text-foreground transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring',
-              )}
+          {/* The cells' own 0.75rem plus this 0.5rem line the order numbers up with the title. */}
+          <div className="px-2">
+            <SimpleTable
+              label={copy.heading}
+              columns={[
+                { key: 'order', label: copy.columns.order, className: 'w-24' },
+                { key: 'date', label: copy.columns.date },
+                { key: 'status', label: copy.columns.status, align: 'center', className: 'w-32' },
+                { key: 'total', label: copy.columns.total, align: 'end', className: 'w-28' },
+              ]}
             >
-              <span className="font-medium tabular-nums">#{o.number}</span>
-              <RelativeTime value={o.placedAt} className="text-muted-foreground" />
-              <span className="flex justify-center">
-                <OrderStatusChip order={o} />
-              </span>
-              <span className="text-right tabular-nums">{formatPaise(o.totalPaise)}</span>
-              <ArrowRight
-                className="size-4 text-muted-foreground opacity-40 transition-opacity group-hover/order:opacity-100"
-                aria-hidden
-              />
-            </Link>
-          ))}
+              {recent.map((o) => (
+                <LinkRow key={o.id} href={routes.orders.detail(o.id)}>
+                  <TableCell>
+                    <Link
+                      href={routes.orders.detail(o.id)}
+                      className="font-medium tabular-nums hover:underline"
+                    >
+                      #{o.number}
+                    </Link>
+                  </TableCell>
+                  <TableCell>
+                    <RelativeTime value={o.placedAt} className="text-muted-foreground" />
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <OrderStatusChip order={o} />
+                  </TableCell>
+                  <TableCell className="text-right tabular-nums">
+                    {formatPaise(o.totalPaise)}
+                  </TableCell>
+                </LinkRow>
+              ))}
+            </SimpleTable>
+          </div>
           <p className="px-5 pt-4 text-caption text-muted-foreground">
             {copy.showing(recent.length, orders.length)}
           </p>

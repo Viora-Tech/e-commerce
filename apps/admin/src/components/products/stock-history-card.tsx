@@ -1,12 +1,13 @@
 'use client'
 
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
-import { useEffect, useState } from 'react'
 import DataCard from '@/components/layout/data-card'
 import EmptyState from '@/components/layout/empty-state'
 import ScrollSection from '@/components/layout/scroll-section'
+import LoadFailed from '@/components/states/load-failed'
 import { productFormContent } from '@/data/product-form'
 import { useCopy, useFormat } from '@/hooks/use-copy'
+import { useLoad } from '@/hooks/use-load'
 import { api } from '@/lib/api-client'
 
 type Adjustment = Awaited<ReturnType<typeof api.products.adjustments>>[number]
@@ -25,18 +26,12 @@ export default function StockHistoryCard({ productId }: StockHistoryCardProps) {
   // Hooks
   const formCopy = useCopy(productFormContent)
   const fmt = useFormat()
-  const [rows, setRows] = useState<Adjustment[] | null>(null)
-
-  useEffect(() => {
-    let cancelled = false
-    api.products
-      .adjustments({ productId, limit: 20 })
-      .then((r) => !cancelled && setRows(r))
-      .catch(() => !cancelled && setRows([]))
-    return () => {
-      cancelled = true
-    }
-  }, [productId])
+  // A failed read says so with Try again; it never reads as "no stock movements yet".
+  const {
+    data: rows,
+    failed,
+    retry,
+  } = useLoad<Adjustment[]>(() => api.products.adjustments({ productId, limit: 20 }), [productId])
 
   // Render logic
   const copy = formCopy.history
@@ -45,7 +40,9 @@ export default function StockHistoryCard({ productId }: StockHistoryCardProps) {
 
   return (
     <DataCard title={copy.heading}>
-      {rows === null ? (
+      {failed ? (
+        <LoadFailed failed={failed} onRetry={retry} size="inline" />
+      ) : rows === null ? (
         <div className="flex flex-col gap-2">
           <Skeleton className="h-5 w-full" />
           <Skeleton className="h-5 w-4/5" />

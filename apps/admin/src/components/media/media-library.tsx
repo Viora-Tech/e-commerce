@@ -1,7 +1,7 @@
 'use client'
 
 import { siteConfig } from '@commerce/config/site'
-import { Database, LayoutGrid, ListView, Search, Upload } from '@commerce/ui/icons'
+import { Database, Images, LayoutGrid, ListView, Search, Upload } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Input } from '@commerce/ui/shadcn/input'
 import { ToggleGroup, ToggleGroupItem } from '@commerce/ui/shadcn/toggle-group'
@@ -12,6 +12,7 @@ import { toast } from 'sonner'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
 import EmptyState from '@/components/layout/empty-state'
 import ProoflyListPage from '@/components/layout/proofly-list-page'
+import InlineState from '@/components/states/inline-state'
 import ResourceTablePagination from '@/components/table/resource-table/pagination'
 import ViewSelect from '@/components/table/view-select'
 import { imageEditorContent } from '@/data/image-editor'
@@ -113,6 +114,9 @@ function MediaLibraryContent({ initial }: { initial: MediaLibraryInitial }) {
   const [moving, setMoving] = useState<Item | null>(null)
   const { folders, reload: reloadFolders } = useMediaFolders()
   const [draft, setDraft] = useState(initial.query)
+  /* A failed read shows "Could not load files" with Try again in the card, not the old page. */
+  const [failed, setFailed] = useState(false)
+  const [attempt, setAttempt] = useState(0)
   const queue = useUploadQueue(async (done) => {
     setQ({ page: 1 })
     /* Uploaded while a folder is open: it goes in that folder, so it stays in view. */
@@ -136,13 +140,16 @@ function MediaLibraryContent({ initial }: { initial: MediaLibraryInitial }) {
       query === initial.query &&
       type === initial.type &&
       folder === initial.folder
-    if (sameAsServer) return
+    if (sameAsServer && attempt === 0) return
     let cancelled = false
-    fetchMedia(page, perPage, query, type, folder).then((r) => {
-      if (cancelled) return
-      setItems(r.items)
-      setTotal(r.total)
-    })
+    setFailed(false)
+    fetchMedia(page, perPage, query, type, folder)
+      .then((r) => {
+        if (cancelled) return
+        setItems(r.items)
+        setTotal(r.total)
+      })
+      .catch(() => !cancelled && setFailed(true))
     return () => {
       cancelled = true
     }
@@ -157,6 +164,7 @@ function MediaLibraryContent({ initial }: { initial: MediaLibraryInitial }) {
     initial.query,
     initial.type,
     initial.folder,
+    attempt,
   ])
   /* A fresh image shows at once marked "Optimising"; re-read the page until the worker is done,
      so its tile switches to the small optimised copy without a reload (each read re-arms this). */
@@ -281,14 +289,18 @@ function MediaLibraryContent({ initial }: { initial: MediaLibraryInitial }) {
         aria-label={copy.upload}
       />
       <BackgroundWorkNotice />
-      {empty ? (
-        <div className="flex flex-col items-center gap-2 rounded-lg border surface-card px-4 py-12 text-center">
-          <p className="text-body-strong">{copy.empty.heading}</p>
-          <p className="max-w-md text-body text-muted-foreground">{copy.empty.body}</p>
-          <div className="mt-2 w-full max-w-md">
-            <MediaDropzone onFiles={handleFiles} />
-          </div>
-        </div>
+      {empty && !failed ? (
+        <EmptyState
+          variant="page"
+          icon={Images}
+          heading={copy.empty.heading}
+          body={copy.empty.body}
+          action={
+            <div className="w-full max-w-md">
+              <MediaDropzone onFiles={handleFiles} />
+            </div>
+          }
+        />
       ) : (
         <>
           <MediaFolderBar
@@ -346,7 +358,14 @@ function MediaLibraryContent({ initial }: { initial: MediaLibraryInitial }) {
                 </ToggleGroupItem>
               </ToggleGroup>
             </div>
-            {view === 'list' ? (
+            {failed ? (
+              <InlineState
+                kind="error"
+                heading={copy.loadFailed}
+                onRetry={() => setAttempt((n) => n + 1)}
+                className="py-10"
+              />
+            ) : view === 'list' ? (
               <MediaFileRows
                 pending={queue.pending}
                 onAltSaved={handleAltSaved}
@@ -367,7 +386,7 @@ function MediaLibraryContent({ initial }: { initial: MediaLibraryInitial }) {
                 {queue.pending.map((p) => (
                   <li
                     key={p.key}
-                    className="relative aspect-[4/3] overflow-hidden rounded-xl border bg-muted"
+                    className="relative aspect-[4/3] overflow-hidden rounded-lg border bg-muted"
                   >
                     {p.file.type.startsWith('video/') ? (
                       <video
@@ -405,7 +424,7 @@ function MediaLibraryContent({ initial }: { initial: MediaLibraryInitial }) {
                 ))}
               </ul>
             )}
-            {items.length === 0 && queue.pending.length === 0 ? (
+            {!failed && items.length === 0 && queue.pending.length === 0 ? (
               <EmptyState
                 variant="plain"
                 size="lg"

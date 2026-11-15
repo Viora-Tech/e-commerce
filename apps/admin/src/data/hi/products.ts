@@ -14,6 +14,7 @@ export default [
     add: 'प्रोडक्ट जोड़ें',
     export: 'एक्सपोर्ट',
     import: 'इंपोर्ट',
+    loadFailed: 'प्रोडक्ट लोड नहीं हो पाए',
     tabs: { all: 'सभी प्रोडक्ट' },
     customView: 'कस्टम',
     summary: (total: number, low: number, out: number) =>

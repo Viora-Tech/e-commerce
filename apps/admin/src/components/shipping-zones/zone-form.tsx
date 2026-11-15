@@ -1,7 +1,7 @@
 'use client'
 
 import { permissions } from '@commerce/core/permissions'
-import { Save, Trash2 } from '@commerce/ui/icons'
+import { Trash2 } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Field, FieldDescription, FieldError, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
@@ -131,15 +131,10 @@ export default function ZoneForm({ zone, profileId = null }: ZoneFormProps) {
         subtitle={copy.meta}
         back={{ label: copy.backLabel, href: backHref }}
         actions={
-          !canManage ? null : zone ? (
+          !canManage || !zone ? null : (
             <Button variant="outline" onClick={() => setConfirmDelete(true)} disabled={busy}>
               <Trash2 />
               {copy.delete.action}
-            </Button>
-          ) : (
-            <Button loading={busy} onClick={handleSave} disabled={busy || !dirty}>
-              <Save aria-hidden="true" />
-              {copy.saveBar.save}
             </Button>
           )
         }

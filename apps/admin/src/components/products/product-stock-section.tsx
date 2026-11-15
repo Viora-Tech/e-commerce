@@ -94,16 +94,19 @@ export default function ProductStockSection({
               />
             )}
           </Field>
-          <div className="flex items-center gap-3">
+          <Field orientation="horizontal" className="gap-3">
             <Switch
               id="variant-unlimited"
               checked={unlimited}
               onCheckedChange={(value) => handleUnlimited(Boolean(value))}
             />
-            <label htmlFor="variant-unlimited" className="text-body text-foreground">
+            <FieldLabel
+              htmlFor="variant-unlimited"
+              className="text-body leading-5 font-normal text-foreground"
+            >
               {copy.unlimited}
-            </label>
-          </div>
+            </FieldLabel>
+          </Field>
         </div>
         <Field className="min-w-0 flex-1">
           <FieldLabel>{copy.stockStatus}</FieldLabel>
@@ -171,16 +174,19 @@ export default function ProductStockSection({
         </Field>
       ) : null}
 
-      <div className="flex items-center gap-2">
+      <Field orientation="horizontal">
         <Checkbox
           id="product-featured"
           checked={featured}
           onCheckedChange={(value) => onFeatured(Boolean(value))}
         />
-        <label htmlFor="product-featured" className="text-body text-muted-foreground">
+        <FieldLabel
+          htmlFor="product-featured"
+          className="text-body leading-5 font-normal text-foreground"
+        >
           {copy.featured}
-        </label>
-      </div>
+        </FieldLabel>
+      </Field>
     </div>
   )
 }

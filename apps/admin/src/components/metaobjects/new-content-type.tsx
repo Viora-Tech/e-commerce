@@ -13,7 +13,6 @@ import {
   Users,
 } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import { Card, CardContent } from '@commerce/ui/shadcn/card'
 import { Field, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import Link from 'next/link'
@@ -21,6 +20,7 @@ import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import ChoiceCard from '@/components/layout/choice-card'
+import DataCard from '@/components/layout/data-card'
 import PageHeader from '@/components/layout/page-header'
 import ProoflyDetailPage from '@/components/layout/proofly-detail-page'
 import { fieldTypeContent, newContentTypeContent, presetContent } from '@/data/metaobjects'
@@ -97,38 +97,12 @@ export default function NewContentType() {
       }
       main={
         preset ? (
-          <Card size="form">
-            <CardContent className="flex flex-col gap-5">
-              <div className="flex flex-col gap-1">
-                <h2 className="text-card-title text-ink-strong">{copy.name.heading}</h2>
-                <p className="text-body text-muted-foreground">{copy.name.body}</p>
-              </div>
-              <Field>
-                <FieldLabel htmlFor="content-type-name">{copy.name.label}</FieldLabel>
-                <Input
-                  id="content-type-name"
-                  size="lg"
-                  value={name}
-                  maxLength={100}
-                  autoFocus
-                  onChange={(e) => setName(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
-                />
-              </Field>
-              <div className="flex flex-col gap-2">
-                <p className="text-body-strong">{copy.name.fields}</p>
-                <ul className="flex flex-col divide-y divide-line rounded-md border border-line">
-                  {fields.map((f) => (
-                    <li key={f.key} className="flex items-center justify-between gap-3 px-3 py-2">
-                      <span className="truncate text-body">{f.name}</span>
-                      <span className="shrink-0 text-caption text-muted-foreground">
-                        {types[f.type].label}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-              <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+          <DataCard
+            title={copy.name.heading}
+            subtitle={copy.name.body}
+            bodyClassName="flex flex-col gap-5"
+            footer={
+              <>
                 <Button variant="outline" size="lg" disabled={busy} onClick={() => setPreset(null)}>
                   {copy.name.change}
                 </Button>
@@ -136,9 +110,35 @@ export default function NewContentType() {
                   <Plus aria-hidden="true" />
                   {copy.name.create}
                 </Button>
-              </div>
-            </CardContent>
-          </Card>
+              </>
+            }
+          >
+            <Field>
+              <FieldLabel htmlFor="content-type-name">{copy.name.label}</FieldLabel>
+              <Input
+                id="content-type-name"
+                size="lg"
+                value={name}
+                maxLength={100}
+                autoFocus
+                onChange={(e) => setName(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
+              />
+            </Field>
+            <div className="flex flex-col gap-2">
+              <p className="text-body-strong">{copy.name.fields}</p>
+              <ul className="flex flex-col divide-y divide-line rounded-md border border-line">
+                {fields.map((f) => (
+                  <li key={f.key} className="flex items-center justify-between gap-3 px-3 py-2">
+                    <span className="truncate text-body">{f.name}</span>
+                    <span className="shrink-0 text-caption text-muted-foreground">
+                      {types[f.type].label}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </DataCard>
         ) : (
           <>
             <div className="flex flex-col gap-1">

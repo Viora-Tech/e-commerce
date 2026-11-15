@@ -121,6 +121,8 @@ export const shipmentsContent = {
     },
     empty: 'No pickups booked yet.',
     manifestsEmpty: 'No manifests yet.',
+    manifestColumns: { courier: 'Courier', shipments: 'Shipments' },
+    manifestShipments: (n: number) => (n === 1 ? '1 shipment' : `${n} shipments`),
   },
   ndr: {
     heading: 'Delivery problems (NDR)',

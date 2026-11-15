@@ -34,7 +34,7 @@ export default function SeoReportPage({ report, aiBulk }: SeoReportPageProps) {
   return (
     <PageBody>
       <PageHeader title={copy.title} subtitle={copy.subtitle} />
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-6 md:grid-cols-2">
         <SeoScoreCard report={report} />
         <SeoFixCard fixable={report.fixable} aiOn={aiBulk} max={AI_RUN_MAX} onFix={handleFix} />
       </div>

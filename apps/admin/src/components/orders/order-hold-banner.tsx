@@ -19,7 +19,8 @@ type OrderHoldBannerProps = {
   onChanged: () => void
 }
 
-/** A held order's strip (#1011): why, who and since when, and "Release hold". */
+/** A held order's strip (#1011): why, who and since when, and "Release hold" at the end. The one
+ *  banner (`Alert`) in its warning tone: the order waits on a person. */
 export default function OrderHoldBanner({
   orderId,
   hold,
@@ -56,23 +57,22 @@ export default function OrderHoldBanner({
     : null
 
   return (
-    <Alert className="print:hidden">
+    <Alert
+      tone="warning"
+      className="print:hidden"
+      action={
+        canRelease ? (
+          <Button variant="outline" size="sm" loading={busy} onClick={handleRelease}>
+            {copy.banner.release}
+          </Button>
+        ) : undefined
+      }
+    >
       <Pause aria-hidden="true" />
       <AlertTitle>{copy.banner.title}</AlertTitle>
       <AlertDescription>
         <p className="text-foreground">{why}</p>
         {who ? <p>{who}</p> : null}
-        {canRelease ? (
-          <Button
-            variant="outline"
-            size="sm"
-            className="mt-2"
-            loading={busy}
-            onClick={handleRelease}
-          >
-            {copy.banner.release}
-          </Button>
-        ) : null}
       </AlertDescription>
     </Alert>
   )

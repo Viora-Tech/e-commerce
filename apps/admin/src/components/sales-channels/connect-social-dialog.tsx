@@ -2,8 +2,9 @@
 
 import type { SocialChannel } from '@commerce/core/sales-channels'
 import { InfoIcon } from '@commerce/ui/icons'
+import { Alert, AlertDescription } from '@commerce/ui/shadcn/alert'
+import { Field, FieldDescription, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
-import { Label } from '@commerce/ui/shadcn/label'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import ChoiceCard from '@/components/layout/choice-card'
@@ -90,8 +91,8 @@ export default function ConnectSocialDialog({
       nextDisabled={step === 0 && channel !== 'google' && account.trim() === ''}
     >
       {step === 0 ? (
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="channel-account">{copy.account[channel]}</Label>
+        <Field>
+          <FieldLabel htmlFor="channel-account">{copy.account[channel]}</FieldLabel>
           <Input
             id="channel-account"
             value={account}
@@ -99,8 +100,8 @@ export default function ConnectSocialDialog({
             onChange={(e) => setAccount(e.target.value)}
             autoComplete="off"
           />
-          <p className="text-caption text-muted-foreground">{copy.accountHint[channel]}</p>
-        </div>
+          <FieldDescription>{copy.accountHint[channel]}</FieldDescription>
+        </Field>
       ) : null}
       {step === 1 ? (
         <fieldset className="flex flex-col gap-2">
@@ -126,14 +127,16 @@ export default function ConnectSocialDialog({
         </fieldset>
       ) : null}
       {step === 2 ? (
-        <p className="flex gap-2 rounded-md border border-border bg-muted/50 p-3 text-caption text-muted-foreground">
-          <InfoIcon className="mt-0.5 size-4 shrink-0" />
-          {connectNow
-            ? provider === 'google'
-              ? live.oauthNote.google
-              : live.oauthNote.meta(info.name)
-            : copy.review(info.name, info.partner)}
-        </p>
+        <Alert>
+          <InfoIcon />
+          <AlertDescription>
+            {connectNow
+              ? provider === 'google'
+                ? live.oauthNote.google
+                : live.oauthNote.meta(info.name)
+              : copy.review(info.name, info.partner)}
+          </AlertDescription>
+        </Alert>
       ) : null}
     </ConnectSteps>
   )

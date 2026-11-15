@@ -6,8 +6,7 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { ADMIN_APPS } from '@/apps/registry'
-import PageBody from '@/components/layout/page-body'
-import PageColumns from '@/components/layout/page-columns'
+import ProoflyDetailPage from '@/components/layout/proofly-detail-page'
 import SaveBar from '@/components/layout/save-bar'
 import MetafieldsCard from '@/components/metaobjects/metafields-card'
 import { customerDetailContent } from '@/data/customers'
@@ -168,7 +167,74 @@ export default function CustomerView({
     CONSENT_CHANNELS.some((c) => draft.consent[c] !== saved.consent[c])
 
   return (
-    <PageBody width="detail">
+    <ProoflyDetailPage
+      header={
+        <>
+          <CustomerHeader
+            customer={customer}
+            onEdit={() => setEditing(true)}
+            automations={appCards.includes('automations')}
+          />
+          <CustomerSummaryStrip customer={customer} />
+          {customer.email ? <EmailSuppressionNotice customerId={customer.id} /> : null}
+          {step ? <CustomerNextStep customer={customer} step={step} /> : null}
+        </>
+      }
+      main={
+        <>
+          <CustomerOrdersCard customer={customer} />
+          <CustomerActivityCard customer={customer} />
+          <MessagesCard messages={customer.notifications} />
+          <CustomerStoreCreditCard customerId={customer.id} />
+          <CustomerGiftCardsCard customerId={customer.id} />
+          {appCards.map((id) => {
+            const Card = ADMIN_APPS[id]?.CustomerCard
+            return Card ? <Card key={id} customerId={customer.id} /> : null
+          })}
+        </>
+      }
+      side={
+        <>
+          <ProfileCard customer={customer} onEdit={() => setEditing(true)} onChanged={refresh} />
+          <CustomerAddressesCard customer={customer} onChanged={refresh} />
+          {consent ? (
+            <MarketingConsentCard
+              customerId={customer.id}
+              customerLabel={customer.name || customer.email || customer.phone || ''}
+              consent={consent}
+              value={draft.consent}
+              onChange={(channel, granted) =>
+                setDraft((d) => ({ ...d, consent: { ...d.consent, [channel]: granted } }))
+              }
+              hasPhone={Boolean(customer.phone)}
+              phonePrompt={
+                <ContactPhonePrompt
+                  customerId={customer.id}
+                  suggestion={customer.phoneSuggestion}
+                  onAdd={() => setEditing(true)}
+                  onSaved={refresh}
+                />
+              }
+            />
+          ) : null}
+          <CustomerBusinessCard
+            gstin={draft.gstin}
+            businessName={draft.businessName}
+            gstinError={invalidGstin ? detail.gstinErrors[invalidGstin] : null}
+            onChange={(next) => setDraft((d) => ({ ...d, ...next }))}
+          />
+          <CustomerNoteCard
+            value={draft.note}
+            onChange={(note) => setDraft((d) => ({ ...d, note }))}
+          />
+          <CustomerTagsCard
+            tags={draft.tags}
+            onChange={(tags) => setDraft((d) => ({ ...d, tags }))}
+          />
+          <MetafieldsCard ownerType="customer" ownerId={customer.id} hideWhenEmpty />
+        </>
+      }
+    >
       <SaveBar
         open={dirty}
         message={detail.changes.unsaved}
@@ -178,70 +244,6 @@ export default function CustomerView({
         onDiscard={handleDiscard}
         saving={saving}
       />
-      <CustomerHeader
-        customer={customer}
-        onEdit={() => setEditing(true)}
-        automations={appCards.includes('automations')}
-      />
-      <CustomerSummaryStrip customer={customer} />
-      {customer.email ? <EmailSuppressionNotice customerId={customer.id} /> : null}
-      {step ? <CustomerNextStep customer={customer} step={step} /> : null}
-      <PageColumns
-        main={
-          <>
-            <CustomerOrdersCard customer={customer} />
-            <CustomerActivityCard customer={customer} />
-            <MessagesCard messages={customer.notifications} />
-            <CustomerStoreCreditCard customerId={customer.id} />
-            <CustomerGiftCardsCard customerId={customer.id} />
-            {appCards.map((id) => {
-              const Card = ADMIN_APPS[id]?.CustomerCard
-              return Card ? <Card key={id} customerId={customer.id} /> : null
-            })}
-          </>
-        }
-        side={
-          <>
-            <ProfileCard customer={customer} onEdit={() => setEditing(true)} onChanged={refresh} />
-            <CustomerAddressesCard customer={customer} onChanged={refresh} />
-            {consent ? (
-              <MarketingConsentCard
-                customerId={customer.id}
-                customerLabel={customer.name || customer.email || customer.phone || ''}
-                consent={consent}
-                value={draft.consent}
-                onChange={(channel, granted) =>
-                  setDraft((d) => ({ ...d, consent: { ...d.consent, [channel]: granted } }))
-                }
-                hasPhone={Boolean(customer.phone)}
-                phonePrompt={
-                  <ContactPhonePrompt
-                    customerId={customer.id}
-                    suggestion={customer.phoneSuggestion}
-                    onAdd={() => setEditing(true)}
-                    onSaved={refresh}
-                  />
-                }
-              />
-            ) : null}
-            <CustomerBusinessCard
-              gstin={draft.gstin}
-              businessName={draft.businessName}
-              gstinError={invalidGstin ? detail.gstinErrors[invalidGstin] : null}
-              onChange={(next) => setDraft((d) => ({ ...d, ...next }))}
-            />
-            <CustomerNoteCard
-              value={draft.note}
-              onChange={(note) => setDraft((d) => ({ ...d, note }))}
-            />
-            <CustomerTagsCard
-              tags={draft.tags}
-              onChange={(tags) => setDraft((d) => ({ ...d, tags }))}
-            />
-            <MetafieldsCard ownerType="customer" ownerId={customer.id} hideWhenEmpty />
-          </>
-        }
-      />
       {editing ? (
         <EditCustomerDialog
           customer={customer}
@@ -250,6 +252,6 @@ export default function CustomerView({
           onSaved={refresh}
         />
       ) : null}
-    </PageBody>
+    </ProoflyDetailPage>
   )
 }

@@ -82,6 +82,7 @@ function InboundShipmentsContent({ initial }: { initial: InboundShipmentsInitial
   )
   const [result, setResult] = useState(initial.result)
   const [loading, setLoading] = useState(false)
+  const [failed, setFailed] = useState(false)
   const [delivering, setDelivering] = useState<string | null>(null)
 
   const hydrated = useRef(false)
@@ -100,9 +101,11 @@ function InboundShipmentsContent({ initial }: { initial: InboundShipmentsInitial
       return
     let stale = false
     setLoading(true)
+    setFailed(false)
     api.inboundShipments
       .list(listInput(state))
       .then((next) => !stale && setResult(next))
+      .catch(() => !stale && setFailed(true))
       .finally(() => !stale && setLoading(false))
     return () => {
       stale = true
@@ -112,6 +115,19 @@ function InboundShipmentsContent({ initial }: { initial: InboundShipmentsInitial
   // Helpers
   const refresh = async () => {
     setResult(await api.inboundShipments.list(listInput(state)))
+  }
+
+  // Event handlers
+  /* Try again on a failed read: the rows are read again in place, under the same header. */
+  const handleRetry = () => {
+    setFailed(false)
+    setLoading(true)
+    refresh()
+      .catch(() => setFailed(true))
+      .finally(() => setLoading(false))
+  }
+  const handleChanged = () => {
+    refresh().catch(() => setFailed(true))
   }
 
   // Render logic
@@ -142,7 +158,7 @@ function InboundShipmentsContent({ initial }: { initial: InboundShipmentsInitial
             deleted={form.deleted}
             failed={form.deleteFailed}
             onDelete={() => api.inboundShipments.delete({ id: r.id })}
-            onChanged={() => void refresh()}
+            onChanged={handleChanged}
             before={
               r.status === 'delivered' || r.status === 'cancelled'
                 ? []
@@ -157,12 +173,13 @@ function InboundShipmentsContent({ initial }: { initial: InboundShipmentsInitial
           />
         )}
         loading={loading}
+        error={failed ? { onRetry: handleRetry } : undefined}
         bulkActions={(ids, clear) => (
           <ShipmentBulkActions
             ids={ids}
             onDone={() => {
               clear()
-              void refresh()
+              handleChanged()
             }}
           />
         )}
@@ -196,7 +213,7 @@ function InboundShipmentsContent({ initial }: { initial: InboundShipmentsInitial
       <MarkDeliveredDialog
         shipmentId={delivering}
         onClose={() => setDelivering(null)}
-        onDone={() => void refresh()}
+        onDone={handleChanged}
       />
     </ProoflyListPage>
   )

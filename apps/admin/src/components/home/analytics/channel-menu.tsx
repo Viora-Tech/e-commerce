@@ -76,7 +76,7 @@ export default function ChannelMenu({ value, onChange, className }: ChannelMenuP
             <DropdownMenuRadioItem key={c.id} value={c.id} disabled>
               <c.icon className="size-4" aria-hidden="true" />
               <span className="flex-1">{copy.channelOptions[c.id]}</span>
-              <span className="text-xs text-muted-foreground">{copy.soon}</span>
+              <span className="text-period text-muted-foreground">{copy.soon}</span>
             </DropdownMenuRadioItem>
           ))}
         </DropdownMenuRadioGroup>

@@ -88,6 +88,8 @@ function BlogPostsContent({ initial, storefrontOrigin }: BlogPostsPageProps) {
   const [result, setResult] = useState(initial.result)
   const [counts, setCounts] = useState(initial.counts)
   const [loading, setLoading] = useState(false)
+  /* A failed read shows "Could not load blog posts" with Try again in the table. */
+  const [failed, setFailed] = useState(false)
   const [busy, setBusy] = useState(false)
   const [deleting, setDeleting] = useState<Pending | null>(null)
 
@@ -101,9 +103,11 @@ function BlogPostsContent({ initial, storefrontOrigin }: BlogPostsPageProps) {
     }
     let cancelled = false
     setLoading(true)
+    setFailed(false)
     api.blog
       .list(listInput(q))
       .then((r) => !cancelled && setResult(r))
+      .catch(() => !cancelled && setFailed(true))
       .finally(() => !cancelled && setLoading(false))
     return () => {
       cancelled = true
@@ -127,7 +131,7 @@ function BlogPostsContent({ initial, storefrontOrigin }: BlogPostsPageProps) {
       await action(ids)
       toast.success(message)
       clear()
-      await refresh()
+      await refresh().catch(() => setFailed(true))
     } catch (err) {
       toast.error(err instanceof Error ? err.message : copy.bulk.failed)
     } finally {
@@ -136,6 +140,17 @@ function BlogPostsContent({ initial, storefrontOrigin }: BlogPostsPageProps) {
   }
 
   // Event handlers
+  /* Try again on a failed read: the rows and counts are read again in place. */
+  const handleRetry = () => {
+    setFailed(false)
+    setLoading(true)
+    refresh()
+      .catch(() => setFailed(true))
+      .finally(() => setLoading(false))
+  }
+  /* After a row action: a failed re-read lands in the table too. */
+  const handleChanged = () => refresh().catch(() => setFailed(true))
+
   const handleConfirmDelete = () => {
     if (!deleting) return
     setDeleting(null)
@@ -189,9 +204,14 @@ function BlogPostsContent({ initial, storefrontOrigin }: BlogPostsPageProps) {
         getId={(a) => a.id}
         href={(a) => routes.content.blogPost(a.id)}
         rowActions={(a) => (
-          <ArticleRowMenu article={a} storefrontOrigin={storefrontOrigin} onChanged={refresh} />
+          <ArticleRowMenu
+            article={a}
+            storefrontOrigin={storefrontOrigin}
+            onChanged={handleChanged}
+          />
         )}
         loading={loading}
+        error={failed ? { heading: copy.loadFailed, onRetry: handleRetry } : undefined}
         query={q.query}
         onQueryChange={(query) => setQ({ query, page: 1 }, { history: 'replace' })}
         onClearAll={() => setQ({ ...CLEAR_BLOG_POST_FILTERS, query: '', status: null, page: 1 })}

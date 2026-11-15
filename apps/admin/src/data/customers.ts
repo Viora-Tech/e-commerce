@@ -401,6 +401,8 @@ export const segmentsContent = {
     newHeading: 'New segment',
     editHeading: 'Edit segment',
     back: 'Segments',
+    /** The card that holds the name field. */
+    details: 'Details',
     name: 'Segment name',
     namePlaceholder: 'Repeat buyers in Maharashtra',
     conditions: 'Conditions',

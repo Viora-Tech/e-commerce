@@ -127,12 +127,14 @@ export default function CollectPaymentDialog({
   // Store credit pays only from a customer's balance that covers the amount.
   const creditShort = byCredit && (credit === null || (paise !== null && paise > credit))
   const valid = paise !== null && paise > 0 && day <= todayKey() && !creditShort
+  // Anything typed or picked: Esc or a click outside asks before dropping it.
+  const changed = amount !== null || method !== null || reference.trim() !== '' || receivedOn !== ''
 
   return (
     <Dialog open={order !== null} onOpenChange={(open) => (!open ? handleClose() : undefined)}>
       {/* A proper width for the amount, method and date row; the default felt cramped (#126). */}
-      <DialogContent busy={busy} dirty={reference.trim() !== ''}>
-        <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+      <DialogContent busy={busy} dirty={changed}>
+        <form onSubmit={handleSubmit} className="contents">
           <DialogHeader>
             <DialogTitle>{copy.collectDialog.title}</DialogTitle>
             <DialogDescription>

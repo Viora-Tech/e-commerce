@@ -166,6 +166,7 @@ export default [
     discard: 'रद्द करें',
     nameRequired: 'पहले नाम लिखें, जैसे साइज़ गाइड',
     details: {
+      heading: 'जानकारी',
       name: 'नाम',
       namePlaceholder: 'साइज़ गाइड',
       type: 'हैंडल',
@@ -264,6 +265,7 @@ export default [
 
   translation(entryListContent, {
     add: 'एंट्री जोड़ें',
+    loadFailed: 'एंट्री लोड नहीं हो पाईं',
     summary: (n) => `${n} एंट्री`,
     editDefinition: 'डेफ़िनिशन बदलें',
     back: 'कंटेंट टाइप',
@@ -291,6 +293,7 @@ export default [
 
   translation(entryFormContent, {
     newTitle: (name) => `${name} जोड़ें`,
+    fieldsHeading: 'फ़ील्ड',
     save: 'सेव करें',
     saving: 'सेव हो रहा है',
     saved: 'एंट्री सेव हो गई',

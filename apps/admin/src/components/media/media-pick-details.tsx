@@ -66,7 +66,7 @@ export default function MediaPickDetails({ item, onAltSaved }: MediaPickDetailsP
   return (
     <div className="flex flex-col gap-4 p-4">
       <h3 className="text-eyebrow text-muted-foreground">{copy.heading}</h3>
-      <div className="flex aspect-square items-center justify-center overflow-hidden rounded-xl border border-border bg-muted p-2">
+      <div className="flex aspect-square items-center justify-center overflow-hidden rounded-lg border border-border bg-muted p-2">
         <MediaThumb item={item} className="object-contain" />
       </div>
       <div className="flex min-w-0 flex-col gap-0.5">

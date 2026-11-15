@@ -1,5 +1,5 @@
-import DetailPageSkeleton from '@/components/layout/detail-page-skeleton'
+import VariantPageSkeleton from '@/components/products/variant-page/variant-page-skeleton'
 
 export default function Loading() {
-  return <DetailPageSkeleton />
+  return <VariantPageSkeleton />
 }

@@ -1,14 +1,8 @@
 import type { SwapKey } from '@commerce/core/theme-import'
-import { Card, CardContent, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@commerce/ui/shadcn/table'
+import { TableCell, TableRow } from '@commerce/ui/shadcn/table'
+import DataCard from '@/components/layout/data-card'
 import ScrollSection from '@/components/layout/scroll-section'
+import SimpleTable from '@/components/table/simple-table'
 import type { themeImportContent } from '@/data/theme-import'
 
 type ImportReportSwapsProps = {
@@ -23,39 +17,26 @@ export default function ImportReportSwaps({ copy, swaps }: ImportReportSwapsProp
 
   // Render logic
   return (
-    <Card gap="none" inset="none">
-      <CardHeader className="border-b border-border px-5 py-4">
-        <CardTitle>{copy.swapsHeading}</CardTitle>
-      </CardHeader>
-      <CardContent className="p-0">
-        <ScrollSection
-          id="theme-report-swaps"
-          label={copy.swapsHeading}
-          count={swaps.length}
-          className="pb-2"
+    <DataCard title={copy.swapsHeading} flush>
+      <ScrollSection id="theme-report-swaps" label={copy.swapsHeading} count={swaps.length}>
+        <SimpleTable
+          columns={[
+            { key: 'shopify', label: copy.swapColumns.shopify, className: 'w-2/5' },
+            { key: 'ours', label: copy.swapColumns.ours },
+          ]}
         >
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-2/5 pl-5">{copy.swapColumns.shopify}</TableHead>
-                <TableHead className="pr-5">{copy.swapColumns.ours}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {swaps.map((key) => (
-                <TableRow key={key}>
-                  <TableCell className="pl-5 align-top font-medium whitespace-normal">
-                    {copy.swaps[key].shopify}
-                  </TableCell>
-                  <TableCell className="pr-5 align-top whitespace-normal text-muted-foreground">
-                    {copy.swaps[key].ours}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </ScrollSection>
-      </CardContent>
-    </Card>
+          {swaps.map((key) => (
+            <TableRow key={key}>
+              <TableCell className="align-top font-medium whitespace-normal">
+                {copy.swaps[key].shopify}
+              </TableCell>
+              <TableCell className="align-top whitespace-normal text-muted-foreground">
+                {copy.swaps[key].ours}
+              </TableCell>
+            </TableRow>
+          ))}
+        </SimpleTable>
+      </ScrollSection>
+    </DataCard>
   )
 }

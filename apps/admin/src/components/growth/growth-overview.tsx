@@ -4,14 +4,15 @@ import type { CampaignPerformanceRow, MarketingOverview } from '@commerce/api'
 import type { GrowthRecommendation } from '@commerce/core/marketing'
 import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import RangePicker from '@/components/analytics/range-picker'
 import PageBody from '@/components/layout/page-body'
 import PageHeader from '@/components/layout/page-header'
+import PageState from '@/components/states/page-state'
 import { growthHomeContent } from '@/data/growth-home'
 import { useCopy } from '@/hooks/use-copy'
-import { type RangeState, rangeQuery, sameRange } from '@/lib/analytics-range'
-import { api } from '@/lib/api-client'
+import { type RangeState, rangeQuery } from '@/lib/analytics-range'
+import type { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
 import GrowthKpiStrip from './growth-kpi-strip'
 import AutopilotHero from './overview/autopilot-hero'
@@ -20,6 +21,7 @@ import GoogleSearchCard from './overview/google-search-card'
 import RecentCampaignsCard from './overview/recent-campaigns-card'
 import TopSourceCards from './overview/top-source-cards'
 import RecommendationsCard from './recommendations-card'
+import { useOverviewRange } from './use-overview-range'
 
 type GrowthOverviewPageProps = {
   initialRange: RangeState
@@ -47,28 +49,7 @@ export default function GrowthOverviewPage({
   // Hooks
   const copy = useCopy(growthHomeContent)
   const [range, setRange] = useState(initialRange)
-  const [data, setData] = useState(initial)
-  const [loading, setLoading] = useState(false)
-
-  useEffect(() => {
-    if (sameRange(range, initialRange)) {
-      setData(initial)
-      return
-    }
-    let live = true
-    setLoading(true)
-    api.marketing
-      .overview({ range })
-      .then((next) => {
-        if (live) setData(next)
-      })
-      .finally(() => {
-        if (live) setLoading(false)
-      })
-    return () => {
-      live = false
-    }
-  }, [range, initialRange, initial])
+  const { data, loading, failed, retry } = useOverviewRange(range, initialRange, initial)
 
   // Event handlers
   const handleRange = (next: RangeState) => {
@@ -93,8 +74,16 @@ export default function GrowthOverviewPage({
             </Button>
           </div>
         </div>
-        <GrowthKpiStrip kpis={data.kpis} loading={loading} />
-        <TopSourceCards sources={data.sources} />
+        {failed === 'no-access' ? (
+          <PageState kind="no-access" />
+        ) : failed ? (
+          <PageState kind="error" heading={copy.performance.loadFailed} onRetry={retry} />
+        ) : (
+          <>
+            <GrowthKpiStrip kpis={data.kpis} loading={loading} />
+            <TopSourceCards sources={data.sources} />
+          </>
+        )}
         <p className="text-caption text-muted-foreground">
           {copy.performance.more}{' '}
           <Link href={attribution} className="text-foreground underline underline-offset-2">

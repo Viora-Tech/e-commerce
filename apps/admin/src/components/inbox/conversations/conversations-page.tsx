@@ -20,6 +20,7 @@ import { usePermissions } from '@/hooks/use-permissions'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
 import ConversationList, { type ConversationRow } from './conversation-list'
+import { CONVERSATIONS_FRAME } from './conversations-skeleton'
 import InboxFilters from './inbox-filters'
 import ThreadPane from './thread-pane'
 
@@ -80,6 +81,8 @@ export default function ConversationsPage({ initialView, initialId }: Conversati
   >([])
   const [live, setLive] = useState<{ seq: number; event: InboxConnectionEvent } | null>(null)
   const [reloadKey, setReloadKey] = useState(0)
+  /** The list's last read failed: the list pane says so, with Try again. */
+  const [listFailed, setListFailed] = useState(false)
   const [aiHelp, setAiHelp] = useState(false)
   const [statusChange, setStatusChange] = useState<StatusChange | null>(null)
   const refreshTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -112,14 +115,17 @@ export default function ConversationsPage({ initialView, initialId }: Conversati
   useEffect(() => {
     if (reloadKey < 0) return
     let alive = true
-    Promise.all([api.inbox.list({ view, search: query || undefined }), api.inbox.counts()]).then(
-      ([list, c]) => {
+    Promise.all([api.inbox.list({ view, search: query || undefined }), api.inbox.counts()])
+      .then(([list, c]) => {
         if (!alive) return
         setRows(list.rows)
         setCursor(list.nextCursor)
         setCounts(c)
-      },
-    )
+        setListFailed(false)
+      })
+      .catch(() => {
+        if (alive) setListFailed(true)
+      })
     return () => {
       alive = false
     }
@@ -203,7 +209,7 @@ export default function ConversationsPage({ initialView, initialId }: Conversati
   const canReply = hasPermission(permissions.INBOX_REPLY)
 
   return (
-    <div className="flex h-[calc(100dvh-6.5rem)] min-h-[30rem] overflow-hidden rounded-lg surface-card">
+    <div className={CONVERSATIONS_FRAME}>
       <InboxFilters
         view={view}
         counts={counts}
@@ -232,6 +238,8 @@ export default function ConversationsPage({ initialView, initialId }: Conversati
         </div>
         <ConversationList
           rows={rows}
+          failed={listFailed}
+          onRetry={() => setReloadKey((k) => k + 1)}
           selectedId={selectedId}
           search={search}
           hasMore={cursor !== null}

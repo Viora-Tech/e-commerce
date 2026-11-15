@@ -114,12 +114,12 @@ export default function UserMenu({
                 email={user.email}
                 image={user.image ?? null}
                 className="size-8 shrink-0"
-                fallbackClassName="bg-primary text-xs text-primary-foreground"
+                fallbackClassName="bg-primary text-period text-primary-foreground"
               />
             ) : null}
             <span className="grid min-w-0">
               <span className="truncate font-semibold text-foreground">{user.name}</span>
-              <span className="truncate text-xs font-normal text-muted-foreground">
+              <span className="truncate text-period font-normal text-muted-foreground">
                 {user.email}
               </span>
             </span>
@@ -150,7 +150,9 @@ export default function UserMenu({
               <Store className="size-4" />
               <span className="grid min-w-0 leading-tight">
                 <span className="truncate">{role ? `${storeName} · ${role}` : storeName}</span>
-                <span className="truncate text-xs text-muted-foreground">{copy.switchStore}</span>
+                <span className="truncate text-period text-muted-foreground">
+                  {copy.switchStore}
+                </span>
               </span>
             </DropdownMenuItem>
             <DropdownMenuSeparator />

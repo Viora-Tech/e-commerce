@@ -2,14 +2,18 @@
 
 import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import PixelCard from '@/components/apps/pixels/pixel-card'
 import PixelDialog from '@/components/apps/pixels/pixel-dialog'
+import LoadFailedState from '@/components/apps/shared/load-failed-state'
+import DataCardSkeleton from '@/components/layout/data-card-skeleton'
 import EmptyState from '@/components/layout/empty-state'
 import PageHeader from '@/components/layout/page-header'
 import StatStrip from '@/components/layout/stat-strip'
+import { appsContent } from '@/data/apps'
 import { pixelsContent } from '@/data/pixels'
 import { useCopy, useFormat } from '@/hooks/use-copy'
+import { useLoad } from '@/hooks/use-load'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
 
@@ -21,31 +25,21 @@ export default function PixelsPage() {
   // Hooks
   const copy = useCopy(pixelsContent)
   const f = useFormat()
-  const [pixels, setPixels] = useState<Pixel[] | null>(null)
-  const [stats, setStats] = useState<Stats | null>(null)
+  const apps = useCopy(appsContent)
   const [adding, setAdding] = useState(false)
   const [reload, setReload] = useState(0)
-
-  // biome-ignore lint/correctness/useExhaustiveDependencies: `reload` re-runs the load after a change
-  useEffect(() => {
-    let cancelled = false
-    Promise.all([api.pixels.list(), api.pixels.stats()]).then(([list, s]) => {
-      if (cancelled) return
-      setPixels(list)
-      setStats(s)
-    })
-    return () => {
-      cancelled = true
-    }
-  }, [reload])
+  // `reload` re-runs the read after a change.
+  const { data, failed, retry } = useLoad(
+    () => Promise.all([api.pixels.list(), api.pixels.stats()]),
+    [reload],
+  )
 
   // Event handlers
   const handleChanged = () => setReload((n) => n + 1)
 
-  // Early returns
-  if (!pixels) return null
-
   // Render logic
+  const pixels: Pixel[] | null = data?.[0] ?? null
+  const stats: Stats | null = data?.[1] ?? null
   const t = copy.page.tiles
 
   return (
@@ -66,6 +60,21 @@ export default function PixelsPage() {
           </div>
         }
       />
+      {failed && !data ? (
+        <LoadFailedState
+          size="page"
+          heading={apps.couldNotLoad.pixels}
+          failed={failed}
+          onRetry={retry}
+        />
+      ) : null}
+      {!data && !failed ? (
+        // The 7-day strip and one pixel card while they load.
+        <>
+          <StatStrip tiles={[]} loading placeholders={4} />
+          <DataCardSkeleton fields={0} lines={3} />
+        </>
+      ) : null}
       {stats ? (
         <StatStrip
           tiles={[
@@ -81,7 +90,7 @@ export default function PixelsPage() {
           ]}
         />
       ) : null}
-      {pixels.length === 0 ? (
+      {pixels === null ? null : pixels.length === 0 ? (
         <EmptyState
           heading={copy.page.emptyTitle}
           body={copy.page.emptyBody}

@@ -10,6 +10,8 @@ type ListPageSkeletonProps = {
   title?: string | undefined
   /** Header buttons on the right. */
   actions?: number
+  /** The row between the header and the tiles (Inventory's location and reason pickers). */
+  controls?: ReactNode
   /** Cells in the stat strip; `0` for a list without one. */
   tiles?: number
   /**
@@ -27,6 +29,7 @@ type ListPageSkeletonProps = {
 export default function ListPageSkeleton({
   title,
   actions = 1,
+  controls,
   tiles = 4,
   table,
 }: ListPageSkeletonProps) {
@@ -34,6 +37,7 @@ export default function ListPageSkeleton({
   return (
     <PageBody className={LIST_PAGE_FRAME}>
       <PageHeaderSkeleton title={title} actions={actions} />
+      {controls}
       {tiles > 0 ? <StatStrip loading tiles={[]} placeholders={tiles} /> : null}
       {table ?? <ResourceTableSkeleton />}
     </PageBody>

@@ -5,8 +5,8 @@ import { CheckIcon, Copy } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Dialog, DialogDescription, DialogTitle } from '@commerce/ui/shadcn/dialog'
+import { Field, FieldLabel, FieldTitle } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
-import { Label } from '@commerce/ui/shadcn/label'
 import {
   Select,
   SelectContent,
@@ -199,8 +199,8 @@ export default function CreateTokenDialog({
       onSubmit={handleSubmit}
     >
       <div className="flex flex-col gap-4">
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="token-name">{copy.create.name}</Label>
+        <Field>
+          <FieldLabel htmlFor="token-name">{copy.create.name}</FieldLabel>
           <Input
             id="token-name"
             value={name}
@@ -208,13 +208,15 @@ export default function CreateTokenDialog({
             placeholder={copy.create.namePlaceholder}
             onChange={(e) => setName(e.target.value)}
           />
-        </div>
-        <div className="flex flex-col gap-1.5">
-          <span className="text-body font-medium">{copy.create.canAccess}</span>
+        </Field>
+        <Field>
+          <FieldTitle className="text-period leading-4 text-ink-strong">
+            {copy.create.canAccess}
+          </FieldTitle>
           <ScopePicker value={scopes} onChange={setScopes} idPrefix="token" />
-        </div>
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="token-expiry">{copy.create.expires}</Label>
+        </Field>
+        <Field>
+          <FieldLabel htmlFor="token-expiry">{copy.create.expires}</FieldLabel>
           <Select
             value={expiryKey(expiry)}
             onValueChange={(v) => setExpiry(v === 'never' ? null : (Number(v) as TokenExpiryDays))}
@@ -230,7 +232,7 @@ export default function CreateTokenDialog({
               ))}
             </SelectContent>
           </Select>
-        </div>
+        </Field>
         <p className="text-caption text-muted-foreground">{copy.create.note}</p>
       </div>
     </FormDialog>

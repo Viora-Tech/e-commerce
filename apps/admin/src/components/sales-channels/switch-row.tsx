@@ -1,6 +1,6 @@
 'use client'
 
-import { Label } from '@commerce/ui/shadcn/label'
+import { Field, FieldContent, FieldDescription, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Switch } from '@commerce/ui/shadcn/switch'
 
 type SwitchRowProps = {
@@ -12,7 +12,10 @@ type SwitchRowProps = {
   disabled?: boolean
 }
 
-/** Figma "Toggle row": a label and its one-line explanation, with the switch on the right. */
+/**
+ * Figma "Toggle row": a label and its one-line explanation, with the switch on the right. Drawn
+ * with the shared Field parts; the label keeps the body size of a toggle row.
+ */
 export default function SwitchRow({
   id,
   label,
@@ -23,19 +26,22 @@ export default function SwitchRow({
 }: SwitchRowProps) {
   // Render logic
   return (
-    <div className="flex items-center justify-between gap-4 py-3">
-      <div className="flex min-w-0 flex-col gap-0.5">
-        <Label htmlFor={id} className="text-body font-medium">
+    <Field
+      orientation="horizontal"
+      className="justify-between gap-4 py-3 has-[>[data-slot=field-content]]:items-center"
+    >
+      <FieldContent>
+        <FieldLabel htmlFor={id} className="text-body font-medium text-foreground">
           {label}
-        </Label>
-        {description ? <p className="text-caption text-muted-foreground">{description}</p> : null}
-      </div>
+        </FieldLabel>
+        {description ? <FieldDescription>{description}</FieldDescription> : null}
+      </FieldContent>
       <Switch
         id={id}
         checked={checked}
         disabled={disabled}
         onCheckedChange={(v) => onChange(Boolean(v))}
       />
-    </div>
+    </Field>
   )
 }

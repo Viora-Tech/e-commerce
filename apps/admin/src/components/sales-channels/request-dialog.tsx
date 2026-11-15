@@ -1,6 +1,7 @@
 'use client'
 
 import { AI_AGENTS, type SalesChannelId } from '@commerce/core/sales-channels'
+import { Alert, AlertDescription } from '@commerce/ui/shadcn/alert'
 import { Button } from '@commerce/ui/shadcn/button'
 import { useState } from 'react'
 import { toast } from 'sonner'
@@ -72,12 +73,15 @@ export default function RequestDialog({
         onSubmit={handleWithdraw}
       >
         {channel === 'chatgpt' ? (
-          <div className="flex flex-col items-start gap-2 rounded-md border border-border bg-muted/40 p-3">
-            <p className="text-caption text-muted-foreground">{live.openai.approvedHint}</p>
-            <Button variant="outline" onClick={() => setFeed(true)}>
-              {live.openai.add}
-            </Button>
-          </div>
+          <Alert
+            action={
+              <Button variant="outline" size="sm" onClick={() => setFeed(true)}>
+                {live.openai.add}
+              </Button>
+            }
+          >
+            <AlertDescription>{live.openai.approvedHint}</AlertDescription>
+          </Alert>
         ) : null}
       </FormDialog>
       <OpenAiFeedDialog

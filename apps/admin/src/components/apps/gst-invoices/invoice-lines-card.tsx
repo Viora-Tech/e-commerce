@@ -9,7 +9,7 @@ import {
   TableHeader,
   TableRow,
 } from '@commerce/ui/shadcn/table'
-import SettingsCard from '@/components/settings/settings-card'
+import DataCard from '@/components/layout/data-card'
 import { gstInvoiceLinesContent as copy } from '@/data/gst-invoice-lines'
 import { formatPaise } from '@/lib/money'
 import { CELL, HEAD } from './table-classes'
@@ -58,7 +58,7 @@ export default function InvoiceLinesCard({ snapshot: s }: InvoiceLinesCardProps)
   ]
 
   return (
-    <SettingsCard title={copy.title}>
+    <DataCard title={copy.title} bodyClassName="flex flex-col gap-5">
       <div className="grid gap-4 sm:grid-cols-2">
         <PartyBlock label={copy.billTo} party={s.buyer} />
         {s.shipTo ? <PartyBlock label={copy.shipTo} party={s.shipTo} /> : null}
@@ -137,6 +137,6 @@ export default function InvoiceLinesCard({ snapshot: s }: InvoiceLinesCardProps)
           <dd className="tabular-nums">{formatPaise(t.totalPaise)}</dd>
         </div>
       </dl>
-    </SettingsCard>
+    </DataCard>
   )
 }

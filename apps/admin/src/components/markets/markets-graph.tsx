@@ -92,7 +92,7 @@ export default function MarketsGraph({ markets, domains, catalogs, defaults }: M
       </section>
 
       {others.length === 0 ? (
-        <p className="mt-4 rounded-xl border border-dashed border-line p-4 text-body text-muted-foreground lg:mt-0 lg:ml-8 lg:self-center">
+        <p className="mt-4 rounded-lg border border-dashed border-line p-4 text-body text-muted-foreground lg:mt-0 lg:ml-8 lg:self-center">
           {g.empty}
         </p>
       ) : (

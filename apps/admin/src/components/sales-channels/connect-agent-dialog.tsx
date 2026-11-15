@@ -8,7 +8,9 @@ import {
   type ChannelState,
 } from '@commerce/core/sales-channels'
 import { InfoIcon } from '@commerce/ui/icons'
+import { Alert, AlertDescription } from '@commerce/ui/shadcn/alert'
 import { Checkbox } from '@commerce/ui/shadcn/checkbox'
+import { Field, FieldLabel } from '@commerce/ui/shadcn/field'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import ChoiceCard from '@/components/layout/choice-card'
@@ -116,20 +118,25 @@ export default function ConnectAgentDialog({
           {AGENT_SHARES.map((share) => {
             const label = share === 'orders' ? copy.shares.orders(name) : copy.shares[share]
             return (
-              <div key={share} className="flex items-center gap-2.5 text-body">
+              <Field key={share} orientation="horizontal" className="gap-2.5">
                 <Checkbox
                   id={`agent-share-${share}`}
                   checked={shares.includes(share)}
                   onCheckedChange={(v) => handleShare(share, v === true)}
                 />
-                <label htmlFor={`agent-share-${share}`}>{label}</label>
-              </div>
+                <FieldLabel
+                  htmlFor={`agent-share-${share}`}
+                  className="text-body font-normal text-foreground"
+                >
+                  {label}
+                </FieldLabel>
+              </Field>
             )
           })}
-          <p className="mt-2 flex gap-2 rounded-md border border-border bg-muted/50 p-3 text-caption text-muted-foreground">
-            <InfoIcon className="mt-0.5 size-4 shrink-0" />
-            {copy.ordersNote(name)}
-          </p>
+          <Alert className="mt-2">
+            <InfoIcon />
+            <AlertDescription>{copy.ordersNote(name)}</AlertDescription>
+          </Alert>
         </fieldset>
       ) : null}
       {at === 2 ? (

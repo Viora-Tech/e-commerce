@@ -135,7 +135,7 @@ export default function DateRangePicker({
               >
                 {copy.ranges[preset]}
                 {preset === 'festive' ? (
-                  <span className="text-xs text-muted-foreground">{copy.festiveHint}</span>
+                  <span className="text-period text-muted-foreground">{copy.festiveHint}</span>
                 ) : null}
               </button>
               {preset === 'festive' ? (

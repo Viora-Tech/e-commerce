@@ -1,7 +1,7 @@
 'use client'
 
 import { permissions } from '@commerce/core/permissions'
-import { Save, Trash2 } from '@commerce/ui/icons'
+import { Trash2 } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Field, FieldDescription, FieldError, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
@@ -133,15 +133,10 @@ export default function ProfileForm({ profile, othersHaveAreas = false }: Profil
         subtitle={general ? copy.generalMeta : copy.meta}
         back={{ label: copy.backLabel, href: LIST_HREF }}
         actions={
-          !canManage || general ? null : profile ? (
+          !canManage || general || !profile ? null : (
             <Button variant="outline" onClick={() => setConfirmDelete(true)} disabled={busy}>
               <Trash2 />
               {copy.delete.action}
-            </Button>
-          ) : (
-            <Button loading={busy} onClick={handleSave} disabled={busy || !dirty}>
-              <Save aria-hidden="true" />
-              {copy.saveBar.save}
             </Button>
           )
         }

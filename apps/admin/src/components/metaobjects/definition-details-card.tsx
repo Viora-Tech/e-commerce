@@ -1,9 +1,9 @@
 'use client'
 
 import { keyFromName } from '@commerce/core/metaobjects'
-import { Card, CardContent } from '@commerce/ui/shadcn/card'
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
+import DataCard from '@/components/layout/data-card'
 import { definitionFormContent } from '@/data/metaobjects'
 import { useCopy } from '@/hooks/use-copy'
 
@@ -47,46 +47,44 @@ export default function DefinitionDetailsCard({
 
   // Render logic
   return (
-    <Card size="form">
-      <CardContent>
-        <FieldGroup>
-          <Field>
-            <FieldLabel htmlFor="definition-name">{copy.name}</FieldLabel>
-            <Input
-              id="definition-name"
-              size="lg"
-              value={name}
-              placeholder={copy.namePlaceholder}
-              maxLength={100}
-              onChange={(e) => handleName(e.target.value)}
-            />
-          </Field>
-          <Field>
-            <FieldLabel htmlFor="definition-type">{copy.type}</FieldLabel>
-            <Input
-              id="definition-type"
-              size="lg"
-              value={type}
-              disabled={typeLocked}
-              autoComplete="off"
-              className="font-mono"
-              onChange={(e) => handleType(e.target.value)}
-            />
-            <FieldDescription>{copy.typeHelp}</FieldDescription>
-          </Field>
-          <Field>
-            <FieldLabel htmlFor="definition-description">{copy.description}</FieldLabel>
-            <Input
-              id="definition-description"
-              size="lg"
-              value={description}
-              maxLength={300}
-              onChange={(e) => onChange({ description: e.target.value })}
-            />
-            <FieldDescription>{copy.descriptionHelp}</FieldDescription>
-          </Field>
-        </FieldGroup>
-      </CardContent>
-    </Card>
+    <DataCard title={copy.heading}>
+      <FieldGroup>
+        <Field>
+          <FieldLabel htmlFor="definition-name">{copy.name}</FieldLabel>
+          <Input
+            id="definition-name"
+            size="lg"
+            value={name}
+            placeholder={copy.namePlaceholder}
+            maxLength={100}
+            onChange={(e) => handleName(e.target.value)}
+          />
+        </Field>
+        <Field>
+          <FieldLabel htmlFor="definition-type">{copy.type}</FieldLabel>
+          <Input
+            id="definition-type"
+            size="lg"
+            value={type}
+            disabled={typeLocked}
+            autoComplete="off"
+            className="font-mono"
+            onChange={(e) => handleType(e.target.value)}
+          />
+          <FieldDescription>{copy.typeHelp}</FieldDescription>
+        </Field>
+        <Field>
+          <FieldLabel htmlFor="definition-description">{copy.description}</FieldLabel>
+          <Input
+            id="definition-description"
+            size="lg"
+            value={description}
+            maxLength={300}
+            onChange={(e) => onChange({ description: e.target.value })}
+          />
+          <FieldDescription>{copy.descriptionHelp}</FieldDescription>
+        </Field>
+      </FieldGroup>
+    </DataCard>
   )
 }

@@ -2,6 +2,7 @@
 
 import { isApex, normaliseHostname, wwwCounterpart } from '@commerce/core/domains'
 import { Checkbox } from '@commerce/ui/shadcn/checkbox'
+import { Field, FieldError, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import { Label } from '@commerce/ui/shadcn/label'
 import { useRouter } from 'next/navigation'
@@ -92,8 +93,8 @@ export default function ConnectDomainDialog({
       submitDisabled={!value.trim()}
       onSubmit={handleSubmit}
     >
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="domain-hostname">{copy.dialog.label}</Label>
+      <Field data-invalid={error ? true : undefined}>
+        <FieldLabel htmlFor="domain-hostname">{copy.dialog.label}</FieldLabel>
         <Input
           id="domain-hostname"
           value={value}
@@ -105,8 +106,8 @@ export default function ConnectDomainDialog({
           onChange={(e) => setValue(e.target.value)}
           onBlur={() => setTouched(value.trim().length > 0)}
         />
-        {error ? <p className="text-caption text-destructive">{error}</p> : null}
-      </div>
+        {error ? <FieldError>{error}</FieldError> : null}
+      </Field>
       {twin && twinRequired ? (
         <p className="text-body text-muted-foreground">{edge.apexDialog(twin)}</p>
       ) : twin ? (

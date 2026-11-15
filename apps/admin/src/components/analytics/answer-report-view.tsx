@@ -2,12 +2,13 @@
 
 import type { AnswerSnapshot } from '@commerce/api'
 import { Bookmark, CircleAlert } from '@commerce/ui/icons'
+import { Alert, AlertDescription } from '@commerce/ui/shadcn/alert'
 import { Button } from '@commerce/ui/shadcn/button'
-import { Card } from '@commerce/ui/shadcn/card'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import DataCard from '@/components/layout/data-card'
+import EmptyState from '@/components/layout/empty-state'
 import PageBody from '@/components/layout/page-body'
 import PageHeader from '@/components/layout/page-header'
 import { analyticsContent } from '@/data/analytics'
@@ -18,6 +19,7 @@ import { routes } from '@/lib/routes'
 import { useStorageScope } from '@/lib/storage-scope'
 import ReportChart from './report-chart'
 import ReportNameDialog from './report-name-dialog'
+import ReportSkeleton from './report-skeleton'
 import ReportTable from './report-table'
 
 export type SavedAnswer = { id: string; name: string; snapshot: AnswerSnapshot }
@@ -75,7 +77,8 @@ export default function AnswerReportView({ saved: initialSaved }: AnswerReportVi
 
   // Early returns
   const snapshot = saved?.snapshot ?? handed
-  if (snapshot === undefined) return null
+  /* The handed-over answer is read in the browser: the report's skeleton until then, not a blank. */
+  if (snapshot === undefined) return <ReportSkeleton actions={1} lead="note" />
   if (!snapshot) {
     return (
       <PageBody>
@@ -83,9 +86,7 @@ export default function AnswerReportView({ saved: initialSaved }: AnswerReportVi
           title={c.answer.title}
           back={{ label: c.back, href: routes.analytics.reports() }}
         />
-        <p className="rounded-xl border border-border border-dashed px-5 py-6 text-body text-muted-foreground">
-          {c.answer.empty}
-        </p>
+        <EmptyState variant="dashed" size="sm" body={c.answer.empty} />
       </PageBody>
     )
   }
@@ -109,12 +110,10 @@ export default function AnswerReportView({ saved: initialSaved }: AnswerReportVi
           )
         }
       />
-      <Card gap="none" inset={5}>
-        <p className="flex items-start gap-2 text-caption text-muted-foreground">
-          <CircleAlert className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-          {c.answer.snapshot(fmt.day(snapshot.answeredAt))}
-        </p>
-      </Card>
+      <Alert tone="info">
+        <CircleAlert aria-hidden="true" />
+        <AlertDescription>{c.answer.snapshot(fmt.day(snapshot.answeredAt))}</AlertDescription>
+      </Alert>
       {snapshot.chart ? <ReportChart report={report} data={result} /> : null}
       <DataCard title={c.details}>
         <ReportTable report={report} data={result} />

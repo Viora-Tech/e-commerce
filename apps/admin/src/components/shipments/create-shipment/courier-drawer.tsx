@@ -210,7 +210,7 @@ export default function CourierDrawer({
           </div>
           {status}
           {rows ? (
-            <div className="-mx-4 ">
+            <div className="-mx-4">
               <CourierTable
                 rows={shown}
                 pick={pick}

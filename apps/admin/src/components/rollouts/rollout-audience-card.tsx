@@ -139,19 +139,20 @@ export default function RolloutAudienceCard({
                 <FieldLabel>{copy.markets}</FieldLabel>
                 <div className="flex flex-wrap gap-x-5 gap-y-2">
                   {markets.map((m) => (
-                    <label
-                      key={m.id}
-                      htmlFor={`rollout-ab-market-${m.id}`}
-                      className="flex items-center gap-2 text-body"
-                    >
+                    <Field key={m.id} orientation="horizontal" className="w-auto gap-2">
                       <Checkbox
                         id={`rollout-ab-market-${m.id}`}
                         checked={audience.marketIds.includes(m.id)}
                         disabled={audienceLocked}
                         onCheckedChange={(on) => handleMarket(m.id, on === true)}
                       />
-                      {m.name}
-                    </label>
+                      <FieldLabel
+                        htmlFor={`rollout-ab-market-${m.id}`}
+                        className="text-body leading-5 font-normal"
+                      >
+                        {m.name}
+                      </FieldLabel>
+                    </Field>
                   ))}
                 </div>
                 <FieldDescription>{copy.marketsHelp}</FieldDescription>

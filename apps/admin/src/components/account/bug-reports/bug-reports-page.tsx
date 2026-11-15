@@ -1,7 +1,7 @@
 'use client'
 
 import type { BugReportView } from '@commerce/core/bug-reports'
-import { BugIcon, RotateCcw } from '@commerce/ui/icons'
+import { BugIcon } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card } from '@commerce/ui/shadcn/card'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
@@ -9,6 +9,7 @@ import { useEffect, useState } from 'react'
 import EmptyState from '@/components/layout/empty-state'
 import PageHeader from '@/components/layout/page-header'
 import PillTabs from '@/components/layout/pill-tabs'
+import PageState from '@/components/states/page-state'
 import { myBugReportsContent } from '@/data/bug-report'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -62,21 +63,15 @@ export default function BugReportsPage() {
   // Early returns
   if (failed) {
     return (
-      <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-6">
         <PageHeader title={copy.title} />
-        <Card gap={3} inset={6} className="items-start">
-          <p className="text-body text-muted-foreground">{copy.loadFailed}</p>
-          <Button variant="outline" onClick={handleRetry}>
-            <RotateCcw aria-hidden="true" />
-            {copy.retry}
-          </Button>
-        </Card>
+        <PageState kind="error" heading={copy.loadFailed} onRetry={handleRetry} />
       </div>
     )
   }
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-6">
       <PageHeader
         title={copy.title}
         subtitle={copy.intro}

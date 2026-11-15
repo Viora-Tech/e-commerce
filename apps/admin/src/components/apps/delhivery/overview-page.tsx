@@ -5,10 +5,12 @@ import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { loadProviderSettings, readTestedFlag } from '@/components/apps/shared/provider-settings'
+import EmptyState from '@/components/layout/empty-state'
 import PageColumns from '@/components/layout/page-columns'
 import PageHeader from '@/components/layout/page-header'
 import { delhiveryAppContent } from '@/data/delhivery'
 import { useCopy, useFormat } from '@/hooks/use-copy'
+import { useLoad } from '@/hooks/use-load'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
 import { useStorageScope } from '@/lib/storage-scope'
@@ -20,12 +22,14 @@ import WalletTile from './wallet-tile'
 
 type Activity = Awaited<ReturnType<typeof api.shipments.courierOverview>>
 type Wallet = Awaited<ReturnType<typeof api.shipments.wallets>>[number]
-type Shipments = Awaited<ReturnType<typeof api.shipments.list>>['items']
-type Places = Awaited<ReturnType<typeof api.shipments.courierPickupPlaces>>
 /** The Delhivery connection as the Connect page saved it; `saved` null when unreadable. */
 type Account = { connected: boolean; saved: Record<string, string> | null }
 
 const PROVIDER = 'delhivery'
+
+/** The four tiles as one joined strip, like `StatStrip` (the wallet tile keeps its buttons). */
+const STRIP =
+  'grid grid-cols-1 gap-px overflow-hidden rounded-lg border border-border bg-border shadow-[var(--shadow-card)] sm:grid-cols-2 xl:grid-cols-4'
 
 /** Settings › Shipping needs `settings.read`; a member without it still sees the rest. */
 async function loadAccount(): Promise<Account> {
@@ -52,10 +56,14 @@ export default function OverviewPage() {
   const storageScope = useStorageScope()
   const [account, setAccount] = useState<Account | null>(null)
   const [activity, setActivity] = useState<Activity | null>(null)
+  /** The figures did not load: dashes, not bars that never fill. */
+  const [activityFailed, setActivityFailed] = useState(false)
   const [wallet, setWallet] = useState<Wallet | null>(null)
   const [walletLoading, setWalletLoading] = useState(true)
-  const [recent, setRecent] = useState<Shipments | null>(null)
-  const [places, setPlaces] = useState<Places | null>(null)
+  const recent = useLoad(
+    async () => (await api.shipments.list({ provider: PROVIDER, page: 1, perPage: 4 })).items,
+  )
+  const places = useLoad(() => api.shipments.courierPickupPlaces({ provider: PROVIDER }))
   const [tested, setTested] = useState(false)
   const [walletKey, setWalletKey] = useState(0)
   useEffect(() => {
@@ -64,15 +72,7 @@ export default function OverviewPage() {
     api.shipments
       .courierOverview({ provider: PROVIDER })
       .then((a) => live && setActivity(a))
-      .catch(() => undefined)
-    api.shipments
-      .list({ provider: PROVIDER, page: 1, perPage: 4 })
-      .then((r) => live && setRecent(r.items))
-      .catch(() => live && setRecent([]))
-    api.shipments
-      .courierPickupPlaces({ provider: PROVIDER })
-      .then((p) => live && setPlaces(p))
-      .catch(() => live && setPlaces([]))
+      .catch(() => live && setActivityFailed(true))
     setTested(readTestedFlag(storageScope, PROVIDER))
     return () => {
       live = false
@@ -97,13 +97,17 @@ export default function OverviewPage() {
     return (
       <div className="flex flex-col gap-4">
         <PageHeader title={copy.title} subtitle={copy.subtitle} />
-        <div className="flex flex-col items-start gap-3 rounded-lg border border-border surface-card p-5">
-          <p className="text-body text-muted-foreground">{copy.notConnected}</p>
-          <Button render={<Link href={routes.apps.connect(PROVIDER)} />} nativeButton={false}>
-            <PlugConnect aria-hidden="true" />
-            {copy.connectCta}
-          </Button>
-        </div>
+        <EmptyState
+          variant="page"
+          icon={PlugConnect}
+          body={copy.notConnected}
+          action={
+            <Button render={<Link href={routes.apps.connect(PROVIDER)} />} nativeButton={false}>
+              <PlugConnect aria-hidden="true" />
+              {copy.connectCta}
+            </Button>
+          }
+        />
       </div>
     )
   }
@@ -111,6 +115,8 @@ export default function OverviewPage() {
   // Render logic
   const t = copy.tiles
   const a = activity
+  /* Before the figures: `null` draws the loading bar; after a failed read, a dash. */
+  const dash = activityFailed ? '—' : null
   const rtoPercent =
     a && a.bookedThisMonth > 0
       ? `${format.number(Math.round((a.rtoThisMonth / a.bookedThisMonth) * 1000) / 10)}%`
@@ -119,7 +125,7 @@ export default function OverviewPage() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader title={copy.title} subtitle={copy.subtitle} />
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className={STRIP}>
         <WalletTile
           wallet={wallet}
           loading={walletLoading}
@@ -127,7 +133,7 @@ export default function OverviewPage() {
         />
         <OverviewTile
           label={t.bookedToday}
-          value={a ? format.number(a.bookedToday) : null}
+          value={a ? format.number(a.bookedToday) : dash}
           note={
             a
               ? a.bookedToday > 0
@@ -138,20 +144,30 @@ export default function OverviewPage() {
         />
         <OverviewTile
           label={t.inTransit}
-          value={a ? format.number(a.moving) : null}
+          value={a ? format.number(a.moving) : dash}
           note={a ? (a.delayed > 0 ? t.delayed(a.delayed) : t.noneDelayed) : null}
         />
         <OverviewTile
           label={t.rto}
-          value={a ? format.number(a.rtoThisMonth) : null}
+          value={a ? format.number(a.rtoThisMonth) : dash}
           note={a ? (rtoPercent ? t.rtoOf(rtoPercent, a.bookedThisMonth) : t.noneThisMonth) : null}
         />
       </div>
       <PageColumns
-        main={<RecentShipmentsCard items={recent} />}
+        main={
+          <RecentShipmentsCard
+            items={recent.data}
+            failed={recent.failed !== false}
+            onRetry={recent.retry}
+          />
+        }
         side={
           <>
-            <PickupLocationsCard places={places} />
+            <PickupLocationsCard
+              places={places.data}
+              failed={places.failed !== false}
+              onRetry={places.retry}
+            />
             <ConnectionCard saved={account?.saved ?? null} tested={tested} />
           </>
         }

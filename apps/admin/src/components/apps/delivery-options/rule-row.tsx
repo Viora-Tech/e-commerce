@@ -61,7 +61,7 @@ export default function RuleRow({
     <div
       className={cn(
         'flex items-center gap-2 bg-card py-3 pr-4 pl-1.5',
-        isDragging && 'rounded-xl shadow-popover',
+        isDragging && 'rounded-lg shadow-popover',
       )}
     >
       {handle}

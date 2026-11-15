@@ -6,12 +6,13 @@ import type { EmailBrand, EmailDesign } from '@commerce/core/marketing'
 import { discountMjml, productGridMjml } from '@commerce/core/marketing'
 import { CheckIcon, LayoutGrid } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
+import { DialogTitle } from '@commerce/ui/shadcn/dialog'
 import type { AssetsCustomData, Editor } from 'grapesjs'
 import { useEffect, useRef, useState } from 'react'
-import { createPortal } from 'react-dom'
 import { toast } from 'sonner'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
 import MediaPickDialog, { type PickedMedia } from '@/components/media/media-pick-dialog'
+import InlineState from '@/components/states/inline-state'
 import { emailBuilderContent } from '@/data/email-builder'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -31,6 +32,8 @@ type VisualBuilderProps = {
   storefrontUrl: string
   onSave: (design: EmailDesign) => void
   onClose: () => void
+  /** Whether the canvas has changes since it opened (the dialog asks before Esc or X closes it). */
+  onDirtyChange: (dirty: boolean) => void
 }
 
 /** Media can be root-relative (`/media/...`); an inbox needs the full address. */
@@ -40,14 +43,16 @@ function absoluteUrl(url: string, origin: string): string {
 }
 
 /**
- * The full-screen drag-and-drop email builder (GrapesJS + MJML). Loaded on demand from the
- * campaign editor, so its bundle never weighs on other admin pages.
+ * The drag-and-drop email builder (GrapesJS + MJML), drawn inside the campaign editor's full-size
+ * dialog (`email-content-switch.tsx`). Loaded on demand, so its bundle never weighs on other
+ * admin pages.
  */
 export default function VisualBuilder({
   design,
   storefrontUrl,
   onSave,
   onClose,
+  onDirtyChange,
 }: VisualBuilderProps) {
   // Hooks
   const copy = useCopy(emailBuilderContent)
@@ -55,18 +60,27 @@ export default function VisualBuilder({
   const [pick, setPick] = useState<PickRequest | null>(null)
   const [imagePick, setImagePick] = useState<AssetsCustomData | null>(null)
   const [dialog, setDialog] = useState<'templates' | 'discard' | null>(null)
+  const [failed, setFailed] = useState(false)
+  const [attempt, setAttempt] = useState(0)
   const containerRef = useRef<HTMLDivElement>(null)
   const editorRef = useRef<Editor | null>(null)
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `attempt` (Try again) re-runs the read
   useEffect(() => {
     let live = true
-    api.marketing.emailBrand().then((b) => {
-      if (live) setBrand(b)
-    })
+    setFailed(false)
+    api.marketing
+      .emailBrand()
+      .then((b) => {
+        if (live) setBrand(b)
+      })
+      .catch(() => {
+        if (live) setFailed(true)
+      })
     return () => {
       live = false
     }
-  }, [])
+  }, [attempt])
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: built once per open; a new `design` must not rebuild the canvas
   useEffect(() => {
@@ -81,6 +95,7 @@ export default function VisualBuilder({
       onPickImage: setImagePick,
     })
     editorRef.current = editor
+    editor.on('update', () => onDirtyChange(editor.getDirtyCount() > 0))
     // A new design opens on the template gallery, so nobody starts from a blank canvas.
     if (!design) setDialog('templates')
     return () => {
@@ -148,15 +163,11 @@ export default function VisualBuilder({
   }
 
   // Render logic
-  const overlay = (
-    <div
-      className="fixed inset-0 z-50 flex flex-col bg-background"
-      role="dialog"
-      aria-modal="true"
-      aria-label={copy.builder.title}
-    >
-      <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-2">
-        <p className="truncate text-card-title">{copy.builder.title}</p>
+  return (
+    <div className="flex min-h-0 flex-1 flex-col">
+      {/* pr-12 leaves room for the dialog's X. */}
+      <div className="flex items-center justify-between gap-3 border-b border-border py-2 pr-12 pl-4">
+        <DialogTitle className="truncate text-card-title">{copy.builder.title}</DialogTitle>
         <div className="flex items-center gap-2">
           <Button
             variant="outline"
@@ -177,7 +188,15 @@ export default function VisualBuilder({
         </div>
       </div>
       <div className="relative min-h-0 flex-1">
-        {brand ? null : (
+        {brand ? null : failed ? (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <InlineState
+              kind="error"
+              heading={copy.builder.loadFailed}
+              onRetry={() => setAttempt((n) => n + 1)}
+            />
+          </div>
+        ) : (
           <div className="absolute inset-0 flex items-center justify-center gap-2 text-body text-muted-foreground">
             <Spinner />
             {copy.builder.loading}
@@ -217,6 +236,4 @@ export default function VisualBuilder({
       />
     </div>
   )
-
-  return createPortal(overlay, document.body)
 }

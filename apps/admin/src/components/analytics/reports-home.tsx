@@ -7,6 +7,7 @@ import Link from 'next/link'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
+import EmptyState from '@/components/layout/empty-state'
 import PageBody from '@/components/layout/page-body'
 import PageHeader from '@/components/layout/page-header'
 import SectionHead from '@/components/layout/section-head'
@@ -68,29 +69,25 @@ export default function ReportsHome({ reports, saved: initialSaved, assistant }:
   // Render logic
   return (
     <PageBody>
-      <div className="flex flex-col gap-6">
-        <PageHeader
-          title={c.title}
-          summary={c.home.intro}
-          actions={
-            <Button
-              variant="outline"
-              nativeButton={false}
-              render={<Link href={routes.analytics.query()} />}
-            >
-              <ListTree />
-              {queryCopy.open}
-            </Button>
-          }
-        />
-        <ReportsAsk enabled={assistant} />
-      </div>
+      <PageHeader
+        title={c.title}
+        summary={c.home.intro}
+        actions={
+          <Button
+            variant="outline"
+            nativeButton={false}
+            render={<Link href={routes.analytics.query()} />}
+          >
+            <ListTree />
+            {queryCopy.open}
+          </Button>
+        }
+      />
+      <ReportsAsk enabled={assistant} />
       <section className="flex flex-col gap-3">
         <SectionHead title={c.saved.title} intro={c.saved.subtitle} />
         {saved.length === 0 ? (
-          <p className="rounded-xl border border-border border-dashed px-5 py-6 text-body text-muted-foreground">
-            {c.saved.empty}
-          </p>
+          <EmptyState variant="dashed" size="sm" body={c.saved.empty} />
         ) : (
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
             {saved.map((s) => (

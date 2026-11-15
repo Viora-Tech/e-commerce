@@ -57,4 +57,17 @@ describe('PickupsTab (Shipments › Pickups, Delhivery › Pickups)', () => {
     render(<PickupsTab provider="delhivery" />)
     expect(await screen.findByText(REFUSAL)).toBeTruthy()
   })
+
+  it('manifests read in words under their own header, and the button spins while it works', async () => {
+    const scheduled = { ...failedRow, status: 'scheduled', error: null }
+    listPickups.mockResolvedValue([scheduled])
+    listManifests.mockResolvedValue([{ id: 'm1', provider: 'delhivery', shipmentIds: ['a', 'b'] }])
+    createManifest.mockReturnValue(new Promise(() => undefined))
+    render(<PickupsTab provider="delhivery" />)
+    expect(await screen.findByText('2 shipments')).toBeTruthy()
+    expect(screen.getByRole('columnheader', { name: 'Courier' })).toBeTruthy()
+    const make = screen.getByRole('button', { name: /create manifest/i }) as HTMLButtonElement
+    fireEvent.click(make)
+    await waitFor(() => expect(make.disabled).toBe(true))
+  })
 })

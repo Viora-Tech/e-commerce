@@ -2,6 +2,7 @@
 
 import { RefreshCw, TriangleAlert, XIcon } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
+import { Alert, AlertDescription, AlertTitle } from '@commerce/ui/shadcn/alert'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Checkbox } from '@commerce/ui/shadcn/checkbox'
 import {
@@ -11,13 +12,14 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from '@commerce/ui/shadcn/drawer'
-import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { Switch } from '@commerce/ui/shadcn/switch'
 import { Table, TableBody, TableHead, TableHeader, TableRow } from '@commerce/ui/shadcn/table'
 import { useState } from 'react'
 import AppStoreLink from '@/components/apps/app-store-link'
 import ChoiceField from '@/components/apps/gst-invoices/choice-field'
 import EmptyState from '@/components/layout/empty-state'
+import InlineState from '@/components/states/inline-state'
+import TableSkeletonRows from '@/components/table/table-skeleton-rows'
 import { bulkShipContent } from '@/data/bulk-ship'
 import { useCopy } from '@/hooks/use-copy'
 import { BESIDE_SIDEBAR } from '@/lib/sidebar-motion'
@@ -149,14 +151,12 @@ export default function BulkShipDrawer({
             </div>
 
             <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
-              {!draft ? (
-                <p className="flex items-center gap-2 px-4 py-10 text-body text-muted-foreground">
-                  {b.failed ? null : <Spinner />}
-                  {b.failed ? copy.loadFailed : copy.loading}
-                </p>
+              {/* Failed: the reason and Try again where the table would be (audit section 4). */}
+              {!draft && b.failed ? (
+                <InlineState kind="error" heading={copy.loadFailed} onRetry={b.reload} />
               ) : (
                 <>
-                  {draft.couriers.length === 0 ? (
+                  {draft && draft.couriers.length === 0 ? (
                     <div className="flex flex-col items-start gap-3 px-4 py-3">
                       <EmptyState variant="inline" body={copy.noCourierConnected} />
                       <AppStoreLink category="shipping" className="w-fit">
@@ -165,19 +165,20 @@ export default function BulkShipDrawer({
                     </div>
                   ) : null}
                   {b.quoteError !== null ? (
-                    <div
-                      role="alert"
-                      className="mx-4 mb-3 flex items-center gap-3 rounded-lg border border-danger-border bg-danger-soft px-4 py-3 text-body md:mx-8"
-                    >
-                      <TriangleAlert aria-hidden="true" className="size-4 shrink-0 text-danger" />
-                      <span className="flex-1">
-                        {copy.quoteFailed}{' '}
-                        <span className="text-muted-foreground">{b.quoteError}</span>
-                      </span>
-                      <Button size="sm" variant="outline" onClick={b.recheck}>
-                        <RefreshCw aria-hidden="true" />
-                        {copy.retry}
-                      </Button>
+                    <div className="px-4 pb-3">
+                      <Alert
+                        tone="danger"
+                        action={
+                          <Button size="sm" variant="outline" onClick={b.recheck}>
+                            <RefreshCw aria-hidden="true" />
+                            {copy.retry}
+                          </Button>
+                        }
+                      >
+                        <TriangleAlert aria-hidden="true" />
+                        <AlertTitle>{copy.quoteFailed}</AlertTitle>
+                        {b.quoteError ? <AlertDescription>{b.quoteError}</AlertDescription> : null}
+                      </Alert>
                     </div>
                   ) : null}
                   <div className="overflow-x-auto">
@@ -208,13 +209,21 @@ export default function BulkShipDrawer({
                         </TableRow>
                       </TableHeader>
                       <TableBody>
+                        {/* Loading: the table's own header over placeholder rows, no spinner. */}
+                        {!draft ? (
+                          <TableSkeletonRows
+                            columns={10}
+                            rows={Math.min(orderIds.length, 8)}
+                            label={copy.loading}
+                          />
+                        ) : null}
                         {b.lines.map((line) => (
                           <BulkShipRow
                             key={line.order.orderId}
                             line={line}
                             edit={b.edits[line.order.orderId]}
                             rule={b.rule}
-                            boxes={draft.boxes}
+                            boxes={draft?.boxes ?? []}
                             ticked={isTicked(line, b.unticked)}
                             onTick={(on) => b.tick(line.order.orderId, on)}
                             onEdit={() => setEditing(line.order.orderId)}

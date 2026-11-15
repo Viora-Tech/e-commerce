@@ -2,13 +2,16 @@
 
 import { siteConfig } from '@commerce/config/site'
 import { Button } from '@commerce/ui/shadcn/button'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { toast } from 'sonner'
 import PageHeader from '@/components/layout/page-header'
 import RelativeTime from '@/components/layout/relative-time'
 import OrderChip from '@/components/orders/order-chip'
 import ResourceTable, { type ResourceColumnSpec } from '@/components/table/resource-table'
+import { appsContent } from '@/data/apps'
 import { backInStockContent } from '@/data/back-in-stock'
+import { useCopy } from '@/hooks/use-copy'
+import { useLoad } from '@/hooks/use-load'
 import { api } from '@/lib/api-client'
 
 type Row = Awaited<ReturnType<typeof api.backInStock.signups.list>>[number]
@@ -48,21 +51,17 @@ const columns: ResourceColumnSpec<Row>[] = [
 /** Every "notify me" signup: who is waiting, for what, and where they are in the double opt-in flow. */
 export default function SignupsList() {
   // Hooks
-  const [rows, setRows] = useState<Row[] | null>(null)
+  const apps = useCopy(appsContent)
+  const {
+    data: rows,
+    failed,
+    retry,
+    setData: setRows,
+  } = useLoad(() => api.backInStock.signups.list({}))
   const [query, setQuery] = useState('')
   const [page, setPage] = useState(1)
   const [perPage, setPerPage] = useState<number>(siteConfig.ui.rowsPerPage.default)
   const [importing, setImporting] = useState(false)
-
-  useEffect(() => {
-    let cancelled = false
-    api.backInStock.signups.list({}).then((r) => {
-      if (!cancelled) setRows(r)
-    })
-    return () => {
-      cancelled = true
-    }
-  }, [])
 
   // Event handlers
   const handleQuery = (next: string) => {
@@ -102,8 +101,8 @@ export default function SignupsList() {
         title={copy.title}
         summary={copy.subtitle}
         actions={
-          <Button variant="outline" disabled={importing} onClick={handleRestockTags}>
-            {importing ? copy.restockTagsBusy : copy.restockTags}
+          <Button variant="outline" loading={importing} onClick={handleRestockTags}>
+            {copy.restockTags}
           </Button>
         }
       />
@@ -113,7 +112,8 @@ export default function SignupsList() {
         items={visible}
         getId={(r) => r.id}
         selectable={false}
-        loading={rows === null}
+        loading={rows === null && !failed}
+        error={failed ? { heading: apps.couldNotLoad.signups, onRetry: retry } : undefined}
         query={query}
         onQueryChange={handleQuery}
         page={page}

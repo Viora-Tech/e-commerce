@@ -18,9 +18,8 @@ import ActionMenu from '@/components/layout/action-menu'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
 import DataCard from '@/components/layout/data-card'
 import FallbackImage from '@/components/layout/fallback-image'
-import PageColumns from '@/components/layout/page-columns'
 import PageHeader from '@/components/layout/page-header'
-import ProoflyPageBody from '@/components/layout/proofly-page-body'
+import ProoflyDetailPage from '@/components/layout/proofly-detail-page'
 import { imageEditorContent } from '@/data/image-editor'
 import { mediaContent } from '@/data/media'
 import { useCopy } from '@/hooks/use-copy'
@@ -92,95 +91,98 @@ export default function MediaFilePage({ file, usedIn, neighbours, filter }: Medi
   const nextHref = neighbours.next ? routes.content.file(neighbours.next, filter) : null
 
   return (
-    <ProoflyPageBody>
-      <PageHeader
-        title={name}
-        subtitle={[typeLabel, size, dimensions].filter(Boolean).join(' · ')}
-        back={{ label: copy.back, href: routes.content.files() }}
-        lead={{ kind: 'icon', node: kind === 'image' ? <ImageIcon /> : <FileText /> }}
-        actions={
-          <>
-            <StepLink href={previousHref} label={copy.previous}>
-              <ChevronLeftIcon aria-hidden="true" />
-            </StepLink>
-            <StepLink href={nextHref} label={copy.next}>
-              <ChevronRightIcon aria-hidden="true" />
-            </StepLink>
-            <Button
-              variant="outline"
-              nativeButton={false}
-              render={
-                <a href={file.url} download={name} target="_blank" rel="noopener noreferrer" />
-              }
-            >
-              <Download aria-hidden="true" />
-              {copy.download}
-            </Button>
-            {isEditableImage(type) ? (
-              <Button type="button" variant="outline" onClick={() => setEditing(true)}>
-                <Pencil aria-hidden="true" />
-                {editImageLabel}
+    <ProoflyDetailPage
+      header={
+        <PageHeader
+          title={name}
+          subtitle={[typeLabel, size, dimensions].filter(Boolean).join(' · ')}
+          back={{ label: copy.back, href: routes.content.files() }}
+          lead={{ kind: 'icon', node: kind === 'image' ? <ImageIcon /> : <FileText /> }}
+          actions={
+            <>
+              <StepLink href={previousHref} label={copy.previous}>
+                <ChevronLeftIcon aria-hidden="true" />
+              </StepLink>
+              <StepLink href={nextHref} label={copy.next}>
+                <ChevronRightIcon aria-hidden="true" />
+              </StepLink>
+              <Button
+                variant="outline"
+                nativeButton={false}
+                render={
+                  <a href={file.url} download={name} target="_blank" rel="noopener noreferrer" />
+                }
+              >
+                <Download aria-hidden="true" />
+                {copy.download}
               </Button>
-            ) : null}
-            <ActionMenu
-              label={copy.more}
-              variant="outline"
-              items={[{ label: copy.delete, onSelect: () => setDeleting(true), destructive: true }]}
-            />
-          </>
-        }
-      />
-      <PageColumns
-        main={
-          <>
-            <DataCard title={copy.preview}>
-              <div className="flex aspect-[4/3] max-h-[36rem] w-full items-center justify-center overflow-hidden rounded-xl border bg-muted">
-                {kind === 'video' ? (
-                  // biome-ignore lint/a11y/useMediaCaption: merchant's own upload, previewed in admin.
-                  <video src={file.url} controls playsInline className="size-full object-contain" />
-                ) : kind === 'image' ? (
-                  <FallbackImage
-                    src={file.url}
-                    alt={alt ?? ''}
-                    className="size-full object-contain"
-                    fallback={<FileText className="size-12 text-muted-foreground" aria-hidden />}
-                  />
-                ) : (
-                  <FileText className="size-12 text-muted-foreground" aria-hidden />
-                )}
-              </div>
-            </DataCard>
-            <DataCard title={copy.link}>
-              <MediaFileLink url={file.url} variants={file.variants} />
-            </DataCard>
-          </>
-        }
-        side={
-          <>
-            <DataCard title={copy.details}>
-              <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-body">
-                {facts.map((f) => (
-                  <div key={f.label} className="contents">
-                    <dt className="text-muted-foreground">{f.label}</dt>
-                    <dd className="text-right text-foreground tabular-nums">{f.value}</dd>
-                  </div>
-                ))}
-              </dl>
-            </DataCard>
-            <DataCard title={copy.alt}>
-              <MediaFileAlt
-                key={file.id}
-                id={file.id}
-                alt={alt}
-                onSaved={(_, next) => setAlt(next)}
+              {isEditableImage(type) ? (
+                <Button type="button" variant="outline" onClick={() => setEditing(true)}>
+                  <Pencil aria-hidden="true" />
+                  {editImageLabel}
+                </Button>
+              ) : null}
+              <ActionMenu
+                label={copy.more}
+                variant="outline"
+                items={[
+                  { label: copy.delete, onSelect: () => setDeleting(true), destructive: true },
+                ]}
               />
-            </DataCard>
-            <DataCard title={copy.usedIn} count={usedIn.length}>
-              <MediaFileUsedIn rows={usedIn} />
-            </DataCard>
-          </>
-        }
-      />
+            </>
+          }
+        />
+      }
+      main={
+        <>
+          <DataCard title={copy.preview}>
+            <div className="flex aspect-[4/3] max-h-[36rem] w-full items-center justify-center overflow-hidden rounded-lg border bg-muted">
+              {kind === 'video' ? (
+                // biome-ignore lint/a11y/useMediaCaption: merchant's own upload, previewed in admin.
+                <video src={file.url} controls playsInline className="size-full object-contain" />
+              ) : kind === 'image' ? (
+                <FallbackImage
+                  src={file.url}
+                  alt={alt ?? ''}
+                  className="size-full object-contain"
+                  fallback={<FileText className="size-12 text-muted-foreground" aria-hidden />}
+                />
+              ) : (
+                <FileText className="size-12 text-muted-foreground" aria-hidden />
+              )}
+            </div>
+          </DataCard>
+          <DataCard title={copy.link}>
+            <MediaFileLink url={file.url} variants={file.variants} />
+          </DataCard>
+        </>
+      }
+      side={
+        <>
+          <DataCard title={copy.details}>
+            <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-body">
+              {facts.map((f) => (
+                <div key={f.label} className="contents">
+                  <dt className="text-muted-foreground">{f.label}</dt>
+                  <dd className="text-right text-foreground tabular-nums">{f.value}</dd>
+                </div>
+              ))}
+            </dl>
+          </DataCard>
+          <DataCard title={copy.alt}>
+            <MediaFileAlt
+              key={file.id}
+              id={file.id}
+              alt={alt}
+              onSaved={(_, next) => setAlt(next)}
+            />
+          </DataCard>
+          <DataCard title={copy.usedIn} count={usedIn.length}>
+            <MediaFileUsedIn rows={usedIn} />
+          </DataCard>
+        </>
+      }
+    >
       <ImageEditorDialog
         item={editing ? { id: file.id, url: file.url, alt, contentType: type } : null}
         mode="copy"
@@ -197,7 +199,7 @@ export default function MediaFilePage({ file, usedIn, neighbours, filter }: Medi
         cancelLabel={library.cancel}
         onConfirm={handleDelete}
       />
-    </ProoflyPageBody>
+    </ProoflyDetailPage>
   )
 }
 

@@ -46,7 +46,7 @@ export default function DateSection({ group }: DateSectionProps) {
       {custom ? (
         <div className="flex gap-2">
           <div className="flex min-w-0 flex-1 flex-col gap-1">
-            <span className="text-xs text-muted-foreground">{copy.from}</span>
+            <span className="text-period text-muted-foreground">{copy.from}</span>
             <DateField
               aria-label={copy.from}
               value={group.value.from}
@@ -55,7 +55,7 @@ export default function DateSection({ group }: DateSectionProps) {
             />
           </div>
           <div className="flex min-w-0 flex-1 flex-col gap-1">
-            <span className="text-xs text-muted-foreground">{copy.to}</span>
+            <span className="text-period text-muted-foreground">{copy.to}</span>
             <DateField
               aria-label={copy.to}
               value={group.value.to}

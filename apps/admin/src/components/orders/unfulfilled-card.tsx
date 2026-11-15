@@ -218,7 +218,8 @@ export default function UnfulfilledCard({
                     min={0}
                     max={remaining}
                     aria-label={copy.fulfilDialog.quantity}
-                    className="h-8 w-16 tabular-nums"
+                    size="sm"
+                    className="w-16 tabular-nums"
                     value={qty}
                     onChange={(e) => handleQuantity(line.id, e.target.value, remaining)}
                   />

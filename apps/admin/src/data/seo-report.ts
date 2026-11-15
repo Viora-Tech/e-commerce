@@ -3,10 +3,7 @@ export const seoReportContent = {
   title: 'SEO',
   subtitle:
     'How well Google, Bing and AI search (ChatGPT, Perplexity) can find and show your products, collections and pages.',
-  unavailable: {
-    heading: 'SEO report unavailable',
-    body: 'You need access to the online store to see its SEO report.',
-  },
+  loadFailed: 'Could not load the SEO report',
   score: {
     label: 'SEO score',
     outOf: 'out of 100',

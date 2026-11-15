@@ -6,7 +6,7 @@ import { Checkbox } from '@commerce/ui/shadcn/checkbox'
 import { Field, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
-import { Table, TableBody, TableCell, TableRow } from '@commerce/ui/shadcn/table'
+import { TableCell, TableRow } from '@commerce/ui/shadcn/table'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import CopyButton from '@/components/fields/copy-button'
@@ -128,7 +128,7 @@ export default function PickupsTab({ provider }: PickupsTabProps = {}) {
   }
 
   const handleManifest = async (pickupId: string) => {
-    setBusy('manifest')
+    setBusy(`manifest:${pickupId}`)
     try {
       await api.shipments.createManifest({ pickupId })
       setReloadKey((k) => k + 1)
@@ -265,7 +265,13 @@ export default function PickupsTab({ provider }: PickupsTabProps = {}) {
               <TableCell className="text-right">
                 {/* A failed request holds no parcels, so there is nothing to manifest. */}
                 {p.status === 'failed' ? null : (
-                  <Button variant="outline" size="sm" onClick={() => handleManifest(p.id)}>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    loading={busy === `manifest:${p.id}`}
+                    disabled={busy !== null}
+                    onClick={() => handleManifest(p.id)}
+                  >
                     <ClipboardList aria-hidden="true" />
                     {copy.createManifestFor}
                   </Button>
@@ -278,21 +284,24 @@ export default function PickupsTab({ provider }: PickupsTabProps = {}) {
 
       <DataCard title={copy.manifestsHeading} flush>
         <p className="px-4 pt-4 text-caption text-muted-foreground">{copy.manifestHelp}</p>
-        <Table>
-          <TableBody>
-            {loading ? (
-              <TableSkeletonRows columns={2} rows={2} label={states.loading} />
-            ) : manifests.length === 0 ? (
-              <TableEmptyRow colSpan={2} message={copy.manifestsEmpty} />
-            ) : null}
-            {manifests.map((m) => (
-              <TableRow key={m.id}>
-                <TableCell className="capitalize">{m.provider}</TableCell>
-                <TableCell>{m.shipmentIds.length} shipments</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+        <SimpleTable
+          columns={[
+            { key: 'courier', label: copy.manifestColumns.courier },
+            { key: 'shipments', label: copy.manifestColumns.shipments },
+          ]}
+        >
+          {loading ? (
+            <TableSkeletonRows columns={2} rows={2} label={states.loading} />
+          ) : manifests.length === 0 ? (
+            <TableEmptyRow colSpan={2} message={copy.manifestsEmpty} />
+          ) : null}
+          {manifests.map((m) => (
+            <TableRow key={m.id}>
+              <TableCell className="capitalize">{m.provider}</TableCell>
+              <TableCell>{copy.manifestShipments(m.shipmentIds.length)}</TableCell>
+            </TableRow>
+          ))}
+        </SimpleTable>
       </DataCard>
     </div>
   )

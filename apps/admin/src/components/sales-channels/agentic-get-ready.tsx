@@ -12,6 +12,7 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 import DataCard from '@/components/layout/data-card'
 import PageBody from '@/components/layout/page-body'
+import PageColumns from '@/components/layout/page-columns'
 import PageHeader from '@/components/layout/page-header'
 import { salesChannelsContent } from '@/data/sales-channels'
 import { useCopy, useFormat } from '@/hooks/use-copy'
@@ -103,97 +104,100 @@ export default function AgenticGetReady({ data }: AgenticGetReadyProps) {
           </Button>
         }
       />
-      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,20rem)]">
-        <div className="flex flex-col gap-6">
-          <h2 className="max-w-[34rem] text-balance text-2xl font-semibold tracking-tight text-ink-strong">
-            {copy.headline}
-          </h2>
-          <section className="flex flex-col gap-3">
-            <h3 className="text-body font-semibold text-foreground">{copy.stepsHeading}</h3>
-            <ul className="flex flex-col gap-2 rounded-lg border border-border bg-card p-2 shadow-[var(--shadow-card)]">
-              {steps.map((step) => (
-                <li key={step.id}>
-                  <Link
-                    href={step.href}
-                    className="group flex items-center gap-3 rounded-md px-3 py-3 transition-colors duration-150 hover:bg-muted/60 focus-visible:ring-2 focus-visible:ring-ring/70 focus-visible:outline-none motion-reduce:transition-none"
-                  >
-                    {step.done ? (
-                      <CircleCheck
-                        aria-label={copy.done}
-                        className="size-5 shrink-0 text-success"
+      <PageColumns
+        main={
+          <>
+            <h2 className="max-w-[34rem] text-balance text-2xl font-semibold tracking-tight text-ink-strong">
+              {copy.headline}
+            </h2>
+            <DataCard title={copy.stepsHeading} flush>
+              <ul className="flex flex-col divide-y divide-border border-t border-border">
+                {steps.map((step) => (
+                  <li key={step.id}>
+                    <Link
+                      href={step.href}
+                      className="group flex items-center gap-3 px-5 py-3 transition-colors duration-150 hover:bg-row-hover focus-visible:ring-2 focus-visible:ring-ring/70 focus-visible:outline-none focus-visible:ring-inset motion-reduce:transition-none"
+                    >
+                      {step.done ? (
+                        <CircleCheck
+                          aria-label={copy.done}
+                          className="size-5 shrink-0 text-success"
+                        />
+                      ) : (
+                        <span
+                          role="img"
+                          aria-label={copy.todo}
+                          className="size-5 shrink-0 rounded-full border-2 border-dashed border-muted-foreground/50"
+                        />
+                      )}
+                      <span className="flex min-w-0 flex-1 flex-col">
+                        <span className="text-body font-medium text-foreground">{step.title}</span>
+                        <span className="text-caption text-muted-foreground">{step.body}</span>
+                      </span>
+                      <ChevronRight
+                        aria-hidden
+                        className="size-4 shrink-0 text-muted-foreground transition-transform duration-150 group-hover:translate-x-0.5 motion-reduce:transition-none"
                       />
-                    ) : (
-                      <span
-                        role="img"
-                        aria-label={copy.todo}
-                        className="size-5 shrink-0 rounded-full border-2 border-dashed border-muted-foreground/50"
-                      />
-                    )}
-                    <span className="flex min-w-0 flex-1 flex-col">
-                      <span className="text-body font-medium text-foreground">{step.title}</span>
-                      <span className="text-caption text-muted-foreground">{step.body}</span>
-                    </span>
-                    <ChevronRight
-                      aria-hidden
-                      className="size-4 shrink-0 text-muted-foreground transition-transform duration-150 group-hover:translate-x-0.5 motion-reduce:transition-none"
-                    />
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </section>
-          <p className="text-caption text-muted-foreground">{copy.note}</p>
-        </div>
-        <div className="flex flex-col gap-4 lg:sticky lg:top-4">
-          <DataCard title={copy.channelsHeading}>
-            <div className="flex items-center justify-between gap-3 text-body font-medium text-foreground">
-              <span id="agentic-manage">{copy.manage}</span>
-              <Switch
-                checked={managed}
-                disabled={busy}
-                onCheckedChange={handleManage}
-                aria-labelledby="agentic-manage"
-              />
-            </div>
-            <p className="mt-1 text-caption text-muted-foreground">{copy.manageBody}</p>
-            <ul className="mt-4 flex flex-col gap-3 border-t border-border pt-4">
-              {AI_AGENTS.map((agent) => {
-                const state = data.agents.find((a) => a.agent === agent)?.state
-                return (
-                  <li key={agent} className="flex items-center gap-2.5">
-                    <ChannelLogo channel={agent} size="sm" />
-                    <span className="min-w-0 flex-1 truncate text-body text-foreground">
-                      {shared.agents[agent].name}
-                    </span>
-                    {state ? <ChannelStatusChip status={agentChipStatus(state)} /> : null}
+                    </Link>
                   </li>
-                )
-              })}
-            </ul>
-          </DataCard>
-          <DataCard title={copy.sourcesHeading}>
-            <dl className="flex flex-col gap-2.5 text-body">
-              <div className="flex items-center justify-between gap-3">
-                <dt className="text-foreground">{copy.sources.catalog}</dt>
-                <dd className="text-muted-foreground tabular-nums">
-                  {copy.sources.products(format.number(products.visible))}
-                </dd>
+                ))}
+              </ul>
+            </DataCard>
+            <p className="text-caption text-muted-foreground">{copy.note}</p>
+          </>
+        }
+        side={
+          <>
+            <DataCard title={copy.channelsHeading}>
+              <div className="flex items-center justify-between gap-3 text-body font-medium text-foreground">
+                <span id="agentic-manage">{copy.manage}</span>
+                <Switch
+                  checked={managed}
+                  disabled={busy}
+                  onCheckedChange={handleManage}
+                  aria-labelledby="agentic-manage"
+                />
               </div>
-              <div className="flex items-center justify-between gap-3">
-                <dt className="text-foreground">{copy.sources.score}</dt>
-                <dd
-                  className={cn(
-                    'tabular-nums',
-                    readiness.score >= READY_SCORE ? 'text-success' : 'text-muted-foreground',
-                  )}
-                >
-                  {readiness.score}/100
-                </dd>
-              </div>
-            </dl>
-          </DataCard>
-        </div>
-      </div>
+              <p className="mt-1 text-caption text-muted-foreground">{copy.manageBody}</p>
+              <ul className="mt-4 flex flex-col gap-3 border-t border-border pt-4">
+                {AI_AGENTS.map((agent) => {
+                  const state = data.agents.find((a) => a.agent === agent)?.state
+                  return (
+                    <li key={agent} className="flex items-center gap-2.5">
+                      <ChannelLogo channel={agent} size="sm" />
+                      <span className="min-w-0 flex-1 truncate text-body text-foreground">
+                        {shared.agents[agent].name}
+                      </span>
+                      {state ? <ChannelStatusChip status={agentChipStatus(state)} /> : null}
+                    </li>
+                  )
+                })}
+              </ul>
+            </DataCard>
+            <DataCard title={copy.sourcesHeading}>
+              <dl className="flex flex-col gap-2.5 text-body">
+                <div className="flex items-center justify-between gap-3">
+                  <dt className="text-foreground">{copy.sources.catalog}</dt>
+                  <dd className="text-muted-foreground tabular-nums">
+                    {copy.sources.products(format.number(products.visible))}
+                  </dd>
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <dt className="text-foreground">{copy.sources.score}</dt>
+                  <dd
+                    className={cn(
+                      'tabular-nums',
+                      readiness.score >= READY_SCORE ? 'text-success' : 'text-muted-foreground',
+                    )}
+                  >
+                    {readiness.score}/100
+                  </dd>
+                </div>
+              </dl>
+            </DataCard>
+          </>
+        }
+      />
     </PageBody>
   )
 }

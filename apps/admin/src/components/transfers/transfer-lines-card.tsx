@@ -9,6 +9,7 @@ import KitThumb from '@/components/kit/kit-thumb'
 import DataCard from '@/components/layout/data-card'
 import EmptyState from '@/components/layout/empty-state'
 import { transferFormContent } from '@/data/inventory'
+import { useCopy } from '@/hooks/use-copy'
 
 export type TransferLine = {
   variantId: string
@@ -27,8 +28,6 @@ type TransferLinesCardProps = {
   locked: boolean
   onChange: (lines: TransferLine[]) => void
 }
-
-const copy = transferFormContent.lines
 
 function lineFromHit(hit: VariantHit): TransferLine {
   return {
@@ -49,6 +48,9 @@ export default function TransferLinesCard({
   locked,
   onChange,
 }: TransferLinesCardProps) {
+  // Hooks
+  const { lines: copy } = useCopy(transferFormContent)
+
   // Event handlers
   const handlePick = (hit: VariantHit) => onChange([...lines, lineFromHit(hit)])
 

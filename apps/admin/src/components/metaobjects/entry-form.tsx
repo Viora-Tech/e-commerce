@@ -3,12 +3,12 @@
 import { type FieldDefinition, validateFields } from '@commerce/core/metaobjects'
 import { Copy, Save, Trash2 } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import { Card, CardContent } from '@commerce/ui/shadcn/card'
 import { FieldGroup } from '@commerce/ui/shadcn/field'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
+import DataCard from '@/components/layout/data-card'
 import PageHeader from '@/components/layout/page-header'
 import ProoflyDetailPage from '@/components/layout/proofly-detail-page'
 import SaveBar from '@/components/layout/save-bar'
@@ -171,21 +171,19 @@ export default function EntryForm({ definition, entry, title }: EntryFormProps) 
         />
       }
       main={
-        <Card size="form">
-          <CardContent>
-            <FieldGroup>
-              {fields.map((f) => (
-                <FieldInput
-                  key={f.key}
-                  rule={f}
-                  value={form.fields[f.key]}
-                  error={errors[f.key]}
-                  onChange={(value) => setField(f.key, value)}
-                />
-              ))}
-            </FieldGroup>
-          </CardContent>
-        </Card>
+        <DataCard title={copy.fieldsHeading}>
+          <FieldGroup>
+            {fields.map((f) => (
+              <FieldInput
+                key={f.key}
+                rule={f}
+                value={form.fields[f.key]}
+                error={errors[f.key]}
+                onChange={(value) => setField(f.key, value)}
+              />
+            ))}
+          </FieldGroup>
+        </DataCard>
       }
       side={
         <EntrySideCards

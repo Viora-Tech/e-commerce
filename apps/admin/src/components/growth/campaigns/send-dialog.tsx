@@ -55,14 +55,18 @@ export default function SendDialog({
           <DialogTitle>{copy.title}</DialogTitle>
         </DialogHeader>
         <RadioGroup value={mode} onValueChange={(v) => setMode(v as 'now' | 'later')}>
-          <label className="flex items-center gap-2 text-body" htmlFor="send-now">
+          <Field orientation="horizontal" className="gap-2">
             <RadioGroupItem id="send-now" value="now" />
-            {copy.now}
-          </label>
-          <label className="flex items-center gap-2 text-body" htmlFor="send-later">
+            <FieldLabel htmlFor="send-now" className="text-body leading-5 font-normal">
+              {copy.now}
+            </FieldLabel>
+          </Field>
+          <Field orientation="horizontal" className="gap-2">
             <RadioGroupItem id="send-later" value="later" />
-            {copy.later}
-          </label>
+            <FieldLabel htmlFor="send-later" className="text-body leading-5 font-normal">
+              {copy.later}
+            </FieldLabel>
+          </Field>
         </RadioGroup>
         {mode === 'later' ? (
           <Field>

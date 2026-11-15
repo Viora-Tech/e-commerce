@@ -21,6 +21,7 @@ import DataCard from '@/components/layout/data-card'
 import EmptyState from '@/components/layout/empty-state'
 import KeyValueList from '@/components/layout/key-value-list'
 import PageBody from '@/components/layout/page-body'
+import PageColumns from '@/components/layout/page-columns'
 import PageHeader from '@/components/layout/page-header'
 import PillTabs from '@/components/layout/pill-tabs'
 import StatStrip from '@/components/layout/stat-strip'
@@ -228,115 +229,121 @@ export default function SocialChannelPage({ data, issues }: SocialChannelPagePro
           },
         ]}
       />
-      <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,22rem)]">
-        <div className="flex flex-col gap-4">
-          <DataCard
-            title={isLive(state) ? copy.fixHeading : copy.beforeHeading}
-            subtitle={isLive(state) ? copy.fixBody(info.partner) : copy.beforeBody(info.partner)}
-            count={blocking.length}
-            flush
-            action={
-              <Button
-                variant="link"
-                size="xs"
-                nativeButton={false}
-                render={<Link href={routes.salesChannels.agenticReadiness()} />}
-                className="h-auto px-0"
-              >
-                {shared.readiness.title}
-              </Button>
-            }
-          >
-            {blocking.length === 0 ? (
-              <EmptyState variant="plain" size="sm" body={shared.readiness.empty} />
-            ) : (
-              <ul className="divide-y divide-border border-t border-border">
-                {blocking.slice(0, SHOWN_ISSUES).map((i) => (
-                  <IssueRow
-                    key={i.id}
-                    severity={i.severity}
-                    severityLabel={shared.readiness.severity[i.severity]}
-                    title={
-                      i.kind === 'policy'
-                        ? (shared.readiness.policyNames[i.ref] ?? i.title)
-                        : i.title
-                    }
-                    kind={i.kind === 'policy' ? shared.readiness.policy : shared.readiness.product}
-                    detail={
-                      i.rule === 'short_description'
-                        ? copy.rules.short_description(info.partner, i.n ?? 0)
-                        : i.rule === 'few_images'
-                          ? copy.rules.few_images(info.partner, i.n ?? 0)
-                          : i.rule === 'no_images' || i.rule === 'no_category'
-                            ? shared.readiness.rules[i.rule]
-                            : copy.rules[i.rule](info.partner)
-                    }
-                    action={
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        nativeButton={false}
-                        render={
-                          <Link
-                            href={
-                              i.kind === 'policy'
-                                ? routes.settings.policy(i.ref)
-                                : routes.products.detail(i.ref)
-                            }
-                          />
-                        }
-                      >
-                        {i.fix === 'ai'
-                          ? shared.readiness.fixes.attributes
-                          : shared.readiness.fixes[i.fix]}
-                      </Button>
-                    }
-                  />
-                ))}
-              </ul>
-            )}
-          </DataCard>
-          <ChartCard
-            title={copy.salesHeading(name)}
-            subtitle={copy.salesSub(format.moneyWhole(totals.revenuePaise))}
-            periods={[
-              {
-                id: '30d',
-                label: copy.thisPeriod,
-                data: data.series.map((p) => ({
-                  label: format.date(p.date),
-                  value: p.paise / 100,
-                })),
-              },
-            ]}
-            seriesLabel={copy.thisPeriod}
-            formatValue={(n) => format.moneyCompact(n * 100)}
-          />
-        </div>
-        <div className="flex flex-col gap-4">
-          {data.meta.length > 0 ? (
-            <MetaConnectionCard channel={channel} surfaces={data.meta} />
-          ) : null}
-          <DataCard title={copy.connection}>
-            <KeyValueList
-              variant="grid"
-              rows={[
-                { label: copy.partner, value: info.partner },
-                { label: copy.account, value: state.account ?? shared.card.none },
+      <PageColumns
+        main={
+          <>
+            <DataCard
+              title={isLive(state) ? copy.fixHeading : copy.beforeHeading}
+              subtitle={isLive(state) ? copy.fixBody(info.partner) : copy.beforeBody(info.partner)}
+              count={blocking.length}
+              flush
+              action={
+                <Button
+                  variant="link"
+                  size="xs"
+                  nativeButton={false}
+                  render={<Link href={routes.salesChannels.agenticReadiness()} />}
+                  className="h-auto px-0"
+                >
+                  {shared.readiness.title}
+                </Button>
+              }
+            >
+              {blocking.length === 0 ? (
+                <EmptyState variant="plain" size="sm" body={shared.readiness.empty} />
+              ) : (
+                <ul className="divide-y divide-border border-t border-border">
+                  {blocking.slice(0, SHOWN_ISSUES).map((i) => (
+                    <IssueRow
+                      key={i.id}
+                      severity={i.severity}
+                      severityLabel={shared.readiness.severity[i.severity]}
+                      title={
+                        i.kind === 'policy'
+                          ? (shared.readiness.policyNames[i.ref] ?? i.title)
+                          : i.title
+                      }
+                      kind={
+                        i.kind === 'policy' ? shared.readiness.policy : shared.readiness.product
+                      }
+                      detail={
+                        i.rule === 'short_description'
+                          ? copy.rules.short_description(info.partner, i.n ?? 0)
+                          : i.rule === 'few_images'
+                            ? copy.rules.few_images(info.partner, i.n ?? 0)
+                            : i.rule === 'no_images' || i.rule === 'no_category'
+                              ? shared.readiness.rules[i.rule]
+                              : copy.rules[i.rule](info.partner)
+                      }
+                      action={
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          nativeButton={false}
+                          render={
+                            <Link
+                              href={
+                                i.kind === 'policy'
+                                  ? routes.settings.policy(i.ref)
+                                  : routes.products.detail(i.ref)
+                              }
+                            />
+                          }
+                        >
+                          {i.fix === 'ai'
+                            ? shared.readiness.fixes.attributes
+                            : shared.readiness.fixes[i.fix]}
+                        </Button>
+                      }
+                    />
+                  ))}
+                </ul>
+              )}
+            </DataCard>
+            <ChartCard
+              title={copy.salesHeading(name)}
+              subtitle={copy.salesSub(format.moneyWhole(totals.revenuePaise))}
+              periods={[
                 {
-                  label: copy.requestedOn,
-                  value: state.requestedAt ? format.date(state.requestedAt) : shared.card.none,
-                  hidden: !requested,
-                },
-                {
-                  label: `${copy.checkout} · ${copy.checkoutWhere}`,
-                  value: shared.controls.rows.onStore,
+                  id: '30d',
+                  label: copy.thisPeriod,
+                  data: data.series.map((p) => ({
+                    label: format.date(p.date),
+                    value: p.paise / 100,
+                  })),
                 },
               ]}
+              seriesLabel={copy.thisPeriod}
+              formatValue={(n) => format.moneyCompact(n * 100)}
             />
-          </DataCard>
-        </div>
-      </div>
+          </>
+        }
+        side={
+          <>
+            {data.meta.length > 0 ? (
+              <MetaConnectionCard channel={channel} surfaces={data.meta} />
+            ) : null}
+            <DataCard title={copy.connection}>
+              <KeyValueList
+                variant="grid"
+                rows={[
+                  { label: copy.partner, value: info.partner },
+                  { label: copy.account, value: state.account ?? shared.card.none },
+                  {
+                    label: copy.requestedOn,
+                    value: state.requestedAt ? format.date(state.requestedAt) : shared.card.none,
+                    hidden: !requested,
+                  },
+                  {
+                    label: `${copy.checkout} · ${copy.checkoutWhere}`,
+                    value: shared.controls.rows.onStore,
+                  },
+                ]}
+              />
+            </DataCard>
+          </>
+        }
+      />
       <ChannelOrdersCard
         title={copy.recentHeading(name)}
         empty={copy.recentEmpty(name)}

@@ -12,6 +12,7 @@ import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
 import SectionPageSkeleton from '@/components/layout/section-page-skeleton'
 import StatusChip from '@/components/layout/status-chip'
+import { SETTINGS_SKELETON_ROWS } from '@/components/settings/settings-skeleton-rows'
 import { policiesContent as copy } from '@/data/policies'
 import { settingsContent } from '@/data/settings'
 import { settingsRowsContent } from '@/data/settings-rows'
@@ -145,13 +146,9 @@ export default function PoliciesSettings() {
       />
       {!policies || !form ? (
         <>
-          <PageHeader
-            title={copy.title}
-            subtitle={copy.subtitle}
-            save={{ dirty: false, saving: busy, onSave: handleSave, label: copy.save }}
-          />
+          <PageHeader title={copy.title} subtitle={copy.subtitle} />
           {disclaimer}
-          <SectionPageSkeleton header={false} />
+          <SectionPageSkeleton header={false} rows={SETTINGS_SKELETON_ROWS.policies} />
         </>
       ) : (
         <SettingsDrill
@@ -160,7 +157,6 @@ export default function PoliciesSettings() {
           header={{
             title: copy.title,
             subtitle: copy.subtitle,
-            save: { dirty, saving: busy, onSave: handleSave, label: copy.save },
             notice: disclaimer,
           }}
         >

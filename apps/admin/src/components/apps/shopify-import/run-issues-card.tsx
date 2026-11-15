@@ -71,7 +71,7 @@ export default function RunIssuesCard({
   // Early returns
   if (count === 0) {
     return (
-      <p className="flex items-center gap-2 rounded-xl border border-hairline bg-card px-4 py-3 text-body font-medium text-success">
+      <p className="flex items-center gap-2 rounded-lg border border-hairline bg-card px-4 py-3 text-body font-medium text-success">
         <CircleCheck weight="fill" className="size-4" aria-hidden />
         {view.problems.none}
       </p>
@@ -105,7 +105,7 @@ export default function RunIssuesCard({
         </Button>
       </div>
       {all ? (
-        <div className="overflow-hidden rounded-xl bg-card">
+        <div className="overflow-hidden rounded-lg bg-card">
           <ScrollSection
             id="shopify-import-issues"
             label={copy.issuesHeading(count)}

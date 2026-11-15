@@ -11,9 +11,12 @@ import {
 } from '@commerce/ui/shadcn/table'
 import Link from 'next/link'
 import { CELL, HEAD } from '@/components/apps/gst-invoices/table-classes'
+import TableFailedRow from '@/components/apps/shared/table-failed-row'
 import DataCard from '@/components/layout/data-card'
 import OrderChip from '@/components/orders/order-chip'
 import TableEmptyRow from '@/components/table/table-empty-row'
+import TableSkeletonRows from '@/components/table/table-skeleton-rows'
+import { appsContent } from '@/data/apps'
 import { delhiveryAppContent } from '@/data/delhivery'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import type { api } from '@/lib/api-client'
@@ -24,11 +27,19 @@ type Shipment = Awaited<ReturnType<typeof api.shipments.list>>['items'][number]
 type RecentShipmentsCardProps = {
   /** The newest Delhivery shipments (`shipments.list` with `provider`); null while loading. */
   items: Shipment[] | null
+  /** The read failed: "Could not load the shipments" with Try again in the table. */
+  failed?: boolean
+  onRetry?: () => void
 }
 
 /** Figma 928:11256 "Recent shipments": AWB, order and where it goes, status, last change. */
-export default function RecentShipmentsCard({ items }: RecentShipmentsCardProps) {
+export default function RecentShipmentsCard({
+  items,
+  failed = false,
+  onRetry = () => undefined,
+}: RecentShipmentsCardProps) {
   // Hooks
+  const apps = useCopy(appsContent)
   const { overview: copy } = useCopy(delhiveryAppContent)
   const format = useFormat()
 
@@ -60,7 +71,16 @@ export default function RecentShipmentsCard({ items }: RecentShipmentsCardProps)
           </TableRow>
         </TableHeader>
         <TableBody>
-          {items !== null && items.length === 0 ? (
+          {failed ? (
+            <TableFailedRow colSpan={4} heading={apps.couldNotLoad.shipments} onRetry={onRetry} />
+          ) : items === null ? (
+            <TableSkeletonRows
+              columns={4}
+              rows={4}
+              cellClassName={CELL}
+              label={copy.recent.title}
+            />
+          ) : items.length === 0 ? (
             <TableEmptyRow colSpan={4} message={copy.recent.empty} />
           ) : null}
           {(items ?? []).map((s) => (

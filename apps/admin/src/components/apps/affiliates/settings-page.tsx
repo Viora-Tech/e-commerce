@@ -11,11 +11,14 @@ import BlocklistCard from '@/components/apps/affiliates/blocklist-card'
 import FraudCard from '@/components/apps/affiliates/fraud-card'
 import NumberField from '@/components/apps/affiliates/number-field'
 import ShareAndEarnCard from '@/components/apps/affiliates/share-and-earn-card'
+import LoadFailedState from '@/components/apps/shared/load-failed-state'
 import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
+import SectionPageSkeleton from '@/components/layout/section-page-skeleton'
 import SettingsCard from '@/components/settings/settings-card'
 import SettingsRow from '@/components/settings/settings-row'
 import { affiliatesContent } from '@/data/affiliates'
+import { appsContent } from '@/data/apps'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
@@ -23,17 +26,26 @@ import { routes } from '@/lib/routes'
 /** Store-wide settings: open or paused, the link window, Share and earn, holds and payouts, TDS. */
 export default function SettingsPage() {
   // Hooks
+  const apps = useCopy(appsContent)
   const { settings: copy, failed } = useCopy(affiliatesContent)
   const [form, setForm] = useState<StoreAffiliateSettings | null>(null)
   const [saved, setSaved] = useState<StoreAffiliateSettings | null>(null)
   const [busy, setBusy] = useState(false)
 
+  /** The first read failed: Try again instead of a blank page. */
+  const [loadFailed, setLoadFailed] = useState(false)
+  const [loadAttempt, setLoadAttempt] = useState(0)
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `loadAttempt` is Try again
   useEffect(() => {
-    api.affiliates.settings.get().then((s) => {
-      setForm(s)
-      setSaved(s)
-    })
-  }, [])
+    setLoadFailed(false)
+    api.affiliates.settings.get().then(
+      (s) => {
+        setForm(s)
+        setSaved(s)
+      },
+      () => setLoadFailed(true),
+    )
+  }, [loadAttempt])
 
   // Event handlers
   const handleChange = (patch: Partial<StoreAffiliateSettings>) =>
@@ -59,7 +71,16 @@ export default function SettingsPage() {
   const handleDiscard = () => setForm(saved)
 
   // Early returns
-  if (!form) return null
+  if (!form && loadFailed) {
+    return (
+      <LoadFailedState
+        size="page"
+        heading={apps.couldNotLoad.settings}
+        onRetry={() => setLoadAttempt((n) => n + 1)}
+      />
+    )
+  }
+  if (!form) return <SectionPageSkeleton cards={4} />
 
   // Render logic
   const dirty = JSON.stringify(form) !== JSON.stringify(saved)

@@ -17,6 +17,7 @@ export const analyticsContent = {
     apply: 'Apply',
   },
   compare: 'vs previous period',
+  loadFailed: 'Could not load analytics for these dates',
   kpis: {
     sessions: {
       label: 'Sessions',
@@ -417,6 +418,7 @@ export const analyticsContent = {
       confirm: 'Delete',
     },
     understood: 'What I understood',
+    loadFailed: 'Could not load this report for these dates',
     dateLabel: 'Date',
     compareLabel: 'Compare',
     chartType: { bars: 'Bar', line: 'Line' },

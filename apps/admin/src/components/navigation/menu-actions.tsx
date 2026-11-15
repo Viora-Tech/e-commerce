@@ -2,7 +2,7 @@
 
 import { Pencil, Trash2 } from '@commerce/ui/icons'
 import { useState } from 'react'
-import ActionMenu from '@/components/layout/action-menu'
+import RowMenu from '@/components/table/row-menu'
 import { type MenuListItem, menusContent } from '@/data/menus'
 import { useCopy } from '@/hooks/use-copy'
 import DeleteMenuDialog from './delete-menu-dialog'
@@ -24,9 +24,7 @@ export default function MenuActions({ menu }: MenuActionsProps) {
   // Render logic
   return (
     <span className="flex items-center justify-end">
-      <ActionMenu
-        label={copy.label}
-        trigger="kebab-vertical"
+      <RowMenu
         items={[
           { label: copy.rename, icon: Pencil, onSelect: () => setRenaming(true) },
           {

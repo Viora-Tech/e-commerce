@@ -189,6 +189,7 @@ export type LinkPlacementId = (typeof LINK_PLACEMENTS)[number]['id']
 export const growthLinksContent = {
   title: 'Links',
   resource: { singular: 'link', plural: 'links' },
+  loadFailed: 'Could not load links',
   summary: (links: number, clicks: string, orders: string) =>
     `${links} short ${links === 1 ? 'link' : 'links'} · ${clicks} clicks · ${orders} orders`,
   trend: {

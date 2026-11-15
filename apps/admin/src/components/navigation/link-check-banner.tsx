@@ -22,7 +22,7 @@ export default function LinkCheckBanner({ count }: LinkCheckBannerProps) {
 
   // Render logic
   return (
-    // The warning banner as a strip across the top of the menu card (flush with its edges).
+    // The warning banner as a strip across the menu card under its title (flush with its edges).
     <Alert
       tone="warning"
       role="status"

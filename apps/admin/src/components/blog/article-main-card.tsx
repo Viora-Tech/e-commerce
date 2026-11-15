@@ -1,11 +1,11 @@
 'use client'
 
 import type { RichTextValue } from '@commerce/richtext'
-import { Card, CardContent } from '@commerce/ui/shadcn/card'
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import { Textarea } from '@commerce/ui/shadcn/textarea'
 import RichTextField from '@/components/fields/rich-text-field'
+import DataCard from '@/components/layout/data-card'
 import { articleFormContent } from '@/data/blog'
 import { useCopy } from '@/hooks/use-copy'
 
@@ -23,40 +23,38 @@ export default function ArticleMainCard({ title, body, excerpt, onChange }: Arti
 
   // Render logic
   return (
-    <Card size="form">
-      <CardContent>
-        <FieldGroup>
-          <Field>
-            <FieldLabel htmlFor="article-title">{copy.title}</FieldLabel>
-            <Input
-              id="article-title"
-              size="lg"
-              value={title}
-              placeholder={copy.titlePlaceholder}
-              onChange={(e) => onChange({ title: e.target.value })}
-            />
-          </Field>
-          <RichTextField
-            label={copy.content}
-            value={body}
-            onChange={(value) => onChange({ body: value })}
-            minHeight="60svh"
-            className="[&_.editor-scroller]:max-h-none [&_.editor-scroller]:overflow-visible [&_.editor-input]:mx-auto [&_.editor-input]:w-full [&_.editor-input]:max-w-[48rem]"
+    <DataCard title={copy.heading}>
+      <FieldGroup>
+        <Field>
+          <FieldLabel htmlFor="article-title">{copy.title}</FieldLabel>
+          <Input
+            id="article-title"
+            size="lg"
+            value={title}
+            placeholder={copy.titlePlaceholder}
+            onChange={(e) => onChange({ title: e.target.value })}
           />
-          <Field>
-            <FieldLabel htmlFor="article-excerpt">{copy.excerpt}</FieldLabel>
-            <Textarea
-              id="article-excerpt"
-              size="lg"
-              rows={3}
-              maxLength={500}
-              value={excerpt}
-              onChange={(e) => onChange({ excerpt: e.target.value })}
-            />
-            <FieldDescription>{copy.excerptHelp}</FieldDescription>
-          </Field>
-        </FieldGroup>
-      </CardContent>
-    </Card>
+        </Field>
+        <RichTextField
+          label={copy.content}
+          value={body}
+          onChange={(value) => onChange({ body: value })}
+          minHeight="60svh"
+          className="[&_.editor-scroller]:max-h-none [&_.editor-scroller]:overflow-visible [&_.editor-input]:mx-auto [&_.editor-input]:w-full [&_.editor-input]:max-w-[48rem]"
+        />
+        <Field>
+          <FieldLabel htmlFor="article-excerpt">{copy.excerpt}</FieldLabel>
+          <Textarea
+            id="article-excerpt"
+            size="lg"
+            rows={3}
+            maxLength={500}
+            value={excerpt}
+            onChange={(e) => onChange({ excerpt: e.target.value })}
+          />
+          <FieldDescription>{copy.excerptHelp}</FieldDescription>
+        </Field>
+      </FieldGroup>
+    </DataCard>
   )
 }

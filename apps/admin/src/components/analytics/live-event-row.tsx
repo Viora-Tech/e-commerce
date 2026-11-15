@@ -23,15 +23,13 @@ export default function LiveEventRow({ event }: LiveEventRowProps) {
         <Icon className="size-4" />
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block truncate text-kit-body text-foreground">
+        <span className="block truncate text-body text-foreground">
           {isOrder ? c.orderEvent(event.label) : c.cartEvent(event.label)}
         </span>
-        <span className="block text-kit-mini text-muted-foreground-soft">
-          {formatWhen(event.at)}
-        </span>
+        <span className="block text-period text-muted-foreground-soft">{formatWhen(event.at)}</span>
       </span>
       {event.valuePaise === null ? null : (
-        <span className="shrink-0 text-kit-body text-ink-strong tabular-nums">
+        <span className="shrink-0 text-body text-ink-strong tabular-nums">
           {formatPaise(event.valuePaise)}
         </span>
       )}

@@ -30,7 +30,7 @@ export default function LayoutPicker({ value, onChange }: LayoutPickerProps) {
           <label
             key={layout}
             className={cn(
-              'motion-press flex cursor-pointer items-start gap-3 rounded-xl border bg-card p-4 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring',
+              'motion-press flex cursor-pointer items-start gap-3 rounded-lg border bg-card p-4 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring',
               on ? 'border-ink-strong ring-1 ring-ink-strong' : 'border-panel-border',
             )}
           >

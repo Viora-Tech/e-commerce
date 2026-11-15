@@ -2,13 +2,15 @@ import { formatNumber } from '@commerce/money'
 import RelativeTime from '@/components/layout/relative-time'
 import OrderChip from '@/components/orders/order-chip'
 import type { ResourceColumnSpec } from '@/components/table/resource-table'
-import { transfersContent as copy } from '@/data/inventory'
+import type { transfersContent } from '@/data/inventory'
 import type { api } from '@/lib/api-client'
 
 export type TransferRow = Awaited<ReturnType<typeof api.transfers.list>>['rows'][number]
 
-/** Columns of the transfer list. */
-export const transferColumns: ResourceColumnSpec<TransferRow>[] = [
+/** Columns of the transfer list, in the member's language. */
+export const transferColumns = (
+  copy: typeof transfersContent,
+): ResourceColumnSpec<TransferRow>[] => [
   {
     id: 'number',
     title: copy.columns.number,

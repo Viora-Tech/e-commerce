@@ -95,6 +95,7 @@ function PurchaseOrdersContent({ initial }: { initial: PurchaseOrdersInitial }) 
   const [rows, setRows] = useState(initial.result.rows)
   const [total, setTotal] = useState(initial.result.total)
   const [loading, setLoading] = useState(false)
+  const [failed, setFailed] = useState(false)
 
   const hydrated = useRef(false)
 
@@ -112,6 +113,7 @@ function PurchaseOrdersContent({ initial }: { initial: PurchaseOrdersInitial }) 
       return
     let cancelled = false
     setLoading(true)
+    setFailed(false)
     api.purchaseOrders
       .list(listInput(q))
       .then((r) => {
@@ -119,6 +121,7 @@ function PurchaseOrdersContent({ initial }: { initial: PurchaseOrdersInitial }) 
         setRows(r.rows)
         setTotal(r.total)
       })
+      .catch(() => !cancelled && setFailed(true))
       .finally(() => !cancelled && setLoading(false))
     return () => {
       cancelled = true
@@ -130,6 +133,19 @@ function PurchaseOrdersContent({ initial }: { initial: PurchaseOrdersInitial }) 
     const r = await api.purchaseOrders.list(listInput(q))
     setRows(r.rows)
     setTotal(r.total)
+  }
+
+  // Event handlers
+  /* Try again on a failed read: the rows are read again in place, under the same header. */
+  const handleRetry = () => {
+    setFailed(false)
+    setLoading(true)
+    refresh()
+      .catch(() => setFailed(true))
+      .finally(() => setLoading(false))
+  }
+  const handleChanged = () => {
+    refresh().catch(() => setFailed(true))
   }
 
   // Render logic
@@ -177,17 +193,18 @@ function PurchaseOrdersContent({ initial }: { initial: PurchaseOrdersInitial }) 
         items={rows}
         getId={(r) => r.id}
         href={(r) => routes.stock.purchaseOrder(r.id)}
-        rowActions={(r) => <PoRowMenu po={r} onChanged={() => void refresh()} />}
+        rowActions={(r) => <PoRowMenu po={r} onChanged={handleChanged} />}
         bulkActions={(ids, clear) => (
           <PoBulkActions
             ids={ids}
             onDone={() => {
               clear()
-              void refresh()
+              handleChanged()
             }}
           />
         )}
         loading={loading}
+        error={failed ? { onRetry: handleRetry } : undefined}
         query={q.query}
         onQueryChange={(query) => setQ({ query, page: 1 }, { history: 'replace' })}
         onClearAll={() =>

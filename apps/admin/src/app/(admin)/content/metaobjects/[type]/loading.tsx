@@ -1,5 +1,6 @@
-import DetailPageSkeleton from '@/components/layout/detail-page-skeleton'
+import EntriesSkeleton from './entries-skeleton'
 
+/* The entries list's own skeleton; the entry and definition pages have their own. */
 export default function Loading() {
-  return <DetailPageSkeleton />
+  return <EntriesSkeleton />
 }

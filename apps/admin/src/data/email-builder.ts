@@ -17,6 +17,7 @@ export const emailBuilderContent = {
   builder: {
     title: 'Visual email builder',
     loading: 'Loading the builder…',
+    loadFailed: 'Could not load the builder',
     done: 'Save design',
     cancel: 'Cancel',
     discardTitle: 'Leave without saving?',

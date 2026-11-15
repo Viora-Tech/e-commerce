@@ -1,7 +1,7 @@
 'use client'
 
 import { formatPercent } from '@commerce/money'
-import StatTile from '@/components/layout/stat-tile'
+import StatStrip from '@/components/layout/stat-strip'
 import { deliveryPagesContent } from '@/data/delivery-options-pages'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import type { Overview } from './format'
@@ -10,9 +10,10 @@ type OverviewTilesProps = {
   overview: Overview
 }
 
-const TILE = 'rounded-xl border border-panel-border bg-card'
-
-/** Overview's four tiles (Figma 929:11373): priced live, fell back, answer time, Express share. */
+/**
+ * Overview's four tiles (Figma 929:11373): priced live, fell back, answer time, Express share,
+ * on the one joined StatStrip every overview opens with.
+ */
 export default function OverviewTiles({ overview }: OverviewTilesProps) {
   // Hooks
   const pages = useCopy(deliveryPagesContent)
@@ -32,46 +33,47 @@ export default function OverviewTiles({ overview }: OverviewTilesProps) {
     .filter((a) => a.typicalMs !== null)
     .sort((a, b) => (b.typicalMs ?? 0) - (a.typicalMs ?? 0))[0]
 
+  const answerNote =
+    slowest && health.apps.length > 1
+      ? t.answerNote(label(slowest.providerId), t.ms(slowest.typicalMs ?? 0))
+      : undefined
+  const expressNote = express.orders
+    ? express.averagePaise === null
+      ? undefined
+      : t.expressNote(fmt.moneyWhole(express.averagePaise))
+    : t.noOrders
+
   return (
-    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-      <StatTile
-        className={TILE}
-        label={t.live}
-        value={health.checkouts24h ? pct(live, health.checkouts24h) : t.empty}
-        note={health.checkouts24h ? t.liveNote(live, health.checkouts24h) : t.noCheckouts}
-      />
-      <StatTile
-        className={TILE}
-        label={t.backup}
-        value={fmt.number(health.backup24h)}
-        note={
-          worst && worst.failures > 0
-            ? t.backupNote(label(worst.providerId), worst.failures)
-            : t.backupNone
-        }
-      />
-      <StatTile
-        className={TILE}
-        label={t.answer}
-        value={health.typicalMs === null ? t.empty : t.ms(health.typicalMs)}
-        note={
-          slowest && health.apps.length > 1
-            ? t.answerNote(label(slowest.providerId), t.ms(slowest.typicalMs ?? 0))
-            : undefined
-        }
-      />
-      <StatTile
-        className={TILE}
-        label={t.express}
-        value={express.orders ? pct(express.express, express.orders) : t.empty}
-        note={
-          express.orders
-            ? express.averagePaise === null
-              ? undefined
-              : t.expressNote(fmt.moneyWhole(express.averagePaise))
-            : t.noOrders
-        }
-      />
-    </div>
+    <StatStrip
+      tiles={[
+        {
+          id: 'live',
+          label: t.live,
+          value: health.checkouts24h ? pct(live, health.checkouts24h) : t.empty,
+          note: health.checkouts24h ? t.liveNote(live, health.checkouts24h) : t.noCheckouts,
+        },
+        {
+          id: 'backup',
+          label: t.backup,
+          value: fmt.number(health.backup24h),
+          note:
+            worst && worst.failures > 0
+              ? t.backupNote(label(worst.providerId), worst.failures)
+              : t.backupNone,
+        },
+        {
+          id: 'answer',
+          label: t.answer,
+          value: health.typicalMs === null ? t.empty : t.ms(health.typicalMs),
+          ...(answerNote ? { note: answerNote } : {}),
+        },
+        {
+          id: 'express',
+          label: t.express,
+          value: express.orders ? pct(express.express, express.orders) : t.empty,
+          ...(expressNote ? { note: expressNote } : {}),
+        },
+      ]}
+    />
   )
 }

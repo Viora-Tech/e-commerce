@@ -29,7 +29,7 @@ export default function RowActionsCell({ href, children }: RowActionsCellProps) 
           href={href}
           aria-label={copy.open}
           onClick={(e) => e.stopPropagation()}
-          className="sr-only rounded-md px-2 py-1 text-xs font-medium text-foreground focus-visible:not-sr-only focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="sr-only rounded-md px-2 py-1 text-period font-medium text-foreground focus-visible:not-sr-only focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           {copy.open}
         </Link>

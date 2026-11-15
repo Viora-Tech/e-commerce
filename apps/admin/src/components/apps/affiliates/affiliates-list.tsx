@@ -14,6 +14,7 @@ import { appliedFromGroups } from '@/components/table/filter-panel'
 import ResourceTable, { type ResourceColumnSpec } from '@/components/table/resource-table'
 import { affiliateFiltersContent } from '@/data/affiliate-filters'
 import { affiliatesContent } from '@/data/affiliates'
+import { appsContent } from '@/data/apps'
 import { filterPanelContent } from '@/data/filter-panel'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import {
@@ -40,6 +41,7 @@ export default function AffiliatesList() {
 function AffiliatesTable() {
   // Hooks
   const copy = useCopy(affiliatesContent)
+  const apps = useCopy(appsContent)
   const filtersCopy = useCopy(affiliateFiltersContent)
   const panelCopy = useCopy(filterPanelContent)
   const f = useFormat()
@@ -55,6 +57,8 @@ function AffiliatesTable() {
   const [rows, setRows] = useState<Row[] | null>(null)
   const [programs, setPrograms] = useState<Program[]>([])
   const [loading, setLoading] = useState(true)
+  /** The last read failed: the table says so with Try again. */
+  const [failed, setFailed] = useState(false)
   const [adding, setAdding] = useState(false)
   const [reload, setReload] = useState(0)
 
@@ -65,9 +69,16 @@ function AffiliatesTable() {
     setLoading(true)
     api.affiliates
       .list({ search: q.query || undefined, ...affiliateFilterInput(q) })
-      .then((r) => {
-        if (!cancelled) setRows(r)
-      })
+      .then(
+        (r) => {
+          if (cancelled) return
+          setFailed(false)
+          setRows(r)
+        },
+        () => {
+          if (!cancelled) setFailed(true)
+        },
+      )
       .finally(() => !cancelled && setLoading(false))
     return () => {
       cancelled = true
@@ -174,7 +185,10 @@ function AffiliatesTable() {
         getId={(r) => r.id}
         href={(r) => routes.apps.page('affiliates', 'affiliates', r.id)}
         selectable={false}
-        loading={loading && rows === null}
+        loading={loading && rows === null && !failed}
+        error={
+          failed ? { heading: apps.couldNotLoad.affiliates, onRetry: handleChanged } : undefined
+        }
         query={q.query}
         onQueryChange={(query) => setQ({ query, page: 1 }, { history: 'replace' })}
         onClearAll={() => setQ({ ...CLEAR_AFFILIATE_FILTERS, query: '', page: 1 })}
