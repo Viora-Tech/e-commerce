@@ -903,6 +903,10 @@ export const ACTION_DOCS: Record<string, string> = {
   'suppliers.bulkUpdate':
     'Bulk edit on the suppliers list (#1064): currency, country or payment terms for many.',
   'suppliers.facets': "The countries and currencies in use, for the list's filter pickers.",
+  'themes.code.counts':
+    "What waits to go live: Customize's template drafts and Edit code's unpublished files.",
+  'themes.code.publishAll':
+    "Publish everything: Customize's drafts saved and Edit code's files live in one step, with one version history entry (Customize Save and Edit code Publish both use it).",
   'themes.createBlank':
     '"Start from scratch": base settings and empty templates, nothing from the live theme.',
   'themes.customSections.list': 'The saved sections.',

@@ -7,10 +7,12 @@ import {
   type NewFileKind,
   permissions,
   publishCodeDrafts,
+  publishThemeDrafts,
   queueThemeScreenshot,
   readCodeFile,
   readCodeFileVersion,
   saveCodeFile,
+  themeDraftCounts,
 } from '@commerce/core'
 import { z } from 'zod'
 import { can } from '../procedures'
@@ -29,6 +31,33 @@ const NEW_KINDS = Object.keys(NEW_FILE_KINDS) as [NewFileKind, ...NewFileKind[]]
  * imported theme's saves are drafts until `publish` puts them all live together.
  */
 export const themeCodeRouter = {
+  /** What waits to go live: Customize's template drafts and Edit code's unpublished files. */
+  counts: can(permissions.ONLINE_STORE_READ)
+    .input(z.object({ themeId: z.string().uuid() }))
+    .handler(({ context, input }) => themeDraftCounts(context.tx, input.themeId)),
+
+  /**
+   * Publish everything: Customize's drafts saved and Edit code's files live in one step, with one
+   * version history entry (Customize Save and Edit code Publish both use it).
+   */
+  publishAll: can(permissions.ONLINE_STORE_WRITE)
+    .input(z.object({ themeId: z.string().uuid() }))
+    .handler(({ context, input }) =>
+      libraryErrors(async () => {
+        const result = await publishThemeDrafts(context.tx, context.scope.storeId, {
+          ...input,
+          by: savedBy(context),
+        })
+        if (result.saved || result.published) {
+          await queueThemeScreenshot(context.themeScreenshots, {
+            storeId: context.scope.storeId,
+            themeId: input.themeId,
+          })
+        }
+        return result
+      }),
+    ),
+
   files: can(permissions.ONLINE_STORE_READ)
     .input(z.object({ themeId: z.string().uuid() }))
     .handler(({ context, input }) => libraryErrors(() => listCodeFiles(context.tx, input.themeId))),

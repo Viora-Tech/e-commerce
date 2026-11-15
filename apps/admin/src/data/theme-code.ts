@@ -32,6 +32,22 @@ export const themeCodeContent = {
     publishing: 'Publishing…',
     discard: 'Discard',
     published: (n: number) => (n === 1 ? '1 file published' : `${n} files published`),
+    /** One Publish covers Edit code's files and Customize's unsaved templates. */
+    publishedAll: (files: number, templates: number) =>
+      files && templates
+        ? 'Code and Customize changes published'
+        : templates
+          ? 'Customize changes published'
+          : files === 1
+            ? '1 file published'
+            : `${files} files published`,
+    customizeSaved: (n: number) =>
+      n === 1 ? 'Customize: 1 template saved.' : `Customize: ${n} templates saved.`,
+    /** Beside the count: Customize has unsaved templates that Publish here also puts live. */
+    customizeCount: (n: number) =>
+      n === 1 ? '1 template unsaved in Customize' : `${n} templates unsaved in Customize`,
+    customizeHelp:
+      'Publish here also saves what is unsaved in Customize, so one Publish puts every change live.',
     moreFiles: (names: string, n: number) => `${names} and ${n} more`,
     publishFailed: 'Could not publish your changes',
     discarded: 'Unpublished changes discarded',
@@ -41,6 +57,13 @@ export const themeCodeContent = {
       body: (n: number) =>
         `${n === 1 ? '1 file goes' : `${n} files go`} live on your store together. Each file keeps its earlier versions in Version history.`,
       files: (names: string) => `Changed: ${names}.`,
+      /** Customize also has unsaved templates: they go live with the files. */
+      customize: (n: number) =>
+        `Customize's unsaved changes on ${n === 1 ? '1 template' : `${n} templates`} go live with them, so you do not need to save there too.`,
+      /** Only Customize has changes: Publish here saves them, as Save in Customize does. */
+      customizeOnly: (n: number) =>
+        `Customize has unsaved changes on ${n === 1 ? '1 template' : `${n} templates`}. Publish saves them, as Save in Customize does.`,
+      titleAll: 'Publish everything?',
       confirm: 'Publish',
       cancel: 'Cancel',
     },
