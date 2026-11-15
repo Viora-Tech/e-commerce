@@ -9,16 +9,15 @@ import ConfirmDialog from '@/components/layout/confirm-dialog'
 import EmptyState from '@/components/layout/empty-state'
 import PageHeader from '@/components/layout/page-header'
 import ProoflyDetailPage from '@/components/layout/proofly-detail-page'
-import StatusChip from '@/components/layout/status-chip'
-import ResourceTable, { type ResourceColumnSpec } from '@/components/table/resource-table'
+import ResourceTable from '@/components/table/resource-table'
 import { entryListContent } from '@/data/metaobjects'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
+import { entryColumns } from './entry-columns'
 import { entriesPath, type LoadedDefinition } from './form-state'
 
 type EntriesResult = Awaited<ReturnType<typeof api.metaobjects.entries>>
-type EntryRow = EntriesResult['rows'][number]
 
 type EntriesPageProps = {
   definition: LoadedDefinition
@@ -28,46 +27,6 @@ type EntriesPageProps = {
 }
 
 type Pending = { ids: string[]; clear: () => void }
-
-type ListCopy = typeof entryListContent
-
-const columnsFor = (
-  copy: ListCopy,
-  fmt: ReturnType<typeof useFormat>,
-): ResourceColumnSpec<EntryRow>[] => [
-  {
-    id: 'name',
-    title: copy.columns.name,
-    sortValue: (e) => e.displayName,
-    hideable: false,
-    align: 'start',
-    className: 'w-96 px-3 whitespace-normal',
-    render: (e) => (
-      <span className="flex min-w-0 flex-col text-left">
-        <span className="line-clamp-2 text-ink-strong">{e.displayName}</span>
-        <span className="truncate text-caption text-muted-foreground">{e.handle}</span>
-      </span>
-    ),
-  },
-  {
-    id: 'status',
-    title: copy.columns.status,
-    sortValue: (e) => e.status,
-    align: 'center',
-    render: (e) => (
-      <StatusChip tone={e.status === 'active' ? 'success' : 'neutral'}>
-        {copy.status[e.status]}
-      </StatusChip>
-    ),
-  },
-  {
-    id: 'updated',
-    title: copy.columns.updated,
-    sortValue: (e) => new Date(e.updatedAt),
-    align: 'end',
-    render: (e) => <span className="text-muted-foreground">{fmt.when(e.updatedAt)}</span>,
-  },
-]
 
 /** Entries of one content type (metaobject definition), searchable, with bulk delete. */
 export default function EntriesPage({ definition, initial, initialPerPage }: EntriesPageProps) {
@@ -79,16 +38,20 @@ export default function EntriesPage({ definition, initial, initialPerPage }: Ent
   const [perPage, setPerPage] = useState(initialPerPage)
   const [result, setResult] = useState(initial)
   const [loading, setLoading] = useState(false)
+  /* A failed read shows "Could not load entries" with Try again in the table, not old rows. */
+  const [failed, setFailed] = useState(false)
+  const [attempt, setAttempt] = useState(0)
   const [busy, setBusy] = useState(false)
   const [deleting, setDeleting] = useState<Pending | null>(null)
 
   useEffect(() => {
-    if (page === 1 && query === '' && perPage === initialPerPage) {
+    if (attempt === 0 && page === 1 && query === '' && perPage === initialPerPage) {
       setResult(initial)
       return
     }
     let cancelled = false
     setLoading(true)
+    setFailed(false)
     api.metaobjects
       .entries({
         definitionId: definition.id,
@@ -97,11 +60,12 @@ export default function EntriesPage({ definition, initial, initialPerPage }: Ent
         query: query || undefined,
       })
       .then((r) => !cancelled && setResult(r))
+      .catch(() => !cancelled && setFailed(true))
       .finally(() => !cancelled && setLoading(false))
     return () => {
       cancelled = true
     }
-  }, [definition.id, page, perPage, query, initial, initialPerPage])
+  }, [definition.id, page, perPage, query, initial, initialPerPage, attempt])
 
   // Event handlers
   const handleConfirmDelete = async () => {
@@ -113,14 +77,8 @@ export default function EntriesPage({ definition, initial, initialPerPage }: Ent
       await api.metaobjects.deleteEntries({ ids })
       toast.success(copy.bulk.deleted(ids.length))
       clear()
-      setResult(
-        await api.metaobjects.entries({
-          definitionId: definition.id,
-          page,
-          perPage,
-          query: query || undefined,
-        }),
-      )
+      // The rows are read again; a failed read lands in the table with Try again.
+      setAttempt((n) => n + 1)
     } catch (err) {
       toast.error(err instanceof Error ? err.message : copy.bulk.failed)
     } finally {
@@ -129,7 +87,7 @@ export default function EntriesPage({ definition, initial, initialPerPage }: Ent
   }
 
   // Render logic
-  const columns = columnsFor(copy, fmt)
+  const columns = entryColumns(copy, fmt)
   const base = entriesPath(definition.type)
   const hasFields = definition.fields.length > 0
   const addHref = routes.content.newEntry(definition.type)
@@ -164,37 +122,35 @@ export default function EntriesPage({ definition, initial, initialPerPage }: Ent
       }
       main={
         !hasFields ? (
-          <div className="rounded-lg border surface-card">
-            <EmptyState
-              icon={Braces}
-              heading={copy.noFields.heading}
-              body={copy.noFields.body}
-              action={
-                <Button
-                  render={<Link href={routes.content.contentTypeDefinition(definition.type)} />}
-                  nativeButton={false}
-                >
-                  <Pencil strokeWidth={1.6} aria-hidden="true" />
-                  {copy.editDefinition}
-                </Button>
-              }
-            />
-          </div>
+          <EmptyState
+            variant="page"
+            icon={Braces}
+            heading={copy.noFields.heading}
+            body={copy.noFields.body}
+            action={
+              <Button
+                render={<Link href={routes.content.contentTypeDefinition(definition.type)} />}
+                nativeButton={false}
+              >
+                <Pencil strokeWidth={1.6} aria-hidden="true" />
+                {copy.editDefinition}
+              </Button>
+            }
+          />
         ) : noEntries ? (
-          <div className="rounded-lg border surface-card">
-            <EmptyState
-              icon={Braces}
-              size="lg"
-              heading={copy.empty.heading(definition.name)}
-              body={copy.empty.body}
-              action={
-                <Button render={<Link href={addHref} />} nativeButton={false}>
-                  <Plus strokeWidth={1.6} />
-                  {copy.add}
-                </Button>
-              }
-            />
-          </div>
+          <EmptyState
+            variant="page"
+            icon={Braces}
+            size="lg"
+            heading={copy.empty.heading(definition.name)}
+            body={copy.empty.body}
+            action={
+              <Button render={<Link href={addHref} />} nativeButton={false}>
+                <Plus strokeWidth={1.6} />
+                {copy.add}
+              </Button>
+            }
+          />
         ) : (
           <ResourceTable
             resourceName={copy.resource}
@@ -203,6 +159,11 @@ export default function EntriesPage({ definition, initial, initialPerPage }: Ent
             getId={(e) => e.id}
             href={(e) => `${base}/${e.id}`}
             loading={loading}
+            error={
+              failed
+                ? { heading: copy.loadFailed, onRetry: () => setAttempt((n) => n + 1) }
+                : undefined
+            }
             query={query}
             onQueryChange={(q) => {
               setQuery(q)
@@ -220,6 +181,7 @@ export default function EntriesPage({ definition, initial, initialPerPage }: Ent
               <Button
                 variant="outline"
                 size="sm"
+                loading={busy}
                 disabled={busy}
                 onClick={() => setDeleting({ ids, clear })}
               >

@@ -1,7 +1,7 @@
 'use client'
 
 import { siteConfig } from '@commerce/config/site'
-import { ArrowRight, Download, Plus, Trash2, Upload } from '@commerce/ui/icons'
+import { Download, Plus, Trash2, Upload } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
@@ -9,13 +9,14 @@ import { saveFile } from '@/components/apps/gst-invoices/save-file'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
 import PageHeader from '@/components/layout/page-header'
 import ProoflyDetailPage from '@/components/layout/proofly-detail-page'
-import ResourceTable, { type ResourceColumnSpec } from '@/components/table/resource-table'
+import ResourceTable from '@/components/table/resource-table'
 import { type RedirectListItem, redirectsContent } from '@/data/redirects'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
 import ImportRedirectsDialog from './import-redirects-dialog'
 import RedirectActions from './redirect-actions'
+import { redirectColumns } from './redirect-columns'
 import RedirectDialog from './redirect-dialog'
 
 type RedirectsListProps = {
@@ -31,6 +32,8 @@ export default function RedirectsList({ initial }: RedirectsListProps) {
   const [page, setPage] = useState(1)
   const [perPage, setPerPage] = useState<number>(siteConfig.ui.rowsPerPage.default)
   const [loading, setLoading] = useState(false)
+  /* A failed read shows "Could not load redirects" with Try again in the table, not old rows. */
+  const [failed, setFailed] = useState(false)
   const [creating, setCreating] = useState(false)
   const [importing, setImporting] = useState(false)
   const [exporting, setExporting] = useState(false)
@@ -49,13 +52,16 @@ export default function RedirectsList({ initial }: RedirectsListProps) {
     }
     let live = true
     setLoading(true)
+    setFailed(false)
     const timer = setTimeout(() => {
       api.redirects
         .list({ page, perPage, query: query || undefined, sort: 'newest' })
         .then((next) => {
           if (live) setData(next)
         })
-        .catch(() => toast.error(copy.dialog.failed))
+        .catch(() => {
+          if (live) setFailed(true)
+        })
         .finally(() => {
           if (live) setLoading(false)
         })
@@ -64,7 +70,7 @@ export default function RedirectsList({ initial }: RedirectsListProps) {
       live = false
       clearTimeout(timer)
     }
-  }, [page, perPage, query, version, copy.dialog.failed])
+  }, [page, perPage, query, version])
 
   // Event handlers
   const handleQuery = (next: string) => {
@@ -105,35 +111,7 @@ export default function RedirectsList({ initial }: RedirectsListProps) {
   }
 
   // Render logic
-  const columns: ResourceColumnSpec<RedirectListItem>[] = [
-    {
-      id: 'path',
-      title: copy.columns.path,
-      hideable: false,
-      render: (r) => <span className="font-medium break-all text-ink-strong">{r.path}</span>,
-    },
-    {
-      id: 'target',
-      title: copy.columns.target,
-      render: (r) => (
-        <span className="flex items-center gap-2 break-all text-muted-foreground">
-          <ArrowRight className="size-3.5 shrink-0" aria-hidden="true" />
-          {r.target}
-        </span>
-      ),
-    },
-    {
-      id: 'source',
-      title: copy.columns.source,
-      render: (r) => <span className="text-muted-foreground">{copy.source[r.source]}</span>,
-    },
-    {
-      id: 'updated',
-      title: copy.columns.updated,
-      align: 'end',
-      render: (r) => <span className="text-muted-foreground">{fmt.when(r.updatedAt)}</span>,
-    },
-  ]
+  const columns = redirectColumns(copy, fmt)
   const addButton = (
     <Button type="button" onClick={() => setCreating(true)}>
       <Plus />
@@ -154,6 +132,7 @@ export default function RedirectsList({ initial }: RedirectsListProps) {
                 type="button"
                 variant="outline"
                 onClick={handleExport}
+                loading={exporting}
                 disabled={exporting || data.total === 0}
               >
                 <Download aria-hidden="true" />
@@ -175,6 +154,7 @@ export default function RedirectsList({ initial }: RedirectsListProps) {
           items={data.items}
           getId={(r) => r.id}
           loading={loading}
+          error={failed ? { heading: copy.loadFailed, onRetry: handleChanged } : undefined}
           query={query}
           onQueryChange={handleQuery}
           page={page}

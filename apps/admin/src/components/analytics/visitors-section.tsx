@@ -1,16 +1,18 @@
 'use client'
 
-import { BarChart3, ExternalLink } from '@commerce/ui/icons'
+import { BarChart3, ExternalLink, RotateCcw } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import { Card } from '@commerce/ui/shadcn/card'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import ChartCard from '@/components/layout/chart-card'
+import DataCard from '@/components/layout/data-card'
+import DataCardSkeleton from '@/components/layout/data-card-skeleton'
 import EmptyState from '@/components/layout/empty-state'
 import SectionHead from '@/components/layout/section-head'
 import StatStrip from '@/components/layout/stat-strip'
 import { analyticsContent } from '@/data/analytics'
+import { statesContent } from '@/data/states'
 import { umamiContent } from '@/data/umami'
 import { useCopy, useLocale } from '@/hooks/use-copy'
 import { formatDay, formatRate, type RangeState } from '@/lib/analytics-range'
@@ -75,6 +77,9 @@ function formatKpi(copy: Copy, kpi: Kpi): string {
   return formatCompact(kpi.value)
 }
 
+/* Umami's five figures: visitors, visits, page views, left after one page, average visit. */
+const KPIS = 5
+
 const trendOf = (kpi: Kpi) => (kpi.delta === null ? null : Math.round(kpi.delta * 1000) / 10)
 
 /**
@@ -87,9 +92,12 @@ export default function VisitorsSection({ range }: VisitorsSectionProps) {
   // Hooks
   const umami = useCopy(umamiContent)
   const analytics = useCopy(analyticsContent)
+  const states = useCopy(statesContent)
   const locale = useLocale()
   const [view, setView] = useState<ReportView | null>(null)
+  const [attempt, setAttempt] = useState(0)
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `attempt` re-runs the read (Try again)
   useEffect(() => {
     let live = true
     setView(null)
@@ -109,7 +117,7 @@ export default function VisitorsSection({ range }: VisitorsSectionProps) {
     return () => {
       live = false
     }
-  }, [range])
+  }, [range, attempt])
 
   // Early returns
   const copy = umami.visitors
@@ -118,7 +126,16 @@ export default function VisitorsSection({ range }: VisitorsSectionProps) {
     return (
       <section aria-label={copy.title} aria-busy className="flex flex-col gap-4">
         {heading}
-        <Skeleton className="h-64 w-full rounded-xl" />
+        {/* The loaded section's shape: the five figures, the chart card, the first lists. */}
+        <StatStrip loading tiles={[]} placeholders={KPIS} />
+        <DataCard title={copy.trend.title}>
+          <Skeleton className="h-[14.5rem] w-full" />
+        </DataCard>
+        <div className="grid grid-cols-1 items-stretch gap-6 lg:grid-cols-2 xl:grid-cols-3">
+          <DataCardSkeleton fields={0} lines={5} />
+          <DataCardSkeleton fields={0} lines={5} className="hidden lg:flex" />
+          <DataCardSkeleton fields={0} lines={5} className="hidden xl:flex" />
+        </div>
         <span className="sr-only">{copy.loading}</span>
       </section>
     )
@@ -138,18 +155,26 @@ export default function VisitorsSection({ range }: VisitorsSectionProps) {
     return (
       <section aria-label={copy.title} className="flex flex-col gap-4">
         {heading}
-        <Card inset="y-10">
-          <EmptyState
-            heading={empty.title}
-            body={empty.body}
-            icon={BarChart3}
-            action={
+        <EmptyState
+          variant="page"
+          heading={empty.title}
+          body={empty.body}
+          icon={BarChart3}
+          tone={view.state === 'error' ? 'danger' : 'neutral'}
+          action={
+            <>
+              {view.state === 'error' ? (
+                <Button variant="outline" onClick={() => setAttempt((n) => n + 1)}>
+                  <RotateCcw aria-hidden="true" />
+                  {states.error.retry}
+                </Button>
+              ) : null}
               <Button variant="outline" nativeButton={false} render={<Link href={empty.href} />}>
                 {empty.action}
               </Button>
-            }
-          />
-        </Card>
+            </>
+          }
+        />
       </section>
     )
   }

@@ -2,15 +2,17 @@
 
 import { CheckIcon, CircleAlert, Upload } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
+import { Alert, AlertDescription, AlertTitle } from '@commerce/ui/shadcn/alert'
 import { Button } from '@commerce/ui/shadcn/button'
+import { Card } from '@commerce/ui/shadcn/card'
 import { Checkbox } from '@commerce/ui/shadcn/checkbox'
 import { Field, FieldDescription, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import { useRouter } from 'next/navigation'
 import { useRef, useState } from 'react'
 import { toast } from 'sonner'
+import PageBody from '@/components/layout/page-body'
 import PageHeader from '@/components/layout/page-header'
-import ProoflyPageBody from '@/components/layout/proofly-page-body'
 import { themeImportContent } from '@/data/theme-import'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -79,9 +81,9 @@ export default function ImportThemeScreen() {
 
   if (busy) {
     return (
-      <ProoflyPageBody>
+      <PageBody width="detail">
         <PageHeader title={screen.workingTitle} summary={screen.workingSubtitle} back={back} />
-        <div className="surface-card flex flex-col gap-4 rounded-lg p-5">
+        <Card inset={5} gap={4}>
           <p className="text-body font-semibold text-ink-strong">{screen.progress}</p>
           <div
             role="progressbar"
@@ -92,32 +94,33 @@ export default function ImportThemeScreen() {
           </div>
           <ImportSteps />
           <p className="text-body text-muted-foreground">{copy.importing}</p>
-        </div>
-      </ProoflyPageBody>
+        </Card>
+      </PageBody>
     )
   }
 
   return (
-    <ProoflyPageBody>
+    <PageBody width="detail">
       <PageHeader
         title={screen.title}
         summary={failed ? screen.failedSubtitle : screen.subtitle}
         back={back}
       />
       {failed ? (
-        <div
-          role="alert"
-          className="flex flex-wrap items-center gap-3 rounded-xl border border-danger/30 bg-danger-soft px-4 py-3"
+        <Alert
+          tone="danger"
+          action={
+            <Button variant="outline" size="sm" onClick={() => input.current?.click()}>
+              {screen.chooseAnother}
+            </Button>
+          }
         >
-          <CircleAlert className="size-4 shrink-0 text-danger" aria-hidden />
-          <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-            <p className="text-body font-semibold text-ink-strong">{screen.failedTitle}</p>
-            <p className="text-caption text-muted-foreground">{error}</p>
-          </div>
-          <Button variant="key-neutral" size="sm" onClick={() => input.current?.click()}>
-            {screen.chooseAnother}
-          </Button>
-        </div>
+          <CircleAlert aria-hidden />
+          <AlertTitle className="text-body font-semibold text-ink-strong">
+            {screen.failedTitle}
+          </AlertTitle>
+          <AlertDescription className="text-caption">{error}</AlertDescription>
+        </Alert>
       ) : null}
       <input
         ref={input}
@@ -146,7 +149,7 @@ export default function ImportThemeScreen() {
         </p>
       </div>
       {file ? (
-        <div className="surface-card flex flex-col gap-5 rounded-lg p-5">
+        <Card inset={5} gap={5}>
           <p className="text-body text-muted-foreground">{copy.howTo}</p>
           <Field>
             <FieldLabel htmlFor="shopify-host">{copy.host}</FieldLabel>
@@ -176,7 +179,7 @@ export default function ImportThemeScreen() {
               {copy.confirm}
             </Button>
           </div>
-        </div>
+        </Card>
       ) : null}
       <ul className="flex flex-col gap-2.5">
         {screen.bullets.map((line) => (
@@ -186,6 +189,6 @@ export default function ImportThemeScreen() {
           </li>
         ))}
       </ul>
-    </ProoflyPageBody>
+    </PageBody>
   )
 }

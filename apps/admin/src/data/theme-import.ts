@@ -229,5 +229,6 @@ export const themeImportContent = {
         `${n === 1 ? '1 video lives' : `${n} videos live`} in your Shopify Files and cannot be copied. Upload them in Files, then pick them in the slides that used them.`,
     },
     notFound: 'This theme was not imported from Shopify.',
+    loadFailed: 'Could not load the import report',
   },
 }

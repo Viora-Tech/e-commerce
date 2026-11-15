@@ -48,6 +48,7 @@ export const pagesListContent = {
   },
   add: 'Add page',
   open: 'Open page',
+  loadFailed: 'Could not load pages',
   row: {
     show: 'Show on store',
     hide: 'Hide',

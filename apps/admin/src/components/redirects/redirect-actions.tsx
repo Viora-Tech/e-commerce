@@ -1,7 +1,7 @@
 'use client'
 
 import { Pencil, Trash2 } from '@commerce/ui/icons'
-import ActionMenu from '@/components/layout/action-menu'
+import RowMenu from '@/components/table/row-menu'
 import { redirectsContent } from '@/data/redirects'
 import { useCopy } from '@/hooks/use-copy'
 
@@ -17,9 +17,7 @@ export default function RedirectActions({ onEdit, onDelete }: RedirectActionsPro
 
   return (
     <span className="flex items-center justify-end">
-      <ActionMenu
-        label={copy.label}
-        trigger="kebab-vertical"
+      <RowMenu
         items={[
           { label: copy.edit, icon: Pencil, onSelect: onEdit },
           { label: copy.delete, icon: Trash2, destructive: true, onSelect: onDelete },

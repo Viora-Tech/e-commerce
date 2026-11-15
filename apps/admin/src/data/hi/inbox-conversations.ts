@@ -65,6 +65,7 @@ export default [
     },
     list: {
       search: 'बातचीत खोजें',
+      loadFailed: 'बातचीत लोड नहीं हो सकी',
       allClear: 'सब साफ़',
       allClearBody: 'अभी यहाँ कोई बातचीत नहीं है।',
       viewClosed: 'बंद बातचीत देखें',

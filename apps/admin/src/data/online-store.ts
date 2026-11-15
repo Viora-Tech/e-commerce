@@ -19,6 +19,8 @@ export const onlineStoreContent = {
     },
   },
   form: {
+    /** The main card: the page's title and text. */
+    heading: 'Page',
     back: 'Pages',
     /** Opened from an SEO issue's Edit (audit #176). */
     backSeo: 'SEO',

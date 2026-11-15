@@ -10,16 +10,18 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from '@commerce/ui/shadcn/drawer'
-import { Spinner } from '@commerce/ui/shadcn/spinner'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import EmptyState from '@/components/layout/empty-state'
+import InlineState from '@/components/states/inline-state'
 import { createShipmentContent } from '@/data/create-shipment'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
 import { BESIDE_SIDEBAR } from '@/lib/sidebar-motion'
 import PickupDayCards from './pickup-day-cards'
+import PickupDrawerSkeleton from './pickup-drawer-skeleton'
 import PickupParcelList, { type PickupGroup } from './pickup-parcel-list'
 import { PICKUP_TIMES, pickupDays, startingPickupDay } from './pickup-plan'
 import PickupSelect from './pickup-select'
@@ -64,10 +66,12 @@ export default function PickupDrawer({
   const [timeFrom, setTimeFrom] = useState(DEFAULT_FROM)
   const [timeTo, setTimeTo] = useState('')
   const [busy, setBusy] = useState(false)
+  /** Bumped by Try again when the pickup details did not load. */
+  const [attempt, setAttempt] = useState(0)
   // Loaded each time the drawer opens, so parcels booked meanwhile show up.
   // biome-ignore lint/correctness/useExhaustiveDependencies: the ids' text stands for the array, which callers rebuild each render
   useEffect(() => {
-    if (!open || shipmentIds.length === 0) return
+    if (!open || shipmentIds.length === 0 || attempt < 0) return
     let live = true
     setGroups(null)
     setFailed(false)
@@ -83,7 +87,7 @@ export default function PickupDrawer({
     return () => {
       live = false
     }
-  }, [open, shipmentIds.join(',')])
+  }, [open, shipmentIds.join(','), attempt])
 
   // Helpers
   const startOn = (group: PickupGroup) => {
@@ -99,6 +103,7 @@ export default function PickupDrawer({
     if (!next && busy) return
     onOpenChange(next)
   }
+  const handleRetry = () => setAttempt((n) => n + 1)
   const handleGroup = (key: string) => {
     const next = groups?.find((g) => g.key === key)
     if (next) startOn(next)
@@ -164,17 +169,14 @@ export default function PickupDrawer({
   const shownFrom = existing?.timeFrom ?? timeFrom
   const ready = Boolean(group) && picked.length > 0 && date !== '' && !busy
   const body = failed ? (
-    <p className="py-6 text-body text-muted-foreground">{copy.failed}</p>
+    <InlineState kind="error" heading={copy.failed} onRetry={handleRetry} />
   ) : !groups ? (
-    <p className="flex items-center gap-2 py-6 text-body text-muted-foreground">
-      <Spinner />
-      {copy.loading}
-    </p>
+    <PickupDrawerSkeleton label={copy.loading} />
   ) : !group ? (
-    <p className="py-6 text-body text-muted-foreground">{copy.nothing}</p>
+    <EmptyState variant="inline" body={copy.nothing} />
   ) : (
     <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_26rem]">
-      <section className="flex flex-col gap-5 rounded-xl border border-hairline p-5">
+      <section className="flex flex-col gap-5 rounded-lg border border-hairline p-5">
         {existing ? (
           <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-muted px-4 py-3">
             <div className="flex min-w-0 flex-col gap-0.5">
@@ -248,7 +250,7 @@ export default function PickupDrawer({
           </p>
         </fieldset>
       </section>
-      <section className="flex flex-col justify-between gap-5 rounded-xl border border-hairline p-5">
+      <section className="flex flex-col justify-between gap-5 rounded-lg border border-hairline p-5">
         <PickupParcelList group={group} />
         {/* The dialog footer order (audit 3.4): the dismiss button, then the one primary. */}
         <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">

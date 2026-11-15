@@ -10,59 +10,15 @@ import { useState } from 'react'
 import EmptyState from '@/components/layout/empty-state'
 import PillTabs from '@/components/layout/pill-tabs'
 import ProoflyListPage from '@/components/layout/proofly-list-page'
-import StatusChip from '@/components/layout/status-chip'
-import ResourceTable, { type ResourceColumnSpec } from '@/components/table/resource-table'
+import ResourceTable from '@/components/table/resource-table'
 import { metaobjectListContent } from '@/data/metaobjects'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { usePrimaryAction } from '@/lib/primary-action'
 import { routes } from '@/lib/routes'
+import { definitionColumns } from './definition-columns'
 import { type DefinitionSummary, entriesPath } from './form-state'
 
 type DefinitionsPageProps = { definitions: DefinitionSummary[] }
-
-type ListCopy = typeof metaobjectListContent
-
-const columnsFor = (
-  copy: ListCopy,
-  fmt: ReturnType<typeof useFormat>,
-): ResourceColumnSpec<DefinitionSummary>[] => [
-  {
-    id: 'name',
-    title: copy.columns.type,
-    sortValue: (d) => d.name,
-    hideable: false,
-    align: 'start',
-    className: 'w-80 px-3 whitespace-normal',
-    render: (d) => (
-      <span className="flex flex-col text-left">
-        <span className="flex items-center gap-2">
-          <span className="text-ink-strong">{d.name}</span>
-          {d.storefrontAccess ? null : <StatusChip>{copy.hidden}</StatusChip>}
-        </span>
-        <span className="text-caption text-muted-foreground">{d.type}</span>
-      </span>
-    ),
-  },
-  {
-    id: 'fields',
-    title: copy.columns.fields,
-    sortValue: (d) => d.fields.length,
-    render: (d) => copy.fieldCount(d.fields.length),
-  },
-  {
-    id: 'entries',
-    title: copy.columns.entries,
-    sortValue: (d) => d.entries,
-    render: (d) => <span className="tabular-nums">{copy.entryCount(d.entries)}</span>,
-  },
-  {
-    id: 'updated',
-    title: copy.columns.updated,
-    sortValue: (d) => new Date(d.updatedAt),
-    align: 'end',
-    render: (d) => <span className="text-muted-foreground">{fmt.when(d.updatedAt)}</span>,
-  },
-]
 
 /** Content → Content types: every metaobject definition, or an empty state that starts the guided flow. */
 /** Shopify's category value types, imported with the taxonomy (shopify_battery_type…). */
@@ -90,7 +46,7 @@ export default function DefinitionsPage({ definitions }: DefinitionsPageProps) {
   }
 
   // Render logic
-  const columns = columnsFor(copy, fmt)
+  const columns = definitionColumns(copy, fmt)
   const q = query.trim().toLowerCase()
   // Imported Shopify taxonomy types (46 of them at Waimers) crowded out the store's own (#93).
   const inView = definitions.filter((d) => fromShopify(d.type) === (view === 'shopify'))
@@ -137,19 +93,18 @@ export default function DefinitionsPage({ definitions }: DefinitionsPageProps) {
       }
     >
       {definitions.length === 0 ? (
-        <div className="rounded-lg border surface-card">
-          <EmptyState
-            icon={Braces}
-            heading={copy.empty.heading}
-            body={copy.empty.body}
-            action={
-              <Button render={<Link href={routes.content.newContentType()} />} nativeButton={false}>
-                <Plus />
-                {copy.add}
-              </Button>
-            }
-          />
-        </div>
+        <EmptyState
+          variant="page"
+          icon={Braces}
+          heading={copy.empty.heading}
+          body={copy.empty.body}
+          action={
+            <Button render={<Link href={routes.content.newContentType()} />} nativeButton={false}>
+              <Plus />
+              {copy.add}
+            </Button>
+          }
+        />
       ) : (
         <ResourceTable
           resourceName={copy.resource}

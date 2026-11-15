@@ -9,6 +9,8 @@ export const themesContent = {
   tabs: { label: 'Online store', themes: 'Themes', preferences: 'Preferences', seo: 'SEO' },
   library: {
     subtitle: 'The look of your storefront. One theme is live; keep others ready to publish.',
+    /** The library's read failed (the page shows Try again). */
+    loadFailed: 'Could not load themes',
     /** Who can see the store, beside Add theme, like Shopify's "Public ▾" (audit #125). */
     visibility: { public: 'Public', locked: 'Password on', change: 'Change who can see the store' },
     live: 'Live',

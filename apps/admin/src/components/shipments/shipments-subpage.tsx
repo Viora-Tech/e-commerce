@@ -1,5 +1,6 @@
 'use client'
 
+import PageBody from '@/components/layout/page-body'
 import PageHeader from '@/components/layout/page-header'
 import { shipmentsContent } from '@/data/shipments'
 import { useCopy } from '@/hooks/use-copy'
@@ -15,7 +16,8 @@ type ShipmentsSubpageProps = {
 /**
  * The queues that sit beside the Shipments table, each on its own page under Orders →
  * Shipments: pickups and manifests ("Pickups" in the header) and the deliveries that need
- * the merchant ("2 need attention" in the summary line).
+ * the merchant ("2 need attention" in the summary line). On the one page shell (PageBody: the
+ * gutter and rhythm every list has).
  */
 export default function ShipmentsSubpage({ kind }: ShipmentsSubpageProps) {
   // Hooks
@@ -25,13 +27,13 @@ export default function ShipmentsSubpage({ kind }: ShipmentsSubpageProps) {
   const head = kind === 'attention' ? copy.ndrSheet : copy.pickupsSheet
 
   return (
-    <div className="flex flex-col gap-4">
+    <PageBody>
       <PageHeader
         title={head.title}
         subtitle={head.body}
         back={{ label: copy.title, href: routes.orders.shipments() }}
       />
       {kind === 'attention' ? <NdrTab /> : <PickupsTab />}
-    </div>
+    </PageBody>
   )
 }

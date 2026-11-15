@@ -424,7 +424,7 @@ export const createShipmentContent = {
       `${courier} · joining an existing pickup updates its manifest. Parcels then move to To be picked up.`,
     close: 'Close',
     loading: 'Loading your booked parcels…',
-    failed: 'Could not load the pickup details. Close and try again.',
+    failed: 'Could not load the pickup details.',
     nothing: 'These parcels are already on a pickup, or their courier is not connected.',
     location: 'Pickup location',
     placeLabel: (place: string, city: string | null, pincode: string | null) =>

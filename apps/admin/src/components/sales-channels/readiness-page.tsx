@@ -7,7 +7,6 @@ import {
   type ReadinessSeverity,
 } from '@commerce/core/sales-channels'
 import { AiIcon, RefreshCw } from '@commerce/ui/icons'
-import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -15,7 +14,9 @@ import { useState } from 'react'
 import DataCard from '@/components/layout/data-card'
 import EmptyState from '@/components/layout/empty-state'
 import PageBody from '@/components/layout/page-body'
+import PageColumns from '@/components/layout/page-columns'
 import PageHeader from '@/components/layout/page-header'
+import PillTabs from '@/components/layout/pill-tabs'
 import ScoreRing from '@/components/layout/score-ring'
 import StatusChip from '@/components/layout/status-chip'
 import { salesChannelsContent } from '@/data/sales-channels'
@@ -106,104 +107,98 @@ export default function ReadinessPage({ report, aiBulk }: ReadinessPageProps) {
           </>
         }
       />
-      <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)]">
-        {/* The score stays in view while the product list scrolls. */}
-        <div className="flex flex-col gap-4 lg:sticky lg:top-4">
-          <DataCard
-            title={
-              <span className="flex items-center gap-2">
-                {copy.scoreLabel}
-                <StatusChip tone={BAND_TONE[band]} variant="dot">
-                  {copy.grade[band]}
-                </StatusChip>
-              </span>
-            }
-          >
-            <div className="flex flex-col items-center gap-3 text-center">
-              <ScoreRing score={report.score} caption={copy.outOf} />
-              <p className="text-caption text-muted-foreground">
-                {copy.scoreBody(report.products)}
-              </p>
-            </div>
-            <dl className="mt-4 flex flex-col divide-y divide-border border-t border-border">
-              {READINESS_PARTS.map((part) => (
-                <div key={part} className="flex items-baseline gap-2 py-2.5 text-body">
-                  <dt className="font-medium text-foreground">{copy.parts[part].label}</dt>
-                  <span className="flex-1 truncate text-caption text-muted-foreground">
-                    {copy.parts[part].hint}
-                  </span>
-                  <dd className="font-medium text-ink-strong tabular-nums">{report.parts[part]}</dd>
-                </div>
-              ))}
-            </dl>
-          </DataCard>
-          <DataCard title={copy.readsHeading}>
-            <ul className="flex list-disc flex-col gap-1.5 pl-4 text-body text-muted-foreground">
-              {copy.reads.map((r) => (
-                <li key={r}>{r}</li>
-              ))}
-            </ul>
-          </DataCard>
-        </div>
-        <DataCard title={copy.issuesHeading} count={report.issues.length} flush>
-          <div className="flex flex-wrap gap-1.5 px-4 pb-3">
-            {FILTERS.map((f) => {
-              const n = f === 'all' ? report.issues.length : report.counts[f]
-              return (
-                <button
-                  key={f}
-                  type="button"
-                  aria-pressed={filter === f}
-                  onClick={() => handleFilter(f)}
-                  className={cn(
-                    'h-7 rounded-full border px-3 text-caption font-medium transition-colors',
-                    filter === f
-                      ? 'border-transparent bg-action text-action-foreground'
-                      : 'border-input bg-card text-foreground hover:bg-muted/60',
-                  )}
+      <PageColumns
+        main={
+          <DataCard title={copy.issuesHeading} count={report.issues.length} flush>
+            <PillTabs
+              label={copy.issuesHeading}
+              className="px-4 pb-3"
+              tabs={FILTERS.map((f) => ({
+                value: f,
+                label: f === 'all' ? copy.all : copy.severity[f],
+                count: f === 'all' ? report.issues.length : report.counts[f],
+              }))}
+              value={filter}
+              onChange={handleFilter}
+            />
+            {visible.length === 0 ? (
+              <EmptyState variant="plain" size="sm" body={copy.empty} />
+            ) : (
+              <ul className="divide-y divide-border border-t border-border">
+                {visible.map((i) => (
+                  <IssueRow
+                    key={i.id}
+                    severity={i.severity}
+                    severityLabel={copy.severity[i.severity]}
+                    title={i.kind === 'policy' ? (copy.policyNames[i.ref] ?? i.title) : i.title}
+                    kind={i.kind === 'policy' ? copy.policy : copy.product}
+                    detail={detail(i)}
+                    action={action(i)}
+                  />
+                ))}
+              </ul>
+            )}
+            {matching.length > visible.length ? (
+              <div className="flex justify-end border-t border-border px-4 py-3">
+                <Button
+                  variant="link"
+                  size="xs"
+                  onClick={() => setShown(shown + PAGE)}
+                  className="h-auto px-0"
                 >
-                  {f === 'all' ? copy.all : copy.severity[f]}{' '}
-                  <span className="tabular-nums opacity-70">{n}</span>
-                </button>
-              )
-            })}
-          </div>
-          {visible.length === 0 ? (
-            <EmptyState variant="plain" size="sm" body={copy.empty} />
-          ) : (
-            <ul className="divide-y divide-border border-t border-border">
-              {visible.map((i) => (
-                <IssueRow
-                  key={i.id}
-                  severity={i.severity}
-                  severityLabel={copy.severity[i.severity]}
-                  title={i.kind === 'policy' ? (copy.policyNames[i.ref] ?? i.title) : i.title}
-                  kind={i.kind === 'policy' ? copy.policy : copy.product}
-                  detail={detail(i)}
-                  action={action(i)}
-                />
-              ))}
-            </ul>
-          )}
-          {matching.length > visible.length ? (
-            <div className="flex justify-end border-t border-border px-4 py-3">
-              <Button
-                variant="link"
-                size="xs"
-                onClick={() => setShown(shown + PAGE)}
-                className="h-auto px-0"
-              >
-                {copy.more(Math.min(PAGE, matching.length - visible.length))}
-              </Button>
-            </div>
-          ) : null}
-          {!aiBulk && report.aiFixable.length > 0 ? (
-            <p className="border-t border-border px-4 py-3 text-caption text-muted-foreground">
-              {copy.aiOff}
-            </p>
-          ) : null}
-        </DataCard>
-      </div>
+                  {copy.more(Math.min(PAGE, matching.length - visible.length))}
+                </Button>
+              </div>
+            ) : null}
+            {!aiBulk && report.aiFixable.length > 0 ? (
+              <p className="border-t border-border px-4 py-3 text-caption text-muted-foreground">
+                {copy.aiOff}
+              </p>
+            ) : null}
+          </DataCard>
+        }
+        side={
+          <>
+            <DataCard
+              title={
+                <span className="flex items-center gap-2">
+                  {copy.scoreLabel}
+                  <StatusChip tone={BAND_TONE[band]} variant="dot">
+                    {copy.grade[band]}
+                  </StatusChip>
+                </span>
+              }
+            >
+              <div className="flex flex-col items-center gap-3 text-center">
+                <ScoreRing score={report.score} caption={copy.outOf} />
+                <p className="text-caption text-muted-foreground">
+                  {copy.scoreBody(report.products)}
+                </p>
+              </div>
+              <dl className="mt-4 flex flex-col divide-y divide-border border-t border-border">
+                {READINESS_PARTS.map((part) => (
+                  <div key={part} className="flex items-baseline gap-2 py-2.5 text-body">
+                    <dt className="font-medium text-foreground">{copy.parts[part].label}</dt>
+                    <span className="flex-1 truncate text-caption text-muted-foreground">
+                      {copy.parts[part].hint}
+                    </span>
+                    <dd className="font-medium text-ink-strong tabular-nums">
+                      {report.parts[part]}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+            </DataCard>
+            <DataCard title={copy.readsHeading}>
+              <ul className="flex list-disc flex-col gap-1.5 pl-4 text-body text-muted-foreground">
+                {copy.reads.map((r) => (
+                  <li key={r}>{r}</li>
+                ))}
+              </ul>
+            </DataCard>
+          </>
+        }
+      />
     </PageBody>
   )
 }

@@ -6,6 +6,7 @@ import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import SearchField from '@/components/fields/search-field'
 import EmptyState from '@/components/layout/empty-state'
 import RelativeTime from '@/components/layout/relative-time'
+import InlineState from '@/components/states/inline-state'
 import { inboxConversationsContent } from '@/data/inbox-conversations'
 import { useCopy } from '@/hooks/use-copy'
 import type { api } from '@/lib/api-client'
@@ -16,6 +17,9 @@ export type ConversationRow = Awaited<ReturnType<typeof api.inbox.list>>['rows']
 
 type ConversationListProps = {
   rows: ConversationRow[] | null
+  /** The last read failed: "Could not load conversations" with Try again, over any old rows. */
+  failed?: boolean
+  onRetry?: () => void
   selectedId: string | null
   search: string
   hasMore: boolean
@@ -35,6 +39,8 @@ type ConversationListProps = {
 /** The middle pane: search, then one row per conversation (avatar, name, preview, time, unread dot). */
 export default function ConversationList({
   rows,
+  failed = false,
+  onRetry,
   selectedId,
   search,
   hasMore,
@@ -65,7 +71,9 @@ export default function ConversationList({
         />
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
-        {!rows ? (
+        {failed ? (
+          <InlineState kind="error" heading={l.loadFailed} onRetry={onRetry} className="m-3" />
+        ) : !rows ? (
           <div className="flex flex-col gap-2 p-3">
             <Skeleton className="h-14 w-full" />
             <Skeleton className="h-14 w-full" />

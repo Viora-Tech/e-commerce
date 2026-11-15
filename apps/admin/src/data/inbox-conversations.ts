@@ -62,6 +62,7 @@ export const inboxConversationsContent = {
   },
   list: {
     search: 'Search conversations',
+    loadFailed: 'Could not load conversations',
     allClear: 'All clear',
     allClearBody: 'No conversations here right now.',
     viewClosed: 'View closed conversations',
