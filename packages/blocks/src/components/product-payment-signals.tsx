@@ -3,6 +3,7 @@
 import { type ReactNode, useRef } from 'react'
 import { mainProductContent as copy } from '../data/zero-drift/main-product'
 import { useFormatPaise } from '../money-format'
+import { hasCopy } from '../sections/main-product-settings'
 import { safeHref } from '../slot-types'
 import Icon from './icon'
 import RichCopy from './rich-copy'
@@ -16,8 +17,8 @@ type ProductPaymentSignalsProps = {
   /** The `showUpiPrice` setting: false keeps the note as written, without a "₹X with UPI" price. */
   upiPrice: boolean
   heading: string
-  /** Steps shown in the panel (richtext HTML). */
-  body: string
+  /** Steps shown in the panel: richtext HTML, or the server's sanitised copy (`richtextNode`). */
+  body: ReactNode
   supportLabel: string
   supportUrl: string
   /** The store's UPI checkout discount; null hides a UPI price note, undefined previews `upiPercent`. */
@@ -93,7 +94,7 @@ export default function ProductPaymentSignals({
   // A discount too small to reach a rupee leaves the price as it is: the note says it instead.
   const inline = upiPaise !== null && pricePaise > 0 && upiPaise < pricePaise
   const support = supportLabel ? safeHref(supportUrl) : null
-  const hasPanel = Boolean(body.trim() || support)
+  const hasPanel = Boolean(hasCopy(body) || support)
   const shown = inline ? (
     <>
       <span className="offer-note__price">{formatPaise(upiPaise ?? pricePaise)}</span> {ui.upiPrice}

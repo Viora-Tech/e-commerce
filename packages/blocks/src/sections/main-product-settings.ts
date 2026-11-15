@@ -50,7 +50,8 @@ export type MainProductSettings = {
   paymentNote: Copy
   upiPercent: number
   offerHeading: string
-  offerBody: string
+  /** Stored richtext HTML; on the storefront the server's sanitised copy (`mainProductRichtext`). */
+  offerBody: Copy
   offerSupportLabel: string
   offerSupportUrl: string
   showStockBar: boolean

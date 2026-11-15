@@ -10,6 +10,7 @@ import {
   StoreActionsProvider,
   searchShortcuts,
 } from '@commerce/blocks'
+import { richtextNode } from '@commerce/blocks/richtext-node'
 import { loadEnv } from '@commerce/config'
 import {
   CONSENT_COOKIE,
@@ -375,7 +376,14 @@ export default async function StoreLayout({ children, params }: Props) {
             // must not ask twice.
             if (preview || consentDrawn) return null
             consentDrawn = true
-            return <ConsentManager {...consent} appearance={cookieBannerSettings(s)} />
+            const appearance = cookieBannerSettings(s)
+            // The banner opens in the browser: its message is sanitised here.
+            return (
+              <ConsentManager
+                {...consent}
+                appearance={{ ...appearance, message: richtextNode(appearance.message) }}
+              />
+            )
           },
         },
       })

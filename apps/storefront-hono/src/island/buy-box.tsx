@@ -1,4 +1,6 @@
 import { MoneyFormatProvider, ProductView, ReviewsCarousel, ReviewsWidget } from '@commerce/blocks'
+// The island gets stored copy as JSON: RichCopy sanitises it on both sides (server and browser).
+import '@commerce/blocks/richtext-html'
 import DeliveryEstimateWidget from '@/components/product/delivery-estimate'
 import EmiHint from '@/components/product/emi-hint'
 import EmiOffers from '@/components/product/emi-offers'

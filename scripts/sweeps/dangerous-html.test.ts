@@ -33,9 +33,9 @@ const ALLOWLIST: AllowEntry[] = [
       'merchant Custom HTML, rendered only after sanitizeEmbedHtml (sanitize-html allow-list: no scripts, handlers, styles or foreign iframes); also sanitised on save',
   },
   {
-    file: 'packages/blocks/src/components/rich-copy.tsx',
+    file: 'packages/blocks/src/components/rich-html.tsx',
     reason:
-      'section body copy from a Puck richtext field, rendered only after richtextHtml (legacy plain text escaped; HTML through a sanitize-html allow-list of inline marks, paragraphs, lists and links)',
+      'section body copy from a Puck richtext field, sanitised before it gets here: on the server by richtextNode (richtextHtml: legacy plain text escaped; HTML through a sanitize-html allow-list of inline marks, paragraphs, lists and links), or by RichCopy through storedRichtextHtml (the same allow-list, or escaped text where the sanitiser is not loaded)',
   },
   {
     file: 'apps/admin/src/components/layout/accent-style.tsx',
