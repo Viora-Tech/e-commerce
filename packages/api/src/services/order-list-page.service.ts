@@ -10,7 +10,16 @@ import {
 } from '@commerce/core'
 import { startOfDay } from '@commerce/dates'
 import type { StoreTx } from '@commerce/db'
-import { address, customer, media, order, orderLine, productMedia, variant } from '@commerce/db'
+import {
+  address,
+  customer,
+  media,
+  order,
+  orderLine,
+  productMedia,
+  shipment,
+  variant,
+} from '@commerce/db'
 import {
   and,
   count,
@@ -160,17 +169,27 @@ export type OrderTiles = {
 /**
  * Open orders nobody has shipped yet that are paid, authorised (the card is approved and the
  * money is captured on shipping, as Shopify counts them), or cash on delivery: "Ready to ship".
+ * A packed order whose labels were all cancelled counts too, as Shipments › To book lists it
+ * again (owner, 15 Nov 2026: the Orders pill said 53 while To book said 55).
  */
 const readyToShipWhere = () =>
   and(
     eq(order.status, 'open'),
     isNull(order.archivedAt),
-    inArray(order.fulfillmentStatus, [...UNFULFILLED_STATUSES]),
+    or(inArray(order.fulfillmentStatus, [...UNFULFILLED_STATUSES]), labelsAllCancelled()),
     or(
       notInArray(order.paymentStatus, [...UNPAID_PAYMENT_STATUSES]),
       eq(order.paymentStatus, 'authorized'),
       eq(order.paymentMethod, 'cod'),
     ),
+  )
+
+/** Packed, but every label it had was cancelled and none replaced it: back to book. */
+const labelsAllCancelled = () =>
+  and(
+    eq(order.fulfillmentStatus, 'fulfilled'),
+    sql`exists (select 1 from ${shipment} where ${shipment.orderId} = ${order.id} and ${shipment.status} = 'cancelled')`,
+    sql`not exists (select 1 from ${shipment} where ${shipment.orderId} = ${order.id} and ${shipment.status} not in ('cancelled', 'rto'))`,
   )
 
 /** How many orders wait to ship: the count pill on the sidebar's Orders row (Figma). */
