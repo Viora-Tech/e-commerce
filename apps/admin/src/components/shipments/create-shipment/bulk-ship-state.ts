@@ -24,11 +24,11 @@ export type BulkRule = BulkMode
 
 export const BULK_RULES: readonly BulkRule[] = ['recommended', 'cheapest', 'fastest', 'one']
 
-/** What the Edit popup (Figma 913:9698) changed for one order. Absent keys follow the batch. */
+/** What the row editor (Figma 913:9698) changed for one order. Absent keys follow the batch. */
 export type OrderEdit = {
   weightGrams?: number | undefined
   dimensionsCm?: Dimensions | undefined
-  /** The box picked in the popup, for its label: a box id, or `custom`. */
+  /** The box picked in the row editor, for its label: a box id, or `custom`. */
   boxId?: string | undefined
   paymentMode?: 'cod' | 'prepaid' | undefined
   insured?: boolean | undefined
@@ -60,13 +60,13 @@ export type BulkLine = {
   /** The quote's rows as the merchant pays for them (insurance added when on). */
   rows: CourierRateRow[]
   pick: CourierRateRow | null
-  /** The pick came from the Edit popup, not the rule. */
+  /** The pick came from the row editor, not the rule. */
   byHand: boolean
   status: 'checking' | 'ready' | 'problem'
   problem: BulkProblem | null
 }
 
-/** Weight missing on a product, and no weight typed in the popup. Box alone is no problem:
+/** Weight missing on a product, and no weight typed in the row editor. Box alone is no problem:
  *  couriers price the dead weight. */
 export function missingPackage(
   parcel: DraftParcel,
@@ -81,7 +81,7 @@ export function missingPackage(
 const usableDims = (d: Dimensions | null | undefined): Dimensions | undefined =>
   d && d.length >= 1 && d.width >= 1 && d.height >= 1 ? d : undefined
 
-/** The couriers' question for one order: its own package unless the popup changed it. */
+/** The couriers' question for one order: its own package unless the row editor changed it. */
 export function orderQuoteRequest(order: DraftOrder, parcel: DraftParcel, edit?: OrderEdit) {
   const weight = edit?.weightGrams ?? parcel.weightGrams
   const declared = Number.isFinite(parcel.valuePaise) ? Math.round(parcel.valuePaise) : -1
@@ -139,7 +139,7 @@ export function courierProblem(
   return { kind: 'no_courier' }
 }
 
-/** Insurance for one order: the popup's switch, else on when the batch's switch is on or the
+/** Insurance for one order: the row editor's switch, else on when the batch's switch is on or the
  *  shopper paid for it at checkout. */
 export const orderInsured = (order: DraftOrder, edit: OrderEdit | undefined, all: boolean) =>
   edit?.insured ?? (all || order.deliveryChoice?.insured === true)

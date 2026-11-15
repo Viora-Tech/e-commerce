@@ -21,8 +21,8 @@ type Wallets = Awaited<ReturnType<typeof api.shipments.wallets>>
 
 /**
  * The bulk ship drawer's data: the orders (`shipments.prepare`), every courier's answer for
- * each bookable order (`shipments.quote`, asked once, then again for one order after its Edit
- * popup changes its package or payment), the wallets, and booking (`shipments.bulkBook`).
+ * each bookable order (`shipments.quote`, asked once, then again for one order after its row
+ * editor applies a change to its package or payment), the wallets, and booking (`shipments.bulkBook`).
  */
 export function useBulkShip(orderIds: string[], courier: string | undefined) {
   // Hooks
@@ -120,7 +120,7 @@ export function useBulkShip(orderIds: string[], courier: string | undefined) {
   }
 
   // Event handlers
-  /** The Edit popup saved: a changed package or payment asks that order's couriers again. */
+  /** The row editor applied: a changed package or payment asks that order's couriers again. */
   const handleSaveEdit = (orderId: string, next: OrderEdit) => {
     const before = edits[orderId]
     setEdits((e) => ({ ...e, [orderId]: next }))

@@ -20,7 +20,7 @@ type BulkEditShippingProps = {
 
 const SHORT_DATE = { weekday: 'short', day: 'numeric', month: 'short' } as const
 
-/** The Edit popup's right half (Figma 913:9698): the courier for this order with the shopper's
+/** The row editor's right half (Figma 913:9698): the courier for this order with the shopper's
  *  checkout choice beside it, how it is paid, its insurance, and what it costs. */
 export default function BulkEditShipping({
   line,
