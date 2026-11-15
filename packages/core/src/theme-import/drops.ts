@@ -6,6 +6,7 @@ import type { BrowseFilters, BrowseSort } from '../catalog/browse-params'
 import type { StorefrontFilterConfig } from '../catalog/filter-config'
 import type { MediaVariants } from '../media/loader'
 import type { FieldType, MeasureKind } from '../metaobjects/schemas'
+import { type SizedCopies, sizedCopies } from './image-copies'
 import { numericId } from './numeric-id'
 
 /** An image we host: product media, a section image, a collection image. */
@@ -288,6 +289,14 @@ export type LiquidDataSource = {
   collectionsProducts?:
     | ((handles: string[], limit: number) => Promise<Map<string, LiquidProductData[]>>)
     | undefined
+  /**
+   * Several collections' product handles, the first `limit` of each in its own order, without
+   * the products. Optional: with it a collection's `products` loads only the products a theme
+   * reads (a menu showing three per collection, `products.size`), through `products`.
+   */
+  collectionsProductHandles?:
+    | ((handles: string[], limit: number) => Promise<Map<string, string[]>>)
+    | undefined
   collections(): Promise<LiquidCollectionData[]>
   /**
    * Shopify's product recommendations for one product (our UUID), available ones only.
@@ -381,13 +390,10 @@ export class ImageDrop extends Drop {
   readonly media_type = 'image'
   readonly presentation = { focal_point: '50.0% 50.0%' }
   /** Private, so a theme's `| json` never prints the whole map. */
-  readonly #sized: readonly (readonly [number, string])[]
+  readonly #sized: SizedCopies
   constructor(image: LiquidImageData) {
     super()
-    this.#sized = Object.entries(image.variants ?? {})
-      .map(([width, files]) => [Number(width), files.webp] as const)
-      .filter(([width, file]) => Number.isFinite(width) && Boolean(file))
-      .sort((a, b) => a[0] - b[0])
+    this.#sized = sizedCopies(image.variants)
     this.src = image.url
     this.url = image.url
     this.alt = image.alt ?? ''

@@ -131,12 +131,30 @@ export function formatMoney(
   const isWhole = Number.isInteger(value)
   const fractionDigits = !opts.whole && (opts.showZeroDecimals || !isWhole) ? meta.minorUnit : 0
 
-  return new Intl.NumberFormat(locale, {
-    style: 'currency',
-    currency: meta.code,
-    minimumFractionDigits: fractionDigits,
-    maximumFractionDigits: fractionDigits,
-  }).format(value)
+  return currencyFormat(locale, meta.code, fractionDigits).format(value)
+}
+
+/**
+ * Formatters by locale, currency and decimals. Building an `Intl.NumberFormat` costs far more
+ * than formatting with one, and a storefront page formats hundreds of prices.
+ */
+const currencyFormats = new Map<string, Intl.NumberFormat>()
+
+function currencyFormat(locale: string, code: string, fractionDigits: number): Intl.NumberFormat {
+  const key = `${locale}|${code}|${fractionDigits}`
+  let format = currencyFormats.get(key)
+  if (!format) {
+    format = new Intl.NumberFormat(locale, {
+      style: 'currency',
+      currency: code,
+      minimumFractionDigits: fractionDigits,
+      maximumFractionDigits: fractionDigits,
+    })
+    // Locales come from code and settings, so the map stays small; the cap is a safety net.
+    if (currencyFormats.size > 200) currencyFormats.clear()
+    currencyFormats.set(key, format)
+  }
+  return format
 }
 
 /** Format a plain (unitless) number with the currency's locale digit grouping. */

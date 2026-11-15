@@ -407,6 +407,25 @@ Database statements on a home page miss went from about 270 to about 160 (produc
 collection products load in one batch per render pass, `LiquidDataCache` in core); a hit for an
 anonymous visitor makes none.
 
+November 2026 (Speed step 3), same theme with the render cache off (every read a miss), on a 326-product
+copy of Waimers: home 869 → 454 ms, a collection 862 → 413 ms, a product page 708 → 334 ms. The
+time was JavaScript, not SQL (each statement ran in well under a millisecond; the database's
+"duration" counts the wait while Node, busy rendering, read the rows):
+
+- **Collections list their products by handle first** (`collectionsProductHandles`).
+  `collection.products` is an array whose items load when a theme reads them (`lazyProducts` in
+  `resource-drops.ts`): `products.size` loads nothing, `limit: 3` and `.first` load those items,
+  in one batch per pass. The Zero Drift header previews three products for each of about 25 menu
+  collections and used to load 50 of each, fully (about 230 products with every variant and image,
+  on every page). A section that reads products inside a collection now takes one more pass.
+- **`loadProducts` groups its rows once** by product and variant instead of filtering every row
+  list per product and per variant (it was quadratic: 150 ms of a home render).
+- **`ImageDrop` works out each media row's sized copies once** (`sizedCopies`, a `WeakMap` on the
+  row's variants), and `formatMoney` reuses its `Intl.NumberFormat`s.
+- **Collection counts in one grouped pass**: the collection list counted each collection's live
+  products with a correlated subquery that scanned the products once per collection (9 ms for 61
+  collections here, growing with the catalogue); now 1.6 ms.
+
 ## Testing on localhost
 
 1. Build and start the storefront in production mode (dev mode is not representative):

@@ -212,6 +212,32 @@ export class ProductDrop extends Drop {
 }
 
 /**
+ * A collection's products as an array whose items load when a theme reads them: its length is
+ * known at once (`products.size`), and `limit: 3` or `.first` reads only those items, so a menu
+ * that previews three products per collection loads three, not fifty. An item not loaded yet
+ * reads as nil and is noted like every other read; the next pass has it. One drop per item.
+ */
+function lazyProducts(handles: string[], cache: LiquidDataCache): ProductDrop[] {
+  const list: ProductDrop[] = new Array(handles.length)
+  const drops: (ProductDrop | undefined)[] = new Array(handles.length)
+  handles.forEach((handle, i) => {
+    Object.defineProperty(list, i, {
+      enumerable: true,
+      get: () => {
+        const made = drops[i]
+        if (made) return made
+        const data = cache.product(handle)
+        if (!data) return null
+        const drop = new ProductDrop(data, cache)
+        drops[i] = drop
+        return drop
+      },
+    })
+  })
+  return list
+}
+
+/**
  * A collection. `products` reads from the request's data cache (`cache.ts`): the first
  * render pass notes which collections it needs, the next one has them.
  */
@@ -282,6 +308,12 @@ export class CollectionDrop extends Drop {
       this.#products = l.products.map((p) => new ProductDrop(p, this.#cache))
       return this.#products
     }
+    if (this.#cache.listsProductHandles) {
+      const handles = this.#cache.collectionProductHandles(this.handle)
+      if (!handles) return []
+      this.#products = lazyProducts(handles, this.#cache)
+      return this.#products
+    }
     const list = this.#cache.collectionProducts(this.handle)
     if (!list) return []
     this.#products = list.map((p) => new ProductDrop(p, this.#cache))
@@ -291,13 +323,13 @@ export class CollectionDrop extends Drop {
     return this.image ?? this.products[0]?.featured_image ?? null
   }
   get all_tags(): string[] {
-    return [...new Set(this.products.flatMap((p) => p.tags))].sort()
+    return [...new Set(this.products.flatMap((p) => p?.tags ?? []))].sort()
   }
   get all_types(): string[] {
-    return [...new Set(this.products.map((p) => p.type).filter(Boolean))].sort()
+    return [...new Set(this.products.map((p) => p?.type).filter(Boolean))].sort()
   }
   get all_vendors(): string[] {
-    return [...new Set(this.products.map((p) => p.vendor).filter(Boolean))].sort()
+    return [...new Set(this.products.map((p) => p?.vendor).filter(Boolean))].sort()
   }
 }
 
