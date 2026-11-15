@@ -2,7 +2,7 @@
 
 import { useRef, useState } from 'react'
 import { mainProductContent as copy } from '../data/zero-drift/main-product'
-import Lens from '../effects/lens'
+import Lens, { LENS_ZOOM_FACTOR } from '../effects/lens'
 import type { MediaImage } from '../types'
 import Icon from './icon'
 import Picture from './picture'
@@ -26,6 +26,14 @@ const ui = copy.ui.gallery
 const thumbSrc = (img: MediaImage) => img.variants?.['320']?.webp ?? img.url
 
 const wrap = (index: number, length: number) => (index + length) % length
+
+/** The stage's width from 990px up, where the lens runs; below it the stage is the full width. */
+const STAGE_SIZES = '(min-width: 990px) 50vw, 100vw'
+/**
+ * What the lens copy asks for: the stage magnified, so the browser fetches the file that stays
+ * sharp at that scale (up to the largest copy), not the stage's own file scaled 2.4 times.
+ */
+const LENS_SIZES = `${50 * LENS_ZOOM_FACTOR}vw`
 
 // Port of snippets/product-gallery.liquid (main stage + prev/next, thumbnail rail, phone
 // dots, click-to-zoom lightbox) and the `stacked` layout from sections/main-product.liquid.
@@ -122,9 +130,27 @@ export default function ProductGallery({
                 placeholder={false}
                 loading={i === slide ? 'eager' : 'lazy'}
                 fetchPriority={i === slide ? 'high' : undefined}
-                sizes="(min-width: 990px) 50vw, 100vw"
+                sizes={STAGE_SIZES}
               />
             )
+            // The stage's own file stays under the sharp one until it has loaded, so the lens
+            // never shows an empty circle.
+            const zoomed = lensZoom ? (
+              <>
+                {picture}
+                <div className="absolute inset-0">
+                  <Picture
+                    image={img}
+                    alt=""
+                    fill
+                    placeholder={false}
+                    loading="eager"
+                    sizes={LENS_SIZES}
+                    ariaHidden
+                  />
+                </div>
+              </>
+            ) : null
             return (
               <div
                 key={img.url}
@@ -149,7 +175,9 @@ export default function ProductGallery({
                     onClick={() => handleZoom(i)}
                   >
                     {lensZoom ? (
-                      <Lens className="product-gallery__lens h-full w-full">{picture}</Lens>
+                      <Lens className="product-gallery__lens h-full w-full" zoomed={zoomed}>
+                        {picture}
+                      </Lens>
                     ) : (
                       picture
                     )}

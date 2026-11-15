@@ -9,9 +9,9 @@ import {
   brightness,
   escapeAttr,
   hslToHex,
-  imageSrc,
   imageTag,
   imageUrl,
+  legacyImageUrl,
   money,
   noteClockRead,
   paymentIcon,
@@ -121,7 +121,9 @@ export function registerShopifyFilters(engine: Liquid): void {
 
   add('image_url', (value: unknown, ...args: unknown[]) => imageUrl(value, splitArgs(args).named))
   for (const legacy of ['img_url', 'product_img_url', 'collection_img_url', 'article_img_url']) {
-    add(legacy, (value: unknown) => imageSrc(value))
+    add(legacy, (value: unknown, size: unknown, ...args: unknown[]) =>
+      legacyImageUrl(value, size, splitArgs(args).named),
+    )
   }
   add('image_tag', (value: unknown, ...args: unknown[]) => imageTag(value, splitArgs(args).named))
   add('img_tag', (value: unknown, alt: unknown) => imageTag(value, alt ? { alt } : {}))

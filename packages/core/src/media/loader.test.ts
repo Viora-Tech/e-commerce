@@ -2,7 +2,6 @@
 import sharp from 'sharp'
 import { describe, expect, it } from 'vitest'
 import {
-  generatedWidths,
   mediaImageLoader,
   nearestVariantWidth,
   pickVariantUrls,
@@ -13,14 +12,14 @@ import { decodeThumbhash, processImage } from './pipeline'
 describe('nearestVariantWidth', () => {
   const widths = [320, 640, 960, 1280, 1920]
 
-  it('picks the largest generated width at or below the target', () => {
-    expect(nearestVariantWidth(widths, 700)).toBe(640)
+  it('picks the smallest generated width at least as wide as the target, so nothing is stretched', () => {
+    expect(nearestVariantWidth(widths, 700)).toBe(960)
     expect(nearestVariantWidth(widths, 960)).toBe(960)
-    expect(nearestVariantWidth(widths, 5000)).toBe(1920)
+    expect(nearestVariantWidth(widths, 100)).toBe(320)
   })
 
-  it('falls back to the smallest width rather than upscale when the target is smaller than all of them', () => {
-    expect(nearestVariantWidth(widths, 100)).toBe(320)
+  it('gives the largest width when the target is wider than all of them', () => {
+    expect(nearestVariantWidth(widths, 5000)).toBe(1920)
   })
 
   it('returns null with no widths to choose from', () => {
@@ -38,8 +37,8 @@ describe('pickVariantUrls', () => {
     const r = pickVariantUrls({ url: 'https://x/original.jpg', variants }, 500)
     expect(r).toEqual({
       fallback: 'https://x/original.jpg',
-      avif: 'a320.avif',
-      webp: 'a320.webp',
+      avif: 'a640.avif',
+      webp: 'a640.webp',
     })
   })
 
@@ -70,14 +69,8 @@ describe('older media that still carry a 960 variant', () => {
       '960': { avif: 'a960.avif', webp: 'a960.webp' },
       '1280': { avif: 'a1280.avif', webp: 'a1280.webp' },
     }
-    expect(pickVariantUrls({ url: 'https://x/o.jpg', variants }, 1000).avif).toBe('a960.avif')
-    expect(pickVariantUrls({ url: 'https://x/o.jpg', variants }, 1100).avif).toBe('a960.avif')
-  })
-})
-
-describe('generatedWidths', () => {
-  it('matches what the pipeline actually generates', () => {
-    expect(generatedWidths()).toEqual([320, 640, 1280, 1920])
+    expect(pickVariantUrls({ url: 'https://x/o.jpg', variants }, 900).avif).toBe('a960.avif')
+    expect(pickVariantUrls({ url: 'https://x/o.jpg', variants }, 1100).avif).toBe('a1280.avif')
   })
 })
 
