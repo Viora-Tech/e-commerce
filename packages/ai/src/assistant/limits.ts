@@ -13,8 +13,11 @@ export const ASSISTANT_LIMITS = {
   /** Bulk price change bounds, in percent. */
   minPricePercent: -50,
   maxPricePercent: 100,
-  /** A proposal not approved within this many minutes expires. */
-  proposalTtlMinutes: 60,
+  /**
+   * A proposal not approved within this many minutes expires: 24 hours, so a card or an AI
+   * app's request proposed in the evening can still be approved the next morning.
+   */
+  proposalTtlMinutes: 24 * 60,
   /** Longest order note or reply draft. */
   maxNoteLength: 2000,
 } as const

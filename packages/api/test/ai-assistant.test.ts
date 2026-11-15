@@ -272,6 +272,10 @@ describe('approval gating', () => {
     ).rejects.toMatchObject({ code: 'CONFLICT' })
 
     const second = proposalOf(await ask(a.ctx, 'Create discount LATE5: 5% off'))
+    // Open for a day, so one proposed in the evening can be approved the next morning.
+    const [stored] = await owner.select().from(aiAction).where(eq(aiAction.id, second.id))
+    const openFor = (stored?.expiresAt.getTime() ?? 0) - (stored?.createdAt.getTime() ?? 0)
+    expect(Math.round(openFor / 60_000)).toBe(24 * 60)
     await owner
       .update(aiAction)
       .set({ expiresAt: new Date(Date.now() - 1000) })
