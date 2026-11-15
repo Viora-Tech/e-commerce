@@ -4,7 +4,8 @@ import { describe, expect, it, vi } from 'vitest'
 
 const files = vi.fn()
 const read = vi.fn()
-vi.mock('@/lib/api-client', () => ({ api: { themes: { code: { files, read } } } }))
+const counts = vi.fn(() => Promise.resolve({ templates: 0 }))
+vi.mock('@/lib/api-client', () => ({ api: { themes: { code: { files, read, counts } } } }))
 vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn() } }))
 
 const { isDirty, useCodeBuffers } = await import('./use-code-buffers')

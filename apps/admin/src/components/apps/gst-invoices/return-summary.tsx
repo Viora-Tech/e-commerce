@@ -70,6 +70,10 @@ export default function ReturnSummary({ gst, period }: ReturnSummaryProps) {
     download('json', () => api.gstInvoices.returns.gstr1Json({ period, gstRegistrationId: gst }))
   const handleSummaryCsv = () =>
     download('csv', () => api.gstInvoices.returns.gstr1Csv({ period, gstRegistrationId: gst }))
+  const handleRegister = () =>
+    download('xlsx', () =>
+      api.gstInvoices.returns.salesRegister({ period, gstRegistrationId: gst }),
+    )
   const handleTables = () =>
     download('zip', () => api.gstInvoices.gstr1({ ...monthRange(period), gstRegistrationId: gst }))
   const handle3bCsv = () =>
@@ -118,6 +122,16 @@ export default function ReturnSummary({ gst, period }: ReturnSummaryProps) {
         documents={summary.documents}
         action={
           <span className="flex flex-wrap justify-end gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={disabled}
+              onClick={handleRegister}
+              title={d.salesRegisterHelp}
+            >
+              <Download />
+              {d.salesRegister}
+            </Button>
             <Button size="sm" variant="ghost" disabled={disabled} onClick={handleTables}>
               {d.tableCsvs}
             </Button>

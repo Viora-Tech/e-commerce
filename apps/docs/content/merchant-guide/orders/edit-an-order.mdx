@@ -1,0 +1,131 @@
+---
+title: Edit or cancel an order
+description: Add or remove items, change quantities, prices, shipping and discount on a placed order, collect or refund the difference, and cancel an order with or without a refund.
+---
+
+# Edit or cancel an order
+
+## What this is for
+
+A customer calls to add a mouse pad, swap a size, or drop an item that ran out. Instead of
+cancelling and asking them to order again, you change the order itself. The order keeps its
+number, the stock and GST follow the change, and the money difference is collected or refunded
+in the same step.
+
+## How it works
+
+- You can edit an open or completed order, shipped or not. Gift cards on the order cannot be
+  changed.
+- Items added after the order shipped go in a new parcel, so they ship separately.
+- If the new total is **higher**, the customer owes the difference. You can email them a payment
+  link, or collect it by hand from the order page.
+- If the new total is **lower**, you choose how the refund goes back (below).
+- Your apps follow the edit: for example the GST invoices app rebuilds a queued invoice, or
+  replaces an issued one that is now wrong.
+- If your role has **Needs approval** on refunds, an edit that refunds money waits for an approver
+  (see [Approvals](/merchant-guide/settings/approvals)).
+
+<Diagram
+  name="order-lifecycle"
+  alt="An order goes from cart and checkout to paid, invoiced, packed into parcels, booked with a courier, tracked and delivered, or returned and refunded."
+  caption="Where editing fits: anywhere after the order is placed."
+/>
+
+## Edit an order step by step
+
+<Steps>
+
+### Open the editor
+
+Open the order and select **Edit order**.
+
+### Change the items
+
+- **Search products to add** finds a product; pick the variant and quantity.
+- **Add custom item** adds a line that is not in your catalogue (a name and a price).
+- Change **Quantity** or **Price** on a line, or select **Remove**. When you remove an item you
+  can choose whether it goes back on sale (restock).
+- **Add discount** on a line takes an **Amount** or **Percent** off each item.
+
+### Change shipping and discount
+
+Under **Shipping and discount**, change the **Shipping** charge and its **Shipping rate name**
+(for example "Bluedart"), and the order **Discount** with its **Discount reason** (for example
+"UPI discount").
+
+### Review
+
+Select **Update order**. **Review the edit** lists every change and the **Summary**: **New
+total**, **Paid by customer**, and either **Amount to collect** or **Refund owed**.
+
+- Amount to collect: tick **Email the customer a payment link** to send them a link to pay the
+  difference online.
+- Refund owed: pick how it goes back (see "Refund choices" below).
+- **Send the customer the updated order** emails them (and sends WhatsApp when it is connected).
+- **Reason for edit** is a note only staff see, on the order timeline.
+
+### Save
+
+Select **Update order**. The order shows **Order updated**, and the timeline records the edit.
+
+</Steps>
+
+<Callout>
+  Already shipped? Changes do not change the shipment that is on its way. Create a new shipment
+  for added items, or a return for removed ones.
+</Callout>
+
+## Refund choices
+
+The same four choices show when an edit or a cancellation gives money back:
+
+| Choice | What happens |
+| --- | --- |
+| **Refund to the original payment** | The money goes back the way the customer paid, through your payment company |
+| **Mark as refunded by hand** | You send the money yourself (UPI, bank transfer, cash); it is only recorded here |
+| **Store credit** | The amount goes onto the customer's store credit balance; you can set an expiry date |
+| **No refund** | Nothing goes back now; you can refund later from the payment card |
+
+A payment taken on another platform, or through a payment company you have since disconnected,
+can only be marked as refunded by hand.
+
+## Cancel an order
+
+1. On the order, select **More actions → Cancel order**.
+2. Pick a **Reason for cancellation** (customer changed their mind, out of stock, fraudulent or
+   suspicious order, payment declined, other) and add a note if you like.
+3. Choose the refund (above). **Later** sends nothing back now.
+4. Leave **Restock items** on to put unsent items back on sale.
+5. Leave **Send the customer an email that the order was cancelled** on to tell them.
+6. Select **Cancel order**.
+
+If a courier was booked, you can cancel the label in the same step; if the courier refuses,
+nothing is cancelled and you see the courier's reason. You can restore a cancelled order from
+**More actions** as long as no money went back.
+
+## Common problems and fixes
+
+| Problem | Fix |
+| --- | --- |
+| "This order can no longer be edited." | The order is cancelled, or it was imported and not taken over. For an imported order still open, select **Manage this order in Koomerce** on its Imported card first |
+| "The customer has no email address" | Collect the difference by hand from the order page, or add their email first |
+| "Sent for approval" | Your role needs approval for refunds or cancellations. The owner or an approver decides in Settings → Approvals |
+
+## FAQ
+
+<Faq>
+  <FaqItem question="Does the order number change?">
+    No. The order keeps its number; the timeline shows each edit.
+  </FaqItem>
+  <FaqItem question="What happens to the GST invoice?">
+    With the GST invoices app, a queued invoice is rebuilt. An issued invoice that now bills too
+    little is cancelled and issued again; a removed item is credited by its refund's credit note.
+  </FaqItem>
+</Faq>
+
+## Related guides
+
+- [Orders](/merchant-guide/orders/orders)
+- [Returns and RTO](/merchant-guide/orders/returns-and-rto)
+- [Customers: store credit](/merchant-guide/customers/customers)
+- [GST invoices](/merchant-guide/money-and-gst/gst-invoices)

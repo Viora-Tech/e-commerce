@@ -32,6 +32,7 @@ import SettingsDrillPanel from './settings-drill-panel'
 import SettingsPhoneRow from './settings-phone-row'
 import SettingsRow from './settings-row'
 import SettingsTextRow from './settings-text-row'
+import SettingsToggleRow from './settings-toggle-row'
 import StoreDataSection from './store-data-section'
 
 type Loaded = NonNullable<Awaited<ReturnType<typeof api.store.getGeneral>>>
@@ -272,6 +273,13 @@ export default function GeneralSettings() {
                 error={errors['address.pincode']}
                 autoComplete="postal-code"
                 inputMode="numeric"
+              />
+              <SettingsToggleRow
+                id="addr-show-in-emails"
+                label={copy.address.showInEmails}
+                description={copy.address.showInEmailsHelp}
+                checked={form.address.showInEmails !== false}
+                onChange={(showInEmails) => patchAddress({ showInEmails })}
               />
             </SettingsCard>
             <div

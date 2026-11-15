@@ -27,6 +27,18 @@ import { richTextHtml } from './rich-html'
 const onHand = (v: { onHand: number | null; reserved: number | null; track: boolean }) =>
   v.track ? Math.max(0, (v.onHand ?? 0) - (v.reserved ?? 0)) : 999
 
+/** Rows by key, each list in the rows' order. */
+function groupBy<T>(rows: T[], key: (row: T) => string): Map<string, T[]> {
+  const out = new Map<string, T[]>()
+  for (const row of rows) {
+    const k = key(row)
+    const list = out.get(k)
+    if (list) list.push(row)
+    else out.set(k, [row])
+  }
+  return out
+}
+
 /**
  * Products by id, fully loaded (variants, options, images), in the order given. Products the
  * market's catalog leaves out (Markets › Catalogs) are dropped, or with `keepUnsold` (the
@@ -145,17 +157,26 @@ export async function loadProducts(
   const unsold = new Set(found.filter((r) => !r.soldHere).map((r) => r.p.id))
   const rows = found.filter((r) => options.keepUnsold || r.soldHere).map((r) => r.p)
   const byId = new Map(rows.map((r) => [r.id, r]))
+  // Rows grouped once by their product or variant, in query order: a page asks for a few
+  // hundred products, and filtering every row list per product and per variant was quadratic.
+  const optionsOf = groupBy(optionRows, (o) => o.productId)
+  const imagesOf = groupBy(images, (i) => i.productId)
+  const variantsOf = groupBy(variants, (v) => v.productId)
+  const valuesOf = groupBy(values, (x) => x.variantId)
+  const variantImagesOf = groupBy(variantImages, (r) => r.variantId)
+  const membershipsOf = groupBy(memberships, (m) => m.productId)
   return ids.flatMap((id) => {
     const p = byId.get(id)
     if (!p) return []
     const opts = new Map<string, string[]>()
-    for (const o of optionRows.filter((x) => x.productId === id)) {
+    for (const o of optionsOf.get(id) ?? []) {
       const list = opts.get(o.name) ?? []
       if (o.value && !list.includes(o.value)) list.push(o.value)
       opts.set(o.name, list)
     }
-    const imgs: LiquidImageData[] = images
-      .filter((i) => i.productId === id && (i.contentType ?? 'image/').startsWith('image/'))
+    const productImages = imagesOf.get(id) ?? []
+    const imgs: LiquidImageData[] = productImages
+      .filter((i) => (i.contentType ?? 'image/').startsWith('image/'))
       .map((i) => ({
         id: i.id,
         url: i.url,
@@ -164,25 +185,28 @@ export async function loadProducts(
         height: i.height,
         variants: i.variants as MediaVariants,
       }))
-    const productVariants = variants.filter((v) => v.productId === id)
+    const productVariants = variantsOf.get(id) ?? []
+    const optionValuesOf = (v: (typeof variants)[number]) =>
+      (valuesOf.get(v.id) ?? []).map((x) => x.value)
     // A value only hidden variants use (#934) is not offered; a product whose variants carry no
     // option values keeps its options as they are.
-    const variantValues = values.filter((x) => productVariants.some((v) => v.id === x.variantId))
+    const variantValues = new Set(productVariants.flatMap(optionValuesOf))
+    const anyValues = productVariants.some((v) => valuesOf.has(v.id))
     const shownValue = (value: string) =>
-      variantValues.some((x) => x.value === value) ||
-      (variantValues.length === 0 && productVariants.length > 0)
+      variantValues.has(value) || (!anyValues && productVariants.length > 0)
     const listOf = (v: (typeof variants)[number]) => {
-      const listed = variantImages.filter((r) => r.variantId === v.id).map((r) => r.mediaId)
+      const listed = (variantImagesOf.get(v.id) ?? []).map((r) => r.mediaId)
       return listed.length ? listed : v.mediaId ? [v.mediaId] : []
     }
+    const lists = new Map(productVariants.map((v) => [v.id, listOf(v)]))
     // Themes that group gallery images by variant read `media.alt` as the option value
     // (Shopify's "alt = colour" convention); an image with no alt of its own gets the value
     // its variants share, else the product title.
     const groupAlt = new Map<string, string>()
     for (const img of imgs) {
-      if (images.find((i) => i.id === img.id && i.productId === id)?.alt) continue
-      const owners = productVariants.filter((v) => listOf(v).includes(img.id as string))
-      const opts = owners.map((v) => values.filter((x) => x.variantId === v.id).map((x) => x.value))
+      if (productImages.find((i) => i.id === img.id)?.alt) continue
+      const owners = productVariants.filter((v) => lists.get(v.id)?.includes(img.id as string))
+      const opts = owners.map(optionValuesOf)
       const first = opts[0]
       const shared = first?.find((value, i) => opts.every((o) => o[i] === value))
       if (shared) groupAlt.set(img.id as string, shared)
@@ -209,7 +233,7 @@ export async function loadProducts(
           .filter((o) => o.values.length > 0),
         createdAt: p.createdAt,
         preorder: resolvePreorderSettings(p, null, campaign).enabled,
-        collectionHandles: memberships.filter((m) => m.productId === id).map((m) => m.handle),
+        collectionHandles: (membershipsOf.get(id) ?? []).map((m) => m.handle),
         variants: productVariants.map((v) => {
           const qty = onHand(v)
           // Pre-order variants sell with no stock, as Shopify's "continue selling" does: the
@@ -231,7 +255,7 @@ export async function loadProducts(
             sku: v.sku,
             barcode: v.barcode,
             weightGrams: v.weight,
-            options: values.filter((x) => x.variantId === v.id).map((x) => x.value),
+            options: optionValuesOf(v),
             image: v.imageUrl
               ? (imageById.get(v.mediaId ?? '') ?? {
                   id: v.mediaId ?? undefined,
@@ -240,7 +264,7 @@ export async function loadProducts(
                   variants: v.imageVariants as MediaVariants,
                 })
               : null,
-            media: listOf(v).flatMap((mediaId) => imageById.get(mediaId) ?? []),
+            media: (lists.get(v.id) ?? []).flatMap((mediaId) => imageById.get(mediaId) ?? []),
           }
         }),
       },
@@ -268,20 +292,19 @@ export async function productsByHandles(
 }
 
 /**
- * Several collections' active products in their own order, the first `limit` of each, in one
- * load (`all` is every product A to Z by title, the order Shopify's `collections.all` reads in). A handle that names no collection gets an empty list.
+ * Several collections' active product ids and handles in their own order, the first `limit` of
+ * each (`all` is every product A to Z by title, the order Shopify's `collections.all` reads in).
+ * A handle that names no collection gets an empty list.
  */
-export async function collectionsProducts(
+async function collectionMembers(
   tx: StoreTx,
   handles: string[],
   limit: number,
-  pricing: MarketPricing | null = null,
-): Promise<Map<string, LiquidProductData[]>> {
-  const out = new Map<string, LiquidProductData[]>()
+): Promise<Map<string, { id: string; handle: string }[]>> {
   const named = handles.filter((h) => h !== 'all')
   const rows = named.length
     ? await tx
-        .select({ id: product.id, handle: collection.handle })
+        .select({ id: product.id, productHandle: product.handle, handle: collection.handle })
         .from(collectionProduct)
         .innerJoin(collection, eq(collection.id, collectionProduct.collectionId))
         .innerJoin(product, eq(product.id, collectionProduct.productId))
@@ -294,32 +317,90 @@ export async function collectionsProducts(
         )
         .orderBy(asc(collection.handle), asc(collectionProduct.position))
     : []
-  const ids = new Map<string, string[]>()
+  const members = new Map<string, { id: string; handle: string }[]>()
   for (const r of rows) {
-    const list = ids.get(r.handle) ?? []
-    if (list.length < limit) list.push(r.id)
-    ids.set(r.handle, list)
+    const list = members.get(r.handle) ?? []
+    if (list.length < limit) list.push({ id: r.id, handle: r.productHandle })
+    members.set(r.handle, list)
   }
   const all = handles.includes('all')
     ? await tx
-        .select({ id: product.id })
+        .select({ id: product.id, handle: product.handle })
         .from(product)
         .where(and(eq(product.status, 'active'), soldInRequestCatalog(product.id)))
         .orderBy(asc(product.title), asc(product.id))
         .limit(limit)
     : []
-  if (all.length)
-    ids.set(
-      'all',
-      all.map((r) => r.id),
-    )
-  const loaded = await loadProducts(tx, [...new Set([...ids.values()].flat())], pricing)
+  if (all.length) members.set('all', all)
+  return members
+}
+
+/**
+ * Several collections' active products in their own order, the first `limit` of each, in one
+ * load (`all` is every product A to Z by title, the order Shopify's `collections.all` reads in). A handle that names no collection gets an empty list.
+ */
+export async function collectionsProducts(
+  tx: StoreTx,
+  handles: string[],
+  limit: number,
+  pricing: MarketPricing | null = null,
+): Promise<Map<string, LiquidProductData[]>> {
+  const members = await collectionMembers(tx, handles, limit)
+  const ids = [...new Set([...members.values()].flat().map((m) => m.id))]
+  const loaded = await loadProducts(tx, ids, pricing)
   const byId = new Map(loaded.map((p) => [p.id, p]))
+  const out = new Map<string, LiquidProductData[]>()
   for (const handle of handles) {
     out.set(
       handle,
-      (ids.get(handle) ?? []).flatMap((id) => byId.get(id) ?? []),
+      (members.get(handle) ?? []).flatMap((m) => byId.get(m.id) ?? []),
     )
   }
   return out
+}
+
+/**
+ * The same collections' product handles only (`collectionsProducts` without loading the
+ * products), so a theme that reads three products of a collection loads three.
+ */
+export async function collectionsProductHandles(
+  tx: StoreTx,
+  handles: string[],
+  limit: number,
+): Promise<Map<string, string[]>> {
+  const members = await collectionMembers(tx, handles, limit)
+  return new Map(handles.map((h) => [h, (members.get(h) ?? []).map((m) => m.handle)]))
+}
+
+/**
+ * Every active collection A to Z with its image and live product count (active, sold in the
+ * request's catalog). The counts come from one grouped pass, left-joined; a correlated count per
+ * collection scanned the products once per collection.
+ */
+export function activeCollectionRows(tx: StoreTx) {
+  const counts = tx
+    .select({ collectionId: collectionProduct.collectionId, n: sql<number>`count(*)`.as('n') })
+    .from(collectionProduct)
+    .innerJoin(product, eq(product.id, collectionProduct.productId))
+    .where(and(eq(product.status, 'active'), soldInRequestCatalog(product.id)))
+    .groupBy(collectionProduct.collectionId)
+    .as('counts')
+  return tx
+    .select({
+      id: collection.id,
+      handle: collection.handle,
+      title: collection.title,
+      description: collection.description,
+      imageUrl: media.url,
+      imageAlt: media.alt,
+      imageVariants: media.variants,
+      width: media.width,
+      height: media.height,
+      count: sql<number>`coalesce(${counts.n}, 0)`,
+    })
+    .from(collection)
+    .leftJoin(media, eq(media.id, collection.imageMediaId))
+    .leftJoin(counts, eq(counts.collectionId, collection.id))
+    .where(eq(collection.status, 'active'))
+    .orderBy(asc(collection.title))
 }

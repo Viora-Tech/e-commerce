@@ -87,7 +87,8 @@ export const QUERY_TABLES = {
     description:
       'One row per order line, dated when the order was placed (drafts, test and cancelled orders left out).',
     fields: [
-      metric('net_quantity', 'number', 'units sold'),
+      metric('net_quantity', 'number', 'units sold: ordered minus returned'),
+      metric('ordered_quantity', 'number', 'units ordered, before returns'),
       metric('gross_sales', 'money', 'units × price'),
       metric('cost', 'money', 'cost at sale, when known'),
       metric('orders', 'number', 'orders it was in'),

@@ -1,0 +1,85 @@
+---
+title: Approvals
+description: Changes that wait for someone to say yes - from staff whose role asks first, from AI apps and API tokens - and how to approve, reject or follow your own requests.
+---
+
+# Approvals
+
+## What this is for
+
+Some changes are too important to happen on one person's click: a refund, cancelling an order,
+deleting products, changing payment keys. **Settings → Approvals** is where those changes wait
+until the owner, or another member allowed to approve, says yes. AI apps connected to your store
+also send their changes here.
+
+## How it works
+
+- In **Settings → Staff**, each role sets every change permission to **Off**, **Allowed** or
+  **Ask first**. With **Ask first**, the change runs only after another member approves it.
+  Only the owner can change Ask first.
+- The owner can do everything and never waits for approval.
+- When someone with Ask first saves such a change, nothing happens yet. They see **Sent for
+  approval** and the change waits here.
+- Changes from an **AI app (MCP)** or an **API token** wait here too when the member they act for
+  has Ask first. Some changes always wait when they come from an AI app: refunds, cancellations,
+  deletes, payments, staff, billing, domains and MCP settings.
+- Who can approve: the owner, or a member whose role can manage approvals, holds that permission
+  and does not have Ask first on it. Nobody can approve their own request.
+- Approving runs the change **as the approver, with their role**. It checks again that it still
+  makes sense (for example, a product deleted in the meantime is refused).
+- A request nobody approves within **7 days** expires and nothing changes.
+
+Changes the AI suggests inside **Ask AI** are different: they show as a card in the chat that only
+you approve, within 24 hours. See [Ask AI](/merchant-guide/home/ask-ai).
+
+<Diagram
+  name="ai-and-mcp"
+  alt="Ask AI and AI apps over MCP use tools the member's role allows. Reads answer at once. Ask AI's changes are cards the asker approves within 24 hours. AI app actions and admin changes from a role that asks first wait in Settings, Approvals for 7 days, and run when an approver says yes."
+/>
+
+## Approve or reject
+
+<Steps>
+
+### Open Approvals
+
+Go to **Settings → Approvals**. The sidebar shows a count when something is waiting.
+
+### Read the request
+
+**Waiting for you** lists changes from other members, and your own AI app's requests. Each
+shows who asked, where it came from (**Admin**, **AI assistant**, **AI app (MCP)**, **API token**
+or **Write with AI**), and exactly what will change.
+
+### Decide
+
+Select **Approve** to run the change as you, with your role, or **Reject** to throw it away.
+
+</Steps>
+
+## Follow your own requests
+
+**Your requests** lists what you sent for approval in the last 30 days and what became of it:
+approved, rejected, or **Expired: nobody approved it in time, so nothing changed**. You can
+withdraw a request that is still waiting.
+
+<Callout>
+  Start with the defaults: new stores ask first for refunds, cancellations, product and customer
+  deletes, discounts, payment settings, billing, and inviting or managing staff. Loosen a role
+  once you trust it.
+</Callout>
+
+## Common problems and fixes
+
+| Problem | Fix |
+| --- | --- |
+| My staff member's change says "Sent for approval" | Their role has Ask first on that permission. Approve it here, or change the role in Settings → Staff |
+| I cannot approve a request | You asked for it yourself, or your role does not hold that permission, or your role also has Ask first on it. Ask the owner |
+| A request disappeared | It expired after 7 days, or the person withdrew it. See Your requests |
+
+## Related guides
+
+- [Staff and roles](/merchant-guide/settings/staff)
+- [MCP and API](/merchant-guide/settings/mcp-and-api)
+- [Ask AI](/merchant-guide/home/ask-ai)
+- [Activity log](/merchant-guide/settings/activity-log)

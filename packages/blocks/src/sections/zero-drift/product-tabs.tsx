@@ -5,7 +5,7 @@ import ProductTabs, { type ProductTabItem } from '../../components/sections/zero
 import SpecRowsTable from '../../components/sections/zero-drift/spec-rows-table'
 import { productTabsContent as copy } from '../../data/zero-drift/product-tabs'
 import { descriptionDoc, specRows } from '../../product-data'
-import { richtextHtml } from '../../richtext-html'
+import { isBlankRichtext } from '../../richtext-node'
 import { defaultSectionSettings } from '../../section-settings'
 import type { ProductDetail } from '../../types'
 import type { Frame } from '../framed'
@@ -58,8 +58,9 @@ function panelFor(tab: Tab, product: ProductDetail): ReactNode | null {
     const rows = specRows(tab.rows)
     return rows.length ? <SpecRowsTable rows={rows} /> : null
   }
-  // On the canvas the body is Puck's inline editor (a node); on the storefront, stored HTML.
-  if (typeof tab.body === 'string' && !richtextHtml(tab.body)) return null
+  // On the canvas the body is Puck's inline editor (a node); on the storefront, the server's
+  // sanitised HTML (`framed`) or stored HTML.
+  if (isBlankRichtext(tab.body)) return null
   return <RichCopy value={tab.body} className="product-tabs__prose rte" />
 }
 

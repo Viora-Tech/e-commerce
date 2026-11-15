@@ -130,6 +130,7 @@ export default [
       createFailed: 'पिकअप नहीं बन पाए।',
     },
     editPopup: {
+      title: (n) => `शिपमेंट बदलें · #${n}`,
       subtitle: (parts) => parts.filter(Boolean).join(' · '),
       items: 'भेजने वाले आइटम',
       itemsCount: (n, total) => `${total} में से ${n} आइटम`,
@@ -152,7 +153,7 @@ export default [
         [cheapest ? `सबसे सस्ता: ${cheapest}` : null, fastest ? `सबसे तेज़: ${fastest}` : null]
           .filter(Boolean)
           .join(' · '),
-      repriceNote: 'सेव करने पर इस पैकेट के लिए कूरियर से फिर पूछा जाएगा।',
+      repriceNote: 'लागू करने पर इस पैकेट के लिए कूरियर से फिर पूछा जाएगा।',
       noShopperChoice: 'चेकआउट पर कोई डिलीवरी विकल्प नहीं चुना गया',
       payment: 'भुगतान',
       prepaid: 'प्रीपेड',
@@ -166,8 +167,9 @@ export default [
         insured ? `${amount} GST + इंश्योरेंस सहित` : `${amount} GST सहित`,
       skip: 'यह ऑर्डर छोड़ें',
       unskip: 'यह ऑर्डर बुक करें',
-      saveNote: 'सेव करने पर सूची में इसकी लाइन बदल जाएगी',
-      close: 'बंद करें',
+      applyNote: 'लागू करें से यह लाइन बदल जाएगी। Esc से रद्द।',
+      cancel: 'रद्द करें',
+      apply: 'लागू करें',
     },
   }),
 ]

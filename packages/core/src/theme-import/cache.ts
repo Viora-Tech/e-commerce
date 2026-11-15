@@ -27,6 +27,8 @@ export class LiquidDataCache {
   readonly #wantCollections = new Set<string>()
   readonly #collections: Store<LiquidCollectionData> = new Map()
   readonly #collectionProducts: Store<LiquidProductData[]> = new Map()
+  readonly #collectionHandles: Store<string[]> = new Map()
+  readonly #wantCollectionHandles = new Set<string>()
   readonly #menus: Store<LiquidMenuData> = new Map()
   readonly #blogs: Store<LiquidBlogData> = new Map()
   readonly #pages: Store<LiquidPageData> = new Map()
@@ -112,6 +114,32 @@ export class LiquidDataCache {
       })
     }
     return null
+  }
+
+  /**
+   * A collection's product handles (the first `COLLECTION_PAGE_SIZE`), batched like
+   * `collectionProducts`; null while loading, or always when the source cannot list handles
+   * or load products in a batch (the caller then reads `collectionProducts`).
+   */
+  collectionProductHandles(handle: string): string[] | null {
+    const batch = this.source.collectionsProductHandles
+    if (!batch || !this.source.products) return null
+    if (this.#collectionHandles.has(handle)) return this.#collectionHandles.get(handle) ?? null
+    this.#wantCollectionHandles.add(handle)
+    if (!this.#pending.has('cph*')) {
+      this.#pending.set('cph*', async () => {
+        const handles = [...this.#wantCollectionHandles]
+        this.#wantCollectionHandles.clear()
+        const found = await batch(handles, COLLECTION_PAGE_SIZE)
+        for (const h of handles) this.#collectionHandles.set(h, found.get(h) ?? [])
+      })
+    }
+    return null
+  }
+
+  /** Whether collections list their products by handle first (`collectionProductHandles`). */
+  get listsProductHandles(): boolean {
+    return Boolean(this.source.collectionsProductHandles && this.source.products)
   }
 
   /**

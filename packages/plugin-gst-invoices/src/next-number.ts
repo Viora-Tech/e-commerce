@@ -1,10 +1,17 @@
 /** SOURCE OF TRUTH: peekNext, nextNumberFloor, setNextNumber — WHAT: reading and moving a GSTIN series' next invoice number / WHY: split from queue.ts; the counter rules (never below the last issued, never backwards in time) live in one place */
 import { startOfDay } from '@commerce/dates'
 import type { StoreTx } from '@commerce/db'
-import { counterYear, financialYear, nextNumberProblem, type Series } from '@commerce/invoices'
+import {
+  checkDocumentNumber,
+  counterYear,
+  financialYear,
+  formatSeriesNumber,
+  nextNumberProblem,
+  type Series,
+} from '@commerce/invoices'
 import { and, desc, eq, inArray, sql } from 'drizzle-orm'
-import { InvoiceError } from './issue'
-import { sameRegistration } from './registration'
+import { InvoiceError, loadSettings } from './issue'
+import { documentIssuer, gstToken, sameRegistration } from './registration'
 import { invoice, invoiceSequence } from './schema'
 
 /**
@@ -85,6 +92,35 @@ export async function setNextNumber(
       set: { next: sql`greatest(${invoiceSequence.next}, ${wanted})` },
     })
   return wanted
+}
+
+/**
+ * The GST app's numbering settings: move any saved series' next number for one GSTIN (an
+ * export series carrying on from a number the previous billing system already used). Same
+ * rules as {@link setNextNumber}; refuses an unsaved series and a number that would not fit
+ * GST's 16 characters. Returns the number it will print.
+ */
+export async function setSeriesNextNumber(
+  tx: StoreTx,
+  storeId: string,
+  gstRegistrationId: string | null,
+  seriesId: string,
+  wanted: number,
+  at = new Date(),
+): Promise<{ next: number; number: string }> {
+  const settings = await loadSettings(tx, storeId)
+  const series = settings.series.find((s) => s.id === seriesId)
+  if (!series) throw new InvoiceError('invalid', 'Save the series first, then set its next number')
+  const issuer = await documentIssuer(tx, gstRegistrationId)
+  const number = formatSeriesNumber(series, financialYear(at), wanted, gstToken(issuer, settings))
+  if (Number.isInteger(wanted) && !checkDocumentNumber(number).ok) {
+    throw new InvoiceError(
+      'invalid',
+      `Invoice numbers can be at most 16 characters; ${number} is too long`,
+    )
+  }
+  const next = await setNextNumber(tx, storeId, gstRegistrationId, series, wanted, at)
+  return { next, number }
 }
 
 export async function latestIssuedDate(

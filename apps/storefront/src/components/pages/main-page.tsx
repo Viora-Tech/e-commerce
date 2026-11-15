@@ -7,8 +7,9 @@ export default function MainPage({ title, body, showTitle }: MainPageProps) {
   // Render logic
   const value = parseRichText(body)
   return (
-    <section className="page-width mx-auto max-w-3xl py-12">
-      {showTitle ? <h1 className="h2 mb-6">{title}</h1> : null}
+    // Spaced by gap: an unlayered `* { margin: 0 }` reset beats margin utilities.
+    <section className="page-width flex flex-col gap-6 py-12">
+      {showTitle ? <h1 className="h2">{title}</h1> : null}
       <RichTextRenderer data={value} className="rte" />
     </section>
   )

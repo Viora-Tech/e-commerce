@@ -1,6 +1,6 @@
 export const sections = [
   { id: 'merchant', label: 'Merchant guide', href: '/merchant-guide/start-here/welcome' },
-  { id: 'developer', label: 'Developers', href: '/developer-docs/getting-started/architecture' },
+  { id: 'developer', label: 'Developers', href: '/developer-docs/how-it-works/overview' },
 ] as const
 
 export type SectionId = (typeof sections)[number]['id']

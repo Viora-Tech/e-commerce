@@ -1,4 +1,4 @@
-import { ABANDONED_AFTER_MS, notTestCartContact, notTestOrder } from '@commerce/core'
+import { ABANDONED_AFTER_MS, NET_UNITS, notTestCartContact, notTestOrder } from '@commerce/core'
 import { HOME_METRICS, type HomeMetric, parseHomeTiles } from '@commerce/core/home-metrics'
 import type { StoreTx } from '@commerce/db'
 import { cart, order, orderLine, product, refund, storeMember, variant } from '@commerce/db'
@@ -148,9 +148,9 @@ async function load(tx: StoreTx, w: Window, hourly: boolean) {
         ),
       )
       .groupBy(cartBucket),
-    /* Units sold, per bucket. */
+    /* Units sold (ordered minus returned), per bucket. */
     tx
-      .select({ bucket: lineBucket, units: sumInt(orderLine.quantity) })
+      .select({ bucket: lineBucket, units: sumInt(NET_UNITS) })
       .from(orderLine)
       .innerJoin(order, eq(order.id, orderLine.orderId))
       .innerJoin(variant, eq(variant.id, orderLine.variantId))
@@ -247,9 +247,9 @@ async function figures(
   ) as Record<HomeMetric, { value: number; series: number[] }>
 }
 
-/** The best seller by units in the window, by title. */
+/** The best seller by units sold (net of returns) in the window, by title. */
 async function bestSeller(tx: StoreTx, w: Window) {
-  const units = sum(orderLine.quantity).mapWith(Number)
+  const units = sum(NET_UNITS).mapWith(Number)
   const [row] = await tx
     .select({ title: product.title, units })
     .from(orderLine)

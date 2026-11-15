@@ -74,4 +74,29 @@ describe('storeLiquidData batches', () => {
     expect(handles('none')).toEqual([])
     expect(handles('all')).toHaveLength(2)
   })
+
+  it('collectionsProductHandles: the same members as collectionsProducts, handles only', async () => {
+    const storeId = await seed()
+    const handles = (await source(storeId, (s) =>
+      s.collectionsProductHandles?.(['one', 'two', 'none', 'all'], 2),
+    )) as Map<string, string[]>
+    const full = (await source(storeId, (s) =>
+      s.collectionsProducts?.(['one', 'two', 'none', 'all'], 2),
+    )) as Map<string, { handle: string }[]>
+    for (const h of ['one', 'two', 'none', 'all']) {
+      expect(handles.get(h)).toEqual(full.get(h)?.map((p) => p.handle))
+    }
+    expect(handles.get('one')).toEqual(['c', 'a'])
+  })
+
+  it('collections: each counts its active products only, an empty one zero', async () => {
+    const storeId = await seed()
+    await owner.insert(collection).values({ storeId, handle: 'empty', title: 'Empty' })
+    const list = (await source(storeId, (s) => s.collections())) as {
+      handle: string
+      productsCount: number
+    }[]
+    const count = Object.fromEntries(list.map((c) => [c.handle, c.productsCount]))
+    expect(count).toEqual({ one: 3, two: 1, empty: 0 })
+  })
 })

@@ -13,6 +13,9 @@ folder holds the files that runbook references:
   only on a fresh `pgdata` volume).
 - `backup-cron.sh` — the docker-compose-only nightly backup loop (prefer Dokploy's own
   Scheduled Job feature where available — see `apps/docs/content/developer-docs/operations/backups.mdx`).
+- `rollback.sh` — one-step production rollback: points one Dokploy application (worker, admin
+  or storefront) back at an earlier ECR image tag and redeploys it. Dry run unless `--apply`; see
+  the runbook, "Rollback".
 - `Dockerfile.tasks` — shared image for the one-shot `migrate` service and the `backup`
   service; see its own header comment for why it isn't pruned per-app like the others.
 

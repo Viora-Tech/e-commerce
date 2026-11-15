@@ -1,4 +1,5 @@
 import type { RichTextValue } from '@commerce/richtext'
+import type { ReactNode } from 'react'
 /** Data shapes blocks render. Apps fetch these; blocks never touch the database. */
 
 /**
@@ -45,7 +46,11 @@ export type CardProduct = {
 }
 
 /** One of the product's extra fields, ready to show: `text` to parse, `html` for a panel body. */
-export type ProductFieldText = { text: string; html: string }
+export type ProductFieldText = {
+  text: string
+  /** HTML for a panel body; on the storefront the server's sanitised copy (`productFieldsRichtext`). */
+  html: ReactNode
+}
 
 export type ProductDetail = {
   id: string

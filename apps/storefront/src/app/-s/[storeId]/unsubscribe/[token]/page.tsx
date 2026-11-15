@@ -1,6 +1,7 @@
 import { settingsSecret } from '@commerce/config'
 import { customerSubscription, verifyUnsubscribeToken } from '@commerce/core'
 import type { Metadata } from 'next'
+import SystemPanel from '@/components/system/system-panel'
 import { unsubscribeContent as copy } from '@/data/marketing'
 import { resubscribeAction, unsubscribeAction } from '@/lib/marketing-actions'
 import { inStore } from '@/lib/store-context'
@@ -26,13 +27,13 @@ export default async function UnsubscribePage({ params }: Props) {
   // Early returns
   if (!state?.email) {
     return (
-      <section className="mx-auto my-16 flex w-[min(26rem,calc(100%-2rem))] flex-col gap-4 rounded-[var(--radius-card)] bg-surface p-6 md:my-24 md:p-8">
+      <SystemPanel>
         <h1 className="h3">{copy.title}</h1>
         <p className="text-body text-muted">{copy.invalid}</p>
         <a href="/" className="btn btn--primary">
           {copy.home}
         </a>
-      </section>
+      </SystemPanel>
     )
   }
 
@@ -40,7 +41,7 @@ export default async function UnsubscribePage({ params }: Props) {
   const subscribed = state.acceptsMarketing && !state.unsubscribedAt
 
   return (
-    <section className="mx-auto my-16 flex w-[min(26rem,calc(100%-2rem))] flex-col gap-4 rounded-[var(--radius-card)] bg-surface p-6 md:my-24 md:p-8">
+    <SystemPanel>
       <h1 className="h3">{copy.title}</h1>
       <p className="text-body text-muted">
         {subscribed ? copy.subscribed(state.email) : copy.unsubscribed(state.email)}
@@ -70,6 +71,6 @@ export default async function UnsubscribePage({ params }: Props) {
           </>
         )}
       </div>
-    </section>
+    </SystemPanel>
   )
 }

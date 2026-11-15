@@ -54,6 +54,8 @@ function isHoverIntentSuppressed(): boolean {
 export default function HeaderNav({ links, cards = {}, menuHover = 'underline' }: HeaderNavProps) {
   // Hooks
   const [openIndex, setOpenIndex] = useState<number | null>(null)
+  // Items whose dropdown photos may load: hovered, focused or opened once (see `warm`).
+  const [warmed, setWarmed] = useState<number[]>([])
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const navRef = useRef<HTMLElement>(null)
   const { indicatorRef, moveTo, hide } = useNavIndicator(menuHover)
@@ -72,6 +74,12 @@ export default function HeaderNav({ links, cards = {}, menuHover = 'underline' }
   }, [openIndex, moveTo, hide])
 
   // Helpers
+  // A closed panel is only `visibility: hidden`, so every card photo used to load on every
+  // page view. Photos are drawn from the first hover (during the open delay, so they are on
+  // their way before the panel shows), focus or tap instead; the links are always in the HTML.
+  const warm = (index: number) =>
+    setWarmed((prev) => (prev.includes(index) ? prev : [...prev, index]))
+
   const schedule = (next: number | null, delay: number) => {
     if (timer.current) clearTimeout(timer.current)
     timer.current = setTimeout(() => setOpenIndex(next), delay)
@@ -91,6 +99,7 @@ export default function HeaderNav({ links, cards = {}, menuHover = 'underline' }
     if (event.pointerType !== 'mouse') return
     moveTo(event.currentTarget)
     if (index !== null && isHoverIntentSuppressed()) return
+    if (index !== null) warm(index)
     const opening = index !== null && openIndex === null
     schedule(index, opening ? MENU_OPEN_DELAY_MS : 0)
   }
@@ -101,8 +110,14 @@ export default function HeaderNav({ links, cards = {}, menuHover = 'underline' }
     schedule(null, MENU_CLOSE_DELAY_MS)
   }
 
+  const handleItemFocus = (index: number, event: FocusEvent<HTMLLIElement>) => {
+    moveTo(event.currentTarget)
+    warm(index)
+  }
+
   const handleToggle = (index: number) => {
     if (timer.current) clearTimeout(timer.current)
+    warm(index)
     setOpenIndex((prev) => (prev === index ? null : index))
   }
 
@@ -183,7 +198,7 @@ export default function HeaderNav({ links, cards = {}, menuHover = 'underline' }
                 wide ? 'header__menu-item' : 'header__menu-item header__menu-item--dropdown'
               }
               onPointerEnter={(event) => handlePointerEnter(index, event)}
-              onFocus={(event) => moveTo(event.currentTarget)}
+              onFocus={(event) => handleItemFocus(index, event)}
             >
               <button
                 type="button"
@@ -205,7 +220,12 @@ export default function HeaderNav({ links, cards = {}, menuHover = 'underline' }
                 >
                   <div className="header__expansion-panel-inner">
                     <div className="page-width">
-                      <HeaderMenuPanel link={link} columns={mega} cards={itemCards} />
+                      <HeaderMenuPanel
+                        link={link}
+                        columns={mega}
+                        cards={itemCards}
+                        media={open || warmed.includes(index)}
+                      />
                     </div>
                   </div>
                 </div>

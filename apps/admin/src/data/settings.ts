@@ -305,6 +305,9 @@ export const settingsContent = {
       state: 'State',
       pincode: 'Pincode',
       country: 'Country',
+      showInEmails: 'Show in emails',
+      showInEmailsHelp:
+        'Adds this address to the footer of order emails and campaigns. Invoices print it either way.',
     },
     locale: {
       heading: 'Currency and time',

@@ -12,6 +12,7 @@ import {
   isValidEventId,
   isValidFbc,
   isValidFbp,
+  maySendOrderPurchase,
   mintFbp,
   purchaseEventId,
   purchaseSkipReason,
@@ -87,6 +88,18 @@ describe('consent gate and skips', () => {
     expect(hasMarketingConsent({ consent: { ...consented.consent, marketing: false } })).toBe(false)
     expect(hasMarketingConsent({ fbp: 'fb.1.1.1' })).toBe(false)
     expect(hasMarketingConsent(null)).toBe(false)
+  })
+
+  it('the checkout tick lets the order Purchase go without a banner yes', () => {
+    const no = { consent: { ...consented.consent, marketing: false } }
+    const ticked = { ...no, orderSharing: { at: now.toISOString(), source: 'checkout' as const } }
+    expect(maySendOrderPurchase(consented)).toBe(true)
+    expect(maySendOrderPurchase(no)).toBe(false)
+    expect(maySendOrderPurchase(ticked)).toBe(true)
+    // The tick is about this order only: it is not a yes to marketing on the banner.
+    expect(hasMarketingConsent(ticked)).toBe(false)
+    expect(purchaseSkipReason({ ...base, tracking: no }, now)).toBe('no_consent')
+    expect(purchaseSkipReason({ ...base, tracking: ticked }, now)).toBeNull()
   })
 
   it('skips test, imported, untracked, unconsented and too-old orders, in that order', () => {

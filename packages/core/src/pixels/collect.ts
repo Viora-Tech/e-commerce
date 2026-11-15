@@ -182,6 +182,8 @@ export type CheckoutTracking = {
   fbc?: string | null | undefined
   ip?: string | null | undefined
   ua?: string | null | undefined
+  /** The checkout tick "Share this order with our advertising partners" (unticked: false). */
+  shareOrder?: boolean | undefined
 }
 
 /**
@@ -195,8 +197,54 @@ export type CheckoutTracking = {
  * - No yes now (a no, or no answer on the current banner): a yes on the cart is withdrawn, and a
  *   cart with no tracking records just the no, so the order is skipped as `no_consent` rather
  *   than "no browser details". Nothing about the browser is kept without a yes.
+ * - The checkout tick (`shareOrder`): recorded as `orderSharing`, with this request's browser
+ *   details, so the order's server Purchase goes out whatever the banner says; unticked, any
+ *   earlier tick on the cart (a submit that failed) is removed and the banner alone decides.
  */
 export async function syncCartMarketingConsent(
+  tx: StoreTx,
+  cartId: string,
+  t: CheckoutTracking,
+  now: Date,
+): Promise<void> {
+  await syncBannerConsent(tx, cartId, t, now)
+  await syncOrderSharing(tx, cartId, t, now)
+}
+
+/** What this checkout request saw of the browser, for the server events (only with a yes). */
+function browserSeen(t: CheckoutTracking): PixelTracking {
+  return {
+    ...(isValidFbp(t.fbp) ? { fbp: t.fbp } : {}),
+    ...(isValidFbc(t.fbc) ? { fbc: t.fbc, fbclid: fbclidOf(t.fbc) } : {}),
+    ...(t.ip && t.ip !== 'unknown' ? { ip: t.ip.slice(0, 100) } : {}),
+    ...(t.ua ? { ua: t.ua.slice(0, 500) } : {}),
+  }
+}
+
+async function syncOrderSharing(
+  tx: StoreTx,
+  cartId: string,
+  t: CheckoutTracking,
+  now: Date,
+): Promise<void> {
+  const open = and(eq(cart.id, cartId), eq(cart.status, 'open'))
+  if (!t.shareOrder) {
+    await tx
+      .update(cart)
+      .set({ tracking: sql`${cart.tracking} - 'orderSharing'` })
+      .where(and(open, sql`${cart.tracking} ? 'orderSharing'`))
+    return
+  }
+  const tick: PixelTracking = { orderSharing: { at: now.toISOString(), source: 'checkout' } }
+  await tx
+    .update(cart)
+    .set({
+      tracking: sql`${JSON.stringify(browserSeen(t))}::jsonb || coalesce(${cart.tracking}, '{}'::jsonb) || ${JSON.stringify(tick)}::jsonb`,
+    })
+    .where(open)
+}
+
+async function syncBannerConsent(
   tx: StoreTx,
   cartId: string,
   t: CheckoutTracking,
@@ -220,12 +268,7 @@ export async function syncCartMarketingConsent(
     return
   }
   const consent = t.consent as NonNullable<CheckoutTracking['consent']>
-  const seen: PixelTracking = {
-    ...(isValidFbp(t.fbp) ? { fbp: t.fbp } : {}),
-    ...(isValidFbc(t.fbc) ? { fbc: t.fbc, fbclid: fbclidOf(t.fbc) } : {}),
-    ...(t.ip && t.ip !== 'unknown' ? { ip: t.ip.slice(0, 100) } : {}),
-    ...(t.ua ? { ua: t.ua.slice(0, 500) } : {}),
-  }
+  const seen = browserSeen(t)
   const yes = {
     consent: {
       marketing: true,
@@ -286,6 +329,19 @@ export async function shopperMatchFacts(
     country: a?.country ?? c?.country,
     externalId: me?.id ?? input.visitorId,
   }
+}
+
+/**
+ * Checkout offers "Share this order with our advertising partners" only when ticking it can do
+ * something: the Pixels app is on and an active pixel sends Purchase through the Conversions API.
+ */
+export async function orderSharingOffered(tx: StoreTx, storeId: string): Promise<boolean> {
+  if (!(await collectorStore(tx, storeId)).installed) return false
+  const rows = await tx
+    .select({ events: pixelConnection.events })
+    .from(pixelConnection)
+    .where(and(eq(pixelConnection.status, 'active'), sql`${pixelConnection.tokenEnc} is not null`))
+  return rows.some((r) => r.events.includes('Purchase'))
 }
 
 /** What the collector needs of the store: is Pixels installed, and the banner version now shown. */

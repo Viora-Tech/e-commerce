@@ -1294,7 +1294,7 @@ export const APP_CATALOGUE_DATA: CatalogueEntry[] = [
       'Make the contact and advice forms of your theme work: every message is saved here and emailed to you.',
     tagline: 'Makes the contact forms of an imported theme work, with every message saved.',
     highlights: ['Saves every message on a Submissions page', 'Emails each one to your store'],
-    guide: null,
+    guide: '/merchant-guide/apps/forms',
     worksWith: ['Themes imported from Shopify'],
     screenshots: [],
     keywords: ['contact form', 'messages'],

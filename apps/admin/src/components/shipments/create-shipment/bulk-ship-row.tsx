@@ -6,6 +6,7 @@ import { Button } from '@commerce/ui/shadcn/button'
 import { Checkbox } from '@commerce/ui/shadcn/checkbox'
 import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { TableCell, TableRow } from '@commerce/ui/shadcn/table'
+import type { MouseEvent } from 'react'
 import StatusChip from '@/components/layout/status-chip'
 import { bulkShipContent } from '@/data/bulk-ship'
 import { createShipmentContent } from '@/data/create-shipment'
@@ -22,8 +23,13 @@ type BulkShipRowProps = {
   boxes: ShipmentDraft['boxes']
   ticked: boolean
   onTick: (on: boolean) => void
-  /** Opens the order's Edit popup (Figma 913:9698): Change, the fix buttons and the pencil. */
+  /** Opens the order's edit in place under its row (Figma 913:9698): Change, the fix buttons,
+   *  the pencil and a click on the row itself. */
   onEdit: () => void
+  /** The row's editor is open under it: the pencil closes it again. */
+  expanded?: boolean | undefined
+  /** Closes the open editor without applying (the pencil, pressed again). */
+  onCollapse?: (() => void) | undefined
   /** "Ask to pay online" for a COD order no courier takes: sends the shopper a payment link. */
   onAskPayOnline: () => void
   /** A request is on its way: the fix button waits. */
@@ -40,6 +46,15 @@ const shortName = (name: string | null) => {
 
 const kg = (grams: number) => Math.round(grams / 10) / 100
 
+/** Clicks on these inside the row do their own thing, not open the editor. */
+const INTERACTIVE = 'button, a, input, label, select, textarea, [role="checkbox"]'
+
+/** The pencil's id, so focus can go back to it when the row's editor closes. */
+export const editButtonId = (orderId: string) => `bulk-edit-${orderId}`
+
+/** A blocked order cannot be booked from here, so it has no editor. */
+const canEdit = (line: BulkLine) => !(line.status === 'problem' && line.problem?.kind === 'blocked')
+
 /** One order of the bulk ship table (Figma 908:8804). A problem row stays, unticked, with the
  *  button that fixes it in place of Ready. */
 export default function BulkShipRow({
@@ -52,11 +67,21 @@ export default function BulkShipRow({
   onEdit,
   onAskPayOnline,
   busy = false,
+  expanded = false,
+  onCollapse,
 }: BulkShipRowProps) {
   // Hooks
   const copy = useCopy(bulkShipContent)
   const blockedCopy = useCopy(createShipmentContent.bulkPackage.blocked)
   const fmt = useFormat()
+
+  // Event handlers
+  /** A click on the row opens its editor, unless it landed on one of the row's own controls. */
+  const handleRowClick = (e: MouseEvent<HTMLTableRowElement>) => {
+    if (!canEdit(line) || expanded) return
+    if ((e.target as HTMLElement).closest(INTERACTIVE)) return
+    onEdit()
+  }
 
   // Render logic
   const { order, parcel, pick, problem, quote } = line
@@ -101,7 +126,11 @@ export default function BulkShipRow({
   const waitingOnline = noCod && order.payOnlineRequestedAt !== null
 
   return (
-    <TableRow className={cn('align-middle', muted && 'bg-muted/20')}>
+    <TableRow
+      className={cn('align-middle', muted && 'bg-muted/20', expanded && 'bg-muted/30')}
+      data-expanded={expanded || undefined}
+      onClick={handleRowClick}
+    >
       <TableCell className="w-10 py-4 pl-4">
         <Checkbox
           checked={ticked}
@@ -223,18 +252,20 @@ export default function BulkShipRow({
         ) : null}
       </TableCell>
       <TableCell className="w-12 py-4 pr-4 text-right">
-        {line.status === 'problem' && problem?.kind === 'blocked' ? null : (
+        {canEdit(line) ? (
           <Button
+            id={editButtonId(order.orderId)}
             type="button"
             variant="ghost"
             size="icon-sm"
             aria-label={copy.edit(order.orderNumber)}
+            aria-expanded={expanded}
             title={copy.columns.edit}
-            onClick={onEdit}
+            onClick={expanded && onCollapse ? onCollapse : onEdit}
           >
             <Pencil aria-hidden="true" />
           </Button>
-        )}
+        ) : null}
       </TableCell>
     </TableRow>
   )

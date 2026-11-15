@@ -1,6 +1,7 @@
 import { settingsSecret } from '@commerce/config'
 import { openUnsubscribeToken } from '@commerce/plugin-reviews/server'
 import type { Metadata } from 'next'
+import SystemPanel from '@/components/system/system-panel'
 import { reviewEmailsContent as copy } from '@/data/reviews'
 import { stopReviewEmailsAction } from '@/lib/review-email-actions'
 
@@ -24,18 +25,18 @@ export default async function ReviewEmailsPage({ params, searchParams }: Props) 
   // Early returns
   if (!valid) {
     return (
-      <section className="mx-auto my-16 flex w-[min(26rem,calc(100%-2rem))] flex-col gap-4 rounded-[var(--radius-card)] bg-surface p-6 md:my-24 md:p-8">
+      <SystemPanel>
         <h1 className="h3">{copy.title}</h1>
         <p className="text-body text-muted">{copy.invalid}</p>
         <a href="/" className="btn btn--primary">
           {copy.home}
         </a>
-      </section>
+      </SystemPanel>
     )
   }
 
   return (
-    <section className="mx-auto my-16 flex w-[min(26rem,calc(100%-2rem))] flex-col gap-4 rounded-[var(--radius-card)] bg-surface p-6 md:my-24 md:p-8">
+    <SystemPanel>
       <h1 className="h3">{copy.title}</h1>
       <p className="text-body text-muted">{done ? copy.done : copy.question}</p>
       {done ? (
@@ -54,6 +55,6 @@ export default async function ReviewEmailsPage({ params, searchParams }: Props) 
           </a>
         </div>
       )}
-    </section>
+    </SystemPanel>
   )
 }

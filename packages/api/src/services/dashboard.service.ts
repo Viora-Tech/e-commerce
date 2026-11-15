@@ -1,4 +1,5 @@
 import {
+  NET_UNITS,
   notSystemTest,
   notTestOrder,
   type OrderFulfillmentStatus,
@@ -442,7 +443,7 @@ export async function dashboardSummary(
         productId: variant.productId,
         title: product.title,
         handle: product.handle,
-        units: sum(orderLine.quantity).mapWith(Number),
+        units: sum(NET_UNITS).mapWith(Number),
         revenuePaise: sum(sql`${orderLine.quantity} * ${orderLine.unitPricePaise}`).mapWith(Number),
       })
       .from(orderLine)
@@ -451,7 +452,7 @@ export async function dashboardSummary(
       .innerJoin(product, eq(product.id, variant.productId))
       .where(and(notDraft, liveOrder, gte(order.placedAt, thirtyDaysAgo)))
       .groupBy(variant.productId, product.title, product.handle)
-      .orderBy(desc(sum(orderLine.quantity)))
+      .orderBy(desc(sum(NET_UNITS)))
       .limit(TOP_PRODUCTS),
     tx
       .select({
@@ -929,7 +930,7 @@ export async function dashboardCharts(
       .select({
         productId: variant.productId,
         title: product.title,
-        units: sum(orderLine.quantity).mapWith(Number),
+        units: sum(NET_UNITS).mapWith(Number),
         revenuePaise: revenueExpr.mapWith(Number),
       })
       .from(orderLine)

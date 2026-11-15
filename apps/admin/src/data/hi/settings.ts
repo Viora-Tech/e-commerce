@@ -70,6 +70,8 @@ export default [
         city: 'शहर',
         state: 'राज्य',
         pincode: 'पिनकोड',
+        showInEmails: 'ईमेल में दिखाएं',
+        showInEmailsHelp: 'यह पता ऑर्डर ईमेल और कैंपेन के नीचे जुड़ता है। इनवॉइस पर यह हमेशा छपता है।',
         country: 'देश',
       },
       locale: {

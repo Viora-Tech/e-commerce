@@ -1,0 +1,95 @@
+---
+title: Shipping
+description: How shipping charges are worked out at checkout, how a parcel is booked with a courier app, how tracking comes back, and how NDR, RTO, pickups and shared boxes work.
+---
+
+# Shipping
+
+Shipping has two halves: **what the shopper pays** at checkout, and **getting the parcel there**
+after the order. Both run on courier apps that implement one contract, so the Shipments
+workspace works the same with Delhivery, Shiprocket, India Post or a hand-typed tracking number.
+
+## The courier contract
+
+Every courier app provides a `ShippingProvider` (`packages/shipping/src/types.ts`) through a
+factory in its manifest's `provides.shipping`. The required methods are
+`checkServiceability`, `createShipment`, `track`, `cancel` and `verifyCredentials`; the rest are
+optional and the admin shows a feature only when the app has it: `quoteRate` / `quoteOptions`
+(live rates), `getLabel`, `schedulePickup`, `ndrAction`, `getWalletBalance`,
+`createReturnPickup`, `pushOrder` (send the order to an aggregator as pending) and `parseWebhook`.
+Each app ships a conformance test against the contract. Apps today: Delhivery, Blue Dart, DTDC,
+Ekart, Shadowfax, Xpressbees, India Post, Shiprocket and RapidShyp (aggregators), DHL Express,
+FedEx and ShipGlobal (international), plus the core demo courier for development.
+
+## At checkout: what the shopper pays
+
+Two ways, chosen by the store:
+
+- **Zones and rates** (Settings → Shipping, `shipping_zone`, `shipping_rate`, shipping profiles
+  per product): flat or weight-based prices by state. Code: `packages/core/src/shipping/rates*.ts`,
+  `profiles*.ts`.
+- **Delivery options** app: Standard and Express cards priced from live quotes of the connected
+  couriers for the shopper's PIN code, with an 800 ms deadline per app, a cache, a circuit
+  breaker and a backup price. The chosen route is saved on the order and booked later.
+  [Delivery options engine](/developer-docs/building/delivery-options).
+
+**When each is used.** Zone rates are the base: fixed prices the merchant controls, with no
+courier call, and the fallback whenever the Delivery options app cannot quote (the order is marked
+**Placed on backup**). The Delivery options app is for stores whose real cost varies by courier,
+PIN code and box, or that sell a paid fast option; without it, or with no options configured,
+checkout shows the zone rates unchanged.
+
+Courier answers (quotes, the PIN code check) are cached in Dragonfly with a fingerprint of the
+courier's saved settings in the key (`courier-fingerprint.ts`), so new credentials never get the
+old account's answers.
+
+## After the order: booking
+
+1. **Parcels.** The order's `fulfillment_order` rows say which location ships what
+   ([Orders end to end](/developer-docs/how-it-works/orders)). Pickup is from that location.
+2. **Create shipment** (order page, `/orders/[id]/ship`, or bulk from Orders → Shipments): the
+   admin shows each enabled courier's rate for the parcel's weight and box
+   (`courier-rates.ts`), the merchant picks one, and `createShipment` returns the AWB and label.
+   The `shipment` row stores provider, waybill, status and label (`label-store.ts`).
+3. **Labels and manifests**: labels print one per page or on sheets (`label-sheet*.ts`);
+   pickups are requested per location and day (`pickup.ts`, `shipment_pickup`).
+4. **Aggregators**: for Shiprocket and RapidShyp, `{shipping}-order-push` sends new orders as
+   pending orders so staff can also work them in the aggregator's panel (`order-push.ts`).
+5. **Ship it yourself**: a tracking number typed by hand (`manual-tracking.ts`).
+
+**One box, several orders.** Two orders for one customer packed together share one AWB:
+`shipment_shared_order` links the second order to the first's shipment, the order page says
+"Same box as #A", and it is shipped, delivered or returned with that order (`shared-parcel.ts`). A tracking number already on another order is
+refused (`order/waybill-owner.ts`) so a shipment can never move silently between orders.
+
+## Tracking
+
+- **Webhooks**: `POST /webhooks/shipments/:provider/:storeId` (or the neutral
+  `/webhooks/shipments/c/:code/:storeId`, `webhook-path.ts`) on the worker. Each notice is stored
+  once in `shipment_webhook_event` and applied.
+- **Poller**: `{shipping}-track` every 30 minutes asks each store's courier for every open
+  shipment (`apps/worker/src/shipping.ts`), for couriers without webhooks and for missed ones.
+- `applyTracking` (`apply-tracking.ts`) moves the shipment through its states
+  (`shipment-state.ts`) and writes outbox events: out for delivery, delivered, NDR raised or
+  resolved, RTO.
+
+## NDR and RTO
+
+A scan that looks like a failed attempt opens an **NDR** (`ndr.ts`); the Shipments **Needs
+attention** tab lists them, and staff ask for a reattempt (with a new date, address or phone) or
+a return, through `ndrAction` when the courier supports it. A parcel coming back is **RTO**: the
+order gets an RTO task and `order.rto` fires (the COD & RTO app, `packages/core/src/cod-rto/`,
+learns from these). Returns
+the shopper asks for use `createReturnPickup` when the courier offers reverse pickup.
+
+## Wallets and charges
+
+Prepaid couriers report a wallet balance (`getWalletBalance`, `courier_wallet_balance`, shown in
+the app bar). The courier's charge per shipment, when the courier reports it, feeds the shipping
+margin and Profit.
+
+## Merchant guides
+
+[Shipments](/merchant-guide/orders/shipments), [Couriers](/merchant-guide/apps/couriers),
+[Delivery options](/merchant-guide/apps/delivery-options), [Shipping settings](/merchant-guide/settings/shipping),
+[Returns and RTO](/merchant-guide/orders/returns-and-rto).

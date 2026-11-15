@@ -1,0 +1,73 @@
+---
+title: AI and MCP
+description: How Ask AI and outside AI apps (over MCP) read store data and propose changes, why every change waits for a person, how approvals work, and the limits that keep it safe.
+---
+
+# AI and MCP
+
+Two doors lead to the same tools: **Ask AI** inside the admin, and **MCP** for AI apps outside it
+(Claude, ChatGPT, Cursor and others). Both act as one member of one store, with that member's
+role. Reads answer straight away; changes wait for a person.
+
+<Diagram
+  name="ai-and-mcp"
+  alt="Ask AI and an AI app over MCP use the tools the member's role allows. Reads such as analyticsQuery answer at once under RLS. Change tools propose an ai_action card the asker approves within 24 hours. runAction or an admin call that a role marks Needs approval is queued in Settings, Approvals for 7 days. Approved work runs, re-checking what changed, and is logged."
+/>
+
+## The tools
+
+- **Reads**: sales summaries, top products, low stock, order and customer details, pending orders,
+  abandoned checkouts, and `analyticsQuery`: the model writes one query in the Custom query
+  language (`@commerce/core/analytics-query`, the same as Analytics → Reports → Custom query),
+  core parses it, every field maps to fixed SQL and every value is a bound parameter, and it
+  runs in the member's RLS transaction with a 15-second limit. Reads never change data.
+- **Proposals**: `proposeDiscount`, `proposePriceChange`, `proposeProductUpdate`,
+  `proposeCollection`, `proposeOrderNote`. They validate the input, resolve names to the store's
+  own rows and store an `ai_action` row with status `proposed`. Nothing else changes.
+- **Every other admin action (MCP)**: `searchActions` finds an admin procedure, `describeAction`
+  shows its input and whether it waits for approval, `runAction` calls it as the member.
+
+Each tool is offered only if the member's role holds its permission: a member without
+`discounts.write` never sees `proposeDiscount`.
+
+## Why changes wait for a person
+
+A model can misread a question, and store text it reads (a product title, a customer note) could
+carry instructions written by someone else. So the model never changes anything itself: it
+proposes, and a person who can see the exact change approves it. Store text is passed to the
+model as data, never as instructions.
+
+## Two kinds of approval
+
+| | AI proposal card | Queued admin call |
+| --- | --- | --- |
+| Made by | A proposal tool | `runAction` (MCP), the token API or the admin, when the member's role ticks **Needs approval** for that permission |
+| Approved by | Only the member who asked | The owner, or a member with `approvals.manage` who holds the permission and whose role does not tick it; never the asker |
+| Where | The card in Ask AI, or the AI app's own chat | **Settings → Approvals** |
+| Open for | 24 hours (`ASSISTANT_LIMITS.proposalTtlMinutes`) | 7 days (`APPROVAL_TTL_DAYS`) |
+| Runs as | The asker, in a savepoint | The approver (the call is replayed with their role) |
+
+Approving re-checks what changed since: a price changed in between is left alone, a deleted
+product or a taken discount code is refused. AI changes can be undone from Settings → AI →
+Activity. Sensitive actions (refunds, cancellations, deletes, payments, staff, billing, domains,
+MCP settings) always wait.
+
+## How an AI app connects
+
+The admin is an OAuth server for MCP: the app registers itself, the merchant signs in and picks
+the store and the areas to share on `/oauth/authorize`, and the app gets a token for one member
+of one store. MCP is served at `POST /api/mcp/<store slug>`. Every call is logged in
+Settings → MCP and API → Activity (kept 90 days). Code: `packages/api/src/mcp/`.
+
+## Limits
+
+Calls are counted per store against the plan's AI credits (`packages/ai`, `ai_usage`); a
+proposal or tool loop has hard caps on steps and size; personal data sent to the model is kept
+to what the answer needs and shown as **shared** under the answer.
+
+## Deeper
+
+[AI engine](/developer-docs/building/ai-engine), [AI assistant](/developer-docs/building/ai-assistant),
+[MCP server and API tokens](/developer-docs/building/mcp-and-api). Merchant guides:
+[Ask AI](/merchant-guide/home/ask-ai), [Approvals](/merchant-guide/settings/approvals),
+[MCP and API](/merchant-guide/settings/mcp-and-api).

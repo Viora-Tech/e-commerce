@@ -22,6 +22,7 @@ import {
 } from './client'
 import {
   collectPixelEvent,
+  orderSharingOffered,
   parsePixelBeacon,
   shopperMatchFacts,
   syncCartMarketingConsent,
@@ -296,6 +297,67 @@ describe('consent at checkout', () => {
     const [row] = await owner.select().from(cart).where(eq(cart.id, s.cartId))
     expect(hasMarketingConsent(row?.tracking)).toBe(false)
     expect(row?.tracking?.fbp).toBeUndefined()
+  })
+
+  it('the checkout tick without a banner yes: recorded with the browser details, Purchase goes', async () => {
+    const c = await bareCart()
+    await withStore(app, c.storeId, (tx) =>
+      syncCartMarketingConsent(
+        tx,
+        c.cartId,
+        { consent: null, fbp: FBP, ip: '203.0.113.9', ua: 'Mozilla/5.0', shareOrder: true },
+        now,
+      ),
+    )
+    const t = await c.read()
+    expect(t).toMatchObject({
+      fbp: FBP,
+      ip: '203.0.113.9',
+      ua: 'Mozilla/5.0',
+      orderSharing: { at: now.toISOString(), source: 'checkout' },
+    })
+    expect(t?.consent?.marketing).toBe(false)
+    expect(purchaseSkipReason({ ...facts, tracking: t }, now)).toBeNull()
+  })
+
+  it('unticked on a later submit: the earlier tick is removed and the banner decides again', async () => {
+    const c = await bareCart()
+    const sync = (shareOrder: boolean) =>
+      withStore(app, c.storeId, (tx) =>
+        syncCartMarketingConsent(tx, c.cartId, { consent: null, shareOrder }, now),
+      )
+    await sync(true)
+    await sync(false)
+    const t = await c.read()
+    expect(t?.orderSharing).toBeUndefined()
+    expect(purchaseSkipReason({ ...facts, tracking: t }, now)).toBe('no_consent')
+  })
+})
+
+describe('the checkout tick is offered', () => {
+  it('only with the Pixels app and an active pixel sending Purchase through the Conversions API', async () => {
+    const s = await seedCart()
+    const offered = () => withStore(app, s.storeId, (tx) => orderSharingOffered(tx, s.storeId))
+    expect(await offered()).toBe(true)
+    await owner
+      .update(pixelConnection)
+      .set({ status: 'paused' })
+      .where(eq(pixelConnection.id, s.px))
+    expect(await offered()).toBe(false)
+    await owner
+      .update(pixelConnection)
+      .set({ status: 'active', tokenEnc: null })
+      .where(eq(pixelConnection.id, s.px))
+    expect(await offered()).toBe(false)
+    await owner
+      .update(pixelConnection)
+      .set({ tokenEnc: encryptSecret('EAAfake', SECRET) })
+      .where(eq(pixelConnection.id, s.px))
+    await owner
+      .update(store)
+      .set({ apps: { installed: [] } })
+      .where(eq(store.id, s.storeId))
+    expect(await offered()).toBe(false)
   })
 })
 

@@ -1,5 +1,6 @@
 import sanitizeHtml from 'sanitize-html'
 import { asLexical, lexicalToHtml } from './lexical-html'
+import { isRichtextHtml, plainToRichtextHtml, setRichtextSanitizer } from './richtext-text'
 
 /**
  * SOURCE OF TRUTH KEYWORDS: richtextHtml, isRichtextHtml, RICHTEXT_TAGS, inline copy, Puck richtext
@@ -14,6 +15,9 @@ import { asLexical, lexicalToHtml } from './lexical-html'
  *        (inline marks, paragraphs, short headings, quotes, lists, links): the storefront draws sections outside Puck's
  *        `<Render>`, so this is the only place merchant HTML is checked before it is shown.
  *        Deliberately narrower than the Embed element's list (`./embed-sanitize.ts`).
+ *        Server only on the storefront: loading this module registers the sanitiser for
+ *        `components/rich-copy.tsx` (`./richtext-text.ts`), and client components get the
+ *        sanitised HTML from the server (`./richtext-node.ts`), so the browser never loads it.
  * WHERE: `components/rich-copy.tsx` renders it; `sections/inline-fields.ts` declares the field.
  */
 
@@ -72,32 +76,6 @@ const OPTIONS: sanitizeHtml.IOptions = {
   },
 }
 
-/** Same test Puck's richtext field uses to decide a stored string is HTML, not plain text. */
-const HTML_RE = /<\/?[a-z][\s\S]*>/i
-
-/** Whether a stored value is Puck richtext HTML (true) or a legacy plain string (false). */
-function isRichtextHtml(value: string): boolean {
-  return HTML_RE.test(value)
-}
-
-function escapeHtml(text: string): string {
-  return text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-}
-
-/** A legacy plain string as richtext HTML: blank lines split paragraphs, single newlines break. */
-function plainToRichtextHtml(text: string): string {
-  return text
-    .split(/\n{2,}/)
-    .map((p) => p.trim())
-    .filter(Boolean)
-    .map((p) => `<p>${escapeHtml(p).replace(/\n/g, '<br>')}</p>`)
-    .join('')
-}
-
 /** Any stored body-copy value as sanitised HTML; empty string for nothing to show. */
 export function richtextHtml(value: unknown): string {
   const lexical = asLexical(value)
@@ -106,3 +84,6 @@ export function richtextHtml(value: unknown): string {
   if (!isRichtextHtml(value)) return plainToRichtextHtml(value)
   return sanitizeHtml(value, OPTIONS)
 }
+
+// RichCopy sanitises with this wherever this module is loaded (server, admin, Hono island).
+setRichtextSanitizer(richtextHtml)

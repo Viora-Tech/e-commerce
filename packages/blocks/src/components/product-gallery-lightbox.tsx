@@ -18,6 +18,14 @@ type ProductGalleryLightboxProps = {
 
 const ui = copy.ui.gallery
 
+/**
+ * The lightbox is where a shopper zooms. On a desktop the picture fits the screen, so the
+ * screen's width is enough; on a phone they pinch it, so it asks for twice the screen, which
+ * is the largest copy on any phone (100vw on a 3x phone picked the 1280 copy, blurry once
+ * pinched, 2026-11-15).
+ */
+const LIGHTBOX_SIZES = '(min-width: 990px) 100vw, 200vw'
+
 export const isVideo = (img: { contentType?: string | null | undefined }) =>
   img.contentType?.startsWith('video/') ?? false
 
@@ -88,7 +96,7 @@ export default function ProductGalleryLightbox({
               height={1600}
               placeholder={false}
               loading="lazy"
-              sizes="100vw"
+              sizes={LIGHTBOX_SIZES}
             />
           )
         })}

@@ -1,6 +1,7 @@
 export default {
-  pages: 'Pages',
+  'blog-posts': 'Blog posts',
   'files-and-storage': 'Files & storage',
-  'content-types': 'Content types',
   'menus-and-redirects': 'Menus & redirects',
+  'content-types': 'Content types',
+  pages: 'Pages',
 }

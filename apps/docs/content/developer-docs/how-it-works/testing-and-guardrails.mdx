@@ -1,0 +1,60 @@
+---
+title: Testing and guardrails
+description: The checks that run before every PR - lint, component structure, design lint, typecheck, unit and database tests, the cross-store leak test and the guardrail sweeps - and why each exists.
+---
+
+# Testing and guardrails
+
+Rules that matter are checked by code, so they hold no matter who (or which AI) writes the
+change. GitHub Actions are paused, so every check below runs locally before a PR.
+
+| Command | What it checks | Why |
+| --- | --- | --- |
+| `bun run lint` | Biome (format and lint, warnings are errors) and `scripts/check-components.ts` | One file shape for every React component |
+| `bun run lint:design` | Oxlint with the shadcn rules; `no-restyle` is an error for the settled shared parts | The admin keeps one look |
+| `bun run typecheck` | TypeScript 7 across the workspace | |
+| `bun run test` | Vitest per package through Turbo; database suites need Postgres, one test database per package | Business rules, workflows, webhooks, RLS |
+| `bun run test:sweeps` | The guardrail sweeps in `scripts/sweeps/` | Rules a type checker cannot see |
+| `bun run --cwd apps/docs build` | Redirects, every internal docs link, the static build | No broken docs |
+
+How to run the suites quickly (only what changed, a namespace per worktree):
+[Testing](/developer-docs/operations/testing).
+
+## Tests worth knowing
+
+- **Cross-store leak test** (`packages/api/test/cross-store-leak.test.ts`): seeds two stores with a
+  row in every `store_id` table, then calls every oRPC procedure and storefront loader as store A
+  with store B's ids. Any of B's data showing or changing fails it.
+- **RLS coverage** (`packages/db`): a table with `store_id` but without the policy fails.
+- **Workflow compensation**: property-based tests that every completed step of a failed saga is
+  undone in reverse.
+- **Provider conformance**: every payment, shipping, notification and storage app runs the same
+  contract suite (offline; live runs behind env flags).
+
+## The sweeps
+
+Each sweep is a Vitest file that reads the source tree. Most are **ratchets**: an allow-list that
+may only shrink, so old exceptions are tolerated but new ones fail. A few of the 30+:
+
+| Sweep | Keeps true |
+| --- | --- |
+| `service-layer` | Only core, db, the api services and scripts import the database |
+| `client-imports-server` | Browser code never imports server packages |
+| `storefront-action-store` | Storefront actions take the store from the host, never from the caller |
+| `handler-grants` | Permissions are checked by the procedure middleware, not inside handlers (so approvals apply) |
+| `admin-routes` | Admin links use `routes`, not typed paths |
+| `design-guard` | No raw text sizes, big radii or retired kit parts in the admin |
+| `hardcoded-colours`, `money-format`, `date-format` | Tokens for colour, one money formatter, one date formatter |
+| `deploy-compose` | The production compose file passes every env key the apps need |
+| `app-catalogue` | The App Store catalogue is regenerated after a manifest changes |
+| `site-config` | The brand name is spelled once, in `siteConfig` |
+| `file-size`, `no-orphans`, `dead-code`, `duplicate-helpers` | No huge files, unused exports, removed code coming back, or copies of helpers |
+| `source-of-truth-header` | New core files start with a header saying what they own and why |
+
+The full list with every rule: [Guardrails and sweeps](/developer-docs/core-concepts/guardrails)
+and `docs/guardrails.md`.
+
+## Before a release
+
+The checkout smoke test and the manual checklist on the test server:
+[Release checklist](/developer-docs/operations/release-checklist).

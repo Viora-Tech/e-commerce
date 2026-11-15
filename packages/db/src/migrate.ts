@@ -3,11 +3,14 @@ import { drizzle } from 'drizzle-orm/postgres-js'
 import { migrate } from 'drizzle-orm/postgres-js/migrator'
 import postgres from 'postgres'
 
-export async function runMigrations(ownerUrl: string): Promise<void> {
+/** `migrationsFolder` defaults to this package's `drizzle/`; the docs screenshot migrate passes a chunked copy. */
+export async function runMigrations(
+  ownerUrl: string,
+  migrationsFolder = fileURLToPath(new URL('../drizzle', import.meta.url)),
+): Promise<void> {
   await ensureTestDatabase(ownerUrl)
   const sql = postgres(ownerUrl, { max: 1, onnotice: () => {} })
   try {
-    const migrationsFolder = fileURLToPath(new URL('../drizzle', import.meta.url))
     await migrate(drizzle(sql), { migrationsFolder })
   } finally {
     await sql.end()

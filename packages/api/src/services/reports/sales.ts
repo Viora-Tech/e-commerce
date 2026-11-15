@@ -1,7 +1,7 @@
-import { notSystemTest } from '@commerce/core'
+import { NET_UNITS, notSystemTest } from '@commerce/core'
 import type { StoreTx } from '@commerce/db'
 import { discount, discountUsage, order, orderLine, product, variant } from '@commerce/db'
-import { and, eq } from 'drizzle-orm'
+import { and, eq, sql } from 'drizzle-orm'
 import { bucketByDay } from '../analytics-buckets'
 import { type OrderFact, orderFacts, refundFacts, shipmentFacts } from './facts'
 import {
@@ -29,7 +29,10 @@ export type LineFact = {
   variantId: string
   variantTitle: string
   sku: string | null
+  /** Units ordered on the line. */
   quantity: number
+  /** Units sold: ordered minus returned (`NET_UNITS`). */
+  netUnits: number
   grossPaise: number
 }
 
@@ -46,6 +49,7 @@ export async function lineFacts(tx: StoreTx, span: ReportSpan): Promise<LineFact
       variantTitle: variant.title,
       sku: variant.sku,
       quantity: orderLine.quantity,
+      netUnits: sql<number>`${NET_UNITS}`.mapWith(Number),
       unitPricePaise: orderLine.unitPricePaise,
     })
     .from(orderLine)
@@ -63,7 +67,7 @@ export function variantLabel(productTitle: string, variantTitle: string): string
     : `${productTitle} / ${variantTitle}`
 }
 
-/** Sums lines under a grouping key: orders, units, gross sales and distinct products. */
+/** Sums lines under a grouping key: orders, units sold (net of returns), gross sales and distinct products. */
 function lineGroups(
   lines: LineFact[],
   keyOf: (l: LineFact) => string,
@@ -75,7 +79,7 @@ function lineGroups(
     values: {
       ...label(group[0] as LineFact),
       orders: new Set(group.map((l) => l.orderId)).size,
-      units: sumOf(group, (l) => l.quantity),
+      unitsSold: sumOf(group, (l) => l.netUnits),
       grossSales: sumOf(group, (l) => l.grossPaise),
       products: new Set(group.map((l) => l.productId)).size,
     },
@@ -86,7 +90,7 @@ function lineGroups(
 function lineTotals(lines: LineFact[]) {
   return {
     orders: new Set(lines.map((l) => l.orderId)).size,
-    units: sumOf(lines, (l) => l.quantity),
+    unitsSold: sumOf(lines, (l) => l.netUnits),
     grossSales: sumOf(lines, (l) => l.grossPaise),
     products: new Set(lines.map((l) => l.productId)).size,
     share: lines.length > 0 ? 1 : null,

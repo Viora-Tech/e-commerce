@@ -73,6 +73,7 @@ export default [
     label: 'GSTR-1 एक्सपोर्ट करें',
     month: (label) => `GSTR-1 JSON, ${label}`,
     thisMonth: (label) => `GSTR-1 JSON, ${label} (अब तक)`,
+    register: (label) => `सेल्स रजिस्टर (Excel), ${label}`,
     returns: 'सभी रिटर्न और डाउनलोड',
     failed: 'GSTR-1 एक्सपोर्ट नहीं हो सका',
   }),

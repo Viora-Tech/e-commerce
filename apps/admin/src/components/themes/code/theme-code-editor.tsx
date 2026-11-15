@@ -174,6 +174,18 @@ export default function ThemeCodeEditor({ theme, origin, me, initialFile }: Them
   const publishNames = unpublished.more
     ? copy.drafts.moreFiles(unpublished.names, unpublished.more)
     : unpublished.names
+  const fileDrafts = code.list?.drafts ?? 0
+  const publishBody = [
+    fileDrafts ? copy.drafts.publishDialog.body(fileDrafts) : null,
+    fileDrafts ? copy.drafts.publishDialog.files(publishNames) : null,
+    code.customizeDrafts
+      ? fileDrafts
+        ? copy.drafts.publishDialog.customize(code.customizeDrafts)
+        : copy.drafts.publishDialog.customizeOnly(code.customizeDrafts)
+      : null,
+  ]
+    .filter(Boolean)
+    .join(' ')
   const library = Object.keys(code.list?.libraryUse ?? {}).sort()
   const realPaths = (code.list?.files ?? []).map((f) => f.path)
   const broken = new Set([...problems.entries()].filter(([, p]) => p.length).map(([path]) => path))
@@ -212,6 +224,7 @@ export default function ThemeCodeEditor({ theme, origin, me, initialFile }: Them
         versionsOpen={versionsOpen}
         previewHref={previewUrl(origin, theme.previewToken)}
         drafts={code.list?.drafts ?? 0}
+        customizeDrafts={code.customizeDrafts}
         publishing={code.publishing}
         onPublish={() => setConfirming('publish')}
         onDiscard={() => setConfirming('discard')}
@@ -292,13 +305,11 @@ export default function ThemeCodeEditor({ theme, origin, me, initialFile }: Them
         title={
           confirming === 'discard'
             ? copy.drafts.discardDialog.title
-            : copy.drafts.publishDialog.title
+            : code.customizeDrafts
+              ? copy.drafts.publishDialog.titleAll
+              : copy.drafts.publishDialog.title
         }
-        body={
-          confirming === 'discard'
-            ? copy.drafts.discardDialog.body
-            : `${copy.drafts.publishDialog.body(code.list?.drafts ?? 0)} ${copy.drafts.publishDialog.files(publishNames)}`
-        }
+        body={confirming === 'discard' ? copy.drafts.discardDialog.body : publishBody}
         confirmLabel={
           confirming === 'discard'
             ? copy.drafts.discardDialog.confirm

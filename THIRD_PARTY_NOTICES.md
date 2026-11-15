@@ -21,6 +21,7 @@ that adapts outside work keeps the full licence text next to it; this file is th
 | [country-flag-icons](https://gitlab.com/catamphetamine/country-flag-icons) 1.6.20 | MIT | The SVG flags in the checkout Country picker (`apps/storefront/public/flags`, copied from its `3x2` folder). |
 | [react-phone-number-input](https://gitlab.com/catamphetamine/react-phone-number-input) 3.4.18 and [libphonenumber-js](https://gitlab.com/catamphetamine/libphonenumber-js) 1.13.15 (plus its dependency [country-flag-icons](https://gitlab.com/catamphetamine/country-flag-icons)) | MIT, Copyright (c) @catamphetamine (read from each package's LICENSE, 2026-10-11) | Phone input state, number formatting, country list and flag SVGs; used as libraries behind our own picker (Popover + Command), no code copied. libphonenumber-js also validates and normalises numbers to E.164 | `packages/ui/src/components/phone-input.tsx`, `packages/core/src/accounts/phone.ts` | MIT, Copyright (c) 2016 @catamphetamine |
 | [GrapesJS](https://github.com/GrapesJS/grapesjs) 0.23.6 and [grapesjs-mjml](https://github.com/GrapesJS/mjml) 1.0.8 (bundles [mjml-browser](https://github.com/mjmlio/mjml) 4.18, MIT); [MJML](https://github.com/mjmlio/mjml) 5.4.1 | BSD-3-Clause, Copyright (c) 2017-current Artur Arseniev (GrapesJS, grapesjs-mjml); MIT, Copyright (c) 2016 Mailjet SAS (MJML). Read from each package's LICENSE, 2026-10-20 | The visual email builder for campaigns, used as libraries (no code copied): GrapesJS with the MJML preset in the admin, loaded on demand; `mjml` compiles designs to email HTML on the server | `apps/admin/src/components/growth/campaigns/visual-builder`, `packages/core/src/marketing/email-design-compile.ts` | LICENSE inside each npm package |
+| [write-excel-file](https://gitlab.com/catamphetamine/write-excel-file) 4.1.1 (its one dependency, [fflate](https://github.com/101arrowz/fflate), MIT, is already ours) | MIT, Copyright (c) 2018 gitlab.com/catamphetamine (read from the package's LICENSE, 2026-11-15) | Writes the GST app's monthly sales register (.xlsx for the CA); used as a library, no code copied | `packages/plugin-gst-invoices/src/sales-register-xlsx.ts` | LICENSE inside the npm package |
 | [All India Pincode Directory](https://www.data.gov.in/catalog/all-india-pincode-directory) (Department of Posts, via data.gov.in), release of 30 May 2019 | Government Open Data Licence - India (GODL-India), with attribution | PIN code → district and state, reduced to one row per PIN code by `scripts/build-pincode-directory.ts` (state corrected per district, Ladakh and Puducherry fixed, renamed districts updated) | `packages/shipping/data/pincode-directory.json.gz` | [`packages/shipping/THIRD_PARTY_LICENSES.md`](packages/shipping/THIRD_PARTY_LICENSES.md) |
 
 Paid UI kits: Aceternity UI Pro, Magic UI Pro and shadcnblocks may be used in builder blocks under
@@ -156,6 +157,16 @@ Candidate projects, with verified licences and what to take from each: [`docs/op
 
 - Used in: `apps/docs` (renders Mermaid diagrams in MDX pages)
 - Licence: MIT — https://github.com/dimaMachina/nextra (The Guild)
+
+## Rough.js and the Excalidraw file format
+
+- Used in: `apps/docs` (dev dependency). `scripts/render-diagrams.mjs` draws the docs diagrams
+  (`apps/docs/public/diagrams/*.excalidraw`) to SVG with [Rough.js](https://github.com/rough-stuff/rough)
+  4.6.6, the library Excalidraw itself draws with, so the SVGs keep Excalidraw's hand-drawn look.
+- Licences: Rough.js MIT, Copyright (c) 2019 Preet Shihn (read from its LICENSE, 2026-11-15). The
+  `.excalidraw` files follow the open [Excalidraw](https://github.com/excalidraw/excalidraw) JSON
+  format (Excalidraw is MIT); no Excalidraw code is copied or bundled. The rendering script and the
+  dark-mode colour filter (Excalidraw's own `invert(93%) hue-rotate(180deg)`) are our own code.
 
 ## @shadcn/lint and Oxlint
 

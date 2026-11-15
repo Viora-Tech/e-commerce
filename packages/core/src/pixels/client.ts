@@ -195,6 +195,14 @@ export function hasMarketingConsent(tracking: PixelTracking | null | undefined):
   return tracking?.consent?.marketing === true
 }
 
+/**
+ * An order's server Purchase may go to the ad pixels: a yes to marketing on the banner, or the
+ * checkout tick "Share this order with our advertising partners" (this order only).
+ */
+export function maySendOrderPurchase(tracking: PixelTracking | null | undefined): boolean {
+  return hasMarketingConsent(tracking) || tracking?.orderSharing?.source === 'checkout'
+}
+
 export type PurchaseOrderFacts = {
   isTest: boolean
   importedFrom: string | null
@@ -211,7 +219,7 @@ export function purchaseSkipReason(o: PurchaseOrderFacts, now: Date): PixelSkipR
   if (o.isTest) return 'test_order'
   if (o.importedFrom) return 'imported'
   if (!o.tracking) return 'no_tracking'
-  if (!hasMarketingConsent(o.tracking)) return 'no_consent'
+  if (!maySendOrderPurchase(o.tracking)) return 'no_consent'
   if (now.getTime() - o.placedAt.getTime() > META_MAX_EVENT_AGE_MS) return 'too_old'
   return null
 }

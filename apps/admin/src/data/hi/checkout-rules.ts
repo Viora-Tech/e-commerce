@@ -82,6 +82,8 @@ export default [
         'fields.phoneHint': 'मोबाइल नंबर का संकेत',
         'fields.email': 'ईमेल का लेबल',
         'fields.emailOptional': 'वैकल्पिक ईमेल का लेबल',
+        'marketing.shareOrder':
+          'विज्ञापन पार्टनर से ऑर्डर शेयर करने वाला टिक बॉक्स (विज्ञापन पिक्सेल वाले स्टोर)',
         'fields.name': 'पूरे नाम का लेबल',
         'fields.firstName': 'पहले नाम का लेबल',
         'fields.lastName': 'आख़िरी नाम का लेबल',

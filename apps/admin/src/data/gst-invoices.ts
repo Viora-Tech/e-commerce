@@ -61,6 +61,9 @@ export const gstInvoicesContent = {
         patternHelp:
           '{FY} prints the financial year, e.g. 26-27. {GST} prints the GST number’s invoice prefix (or its state letters), so each GST number’s invoices look different.',
         pad: 'Digits',
+        previous: 'Last number from your previous system',
+        previousHelp:
+          'This financial year only, e.g. VI/EXP/26-27/001. Printed in the sales register so your CA sees where the numbers switched.',
         next: (n: string) => `Next: ${n}`,
         add: 'Add series',
         remove: 'Remove',
@@ -348,6 +351,18 @@ export const gstNumberPickerContent = {
   cancelled: '(cancelled)',
 } as const
 
+/** Numbering settings: move one saved series' next number (e.g. exports carrying on from an old system). */
+export const gstSeriesNextContent = {
+  label: 'Next number',
+  help: 'Carry on from your previous billing system. Numbers already used this financial year cannot be picked again.',
+  placeholder: 'e.g. 2',
+  set: 'Set',
+  setting: 'Setting',
+  saved: (n: string) => `Next invoice in this series: ${n}`,
+  unsaved: 'Save the series first, then set its next number.',
+  failed: 'Could not set the next number',
+} as const
+
 /** The Returns tab: one GST number's GSTR-1 and GSTR-3B for a month, and the filing switches. */
 export const gstReturnsContent = {
   title: 'Returns',
@@ -366,6 +381,9 @@ export const gstReturnsContent = {
     tableCsvs: 'GSTR-1 tables (CSV zip)',
     gstr3bCsv: 'GSTR-3B (CSV)',
     gstr3bPdf: 'GSTR-3B (PDF)',
+    salesRegister: 'Sales register (Excel)',
+    salesRegisterHelp:
+      'For your CA: goods, service, export and credit note tabs with a summary, one row per invoice line.',
   },
   warnings: {
     title: 'Check before you upload',

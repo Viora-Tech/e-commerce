@@ -47,6 +47,13 @@ export default function CheckoutContact({ ck }: CheckoutContactProps) {
           onChange={(on) => ck.handleMarketing(channel, on)}
         />
       ))}
+      {ck.orderSharing ? (
+        <CheckoutToggle
+          label={ck.copy.marketing.shareOrder}
+          checked={ck.form.shareOrder === true}
+          onChange={ck.handleShareOrder}
+        />
+      ) : null}
     </div>
   )
   const withOptIn = (
