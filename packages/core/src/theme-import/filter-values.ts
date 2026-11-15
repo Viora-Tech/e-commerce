@@ -170,6 +170,41 @@ export function imageUrl(value: unknown, named: Named): ImageUrl | string {
   return new ImageUrl(width && image ? image.urlFor(width) : src, image, width, height)
 }
 
+/** Shopify's old named sizes for `img_url`, by width. */
+const NAMED_SIZES: Record<string, number> = {
+  pico: 16,
+  icon: 32,
+  thumb: 50,
+  small: 100,
+  compact: 160,
+  medium: 240,
+  large: 480,
+  grande: 600,
+}
+
+/**
+ * The legacy `img_url: '600x'` family (also `x600`, `600x400`, `large`, `scale: 2`): the sized
+ * copy for that width, as `image_url: width:` gives. `master`, `original` and no size are the
+ * original. Before, every size gave the original, a full-size PNG for a 100 px thumbnail.
+ */
+export function legacyImageUrl(value: unknown, size: unknown, named: Named): string {
+  const src = imageSrc(value)
+  const image = imageOf(value)
+  if (!src || !image) return src
+  const text = typeof size === 'string' ? size.trim().toLowerCase() : ''
+  const box = /^(\d*)x(\d*)$/.exec(text)
+  let width = NAMED_SIZES[text] ?? null
+  if (box) {
+    const w = box[1] ? Number(box[1]) : null
+    const h = box[2] ? Number(box[2]) : null
+    const fromHeight = h && image.height ? Math.round((h * image.width) / image.height) : null
+    width = w && fromHeight ? Math.min(w, fromHeight) : (w ?? fromHeight)
+  }
+  if (!width) return src
+  const scale = Number(named.scale) > 1 ? Number(named.scale) : 1
+  return image.urlFor(width * scale)
+}
+
 /** Attributes Shopify's `image_tag` writes itself; anything else passes through. */
 const IMAGE_TAG_OWN = new Set(['widths', 'preload', 'srcset'])
 

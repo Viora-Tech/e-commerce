@@ -20,6 +20,7 @@ import { CommerceError } from '../errors'
 import { AssignTag } from './assign-tag'
 import { escapeAttr, type LiquidRuntime, registerShopifyFilters, stringifyLiquid } from './filters'
 import { MAX_BLOCK_DEPTH } from './schema'
+import { honestSrcsets } from './srcset'
 
 /** Where the forms a theme draws post to: our handlers, never Shopify's endpoints. */
 const THEME_ACTIONS = {
@@ -475,9 +476,11 @@ export function renderBounded(
       { liquid: engine },
     )
     const emitter = new CappedEmitter(LIQUID_LIMITS.outputChars)
-    return toValueSync(
+    const html = toValueSync(
       engine.renderer.renderTemplates(tpl, ctx, emitter) as Generator<unknown, string, unknown>,
     )
+    // Once, on the outermost render: its output already holds every nested one.
+    return nested ? html : honestSrcsets(html)
   } finally {
     if (!nested) {
       budget.spentMs += performance.now() - now

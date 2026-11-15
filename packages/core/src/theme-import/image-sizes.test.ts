@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest'
 import { LiquidDataCache } from './cache'
 import { ImageDrop, type LiquidDataSource } from './drops'
-import { imageTag, imageUrl } from './filter-values'
+import { imageTag, imageUrl, legacyImageUrl } from './filter-values'
 import type { ShopifySetting } from './schema'
 import { liquidSettingValue } from './settings-values'
 
@@ -38,6 +38,23 @@ describe('image_url on an imported theme', () => {
 
   it('keeps the variant map out of a theme that prints the image as JSON', () => {
     expect(JSON.stringify(sized())).not.toContain('w320')
+  })
+})
+
+describe('img_url (the legacy size strings) on an imported theme', () => {
+  it('gives the copy for the asked width, as image_url does', () => {
+    expect(legacyImageUrl(sized(), '600x', {})).toBe('w640.webp')
+    expect(legacyImageUrl(sized(), 'x300', {})).toBe('w320.webp')
+    expect(legacyImageUrl(sized(), '1000x1000', {})).toBe('w1280.webp')
+    expect(legacyImageUrl(sized(), 'large', {})).toBe('w640.webp')
+    expect(legacyImageUrl(sized(), '300x', { scale: 2 })).toBe('w640.webp')
+  })
+
+  it('keeps the original for master, no size, or a size past every copy', () => {
+    expect(legacyImageUrl(sized(), 'master', {})).toBe('master.png')
+    expect(legacyImageUrl(sized(), undefined, {})).toBe('master.png')
+    expect(legacyImageUrl(sized(), '2048x', {})).toBe('master.png')
+    expect(legacyImageUrl('plain.jpg', '600x', {})).toBe('plain.jpg')
   })
 })
 
