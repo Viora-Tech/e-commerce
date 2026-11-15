@@ -55,6 +55,8 @@ const c = (id: string, kind: ReportColumnKind): ReportColumn => ({ id, kind })
 /* Column ids shared across reports; the admin holds one label per id. */
 const ORDERS = c('orders', 'count')
 const UNITS = c('units', 'count')
+/** Units sold: ordered minus returned, as the custom query's net_quantity. */
+const UNITS_SOLD = c('unitsSold', 'count')
 const GROSS = c('grossSales', 'money')
 const TOTAL = c('totalSales', 'money')
 const AOV = c('aov', 'money')
@@ -104,9 +106,9 @@ const ENTRIES: Entry[] = [
   {
     slug: 'sales-by-product',
     title: 'Sales by product',
-    description: 'Units sold and gross sales per product, best sellers first.',
+    description: 'Units sold (net of returns) and gross sales per product, best sellers first.',
     category: 'sales',
-    columns: [c('product', 'text'), c('vendor', 'text'), ORDERS, UNITS, GROSS, SHARE],
+    columns: [c('product', 'text'), c('vendor', 'text'), ORDERS, UNITS_SOLD, GROSS, SHARE],
     metric: 'grossSales',
     chart: 'bars',
   },
@@ -115,7 +117,7 @@ const ENTRIES: Entry[] = [
     title: 'Sales by variant and SKU',
     description: 'Every variant that sold, with its SKU, units and gross sales.',
     category: 'sales',
-    columns: [c('variant', 'text'), c('sku', 'text'), ORDERS, UNITS, GROSS, SHARE],
+    columns: [c('variant', 'text'), c('sku', 'text'), ORDERS, UNITS_SOLD, GROSS, SHARE],
     metric: 'grossSales',
     chart: 'bars',
   },
@@ -124,7 +126,7 @@ const ENTRIES: Entry[] = [
     title: 'Sales by vendor',
     description: 'Gross sales grouped by the brand or vendor on each product.',
     category: 'sales',
-    columns: [c('vendor', 'text'), c('products', 'count'), ORDERS, UNITS, GROSS, SHARE],
+    columns: [c('vendor', 'text'), c('products', 'count'), ORDERS, UNITS_SOLD, GROSS, SHARE],
     metric: 'grossSales',
     chart: 'bars',
   },
@@ -133,7 +135,7 @@ const ENTRIES: Entry[] = [
     title: 'Sales by product type',
     description: 'Gross sales grouped by product type.',
     category: 'sales',
-    columns: [c('productType', 'text'), c('products', 'count'), ORDERS, UNITS, GROSS, SHARE],
+    columns: [c('productType', 'text'), c('products', 'count'), ORDERS, UNITS_SOLD, GROSS, SHARE],
     metric: 'grossSales',
     chart: 'bars',
   },

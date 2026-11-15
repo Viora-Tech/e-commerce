@@ -6,6 +6,7 @@ const line = (patch: Partial<ProductSaleLine>): ProductSaleLine => ({
   orderId: 'o1',
   buyerKey: 'c1',
   quantity: 1,
+  netUnits: patch.quantity ?? 1,
   unitPricePaise: 100_00,
   orderSubtotalPaise: 100_00,
   orderDiscountPaise: 0,
@@ -34,6 +35,14 @@ describe('summariseProductSales', () => {
     )
     expect(sales).toMatchObject({ units: 6, orders: 3, buyers: 2, grossPaise: 600_00 })
     expect(sales.netPaise).toBe(600_00)
+  })
+
+  it('counts units sold net of returns, while gross stays what was ordered', () => {
+    const sales = summariseProductSales(
+      [line({ quantity: 3, netUnits: 2, orderSubtotalPaise: 300_00 })],
+      new Map(),
+    )
+    expect(sales).toMatchObject({ units: 2, grossPaise: 300_00 })
   })
 
   it('takes only the product’s share of a mixed cart’s discount and refund', () => {

@@ -10,6 +10,8 @@ import {
   order,
   orderLine,
   product,
+  returnRequest,
+  returnRequestLine,
   store,
   variant,
   withStore,
@@ -327,6 +329,58 @@ describe('custom analytics query (WHERE and full history)', () => {
       sql`select count(*)::int as n from "order"`,
     )) as unknown as [{ n: number }]
     expect(n).toBe(7)
+  })
+
+  it('net_quantity is ordered minus returned, on the order date; cancelled orders never count', async () => {
+    const m = await seed()
+    const kb = await seedProduct(m.storeId, { title: 'Kestrel Keyboard' }, ['Default'])
+    const kv = kb.variants.Default as string
+    const placed = await seedOrder(m.storeId, 10, '2026-09-05T06:00:00Z', [[kv, 3, 2000_00]])
+    const cancelled = await seedOrder(m.storeId, 11, '2026-09-06T06:00:00Z', [[kv, 5, 2000_00]], {
+      status: 'cancelled',
+    })
+    const lineOf = async (orderId: string) => {
+      const [row] = await owner
+        .select({ id: orderLine.id })
+        .from(orderLine)
+        .where(sql`${orderLine.orderId} = ${orderId}`)
+      return row?.id as string
+    }
+    const addReturn = async (
+      orderId: string,
+      number: number,
+      status: 'received' | 'rejected',
+      quantity: number,
+    ) => {
+      const id = newId()
+      await owner
+        .insert(returnRequest)
+        .values({ id, storeId: m.storeId, orderId, number, status, requestedAt: new Date() })
+      await owner.insert(returnRequestLine).values({
+        storeId: m.storeId,
+        returnRequestId: id,
+        orderLineId: await lineOf(orderId),
+        quantity,
+      })
+    }
+    // One unit came back (received in November, counted on the September order); a rejected
+    // return and a return on the cancelled order change nothing.
+    await addReturn(placed, 1, 'received', 1)
+    await addReturn(placed, 2, 'rejected', 2)
+    await addReturn(cancelled, 3, 'received', 5)
+
+    const out = await query(
+      m,
+      "FROM products SHOW ordered_quantity, returned_quantity, net_quantity WHERE product_title CONTAINS 'kestrel' GROUP BY month DURING all_time",
+    )
+    expect(out.result.totals).toEqual({
+      ordered_quantity: 3,
+      returned_quantity: 1,
+      net_quantity: 2,
+    })
+    expect(out.result.rows.map((r) => [r.values.month, r.values.net_quantity])).toEqual([
+      ['2026-09', 2],
+    ])
   })
 
   it('hides customer names from a role without customer access', async () => {

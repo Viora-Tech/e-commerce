@@ -6,7 +6,10 @@ export type ProductSaleLine = {
   orderId: string
   /** Who bought: the customer, else the lower-cased email, else the order itself. */
   buyerKey: string
+  /** Units ordered. */
   quantity: number
+  /** Units sold: ordered minus returned (`NET_UNITS`). */
+  netUnits: number
   unitPricePaise: number
   /** The whole order's goods value before discount. */
   orderSubtotalPaise: number
@@ -14,6 +17,7 @@ export type ProductSaleLine = {
 }
 
 export type ProductSales = {
+  /** Units sold: ordered minus returned, like every "units sold" number. */
   units: number
   orders: number
   buyers: number
@@ -45,7 +49,7 @@ export function summariseProductSales(
     const first = orderLines[0]
     if (!first) continue
     const gross = orderLines.reduce((sum, l) => sum + l.quantity * l.unitPricePaise, 0)
-    units += orderLines.reduce((sum, l) => sum + l.quantity, 0)
+    units += orderLines.reduce((sum, l) => sum + l.netUnits, 0)
     grossPaise += gross
     const subtotal = Math.max(first.orderSubtotalPaise, gross)
     const part = (amount: number) =>

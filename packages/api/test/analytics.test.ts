@@ -15,6 +15,8 @@ import {
   payment,
   product,
   refund,
+  returnRequest,
+  returnRequestLine,
   shipment,
   store,
   variant,
@@ -509,14 +511,17 @@ describe('analytics.report', () => {
         },
       ])
       .returning()
-    await owner.insert(orderLine).values([
-      {
+    const [blackLine] = await owner
+      .insert(orderLine)
+      .values({
         storeId: a.storeId,
         orderId: o1?.id as string,
         variantId: cat.black,
         quantity: 2,
         unitPricePaise: 20000,
-      },
+      })
+      .returning()
+    await owner.insert(orderLine).values([
       {
         storeId: a.storeId,
         orderId: o1?.id as string,
@@ -538,14 +543,26 @@ describe('analytics.report', () => {
       delta: 1,
       reason: 'returned',
     })
+    // One black mouse came back: units sold are net of it, gross sales and sell-through are not.
+    const [back] = await owner
+      .insert(returnRequest)
+      .values({ storeId: a.storeId, orderId: o1?.id as string, number: 1, status: 'received' })
+      .returning()
+    await owner.insert(returnRequestLine).values({
+      storeId: a.storeId,
+      returnRequestId: back?.id as string,
+      orderLineId: blackLine?.id as string,
+      quantity: 1,
+    })
 
     const products = await report(a, 'sales-by-product')
     expect(row(products, cat.mouse)).toMatchObject({
       product: 'Mouse',
       orders: 2,
-      units: 3,
+      unitsSold: 2,
       grossSales: 60000,
     })
+    expect(products.totals.unitsSold).toBe(3)
     expect(row(products, cat.mouse)?.share).toBeCloseTo(60000 / 65000)
     expect(products.chart[0]).toMatchObject({ label: 'Mouse', value: 60000 })
 
@@ -553,14 +570,14 @@ describe('analytics.report', () => {
     expect(row(variants, cat.black)).toMatchObject({
       variant: 'Mouse / Black',
       sku: 'M-BLK',
-      units: 2,
+      unitsSold: 1,
     })
     expect(row(variants, cat.padV)?.variant).toBe('Pad')
 
     const vendors = await report(a, 'sales-by-vendor')
-    expect(row(vendors, 'Glide')).toMatchObject({ products: 1, grossSales: 5000 })
+    expect(row(vendors, 'Glide')).toMatchObject({ products: 1, grossSales: 5000, unitsSold: 1 })
     const types = await report(a, 'sales-by-product-type')
-    expect(row(types, 'Mouse Pad')?.units).toBe(1)
+    expect(row(types, 'Mouse Pad')?.unitsSold).toBe(1)
 
     const abc = await report(a, 'abc-analysis')
     expect(row(abc, cat.mouse)?.abcClass).toBe('A')
