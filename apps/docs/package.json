@@ -10,6 +10,7 @@
     "deploy": "bun run build && wrangler deploy",
     "check:redirects": "node scripts/check-redirects.mjs",
     "check:links": "node scripts/check-links.mjs",
+    "diagrams": "node scripts/render-diagrams.mjs",
     "typecheck": "bun ../../scripts/typecheck.ts"
   },
   "dependencies": {
@@ -30,6 +31,7 @@
     "@types/react": "^19.2.8",
     "@types/react-dom": "^19.2.3",
     "pagefind": "^1.4.0",
+    "roughjs": "4.6.6",
     "tailwindcss": "^4.3.3",
     "typescript": "~5.9.3",
     "wrangler": "4.151.1"

@@ -34,12 +34,25 @@ Registered in `mdx-components.tsx`, so every MDX page can use them without an im
   `next.config.mjs` aliases to `components/mermaid.tsx`: Mermaid's hand-drawn look
   (`look: 'handDrawn'`, Mermaid 11+) in our colours, light and dark. The theme lives in one
   place, `lib/mermaid-config.ts`. Base every diagram on the actual code.
+- **`<Diagram name="…" alt="…" caption="…" />`**: an Excalidraw diagram from
+  `public/diagrams/<name>.excalidraw`, shown as `<name>.svg` in light mode and `<name>.dark.svg`
+  in dark mode, with a link to the editable file. To change one, open the `.excalidraw` file on
+  [excalidraw.com](https://excalidraw.com), edit, save it back over the same file, then run
+  `bun run --cwd apps/docs diagrams` (`scripts/render-diagrams.mjs`) to redraw both SVGs in the
+  same hand-drawn style (Rough.js, MIT, the library Excalidraw draws with). Commit all three
+  files. Use these for the big pictures (system, flows people come back to); Mermaid stays fine for
+  small sequence diagrams inside one page.
 - **`<Screenshot name="…" caption="…" />`**: placeholder until a real capture exists. The caption
   says exactly which screen and state to capture.
 - **`<VideoTip title="…" caption="…" />`**: slot for a future 30-second video.
 - **`<Faq>` / `<FaqItem question="…">`**: the FAQ accordion (native `<details>`).
 - **`<RelatedGuides ids={[…]} />`**: cards from the registry in `data/guides.ts`.
 - **`<Steps>`**, **`<Tabs>`**, **`<Callout>`**.
+
+Developer docs start with **How Koomerce works** (`content/developer-docs/how-it-works/`): the A to Z
+tour, one page per part, each linking to the deeper pages under Getting started, Core concepts,
+Building and Operations. Coverage of every admin page, app, worker queue and data area is tracked
+in `docs/audits/` (latest: `2026-11-15-docs-coverage.md`).
 
 Merchant guides follow one shape: What this is for, How it works (with a diagram), a
 step-by-step `<Steps>`, a tip `<Callout>`, Common problems and fixes, FAQ, Related guides.
