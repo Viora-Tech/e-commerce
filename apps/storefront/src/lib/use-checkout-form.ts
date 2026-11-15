@@ -65,11 +65,7 @@ import {
 } from './checkout-form-input'
 import { applyPendingDiscountCode } from './pending-code'
 
-/**
- * Everything the one-page checkout knows and does, so `CheckoutForm` and its cards only
- * draw. Every amount here is a preview; `checkoutAction` and `placeOrder` re-check and
- * re-price everything on the server.
- */
+/** Everything the one-page checkout knows and does; every amount is a preview the server re-prices. */
 export function useCheckoutForm(input: CheckoutFormInput) {
   const { cart, discount, settings } = input
   const customer = input.customer ?? null
@@ -216,11 +212,7 @@ export function useCheckoutForm(input: CheckoutFormInput) {
       setForm((prev) => ({ ...prev, [k]: e.target.value }))
   const touch = (k: CheckoutFieldKey) =>
     setTouched((prev) => (prev[k] ? prev : { ...prev, [k]: true }))
-  /**
-   * Point at what stops the order: signing in (the mobile number, then Send code), the first
-   * wrong field, or an address still being edited. Opens its step, then scrolls to it and
-   * focuses it once the step is on screen.
-   */
+  /** Open, scroll to and focus what stops the order: signing in, a wrong field or an open address. */
   const showFirstWrong = (): void => {
     setAttempted(true)
     setError(null)
