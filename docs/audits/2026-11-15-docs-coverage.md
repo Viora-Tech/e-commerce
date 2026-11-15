@@ -171,7 +171,7 @@ From every `definePlugin` in `packages/*/src/plugin.ts` and `packages/core/src/*
 | affiliates | Affiliates | builtin | marketing | — | MG/apps/affiliates | good | good |
 | back-in-stock | Back in stock | builtin | marketing | — | MG/apps/back-in-stock (10 lines) | thin | thin |
 | emi-pay-later | EMI & pay later | builtin | marketing | — | MG/apps/emi-and-pay-later | good | good |
-| forms | Forms | builtin | marketing | — | no listing guide, no page | none | good: MG/apps/forms |
+| forms | Forms | builtin | marketing | — | no listing guide, no page | none | good: MG/apps/forms (listing guide added) |
 | reviews | Reviews | builtin | marketing | — | MG/apps/reviews | good | good |
 | search | Search & discovery | builtin | search | — | MG/apps/search-and-discovery | good | good |
 | shopify-import | Shopify importer | builtin | migration | yes | MG/start-here/move-from-shopify | good | good |

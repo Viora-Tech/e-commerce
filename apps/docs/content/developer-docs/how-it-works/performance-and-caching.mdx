@@ -19,10 +19,12 @@ may keep the page and for how long.
   never qualify.
 - **How long**: `s-maxage` is `STOREFRONT_EDGE_TTL` seconds, set to **600** in production since
   15 November 2026 (default 30), with stale-while-revalidate of ten TTLs, capped at an hour.
-  A Cloudflare cache rule on the `koomerce.app` zone makes the edge honour it for every merchant
-  hostname.
-- **Purge**: the worker purges a store's hostnames about 5 seconds after its writes settle (at
-  most every 30 seconds per store), and the whole zone twice after a storefront deploy, because
+  The Cloudflare cache rule **Store pages** on the `koomerce.app` zone (live since 15 November)
+  makes the edge honour it for every merchant hostname: GET requests only, skipping any request
+  that carries the `cart`, `theme` or `recently_viewed` cookie and the paths `/checkout`, `/cart`,
+  `/account`, `/api/` and `/theme-actions/`.
+- **Purge**: the worker purges a store's hostnames about 5 seconds after an edit settles (at
+  most every 30 seconds per store; needs `CLOUDFLARE_CACHE_PURGE_TOKEN` and `CLOUDFLARE_ZONE_ID`), and the whole zone twice after a storefront deploy, because
   cached HTML from an old build points at scripts that no longer exist (`apps/worker/src/edge-purge.ts`).
 
 **Why 600 seconds is safe:** the purge, not the TTL, is what makes changes appear. The TTL only
@@ -30,7 +32,7 @@ bounds how long a page could be stale if a purge were missed.
 
 **What stays uncached on purpose:** a shopper who answered the cookie banner carries a consent
 cookie (and, with analytics, visitor ids), so the edge never serves them a cached page. Caching
-them needs consent read in the browser first; recorded in `docs/handoff/changes/2026-11-09-edge-cache-purge.md`.
+them is an open decision (it needs consent read in the browser first); recorded in `docs/handoff/changes/2026-11-09-edge-cache-purge.md`.
 
 ## 2. The storefront's own render cache
 

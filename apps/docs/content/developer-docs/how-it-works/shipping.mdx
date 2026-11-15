@@ -33,6 +33,12 @@ Two ways, chosen by the store:
   breaker and a backup price. The chosen route is saved on the order and booked later.
   [Delivery options engine](/developer-docs/building/delivery-options).
 
+**When each is used.** Zone rates are the base: fixed prices the merchant controls, with no
+courier call, and the fallback whenever the Delivery options app cannot quote (the order is marked
+**Placed on backup**). The Delivery options app is for stores whose real cost varies by courier,
+PIN code and box, or that sell a paid fast option; without it, or with no options configured,
+checkout shows the zone rates unchanged.
+
 Courier answers (quotes, the PIN code check) are cached in Dragonfly with a fingerprint of the
 courier's saved settings in the key (`courier-fingerprint.ts`), so new credentials never get the
 old account's answers.
