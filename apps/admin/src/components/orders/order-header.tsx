@@ -14,7 +14,12 @@ import { orderChannel } from '@/lib/order-channel'
 import { shownPaymentStatus } from '@/lib/order-next-move'
 import { routes } from '@/lib/routes'
 import OrderChip from './order-chip'
-import { importedGatewayLabel, methodLabel, type OrderDetail, paidMethod } from './order-detail-types'
+import {
+  importedGatewayLabel,
+  methodLabel,
+  type OrderDetail,
+  paidMethod,
+} from './order-detail-types'
 
 export type Neighbours = Awaited<ReturnType<typeof api.orders.neighbours>>
 
