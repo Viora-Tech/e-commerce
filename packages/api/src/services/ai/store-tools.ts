@@ -260,7 +260,7 @@ export function storeTools(env: ToolEnv): AiToolSet {
 
     topProducts: defineAiTool({
       description:
-        'Best-selling products by units sold in a period ("this month" is period this_month), with revenue.',
+        'Best-selling products by units sold in a period ("this month" is period this_month), with revenue. For one product or variant, a collection, all time or any other range, use analyticsQuery.',
       input: z.object({
         ...periodInput(30),
         limit: z.number().int().min(1).max(10).default(5),

@@ -23,7 +23,7 @@ import { nextReturnNumber } from './service'
  */
 async function parcelUnits(
   ctx: StoreContext,
-  row: ShipmentRow,
+  row: Carried,
 ): Promise<{ id: string; quantity: number }[]> {
   if (row.fulfillmentOrderId) {
     const units = await ctx.tx
@@ -52,32 +52,46 @@ async function parcelUnits(
     .where(and(eq(orderLine.orderId, row.orderId), eq(orderLine.giftCard, false)))
 }
 
+/** An order a shipment carried: the one it was booked for, or one packed in the same box. */
+type Carried = { orderId: string; fulfillmentOrderId: string | null }
+
 /**
- * Called by `applyTracking` when a shipment turns `rto`. Stamps when it came
+ * Called by `applyTracking` when a shipment turns `rto`, once for each order in the box
+ * (`carried`, default the order it was booked for). Stamps when it came
  * back, opens one RTO task (a `return_request` of kind `rto`, already
  * received) covering what the parcel carried, notes it on the order timeline
  * and writes `order.rto`. Safe to repeat: the unique index on the shipment
  * means a second call finds the first task and does nothing.
  */
-export async function recordRtoForShipment(ctx: StoreContext, row: ShipmentRow) {
+export async function recordRtoForShipment(
+  ctx: StoreContext,
+  row: ShipmentRow,
+  carried: Carried = { orderId: row.orderId, fulfillmentOrderId: row.fulfillmentOrderId },
+) {
   const [existing] = await ctx.tx
     .select({ id: returnRequest.id })
     .from(returnRequest)
-    .where(and(eq(returnRequest.shipmentId, row.id), eq(returnRequest.kind, 'rto')))
+    .where(
+      and(
+        eq(returnRequest.shipmentId, row.id),
+        eq(returnRequest.orderId, carried.orderId),
+        eq(returnRequest.kind, 'rto'),
+      ),
+    )
   if (existing) return null
   const now = new Date()
   await ctx.tx
     .update(shipment)
     .set({ rtoDeliveredAt: now })
     .where(and(eq(shipment.id, row.id), isNull(shipment.rtoDeliveredAt)))
-  const shipped = (await parcelUnits(ctx, row)).filter((l) => l.quantity > 0)
+  const shipped = (await parcelUnits(ctx, carried)).filter((l) => l.quantity > 0)
 
   const number = await nextReturnNumber(ctx)
   const [task] = await ctx.tx
     .insert(returnRequest)
     .values({
       storeId: ctx.storeId,
-      orderId: row.orderId,
+      orderId: carried.orderId,
       number,
       kind: 'rto',
       status: 'received',
@@ -102,12 +116,12 @@ export async function recordRtoForShipment(ctx: StoreContext, row: ShipmentRow) 
   }
   await ctx.tx.insert(orderNote).values({
     storeId: ctx.storeId,
-    orderId: row.orderId,
+    orderId: carried.orderId,
     body: `Parcel ${row.waybill} came back to you (RTO). Task ${returnLabel(number)}: restock the items, then refund or re-ship.`,
     author: null,
   })
   await insertOutboxEvent(ctx.tx, ctx.storeId, 'order.rto', {
-    orderId: row.orderId,
+    orderId: carried.orderId,
     returnId: task.id,
   })
   return task

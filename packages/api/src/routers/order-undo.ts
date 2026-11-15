@@ -1,14 +1,15 @@
 import {
-  CommerceError,
   fulfilAllLines,
   permissions,
   restoreCancelledOrder,
+  sameBoxChoices,
   undoDelivered,
   undoPacked,
 } from '@commerce/core'
 import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
 import { can } from '../procedures'
+import { fulfilRpcError } from '../services/order-fulfil.service'
 import { assertNotImported } from './imported-order'
 
 /**
@@ -16,6 +17,13 @@ import { assertNotImported } from './imported-order'
  * (router file-size sweep).
  */
 export const orderUndoRoutes = {
+  /** "Same box as #A" on Fulfil items: the same customer's other orders with a live parcel. */
+  sameBoxChoices: can(permissions.ORDERS_READ)
+    .input(z.object({ orderId: z.uuid() }))
+    .handler(({ context, input }) =>
+      sameBoxChoices({ tx: context.tx, storeId: context.scope.storeId }, input.orderId),
+    ),
+
   /**
    * Bulk "Mark as fulfilled" on the orders list: one order at a time, everything left packed
    * under the courier picked once for the selection, with this order's tracking number if typed.
@@ -39,12 +47,7 @@ export const orderUndoRoutes = {
       return fulfilAllLines(
         { tx: context.tx, storeId: context.scope.storeId },
         { ...rest, ...(trackingNumber ? { trackingNumber } : {}) },
-      ).catch((err) => {
-        if (err instanceof CommerceError) {
-          throw new ORPCError('BAD_REQUEST', { message: err.message })
-        }
-        throw err
-      })
+      ).catch(fulfilRpcError)
     }),
 
   /** "Mark as not delivered": undo a "Mark as delivered" pressed by mistake. */

@@ -85,7 +85,7 @@ export const ACTION_DOCS: Record<string, string> = {
   'analytics.live': 'Visitors now, carts in flight and the last hour of activity.',
   'analytics.overview': 'KPI tiles, sales over time, breakdown cards and the funnel for one range.',
   'analytics.query':
-    'Runs a custom query (Figma "query editor"): parsed, then fixed SQL only, read-only.',
+    'Answers questions about sales, units sold and refunds with a ShopifyQL-like query (WHERE, GROUP BY, DURING all_time…): parsed, then fixed SQL with bound values, read-only.',
   'analytics.refineQuery':
     '"Refine with AI" in the query editor: the request and the current query in, new query text out, already parsed (never run here).',
   'analytics.reports':
@@ -572,6 +572,8 @@ export const ACTION_DOCS: Record<string, string> = {
   'orders.restore': '"Restore order": a cancel pressed by mistake; refused once money went back.',
   'orders.retryCourierPush':
     "Send the order to a courier's panel again after it refused (order push).",
+  'orders.sameBoxChoices':
+    '"Same box as #A" on Fulfil items: the same customer\'s other orders with a live parcel.',
   'orders.saveDraft':
     "Create a draft order (no id) or replace an existing draft's lines, customer and addresses.",
   'orders.sendInvoice': 'Email the shopper a pay link for the draft.',

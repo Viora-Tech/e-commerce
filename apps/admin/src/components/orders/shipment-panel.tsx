@@ -3,12 +3,15 @@
 import type { Tracking } from '@commerce/core'
 import { PackageCheck, RefreshCw, Truck } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
+import Link from 'next/link'
 import DataCard from '@/components/layout/data-card'
 import EmptyState from '@/components/layout/empty-state'
 import RelativeTime from '@/components/layout/relative-time'
 import ShipmentDetails from '@/components/shipments/shipment-details'
+import { sharedParcelContent } from '@/data/shared-parcel'
 import { shipmentPanelContent } from '@/data/shipping'
 import { useCopy } from '@/hooks/use-copy'
+import { routes } from '@/lib/routes'
 import type { OrderShipment } from './order-detail-types'
 
 type ShipmentPanelProps = {
@@ -26,7 +29,9 @@ type ShipmentPanelProps = {
 const CLOSED: ReadonlySet<string> = new Set(['cancelled', 'completed', 'delivered', 'returned'])
 
 /** The order's consignment: book one, or the booked shipment's details (AWB, payment, package,
- *  pickup, label, Cancel shipment) and the courier's scans. */
+ *  pickup, label, Cancel shipment) and the courier's scans. An order packed in another order's
+ *  box shows that box, read-only, with "In the same box as #A"; the booked order lists the
+ *  orders riding with it. */
 export default function ShipmentPanel({
   orderStatus,
   shipment,
@@ -37,6 +42,7 @@ export default function ShipmentPanel({
 }: ShipmentPanelProps) {
   // Hooks
   const copy = useCopy(shipmentPanelContent)
+  const shared = useCopy(sharedParcelContent)
 
   // Early returns
   const canBook = !shipment || shipment.status === 'cancelled'
@@ -61,6 +67,8 @@ export default function ShipmentPanel({
   const tracking = (shipment.tracking ?? null) as Tracking | null
   const open = shipment.status !== 'cancelled' && shipment.status !== 'delivered'
   const events = tracking?.events.slice().reverse() ?? []
+  const host = shipment.sameBoxAs
+  const riders = shipment.alsoCarries
 
   return (
     <DataCard
@@ -75,7 +83,33 @@ export default function ShipmentPanel({
       }
     >
       <div className="flex flex-col gap-5">
+        {host ? (
+          <div className="flex flex-col gap-0.5 rounded-lg border border-border bg-background px-3 py-2.5">
+            <Link
+              href={routes.orders.detail(host.orderId)}
+              className="text-body-strong text-link underline-offset-2 hover:underline"
+            >
+              {shared.inSameBox(host.number)}
+            </Link>
+            <span className="text-caption text-muted-foreground">{shared.inSameBoxHint}</span>
+          </div>
+        ) : null}
+        {riders.length > 0 ? (
+          <p className="flex flex-wrap items-center gap-x-1.5 text-body">
+            <span className="text-muted-foreground">{shared.alsoCarries}</span>
+            {riders.map((r) => (
+              <Link
+                key={r.orderId}
+                href={routes.orders.detail(r.orderId)}
+                className="text-link underline-offset-2 hover:underline"
+              >
+                {shared.orderLink(r.number)}
+              </Link>
+            ))}
+          </p>
+        ) : null}
         <ShipmentDetails
+          readOnly={host !== null}
           shipment={shipment}
           onChanged={onChanged}
           actions={

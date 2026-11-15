@@ -44,8 +44,15 @@ out Puck's overlays and every node below the fold, with a 4 s cap per image or f
 `lib/use-theme-thumbnail.ts` sends it to `themes.thumbnail`:
 
 - after every Save while the canvas shows the default home template at desktop width;
-- once, 2.5 s after a theme with no picture opens on its saved home page, so existing themes get
-  one just by being opened.
+- once, 2.5 s after a theme with no picture (or a blank one) opens on its saved home page, so
+  existing themes get one just by being opened. A blank stored picture that cannot be retaken is
+  forgotten (`themes.thumbnail` with `image: null`), which also queues the worker's screenshot.
+
+Videos never go into the clone: modern-screenshot 4.7 waits for a cloned `<video>` to load with
+no time limit, and a `preload="none"` video (an imported theme's hero slides) never loads, so the
+capture hung and no picture was saved. Each video's poster is drawn in its place instead, and a
+whole attempt is capped at 30 s. A picture that comes out one flat colour is never sent, and the
+Themes page shows its placeholder for a stored picture that is blank (`lib/use-shown-picture.ts`).
 
 The server (`services/theme-thumbnail.service.ts`) accepts only a real WebP (RIFF/WEBP header)
 up to 256 KB, writes one object per theme (`stores/<store>/themes/<theme>/thumbnail.webp`,

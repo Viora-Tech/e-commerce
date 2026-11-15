@@ -29,7 +29,7 @@ import { location, shipment, shipmentPickup, store } from '@commerce/db'
 import { logger } from '@commerce/observability/logging'
 import { CourierError, describeCourierFailureForStaff, isValidPincode } from '@commerce/shipping'
 import { ORPCError } from '@orpc/server'
-import { and, desc, eq } from 'drizzle-orm'
+import { and, eq } from 'drizzle-orm'
 
 export async function updateStoreShipping(tx: StoreTx, storeId: string, shipping: unknown) {
   const [s] = await tx.update(store).set({ shipping }).where(eq(store.id, storeId)).returning()
@@ -86,15 +86,6 @@ export async function loadShippingSettings(
 }
 
 /** The order's latest shipment (a re-ship after RTO is newer than the parcel that came back). */
-async function getShipmentForOrder(tx: StoreTx, orderId: string) {
-  const [row] = await tx
-    .select()
-    .from(shipment)
-    .where(eq(shipment.orderId, orderId))
-    .orderBy(desc(shipment.createdAt))
-  return row ?? null
-}
-
 /** The merchant's own "try a PIN" panel: the same composition the storefront uses. */
 export async function tryEstimate(
   tx: StoreTx,
@@ -381,7 +372,8 @@ export async function cancelStoreShipment(
  * open (never a courier link that needs the key), the courier's name, the pickup it was put on,
  * and whether it can still be cancelled (and why not).
  */
-async function describeShipment(
+/** One shipment as its details view shows it (order page, Shipments drawer). */
+export async function describeShipment(
   tx: StoreTx,
   registry: ShippingRegistry,
   row: typeof shipment.$inferSelect,
@@ -417,16 +409,6 @@ async function describeShipment(
 }
 
 export type ShipmentDetails = Awaited<ReturnType<typeof describeShipment>>
-
-/** The order's latest shipment as its details view shows it; null when it has none. */
-export async function shipmentDetailsForOrder(
-  tx: StoreTx,
-  registry: ShippingRegistry,
-  orderId: string,
-): Promise<ShipmentDetails | null> {
-  const row = await getShipmentForOrder(tx, orderId)
-  return row ? describeShipment(tx, registry, row) : null
-}
 
 /** One shipment by id as its details view shows it. */
 export async function shipmentDetails(

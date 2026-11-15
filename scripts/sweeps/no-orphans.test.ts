@@ -485,8 +485,19 @@ const ALLOWLIST: AllowEntry[] = [
   },
   {
     file: 'packages/core/src/analytics-query/controls.ts',
-    names: ['setShow'],
-    reason: 'the metric-order rule behind toggleMetric, exported for its unit test',
+    names: ['setShow', 'queryDay'],
+    reason:
+      'the metric-order rule behind toggleMetric and the day a query covers, exported for their unit tests',
+  },
+  {
+    file: 'packages/core/src/analytics-query/period.ts',
+    names: ['periodDays'],
+    reason: 'the days a DURING period spans, exported for its unit test',
+  },
+  {
+    file: 'packages/core/src/analytics-query/reference.ts',
+    names: ['QUERY_EXAMPLES'],
+    reason: 'the worked examples inside the language reference, exported so a test parses each one',
   },
   {
     file: 'packages/core/src/catalog/stock-state.ts',
@@ -1512,7 +1523,6 @@ const ALLOWLIST: AllowEntry[] = [
     names: [
       'isCivilDate',
       'isoWeekday',
-      'daysBetween',
       'isWorkingDay',
       'nextWorkingDay',
       'addWorkingDays',
@@ -1755,11 +1765,6 @@ const ALLOWLIST: AllowEntry[] = [
     file: 'packages/ui/src/globe/webgl/dot-layout.ts',
     names: ['TARGET_ROW_SPACING_CSS_PX'],
     reason: 'the dot grid spacing, exported for its unit test',
-  },
-  {
-    file: 'packages/core/src/analytics-query/schema.ts',
-    names: ['QUERY_KEYWORDS'],
-    reason: 'no external importer today — investigate before removing',
   },
   {
     file: 'packages/core/src/billing/apps.ts',

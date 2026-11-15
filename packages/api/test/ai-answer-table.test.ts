@@ -140,7 +140,7 @@ describe('the same numbers as a custom query (#102)', () => {
     if (!parsed.ok) return
     expect(parsed.query.table).toBe('sales')
     expect(parsed.query.show).toEqual(['total_sales', 'orders'])
-    expect(parsed.query.groupBy).toBe('day')
+    expect(parsed.query.groupBy).toEqual(['day'])
     expect(parsed.query.since).toEqual({ kind: 'date', iso: '2026-10-01' })
     expect(parsed.query.until).toEqual({ kind: 'date', iso: '2026-10-31' })
     expect(parsed.query.compare).toBe('previous_period')
@@ -148,7 +148,7 @@ describe('the same numbers as a custom query (#102)', () => {
 
   it('writes sales by month as a query the parser accepts', () => {
     const parsed = parseQuery(salesSeriesQuery({ from: '2026-01-01', to: '2026-10-31' }, 'month'))
-    expect(parsed.ok && parsed.query.groupBy).toBe('month')
+    expect(parsed.ok && parsed.query.groupBy).toEqual(['month'])
   })
 
   it('writes top products as a query the parser accepts', () => {
@@ -156,7 +156,7 @@ describe('the same numbers as a custom query (#102)', () => {
     expect(parsed.ok).toBe(true)
     if (!parsed.ok) return
     expect(parsed.query.table).toBe('products')
-    expect(parsed.query.groupBy).toBe('product_title')
+    expect(parsed.query.groupBy).toEqual(['product_title'])
     expect(parsed.query.orderBy).toEqual({ field: 'net_quantity', dir: 'desc' })
     expect(parsed.query.limit).toBe(5)
   })

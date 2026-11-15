@@ -113,7 +113,7 @@ waiting (`ApproverNotAllowed`), any other error marks it failed with that messag
 (`APPROVE_PERMISSIONS`). An assistant proposal is the asker's alone; an MCP one may be approved by
 the asker, the owner or a member with the action's permission (for `runAdminAction`, whose
 permission only the procedure knows, any member may try to approve and the procedure decides;
-editing or cancelling it for someone else is the owner's). Expired proposals read as `expired`
+editing or cancelling it for someone else is the owner's). Proposals expire after `ASSISTANT_LIMITS.proposalTtlMinutes` (24 hours); expired ones read as `expired`
 and are refused with a message saying so. `approvedBy` and `result.by` record the approver; when
 the connecting member confirms their own client's sensitive action, `result.confirmedAi` is set
 (the view's `confirmedAi`), so it reads as confirming the AI rather than an approval.

@@ -108,6 +108,36 @@ export const shipment = pgTable(
 )
 
 /**
+ * Another order packed into this shipment's box ("Same box as #A", owner 15 Nov 2026): one
+ * courier consignment, one AWB, several orders of the same customer. The shipment stays on the
+ * order it was booked for (`shipment.order_id`); each row here is an extra order it carries,
+ * which then reads that shipment's tracking, goes shipped and delivered with it, and gets its
+ * own RTO task when it comes back. Rules: @commerce/core shipping/shared-parcel.ts.
+ */
+export const shipmentSharedOrder = pgTable(
+  'shipment_shared_order',
+  {
+    id: id(),
+    storeId: storeId(),
+    shipmentId: uuid('shipment_id')
+      .notNull()
+      .references(() => shipment.id, { onDelete: 'cascade' }),
+    orderId: uuid('order_id')
+      .notNull()
+      .references(() => order.id, { onDelete: 'cascade' }),
+    /** The parcel of the extra order that went in the box, when its units came out of one. */
+    fulfillmentOrderId: uuid('fulfillment_order_id').references(() => fulfillmentOrder.id, {
+      onDelete: 'set null',
+    }),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    uniqueIndex('shipment_shared_order_shipment_order').on(t.shipmentId, t.orderId),
+    index('shipment_shared_order_order').on(t.orderId),
+  ],
+)
+
+/**
  * An order sent to a courier app (Shiprocket, RapidShyp) as a pending order, without booking:
  * the merchant books it there or here later. One row per order and courier; booking here reuses
  * `externalOrderId`/`externalShipmentId` instead of creating a second order at the courier.

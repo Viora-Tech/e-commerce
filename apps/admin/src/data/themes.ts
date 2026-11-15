@@ -99,26 +99,33 @@ export const themesContent = {
     cancel: 'Cancel',
     confirm: 'Add theme',
   },
-  versionsDialog: {
-    title: (name: string) => `Versions of ${name}`,
-    body: 'A version is kept each time this theme goes live: when the theme is published, and each time changes to the live theme are published. The newest 20 of each page are kept.',
-    empty: 'No versions yet. One is kept the next time this theme goes live.',
+  /**
+   * Version history (Figma 697:4526), one design for the library's ⋯ menu and the editor:
+   * "Now" (the current drafts), then each time the theme went live.
+   */
+  versionHistory: {
+    title: 'Version history',
+    body: (name: string) =>
+      `Each time ${name} went live: when it was published, and each save of the live theme. The newest 20 of each page are kept.`,
+    now: 'Now',
+    current: 'Current draft',
+    /** The library's "Now" row: it does not know who made the drafts. */
+    unsavedDrafts: 'Unsaved changes in Customize',
+    live: 'Live',
+    published: 'Published',
+    saved: 'Saved',
+    preview: 'Preview',
+    previewHelp: 'Opens this version of the store in a new tab',
+    restore: 'Restore',
+    restoreNote: 'Its pages replace the current draft. Nothing goes live until you publish.',
+    restored: {
+      editor: 'Restored as your draft. Nothing goes live until you publish.',
+      library: 'Restored as unsaved changes. Open Customize to review and publish.',
+    },
+    restoreFailed: 'Could not restore that version',
     loading: 'Loading versions',
     failed: 'Could not load versions',
-    published: 'Theme published',
-    saved: 'Changes published',
-    by: (who: string) => `by ${who}`,
-    pages: (n: number) => (n === 1 ? '1 page' : `${n} pages`),
-    preview: 'Preview',
-    restore: 'Restore',
-    restoring: 'Restoring',
-    restored: 'Restored as unsaved changes. Open Customize to review and save.',
-    restoreFailed: 'Could not restore that version',
-    confirmTitle: 'Restore this version?',
-    confirmBody:
-      'Its pages become unsaved changes in Customize. Nothing changes for shoppers until you save and, for an unpublished theme, publish.',
-    cancel: 'Cancel',
-    close: 'Close',
+    empty: 'No versions yet. One is kept the next time this theme goes live.',
   },
   renameDialog: {
     title: 'Rename theme',

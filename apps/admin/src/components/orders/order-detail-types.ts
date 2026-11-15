@@ -26,6 +26,18 @@ export function primaryPayment(payments: OrderPayment[]): OrderPayment | null {
   return payments.find((p) => p.status === 'captured') ?? payments.at(-1) ?? null
 }
 
+/**
+ * How the order was paid: the captured payment's method when there is one (a shopper who
+ * chose UPI to your own ID and then paid by Razorpay paid by Razorpay), else the method
+ * picked at checkout.
+ */
+export function paidMethod(order: {
+  paymentMethod: string | null
+  payments: OrderPayment[]
+}): string | null {
+  return order.payments.find((p) => p.status === 'captured')?.provider ?? order.paymentMethod
+}
+
 /** Which `STATUS.payment` value the detail header shows for a payment row. */
 export function paymentStatus(
   payment: OrderPayment | null,

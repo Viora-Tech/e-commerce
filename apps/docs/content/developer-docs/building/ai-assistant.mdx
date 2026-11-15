@@ -55,7 +55,13 @@ merchant ─ Approve ─▶ ai.approveAction ─▶ same member? still open? rol
   to any member whose role holds the action's permission (it is in Settings → AI → Activity).
 - **The exact change they saw runs.** A price change stores each variant's old and new price; a
   variant whose price changed since the proposal is left alone.
-- Proposals **expire** after `ASSISTANT_LIMITS.proposalTtlMinutes` (60).
+- Proposals **expire** after `ASSISTANT_LIMITS.proposalTtlMinutes` (24 hours, so one made in
+  the evening can be approved the next morning). A request waiting for a different member in
+  Approvals gets 7 days (`approvalTtlMs`). Approving re-checks what it can: prices changed since
+  are left alone, a taken discount code or a deleted product, collection or order is refused, and
+  a queued admin action re-runs the procedure with the approver's role. A product text update
+  writes the proposed fields (tags as the full list worked out when proposed), so edits made to
+  those fields in between are overwritten; Undo puts them back.
 - **Edit** re-runs the action's `propose` with the merchant's values (`reviseAction`), with the
   same checks as the model's input.
 - A failed run is rolled back to its savepoint and stored as `failed` with a plain reason.
@@ -81,8 +87,9 @@ Product and customer text is data, never instructions. Three layers:
 ### Personal data
 
 Tools return aggregates, product facts and order facts. The only personal detail any tool sends is
-an order's customer **first name** (`orderDetails`, for reply drafts); the source event lists it
-in `shared` and the admin shows "Shared with the AI: customer first name". Customer notes go
+an order's customer **first name** (`orderDetails`, for reply drafts, and `analyticsQuery` when a
+query groups or filters by `customer_name`, only for members who may read customers); the source
+event lists it in `shared` and the admin shows "Shared with the AI: customer first name". Customer notes go
 through with phone numbers and emails hidden. Customer pages send no customer data at all.
 
 ## Tools today
@@ -90,6 +97,7 @@ through with phone numbers and emails hidden. Customer pages send no customer da
 | Tool | Kind | Permission | Undo |
 |---|---|---|---|
 | `salesSummary`, `topProducts` | read | analytics.read | |
+| `analyticsQuery` (any numbers question, as one custom query) | read | analytics.read | |
 | `pendingOrders`, `abandonedCheckouts`, `orderDetails` | read | orders.read | |
 | `lowStock` | read | inventory.read | |
 | `findProducts`, `productDetails`, `listCollections` | read | products.read | |
@@ -99,6 +107,25 @@ through with phone numbers and emails hidden. Customer pages send no customer da
 | `proposeProductUpdate` (title, description, search text, tags) | propose | products.write | previous text back |
 | `proposeOrderNote` (note or reply draft, never sent) | propose | orders.write | none (timeline note) |
 | `proposeThemeEdit` (theme editor only: settings on the open page) | propose, in the browser | online_store.write | Puck's Undo in the editor |
+
+### Numbers questions: `analyticsQuery`
+
+Questions about numbers ("how many Waizowl TRIAINA have we sold?", "sales of X last month vs the
+month before", "top customers all time") are answered the way Shopify Sidekick does it: the model
+writes one custom query (`@commerce/core/analytics-query`, the same language as Reports → Custom
+query) and calls `analyticsQuery` (`services/ai/query-tool.ts`). The tool's description carries
+`queryLanguageReference()`, the prompt (`QUERY_LINES` in `packages/ai/src/assistant/prompt.ts`)
+and the MCP server instructions send every numbers question to it, and a parse problem comes back
+as a fact so the model fixes the query and retries. The answer card shows the table and the query
+used (`answer-table-card.tsx`); "Open as report" opens it live in the query editor.
+
+The query is parsed by core, every field maps to a fixed SQL expression
+(`services/analytics-query-sql.ts`) and every typed value is a bound parameter; text compares
+case-insensitively (`strpos`, `starts_with`, no `LIKE`, so `%` and `_` are plain text). It runs in
+the store's RLS transaction with `statement_timeout` 15 s. Ranges are never cut short: a range over
+20 years (`QUERY_RANGE_MAX_YEARS`) is refused with an error, and `DURING all_time` starts at the
+store's first order. Do not add a one-off read tool for a question a query can answer: add the
+missing field to `QUERY_TABLES` (core) and its SQL (api) instead.
 
 ### The theme editor
 

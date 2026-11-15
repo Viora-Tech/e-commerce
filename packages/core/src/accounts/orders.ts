@@ -20,6 +20,7 @@ import type {
 import { orderParcelsView, type ParcelView } from '../order/parcel-view'
 import { isSplitTender } from '../payments/split-tender'
 import { balanceOwed } from '../preorder/balance'
+import { carriesOrder } from '../shipping/carries-order'
 import type { GstBreakdown } from '../tax/gst'
 import { orderThumbnails } from './order-thumbnails'
 
@@ -293,10 +294,11 @@ export async function getCustomerOrder(
   const [addr] = o.shippingAddressId
     ? await ctx.tx.select().from(address).where(eq(address.id, o.shippingAddressId))
     : []
+  // Its own parcel, or the box it went in with another of the shopper's orders.
   const [ship] = await ctx.tx
     .select()
     .from(shipment)
-    .where(eq(shipment.orderId, o.id))
+    .where(carriesOrder(o.id))
     .orderBy(desc(shipment.createdAt))
   const tracking = ship?.tracking as Tracking | null | undefined
 

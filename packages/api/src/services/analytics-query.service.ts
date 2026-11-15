@@ -1,57 +1,39 @@
 import { notTestOrder } from '@commerce/core'
 import {
+  addDays,
+  daysBetween,
   fieldOf,
+  formatQuery,
   type ParsedQuery,
   parseQuery,
+  type QueryDays,
   type QueryError,
   type QueryFieldType,
-  type QueryTime,
+  queryDays,
+  queryFields,
+  rangeProblem,
 } from '@commerce/core/analytics-query'
-import { address, order, orderLine, type StoreTx } from '@commerce/db'
-import { and, asc, desc, eq, gte, lt, ne, type SQL, sql } from 'drizzle-orm'
-import { DAY_MS, istIsoDate, resolveRange } from './analytics-buckets'
+import { dayKey } from '@commerce/dates'
+import { order, type StoreTx } from '@commerce/db'
+import { type SQL, sql } from 'drizzle-orm'
+import { istDayStart } from './analytics-buckets'
+import {
+  type CustomerNames,
+  havingSql,
+  type TableSql,
+  tableSql,
+  whereSql,
+} from './analytics-query-sql'
 import type { ReportResult } from './analytics-report.service'
 import type { ReportColumnKind, ReportDefinition } from './analytics-reports'
 import type { ReportRow, ReportValue } from './reports/types'
 
 /*
  * Custom analytics queries (Figma "Analytics · Report — query editor"). The query is parsed by
- * the same code the editor runs, then every field becomes one of the fixed expressions below:
- * a merchant's text never reaches SQL. Reads only, inside the caller's store transaction (RLS).
+ * the same code the editor runs, then every field becomes one of the fixed expressions in
+ * `analytics-query-sql.ts` and every typed value a bound parameter: a merchant's text never
+ * reaches SQL. Reads only, inside the caller's store transaction (RLS), under a time limit.
  */
-
-const IST = sql.raw(`'Asia/Kolkata'`)
-const day = sql<string>`to_char(${order.placedAt} at time zone ${IST}, 'YYYY-MM-DD')`
-const month = sql<string>`to_char(${order.placedAt} at time zone ${IST}, 'YYYY-MM')`
-
-const SALES: Record<string, SQL> = {
-  net_sales: sql`coalesce(sum(${order.subtotalPaise} - ${order.discountPaise}), 0)::bigint`,
-  gross_sales: sql`coalesce(sum(${order.subtotalPaise}), 0)::bigint`,
-  discounts: sql`coalesce(sum(${order.discountPaise}), 0)::bigint`,
-  shipping: sql`coalesce(sum(${order.shippingPaise}), 0)::bigint`,
-  taxes: sql`coalesce(sum(${order.taxPaise}), 0)::bigint`,
-  total_sales: sql`coalesce(sum(${order.totalPaise}), 0)::bigint`,
-  orders: sql`count(*)::int`,
-  average_order_value: sql`coalesce(round(avg(${order.totalPaise})), 0)::bigint`,
-  cod_orders: sql`(count(*) filter (where ${order.paymentMethod} = 'cod'))::int`,
-  day,
-  month,
-  state: sql`coalesce(${address.stateCode}, '')`,
-  payment_method: sql`coalesce(${order.paymentMethod}, '')`,
-  channel: sql`coalesce(${order.attribution} ->> 'channel', '')`,
-}
-
-const PRODUCTS: Record<string, SQL> = {
-  net_quantity: sql`coalesce(sum(${orderLine.quantity}), 0)::int`,
-  gross_sales: sql`coalesce(sum(${orderLine.quantity} * ${orderLine.unitPricePaise}), 0)::bigint`,
-  cost: sql`coalesce(sum(${orderLine.quantity} * ${orderLine.costAtSalePaise}), 0)::bigint`,
-  orders: sql`count(distinct ${order.id})::int`,
-  product_title: sql`coalesce(${orderLine.title}, '')`,
-  variant_title: sql`coalesce(${orderLine.variantTitle}, '')`,
-  day,
-  month,
-  state: sql`coalesce(${address.stateCode}, '')`,
-}
 
 const KIND: Record<QueryFieldType, ReportColumnKind> = {
   money: 'money',
@@ -63,113 +45,165 @@ const KIND: Record<QueryFieldType, ReportColumnKind> = {
   payment: 'payment',
 }
 
+/** A query that takes longer than this is stopped (the whole history stays well under it). */
+const STATEMENT_TIMEOUT = '15s'
+/** Days listed in the result's range; a longer range sends none (the rows carry the dates). */
+const LISTED_DAYS_MAX = 400
+
 type Span = { from: Date; to: Date }
 
-/** IST calendar day a SINCE / UNTIL word points at. */
-function dayOf(t: QueryTime, now: Date): string {
-  if (t.kind === 'date') return t.iso
-  if (t.kind === 'word')
-    return istIsoDate(new Date(now.getTime() - (t.word === 'yesterday' ? DAY_MS : 0)))
-  const d = new Date(now)
-  if (t.unit === 'm') d.setUTCMonth(d.getUTCMonth() - t.amount)
-  else d.setTime(d.getTime() - t.amount * (t.unit === 'w' ? 7 : 1) * DAY_MS)
-  return istIsoDate(d)
+const spanOf = (days: QueryDays): Span => ({
+  from: istDayStart(days.from),
+  to: istDayStart(addDays(days.to, 1)),
+})
+
+/** What the query runs as: SQL fragments for one table and how names may show. */
+type Plan = { q: ParsedQuery; t: TableSql; where: SQL | null; having: SQL | null }
+
+async function run(tx: StoreTx, plan: Plan, span: Span, grouped: boolean) {
+  const { q, t } = plan
+  const dims = grouped ? q.groupBy : []
+  const select = [
+    ...dims.map((d, i) => sql`${t.exprs[d] as SQL} as ${sql.identifier(`k${i}`)}`),
+    ...q.show.map((m) => sql`${t.exprs[m] as SQL} as ${sql.identifier(m)}`),
+  ]
+  const conditions = [
+    t.base, // Bound as ISO text: a raw statement does not map a Date the way a column does.
+    sql`${t.at} >= ${span.from.toISOString()}::timestamptz`,
+    sql`${t.at} < ${span.to.toISOString()}::timestamptz`,
+  ]
+  if (plan.where) conditions.push(plan.where)
+  const parts = [
+    sql`select ${sql.join(select, sql`, `)} from ${t.from} where ${sql.join(conditions, sql` and `)}`,
+  ]
+  if (dims.length) {
+    // By position: a dimension and its sort are one expression, written once.
+    const positions = dims.map((_, i) => sql.raw(String(i + 1)))
+    parts.push(sql`group by ${sql.join(positions, sql`, `)}`)
+    if (plan.having) parts.push(sql`having ${plan.having}`)
+    const sortAt = q.orderBy
+      ? q.groupBy.includes(q.orderBy.field)
+        ? q.groupBy.indexOf(q.orderBy.field) + 1
+        : dims.length + q.show.indexOf(q.orderBy.field) + 1
+      : null
+    const sorts = [
+      ...(sortAt
+        ? [sql.raw(`${sortAt} ${q.orderBy?.dir === 'asc' ? 'asc' : 'desc'} nulls last`)]
+        : []),
+      ...positions.map((p) => sql`${p} asc`),
+    ]
+    parts.push(sql`order by ${sql.join(sorts, sql`, `)}`)
+    parts.push(sql`limit ${q.limit}`)
+  }
+  return (await tx.execute(sql.join(parts, sql` `))) as unknown as Record<string, unknown>[]
 }
 
-async function run(tx: StoreTx, q: ParsedQuery, span: Span, grouped: boolean) {
-  const exprs = q.table === 'sales' ? SALES : PRODUCTS
-  const select: Record<string, SQL> = {}
-  const dim = grouped && q.groupBy ? (exprs[q.groupBy] as SQL) : null
-  if (dim) select.key = dim
-  for (const m of q.show) select[m] = exprs[m] as SQL
-  const where = and(
-    ne(order.status, 'draft'),
-    ne(order.status, 'cancelled'),
-    notTestOrder,
-    gte(order.placedAt, span.from),
-
-    lt(order.placedAt, span.to),
-  )
-  const base =
-    q.table === 'sales'
-      ? tx.select(select).from(order).leftJoin(address, eq(address.id, order.shippingAddressId))
-      : tx
-          .select(select)
-          .from(orderLine)
-          .innerJoin(order, eq(order.id, orderLine.orderId))
-          .leftJoin(address, eq(address.id, order.shippingAddressId))
-  const filtered = base.where(where)
-  if (!dim) return (await filtered) as Record<string, unknown>[]
-  const sortExpr = q.orderBy ? (exprs[q.orderBy.field] as SQL) : dim
-  const sorted = filtered
-    .groupBy(dim)
-    .orderBy(q.orderBy?.dir === 'asc' || !q.orderBy ? asc(sortExpr) : desc(sortExpr))
-  return (await sorted.limit(q.limit)) as Record<string, unknown>[]
+/** The store's first counted day, for DURING all_time (fast: the store/placed index). */
+async function firstDay(tx: StoreTx): Promise<string | null> {
+  const rows = (await tx.execute(
+    sql`select to_char(min(${order.placedAt}) at time zone 'Asia/Kolkata', 'YYYY-MM-DD') as first
+      from ${order} where ${order.status} <> 'draft' and ${notTestOrder}`,
+  )) as unknown as { first: string | null }[]
+  return rows[0]?.first ?? null
 }
 
 const value = (v: unknown): ReportValue =>
   v == null ? null : typeof v === 'number' ? v : /^-?\d+$/.test(String(v)) ? Number(v) : String(v)
 
+const keyOf = (r: Record<string, unknown>, dims: number) =>
+  dims ? Array.from({ length: dims }, (_, i) => String(r[`k${i}`] ?? '')).join(' · ') : 'total'
+
 export type CustomQueryResult =
-  | { ok: true; report: ReportDefinition; result: ReportResult; ms: number }
+  | {
+      ok: true
+      report: ReportDefinition
+      result: ReportResult
+      ms: number
+      /** The query as it ran, one clause per line. */
+      query: string
+      /** The days it covered; for DURING all_time, from the store's first order. */
+      days: QueryDays
+    }
   | { ok: false; error: QueryError }
+
+export type CustomQueryOptions = {
+  now?: Date
+  /** Full names for staff who read customers (default), first names for the AI, else none. */
+  customerNames?: CustomerNames
+}
 
 /** Parses, checks and runs one custom query for the current store. */
 export async function runCustomQuery(
   tx: StoreTx,
   source: string,
-  now = new Date(),
+  options: CustomQueryOptions = {},
 ): Promise<CustomQueryResult> {
-  const parsed = parseQuery(source)
+  const now = options.now ?? new Date()
+  const names = options.customerNames ?? 'full'
+  const parsed = parseQuery(source, now)
   if (!parsed.ok) return parsed
   const q = parsed.query
+  if (names === 'hidden' && queryFields(q).includes('customer_name')) {
+    return {
+      ok: false,
+      error: { line: 1, message: 'Your role cannot see customer names.', suggestion: null },
+    }
+  }
   const started = performance.now()
-  const range = resolveRange(
-    { key: 'custom', from: dayOf(q.since, now), to: dayOf(q.until, now) },
-    now,
-  )
-  const span = { from: range.from, to: range.to }
+  await tx.execute(sql.raw(`set local statement_timeout = '${STATEMENT_TIMEOUT}'`))
+
+  const days = queryDays(q, now, q.during === 'all_time' ? await firstDay(tx) : null)
+  const problem = rangeProblem(days)
+  if (problem) return { ok: false, error: { line: 1, message: problem, suggestion: null } }
+  const length = daysBetween(days.from, days.to)
+  const span = spanOf(days)
   const before: Span | null =
     q.compare === 'previous_period'
-      ? { from: range.previousFrom, to: range.previousTo }
+      ? spanOf({ from: addDays(days.from, -length), to: addDays(days.from, -1) })
       : q.compare === 'previous_year'
-        ? {
-            from: new Date(range.from.getTime() - 365 * DAY_MS),
-            to: new Date(range.to.getTime() - 365 * DAY_MS),
-          }
+        ? spanOf({ from: lastYear(days.from), to: lastYear(days.to) })
         : null
 
-  const [rows, totalsRow, prevRows, prevTotals] = await Promise.all([
-    run(tx, q, span, true),
-    run(tx, q, span, false),
-    before ? run(tx, q, before, true) : Promise.resolve(null),
-    before ? run(tx, q, before, false) : Promise.resolve(null),
-  ])
+  const t = tableSql(q.table, names)
+  const plan: Plan = {
+    q,
+    t,
+    where: q.where ? whereSql(q.where, t, q.table) : null,
+    having: q.having ? havingSql(q.having, t, q.table) : null,
+  }
+  const grouped = q.groupBy.length > 0
+  const rows = grouped ? await run(tx, plan, span, true) : null
+  const totalsRow = await run(tx, plan, span, false)
+  const prevRows = before && grouped ? await run(tx, plan, before, true) : null
+  const prevTotals = before ? await run(tx, plan, before, false) : null
 
   const metric =
     q.orderBy && q.show.includes(q.orderBy.field) ? q.orderBy.field : (q.show[0] as string)
-  const dimField = q.groupBy ? fieldOf(q.table, q.groupBy) : null
+  const dimFields = q.groupBy.map((d) => fieldOf(q.table, d)).filter((f) => f !== undefined)
   const columns = [
-    ...(dimField ? [{ id: dimField.name, kind: KIND[dimField.type] }] : []),
+    ...dimFields.map((f) => ({ id: f.name, kind: KIND[f.type] })),
     ...q.show.map((m) => ({
       id: m,
       kind: KIND[(fieldOf(q.table, m)?.type ?? 'number') as QueryFieldType],
     })),
   ]
+  const dims = q.groupBy.length
   const prevByKey = new Map(
-    (prevRows ?? []).map((r) => [String(r.key ?? 'total'), value(r[metric])]),
+    (prevRows ?? prevTotals ?? []).map((r) => [keyOf(r, prevRows ? dims : 0), value(r[metric])]),
   )
-  const toRow = (r: Record<string, unknown>): ReportRow => {
-    const key = String(r.key ?? 'total')
+  const toRow = (r: Record<string, unknown>, grouping: number): ReportRow => {
+    const key = keyOf(r, grouping)
     const values: Record<string, ReportValue> = {}
-    if (dimField) values[dimField.name] = key
+    dimFields.forEach((f, i) => {
+      values[f.name] = grouping ? String(r[`k${i}`] ?? '') : null
+    })
     for (const m of q.show) values[m] = value(r[m])
     const prev = prevByKey.get(key)
     return { key, values, previous: typeof prev === 'number' ? prev : null }
   }
-  const resultRows = (q.groupBy ? rows : totalsRow).map(toRow)
+  const resultRows = rows ? rows.map((r) => toRow(r, dims)) : totalsRow.map((r) => toRow(r, 0))
   const totals = Object.fromEntries(q.show.map((m) => [m, value(totalsRow[0]?.[m])]))
-  const series = q.groupBy === 'day' || q.groupBy === 'month'
+  const series = dims === 1 && ['day', 'week', 'month', 'year'].includes(q.groupBy[0] as string)
 
   const report: ReportDefinition = {
     slug: 'custom',
@@ -182,16 +216,13 @@ export async function runCustomQuery(
     chart: series ? 'series' : 'bars',
     ranged: true,
   }
+  const listed =
+    length <= LISTED_DAYS_MAX ? Array.from({ length }, (_, i) => addDays(days.from, i)) : []
   const result: ReportResult = {
     slug: 'custom',
-    range: {
-      key: 'custom',
-      from: range.days[0] ?? '',
-      to: range.days.at(-1) ?? '',
-      days: range.days,
-    },
+    range: { key: 'custom', from: days.from, to: days.to, days: listed },
     previousRange: before
-      ? { from: istIsoDate(before.from), to: istIsoDate(new Date(before.to.getTime() - 1)) }
+      ? { from: dayKey(before.from), to: dayKey(new Date(before.to.getTime() - 1)) }
       : null,
     rows: resultRows,
     totals,
@@ -205,5 +236,21 @@ export async function runCustomQuery(
     })),
     profit: null,
   }
-  return { ok: true, report, result, ms: Math.round(performance.now() - started) }
+  return {
+    ok: true,
+    report,
+    result,
+    ms: Math.round(performance.now() - started),
+    query: formatQuery(q),
+    days,
+  }
+}
+
+/** The same calendar day a year earlier (29 Feb becomes 28 Feb). */
+function lastYear(day: string): string {
+  const [y, m, d] = day.split('-') as [string, string, string]
+  const prev = `${Number(y) - 1}-${m}-${d}`
+  return Number.isNaN(Date.parse(prev)) || new Date(`${prev}T00:00:00Z`).getUTCDate() !== Number(d)
+    ? `${Number(y) - 1}-${m}-28`
+    : prev
 }

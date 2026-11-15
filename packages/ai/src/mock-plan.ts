@@ -226,12 +226,35 @@ function writeSteps(text: string, system: string, can: (t: string) => boolean): 
 }
 
 /** The tool calls the fake assistant makes for `text`, given the system prompt and its tools. */
+/**
+ * "How many Waizowl TRIAINA have we sold?": the product's last word (its model name) as a
+ * custom query over all time, the way a real model is taught to write it.
+ */
+function soldQuery(text: string): string | null {
+  const named =
+    /how many (.+?)\s+(?:mice |units |pieces )?(?:have we|did we|we have|have been|we've)?\s*sold/i.exec(
+      text,
+    )?.[1]
+  const word = named
+    ?.replace(/[^\p{L}\p{N}\s-]/gu, '')
+    .trim()
+    .split(/\s+/)
+    .at(-1)
+  if (!word) return null
+  return `FROM products
+  SHOW net_quantity, gross_sales, orders
+  WHERE product_title CONTAINS '${word.toLowerCase()}'
+  DURING all_time`
+}
+
 export function mockPlan(text: string, system: string, available: string[]): MockStep[] {
   const can = (tool: string) => available.includes(tool)
   const writes = writeSteps(text, system, can)
   if (writes.length) return writes
   const order = Number(/#\s?(\d+)/.exec(text)?.[1] ?? 0)
   if (order && can('orderDetails')) return [{ tool: 'orderDetails', input: { number: order } }]
+  const sold = can('analyticsQuery') ? soldQuery(text) : null
+  if (sold) return [{ tool: 'analyticsQuery', input: { query: sold } }]
   const hint = READ_HINTS.find((h) => h.pattern.test(text) && can(h.tool))
   if (hint) return [{ tool: hint.tool, input: hint.input }]
   const product = pageHandle(system, 'product')

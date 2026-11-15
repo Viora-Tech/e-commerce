@@ -6,6 +6,7 @@ import type { StoreContext } from '../context'
 import { CommerceError } from '../errors'
 import { unpackFulfillmentOrder } from '../order/fulfillment-orders'
 import { recomputeOrderStatuses } from '../order/recompute'
+import { releaseSharedOrders } from './shared-parcel'
 import { type CancelBlock, cancelBlock } from './shipment-state'
 import type { ShipmentRow } from './shipments'
 
@@ -122,5 +123,7 @@ export async function cancelShipment(
     author: options.author ?? null,
   })
   await recomputeOrderStatuses(ctx, row.orderId)
+  // Orders packed in the same box ("Same box as #A") come out of it too.
+  await releaseSharedOrders(ctx, [row.id], options.author ?? null)
   return updated ?? row
 }

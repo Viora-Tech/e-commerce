@@ -42,6 +42,7 @@ import type { TemplateChange } from '@/lib/use-template-manager'
 import { useThemeThumbnail } from '@/lib/use-theme-thumbnail'
 import type { PreviewDevice } from '../theme-preview'
 import { previewUrl, type ThemeItem } from '../theme-types'
+import ThemeVersionHistory from '../theme-version-history'
 import AppsPanel from './apps-panel'
 import CanvasDock from './canvas-dock'
 import CreateTemplateDialog, { type AlternateKind } from './create-template-dialog'
@@ -50,7 +51,6 @@ import CustomizeHotkeys from './customize-hotkeys'
 import CustomizeLayout from './customize-layout'
 import CustomizeTopBar from './customize-top-bar'
 import EditorLoading from './editor-loading'
-import EditorVersionsPanel from './editor-versions-panel'
 import ImportedThemeSettings from './imported-theme-settings'
 import LiquidCanvasSection from './liquid-canvas-section'
 import PagesPanel from './pages-panel'
@@ -459,10 +459,11 @@ export default function CustomizeEditor({
           onRetry={() => setAttempt((n) => n + 1)}
         />
       )}
-      <EditorVersionsPanel
+      <ThemeVersionHistory
         open={versionsOpen}
         theme={record}
         origin={origin}
+        where="editor"
         me={user.name || user.email}
         onOpenChange={setVersionsOpen}
         onRestored={handleRestored}

@@ -9,6 +9,11 @@
  * frame may not have painted yet, and modern-screenshot then "succeeds" with a white rectangle.
  * One retry waits for fonts and a paint, forces the page visible and skips embedding fonts; still
  * blank, nothing is saved and the Themes card keeps its placeholder.
+ *
+ * Videos never go into the clone (their poster does, see `stillPosters`): modern-screenshot 4.7
+ * waits for a cloned `<video>` to load with no time limit, and a `preload="none"` video (an
+ * imported theme's hero slides) never loads, so the capture never finished and no picture was
+ * ever saved (an imported theme's white Themes card, 15 Nov 2026). A whole attempt is also capped (`ATTEMPT_TIMEOUT_MS`).
  */
 
 import { isBlankImage } from './blank-image'
@@ -26,21 +31,95 @@ const MAX_DATA_URL = 300_000
 const RESOURCE_TIMEOUT_MS = 4000
 /** The lighter retry gives slow files less time, so it cannot hang on what blocked the first. */
 const LIGHT_TIMEOUT_MS = 2000
+/** One attempt that has not finished by now is given up (logged), so a capture never hangs. */
+export const ATTEMPT_TIMEOUT_MS = 30_000
+
+/** Marks, on a video's parent, which posters stand in for its videos in the clone. */
+const POSTER_SLOT = 'data-screenshot-posters'
+
+/** A video's box, copied onto the poster that replaces it so it lands where the video was. */
+const VIDEO_BOX = [
+  'position',
+  'top',
+  'right',
+  'bottom',
+  'left',
+  'width',
+  'height',
+  'z-index',
+  'object-fit',
+  'object-position',
+  'border-radius',
+  'transform',
+  'display',
+] as const
 
 /**
  * What goes in the picture: not the editor's chrome (Puck's hover and selection layers, our "+"
- * line), and nothing below the fold, so a long home page clones and embeds only its top.
+ * line), no video (`stillPosters` puts its poster there), and nothing below the fold, so a long
+ * home page clones and embeds only its top.
  */
-function keeper(fold: number): (node: Node) => boolean {
+export function keeper(fold: number): (node: Node) => boolean {
   return (node) => {
     if (!(node.nodeType === 1)) return true
     const el = node as Element
+    if (el.tagName === 'VIDEO') return false
     if (el.hasAttribute('data-screenshot-skip')) return false
     const name = typeof el.className === 'string' ? el.className : ''
     if (/DraggableComponent-overlay|DraggableComponent-actions|canvas-insert/i.test(name)) {
       return false
     }
     return el.getBoundingClientRect().top < fold
+  }
+}
+
+/**
+ * Posters for the page's videos: `mark` tags each video's parent before the clone, `apply` adds
+ * an `<img>` of each poster to the cloned parent (sized and placed as the video was), `restore`
+ * removes the tags from the live page. A video with no poster leaves its box empty.
+ */
+export function stillPosters(body: HTMLElement): {
+  apply: (cloned: Node) => void
+  restore: () => void
+} {
+  const view = body.ownerDocument.defaultView
+  const stills: { poster: string; style: string }[] = []
+  const parents = new Map<Element, number[]>()
+  for (const video of body.querySelectorAll('video')) {
+    const parent = video.parentElement
+    if (!video.poster || !parent) continue
+    const computed = view?.getComputedStyle(video)
+    const style = VIDEO_BOX.map((p) => [p, computed?.getPropertyValue(p) ?? ''] as const)
+      .filter(([, v]) => v !== '')
+      .map(([p, v]) => `${p}:${v}`)
+      .join(';')
+    stills.push({ poster: video.poster, style })
+    parents.set(parent, [...(parents.get(parent) ?? []), stills.length - 1])
+  }
+  for (const [parent, slots] of parents) parent.setAttribute(POSTER_SLOT, slots.join(','))
+  return {
+    apply: (cloned) => {
+      const root = cloned as Partial<Element>
+      if (!root.querySelectorAll || !root.ownerDocument) return
+      const doc = root.ownerDocument
+      const holders = [...root.querySelectorAll(`[${POSTER_SLOT}]`)]
+      if (root.hasAttribute?.(POSTER_SLOT)) holders.push(root as Element)
+      for (const holder of holders) {
+        for (const slot of (holder.getAttribute(POSTER_SLOT) ?? '').split(',')) {
+          const still = stills[Number(slot)]
+          if (!still) continue
+          const img = doc.createElement('img')
+          img.src = still.poster
+          img.alt = ''
+          img.setAttribute('style', still.style)
+          holder.appendChild(img)
+        }
+        holder.removeAttribute(POSTER_SLOT)
+      }
+    },
+    restore: () => {
+      for (const parent of parents.keys()) parent.removeAttribute(POSTER_SLOT)
+    },
   }
 }
 
@@ -59,6 +138,15 @@ function forceVisible(cloned: Node): void {
   style.setProperty('opacity', '1', 'important')
 }
 
+/** `work`, or a rejection once `ms` pass without it settling. */
+export function withinTime<T>(work: Promise<T>, ms: number): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined
+  const late = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`no picture after ${ms} ms`)), ms)
+  })
+  return Promise.race([work, late]).finally(() => clearTimeout(timer))
+}
+
 /** The canvas's top 16:10 as a webp data URL, or null when there is no canvas, it fails or it is blank. */
 export async function captureThemeThumbnail(): Promise<string | null> {
   const frame = document.querySelector<HTMLIFrameElement>(FRAME)
@@ -66,6 +154,7 @@ export async function captureThemeThumbnail(): Promise<string | null> {
   const body = doc?.body
   const view = frame?.contentWindow
   if (!frame || !doc || !body || !view) return null
+  const posters = stillPosters(body)
   try {
     const { domToWebp } = await import('modern-screenshot')
     const width = body.clientWidth || frame.clientWidth
@@ -75,23 +164,33 @@ export async function captureThemeThumbnail(): Promise<string | null> {
     const fold = height - view.scrollY
     const background = view.getComputedStyle(body).backgroundColor
     const take = (quality: number, light: boolean) =>
-      domToWebp(body, {
-        width,
-        height,
-        scale: OUTPUT_WIDTH / width,
-        quality,
-        timeout: light ? LIGHT_TIMEOUT_MS : RESOURCE_TIMEOUT_MS,
-        filter: keeper(fold),
-        ...(background ? { backgroundColor: background } : {}),
-        ...(light ? { font: false as const, onCloneNode: forceVisible } : {}),
-      })
+      withinTime(
+        domToWebp(body, {
+          width,
+          height,
+          scale: OUTPUT_WIDTH / width,
+          quality,
+          timeout: light ? LIGHT_TIMEOUT_MS : RESOURCE_TIMEOUT_MS,
+          filter: keeper(fold),
+          ...(background ? { backgroundColor: background } : {}),
+          ...(light ? { font: false as const } : {}),
+          onCloneNode: (cloned) => {
+            posters.apply(cloned)
+            if (light) forceVisible(cloned)
+          },
+        }),
+        ATTEMPT_TIMEOUT_MS,
+      )
     for (const light of [false, true]) {
       if (light) await settled(view, doc)
       for (const quality of [0.72, 0.55]) {
         const url = await take(quality, light)
         if (!url.startsWith('data:image/webp') || url.length > MAX_DATA_URL) continue
         // Unreadable counts as fine: the check exists to stop blanks, not to block pictures.
-        if ((await isBlankImage(url)) === true) break
+        if ((await isBlankImage(url)) === true) {
+          console.warn('Theme picture came out blank', { light })
+          break
+        }
         return url
       }
     }
@@ -99,5 +198,7 @@ export async function captureThemeThumbnail(): Promise<string | null> {
   } catch (err) {
     console.error('Theme picture failed:', err)
     return null
+  } finally {
+    posters.restore()
   }
 }

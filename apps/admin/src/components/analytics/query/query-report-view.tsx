@@ -4,7 +4,7 @@ import {
   formatQuery,
   type ParsedQuery,
   parseQuery,
-  queryDay,
+  queryDays,
   rangeKeyOf,
 } from '@commerce/core/analytics-query'
 import { useRouter } from 'next/navigation'
@@ -40,7 +40,9 @@ type QueryReportViewProps = {
 /** The range a saved query files under (Reports' saved card): a quick key, else its two days. */
 function savedRange(q: ParsedQuery): RangeState {
   const key = rangeKeyOf(q)
-  return key ? { key } : { key: 'custom', from: queryDay(q.since), to: queryDay(q.until) }
+  if (key) return { key }
+  const days = queryDays(q)
+  return { key: 'custom', from: days.from, to: days.to }
 }
 
 const errorMessage = (err: unknown) => (err instanceof Error ? err.message : String(err))

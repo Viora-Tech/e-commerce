@@ -49,10 +49,18 @@ export const analyticsRouter = {
   /** The store's biggest sales days in the last year, for the date picker's "Big sale days". */
   bigSaleDays: can(permissions.ANALYTICS_READ).handler(({ context }) => bigSaleDays(context.tx)),
 
-  /** Runs a custom query (Figma "query editor"): parsed, then fixed SQL only, read-only. */
+  /**
+   * Answers questions about sales, units sold and refunds with a ShopifyQL-like query (WHERE, GROUP BY, DURING all_time…): parsed, then fixed SQL with bound values, read-only.
+   * The analyticsQuery tool carries the whole language. Customer names show only to members
+   * who may read customers.
+   */
   query: can(permissions.ANALYTICS_READ)
     .input(z.object({ source: z.string().max(QUERY_MAX) }))
-    .handler(({ context, input }) => runCustomQuery(context.tx, input.source)),
+    .handler(({ context, input }) =>
+      runCustomQuery(context.tx, input.source, {
+        customerNames: context.scope.can(permissions.CUSTOMERS_READ) ? 'full' : 'hidden',
+      }),
+    ),
 
   /**
    * "Refine with AI" in the query editor: the request and the current query in, new query text

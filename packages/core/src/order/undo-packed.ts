@@ -9,6 +9,7 @@
 import { fulfillmentOrderLine, order, orderLine, orderNote, shipment } from '@commerce/db'
 import { and, eq, inArray, sql } from 'drizzle-orm'
 import type { StoreContext } from '../context'
+import { leaveSharedBoxes, releaseSharedOrders } from '../shipping/shared-parcel'
 import { unpackFulfillmentOrder } from './fulfillment-orders'
 import { recomputeOrderStatuses } from './recompute'
 
@@ -89,7 +90,15 @@ export async function undoPacked(
           live.map((s) => s.id),
         ),
       )
+    // Orders packed in the same box come out with it.
+    await releaseSharedOrders(
+      ctx,
+      live.map((s) => s.id),
+      author,
+    )
   }
+  // This order's items leave any other order's box they were in ("Same box as #A").
+  await leaveSharedBoxes(ctx, orderId)
   await ctx.tx.insert(orderNote).values({
     storeId: ctx.storeId,
     orderId,
