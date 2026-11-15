@@ -19,7 +19,7 @@ const FACT_ROWS = 25
 const MONEY = new Set<QueryFieldType>(['money'])
 const SERIES = new Set(['day', 'week', 'month', 'year'])
 
-export const ANALYTICS_QUERY_DESCRIPTION = [
+const ANALYTICS_QUERY_DESCRIPTION = [
   "Answers any question about the store's numbers by running one read-only query: units sold of a product or variant, sales and orders by day, week, month or year, by channel, source, state, payment method, discount code or customer, refunds and returns, comparisons with the period or year before, over any range up to all time.",
   'Use it for every question about numbers, history or trends, especially when the merchant names a product, variant, collection, vendor, channel or customer, says "all time" or "ever", or asks for a range the other tools do not offer.',
   'Write the query in the language below. If the result is a query problem, fix the query and call again. The merchant sees the table and the query under your answer: lead with the number, say the dates it covers, do not repeat every row.',

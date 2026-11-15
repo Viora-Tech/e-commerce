@@ -24,7 +24,7 @@ export const dimensionsOf = (table: QueryTable): QueryField[] =>
   fieldsOf(table).filter((f) => f.role === 'dimension' && !f.filterOnly)
 
 /** Every field WHERE can filter on. */
-export const filtersOf = (table: QueryTable): QueryField[] =>
+const filtersOf = (table: QueryTable): QueryField[] =>
   fieldsOf(table).filter((f) => f.role === 'dimension')
 
 /** Drops a sort that no longer points at a shown or grouped field, as the parser would refuse it. */

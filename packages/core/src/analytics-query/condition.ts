@@ -23,7 +23,7 @@ export type QueryCondition =
   | { kind: 'not'; item: QueryCondition }
   | { kind: 'compare'; field: string; op: QueryOperator; values: (string | number)[] }
 
-export const CONDITION_LIMITS = { comparisons: 20, inValues: 50, depth: 8, text: 200 } as const
+const CONDITION_LIMITS = { comparisons: 20, inValues: 50, depth: 8, text: 200 } as const
 
 const ORDERED = ['<', '<=', '>', '>='] as const
 const CLAUSE_STARTS = new Set(QUERY_KEYWORDS.map((k) => k.split(' ')[0] as string))
