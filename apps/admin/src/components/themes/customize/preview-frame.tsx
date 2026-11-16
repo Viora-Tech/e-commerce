@@ -25,6 +25,7 @@ import { useCustomizePuck } from '@/lib/customize-puck'
 import { findBlock } from '@/lib/customize-slots'
 import { useLiquidHead, usePreviewMode, useThemePreview } from '@/lib/customize-theme-context'
 import { CANVAS_ZOOM_VAR, useCanvasZoom } from '@/lib/customize-zoom'
+import CanvasInboxLauncher from './canvas-inbox-launcher'
 import CanvasInsertLine from './canvas-insert-line'
 
 type PreviewFrameProps = {
@@ -263,6 +264,8 @@ export default function PreviewFrame({ children, document }: PreviewFrameProps) 
   return (
     <EditorSelectionContext.Provider value={selectedId}>
       {children}
+      {/* The Inbox chat button, where the store shows it (the storefront leaves it out of previews). */}
+      <CanvasInboxLauncher />
       {document ? <CanvasInsertLine document={document} /> : null}
     </EditorSelectionContext.Provider>
   )
