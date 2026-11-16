@@ -24,9 +24,11 @@ import {
   ReplaceFromUrlSchema,
   renameMediaFolder,
   replaceImageFromUrl,
+  setVideoPoster,
   storageRoom,
   UploadIntentSchema,
   updateMedia,
+  videoPosterByUrl,
 } from '@commerce/core'
 import { BlockedUrlError } from '@commerce/core/safe-fetch'
 import { importInProgress } from '@commerce/plugin-shopify-import/server'
@@ -243,6 +245,16 @@ export const mediaRouter = {
       }),
     )
     .handler(({ context, input: { id, ...patch } }) => updateMedia(context.tx, id, patch)),
+
+  /** A video's poster picture: the frame the admin grabbed on upload, or one picked by hand (null clears). */
+  setPoster: can(permissions.CONTENT_WRITE)
+    .input(z.object({ id: z.uuid(), posterId: z.uuid().nullable() }))
+    .handler(({ context, input }) => setVideoPoster(context.tx, input.id, input.posterId)),
+
+  /** The poster of the video at this address in Files, so Customize can fill a video's poster. */
+  posterFor: can(permissions.CONTENT_READ)
+    .input(z.object({ url: z.string().trim().min(1).max(2000) }))
+    .handler(({ context, input }) => videoPosterByUrl(context.tx, input.url)),
 
   delete: can(permissions.CONTENT_WRITE)
     .input(z.object({ id: z.uuid() }))

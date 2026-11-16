@@ -447,10 +447,14 @@ export const ACTION_DOCS: Record<string, string> = {
   'media.moveToFolder': 'Moves files into a folder, or out of any with folderId null.',
   'media.neighbours':
     "The files before and after one in the library's order, for the file page's arrows.",
+  'media.posterFor':
+    "The poster of the video at this address in Files, so Customize can fill a video's poster.",
   'media.presign':
     'Step 1 of an upload: reserve the row and get a presigned request for the browser.',
   'media.replaceFromUrl':
     '"Replace from link": the photo behind this media row becomes the image at an https link (fetched by the server, public hosts only), keeping its place in every gallery and its variant links.',
+  'media.setPoster':
+    "A video's poster picture: the frame the admin grabbed on upload, or one picked by hand (null clears).",
   'media.usedIn': 'The products using one file, for the file page.',
   'meilisearch.reindex': "Queues a full rebuild of the store's search index in the worker.",
   'meilisearch.test':

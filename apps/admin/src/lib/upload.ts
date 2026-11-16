@@ -2,6 +2,7 @@ import { ALLOWED_CONTENT_TYPES, maxUploadBytesFor } from '@commerce/storage/keys
 import { ORPCError } from '@orpc/client'
 import { mediaContent } from '@/data/media'
 import { api } from '@/lib/api-client'
+import { grabVideoPoster } from '@/lib/video-poster'
 
 export type UploadedMedia = {
   id: string
@@ -80,5 +81,22 @@ export async function uploadFile(file: File, onProgress?: UploadProgress): Promi
     throw new Error(mediaContent.errors.upload(file.name))
   }
   const row = await api.media.confirm({ id: ticket.mediaId, ...dims })
+  if (file.type.startsWith('video/')) await attachPoster(file, row.id)
   return { id: row.id, url: row.url, alt: row.alt, contentType: row.contentType ?? file.type }
+}
+
+/**
+ * A new video gets a poster picture: a frame about 2 s in that is not black (`video-poster.ts`),
+ * uploaded like any picture and linked to the video. Best effort: a video the browser cannot read,
+ * or a failed poster upload, leaves the video without one and the upload still succeeds.
+ */
+async function attachPoster(video: File, videoId: string): Promise<void> {
+  try {
+    const poster = await grabVideoPoster(video)
+    if (!poster) return
+    const uploaded = await uploadFile(poster)
+    await api.media.setPoster({ id: videoId, posterId: uploaded.id })
+  } catch {
+    // The video is saved; a poster can still be picked by hand in Customize.
+  }
 }
