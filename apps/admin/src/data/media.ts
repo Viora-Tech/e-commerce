@@ -81,6 +81,8 @@ export const mediaContent = {
   toasts: {
     uploaded: (n: number) => (n === 1 ? '1 file uploaded' : `${n} files uploaded`),
     deleted: 'File deleted',
+    posterMade: 'Poster saved: a frame about 2 s in',
+    posterFailed: 'Could not make a poster from this video',
   },
   library: {
     title: 'Files',
@@ -167,6 +169,7 @@ export const mediaContent = {
     } as Record<string, string>,
     download: 'Download',
     delete: 'Delete file',
+    makePoster: 'Make poster from video',
     more: 'More actions',
     previous: 'Previous file',
     next: 'Next file',

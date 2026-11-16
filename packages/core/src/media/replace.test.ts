@@ -81,7 +81,9 @@ describe('replaceImageFromUrl', () => {
     expect(row?.alt).toBe('Black, top')
     expect(row?.key).not.toBe('old.png')
     expect(row?.variants).toEqual({ '480': { avif: 'a', webp: 'w' } })
-    expect(await provider.head('old.png')).toBeNull()
+    // Cached store pages (origin and Cloudflare) still link the old file until the new one is
+    // processed and the edge is purged; deleting it then showed broken photos (16 Nov).
+    expect(await provider.head('old.png')).not.toBeNull()
     const gallery = await owner
       .select()
       .from(productMedia)
