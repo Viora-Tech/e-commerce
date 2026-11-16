@@ -33,6 +33,7 @@ import { previewMetadata } from '@/lib/customize-preview'
 import { previewDefaultMode, useDeviceDark } from '@/lib/customize-preview-root'
 import { useThemePacks } from '@/lib/customize-theme-context'
 import { scopeFor } from '@/lib/dynamic-sources'
+import { useInboxEmbedFor } from '@/lib/inbox-embed-store'
 import { routes } from '@/lib/routes'
 import { useCodeDrafts } from '@/lib/use-code-drafts'
 import { useCustomizePreview } from '@/lib/use-customize-preview'
@@ -123,8 +124,7 @@ export default function CustomizeEditor({
   /** The first page could not be loaded (an error, or no answer in `LOAD_TIMEOUT_MS`). */
   const [loadFailed, setLoadFailed] = useState(false)
   const [attempt, setAttempt] = useState(0)
-  // `<Puck>` only reads `config` at mount, so the installed apps (Apps tab, "app is off"
-  // placeholders) and theme packs come from the server: the editor mounts once, already right.
+  // `<Puck>` reads `config` only at mount: installed apps and theme packs come from the server.
   const themePacks = useThemePacks()
   const [config] = useState(() => createCustomizeConfig(new Set(installedApps), themePacks))
   const drafts = useTemplateDrafts(record.id, () => toast.error(copy.draftFailed))
@@ -141,7 +141,7 @@ export default function CustomizeEditor({
     picture: record.thumbnailUrl ?? null,
     onSavedHome: isDesktopHome(loaded, device) && !switching && !templatesDirty,
   })
-
+  useInboxEmbedFor(installedApps) // the canvas draws the Inbox chat button (CanvasInboxLauncher)
   // biome-ignore lint/correctness/useExhaustiveDependencies: `drafts` only holds refs; reloading keys on the theme, template, discard nonce and retry.
   useEffect(() => {
     let active = true

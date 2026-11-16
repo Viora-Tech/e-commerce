@@ -3,6 +3,7 @@
 import type { InboxWidget } from '@commerce/core/inbox'
 import { cn } from '@commerce/ui/lib/utils'
 import type { CSSProperties } from 'react'
+import { INBOX_ICON_PATHS } from '@/lib/inbox-chat-icons'
 
 type InboxEmbedPreviewProps = {
   widget: InboxWidget
@@ -11,20 +12,6 @@ type InboxEmbedPreviewProps = {
   fallbackLabel: string
   fallbackGreeting: string
   title: string
-}
-
-/** The chat icon paths, as the storefront button draws them (`chat-icon.tsx`). */
-const ICON_PATHS: Record<Exclude<InboxWidget['activatorIcon'], 'none'>, string[]> = {
-  chat: ['M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12Z'],
-  bubble: [
-    'M14 9a5 5 0 0 1-7.3 4.4L3 14.5l.9-3.4A5 5 0 1 1 14 9Z',
-    'M10.5 17.8a5 5 0 0 0 6.8 1.6l3.7 1.1-.9-3.4a5 5 0 0 0-3.6-7.4',
-  ],
-  help: [
-    'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z',
-    'M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6v.6',
-    'M12 17h.01',
-  ],
 }
 
 const SIDE: Record<InboxWidget['horizontal'], string> = {
@@ -41,7 +28,7 @@ const LIFT: Record<InboxWidget['vertical'], string> = {
 
 /**
  * A small live picture of the storefront chat button and its greeting, redrawn on every change
- * in the Inbox embed's settings (the editor canvas does not draw app embeds). Colours left blank
+ * in the Inbox embed's settings. The canvas draws the full-size button too (`CanvasInboxLauncher`). Colours left blank
  * follow the theme being edited through its CSS variables, as on the store.
  */
 export default function InboxEmbedPreview({
@@ -61,7 +48,7 @@ export default function InboxEmbedPreview({
     fontFamily: widget.inheritFont ? undefined : 'system-ui, sans-serif',
   }
   const label = widget.activatorLabel || (widget.activatorIcon === 'none' ? fallbackLabel : '')
-  const paths = widget.activatorIcon === 'none' ? [] : ICON_PATHS[widget.activatorIcon]
+  const paths = widget.activatorIcon === 'none' ? [] : INBOX_ICON_PATHS[widget.activatorIcon]
 
   return (
     <div
