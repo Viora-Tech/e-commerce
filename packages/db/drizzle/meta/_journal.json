@@ -1653,6 +1653,13 @@
       "when": 1795275900000,
       "tag": "0251_waimers_export_renumber",
       "breakpoints": true
+    },
+    {
+      "idx": 236,
+      "version": "7",
+      "when": 1795280000000,
+      "tag": "0252_waimers_export_vi_style",
+      "breakpoints": true
     }
   ]
 }

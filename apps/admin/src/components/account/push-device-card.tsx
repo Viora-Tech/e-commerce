@@ -69,7 +69,9 @@ export default function PushDeviceCard({
           ? copy.install
           : state === 'unsupported'
             ? copy.unsupported
-            : null
+            : state === 'on'
+              ? copy.noPopup
+              : null
 
   return (
     <SettingsCard title={copy.title} description={copy.body}>
