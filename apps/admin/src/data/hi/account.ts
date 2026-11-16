@@ -146,6 +146,8 @@ export default [
         turnOff: 'बंद करें',
         test: 'टेस्ट भेजें',
         testSent: 'टेस्ट भेज दिया। कुछ सेकंड में आ जाना चाहिए।',
+        noPopup:
+          'टेस्ट के बाद पॉप-अप नहीं आया? Windows या Mac की सेटिंग में इस ब्राउज़र की सूचनाएं चालू करें, Do Not Disturb या Focus बंद करें, और Brave में “Use Google services for push messaging” चालू करें।',
         devices: (n) =>
           n === 0 ? 'अभी कोई डिवाइस नहीं।' : n === 1 ? '1 डिवाइस पर चालू।' : `${n} डिवाइस पर चालू।`,
         blocked:
