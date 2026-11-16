@@ -90,13 +90,31 @@ export async function uploadFile(file: File, onProgress?: UploadProgress): Promi
  * uploaded like any picture and linked to the video. Best effort: a video the browser cannot read,
  * or a failed poster upload, leaves the video without one and the upload still succeeds.
  */
-async function attachPoster(video: File, videoId: string): Promise<void> {
+async function attachPoster(video: File, videoId: string): Promise<boolean> {
   try {
     const poster = await grabVideoPoster(video)
-    if (!poster) return
+    if (!poster) return false
     const uploaded = await uploadFile(poster)
     await api.media.setPoster({ id: videoId, posterId: uploaded.id })
+    return true
   } catch {
     // The video is saved; a poster can still be picked by hand in Customize.
+    return false
+  }
+}
+
+/**
+ * A poster for a video already in Files (uploaded before posters were made on upload): the video
+ * is read from its address and gets a poster the same way a new upload does. True when it worked.
+ */
+export async function makeVideoPoster(video: { id: string; url: string }): Promise<boolean> {
+  try {
+    const res = await fetch(video.url)
+    if (!res.ok) return false
+    const blob = await res.blob()
+    const name = video.url.split('/').pop()?.split('?')[0] || 'video.mp4'
+    return await attachPoster(new File([blob], name, { type: blob.type || 'video/mp4' }), video.id)
+  } catch {
+    return false
   }
 }

@@ -87,3 +87,80 @@ export function heightForWidth(
   if (!size?.width || !size.height) return undefined
   return Math.round((width * size.height) / size.width)
 }
+
+/** A section's video address: `url` (Video) or `videoUrl` (Video hero, hero slides). */
+const VIDEO_KEYS = ['videoUrl', 'url'] as const
+
+/** An image setting left empty in the editor (`{ url: '', alt: '' }`), or no poster at all. */
+function isEmptyImage(value: unknown): boolean {
+  return value === undefined || (isRecord(value) && (value.url === '' || value.url === undefined))
+}
+
+/** The video a section with an empty `poster` plays, if it names one. */
+function videoNeedingPoster(v: Record<string, unknown>): string | null {
+  if (!('poster' in v) || !isEmptyImage(v.poster)) return null
+  for (const key of VIDEO_KEYS) {
+    const url = v[key]
+    if (typeof url === 'string' && url.startsWith('https://')) return url
+  }
+  return null
+}
+
+/**
+ * Videos in a template whose section left the poster empty (deduplicated, capped). Their
+ * poster in Files (picked on upload, `@commerce/core` `media/poster.ts`) fills the gap, so a
+ * built-in Video section shows a real frame instead of a black first frame while it loads.
+ */
+export function collectVideosWithoutPoster(value: unknown): string[] {
+  const found = new Set<string>()
+  const walk = (v: unknown): void => {
+    if (found.size >= MAX_LOOKUP_URLS) return
+    if (Array.isArray(v)) {
+      for (const item of v) walk(item)
+      return
+    }
+    if (!isRecord(v)) return
+    const video = videoNeedingPoster(v)
+    if (video) found.add(video)
+    for (const child of Object.values(v)) walk(child)
+  }
+  walk(value)
+  return [...found]
+}
+
+/** A video's poster picture as a section image setting, variants included. */
+export type PosterImage = ImageMedia & { url: string }
+
+/** The same value with each empty `poster` beside a known video filled with that video's poster. */
+export function withVideoPosters<T>(value: T, posters: ReadonlyMap<string, PosterImage>): T {
+  if (posters.size === 0) return value
+  const map = (v: unknown): unknown => {
+    if (Array.isArray(v)) {
+      let changed = false
+      const next = v.map((item) => {
+        const mapped = map(item)
+        if (mapped !== item) changed = true
+        return mapped
+      })
+      return changed ? next : v
+    }
+    if (!isRecord(v)) return v
+    let out: Record<string, unknown> = v
+    const video = videoNeedingPoster(v)
+    const poster = video ? posters.get(video) : undefined
+    if (poster) {
+      const alt = isRecord(v.poster) && typeof v.poster.alt === 'string' ? v.poster.alt : ''
+      out = { ...v, poster: { ...(isRecord(v.poster) ? v.poster : {}), ...poster, alt } }
+    }
+    for (const [key, child] of Object.entries(v)) {
+      if (key === 'poster' && out !== v) continue
+      const mapped = map(child)
+      if (mapped !== child) {
+        if (out === v) out = { ...v }
+        out[key] = mapped
+      }
+    }
+    return out
+  }
+  return map(value) as T
+}

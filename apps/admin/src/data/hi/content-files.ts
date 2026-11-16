@@ -80,6 +80,8 @@ export default [
     toasts: {
       uploaded: (n) => `${n} फ़ाइल अपलोड हुई`,
       deleted: 'फ़ाइल हट गई',
+      posterMade: 'पोस्टर सेव हुआ: लगभग 2 सेकंड पर का फ़्रेम',
+      posterFailed: 'इस वीडियो से पोस्टर नहीं बन सका',
     },
     library: {
       title: 'फ़ाइलें',
@@ -162,6 +164,7 @@ export default [
       },
       download: 'डाउनलोड करें',
       delete: 'फ़ाइल हटाएं',
+      makePoster: 'वीडियो से पोस्टर बनाएं',
       more: 'और काम',
       previous: 'पिछली फ़ाइल',
       next: 'अगली फ़ाइल',
