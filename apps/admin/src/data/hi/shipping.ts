@@ -194,6 +194,8 @@ export default [
     pickupOn: (date, time) => `${date} को ${time} से पिकअप माँगा गया`,
     noPickup: 'अभी पिकअप नहीं माँगा गया। तब तक पार्सल कूरियर की “Ready to Ship” लिस्ट में रहेगा।',
     requestPickup: 'पिकअप माँगें',
+    pickupMissed: (date, time) => `${date} को ${time} से का पिकअप छूट गया: कूरियर पार्सल नहीं ले गया`,
+    requestPickupAgain: 'फिर से पिकअप बुक करें',
     pickupFrom: 'कहाँ से पिकअप',
     created: 'बुक हुआ',
     printLabel: 'लेबल प्रिंट करें',

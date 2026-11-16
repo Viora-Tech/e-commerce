@@ -23,6 +23,8 @@ export const listFilters = z.object({
   placedTo: z.iso.datetime().optional(),
   /** Cash on delivery, or anything paid up front. */
   paymentMethod: z.enum(['cod', 'prepaid']).optional(),
+  /** Ships within India, or abroad (shipping address country not IN). */
+  destination: z.enum(['india', 'international']).optional(),
   /** Sent with this courier (the filter panel's Courier). */
   courier: z.string().trim().min(1).max(60).optional(),
   /** Has a line whose product title, variant title or SKU contains this (the panel's Product). */

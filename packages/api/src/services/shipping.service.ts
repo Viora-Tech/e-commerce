@@ -10,6 +10,7 @@ import {
   mergeMaskedSecrets,
   orderNumberLabel,
   parseShippingSettings,
+  pickupMissed,
   primaryShippingProvider,
   type RateLimitRule,
   readShippingLabel,
@@ -24,6 +25,7 @@ import {
   updateShipmentTracking,
 } from '@commerce/core'
 import { getRegistries } from '@commerce/core/registries'
+import { dayKey } from '@commerce/dates'
 import type { StoreTx } from '@commerce/db'
 import { location, shipment, shipmentPickup, store } from '@commerce/db'
 import { logger } from '@commerce/observability/logging'
@@ -389,6 +391,7 @@ export async function describeShipment(
         .where(eq(shipmentPickup.id, row.pickupId))
     : []
   const inManifest = row.status === 'created' ? await shipmentInManifest(tx, row.id) : false
+  const missed = pickupMissed(row, pickup ?? null, dayKey(new Date()))
   return {
     ...row,
     labelUrl: shipmentLabelUrl(row),
@@ -396,9 +399,10 @@ export async function describeShipment(
     /* Entered by hand (no courier app behind it): its tracking number and courier can be corrected. */
     canEditTracking: !registry.get(row.provider) && row.status !== 'cancelled',
     pickup: pickup ?? null,
-    /* Not on a pickup yet, still at the store, and the courier takes requests: offer one. */
+    /* Still at the store, not on a pickup yet or its pickup was missed, and the courier takes requests. */
+    pickupMissed: missed,
     canRequestPickup:
-      !row.pickupId &&
+      (!row.pickupId || missed) &&
       row.status === 'created' &&
       (registry.get(row.provider)?.capabilities.includes('pickup') ?? false),
     cancelBlock: cancelBlock(row, {

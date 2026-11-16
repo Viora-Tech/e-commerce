@@ -12,6 +12,12 @@ export const isImageField = (field: FieldLike): boolean =>
   'url' in (field.objectFields ?? {}) &&
   'alt' in (field.objectFields ?? {})
 
+/** A theme `video` setting: `{ url, mobileUrl, poster }` (`packages/core/src/theme-import/fields.ts`). */
+export const isVideoField = (field: FieldLike): boolean =>
+  field.type === 'object' &&
+  'url' in (field.objectFields ?? {}) &&
+  'poster' in (field.objectFields ?? {})
+
 /** `{ label, href }` objects are buttons and links. */
 export const isLinkField = (field: FieldLike): boolean =>
   field.type === 'object' &&

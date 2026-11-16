@@ -1,5 +1,6 @@
 import { eq, sql } from 'drizzle-orm'
 import {
+  type AnyPgColumn,
   bigint,
   boolean,
   check,
@@ -412,6 +413,13 @@ export const media = pgTable(
     processedAt: timestamp('processed_at', { withTimezone: true }),
     /** Last pipeline error, kept for the admin media UI and for debugging a stuck `failed` row. */
     processError: text('process_error'),
+    /**
+     * A video's poster picture: its own image row, a frame the admin grabbed on upload (about
+     * 2 s in, skipping dark frames) or one the merchant picked. Null for images and older videos.
+     */
+    posterMediaId: uuid('poster_media_id').references((): AnyPgColumn => media.id, {
+      onDelete: 'set null',
+    }),
     createdAt: createdAt(),
   },
   (t) => [

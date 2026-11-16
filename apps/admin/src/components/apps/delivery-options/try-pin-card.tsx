@@ -94,8 +94,18 @@ export default function TryPinCard({ result, onResult }: TryPinCardProps) {
   const tabs = itemTabs(discountCopy.value, locale).filter((x) => x.key === 'products')
 
   return (
-    <SettingsCard title={t.title} description={t.description}>
-      <Field>
+    <SettingsCard
+      title={t.title}
+      description={t.description}
+      bodyClassName="gap-5"
+      footer={
+        <Button loading={busy} onClick={handleRun} disabled={!ready || busy}>
+          <Search aria-hidden />
+          {t.run}
+        </Button>
+      }
+    >
+      <Field className="w-fit">
         <FieldLabel>{t.mode}</FieldLabel>
         <ToggleGroup
           variant="segmented"
@@ -135,27 +145,27 @@ export default function TryPinCard({ result, onResult }: TryPinCardProps) {
       {picked ? (
         <TryPinLines lines={lines} onChange={handleLines} />
       ) : (
-        <div className="flex flex-wrap items-center gap-3">
-          <Button variant="outline" onClick={() => setPicking(true)}>
-            {t.ruleProducts}
-          </Button>
-          <span className="text-body text-muted-foreground">
-            {copy.ruleDialog.picked(productIds.length)}
-          </span>
-        </div>
+        <Field>
+          <FieldLabel>{t.ruleProducts}</FieldLabel>
+          <div className="flex flex-wrap items-center gap-3">
+            <Button variant="outline" onClick={() => setPicking(true)}>
+              {t.pickProducts}
+            </Button>
+            <span className="text-body text-muted-foreground">
+              {copy.ruleDialog.picked(productIds.length)}
+            </span>
+          </div>
+          <p className="text-body text-muted-foreground">{t.ruleProductsHelp}</p>
+        </Field>
       )}
       <SettingsToggleRow
         id="try-decline-insurance"
         label={t.declineInsurance}
+        description={t.declineInsuranceHelp}
+        className="border-t border-hairline pt-5 first:pt-5"
         checked={declineInsurance}
         onChange={setDeclineInsurance}
       />
-      <div className="flex justify-end">
-        <Button loading={busy} onClick={handleRun} disabled={!ready || busy}>
-          <Search aria-hidden />
-          {t.run}
-        </Button>
-      </div>
       {result ? (
         <div className="flex flex-col gap-5 border-t border-hairline pt-4">
           {parcel ? (

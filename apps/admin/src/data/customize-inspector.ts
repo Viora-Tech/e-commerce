@@ -76,6 +76,10 @@ export const inspectorContent = {
   fields: {
     breakpoints: { mobile: 'Mobile', tablet: 'Tablet', desktop: 'Desktop' },
   },
+  video: {
+    poster: 'Poster picture',
+    posterHint: 'Shown before the video plays. Videos uploaded to Files get one on their own.',
+  },
   settingsGroups: {
     title: 'Section settings',
     hint: 'Layout, spacing and style for this section',

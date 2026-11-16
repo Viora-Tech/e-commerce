@@ -162,6 +162,9 @@ export const shipmentDetailsContent = {
   noPickup:
     'Not requested yet. Until it is, the parcel waits in the courier’s “Ready to Ship” list.',
   requestPickup: 'Request pickup',
+  pickupMissed: (date: string, time: string) =>
+    `Pickup on ${date}, from ${time}, was missed: the courier did not collect it`,
+  requestPickupAgain: 'Book pickup again',
   pickupFrom: 'Picked up from',
   created: 'Booked',
   printLabel: 'Print label',

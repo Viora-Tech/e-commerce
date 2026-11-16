@@ -39,6 +39,16 @@ export function cancelBlock(
   return null
 }
 
+/**
+ * True when the parcel is still at the store although its pickup day (YYYY-MM-DD, India time)
+ * is before `today`: the courier did not collect it, so it may be booked on a new pickup.
+ */
+export const pickupMissed = (
+  shipment: { status: string },
+  pickup: { date: string } | null,
+  today: string,
+): boolean => shipment.status === 'created' && pickup !== null && pickup.date < today
+
 /** Where the admin downloads a shipment's label. Relative: it is only ever opened from the admin. */
 export const storedLabelUrl = (shipmentId: string) => `/api/shipments/${shipmentId}/label`
 
