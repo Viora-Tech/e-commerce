@@ -1,7 +1,7 @@
 import { createDb, outboxEvent, store, withStore } from '@commerce/db'
 import { resetDb } from '@commerce/db/test'
 import { definePlugin, loadPlugins } from '@commerce/plugins'
-import { isNull } from 'drizzle-orm'
+import { eq, isNull } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import { corePlugin } from '../plugins/core-plugin'
 import type { AppEventQueue } from '../plugins/events'
@@ -60,6 +60,28 @@ async function seedStore(slug: string, installed: string[] = []) {
 }
 
 describe('relayStoreOutbox', () => {
+  it('queues one staff push per push event, keyed by the row, and none for other events', async () => {
+    const storeId = await seedStore('relay-push')
+    const orderId = crypto.randomUUID()
+    await withStore(app, storeId, async (tx) => {
+      await insertOutboxEvent(tx, storeId, 'order.placed', { orderId })
+      await insertOutboxEvent(tx, storeId, 'order.fulfilled', { orderId })
+    })
+    const notifications = fakeQueue<{ storeId: string; orderId: string; template: string }>()
+    const push = fakeQueue<{ storeId: string; outboxId: string }>()
+    await relayStoreOutbox(
+      { db: app, plugins, notifications: notifications.queue, push: push.queue },
+      storeId,
+    )
+    const [placed] = await owner
+      .select()
+      .from(outboxEvent)
+      .where(eq(outboxEvent.type, 'order.placed'))
+    expect(push.calls).toEqual([
+      { name: 'row', data: { storeId, outboxId: placed?.id }, jobId: `push-${placed?.id}` },
+    ])
+  })
+
   it('fans an order.paid row out to one notification job and one job per installed app', async () => {
     const storeId = await seedStore('relay-fanout', ['app-a', 'app-b'])
     const orderId = crypto.randomUUID()

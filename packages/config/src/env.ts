@@ -445,6 +445,15 @@ export const shape = z.object({
   PLATFORM_RAZORPAY_KEY_ID: optionalOrBlank(z.string().min(1)),
   PLATFORM_RAZORPAY_KEY_SECRET: optionalOrBlank(z.string().min(1)),
   PLATFORM_RAZORPAY_WEBHOOK_SECRET: optionalOrBlank(z.string().min(1)),
+  /**
+   * Staff browser push (Account → Notifications → Push): the VAPID key pair from
+   * `bunx web-push generate-vapid-keys`, the same pair on the admin and the worker. Both keys
+   * set turns push on; changing them makes every member turn push on again on each device.
+   * VAPID_SUBJECT is a `mailto:` or `https:` contact the push services may use.
+   */
+  VAPID_PUBLIC_KEY: optionalOrBlank(z.string().min(20)),
+  VAPID_PRIVATE_KEY: optionalOrBlank(z.string().min(20)),
+  VAPID_SUBJECT: optionalOrBlank(z.string().regex(/^(mailto:|https:)/)),
   /** GlitchTip (or Sentry) DSN. Error tracking is entirely off, in every app, unless this is set. */
   SENTRY_DSN: z.string().url().optional(),
   /** Free-text environment tag on every event, e.g. production, staging. Defaults by NODE_ENV. */

@@ -85,6 +85,7 @@ import { createPixelsWorker, PIXELS_PRUNE_EVERY_MS } from './pixels'
 import { platformWebhooks } from './platform-webhooks'
 import { BALANCE_EVERY_MS, createPreorderBalanceJob } from './preorder-balance'
 import { createPurchaseDocumentWorker } from './purchase-documents'
+import { pushWorkerFromEnv } from './push'
 import { createConnection, createHeartbeat } from './queues'
 import { createRefundSync, REFUND_SYNC_EVERY_MS } from './refund-sync'
 import { createRetentionPrune, RETENTION_SCHEDULE } from './retention'
@@ -244,6 +245,7 @@ const pixels = createPixelsWorker(redis, db, {
   settingsSecret: env.SETTINGS_SECRET,
   adminUrl: env.ADMIN_URL,
 })
+const push = pushWorkerFromEnv(redis, db, env)
 const outboxRelay = createOutboxRelay(redis, db, {
   notifications,
   appEvents,
@@ -251,6 +253,7 @@ const outboxRelay = createOutboxRelay(redis, db, {
   pixelOrders: pixels.orderQueue,
   inventoryRestock: backInStock.queue,
   domainRoutes: domainRoutes.queue,
+  push: push?.queue,
 })
 
 /*
@@ -470,6 +473,7 @@ const watched = [
   [inboxAi.worker, 'inbox-ai-reply'],
   [purchaseDocuments.worker, 'purchase-documents'],
   [channelSync.worker, 'channel-sync'],
+  ...(push ? ([[push.worker, 'push']] as const) : []),
   // One worker for every scheduled sweep; each job's name is the sweep (`unpaid-order-expiry`…).
   [sweeps.worker, 'sweeps'],
 ] as const
@@ -599,6 +603,8 @@ const shutdown = async () => {
   await storeExport.queue.close()
   await themeScreenshots.worker.close()
   await themeScreenshots.queue.close()
+  await push?.worker.close()
+  await push?.queue.close()
   await aiBulkWrite.worker.close()
   await aiBulkWrite.queue.close()
   await inboxAi.worker.close()

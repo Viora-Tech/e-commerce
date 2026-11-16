@@ -17,8 +17,11 @@ import {
   type NotificationJob,
   type NotificationQueue,
   PURCHASE_DOCUMENT_QUEUE,
+  PUSH_QUEUE,
   type PurchaseDocumentJob,
   type PurchaseDocumentQueue,
+  type PushJob,
+  type PushQueue,
   STORE_EXPORT_QUEUE,
   type StoreExportJob,
   type StoreExportQueue,
@@ -305,6 +308,21 @@ export function themeScreenshotQueue(redisUrl: string): ThemeScreenshotQueue {
     })
   }
   return g.__themeScreenshotQueue
+}
+
+export type { PushJob, PushQueue }
+
+/** Staff browser push (`@commerce/core` push/): the outbox relay and "Send a test" add, the worker sends. */
+export function pushQueue(redisUrl: string): PushQueue {
+  const g = globalThis as { __pushQueue?: PushQueue }
+  if (!g.__pushQueue) {
+    g.__pushQueue = new Queue<PushJob>(PUSH_QUEUE, { connection: createConnection(redisUrl) })
+  }
+  return g.__pushQueue
+}
+
+export function createPushQueue(connection: IORedis): Queue<PushJob> & PushQueue {
+  return new Queue<PushJob>(PUSH_QUEUE, { connection })
 }
 
 export type { AiBulkJob, AiBulkQueue }

@@ -15,6 +15,7 @@ import {
   mediaProcessQueue,
   notificationQueue,
   purchaseDocumentQueue,
+  pushQueue,
   queueHealth,
   sharedRedis,
   storeExportQueue,
@@ -43,6 +44,7 @@ export function apiHost() {
     purchaseDocuments: purchaseDocumentQueue(loadEnv(process.env).REDIS_URL),
     channelSync: channelSyncQueue(loadEnv(process.env).REDIS_URL),
     automationSteps: automationStepQueue(loadEnv(process.env).REDIS_URL),
+    push: pushQueue(loadEnv(process.env).REDIS_URL),
     visitors: {
       live: (storeId: string) => liveVisitors(sharedRedis(loadEnv(process.env).REDIS_URL), storeId),
       daily: (storeId: string, days: string[]) =>

@@ -126,10 +126,18 @@ export const accountContent = {
       `Your own alerts for ${store}. Each person on your team picks their own.`,
     heading: 'What you hear about',
     body: 'Pick how each one reaches you.',
-    channels: { email: 'Email', whatsapp: 'WhatsApp' },
+    channels: { email: 'Email', whatsapp: 'WhatsApp', push: 'Push' },
     alerts: {
       newOrder: { label: 'New order', help: 'Each order as it comes in.' },
-      lowStock: { label: 'Low stock', help: 'When a product runs low.' },
+      inboxMessage: {
+        label: 'New Inbox message',
+        help: 'When a shopper writes. Only you, once a conversation is assigned to you.',
+      },
+      approvalWaiting: {
+        label: 'Approval waiting',
+        help: 'A change waiting for your OK, from your team or your AI app.',
+      },
+      lowStock: { label: 'Out of stock', help: 'When a product sells out.' },
       paymentProblem: {
         label: 'Payment or payout problem',
         help: 'A failed payment, refund or payout that needs you.',
@@ -154,8 +162,28 @@ export const accountContent = {
       'WhatsApp alerts appear here once your store sets up WhatsApp in Settings → Notifications.',
     needPhone: 'Add your mobile number on your Profile to get WhatsApp alerts.',
     addPhone: 'Add mobile number',
-    soon: 'Alerts marked Coming soon do not send yet, so their switches stay off until they do.',
+    soon: 'A switch you cannot turn on does not send that way yet.',
     soonBadge: 'Coming soon',
+    push: {
+      title: 'Push on this device',
+      body: 'Alerts pop up on this phone or computer, even with the admin closed. Turn it on on each device you use.',
+      on: 'On for this device',
+      off: 'Off for this device',
+      turnOn: 'Turn on',
+      turnOff: 'Turn off',
+      test: 'Send a test',
+      testSent: 'Test sent. It should arrive in a few seconds.',
+      devices: (n: number) =>
+        n === 0 ? 'No devices yet.' : n === 1 ? 'On for 1 device.' : `On for ${n} devices.`,
+      blocked:
+        'Notifications are blocked for this site. Allow them in your browser’s site settings, then reload.',
+      install:
+        'On iPhone and iPad, add the admin to your Home Screen first: tap Share, then Add to Home Screen, and open it from there.',
+      unsupported:
+        'This browser cannot show push notifications. Try Chrome, Edge, Firefox or Safari.',
+      notSetUp: 'Push is not set up on this server yet.',
+      failed: 'Push could not be turned on. Try again.',
+    },
     storeWide:
       'These switches are just for you. The store-level switches in Settings → Notifications turn a team alert on or off for everyone; you get it only when both are on.',
     save: 'Save',
