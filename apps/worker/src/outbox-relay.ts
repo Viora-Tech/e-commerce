@@ -5,6 +5,7 @@ import {
   type InventoryRestockQueue,
   type NotificationQueue,
   type OutboxRelayDeps,
+  type PushQueue,
   relayStoreOutbox,
 } from '@commerce/core'
 import type { AutomationTriggerQueue } from '@commerce/core/automations/server'
@@ -56,6 +57,7 @@ export function createOutboxRelay(
     domainRoutes?: DomainRouteQueue | undefined
     automationTriggers?: AutomationTriggerQueue | undefined
     pixelOrders?: PixelOrderQueue | undefined
+    push?: PushQueue | undefined
   },
 ) {
   const appJobs = createAppJobQueue(connection)
@@ -68,6 +70,7 @@ export function createOutboxRelay(
     domainRoutes: opts.domainRoutes,
     automationTriggers: opts.automationTriggers,
     pixelOrders: opts.pixelOrders,
+    push: opts.push,
     appJobs,
     salesStoreId: loadEnv(process.env).PLATFORM_SALES_STORE_ID,
     log: (message) => logger.info(message, { area: 'outbox' }),

@@ -10,6 +10,7 @@ import type {
   NotificationQueue,
   PlatformCodeSender,
   PurchaseDocumentQueue,
+  PushQueue,
   RateLimitStore,
   StoreExportQueue,
   ThemeScreenshotQueue,
@@ -43,6 +44,8 @@ export type ApiContext = {
   purchaseDocuments?: PurchaseDocumentQueue | undefined
   /** Sales-channel catalog syncs (after Connect, "Sync now"). Absent in tests: nothing is queued. */
   channelSync?: ChannelSyncQueue | undefined
+  /** Staff browser push, sent by the worker ("Send a test"). Absent in tests: the test button refuses. */
+  push?: PushQueue | undefined
   /** Automations step jobs (Run automation, approvals, retry). Absent in tests: the worker's tick picks the runs up. */
   automationSteps?: AutomationStepQueue | undefined
   /** Live storefront visitors from Dragonfly; absent in tests, the dashboard then shows zeros. */

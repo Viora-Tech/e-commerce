@@ -164,6 +164,13 @@ export type OutboxEventType =
    * it and the owners are emailed, once per incident. No order.
    */
   | 'payments.gateway_keys_refused'
+  /** A shopper wrote in the Inbox (any channel): staff with push on hear about it (`push/`). */
+  | 'inbox.message_received'
+  /**
+   * A change waits in Approvals for someone else, or an AI app (MCP) request waits for its own
+   * member to confirm: whoever may decide it hears by push (`push/`).
+   */
+  | 'approval.requested'
 
 /**
  * `orderId` is required for every order-lifecycle type; `variantId` (and
@@ -256,6 +263,11 @@ export type OutboxPayload = {
   platformStatus?: string | undefined
   /** Platform-app events: the platform's own words, trimmed. */
   message?: string | undefined
+  /** For `inbox.message_received`: the conversation and the shopper's message. */
+  conversationId?: string | undefined
+  messageId?: string | undefined
+  /** For `approval.requested`: the `ai_action` row that waits. */
+  actionId?: string | undefined
 }
 
 /**
@@ -376,6 +388,8 @@ export const OUTBOX_NOTIFICATION_TEMPLATE: Record<OutboxEventType, TemplateId | 
   'order.split': 'order_split',
   'order.pay_online_requested': 'cod_pay_online',
   'payments.gateway_keys_refused': null,
+  'inbox.message_received': null,
+  'approval.requested': null,
 }
 
 /**
@@ -479,4 +493,6 @@ export const OUTBOX_APP_EVENT: Record<OutboxEventType, AppEvent | null> = {
   'order.split': null,
   'order.pay_online_requested': null,
   'payments.gateway_keys_refused': null,
+  'inbox.message_received': null,
+  'approval.requested': null,
 }

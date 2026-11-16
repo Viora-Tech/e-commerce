@@ -26,6 +26,7 @@
  * Nothing here is reachable by the model: it only ever creates `proposed` rows.
  */
 import { ASSISTANT_LIMITS } from '@commerce/ai'
+import { insertOutboxEvent } from '@commerce/core'
 import type { Permission } from '@commerce/core/permissions'
 import { type AiActionSource, aiAction, type StoreTx } from '@commerce/db'
 import { ORPCError } from '@orpc/server'
@@ -97,6 +98,8 @@ export async function queueForApprover(
       expiresAt: new Date(input.now.getTime() + approvalTtlMs),
     })
     .returning()
+  // Whoever may approve it hears by push once this commits.
+  await insertOutboxEvent(tx, input.storeId, 'approval.requested', { actionId: (row as Row).id })
   return oneView(tx, row as Row, input.now)
 }
 
@@ -135,6 +138,7 @@ async function sendToApprover(env: ActionEnv, row: Row, permission: Permission |
     })
     .where(eq(aiAction.id, id))
     .returning()
+  await insertOutboxEvent(env.tx, env.storeId, 'approval.requested', { actionId: id })
   return oneView(env.tx, updated as Row, env.now)
 }
 
@@ -175,6 +179,13 @@ export async function proposeAction(
       expiresAt: new Date(env.now.getTime() + ttlMs),
     })
     .returning()
+  // An AI app (MCP) asks while its member is elsewhere: tell them by push that it waits. The
+  // admin assistant's own cards need no push, the member is looking at them.
+  if (opts.source === 'mcp') {
+    await insertOutboxEvent(env.tx, env.storeId, 'approval.requested', {
+      actionId: (row as Row).id,
+    })
+  }
   return oneView(env.tx, row as Row, env.now)
 }
 

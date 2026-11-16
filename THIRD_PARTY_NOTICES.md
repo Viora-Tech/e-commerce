@@ -153,6 +153,12 @@ Before copying or closely adapting code from another project:
 
 Candidate projects, with verified licences and what to take from each: [`docs/open-source-radar.md`](docs/open-source-radar.md).
 
+## web-push
+
+- Used in: `apps/worker` (`src/push.ts` sends staff browser push notifications)
+- Licence: MPL-2.0 — https://github.com/web-push-libs/web-push. Used as an unmodified npm
+  dependency (3.6.7); MPL is file-level, so no file of ours is covered by it.
+
 ## @theguild/remark-mermaid
 
 - Used in: `apps/docs` (renders Mermaid diagrams in MDX pages)

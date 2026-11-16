@@ -113,19 +113,22 @@ describe('personal notifications', () => {
     const helper = await staffIn(shop, 'helper@example.com')
 
     const mine = await call(appRouter.account.notifications, {}, { context: ctx(helper.headers) })
-    expect(mine.prefs.newOrder).toEqual({ email: false, whatsapp: false })
+    expect(mine.prefs.newOrder).toEqual({ email: false, whatsapp: false, push: true })
     const boss = await call(appRouter.account.notifications, {}, { context: ctx(shop.headers) })
-    expect(boss.prefs.newOrder).toEqual({ email: true, whatsapp: false })
+    expect(boss.prefs.newOrder).toEqual({ email: true, whatsapp: false, push: true })
 
-    const on = { email: true, whatsapp: false }
+    const on = { email: true, whatsapp: false, push: true }
     await call(
       appRouter.account.updateNotifications,
       {
         newOrder: on,
+        inboxMessage: on,
+        approvalWaiting: on,
         lowStock: on,
         paymentProblem: on,
         dailySummary: { ...on, hour: 7 },
         appErrors: on,
+        bugReports: on,
       },
       { context: ctx(helper.headers) },
     )

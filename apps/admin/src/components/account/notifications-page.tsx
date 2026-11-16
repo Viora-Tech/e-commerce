@@ -1,6 +1,12 @@
 'use client'
 
-import { MEMBER_ALERTS, type MemberAlertPrefsInput } from '@commerce/core/member-account'
+import {
+  type AlertChannel,
+  isPushAlert,
+  MEMBER_ALERTS,
+  type MemberAlert,
+  type MemberAlertPrefsInput,
+} from '@commerce/core/member-account'
 import { Label } from '@commerce/ui/shadcn/label'
 import {
   Select,
@@ -14,6 +20,7 @@ import { Switch } from '@commerce/ui/shadcn/switch'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import PushDeviceCard from '@/components/account/push-device-card'
 import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
 import StatusChip from '@/components/layout/status-chip'
@@ -26,10 +33,17 @@ import { routes } from '@/lib/routes'
 
 type Loaded = Awaited<ReturnType<typeof api.account.notifications>>
 type Form = MemberAlertPrefsInput
-type Channel = 'email' | 'whatsapp'
+type Channel = AlertChannel
 
-/** Alerts the worker sends today; the rest show off and disabled until their senders land (#79). */
-const WIRED: ReadonlySet<string> = new Set(['newOrder', 'dailySummary', 'bugReports'])
+/** Alerts the worker sends by email or WhatsApp today; the rest wait for their senders (#79). */
+const MESSAGE_WIRED: ReadonlySet<MemberAlert> = new Set(['newOrder', 'dailySummary', 'bugReports'])
+
+/** Whether `alert` can go by `channel` yet: push carries its own list (`PUSH_ALERTS`). */
+const wired = (alert: MemberAlert, channel: Channel) =>
+  channel === 'push' ? isPushAlert(alert) : MESSAGE_WIRED.has(alert)
+/** Whether any channel shown can carry `alert`; none means it is still Coming soon. */
+const anyWired = (alert: MemberAlert, channels: Channel[]) => channels.some((c) => wired(alert, c))
+
 const HOURS = Array.from({ length: 24 }, (_, h) => h)
 
 /** The saved prefs as the form edits them (`lastSentOn` is the server's). */
@@ -116,7 +130,12 @@ export default function NotificationsPage() {
     JSON.stringify(form) !== JSON.stringify(formOf(loaded.prefs))
   // "Your bug reports" only where this server takes bug reports.
   const shownAlerts = MEMBER_ALERTS.filter((alert) => alert !== 'bugReports' || loaded?.bugReports)
-  const channels: Channel[] = loaded?.whatsappAvailable ? ['email', 'whatsapp'] : ['email']
+  const channels: Channel[] = [
+    'email',
+    ...(loaded?.whatsappAvailable ? (['whatsapp'] as const) : []),
+    ...(loaded?.push.publicKey ? (['push'] as const) : []),
+  ]
+
   const hourItems = Object.fromEntries(HOURS.map((h) => [String(h), hourLabel(h)]))
 
   return (
@@ -135,6 +154,9 @@ export default function NotificationsPage() {
         subtitle={loaded ? copy.intro(loaded.storeName) : undefined}
         save={{ dirty, saving, onSave: handleSave, label: copy.save }}
       />
+      {loaded ? (
+        <PushDeviceCard publicKey={loaded.push.publicKey} devices={loaded.push.devices} />
+      ) : null}
       <SettingsCard title={copy.heading} description={copy.body}>
         {!loaded || !form ? (
           <div className="flex flex-col gap-4">
@@ -154,7 +176,7 @@ export default function NotificationsPage() {
                     <span className="text-body font-semibold text-ink-strong">
                       {copy.alerts[alert].label}
                     </span>
-                    {WIRED.has(alert) ? null : <StatusChip>{copy.soonBadge}</StatusChip>}
+                    {anyWired(alert, channels) ? null : <StatusChip>{copy.soonBadge}</StatusChip>}
                   </div>
                   <span className="text-caption text-muted-foreground">
                     {copy.alerts[alert].help}
@@ -190,9 +212,11 @@ export default function NotificationsPage() {
                     >
                       <Switch
                         id={`alert-${alert}-${channel}`}
-                        checked={WIRED.has(alert) && form[alert][channel]}
+                        checked={wired(alert, channel) && form[alert][channel]}
                         onCheckedChange={(on) => handleSwitch(alert, channel, on)}
-                        disabled={!WIRED.has(alert) || (channel === 'whatsapp' && !loaded.hasPhone)}
+                        disabled={
+                          !wired(alert, channel) || (channel === 'whatsapp' && !loaded.hasPhone)
+                        }
                       />
                       {copy.channels[channel]}
                     </Label>

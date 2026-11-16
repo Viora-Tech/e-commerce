@@ -10,13 +10,18 @@ export const ACTION_DOCS: Record<string, string> = {
     "Leaves a store: Better Auth drops the membership (and clears it as the active store), then the member's staff row goes.",
   'account.notifications':
     'Notifications: the member\'s own alerts for the store they are in, whether the store can send WhatsApp, whether they gave a mobile for it, and whether this server takes bug reports (the "Your bug repo…',
+  'account.removePushDevice': 'Push, "Turn off for this device".',
   'account.requestEmailChange':
     'Change email, step 1: Better Auth emails a code to the NEW address.',
   'account.revokeOtherSessions': 'Signs every other device out; this browser stays signed in.',
   'account.revokeSession': 'Signs one other device out.',
+  'account.savePushDevice':
+    'Push, "Turn on for this device": saves this browser\'s subscription for the member.',
   'account.security':
     'Sign-in & security: the email they sign in with, whether Google is linked (and whether the admin offers Google at all), and their latest sign-ins (masked IPs).',
   'account.sendDeletionCode': 'Delete my account, step 1: a 6-digit code to their sign-in email.',
+  'account.sendPushTest':
+    'Push, "Send a test": one push to each of the member\'s devices, sent by the worker.',
   'account.sessions': 'Every browser signed in as this member, this one first.',
   'account.setAvatar': 'The cropped photo as a data URL.',
   'account.stores': 'Every store the member belongs to, with their role and an owner flag.',

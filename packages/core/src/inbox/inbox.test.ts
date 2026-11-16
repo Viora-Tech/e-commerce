@@ -1,5 +1,5 @@
 /** SOURCE OF TRUTH: Inbox service tests — WHAT: conversation access per store and per shopper, guest → customer merge, idempotent sends, the replay query, spam and blocks, rate limits, the shopper side / WHY: a shopper must never read another shopper's thread, and one store never another's */
-import { createDb, customer, inboxConversation, store, withStore } from '@commerce/db'
+import { createDb, customer, inboxConversation, outboxEvent, store, withStore } from '@commerce/db'
 import { resetDb } from '@commerce/db/test'
 import { eq } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
@@ -102,6 +102,29 @@ describe('who can read a conversation', () => {
 })
 
 describe('sending', () => {
+  it('a shopper message (once, not its resend) and never a staff reply queues a staff push', async () => {
+    const s = await newStore('s')
+    const who = guest()
+    const id = clientId()
+    const first = await inStore(s, (ctx) =>
+      shopperSend(ctx, who, { body: 'Hi', clientId: id }, opts),
+    )
+    await inStore(s, (ctx) => shopperSend(ctx, who, { body: 'Hi', clientId: id }, opts))
+    await inStore(s, (ctx) =>
+      staffSend(ctx, { conversationId: first.conversation.id, body: 'Hello!' }, 'u1'),
+    )
+    const rows = await owner
+      .select({ type: outboxEvent.type, payload: outboxEvent.payload })
+      .from(outboxEvent)
+      .where(eq(outboxEvent.type, 'inbox.message_received'))
+    expect(rows).toEqual([
+      {
+        type: 'inbox.message_received',
+        payload: { conversationId: first.conversation.id, messageId: first.message.id },
+      },
+    ])
+  })
+
   it('a resend with the same client id is stored once', async () => {
     const s = await newStore('s')
     const who = guest()
