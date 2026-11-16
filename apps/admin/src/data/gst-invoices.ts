@@ -289,6 +289,7 @@ export const gstInvoicesContent = {
       tax_invoice: 'Tax invoices',
       credit_note: 'Credit notes',
       vouchers: 'Vouchers',
+      exports: 'Exports',
       all: 'All documents',
     },
     month: 'Month',
