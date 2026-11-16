@@ -315,6 +315,40 @@ describe('RapidshypProvider createShipment (wrapper API)', () => {
     expect(JSON.parse(assign?.init?.body as string)).toMatchObject({ shipment_id: '77' })
   })
 
+  it('approves an order created with no shipment id and assigns the picked courier to the id it returns', async () => {
+    const f = fakeFetch({
+      '/rapidshyp/apis/v1/create_order': () =>
+        json({ status: 'SUCCESS', order_id: '2471', shipment: [] }),
+      '/rapidshyp/apis/v1/approve_orders': () =>
+        json({
+          status: 'success',
+          remark: 'Approved orders successfully',
+          data: [{ order_id: '2471', shipment: [{ shipment_id: 'S26109999' }] }],
+        }),
+      '/rapidshyp/apis/v1/assign_awb': () => json({ awb: 'BD-7' }),
+      '/rapidshyp/apis/v1/schedule_pickup': () => json({ status: 'SUCCESS' }),
+      '/rapidshyp/apis/v1/generate_label': () => json({ status: true, labelData: [] }),
+    })
+    const p = new RapidshypProvider({ ...config, fetchImpl: f.impl, wait: async () => {} })
+    const r = await p.createShipment({
+      ...sampleShipment,
+      orderNumber: 2471,
+      serviceId: 'BD',
+      serviceLabel: 'Blue Dart Air',
+    })
+    expect(r.waybill).toBe('BD-7')
+    const paths = f.calls.map((c) => c.url.pathname.split('/').pop())
+    expect(paths.slice(0, 3)).toEqual(['create_order', 'approve_orders', 'assign_awb'])
+    expect(JSON.parse(f.calls[1]?.init?.body as string)).toEqual({
+      order_id: ['2471'],
+      store_name: 'DEFAULT',
+    })
+    expect(JSON.parse(f.calls[2]?.init?.body as string)).toEqual({
+      shipment_id: 'S26109999',
+      courier_code: 'BD',
+    })
+  })
+
   it('finds the shipment id through Track Order when create_order sends none (shipment: [])', async () => {
     let lookups = 0
     const f = fakeFetch({

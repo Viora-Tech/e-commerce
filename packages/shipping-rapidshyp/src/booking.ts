@@ -13,6 +13,8 @@
  *  - a courier picked in the rate table: `create_order` (no courier), then `assign_awb` with
  *    that courier's code, then pickup and label. The shipment id is read tolerantly from the
  *    create answer (`shipment[0]`, one object, or top level; `shipmentId` or `shipment_id`);
+ *    with none there, `approve_orders` is called, which RapidShyp support says answers with it
+ *    (16 Nov 2026), then Track Order;
  *    the documented answer has `shipment: []`, and Track Order says "not found" until an AWB
  *    exists, so with no id the order is left on RapidShyp for the merchant to assign the courier
  *    there (owner, 14 Nov 2026), and staff are told so.
@@ -96,6 +98,7 @@ type CreateOrderOnlyResponse = CreatedShipment & {
 }
 
 const CREATE_ORDER = '/rapidshyp/apis/v1/create_order'
+const APPROVE_ORDERS = '/rapidshyp/apis/v1/approve_orders'
 const WRAPPER = '/rapidshyp/apis/v1/wrapper'
 
 /** How many order ids (`2471`, `2471-2`, ...) to try when RapidShyp says one is taken. */
@@ -106,6 +109,53 @@ function createdShipmentId(r: CreateOrderOnlyResponse): string | undefined {
   const list = Array.isArray(r.shipment) ? r.shipment : r.shipment ? [r.shipment] : []
   const id = list[0]?.shipmentId ?? list[0]?.shipment_id ?? r.shipmentId ?? r.shipment_id
   return id != null && String(id) !== '' ? String(id) : undefined
+}
+
+/** The first `shipment_id` / `shipmentId` anywhere in an answer (lists and nested objects too). */
+function anyShipmentId(value: unknown, depth = 0): string | undefined {
+  if (depth > 4 || value === null || typeof value !== 'object') return undefined
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      const id = anyShipmentId(item, depth + 1)
+      if (id) return id
+    }
+    return undefined
+  }
+  const o = value as Record<string, unknown>
+  for (const key of ['shipment_id', 'shipmentId']) {
+    const v = o[key]
+    if ((typeof v === 'string' && v !== '') || typeof v === 'number') return String(v)
+  }
+  for (const v of Object.values(o)) {
+    const id = anyShipmentId(v, depth + 1)
+    if (id) return id
+  }
+  return undefined
+}
+
+/**
+ * Approve Order for an order just created with no courier. RapidShyp support (16 Nov 2026):
+ * "After using the create_order API, use the approve order API. In the response payload, you can
+ * find the shipment ID." Their docs page shows only `{ status, remark }`, so the id is read from
+ * wherever it sits, and a failed approve is reported, not thrown: Track Order is asked next.
+ */
+async function approveForShipmentId(
+  calls: BookingCalls,
+  orderRef: string,
+): Promise<{ id: string | undefined; said: string }> {
+  try {
+    const r = await calls.post<unknown>(APPROVE_ORDERS, {
+      order_id: [orderRef],
+      store_name: calls.config.storeName,
+    })
+    const id = anyShipmentId(r)
+    return { id, said: id ? '' : JSON.stringify(r ?? null).slice(0, 120) }
+  } catch (error) {
+    return {
+      id: undefined,
+      said: `failed: ${error instanceof Error ? error.message : String(error)}`,
+    }
+  }
 }
 
 /** Seconds between Track Order lookups for a new order's shipment id: it can take a moment. */
@@ -283,7 +333,11 @@ async function bookChosen(
   }
   // cancel_order takes the id RapidShyp echoes back, which is the one we sent for "DEFAULT".
   const orderRef = result.order_id ? String(result.order_id) : ref
-  const lookup = await shipmentIdOf(calls, input, result, orderRef)
+  // No id in the create answer: approve the order (RapidShyp's way to get one), then Track Order.
+  const approved = createdShipmentId(result)
+    ? { id: createdShipmentId(result), said: '' }
+    : await approveForShipmentId(calls, orderRef)
+  const lookup = approved.id ? approved : await shipmentIdOf(calls, input, result, orderRef)
   const shipmentId = lookup.id
   if (!shipmentId) {
     // RapidShyp's API gives no way to put a courier on a new order (create_order returns
@@ -293,7 +347,9 @@ async function bookChosen(
       'rejected',
       calls.provider,
       `Order ${orderRef} is now on RapidShyp without a courier: RapidShyp does not let us assign ${courierName(input)} to a new order. Open order ${orderRef} in RapidShyp and assign ${courierName(input)} there, then add its AWB here with Ship › Shipped yourself.`,
-      { reason: `create_order: ${createAnswer(result)}; track_order: ${lookup.said}` },
+      {
+        reason: `create_order: ${createAnswer(result)}; approve_orders: ${approved.said}; track_order: ${lookup.said}`,
+      },
     )
   }
   let awb: string
