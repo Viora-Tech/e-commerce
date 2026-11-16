@@ -173,6 +173,8 @@ export const accountContent = {
       turnOff: 'Turn off',
       test: 'Send a test',
       testSent: 'Test sent. It should arrive in a few seconds.',
+      noPopup:
+        'No pop-up after a test? Turn on notifications for this browser in Windows or Mac settings, switch off Do Not Disturb or Focus, and in Brave turn on “Use Google services for push messaging”.',
       devices: (n: number) =>
         n === 0 ? 'No devices yet.' : n === 1 ? 'On for 1 device.' : `On for ${n} devices.`,
       blocked:
