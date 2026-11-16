@@ -1,10 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import {
   collectImageUrls,
+  collectVideosWithoutPoster,
   heightForWidth,
   type ImageMedia,
   MAX_LOOKUP_URLS,
+  type PosterImage,
   withImageMedia,
+  withVideoPosters,
 } from './section-images'
 
 const known: ImageMedia = {
@@ -91,5 +94,41 @@ describe('heightForWidth', () => {
   it('is undefined when the size is unknown', () => {
     expect(heightForWidth({ width: null, height: null }, 160)).toBeUndefined()
     expect(heightForWidth(undefined, 160)).toBeUndefined()
+  })
+})
+
+describe('video posters', () => {
+  const page = {
+    content: [
+      {
+        type: 'Video',
+        props: { heading: 'Watch', url: 'https://cdn.test/v.mp4', poster: { url: '', alt: '' } },
+      },
+      {
+        type: 'VideoHero',
+        props: {
+          videoUrl: 'https://cdn.test/hero.mp4',
+          poster: { url: 'https://cdn.test/own.jpg', alt: 'Own' },
+        },
+      },
+      { type: 'Video', props: { heading: 'Empty', url: '', poster: { url: '', alt: '' } } },
+    ],
+  }
+  const poster: PosterImage = { url: 'https://cdn.test/v-poster.jpg', ...known }
+
+  it('finds videos whose poster was left empty, not ones with their own poster', () => {
+    expect(collectVideosWithoutPoster(page)).toEqual(['https://cdn.test/v.mp4'])
+  })
+
+  it('fills the empty poster with the video poster and leaves the rest alone', () => {
+    const out = withVideoPosters(page, new Map([['https://cdn.test/v.mp4', poster]]))
+    expect(out.content[0]?.props.poster).toEqual({ ...poster, alt: '' })
+    expect(out.content[1]).toBe(page.content[1])
+    expect(out.content[2]).toBe(page.content[2])
+    expect(page.content[0]?.props.poster).toEqual({ url: '', alt: '' })
+  })
+
+  it('returns the same object when no video has a poster in Files', () => {
+    expect(withVideoPosters(page, new Map())).toBe(page)
   })
 })

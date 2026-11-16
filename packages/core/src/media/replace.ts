@@ -54,8 +54,10 @@ async function downloadImage(url: string, deps: ReplaceDeps) {
 /**
  * Puts the image at `url` behind media row `id`. The new original goes to a fresh key; the
  * row keeps its old variants and size until the pipeline (queued by the caller) writes the
- * new ones, so the store never shows a gap or an unoptimised file. The old original is
- * deleted; its old variant files are left in storage (a few small files per photo).
+ * new ones, so the store never shows a gap or an unoptimised file. The old original and its
+ * old variant files stay in storage: pages cached at the origin and at Cloudflare keep linking
+ * them until the new photo is processed and the edge is purged (minutes for a big batch), and
+ * deleting the original at once left those pages with broken photos (16 Nov 2026).
  */
 export async function replaceImageFromUrl(
   tx: StoreTx,
@@ -88,8 +90,5 @@ export async function replaceImageFromUrl(
       processError: null,
     })
     .where(eq(media.id, row.id))
-  if (row.key && row.key !== key && row.provider === provider.id) {
-    await provider.delete(row.key).catch(() => undefined)
-  }
   return { id: row.id, url }
 }

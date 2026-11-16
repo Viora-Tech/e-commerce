@@ -27,6 +27,7 @@ import { api } from '@/lib/api-client'
 import { formatDateTime } from '@/lib/format-date'
 import { isEditableImage } from '@/lib/image-edit'
 import { routes } from '@/lib/routes'
+import { makeVideoPoster } from '@/lib/upload'
 import { contentTypeOf, displayName, fileKind, formatBytes } from './file-meta'
 import ImageEditorDialog from './image-editor-dialog'
 import MediaFileAlt from './media-file-alt'
@@ -67,6 +68,12 @@ export default function MediaFilePage({ file, usedIn, neighbours, filter }: Medi
     }
     toast.success(toasts.deleted)
     router.push(routes.content.files())
+  }
+  const handleMakePoster = async () => {
+    const id = toast.loading(copy.makePoster)
+    const done = await makeVideoPoster({ id: file.id, url: file.url })
+    if (done) toast.success(toasts.posterMade, { id })
+    else toast.error(toasts.posterFailed, { id })
   }
 
   // Render logic
@@ -126,6 +133,9 @@ export default function MediaFilePage({ file, usedIn, neighbours, filter }: Medi
                 label={copy.more}
                 variant="outline"
                 items={[
+                  ...(kind === 'video'
+                    ? [{ label: copy.makePoster, onSelect: () => void handleMakePoster() }]
+                    : []),
                   { label: copy.delete, onSelect: () => setDeleting(true), destructive: true },
                 ]}
               />
