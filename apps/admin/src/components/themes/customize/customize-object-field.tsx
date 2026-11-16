@@ -17,6 +17,7 @@ import {
   isLinkField,
   isResponsiveNumberField,
   isSectionSettingsField,
+  isVideoField,
 } from '@/lib/customize-field-shape'
 import ColourChoiceField from './colour-choice-field'
 import FieldFrame from './field-frame'
@@ -24,6 +25,7 @@ import ImageField from './image-field'
 import LinkPicker from './link-picker'
 import ResponsiveNumberField from './responsive-number-field'
 import SectionSettingsGroups from './section-settings-groups'
+import VideoSettingField from './video-setting-field'
 
 type CustomizeObjectFieldProps = {
   field: FieldLike
@@ -74,6 +76,16 @@ export default function CustomizeObjectField({
         field={field}
         value={objectValue}
         onChange={(next) => onChange(next)}
+      />
+    )
+  }
+  if (isVideoField(field)) {
+    return (
+      <VideoSettingField
+        label={label}
+        objectFields={objectFields}
+        value={value}
+        onChange={onChange}
       />
     )
   }
