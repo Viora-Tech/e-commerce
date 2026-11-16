@@ -37,6 +37,8 @@ export const FULFILMENT_FILTERS = [
 export const DATE_FILTERS = ['today', '7d', '30d', '90d'] as const
 /** Stored payment methods are gateway names, so the panel splits only cash on delivery from prepaid. */
 export const METHOD_FILTERS = ['cod', 'prepaid'] as const
+/** Where the order ships: India, or abroad (an export, zero-rated under LUT). */
+export const DESTINATION_FILTERS = ['india', 'international'] as const
 /** Where the visit came from (`order.attribution`); `untracked` is an order with none recorded. */
 export const CHANNEL_FILTERS = [...MARKETING_CHANNELS, 'untracked'] as const
 /** Where the order's customer returns stand; `none` is an order nobody asked to return. */
@@ -46,6 +48,7 @@ export type PaymentFilter = (typeof PAYMENT_FILTERS)[number]
 export type FulfilmentFilter = (typeof FULFILMENT_FILTERS)[number]
 export type DateFilter = (typeof DATE_FILTERS)[number]
 export type MethodFilter = (typeof METHOD_FILTERS)[number]
+export type DestinationFilter = (typeof DESTINATION_FILTERS)[number]
 export type ChannelFilter = (typeof CHANNEL_FILTERS)[number]
 export type ReturnFilter = (typeof RETURN_FILTERS)[number]
 
@@ -55,6 +58,7 @@ export type OrderFilters = {
   /** A preset (`7d`) or a custom from–to (`lib/date-filter.ts`). */
   date: DateFilterValue
   method: MethodFilter[]
+  destination: DestinationFilter[]
   /** A courier id (`delhivery`) the order was sent with; null for any. */
   courier: string | null
   /** Text a line's product title, variant or SKU contains ("pd170"); null for any product. */
@@ -153,6 +157,7 @@ export function hasOrderFilters(f: OrderFilters): boolean {
     f.fulfilment.length > 0 ||
     hasDateFilter(f.date) ||
     f.method.length > 0 ||
+    f.destination.length > 0 ||
     f.courier !== null ||
     productText(f) !== null ||
     f.tag.length > 0 ||
@@ -189,6 +194,7 @@ export function orderFilterInput(f: OrderFilters, now = new Date()) {
     ...(placed.from ? { placedFrom: placed.from } : {}),
     ...(placed.to ? { placedTo: placed.to } : {}),
     ...(f.method.length === 1 && f.method[0] ? { paymentMethod: f.method[0] } : {}),
+    ...(f.destination.length === 1 && f.destination[0] ? { destination: f.destination[0] } : {}),
     ...(f.courier ? { courier: f.courier } : {}),
     ...(f.tag.length ? { tags: f.tag } : {}),
     ...(f.channel.length ? { channels: f.channel } : {}),
@@ -317,6 +323,14 @@ export function orderFilterGroups(
       onChange: (next) => onChange({ method: pick(METHOD_FILTERS, next) }),
     },
     {
+      key: 'destination',
+      label: copy.destination,
+      type: 'checks',
+      options: options(DESTINATION_FILTERS, copy.destinationOptions),
+      value: f.destination,
+      onChange: (next) => onChange({ destination: pick(DESTINATION_FILTERS, next) }),
+    },
+    {
       key: 'channel',
       label: copy.channel,
       type: 'multi',
@@ -365,6 +379,7 @@ export const NO_FILTERS: OrderFilters = {
   fulfilment: [],
   date: NO_DATE_FILTER,
   method: [],
+  destination: [],
   courier: null,
   product: null,
   tag: [],
@@ -385,6 +400,7 @@ export const FILTER_PARAMS = {
   fulfilment: parseAsArrayOf(parseAsStringLiteral(FULFILMENT_FILTERS)).withDefault([]),
   date: parseAsDateFilter(DATE_FILTERS),
   method: parseAsArrayOf(parseAsStringLiteral(METHOD_FILTERS)).withDefault([]),
+  destination: parseAsArrayOf(parseAsStringLiteral(DESTINATION_FILTERS)).withDefault([]),
   courier: parseAsString,
   product: parseAsString,
   tag: parseAsArrayOf(parseAsString).withDefault([]),

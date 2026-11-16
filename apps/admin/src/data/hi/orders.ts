@@ -142,6 +142,7 @@ export default [
       date: 'तारीख',
       anyDate: 'कोई भी तारीख',
       method: 'पेमेंट का तरीका',
+      destination: 'कहाँ भेजना है',
       courier: 'कूरियर',
       anyCourier: 'कोई भी कूरियर',
       collection: 'कलेक्शन',
@@ -175,6 +176,7 @@ export default [
         '90d': 'पिछले 90 दिन',
       },
       methodOptions: { cod: 'कैश ऑन डिलीवरी', prepaid: 'प्रीपेड' },
+      destinationOptions: { india: 'भारत', international: 'विदेश' },
       channelOptions: {
         direct: 'सीधे',
         organic_search: 'सर्च (फ़्री)',

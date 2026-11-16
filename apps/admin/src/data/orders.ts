@@ -9,6 +9,7 @@ import { CHANNEL_LABELS } from '@/data/growth'
 import type {
   ChannelFilter,
   DateFilter,
+  DestinationFilter,
   FulfilmentFilter,
   MethodFilter,
   PaymentFilter,
@@ -159,6 +160,7 @@ export const ordersContent = {
     date: 'Date',
     anyDate: 'Any date',
     method: 'Payment method',
+    destination: 'Ships to',
     courier: 'Courier',
     anyCourier: 'Any courier',
     collection: 'Collection',
@@ -193,6 +195,10 @@ export const ordersContent = {
     } satisfies Record<DateFilter, string>,
     methodOptions: { cod: 'Cash on delivery', prepaid: 'Prepaid' } satisfies Record<
       MethodFilter,
+      string
+    >,
+    destinationOptions: { india: 'India', international: 'International' } satisfies Record<
+      DestinationFilter,
       string
     >,
     /** The Channel column's names, so a filter and the column read the same. */

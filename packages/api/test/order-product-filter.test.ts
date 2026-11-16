@@ -1,5 +1,5 @@
 import { createMerchantAuth } from '@commerce/auth'
-import { createDb, newId, order, orderLine, product, store, variant } from '@commerce/db'
+import { address, createDb, newId, order, orderLine, product, store, variant } from '@commerce/db'
 import { resetDb } from '@commerce/db/test'
 import { call } from '@orpc/server'
 import { eq } from 'drizzle-orm'
@@ -167,5 +167,35 @@ describe('orders list Product picker filter', () => {
     await seedProduct(m.storeId, 'Keyboard', ['Default'])
     expect((await pick({ limit: 1 })).map((r) => r.title)).toEqual(['Glasspad'])
     expect((await pick({ limit: 1, offset: 1 })).map((r) => r.title)).toEqual(['Keyboard'])
+  })
+})
+
+describe('orders list Ships to filter', () => {
+  it('splits orders shipping abroad from those in India', async () => {
+    const m = await merchant('ships-to@example.com', 'ships-to')
+    const pad = await seedProduct(m.storeId, 'Glasspad', ['M'])
+    const line = [pad.variants.M as string]
+    const at = async (country: string) => {
+      const [a] = await owner
+        .insert(address)
+        .values({
+          storeId: m.storeId,
+          name: 'Buyer',
+          line1: '1 Road',
+          city: 'City',
+          stateCode: '',
+          pincode: '1',
+          phone: '1',
+          country,
+        })
+        .returning()
+      return a?.id
+    }
+    await seedOrder(m.storeId, { number: 1, variantIds: line, shippingAddressId: await at('IN') })
+    await seedOrder(m.storeId, { number: 2, variantIds: line, shippingAddressId: await at('AU') })
+    await seedOrder(m.storeId, { number: 3, variantIds: line })
+
+    expect(await numbers(m, { destination: 'international' })).toEqual([2])
+    expect(await numbers(m, { destination: 'india' })).toEqual([1, 3])
   })
 })

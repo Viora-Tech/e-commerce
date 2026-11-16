@@ -52,14 +52,15 @@ const copy = gstInvoicesContent.list
 const kindCopy = gstInvoicesContent.kinds
 /** "invoices", for the shared table copy ("Loading invoices"). */
 const listName = copy.title.toLowerCase()
-/** The list's tabs: GST returns treat invoices, notes and vouchers apart. */
-const TABS = ['tax_invoice', 'credit_note', 'vouchers', 'all'] as const
+/** The list's tabs: GST returns treat invoices, notes and vouchers apart, and exports on their own. */
+const TABS = ['tax_invoice', 'credit_note', 'vouchers', 'exports', 'all'] as const
 type Tab = (typeof TABS)[number]
 
 const TAB_KINDS: Record<Tab, DocumentKind[] | undefined> = {
   tax_invoice: ['tax_invoice'],
   credit_note: ['credit_note'],
   vouchers: ['receipt_voucher', 'refund_voucher'],
+  exports: undefined,
   all: undefined,
 }
 
@@ -102,6 +103,7 @@ function filterOf(q: string, tab: Tab, month: Month, gst: string | undefined) {
     from: istStart(range.from),
     to: istEnd(range.to),
     gstRegistrationId: gst,
+    exportsOnly: tab === 'exports' ? true : undefined,
   }
 }
 

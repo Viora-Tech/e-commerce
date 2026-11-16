@@ -64,6 +64,8 @@ export type OrderListFilters = {
   /** Placed before this time (the end of a custom date range). */
   placedTo?: string | undefined
   paymentMethod?: 'cod' | 'prepaid' | undefined
+  /** Ships within India, or abroad (shipping address country other than IN). */
+  destination?: 'india' | 'international' | undefined
   /** Has a consignment with this courier (`shipment.provider`). */
   courier?: string | undefined
   /** Has a line whose product title, variant title or SKU contains this ("pd170"). */
@@ -239,6 +241,12 @@ function paymentWhere(statuses: OrderPaymentStatus[], pending: boolean) {
   )
 }
 
+/** Orders shipping abroad; one with no shipping address (pickup, digital) counts as India. */
+function destinationWhere(destination: 'india' | 'international') {
+  const abroad = sql`exists (select 1 from ${address} a where a.id = ${order.shippingAddressId} and upper(a.country) <> 'IN')`
+  return destination === 'international' ? abroad : sql`not ${abroad}`
+}
+
 export function orderListWhere(input: OrderListFilters) {
   const byNumber = input.search ? orderNumberFromSearch(input.search) : null
   return and(
@@ -267,6 +275,7 @@ export function orderListWhere(input: OrderListFilters) {
       : input.paymentMethod === 'prepaid'
         ? ne(order.paymentMethod, 'cod')
         : undefined,
+    input.destination ? destinationWhere(input.destination) : undefined,
     input.courier
       ? sql`exists (select 1 from ${shipment} s where s.order_id = ${order.id} and s.provider = ${input.courier})`
       : undefined,

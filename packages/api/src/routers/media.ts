@@ -106,11 +106,12 @@ export const mediaRouter = {
       )
       try {
         const row = await confirmUpload(context.tx, id, provider, dims)
-        if (row.status === 'processing' && context.mediaProcess) {
-          await enqueueMediaProcess(context.mediaProcess, {
-            storeId: context.scope.storeId,
-            mediaId: row.id,
-          })
+        const queue = context.mediaProcess
+        if (row.status === 'processing' && queue) {
+          // After commit: a worker that picks the job up at once must find the saved row.
+          context.afterCommit(() =>
+            enqueueMediaProcess(queue, { storeId: context.scope.storeId, mediaId: row.id }),
+          )
         }
         return row
       } catch (err) {
@@ -137,11 +138,12 @@ export const mediaRouter = {
       )
       try {
         const row = await replaceImageFromUrl(context.tx, context.scope.storeId, provider, input)
-        if (context.mediaProcess) {
-          await enqueueMediaProcess(
-            context.mediaProcess,
-            { storeId: context.scope.storeId, mediaId: row.id },
-            `${row.id}-replace-${Date.now()}`,
+        const queue = context.mediaProcess
+        if (queue) {
+          // After commit: the worker read the old photo when the job ran before the swap was saved.
+          const jobId = `${row.id}-replace-${Date.now()}`
+          context.afterCommit(() =>
+            enqueueMediaProcess(queue, { storeId: context.scope.storeId, mediaId: row.id }, jobId),
           )
         }
         return row

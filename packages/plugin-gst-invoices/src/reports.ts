@@ -30,6 +30,8 @@ export type ListFilter = {
   to?: Date | undefined
   /** One GSTIN's documents (null: a store without a registration); undefined: every GSTIN. */
   gstRegistrationId?: string | null | undefined
+  /** Only exports (zero-rated under LUT or with IGST paid): the Exports tab. */
+  exportsOnly?: boolean | undefined
 }
 
 function where(filter: ListFilter): SQL | undefined {
@@ -48,6 +50,7 @@ function where(filter: ListFilter): SQL | undefined {
         ? eq(invoice.kind, filter.kind)
         : undefined,
     filter.status ? eq(invoice.status, filter.status) : undefined,
+    filter.exportsOnly ? ne(invoice.supplyType, 'domestic') : undefined,
     filter.from ? gte(invoice.invoiceDate, filter.from) : undefined,
     filter.to ? lt(invoice.invoiceDate, filter.to) : undefined,
     q

@@ -17,6 +17,8 @@ export const Filter = z.object({
   to: z.coerce.date().optional(),
   /** One GST number's documents; omitted lists every GST number's. */
   gstRegistrationId: Gst,
+  /** The Exports tab: export invoices and their credit notes and vouchers only. */
+  exportsOnly: z.boolean().optional(),
 })
 
 /** Rows or "everything matching the filter", capped so one click cannot render the year. */
