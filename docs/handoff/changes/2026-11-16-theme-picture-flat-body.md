@@ -12,3 +12,9 @@ to pass it.
 - Production has no `THEME_SCREENSHOT_CHROMIUM`, so the worker's headless picture never runs;
   imported themes depend on Customize's in-browser capture.
 - Store-side: a hero video slide with a dark first frame should get a Poster image in Customize.
+
+Follow-up (same day): the body check is a brightness spread, not "one colour": Waimers' black
+poster has a faint purple glow and slider dots, so it passed the 99.5 % one-colour rule. Below
+the header, a luminance standard deviation under 8 (`isFeatureless`) is blank; that picture
+measured 3.6. A theme whose whole first screen is plain white with tiny text would also show the
+swatch; accepted.

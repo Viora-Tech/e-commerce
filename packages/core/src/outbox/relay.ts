@@ -28,6 +28,7 @@ import {
   enqueueAppJob,
   installedApps,
 } from '../plugins/events'
+import { enqueuePushForRow, PUSH_OUTBOX_TYPES, type PushQueue } from '../push/queue'
 import {
   OUTBOX_APP_EVENT,
   OUTBOX_NOTIFICATION_TEMPLATE,
@@ -66,6 +67,8 @@ export type OutboxRelayDeps = {
   automationTriggers?: AutomationTriggerQueue | undefined
   /** Absent only in tests that do not exercise the Pixels app; those rows then queue nothing for it. */
   pixelOrders?: PixelOrderQueue | undefined
+  /** Staff browser push (`push/`). Absent: no push is queued (tests, a worker without VAPID keys). */
+  push?: PushQueue | undefined
   log?: ((message: string) => void) | undefined
   /** The platform's own sales store (`PLATFORM_SALES_STORE_ID`): paid plan orders there grant a signup invite. */
   salesStoreId?: string | undefined
@@ -120,6 +123,9 @@ async function dispatchRow(deps: OutboxRelayDeps, row: Row): Promise<void> {
       custom: payload.custom,
       requires: payload.requires,
     })
+  }
+  if (deps.push && PUSH_OUTBOX_TYPES.has(type)) {
+    await enqueuePushForRow(deps.push, row)
   }
   const appEvent = OUTBOX_APP_EVENT[type]
   if (appEvent && deps.appEvents) {

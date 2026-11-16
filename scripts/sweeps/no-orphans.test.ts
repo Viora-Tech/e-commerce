@@ -299,7 +299,6 @@ const ALLOWLIST: AllowEntry[] = [
       'INBOX_SENDERS',
       'INBOX_MESSAGE_KINDS',
       'INBOX_BLOCK_KINDS',
-      'memberPushSubscription',
     ],
     reason:
       'Inbox contract (feat/inbox-core, 2026-10-24): read by the stream routes, the admin /inbox page and the storefront widget in Inbox PRs 2 to 5, which remove these entries',

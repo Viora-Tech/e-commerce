@@ -6,15 +6,20 @@ import {
   decodeAvatarDataUrl,
   deliverPlatformAccountDeletionCode,
   deliverPlatformEmailChanged,
+  enqueuePushTest,
   getPlatformEmail,
   InvalidAvatar,
   loadMemberAlertPrefs,
   MemberAlertPrefsInputSchema,
   MemberProfileInputSchema,
+  PushSubscriptionInputSchema,
+  pushDeviceCount,
   type RateLimitRule,
   rateLimitKey,
+  removePushSubscription,
   retryAfterSeconds,
   saveMemberAlertPrefs,
+  savePushSubscription,
 } from '@commerce/core'
 import { logger } from '@commerce/observability/logging'
 import { ORPCError } from '@orpc/server'
@@ -57,6 +62,15 @@ const EMAIL_CONFIRM_RULE = { limit: 10, windowMs: HOUR }
 
 /** Account deletion codes per member. */
 const DELETE_CODE_RULE = { limit: 3, windowMs: HOUR }
+
+/** Test pushes per member: enough to try a phone and a laptop a few times. */
+const PUSH_TEST_RULE = { limit: 10, windowMs: HOUR }
+
+/** The VAPID public key browsers subscribe with; null when push is not set up here. */
+const pushPublicKey = (): string | null => {
+  const env = loadEnv(process.env)
+  return env.VAPID_PUBLIC_KEY && env.VAPID_PRIVATE_KEY ? env.VAPID_PUBLIC_KEY : null
+}
 
 /** Better Auth's OTP store namespace the deletion code lives in; it never signs anyone in. */
 const DELETE_CODE_TYPE = 'email-verification' as const
@@ -331,7 +345,54 @@ export const accountRouter = {
       whatsappAvailable,
       hasPhone: Boolean(profile?.phone),
       bugReports: loadEnv(process.env).BUG_REPORTS_ENABLED,
+      push: {
+        /** Null: this server has no VAPID keys, so the Push column says it is not set up. */
+        publicKey: pushPublicKey(),
+        devices: await pushDeviceCount(context.tx, userId),
+      },
     }
+  }),
+
+  /** Push, "Turn on for this device": saves this browser's subscription for the member. */
+  savePushDevice: storeProcedure
+    .input(PushSubscriptionInputSchema)
+    .handler(async ({ context, input }) => {
+      if (!pushPublicKey()) {
+        throw new ORPCError('PRECONDITION_FAILED', { message: 'Push is not set up on this server' })
+      }
+      await savePushSubscription(
+        context.tx,
+        context.scope.storeId,
+        context.scope.userId,
+        input,
+        settingsSecret(),
+      )
+      return { devices: await pushDeviceCount(context.tx, context.scope.userId) }
+    }),
+
+  /** Push, "Turn off for this device". */
+  removePushDevice: storeProcedure
+    .input(z.object({ endpoint: z.string().url().max(2000) }))
+    .handler(async ({ context, input }) => {
+      await removePushSubscription(context.tx, context.scope.userId, input.endpoint)
+      return { devices: await pushDeviceCount(context.tx, context.scope.userId) }
+    }),
+
+  /** Push, "Send a test": one push to each of the member's devices, sent by the worker. */
+  sendPushTest: storeProcedure.handler(async ({ context }) => {
+    if (!context.push) {
+      throw new ORPCError('PRECONDITION_FAILED', { message: 'Push is not set up on this server' })
+    }
+    await limit(context, 'push-test', context.scope.userId, PUSH_TEST_RULE, (minutes) =>
+      minutes <= 1
+        ? 'Wait a minute before sending another test'
+        : `Wait ${minutes} minutes before sending another test`,
+    )
+    await enqueuePushTest(context.push, {
+      storeId: context.scope.storeId,
+      userId: context.scope.userId,
+    })
+    return { ok: true as const }
   }),
 
   /** Saves the member's own alerts for this store, on their own staff row only. */

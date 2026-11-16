@@ -54,7 +54,7 @@ const ALLOWLIST: Record<string, { lines: number; reason: string }> = {
     reason: 'API keys plus the OAuth server for MCP clients — split OAuth into its own module',
   },
   'apps/worker/src/index.ts': {
-    lines: 606,
+    lines: 646,
     reason:
       'the worker entry wires every queue, worker, schedule, the memory guard and shutdown in one place; the sweep list (#1350) could move to its own module',
   },
@@ -84,7 +84,7 @@ const ALLOWLIST: Record<string, { lines: number; reason: string }> = {
     reason: 'the Drizzle schema; split into per-area schema files (like marketing-schema.ts)',
   },
   'packages/config/src/env.ts': {
-    lines: 579,
+    lines: 634,
     reason:
       'every env setting with its doc comment; split per area (auth, payments, AI) into env/*.ts',
   },

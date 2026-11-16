@@ -2,6 +2,7 @@
 import { inboxConversation, inboxMessage, type StoreTx } from '@commerce/db'
 import { and, asc, desc, eq, gt, lt, ne, sql } from 'drizzle-orm'
 import { CommerceError } from '../errors'
+import { insertOutboxEvent } from '../outbox/write'
 import { MESSAGE_MAX, type MessageKind, type MessageSender, THREAD_PAGE } from './constants'
 import { previewOf } from './rules'
 
@@ -129,6 +130,11 @@ export async function appendMessage(
       .update(inboxConversation)
       .set({ ...patch, unreadStaff: sql`${inboxConversation.unreadStaff} + 1` })
       .where(eq(inboxConversation.id, conversation.id))
+    // Staff with Inbox push on hear about it once this commits (`push/messages.ts`).
+    await insertOutboxEvent(tx, storeId, 'inbox.message_received', {
+      conversationId: conversation.id,
+      messageId: inserted.id,
+    })
   } else if (counts) {
     await tx
       .update(inboxConversation)

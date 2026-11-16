@@ -52,7 +52,7 @@ async function seed(storeNotifications: unknown = null) {
     { id: 'u-quiet', email: 'quiet@example.com', phone: null },
   ]
   await owner.insert(authSchema.user).values(users.map((u) => ({ ...u, name: u.id })))
-  const on = { email: true, whatsapp: true }
+  const on = { email: true, whatsapp: true, push: false }
   const staffPrefs: MemberAlertPrefs = {
     ...parseMemberAlertPrefs(null, false),
     newOrder: on,

@@ -47,6 +47,8 @@ export type NavItem = {
   base?: string
   /** Sub-pages shown before "View more" (an app's own pages: four, owner 11 Nov 2026). */
   childLimit?: number
+  /** What the row's count pill counts, for its tooltip: orders to ship (default) or unread chats. */
+  countKind?: 'toShip' | 'unread'
 }
 export type NavGroup = { label?: string; items: NavItem[] }
 
@@ -59,6 +61,7 @@ export const INBOX_NAV: NavItem = {
   label: 'Inbox',
   icon: MessageSquare,
   permission: permissions.INBOX_READ,
+  countKind: 'unread',
   children: [
     { href: routes.salesChannels.inboxConversations(), label: 'Conversations' },
     { href: routes.salesChannels.inboxQuickReplies(), label: 'Quick replies' },
@@ -271,6 +274,8 @@ export const navigationContent = {
   collapseSection: (label: string) => `Hide ${label} pages`,
   /** The Orders row's count pill. */
   countHint: (n: number) => `${n} waiting to ship`,
+  /** The Inbox row's count pill. */
+  unreadHint: (n: number) => (n === 1 ? '1 unread conversation' : `${n} unread conversations`),
   search: {
     placeholder: 'Search orders, products or customers',
     field: `Search or ask ${siteConfig.brand.name} AI…`,

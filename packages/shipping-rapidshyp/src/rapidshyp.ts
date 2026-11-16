@@ -43,11 +43,11 @@
  *
  * HOW createShipment BOOKS, AND ORDER IDS: see `./booking`.
  *
+ * APPROVE ORDER (`/approve_orders`): called only when booking a picked courier and
+ * `create_order` gave no shipment id; RapidShyp support says its answer carries the id
+ * (16 Nov 2026). See `./booking`.
+ *
  * NOT IMPLEMENTED:
- *  - Approve Order (`/approve_orders`) - RapidShyp's own docs describe orders
- *    as shippable once created; nothing here depends on a separate approval
- *    step, and no account-specific "approval required" setting could be
- *    confirmed, so this is left out rather than called unconditionally.
  *  - De-allocate Shipment (`/de_allocate_shipment`) - frees an AWB for
  *    re-assignment to a different courier without cancelling the order; a
  *    different operation from `cancel()` (which must actually stop the
