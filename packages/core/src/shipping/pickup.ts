@@ -2,7 +2,7 @@ import { dayKey } from '@commerce/dates'
 import { shipment, shipmentManifest, shipmentPickup } from '@commerce/db'
 import { logger } from '@commerce/observability/logging'
 import type { ShippingProvider } from '@commerce/shipping'
-import { and, eq, inArray, isNull } from 'drizzle-orm'
+import { and, eq, inArray, isNull, lt, or } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 import { CommerceError } from '../errors'
 
@@ -131,7 +131,28 @@ export async function schedulePickup(
   return row
 }
 
-/** Mark the shipments not yet on a pickup as belonging to this one; how many it took. */
+/**
+ * Shipments free to go on a new pickup: never on one, or still at the store on a pickup whose day
+ * has passed (India time). A missed pickup leaves the parcel linked to it, and without this it
+ * could never be booked again; Delhivery even keeps it in its manifest, so cancel is no way out.
+ */
+function freeForPickup(ctx: StoreContext) {
+  const past = ctx.tx
+    .select({ id: shipmentPickup.id })
+    .from(shipmentPickup)
+    .where(
+      and(
+        eq(shipmentPickup.storeId, ctx.storeId),
+        lt(shipmentPickup.scheduledFor, dayKey(new Date())),
+      ),
+    )
+  return or(
+    isNull(shipment.pickupId),
+    and(eq(shipment.status, 'created'), inArray(shipment.pickupId, past)),
+  )
+}
+
+/** Mark the shipments free for a pickup as belonging to this one; how many it took. */
 async function attachToPickup(
   ctx: StoreContext,
   pickupId: string,
@@ -141,11 +162,7 @@ async function attachToPickup(
     .update(shipment)
     .set({ pickupId, updatedAt: new Date() })
     .where(
-      and(
-        inArray(shipment.id, shipmentIds),
-        eq(shipment.storeId, ctx.storeId),
-        isNull(shipment.pickupId),
-      ),
+      and(inArray(shipment.id, shipmentIds), eq(shipment.storeId, ctx.storeId), freeForPickup(ctx)),
     )
     .returning({ id: shipment.id })
   return rows.length
@@ -194,16 +211,12 @@ export async function listPickups(ctx: StoreContext): Promise<ShipmentPickupRow[
     .orderBy(shipmentPickup.scheduledFor)
 }
 
-/** Shipments not yet attached to a pickup, for the "schedule pickup" picker. */
+/** Shipments waiting for a pickup (none yet, or a missed one), for the "schedule pickup" picker. */
 export async function listUnpickedShipments(ctx: StoreContext) {
   return ctx.tx
     .select()
     .from(shipment)
     .where(
-      and(
-        eq(shipment.storeId, ctx.storeId),
-        isNull(shipment.pickupId),
-        eq(shipment.status, 'created'),
-      ),
+      and(eq(shipment.storeId, ctx.storeId), eq(shipment.status, 'created'), freeForPickup(ctx)),
     )
 }

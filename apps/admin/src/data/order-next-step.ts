@@ -32,6 +32,7 @@ export const orderNextStepContent = {
     copyLink: 'Copy tracking link',
     linkCopied: 'Tracking link copied',
     delivered: 'Mark as delivered',
+    awaitingPickup: 'Waiting for pickup',
     steps: {
       picked_up: 'Picked up',
       in_transit: 'In transit',

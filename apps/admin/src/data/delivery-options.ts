@@ -194,6 +194,7 @@ export const deliveryOptionsContent = {
     mode: 'Price the parcel from',
     modes: { typed: 'A weight I type', picked: 'Products I pick' },
     ruleProducts: 'Products for rules',
+    ruleProductsHelp: 'Only needed when a delivery rule depends on what is in the cart.',
     addProducts: 'Add products',
     noLines: 'No products yet. Add what the shopper would buy; the box and weight come from them.',
     quantity: (title: string) => `Quantity of ${title}`,
@@ -203,6 +204,8 @@ export const deliveryOptionsContent = {
         ? `Couriers were asked for ${kg} kg, packed in ${box} cm: the higher of its weight and its box size, as couriers bill.`
         : `Couriers were asked for ${kg} kg (no box set up).`,
     declineInsurance: 'Shopper unticks insurance',
+    declineInsuranceHelp:
+      'Try the cards as a shopper who turned off parcel insurance would see them.',
     run: 'Try',
     running: 'Asking your couriers…',
     cardsTitle: 'What the shopper sees',
