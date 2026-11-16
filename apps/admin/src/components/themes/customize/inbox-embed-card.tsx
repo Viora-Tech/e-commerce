@@ -18,6 +18,7 @@ import {
   CHROME_META,
 } from '@/lib/customize-chrome'
 import { FIELD_INPUT } from '@/lib/customize-field-styles'
+import { loadInboxEmbed, patchInboxEmbed, useInboxEmbed } from '@/lib/inbox-embed-store'
 import FieldFrame from './field-frame'
 import InboxEmbedField from './inbox-embed-field'
 import InboxEmbedPreview from './inbox-embed-preview'
@@ -54,25 +55,14 @@ export default function InboxEmbedCard({ expanded, onToggleOpen }: InboxEmbedCar
   // Hooks
   const copy = useCopy(customizeInboxEmbedContent)
   const greetingId = useId()
-  const [settings, setSettings] = useState<InboxSettings | null>(null)
+  // Shared with the canvas, which draws the chat button from the same settings.
+  const { settings, loadFailed } = useInboxEmbed()
   const [state, setState] = useState<SaveState>('idle')
-  const [loadFailed, setLoadFailed] = useState(false)
   const pending = useRef<Partial<InboxSettings> | null>(null)
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
-    let live = true
-    api.inbox.settings
-      .get()
-      .then((r) => {
-        if (live) setSettings(r.settings)
-      })
-      .catch(() => {
-        if (live) setLoadFailed(true)
-      })
-    return () => {
-      live = false
-    }
+    void loadInboxEmbed()
   }, [])
 
   useEffect(
@@ -97,7 +87,7 @@ export default function InboxEmbedCard({ expanded, onToggleOpen }: InboxEmbedCar
   }
   const handlePatch = (next: Partial<InboxSettings>) => {
     if (!settings) return
-    setSettings({ ...settings, ...next })
+    patchInboxEmbed(next)
     pending.current = { ...pending.current, ...next }
     if (timer.current) clearTimeout(timer.current)
     timer.current = setTimeout(handleSave, SAVE_DELAY_MS)
