@@ -95,7 +95,13 @@ export default async function AdminLayout({ children }: { children: ReactNode })
     // Each page's count matches its list: Orders counts orders, Shipments the To ship rows (parcels).
     ...(active && toShip?.orders ? { [routes.orders.list()]: toShip.orders } : {}),
     ...(active && toShip?.parcels ? { [routes.orders.shipments()]: toShip.parcels } : {}),
-    ...(inboxUnread ? { [routes.salesChannels.inboxConversations()]: inboxUnread } : {}),
+    // Unread chats on Conversations and on the Inbox row itself, so a closed Inbox still shows them.
+    ...(inboxUnread
+      ? {
+          [routes.salesChannels.inbox()]: inboxUnread,
+          [routes.salesChannels.inboxConversations()]: inboxUnread,
+        }
+      : {}),
     // Shoppers' unpaid checkout drafts that came in since the member last opened Drafts.
     ...(active && drafts ? { [routes.orders.drafts()]: drafts } : {}),
     // Waiting approvals and unseen outcomes of the member's own requests.

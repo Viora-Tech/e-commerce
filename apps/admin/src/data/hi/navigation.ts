@@ -203,6 +203,7 @@ export default [
     expandSection: (label) => `${label} के पेज दिखाएं`,
     collapseSection: (label) => `${label} के पेज छिपाएं`,
     countHint: (n) => `${n} भेजने बाकी`,
+    unreadHint: (n) => `${n} बिना पढ़ी बातचीत`,
     search: {
       placeholder: 'ऑर्डर, प्रोडक्ट या ग्राहक खोजें',
       field: `खोजें या ${siteConfig.brand.name} AI से पूछें…`,
