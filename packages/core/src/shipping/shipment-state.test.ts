@@ -1,6 +1,12 @@
 /** SOURCE OF TRUTH: tests for cancelBlock and shipmentLabelUrl — WHAT: when a cancel is refused and which label links go through the admin route / WHY: pins the rules the server and the admin share */
 import { describe, expect, it } from 'vitest'
-import { cancelBlock, isKeyedLabelUrl, shipmentLabelUrl, storedLabelUrl } from './shipment-state'
+import {
+  cancelBlock,
+  isKeyedLabelUrl,
+  pickupMissed,
+  shipmentLabelUrl,
+  storedLabelUrl,
+} from './shipment-state'
 
 const ok = { inManifest: false, courierCancels: true }
 
@@ -48,5 +54,17 @@ describe('shipmentLabelUrl', () => {
     expect(isKeyedLabelUrl('https://evil.example.com/?u=delhivery.com/api/p/packing_slip')).toBe(
       false,
     )
+  })
+})
+
+describe('pickupMissed', () => {
+  const today = '2026-11-17'
+  it('is missed when the parcel is still at the store after its pickup day', () => {
+    expect(pickupMissed({ status: 'created' }, { date: '2026-11-16' }, today)).toBe(true)
+  })
+  it('is not missed on the pickup day itself, once collected, or with no pickup', () => {
+    expect(pickupMissed({ status: 'created' }, { date: today }, today)).toBe(false)
+    expect(pickupMissed({ status: 'picked_up' }, { date: '2026-11-16' }, today)).toBe(false)
+    expect(pickupMissed({ status: 'created' }, null, today)).toBe(false)
   })
 })

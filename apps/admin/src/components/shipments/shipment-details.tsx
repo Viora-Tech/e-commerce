@@ -81,7 +81,7 @@ export default function ShipmentDetails({
   const pkg = [kg, size].filter(Boolean).join(' · ')
   const time = shipment.pickup?.timeFrom.match(HHMM)
   const pickup = shipment.pickup
-    ? copy.pickupOn(
+    ? (shipment.pickupMissed ? copy.pickupMissed : copy.pickupOn)(
         fmt.pattern(shipment.pickup.date, { weekday: 'short', day: 'numeric', month: 'short' }),
         time ? `${time[1]?.padStart(2, '0')}:${time[2]}` : shipment.pickup.timeFrom,
       )
@@ -129,7 +129,7 @@ export default function ShipmentDetails({
         {shipment.canRequestPickup && !requesting ? (
           <Button variant="outline" onClick={() => setRequesting(true)}>
             <Truck aria-hidden="true" />
-            {copy.requestPickup}
+            {shipment.pickupMissed ? copy.requestPickupAgain : copy.requestPickup}
           </Button>
         ) : null}
         {shipment.canEditTracking ? (

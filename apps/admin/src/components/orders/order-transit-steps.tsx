@@ -22,6 +22,8 @@ export default function OrderTransitSteps({ shipment }: OrderTransitStepsProps) 
   // Render logic
   const tracking = (shipment.tracking ?? null) as Tracking | null
   const status = tracking?.status ?? shipment.status
+  // Still at the store (label made, not scanned by the courier): the first step is the wait for it.
+  const waiting = status === 'created'
   const current = Math.max((STEPS as readonly string[]).indexOf(status), 0)
   const last = tracking?.events.at(-1)
 
@@ -66,7 +68,7 @@ export default function OrderTransitSteps({ shipment }: OrderTransitStepsProps) 
                   here || done ? 'font-medium text-ink-strong' : 'text-foreground',
                 )}
               >
-                {copy.transit.steps[step]}
+                {waiting && i === 0 ? copy.transit.awaitingPickup : copy.transit.steps[step]}
               </span>
               {note ? <span className="text-caption text-muted-foreground">{note}</span> : null}
             </div>

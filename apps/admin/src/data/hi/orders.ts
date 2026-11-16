@@ -339,6 +339,7 @@ export default [
       copyLink: 'ट्रैकिंग लिंक कॉपी करें',
       linkCopied: 'ट्रैकिंग लिंक कॉपी हुआ',
       delivered: 'डिलीवर हो गया मार्क करें',
+      awaitingPickup: 'पिकअप का इंतज़ार',
       steps: {
         picked_up: 'उठा लिया',
         in_transit: 'रास्ते में',

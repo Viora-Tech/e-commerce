@@ -8,6 +8,7 @@ import {
   product,
   shipment,
   shipmentManifest,
+  shipmentPickup,
   store,
   variant,
   withStore,
@@ -18,7 +19,7 @@ import { eq } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { buildTemplateData } from '../notifications/deliver'
 import { pushPendingOrders } from './order-push'
-import { schedulePickup } from './pickup'
+import { listUnpickedShipments, schedulePickup } from './pickup'
 import {
   builtInShippingRegistry,
   encryptShippingSettings,
@@ -575,6 +576,43 @@ describe('pickup requests', () => {
     )
     expect(retried.status).toBe('scheduled')
     expect(asked).toHaveLength(2)
+  })
+
+  it('a parcel whose pickup day passed uncollected can be booked on a new pickup', async () => {
+    const { storeId, orderId } = await seedOrder()
+    const asked: unknown[] = []
+    const courier = pickupCourier(asked)
+    const row = await withStore(app, storeId, (tx) =>
+      createShipmentForOrder({ storeId, tx }, courier, orderId),
+    )
+    // Yesterday's pickup that never came (Delhivery: "Shipment not received from client").
+    const [missed] = await owner
+      .insert(shipmentPickup)
+      .values({
+        storeId,
+        provider: courier.id,
+        scheduledFor: '2020-01-01',
+        timeFrom: '14:00',
+        expectedPackageCount: 1,
+        status: 'scheduled',
+      })
+      .returning()
+    await owner.update(shipment).set({ pickupId: missed?.id }).where(eq(shipment.id, row.id))
+
+    const waiting = await withStore(app, storeId, (tx) => listUnpickedShipments({ storeId, tx }))
+    expect(waiting.map((s) => s.id)).toContain(row.id)
+
+    const again = await withStore(app, storeId, (tx) =>
+      schedulePickup({ storeId, tx }, courier, {
+        shipmentIds: [row.id],
+        date: '2099-10-27',
+        timeFrom: '14:00',
+        pickupLocationName: '',
+      }),
+    )
+    expect(again.status).toBe('scheduled')
+    const [s] = await owner.select().from(shipment).where(eq(shipment.id, row.id))
+    expect(s?.pickupId).toBe(again.id)
   })
 })
 
