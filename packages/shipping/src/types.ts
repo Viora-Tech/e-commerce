@@ -89,12 +89,7 @@ export type CreateShipmentInput = {
   orderId: string
   /** Human order number; couriers print it on the label and echo it in tracking. */
   orderNumber: number
-  /**
-   * The order's issued GST tax invoice number, when the GST invoices app made one. Couriers that
-   * carry the invoice on their papers (ShipGlobal's export `invoice_no`) send it; absent, they
-   * fall back to the order number.
-   */
-  invoiceNumber?: string | undefined
+  invoiceNumber?: string | undefined // issued GST invoice no. (ShipGlobal `invoice_no`)
   to: ShipmentAddress
   /** Where the parcel goes back to on RTO. */
   from: ShipmentAddress

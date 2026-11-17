@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: courier invoice number — WHAT: the order's issued GST invoice number for bookings / WHY: export papers must match the GST invoice */
 import { sql } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 
