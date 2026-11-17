@@ -1572,11 +1572,6 @@ const ALLOWLIST: AllowEntry[] = [
       'pure pieces of startTruecaller/completeTruecaller (signed nonce, SSRF guard, number parsing), tested directly in tokens.test.ts',
   },
   {
-    file: 'packages/core/src/onboarding/signup-gate.ts',
-    names: ['isOwnerRole'],
-    reason: 'pure rule behind userOwnsAStore (security audit 2026-09), exported for its unit test',
-  },
-  {
     file: 'packages/core/src/privacy/requests.ts',
     names: ['requestMatchesCustomer'],
     reason:

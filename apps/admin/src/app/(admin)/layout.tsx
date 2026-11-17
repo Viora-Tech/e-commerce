@@ -1,4 +1,5 @@
 import { loadEnv } from '@commerce/config'
+import { unfinishedStore } from '@commerce/core'
 import { nextPlanUp } from '@commerce/core/billing'
 import { issuesArePublic } from '@commerce/core/bug-reports'
 import { headers } from 'next/headers'
@@ -14,6 +15,7 @@ import { appEntryHref } from '@/lib/apps-gallery'
 import { getSession } from '@/lib/auth'
 import { feePercent } from '@/lib/billing'
 import { REQUEST_PATH_HEADER } from '@/lib/csp'
+import { db } from '@/lib/db'
 import { routes, safeNext } from '@/lib/routes'
 import {
   type AppBars,
@@ -47,6 +49,9 @@ export default async function AdminLayout({ children }: { children: ReactNode })
 
   const activeId =
     (session.session as { activeOrganizationId?: string | null }).activeOrganizationId ?? null
+  // A store whose setup stopped part way (#1778): finish it in onboarding, never open its pages.
+  if (activeId && (await unfinishedStore(db(), activeId, session.user.id)))
+    redirect(routes.onboarding())
   // Everything else needs only the session, so it is read at once rather than one after
   // another. Store calls for a stale active id answer "no store" on their own and are dropped
   // below unless that store is one of the member's.
