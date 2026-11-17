@@ -16,6 +16,7 @@ export const rapidshypPlugin = definePlugin({
   kind: 'connection',
   category: 'shipping',
   company: 'RapidShyp',
+  tested: true,
   description: 'Rate comparison across RapidShyp’s courier network, bookings and cancellation.',
   listing: {
     tagline: 'Multi-courier rates, labels, pickups and tracking.',
