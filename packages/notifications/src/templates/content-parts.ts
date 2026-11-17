@@ -420,18 +420,24 @@ export const platformTemplates = {
     subject: (d) =>
       d.planBill?.kind === 'fair_use'
         ? `${d.storeName} is past its plan's fair-use visits`
-        : d.planBill?.kind === 'overdue'
-          ? `Your ${d.planBill.platformName} bill for ${d.storeName} is overdue`
-          : `Your ${d.planBill?.platformName ?? siteConfig.brand.name} bill for ${d.storeName}: ${d.planBill?.amountLabel ?? ''}`,
+        : d.planBill?.kind === 'autopay_failed'
+          ? `UPI AutoPay could not pay for ${d.storeName}`
+          : d.planBill?.kind === 'overdue'
+            ? `Your ${d.planBill.platformName} bill for ${d.storeName} is overdue`
+            : `Your ${d.planBill?.platformName ?? siteConfig.brand.name} bill for ${d.storeName}: ${d.planBill?.amountLabel ?? ''}`,
     heading: (d) =>
       d.planBill?.kind === 'fair_use'
         ? 'Your store is busier than its plan'
-        : d.planBill?.kind === 'overdue'
-          ? 'Your bill is overdue'
-          : 'Your bill is ready',
+        : d.planBill?.kind === 'autopay_failed'
+          ? 'UPI AutoPay stopped'
+          : d.planBill?.kind === 'overdue'
+            ? 'Your bill is overdue'
+            : 'Your bill is ready',
     intro: (d) => {
       const b = d.planBill
       if (!b) return ''
+      if (b.kind === 'autopay_failed')
+        return `UPI AutoPay could not take the payment for ${b.what}, and Razorpay has stopped trying. Nothing is paused yet. Pay the renewal by link from Plan & billing, or turn AutoPay on again there.`
       if (b.kind === 'overdue')
         return `${b.amountLabel} for ${b.what} is still unpaid. Your paid time ended on ${b.dueLabel}; pay now to keep everything working.`
       if (b.kind === 'renewal')
@@ -443,11 +449,13 @@ export const platformTemplates = {
       return `${b.amountLabel} (including GST) for ${b.what}. It starts as soon as the payment goes through.`
     },
     outro: (d) =>
-      d.planBill?.kind === 'fair_use'
-        ? `${d.actionUrl ? `See your plan: ${d.actionUrl}. ` : ''}Questions? Write to ${siteConfig.contact.supportEmail}.`
+      d.planBill?.kind === 'fair_use' || d.planBill?.kind === 'autopay_failed'
+        ? `${d.actionUrl ? `Plan & billing: ${d.actionUrl}. ` : ''}Questions? Write to ${siteConfig.contact.supportEmail}.`
         : `${d.actionUrl ? `Pay here: ${d.actionUrl}. ` : ''}Pay with UPI, card or netbanking. Your GST invoice comes by email once it is paid. Questions? Write to ${siteConfig.contact.supportEmail}.`,
     whatsapp: (d) =>
-      `${d.storeName}: ${d.planBill?.amountLabel ?? ''} due for ${d.planBill?.what ?? 'your plan'}.${d.actionUrl ? ` Pay: ${d.actionUrl}` : ''}`,
+      d.planBill?.kind === 'autopay_failed'
+        ? `${d.storeName}: UPI AutoPay could not pay for ${d.planBill.what}.${d.actionUrl ? ` Plan & billing: ${d.actionUrl}` : ''}`
+        : `${d.storeName}: ${d.planBill?.amountLabel ?? ''} due for ${d.planBill?.what ?? 'your plan'}.${d.actionUrl ? ` Pay: ${d.actionUrl}` : ''}`,
   },
   bug_report_update: {
     subject: (d) =>

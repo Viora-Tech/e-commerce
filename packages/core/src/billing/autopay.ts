@@ -15,6 +15,7 @@ import { autopayMandate, type Db, order, payment, withStore } from '@commerce/db
 import { and, desc, eq, inArray, sql } from 'drizzle-orm'
 import { CommerceError } from '../errors'
 import { applyPaymentStatus } from '../payments/confirm'
+import { planBillWhat, sendPlanBillEmail } from './emails'
 import { type BillingInterval, PLANS, type PlanId } from './plans'
 import { type BillingEnv, createPlanBill } from './service'
 
@@ -222,6 +223,16 @@ export async function handleAutopayWebhook(
         .set({ status, updatedAt: now })
         .where(eq(autopayMandate.id, mandate.id)),
     )
+    // Razorpay stopped retrying a failed charge: tell the owner now, not at the overdue email.
+    // Once per halt (a repeated webhook finds the mandate already halted).
+    if (body.event === 'subscription.halted' && mandate.status !== 'halted')
+      await sendPlanBillEmail(db, storeId, {
+        kind: 'autopay_failed',
+        what: planBillWhat(mandate.plan, mandate.interval),
+        amountPaise: 0,
+        due: now,
+        url: `${siteConfig.urls.admin}/settings/billing`,
+      })
     return 'ok'
   }
   if (body.event !== 'subscription.charged') return 'ignored'
