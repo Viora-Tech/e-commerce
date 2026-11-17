@@ -1,5 +1,5 @@
 import { loadEnv } from '@commerce/config'
-import { checkSignupGate, userOwnsAStore } from '@commerce/core'
+import { checkSignupGate, unfinishedStore, userOwnsAStore } from '@commerce/core'
 import { redirect } from 'next/navigation'
 import InviteOnlyCard from '@/components/onboarding/invite-only-card'
 import OnboardingScreen from '@/components/onboarding/onboarding-screen'
@@ -19,10 +19,14 @@ export default async function OnboardingPage() {
   })
 
   if (decision.allowed) {
+    const activeId = (session.session as { activeOrganizationId?: string | null })
+      .activeOrganizationId
+    const resume = activeId ? await unfinishedStore(db(), activeId, session.user.id) : null
     return (
       <OnboardingWizard
         platformDomain={env.PLATFORM_STORE_DOMAIN}
         defaultName={session.user.name}
+        resume={resume}
       />
     )
   }

@@ -78,6 +78,8 @@ export const onboardingContent = {
   submit: 'Create store',
   creating: 'Creating your store…',
   createFailed: 'Could not create your store',
+  resume: (name: string) =>
+    `Setting up ${name} did not finish. Check the details and continue to finish it.`,
   inviteOnly: {
     heading: 'Signups are invite-only for now',
     body: 'Leave your details and we will send you an invite as soon as there is room.',
