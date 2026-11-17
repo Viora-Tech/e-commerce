@@ -15,7 +15,7 @@ import {
 } from '@commerce/db'
 import { resetDb } from '@commerce/db/test'
 import { FakeShippingProvider, type Tracking } from '@commerce/shipping'
-import { eq } from 'drizzle-orm'
+import { eq, sql } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { buildTemplateData } from '../notifications/deliver'
 import { pushPendingOrders } from './order-push'
@@ -186,6 +186,28 @@ describe('shipments', () => {
     // The shipped notification now carries the waybill.
     const built = await withStore(app, storeId, (tx) => buildTemplateData({ storeId, tx }, orderId))
     expect(built?.data.waybill).toBe('WB1')
+  })
+
+  it("sends the order's issued GST invoice number with the booking", async () => {
+    const { storeId, orderId } = await seedOrder()
+    // An issued tax invoice from the GST invoices app (its own table), and a cancelled one.
+    await owner.execute(sql`
+      insert into invoice (id, store_id, order_id, kind, status, number, snapshot, buyer_name,
+        place_of_supply, taxable_paise, cgst_paise, sgst_paise, igst_paise, total_paise)
+      values
+        (gen_random_uuid(), ${storeId}, ${orderId}, 'tax_invoice', 'cancelled', 'VI/EXP/26-27/003',
+          '{}'::jsonb, 'Jane', '96', 199900, 0, 0, 0, 199900),
+        (gen_random_uuid(), ${storeId}, ${orderId}, 'tax_invoice', 'issued', 'VI/EXP/26-27/004',
+          '{}'::jsonb, 'Jane', '96', 199900, 0, 0, 0, 199900)`)
+    const captured: unknown[] = []
+    const spy = Object.assign(new FakeShippingProvider(), {
+      createShipment: async (input: unknown) => {
+        captured.push(input)
+        return { waybill: 'WB9', providerRef: 'WB9', labelUrl: 'https://l' }
+      },
+    })
+    await withStore(app, storeId, (tx) => createShipmentForOrder({ storeId, tx }, spy, orderId))
+    expect(captured[0]).toMatchObject({ orderNumber: 7, invoiceNumber: 'VI/EXP/26-27/004' })
   })
 
   it('weighs the products (500 g when unknown) plus the box packing', async () => {

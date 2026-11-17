@@ -1,0 +1,37 @@
+/*
+ * The blocks styles every storefront page loads (the storefront's globals.css): base, header,
+ * footer, product, cart, collection, popups and the components imported themes' pages draw with
+ * our React sections. The section styles only our own themes' sections use are in sections.css,
+ * linked by the storefront only on pages that need them (`apps/storefront/src/lib/section-styles.ts`).
+ */
+@import "./base.css";
+@import "./effects.css";
+@import "./editor-overlay.css";
+@import "./component-app-blocks.css";
+@import "./component-article-card.css";
+@import "./component-breadcrumbs.css";
+@import "./component-gallery.css";
+@import "./component-offer-modal.css";
+@import "./component-price.css";
+@import "./component-product-card.css";
+@import "./component-product-overview.css";
+@import "./component-quantity.css";
+@import "./component-section-heading.css";
+@import "./component-stock-bar.css";
+@import "./rich-text.css";
+@import "./section-collection.css";
+@import "./section-footer.css";
+@import "./section-announcement.css";
+@import "./section-header.css";
+@import "./section-mobile-dock.css";
+@import "./section-sticky-atc.css";
+@import "./section-product.css";
+@import "./section-product-reviews.css";
+@import "./section-product-size-guide.css";
+@import "./section-product-tabs.css";
+@import "./section-related-products.css";
+@import "./section-cart.css";
+@import "./section-reviews.css";
+@import "./section-newsletter.css";
+@import "./section-cookie-banner.css";
+@import "./section-signup-popup.css";

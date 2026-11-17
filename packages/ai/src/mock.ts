@@ -26,6 +26,7 @@ import { REVIEW_REPLY_MARKER } from './review-reply'
 import { REVIEW_SUMMARY_MARKER } from './review-summary'
 import { SECTION_WRITER_MARKER } from './section-writer'
 import { SEO_KEYWORDS_MARKER } from './seo-keywords/prompt'
+import { STORE_KNOWLEDGE_MARKER } from './store-knowledge'
 
 const USAGE = {
   inputTokens: { total: 1_200, noCache: 1_200, cacheRead: undefined, cacheWrite: undefined },
@@ -183,6 +184,23 @@ function generated(prompt: Prompt): string {
     return JSON.stringify({
       about: 'The shopper asked about a product and their order.',
       pending: 'They are waiting for the team to confirm the details.',
+    })
+  }
+  if (system.includes(STORE_KNOWLEDGE_MARKER)) {
+    return JSON.stringify({
+      description: 'The store sells products online across India.',
+      audience: '',
+      founded: '',
+      location: 'India',
+      brands: [],
+      categories: [],
+      values: [],
+      style: '',
+      shipping: '',
+      payments: '',
+      returns: '',
+      support: '',
+      faq: [],
     })
   }
   if (system.includes(REVIEW_SUMMARY_MARKER)) {

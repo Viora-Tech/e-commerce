@@ -14,15 +14,21 @@ import DataCard from '@/components/layout/data-card'
 import PageBody from '@/components/layout/page-body'
 import PageColumns from '@/components/layout/page-columns'
 import PageHeader from '@/components/layout/page-header'
+import { agentReadyContent } from '@/data/agent-knowledge'
 import { salesChannelsContent } from '@/data/sales-channels'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { agentChipStatus } from '@/lib/channel-status'
 import { routes } from '@/lib/routes'
+import AgentTestQuery from './agent-test-query'
 import ChannelLogo from './channel-logo'
 import ChannelStatusChip from './channel-status-chip'
 
-type AgenticGetReadyProps = { data: AgenticOverview }
+type AgenticGetReadyProps = {
+  data: AgenticOverview
+  /** Knowledge base counts; null when they could not be read. */
+  knowledge: { published: number; total: number } | null
+}
 
 /** A catalog scoring this or more reads as ready for AI agents. */
 const READY_SCORE = 80
@@ -35,10 +41,11 @@ const SHARES = ['catalog', 'prices', 'policies', 'orders'] as const
  * checklist on the left, and on the right one switch that lets Koomerce list the store with
  * every agent as each goes live, the agents with their state, and what they read from.
  */
-export default function AgenticGetReady({ data }: AgenticGetReadyProps) {
+export default function AgenticGetReady({ data, knowledge }: AgenticGetReadyProps) {
   // Hooks
   const router = useRouter()
   const copy = useCopy(salesChannelsContent.getReady)
+  const ready = useCopy(agentReadyContent)
   const shared = useCopy(salesChannelsContent)
   const format = useFormat()
   const [busy, setBusy] = useState(false)
@@ -86,6 +93,17 @@ export default function AgenticGetReady({ data }: AgenticGetReadyProps) {
       body: copy.steps.visible.body(products.visible, products.active),
       href: routes.salesChannels.agenticControls(),
     },
+    ...(knowledge
+      ? [
+          {
+            id: 'knowledge',
+            done: knowledge.published > 0,
+            title: ready.step.title,
+            body: ready.step.body(knowledge.published, knowledge.total),
+            href: routes.salesChannels.agenticKnowledge(),
+          },
+        ]
+      : []),
   ]
 
   return (
@@ -143,6 +161,7 @@ export default function AgenticGetReady({ data }: AgenticGetReadyProps) {
                 ))}
               </ul>
             </DataCard>
+            <AgentTestQuery />
             <p className="text-caption text-muted-foreground">{copy.note}</p>
           </>
         }
@@ -191,6 +210,27 @@ export default function AgenticGetReady({ data }: AgenticGetReadyProps) {
                     )}
                   >
                     {readiness.score}/100
+                  </dd>
+                </div>
+                {knowledge ? (
+                  <div className="flex items-center justify-between gap-3">
+                    <dt className="text-foreground">
+                      <Link
+                        href={routes.salesChannels.agenticKnowledge()}
+                        className="hover:underline"
+                      >
+                        {ready.sources.knowledge}
+                      </Link>
+                    </dt>
+                    <dd className="text-muted-foreground tabular-nums">
+                      {ready.sources.knowledgeCount(knowledge.published, knowledge.total)}
+                    </dd>
+                  </div>
+                ) : null}
+                <div className="flex items-center justify-between gap-3">
+                  <dt className="text-foreground">{ready.sources.endpoint}</dt>
+                  <dd className="font-mono text-caption text-muted-foreground">
+                    {ready.sources.endpointValue}
                   </dd>
                 </div>
               </dl>

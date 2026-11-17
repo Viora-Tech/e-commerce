@@ -156,6 +156,8 @@ export function llmsTxt(
   origin: string,
   store: { name: string; description: string },
   index: StoreIndex,
+  /** Published knowledge base facts (Agentic sales → Knowledge base), one line each. */
+  facts: string[] = [],
 ): string {
   const copy = seoContent.llms
   const shown = index.products.slice(0, LLMS_PRODUCT_LIMIT)
@@ -166,6 +168,10 @@ export function llmsTxt(
     `# ${store.name}`,
     '',
     ...(store.description ? [`> ${store.description.replace(/\s+/g, ' ')}`, ''] : []),
+    ...section(
+      copy.about,
+      facts.map((f) => `- ${f.replace(/\s+/g, ' ')}`),
+    ),
     ...section(
       copy.collections,
       index.collections.map((c) => bullet(origin, c)),
@@ -184,6 +190,7 @@ export function llmsTxt(
       copy.blog,
       index.blog.map((b) => bullet(origin, b)),
     ),
+    ...section(copy.agents, [copy.agentsLine(`${origin}/api/mcp`)]),
     `## ${copy.sitemap}`,
     '',
     `- [sitemap.xml](${origin}/sitemap.xml)`,

@@ -114,3 +114,11 @@ export {
   seoKeywordsContent,
   seoKeywordsInstructions,
 } from './seo-keywords/prompt'
+export {
+  STORE_KNOWLEDGE_MARKER,
+  type StoreKnowledgeDraft,
+  type StoreKnowledgeInput,
+  StoreKnowledgeSchema,
+  storeKnowledgeContent,
+  storeKnowledgeInstructions,
+} from './store-knowledge'

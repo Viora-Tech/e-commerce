@@ -77,7 +77,7 @@ export type CreateStoreResult = {
  * (`store_isolation` in `0001_rls.sql`), so this also tells us which
  * transaction-scoped `app.store_id` to open before the row exists.
  */
-function deterministicStoreId(ownerUserId: string, slug: string): string {
+export function deterministicStoreId(ownerUserId: string, slug: string): string {
   const hex = createHash('sha256').update(`store:${ownerUserId}:${slug}`).digest('hex')
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20, 32)}`
 }

@@ -12,8 +12,11 @@ import type { PlatformCodeSender } from '../accounts/deliver-code'
 import { getPlatformEmail } from '../sender-email/platform'
 
 export type PlanBillEmail = {
-  /** `fair_use`: two months over the plan's visits; nothing is owed (`amountPaise` 0). */
-  kind: 'renewal' | 'overdue' | 'usage' | 'fair_use'
+  /**
+   * `fair_use`: two months over the plan's visits; nothing is owed (`amountPaise` 0).
+   * `autopay_failed`: Razorpay halted the plan's UPI AutoPay mandate (its retries failed).
+   */
+  kind: 'renewal' | 'overdue' | 'usage' | 'fair_use' | 'autopay_failed'
   /** "Growth plan (monthly)", "Reviews app". */
   what: string
   amountPaise: number

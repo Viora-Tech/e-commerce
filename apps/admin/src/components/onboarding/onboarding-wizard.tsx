@@ -16,7 +16,12 @@ import StepProgress from './step-progress'
 import StoreNameStep, { type StoreNameValue } from './store-name-step'
 import StorePreviewPanel from './store-preview-panel'
 
-type OnboardingWizardProps = { platformDomain: string; defaultName: string }
+type OnboardingWizardProps = {
+  platformDomain: string
+  defaultName: string
+  /** A store whose setup stopped part way (#1778): finish it under the same name and address. */
+  resume?: { name: string; slug: string } | null
+}
 
 const TOTAL_STEPS = 4
 
@@ -25,16 +30,20 @@ const TOTAL_STEPS = 4
  * where you are based → where you sell today). Nothing is saved until the
  * last screen, so Back and a page refresh are both safe.
  */
-export default function OnboardingWizard({ platformDomain, defaultName }: OnboardingWizardProps) {
+export default function OnboardingWizard({
+  platformDomain,
+  defaultName,
+  resume,
+}: OnboardingWizardProps) {
   // Hooks
   const copy = useCopy(onboardingContent)
   const router = useRouter()
   const [step, setStep] = useState(0)
-  const [store, setStore] = useState<StoreNameValue>({
-    name: defaultName,
-    slug: slugifyStoreName(defaultName),
-    slugEdited: false,
-  })
+  const [store, setStore] = useState<StoreNameValue>(
+    resume
+      ? { name: resume.name, slug: resume.slug, slugEdited: true }
+      : { name: defaultName, slug: slugifyStoreName(defaultName), slugEdited: false },
+  )
   const [sells, setSells] = useState<SellsWhat | null>(null)
   const [location, setLocation] = useState<LocationValue>({ country: 'IN', state: '' })
   const [sellsOn, setSellsOn] = useState<SellsOn | null>(null)
@@ -89,6 +98,11 @@ export default function OnboardingWizard({ platformDomain, defaultName }: Onboar
             onBack={step > 0 ? handleBack : undefined}
             disabled={submitting}
           />
+          {resume && step === 0 ? (
+            <p role="status" className="rounded-md bg-muted px-3 py-2 text-caption text-foreground">
+              {copy.resume(resume.name)}
+            </p>
+          ) : null}
           {step === 0 ? (
             <StoreNameStep
               platformDomain={platformDomain}

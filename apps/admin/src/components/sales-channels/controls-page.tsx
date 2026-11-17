@@ -18,7 +18,7 @@ import SaveBar from '@/components/layout/save-bar'
 import { salesChannelsContent } from '@/data/sales-channels'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
-import { chipStatus } from '@/lib/channel-status'
+import { agentChipStatus } from '@/lib/channel-status'
 import { routes } from '@/lib/routes'
 import ChannelLogo from './channel-logo'
 import ChannelStatusChip from './channel-status-chip'
@@ -254,7 +254,7 @@ export default function ControlsPage({ view: initial, collections }: ControlsPag
                     <span className="min-w-0 flex-1 truncate text-body font-medium">
                       {agents[a.agent].name}
                     </span>
-                    <ChannelStatusChip status={chipStatus(a.state)} />
+                    <ChannelStatusChip status={agentChipStatus(a.state)} />
                   </li>
                 ))}
               </ul>
