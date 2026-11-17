@@ -106,23 +106,27 @@ export default function KnowledgePage({ data: initial }: KnowledgePageProps) {
                 <DataCard
                   key={group}
                   title={copy.groups[group]}
-                  meta={copy.groupCount(present.length - unpublished.length, present.length)}
                   action={
-                    unpublished.length > 0 ? (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        disabled={busy !== null}
-                        onClick={() =>
-                          handlePublish(
-                            unpublished.map((f) => f.key),
-                            true,
-                          )
-                        }
-                      >
-                        {copy.publishAll}
-                      </Button>
-                    ) : undefined
+                    <div className="flex items-center gap-3">
+                      <span className="text-caption text-muted-foreground tabular-nums">
+                        {copy.groupCount(present.length - unpublished.length, present.length)}
+                      </span>
+                      {unpublished.length > 0 ? (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={busy !== null}
+                          onClick={() =>
+                            handlePublish(
+                              unpublished.map((f) => f.key),
+                              true,
+                            )
+                          }
+                        >
+                          {copy.publishAll}
+                        </Button>
+                      ) : null}
+                    </div>
                   }
                   flush
                 >
@@ -165,8 +169,7 @@ export default function KnowledgePage({ data: initial }: KnowledgePageProps) {
               <p className="mt-3 text-caption text-muted-foreground">
                 {data.scannedAt ? (
                   <>
-                    {copy.lastScanned}
-                    <RelativeTime value={data.scannedAt} />
+                    {copy.lastScanned} <RelativeTime value={data.scannedAt} />
                   </>
                 ) : (
                   copy.neverScanned
