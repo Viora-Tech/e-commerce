@@ -304,8 +304,9 @@ export class ShipglobalProvider implements ShippingProvider {
     return {
       service,
       payload: {
-        // VERIFY: the docs want invoice_no unique; the order number is unique per store.
-        invoice_no: String(input.orderNumber),
+        // The GST export invoice ("VI/EXP/26-27/004") when one is issued, so ShipGlobal's papers
+        // match the invoice; else the order number. Both are unique per store.
+        invoice_no: input.invoiceNumber?.trim() || String(input.orderNumber),
         invoice_date: indiaLocalTime(this.now()).slice(0, 10),
         order_reference: input.orderId,
         service,

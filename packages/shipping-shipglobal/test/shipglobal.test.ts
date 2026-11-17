@@ -365,6 +365,19 @@ describe('ShipglobalProvider order payload', () => {
     expect(payload).not.toHaveProperty('customer_nickname')
   })
 
+  it('sends the GST export invoice number as invoice_no when one is issued', () => {
+    const p = new ShipglobalProvider(config)
+    const { payload } = p.buildOrderPayload({
+      ...exportShipment,
+      invoiceNumber: 'VI/EXP/26-27/004',
+    })
+    expect(payload.invoice_no).toBe('VI/EXP/26-27/004')
+    // A blank number falls back to the order number.
+    expect(p.buildOrderPayload({ ...exportShipment, invoiceNumber: ' ' }).payload.invoice_no).toBe(
+      '1042',
+    )
+  })
+
   it('books the configured service when the rate table picked none, and sends the nicknames', () => {
     const p = new ShipglobalProvider({
       ...config,
