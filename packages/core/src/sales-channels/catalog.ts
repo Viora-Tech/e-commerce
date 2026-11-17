@@ -60,13 +60,22 @@ export const itemHash = (item: ChannelItem): string =>
 export async function buildChannelCatalog(
   tx: StoreTx,
   storeId: string,
-  opts: { origin: string; agents?: AgentControls | undefined },
+  opts: {
+    origin: string
+    agents?: AgentControls | undefined
+    /** Only these products (by handle), e.g. a search's results for the store endpoint. */
+    handles?: string[] | undefined
+  },
 ): Promise<ChannelItem[]> {
   const [s] = await tx.select({ name: store.name }).from(store).where(eq(store.id, storeId))
   const controls = opts.agents
   const where = [eq(product.status, 'active'), notSystemTest, eq(product.isGiftCard, false)]
   if (controls?.hideTagged && controls.hiddenTags.length)
     where.push(sql`not (${product.tags} && ${sql.param(controls.hiddenTags)}::text[])`)
+  if (opts.handles) {
+    if (!opts.handles.length) return []
+    where.push(inArray(product.handle, opts.handles))
+  }
   if (controls?.visibility === 'collections') {
     if (!controls.collectionIds.length) return []
     where.push(

@@ -8,23 +8,31 @@ import {
   cancelChannel,
   channelApps,
   disconnectChannel,
+  KNOWLEDGE_KEYS,
+  KnowledgeValueSchema,
   loadAgentControls,
   loadAgenticOverview,
   loadCatalogReadiness,
+  loadKnowledgeOverview,
   loadSocialOverview,
   OpenAiFeedSchema,
   PROVIDER_OF,
   permissions,
+  publishKnowledgeFacts,
   type SalesChannelId,
   SOCIAL_CHANNELS,
   saveAgentControls,
+  saveKnowledgeFact,
   saveOpenAiFeed,
+  searchAgentProducts,
   setChannelPaused,
   startChannelConnect,
+  storefrontOriginFor,
 } from '@commerce/core'
 import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
-import { can } from '../procedures'
+import { can, SEARCH_MAX } from '../procedures'
+import { scanStoreKnowledge } from '../services/ai/store-knowledge'
 
 /** Meta, Google and OpenAI access as the admin builds it (the worker builds the same). */
 export function channelDeps(): ChannelDeps {
@@ -140,5 +148,45 @@ export const salesChannelsRouter = {
       )
       await queueChannelSync(context.channelSync, context.scope.storeId, 'chatgpt')
       return state
+    }),
+  /** Agentic sales → Knowledge base: the facts agents may tell shoppers, and the policies. */
+  knowledge: can(permissions.ONLINE_STORE_READ).handler(({ context }) =>
+    loadKnowledgeOverview({ tx: context.tx, storeId: context.scope.storeId }),
+  ),
+  /** "Scan my store": AI drafts facts from the store's public content (unpublished). */
+  knowledgeScan: can(permissions.ONLINE_STORE_WRITE).handler(async ({ context, signal }) => {
+    await scanStoreKnowledge(context, signal)
+    return loadKnowledgeOverview({ tx: context.tx, storeId: context.scope.storeId })
+  }),
+  knowledgeSave: can(permissions.ONLINE_STORE_WRITE)
+    .input(z.object({ key: z.enum(KNOWLEDGE_KEYS), value: KnowledgeValueSchema.partial() }))
+    .handler(async ({ context, input }) => {
+      const ctx = { tx: context.tx, storeId: context.scope.storeId }
+      await saveKnowledgeFact(ctx, input.key, input.value)
+      return loadKnowledgeOverview(ctx)
+    }),
+  knowledgePublish: can(permissions.ONLINE_STORE_WRITE)
+    .input(
+      z.object({ keys: z.array(z.enum(KNOWLEDGE_KEYS)).min(1).max(20), published: z.boolean() }),
+    )
+    .handler(async ({ context, input }) => {
+      const ctx = { tx: context.tx, storeId: context.scope.storeId }
+      await publishKnowledgeFacts(ctx, input.keys, input.published)
+      return loadKnowledgeOverview(ctx)
+    }),
+  /** "Test a query": the products an AI agent gets for a shopper's search, as agents see them. */
+  testQuery: can(permissions.ONLINE_STORE_READ)
+    .input(z.object({ query: z.string().trim().min(2).max(SEARCH_MAX) }))
+    .handler(async ({ context, input }) => {
+      const origin = await storefrontOriginFor(
+        context.tx,
+        context.scope.storeId,
+        loadEnv(process.env).STOREFRONT_URL,
+      )
+      return searchAgentProducts(context.tx, context.scope.storeId, {
+        query: input.query,
+        limit: 5,
+        origin,
+      })
     }),
 }

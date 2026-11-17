@@ -18,6 +18,7 @@ import PageBody from '@/components/layout/page-body'
 import PageHeader from '@/components/layout/page-header'
 import SectionHead from '@/components/layout/section-head'
 import StatStrip from '@/components/layout/stat-strip'
+import { agentReadyContent } from '@/data/agent-knowledge'
 import { salesChannelsContent } from '@/data/sales-channels'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { routes } from '@/lib/routes'
@@ -31,13 +32,17 @@ import ManageChannelDialog from './manage-channel-dialog'
 import RequestDialog from './request-dialog'
 import SyncStatusBar from './sync-status-bar'
 
-type AgenticOverviewPageProps = { data: AgenticOverview }
+type AgenticOverviewPageProps = {
+  data: AgenticOverview
+  knowledge: { published: number; total: number } | null
+}
 
 /** Figma "Agentic sales · Overview" and "· Not connected". */
-export default function AgenticOverviewPage({ data }: AgenticOverviewPageProps) {
+export default function AgenticOverviewPage({ data, knowledge }: AgenticOverviewPageProps) {
   // Hooks
   const router = useRouter()
   const copy = useCopy(salesChannelsContent.overview)
+  const ready = useCopy(agentReadyContent)
   const shared = useCopy(salesChannelsContent)
   const format = useFormat()
   const [connecting, setConnecting] = useState<{ agent: AiAgent | null } | null>(null)
@@ -61,7 +66,7 @@ export default function AgenticOverviewPage({ data }: AgenticOverviewPageProps) 
 
   // Early returns
   // Until an agent is live or needs a look, the page is the short "get ready" checklist.
-  if (!featured) return <AgenticGetReady data={data} />
+  if (!featured) return <AgenticGetReady data={data} knowledge={knowledge} />
 
   return (
     <PageBody>
@@ -70,6 +75,13 @@ export default function AgenticOverviewPage({ data }: AgenticOverviewPageProps) 
         subtitle={copy.subtitle}
         actions={
           <>
+            <Button
+              variant="outline"
+              nativeButton={false}
+              render={<Link href={routes.salesChannels.agenticKnowledge()} />}
+            >
+              {ready.button}
+            </Button>
             <Button
               variant="outline"
               nativeButton={false}

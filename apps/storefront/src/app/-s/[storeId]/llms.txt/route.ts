@@ -1,4 +1,4 @@
-import { parsePreferences } from '@commerce/core'
+import { factLines, parseAgentKnowledge, parsePreferences, publishedFacts } from '@commerce/core'
 import { store } from '@commerce/db'
 import { eq } from 'drizzle-orm'
 import { requestOrigin } from '@/lib/seo'
@@ -15,7 +15,7 @@ export const dynamic = 'force-dynamic'
 export async function GET(_req: Request, { params }: Params) {
   const { storeId } = await params
   if (!(await storefrontLock(storeId)).ai) return new Response('Not found', { status: 404 })
-  const { name, description, index } = await inStore(storeId, async (tx) => {
+  const { name, description, facts, index } = await inStore(storeId, async (tx) => {
     const [s] = await tx
       .select({ name: store.name, preferences: store.preferences })
       .from(store)
@@ -23,10 +23,13 @@ export async function GET(_req: Request, { params }: Params) {
     return {
       name: s?.name ?? '',
       description: parsePreferences(s?.preferences).seo.description,
+      facts: publishedFacts(parseAgentKnowledge(s?.preferences)).flatMap(({ key, fact }) =>
+        factLines(key, fact),
+      ),
       index: await loadStoreIndex(tx),
     }
   })
-  return new Response(llmsTxt(await requestOrigin(), { name, description }, index), {
+  return new Response(llmsTxt(await requestOrigin(), { name, description }, index, facts), {
     headers: {
       'content-type': 'text/markdown; charset=utf-8',
       'cache-control': 'public, max-age=3600',

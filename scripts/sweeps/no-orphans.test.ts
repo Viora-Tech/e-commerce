@@ -18,6 +18,12 @@ type AllowEntry = { file: string; names: string[]; reason: string }
 
 const ALLOWLIST: AllowEntry[] = [
   {
+    file: 'packages/core/src/sales-channels/agent-store.ts',
+    names: ['groupAgentProducts'],
+    reason:
+      'pure grouping step of searchAgentProducts and agentProduct, asserted directly by knowledge.test.ts',
+  },
+  {
     file: 'packages/plugin-gst-invoices/src/sales-register-xlsx.ts',
     names: [
       'GOODS_HEADERS',
@@ -773,7 +779,7 @@ const ALLOWLIST: AllowEntry[] = [
   },
   {
     file: 'packages/core/src/blog/text.ts',
-    names: ['richTextToText', 'isArticleVisible'],
+    names: ['isArticleVisible'],
     reason: 'no external importer today — investigate before removing',
   },
   {
