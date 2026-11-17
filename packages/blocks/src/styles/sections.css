@@ -1,0 +1,32 @@
+/*
+ * Sections only our own themes draw (hero carousel, drop reveal, social wall, the section
+ * library...). Not in the storefront's global stylesheet: the storefront serves this list as one
+ * file (`/api/section-styles`, built by `scripts/storefront-css/sections-css.mjs`) and links it on
+ * every page of our own themes, and on an imported theme's page only when it shows one of our
+ * sections other than the main ones. Each file styles only its own classes, so loading it after
+ * shared.css cascades as before. The admin loads everything (index.css).
+ */
+@import "./section-hero-carousel.css";
+@import "./section-heroes.css";
+@import "./section-latest-drop.css";
+@import "./section-product-specs.css";
+@import "./section-product-features.css";
+@import "./section-product-size-table.css";
+@import "./section-product-spec-strip.css";
+@import "./section-tabbed-products.css";
+@import "./section-library.css";
+@import "./section-brand-lab.css";
+@import "./section-category-panels.css";
+@import "./section-discord-cta.css";
+@import "./section-drop-reveal.css";
+@import "./section-drops-teaser.css";
+@import "./section-featured-carousel.css";
+@import "./section-logo-carousel.css";
+@import "./section-notes-series.css";
+@import "./section-perfect-match.css";
+@import "./section-promo-bento.css";
+@import "./section-reviews-showcase.css";
+@import "./section-image-comparison.css";
+@import "./section-ships-today.css";
+@import "./section-social-wall.css";
+@import "./section-whatsapp-chat.css";

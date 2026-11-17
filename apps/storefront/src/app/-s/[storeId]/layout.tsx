@@ -74,6 +74,7 @@ import { storePixels } from '@/lib/pixels/pixels'
 import { requestCart } from '@/lib/request-cart'
 import { abThemeId } from '@/lib/rollout-ab'
 import { heightForWidth } from '@/lib/section-images'
+import { sectionStylesHref } from '@/lib/section-styles'
 import { requestOrigin, verificationMeta } from '@/lib/seo'
 import { storeShareImages } from '@/lib/share-image'
 import { menuLinks, starterFooterColumns } from '@/lib/starter-menus'
@@ -454,6 +455,8 @@ export default async function StoreLayout({ children, params }: Props) {
     >
       <head>
         {sentryMeta}
+        {/* Our own themes' section styles, after the global stylesheet (`lib/section-styles.ts`). */}
+        <link rel="stylesheet" href={sectionStylesHref()} precedence="sections" />
         {/* biome-ignore lint/security/noDangerouslySetInnerHtml: CSS is built only from ThemeSchema-validated hex colours, numbers and enums; no free-form user string reaches it. */}
         <style dangerouslySetInnerHTML={{ __html: themeToCss(theme) }} />
         {theme.customCss.trim() ? (

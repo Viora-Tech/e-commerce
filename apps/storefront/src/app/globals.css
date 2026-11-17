@@ -1,5 +1,5 @@
 @import "tailwindcss";
-@import "@commerce/blocks/styles.css";
+@import "@commerce/blocks/styles-shared.css";
 
 /* Monorepo: tell Tailwind to scan the shared blocks package for class names */
 @source "../../../../packages/blocks/src/**/*.tsx";
