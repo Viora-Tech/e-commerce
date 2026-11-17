@@ -22,6 +22,7 @@ import { insertOutboxEvent } from '../outbox/write'
 import { deliveryForParcel, noteOffRoute } from './delivery-options/booking'
 import { bookingInsurancePaise, declaredValuePaise } from './delivery-options/insurance'
 import { bookedCarrier } from './delivery-options/routes'
+import { issuedInvoiceNumber } from './invoice-number'
 import { shipmentDocumentsAsLabel } from './label-documents'
 import { storeShippingLabel } from './label-store'
 import { courierOrderFor, courierShipmentNumber, markCourierOrderBooked } from './order-push'
@@ -318,10 +319,12 @@ export async function createShipmentForOrder(
   // whole order ships, so the courier's panel does not end up with two.
   const pushed =
     !named || named.id === sole ? await courierOrderFor(ctx, o.id, provider.id) : undefined
+  const invoiceNumber = await issuedInvoiceNumber(ctx, o.id, named?.id ?? sole ?? null)
   const result = await provider.createShipment({
     ...(pushed ? { pushed } : {}),
     orderId: o.id,
     orderNumber: o.number,
+    ...(invoiceNumber ? { invoiceNumber } : {}),
     shipmentNumber: await courierShipmentNumber(ctx, o.id, provider.id, Boolean(pushed)),
     to: {
       name: to.name,
