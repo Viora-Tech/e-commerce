@@ -770,12 +770,18 @@ export const ACTION_DOCS: Record<string, string> = {
     'Change a draft or scheduled rollout; a running event changes only its name and end.',
   'salesChannels.connect':
     '"Connect": a URL to sign in at Meta or Google, the channel joining a platform the store already connected, or (no platform app yet) a request.',
+  'salesChannels.knowledge':
+    'Agentic sales → Knowledge base: the facts agents may tell shoppers, and the policies.',
+  'salesChannels.knowledgeScan':
+    '"Scan my store": AI drafts facts from the store\'s public content (unpublished).',
   'salesChannels.saveOpenAiFeed':
     'ChatGPT, once OpenAI approved the store: their feed address and key.',
   'salesChannels.social':
     'One social channel, and whether Connect signs in to the platform now or sends a request.',
   'salesChannels.syncNow':
     '"Sync now": the platform gets this store\'s catalog again within a minute.',
+  'salesChannels.testQuery':
+    '"Test a query": the products an AI agent gets for a shopper\'s search, as agents see them.',
   'search.boosts.setPins':
     "Pins products (in order) for one search; an empty list removes the search's pins.",
   'search.filters.get':

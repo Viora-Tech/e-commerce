@@ -260,6 +260,7 @@ export const routes = {
     agentic: () => '/sales-channels/agentic',
     agenticReadiness: () => '/sales-channels/agentic/readiness',
     agenticControls: () => '/sales-channels/agentic/controls',
+    agenticKnowledge: () => '/sales-channels/agentic/knowledge',
     social: () => '/sales-channels/social',
     /** The Inbox app's channel: conversations, quick replies and settings. */
     inbox: () => '/sales-channels/inbox',

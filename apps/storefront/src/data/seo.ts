@@ -11,6 +11,10 @@ export const seoContent = {
     more: (count: number) => `And ${count} more products: see the sitemap.`,
     sitemap: 'Sitemap',
     price: (amount: string) => `from ${amount}`,
+    about: 'About the store',
+    agents: 'For AI agents',
+    agentsLine: (url: string) =>
+      `- Search products, prices, stock and store policies live over MCP (read-only, no sign-in): ${url}`,
   },
 } as const
 

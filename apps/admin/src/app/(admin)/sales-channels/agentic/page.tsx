@@ -11,8 +11,9 @@ export const metadata: Metadata = { title: 'Agentic sales' }
 
 export default async function Page() {
   const context = await serverContext()
-  const [data, copy, load] = await Promise.all([
+  const [data, knowledge, copy, load] = await Promise.all([
     read(call(appRouter.salesChannels.agentic, undefined, { context })),
+    read(call(appRouter.salesChannels.knowledge, undefined, { context })),
     getCopy(salesChannelsContent.unavailable),
     getCopy(salesChannelsLoadContent),
   ])
@@ -20,5 +21,5 @@ export default async function Page() {
   if (failed(data)) {
     return <ReadFailedPage failure={data} heading={load.failed} noAccess={copy} />
   }
-  return <AgenticOverviewPage data={data} />
+  return <AgenticOverviewPage data={data} knowledge={failed(knowledge) ? null : knowledge.counts} />
 }

@@ -123,6 +123,7 @@
     "./policies": "./src/policies/client.ts",
     "./store-health": "./src/store-health/checks.ts",
     "./sales-channels": "./src/sales-channels/client.ts",
+    "./agent-knowledge": "./src/sales-channels/knowledge.ts",
     "./checkout-settings": "./src/checkout/settings.ts",
     "./checkout-address": "./src/checkout/address-abroad.ts",
     "./checkout-handoff": "./src/checkout/handoff.ts",
