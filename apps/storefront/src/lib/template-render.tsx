@@ -41,6 +41,7 @@ import { importedTheme, mainProductStylesheetUrls, renderLiquidSections } from '
 import { attachImageMedia } from './media-lookup'
 import { subscribeAction } from './newsletter-actions'
 import { abThemeId } from './rollout-ab'
+import { needsSectionStyles, sectionStylesHref } from './section-styles'
 import { storeRead } from './store-cache'
 import { inStore } from './store-context'
 import { readPreview } from './storefront-gate'
@@ -365,8 +366,16 @@ export async function renderTemplate(
       ? await mainProductStylesheetUrls(storeId, themeId)
       : []
 
+  // Our own themes link the section styles in the layout; an imported theme's page only when it
+  // shows one of our sections that needs them (`lib/section-styles.ts`).
+  const sectionStyles =
+    liquidHtml !== null && needsSectionStyles(resolved.content.map((item) => String(item.type)))
+
   return (
     <>
+      {sectionStyles ? (
+        <link rel="stylesheet" href={sectionStylesHref()} precedence="sections" />
+      ) : null}
       {themeSheets.map((href) => (
         <link key={href} rel="stylesheet" href={href} />
       ))}

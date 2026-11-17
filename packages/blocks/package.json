@@ -13,6 +13,7 @@
     "./app-blocks": "./src/app-blocks.tsx",
     "./media": "./src/media.ts",
     "./styles.css": "./src/styles/index.css",
+    "./styles-shared.css": "./src/styles/shared.css",
     "./embed": "./src/embed-sanitize.ts",
     "./canvas-html": "./src/canvas-sanitize.ts",
     "./richtext-html": "./src/richtext-html.ts",
