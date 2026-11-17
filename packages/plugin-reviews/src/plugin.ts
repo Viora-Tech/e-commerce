@@ -19,6 +19,7 @@ export const reviewsPlugin = definePlugin({
   version: '1.0.0',
   kind: 'builtin',
   category: 'marketing',
+  tested: true,
   description:
     'Collect product reviews with photos, approve or hide them, reply, ask buyers by email after delivery and bring your Judge.me reviews over.',
   listing: {
