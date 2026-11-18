@@ -9,6 +9,7 @@ import { InvoiceError, issueDocument, liveDocuments, loadSettings } from './issu
 import { orderLinks } from './links'
 import { reviseForOrderEdit } from './order-edit'
 import { enqueueOrderParcels, isPreorder, issueDrafts, removeFromQueue } from './queue'
+import { hasPdf } from './record-external'
 import { pdfBytes, pdfFilename, renderAndStore } from './render'
 import { documentsByIds } from './reports'
 import { invoiceBatch } from './schema'
@@ -189,7 +190,8 @@ async function emailAttachments(
   ) {
     // Every parcel's invoice: a split order has one per GSTIN.
     const rows = await ctx.inStore((tx) => liveDocuments(tx, input.orderId, 'tax_invoice'))
-    for (const row of rows.filter((r) => r.status === 'issued')) {
+    // An invoice recorded from outside Koomerce has no PDF to attach.
+    for (const row of rows.filter((r) => r.status === 'issued' && hasPdf(r))) {
       files.push({
         filename: pdfFilename(row),
         contentType: 'application/pdf',

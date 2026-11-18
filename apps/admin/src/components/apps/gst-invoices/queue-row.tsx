@@ -6,6 +6,7 @@ import { TableCell, TableRow } from '@commerce/ui/shadcn/table'
 import Link from 'next/link'
 import StatusChip from '@/components/layout/status-chip'
 import type { ChipTone } from '@/components/status/tone'
+import { gstAlreadyInvoicedContent } from '@/data/gst-already-invoiced'
 import { gstQueuePageContent } from '@/data/gst-queue-page'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { routes } from '@/lib/routes'
@@ -19,6 +20,8 @@ type QueueRowProps = {
   onPick: (on: boolean) => void
   /** Issue just this one (through the review step, which confirms its date). */
   onIssue: () => void
+  /** "Already invoiced": record the invoice this order got outside Koomerce. */
+  onRecord: () => void
 }
 
 const TONE: Record<Row['status'], ChipTone> = {
@@ -36,9 +39,17 @@ const fixHref = (row: Row) =>
     : routes.orders.detail(row.orderId)
 
 /** One queued draft: order and when it joined, customer, GSTIN, taxable, GST, status, Issue or Fix. */
-export default function QueueRow({ row, picked, busy, onPick, onIssue }: QueueRowProps) {
+export default function QueueRow({
+  row,
+  picked,
+  busy,
+  onPick,
+  onIssue,
+  onRecord,
+}: QueueRowProps) {
   // Hooks
   const copy = useCopy(gstQueuePageContent)
+  const recordCopy = useCopy(gstAlreadyInvoicedContent)
   const fmt = useFormat()
 
   // Render logic
@@ -89,21 +100,32 @@ export default function QueueRow({ row, picked, busy, onPick, onIssue }: QueueRo
         </span>
       </TableCell>
       <TableCell className={`${CELL} text-right`}>
-        {ready ? (
-          <Button size="sm" variant="outline" disabled={busy} onClick={onIssue}>
-            {copy.issue}
-          </Button>
-        ) : (
+        <span className="inline-flex items-center justify-end gap-1">
           <Button
             size="sm"
-            variant="outline"
-            title={fixHelp}
-            nativeButton={false}
-            render={<Link href={fixHref(row)} />}
+            variant="ghost"
+            disabled={busy}
+            aria-label={recordCopy.actionLabel(row.orderName)}
+            onClick={onRecord}
           >
-            {copy.fix}
+            {recordCopy.action}
           </Button>
-        )}
+          {ready ? (
+            <Button size="sm" variant="outline" disabled={busy} onClick={onIssue}>
+              {copy.issue}
+            </Button>
+          ) : (
+            <Button
+              size="sm"
+              variant="outline"
+              title={fixHelp}
+              nativeButton={false}
+              render={<Link href={fixHref(row)} />}
+            >
+              {copy.fix}
+            </Button>
+          )}
+        </span>
       </TableCell>
     </TableRow>
   )

@@ -9,6 +9,7 @@ import {
   gstr1Invoice,
 } from '@commerce/invoices'
 import { and, desc, eq, gte, ilike, inArray, lt, ne, or, type SQL } from 'drizzle-orm'
+import { documentSeriesKey } from './record-external'
 import { sameRegistration } from './registration'
 import { invoice } from './schema'
 
@@ -80,6 +81,7 @@ export async function listDocuments(
       sgstPaise: invoice.sgstPaise,
       igstPaise: invoice.igstPaise,
       pdfStatus: invoice.pdfStatus,
+      source: invoice.source,
       status: invoice.status,
       reportedPeriod: invoice.reportedPeriod,
       issuedAt: invoice.issuedAt,
@@ -210,7 +212,7 @@ export async function gstr1Inputs(
         ? [
             {
               kind: r.kind as Gstr1Document['kind'],
-              series: r.seriesId ?? r.kind,
+              series: documentSeriesKey(r),
               number: r.number,
               seq: r.seq,
               cancelled: r.status === 'cancelled',

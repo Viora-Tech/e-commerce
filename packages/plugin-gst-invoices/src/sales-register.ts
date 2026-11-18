@@ -26,6 +26,7 @@ import { and, asc, eq, gte, inArray, lt } from 'drizzle-orm'
 import { loadSettings } from './issue'
 import { peekNext } from './next-number'
 import { periodRange } from './periods'
+import { documentSeriesKey } from './record-external'
 import { documentIssuer, gstToken, sameRegistration } from './registration'
 import { invoice } from './schema'
 
@@ -210,7 +211,7 @@ function rangesOf(rows: readonly InvoiceRow[], settings: InvoiceSettings): Serie
   const bySeries = new Map<string, InvoiceRow[]>()
   for (const r of rows) {
     if (!r.number || r.seq === null) continue
-    const key = r.seriesId ?? r.kind
+    const key = documentSeriesKey(r)
     bySeries.set(key, [...(bySeries.get(key) ?? []), r])
   }
   return [...bySeries.entries()].map(([id, list]) => {

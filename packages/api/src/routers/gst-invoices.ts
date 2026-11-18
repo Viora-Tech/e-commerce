@@ -10,6 +10,7 @@ import {
   documentsForOrder,
   GST_INVOICES_ID,
   gstr1ForPeriod,
+  hasPdf,
   InvoiceError,
   issueCreditNotes,
   issueDocument,
@@ -40,6 +41,7 @@ import {
 } from '../services/gst-invoices.service'
 import { asOrpc, Gst, gstScope, Period, renderDeps, requireInstalled } from './gst-invoices-context'
 import { addToQueue, generateInvoice, invoiceFixProcedures } from './gst-invoices-order-actions'
+import { recordExternal } from './gst-invoices-record'
 import { returnsProcedures } from './gst-invoices-returns'
 import { Filter, Selection, selectedIds } from './gst-invoices-selection'
 import { seriesNext, seriesProcedures } from './gst-invoices-series'
@@ -114,6 +116,7 @@ export const gstInvoicesRouter = {
           buyerGstin: d.buyerGstin,
           pdfStatus: d.pdfStatus,
           pdfError: d.pdfError,
+          source: d.source,
           issuedAt: d.issuedAt,
           invoiceDate: d.invoiceDate,
         })),
@@ -198,6 +201,8 @@ export const gstInvoicesRouter = {
       }),
     /** Add orders by hand, or the Orders list's bulk action (`./gst-invoices-order-actions`). */
     add: addToQueue,
+    /** "Already invoiced": record an invoice issued outside Koomerce (`./gst-invoices-record`). */
+    recordExternal,
     remove: can(permissions.ORDERS_WRITE)
       .input(z.object({ ids: z.array(z.uuid()).min(1).max(BULK_MAX) }))
       .handler(async ({ context, input }) => {
@@ -380,7 +385,8 @@ export const gstInvoicesRouter = {
       const rows = await documentsByIds(context.tx, await selectedIds(context, input))
       const deps = renderDeps(context)
       const files = []
-      for (const row of rows)
+      // Invoices recorded from outside Koomerce have no PDF and are left out.
+      for (const row of rows.filter(hasPdf))
         files.push({ name: pdfFilename(row), bytes: await pdfBytes(deps, row.id) })
       return file(zipFiles(files), 'invoices.zip', 'application/zip')
     }),
@@ -394,7 +400,7 @@ export const gstInvoicesRouter = {
       const rows = await documentsByIds(context.tx, await selectedIds(context, input))
       const deps = renderDeps(context)
       const files = []
-      for (const row of rows) files.push(await pdfBytes(deps, row.id))
+      for (const row of rows.filter(hasPdf)) files.push(await pdfBytes(deps, row.id))
       return file(await mergePdfs(files), 'invoices-print.pdf')
     }),
 
@@ -408,7 +414,10 @@ export const gstInvoicesRouter = {
         throw new ORPCError('SERVICE_UNAVAILABLE', {
           message: 'The worker queue is not configured',
         })
-      const ids = await selectedIds(context, input)
+      // Recorded invoices (issued outside Koomerce) have no PDF to email.
+      const ids = (await documentsByIds(context.tx, await selectedIds(context, input)))
+        .filter(hasPdf)
+        .map((r) => r.id)
       const batch = await createEmailBatch(context.tx, context.scope.storeId, ids.length)
       // One job per 20 documents so progress moves and a failure retries a small slice.
       for (let i = 0; i < ids.length; i += 20) {
@@ -471,6 +480,7 @@ export const gstInvoicesRouter = {
         reportedPeriod: row.reportedPeriod,
         cancelReason: row.cancelReason,
         pdfStatus: row.pdfStatus,
+        source: row.source,
         snapshot: DocumentSnapshotSchema.parse(row.snapshot),
       }
     }),

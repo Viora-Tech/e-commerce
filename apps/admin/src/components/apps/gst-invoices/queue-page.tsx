@@ -21,6 +21,7 @@ import { statesContent } from '@/data/states'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
+import AlreadyInvoicedDialog from './already-invoiced-dialog'
 import GstNumberPicker from './gst-number-picker'
 import QueueEmpty from './queue-empty'
 import QueueMoreMenu, { type DateRange } from './queue-more-menu'
@@ -58,6 +59,8 @@ export default function QueuePage() {
   const [chip, setChip] = useState<Chip>('all')
   const [picked, setPicked] = useState<Set<string>>(new Set())
   const [reviewing, setReviewing] = useState<QueueRow[] | null>(null)
+  /** The row whose "Already invoiced" dialog is open. */
+  const [recording, setRecording] = useState<QueueRow | null>(null)
   const [busy, setBusy] = useState(false)
   const [gstin, setGstin] = useState<string | null | undefined>(undefined)
   const [gst, setGst] = useState<string | undefined>(undefined)
@@ -123,6 +126,10 @@ export default function QueuePage() {
   const handleGst = (id: string | undefined) => {
     setGst(id)
     setPicked(new Set())
+  }
+  const handleRecorded = () => {
+    setRecording(null)
+    reload()
   }
   const handleIssued = (n: number) => {
     toast.success(gstInvoicesContent.queue.issued(n))
@@ -275,12 +282,19 @@ export default function QueuePage() {
                   busy={busy}
                   onPick={(on) => handleToggle(r.id, on)}
                   onIssue={() => setReviewing([r])}
+                  onRecord={() => setRecording(r)}
                 />
               ))}
             </TableBody>
           </Table>
         )}
       </Card>
+      <AlreadyInvoicedDialog
+        key={recording?.id ?? 'closed'}
+        row={recording}
+        onClose={() => setRecording(null)}
+        onRecorded={handleRecorded}
+      />
     </div>
   )
 }

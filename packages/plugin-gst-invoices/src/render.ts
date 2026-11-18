@@ -62,6 +62,8 @@ export async function renderSnapshot(
 export async function renderAndStore(deps: RenderDeps, invoiceId: string): Promise<InvoiceRow> {
   const row = await deps.inStore((tx) => getDocument(tx, invoiceId))
   if (!row) throw new InvoiceError('not_found', `invoice ${invoiceId} not found`)
+  // Recorded, invoiced outside Koomerce: there is no PDF of ours to draw.
+  if (row.source === 'external') return row
   try {
     const bytes = await renderSnapshot(deps, DocumentSnapshotSchema.parse(row.snapshot))
     const storage = await deps.storage()
@@ -91,6 +93,12 @@ export async function renderAndStore(deps: RenderDeps, invoiceId: string): Promi
 export async function pdfBytes(deps: RenderDeps, invoiceId: string): Promise<Uint8Array> {
   let row = await deps.inStore((tx) => getDocument(tx, invoiceId))
   if (!row) throw new InvoiceError('not_found', `invoice ${invoiceId} not found`)
+  if (row.source === 'external') {
+    throw new InvoiceError(
+      'invalid',
+      `${row.number ?? 'This invoice'} was issued outside Koomerce, so there is no PDF here`,
+    )
+  }
   if (row.pdfStatus === 'ready' && row.pdfKey) {
     const stored = await (await deps.storage()).get(row.pdfKey)
     if (stored) return stored

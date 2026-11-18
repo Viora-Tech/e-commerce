@@ -70,6 +70,7 @@ import growth from './growth'
 import growthHome from './growth-home'
 import growthReport from './growth-report'
 import growthbook from './growthbook'
+import gstAlreadyInvoiced from './gst-already-invoiced'
 import gstInvoices from './gst-invoices'
 import gstQueuePage from './gst-queue-page'
 import home from './home'
@@ -245,6 +246,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...growth,
   ...growthHome,
   ...growthReport,
+  ...gstAlreadyInvoiced,
   ...gstInvoices,
   ...gstQueuePage,
   ...home,

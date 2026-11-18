@@ -555,7 +555,8 @@ export async function regenerateDocument(
       snapshot: doc,
       gstRegistrationId: row.status === 'draft' ? (issuer?.id ?? null) : row.gstRegistrationId,
       ...totalsColumns(doc),
-      pdfStatus: 'pending',
+      // An invoice recorded from outside Koomerce has no PDF to draw again.
+      pdfStatus: row.source === 'external' ? 'none' : 'pending',
       pdfError: null,
       updatedAt: new Date(),
     })
