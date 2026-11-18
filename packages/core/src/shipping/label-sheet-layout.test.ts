@@ -17,6 +17,9 @@ describe('label sheet sizes', () => {
   it('4 × 6 is 101.6 × 152.4 mm, A4 is 210 × 297 mm, the courier size has none', () => {
     close(labelSheetSize('thermal4x6')?.width ?? 0, 288)
     close(labelSheetSize('thermal4x6')?.height ?? 0, 432)
+    // 100 × 150 mm: the metric roll (283.46 × 425.20 pt).
+    close(labelSheetSize('thermal100x150')?.width ?? 0, 283.4646)
+    close(labelSheetSize('thermal100x150')?.height ?? 0, 425.1969)
     close(labelSheetSize('a4x4')?.width ?? 0, 210 * PT)
     close(labelSheetSize('a4x4')?.height ?? 0, 297 * PT)
     expect(labelSheetSize('original')).toBeNull()

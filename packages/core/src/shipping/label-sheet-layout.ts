@@ -11,7 +11,12 @@
  */
 
 /** The merchant's paper: thermal 4 × 6 in, A4 with four labels, or the courier's own pages. */
-export const LABEL_SHEET_FORMATS = ['thermal4x6', 'a4x4', 'original'] as const
+/**
+ * `thermal100x150` is the metric roll most Indian "4 × 6" thermal labels really are (100 × 150
+ * mm): printing 152.4 mm pages on it leaves 2.4 mm over on every label, so each print lands a
+ * little lower than the last (owner, 18 Nov 2026).
+ */
+export const LABEL_SHEET_FORMATS = ['thermal4x6', 'thermal100x150', 'a4x4', 'original'] as const
 export type LabelSheetFormat = (typeof LABEL_SHEET_FORMATS)[number]
 export const DEFAULT_LABEL_SHEET_FORMAT: LabelSheetFormat = 'thermal4x6'
 /** Labels in one file at most: about 25 A4 sheets, and a bounded wait on the couriers. */
@@ -26,6 +31,14 @@ const mm = (n: number) => n * PT_PER_MM
 
 /** 101.6 × 152.4 mm. */
 const THERMAL = { width: mm(101.6), height: mm(152.4) }
+/** 100 × 150 mm, the metric thermal roll. */
+const THERMAL_METRIC = { width: mm(100), height: mm(150) }
+
+/** The one-label-per-page thermal sizes. */
+const THERMAL_SIZE: Partial<Record<LabelSheetFormat, Size>> = {
+  thermal4x6: THERMAL,
+  thermal100x150: THERMAL_METRIC,
+}
 /** 210 × 297 mm. */
 const A4 = { width: mm(210), height: mm(297) }
 /** A4's outer margin and the gap between its four labels: room to cut them apart. */
@@ -44,20 +57,22 @@ export type Box = { x: number; y: number; width: number; height: number }
 
 /** The sheet page size in points; null for "Courier's own size" (each page keeps its own). */
 export function labelSheetSize(format: LabelSheetFormat): Size | null {
-  if (format === 'thermal4x6') return THERMAL
+  const thermal = THERMAL_SIZE[format]
+  if (thermal) return thermal
   if (format === 'a4x4') return A4
   return null
 }
 
 /** The label slots on one sheet, in print order (A4: top-left, top-right, bottom-left, bottom-right). */
 export function sheetCells(format: LabelSheetFormat): Box[] {
-  if (format === 'thermal4x6') {
+  const thermal = THERMAL_SIZE[format]
+  if (thermal) {
     return [
       {
         x: THERMAL_MARGIN,
         y: THERMAL_MARGIN,
-        width: THERMAL.width - 2 * THERMAL_MARGIN,
-        height: THERMAL.height - 2 * THERMAL_MARGIN,
+        width: thermal.width - 2 * THERMAL_MARGIN,
+        height: thermal.height - 2 * THERMAL_MARGIN,
       },
     ]
   }
@@ -108,8 +123,9 @@ export function fitInBox(page: Size, box: Box): Fit {
   }
 }
 
-/** Whether a format cuts the white around each label page before fitting it (4 × 6 only). */
-export const trimsToContent = (format: LabelSheetFormat): boolean => format === 'thermal4x6'
+/** Whether a format cuts the white around each label page before fitting it (the thermal ones). */
+export const trimsToContent = (format: LabelSheetFormat): boolean =>
+  THERMAL_SIZE[format] !== undefined
 
 /**
  * The part of a label page to print: the drawn area (`content`, from labelContentBounds) with
