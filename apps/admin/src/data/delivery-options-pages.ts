@@ -168,6 +168,8 @@ export const deliveryPagesContent = {
     roundHelp: '+₹37 shows as +₹39',
     hide: 'Hide couriers that are slower and dearer',
     hideHelp: 'Keeps the list short and honest',
+    hideFastest:
+      'With Fastest, every other courier is slower and costs the same or more, so this hides them all: checkout shows one card. Turn it off to offer cheaper, slower couriers too.',
     max: 'Show at most',
     maxItems: (n: number) => `${n} couriers`,
   },
