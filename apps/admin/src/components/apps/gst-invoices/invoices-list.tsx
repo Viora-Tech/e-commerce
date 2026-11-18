@@ -433,7 +433,7 @@ export default function InvoicesList() {
                 </TableCell>
                 <TableCell className={`${CELL} text-center`}>
                   {/* A recorded invoice has no PDF here: say so, so no one waits for a print. */}
-                  <span className="inline-flex flex-col items-center gap-1">
+                  <span className="inline-flex items-center justify-center gap-1.5 whitespace-nowrap">
                     <OrderChip kind="gstDoc" value={r.status} />
                     {r.source === 'external' ? (
                       <span title={recordCopy.notPrintedHelp}>
