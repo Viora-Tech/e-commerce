@@ -141,6 +141,7 @@ import settingsRows from './settings-rows'
 import shadowfax from './shadowfax'
 import sharedParcel from './shared-parcel'
 import shipglobal from './shipglobal'
+import shipmentLost from './shipment-lost'
 import shipments from './shipments'
 import shipping from './shipping'
 import shippingRates from './shipping-rates'
@@ -309,6 +310,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...reviews,
   ...settings,
   ...settingsRows,
+  ...shipmentLost,
   ...shipments,
   ...shipping,
   ...shippingRates,

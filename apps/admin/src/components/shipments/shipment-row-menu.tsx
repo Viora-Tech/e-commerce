@@ -1,9 +1,12 @@
 'use client'
 
+import { lostActions } from '@commerce/core/shipment-lost-state'
 import {
   AppWindow,
   CancelCircle,
+  FileText,
   PackageCheck,
+  PackageX,
   Printer,
   RefreshCw,
   Truck,
@@ -16,6 +19,7 @@ import DialogContent from '@/components/layout/dialog-content'
 import DialogHeader from '@/components/layout/dialog-header'
 import RowMenu from '@/components/table/row-menu'
 import { ordersContent } from '@/data/orders'
+import { shipmentLostContent } from '@/data/shipment-lost'
 import { shipmentActionsContent, shipmentsContent } from '@/data/shipments'
 import { shipmentDetailsContent, shipmentPanelContent } from '@/data/shipping'
 import { useCopy } from '@/hooks/use-copy'
@@ -23,6 +27,7 @@ import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
 import type { ShipmentRow } from './shipment-columns'
 import ShipmentDetailsLoader from './shipment-details-loader'
+import ShipmentLostDialogs, { type LostDialog } from './shipment-lost-dialogs'
 
 type ShipmentRowMenuProps = {
   row: ShipmentRow
@@ -33,7 +38,7 @@ type ShipmentRowMenuProps = {
 /** Booked with the courier, not picked up yet: the booking can still be cancelled. */
 const CANCELLABLE = 'created'
 /** Out of the courier's hands: nothing left to track. */
-const SETTLED = ['delivered', 'rto', 'cancelled']
+const SETTLED = ['delivered', 'rto', 'cancelled', 'lost']
 
 /**
  * The ⋯ menu on a Shipments row: the shipment's details (in a centred dialog), open the order,
@@ -49,6 +54,8 @@ export default function ShipmentRowMenu({ row, onChanged }: ShipmentRowMenuProps
   const details = useCopy(shipmentDetailsContent)
   const [confirmCancel, setConfirmCancel] = useState(false)
   const [showDetails, setShowDetails] = useState(false)
+  const lostCopy = useCopy(shipmentLostContent)
+  const [lostDialog, setLostDialog] = useState<LostDialog>(null)
 
   // Event handlers
   const handleRefresh = async () => {
@@ -76,6 +83,7 @@ export default function ShipmentRowMenu({ row, onChanged }: ShipmentRowMenuProps
   /* An order still to book has no shipment yet: only "View order" applies. */
   const booked = row.status !== null
   const trackable = booked && !SETTLED.includes(row.status ?? '')
+  const lost = lostActions({ status: row.status ?? '', reshippedAt: row.lost?.reshippedAt ?? null })
 
   return (
     <>
@@ -111,8 +119,29 @@ export default function ShipmentRowMenu({ row, onChanged }: ShipmentRowMenuProps
             {
               label: actions.refreshTracking,
               icon: RefreshCw,
-              hidden: !trackable,
+              /* A lost parcel is still asked: the courier may find it after all. */
+              hidden: !trackable && row.status !== 'lost',
               onSelect: handleRefresh,
+            },
+            {
+              label: lostCopy.menu.reship,
+              icon: Truck,
+              hidden: !lost.reship,
+              onSelect: () => setLostDialog('reship'),
+            },
+            {
+              label: lostCopy.menu.claim,
+              icon: FileText,
+              hidden: !lost.claim,
+              onSelect: () => setLostDialog('claim'),
+            },
+            {
+              label: lostCopy.menu.markLost,
+              icon: PackageX,
+              destructive: true,
+              separatorBefore: true,
+              hidden: !lost.markLost,
+              onSelect: () => setLostDialog('markLost'),
             },
             {
               label: list.row.cancelShipment,
@@ -136,6 +165,15 @@ export default function ShipmentRowMenu({ row, onChanged }: ShipmentRowMenuProps
         stopPropagation
         onConfirm={handleCancel}
       />
+      {booked && row.lost ? (
+        <ShipmentLostDialogs
+          shipmentId={row.id}
+          info={row.lost}
+          open={lostDialog}
+          onOpenChange={setLostDialog}
+          onChanged={onChanged}
+        />
+      ) : null}
       {booked ? (
         <Dialog open={showDetails} onOpenChange={setShowDetails}>
           <DialogContent

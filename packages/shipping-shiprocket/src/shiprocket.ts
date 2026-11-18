@@ -191,6 +191,7 @@ type NdrResponse = { message?: string; ndr_raised?: boolean; error?: string }
  */
 export function mapShiprocketStatus(status: string | undefined): ShipmentStatus {
   const text = (status ?? '').toLowerCase()
+  if (/\blost\b/.test(text)) return 'lost'
   if (text.includes('delivered')) return 'delivered'
   if (text.includes('rto') || text.includes('returned')) return 'rto'
   if (text.includes('cancel')) return 'cancelled'

@@ -41,6 +41,7 @@ import {
   shipmentLabelFile,
 } from '../services/shipping.service'
 import { courierAppProcedures, pickupTime } from './shipments-courier'
+import { lostParcelProcedures } from './shipments-lost'
 
 const ndrAction = z.enum(['reattempt', 'change_address', 'rto'])
 
@@ -60,10 +61,9 @@ const dimensionsCm = z.object({
 })
 
 /**
- * The shared Shipments workspace (Orders → Shipments): every shipment across
- * every courier, bulk booking, pickups and manifests, the NDR queue and the
- * wallet card. Order-level book/refresh/cancel stay on `orders.*` (the
- * per-order panel); this router is the cross-order view.
+ * The shared Shipments workspace (Orders → Shipments): every shipment across every courier, bulk
+ * booking, pickups and manifests, the NDR queue, the wallet card and lost parcels. Order-level
+ * book/refresh/cancel stay on `orders.*` (the per-order panel); this is the cross-order view.
  */
 export const shipmentsRouter = {
   list: can(permissions.ORDERS_READ)
@@ -169,6 +169,7 @@ export const shipmentsRouter = {
     .handler(({ context, input }) => shipmentCounts(context.tx, new Date(), input?.provider)),
 
   ...courierAppProcedures,
+  ...lostParcelProcedures,
 
   /** Ready to ship tab: paid, unfulfilled orders - the main Shopify-style booking flow. */
   readyToShip: can(permissions.ORDERS_READ)

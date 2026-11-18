@@ -15,6 +15,7 @@ export const shipmentsContent = {
     inTransit: (n: number) => `${n} ${n === 1 ? 'shipment' : 'shipments'} on the way`,
     delivered: (n: number) => `${n} delivered`,
     rto: (n: number) => `${n} returned to you (RTO)`,
+    lost: (n: number) => `${n} lost by the courier`,
     needsAttention: (n: number) => `${n} need${n === 1 ? 's' : ''} attention`,
     noCourier: 'Connect a courier to start booking',
   },
@@ -26,6 +27,7 @@ export const shipmentsContent = {
     inTransit: 'In transit',
     delivered: 'Delivered',
     rto: 'Returned (RTO)',
+    lost: 'Lost',
   },
   search: 'Search orders',
   columns: {
@@ -60,6 +62,7 @@ export const shipmentsContent = {
     inTransit: 'Nothing on the way right now.',
     delivered: 'No deliveries yet.',
     rto: 'No parcels have come back.',
+    lost: 'No lost parcels. A parcel the courier loses shows up here to reship and claim.',
   },
   noCourier: {
     heading: 'Connect a courier',

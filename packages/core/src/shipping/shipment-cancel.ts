@@ -20,17 +20,22 @@ export async function rebookableParcels(
   orderId: string,
 ): Promise<Set<string | null>> {
   const rows = await tx
-    .select({ status: shipment.status, fulfillmentOrderId: shipment.fulfillmentOrderId })
+    .select({
+      status: shipment.status,
+      fulfillmentOrderId: shipment.fulfillmentOrderId,
+      reshippedAt: shipment.reshippedAt,
+    })
     .from(shipment)
     .where(eq(shipment.orderId, orderId))
+  // A lost parcel already sent again books like a cancelled label (shipment-lost.ts).
+  const dropped = (r: (typeof rows)[number]) =>
+    r.status === 'cancelled' || (r.status === 'lost' && r.reshippedAt !== null)
   const live = new Set(
-    rows
-      .filter((r) => r.status !== 'cancelled' && r.status !== 'rto')
-      .map((r) => r.fulfillmentOrderId),
+    rows.filter((r) => !dropped(r) && r.status !== 'rto').map((r) => r.fulfillmentOrderId),
   )
   return new Set(
     rows
-      .filter((r) => r.status === 'cancelled' && !live.has(r.fulfillmentOrderId))
+      .filter((r) => dropped(r) && !live.has(r.fulfillmentOrderId))
       .map((r) => r.fulfillmentOrderId),
   )
 }

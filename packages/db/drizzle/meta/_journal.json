@@ -1667,6 +1667,13 @@
       "when": 1795280100000,
       "tag": "0253_media_compact_video",
       "breakpoints": true
+    },
+    {
+      "idx": 239,
+      "version": "7",
+      "when": 1795280300000,
+      "tag": "0255_shipment_lost",
+      "breakpoints": true
     }
   ]
 }

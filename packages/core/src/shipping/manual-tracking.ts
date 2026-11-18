@@ -6,7 +6,7 @@ import type { StoreContext } from '../context'
 import { applyTracking, type ShipmentRow } from './shipments'
 
 export type ManualTrackingInput = {
-  status: Exclude<ShipmentStatus, 'cancelled'>
+  status: Exclude<ShipmentStatus, 'cancelled' | 'lost'>
   /** What the merchant read on the courier's tracker, or our wording for the status. */
   description: string
   location?: string | undefined

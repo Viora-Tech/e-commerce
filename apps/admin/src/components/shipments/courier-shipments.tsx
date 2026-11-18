@@ -11,6 +11,7 @@ import { Suspense, useEffect, useState } from 'react'
 import PillTabs from '@/components/layout/pill-tabs'
 import ResourceTable from '@/components/table/resource-table'
 import { shipmentFiltersContent } from '@/data/order-list-filters'
+import { shipmentLostContent } from '@/data/shipment-lost'
 import { shipmentPartsContent, shipmentsContent } from '@/data/shipments'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -43,6 +44,7 @@ function CourierShipmentsContent({ provider, providerLabel }: CourierShipmentsPr
   // Hooks
   const copy = useCopy(shipmentsContent)
   const partsCopy = useCopy(shipmentPartsContent)
+  const lostCopy = useCopy(shipmentLostContent)
   const filterCopy = useCopy(shipmentFiltersContent)
   const fmt = useFormat()
   const [q, setQ] = useQueryStates(
@@ -112,9 +114,14 @@ function CourierShipmentsContent({ provider, providerLabel }: CourierShipmentsPr
   const { tab, query, page } = q
   // No Courier filter: the page is already one courier's.
   const groups = shipmentFilterGroups(q, filterCopy, (patch) => setQ({ ...patch, page: 1 }), [])
-  const columns = shipmentColumns(copy, fmt, () => providerLabel, providerLabel, partsCopy).filter(
-    (c) => c.id !== 'courier',
-  )
+  const columns = shipmentColumns(
+    copy,
+    fmt,
+    () => providerLabel,
+    providerLabel,
+    partsCopy,
+    lostCopy,
+  ).filter((c) => c.id !== 'courier')
 
   return (
     <ResourceTable

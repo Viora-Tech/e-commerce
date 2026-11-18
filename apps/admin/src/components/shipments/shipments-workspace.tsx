@@ -20,6 +20,7 @@ import StatusChip from '@/components/layout/status-chip'
 import BookByNumberDialog from '@/components/shipments/book-by-number-dialog'
 import ResourceTable from '@/components/table/resource-table'
 import { shipmentFiltersContent } from '@/data/order-list-filters'
+import { shipmentLostContent } from '@/data/shipment-lost'
 import { shipmentPartsContent, shipmentsContent } from '@/data/shipments'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -80,6 +81,7 @@ function ShipmentsContent() {
   // Hooks
   const copy = useCopy(shipmentsContent)
   const partsCopy = useCopy(shipmentPartsContent)
+  const lostCopy = useCopy(shipmentLostContent)
   const filterCopy = useCopy(shipmentFiltersContent)
   const router = useRouter()
   const fmt = useFormat()
@@ -300,7 +302,7 @@ function ShipmentsContent() {
           <WalletStrip wallets={liveWallets} />
           <ResourceTable
             resourceName={copy.resource}
-            columns={shipmentColumns(copy, fmt, courierName, toBookCourier, partsCopy)}
+            columns={shipmentColumns(copy, fmt, courierName, toBookCourier, partsCopy, lostCopy)}
             items={rows}
             getId={(r) => r.id}
             href={(r) => routes.orders.shipment(r.orderId, r.fulfillmentOrderId ?? undefined)}

@@ -1,15 +1,29 @@
+import { STUCK_DAYS } from '@commerce/core/shipment-lost-state'
 import StatusChip from '@/components/layout/status-chip'
 import OrderChip from '@/components/orders/order-chip'
 import type { ResourceColumnSpec } from '@/components/table/resource-table'
 import { stateName } from '@/data/india'
+import type { shipmentLostContent } from '@/data/shipment-lost'
 import type { shipmentPartsContent, shipmentsContent } from '@/data/shipments'
 import type { api } from '@/lib/api-client'
 import type { Formatters } from '@/lib/format'
 
 type Copy = typeof shipmentsContent
 type PartsCopy = typeof shipmentPartsContent
+type LostCopy = typeof shipmentLostContent
 type ReadyRow = Awaited<ReturnType<typeof api.shipments.readyToShip>>['items'][number]
 type ShipmentItem = Awaited<ReturnType<typeof api.shipments.list>>['items'][number]
+
+/** A booked shipment's lost-parcel facts: quiet days, reshipped, its courier claim. */
+export type ShipmentLostInfo = {
+  waybill: string
+  /** Days since the courier's last scan while on its way; null when not with the courier. */
+  daysWithoutScan: number | null
+  reshippedAt: Date | string | null
+  claimStatus: string | null
+  claimAmountPaise: number | null
+  claimNote: string | null
+}
 
 /** One row of the Shipments table: an order still to book, or a booked shipment. */
 export type ShipmentRow = {
@@ -37,6 +51,8 @@ export type ShipmentRow = {
   items?: ReadyRow['items']
   /** To book: why it cannot all go yet ("Waiting · pre-order 22 Oct"). */
   waiting?: ReadyRow['waiting']
+  /** Booked shipments only: stuck, lost, reshipped and claim (shipment-lost-state). */
+  lost?: ShipmentLostInfo
 }
 
 /** "Pune, Maharashtra 411045" (Figma Ship to). */
@@ -80,6 +96,14 @@ export const rowFromShipment = (s: ShipmentItem): ShipmentRow => ({
   labelUrl: s.labelUrl,
   trackingUrl: s.trackingUrl,
   courierCancels: s.courierCancels,
+  lost: {
+    waybill: s.waybill,
+    daysWithoutScan: s.daysWithoutScan,
+    reshippedAt: s.reshippedAt,
+    claimStatus: s.claimStatus,
+    claimAmountPaise: s.claimAmountPaise,
+    claimNote: s.claimNote,
+  },
 })
 
 /**
@@ -93,6 +117,7 @@ export function shipmentColumns(
   courierName: (id: string) => string,
   toBookCourier: string,
   parts: PartsCopy,
+  lostCopy: LostCopy,
 ): ResourceColumnSpec<ShipmentRow>[] {
   const short = (day: Date | string) => fmt.pattern(day, { day: 'numeric', month: 'short' })
   const waitingLabel = (w: NonNullable<ShipmentRow['waiting']>) =>
@@ -168,6 +193,27 @@ export function shipmentColumns(
           </StatusChip>
         ) : r.deliveryFailed ? (
           <StatusChip tone="danger">{copy.deliveryFailed}</StatusChip>
+        ) : r.status === 'lost' && r.lost ? (
+          /* Lost: the chip, then the claim (or Reshipped) under it. */
+          <span className="flex flex-col items-start gap-0.5">
+            <OrderChip kind="shipment" value={r.status} />
+            <span className="text-caption text-muted-foreground">
+              {[
+                r.lost.reshippedAt ? lostCopy.reshipped : null,
+                lostCopy.claimLine(
+                  lostCopy.claim.statuses[r.lost.claimStatus ?? 'not_filed'] ?? '',
+                  r.lost.claimAmountPaise === null ? null : fmt.money(r.lost.claimAmountPaise),
+                ),
+              ]
+                .filter(Boolean)
+                .join(' · ')}
+            </span>
+          </span>
+        ) : (r.lost?.daysWithoutScan ?? 0) >= STUCK_DAYS ? (
+          /* On its way but quiet for a week: ask the courier before it is written off. */
+          <StatusChip tone="attention" className="max-w-56 truncate">
+            {lostCopy.stuck(r.lost?.daysWithoutScan ?? 0)}
+          </StatusChip>
         ) : (
           <OrderChip kind="shipment" value={r.status} />
         ),
