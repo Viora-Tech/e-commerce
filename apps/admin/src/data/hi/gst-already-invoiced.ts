@@ -16,6 +16,9 @@ export default [
     recorded: (number) => `${number} दर्ज हुआ`,
     failed: 'यह इनवॉइस दर्ज नहीं हो सका',
     outside: 'दर्ज किया गया, इनवॉइस Koomerce के बाहर बना',
+    notPrinted: 'दर्ज किया · PDF नहीं',
+    notPrintedHelp:
+      'इनवॉइस Koomerce के बाहर बना। Koomerce ने PDF नहीं बनाई, इसलिए यह न प्रिंट होगा न ईमेल।',
     outsideBody:
       'यह इनवॉइस Koomerce के बाहर बना था, इसलिए यहाँ इसकी PDF नहीं है। यह आपके GST रिटर्न में गिना जाता है।',
     undoTitle: '"पहले से इनवॉइस हुआ" वापस लें',

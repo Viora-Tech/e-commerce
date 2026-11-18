@@ -20,6 +20,10 @@ export const gstAlreadyInvoicedContent = {
   failed: 'Could not record that invoice',
   /** On the invoice page and the order card, in place of Print and Download. */
   outside: 'Recorded, invoiced outside Koomerce',
+  /** Badge in the Invoices list: no PDF was made here, nothing to print or email. */
+  notPrinted: 'Recorded · no PDF',
+  notPrintedHelp:
+    'Invoiced outside Koomerce. Koomerce made no PDF, so it is not printed or emailed.',
   outsideBody:
     'This invoice was issued outside Koomerce, so there is no PDF here. It is counted in your GST returns.',
   /** Undo on the invoice page: a typo in the recorded number or date. */

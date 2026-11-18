@@ -29,10 +29,12 @@ import CopyButton from '@/components/fields/copy-button'
 import PageHeader from '@/components/layout/page-header'
 import PillTabs from '@/components/layout/pill-tabs'
 import RelativeTime from '@/components/layout/relative-time'
+import StatusChip from '@/components/layout/status-chip'
 import OrderChip from '@/components/orders/order-chip'
 import TableEmptyRow from '@/components/table/table-empty-row'
 import TableSkeletonRows from '@/components/table/table-skeleton-rows'
 import { appsContent } from '@/data/apps'
+import { gstAlreadyInvoicedContent } from '@/data/gst-already-invoiced'
 import { gstInvoiceBulkRefreshContent as refreshCopy } from '@/data/gst-invoice-refresh'
 import { gstInvoicesContent } from '@/data/gst-invoices'
 import { tableContent as tableCopy } from '@/data/table'
@@ -111,6 +113,7 @@ function filterOf(q: string, tab: Tab, month: Month, gst: string | undefined) {
 export default function InvoicesList() {
   // Hooks
   const apps = useCopy(appsContent)
+  const recordCopy = useCopy(gstAlreadyInvoicedContent)
   const [q, setQ] = useState('')
   const [tab, setTab] = useState<Tab>('tax_invoice')
   const [month, setMonth] = useState(thisMonth)
@@ -422,7 +425,15 @@ export default function InvoicesList() {
                   <RelativeTime value={r.invoiceDate ?? r.issuedAt} />
                 </TableCell>
                 <TableCell className={`${CELL} text-center`}>
-                  <OrderChip kind="gstDoc" value={r.status} />
+                  {/* A recorded invoice has no PDF here: say so, so no one waits for a print. */}
+                  <span className="inline-flex flex-col items-center gap-1">
+                    <OrderChip kind="gstDoc" value={r.status} />
+                    {r.source === 'external' ? (
+                      <span title={recordCopy.notPrintedHelp}>
+                        <StatusChip tone="neutral">{recordCopy.notPrinted}</StatusChip>
+                      </span>
+                    ) : null}
+                  </span>
                 </TableCell>
                 <TableCell className={`${CELL} text-right tabular-nums`}>
                   {formatPaise(r.taxPaise)}
