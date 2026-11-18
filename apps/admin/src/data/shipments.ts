@@ -180,25 +180,29 @@ export const shipmentActionsContent = {
     "The courier didn't take the pickup request. Try again, or book it on their dashboard.",
 }
 
-/** The ⋯ → Cancel popup on a booked parcel still at the store: three ways out (owner, 18 Nov 2026). */
+/** The ⋯ → Cancel popup on a booked parcel (owner, 18 Nov 2026): the ways out depend on where it is. */
 export const shipmentCancelContent = {
-  menu: 'Cancel or move back',
+  menu: 'Cancel…',
   title: (awb: string) => `What should happen to AWB ${awb}?`,
-  back: 'Move back to Booked',
+  back: 'Cancel pickup',
   backHelp:
-    'The label stays live. The parcel comes off this pickup and its manifest, so you can put it on another day’s pickup.',
+    'The label stays live. The parcel comes off this pickup and its manifest and goes back to Booked, so you can put it on another day’s pickup.',
   shipment: 'Cancel shipment',
   shipmentHelp:
-    'The courier cancels this AWB. The items stay packed and the order waits in To book for a new label.',
-  fulfilment: 'Cancel fulfilment',
-  fulfilmentHelp:
-    'The courier cancels this AWB and the items are unpacked: back to To ship and back in stock.',
-  noCourierCancel: 'This courier takes no cancellations from here. Cancel it on the courier’s own site.',
+    'The courier cancels this AWB. The items stay packed and the order goes back to To ship, to book again with any courier.',
+  sendBack: 'Cancel and bring it back',
+  sendBackHelp:
+    'The courier already has it. They are asked to cancel, which sends the parcel back to you. It moves to Returned (RTO).',
+  marked: 'Already cancelled on the courier’s app',
+  markedHelp:
+    'Nothing is sent to the courier. The shipment is marked cancelled here and the order goes back to To ship.',
+  noCourierCancel: 'This courier takes no cancellations from here. Cancel it on the courier’s own site, then pick the last option.',
   confirm: 'Confirm',
   keep: 'Keep as it is',
-  backDone: 'Moved back to Booked.',
-  shipmentDone: 'Shipment cancelled. The order is in To book.',
-  fulfilmentDone: 'Fulfilment cancelled. The items are back to To ship.',
+  backDone: 'Pickup cancelled. The parcel is back in Booked.',
+  shipmentDone: 'Shipment cancelled. The order is back in To ship.',
+  sendBackDone: 'The courier was asked to bring it back. It is in Returned (RTO).',
+  markedDone: 'Marked as cancelled. The order is back in To ship.',
 }
 
 /** Shipments › To book, a parcel of an order that ships in parts (Figma 918:10520). Dates come formatted ("22 Oct"). */

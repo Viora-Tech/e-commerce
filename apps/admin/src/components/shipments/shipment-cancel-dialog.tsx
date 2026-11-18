@@ -8,16 +8,18 @@ import { shipmentActionsContent, shipmentCancelContent } from '@/data/shipments'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 
-type Choice = 'back' | 'shipment' | 'fulfilment'
+type Choice = 'back' | 'shipment' | 'sendBack' | 'marked'
 
 type ShipmentCancelDialogProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
   shipmentId: string
   waybill: string
-  /** On a pickup (To be picked up): "Move back to Booked" is offered. */
+  /** Shipment status: `created` (at the store) or picked up / in transit / out for delivery. */
+  status: string
+  /** On a pickup (To be picked up): "Cancel pickup" is offered. */
   onPickup: boolean
-  /** The courier takes cancellations over its API; without it only "Move back" is possible. */
+  /** The courier takes cancellations over its API; without it only the no-courier ways are open. */
   courierCancels: boolean
   onDone: () => void
 }
@@ -45,16 +47,27 @@ function Option({ id, value, label, help, disabled }: OptionProps) {
   )
 }
 
+/** The choices that fit where the parcel is (owner, 18 Nov 2026). */
+function choicesFor(status: string, onPickup: boolean): Choice[] {
+  if (status !== 'created') return ['sendBack', 'marked']
+  return onPickup ? ['back', 'shipment', 'marked'] : ['shipment', 'marked']
+}
+
+/** Whether a choice asks the courier (and so needs its cancel API). */
+const ASKS_COURIER: ReadonlySet<Choice> = new Set(['shipment', 'sendBack'])
+
 /**
- * The Cancel popup on a booked parcel still at the store (owner, 18 Nov 2026), from Booked and
- * To be picked up: move it back to Booked (off its pickup, label kept), cancel the shipment (the
- * AWB goes, items stay packed) or cancel the fulfilment (the AWB goes, items are unpacked).
+ * The Cancel popup on a booked parcel, from Booked, To be picked up and In transit. At the store:
+ * cancel the pickup (back to Booked, label kept) or the shipment (AWB cancelled, back to To ship,
+ * items stay packed). Picked up: cancel and bring it back (RTO). Always: it was already cancelled
+ * on the courier's own app, so it is only recorded here.
  */
 export default function ShipmentCancelDialog({
   open,
   onOpenChange,
   shipmentId,
   waybill,
+  status,
   onPickup,
   courierCancels,
   onDone,
@@ -62,7 +75,10 @@ export default function ShipmentCancelDialog({
   // Hooks
   const copy = useCopy(shipmentCancelContent)
   const actions = useCopy(shipmentActionsContent)
-  const [choice, setChoice] = useState<Choice>(onPickup ? 'back' : 'shipment')
+  const choices = choicesFor(status, onPickup)
+  const [choice, setChoice] = useState<Choice>(
+    () => choices.find((c) => courierCancels || !ASKS_COURIER.has(c)) ?? 'marked',
+  )
 
   // Event handlers
   const handleConfirm = async () => {
@@ -70,9 +86,15 @@ export default function ShipmentCancelDialog({
       if (choice === 'back') {
         await api.orders.returnShipmentToBooked({ shipmentId })
         toast.success(copy.backDone)
+      } else if (choice === 'shipment') {
+        await api.orders.cancelShipment({ shipmentId, keepPacked: true })
+        toast.success(copy.shipmentDone)
+      } else if (choice === 'sendBack') {
+        await api.orders.sendBackShipment({ shipmentId })
+        toast.success(copy.sendBackDone)
       } else {
-        await api.orders.cancelShipment({ shipmentId, keepPacked: choice === 'shipment' })
-        toast.success(choice === 'shipment' ? copy.shipmentDone : copy.fulfilmentDone)
+        await api.orders.markShipmentCancelled({ shipmentId })
+        toast.success(copy.markedDone)
       }
       onDone()
     } catch (err) {
@@ -83,6 +105,12 @@ export default function ShipmentCancelDialog({
 
   // Render logic
   const prefix = `cancel-${shipmentId}`
+  const labels: Record<Choice, [string, string]> = {
+    back: [copy.back, copy.backHelp],
+    shipment: [copy.shipment, copy.shipmentHelp],
+    sendBack: [copy.sendBack, copy.sendBackHelp],
+    marked: [copy.marked, copy.markedHelp],
+  }
 
   return (
     <ConfirmDialog
@@ -96,23 +124,19 @@ export default function ShipmentCancelDialog({
       onConfirm={handleConfirm}
     >
       <RadioGroup value={choice} onValueChange={(v) => setChoice(v as Choice)} className="gap-2">
-        {onPickup ? (
-          <Option id={`${prefix}-back`} value="back" label={copy.back} help={copy.backHelp} />
-        ) : null}
-        <Option
-          id={`${prefix}-shipment`}
-          value="shipment"
-          label={copy.shipment}
-          help={courierCancels ? copy.shipmentHelp : copy.noCourierCancel}
-          disabled={!courierCancels}
-        />
-        <Option
-          id={`${prefix}-fulfilment`}
-          value="fulfilment"
-          label={copy.fulfilment}
-          help={courierCancels ? copy.fulfilmentHelp : copy.noCourierCancel}
-          disabled={!courierCancels}
-        />
+        {choices.map((c) => {
+          const blocked = ASKS_COURIER.has(c) && !courierCancels
+          return (
+            <Option
+              key={c}
+              id={`${prefix}-${c}`}
+              value={c}
+              label={labels[c][0]}
+              help={blocked ? copy.noCourierCancel : labels[c][1]}
+              disabled={blocked}
+            />
+          )
+        })}
       </RadioGroup>
     </ConfirmDialog>
   )

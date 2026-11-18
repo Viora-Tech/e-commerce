@@ -7,6 +7,7 @@ import {
   decryptShippingSettings,
   estimateForStore,
   FulfillmentOnHold,
+  markShipmentCancelled,
   mergeMaskedSecrets,
   orderNumberLabel,
   parseShippingSettings,
@@ -16,6 +17,8 @@ import {
   readShippingLabel,
   recordProviderActivity,
   returnShipmentToBooked,
+  returnShipmentToSender,
+  ShipmentActionRefused,
   ShipmentNotCancellable,
   ShipmentNotOnPickup,
   type ShippingRegistry,
@@ -241,6 +244,9 @@ export async function testShippingConnection(
 
 /** Courier failures become BAD_REQUEST with the app's wording; the courier's never reaches the UI raw. */
 const courierToRpc = (err: unknown): never => {
+  if (err instanceof ShipmentActionRefused) {
+    throw new ORPCError('PRECONDITION_FAILED', { message: err.message })
+  }
   if (err instanceof FulfillmentOnHold) {
     throw new ORPCError('PRECONDITION_FAILED', { message: err.message })
   }
@@ -370,6 +376,62 @@ export async function cancelStoreShipment(
     author,
     keepPacked,
     courierCancels: courierCancels(registry, row.provider),
+  }).catch(courierToRpc)
+}
+
+/** The courier app behind a booked shipment, or a refusal when that courier is switched off. */
+async function providerForShipment(
+  tx: StoreTx,
+  storeId: string,
+  registry: ShippingRegistry,
+  secret: string,
+  shipmentId: string,
+) {
+  const [row] = await tx.select().from(shipment).where(eq(shipment.id, shipmentId))
+  if (!row) throw new ORPCError('NOT_FOUND')
+  const provider = shippingProviderById(
+    registry,
+    await loadShippingSettings(tx, storeId),
+    secret,
+    row.provider,
+  )
+  if (!provider) {
+    throw new ORPCError('PRECONDITION_FAILED', {
+      message: `Courier ${row.provider} is no longer enabled.`,
+    })
+  }
+  return { row, provider }
+}
+
+/** "Cancel and bring it back" after pickup: the courier is asked, the parcel moves to RTO. */
+export async function sendBackStoreShipment(
+  tx: StoreTx,
+  storeId: string,
+  registry: ShippingRegistry,
+  secret: string,
+  shipmentId: string,
+  author: string | null = null,
+) {
+  const { row, provider } = await providerForShipment(tx, storeId, registry, secret, shipmentId)
+  return returnShipmentToSender({ storeId, tx }, provider, shipmentId, {
+    author,
+    courierCancels: courierCancels(registry, row.provider),
+  }).catch(courierToRpc)
+}
+
+/** "Already cancelled on the courier's app": recorded here only, nothing sent to the courier. */
+export async function markStoreShipmentCancelled(
+  tx: StoreTx,
+  storeId: string,
+  registry: ShippingRegistry,
+  shipmentId: string,
+  author: string | null = null,
+) {
+  const [row] = await tx.select().from(shipment).where(eq(shipment.id, shipmentId))
+  if (!row) throw new ORPCError('NOT_FOUND')
+  return markShipmentCancelled({ storeId, tx }, shipmentId, {
+    author,
+    courierLabel: registry.get(row.provider)?.label ?? row.provider,
   }).catch(courierToRpc)
 }
 

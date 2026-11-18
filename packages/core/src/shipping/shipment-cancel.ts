@@ -1,4 +1,4 @@
-/** SOURCE OF TRUTH: cancelShipment, returnShipmentToBooked, rebookableParcels, ShipmentNotCancellable — WHAT: cancel a booked label before the courier collects it (keeping the parcel packed, or unpacking it), or take it off its pickup back to Booked, and record who did it / WHY: one place decides when a cancel is allowed and what booking again carries; the three choices of the cancel dialog (owner, 18 Nov 2026) */
+/** SOURCE OF TRUTH: cancelShipment, returnShipmentToBooked, returnShipmentToSender, markShipmentCancelled, rebookableParcels, ShipmentNotCancellable — WHAT: every way out of a booked shipment: cancel the label before pickup (items stay packed or are unpacked), take it off its pickup back to Booked, cancel after pickup so the courier brings it back (RTO), or record a cancel already made on the courier's own app; each names who did it / WHY: one place decides when each is allowed and what booking again carries; the owner's cancel cases (18 Nov 2026) */
 import { orderNote, shipment, shipmentManifest } from '@commerce/db'
 import type { ShippingProvider } from '@commerce/shipping'
 import { eq, sql } from 'drizzle-orm'
@@ -173,5 +173,98 @@ export async function cancelShipment(
   await recomputeOrderStatuses(ctx, row.orderId)
   // Orders packed in the same box ("Same box as #A") come out of it too.
   await releaseSharedOrders(ctx, [row.id], options.author ?? null)
+  return updated ?? row
+}
+
+/** Picked up and on its way: a cancel now is a return to the store (RTO), not a cancel. */
+const MOVING: ReadonlySet<string> = new Set(['picked_up', 'in_transit', 'out_for_delivery'])
+
+/** A shipment in a state the asked-for way out does not fit; the message says why. */
+export class ShipmentActionRefused extends CommerceError {
+  constructor(message: string, storeId?: string) {
+    super('SHIPMENT_ACTION_REFUSED', message, { storeId })
+  }
+}
+
+/**
+ * "Cancel and bring it back": the courier already has the parcel, so the cancel goes to the
+ * courier (Delhivery turns a cancel after pickup into a return) and the shipment moves to
+ * Returned (RTO) at once, with the order's RTO task opened as a tracking RTO scan would.
+ */
+export async function returnShipmentToSender(
+  ctx: StoreContext,
+  provider: ShippingProvider,
+  shipmentId: string,
+  options: { author?: string | null | undefined; courierCancels?: boolean | undefined } = {},
+): Promise<ShipmentRow> {
+  const [row] = await ctx.tx.select().from(shipment).where(eq(shipment.id, shipmentId))
+  if (!row) throw new Error('shipment not found')
+  if (!MOVING.has(row.status)) {
+    throw new ShipmentActionRefused(
+      'Only a parcel the courier has collected can be sent back. Cancel it instead.',
+      ctx.storeId,
+    )
+  }
+  if (options.courierCancels === false) throw new ShipmentNotCancellable('not_supported', ctx.storeId)
+  await provider.cancel(row.providerRef || row.waybill, {
+    waybill: row.waybill,
+    providerRef: row.providerRef,
+  })
+  const [updated] = await ctx.tx
+    .update(shipment)
+    .set({ status: 'rto', updatedAt: new Date() })
+    .where(eq(shipment.id, shipmentId))
+    .returning()
+  const moved = updated ?? row
+  const carried = [
+    { orderId: row.orderId, fulfillmentOrderId: row.fulfillmentOrderId },
+    ...(await sharedOrdersOf(ctx, row.id)),
+  ]
+  for (const c of carried) {
+    await recomputeOrderStatuses(ctx, c.orderId)
+    await recordRtoForShipment(ctx, moved, c)
+  }
+  await ctx.tx.insert(orderNote).values({
+    storeId: ctx.storeId,
+    orderId: row.orderId,
+    body: `Asked ${provider.label} to send AWB ${row.waybill} back. It is in Returned (RTO).`,
+    author: options.author ?? null,
+  })
+  return moved
+}
+
+/**
+ * "Already cancelled on the courier's app": nothing is sent to the courier. The shipment is
+ * marked cancelled, leaves its pickup and manifest, and the packed order waits in To ship to be
+ * booked again (with any courier). Not for a parcel delivered or already back.
+ */
+export async function markShipmentCancelled(
+  ctx: StoreContext,
+  shipmentId: string,
+  options: { author?: string | null | undefined; courierLabel?: string | undefined } = {},
+): Promise<ShipmentRow> {
+  const [row] = await ctx.tx.select().from(shipment).where(eq(shipment.id, shipmentId))
+  if (!row) throw new Error('shipment not found')
+  if (row.status !== 'created' && !MOVING.has(row.status)) {
+    throw new ShipmentActionRefused(
+      row.status === 'cancelled'
+        ? 'This shipment is already cancelled.'
+        : 'This parcel was delivered or returned, so there is nothing to cancel.',
+      ctx.storeId,
+    )
+  }
+  await leavePickup(ctx.tx, row.id)
+  const [updated] = await ctx.tx
+    .update(shipment)
+    .set({ status: 'cancelled', pickupId: null, updatedAt: new Date() })
+    .where(eq(shipment.id, shipmentId))
+    .returning()
+  await ctx.tx.insert(orderNote).values({
+    storeId: ctx.storeId,
+    orderId: row.orderId,
+    body: `Marked AWB ${row.waybill} as cancelled (cancelled on ${options.courierLabel ?? 'the courier'}'s own app). Its items stay packed, ready to book again.`,
+    author: options.author ?? null,
+  })
+  await recomputeOrderStatuses(ctx, row.orderId)
   return updated ?? row
 }

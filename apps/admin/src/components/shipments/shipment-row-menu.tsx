@@ -14,7 +14,6 @@ import { toast } from 'sonner'
 import DialogContent from '@/components/layout/dialog-content'
 import DialogHeader from '@/components/layout/dialog-header'
 import RowMenu from '@/components/table/row-menu'
-import { ordersContent } from '@/data/orders'
 import { shipmentActionsContent, shipmentCancelContent, shipmentsContent } from '@/data/shipments'
 import { shipmentDetailsContent } from '@/data/shipping'
 import { useCopy } from '@/hooks/use-copy'
@@ -30,22 +29,21 @@ type ShipmentRowMenuProps = {
   onChanged: () => void
 }
 
-/** Booked with the courier, not picked up yet: it can be cancelled or moved back to Booked. */
-const CANCELLABLE = 'created'
+/** At the store or on its way: the Cancel popup has a way out for each (`ShipmentCancelDialog`). */
+const CANCELLABLE = ['created', 'picked_up', 'in_transit', 'out_for_delivery']
 /** Out of the courier's hands: nothing left to track. */
 const SETTLED = ['delivered', 'rto', 'cancelled']
 
 /**
  * The ⋯ menu on a Shipments row: the shipment's details (in a centred dialog), open the order,
  * print the label, track the parcel, ask the courier for fresh tracking, and, while the parcel is
- * still at the store, a popup with three choices (`ShipmentCancelDialog`): back to Booked, cancel
- * the shipment, or cancel the fulfilment.
+ * at the store or on its way, the Cancel popup (`ShipmentCancelDialog`): cancel the pickup or the
+ * shipment, bring it back (RTO), or record a cancel made on the courier's own app.
  */
 export default function ShipmentRowMenu({ row, onChanged }: ShipmentRowMenuProps) {
   // Hooks
   const copy = useCopy(shipmentsContent)
   const actions = useCopy(shipmentActionsContent)
-  const list = useCopy(ordersContent)
   const cancelCopy = useCopy(shipmentCancelContent)
   const details = useCopy(shipmentDetailsContent)
   const [confirmCancel, setConfirmCancel] = useState(false)
@@ -66,7 +64,7 @@ export default function ShipmentRowMenu({ row, onChanged }: ShipmentRowMenuProps
   /* An order still to book has no shipment yet: only "View order" applies. */
   const booked = row.status !== null
   const trackable = booked && !SETTLED.includes(row.status ?? '')
-  const cancellable = row.status === CANCELLABLE && (row.courierCancels || Boolean(row.onPickup))
+  const cancellable = CANCELLABLE.includes(row.status ?? '')
 
   return (
     <>
@@ -106,7 +104,7 @@ export default function ShipmentRowMenu({ row, onChanged }: ShipmentRowMenuProps
               onSelect: handleRefresh,
             },
             {
-              label: row.onPickup ? cancelCopy.menu : list.row.cancelShipment,
+              label: cancelCopy.menu,
               icon: CancelCircle,
               destructive: true,
               separatorBefore: true,
@@ -122,6 +120,7 @@ export default function ShipmentRowMenu({ row, onChanged }: ShipmentRowMenuProps
           onOpenChange={setConfirmCancel}
           shipmentId={row.id}
           waybill={row.waybill ?? ''}
+          status={row.status ?? 'created'}
           onPickup={Boolean(row.onPickup)}
           courierCancels={row.courierCancels}
           onDone={onChanged}
