@@ -236,7 +236,8 @@ export async function orderSnapshot(
       discountPaise: parcel ? parcel.discountPaise : o.discountPaise,
       paymentAdjustmentPaise: parcel ? parcel.paymentAdjustmentPaise : o.paymentAdjustmentPaise,
       paymentAdjustmentLabel: o.paymentAdjustmentLabel,
-      shippingLabel: o.shippingRateName,
+      // "Shipping charges" alone: the courier and speed are not needed on a tax invoice (#1784).
+      shippingLabel: null,
       discountLabel: o.discountLabel,
       totalPaise: parcel ? parcel.totalPaise : o.totalPaise,
       taxBreakdown: parcel ? parcel.taxBreakdown : o.taxBreakdown,

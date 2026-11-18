@@ -105,20 +105,23 @@ export const generateInvoice = can(permissions.ORDERS_WRITE)
             { commit: true },
           )
         : []
-      // PDFs render in the worker, as for a queue batch.
-      if (context.appJobs) {
-        for (const p of plan) {
-          await enqueueAppJob(
-            context.appJobs,
-            {
-              storeId: context.scope.storeId,
-              pluginId: GST_INVOICES_ID,
-              name: 'render',
-              data: { invoiceId: p.id },
-            },
-            `render:${p.id}`,
-          )
-        }
+      // PDFs render in the worker, as for a queue batch, once the issue is saved (#1784).
+      const jobs = context.appJobs
+      if (jobs) {
+        context.afterCommit(async () => {
+          for (const p of plan) {
+            await enqueueAppJob(
+              jobs,
+              {
+                storeId: context.scope.storeId,
+                pluginId: GST_INVOICES_ID,
+                name: 'render',
+                data: { invoiceId: p.id },
+              },
+              `render:${p.id}`,
+            )
+          }
+        })
       }
       // Ids too, so the admin's toast can open or download what was issued (issue 1009).
       const invoices = [

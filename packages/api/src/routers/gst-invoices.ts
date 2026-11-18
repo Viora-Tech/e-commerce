@@ -226,20 +226,24 @@ export const gstInvoicesRouter = {
           const plan = await issueDrafts(context.tx, context.scope.storeId, input.items, {
             commit: true,
           })
-          // PDFs render in the worker so a large batch returns at once.
-          if (context.appJobs) {
-            for (const p of plan) {
-              await enqueueAppJob(
-                context.appJobs,
-                {
-                  storeId: context.scope.storeId,
-                  pluginId: GST_INVOICES_ID,
-                  name: 'render',
-                  data: { invoiceId: p.id },
-                },
-                `render:${p.id}`,
-              )
-            }
+          // PDFs render in the worker so a large batch returns at once. After commit: a worker
+          // that ran first read the queued draft and stored its PDF, with no number (#1784).
+          const jobs = context.appJobs
+          if (jobs) {
+            context.afterCommit(async () => {
+              for (const p of plan) {
+                await enqueueAppJob(
+                  jobs,
+                  {
+                    storeId: context.scope.storeId,
+                    pluginId: GST_INVOICES_ID,
+                    name: 'render',
+                    data: { invoiceId: p.id },
+                  },
+                  `render:${p.id}`,
+                )
+              }
+            })
           }
           return plan
         } catch (err) {
