@@ -13,7 +13,8 @@ Owner's case: a parcel the courier loses used to sit in In transit forever.
   the courier's cover terms, `claimEstimatePaise`) and a note.
 - **Check with courier** chip on a parcel on its way with no scan for 7 days (`STUCK_DAYS`).
 - Ordinary scans keep a lost parcel lost; a delivered or RTO scan (found after all) moves it on.
-  Lost parcels are not polled by the tracker; Refresh tracking on the row asks again.
+  The tracker keeps asking about a lost parcel for 30 days (`LOST_TRACK_DAYS`; the
+  `stores_with_open_shipments` function in 0255 matches), and Refresh tracking asks at once.
 - Shoppers see a lost parcel as in transit.
 - Migration `0255_shipment_lost.sql` (additive columns). Code: core `shipping/shipment-lost.ts`,
   `shipping/shipment-lost-state.ts`; API `routers/shipments-lost.ts`.
