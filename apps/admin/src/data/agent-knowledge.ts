@@ -84,6 +84,18 @@ export const agentReadyContent = {
     endpoint: 'Agent endpoint',
     endpointValue: '/api/mcp',
   },
+  /** The overview's right column before any agent is live: what works today, what is coming. */
+  status: {
+    liveHeading: 'Live today',
+    live: [
+      'AI assistants can read your store: products, prices, stock and policies.',
+      'They answer from your store through llms.txt and the agent endpoint.',
+    ],
+    comingHeading: 'Coming',
+    coming: 'Coming',
+    comingBody:
+      'Checkout inside ChatGPT, Google AI Mode, Perplexity and Copilot opens in India later. You don’t need to apply: your store is listed when each one opens here.',
+  },
   test: {
     heading: 'Search the way an agent does',
     placeholder: 'Try “wireless mouse under 5000”',
