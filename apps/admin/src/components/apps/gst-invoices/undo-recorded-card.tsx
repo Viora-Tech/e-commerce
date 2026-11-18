@@ -2,7 +2,6 @@
 
 import { Undo } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
@@ -27,7 +26,6 @@ type UndoRecordedCardProps = {
 export default function UndoRecordedCard({ invoiceId, number, disabled }: UndoRecordedCardProps) {
   // Hooks
   const copy = useCopy(gstAlreadyInvoicedContent)
-  const router = useRouter()
   const [open, setOpen] = useState(false)
 
   // Event handlers
@@ -39,9 +37,9 @@ export default function UndoRecordedCard({ invoiceId, number, disabled }: UndoRe
       throw err
     }
     toast.success(copy.undone(number))
-    router.push(routes.apps.page('gst-invoices'))
-    // The sidebar's Queue count comes from the server layout: read it again too.
-    router.refresh()
+    // A full load into the Queue: a client push keeps the layout, so the sidebar's Queue count
+    // (read by the server layout) would stay stale; a refresh next to the push loses the race.
+    window.location.assign(routes.apps.page('gst-invoices'))
   }
 
   return (
