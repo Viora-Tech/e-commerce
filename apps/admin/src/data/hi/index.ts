@@ -25,6 +25,7 @@ import bulkShip from './bulk-ship'
 import businessGst from './business-gst'
 import catalogs from './catalogs'
 import chatwoot from './chatwoot'
+import checkoutDraftEdit from './checkout-draft-edit'
 import checkoutRules from './checkout-rules'
 import checkoutSettings from './checkout-settings'
 import codRto from './cod-rto'
@@ -234,6 +235,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...giftCards,
   ...drafts,
   ...draftStoreCredit,
+  ...checkoutDraftEdit,
   ...domains,
   ...emailBuilder,
   ...dtdc,

@@ -610,6 +610,8 @@ export const ACTION_DOCS: Record<string, string> = {
     'The list\'s bulk "Add tags" / "Remove tags": every given tag on (or off) every order.',
   'orders.takeOver':
     '"Manage this order" (Imported card): an imported order that is still open becomes one worked here (ship, cancel, edit).',
+  'orders.takeOverCheckoutDraft':
+    '"Edit" on a shopper\'s unpaid checkout draft: it becomes a staff draft the draft form edits.',
   'orders.tiles': 'The stat cards above the Orders list.',
   'orders.toShipCount': 'How many orders are waiting to ship.',
   'orders.updateContact':

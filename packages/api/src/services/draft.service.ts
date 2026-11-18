@@ -237,7 +237,7 @@ export async function saveDraft(
         .where(eq(order.id, input.id))
       if (head?.draftSource === 'checkout') {
         throw new ORPCError('BAD_REQUEST', {
-          message: 'A shopper’s unpaid checkout cannot be edited. Convert it to an order first.',
+          message: 'Choose Edit on this unpaid checkout first: it stops the old payment link.',
         })
       }
       const row = await updateDraft(ctxOf(tx, storeId), input.id, input.draft)
