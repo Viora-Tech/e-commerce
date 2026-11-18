@@ -235,7 +235,8 @@ export default function DraftForm({ draft, invoiceSent = false, initial }: Draft
     .join(' · ')
 
   return (
-    <PageBody>
+    /* Centred at 75rem like the order and abandoned checkout pages (owner, 18 Nov 2026). */
+    <PageBody width="detail">
       <SaveBar
         open={dirty}
         message={copy.unsaved}
