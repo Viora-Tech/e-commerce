@@ -1,7 +1,9 @@
-/** SOURCE OF TRUTH: LABEL_SHEET_FORMATS, LABEL_SHEET_MAX, labelSheetSize, sheetCells, fitInBox, layoutLabelPages
+/** SOURCE OF TRUTH: LABEL_SHEET_FORMATS, LABEL_SHEET_MAX, labelSheetSize, sheetCells, fitInBox, layoutLabelPages, trimsToContent, trimToContent
  * WHAT:  where each courier label page lands when a batch is printed as one file: one per
- *        4 × 6 in thermal page, or four to an A4 sheet (2 × 2), scaled to fit and never
- *        stretched; "Courier's own size" keeps every page as the courier sent it.
+ *        4 × 6 in thermal page, or four to an A4 sheet (2 × 2), scaled up or down to fit and
+ *        never stretched; "Courier's own size" keeps every page as the courier sent it. On
+ *        4 × 6 the white around the label is cut away first (`trimToContent`), so an A4 slip
+ *        with the label in one part prints the label across the whole 4 × 6 page.
  * WHY:   couriers send labels in their own sizes (A4 slips, 4 × 6, 4 × 4); a desk printing
  *        a batch wants one file on one paper. Pure maths, so it is tested without a PDF.
  * WHERE: `mergeLabelSheet` (label-sheet.ts) draws the pages; the admin reads the format ids
@@ -29,6 +31,12 @@ const A4 = { width: mm(210), height: mm(297) }
 /** A4's outer margin and the gap between its four labels: room to cut them apart. */
 const A4_MARGIN = mm(5)
 const A4_GAP = mm(5)
+/** 4 × 6's safe edge: thermal heads skip the last millimetre or so, and rolls drift. */
+const THERMAL_MARGIN = mm(2)
+/** White kept around trimmed content, so ink that touches its edge is never cut. */
+export const LABEL_TRIM_PAD = mm(1)
+/** Content smaller than this on both sides is a stray mark, not a label: keep the page. */
+const TRIM_MIN = mm(20)
 
 export type Size = { width: number; height: number }
 /** PDF coordinates: origin at the page's bottom-left, points. */
@@ -43,7 +51,16 @@ export function labelSheetSize(format: LabelSheetFormat): Size | null {
 
 /** The label slots on one sheet, in print order (A4: top-left, top-right, bottom-left, bottom-right). */
 export function sheetCells(format: LabelSheetFormat): Box[] {
-  if (format === 'thermal4x6') return [{ x: 0, y: 0, ...THERMAL }]
+  if (format === 'thermal4x6') {
+    return [
+      {
+        x: THERMAL_MARGIN,
+        y: THERMAL_MARGIN,
+        width: THERMAL.width - 2 * THERMAL_MARGIN,
+        height: THERMAL.height - 2 * THERMAL_MARGIN,
+      },
+    ]
+  }
   if (format === 'a4x4') {
     const width = (A4.width - 2 * A4_MARGIN - A4_GAP) / 2
     const height = (A4.height - 2 * A4_MARGIN - A4_GAP) / 2
@@ -91,10 +108,29 @@ export function fitInBox(page: Size, box: Box): Fit {
   }
 }
 
+/** Whether a format cuts the white around each label page before fitting it (4 × 6 only). */
+export const trimsToContent = (format: LabelSheetFormat): boolean => format === 'thermal4x6'
+
+/**
+ * The part of a label page to print: the drawn area (`content`, from labelContentBounds) with
+ * `pad` of white around it, kept inside the page. The whole page when nothing was found or
+ * the find is a stray mark (under 20 mm both ways), so a label is never lost to a bad read.
+ */
+export function trimToContent(page: Box, content: Box | null, pad = LABEL_TRIM_PAD): Box {
+  if (!content || (content.width < TRIM_MIN && content.height < TRIM_MIN)) return page
+  const x0 = Math.max(page.x, content.x - pad)
+  const y0 = Math.max(page.y, content.y - pad)
+  const x1 = Math.min(page.x + page.width, content.x + content.width + pad)
+  const y1 = Math.min(page.y + page.height, content.y + content.height + pad)
+  if (x1 <= x0 || y1 <= y0) return page
+  return { x: x0, y: y0, width: x1 - x0, height: y1 - y0 }
+}
+
 export type Placement = Fit & { sheet: number }
 
 /**
- * Every label page's sheet and fit, in order: one per thermal page, four per A4 sheet. Empty
+ * Every label page's sheet and fit, in order: one per thermal page (inside a 2 mm safe
+ * edge), four per A4 sheet. On 4 × 6, pass each page's trimmed size (`trimToContent`). Empty
  * for "Courier's own size", which copies the pages unchanged.
  */
 export function layoutLabelPages(
