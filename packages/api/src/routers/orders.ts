@@ -54,6 +54,7 @@ import {
   bookShipment,
   cancelStoreShipment,
   refreshShipmentTracking,
+  returnStoreShipmentToBooked,
 } from '../services/shipping.service'
 import { courierArgs } from './courier-args'
 import { assertNotImported } from './imported-order'
@@ -320,11 +321,12 @@ export const ordersRouter = {
     }),
 
   /**
-   * Cancel a booked shipment with its courier, before it is collected or put on a manifest. The
-   * order timeline records who did it, and the parcel can be booked again.
+   * Cancel a booked shipment with its courier, before it is collected (also from a pickup or
+   * manifest). The order timeline records who did it, and the parcel can be booked again.
+   * `keepPacked`: only the label goes ("Cancel shipment"); otherwise the items are unpacked too.
    */
   cancelShipment: can(permissions.ORDERS_FULFIL)
-    .input(z.object({ shipmentId: z.uuid() }))
+    .input(z.object({ shipmentId: z.uuid(), keepPacked: z.boolean().optional() }))
     .handler(async ({ context, input }) => {
       const { shipping } = await storeRegistries(context.tx, context.scope.storeId)
       return cancelStoreShipment(
@@ -334,8 +336,21 @@ export const ordersRouter = {
         settingsSecret(),
         input.shipmentId,
         context.session.user.email,
+        input.keepPacked ?? false,
       )
     }),
+
+  /** Take a booked shipment off its pickup and manifest, back to Booked; the label stays live. */
+  returnShipmentToBooked: can(permissions.ORDERS_FULFIL)
+    .input(z.object({ shipmentId: z.uuid() }))
+    .handler(async ({ context, input }) =>
+      returnStoreShipmentToBooked(
+        context.tx,
+        context.scope.storeId,
+        input.shipmentId,
+        context.session.user.email,
+      ),
+    ),
 
   /** "Mark as paid / fulfilled / delivered", or cancel. Events follow the derived transitions. */
   // Cancelling is its own grant (and its own "Needs approval" tick), as on `orders.cancel`.

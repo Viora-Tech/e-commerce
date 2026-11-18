@@ -15,10 +15,11 @@ import {
   type RateLimitRule,
   readShippingLabel,
   recordProviderActivity,
+  returnShipmentToBooked,
   ShipmentNotCancellable,
+  ShipmentNotOnPickup,
   type ShippingRegistry,
   type ShippingSettings,
-  shipmentInManifest,
   shipmentLabelUrl,
   shippingProviderById,
   TrackingEditRefused,
@@ -339,8 +340,9 @@ const courierCancels = (registry: ShippingRegistry, providerId: string): boolean
   registry.get(providerId)?.capabilities.includes('cancel') ?? false
 
 /**
- * Cancel a booked label with its courier: refused before pickup or manifest is over
- * (`cancelBlock`), the order timeline names who did it, and the parcel can be booked again.
+ * Cancel a booked label with its courier: refused once the courier collected it (`cancelBlock`),
+ * the order timeline names who did it, and the parcel can be booked again. `keepPacked` keeps the
+ * items in the box ("Cancel shipment"); otherwise they are unpacked too ("Cancel fulfilment").
  */
 export async function cancelStoreShipment(
   tx: StoreTx,
@@ -349,6 +351,7 @@ export async function cancelStoreShipment(
   secret: string,
   shipmentId: string,
   author: string | null = null,
+  keepPacked = false,
 ) {
   const [row] = await tx.select().from(shipment).where(eq(shipment.id, shipmentId))
   if (!row) throw new ORPCError('NOT_FOUND')
@@ -365,8 +368,24 @@ export async function cancelStoreShipment(
   }
   return cancelShipment({ storeId, tx }, provider, shipmentId, {
     author,
+    keepPacked,
     courierCancels: courierCancels(registry, row.provider),
   }).catch(courierToRpc)
+}
+
+/** "Move back to Booked": the parcel leaves its pickup and manifest; the label stays live. */
+export async function returnStoreShipmentToBooked(
+  tx: StoreTx,
+  storeId: string,
+  shipmentId: string,
+  author: string | null = null,
+) {
+  return returnShipmentToBooked({ storeId, tx }, shipmentId, { author }).catch((err) => {
+    if (err instanceof ShipmentNotOnPickup) {
+      throw new ORPCError('PRECONDITION_FAILED', { message: err.message })
+    }
+    return courierToRpc(err)
+  })
 }
 
 /**
@@ -390,7 +409,6 @@ export async function describeShipment(
         .from(shipmentPickup)
         .where(eq(shipmentPickup.id, row.pickupId))
     : []
-  const inManifest = row.status === 'created' ? await shipmentInManifest(tx, row.id) : false
   const missed = pickupMissed(row, pickup ?? null, dayKey(new Date()))
   return {
     ...row,
@@ -405,10 +423,7 @@ export async function describeShipment(
       (!row.pickupId || missed) &&
       row.status === 'created' &&
       (registry.get(row.provider)?.capabilities.includes('pickup') ?? false),
-    cancelBlock: cancelBlock(row, {
-      inManifest,
-      courierCancels: courierCancels(registry, row.provider),
-    }),
+    cancelBlock: cancelBlock(row, { courierCancels: courierCancels(registry, row.provider) }),
   }
 }
 

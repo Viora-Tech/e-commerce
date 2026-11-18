@@ -141,6 +141,7 @@ export async function listShipments(
       provider: shipment.provider,
       waybill: shipment.waybill,
       status: shipment.status,
+      pickupId: shipment.pickupId,
       ndrStatus: shipment.ndrStatus,
       insured: shipment.insured,
       labelUrl: shipment.labelUrl,

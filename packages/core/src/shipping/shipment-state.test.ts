@@ -8,7 +8,7 @@ import {
   storedLabelUrl,
 } from './shipment-state'
 
-const ok = { inManifest: false, courierCancels: true }
+const ok = { courierCancels: true }
 
 describe('cancelBlock', () => {
   it('allows a booked label that has not left', () => {
@@ -22,12 +22,12 @@ describe('cancelBlock', () => {
     for (const status of ['picked_up', 'in_transit', 'out_for_delivery']) {
       expect(cancelBlock({ status }, ok)).toBe('picked_up')
     }
-    expect(cancelBlock({ status: 'created' }, { ...ok, inManifest: true })).toBe('in_manifest')
+    expect(cancelBlock({ status: 'created' }, ok)).toBeNull()
     expect(cancelBlock({ status: 'created' }, { ...ok, courierCancels: false })).toBe(
       'not_supported',
     )
     // Already moving beats "no cancel": the parcel left either way.
-    expect(cancelBlock({ status: 'in_transit' }, { inManifest: true, courierCancels: false })).toBe(
+    expect(cancelBlock({ status: 'in_transit' }, { courierCancels: false })).toBe(
       'picked_up',
     )
   })
