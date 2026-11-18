@@ -35,6 +35,7 @@
     "db:seed:back-in-stock": "bun run --cwd packages/db seed:back-in-stock",
     "media:reprocess": "bun run --cwd apps/worker --env-file=../../.env src/media-reprocess.ts",
     "media:rehost": "bun run --cwd apps/worker --env-file=../../.env src/media-rehost.ts",
+    "media:videos": "bun run --cwd apps/worker --env-file=../../.env src/media-videos.ts",
     "rotate-secrets": "bun scripts/rotate-secrets.ts",
     "platform:invite": "bun scripts/platform-invite.ts",
     "platform:unlimited": "bun scripts/platform-unlimited.ts",
