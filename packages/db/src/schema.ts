@@ -420,6 +420,14 @@ export const media = pgTable(
     posterMediaId: uuid('poster_media_id').references((): AnyPgColumn => media.id, {
       onDelete: 'set null',
     }),
+    /**
+     * A video's smaller copy, re-encoded by the worker (`apps/worker/src/video-compact.ts`): H.264
+     * at a lower bitrate, at most 1080p, beside the original under `compact_key`. The storefront
+     * plays it instead of `url`. Null for images, and for a video not yet done or not worth it.
+     */
+    compactUrl: text('compact_url'),
+    compactKey: text('compact_key'),
+    compactSize: integer('compact_size'),
     createdAt: createdAt(),
   },
   (t) => [

@@ -1660,6 +1660,13 @@
       "when": 1795280000000,
       "tag": "0252_waimers_export_vi_style",
       "breakpoints": true
+    },
+    {
+      "idx": 237,
+      "version": "7",
+      "when": 1795280100000,
+      "tag": "0253_media_compact_video",
+      "breakpoints": true
     }
   ]
 }

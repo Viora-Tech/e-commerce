@@ -66,6 +66,9 @@ FROM base AS runner
 # Alpine fixes published after the base image (musl, zlib): the security scan flags them otherwise.
 RUN apk upgrade --no-cache
 RUN addgroup -S bunapp && adduser -S worker -G bunapp
+# ffmpeg makes each uploaded video's smaller copy (`src/video-compact.ts`); run as its own
+# program, never linked. Alpine's build adds roughly 60-80 MB to the image.
+RUN apk add --no-cache ffmpeg
 COPY --from=installer /repo /repo
 # Theme pictures for the Themes page (`src/theme-screenshot.ts`): opt in with
 # `--build-arg THEME_SCREENSHOTS=1`, which adds Alpine's Chromium (~150 MB on disk) and needs the

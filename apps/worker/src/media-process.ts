@@ -1,5 +1,10 @@
 import { availableParallelism } from 'node:os'
-import { markMediaFailed, markMediaProcessed, storageForStore } from '@commerce/core'
+import {
+  COMPACT_VIDEO_JOB,
+  markMediaFailed,
+  markMediaProcessed,
+  storageForStore,
+} from '@commerce/core'
 import {
   DecompressionBombError,
   processImage,
@@ -20,6 +25,7 @@ import {
 } from '@commerce/queue'
 import { count, eq } from 'drizzle-orm'
 import { mediaCpus, profileFor } from './media-limits'
+import { compactVideo } from './video-compact'
 
 /**
  * One job per confirmed image upload (or Shopify-import media row): loads
@@ -58,6 +64,11 @@ export function createMediaProcessWorker(
     MEDIA_PROCESS_QUEUE,
     fairProcessor(connection, MEDIA_PROCESS_QUEUE, opts.limits, async (job) => {
       const { storeId, mediaId } = job.data
+      // A video's smaller copy (`./video-compact.ts`): its own path, outside a transaction.
+      if (job.name === COMPACT_VIDEO_JOB) {
+        await compactVideo(db, storeId, mediaId, opts.settingsSecret)
+        return
+      }
       await withStore(db, storeId, async (tx) => {
         const [row] = await tx.select().from(media).where(eq(media.id, mediaId))
         if (!row) return // deleted before the job ran; nothing to do
@@ -117,6 +128,15 @@ export function createMediaProcessWorker(
   worker.on('failed', async (job, err) => {
     const maxAttempts = job?.opts.attempts ?? 1
     if (!job || job.attemptsMade < maxAttempts) return // more retries queued; not final yet
+    // A failed video copy changes nothing: the original stays and keeps playing.
+    if (job.name === COMPACT_VIDEO_JOB) {
+      logger.warn('video copy failed, original kept', {
+        storeId: job.data.storeId,
+        mediaId: job.data.mediaId,
+        error: err,
+      })
+      return
+    }
     const isBomb = err instanceof DecompressionBombError
     const message = isBomb
       ? `rejected: ${err.message}`

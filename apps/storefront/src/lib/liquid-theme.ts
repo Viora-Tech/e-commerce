@@ -1,5 +1,8 @@
 import 'server-only'
 import {
+  compactVideosByUrl,
+  videoSources,
+  withCompactVideos,
   CollectionDrop,
   createPageContext,
   getCart,
@@ -456,7 +459,12 @@ export async function renderLiquidSections(
       // `nonceThemeScripts` in core); a script that came in with data never does. Its deferred
       // and module scripts wait for React (`./liquid-defer.ts`); a cookie banner shows with
       // the first paint (`./liquid-consent-reveal.ts`).
-      const parked = revealConsentEarly(deferThemeScripts(html), NONCE_MARK)
+      // A video from Files plays its smaller copy when the worker has made one
+      // (`@commerce/core` compact-video); one query, only for a section with videos.
+      const sources = videoSources(html)
+      const small = sources.length ? await compactVideosByUrl(tx, sources) : null
+      const sized = small ? withCompactVideos(html, small) : html
+      const parked = revealConsentEarly(deferThemeScripts(sized), NONCE_MARK)
       done.push({ p, html: p.belowFold ? belowTheFold(parked) : parked, trace })
     }
     return done

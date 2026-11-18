@@ -159,6 +159,13 @@ Candidate projects, with verified licences and what to take from each: [`docs/op
 - Licence: MPL-2.0 — https://github.com/web-push-libs/web-push. Used as an unmodified npm
   dependency (3.6.7); MPL is file-level, so no file of ours is covered by it.
 
+## FFmpeg
+
+- Used in: `apps/worker` (`src/video-compact.ts` makes each uploaded video's smaller copy)
+- Licence: LGPL-2.1+/GPL-2.0+ (Alpine's build includes libx264, GPL) — https://ffmpeg.org/legal.html.
+  Installed from Alpine's package into the worker image and run as a separate program; no FFmpeg
+  code is linked into or shipped with ours.
+
 ## @theguild/remark-mermaid
 
 - Used in: `apps/docs` (renders Mermaid diagrams in MDX pages)
