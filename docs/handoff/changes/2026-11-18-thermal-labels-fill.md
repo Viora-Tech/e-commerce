@@ -15,7 +15,10 @@ size and the label sat small in the middle.
   filled and stroked paths, images, inline images, nested form XObjects (with their Matrix
   and BBox), clipping paths. White fills/strokes (a page-size white background) and invisible
   text are not content. It over-estimates rather than cuts: an unreadable or very large page
-  (over 2 M tokens) counts as the whole visible page.
+  (over 2 M tokens) counts as the whole visible page. The reader is split to stay under the
+  500-line guardrail: `label-pdf-lexer.ts` (tokens), `label-pdf-interpreter.ts` (operators),
+  `label-pdf-state.ts` (graphics state, ink box), `label-pdf-fonts.ts` (glyph widths),
+  `label-pdf-geometry.ts` (matrices, boxes); `label-content-bounds.ts` is the public entry.
 - `trimToContent` (label-sheet-layout.ts) adds 1 mm of white around that box, keeps it inside
   the page, and keeps the whole page when nothing (or a stray mark under 20 mm both ways) was
   found.
