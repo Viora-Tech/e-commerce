@@ -19,7 +19,11 @@ const lists: OverviewList[] = [
 ]
 
 const connectedBody = () => (
-  <CourierShipmentsLink help={copy.goToShipmentsHelp} cta={copy.goToShipments} />
+  <CourierShipmentsLink
+    courier="rapidshyp"
+    help={copy.goToShipmentsHelp}
+    cta={copy.goToShipments}
+  />
 )
 
 /** `/apps/rapidshyp`: status, what the connector can do today, and a way into the shared Shipments workspace. */
