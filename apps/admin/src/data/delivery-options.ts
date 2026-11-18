@@ -218,6 +218,8 @@ export const deliveryOptionsContent = {
     insured: (price: string | null) => (price ? `Insured (+${price})` : 'Insured (rate not set)'),
     usually: 'Usually (no courier date)',
     traceTitle: (option: string) => `${option}: every route`,
+    offLine: (option: string) => `${option} is turned off, so checkout does not show it.`,
+    noRoutes: 'No courier route to show for this option.',
     hidden: {
       no_route: 'Hidden: no route fits',
       couriers_down: 'Hidden: couriers did not answer',
@@ -285,6 +287,8 @@ export const deliveryOptionsContent = {
         cheapest: 'Cheapest route (tie: direct)',
         fastest: 'Fastest route (tie: cheapest)',
       },
+      strategyHelp:
+        "A product rule's Default route wins over this pick for its products, when it delivers to the PIN. Set it in Rules.",
       preferDirect: 'Prefer a direct route when it costs at most this much more',
       preferDirectHelp: 'Empty: no preference.',
       preferCarrier: 'Preferred courier',
@@ -347,6 +351,8 @@ export const deliveryOptionsContent = {
       hideSlower: 'Hide couriers that are slower and dearer',
       hideSlowerHelp:
         'Drops a courier another one beats on both price and date, but checkout always shows at least 3 when 3 couriers deliver.',
+      hideSlowerFastest:
+        'With Fastest, every other courier is slower and costs the same or more, so this hides them all. Checkout tops the list back up to 3 cards with the next cheapest, so you never offer more than 3. Turn it off to show up to your "Show at most" number.',
       showNames: 'Show courier names to shoppers',
       showNamesHelp:
         'Off, cards show only the delivery promise, like "Standard" and its date: no courier name or logo.',

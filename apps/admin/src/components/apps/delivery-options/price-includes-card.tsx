@@ -72,6 +72,11 @@ export default function PriceIncludesCard({ option, onChange }: PriceIncludesCar
           onChange={(on) => setCouriers({ hideSlowerDearer: on })}
           className="py-3"
         />
+        {option.strategy === 'fastest' && option.couriers.hideSlowerDearer ? (
+          <p role="note" className="pb-3 text-caption text-warning">
+            {c.hideFastest}
+          </p>
+        ) : null}
       </div>
       <div className="flex items-center justify-between gap-4">
         <span className="text-body font-semibold text-ink-strong">{c.max}</span>

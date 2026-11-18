@@ -114,6 +114,7 @@ export default function OptionForm({ form, onChange }: OptionFormProps) {
           <ChoiceField
             id="opt-strategy"
             label={o.routing.strategy}
+            help={o.routing.strategyHelp}
             value={form.strategy}
             options={(['cheapest', 'fastest'] as const).map((v) => ({
               value: v,
@@ -329,6 +330,11 @@ export default function OptionForm({ form, onChange }: OptionFormProps) {
               checked={form.hideSlowerDearer}
               onChange={set('hideSlowerDearer')}
             />
+            {form.strategy === 'fastest' && form.hideSlowerDearer ? (
+              <p role="note" className="text-caption text-warning">
+                {o.couriers.hideSlowerFastest}
+              </p>
+            ) : null}
           </>
         ) : null}
       </SettingsCard>

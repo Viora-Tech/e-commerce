@@ -94,17 +94,7 @@ export default function TryPinCard({ result, onResult }: TryPinCardProps) {
   const tabs = itemTabs(discountCopy.value, locale).filter((x) => x.key === 'products')
 
   return (
-    <SettingsCard
-      title={t.title}
-      description={t.description}
-      bodyClassName="gap-5"
-      footer={
-        <Button loading={busy} onClick={handleRun} disabled={!ready || busy}>
-          <Search aria-hidden />
-          {t.run}
-        </Button>
-      }
-    >
+    <SettingsCard title={t.title} description={t.description} bodyClassName="gap-5">
       <Field className="w-fit">
         <FieldLabel>{t.mode}</FieldLabel>
         <ToggleGroup
@@ -166,6 +156,13 @@ export default function TryPinCard({ result, onResult }: TryPinCardProps) {
         checked={declineInsurance}
         onChange={setDeclineInsurance}
       />
+      {/* Above the results, not the card's footer: under a long trace it sat alone (#1781). */}
+      <div className="flex justify-end">
+        <Button loading={busy} onClick={handleRun} disabled={!ready || busy}>
+          <Search aria-hidden />
+          {t.run}
+        </Button>
+      </div>
       {result ? (
         <div className="flex flex-col gap-5 border-t border-hairline pt-4">
           {parcel ? (
