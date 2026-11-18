@@ -20,6 +20,7 @@ import {
   deleteDraft,
   deleteDrafts,
   deliverCartRecovery,
+  draftStoreCreditDue,
   duplicateOrderAsDraft,
   listAbandoned,
   listDrafts,
@@ -451,21 +452,18 @@ export async function getStoreAbandoned(
 
 /**
  * The email on a draft, for a bulk invoice send; null when it is not a draft, has none, or store
- * credit pays all of it (nothing to invoice).
+ * credit pays all of it (nothing to invoice). The credit counts as the convert would take it:
+ * capped at the customer's balance now.
  */
-export async function draftEmail(tx: StoreTx, id: string): Promise<string | null> {
+export async function draftEmail(tx: StoreTx, storeId: string, id: string): Promise<string | null> {
   const [o] = await tx
-    .select({
-      email: order.email,
-      totalPaise: order.totalPaise,
-      creditPaise: sql<number>`coalesce((select sum(p.amount_paise) from payment p
-        where p.order_id = ${order.id} and p.provider = ${STORE_CREDIT_PROVIDER}
-        and p.status = 'created'), 0)::int`,
-    })
+    .select({ email: order.email, totalPaise: order.totalPaise })
     .from(order)
     .where(and(eq(order.id, id), eq(order.status, 'draft')))
-  if (o && o.creditPaise > 0 && o.creditPaise >= o.totalPaise) return null
-  return o?.email ?? null
+  if (!o) return null
+  const creditPaise = await draftStoreCreditDue(ctxOf(tx, storeId), id)
+  if (creditPaise > 0 && creditPaise >= o.totalPaise) return null
+  return o.email ?? null
 }
 
 /** The abandoned checkout's reminder as the shopper would get it, for the "Review email" dialog. */
