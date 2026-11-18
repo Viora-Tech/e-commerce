@@ -21,6 +21,7 @@ import {
 import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
 import { can, PAGE_SIZE_MAX, SEARCH_MAX } from '../procedures'
+import { getStoreAbandoned } from '../services/abandoned-detail.service'
 import { storeRegistries } from '../services/apps.service'
 import {
   checkStoreDraftDiscount,
@@ -30,7 +31,6 @@ import {
   duplicateStoreOrder,
   estimateStoreDraftGst,
   getDraft,
-  getStoreAbandoned,
   listStoreAbandoned,
   listStoreDrafts,
   previewRecovery,
