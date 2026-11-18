@@ -1674,6 +1674,13 @@
       "when": 1795280200000,
       "tag": "0254_gst_invoice_source",
       "breakpoints": true
+    },
+    {
+      "idx": 240,
+      "version": "7",
+      "when": 1795280400000,
+      "tag": "0256_invoice_printed_at",
+      "breakpoints": true
     }
   ]
 }

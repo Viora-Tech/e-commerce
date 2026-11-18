@@ -159,6 +159,8 @@ export const invoice = pgTable(
     pdfError: text('pdf_error'),
     /** `external`: recorded, invoiced outside Koomerce; no PDF (`pdf_status` none). */
     source: text('source', { enum: INVOICE_SOURCES }).notNull().default('koomerce'),
+    /** First time staff printed or downloaded its PDF; null: not printed yet (0256). */
+    printedAt: timestamp('printed_at', { withTimezone: true }),
     issuedAt: at('issued_at'),
     /** The date printed on the invoice and used for its period; set when issued. */
     invoiceDate: timestamp('invoice_date', { withTimezone: true }),

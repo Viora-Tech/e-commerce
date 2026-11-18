@@ -82,6 +82,7 @@ export async function listDocuments(
       igstPaise: invoice.igstPaise,
       pdfStatus: invoice.pdfStatus,
       source: invoice.source,
+      printedAt: invoice.printedAt,
       status: invoice.status,
       reportedPeriod: invoice.reportedPeriod,
       issuedAt: invoice.issuedAt,

@@ -215,10 +215,17 @@ export default function InvoicesList() {
     setEverything(false)
     setPicked(on ? new Set(data?.rows.map((r) => r.id)) : new Set())
   }
+  // Printing or downloading clears "Not printed": read the list again after.
   const handleDownload = () =>
-    bulk('download', async () => saveFile(await api.gstInvoices.bulkDownload(selection())))
+    bulk('download', async () => {
+      saveFile(await api.gstInvoices.bulkDownload(selection()))
+      setVersion((v) => v + 1)
+    })
   const handlePrint = () =>
-    bulk('print', async () => saveFile(await api.gstInvoices.bulkPrint(selection()), 'open'))
+    bulk('print', async () => {
+      saveFile(await api.gstInvoices.bulkPrint(selection()), 'open')
+      setVersion((v) => v + 1)
+    })
   const handleRecalculate = () =>
     bulk('recalculate', async () => {
       const r = await api.gstInvoices.bulkRefreshGst(selection())
@@ -432,6 +439,8 @@ export default function InvoicesList() {
                       <span title={recordCopy.notPrintedHelp}>
                         <StatusChip tone="neutral">{recordCopy.notPrinted}</StatusChip>
                       </span>
+                    ) : r.status === 'issued' && !r.printedAt ? (
+                      <StatusChip tone="attention">{recordCopy.notPrintedYet}</StatusChip>
                     ) : null}
                   </span>
                 </TableCell>

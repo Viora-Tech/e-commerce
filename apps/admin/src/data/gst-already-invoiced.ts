@@ -22,6 +22,8 @@ export const gstAlreadyInvoicedContent = {
   outside: 'Recorded, invoiced outside Koomerce',
   /** Badge in the Invoices list: no PDF was made here, nothing to print or email. */
   notPrinted: 'Recorded · no PDF',
+  /** Badge in the Invoices list: issued here, PDF never printed or downloaded yet. */
+  notPrintedYet: 'Not printed',
   notPrintedHelp:
     'Invoiced outside Koomerce. Koomerce made no PDF, so it is not printed or emailed.',
   outsideBody:

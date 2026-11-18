@@ -1,6 +1,6 @@
 import { enqueueAppJob, listGstNumbers, permissions } from '@commerce/core'
 import { DocumentSnapshotSchema, InvoiceSettingsSchema } from '@commerce/invoices'
-import { mergePdfs, zipFiles } from '@commerce/invoices/render'
+import { zipFiles } from '@commerce/invoices/render'
 import {
   buyerPlace,
   cancelInvoice,
@@ -11,7 +11,6 @@ import {
   GST_INVOICES_ID,
   gstr1ForPeriod,
   hasPdf,
-  InvoiceError,
   issueCreditNotes,
   issueDocument,
   issueDrafts,
@@ -19,8 +18,6 @@ import {
   listPeriods,
   loadSettings,
   markFiled,
-  pdfBytes,
-  pdfFilename,
   queueRows,
   queueStats,
   regenerateDocument,
@@ -40,6 +37,7 @@ import {
   storeName,
 } from '../services/gst-invoices.service'
 import { asOrpc, Gst, gstScope, Period, renderDeps, requireInstalled } from './gst-invoices-context'
+import { fileProcedures } from './gst-invoices-files'
 import { addToQueue, generateInvoice, invoiceFixProcedures } from './gst-invoices-order-actions'
 import { recordExternal, undoExternal } from './gst-invoices-record'
 import { returnsProcedures } from './gst-invoices-returns'
@@ -365,47 +363,8 @@ export const gstInvoicesRouter = {
       return listDocuments(context.tx, { ...input, limit, offset: (input.page - 1) * limit })
     }),
 
-  download: can(permissions.ORDERS_READ)
-    .input(z.object({ id: z.uuid() }))
-    .handler(async ({ context, input }) => {
-      await requireInstalled(context)
-      try {
-        const [row] = await documentsByIds(context.tx, [input.id])
-        if (!row) throw new InvoiceError('not_found', 'Document not found')
-        return file(await pdfBytes(renderDeps(context), row.id), pdfFilename(row))
-      } catch (err) {
-        asOrpc(err)
-      }
-    }),
-
   ...invoiceFixProcedures,
-  /** A zip of PDFs, one per selected document. */
-  bulkDownload: can(permissions.ORDERS_READ)
-    .use(heavy('bulk'))
-    .input(Selection)
-    .handler(async ({ context, input }) => {
-      await requireInstalled(context)
-      const rows = await documentsByIds(context.tx, await selectedIds(context, input))
-      const deps = renderDeps(context)
-      const files = []
-      // Invoices recorded from outside Koomerce have no PDF and are left out.
-      for (const row of rows.filter(hasPdf))
-        files.push({ name: pdfFilename(row), bytes: await pdfBytes(deps, row.id) })
-      return file(zipFiles(files), 'invoices.zip', 'application/zip')
-    }),
-
-  /** One merged PDF for the printer. */
-  bulkPrint: can(permissions.ORDERS_READ)
-    .use(heavy('bulk'))
-    .input(Selection)
-    .handler(async ({ context, input }) => {
-      await requireInstalled(context)
-      const rows = await documentsByIds(context.tx, await selectedIds(context, input))
-      const deps = renderDeps(context)
-      const files = []
-      for (const row of rows.filter(hasPdf)) files.push(await pdfBytes(deps, row.id))
-      return file(await mergePdfs(files), 'invoices-print.pdf')
-    }),
+  ...fileProcedures,
 
   /** Queue an email of each document to its buyer; poll `batch` for progress. */
   bulkEmail: can(permissions.ORDERS_WRITE)

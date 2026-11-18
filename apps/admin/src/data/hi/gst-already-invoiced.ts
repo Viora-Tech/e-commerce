@@ -17,6 +17,7 @@ export default [
     failed: 'यह इनवॉइस दर्ज नहीं हो सका',
     outside: 'दर्ज किया गया, इनवॉइस Koomerce के बाहर बना',
     notPrinted: 'दर्ज किया · PDF नहीं',
+    notPrintedYet: 'प्रिंट नहीं हुआ',
     notPrintedHelp:
       'इनवॉइस Koomerce के बाहर बना। Koomerce ने PDF नहीं बनाई, इसलिए यह न प्रिंट होगा न ईमेल।',
     outsideBody:
