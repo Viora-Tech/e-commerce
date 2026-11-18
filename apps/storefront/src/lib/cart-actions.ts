@@ -414,6 +414,7 @@ export async function checkoutAction(submitted: CheckoutForm): Promise<CheckoutR
         cartId,
         paymentProvider: provider,
         paymentFallbacks: fallbacks,
+        shopperIp: ip,
         giftCardIds,
         // Store credit only ever comes from the signed-in customer's own balance.
         ...(me && form.useStoreCredit === true ? { storeCredit: { customerId: me.id } } : {}),

@@ -53,6 +53,7 @@ export const profitCostsContent = {
     phonepe: 'PhonePe',
     stripe: 'Stripe',
     decentro: 'Decentro',
+    snapmint: 'Snapmint',
   } as Record<string, string>,
   save: 'Save',
   saved: 'Saved',

@@ -270,6 +270,7 @@ export const orderDetailContent = {
       razorpay: 'Razorpay',
       cashfree: 'Cashfree',
       decentro: 'Decentro',
+      snapmint: 'Snapmint',
       gift_card: 'Gift card',
       store_credit: 'Store credit',
     } as Record<string, string>,

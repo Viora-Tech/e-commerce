@@ -11,7 +11,7 @@ import { enabledForGateways, type PaymentRouting } from './routing'
  * and token refresh read it unchanged. The other one waits under
  * `providers['<id>~<mode>']` until the merchant flips the switch, which swaps
  * the two. A set's mode is read from the keys themselves (Razorpay's
- * `rzp_test_` / `rzp_live_` prefix, Cashfree's and Decentro's `mode` field), so
+ * `rzp_test_` / `rzp_live_` prefix, Cashfree's, Decentro's and Snapmint's `mode` field), so
  * the switch can never disagree with where the money actually goes, and a store
  * saved before there were two sets needs no migration: its one set is simply the
  * active set, in the slot its keys say.
@@ -22,7 +22,7 @@ export type PaymentMode = 'test' | 'live'
 export const PAYMENT_MODES: readonly PaymentMode[] = ['test', 'live']
 
 /** Gateways with a Live ⇄ Test switch and an Active/Inactive switch. */
-export const MODE_GATEWAY_IDS = ['razorpay', 'cashfree', 'decentro'] as const
+export const MODE_GATEWAY_IDS = ['razorpay', 'cashfree', 'decentro', 'snapmint'] as const
 
 type Providers = Record<string, Record<string, string>>
 

@@ -23,6 +23,7 @@ import { whatsappFactory } from '@commerce/notifications-whatsapp'
 import { cashfreeFactory } from '@commerce/payments-cashfree'
 import { decentroFactory } from '@commerce/payments-decentro'
 import { razorpayFactory } from '@commerce/payments-razorpay'
+import { snapmintFactory } from '@commerce/payments-snapmint'
 import { bluedartFactory } from '@commerce/shipping-bluedart'
 import { delhiveryFactory } from '@commerce/shipping-delhivery'
 import { dhlExpressFactory } from '@commerce/shipping-dhl-express'
@@ -63,6 +64,7 @@ describe('sweep: secret-fields', () => {
       razorpayFactory,
       cashfreeFactory,
       decentroFactory,
+      snapmintFactory,
       delhiveryFactory,
       shiprocketFactory,
       rapidshypFactory,

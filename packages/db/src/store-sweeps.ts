@@ -111,7 +111,7 @@ export async function storesWithUnknownPaymentFees(db: Db): Promise<string[]> {
 
 /**
  * Store ids with a gateway refund still pending on a gateway without refund webhooks
- * (Decentro), for the worker's refund sync. SECURITY DEFINER backed (0241).
+ * (Decentro, Snapmint), for the worker's refund sync. SECURITY DEFINER backed (0241, 0254).
  */
 export async function storesWithPendingGatewayRefunds(db: Db): Promise<string[]> {
   const rows = await db.execute<{ id: string }>(
