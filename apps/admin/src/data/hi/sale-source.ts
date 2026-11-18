@@ -12,6 +12,8 @@ export default [
     landing: 'पहला पेज',
     affiliate: 'एफ़िलिएट कोड',
     visited: 'विज़िट',
+    online: 'ऑनलाइन स्टोर',
+    notRecorded: 'सीधे आया, या रिकॉर्ड नहीं हुआ',
     channels: {
       direct: 'सीधे',
       organic_search: 'सर्च (फ़्री)',

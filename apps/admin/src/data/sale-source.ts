@@ -15,6 +15,9 @@ export const saleSourceContent = {
   landing: 'First page',
   affiliate: 'Affiliate code',
   visited: 'Visited',
+  /** Nothing was saved about the visit (direct, or before tracking). */
+  online: 'Online store',
+  notRecorded: 'Direct, or not recorded',
   /** The same names as the Orders list's Channel column and filter. */
   channels: CHANNEL_LABELS,
   admin: {
