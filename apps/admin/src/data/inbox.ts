@@ -11,7 +11,7 @@ export const inboxContent = {
   settings: {
     title: 'Inbox settings',
     subtitle: 'How the chat looks and behaves on your store.',
-    /** The jump menu at the top of the page, one link per section. */
+    /** The page's tabs, one per section. */
     jump: {
       label: 'Settings sections',
       chat: 'Chat',

@@ -9,6 +9,7 @@ import { Textarea } from '@commerce/ui/shadcn/textarea'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import PageHeader from '@/components/layout/page-header'
+import PillTabs from '@/components/layout/pill-tabs'
 import SaveBar from '@/components/layout/save-bar'
 import SettingsCard from '@/components/settings/settings-card'
 import SettingsRow from '@/components/settings/settings-row'
@@ -33,8 +34,9 @@ function wholeNumber(raw: string, min: number, max: number, fallback: number): n
   return Number.isFinite(n) ? Math.min(max, Math.max(min, n)) : fallback
 }
 
-/** The page's sections, in order, for the jump menu (`#inbox-<id>`). */
+/** The page's tabs, in order (owner 18 Nov 2026: tabs, not one long page). */
 const SECTIONS = ['chat', 'hours', 'ai', 'contact', 'privacy', 'blocked'] as const
+type Section = (typeof SECTIONS)[number]
 
 /**
  * Sales channels › Inbox › Settings: the chat button and greeting, business hours and the away
@@ -47,6 +49,7 @@ export default function SettingsPage({ settings, timeZone }: SettingsPageProps) 
   const [saved, setSaved] = useState(settings)
   const [form, setForm] = useState(settings)
   const [saving, setSaving] = useState(false)
+  const [tab, setTab] = useState<Section>('chat')
 
   // Helpers
   const patch = (next: Partial<InboxSettings>) => setForm((f) => ({ ...f, ...next }))
@@ -83,22 +86,15 @@ export default function SettingsPage({ settings, timeZone }: SettingsPageProps) 
         saving={saving}
       />
       <PageHeader title={s.title} summary={s.subtitle} />
-      <nav
-        aria-label={s.jump.label}
-        className="sticky top-0 z-10 -mx-1 flex flex-wrap gap-1 bg-background/95 px-1 py-2 backdrop-blur"
-      >
-        {SECTIONS.map((id) => (
-          <a
-            key={id}
-            href={`#inbox-${id}`}
-            className="rounded-md px-3 py-1.5 text-body text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-          >
-            {s.jump[id]}
-          </a>
-        ))}
-      </nav>
+      <PillTabs
+        variant="underline"
+        label={s.jump.label}
+        value={tab}
+        onChange={setTab}
+        tabs={SECTIONS.map((id) => ({ value: id, label: s.jump[id] }))}
+      />
       <fieldset disabled={!canManage} className="flex min-w-0 flex-col gap-6">
-        <div id="inbox-chat" className="-mb-6 scroll-mt-16" />
+        <div hidden={tab !== 'chat'} className="flex flex-col gap-6">
         <SettingsCard title={s.chat.title}>
           <SettingsRow
             label={s.chat.greeting.label}
@@ -127,7 +123,8 @@ export default function SettingsPage({ settings, timeZone }: SettingsPageProps) 
           </SettingsRow>
         </SettingsCard>
 
-        <div id="inbox-hours" className="-mb-6 scroll-mt-16" />
+        </div>
+        <div hidden={tab !== 'hours'} className="flex flex-col gap-6">
         <SettingsCard title={s.availability.title} description={s.availability.help(timeZone)}>
           <SettingsRow label={s.availability.label} htmlFor="inbox-availability">
             <NativeSelect
@@ -167,10 +164,12 @@ export default function SettingsPage({ settings, timeZone }: SettingsPageProps) 
           </SettingsRow>
         </SettingsCard>
 
-        <div id="inbox-ai" className="-mb-6 scroll-mt-16" />
+        </div>
+        <div hidden={tab !== 'ai'} className="flex flex-col gap-6">
         <AiAgentSettings value={form.ai} onChange={(ai) => patch({ ai })} />
 
-        <div id="inbox-contact" className="-mb-6 scroll-mt-16" />
+        </div>
+        <div hidden={tab !== 'contact'} className="flex flex-col gap-6">
         <SettingsCard title={s.contact.title}>
           <SettingsRow
             label={s.contact.capture.label}
@@ -235,7 +234,8 @@ export default function SettingsPage({ settings, timeZone }: SettingsPageProps) 
           </SettingsRow>
         </SettingsCard>
 
-        <div id="inbox-privacy" className="-mb-6 scroll-mt-16" />
+        </div>
+        <div hidden={tab !== 'privacy'} className="flex flex-col gap-6">
         <SettingsCard title={s.privacy.title}>
           <SettingsRow
             label={s.privacy.retention.label}
@@ -258,9 +258,9 @@ export default function SettingsPage({ settings, timeZone }: SettingsPageProps) 
             </div>
           </SettingsRow>
         </SettingsCard>
+        </div>
       </fieldset>
-      <div id="inbox-blocked" className="scroll-mt-16" />
-      <BlockedSenders />
+      {tab === 'blocked' ? <BlockedSenders /> : null}
     </>
   )
 }
