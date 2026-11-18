@@ -128,6 +128,7 @@ import returns from './returns'
 import reviewTools from './review-tools'
 import reviews from './reviews'
 import rollouts from './rollouts'
+import saleSource from './sale-source'
 import salesChannels from './sales-channels'
 import searchApp from './search-app'
 import searchConsole from './search-console'
@@ -346,4 +347,5 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...whatsappChat,
   ...whatsappApp,
   ...salesChannels,
+  ...saleSource,
 ]

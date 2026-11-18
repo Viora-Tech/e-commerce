@@ -28,7 +28,6 @@ export default [
       name: 'नाम',
       email: 'ईमेल',
       phone: 'फ़ोन',
-      source: 'कहाँ से आए',
       none: 'दिया नहीं गया',
     },
     reminder: {

@@ -13,6 +13,7 @@ import EmptyState from '@/components/layout/empty-state'
 import PageHeader from '@/components/layout/page-header'
 import ProoflyDetailPage from '@/components/layout/proofly-detail-page'
 import StatusChip from '@/components/layout/status-chip'
+import SaleSourceCard from '@/components/orders/sale-source-card'
 import SendMessageDialog, { type CustomMessage } from '@/components/orders/send-message-dialog'
 import { checkoutDraftContent, draftsContent } from '@/data/drafts'
 import { useCopy, useFormat } from '@/hooks/use-copy'
@@ -268,26 +269,30 @@ export default function CheckoutDraftView({ draft: d }: CheckoutDraftViewProps) 
         </>
       }
       side={
-        <DataCard title={copy.summary}>
-          <dl className="flex flex-col gap-3 text-body">
-            <div>
-              <dt className="text-muted-foreground">{copy.contact}</dt>
-              <dd>{[d.customer?.name, d.email, d.phone].filter(Boolean).join(' · ')}</dd>
-            </div>
-            <div>
-              <dt className="text-muted-foreground">{copy.method}</dt>
-              <dd>{method}</dd>
-            </div>
-            <div>
-              <dt className="text-muted-foreground">{copy.lastActivity}</dt>
-              <dd className="tabular-nums">{fmt.when(d.lastActivityAt ?? d.placedAt)}</dd>
-            </div>
-            <div>
-              <dt className="text-muted-foreground">{held ? copy.held : copy.items}</dt>
-              <dd className="tabular-nums">{held ? fmt.when(held) : copy.notHeld}</dd>
-            </div>
-          </dl>
-        </DataCard>
+        <>
+          <DataCard title={copy.summary}>
+            <dl className="flex flex-col gap-3 text-body">
+              <div>
+                <dt className="text-muted-foreground">{copy.contact}</dt>
+                <dd>{[d.customer?.name, d.email, d.phone].filter(Boolean).join(' · ')}</dd>
+              </div>
+              <div>
+                <dt className="text-muted-foreground">{copy.method}</dt>
+                <dd>{method}</dd>
+              </div>
+              <div>
+                <dt className="text-muted-foreground">{copy.lastActivity}</dt>
+                <dd className="tabular-nums">{fmt.when(d.lastActivityAt ?? d.placedAt)}</dd>
+              </div>
+              <div>
+                <dt className="text-muted-foreground">{held ? copy.held : copy.items}</dt>
+                <dd className="tabular-nums">{held ? fmt.when(held) : copy.notHeld}</dd>
+              </div>
+            </dl>
+          </DataCard>
+          {/* The shopper's visit, as it will stay on the order once paid. */}
+          <SaleSourceCard attribution={d.attribution} />
+        </>
       }
     >
       {/* Email and WhatsApp as the store and the draft allow; no hand-sent chat fallback here. */}

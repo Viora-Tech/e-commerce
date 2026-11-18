@@ -1,13 +1,12 @@
 'use client'
 
 import { ADMIN_APPS } from '@/apps/registry'
-import { orderChannel } from '@/lib/order-channel'
 import CourierOrdersCard from './courier-orders-card'
 import CustomerCard from './customer-card'
 import DeliveryRouteCard from './delivery-route-card'
 import type { OrderDetail } from './order-detail-types'
 import ProfitCard from './profit-card'
-import SalesChannelCard from './sales-channel-card'
+import SaleSourceCard from './sale-source-card'
 import TagsCard from './tags-card'
 
 type OrderSideColumnProps = {
@@ -32,7 +31,7 @@ function appCard(id: string, orderId: string) {
   return Card ? <Card key={id} orderId={orderId} /> : null
 }
 
-/** The order page's side column: channel, customer, invoices, couriers, route, profit, apps, tags. */
+/** The order page's side column: where it came from, customer, invoices, couriers, route, profit, apps, tags. */
 export default function OrderSideColumn({
   order,
   appCards,
@@ -42,17 +41,9 @@ export default function OrderSideColumn({
   onChanged,
 }: OrderSideColumnProps) {
   // Render logic
-  const soldThrough = orderChannel(order.attribution)
-
   return (
     <>
-      {soldThrough ? (
-        <SalesChannelCard
-          channel={soldThrough}
-          cameFrom={order.attribution?.referrer ?? order.attribution?.source ?? null}
-          campaign={order.attribution?.campaign ?? null}
-        />
-      ) : null}
+      <SaleSourceCard attribution={order.attribution} />
       <CustomerCard order={order} />
       {/* Invoices sit right under the customer, where staff look for them (issue 920). */}
       {appCards.includes(INVOICES_APP) ? (
