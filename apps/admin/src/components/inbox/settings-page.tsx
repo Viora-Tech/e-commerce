@@ -33,6 +33,9 @@ function wholeNumber(raw: string, min: number, max: number, fallback: number): n
   return Number.isFinite(n) ? Math.min(max, Math.max(min, n)) : fallback
 }
 
+/** The page's sections, in order, for the jump menu (`#inbox-<id>`). */
+const SECTIONS = ['chat', 'hours', 'ai', 'contact', 'privacy', 'blocked'] as const
+
 /**
  * Sales channels › Inbox › Settings: the chat button and greeting, business hours and the away
  * message, the AI agent, what is asked of guests, the unanswered email, retention, and blocked senders.
@@ -80,7 +83,22 @@ export default function SettingsPage({ settings, timeZone }: SettingsPageProps) 
         saving={saving}
       />
       <PageHeader title={s.title} summary={s.subtitle} />
+      <nav
+        aria-label={s.jump.label}
+        className="sticky top-0 z-10 -mx-1 flex flex-wrap gap-1 bg-background/95 px-1 py-2 backdrop-blur"
+      >
+        {SECTIONS.map((id) => (
+          <a
+            key={id}
+            href={`#inbox-${id}`}
+            className="rounded-md px-3 py-1.5 text-body text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+          >
+            {s.jump[id]}
+          </a>
+        ))}
+      </nav>
       <fieldset disabled={!canManage} className="flex min-w-0 flex-col gap-6">
+        <div id="inbox-chat" className="-mb-6 scroll-mt-16" />
         <SettingsCard title={s.chat.title}>
           <SettingsRow
             label={s.chat.greeting.label}
@@ -109,6 +127,7 @@ export default function SettingsPage({ settings, timeZone }: SettingsPageProps) 
           </SettingsRow>
         </SettingsCard>
 
+        <div id="inbox-hours" className="-mb-6 scroll-mt-16" />
         <SettingsCard title={s.availability.title} description={s.availability.help(timeZone)}>
           <SettingsRow label={s.availability.label} htmlFor="inbox-availability">
             <NativeSelect
@@ -148,8 +167,10 @@ export default function SettingsPage({ settings, timeZone }: SettingsPageProps) 
           </SettingsRow>
         </SettingsCard>
 
+        <div id="inbox-ai" className="-mb-6 scroll-mt-16" />
         <AiAgentSettings value={form.ai} onChange={(ai) => patch({ ai })} />
 
+        <div id="inbox-contact" className="-mb-6 scroll-mt-16" />
         <SettingsCard title={s.contact.title}>
           <SettingsRow
             label={s.contact.capture.label}
@@ -214,6 +235,7 @@ export default function SettingsPage({ settings, timeZone }: SettingsPageProps) 
           </SettingsRow>
         </SettingsCard>
 
+        <div id="inbox-privacy" className="-mb-6 scroll-mt-16" />
         <SettingsCard title={s.privacy.title}>
           <SettingsRow
             label={s.privacy.retention.label}
@@ -237,6 +259,7 @@ export default function SettingsPage({ settings, timeZone }: SettingsPageProps) 
           </SettingsRow>
         </SettingsCard>
       </fieldset>
+      <div id="inbox-blocked" className="scroll-mt-16" />
       <BlockedSenders />
     </>
   )
