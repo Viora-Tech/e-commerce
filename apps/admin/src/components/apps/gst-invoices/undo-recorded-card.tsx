@@ -40,6 +40,8 @@ export default function UndoRecordedCard({ invoiceId, number, disabled }: UndoRe
     }
     toast.success(copy.undone(number))
     router.push(routes.apps.page('gst-invoices'))
+    // The sidebar's Queue count comes from the server layout: read it again too.
+    router.refresh()
   }
 
   return (

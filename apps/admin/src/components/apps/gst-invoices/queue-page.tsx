@@ -6,6 +6,7 @@ import { Button } from '@commerce/ui/shadcn/button'
 import { Card } from '@commerce/ui/shadcn/card'
 import { Checkbox } from '@commerce/ui/shadcn/checkbox'
 import { Table, TableBody, TableHead, TableHeader, TableRow } from '@commerce/ui/shadcn/table'
+import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import SetupChecklist from '@/components/apps/setup-checklist'
@@ -55,6 +56,7 @@ export default function QueuePage() {
   const [rows, setRows] = useState<QueueRow[] | null>(null)
   /** The queue did not load: say so rather than show an empty queue. */
   const [failed, setFailed] = useState(false)
+  const router = useRouter()
   const [range, setRange] = useState<DateRange>({ from: '', to: '' })
   const [chip, setChip] = useState<Chip>('all')
   const [picked, setPicked] = useState<Set<string>>(new Set())
@@ -102,6 +104,8 @@ export default function QueuePage() {
   const reload = () => {
     setPicked(new Set())
     setReloadKey((k) => k + 1)
+    // The sidebar's Queue count comes from the server layout: read it again too.
+    router.refresh()
   }
 
   // Event handlers
