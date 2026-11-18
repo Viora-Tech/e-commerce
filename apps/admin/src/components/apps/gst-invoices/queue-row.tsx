@@ -39,14 +39,7 @@ const fixHref = (row: Row) =>
     : routes.orders.detail(row.orderId)
 
 /** One queued draft: order and when it joined, customer, GSTIN, taxable, GST, status, Issue or Fix. */
-export default function QueueRow({
-  row,
-  picked,
-  busy,
-  onPick,
-  onIssue,
-  onRecord,
-}: QueueRowProps) {
+export default function QueueRow({ row, picked, busy, onPick, onIssue, onRecord }: QueueRowProps) {
   // Hooks
   const copy = useCopy(gstQueuePageContent)
   const recordCopy = useCopy(gstAlreadyInvoicedContent)
@@ -59,6 +52,8 @@ export default function QueueRow({
       ? copy.fixHelp[row.status]
       : undefined
   const joined = row.eligibleAt ?? row.placedAt
+  const first = row.items[0]
+  const itemList = row.items.map((i) => `${i.title} × ${i.quantity}`).join(', ')
 
   return (
     <TableRow>
@@ -76,6 +71,17 @@ export default function QueueRow({
           </Link>
           {joined ? (
             <span className="text-caption text-muted-foreground">{fmt.when(joined)}</span>
+          ) : null}
+        </span>
+      </TableCell>
+      {/* What it bills: the first item, then "+ n more" (owner, 18 Nov 2026). */}
+      <TableCell className={`${CELL} max-w-64`}>
+        <span className="flex flex-col" title={itemList}>
+          <span className="line-clamp-1">{first ? `${first.title} × ${first.quantity}` : ''}</span>
+          {row.items.length > 1 ? (
+            <span className="text-caption text-muted-foreground">
+              {copy.moreItems(row.items.length - 1)}
+            </span>
           ) : null}
         </span>
       </TableCell>

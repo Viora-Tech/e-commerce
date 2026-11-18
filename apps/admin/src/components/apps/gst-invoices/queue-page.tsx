@@ -260,6 +260,7 @@ export default function QueuePage() {
                   />
                 </TableHead>
                 <TableHead className={HEAD}>{copy.columns.order}</TableHead>
+                <TableHead className={HEAD}>{copy.columns.products}</TableHead>
                 <TableHead className={HEAD}>{copy.columns.customer}</TableHead>
                 <TableHead className={HEAD}>{copy.columns.gstin}</TableHead>
                 <TableHead className={`${HEAD} text-right`}>{copy.columns.taxable}</TableHead>
@@ -272,7 +273,7 @@ export default function QueuePage() {
             </TableHeader>
             <TableBody>
               {rows === null ? (
-                <TableSkeletonRows columns={8} rows={4} label={states.loading} />
+                <TableSkeletonRows columns={9} rows={4} label={states.loading} />
               ) : null}
               {shown.map((r) => (
                 <QueueRowView

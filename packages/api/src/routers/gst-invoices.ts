@@ -172,6 +172,8 @@ export const gstInvoicesRouter = {
           placedAt: doc.order.placedAt,
           buyerName: r.buyerName,
           buyerPlace: buyerPlace(doc),
+          /** What the invoice bills, for the Products column ("Glass mousepad × 1"). */
+          items: doc.lines.map((l) => ({ title: l.description, quantity: l.quantity })),
           buyerGstin: r.buyerGstin,
           export: doc.exportSupply?.countryName ?? null,
           taxablePaise: r.taxablePaise,
