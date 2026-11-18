@@ -18,10 +18,7 @@ import SaveBar from '@/components/layout/save-bar'
 import { salesChannelsContent } from '@/data/sales-channels'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
-import { agentChipStatus } from '@/lib/channel-status'
 import { routes } from '@/lib/routes'
-import ChannelLogo from './channel-logo'
-import ChannelStatusChip from './channel-status-chip'
 import SwitchRow from './switch-row'
 
 type ControlsPageProps = {
@@ -33,7 +30,6 @@ type ControlsPageProps = {
 export default function ControlsPage({ view: initial, collections }: ControlsPageProps) {
   // Hooks
   const copy = useCopy(salesChannelsContent.controls)
-  const agents = useCopy(salesChannelsContent.agents)
   const back = useCopy(salesChannelsContent.overview.title)
   const format = useFormat()
   const [view, setView] = useState(initial)
@@ -245,19 +241,6 @@ export default function ControlsPage({ view: initial, collections }: ControlsPag
                   },
                 ]}
               />
-            </DataCard>
-            <DataCard title={copy.agentsHeading}>
-              <ul className="-my-1 flex flex-col divide-y divide-border">
-                {view.agents.map((a) => (
-                  <li key={a.agent} className="flex items-center gap-3 py-2.5">
-                    <ChannelLogo channel={a.agent} size="sm" />
-                    <span className="min-w-0 flex-1 truncate text-body font-medium">
-                      {agents[a.agent].name}
-                    </span>
-                    <ChannelStatusChip status={agentChipStatus(a.state)} />
-                  </li>
-                ))}
-              </ul>
             </DataCard>
           </>
         }
