@@ -31,10 +31,29 @@ billing system). Staff can now record that invoice instead of issuing a second o
 - When the number is one our own tax invoice series would print for that GSTIN and year
   (e.g. `INV/26-27/0042`), the record is filed under that series (`series_id`, `seq`) and the
   series counter moves past it (`greatest(next, seq + 1)`), so issuing never hands it out again.
-  This can leave a gap in our series if the typed number is ahead of the counter.
+  A number of our series **ahead of the counter** (higher than the next one Koomerce would
+  issue) is refused, naming the next number: it would leave a gap and the numbers in between
+  could clash later. At the counter or below it (a number skipped by moving the counter in
+  settings) is accepted as before.
 - Other numbers (`VI/26-27/642`) keep `series_id` null and `seq` = their trailing digits.
-- Takes the same per-store advisory lock as batch issuing. A closed month is refused; a month
-  already marked filed takes the record as reported (as `markFiled` would).
+- Takes the same per-store advisory lock as batch issuing. A closed month is refused, and so is
+  a month whose GSTR-1 is marked filed (Reports › Mark filed, `invoice_period.gstr1_filed_at`):
+  the message points to an amendment on the portal. GSTR-3B filing is not tracked in the app,
+  so only the GSTR-1 mark counts.
+- Each record writes an order timeline note (`order_note`, author = staff email): "Recorded
+  invoice VI/26-27/642 dated 5 Oct 2026 as already invoiced outside Koomerce".
+
+## Undo
+
+- The invoice page of a record (issued, `source = external`, not reported) has an **Undo
+  Already invoiced** card; after a confirm the record becomes a queued draft again (tax
+  recomputed from the order, number/date/series cleared, `pdf_status` pending) and the page
+  goes to the Queue. API `gstInvoices.queue.undoExternal`, service `undoExternalInvoice`
+  (`packages/plugin-gst-invoices/src/undo-external.ts`).
+- Refused when the invoice is reported in a filed GSTR-1, its month is marked filed or closed,
+  the order has a live credit note, or the order is cancelled.
+- The series counter is never moved back: a number of ours that was recorded stays skipped.
+- Writes an order timeline note: "Undid "Already invoiced" for invoice … ".
 
 ## Returns
 
@@ -57,5 +76,7 @@ reported cancelled in Table 13); refunds make our credit notes against the recor
 ## Tests
 
 `packages/plugin-gst-invoices/test/record-external.test.ts`: duplicate refusal (recorded,
-our own, cancelled), our series skipping a recorded number, GSTR-1 CSV/JSON inclusion with its
-own Table 13 row. Not run on the branch (owner's workflow: tests run on dev).
+our own, cancelled), our series skipping a recorded number at the counter, a skipped number
+below the counter, refusal ahead of the counter, refusal in a filed month, undo (back in the
+queue, counter kept, timeline notes) and undo refused for a filed month or an invoice issued
+here, GSTR-1 CSV/JSON inclusion with its own Table 13 row. Not run on the branch (owner's workflow: tests run on dev).

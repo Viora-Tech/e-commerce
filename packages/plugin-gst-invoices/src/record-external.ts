@@ -4,7 +4,8 @@
  * a second invoice, the sale must still count in GSTR-1 and GSTR-3B, and our series must never
  * hand that number out again (rule 46(b): unique per GSTIN per financial year).
  */
-import type { StoreTx } from '@commerce/db'
+import { formatInZone } from '@commerce/dates'
+import { orderNote, type StoreTx } from '@commerce/db'
 import {
   checkDocumentNumber,
   counterYear,
@@ -25,7 +26,8 @@ import {
   totalsColumns,
   writeLines,
 } from './issue'
-import { assertPeriodOpen, getPeriod, PeriodError, periodOf } from './periods'
+import { peekNext } from './next-number'
+import { assertPeriodOpen, getPeriod, PeriodError, periodLabel, periodOf } from './periods'
 import { isCancelledOrder, isTestOrder } from './queue'
 import { gstToken, orderIssuer, sameRegistration } from './registration'
 import { invoice, invoiceSequence } from './schema'
@@ -75,6 +77,42 @@ export function ownSeriesNumber(
   return null
 }
 
+/** `5 Oct 2026`: an invoice date as the order timeline shows it (IST). */
+export const timelineDay = (at: Date) =>
+  formatInZone(at, { day: 'numeric', month: 'short', year: 'numeric' })
+
+/** A line on the order's timeline, by the staff member who did it. */
+export async function noteOnOrder(
+  tx: StoreTx,
+  storeId: string,
+  orderId: string,
+  body: string,
+  author: string | null,
+): Promise<void> {
+  await tx.insert(orderNote).values({ storeId, orderId, body, author })
+}
+
+/**
+ * Refuse a return month whose GSTR-1 is marked filed (Reports › Mark filed, `invoice_period`
+ * `gstr1_filed_at`): what was filed is final here, a change is an amendment on the portal.
+ */
+export async function assertNotFiled(
+  tx: StoreTx,
+  storeId: string,
+  at: Date,
+  gstRegistrationId: string | null,
+  what: string,
+): Promise<void> {
+  const period = periodOf(at)
+  const filing = await getPeriod(tx, storeId, period, gstRegistrationId)
+  if (filing?.gstr1FiledAt) {
+    throw new InvoiceError(
+      'locked',
+      `GSTR-1 for ${periodLabel(period)} is marked filed, so ${what}. Correct it with an amendment on the GST portal, or unmark the month in Reports if it was not filed yet.`,
+    )
+  }
+}
+
 /** Why `number` cannot be a GST invoice number, or null. */
 function numberProblem(number: string): string | null {
   if (!number) return 'Type the invoice number'
@@ -92,17 +130,19 @@ function numberProblem(number: string): string | null {
  * invoice. It is `source` external with no PDF (`pdf_status` none).
  *
  * Refused: a number another document of this GSTIN already has in that financial year, a
- * future date, a closed month, a test or cancelled order. A number one of our series would
- * print (`INV/26-27/0042`) is taken out of that series: the counter moves past it, so issuing
- * never hands it out again. A month already marked filed takes it as reported, like
- * `markFiled` does.
+ * future date, a closed month, a month whose GSTR-1 is marked filed, a test or cancelled
+ * order. A number one of our series would print (`INV/26-27/0042`) is taken out of that
+ * series: the counter moves past it, so issuing never hands it out again. One ahead of the
+ * counter is refused (owner, 18 Nov 2026): it would leave a gap in the series, and the
+ * numbers before it could still be issued here and clash with the other system's.
+ * The order's timeline gets a note by `author`.
  */
 export async function recordExternalInvoice(
   tx: StoreTx,
   storeId: string,
   invoiceId: string,
   input: { number: string; invoiceDate: Date },
-  opts: { now?: Date } = {},
+  opts: { now?: Date; author?: string | null } = {},
 ): Promise<InvoiceRow> {
   const now = opts.now ?? new Date()
   const number = input.number.trim().toUpperCase()
@@ -135,6 +175,13 @@ export async function recordExternalInvoice(
     if (err instanceof PeriodError) throw new InvoiceError('closed', err.message)
     throw err
   }
+  await assertNotFiled(
+    tx,
+    storeId,
+    input.invoiceDate,
+    registrationId,
+    'an invoice cannot be recorded into it',
+  )
 
   const fy = financialYear(input.invoiceDate)
   const [taken] = await tx
@@ -174,8 +221,18 @@ export async function recordExternalInvoice(
   )
 
   // One of our own numbers: the series' counter moves past it so issuing never repeats it.
-  const own = ownSeriesNumber(settings.series, number, fy, gstToken(issuer, settings))
+  const token = gstToken(issuer, settings)
+  const own = ownSeriesNumber(settings.series, number, fy, token)
   if (own) {
+    const year = counterYear(own.series, fy)
+    const next = await peekNext(tx, registrationId, own.series.id, year)
+    if (own.seq > next) {
+      const nextNumber = formatSeriesNumber(own.series, fy, next, token)
+      throw new InvoiceError(
+        'invalid',
+        `${number} is ahead of your invoice series: the next number Koomerce issues is ${nextNumber}. Recording it would leave a gap, and the numbers in between could clash later. Check the number, or issue this order from the queue.`,
+      )
+    }
     await tx
       .insert(invoiceSequence)
       .values({
@@ -183,7 +240,7 @@ export async function recordExternalInvoice(
         gstRegistrationId: registrationId,
         kind: 'tax_invoice',
         seriesId: own.series.id,
-        fyStartYear: counterYear(own.series, fy),
+        fyStartYear: year,
         next: own.seq + 1,
       })
       .onConflictDoUpdate({
@@ -197,7 +254,6 @@ export async function recordExternalInvoice(
       })
   }
 
-  const filing = await getPeriod(tx, storeId, periodOf(input.invoiceDate), registrationId)
   const [updated] = await tx
     .update(invoice)
     .set({
@@ -214,12 +270,19 @@ export async function recordExternalInvoice(
       ...totalsColumns(doc),
       pdfStatus: 'none',
       pdfError: null,
-      reportedPeriod: filing?.gstr1FiledAt ? periodOf(input.invoiceDate) : null,
+      reportedPeriod: null,
       updatedAt: now,
     })
     .where(eq(invoice.id, row.id))
     .returning()
   if (!updated) throw new InvoiceError('not_found', 'Invoice not found')
   await writeLines(tx, storeId, row.id, doc)
+  await noteOnOrder(
+    tx,
+    storeId,
+    row.orderId,
+    `Recorded invoice ${number} dated ${timelineDay(input.invoiceDate)} as already invoiced outside Koomerce`,
+    opts.author ?? null,
+  )
   return updated
 }

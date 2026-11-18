@@ -41,7 +41,7 @@ import {
 } from '../services/gst-invoices.service'
 import { asOrpc, Gst, gstScope, Period, renderDeps, requireInstalled } from './gst-invoices-context'
 import { addToQueue, generateInvoice, invoiceFixProcedures } from './gst-invoices-order-actions'
-import { recordExternal } from './gst-invoices-record'
+import { recordExternal, undoExternal } from './gst-invoices-record'
 import { returnsProcedures } from './gst-invoices-returns'
 import { Filter, Selection, selectedIds } from './gst-invoices-selection'
 import { seriesNext, seriesProcedures } from './gst-invoices-series'
@@ -201,8 +201,9 @@ export const gstInvoicesRouter = {
       }),
     /** Add orders by hand, or the Orders list's bulk action (`./gst-invoices-order-actions`). */
     add: addToQueue,
-    /** "Already invoiced": record an invoice issued outside Koomerce (`./gst-invoices-record`). */
+    /** "Already invoiced", and its undo while the month is not filed (`./gst-invoices-record`). */
     recordExternal,
+    undoExternal,
     remove: can(permissions.ORDERS_WRITE)
       .input(z.object({ ids: z.array(z.uuid()).min(1).max(BULK_MAX) }))
       .handler(async ({ context, input }) => {

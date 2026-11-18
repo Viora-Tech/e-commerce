@@ -29,6 +29,7 @@ import { routes } from '@/lib/routes'
 import InvoiceLinesCard from './invoice-lines-card'
 import { saveFile } from './save-file'
 import TextField from './text-field'
+import UndoRecordedCard from './undo-recorded-card'
 
 type Doc = Awaited<ReturnType<typeof api.gstInvoices.get>>
 
@@ -158,6 +159,8 @@ export default function InvoiceDetail({ params }: AppPageProps) {
   /** Recorded, invoiced outside Koomerce: no PDF to print or download. */
   const outside = doc.source === 'external'
   const cancellable = doc.kind === 'tax_invoice' && doc.status === 'issued' && !doc.reportedPeriod
+  /** "Already invoiced" can be undone until the month is filed (the server checks it too). */
+  const undoable = outside && cancellable
   const facts = [
     { label: copy.fields.number, value: doc.number ?? '-' },
     { label: copy.fields.series, value: doc.seriesId ?? '-' },
@@ -284,6 +287,9 @@ export default function InvoiceDetail({ params }: AppPageProps) {
             {copy.saveShipping}
           </Button>
         </DataCard>
+      ) : null}
+      {undoable ? (
+        <UndoRecordedCard invoiceId={doc.id} number={doc.number ?? ''} disabled={busy !== null} />
       ) : null}
       {cancellable ? (
         <DataCard bodyClassName="flex flex-col" title={refreshCopy.title}>

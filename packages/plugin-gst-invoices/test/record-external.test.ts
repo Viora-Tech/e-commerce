@@ -1,13 +1,27 @@
-import { address, createDb, order, orderLine, product, store, variant, withStore } from '@commerce/db'
+import {
+  address,
+  createDb,
+  order,
+  orderLine,
+  orderNote,
+  product,
+  store,
+  variant,
+  withStore,
+} from '@commerce/db'
 import { resetDb } from '@commerce/db/test'
 import { eq } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
+import { loadSettings } from '../src/issue'
+import { setNextNumber } from '../src/next-number'
+import { markFiled } from '../src/periods'
 import { cancelInvoice, enqueueOrder, issueDrafts, listQueue } from '../src/queue'
 import { recordExternalInvoice } from '../src/record-external'
 import { pdfBytes } from '../src/render'
 import { gstr1ForPeriod } from '../src/reports'
 import { gstReturn } from '../src/returns'
-import { invoice } from '../src/schema'
+import { invoice, invoiceSequence } from '../src/schema'
+import { undoExternalInvoice } from '../src/undo-external'
 
 /** "Already invoiced" (owner, 18 Nov 2026): an invoice issued outside Koomerce, recorded. */
 
@@ -172,15 +186,114 @@ describe('already invoiced', () => {
     const { storeId, variantId } = await seedStore()
     const a = await queued(storeId, await seedOrder(storeId, variantId, 1))
     const b = await queued(storeId, await seedOrder(storeId, variantId, 2))
-    const row = await record(storeId, a, 'INV/26-27/0007', d('2026-11-01T06:00:00Z'))
-    expect(row).toMatchObject({ seriesId: 'inv', seq: 7 })
+    // The number the counter would issue next.
+    const row = await record(storeId, a, 'INV/26-27/0001', d('2026-11-01T06:00:00Z'))
+    expect(row).toMatchObject({ seriesId: 'inv', seq: 1 })
     const [plan] = await inStore(storeId, (tx) =>
       issueDrafts(tx, storeId, [{ id: b, invoiceDate: d('2026-11-02T06:00:00Z') }], {
         commit: true,
         now: NOW,
       }),
     )
-    expect(plan?.number).toBe('INV/26-27/0008')
+    expect(plan?.number).toBe('INV/26-27/0002')
+  })
+
+  it('takes a skipped number below the counter and leaves the counter where it is', async () => {
+    const { storeId, variantId } = await seedStore()
+    await inStore(storeId, async (tx) => {
+      const settings = await loadSettings(tx, storeId)
+      const series = settings.series.find((s) => s.id === 'inv')
+      if (!series) throw new Error('no series')
+      await setNextNumber(tx, storeId, null, series, 10, NOW)
+    })
+    const a = await queued(storeId, await seedOrder(storeId, variantId, 1))
+    const row = await record(storeId, a, 'INV/26-27/0005', d('2026-11-01T06:00:00Z'))
+    expect(row).toMatchObject({ seriesId: 'inv', seq: 5 })
+    const [seq] = await owner.select().from(invoiceSequence)
+    expect(seq?.next).toBe(10)
+  })
+
+  it('refuses a number of our own series ahead of the counter', async () => {
+    const { storeId, variantId } = await seedStore()
+    const a = await queued(storeId, await seedOrder(storeId, variantId, 1))
+    await expect(record(storeId, a, 'INV/26-27/0007', d('2026-11-01T06:00:00Z'))).rejects.toThrow(
+      /INV\/26-27\/0007 is ahead of your invoice series: the next number Koomerce issues is INV\/26-27\/0001/,
+    )
+    // Nothing moved: the order is still queued and the counter still starts at 1.
+    expect(await inStore(storeId, (tx) => listQueue(tx, {}))).toHaveLength(1)
+    expect(await owner.select().from(invoiceSequence)).toHaveLength(0)
+  })
+
+  it('refuses a date in a month whose GSTR-1 is marked filed', async () => {
+    const { storeId, variantId } = await seedStore()
+    const a = await queued(storeId, await seedOrder(storeId, variantId, 1))
+    await inStore(storeId, (tx) => markFiled(tx, storeId, '2026-10', true, null))
+    await expect(record(storeId, a, 'VI/26-27/642', d('2026-10-05T06:30:00Z'))).rejects.toThrow(
+      /GSTR-1 for October 2026 is marked filed, so an invoice cannot be recorded into it/,
+    )
+  })
+
+  it('undo puts the order back in the queue, notes it and keeps the counter', async () => {
+    const { storeId, variantId } = await seedStore()
+    const orderId = await seedOrder(storeId, variantId, 1)
+    const a = await queued(storeId, orderId)
+    await inStore(storeId, (tx) =>
+      recordExternalInvoice(
+        tx,
+        storeId,
+        a,
+        { number: 'INV/26-27/0001', invoiceDate: d('2026-11-01T06:00:00Z') },
+        { now: NOW, author: 'staff@example.com' },
+      ),
+    )
+    const back = await inStore(storeId, (tx) =>
+      undoExternalInvoice(tx, storeId, a, { now: NOW, author: 'staff@example.com' }),
+    )
+    expect(back).toMatchObject({
+      status: 'draft',
+      source: 'koomerce',
+      number: null,
+      seriesId: null,
+      invoiceDate: null,
+      pdfStatus: 'pending',
+    })
+    expect(await inStore(storeId, (tx) => listQueue(tx, {}))).toHaveLength(1)
+    // The series still skips 0001, so issuing gives 0002.
+    const [plan] = await inStore(storeId, (tx) =>
+      issueDrafts(tx, storeId, [{ id: a, invoiceDate: d('2026-11-02T06:00:00Z') }], {
+        commit: true,
+        now: NOW,
+      }),
+    )
+    expect(plan?.number).toBe('INV/26-27/0002')
+    const notes = await owner.select().from(orderNote).where(eq(orderNote.orderId, orderId))
+    expect(notes.map((n) => n.body)).toEqual(
+      expect.arrayContaining([
+        expect.stringMatching(/^Recorded invoice INV\/26-27\/0001 dated 1 Nov 2026/),
+        expect.stringMatching(/^Undid "Already invoiced" for invoice INV\/26-27\/0001/),
+      ]),
+    )
+    expect(notes.every((n) => n.author === 'staff@example.com')).toBe(true)
+  })
+
+  it('undo is refused once the month is filed, and for an invoice issued here', async () => {
+    const { storeId, variantId } = await seedStore()
+    const a = await queued(storeId, await seedOrder(storeId, variantId, 1))
+    const b = await queued(storeId, await seedOrder(storeId, variantId, 2))
+    await record(storeId, a, 'VI/26-27/642', d('2026-10-05T06:30:00Z'))
+    await inStore(storeId, (tx) =>
+      issueDrafts(tx, storeId, [{ id: b, invoiceDate: d('2026-10-20T06:00:00Z') }], {
+        commit: true,
+        now: NOW,
+      }),
+    )
+    const undo = (id: string) =>
+      inStore(storeId, (tx) => undoExternalInvoice(tx, storeId, id, { now: NOW }))
+    await expect(undo(b)).rejects.toThrow(/Only an invoice recorded with "Already invoiced"/)
+    await inStore(storeId, (tx) => markFiled(tx, storeId, '2026-10', true, null))
+    await expect(undo(a)).rejects.toThrow(/reported in GSTR-1 for 2026-10/)
+    const [row] = await owner.select().from(invoice).where(eq(invoice.id, a))
+    expect(row).toMatchObject({ status: 'issued', source: 'external' })
   })
 
   it('counts in the GSTR-1 export and JSON like an issued invoice, with its own Table 13 row', async () => {

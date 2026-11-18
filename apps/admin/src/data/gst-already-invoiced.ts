@@ -22,4 +22,14 @@ export const gstAlreadyInvoicedContent = {
   outside: 'Recorded, invoiced outside Koomerce',
   outsideBody:
     'This invoice was issued outside Koomerce, so there is no PDF here. It is counted in your GST returns.',
+  /** Undo on the invoice page: a typo in the recorded number or date. */
+  undoTitle: 'Undo Already invoiced',
+  undoBody:
+    'Recorded the wrong number or date? Undo it and the order goes back to the Queue, to issue here or record again. This is not possible once the month is marked filed. If the number was one of your own series, the series still skips it.',
+  undo: 'Undo',
+  undoConfirmTitle: (number: string) => `Undo ${number}?`,
+  undoConfirmBody:
+    'The order goes back to the Queue and this invoice leaves your GST returns until you issue or record it again.',
+  undone: (number: string) => `${number} undone. The order is back in the Queue.`,
+  undoFailed: 'Could not undo that invoice',
 } as const
