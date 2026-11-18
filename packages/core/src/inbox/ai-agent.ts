@@ -30,6 +30,7 @@ import { POLICY_TYPES, policyHandle } from '../policies/client'
 import { aiMayAnswer, asksForHuman } from './ai-rules'
 import { messageEvents, statusEvents } from './events'
 import { publishedKnowledge } from './knowledge'
+import { publishedFactEntries } from '../sales-channels/knowledge-service'
 import { asksForRefundOrCancel, pickKnowledge, questionWords } from './knowledge-rules'
 import { appendMessage, type InboxConversationRow, type InboxMessageRow } from './messages'
 import { productCards } from './panel'
@@ -405,7 +406,14 @@ export async function runInboxAiReply(opts: RunInboxAiOptions): Promise<InboxAiR
 
   const pack = await withStore(db, job.storeId, async (tx) => ({
     products: await inboxAiProducts(tx, l.question.body),
-    answers: pickKnowledge(await publishedKnowledge(tx), l.question.body),
+    // One Knowledge base: the Inbox answers first, then the published store facts.
+    answers: pickKnowledge(
+      [
+        ...(await publishedKnowledge(tx)),
+        ...(await publishedFactEntries({ tx, storeId: job.storeId })),
+      ],
+      l.question.body,
+    ),
     policies: await inboxAiPolicies(tx),
     orders: await loadOrders(tx, l.conversation.customerId),
     pastAnswers: l.state.settings.ai.learn

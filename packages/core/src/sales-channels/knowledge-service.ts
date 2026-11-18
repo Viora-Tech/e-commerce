@@ -9,6 +9,7 @@ import { listPolicies } from '../policies/service'
 import {
   type AgentKnowledge,
   cleanValue,
+  factEntries,
   isEmptyKnowledge,
   type KnowledgeKey,
   type KnowledgeValueInput,
@@ -23,6 +24,13 @@ async function loadAgentKnowledge(ctx: StoreContext): Promise<AgentKnowledge> {
     .from(store)
     .where(eq(store.id, ctx.storeId))
   return parseAgentKnowledge(s?.preferences)
+}
+
+/** The store's published facts as entries the Inbox AI agent can quote (see `factEntries`). */
+export async function publishedFactEntries(
+  ctx: StoreContext,
+): Promise<{ title: string; answer: string }[]> {
+  return factEntries(await loadAgentKnowledge(ctx))
 }
 
 async function saveKnowledge(ctx: StoreContext, next: AgentKnowledge): Promise<AgentKnowledge> {

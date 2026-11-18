@@ -11,6 +11,7 @@ import ConfirmDialog from '@/components/layout/confirm-dialog'
 import EmptyState from '@/components/layout/empty-state'
 import NoticeBar from '@/components/layout/notice-bar'
 import PageHeader from '@/components/layout/page-header'
+import KnowledgeTabs from '@/components/sales-channels/knowledge-tabs'
 import SettingsCard from '@/components/settings/settings-card'
 import SettingsTableCell from '@/components/settings/settings-table-cell'
 import SettingsTableRow from '@/components/settings/settings-table-row'
@@ -141,6 +142,7 @@ export default function KnowledgePage({ aiOn }: KnowledgePageProps) {
         }
         actions={addButton}
       />
+      <KnowledgeTabs current="answers" />
       {aiOn ? null : (
         <NoticeBar
           action={

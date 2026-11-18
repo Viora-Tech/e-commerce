@@ -1,4 +1,10 @@
-import { factLines, parseAgentKnowledge, parsePreferences, publishedFacts } from '@commerce/core'
+import {
+  factLines,
+  parseAgentKnowledge,
+  parsePreferences,
+  publishedFacts,
+  publishedKnowledge,
+} from '@commerce/core'
 import { store } from '@commerce/db'
 import { eq } from 'drizzle-orm'
 import { requestOrigin } from '@/lib/seo'
@@ -23,9 +29,13 @@ export async function GET(_req: Request, { params }: Params) {
     return {
       name: s?.name ?? '',
       description: parsePreferences(s?.preferences).seo.description,
-      facts: publishedFacts(parseAgentKnowledge(s?.preferences)).flatMap(({ key, fact }) =>
-        factLines(key, fact),
-      ),
+      // One Knowledge base: store facts, then the published Inbox answers.
+      facts: [
+        ...publishedFacts(parseAgentKnowledge(s?.preferences)).flatMap(({ key, fact }) =>
+          factLines(key, fact),
+        ),
+        ...(await publishedKnowledge(tx)).map((a) => `${a.title}: ${a.answer}`),
+      ],
       index: await loadStoreIndex(tx),
     }
   })

@@ -3,7 +3,10 @@ import type { KnowledgeGroup, KnowledgeKey } from '@commerce/core/agent-knowledg
 
 export const agentKnowledgeContent = {
   title: 'Knowledge base',
-  subtitle: 'What AI agents may tell shoppers about your store. Only published facts are shared.',
+  subtitle:
+    'What AI tells shoppers about your store, in your store chat and in AI assistants. Only published items are used.',
+  /** One Knowledge base in two tabs (`components/sales-channels/knowledge-tabs.tsx`). */
+  tabs: { label: 'Knowledge base', facts: 'Store facts', answers: 'Questions & answers' },
   back: 'Agentic sales',
   scan: 'Scan my store',
   rescan: 'Rescan',
