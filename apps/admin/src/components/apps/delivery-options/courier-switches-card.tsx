@@ -15,18 +15,19 @@ type CourierSwitchesCardProps = {
   isOn: (id: string) => boolean
   /** A courier the apps started offering after the last save (it starts off). */
   isNew: (id: string) => boolean
-  /** The courier the preview shopper's price includes. */
-  includedId: string | null
   onToggle: (id: string, on: boolean) => void
 }
 
-/** "Couriers shoppers may see" (Figma 938:12101): every courier the apps offer, each switchable. */
+/**
+ * "Couriers shoppers may see" (Figma 938:12101): every courier the apps offer, each switchable.
+ * No "Included in price" badge here: it read like a setting, while it only names the sample
+ * shopper's pick, which changes per PIN and weight (#1781 item 7). The preview says it instead.
+ */
 export default function CourierSwitchesCard({
   rows,
   loading,
   isOn,
   isNew,
-  includedId,
   onToggle,
 }: CourierSwitchesCardProps) {
   // Hooks
@@ -60,9 +61,6 @@ export default function CourierSwitchesCard({
                   <span className="truncate text-body font-medium text-ink-strong">{name}</span>
                   <span className="truncate text-caption text-muted-foreground">{sub(row)}</span>
                 </span>
-                {row.id === includedId ? (
-                  <StatusChip tone="success">{c.included}</StatusChip>
-                ) : null}
                 {isNew(row.id) ? <StatusChip tone="attention">{c.new}</StatusChip> : null}
                 <Switch
                   checked={isOn(row.id)}

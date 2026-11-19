@@ -67,6 +67,14 @@ export const deliveryPagesContent = {
     surface: 'Surface',
     off: (names: string) => `${names} switched off.`,
     hidden: (names: string) => `${names} hidden: slower and dearer, or past the limit.`,
+    /** "Cheapest for PIN 560038 · 2 kg: Blue Dart Surface (included)". */
+    pickLine: (fastest: boolean, pin: string, kg: string, courier: string) =>
+      `${fastest ? 'Fastest' : 'Cheapest'} for PIN ${pin} · ${kg} kg: ${courier} (included)`,
+    samplePin: 'Sample PIN',
+    sampleKg: 'Weight (kg)',
+    sampleHelp:
+      'A sample shopper. At real checkout the included courier changes with each shopper’s PIN and cart weight.',
+    pinInvalid: 'Enter a 6 digit PIN to see the preview.',
   },
   /** Overview: the connected courier apps and how they answer. */
   apps: {
@@ -100,6 +108,7 @@ export const deliveryPagesContent = {
     listHelp:
       'Every courier you allow, priced live. The cheapest is included; faster ones show the extra.',
     recommended: 'Recommended',
+    selected: 'In use',
     fixed: 'Fixed options',
     fixedHelp:
       'You name the cards, like Standard and Express, and each picks the cheapest or fastest courier.',
@@ -124,6 +133,7 @@ export const deliveryPagesContent = {
       route: (markup: string | null, freeAbove: string | null) =>
         `Courier cost${markup ? ` + ${markup}` : ''}${freeAbove ? ` · free above ${freeAbove}` : ''}`,
       zone: 'Your Shipping rates',
+      free: 'Free (you pay the courier)',
       more: 'Markup, free above… (more settings)',
     },
     paymentItems: { allowed: 'Allowed', prepaid_only: 'Prepaid only' },
@@ -143,7 +153,6 @@ export const deliveryPagesContent = {
   courierList: {
     title: 'Couriers shoppers may see',
     help: 'Found automatically from your connected apps. New couriers your apps add show up here switched off.',
-    included: 'Included in price',
     new: 'New',
     direct: 'Direct · your account',
     via: (apps: string) => `via ${apps}`,
@@ -168,8 +177,31 @@ export const deliveryPagesContent = {
     roundHelp: '+₹37 shows as +₹39',
     hide: 'Hide couriers that are slower and dearer',
     hideHelp: 'Keeps the list short, but checkout always shows at least 3 when 3 couriers deliver',
+    hideFastest:
+      'With Fastest, every other courier is slower and costs the same or more, so this hides them all. Checkout tops the list back up to 3 cards with the next cheapest, so you never offer more than 3. Turn it off to show up to your "Show at most" number.',
     max: 'Show at most',
     maxItems: (n: number) => `${n} couriers`,
+    maxAll: 'All couriers',
+    pays: 'Shoppers pay for the included courier',
+    paysItems: {
+      route: 'Your delivery charge (courier cost + markup)',
+      zone: 'Your Shipping rates',
+      free: 'Free (you pay the courier)',
+    },
+  },
+  /** Options: where the default courier is set (Product rules), with a link there. */
+  rulesNote: {
+    text: 'The default courier for some products is set in Product rules: a rule’s Preferred courier is picked first for its products.',
+    link: 'Open Product rules',
+  },
+  /** Options: parcel insurance at checkout, per option (owner, 20 Nov). */
+  insurance: {
+    title: 'Parcel insurance',
+    offer: 'Offer parcel insurance at checkout',
+    offerHelp:
+      'Shoppers see it ticked and can untick it to leave it out. Off: not offered (a product rule can still require it).',
+    onlyAbove: 'Only for orders above',
+    onlyAboveHelp: 'Empty: every order.',
   },
   /** Routes: one table of every route (Figma 929:12240). */
   routeTable: {
@@ -182,10 +214,17 @@ export const deliveryPagesContent = {
       cod: 'COD',
       insures: 'Insures',
       rate: 'Insurance rate',
-      courierName: 'Courier name',
+      courierName: 'Show name at checkout',
       answering: 'Answering',
-      on: 'On',
+      on: 'Use at checkout',
     },
+    /** One line under the two switch headings (owner, 17 Nov: "Courier name" and "On" confused). */
+    columnHelp: {
+      courierName:
+        'Whether checkout shows this courier’s name and logo. Off: just the option, like “Standard, by Mon 23 Nov”.',
+      on: 'Whether checkout may use this route at all. Off: this courier through this app is never offered or priced.',
+    },
+    aboutColumn: (column: string) => `About ${column}`,
     direct: 'Direct · your account',
     via: (app: string) => `via ${app}`,
     speeds: { standard: 'Surface', express: 'Express' },
@@ -219,6 +258,8 @@ export const deliveryPagesContent = {
     allOptions: 'All options',
     only: (names: string) => `${names} only`,
     insured: 'insured',
+    preferred: (route: string) => `${route} (preferred)`,
+    preferredAlways: (route: string) => `${route} (always, at the option’s price)`,
     line: (routes: string) => `Carts with these products show only ${routes} prices`,
     lineOptions: (options: string, routes: string) =>
       `${options}: carts with these products show only ${routes} prices`,

@@ -139,6 +139,7 @@ export const deliveryOptionsContent = {
     insured: 'insured',
     orAlt: (alts: string) => `, or ${alts}`,
     targets: {
+      all: () => 'All products',
       products: (n: number) => (n === 1 ? '1 product' : `${n} products`),
       collections: (n: number) => (n === 1 ? '1 collection' : `${n} collections`),
       tags: (tags: string) => `Tagged ${tags}`,
@@ -154,11 +155,49 @@ export const deliveryOptionsContent = {
     namePlaceholder: 'Glasspads',
     target: 'Applies to',
     targetKinds: {
+      all: 'All products',
       products: 'Products',
       collections: 'Collections',
       tags: 'Product tags',
       types: 'Product types',
       all: 'Every product',
+    },
+    /** The rule as one sentence: "[Glasspads] ship only with [Delhivery] [+ Add courier]". */
+    sentence: {
+      label: 'Which products, and which couriers',
+      kind: 'Products',
+      shipOnlyWith: 'ship only with',
+      addCourier: 'Add courier',
+      removeCourier: (name: string) => `Remove ${name}`,
+      noCourier: 'No courier yet',
+      valuesPlaceholder: 'oversize, fragile',
+      valuesLabel: 'Tags or product types, separated by commas',
+    },
+    through: 'Through',
+    throughItems: {
+      any: 'Either',
+      direct: 'Your own account',
+      rapidshyp: 'Via RapidShyp',
+      shiprocket: 'Via Shiprocket',
+      aggregator: 'Via any courier app',
+    },
+    speedsLabel: 'Speeds',
+    preferred: 'Preferred courier',
+    preferredHelp:
+      'Picked first when it delivers to the PIN, before the option’s cheapest or fastest courier.',
+    noPreferred: 'No preferred courier',
+    preferredAny: (courier: string) => `${courier} (any speed)`,
+    forceRoute: 'Always send by the preferred courier at the option’s price (you pay the difference)',
+    forceRouteHelp:
+      'Like Delhivery Air at the Standard price. The difference shows in the order’s shipping margin.',
+    more: 'More',
+    alwaysInsure: 'Always insure these products (shoppers can’t untick it)',
+    applyTo: 'Apply only to',
+    custom:
+      'This rule names its routes one by one, so it opens in the detailed editor. Saving keeps it as it is.',
+    errorsSimple: {
+      couriers: 'Add at least one courier.',
+      speeds: 'Tick at least one speed.',
     },
     browse: 'Browse',
     picked: (n: number) => (n === 1 ? '1 picked' : `${n} picked`),
@@ -221,6 +260,8 @@ export const deliveryOptionsContent = {
     insured: (price: string | null) => (price ? `Insured (+${price})` : 'Insured (rate not set)'),
     usually: 'Usually (no courier date)',
     traceTitle: (option: string) => `${option}: every route`,
+    offLine: (option: string) => `${option} is turned off, so checkout does not show it.`,
+    noRoutes: 'No courier route to show for this option.',
     hidden: {
       no_route: 'Hidden: no route fits',
       couriers_down: 'Hidden: couriers did not answer',
@@ -233,7 +274,7 @@ export const deliveryOptionsContent = {
       cheapest: 'Won: cheapest',
       fastest: 'Won: fastest',
       prefer_direct: (within: string) => `Won: direct preferred within ${within}`,
-      rule_default: (rule: string) => `Won: default of rule ${rule}`,
+      rule_default: (rule: string) => `Won: preferred courier of rule ${rule}`,
       rule_forced: (rule: string) => `Won: rule ${rule} sends it this way, at the option's price`,
       backup: 'Backup: zone rate',
     },
@@ -291,6 +332,8 @@ export const deliveryOptionsContent = {
         cheapest: 'Cheapest route (tie: direct)',
         fastest: 'Fastest route (tie: cheapest)',
       },
+      strategyHelp:
+        "A product rule's Preferred courier wins over this pick for its products, when it delivers to the PIN. Set it in Product rules.",
       preferDirect: 'Prefer a direct route when it costs at most this much more',
       preferDirectHelp: 'Empty: no preference.',
       preferCarrier: 'Preferred courier',
@@ -310,7 +353,7 @@ export const deliveryOptionsContent = {
       sources: {
         route: 'Courier cost + markup + insurance, rounded up to the next ₹10',
         zone: 'Your Shipping rates',
-        free: 'Free for the shopper (you pay the courier)',
+        free: 'Free (you pay the courier)',
       },
       markup: 'Markup (₹)',
       markupPercent: 'Markup (%)',
@@ -320,10 +363,11 @@ export const deliveryOptionsContent = {
     },
     insurance: {
       title: 'Insurance',
-      default: 'Insurance',
-      on: 'On by default (shopper can untick)',
-      off: 'Off',
+      default: 'Offer parcel insurance at checkout',
+      on: 'Yes, ticked (shopper can untick it)',
+      off: 'No, don’t offer it',
       onlyAbove: 'Only for orders above',
+      onlyAboveHelp: 'Empty: every order.',
     },
     arrival: {
       title: 'Arrival',
@@ -349,11 +393,15 @@ export const deliveryOptionsContent = {
       listHelp:
         'Each allowed courier is its own card, any speed. The cheapest is at this option’s price; faster ones show only what they add.',
       max: 'Show at most (couriers)',
+      maxAll: 'All couriers',
+      maxItems: (n: number) => `${n} couriers`,
       roundTo9: 'Round extras up to ₹…9',
       roundTo9Help: '+₹37 shows as +₹39.',
       hideSlower: 'Hide couriers that are slower and dearer',
       hideSlowerHelp:
         'Drops a courier another one beats on both price and date, but checkout always shows at least 3 when 3 couriers deliver.',
+      hideSlowerFastest:
+        'With Fastest, every other courier is slower and costs the same or more, so this hides them all. Checkout tops the list back up to 3 cards with the next cheapest, so you never offer more than 3. Turn it off to show up to your "Show at most" number.',
       showNames: 'Show courier names to shoppers',
       showNamesHelp:
         'Off, cards show only the delivery promise, like "Standard" and its date: no courier name or logo.',
