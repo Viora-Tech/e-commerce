@@ -91,12 +91,22 @@ export type DeliveryCardExtras = {
 }
 
 export type CourierLogo = {
-  src: string
-  alt: string /** Dark lettering: sits on a white tile. */
+  /** A file in `public/courier-logos/`; null: no file for this courier, the card shows
+   *  `initials` on a tile instead (as the admin's courier drawer does). */
+  src: string | null
+  alt: string
+  /** Dark lettering: sits on a white tile. */
   light: boolean
+  /** "AS" for Amazon Shipping: the tile when there is no file. */
+  initials: string
 }
 
-/** Logos shipped in `public/courier-logos/`, by the carrier key `normaliseCarrier` gives. */
+/**
+ * Logos shipped in `public/courier-logos/`, by the carrier key `normaliseCarrier` gives (the
+ * same files as the admin's `public/app-logos`). A courier with no file (Amazon Shipping, Ecom
+ * Express, Gati, Smartr) gets an initials tile; drop its file here and add a line to show it.
+ * The proxy must skip `courier-logos/` (`src/proxy.ts` matcher) or every file 404s.
+ */
 const COURIER_LOGOS: Record<string, { file: string; light?: boolean }> = {
   delhivery: { file: 'delhivery.png' },
   bluedart: { file: 'bluedart.svg', light: true },
@@ -109,15 +119,28 @@ const COURIER_LOGOS: Record<string, { file: string; light?: boolean }> = {
   fedex: { file: 'fedex.svg', light: true },
 }
 
+/** "Amazon Shipping" → "AS", "DTDC" → "DT". */
+export function courierInitials(name: string): string {
+  const words = name.trim().split(/\s+/).filter(Boolean)
+  const letters =
+    words.length > 1 ? words.map((w) => w[0] ?? '').join('') : (words[0] ?? '').slice(0, 2)
+  return letters.slice(0, 2).toUpperCase() || '?'
+}
+
 export function courierLogo(route: {
   carrierKey: string
   carrier: string
   showCarrier: boolean
 }): CourierLogo | null {
-  const logo = route.showCarrier ? COURIER_LOGOS[route.carrierKey] : undefined
-  return logo
-    ? { src: `/courier-logos/${logo.file}`, alt: route.carrier, light: logo.light === true }
-    : null
+  // A courier the merchant hides keeps the plain truck: no name, no logo.
+  if (!route.showCarrier) return null
+  const logo = COURIER_LOGOS[route.carrierKey]
+  return {
+    src: logo ? `/courier-logos/${logo.file}` : null,
+    alt: route.carrier,
+    light: logo?.light === true,
+    initials: courierInitials(route.carrier),
+  }
 }
 
 export type CheckoutDelivery = {
