@@ -116,12 +116,12 @@ describe('forceRoute (#1782)', () => {
 describe('price source free', () => {
   const FREE = option('std', { name: 'Standard', price: { source: 'free' } })
 
-  it('the card is free and the order charges ₹0 against the courier cost', () => {
+  it('the card is free, the store pays the cheapest courier (DTDC ₹55), not the fastest', () => {
     const r = resolveDeliveryOptions(input({ config: config({ options: [FREE] }) }))
     const std = find(r, 'std')
     expect(std?.pricePaise).toBe(0)
     expect(std?.listPricePaise).toBe(0)
-    expect(std?.pick?.courierCostPaise).toBe(6000)
+    expect(std?.pick?.courierCostPaise).toBe(5500)
     const out = orderDeliveryFor(
       r,
       { optionId: 'std', routeKey: null, insured: false },
@@ -131,7 +131,7 @@ describe('price source free', () => {
     )
     if (!out.ok) throw new Error('expected an order')
     expect(out.shipping.pricePaise).toBe(0)
-    expect(shippingMargin(out.delivery, 0, null).marginPaise).toBe(-6000)
+    expect(shippingMargin(out.delivery, 0, null).marginPaise).toBe(-5500)
   })
 
   it('in a courier list the other couriers show the difference on top of ₹0', () => {

@@ -87,9 +87,13 @@ function pickByStrategy(
   const latest = (c: Candidate) => c.priced.latest ?? '9999-12-31'
   const preferred = (c: Candidate) =>
     option.preferCarrier ? Number(c.route.carrierKey !== option.preferCarrier) : 0
+  // A Free option charges the shopper ₹0 for every route, so "the same price" there means the
+  // same cost to the store; otherwise the store would pay for the fastest courier every time.
+  const shopperPrice = (c: Candidate) =>
+    option.price.source === 'free' ? storeCost(c) : c.priced.pricePaise
   const ties = sorted.filter(
     (c) =>
-      c.priced.pricePaise === first.priced.pricePaise &&
+      shopperPrice(c) === shopperPrice(first) &&
       (option.strategy !== 'fastest' || c.priced.latest === first.priced.latest),
   )
   const best =

@@ -134,7 +134,6 @@ export default [
         collections: (n) => `${n} कलेक्शन`,
         tags: (tags) => `टैग ${tags}`,
         types: (types) => `टाइप ${types}`,
-        all: () => 'हर प्रोडक्ट',
       },
     },
     ruleDialog: {
@@ -149,7 +148,6 @@ export default [
         collections: 'कलेक्शन',
         tags: 'प्रोडक्ट टैग',
         types: 'प्रोडक्ट टाइप',
-        all: 'हर प्रोडक्ट',
       },
       sentence: {
         label: 'कौन-से प्रोडक्ट, और कौन-से कूरियर',

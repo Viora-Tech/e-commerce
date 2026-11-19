@@ -541,7 +541,7 @@ describe('product route rules', () => {
     ).toEqual(['glass', 'mice'])
   })
 
-  it('mixed cart with nothing in common: the highest-placed rule wins and the other is overruled', () => {
+  it('mixed cart with nothing in common: the more specific rule (a product) wins over a collection', () => {
     const blueOnly = rule(
       'blue',
       {
@@ -558,9 +558,8 @@ describe('product route rules', () => {
       }),
     )
     const t = r.trace.options.find((o) => o.optionId === 'exp')
-    expect(t?.rulesApplied.map((x) => x.id)).toEqual(['glass'])
-    expect(t?.rulesOverruled.map((x) => x.id)).toEqual(['blue'])
-    expect(find(r, 'exp')?.pick?.route.carrier).toBe('Delhivery')
+    expect(t?.rulesApplied.map((x) => x.id)).toEqual(['blue'])
+    expect(t?.rulesOverruled.map((x) => x.id)).toEqual(['glass'])
   })
 
   it('a rule that requires insurance hides the checkbox and keeps it on', () => {

@@ -144,8 +144,6 @@ export const deliveryOptionsContent = {
       collections: (n: number) => (n === 1 ? '1 collection' : `${n} collections`),
       tags: (tags: string) => `Tagged ${tags}`,
       types: (types: string) => `Type ${types}`,
-      /** The `all` target: every product (its count is always 0). */
-      all: (_n: number) => 'Every product',
     },
   },
   ruleDialog: {
@@ -160,7 +158,6 @@ export const deliveryOptionsContent = {
       collections: 'Collections',
       tags: 'Product tags',
       types: 'Product types',
-      all: 'Every product',
     },
     /** The rule as one sentence: "[Glasspads] ship only with [Delhivery] [+ Add courier]". */
     sentence: {
