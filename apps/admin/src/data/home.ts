@@ -58,8 +58,6 @@ export const homePageContent = {
     },
   },
   todo: {
-    title: 'To do',
-    count: (n: number) => `${n} need you`,
     edit: 'Edit to-dos',
     editTitle: 'Edit to-dos',
     editBody:
@@ -184,12 +182,10 @@ export const homePageContent = {
   live: {
     title: 'Live now',
     visitors: (n: number) => (n === 1 ? 'visitor on your store' : 'visitors on your store'),
-    today: (orders: string, sales: string) => `${orders} today · ${sales}`,
-    ordersWord: (n: number) => (n === 1 ? '1 order' : `${n} orders`),
   },
   suggest: {
-    title: 'Suggested for you',
-    note: 'Based on your store',
+    title: 'Ideas for your store',
+    note: 'Not urgent · hide any you don’t want',
     dismiss: 'Hide this suggestion',
     hidden: 'Suggestion hidden',
     undo: 'Undo',
@@ -212,7 +208,9 @@ export const homePageContent = {
     repeatSegmentName: 'Repeat buyers',
     restockTitle: (title: string) => `Restock ${title}`,
     restockBody: (units: number, left: number, days: number) =>
-      `Sold ${units} in 30 days and ${left} left: about ${days} ${days === 1 ? 'day' : 'days'} at this pace.`,
+      left <= 0
+        ? `Sold ${units} in 30 days. Out of stock.`
+        : `Sold ${units} in 30 days and ${left} left: about ${days} ${days === 1 ? 'day' : 'days'} at this pace.`,
     restockCta: 'Restock',
     unfulfilledTitle: (n: number) => `${n} ${n === 1 ? 'order' : 'orders'} waiting to ship`,
     unfulfilledBody: (days: number) =>
@@ -231,13 +229,6 @@ export const homePageContent = {
     whatsappTitle: 'Send order updates on WhatsApp',
     whatsappBody: 'Connect WhatsApp so shoppers hear about their order without calling you.',
     whatsappCta: 'Connect',
-  },
-  more: {
-    title: 'More numbers',
-    subtitle: 'Sales over time, products and payments',
-    previewSales: 'Sales',
-    previewProducts: 'Top products',
-    previewPayments: 'Payments',
   },
 }
 
@@ -261,7 +252,6 @@ export const homeContent = {
         label: (n: number) => (n === 1 ? 'Ship 1 order' : `Ship ${n} orders`),
         help: 'Paid, packed and waiting on a courier.',
         cta: 'Ship orders',
-        waiting: (days: number) => (days === 1 ? 'Waiting 1 day' : `Waiting ${days} days`),
       },
       upiToVerify: {
         label: (n: number) => (n === 1 ? 'Check 1 UPI payment' : `Check ${n} UPI payments`),
@@ -313,22 +303,6 @@ export const homeContent = {
       },
     },
   },
-  insights: {
-    title: 'What is happening',
-    salesUp: (pct: string, comparedTo: string) => `Sales are up ${pct} vs ${comparedTo}.`,
-    salesDown: (pct: string, comparedTo: string) => `Sales are down ${pct} vs ${comparedTo}.`,
-    salesFlat: 'Sales are about the same as last week.',
-    comparedToLastWeek: 'the same period last week',
-    bestSeller: (title: string, units: number) =>
-      `Your best seller in the last 30 days is ${title}, with ${units} sold.`,
-    lowStockNudge: (n: number) =>
-      n === 1
-        ? '1 product will run out soon at this pace.'
-        : `${n} products will run out soon at this pace.`,
-    streak: (n: number) =>
-      n <= 1 ? 'Today is your streak day one.' : `You have sold something ${n} days in a row.`,
-    noData: 'Insights show up here once you have a week of orders.',
-  },
   liveGlobe: {
     title: 'Live view',
     subtitle: 'Orders as they come in, worldwide',
@@ -358,15 +332,10 @@ export const homeContent = {
     progressOf: (done: string, goal: string) => `${done} of ${goal}`,
     daysLeft: (n: number) => (n === 1 ? '1 day left' : `${n} days left`),
     projected: (amount: string) => `On this pace, you will finish around ${amount}.`,
-    noGoal: 'Set a goal to track this month against it.',
-    noGoalSuggested: (amount: string) =>
-      `Set a goal to track this month against it. Last month you sold ${amount} — that could be a good target.`,
     record: (amount: string, when: string) => `Best day so far: ${amount} on ${when}.`,
-    noRecord: 'Your best day will show up here once you have sales to compare.',
   },
   charts: {
     sectionTitle: "How you're doing",
-    sectionSubtitle: 'A closer look at sales, products and payments',
     range7: '7 days',
     range30: '30 days',
     range90: '90 days',
@@ -381,24 +350,24 @@ export const homeContent = {
     ordersToggle: 'Orders',
     salesToggle: 'Sales',
     previous: 'Previous period',
-    topProductsTitle: 'Top products',
-    topProductsLine: (title: string) => `${title} is your top earner in this range.`,
+    topProductsTitle: 'Top products · by sales',
     topProductsEmpty: 'Your best sellers for this range will show up here.',
     stateTitle: 'Sales by state',
     stateLine: (name: string, pct: string) =>
       `${pct} of the last 30 days' sales came from ${name}.`,
     stateEmpty: 'A state breakdown will show up here once orders have shipping addresses.',
     paymentTitle: 'How customers pay',
-    paymentLine: (label: string, pct: string) => `${pct} of orders paid by ${label}.`,
+    paymentLine: (label: string, pct: string) => `${pct} of orders were paid by ${label}.`,
     paymentEmpty: 'A payment breakdown will show up here once you have orders.',
     statusTitle: 'Orders by status',
-    statusLine: (label: string, pct: string) => `${pct} of the last 30 days' orders are ${label}.`,
+    statusLine: (pct: string) => `${pct} of the last 30 days' orders still need shipping.`,
+    statusAllShipped: 'Every order from the last 30 days has left the shop.',
     statusEmpty: 'A status breakdown will show up here once you have orders.',
     statusLabels: {
-      to_ship: 'to ship',
-      shipped: 'shipped',
-      delivered: 'delivered',
-      cancelled: 'cancelled',
+      to_ship: 'To ship',
+      shipped: 'Shipped',
+      delivered: 'Delivered',
+      cancelled: 'Cancelled',
     },
     heatmapTitle: 'When people buy',
     heatmapLine: (day: string, from: string, to: string) =>
@@ -415,6 +384,5 @@ export const homeContent = {
     },
     heatmapCell: (day: string, hour: string, count: number) => `${day}, ${hour}: ${count} orders`,
     days: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
-    todayVsYesterday: 'Today vs yesterday',
   },
 } as const

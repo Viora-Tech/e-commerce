@@ -54,8 +54,6 @@ export default [
       },
     },
     todo: {
-      title: 'करने के काम',
-      count: (n) => `${n} काम बाकी`,
       edit: 'काम बदलें',
       editTitle: 'करने के काम बदलें',
       editBody: 'चुनें कि होम पर कौन से काम दिखें। टिक किया हुआ काम तभी दिखेगा जब उसमें कुछ करना हो।',
@@ -176,12 +174,10 @@ export default [
     live: {
       title: 'अभी लाइव',
       visitors: () => 'लोग अभी आपके स्टोर पर हैं',
-      today: (orders, sales) => `आज ${orders} · ${sales}`,
-      ordersWord: (n) => `${n} ऑर्डर`,
     },
     suggest: {
-      title: 'आपके लिए सुझाव',
-      note: 'आपके स्टोर के आधार पर',
+      title: 'आपके स्टोर के लिए आइडिया',
+      note: 'ज़रूरी नहीं · जो न चाहिए उसे छिपा दें',
       dismiss: 'यह सुझाव छिपाएं',
       hidden: 'सुझाव छिपा दिया गया',
       undo: 'वापस करें',
@@ -202,7 +198,9 @@ export default [
       repeatSegmentName: 'बार-बार खरीदने वाले',
       restockTitle: (title) => `${title} का स्टॉक भरें`,
       restockBody: (units, left, days) =>
-        `30 दिनों में ${units} बिके और ${left} बचे हैं: इस रफ़्तार से लगभग ${days} दिन।`,
+        left <= 0
+          ? `30 दिनों में ${units} बिके। स्टॉक खत्म।`
+          : `30 दिनों में ${units} बिके और ${left} बचे हैं: इस रफ़्तार से लगभग ${days} दिन।`,
       restockCta: 'स्टॉक भरें',
       unfulfilledTitle: (n) => `${n} ऑर्डर भेजे जाने बाकी`,
       unfulfilledBody: (days) =>
@@ -221,13 +219,6 @@ export default [
       whatsappTitle: 'ऑर्डर अपडेट WhatsApp पर भेजें',
       whatsappBody: 'WhatsApp जोड़ें ताकि ग्राहकों को ऑर्डर की खबर बिना फ़ोन किए मिल जाए।',
       whatsappCta: 'जोड़ें',
-    },
-    more: {
-      title: 'और आंकड़े',
-      subtitle: 'समय के साथ बिक्री, प्रोडक्ट और पेमेंट',
-      previewSales: 'बिक्री',
-      previewProducts: 'टॉप प्रोडक्ट',
-      previewPayments: 'पेमेंट',
     },
   }),
   translation(homeContent, {
@@ -248,7 +239,6 @@ export default [
           label: (n) => (n === 1 ? '1 ऑर्डर भेजने के लिए तैयार है' : `${n} ऑर्डर भेजने के लिए तैयार हैं`),
           help: 'पेमेंट हो गया, पैक हो गया, बस कूरियर का इंतज़ार है।',
           cta: 'ऑर्डर भेजें',
-          waiting: (days) => `${days} दिन से इंतज़ार`,
         },
         upiToVerify: {
           label: (n) => (n === 1 ? '1 UPI पेमेंट चेक करना है' : `${n} UPI पेमेंट चेक करने हैं`),
@@ -293,21 +283,6 @@ export default [
         },
       },
     },
-    insights: {
-      title: 'क्या चल रहा है',
-      salesUp: (pct, comparedTo) => `${comparedTo} के मुकाबले बिक्री ${pct} बढ़ी है।`,
-      salesDown: (pct, comparedTo) => `${comparedTo} के मुकाबले बिक्री ${pct} घटी है।`,
-      salesFlat: 'बिक्री पिछले हफ़्ते जितनी ही है।',
-      comparedToLastWeek: 'पिछले हफ़्ते के इसी समय',
-      bestSeller: (title, units) => `पिछले 30 दिनों में सबसे ज़्यादा ${title} बिका, ${units} पीस।`,
-      lowStockNudge: (n) =>
-        n === 1
-          ? '1 प्रोडक्ट इसी रफ़्तार से जल्दी खत्म हो जाएगा।'
-          : `${n} प्रोडक्ट इसी रफ़्तार से जल्दी खत्म हो जाएंगे।`,
-      streak: (n) =>
-        n <= 1 ? 'आज से आपकी लगातार बिक्री का पहला दिन है।' : `आप लगातार ${n} दिन से कुछ न कुछ बेच रहे हैं।`,
-      noData: 'एक हफ़्ते के ऑर्डर आने के बाद यहाँ जानकारी दिखेगी।',
-    },
     liveGlobe: {
       title: 'लाइव व्यू',
       subtitle: 'दुनिया भर से आते ऑर्डर, उसी समय',
@@ -338,15 +313,10 @@ export default [
       progressOf: (done, goal) => `${goal} में से ${done}`,
       daysLeft: (n) => `${n} दिन बाकी`,
       projected: (amount) => `इसी रफ़्तार से महीना लगभग ${amount} पर खत्म होगा।`,
-      noGoal: 'इस महीने की बिक्री पर नज़र रखने के लिए टारगेट रखें।',
-      noGoalSuggested: (amount) =>
-        `इस महीने की बिक्री पर नज़र रखने के लिए टारगेट रखें। पिछले महीने आपकी बिक्री ${amount} थी, यह एक अच्छा टारगेट हो सकता है।`,
       record: (amount, when) => `अब तक का सबसे अच्छा दिन: ${when} को ${amount}।`,
-      noRecord: 'बिक्री होने पर आपका सबसे अच्छा दिन यहाँ दिखेगा।',
     },
     charts: {
       sectionTitle: 'आपका काम कैसा चल रहा है',
-      sectionSubtitle: 'बिक्री, प्रोडक्ट और पेमेंट पर एक नज़र',
       range7: '7 दिन',
       range30: '30 दिन',
       range90: '90 दिन',
@@ -359,8 +329,7 @@ export default [
       ordersToggle: 'ऑर्डर',
       salesToggle: 'बिक्री',
       previous: 'पिछला समय',
-      topProductsTitle: 'टॉप प्रोडक्ट',
-      topProductsLine: (title) => `इस समय में सबसे ज़्यादा कमाई ${title} से हुई।`,
+      topProductsTitle: 'टॉप प्रोडक्ट · बिक्री के हिसाब से',
       topProductsEmpty: 'इस समय के सबसे ज़्यादा बिकने वाले प्रोडक्ट यहाँ दिखेंगे।',
       stateTitle: 'राज्य के हिसाब से बिक्री',
       stateLine: (name, pct) => `पिछले 30 दिनों की ${pct} बिक्री ${name} से आई।`,
@@ -369,7 +338,8 @@ export default [
       paymentLine: (label, pct) => `${pct} ऑर्डर का पेमेंट ${label} से हुआ।`,
       paymentEmpty: 'ऑर्डर आने पर यहाँ पेमेंट का हिसाब दिखेगा।',
       statusTitle: 'स्टेटस के हिसाब से ऑर्डर',
-      statusLine: (label, pct) => `पिछले 30 दिनों के ${pct} ऑर्डर ${label} हैं।`,
+      statusLine: (pct) => `पिछले 30 दिनों के ${pct} ऑर्डर अभी भेजने बाकी हैं।`,
+      statusAllShipped: 'पिछले 30 दिनों के सारे ऑर्डर भेजे जा चुके हैं।',
       statusEmpty: 'ऑर्डर आने पर यहाँ स्टेटस का हिसाब दिखेगा।',
       statusLabels: {
         to_ship: 'भेजने बाकी',
@@ -385,7 +355,6 @@ export default [
       hourLabel: hindiHour,
       heatmapCell: (day, hour, count) => `${day}वार, ${hour}: ${count} ऑर्डर`,
       days: ['रवि', 'सोम', 'मंगल', 'बुध', 'गुरु', 'शुक्र', 'शनि'],
-      todayVsYesterday: 'आज और कल की तुलना',
     },
   }),
 ]

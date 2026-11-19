@@ -1,5 +1,6 @@
-import type { DashboardSummary } from '@commerce/api'
+import type { DashboardSummary, HomeFacts } from '@commerce/api'
 import type { HomeTodo } from '@commerce/core/home-todos'
+import type { StoreHealthReport } from '@commerce/core/store-health'
 import {
   CircleCheckIcon,
   Clock,
@@ -18,20 +19,32 @@ import Link from 'next/link'
 import IconBadge from '@/components/layout/icon-badge'
 import SectionHead from '@/components/layout/section-head'
 import StatusChip from '@/components/layout/status-chip'
-import { homeContent, homePageContent } from '@/data/home'
+import type { ChipTone } from '@/components/status/tone'
+import { homeContent } from '@/data/home'
+import { homeSectionsContent } from '@/data/home-sections'
 import { getCopy } from '@/lib/copy-server'
+import { routes } from '@/lib/routes'
 import EditTodosDialog from './edit-todos-dialog'
+import HomeSlimRow from './home-slim-row'
 import { HOME_SECTION, TODO_GRID, TODO_TILE } from './home-layout'
+import { shipWaitDays } from './ship-age'
+import StoreHealthRow from './store-health-row'
 
-type TodoCardsProps = {
+type NeedsYouProps = {
   needsYou: DashboardSummary['needsYou']
   /** To-dos this store hid with "Edit to-dos"; null when the setting could not be read. */
   hidden: HomeTodo[] | null
+  /** Store health; null when the member cannot read settings (its row hides). */
+  health: StoreHealthReport | null
+  /** Old to-ship orders and out-of-stock products; null when they could not be read. */
+  extras: HomeFacts | null
 }
 
 type Queue = { count: number; href: string } | null
 
 type RowCopy = { label: (n: number) => string; help: string; cta: string }
+
+type Chip = { label: string; tone: ChipTone }
 
 type Row = {
   key: string
@@ -40,59 +53,72 @@ type Row = {
   help: string
   cta: string
   href: string
-  /** A warning chip under the help line ("Waiting 3 days"). */
-  badge?: string | undefined
+  /** A chip under the help line: "Oldest 2 days" on Ship, "1 out of stock" on Restock. */
+  chip: Chip | null
 }
 
-const DAY_MS = 86_400_000
+type Sections = (typeof homeSectionsContent)['needsYou']
 
-/** "Waiting 3 days" once the oldest order to ship has waited a full day. */
-function waitingBadge(
-  oldestAt: Date | string | null,
-  waiting: (days: number) => string,
-): string | undefined {
-  if (!oldestAt) return undefined
-  const days = Math.floor((Date.now() - new Date(oldestAt).getTime()) / DAY_MS)
-  return days >= 1 ? waiting(days) : undefined
-}
-
-/** Each to-do's queue and its copy, in the order the cards show. */
+/** Each to-do's queue, its copy and its chip, in the order the tiles show. */
 function queues(
-  needsYou: TodoCardsProps['needsYou'],
+  needsYou: NeedsYouProps['needsYou'],
   c: (typeof homeContent)['needsYou']['rows'],
-): { key: HomeTodo; icon: IconComponent; queue: Queue; copy: RowCopy; badge?: string }[] {
+  s: Sections,
+  extras: HomeFacts | null,
+): { key: HomeTodo; icon: IconComponent; queue: Queue; copy: RowCopy; chip: Chip | null }[] {
   const ship = needsYou.ordersToShip
-  const shipBadge = waitingBadge(ship.oldestAt, c.ordersToShip.waiting)
+  const waited = shipWaitDays(ship.oldestAt)
+  const out = extras?.outOfStock ?? 0
   return [
     {
       key: 'ship',
       icon: Truck,
       queue: ship,
       copy: c.ordersToShip,
-      ...(shipBadge ? { badge: shipBadge } : {}),
+      chip: waited ? { label: s.oldest(waited), tone: 'attention' } : null,
     },
-    { key: 'unpaid', icon: CreditCard, queue: needsYou.unpaid, copy: c.unpaid },
-    { key: 'upi', icon: QrCodeIcon, queue: needsYou.upiToVerify, copy: c.upiToVerify },
-    { key: 'balance', icon: Clock, queue: needsYou.preorderBalanceDue, copy: c.preorderBalanceDue },
+    { key: 'unpaid', icon: CreditCard, queue: needsYou.unpaid, copy: c.unpaid, chip: null },
+    { key: 'upi', icon: QrCodeIcon, queue: needsYou.upiToVerify, copy: c.upiToVerify, chip: null },
+    {
+      key: 'balance',
+      icon: Clock,
+      queue: needsYou.preorderBalanceDue,
+      copy: c.preorderBalanceDue,
+      chip: null,
+    },
     {
       key: 'preorderShip',
       icon: Package,
       queue: needsYou.preorderShipSoon,
       copy: c.preorderShipSoon,
+      chip: null,
     },
-    { key: 'returns', icon: RotateCcw, queue: needsYou.returnsToReview, copy: c.returnsToReview },
-    { key: 'gst', icon: ReceiptIcon, queue: needsYou.gstQueued, copy: c.gstQueued },
-    { key: 'stock', icon: WarningIcon, queue: needsYou.lowStock, copy: c.lowStock },
+    {
+      key: 'returns',
+      icon: RotateCcw,
+      queue: needsYou.returnsToReview,
+      copy: c.returnsToReview,
+      chip: null,
+    },
+    { key: 'gst', icon: ReceiptIcon, queue: needsYou.gstQueued, copy: c.gstQueued, chip: null },
+    {
+      key: 'stock',
+      icon: WarningIcon,
+      queue: needsYou.lowStock,
+      copy: c.lowStock,
+      chip: out > 0 ? { label: s.outOfStock(out), tone: 'danger' } : null,
+    },
   ]
 }
 
 /** Live rows only: a hidden to-do or a zero-count queue has nothing to show. */
 function buildRows(
-  needsYou: TodoCardsProps['needsYou'],
+  props: NeedsYouProps,
   c: (typeof homeContent)['needsYou']['rows'],
-  hidden: HomeTodo[],
+  s: Sections,
 ): Row[] {
-  return queues(needsYou, c).flatMap(({ key, icon, queue, copy, badge }) =>
+  const hidden = props.hidden ?? []
+  return queues(props.needsYou, c, s, props.extras).flatMap(({ key, icon, queue, copy, chip }) =>
     queue && queue.count > 0 && !hidden.includes(key)
       ? [
           {
@@ -102,7 +128,7 @@ function buildRows(
             help: copy.help,
             cta: copy.cta,
             href: queue.href,
-            badge,
+            chip,
           },
         ]
       : [],
@@ -110,27 +136,38 @@ function buildRows(
 }
 
 /**
- * "To do": one card per real, actionable queue (orders to ship, payments to collect, UPI
- * payments to check, pre-order balances and shipments, returns, GST invoices, low stock), each
- * with its action button. The store picks which ones show ("Edit to-dos", #1006). Nothing to do
- * shows one calm "all caught up" card instead of an empty row.
+ * "Needs you" (Figma "Home · Redesign 19 Nov" 1044:11219): one tile per real, actionable queue
+ * (orders to ship, payments to collect, UPI payments to check, pre-order balances and shipments,
+ * returns, GST invoices, restock), four across from `xl`, each with its button at the foot. The
+ * store picks which ones show ("Edit to-dos", #1006). Under the tiles: Store health as one slim
+ * row, and a row for orders over 30 days old that still say To ship (only when there are any).
+ * Ship's count and its age both come from `needsYou.ordersToShip`, the one read on the page.
  */
-export default async function TodoCards({ needsYou, hidden }: TodoCardsProps) {
+export default async function NeedsYou(props: NeedsYouProps) {
   // Render logic
   const c = (await getCopy(homeContent)).needsYou
-  const page = (await getCopy(homePageContent)).todo
-  const rows = buildRows(needsYou, c.rows, hidden ?? [])
+  const sections = await getCopy(homeSectionsContent)
+  const s = sections.needsYou
+  const rows = buildRows(props, c.rows, s)
+  const shipShown = rows.some((r) => r.key === 'ship')
+  const waited = shipShown ? shipWaitDays(props.needsYou.ordersToShip.oldestAt) : null
+  const jobs = s.jobs(rows.length)
+  const aside = waited ? `${jobs} · ${s.oldestWaiting(waited)}` : jobs
+  const stale = props.extras?.staleToShip
+  const staleHref = stale
+    ? `${routes.orders.list()}?status=unfulfilled&date=custom:..${stale.lastDay}`
+    : ''
 
   return (
     <section className={HOME_SECTION}>
       <SectionHead
-        title={page.title}
+        title={s.title}
         action={
           <div className="flex items-center gap-3">
             {rows.length > 0 ? (
-              <span className="text-body text-muted-foreground">{page.count(rows.length)}</span>
+              <span className="text-body text-muted-foreground">{aside}</span>
             ) : null}
-            {hidden ? <EditTodosDialog hidden={hidden} /> : null}
+            {props.hidden ? <EditTodosDialog hidden={props.hidden} /> : null}
           </div>
         }
       />
@@ -154,17 +191,18 @@ export default async function TodoCards({ needsYou, hidden }: TodoCardsProps) {
                 <p className="text-caption font-normal leading-[1.1875rem] text-muted-foreground">
                   {row.help}
                 </p>
-                {row.badge ? (
-                  <StatusChip tone="attention" className="mt-1 w-fit">
-                    {row.badge}
+                {row.chip ? (
+                  <StatusChip tone={row.chip.tone} className="mt-1 w-fit">
+                    {row.chip.label}
                   </StatusChip>
                 ) : null}
               </div>
+              {/* Pinned to the tile's foot, so the buttons line up across a row of tiles. */}
               <Button
                 variant="outline"
                 nativeButton={false}
                 render={<Link href={row.href} />}
-                className="mt-auto self-end"
+                className="mt-auto"
               >
                 {row.cta}
               </Button>
@@ -172,6 +210,25 @@ export default async function TodoCards({ needsYou, hidden }: TodoCardsProps) {
           ))}
         </ul>
       )}
+      {props.health ? <StoreHealthRow report={props.health} /> : null}
+      {stale && stale.count > 0 ? (
+        <HomeSlimRow
+          tone="neutral"
+          lead={sections.oldOrders.lead(stale.count)}
+          text={sections.oldOrders.body}
+          action={
+            /* For now this opens those orders on the list; marking them in bulk comes later. */
+            <Button
+              variant="outline"
+              size="sm"
+              nativeButton={false}
+              render={<Link href={staleHref} />}
+            >
+              {sections.oldOrders.cta}
+            </Button>
+          }
+        />
+      ) : null}
     </section>
   )
 }
