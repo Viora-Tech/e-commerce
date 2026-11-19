@@ -3,7 +3,16 @@
  *        order lines and fulfillment orders, inside placeOrder's transaction.
  * WHY:   Split from place-order.ts (#973) to keep the workflow file readable; placeOrder runs it.
  */
-import { newId, order, orderLine, orderNote, type StoreTx, store } from '@commerce/db'
+import {
+  newId,
+  type OrderDeliveryRoute,
+  order,
+  orderLine,
+  orderNote,
+  type ParcelDeliveryEstimate,
+  type StoreTx,
+  store,
+} from '@commerce/db'
 import { eq, sql } from 'drizzle-orm'
 import { isAbroad, taxRegimeFor } from '../checkout/address-abroad'
 import { requestCodConfirmation } from '../cod-rto/confirm'
@@ -39,6 +48,23 @@ import type { State } from './place-order-types'
  * Insert the order, its lines and its parcels (fulfillment orders) with the money and GST worked
  * out here on the server, plus the outbox event and the discount uses. Compensation deletes them.
  */
+/**
+ * A split cart's parcel window as the Delivery options engine priced it (the same dates the
+ * checkout card added up), so the order's parcels never disagree with the card (#1781 item 11).
+ * Null: no engine route for this parcel; the courier estimate checkout sent is used instead.
+ */
+function parcelPromise(
+  delivery: OrderDeliveryRoute | null | undefined,
+  locationId: string,
+  status: string,
+): ParcelDeliveryEstimate | null {
+  const onHold = status === 'on_hold'
+  const p = delivery?.parcels?.find((x) => x.locationId === locationId && x.onHold === onHold)
+  return p?.promisedEarliest && p.promisedLatest
+    ? { earliest: p.promisedEarliest, latest: p.promisedLatest }
+    : null
+}
+
 export const createOrder: WorkflowStep<State> = {
   name: 'createOrder',
   async run({
@@ -354,7 +380,9 @@ export const createOrder: WorkflowStep<State> = {
           status: p.status,
           needsTransfer: p.needsTransfer,
           money: billed.money[i],
-          deliveryEstimate: input.deliveryEstimates?.[p.locationId] ?? null,
+          deliveryEstimate: parcelPromise(delivery, p.locationId, p.status) ??
+            input.deliveryEstimates?.[p.locationId] ??
+            null,
           lines: p.lines.map((l) => ({
             orderLineId: lineIds[Number(l.key)] as string,
             quantity: l.quantity,

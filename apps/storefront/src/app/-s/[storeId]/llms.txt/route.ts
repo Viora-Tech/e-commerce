@@ -3,8 +3,8 @@ import {
   parseAgentKnowledge,
   parsePreferences,
   publishedFacts,
-  publishedKnowledge,
 } from '@commerce/core'
+import { publishedKnowledge } from '@commerce/core/inbox/server'
 import { store } from '@commerce/db'
 import { eq } from 'drizzle-orm'
 import { requestOrigin } from '@/lib/seo'

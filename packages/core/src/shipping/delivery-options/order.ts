@@ -75,7 +75,8 @@ export async function priceOrderDelivery(
       zone: cart.zone,
       policy: toShippingPolicy(settings),
       now: new Date(),
-      declineInsurance: !delivery.choice.insured,
+      // The tick as the shopper left it (checkout sends the state it last showed).
+      insure: delivery.choice.insured,
     },
     parcels,
     cart.valuePaise,

@@ -17,7 +17,7 @@
  * - Dates: the last parcel to arrive. Any parcel on backup puts the option on backup (no route
  *   saved; booking uses the courier rule). Sub-choices: the couriers every parcel offers, summed.
  */
-import { resolveDeliveryOptions } from './resolve'
+import { hideExpressNotFaster, resolveDeliveryOptions } from './resolve'
 import type {
   DeliveryResolveResult,
   PricedRoute,
@@ -172,6 +172,10 @@ function addUpOption(parts: readonly ResolvedOption[], priceFromZone: boolean): 
       required: parts.some((p) => p.insurance.required),
       on: parts.some((p) => p.insurance.on),
       pricePaise: insurances.length ? insurances.reduce((s, v) => s + v, 0) : null,
+      // What the tick adds across the parcels; null when no parcel offers it.
+      extraPaise: parts.some((p) => p.insurance.extraPaise != null)
+        ? parts.reduce((s, p) => s + (p.insurance.extraPaise ?? 0), 0)
+        : null,
     },
     backupRate: backup?.backupRate ?? null,
   }
@@ -194,8 +198,12 @@ export function resolveParcelDeliveries(
       answers: only?.answers ?? [],
     })
   }
+  // Express is compared with Standard once the parcels are added up, not parcel by parcel.
   const results = parcels.map((p) =>
-    resolveDeliveryOptions({ ...base, cart: p.cart, answers: p.answers, orderValuePaise }),
+    resolveDeliveryOptions(
+      { ...base, cart: p.cart, answers: p.answers, orderValuePaise },
+      { compareSpeeds: false },
+    ),
   )
   const [first, ...rest] = results as [DeliveryResolveResult, ...DeliveryResolveResult[]]
   const options = first.options.flatMap((o) => {
@@ -204,6 +212,8 @@ export function resolveParcelDeliveries(
     const saved = base.config.options.find((c) => c.id === o.optionId)
     return [addUpOption(parts as ResolvedOption[], saved?.price.source === 'zone')]
   })
+  const traces = first.trace.options.map((t) => ({ ...t }))
+  hideExpressNotFaster(options, traces, base.config.layout === 'list')
   const status = options.length
     ? 'options'
     : results.some((r) => r.status === 'unserviceable')
@@ -214,7 +224,7 @@ export function resolveParcelDeliveries(
     options,
     parcels: results,
     trace: {
-      options: first.trace.options,
+      options: traces,
       providers: results.flatMap((r) => r.trace.providers),
     },
   }

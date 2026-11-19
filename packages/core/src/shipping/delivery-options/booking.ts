@@ -21,7 +21,13 @@ import type { StoreContext } from '../../context'
 import { orderParcelsView, type ParcelView } from '../../order/parcel-view'
 import type { CourierRateRow } from '../courier-rates'
 import type { DeliveryOption, RouteSetting } from './config'
-import { type ProviderAnswer, type Route, routeKey, routesFromAnswers } from './routes'
+import {
+  type ProviderAnswer,
+  type Route,
+  routeKey,
+  routesFromAnswers,
+  selectorMatches,
+} from './routes'
 import { matchingRules, poolAllows, type RulePool, rulePool } from './rules'
 import { activeDeliveryConfig, productFacts } from './service'
 
@@ -256,12 +262,19 @@ export function bookingPlan(
     candidates.map((c) => c.route),
   )
   const speed = ctx.option?.speed ?? null
+  /* A rule that forces its default route (`forceRoute`, #1782): that route carries the parcel
+     whatever the option's speed, and it is what the fallback tries first. */
+  const forced = pool.defaultRoute?.force ? pool.defaultRoute.selector : null
+  const isForced = (route: Route) => forced !== null && selectorMatches(route, forced)
   const allowed = candidates.filter(
     ({ row, route }) =>
       row.problem === null &&
       poolAllows(pool, route) &&
       (!opts.insured || route.insures) &&
-      (speed !== 'express' || route.speed === 'express'),
+      (speed !== 'express' || route.speed === 'express' || isForced(route)),
+  )
+  const forcedKeys = new Set(
+    allowed.filter(({ route }) => isForced(route)).map(({ row }) => row.optionKey),
   )
   const saved = ctx.delivery?.route ?? null
   const chosen = saved ? rows.find((r) => rowMatches(r, saved.key)) : undefined
@@ -271,13 +284,17 @@ export function bookingPlan(
   const ranked = allowed
     .map((c) => c.row)
     .filter((r) => r !== chosen)
-    .sort((a, b) =>
-      strategy === 'fastest'
-        ? (a.deliveryBy ?? '9999').localeCompare(b.deliveryBy ?? '9999') || price(a) - price(b)
-        : price(a) - price(b),
+    .sort(
+      (a, b) =>
+        Number(!forcedKeys.has(a.optionKey)) - Number(!forcedKeys.has(b.optionKey)) ||
+        (strategy === 'fastest'
+          ? (a.deliveryBy ?? '9999').localeCompare(b.deliveryBy ?? '9999') || price(a) - price(b)
+          : price(a) - price(b)),
     )
+  // No route saved (an order on backup, or from before the rule): the forced route is the pick.
+  const forcedPick = !saved ? ranked.find((r) => forcedKeys.has(r.optionKey)) : undefined
   return {
-    chosenKey: chosenOk?.optionKey ?? null,
+    chosenKey: chosenOk?.optionKey ?? forcedPick?.optionKey ?? null,
     chosenProblem:
       !saved || chosenOk ? null : chosen ? (chosen.problemDetail ?? chosen.problem) : 'not_offered',
     fallbackKey: saved && !chosenOk ? (ranked[0]?.optionKey ?? null) : null,
