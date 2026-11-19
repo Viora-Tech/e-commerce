@@ -5,6 +5,7 @@ import { z } from 'zod'
 import { can, storeProcedure } from '../procedures'
 import { dashboardCharts, dashboardSummary } from '../services/dashboard.service'
 import { homeAnalytics, loadHomeTiles, saveHomeTiles } from '../services/home-analytics.service'
+import { homeFacts } from '../services/home-facts.service'
 import { loadHomeTodos, saveHomeTodos } from '../services/home-todos.service'
 
 /** The Live view globe's "Time range" setting: how far back `mapOrders` looks. */
@@ -25,6 +26,9 @@ export const dashboardRouter = {
         mapRange: input.mapRange,
       }),
     ),
+
+  /** Home's extra counts: orders to ship older than 30 days, products out of stock and the real payment methods of the last 30 days. */
+  summaryExtras: can(permissions.ANALYTICS_READ).handler(({ context }) => homeFacts(context.tx)),
 
   /** The "How you're doing" charts area for one range; the only part of the home page that refetches. */
   charts: can(permissions.ANALYTICS_READ)

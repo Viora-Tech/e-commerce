@@ -42,7 +42,11 @@ export default [
         fix: 'ज़ोन खोलें',
       },
       zones_overlap: {
-        title: (zones) => `ये ज़ोन एक ही जगहें कवर करते हैं: ${zones}`,
+        title: (place, zones, count) => {
+          const names =
+            zones.length > 1 ? `${zones.slice(0, -1).join(', ')} और ${zones.at(-1)}` : zones.join('')
+          return `${place ?? 'एक जैसे पिन कोड'} ${count} डिलीवरी ज़ोन में ${place ? 'है' : 'हैं'} (${names})`
+        },
         body: 'सिर्फ़ रेट वाला पहला ज़ोन चलता है, जिससे दाम का अंदाज़ा लगाना मुश्किल होता है। एक ही रखें।',
         fix: 'शिपिंग खोलें',
       },

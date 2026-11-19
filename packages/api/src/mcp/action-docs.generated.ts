@@ -266,6 +266,8 @@ export const ACTION_DOCS: Record<string, string> = {
     'Hide one smart card for 30 days for the whole store; dismissed: false is Undo.',
   'dashboard.summary':
     'Stat windows, weekly report, recent orders, top products, live visitors and quick lists for the home page.',
+  'dashboard.summaryExtras':
+    "Home's extra counts: orders to ship older than 30 days, products out of stock and the real payment methods of the last 30 days.",
   'dashboard.tiles': 'Which metric this member keeps in each Home tile (Customize).',
   'dashboard.todos':
     'Which to-do cards this store hides on Home ("Edit to-dos"); one setting for the whole store.',
