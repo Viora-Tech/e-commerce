@@ -238,7 +238,14 @@ function arrivesEarlier(a: ResolvedOption, b: ResolvedOption): boolean {
   return !!a.earliest && !!b.earliest && a.earliest < b.earliest
 }
 
-export function resolveDeliveryOptions(input: ResolveInput): DeliveryResolveResult {
+/**
+ * `compareSpeeds: false` leaves Express in even when it is not faster: a split cart's parcels
+ * are resolved one by one and compared once added up (`resolveParcelDeliveries`).
+ */
+export function resolveDeliveryOptions(
+  input: ResolveInput,
+  opts: { compareSpeeds?: boolean } = {},
+): DeliveryResolveResult {
   const { config, cart, answers } = input
   const allRoutes = routesFromAnswers(answers, config.routeSettings, cart.weightGrams)
   const anyFailed = answers.length === 0 || answers.some((a) => a.status === 'failed')
@@ -388,7 +395,7 @@ export function resolveDeliveryOptions(input: ResolveInput): DeliveryResolveResu
     traces.push({ ...trace, winner: winner.route.key, why })
   }
 
-  hideExpressNotFaster(options, traces, listOptionId)
+  if (opts.compareSpeeds !== false) hideExpressNotFaster(options, traces, listOptionId !== null)
 
   const providers = answers.map((a) => ({
     providerId: a.providerId,
@@ -410,12 +417,12 @@ export function resolveDeliveryOptions(input: ResolveInput): DeliveryResolveResu
  * hidden (it would be the same promise at a higher price, e.g. PIN 131001 with a mouse, #1781).
  * The trace says `not_faster`. Backup cards and the list layout are left alone.
  */
-function hideExpressNotFaster(
+export function hideExpressNotFaster(
   options: ResolvedOption[],
   traces: OptionTrace[],
-  listOptionId: string | null,
+  listLayout: boolean,
 ): void {
-  if (listOptionId !== null) return
+  if (listLayout) return
   const standard = options.find((o) => o.speed === 'standard' && o.pick !== null)
   if (!standard) return
   for (const o of [...options]) {

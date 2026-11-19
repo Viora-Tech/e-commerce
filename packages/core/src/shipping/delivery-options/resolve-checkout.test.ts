@@ -21,6 +21,7 @@ import {
 import { orderDeliveryFor } from './checkout'
 import { routeCardLabel, speedWord } from './labels'
 import { shippingMargin } from './margin'
+import { resolveParcelDeliveries } from './parcels'
 import { resolveDeliveryOptions } from './resolve'
 
 /** Mice go by Blue Dart Air, whatever option the shopper picks. */
@@ -267,6 +268,39 @@ describe('Express hidden when not faster (fixed options)', () => {
     const r = resolveDeliveryOptions(input({ answers: [same] }))
     expect(r.options.map((o) => o.optionId)).toEqual(['std'])
     expect(traceOf(r, 'exp')?.hidden).toBe('not_faster')
+  })
+
+  it('a split cart compares the added-up cards, not each parcel', () => {
+    // Parcel 2 alone has Express no faster than Surface; added up, Express still arrives first.
+    const slow = answer('delhivery', 'Delhivery', [
+      quote('S', 'Surface', 6000, [4, 5]),
+      quote('E', 'Express', 9000, [2, 3]),
+    ])
+    const even = answer('delhivery', 'Delhivery', [
+      quote('S', 'Surface', 6000, [2, 3]),
+      quote('E', 'Express', 9000, [2, 3]),
+    ])
+    const { config: cfg, zone, policy, now } = input()
+    const cart = { valuePaise: 75_000, weightGrams: 400, items: [item('p1')] }
+    const r = resolveParcelDeliveries(
+      { config: cfg, zone, policy, now },
+      [
+        { cart, answers: [slow] },
+        { cart, answers: [even] },
+      ],
+      150_000,
+    )
+    expect(r.options.map((o) => o.optionId)).toEqual(['std', 'exp'])
+    const both = resolveParcelDeliveries(
+      { config: cfg, zone, policy, now },
+      [
+        { cart, answers: [even] },
+        { cart, answers: [even] },
+      ],
+      150_000,
+    )
+    expect(both.options.map((o) => o.optionId)).toEqual(['std'])
+    expect(traceOf(both, 'exp')?.hidden).toBe('not_faster')
   })
 
   it('a faster Express stays', () => {
