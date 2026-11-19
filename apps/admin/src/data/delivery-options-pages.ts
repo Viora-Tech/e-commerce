@@ -167,7 +167,7 @@ export const deliveryPagesContent = {
     round: 'Round extras up to ₹…9',
     roundHelp: '+₹37 shows as +₹39',
     hide: 'Hide couriers that are slower and dearer',
-    hideHelp: 'Keeps the list short and honest',
+    hideHelp: 'Keeps the list short, but checkout always shows at least 3 when 3 couriers deliver',
     max: 'Show at most',
     maxItems: (n: number) => `${n} couriers`,
   },

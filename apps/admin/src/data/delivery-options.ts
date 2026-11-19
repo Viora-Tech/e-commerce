@@ -345,7 +345,8 @@ export const deliveryOptionsContent = {
       roundTo9: 'Round extras up to ₹…9',
       roundTo9Help: '+₹37 shows as +₹39.',
       hideSlower: 'Hide couriers that are slower and dearer',
-      hideSlowerHelp: 'Drops a courier another one beats on both price and date.',
+      hideSlowerHelp:
+        'Drops a courier another one beats on both price and date, but checkout always shows at least 3 when 3 couriers deliver.',
       showNames: 'Show courier names to shoppers',
       showNamesHelp:
         'Off, cards show only the delivery promise, like "Standard" and its date: no courier name or logo.',
