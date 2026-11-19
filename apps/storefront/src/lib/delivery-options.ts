@@ -30,10 +30,10 @@ import {
 import { registriesForStore } from '@commerce/core/registries'
 import type { StoreTx } from '@commerce/db'
 import { cacheGet, cacheSet, deliveryQuoteCache, sharedRedis } from '@commerce/queue'
-import { formatDeliveryRange } from '@commerce/shipping'
-import { deliveryOptionsContent } from '@/data/delivery-options'
-import { arrivalLabel } from './rate-dates'
+import { type ParcelDatesByCard, parcelDatesByCard } from './delivery-cards'
 import { loadShippingSettings } from './shipping'
+
+export * from './delivery-cards'
 
 /*
  * The Delivery options app at checkout: the cards come from the store's connected couriers
@@ -47,174 +47,14 @@ const env = () => loadEnv(process.env)
 /** Quotes, the circuit breaker and each app's health, on the shared Redis. */
 const redisCache = (): QuoteCache => deliveryQuoteCache(sharedRedis(env().REDIS_URL))
 
-/** One sub-choice under an option card ("Blue Dart Air"). */
-export type DeliveryChoiceCard = {
-  routeKey: string
-  label: string
-  pricePaise: number
-  arrives: string | null
-  /** The courier's logo when its name is shown (list cards). */
-  logo: CourierLogo | null
-  /** How the route travels, for the card's fact line ("By air"). */
-  mode: DeliveryMode
-  /** First day it can arrive, "YYYY-MM-DD"; null when unknown. Picks the fastest list card. */
-  earliest: string | null
-}
-
-/** How a route travels, read from its service: Blue Dart Apex and "Air" services fly. */
-export type DeliveryMode = 'air' | 'express' | 'surface'
-
-export function deliveryMode(route: { serviceLabel: string; speed: string }): DeliveryMode {
-  if (/\bair\b|apex/i.test(route.serviceLabel)) return 'air'
-  return route.speed === 'express' ? 'express' : 'surface'
-}
-
-/** What checkout needs beyond a plain rate card, per delivery option. */
-export type DeliveryCardExtras = {
-  /** The option refuses cash on delivery (Express). */
-  codAllowed: boolean
-  /** Shipping when the shopper pays on delivery (Standard's COD route); null: same price. */
-  codPricePaise: number | null
-  /** The carrier COD ships with, for the Payment step's note. */
-  codCarrier: string | null
-  /** Before free-above, struck through when the card is free. */
-  listPricePaise: number
-  choices: DeliveryChoiceCard[]
-  /** The option's own name ("Express"), for "Not available with Express delivery". */
-  optionName: string
-  /** The picked courier's logo, when the merchant shows its name; null otherwise. */
-  logo: CourierLogo | null
-  /** `list`: each choice is its own card (the option's Couriers setting). */
-  layout: 'one' | 'list'
-  /** How the picked route travels; null on backup (no route). */
-  mode: DeliveryMode | null
-}
-
-export type CourierLogo = {
-  /** A file in `public/courier-logos/`; null: no file for this courier, the card shows
-   *  `initials` on a tile instead (as the admin's courier drawer does). */
-  src: string | null
-  alt: string
-  /** Dark lettering: sits on a white tile. */
-  light: boolean
-  /** "AS" for Amazon Shipping: the tile when there is no file. */
-  initials: string
-}
-
-/**
- * Logos shipped in `public/courier-logos/`, by the carrier key `normaliseCarrier` gives (the
- * same files as the admin's `public/app-logos`). A courier with no file (Amazon Shipping, Ecom
- * Express, Gati, Smartr) gets an initials tile; drop its file here and add a line to show it.
- * The proxy must skip `courier-logos/` (`src/proxy.ts` matcher) or every file 404s.
- */
-const COURIER_LOGOS: Record<string, { file: string; light?: boolean }> = {
-  delhivery: { file: 'delhivery.png' },
-  bluedart: { file: 'bluedart.svg', light: true },
-  dtdc: { file: 'dtdc.png' },
-  xpressbees: { file: 'xpressbees.png' },
-  ekart: { file: 'ekart.png' },
-  shadowfax: { file: 'shadowfax.png' },
-  'india-post': { file: 'india-post.png' },
-  dhl: { file: 'dhl.svg', light: true },
-  fedex: { file: 'fedex.svg', light: true },
-}
-
-/** "Amazon Shipping" → "AS", "DTDC" → "DT". */
-export function courierInitials(name: string): string {
-  const words = name.trim().split(/\s+/).filter(Boolean)
-  const letters =
-    words.length > 1 ? words.map((w) => w[0] ?? '').join('') : (words[0] ?? '').slice(0, 2)
-  return letters.slice(0, 2).toUpperCase() || '?'
-}
-
-export function courierLogo(route: {
-  carrierKey: string
-  carrier: string
-  showCarrier: boolean
-}): CourierLogo | null {
-  // A courier the merchant hides keeps the plain truck: no name, no logo.
-  if (!route.showCarrier) return null
-  const logo = COURIER_LOGOS[route.carrierKey]
-  return {
-    src: logo ? `/courier-logos/${logo.file}` : null,
-    alt: route.carrier,
-    light: logo?.light === true,
-    initials: courierInitials(route.carrier),
-  }
-}
-
 export type CheckoutDelivery = {
   quoteId: string
   status: DeliveryResolveResult['status']
   options: ResolvedOption[]
   /** The checkbox under the cards: offered and ticked, with what it adds. */
   insurance: { offered: boolean; on: boolean; pricePaise: number | null }
-}
-
-/** "Delhivery", "Blue Dart Air": the carrier, with Air when the service flies. */
-const choiceLabel = (route: {
-  carrier: string
-  showCarrier: boolean
-  serviceLabel: string
-}): string => {
-  const air = /\bair\b/i.test(route.serviceLabel)
-  // A courier the merchant hides is named by how it travels instead.
-  if (!route.showCarrier) return air ? 'Air' : 'Surface'
-  return air && !/\bair\b/i.test(route.carrier) ? `${route.carrier} Air` : route.carrier
-}
-
-/** The date line under a card or sub-choice. */
-export function deliveryArrives(
-  dates: { earliest: string | null; latest: string | null; etaEstimated: boolean },
-  policy: ReturnType<typeof toShippingPolicy>,
-  now: Date,
-): string | null {
-  if (dates.etaEstimated) {
-    return deliveryOptionsContent.usually(
-      policy.defaultMinTransitDays,
-      policy.defaultMaxTransitDays,
-    )
-  }
-  if (!dates.earliest || !dates.latest) return null
-  return arrivalLabel(
-    { earliest: dates.earliest, latest: dates.latest, source: 'courier' },
-    now,
-    policy.timeZone,
-  )
-}
-
-export function deliveryDateRange(o: {
-  earliest: string | null
-  latest: string | null
-}): string | null {
-  return o.earliest && o.latest ? formatDeliveryRange(o.earliest, o.latest) : null
-}
-
-export function cardExtras(
-  o: ResolvedOption,
-  policy: ReturnType<typeof toShippingPolicy>,
-  now: Date,
-  afterDiscount: (paise: number) => number,
-): DeliveryCardExtras {
-  return {
-    codAllowed: o.codAllowed,
-    codPricePaise: o.cod ? afterDiscount(o.cod.pricePaise) : null,
-    codCarrier: o.cod?.route.showCarrier ? o.cod.route.carrier : null,
-    listPricePaise: o.listPricePaise,
-    optionName: o.name,
-    logo: o.pick ? courierLogo(o.pick.route) : null,
-    layout: o.layout,
-    mode: o.pick ? deliveryMode(o.pick.route) : null,
-    choices: o.choices.map((c) => ({
-      routeKey: c.route.key,
-      label: choiceLabel(c.route),
-      pricePaise: afterDiscount(c.pricePaise),
-      arrives: deliveryArrives(c, policy, now),
-      logo: courierLogo(c.route),
-      mode: deliveryMode(c.route),
-      earliest: c.etaEstimated ? null : c.earliest,
-    })),
-  }
+  /** A split cart: each parcel's own dates per card (`parcelDatesByCard`); empty for one. */
+  parcelDates: ParcelDatesByCard
 }
 
 async function readSnapshot(
@@ -317,7 +157,8 @@ export async function checkoutDelivery(
   storeId: string,
   cartId: string,
   to: { pincode: string; stateCode: string },
-  opts: { declineInsurance?: boolean | undefined; quoteId?: string | null | undefined } = {},
+  /** `insure`: the shopper's tick (omitted until they touch it: each option's default). */
+  opts: { insure?: boolean | undefined; quoteId?: string | null | undefined } = {},
 ): Promise<{
   delivery: CheckoutDelivery
   zone: Awaited<ReturnType<typeof quoteCartShipping>>
@@ -340,7 +181,7 @@ export async function checkoutDelivery(
       : null
   const { shipping } = await registriesForStore(tx, storeId)
   const providers = resolveShippingProviders(shipping, settings, env().SETTINGS_SECRET).providers
-  const base = { config, zone, policy, now: new Date(), declineInsurance: opts.declineInsurance }
+  const base = { config, zone, policy, now: new Date(), insure: opts.insure }
   const valuePaise = zone.measure.valuePaise
   // A cart that ships from two locations is two labels: each parcel is priced and added up.
   const split = reuse
@@ -403,7 +244,8 @@ export async function checkoutDelivery(
     snapshot,
     DELIVERY_SNAPSHOT_TTL_SECONDS,
   )
-  const first = result.options[0]
+  // The tick under the cards: the first option that offers it says what it adds.
+  const offering = result.options.find((o) => o.insurance.offered)
   return {
     zone,
     delivery: {
@@ -411,10 +253,11 @@ export async function checkoutDelivery(
       status: result.status,
       options: result.options,
       insurance: {
-        offered: result.options.some((o) => o.insurance.offered),
-        on: result.options.some((o) => o.insurance.offered && o.insurance.on),
-        pricePaise: first?.insurance.pricePaise ?? null,
+        offered: offering !== undefined,
+        on: offering?.insurance.on ?? false,
+        pricePaise: offering?.insurance.extraPaise ?? offering?.insurance.pricePaise ?? null,
       },
+      parcelDates: parcelDatesByCard(result, parcels?.map((p) => p.key) ?? null),
     },
   }
 }

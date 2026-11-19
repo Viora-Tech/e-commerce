@@ -9,6 +9,7 @@ import InsuranceToggle from '@/components/checkout/insurance-toggle'
 import OptionCard from '@/components/checkout/option-card'
 import { checkoutContent as content } from '@/data/checkout'
 import { countdownIndex, deliveryCardLine, minutesUntil } from '@/lib/delivery-card-line'
+import type { ShopperParcel } from '@/lib/parcels'
 import type { CheckoutRate, CheckoutShipping } from '@/lib/shipping'
 
 type DeliveryMethodProps = {
@@ -30,6 +31,25 @@ type DeliveryMethodProps = {
   abroad?: boolean
   /** Cash on delivery is a way to pay here: only then does a prepaid-only card say so. */
   codOffered?: boolean
+}
+
+/**
+ * The parcels under the cards with the picked card's own dates for each (the engine run that
+ * priced the card), so "Parcel 1 arrives" never disagrees with the card (#1781 item 11).
+ */
+function parcelsForCard(
+  shipping: CheckoutShipping,
+  selectedId: string | null,
+  routeKey: string | null,
+): ShopperParcel[] {
+  const byCard = shipping.parcelDates
+  if (!byCard || !selectedId) return shipping.parcels
+  const dates = byCard[`${selectedId}|${routeKey ?? ''}`] ?? byCard[`${selectedId}|`]
+  if (!dates) return shipping.parcels
+  return shipping.parcels.map((p) => {
+    const own = dates.find((d) => d.key === p.key)
+    return own ? { ...p, dateRange: own.dateRange } : p
+  })
 }
 
 /**
@@ -264,7 +284,7 @@ export default function DeliveryMethod({
           onChange={onInsurance}
         />
       ) : null}
-      <CheckoutParcels parcels={shipping.parcels} />
+      <CheckoutParcels parcels={parcelsForCard(shipping, selectedId, routeKey)} />
     </div>
   )
 }

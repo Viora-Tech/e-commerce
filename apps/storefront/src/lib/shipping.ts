@@ -42,6 +42,7 @@ import {
   type DeliveryCardExtras,
   deliveryDateRange,
   deliveryArrives as optionArrives,
+  type ParcelDatesByCard,
 } from './delivery-options'
 import { itemTitle, parcelFrom, type ShopperParcel } from './parcels'
 import { arrivalLabel, fastestRate, type RateWindow, rateWindow } from './rate-dates'
@@ -164,6 +165,11 @@ export type CheckoutShipping = {
   arrives: string | null
   /** Delivery options app: the quote Pay prices from, and the insurance checkbox. */
   deliveryQuote?: Pick<CheckoutDelivery, 'quoteId' | 'insurance'> | undefined
+  /**
+   * Delivery options app, a split cart: each parcel's own dates per card, from the engine run
+   * that priced the cards, so "Parcel 1 arrives" agrees with the card (#1781 item 11).
+   */
+  parcelDates?: ParcelDatesByCard | undefined
   /** Nothing in the cart needs shipping (services, downloads): no charge, no courier asked. */
   nothingShips?: true | undefined
   /**
@@ -277,7 +283,7 @@ export async function checkoutShipping(
   storeId: string,
   cartId: string,
   to: { pincode: string; stateCode: string; countryCode?: string | undefined },
-  opts: { declineInsurance?: boolean | undefined; quoteId?: string | null | undefined } = {},
+  opts: { insure?: boolean | undefined; quoteId?: string | null | undefined } = {},
 ): Promise<CheckoutShipping> {
   // A service or a download: the address is kept for the invoice, but nothing is quoted.
   if (await cartNothingShips(tx, storeId, cartId)) {
@@ -391,7 +397,7 @@ async function deliveryOptionsShipping(
   storeId: string,
   cartId: string,
   to: { pincode: string; stateCode: string },
-  opts: { declineInsurance?: boolean | undefined; quoteId?: string | null | undefined },
+  opts: { insure?: boolean | undefined; quoteId?: string | null | undefined },
 ): Promise<CheckoutShipping | null> {
   const app = await checkoutDelivery(tx, storeId, cartId, to, opts)
   if (!app || app.delivery.status === 'none') return null
@@ -440,6 +446,7 @@ async function deliveryOptionsShipping(
     parcels: split.length > 1 ? split : [],
     arrives: rates[0]?.arrives ?? null,
     deliveryQuote: { quoteId: quote.quoteId, insurance: quote.insurance },
+    parcelDates: quote.parcelDates,
     dispatchCutoffAt: dispatchCutoffAt(delivery, policy, now),
   }
 }
