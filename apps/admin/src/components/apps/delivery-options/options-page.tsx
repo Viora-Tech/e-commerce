@@ -1,10 +1,6 @@
 'use client'
 
-import {
-  courierId,
-  type DeliveryLayout,
-  type DeliveryOption,
-} from '@commerce/core/delivery-options'
+import type { DeliveryLayout, DeliveryOption } from '@commerce/core/delivery-options'
 import { Plus } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
@@ -22,14 +18,14 @@ import { deliveryPagesContent } from '@/data/delivery-options-pages'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
-import CheckoutPreviewList from './checkout-preview-list'
+import CourierListPreview from './courier-list-preview'
 import { courierRows } from './courier-rows'
 import CourierSwitchesCard from './courier-switches-card'
 import DeliveryWarnings from './delivery-warnings'
 import LayoutPicker from './layout-picker'
 import OptionEditCard from './option-edit-card'
 import PriceIncludesCard from './price-includes-card'
-import { PREVIEW_CART, PREVIEW_PIN, useCheckoutPreview } from './use-checkout-preview'
+import RulesDefaultNote from './rules-default-note'
 import { useDeliveryOverview, useRouteCatalogue } from './use-delivery-overview'
 
 const APP = 'delivery-options'
@@ -63,11 +59,6 @@ export default function DeliveryOptionsPage() {
   /** Which action is running, so only its button spins. */
   const [busy, setBusy] = useState<'preset' | 'save' | null>(null)
   const { catalogue, loading } = useRouteCatalogue(layout === 'list')
-  const preview = useCheckoutPreview(
-    { layout, options: positionedOf(drafts) },
-    PREVIEW_PIN,
-    layout === 'list',
-  )
 
   useEffect(() => {
     if (!overview) return
@@ -84,10 +75,6 @@ export default function DeliveryOptionsPage() {
   const isOn = (id: string) => allowNow()?.includes(id) ?? true
   const isNew = (id: string) =>
     allowNow() !== null && !(listOptionOf(drafts)?.couriers.known ?? []).includes(id)
-  const nameOf = (id: string) => {
-    const row = rowsNow().find((r) => r.id === id)
-    return row ? `${row.carrier} ${pages.routeTable.speeds[row.speed]}` : id
-  }
   const update = (next: DeliveryOption) =>
     setDrafts((list) => (list ?? []).map((o) => (o.id === next.id ? next : o)))
 
@@ -160,23 +147,11 @@ export default function DeliveryOptionsPage() {
   // Render logic
   const listed = layout === 'list'
   const rows = rowsNow()
-  const allIds = rows.map((r) => r.id)
   const listOption = listOptionOf(drafts)
   const page = pages.pages.options
   const dirty = JSON.stringify({ layout, options: drafts }) !== savedKey
   const firstShown = drafts.find((o) => o.enabled)
   const backupName = drafts.find((o) => o.enabled && o.speed === 'standard')?.name
-  const pick = preview.result?.options[0]?.pick?.route
-  const includedId = pick ? courierId(pick.carrierKey, pick.speed) : null
-  const shownIds = new Set(
-    (preview.result?.options[0]?.choices ?? []).map((c) =>
-      courierId(c.route.carrierKey, c.route.speed),
-    ),
-  )
-  const off = allIds.filter((id) => !isOn(id)).map(nameOf)
-  const hidden = preview.result
-    ? allIds.filter((id) => isOn(id) && !shownIds.has(id) && id !== includedId).map(nameOf)
-    : []
 
   return (
     <div className="flex flex-col gap-5">
@@ -207,6 +182,7 @@ export default function DeliveryOptionsPage() {
       />
       <DeliveryWarnings warnings={overview.warnings} />
       <LayoutPicker value={layout} onChange={setLayout} />
+      <RulesDefaultNote />
 
       {drafts.length === 0 ? (
         <div className="flex flex-col items-start gap-2 rounded-lg border border-panel-border bg-card p-4">
@@ -225,30 +201,16 @@ export default function DeliveryOptionsPage() {
                 loading={loading}
                 isOn={isOn}
                 isNew={isNew}
-                includedId={includedId}
                 onToggle={handleToggle}
               />
               <PriceIncludesCard option={listOption} onChange={update} />
             </div>
-            <section className="flex flex-col gap-3 rounded-lg border border-panel-border bg-card p-4 lg:sticky lg:top-4">
-              <div className="flex flex-col gap-0.5">
-                <h2 className="text-card-title text-ink-strong">{pages.preview.previewTitle}</h2>
-                <p className="text-caption text-muted-foreground">
-                  {pages.preview.previewFor(PREVIEW_PIN, String(PREVIEW_CART.weightGrams / 1000))}
-                </p>
-              </div>
-              <CheckoutPreviewList {...preview} look="logos" />
-              {hidden.length || off.length ? (
-                <p className="text-caption text-muted-foreground">
-                  {[
-                    hidden.length ? pages.preview.hidden(hidden.join(', ')) : null,
-                    off.length ? pages.preview.off(off.join(', ')) : null,
-                  ]
-                    .filter(Boolean)
-                    .join(' ')}
-                </p>
-              ) : null}
-            </section>
+            <CourierListPreview
+              draft={{ layout, options: positionedOf(drafts) }}
+              rows={rows}
+              isOn={isOn}
+              fastest={listOption.strategy === 'fastest'}
+            />
           </div>
         ) : (
           <p className="text-body text-muted-foreground">{pages.layout.needsOption}</p>
