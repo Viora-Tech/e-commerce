@@ -210,6 +210,9 @@ function upToNine(paise: number): number {
  * speed (a carrier offered by two apps keeps the cheaper); couriers beaten on both price and
  * date are dropped when asked; at most `max`, cheapest first.
  */
+/** A courier list shows at least this many cards when that many couriers can deliver. */
+export const MIN_LIST_CARDS = 3
+
 function courierList(fits: Candidate[], winner: Candidate, option: DeliveryOption): PricedRoute[] {
   const cost = (c: Candidate) => c.priced.courierCostPaise + (c.priced.insurancePaise ?? 0)
   const base = winner.priced
@@ -242,7 +245,13 @@ function courierList(fits: Candidate[], winner: Candidate, option: DeliveryOptio
           ),
       )
     : all
-  return kept.slice(0, option.couriers.max)
+  // Never leave the shopper with a single card when couriers are there to choose from (owner,
+  // 19 Nov 2026): when hiding left fewer than MIN_LIST_CARDS, the next cheapest hidden couriers
+  // come back, cheapest first, each still priced at the pick plus its difference.
+  const floor = Math.min(MIN_LIST_CARDS, option.couriers.max, all.length)
+  const back = all.filter((p) => !kept.includes(p)).slice(0, Math.max(0, floor - kept.length))
+  const shown = all.filter((p) => kept.includes(p) || back.includes(p))
+  return shown.slice(0, option.couriers.max)
 }
 
 export function resolveDeliveryOptions(input: ResolveInput): DeliveryResolveResult {

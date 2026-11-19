@@ -79,10 +79,13 @@ export const OptionEtaSchema = z.object({
 export const OptionCouriersSchema = z.object({
   show: z.enum(['one', 'list']).default('one'),
   /** Cards at most, the pick included. */
-  max: z.number().int().min(2).max(8).default(3),
+  max: z.number().int().min(2).max(8).default(5),
   /** +₹37 shows as +₹39. */
   roundTo9: z.boolean().default(true),
-  /** Drop a courier another one beats on both price and date. */
+  /**
+   * Drop a courier another one beats on both price and date, but never below three cards when
+   * three couriers can deliver (`MIN_LIST_CARDS` in resolve.ts).
+   */
   hideSlowerDearer: z.boolean().default(true),
   /**
    * Off, checkout shows only the delivery promise ("Standard", the date): no courier name or
