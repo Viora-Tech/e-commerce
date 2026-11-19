@@ -101,6 +101,35 @@ export default async function InboxHome({
           <AlertDescription>{h.banner.body}</AlertDescription>
         </Alert>
       ) : null}
+      {/* Full width, like Home: the four numbers were squeezed into the side column. */}
+      <StatStrip
+        tiles={[
+          {
+            id: 'conversations',
+            label: h.metrics.conversations,
+            value: String(metrics.conversations),
+            note: h.metrics.title,
+          },
+          {
+            id: 'messages',
+            label: h.metrics.messages,
+            value: String(metrics.messages),
+            note: h.metrics.title,
+          },
+          {
+            id: 'first-reply',
+            label: h.metrics.firstReply,
+            value: minutes === null ? h.metrics.none : h.metrics.minutes(minutes),
+            note: h.metrics.title,
+          },
+          {
+            id: 'answered',
+            label: h.metrics.answered,
+            value: String(metrics.answered),
+            note: h.metrics.title,
+          },
+        ]}
+      />
       <PageColumns
         main={
           <>
@@ -190,24 +219,6 @@ export default async function InboxHome({
                   <ArrowRight aria-hidden="true" />
                 </Button>
               </div>
-            </DataCard>
-            <DataCard title={h.metrics.title}>
-              <StatStrip
-                tiles={[
-                  {
-                    id: 'conversations',
-                    label: h.metrics.conversations,
-                    value: String(metrics.conversations),
-                  },
-                  { id: 'messages', label: h.metrics.messages, value: String(metrics.messages) },
-                  {
-                    id: 'first-reply',
-                    label: h.metrics.firstReply,
-                    value: minutes === null ? h.metrics.none : h.metrics.minutes(minutes),
-                  },
-                  { id: 'answered', label: h.metrics.answered, value: String(metrics.answered) },
-                ]}
-              />
             </DataCard>
           </>
         }
