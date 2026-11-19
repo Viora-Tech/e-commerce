@@ -1,5 +1,9 @@
 import { isAbroad } from '@commerce/core/checkout-address'
-import { applyCheckoutText, stateForPincode } from '@commerce/core/checkout-settings'
+import {
+  applyCheckoutText,
+  stateForPincode,
+  stateMatchesPincode,
+} from '@commerce/core/checkout-settings'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState, useTransition } from 'react'
 import { checkoutContent as content } from '@/data/checkout'
@@ -283,7 +287,12 @@ export function useCheckoutForm(input: CheckoutFormInput) {
       checkPincode(pincode, form.stateCode, form.countryCode)
       return
     }
-    const guess = touched.stateCode ? null : stateForPincode(cleanPincode(pincode))
+    /* The prefix's one state fills in, unless the shopper picked a state that can be right
+       for this PIN code. A state that cannot be (the form's Haryana default, or the last
+       address's state, left beside a Jaipur PIN) is always replaced. */
+    const clean = cleanPincode(pincode)
+    const fits = stateMatchesPincode(clean, form.stateCode)
+    const guess = touched.stateCode && fits ? null : stateForPincode(clean)
     const stateCode = guess ?? form.stateCode
     setForm((prev) => ({ ...prev, pincode, stateCode }))
     checkPincode(pincode, stateCode)
