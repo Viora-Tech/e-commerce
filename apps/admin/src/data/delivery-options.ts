@@ -143,6 +143,8 @@ export const deliveryOptionsContent = {
       collections: (n: number) => (n === 1 ? '1 collection' : `${n} collections`),
       tags: (tags: string) => `Tagged ${tags}`,
       types: (types: string) => `Type ${types}`,
+      /** The `all` target: every product (its count is always 0). */
+      all: (_n: number) => 'Every product',
     },
   },
   ruleDialog: {
@@ -156,6 +158,7 @@ export const deliveryOptionsContent = {
       collections: 'Collections',
       tags: 'Product tags',
       types: 'Product types',
+      all: 'Every product',
     },
     browse: 'Browse',
     picked: (n: number) => (n === 1 ? '1 picked' : `${n} picked`),
@@ -224,16 +227,19 @@ export const deliveryOptionsContent = {
       no_zone_rate: 'Hidden: no Shipping rate covers this address',
       disabled: 'Hidden: turned off',
       list_layout: 'Hidden: checkout shows the courier list instead',
+      not_faster: 'Hidden: Express would not arrive earlier than Standard',
     },
     why: {
       cheapest: 'Won: cheapest',
       fastest: 'Won: fastest',
       prefer_direct: (within: string) => `Won: direct preferred within ${within}`,
       rule_default: (rule: string) => `Won: default of rule ${rule}`,
+      rule_forced: (rule: string) => `Won: rule ${rule} sends it this way, at the option's price`,
       backup: 'Backup: zone rate',
     },
     rulesApplied: (names: string) => `Rules applied: ${names}`,
-    rulesOverruled: (names: string) => `Overruled (nothing in common): ${names}`,
+    rulesOverruled: (names: string) =>
+      `Overruled (a more specific rule won, or nothing in common): ${names}`,
     columns: {
       route: 'Route',
       cost: 'Cost',
@@ -304,6 +310,7 @@ export const deliveryOptionsContent = {
       sources: {
         route: 'Courier cost + markup + insurance, rounded up to the next ₹10',
         zone: 'Your Shipping rates',
+        free: 'Free for the shopper (you pay the courier)',
       },
       markup: 'Markup (₹)',
       markupPercent: 'Markup (%)',

@@ -73,7 +73,7 @@ export function datesFor(route: Route | null, option: DeliveryOption, input: Res
 export const cartProtect = (input: Pick<ResolveInput, 'cart' | 'config'>): ProtectQuote =>
   parcelProtect(input.cart.items, input.config.protect ?? DEFAULT_PROTECT_CARD)
 
-/** Route cost + markup + insurance rounded up to ₹10 (a Shipping rate stays as typed unless insured), then caps and free-above. */
+/** Route cost + markup + insurance rounded up to ₹10 (a Shipping rate stays as typed unless insured), then caps and free-above. Price source `free`: ₹0 (plus any insurance ticked). */
 export function priceRoute(
   route: Route,
   option: DeliveryOption,
@@ -100,6 +100,24 @@ export function priceRoute(
   const orderValue = input.orderValuePaise ?? input.cart.valuePaise
   const free = zoneFree || (p.freeAbovePaise != null && orderValue >= p.freeAbovePaise)
   const dated = datesFor(route, option, input)
+  if (p.source === 'free') {
+    /* Free for the shopper: the store pays the courier (the margin shows it). Insurance the
+       shopper ticks is still theirs to pay, rounded up to ₹10 like any price the engine makes. */
+    const own = insured && insurance ? roundUpToTenRupees(insurance) : 0
+    return {
+      route: summary(route),
+      pricePaise: own,
+      listPricePaise: own,
+      courierCostPaise: base,
+      markupPaise: 0,
+      zoneRatePaise: null,
+      insurancePaise: insured ? insurance : 0,
+      insured,
+      earliest: dated.earliest,
+      latest: dated.latest,
+      etaEstimated: dated.estimated,
+    }
+  }
   return {
     route: summary(route),
     pricePaise: free ? 0 : list,

@@ -172,6 +172,10 @@ function addUpOption(parts: readonly ResolvedOption[], priceFromZone: boolean): 
       required: parts.some((p) => p.insurance.required),
       on: parts.some((p) => p.insurance.on),
       pricePaise: insurances.length ? insurances.reduce((s, v) => s + v, 0) : null,
+      // What the tick adds across the parcels; null when no parcel offers it.
+      extraPaise: parts.some((p) => p.insurance.extraPaise != null)
+        ? parts.reduce((s, p) => s + (p.insurance.extraPaise ?? 0), 0)
+        : null,
     },
     backupRate: backup?.backupRate ?? null,
   }

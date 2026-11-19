@@ -133,6 +133,7 @@ export default [
         collections: (n) => `${n} कलेक्शन`,
         tags: (tags) => `टैग ${tags}`,
         types: (types) => `टाइप ${types}`,
+        all: () => 'हर प्रोडक्ट',
       },
     },
     ruleDialog: {
@@ -146,6 +147,7 @@ export default [
         collections: 'कलेक्शन',
         tags: 'प्रोडक्ट टैग',
         types: 'प्रोडक्ट टाइप',
+        all: 'हर प्रोडक्ट',
       },
       browse: 'चुनें',
       picked: (n) => `${n} चुने`,
@@ -213,16 +215,18 @@ export default [
         no_zone_rate: 'छिपा: इस पते के लिए कोई शिपिंग रेट नहीं',
         disabled: 'छिपा: बंद है',
         list_layout: 'छिपा: चेकआउट इसकी जगह कूरियर सूची दिखाता है',
+        not_faster: 'छिपा: Express, Standard से पहले नहीं पहुँचता',
       },
       why: {
         cheapest: 'जीता: सबसे सस्ता',
         fastest: 'जीता: सबसे तेज़',
         prefer_direct: (within) => `जीता: ${within} के अंदर डायरेक्ट को प्राथमिकता`,
         rule_default: (rule) => `जीता: नियम ${rule} का डिफ़ॉल्ट`,
+        rule_forced: (rule) => `जीता: नियम ${rule} इसी रूट से भेजता है, विकल्प की कीमत पर`,
         backup: 'बैकअप: ज़ोन रेट',
       },
       rulesApplied: (names) => `लागू नियम: ${names}`,
-      rulesOverruled: (names) => `हारे (कुछ भी साझा नहीं): ${names}`,
+      rulesOverruled: (names) => `हारे (ज़्यादा ख़ास नियम जीता, या कुछ भी साझा नहीं): ${names}`,
       columns: {
         route: 'रूट',
         cost: 'लागत',
@@ -286,7 +290,11 @@ export default [
       price: {
         title: 'कीमत',
         source: 'कीमत कहाँ से',
-        sources: { route: 'कूरियर लागत + मार्कअप + बीमा, अगले ₹10 तक ऊपर', zone: 'आपके शिपिंग रेट' },
+        sources: {
+          route: 'कूरियर लागत + मार्कअप + बीमा, अगले ₹10 तक ऊपर',
+          zone: 'आपके शिपिंग रेट',
+          free: 'ग्राहक के लिए मुफ़्त (कूरियर का खर्च आप देते हैं)',
+        },
         markup: 'मार्कअप (₹)',
         markupPercent: 'मार्कअप (%)',
         freeAbove: 'इस ऑर्डर वैल्यू से ऊपर मुफ़्त',

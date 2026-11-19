@@ -172,9 +172,9 @@ export async function quoteParcelDeliveries(
       ),
     ),
   )
-  const { config, zone, policy, now, declineInsurance } = input
+  const { config, zone, policy, now, insure, declineInsurance } = input
   const result = resolveParcelDeliveries(
-    { config, zone, policy, now, declineInsurance },
+    { config, zone, policy, now, insure, declineInsurance },
     input.parcels.map((p, i) => ({ cart: p.cart, answers: answered[i] ?? [] })),
     input.orderValuePaise,
   )
