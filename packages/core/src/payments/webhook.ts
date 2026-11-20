@@ -1,10 +1,10 @@
-import { payment, paymentEvent, refund } from '@commerce/db'
-import { type PaymentProvider, readableError, type WebhookEvent } from '@commerce/payments'
+import { paymentEvent } from '@commerce/db'
+import { type PaymentProvider, readableError } from '@commerce/payments'
 import { and, eq } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 import { recordPaymentCharges } from './charges'
 import { applyPaymentStatus, findPaymentId } from './confirm'
-import { settleRefunds } from './refund-settle'
+import { refundProcessed, settleRefund } from './refund-webhook'
 
 export type WebhookOutcome =
   | {
@@ -137,53 +137,4 @@ export async function handlePaymentWebhook(
     throw err
   }
   return { ok: true, eventId: parsed.eventId, applied, duplicate: false, capturedOrderId }
-}
-
-/**
- * Record what the gateway finally did with a refund we asked for. A failed one stops counting
- * as refunded (recompute reads refunds that are not `failed`), so the order and its return no
- * longer say the money went back when it did not. True when a refund row changed.
- */
-function settleRefund(
-  ctx: StoreContext,
-  providerRefundId: string,
-  status: 'processed' | 'failed',
-): Promise<boolean> {
-  if (!providerRefundId) return Promise.resolve(false)
-  return settleRefunds(ctx, eq(refund.providerRefundId, providerRefundId), status)
-}
-
-/**
- * A refund the gateway completed. Ours: its row turns processed and the payment reads
- * `refunded` only once all of it went back. Not ours (made on the gateway's dashboard, no row):
- * only a refund of the whole payment marks it refunded, as before; a part refund changes nothing.
- */
-async function refundProcessed(
-  ctx: StoreContext,
-  e: Extract<WebhookEvent, { type: 'refund.processed' }>,
-): Promise<boolean> {
-  const [ours] = e.providerRefundId
-    ? await ctx.tx
-        .select({ id: refund.id })
-        .from(refund)
-        .where(eq(refund.providerRefundId, e.providerRefundId))
-        .limit(1)
-    : []
-  if (ours) {
-    await settleRefund(ctx, e.providerRefundId, 'processed')
-    return true
-  }
-  const [p] = await ctx.tx
-    .select({ amountPaise: payment.amountPaise })
-    .from(payment)
-    .where(eq(payment.providerRef, e.providerRef))
-    .limit(1)
-  if (!p || e.amountPaise < p.amountPaise) return false
-  return (
-    (await applyPaymentStatus(ctx, {
-      providerRef: e.providerRef,
-      status: 'refunded',
-      providerPaymentId: null,
-    })) !== null
-  )
 }

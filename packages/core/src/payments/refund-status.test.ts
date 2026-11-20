@@ -2,6 +2,7 @@
 import {
   createDb,
   order,
+  orderNote,
   payment,
   refund,
   store,
@@ -170,14 +171,46 @@ describe.each(['razorpay', 'cashfree'])('%s refund webhooks: partly vs fully ref
     })
   })
 
-  it('a refund made on the gateway dashboard marks the payment refunded only when it is whole', async () => {
+  it('a part refund made on the gateway dashboard is recorded, with a timeline note', async () => {
     const { storeId, orderId, paymentId } = await seedPaid(id)
     const { provider } = gateway(id)
     const part = await deliver(storeId, provider, processed('rf_dash_1', 400))
-    expect(part).toMatchObject({ ok: true, applied: false })
-    expect((await state(orderId, paymentId)).payment).toBe('captured')
-    await deliver(storeId, provider, processed('rf_dash_2', 1000))
-    expect((await state(orderId, paymentId)).payment).toBe('refunded')
+    expect(part).toMatchObject({ ok: true, applied: true })
+    expect(await state(orderId, paymentId)).toEqual({
+      order: 'partially_refunded',
+      payment: 'captured',
+      refunds: ['rf_dash_1:400:processed'],
+    })
+    const notes = await owner.select().from(orderNote).where(eq(orderNote.orderId, orderId))
+    expect(notes.map((n) => n.body)).toEqual([expect.stringMatching(/₹4\.00.*rf_dash_1/)])
+    await deliver(storeId, provider, processed('rf_dash_2', 600))
+    expect(await state(orderId, paymentId)).toEqual({
+      order: 'refunded',
+      payment: 'refunded',
+      refunds: ['rf_dash_1:400:processed', 'rf_dash_2:600:processed'],
+    })
+  })
+
+  it('a whole refund made on the gateway dashboard reads refunded on the order too', async () => {
+    const { storeId, orderId, paymentId } = await seedPaid(id)
+    const { provider } = gateway(id)
+    await deliver(storeId, provider, processed('rf_dash_1', 1000))
+    expect(await state(orderId, paymentId)).toEqual({
+      order: 'refunded',
+      payment: 'refunded',
+      refunds: ['rf_dash_1:1000:processed'],
+    })
+  })
+
+  it('a gateway refund already recorded by its webhook is not recorded twice', async () => {
+    const { storeId, orderId, paymentId } = await seedPaid(id)
+    const { provider } = gateway(id)
+    // The webhook landed first (our own commit failed after the gateway refunded)…
+    await deliver(storeId, provider, processed('rf_1', 300))
+    // …then the retry's gateway call answers with that same refund (idempotent key).
+    provider.refund = async () => ({ providerRefundId: 'rf_1', status: 'processed' as const })
+    await refundOf(storeId, provider, paymentId, 300).catch(() => undefined)
+    expect((await state(orderId, paymentId)).refunds).toEqual(['rf_1:300:processed'])
   })
 })
 

@@ -156,6 +156,14 @@ export async function refundPayment(
     })
     status = r.status
     providerRefundId = r.providerRefundId
+    // A retry whose gateway answered with a refund already recorded (its webhook landed while
+    // our first commit failed, #1790): that row stands, nothing is recorded twice.
+    const [recorded] = await ctx.tx
+      .select()
+      .from(refund)
+      .where(and(eq(refund.paymentId, p.id), eq(refund.providerRefundId, r.providerRefundId)))
+      .limit(1)
+    if (recorded) return recorded
   }
 
   const [row] = await ctx.tx
