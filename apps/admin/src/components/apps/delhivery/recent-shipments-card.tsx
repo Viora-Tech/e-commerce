@@ -54,7 +54,7 @@ export default function RecentShipmentsCard({
           variant="ghost"
           size="sm"
           nativeButton={false}
-          render={<Link href={routes.apps.page('delhivery', 'shipments')} />}
+          render={<Link href={routes.orders.courierShipments('delhivery')} />}
         >
           {copy.recent.viewAll}
         </Button>

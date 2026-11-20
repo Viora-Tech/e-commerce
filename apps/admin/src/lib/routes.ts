@@ -84,6 +84,10 @@ export const routes = {
     abandonedCheckouts: () => '/orders/abandoned-checkouts',
     abandonedCheckout: (cartId: string) => `/orders/abandoned-checkouts/${id(cartId)}`,
     shipments: () => '/orders/shipments',
+    /** One courier's parcels in the Shipments workspace (`?courier=`), on a booked tab; the
+     *  courier apps link here instead of keeping a copy of the list (owner, 18 Nov 2026). */
+    courierShipments: (courier: string, tab = 'inTransit') =>
+      `/orders/shipments?tab=${tab}&courier=${encodeURIComponent(courier)}`,
     /** Pickups and manifests for booked parcels. */
     shipmentPickups: () => '/orders/shipments/pickups',
     /** Deliveries the courier could not make (NDR). */

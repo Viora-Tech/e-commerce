@@ -65,8 +65,10 @@ export const delhiveryPlugin = definePlugin({
     icon: 'Truck',
     pages: [
       { path: '', title: 'Delhivery', navLabel: 'Overview', icon: 'Truck' },
-      { path: 'shipments', title: 'Shipments', navLabel: 'Shipments', icon: 'Package' },
-      { path: 'pickups', title: 'Pickups', navLabel: 'Pickups', icon: 'Clock' },
+      // No tabs: both forward to Orders → Shipments, the one list for every courier (owner,
+      // 18 Nov 2026); the paths stay so old links still land.
+      { path: 'shipments', title: 'Shipments', icon: 'Package' },
+      { path: 'pickups', title: 'Pickups', icon: 'Clock' },
       {
         path: 'pickup-locations',
         title: 'Pickup locations',
