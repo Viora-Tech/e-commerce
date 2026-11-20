@@ -15,6 +15,29 @@ export const seoContent = {
     agents: 'For AI agents',
     agentsLine: (url: string) =>
       `- Search products, prices, stock and store policies live over MCP (read-only, no sign-in): ${url}`,
+    markdownLine: (origin: string) =>
+      `- Every product page has a Markdown copy: add .md to its URL (${origin}/products/<handle>.md)`,
+  },
+  /** `/products/<handle>.md`: one product as Markdown for AI agents (`lib/shopify-json/markdown.ts`). */
+  markdown: {
+    brand: 'Brand',
+    type: 'Type',
+    price: 'Price',
+    priceRange: (low: string, high: string) => `${low} to ${high}`,
+    mrp: 'MRP',
+    availability: 'Availability',
+    inStock: 'In stock',
+    preorder: 'Pre-order',
+    soldOut: 'Sold out',
+    options: 'Options',
+    variants: 'Variants',
+    variant: 'Variant',
+    sku: 'SKU',
+    description: 'Description',
+    policies: 'Store policies',
+    shipping: 'Shipping policy',
+    refund: 'Refund policy',
+    buy: 'Add to cart link',
   },
 } as const
 

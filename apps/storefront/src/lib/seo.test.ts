@@ -56,7 +56,7 @@ describe('JSON-LD', () => {
 
   it('gives a product one offer per variant with INR prices and stock', () => {
     const [p, crumbs] = parsed(productGraph(product, origin, 'INR', 'Waimers'))['@graph']
-    expect(p['@type']).toBe('Product')
+    expect(p['@type']).toBe('ProductGroup')
     expect(p.brand.name).toBe('AbyssGaming')
     expect(p.offers).toMatchObject({
       '@type': 'AggregateOffer',
@@ -87,6 +87,40 @@ describe('JSON-LD', () => {
     expect(p.offers.offers[1].gtin).toBeUndefined()
     expect(gtinLd('0123 4567 8905')).toEqual({ gtin: '012345678905' })
     expect(gtinLd(null)).toEqual({})
+  })
+
+  it('models variants as a ProductGroup with one Product per priced variant', () => {
+    const optioned = {
+      ...product,
+      options: [
+        { name: 'Colour', values: [{ id: 'c1', value: 'Black' }, { id: 'c2', value: 'White' }] },
+        { name: 'Skates', values: [{ id: 's1', value: 'Glass' }] },
+      ],
+      variants: [
+        { ...product.variants[0], optionValueIds: ['c1', 's1'], imageUrl: 'https://cdn/b.jpg' },
+        { ...product.variants[1], optionValueIds: ['c2', 's1'] },
+        { id: 'v3', title: 'Blue', sku: null, pricePaise: null, available: 1 },
+      ] as never,
+    }
+    const [g] = parsed(productGraph(optioned, origin, 'INR', 'Waimers'))['@graph']
+    expect(g['@type']).toBe('ProductGroup')
+    expect(g.productGroupID).toBe('veil')
+    expect(g.variesBy).toEqual(['https://schema.org/color'])
+    // The unpriced Blue has no offer, so it is left out (#913).
+    expect(g.hasVariant).toHaveLength(2)
+    const [black, white] = g.hasVariant
+    expect(black).toMatchObject({
+      '@type': 'Product',
+      name: 'Veil Glasspad - Black',
+      sku: 'VEIL-B',
+      color: 'Black',
+      image: 'https://cdn/b.jpg',
+      url: 'https://waimers.in/products/veil?variant=v1',
+      additionalProperty: [{ '@type': 'PropertyValue', name: 'Skates', value: 'Glass' }],
+    })
+    expect(black.offers.price).toBe('7499.00')
+    expect(white.sku).toBeUndefined()
+    expect(white.offers.availability).toBe('https://schema.org/OutOfStock')
   })
 
   it('makes no offer for a variant listed without a price (#913)', () => {

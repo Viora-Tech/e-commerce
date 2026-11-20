@@ -206,7 +206,7 @@ export function llmsTxt(
       copy.blog,
       index.blog.map((b) => bullet(origin, b)),
     ),
-    ...section(copy.agents, [copy.agentsLine(`${origin}/api/mcp`)]),
+    ...section(copy.agents, [copy.agentsLine(`${origin}/api/mcp`), copy.markdownLine(origin)]),
     `## ${copy.sitemap}`,
     '',
     `- [sitemap.xml](${origin}/sitemap.xml)`,
