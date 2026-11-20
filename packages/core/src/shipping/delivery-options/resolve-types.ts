@@ -86,6 +86,10 @@ export type PricedRoute = {
   /** A courier list card: what it costs when the shopper pays on delivery (its own COD
    *  charge on top); null: this courier takes no cash on delivery. Absent on other routes. */
   codPricePaise?: number | null | undefined
+  /** The option shows the courier's COD charge as its own line (`cod.fee: 'separate'`): that
+   *  charge on cash on delivery, the delivery price staying the prepaid one. Null or absent:
+   *  none (or it is in the price). */
+  codFeePaise?: number | null | undefined
 }
 
 export type WhyPicked =

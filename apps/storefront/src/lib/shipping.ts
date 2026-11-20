@@ -42,6 +42,7 @@ import {
   type DeliveryCardExtras,
   deliveryDateRange,
   deliveryArrives as optionArrives,
+  optionCodFee,
   type ParcelDatesByCard,
 } from './delivery-options'
 import { itemTitle, parcelFrom, type ShopperParcel } from './parcels'
@@ -435,7 +436,8 @@ async function deliveryOptionsShipping(
     name: o.title,
     pricePaise: afterDiscount(o.pricePaise),
     dateRange: deliveryDateRange(o),
-    codSurchargePaise: null,
+    // The courier's COD charge on its own line (the option's "shown as a separate charge").
+    codSurchargePaise: optionCodFee(o),
     arrives: optionArrives(o, policy, now),
     fastest: fastestAlone && latest[i] === first,
     delivery: cardExtras(o, policy, now, afterDiscount),

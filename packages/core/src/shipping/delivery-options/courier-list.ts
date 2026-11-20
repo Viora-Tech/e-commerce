@@ -9,6 +9,7 @@
 import type { DeliveryOption } from './config'
 import type { PricedRoute } from './resolve-types'
 import { type PriceRounding, roundPrice } from './rounding'
+import { codExtraPaise } from './rule-price'
 import type { Route } from './routes'
 
 /** A route that fits the option, priced for it. */
@@ -41,25 +42,38 @@ const extraRounding = (option: DeliveryOption): PriceRounding =>
       ? 'nine'
       : 'off'
 
+export { codExtraPaise } from './rule-price'
+
 /**
- * What paying on delivery adds on this courier: its COD cost over its prepaid cost, rounded up
- * to ₹10; null when it takes no cash on delivery (owner, 20 Nov 2026: COD keeps the courier the
- * shopper picked, it does not switch to another one).
+ * A card's price on cash on delivery. The option shows the courier's COD charge separately:
+ * the card keeps its price and carries the charge as `codFeePaise`. Else it is added to the
+ * card; free shipping stays free, except under a product rule's price (owner, 20 Nov 2026:
+ * COD still charges its fee on a free rule).
  */
-export function codExtraPaise(route: Route): number | null {
-  if (route.codAvailable === false) return null
-  const prepaid = route.costPaise ?? 0
-  const more = Math.max(0, (route.codCostPaise ?? prepaid) - prepaid)
-  return Math.ceil(more / 1000) * 1000
+function withCod(
+  priced: PricedRoute,
+  route: Route,
+  option: DeliveryOption,
+  rulePriced: boolean,
+): PricedRoute {
+  const extra = codExtraPaise(route)
+  if (extra === null) return { ...priced, codPricePaise: null }
+  if (option.cod.fee === 'separate') {
+    return { ...priced, codPricePaise: priced.pricePaise, codFeePaise: extra > 0 ? extra : null }
+  }
+  const free = !rulePriced && (option.price.source === 'free' || priced.pricePaise === 0)
+  return { ...priced, codPricePaise: free ? priced.pricePaise : priced.pricePaise + extra }
 }
 
-/** A card's price on cash on delivery; free shipping stays free. */
-function withCod(priced: PricedRoute, route: Route, option: DeliveryOption): PricedRoute {
-  const extra = codExtraPaise(route)
-  const free = option.price.source === 'free' || priced.pricePaise === 0
+/** A card priced from the pick: a cheaper courier costs what the pick costs (free when it is
+ *  free), a dearer one adds the difference, rounded the option's way (owner, 20 Nov 2026). */
+export function priceFromPick(c: Candidate, winner: Candidate, option: DeliveryOption): PricedRoute {
+  const more = option.couriers.extra === 'none' ? 0 : Math.max(0, storeCost(c) - storeCost(winner))
+  const extra = roundPrice(more, extraRounding(option))
   return {
-    ...priced,
-    codPricePaise: extra === null ? null : free ? priced.pricePaise : priced.pricePaise + extra,
+    ...c.priced,
+    pricePaise: winner.priced.pricePaise + extra,
+    listPricePaise: winner.priced.listPricePaise + extra,
   }
 }
 
@@ -84,32 +98,18 @@ export function courierList(
   /** The pick is a rule's preferred courier: its other speeds do not show (owner, 20 Nov 2026:
    *  Delhivery Air chosen for mice, so no Delhivery Surface; other couriers still show). */
   preferred = false,
+  /** The pick is priced by a product rule (`withRulePrice`). */
+  rulePriced = false,
 ): PricedRoute[] {
-  const base = withCod(winner.priced, winner.route, option)
+  const base = withCod(winner.priced, winner.route, option, rulePriced)
   const seen = new Set<string>([`${winner.route.carrierKey}:${winner.route.speed}`])
   const rest: PricedRoute[] = []
-  const rounding = extraRounding(option)
   for (const c of [...fits].sort(byCheapest)) {
     const id = `${c.route.carrierKey}:${c.route.speed}`
     if (c.route.key === winner.route.key || seen.has(id)) continue
     if (preferred && c.route.carrierKey === winner.route.carrierKey) continue
     seen.add(id)
-    // A cheaper courier costs what the pick costs (free when it is free); a dearer one adds
-    // the difference (owner, 20 Nov 2026).
-    const more =
-      option.couriers.extra === 'none' ? 0 : Math.max(0, storeCost(c) - storeCost(winner))
-    const extra = roundPrice(more, rounding)
-    rest.push(
-      withCod(
-        {
-          ...c.priced,
-          pricePaise: base.pricePaise + extra,
-          listPricePaise: base.listPricePaise + extra,
-        },
-        c.route,
-        option,
-      ),
-    )
+    rest.push(withCod(priceFromPick(c, winner, option), c.route, option, rulePriced))
   }
   const all = [base, ...rest]
   const max = option.couriers.max ?? Number.POSITIVE_INFINITY

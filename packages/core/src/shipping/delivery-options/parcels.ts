@@ -109,6 +109,10 @@ function addRoutes(routes: readonly PricedRoute[], fromZone: readonly boolean[])
     earliest: routes.reduce<string | null>((d, r) => later(d, r.earliest), first.earliest),
     latest: routes.reduce<string | null>((d, r) => later(d, r.latest), first.latest),
     etaEstimated: routes.some((r) => r.etaEstimated),
+    // A COD charge on its own line: every parcel's, added up.
+    ...(routes.some((r) => r.codFeePaise != null)
+      ? { codFeePaise: routes.reduce((sum, r) => sum + (r.codFeePaise ?? 0), 0) }
+      : {}),
   }
 }
 
