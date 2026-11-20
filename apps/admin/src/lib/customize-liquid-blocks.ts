@@ -1,3 +1,4 @@
+import { appBlockName } from '@commerce/core/theme-import'
 import type { Field } from '@puckeditor/core'
 
 /**
@@ -41,6 +42,6 @@ export function liquidItemTitle(field: unknown, item: Record<string, unknown>): 
   const text = ['heading', 'title', 'text', 'label', 'name']
     .map((k) => settings[k])
     .find((v): v is string => typeof v === 'string' && v.trim() !== '')
-  const name = names[type] ?? type
+  const name = names[type] ?? (appBlockName(type) || type)
   return text ? `${name}: ${text.replace(/<[^>]*>/g, '').slice(0, 40)}` : name
 }

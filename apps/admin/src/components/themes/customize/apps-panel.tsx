@@ -3,6 +3,7 @@
 import { appStoreUrl } from '@commerce/config/site'
 import { INBOX_APP_ID } from '@commerce/core/inbox'
 import { resolveAppEmbeds, type Theme } from '@commerce/core/theme'
+import type { ImportedAppEmbed } from '@commerce/core/theme-import'
 import { ChevronRight, Puzzle } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import { Input } from '@commerce/ui/shadcn/input'
@@ -21,6 +22,7 @@ import {
   CHROME_META,
 } from '@/lib/customize-chrome'
 import { FIELD_INPUT } from '@/lib/customize-field-styles'
+import ImportedAppEmbedsList from './imported-app-embeds-list'
 import InboxEmbedCard from './inbox-embed-card'
 
 type AppsPanelProps = {
@@ -28,6 +30,8 @@ type AppsPanelProps = {
   installed: string[]
   theme: Theme
   onChange: (next: Theme) => void
+  /** An imported Shopify theme's own app embeds, listed read-only below ours. */
+  imported?: readonly ImportedAppEmbed[] | undefined
 }
 
 /** Field definitions carry their own label; the panel draws it above the control. */
@@ -40,7 +44,7 @@ type LabelledField = Field & { label?: string }
  * ("Online store chat") is listed first when Inbox is installed; its settings are the app's own
  * and save as they change (`InboxEmbedCard`).
  */
-export default function AppsPanel({ installed, theme, onChange }: AppsPanelProps) {
+export default function AppsPanel({ installed, theme, onChange, imported = [] }: AppsPanelProps) {
   // Hooks
   const copy = useCopy(customizeContent.appEmbeds)
   const inboxCopy = useCopy(customizeInboxEmbedContent)
@@ -81,6 +85,7 @@ export default function AppsPanel({ installed, theme, onChange }: AppsPanelProps
         >
           {copy.browse}
         </a>
+        <ImportedAppEmbedsList embeds={imported} />
       </div>
     )
   }
@@ -187,6 +192,7 @@ export default function AppsPanel({ installed, theme, onChange }: AppsPanelProps
       <p className="rounded-lg bg-muted p-2.5 text-xs leading-[1.0625rem] text-muted-foreground">
         {copy.hint}
       </p>
+      <ImportedAppEmbedsList embeds={imported} />
     </div>
   )
 }

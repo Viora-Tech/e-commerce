@@ -5,6 +5,7 @@ import {
   createPageContext,
   enqueueMediaProcess,
   googleFontsHref,
+  importedAppEmbeds,
   importShopifyTheme,
   type LiquidSectionInput,
   loadThemeBundle,
@@ -165,6 +166,8 @@ export async function liquidEditorInfo(tx: StoreTx, storeId: string, themeId: st
     beforeHeader: stripScripts(layout.beforeHeader),
     fontsHref: googleFontsHref(layout.fonts),
     htmlAttrs: layout.htmlAttrs,
+    // The Shopify app embeds the theme was saved with (`current.blocks`), listed read-only.
+    appEmbeds: importedAppEmbeds(ctx.bundle.settings),
   }
 }
 

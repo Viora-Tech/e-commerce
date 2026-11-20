@@ -104,7 +104,8 @@ export type LiquidSectionPlacement = {
 
 const BLOCK_FIELDS = {
   id: z.string().min(1).max(80),
-  type: z.string().min(1).max(100),
+  // App blocks carry their app's URL (`shopify://apps/<app>/blocks/<block>/<uuid>`).
+  type: z.string().min(1).max(300),
   disabled: z.boolean().optional(),
   static: z.boolean().optional(),
   settings: z.record(z.string(), z.unknown()),
