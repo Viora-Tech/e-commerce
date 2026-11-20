@@ -1,9 +1,12 @@
 'use client'
 
+import { lostActions } from '@commerce/core/shipment-lost-state'
 import {
   AppWindow,
   CancelCircle,
+  FileText,
   PackageCheck,
+  PackageX,
   Printer,
   RefreshCw,
   Truck,
@@ -14,6 +17,7 @@ import { toast } from 'sonner'
 import DialogContent from '@/components/layout/dialog-content'
 import DialogHeader from '@/components/layout/dialog-header'
 import RowMenu from '@/components/table/row-menu'
+import { shipmentLostContent } from '@/data/shipment-lost'
 import { shipmentActionsContent, shipmentCancelContent, shipmentsContent } from '@/data/shipments'
 import { shipmentDetailsContent } from '@/data/shipping'
 import { useCopy } from '@/hooks/use-copy'
@@ -22,6 +26,7 @@ import { routes } from '@/lib/routes'
 import ShipmentCancelDialog from './shipment-cancel-dialog'
 import type { ShipmentRow } from './shipment-columns'
 import ShipmentDetailsLoader from './shipment-details-loader'
+import ShipmentLostDialogs, { type LostDialog } from './shipment-lost-dialogs'
 
 type ShipmentRowMenuProps = {
   row: ShipmentRow
@@ -48,6 +53,8 @@ export default function ShipmentRowMenu({ row, onChanged }: ShipmentRowMenuProps
   const details = useCopy(shipmentDetailsContent)
   const [confirmCancel, setConfirmCancel] = useState(false)
   const [showDetails, setShowDetails] = useState(false)
+  const lostCopy = useCopy(shipmentLostContent)
+  const [lostDialog, setLostDialog] = useState<LostDialog>(null)
 
   // Event handlers
   const handleRefresh = async () => {
@@ -65,6 +72,7 @@ export default function ShipmentRowMenu({ row, onChanged }: ShipmentRowMenuProps
   const booked = row.status !== null
   const trackable = booked && !SETTLED.includes(row.status ?? '')
   const cancellable = CANCELLABLE.includes(row.status ?? '')
+  const lost = lostActions({ status: row.status ?? '', reshippedAt: row.lost?.reshippedAt ?? null })
 
   return (
     <>
@@ -104,6 +112,26 @@ export default function ShipmentRowMenu({ row, onChanged }: ShipmentRowMenuProps
               onSelect: handleRefresh,
             },
             {
+              label: lostCopy.menu.reship,
+              icon: Truck,
+              hidden: !lost.reship,
+              onSelect: () => setLostDialog('reship'),
+            },
+            {
+              label: lostCopy.menu.claim,
+              icon: FileText,
+              hidden: !lost.claim,
+              onSelect: () => setLostDialog('claim'),
+            },
+            {
+              label: lostCopy.menu.markLost,
+              icon: PackageX,
+              destructive: true,
+              separatorBefore: true,
+              hidden: !lost.markLost,
+              onSelect: () => setLostDialog('markLost'),
+            },
+            {
               label: cancelCopy.menu,
               icon: CancelCircle,
               destructive: true,
@@ -124,6 +152,15 @@ export default function ShipmentRowMenu({ row, onChanged }: ShipmentRowMenuProps
           onPickup={Boolean(row.onPickup)}
           courierCancels={row.courierCancels}
           onDone={onChanged}
+        />
+      ) : null}
+      {booked && row.lost ? (
+        <ShipmentLostDialogs
+          shipmentId={row.id}
+          info={row.lost}
+          open={lostDialog}
+          onOpenChange={setLostDialog}
+          onChanged={onChanged}
         />
       ) : null}
       {booked ? (

@@ -169,7 +169,11 @@ export function isCheckoutSettled(o: CheckoutDueInput, payments: readonly Paymen
 }
 
 export type LineFacts = { quantity: number; fulfilledQuantity: number; giftCard: boolean }
-export type ShipmentFacts = { status: string }
+export type ShipmentFacts = {
+  status: string
+  /** A lost parcel that was sent again: it no longer counts, like a cancelled label. */
+  reshipped?: boolean | undefined
+}
 
 export type FulfillmentStatusInput = {
   lines: readonly LineFacts[]
@@ -180,7 +184,12 @@ export type FulfillmentStatusInput = {
   returnedUnits?: number | undefined
 }
 
-const IN_TRANSIT = new Set(['picked_up', 'in_transit', 'out_for_delivery'])
+/* A lost parcel not yet sent again still counts as on its way: the order waits on it. */
+const IN_TRANSIT = new Set(['picked_up', 'in_transit', 'out_for_delivery', 'lost'])
+
+/** A label that no longer carries anything: cancelled, or lost and already sent again. */
+const isDropped = (s: ShipmentFacts) =>
+  s.status === 'cancelled' || (s.status === 'lost' && s.reshipped === true)
 
 /**
  * Where the goods are. Line quantities say what was packed; shipments say
@@ -188,7 +197,7 @@ const IN_TRANSIT = new Set(['picked_up', 'in_transit', 'out_for_delivery'])
  * shipment reads as returned.
  */
 export function deriveFulfillmentStatus(input: FulfillmentStatusInput): OrderFulfillmentStatus {
-  const live = input.shipments.filter((s) => s.status !== 'cancelled')
+  const live = input.shipments.filter((s) => !isDropped(s))
   const moving = live.filter((s) => s.status !== 'rto')
   if (live.length > 0 && moving.length === 0) return 'returned'
   const ordered = input.lines.reduce((sum, l) => sum + l.quantity, 0)

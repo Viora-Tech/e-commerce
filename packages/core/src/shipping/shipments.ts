@@ -10,7 +10,7 @@ import {
   variant,
 } from '@commerce/db'
 import type { ShippingProvider } from '@commerce/shipping'
-import { and, eq, inArray, ne } from 'drizzle-orm'
+import { and, eq, gte, inArray, ne, or, sql } from 'drizzle-orm'
 import { effectiveHsCode } from '../catalog/effective-tax'
 import type { StoreContext } from '../context'
 import { fulfilParcelLines, fulfilRemainingLines } from '../order/fulfil'
@@ -447,10 +447,24 @@ export async function createShipmentForOrder(
   return booked
 }
 
-/** Shipments still moving, for the tracking job. */
+/** How long a lost parcel is still asked about: the courier may find it (owner, 18 Nov 2026). */
+export const LOST_TRACK_DAYS = 30
+
+/**
+ * Shipments still moving, for the tracking job, and lost parcels for `LOST_TRACK_DAYS` after
+ * they were lost, so one the courier finds moves on by itself (delivered, or back as RTO).
+ */
 export async function listOpenShipments(ctx: StoreContext): Promise<ShipmentRow[]> {
   return ctx.tx
     .select()
     .from(shipment)
-    .where(inArray(shipment.status, [...OPEN_SHIPMENT_STATUSES]))
+    .where(
+      or(
+        inArray(shipment.status, [...OPEN_SHIPMENT_STATUSES]),
+        and(
+          eq(shipment.status, 'lost'),
+          gte(shipment.lostAt, sql`now() - make_interval(days => ${LOST_TRACK_DAYS})`),
+        ),
+      ),
+    )
 }

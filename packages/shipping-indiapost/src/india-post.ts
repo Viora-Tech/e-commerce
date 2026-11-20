@@ -84,7 +84,10 @@ export const SPEED_POST = 'speed_post'
 export const SPEED_POST_REGISTERED = 'speed_post_registered'
 
 /** Statuses the merchant can set by hand, India Post's wording for each (the label on its tracker). */
-export const MANUAL_STATUS_WORDING: Record<Exclude<ShipmentStatus, 'cancelled'>, string> = {
+export const MANUAL_STATUS_WORDING: Record<
+  Exclude<ShipmentStatus, 'cancelled' | 'lost'>,
+  string
+> = {
   created: 'Booked',
   picked_up: 'Item Booked / Dispatched',
   in_transit: 'Item Bagged / In Transit',
