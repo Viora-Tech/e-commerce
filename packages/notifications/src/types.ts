@@ -125,6 +125,16 @@ export type TemplateData = {
   trackingUrl?: string | undefined
   /** Courier tracking number, printed so the shopper can quote it. */
   waybill?: string | undefined
+  /** For shipping_update: the tracking number the shopper had before, which no longer works. */
+  previousWaybill?: string | undefined
+  /** When the courier's delivered scan landed: "Fri 21 Nov, 2:14 pm". */
+  deliveredLabel?: string | undefined
+  /** The gateway's payment id or the transfer's reference, for payment_received. */
+  paymentRef?: string | undefined
+  /** For document_copy: the document's number, the seller GSTIN on it and the file's name. */
+  document?:
+    | { number?: string | undefined; gstin?: string | undefined; fileName?: string | undefined }
+    | undefined
   /** For shipping_update: the courier that now carries the parcel, when known ("Blue Dart"). */
   courierLabel?: string | undefined
   /** A repeat of a hand-sent message the shopper already got (a draft invoice sent again). */
@@ -227,6 +237,9 @@ export type TemplateData = {
         productTitle?: string | undefined
         productUrl?: string | undefined
         reply?: string | undefined
+        /** For review_reply: the stars the shopper gave (1 to 5) and what they wrote. */
+        rating?: number | undefined
+        text?: string | undefined
         rewardCode?: string | undefined
         /** "10% off". */
         rewardLabel?: string | undefined
@@ -309,6 +322,12 @@ export type TemplateData = {
         /** The merchant's own words, printed under the items. */
         message?: string | undefined
       }
+    | undefined
+  /** For welcome_coupon: the code, what it takes off ("10%") and its terms, one line. */
+  welcome?: { code: string; valueLabel: string; terms?: string | undefined } | undefined
+  /** A few products to show under the message ("Popular right now"): welcome and gift card emails. */
+  products?:
+    | { title: string; priceLabel: string; url: string; imageUrl?: string | undefined }[]
     | undefined
   /** For gift_card_issued: the code in full (the only place it is ever shown) and its terms. */
   giftCard?:

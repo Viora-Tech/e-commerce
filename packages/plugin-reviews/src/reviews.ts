@@ -393,13 +393,15 @@ export async function replyToReview(
   return { emailed }
 }
 
-/** What the reply email says: who, which product (none for a store review), the reply. */
+/** What the reply email says: who, which product (none for a store review), their stars and words, the reply. */
 export async function replyEmailData(tx: StoreTx, id: string) {
   const [r] = await tx
     .select({
       email: review.reviewerEmail,
       name: review.reviewerName,
       reply: review.reply,
+      rating: review.rating,
+      body: review.body,
       status: review.status,
       productTitle: product.title,
       handle: product.handle,
