@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { deliveryOptionsContent } from '@/data/delivery-options'
 import { deliveryPagesContent } from '@/data/delivery-options-pages'
+import { deliveryRuleFormContent } from '@/data/delivery-rule-form'
 import { draftOf, type RuleDraft } from './rule-draft'
 import { rulePreview } from './rule-preview'
 
@@ -8,33 +9,60 @@ const mice = (patch: Partial<RuleDraft> = {}): RuleDraft => ({
   ...draftOf(null),
   name: 'Mice',
   values: ['c1'],
-  carriers: ['delhivery', 'bluedart', 'amazon'],
+  chips: [
+    'delhivery:standard',
+    'delhivery:express',
+    'bluedart:standard',
+    'bluedart:express',
+    'amazon:standard',
+    'amazon:express',
+  ],
   ...patch,
 })
 
+const money = (paise: number) => `₹${paise / 100}`
 const line = (d: RuleDraft, names = new Map<string, string>()) =>
-  rulePreview(d, deliveryOptionsContent, deliveryPagesContent, names)
+  rulePreview(
+    d,
+    deliveryOptionsContent,
+    deliveryPagesContent,
+    deliveryRuleFormContent,
+    names,
+    money,
+  )
 
-describe('the rule dialog’s live line (#1781)', () => {
-  it('names the preferred courier and the couriers shoppers can still pick', () => {
+describe('the rule dialog’s live line (#1781, prices 20 Nov 2026)', () => {
+  it('names the included courier and the couriers shoppers can still pick', () => {
     expect(line(mice({ preferred: 'delhivery:express' }))?.text).toBe(
-      'Products in Mice ship by Delhivery Express / Air; shoppers can still pick Blue Dart or Amazon Shipping.',
+      'Products in Mice ship by Delhivery Air; shoppers can still pick Blue Dart or Amazon Shipping.',
     )
   })
 
-  it('without a preferred courier, says which couriers may carry them', () => {
-    expect(line(mice())?.text).toBe('Products in Mice ship only with Delhivery, Blue Dart or Amazon Shipping.')
+  it('states the price: free, or a fixed amount', () => {
+    expect(line(mice({ preferred: 'delhivery:express', priceMode: 'free' }))?.text).toBe(
+      'Products in Mice ship free by Delhivery Air; shoppers can still pick Blue Dart or Amazon Shipping.',
+    )
+    expect(line(mice({ priceMode: 'fixed', fixed: '99' }))?.text).toBe(
+      'Products in Mice ship for ₹99 only with Delhivery, Blue Dart or Amazon Shipping.',
+    )
+  })
+
+  it('adds free above to the extras', () => {
+    const d = mice({ freeAboveOn: true, freeAbove: '999' })
+    expect(line(d)?.text).toBe(
+      'Products in Mice ship only with Delhivery, Blue Dart or Amazon Shipping (free from ₹999).',
+    )
   })
 
   it('a single speed shows in each courier', () => {
-    const d = mice({ carriers: ['delhivery'], express: false })
+    const d = mice({ chips: ['delhivery:standard'] })
     expect(line(d)?.text).toBe('Products in Mice ship only with Delhivery Surface.')
   })
 
-  it('"always" says the store pays the difference', () => {
+  it('"only this one" at the normal price says the store pays the difference', () => {
     const d = mice({ preferred: 'delhivery:express', forceRoute: true })
     expect(line(d)?.text).toBe(
-      'Products in Mice always ship by Delhivery Express / Air at the option’s price; you pay the difference.',
+      'Products in Mice always ship by Delhivery Air at the option’s price; you pay the difference.',
     )
   })
 
@@ -48,7 +76,9 @@ describe('the rule dialog’s live line (#1781)', () => {
   })
 
   it('falls back to the picked titles, and says nothing with no courier', () => {
-    expect(line(mice({ name: '', titles: ['Glasspads'] }))?.text).toMatch(/^Products in Glasspads ship only/)
-    expect(line(mice({ carriers: [] }))).toBeNull()
+    expect(line(mice({ name: '', titles: ['Glasspads'] }))?.text).toMatch(
+      /^Products in Glasspads ship only/,
+    )
+    expect(line(mice({ chips: [] }))).toBeNull()
   })
 })

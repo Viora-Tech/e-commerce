@@ -15,8 +15,13 @@ import { deliveryOptionsContent } from '@/data/delivery-options'
 import { deliveryPagesContent } from '@/data/delivery-options-pages'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import type { RuleSuggestion } from './format'
 import RuleDialog from './rule-dialog'
+import type { RuleDraft } from './rule-draft'
+import RuleOrderCard from './rule-order-card'
+import { seedOf } from './rule-presets'
 import RuleRow from './rule-row'
+import RuleSuggestionsCard from './rule-suggestions-card'
 import { useDeliveryOverview } from './use-delivery-overview'
 
 /**
@@ -33,6 +38,10 @@ export default function DeliveryRulesPage() {
   const [rules, setRules] = useState<RouteRule[]>([])
   const [editing, setEditing] = useState<RouteRule | null>(null)
   const [open, setOpen] = useState(false)
+  /** A new rule's first fields, from a suggestion; null: a blank rule. */
+  const [seed, setSeed] = useState<Partial<RuleDraft> | null>(null)
+  /** Bumped on every save, so suggestions a new rule covers go away. */
+  const [version, setVersion] = useState(0)
 
   useEffect(() => {
     if (overview) setRules(overview.rules)
@@ -41,7 +50,17 @@ export default function DeliveryRulesPage() {
   // Event handlers
   const handleAdd = () => {
     setEditing(null)
+    setSeed(null)
     setOpen(true)
+  }
+  const handleSuggestion = (s: RuleSuggestion) => {
+    setEditing(null)
+    setSeed(seedOf(s))
+    setOpen(true)
+  }
+  const handleSaved = () => {
+    reload()
+    setVersion((v) => v + 1)
   }
   const handleEdit = (rule: RouteRule) => {
     setEditing(rule)
@@ -98,12 +117,15 @@ export default function DeliveryRulesPage() {
           />
         )}
       </section>
+      <RuleOrderCard rules={rules} onSort={handleReorder} />
+      <RuleSuggestionsCard version={version} onAdd={handleSuggestion} />
       <RuleDialog
         open={open}
         rule={editing}
         options={overview.options}
+        seed={seed}
         onOpenChange={setOpen}
-        onSaved={reload}
+        onSaved={handleSaved}
       />
     </div>
   )

@@ -6,6 +6,8 @@ export type Overview = Awaited<ReturnType<typeof api.deliveryOptions.overview>>
 export type TryPinResult = Awaited<ReturnType<typeof api.deliveryOptions.tryPin>>
 export type RouteCatalogue = Awaited<ReturnType<typeof api.deliveryOptions.routeCatalogue>>
 export type CatalogueRoute = RouteCatalogue['routes'][number]
+export type RuleSuggestion = Awaited<ReturnType<typeof api.deliveryOptions.ruleSuggestions>>[number]
+export type CollectionTwin = Awaited<ReturnType<typeof api.deliveryOptions.collectionTwins>>[number]
 type Copy = typeof deliveryOptionsContent
 
 /** Known couriers for the pickers: key and how the shopper reads it. */

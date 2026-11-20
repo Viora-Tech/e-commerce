@@ -8,7 +8,8 @@ import type { ReactNode } from 'react'
 import StatusChip from '@/components/layout/status-chip'
 import { deliveryOptionsContent } from '@/data/delivery-options'
 import { deliveryPagesContent } from '@/data/delivery-options-pages'
-import { useCopy } from '@/hooks/use-copy'
+import { deliveryRuleFormContent } from '@/data/delivery-rule-form'
+import { useCopy, useFormat } from '@/hooks/use-copy'
 import { ruleRouteLabels, ruleTargetLabel } from './format'
 
 type RuleRowProps = {
@@ -38,6 +39,8 @@ export default function RuleRow({
   // Hooks
   const copy = useCopy(deliveryOptionsContent)
   const pages = useCopy(deliveryPagesContent)
+  const form = useCopy(deliveryRuleFormContent)
+  const fmt = useFormat()
 
   // Render logic
   const r = pages.ruleRows
@@ -52,6 +55,21 @@ export default function RuleRow({
   ).join(', ')
   const routesChip = `${r.only(routesText)}${rule.insurance === 'required' ? ` (${r.insured})` : ''}`
   const line = options ? r.lineOptions(options, routesText) : r.line(routesText)
+  // The rule's price (20 Nov 2026), when it changes the option's own.
+  const p = form.suggestions.price
+  const price = rule.price ?? { mode: 'option' }
+  const priceMain =
+    price.mode === 'free'
+      ? p.free
+      : price.mode === 'fixed'
+        ? p.fixed(fmt.money(price.fixedPaise ?? 0))
+        : p.option
+  const priceChip =
+    price.mode === 'option' && price.freeAbovePaise == null
+      ? null
+      : price.freeAbovePaise != null && price.mode !== 'free'
+        ? `${priceMain}, ${p.freeAbove(fmt.money(price.freeAbovePaise))}`
+        : priceMain
 
   return (
     <div
@@ -82,6 +100,11 @@ export default function RuleRow({
           </span>
           <ArrowRight aria-hidden className="size-3.5 text-muted-foreground" />
           <span className={cn(CHIP, 'border-info/40 bg-info-soft text-info')}>{routesChip}</span>
+          {priceChip ? (
+            <span className={cn(CHIP, 'border-success-border bg-success-soft text-success')}>
+              {priceChip}
+            </span>
+          ) : null}
         </span>
         <span className="text-caption text-muted-foreground">{line}</span>
       </div>

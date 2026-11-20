@@ -10,6 +10,7 @@ import SettingsCard from '@/components/settings/settings-card'
 import SettingsToggleRow from '@/components/settings/settings-toggle-row'
 import { deliveryOptionsContent } from '@/data/delivery-options'
 import { useCopy } from '@/hooks/use-copy'
+import CodFeeField from './cod-fee-field'
 import { CARRIERS } from './format'
 import InlineWarning from './inline-warning'
 import { ALL_COURIERS, type OptionForm as Form } from './option-form-state'
@@ -369,6 +370,9 @@ export default function OptionForm({ form, onChange }: OptionFormProps) {
             ]}
             onChange={(v) => set('cod')(v === 'prepaid_only' ? 'prepaid_only' : 'allowed')}
           />
+        )}
+        {express || form.cod === 'prepaid_only' ? null : (
+          <CodFeeField id="opt-cod-fee" value={form.codFee} onChange={set('codFee')} />
         )}
       </SettingsCard>
 

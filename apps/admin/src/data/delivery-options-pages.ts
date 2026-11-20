@@ -212,6 +212,13 @@ export const deliveryPagesContent = {
     onlyAbove: 'Only for orders above',
     onlyAboveHelp: 'Empty: every order.',
   },
+  /** The option's "Cash on delivery fee" setting (owner, 20 Nov 2026). */
+  codFee: {
+    label: 'Cash on delivery fee',
+    included: 'Included in the delivery price',
+    separate: 'Shown as a separate charge',
+    help: 'What the courier charges more for cash on delivery. Separate: shoppers see it as its own “Cash on delivery fee” line, in place of the COD fee in Settings → Payments. A free product rule still charges it.',
+  },
   /** Routes: one table of every route (Figma 929:12240). */
   routeTable: {
     filters: { all: 'All', direct: 'Direct', aggregator: 'Via aggregator' },
@@ -282,11 +289,19 @@ export const deliveryPagesContent = {
     /** "Delhivery, Blue Dart or Ekart". */
     either: (items: string[]) =>
       items.length < 2 ? (items[0] ?? '') : `${items.slice(0, -1).join(', ')} or ${items.at(-1)}`,
-    prefers: (who: string, route: string) => `Products in ${who} ship by ${route}`,
+    /** `price`: "free", "for ₹99", or null at the option's normal price. */
+    prefers: (who: string, route: string, price: string | null) =>
+      `Products in ${who} ship ${price ? `${price} ` : ''}by ${route}`,
     stillPick: (couriers: string) => `shoppers can still pick ${couriers}`,
-    always: (who: string, route: string) =>
-      `Products in ${who} always ship by ${route} at the option’s price; you pay the difference`,
-    only: (who: string, couriers: string) => `Products in ${who} ship only with ${couriers}`,
+    always: (who: string, route: string, price: string | null) =>
+      price
+        ? `Products in ${who} always ship ${price} by ${route}; no other courier is shown`
+        : `Products in ${who} always ship by ${route} at the option’s price; you pay the difference`,
+    only: (who: string, couriers: string, price: string | null) =>
+      `Products in ${who} ship ${price ? `${price} ` : ''}only with ${couriers}`,
+    free: 'free',
+    fixed: (amount: string) => `for ${amount}`,
+    freeAbove: (amount: string) => `free from ${amount}`,
     insured: 'always insured',
     inOptions: (names: string) => `in ${names}`,
     off: 'The rule is off, so checkout ignores it until you turn it on.',

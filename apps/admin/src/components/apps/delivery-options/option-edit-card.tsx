@@ -149,7 +149,9 @@ export default function OptionEditCard({
                   { value: 'prepaid_only', label: c.paymentItems.prepaid_only },
                 ]
           }
-          onChange={(v) => set({ cod: { mode: v === 'allowed' ? 'allowed' : 'prepaid_only' } })}
+          onChange={(v) =>
+            set({ cod: { ...option.cod, mode: v === 'allowed' ? 'allowed' : 'prepaid_only' } })
+          }
         />
         <ChoiceField
           id={`${id}-shows`}

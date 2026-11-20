@@ -6,6 +6,7 @@ import DataCard from '@/components/layout/data-card'
 import SettingsToggleRow from '@/components/settings/settings-toggle-row'
 import { deliveryPagesContent } from '@/data/delivery-options-pages'
 import { useCopy, useFormat } from '@/hooks/use-copy'
+import CodFeeField from './cod-fee-field'
 import InlineWarning from './inline-warning'
 import InsuranceOfferFields from './insurance-offer-fields'
 import RoundingField from './rounding-field'
@@ -125,6 +126,13 @@ export default function PriceIncludesCard({ option, onChange }: PriceIncludesCar
       <div className="border-t border-hairline pt-4">
         <InsuranceOfferFields option={option} onChange={onChange} idPrefix="courier-list" />
       </div>
+      {option.cod.mode === 'allowed' && option.speed === 'standard' ? (
+        <CodFeeField
+          id="courier-list-cod-fee"
+          value={option.cod.fee}
+          onChange={(fee) => onChange({ ...option, cod: { ...option.cod, fee } })}
+        />
+      ) : null}
     </DataCard>
   )
 }
