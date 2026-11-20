@@ -87,6 +87,15 @@ export function paymentWebhooks(db: Db, settingsSecret: string, rateLimitStore: 
       return { ...handled, ack: provider.webhookAck }
     })
 
+    // Stored, but processing threw: the failure is committed on the event (#1792), and a 5xx
+    // makes the gateway retry, which processes it again.
+    if (!outcome.ok && 'retry' in outcome && outcome.retry) {
+      c.var.log?.error('payment webhook processing failed', {
+        storeId,
+        webhook: { provider: providerId, reason: outcome.reason },
+      })
+      return c.json({ ok: false }, 500)
+    }
     if (!outcome.ok) return rejectWebhook(c, 'webhook', { providerId, storeId }, outcome.reason)
     c.var.log?.set({
       storeId,

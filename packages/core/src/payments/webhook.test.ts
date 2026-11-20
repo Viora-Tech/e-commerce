@@ -150,4 +150,41 @@ describe('payment webhooks', () => {
     )
     expect(r).toMatchObject({ ok: true, applied: false, duplicate: false })
   })
+
+  it('keeps the failed mark when processing throws, and the retry still processes it', async () => {
+    const { storeId, orderId } = await seedOrder()
+    let breaks = 2
+    const base = scripted({ captured: { eventId: 'evt_1', providerRef: 'ref_1' } })
+    const p: PaymentProvider = {
+      ...base,
+      parseWebhook(i) {
+        const r = base.parseWebhook(i)
+        if (!r.ok || breaks === 0) return r
+        breaks -= 1
+        // A JS error, then a database error (the transaction is aborted).
+        const charges = breaks === 1 ? null : { feePaise: 1e12, feeTaxPaise: 0, method: null }
+        return {
+          ...r,
+          event: { type: 'payment.charges', providerRef: 'ref_1', charges, raw: {} } as never,
+        }
+      },
+    }
+    const send = () =>
+      withStore(app, storeId, (tx) =>
+        handlePaymentWebhook({ storeId, tx }, p, { rawBody: 'captured', headers: { sig: 'good' } }),
+      )
+    for (const _ of [1, 2]) {
+      const r = await send()
+      expect(r).toMatchObject({ ok: false, retry: true })
+      const [ev] = await owner.select().from(paymentEvent)
+      expect(ev).toMatchObject({ status: 'failed', eventId: 'evt_1' })
+      expect(ev?.error).toBeTruthy()
+    }
+    // The gateway's retry is processed in full.
+    expect(await send()).toMatchObject({ ok: true, applied: true, duplicate: false })
+    const [ev] = await owner.select().from(paymentEvent)
+    expect(ev?.status).toBe('processed')
+    const [o] = await owner.select().from(order).where(eq(order.id, orderId))
+    expect(o?.paymentStatus).toBe('paid')
+  })
 })

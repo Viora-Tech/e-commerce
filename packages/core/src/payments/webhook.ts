@@ -1,5 +1,5 @@
 import { paymentEvent } from '@commerce/db'
-import { type PaymentProvider, readableError } from '@commerce/payments'
+import { type PaymentProvider, readableError, type WebhookEvent } from '@commerce/payments'
 import { and, eq } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 import { recordPaymentCharges } from './charges'
@@ -15,7 +15,15 @@ export type WebhookOutcome =
       /** Set when this event moved a payment to captured; the caller enqueues the notification. */
       capturedOrderId: string | null
     }
-  | { ok: false; reason: string }
+  | {
+      ok: false
+      reason: string
+      /**
+       * Set when the event was stored but processing it threw: the failure is recorded on the
+       * event, and the caller commits, then answers 5xx so the gateway retries.
+       */
+      retry?: true
+    }
 
 /**
  * Verify, store, then process a gateway webhook. Storing first with a unique
@@ -66,75 +74,85 @@ export async function handlePaymentWebhook(
     }
   }
 
-  let applied = false
-  let capturedOrderId: string | null = null
+  // Processed in a savepoint: when it throws (a database error aborts it), only its own work
+  // rolls back and the failure is recorded on the event in the caller's transaction, which
+  // commits. The caller answers 5xx (`retry`), so the gateway still retries, and the retry
+  // finds the event `failed`, not `processed`, and processes it in full.
+  let done: Processed
   try {
-    const e = parsed.event
-    if (e.type === 'payment.captured' || e.type === 'payment.authorized') {
-      // The amount invariant lives inside applyPaymentStatus now (every capture
-      // path shares it); the webhook just hands it the reported amount and, if
-      // refused, records why on the event.
-      const r = await applyPaymentStatus(ctx, {
-        providerRef: e.providerRef,
-        idempotencyKey: e.idempotencyKey,
-        status: e.type === 'payment.captured' ? 'captured' : 'authorized',
-        providerPaymentId: e.providerPaymentId,
-        capturedAmountPaise: e.amountPaise,
-      })
-      if (r?.rejected === 'underpaid') {
-        // Kept for the merchant to look at, never applied: the order stays unpaid.
-        await ctx.tx
-          .update(paymentEvent)
-          .set({
-            status: 'processed',
-            processedAt: new Date(),
-            error: `amount mismatch: gateway reported ${e.amountPaise} paise, attempt is ${r.payment.amountPaise}`,
-          })
-          .where(eq(paymentEvent.id, row.id))
-        return {
-          ok: true,
-          eventId: parsed.eventId,
-          applied: false,
-          duplicate: false,
-          capturedOrderId,
-        }
-      }
-      applied = r !== null
-      if (r?.becameCaptured) capturedOrderId = r.payment.orderId
-      // The gateway's fee and how the shopper paid, when the capture carries them.
-      if (r && e.type === 'payment.captured' && e.charges) {
-        await recordPaymentCharges(ctx.tx, r.payment.id, e.charges)
-      }
-    } else if (e.type === 'payment.charges') {
-      const id = await findPaymentId(ctx, { providerRef: e.providerRef })
-      if (id) await recordPaymentCharges(ctx.tx, id, e.charges)
-      applied = id !== null
-    } else if (e.type === 'payment.failed') {
-      applied =
-        (await applyPaymentStatus(ctx, {
-          providerRef: e.providerRef,
-          idempotencyKey: e.idempotencyKey,
-          status: 'failed',
-          providerPaymentId: e.providerPaymentId,
-          // The gateway's own words (Razorpay's "website does not match…"), shown to the merchant.
-          error: e.reason,
-        })) !== null
-    } else if (e.type === 'refund.processed') {
-      applied = await refundProcessed(ctx, e)
-    } else if (e.type === 'refund.failed') {
-      // The gateway's reason stays on the stored payment_event; the refund keeps the merchant's own.
-      applied = await settleRefund(ctx, e.providerRefundId, 'failed')
-    }
-    await ctx.tx
-      .update(paymentEvent)
-      .set({ status: 'processed', processedAt: new Date() })
-      .where(eq(paymentEvent.id, row.id))
+    done = await ctx.tx.transaction((sp) =>
+      processEvent({ storeId: ctx.storeId, tx: sp }, parsed.event),
+    )
   } catch (err) {
     await ctx.tx
       .update(paymentEvent)
       .set({ status: 'failed', error: readableError(err) })
       .where(eq(paymentEvent.id, row.id))
-    throw err
+    return { ok: false, reason: `processing failed: ${readableError(err)}`, retry: true }
   }
-  return { ok: true, eventId: parsed.eventId, applied, duplicate: false, capturedOrderId }
+  await ctx.tx
+    .update(paymentEvent)
+    .set({ status: 'processed', processedAt: new Date(), error: done.error })
+    .where(eq(paymentEvent.id, row.id))
+  return {
+    ok: true,
+    eventId: parsed.eventId,
+    applied: done.applied,
+    duplicate: false,
+    capturedOrderId: done.capturedOrderId,
+  }
+}
+
+type Processed = { applied: boolean; capturedOrderId: string | null; error: string | null }
+
+/** Apply one verified, stored, not yet processed event. */
+async function processEvent(ctx: StoreContext, e: WebhookEvent): Promise<Processed> {
+  let applied = false
+  let capturedOrderId: string | null = null
+  if (e.type === 'payment.captured' || e.type === 'payment.authorized') {
+    // The amount invariant lives inside applyPaymentStatus now (every capture
+    // path shares it); the webhook just hands it the reported amount and, if
+    // refused, records why on the event.
+    const r = await applyPaymentStatus(ctx, {
+      providerRef: e.providerRef,
+      idempotencyKey: e.idempotencyKey,
+      status: e.type === 'payment.captured' ? 'captured' : 'authorized',
+      providerPaymentId: e.providerPaymentId,
+      capturedAmountPaise: e.amountPaise,
+    })
+    if (r?.rejected === 'underpaid') {
+      // Kept for the merchant to look at, never applied: the order stays unpaid.
+      return {
+        applied: false,
+        capturedOrderId: null,
+        error: `amount mismatch: gateway reported ${e.amountPaise} paise, attempt is ${r.payment.amountPaise}`,
+      }
+    }
+    applied = r !== null
+    if (r?.becameCaptured) capturedOrderId = r.payment.orderId
+    // The gateway's fee and how the shopper paid, when the capture carries them.
+    if (r && e.type === 'payment.captured' && e.charges) {
+      await recordPaymentCharges(ctx.tx, r.payment.id, e.charges)
+    }
+  } else if (e.type === 'payment.charges') {
+    const id = await findPaymentId(ctx, { providerRef: e.providerRef })
+    if (id) await recordPaymentCharges(ctx.tx, id, e.charges)
+    applied = id !== null
+  } else if (e.type === 'payment.failed') {
+    applied =
+      (await applyPaymentStatus(ctx, {
+        providerRef: e.providerRef,
+        idempotencyKey: e.idempotencyKey,
+        status: 'failed',
+        providerPaymentId: e.providerPaymentId,
+        // The gateway's own words (Razorpay's "website does not match…"), shown to the merchant.
+        error: e.reason,
+      })) !== null
+  } else if (e.type === 'refund.processed') {
+    applied = await refundProcessed(ctx, e)
+  } else if (e.type === 'refund.failed') {
+    // The gateway's reason stays on the stored payment_event; the refund keeps the merchant's own.
+    applied = await settleRefund(ctx, e.providerRefundId, 'failed')
+  }
+  return { applied, capturedOrderId, error: null }
 }
