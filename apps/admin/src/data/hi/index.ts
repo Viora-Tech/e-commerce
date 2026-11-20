@@ -52,6 +52,7 @@ import dates from './dates'
 import delhivery from './delhivery'
 import deliveryOptions from './delivery-options'
 import deliveryOptionsPages from './delivery-options-pages'
+import deliveryRuleForm from './delivery-rule-form'
 import dhlExpress from './dhl-express'
 import discounts from './discounts'
 import documentTemplates from './document-templates'
@@ -218,6 +219,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...codRto,
   ...deliveryOptions,
   ...deliveryOptionsPages,
+  ...deliveryRuleForm,
   ...common,
   ...resourcePicker,
   ...connectAside,

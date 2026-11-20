@@ -9,9 +9,10 @@ import {
   CollapsibleTrigger,
 } from '@commerce/ui/shadcn/collapsible'
 import { FieldLabel } from '@commerce/ui/shadcn/field'
+import { RadioGroup, RadioGroupItem } from '@commerce/ui/shadcn/radio-group'
 import { deliveryOptionsContent } from '@/data/delivery-options'
 import { useCopy } from '@/hooks/use-copy'
-import type { RuleDraft } from './rule-draft'
+import { type RuleDraft, THROUGH, THROUGH_OFFERED, type Through } from './rule-draft'
 
 type RuleMoreFieldsProps = {
   draft: RuleDraft
@@ -19,10 +20,13 @@ type RuleMoreFieldsProps = {
   onChange: (patch: Partial<RuleDraft>) => void
 }
 
+const isThrough = (v: string): v is Through => THROUGH.some((t) => t === v)
+
 /**
  * The rule dialog's collapsed "More" (#1781): always insure these products (insurance
- * `required`), and apply the rule only to some options, like Standard (`optionIds`). Opens by
- * itself when the rule already uses either.
+ * `required`), apply the rule only to some options, like Standard (`optionIds`), and Through
+ * (own account, RapidShyp, Shiprocket or either; moved here on 20 Nov 2026). Opens by itself
+ * when the rule already uses any of them.
  */
 export default function RuleMoreFields({ draft, options, onChange }: RuleMoreFieldsProps) {
   // Hooks
@@ -37,7 +41,11 @@ export default function RuleMoreFields({ draft, options, onChange }: RuleMoreFie
 
   // Render logic
   const d = copy.ruleDialog
-  const used = draft.insurance === 'required' || draft.optionIds !== 'all'
+  const used =
+    draft.insurance === 'required' || draft.optionIds !== 'all' || draft.through !== 'any'
+  const through = THROUGH_OFFERED.includes(draft.through)
+    ? THROUGH_OFFERED
+    : THROUGH.filter((t) => THROUGH_OFFERED.includes(t) || t === draft.through)
 
   return (
     <Collapsible defaultOpen={used} className="rounded-lg border border-panel-border">
@@ -85,6 +93,29 @@ export default function RuleMoreFields({ draft, options, onChange }: RuleMoreFie
             </label>
           ))}
         </div>
+        {draft.custom ? null : (
+          <div className="flex flex-col gap-2">
+            <FieldLabel>{d.through}</FieldLabel>
+            <RadioGroup
+              value={draft.through}
+              onValueChange={(v) => {
+                const next = String(v)
+                if (isThrough(next)) onChange({ through: next })
+              }}
+            >
+              {through.map((t) => (
+                <label
+                  key={t}
+                  htmlFor={`rule-through-${t}`}
+                  className="flex cursor-pointer items-center gap-2 text-body"
+                >
+                  <RadioGroupItem id={`rule-through-${t}`} value={t} />
+                  {d.throughItems[t]}
+                </label>
+              ))}
+            </RadioGroup>
+          </div>
+        )}
       </CollapsibleContent>
     </Collapsible>
   )

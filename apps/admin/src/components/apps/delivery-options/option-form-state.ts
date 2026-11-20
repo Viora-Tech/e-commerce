@@ -37,6 +37,8 @@ export type OptionForm = {
   processing: string
   maxDays: string
   cod: DeliveryOptionInput['cod']['mode']
+  /** The courier's COD charge: in the delivery price, or its own fee line (`cod.fee`). */
+  codFee: DeliveryOptionInput['cod']['fee']
   /** Every allowed courier as its own card at checkout (the Couriers card). */
   couriersList: boolean
   /** A number of cards, or `ALL_COURIERS` (`couriers.max: null`). */
@@ -83,6 +85,7 @@ export function formOf(o: DeliveryOption | null): OptionForm {
     processing: x.eta.processingDays ? String(x.eta.processingDays) : '',
     maxDays: days(x.eta.maxDays),
     cod: x.cod.mode,
+    codFee: x.cod.fee,
     couriersList: x.couriers.show === 'list',
     // A new option shows every courier (owner, 20 Nov); a saved one keeps its number.
     couriersMax: o === null || x.couriers.max == null ? ALL_COURIERS : String(x.couriers.max),
@@ -133,7 +136,7 @@ export function inputOf(f: OptionForm): DeliveryOptionInput {
       processingDays: whole(f.processing) ?? 0,
       maxDays: whole(f.maxDays),
     },
-    cod: { mode: f.speed === 'express' ? 'prepaid_only' : f.cod },
+    cod: { mode: f.speed === 'express' ? 'prepaid_only' : f.cod, fee: f.codFee },
     couriers: {
       show: f.couriersList ? 'list' : 'one',
       max:

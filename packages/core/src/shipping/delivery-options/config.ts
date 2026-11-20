@@ -127,9 +127,20 @@ export const OptionCouriersSchema = z.object({
 })
 export type OptionCouriers = z.infer<typeof OptionCouriersSchema>
 
+export const OPTION_COD_FEES = ['included', 'separate'] as const
+export type OptionCodFee = (typeof OPTION_COD_FEES)[number]
+
 export const OptionCodSchema = z.object({
   /** Express is always prepaid only, whatever is saved here. */
   mode: z.enum(['prepaid_only', 'allowed']).default('allowed'),
+  /**
+   * What the courier's own cash on delivery charge does at checkout (`codExtraPaise`):
+   * `included` (as before 20 Nov 2026): the delivery price on COD is higher by it;
+   * `separate`: the delivery price stays the prepaid one and the charge shows as its own
+   * "Cash on delivery fee" line (the rate's `codSurchargePaise`, which takes the place of the
+   * store's COD fee from Settings → Payments, as a Shipping rate's own COD fee does).
+   */
+  fee: z.enum(OPTION_COD_FEES).default('included'),
 })
 
 export const DeliveryOptionInputSchema = z.object({
@@ -158,10 +169,37 @@ export type DeliveryOption = DeliveryOptionInput & { id: string; position: numbe
 /**
  * What a rule matches. `all`: every product (`values` is `[]`). When rules of different kinds
  * match one product, the most specific wins (`products` > `collections`/`tags`/`types` > `all`,
- * `RULE_SPECIFICITY` in rules.ts); rules of the same kind intersect as before.
+ * `RULE_SPECIFICITY` below); rules of the same kind intersect as before.
  */
+/**
+ * What a rule's products cost the shopper on the first (Recommended) courier, owner 20 Nov
+ * 2026. `option`: the option's own price (as before). `free`: ₹0. `fixed`: `fixedPaise`.
+ * `freeAbovePaise`: ₹0 once the order value is at least this. Other couriers cost that price
+ * plus what they cost the store more (`courierList`). Applies to the first enabled Standard
+ * option (or the courier list's option); Express keeps its own price. A cart whose products
+ * have different rule prices pays the highest (`rule-price.ts`).
+ */
+export const RULE_PRICE_MODES = ['option', 'free', 'fixed'] as const
+export type RulePriceMode = (typeof RULE_PRICE_MODES)[number]
+
+export const RulePriceSchema = z.object({
+  mode: z.enum(RULE_PRICE_MODES).default('option'),
+  fixedPaise: paise.nullish(),
+  freeAbovePaise: paise.nullish(),
+})
+export type RulePrice = z.infer<typeof RulePriceSchema>
+
 export const RULE_TARGET_KINDS = ['products', 'collections', 'tags', 'types', 'all'] as const
 export type RuleTargetKind = (typeof RULE_TARGET_KINDS)[number]
+
+/** Higher wins: a rule naming the product beats a group rule, which beats an every-product rule. */
+export const RULE_SPECIFICITY: Readonly<Record<RuleTargetKind, number>> = {
+  products: 3,
+  collections: 2,
+  tags: 2,
+  types: 2,
+  all: 1,
+}
 
 export const RouteRuleInputSchema = z
   .object({
@@ -186,11 +224,17 @@ export const RouteRuleInputSchema = z
     forceRoute: z.boolean().default(false),
     alternatives: z.array(RouteSelectorSchema).max(10).default([]),
     insurance: z.enum(['follow_option', 'required']).default('follow_option'),
+    /** Omitted (every rule saved before 20 Nov 2026): the option's own price. */
+    price: RulePriceSchema.default({ mode: 'option' }),
     enabled: z.boolean().default(true),
   })
   .refine((r) => r.target.kind === 'all' || r.target.values.length > 0, {
     path: ['target', 'values'],
     message: 'Pick at least one',
+  })
+  .refine((r) => r.price.mode !== 'fixed' || r.price.fixedPaise != null, {
+    path: ['price', 'fixedPaise'],
+    message: 'Type the price',
   })
 export type RouteRuleInput = z.infer<typeof RouteRuleInputSchema>
 export type RouteRule = RouteRuleInput & { id: string; position: number }

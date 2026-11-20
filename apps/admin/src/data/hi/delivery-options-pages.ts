@@ -194,6 +194,12 @@ export default [
       onlyAbove: 'सिर्फ़ इससे ऊपर के ऑर्डर पर',
       onlyAboveHelp: 'खाली: हर ऑर्डर।',
     },
+    codFee: {
+      label: 'कैश ऑन डिलीवरी फ़ीस',
+      included: 'डिलीवरी कीमत में शामिल',
+      separate: 'अलग चार्ज के रूप में',
+      help: 'कैश ऑन डिलीवरी के लिए कूरियर जितना ज़्यादा लेता है। अलग: ग्राहक इसे अपनी “कैश ऑन डिलीवरी फ़ीस” लाइन में देखते हैं, सेटिंग्स → पेमेंट की COD फ़ीस की जगह। मुफ़्त प्रोडक्ट नियम पर भी यह लगती है।',
+    },
     routeTable: {
       filters: { all: 'सभी', direct: 'डायरेक्ट', aggregator: 'एग्रीगेटर से' },
       filtersLabel: 'रूट दिखाएं',
@@ -259,11 +265,18 @@ export default [
       label: 'यह नियम क्या करता है',
       either: (items: string[]) =>
         items.length < 2 ? (items[0] ?? '') : `${items.slice(0, -1).join(', ')} या ${items.at(-1)}`,
-      prefers: (who: string, route: string) => `${who} ${route} से भेजे जाते हैं`,
+      prefers: (who: string, route: string, price: string | null) =>
+        `${who} ${price ? `${price} ` : ''}${route} से भेजे जाते हैं`,
       stillPick: (couriers: string) => `ग्राहक फिर भी ${couriers} चुन सकते हैं`,
-      always: (who: string, route: string) =>
-        `${who} हमेशा विकल्प की कीमत पर ${route} से भेजे जाते हैं; अंतर आप देते हैं`,
-      only: (who: string, couriers: string) => `${who} सिर्फ़ ${couriers} से भेजे जाते हैं`,
+      always: (who: string, route: string, price: string | null) =>
+        price
+          ? `${who} हमेशा ${price} ${route} से भेजे जाते हैं; कोई और कूरियर नहीं दिखता`
+          : `${who} हमेशा विकल्प की कीमत पर ${route} से भेजे जाते हैं; अंतर आप देते हैं`,
+      only: (who: string, couriers: string, price: string | null) =>
+        `${who} ${price ? `${price} ` : ''}सिर्फ़ ${couriers} से भेजे जाते हैं`,
+      free: 'मुफ़्त',
+      fixed: (amount: string) => `${amount} में`,
+      freeAbove: (amount: string) => `${amount} से मुफ़्त`,
       insured: 'हमेशा बीमे के साथ',
       inOptions: (names: string) => `${names} में`,
       off: 'नियम बंद है, इसलिए चालू करने तक चेकआउट इसे नहीं मानता।',

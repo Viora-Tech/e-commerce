@@ -19,45 +19,61 @@ import ResourcePickDialog from '@/components/pickers/resource-pick-dialog'
 import SettingsToggleRow from '@/components/settings/settings-toggle-row'
 import { deliveryOptionsContent } from '@/data/delivery-options'
 import { deliveryPagesContent } from '@/data/delivery-options-pages'
+import { deliveryRuleFormContent } from '@/data/delivery-rule-form'
 import { discountFormContent } from '@/data/discounts'
 import { useCopy, useLocale } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { courierRows } from './courier-rows'
+import RuleCourierChips from './rule-courier-chips'
 import { draftOf, type RuleDraft, ruleErrors, ruleInputOf, withValidPreferred } from './rule-draft'
 import RuleMoreFields from './rule-more-fields'
+import { applyPreset, type RulePreset, ruleChips, seededDraft } from './rule-presets'
+import RulePresetsBar from './rule-presets-bar'
 import RulePreviewLine from './rule-preview-line'
+import RulePriceFields from './rule-price-fields'
+import RuleProductsField from './rule-products-field'
 import RuleRouteChoices from './rule-route-choices'
 import RuleRoutesFields from './rule-routes-fields'
-import RuleSentence from './rule-sentence'
+import RuleStep from './rule-step'
+import { useRouteCatalogue } from './use-delivery-overview'
 
 type RuleDialogProps = {
   open: boolean
   /** The rule being edited; null adds one. */
   rule: RouteRule | null
   options: DeliveryOption[]
+  /** A new rule's first fields, from a suggestion (Shipping rates); ignored when editing. */
+  seed?: Partial<RuleDraft> | null | undefined
   onOpenChange: (open: boolean) => void
   onSaved: () => void
 }
 
 /**
- * Add or edit a product route rule as a plain sentence (owner, 17 Nov, #1781): "[Glasspads]
- * ship only with [Delhivery]", through which account, which speeds, a preferred courier (and
- * "always by it at the option's price"), and a collapsed More. A rule whose routes can't be
- * said that way opens in the detailed route editor instead. Saves the same rule schema.
- * A live line under the fields says what the rule will do in plain words (`rule-preview.ts`).
+ * Add or edit a product route rule in four numbered steps (owner, 20 Nov 2026): which products,
+ * which couriers shoppers can choose from (toggle chips of the connected couriers and speeds,
+ * all ticked on a new rule), which courier is included in the price (Recommended; "only this
+ * one"), and what it costs (normal, Free, Fixed ₹, free above ₹X). More holds insurance, the
+ * options and Through; "Shoppers will see" prices an example list. A new rule offers three
+ * quick starts. A rule whose routes can't be said as chips opens in the detailed route editor.
  */
 export default function RuleDialog({
   open,
   rule,
   options,
+  seed,
   onOpenChange,
   onSaved,
 }: RuleDialogProps) {
   // Hooks
   const copy = useCopy(deliveryOptionsContent)
   const pages = useCopy(deliveryPagesContent)
+  const form = useCopy(deliveryRuleFormContent)
   const discountCopy = useCopy(discountFormContent)
   const locale = useLocale()
+  const { catalogue, loading, reload } = useRouteCatalogue(open)
   const [draft, setDraft] = useState<RuleDraft>(() => draftOf(rule))
+  /** A new rule has had every connected courier ticked (once, when they are known). */
+  const [seeded, setSeeded] = useState(false)
   const [attempted, setAttempted] = useState(false)
   const [picking, setPicking] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -65,14 +81,26 @@ export default function RuleDialog({
 
   useEffect(() => {
     if (!open) return
-    setDraft(draftOf(rule))
+    setDraft({ ...draftOf(rule), ...(rule ? {} : (seed ?? {})) })
+    setSeeded(rule !== null)
     setAttempted(false)
-  }, [open, rule])
+  }, [open, rule, seed])
+
+  useEffect(() => {
+    if (!open || seeded || !catalogue) return
+    setDraft((d) => seededDraft(d, ruleChips(courierRows(catalogue.routes), [])))
+    setSeeded(true)
+  }, [open, seeded, catalogue])
 
   // Helpers
   const patch = (p: Partial<RuleDraft>) => setDraft((d) => withValidPreferred({ ...d, ...p }))
 
   // Event handlers
+  const handlePreset = (preset: RulePreset) => {
+    const chips = ruleChips(catalogue ? courierRows(catalogue.routes) : [], draft.chips)
+    setDraft((d) => applyPreset(d, preset, chips))
+    setSeeded(true)
+  }
   const handleSave = async () => {
     setAttempted(true)
     if (Object.values(ruleErrors(draft)).some(Boolean)) return
@@ -107,6 +135,8 @@ export default function RuleDialog({
   const d = copy.ruleDialog
   const errors = attempted ? ruleErrors(draft) : null
   const tabs = itemTabs(discountCopy.value, locale).filter((t) => t.key === draft.kind)
+  const chips = ruleChips(catalogue ? courierRows(catalogue.routes) : [], draft.chips)
+  const steps = form.steps
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -115,6 +145,7 @@ export default function RuleDialog({
           <DialogTitle>{rule ? d.editTitle : d.addTitle}</DialogTitle>
         </DialogHeader>
         <FieldGroup>
+          {rule ? null : <RulePresetsBar onPick={handlePreset} />}
           <Field data-invalid={errors?.name || undefined}>
             <FieldLabel htmlFor="rule-name">{d.name}</FieldLabel>
             <Input
@@ -125,12 +156,14 @@ export default function RuleDialog({
             />
             {errors?.name ? <FieldError>{d.errors.name}</FieldError> : null}
           </Field>
-          <RuleSentence
-            draft={draft}
-            errors={errors}
-            onChange={patch}
-            onBrowse={() => setPicking(true)}
-          />
+          <RuleStep step={1} title={steps.products}>
+            <RuleProductsField
+              draft={draft}
+              error={errors?.target ?? false}
+              onChange={patch}
+              onBrowse={() => setPicking(true)}
+            />
+          </RuleStep>
           {draft.custom ? (
             <>
               <NoticeBar>{d.custom}</NoticeBar>
@@ -157,12 +190,25 @@ export default function RuleDialog({
               )}
             </>
           ) : (
-            <RuleRouteChoices
-              draft={draft}
-              speedsError={errors?.speeds ?? false}
-              onChange={patch}
-            />
+            <>
+              <RuleStep step={2} title={steps.couriers} help={steps.couriersHelp}>
+                <RuleCourierChips
+                  chips={chips}
+                  ticked={draft.chips}
+                  loading={loading}
+                  error={errors?.couriers ?? false}
+                  onChange={(next) => patch({ chips: next })}
+                  onRetry={reload}
+                />
+              </RuleStep>
+              <RuleStep step={3} title={steps.included} help={steps.includedHelp}>
+                <RuleRouteChoices draft={draft} chips={chips} onChange={patch} />
+              </RuleStep>
+            </>
           )}
+          <RuleStep step={draft.custom ? 2 : 4} title={steps.price} help={steps.priceHelp}>
+            <RulePriceFields draft={draft} errors={errors} onChange={patch} />
+          </RuleStep>
           <RuleMoreFields draft={draft} options={options} onChange={patch} />
           <RulePreviewLine draft={draft} options={options} />
           <SettingsToggleRow

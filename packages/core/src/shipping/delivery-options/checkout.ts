@@ -88,8 +88,26 @@ export function shownPrices(result: DeliveryResolveResult): Record<string, numbe
       for (const c of o.choices)
         if (c.codPricePaise != null)
           out[choiceKey(o.optionId, c.route.key, insured, 'cod')] = c.codPricePaise
+    // The courier's COD charge shown as its own line (`cod.fee: 'separate'`), never charged more.
+    if (o.codAllowed) {
+      const fee = codFeeOf(o, null)
+      if (fee != null) out[`${choiceKey(o.optionId, null, insured, 'cod')}|fee`] = fee
+      if (o.layout === 'list')
+        for (const c of o.choices)
+          if (c.codFeePaise != null)
+            out[`${choiceKey(o.optionId, c.route.key, insured, 'cod')}|fee`] = c.codFeePaise
+    }
   }
   return out
+}
+
+/** The separate COD charge of a choice: a list card's own, else the option's COD pick's. */
+function codFeeOf(o: ResolvedOption, routeKey: string | null): number | null {
+  if (o.layout === 'list') {
+    const card = (routeKey && o.choices.find((c) => c.route.key === routeKey)) || o.choices[0]
+    if (card) return card.codFeePaise ?? null
+  }
+  return o.cod?.codFeePaise ?? null
 }
 
 export type QuoteDeliveryInput = Omit<ResolveInput, 'answers'> & {
@@ -284,6 +302,11 @@ export function orderDeliveryFor(
   )
   const was = shown?.[shownKey]
   const price = was === undefined ? nowPrice : Math.min(nowPrice, was)
+  /* The courier's COD charge on its own line: the order's COD fee (it takes the place of the
+     store's, `paymentAdjustmentFor`), never more than checkout showed. */
+  const feeNow = payment === 'cod' ? codFeeOf(option, choice.routeKey) : null
+  const feeWas = shown?.[`${shownKey}|fee`]
+  const codFee = feeNow === null ? null : feeWas === undefined ? feeNow : Math.min(feeNow, feeWas)
   const saved = config.options.find((o) => o.id === option.optionId)
   const shopperPicked =
     !!choice.routeKey && priced !== null && priced.route.key !== option.pick?.route.key
@@ -300,7 +323,7 @@ export function orderDeliveryFor(
       zoneName: backup?.zoneName ?? '',
       listPricePaise: Math.max(price, priced?.listPricePaise ?? option.listPricePaise),
       pricePaise: price,
-      codSurchargePaise: null,
+      codSurchargePaise: codFee,
       minTransitDays: backup?.minTransitDays ?? null,
       maxTransitDays: backup?.maxTransitDays ?? null,
     },

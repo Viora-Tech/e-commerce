@@ -29,6 +29,8 @@ export type DeliveryChoiceCard = {
   earliest: string | null
   /** A courier list card's price on cash on delivery; null: no COD on this courier. */
   codPricePaise?: number | null | undefined
+  /** The courier's COD charge shown as its own line on this card; null: none. */
+  codFeePaise?: number | null | undefined
 }
 
 /** How a route travels, read from its service: Blue Dart Apex and "Air" services fly. */
@@ -187,6 +189,18 @@ export function deliveryDateRange(o: {
   return o.earliest && o.latest ? formatDeliveryRange(o.earliest, o.latest) : null
 }
 
+/**
+ * The courier's COD charge when the option shows it as its own line (`cod.fee: 'separate'`):
+ * the first list card's, else the COD pick's; null: none, the store's COD fee stays. It is a
+ * payment fee, so no shipping discount applies to it. `placeOrder` charges the same
+ * (`orderDeliveryFor`).
+ */
+export function optionCodFee(o: ResolvedOption): number | null {
+  if (!o.codAllowed) return null
+  if (o.layout === 'list' && o.choices[0]) return o.choices[0].codFeePaise ?? null
+  return o.cod?.codFeePaise ?? null
+}
+
 export function cardExtras(
   o: ResolvedOption,
   policy: ReturnType<typeof toShippingPolicy>,
@@ -223,6 +237,7 @@ export function cardExtras(
       mode: deliveryMode(c.route),
       earliest: c.etaEstimated ? null : c.earliest,
       codPricePaise: c.codPricePaise != null ? afterDiscount(c.codPricePaise) : null,
+      codFeePaise: c.codFeePaise ?? null,
     })),
   }
 }

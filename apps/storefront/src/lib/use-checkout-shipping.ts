@@ -40,6 +40,8 @@ function withChoice(
     ...(rate.delivery?.layout === 'list' && sub.codPricePaise != null
       ? { delivery: { ...rate.delivery, codPricePaise: sub.codPricePaise, codCarrier: null } }
       : {}),
+    // A list card's own COD charge, when the option shows it as its own line.
+    ...(rate.delivery?.layout === 'list' ? { codSurchargePaise: sub.codFeePaise ?? null } : {}),
   }
 }
 
