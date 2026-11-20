@@ -74,6 +74,7 @@ import { mediaProcessLimits } from './media-limits'
 import { createMediaProcessWorker } from './media-process'
 import { createMediaVideoWorker, createVideoBackfill, VIDEO_BACKFILL_EVERY_MS } from './media-video'
 import { createMemberDailySummary, DAILY_SUMMARY_EVERY_MS } from './member-daily-summary'
+import { createMemberReports, MEMBER_REPORTS_EVERY_MS } from './member-reports'
 import { createMemoryGuard, type MemoryLevel, readMemoryLimit, sweepRuns } from './memory-guard'
 import { createNotificationWorker } from './notifications'
 import { initSentry, reportError } from './observability'
@@ -215,6 +216,10 @@ const reviewRequests = createReviewRequestSweep(db)
 const reviewSummaries = createReviewSummarySweep(db)
 const affiliateCommissions = createAffiliateCommissionSweep(db)
 const memberDailySummary = createMemberDailySummary(db, {
+  settingsSecret: env.SETTINGS_SECRET,
+  adminUrl: env.ADMIN_URL,
+})
+const memberReports = createMemberReports(db, {
   settingsSecret: env.SETTINGS_SECRET,
   adminUrl: env.ADMIN_URL,
 })
@@ -373,6 +378,12 @@ const sweepList: Sweep[] = [
     schedule: every(DAILY_SUMMARY_EVERY_MS),
     run: memberDailySummary.run,
     legacy: { queue: MEMBER_DAILY_SUMMARY_QUEUE, scheduler: 'member-daily-summary' },
+  },
+  // Weekly (Monday) and monthly (the 1st) performance reports from 9:00 IST.
+  {
+    name: 'member-reports',
+    schedule: every(MEMBER_REPORTS_EVERY_MS),
+    run: () => memberReports.run(),
   },
   {
     name: 'home-cards',

@@ -117,6 +117,9 @@ export type TemplateId =
    * to be shipped (`dailySummary`). `actionUrl` opens the admin. Email or WhatsApp.
    */
   | 'staff_daily_summary'
+  /** To a TEAM MEMBER who turned on the weekly or monthly report: the period's `report`. Email only. */
+  | 'staff_weekly_report'
+  | 'staff_monthly_report'
   /**
    * PLATFORM message: the code that confirms a member's NEW sign-in email (Account → Sign-in &
    * security → Change email). Sent to the new address; `code` is the one-time code. Email only.

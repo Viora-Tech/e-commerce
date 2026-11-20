@@ -71,6 +71,7 @@
     "./redirects": "./src/redirects/paths.ts",
     "./search-console": "./src/search-console/insights.ts",
     "./analytics-query": "./src/analytics-query/index.ts",
+    "./analytics-figures": "./src/analytics-figures/index.ts",
     "./billing": "./src/billing/client.ts",
     "./bug-reports": "./src/bug-reports/client.ts",
     "./platform": "./src/platform/client.ts",

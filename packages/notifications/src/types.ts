@@ -1,4 +1,5 @@
 import type { TemplateId } from './template-ids'
+import type { PerformanceReport } from './report-types'
 import type { ChannelTemplateSpec, ChannelTemplateStatus } from './template-types'
 
 /**
@@ -37,6 +38,8 @@ export type CustomMessage = { subject?: string | undefined; message?: string | u
  */
 export type EmailBrandInfo = {
   logoUrl?: string | null | undefined
+  /** The logo drawn on a dark background (an imported theme's `logo_dark`), when the store has one. */
+  logoDarkUrl?: string | null | undefined
   /** Logo width in px as the theme sets it (60-320). */
   logoWidth?: number | undefined
   /** The theme's button colour and the text drawn on it, as `#rrggbb`. */
@@ -282,6 +285,8 @@ export type TemplateData = {
   contactMessage?:
     | { name: string; email: string; phone: string; text: string; path: string }
     | undefined
+  /** For the staff daily summary and weekly/monthly reports: the whole report, formatted. */
+  report?: PerformanceReport | undefined
   /** For staff_daily_summary: the period and its figures, already formatted. */
   dailySummary?:
     | { periodLabel: string; orders: number; salesLabel: string; toShip: number }

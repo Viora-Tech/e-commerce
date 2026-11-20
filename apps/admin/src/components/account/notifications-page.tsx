@@ -2,6 +2,7 @@
 
 import {
   type AlertChannel,
+  EMAIL_ONLY_ALERTS,
   isPushAlert,
   MEMBER_ALERTS,
   type MemberAlert,
@@ -36,20 +37,34 @@ type Form = MemberAlertPrefsInput
 type Channel = AlertChannel
 
 /** Alerts the worker sends by email or WhatsApp today; the rest wait for their senders (#79). */
-const MESSAGE_WIRED: ReadonlySet<MemberAlert> = new Set(['newOrder', 'dailySummary', 'bugReports'])
+const MESSAGE_WIRED: ReadonlySet<MemberAlert> = new Set([
+  'newOrder',
+  'dailySummary',
+  'weeklyReport',
+  'monthlyReport',
+  'bugReports',
+])
 
-/** Whether `alert` can go by `channel` yet: push carries its own list (`PUSH_ALERTS`). */
-const wired = (alert: MemberAlert, channel: Channel) =>
-  channel === 'push' ? isPushAlert(alert) : MESSAGE_WIRED.has(alert)
+/**
+ * Whether `alert` can go by `channel` yet: push carries its own list (`PUSH_ALERTS`), and the
+ * weekly and monthly reports go by email only (`EMAIL_ONLY_ALERTS`).
+ */
+const wired = (alert: MemberAlert, channel: Channel) => {
+  if (channel === 'push') return isPushAlert(alert)
+  if (channel === 'whatsapp' && EMAIL_ONLY_ALERTS.has(alert)) return false
+  return MESSAGE_WIRED.has(alert)
+}
 /** Whether any channel shown can carry `alert`; none means it is still Coming soon. */
 const anyWired = (alert: MemberAlert, channels: Channel[]) => channels.some((c) => wired(alert, c))
 
 const HOURS = Array.from({ length: 24 }, (_, h) => h)
 
-/** The saved prefs as the form edits them (`lastSentOn` is the server's). */
+/** The saved prefs as the form edits them (each `lastSentOn` is the server's). */
 function formOf(prefs: Loaded['prefs']): Form {
   const { lastSentOn: _sent, ...dailySummary } = prefs.dailySummary
-  return { ...prefs, dailySummary }
+  const { lastSentOn: _week, ...weeklyReport } = prefs.weeklyReport
+  const { lastSentOn: _month, ...monthlyReport } = prefs.monthlyReport
+  return { ...prefs, dailySummary, weeklyReport, monthlyReport }
 }
 
 /**

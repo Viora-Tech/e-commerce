@@ -1,5 +1,6 @@
 import { siteConfig } from '@commerce/config/site'
 import { figmaOrder, figmaProducts } from './samples-order'
+import { sampleDailyReport, sampleMonthlyReport, sampleWeeklyReport } from './samples-reports'
 import type { TemplateData, TemplateId } from './types'
 
 export { sampleEmailBrand } from './samples-order'
@@ -420,7 +421,10 @@ export const sampleTemplateDataByTemplate: Record<TemplateId, TemplateData> = {
     totalLabel: '',
     actionUrl: `https://admin.${siteConfig.brand.domain}/`,
     dailySummary: { periodLabel: 'Today so far', orders: 14, salesLabel: '₹28,640', toShip: 6 },
+    report: sampleDailyReport,
   },
+  staff_weekly_report: { ...base, lines: [], totalLabel: '', report: sampleWeeklyReport },
+  staff_monthly_report: { ...base, lines: [], totalLabel: '', report: sampleMonthlyReport },
   email_change_code: {
     ...base,
     storeName: siteConfig.brand.name,

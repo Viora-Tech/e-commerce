@@ -5,7 +5,7 @@ import { eq } from 'drizzle-orm'
 import { primaryStoreHostname } from '../domains/origin'
 import { storeSender } from '../marketing/send'
 import { liveThemeSettings } from '../theme/library'
-import { storeEmailLogo } from './email-logo'
+import { storeEmailDarkLogo, storeEmailLogo } from './email-logo'
 
 /**
  * The store's email look from its live theme (logo, see `storeEmailLogo`; the light scheme's button colour, social
@@ -27,6 +27,7 @@ export async function storeEmailBrand(tx: StoreTx, storeId: string): Promise<Ema
     const shopUrl = host ? `https://${host}` : null
     return {
       logoUrl: await storeEmailLogo(tx, storeId, theme.brand.logo?.url, shopUrl).catch(() => null),
+      logoDarkUrl: await storeEmailDarkLogo(tx, shopUrl).catch(() => null),
       logoWidth: theme.brand.logoWidth,
       colour: scheme?.button,
       onColour: scheme?.buttonText,

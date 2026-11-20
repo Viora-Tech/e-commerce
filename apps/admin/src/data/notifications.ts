@@ -283,6 +283,14 @@ export const notificationsSettingsContent = {
       name: 'Daily summary (team)',
       when: 'Once a day, at the hour each team member chose in Account → Notifications.',
     },
+    staff_weekly_report: {
+      name: 'Weekly report (team)',
+      when: 'Every Monday morning, to each team member who turned it on in Account → Notifications.',
+    },
+    staff_monthly_report: {
+      name: 'Monthly report (team)',
+      when: 'On the 1st of every month, to each team member who turned it on in Account → Notifications.',
+    },
     account_deletion_code: {
       name: 'Account deletion code',
       when: 'When a shopper asks to delete their account; the code confirms it is them.',

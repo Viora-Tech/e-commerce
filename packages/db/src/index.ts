@@ -51,6 +51,7 @@ export {
   storesWithHomeCardsDue,
   storesWithMarketingWork,
   storesWithMemberDailySummaries,
+  storesWithMemberReports,
   storesWithOldApiActivity,
   storesWithOldAutomationRuns,
   storesWithOldPixelData,
