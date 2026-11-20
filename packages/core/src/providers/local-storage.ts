@@ -1,10 +1,14 @@
+import { createReadStream, createWriteStream } from 'node:fs'
 import { mkdir, readdir, readFile, rm, stat, writeFile } from 'node:fs/promises'
 import { dirname, isAbsolute, join, resolve, sep } from 'node:path'
+import { Readable } from 'node:stream'
+import { pipeline } from 'node:stream/promises'
 import type {
   CredentialCheck,
   PresignedUpload,
   PresignInput,
   PutInput,
+  PutStreamInput,
   StorageProvider,
   StorageProviderFactory,
 } from '@commerce/storage'
@@ -126,6 +130,26 @@ export class LocalStorageProvider implements StorageProvider {
       if ((err as { code?: string }).code === 'ENOENT') return null
       throw err
     }
+  }
+
+  /** A stream onto the file, never read whole (a video the worker re-encodes). */
+  async getStream(key: string, signal?: AbortSignal): Promise<ReadableStream<Uint8Array> | null> {
+    const path = this.pathOf(key)
+    try {
+      await stat(path)
+    } catch (err) {
+      if ((err as { code?: string }).code === 'ENOENT') return null
+      throw err
+    }
+    return Readable.toWeb(createReadStream(path, signal ? { signal } : {})) as unknown as ReadableStream<Uint8Array>
+  }
+
+  /** Writes the stream to the file as it arrives. */
+  async putStream(input: PutStreamInput): Promise<void> {
+    const path = this.pathOf(input.key)
+    await mkdir(dirname(path), { recursive: true })
+    const source = Readable.fromWeb(input.body as unknown as import('node:stream/web').ReadableStream)
+    await pipeline(source, createWriteStream(path), input.signal ? { signal: input.signal } : {})
   }
 
   async delete(key: string): Promise<void> {

@@ -75,6 +75,17 @@ export class MemoryStorageProvider implements StorageProvider {
     return this.objects.get(key)?.body ?? null
   }
 
+  async getStream(key: string): Promise<ReadableStream<Uint8Array> | null> {
+    const body = this.objects.get(key)?.body
+    if (!body) return null
+    return new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(body)
+        controller.close()
+      },
+    })
+  }
+
   async head(key: string): Promise<{ size: number; contentType?: string } | null> {
     const obj = this.objects.get(key)
     return obj ? { size: obj.body.byteLength, contentType: obj.contentType } : null
