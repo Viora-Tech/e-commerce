@@ -58,6 +58,7 @@ import { inStore } from './store-context'
 
 const CHECKOUT_CART_RULE = { limit: 10, windowMs: 60_000 }
 const CHECKOUT_IP_RULE = { limit: 30, windowMs: 60_000 }
+const MAX_GIFT_CARDS = 5 // per checkout; a longer list is code guessing (audit 2026-11-20)
 
 /** Server actions for the cart. The store id comes from the request's hostname, never the client. */
 
@@ -234,7 +235,6 @@ export type CheckoutForm = {
 
 export type { CheckoutResult } from './checkout-result'
 
-/** Each unpaid checkout counts per IP for an hour, against the store's cap (0: no cap). */
 /** Unpaid checkouts one IP may start in an hour: high enough for a shared mobile-network IP. */
 const IP_UNPAID_CHECKOUTS_PER_HOUR = 20
 const UNPAID_CHECKOUT_WINDOW_MS = 3_600_000
@@ -394,7 +394,8 @@ export async function checkoutAction(submitted: CheckoutForm): Promise<CheckoutR
     // Several gateways on: who to try next if this one cannot open the payment.
     const fallbacks = await storePaymentFallbacks(tx, storeId, providers, provider.id)
     const giftCardIds: string[] = []
-    for (const code of form.giftCards ?? []) {
+    const codes = Array.isArray(form.giftCards) ? form.giftCards.slice(0, MAX_GIFT_CARDS) : []
+    for (const code of codes) {
       giftCardIds.push((await findRedeemableGiftCard({ storeId, tx }, code)).id)
     }
     return { provider, fallbacks, giftCardIds }

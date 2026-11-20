@@ -1,4 +1,10 @@
-import { CartEmpty, PreorderLimitReached, PriceNotSet, VariantHidden } from '@commerce/core'
+import {
+  CartEmpty,
+  PreorderLimitReached,
+  PriceNotSet,
+  TooManyPaymentTries,
+  VariantHidden,
+} from '@commerce/core'
 import { describe, expect, it } from 'vitest'
 import { checkoutContent } from '@/data/checkout'
 import { checkoutErrorMessage } from './checkout-errors'
@@ -16,6 +22,12 @@ describe('checkoutErrorMessage', () => {
   it('says a full pre-order is full, not out of stock (#1539)', () => {
     expect(checkoutErrorMessage(new PreorderLimitReached('v1'), '560001')).toBe(
       checkoutContent.errors.preorderFull,
+    )
+  })
+
+  it('tells the shopper an order that declined too often must rest (card testing guard)', () => {
+    expect(checkoutErrorMessage(new TooManyPaymentTries('o1'), '560001')).toBe(
+      checkoutContent.errors.tooManyPaymentTries,
     )
   })
 
