@@ -34,6 +34,8 @@ import PanelToggle from './panel-toggle'
 import SectionInspector from './section-inspector'
 import SectionsPanel from './sections-panel'
 import ShortcutsDialog from './shortcuts-dialog'
+import ThemeScriptsFrame from './theme-scripts-frame'
+import ThemeScriptsToggle from './theme-scripts-toggle'
 
 /**
  * Side panels close by narrowing to nothing (the canvas grows into the room, like a drawer)
@@ -69,6 +71,11 @@ type CustomizeLayoutProps = {
   aiEnabled: boolean
   /** The theme being edited, for the AI tab: its name and whether it is live. */
   theme: { name: string; live: boolean }
+  /**
+   * An imported theme's page on the store's own address, for the "Theme scripts" view (its
+   * JavaScript runs there, never in the admin). Null when the open page has no store address.
+   */
+  scriptsFrame?: { src: string; origin: string } | null | undefined
 }
 
 /**
@@ -89,6 +96,7 @@ export default function CustomizeLayout({
   previewResource,
   aiEnabled,
   theme,
+  scriptsFrame = null,
 }: CustomizeLayoutProps) {
   // Hooks
   const [panel, setPanel] = useState<RailPanel>('sections')
@@ -100,6 +108,7 @@ export default function CustomizeLayout({
   const panels = useCopy(customizeContent.panels)
   const identity = useCopy(customizeContent.identity)
   const [zoomMode, setZoomMode] = useState<CanvasZoom>('fit')
+  const [scripts, setScripts] = useState(false)
   const dispatch = useCustomizePuck((s) => s.dispatch)
   const selectedItem = useCustomizePuck((s) => s.selectedItem)
   const getPuck = useGetPuck()
@@ -307,11 +316,12 @@ export default function CustomizeLayout({
                         transform: `scale(${zoom})`,
                       }}
                       className={cn(
-                        'origin-top-left',
+                        'relative origin-top-left',
                         resize && `transition-[width,transform] ${resize}`,
                       )}
                     >
                       <Puck.Preview />
+                      {scripts && scriptsFrame ? <ThemeScriptsFrame {...scriptsFrame} /> : null}
                     </div>
                   </div>
                 </div>
@@ -319,6 +329,9 @@ export default function CustomizeLayout({
                   <>
                     <PanelToggle side="left" />
                     <PanelToggle side="right" />
+                    {scriptsFrame ? (
+                      <ThemeScriptsToggle on={scripts} onChange={setScripts} />
+                    ) : null}
                   </>
                 )}
                 <FullViewExit />

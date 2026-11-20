@@ -3,6 +3,7 @@ import { readHonoPreviewToken } from '@commerce/core/hono-preview'
 import { CONSENT_COOKIE } from '@commerce/core/preferences'
 import { withQuery } from '@commerce/core/redirects'
 import { THEME_PREVIEW_PARAM } from '@commerce/core/theme'
+import { THEME_DESIGN_MODE_PARAM } from '@commerce/core/theme-design-mode'
 import { type HostRoute, resolveHost, type StoreMarketRoute, storeMarkets } from '@commerce/db'
 import { type NextRequest, NextResponse } from 'next/server'
 import { FEED_FILES } from './data/product-feed'
@@ -332,6 +333,9 @@ async function routeRequest(
   // theme, for this page only. Only with a valid preview; the renderer checks the theme too.
   const version = request.nextUrl.searchParams.get('theme-version')
   if (preview && token && version && UUID.test(version)) headers.set('x-theme-version', version)
+  // Customize's Theme scripts view (`lib/liquid-design-mode.ts`): a valid preview, in a frame.
+  const design = inFrame && request.nextUrl.searchParams.get(THEME_DESIGN_MODE_PARAM) === '1'
+  if (preview && token && design) headers.set('x-theme-design-mode', '1')
 
   // Password page: while it is on, every page renders it unless the visitor has the
   // signed pass or a valid preview token.

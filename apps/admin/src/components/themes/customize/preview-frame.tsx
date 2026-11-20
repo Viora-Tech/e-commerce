@@ -25,6 +25,7 @@ import { useCustomizePuck } from '@/lib/customize-puck'
 import { findBlock } from '@/lib/customize-slots'
 import { useLiquidHead, usePreviewMode, useThemePreview } from '@/lib/customize-theme-context'
 import { CANVAS_ZOOM_VAR, useCanvasZoom } from '@/lib/customize-zoom'
+import CanvasAppEmbeds from './canvas-app-embeds'
 import CanvasInboxLauncher from './canvas-inbox-launcher'
 import CanvasInsertLine from './canvas-insert-line'
 
@@ -266,6 +267,8 @@ export default function PreviewFrame({ children, document }: PreviewFrameProps) 
       {children}
       {/* The Inbox chat button, where the store shows it (the storefront leaves it out of previews). */}
       <CanvasInboxLauncher />
+      {/* Installed apps' embeds that are on (the floating reviews tab), as the store draws them. */}
+      <CanvasAppEmbeds />
       {document ? <CanvasInsertLine document={document} /> : null}
     </EditorSelectionContext.Provider>
   )

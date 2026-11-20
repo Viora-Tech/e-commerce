@@ -3,6 +3,7 @@ import { resolveThemeVariantId } from '@commerce/core'
 import { addLineAction, cartCountAction } from '@/lib/cart-actions'
 import { submitContact } from '@/lib/contact-actions'
 import { islandAction } from '@/lib/hono-island/actions'
+import { editorSectionsResponse } from '@/lib/liquid-editor-sections'
 import { renderStaticLiquidSection } from '@/lib/liquid-theme'
 import { requestPriceCents } from '@/lib/market-pricing'
 import { localizationAction, marketSuggestionAction } from '@/lib/market-switch'
@@ -112,6 +113,8 @@ export const POST = withEvlog(async (req: Request, { params }: Params) => {
       }),
     )
   }
+  // Customize's "Theme scripts" canvas: unsaved sections rendered here (`lib/liquid-editor-sections.ts`).
+  if (action === 'editor-sections') return editorSectionsResponse(req, storeId)
   // The theme's country and language selector: the shopper's market (`lib/market-switch.ts`).
   if (action === 'localization') return localizationAction(req, storeId)
   // The buy box island on a Hono product page (`lib/hono-island/actions.ts`).

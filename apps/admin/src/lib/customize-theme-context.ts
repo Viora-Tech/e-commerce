@@ -113,3 +113,13 @@ export const OpenTemplateContext = createContext<TemplateKind | null>(null)
 export function useOpenTemplate(): TemplateKind | null {
   return useContext(OpenTemplateContext)
 }
+
+/**
+ * The apps this store has installed, for canvas chrome that draws what they add to the store (app
+ * embeds, `CanvasAppEmbeds`). Empty outside Customize.
+ */
+export const InstalledAppsContext = createContext<readonly string[]>([])
+
+export function useInstalledApps(): readonly string[] {
+  return useContext(InstalledAppsContext)
+}

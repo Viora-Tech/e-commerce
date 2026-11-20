@@ -1,6 +1,7 @@
 'use client'
 
 import type { TemplateKind } from '@commerce/core/theme'
+import { designModeUrl } from '@commerce/core/theme-design-mode'
 import { type Data, Puck } from '@puckeditor/core'
 import '@/styles/vendor-puck.css'
 import '@/styles/vendor-blocks.css'
@@ -28,6 +29,7 @@ import { previewDefaultMode, useDeviceDark } from '@/lib/customize-preview-root'
 import { useThemePacks } from '@/lib/customize-theme-context'
 import { scopeFor } from '@/lib/dynamic-sources'
 import { useInboxEmbedFor } from '@/lib/inbox-embed-store'
+import { designFramePath } from '@/lib/liquid-design-frame'
 import { routes } from '@/lib/routes'
 import { useCodeDrafts } from '@/lib/use-code-drafts'
 import { useCustomizePreview } from '@/lib/use-customize-preview'
@@ -313,6 +315,12 @@ export default function CustomizeEditor({
     doc: loaded?.doc ?? null,
   })
   const liquidHead = importedSettings.head
+  // The "Theme scripts" view: the page on the store's address, where the theme's JS may run.
+  const scriptsPath = designFramePath(ref.key, ref.suffix, preview.resource)
+  const scriptsFrame =
+    liquidInfo && scriptsPath
+      ? { src: designModeUrl(origin, record.previewToken, scriptsPath), origin }
+      : null
   const sourceScope = scopeFor(ref.key, preview.kind, preview.resourceId)
   // Keep showing the previously loaded template (dimmed via `switching`) while the
   // next one fetches, instead of unmounting the whole editor to a blank "Connecting" screen.
@@ -374,7 +382,14 @@ export default function CustomizeEditor({
   ) : (
     <ThemePanel theme={settings} mode={mode} onChange={setSettings} onMode={setModePick} />
   )
-  const appsPanel = <AppsPanel installed={installedApps} theme={settings} onChange={setSettings} />
+  const appsPanel = (
+    <AppsPanel
+      installed={installedApps}
+      theme={settings}
+      onChange={setSettings}
+      imported={liquidInfo?.appEmbeds}
+    />
+  )
   const previewResource = preview.kind
     ? {
         kind: preview.kind,
@@ -408,6 +423,7 @@ export default function CustomizeEditor({
             mode={mode}
             sourceScope={sourceScope}
             template={loaded?.ref.key ?? ref.key}
+            installedApps={installedApps}
           >
             <CustomizeHotkeys />
             <SectionRemovedToast />
@@ -433,6 +449,7 @@ export default function CustomizeEditor({
               previewResource={previewResource}
               aiEnabled={ai.assistant}
               theme={{ name: record.name, live: record.role === 'main' }}
+              scriptsFrame={scriptsFrame}
             />
           </CustomizeContexts>
         </Puck>

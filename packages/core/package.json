@@ -48,6 +48,7 @@
     "./navigation-tree": "./src/navigation/tree.ts",
     "./theme": "./src/theme/client.ts",
     "./theme-preview": "./src/theme/preview-messages.ts",
+    "./theme-design-mode": "./src/theme/design-mode-messages.ts",
     "./theme-import": "./src/theme-import/client.ts",
     "./theme-code": "./src/theme-code/client.ts",
     "./preferences": "./src/online-store/preferences.ts",

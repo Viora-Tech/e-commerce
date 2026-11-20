@@ -122,3 +122,24 @@ describe('consent through the shim', () => {
     expect(sent).toEqual([{ analytics: true, marketing: false }])
   })
 })
+
+describe("Customize's design mode", () => {
+  const shimmed = (designMode?: boolean) => {
+    const win = {
+      Node: FakeNode,
+      fetch: () => Promise.resolve(new Response('{}')),
+    } as unknown as Window & {
+      Shopify?: { designMode?: boolean }
+    }
+    const config =
+      designMode === undefined ? { askConsent: false } : { askConsent: false, designMode }
+    new Function('window', 'location', liquidShim(config))(win, new URL('https://shop.example/'))
+    return win.Shopify
+  }
+
+  it('sets Shopify.designMode only on the editor frame', () => {
+    expect(shimmed(true)?.designMode).toBe(true)
+    expect(shimmed(false)?.designMode).toBeUndefined()
+    expect(shimmed()?.designMode).toBeUndefined()
+  })
+})
