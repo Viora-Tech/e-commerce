@@ -1,5 +1,6 @@
 import { siteConfig } from '@commerce/config/site'
 import type { TemplateData } from '../types'
+import { reportSubject } from './report-subject'
 
 /**
  * Every word a shopper receives. Change copy here, never inside a renderer.
@@ -130,8 +131,7 @@ export const transferTemplates = {
       `${d.storeName}: new order #${d.orderNumber}, ${d.totalLabel}.${d.actionUrl ? ` Open: ${d.actionUrl}` : ''}`,
   },
   staff_daily_summary: {
-    subject: (d) =>
-      `${d.storeName}: ${ordersCount(d.dailySummary?.orders ?? 0)}, ${d.dailySummary?.salesLabel ?? ''}`,
+    subject: (d) => reportSubject(d, 'yesterday') ?? `${d.storeName}: ${ordersCount(d.dailySummary?.orders ?? 0)}, ${d.dailySummary?.salesLabel ?? ''}`,
     heading: (d) => `Your day at ${d.storeName}`,
     intro: (d) => {
       const s = d.dailySummary

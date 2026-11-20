@@ -4,7 +4,7 @@ import { eq } from 'drizzle-orm'
 import { parseCheckoutSettings } from '../checkout/settings'
 import { loadTemplate, mainThemeId } from '../theme/templates'
 import { loadThemeBundle } from '../theme-import/bundle-store'
-import { liquidThemeLogoUrl } from '../theme-import/logo'
+import { liquidThemeDarkLogoUrl, liquidThemeLogoUrl } from '../theme-import/logo'
 
 /**
  * A URL a mail client can load: absolute http(s) as is, protocol-relative as https, a site path
@@ -19,15 +19,16 @@ function emailImageUrl(url: string | null | undefined, shopUrl: string | null): 
   return null
 }
 
-/** The live imported theme's header logo, or null when the live theme is one of ours. */
-async function liquidLogo(tx: StoreTx): Promise<string | null> {
+/** The live imported theme's header logo (or its dark-background one), or null when the live theme is one of ours. */
+async function liquidLogo(tx: StoreTx, dark = false): Promise<string | null> {
   const themeId = await mainThemeId(tx)
   if (!themeId) return null
   const bundle = await loadThemeBundle(tx, themeId)
   if (!bundle) return null
   const header = await loadTemplate(tx, themeId, 'header', '')
   const content = Array.isArray(header.data.content) ? header.data.content : []
-  return liquidThemeLogoUrl(content as { type: string; props: Record<string, unknown> }[], bundle)
+  const items = content as { type: string; props: Record<string, unknown> }[]
+  return dark ? liquidThemeDarkLogoUrl(items, bundle) : liquidThemeLogoUrl(items, bundle)
 }
 
 /** The store's email logo as an absolute URL, or null (the email then shows the store name). */
@@ -47,4 +48,12 @@ export async function storeEmailLogo(
     .from(store)
     .where(eq(store.id, storeId))
   return emailImageUrl(parseCheckoutSettings(s?.preferences).branding.logo?.url, shopUrl)
+}
+
+/**
+ * The logo for a dark background (an imported theme's `logo_dark`), absolute, or null. The team
+ * reports draw the store's logo on a black band and fall back to a light band without one.
+ */
+export async function storeEmailDarkLogo(tx: StoreTx, shopUrl: string | null): Promise<string | null> {
+  return emailImageUrl(await liquidLogo(tx, true), shopUrl)
 }

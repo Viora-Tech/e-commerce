@@ -1,3 +1,4 @@
+import type { PerformanceReport } from './report-types'
 import type { ChannelTemplateSpec, ChannelTemplateStatus } from './template-types'
 
 /**
@@ -118,6 +119,9 @@ export type TemplateId =
    * to be shipped (`dailySummary`). `actionUrl` opens the admin. Email or WhatsApp.
    */
   | 'staff_daily_summary'
+  /** To a TEAM MEMBER who turned on the weekly or monthly report: the period's `report`. Email only. */
+  | 'staff_weekly_report'
+  | 'staff_monthly_report'
   /**
    * PLATFORM message: the code that confirms a member's NEW sign-in email (Account → Sign-in &
    * security → Change email). Sent to the new address; `code` is the one-time code. Email only.
@@ -175,6 +179,8 @@ export type CustomMessage = { subject?: string | undefined; message?: string | u
  */
 export type EmailBrandInfo = {
   logoUrl?: string | null | undefined
+  /** The logo drawn on a dark background (an imported theme's `logo_dark`), when the store has one. */
+  logoDarkUrl?: string | null | undefined
   /** Logo width in px as the theme sets it (60-320). */
   logoWidth?: number | undefined
   /** The theme's button colour and the text drawn on it, as `#rrggbb`. */
@@ -378,6 +384,8 @@ export type TemplateData = {
   contactMessage?:
     | { name: string; email: string; phone: string; text: string; path: string }
     | undefined
+  /** For the staff daily summary and weekly/monthly reports: the whole report, formatted. */
+  report?: PerformanceReport | undefined
   /** For staff_daily_summary: the period and its figures, already formatted. */
   dailySummary?:
     | { periodLabel: string; orders: number; salesLabel: string; toShip: number }

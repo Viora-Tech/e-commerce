@@ -1,8 +1,10 @@
 import { render } from '@react-email/render'
 import { createElement } from 'react'
+import { PerformanceReportEmail } from '../emails/performance-report'
 import { TransactionalEmail } from '../emails/transactional-email'
 import type { TemplateData, TemplateId } from '../types'
 import { sharedContent as shared, templateContent } from './content'
+import { reportPlainText } from './content-reports'
 
 export type EmailBody = { subject: string; text: string; html: string }
 export type WhatsappBody = { text: string }
@@ -39,6 +41,8 @@ export const TEMPLATE_IDS: TemplateId[] = [
   'unpaid_cancel_notice',
   'staff_new_order',
   'staff_daily_summary',
+  'staff_weekly_report',
+  'staff_monthly_report',
   'contact_message',
   'review_request',
   'review_reminder',
@@ -111,6 +115,8 @@ export const TEMPLATE_NAMES: Record<TemplateId, string> = {
   unpaid_cancel_notice: 'Unpaid order will be cancelled (merchant)',
   staff_new_order: 'New order (team member alert)',
   staff_daily_summary: 'Daily summary (team member alert)',
+  staff_weekly_report: 'Weekly report (team member alert)',
+  staff_monthly_report: 'Monthly report (team member alert)',
   contact_message: 'New form message (merchant)',
   review_request: 'Review request',
   review_reminder: 'Review reminder',
@@ -176,6 +182,10 @@ function eyebrowFor(template: TemplateId, d: TemplateData): string {
       return 'Your bug report'
     case 'staff_daily_summary':
       return 'Daily summary'
+    case 'staff_weekly_report':
+      return 'Weekly report'
+    case 'staff_monthly_report':
+      return 'Monthly report'
     case 'email_change_code':
     case 'email_changed':
       return 'Your sign-in email'
@@ -330,6 +340,8 @@ function parcelsBlock(d: TemplateData, template: TemplateId) {
 const INTERNAL: ReadonlySet<TemplateId> = new Set<TemplateId>([
   'staff_new_order',
   'staff_daily_summary',
+  'staff_weekly_report',
+  'staff_monthly_report',
   'contact_message',
   'question_asked',
   'affiliate_application',
@@ -392,7 +404,26 @@ function storeCreditRows(d: TemplateData): { label: string; amount: string }[] {
   ]
 }
 
+/** The team reports render through their own layout when the report data is there. */
+const REPORTS: ReadonlySet<TemplateId> = new Set<TemplateId>([
+  'staff_daily_summary',
+  'staff_weekly_report',
+  'staff_monthly_report',
+])
+
 export async function renderEmail(template: TemplateId, d: TemplateData): Promise<EmailBody> {
+  if (d.report && REPORTS.has(template)) {
+    const subject = d.custom?.subject?.trim() || templateContent[template].subject(d)
+    const html = await render(
+      createElement(PerformanceReportEmail, {
+        storeName: d.storeName,
+        brand: d.brand,
+        previewText: subject,
+        report: d.report,
+      }),
+    )
+    return { subject, text: squash(reportPlainText(d).split('\n')), html }
+  }
   const c = templateContent[template]
   const creditLine = storeCreditLine(d)
   const creditRows = storeCreditRows(d)

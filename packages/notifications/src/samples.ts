@@ -1,6 +1,7 @@
 import { siteConfig } from '@commerce/config/site'
 import { formatInZone } from '@commerce/dates'
 import type { TemplateData, TemplateId } from './types'
+import { sampleDailyReport, sampleMonthlyReport, sampleWeeklyReport } from './samples-reports'
 
 /** Sample order used by the conformance suite, the dev preview and the admin's message preview. */
 export const sampleTemplateData: TemplateData = {
@@ -390,7 +391,10 @@ export const sampleTemplateDataByTemplate: Record<TemplateId, TemplateData> = {
     totalLabel: '',
     actionUrl: `https://admin.${siteConfig.brand.domain}/`,
     dailySummary: { periodLabel: 'Today so far', orders: 14, salesLabel: '₹28,640', toShip: 6 },
+    report: sampleDailyReport,
   },
+  staff_weekly_report: { ...base, lines: [], totalLabel: '', report: sampleWeeklyReport },
+  staff_monthly_report: { ...base, lines: [], totalLabel: '', report: sampleMonthlyReport },
   email_change_code: {
     ...base,
     storeName: siteConfig.brand.name,
