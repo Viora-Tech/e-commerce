@@ -75,6 +75,7 @@ export type {
   OutcomeRow,
 } from './services/growth-outcomes.service'
 export type { CampaignDay, CampaignLinkRow, CampaignReport } from './services/growth-report.service'
+export type { HomeFacts, PaymentMixMethod } from './services/home-facts.service'
 export type {
   HomeAnalytics,
   HomeCompare,

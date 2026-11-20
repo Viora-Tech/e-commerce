@@ -52,8 +52,9 @@ function topCities(orders: DashboardSummary['mapOrders']): { city: string; count
 }
 
 /**
- * "Live now": visitors on the store right now, today's orders and sales, and the dotted
- * globe cropped to its top half at the bottom of the card. Polls every ~20s while the tab is
+ * "Live now": visitors on the store right now, their top cities and the dotted globe cropped
+ * to its top half at the bottom of the card (today's orders and sales are in the greeting, so
+ * the card no longer repeats them: 19 Nov). Polls every ~20s while the tab is
  * visible. Without WebGL (or any order with an address) the numbers stand alone.
  */
 export default function LiveNow({ initial }: LiveNowProps) {
@@ -114,12 +115,6 @@ export default function LiveNow({ initial }: LiveNowProps) {
         />
         <p className="text-caption font-normal leading-[1.1875rem] text-muted-foreground">
           {copy.visitors(visitors)}
-        </p>
-        <p className="text-caption leading-[1.1875rem] font-medium text-foreground">
-          {copy.today(
-            copy.ordersWord(data.today.ordersCount),
-            fmt.moneyWhole(data.today.salesPaise),
-          )}
         </p>
         {cities.length > 0 ? (
           <ul className="mt-1.5 flex flex-wrap gap-1.5">

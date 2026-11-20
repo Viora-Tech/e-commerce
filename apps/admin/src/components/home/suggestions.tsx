@@ -15,6 +15,15 @@ type SuggestionsProps = {
 
 const MAX = 6
 
+/**
+ * Cards that repeat a Needs you job (orders to ship, restock): Needs you already shows them with
+ * the page's one count, so Ideas keeps only true ideas (owner, 19 Nov).
+ */
+const NEEDS_YOU_KINDS: ReadonlySet<HomeCard['kind']> = new Set([
+  'old_unfulfilled',
+  'restock_bestseller',
+])
+
 type Copy = (typeof homePageContent)['suggest']
 
 /** The orders list on its Unfulfilled tab. */
@@ -103,16 +112,19 @@ function toSuggestion(card: HomeCard, c: Copy, money: (paise: number) => string)
 }
 
 /**
- * "Suggested for you" (#101): the store's smart cards, built daily from its own numbers by
- * `@commerce/core` home-cards (a product page nobody adds to cart, a festival collection still
- * live, repeat buyers without a segment…). Set-up ideas from the store's apps fill any room
+ * "Ideas for your store" (#101; "Suggested for you" until 19 Nov): the store's smart cards,
+ * built daily from its own numbers by `@commerce/core` home-cards (a product page nobody adds to
+ * cart, a festival collection still live, repeat buyers without a segment…), minus the ones that
+ * repeat a Needs you job. Set-up ideas from the store's apps fill any room
  * left. Smart cards are dismissed for the whole store; the set-up ones per browser.
  */
 export default async function Suggestions({ cards, signals }: SuggestionsProps) {
   // Render logic
   const c = (await getCopy(homePageContent)).suggest
   const fmt = formatters(await getLocale())
-  const items: Suggestion[] = (cards ?? []).map((card) => toSuggestion(card, c, fmt.money))
+  const items: Suggestion[] = (cards ?? [])
+    .filter((card) => !NEEDS_YOU_KINDS.has(card.kind))
+    .map((card) => toSuggestion(card, c, fmt.money))
 
   if (signals && !signals.whatsappConnected) {
     items.push({
