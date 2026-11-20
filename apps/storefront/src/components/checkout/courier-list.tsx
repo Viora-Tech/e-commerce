@@ -131,7 +131,7 @@ export default function CourierList({
           return (
             <label
               key={`${optionId}:${c.routeKey}`}
-              className={`flex cursor-pointer items-center gap-3 border-b border-ck-line-strong px-3.5 py-2.5 transition-[background-color,box-shadow] duration-150 ease-out last:border-b-0 has-[:focus-visible]:[box-shadow:inset_0_0_0_2px_var(--ck-accent)] motion-reduce:transition-none ${on ? CK_PICKED : 'hover:bg-ck-soft/50'}`}
+              className={`flex cursor-pointer items-center gap-3 border-b border-ck-line-strong px-3.5 py-2.5 first:rounded-t-[calc(var(--ck-radius)-1px)] last:rounded-b-[calc(var(--ck-radius)-1px)] transition-[background-color,box-shadow] duration-150 ease-out last:border-b-0 has-[:focus-visible]:[box-shadow:inset_0_0_0_2px_var(--ck-accent)] motion-reduce:transition-none ${on ? CK_PICKED : 'hover:bg-ck-soft/50'}`}
             >
               <input
                 type="radio"
@@ -167,9 +167,23 @@ export default function CourierList({
           type="button"
           onClick={handleToggle}
           aria-expanded={open}
-          className="self-start text-[0.8125rem] font-medium text-ck-accent-lift underline-offset-2 hover:underline"
+          className="flex w-full items-center justify-center gap-1.5 rounded-ck border border-dashed border-ck-line-strong bg-ck-soft/40 px-3.5 py-2.5 text-[0.875rem] font-semibold text-ck-ink transition-colors duration-150 hover:border-ck-accent-lift hover:bg-ck-accent-soft focus-visible:outline-2 focus-visible:outline-ck-accent motion-reduce:transition-none"
         >
           {open ? appCopy.showLess : appCopy.showMore(hidden)}
+          <svg
+            aria-hidden="true"
+            viewBox="0 0 16 16"
+            className={`size-4 transition-transform duration-150 ${open ? 'rotate-180' : ''}`}
+          >
+            <path
+              d="M4 6l4 4 4-4"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.75"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
         </button>
       ) : null}
     </div>
