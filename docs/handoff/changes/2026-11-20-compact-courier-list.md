@@ -6,8 +6,8 @@ Owner, while testing Delivery options with all couriers shown: the list was too 
   in a single box (logo, name, date, price). First row tagged Cheapest; the cheapest of the rows
   arriving on the earliest day tagged Fastest. Three rows until "Show N more couriers".
 - Cash on delivery is said once above the rows ("on every courier"), not on each card.
-- A courier at the same price as the first now says "Same price" (it showed the full price,
-  so two cards both looked included).
+- A courier at the same price as the first shows that price (owner: no "Same price" text;
+  dearer couriers show "+ ₹X").
 - The order summary names just the courier ("Blue Dart Air") in courier-list mode, not
   "Standard · Blue Dart Air".
 

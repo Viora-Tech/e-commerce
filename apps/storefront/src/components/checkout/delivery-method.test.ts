@@ -160,7 +160,7 @@ describe('DeliveryMethod', () => {
       expect(html).not.toContain('Cash on delivery available')
     })
 
-    it('shows three couriers until asked, and a courier at the same price says so', () => {
+    it('shows three couriers until asked, and a courier at the same price shows that price', () => {
       const four: CheckoutRate = {
         ...list,
         delivery: {
@@ -174,7 +174,8 @@ describe('DeliveryMethod', () => {
         },
       }
       const html = render({ rates: [four] })
-      expect(html).toContain('Same price')
+      expect(html).not.toContain('Same price')
+      expect(html.match(/₹49/g)).toHaveLength(2)
       expect(html).toContain('Show 1 more courier')
       expect(html).not.toContain('Amazon Shipping')
     })

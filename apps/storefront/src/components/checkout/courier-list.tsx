@@ -53,9 +53,9 @@ export function rowPrice(
   price: (paise: number) => string,
   money: (paise: number) => string,
 ): string {
-  if (i === 0) return price(pricePaise)
+  // Owner, 20 Nov 2026: a courier at the included price shows that price, not "Same price".
   const extra = pricePaise - basePaise
-  return extra > 0 ? `+ ${money(extra)}` : appCopy.samePrice
+  return i > 0 && extra > 0 ? `+ ${money(extra)}` : price(pricePaise)
 }
 
 function Tag({ children }: { children: string }) {

@@ -16,7 +16,6 @@ export const deliveryOptionsContent = {
   /** The courier list's tags and controls. */
   cheapest: 'Cheapest',
   fastest: 'Fastest',
-  samePrice: 'Same price',
   showMore: (n: number) => `Show ${n} more ${n === 1 ? 'courier' : 'couriers'}`,
   showLess: 'Show fewer couriers',
   /** The summary's delivery row while the parcel is insured (Figma 945:519). */
