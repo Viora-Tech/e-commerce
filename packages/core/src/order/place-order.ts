@@ -7,6 +7,7 @@ import {
   checkoutRuleSubtotalPaise,
   parseCheckoutSettings,
 } from '../checkout/settings'
+import { requestCodConfirmation } from '../cod-rto/confirm'
 import { assessCheckoutRisk } from '../cod-rto/risk'
 import type { StoreContext } from '../context'
 import { applyDiscount } from '../discounts/evaluate'
@@ -270,9 +271,15 @@ const reserveStock: WorkflowStep<State> = {
  */
 const recordPaymentAttempt: WorkflowStep<State> = {
   name: 'recordPaymentAttempt',
-  async run({ ctx, input, totalPaise, balanceDuePaise, giftCardPaise, storeCreditPaise, orderId }) {
+  async run(state) {
+    const { ctx, input, totalPaise, balanceDuePaise, giftCardPaise, storeCreditPaise, orderId } =
+      state
     if (!orderId) throw new Error('recordPaymentAttempt before createOrder')
     const tender = { giftCardPaise, storeCreditPaise, totalPaise, balanceDuePaise }
+    // COD & RTO app: ask a cash on delivery shopper to confirm, once nothing else paid it all. A
+    // COD pick that store credit or gift cards covered has nothing to collect on delivery: no
+    // "confirm your COD order" message, and no unanswered-confirmation auto-cancel of a paid order.
+    if (state.risk?.verify && !paidByCards(tender)) await requestCodConfirmation(ctx, orderId)
     if (paidByCards(tender)) {
       await ctx.tx
         .update(order)

@@ -192,6 +192,27 @@ describe('checkoutTotals with store credit', () => {
     expect(t.codBlocked).toBe(false)
   })
 
+  it('covering it all with cash on delivery picked, the order is prepaid: no COD fee', () => {
+    const withFee = [decentro, { ...cod, adjustment: { type: 'fixed' as const, value: 5000 } }]
+    const t = checkoutTotals({ ...base, methods: withFee, storeCreditPaise: 900_000 })
+    expect(t.payment).toBe('decentro')
+    expect(t.coveredByCards).toBe(true)
+    expect(t.totalPaise).toBe(499_900)
+    expect(t.storeCreditUsedPaise).toBe(499_900)
+    expect(t.payNowPaise).toBe(0)
+    // Without credit the same pick stays on cash on delivery and carries its fee.
+    const plain = checkoutTotals({ ...base, methods: withFee })
+    expect(plain.payment).toBe('cod')
+    expect(plain.totalPaise).toBe(504_900)
+  })
+
+  it('keeps cash on delivery when the store offers no online way to pay', () => {
+    const t = checkoutTotals({ ...base, methods: [cod], storeCreditPaise: 900_000 })
+    expect(t.payment).toBe('cod')
+    expect(t.coveredByCards).toBe(true)
+    expect(t.payNowPaise).toBe(0)
+  })
+
   it('spends after gift cards and leaves a pre-order balance for later', () => {
     const t = checkoutTotals({
       ...base,
@@ -273,6 +294,15 @@ describe('checkoutTotals with the Delivery options app', () => {
     expect(checkoutTotals({ ...base, rate: card(), picked: 'decentro' }).totalPaise).toBe(
       499_900 + 6000,
     )
+  })
+
+  it('store credit that covers the prepaid price is never charged the COD route', () => {
+    // ₹5,059 covers the prepaid ₹4,999 + ₹60 but not the COD route's ₹90.
+    const t = checkoutTotals({ ...base, rate: card(), picked: 'cod', storeCreditPaise: 505_900 })
+    expect(t.payment).toBe('decentro')
+    expect(t.totalPaise).toBe(499_900 + 6000)
+    expect(t.coveredByCards).toBe(true)
+    expect(t.payNowPaise).toBe(0)
   })
 
   it('the summary row reads "insured" while the parcel is insured (Figma 945:519)', () => {
