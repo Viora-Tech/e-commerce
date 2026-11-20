@@ -1,14 +1,14 @@
 /**
  * Shopify's public JSON paths that do not map onto a route folder by themselves: a product's
- * `/products/<h>.json` and `.js` and a collection's `/collections/<h>.json` share their page's
- * dynamic segment, so the proxy rewrites them to a child route (`product.json`, `product.js`,
+ * `/products/<h>.json` and `.js` (and our `.md` copy for AI agents) and a collection's `/collections/<h>.json` share their page's
+ * dynamic segment, so the proxy rewrites them to a child route (`product.json`, `product.js`, `product.md`,
  * `collection.json`). `/products.json`, `/collections.json` and `/collections/<h>/products.json`
  * are route folders already. Shopify's child sitemaps are rewritten onto `sitemap.xml/[part]`. Pure.
  */
 
 import { SHOPIFY_SITEMAPS } from '@/data/seo'
 
-const PRODUCT_FILE = /^\/products\/([^/]+)\.(json|js)$/
+const PRODUCT_FILE = /^\/products\/([^/]+)\.(json|js|md)$/
 const COLLECTION_FILE = /^\/collections\/([^/]+)\.json$/
 
 /** The store-relative path to render for a Shopify JSON path, or null for any other path. */

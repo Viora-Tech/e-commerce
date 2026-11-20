@@ -4,6 +4,7 @@ import type { Metadata } from 'next'
 import { headers } from 'next/headers'
 import { SEO_DESCRIPTION_MAX, seoContent } from '@/data/seo'
 import { MARKET_HEADERS, marketPath } from './markets'
+import { type LdOption, variantOptionProps, variesBy } from './seo-variants'
 import { originFromHost } from './store-resolver'
 
 /** The shopper-facing origin of this request, for canonical and JSON-LD URLs. */
@@ -119,7 +120,12 @@ type ProductForLd = {
     pricePaise: number | null
     available: number
     purchasable?: boolean | undefined
+    /** The option values this variant is (`options[].values[].id`), for its ProductGroup entry. */
+    optionValueIds?: readonly string[] | undefined
+    imageUrl?: string | null | undefined
   }[]
+  /** The product's options (Size, Colour…); a product with several variants lists them. */
+  options?: readonly LdOption[] | undefined
   preorder?: { enabled: boolean } | null | undefined
   /** Average and count of published reviews (Reviews app); null or absent with none. */
   rating?: { value: number; count: number } | null | undefined
@@ -203,7 +209,8 @@ function shippingLd(shipping: OfferPolicies['shipping'], pricePaise: number, cur
 
 /**
  * Product with one Offer per variant (INR, stock), its rating and a few reviews when the
- * Reviews app has published ones, and its breadcrumb trail.
+ * Reviews app has published ones, and its breadcrumb trail. With several variants it is a
+ * ProductGroup whose `hasVariant` lists each priced variant as its own Product.
  */
 export function productGraph(
   p: ProductForLd,
@@ -251,17 +258,41 @@ export function productGraph(
       : {}),
   }))
   const prices = priced.map((v) => v.pricePaise)
+  // Several variants: a ProductGroup with one Product per priced variant (Google's product
+  // variants markup), so an agent reads each variant's own price, stock, SKU and options.
+  const grouped = p.variants.length > 1
+  const options = p.options ?? []
+  const varies = grouped ? variesBy(options) : []
+  const variants = grouped
+    ? priced.map((v, i) => ({
+        '@type': 'Product',
+        name: `${p.title} - ${v.title}`,
+        url: offers[i]?.url ?? url,
+        ...(v.sku ? { sku: v.sku } : {}),
+        ...gtinLd(v.barcode),
+        ...(v.imageUrl ? { image: v.imageUrl } : {}),
+        ...variantOptionProps(options, v.optionValueIds),
+        offers: offers[i],
+      }))
+    : []
   return {
     '@context': 'https://schema.org',
     '@graph': [
       {
-        '@type': 'Product',
+        '@type': grouped ? 'ProductGroup' : 'Product',
         '@id': `${url}#product`,
         name: p.title,
         url,
         ...(p.description ? { description: p.description } : {}),
         ...(p.images.length ? { image: p.images.map((i) => i.url) } : {}),
         brand: { '@type': 'Brand', name: p.vendor || storeName },
+        ...(grouped
+          ? {
+              productGroupID: p.handle,
+              ...(varies.length ? { variesBy: varies } : {}),
+              ...(variants.length ? { hasVariant: variants } : {}),
+            }
+          : {}),
         ...(p.variants.length === 1 && p.variants[0]?.sku ? { sku: p.variants[0].sku } : {}),
         ...(p.variants.length === 1 ? gtinLd(p.variants[0]?.barcode) : {}),
         offers:

@@ -124,7 +124,8 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   if (!found) return {}
   const { product, title, description } = found
   const url = await marketCanonical(`/products/${product.handle}`)
-  const price = defaultVariant(product)?.pricePaise
+  const first = defaultVariant(product)
+  const price = first?.pricePaise
   const images = product.images
     .filter((i) => !i.contentType?.startsWith('video/'))
     .slice(0, 4)
@@ -132,15 +133,20 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   return {
     title,
     description,
-    alternates: { canonical: url },
+    // The Markdown copy for AI agents (`/products/<handle>.md`, `lib/shopify-json/paths.ts`).
+    alternates: { canonical: url, types: { 'text/markdown': `${url}.md` } },
     openGraph: { type: 'website', url, title, description, images },
     twitter: { card: images.length ? 'summary_large_image' : 'summary', title, description },
-    // Shopify's product price tags, which link previews and price sites read.
+    // Shopify's product price tags, which link previews, price sites and AI agents read; the
+    // `og:` twins for readers that only know those.
     ...(price != null
       ? {
           other: {
             'product:price:amount': paiseToAmount(price),
             'product:price:currency': found.currency,
+            'og:price:amount': paiseToAmount(price),
+            'og:price:currency': found.currency,
+            'product:availability': first?.purchasable ? 'in stock' : 'out of stock',
           },
         }
       : {}),

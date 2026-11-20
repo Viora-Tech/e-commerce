@@ -166,6 +166,7 @@ describe('shopifyJsonPath', () => {
   it('rewrites the paths that share a page segment', () => {
     expect(shopifyJsonPath('/products/glass-pad.json')).toBe('/products/glass-pad/product.json')
     expect(shopifyJsonPath('/products/glass-pad.js')).toBe('/products/glass-pad/product.js')
+    expect(shopifyJsonPath('/products/glass-pad.md')).toBe('/products/glass-pad/product.md')
     expect(shopifyJsonPath('/collections/glasspads.json')).toBe(
       '/collections/glasspads/collection.json',
     )

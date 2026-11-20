@@ -7,7 +7,8 @@ import { storeRead } from '../store-cache'
 /**
  * The answer of every Shopify-compatible JSON endpoint: rate limited per IP, built once per
  * store version (`storeRead`, kept as the finished body so a 250-product page is not
- * re-serialised per request), public and cacheable. `build` returns null for a 404.
+ * re-serialised per request), public and cacheable. `build` returns null for a 404, or a
+ * string to send as it is.
  */
 export async function shopifyJsonResponse(
   request: Request,
@@ -25,7 +26,8 @@ export async function shopifyJsonResponse(
   }
   const body = await storeRead(storeId, `shopify-json|${key}`, async (tx) => {
     const value = await build(tx)
-    return value === null ? null : JSON.stringify(value)
+    // A string (the Markdown copy, `product.md`) is the body already.
+    return value === null ? null : typeof value === 'string' ? value : JSON.stringify(value)
   })
   if (body === null) {
     return Response.json(
