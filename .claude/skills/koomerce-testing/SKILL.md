@@ -62,6 +62,25 @@ package is only fully covered by `bun run test`.
 | App blocks | `packages/blocks/test/app-blocks.test.ts`, `render.test.tsx` |
 | Admin copy (Hindi) | `bun run --cwd apps/admin test` (the i18n test) plus typecheck |
 
+## Which layer to write (commerce changes)
+
+Adapted from the community `medusa-testing` and `medusa-workflows` skills (OrcaQubits, MIT);
+full table with examples in `koomerce-commerce-patterns/reference.md`.
+
+- **Pure unit** for a rule or a derivation (`order/aggregate-status.test.ts`,
+  `shipping/rates.test.ts`). No database, fastest; start here when the logic can be pulled out.
+- **Database-backed** for anything that locks, inserts or recomputes (`order/refund.test.ts`).
+- **Concurrency** for every limit or "exactly once" promise: run N calls with `Promise.all`,
+  each in its own transaction, and assert the count (`order/place-order.test.ts`, "8 parallel
+  checkouts on a code with limit 5..."). A test that runs the calls one after another proves
+  nothing about the lock.
+- **Failure path** for every step after a side effect: make the later step throw and assert
+  the earlier one was undone (stock released, capture refunded, no outbox row).
+- **Replay**: send the same request or webhook twice and assert one row and one effect.
+- **Cross-store**: a lookup by id must not reach another store's row.
+- Gateways and couriers are always faked (`payments/gateway-double.test-util.ts`); a test never
+  calls a real one.
+
 ## Test database
 
 - Database-backed packages (`api`, `auth`, `core`, `db`, `plugin-back-in-stock`,

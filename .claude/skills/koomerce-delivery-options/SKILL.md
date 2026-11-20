@@ -90,6 +90,9 @@ The ones that prove the consistency rule: `rule-price.test.ts` and `resolve-chec
 whenever a price shape changes. Owner workflow: on a branch you may skip the run and say so in
 the handoff note; the suite runs on `dev` (see `koomerce-testing`).
 
+Plain zone rates (no app) follow the Medusa-style shipping options pattern: the client sends a
+rate id and the server re-quotes (`koomerce-commerce-patterns`, pattern 7).
+
 ## Do not
 
 - Call a courier from `placeOrder`; it only re-runs the engine on saved or cached answers.

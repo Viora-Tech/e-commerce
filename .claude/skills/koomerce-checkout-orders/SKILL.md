@@ -84,6 +84,27 @@ A balance, never a gift card. Checkout: `customers/store-credit-checkout.ts`.
 - Cancel and refund: `order/status.ts` (`cancelOrder` gives back gift card and store credit),
   `order/refund.ts`, `order/refund-routes.ts`.
 
+## Money-path checklist
+
+Adapted from community Medusa skills (MIT); patterns, files and guarding tests are in
+`koomerce-commerce-patterns`. Before merging a change that prices, pays, refunds or cancels:
+
+- **Retry-safe**: a new gateway call carries a key (`attemptKey`, `refundKey`, the webhook
+  event id). Check the adapter actually sends it; Razorpay refunds do not today.
+- **Lock, then re-check**: anything with a limit (refund total, discount uses, store credit
+  balance, one capture per order) re-reads under a `FOR UPDATE` lock. Lock order first, then
+  payment, as `applyPaymentStatus` and `refundPayment` do.
+- **No network inside a stock or order lock** unless the call is idempotent; prefer after
+  commit (`startPaymentAttempt`).
+- **Amounts from the server only**: the client sends ids (variant, rate, delivery option,
+  discount code); amounts are recomputed, and a gateway's reported amount must cover the
+  attempt (`gatewayPaidTooLittle`).
+- **Every money row has its own record**: a refund is a `refund` row, so the derived status
+  sees it. Never flip `payment.status` to `refunded` without one.
+- **Store-scoped**: every lookup by id runs inside `withStore` with `storeId`; add a
+  cross-store test for a new lookup.
+- **Concurrency test** for any "exactly N" promise (see `koomerce-testing`).
+
 ## Tests
 
 Database-backed (needs `docker compose up -d --wait`):
