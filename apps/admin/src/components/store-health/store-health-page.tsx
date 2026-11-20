@@ -12,6 +12,7 @@ import { storeHealthContent } from '@/data/store-health'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { SEVERITY_TONE } from '@/lib/store-health'
+import AgentReadinessCard from './agent-readiness-card'
 import HealthIssueRow from './health-issue-row'
 
 type StoreHealthPageProps = {
@@ -19,7 +20,7 @@ type StoreHealthPageProps = {
   initial: StoreHealthReport | null
 }
 
-/** Settings → Store health: one card per severity, worst first, each problem with its fix link. */
+/** Settings → Store health: one card per severity, worst first, each problem with its fix link; then the AI shopping agents check. */
 export default function StoreHealthPage({ initial }: StoreHealthPageProps) {
   // Hooks
   const copy = useCopy(storeHealthContent)
@@ -101,6 +102,7 @@ export default function StoreHealthPage({ initial }: StoreHealthPageProps) {
           </SettingsCard>
         ))
       )}
+      <AgentReadinessCard />
     </div>
   )
 }

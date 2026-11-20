@@ -124,6 +124,7 @@
     "./courier-fingerprint": "./src/shipping/courier-fingerprint.ts",
     "./policies": "./src/policies/client.ts",
     "./store-health": "./src/store-health/checks.ts",
+    "./agent-readiness": "./src/store-health/agent-readiness.ts",
     "./sales-channels": "./src/sales-channels/client.ts",
     "./agent-knowledge": "./src/sales-channels/knowledge.ts",
     "./checkout-settings": "./src/checkout/settings.ts",

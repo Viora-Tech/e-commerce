@@ -6,6 +6,7 @@ import activityLog from './activity-log'
 import affiliateCreatives from './affiliate-creatives'
 import affiliateFilters from './affiliate-filters'
 import affiliates from './affiliates'
+import agentReadiness from './agent-readiness'
 import ai from './ai'
 import analytics from './analytics'
 import appInstall from './app-install'
@@ -337,6 +338,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...stepUp,
   ...storeData,
   ...storeHealth,
+  ...agentReadiness,
   ...storageWarning,
   ...table,
   ...themeCode,
