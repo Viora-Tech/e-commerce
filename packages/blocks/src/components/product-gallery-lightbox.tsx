@@ -29,6 +29,10 @@ const LIGHTBOX_SIZES = '(min-width: 990px) 100vw, 200vw'
 export const isVideo = (img: { contentType?: string | null | undefined }) =>
   img.contentType?.startsWith('video/') ?? false
 
+/** What a video plays: its smaller copy once the worker made it, else the original. */
+export const videoSrc = (img: { url: string; compactUrl?: string | null | undefined }) =>
+  img.compactUrl || img.url
+
 /** Positions in `images` of the pictures (videos already play in place). */
 const pictureIndexes = (images: MediaImage[]) =>
   images.flatMap((img, i) => (isVideo(img) ? [] : [i]))

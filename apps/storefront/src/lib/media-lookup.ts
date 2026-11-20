@@ -1,15 +1,18 @@
 import 'server-only'
 
+import { compactVideosByUrl } from '@commerce/core'
 import { media, type StoreTx } from '@commerce/db'
 import { and, inArray, isNotNull } from 'drizzle-orm'
 import { digest } from './liquid-cache'
 import {
   collectImageUrls,
+  collectVideoUrls,
   collectVideosWithoutPoster,
   type ImageMedia,
   MAX_LOOKUP_URLS,
   type PosterImage,
   withImageMedia,
+  withSmallVideos,
   withVideoPosters,
 } from './section-images'
 import { storeRead } from './store-cache'
@@ -86,8 +89,9 @@ export async function postersByVideoUrl(
 }
 
 /**
- * `value` with every section image the media library knows carrying its variants, and every
- * empty video poster filled with the video's poster from Files. Cached per
+ * `value` with every section image the media library knows carrying its variants, every
+ * empty video poster filled with the video's poster from Files, and every video playing its
+ * smaller copy once the worker has made it (the original until then). Cached per
  * store version, except in a theme preview (`fresh`), which reads the library as it is.
  */
 export async function attachImageMedia<T>(storeId: string, input: T, fresh: boolean): Promise<T> {
@@ -99,6 +103,15 @@ export async function attachImageMedia<T>(storeId: string, input: T, fresh: bool
       ? await inStore(storeId, readPosters)
       : await storeRead(storeId, `posters|${digest(videos)}`, readPosters)
     value = withVideoPosters(value, posters)
+  }
+  // After the posters, which are found by the original's address.
+  const videoUrls = collectVideoUrls(value)
+  if (videoUrls.length > 0) {
+    const readCopies = (tx: StoreTx) => compactVideosByUrl(tx, videoUrls)
+    const copies = fresh
+      ? await inStore(storeId, readCopies)
+      : await storeRead(storeId, `small-videos|${digest(videoUrls)}`, readCopies)
+    value = withSmallVideos(value, copies)
   }
   const urls = collectImageUrls(value)
   if (urls.length === 0) return value
