@@ -266,6 +266,16 @@ export function stripResolved(data: TemplateData): TemplateData {
   }
 }
 
+/**
+ * The template as Save would compare it: no resolveData output, and no empty `zones` (the editor
+ * always sends `zones: {}`; an imported theme's saved sections have none). Without this, undoing
+ * an edit left a draft that differed only by `zones: {}`, and "Unsaved changes" never went away.
+ */
+export function comparableTemplate(data: TemplateData): TemplateData {
+  const { zones, ...rest } = stripResolved(data)
+  return zones && Object.keys(zones).length > 0 ? { ...rest, zones } : rest
+}
+
 /** JSON with sorted keys, so two copies of the same template compare equal. */
 export function stableTemplateJson(value: unknown): string {
   return JSON.stringify(value, (_key, v) =>

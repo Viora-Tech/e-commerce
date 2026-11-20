@@ -15,6 +15,11 @@ type ThemePreviewStageProps = {
    * when the stored picture is blank.
    */
   picture: string | null
+  /**
+   * The saved home page's first picture (the hero's poster), shown while there is no screenshot;
+   * the swatch is the last resort.
+   */
+  cover?: string | null | undefined
 }
 
 /**
@@ -27,12 +32,17 @@ export default function ThemePreviewStage({
   origin,
   settings,
   picture: stored,
+  cover = null,
 }: ThemePreviewStageProps) {
   // Hooks
   const copy = useCopy(themesContent.library)
-  const picture = useShownPicture(stored)
+  const shot = useShownPicture(stored)
 
   // Render logic
+  const picture = shot ?? cover
+  // A cover is a photo, not a page: it fills both frames instead of shrinking into the phone.
+  const isCover = !shot && Boolean(cover)
+  const hint = isCover ? copy.coverHint : copy.pictureHint
   const host = origin.replace(/^https?:\/\//, '')
 
   return (
@@ -55,13 +65,13 @@ export default function ThemePreviewStage({
               <img
                 src={picture}
                 alt={copy.thumbnail(name)}
-                title={copy.pictureHint}
+                title={hint}
                 loading="lazy"
                 decoding="async"
-                className="size-full object-cover object-top"
+                className={isCover ? 'size-full object-cover' : 'size-full object-cover object-top'}
               />
             ) : (
-              <span role="img" aria-label={copy.thumbnail(name)} title={copy.pictureHint}>
+              <span role="img" aria-label={copy.thumbnail(name)} title={hint}>
                 <ThemeSwatch
                   theme={settings}
                   name={name}
@@ -83,7 +93,11 @@ export default function ThemePreviewStage({
                 alt=""
                 loading="lazy"
                 decoding="async"
-                className="size-full bg-card object-contain object-top"
+                className={
+                  isCover
+                    ? 'size-full bg-card object-cover'
+                    : 'size-full bg-card object-contain object-top'
+                }
               />
             ) : (
               <ThemeSwatch theme={settings} name={name} className="absolute inset-0 border-0 p-4" />

@@ -5,13 +5,14 @@ import { assertTemplateBindings, InvalidBindings } from '../dynamic-sources/serv
 import { sanitizeTemplateEmbeds } from './embeds'
 import { ThemeLibraryError } from './library'
 import { reassignTemplate } from './template-assignments'
+import { templateCover } from './template-cover'
 import {
   type AlternateKind,
+  comparableTemplate,
   defaultTemplate,
   isTemplateKey,
   parseTemplateData,
   stableTemplateJson,
-  stripResolved,
   TEMPLATE_SUFFIX,
   type TemplateData,
   type TemplateKey,
@@ -138,7 +139,7 @@ export async function saveTemplateDraft(
     const saved = parseTemplateData(existing.sections)
     const same =
       saved !== null &&
-      stableTemplateJson(stripResolved(saved)) === stableTemplateJson(stripResolved(data))
+      stableTemplateJson(comparableTemplate(saved)) === stableTemplateJson(comparableTemplate(data))
     await tx
       .update(themeTemplate)
       .set({ draft: same ? null : data, updatedAt: new Date() })
@@ -224,6 +225,26 @@ export async function themesWithDrafts(tx: StoreTx): Promise<Set<string>> {
     .from(themeTemplate)
     .where(isNotNull(themeTemplate.draft))
   return new Set(rows.map((r) => r.themeId))
+}
+
+/**
+ * Each theme's cover (`templateCover`): the first picture of its SAVED home page, for the Themes
+ * page when no screenshot exists. Reads only the first sections' JSON, never the drafts.
+ */
+export async function themeCovers(tx: StoreTx): Promise<Map<string, string>> {
+  const rows = await tx
+    .select({
+      themeId: themeTemplate.themeId,
+      top: sql<unknown>`jsonb_path_query_array(${themeTemplate.sections}, '$.content[0 to 2]')`,
+    })
+    .from(themeTemplate)
+    .where(and(eq(themeTemplate.template, 'home'), eq(themeTemplate.suffix, '')))
+  const covers = new Map<string, string>()
+  for (const row of rows) {
+    const cover = templateCover({ content: row.top })
+    if (cover) covers.set(row.themeId, cover)
+  }
+  return covers
 }
 
 /** Throws away every unsaved edit of the theme. */
