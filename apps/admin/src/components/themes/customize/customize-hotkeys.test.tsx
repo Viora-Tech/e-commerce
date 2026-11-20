@@ -67,3 +67,38 @@ describe('CustomizeHotkeys: Escape', () => {
     expect(dispatch).not.toHaveBeenCalled()
   })
 })
+
+describe('CustomizeHotkeys: Cmd/Ctrl+D', () => {
+  const duplicate = () =>
+    document.body.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'd', ctrlKey: true, bubbles: true }),
+    )
+  const withSection = (type: string) => {
+    puck.appState.data = {
+      root: { props: {} },
+      content: [{ type, props: { id: `${type}-1` } }] as never,
+      zones: {},
+    }
+  }
+  afterEach(() => {
+    puck.appState.data = { root: { props: {} }, content: [], zones: {} }
+  })
+
+  it('duplicates an ordinary section', () => {
+    withSection('RichText')
+    render(<CustomizeHotkeys />)
+    duplicate()
+    expect(dispatch).toHaveBeenCalledWith({
+      type: 'duplicate',
+      sourceIndex: 0,
+      sourceZone: 'root:default-zone',
+    })
+  })
+
+  it('never duplicates a one-per-page section (the menus offer no Duplicate either)', () => {
+    withSection('MainProduct')
+    render(<CustomizeHotkeys />)
+    duplicate()
+    expect(dispatch).not.toHaveBeenCalled()
+  })
+})

@@ -1,9 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import {
+  type ImportedPlace,
   type ImportedTheme,
   importedSections,
   matchesImported,
   newImportedSection,
+  sectionTypeCounts,
+  shopifyTemplateName,
 } from './imported-sections'
 
 const theme: ImportedTheme = {
@@ -44,13 +47,56 @@ const theme: ImportedTheme = {
 describe('importedSections', () => {
   it('lists only sections with a preset, by name, in the theme words', () => {
     expect(importedSections(theme)).toEqual([
-      { type: 'hero', name: 'Hero banner' },
-      { type: 'ticker', name: 'Ticker bar' },
+      { type: 'hero', preset: 0, name: 'Hero banner' },
+      { type: 'ticker', preset: 0, name: 'Ticker bar' },
     ])
   })
 
+  it('lists every preset of a section under its own name', () => {
+    const twoPresets: ImportedTheme = {
+      ...theme,
+      schemas: { cols: { name: 'Columns', presets: [{ name: 'Two columns' }, {}] } },
+    }
+    expect(importedSections(twoPresets)).toEqual([
+      { type: 'cols', preset: 1, name: 'Columns' },
+      { type: 'cols', preset: 0, name: 'Two columns' },
+    ])
+    expect(newImportedSection(twoPresets, 'cols', 0)?.props._name).toBe('Two columns')
+    expect(newImportedSection(twoPresets, 'cols', 2)).toBeNull()
+  })
+
+  it('follows enabled_on, disabled_on and limit for the place it adds to', () => {
+    const placed: ImportedTheme = {
+      ...theme,
+      schemas: {
+        bar: { name: 'Bar', presets: [{}], enabled_on: { groups: ['header'] } },
+        info: { name: 'Info', presets: [{}], enabled_on: { templates: ['product'] } },
+        promo: { name: 'Promo', presets: [{}], disabled_on: { groups: ['*'] } },
+        once: { name: 'Once', presets: [{}], limit: 1 },
+      },
+    }
+    const typesAt = (place: ImportedPlace, counts?: Map<string, number>) =>
+      importedSections(placed, { place, counts }).map((s) => s.type)
+    expect(typesAt({ template: 'index' })).toEqual(['once', 'promo'])
+    expect(typesAt({ template: 'product' })).toEqual(['info', 'once', 'promo'])
+    expect(typesAt({ group: 'header' })).toEqual(['bar', 'once'])
+    expect(typesAt({ group: 'footer' })).toEqual(['once'])
+    expect(typesAt({ template: 'index' }, new Map([['once', 1]]))).toEqual(['promo'])
+  })
+
+  it('counts imported sections by type and names our templates as Shopify does', () => {
+    const counts = sectionTypeCounts([
+      { type: 'LiquidSection', props: { id: 'a', sectionType: 'hero' } },
+      { type: 'LiquidSection', props: { id: 'b', sectionType: 'hero' } },
+      { type: 'RichText', props: { id: 'c' } },
+    ] as never)
+    expect([...counts]).toEqual([['hero', 2]])
+    expect(shopifyTemplateName('home')).toBe('index')
+    expect(shopifyTemplateName('product')).toBe('product')
+  })
+
   it('matches on the name or the file name', () => {
-    const hero = { type: 'hero', name: 'Hero banner' }
+    const hero = { type: 'hero', preset: 0, name: 'Hero banner' }
     expect(matchesImported(hero, 'banner')).toBe(true)
     expect(matchesImported(hero, 'hero')).toBe(true)
     expect(matchesImported(hero, 'ticker')).toBe(false)

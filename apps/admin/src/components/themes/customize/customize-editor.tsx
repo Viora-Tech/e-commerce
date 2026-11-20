@@ -1,7 +1,6 @@
 'use client'
 
 import type { TemplateKind } from '@commerce/core/theme'
-import { liquidPlacement } from '@commerce/core/theme-import'
 import { type Data, Puck } from '@puckeditor/core'
 import '@/styles/vendor-puck.css'
 import '@/styles/vendor-blocks.css'
@@ -12,13 +11,7 @@ import { customizeContent } from '@/data/customize'
 import { themesContent } from '@/data/themes'
 import { api } from '@/lib/api-client'
 import { createCustomizeConfig } from '@/lib/customize-config'
-import {
-  type CustomizeDoc,
-  composeDoc,
-  FOOTER_ZONE,
-  HEADER_ZONE,
-  normalizeDoc,
-} from '@/lib/customize-doc'
+import { type CustomizeDoc, composeDoc, normalizeDoc } from '@/lib/customize-doc'
 import {
   FONT_SAMPLES,
   isDesktopHome,
@@ -28,6 +21,7 @@ import {
   revealInserted,
   sameRef,
 } from '@/lib/customize-editor'
+import { withLiquidCanvas } from '@/lib/customize-liquid-metadata'
 import { CUSTOMIZE_OVERRIDES } from '@/lib/customize-overrides'
 import { previewMetadata } from '@/lib/customize-preview'
 import { previewDefaultMode, useDeviceDark } from '@/lib/customize-preview-root'
@@ -38,6 +32,7 @@ import { routes } from '@/lib/routes'
 import { useCodeDrafts } from '@/lib/use-code-drafts'
 import { useCustomizePreview } from '@/lib/use-customize-preview'
 import { useImportedThemeSettings } from '@/lib/use-imported-theme-settings'
+import { useLeaveWarning } from '@/lib/use-leave-warning'
 import { type LiquidEditorInfo, useLiquidTheme } from '@/lib/use-liquid-theme'
 import { partsOf, useTemplateDrafts } from '@/lib/use-template-drafts'
 import type { TemplateChange } from '@/lib/use-template-manager'
@@ -54,7 +49,6 @@ import CustomizeLayout from './customize-layout'
 import CustomizeTopBar from './customize-top-bar'
 import EditorLoading from './editor-loading'
 import ImportedThemeSettings from './imported-theme-settings'
-import LiquidCanvasSection from './liquid-canvas-section'
 import PagesPanel from './pages-panel'
 import PublishThemeDialog from './publish-theme-dialog'
 import ResourcePicker from './resource-picker'
@@ -176,22 +170,12 @@ export default function CustomizeEditor({
   }, [record.id, ref, nonce, attempt])
 
   // Drafts live on the server: leaving only loses a write in flight, or unsaved theme settings.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: `drafts.pending` reads a ref.
-  useEffect(() => {
-    const settingsDirty = JSON.stringify(settings) !== JSON.stringify(record.settings)
-    const warn = (event: BeforeUnloadEvent) => {
-      if (settingsDirty || importedSettings.dirty || drafts.pending()) event.preventDefault()
-    }
-    window.addEventListener('beforeunload', warn)
-    return () => window.removeEventListener('beforeunload', warn)
-  }, [settings, record.settings, importedSettings.dirty])
-
-  // Helpers
-  /** Which group an imported section sits in (`section.location` in Liquid). */
-  const groupOf = (id: unknown) => {
-    const inZone = (zone: string) => (loaded?.doc.zones[zone] ?? []).some((s) => s.props.id === id)
-    return inZone(HEADER_ZONE) ? 'header-group' : inZone(FOOTER_ZONE) ? 'footer-group' : 'template'
-  }
+  useLeaveWarning(
+    () =>
+      JSON.stringify(settings) !== JSON.stringify(record.settings) ||
+      importedSettings.dirty ||
+      drafts.pending(),
+  )
 
   // Event handlers
   const handleChange = (data: Data) => {
@@ -246,10 +230,17 @@ export default function CustomizeEditor({
     }
   }
 
+  // A failed discard keeps the edits and lifts the dimmed canvas (it stayed dimmed for good).
   const handleDiscard = async () => {
     setSwitching(true)
-    await drafts.flush()
-    await api.themes.templates.discard({ themeId: record.id })
+    try {
+      await drafts.flush()
+      await api.themes.templates.discard({ themeId: record.id })
+    } catch {
+      setSwitching(false)
+      toast.error(copy.discardFailed)
+      return
+    }
     setSettings(record.settings)
     importedSettings.discard()
     setTemplatesDirty(false)
@@ -315,25 +306,12 @@ export default function CustomizeEditor({
     : null
   const base = previewMetadata({ ...preview, logo })
   const liquidInfo = liquidTheme.info
-  const metadata =
-    liquidInfo && liquidTheme.fields
-      ? {
-          ...base,
-          liquid: { fields: liquidTheme.fields as NonNullable<typeof base.liquid>['fields'] },
-          renderers: {
-            ...base.renderers,
-            LiquidSection: (props: Record<string, unknown>) => {
-              const type = typeof props.sectionType === 'string' ? props.sectionType : ''
-              return (
-                <LiquidCanvasSection
-                  themeId={record.id}
-                  section={liquidPlacement(props, liquidInfo.schemas[type], groupOf(props.id), 0)}
-                />
-              )
-            },
-          },
-        }
-      : base
+  const metadata = withLiquidCanvas(base, {
+    themeId: record.id,
+    info: liquidInfo,
+    fields: liquidTheme.fields,
+    doc: loaded?.doc ?? null,
+  })
   const liquidHead = importedSettings.head
   const sourceScope = scopeFor(ref.key, preview.kind, preview.resourceId)
   // Keep showing the previously loaded template (dimmed via `switching`) while the
@@ -429,6 +407,7 @@ export default function CustomizeEditor({
             liquidFields={liquidTheme.fields}
             mode={mode}
             sourceScope={sourceScope}
+            template={loaded?.ref.key ?? ref.key}
           >
             <CustomizeHotkeys />
             <SectionRemovedToast />

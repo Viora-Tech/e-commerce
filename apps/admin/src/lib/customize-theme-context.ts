@@ -1,4 +1,4 @@
-import type { Theme } from '@commerce/core/theme'
+import type { TemplateKind, Theme } from '@commerce/core/theme'
 import { createContext, useContext } from 'react'
 import type { ImportedTheme } from './imported-sections'
 
@@ -102,4 +102,14 @@ export const LiquidBlocksContext = createContext<LiquidBlocksState>({
 
 export function useLiquidBlocks(): LiquidBlocksState {
   return useContext(LiquidBlocksContext)
+}
+
+/**
+ * The template open in Customize (home, product…), so the Add panel offers an imported theme's
+ * sections only where their `enabled_on` / `disabled_on` let them go. Null outside Customize.
+ */
+export const OpenTemplateContext = createContext<TemplateKind | null>(null)
+
+export function useOpenTemplate(): TemplateKind | null {
+  return useContext(OpenTemplateContext)
 }

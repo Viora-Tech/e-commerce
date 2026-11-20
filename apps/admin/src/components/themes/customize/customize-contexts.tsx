@@ -4,6 +4,7 @@ import type { ComponentProps, ContextType, ReactNode } from 'react'
 import {
   LiquidHeadContext,
   LiquidThemeSettingsContext,
+  OpenTemplateContext,
   PreviewModeContext,
   ThemePreviewContext,
 } from '@/lib/customize-theme-context'
@@ -21,6 +22,8 @@ type CustomizeContextsProps = {
   liquidFields: ComponentProps<typeof ImportedThemeProvider>['fields']
   mode: ContextType<typeof PreviewModeContext>
   sourceScope: ContextType<typeof DynamicSourceContext>
+  /** The template open on the canvas. */
+  template: ContextType<typeof OpenTemplateContext>
   children: ReactNode
 }
 
@@ -33,6 +36,7 @@ export default function CustomizeContexts({
   liquidFields,
   mode,
   sourceScope,
+  template,
   children,
 }: CustomizeContextsProps) {
   return (
@@ -42,7 +46,9 @@ export default function CustomizeContexts({
           <ImportedThemeProvider info={liquidInfo} fields={liquidFields}>
             <PreviewModeContext.Provider value={mode}>
               <DynamicSourceContext.Provider value={sourceScope}>
-                {children}
+                <OpenTemplateContext.Provider value={template}>
+                  {children}
+                </OpenTemplateContext.Provider>
               </DynamicSourceContext.Provider>
             </PreviewModeContext.Provider>
           </ImportedThemeProvider>

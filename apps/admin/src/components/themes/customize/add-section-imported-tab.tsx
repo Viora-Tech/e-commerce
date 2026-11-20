@@ -5,7 +5,7 @@ import ImportedSectionCard from './imported-section-card'
 
 type ImportedTabProps = {
   sections: ImportedSection[]
-  onAdd: (type: string, name: string) => void
+  onAdd: (type: string, name: string, preset: number) => void
 }
 
 /** The imported theme's own sections as tiles, two across, like the library's. */
@@ -14,7 +14,11 @@ export default function ImportedTab({ sections, onAdd }: ImportedTabProps) {
   return (
     <div className="grid grid-cols-2 gap-x-3 gap-y-3.5">
       {sections.map((s) => (
-        <ImportedSectionCard key={s.type} name={s.name} onAdd={() => onAdd(s.type, s.name)} />
+        <ImportedSectionCard
+          key={`${s.type}:${s.preset}`}
+          name={s.name}
+          onAdd={() => onAdd(s.type, s.name, s.preset)}
+        />
       ))}
     </div>
   )
