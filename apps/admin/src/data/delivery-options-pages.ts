@@ -176,6 +176,8 @@ export const deliveryPagesContent = {
     round: 'Round delivery prices',
     roundHelp:
       'Prices the app works out, and what faster couriers add. Your typed Shipping rates stay as they are.',
+    roundHelpFixed:
+      'Prices the app works out: courier cost + markup, or a Shipping rate plus insurance. Your typed Shipping rates stay as they are.',
     roundItems: {
       nine: 'Up to …9 (₹43 → ₹49, ₹58 → ₹59)',
       fifty: 'Up to …49 or …99 (₹43 → ₹49, ₹58 → ₹99)',

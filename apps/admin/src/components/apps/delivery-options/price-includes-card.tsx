@@ -1,6 +1,6 @@
 'use client'
 
-import { type DeliveryOption, PRICE_ROUNDINGS } from '@commerce/core/delivery-options'
+import type { DeliveryOption } from '@commerce/core/delivery-options'
 import ChoiceField from '@/components/apps/gst-invoices/choice-field'
 import DataCard from '@/components/layout/data-card'
 import SettingsToggleRow from '@/components/settings/settings-toggle-row'
@@ -8,6 +8,7 @@ import { deliveryPagesContent } from '@/data/delivery-options-pages'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import InlineWarning from './inline-warning'
 import InsuranceOfferFields from './insurance-offer-fields'
+import RoundingField from './rounding-field'
 
 type PriceIncludesCardProps = {
   /** The option the courier list prices from: the first one shown. */
@@ -20,12 +21,6 @@ const MAX_CHOICES = [2, 3, 4, 5, 6, 7, 8] as const
 const ALL = 'all'
 
 type Source = DeliveryOption['price']['source']
-
-/** The select's value back to a rounding; anything unknown is the ₹10 rule. */
-const roundingOf = (v: string): DeliveryOption['price']['rounding'] =>
-  (PRICE_ROUNDINGS as readonly string[]).includes(v)
-    ? (v as DeliveryOption['price']['rounding'])
-    : 'ten'
 
 /** The select's value back to a price source; anything unknown is the courier cost. */
 const sourceOf = (v: string): Source => (v === 'zone' || v === 'free' ? v : 'route')
@@ -86,18 +81,15 @@ export default function PriceIncludesCard({ option, onChange }: PriceIncludesCar
         ]}
         onChange={(v) => setCouriers({ extra: v === 'none' ? 'none' : 'difference' })}
       />
-      <ChoiceField
+      <RoundingField
         id="courier-list-round"
-        label={c.round}
         value={option.price.rounding}
-        options={PRICE_ROUNDINGS.map((v) => ({ value: v, label: c.roundItems[v] }))}
-        help={c.roundHelp}
-        onChange={(v) =>
+        onChange={(rounding) =>
           onChange({
             ...option,
-            price: { ...option.price, rounding: roundingOf(v) },
+            price: { ...option.price, rounding },
             // The old "+₹…9" switch only counts on the ₹10 rule; Off turns it off too.
-            couriers: { ...option.couriers, roundTo9: v !== 'off' },
+            couriers: { ...option.couriers, roundTo9: rounding !== 'off' },
           })
         }
       />

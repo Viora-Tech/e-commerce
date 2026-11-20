@@ -31,3 +31,21 @@ describe('option page form', () => {
     expect(back.couriers.known).toEqual([])
   })
 })
+
+describe('option page form: Round delivery prices', () => {
+  it('keeps the saved rounding when the option page saves', () => {
+    const saved = {
+      ...DeliveryOptionInputSchema.parse({ name: 'Standard', price: { rounding: 'nine' } }),
+      id: 'o1',
+      position: 0,
+    }
+    expect(formOf(saved).rounding).toBe('nine')
+    expect(inputOf(formOf(saved)).price.rounding).toBe('nine')
+  })
+
+  it('a new option starts on the ₹10 rule and saves what is picked', () => {
+    const form = { ...formOf(null), name: 'Express' }
+    expect(form.rounding).toBe('ten')
+    expect(inputOf({ ...form, rounding: 'off' }).price.rounding).toBe('off')
+  })
+})

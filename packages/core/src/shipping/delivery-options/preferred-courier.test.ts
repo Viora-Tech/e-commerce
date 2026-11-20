@@ -101,3 +101,32 @@ describe('Round delivery prices', () => {
     expect(option('std', { name: 'Delivery' }).price.rounding).toBe('ten')
   })
 })
+
+describe('Round delivery prices on a fixed option (not a courier list)', () => {
+  /* Delhivery Surface ₹43 to the owner's PIN: the one card the fixed option shows. */
+  const fixedAnswers = [answer('delhivery', 'Delhivery', [quote('S', 'Surface', 4300, [4, 5])])]
+  const fixedPrice = (price: Record<string, unknown>) => {
+    const fixed = option('std', { name: 'Standard', price, couriers: { show: 'one' } })
+    const r = resolveDeliveryOptions(
+      input({
+        config: config({ options: [fixed], rules: [] }),
+        cart: mouseCart,
+        answers: fixedAnswers,
+      }),
+    )
+    return find(r, 'std')?.pricePaise
+  }
+
+  it('rounds the courier cost the option’s way', () => {
+    expect(fixedPrice({ source: 'route', rounding: 'nine' })).toBe(4900)
+    expect(fixedPrice({ source: 'route', rounding: 'fifty' })).toBe(4900)
+    expect(fixedPrice({ source: 'route', rounding: 'ten' })).toBe(5000)
+    expect(fixedPrice({ source: 'route', rounding: 'off' })).toBe(4300)
+  })
+
+  it('rounds after the markup', () => {
+    // ₹43 + ₹15 markup = ₹58 → ₹99 on …49/…99, ₹59 on …9.
+    expect(fixedPrice({ source: 'route', markupPaise: 1500, rounding: 'fifty' })).toBe(9900)
+    expect(fixedPrice({ source: 'route', markupPaise: 1500, rounding: 'nine' })).toBe(5900)
+  })
+})

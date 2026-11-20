@@ -3,6 +3,7 @@ import {
   type DeliveryOptionInput,
   DeliveryOptionInputSchema,
   type OptionRoutes,
+  type PriceRounding,
   type RouteSelector,
 } from '@commerce/core/delivery-options'
 import { parseRupees } from '@commerce/money'
@@ -25,6 +26,8 @@ export type OptionForm = {
   freeAbove: string
   min: string
   max: string
+  /** How a price the engine makes is rounded up (`price.rounding`). */
+  rounding: PriceRounding
   insurance: DeliveryOptionInput['insurance']['default']
   insuranceAbove: string
   etaSource: DeliveryOptionInput['eta']['source']
@@ -70,6 +73,7 @@ export function formOf(o: DeliveryOption | null): OptionForm {
     freeAbove: toRupees(x.price.freeAbovePaise),
     min: toRupees(x.price.minPaise),
     max: toRupees(x.price.maxPaise),
+    rounding: x.price.rounding,
     insurance: x.insurance.default,
     insuranceAbove: toRupees(x.insurance.onlyAbovePaise),
     etaSource: x.eta.source,
@@ -118,6 +122,7 @@ export function inputOf(f: OptionForm): DeliveryOptionInput {
       freeAbovePaise: parseRupees(f.freeAbove),
       minPaise: parseRupees(f.min),
       maxPaise: parseRupees(f.max),
+      rounding: f.rounding,
     },
     insurance: { default: f.insurance, onlyAbovePaise: parseRupees(f.insuranceAbove) },
     eta: {
@@ -132,9 +137,7 @@ export function inputOf(f: OptionForm): DeliveryOptionInput {
     couriers: {
       show: f.couriersList ? 'list' : 'one',
       max:
-        f.couriersMax === ALL_COURIERS
-          ? null
-          : Math.min(8, Math.max(2, whole(f.couriersMax) ?? 5)),
+        f.couriersMax === ALL_COURIERS ? null : Math.min(8, Math.max(2, whole(f.couriersMax) ?? 5)),
       roundTo9: f.roundTo9,
       hideSlowerDearer: f.hideSlowerDearer,
       showNames: f.showNames,

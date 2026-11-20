@@ -13,6 +13,7 @@ import { useCopy } from '@/hooks/use-copy'
 import { CARRIERS } from './format'
 import InlineWarning from './inline-warning'
 import { ALL_COURIERS, type OptionForm as Form } from './option-form-state'
+import RoundingField from './rounding-field'
 import RouteSelectorRow from './route-selector-row'
 
 type OptionFormProps = {
@@ -196,6 +197,12 @@ export default function OptionForm({ form, onChange }: OptionFormProps) {
           value={form.priceSource}
           options={PRICE_SOURCES.map((v) => ({ value: v, label: o.price.sources[v] }))}
           onChange={(v) => set('priceSource')(PRICE_SOURCES.find((x) => x === v) ?? 'route')}
+        />
+        <RoundingField
+          id="opt-round"
+          value={form.rounding}
+          help={form.couriersList ? 'list' : 'fixed'}
+          onChange={set('rounding')}
         />
         {/* Free: the store pays the courier, so no markup, threshold or bounds apply. */}
         {form.priceSource === 'free' ? null : (
