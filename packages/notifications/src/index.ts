@@ -1,5 +1,6 @@
 export { withFallback } from './fallback'
 export { NotificationRegistry } from './registry'
+export type * from './report-types'
 export { sampleTemplateDataByTemplate, sampleTemplateDataFor } from './samples'
 export type * from './template-types'
 export {
@@ -12,5 +13,4 @@ export {
   type WhatsappBody,
 } from './templates'
 export { sharedContent, templateContent } from './templates/content'
-export type * from './report-types'
 export type * from './types'

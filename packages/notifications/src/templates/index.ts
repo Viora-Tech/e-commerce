@@ -4,7 +4,7 @@ import { PerformanceReportEmail } from '../emails/performance-report'
 import { TransactionalEmail } from '../emails/transactional-email'
 import type { TemplateData, TemplateId } from '../types'
 import { sharedContent as shared, templateContent } from './content'
-import { reportPlainText } from './content-reports'
+import { reportPlainText, reportWords } from './content-reports'
 
 export type EmailBody = { subject: string; text: string; html: string }
 export type WhatsappBody = { text: string }
@@ -420,6 +420,7 @@ export async function renderEmail(template: TemplateId, d: TemplateData): Promis
         brand: d.brand,
         previewText: subject,
         report: d.report,
+        words: reportWords,
       }),
     )
     return { subject, text: squash(reportPlainText(d).split('\n')), html }

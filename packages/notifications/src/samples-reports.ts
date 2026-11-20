@@ -18,6 +18,7 @@ const sellers = (rows: [string, string, string, string][]) =>
   }))
 const common = {
   button: { label: 'Open your analytics', url: `${admin}/analytics` },
+  analyticsUrl: `${admin}/analytics`,
   settingsUrl: `${admin}/account/notifications`,
   sources: [
     { label: 'Instagram', percent: 62 },
@@ -35,7 +36,7 @@ export const sampleWeeklyReport: PerformanceReport = {
   periodLabel: 'Monday 10 – Sunday 16 November',
   netLabel: '₹1,84,320',
   change: up('18%'),
-  changeNote: 'vs ₹1,56,220 last week',
+  changeNote: 'vs ₹1,56,220 last week · your best week in a month',
   bars: [
     ['Mon', 18],
     ['Tue', 22],
@@ -77,14 +78,16 @@ export const sampleWeeklyReport: PerformanceReport = {
   todoTitle: 'Worth a look this week',
   todos: [
     {
+      icon: '🛒',
       text: '41 carts were left at checkout, worth ₹78,600.',
       linkLabel: 'Send a reminder',
       url: `${admin}/orders/abandoned-checkouts`,
     },
     {
+      icon: '📦',
       text: '3 of your top sellers are almost sold out.',
       linkLabel: 'See stock',
-      url: `${admin}/products/inventory`,
+      url: `${admin}/stock`,
     },
   ],
   todosFirst: false,
@@ -94,7 +97,7 @@ export const sampleWeeklyReport: PerformanceReport = {
     { label: 'Discounts', amount: '− ₹8,280' },
     { label: 'Refunds', amount: '− ₹4,200' },
   ],
-  footer: 'Sent every Monday at 9:00 to team members who turned on the weekly report.',
+  footer: 'Sent every Monday at 9:00 to staff who turned on the weekly report.',
 }
 
 export const sampleMonthlyReport: PerformanceReport = {
@@ -102,12 +105,12 @@ export const sampleMonthlyReport: PerformanceReport = {
   period: 'monthly',
   kicker: 'Monthly report · October 2026',
   title: 'Your October at Waimers.',
-  periodLabel: '1 – 31 October',
+  periodLabel: 'Wednesday 1 – Friday 31 October',
   netLabel: '₹6,42,800',
   change: up('9%'),
   changeNote: 'vs ₹5,89,700 in September',
   bars: [
-    ['1–5', 82, '₹82k'],
+    ['1–5 Oct', 82, '₹82k'],
     ['6–12', 121, '₹1.21L'],
     ['13–19', 196, '₹1.96L'],
     ['20–26', 138, '₹1.38L'],
@@ -119,6 +122,14 @@ export const sampleMonthlyReport: PerformanceReport = {
     best: label === '13–19',
   })),
   barNote: '13–19 October was your best week: ₹1,96,000 from 104 orders.',
+  stats: [
+    { label: 'Orders', value: '342', change: up('11%') },
+    { label: 'Visitors', value: '15,880', change: up('6%') },
+    { label: 'Conversion', value: '2.2%', change: up('0.1 pt') },
+    { label: 'Average order', value: '₹1,880', change: down('2%') },
+    { label: 'New customers', value: '141', change: up('18%') },
+    { label: 'Repeat buyers', value: '27%', change: up('3 pt') },
+  ],
   vsLabel: 'vs September',
   historyTitle: 'Your last six months',
   history: [
@@ -130,14 +141,39 @@ export const sampleMonthlyReport: PerformanceReport = {
     { label: 'October', value: '₹6.4L' },
   ],
   sellersTitle: 'Your top sellers this month',
+  sellers: sellers([
+    ['Wireless mouse', 'Blue', '112 sold', '₹1,45,600'],
+    ['Glass mousepad', '490 × 420 mm', '64 sold', '₹1,15,200'],
+    ['Mechanical keyboard', 'Ocean Blue', '71 sold', '₹49,700'],
+  ]),
+  sources: [
+    { label: 'Instagram', percent: 58 },
+    { label: 'Google', percent: 24 },
+    { label: 'Direct', percent: 13 },
+    { label: 'WhatsApp', percent: 5 },
+  ],
   todoTitle: 'Worth a look this month',
+  todos: [
+    {
+      icon: '📉',
+      text: '12 products did not sell at all in October.',
+      linkLabel: 'Review them',
+      url: `${admin}/products`,
+    },
+    {
+      icon: '↩️',
+      text: 'Refunds were 3.1% of sales, up from 2.4% in September.',
+      linkLabel: 'See returns',
+      url: `${admin}/orders/returns`,
+    },
+  ],
   moneyTitle: 'Money this month',
   money: [
     { label: 'Gross sales', amount: '₹6,91,400' },
     { label: 'Discounts', amount: '− ₹28,600' },
     { label: 'Refunds', amount: '− ₹20,000' },
   ],
-  footer: 'Sent on the 1st of every month at 9:00 to team members who turned on the monthly report.',
+  footer: 'Sent on the 1st of every month to staff who turned on the monthly report.',
 }
 
 export const sampleDailyReport: PerformanceReport = {
@@ -181,8 +217,14 @@ export const sampleDailyReport: PerformanceReport = {
   sources: [],
   todoTitle: 'Waiting on you today',
   todos: [
-    { text: '9 orders are paid and ready to pack.', linkLabel: 'Pack orders', url: `${admin}/orders` },
     {
+      icon: '📦',
+      text: '9 orders are paid and ready to pack.',
+      linkLabel: 'Pack orders',
+      url: `${admin}/orders`,
+    },
+    {
+      icon: '📞',
       text: '3 cash-on-delivery orders need a confirmation call.',
       linkLabel: 'Confirm COD',
       url: `${admin}/orders`,
@@ -195,5 +237,5 @@ export const sampleDailyReport: PerformanceReport = {
     { label: 'Discounts', amount: '− ₹1,700' },
     { label: 'Refunds', amount: '₹0' },
   ],
-  footer: 'Sent every day at the hour you chose to team members who turned on the daily summary.',
+  footer: 'Sent every day at the hour you chose to staff who turned on the daily summary.',
 }

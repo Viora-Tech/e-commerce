@@ -1,7 +1,7 @@
 import { siteConfig } from '@commerce/config/site'
 import { formatInZone } from '@commerce/dates'
-import type { TemplateData, TemplateId } from './types'
 import { sampleDailyReport, sampleMonthlyReport, sampleWeeklyReport } from './samples-reports'
+import type { TemplateData, TemplateId } from './types'
 
 /** Sample order used by the conformance suite, the dev preview and the admin's message preview. */
 export const sampleTemplateData: TemplateData = {

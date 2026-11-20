@@ -44,16 +44,18 @@ export type PerformanceReport = {
   /** Where the period's buyers came from, as whole percentages; empty hides the block. */
   sources: { label: string; percent: number }[]
   todoTitle: string
-  /** Things to act on; empty hides the box. */
-  todos: { text: string; linkLabel: string; url: string }[]
+  /** Things to act on, each with a small emoji in a white circle ("🛒"); empty hides the box. */
+  todos: { icon: string; text: string; linkLabel: string; url: string }[]
   /** The daily summary puts the to-dos above the sellers: they are what the day is for. */
   todosFirst: boolean
   moneyTitle: string
   /** Gross, discounts, refunds; the net line is added under them. */
   money: { label: string; amount: string }[]
   button: { label: string; url: string }
+  /** Analytics in the admin, linked from the footer. */
+  analyticsUrl: string
   /** Account → Notifications in the admin, linked from the footer. */
   settingsUrl: string
-  /** When it is sent and why: "Sent every Monday at 9:00 to staff who turned on…". */
+  /** When it is sent: "Sent every Monday at 9:00 to staff who turned on the weekly report." */
   footer: string
 }
