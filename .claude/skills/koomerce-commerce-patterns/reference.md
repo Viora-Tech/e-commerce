@@ -83,14 +83,14 @@ Gateways are faked in tests (`payments/gateway-double.test-util.ts`); never call
 
 ## Known gaps found on 20 Nov 2026 (reported, not fixed)
 
-1. **Razorpay refunds ignore `refundKey`** (`packages/payments-razorpay/src/razorpay.ts`
+1. **Fixed (#1789).** **Razorpay refunds ignore `refundKey`** (`packages/payments-razorpay/src/razorpay.ts`
    `refund`). `refundPayment` calls the gateway inside the transaction; if the commit fails
    after Razorpay refunded, the retry refunds again. Cashfree handles this (#1595).
-2. **Refund webhook fallback writes no refund row** (`refundProcessed` in
+2. **Fixed (#1790).** **Refund webhook fallback writes no refund row** (`refundProcessed` in
    `payments/webhook.ts`). A full refund made in the gateway dashboard flips the payment to
    `refunded`, but `derivePaymentStatus` counts refund rows, so the order still reads `paid`.
    A partial outside refund is dropped.
-3. **Compensating refund in `startPaymentAttempt`** has no `refundKey` and no catch: if that
+3. **Fixed (#1791).** **Compensating refund in `startPaymentAttempt`** has no `refundKey` and no catch: if that
    refund throws, `markFailed` is skipped and the attempt stays `created` with
    `gateway_requested_at` set, so nobody can claim it again.
 4. **Cart prices are the add-to-cart snapshot**: `loadCart` charges `cart_line.unit_price_paise`
@@ -101,6 +101,6 @@ Gateways are faked in tests (`payments/gateway-double.test-util.ts`); never call
 6. **Cancelled and expired orders keep their discount use**: no cancel path calls a release,
    so a shopper whose online payment expired cannot use a one-per-customer code again. This
    may be intended; ask the owner.
-7. **Webhook failure status is lost**: the `catch` in `handlePaymentWebhook` writes
+7. **Fixed (#1792).** **Webhook failure status is lost**: the `catch` in `handlePaymentWebhook` writes
    `status: 'failed'` inside the transaction it then rethrows from, so the row rolls back.
    The gateway retry still processes it; only the record of the failure is lost.
