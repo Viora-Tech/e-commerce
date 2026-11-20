@@ -223,6 +223,35 @@ export type TemplateData = {
    */
   parcels?: EmailParcel[] | undefined
   paymentMethodLabel: string
+  /** The items before any discount, shown above shipping when it differs from the total. */
+  subtotalLabel?: string | undefined
+  /** The code or automatic discount taken off: "Discount (WELCOME10)", "− ₹780". */
+  discount?: { label: string; amount: string } | undefined
+  /** Paid already, to pay on delivery, or waiting for a UPI / bank transfer. */
+  paymentState?: 'paid' | 'cod' | 'unpaid' | undefined
+  /**
+   * The order's route for the ticket at the top of order emails: the warehouse it leaves from and
+   * the shopper's city, the courier service and when it should arrive. Omitted for an order with
+   * no delivery (a gift card) or one that ships in several parcels (those list each parcel).
+   */
+  route?:
+    | {
+        from: string
+        /** The warehouse's own name ("Waimers warehouse"). */
+        fromNote?: string | undefined
+        to: string
+        /** Who receives it. */
+        toNote?: string | undefined
+        /** The shipping rate's name ("Delhivery Surface"), under the truck. */
+        via?: string | undefined
+        /** "Fri 21 – Sat 22 Nov". */
+        etaLabel?: string | undefined
+      }
+    | undefined
+  /** The delivery address, one line each: name, street, city and PIN. */
+  shipTo?: string[] | undefined
+  /** "19 November 2026". */
+  placedLabel?: string | undefined
   /**
    * For an unpaid manual UPI / bank transfer order: how to pay, one line each (UPI ID, bank
    * details, reference, the shop's instructions). Shown on order_placed.

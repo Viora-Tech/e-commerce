@@ -3,6 +3,7 @@ import { createElement } from 'react'
 import { TransactionalEmail } from '../emails/transactional-email'
 import type { TemplateData, TemplateId } from '../types'
 import { sharedContent as shared, templateContent } from './content'
+import { composeEmail } from './compose'
 
 export type EmailBody = { subject: string; text: string; html: string }
 export type WhatsappBody = { text: string }
@@ -438,6 +439,8 @@ export async function renderEmail(template: TemplateId, d: TemplateData): Promis
   // Extra links go under the body as text lines (document links, installed-app links);
   // the primary action already carries the main call to action as a button.
   const primaryAction = primaryActionFor(template, d)
+  // Messages already built from the shared blocks (emails/blocks), batch by batch.
+  const composed = composeEmail(template, d, primaryAction)
   const extraLinks = (d.links ?? []).filter((l) => l.url !== primaryAction?.url)
 
   const html = await render(
@@ -446,7 +449,8 @@ export async function renderEmail(template: TemplateId, d: TemplateData): Promis
       storeAddress: d.storeAddress,
       brand: d.brand,
       previewText: subject,
-      eyebrow: eyebrowFor(template, d),
+      eyebrow: composed?.eyebrow ?? eyebrowFor(template, d),
+      blocks: composed?.blocks,
       // A six-digit code reads as two groups ("482 913"); the text part keeps it whole for copying.
       code: d.code
         ? { label: shared.codeLabel, value: d.code.replace(/^(\d{3})(\d{3})$/, '$1 $2') }

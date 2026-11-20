@@ -1,9 +1,10 @@
-import { Button, Column, Img, Link, Row, Section, Text } from '@react-email/components'
+import { Button, Column, Link, Row, Section, Text } from '@react-email/components'
 import type { ReactNode } from 'react'
-import type { TemplateData } from '../types'
 import { theme } from './theme'
 
 type Colours = { bg: string; fg: string }
+
+export type { TaxLine } from './items-panel'
 
 const MONO = "ui-monospace, SFMono-Regular, Menlo, Consolas, 'Courier New', monospace"
 
@@ -58,39 +59,64 @@ export function Steps({
 }
 
 /**
- * The top of every email under the logo: a small grey context line ("Order #42"), one clear
- * heading, then the text. Plain on purpose (owner, 8 Nov 2026): no coloured banner, no amount card.
+ * The top of every email under the header (Figma batches): a purple caps kicker ("Order #42 ·
+ * Confirmed"), one large Times heading, then an italic line saying what happens next.
  */
 export function Intro({
   eyebrow,
   heading,
+  lead,
+  accent = theme.accent,
   children,
 }: {
   eyebrow?: string | undefined
   heading: string
+  /** The italic line under the heading. */
+  lead?: string | undefined
+  accent?: string | undefined
   children?: ReactNode
 }) {
   return (
-    <Section className="k-pad" style={{ padding: '28px 40px 0', textAlign: 'center' }}>
+    <Section className="k-pad" style={{ padding: '32px 48px 0', textAlign: 'center' }}>
       {eyebrow ? (
         <Text
-          style={{ margin: '0 0 6px', fontSize: '13px', lineHeight: '18px', color: theme.muted }}
+          style={{
+            margin: '0 0 12px',
+            fontSize: '11px',
+            lineHeight: '16px',
+            letterSpacing: '0.2em',
+            textTransform: 'uppercase',
+            color: accent,
+          }}
         >
           {eyebrow}
         </Text>
       ) : null}
       <Text
+        className="k-title"
         style={{
           margin: '0 0 10px',
-          fontSize: '22px',
-          lineHeight: '28px',
-          fontWeight: 700,
-          letterSpacing: '-0.02em',
+          fontSize: heading.length > 34 ? '34px' : '40px',
+          lineHeight: heading.length > 34 ? '40px' : '46px',
+          fontWeight: 400,
           color: theme.ink,
         }}
       >
         {heading}
       </Text>
+      {lead ? (
+        <Text
+          style={{
+            margin: '0 0 6px',
+            fontSize: '17px',
+            lineHeight: '24px',
+            fontStyle: 'italic',
+            color: theme.body,
+          }}
+        >
+          {lead}
+        </Text>
+      ) : null}
       {children}
     </Section>
   )
@@ -107,9 +133,9 @@ export function Body({
     <Text
       style={{
         fontSize: '15px',
-        lineHeight: '24px',
+        lineHeight: '23px',
         color: theme.body,
-        margin: '0 0 14px',
+        margin: '10px 0 0',
         textAlign: align,
         whiteSpace: 'pre-line',
         // Long links and addresses wrap instead of widening the email past the screen.
@@ -122,214 +148,69 @@ export function Body({
   )
 }
 
-/** The one button style every email uses: brand colour, always centred (owner rule). */
+/** The one button style every email uses: ink with an arrow, always centred (owner rule). */
 export function PrimaryButton({
   href,
   children,
-  colours,
 }: {
   href: string
   children: string
-  colours: Colours
+  /** Kept for callers that still pass the store colours; buttons are ink everywhere now. */
+  colours?: Colours | undefined
 }) {
   return (
-    <Section style={{ padding: '10px 24px 4px', textAlign: 'center' }}>
+    <Section style={{ padding: '28px 24px 0', textAlign: 'center' }}>
       <Button
         href={href}
         style={{
-          backgroundColor: colours.bg,
-          color: colours.fg,
-          fontSize: '15px',
-          fontWeight: 700,
-          padding: '16px 30px',
-          borderRadius: '12px',
+          backgroundColor: theme.button,
+          color: theme.onButton,
+          fontSize: '16px',
+          padding: '13px 28px',
+          borderRadius: '4px',
           textDecoration: 'none',
           display: 'inline-block',
-          minWidth: '180px',
           textAlign: 'center',
         }}
       >
-        {children}
+        {children}&nbsp;&nbsp;→
       </Button>
     </Section>
   )
 }
 
-type Line = TemplateData['lines'][number]
-export type TaxLine = { label: string; amount: string }
-
-/** The order panel: product photos, titles, prices, then shipping, the total and the GST inside. */
-export function ItemsPanel({
-  title,
-  lines,
-  colours,
-  totalHeading,
-  totalLabel,
-  shipping,
-  taxBreakdown,
-  afterTotal,
-  qty,
-}: {
-  title: string
-  lines: Line[]
-  colours: Colours
-  totalHeading: string
-  totalLabel?: string | undefined
-  shipping?: TaxLine | undefined
-  taxBreakdown?: TaxLine[] | undefined
-  /** Rows under the total, e.g. "Store credit −₹500.00" then "To pay ₹1,000.00". */
-  afterTotal?: TaxLine[] | undefined
-  qty: (n: number) => string
-}) {
-  if (lines.length === 0) return null
+/** A caps label between two hairlines: "YOUR ORDER". */
+export function DividerLabel({ children }: { children: string }) {
+  const rule = (
+    <td style={{ width: '50%', verticalAlign: 'middle' }}>
+      <div style={{ borderTop: `1px solid ${theme.border}`, fontSize: '1px', lineHeight: '1px' }}>
+        &nbsp;
+      </div>
+    </td>
+  )
   return (
-    <Section style={{ padding: '30px 24px 0' }}>
-      <Section
-        style={{ backgroundColor: theme.panel, borderRadius: '20px', padding: '24px 24px 20px' }}
-      >
-        <Text style={{ margin: '0 0 8px', fontSize: '17px', fontWeight: 700, color: theme.ink }}>
-          {title}
-        </Text>
-        {lines.map((line, i) => (
-          <Row
-            key={`${line.title}-${line.quantity}-${line.priceLabel}`}
-            style={{ borderTop: i === 0 ? 'none' : '1px solid #e7e5e0' }}
-          >
-            <Column style={{ width: '84px', padding: '12px 0', verticalAlign: 'top' }}>
-              {line.imageUrl ? (
-                <Img
-                  src={line.imageUrl}
-                  width="72"
-                  height="72"
-                  alt={line.title}
-                  style={{ borderRadius: '12px', backgroundColor: '#ffffff', objectFit: 'contain' }}
-                />
-              ) : (
-                <div
-                  style={{
-                    width: '72px',
-                    height: '72px',
-                    borderRadius: '12px',
-                    backgroundColor: '#ffffff',
-                  }}
-                />
-              )}
-            </Column>
-            <Column style={{ padding: '14px 8px 12px 6px', verticalAlign: 'top' }}>
-              <Text
-                style={{
-                  margin: '0 0 4px',
-                  fontSize: '14.5px',
-                  lineHeight: '20px',
-                  fontWeight: 700,
-                  color: theme.ink,
-                }}
-              >
-                {line.title}
-              </Text>
-              <Text
-                style={{
-                  margin: 0,
-                  fontSize: '11.5px',
-                  letterSpacing: '0.06em',
-                  textTransform: 'uppercase',
-                  color: theme.muted,
-                }}
-              >
-                {qty(line.quantity)}
-              </Text>
-              {line.note ? (
-                <Text
-                  style={{
-                    margin: '6px 0 0',
-                    fontSize: '12.5px',
-                    lineHeight: '18px',
-                    color: theme.muted,
-                    whiteSpace: 'pre-line',
-                  }}
-                >
-                  {line.note}
-                </Text>
-              ) : null}
-            </Column>
-            <Column
+    <Section className="k-pad" style={{ padding: '36px 48px 0' }}>
+      <table role="presentation" width="100%" cellPadding={0} cellSpacing={0}>
+        <tbody>
+          <tr>
+            {rule}
+            <td
               style={{
-                width: '116px',
-                padding: '14px 0 12px',
-                verticalAlign: 'top',
-                textAlign: 'right',
+                padding: '0 14px',
+                whiteSpace: 'nowrap',
+                fontSize: '11px',
+                letterSpacing: '0.2em',
+                textTransform: 'uppercase',
+                color: theme.ink,
+                fontFamily: theme.fontFamily,
               }}
             >
-              <Text style={{ margin: 0, fontSize: '14.5px', fontWeight: 700, color: colours.bg }}>
-                {line.priceLabel}
-              </Text>
-            </Column>
-          </Row>
-        ))}
-        {totalLabel ? (
-          <Section
-            style={{ borderTop: '1px dashed #d9d6cf', marginTop: '6px', paddingTop: '14px' }}
-          >
-            {shipping ? (
-              <Row>
-                <Column>
-                  <Text style={{ margin: '0 0 6px', fontSize: '13.5px', color: theme.body }}>
-                    {shipping.label}
-                  </Text>
-                </Column>
-                <Column style={{ textAlign: 'right' }}>
-                  <Text style={{ margin: '0 0 6px', fontSize: '13.5px', color: theme.body }}>
-                    {shipping.amount}
-                  </Text>
-                </Column>
-              </Row>
-            ) : null}
-            <Row>
-              <Column>
-                <Text style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: theme.ink }}>
-                  {totalHeading}
-                </Text>
-              </Column>
-              <Column style={{ textAlign: 'right' }}>
-                <Text style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: theme.ink }}>
-                  {totalLabel}
-                </Text>
-              </Column>
-            </Row>
-            {taxBreakdown?.length ? (
-              <Text
-                style={{
-                  margin: '6px 0 0',
-                  fontSize: '12px',
-                  color: theme.faint,
-                  textAlign: 'right',
-                }}
-              >
-                Includes GST: {taxBreakdown.map((t) => `${t.label} ${t.amount}`).join(' · ')}
-              </Text>
-            ) : null}
-            {(afterTotal ?? []).map((row, i, rows) => {
-              const last = i === rows.length - 1
-              const style = {
-                margin: i === 0 ? '12px 0 0' : '6px 0 0',
-                fontSize: last ? '16px' : '13.5px',
-                fontWeight: last ? 800 : 400,
-                color: last ? theme.ink : theme.body,
-              }
-              return (
-                <Row key={row.label}>
-                  <Column>
-                    <Text style={style}>{row.label}</Text>
-                  </Column>
-                  <Column style={{ textAlign: 'right' }}>
-                    <Text style={style}>{row.amount}</Text>
-                  </Column>
-                </Row>
-              )
-            })}
-          </Section>
-        ) : null}
-      </Section>
+              {children}
+            </td>
+            {rule}
+          </tr>
+        </tbody>
+      </table>
     </Section>
   )
 }
