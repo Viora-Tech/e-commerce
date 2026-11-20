@@ -1,4 +1,5 @@
 import { Column, Img, Row, Section, Text } from '@react-email/components'
+import type { CSSProperties } from 'react'
 import type { TemplateData } from '../types'
 import { DividerLabel } from './components'
 import { theme } from './theme'
@@ -14,10 +15,10 @@ function splitTitle(title: string): { name: string; variant: string | null } {
   return i === -1 ? { name: title, variant: null } : { name: title.slice(0, i), variant: title.slice(i + 3) }
 }
 
-const ROW_TEXT = { margin: '0 0 7px', fontSize: '15px', lineHeight: '20px', color: theme.body }
+const ROW_TEXT: CSSProperties = { margin: '0 0 7px', fontSize: '15px', lineHeight: '20px', color: theme.body }
 
 /** One label / amount row of the totals. */
-function MoneyRow({ row, style = ROW_TEXT }: { row: TaxLine; style?: typeof ROW_TEXT }) {
+function MoneyRow({ row, style = ROW_TEXT }: { row: TaxLine; style?: CSSProperties }) {
   return (
     <Row>
       <Column>
