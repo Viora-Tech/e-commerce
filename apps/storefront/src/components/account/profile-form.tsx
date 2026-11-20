@@ -3,14 +3,32 @@
 import PhoneInput from '@commerce/blocks/phone-input-lazy'
 import type { SignedInCustomer } from '@commerce/core'
 import { useState, useTransition } from 'react'
+import CheckoutField from '@/components/checkout/checkout-field'
+import CheckoutIcon from '@/components/checkout/checkout-icon'
+import CheckoutToggle from '@/components/checkout/checkout-toggle'
 import { accountContent } from '@/data/account'
 import { saveProfileAction } from '@/lib/account-actions'
+import {
+  ACCOUNT_CARD_TITLE,
+  ACCOUNT_ERROR,
+  ACCOUNT_INTRO,
+  ACCOUNT_TOGGLES,
+} from '@/lib/account-classes'
+import { CK_INPUT, CK_INPUT_HEIGHT, CK_LABEL, CK_LIFT, CK_PANEL } from '@/lib/checkout-classes'
+import AccountSubmit from './account-submit'
 
 type ProfileFormProps = { customer: SignedInCustomer }
 
 const copy = accountContent.profile
 
-/** Name, mobile and marketing consent; the email is shown but fixed. */
+const PHONE_ID = 'profile-phone'
+const PHONE_INPUT = `${CK_INPUT} ${CK_INPUT_HEIGHT} rounded-s-none!`
+const PHONE_TRIGGER = `${CK_INPUT} ${CK_INPUT_HEIGHT} flex! w-auto! gap-1.5 rounded-e-none! border-e-0!`
+
+/**
+ * Name, mobile and marketing consent, as the checkout's contact panel: fields in wells, the
+ * offers as switches. The email is shown but fixed (it is how they sign in).
+ */
 export default function ProfileForm({ customer }: ProfileFormProps) {
   // Hooks
   const [pending, start] = useTransition()
@@ -42,76 +60,86 @@ export default function ProfileForm({ customer }: ProfileFormProps) {
   }
 
   // Render logic
+  const offers = [
+    { id: 'email', label: copy.marketing, checked: marketing, set: setMarketing },
+    { id: 'whatsapp', label: copy.marketingWhatsapp, checked: whatsapp, set: setWhatsapp },
+    { id: 'sms', label: copy.marketingSms, checked: sms, set: setSms },
+  ]
+
   return (
     <form
       onSubmit={handleSubmit}
-      className="flex max-w-[36rem] flex-col gap-5 rounded-[var(--radius-card)] bg-surface p-6"
+      className={`${CK_PANEL} ${CK_LIFT} flex max-w-[40rem] flex-col gap-5 p-5 sm:p-6`}
+      aria-labelledby="profile-details"
     >
-      <h2 className="h3">{copy.title}</h2>
-      <div className="field">
-        <span className="field__label text-small">{copy.email}</span>
+      <h2 id="profile-details" className={ACCOUNT_CARD_TITLE}>
+        {copy.detailsTitle}
+      </h2>
+      <div className="flex flex-col gap-1">
+        <span className={CK_LABEL}>{copy.email}</span>
         {customer.email ? (
           <>
-            <p className="text-body">{customer.email}</p>
-            <span className="text-small text-muted">{copy.emailNote}</span>
+            <p className="flex min-h-11 items-center gap-2 break-all text-[0.9375rem] text-ck-ink">
+              <CheckoutIcon name="lock" className="size-3.5 shrink-0 text-ck-muted" />
+              {customer.email}
+            </p>
+            <span className="text-[0.8125rem] text-ck-muted">{copy.emailNote}</span>
           </>
         ) : (
-          <span className="text-small text-muted">{copy.emailNone}</span>
+          <span className="text-[0.8125rem] text-ck-muted">{copy.emailNone}</span>
         )}
       </div>
-      <label className="field">
-        <span className="field__label text-small">{copy.name}</span>
-        <input
-          className="field__input"
-          autoComplete="name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-        />
-        {errors.name ? <span className="text-small text-danger">{errors.name}</span> : null}
-      </label>
-      <div className="field">
-        <label htmlFor="profile-phone" className="field__label text-small">
-          {copy.phone}
-        </label>
-        <PhoneInput
-          id="profile-phone"
-          countries={['IN']}
-          autoComplete="tel"
-          value={phone}
-          onChange={setPhone}
-          aria-invalid={errors.phone ? true : undefined}
-        />
-        {errors.phone ? <span className="text-small text-danger">{errors.phone}</span> : null}
-      </div>
-      <fieldset className="flex flex-col gap-3">
-        <legend className="field__label text-small">{copy.marketingHeading}</legend>
-        {[
-          { id: 'email', label: copy.marketing, checked: marketing, set: setMarketing },
-          { id: 'whatsapp', label: copy.marketingWhatsapp, checked: whatsapp, set: setWhatsapp },
-          { id: 'sms', label: copy.marketingSms, checked: sms, set: setSms },
-        ].map((c) => (
-          <label key={c.id} className="flex items-center gap-3 text-body">
-            <input
-              type="checkbox"
-              className="size-4"
-              checked={c.checked}
-              onChange={(e) => c.set(e.target.checked)}
-            />
-            {c.label}
-          </label>
-        ))}
-        <span className="text-small text-muted">{copy.marketingNote}</span>
+      <CheckoutField
+        id="profile-name"
+        label={copy.name}
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        error={errors.name}
+        autoComplete="name"
+      />
+      <CheckoutField
+        id={PHONE_ID}
+        label={copy.phone}
+        error={errors.phone}
+        control={
+          <PhoneInput
+            id={PHONE_ID}
+            countries={['IN']}
+            autoComplete="tel"
+            value={phone}
+            onChange={setPhone}
+            aria-invalid={errors.phone ? true : undefined}
+            aria-describedby={errors.phone ? `${PHONE_ID}-error` : undefined}
+            className="rounded-ck"
+            inputClassName={PHONE_INPUT}
+            triggerClassName={PHONE_TRIGGER}
+          />
+        }
+      />
+      <fieldset className="flex flex-col gap-2">
+        <legend className={`${CK_LABEL} mb-2`}>{copy.marketingHeading}</legend>
+        <div className={ACCOUNT_TOGGLES}>
+          {offers.map((c) => (
+            <CheckoutToggle key={c.id} label={c.label} checked={c.checked} onChange={c.set} />
+          ))}
+        </div>
+        <span className={`${ACCOUNT_INTRO} text-[0.8125rem]!`}>{copy.marketingNote}</span>
       </fieldset>
-      <div className="flex items-center gap-4">
-        <button
-          type="submit"
-          className={`btn btn--primary${pending ? ' is-loading' : ''}`}
-          disabled={pending}
-        >
-          <span className="btn__label">{pending ? copy.saving : copy.save}</span>
-        </button>
+      {errors.form ? (
+        <p className={ACCOUNT_ERROR} role="alert">
+          {errors.form}
+        </p>
+      ) : null}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="sm:min-w-[12rem]">
+          <AccountSubmit label={copy.save} pendingLabel={copy.saving} pending={pending} />
+        </div>
         {saved ? (
-          <span className="text-small text-success" role="status">
+          <span
+            className="inline-flex items-center gap-1.5 text-[0.875rem] font-medium text-ck-success"
+            role="status"
+          >
+            <CheckoutIcon name="check" className="size-4" />
             {copy.saved}
           </span>
         ) : null}

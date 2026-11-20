@@ -35,3 +35,18 @@ export const ACCOUNT_ERROR = 'flex items-start gap-2 text-[0.8125rem] leading-sn
  * Capped so a long list does not keep the last cards waiting.
  */
 export const ACCOUNT_STAGGER = '[animation-delay:calc(min(var(--i),6)*40ms)]'
+
+/** The line under a page title: what the page is for. */
+export const ACCOUNT_INTRO = 'max-w-[36rem] text-[0.9375rem] leading-normal text-ck-muted'
+
+/** A destructive text action ("Delete", "Remove"), still a full 2.75rem tap. */
+export const ACCOUNT_LINK_DANGER = ACCOUNT_LINK.replace('text-ck-ink!', 'text-ck-danger!')
+
+/** Rows inside a card (store credit history, passkeys, requests): hairlines between them. */
+export const ACCOUNT_ROWS = 'flex flex-col divide-y divide-ck-line'
+
+/** One row of `ACCOUNT_ROWS`: text on the left, an amount or an action on the right. */
+export const ACCOUNT_ROW = 'flex min-h-14 items-center justify-between gap-3 py-3'
+
+/** A group of switches (offers, default address), drawn as the checkout's opt-in panel. */
+export const ACCOUNT_TOGGLES = 'rounded-ck border border-ck-line divide-y divide-ck-line'

@@ -2,9 +2,19 @@
 
 import type { DataRequestKind, DataRequestStatus } from '@commerce/core/privacy'
 import { useState, useTransition } from 'react'
+import CheckoutIcon from '@/components/checkout/checkout-icon'
 import { formatAccountDate } from '@/data/account'
 import { privacyContent } from '@/data/privacy'
+import {
+  ACCOUNT_CARD,
+  ACCOUNT_CARD_TITLE,
+  ACCOUNT_INTRO,
+  ACCOUNT_ROW,
+  ACCOUNT_ROWS,
+} from '@/lib/account-classes'
+import { CK_BUTTON_SECONDARY } from '@/lib/checkout-classes'
 import { requestDataCopyAction } from '@/lib/privacy-actions'
+import StatusPill from './status-pill'
 
 type DataRequestsProps = {
   requests: {
@@ -18,6 +28,10 @@ type DataRequestsProps = {
 }
 
 const copy = privacyContent
+
+/** Done is good news, declined is not; anything still open is neutral. */
+export const requestTone = (s: DataRequestStatus): 'good' | 'neutral' | 'bad' =>
+  s === 'completed' ? 'good' : s === 'rejected' ? 'bad' : 'neutral'
 
 /** "Get a copy of your data", and the shopper's own requests with where each stands. */
 export default function DataRequests({ requests, timeZone }: DataRequestsProps) {
@@ -40,42 +54,50 @@ export default function DataRequests({ requests, timeZone }: DataRequestsProps) 
   )
 
   return (
-    <div className="flex flex-col gap-8">
-      <section className="flex flex-col gap-3 rounded-[var(--radius-card)] bg-surface p-6">
-        <h2 className="h3">{copy.copy.heading}</h2>
-        <p className="text-body text-muted">{copy.copy.body}</p>
+    <div className="flex flex-col gap-4 sm:gap-5">
+      <section className={`${ACCOUNT_CARD} gap-3!`} aria-labelledby="data-copy">
+        <h2 id="data-copy" className={ACCOUNT_CARD_TITLE}>
+          {copy.copy.heading}
+        </h2>
+        <p className={ACCOUNT_INTRO}>{copy.copy.body}</p>
         <div>
           <button
             type="button"
-            className={`btn btn--secondary${pending ? ' is-loading' : ''}`}
+            className={`${CK_BUTTON_SECONDARY} w-full sm:w-auto`}
             disabled={pending || copyOpen}
             onClick={handleCopy}
+            aria-busy={pending || undefined}
           >
-            <span className="btn__label">{copy.copy.button}</span>
+            <CheckoutIcon
+              name={pending ? 'spinner' : 'download'}
+              className={`size-4 ${pending ? 'animate-spin motion-reduce:animate-none' : ''}`}
+            />
+            {copy.copy.button}
           </button>
         </div>
         {message ? (
-          <p className="text-small" role="status">
+          <p className="text-[0.8125rem] text-ck-ink" role="status">
             {message}
           </p>
         ) : null}
       </section>
       {requests.length > 0 ? (
-        <section className="flex flex-col gap-3">
-          <h2 className="h4">{copy.requests.heading}</h2>
-          <ul className="flex flex-col divide-y divide-line rounded-[var(--radius-card)] bg-surface">
+        <section className={`${ACCOUNT_CARD} gap-1!`} aria-labelledby="data-requests">
+          <h2 id="data-requests" className={ACCOUNT_CARD_TITLE}>
+            {copy.requests.heading}
+          </h2>
+          <ul className={ACCOUNT_ROWS}>
             {requests.map((r) => (
-              <li
-                key={r.id}
-                className="flex flex-wrap items-center justify-between gap-2 px-5 py-4"
-              >
-                <span className="flex flex-col">
-                  <span className="text-body">{copy.requests.kinds[r.kind]}</span>
-                  <span className="text-small text-muted">
+              <li key={r.id} className={`${ACCOUNT_ROW} flex-wrap`}>
+                <span className="flex flex-col gap-0.5">
+                  <span className="text-[0.9375rem] text-ck-ink">
+                    {copy.requests.kinds[r.kind]}
+                  </span>
+                  <span className="text-[0.8125rem] text-ck-muted">
                     {copy.requests.madeOn(formatAccountDate(r.createdAt, timeZone))}
                   </span>
                 </span>
-                <span className="text-small font-medium">{copy.requests.statuses[r.status]}</span>
+                <StatusPill label={copy.requests.statuses[r.status]} tone={requestTone(r.status)} />
               </li>
             ))}
           </ul>
