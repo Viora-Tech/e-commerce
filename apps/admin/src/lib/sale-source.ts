@@ -1,4 +1,5 @@
 import type { saleSourceContent } from '@/data/sale-source'
+import { orderChannel } from './order-channel'
 
 /** The stored touch (`order.attribution`, `cart.attribution`), as the API returns it. */
 export type SaleAttribution = {
@@ -40,4 +41,18 @@ export function saleSourceRows(a: SaleAttribution, copy: Copy): SaleSourceRow[] 
     a.ref ? { key: 'affiliate', label: copy.affiliate, value: a.ref } : null,
   ]
   return rows.filter((r): r is SaleSourceRow => r !== null)
+}
+
+/** The few fields of a touch a list row carries (`ListTouch` from the drafts and abandoned lists). */
+export type SaleTouch = Pick<SaleAttribution, 'channel' | 'source' | 'medium' | 'referrer'>
+
+/**
+ * The Source column's word for a touch, as the card would put it: the AI agent or social channel
+ * by name (ChatGPT, Instagram), else the marketing channel (Paid search, Email), else "Not tracked".
+ */
+export function saleSourceLabel(touch: SaleTouch | null | undefined, copy: Copy): string {
+  const via = orderChannel(touch)
+  if (via) return via.name
+  if (!touch) return copy.channels.untracked
+  return copy.channels[touch.channel as keyof Copy['channels']] ?? touch.channel
 }

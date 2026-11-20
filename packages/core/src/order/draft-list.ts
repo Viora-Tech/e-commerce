@@ -2,6 +2,7 @@
 import { customer, order, orderLine } from '@commerce/db'
 import { and, desc, eq, gte, isNull, lt, lte, or, type SQL, sql } from 'drizzle-orm'
 import type { StoreContext } from '../context'
+import { type ListTouch, listTouch } from '../marketing/list-touch'
 import { parseDraftSearch } from './draft-ref'
 
 export type DraftListItem = {
@@ -18,6 +19,11 @@ export type DraftListItem = {
   invoiceSentAt: Date | null
   /** `checkout`: a shopper's unpaid checkout waiting for payment (0233); `staff` otherwise. */
   source: 'checkout' | 'staff'
+  /**
+   * Where the shopper came from (`order.attribution`, stamped from the cart at checkout), cut
+   * down for the Source column; null on a staff draft or a visit nothing was recorded for.
+   */
+  touch: ListTouch | null
   /** How the shopper chose to pay (`razorpay`, `manual`, ...); null on a staff draft without one. */
   paymentMethod: string | null
   /** A checkout draft's last activity (made, or the same items checked out again). */
@@ -121,6 +127,7 @@ export async function listDrafts(
         select max(n.created_at) from notification n
         where n.order_id = ${order.id} and n.template = 'draft_invoice' and n.status = 'sent')`,
       source: sql<DraftSource>`case when ${order.draftSource} = 'checkout' then 'checkout' else 'staff' end`,
+      touch: listTouch(order.attribution),
       paymentMethod: order.paymentMethod,
       lastActivityAt: order.lastActivityAt,
       lastAttemptStatus: sql<string | null>`(

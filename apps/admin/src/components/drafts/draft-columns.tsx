@@ -3,8 +3,10 @@ import CustomerAvatar from '@/components/customers/customer-avatar'
 import StatusChip from '@/components/layout/status-chip'
 import type { ResourceColumnSpec } from '@/components/table/resource-table'
 import type { draftsContent } from '@/data/drafts'
+import type { saleSourceContent } from '@/data/sale-source'
 import type { api } from '@/lib/api-client'
 import type { Formatters } from '@/lib/format'
+import { saleSourceLabel } from '@/lib/sale-source'
 
 type Item = Awaited<ReturnType<typeof api.orders.listDrafts>>['items'][number]
 
@@ -30,10 +32,15 @@ function statusOf(
   return { tone: 'attention', label: copy.status.unpaid }
 }
 
+/** Where it came from: "Admin" for a staff draft, else the shopper's touch, as on the draft page. */
+const sourceOf = (d: Item, source: typeof saleSourceContent) =>
+  d.source === 'checkout' ? saleSourceLabel(d.touch, source) : source.admin.channel
+
 /** The Drafts list's columns. */
 export function draftColumns(
   copy: typeof draftsContent,
   fmt: Formatters,
+  source: typeof saleSourceContent,
 ): ResourceColumnSpec<Item>[] {
   return [
     {
@@ -90,6 +97,16 @@ export function draftColumns(
       sortValue: (d) => new Date(activityOf(d)).getTime(),
       sortLabels: { desc: copy.sortNewest, asc: copy.sortOldest },
       render: (d) => <span className="tabular-nums">{fmt.when(activityOf(d))}</span>,
+    },
+    {
+      id: 'source',
+      title: source.column,
+      sortValue: (d) => sourceOf(d, source),
+      render: (d) => (
+        <span className="block truncate text-caption text-muted-foreground">
+          {sourceOf(d, source)}
+        </span>
+      ),
     },
     {
       id: 'status',

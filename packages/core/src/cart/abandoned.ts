@@ -3,6 +3,7 @@ import { cart, cartLine, order } from '@commerce/db'
 import { and, desc, eq, gte, isNotNull, isNull, lt, or, type SQL, sql } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 import { MARKETING_CHANNELS, type MarketingChannel } from '../marketing/attribution'
+import { type ListTouch, listTouch } from '../marketing/list-touch'
 import { paymentNotFinished } from '../order/test-orders'
 import { notTestCartContact } from './test-contact'
 
@@ -32,6 +33,8 @@ export type AbandonedCart = {
   recovered: boolean
   /** Where the shopper came from (`cart.attribution`); null when nothing was recorded. */
   channel: MarketingChannel | null
+  /** The same touch with the UTM tags and referrer that name an AI agent or social channel. */
+  touch: ListTouch | null
 }
 
 export type AbandonedStats = {
@@ -169,6 +172,7 @@ export async function listAbandoned(
       itemCount: lineCount,
       subtotalPaise: subtotal,
       channel: cartChannel,
+      touch: listTouch(cart.attribution),
     })
     .from(cart)
     .where(where)

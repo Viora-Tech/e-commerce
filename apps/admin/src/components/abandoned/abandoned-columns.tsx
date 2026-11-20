@@ -4,6 +4,7 @@ import type { abandonedContent } from '@/data/drafts'
 import type { saleSourceContent } from '@/data/sale-source'
 import type { api } from '@/lib/api-client'
 import type { Formatters } from '@/lib/format'
+import { saleSourceLabel } from '@/lib/sale-source'
 
 type Item = Awaited<ReturnType<typeof api.orders.listAbandoned>>['items'][number]
 
@@ -68,10 +69,10 @@ export function abandonedColumns(
     {
       id: 'source',
       title: source.column,
-      sortValue: (c) => c.channel ?? '',
+      sortValue: (c) => saleSourceLabel(c.touch, source),
       render: (c) => (
         <span className="block truncate text-caption text-muted-foreground">
-          {source.channels[c.channel ?? 'untracked']}
+          {saleSourceLabel(c.touch, source)}
         </span>
       ),
     },

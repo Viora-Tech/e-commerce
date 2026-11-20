@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { saleSourceContent } from '@/data/sale-source'
-import { saleSourceRows, sourceMedium } from './sale-source'
+import { saleSourceLabel, saleSourceRows, sourceMedium } from './sale-source'
 
 const AT = '2026-11-18T10:00:00.000Z'
 
@@ -47,5 +47,24 @@ describe('sourceMedium', () => {
     expect(sourceMedium({ channel: 'social', source: 'instagram' })).toBe('instagram')
     expect(sourceMedium({ channel: 'email', medium: 'email' })).toBe('email')
     expect(sourceMedium({ channel: 'direct' })).toBeNull()
+  })
+})
+
+describe('saleSourceLabel', () => {
+  it('names an AI agent or social channel as the card does', () => {
+    expect(
+      saleSourceLabel({ channel: 'ai_assistant', referrer: 'chatgpt.com' }, saleSourceContent),
+    ).toBe('ChatGPT')
+    expect(saleSourceLabel({ channel: 'social', source: 'instagram' }, saleSourceContent)).toBe(
+      'Instagram',
+    )
+  })
+
+  it('falls back to the marketing channel, then to not tracked', () => {
+    expect(saleSourceLabel({ channel: 'paid_search', source: 'bing' }, saleSourceContent)).toBe(
+      'Paid search',
+    )
+    expect(saleSourceLabel({ channel: 'newsletter_v2' }, saleSourceContent)).toBe('newsletter_v2')
+    expect(saleSourceLabel(null, saleSourceContent)).toBe('Not tracked')
   })
 })

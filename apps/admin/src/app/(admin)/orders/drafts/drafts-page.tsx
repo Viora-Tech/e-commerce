@@ -19,6 +19,7 @@ import RowMenu from '@/components/table/row-menu'
 import ViewSelect from '@/components/table/view-select'
 import { DRAFT_LIST_FILTERS, type DraftListFilter, draftsContent } from '@/data/drafts'
 import { draftFiltersContent } from '@/data/order-list-filters'
+import { saleSourceContent } from '@/data/sale-source'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import {
@@ -60,6 +61,7 @@ function DraftsContent({ initial }: { initial: DraftsInitial }) {
   // Hooks
   const copy = useCopy(draftsContent)
   const filterCopy = useCopy(draftFiltersContent)
+  const sourceCopy = useCopy(saleSourceContent)
   const fmt = useFormat()
   usePrimaryAction(routes.orders.newDraft())
   const [q, setQ] = useQueryStates(
@@ -236,7 +238,7 @@ function DraftsContent({ initial }: { initial: DraftsInitial }) {
       ) : (
         <ResourceTable
           resourceName={copy.resource}
-          columns={draftColumns(copy, fmt)}
+          columns={draftColumns(copy, fmt, sourceCopy)}
           items={items}
           getId={(d) => d.id}
           href={(d) => routes.orders.draft(d.id)}
