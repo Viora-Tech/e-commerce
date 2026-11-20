@@ -1,6 +1,7 @@
-import { Section } from '@react-email/components'
+import { Link, Section, Text } from '@react-email/components'
 import type { ComponentProps, ReactNode } from 'react'
-import { Body, DividerLabel, PrimaryButton } from '../components'
+import { Body, DividerLabel, LinkLine, PrimaryButton } from '../components'
+import { theme } from '../theme'
 import { ItemsPanel } from '../items-panel'
 import {
   type ColumnsBlock,
@@ -17,7 +18,15 @@ import {
   Status,
 } from './boxes'
 import { Code, type CodeBlock, Coupon, type CouponBlock } from './codes'
-import { Attachment, type AttachmentBlock, Products, type ProductsBlock } from './media'
+import {
+  Attachment,
+  type AttachmentBlock,
+  Product,
+  type ProductBlock,
+  Products,
+  type ProductsBlock,
+} from './media'
+import { Parcels, type ParcelsBlock } from './parcels'
 import { Ticket, type TicketBlock } from './ticket'
 import { BLOCK_PAD } from './tokens'
 
@@ -29,6 +38,8 @@ export type {
   CouponBlock,
   FactsBlock,
   NoticeBlock,
+  ParcelsBlock,
+  ProductBlock,
   ProductsBlock,
   QuoteBlock,
   StatsBlock,
@@ -38,12 +49,22 @@ export type {
 
 /** The order lines and totals (`ItemsPanel`), under a "YOUR ORDER" divider. */
 export type ItemsBlock = { kind: 'items' } & Omit<ComponentProps<typeof ItemsPanel>, 'colours'>
-/** The ink button with an arrow, centred. */
-export type ButtonBlock = { kind: 'button'; label: string; url: string }
+/** The ink button with an arrow, centred; `secondary` a quiet link under it ("Cancel it"). */
+export type ButtonBlock = {
+  kind: 'button'
+  label: string
+  url: string
+  secondary?: { label: string; url: string } | undefined
+}
 /** A caps label between two hairlines. */
 export type DividerBlock = { kind: 'divider'; label: string }
-/** A plain centred paragraph (the merchant's note, a line of help). */
-export type TextBlock = { kind: 'text'; text: string }
+/**
+ * A plain centred paragraph (the merchant's note, a line of help); `muted` the small italic
+ * line at the end of an email ("Did not ask for this? Ignore this email.").
+ */
+export type TextBlock = { kind: 'text'; text: string; muted?: boolean | undefined }
+/** Extra links under the message (an app's "Download invoice"), one per line. */
+export type LinksBlock = { kind: 'links'; items: { label: string; url: string }[] }
 
 /**
  * Every block an email can be built from (Figma "Emails" batches). A template lists the blocks
@@ -61,11 +82,14 @@ export type EmailBlock =
   | CodeBlock
   | CouponBlock
   | AttachmentBlock
+  | ProductBlock
   | ProductsBlock
+  | ParcelsBlock
   | ItemsBlock
   | ButtonBlock
   | DividerBlock
   | TextBlock
+  | LinksBlock
 
 /** The card's side padding around a block; phones narrow it (`k-pad`). */
 function Pad({ children }: { children: ReactNode }) {
@@ -144,18 +168,57 @@ function Block({ block: b, accent }: { block: EmailBlock; accent: string }) {
           <Products block={b} />
         </Pad>
       )
+    case 'product':
+      return (
+        <Pad>
+          <Product block={b} accent={accent} />
+        </Pad>
+      )
+    case 'parcels':
+      return (
+        <Pad>
+          <Parcels block={b} accent={accent} />
+        </Pad>
+      )
     case 'items': {
       const { kind: _kind, ...props } = b
       return <ItemsPanel {...props} />
     }
     case 'button':
-      return <PrimaryButton href={b.url}>{b.label}</PrimaryButton>
+      return (
+        <>
+          <PrimaryButton href={b.url}>{b.label}</PrimaryButton>
+          {b.secondary ? (
+            <Section style={{ padding: '12px 24px 0', textAlign: 'center' }}>
+              <Link href={b.secondary.url} style={{ fontSize: '14px', color: theme.body, textDecoration: 'underline' }}>
+                {b.secondary.label}
+              </Link>
+            </Section>
+          ) : null}
+        </>
+      )
+    case 'links':
+      return (
+        <Pad>
+          {b.items.map((l) => (
+            <LinkLine key={l.url} label={l.label} href={l.url} />
+          ))}
+        </Pad>
+      )
     case 'divider':
       return <DividerLabel>{b.label}</DividerLabel>
     case 'text':
       return (
         <Pad>
-          <Body>{b.text}</Body>
+          {b.muted ? (
+            <Text
+              style={{ margin: 0, fontSize: '13.5px', lineHeight: '20px', fontStyle: 'italic', color: theme.muted, textAlign: 'center' }}
+            >
+              {b.text}
+            </Text>
+          ) : (
+            <Body>{b.text}</Body>
+          )}
         </Pad>
       )
   }

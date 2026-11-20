@@ -91,3 +91,47 @@ export function Products({ block: b }: { block: ProductsBlock }) {
     </Row>
   )
 }
+
+/** One product on its own: the back-in-stock item, the product a question is about. */
+export type ProductBlock = {
+  kind: 'product'
+  title: string
+  /** "Ocean Blue · Hall effect  ·  ₹6,999". */
+  note?: string | undefined
+  imageUrl?: string | undefined
+  url?: string | undefined
+  /** A small line above the name: "In stock · 12 left". */
+  badge?: string | undefined
+}
+
+export function Product({ block: b, accent }: { block: ProductBlock; accent: string }) {
+  const name = (
+    <Text style={{ margin: 0, fontSize: '17px', lineHeight: '23px', color: theme.ink }}>{b.title}</Text>
+  )
+  return (
+    <Row style={{ border: `1px solid ${theme.border}`, borderRadius: '10px' }}>
+      {b.imageUrl ? (
+        <Column style={{ width: '96px', padding: '14px 0 14px 16px', verticalAlign: 'middle' }}>
+          <Img src={b.imageUrl} width="76" height="76" alt={b.title} style={{ display: 'block', borderRadius: '6px' }} />
+        </Column>
+      ) : null}
+      <Column style={{ padding: '16px 18px', verticalAlign: 'middle' }}>
+        {b.badge ? (
+          <Text style={{ margin: '0 0 4px', fontSize: '12px', fontWeight: 700, color: theme.good }}>{b.badge}</Text>
+        ) : null}
+        {b.url ? (
+          <Link href={b.url} style={{ textDecoration: 'none', color: theme.ink }}>
+            {name}
+          </Link>
+        ) : (
+          name
+        )}
+        {b.note ? (
+          <Text style={{ margin: '2px 0 0', fontSize: '13px', lineHeight: '18px', fontStyle: 'italic', color: accent }}>
+            {b.note}
+          </Text>
+        ) : null}
+      </Column>
+    </Row>
+  )
+}
