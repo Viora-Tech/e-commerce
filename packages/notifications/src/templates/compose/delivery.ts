@@ -25,6 +25,16 @@ function trackingMeta(
   ]
 }
 
+/** Delivered · Courier · AWB for the delivered ticket. */
+function deliveredMeta(d: TemplateData): { label: string; value: string }[] {
+  const courier = d.courierLabel ?? d.route?.via
+  return [
+    ...(d.deliveredLabel ? [{ label: c().delivered, value: d.deliveredLabel }] : []),
+    ...(courier ? [{ label: c().courier, value: courier }] : []),
+    ...(d.waybill ? [{ label: c().awb, value: d.waybill }] : []),
+  ]
+}
+
 /** A plane for an air service, a truck otherwise. */
 const vehicle = (d: TemplateData) => (/air|express/i.test(d.route?.via ?? '') ? 'plane' : 'truck')
 
@@ -79,8 +89,9 @@ const outForDelivery: Composer = (d, action) => ({
 const delivered: Composer = (d, action) => ({
   eyebrow: c().deliveredKicker(d.orderNumber),
   heading: c().deliveredHeading(shopperName(d)),
+  lead: d.deliveredLabel ? c().deliveredOn(d.deliveredLabel) : undefined,
   blocks: present([
-    ticketOrFacts(d, trackingMeta(d, { arrives: '' }).filter((m) => m.value), {
+    ticketOrFacts(d, deliveredMeta(d), {
       progress: 'done',
       via: c().delivered,
       foot: { line: c().deliveredLine(itemCount(d)), note: c().deliveredNote },
@@ -115,7 +126,14 @@ const shippingUpdate: Composer = (d, action) => ({
   blocks: present([
     ticketOrFacts(d, trackingMeta(d, { awbLabel: c().newAwb }), {
       progress: 'moving',
-      foot: d.courierLabel ? { line: c().movedTo(d.courierLabel) } : undefined,
+      foot: d.previousWaybill
+        ? {
+            line: c().oldAwb(d.previousWaybill),
+            note: d.courierLabel ? c().movedTo(d.courierLabel) : undefined,
+          }
+        : d.courierLabel
+          ? { line: c().movedTo(d.courierLabel) }
+          : undefined,
     }),
     button(action, d.trackingUrl ? c().trackParcel : undefined),
     orderItems(d, { title: c().inThisParcel, totals: false }),

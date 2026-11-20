@@ -135,6 +135,26 @@ export function firstParagraph(text: string): string {
   return text.split(/\n\s*\n/)[0] ?? text
 }
 
+/**
+ * The message's lines with a small status word under each ("Refunded", "Wrong size"), through
+ * the line note the items list already prints. A line's own note (a pre-order date) is kept.
+ */
+export function badged(d: TemplateData, badge: string | undefined): TemplateData {
+  if (!badge) return d
+  return { ...d, lines: d.lines.map((l) => ({ ...l, note: l.note ? `${badge} · ${l.note}` : badge })) }
+}
+
+/** "Popular right now" and up to three product tiles, or nothing without products. */
+export function popular(d: TemplateData, title: string): EmailBlock[] {
+  const items = (d.products ?? []).slice(0, 3)
+  return items.length > 0
+    ? [
+        { kind: 'divider', label: title },
+        { kind: 'products', items },
+      ]
+    : []
+}
+
 /** Drops the blocks a message has no data for. */
 export function present(blocks: (EmailBlock | null | undefined | false)[]): EmailBlock[] {
   return blocks.filter((b): b is EmailBlock => Boolean(b))

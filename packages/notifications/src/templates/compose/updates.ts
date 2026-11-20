@@ -1,8 +1,9 @@
 import type { TemplateId } from '../../types'
 import { sharedContent } from '../content'
 import { blockCopy } from '../content-blocks'
+import { blockCopy2 } from '../content-blocks-2'
 import type { Composer } from './index'
-import { button, orderItems, paymentLine, present, shopButton } from './order'
+import { button, orderItems, paymentLine, popular, present, shopButton } from './order'
 
 /**
  * Batch 4, order updates: a cancelled order with its refund, an edited order as it stands now,
@@ -67,13 +68,18 @@ const documentCopy: Composer = (d) => {
       {
         kind: 'attachment',
         badge: c().pdf,
-        name: c().documentName(d.documentLabel),
+        name: d.document?.fileName ?? c().documentName(d.documentLabel),
         meta: c().documentMeta(d.orderNumber),
         link: file ? { label: c().download, url: file.url } : undefined,
       },
-      d.totalLabel
-        ? { kind: 'facts', rows: [{ label: c().totalInclGst, value: d.totalLabel, strong: true }] }
-        : null,
+      {
+        kind: 'facts',
+        rows: [
+          ...(d.document?.number ? [{ label: c().invoiceNo, value: d.document.number }] : []),
+          ...(d.document?.gstin ? [{ label: c().ourGstin, value: d.document.gstin }] : []),
+          ...(d.totalLabel ? [{ label: c().totalInclGst, value: d.totalLabel, strong: true }] : []),
+        ],
+      },
       d.orderUrl ? { kind: 'button', label: sharedContent.viewOrder, url: d.orderUrl } : null,
     ]),
   }
@@ -96,6 +102,7 @@ const giftCard: Composer = (d, action) => {
         : null,
       gc?.message ? { kind: 'quote', label: c().giftMessage, text: gc.message, tone: 'accent' } : null,
       shopButton(d, c().startShopping, action),
+      ...popular(d, blockCopy2.marketing.popular),
     ]),
   }
 }

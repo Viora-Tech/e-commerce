@@ -36,7 +36,11 @@ const received: Composer = (d, action) => ({
       kind: 'status',
       tone: 'good',
       title: c().paidInFull,
-      body: d.paymentMethodLabel ? c().paidBy(d.paymentMethodLabel) : undefined,
+      body: d.paymentMethodLabel
+        ? d.paymentRef
+          ? c().paidRef(d.paymentMethodLabel, d.paymentRef)
+          : c().paidBy(d.paymentMethodLabel)
+        : undefined,
     },
     button(action),
     orderItems(d, { title: c().yourOrder }),
@@ -98,7 +102,15 @@ const codConfirm: Composer = (d, action) => {
           ...(city ? [{ label: c().deliveryTo, value: city }] : []),
         ],
       },
-      button(action, c().confirmOrder),
+      // The confirm page has both answers; "Cancel it" opens the same page.
+      action
+        ? {
+            kind: 'button',
+            label: c().confirmOrder,
+            url: action.url,
+            secondary: { label: c().cancelIt, url: action.url },
+          }
+        : null,
       orderItems(d, { title: c().yourOrder, totals: false }),
     ]),
   }

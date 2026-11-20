@@ -3,7 +3,7 @@ import type { TemplateData, TemplateId } from '../../types'
 import { sharedContent as shared, templateContent } from '../content'
 import { blockCopy2 } from '../content-blocks-2'
 import type { Composer } from './index'
-import { button, firstParagraph, itemCount, muted, orderItems, present } from './order'
+import { button, firstParagraph, itemCount, muted, orderItems, popular, present, shopButton } from './order'
 
 /**
  * Batch 8, marketing and reviews: a basket, a product, a code or someone's words in a quote
@@ -21,6 +21,27 @@ function stockProduct(d: TemplateData, badge?: string): EmailBlock | null {
     note: b.variantTitle,
     url: b.productUrl,
     badge,
+  }
+}
+
+const welcome: Composer = (d, action) => {
+  const w = d.welcome
+  return {
+    eyebrow: c().welcomeKicker(d.storeName),
+    blocks: present([
+      w
+        ? {
+            kind: 'coupon',
+            label: c().yourCode,
+            code: w.code,
+            note: w.terms,
+            value: w.valueLabel,
+            valueNote: c().off,
+          }
+        : null,
+      shopButton(d, c().startShopping, action),
+      ...popular(d, c().popular),
+    ]),
   }
 }
 
@@ -68,6 +89,8 @@ const reviewReply: Composer = (d, action) => ({
   eyebrow: c().replyKicker,
   lead: c().replyLead(d.review?.productTitle),
   blocks: present([
+    d.review?.rating ? { kind: 'text', text: c().yourRating(d.review.rating), muted: true } : null,
+    d.review?.text ? { kind: 'quote', label: c().youWrote, text: d.review.text } : null,
     d.review?.reply
       ? { kind: 'quote', label: c().replied(d.storeName), text: d.review.reply, tone: 'accent' }
       : null,
@@ -162,6 +185,7 @@ const affiliate: Composer = (d, action) => ({
 })
 
 export const marketingComposers: Partial<Record<TemplateId, Composer>> = {
+  welcome_coupon: welcome,
   checkout_recovery: basket,
   back_in_stock_confirm: stockConfirm,
   back_in_stock_alert: stockAlert,

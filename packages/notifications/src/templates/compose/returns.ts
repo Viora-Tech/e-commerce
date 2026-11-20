@@ -4,7 +4,7 @@ import type { TemplateData, TemplateId } from '../../types'
 import { blockCopy } from '../content-blocks'
 import { blockCopy2 } from '../content-blocks-2'
 import type { Composer } from './index'
-import { button, muted, orderItems, present, routeTicket, shopperName } from './order'
+import { badged, button, muted, orderItems, present, routeTicket, shopperName } from './order'
 
 /**
  * Batch 6, returns: the route ticket run backwards (from the shopper's city back to the
@@ -38,7 +38,8 @@ function returnTicket(
   }
 }
 
-const returning = (d: TemplateData) => orderItems(d, { title: c().youAreReturning, totals: false })
+const returning = (d: TemplateData, badge?: string) =>
+  orderItems(badged(d, badge), { title: c().youAreReturning, totals: false })
 
 const requested: Composer = (d, action) => {
   const info = d.returnInfo
@@ -55,7 +56,7 @@ const requested: Composer = (d, action) => {
         ],
         foot: { line: c().keepInBox, note: c().keepInBoxNote },
       }),
-      returning(d),
+      returning(d, info?.reasonLabel),
       button(action),
     ]),
   }
@@ -94,7 +95,7 @@ const rejected: Composer = (d, action) => ({
       ? { kind: 'notice', tone: 'bad', title: c().why, body: d.returnInfo.decisionNote }
       : null,
     muted(c().gotItWrong),
-    orderItems(d, { totals: false }),
+    orderItems(badged(d, c().notAccepted), { totals: false }),
     button(action),
   ]),
 })
@@ -108,7 +109,7 @@ const received: Composer = (d, action) => ({
       meta: d.returnInfo ? [{ label: c().return, value: d.returnInfo.label }] : [],
     }),
     { kind: 'status', tone: 'good', title: c().accepted, body: c().acceptedBody },
-    orderItems(d, { totals: false }),
+    orderItems(badged(d, c().received), { totals: false }),
     button(action),
   ]),
 })
@@ -130,7 +131,7 @@ const refunded: Composer = (d, action) => {
             ],
           }
         : null,
-      orderItems(d, { totals: false }),
+      orderItems(badged(d, c().refunded), { totals: false }),
       button(action),
     ]),
   }
@@ -148,7 +149,7 @@ const exchanged: Composer = (d, action) => ({
       ],
       foot: { line: c().replacementFor(d.returnInfo?.originalOrderNumber) },
     }),
-    orderItems(d, { title: c().sendingYou, totals: false }),
+    orderItems(badged(d, c().replacement), { title: c().sendingYou, totals: false }),
     button(action, d.trackingUrl ? c().trackExchange : undefined),
   ]),
 })

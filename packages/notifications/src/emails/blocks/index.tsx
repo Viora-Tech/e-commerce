@@ -101,6 +101,10 @@ function Pad({ children }: { children: ReactNode }) {
 }
 
 function Block({ block: b, accent }: { block: EmailBlock; accent: string }) {
+  // A card with nothing in it is left out rather than drawn empty.
+  if ((b.kind === 'facts' && b.rows.length === 0) || (b.kind === 'stats' && b.items.length === 0)) {
+    return null
+  }
   switch (b.kind) {
     case 'ticket':
       return (

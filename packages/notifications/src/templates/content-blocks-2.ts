@@ -22,6 +22,7 @@ export const blockCopy2 = {
     keepInBox: 'Keep it in its box for now',
     keepInBoxNote: 'Do not send it until we approve the return.',
     youAreReturning: 'You are returning',
+    replacement: 'Replacement',
     pickupAwb: 'Pickup AWB',
     courierPickup: 'A courier picks it up',
     packIt: 'Pack it in its box, tags on',
@@ -58,6 +59,10 @@ export const blockCopy2 = {
   },
   /** Batch 8: marketing and reviews. */
   marketing: {
+    welcomeKicker: (store: string) => `Welcome to ${store}`,
+    off: 'Off',
+    popular: 'Popular right now',
+    startShopping: 'Start shopping',
     basketKicker: 'Your basket',
     basketLead: (items: string, total: string) => `You left ${items} worth ${total}.`,
     yourBasket: 'Your basket',
@@ -77,6 +82,11 @@ export const blockCopy2 = {
     replyLead: (title: string | undefined) =>
       title ? `Thanks for reviewing the ${title}.` : 'Thanks for your review.',
     replied: (store: string) => `${store} replied`,
+    youWrote: 'You wrote',
+    yourRating: (stars: number) => {
+      const n = Math.max(0, Math.min(5, Math.round(stars)))
+      return `Your rating: ${'★'.repeat(n)}${'☆'.repeat(5 - n)}`
+    },
     rewardLead: 'Your review is live, photos and all.',
     yourCode: 'Your code',
     rewardNote: (until: string | undefined) =>
