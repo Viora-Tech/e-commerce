@@ -21,7 +21,7 @@
     "@commerce/plugin-reviews": "workspace:*",
     "@commerce/richtext": "workspace:*",
     "@commerce/storefront": "workspace:*",
-    "@puckeditor/core": "^0.23.0",
+    "@puckeditor/core": "^0.24.1",
     "@tailwindcss/postcss": "^4.3.3",
     "drizzle-orm": "^0.45.2",
     "hono": "^4.13.17",

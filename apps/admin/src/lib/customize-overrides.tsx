@@ -45,7 +45,8 @@ export const CUSTOMIZE_OVERRIDES: Partial<Overrides> = {
   // override is only ever called for its own type, so narrow it to what it reads.
   fieldLabel: () => <></>,
   // Basic / Advanced: filters the selected section's fields by name (see InspectorFields).
-  fields: ({ children }) => <InspectorFields>{children}</InspectorFields>,
+  // Puck 0.24 passes the rendered fields keyed by name; `children` is now one layout element.
+  fields: ({ fields }) => <InspectorFields fields={fields} />,
   // Every setting gets the "connect dynamic source" control (see ./customize-dynamic-fields).
   fieldTypes: withDynamicSources({
     text: (props) => (

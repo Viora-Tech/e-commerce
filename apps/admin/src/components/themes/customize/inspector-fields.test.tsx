@@ -23,17 +23,19 @@ vi.mock('@/lib/customize-puck', async (original) => ({
   useCustomizePuck: (select: (s: typeof puck) => unknown) => select(puck),
 }))
 
-// Puck keys each field element by its field name.
+// Puck hands the override its rendered fields keyed by field name.
 function draw(tab: InspectorTab | 'all', names: string[]) {
+  const fields = Object.fromEntries(
+    names.map((name) => [
+      name,
+      <p key={name} data-testid="field">
+        {name}
+      </p>,
+    ]),
+  )
   render(
     <InspectorTabContext.Provider value={tab}>
-      <InspectorFields>
-        {names.map((name) => (
-          <p key={name} data-testid="field">
-            {name}
-          </p>
-        ))}
-      </InspectorFields>
+      <InspectorFields fields={fields} />
     </InspectorTabContext.Provider>,
   )
   return screen.queryAllByTestId('field').map((el) => el.textContent)
