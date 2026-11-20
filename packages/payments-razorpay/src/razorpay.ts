@@ -8,12 +8,14 @@ import type {
   PaymentProvider,
   PaymentProviderFactory,
   PaymentStatus,
+  RefundContext,
   WebhookVerification,
 } from '@commerce/payments'
 import { safeEqual } from '@commerce/payments'
 import Razorpay from 'razorpay'
 import { fetchCharges, type RzpPayment } from './charges'
 import { refreshOAuthConfig } from './oauth'
+import { refundOnce } from './refunds'
 import { normaliseRazorpayWebhook, type RzpWebhookBody } from './webhook-events'
 
 export type RazorpayConfig = {
@@ -329,15 +331,9 @@ export class RazorpayProvider implements PaymentProvider {
     }
   }
 
-  async refund(providerPaymentId: string, amountPaise: number, note?: string) {
-    const r = (await this.client.payments.refund(providerPaymentId, {
-      amount: amountPaise,
-      notes: note ? { note } : undefined,
-    })) as unknown as { id: string; status: string }
-    return {
-      providerRefundId: r.id,
-      status: r.status === 'processed' ? ('processed' as const) : ('pending' as const),
-    }
+  /** Idempotent on `context.refundKey`: a retry returns the refund already made (refunds.ts). */
+  refund(providerPaymentId: string, amountPaise: number, note?: string, context?: RefundContext) {
+    return refundOnce(this.client, providerPaymentId, amountPaise, note, context?.refundKey)
   }
 
   parseWebhook(input: {
