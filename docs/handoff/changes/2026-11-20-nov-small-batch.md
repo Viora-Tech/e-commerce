@@ -45,8 +45,8 @@ and `data/hi/`. Re-ran `apps/storefront/src/lib/checkout-preview.test.ts` (25 pa
   s-maxage=900, stale-while-revalidate=3600`, rate limited 20 a minute per IP, `noindex`. The
   proxy never mints the visitor cookie on these two paths (public cacheable files).
 - Switch: Online store › Preferences › Product feeds (`preferences.feeds.products`, off by
-  default; the storefront reads it through `storefrontLock`). While off, or behind the password
-  page, the feed answers 404. The card lists both addresses once the switch is saved on.
+  default; the storefront reads it through `storefrontLock`). While off the feed answers 404;
+  behind the password page the proxy shows the password page, as for every page. The card lists both addresses once the switch is saved on.
 - Files: `apps/storefront/src/lib/product-feed/{shape,respond}.ts`, routes under
   `app/-s/[storeId]/feeds/`, `data/product-feed.ts`; admin
   `components/preferences/product-feed-card.tsx`, `data/product-feed.ts` + `data/hi/`.
@@ -54,3 +54,30 @@ and `data/hi/`. Re-ran `apps/storefront/src/lib/checkout-preview.test.ts` (25 pa
 - **Owner:** switch it on for Waimers in Preferences when wanted, then open
   `https://www.waimers.in/feeds/products.xml`. The Cloudflare cache rule "Store pages" already
   allows `/feeds/*`; an edit is purged by the worker like the pages.
+
+## 4. Platform subdomain redirects to the custom primary
+
+- `setPrimaryDomain` (`packages/core/src/domains/service.ts`): when a custom domain becomes
+  primary, the store's platform domain (`<store>.koomerce.app`) gets `redirect_to_primary` on, so
+  `resolve_host` reports it as redirecting and the storefront proxy answers 301 to the same path
+  and query on the primary (`primaryRedirect`, unchanged). The merchant can still switch it off on
+  the domain's page; making the platform domain primary again clears it (as before).
+- Migration `0259_platform_domain_redirect.sql`: the same for stores whose custom primary was set
+  before (Waimers: `waimers.koomerce.app` → `www.waimers.in` once deployed). Renumber at merge if
+  another migration lands first.
+- Never redirected, so the admin keeps working: frames (`sec-fetch-dest: iframe`, the theme
+  editor canvas and admin thumbnails), `?theme-preview=` links, and now also a tab that carries
+  the preview cookie (`wc_theme_preview`, host-only); `/api/`, `/_next/`, `/webhooks/` and the
+  internal prefixes. The admin already builds every preview, canvas and "View store" link on
+  `store.origin` (the primary), so none of them land on the subdomain in the first place.
+- Previous behaviour, now changed: the old test said the platform domain "keeps serving until
+  the merchant says otherwise"; `service.test.ts` now expects the redirect on, then off when
+  switched off, then serving again when it is made primary.
+- Merchant guide: Settings › Domains, "Your store address after a custom domain".
+- Tests (run): storefront `src/lib/routing.test.ts` (new platform-subdomain block), core
+  `src/domains/service.test.ts` (31), core `src/markets/service.test.ts`, db
+  `test/resolve-store.test.ts`. `src/domains/routes.test.ts` does not load in this worktree
+  (stale `@commerce/payments-snapmint` module).
+- **Owner:** after deploy, `curl -sI "https://waimers.koomerce.app/collections/all?page=2"` should
+  answer `301` with `location: https://www.waimers.in/collections/all?page=2`. Open the theme
+  editor once to confirm the canvas still loads.

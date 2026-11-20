@@ -98,6 +98,46 @@ describe('primaryRedirect', () => {
   })
 })
 
+describe('primaryRedirect from the platform subdomain', () => {
+  // `waimers.koomerce.app` redirects once www.waimers.in is primary (`setPrimaryDomain`).
+  const platform = {
+    hostname: 'waimers.koomerce.app',
+    port: '',
+    pathname: '/collections/mice',
+    search: '?sort_by=price-ascending&page=2&utm_source=ig',
+    protocol: 'https:',
+    primaryHostname: 'www.waimers.in',
+    redirect: true,
+    inFrame: false,
+    previewing: false,
+    dev: false,
+  }
+
+  it('sends shoppers to the same path and query on the custom primary', () => {
+    expect(primaryRedirect(platform)).toBe(
+      'https://www.waimers.in/collections/mice?sort_by=price-ascending&page=2&utm_source=ig',
+    )
+    expect(primaryRedirect({ ...platform, pathname: '/', search: '' })).toBe(
+      'https://www.waimers.in/',
+    )
+  })
+
+  it('keeps the theme editor canvas, admin thumbnails and theme previews on the subdomain', () => {
+    expect(primaryRedirect({ ...platform, inFrame: true })).toBeNull()
+    expect(primaryRedirect({ ...platform, previewing: true })).toBeNull()
+  })
+
+  it('leaves API calls and gateway webhooks where they were sent', () => {
+    expect(primaryRedirect({ ...platform, pathname: '/api/beacon' })).toBeNull()
+    expect(primaryRedirect({ ...platform, pathname: '/webhooks/razorpay' })).toBeNull()
+  })
+
+  it('serves the subdomain while it is the primary, or the merchant switched the redirect off', () => {
+    expect(primaryRedirect({ ...platform, primaryHostname: 'waimers.koomerce.app' })).toBeNull()
+    expect(primaryRedirect({ ...platform, redirect: false })).toBeNull()
+  })
+})
+
 describe('redirectHostFor', () => {
   const markets = [null, 'waimers.ae']
   it("sends a market domain's www twin to that domain", () => {

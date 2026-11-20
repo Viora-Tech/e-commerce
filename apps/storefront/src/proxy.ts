@@ -213,7 +213,9 @@ async function routeRequest(
     primaryHostname: redirectHost,
     redirect: hostRoute.redirect,
     inFrame: request.headers.get('sec-fetch-dest') === 'iframe',
-    previewing: request.nextUrl.searchParams.has(THEME_PREVIEW_PARAM),
+    // A theme preview link, or a tab still previewing (its cookie is on this host only).
+    previewing:
+      request.nextUrl.searchParams.has(THEME_PREVIEW_PARAM) || request.cookies.has(PREVIEW_COOKIE),
     dev: process.env.NODE_ENV !== 'production',
   })
   if (target) return NextResponse.redirect(target, 301)

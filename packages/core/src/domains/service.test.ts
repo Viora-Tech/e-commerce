@@ -211,15 +211,25 @@ describe('primary domain and redirects', () => {
       primaryHostname: 'brand.test',
       redirect: true,
     })
-    // The old platform domain keeps serving until the merchant says otherwise.
-    expect(await resolveHost(app, 'w.localhost')).toMatchObject({ redirect: false })
-    const platform = rows.find((r) => r.kind === 'platform')
-    await withStore(app, storeId, (tx) =>
-      setDomainRedirect(tx, storeId, platform?.id as string, true),
-    )
+    // The platform subdomain sends its visitors to the custom primary from now on...
     expect(await resolveHost(app, 'w.localhost')).toMatchObject({
       primaryHostname: 'brand.test',
       redirect: true,
+    })
+    // ...until the merchant switches that off on its page.
+    const platform = rows.find((r) => r.kind === 'platform')
+    await withStore(app, storeId, (tx) =>
+      setDomainRedirect(tx, storeId, platform?.id as string, false),
+    )
+    expect(await resolveHost(app, 'w.localhost')).toMatchObject({ redirect: false })
+    // Making the platform domain primary again stops its redirect and serves there.
+    await withStore(app, storeId, (tx) =>
+      setDomainRedirect(tx, storeId, platform?.id as string, true),
+    )
+    await withStore(app, storeId, (tx) => setPrimaryDomain(tx, storeId, platform?.id as string))
+    expect(await resolveHost(app, 'w.localhost')).toMatchObject({
+      primaryHostname: 'w.localhost',
+      redirect: false,
     })
   })
 
