@@ -7,6 +7,7 @@ export default [
       title: 'Snapmint जोड़ें',
       intro:
         'ग्राहक UPI या डेबिट कार्ड से महीने की EMI में पेमेंट कर सकते हैं, क्रेडिट कार्ड की ज़रूरत नहीं। चेकआउट पर Snapmint पेमेंट का अलग तरीका बनकर दिखता है, सिर्फ़ उन ग्राहकों को जिन्हें वह मंज़ूरी दे सकता है।',
+      signupUrl: 'https://snapmint.com/',
       openSignup: 'Snapmint खोलें',
       steps: {
         one: {

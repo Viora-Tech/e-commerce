@@ -40,7 +40,7 @@ function buildLines(
   const sales = sum(data.salesPaise)
   const before = data.previousSalesPaise ? sum(data.previousSalesPaise) : null
   if (sales > 0 || (before ?? 0) > 0) {
-    let rest = c.salesNoBefore
+    let rest: string = c.salesNoBefore
     if (before !== null && before > 0) {
       const change = (sales - before) / before
       if (change > FLAT) rest = c.salesUp(pct(change), money(before), n)
