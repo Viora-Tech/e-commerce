@@ -5,6 +5,7 @@ import { withQuery } from '@commerce/core/redirects'
 import { THEME_PREVIEW_PARAM } from '@commerce/core/theme'
 import { type HostRoute, resolveHost, type StoreMarketRoute, storeMarkets } from '@commerce/db'
 import { type NextRequest, NextResponse } from 'next/server'
+import { FEED_FILES } from './data/product-feed'
 import { SEO_FILES } from './data/seo'
 import { accountsHostname } from './lib/accounts-host'
 import { analyticsAllowed } from './lib/consent-cookie'
@@ -212,7 +213,9 @@ async function routeRequest(
     primaryHostname: redirectHost,
     redirect: hostRoute.redirect,
     inFrame: request.headers.get('sec-fetch-dest') === 'iframe',
-    previewing: request.nextUrl.searchParams.has(THEME_PREVIEW_PARAM),
+    // A theme preview link, or a tab still previewing (its cookie is on this host only).
+    previewing:
+      request.nextUrl.searchParams.has(THEME_PREVIEW_PARAM) || request.cookies.has(PREVIEW_COOKIE),
     dev: process.env.NODE_ENV !== 'production',
   })
   if (target) return NextResponse.redirect(target, 301)
@@ -431,8 +434,10 @@ async function routeRequest(
   // drop, so it is done here). Without analytics consent no visitor id is set at all. Never
   // on robots.txt, sitemap.xml or llms.txt: they answer `cache-control: public`, and a
   // shared cache that stored a Set-Cookie would hand one visitor id to every shopper after.
+  // The product feeds (`/feeds/products.xml`, `.csv`) are public and cacheable for the same reason.
   if (
     !seoFile &&
+    !(FEED_FILES as readonly string[]).includes(pick.pathname) &&
     analyticsAllowed(request.cookies.get(CONSENT_COOKIE)?.value) &&
     !parseVisitorId(request.cookies.get(VISITOR_COOKIE)?.value)
   ) {

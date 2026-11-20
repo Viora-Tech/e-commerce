@@ -120,6 +120,7 @@ import pixels from './pixels'
 import platform from './platform'
 import preorders from './preorders'
 import productBulkShipping from './product-bulk-shipping'
+import productFeed from './product-feed'
 import productForm from './product-form'
 import productPage from './product-page'
 import productShipping from './product-shipping'
@@ -262,6 +263,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...home,
   ...homeSections,
   ...honoProduct,
+  ...productFeed,
   ...imageEditor,
   ...indiaPost,
   ...installedApps,

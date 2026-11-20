@@ -22,6 +22,7 @@ import { routes } from '@/lib/routes'
 import HonoProductCard from './hono-product-card'
 import PreferencesPreviews from './preferences-previews'
 import PreferencesRelated from './preferences-related'
+import ProductFeedCard from './product-feed-card'
 import SocialImageField from './social-image-field'
 import TextSetting from './text-setting'
 
@@ -237,6 +238,13 @@ export default function PreferencesForm({
                 stopHref={`${storefrontOrigin}/?hono=clear`}
               />
             ) : null}
+
+            <ProductFeedCard
+              checked={form.feeds.products}
+              saved={saved.feeds.products}
+              onChange={(products) => patch('feeds', { products })}
+              storefrontOrigin={storefrontOrigin}
+            />
 
             <SettingsCard
               title={copy.verification.heading}
