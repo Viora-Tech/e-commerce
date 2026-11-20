@@ -1,6 +1,9 @@
 import { siteConfig } from '@commerce/config/site'
 import { formatInZone } from '@commerce/dates'
+import { figmaOrder } from './samples-order'
 import type { TemplateData, TemplateId } from './types'
+
+export { sampleEmailBrand } from './samples-order'
 
 /** Sample order used by the conformance suite, the dev preview and the admin's message preview. */
 export const sampleTemplateData: TemplateData = {
@@ -28,78 +31,40 @@ export const sampleTemplateData: TemplateData = {
 
 const base = sampleTemplateData
 
-/**
- * A made-up store look for the dev preview (/dev/emails): socials, a support number and an
- * address, so the header, help box and footer show as they do for a real store. The preview
- * page sets `shopUrl` to the local storefront so the hosted icons load.
- */
-export const sampleEmailBrand = {
-  supportPhone: '+91 98765 43210',
-  address: 'Waimers · Shop 4, Example Market, New Delhi 110001',
-  social: [
-    { platform: 'instagram', url: 'https://instagram.com/example' },
-    { platform: 'youtube', url: 'https://youtube.com/@example' },
-    { platform: 'x', url: 'https://x.com/example' },
-  ],
-}
-
 /** One representative TemplateData per TemplateId, for /dev/emails and Settings → Notifications → Preview. */
 export const sampleTemplateDataByTemplate: Record<TemplateId, TemplateData> = {
   // The Figma "Order placed · paid" frame: made-up shopper, two lines, a code discount.
-  order_placed: {
-    ...base,
-    orderNumber: 1042,
-    totalLabel: '₹7,018',
-    lines: [
-      {
-        title: 'ATK A9 Wireless Mouse / Blue · Ultimate',
-        quantity: 1,
-        priceLabel: '₹4,299',
-        imageUrl: 'https://placehold.co/132x132/eef4ff/2563eb?text=%20',
-      },
-      {
-        title: 'Glass mousepad / 490 × 420 mm',
-        quantity: 1,
-        priceLabel: '₹3,499',
-        imageUrl: 'https://placehold.co/132x132/f1eefe/6d28d9?text=%20',
-      },
-    ],
-    subtotalLabel: '₹7,798',
-    discount: { label: 'Discount (WELCOME10)', amount: '− ₹780' },
-    shipping: undefined,
-    taxBreakdown: [{ label: 'IGST (18%)', amount: '₹1,070' }],
-    paymentMethodLabel: 'UPI',
-    paymentState: 'paid',
-    route: {
-      from: 'New Delhi',
-      fromNote: 'Waimers warehouse',
-      to: 'Kolkata',
-      toNote: 'Asha Verma',
-      via: 'Delhivery Surface',
-      etaLabel: 'Fri 21 – Sat 22 Nov',
-    },
-    shipTo: ['Asha Verma', '12 Park Street', 'Kolkata 700016'],
-    placedLabel: '19 November 2026',
-    orderUrl: 'https://waimers.example/orders/1042',
-  },
-  payment_received: { ...base, orderUrl: 'https://waimers.example/orders/42' },
+  order_placed: { ...base, ...figmaOrder, orderUrl: 'https://waimers.example/orders/1042' },
+  payment_received: { ...base, ...figmaOrder, orderUrl: 'https://waimers.example/orders/1042' },
   order_shipped: {
     ...base,
+    ...figmaOrder,
+    courierLabel: 'Delhivery',
     waybill: 'AWB123456789',
     trackingUrl: 'https://waimers.example/track/42',
   },
   out_for_delivery: {
     ...base,
+    ...figmaOrder,
+    paymentState: 'cod',
+    paymentMethodLabel: 'Cash on delivery',
+    courierLabel: 'Delhivery',
     waybill: 'AWB123456789',
     trackingUrl: 'https://waimers.example/track/42',
   },
-  delivered: { ...base, orderUrl: 'https://waimers.example/account/orders/42' },
+  delivered: { ...base, ...figmaOrder, courierLabel: 'Delhivery', orderUrl: 'https://waimers.example/account/orders/42' },
   delivery_failed: {
     ...base,
+    ...figmaOrder,
     trackingUrl: 'https://waimers.example/track/42',
     deliveryIssue: { reasonLabel: 'Consignee not available' },
   },
-  order_cancelled: { ...base, orderUrl: 'https://waimers.example/account/orders/42' },
+  order_cancelled: {
+    ...base,
+    ...figmaOrder,
+    orderUrl: 'https://waimers.example/account/orders/1042',
+    refund: { amountLabel: '₹7,018', methodLabel: 'your UPI', etaLabel: '5–7 working days' },
+  },
   refund_issued: {
     ...base,
     orderUrl: 'https://waimers.example/account/orders/42',
@@ -123,7 +88,7 @@ export const sampleTemplateDataByTemplate: Record<TemplateId, TemplateData> = {
   },
   order_link: { ...base, orderUrl: 'https://waimers.example/orders/42' },
   order_split: { ...base, orderUrl: 'https://waimers.example/orders/42' },
-  cod_pay_online: { ...base, orderUrl: 'https://waimers.example/orders/42' },
+  cod_pay_online: { ...base, ...figmaOrder, orderUrl: 'https://waimers.example/orders/42' },
   draft_invoice: { ...base, draftNumber: 12, actionUrl: 'https://waimers.example/pay/42' },
   checkout_recovery: {
     ...base,
@@ -358,15 +323,17 @@ export const sampleTemplateDataByTemplate: Record<TemplateId, TemplateData> = {
       unsubscribeUrl: 'https://waimers.example/back-in-stock/unsubscribe/abc',
     },
   },
-  cod_confirm: { ...base, actionUrl: 'https://waimers.example/cod/abc' },
+  cod_confirm: { ...base, ...figmaOrder, actionUrl: 'https://waimers.example/cod/abc' },
   return_requested: {
     ...base,
+    route: figmaOrder.route,
     taxBreakdown: undefined,
     orderUrl: 'https://waimers.example/account/orders/42',
     returnInfo: { label: 'R-3', reasonLabel: 'It arrived damaged or broken' },
   },
   return_approved: {
     ...base,
+    route: figmaOrder.route,
     taxBreakdown: undefined,
     orderUrl: 'https://waimers.example/account/orders/42',
     returnInfo: { label: 'R-3', pickup: 'courier', pickupWaybill: 'RVP123456789' },
@@ -382,6 +349,7 @@ export const sampleTemplateDataByTemplate: Record<TemplateId, TemplateData> = {
   },
   return_received: {
     ...base,
+    route: figmaOrder.route,
     taxBreakdown: undefined,
     orderUrl: 'https://waimers.example/account/orders/42',
     returnInfo: { label: 'R-3' },
@@ -394,6 +362,7 @@ export const sampleTemplateDataByTemplate: Record<TemplateId, TemplateData> = {
   },
   return_exchanged: {
     ...base,
+    route: figmaOrder.route,
     orderNumber: 57,
     taxBreakdown: undefined,
     orderUrl: 'https://waimers.example/account/orders/57',
@@ -431,6 +400,7 @@ export const sampleTemplateDataByTemplate: Record<TemplateId, TemplateData> = {
   },
   staff_new_order: {
     ...base,
+    ...figmaOrder,
     actionUrl: `https://admin.${siteConfig.brand.domain}/orders/sample`,
   },
   staff_daily_summary: {
