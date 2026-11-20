@@ -7,6 +7,7 @@ import {
   customItemLine,
   draftStoreCreditMax,
   draftStoreCreditProblem,
+  draftStoreCreditUsable,
   draftToPay,
   EMPTY_ADDRESS,
   emptyDraft,
@@ -113,14 +114,19 @@ describe('store credit on a draft (store credit step 3)', () => {
   })
 
   it('says why the applied credit cannot stand', () => {
-    expect(draftStoreCreditProblem(emptyDraft(), 100_000, 0)).toBeNull()
-    expect(draftStoreCreditProblem(withCustomer, 100_000, 60_000)).toBeNull()
-    expect(draftStoreCreditProblem(withCustomer, 100_000, null)).toBeNull()
-    expect(draftStoreCreditProblem({ ...withCustomer, customerId: null }, 100_000, 60_000)).toBe(
+    expect(draftStoreCreditProblem(emptyDraft(), 100_000)).toBeNull()
+    expect(draftStoreCreditProblem(withCustomer, 100_000)).toBeNull()
+    expect(draftStoreCreditProblem({ ...withCustomer, customerId: null }, 100_000)).toBe(
       'no_customer',
     )
-    expect(draftStoreCreditProblem(withCustomer, 40_000, 60_000)).toBe('over_total')
-    expect(draftStoreCreditProblem(withCustomer, 100_000, 30_000)).toBe('over_balance')
+    expect(draftStoreCreditProblem(withCustomer, 40_000)).toBe('over_total')
+  })
+
+  it('uses a balance that fell as it is now, never blocking the convert', () => {
+    expect(draftStoreCreditUsable(50_000, 80_000)).toBe(50_000)
+    expect(draftStoreCreditUsable(50_000, 30_000)).toBe(30_000)
+    expect(draftStoreCreditUsable(50_000, 0)).toBe(0)
+    expect(draftStoreCreditUsable(50_000, null)).toBe(50_000)
   })
 
   it('clears the credit when another customer (or none) is picked, keeps it otherwise', () => {

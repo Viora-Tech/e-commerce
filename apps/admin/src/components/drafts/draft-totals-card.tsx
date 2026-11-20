@@ -6,7 +6,11 @@ import type { ReactNode } from 'react'
 import { useState } from 'react'
 import DraftDiscountDialog from '@/components/drafts/draft-discount-dialog'
 import type { DraftCodeCheck, DraftFormState } from '@/components/drafts/draft-form-state'
-import { draftToPay, draftTotals } from '@/components/drafts/draft-form-state'
+import {
+  draftStoreCreditUsable,
+  draftToPay,
+  draftTotals,
+} from '@/components/drafts/draft-form-state'
 import DraftShippingDialog from '@/components/drafts/draft-shipping-dialog'
 import { useDraftCodeCheck } from '@/components/drafts/use-draft-code-check'
 import { type DraftGst, useDraftGst } from '@/components/drafts/use-draft-gst'
@@ -22,6 +26,8 @@ type DraftTotalsCardProps = {
   /** The saved draft's code as last applied, shown until the live re-check answers. */
   savedCheck: DraftCodeCheck | null
   onChange: (patch: Partial<DraftFormState>) => void
+  /** The customer's store credit balance once loaded: the credit line is capped at it. */
+  creditBalancePaise: number | null
 }
 
 /**
@@ -29,7 +35,13 @@ type DraftTotalsCardProps = {
  * with edit and remove (or "Add discount" / "Add shipping" links that open small dialogs), the
  * GST inside the prices, and the total.
  */
-export default function DraftTotalsCard({ form, tax, savedCheck, onChange }: DraftTotalsCardProps) {
+export default function DraftTotalsCard({
+  form,
+  tax,
+  savedCheck,
+  onChange,
+  creditBalancePaise,
+}: DraftTotalsCardProps) {
   // Hooks
   const copy = useCopy(draftEditorContent)
   const credit = useCopy(draftStoreCreditContent)
@@ -49,6 +61,8 @@ export default function DraftTotalsCard({ form, tax, savedCheck, onChange }: Dra
     ? [form.discountCode.toUpperCase(), coded?.label].filter(Boolean).join(' · ')
     : form.discountLabel
   const waived = form.shippingPaise - totals.shippingPaise
+  // What the convert will take: the applied amount, or less if the balance fell since.
+  const creditPaise = draftStoreCreditUsable(form.storeCreditPaise, creditBalancePaise)
 
   return (
     <DataCard title={t.heading} bodyClassName="flex flex-col gap-3">
@@ -100,13 +114,13 @@ export default function DraftTotalsCard({ form, tax, savedCheck, onChange }: Dra
         <p className="tabular-nums">{fmt.money(totals.totalPaise)}</p>
       </div>
       {/* Store credit is a payment, not a discount: it sits under the total, which it never changes. */}
-      {form.storeCreditPaise > 0 ? (
+      {creditPaise > 0 ? (
         <>
-          <Row label={credit.line} amount={`−${fmt.money(form.storeCreditPaise)}`} muted />
+          <Row label={credit.line} amount={`−${fmt.money(creditPaise)}`} muted />
           <div className="flex items-center justify-between text-body font-semibold text-ink-strong">
             <p>{credit.toPay}</p>
             <p className="tabular-nums">
-              {fmt.money(draftToPay(totals.totalPaise, form.storeCreditPaise))}
+              {fmt.money(draftToPay(totals.totalPaise, creditPaise))}
             </p>
           </div>
         </>

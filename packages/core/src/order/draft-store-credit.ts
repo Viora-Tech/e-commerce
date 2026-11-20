@@ -16,15 +16,17 @@ import { STORE_CREDIT_PROVIDER } from '../payments/split-tender'
  *   status `created` (recorded, nothing taken yet), with the customer in `provider_payment_id`.
  *   Nothing leaves the balance while it is a draft, so editing, releasing or deleting the draft
  *   can never lose credit (the delete removes the row with the draft's other unfinished payments).
- * - Saving checks the amount: a customer is picked, it is at most the draft's total and at most
- *   the customer's balance right now.
+ * - Saving checks the amount: a customer is picked, it is at most the draft's total and, when
+ *   staff typed a new amount, at most the customer's balance right now. Saving the same amount
+ *   again (an unrelated edit after the balance fell) keeps it: the convert caps it.
  * - Converting takes it, in the convert's transaction: the account row is locked, the ledger
  *   gets a `payment` line linked to the order, and the same payment row becomes `captured`
  *   (staff convert) or `pending` (the customer pays the rest online from the invoice: a hold,
  *   captured with the gateway payment or given back if the order is cancelled unpaid, as at
- *   checkout). A balance that fell below the amount since the draft was saved refuses the
- *   convert and nothing changes. The draft row is locked by the convert, so a second convert
- *   waits and then finds an order, never a draft: the credit is taken once.
+ *   checkout). A balance that fell below the amount since the draft was saved is not a refusal:
+ *   the convert takes what the balance holds now (nothing when it is empty, and the row goes),
+ *   and the chosen method collects the rest. The draft row is locked by the convert, so a second
+ *   convert waits and then finds an order, never a draft: the credit is taken once.
  *
  * Store credit is a payment, not a discount: the draft's total and GST never change with it.
  */
@@ -77,9 +79,17 @@ async function balanceOf(ctx: StoreContext, customerId: string, lock: boolean): 
   return lock ? lockStoreCreditBalance(ctx, customerId) : spendableStoreCredit(ctx, customerId)
 }
 
+/** The amount a convert would take now: what was applied, capped at the balance today. */
+export async function draftStoreCreditDue(ctx: StoreContext, orderId: string): Promise<number> {
+  const applied = await draftStoreCredit(ctx, orderId)
+  if (!applied) return 0
+  return Math.min(applied.amountPaise, await balanceOf(ctx, applied.customerId, false))
+}
+
 /**
  * Apply (or change, or with 0 remove) the store credit on a draft. Checks the amount against the
- * draft's customer, its total and the customer's balance now; takes nothing from the balance.
+ * draft's customer, its total and (for a new amount) the customer's balance now; takes nothing
+ * from the balance.
  */
 export async function setDraftStoreCredit(
   ctx: StoreContext,
@@ -89,6 +99,7 @@ export async function setDraftStoreCredit(
   if (!Number.isInteger(amount) || amount < 0) {
     throw new StoreCreditError('invalid', 'Enter the store credit in rupees.', ctx.storeId)
   }
+  const before = await draftStoreCredit(ctx, input.orderId)
   await ctx.tx
     .delete(payment)
     .where(
@@ -113,7 +124,9 @@ export async function setDraftStoreCredit(
       ctx.storeId,
     )
   }
-  const balance = await balanceOf(ctx, input.customerId, false)
+  // The same amount for the same customer is kept even if the balance fell: the convert caps it.
+  const unchanged = before?.customerId === input.customerId && before.amountPaise === amount
+  const balance = unchanged ? amount : await balanceOf(ctx, input.customerId, false)
   if (amount > balance) {
     throw new StoreCreditError(
       'insufficient',
@@ -135,8 +148,9 @@ export async function setDraftStoreCredit(
 /**
  * The draft is becoming an order: take its applied store credit from the customer's balance
  * (ledger line linked to the order) and turn its payment row into the order's store credit
- * payment, `captured`, or `pending` when `hold` (the gateway pays the rest). Returns the amount
- * taken, 0 with none applied. Runs in the convert's transaction, so a refusal changes nothing.
+ * payment, `captured`, or `pending` when `hold` (the gateway pays the rest). A balance that fell
+ * since it was applied caps what is taken; an empty one takes nothing and drops the row. Returns
+ * the amount taken, 0 with none. Runs in the convert's transaction, so a refusal changes nothing.
  */
 export async function spendDraftStoreCredit(
   ctx: StoreContext,
@@ -151,18 +165,17 @@ export async function spendDraftStoreCredit(
       ctx.storeId,
     )
   }
-  // The row lock: a checkout or another convert for this customer waits here.
+  // The row lock: a checkout or another convert for this customer waits here, then sees the
+  // balance that one left, so the two can never spend the same rupee.
   const balance = await balanceOf(ctx, applied.customerId, true)
-  if (balance < applied.amountPaise) {
-    throw new StoreCreditError(
-      'insufficient',
-      `The customer's store credit is now ${rupees(balance)}, less than the ${rupees(applied.amountPaise)} on this draft. Lower the store credit and save the draft.`,
-      ctx.storeId,
-    )
+  const take = Math.min(applied.amountPaise, Math.max(0, balance))
+  if (take === 0) {
+    await ctx.tx.delete(payment).where(eq(payment.id, applied.paymentId))
+    return 0
   }
   await changeStoreCredit(ctx, {
     customerId: applied.customerId,
-    amountPaise: -applied.amountPaise,
+    amountPaise: -take,
     kind: 'payment',
     reason: `Used on order #${input.orderNumber}`,
     orderId: input.orderId,
@@ -171,10 +184,11 @@ export async function spendDraftStoreCredit(
     .update(payment)
     .set({
       status: input.hold ? 'pending' : 'captured',
+      amountPaise: take,
       providerRef: `store_credit_${input.orderId}`,
     })
     .where(and(eq(payment.id, applied.paymentId), eq(payment.status, 'created')))
     .returning({ id: payment.id })
   if (taken.length !== 1) throw new Error('draft store credit payment changed during convert')
-  return applied.amountPaise
+  return take
 }

@@ -15,7 +15,6 @@ import {
 } from '@commerce/db'
 import { eq, sql } from 'drizzle-orm'
 import { isAbroad, taxRegimeFor } from '../checkout/address-abroad'
-import { requestCodConfirmation } from '../cod-rto/confirm'
 import { tagsForRisk } from '../cod-rto/risk'
 import { applyDiscount } from '../discounts/evaluate'
 import { recordDiscountUses, releaseDiscountUses } from '../discounts/usage'
@@ -328,7 +327,6 @@ export const createOrder: WorkflowStep<State> = {
     if (!waitsForMoney && !draft) {
       await insertOutboxEvent(ctx.tx, ctx.storeId, 'order.placed', { orderId: o.id })
     }
-    if (risk?.verify) await requestCodConfirmation(ctx, o.id)
     const lineIds = lines.map(() => newId())
     await ctx.tx.insert(orderLine).values(
       lines.map((l, i) => ({

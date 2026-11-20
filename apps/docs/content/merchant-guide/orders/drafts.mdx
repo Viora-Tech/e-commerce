@@ -32,8 +32,11 @@ most). Select **Save**. The **Payment** card then shows **Store credit −₹Y**
   invoice**: the pay page shows the store credit and asks the customer only for the rest. The
   credit is held when they press Pay and kept once their payment arrives; if the order is
   cancelled unpaid, it goes back onto their balance.
-- **The balance changed meanwhile** (they spent it at checkout, or someone removed it): the draft
-  can't be converted until you lower the store credit and save. The draft says why.
+- **The balance went down meanwhile** (they spent it at checkout, or someone removed it): the
+  draft still converts. It uses what the balance holds at that moment, and the payment method
+  (or the invoice) collects the rest. The Store credit card says how much will be used, and the
+  Payment card's Store credit and To pay lines show the new amounts. An empty balance uses
+  nothing.
 - **Picking another customer** removes the store credit from the draft, as it belongs to the
   customer it was applied for.
 - Store credit is a way to pay, not a discount: the total, the taxable value and the GST stay the

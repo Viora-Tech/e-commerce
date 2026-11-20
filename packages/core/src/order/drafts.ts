@@ -428,8 +428,8 @@ export async function convertDraft(
   const number = isDraftPlaceholder(o.number)
     ? await takeOrderNumber(ctx.tx, ctx.storeId)
     : o.number
-  /* Applied store credit leaves the balance now, in this transaction (draft-store-credit.ts);
-     a balance that fell short since the save refuses the whole convert. */
+  /* Applied store credit leaves the balance now, in this transaction (draft-store-credit.ts),
+     capped at what the balance holds now; the method below collects whatever it left. */
   const creditPaise = await spendDraftStoreCredit(ctx, {
     orderId: id,
     orderNumber: number,

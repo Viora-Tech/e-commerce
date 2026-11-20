@@ -17,6 +17,7 @@ import {
   draftIncompleteBilling,
   draftMissingAddress,
   draftStoreCreditProblem,
+  draftStoreCreditUsable,
   draftToForm,
   draftToPay,
   draftTotals,
@@ -199,9 +200,9 @@ export default function DraftForm({ draft, invoiceSent = false, initial }: Draft
     form,
     form.discountCode === saved.discountCode ? savedCodeCheck(draft) : null,
   )
-  const creditProblem = draftStoreCreditProblem(form, totalPaise, creditBalance)
-  const paidByCredit =
-    form.storeCreditPaise > 0 && draftToPay(totalPaise, form.storeCreditPaise) === 0
+  const creditProblem = draftStoreCreditProblem(form, totalPaise)
+  const creditPaise = draftStoreCreditUsable(form.storeCreditPaise, creditBalance)
+  const paidByCredit = creditPaise > 0 && draftToPay(totalPaise, creditPaise) === 0
   // Why Convert is off, shown on the button and in the Actions card; core refuses the same.
   const convertHint = creditProblem
     ? creditCopy.problems[creditProblem]
@@ -315,6 +316,7 @@ export default function DraftForm({ draft, invoiceSent = false, initial }: Draft
               tax={draftTax(draft)}
               savedCheck={savedCodeCheck(draft)}
               onChange={patch}
+              creditBalancePaise={creditBalance}
             />
             <DataCard title={copy.note.heading} bodyClassName="flex flex-col gap-3">
               <Textarea

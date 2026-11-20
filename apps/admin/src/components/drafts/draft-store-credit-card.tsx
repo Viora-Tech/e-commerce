@@ -34,7 +34,8 @@ const paiseToText = (paise: number) => (paise > 0 ? (paise / 100).toFixed(2) : '
 /**
  * Store credit on a draft (store credit step 3): the picked customer's balance and "Apply store
  * credit", part or all of it up to min(balance, total). Saving the draft keeps it; converting
- * takes it from the balance. Store credit is a balance on the customer, never a code.
+ * takes it from the balance, or what the balance holds then if it fell since (never refused).
+ * Store credit is a balance on the customer, never a code.
  */
 export default function DraftStoreCreditCard({
   customerId,
@@ -122,7 +123,11 @@ export default function DraftStoreCreditCard({
               </Button>
             </div>
           </div>
-          <p className="text-caption text-muted-foreground">{copy.appliedNote}</p>
+          <p className="text-caption text-muted-foreground">
+            {balance !== null && balance < storeCreditPaise
+              ? copy.capped(fmt.money(balance))
+              : copy.appliedNote}
+          </p>
         </div>
       ) : balance !== null && balance > 0 ? (
         <Button

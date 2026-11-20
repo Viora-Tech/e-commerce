@@ -204,7 +204,7 @@ export const draftAndAbandonedRoutes = {
       let sent = 0
       let skipped = 0
       for (const id of input.ids) {
-        const email = await draftEmail(context.tx, id)
+        const email = await draftEmail(context.tx, context.scope.storeId, id)
         if (!email) {
           skipped++
           continue

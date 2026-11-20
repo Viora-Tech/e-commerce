@@ -11,8 +11,8 @@
  */
 import { createHmac, timingSafeEqual } from 'node:crypto'
 import { siteConfig } from '@commerce/config/site'
-import { autopayMandate, type Db, order, payment, withStore } from '@commerce/db'
-import { and, desc, eq, inArray, sql } from 'drizzle-orm'
+import { autopayMandate, type Db, order, payment, storePlan, withStore } from '@commerce/db'
+import { and, desc, eq, inArray, isNull, ne, or, sql } from 'drizzle-orm'
 import { CommerceError } from '../errors'
 import { applyPaymentStatus } from '../payments/confirm'
 import { planBillWhat, sendPlanBillEmail } from './emails'
@@ -96,6 +96,26 @@ export async function autopayActive(db: Db, storeId: string): Promise<boolean> {
   return (await loadAutopay(db, storeId))?.status === 'active'
 }
 
+/** The store's mandates that are not cancelled. */
+const openMandates = (db: Db, storeId: string) =>
+  withStore(db, storeId, (tx) =>
+    tx
+      .select()
+      .from(autopayMandate)
+      .where(
+        and(
+          eq(autopayMandate.storeId, storeId),
+          inArray(autopayMandate.status, ['created', 'active', 'halted']),
+        ),
+      ),
+  )
+
+/** Best effort: a subscription Razorpay already ended refuses, which changes nothing here. */
+const cancelAtRazorpay = (cfg: AutopayConfig, subscriptionId: string) =>
+  rzp(cfg, `/subscriptions/${subscriptionId}/cancel`, { cancel_at_cycle_end: 0 }).catch(
+    () => undefined,
+  )
+
 /**
  * "Turn on UPI AutoPay": a Razorpay plan for the store's plan price (GST included) and a
  * subscription on it; the answer is the page where the owner approves the UPI mandate.
@@ -107,6 +127,11 @@ export async function startAutopay(
   cfg: AutopayConfig,
 ): Promise<{ approveUrl: string }> {
   const amount = Math.round(PLANS[input.plan].pricePaise[input.interval] * GST)
+  if (amount <= 0) throw new AutopayError('This plan has nothing to charge.')
+  const open = await openMandates(db, storeId)
+  // A second subscription beside a working one would charge the plan twice.
+  if (open.some((m) => m.status === 'active'))
+    throw new AutopayError('UPI AutoPay is already on for this store.')
   const rzpPlan = await rzp<{ id: string }>(cfg, '/plans', {
     period: input.interval === 'year' ? 'yearly' : 'monthly',
     interval: 1,
@@ -124,11 +149,19 @@ export async function startAutopay(
     customer_notify: 1,
     notes: { storeId, plan: input.plan, interval: input.interval },
   })
+  // The mandates this one replaces (never approved, or halted) are cancelled at Razorpay too:
+  // an old approve link opened later would otherwise start a second subscription that charges.
+  for (const old of open) await cancelAtRazorpay(cfg, old.subscriptionId)
   await withStore(db, storeId, async (tx) => {
     await tx
       .update(autopayMandate)
       .set({ status: 'cancelled', updatedAt: new Date() })
-      .where(and(eq(autopayMandate.storeId, storeId), eq(autopayMandate.status, 'created')))
+      .where(
+        and(
+          eq(autopayMandate.storeId, storeId),
+          inArray(autopayMandate.status, ['created', 'halted']),
+        ),
+      )
     await tx.insert(autopayMandate).values({
       storeId,
       plan: input.plan,
@@ -142,21 +175,8 @@ export async function startAutopay(
 
 /** "Turn off AutoPay": the subscription is cancelled now; renewals go back to pay links. */
 export async function cancelAutopay(db: Db, storeId: string, cfg: AutopayConfig): Promise<void> {
-  const rows = await withStore(db, storeId, (tx) =>
-    tx
-      .select()
-      .from(autopayMandate)
-      .where(
-        and(
-          eq(autopayMandate.storeId, storeId),
-          inArray(autopayMandate.status, ['created', 'active', 'halted']),
-        ),
-      ),
-  )
-  for (const row of rows) {
-    await rzp(cfg, `/subscriptions/${row.subscriptionId}/cancel`, {
-      cancel_at_cycle_end: 0,
-    }).catch(() => undefined)
+  for (const row of await openMandates(db, storeId)) {
+    await cancelAtRazorpay(cfg, row.subscriptionId)
     await withStore(db, storeId, (tx) =>
       tx
         .update(autopayMandate)
@@ -216,6 +236,12 @@ export async function handleAutopayWebhook(
   if (!mandate) return 'ignored'
 
   const status = STATUS_FOR[body.event]
+  // Turned off here (or replaced by a newer mandate): a late or out-of-order event never turns it
+  // back on. One that says it runs again is cancelled at Razorpay, so it cannot charge.
+  if (status && mandate.status === 'cancelled') {
+    if (status === 'active') await cancelAtRazorpay(cfg, subId)
+    return 'ok'
+  }
   if (status) {
     await withStore(db, storeId, (tx) =>
       tx
@@ -238,17 +264,93 @@ export async function handleAutopayWebhook(
   if (body.event !== 'subscription.charged') return 'ignored'
   const paymentId = body.payload?.payment?.entity?.id
   if (!paymentId || mandate.lastPaymentId === paymentId) return 'ignored'
-  if (!billing.salesStoreId) return 'ignored'
+  const salesStoreId = billing.salesStoreId
+  if (!salesStoreId) return 'ignored'
+  // Razorpay repeats webhooks, sometimes two at once: only the call that moves
+  // `last_payment_id` onto this payment bills it, and a payment some bill was already paid with
+  // (an older event replayed after a newer charge) is never billed again.
+  const [claimed] = await withStore(db, storeId, (tx) =>
+    tx
+      .update(autopayMandate)
+      .set({ lastPaymentId: paymentId, updatedAt: now })
+      .where(
+        and(
+          eq(autopayMandate.id, mandate.id),
+          or(isNull(autopayMandate.lastPaymentId), ne(autopayMandate.lastPaymentId, paymentId)),
+        ),
+      )
+      .returning({ id: autopayMandate.id }),
+  )
+  if (!claimed) return 'ignored'
+  const [billed] = await withStore(db, salesStoreId, (tx) =>
+    tx
+      .select({ id: payment.id })
+      .from(payment)
+      .where(eq(payment.providerPaymentId, paymentId))
+      .limit(1),
+  )
+  if (billed) return 'ignored'
+  try {
+    await billCharge(db, storeId, salesStoreId, mandate, paymentId, billing, now)
+  } catch (err) {
+    // Nothing was billed: give the claim back so Razorpay's retry of this webhook bills it.
+    await withStore(db, storeId, (tx) =>
+      tx
+        .update(autopayMandate)
+        .set({ lastPaymentId: mandate.lastPaymentId })
+        .where(
+          and(eq(autopayMandate.id, mandate.id), eq(autopayMandate.lastPaymentId, paymentId)),
+        ),
+    )
+    throw err
+  }
+  // A charge on a mandate turned off here was still money taken: it is billed above, the mandate
+  // stays off, and Razorpay is told again to stop.
+  if (mandate.status === 'cancelled') {
+    await cancelAtRazorpay(cfg, subId)
+    return 'ok'
+  }
+  await withStore(db, storeId, (tx) =>
+    tx
+      .update(autopayMandate)
+      .set({ status: 'active', updatedAt: now })
+      .where(eq(autopayMandate.id, mandate.id)),
+  )
+  return 'ok'
+}
 
-  // The period's bill, paid by the charge: the sales order's payment is captured, so the
-  // order is paid and the relay activates the plan and issues the GST invoice.
+/**
+ * The period's bill, paid by the charge: the sales order's payment is captured, so the order is
+ * paid and the relay activates the plan and issues the GST invoice. The period starts where the
+ * paid time (or trial) ends, never earlier: the first charge comes when the owner approves the
+ * mandate, often with days of the current period left.
+ */
+async function billCharge(
+  db: Db,
+  storeId: string,
+  salesStoreId: string,
+  mandate: typeof autopayMandate.$inferSelect,
+  paymentId: string,
+  billing: BillingEnv,
+  now: Date,
+) {
+  const [current] = await withStore(db, storeId, (tx) =>
+    tx
+      .select({ periodEnd: storePlan.periodEnd, trialEndsAt: storePlan.trialEndsAt })
+      .from(storePlan)
+      .where(eq(storePlan.storeId, storeId)),
+  )
+  const ends = current?.periodEnd ?? current?.trialEndsAt ?? null
   const bill = await createPlanBill(
     db,
     storeId,
-    { plan: mandate.plan, interval: mandate.interval, periodStart: now },
+    {
+      plan: mandate.plan,
+      interval: mandate.interval,
+      periodStart: ends && ends > now ? ends : now,
+    },
     billing,
   )
-  const salesStoreId = billing.salesStoreId
   await withStore(db, salesStoreId, async (tx) => {
     const [attempt] = await tx
       .select({ id: payment.id })
@@ -263,11 +365,4 @@ export async function handleAutopayWebhook(
         { paymentId: attempt.id, status: 'captured', providerPaymentId: paymentId },
       )
   })
-  await withStore(db, storeId, (tx) =>
-    tx
-      .update(autopayMandate)
-      .set({ status: 'active', lastPaymentId: paymentId, updatedAt: now })
-      .where(eq(autopayMandate.id, mandate.id)),
-  )
-  return 'ok'
 }
