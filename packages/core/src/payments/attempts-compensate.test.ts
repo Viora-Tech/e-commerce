@@ -11,12 +11,11 @@ import {
   withStore,
 } from '@commerce/db'
 import { resetDb } from '@commerce/db/test'
-import type { RefundContext } from '@commerce/payments'
+import type { PaymentProvider, RefundContext } from '@commerce/payments'
 import { eq } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { placeOrder } from '../order/place-order'
 import { startPaymentAttempt } from './attempts'
-import { GatewayDouble } from './gateway-double.test-util'
 
 const owner = createDb(process.env.DATABASE_URL_OWNER as string)
 const app = createDb(process.env.DATABASE_URL as string)
@@ -30,25 +29,39 @@ afterAll(async () => {
 })
 
 /** A gateway that captures at creation and answers with a session the database cannot store. */
-class CapturesUnrecordable extends GatewayDouble {
-  readonly refunds: { ref: string; amountPaise: number; context?: RefundContext }[] = []
-  refundFails = false
-  override async createPayment() {
-    return {
-      providerRef: 'pay_taken',
-      status: 'captured' as const,
-      // JSON cannot hold a BigInt: writing the session fails, as a lost connection would.
-      session: { kind: 'none' as const, big: 1n } as never,
-    }
+function capturesUnrecordable() {
+  const refunds: { ref: string; amountPaise: number; context: RefundContext | undefined }[] = []
+  const state = { refundFails: false }
+  const gw: PaymentProvider = {
+    id: 'gw',
+    label: 'Captures at creation',
+    async createPayment() {
+      return {
+        providerRef: 'pay_taken',
+        status: 'captured' as const,
+        // JSON cannot hold a BigInt: writing the session fails, as a lost connection would.
+        session: { kind: 'none', big: 1n } as never,
+      }
+    },
+    async confirm() {
+      return { status: 'pending' as const, providerPaymentId: null }
+    },
+    async fetchStatus() {
+      return { status: 'pending' as const, providerPaymentId: null, amountPaise: 0 }
+    },
+    async refund(ref, amountPaise, _note, context) {
+      refunds.push({ ref, amountPaise, context })
+      if (state.refundFails) throw new Error('gateway refund timeout')
+      return { providerRefundId: 'rf_back', status: 'processed' as const }
+    },
+    parseWebhook() {
+      return { ok: false, reason: 'unused' }
+    },
   }
-  override async refund(ref: string, amountPaise: number, _note?: string, context?: RefundContext) {
-    this.refunds.push({ ref, amountPaise, context })
-    if (this.refundFails) throw new Error('gateway refund timeout')
-    return { providerRefundId: 'rf_back', status: 'processed' as const }
-  }
+  return { gw, refunds, state }
 }
 
-async function placedAttempt(gw: GatewayDouble) {
+async function placedAttempt(gw: PaymentProvider) {
   const [s] = await owner.insert(store).values({ slug: 'w', name: 'w' }).returning()
   if (!s) throw new Error('seed')
   const [p] = await owner
@@ -79,20 +92,20 @@ const attempt = async (id: string) =>
 
 describe('compensating refund when the answer cannot be recorded', () => {
   it('refunds the money taken with a stable refund key and marks the attempt failed', async () => {
-    const gw = new CapturesUnrecordable()
+    const { gw, refunds } = capturesUnrecordable()
     const { storeId, attemptId } = await placedAttempt(gw)
     const log = { error: vi.fn() }
     const r = await startPaymentAttempt(app, storeId, attemptId, gw, log)
     expect(r.status).toBe('failed')
-    expect(gw.refunds).toHaveLength(1)
-    expect(gw.refunds[0]).toMatchObject({ ref: 'pay_taken', amountPaise: 10000 })
-    expect(gw.refunds[0]?.context?.refundKey).toMatch(/^rfc_[0-9a-f]{20}$/)
+    expect(refunds).toHaveLength(1)
+    expect(refunds[0]).toMatchObject({ ref: 'pay_taken', amountPaise: 10000 })
+    expect(refunds[0]?.context?.refundKey).toMatch(/^rfc_[0-9a-f]{20}$/)
     expect((await attempt(attemptId))?.status).toBe('failed')
   })
 
   it('still marks the attempt failed when that refund throws, and says the money is owed', async () => {
-    const gw = new CapturesUnrecordable()
-    gw.refundFails = true
+    const { gw, state } = capturesUnrecordable()
+    state.refundFails = true
     const { storeId, attemptId } = await placedAttempt(gw)
     const log = { error: vi.fn() }
     const r = await startPaymentAttempt(app, storeId, attemptId, gw, log)

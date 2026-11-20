@@ -2,7 +2,11 @@
 import { describe, expect, it, vi } from 'vitest'
 import { RazorpayProvider } from '../src/razorpay'
 
-const config = { keyId: 'rzp_test_offline', keySecret: 'offline-secret', webhookSecret: 'whsec_test' }
+const config = {
+  keyId: 'rzp_test_offline',
+  keySecret: 'offline-secret',
+  webhookSecret: 'whsec_test',
+}
 
 type RzpRefund = {
   id: string
@@ -79,7 +83,9 @@ describe('razorpay refunds', () => {
   })
 
   it('a refund with this key for another amount is not reused', async () => {
-    const { p, create } = withRefunds([{ id: 'rfnd_x', amount: 100, status: 'processed', receipt: key }])
+    const { p, create } = withRefunds([
+      { id: 'rfnd_x', amount: 100, status: 'processed', receipt: key },
+    ])
     await expect(p.refund('pay_1', 500, undefined, { refundKey: key })).rejects.toThrow(
       /another amount/,
     )

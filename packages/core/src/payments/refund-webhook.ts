@@ -60,11 +60,7 @@ export async function refundProcessed(
   // Order then payment, the lock order refundPayment takes: a refund of ours still being
   // committed is waited for, then found below instead of recorded twice.
   await ctx.tx.select({ id: order.id }).from(order).where(eq(order.id, head.orderId)).for('update')
-  const [p] = await ctx.tx
-    .select()
-    .from(payment)
-    .where(eq(payment.id, head.id))
-    .for('update')
+  const [p] = await ctx.tx.select().from(payment).where(eq(payment.id, head.id)).for('update')
   if (!p) return false
   if (await hasRow(ctx, e.providerRefundId)) {
     await settleRefund(ctx, e.providerRefundId, 'processed')
@@ -88,7 +84,8 @@ export async function refundProcessed(
   })
   await syncRefundedStatus(ctx, p.id)
   await recomputeOrderStatuses(ctx, p.orderId)
-  const capped = amountPaise < e.amountPaise ? ` (the gateway reported ${rupees(e.amountPaise)})` : ''
+  const capped =
+    amountPaise < e.amountPaise ? ` (the gateway reported ${rupees(e.amountPaise)})` : ''
   await ctx.tx.insert(orderNote).values({
     storeId: ctx.storeId,
     orderId: p.orderId,

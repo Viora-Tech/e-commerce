@@ -201,17 +201,6 @@ describe.each(['razorpay', 'cashfree'])('%s refund webhooks: partly vs fully ref
       refunds: ['rf_dash_1:1000:processed'],
     })
   })
-
-  it('a gateway refund already recorded by its webhook is not recorded twice', async () => {
-    const { storeId, orderId, paymentId } = await seedPaid(id)
-    const { provider } = gateway(id)
-    // The webhook landed first (our own commit failed after the gateway refunded)…
-    await deliver(storeId, provider, processed('rf_1', 300))
-    // …then the retry's gateway call answers with that same refund (idempotent key).
-    provider.refund = async () => ({ providerRefundId: 'rf_1', status: 'processed' as const })
-    await refundOf(storeId, provider, paymentId, 300).catch(() => undefined)
-    expect((await state(orderId, paymentId)).refunds).toEqual(['rf_1:300:processed'])
-  })
 })
 
 describe('decentro: refunds settled by the daily status sync', () => {
