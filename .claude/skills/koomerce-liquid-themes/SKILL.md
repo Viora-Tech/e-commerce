@@ -70,7 +70,13 @@ data in Shopify's and Judge.me's shapes, Forms app for contact forms.
 
 Not yet (from the guide's "Not yet"): resource templates beyond our own main sections, editing
 `settings_schema.json` in Customize, adding new theme sections from the Add panel, an in-place
-cart drawer refresh. App blocks (`@app`) are left out and listed in the import report.
+cart drawer refresh. App blocks (`shopify://apps/…`) stay in the data and read `@app` in Liquid;
+reviews apps' widgets draw our Reviews widget, the rest show an editor placeholder and nothing on
+the store (`app-blocks.ts`).
+
+Theme scripts never run in the admin's canvas (same origin as the admin). Customize's **Theme
+scripts** view frames the store page itself in design mode (`Shopify.designMode`, Shopify's
+`shopify:section:*` / `shopify:block:*` events, `lib/liquid-design-mode.ts`); keep it that way.
 
 ## Adding support for a Shopify feature
 

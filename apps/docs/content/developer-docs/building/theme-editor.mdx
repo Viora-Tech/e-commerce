@@ -428,7 +428,22 @@ Puck's iframe styles make each section a drag source: a grab hand everywhere and
 - links never load inside the canvas and forms never post, in either mode.
 
 Imported (Liquid) sections are server-rendered with their scripts removed, so their own carousels
-and tabs do not move on the canvas; the storefront runs them.
+and tabs do not move on the editing canvas: the canvas is an iframe on the admin's origin, and a
+theme's code may only ever run on its own storefront. The **Theme scripts** pill (bottom right of
+the canvas, home page and the default product template) swaps the canvas for the store page itself
+in a frame (`designModeUrl`, `?theme-design-mode=1` with the preview token). There the theme's
+scripts run with `Shopify.designMode = true`; Customize sends every imported section with its
+unsaved settings and the selection over postMessage (`@commerce/core/theme-design-mode`,
+`components/themes/customize/theme-scripts-frame.tsx`), the page re-renders what changed through
+`/theme-actions/editor-sections` and fires Shopify's editor events (`shopify:section:load`,
+`:unload`, `:reorder`, `:select`, `:deselect`, `shopify:block:select`, `:deselect`;
+`apps/storefront/src/lib/liquid-design-mode.ts`). A click on a section there selects it in the
+editor. Unsaved Theme settings show there after Save.
+
+App embeds that are on (the Reviews app's floating tab) are drawn on the canvas by
+`CanvasAppEmbeds`, next to the Inbox chat button (`CanvasInboxLauncher`). An imported theme's own
+Shopify app embeds (`settings_data.json` `current.blocks`) are listed read-only under the App
+embeds panel, with which of our apps shows each.
 - Selected blocks get a 1px solid accent outline and hovered ones a dashed one, no tinted fill
   (`vendor-puck.css`). The bar fades in over 150 ms; reduced motion shows it at once.
 
