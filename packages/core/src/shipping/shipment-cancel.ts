@@ -1,7 +1,7 @@
 /** SOURCE OF TRUTH: cancelShipment, returnShipmentToBooked, returnShipmentToSender, markShipmentCancelled, rebookableParcels, ShipmentNotCancellable — WHAT: every way out of a booked shipment: cancel the label before pickup (items stay packed or are unpacked), take it off its pickup back to Booked, cancel after pickup so the courier brings it back (RTO), or record a cancel already made on the courier's own app; each names who did it / WHY: one place decides when each is allowed and what booking again carries; the owner's cancel cases (18 Nov 2026) */
-import { orderNote, shipment, shipmentManifest } from '@commerce/db'
+import { orderNote, shipment, shipmentManifest, shipmentPickup } from '@commerce/db'
 import type { ShippingProvider } from '@commerce/shipping'
-import { eq, sql } from 'drizzle-orm'
+import { and, eq, sql } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 import { CommerceError } from '../errors'
 import { unpackFulfillmentOrder } from '../order/fulfillment-orders'
@@ -60,13 +60,34 @@ const CANCEL_BLOCK_MESSAGE: Record<CancelBlock, string> = {
 
 /**
  * Takes a shipment off its pickup and out of every manifest that lists it (our printed lists for
- * the pickup executive). The courier's pickup request stays: it simply finds one parcel fewer.
+ * the pickup executive). The courier's pickup request stays: it simply finds one parcel fewer, so
+ * the pickup's parcel count goes down by one (the Pickups list and the courier's expected count
+ * stay true). True when the parcel was on a pickup or a manifest.
  */
-async function leavePickup(tx: StoreContext['tx'], shipmentId: string): Promise<void> {
-  await tx
+async function leavePickup(
+  ctx: StoreContext,
+  row: { id: string; pickupId: string | null },
+): Promise<boolean> {
+  const manifests = await ctx.tx
     .update(shipmentManifest)
-    .set({ shipmentIds: sql`array_remove(${shipmentManifest.shipmentIds}, ${shipmentId}::uuid)` })
-    .where(sql`${shipmentId}::uuid = any(${shipmentManifest.shipmentIds})`)
+    .set({ shipmentIds: sql`array_remove(${shipmentManifest.shipmentIds}, ${row.id}::uuid)` })
+    .where(
+      and(
+        eq(shipmentManifest.storeId, ctx.storeId),
+        sql`${row.id}::uuid = any(${shipmentManifest.shipmentIds})`,
+      ),
+    )
+    .returning({ id: shipmentManifest.id })
+  if (row.pickupId) {
+    await ctx.tx
+      .update(shipmentPickup)
+      .set({
+        expectedPackageCount: sql`greatest(${shipmentPickup.expectedPackageCount} - 1, 0)`,
+        updatedAt: new Date(),
+      })
+      .where(and(eq(shipmentPickup.id, row.pickupId), eq(shipmentPickup.storeId, ctx.storeId)))
+  }
+  return row.pickupId !== null || manifests.length > 0
 }
 
 /** A shipment that is not waiting on a pickup cannot go back to Booked. */
@@ -91,8 +112,8 @@ export async function returnShipmentToBooked(
   if (!row) throw new Error('shipment not found')
   const block = cancelBlock(row, { courierCancels: true })
   if (block) throw new ShipmentNotCancellable(block, ctx.storeId)
-  if (!row.pickupId) throw new ShipmentNotOnPickup(ctx.storeId)
-  await leavePickup(ctx.tx, row.id)
+  // On a pickup, or only on a printed manifest (made from a list of parcels, no pickup).
+  if (!(await leavePickup(ctx, row))) throw new ShipmentNotOnPickup(ctx.storeId)
   const [updated] = await ctx.tx
     .update(shipment)
     .set({ pickupId: null, updatedAt: new Date() })
@@ -143,7 +164,7 @@ export async function cancelShipment(
     waybill: row.waybill,
     providerRef: row.providerRef,
   })
-  await leavePickup(ctx.tx, row.id)
+  await leavePickup(ctx, row)
   const [updated] = await ctx.tx
     .update(shipment)
     .set({ status: 'cancelled', pickupId: null, updatedAt: new Date() })
@@ -211,7 +232,8 @@ export async function returnShipmentToSender(
       ctx.storeId,
     )
   }
-  if (options.courierCancels === false) throw new ShipmentNotCancellable('not_supported', ctx.storeId)
+  if (options.courierCancels === false)
+    throw new ShipmentNotCancellable('not_supported', ctx.storeId)
   await provider.cancel(row.providerRef || row.waybill, {
     waybill: row.waybill,
     providerRef: row.providerRef,
@@ -259,7 +281,7 @@ export async function markShipmentCancelled(
       ctx.storeId,
     )
   }
-  await leavePickup(ctx.tx, row.id)
+  await leavePickup(ctx, row)
   const [updated] = await ctx.tx
     .update(shipment)
     .set({ status: 'cancelled', pickupId: null, updatedAt: new Date() })

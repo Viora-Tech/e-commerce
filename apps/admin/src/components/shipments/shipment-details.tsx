@@ -3,15 +3,15 @@
 import { CancelCircle, ExternalLink, Pencil, Printer, Truck } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { type ReactNode, useState } from 'react'
-import { toast } from 'sonner'
 import CopyButton from '@/components/fields/copy-button'
-import ConfirmDialog from '@/components/layout/confirm-dialog'
 import OrderChip from '@/components/orders/order-chip'
+import { shipmentCancelContent } from '@/data/shipments'
 import { editTrackingContent, shipmentDetailsContent } from '@/data/shipping'
 import { useCopy, useFormat } from '@/hooks/use-copy'
-import { api } from '@/lib/api-client'
+import type { api } from '@/lib/api-client'
 import PickupForm from './create-shipment/pickup-form'
 import EditTrackingDialog from './edit-tracking-dialog'
+import ShipmentCancelDialog from './shipment-cancel-dialog'
 
 /** A booked shipment as `shipments.get` (and the order's `shipment`) describe it. */
 export type ShipmentDetailsData = Awaited<ReturnType<typeof api.shipments.get>>
@@ -31,8 +31,9 @@ const HHMM = /^(\d{1,2}):(\d{2})$/
 /**
  * The read-only details of a booked shipment: courier and service, the AWB to copy, status,
  * COD or prepaid, the package, the pickup, when it was booked, and the label, tracking and
- * Cancel shipment. Cancel asks first in a centred dialog; when it is not possible any more the
- * card says why instead. A parcel with no pickup request yet offers "Request pickup" inline.
+ * Cancel. Cancel opens the same choices as a Shipments row (`ShipmentCancelDialog`): off its
+ * pickup back to Booked, or the AWB cancelled with the courier and the order back in To book with
+ * its items packed (#1775); when it is not possible any more the card says why instead. A parcel with no pickup request yet offers "Request pickup" inline.
  */
 export default function ShipmentDetails({
   readOnly,
@@ -43,22 +44,11 @@ export default function ShipmentDetails({
   // Hooks
   const copy = useCopy(shipmentDetailsContent)
   const editCopy = useCopy(editTrackingContent)
+  const cancelCopy = useCopy(shipmentCancelContent)
   const fmt = useFormat()
   const [confirming, setConfirming] = useState(false)
   const [requesting, setRequesting] = useState(false)
   const [editing, setEditing] = useState(false)
-
-  // Event handlers
-  const handleCancel = async () => {
-    try {
-      await api.orders.cancelShipment({ shipmentId: shipment.id })
-      toast.success(copy.cancelled)
-      onChanged?.()
-    } catch (err) {
-      toast.error(err instanceof Error && err.message ? err.message : copy.cancelFailed)
-      throw err
-    }
-  }
 
   // Render logic
   // The rate row's name ("Delhivery Surface") when booked from the table, else the courier's.
@@ -165,22 +155,24 @@ export default function ShipmentDetails({
             onClick={() => setConfirming(true)}
           >
             <CancelCircle aria-hidden="true" />
-            {copy.cancel}
+            {cancelCopy.menu}
           </Button>
         ) : null}
       </div>
       {block ? <p className="text-caption text-muted-foreground">{copy.blocked[block]}</p> : null}
 
-      <ConfirmDialog
-        tone="destructive"
-        open={confirming}
-        onOpenChange={setConfirming}
-        title={copy.cancelTitle}
-        body={copy.cancelBody(shipment.providerLabel, shipment.waybill)}
-        confirmLabel={copy.cancelConfirm}
-        cancelLabel={copy.keep}
-        onConfirm={handleCancel}
-      />
+      {confirming && block === null ? (
+        <ShipmentCancelDialog
+          open
+          onOpenChange={setConfirming}
+          shipmentId={shipment.id}
+          waybill={shipment.waybill}
+          status={shipment.status}
+          onPickup={shipment.pickupId !== null}
+          courierCancels
+          onDone={() => onChanged?.()}
+        />
+      ) : null}
       <EditTrackingDialog
         shipment={editing ? shipment : null}
         onClose={() => setEditing(false)}
