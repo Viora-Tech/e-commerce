@@ -20,7 +20,12 @@ const money = (paise: number, currency: string) =>
 
 type Variant = FeedProduct['variants'][number]
 
-const stock = (v: Variant) => (v.available ? (v.preorder && v.inventoryQuantity <= 0 ? copy.preorder : copy.inStock) : copy.soldOut)
+const stock = (v: Variant) =>
+  v.available
+    ? v.preorder && v.inventoryQuantity <= 0
+      ? copy.preorder
+      : copy.inStock
+    : copy.soldOut
 
 export function productMarkdown(p: FeedProduct, origin: string, currency = 'INR'): string {
   const url = `${origin}/products/${p.handle}`

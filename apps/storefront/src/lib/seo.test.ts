@@ -93,7 +93,13 @@ describe('JSON-LD', () => {
     const optioned = {
       ...product,
       options: [
-        { name: 'Colour', values: [{ id: 'c1', value: 'Black' }, { id: 'c2', value: 'White' }] },
+        {
+          name: 'Colour',
+          values: [
+            { id: 'c1', value: 'Black' },
+            { id: 'c2', value: 'White' },
+          ],
+        },
         { name: 'Skates', values: [{ id: 's1', value: 'Glass' }] },
       ],
       variants: [
