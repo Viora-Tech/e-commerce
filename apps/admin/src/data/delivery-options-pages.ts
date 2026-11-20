@@ -282,11 +282,11 @@ export const deliveryPagesContent = {
     /** "Delhivery, Blue Dart or Ekart". */
     either: (items: string[]) =>
       items.length < 2 ? (items[0] ?? '') : `${items.slice(0, -1).join(', ')} or ${items.at(-1)}`,
-    prefers: (who: string, route: string) => `${who} ship by ${route}`,
+    prefers: (who: string, route: string) => `Products in ${who} ship by ${route}`,
     stillPick: (couriers: string) => `shoppers can still pick ${couriers}`,
     always: (who: string, route: string) =>
-      `${who} always ship by ${route} at the option’s price; you pay the difference`,
-    only: (who: string, couriers: string) => `${who} ship only with ${couriers}`,
+      `Products in ${who} always ship by ${route} at the option’s price; you pay the difference`,
+    only: (who: string, couriers: string) => `Products in ${who} ship only with ${couriers}`,
     insured: 'always insured',
     inOptions: (names: string) => `in ${names}`,
     off: 'The rule is off, so checkout ignores it until you turn it on.',
