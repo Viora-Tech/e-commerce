@@ -27,6 +27,7 @@ import {
   type ThemePackId,
   type ThemeRecord,
   ThemeSchema,
+  themeCovers,
   themePacksOf,
   themesWithDrafts,
   updateThemeSettings,
@@ -161,6 +162,7 @@ type ThemeFacts = {
   hasDraft: boolean
   sectionCount: number | null
   storePacks: ThemePackId[]
+  cover: string | null
 }
 
 const NO_FACTS: ThemeFacts = {
@@ -168,6 +170,7 @@ const NO_FACTS: ThemeFacts = {
   hasDraft: false,
   sectionCount: null,
   storePacks: [],
+  cover: null,
 }
 
 /**
@@ -185,6 +188,8 @@ function present(storeId: string, t: ThemeRecord, facts: ThemeFacts = NO_FACTS) 
     sectionCount: facts.sectionCount,
     /** Section packs (Zero Drift…) its Customize Add menu offers: its own, else the store's. */
     packs: t.ownPacks ?? facts.storePacks,
+    /** The saved home page's first picture (hero poster), shown until a screenshot exists. */
+    cover: facts.cover,
     previewToken: signThemePreviewToken({ secret: settingsSecret(), storeId, themeId: t.id }),
   }
 }
@@ -193,17 +198,19 @@ type LibraryTx = Parameters<typeof importedThemeIds>[0]
 
 /** The facts for every theme of the store, read once for a whole list. */
 async function libraryFacts(tx: LibraryTx, storeId: string): Promise<(id: string) => ThemeFacts> {
-  const [imported, drafts, counts, storePacks] = await Promise.all([
+  const [imported, drafts, counts, storePacks, covers] = await Promise.all([
     importedThemeIds(tx),
     themesWithDrafts(tx),
     importedSectionCounts(tx),
     storeThemePacks(tx, storeId),
+    themeCovers(tx),
   ])
   return (id) => ({
     imported: imported.has(id),
     hasDraft: drafts.has(id),
     sectionCount: counts.get(id) ?? null,
     storePacks,
+    cover: covers.get(id) ?? null,
   })
 }
 

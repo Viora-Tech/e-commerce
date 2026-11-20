@@ -47,9 +47,10 @@ export default function ThemeLibraryRow({
   // Hooks
   const importCopy = useCopy(themeImportContent)
   const copy = useCopy(themesContent.library)
-  const picture = useShownPicture(theme.thumbnailUrl)
+  const shot = useShownPicture(theme.thumbnailUrl)
 
   // Render logic
+  const picture = shot ?? theme.cover
   return (
     <li className="flex flex-wrap items-center gap-x-4 gap-y-3 px-4 py-4 md:px-5">
       <span className="flex aspect-[104/68] w-26 shrink-0 overflow-hidden rounded-md border border-border bg-muted">
@@ -60,7 +61,7 @@ export default function ThemeLibraryRow({
             alt={copy.thumbnail(theme.name)}
             loading="lazy"
             decoding="async"
-            className="size-full object-cover object-top"
+            className={shot ? 'size-full object-cover object-top' : 'size-full object-cover'}
           />
         ) : (
           <ThemeSwatch
