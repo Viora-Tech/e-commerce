@@ -23,6 +23,8 @@ export type MediaProcessQueue = {
       jobId?: string
       attempts?: number
       backoff?: { type: 'exponential' | 'fixed'; delay: number }
+      /** BullMQ priority: a higher number runs later (backfills behind uploads). */
+      priority?: number
     },
   ): Promise<unknown>
 }

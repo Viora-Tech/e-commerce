@@ -110,6 +110,12 @@ export async function storesWithStoreCreditExpiring(db: Db, now: Date): Promise<
   return rows.map((r) => r.id)
 }
 
+/** Store ids with a video in Files never looked at for a smaller copy, for the worker's video backfill. SECURITY DEFINER backed. */
+export async function storesWithVideosNeedingCopy(db: Db): Promise<string[]> {
+  const rows = await db.execute<{ id: string }>(sql`select stores_with_videos_needing_copy() as id`)
+  return rows.map((r) => r.id)
+}
+
 /** Store ids with undispatched outbox rows, for the outbox relay. SECURITY DEFINER backed. */
 export async function storesWithUndispatchedOutboxEvents(db: Db): Promise<string[]> {
   const rows = await db.execute<{ id: string }>(

@@ -19,13 +19,14 @@ import {
   KEEP_FINISHED,
   MEDIA_PROCESS_QUEUE,
   type MediaProcessJob,
+  type MediaProcessQueue,
   Queue,
   type QueueLimits,
   Worker,
 } from '@commerce/queue'
 import { count, eq } from 'drizzle-orm'
 import { mediaCpus, profileFor } from './media-limits'
-import { compactVideo } from './video-compact'
+import { forwardVideoJob } from './media-video'
 
 /**
  * One job per confirmed image upload (or Shopify-import media row): loads
@@ -51,7 +52,13 @@ import { compactVideo } from './video-compact'
 export function createMediaProcessWorker(
   connection: IORedis,
   db: Db,
-  opts: { settingsSecret: string; limits: QueueLimits; mediaCpus?: number | undefined },
+  opts: {
+    settingsSecret: string
+    limits: QueueLimits
+    mediaCpus?: number | undefined
+    /** The video queue (`./media-video.ts`): a `video` job queued here before it existed moves there. */
+    videoQueue: MediaProcessQueue
+  },
 ) {
   /* Parallel jobs share the image cores: each encode gets its slice of libvips threads. One core
      is always left for the storefront and admin on the same box (#1471); MEDIA_CPUS overrides. */
@@ -64,9 +71,10 @@ export function createMediaProcessWorker(
     MEDIA_PROCESS_QUEUE,
     fairProcessor(connection, MEDIA_PROCESS_QUEUE, opts.limits, async (job) => {
       const { storeId, mediaId } = job.data
-      // A video's smaller copy (`./video-compact.ts`): its own path, outside a transaction.
+      // A video's smaller copy runs on its own queue, one at a time (`./media-video.ts`); a job
+      // queued here by an older admin moves there instead of holding an image slot for minutes.
       if (job.name === COMPACT_VIDEO_JOB) {
-        await compactVideo(db, storeId, mediaId, opts.settingsSecret)
+        await forwardVideoJob(opts.videoQueue, job.data)
         return
       }
       await withStore(db, storeId, async (tx) => {
@@ -128,9 +136,9 @@ export function createMediaProcessWorker(
   worker.on('failed', async (job, err) => {
     const maxAttempts = job?.opts.attempts ?? 1
     if (!job || job.attemptsMade < maxAttempts) return // more retries queued; not final yet
-    // A failed video copy changes nothing: the original stays and keeps playing.
+    // A video job here is only ever forwarded; never touch the original over it.
     if (job.name === COMPACT_VIDEO_JOB) {
-      logger.warn('video copy failed, original kept', {
+      logger.warn('could not move a video job to the video queue', {
         storeId: job.data.storeId,
         mediaId: job.data.mediaId,
         error: err,

@@ -83,6 +83,8 @@ export const MARKETING_SEND_QUEUE = '{marketing}-send'
 export const IMPORT_SNAPSHOT_CLEANUP_QUEUE = '{imports}-snapshot-cleanup'
 /** One job per confirmed image upload (or Shopify-import media row); runs the upload-time pipeline. */
 export const MEDIA_PROCESS_QUEUE = '{media}-process'
+/** One job per video to give a smaller storefront copy (ffmpeg); worked one at a time, never beside another encode. */
+export const MEDIA_VIDEO_QUEUE = '{media}-video'
 /** Repeat job that queues due review request and reminder emails (Reviews app). */
 export const REVIEW_REQUESTS_QUEUE = '{reviews}-requests'
 /** Reviews app: refreshes the AI "What customers say" summaries when new reviews arrive. */
@@ -262,6 +264,21 @@ export function mediaProcessQueue(redisUrl: string): MediaProcessQueue {
     g.__mediaProcessQueue = createMediaProcessQueue(createConnection(redisUrl))
   }
   return g.__mediaProcessQueue
+}
+
+export function createMediaVideoQueue(
+  connection: IORedis,
+): Queue<MediaProcessJob> & MediaProcessQueue {
+  return new Queue<MediaProcessJob>(MEDIA_VIDEO_QUEUE, { connection })
+}
+
+/** Process-wide video-copy queue (`@commerce/core` compact-video), cached like the others. */
+export function mediaVideoQueue(redisUrl: string): MediaProcessQueue {
+  const g = globalThis as { __mediaVideoQueue?: MediaProcessQueue }
+  if (!g.__mediaVideoQueue) {
+    g.__mediaVideoQueue = createMediaVideoQueue(createConnection(redisUrl))
+  }
+  return g.__mediaVideoQueue
 }
 
 export { CHANNEL_SYNC_QUEUE, type ChannelSyncJob, type ChannelSyncQueue }

@@ -75,6 +75,7 @@ export {
   storesWithUnknownPaymentFees,
   storesWithUnpaidOnlineOrders,
   storesWithUnroutedPlatformDomains,
+  storesWithVideosNeedingCopy,
 } from './resolve-store'
 export * from './returns-schema'
 export * from './rollout-schema'

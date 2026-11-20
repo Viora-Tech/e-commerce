@@ -72,6 +72,7 @@ import { createInboxAiReplyWorker } from './inbox-ai-reply'
 import { createMarketingWorker, MARKETING_TICK_MS, retireAbandonedSweep } from './marketing'
 import { mediaProcessLimits } from './media-limits'
 import { createMediaProcessWorker } from './media-process'
+import { createMediaVideoWorker, createVideoBackfill, VIDEO_BACKFILL_EVERY_MS } from './media-video'
 import { createMemberDailySummary, DAILY_SUMMARY_EVERY_MS } from './member-daily-summary'
 import { createMemoryGuard, type MemoryLevel, readMemoryLimit, sweepRuns } from './memory-guard'
 import { createNotificationWorker } from './notifications'
@@ -128,10 +129,14 @@ const appEventWorker = createAppEventWorker(redis, db, {
   settingsSecret: env.SETTINGS_SECRET,
   storefrontUrl: env.STOREFRONT_URL,
 })
+// Smaller storefront copies of videos: their own queue, one encode at a time (./media-video.ts).
+const mediaVideo = createMediaVideoWorker(redis, db, { settingsSecret: env.SETTINGS_SECRET })
+const videoBackfill = createVideoBackfill(db, mediaVideo.queue)
 const mediaProcess = createMediaProcessWorker(redis, db, {
   settingsSecret: env.SETTINGS_SECRET,
   limits: mediaProcessLimits(env),
   mediaCpus: env.MEDIA_CPUS,
+  videoQueue: mediaVideo.queue,
 })
 const appJobWorker = createAppJobWorker(redis, db, {
   settingsSecret: env.SETTINGS_SECRET,
@@ -438,6 +443,12 @@ const sweepList: Sweep[] = [
     run: fxRates.run,
     legacy: { queue: FX_RATES_QUEUE, scheduler: 'fx-rates' },
   },
+  // Videos never looked at for a smaller copy (imports, older uploads, lost jobs): queued hourly.
+  {
+    name: 'media-video-backfill',
+    schedule: every(VIDEO_BACKFILL_EVERY_MS),
+    run: videoBackfill.run,
+  },
   // Open bug reports re-read from GitHub; off without GITHUB_ISSUES_TOKEN.
   {
     name: 'bug-report-sync',
@@ -467,6 +478,7 @@ const watched = [
   [pixels.send, 'pixels-send'],
   [backInStock.worker, 'back-in-stock'],
   [mediaProcess.worker, 'media-process'],
+  [mediaVideo.worker, 'media-video'],
   [storeExport.worker, 'store-export'],
   [themeScreenshots.worker, 'theme-screenshot'],
   [aiBulkWrite.worker, 'ai-bulk-write'],
@@ -599,6 +611,8 @@ const shutdown = async () => {
   await outboxRelay.appJobs.close()
   await backInStock.worker.close()
   await backInStock.queue.close()
+  await mediaVideo.worker.close()
+  await mediaVideo.queue.close()
   await storeExport.worker.close()
   await storeExport.queue.close()
   await themeScreenshots.worker.close()
