@@ -157,10 +157,12 @@ export default function ThankYouTemplate({
   const confirming = awaiting && manual === null && qr === null && !payClient && !payRedirect
   // A UPI / bank transfer checkout kept as a draft: received, and waiting for the money.
   const transferDraft = o.status === 'draft' && o.draftSource === 'checkout' && manual !== null
-  const expiredDraft = o.status === 'draft' && o.draftExpiredAt !== null
+  // Staff took the checkout over to edit it: this link stopped; the shop sends a new one.
+  const takenOver = o.status === 'draft' && o.draftSource !== 'checkout'
+  const expiredDraft = (o.status === 'draft' && o.draftExpiredAt !== null) || takenOver
   const claimed = transferDraft ? readShopperPaid(pay?.checkoutSession) : null
   const headline = expiredDraft
-    ? transferContent.expiredHeading
+    ? transferContent[takenOver ? 'takenOverHeading' : 'expiredHeading']
     : transferDraft
       ? transferContent.received(orderRef(o))
       : progress.end
@@ -173,7 +175,7 @@ export default function ThankYouTemplate({
               ? content.headline.pending
               : content.card.confirmed
   const statusLines = expiredDraft
-    ? [transferContent.expiredBody]
+    ? [transferContent[takenOver ? 'takenOverBody' : 'expiredBody']]
     : transferDraft
       ? [transferContent.complete]
       : !settled

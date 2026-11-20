@@ -42,6 +42,7 @@ import {
   storeAbandonedStats,
 } from '../services/draft.service'
 import { draftCreator } from '../services/draft-creator.service'
+import { takeOverStoreCheckoutDraft } from '../services/draft-take-over.service'
 import { markDraftSeen } from '../services/drafts-seen.service'
 import { customMessage } from './custom-message'
 import { storeHasWhatsapp } from './order-messages'
@@ -258,6 +259,20 @@ export const draftAndAbandonedRoutes = {
         throw err
       }
     }),
+
+  /**
+   * "Edit" on a shopper's unpaid checkout draft: it becomes a staff draft the draft form edits.
+   * Refused while money is in or on its way; otherwise every payment try is stopped (the old
+   * payment link offers nothing to pay) and the timeline says who took it over.
+   */
+  takeOverCheckoutDraft: can(permissions.DRAFTS_WRITE)
+    .input(z.object({ id: z.uuid() }))
+    .handler(({ context, input }) =>
+      takeOverStoreCheckoutDraft(context.tx, context.scope.storeId, {
+        id: input.id,
+        author: context.session.user.email,
+      }),
+    ),
 
   /**
    * Reserve items (#1030): hold the saved draft's stock until a date, so no one else can buy it.
