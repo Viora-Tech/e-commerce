@@ -44,13 +44,15 @@ export const CHAT_MODULE = `window.__commerceIsland && window.__commerceIsland('
   }
   function bottomBars(launcher) {
     var found = [];
-    var y = window.innerHeight - 2;
     var inset = Math.min(8, (launcher.right - launcher.left) / 4);
-    [launcher.left + inset, (launcher.left + launcher.right) / 2, launcher.right - inset].forEach(function (x) {
-      document.elementsFromPoint(x, y).forEach(function (el) {
-        if (ours(el)) return;
-        var bar = pinnedAncestor(el);
-        if (bar && !ours(bar) && found.indexOf(bar) < 0) found.push(bar);
+    (c.rows || [2]).forEach(function (row) {
+      var y = window.innerHeight - row;
+      [launcher.left + inset, (launcher.left + launcher.right) / 2, launcher.right - inset].forEach(function (x) {
+        document.elementsFromPoint(x, y).forEach(function (el) {
+          if (ours(el)) return;
+          var bar = pinnedAncestor(el);
+          if (bar && !ours(bar) && found.indexOf(bar) < 0) found.push(bar);
+        });
       });
     });
     return found.map(function (el) { return el.getBoundingClientRect(); });
