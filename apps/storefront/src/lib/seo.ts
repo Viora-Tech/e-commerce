@@ -1,4 +1,5 @@
 import type { OfferPolicies } from '@commerce/core/offer-policies'
+import { numericId } from '@commerce/core/theme-import'
 import type { Metadata } from 'next'
 import { headers } from 'next/headers'
 import { SEO_DESCRIPTION_MAX, seoContent } from '@/data/seo'
@@ -114,6 +115,7 @@ type ProductForLd = {
     id: string
     title: string
     sku: string | null
+    barcode?: string | null | undefined
     pricePaise: number | null
     available: number
     purchasable?: boolean | undefined
@@ -125,6 +127,15 @@ type ProductForLd = {
   reviews?: { author: string; rating: number; title: string; body: string }[] | undefined
   /** The store's returns and India shipping (`productOfferPolicies`), for merchant listings. */
   policies?: OfferPolicies | null | undefined
+}
+
+/**
+ * `gtin` from a variant's barcode when it is a real GTIN (8, 12, 13 or 14 digits); a store's own
+ * codes in the barcode field are left out, as Google rejects an invalid gtin.
+ */
+export function gtinLd(barcode: string | null | undefined): { gtin?: string } {
+  const code = barcode?.replace(/\s+/g, '') ?? ''
+  return /^(\d{8}|\d{12,14})$/.test(code) ? { gtin: code } : {}
 }
 
 /** One year on, as YYYY-MM-DD: prices stay until the merchant changes them. */
@@ -213,9 +224,11 @@ export function productGraph(
   )
   const offers = priced.map((v) => ({
     '@type': 'Offer',
-    url,
+    // Each variant's own URL (Shopify's `?variant=`), so a merchant listing links the right one.
+    url: p.variants.length > 1 ? `${url}?variant=${numericId(v.id)}` : url,
     ...(p.variants.length > 1 ? { name: v.title } : {}),
     ...(v.sku ? { sku: v.sku } : {}),
+    ...gtinLd(v.barcode),
     price: paiseToAmount(v.pricePaise),
     priceCurrency: currency,
     availability:
@@ -250,6 +263,7 @@ export function productGraph(
         ...(p.images.length ? { image: p.images.map((i) => i.url) } : {}),
         brand: { '@type': 'Brand', name: p.vendor || storeName },
         ...(p.variants.length === 1 && p.variants[0]?.sku ? { sku: p.variants[0].sku } : {}),
+        ...(p.variants.length === 1 ? gtinLd(p.variants[0]?.barcode) : {}),
         offers:
           offers.length === 0
             ? undefined

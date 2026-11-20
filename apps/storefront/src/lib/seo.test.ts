@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   canonicalPath,
   collectionGraph,
+  gtinLd,
   jsonLd,
   metaDescription,
   productGraph,
@@ -70,6 +71,22 @@ describe('JSON-LD', () => {
     ])
     expect(crumbs['@type']).toBe('BreadcrumbList')
     expect(crumbs.itemListElement.at(-1).item).toBe('https://waimers.in/products/veil')
+  })
+
+  it("links each variant's offer to its own URL and gives a real GTIN from the barcode", () => {
+    const coded = {
+      ...product,
+      variants: [
+        { ...product.variants[0], barcode: '8901234567890' },
+        { ...product.variants[1], barcode: 'OWN-CODE' },
+      ] as never,
+    }
+    const [p] = parsed(productGraph(coded, origin, 'INR', 'Waimers'))['@graph']
+    expect(p.offers.offers[0].url).toBe('https://waimers.in/products/veil?variant=v1')
+    expect(p.offers.offers[0].gtin).toBe('8901234567890')
+    expect(p.offers.offers[1].gtin).toBeUndefined()
+    expect(gtinLd('0123 4567 8905')).toEqual({ gtin: '012345678905' })
+    expect(gtinLd(null)).toEqual({})
   })
 
   it('makes no offer for a variant listed without a price (#913)', () => {
@@ -213,6 +230,10 @@ describe('crawler files', () => {
       '<loc>https://waimers.in/products/veil</loc><lastmod>1970-01-01T00:00:00.000Z</lastmod>',
     )
     expect(xml.match(/<url>/g)).toHaveLength(6)
+    // Shopify's child sitemaps each list their part.
+    expect(sitemapXml(origin, index, 'products').match(/<url>/g)).toHaveLength(1)
+    expect(sitemapXml(origin, index, 'collections')).toContain('/collections/glass')
+    expect(sitemapXml(origin, index, 'pages')).not.toContain('/products/')
     expect(emptySitemapXml()).not.toContain('<url>')
   })
 

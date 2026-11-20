@@ -336,9 +336,11 @@ async function seoFor(
     const canonical = await marketCanonical(`/pages/${found.handle}`)
     return {
       title: `${found.seoTitle || found.title} | ${storeName}`,
-      description: metaDescription(
-        found.seoDescription || richTextToPlainText(parseRichText(found.body)),
-      ),
+      // A page built from theme sections has no body: the store's description, as Shopify's
+      // `page_description` falls back to the shop's.
+      description:
+        metaDescription(found.seoDescription || richTextToPlainText(parseRichText(found.body))) ??
+        (prefs.seo.description || undefined),
       canonical,
       ogUrl: canonical,
       jsonLd: null,
@@ -355,11 +357,12 @@ async function seoFor(
       phone: s?.contactPhone,
     }
   })
+  const canonical = await marketCanonical('/')
   return {
     title: prefs.seo.title || storeName,
     description: prefs.seo.description || undefined,
-    canonical: await marketCanonical('/'),
-    ogUrl: null,
+    canonical,
+    ogUrl: canonical,
     jsonLd: storeGraph({ ...identity, origin }),
   }
 }

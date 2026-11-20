@@ -43,7 +43,14 @@ import { MARKET_HEADERS } from '@/lib/markets'
 import { storeOffersEmi, storeUpiDiscount } from '@/lib/payments'
 import { policyPanels } from '@/lib/related'
 import { productReviews } from '@/lib/reviews'
-import { jsonLd, marketCanonical, metaDescription, productGraph, requestOrigin } from '@/lib/seo'
+import {
+  jsonLd,
+  marketCanonical,
+  metaDescription,
+  paiseToAmount,
+  productGraph,
+  requestOrigin,
+} from '@/lib/seo'
 import { shareImageUrl } from '@/lib/share-image'
 import { estimateDeliveryAction } from '@/lib/shipping-actions'
 import { storeRead } from '@/lib/store-cache'
@@ -117,6 +124,7 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   if (!found) return {}
   const { product, title, description } = found
   const url = await marketCanonical(`/products/${product.handle}`)
+  const price = defaultVariant(product)?.pricePaise
   const images = product.images
     .filter((i) => !i.contentType?.startsWith('video/'))
     .slice(0, 4)
@@ -127,6 +135,15 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
     alternates: { canonical: url },
     openGraph: { type: 'website', url, title, description, images },
     twitter: { card: images.length ? 'summary_large_image' : 'summary', title, description },
+    // Shopify's product price tags, which link previews and price sites read.
+    ...(price != null
+      ? {
+          other: {
+            'product:price:amount': paiseToAmount(price),
+            'product:price:currency': found.currency,
+          },
+        }
+      : {}),
   }
 }
 

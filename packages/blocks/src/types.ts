@@ -68,6 +68,8 @@ export type ProductDetail = {
     id: string
     title: string
     sku: string | null
+    /** GTIN / EAN / UPC (the variant's barcode), for structured data; absent in older data. */
+    barcode?: string | null | undefined
     /** Null: listed before the price is confirmed; shown as "Price coming soon", never purchasable. */
     pricePaise: number | null
     mrpPaise: number | null
