@@ -374,7 +374,14 @@ export default function CustomizeEditor({
   ) : (
     <ThemePanel theme={settings} mode={mode} onChange={setSettings} onMode={setModePick} />
   )
-  const appsPanel = <AppsPanel installed={installedApps} theme={settings} onChange={setSettings} />
+  const appsPanel = (
+    <AppsPanel
+      installed={installedApps}
+      theme={settings}
+      onChange={setSettings}
+      imported={liquidInfo?.appEmbeds}
+    />
+  )
   const previewResource = preview.kind
     ? {
         kind: preview.kind,
@@ -408,6 +415,7 @@ export default function CustomizeEditor({
             mode={mode}
             sourceScope={sourceScope}
             template={loaded?.ref.key ?? ref.key}
+            installedApps={installedApps}
           >
             <CustomizeHotkeys />
             <SectionRemovedToast />

@@ -2,6 +2,7 @@
 
 import type { ComponentProps, ContextType, ReactNode } from 'react'
 import {
+  InstalledAppsContext,
   LiquidHeadContext,
   LiquidThemeSettingsContext,
   OpenTemplateContext,
@@ -24,6 +25,8 @@ type CustomizeContextsProps = {
   sourceScope: ContextType<typeof DynamicSourceContext>
   /** The template open on the canvas. */
   template: ContextType<typeof OpenTemplateContext>
+  /** The store's installed apps, for the app embeds the canvas draws. */
+  installedApps: ContextType<typeof InstalledAppsContext>
   children: ReactNode
 }
 
@@ -37,6 +40,7 @@ export default function CustomizeContexts({
   mode,
   sourceScope,
   template,
+  installedApps,
   children,
 }: CustomizeContextsProps) {
   return (
@@ -47,7 +51,9 @@ export default function CustomizeContexts({
             <PreviewModeContext.Provider value={mode}>
               <DynamicSourceContext.Provider value={sourceScope}>
                 <OpenTemplateContext.Provider value={template}>
-                  {children}
+                  <InstalledAppsContext.Provider value={installedApps}>
+                    {children}
+                  </InstalledAppsContext.Provider>
                 </OpenTemplateContext.Provider>
               </DynamicSourceContext.Provider>
             </PreviewModeContext.Provider>
