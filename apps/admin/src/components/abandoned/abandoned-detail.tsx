@@ -8,6 +8,7 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 import PageHeader from '@/components/layout/page-header'
 import ProoflyDetailPage from '@/components/layout/proofly-detail-page'
+import SaleSourceCard from '@/components/orders/sale-source-card'
 import SendMessageDialog, { type CustomMessage } from '@/components/orders/send-message-dialog'
 import { abandonedDetailContent } from '@/data/abandoned-detail'
 import { useCopy, useFormat } from '@/hooks/use-copy'
@@ -105,6 +106,8 @@ export default function AbandonedDetail({ checkout }: AbandonedDetailProps) {
       side={
         <>
           <AbandonedCustomerCard checkout={checkout} />
+          {/* The touch the cart carries; the order placed from it copies the same one. */}
+          <SaleSourceCard attribution={checkout.attribution} />
           <AbandonedReminderCard checkout={checkout} />
           <SendMessageDialog
             orderId={reviewing ? checkout.id : null}

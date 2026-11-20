@@ -436,7 +436,7 @@ export async function getStoreAbandoned(
     phone: row.phone,
     customerName: row.customerName,
     discountCode: row.discountCode,
-    source: row.attribution?.source ?? row.attribution?.channel ?? null,
+    attribution: row.attribution ?? null,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
     recoverySentAt: row.recoverySentAt,

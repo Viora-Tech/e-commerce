@@ -18,7 +18,6 @@ export default function AbandonedCustomerCard({ checkout }: AbandonedCustomerCar
     { label: copy.name, value: checkout.customerName || copy.none },
     { label: copy.email, value: checkout.email || copy.none },
     { label: copy.phone, value: checkout.phone || copy.none },
-    { label: copy.source, value: checkout.source || copy.none },
   ]
 
   return (

@@ -27,7 +27,6 @@ export const abandonedDetailContent = {
     name: 'Name',
     email: 'Email',
     phone: 'Phone',
-    source: 'Came from',
     none: 'Not given',
   },
   reminder: {
