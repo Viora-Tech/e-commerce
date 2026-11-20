@@ -40,6 +40,12 @@ export type LiquidShimConfig = {
    * (`lib/liquid-market-links.ts`), so its calls do too: they are matched without it.
    */
   prefix?: string
+  /**
+   * Customize's "Theme scripts" canvas (`?theme-design-mode=1`): `Shopify.designMode` is true, as
+   * in Shopify's editor, so the theme's scripts skip what they skip there (popups opening on
+   * their own, a cookie banner) and listen for the editor's section events.
+   */
+  designMode?: boolean
 }
 
 export function liquidShim(config: LiquidShimConfig): string {
@@ -65,6 +71,7 @@ const SHIM = `(function () {
     marketingAllowed: function () { return false; }
   };
   window.Shopify = window.Shopify || {};
+  if (config.designMode) window.Shopify.designMode = true;
   var prefix = config.prefix || '';
   window.Shopify.routes = window.Shopify.routes || { root: prefix + '/' };
   function unprefixed(pathname) {

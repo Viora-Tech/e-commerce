@@ -88,6 +88,8 @@ export const DERIVED_HEADERS = [
   'x-visitor-country',
   'x-theme-preview',
   'x-theme-version',
+  // Customize's design-mode frame (`?theme-design-mode=1` with a valid preview, in a frame).
+  'x-theme-design-mode',
   'x-form-posted',
   'x-pathname',
   'x-listing',
