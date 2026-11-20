@@ -1,7 +1,7 @@
 import type { TemplateData } from '../../types'
 import { sharedContent as shared } from '../content'
 import type { Composed } from './index'
-import { itemCount, orderColumns, orderItems, present, routeTicket } from './order'
+import { instructionRows, itemCount, orderColumns, orderItems, parcelsList, present, routeTicket } from './order'
 
 /**
  * Order placed (Figma batch 1): the ticket from the warehouse to the shopper, the button, the
@@ -34,19 +34,14 @@ export function orderPlaced(d: TemplateData, action?: { label: string; url: stri
     eyebrow: `Order #${d.orderNumber} · ${unpaid ? t.awaitingPayment : t.confirmed}`,
     blocks: present([
       ticket,
+      parcelsList(d),
       action ? { kind: 'button', label: action.label, url: action.url } : null,
       orderItems(d),
       orderColumns(d),
       instructions
         ? {
             kind: 'facts',
-            // "UPI ID: shop@okicici" reads as a label and a value; a plain line keeps its words.
-            rows: (d.paymentInstructions ?? []).map((line) => {
-              const at = line.indexOf(': ')
-              return at > 0
-                ? { label: line.slice(0, at), value: line.slice(at + 2) }
-                : { label: '', value: line }
-            }),
+            rows: instructionRows(d.paymentInstructions ?? []),
           }
         : null,
     ]),
