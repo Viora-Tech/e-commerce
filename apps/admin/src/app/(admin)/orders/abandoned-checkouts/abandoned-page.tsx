@@ -21,6 +21,7 @@ import {
 } from '@/data/drafts'
 import { filterPanelContent } from '@/data/filter-panel'
 import { abandonedFiltersContent } from '@/data/order-list-filters'
+import { saleSourceContent } from '@/data/sale-source'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import {
   ABANDONED_FILTER_PARAMS,
@@ -73,6 +74,7 @@ function AbandonedContent({ initial }: { initial: AbandonedInitial }) {
   const copy = useCopy(abandonedContent)
   const bulkCopy = useCopy(abandonedBulkContent)
   const filterCopy = useCopy(abandonedFiltersContent)
+  const sourceCopy = useCopy(saleSourceContent)
   const _panelCopy = useCopy(filterPanelContent)
   const fmt = useFormat()
   const [q, setQ] = useQueryStates(
@@ -191,7 +193,7 @@ function AbandonedContent({ initial }: { initial: AbandonedInitial }) {
   const perPage = parseRowsPerPage(q.perPage)
   const filtered = hasAbandonedFilters(q)
   const groups = abandonedFilterGroups(q, filterCopy, (patch) => setQ({ ...patch, page: 1 }))
-  const columns = abandonedColumns(copy, fmt)
+  const columns = abandonedColumns(copy, fmt, sourceCopy)
 
   return (
     <ProoflyListPage

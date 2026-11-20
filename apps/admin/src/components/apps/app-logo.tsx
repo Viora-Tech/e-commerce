@@ -22,6 +22,12 @@ const TILES: Record<string, string> = {
 
 const FALLBACK_TILE = 'from-slate-500 to-slate-700 border-slate-700/90'
 
+/**
+ * Third-party logos that are already a full square tile (their own app icon): shown edge to edge
+ * in the rounded box. Inside the white tile they got a white frame around them (owner, 18 Nov).
+ */
+const FULL_TILE = new Set(['cashfree', 'rapidshyp', 'shadowfax', 'shiprocket', 'xpressbees'])
+
 /** Pixel size to rem class pairs, so the tile and its glyph scale together. */
 const SIZES = {
   28: { box: 'size-7 rounded-[0.4375rem]', logo: 'size-[1.1rem]', glyph: 'size-4', icon: 'size-7' },
@@ -64,6 +70,18 @@ export default function AppLogo({ id, icon, size = 44, className }: AppLogoProps
     return (
       // biome-ignore lint/performance/noImgElement: fixed local icon files, not content
       <img src={own} alt="" aria-hidden="true" className={cn('shrink-0', dims.icon, className)} />
+    )
+  }
+
+  if (src && FULL_TILE.has(id)) {
+    return (
+      <span
+        aria-hidden="true"
+        className={cn('flex shrink-0 overflow-hidden', dims.box, className)}
+      >
+        {/* biome-ignore lint/performance/noImgElement: fixed local brand assets, not content */}
+        <img src={src} alt="" className="size-full object-cover" />
+      </span>
     )
   }
 

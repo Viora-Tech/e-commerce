@@ -18,6 +18,7 @@ export default function OverviewPage() {
   // Helpers
   const connectedBody = () => (
     <CourierShipmentsLink
+      courier="shipglobal"
       help={copy.overview.goToShipmentsHelp}
       cta={copy.overview.goToShipments}
     />

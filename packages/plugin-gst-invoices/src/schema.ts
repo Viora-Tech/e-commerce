@@ -85,7 +85,15 @@ export const INVOICE_KINDS = [
   'refund_voucher',
 ] as const
 
-export const PDF_STATUSES = ['pending', 'ready', 'failed'] as const
+/** `none`: there is no PDF to draw, an invoice recorded from outside Koomerce (`source`). */
+export const PDF_STATUSES = ['pending', 'ready', 'failed', 'none'] as const
+
+/**
+ * Who issued a tax invoice: `koomerce` (numbered and drawn here), or `external`, one the
+ * merchant issued earlier by hand or in a previous billing system and only recorded here
+ * ("Already invoiced" in the queue) so it counts in GSTR-1 and its number stays used.
+ */
+export const INVOICE_SOURCES = ['koomerce', 'external'] as const
 
 /**
  * `draft` is a queue entry: an order waiting to be invoiced, with no number.
@@ -149,6 +157,10 @@ export const invoice = pgTable(
     pdfKey: text('pdf_key'),
     pdfStatus: text('pdf_status', { enum: PDF_STATUSES }).notNull().default('pending'),
     pdfError: text('pdf_error'),
+    /** `external`: recorded, invoiced outside Koomerce; no PDF (`pdf_status` none). */
+    source: text('source', { enum: INVOICE_SOURCES }).notNull().default('koomerce'),
+    /** First time staff printed or downloaded its PDF; null: not printed yet (0256). */
+    printedAt: timestamp('printed_at', { withTimezone: true }),
     issuedAt: at('issued_at'),
     /** The date printed on the invoice and used for its period; set when issued. */
     invoiceDate: timestamp('invoice_date', { withTimezone: true }),
@@ -168,7 +180,11 @@ export const invoice = pgTable(
       'invoice_kind_check',
       sql`${t.kind} in ('tax_invoice', 'credit_note', 'packing_slip', 'order_confirmation', 'receipt_voucher', 'refund_voucher')`,
     ),
-    check('invoice_pdf_status_check', sql`${t.pdfStatus} in ('pending', 'ready', 'failed')`),
+    check(
+      'invoice_pdf_status_check',
+      sql`${t.pdfStatus} in ('pending', 'ready', 'failed', 'none')`,
+    ),
+    check('invoice_source_check', sql`${t.source} in ('koomerce', 'external')`),
     check('invoice_status_check', sql`${t.status} in ('draft', 'issued', 'cancelled')`),
     // Rule 46(b): unique per GSTIN per financial year. No registration counts as one GSTIN.
     uniqueIndex('invoice_number_unique')

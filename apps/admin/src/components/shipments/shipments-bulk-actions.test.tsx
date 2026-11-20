@@ -5,8 +5,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 const listPickups = vi.fn()
 const schedulePickup = vi.fn()
 const createManifest = vi.fn()
+const manifestSheet = vi.fn()
 vi.mock('@/lib/api-client', () => ({
-  api: { shipments: { listPickups, schedulePickup, createManifest } },
+  api: { shipments: { listPickups, schedulePickup, createManifest, manifestSheet } },
 }))
 const toast = { success: vi.fn(), error: vi.fn(), info: vi.fn() }
 vi.mock('sonner', () => ({ toast }))
@@ -41,5 +42,39 @@ describe('ShipmentsBulkActions › Create pickup (Shipments › Booked)', () => 
     expect(toast.success).not.toHaveBeenCalled()
     expect(createManifest).not.toHaveBeenCalled()
     expect(onDone).not.toHaveBeenCalled()
+  })
+})
+
+describe('ShipmentsBulkActions › Print manifest (To be picked up)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it("prints the ticked parcels' manifest in the tab opened on the click", async () => {
+    const tab = {
+      closed: false,
+      location: { href: '' },
+      document: { title: '', body: { textContent: '' } },
+      close: vi.fn(),
+    }
+    vi.spyOn(window, 'open').mockReturnValue(tab as unknown as Window)
+    URL.createObjectURL = vi.fn(() => 'blob:manifest')
+    URL.revokeObjectURL = vi.fn()
+    manifestSheet.mockResolvedValue({
+      file: new File(['%PDF'], 'manifest.pdf', { type: 'application/pdf' }),
+      manifests: 1,
+      shipments: 2,
+      created: 0,
+    })
+    render(<ShipmentsBulkActions ids={['s1', 's2']} tab="toPickUp" onDone={vi.fn()} />)
+    fireEvent.click(screen.getByRole('button', { name: /print manifest/i }))
+    await waitFor(() => expect(tab.location.href).toBe('blob:manifest'))
+    expect(manifestSheet).toHaveBeenCalledWith({ shipmentIds: ['s1', 's2'] })
+    expect(toast.success).toHaveBeenCalledWith('Manifest ready: 2 parcels on 1 pickup.')
+  })
+
+  it('is not offered on Booked, where parcels have no pickup yet', () => {
+    render(<ShipmentsBulkActions ids={['s1']} tab="booked" onDone={vi.fn()} />)
+    expect(screen.queryByRole('button', { name: /print manifest/i })).toBeNull()
   })
 })

@@ -29,8 +29,13 @@ export async function handlePaymentWebhook(
   provider: PaymentProvider,
   input: { rawBody: string; headers: Record<string, string | undefined> },
 ): Promise<WebhookOutcome> {
-  const parsed = provider.parseWebhook(input)
-  if (!parsed.ok) return parsed
+  const verified = provider.parseWebhook(input)
+  if (!verified.ok) return verified
+  // A gateway whose webhook is not the last word (Snapmint) asks its own API first. A failed
+  // lookup throws before anything is stored, so the gateway's retry is processed in full.
+  const parsed = provider.confirmWebhookEvent
+    ? { ...verified, event: await provider.confirmWebhookEvent(verified.event) }
+    : verified
   // Methods sharing one gateway account (Razorpay Checkout, Razorpay UPI QR)
   // share its webhook, so one event is stored once whichever method parsed it.
   const dedupeAs = provider.webhookId ?? provider.id

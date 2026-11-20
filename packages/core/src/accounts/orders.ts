@@ -96,6 +96,9 @@ const shipmentState = (
   fulfillment: OrderFulfillmentStatus,
 ): ShopperShipmentState => {
   if (fulfillment === 'delivered') return 'delivered'
+  // A parcel the courier lost is the merchant's to sort out (reship, claim); the shopper sees
+  // it as on its way, then the new parcel's own steps once it is booked.
+  if (s?.status === 'lost') return 'in_transit'
   return (s?.status as ShopperShipmentState | undefined) ?? FROM_FULFILLMENT[fulfillment]
 }
 

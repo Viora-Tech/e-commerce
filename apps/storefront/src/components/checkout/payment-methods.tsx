@@ -56,6 +56,7 @@ function tabsFor(m: CheckoutMethod): readonly string[] {
 function detailFor(m: CheckoutMethod, amountLabel: string): string | null {
   const view = methodView(m)
   if (m.id === 'decentro') return panel.upi(amountLabel)
+  if (m.id === 'snapmint') return panel.snapmint
   return view.brand ? panel.gateway(view.brand) : null
 }
 

@@ -2,59 +2,44 @@
 
 import type { DashboardChartsData } from '@commerce/api'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
-import dynamic from 'next/dynamic'
-import ChartLoading from '@/components/layout/chart-loading'
 import DataCard from '@/components/layout/data-card'
 import EmptyState from '@/components/layout/empty-state'
 import { homeContent } from '@/data/home'
-import { useCopy } from '@/hooks/use-copy'
+import { useCopy, useFormat } from '@/hooks/use-copy'
+import LabelledBars from './labelled-bars'
 
 type TopProductsChartProps = {
   data: DashboardChartsData
   loading: boolean
 }
 
-const LABEL_MAX = 16
-
-function shorten(text: string): string {
-  return text.length > LABEL_MAX ? `${text.slice(0, LABEL_MAX - 1)}…` : text
-}
-
-/* recharts is large: it loads only where a chart is drawn. */
-const TopProductsPlot = dynamic(() => import('./top-products-plot'), {
-  ssr: false,
-  loading: () => <ChartLoading />,
-})
-
-/** Top 5 products by revenue for the picked range, as a horizontal bar chart. */
+/**
+ * "Top products · by sales": the range's five best earners as labelled bars, each name in full
+ * (it wraps rather than being cut to 16 characters), the figure on the right.
+ */
 export default function TopProductsChart({ data, loading }: TopProductsChartProps) {
   // Hooks
   const copy = useCopy(homeContent)
+  const fmt = useFormat()
 
   // Render logic
   const c = copy.charts
-  const points = data.topProducts.map((p) => ({
-    id: p.productId,
-    label: shorten(p.title),
-    fullTitle: p.title,
-    revenuePaise: p.revenuePaise,
+  const top = data.topProducts[0]?.revenuePaise ?? 0
+  const bars = data.topProducts.map((p) => ({
+    key: p.productId,
+    label: p.title,
+    value: fmt.moneyWhole(p.revenuePaise),
+    share: top > 0 ? p.revenuePaise / top : 0,
   }))
 
   return (
     <DataCard title={c.topProductsTitle}>
       {loading ? (
         <Skeleton className="h-64 w-full" />
-      ) : points.length === 0 ? (
+      ) : bars.length === 0 ? (
         <EmptyState variant="inline" body={c.topProductsEmpty} />
       ) : (
-        <div className="flex flex-col gap-3">
-          <div className="h-64 w-full">
-            <TopProductsPlot points={points} />
-          </div>
-          <p className="text-caption text-muted-foreground">
-            {c.topProductsLine(points[0]?.fullTitle ?? '')}
-          </p>
-        </div>
+        <LabelledBars bars={bars} label={c.topProductsTitle} />
       )}
     </DataCard>
   )

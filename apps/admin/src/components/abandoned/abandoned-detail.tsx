@@ -1,13 +1,14 @@
 'use client'
 
 import { permissions } from '@commerce/core/permissions'
-import { Copy, Send, ShoppingCart } from '@commerce/ui/icons'
-import { Button } from '@commerce/ui/shadcn/button'
+import { Copy, ShoppingCart } from '@commerce/ui/icons'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import ActionMenu from '@/components/layout/action-menu'
 import PageHeader from '@/components/layout/page-header'
 import ProoflyDetailPage from '@/components/layout/proofly-detail-page'
+import SaleSourceCard from '@/components/orders/sale-source-card'
 import SendMessageDialog, { type CustomMessage } from '@/components/orders/send-message-dialog'
 import { abandonedDetailContent } from '@/data/abandoned-detail'
 import { useCopy, useFormat } from '@/hooks/use-copy'
@@ -61,7 +62,8 @@ export default function AbandonedDetail({ checkout }: AbandonedDetailProps) {
   }
 
   // Render logic
-  const who = checkout.customerName ?? checkout.email ?? checkout.phone ?? copy.anonymous
+  const ref = refOf(checkout.id)
+  const who = checkout.customerName || checkout.email || checkout.phone
   const canSend =
     !checkout.recovered && Boolean(checkout.email) && hasPermission(permissions.ORDERS_WRITE)
 
@@ -69,30 +71,20 @@ export default function AbandonedDetail({ checkout }: AbandonedDetailProps) {
     <ProoflyDetailPage
       header={
         <PageHeader
-          title={copy.heading(refOf(checkout.id))}
-          summary={copy.summary(
-            who,
-            fmt.ago(checkout.updatedAt),
-            fmt.money(checkout.subtotalPaise),
-          )}
+          title={who || copy.heading(ref)}
+          summary={copy.summary(fmt.money(checkout.subtotalPaise), ref, fmt.ago(checkout.updatedAt))}
           back={{ label: copy.back.label, href: routes.orders.abandonedCheckouts() }}
           lead={{ kind: 'icon', node: <ShoppingCart aria-hidden="true" /> }}
           size="sm"
           actions={
-            <>
-              {checkout.recoveryUrl ? (
-                <Button variant="outline" onClick={handleCopyLink}>
-                  <Copy />
-                  {copy.copyLink}
-                </Button>
-              ) : null}
-              {canSend ? (
-                <Button loading={sending} onClick={() => setReviewing(true)}>
-                  <Send aria-hidden="true" />
-                  {checkout.recoverySentAt ? copy.sendAgain : copy.sendReminder}
-                </Button>
-              ) : null}
-            </>
+            checkout.recoveryUrl ? (
+              <ActionMenu
+                label={copy.moreActions}
+                trigger="button"
+                align="end"
+                items={[{ label: copy.copyLink, icon: Copy, onSelect: handleCopyLink }]}
+              />
+            ) : null
           }
         />
       }
@@ -104,8 +96,16 @@ export default function AbandonedDetail({ checkout }: AbandonedDetailProps) {
       }
       side={
         <>
+          <AbandonedReminderCard
+            checkout={checkout}
+            canSend={canSend}
+            sending={sending}
+            onSend={() => setReviewing(true)}
+            onCopyLink={handleCopyLink}
+          />
           <AbandonedCustomerCard checkout={checkout} />
-          <AbandonedReminderCard checkout={checkout} />
+          {/* The touch the cart carries; the order placed from it copies the same one. */}
+          <SaleSourceCard attribution={checkout.attribution} />
           <SendMessageDialog
             orderId={reviewing ? checkout.id : null}
             template="checkout_recovery"

@@ -9,7 +9,7 @@ import StatusChip from '@/components/layout/status-chip'
 import { deliveryOptionsContent } from '@/data/delivery-options'
 import { deliveryPagesContent } from '@/data/delivery-options-pages'
 import { useCopy } from '@/hooks/use-copy'
-import { selectorLabel } from './format'
+import { ruleRouteLabels, ruleTargetLabel } from './format'
 
 type RuleRowProps = {
   rule: RouteRule
@@ -41,19 +41,15 @@ export default function RuleRow({
 
   // Render logic
   const r = pages.ruleRows
-  const t = rule.target
-  const target =
-    t.kind === 'tags'
-      ? copy.rules.targets.tags(t.values.map((v) => `“${v}”`).join(', '))
-      : t.kind === 'types'
-        ? copy.rules.targets.types(t.values.join(', '))
-        : copy.rules.targets[t.kind](t.values.length)
+  const target = ruleTargetLabel(rule, copy)
   const options =
     rule.optionIds === 'all'
       ? null
       : rule.optionIds.map((id) => optionNames.get(id) ?? '?').join(', ')
-  const main = rule.defaultRoute ? [rule.defaultRoute, ...rule.alternatives] : rule.routes
-  const routesText = main.map((s) => selectorLabel(s, copy)).join(', ')
+  // Every allowed route, the preferred one first and marked (#1781).
+  const routesText = ruleRouteLabels(rule, copy, (label, always) =>
+    always ? r.preferredAlways(label) : r.preferred(label),
+  ).join(', ')
   const routesChip = `${r.only(routesText)}${rule.insurance === 'required' ? ` (${r.insured})` : ''}`
   const line = options ? r.lineOptions(options, routesText) : r.line(routesText)
 

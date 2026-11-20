@@ -3,7 +3,10 @@ import type { KnowledgeGroup, KnowledgeKey } from '@commerce/core/agent-knowledg
 
 export const agentKnowledgeContent = {
   title: 'Knowledge base',
-  subtitle: 'What AI agents may tell shoppers about your store. Only published facts are shared.',
+  subtitle:
+    'What AI tells shoppers about your store, in your store chat and in AI assistants. Only published items are used.',
+  /** One Knowledge base in two tabs (`components/sales-channels/knowledge-tabs.tsx`). */
+  tabs: { label: 'Knowledge base', facts: 'Store facts', answers: 'Questions & answers' },
   back: 'Agentic sales',
   scan: 'Scan my store',
   rescan: 'Rescan',
@@ -83,6 +86,18 @@ export const agentReadyContent = {
     knowledgeCount: (published: number, total: number) => `${published} of ${total} published`,
     endpoint: 'Agent endpoint',
     endpointValue: '/api/mcp',
+  },
+  /** The overview's right column before any agent is live: what works today, what is coming. */
+  status: {
+    liveHeading: 'Live today',
+    live: [
+      'AI assistants can read your store: products, prices, stock and policies.',
+      'They answer from your store through llms.txt and the agent endpoint.',
+    ],
+    comingHeading: 'Coming',
+    coming: 'Coming',
+    comingBody:
+      'Checkout inside ChatGPT, Google AI Mode, Perplexity and Copilot opens in India later. You don’t need to apply: your store is listed when each one opens here.',
   },
   test: {
     heading: 'Search the way an agent does',

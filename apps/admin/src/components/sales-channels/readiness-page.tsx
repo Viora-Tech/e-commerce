@@ -4,6 +4,7 @@ import {
   type CatalogReadiness,
   READINESS_PARTS,
   type ReadinessIssue,
+  type ReadinessRule,
   type ReadinessSeverity,
 } from '@commerce/core/sales-channels'
 import { AiIcon, RefreshCw } from '@commerce/ui/icons'
@@ -19,6 +20,7 @@ import PageHeader from '@/components/layout/page-header'
 import PillTabs from '@/components/layout/pill-tabs'
 import ScoreRing from '@/components/layout/score-ring'
 import StatusChip from '@/components/layout/status-chip'
+import { catalogReadinessContent } from '@/data/catalog-readiness'
 import { salesChannelsContent } from '@/data/sales-channels'
 import { useCopy } from '@/hooks/use-copy'
 import { routes } from '@/lib/routes'
@@ -44,17 +46,38 @@ function fixHref(issue: ReadinessIssue): string {
   return routes.products.detail(issue.ref)
 }
 
-/** Figma "Agentic sales · Catalog readiness": the AI-ready score, its parts, and what to fix. */
+/** Issues grouped by rule, biggest group first: one row per problem instead of one per product. */
+function byRule(issues: readonly ReadinessIssue[]) {
+  const groups = new Map<ReadinessRule, ReadinessIssue[]>()
+  for (const i of issues) groups.set(i.rule, [...(groups.get(i.rule) ?? []), i])
+  return [...groups.entries()]
+    .map(([rule, items]) => ({ rule, items }))
+    .sort((a, b) => b.items.length - a.items.length)
+}
+
+/**
+ * Figma "Agentic sales · Catalog readiness": the AI-ready score, its parts, and what to fix,
+ * first as one row per problem ("No description · 3 products", one fix for all; owner 18 Nov
+ * 2026), then the products themselves, filtered by severity or by the problem picked.
+ */
 export default function ReadinessPage({ report, aiBulk }: ReadinessPageProps) {
   // Hooks
   const router = useRouter()
   const copy = useCopy(salesChannelsContent.readiness)
+  const groupCopy = useCopy(catalogReadinessContent)
   const [filter, setFilter] = useState<Filter>('all')
+  const [rule, setRule] = useState<ReadinessRule | null>(null)
   const [shown, setShown] = useState(PAGE)
 
   // Event handlers
   const handleFilter = (next: Filter) => {
     setFilter(next)
+    setRule(null)
+    setShown(PAGE)
+  }
+  const handleRule = (next: ReadinessRule | null) => {
+    setRule(next)
+    setFilter('all')
     setShown(PAGE)
   }
   const handleWrite = (ids: string[]) => {
@@ -81,8 +104,12 @@ export default function ReadinessPage({ report, aiBulk }: ReadinessPageProps) {
 
   // Render logic
   const band = scoreBand(report.score)
-  const matching =
-    filter === 'all' ? report.issues : report.issues.filter((i) => i.severity === filter)
+  const groups = byRule(report.issues)
+  const matching = rule
+    ? report.issues.filter((i) => i.rule === rule)
+    : filter === 'all'
+      ? report.issues
+      : report.issues.filter((i) => i.severity === filter)
   const visible = matching.slice(0, shown)
   const aiCount = Math.min(report.aiFixable.length, AI_RUN_MAX)
 
@@ -109,7 +136,59 @@ export default function ReadinessPage({ report, aiBulk }: ReadinessPageProps) {
       />
       <PageColumns
         main={
+          <>
+          {groups.length > 1 ? (
+            <DataCard title={groupCopy.heading} flush>
+              <ul className="divide-y divide-border border-t border-border">
+                {groups.map((g) => {
+                  const ids = g.items.filter((i) => i.fix === 'ai').map((i) => i.ref)
+                  const allAi = aiBulk && ids.length === g.items.length
+                  return (
+                    <li key={g.rule} className="flex items-center gap-3 px-5 py-3">
+                      <span className="flex min-w-0 flex-1 flex-col">
+                        <span className="text-body font-medium text-foreground">
+                          {groupCopy.groups[g.rule]}
+                        </span>
+                        <span className="text-caption text-muted-foreground">
+                          {groupCopy.products(g.items.length)}
+                        </span>
+                      </span>
+                      {allAi ? (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleWrite(ids.slice(0, AI_RUN_MAX))}
+                        >
+                          <AiIcon />
+                          {groupCopy.fixAll(Math.min(ids.length, AI_RUN_MAX))}
+                        </Button>
+                      ) : (
+                        <Button variant="outline" size="sm" onClick={() => handleRule(g.rule)}>
+                          {groupCopy.show}
+                        </Button>
+                      )}
+                    </li>
+                  )
+                })}
+              </ul>
+            </DataCard>
+          ) : null}
           <DataCard title={copy.issuesHeading} count={report.issues.length} flush>
+            {rule ? (
+              <div className="flex items-center justify-between gap-3 px-4 pb-3 text-body">
+                <span className="text-foreground">
+                  {groupCopy.showing(groupCopy.groups[rule])}
+                </span>
+                <Button
+                  variant="link"
+                  size="xs"
+                  className="h-auto px-0"
+                  onClick={() => handleRule(null)}
+                >
+                  {groupCopy.clear}
+                </Button>
+              </div>
+            ) : null}
             <PillTabs
               label={copy.issuesHeading}
               className="px-4 pb-3"
@@ -156,6 +235,7 @@ export default function ReadinessPage({ report, aiBulk }: ReadinessPageProps) {
               </p>
             ) : null}
           </DataCard>
+          </>
         }
         side={
           <>

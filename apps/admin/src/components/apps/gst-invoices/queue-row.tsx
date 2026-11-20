@@ -6,6 +6,7 @@ import { TableCell, TableRow } from '@commerce/ui/shadcn/table'
 import Link from 'next/link'
 import StatusChip from '@/components/layout/status-chip'
 import type { ChipTone } from '@/components/status/tone'
+import { gstAlreadyInvoicedContent } from '@/data/gst-already-invoiced'
 import { gstQueuePageContent } from '@/data/gst-queue-page'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { routes } from '@/lib/routes'
@@ -19,6 +20,8 @@ type QueueRowProps = {
   onPick: (on: boolean) => void
   /** Issue just this one (through the review step, which confirms its date). */
   onIssue: () => void
+  /** "Already invoiced": record the invoice this order got outside Koomerce. */
+  onRecord: () => void
 }
 
 const TONE: Record<Row['status'], ChipTone> = {
@@ -36,9 +39,10 @@ const fixHref = (row: Row) =>
     : routes.orders.detail(row.orderId)
 
 /** One queued draft: order and when it joined, customer, GSTIN, taxable, GST, status, Issue or Fix. */
-export default function QueueRow({ row, picked, busy, onPick, onIssue }: QueueRowProps) {
+export default function QueueRow({ row, picked, busy, onPick, onIssue, onRecord }: QueueRowProps) {
   // Hooks
   const copy = useCopy(gstQueuePageContent)
+  const recordCopy = useCopy(gstAlreadyInvoicedContent)
   const fmt = useFormat()
 
   // Render logic
@@ -48,6 +52,8 @@ export default function QueueRow({ row, picked, busy, onPick, onIssue }: QueueRo
       ? copy.fixHelp[row.status]
       : undefined
   const joined = row.eligibleAt ?? row.placedAt
+  const first = row.items[0]
+  const itemList = row.items.map((i) => `${i.title} × ${i.quantity}`).join(', ')
 
   return (
     <TableRow>
@@ -65,6 +71,17 @@ export default function QueueRow({ row, picked, busy, onPick, onIssue }: QueueRo
           </Link>
           {joined ? (
             <span className="text-caption text-muted-foreground">{fmt.when(joined)}</span>
+          ) : null}
+        </span>
+      </TableCell>
+      {/* What it bills: the first item, then "+ n more" (owner, 18 Nov 2026). */}
+      <TableCell className={`${CELL} max-w-64`}>
+        <span className="flex flex-col" title={itemList}>
+          <span className="line-clamp-1">{first ? `${first.title} × ${first.quantity}` : ''}</span>
+          {row.items.length > 1 ? (
+            <span className="text-caption text-muted-foreground">
+              {copy.moreItems(row.items.length - 1)}
+            </span>
           ) : null}
         </span>
       </TableCell>
@@ -89,21 +106,32 @@ export default function QueueRow({ row, picked, busy, onPick, onIssue }: QueueRo
         </span>
       </TableCell>
       <TableCell className={`${CELL} text-right`}>
-        {ready ? (
-          <Button size="sm" variant="outline" disabled={busy} onClick={onIssue}>
-            {copy.issue}
-          </Button>
-        ) : (
+        <span className="inline-flex items-center justify-end gap-1">
           <Button
             size="sm"
-            variant="outline"
-            title={fixHelp}
-            nativeButton={false}
-            render={<Link href={fixHref(row)} />}
+            variant="ghost"
+            disabled={busy}
+            aria-label={recordCopy.actionLabel(row.orderName)}
+            onClick={onRecord}
           >
-            {copy.fix}
+            {recordCopy.action}
           </Button>
-        )}
+          {ready ? (
+            <Button size="sm" variant="outline" disabled={busy} onClick={onIssue}>
+              {copy.issue}
+            </Button>
+          ) : (
+            <Button
+              size="sm"
+              variant="outline"
+              title={fixHelp}
+              nativeButton={false}
+              render={<Link href={fixHref(row)} />}
+            >
+              {copy.fix}
+            </Button>
+          )}
+        </span>
       </TableCell>
     </TableRow>
   )

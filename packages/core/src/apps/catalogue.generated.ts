@@ -181,6 +181,68 @@ export const APP_CATALOGUE_DATA: CatalogueEntry[] = [
     credits: [],
   },
   {
+    id: 'snapmint',
+    name: 'Snapmint',
+    kind: 'connection',
+    category: 'payments',
+    company: 'Snapmint',
+    description:
+      'Cardless EMI at checkout: shoppers pay in instalments on UPI or a debit card, no credit card needed.',
+    tagline: 'EMI on UPI and debit cards, no credit card needed.',
+    highlights: [
+      'Snapmint as its own way to pay at checkout',
+      'Shown only to shoppers Snapmint would approve',
+      'Refunds and part refunds from the order page',
+    ],
+    guide: null,
+    worksWith: ['Checkout, beside your payment gateway and COD', 'Refunds from the order page'],
+    screenshots: [],
+    keywords: ['emi', 'cardless emi', 'pay later', 'instalments'],
+    faq: [],
+    icon: 'CreditCard',
+    access: {
+      resources: [
+        {
+          resource: 'orders',
+          level: 'read',
+          why: 'Order number, total and items, to open the EMI',
+        },
+        {
+          resource: 'payments',
+          level: 'read-write',
+          why: 'Takes payments and confirms them',
+        },
+        {
+          resource: 'refunds',
+          level: 'read-write',
+          why: 'Sends refunds back to the shopper',
+        },
+        {
+          resource: 'customers',
+          level: 'read',
+          why: 'Name, email, mobile and addresses, which Snapmint needs to approve the EMI',
+        },
+      ],
+      shares: [
+        {
+          when: 'Sent per payment',
+          what: 'Order number, amount and items, and the shopper’s name, email, mobile, addresses and IP address',
+        },
+        {
+          when: 'Sent at checkout',
+          what: 'The shopper’s name, email, mobile and delivery address, to ask whether Snapmint can offer EMI',
+        },
+        {
+          when: 'Sent per refund',
+          what: 'Order reference and refund amount',
+        },
+      ],
+    },
+    adminPages: ['Overview', 'Connect'],
+    themeBlocks: [],
+    credits: [],
+  },
+  {
     id: 'delhivery',
     name: 'Delhivery',
     kind: 'connection',

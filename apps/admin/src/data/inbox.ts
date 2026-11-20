@@ -11,6 +11,16 @@ export const inboxContent = {
   settings: {
     title: 'Inbox settings',
     subtitle: 'How the chat looks and behaves on your store.',
+    /** The page's tabs, one per section. */
+    jump: {
+      label: 'Settings sections',
+      chat: 'Chat',
+      hours: 'Hours',
+      ai: 'AI agent',
+      contact: 'Shopper details',
+      privacy: 'Privacy',
+      blocked: 'Blocked',
+    },
     saved: 'Settings saved',
     unsaved: 'Unsaved changes',
     save: 'Save',

@@ -1,4 +1,5 @@
-import { parseAsString, parseAsStringLiteral } from 'nuqs'
+import { MARKETING_CHANNELS } from '@commerce/core/marketing'
+import { parseAsArrayOf, parseAsString, parseAsStringLiteral } from 'nuqs'
 import type { DateFilterValue, FilterGroup } from '@/components/table/filter-panel'
 import type { abandonedFiltersContent } from '@/data/order-list-filters'
 import { dateFilterBounds, hasDateFilter, parseAsDateFilter } from '@/lib/date-filter'
@@ -8,6 +9,10 @@ import { DAY_PRESETS, daysBackStart, moneyRangeGroup, paiseBound } from '@/lib/l
 export const CONTACT_FILTERS = ['email', 'phone', 'both'] as const
 export type ContactFilter = (typeof CONTACT_FILTERS)[number]
 
+/** Mirrors ABANDONED_CHANNELS in core: a channel, or `untracked` (none recorded). */
+export const SOURCE_FILTERS = [...MARKETING_CHANNELS, 'untracked'] as const
+export type SourceFilter = (typeof SOURCE_FILTERS)[number]
+
 /** The Abandoned checkouts filter panel. With no Last active the list keeps its 30 day window. */
 export type AbandonedFilters = {
   active: DateFilterValue
@@ -15,6 +20,8 @@ export type AbandonedFilters = {
   valueMin: string
   valueMax: string
   contact: ContactFilter | null
+  /** Where the shopper came from (`cart.attribution`), any of the ticked channels. */
+  channel: SourceFilter[]
 }
 
 /* Module scope, so the empty defaults keep one identity and the list effect runs once per change. */
@@ -23,6 +30,7 @@ export const ABANDONED_FILTER_PARAMS = {
   valueMin: parseAsString.withDefault(''),
   valueMax: parseAsString.withDefault(''),
   contact: parseAsStringLiteral(CONTACT_FILTERS),
+  channel: parseAsArrayOf(parseAsStringLiteral(SOURCE_FILTERS)).withDefault([]),
 }
 
 /** Every filter cleared, as a URL patch (`null` drops the param). */
@@ -31,6 +39,7 @@ export const CLEAR_ABANDONED_FILTERS = {
   valueMin: null,
   valueMax: null,
   contact: null,
+  channel: null,
 }
 
 export function hasAbandonedFilters(f: AbandonedFilters): boolean {
@@ -38,7 +47,8 @@ export function hasAbandonedFilters(f: AbandonedFilters): boolean {
     hasDateFilter(f.active) ||
     paiseBound(f.valueMin) !== null ||
     paiseBound(f.valueMax) !== null ||
-    f.contact !== null
+    f.contact !== null ||
+    f.channel.length > 0
   )
 }
 
@@ -53,6 +63,7 @@ export function abandonedFilterInput(f: AbandonedFilters, now = new Date()) {
     ...(min !== null ? { valueMinPaise: min } : {}),
     ...(max !== null ? { valueMaxPaise: max } : {}),
     ...(f.contact ? { contact: f.contact } : {}),
+    ...(f.channel.length ? { channels: f.channel } : {}),
   }
 }
 
@@ -93,6 +104,14 @@ export function abandonedFilterGroups(
       value: f.contact,
       onChange: (next) => onChange({ contact: CONTACT_FILTERS.find((c) => c === next) ?? null }),
       anyLabel: copy.anyContact,
+    },
+    {
+      key: 'channel',
+      label: copy.channel,
+      type: 'multi',
+      options: SOURCE_FILTERS.map((c) => ({ value: c, label: copy.channelOptions[c] })),
+      value: f.channel,
+      onChange: (next) => onChange({ channel: SOURCE_FILTERS.filter((c) => next.includes(c)) }),
     },
   ]
 }

@@ -35,8 +35,9 @@ export async function estimateDeliveryAction(pincode: string): Promise<DeliveryE
 export async function checkoutShippingAction(
   /** `countryCode` abroad (ISO 3166-1); left out means India. */
   to: { pincode: string; stateCode: string; countryCode?: string | undefined },
-  /** Delivery options app: the insurance tick, and the quote to reuse the answers of. */
-  opts: { declineInsurance?: boolean; quoteId?: string | null } = {},
+  /** Delivery options app: the insurance tick (null: untouched, each option's default), and
+   *  the quote to reuse the answers of. */
+  opts: { insure?: boolean | null; quoteId?: string | null } = {},
 ): Promise<CheckoutShipping | null> {
   const storeId = await requestStoreId()
   const cartId = await checkoutCartId()
@@ -50,7 +51,7 @@ export async function checkoutShippingAction(
   }
   return inStore(storeId, (tx) =>
     checkoutShipping(tx, storeId, cartId, address, {
-      declineInsurance: opts.declineInsurance === true,
+      insure: typeof opts.insure === 'boolean' ? opts.insure : undefined,
       quoteId,
     }),
   )

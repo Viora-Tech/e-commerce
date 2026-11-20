@@ -7,6 +7,7 @@ import {
   decryptShippingSettings,
   estimateForStore,
   FulfillmentOnHold,
+  markShipmentCancelled,
   mergeMaskedSecrets,
   orderNumberLabel,
   parseShippingSettings,
@@ -15,10 +16,13 @@ import {
   type RateLimitRule,
   readShippingLabel,
   recordProviderActivity,
+  returnShipmentToBooked,
+  returnShipmentToSender,
+  ShipmentActionRefused,
   ShipmentNotCancellable,
+  ShipmentNotOnPickup,
   type ShippingRegistry,
   type ShippingSettings,
-  shipmentInManifest,
   shipmentLabelUrl,
   shippingProviderById,
   TrackingEditRefused,
@@ -240,6 +244,9 @@ export async function testShippingConnection(
 
 /** Courier failures become BAD_REQUEST with the app's wording; the courier's never reaches the UI raw. */
 const courierToRpc = (err: unknown): never => {
+  if (err instanceof ShipmentActionRefused) {
+    throw new ORPCError('PRECONDITION_FAILED', { message: err.message })
+  }
   if (err instanceof FulfillmentOnHold) {
     throw new ORPCError('PRECONDITION_FAILED', { message: err.message })
   }
@@ -339,8 +346,9 @@ const courierCancels = (registry: ShippingRegistry, providerId: string): boolean
   registry.get(providerId)?.capabilities.includes('cancel') ?? false
 
 /**
- * Cancel a booked label with its courier: refused before pickup or manifest is over
- * (`cancelBlock`), the order timeline names who did it, and the parcel can be booked again.
+ * Cancel a booked label with its courier: refused once the courier collected it (`cancelBlock`),
+ * the order timeline names who did it, and the parcel can be booked again. `keepPacked` keeps the
+ * items in the box ("Cancel shipment"); otherwise they are unpacked too ("Cancel fulfilment").
  */
 export async function cancelStoreShipment(
   tx: StoreTx,
@@ -349,6 +357,7 @@ export async function cancelStoreShipment(
   secret: string,
   shipmentId: string,
   author: string | null = null,
+  keepPacked = false,
 ) {
   const [row] = await tx.select().from(shipment).where(eq(shipment.id, shipmentId))
   if (!row) throw new ORPCError('NOT_FOUND')
@@ -365,8 +374,80 @@ export async function cancelStoreShipment(
   }
   return cancelShipment({ storeId, tx }, provider, shipmentId, {
     author,
+    keepPacked,
     courierCancels: courierCancels(registry, row.provider),
   }).catch(courierToRpc)
+}
+
+/** The courier app behind a booked shipment, or a refusal when that courier is switched off. */
+async function providerForShipment(
+  tx: StoreTx,
+  storeId: string,
+  registry: ShippingRegistry,
+  secret: string,
+  shipmentId: string,
+) {
+  const [row] = await tx.select().from(shipment).where(eq(shipment.id, shipmentId))
+  if (!row) throw new ORPCError('NOT_FOUND')
+  const provider = shippingProviderById(
+    registry,
+    await loadShippingSettings(tx, storeId),
+    secret,
+    row.provider,
+  )
+  if (!provider) {
+    throw new ORPCError('PRECONDITION_FAILED', {
+      message: `Courier ${row.provider} is no longer enabled.`,
+    })
+  }
+  return { row, provider }
+}
+
+/** "Cancel and bring it back" after pickup: the courier is asked, the parcel moves to RTO. */
+export async function sendBackStoreShipment(
+  tx: StoreTx,
+  storeId: string,
+  registry: ShippingRegistry,
+  secret: string,
+  shipmentId: string,
+  author: string | null = null,
+) {
+  const { row, provider } = await providerForShipment(tx, storeId, registry, secret, shipmentId)
+  return returnShipmentToSender({ storeId, tx }, provider, shipmentId, {
+    author,
+    courierCancels: courierCancels(registry, row.provider),
+  }).catch(courierToRpc)
+}
+
+/** "Already cancelled on the courier's app": recorded here only, nothing sent to the courier. */
+export async function markStoreShipmentCancelled(
+  tx: StoreTx,
+  storeId: string,
+  registry: ShippingRegistry,
+  shipmentId: string,
+  author: string | null = null,
+) {
+  const [row] = await tx.select().from(shipment).where(eq(shipment.id, shipmentId))
+  if (!row) throw new ORPCError('NOT_FOUND')
+  return markShipmentCancelled({ storeId, tx }, shipmentId, {
+    author,
+    courierLabel: registry.get(row.provider)?.label ?? row.provider,
+  }).catch(courierToRpc)
+}
+
+/** "Move back to Booked": the parcel leaves its pickup and manifest; the label stays live. */
+export async function returnStoreShipmentToBooked(
+  tx: StoreTx,
+  storeId: string,
+  shipmentId: string,
+  author: string | null = null,
+) {
+  return returnShipmentToBooked({ storeId, tx }, shipmentId, { author }).catch((err) => {
+    if (err instanceof ShipmentNotOnPickup) {
+      throw new ORPCError('PRECONDITION_FAILED', { message: err.message })
+    }
+    return courierToRpc(err)
+  })
 }
 
 /**
@@ -390,7 +471,6 @@ export async function describeShipment(
         .from(shipmentPickup)
         .where(eq(shipmentPickup.id, row.pickupId))
     : []
-  const inManifest = row.status === 'created' ? await shipmentInManifest(tx, row.id) : false
   const missed = pickupMissed(row, pickup ?? null, dayKey(new Date()))
   return {
     ...row,
@@ -405,10 +485,7 @@ export async function describeShipment(
       (!row.pickupId || missed) &&
       row.status === 'created' &&
       (registry.get(row.provider)?.capabilities.includes('pickup') ?? false),
-    cancelBlock: cancelBlock(row, {
-      inManifest,
-      courierCancels: courierCancels(registry, row.provider),
-    }),
+    cancelBlock: cancelBlock(row, { courierCancels: courierCancels(registry, row.provider) }),
   }
 }
 

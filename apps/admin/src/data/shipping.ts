@@ -225,6 +225,7 @@ export const shipmentPanelContent = {
     delivered: 'Delivered',
     rto: 'Returning to origin',
     cancelled: 'Cancelled',
+    lost: 'Lost by courier',
   } as Record<string, string>,
 } as const
 

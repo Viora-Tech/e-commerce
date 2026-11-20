@@ -431,9 +431,11 @@ export async function placeOrderAndPay(
         placed.attemptId,
         input.paymentProvider,
         fallbacks,
-        { timeoutMs: GATEWAY_START_TIMEOUT_MS },
+        { timeoutMs: GATEWAY_START_TIMEOUT_MS, shopperIp: input.shopperIp },
       )
-    : await startPaymentAttempt(db, storeId, placed.attemptId, input.paymentProvider)
+    : await startPaymentAttempt(db, storeId, placed.attemptId, input.paymentProvider, console, {
+        shopperIp: input.shopperIp,
+      })
   return {
     ...placed,
     paymentStatus: started.status,

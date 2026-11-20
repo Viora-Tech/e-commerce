@@ -541,7 +541,7 @@ describe('product route rules', () => {
     ).toEqual(['glass', 'mice'])
   })
 
-  it('mixed cart with nothing in common: the highest-placed rule wins and the other is overruled', () => {
+  it('mixed cart with nothing in common: the more specific rule (a product) wins over a collection', () => {
     const blueOnly = rule(
       'blue',
       {
@@ -558,9 +558,8 @@ describe('product route rules', () => {
       }),
     )
     const t = r.trace.options.find((o) => o.optionId === 'exp')
-    expect(t?.rulesApplied.map((x) => x.id)).toEqual(['glass'])
-    expect(t?.rulesOverruled.map((x) => x.id)).toEqual(['blue'])
-    expect(find(r, 'exp')?.pick?.route.carrier).toBe('Delhivery')
+    expect(t?.rulesApplied.map((x) => x.id)).toEqual(['blue'])
+    expect(t?.rulesOverruled.map((x) => x.id)).toEqual(['glass'])
   })
 
   it('a rule that requires insurance hides the checkbox and keeps it on', () => {
@@ -669,6 +668,26 @@ describe('courier list (the option shows every allowed courier)', () => {
     )
     expect(delhiveryStandard).toHaveLength(1)
     expect(delhiveryStandard?.[0]?.route.key).toBe('delhivery:S')
+  })
+
+  it('never shows a single card when three couriers deliver (cheapest is also fastest)', () => {
+    // Delhivery Surface is cheapest and earliest; DTDC and Bluedart are dearer and not faster,
+    // so hiding alone would leave one card. The next cheapest come back to make three.
+    const answers = [
+      answer('delhivery', 'Delhivery', [
+        svc({ serviceId: 'S', serviceLabel: 'Surface', pricePaise: 6000, minTransitDays: 4, maxTransitDays: 5 }),
+      ]),
+      answer('shiprocket', 'Shiprocket', [
+        svc({ serviceId: '30', serviceLabel: 'DTDC Surface', carrier: 'DTDC Surface', pricePaise: 9000, minTransitDays: 5, maxTransitDays: 6 }),
+        svc({ serviceId: '40', serviceLabel: 'Bluedart Surface', carrier: 'Bluedart Surface', pricePaise: 9500, minTransitDays: 4, maxTransitDays: 5 }),
+      ]),
+    ]
+    const keys = find(resolveDeliveryOptions(listInput({ answers })), 'list')?.choices.map(
+      (c) => c.route.key,
+    )
+    expect(keys?.[0]).toBe('delhivery:S')
+    expect(keys).toHaveLength(3)
+    expect(keys).toContain('shiprocket:30')
   })
 
   it('an option that hides courier names shows only the delivery promise (#1521)', () => {

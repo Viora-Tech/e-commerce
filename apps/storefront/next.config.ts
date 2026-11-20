@@ -66,6 +66,7 @@ const config: NextConfig = {
     '@commerce/payments-cashfree',
     '@commerce/payments-decentro',
     '@commerce/payments-razorpay',
+    '@commerce/payments-snapmint',
     '@commerce/invoices',
     '@commerce/plugin-emi',
     '@commerce/plugin-gst-invoices',

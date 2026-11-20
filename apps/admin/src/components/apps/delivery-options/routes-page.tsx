@@ -14,6 +14,7 @@ import { deliveryOptionsContent } from '@/data/delivery-options'
 import { deliveryPagesContent } from '@/data/delivery-options-pages'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import ColumnHelpHead from './column-help-head'
 import { routeRows } from './courier-rows'
 import DeliveryWarnings from './delivery-warnings'
 import InsuranceCoverCard from './insurance-cover-card'
@@ -24,6 +25,10 @@ import { useDeliveryOverview, useRouteCatalogue } from './use-delivery-overview'
 
 type Filter = 'all' | 'direct' | 'aggregator'
 const FILTERS: readonly Filter[] = ['all', 'direct', 'aggregator']
+
+/** The two switch columns, each with a line saying what its switch does (#1781). */
+const HELPED = ['courierName', 'on'] as const
+const helped = (c: string): c is (typeof HELPED)[number] => HELPED.some((h) => h === c)
 
 const COLUMNS = [
   'route',
@@ -127,7 +132,15 @@ export default function DeliveryRoutesPage() {
           className="min-w-[60rem]"
           columns={COLUMNS.map((c) => ({
             key: c,
-            label: t.columns[c],
+            label: helped(c) ? (
+              <ColumnHelpHead
+                label={t.columns[c]}
+                help={t.columnHelp[c]}
+                aboutLabel={t.aboutColumn(t.columns[c])}
+              />
+            ) : (
+              t.columns[c]
+            ),
             align: c === 'on' ? ('end' as const) : ('start' as const),
           }))}
         >
