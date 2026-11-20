@@ -55,6 +55,7 @@ import {
 import { isQuotable, useCheckoutShipping } from '@/lib/use-checkout-shipping'
 import { useCheckoutTender } from '@/lib/use-checkout-tender'
 import { useHeldStep } from '@/lib/use-held-step'
+import { useLenderVisibility } from '@/lib/use-lender-visibility'
 import { useUnavailableMethods } from '@/lib/use-unavailable-methods'
 import {
   type ChangeHandler,
@@ -178,9 +179,10 @@ export function useCheckoutForm(input: CheckoutFormInput) {
   const accountRequired = signIn.checkout === 'account_required'
   /** Contact is settled: signed in, or a guest where the store allows one. */
   const contactReady = customer !== null || (!accountRequired && guest)
+  const shown = useLenderVisibility(methods, form, cart.subtotalPaise, discount?.amountPaise)
   const totals = checkoutTotals({
     cart,
-    methods,
+    methods: shown,
     settings,
     discountPaise: discount?.amountPaise ?? 0,
     shipping,

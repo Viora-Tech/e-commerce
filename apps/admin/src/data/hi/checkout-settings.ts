@@ -11,6 +11,7 @@ export default [
       cod: 'कैश ऑन डिलीवरी',
       manual: 'UPI ID या बैंक ट्रांसफ़र',
       decentro: 'UPI (Decentro)',
+      snapmint: 'Snapmint (बिना क्रेडिट कार्ड के EMI)',
       razorpay: 'Razorpay (UPI, कार्ड, नेटबैंकिंग, वॉलेट)',
       cashfree: 'Cashfree (UPI, कार्ड, नेटबैंकिंग, वॉलेट)',
     },

@@ -75,11 +75,13 @@ export async function retryPaymentAction(orderNumber: number, viewToken: string 
   if (!target) {
     return redirectToOrderPage(thankYouPath(orderNumber, orderViewToken(oid, settingsSecret())))
   }
-  const started = await retryAndStartPayment(db(), storeId, oid, target).catch((err: unknown) => {
-    // Paid or cancelled meanwhile: the thank-you page shows where the order stands.
-    if (err instanceof PaymentNotRetryable) return null
-    throw err
-  })
+  const started = await retryAndStartPayment(db(), storeId, oid, target, new Date(), ip).catch(
+    (err: unknown) => {
+      // Paid or cancelled meanwhile: the thank-you page shows where the order stands.
+      if (err instanceof PaymentNotRetryable) return null
+      throw err
+    },
+  )
   // payment_received was already written to the outbox, in the same
   // transaction as the capture (applyPaymentStatus, via startPaymentAttempt).
   if (started?.becameCaptured) await nudgeOutbox(storeId)

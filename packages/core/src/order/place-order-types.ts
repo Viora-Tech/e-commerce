@@ -61,6 +61,8 @@ export type PlaceOrderInput = {
    * answer in time): the store's fallback order (`fallbackChain`). Empty or unset: no fallback.
    */
   paymentFallbacks?: FallbackTry<PaymentProvider>[] | undefined
+  /** The shopper's IP, for gateways that need it on the payment (Snapmint). */
+  shopperIp?: string | undefined
   /** Optional in tests; required by the storefront checkout. */
   checkout?: CheckoutDetails
   /**

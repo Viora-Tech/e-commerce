@@ -68,7 +68,7 @@ function methodRank(m: CheckoutMethod): number {
   if (m.id === 'cod') return 4
   if (m.id === 'decentro') return 0
   if (takesUpi(m)) return 1
-  if (m.id === 'razorpay' || m.id === 'cashfree') return 2
+  if (m.id === 'razorpay' || m.id === 'cashfree' || m.id === 'snapmint') return 2
   return 3
 }
 
@@ -129,6 +129,13 @@ export function methodView(m: CheckoutMethod): MethodView {
       hint: content.methods.upiHint,
       icon: 'phone',
       brand: content.upiBrand,
+    }
+  if (m.id === 'snapmint')
+    return {
+      title: content.methods.snapmint,
+      hint: content.methods.snapmintHint,
+      icon: 'card',
+      brand: null,
     }
   if (m.id === 'manual') {
     const kinds = m.manualKinds
@@ -285,6 +292,7 @@ export function trustMethodNames(methods: CheckoutMethod[]): string[] {
   const names = methods.flatMap((m): string[] => {
     if (m.id === 'decentro') return [content.methods.upi]
     if (m.id === 'cod') return [content.methods.cod]
+    if (m.id === 'snapmint') return [content.onlineMethodNames.emi ?? '']
     if (m.id === 'razorpay' || m.id === 'cashfree') {
       return m.methods?.length
         ? m.methods.flatMap((id) => content.onlineMethodNames[id] ?? [])

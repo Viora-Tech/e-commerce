@@ -103,6 +103,9 @@ export type GatewayApp = {
   keys: Record<PaymentMode, boolean>
 }
 
+/** Gateways whose key set says test or live in a `mode` field (not in the key itself). */
+const MODE_FIELD_GATEWAYS: ReadonlySet<string> = new Set(['cashfree', 'decentro', 'snapmint'])
+
 export const webhookUrlFor = (workerUrl: string, providerId: string, storeId: string) =>
   `${workerUrl.replace(/\/$/, '')}/webhooks/payments/${providerId}/${storeId}`
 
@@ -492,8 +495,8 @@ export async function connectPaymentGateway(
     )
     const slot = mode ?? keySetMode(fields) ?? 'live'
     const saved = { ...(gatewayKeySets(s.providers, providerId)[slot] ?? {}), ...fields }
-    // Cashfree and Decentro pick their sandbox or live host from `mode`.
-    if (providerId === 'cashfree' || providerId === 'decentro') saved.mode = slot
+    // Cashfree, Decentro and Snapmint pick their sandbox or live host from `mode`.
+    if (MODE_FIELD_GATEWAYS.has(providerId)) saved.mode = slot
     const detected = keySetMode(saved)
     if (detected && detected !== slot) {
       // A `rzp_test_` key pasted under Live, or the other way round.
@@ -616,7 +619,7 @@ export async function testPaymentConnection(
   const stored = sets[mode ?? sets.active ?? 'live'] ?? {}
   const merged: Record<string, string> = { ...stored }
   for (const [k, v] of Object.entries(fields)) merged[k] = isMaskedSecret(v) ? (stored[k] ?? '') : v
-  if (mode && (providerId === 'cashfree' || providerId === 'decentro')) merged.mode = mode
+  if (mode && MODE_FIELD_GATEWAYS.has(providerId)) merged.mode = mode
   // The webhook secret isn't needed to prove the keys work.
   merged.webhookSecret ||= 'not-needed-for-a-test'
   const built = registry.create(providerId, merged)

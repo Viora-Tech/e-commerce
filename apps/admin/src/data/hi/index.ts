@@ -149,6 +149,7 @@ import shopifyImport from './shopify-import'
 import shopifyImportFiles from './shopify-import-files'
 import shopifyImportRun from './shopify-import-run'
 import shopifyImportSettings from './shopify-import-settings'
+import snapmint from './snapmint'
 import staff from './staff'
 import staffInvites from './staff-invites'
 import states from './states'
@@ -341,6 +342,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...ekart,
   ...emailSuppression,
   ...shadowfax,
+  ...snapmint,
   ...growthbook,
   ...whatsappSignup,
   ...whatsappChat,

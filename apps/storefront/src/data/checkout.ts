@@ -111,6 +111,7 @@ export const thankYouContent = {
   methods: {
     cod: 'Cash on delivery',
     decentro: 'UPI',
+    snapmint: 'EMI (Snapmint)',
     manual: 'UPI or bank transfer',
     gift_card: 'Gift card',
     store_credit: 'Store credit',
@@ -288,6 +289,9 @@ export const checkoutContent = {
     /** Only bank transfer is on. */
     manualBank: 'Bank deposit',
     manualHint: 'We confirm your order once the money arrives',
+    /** Snapmint's cardless EMI (its own app, not inside a gateway's window). */
+    snapmint: 'Snapmint',
+    snapmintHint: 'EMI on UPI & cards, no credit card needed',
   },
   /** What opens under the picked way to pay. */
   methodPanel: {
@@ -308,6 +312,8 @@ export const checkoutContent = {
     upi: (amount: string) =>
       `Pay ${amount} straight from your bank with any UPI app. On a phone your app opens; on a computer you scan a QR code.`,
     gateway: (brand: string) => `You finish on ${brand}'s secure screen.`,
+    snapmint:
+      "Pay a small part now and the rest in monthly EMIs. You pick a plan and approve it on Snapmint's page, then come back here.",
     /** A method's discount: "2% off". */
     saving: (amount: string) => `${amount.replace('−', '')} off`,
     /** The small marks under each way to pay. */
