@@ -36,6 +36,10 @@ function withChoice(
         : `${rate.delivery?.optionName ?? rate.name} · ${sub.label}`,
     pricePaise: sub.pricePaise,
     arrives: sub.arrives,
+    // A courier list card pays on delivery with its own courier at its own COD price.
+    ...(rate.delivery?.layout === 'list' && sub.codPricePaise != null
+      ? { delivery: { ...rate.delivery, codPricePaise: sub.codPricePaise, codCarrier: null } }
+      : {}),
   }
 }
 

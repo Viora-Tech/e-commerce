@@ -27,6 +27,8 @@ export type DeliveryChoiceCard = {
   mode: DeliveryMode
   /** First day it can arrive, "YYYY-MM-DD"; null when unknown. Picks the fastest list card. */
   earliest: string | null
+  /** A courier list card's price on cash on delivery; null: no COD on this courier. */
+  codPricePaise?: number | null | undefined
 }
 
 /** How a route travels, read from its service: Blue Dart Apex and "Air" services fly. */
@@ -191,8 +193,13 @@ export function cardExtras(
 ): DeliveryCardExtras {
   return {
     codAllowed: o.codAllowed,
-    codPricePaise: o.cod ? afterDiscount(o.cod.pricePaise) : null,
-    codCarrier: o.cod?.route.showCarrier ? o.cod.route.carrier : null,
+    // A courier list keeps the first card's courier on COD (its own COD price, no other carrier).
+    ...(o.layout === 'list' && o.choices[0]?.codPricePaise != null
+      ? { codPricePaise: afterDiscount(o.choices[0].codPricePaise), codCarrier: null }
+      : {
+          codPricePaise: o.cod ? afterDiscount(o.cod.pricePaise) : null,
+          codCarrier: o.cod?.route.showCarrier ? o.cod.route.carrier : null,
+        }),
     listPricePaise: o.listPricePaise,
     optionName: o.name,
     logo: o.pick ? courierLogo(o.pick.route) : null,
@@ -212,6 +219,7 @@ export function cardExtras(
       logo: courierLogo(c.route),
       mode: deliveryMode(c.route),
       earliest: c.etaEstimated ? null : c.earliest,
+      codPricePaise: c.codPricePaise != null ? afterDiscount(c.codPricePaise) : null,
     })),
   }
 }

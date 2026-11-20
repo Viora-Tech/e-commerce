@@ -79,7 +79,15 @@ export function shownPrices(result: DeliveryResolveResult): Record<string, numbe
     for (const c of o.choices)
       out[choiceKey(o.optionId, c.route.key, insured, 'prepaid')] = c.pricePaise
     if (o.codAllowed)
-      out[choiceKey(o.optionId, null, insured, 'cod')] = o.cod?.pricePaise ?? o.pricePaise
+      out[choiceKey(o.optionId, null, insured, 'cod')] =
+        (o.layout === 'list' ? o.choices[0]?.codPricePaise : null) ??
+        o.cod?.pricePaise ??
+        o.pricePaise
+    // A courier list: each card has its own COD price (chosenRoute keeps the card on COD).
+    if (o.codAllowed && o.layout === 'list')
+      for (const c of o.choices)
+        if (c.codPricePaise != null)
+          out[choiceKey(o.optionId, c.route.key, insured, 'cod')] = c.codPricePaise
   }
   return out
 }
@@ -270,7 +278,7 @@ export function orderDeliveryFor(
   const nowPrice = priced?.pricePaise ?? option.pricePaise
   const shownKey = choiceKey(
     option.optionId,
-    payment === 'cod' ? null : choice.routeKey,
+    payment === 'cod' && option.layout !== 'list' ? null : choice.routeKey,
     option.insurance.on,
     payment,
   )

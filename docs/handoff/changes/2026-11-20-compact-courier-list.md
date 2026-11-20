@@ -25,3 +25,16 @@ Checked, not changed:
 - `packages/core/src/order/courier-request.ts`: the order gets the `courier-request` tag and a
   system note "Shopper asked for another courier: X. Call them with the price before you ship."
   Once per order (checking out again on the same draft does not repeat the note).
+
+## Cash on delivery keeps the picked courier (same day)
+
+Bug: in courier-list mode, paying on delivery ignored the card the shopper picked. The order
+shipped and was charged on the option's cheapest COD route (Payment step: "Cash on delivery:
++₹40, ships with Amazon Shipping" while Delhivery Express was picked).
+
+- `courier-list.ts`: each card carries `codPricePaise` (its price plus its own COD charge, rounded
+  up to ₹10; free shipping stays free; null when the courier takes no COD).
+- `resolve.ts` `chosenRoute`: on COD in list mode, the picked card (or the first) at its COD
+  price; the option's COD pick only when that courier takes no COD.
+- `checkout.ts`: the snapshot keeps each card's COD price, and the order checks it by the card.
+- Storefront: the Payment step says "Cash on delivery: +₹X" (no other courier named).

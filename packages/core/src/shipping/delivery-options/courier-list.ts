@@ -36,6 +36,28 @@ export function upToNine(paise: number): number {
   return (rupees + ((9 - (rupees % 10) + 10) % 10)) * 100
 }
 
+/**
+ * What paying on delivery adds on this courier: its COD cost over its prepaid cost, rounded up
+ * to ₹10; null when it takes no cash on delivery (owner, 20 Nov 2026: COD keeps the courier the
+ * shopper picked, it does not switch to another one).
+ */
+export function codExtraPaise(route: Route): number | null {
+  if (route.codAvailable === false) return null
+  const prepaid = route.costPaise ?? 0
+  const more = Math.max(0, (route.codCostPaise ?? prepaid) - prepaid)
+  return Math.ceil(more / 1000) * 1000
+}
+
+/** A card's price on cash on delivery; free shipping stays free. */
+function withCod(priced: PricedRoute, route: Route, option: DeliveryOption): PricedRoute {
+  const extra = codExtraPaise(route)
+  const free = option.price.source === 'free' || priced.pricePaise === 0
+  return {
+    ...priced,
+    codPricePaise: extra === null ? null : free ? priced.pricePaise : priced.pricePaise + extra,
+  }
+}
+
 const later = (p: PricedRoute) => p.latest ?? '9999-12-31'
 
 /** `q` is at most as dear and as late as `p`, and better on one of them. */
@@ -55,7 +77,7 @@ export function courierList(
   winner: Candidate,
   option: DeliveryOption,
 ): PricedRoute[] {
-  const base = winner.priced
+  const base = withCod(winner.priced, winner.route, option)
   const seen = new Set<string>([`${winner.route.carrierKey}:${winner.route.speed}`])
   const rest: PricedRoute[] = []
   for (const c of [...fits].sort(byCheapest)) {
@@ -65,11 +87,17 @@ export function courierList(
     const more =
       option.couriers.extra === 'none' ? 0 : Math.max(0, storeCost(c) - storeCost(winner))
     const extra = option.couriers.roundTo9 ? upToNine(more) : Math.ceil(more / 100) * 100
-    rest.push({
-      ...c.priced,
-      pricePaise: base.pricePaise + extra,
-      listPricePaise: base.listPricePaise + extra,
-    })
+    rest.push(
+      withCod(
+        {
+          ...c.priced,
+          pricePaise: base.pricePaise + extra,
+          listPricePaise: base.listPricePaise + extra,
+        },
+        c.route,
+        option,
+      ),
+    )
   }
   const all = [base, ...rest]
   const max = option.couriers.max ?? Number.POSITIVE_INFINITY

@@ -16,6 +16,7 @@ import {
   quote,
   rule,
   STANDARD,
+  svc,
   traceOf,
 } from '../../testing/delivery-options-fixtures'
 import { orderDeliveryFor } from './checkout'
@@ -188,17 +189,13 @@ describe('insurance tick', () => {
     const on = option('std', { name: 'Standard', insurance: { default: 'on' } })
     const r = resolveDeliveryOptions(input({ config: config({ options: [on] }) }))
     expect(find(r, 'std')?.insurance).toMatchObject({ offered: true, on: true })
-    const off = resolveDeliveryOptions(
-      input({ config: config({ options: [on] }), insure: false }),
-    )
+    const off = resolveDeliveryOptions(input({ config: config({ options: [on] }), insure: false }))
     expect(find(off, 'std')?.insurance.on).toBe(false)
     expect(find(off, 'std')?.pricePaise).toBe(6000)
   })
 
   it('no route insures: no tick', () => {
-    const bluedart = answer('bluedart', 'Blue Dart', [
-      quote('A', 'Ground', 3000, [3, 4]),
-    ])
+    const bluedart = answer('bluedart', 'Blue Dart', [quote('A', 'Ground', 3000, [3, 4])])
     const r = resolveDeliveryOptions(
       input({ config: config({ options: [STANDARD] }), answers: [bluedart] }),
     )
@@ -250,6 +247,82 @@ describe('courier list shows every courier', () => {
       'shiprocket:40',
       'shiprocket:50',
     ])
+  })
+
+  it('cash on delivery keeps the picked courier at its own COD price (owner, 20 Nov 2026)', () => {
+    const answers = [
+      answer('delhivery', 'Delhivery', [
+        // Cheapest prepaid; collecting cash costs ₹25 more.
+        svc({
+          serviceId: 'S',
+          serviceLabel: 'Surface',
+          pricePaise: 6000,
+          codPricePaise: 8500,
+          minTransitDays: 4,
+          maxTransitDays: 5,
+        }),
+        svc({
+          serviceId: 'E',
+          serviceLabel: 'Express',
+          pricePaise: 7000,
+          codPricePaise: 9000,
+          minTransitDays: 2,
+          maxTransitDays: 3,
+        }),
+      ]),
+      answer('shiprocket', 'Shiprocket', [
+        // Cheap COD, which used to win every COD order whichever card was picked.
+        svc({
+          serviceId: '50',
+          serviceLabel: 'Amazon Shipping Surface',
+          pricePaise: 6500,
+          codPricePaise: 6500,
+          minTransitDays: 4,
+          maxTransitDays: 5,
+          carrier: 'Amazon Shipping',
+        }),
+        svc({
+          serviceId: '60',
+          serviceLabel: 'Bluedart Surface',
+          pricePaise: 9000,
+          minTransitDays: 3,
+          maxTransitDays: 4,
+          carrier: 'Bluedart Surface',
+          codAvailable: false,
+        }),
+      ]),
+    ]
+    const list = option('std', {
+      name: 'Delivery',
+      couriers: { show: 'list', hideSlowerDearer: false },
+    })
+    const cfg = config({ options: [list] })
+    const r = resolveDeliveryOptions(input({ config: cfg, answers }))
+    const o = find(r, 'std')
+    const card = (key: string) => o?.choices.find((c) => c.route.key === key)
+    // Each card: its price plus its own COD charge, rounded up to ₹10; none where no COD.
+    expect(card('delhivery:E')?.codPricePaise).toBe((card('delhivery:E')?.pricePaise ?? 0) + 2000)
+    expect(card('delhivery:S')?.codPricePaise).toBe((card('delhivery:S')?.pricePaise ?? 0) + 3000)
+    expect(card('shiprocket:60')?.codPricePaise).toBeNull()
+    if (!o) throw new Error('no option')
+    const picked = orderDeliveryFor(
+      r,
+      { optionId: 'std', routeKey: 'delhivery:E', insured: false },
+      'cod',
+      null,
+      cfg,
+    )
+    expect(picked.ok && picked.delivery.route?.key).toBe('delhivery:E')
+    expect(picked.ok && picked.shipping.pricePaise).toBe(card('delhivery:E')?.codPricePaise)
+    // No card picked yet: the first card, on its own COD price.
+    const first = orderDeliveryFor(
+      r,
+      { optionId: 'std', routeKey: null, insured: false },
+      'cod',
+      null,
+      cfg,
+    )
+    expect(first.ok && first.delivery.route?.key).toBe(o.choices[0]?.route.key)
   })
 
   it('a list option is titled by its pick: courier and speed', () => {

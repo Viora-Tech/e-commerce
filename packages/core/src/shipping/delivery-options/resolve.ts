@@ -478,6 +478,15 @@ export function chosenRoute(
   routeKey: string | null | undefined,
   payment: 'prepaid' | 'cod',
 ): PricedRoute | null {
+  // A courier list: paying on delivery keeps the picked courier at its own COD price.
+  if (payment === 'cod' && option.layout === 'list') {
+    const card =
+      (routeKey && option.choices.find((c) => c.route.key === routeKey)) || option.choices[0]
+    if (card && card.codPricePaise != null) {
+      const cod = card.codPricePaise
+      return { ...card, pricePaise: cod, listPricePaise: Math.max(card.listPricePaise, cod) }
+    }
+  }
   if (payment === 'cod' && option.cod) return option.cod
   if (routeKey) {
     const sub = option.choices.find((c) => c.route.key === routeKey)

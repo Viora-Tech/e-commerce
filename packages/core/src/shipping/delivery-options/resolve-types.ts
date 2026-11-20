@@ -83,6 +83,9 @@ export type PricedRoute = {
   latest: string | null
   /** True when the dates come from the store's usual transit days, not the courier. */
   etaEstimated: boolean
+  /** A courier list card: what it costs when the shopper pays on delivery (its own COD
+   *  charge on top); null: this courier takes no cash on delivery. Absent on other routes. */
+  codPricePaise?: number | null | undefined
 }
 
 export type WhyPicked =

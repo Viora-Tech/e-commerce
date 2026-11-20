@@ -263,8 +263,10 @@ export function checkoutTotals(input: CheckoutTotalsInput) {
       : optionPrepaid
         ? appCopy.codPrepaidOnly(rate?.delivery?.optionName ?? '')
         : codRule.allowed
-          ? codExtraPaise > 0 && rate?.delivery?.codCarrier
-            ? appCopy.codRoute(formatMoney(codExtraPaise), rate.delivery.codCarrier)
+          ? codExtraPaise > 0 && rate?.delivery
+            ? rate.delivery.codCarrier
+              ? appCopy.codRoute(formatMoney(codExtraPaise), rate.delivery.codCarrier)
+              : appCopy.codExtra(formatMoney(codExtraPaise))
             : null
           : codRule.reason === 'blocked_pincode'
             ? content.codRules.blockedPincode

@@ -32,6 +32,8 @@ export const deliveryOptionsContent = {
   /** The Payment step, when cash on delivery ships another route at another price. */
   codRoute: (extra: string, carrier: string) =>
     `Cash on delivery: +${extra}, ships with ${carrier}`,
+  /** The Payment step, when the picked courier charges more to collect cash. */
+  codExtra: (extra: string) => `Cash on delivery: +${extra}`,
   /** The Payment step, when the picked delivery option is prepaid only. */
   codPrepaidOnly: (option: string) => `Not available with ${option} delivery`,
   /** Pay refused: cash on delivery with a prepaid-only option. */
