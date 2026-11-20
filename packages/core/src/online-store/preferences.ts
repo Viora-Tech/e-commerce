@@ -109,6 +109,15 @@ const DeliverySchema = z.object({
   honoProduct: z.boolean().default(false),
 })
 
+/**
+ * Public feeds of the store's catalogue. `products` (off by default): `/feeds/products.xml`
+ * (Google Merchant RSS) and `/feeds/products.csv`, published products only, for price comparison
+ * sites and feed tools (`apps/storefront/src/lib/product-feed`).
+ */
+const FeedsSchema = z.object({
+  products: z.boolean().default(false),
+})
+
 export const StorePreferencesSchema = z.object({
   seo: SeoSchema.prefault({}),
   password: PasswordSchema.prefault({}),
@@ -116,6 +125,7 @@ export const StorePreferencesSchema = z.object({
   indexing: IndexingSchema.prefault({}),
   verification: VerificationSchema.prefault({}),
   delivery: DeliverySchema.prefault({}),
+  feeds: FeedsSchema.prefault({}),
 })
 export type StorePreferences = z.infer<typeof StorePreferencesSchema>
 
