@@ -1,13 +1,6 @@
 'use client'
 
-import {
-  Children,
-  isValidElement,
-  type ReactElement,
-  type ReactNode,
-  useContext,
-  useEffect,
-} from 'react'
+import { type ReactNode, useContext, useEffect } from 'react'
 import { customizeContent } from '@/data/customize'
 import { useCopy } from '@/hooks/use-copy'
 import { type FieldFocusRequest, onFieldFocus } from '@/lib/customize-canvas-events'
@@ -17,25 +10,19 @@ import { useCustomizePuck } from '@/lib/customize-puck'
 import InspectorCard from './inspector-card'
 
 type InspectorFieldsProps = {
-  children: ReactNode
+  /** Puck's rendered fields, keyed by field name (the `fields` override's `fields` prop, 0.24+). */
+  fields: Partial<Record<string, ReactNode>>
 }
 
-/** Puck keys each field element by its field name; `toArray` prefixes that key with `.$`. */
-const fieldName = (key: string | null): string => (key ?? '').replace(/^\.\$/, '')
-
-const isKeyed = (item: ReactNode): item is ReactElement => isValidElement(item)
+type NamedField = [name: string, node: ReactNode]
 
 /** Each field in a box-less wrapper the canvas can find it by (`data-inspector-field`). */
-const marked = (items: ReactNode[]) =>
-  items.map((item) =>
-    isKeyed(item) ? (
-      <div key={item.key} className="contents" data-inspector-field={fieldName(item.key)}>
-        {item}
-      </div>
-    ) : (
-      item
-    ),
-  )
+const marked = (items: NamedField[]) =>
+  items.map(([name, node]) => (
+    <div key={name} className="contents" data-inspector-field={name}>
+      {node}
+    </div>
+  ))
 
 /**
  * A canvas click's field, shown: scrolled to the middle with a short ring, then focused, or its
@@ -66,13 +53,15 @@ function showField(request: FieldFocusRequest, reducedMotion: boolean): void {
 }
 
 /**
- * Puck's `fields` override: the wrapper around the selected component's fields. The shared
+ * Puck's `fields` override: the wrapper around the selected component's fields, read from
+ * Puck's `fields` map (field name to rendered field) rather than `children`, which since 0.24
+ * is one opaque element (Puck's own layout) with nothing to filter by name. The shared
  * Layout / Spacing / Style / Advanced groups (one object field per component) are the
  * Advanced tab, each group its own card; every other field is Basic, in one "Content" card
  * (Figma 381:6222). Fields are matched by name from the component config, not by page
  * structure; when no field matches, everything is shown in the Content card.
  */
-export default function InspectorFields({ children }: InspectorFieldsProps) {
+export default function InspectorFields({ fields }: InspectorFieldsProps) {
   // Hooks
   const copy = useCopy(customizeContent.inspector)
   const tab = useContext(InspectorTabContext)
@@ -99,16 +88,13 @@ export default function InspectorFields({ children }: InspectorFieldsProps) {
       )
       .map(([name]) => name),
   )
-  const items = Children.toArray(children)
-  const known = items.some((item) => isKeyed(item) && advanced.has(fieldName(item.key)))
+  const items = Object.entries(fields).filter((entry): entry is NamedField => entry[1] != null)
+  const known = items.some(([name]) => advanced.has(name))
   if (tab === 'all' || !known) {
     return <InspectorCard title={copy.content}>{marked(items)}</InspectorCard>
   }
 
-  const shown = items.filter((item) => {
-    const isAdvanced = isKeyed(item) && advanced.has(fieldName(item.key))
-    return tab === 'advanced' ? isAdvanced : !isAdvanced
-  })
+  const shown = items.filter(([name]) => (tab === 'advanced') === advanced.has(name))
   if (tab === 'advanced') return <>{marked(shown)}</>
   return shown.length > 0 ? (
     <InspectorCard title={copy.content}>{marked(shown)}</InspectorCard>
