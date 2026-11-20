@@ -1,11 +1,12 @@
 /**
- * `bun run media:videos [--store <slug>]`
+ * `bun run media:videos [--store <slug>] [--force]`
  *
- * Backfill for smaller video copies (`./video-compact.ts`): makes the copy for every video in Files
- * that has none yet, one at a time (an encode uses about two cores). Videos uploaded before the
- * worker made copies, and any whose job never ran, are picked up. Safe to re-run and to stop
- * part way: a video with a copy is skipped, and one whose copy was not smaller is tried again
- * (cheap to skip by hand with `--store`). Stores are found with the owner login
+ * By-hand run of the smaller video copies (`./video-compact.ts`). The worker does this on its own
+ * (`./media-video.ts`: on upload, and an hourly backfill sweep); this is for running it now, on a
+ * laptop or a box without the worker. One video at a time (an encode uses about two cores).
+ * Safe to re-run and to stop part way: a video already looked at (a copy, or `compact_size` 0
+ * for one that keeps its original) is skipped. `--force` (with `--store`) looks at that store's
+ * videos again, failed and not-smaller ones included. Stores are found with the owner login
  * (`DATABASE_URL_OWNER`), as in `media-reprocess.ts`; rows are read and saved per store.
  */
 import { loadEnv } from '@commerce/config'
@@ -19,11 +20,19 @@ function storeSlugArg(argv: string[]): string | null {
   return at >= 0 ? (argv[at + 1] ?? null) : null
 }
 
-const needsCopy = and(like(media.contentType, 'video/%'), isNull(media.compactUrl), isNotNull(media.key))
+const notLookedAt = and(
+  like(media.contentType, 'video/%'),
+  isNull(media.compactSize),
+  isNotNull(media.key),
+)
+const anyVideo = and(like(media.contentType, 'video/%'), isNotNull(media.key))
 
 async function main() {
   const env = loadEnv(process.env)
   const slug = storeSlugArg(process.argv.slice(2))
+  const force = process.argv.includes('--force')
+  if (force && !slug) throw new Error('--force needs --store <slug>')
+  const needsCopy = force ? anyVideo : notLookedAt
   const owner = createDb(env.DATABASE_URL_OWNER)
   const stores = slug
     ? await owner.select({ id: store.id }).from(store).where(eq(store.slug, slug))
@@ -47,7 +56,7 @@ async function main() {
     )
     for (const row of rows.filter((r) => isCompactableVideo(r.contentType))) {
       try {
-        const result = await compactVideo(db, storeId, row.id, env.SETTINGS_SECRET)
+        const result = await compactVideo(db, storeId, row.id, env.SETTINGS_SECRET, { force })
         if (result === 'made') made++
         console.log(`${row.id} ${result}`)
       } catch (err) {

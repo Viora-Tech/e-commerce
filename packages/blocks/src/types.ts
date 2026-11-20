@@ -16,6 +16,8 @@ export type MediaImage = {
   thumbhash?: string | null | undefined
   /** The original file's pixel width: `<Picture>` offers it when it beats the widest variant. */
   width?: number | null | undefined
+  /** A video's smaller copy (worker-made); a video plays it when set, else `url`. */
+  compactUrl?: string | null | undefined
 }
 
 export type CardProduct = {

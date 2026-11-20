@@ -6,7 +6,7 @@ import Lens, { LENS_ZOOM_FACTOR } from '../effects/lens'
 import type { MediaImage } from '../types'
 import Icon from './icon'
 import Picture from './picture'
-import ProductGalleryLightbox, { isVideo } from './product-gallery-lightbox'
+import ProductGalleryLightbox, { isVideo, videoSrc } from './product-gallery-lightbox'
 import ProductImagePlaceholder from './product-image-placeholder'
 
 type ProductGalleryProps = {
@@ -96,7 +96,7 @@ export default function ProductGallery({
         {images.map((img, i) => (
           <figure key={img.url} className="stacked-gallery__frame">
             {isVideo(img) ? (
-              <video src={img.url} controls muted loop playsInline preload="metadata" />
+              <video src={videoSrc(img)} controls muted loop playsInline preload="metadata" />
             ) : (
               <Picture
                 image={img}
@@ -165,7 +165,7 @@ export default function ProductGallery({
               >
                 {isVideo(img) ? (
                   <video
-                    src={img.url}
+                    src={videoSrc(img)}
                     controls
                     muted
                     playsInline
@@ -227,7 +227,7 @@ export default function ProductGallery({
                 onClick={() => onSelect(i)}
               >
                 {isVideo(img) ? (
-                  <video src={img.url} muted playsInline preload="metadata" />
+                  <video src={videoSrc(img)} muted playsInline preload="metadata" />
                 ) : (
                   <img src={thumbSrc(img)} alt="" width={80} height={80} loading="lazy" />
                 )}

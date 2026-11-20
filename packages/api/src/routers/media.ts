@@ -117,10 +117,12 @@ export const mediaRouter = {
             enqueueMediaProcess(queue, { storeId: context.scope.storeId, mediaId: row.id }),
           )
         }
-        // A video gets a smaller copy for the storefront (`@commerce/core` compact-video).
-        if (queue && isCompactableVideo(row.contentType)) {
+        // A video gets a smaller copy for the storefront (`@commerce/core` compact-video), on its
+        // own queue so a long encode never holds up the photos behind it.
+        const videoQueue = context.mediaVideo
+        if (videoQueue && isCompactableVideo(row.contentType)) {
           context.afterCommit(() =>
-            enqueueCompactVideo(queue, { storeId: context.scope.storeId, mediaId: row.id }),
+            enqueueCompactVideo(videoQueue, { storeId: context.scope.storeId, mediaId: row.id }),
           )
         }
         return row

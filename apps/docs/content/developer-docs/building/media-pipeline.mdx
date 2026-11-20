@@ -24,8 +24,9 @@ better trade for a small deployment. It also means EXIF (see below) is stripped 
    (`packages/core/src/media/service.ts`) does a server-side `HEAD` against the object —
    a browser can lie about `Content-Length` at presign time, so this is the real size check,
    enforced per type (images 10 MB, `video/mp4` 100 MB; see `packages/storage/src/keys.ts`'s
-   `maxUploadBytesFor`). An image row goes to `processing`; a video (no pipeline exists for
-   video) goes straight to `ready`.
+   `maxUploadBytesFor`). An image row goes to `processing`; a video goes straight to
+   `ready` (it plays at once) and gets a smaller copy in the background; see
+   [Smaller video copies](#smaller-video-copies).
 2. **Enqueue.** The API router (`packages/api/src/routers/media.ts`) enqueues a
    `{media}-process` BullMQ job (`packages/queue`'s `mediaProcessQueue`), keyed by media id
    so a retried confirm call can't double-enqueue. The Shopify importer is the other
@@ -129,10 +130,37 @@ paths go through the same media host, so both are covered.
   `queueImportedMedia` turns that into an import issue on the resource being imported
   (`ref` is the source URL). The row still imports and the image stays `processing`, which
   `bun run media:reprocess` picks up.
-- **Video** is stored `ready` and never queued, the same as a direct upload.
+- **Video** is stored `ready` and never queued on the image queue; the hourly video backfill
+  makes its smaller copy (see [Smaller video copies](#smaller-video-copies)).
 
 Outside the worker (`processMedia` absent, for example a script calling `executeRun`
 directly), imported images stay `processing` until the backfill runs.
+
+## Smaller video copies
+
+Every MP4/MOV/WebM video in Files gets one smaller H.264 copy for the storefront (at most 1920
+wide, CRF 26 capped near 3.5 Mbps, AAC 96 kbps, `+faststart`), beside the original as
+`<name>.small.mp4`. Rules: `packages/core/src/media/compact-video.ts`; worker:
+`apps/worker/src/media-video.ts`, `video-compact.ts`, `video-ffmpeg.ts`.
+
+- **When.** `media.confirm` queues a job on `{media}-video` (`mediaVideoQueue`) for each
+  uploaded video, from any admin upload (Files, theme editor, product media). The worker's
+  hourly `media-video-backfill` sweep queues every video never looked at (`compact_size` null,
+  older than 15 minutes): Shopify and theme imports, videos from before the copies, lost jobs.
+  Backfill jobs carry a lower priority, so a merchant's upload goes first.
+- **Memory.** One encode at a time: worker concurrency 1 plus the queue's global concurrency 1,
+  on its own queue so an encode never holds an image slot. The memory guard pauses it with the
+  bulk queues. The video is never held in the worker's memory: it streams from the bucket to a
+  temp file (`getStream`), ffmpeg works file to file at a lower CPU priority, and the copy
+  streams back (`putStream`). Only a 64 KB slice of ffmpeg's output is kept.
+- **Skipped.** Under 4 MB by the bucket's size (nothing is downloaded), or already at or under
+  2.5 Mbps and no wider than 1920 (ffprobe), or a copy that is not 20% smaller. Those rows get
+  `compact_size = 0`, as does one whose job failed every attempt, so no sweep retries them.
+  `bun run media:videos --store <slug> --force` looks at a store's videos again.
+- **Storefront.** Imported (Liquid) sections swap `<video>`/`<source>` addresses in the
+  rendered HTML; built-in sections swap any setting that names a video file
+  (`attachImageMedia`); the product gallery plays `compactUrl`. Until the copy exists the
+  original plays. The `media` table's cache trigger refreshes cached pages when a copy lands.
 
 ## Keeping the shop fast while images process
 

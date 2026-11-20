@@ -36,6 +36,9 @@ const opSignal = (caller?: AbortSignal): AbortSignal => {
  * at a time, so one streamed copy holds about 16 MB. A body that fits in one part goes
  * as a single PUT with its exact length.
  */
+/** `getStream`'s deadline, body included: long enough for the largest video upload (100 MB). */
+const STREAM_READ_TIMEOUT_MS = 15 * 60_000
+
 const STREAM_PART_BYTES = 8 * 1024 * 1024
 const STREAM_PARTS_IN_FLIGHT = 2
 
@@ -157,6 +160,27 @@ export abstract class S3CompatProvider implements StorageProvider {
           abortSignal.addEventListener('abort', () => reject(abortSignal.reason), { once: true })
         }),
       ])
+    } catch (err) {
+      const name = err instanceof Error ? err.name : ''
+      if (name === 'NoSuchKey' || name === 'NotFound') return null
+      throw err
+    }
+  }
+
+  /**
+   * The object as a web stream, never held whole (a video the worker re-encodes). The deadline
+   * is longer than one call's (`STREAM_READ_TIMEOUT_MS`): a 100 MB video over a slow link must
+   * finish, and a stalled body still errors the stream when it passes.
+   */
+  async getStream(key: string, signal?: AbortSignal): Promise<ReadableStream<Uint8Array> | null> {
+    const deadline = AbortSignal.timeout(STREAM_READ_TIMEOUT_MS)
+    const abortSignal = signal ? AbortSignal.any([signal, deadline]) : deadline
+    try {
+      const res = await this.client.send(
+        new GetObjectCommand({ Bucket: this.bucket, Key: this.fullKey(key) }),
+        { abortSignal },
+      )
+      return res.Body ? (res.Body.transformToWebStream() as ReadableStream<Uint8Array>) : null
     } catch (err) {
       const name = err instanceof Error ? err.name : ''
       if (name === 'NoSuchKey' || name === 'NotFound') return null

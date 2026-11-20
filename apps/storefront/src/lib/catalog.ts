@@ -284,6 +284,8 @@ export async function getProductByHandle(
       variants: media.variants,
       thumbhash: media.thumbhash,
       width: media.width,
+      // A video's smaller copy: the gallery plays it, and `url` stays the key variants match on.
+      compactUrl: media.compactUrl,
     })
     .from(productMedia)
     .innerJoin(media, eq(media.id, productMedia.mediaId))
