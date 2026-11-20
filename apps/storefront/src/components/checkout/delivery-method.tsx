@@ -1,7 +1,9 @@
 'use client'
 
 import { useFormatPaise } from '@commerce/blocks'
+import { COURIER_REQUEST_MAX } from '@commerce/core/courier-request'
 import { useEffect, useState } from 'react'
+import CheckoutField from '@/components/checkout/checkout-field'
 import CheckoutIcon from '@/components/checkout/checkout-icon'
 import CheckoutParcels from '@/components/checkout/checkout-parcels'
 import CourierList from '@/components/checkout/courier-list'
@@ -29,6 +31,9 @@ type DeliveryMethodProps = {
   /** Delivery options app: the "Insure this shipment" checkbox, when offered. */
   insurance?: { offered: boolean; on: boolean; pricePaise: number | null } | null
   onInsurance?: (insured: boolean) => void
+  /** Delivery options app: "Want a different courier?" under the courier list. */
+  courierRequest?: string
+  onCourierRequest?: (text: string) => void
   /** The address is outside India: it asks for the address, not a PIN code (#64). */
   abroad?: boolean
   /** Cash on delivery is a way to pay here: only then does a prepaid-only card say so. */
@@ -77,6 +82,8 @@ export default function DeliveryMethod({
   onRoute,
   insurance = null,
   onInsurance,
+  courierRequest = '',
+  onCourierRequest,
   abroad = false,
   codOffered = false,
 }: DeliveryMethodProps) {
@@ -283,6 +290,18 @@ export default function DeliveryMethod({
           })
         )}
       </fieldset>
+      {onCourierRequest && rates.some((r) => r.delivery?.layout === 'list') ? (
+        <CheckoutField
+          id="courier-request"
+          label={appCopy.requestLabel}
+          value={courierRequest}
+          onChange={(e) => onCourierRequest(e.target.value)}
+          placeholder={appCopy.requestPlaceholder}
+          hint={appCopy.requestHelp}
+          maxLength={COURIER_REQUEST_MAX}
+          autoComplete="off"
+        />
+      ) : null}
       {insurance?.offered && onInsurance ? (
         <InsuranceToggle
           on={insurance.on}

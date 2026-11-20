@@ -56,6 +56,8 @@ export function useCheckoutShipping(cart: CartView, onNoCod: () => void) {
   const [routeKey, setRouteKey] = useState<string | null>(null)
   /** The shopper's insurance tick; null until they touch it (each option's own default). */
   const [insure, setInsure] = useState<boolean | null>(null)
+  /** "Want a different courier?" under the courier list (owner, 20 Nov 2026); blank: none. */
+  const [courierRequest, setCourierRequest] = useState('')
   const [asked, setAsked] = useState<Asked | null>(null)
 
   const ask = (to: Asked, tick: boolean | null, keep: boolean) => {
@@ -145,11 +147,19 @@ export function useCheckoutShipping(cart: CartView, onNoCod: () => void) {
     rateId,
     setRateId: pickRate,
     /** Delivery options app: the sub-choice and the insurance tick under the cards. */
-    app: { routeKey, setRouteKey: pickRoute, insurance, toggleInsurance },
+    app: {
+      routeKey,
+      setRouteKey: pickRoute,
+      insurance,
+      toggleInsurance,
+      courierRequest,
+      setCourierRequest,
+    },
     /** What Pay sends about shipping: the picked rate, and the app's choice when it is on. */
     formFields: {
       ...(rateId ? { shippingRate: rateId } : {}),
       ...(deliveryChoice ? { deliveryQuote: deliveryChoice } : {}),
+      ...(deliveryChoice && courierRequest.trim() ? { courierRequest: courierRequest.trim() } : {}),
     },
     unserviceable,
     gate,

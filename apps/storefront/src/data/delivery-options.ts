@@ -18,6 +18,10 @@ export const deliveryOptionsContent = {
   fastest: 'Fastest',
   showMore: (n: number) => `Show ${n} more ${n === 1 ? 'courier' : 'couriers'}`,
   showLess: 'Show fewer couriers',
+  /** The optional box under the courier list (owner, 20 Nov 2026). */
+  requestLabel: 'Want a different courier? (optional)',
+  requestPlaceholder: 'e.g. DTDC, India Post',
+  requestHelp: 'We’ll call you with the price before we ship.',
   /** The summary's delivery row while the parcel is insured (Figma 945:519). */
   insured: 'insured',
   /** The insurance checkbox under the options. */

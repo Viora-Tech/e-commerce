@@ -17,3 +17,11 @@ Checked, not changed:
   and dearer" removes them.
 - Unticking insurance can leave a card's price the same: Delhivery's insurance (₹2.82 on ₹399)
   vanishes in the round-up to the next ₹10.
+
+## Want a different courier? (same day)
+
+- An optional box under the courier list: "Want a different courier? (optional)", "We'll call
+  you with the price before we ship." Sent with Pay as `courierRequest` (max 80 characters).
+- `packages/core/src/order/courier-request.ts`: the order gets the `courier-request` tag and a
+  system note "Shopper asked for another courier: X. Call them with the price before you ship."
+  Once per order (checking out again on the same draft does not repeat the note).

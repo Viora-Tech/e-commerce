@@ -37,6 +37,7 @@ import { paysOnlineAtCheckout } from './aggregate-status'
 import { upsertCheckoutCustomer } from './checkout-customer'
 import { CHECKED_OUT_AGAIN_NOTE } from './checkout-draft'
 import { PAID_ANOTHER_WAY_NOTE } from './checkout-reopen'
+import { COURIER_REQUEST_TAG, cleanCourierRequest, courierRequestNote } from './courier-request'
 import { draftPlaceholder } from './draft-ref'
 import { createFulfillmentOrders, deleteFulfillmentOrders } from './fulfillment-orders'
 import { takeDraftNumber, takeOrderNumber } from './order-number'
@@ -166,7 +167,11 @@ export const createOrder: WorkflowStep<State> = {
       )
       return sum + dep
     }, 0)
-    const tags = preorderLines.length > 0 ? ['pre-order'] : []
+    const courierRequest = cleanCourierRequest(input.checkout?.courierRequest)
+    const tags = [
+      ...(preorderLines.length > 0 ? ['pre-order'] : []),
+      ...(courierRequest ? [COURIER_REQUEST_TAG] : []),
+    ]
     const storeAddress = StoreAddressSchema.safeParse(s.address ?? {})
     // The GSTIN of the location the goods ship from decides CGST + SGST or IGST (tax/origin.ts).
     const grossOf = (key: string, quantity: number) =>
@@ -362,6 +367,15 @@ export const createOrder: WorkflowStep<State> = {
     if (draft && input.paymentProvider.id === 'manual' && (!draft.reuse || rewrite)) {
       await insertOutboxEvent(ctx.tx, ctx.storeId, 'order.transfer_requested', { orderId: o.id })
     }
+    // Once per order: checking out again on the same draft does not repeat it.
+    if (courierRequest && !(draft?.reuse || rewrite)) {
+      await ctx.tx.insert(orderNote).values({
+        storeId: ctx.storeId,
+        orderId: o.id,
+        body: courierRequestNote(courierRequest),
+        author: 'system',
+      })
+    }
     if (draft?.reuse || rewrite) {
       await ctx.tx.insert(orderNote).values({
         storeId: ctx.storeId,
@@ -380,7 +394,8 @@ export const createOrder: WorkflowStep<State> = {
           status: p.status,
           needsTransfer: p.needsTransfer,
           money: billed.money[i],
-          deliveryEstimate: parcelPromise(delivery, p.locationId, p.status) ??
+          deliveryEstimate:
+            parcelPromise(delivery, p.locationId, p.status) ??
             input.deliveryEstimates?.[p.locationId] ??
             null,
           lines: p.lines.map((l) => ({

@@ -46,6 +46,8 @@ export type CheckoutDetails = {
   businessName?: string | null | undefined
   /** Kept only when the store turned order notes on. */
   note?: string | null | undefined
+  /** "Want a different courier?" at the Delivery step: tags the order and notes it (courier-request.ts). */
+  courierRequest?: string | null | undefined
   /**
    * The shopper ticked "Email me news and offers" / "Send me offers on WhatsApp" (audit #153).
    * A tick grants consent (source `checkout`); no tick never takes an earlier consent away.
