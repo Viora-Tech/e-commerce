@@ -346,7 +346,10 @@ export function resolveDeliveryOptions(
       ? pickFor(routes, option, pool, input, { insured, cod: true }, ruleNames).picked
       : null
     const pick = winner.priced
-    const listChoices = listed && !prepaid.forced ? courierList(prepaid.fits, winner, option) : []
+    const listChoices =
+      listed && !prepaid.forced
+        ? courierList(prepaid.fits, winner, option, why.kind === 'rule_default')
+        : []
     /* The tick: priced both ways, so "+₹X" is what ticking really adds after rounding. A route
        with no insurance rate prices insurance at ₹0, and then no tick shows. */
     const flipped =

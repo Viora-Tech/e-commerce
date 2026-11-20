@@ -7,6 +7,9 @@
  */
 import { z } from 'zod'
 import type { ProtectCard } from './protect'
+import { PRICE_ROUNDINGS } from './rounding'
+
+export { PRICE_ROUNDINGS, type PriceRounding, roundPrice } from './rounding'
 
 export const DELIVERY_OPTIONS_APP_ID = 'delivery-options'
 
@@ -48,7 +51,7 @@ export type OptionPriceSource = (typeof OPTION_PRICE_SOURCES)[number]
 
 export const OptionPriceSchema = z.object({
   /**
-   * `route`: route cost + markup + insurance, rounded up to ₹10. `zone`: Shipping rates.
+   * `route`: route cost + markup + insurance, rounded up (`rounding`). `zone`: Shipping rates.
    * `free`: the option's own card (the base card of a courier list) costs the shopper ₹0, the
    * store pays the courier; other couriers in a list still show "+₹ difference", and insurance
    * the shopper ticks is still charged.
@@ -59,6 +62,12 @@ export const OptionPriceSchema = z.object({
   freeAbovePaise: paise.nullish(),
   minPaise: paise.nullish(),
   maxPaise: paise.nullish(),
+  /**
+   * How a price the engine makes is rounded up (`rounding.ts`): `nine` ₹43 → ₹49, `fifty`
+   * ₹58 → ₹99, `ten` ₹43 → ₹50 (the rule before 20 Nov 2026, so saved options keep it), `off`
+   * whole rupees. A Shipping rate the merchant typed is never rounded.
+   */
+  rounding: z.enum(PRICE_ROUNDINGS).default('ten'),
 })
 
 export const OptionInsuranceSchema = z.object({

@@ -56,6 +56,8 @@ export type DeliveryCardExtras = {
   logo: CourierLogo | null
   /** `list`: each choice is its own card (the option's Couriers setting). */
   layout: 'one' | 'list'
+  /** The first card is a product rule's preferred courier, not just the cheapest. */
+  preferred?: boolean | undefined
   /** How the picked route travels; null on backup (no route). */
   mode: DeliveryMode | null
   /**
@@ -204,6 +206,7 @@ export function cardExtras(
     optionName: o.name,
     logo: o.pick ? courierLogo(o.pick.route) : null,
     layout: o.layout,
+    preferred: o.pickedBy.startsWith('rule:'),
     mode: o.pick ? deliveryMode(o.pick.route) : null,
     insurance: {
       offered: o.insurance.offered,

@@ -1,6 +1,6 @@
 'use client'
 
-import type { DeliveryOption } from '@commerce/core/delivery-options'
+import { type DeliveryOption, PRICE_ROUNDINGS } from '@commerce/core/delivery-options'
 import ChoiceField from '@/components/apps/gst-invoices/choice-field'
 import DataCard from '@/components/layout/data-card'
 import SettingsToggleRow from '@/components/settings/settings-toggle-row'
@@ -20,6 +20,12 @@ const MAX_CHOICES = [2, 3, 4, 5, 6, 7, 8] as const
 const ALL = 'all'
 
 type Source = DeliveryOption['price']['source']
+
+/** The select's value back to a rounding; anything unknown is the ₹10 rule. */
+const roundingOf = (v: string): DeliveryOption['price']['rounding'] =>
+  (PRICE_ROUNDINGS as readonly string[]).includes(v)
+    ? (v as DeliveryOption['price']['rounding'])
+    : 'ten'
 
 /** The select's value back to a price source; anything unknown is the courier cost. */
 const sourceOf = (v: string): Source => (v === 'zone' || v === 'free' ? v : 'route')
@@ -80,15 +86,22 @@ export default function PriceIncludesCard({ option, onChange }: PriceIncludesCar
         ]}
         onChange={(v) => setCouriers({ extra: v === 'none' ? 'none' : 'difference' })}
       />
+      <ChoiceField
+        id="courier-list-round"
+        label={c.round}
+        value={option.price.rounding}
+        options={PRICE_ROUNDINGS.map((v) => ({ value: v, label: c.roundItems[v] }))}
+        help={c.roundHelp}
+        onChange={(v) =>
+          onChange({
+            ...option,
+            price: { ...option.price, rounding: roundingOf(v) },
+            // The old "+₹…9" switch only counts on the ₹10 rule; Off turns it off too.
+            couriers: { ...option.couriers, roundTo9: v !== 'off' },
+          })
+        }
+      />
       <div className="flex flex-col">
-        <SettingsToggleRow
-          id="courier-list-round"
-          label={c.round}
-          description={c.roundHelp}
-          checked={option.couriers.roundTo9}
-          onChange={(on) => setCouriers({ roundTo9: on })}
-          className="py-3"
-        />
         <SettingsToggleRow
           id="courier-list-hide"
           label={c.hide}

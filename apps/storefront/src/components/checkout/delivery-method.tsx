@@ -216,6 +216,7 @@ export default function DeliveryMethod({
                   }}
                   price={price}
                   money={money}
+                  preferred={o.delivery?.preferred === true}
                   heading={
                     !codOffered || cod === null
                       ? null

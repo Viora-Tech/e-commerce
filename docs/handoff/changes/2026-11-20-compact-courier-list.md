@@ -38,3 +38,19 @@ shipped and was charged on the option's cheapest COD route (Payment step: "Cash 
   price; the option's COD pick only when that courier takes no COD.
 - `checkout.ts`: the snapshot keeps each card's COD price, and the order checks it by the card.
 - Storefront: the Payment step says "Cash on delivery: +₹X" (no other courier named).
+
+## Preferred courier and "Round delivery prices" (same day)
+
+Owner's cases: mice by Delhivery Air, so no Delhivery Surface card, but Blue Dart Surface / Air
+and Amazon still offered; a courier cheaper than the preferred one costs the same (free when
+it is free), a dearer one adds the difference.
+
+- `courier-list.ts`: when the pick is a rule's preferred courier (`why.kind === 'rule_default'`),
+  that courier's other speeds are left out. Prices were already "pick + max(0, difference)".
+- Checkout tags the first card "Recommended" (not "Cheapest") when it is a rule's preferred one.
+- `rounding.ts` + `price.rounding` (`nine` ₹43→₹49, `fifty` ₹58→₹99, `ten` ₹43→₹50, `off`):
+  engine prices, insurance on Free, and list extras. Default `ten`, so saved options keep their
+  prices; the Options page's "Round extras up to ₹…9" switch is now a "Round delivery prices"
+  dropdown (EN + HI). On `ten`, extras still follow the old switch.
+- Tests: `preferred-courier.test.ts` (the owner's mouse sample).
+- Not done: the fixed-options form (Standard / Express cards) has no rounding dropdown yet.

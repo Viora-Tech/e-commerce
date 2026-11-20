@@ -8,6 +8,7 @@
  */
 import type { DeliveryOption } from './config'
 import type { PricedRoute } from './resolve-types'
+import { type PriceRounding, roundPrice } from './rounding'
 import type { Route } from './routes'
 
 /** A route that fits the option, priced for it. */
@@ -29,12 +30,16 @@ export function byCheapest(a: Candidate, b: Candidate): number {
   )
 }
 
-/** Rupees rounded up so they end in 9 (₹37 → ₹39, ₹40 → ₹49); paise in, paise out. */
-export function upToNine(paise: number): number {
-  if (paise <= 0) return 0
-  const rupees = Math.ceil(paise / 100)
-  return (rupees + ((9 - (rupees % 10) + 10) % 10)) * 100
-}
+export { upToNine } from './rounding'
+
+/** How a list card's "+₹" is rounded: the option's rounding, or (on the old ₹10 rule) the
+ *  "Round extras up to ₹…9" switch as before. */
+const extraRounding = (option: DeliveryOption): PriceRounding =>
+  option.price.rounding !== 'ten'
+    ? option.price.rounding
+    : option.couriers.roundTo9
+      ? 'nine'
+      : 'off'
 
 /**
  * What paying on delivery adds on this courier: its COD cost over its prepaid cost, rounded up
@@ -76,17 +81,24 @@ export function courierList(
   fits: readonly Candidate[],
   winner: Candidate,
   option: DeliveryOption,
+  /** The pick is a rule's preferred courier: its other speeds do not show (owner, 20 Nov 2026:
+   *  Delhivery Air chosen for mice, so no Delhivery Surface; other couriers still show). */
+  preferred = false,
 ): PricedRoute[] {
   const base = withCod(winner.priced, winner.route, option)
   const seen = new Set<string>([`${winner.route.carrierKey}:${winner.route.speed}`])
   const rest: PricedRoute[] = []
+  const rounding = extraRounding(option)
   for (const c of [...fits].sort(byCheapest)) {
     const id = `${c.route.carrierKey}:${c.route.speed}`
     if (c.route.key === winner.route.key || seen.has(id)) continue
+    if (preferred && c.route.carrierKey === winner.route.carrierKey) continue
     seen.add(id)
+    // A cheaper courier costs what the pick costs (free when it is free); a dearer one adds
+    // the difference (owner, 20 Nov 2026).
     const more =
       option.couriers.extra === 'none' ? 0 : Math.max(0, storeCost(c) - storeCost(winner))
-    const extra = option.couriers.roundTo9 ? upToNine(more) : Math.ceil(more / 100) * 100
+    const extra = roundPrice(more, rounding)
     rest.push(
       withCod(
         {

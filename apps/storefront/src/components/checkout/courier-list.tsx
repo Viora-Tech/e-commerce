@@ -29,6 +29,8 @@ type CourierListProps = {
   note: (index: number) => string | null
   /** Said once above the rows (cash on delivery on every courier); null: nothing to say. */
   heading: string | null
+  /** The first row is a product rule's preferred courier: tagged Recommended, not Cheapest. */
+  preferred?: boolean
 }
 
 /** Rows shown before "Show N more couriers". */
@@ -103,6 +105,7 @@ export default function CourierList({
   money,
   note,
   heading,
+  preferred = false,
 }: CourierListProps) {
   // Hooks
   const [open, setOpen] = useState(false)
@@ -143,7 +146,7 @@ export default function CourierList({
               <span className="flex min-w-0 flex-1 flex-col">
                 <span className="flex flex-wrap items-center gap-1.5 text-[0.9375rem] leading-5 font-semibold text-ck-ink">
                   {c.label}
-                  {i === 0 ? <Tag>{appCopy.cheapest}</Tag> : null}
+                  {i === 0 ? <Tag>{preferred ? appCopy.recommended : appCopy.cheapest}</Tag> : null}
                   {i === fastest ? <Tag>{appCopy.fastest}</Tag> : null}
                 </span>
                 <span className="text-[0.8125rem] leading-[1.125rem] text-ck-muted">

@@ -173,8 +173,15 @@ export const deliveryPagesContent = {
         : 'Shoppers pay your normal delivery charge for this one.',
     fasterCost: 'Faster couriers cost',
     fasterItems: { difference: 'The difference in courier price', none: 'Nothing extra' },
-    round: 'Round extras up to ₹…9',
-    roundHelp: '+₹37 shows as +₹39',
+    round: 'Round delivery prices',
+    roundHelp:
+      'Prices the app works out, and what faster couriers add. Your typed Shipping rates stay as they are.',
+    roundItems: {
+      nine: 'Up to …9 (₹43 → ₹49, ₹58 → ₹59)',
+      fifty: 'Up to …49 or …99 (₹43 → ₹49, ₹58 → ₹99)',
+      ten: 'Up to the next ₹10 (₹43 → ₹50)',
+      off: 'Off (₹43 stays ₹43)',
+    },
     hide: 'Hide couriers that are slower and dearer',
     hideHelp: 'Keeps the list short, but checkout always shows at least 3 when 3 couriers deliver',
     hideFastest:

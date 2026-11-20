@@ -4,6 +4,7 @@ import type { ShippingRateOption } from '../rates'
 import type { DeliveryOption } from './config'
 import { DEFAULT_PROTECT_CARD, type ProtectQuote, parcelProtect } from './protect'
 import type { PricedRoute, ResolveInput, RouteSummary, ZoneQuote } from './resolve-types'
+import { roundPrice } from './rounding'
 import { insurancePrice, type Route } from './routes'
 
 /** ₹10 in paise. */
@@ -73,7 +74,7 @@ export function datesFor(route: Route | null, option: DeliveryOption, input: Res
 export const cartProtect = (input: Pick<ResolveInput, 'cart' | 'config'>): ProtectQuote =>
   parcelProtect(input.cart.items, input.config.protect ?? DEFAULT_PROTECT_CARD)
 
-/** Route cost + markup + insurance rounded up to ₹10 (a Shipping rate stays as typed unless insured), then caps and free-above. Price source `free`: ₹0 (plus any insurance ticked). */
+/** Route cost + markup + insurance rounded up the option's way (`rounding.ts`; a Shipping rate stays as typed unless insured), then caps and free-above. Price source `free`: ₹0 (plus any insurance ticked). */
 export function priceRoute(
   route: Route,
   option: DeliveryOption,
@@ -91,9 +92,9 @@ export function priceRoute(
      (courier cost + markup, or a rate plus insurance) is rounded up to the next ₹10. */
   let list = zoneRate
     ? insurance
-      ? roundUpToTenRupees(zoneRate.listPricePaise + insurance)
+      ? roundPrice(zoneRate.listPricePaise + insurance, p.rounding)
       : zoneRate.listPricePaise
-    : roundUpToTenRupees(base + markup + (insurance ?? 0))
+    : roundPrice(base + markup + (insurance ?? 0), p.rounding)
   if (p.minPaise != null) list = Math.max(list, p.minPaise)
   if (p.maxPaise != null) list = Math.min(list, p.maxPaise)
   const zoneFree = zoneRate !== null && zoneRate.pricePaise === 0
@@ -103,7 +104,7 @@ export function priceRoute(
   if (p.source === 'free') {
     /* Free for the shopper: the store pays the courier (the margin shows it). Insurance the
        shopper ticks is still theirs to pay, rounded up to ₹10 like any price the engine makes. */
-    const own = insured && insurance ? roundUpToTenRupees(insurance) : 0
+    const own = insured && insurance ? roundPrice(insurance, p.rounding) : 0
     return {
       route: summary(route),
       pricePaise: own,

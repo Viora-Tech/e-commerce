@@ -15,6 +15,7 @@ export const deliveryOptionsContent = {
   codAvailableAll: 'Cash on delivery available on every courier',
   /** The courier list's tags and controls. */
   cheapest: 'Cheapest',
+  recommended: 'Recommended',
   fastest: 'Fastest',
   showMore: (n: number) => `Show ${n} more ${n === 1 ? 'courier' : 'couriers'}`,
   showLess: 'Show fewer couriers',
