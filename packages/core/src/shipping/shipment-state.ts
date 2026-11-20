@@ -16,25 +16,23 @@ export type CancelBlock =
   | 'picked_up'
   /** Delivered or on its way back. */
   | 'settled'
-  /** Handed over in a manifest: the courier already counts it as collected. */
-  | 'in_manifest'
 
 const MOVING: ReadonlySet<string> = new Set(['picked_up', 'in_transit', 'out_for_delivery'])
 const SETTLED: ReadonlySet<string> = new Set(['delivered', 'rto'])
 
 /**
  * Cancel is allowed only while the label exists and the parcel has not left: status `created`,
- * not in a manifest, with a courier that cancels over its API. A pickup *requested* is fine;
- * the courier simply finds nothing to collect.
+ * with a courier that cancels over its API. A pickup *requested* is fine, and so is a manifest:
+ * ours is a printed list for the pickup executive, never sent to the courier, and the courier
+ * takes a cancel until it scans the parcel (owner, 18 Nov 2026: cancel from To be picked up).
  */
 export function cancelBlock(
   shipment: { status: string },
-  facts: { inManifest: boolean; courierCancels: boolean },
+  facts: { courierCancels: boolean },
 ): CancelBlock | null {
   if (shipment.status === 'cancelled') return 'cancelled'
   if (SETTLED.has(shipment.status)) return 'settled'
   if (MOVING.has(shipment.status)) return 'picked_up'
-  if (facts.inManifest) return 'in_manifest'
   if (!facts.courierCancels) return 'not_supported'
   return null
 }
