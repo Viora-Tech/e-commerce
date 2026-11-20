@@ -1,10 +1,16 @@
 import 'server-only'
-import { blogSitemapEntries } from '@commerce/core'
+import { blogSitemapEntries, notSystemTest } from '@commerce/core'
 import type { StoreTx } from '@commerce/db'
 import { collection, page, product, variant } from '@commerce/db'
 import { formatMoney } from '@commerce/money'
 import { and, asc, eq, isNotNull, isNull, min } from 'drizzle-orm'
-import { AI_CRAWLERS, LLMS_PRODUCT_LIMIT, ROBOTS_DISALLOW, seoContent } from '@/data/seo'
+import {
+  AI_CRAWLERS,
+  LLMS_PRODUCT_LIMIT,
+  ROBOTS_DISALLOW,
+  type SitemapPart,
+  seoContent,
+} from '@/data/seo'
 
 /** One indexable URL on the store's host. */
 export type IndexEntry = { path: string; title?: string; updatedAt?: Date | null }
@@ -35,7 +41,8 @@ export async function loadStoreIndex(tx: StoreTx): Promise<StoreIndex> {
           eq(variant.hiddenOnStore, false),
         ),
       )
-      .where(eq(product.status, 'active'))
+      // The payments wizard's ₹1 test product is never listed.
+      .where(and(eq(product.status, 'active'), notSystemTest))
       .groupBy(product.id)
       .orderBy(asc(product.title)),
     tx
@@ -87,9 +94,13 @@ function xml(value: string): string {
   return value.replace(/[&<>"']/g, (c) => XML_ESCAPES[c] ?? c)
 }
 
-/** sitemaps.org urlset. Handles are URL-safe already; the whole URL is still escaped. */
-export function sitemapXml(origin: string, index: StoreIndex): string {
-  const entries: IndexEntry[] = [
+/** The entries of one part of the sitemap (Shopify's child sitemaps), or of all of it. */
+function sitemapEntries(index: StoreIndex, part?: SitemapPart): IndexEntry[] {
+  if (part === 'products') return index.products
+  if (part === 'collections') return [{ path: '/collections' }, ...index.collections]
+  if (part === 'pages') return index.pages
+  if (part === 'blogs') return index.blog
+  return [
     { path: '/' },
     { path: '/collections' },
     ...index.collections,
@@ -97,6 +108,11 @@ export function sitemapXml(origin: string, index: StoreIndex): string {
     ...index.pages,
     ...index.blog,
   ]
+}
+
+/** sitemaps.org urlset. Handles are URL-safe already; the whole URL is still escaped. */
+export function sitemapXml(origin: string, index: StoreIndex, part?: SitemapPart): string {
+  const entries = sitemapEntries(index, part)
   const urls = entries.map((e) => {
     const lastmod = e.updatedAt ? `<lastmod>${e.updatedAt.toISOString()}</lastmod>` : ''
     return `<url><loc>${xml(`${origin}${e.path}`)}</loc>${lastmod}</url>`

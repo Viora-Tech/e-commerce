@@ -144,6 +144,9 @@ describe('paths', () => {
     expect(honoProductHandle('/products/caf%C3%A9')).toBe('café')
     expect(honoProductHandle('/products/%E0%A4')).toBeNull()
     expect(honoProductHandle('/collections/x')).toBeNull()
+    // Shopify's product JSON is not the page (`lib/shopify-json`).
+    expect(honoProductHandle('/products/pad.json')).toBeNull()
+    expect(honoProductHandle('/products/pad.js')).toBeNull()
   })
 
   it('rewrites under the internal prefix, which a shopper cannot reach', () => {

@@ -19,6 +19,11 @@ describe('edgeCacheControl', () => {
     )
   })
 
+  it("leaves Shopify's JSON to its own cache header", () => {
+    expect(shared({ pathname: '/products/mouse.json' })).toBeNull()
+    expect(shared({ pathname: '/products/mouse.js' })).toBeNull()
+  })
+
   it('lets a CDN keep catalogue pages for visitors without our cookies', () => {
     const header = 'public, max-age=0, s-maxage=30, stale-while-revalidate=300'
     for (const pathname of [

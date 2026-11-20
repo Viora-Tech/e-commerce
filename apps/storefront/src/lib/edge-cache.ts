@@ -14,6 +14,8 @@
  * get markup into that same cached page, which any store write replaces with a fresh render.
  */
 
+import { isShopifyJsonPath } from './shopify-json/paths'
+
 /** Pages that show the same thing to every visitor without cookies. */
 const SHARED_PAGES = [
   /^\/$/,
@@ -34,6 +36,8 @@ const NEUTRAL_COOKIES = new Set(['wc_ref'])
 
 /** A catalogue or content page: the same for every visitor without cookies. */
 export function isSharedPage(pathname: string): boolean {
+  // Shopify's JSON (`/products/<h>.json`) sets its own public cache and is never warmed as a page.
+  if (isShopifyJsonPath(pathname)) return false
   return SHARED_PAGES.some((re) => re.test(pathname))
 }
 

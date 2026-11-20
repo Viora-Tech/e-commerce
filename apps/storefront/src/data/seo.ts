@@ -56,5 +56,23 @@ export const AI_CRAWLERS = [
 /** llms.txt lists at most this many products; the sitemap has the rest. */
 export const LLMS_PRODUCT_LIMIT = 200
 
+/**
+ * Shopify's child sitemaps, which Search Console and old links still ask for after a move from
+ * Shopify: each serves that part of our sitemap (`sitemap.xml/[part]`).
+ */
+export const SHOPIFY_SITEMAPS = {
+  '/sitemap_products_1.xml': 'products',
+  '/sitemap_collections_1.xml': 'collections',
+  '/sitemap_pages_1.xml': 'pages',
+  '/sitemap_blogs_1.xml': 'blogs',
+} as const
+
+export type SitemapPart = (typeof SHOPIFY_SITEMAPS)[keyof typeof SHOPIFY_SITEMAPS]
+
 /** Files served even while the storefront password is on (they answer "locked" themselves). */
-export const SEO_FILES = ['/robots.txt', '/sitemap.xml', '/llms.txt'] as const
+export const SEO_FILES = [
+  '/robots.txt',
+  '/sitemap.xml',
+  '/llms.txt',
+  ...Object.keys(SHOPIFY_SITEMAPS),
+] as const

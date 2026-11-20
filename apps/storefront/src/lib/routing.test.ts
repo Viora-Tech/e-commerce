@@ -13,6 +13,17 @@ import {
 } from './routing'
 
 describe('routeForStore', () => {
+  it("rewrites Shopify's product and collection JSON onto their child routes", () => {
+    expect(routeForStore('store-a', '/products/mouse.json')).toEqual({
+      kind: 'rewrite',
+      path: '/-s/store-a/products/mouse/product.json',
+    })
+    expect(routeForStore('store-a', '/products.json')).toEqual({
+      kind: 'rewrite',
+      path: '/-s/store-a/products.json',
+    })
+  })
+
   it('rewrites a public path onto the internal store segment', () => {
     expect(routeForStore('store-a', '/')).toEqual({ kind: 'rewrite', path: '/-s/store-a' })
     expect(routeForStore('store-a', '/products/mouse')).toEqual({
