@@ -4,3 +4,4 @@ export {
   sampleTemplateData,
   sampleTemplateDataByTemplate,
 } from './conformance'
+export { sampleEmailBrand } from './samples'

@@ -63,7 +63,11 @@ export function appDeps(db: Db, opts: AppOpts): DispatchDeps {
             storefrontUrl: opts.storefrontUrl,
             resend: true,
             requires: 'email',
-            data: { documentLabel: input.documentLabel, links: input.links },
+            data: {
+              documentLabel: input.documentLabel,
+              document: input.document,
+              links: input.links,
+            },
             extras: async () => ({
               links: input.links ?? [],
               attachments: input.attachments ?? [],

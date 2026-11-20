@@ -41,13 +41,19 @@ export const templateContent: Record<TemplateId, TemplateCopy> = {
   },
   order_placed: {
     subject: (d) => `${d.storeName}: order #${d.orderNumber} received`,
-    heading: (d) => `Thanks, ${d.customerName}`,
+    heading: (d) => {
+      const name = d.customerName && d.customerName !== 'there' ? d.customerName : ''
+      if (d.paymentState === 'unpaid') return name ? `Thank you, ${name}. One step left.` : 'One step left.'
+      return name ? `Thank you for your order, ${name}.` : 'Thank you for your order.'
+    },
     intro: (d) =>
-      `We have your order #${d.orderNumber} for ${d.totalLabel} (${d.paymentMethodLabel}).`,
+      d.paymentState === 'unpaid'
+        ? `Pay ${d.totalLabel} by UPI or bank transfer and we start packing.`
+        : 'We are packing it now and will email you when it ships.',
     outro: (d) =>
       d.paymentInstructions?.length
         ? `To pay ${d.totalLabel}: ${d.paymentInstructions.join('. ')}. We ship once your payment arrives.`
-        : 'We will message you again as soon as it ships.',
+        : '',
     whatsapp: (d) =>
       `Hi ${d.customerName}, ${d.storeName} has received order #${d.orderNumber} for ${d.totalLabel}.${d.paymentInstructions?.length ? ` To pay: ${d.paymentInstructions.join('. ')}.` : ''} We will update you when it ships.`,
   },
@@ -306,6 +312,17 @@ ${m?.text ?? ''}`
       'The link works for 7 days. If you did not sign up, ignore this email and you will not hear from us.',
     whatsapp: (d) => `Confirm your ${d.storeName} newsletter signup: ${d.actionUrl ?? ''}`,
   },
+  welcome_coupon: {
+    subject: (d) => `Welcome to ${d.storeName}: here is ${d.welcome?.valueLabel ?? 'a gift'} off`,
+    heading: (d) => `Here is ${d.welcome?.valueLabel ?? 'a little'} off your first order.`,
+    intro: (d) => {
+      const name = d.customerName && d.customerName !== 'there' ? `, ${d.customerName}` : ''
+      return `Thanks for joining${name}. Use the code below at checkout.`
+    },
+    outro: (d) => d.welcome?.terms ?? '',
+    whatsapp: (d) =>
+      `Welcome to ${d.storeName}! ${d.welcome?.valueLabel ?? ''} off your first order with code ${d.welcome?.code ?? ''}.`,
+  },
   gift_card_issued: {
     subject: (d) => `${d.storeName}: your ${d.giftCard?.balanceLabel ?? ''} gift card`,
     heading: (d) => `Hi ${d.customerName}, here is your gift card`,
@@ -337,9 +354,11 @@ export const sharedContent = {
     shop: 'Shop',
     track: 'Track order',
     contact: 'Contact',
-    helpTitle: 'Need help?',
-    helpBody: 'Reply to this email or reach us here. We usually answer within a few hours.',
+    helpTitle: 'Questions about your order?',
+    helpBody: 'Reply to this email',
+    helpWhatsapp: (phone: string) => `, or WhatsApp ${phone}`,
     whatsapp: 'WhatsApp',
+    whatsappUs: 'WhatsApp us',
     poweredBy: `Powered by ${siteConfig.brand.name}`,
     unsubscribe: 'Unsubscribe',
   },
@@ -356,6 +375,34 @@ export const sharedContent = {
       `${amount} added to your store credit · balance ${balance}`,
   },
   codeLabel: 'Your code',
+  /** The route ticket and the facts under the total (Figma "Order placed"). */
+  ticket: {
+    from: 'From',
+    to: 'To',
+    order: 'Order',
+    status: 'Status',
+    expected: 'Expected',
+    packing: 'Packing now',
+    waitingPayment: 'Waiting for payment',
+    afterPayment: '2–3 days after payment',
+    soon: 'We will email the date',
+    items: (n: number) => (n === 1 ? '1 item' : `${n} items`),
+    paidBy: (total: string, method: string) => `${total} paid by ${method}`,
+    payOnDelivery: (total: string) => `${total} to pay on delivery`,
+    paidNote: 'We will send the tracking number as soon as it ships.',
+    codNote: 'Keep cash or UPI ready for the courier.',
+    unpaidNote: 'We ship as soon as your payment arrives.',
+    confirmed: 'Confirmed',
+    awaitingPayment: 'Waiting for payment',
+    subtotal: 'Subtotal',
+    shipping: 'Shipping',
+    free: 'Free',
+    shippingTo: 'Shipping to',
+    payment: 'Payment',
+    orderedOn: 'Ordered on',
+    paid: (method: string) => `${method} · paid`,
+    unpaid: (method: string) => `${method} · unpaid`,
+  },
   parcels: {
     title: (count: number) => `Ships in ${count} parcels`,
     note: 'Your order comes from more than one warehouse, so it arrives in separate parcels, each with its own invoice.',

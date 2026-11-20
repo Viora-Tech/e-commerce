@@ -101,6 +101,7 @@ export const MESSAGE_CATALOGUE: readonly MessageDef[] = [
   { id: 'question_answered', group: 'app', trigger: 'app', channels: EMAIL, appId: 'reviews' },
   { id: 'question_asked', group: 'app', trigger: 'app', channels: EMAIL, appId: 'reviews' },
   { id: 'affiliate_update', group: 'app', trigger: 'app', channels: BOTH, appId: 'affiliates' },
+  { id: 'welcome_coupon', group: 'app', trigger: 'app', channels: EMAIL, appId: 'automations' },
   { id: 'cod_confirm', group: 'app', trigger: 'app', channels: BOTH, appId: 'cod-rto' },
   {
     id: 'affiliate_application',

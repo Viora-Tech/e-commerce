@@ -195,6 +195,10 @@ export const notificationsSettingsContent = {
       name: 'Confirm newsletter signup',
       when: 'When someone signs up for your emails. They only get marketing after they confirm.',
     },
+    welcome_coupon: {
+      name: 'Welcome coupon',
+      when: 'When someone joins your newsletter, with their welcome code (Automations app).',
+    },
     gift_card_issued: {
       name: 'Gift card',
       when: 'When a gift card is bought or you send one. Carries the code.',

@@ -1,6 +1,7 @@
 export { withFallback } from './fallback'
 export { NotificationRegistry } from './registry'
-export { sampleTemplateDataByTemplate, sampleTemplateDataFor } from './samples'
+export { sampleTemplateDataByTemplate } from './samples'
+export { sampleTemplateDataFor } from './samples-dated'
 export type * from './template-types'
 export {
   type EmailBody,

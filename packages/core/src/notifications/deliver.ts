@@ -51,8 +51,10 @@ import {
 } from './deliver-data'
 import { draftInvoiceLink } from './draft-invoice-link'
 import { emailPicture, productCoverImages } from './email-images'
+import { orderEventData, previousWaybill } from './event-data'
 import { isMessageOn } from './messages'
 import { paymentInstructionsOf } from './payment-instructions'
+import { orderRouteData } from './route-data'
 import { parseNotificationSettings } from './settings'
 import { storeCreditTemplateData } from './store-credit-data'
 
@@ -133,7 +135,10 @@ export async function buildTemplateData(
     .orderBy(desc(shipment.createdAt))
     .limit(1)
   const method = o.paymentMethod ?? ''
-  const parcels = emailParcels(await orderParcelsView(ctx.tx, orderId))
+  const views = await orderParcelsView(ctx.tx, orderId)
+  const parcels = emailParcels(views)
+  const route = await orderRouteData(ctx, o, views)
+  const events = await orderEventData(ctx, orderId)
   // An unpaid UPI / bank transfer order: the details to pay to, as the thank-you page shows them.
   const [transfer] =
     method === 'manual' && !o.checkoutPaidAt
@@ -170,6 +175,8 @@ export async function buildTemplateData(
           : undefined,
       taxBreakdown: taxLines(o),
       ...(parcels ? { parcels } : {}),
+      ...route,
+      ...events,
       paymentMethodLabel: PAYMENT_LABELS[method] ?? method,
       ...(paymentInstructions ? { paymentInstructions } : {}),
       orderUrl:
@@ -472,10 +479,12 @@ async function trackingUpdateData(
     )
     .limit(1)
   if (!told) return null
+  const previous = await previousWaybill(ctx, orderId, shipmentId)
   return {
     waybill: row.waybill,
     trackingUrl: row.trackingUrl ?? undefined,
     courierLabel: courierName(row.carrier, row.provider),
+    ...(previous && previous !== row.waybill ? { previousWaybill: previous } : {}),
   }
 }
 

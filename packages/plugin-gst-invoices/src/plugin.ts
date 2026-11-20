@@ -316,6 +316,11 @@ export const gstInvoicesPlugin = definePlugin({
             orderId: row.orderId,
             template: 'document_copy',
             documentLabel: `${DOCUMENT_LABELS[row.kind]}${row.number ? ` ${row.number}` : ''}`,
+            document: {
+              number: row.number ?? undefined,
+              gstin: doc.seller.gstin || undefined,
+              fileName: pdfFilename(row),
+            },
             attachments: [
               {
                 filename: pdfFilename(row),

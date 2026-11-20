@@ -88,6 +88,8 @@ export function templateParams(template: TemplateId, d: TemplateData): string[] 
     case 'purchase_order':
     case 'plan_bill':
       return [d.storeName, d.actionUrl ?? '-']
+    case 'welcome_coupon':
+      return [d.customerName, d.storeName, d.welcome?.code ?? '-']
     case 'gift_card_issued':
       return [d.customerName, d.storeName, d.giftCard?.balanceLabel ?? '-', d.giftCard?.code ?? '-']
     case 'balance_request':

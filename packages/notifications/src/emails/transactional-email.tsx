@@ -5,27 +5,33 @@ import {
   Body,
   CodeBox,
   Intro,
-  ItemsPanel,
   LinkLine,
   MetaPills,
   ParcelsBlock,
   PrimaryButton,
   Steps,
 } from './components'
+import { ItemsPanel } from './items-panel'
 import { EmailLayout, type LayoutLabels } from './layout'
-import { brandColours } from './theme'
+import { BlockList, type EmailBlock } from './blocks'
+import { accentColour } from './theme'
 
 export type TransactionalEmailProps = {
   storeName: string
   storeAddress?: string | undefined
   brand?: EmailBrandInfo | undefined
   previewText: string
-  /** The small grey line above the heading ("Order #42"). */
+  /** The purple caps line above the heading ("Order #42 · Confirmed"). */
   eyebrow: string
   /** A sign-in or confirmation code, shown large under the text. */
   code?: { label: string; value: string } | undefined
   /** A four-step tracker under the hero (delivery or return progress). */
   steps?: { labels: string[]; current: number } | undefined
+  /**
+   * The email built from shared blocks (`emails/blocks`), in order, under the heading. A template
+   * that passes blocks shows only them; the older fields below serve the emails not moved yet.
+   */
+  blocks?: EmailBlock[] | undefined
   heading: string
   intro: string
   /** One line under the intro about the store credit balance ("Store credit used ₹X · balance ₹Y"). */
@@ -38,6 +44,8 @@ export type TransactionalEmailProps = {
   totalHeading: string
   qty: (n: number) => string
   totalLabel?: string | undefined
+  subtotal?: TaxLine | undefined
+  discount?: TaxLine | undefined
   shipping?: TaxLine | undefined
   taxBreakdown?: TaxLine[] | undefined
   /** Rows under the total ("Store credit −₹X", "To pay ₹Y"). */
@@ -54,14 +62,15 @@ export type TransactionalEmailProps = {
 }
 
 /**
- * The one template every transactional message renders through: the store's logo, one clear
- * heading and line, the button in the store's colour, then the order (owner, 8 Nov 2026: plain,
- * no coloured banner or amount card). Copy stays data-driven (templates/content.ts); this
- * component only lays it out, and optional blocks render only when the caller passes that data.
+ * The one template every transactional message renders through (Figma "Emails" batches): the
+ * kicker, a large heading and an italic line, then whatever the message carries (a route ticket,
+ * a code, the button, the order and its totals). Copy stays data-driven (templates/content.ts);
+ * this component only lays it out, and optional blocks render only when the caller passes them.
  */
 export function TransactionalEmail(p: TransactionalEmailProps) {
-  const colours = brandColours(p.brand)
-  const paragraphs = [p.intro, p.notice, ...(p.note?.split(/\n+/).filter(Boolean) ?? [])].filter(
+  const accent = accentColour(p.brand)
+  const colours = { bg: accent, fg: '#ffffff' }
+  const paragraphs = [p.notice, ...(p.note?.split(/\n+/).filter(Boolean) ?? [])].filter(
     (t): t is string => Boolean(t),
   )
   return (
@@ -74,49 +83,54 @@ export function TransactionalEmail(p: TransactionalEmailProps) {
       internal={p.internal}
       labels={p.labels}
     >
-      <Intro eyebrow={p.eyebrow} heading={p.heading}>
+      <Intro eyebrow={p.eyebrow} heading={p.heading} lead={p.intro} accent={accent}>
         {paragraphs.map((t) => (
           <Body key={t}>{t}</Body>
         ))}
       </Intro>
-      {p.code ? <CodeBox colours={colours} label={p.code.label} code={p.code.value} /> : null}
-      {p.steps ? (
-        <Steps colours={colours} labels={p.steps.labels} current={p.steps.current} />
-      ) : null}
-      {p.primaryAction ? (
-        <PrimaryButton href={p.primaryAction.url} colours={colours}>
-          {p.primaryAction.label}
-        </PrimaryButton>
-      ) : null}
-      <MetaPills items={p.meta ?? []} />
-      {p.giftCard ? (
-        <CodeBox
-          colours={colours}
-          label={p.giftCard.label}
-          code={p.giftCard.code}
-          lines={p.giftCard.lines}
-        />
-      ) : null}
-      <ItemsPanel
-        title={p.itemsTitle}
-        lines={p.lines}
-        colours={colours}
-        totalHeading={p.totalHeading}
-        totalLabel={p.totalLabel}
-        shipping={p.shipping}
-        taxBreakdown={p.taxBreakdown}
-        afterTotal={p.afterTotal}
-        qty={p.qty}
-      />
-      {p.parcels ? <ParcelsBlock {...p.parcels} /> : null}
-      {p.outro || (p.extraLinks ?? []).length > 0 ? (
-        <Section className="k-pad" style={{ padding: '24px 40px 0', textAlign: 'center' }}>
-          {p.outro ? <Body>{p.outro}</Body> : null}
-          {(p.extraLinks ?? []).map((l) => (
-            <LinkLine key={l.url} label={l.label} href={l.url} />
-          ))}
-        </Section>
-      ) : null}
+      {p.blocks ? (
+        <BlockList blocks={p.blocks} accent={accent} />
+      ) : (
+        <>
+          {p.code ? <CodeBox colours={colours} label={p.code.label} code={p.code.value} /> : null}
+          {p.steps ? (
+            <Steps colours={colours} labels={p.steps.labels} current={p.steps.current} />
+          ) : null}
+          {p.primaryAction ? (
+            <PrimaryButton href={p.primaryAction.url}>{p.primaryAction.label}</PrimaryButton>
+          ) : null}
+          <MetaPills items={p.meta ?? []} />
+          {p.giftCard ? (
+            <CodeBox
+              colours={colours}
+              label={p.giftCard.label}
+              code={p.giftCard.code}
+              lines={p.giftCard.lines}
+            />
+          ) : null}
+          <ItemsPanel
+            title={p.itemsTitle}
+            lines={p.lines}
+            totalHeading={p.totalHeading}
+            totalLabel={p.totalLabel}
+            subtotal={p.subtotal}
+            discount={p.discount}
+            shipping={p.shipping}
+            taxBreakdown={p.taxBreakdown}
+            afterTotal={p.afterTotal}
+            qty={p.qty}
+          />
+          {p.parcels ? <ParcelsBlock {...p.parcels} /> : null}
+          {p.outro || (p.extraLinks ?? []).length > 0 ? (
+            <Section className="k-pad" style={{ padding: '24px 48px 0', textAlign: 'center' }}>
+              {p.outro ? <Body>{p.outro}</Body> : null}
+              {(p.extraLinks ?? []).map((l) => (
+                <LinkLine key={l.url} label={l.label} href={l.url} />
+              ))}
+            </Section>
+          ) : null}
+        </>
+      )}
     </EmailLayout>
   )
 }

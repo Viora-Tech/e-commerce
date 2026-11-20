@@ -1,5 +1,6 @@
 import { renderEmail, TEMPLATE_IDS, TEMPLATE_NAMES } from '@commerce/notifications'
-import { sampleTemplateDataByTemplate } from '@commerce/notifications/testing'
+import { loadEnv } from '@commerce/config'
+import { sampleEmailBrand, sampleTemplateDataByTemplate } from '@commerce/notifications/testing'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
@@ -15,7 +16,9 @@ export default async function Page({ params }: PageProps) {
   const id = TEMPLATE_IDS.find((t) => t === template)
   if (!id) notFound()
 
-  const data = sampleTemplateDataByTemplate[id]
+  // The local storefront hosts the email icons (public/email), so the preview loads them.
+  const shopUrl = new URL(loadEnv(process.env).STOREFRONT_URL).origin
+  const data = { ...sampleTemplateDataByTemplate[id], brand: { ...sampleEmailBrand, shopUrl } }
   const email = await renderEmail(id, data)
 
   return (
