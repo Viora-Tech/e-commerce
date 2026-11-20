@@ -62,8 +62,8 @@ const readyToShipWhere = () =>
       /* Packed, but its label was cancelled and nothing replaced it: back on the list to book. */
       and(
         eq(order.fulfillmentStatus, 'fulfilled'),
-        sql`exists (select 1 from ${shipment} where ${shipment.orderId} = ${order.id} and ${shipment.status} = 'cancelled')`,
-        sql`not exists (select 1 from ${shipment} where ${shipment.orderId} = ${order.id} and ${shipment.status} not in ('cancelled', 'rto'))`,
+        sql`exists (select 1 from ${shipment} where ${shipment.orderId} = ${order.id} and (${shipment.status} = 'cancelled' or (${shipment.status} = 'lost' and ${shipment.reshippedAt} is not null)))`,
+        sql`not exists (select 1 from ${shipment} where ${shipment.orderId} = ${order.id} and ${shipment.status} not in ('cancelled', 'rto') and not (${shipment.status} = 'lost' and ${shipment.reshippedAt} is not null))`,
       ),
     ),
     sql`${order.status} != 'cancelled'`,
@@ -186,7 +186,7 @@ async function orderParts(tx: StoreTx, orderIds: string[]) {
     .where(
       and(
         inArray(shipment.orderId, orderIds),
-        sql`${shipment.status} not in ('cancelled', 'rto')`,
+        sql`${shipment.status} not in ('cancelled', 'rto') and not (${shipment.status} = 'lost' and ${shipment.reshippedAt} is not null)`,
         isNotNull(shipment.fulfillmentOrderId),
       ),
     )

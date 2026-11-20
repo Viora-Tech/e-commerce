@@ -174,6 +174,7 @@ export default [
       delivered: 'डिलीवर हो गया',
       rto: 'वापस लौट रहा है (RTO)',
       cancelled: 'कैंसिल',
+      lost: 'कूरियर से खो गया',
     },
   }),
   translation(shipmentDetailsContent, {

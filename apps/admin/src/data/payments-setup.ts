@@ -60,6 +60,16 @@ export const gatewayCatalogue: GatewayCatalogueEntry[] = [
     available: true,
   },
   {
+    id: 'snapmint',
+    name: 'EMI without a credit card (Snapmint)',
+    monogram: 'Sm',
+    blurb:
+      'Shoppers pay in monthly parts on UPI or a debit card. Shown only to shoppers Snapmint approves.',
+    methods: ['emi'],
+    fees: 'Set by Snapmint.',
+    available: true,
+  },
+  {
     id: 'phonepe',
     name: 'PhonePe',
     monogram: 'Pe',

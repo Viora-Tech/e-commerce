@@ -2,11 +2,18 @@
  * WHAT:  joins a batch's courier labels into one printable PDF in the merchant's chosen paper
  *        (4 × 6 in thermal, A4 four-up, or the courier's own pages).
  * WHY:   "Print 10 labels" after bulk booking is one file and one print dialog, not ten tabs in
- *        ten sizes.
+ *        ten sizes. On 4 × 6 each PDF page is cut to its drawn area first (label-content-bounds.ts),
+ *        so a courier's A4 slip fills the thermal label instead of printing small in the middle.
  * WHERE: `printLabelSheet` (packages/api label-sheet.service.ts); layout maths in
  *        label-sheet-layout.ts.
  */
-import { type LabelSheetFormat, labelSheetSize, layoutLabelPages } from './label-sheet-layout'
+import {
+  type LabelSheetFormat,
+  labelSheetSize,
+  layoutLabelPages,
+  trimsToContent,
+  trimToContent,
+} from './label-sheet-layout'
 
 export type LabelFile = { id: string; bytes: Uint8Array }
 
@@ -24,6 +31,10 @@ export async function mergeLabelSheet(
 ): Promise<{ pdf: Uint8Array | null; unreadable: string[] }> {
   // pdf-lib loads here, when someone prints, not with every process that loads core.
   const { PDFDocument, degrees } = await import('pdf-lib')
+  const trim = trimsToContent(format)
+  const { labelContentBounds } = trim
+    ? await import('./label-content-bounds')
+    : { labelContentBounds: null }
   const out = await PDFDocument.create()
   const unreadable: string[] = []
   /** Every label page, embedded, with its own size. */
@@ -66,7 +77,16 @@ export async function mergeLabelSheet(
       // only finds out when saving: leave it out here instead.
       const drawn = src.getPages().filter((p) => p.node.Contents() !== undefined)
       if (drawn.length === 0) throw new Error('No label page')
-      const embeds = await out.embedPages(drawn)
+      // 4 × 6: embed only the drawn part of each page (white margins cut away), so the fit
+      // below scales the label itself, not the courier's paper, to the thermal page.
+      const boxes = labelContentBounds
+        ? drawn.map((p) => {
+            const crop = p.getCropBox()
+            const box = trimToContent(crop, labelContentBounds(p))
+            return { left: box.x, bottom: box.y, right: box.x + box.width, top: box.y + box.height }
+          })
+        : undefined
+      const embeds = await out.embedPages(drawn, boxes)
       for (const embed of embeds) {
         sources.push({ kind: 'page', embed, width: embed.width, height: embed.height })
       }

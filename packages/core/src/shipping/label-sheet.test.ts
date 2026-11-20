@@ -1,6 +1,7 @@
 /** SOURCE OF TRUTH: tests for ./label-sheet.ts — a batch's labels merged into one PDF. */
-import { PDFDocument } from 'pdf-lib'
+import { PDFDocument, rgb } from 'pdf-lib'
 import { describe, expect, it } from 'vitest'
+import { labelContentBounds } from './label-content-bounds'
 import { mergeLabelSheet } from './label-sheet'
 
 /** A small generated PDF with one page per size. */
@@ -38,6 +39,28 @@ describe('mergeLabelSheet', () => {
       [288, 432],
       [288, 432],
     ])
+  })
+
+  it('4 × 6: an A4 slip with the label in its top part prints the label across the page', async () => {
+    const doc = await PDFDocument.create()
+    // A ~100 × 150 mm label in the top-left of an A4 page, the rest white.
+    doc.addPage([595.28, 841.89]).drawRectangle({
+      x: 30,
+      y: 400,
+      width: 283,
+      height: 425,
+      borderColor: rgb(0, 0, 0),
+      borderWidth: 1,
+    })
+    const { pdf: out } = await mergeLabelSheet([{ id: 'a', bytes: await doc.save() }], 'thermal4x6')
+    const page = out ? (await PDFDocument.load(out)).getPage(0) : null
+    const drawn = page ? labelContentBounds(page) : null
+    // Fills the 4 × 6 page on at least one side, less the 2 mm edge and 1 mm pad (the whole
+    // A4 page fitted printed it at under half).
+    const fill = Math.max((drawn?.width ?? 0) / 288, (drawn?.height ?? 0) / 432)
+    expect(fill).toBeGreaterThan(0.93)
+    expect(drawn?.x ?? 0).toBeGreaterThanOrEqual(0)
+    expect((drawn?.x ?? 0) + (drawn?.width ?? 0)).toBeLessThanOrEqual(288)
   })
 
   it('A4: four labels per sheet', async () => {

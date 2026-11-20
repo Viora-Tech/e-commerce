@@ -1,5 +1,6 @@
 import { loadEnv, settingsSecret } from '@commerce/config'
 import {
+  ABANDONED_CHANNELS,
   ABANDONED_CONTACTS,
   ABANDONED_LIST_STATUSES,
   CommerceError,
@@ -20,6 +21,7 @@ import {
 import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
 import { can, PAGE_SIZE_MAX, SEARCH_MAX } from '../procedures'
+import { getStoreAbandoned } from '../services/abandoned-detail.service'
 import { storeRegistries } from '../services/apps.service'
 import {
   checkStoreDraftDiscount,
@@ -29,7 +31,6 @@ import {
   duplicateStoreOrder,
   estimateStoreDraftGst,
   getDraft,
-  getStoreAbandoned,
   listStoreAbandoned,
   listStoreDrafts,
   previewRecovery,
@@ -40,6 +41,8 @@ import {
   sendRecovery,
   storeAbandonedStats,
 } from '../services/draft.service'
+import { draftCreator } from '../services/draft-creator.service'
+import { takeOverStoreCheckoutDraft } from '../services/draft-take-over.service'
 import { markDraftSeen } from '../services/drafts-seen.service'
 import { customMessage } from './custom-message'
 import { storeHasWhatsapp } from './order-messages'
@@ -86,12 +89,18 @@ export const draftAndAbandonedRoutes = {
     .input(z.object({ id: z.uuid() }))
     .handler(async ({ context, input }) => {
       const draft = await getDraft(context.tx, input.id)
-      if (draft?.draftSource !== 'checkout') return draft ? { ...draft, payLink: null } : null
+      if (!draft) return null
+      if (draft.draftSource !== 'checkout') {
+        // Made by staff: who made it, from the activity log (the sale-source card).
+        const createdBy = await draftCreator(context.tx, context.scope.storeId, draft.id)
+        return { ...draft, payLink: null, createdBy }
+      }
       // A shopper's unpaid checkout: the signed link to its page, where they pay or retry.
       const origin = await storefrontOriginFor(context.tx, context.scope.storeId, storefrontUrl())
       return {
         ...draft,
         payLink: thankYouUrl(draft.id, draft.number, settingsSecret(), origin),
+        createdBy: null,
       }
     }),
 
@@ -147,9 +156,13 @@ export const draftAndAbandonedRoutes = {
    */
   duplicateOrder: can(permissions.DRAFTS_WRITE)
     .input(z.object({ id: z.uuid() }))
-    .handler(({ context, input }) =>
-      duplicateStoreOrder(context.tx, context.scope.storeId, input.id),
-    ),
+    .handler(async ({ context, input }) => {
+      const draft = await duplicateStoreOrder(context.tx, context.scope.storeId, input.id)
+      // The log row names the new draft, not the order it was copied from, so the draft's
+      // sale-source card can say who made it (`draftCreator`).
+      if (draft) context.activity.note({ resourceId: draft.id })
+      return draft
+    }),
 
   /** Delete one draft order; placed orders cannot be deleted this way. */
   deleteDraft: can(permissions.DRAFTS_WRITE)
@@ -248,6 +261,20 @@ export const draftAndAbandonedRoutes = {
     }),
 
   /**
+   * "Edit" on a shopper's unpaid checkout draft: it becomes a staff draft the draft form edits.
+   * Refused while money is in or on its way; otherwise every payment try is stopped (the old
+   * payment link offers nothing to pay) and the timeline says who took it over.
+   */
+  takeOverCheckoutDraft: can(permissions.DRAFTS_WRITE)
+    .input(z.object({ id: z.uuid() }))
+    .handler(({ context, input }) =>
+      takeOverStoreCheckoutDraft(context.tx, context.scope.storeId, {
+        id: input.id,
+        author: context.session.user.email,
+      }),
+    ),
+
+  /**
    * Reserve items (#1030): hold the saved draft's stock until a date, so no one else can buy it.
    * Converting or deleting the draft, or the date passing, gives it back.
    */
@@ -303,6 +330,8 @@ export const draftAndAbandonedRoutes = {
         valueMaxPaise: z.number().int().min(0).optional(),
         /** Left an email, a phone number, or both. */
         contact: z.enum(ABANDONED_CONTACTS).optional(),
+        /** Came from any of these channels (`untracked`: none recorded), as on Orders. */
+        channels: z.array(z.enum(ABANDONED_CHANNELS)).max(ABANDONED_CHANNELS.length).optional(),
       }),
     )
     .handler(({ context, input }) => listStoreAbandoned(context.tx, context.scope.storeId, input)),

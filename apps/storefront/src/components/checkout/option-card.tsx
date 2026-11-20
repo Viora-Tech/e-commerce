@@ -61,8 +61,18 @@ export default function OptionCard({
         <span
           className={`grid size-10 shrink-0 place-items-center overflow-hidden rounded-[0.625rem] ${logo.light ? 'bg-white px-1' : ''}`}
         >
-          {/* biome-ignore lint/performance/noImgElement: a 40px static logo from /public. */}
-          <img src={logo.src} alt={logo.alt} className="max-h-8 max-w-full object-contain" />
+          {logo.src ? (
+            // biome-ignore lint/performance/noImgElement: a 40px static logo from /public.
+            <img src={logo.src} alt={logo.alt} className="max-h-8 max-w-full object-contain" />
+          ) : (
+            <span
+              role="img"
+              aria-label={logo.alt}
+              className="grid size-full place-items-center bg-ck-soft text-[0.8125rem] font-semibold text-ck-ink"
+            >
+              {logo.initials}
+            </span>
+          )}
         </span>
       ) : icon ? (
         <span

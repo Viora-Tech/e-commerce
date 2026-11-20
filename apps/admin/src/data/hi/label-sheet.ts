@@ -6,6 +6,7 @@ export default [
     paper: 'लेबल पेपर',
     formats: {
       thermal4x6: '4 × 6 इंच थर्मल · हर पेज पर 1',
+      thermal100x150: '100 × 150 mm थर्मल · हर पेज पर 1',
       a4x4: 'A4 · हर पेज पर 4',
       original: 'कूरियर का अपना साइज़',
     },

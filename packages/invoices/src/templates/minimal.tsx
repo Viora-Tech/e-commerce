@@ -139,7 +139,13 @@ export default function MinimalTemplate(props: TemplateProps & { fontFamily: str
             {cols.map((c) => (
               <Text
                 key={c.key}
-                style={{ width: `${c.width}%`, textAlign: c.align, fontSize: 7, color: MUTED }}
+                style={{
+                  width: `${c.width}%`,
+                  paddingHorizontal: 3,
+                  textAlign: c.align,
+                  fontSize: 7,
+                  color: MUTED,
+                }}
               >
                 {c.label}
               </Text>
@@ -158,7 +164,7 @@ export default function MinimalTemplate(props: TemplateProps & { fontFamily: str
               }}
             >
               {cols.map((c) => (
-                <View key={c.key} style={{ width: `${c.width}%` }}>
+                <View key={c.key} style={{ width: `${c.width}%`, paddingHorizontal: 3 }}>
                   <Text style={{ textAlign: c.align, fontSize: 7.5 }}>{c.render(l, i)}</Text>
                   {c.key === 'item' && f.sku && l.sku ? (
                     <Text style={{ fontSize: 6.5, color: MUTED, marginTop: 1 }}>{l.sku}</Text>

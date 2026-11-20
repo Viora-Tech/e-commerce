@@ -45,7 +45,13 @@ export const storeHealthContent = {
       fix: 'Open zone',
     },
     zones_overlap: {
-      title: (zones: string) => `Zones cover the same places: ${zones}`,
+      /** "India is in two delivery zones (Domestic and India)": each place and zone named once. */
+      title: (place: string | null, zones: readonly string[], count: number) => {
+        const many = count === 2 ? 'two' : count === 3 ? 'three' : String(count)
+        const names =
+          zones.length > 1 ? `${zones.slice(0, -1).join(', ')} and ${zones.at(-1)}` : zones.join('')
+        return `${place ?? 'The same PIN codes'} ${place ? 'is' : 'are'} in ${many} delivery zones (${names})`
+      },
       body: 'Only the first one with a rate is used, which makes prices hard to predict. Keep one.',
       fix: 'Open shipping',
     },

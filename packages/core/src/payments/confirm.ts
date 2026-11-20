@@ -187,6 +187,26 @@ export async function applyPaymentStatus(
     refundNeeded = o.status === 'cancelled' || !!other
   }
 
+  // A checkout staff took over to edit (order/checkout-draft-take-over.ts): the shopper paid an
+  // old gateway order for the old amount, before or after the draft was converted. A staff draft
+  // takes no gateway money before it converts either. Kept as money to send back, never as the
+  // order's payment.
+  const takenOver =
+    (next === 'captured' || next === 'authorized') &&
+    p.purpose === 'order' &&
+    !isSplitTender(p.provider) &&
+    (p.error?.startsWith(TAKEN_OVER_ATTEMPT_ERROR) === true ||
+      (o.status === 'draft' && !isCheckoutDraft(o)))
+  if (takenOver && !refundNeeded) {
+    refundNeeded = true
+    await ctx.tx.insert(orderNote).values({
+      storeId: ctx.storeId,
+      orderId: p.orderId,
+      body: TAKEN_OVER_PAYMENT_NOTE,
+      author: 'system',
+    })
+  }
+
   // Unpaid checkouts as drafts: the money (or, on a manual-capture store, the authorisation) is
   // what turns the shopper's draft into a numbered order, here, under the order lock, so a
   // duplicate webhook finds it already converted. Goods gone since the hold lapsed: the money
@@ -229,6 +249,13 @@ export async function applyPaymentStatus(
     refundNeeded,
   }
 }
+
+/** Written on each gateway try a take-over stops; a capture on one later is refunded. */
+export const TAKEN_OVER_ATTEMPT_ERROR = 'Stopped: staff took over the checkout to edit it'
+
+/** Timeline line when the shopper paid the old link of a checkout staff had taken over to edit. */
+export const TAKEN_OVER_PAYMENT_NOTE =
+  'The shopper paid the old payment link after staff took this checkout over to edit. The draft was not marked paid: refund that payment to the shopper.'
 
 export const LATE_CAPTURE_NOTE =
   'Payment arrived after the held items were released, and they are now out of stock. The draft was not placed: refund the payment to the shopper.'

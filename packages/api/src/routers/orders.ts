@@ -53,7 +53,10 @@ import {
   assertCourierConnected,
   bookShipment,
   cancelStoreShipment,
+  markStoreShipmentCancelled,
   refreshShipmentTracking,
+  returnStoreShipmentToBooked,
+  sendBackStoreShipment,
 } from '../services/shipping.service'
 import { courierArgs } from './courier-args'
 import { assertNotImported } from './imported-order'
@@ -320,11 +323,12 @@ export const ordersRouter = {
     }),
 
   /**
-   * Cancel a booked shipment with its courier, before it is collected or put on a manifest. The
-   * order timeline records who did it, and the parcel can be booked again.
+   * Cancel a booked shipment with its courier, before it is collected (also from a pickup or
+   * manifest). The order timeline records who did it, and the parcel can be booked again.
+   * `keepPacked`: only the label goes ("Cancel shipment"); otherwise the items are unpacked too.
    */
   cancelShipment: can(permissions.ORDERS_FULFIL)
-    .input(z.object({ shipmentId: z.uuid() }))
+    .input(z.object({ shipmentId: z.uuid(), keepPacked: z.boolean().optional() }))
     .handler(async ({ context, input }) => {
       const { shipping } = await storeRegistries(context.tx, context.scope.storeId)
       return cancelStoreShipment(
@@ -332,6 +336,48 @@ export const ordersRouter = {
         context.scope.storeId,
         shipping,
         settingsSecret(),
+        input.shipmentId,
+        context.session.user.email,
+        input.keepPacked ?? false,
+      )
+    }),
+
+  /** Take a booked shipment off its pickup and manifest, back to Booked; the label stays live. */
+  returnShipmentToBooked: can(permissions.ORDERS_FULFIL)
+    .input(z.object({ shipmentId: z.uuid() }))
+    .handler(async ({ context, input }) =>
+      returnStoreShipmentToBooked(
+        context.tx,
+        context.scope.storeId,
+        input.shipmentId,
+        context.session.user.email,
+      ),
+    ),
+
+  /** After pickup: ask the courier to bring the parcel back; it moves to Returned (RTO). */
+  sendBackShipment: can(permissions.ORDERS_FULFIL)
+    .input(z.object({ shipmentId: z.uuid() }))
+    .handler(async ({ context, input }) => {
+      const { shipping } = await storeRegistries(context.tx, context.scope.storeId)
+      return sendBackStoreShipment(
+        context.tx,
+        context.scope.storeId,
+        shipping,
+        settingsSecret(),
+        input.shipmentId,
+        context.session.user.email,
+      )
+    }),
+
+  /** Cancelled on the courier's own app: record it here only, the order goes back to To ship. */
+  markShipmentCancelled: can(permissions.ORDERS_FULFIL)
+    .input(z.object({ shipmentId: z.uuid() }))
+    .handler(async ({ context, input }) => {
+      const { shipping } = await storeRegistries(context.tx, context.scope.storeId)
+      return markStoreShipmentCancelled(
+        context.tx,
+        context.scope.storeId,
+        shipping,
         input.shipmentId,
         context.session.user.email,
       )

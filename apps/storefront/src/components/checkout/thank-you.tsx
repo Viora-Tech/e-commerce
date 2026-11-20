@@ -147,18 +147,22 @@ export default function ThankYouTemplate({
       ? deliveryWindow(parcels.filter((p) => !p.onHold).map((p) => p.estimate))
       : null
   const payClient = awaiting && session?.kind === 'client'
+  // A gateway's own page (Snapmint) the shopper left before finishing: back to it.
+  const payRedirect = awaiting && session?.kind === 'redirect' ? session.url : null
   const payOnline = manual !== null && canPayOnline
   // A cash on delivery order staff asked to pay online: the same block, pay now instead of cash.
   const payOnlineCod = codPayOnline && !payOnline && o.paymentMethod === 'cod' && !o.checkoutPaidAt
   const retry = failed || notStarted
   // Paid and not yet answered: nothing for the shopper to do but wait.
-  const confirming = awaiting && manual === null && qr === null && !payClient
+  const confirming = awaiting && manual === null && qr === null && !payClient && !payRedirect
   // A UPI / bank transfer checkout kept as a draft: received, and waiting for the money.
   const transferDraft = o.status === 'draft' && o.draftSource === 'checkout' && manual !== null
-  const expiredDraft = o.status === 'draft' && o.draftExpiredAt !== null
+  // Staff took the checkout over to edit it: this link stopped; the shop sends a new one.
+  const takenOver = o.status === 'draft' && o.draftSource !== 'checkout'
+  const expiredDraft = (o.status === 'draft' && o.draftExpiredAt !== null) || takenOver
   const claimed = transferDraft ? readShopperPaid(pay?.checkoutSession) : null
   const headline = expiredDraft
-    ? transferContent.expiredHeading
+    ? transferContent[takenOver ? 'takenOverHeading' : 'expiredHeading']
     : transferDraft
       ? transferContent.received(orderRef(o))
       : progress.end
@@ -171,12 +175,12 @@ export default function ThankYouTemplate({
               ? content.headline.pending
               : content.card.confirmed
   const statusLines = expiredDraft
-    ? [transferContent.expiredBody]
+    ? [transferContent[takenOver ? 'takenOverBody' : 'expiredBody']]
     : transferDraft
       ? [transferContent.complete]
       : !settled
         ? [
-            payClient
+            payClient || payRedirect
               ? content.status.unpaid(due)
               : unavailable
                 ? content.status.unavailable
@@ -426,8 +430,8 @@ export default function ThankYouTemplate({
                 ) : null}
                 {balance ? <div className={`${CK_CARD} p-5`}>{balance}</div> : null}
                 {retryButton}
-                {payClient ? (
-                  <a href={payPath} className={`${CK_BUTTON_PRIMARY} no-underline`}>
+                {payClient || payRedirect ? (
+                  <a href={payRedirect ?? payPath} className={`${CK_BUTTON_PRIMARY} no-underline`}>
                     {content.payNow}
                   </a>
                 ) : null}

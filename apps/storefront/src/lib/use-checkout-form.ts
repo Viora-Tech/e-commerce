@@ -1,5 +1,9 @@
 import { isAbroad } from '@commerce/core/checkout-address'
-import { applyCheckoutText, stateForPincode } from '@commerce/core/checkout-settings'
+import {
+  applyCheckoutText,
+  stateForPincode,
+  stateMatchesPincode,
+} from '@commerce/core/checkout-settings'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState, useTransition } from 'react'
 import { checkoutContent as content } from '@/data/checkout'
@@ -51,6 +55,7 @@ import {
 import { isQuotable, useCheckoutShipping } from '@/lib/use-checkout-shipping'
 import { useCheckoutTender } from '@/lib/use-checkout-tender'
 import { useHeldStep } from '@/lib/use-held-step'
+import { useLenderVisibility } from '@/lib/use-lender-visibility'
 import { useUnavailableMethods } from '@/lib/use-unavailable-methods'
 import {
   type ChangeHandler,
@@ -174,9 +179,10 @@ export function useCheckoutForm(input: CheckoutFormInput) {
   const accountRequired = signIn.checkout === 'account_required'
   /** Contact is settled: signed in, or a guest where the store allows one. */
   const contactReady = customer !== null || (!accountRequired && guest)
+  const shown = useLenderVisibility(methods, form, cart.subtotalPaise, discount?.amountPaise)
   const totals = checkoutTotals({
     cart,
-    methods,
+    methods: shown,
     settings,
     discountPaise: discount?.amountPaise ?? 0,
     shipping,
@@ -283,7 +289,12 @@ export function useCheckoutForm(input: CheckoutFormInput) {
       checkPincode(pincode, form.stateCode, form.countryCode)
       return
     }
-    const guess = touched.stateCode ? null : stateForPincode(cleanPincode(pincode))
+    /* The prefix's one state fills in, unless the shopper picked a state that can be right
+       for this PIN code. A state that cannot be (the form's Haryana default, or the last
+       address's state, left beside a Jaipur PIN) is always replaced. */
+    const clean = cleanPincode(pincode)
+    const fits = stateMatchesPincode(clean, form.stateCode)
+    const guess = touched.stateCode && fits ? null : stateForPincode(clean)
     const stateCode = guess ?? form.stateCode
     setForm((prev) => ({ ...prev, pincode, stateCode }))
     checkPincode(pincode, stateCode)

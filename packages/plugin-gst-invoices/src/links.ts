@@ -1,6 +1,6 @@
 import { documentLinkPath } from '@commerce/invoices/link'
 import type { OrderLink, OrderLinkContext } from '@commerce/plugins'
-import { and, eq, inArray } from 'drizzle-orm'
+import { and, eq, inArray, ne } from 'drizzle-orm'
 import { loadSettings } from './issue'
 import { invoice } from './schema'
 
@@ -19,6 +19,8 @@ export async function orderLinks(ctx: OrderLinkContext, orderId: string): Promis
           inArray(invoice.kind, ['tax_invoice', 'credit_note']),
           // A draft is not a document yet and a cancelled one is void: only issued ones are offered.
           eq(invoice.status, 'issued'),
+          // Recorded, invoiced outside Koomerce: no PDF of ours to link to.
+          ne(invoice.source, 'external'),
         ),
       )
       .orderBy(invoice.issuedAt),

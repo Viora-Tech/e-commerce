@@ -1,19 +1,16 @@
 'use client'
 
-import PageHeader from '@/components/layout/page-header'
-import PickupsTab from '@/components/shipments/pickups-tab'
-import { delhiveryAppContent } from '@/data/delhivery'
-import { useCopy } from '@/hooks/use-copy'
+import { useRouter } from 'next/navigation'
+import { useEffect } from 'react'
+import { routes } from '@/lib/routes'
 
-/** `/apps/delhivery/pickups`: the Pickups and manifests page with Delhivery's only. */
+/** `/apps/delhivery/pickups`: forwards to Orders → Shipments → Pickups, one place for every courier. */
 export default function PickupsPage() {
   // Hooks
-  const { pickupsPage: copy } = useCopy(delhiveryAppContent)
+  const router = useRouter()
+  useEffect(() => {
+    router.replace(routes.orders.shipmentPickups())
+  }, [router])
 
-  return (
-    <div className="flex flex-col gap-4">
-      <PageHeader title={copy.title} subtitle={copy.subtitle} />
-      <PickupsTab provider="delhivery" />
-    </div>
-  )
+  return null
 }

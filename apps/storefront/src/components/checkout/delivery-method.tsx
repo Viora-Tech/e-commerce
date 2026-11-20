@@ -1,14 +1,19 @@
 'use client'
 
 import { useFormatPaise } from '@commerce/blocks'
+import { COURIER_REQUEST_MAX } from '@commerce/core/courier-request'
 import { useEffect, useState } from 'react'
+import CheckoutField from '@/components/checkout/checkout-field'
 import CheckoutIcon from '@/components/checkout/checkout-icon'
 import CheckoutParcels from '@/components/checkout/checkout-parcels'
+import CourierList from '@/components/checkout/courier-list'
 import DeliveryRouteChoices from '@/components/checkout/delivery-route-choices'
 import InsuranceToggle from '@/components/checkout/insurance-toggle'
 import OptionCard from '@/components/checkout/option-card'
 import { checkoutContent as content } from '@/data/checkout'
+import { deliveryOptionsContent as appCopy } from '@/data/delivery-options'
 import { countdownIndex, deliveryCardLine, minutesUntil } from '@/lib/delivery-card-line'
+import type { ShopperParcel } from '@/lib/parcels'
 import type { CheckoutRate, CheckoutShipping } from '@/lib/shipping'
 
 type DeliveryMethodProps = {
@@ -26,10 +31,32 @@ type DeliveryMethodProps = {
   /** Delivery options app: the "Insure this shipment" checkbox, when offered. */
   insurance?: { offered: boolean; on: boolean; pricePaise: number | null } | null
   onInsurance?: (insured: boolean) => void
+  /** Delivery options app: "Want a different courier?" under the courier list. */
+  courierRequest?: string
+  onCourierRequest?: (text: string) => void
   /** The address is outside India: it asks for the address, not a PIN code (#64). */
   abroad?: boolean
   /** Cash on delivery is a way to pay here: only then does a prepaid-only card say so. */
   codOffered?: boolean
+}
+
+/**
+ * The parcels under the cards with the picked card's own dates for each (the engine run that
+ * priced the card), so "Parcel 1 arrives" never disagrees with the card (#1781 item 11).
+ */
+function parcelsForCard(
+  shipping: CheckoutShipping,
+  selectedId: string | null,
+  routeKey: string | null,
+): ShopperParcel[] {
+  const byCard = shipping.parcelDates
+  if (!byCard || !selectedId) return shipping.parcels
+  const dates = byCard[`${selectedId}|${routeKey ?? ''}`] ?? byCard[`${selectedId}|`]
+  if (!dates) return shipping.parcels
+  return shipping.parcels.map((p) => {
+    const own = dates.find((d) => d.key === p.key)
+    return own ? { ...p, dateRange: own.dateRange } : p
+  })
 }
 
 /**
@@ -55,6 +82,8 @@ export default function DeliveryMethod({
   onRoute,
   insurance = null,
   onInsurance,
+  courierRequest = '',
+  onCourierRequest,
   abroad = false,
   codOffered = false,
 }: DeliveryMethodProps) {
@@ -170,38 +199,43 @@ export default function DeliveryMethod({
           rates.map((o) => {
             const choices = o.delivery?.choices ?? []
             if (o.delivery?.layout === 'list' && choices.length > 0) {
-              // The courier list (Figma 942:513): every allowed courier is its own card; the
-              // first is included at the option's price, the rest show what they add.
-              const base = choices[0]?.pricePaise ?? o.pricePaise
-              const current = routeKey ?? choices[0]?.routeKey
+              // The courier list (owner, 20 Nov 2026): compact rows, the first included at the
+              // option's price, the rest show what they add; cash on delivery said once.
+              const current = selectedId === o.id ? (routeKey ?? choices[0]?.routeKey) : null
               const counter = countdownIndex(choices.map((c) => c.earliest ?? null))
-              return choices.map((c, i) => {
-                const on = selectedId === o.id && current === c.routeKey
-                const extra = c.pricePaise - base
-                return (
-                  <OptionCard
-                    key={`${o.id}:${c.routeKey}`}
-                    name="shipping-rate"
-                    value={`${o.id}:${c.routeKey}`}
-                    checked={on}
-                    icon="truck"
-                    logo={c.logo}
-                    onChange={() => {
-                      onSelect(o.id)
-                      onRoute?.(c.routeKey)
-                    }}
-                    title={c.label}
-                    description={c.arrives}
-                    meta={extra > 0 ? `+ ${money(extra)}` : price(c.pricePaise)}
-                    note={line(
-                      o.id,
-                      c.label,
-                      { mode: c.mode ?? null, codAllowed: o.delivery?.codAllowed ?? null },
-                      i === counter,
-                    )}
-                  />
-                )
-              })
+              const cod = o.delivery?.codAllowed ?? null
+              return (
+                <CourierList
+                  key={o.id}
+                  optionId={o.id}
+                  choices={choices}
+                  selected={current ?? null}
+                  onPick={(key) => {
+                    onSelect(o.id)
+                    onRoute?.(key)
+                  }}
+                  price={price}
+                  money={money}
+                  preferred={o.delivery?.preferred === true}
+                  heading={
+                    !codOffered || cod === null
+                      ? null
+                      : cod
+                        ? appCopy.codAvailableAll
+                        : appCopy.prepaidOnly
+                  }
+                  note={(i) =>
+                    deliveryCardLine({
+                      title: choices[i]?.label ?? '',
+                      mode: choices[i]?.mode ?? null,
+                      codAllowed: null,
+                      codOffered: false,
+                      minutesLeft:
+                        i === counter ? minutesUntil(shipping.dispatchCutoffAt, nowMs) : null,
+                    })
+                  }
+                />
+              )
             }
             const picked = selectedId === o.id
             const sub = picked ? choices.find((c) => c.routeKey === routeKey) : undefined
@@ -257,6 +291,18 @@ export default function DeliveryMethod({
           })
         )}
       </fieldset>
+      {onCourierRequest && rates.some((r) => r.delivery?.layout === 'list') ? (
+        <CheckoutField
+          id="courier-request"
+          label={appCopy.requestLabel}
+          value={courierRequest}
+          onChange={(e) => onCourierRequest(e.target.value)}
+          placeholder={appCopy.requestPlaceholder}
+          hint={appCopy.requestHelp}
+          maxLength={COURIER_REQUEST_MAX}
+          autoComplete="off"
+        />
+      ) : null}
       {insurance?.offered && onInsurance ? (
         <InsuranceToggle
           on={insurance.on}
@@ -264,7 +310,7 @@ export default function DeliveryMethod({
           onChange={onInsurance}
         />
       ) : null}
-      <CheckoutParcels parcels={shipping.parcels} />
+      <CheckoutParcels parcels={parcelsForCard(shipping, selectedId, routeKey)} />
     </div>
   )
 }

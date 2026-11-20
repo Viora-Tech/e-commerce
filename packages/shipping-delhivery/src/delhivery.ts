@@ -211,7 +211,7 @@ const isYes = (value: string | undefined): boolean =>
 /**
  * Delhivery's scan vocabulary, reduced to ours. StatusType is the reliable
  * field: UD (undelivered = in flight), DL (delivered), RT (return), CN
- * (cancelled), PP (pending pickup). The free-text Status refines "in flight"
+ * (cancelled), PP (pending pickup), LT (lost). The free-text Status refines "in flight"
  * into picked up / out for delivery.
  */
 export function mapDelhiveryStatus(
@@ -220,6 +220,8 @@ export function mapDelhiveryStatus(
 ): ShipmentStatus {
   const type = (statusType ?? '').toUpperCase()
   const text = (status ?? '').toLowerCase()
+  // Lost in transit: Delhivery's LT type, or a scan that says so ("LOST", "Shipment lost").
+  if (type === 'LT' || /\blost\b/.test(text)) return 'lost'
   if (type === 'DL' || text.includes('delivered')) return 'delivered'
   if (type === 'RT' || text.startsWith('rto') || text.includes('returned')) return 'rto'
   if (type === 'CN' || text.includes('cancel')) return 'cancelled'

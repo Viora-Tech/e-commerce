@@ -1,27 +1,20 @@
 'use client'
 
-import type {
-  DeliveryOption,
-  RouteRule,
-  RouteRuleInput,
-  RouteSelector,
-  RuleTargetKind,
-} from '@commerce/core/delivery-options'
+import type { DeliveryOption, RouteRule } from '@commerce/core/delivery-options'
 import { Save, Trash2 } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Checkbox } from '@commerce/ui/shadcn/checkbox'
 import { Dialog, DialogTitle } from '@commerce/ui/shadcn/dialog'
 import { Field, FieldError, FieldGroup, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
-import { Textarea } from '@commerce/ui/shadcn/textarea'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import ChoiceField from '@/components/apps/gst-invoices/choice-field'
 import { itemTabs } from '@/components/discounts/pick-sources'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
 import DialogContent from '@/components/layout/dialog-content'
 import DialogFooter from '@/components/layout/dialog-footer'
 import DialogHeader from '@/components/layout/dialog-header'
+import NoticeBar from '@/components/layout/notice-bar'
 import ResourcePickDialog from '@/components/pickers/resource-pick-dialog'
 import SettingsToggleRow from '@/components/settings/settings-toggle-row'
 import { deliveryOptionsContent } from '@/data/delivery-options'
@@ -29,7 +22,17 @@ import { deliveryPagesContent } from '@/data/delivery-options-pages'
 import { discountFormContent } from '@/data/discounts'
 import { useCopy, useLocale } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import {
+  draftOf,
+  type RuleDraft,
+  ruleErrors,
+  ruleInputOf,
+  withValidPreferred,
+} from './rule-draft'
+import RuleMoreFields from './rule-more-fields'
+import RuleRouteChoices from './rule-route-choices'
 import RuleRoutesFields from './rule-routes-fields'
+import RuleSentence from './rule-sentence'
 
 type RuleDialogProps = {
   open: boolean
@@ -40,60 +43,15 @@ type RuleDialogProps = {
   onSaved: () => void
 }
 
-type Draft = {
-  name: string
-  kind: RuleTargetKind
-  values: string[]
-  text: string
-  optionIds: 'all' | string[]
-  routes: RouteSelector[]
-  defaultIndex: number | null
-  alternatives: number[]
-  insurance: RouteRuleInput['insurance']
-  enabled: boolean
-}
-
-const KINDS: RuleTargetKind[] = ['collections', 'products', 'tags', 'types']
-
-const sameSelector = (a: RouteSelector, b: RouteSelector) =>
-  a.carrier === b.carrier &&
-  (a.channel ?? 'any') === (b.channel ?? 'any') &&
-  (a.speed ?? 'any') === (b.speed ?? 'any')
-
-function draftOf(rule: RouteRule | null): Draft {
-  if (!rule) {
-    return {
-      name: '',
-      kind: 'collections',
-      values: [],
-      text: '',
-      optionIds: 'all',
-      routes: [{ carrier: 'delhivery', channel: 'any', speed: 'any' }],
-      defaultIndex: null,
-      alternatives: [],
-      insurance: 'follow_option',
-      enabled: true,
-    }
-  }
-  const indexOf = (s: RouteSelector) => rule.routes.findIndex((r) => sameSelector(r, s))
-  const def = rule.defaultRoute ? indexOf(rule.defaultRoute) : -1
-  return {
-    name: rule.name,
-    kind: rule.target.kind,
-    values: rule.target.values,
-    text: rule.target.values.join('\n'),
-    optionIds: rule.optionIds,
-    routes: rule.routes,
-    defaultIndex: def >= 0 ? def : null,
-    alternatives: rule.alternatives.map(indexOf).filter((i) => i >= 0),
-    insurance: rule.insurance,
-    enabled: rule.enabled,
-  }
-}
-
-const picks = (kind: RuleTargetKind) => kind === 'products' || kind === 'collections'
-
-/** Add or edit a product route rule: target, options, allowed routes, default, alternatives. */
+/**
+ * Add or edit a product route rule as a plain sentence (owner, 17 Nov, #1781): "[Glasspads]
+ * ship only with [Delhivery]", through which account, which speeds, a preferred courier (and
+ * "always by it at the option's price"), and a collapsed More. A rule whose routes can't be
+ * said that way opens in the detailed route editor instead. Saves the same rule schema.
+ *
+ * No live "what this rule gives" line: Try a PIN prices only saved rules (its `draft` takes
+ * the layout and options, not rules), so an unsaved rule can't be previewed yet.
+ */
 export default function RuleDialog({
   open,
   rule,
@@ -106,7 +64,7 @@ export default function RuleDialog({
   const pages = useCopy(deliveryPagesContent)
   const discountCopy = useCopy(discountFormContent)
   const locale = useLocale()
-  const [draft, setDraft] = useState<Draft>(() => draftOf(rule))
+  const [draft, setDraft] = useState<RuleDraft>(() => draftOf(rule))
   const [attempted, setAttempted] = useState(false)
   const [picking, setPicking] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -119,37 +77,15 @@ export default function RuleDialog({
   }, [open, rule])
 
   // Helpers
-  const patch = (p: Partial<Draft>) => setDraft((d) => ({ ...d, ...p }))
-  const values = () =>
-    picks(draft.kind)
-      ? draft.values
-      : draft.text
-          .split('\n')
-          .map((v) => v.trim())
-          .filter(Boolean)
+  const patch = (p: Partial<RuleDraft>) => setDraft((d) => withValidPreferred({ ...d, ...p }))
 
   // Event handlers
-  const handleOption = (id: string, on: boolean) => {
-    const current = draft.optionIds === 'all' ? [] : draft.optionIds
-    const next = on ? [...current, id] : current.filter((x) => x !== id)
-    patch({ optionIds: next.length ? next : 'all' })
-  }
   const handleSave = async () => {
     setAttempted(true)
-    if (!draft.name.trim() || values().length === 0 || draft.routes.length === 0) return
-    const input: RouteRuleInput = {
-      name: draft.name.trim(),
-      target: { kind: draft.kind, values: values() },
-      optionIds: draft.optionIds,
-      routes: draft.routes,
-      defaultRoute: draft.defaultIndex === null ? null : (draft.routes[draft.defaultIndex] ?? null),
-      alternatives: draft.alternatives.flatMap((i) => draft.routes[i] ?? []),
-      insurance: draft.insurance,
-      enabled: draft.enabled,
-    }
+    if (Object.values(ruleErrors(draft)).some(Boolean)) return
     setBusy(true)
     try {
-      await api.deliveryOptions.saveRule({ id: rule?.id ?? null, rule: input })
+      await api.deliveryOptions.saveRule({ id: rule?.id ?? null, rule: ruleInputOf(draft) })
       toast.success(copy.saved)
       onSaved()
       onOpenChange(false)
@@ -159,7 +95,6 @@ export default function RuleDialog({
       setBusy(false)
     }
   }
-
   const handleDelete = async () => {
     if (!rule) return
     setBusy(true)
@@ -177,13 +112,7 @@ export default function RuleDialog({
 
   // Render logic
   const d = copy.ruleDialog
-  const errors = attempted
-    ? {
-        name: draft.name.trim() ? null : d.errors.name,
-        target: values().length ? null : d.errors.target,
-        routes: draft.routes.length ? null : d.errors.routes,
-      }
-    : { name: null, target: null, routes: null }
+  const errors = attempted ? ruleErrors(draft) : null
   const tabs = itemTabs(discountCopy.value, locale).filter((t) => t.key === draft.kind)
 
   return (
@@ -193,7 +122,7 @@ export default function RuleDialog({
           <DialogTitle>{rule ? d.editTitle : d.addTitle}</DialogTitle>
         </DialogHeader>
         <FieldGroup>
-          <Field data-invalid={errors.name ? true : undefined}>
+          <Field data-invalid={errors?.name || undefined}>
             <FieldLabel htmlFor="rule-name">{d.name}</FieldLabel>
             <Input
               id="rule-name"
@@ -201,82 +130,47 @@ export default function RuleDialog({
               placeholder={d.namePlaceholder}
               onChange={(e) => patch({ name: e.target.value })}
             />
-            {errors.name ? <FieldError>{errors.name}</FieldError> : null}
+            {errors?.name ? <FieldError>{d.errors.name}</FieldError> : null}
           </Field>
-          <ChoiceField
-            id="rule-kind"
-            label={d.target}
-            value={draft.kind}
-            options={KINDS.map((k) => ({ value: k, label: d.targetKinds[k] }))}
-            onChange={(k) => patch({ kind: k as RuleTargetKind, values: [], text: '' })}
+          <RuleSentence
+            draft={draft}
+            errors={errors}
+            onChange={patch}
+            onBrowse={() => setPicking(true)}
           />
-          <Field data-invalid={errors.target ? true : undefined}>
-            {picks(draft.kind) ? (
-              <div className="flex items-center gap-3">
-                <Button variant="outline" onClick={() => setPicking(true)}>
-                  {d.browse}
-                </Button>
-                <span className="text-body text-muted-foreground">
-                  {d.picked(draft.values.length)}
-                </span>
-              </div>
-            ) : (
-              <>
-                <FieldLabel htmlFor="rule-values">{d.values}</FieldLabel>
-                <Textarea
-                  id="rule-values"
-                  value={draft.text}
-                  onChange={(e) => patch({ text: e.target.value })}
-                />
-              </>
-            )}
-            {errors.target ? <FieldError>{errors.target}</FieldError> : null}
-          </Field>
-          <Field>
-            <FieldLabel>{d.options}</FieldLabel>
-            <label
-              htmlFor="rule-all-options"
-              className="flex cursor-pointer items-center gap-2 text-body"
-            >
-              <Checkbox
-                id="rule-all-options"
-                checked={draft.optionIds === 'all'}
-                onCheckedChange={(v) => (v ? patch({ optionIds: 'all' }) : null)}
+          {draft.custom ? (
+            <>
+              <NoticeBar>{d.custom}</NoticeBar>
+              <RuleRoutesFields
+                routes={draft.routes}
+                defaultIndex={draft.defaultIndex}
+                alternatives={draft.alternatives}
+                error={errors?.routes ? d.errors.routes : null}
+                onChange={(next) => patch(next)}
               />
-              {d.allOptions}
-            </label>
-            {options.map((o) => (
-              <label
-                key={o.id}
-                htmlFor={`rule-option-${o.id}`}
-                className="flex cursor-pointer items-center gap-2 text-body"
-              >
-                <Checkbox
-                  id={`rule-option-${o.id}`}
-                  checked={draft.optionIds !== 'all' && draft.optionIds.includes(o.id)}
-                  onCheckedChange={(v) => handleOption(o.id, Boolean(v))}
-                />
-                {o.name}
-              </label>
-            ))}
-          </Field>
-          <RuleRoutesFields
-            routes={draft.routes}
-            defaultIndex={draft.defaultIndex}
-            alternatives={draft.alternatives}
-            error={errors.routes}
-            onChange={(next) => patch(next)}
-          />
-          <ChoiceField
-            id="rule-insurance"
-            label={d.insurance}
-            value={draft.insurance}
-            options={[
-              { value: 'follow_option', label: d.followOption },
-              { value: 'required', label: d.required },
-            ]}
-            onChange={(v) => patch({ insurance: v === 'required' ? 'required' : 'follow_option' })}
-          />
+              {draft.defaultIndex === null ? null : (
+                <label
+                  htmlFor="rule-force-route-custom"
+                  className="flex cursor-pointer items-start gap-2 text-body"
+                >
+                  <Checkbox
+                    id="rule-force-route-custom"
+                    className="mt-0.5"
+                    checked={draft.forceRoute}
+                    onCheckedChange={(v) => patch({ forceRoute: Boolean(v) })}
+                  />
+                  {d.forceRoute}
+                </label>
+              )}
+            </>
+          ) : (
+            <RuleRouteChoices
+              draft={draft}
+              speedsError={errors?.speeds ?? false}
+              onChange={patch}
+            />
+          )}
+          <RuleMoreFields draft={draft} options={options} onChange={patch} />
           <SettingsToggleRow
             id="rule-enabled"
             label={d.enabled}
@@ -320,7 +214,7 @@ export default function RuleDialog({
           selected={{ tab: draft.kind, ids: draft.values }}
           onClose={() => setPicking(false)}
           onDone={(r) => {
-            patch({ values: r.ids })
+            patch({ values: r.ids, titles: r.items.map((i) => i.title) })
             setPicking(false)
           }}
         />

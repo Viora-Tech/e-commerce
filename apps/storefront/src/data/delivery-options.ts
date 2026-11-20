@@ -11,6 +11,18 @@ export const deliveryOptionsContent = {
   orderWithin: (hours: number, minutes: number) =>
     `Order in the next ${[hours > 0 ? `${hours} h` : '', minutes > 0 ? `${minutes} min` : ''].filter(Boolean).join(' ')}`,
   codAvailable: 'Cash on delivery available',
+  /** Once above the courier list, when every courier takes cash on delivery. */
+  codAvailableAll: 'Cash on delivery available on every courier',
+  /** The courier list's tags and controls. */
+  cheapest: 'Cheapest',
+  recommended: 'Recommended',
+  fastest: 'Fastest',
+  showMore: (n: number) => `Show ${n} more ${n === 1 ? 'courier' : 'couriers'}`,
+  showLess: 'Show fewer couriers',
+  /** The optional box under the courier list (owner, 20 Nov 2026). */
+  requestLabel: 'Want a different courier? (optional)',
+  requestPlaceholder: 'e.g. DTDC, India Post',
+  requestHelp: 'We’ll call you with the price before we ship.',
   /** The summary's delivery row while the parcel is insured (Figma 945:519). */
   insured: 'insured',
   /** The insurance checkbox under the options. */
@@ -21,6 +33,8 @@ export const deliveryOptionsContent = {
   /** The Payment step, when cash on delivery ships another route at another price. */
   codRoute: (extra: string, carrier: string) =>
     `Cash on delivery: +${extra}, ships with ${carrier}`,
+  /** The Payment step, when the picked courier charges more to collect cash. */
+  codExtra: (extra: string) => `Cash on delivery: +${extra}`,
   /** The Payment step, when the picked delivery option is prepaid only. */
   codPrepaidOnly: (option: string) => `Not available with ${option} delivery`,
   /** Pay refused: cash on delivery with a prepaid-only option. */

@@ -13,6 +13,7 @@ import LoadFailedState from '@/components/apps/shared/load-failed-state'
 import DataCard from '@/components/layout/data-card'
 import DataCardSkeleton from '@/components/layout/data-card-skeleton'
 import { appsContent } from '@/data/apps'
+import { gstAlreadyInvoicedContent } from '@/data/gst-already-invoiced'
 import { gstInvoicesContent } from '@/data/gst-invoices'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -49,6 +50,7 @@ const isWaiting = (d: Data) =>
 export default function OrderCard({ orderId }: OrderCardProps) {
   // Hooks
   const apps = useCopy(appsContent)
+  const outsideCopy = useCopy(gstAlreadyInvoicedContent)
   const [data, setData] = useState<Data | null>(null)
   /** The first read failed: the card says so with Try again instead of hiding itself. */
   const [failed, setFailed] = useState(false)
@@ -200,6 +202,9 @@ export default function OrderCard({ orderId }: OrderCardProps) {
                   {d.status === 'cancelled' ? `, ${copy.statuses.cancelled}` : ''}
                   {d.pdfStatus === 'failed' ? `, ${copy.pdfFailed}` : ''}
                 </span>
+                {d.source === 'external' ? (
+                  <span className="text-caption text-muted-foreground">{outsideCopy.outside}</span>
+                ) : null}
               </div>
             </div>
             <div className="flex items-center justify-end gap-2">
@@ -223,15 +228,17 @@ export default function OrderCard({ orderId }: OrderCardProps) {
                 <Eye />
                 {copy.view}
               </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={busy !== null}
-                onClick={() => handleDownload(d.id)}
-              >
-                <Download />
-                {copy.download}
-              </Button>
+              {d.source === 'external' ? null : (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={busy !== null}
+                  onClick={() => handleDownload(d.id)}
+                >
+                  <Download />
+                  {copy.download}
+                </Button>
+              )}
             </div>
           </div>
         ))}

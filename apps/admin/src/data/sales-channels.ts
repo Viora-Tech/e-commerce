@@ -148,7 +148,7 @@ export const salesChannelsContent = {
   overview: {
     title: 'Agentic sales',
     subtitle:
-      'Let AI shopping assistants show and sell your products. You choose which agents and what they can see.',
+      'Get your store ready for AI shopping assistants. You choose what they can see and at what price.',
     controls: 'Controls',
     connect: 'Connect an agent',
     stats: {
@@ -172,7 +172,6 @@ export const salesChannelsContent = {
     viewInOrders: 'View in Orders',
   },
   getReady: {
-    headline: 'AI shopping agents are coming. Get your store ready to sell inside them.',
     stepsHeading: 'Get ready for agentic sales',
     done: 'Done',
     todo: 'To do',
@@ -191,11 +190,6 @@ export const salesChannelsContent = {
       },
     },
     note: 'Agents only see what you allow in Controls. Orders from agents land in Orders like any other order.',
-    channelsHeading: 'Channels',
-    manage: `Let ${siteConfig.brand.name} manage for me`,
-    manageBody: 'We list your store with each agent as it goes live, with the products you allow.',
-    managedOn: 'You’re on the list for every AI agent',
-    managedOff: 'You’re off the list for every AI agent',
     sourcesHeading: 'Sources',
     sources: {
       catalog: `${siteConfig.brand.name} catalog`,

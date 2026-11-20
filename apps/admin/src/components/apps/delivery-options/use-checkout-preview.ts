@@ -24,6 +24,8 @@ export function useCheckoutPreview(
   pincode: string = PREVIEW_PIN,
   /** False: ask nothing (the page shows no preview right now). */
   enabled = true,
+  /** The sample cart's weight; the Options page lets the admin change it (#1781 item 7). */
+  weightGrams: number = PREVIEW_CART.weightGrams,
 ): { result: TryPinResult | null; loading: boolean; failed: boolean } {
   const [result, setResult] = useState<TryPinResult | null>(null)
   const [loading, setLoading] = useState(true)
@@ -31,7 +33,8 @@ export function useCheckoutPreview(
   const key = JSON.stringify(draft)
 
   useEffect(() => {
-    if (!enabled) return
+    // A half-typed PIN asks nothing; the page says what is missing.
+    if (!enabled || !/^\d{6}$/.test(pincode) || weightGrams <= 0) return
     let live = true
     setLoading(true)
     const parsed = key === 'null' ? null : (JSON.parse(key) as PreviewDraft)
@@ -41,7 +44,7 @@ export function useCheckoutPreview(
           .tryPin({
             pincode,
             valuePaise: PREVIEW_CART.valuePaise,
-            weightGrams: PREVIEW_CART.weightGrams,
+            weightGrams,
             productIds: [],
             declineInsurance: false,
             cached: true,
@@ -65,7 +68,7 @@ export function useCheckoutPreview(
       live = false
       clearTimeout(timer)
     }
-  }, [key, pincode, enabled])
+  }, [key, pincode, enabled, weightGrams])
 
   return { result, loading, failed }
 }

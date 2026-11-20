@@ -29,9 +29,17 @@ function withChoice(
   if (!rate || !sub) return rate
   return {
     ...rate,
-    name: `${rate.delivery?.optionName ?? rate.name} · ${sub.label}`,
+    // The courier list has no option of its own to name: just "Blue Dart Air", not "Standard · …".
+    name:
+      rate.delivery?.layout === 'list'
+        ? sub.label
+        : `${rate.delivery?.optionName ?? rate.name} · ${sub.label}`,
     pricePaise: sub.pricePaise,
     arrives: sub.arrives,
+    // A courier list card pays on delivery with its own courier at its own COD price.
+    ...(rate.delivery?.layout === 'list' && sub.codPricePaise != null
+      ? { delivery: { ...rate.delivery, codPricePaise: sub.codPricePaise, codCarrier: null } }
+      : {}),
   }
 }
 
@@ -50,15 +58,16 @@ export function useCheckoutShipping(cart: CartView, onNoCod: () => void) {
   /** The ticked card is the shopper's own choice, not checkout's default. */
   const [shopperPicked, setShopperPicked] = useState(false)
   const [routeKey, setRouteKey] = useState<string | null>(null)
-  const [declineInsurance, setDeclineInsurance] = useState(false)
+  /** The shopper's insurance tick; null until they touch it (each option's own default). */
+  const [insure, setInsure] = useState<boolean | null>(null)
+  /** "Want a different courier?" under the courier list (owner, 20 Nov 2026); blank: none. */
+  const [courierRequest, setCourierRequest] = useState('')
   const [asked, setAsked] = useState<Asked | null>(null)
 
-  const ask = (to: Asked, decline: boolean, keep: boolean) => {
+  const ask = (to: Asked, tick: boolean | null, keep: boolean) => {
     const quoteId = keep ? (shipping?.deliveryQuote?.quoteId ?? null) : null
     startCheck(async () => {
-      const next = await retryOnce(() =>
-        checkoutShippingAction(to, { declineInsurance: decline, quoteId }),
-      )
+      const next = await retryOnce(() => checkoutShippingAction(to, { insure: tick, quoteId }))
       setShipping(next)
       setQuoted(true)
       // Keep the shopper's own pick while it is offered, else the cheapest (#1519).
@@ -81,12 +90,12 @@ export function useCheckoutShipping(cart: CartView, onNoCod: () => void) {
     if (isDigitalOnly(cart) || !isQuotable(pincode, countryCode)) return
     const to = { pincode, stateCode, countryCode }
     setAsked(to)
-    ask(to, declineInsurance, false)
+    ask(to, insure, false)
   }
 
   const toggleInsurance = (insured: boolean) => {
-    setDeclineInsurance(!insured)
-    if (asked) ask(asked, !insured, true)
+    setInsure(insured)
+    if (asked) ask(asked, insured, true)
   }
 
   const pickRate = (id: string | null) => {
@@ -123,9 +132,16 @@ export function useCheckoutShipping(cart: CartView, onNoCod: () => void) {
     ? {
         quoteId: quote.quoteId,
         routeKey,
-        insured: quote.insurance.offered ? !declineInsurance : true,
+        // What the picked card's price assumes, so Pay charges what the card showed.
+        insured: rate?.delivery?.insurance?.on ?? quote.insurance.on,
       }
     : null
+  /* The tick under the cards follows the picked card: its own offer and what it adds there
+     ("Insure this parcel (+₹20)"); before a card is picked, the first that offers it. */
+  const own = rate?.delivery?.insurance
+  const insurance = own
+    ? { offered: own.offered, on: own.on, pricePaise: own.extraPaise }
+    : (quote?.insurance ?? null)
 
   return {
     checking,
@@ -135,11 +151,19 @@ export function useCheckoutShipping(cart: CartView, onNoCod: () => void) {
     rateId,
     setRateId: pickRate,
     /** Delivery options app: the sub-choice and the insurance tick under the cards. */
-    app: { routeKey, setRouteKey: pickRoute, insurance: quote?.insurance ?? null, toggleInsurance },
+    app: {
+      routeKey,
+      setRouteKey: pickRoute,
+      insurance,
+      toggleInsurance,
+      courierRequest,
+      setCourierRequest,
+    },
     /** What Pay sends about shipping: the picked rate, and the app's choice when it is on. */
     formFields: {
       ...(rateId ? { shippingRate: rateId } : {}),
       ...(deliveryChoice ? { deliveryQuote: deliveryChoice } : {}),
+      ...(deliveryChoice && courierRequest.trim() ? { courierRequest: courierRequest.trim() } : {}),
     },
     unserviceable,
     gate,

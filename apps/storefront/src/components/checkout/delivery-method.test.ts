@@ -133,10 +133,17 @@ describe('DeliveryMethod', () => {
         rates: [list],
         codOffered: true,
       })
-      expect(html).toContain('Surface · cash on delivery available')
-      expect(html).toContain('Express · cash on delivery available')
-      expect(html).toContain('By air · order in the next 2 h 14 min · cash on delivery available')
+      // Cash on delivery is said once above the rows, not on each one (owner, 20 Nov 2026).
+      expect(html.match(/Cash on delivery available on every courier/g)).toHaveLength(1)
+      const text = html.replace(/<[^>]+>/g, '')
+      expect(text).toContain('Arrives 2026-10-18 · Surface')
+      expect(text).toContain('Arrives 2026-10-17 · Express')
+      expect(text).toContain('Arrives 2026-10-16 · By air · order in the next 2 h 14 min')
       expect(html.match(/order in the next/g)).toHaveLength(1)
+      // The first is the cheapest; the one that arrives first alone is the fastest.
+      expect(html.match(/>Cheapest</g)).toHaveLength(1)
+      expect(html.match(/>Fastest</g)).toHaveLength(1)
+      expect(html).toContain('+ ₹59')
     })
 
     it('says nothing of the countdown without a cut-off, and a prepaid option says pay online', () => {
@@ -149,7 +156,28 @@ describe('DeliveryMethod', () => {
       }
       const html = render({ rates: [prepaid], codOffered: true })
       expect(html).not.toContain('order in the next')
-      expect(html).toContain('By air · pay online for this option')
+      expect(html).toContain('Pay online for this option')
+      expect(html).not.toContain('Cash on delivery available')
+    })
+
+    it('shows three couriers until asked, and a courier at the same price shows that price', () => {
+      const four: CheckoutRate = {
+        ...list,
+        delivery: {
+          ...(list.delivery as NonNullable<CheckoutRate['delivery']>),
+          choices: [
+            choice('d:S', 'Delhivery Surface', 4_900, 'surface', '2026-10-18'),
+            choice('d:E', 'Delhivery Express', 4_900, 'express', '2026-10-17'),
+            choice('b:S', 'Blue Dart Surface', 9_900, 'surface', '2026-10-17'),
+            choice('a:S', 'Amazon Shipping', 9_900, 'surface', '2026-10-19'),
+          ],
+        },
+      }
+      const html = render({ rates: [four] })
+      expect(html).not.toContain('Same price')
+      expect(html.match(/₹49/g)).toHaveLength(2)
+      expect(html).toContain('Show 1 more courier')
+      expect(html).not.toContain('Amazon Shipping')
     })
   })
 })

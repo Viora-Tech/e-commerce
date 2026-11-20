@@ -214,6 +214,7 @@ export function mapEkartStatus(status: string | null | undefined): ShipmentStatu
   const s = (status ?? '').toLowerCase().trim()
   if (s.startsWith('rto') || s === 'seller rto requested') return 'rto'
   if (s === 'delivered') return 'delivered'
+  if (s === 'lost') return 'lost'
   if (s === 'cancelled' || s === 'seller cancelled' || s === 'pickup cancelled') return 'cancelled'
   if (s === 'out for delivery') return 'out_for_delivery'
   if (s === 'picked up') return 'picked_up'
@@ -229,7 +230,7 @@ export function mapEkartStatus(status: string | null | undefined): ShipmentStatu
   ) {
     return 'created'
   }
-  // In Transit, Undelivered (an attempt), Shipment Delayed, Lost, Damaged and anything new.
+  // In Transit, Undelivered (an attempt), Shipment Delayed, Damaged and anything new.
   return 'in_transit'
 }
 

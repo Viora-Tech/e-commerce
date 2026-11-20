@@ -246,6 +246,7 @@ export default [
         razorpay: 'Razorpay',
         cashfree: 'Cashfree',
         decentro: 'Decentro',
+        snapmint: 'Snapmint',
         gift_card: 'गिफ़्ट कार्ड',
         store_credit: 'स्टोर क्रेडिट',
       },
