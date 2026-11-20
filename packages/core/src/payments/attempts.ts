@@ -23,6 +23,7 @@ import { storefrontOriginFor } from '../domains/origin'
 import { CommerceError } from '../errors'
 import { isOpenCheckoutDraft } from '../order/checkout-draft'
 import { INDIAN_STATE_NAMES } from '../tax/states'
+import { refundTaken } from './attempt-refund'
 import { captureModeFor } from './capture'
 import { applyPaymentStatus } from './confirm'
 import { type FallbackTry, runWithFallbacks } from './fallback'
@@ -371,20 +372,21 @@ export async function startPaymentAttempt(
     })
   } catch (err) {
     log.error('[payments] could not record gateway answer', err)
+    let error = message(err)
     // Only money actually taken needs returning; providerRef doubles as the
     // payment id for providers that capture at creation.
     if (result.status !== 'pending' && result.status !== 'failed') {
-      await provider.refund(result.providerRef, claim.attempt.amountPaise, undefined, {
-        providerRef: result.providerRef,
-      })
+      const owed = await refundTaken(provider, attemptId, result.providerRef, claim.attempt, log)
+      if (owed) error = `${error}. ${owed}`
     }
-    await markFailed(db, storeId, attemptId, message(err))
+    // Always: an attempt left `created` with gateway_requested_at set can never be claimed again.
+    await markFailed(db, storeId, attemptId, error)
     return {
       attemptId,
       status: 'failed',
       session: null,
       becameCaptured: false,
-      error: message(err),
+      error,
     }
   }
 }
