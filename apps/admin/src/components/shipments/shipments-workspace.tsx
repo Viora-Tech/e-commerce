@@ -20,6 +20,7 @@ import StatusChip from '@/components/layout/status-chip'
 import BookByNumberDialog from '@/components/shipments/book-by-number-dialog'
 import ResourceTable from '@/components/table/resource-table'
 import { shipmentFiltersContent } from '@/data/order-list-filters'
+import { shipmentLostContent } from '@/data/shipment-lost'
 import { shipmentPartsContent, shipmentsContent } from '@/data/shipments'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -34,6 +35,7 @@ import {
   shipmentFilterInput,
 } from '@/lib/shipment-list-filters'
 import CreateShipmentDialog from './create-shipment/create-shipment-dialog'
+import PrintManifestsButton from './print-manifests-button'
 import {
   rowFromOrder,
   rowFromShipment,
@@ -80,6 +82,7 @@ function ShipmentsContent() {
   // Hooks
   const copy = useCopy(shipmentsContent)
   const partsCopy = useCopy(shipmentPartsContent)
+  const lostCopy = useCopy(shipmentLostContent)
   const filterCopy = useCopy(shipmentFiltersContent)
   const router = useRouter()
   const fmt = useFormat()
@@ -300,7 +303,7 @@ function ShipmentsContent() {
           <WalletStrip wallets={liveWallets} />
           <ResourceTable
             resourceName={copy.resource}
-            columns={shipmentColumns(copy, fmt, courierName, toBookCourier, partsCopy)}
+            columns={shipmentColumns(copy, fmt, courierName, toBookCourier, partsCopy, lostCopy)}
             items={rows}
             getId={(r) => r.id}
             href={(r) => routes.orders.shipment(r.orderId, r.fulfillmentOrderId ?? undefined)}
@@ -331,16 +334,21 @@ function ShipmentsContent() {
             {...(filterable ? { filterGroups: groups } : {})}
             views={
               // The shipping pipeline in plain sight (To book → … → RTO), not behind a dropdown
-              // (audit #39).
-              <PillTabs<ShipmentTab>
-                value={tab}
-                onChange={handleTab}
-                tabs={SHIPMENT_TABS.map((t) => ({
-                  value: t,
-                  label: copy.tabs[t],
-                  ...(c ? { count: c[t] } : {}),
-                }))}
-              />
+              // (audit #39). To be picked up adds its manifests, one page per pickup.
+              <div className="flex flex-wrap items-center gap-2">
+                <PillTabs<ShipmentTab>
+                  value={tab}
+                  onChange={handleTab}
+                  tabs={SHIPMENT_TABS.map((t) => ({
+                    value: t,
+                    label: copy.tabs[t],
+                    ...(c ? { count: c[t] } : {}),
+                  }))}
+                />
+                {tab === 'toPickUp' && total > 0 ? (
+                  <PrintManifestsButton provider={q.courier ?? undefined} />
+                ) : null}
+              </div>
             }
             page={page}
             perPage={parseRowsPerPage(q.perPage)}

@@ -25,6 +25,7 @@ import bulkShip from './bulk-ship'
 import businessGst from './business-gst'
 import catalogs from './catalogs'
 import chatwoot from './chatwoot'
+import checkoutDraftEdit from './checkout-draft-edit'
 import checkoutRules from './checkout-rules'
 import checkoutSettings from './checkout-settings'
 import codRto from './cod-rto'
@@ -70,9 +71,11 @@ import growth from './growth'
 import growthHome from './growth-home'
 import growthReport from './growth-report'
 import growthbook from './growthbook'
+import gstAlreadyInvoiced from './gst-already-invoiced'
 import gstInvoices from './gst-invoices'
 import gstQueuePage from './gst-queue-page'
 import home from './home'
+import homeSections from './home-sections'
 import honoProduct from './hono-product'
 import imageEditor from './image-editor'
 import inbox from './inbox'
@@ -85,6 +88,7 @@ import labelSheet from './label-sheet'
 import layout from './layout'
 import localDelivery from './local-delivery'
 import login from './login'
+import manifestSheet from './manifest-sheet'
 import marketingAutomations from './marketing-automations'
 import marketingCampaigns from './marketing-campaigns'
 import markets from './markets'
@@ -128,6 +132,7 @@ import returns from './returns'
 import reviewTools from './review-tools'
 import reviews from './reviews'
 import rollouts from './rollouts'
+import saleSource from './sale-source'
 import salesChannels from './sales-channels'
 import searchApp from './search-app'
 import searchConsole from './search-console'
@@ -141,6 +146,7 @@ import settingsRows from './settings-rows'
 import shadowfax from './shadowfax'
 import sharedParcel from './shared-parcel'
 import shipglobal from './shipglobal'
+import shipmentLost from './shipment-lost'
 import shipments from './shipments'
 import shipping from './shipping'
 import shippingRates from './shipping-rates'
@@ -149,6 +155,7 @@ import shopifyImport from './shopify-import'
 import shopifyImportFiles from './shopify-import-files'
 import shopifyImportRun from './shopify-import-run'
 import shopifyImportSettings from './shopify-import-settings'
+import snapmint from './snapmint'
 import staff from './staff'
 import staffInvites from './staff-invites'
 import states from './states'
@@ -234,6 +241,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...giftCards,
   ...drafts,
   ...draftStoreCredit,
+  ...checkoutDraftEdit,
   ...domains,
   ...emailBuilder,
   ...dtdc,
@@ -245,9 +253,11 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...growth,
   ...growthHome,
   ...growthReport,
+  ...gstAlreadyInvoiced,
   ...gstInvoices,
   ...gstQueuePage,
   ...home,
+  ...homeSections,
   ...honoProduct,
   ...imageEditor,
   ...indiaPost,
@@ -287,6 +297,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...commandPalette,
   ...inventory,
   ...labelSheet,
+  ...manifestSheet,
   ...productForm,
   ...productBulkShipping,
   ...productShipping,
@@ -309,6 +320,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...reviews,
   ...settings,
   ...settingsRows,
+  ...shipmentLost,
   ...shipments,
   ...shipping,
   ...shippingRates,
@@ -341,9 +353,11 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...ekart,
   ...emailSuppression,
   ...shadowfax,
+  ...snapmint,
   ...growthbook,
   ...whatsappSignup,
   ...whatsappChat,
   ...whatsappApp,
   ...salesChannels,
+  ...saleSource,
 ]

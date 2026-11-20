@@ -8,6 +8,7 @@ import {
   inventoryLevel,
   order,
   orderLine,
+  orderNote,
   outboxEvent,
   payment,
   product,
@@ -409,6 +410,27 @@ describe('placeOrder', () => {
     expect(r).toMatchObject({ paymentStatus: 'created', session: null })
     const [pay] = await owner.select().from(payment).where(eq(payment.orderId, r.orderId))
     expect(pay).toMatchObject({ status: 'created', gatewayRequestedAt: null })
+  })
+
+  it('tags the order and notes a courier the shopper asked for', async () => {
+    const seeded = await seed({ onHand: 10, quantity: 1 })
+    const placed = await placeOrderAndPay(app, seeded.storeId, {
+      cartId: seeded.cartId,
+      paymentProvider: new FakePaymentProvider({ mode: 'capture' }),
+      checkout: {
+        name: 'Asha Menon',
+        email: 'asha@example.com',
+        phone: '9999999999',
+        address: { line1: '12 MG Road', city: 'Bengaluru', stateCode: 'KA', pincode: '560001' },
+        courierRequest: '  India   Post ',
+      },
+    })
+    const [row] = await owner.select().from(order).where(eq(order.id, placed.orderId))
+    expect(row?.tags).toContain('courier-request')
+    const notes = await owner.select().from(orderNote).where(eq(orderNote.orderId, placed.orderId))
+    expect(notes.map((n) => n.body)).toContain(
+      'Shopper asked for another courier: India Post. Call them with the price before you ship.',
+    )
   })
 
   it('refuses a state that does not match the PIN code, before anything is reserved (D-06)', async () => {

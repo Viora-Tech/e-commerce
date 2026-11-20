@@ -11,7 +11,7 @@ export const HOME_RHYTHM = 'gap-10'
 /** The greeting and Ask AI column: 48rem, centred above the 68rem page. */
 export const HOME_NARROW = 'mx-auto flex w-full max-w-[48rem] flex-col gap-10'
 
-/** A titled group of tiles (To do, Finish setup, Suggested for you): heading, then the tiles. */
+/** A titled group of tiles (Needs you, Finish setup, Ideas for your store): heading, then the tiles. */
 export const HOME_SECTION = 'flex flex-col gap-3.5'
 
 /** Latest orders beside Live now: 640fr to 424fr from `xl`, stacked below it. */
@@ -52,15 +52,19 @@ export const TILE_VALUE = 'text-stat-md whitespace-nowrap text-ink-strong tabula
 /** The tile's change or note line: the period token (0.75rem/1rem). */
 export const TILE_NOTE = 'text-period text-muted-foreground'
 
-/** To-do tiles: one column, two from `md`, three from `xl`. */
-export const TODO_GRID = 'grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3'
+/** Needs you tiles: one column, two from `md`, four from `xl` (Figma 1044:11219). */
+export const TODO_GRID = 'grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4'
 
-/** One to-do tile (clickable tiles keep `surface-card card-lift` at the card radius). */
+/** One to-do tile (clickable tiles keep `surface-card card-lift` at the card radius); its button sits at the foot. */
 export const TODO_TILE = 'flex h-full flex-col items-start gap-3.5 rounded-lg p-5 surface-card'
 
-/** Suggested for you: two columns from `md`; a card is a 6rem picture in 0.875rem padding. */
+/** Ideas for your store: two columns from `md`; a card is a 6rem picture in 0.875rem padding. */
 export const SUGGEST_GRID = 'grid grid-cols-1 gap-4 md:grid-cols-2'
 export const SUGGEST_CARD_HEIGHT = 'h-31'
+
+/** A slim full-width row under the Needs you tiles (Store health, old orders, the monthly goal). */
+export const SLIM_ROW =
+  'flex flex-wrap items-center gap-x-4 gap-y-2 rounded-lg surface-card px-5 py-3.5 sm:flex-nowrap'
 
 /** One Latest orders row. */
 export const ORDER_ROW = 'flex items-center gap-3.5 px-5 py-3.5'

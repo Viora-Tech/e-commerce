@@ -11,6 +11,7 @@ import { Suspense, useEffect, useState } from 'react'
 import PillTabs from '@/components/layout/pill-tabs'
 import ResourceTable from '@/components/table/resource-table'
 import { shipmentFiltersContent } from '@/data/order-list-filters'
+import { shipmentLostContent } from '@/data/shipment-lost'
 import { shipmentPartsContent, shipmentsContent } from '@/data/shipments'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -23,6 +24,7 @@ import {
   shipmentFilterGroups,
   shipmentFilterInput,
 } from '@/lib/shipment-list-filters'
+import PrintManifestsButton from './print-manifests-button'
 import { rowFromShipment, type ShipmentRow, shipmentColumns } from './shipment-columns'
 import ShipmentRowMenu from './shipment-row-menu'
 import ShipmentsBulkActions from './shipments-bulk-actions'
@@ -43,6 +45,7 @@ function CourierShipmentsContent({ provider, providerLabel }: CourierShipmentsPr
   // Hooks
   const copy = useCopy(shipmentsContent)
   const partsCopy = useCopy(shipmentPartsContent)
+  const lostCopy = useCopy(shipmentLostContent)
   const filterCopy = useCopy(shipmentFiltersContent)
   const fmt = useFormat()
   const [q, setQ] = useQueryStates(
@@ -112,9 +115,14 @@ function CourierShipmentsContent({ provider, providerLabel }: CourierShipmentsPr
   const { tab, query, page } = q
   // No Courier filter: the page is already one courier's.
   const groups = shipmentFilterGroups(q, filterCopy, (patch) => setQ({ ...patch, page: 1 }), [])
-  const columns = shipmentColumns(copy, fmt, () => providerLabel, providerLabel, partsCopy).filter(
-    (c) => c.id !== 'courier',
-  )
+  const columns = shipmentColumns(
+    copy,
+    fmt,
+    () => providerLabel,
+    providerLabel,
+    partsCopy,
+    lostCopy,
+  ).filter((c) => c.id !== 'courier')
 
   return (
     <ResourceTable
@@ -130,15 +138,18 @@ function CourierShipmentsContent({ provider, providerLabel }: CourierShipmentsPr
       onClearAll={() => setQ({ ...CLEAR_SHIPMENT_FILTERS, query: '', page: 1 })}
       filterGroups={groups}
       views={
-        <PillTabs<BookedTab>
-          value={tab}
-          onChange={handleTab}
-          tabs={TABS.map((t) => ({
-            value: t,
-            label: copy.tabs[t],
-            ...(counts ? { count: counts[t] } : {}),
-          }))}
-        />
+        <div className="flex flex-wrap items-center gap-2">
+          <PillTabs<BookedTab>
+            value={tab}
+            onChange={handleTab}
+            tabs={TABS.map((t) => ({
+              value: t,
+              label: copy.tabs[t],
+              ...(counts ? { count: counts[t] } : {}),
+            }))}
+          />
+          {tab === 'toPickUp' && total > 0 ? <PrintManifestsButton provider={provider} /> : null}
+        </div>
       }
       page={page}
       perPage={parseRowsPerPage(q.perPage)}

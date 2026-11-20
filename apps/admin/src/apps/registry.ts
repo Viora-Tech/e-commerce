@@ -107,6 +107,8 @@ import CsvPage from '@/components/apps/shopify-import/csv-page'
 import ImportsPage from '@/components/apps/shopify-import/imports-page'
 import RunPage from '@/components/apps/shopify-import/run-page'
 import ShopifySettingsPage from '@/components/apps/shopify-import/settings-page'
+import SnapmintConnectPage from '@/components/apps/snapmint/connect-page'
+import SnapmintOverviewPage from '@/components/apps/snapmint/overview-page'
 import UmamiSettingsPage from '@/components/apps/umami/settings-page'
 import WhatsappConnectHeaderButton from '@/components/apps/whatsapp/connect-header-button'
 import WhatsappMessagesPage from '@/components/apps/whatsapp/messages-page'
@@ -220,6 +222,13 @@ export const ADMIN_APPS: Record<string, AdminApp> = {
     pages: {
       '': DecentroOverviewPage,
       connect: DecentroConnectPage,
+    },
+    fullPages: ['connect'],
+  },
+  snapmint: {
+    pages: {
+      '': SnapmintOverviewPage,
+      connect: SnapmintConnectPage,
     },
     fullPages: ['connect'],
   },

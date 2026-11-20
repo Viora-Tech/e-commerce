@@ -53,7 +53,8 @@ export const GET = withEvlog(async (req: Request, { params }: Params) => {
       ),
   }
   const row = await deps.inStore((tx) => getDocument(tx, id))
-  if (!row) return notFound()
+  // Recorded, invoiced outside Koomerce: there is no PDF of ours to serve.
+  if (!row || row.source === 'external') return notFound()
   const bytes = await pdfBytes(deps, row.id)
   return new Response(bytes as Uint8Array<ArrayBuffer>, {
     headers: {

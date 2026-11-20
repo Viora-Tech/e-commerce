@@ -39,6 +39,7 @@ import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
 import StatusChip from '@/components/layout/status-chip'
 import WhatsappChatDialog from '@/components/layout/whatsapp-chat-dialog'
+import SaleSourceCard from '@/components/orders/sale-source-card'
 import SendMessageDialog, { type CustomMessage } from '@/components/orders/send-message-dialog'
 import { draftStoreCreditContent } from '@/data/draft-store-credit'
 import { draftEditorContent, draftsContent } from '@/data/drafts'
@@ -234,7 +235,8 @@ export default function DraftForm({ draft, invoiceSent = false, initial }: Draft
     .join(' · ')
 
   return (
-    <PageBody>
+    /* Centred at 75rem like the order and abandoned checkout pages (owner, 18 Nov 2026). */
+    <PageBody width="detail">
       <SaveBar
         open={dirty}
         message={copy.unsaved}
@@ -350,6 +352,13 @@ export default function DraftForm({ draft, invoiceSent = false, initial }: Draft
               dirty={dirty}
               heldUntil={draft?.reservedUntil ? new Date(draft.reservedUntil) : null}
             />
+            {/* Staff made it in the admin: who, from the activity log. */}
+            {draft ? (
+              <SaleSourceCard
+                attribution={draft.attribution}
+                staffDraft={{ createdBy: draft.createdBy }}
+              />
+            ) : null}
           </>
         }
       />

@@ -11,6 +11,7 @@ export const labelSheetContent = {
   paper: 'Label paper',
   formats: {
     thermal4x6: '4 × 6 in thermal · 1 per page',
+    thermal100x150: '100 × 150 mm thermal · 1 per page',
     a4x4: 'A4 · 4 per page',
     original: 'Courier’s own size',
   } as Record<LabelSheetFormat, string>,

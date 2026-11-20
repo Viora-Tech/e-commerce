@@ -3,7 +3,7 @@ import 'server-only'
 import { settingsSecret } from '@commerce/config'
 import { orderViewToken, type PlaceOrderResult, payPath, thankYouPath } from '@commerce/core'
 import { redirect } from 'next/navigation'
-import { redirectToOrderPage } from './order-view-cookie'
+import { redirectToOrderPage, rememberOrderPage } from './order-view-cookie'
 
 /** Open the gateway, or go straight to the thank-you page (which offers a retry when the gateway failed). */
 export async function redirectAfterCheckout(
@@ -16,6 +16,10 @@ export async function redirectAfterCheckout(
   if (result.session?.kind === 'client') {
     return redirectToOrderPage(`${payPath(result.orderNumber, token)}${again}`)
   }
-  if (result.session?.kind === 'redirect') redirect(result.session.url)
+  if (result.session?.kind === 'redirect') {
+    // Back from the gateway's page, the thank-you page opens with this cookie.
+    await rememberOrderPage(thankYouPath(result.orderNumber, token))
+    redirect(result.session.url)
+  }
   return redirectToOrderPage(`${thankYouPath(result.orderNumber, token)}${again}`)
 }

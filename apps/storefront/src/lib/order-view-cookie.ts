@@ -21,9 +21,19 @@ export async function orderPageToken(
  * redirect is rendered in the same response, so the proxy never sees the `?t=` to swap it.)
  */
 export async function redirectToOrderPage(href: string): Promise<never> {
+  const swap = await rememberOrderPage(href)
+  redirect(swap ? swap.location : href)
+}
+
+/**
+ * Keep the order page's token in its cookie without going there: a shopper sent off to a
+ * gateway's own page (Snapmint) can still open the thank-you page when they come back, even
+ * from a return the gateway did not sign. Null when `href` is not an order page link.
+ */
+export async function rememberOrderPage(href: string) {
   const url = new URL(href, 'http://local')
   const swap = orderTokenSwap(url.pathname, url.search)
-  if (!swap) redirect(href)
+  if (!swap) return null
   if (swap.token) {
     const secure = (await headers()).get('x-forwarded-proto') === 'https'
     ;(await cookies()).set(ORDER_VIEW_COOKIE, swap.token, {
@@ -34,5 +44,5 @@ export async function redirectToOrderPage(href: string): Promise<never> {
       maxAge: ORDER_VIEW_MAX_AGE,
     })
   }
-  redirect(swap.location)
+  return swap
 }

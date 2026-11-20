@@ -79,6 +79,7 @@ export const checkoutRecommendedContent = {
     cod: 'Cash on delivery',
     manual: 'UPI ID or bank transfer',
     decentro: 'UPI (Decentro)',
+    snapmint: 'Snapmint (EMI without a credit card)',
     razorpay: 'Razorpay (UPI, cards, netbanking, wallets)',
     cashfree: 'Cashfree (UPI, cards, netbanking, wallets)',
   } as Record<string, string>,

@@ -9,6 +9,7 @@ import { Textarea } from '@commerce/ui/shadcn/textarea'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import PageHeader from '@/components/layout/page-header'
+import PillTabs from '@/components/layout/pill-tabs'
 import SaveBar from '@/components/layout/save-bar'
 import SettingsCard from '@/components/settings/settings-card'
 import SettingsRow from '@/components/settings/settings-row'
@@ -33,6 +34,10 @@ function wholeNumber(raw: string, min: number, max: number, fallback: number): n
   return Number.isFinite(n) ? Math.min(max, Math.max(min, n)) : fallback
 }
 
+/** The page's tabs, in order (owner 18 Nov 2026: tabs, not one long page). */
+const SECTIONS = ['chat', 'hours', 'ai', 'contact', 'privacy', 'blocked'] as const
+type Section = (typeof SECTIONS)[number]
+
 /**
  * Sales channels › Inbox › Settings: the chat button and greeting, business hours and the away
  * message, the AI agent, what is asked of guests, the unanswered email, retention, and blocked senders.
@@ -44,6 +49,7 @@ export default function SettingsPage({ settings, timeZone }: SettingsPageProps) 
   const [saved, setSaved] = useState(settings)
   const [form, setForm] = useState(settings)
   const [saving, setSaving] = useState(false)
+  const [tab, setTab] = useState<Section>('chat')
 
   // Helpers
   const patch = (next: Partial<InboxSettings>) => setForm((f) => ({ ...f, ...next }))
@@ -80,7 +86,15 @@ export default function SettingsPage({ settings, timeZone }: SettingsPageProps) 
         saving={saving}
       />
       <PageHeader title={s.title} summary={s.subtitle} />
+      <PillTabs
+        variant="underline"
+        label={s.jump.label}
+        value={tab}
+        onChange={setTab}
+        tabs={SECTIONS.map((id) => ({ value: id, label: s.jump[id] }))}
+      />
       <fieldset disabled={!canManage} className="flex min-w-0 flex-col gap-6">
+        <div hidden={tab !== 'chat'} className="flex flex-col gap-6">
         <SettingsCard title={s.chat.title}>
           <SettingsRow
             label={s.chat.greeting.label}
@@ -109,6 +123,8 @@ export default function SettingsPage({ settings, timeZone }: SettingsPageProps) 
           </SettingsRow>
         </SettingsCard>
 
+        </div>
+        <div hidden={tab !== 'hours'} className="flex flex-col gap-6">
         <SettingsCard title={s.availability.title} description={s.availability.help(timeZone)}>
           <SettingsRow label={s.availability.label} htmlFor="inbox-availability">
             <NativeSelect
@@ -148,8 +164,12 @@ export default function SettingsPage({ settings, timeZone }: SettingsPageProps) 
           </SettingsRow>
         </SettingsCard>
 
+        </div>
+        <div hidden={tab !== 'ai'} className="flex flex-col gap-6">
         <AiAgentSettings value={form.ai} onChange={(ai) => patch({ ai })} />
 
+        </div>
+        <div hidden={tab !== 'contact'} className="flex flex-col gap-6">
         <SettingsCard title={s.contact.title}>
           <SettingsRow
             label={s.contact.capture.label}
@@ -214,6 +234,8 @@ export default function SettingsPage({ settings, timeZone }: SettingsPageProps) 
           </SettingsRow>
         </SettingsCard>
 
+        </div>
+        <div hidden={tab !== 'privacy'} className="flex flex-col gap-6">
         <SettingsCard title={s.privacy.title}>
           <SettingsRow
             label={s.privacy.retention.label}
@@ -236,8 +258,9 @@ export default function SettingsPage({ settings, timeZone }: SettingsPageProps) 
             </div>
           </SettingsRow>
         </SettingsCard>
+        </div>
       </fieldset>
-      <BlockedSenders />
+      {tab === 'blocked' ? <BlockedSenders /> : null}
     </>
   )
 }

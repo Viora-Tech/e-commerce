@@ -19,7 +19,11 @@ const lists: OverviewList[] = [
 ]
 
 const connectedBody = () => (
-  <CourierShipmentsLink help={copy.goToShipmentsHelp} cta={copy.goToShipments} />
+  <CourierShipmentsLink
+    courier="shiprocket"
+    help={copy.goToShipmentsHelp}
+    cta={copy.goToShipments}
+  />
 )
 
 /** `/apps/shiprocket`: status, what the connector can do today, and a way into the shared Shipments workspace. */

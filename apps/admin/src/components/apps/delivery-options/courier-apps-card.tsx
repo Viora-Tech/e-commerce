@@ -59,11 +59,13 @@ export default function CourierAppsCard({ overview, catalogue }: CourierAppsCard
       {rows.length === 0 ? (
         <EmptyState variant="inline" body={a.none} className="mx-4 my-3" />
       ) : (
-        <ul className="flex flex-col">
+        // Full width on the Overview (#1781: no empty column beside the checkout preview), so the
+        // apps sit side by side instead of one long column.
+        <ul className="grid grid-cols-1 gap-3 p-4 md:grid-cols-2 xl:grid-cols-3">
           {rows.map(({ app, skipped, answering, line }) => (
             <li
               key={app.id}
-              className="flex items-center gap-3 border-t border-hairline px-4 py-3 first:border-t-0"
+              className="flex min-w-0 items-center gap-3 rounded-md border border-hairline px-3 py-2.5"
             >
               <AppLogo id={app.id} icon={null} size={28} />
               <span className="flex min-w-0 flex-1 flex-col">

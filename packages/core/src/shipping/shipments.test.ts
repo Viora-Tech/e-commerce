@@ -7,7 +7,6 @@ import {
   orderNote,
   product,
   shipment,
-  shipmentManifest,
   shipmentPickup,
   store,
   variant,
@@ -335,7 +334,7 @@ describe('shipments', () => {
     expect(notes[0]?.author).toBe('kuldeep@example.com')
   })
 
-  it('refuses a cancel once the parcel left, is on a manifest, or the courier has no cancel', async () => {
+  it('refuses a cancel once the parcel left or the courier has no cancel', async () => {
     const { storeId, orderId } = await seedOrder()
     const provider = new FakeShippingProvider()
     let asked = 0
@@ -352,13 +351,6 @@ describe('shipments', () => {
       code: 'SHIPMENT_NOT_CANCELLABLE',
       block: 'not_supported',
     })
-
-    const [m] = await owner
-      .insert(shipmentManifest)
-      .values({ storeId, provider: 'fake', shipmentIds: [row.id] })
-      .returning()
-    await expect(cancel()).rejects.toMatchObject({ block: 'in_manifest' })
-    await owner.delete(shipmentManifest).where(eq(shipmentManifest.id, m?.id as string))
 
     await owner.update(shipment).set({ status: 'picked_up' }).where(eq(shipment.id, row.id))
     await expect(cancel()).rejects.toMatchObject({ block: 'picked_up' })

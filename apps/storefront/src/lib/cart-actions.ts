@@ -207,10 +207,7 @@ export type CheckoutForm = {
   payment: string
   /** Gift card codes applied in the summary; each is re-checked here before it is spent. */
   giftCards?: string[]
-  /**
-   * Spend the signed-in shopper's store credit. Whose balance comes from the session, never the
-   * form; a guest's submit with this set uses nothing.
-   */
+  /** Spend the signed-in shopper's store credit (whose: the session, never the form; guest: none). */
   useStoreCredit?: boolean
   /** The shipping rate picked in the summary; re-priced on the server. */
   shippingRate?: string
@@ -222,8 +219,9 @@ export type CheckoutForm = {
   /** Business buyer's GSTIN and name, when the store shows the field (Settings → Checkout). */
   gstin?: string
   businessName?: string
-  /** Order note, when the store turned notes on. */
+  /** Order note (store turned notes on); "Want a different courier?" from the Delivery step. */
   note?: string
+  courierRequest?: string
   /** Home, Office or Other: the tag a signed-in shopper's new address is saved with. */
   label?: string
   /** The marketing ticks under Contact; unticked sends nothing. */
@@ -414,6 +412,7 @@ export async function checkoutAction(submitted: CheckoutForm): Promise<CheckoutR
         cartId,
         paymentProvider: provider,
         paymentFallbacks: fallbacks,
+        shopperIp: ip,
         giftCardIds,
         // Store credit only ever comes from the signed-in customer's own balance.
         ...(me && form.useStoreCredit === true ? { storeCredit: { customerId: me.id } } : {}),
@@ -433,6 +432,7 @@ export async function checkoutAction(submitted: CheckoutForm): Promise<CheckoutR
           gstin: form.gstin ?? null,
           businessName: form.businessName ?? null,
           note: form.note ?? null,
+          courierRequest: form.courierRequest ?? null,
           marketing: form.marketing,
           address: {
             line1: form.line1,

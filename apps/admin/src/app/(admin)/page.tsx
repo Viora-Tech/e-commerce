@@ -37,18 +37,22 @@ export default async function Home() {
       { context },
     ),
     call(appRouter.dashboard.tiles, undefined, { context }),
-    // Needs settings.read: without it the Store health card just hides.
+    // Needs settings.read: without it the Store health row just hides.
     call(appRouter.store.health, undefined, { context }).catch(() => null),
     // Smart cards (#101) are a nice-to-have: any failure just leaves the set-up ideas.
     call(appRouter.dashboard.cards, undefined, { context }).catch(() => null),
     // Which to-dos the store hid; on failure every to-do shows and "Edit to-dos" hides.
     call(appRouter.dashboard.todos, undefined, { context }).catch(() => null),
+    // Old to-ship orders, out-of-stock products and payment methods: on failure their row,
+    // chip and bars just hide.
+    call(appRouter.dashboard.summaryExtras, undefined, { context }).catch(() => null),
   ])
   if (!(await memberP)) {
     readsP.catch(() => {})
     redirect('/select-store')
   }
-  const [summary, charts, session, ai, apps, analytics, tiles, health, cards, todos] = await readsP
+  const [summary, charts, session, ai, apps, analytics, tiles, health, cards, todos, extras] =
+    await readsP
   const { fallbackName } = (await getCopy(homeContent)).briefing
   const firstName = (session?.user.name ?? fallbackName).trim().split(/\s+/)[0] ?? fallbackName
   return (
@@ -62,6 +66,7 @@ export default async function Home() {
       health={health}
       cards={cards}
       hiddenTodos={todos?.hidden ?? null}
+      extras={extras}
     />
   )
 }

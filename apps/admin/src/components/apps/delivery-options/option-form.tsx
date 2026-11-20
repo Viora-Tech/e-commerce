@@ -11,7 +11,9 @@ import SettingsToggleRow from '@/components/settings/settings-toggle-row'
 import { deliveryOptionsContent } from '@/data/delivery-options'
 import { useCopy } from '@/hooks/use-copy'
 import { CARRIERS } from './format'
-import type { OptionForm as Form } from './option-form-state'
+import InlineWarning from './inline-warning'
+import { ALL_COURIERS, type OptionForm as Form } from './option-form-state'
+import RoundingField from './rounding-field'
 import RouteSelectorRow from './route-selector-row'
 
 type OptionFormProps = {
@@ -21,6 +23,11 @@ type OptionFormProps = {
 
 /** The select's value for "no preferred courier" (a select item needs a non-empty value). */
 const NO_PREFERENCE = 'none'
+
+/** Two to eight cards, as the engine allows; or every courier. */
+const MAX_CHOICES = [2, 3, 4, 5, 6, 7, 8] as const
+
+const PRICE_SOURCES = ['route', 'zone', 'free'] as const
 
 /** A number field without the ₹ sign (days, %). */
 function NumberField(props: {
@@ -114,6 +121,7 @@ export default function OptionForm({ form, onChange }: OptionFormProps) {
           <ChoiceField
             id="opt-strategy"
             label={o.routing.strategy}
+            help={o.routing.strategyHelp}
             value={form.strategy}
             options={(['cheapest', 'fastest'] as const).map((v) => ({
               value: v,
@@ -187,39 +195,45 @@ export default function OptionForm({ form, onChange }: OptionFormProps) {
           id="opt-price-source"
           label={o.price.source}
           value={form.priceSource}
-          options={(['route', 'zone'] as const).map((v) => ({
-            value: v,
-            label: o.price.sources[v],
-          }))}
-          onChange={(v) => set('priceSource')(v === 'zone' ? 'zone' : 'route')}
+          options={PRICE_SOURCES.map((v) => ({ value: v, label: o.price.sources[v] }))}
+          onChange={(v) => set('priceSource')(PRICE_SOURCES.find((x) => x === v) ?? 'route')}
         />
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          {form.priceSource === 'route' ? (
-            <>
-              <RupeeField
-                id="opt-markup"
-                label={o.price.markup}
-                value={form.markup}
-                onChange={set('markup')}
-              />
-              <NumberField
-                id="opt-markup-pct"
-                label={o.price.markupPercent}
-                value={form.markupPercent}
-                onChange={set('markupPercent')}
-                suffix="%"
-              />
-            </>
-          ) : null}
-          <RupeeField
-            id="opt-free-above"
-            label={o.price.freeAbove}
-            value={form.freeAbove}
-            onChange={set('freeAbove')}
-          />
-          <RupeeField id="opt-min" label={o.price.min} value={form.min} onChange={set('min')} />
-          <RupeeField id="opt-max" label={o.price.max} value={form.max} onChange={set('max')} />
-        </div>
+        <RoundingField
+          id="opt-round"
+          value={form.rounding}
+          help={form.couriersList ? 'list' : 'fixed'}
+          onChange={set('rounding')}
+        />
+        {/* Free: the store pays the courier, so no markup, threshold or bounds apply. */}
+        {form.priceSource === 'free' ? null : (
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            {form.priceSource === 'route' ? (
+              <>
+                <RupeeField
+                  id="opt-markup"
+                  label={o.price.markup}
+                  value={form.markup}
+                  onChange={set('markup')}
+                />
+                <NumberField
+                  id="opt-markup-pct"
+                  label={o.price.markupPercent}
+                  value={form.markupPercent}
+                  onChange={set('markupPercent')}
+                  suffix="%"
+                />
+              </>
+            ) : null}
+            <RupeeField
+              id="opt-free-above"
+              label={o.price.freeAbove}
+              value={form.freeAbove}
+              onChange={set('freeAbove')}
+            />
+            <RupeeField id="opt-min" label={o.price.min} value={form.min} onChange={set('min')} />
+            <RupeeField id="opt-max" label={o.price.max} value={form.max} onChange={set('max')} />
+          </div>
+        )}
       </SettingsCard>
 
       <SettingsCard title={o.insurance.title}>
@@ -237,6 +251,7 @@ export default function OptionForm({ form, onChange }: OptionFormProps) {
           <RupeeField
             id="opt-insurance-above"
             label={o.insurance.onlyAbove}
+            help={o.insurance.onlyAboveHelp}
             value={form.insuranceAbove}
             onChange={set('insuranceAbove')}
           />
@@ -309,10 +324,14 @@ export default function OptionForm({ form, onChange }: OptionFormProps) {
         />
         {form.couriersList ? (
           <>
-            <NumberField
+            <ChoiceField
               id="opt-couriers-max"
               label={o.couriers.max}
               value={form.couriersMax}
+              options={[
+                { value: ALL_COURIERS, label: o.couriers.maxAll },
+                ...MAX_CHOICES.map((n) => ({ value: String(n), label: o.couriers.maxItems(n) })),
+              ]}
               onChange={set('couriersMax')}
             />
             <SettingsToggleRow
@@ -329,6 +348,9 @@ export default function OptionForm({ form, onChange }: OptionFormProps) {
               checked={form.hideSlowerDearer}
               onChange={set('hideSlowerDearer')}
             />
+            {form.strategy === 'fastest' && form.hideSlowerDearer ? (
+              <InlineWarning>{o.couriers.hideSlowerFastest}</InlineWarning>
+            ) : null}
           </>
         ) : null}
       </SettingsCard>

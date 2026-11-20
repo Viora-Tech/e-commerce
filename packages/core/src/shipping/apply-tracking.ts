@@ -1,5 +1,5 @@
 /** SOURCE OF TRUTH: applying a courier's tracking answer — WHAT: stores the scan on the shipment and moves its order (in transit, delivered, RTO, NDR) / WHY: the tracking poll, the courier webhooks and manual tracking must all move an order the same way */
-import { shipment } from '@commerce/db'
+import { orderNote, shipment } from '@commerce/db'
 import type { Tracking } from '@commerce/shipping'
 import { eq } from 'drizzle-orm'
 import type { StoreContext } from '../context'
@@ -8,6 +8,7 @@ import { insertOutboxEvent } from '../outbox/write'
 import { recordRtoForShipment } from '../returns/rto'
 import { syncNdrFromTracking } from './ndr'
 import { sharedOrdersOf } from './shared-parcel'
+import { lostScanFields } from './shipment-lost'
 import type { ShipmentRow } from './shipments'
 
 /** When the delivered scan happened, from the courier's events; now when it gave no time. */
@@ -29,10 +30,16 @@ export async function applyTracking(
 ): Promise<{ shipment: ShipmentRow; becameDelivered: boolean }> {
   const [before] = await ctx.tx.select().from(shipment).where(eq(shipment.id, shipmentId))
   if (!before) throw new Error('shipment not found')
+  /* A lost parcel stays lost on an ordinary scan; only delivered or back (found after all) moves
+     it on. The courier's own lost scan opens the claim as "Mark as lost" does (shipment-lost). */
+  const found = tracking.status === 'delivered' || tracking.status === 'rto'
+  const status = before.status === 'lost' && !found ? 'lost' : tracking.status
+  const becameLost = before.status !== 'lost' && status === 'lost'
   const [row] = await ctx.tx
     .update(shipment)
     .set({
-      status: tracking.status,
+      ...(becameLost ? lostScanFields(before) : {}),
+      status,
       tracking,
       trackingUrl: tracking.trackingUrl ?? before.trackingUrl,
       // The delivered scan's time, for promised-vs-delivered (the latest delivered event).
@@ -44,6 +51,14 @@ export async function applyTracking(
     .where(eq(shipment.id, shipmentId))
     .returning()
   if (!row) throw new Error('shipment not found')
+  if (becameLost) {
+    await ctx.tx.insert(orderNote).values({
+      storeId: ctx.storeId,
+      orderId: row.orderId,
+      body: `${row.provider === 'delhivery' ? 'Delhivery' : 'The courier'} marked AWB ${row.waybill} as lost. Reship it from Shipments › Lost, and track the courier claim there.`,
+      author: null,
+    })
+  }
   const becameDelivered = before.status !== 'delivered' && tracking.status === 'delivered'
   const becameOutForDelivery =
     before.status !== 'out_for_delivery' && row.status === 'out_for_delivery'

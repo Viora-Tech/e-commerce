@@ -92,12 +92,27 @@ describe('drafts, abandoned, returns and shipments filters (F3)', () => {
       valueMin: '',
       valueMax: '2000',
       contact: 'phone' as const,
+      channel: [],
     }
     expect(hasAbandonedFilters(f)).toBe(true)
     const input = abandonedFilterInput(f, NOW)
     expect(input.activeFrom).toBeDefined()
     expect(input).toMatchObject({ valueMaxPaise: 200_000, contact: 'phone' })
     expect(input).not.toHaveProperty('activeTo')
+    expect(input).not.toHaveProperty('channels')
+  })
+
+  it('abandoned: the Source filter sends the ticked channels', () => {
+    const f = {
+      active: NO_DATE_FILTER,
+      valueMin: '',
+      valueMax: '',
+      contact: null,
+      channel: ['social' as const, 'untracked' as const],
+    }
+    expect(hasAbandonedFilters(f)).toBe(true)
+    expect(abandonedFilterInput(f, NOW)).toEqual({ channels: ['social', 'untracked'] })
+    expect(hasAbandonedFilters({ ...f, channel: [] })).toBe(false)
   })
 
   it('returns: reasons, outcomes and asked on', () => {

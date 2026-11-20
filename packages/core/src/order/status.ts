@@ -271,7 +271,7 @@ export async function changeOrderStatus(
       .where(
         and(
           eq(shipment.orderId, orderId),
-          notInArray(shipment.status, ['delivered', 'cancelled', 'rto']),
+          notInArray(shipment.status, ['delivered', 'cancelled', 'rto', 'lost']),
         ),
       )
   }

@@ -266,6 +266,8 @@ export const ACTION_DOCS: Record<string, string> = {
     'Hide one smart card for 30 days for the whole store; dismissed: false is Undo.',
   'dashboard.summary':
     'Stat windows, weekly report, recent orders, top products, live visitors and quick lists for the home page.',
+  'dashboard.summaryExtras':
+    "Home's extra counts: orders to ship older than 30 days, products out of stock and the real payment methods of the last 30 days.",
   'dashboard.tiles': 'Which metric this member keeps in each Home tile (Customize).',
   'dashboard.todos':
     'Which to-do cards this store hides on Home ("Edit to-dos"); one setting for the whole store.',
@@ -610,6 +612,8 @@ export const ACTION_DOCS: Record<string, string> = {
     'The list\'s bulk "Add tags" / "Remove tags": every given tag on (or off) every order.',
   'orders.takeOver':
     '"Manage this order" (Imported card): an imported order that is still open becomes one worked here (ship, cancel, edit).',
+  'orders.takeOverCheckoutDraft':
+    '"Edit" on a shopper\'s unpaid checkout draft: it becomes a staff draft the draft form edits.',
   'orders.tiles': 'The stat cards above the Orders list.',
   'orders.toShipCount': 'How many orders are waiting to ship.',
   'orders.updateContact':
@@ -815,6 +819,8 @@ export const ACTION_DOCS: Record<string, string> = {
     "A batch's labels as one PDF in the merchant's paper (Figma 909:9249, the bulk result's Print card; also Shipments › Booked's selection): 4 × 6 in thermal one per page, A4 four per sheet, or each cour…",
   'shipments.listPickupOptions':
     'The Create pickup drawer: per courier and place, the parcels still without a pickup and the pickups already booked there (Figma 905:8280, 906:8464).',
+  'shipments.manifestSheet':
+    'The pickup manifest as one A4 PDF (Shipments › To be picked up, "Print manifest"): one page per courier pickup listing AWB, order, ship-to, city and PIN, weight and COD or Prepaid, with the count and…',
   'shipments.quote':
     "Create shipment, step 2: every connected courier's price, delivery date and COD support per parcel, with Cheapest / Fastest / Recommended.",
   'shipments.readyToShip':

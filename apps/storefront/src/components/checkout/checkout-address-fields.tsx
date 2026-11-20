@@ -1,7 +1,11 @@
 'use client'
 
 import { ADDRESS_LABELS } from '@commerce/core/accounts'
-import type { CheckoutFields } from '@commerce/core/checkout-settings'
+import {
+  type CheckoutFields,
+  stateForPincode,
+  stateMatchesPincode,
+} from '@commerce/core/checkout-settings'
 import { useRef, useState, useTransition } from 'react'
 import CheckoutField from '@/components/checkout/checkout-field'
 import CheckoutIcon from '@/components/checkout/checkout-icon'
@@ -104,9 +108,17 @@ export default function CheckoutAddressFields({
   const busy = finding || checking
   const full = isFullPincode(values.pincode)
   const filled = filledFor !== null && filledFor === cleanPincode(values.pincode)
+  /* The hint names a state only when it can be right for the PIN code: a form still on its
+     default state (Haryana) beside a Jaipur PIN said "Jaipur, Haryana" and then failed the
+     state check. The prefix's own state is named instead, else just the city. */
+  const pin = cleanPincode(values.pincode)
+  const hintState =
+    values.stateCode && stateMatchesPincode(pin, values.stateCode)
+      ? values.stateCode
+      : stateForPincode(pin)
   const place =
-    full && values.city.trim() && values.stateCode
-      ? { city: values.city.trim(), state: stateName(values.stateCode) }
+    full && values.city.trim() && hintState
+      ? { city: values.city.trim(), state: stateName(hintState) }
       : null
   const status: { text: string; tone: 'ok' | 'busy' | 'bad' } | null =
     digitalOnly || errors.pincode || !full

@@ -16,6 +16,7 @@ describe('SHIPMENT_TAB_STATUSES', () => {
       'out_for_delivery',
       'delivered',
       'rto',
+      'lost',
     ]
     const listed = Object.values(SHIPMENT_TAB_STATUSES).flat()
     expect([...new Set(listed)].sort()).toEqual([...all].sort())

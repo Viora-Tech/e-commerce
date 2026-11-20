@@ -50,6 +50,9 @@ import { TEST_CONNECTION_RULE } from '../services/shipping.service'
 /** Gateways the admin connects with pasted keys. */
 const KEY_GATEWAYS = ['razorpay', 'cashfree'] as const
 
+/** Apps whose Connect page "Test connection" runs here: the key gateways and Snapmint. */
+const TESTABLE_GATEWAYS = [...KEY_GATEWAYS, 'snapmint'] as const
+
 const ModeSchema = z.enum(['test', 'live'])
 
 function paymentsEnv(): PaymentsEnv & { adminUrl: string } {
@@ -240,7 +243,7 @@ export const paymentsRouter = {
   testConnection: can(permissions.SETTINGS_READ)
     .input(
       z.object({
-        providerId: z.enum(KEY_GATEWAYS),
+        providerId: z.enum(TESTABLE_GATEWAYS),
         fields: z.record(z.string().max(64), z.string().max(4000)),
         mode: ModeSchema.optional(),
       }),

@@ -94,10 +94,12 @@ export async function retryAndStartPayment(
   orderId: string,
   provider: PaymentProvider,
   now: Date = new Date(),
+  /** The shopper's IP for this try (Snapmint needs it). */
+  shopperIp?: string | undefined,
 ): Promise<StartedPayment> {
   const settled = await settleExpiredQrAttempt(db, storeId, orderId, provider, now)
   if (settled?.becameCaptured) return { ...attemptSnapshot(settled.payment), becameCaptured: true }
   const { attempt } = await withStore(db, storeId, (tx) => retryPayment({ storeId, tx }, orderId))
   if (attempt.status !== 'created') return attemptSnapshot(attempt)
-  return startPaymentAttempt(db, storeId, attempt.id, provider)
+  return startPaymentAttempt(db, storeId, attempt.id, provider, console, { shopperIp })
 }

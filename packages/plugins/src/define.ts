@@ -73,6 +73,8 @@ export function definePlugin(input: DefinePluginInput): PluginManifest {
     kind: input.kind,
     category: input.category,
     company: input.company,
+    // Copied like every other field: left out, every app showed "Untested" (18 Nov 2026).
+    tested: input.tested,
     hooks: input.hooks,
     orderLinks: input.orderLinks,
     productFields: input.productFields,

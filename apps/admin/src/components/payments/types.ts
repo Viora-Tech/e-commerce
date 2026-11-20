@@ -13,7 +13,7 @@ export const isGatewayId = (id: string): id is GatewayId => id === 'razorpay' ||
 export type GatewayApp = PaymentsSetup['gateways'][number]
 
 /** Gateways with Live/Test key sets and an Active/Inactive state. */
-const MODE_GATEWAYS = ['razorpay', 'cashfree', 'decentro'] as const
+const MODE_GATEWAYS = ['razorpay', 'cashfree', 'decentro', 'snapmint'] as const
 export type ModeGatewayId = (typeof MODE_GATEWAYS)[number]
 
 export const isModeGateway = (id: string): id is ModeGatewayId =>

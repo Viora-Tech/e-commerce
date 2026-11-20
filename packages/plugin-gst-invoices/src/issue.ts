@@ -236,7 +236,8 @@ export async function orderSnapshot(
       discountPaise: parcel ? parcel.discountPaise : o.discountPaise,
       paymentAdjustmentPaise: parcel ? parcel.paymentAdjustmentPaise : o.paymentAdjustmentPaise,
       paymentAdjustmentLabel: o.paymentAdjustmentLabel,
-      shippingLabel: o.shippingRateName,
+      // "Shipping charges" alone: the courier and speed are not needed on a tax invoice (#1784).
+      shippingLabel: null,
       discountLabel: o.discountLabel,
       totalPaise: parcel ? parcel.totalPaise : o.totalPaise,
       taxBreakdown: parcel ? parcel.taxBreakdown : o.taxBreakdown,
@@ -555,7 +556,8 @@ export async function regenerateDocument(
       snapshot: doc,
       gstRegistrationId: row.status === 'draft' ? (issuer?.id ?? null) : row.gstRegistrationId,
       ...totalsColumns(doc),
-      pdfStatus: 'pending',
+      // An invoice recorded from outside Koomerce has no PDF to draw again.
+      pdfStatus: row.source === 'external' ? 'none' : 'pending',
       pdfError: null,
       updatedAt: new Date(),
     })

@@ -1,6 +1,6 @@
 import { enqueueAppJob, listGstNumbers, permissions } from '@commerce/core'
 import { DocumentSnapshotSchema, InvoiceSettingsSchema } from '@commerce/invoices'
-import { mergePdfs, zipFiles } from '@commerce/invoices/render'
+import { zipFiles } from '@commerce/invoices/render'
 import {
   buyerPlace,
   cancelInvoice,
@@ -10,7 +10,7 @@ import {
   documentsForOrder,
   GST_INVOICES_ID,
   gstr1ForPeriod,
-  InvoiceError,
+  hasPdf,
   issueCreditNotes,
   issueDocument,
   issueDrafts,
@@ -18,8 +18,6 @@ import {
   listPeriods,
   loadSettings,
   markFiled,
-  pdfBytes,
-  pdfFilename,
   queueRows,
   queueStats,
   regenerateDocument,
@@ -39,7 +37,9 @@ import {
   storeName,
 } from '../services/gst-invoices.service'
 import { asOrpc, Gst, gstScope, Period, renderDeps, requireInstalled } from './gst-invoices-context'
+import { fileProcedures } from './gst-invoices-files'
 import { addToQueue, generateInvoice, invoiceFixProcedures } from './gst-invoices-order-actions'
+import { recordExternal, undoExternal } from './gst-invoices-record'
 import { returnsProcedures } from './gst-invoices-returns'
 import { Filter, Selection, selectedIds } from './gst-invoices-selection'
 import { seriesNext, seriesProcedures } from './gst-invoices-series'
@@ -114,6 +114,7 @@ export const gstInvoicesRouter = {
           buyerGstin: d.buyerGstin,
           pdfStatus: d.pdfStatus,
           pdfError: d.pdfError,
+          source: d.source,
           issuedAt: d.issuedAt,
           invoiceDate: d.invoiceDate,
         })),
@@ -169,6 +170,8 @@ export const gstInvoicesRouter = {
           placedAt: doc.order.placedAt,
           buyerName: r.buyerName,
           buyerPlace: buyerPlace(doc),
+          /** What the invoice bills, for the Products column ("Glass mousepad × 1"). */
+          items: doc.lines.map((l) => ({ title: l.description, quantity: l.quantity })),
           buyerGstin: r.buyerGstin,
           export: doc.exportSupply?.countryName ?? null,
           taxablePaise: r.taxablePaise,
@@ -198,6 +201,9 @@ export const gstInvoicesRouter = {
       }),
     /** Add orders by hand, or the Orders list's bulk action (`./gst-invoices-order-actions`). */
     add: addToQueue,
+    /** "Already invoiced", and its undo while the month is not filed (`./gst-invoices-record`). */
+    recordExternal,
+    undoExternal,
     remove: can(permissions.ORDERS_WRITE)
       .input(z.object({ ids: z.array(z.uuid()).min(1).max(BULK_MAX) }))
       .handler(async ({ context, input }) => {
@@ -226,20 +232,24 @@ export const gstInvoicesRouter = {
           const plan = await issueDrafts(context.tx, context.scope.storeId, input.items, {
             commit: true,
           })
-          // PDFs render in the worker so a large batch returns at once.
-          if (context.appJobs) {
-            for (const p of plan) {
-              await enqueueAppJob(
-                context.appJobs,
-                {
-                  storeId: context.scope.storeId,
-                  pluginId: GST_INVOICES_ID,
-                  name: 'render',
-                  data: { invoiceId: p.id },
-                },
-                `render:${p.id}`,
-              )
-            }
+          // PDFs render in the worker so a large batch returns at once. After commit: a worker
+          // that ran first read the queued draft and stored its PDF, with no number (#1784).
+          const jobs = context.appJobs
+          if (jobs) {
+            context.afterCommit(async () => {
+              for (const p of plan) {
+                await enqueueAppJob(
+                  jobs,
+                  {
+                    storeId: context.scope.storeId,
+                    pluginId: GST_INVOICES_ID,
+                    name: 'render',
+                    data: { invoiceId: p.id },
+                  },
+                  `render:${p.id}`,
+                )
+              }
+            })
           }
           return plan
         } catch (err) {
@@ -357,46 +367,8 @@ export const gstInvoicesRouter = {
       return listDocuments(context.tx, { ...input, limit, offset: (input.page - 1) * limit })
     }),
 
-  download: can(permissions.ORDERS_READ)
-    .input(z.object({ id: z.uuid() }))
-    .handler(async ({ context, input }) => {
-      await requireInstalled(context)
-      try {
-        const [row] = await documentsByIds(context.tx, [input.id])
-        if (!row) throw new InvoiceError('not_found', 'Document not found')
-        return file(await pdfBytes(renderDeps(context), row.id), pdfFilename(row))
-      } catch (err) {
-        asOrpc(err)
-      }
-    }),
-
   ...invoiceFixProcedures,
-  /** A zip of PDFs, one per selected document. */
-  bulkDownload: can(permissions.ORDERS_READ)
-    .use(heavy('bulk'))
-    .input(Selection)
-    .handler(async ({ context, input }) => {
-      await requireInstalled(context)
-      const rows = await documentsByIds(context.tx, await selectedIds(context, input))
-      const deps = renderDeps(context)
-      const files = []
-      for (const row of rows)
-        files.push({ name: pdfFilename(row), bytes: await pdfBytes(deps, row.id) })
-      return file(zipFiles(files), 'invoices.zip', 'application/zip')
-    }),
-
-  /** One merged PDF for the printer. */
-  bulkPrint: can(permissions.ORDERS_READ)
-    .use(heavy('bulk'))
-    .input(Selection)
-    .handler(async ({ context, input }) => {
-      await requireInstalled(context)
-      const rows = await documentsByIds(context.tx, await selectedIds(context, input))
-      const deps = renderDeps(context)
-      const files = []
-      for (const row of rows) files.push(await pdfBytes(deps, row.id))
-      return file(await mergePdfs(files), 'invoices-print.pdf')
-    }),
+  ...fileProcedures,
 
   /** Queue an email of each document to its buyer; poll `batch` for progress. */
   bulkEmail: can(permissions.ORDERS_WRITE)
@@ -408,7 +380,10 @@ export const gstInvoicesRouter = {
         throw new ORPCError('SERVICE_UNAVAILABLE', {
           message: 'The worker queue is not configured',
         })
-      const ids = await selectedIds(context, input)
+      // Recorded invoices (issued outside Koomerce) have no PDF to email.
+      const ids = (await documentsByIds(context.tx, await selectedIds(context, input)))
+        .filter(hasPdf)
+        .map((r) => r.id)
       const batch = await createEmailBatch(context.tx, context.scope.storeId, ids.length)
       // One job per 20 documents so progress moves and a failure retries a small slice.
       for (let i = 0; i < ids.length; i += 20) {
@@ -471,6 +446,7 @@ export const gstInvoicesRouter = {
         reportedPeriod: row.reportedPeriod,
         cancelReason: row.cancelReason,
         pdfStatus: row.pdfStatus,
+        source: row.source,
         snapshot: DocumentSnapshotSchema.parse(row.snapshot),
       }
     }),

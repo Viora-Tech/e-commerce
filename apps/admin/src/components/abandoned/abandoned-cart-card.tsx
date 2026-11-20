@@ -11,6 +11,10 @@ type AbandonedCartCardProps = {
   checkout: AbandonedCheckout
 }
 
+/**
+ * Figma "Abandoned checkout · Polish" › Cart: each line with its variant and SKU, the unit price
+ * times quantity, the line total; then subtotal and shipping, and the total under a rule.
+ */
 export default function AbandonedCartCard({ checkout }: AbandonedCartCardProps) {
   // Hooks
   const content = useCopy(abandonedDetailContent)
@@ -18,6 +22,14 @@ export default function AbandonedCartCard({ checkout }: AbandonedCartCardProps) 
 
   // Render logic
   const copy = content.cart
+  const subtitleOf = (line: AbandonedCheckout['lines'][number]) =>
+    [
+      line.variantTitle && line.variantTitle !== 'Default' ? line.variantTitle : null,
+      line.sku ? copy.sku(line.sku) : null,
+    ]
+      .filter(Boolean)
+      .join(' · ') || null
+
   return (
     <DataCard
       title={
@@ -37,22 +49,22 @@ export default function AbandonedCartCard({ checkout }: AbandonedCartCardProps) 
                 key={line.id}
                 imageUrl={line.image}
                 title={line.productTitle}
-                subtitle={
-                  line.variantTitle && line.variantTitle !== 'Default' ? line.variantTitle : null
-                }
-                quantity={copy.quantity(line.quantity)}
+                subtitle={subtitleOf(line)}
+                quantity={copy.unitTimes(fmt.money(line.unitPricePaise), line.quantity)}
                 amount={fmt.money(line.totalPaise)}
               />
             ))}
           </ul>
         )}
-        <TotalsList
-          lines={[
-            { label: copy.subtotal, value: fmt.money(checkout.subtotalPaise), quiet: true },
-            { label: copy.shipping, value: copy.shippingValue, quiet: true },
-            { label: copy.total, value: fmt.money(checkout.subtotalPaise), strong: true },
-          ]}
-        />
+        <div className="border-t border-hairline pt-4">
+          <TotalsList
+            lines={[
+              { label: copy.subtotal, value: fmt.money(checkout.subtotalPaise), quiet: true },
+              { label: copy.shipping, value: copy.shippingValue, quiet: true },
+              { label: copy.total, value: fmt.money(checkout.subtotalPaise), strong: true },
+            ]}
+          />
+        </div>
       </div>
     </DataCard>
   )

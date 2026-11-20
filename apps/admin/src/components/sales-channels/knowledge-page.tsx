@@ -17,6 +17,7 @@ import EmptyState from '@/components/layout/empty-state'
 import PageBody from '@/components/layout/page-body'
 import PageColumns from '@/components/layout/page-columns'
 import PageHeader from '@/components/layout/page-header'
+import KnowledgeTabs from './knowledge-tabs'
 import RelativeTime from '@/components/layout/relative-time'
 import { agentKnowledgeContent } from '@/data/agent-knowledge'
 import { salesChannelsContent } from '@/data/sales-channels'
@@ -95,6 +96,7 @@ export default function KnowledgePage({ data: initial }: KnowledgePageProps) {
         back={{ label: shared.title, href: routes.salesChannels.agentic() }}
         actions={scanButton}
       />
+      <KnowledgeTabs current="facts" />
       <PageColumns
         main={
           hasFacts ? (

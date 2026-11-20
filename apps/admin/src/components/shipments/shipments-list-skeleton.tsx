@@ -4,6 +4,7 @@ import { SHIPMENT_TABS, type ShipmentTab } from '@commerce/core/shipment-tabs'
 import ListPageSkeleton from '@/components/layout/list-page-skeleton'
 import PillTabs from '@/components/layout/pill-tabs'
 import ResourceTable from '@/components/table/resource-table'
+import { shipmentLostContent } from '@/data/shipment-lost'
 import { shipmentPartsContent, shipmentsContent } from '@/data/shipments'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { parseRowsPerPage } from '@/lib/rows-per-page'
@@ -25,13 +26,14 @@ export default function ShipmentsListSkeleton() {
   // Hooks
   const copy = useCopy(shipmentsContent)
   const partsCopy = useCopy(shipmentPartsContent)
+  const lostCopy = useCopy(shipmentLostContent)
   const fmt = useFormat()
 
   // Render logic
   const table = (
     <ResourceTable
       resourceName={copy.resource}
-      columns={shipmentColumns(copy, fmt, (id) => id, copy.pickedAtBooking, partsCopy)}
+      columns={shipmentColumns(copy, fmt, (id) => id, copy.pickedAtBooking, partsCopy, lostCopy)}
       items={[]}
       getId={(r) => r.id}
       href={() => ''}

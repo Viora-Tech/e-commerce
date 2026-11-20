@@ -1,4 +1,5 @@
 import type { ReturnReason, ReturnResolution } from '@commerce/core/returns'
+import { CHANNEL_LABELS } from './growth'
 
 /** The filter panels on Drafts, Abandoned checkouts, Returns and Shipments (Orders has its own). */
 
@@ -24,6 +25,9 @@ export const abandonedFiltersContent = {
   contact: 'Contact left',
   anyContact: 'Any contact',
   contactOptions: { email: 'Email', phone: 'Phone number', both: 'Email and phone' },
+  /** Where the shopper came from, named as on the Orders list's Channel filter. */
+  channel: 'Source',
+  channelOptions: CHANNEL_LABELS,
   show: (n: number) => `Show ${n} ${n === 1 ? 'checkout' : 'checkouts'}`,
 }
 

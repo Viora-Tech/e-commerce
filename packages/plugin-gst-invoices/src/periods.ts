@@ -27,7 +27,8 @@ export class PeriodError extends Error {
   }
 }
 
-const label = (period: string) => {
+/** `2026-09` → `September 2026`, as messages name a return month. */
+export const periodLabel = (period: string) => {
   const { from } = periodRange(period)
   return formatInZone(from.getTime() + 86_400_000, { month: 'long', year: 'numeric' })
 }
@@ -62,7 +63,10 @@ export async function assertPeriodOpen(
   const period = periodOf(at)
   const row = await getPeriod(tx, storeId, period, gstRegistrationId)
   if (row?.closedAt) {
-    throw new PeriodError('closed', `${label(period)} is closed; reopen it or pick a later date`)
+    throw new PeriodError(
+      'closed',
+      `${periodLabel(period)} is closed; reopen it or pick a later date`,
+    )
   }
 }
 

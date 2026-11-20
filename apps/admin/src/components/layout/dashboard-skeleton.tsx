@@ -15,6 +15,7 @@ import {
   LATEST_ROWS,
   LIVE_GLOBE,
   ORDER_ROW,
+  SLIM_ROW,
   SUGGEST_CARD_HEIGHT,
   SUGGEST_GRID,
   TILE_BOX,
@@ -30,10 +31,10 @@ const STILL = 'motion-reduce:animate-none'
 /**
  * Home's loading shape, drawn from Home's own layout classes (`home/home-layout.ts`): the
  * 68rem page with its 2.5rem rhythm, the 48rem greeting and Ask AI column, the sales hero on
- * its real toolbar, tile and chart boxes, Store health, To do, Latest orders beside Live now on
- * the 640:424 split, Suggested for you and the closed More numbers row. Finish setup is left
- * out: it shows only while a set-up step is open, and a reserved row would jump away for every
- * store that finished.
+ * its real toolbar, tile and chart boxes, Needs you (four tiles and the Store health row),
+ * Latest orders beside Live now on the 640:424 split, Ideas for your store and How you're
+ * doing's heading. Finish setup and the old-orders row are left out: they show only some of the
+ * time, and a reserved row would jump away for every store without them.
  */
 export default function DashboardSkeleton() {
   // Render logic
@@ -85,19 +86,10 @@ export default function DashboardSkeleton() {
           <Line box="h-5" bar="h-3 w-20" />
         </div>
       </section>
-      {/* Store health: title, the Open button, the severity chips and the worst problem. */}
-      <DataCard
-        title={<Line box="h-6" bar="h-4 w-28" />}
-        action={<Skeleton className={cn('h-8 w-20', STILL)} />}
-        bodyClassName="flex flex-col gap-1.5"
-      >
-        <Line box="h-5.5" bar="h-5 w-40" />
-        <Line box="h-4.5" bar="h-3 w-2/3" />
-      </DataCard>
       <section className={HOME_SECTION}>
         <Head aside="h-8 w-28" />
         <div className={TODO_GRID}>
-          {Array.from({ length: 3 }, (_, i) => (
+          {Array.from({ length: 4 }, (_, i) => (
             <div key={i.toString()} className={TODO_TILE}>
               <Skeleton className={cn('size-10 rounded-lg', STILL)} />
               <div className="flex w-full flex-col gap-1">
@@ -105,9 +97,17 @@ export default function DashboardSkeleton() {
                 <Line box="h-[1.1875rem]" bar="h-3 w-full" />
                 <Line box="h-[1.1875rem]" bar="h-3 w-2/3" />
               </div>
-              <Skeleton className={cn('mt-auto h-9 w-24 self-end', STILL)} />
+              <Skeleton className={cn('mt-auto h-9 w-24', STILL)} />
             </div>
           ))}
+        </div>
+        {/* Store health's slim row: the dot, one line and its button. */}
+        <div className={SLIM_ROW}>
+          <Skeleton className={cn('size-2 shrink-0 rounded-full', STILL)} />
+          <span className="flex min-w-0 flex-1">
+            <Line box="h-[1.1875rem]" bar="h-3 w-2/3" />
+          </span>
+          <Skeleton className={cn('h-8 w-28', STILL)} />
         </div>
       </section>
       <div className={HOME_SPLIT}>
@@ -159,10 +159,13 @@ export default function DashboardSkeleton() {
           ))}
         </div>
       </section>
-      {/* More numbers, closed: its title and one grey line. */}
-      <div className="flex flex-col p-1">
-        <Line box="h-6" bar="h-4 w-32" />
-        <Line box="h-[1.1875rem]" bar="h-3 w-64 max-w-full" />
+      {/* How you're doing: its title, the dates line and the 7/30/90 switch. */}
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex flex-col gap-0.5">
+          <Line box="h-6" bar="h-4 w-32" />
+          <Line box="h-[1.1875rem]" bar="h-3 w-96 max-w-full" />
+        </div>
+        <Skeleton className={cn('h-8 w-56', STILL)} />
       </div>
     </PageBody>
   )

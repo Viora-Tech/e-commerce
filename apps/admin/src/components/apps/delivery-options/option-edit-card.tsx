@@ -11,6 +11,9 @@ import StatusChip from '@/components/layout/status-chip'
 import { deliveryPagesContent } from '@/data/delivery-options-pages'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { routes } from '@/lib/routes'
+import InlineWarning from './inline-warning'
+import InsuranceOfferFields from './insurance-offer-fields'
+import RoundingField from './rounding-field'
 
 type OptionEditCardProps = {
   option: DeliveryOption
@@ -31,8 +34,9 @@ const showsOf = (o: DeliveryOption): Shows =>
 
 /**
  * One option on the Options page, edited in place (Figma 929:11812): the grip, name, "Picked by
- * default", the on/off switch, and Picks, Shopper pays, Payment and Shows. Everything else
- * (markup amounts, dates, insurance, routes) is on the option's own page, "More settings".
+ * default", the on/off switch, Picks, Shopper pays, Payment, Shows and Round delivery prices. Everything else
+ * (markup amounts, dates, routes) is on the option's own page, "More settings"; parcel insurance
+ * is offered here too (owner, 20 Nov).
  */
 export default function OptionEditCard({
   option,
@@ -55,7 +59,8 @@ export default function OptionEditCard({
       router.push(routes.apps.page(APP, 'options', option.id))
       return
     }
-    set({ price: { ...option.price, source: value === 'zone' ? 'zone' : 'route' } })
+    const source = value === 'zone' || value === 'free' ? value : 'route'
+    set({ price: { ...option.price, source } })
   }
   const handleShows = (value: string) => {
     const show = value === 'list' ? 'list' : 'one'
@@ -77,6 +82,10 @@ export default function OptionEditCard({
   const express = option.speed === 'express'
   const speedWord = express ? pages.preview.air : pages.preview.surface
   const id = `option-${option.id}`
+  const oneCardRisk =
+    option.couriers.show === 'list' &&
+    option.strategy === 'fastest' &&
+    option.couriers.hideSlowerDearer
 
   return (
     <div
@@ -123,6 +132,7 @@ export default function OptionEditCard({
           options={[
             { value: 'route', label: routePays },
             { value: 'zone', label: c.paysItems.zone },
+            { value: 'free', label: c.paysItems.free },
             { value: 'more', label: c.paysItems.more },
           ]}
           onChange={handlePays}
@@ -152,6 +162,28 @@ export default function OptionEditCard({
           ]}
           onChange={handleShows}
         />
+      </div>
+      <div className="grid grid-cols-1 gap-3 px-4 pb-4 sm:grid-cols-2">
+        <RoundingField
+          id={`${id}-round`}
+          value={p.rounding}
+          help={option.couriers.show === 'list' ? 'list' : 'fixed'}
+          onChange={(rounding) =>
+            set({
+              price: { ...p, rounding },
+              // A list's "+₹…9" switch only counts on the ₹10 rule; Off turns it off too.
+              ...(option.couriers.show === 'list'
+                ? { couriers: { ...option.couriers, roundTo9: rounding !== 'off' } }
+                : {}),
+            })
+          }
+        />
+      </div>
+      {oneCardRisk ? (
+        <InlineWarning className="mx-4 mb-4">{pages.courierList.hideFastest}</InlineWarning>
+      ) : null}
+      <div className="border-t border-hairline p-4">
+        <InsuranceOfferFields option={option} onChange={onChange} idPrefix={id} />
       </div>
     </div>
   )
