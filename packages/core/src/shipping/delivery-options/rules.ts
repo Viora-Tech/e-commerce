@@ -6,7 +6,7 @@
  * allowed routes before any option picks one, and a rule for one product must beat a rule for
  * every product rather than be cut down by it (#1782). Pure.
  */
-import type { RouteRule, RouteSelector, RuleTargetKind } from './config'
+import { RULE_SPECIFICITY, type RouteRule, type RouteSelector } from './config'
 import { type Route, selectorMatches } from './routes'
 
 /** What a rule can match on, for one cart line's product. */
@@ -17,15 +17,6 @@ export type CartItemFacts = {
   productType: string | null
   /** Shopify taxonomy category (`el-7-8-8`): what Delhivery Protect prices insurance by. */
   categoryId?: string | null | undefined
-}
-
-/** Higher wins: a rule naming the product beats a group rule, which beats an every-product rule. */
-export const RULE_SPECIFICITY: Readonly<Record<RuleTargetKind, number>> = {
-  products: 3,
-  collections: 2,
-  tags: 2,
-  types: 2,
-  all: 1,
 }
 
 const lower = (s: string) => s.trim().toLowerCase()

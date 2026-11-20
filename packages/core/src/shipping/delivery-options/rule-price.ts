@@ -5,11 +5,11 @@
  * 20 Nov 2026: "Mice ship free by Delhivery Air", skates pay ₹99, and COD still charges its fee
  * on a free order. Other couriers cost that price plus their difference (`courierList`). Pure.
  */
-import type { DeliveryOption, RouteRule, RulePrice } from './config'
+import { type DeliveryOption, RULE_SPECIFICITY, type RouteRule, type RulePrice } from './config'
 import type { PricedRoute } from './resolve-types'
 import { roundPrice } from './rounding'
 import type { Route } from './routes'
-import { type CartItemFacts, RULE_SPECIFICITY, ruleMatchesItem } from './rules'
+import { type CartItemFacts, ruleMatchesItem } from './rules'
 
 /** A product with no rule (or a rule saved before rule prices) pays the option's price. */
 const OPTION_PRICE: RulePrice = { mode: 'option' }

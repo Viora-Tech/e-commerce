@@ -66,7 +66,7 @@ function byFastest(a: Candidate, b: Candidate): number {
   )
 }
 
-export function pickByStrategy(
+function pickByStrategy(
   fits: Candidate[],
   option: DeliveryOption,
 ): { winner: Candidate; why: WhyPicked } | null {

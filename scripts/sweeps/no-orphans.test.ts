@@ -250,6 +250,12 @@ const ALLOWLIST: AllowEntry[] = [
       'Delivery options engine (P1): pure helper used inside the engine and unit-tested on its own (delivery-options tests); no other module needs it',
   },
   {
+    file: 'packages/core/src/shipping/delivery-options/rule-checks.ts',
+    names: ['twinKey', 'collectionTwins'],
+    reason:
+      'Delivery options Product rules page: the pure half of loadCollectionTwins, unit-tested on its own (rule-checks.test.ts); no other module needs it',
+  },
+  {
     file: 'packages/core/src/shipping/delivery-options/routes.ts',
     names: ['normaliseCarrier', 'directCarrier', 'serviceSpeed'],
     reason:

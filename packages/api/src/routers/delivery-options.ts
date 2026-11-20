@@ -12,13 +12,16 @@ import {
   deliveryOptionsInstalled,
   deliveryOverview,
   deliveryRouteCatalogue,
+  loadCollectionTwins,
   loadDeliveryConfig,
+  loadSuggestionProfiles,
   ProtectCardSchema,
   permissions,
   RouteRuleInputSchema,
   RouteSettingInputSchema,
   reorderDeliveryOptions,
   reorderRouteRules,
+  ruleSuggestions,
   resolveShippingProviders,
   saveDeliveryLayout,
   saveDeliveryOption,
@@ -214,6 +217,26 @@ export const deliveryOptionsRouter = {
       await requireInstalled(context)
       return saveRouteRule(context.tx, context.scope.storeId, input.id, input.rule).catch(failed)
     }),
+
+  /**
+   * Product rules suggested from Settings → Shipping rates (a "Skates" profile at ₹99 becomes
+   * "Skates, Fixed ₹99"). Nothing is saved: the admin opens the rule dialog filled with one.
+   */
+  ruleSuggestions: can(permissions.SETTINGS_READ).handler(async ({ context }) => {
+    await requireInstalled(context)
+    const [profiles, config] = await Promise.all([
+      loadSuggestionProfiles(context.tx, context.scope.storeId),
+      loadDeliveryConfig(context.tx, context.scope.storeId),
+    ])
+    return ruleSuggestions(profiles, config.rules)
+  }),
+
+  /** Collections named like one a rule targets that the rule misses (two "Glasspads"). */
+  collectionTwins: can(permissions.SETTINGS_READ).handler(async ({ context }) => {
+    await requireInstalled(context)
+    const config = await loadDeliveryConfig(context.tx, context.scope.storeId)
+    return loadCollectionTwins(context.tx, config.rules)
+  }),
 
   deleteRule: can(permissions.SETTINGS_MANAGE)
     .input(z.object({ id: z.uuid() }))

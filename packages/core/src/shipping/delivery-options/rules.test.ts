@@ -5,7 +5,8 @@ import { describe, expect, it } from 'vitest'
 import { delhivery, item, rule, shiprocket } from '../../testing/delivery-options-fixtures'
 import { RouteRuleInputSchema } from './config'
 import { routesFromAnswers } from './routes'
-import { matchingRules, matchRules, RULE_SPECIFICITY, ruleMatchesItem, rulePool } from './rules'
+import { RULE_SPECIFICITY } from './config'
+import { matchingRules, matchRules, ruleMatchesItem, rulePool } from './rules'
 
 const EVERY = rule(
   'every',

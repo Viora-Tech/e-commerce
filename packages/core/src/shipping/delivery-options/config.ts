@@ -169,7 +169,7 @@ export type DeliveryOption = DeliveryOptionInput & { id: string; position: numbe
 /**
  * What a rule matches. `all`: every product (`values` is `[]`). When rules of different kinds
  * match one product, the most specific wins (`products` > `collections`/`tags`/`types` > `all`,
- * `RULE_SPECIFICITY` in rules.ts); rules of the same kind intersect as before.
+ * `RULE_SPECIFICITY` below); rules of the same kind intersect as before.
  */
 /**
  * What a rule's products cost the shopper on the first (Recommended) courier, owner 20 Nov
@@ -191,6 +191,15 @@ export type RulePrice = z.infer<typeof RulePriceSchema>
 
 export const RULE_TARGET_KINDS = ['products', 'collections', 'tags', 'types', 'all'] as const
 export type RuleTargetKind = (typeof RULE_TARGET_KINDS)[number]
+
+/** Higher wins: a rule naming the product beats a group rule, which beats an every-product rule. */
+export const RULE_SPECIFICITY: Readonly<Record<RuleTargetKind, number>> = {
+  products: 3,
+  collections: 2,
+  tags: 2,
+  types: 2,
+  all: 1,
+}
 
 export const RouteRuleInputSchema = z
   .object({

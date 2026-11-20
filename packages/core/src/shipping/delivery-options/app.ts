@@ -54,6 +54,11 @@ export const deliveryOptionsPlugin = definePlugin({
         level: 'read',
         why: 'Reads collections and tags for product route rules',
       },
+      {
+        resource: 'store-settings',
+        level: 'read',
+        why: 'Reads your Shipping rates to suggest product rules',
+      },
     ],
     summary: 'shows courier delivery options at checkout',
   },
