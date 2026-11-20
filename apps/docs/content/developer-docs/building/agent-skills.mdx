@@ -1,0 +1,117 @@
+---
+title: Agent skills
+description: The Koomerce agent skills - a public pack for merchants' AI clients and for app and theme developers, and the skills agents use to work on this repository - and how to install them with npx skills or as a Claude Code plugin marketplace.
+---
+
+# Agent skills
+
+A skill is a folder with a `SKILL.md`: a short set of instructions an AI agent loads when a task
+matches its description. Koomerce's skills follow the open [Agent Skills](https://agentskills.io)
+format, so Claude Code, Codex, Cursor and other agents can use them. There are two sets.
+
+| Set | Where | For |
+| --- | --- | --- |
+| Koomerce skills (public pack) | `skills/` | Merchants' AI clients connected to a store, and developers building Koomerce apps and themes |
+| Repository skills | `.claude/skills/koomerce-*` | Agents working on this monorepo |
+
+## The public pack
+
+| Skill | What it does |
+| --- | --- |
+| `koomerce-store-agent` | Works in a store through its MCP tools (orders, products, stock, sales, shipping, discounts) and confirms every change with the merchant first. Lists the real tools of both endpoints in `references/tools.md`. |
+| `koomerce-app-developer` | Builds a Koomerce app: manifest, honest `access` declaration, providers and conformance tests, admin pages, hooks and app blocks. |
+| `koomerce-theme-developer` | Brings a Shopify Liquid theme to Koomerce: import limits, the report, what is swapped for Koomerce features, what does not work yet, and how to test. |
+
+The folder also holds `README.md` (the index), `CONTRIBUTING.md` (listing rules) and
+`.claude-plugin/marketplace.json` (the `koomerce-skills` marketplace for Claude Code).
+
+### Install with `npx skills`
+
+```sh filename="Terminal"
+npx skills add Viora-Tech/e-commerce --list
+npx skills add Viora-Tech/e-commerce --skill koomerce-store-agent
+npx skills add https://github.com/Viora-Tech/e-commerce/tree/main/skills/koomerce-app-developer
+```
+
+Add `-g` to install for every project and `-a claude-code` (or another agent) to pick the agent.
+Always name the skill: the repository also contains its own development skills.
+
+### Install as a Claude Code plugin
+
+The marketplace sits in a subfolder, so add it from a clone:
+
+```sh filename="Terminal"
+git clone https://github.com/Viora-Tech/e-commerce.git
+claude plugin marketplace add ./e-commerce/skills
+claude plugin install koomerce-store-agent@koomerce-skills
+```
+
+Or declare it in Claude Code's `settings.json` without cloning:
+
+```json filename="settings.json"
+{
+  "extraKnownMarketplaces": {
+    "koomerce-skills": {
+      "source": {
+        "source": "github",
+        "repo": "Viora-Tech/e-commerce",
+        "path": "skills/.claude-plugin/marketplace.json"
+      }
+    }
+  }
+}
+```
+
+Each skill is one plugin entry (`"source": "./"`, `"strict": false`, `"skills": ["./<name>"]`),
+so people install only the ones they want. Check the file with
+`claude plugin validate ./skills`.
+
+<Callout type="warning">
+  A skill is instructions an agent follows with your permissions. Read `SKILL.md` and its
+  references before installing any skill, ours included.
+</Callout>
+
+### How the store agent stays safe
+
+The store agent skill only names tools the MCP servers really list (see
+[MCP server and API tokens](/developer-docs/building/mcp-and-api)): the read tools, the
+`propose*` change tools, `searchActions` / `describeAction` / `runAction` on the admin endpoint,
+and `search_catalog`, `get_product`, `search_policies_and_faqs`, `get_store_info` on the store's
+public `/api/mcp`. It tells the agent to read first, confirm each change with the merchant, call
+`describeAction` before `runAction`, and treat sensitive actions as waiting in Approvals. The
+server enforces the same limits regardless: the member's role, the connection's areas, the
+"Allow AI clients to make changes" switch and the approval queue.
+
+When a tool is added, renamed or reclassified (`packages/api/src/mcp/`,
+`packages/api/src/services/ai/assistant/registry.ts`, `apps/storefront/src/lib/agent-mcp.ts`),
+update `skills/koomerce-store-agent/references/tools.md` in the same change.
+
+## Repository skills
+
+| Skill | Use it when |
+| --- | --- |
+| `koomerce-conventions` | Writing any component, copy or styling: file structure, `data/*.ts` copy and the Hindi overlay, rem, Tailwind, the 500-line cap, `lint:components` |
+| `koomerce-plugin-app` | Building or changing an app: manifest, `access`, the `tested` badge, settings pages, hooks, blocks |
+| `koomerce-delivery-options` | Changing the Delivery options engine; keeping `shownPrices` and `orderDeliveryFor` in step |
+| `koomerce-liquid-themes` | Imported Shopify themes, `liquid-theme.ts`, Customize and Puck; theme data changes only through the editor |
+| `koomerce-checkout-orders` | `placeOrder`, store credit, COD, payments, cancels and refunds |
+| `koomerce-testing` | Choosing what to run on a low-memory machine: per-file vitest, typecheck, sweeps, the test database |
+| `koomerce-release-flow` | Branch from `origin/dev`, localhost check, merge to `dev`, release; handoff notes; migration order |
+| `koomerce-emails` | Notification templates, shared email blocks and composers in `packages/notifications` |
+
+Each one cites real files and commands. When the code it describes moves, update the skill in
+the same pull request, the way the handoff note is.
+
+## Writing a new skill
+
+- Folder name = `name` in the frontmatter (lowercase, digits, single hyphens, up to 64
+  characters); `description` says what it does **and when to use it** (up to 1,024 characters).
+- Keep `SKILL.md` under about 150 lines; move long material to a sibling file and link it.
+- Name only tools, paths and commands that exist; verify each one.
+- No secrets, customer data or private URLs, not even as examples.
+- Public skills also follow `skills/CONTRIBUTING.md` (target version in `metadata`, confirm
+  before writes, nothing hidden).
+
+## Related guides
+
+<RelatedGuides ids={['plugins', 'first-app']} />
