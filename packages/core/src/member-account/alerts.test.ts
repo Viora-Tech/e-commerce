@@ -149,6 +149,12 @@ describe('daily summary', () => {
       template: 'staff_daily_summary',
       data: { dailySummary: { periodLabel: 'Yesterday', toShip: 0 } },
     })
+    // The full report layout rides along: yesterday, 10 October 2026.
+    expect(email.sent[0]?.data.report).toMatchObject({
+      period: 'daily',
+      periodLabel: 'Saturday 10 October',
+      todosFirst: true,
+    })
   })
 
   it('waits for the chosen hour', async () => {

@@ -20,6 +20,20 @@ monthly report yet.
   `EmailBrandInfo.logoDarkUrl`; without one, the band is light behind the normal logo.
 - **Samples:** `samples-reports.ts`, figures from the Figma frames, generic product names, no
   images. Tests: `packages/notifications/test/performance-report.test.ts`.
-- **Still to build:** the report figures in core (net sales by the analytics formula, bars,
-  history, sellers, sources, to-dos), weekly/monthly switches in Account → Notifications
-  (`alert-prefs.ts`), and the worker job that sends them Monday 9:00 and on the 1st.
+- **Sending (second commit):**
+  - `core/member-account/report-periods.ts` (which days, the period before, bars, history;
+    pure), `report-compose.ts` (figures → formatted report; pure), `report-figures.ts` (the
+    reads), `reports.ts` (`sendDueReports`: Monday / the 1st from 9:00 IST, email only, once
+    per member and period via `lastSentOn` claimed in the update).
+  - Same rules as Analytics: Analytics' session, sales-breakdown, SQL-bucket and rate helpers
+    moved from `packages/api/src/services` to `core/src/analytics-figures/`
+    (`@commerce/core/analytics-figures`); the old api files re-export them. Net sales is the
+    sales breakdown's net (gross − discounts − returns); cancelled, draft and test orders out.
+  - Words: `reportCopy` in `notifications/src/templates/report-copy.ts`.
+  - Account → Notifications: `weeklyReport` and `monthlyReport` switches (email only) in
+    `alert-prefs.ts`, the page and `data/account.ts` + Hindi overlay.
+  - Worker: `member-reports` job every 10 minutes (`apps/worker/src/member-reports.ts`),
+    stores from `stores_with_member_reports()` (migration `0258_member_reports`; renumber at
+    merge if another branch took 0258).
+  - The daily summary now carries `report` too, so it renders in the new layout. The dark logo
+    reaches every email through `withEmailBrand` → `storeEmailBrand`.

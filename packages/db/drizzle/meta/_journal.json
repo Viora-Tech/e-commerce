@@ -1695,6 +1695,13 @@
       "when": 1795280500000,
       "tag": "0257_invoice_printed_at",
       "breakpoints": true
+    },
+    {
+      "idx": 242,
+      "version": "7",
+      "when": 1795280600000,
+      "tag": "0258_member_reports",
+      "breakpoints": true
     }
   ]
 }

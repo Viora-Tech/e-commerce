@@ -68,6 +68,7 @@ const BULK = new Set([
   'home-cards',
   'search-console-sweep',
   'member-daily-summary',
+  'member-reports',
   'affiliate-commissions',
   'api-activity-prune',
   'store-activity-prune',

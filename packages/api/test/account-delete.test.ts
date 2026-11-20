@@ -127,6 +127,8 @@ describe('personal notifications', () => {
         lowStock: on,
         paymentProblem: on,
         dailySummary: { ...on, hour: 7 },
+        weeklyReport: on,
+        monthlyReport: on,
         appErrors: on,
         bugReports: on,
       },
@@ -134,6 +136,12 @@ describe('personal notifications', () => {
     )
     const after = await call(appRouter.account.notifications, {}, { context: ctx(helper.headers) })
     expect(after.prefs.dailySummary).toMatchObject({ email: true, hour: 7 })
+    expect(after.prefs.weeklyReport).toEqual({
+      email: true,
+      whatsapp: false,
+      push: false,
+      lastSentOn: null,
+    })
     const bossAfter = await call(
       appRouter.account.notifications,
       {},

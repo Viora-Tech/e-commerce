@@ -13,4 +13,5 @@ export {
   type WhatsappBody,
 } from './templates'
 export { sharedContent, templateContent } from './templates/content'
+export { reportCopy } from './templates/report-copy'
 export type * from './types'
