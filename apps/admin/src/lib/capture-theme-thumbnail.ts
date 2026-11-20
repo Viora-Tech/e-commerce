@@ -74,6 +74,14 @@ export function keeper(fold: number): (node: Node) => boolean {
 }
 
 /**
+ * A video's cover: its `poster`, else the one the live storefront moved to `data-cover` (a hero
+ * plays there without it, `apps/storefront/src/lib/liquid-video-cover.ts`), else a theme's own
+ * lazy `data-poster`. The cover is the theme's picture on the Themes page.
+ */
+export const coverOf = (video: HTMLVideoElement): string =>
+  video.poster || video.getAttribute('data-cover') || video.getAttribute('data-poster') || ''
+
+/**
  * Posters for the page's videos: `mark` tags each video's parent before the clone, `apply` adds
  * an `<img>` of each poster to the cloned parent (sized and placed as the video was), `restore`
  * removes the tags from the live page. A video with no poster leaves its box empty.
@@ -87,13 +95,14 @@ export function stillPosters(body: HTMLElement): {
   const parents = new Map<Element, number[]>()
   for (const video of body.querySelectorAll('video')) {
     const parent = video.parentElement
-    if (!video.poster || !parent) continue
+    const poster = coverOf(video)
+    if (!poster || !parent) continue
     const computed = view?.getComputedStyle(video)
     const style = VIDEO_BOX.map((p) => [p, computed?.getPropertyValue(p) ?? ''] as const)
       .filter(([, v]) => v !== '')
       .map(([p, v]) => `${p}:${v}`)
       .join(';')
-    stills.push({ poster: video.poster, style })
+    stills.push({ poster, style })
     parents.set(parent, [...(parents.get(parent) ?? []), stills.length - 1])
   }
   for (const [parent, slots] of parents) parent.setAttribute(POSTER_SLOT, slots.join(','))

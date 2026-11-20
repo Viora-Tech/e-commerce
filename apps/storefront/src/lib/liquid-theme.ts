@@ -1,9 +1,7 @@
 import 'server-only'
 import {
-  compactVideosByUrl,
-  videoSources,
-  withCompactVideos,
   CollectionDrop,
+  compactVideosByUrl,
   createPageContext,
   getCart,
   googleFontsHref,
@@ -30,6 +28,8 @@ import {
   type TemplateKey,
   type ThemeBundle,
   themeImportFor,
+  videoSources,
+  withCompactVideos,
 } from '@commerce/core'
 import { product as productTable, type StoreTx, store } from '@commerce/db'
 import { logger } from '@commerce/observability/logging'
@@ -66,6 +66,7 @@ import { deferThemeScripts } from './liquid-defer'
 import { belowTheFold } from './liquid-fold'
 import { liquidMarketFor } from './liquid-market'
 import { withMarketPrefix } from './liquid-market-links'
+import { withoutVideoCovers } from './liquid-video-cover'
 import { requestCatalogId } from './market-catalog'
 import { marketPricingFor, pricingKey } from './market-pricing'
 import { MARKET_HEADERS } from './markets'
@@ -436,7 +437,9 @@ export async function renderLiquidSections(
         () => signedOut(storeId),
       ))
     ) {
-      out.set(p.id, { html: finish(withCookieLink(p, hit.html), scope), ...p.wrapper })
+      // A hit cached before covers left the hero gets the same treatment (it is idempotent).
+      const html = p.belowFold ? hit.html : withoutVideoCovers(hit.html)
+      out.set(p.id, { html: finish(withCookieLink(p, html), scope), ...p.wrapper })
     } else missing.push(p)
   }
   if (missing.length === 0) return out
@@ -465,7 +468,9 @@ export async function renderLiquidSections(
       const small = sources.length ? await compactVideosByUrl(tx, sources) : null
       const sized = small ? withCompactVideos(html, small) : html
       const parked = revealConsentEarly(deferThemeScripts(sized), NONCE_MARK)
-      done.push({ p, html: p.belowFold ? belowTheFold(parked) : parked, trace })
+      // Above the fold, a hero video plays without its cover (`./liquid-video-cover.ts`).
+      const placedHtml = p.belowFold ? belowTheFold(parked) : withoutVideoCovers(parked)
+      done.push({ p, html: placedHtml, trace })
     }
     return done
   })
