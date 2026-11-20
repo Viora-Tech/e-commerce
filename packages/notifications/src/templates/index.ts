@@ -4,6 +4,7 @@ import { TransactionalEmail } from '../emails/transactional-email'
 import type { TemplateData, TemplateId } from '../types'
 import { sharedContent as shared, templateContent } from './content'
 import { composeEmail } from './compose'
+import { footerReason } from './content-footer'
 import { primaryActionFor } from './primary-action'
 
 export type EmailBody = { subject: string; text: string; html: string }
@@ -33,6 +34,7 @@ export const TEMPLATE_IDS: TemplateId[] = [
   'login_link',
   'newsletter_confirm',
   'gift_card_issued',
+  'welcome_coupon',
   'balance_request',
   'balance_reminder',
   'balance_received',
@@ -105,6 +107,7 @@ export const TEMPLATE_NAMES: Record<TemplateId, string> = {
   login_link: 'Sign-in link',
   newsletter_confirm: 'Newsletter: confirm signup',
   gift_card_issued: 'Gift card issued',
+  welcome_coupon: 'Welcome coupon',
   balance_request: 'Balance due',
   balance_reminder: 'Balance reminder',
   balance_received: 'Balance received',
@@ -394,7 +397,8 @@ export async function renderEmail(template: TemplateId, d: TemplateData): Promis
       extraLinks,
       internal: INTERNAL.has(template),
       labels: shared.layout,
-      footerNote: shared.footer(d),
+      // Why this address got it (Figma footer); the plain text keeps the reply line.
+      footerNote: footerReason(template, d),
     }),
   )
 
