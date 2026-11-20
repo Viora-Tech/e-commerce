@@ -103,3 +103,22 @@ describe('section rendering through the shim', () => {
     expect(url.searchParams.get('path')).toBe('/products/mat')
   })
 })
+
+describe('consent through the shim', () => {
+  it('keeps the answer for a listener that is not there yet, and still sends the event', () => {
+    const sent: unknown[] = []
+    const win = {
+      Node: FakeNode,
+      fetch: () => Promise.resolve(new Response('{}')),
+      dispatchEvent: (e: CustomEvent) => sent.push(e.detail),
+    } as unknown as Window & {
+      Shopify: { customerPrivacy: { setTrackingConsent: (c: unknown, d: () => void) => void } }
+      __commerceConsentAnswer?: unknown
+    }
+    const location = new URL('https://shop.example/')
+    new Function('window', 'location', liquidShim({ askConsent: true }))(win, location)
+    win.Shopify.customerPrivacy.setTrackingConsent({ analytics: true, marketing: 0 }, () => {})
+    expect(win.__commerceConsentAnswer).toEqual({ analytics: true, marketing: false })
+    expect(sent).toEqual([{ analytics: true, marketing: false }])
+  })
+})

@@ -72,6 +72,15 @@ type ConsentManagerProps = {
 /** The event the imported theme's banner sends with the shopper's choice. */
 const THEME_CONSENT_EVENT = 'commerce:consent'
 
+type ThemeAnswer = { analytics?: unknown; marketing?: unknown }
+
+declare global {
+  interface Window {
+    /** The shim's last answer not yet taken by a listener (`lib/liquid-shim.ts`). */
+    __commerceConsentAnswer?: ThemeAnswer | null
+  }
+}
+
 function remember(consent: Consent, version: number): void {
   const secure = window.location.protocol === 'https:' ? '; secure' : ''
   // biome-ignore lint/suspicious/noDocumentCookie: one first-party cookie; the Cookie Store API is not in Safari or Firefox.
@@ -150,14 +159,18 @@ export default function ConsentManager({
 
   useEffect(() => {
     if (!themeBanner) return
-    const handleThemeChoice = (event: Event) => {
-      const detail = (event as CustomEvent<{ analytics?: unknown; marketing?: unknown }>).detail
+    const take = (detail: ThemeAnswer | null | undefined) => {
+      window.__commerceConsentAnswer = null
       const next = { analytics: detail?.analytics === true, marketing: detail?.marketing === true }
       remember(next, bannerVersion)
       setConsent(next)
       void recordConsentAction(next).catch(() => undefined)
     }
+    const handleThemeChoice = (event: Event) => take((event as CustomEvent<ThemeAnswer>).detail)
     window.addEventListener(THEME_CONSENT_EVENT, handleThemeChoice)
+    // The theme's banner works from the first paint (`lib/liquid-consent-reveal.ts`): an answer
+    // given before React hydrated waits on the shim.
+    if (window.__commerceConsentAnswer) take(window.__commerceConsentAnswer)
     return () => window.removeEventListener(THEME_CONSENT_EVENT, handleThemeChoice)
   }, [themeBanner, bannerVersion])
 

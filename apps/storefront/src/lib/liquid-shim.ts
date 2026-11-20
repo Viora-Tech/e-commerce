@@ -54,9 +54,11 @@ const SHIM = `(function () {
     shouldShowBanner: function () { return config.askConsent; },
     setTrackingConsent: function (choice, done) {
       config.askConsent = false;
-      window.dispatchEvent(new CustomEvent('commerce:consent', {
-        detail: { analytics: !!(choice && choice.analytics), marketing: !!(choice && choice.marketing) }
-      }));
+      var detail = { analytics: !!(choice && choice.analytics), marketing: !!(choice && choice.marketing) };
+      // Kept until a listener takes it: a shopper can answer before the page's listener exists
+      // (the plain page's island script, or ConsentManager before React hydrates).
+      window.__commerceConsentAnswer = detail;
+      window.dispatchEvent(new CustomEvent('commerce:consent', { detail: detail }));
       if (typeof done === 'function') done();
     },
     analyticsProcessingAllowed: function () { return false; },

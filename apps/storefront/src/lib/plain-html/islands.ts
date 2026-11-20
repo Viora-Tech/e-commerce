@@ -289,14 +289,18 @@ const ISLANDS = `(function () {
     } catch (e) {}
   }
   apply(current);
-  window.addEventListener('commerce:consent', function (event) {
+  function onConsent(event) {
+    window.__commerceConsentAnswer = null;
     var d = (event && event.detail) || {};
     var next = { analytics: d.analytics === true, marketing: d.marketing === true };
     var secure = location.protocol === 'https:' ? '; secure' : '';
     document.cookie = c.cookie + '=a' + (next.analytics ? 1 : 0) + 'm' + (next.marketing ? 1 : 0) + '.v' + c.v + '.t' + Math.floor(Date.now() / 1000) + '; path=/; max-age=' + c.maxAge + '; samesite=lax' + secure;
     fetch('/theme-actions/consent', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(next) }).catch(function () {});
     apply(next);
-  });
+  }
+  window.addEventListener('commerce:consent', onConsent);
+  // An answer given before this listener existed (the banner works from the first paint).
+  if (window.__commerceConsentAnswer) onConsent({ detail: window.__commerceConsentAnswer });
 
   // Page speed: Google's three Core Web Vitals, sent once as the page is left.
   if (window.top === window.self && !/[?&]theme-preview=/.test(location.search) && window.PerformanceObserver) {
