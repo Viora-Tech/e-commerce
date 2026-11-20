@@ -28,6 +28,7 @@ export default [
     chips: { all: 'सभी', ready: 'तैयार', fix: 'ठीक करना है' },
     columns: {
       order: 'ऑर्डर',
+      products: 'प्रोडक्ट',
       customer: 'ग्राहक',
       gstin: 'GSTIN',
       taxable: 'कर योग्य',
@@ -52,6 +53,7 @@ export default [
     issueMany: (n) => `${n} इनवॉइस जारी करें`,
     selectAll: 'दिखाए गए सभी ऑर्डर चुनें',
     selectRow: (order) => `${order} चुनें`,
+    moreItems: (n) => `+ ${n} और`,
     selected: (n) => `${n} चुने गए`,
     more: 'कतार के और विकल्प',
     addByNumber: 'नंबर से ऑर्डर जोड़ें',

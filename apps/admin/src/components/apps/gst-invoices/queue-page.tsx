@@ -6,6 +6,7 @@ import { Button } from '@commerce/ui/shadcn/button'
 import { Card } from '@commerce/ui/shadcn/card'
 import { Checkbox } from '@commerce/ui/shadcn/checkbox'
 import { Table, TableBody, TableHead, TableHeader, TableRow } from '@commerce/ui/shadcn/table'
+import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import SetupChecklist from '@/components/apps/setup-checklist'
@@ -21,6 +22,7 @@ import { statesContent } from '@/data/states'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
+import AlreadyInvoicedDialog from './already-invoiced-dialog'
 import GstNumberPicker from './gst-number-picker'
 import QueueEmpty from './queue-empty'
 import QueueMoreMenu, { type DateRange } from './queue-more-menu'
@@ -54,10 +56,13 @@ export default function QueuePage() {
   const [rows, setRows] = useState<QueueRow[] | null>(null)
   /** The queue did not load: say so rather than show an empty queue. */
   const [failed, setFailed] = useState(false)
+  const router = useRouter()
   const [range, setRange] = useState<DateRange>({ from: '', to: '' })
   const [chip, setChip] = useState<Chip>('all')
   const [picked, setPicked] = useState<Set<string>>(new Set())
   const [reviewing, setReviewing] = useState<QueueRow[] | null>(null)
+  /** The row whose "Already invoiced" dialog is open. */
+  const [recording, setRecording] = useState<QueueRow | null>(null)
   const [busy, setBusy] = useState(false)
   const [gstin, setGstin] = useState<string | null | undefined>(undefined)
   const [gst, setGst] = useState<string | undefined>(undefined)
@@ -99,6 +104,8 @@ export default function QueuePage() {
   const reload = () => {
     setPicked(new Set())
     setReloadKey((k) => k + 1)
+    // The sidebar's Queue count comes from the server layout: read it again too.
+    router.refresh()
   }
 
   // Event handlers
@@ -123,6 +130,10 @@ export default function QueuePage() {
   const handleGst = (id: string | undefined) => {
     setGst(id)
     setPicked(new Set())
+  }
+  const handleRecorded = () => {
+    setRecording(null)
+    reload()
   }
   const handleIssued = (n: number) => {
     toast.success(gstInvoicesContent.queue.issued(n))
@@ -253,6 +264,7 @@ export default function QueuePage() {
                   />
                 </TableHead>
                 <TableHead className={HEAD}>{copy.columns.order}</TableHead>
+                <TableHead className={HEAD}>{copy.columns.products}</TableHead>
                 <TableHead className={HEAD}>{copy.columns.customer}</TableHead>
                 <TableHead className={HEAD}>{copy.columns.gstin}</TableHead>
                 <TableHead className={`${HEAD} text-right`}>{copy.columns.taxable}</TableHead>
@@ -265,7 +277,7 @@ export default function QueuePage() {
             </TableHeader>
             <TableBody>
               {rows === null ? (
-                <TableSkeletonRows columns={8} rows={4} label={states.loading} />
+                <TableSkeletonRows columns={9} rows={4} label={states.loading} />
               ) : null}
               {shown.map((r) => (
                 <QueueRowView
@@ -275,12 +287,19 @@ export default function QueuePage() {
                   busy={busy}
                   onPick={(on) => handleToggle(r.id, on)}
                   onIssue={() => setReviewing([r])}
+                  onRecord={() => setRecording(r)}
                 />
               ))}
             </TableBody>
           </Table>
         )}
       </Card>
+      <AlreadyInvoicedDialog
+        key={recording?.id ?? 'closed'}
+        row={recording}
+        onClose={() => setRecording(null)}
+        onRecorded={handleRecorded}
+      />
     </div>
   )
 }
