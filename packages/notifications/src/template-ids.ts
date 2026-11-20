@@ -42,6 +42,12 @@ export type TemplateId =
   | 'login_link'
   /** Confirm a newsletter signup (double opt-in); `actionUrl` is the confirm page. Email only. */
   | 'newsletter_confirm'
+  /**
+   * A new newsletter subscriber's welcome code (Figma batch 8 "Welcome coupon"): the code, what
+   * it is worth and a few popular products. Email only. Rendered and previewed here; the
+   * Automations app's welcome flow still sends its own email until it switches to this one.
+   */
+  | 'welcome_coupon'
   /** A gift card was issued (bought or sent by the merchant); carries the code. Email only. */
   | 'gift_card_issued'
   /** A deposit pre-order's balance is due; carries the pay-balance link. */

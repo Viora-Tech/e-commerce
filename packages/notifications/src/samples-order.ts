@@ -54,3 +54,25 @@ export const figmaOrder = {
   shipTo: ['Asha Verma', '12 Park Street', 'Kolkata 700016'],
   placedLabel: '19 November 2026',
 } satisfies Partial<TemplateData>
+
+/** Three made-up products for the "Popular right now" row (welcome and gift card previews). */
+export const figmaProducts = [
+  {
+    title: 'ATK A9 Wireless Mouse',
+    priceLabel: '₹4,299',
+    url: 'https://waimers.example/products/atk-a9',
+    imageUrl: 'https://placehold.co/280x280/eef4ff/2563eb?text=%20',
+  },
+  {
+    title: 'Glass mousepad',
+    priceLabel: '₹3,499',
+    url: 'https://waimers.example/products/glass-pad',
+    imageUrl: 'https://placehold.co/280x280/f1eefe/6d28d9?text=%20',
+  },
+  {
+    title: 'Hall effect keyboard',
+    priceLabel: '₹6,999',
+    url: 'https://waimers.example/products/he-keyboard',
+    imageUrl: 'https://placehold.co/280x280/ecf7ef/15803d?text=%20',
+  },
+]

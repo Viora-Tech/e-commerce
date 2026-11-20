@@ -45,6 +45,8 @@ export function primaryActionFor(
       return d.actionUrl ? { label: 'Confirm or cancel my order', url: d.actionUrl } : undefined
     case 'login_link':
       return d.actionUrl ? { label: `Sign in to ${d.storeName}`, url: d.actionUrl } : undefined
+    case 'welcome_coupon':
+      return d.actionUrl ? { label: 'Start shopping', url: d.actionUrl } : undefined
     case 'newsletter_confirm':
       return d.actionUrl ? { label: 'Confirm my email', url: d.actionUrl } : undefined
     case 'staff_invite':

@@ -312,6 +312,17 @@ ${m?.text ?? ''}`
       'The link works for 7 days. If you did not sign up, ignore this email and you will not hear from us.',
     whatsapp: (d) => `Confirm your ${d.storeName} newsletter signup: ${d.actionUrl ?? ''}`,
   },
+  welcome_coupon: {
+    subject: (d) => `Welcome to ${d.storeName}: here is ${d.welcome?.valueLabel ?? 'a gift'} off`,
+    heading: (d) => `Here is ${d.welcome?.valueLabel ?? 'a little'} off your first order.`,
+    intro: (d) => {
+      const name = d.customerName && d.customerName !== 'there' ? `, ${d.customerName}` : ''
+      return `Thanks for joining${name}. Use the code below at checkout.`
+    },
+    outro: (d) => d.welcome?.terms ?? '',
+    whatsapp: (d) =>
+      `Welcome to ${d.storeName}! ${d.welcome?.valueLabel ?? ''} off your first order with code ${d.welcome?.code ?? ''}.`,
+  },
   gift_card_issued: {
     subject: (d) => `${d.storeName}: your ${d.giftCard?.balanceLabel ?? ''} gift card`,
     heading: (d) => `Hi ${d.customerName}, here is your gift card`,

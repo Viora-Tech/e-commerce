@@ -1,6 +1,5 @@
 import { siteConfig } from '@commerce/config/site'
-import { formatInZone } from '@commerce/dates'
-import { figmaOrder } from './samples-order'
+import { figmaOrder, figmaProducts } from './samples-order'
 import type { TemplateData, TemplateId } from './types'
 
 export { sampleEmailBrand } from './samples-order'
@@ -154,6 +153,16 @@ export const sampleTemplateDataByTemplate: Record<TemplateId, TemplateData> = {
       expiresLabel: '31 Mar 2027',
       message: 'Happy birthday Asha, enjoy!',
     },
+    products: figmaProducts,
+  },
+  welcome_coupon: {
+    ...base,
+    orderNumber: undefined,
+    lines: [],
+    taxBreakdown: undefined,
+    totalLabel: '',
+    welcome: { code: 'WELCOME10', valueLabel: '10%', terms: 'Min. order ₹999 · valid till 30 November' },
+    products: figmaProducts,
   },
   balance_request: {
     ...base,
@@ -461,39 +470,4 @@ export const sampleTemplateDataByTemplate: Record<TemplateId, TemplateData> = {
       message: 'Please pack the sleeves separately.',
     },
   },
-}
-
-const DAY = 86_400_000
-
-/** "10 Oct 2026" (or "30 November 2026" with `long`), the way the templates print dates. */
-function dateLabel(now: Date, days: number, long = false): string {
-  return formatInZone(
-    now.getTime() + days * DAY,
-    { day: 'numeric', month: long ? 'long' : 'short', year: 'numeric' },
-    { locale: 'en-GB' },
-  )
-}
-
-/**
- * The sample for one template with its dates a few days after `now`, so the admin's preview
- * never shows a deadline that is already past (#116). The conformance suite keeps the fixed
- * `sampleTemplateDataByTemplate` so its output stays the same from run to run.
- */
-export function sampleTemplateDataFor(template: TemplateId, now: Date = new Date()): TemplateData {
-  const s = sampleTemplateDataByTemplate[template]
-  return {
-    ...s,
-    ...(s.balance ? { balance: { ...s.balance, payByLabel: dateLabel(now, 7) } } : {}),
-    ...(s.deadlineLabel ? { deadlineLabel: dateLabel(now, 2) } : {}),
-    ...(s.giftCard?.expiresLabel
-      ? { giftCard: { ...s.giftCard, expiresLabel: dateLabel(now, 365) } }
-      : {}),
-    ...(s.review?.rewardUntil
-      ? { review: { ...s.review, rewardUntil: dateLabel(now, 30, true) } }
-      : {}),
-    ...(s.planBill?.dueLabel ? { planBill: { ...s.planBill, dueLabel: dateLabel(now, 5) } } : {}),
-    ...(s.purchaseOrder?.expectedLabel
-      ? { purchaseOrder: { ...s.purchaseOrder, expectedLabel: dateLabel(now, 14) } }
-      : {}),
-  }
 }
