@@ -21,6 +21,7 @@ import {
   ShippingUnavailable,
 } from '../errors'
 import { GIFT_CARD_PROVIDER } from '../gift-cards/service'
+import { hasPaymentTriesLeft, TooManyPaymentTries } from '../payments/attempt-cap'
 import {
   createPaymentAttempt,
   startPaymentAttempt,
@@ -290,6 +291,10 @@ const recordPaymentAttempt: WorkflowStep<State> = {
       // payments and writes order.paid.
       await recomputeOrderStatuses(ctx, orderId)
       return {}
+    }
+    // A reused order (checkout draft, another way to pay) keeps its declines: card testing guard.
+    if (!(await hasPaymentTriesLeft(ctx, orderId))) {
+      throw new TooManyPaymentTries(orderId, ctx.storeId)
     }
     const attempt = await createPaymentAttempt(ctx, {
       orderId,

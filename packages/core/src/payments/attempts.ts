@@ -23,6 +23,7 @@ import { storefrontOriginFor } from '../domains/origin'
 import { CommerceError } from '../errors'
 import { isOpenCheckoutDraft } from '../order/checkout-draft'
 import { INDIAN_STATE_NAMES } from '../tax/states'
+import { hasPaymentTriesLeft } from './attempt-cap'
 import { captureModeFor } from './capture'
 import { applyPaymentStatus } from './confirm'
 import { type FallbackTry, runWithFallbacks } from './fallback'
@@ -471,6 +472,10 @@ export async function retryPayment(
   }
   if ((OPEN_ATTEMPT_STATUSES as readonly string[]).includes(latest.status)) {
     return { attempt: latest, created: false }
+  }
+  // Card testing guard (`attempt-cap.ts`): too many declines this hour, no new gateway order.
+  if (!(await hasPaymentTriesLeft(ctx, orderId))) {
+    throw new PaymentNotRetryable(orderId, 'too many failed payments', ctx.storeId)
   }
   const attempt = await createPaymentAttempt(ctx, {
     orderId,

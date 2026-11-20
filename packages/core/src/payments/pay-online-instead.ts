@@ -9,6 +9,7 @@ import { capturedPaise } from '../order/aggregate-status'
 import { isOpenCheckoutDraft } from '../order/checkout-draft'
 import { retaxOrder } from '../order/edit-stock'
 import { recomputeOrderStatuses } from '../order/recompute'
+import { hasPaymentTriesLeft } from './attempt-cap'
 import {
   attemptSnapshot,
   createPaymentAttempt,
@@ -154,6 +155,9 @@ async function switchCodToOnline(
   const latest = attempts[0]
   if (latest && latest.provider === provider.id && OPEN.includes(latest.status)) {
     return { attempt: latest, created: false }
+  }
+  if (!(await hasPaymentTriesLeft(ctx, o.id))) {
+    throw new PaymentNotRetryable(o.id, 'too many failed payments', ctx.storeId)
   }
   // As the unpaid expiry ends an attempt; nobody collects cash for this order any more.
   for (const a of attempts) {
