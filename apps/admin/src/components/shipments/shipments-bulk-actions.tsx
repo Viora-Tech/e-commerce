@@ -6,6 +6,7 @@ import { Button } from '@commerce/ui/shadcn/button'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
+import { manifestSheetContent } from '@/data/manifest-sheet'
 import { shipmentActionsContent, shipmentsContent } from '@/data/shipments'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -13,6 +14,7 @@ import { pickupRefusal, startingPickupPlan } from './create-shipment/pickup-plan
 import LabelPaperSelect from './label-paper-select'
 import PickupFields, { type PickupValue } from './pickup-fields'
 import { useLabelSheet } from './use-label-sheet'
+import { useManifestSheet } from './use-manifest-sheet'
 
 type ShipmentsBulkActionsProps = {
   /** Selected shipment ids (never "To book" orders: that tab books them instead). */
@@ -27,13 +29,16 @@ type Dialog = 'pickup' | 'manifest' | null
 /**
  * The selection bar on the booked tabs: print the selected labels as one file on the paper
  * picked, and while parcels wait for the courier (Booked), schedule their pickup or group them
- * into a manifest. Both ask first.
+ * into a manifest. Both ask first. In To be picked up, Print manifest prints the ticked parcels'
+ * manifest for the pickup executive to sign (reused when one holds exactly them).
  */
 export default function ShipmentsBulkActions({ ids, tab, onDone }: ShipmentsBulkActionsProps) {
   // Hooks
   const copy = useCopy(shipmentsContent)
   const actions = useCopy(shipmentActionsContent)
+  const manifestCopy = useCopy(manifestSheetContent)
   const sheet = useLabelSheet()
+  const manifest = useManifestSheet()
   const [dialog, setDialog] = useState<Dialog>(null)
   // Starts on a day (today, or tomorrow from noon), so the request can go straight away.
   const [pickup, setPickup] = useState<PickupValue>(() => ({
@@ -117,10 +122,21 @@ export default function ShipmentsBulkActions({ ids, tab, onDone }: ShipmentsBulk
         </Button>
       ) : null}
       {tab === 'toPickUp' ? (
-        <Button size="sm" variant="outline" onClick={() => setDialog('manifest')}>
-          <FileText aria-hidden />
-          {actions.createManifest}
-        </Button>
+        <>
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={manifest.printing}
+            onClick={() => void manifest.print({ shipmentIds: ids })}
+          >
+            <Printer aria-hidden />
+            {manifestCopy.printSelected}
+          </Button>
+          <Button size="sm" variant="outline" onClick={() => setDialog('manifest')}>
+            <FileText aria-hidden />
+            {actions.createManifest}
+          </Button>
+        </>
       ) : null}
       <ConfirmDialog
         open={dialog === 'pickup'}

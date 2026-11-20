@@ -22,6 +22,7 @@ import { labelSheetContent } from '@/data/label-sheet'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { useScopedStorageKey } from '@/lib/storage-scope'
+import { showFile } from './show-file'
 
 const STORAGE_KEY = 'shipments.label-paper:v1'
 
@@ -42,20 +43,6 @@ function writeFormat(key: string | null, format: LabelSheetFormat) {
   } catch {
     // Storage blocked: the choice lasts this visit only.
   }
-}
-
-/** Shows the file in the tab opened on click, else saves it (a blocked pop-up). */
-function showFile(file: File, tab: Window | null) {
-  const url = URL.createObjectURL(file)
-  if (tab && !tab.closed) {
-    tab.location.href = url
-  } else {
-    const a = document.createElement('a')
-    a.href = url
-    a.download = file.name
-    a.click()
-  }
-  setTimeout(() => URL.revokeObjectURL(url), 60_000)
 }
 
 export function useLabelSheet() {

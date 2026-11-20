@@ -815,6 +815,8 @@ export const ACTION_DOCS: Record<string, string> = {
     "A batch's labels as one PDF in the merchant's paper (Figma 909:9249, the bulk result's Print card; also Shipments › Booked's selection): 4 × 6 in thermal one per page, A4 four per sheet, or each cour…",
   'shipments.listPickupOptions':
     'The Create pickup drawer: per courier and place, the parcels still without a pickup and the pickups already booked there (Figma 905:8280, 906:8464).',
+  'shipments.manifestSheet':
+    'The pickup manifest as one A4 PDF (Shipments › To be picked up, "Print manifest"): one page per courier pickup listing AWB, order, ship-to, city and PIN, weight and COD or Prepaid, with the count and…',
   'shipments.quote':
     "Create shipment, step 2: every connected courier's price, delivery date and COD support per parcel, with Cheapest / Fastest / Recommended.",
   'shipments.readyToShip':

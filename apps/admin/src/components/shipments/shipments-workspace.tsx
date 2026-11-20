@@ -34,6 +34,7 @@ import {
   shipmentFilterInput,
 } from '@/lib/shipment-list-filters'
 import CreateShipmentDialog from './create-shipment/create-shipment-dialog'
+import PrintManifestsButton from './print-manifests-button'
 import {
   rowFromOrder,
   rowFromShipment,
@@ -331,16 +332,21 @@ function ShipmentsContent() {
             {...(filterable ? { filterGroups: groups } : {})}
             views={
               // The shipping pipeline in plain sight (To book → … → RTO), not behind a dropdown
-              // (audit #39).
-              <PillTabs<ShipmentTab>
-                value={tab}
-                onChange={handleTab}
-                tabs={SHIPMENT_TABS.map((t) => ({
-                  value: t,
-                  label: copy.tabs[t],
-                  ...(c ? { count: c[t] } : {}),
-                }))}
-              />
+              // (audit #39). To be picked up adds its manifests, one page per pickup.
+              <div className="flex flex-wrap items-center gap-2">
+                <PillTabs<ShipmentTab>
+                  value={tab}
+                  onChange={handleTab}
+                  tabs={SHIPMENT_TABS.map((t) => ({
+                    value: t,
+                    label: copy.tabs[t],
+                    ...(c ? { count: c[t] } : {}),
+                  }))}
+                />
+                {tab === 'toPickUp' && total > 0 ? (
+                  <PrintManifestsButton provider={q.courier ?? undefined} />
+                ) : null}
+              </div>
             }
             page={page}
             perPage={parseRowsPerPage(q.perPage)}
