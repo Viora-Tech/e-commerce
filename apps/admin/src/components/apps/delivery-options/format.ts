@@ -58,7 +58,7 @@ export const sameSelector = (a: RouteSelector, b: RouteSelector): boolean =>
   (a.speed ?? 'any') === (b.speed ?? 'any')
 
 /** "1 collection", "All products", "Tagged “oversize”". */
-export function ruleTargetLabel(rule: RouteRule, copy: Copy): string {
+export function ruleTargetLabel(rule: Pick<RouteRule, 'target'>, copy: Copy): string {
   const t = rule.target
   if (t.kind === 'all') return copy.rules.targets.all()
   if (t.kind === 'tags') return copy.rules.targets.tags(t.values.map((v) => `“${v}”`).join(', '))

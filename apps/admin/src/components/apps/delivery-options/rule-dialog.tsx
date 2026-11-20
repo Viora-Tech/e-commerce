@@ -22,14 +22,9 @@ import { deliveryPagesContent } from '@/data/delivery-options-pages'
 import { discountFormContent } from '@/data/discounts'
 import { useCopy, useLocale } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
-import {
-  draftOf,
-  type RuleDraft,
-  ruleErrors,
-  ruleInputOf,
-  withValidPreferred,
-} from './rule-draft'
+import { draftOf, type RuleDraft, ruleErrors, ruleInputOf, withValidPreferred } from './rule-draft'
 import RuleMoreFields from './rule-more-fields'
+import RulePreviewLine from './rule-preview-line'
 import RuleRouteChoices from './rule-route-choices'
 import RuleRoutesFields from './rule-routes-fields'
 import RuleSentence from './rule-sentence'
@@ -48,9 +43,7 @@ type RuleDialogProps = {
  * ship only with [Delhivery]", through which account, which speeds, a preferred courier (and
  * "always by it at the option's price"), and a collapsed More. A rule whose routes can't be
  * said that way opens in the detailed route editor instead. Saves the same rule schema.
- *
- * No live "what this rule gives" line: Try a PIN prices only saved rules (its `draft` takes
- * the layout and options, not rules), so an unsaved rule can't be previewed yet.
+ * A live line under the fields says what the rule will do in plain words (`rule-preview.ts`).
  */
 export default function RuleDialog({
   open,
@@ -171,6 +164,7 @@ export default function RuleDialog({
             />
           )}
           <RuleMoreFields draft={draft} options={options} onChange={patch} />
+          <RulePreviewLine draft={draft} options={options} />
           <SettingsToggleRow
             id="rule-enabled"
             label={d.enabled}

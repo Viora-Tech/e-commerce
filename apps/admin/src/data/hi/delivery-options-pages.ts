@@ -255,5 +255,18 @@ export default [
       drag: (name: string) => `${name} खींचें`,
       deleteConfirm: 'यह नियम हटाएं? इसके बाद कार्ट बाकी नियम मानेंगे।',
     },
+    rulePreview: {
+      label: 'यह नियम क्या करता है',
+      either: (items: string[]) =>
+        items.length < 2 ? (items[0] ?? '') : `${items.slice(0, -1).join(', ')} या ${items.at(-1)}`,
+      prefers: (who: string, route: string) => `${who} ${route} से भेजे जाते हैं`,
+      stillPick: (couriers: string) => `ग्राहक फिर भी ${couriers} चुन सकते हैं`,
+      always: (who: string, route: string) =>
+        `${who} हमेशा विकल्प की कीमत पर ${route} से भेजे जाते हैं; अंतर आप देते हैं`,
+      only: (who: string, couriers: string) => `${who} सिर्फ़ ${couriers} से भेजे जाते हैं`,
+      insured: 'हमेशा बीमे के साथ',
+      inOptions: (names: string) => `${names} में`,
+      off: 'नियम बंद है, इसलिए चालू करने तक चेकआउट इसे नहीं मानता।',
+    },
   }),
 ]

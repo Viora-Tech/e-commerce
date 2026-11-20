@@ -33,9 +33,11 @@ export default function RuleRouteChoices({ draft, speedsError, onChange }: RuleR
   // Hooks
   const copy = useCopy(deliveryOptionsContent)
 
+  // Helpers
+  const name = (carrier: string) => carrierName(carrier, copy.routeDialog.anyCourier)
+
   // Render logic
   const d = copy.ruleDialog
-  const name = (carrier: string) => carrierName(carrier, copy.routeDialog.anyCourier)
   const through = THROUGH_OFFERED.includes(draft.through)
     ? THROUGH_OFFERED
     : THROUGH.filter((t) => THROUGH_OFFERED.includes(t) || t === draft.through)

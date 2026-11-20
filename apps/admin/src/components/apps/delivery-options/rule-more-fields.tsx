@@ -3,7 +3,11 @@
 import type { DeliveryOption } from '@commerce/core/delivery-options'
 import { ChevronDown } from '@commerce/ui/icons'
 import { Checkbox } from '@commerce/ui/shadcn/checkbox'
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@commerce/ui/shadcn/collapsible'
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@commerce/ui/shadcn/collapsible'
 import { FieldLabel } from '@commerce/ui/shadcn/field'
 import { deliveryOptionsContent } from '@/data/delivery-options'
 import { useCopy } from '@/hooks/use-copy'
