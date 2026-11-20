@@ -1674,6 +1674,27 @@
       "when": 1795280200000,
       "tag": "0254_snapmint_refund_sync",
       "breakpoints": true
+    },
+    {
+      "idx": 239,
+      "version": "7",
+      "when": 1795280300000,
+      "tag": "0255_gst_invoice_source",
+      "breakpoints": true
+    },
+    {
+      "idx": 240,
+      "version": "7",
+      "when": 1795280400000,
+      "tag": "0256_shipment_lost",
+      "breakpoints": true
+    },
+    {
+      "idx": 241,
+      "version": "7",
+      "when": 1795280500000,
+      "tag": "0257_invoice_printed_at",
+      "breakpoints": true
     }
   ]
 }
