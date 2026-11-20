@@ -11,6 +11,14 @@ export const deliveryOptionsContent = {
   orderWithin: (hours: number, minutes: number) =>
     `Order in the next ${[hours > 0 ? `${hours} h` : '', minutes > 0 ? `${minutes} min` : ''].filter(Boolean).join(' ')}`,
   codAvailable: 'Cash on delivery available',
+  /** Once above the courier list, when every courier takes cash on delivery. */
+  codAvailableAll: 'Cash on delivery available on every courier',
+  /** The courier list's tags and controls. */
+  cheapest: 'Cheapest',
+  fastest: 'Fastest',
+  samePrice: 'Same price',
+  showMore: (n: number) => `Show ${n} more ${n === 1 ? 'courier' : 'couriers'}`,
+  showLess: 'Show fewer couriers',
   /** The summary's delivery row while the parcel is insured (Figma 945:519). */
   insured: 'insured',
   /** The insurance checkbox under the options. */

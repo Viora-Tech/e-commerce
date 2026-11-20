@@ -29,7 +29,11 @@ function withChoice(
   if (!rate || !sub) return rate
   return {
     ...rate,
-    name: `${rate.delivery?.optionName ?? rate.name} · ${sub.label}`,
+    // The courier list has no option of its own to name: just "Blue Dart Air", not "Standard · …".
+    name:
+      rate.delivery?.layout === 'list'
+        ? sub.label
+        : `${rate.delivery?.optionName ?? rate.name} · ${sub.label}`,
     pricePaise: sub.pricePaise,
     arrives: sub.arrives,
   }
@@ -57,9 +61,7 @@ export function useCheckoutShipping(cart: CartView, onNoCod: () => void) {
   const ask = (to: Asked, tick: boolean | null, keep: boolean) => {
     const quoteId = keep ? (shipping?.deliveryQuote?.quoteId ?? null) : null
     startCheck(async () => {
-      const next = await retryOnce(() =>
-        checkoutShippingAction(to, { insure: tick, quoteId }),
-      )
+      const next = await retryOnce(() => checkoutShippingAction(to, { insure: tick, quoteId }))
       setShipping(next)
       setQuoted(true)
       // Keep the shopper's own pick while it is offered, else the cheapest (#1519).
