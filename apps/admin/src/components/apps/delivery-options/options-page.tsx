@@ -23,8 +23,8 @@ import { courierRows } from './courier-rows'
 import CourierSwitchesCard from './courier-switches-card'
 import DeliveryWarnings from './delivery-warnings'
 import LayoutPicker from './layout-picker'
+import ListQuestionsCard from './list-questions-card'
 import OptionEditCard from './option-edit-card'
-import PriceIncludesCard from './price-includes-card'
 import RulesDefaultNote from './rules-default-note'
 import { useDeliveryOverview, useRouteCatalogue } from './use-delivery-overview'
 
@@ -42,9 +42,10 @@ const listOptionOf = (drafts: DeliveryOption[] | null) =>
 
 /**
  * Apps → Delivery options → Options: how checkout shows delivery, edited in place and saved
- * together. Courier list (Figma 938:12101): the couriers shoppers may see, what the price
- * includes and a live preview of the unsaved edits. Fixed options (Figma 929:11812): one card per
- * option, dragged into order. Each option's own page keeps the advanced settings.
+ * together. Courier list (Figma 938:12101): the 3 delivery price questions with one collapsed
+ * "More settings" (owner, 21 Nov 2026), the couriers shoppers may see and a live preview of the
+ * unsaved edits. Fixed options (Figma 929:11812): one card per
+ * option with a one-line summary, dragged into order; each option's own page asks the questions.
  */
 export default function DeliveryOptionsPage() {
   // Hooks
@@ -196,6 +197,7 @@ export default function DeliveryOptionsPage() {
         listOption ? (
           <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[minmax(0,1.65fr)_minmax(0,1fr)]">
             <div className="flex flex-col gap-4">
+              <ListQuestionsCard option={listOption} onChange={update} />
               <CourierSwitchesCard
                 rows={rows}
                 loading={loading}
@@ -203,7 +205,6 @@ export default function DeliveryOptionsPage() {
                 isNew={isNew}
                 onToggle={handleToggle}
               />
-              <PriceIncludesCard option={listOption} onChange={update} />
             </div>
             <CourierListPreview
               draft={{ layout, options: positionedOf(drafts) }}

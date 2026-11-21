@@ -53,7 +53,8 @@ const extraRounding = (o: Pricing) =>
 
 /** The example cards: one for a one-card option, the first and the other speed for a list. */
 export function optionExample(o: Pricing): OptionExample {
-  const list = o.couriers.show === 'list'
+  // A list capped at one courier ("Can shoppers pick a faster courier? No") shows one card.
+  const list = o.couriers.show === 'list' && o.couriers.max !== 1
   const firstSpeed: Speed = list ? (o.strategy === 'fastest' ? 'express' : 'standard') : o.speed
   const base = firstPrice(o, EXAMPLE_COSTS[firstSpeed])
   const first: ExampleCard = { speed: firstSpeed, pricePaise: base, extraPaise: null }

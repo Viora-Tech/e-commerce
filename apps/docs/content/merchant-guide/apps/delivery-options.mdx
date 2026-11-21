@@ -66,15 +66,17 @@ Each option is one card at checkout. **Add Standard and Express** creates the us
 - **Standard**: picks the route that is **cheapest for the customer**. When several cost the customer the same, the one that arrives first wins; your **preferred courier** wins only when the price and the date are both the same. Cash on delivery is allowed.
 - **Express**: picks the **fastest** route (a tie goes to the cheaper one). Express is always **prepaid only**.
 
-Open an option to change (the most used settings come first):
+The Options page (courier list) and each option's page ask three questions, with everything else in one **More settings** (closed until something in it differs from its default; the closed header says how many, like "3 changed"):
 
-| Card | Settings |
+| Question | Answers |
 | --- | --- |
-| Name and status | The card's name, an optional line under it, and **Show at checkout** |
-| What the shopper pays | Courier cost + your markup (₹ and/or %) + insurance, or your Shipping rates, or Free; **Round delivery prices** (up to …9, …49/…99, the next ₹10, or off); free above an order value, a minimum and a maximum. On a courier list, **Faster couriers cost**: your price plus the difference ("+ ₹30"), **the courier's full price** (each faster courier shows its own price, like "₹99", never less than the first courier), or nothing extra. A line under it shows an example of what shoppers see ("Delhivery Surface ₹49 · Delhivery Air + ₹29") from made-up courier costs; Try a PIN shows real prices |
-| Which couriers show | Speed (Standard or Express), cheapest or fastest, **Let shoppers pick the courier** (with how many to show and whether to hide slower, dearer ones), **Show courier names to shoppers** (off: only the delivery promise, "Standard" and its date), a **preferred courier**, **prefer a direct route when it costs at most ₹X more**, and which routes it may use |
-| Insurance and cash on delivery | Parcel insurance offered at checkout (optionally only above an order value), cash on delivery allowed or prepaid only, and whether the courier's COD fee is in the delivery price or its own line |
-| Delivery dates | The courier's transit time or fixed days, processing days, buffer days, and a limit that hides slower routes |
+| 1. Who pays for delivery? | **Shopper pays the courier cost (+ your markup)**, **Your Shipping rates**, or **Free delivery, you pay the courier** |
+| 2. Can shoppers pick a faster courier? | **No, show one courier only**, **Yes, they pay the extra** ("+ ₹30"), or **Yes, they pay its full price** (each faster courier shows its own price, like "₹89", never less than the first courier). The amounts on the cards come from made-up courier costs. On an option's own page this question shows when **Let shoppers pick the courier** is on |
+| 3. Round prices to | **₹…9**, **₹…49/…99**, the next **₹10**, or **Off**. A line under it shows an example of what shoppers see ("Delhivery Surface ₹49 · Delhivery Air + ₹29"); Try a PIN shows real prices |
+
+**More settings** holds: markup (₹ and/or %), free above an order value, a minimum and a maximum price; the included courier (cheapest or fastest), how many couriers to show, whether to hide slower, dearer ones, and **Faster couriers at the first courier's price** (every courier costs the shopper the same, rarely wanted); parcel insurance (optionally only above an order value) and whether the courier's COD fee is in the delivery price or its own line. On an option's own page it also holds **Let shoppers pick the courier**, **Show courier names to shoppers**, a **preferred courier**, **prefer a direct route when it costs at most ₹X more**, the routes it may use, cash on delivery allowed or prepaid only, and the delivery dates (transit time or fixed days, processing and buffer days, a limit that hides slower routes). Name, speed (Standard or Express) and **Show at checkout** are at the top of the page.
+
+With Fixed options, each option's card on the Options page shows its answers in one line ("Courier cost + markup · One courier · Rounded to ₹…9"), the example line and **Edit**.
 
 With **the courier's full price**, a Free price and a product rule's Free or Fixed price cover only the first courier; a shopper who picks a faster one pays that courier's own price. Above your free-above order value every courier is free, as before.
 

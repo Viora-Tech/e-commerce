@@ -5,14 +5,18 @@ import { Input } from '@commerce/ui/shadcn/input'
 import ChoiceField from '@/components/apps/gst-invoices/choice-field'
 import SettingsCard from '@/components/settings/settings-card'
 import SettingsToggleRow from '@/components/settings/settings-toggle-row'
+import { deliveryOptionQuestionsContent } from '@/data/delivery-option-questions'
 import { deliveryOptionSectionsContent } from '@/data/delivery-option-sections'
 import { deliveryOptionsContent } from '@/data/delivery-options'
 import { useCopy } from '@/hooks/use-copy'
-import NumberField from './number-field'
-import OptionCouriersCard from './option-couriers-card'
-import OptionExtrasCard from './option-extras-card'
-import type { OptionForm as Form } from './option-form-state'
-import OptionPaysCard from './option-pays-card'
+import DeliveryQuestions from './delivery-questions'
+import MoreSettings from './more-settings'
+import { formFasterOf, formMoreChanged, formWithFaster } from './option-answers'
+import OptionCouriersFields from './option-couriers-fields'
+import OptionDatesFields from './option-dates-fields'
+import OptionExtrasFields from './option-extras-fields'
+import { exampleOptionOf, type OptionForm as Form } from './option-form-state'
+import OptionPriceFields from './option-price-fields'
 
 type OptionFormProps = {
   form: Form
@@ -20,14 +24,16 @@ type OptionFormProps = {
 }
 
 /**
- * The option page's cards, most used first (owner, 21 Nov 2026): name and status, what the
- * shopper pays (with a live checkout example), which couriers show, insurance and cash on
- * delivery, then delivery dates.
+ * The option page (owner, 21 Nov 2026): name, speed and status, then the same 3 questions as the
+ * Options page (question 2 only when shoppers may pick the courier) with the live checkout
+ * example, and everything else (price amounts and limits, couriers, insurance and cash on
+ * delivery, dates) in one collapsed "More settings".
  */
 export default function OptionForm({ form, onChange }: OptionFormProps) {
   // Hooks
   const copy = useCopy(deliveryOptionsContent)
   const sections = useCopy(deliveryOptionSectionsContent)
+  const questions = useCopy(deliveryOptionQuestionsContent)
 
   // Helpers
   const set =
@@ -37,11 +43,11 @@ export default function OptionForm({ form, onChange }: OptionFormProps) {
 
   // Render logic
   const o = copy.option
-  const s = sections.sections
+  const r = o.routing
 
   return (
     <div className="flex flex-col gap-5">
-      <SettingsCard title={s.basics.title} bodyClassName="gap-4">
+      <SettingsCard title={sections.sections.basics.title} bodyClassName="gap-4">
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <Field>
             <FieldLabel htmlFor="opt-name">{o.display.name}</FieldLabel>
@@ -61,6 +67,16 @@ export default function OptionForm({ form, onChange }: OptionFormProps) {
               onChange={(e) => set('description')(e.target.value)}
             />
           </Field>
+          <ChoiceField
+            id="opt-speed"
+            label={r.speed}
+            value={form.speed}
+            options={(['standard', 'express'] as const).map((v) => ({
+              value: v,
+              label: r.speeds[v],
+            }))}
+            onChange={(v) => set('speed')(v === 'express' ? 'express' : 'standard')}
+          />
         </div>
         <SettingsToggleRow
           id="opt-enabled"
@@ -70,57 +86,24 @@ export default function OptionForm({ form, onChange }: OptionFormProps) {
         />
       </SettingsCard>
 
-      <OptionPaysCard form={form} onChange={onChange} />
-      <OptionCouriersCard form={form} onChange={onChange} />
-      <OptionExtrasCard form={form} onChange={onChange} />
-
-      <SettingsCard title={s.dates.title} description={s.dates.help} bodyClassName="gap-4">
-        <ChoiceField
-          id="opt-eta"
-          label={o.arrival.source}
-          value={form.etaSource}
-          options={(['route', 'fixed'] as const).map((v) => ({
-            value: v,
-            label: o.arrival.sources[v],
-          }))}
-          onChange={(v) => set('etaSource')(v === 'fixed' ? 'fixed' : 'route')}
+      <SettingsCard title={questions.title} bodyClassName="gap-5">
+        <DeliveryQuestions
+          idPrefix="opt"
+          example={exampleOptionOf(form)}
+          whoPays={form.priceSource}
+          onWhoPays={set('priceSource')}
+          askFaster={form.couriersList}
+          faster={formFasterOf(form)}
+          onFaster={(answer) => onChange(formWithFaster(form, answer))}
+          rounding={form.rounding}
+          onRounding={set('rounding')}
         />
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          {form.etaSource === 'fixed' ? (
-            <>
-              <NumberField
-                id="opt-fixed-min"
-                label={o.arrival.fixedMin}
-                value={form.fixedMin}
-                onChange={set('fixedMin')}
-              />
-              <NumberField
-                id="opt-fixed-max"
-                label={o.arrival.fixedMax}
-                value={form.fixedMax}
-                onChange={set('fixedMax')}
-              />
-            </>
-          ) : null}
-          <NumberField
-            id="opt-processing"
-            label={o.arrival.processing}
-            value={form.processing}
-            onChange={set('processing')}
-          />
-          <NumberField
-            id="opt-buffer"
-            label={o.arrival.buffer}
-            value={form.buffer}
-            onChange={set('buffer')}
-          />
-          <NumberField
-            id="opt-max-days"
-            label={o.arrival.maxDays}
-            value={form.maxDays}
-            onChange={set('maxDays')}
-          />
-        </div>
+        <MoreSettings hint={questions.more.hintOption} changed={formMoreChanged(form).length}>
+          <OptionPriceFields form={form} onChange={onChange} />
+          <OptionCouriersFields form={form} onChange={onChange} />
+          <OptionExtrasFields form={form} onChange={onChange} />
+          <OptionDatesFields form={form} onChange={onChange} />
+        </MoreSettings>
       </SettingsCard>
     </div>
   )

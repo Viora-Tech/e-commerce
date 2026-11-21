@@ -140,7 +140,7 @@ export function inputOf(f: OptionForm): DeliveryOptionInput {
     couriers: {
       show: f.couriersList ? 'list' : 'one',
       max:
-        f.couriersMax === ALL_COURIERS ? null : Math.min(8, Math.max(2, whole(f.couriersMax) ?? 5)),
+        f.couriersMax === ALL_COURIERS ? null : Math.min(8, Math.max(1, whole(f.couriersMax) ?? 5)),
       roundTo9: f.roundTo9,
       hideSlowerDearer: f.hideSlowerDearer,
       showNames: f.showNames,
