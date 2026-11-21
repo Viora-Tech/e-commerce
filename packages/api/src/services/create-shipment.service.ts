@@ -266,7 +266,14 @@ export async function prepareShipments(
             pickupLocationId: from.locationId,
           },
           picked,
-          live.length === 1 ? o.totalPaise : view.totalPaise,
+          /* Part of the parcel already shipped (by hand, or before an import): what is left is
+             worth its own lines, not the order (#2073: a ₹3,799 wrist rest insured on ₹28,649,
+             owner 22 Nov 2026). */
+          unpacked.length > 0 && view.lines.some((l) => l.fulfilledQuantity > 0)
+            ? null
+            : live.length === 1
+              ? o.totalPaise
+              : view.totalPaise,
           view.locationId,
         ),
       )

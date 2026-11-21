@@ -441,6 +441,37 @@ describe('shipments', () => {
     expect(parcels.find((p) => p.id === row.fulfillmentOrderId)?.status).toBe('open')
   })
 
+  it('after an earlier label was cancelled, a unit shipped by hand still stays shipped (#2073 again)', async () => {
+    const { storeId, orderId } = await seedOrder()
+    const provider = new FakeShippingProvider()
+    // A first label for the whole parcel, cancelled: both pads back to To ship.
+    const first = await withStore(app, storeId, (tx) =>
+      createShipmentForOrder({ storeId, tx }, provider, orderId),
+    )
+    await withStore(app, storeId, (tx) => cancelShipment({ storeId, tx }, provider, first.id))
+    // One pad is then marked shipped by hand.
+    const fo = first.fulfillmentOrderId as string
+    await owner
+      .update(fulfillmentOrderLine)
+      .set({ fulfilledQuantity: 1 })
+      .where(eq(fulfillmentOrderLine.fulfillmentOrderId, fo))
+    await owner
+      .update(orderLine)
+      .set({ fulfilledQuantity: 1 })
+      .where(eq(orderLine.orderId, orderId))
+
+    const again = new FakeShippingProvider()
+    const booked = vi.spyOn(again, 'createShipment')
+    const second = await withStore(app, storeId, (tx) =>
+      createShipmentForOrder({ storeId, tx }, again, orderId, { fulfillmentOrderId: fo }),
+    )
+    expect(booked.mock.calls[0]?.[0].lines.map((l) => l.quantity)).toEqual([1])
+    expect(second.fulfillmentOrderId).not.toBe(fo)
+    await withStore(app, storeId, (tx) => cancelShipment({ storeId, tx }, again, second.id))
+    const [line] = await owner.select().from(orderLine).where(eq(orderLine.orderId, orderId))
+    expect(line?.fulfilledQuantity).toBe(1)
+  })
+
   it('keeps the booking facts, and a keyed label points at the admin route', async () => {
     const { storeId, orderId } = await seedOrder()
     const provider = Object.assign(new FakeShippingProvider(), {

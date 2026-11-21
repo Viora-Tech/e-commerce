@@ -217,9 +217,11 @@ export async function createShipmentForOrder(
   const sole = await soleFulfillmentOrder(ctx, o.id)
   /* Some of the parcel already left (marked shipped by hand, or before an import): its unsent
      units book as a parcel of their own, so this label never carries, or on cancel unpacks,
-     what shipped before it. A parcel whose packed units wait on a cancelled label is left as is. */
+     what shipped before it. Also after an earlier label on the parcel was cancelled (#2073 again,
+     owner 22 Nov 2026). A parcel with nothing unsent (its packed units wait on a cancelled
+     label) has nothing to separate and books those packed units as before. */
   const target = named?.id ?? sole
-  if (target && !(await rebookableParcels(ctx.tx, o.id)).has(target)) {
+  if (target) {
     const fresh = await separateShippedUnits(ctx, o.id, target)
     if (fresh) named = await loadParcel(ctx, o.id, fresh)
   }
