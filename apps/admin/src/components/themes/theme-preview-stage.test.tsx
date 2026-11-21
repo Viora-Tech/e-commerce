@@ -70,7 +70,7 @@ describe('ThemePreviewStage', () => {
     expect(shown()?.getAttribute('title')).toBe(copy.pictureHint)
   })
 
-  it('falls back to the swatch when the phone frame picture fails too', async () => {
+  it('shows the cover in the phone frame, then the screenshot, then the swatch', async () => {
     isBlank.mockResolvedValue(null)
     vi.spyOn(console, 'warn').mockImplementation(() => undefined)
     const { container } = render(
@@ -83,8 +83,9 @@ describe('ThemePreviewStage', () => {
       />,
     )
     const phone = () => container.querySelector('img[alt=""]') as HTMLElement
+    expect(phone().getAttribute('src')).toBe(COVER)
     fireEvent.error(phone())
-    await waitFor(() => expect(phone()?.getAttribute('src')).toBe(COVER))
+    await waitFor(() => expect(phone()?.getAttribute('src')).toBe(SHOT))
     fireEvent.error(phone())
     await waitFor(() => expect(container.querySelector('img')).toBeNull())
   })

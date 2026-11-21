@@ -65,6 +65,9 @@ export default function ThemePreviewStage({
   const picture = shot ?? usableCover
   // A cover is a photo, not a page: it fills both frames instead of shrinking into the phone.
   const isCover = !shot && Boolean(usableCover)
+  // The phone shows the hero poster filling its frame: a desktop screenshot shrunk to phone
+  // width left a thin strip on top and an empty frame below (owner, 21 Nov 2026).
+  const phonePicture = usableCover ?? shot
   const hint = isCover ? copy.coverHint : copy.pictureHint
   const host = origin.replace(/^https?:\/\//, '')
 
@@ -111,19 +114,19 @@ export default function ThemePreviewStage({
           aria-hidden="true"
         >
           <div className="relative aspect-[390/800] overflow-hidden">
-            {picture ? (
+            {phonePicture ? (
               // biome-ignore lint/performance/noImgElement: a small stored webp from the store's storage.
               <img
-                src={picture}
+                src={phonePicture}
                 alt=""
                 ref={handlePictureRef}
-                onError={() => handleError(picture)}
+                onError={() => handleError(phonePicture)}
                 loading="lazy"
                 decoding="async"
                 className={
-                  isCover
-                    ? 'size-full bg-card object-cover'
-                    : 'size-full bg-card object-contain object-top'
+                  phonePicture === shot
+                    ? 'size-full bg-card object-cover object-top'
+                    : 'size-full bg-card object-cover'
                 }
               />
             ) : (
