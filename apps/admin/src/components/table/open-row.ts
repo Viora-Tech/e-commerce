@@ -15,6 +15,17 @@ export const OWN_CLICK =
 
 const MIDDLE = 1
 
+/**
+ * `onMouseDown` on a row: a middle press on a page that scrolls starts Windows Chrome's
+ * auto-scroll, and then `auxclick` never fires, so the row did not open (owner, 21 Nov 2026).
+ * Cancelling the middle press (outside the row's own controls) keeps the middle click.
+ */
+export function keepMiddleClick(e: MouseEvent<HTMLElement>) {
+  if (e.button !== MIDDLE) return
+  if ((e.target as HTMLElement).closest(OWN_CLICK)) return
+  e.preventDefault()
+}
+
 /** Handles `onClick` and `onAuxClick` on a row; `go` opens the page in this tab. */
 export function openRow(e: MouseEvent<HTMLElement>, href: string, go: (href: string) => void) {
   if (e.defaultPrevented) return

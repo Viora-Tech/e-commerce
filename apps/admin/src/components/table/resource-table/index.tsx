@@ -19,7 +19,7 @@ import TableSkeletonRows from '@/components/table/table-skeleton-rows'
 import { tableContent } from '@/data/table'
 import { useCopy } from '@/hooks/use-copy'
 import { publishListSelection } from '@/lib/list-selection'
-import { openRow } from '../open-row'
+import { keepMiddleClick, openRow } from '../open-row'
 import {
   type CellAlign,
   defineColumns,
@@ -425,6 +425,7 @@ export default function ResourceTable<T extends RowData>(props: ResourceTablePro
                       onAuxClick={
                         target ? (e) => openRow(e, target, (to) => router.push(to)) : undefined
                       }
+                      onMouseDown={target ? keepMiddleClick : undefined}
                     >
                       {row.getVisibleCells().map((cell) => {
                         const meta = cell.column.columnDef.meta as CellMeta | undefined

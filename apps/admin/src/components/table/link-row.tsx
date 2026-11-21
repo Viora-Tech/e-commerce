@@ -4,7 +4,7 @@ import { cn } from '@commerce/ui/lib/utils'
 import { TableRow } from '@commerce/ui/shadcn/table'
 import { useRouter } from 'next/navigation'
 import type { CSSProperties, MouseEvent, ReactNode, Ref } from 'react'
-import { openRow } from './open-row'
+import { keepMiddleClick, openRow } from './open-row'
 
 type LinkRowProps = {
   children: ReactNode
@@ -39,6 +39,7 @@ export default function LinkRow({ children, className, href, ref, style }: LinkR
       style={style}
       onClick={href ? handleClick : undefined}
       onAuxClick={href ? handleClick : undefined}
+      onMouseDown={href ? keepMiddleClick : undefined}
       className={cn('group/row', href && 'cursor-pointer', className)}
     >
       {children}
