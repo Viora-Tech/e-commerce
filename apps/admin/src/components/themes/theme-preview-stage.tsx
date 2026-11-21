@@ -47,6 +47,13 @@ export default function ThemePreviewStage({
     console.warn('Theme picture did not load, showing the next one:', src)
     setFailed((list) => (list.includes(src) ? list : [...list, src]))
   }
+  // A picture that failed while the page was still loading (before React attached onError)
+  // never fires the event again: it is complete with no size, so treat it as failed here.
+  const handlePictureRef = (img: HTMLImageElement | null) => {
+    if (img?.complete && img.naturalWidth === 0 && img.getAttribute('src')) {
+      handleError(img.getAttribute('src') ?? '')
+    }
+  }
 
   // Render logic
   const shot = shown && !failed.includes(shown) ? shown : null
@@ -78,6 +85,7 @@ export default function ThemePreviewStage({
                 src={picture}
                 alt={copy.thumbnail(name)}
                 title={hint}
+                ref={handlePictureRef}
                 onError={() => handleError(picture)}
                 loading="lazy"
                 decoding="async"
@@ -104,6 +112,7 @@ export default function ThemePreviewStage({
               <img
                 src={picture}
                 alt=""
+                ref={handlePictureRef}
                 onError={() => handleError(picture)}
                 loading="lazy"
                 decoding="async"

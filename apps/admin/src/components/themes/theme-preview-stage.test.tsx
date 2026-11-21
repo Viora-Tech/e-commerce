@@ -95,4 +95,13 @@ describe('ThemePreviewStage', () => {
     expect(swatch?.tagName).toBe('SPAN')
     expect(swatch?.getAttribute('title')).toBe(copy.pictureHint)
   })
+  it('falls back when the cover had already failed before the page started (no error event)', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+    const complete = vi.spyOn(HTMLImageElement.prototype, 'complete', 'get').mockReturnValue(true)
+    const width = vi.spyOn(HTMLImageElement.prototype, 'naturalWidth', 'get').mockReturnValue(0)
+    stage(null, COVER)
+    await waitFor(() => expect(shown()?.tagName).toBe('SPAN'))
+    complete.mockRestore()
+    width.mockRestore()
+  })
 })
