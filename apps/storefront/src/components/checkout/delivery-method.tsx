@@ -10,6 +10,7 @@ import CourierList from '@/components/checkout/courier-list'
 import DeliveryRouteChoices from '@/components/checkout/delivery-route-choices'
 import InsuranceToggle from '@/components/checkout/insurance-toggle'
 import OptionCard from '@/components/checkout/option-card'
+import ParcelCourierLists from '@/components/checkout/parcel-courier-lists'
 import { checkoutContent as content } from '@/data/checkout'
 import { deliveryOptionsContent as appCopy } from '@/data/delivery-options'
 import { countdownIndex, deliveryCardLine, minutesUntil } from '@/lib/delivery-card-line'
@@ -28,6 +29,9 @@ type DeliveryMethodProps = {
   /** Delivery options app: the sub-choice under the picked card. */
   routeKey?: string | null
   onRoute?: (routeKey: string | null) => void
+  /** Delivery options app, a cart split by product rules: the courier picked per parcel. */
+  parcelKeys?: ReadonlyArray<string | null>
+  onParcelRoute?: (index: number, routeKey: string) => void
   /** Delivery options app: the "Insure this shipment" checkbox, when offered. */
   insurance?: { offered: boolean; on: boolean; pricePaise: number | null } | null
   onInsurance?: (insured: boolean) => void
@@ -80,6 +84,8 @@ export default function DeliveryMethod({
   onSelect,
   routeKey = null,
   onRoute,
+  parcelKeys = [],
+  onParcelRoute,
   insurance = null,
   onInsurance,
   courierRequest = '',
@@ -171,6 +177,8 @@ export default function DeliveryMethod({
   // Render logic
   const free = shipping.rates.kind === 'free'
   const minutesLeft = minutesUntil(shipping.dispatchCutoffAt, nowMs)
+  // A cart split by product rules: each parcel's own courier list replaces the parcel list.
+  const perParcel = rates.some((r) => r.delivery?.parcels?.length)
 
   return (
     <div
@@ -204,6 +212,25 @@ export default function DeliveryMethod({
         ) : (
           rates.map((o) => {
             const choices = o.delivery?.choices ?? []
+            const parcels = o.delivery?.parcels ?? []
+            if (parcels.length > 0) {
+              return (
+                <ParcelCourierLists
+                  key={o.id}
+                  optionId={o.id}
+                  parcels={parcels}
+                  contents={shipping.parcels}
+                  selected={selectedId === o.id ? parcelKeys : []}
+                  onPick={(i, key) => {
+                    // Picking the card again would forget the other parcels' couriers.
+                    if (selectedId !== o.id) onSelect(o.id)
+                    onParcelRoute?.(i, key)
+                  }}
+                  price={price}
+                  money={money}
+                />
+              )
+            }
             if (o.delivery?.layout === 'list' && choices.length > 0) {
               // The courier list (owner, 20 Nov 2026): compact rows, the first included at the
               // option's price, the rest show what they add; cash on delivery said once.
@@ -318,7 +345,9 @@ export default function DeliveryMethod({
           onChange={onInsurance}
         />
       ) : null}
-      <CheckoutParcels parcels={parcelsForCard(shipping, selectedId, routeKey)} />
+      {perParcel ? null : (
+        <CheckoutParcels parcels={parcelsForCard(shipping, selectedId, routeKey)} />
+      )}
     </div>
   )
 }

@@ -19,6 +19,9 @@ export const deliveryOptionsContent = {
   fastest: 'Fastest',
   showMore: (n: number) => `Show ${n} more ${n === 1 ? 'courier' : 'couriers'}`,
   showLess: 'Show fewer couriers',
+  /** A cart whose products ship with different couriers (owner, 21 Nov 2026). */
+  splitNote:
+    'These products ship with different couriers, so they come as separate parcels. Pick a courier for each.',
   /** The optional box under the courier list (owner, 20 Nov 2026). */
   requestLabel: 'Want a different courier? (optional)',
   requestPlaceholder: 'e.g. DTDC, India Post',

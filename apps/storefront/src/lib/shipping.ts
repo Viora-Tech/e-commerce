@@ -45,7 +45,7 @@ import {
   optionCodFee,
   type ParcelDatesByCard,
 } from './delivery-options'
-import { itemTitle, parcelFrom, type ShopperParcel } from './parcels'
+import { itemTitle, parcelFrom, pricedParcels, type ShopperParcel } from './parcels'
 import { arrivalLabel, fastestRate, type RateWindow, rateWindow } from './rate-dates'
 
 const env = () => loadEnv(process.env)
@@ -426,7 +426,8 @@ async function deliveryOptionsShipping(
   })
   if (quote.status === 'unserviceable')
     return { delivery, rates: { kind: 'none' }, parcels: [], arrives: null }
-  const split = await checkoutParcels(tx, storeId, cartId, to)
+  // By location, then as checkout priced them (one location split by product rules).
+  const split = pricedParcels(await checkoutParcels(tx, storeId, cartId, to), quote.parcels)
   const afterDiscount = zone.afterDiscount ?? ((p: number) => p)
   const latest = options.map((o) => o.latest ?? '9999')
   const first = [...latest].sort()[0]
@@ -440,7 +441,13 @@ async function deliveryOptionsShipping(
     codSurchargePaise: optionCodFee(o),
     arrives: optionArrives(o, policy, now),
     fastest: fastestAlone && latest[i] === first,
-    delivery: cardExtras(o, policy, now, afterDiscount),
+    delivery: cardExtras(
+      o,
+      policy,
+      now,
+      afterDiscount,
+      quote.parcels.map((p) => p.key),
+    ),
   }))
   return {
     delivery,
@@ -475,6 +482,7 @@ export async function checkoutParcels(
       items: p.lines.map((l) => ({
         title: itemTitle(l.title, l.variantTitle),
         quantity: l.quantity,
+        variantId: l.variantId,
       })),
       dateRange: ok ? e.dateRange : null,
       onHold: p.status === 'on_hold',

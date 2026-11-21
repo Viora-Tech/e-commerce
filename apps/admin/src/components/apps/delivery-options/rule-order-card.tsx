@@ -69,7 +69,9 @@ export default function RuleOrderCard({ rules, onSort }: RuleOrderCardProps) {
           <p className="text-caption text-muted-foreground">{t.why}</p>
           <ul className="flex flex-col gap-1 text-body text-ink-strong">
             {advice.map((a) => (
-              <li key={`${a.specific.id}-${a.broad.id}`}>{t.moveAbove(named(a.specific), named(a.broad))}</li>
+              <li key={`${a.specific.id}-${a.broad.id}`}>
+                {t.moveAbove(named(a.specific), named(a.broad))}
+              </li>
             ))}
           </ul>
         </div>
@@ -77,14 +79,20 @@ export default function RuleOrderCard({ rules, onSort }: RuleOrderCardProps) {
       {warnings.length > 0 || twins.length > 0 ? (
         <div className="flex flex-col gap-2">
           <h2 className="text-body font-semibold text-ink-strong">{t.warnings.title}</h2>
-          {warnings.map((w) => {
-            const courier = carrierName(w.carrier, copy.routeDialog.anyCourier)
-            return (
-              <InlineWarning key={w.rule.id}>
-                {t.warnings[w.kind](w.rule.name, courier)}
+          {warnings.map((w) =>
+            w.kind === 'separateParcels' ? (
+              <InlineWarning key={`${w.rule.id}-${w.other.id}`}>
+                {t.warnings.separateParcels(w.rule.name, w.other.name)}
               </InlineWarning>
-            )
-          })}
+            ) : (
+              <InlineWarning key={w.rule.id}>
+                {t.warnings[w.kind](
+                  w.rule.name,
+                  carrierName(w.carrier, copy.routeDialog.anyCourier),
+                )}
+              </InlineWarning>
+            ),
+          )}
           {twins.map((tw) => (
             <InlineWarning key={`${tw.ruleId}-${tw.other.id}`}>
               {t.warnings.twin(tw.ruleName, tw.ruled.title, tw.other.title, tw.missing)}

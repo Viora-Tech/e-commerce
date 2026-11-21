@@ -23,6 +23,8 @@ import {
   recordCheckoutQuote,
   resolveParcelDeliveries,
   resolveShippingProviders,
+  ruleGroups,
+  ruleSplitter,
   type SnapshotParcel,
   shownPrices,
   toShippingPolicy,
@@ -55,6 +57,12 @@ export type CheckoutDelivery = {
   insurance: { offered: boolean; on: boolean; pricePaise: number | null }
   /** A split cart: each parcel's own dates per card (`parcelDatesByCard`); empty for one. */
   parcelDates: ParcelDatesByCard
+  /**
+   * A split cart: each parcel's key and the variants in it, in parcel order (the order of
+   * `ResolvedOption.parcelOptions`). Empty for one parcel. A key with a third part
+   * (`loc:open:2`) is a parcel split by product rules.
+   */
+  parcels: Array<{ key: string; variantIds: string[] }>
 }
 
 async function readSnapshot(
@@ -117,6 +125,42 @@ async function splitParcels(
       cart: (await parcelCart(tx, p.lines, p.valuePaise, settings.boxPresets)).cart,
     })),
   )
+}
+
+/**
+ * A one-location cart whose products' rules share no courier (`ruleGroups` on the answers it
+ * already has): its one parcel, ready for `quoteParcelDeliveries` to split by rule. Null: keep
+ * pricing it whole, as before.
+ */
+async function wholeCartToSplit(
+  tx: StoreTx,
+  storeId: string,
+  cartId: string,
+  to: { pincode: string; stateCode: string },
+  whole: { valuePaise: number; parcel: Awaited<ReturnType<typeof cartParcelFor>> },
+  cart: QuoteParcel['cart'],
+  answers: readonly ProviderAnswer[],
+  ctx: { config: EngineBase['config']; settings: Settings; origin: string },
+): Promise<QuoteParcel | null> {
+  if (!ruleGroups(ctx.config, cart.items, answers, whole.parcel.billedGrams)) return null
+  const [one] = await cartDeliveryParcels(tx, storeId, cartId, {
+    buyerState: to.stateCode,
+    valuePaise: whole.valuePaise,
+    storePincode: ctx.origin,
+    boxPresets: ctx.settings.boxPresets,
+    keepOne: true,
+  })
+  if (!one) return null
+  // Asked from Settings › Shipping's PIN code, as the whole cart was.
+  return {
+    key: one.key,
+    lines: one.lines,
+    originPincode: ctx.origin,
+    valuePaise: whole.valuePaise,
+    weightGrams: whole.parcel.billedGrams,
+    dimensionsCm: whole.parcel.dimensionsCm,
+    cart,
+  }
 }
 
 /** A repeat ask (the insurance tick): the snapshot's answers, parcel by parcel when split. */
@@ -187,43 +231,59 @@ export async function checkoutDelivery(
   const split = reuse
     ? null
     : await splitParcels(tx, storeId, cartId, to, valuePaise, settings, policy.originPincode)
+  /* Products whose rules share no courier ship as separate parcels (owner, 21 Nov 2026): each
+     parcel is split by rule after its first answers, and the new parcels are asked again. */
+  const asParcels = (parcels: QuoteParcel[], known?: ProviderAnswer[][]) =>
+    quoteParcelDeliveries({
+      ...base,
+      storeId,
+      providers,
+      providerSettings: settings.providers,
+      cache: redisCache(),
+      destinationPincode: to.pincode,
+      orderValuePaise: valuePaise,
+      parcels,
+      known,
+      splitByRule: ruleSplitter(tx, { cartId, config, boxPresets: settings.boxPresets }),
+    }).then(({ result, parcels }) => ({
+      result,
+      answers: parcels[0]?.answers ?? [],
+      parcels: parcels.length > 1 ? parcels : null,
+    }))
+  const wholeCart = async () => {
+    const { parcel, cart } = await parcelCart(tx, lines, valuePaise, settings.boxPresets)
+    const quoted = await quoteDelivery({
+      ...base,
+      cart,
+      storeId,
+      providers,
+      providerSettings: settings.providers,
+      cache: redisCache(),
+      query: {
+        originPincode: policy.originPincode,
+        destinationPincode: to.pincode,
+        valuePaise,
+        weightGrams: parcel.billedGrams,
+        dimensionsCm: parcel.dimensionsCm,
+      },
+    })
+    const one = await wholeCartToSplit(
+      tx,
+      storeId,
+      cartId,
+      to,
+      { valuePaise, parcel },
+      cart,
+      quoted.answers,
+      { config, settings, origin: policy.originPincode },
+    )
+    return one ? asParcels([one], [quoted.answers]) : { ...quoted, parcels: null }
+  }
   const priced = reuse
     ? await fromSnapshot(tx, reuse, base, lines, valuePaise, settings.boxPresets)
     : split
-      ? await quoteParcelDeliveries({
-          ...base,
-          storeId,
-          providers,
-          providerSettings: settings.providers,
-          cache: redisCache(),
-          destinationPincode: to.pincode,
-          orderValuePaise: valuePaise,
-          parcels: split,
-        }).then(({ result, parcels }) => ({
-          result,
-          answers: parcels[0]?.answers ?? [],
-          parcels,
-        }))
-      : await parcelCart(tx, lines, valuePaise, settings.boxPresets).then(
-          async ({ parcel, cart }) => ({
-            ...(await quoteDelivery({
-              ...base,
-              cart,
-              storeId,
-              providers,
-              providerSettings: settings.providers,
-              cache: redisCache(),
-              query: {
-                originPincode: policy.originPincode,
-                destinationPincode: to.pincode,
-                valuePaise,
-                weightGrams: parcel.billedGrams,
-                dimensionsCm: parcel.dimensionsCm,
-              },
-            })),
-            parcels: null,
-          }),
-        )
+      ? await asParcels(split)
+      : await wholeCart()
   const { result, answers, parcels } = priced
   // For the app page's "share of checkouts on backup"; a repeat ask (insurance tick) is not counted.
   if (!reuse) void recordCheckoutQuote(redisCache(), storeId, result)
@@ -258,8 +318,20 @@ export async function checkoutDelivery(
         pricePaise: offering?.insurance.extraPaise ?? offering?.insurance.pricePaise ?? null,
       },
       parcelDates: parcelDatesByCard(result, parcels?.map((p) => p.key) ?? null),
+      parcels:
+        parcels?.map((p) => ({ key: p.key, variantIds: p.lines.map((l) => l.variantId) })) ?? [],
     },
   }
+}
+
+/** A cart split by product rules: the courier picked per parcel, as Pay's form sends it. */
+export type ParcelKeysForm = { parcelRouteKeys?: Array<string | null> | undefined }
+
+/** The per-parcel picks from the form, cleaned (strings or null, at most 20). */
+export function cleanParcelKeys(raw: unknown): Pick<DeliveryChoice, 'parcelRouteKeys'> {
+  if (!Array.isArray(raw)) return {}
+  const keys = raw.slice(0, 20).map((k) => (typeof k === 'string' ? k.slice(0, 120) : null))
+  return { parcelRouteKeys: keys }
 }
 
 /**
@@ -300,7 +372,7 @@ export async function deliveryForOrder(
   const { shipping } = await registriesForStore(tx, storeId)
   const providers = resolveShippingProviders(shipping, settings, env().SETTINGS_SECRET).providers
   const valuePaise = zone.measure?.valuePaise ?? 0
-  // Split by location as checkout would, read from cache only (no courier call at Pay).
+  // Split by location (and by rule) as checkout would, read from cache only (no courier call at Pay).
   const split = await splitParcels(
     tx,
     storeId,
@@ -310,8 +382,8 @@ export async function deliveryForOrder(
     settings,
     policy.originPincode,
   )
-  if (split) {
-    const { parcels } = await quoteParcelDeliveries({
+  const cachedParcels = async (parcels: QuoteParcel[], known?: ProviderAnswer[][]) => {
+    const quoted = await quoteParcelDeliveries({
       config,
       zone,
       policy,
@@ -323,10 +395,18 @@ export async function deliveryForOrder(
       cacheOnly: true,
       destinationPincode: to.pincode,
       orderValuePaise: valuePaise,
-      parcels: split,
+      parcels,
+      known,
+      splitByRule: ruleSplitter(tx, { cartId, config, boxPresets: settings.boxPresets }),
     })
-    return { choice: picked, answers: parcels[0]?.answers ?? [], shown: null, parcels }
+    return {
+      choice: picked,
+      answers: quoted.parcels[0]?.answers ?? [],
+      shown: null,
+      parcels: quoted.parcels.length > 1 ? quoted.parcels : null,
+    }
   }
+  if (split) return cachedParcels(split)
   // The same billed weight and box checkout asked with, so the cached answers are found.
   const parcel = await cartParcelFor(tx, lines, settings.boxPresets)
   const answers = await gatherProviderAnswers(
@@ -341,6 +421,22 @@ export async function deliveryForOrder(
     },
     { storeId, cache: redisCache(), cacheOnly: true, providerSettings: settings.providers },
   )
+  const { cart } = await parcelCart(tx, lines, valuePaise, settings.boxPresets)
+  const one = await wholeCartToSplit(
+    tx,
+    storeId,
+    cartId,
+    to,
+    { valuePaise, parcel },
+    cart,
+    answers,
+    {
+      config,
+      settings,
+      origin: policy.originPincode,
+    },
+  )
+  if (one) return cachedParcels([one], [answers])
   // A changed cart was never shown a price: it is charged what the cached answers say.
   return { choice: picked, answers, shown: null, parcels: null }
 }

@@ -9,7 +9,8 @@ export type ShopperParcel = {
   key: string
   /** "New Delhi, Delhi", else the location's name. */
   from: string
-  items: { title: string; quantity: number }[]
+  /** `variantId` at checkout only: tells a parcel split by product rules what it holds. */
+  items: { title: string; quantity: number; variantId?: string | undefined }[]
   /** "Tue, 18 Aug - Thu, 20 Aug"; null when no estimate was worked out. */
   dateRange: string | null
   /** Pre-order items that ship once they arrive. */
@@ -28,6 +29,27 @@ export const parcelFrom = (p: {
   stateName: string | null
   locationName: string
 }) => [p.city, p.stateName].filter(Boolean).join(', ') || p.locationName
+
+/**
+ * The location parcels cut the way checkout priced them: a cart whose products' rules share no
+ * courier ships one location's goods as several parcels (keys `loc:open:1`, `loc:open:2`, owner
+ * 21 Nov 2026), each with only its own items. Unchanged when nothing was split by rule.
+ */
+export function pricedParcels(
+  located: readonly ShopperParcel[],
+  priced: ReadonlyArray<{ key: string; variantIds: readonly string[] }>,
+): ShopperParcel[] {
+  if (!priced.some((p) => p.key.split(':').length > 2)) return [...located]
+  const home = (key: string) => located.find((l) => key === l.key || key.startsWith(`${l.key}:`))
+  const cut = priced.flatMap((p) => {
+    const at = home(p.key)
+    if (!at) return []
+    const items = at.items.filter((i) => i.variantId && p.variantIds.includes(i.variantId))
+    return [{ ...at, key: p.key, items }]
+  })
+  const left = located.filter((l) => !priced.some((p) => home(p.key) === l))
+  return [...cut, ...left]
+}
 
 /** A placed order's parcels as the thank-you and order pages show them (cancelled ones left out). */
 export function shopperParcels(views: readonly ParcelView[]): ShopperParcel[] {

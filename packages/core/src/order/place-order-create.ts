@@ -40,6 +40,7 @@ import { COURIER_REQUEST_TAG, cleanCourierRequest, courierRequestNote } from './
 import { draftPlaceholder } from './draft-ref'
 import { createFulfillmentOrders, deleteFulfillmentOrders } from './fulfillment-orders'
 import { takeDraftNumber, takeOrderNumber } from './order-number'
+import { parcelRouteFor } from './parcel-rule-split'
 import { taxParcels } from './parcel-tax'
 import { lineGstRate, paymentAdjustmentFor, sumPaise } from './place-order-rules'
 import type { State } from './place-order-types'
@@ -55,11 +56,11 @@ import type { State } from './place-order-types'
  */
 function parcelPromise(
   delivery: OrderDeliveryRoute | null | undefined,
-  locationId: string,
-  status: string,
+  parcel: State['parcels'][number],
+  variantOf: (key: string) => string | undefined,
 ): ParcelDeliveryEstimate | null {
-  const onHold = status === 'on_hold'
-  const p = delivery?.parcels?.find((x) => x.locationId === locationId && x.onHold === onHold)
+  // Two parcels at one location (a split by product rules): each its own route's dates.
+  const p = parcelRouteFor(delivery, parcel, variantOf)
   return p?.promisedEarliest && p.promisedLatest
     ? { earliest: p.promisedEarliest, latest: p.promisedLatest }
     : null
@@ -385,6 +386,7 @@ export const createOrder: WorkflowStep<State> = {
     // The parcels routing chose, where reserveStock holds their stock. A draft has none yet:
     // they are routed again when it converts (checkout-draft.ts).
     if (!draft) {
+      const variantOf = (key: string) => lines[Number(key)]?.variantId
       const made = await createFulfillmentOrders(ctx, {
         orderId: o.id,
         plans: parcels.map((p, i) => ({
@@ -393,7 +395,7 @@ export const createOrder: WorkflowStep<State> = {
           needsTransfer: p.needsTransfer,
           money: billed.money[i],
           deliveryEstimate:
-            parcelPromise(delivery, p.locationId, p.status) ??
+            parcelPromise(delivery, p, variantOf) ??
             input.deliveryEstimates?.[p.locationId] ??
             null,
           lines: p.lines.map((l) => ({
@@ -409,7 +411,12 @@ export const createOrder: WorkflowStep<State> = {
         await saveParcelIds(
           ctx.tx,
           o.id,
-          parcels.map((p, i) => ({ id: made[i], locationId: p.locationId, status: p.status })),
+          parcels.map((p, i) => ({
+            id: made[i],
+            locationId: p.locationId,
+            status: p.status,
+            variantIds: p.lines.flatMap((l) => variantOf(l.key) ?? []),
+          })),
         )
       }
     }

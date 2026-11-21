@@ -16,6 +16,10 @@
  * - Free-above and insure-above read the whole order's value (`orderValuePaise`).
  * - Dates: the last parcel to arrive. Any parcel on backup puts the option on backup (no route
  *   saved; booking uses the courier rule). Sub-choices: the couriers every parcel offers, summed.
+ * - No courier every parcel offers, but a parcel has choices of its own (a cart split by product
+ *   rules, owner 21 Nov 2026): the card carries each parcel's own card (`parcelOptions`) and the
+ *   shopper picks per parcel; each parcel's rule price, COD and insurance stay that parcel's.
+ *   Not on backup, nor for an option priced from the Shipping rate (charged once, not summed).
  */
 import { hideExpressNotFaster, resolveDeliveryOptions } from './resolve'
 import type {
@@ -81,6 +85,15 @@ function addUp(
   return own + (insured > 0 ? roundUpToTen(rate + insured) : rate)
 }
 
+/** Parcels' own routes added up as one (no Shipping rate among them): a per-parcel pick. */
+export function sumParcelRoutes(routes: readonly PricedRoute[]): PricedRoute | null {
+  if (routes.length === 0) return null
+  return addRoutes(
+    routes,
+    routes.map(() => false),
+  )
+}
+
 function addRoutes(routes: readonly PricedRoute[], fromZone: readonly boolean[]): PricedRoute {
   const first = routes[0] as PricedRoute
   const insurances = routes.map((r) => r.insurancePaise)
@@ -141,6 +154,12 @@ function addUpOption(parts: readonly ResolvedOption[], priceFromZone: boolean): 
     pick && cods.every((c): c is PricedRoute => c !== null) ? addRoutes(cods, fromZone) : null
   const insurances = parts.map((p) => p.insurance.pricePaise).filter((v): v is number => v !== null)
   const backup = parts.find((p) => p.source === 'backup')
+  // No courier every parcel offers, but some parcel has its own choice: pick per parcel.
+  const perParcel =
+    pick !== null &&
+    !priceFromZone &&
+    choices.length <= 1 &&
+    parts.some((p) => p.choices.length > 1)
   // Insurance inside each parcel's own price (a backup parcel has none).
   const partInsurance = parts.map((p) => p.pick?.insurancePaise ?? 0)
   return {
@@ -182,6 +201,7 @@ function addUpOption(parts: readonly ResolvedOption[], priceFromZone: boolean): 
         : null,
     },
     backupRate: backup?.backupRate ?? null,
+    ...(perParcel ? { parcelOptions: [...parts] } : {}),
   }
 }
 

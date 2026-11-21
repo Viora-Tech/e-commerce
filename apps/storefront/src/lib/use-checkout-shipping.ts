@@ -18,13 +18,58 @@ export const isQuotable = (raw: string, countryCode: string): boolean =>
 type Asked = { pincode: string; stateCode: string; countryCode: string }
 
 /** The Delivery options app's choice Pay sends: the quote, the sub-choice and the tick. */
-export type DeliveryChoiceForm = { quoteId: string; routeKey: string | null; insured: boolean }
+export type DeliveryChoiceForm = {
+  quoteId: string
+  routeKey: string | null
+  insured: boolean
+  /** A cart split by product rules: the courier picked per parcel (null: its own pick). */
+  parcelRouteKeys?: Array<string | null> | undefined
+}
+
+/** Each parcel's picked courier card: the one picked, else its first (its own pick). */
+export function pickedParcelCards(
+  rate: CheckoutRate | undefined,
+  keys: readonly (string | null)[],
+) {
+  return (rate?.delivery?.parcels ?? []).map(
+    (p, i) => p.choices.find((c) => c.routeKey === keys[i]) ?? p.choices[0],
+  )
+}
+
+/** A card picked per parcel as Pay charges it: every parcel's courier added up. */
+function withParcelChoices(rate: CheckoutRate, keys: readonly (string | null)[]): CheckoutRate {
+  const parcels = rate.delivery?.parcels ?? []
+  const cards = pickedParcelCards(rate, keys)
+  const sum = (f: (i: number) => number) => parcels.reduce((s, _, i) => s + f(i), 0)
+  const fees = cards.filter((c) => c?.codFeePaise != null)
+  return {
+    ...rate,
+    pricePaise: sum((i) => cards[i]?.pricePaise ?? 0),
+    ...(rate.delivery
+      ? {
+          delivery: {
+            ...rate.delivery,
+            codPricePaise: sum(
+              (i) =>
+                cards[i]?.codPricePaise ?? parcels[i]?.codPricePaise ?? cards[i]?.pricePaise ?? 0,
+            ),
+            codCarrier: null,
+          },
+        }
+      : {}),
+    ...(fees.length
+      ? { codSurchargePaise: fees.reduce((s, c) => s + (c?.codFeePaise ?? 0), 0) }
+      : {}),
+  }
+}
 
 /** The picked card as Pay charges it: a sub-choice ("Blue Dart Air") brings its own price. */
 function withChoice(
   rate: CheckoutRate | undefined,
   routeKey: string | null,
+  parcelKeys: readonly (string | null)[] = [],
 ): CheckoutRate | undefined {
+  if (rate?.delivery?.parcels?.length) return withParcelChoices(rate, parcelKeys)
   const sub = rate?.delivery?.choices.find((c) => c.routeKey === routeKey)
   if (!rate || !sub) return rate
   return {
@@ -60,6 +105,8 @@ export function useCheckoutShipping(cart: CartView, onNoCod: () => void) {
   /** The ticked card is the shopper's own choice, not checkout's default. */
   const [shopperPicked, setShopperPicked] = useState(false)
   const [routeKey, setRouteKey] = useState<string | null>(null)
+  /** A cart split by product rules: the courier picked for each parcel, by parcel index. */
+  const [parcelKeys, setParcelKeys] = useState<Array<string | null>>([])
   /** The shopper's insurance tick; null until they touch it (each option's own default). */
   const [insure, setInsure] = useState<boolean | null>(null)
   /** "Want a different courier?" under the courier list (owner, 20 Nov 2026); blank: none. */
@@ -77,6 +124,14 @@ export function useCheckoutShipping(cart: CartView, onNoCod: () => void) {
       setRateId((prev) => nextRateId(options, prev, shopperPicked))
       setRouteKey((prev) =>
         options.some((o) => o.delivery?.choices.some((c) => c.routeKey === prev)) ? prev : null,
+      )
+      // Each parcel keeps its courier while that parcel still offers it.
+      setParcelKeys((prev) =>
+        prev.map((key, i) =>
+          options.some((o) => o.delivery?.parcels?.[i]?.choices.some((c) => c.routeKey === key))
+            ? key
+            : null,
+        ),
       )
       const r = next?.delivery
       if (r?.ok && r.serviceable && !r.codAvailable) onNoCod()
@@ -104,6 +159,18 @@ export function useCheckoutShipping(cart: CartView, onNoCod: () => void) {
     setRateId(id)
     setShopperPicked(id !== null)
     setRouteKey(null)
+    setParcelKeys([])
+  }
+
+  /** A courier picked for one parcel of a cart split by product rules. */
+  const pickParcelRoute = (index: number, key: string) => {
+    setParcelKeys((prev) => {
+      const next = [...prev]
+      while (next.length <= index) next.push(null)
+      next[index] = key
+      return next
+    })
+    setShopperPicked(true)
   }
 
   /** A courier picked under a card makes that card the shopper's own choice too. */
@@ -116,7 +183,9 @@ export function useCheckoutShipping(cart: CartView, onNoCod: () => void) {
   const rate = withChoice(
     rates.find((r) => r.id === rateId),
     routeKey,
+    parcelKeys,
   )
+  const parcelCount = rate?.delivery?.parcels?.length ?? 0
   const delivery = shipping?.delivery
   const unserviceable =
     (delivery?.ok === true && !delivery.serviceable) || shipping?.rates.kind === 'none'
@@ -136,6 +205,11 @@ export function useCheckoutShipping(cart: CartView, onNoCod: () => void) {
         routeKey,
         // What the picked card's price assumes, so Pay charges what the card showed.
         insured: rate?.delivery?.insurance?.on ?? quote.insurance.on,
+        ...(parcelCount
+          ? {
+              parcelRouteKeys: Array.from({ length: parcelCount }, (_, i) => parcelKeys[i] ?? null),
+            }
+          : {}),
       }
     : null
   /* The tick under the cards follows the picked card: its own offer and what it adds there
@@ -156,6 +230,8 @@ export function useCheckoutShipping(cart: CartView, onNoCod: () => void) {
     app: {
       routeKey,
       setRouteKey: pickRoute,
+      parcelKeys,
+      setParcelRoute: pickParcelRoute,
       insurance,
       toggleInsurance,
       courierRequest,

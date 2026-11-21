@@ -1,5 +1,5 @@
 /** SOURCE OF TRUTH: placing a draft's goods — WHAT: route a draft's lines to warehouses, hold their stock, bill each parcel's GST and write its fulfillment orders / WHY: a staff draft (`convertDraft`) and a paid checkout draft (`convertCheckoutDraft`) become orders the same way, under the same oversell guard */
-import { address, type orderLine, store } from '@commerce/db'
+import { address, order, type orderLine, store } from '@commerce/db'
 import { eq } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 import { StoreAddressSchema } from '../settings/general'
@@ -7,6 +7,7 @@ import { saveParcelIds } from '../shipping/delivery-options/booking'
 import { chargedGstRate, parseStoreTax } from '../tax/settings'
 import { draftPreorders, routingPreorder } from './draft-preorder'
 import { createFulfillmentOrders } from './fulfillment-orders'
+import { splitByDeliveryRoutes } from './parcel-rule-split'
 import { taxParcels } from './parcel-tax'
 import { routeAndReserve } from './routing-service'
 
@@ -40,7 +41,7 @@ export async function routeAndBillDraft(
     ctx,
     lines.map((l) => l.variantId),
   )
-  const { parcels } = await routeAndReserve(ctx, {
+  const { parcels: routed } = await routeAndReserve(ctx, {
     lines: lines.map((l) => ({
       key: l.id,
       variantId: l.variantId,
@@ -57,6 +58,13 @@ export async function routeAndBillDraft(
   const storeTax = parseStoreTax(s?.apps)
   const storeAddress = StoreAddressSchema.safeParse(s?.address ?? {})
   const byId = new Map(lines.map((l) => [l.id, l]))
+  // A checkout draft priced as several parcels at one location (product rules) keeps them.
+  const [saved] = await ctx.tx
+    .select({ shipping: order.shipping })
+    .from(order)
+    .where(eq(order.id, o.id))
+  const variantOf = (key: string) => byId.get(key)?.variantId
+  const parcels = splitByDeliveryRoutes(routed, saved?.shipping?.delivery, variantOf)
   const billed = await taxParcels(ctx.tx, {
     parcels,
     lineOf: (key, quantity) => {
@@ -95,7 +103,12 @@ export async function routeAndBillDraft(
     await saveParcelIds(
       ctx.tx,
       o.id,
-      parcels.map((p, i) => ({ id: made[i], locationId: p.locationId, status: p.status })),
+      parcels.map((p, i) => ({
+        id: made[i],
+        locationId: p.locationId,
+        status: p.status,
+        variantIds: p.lines.flatMap((l) => variantOf(l.key) ?? []),
+      })),
     )
   return { parcels, preorders, billed }
 }

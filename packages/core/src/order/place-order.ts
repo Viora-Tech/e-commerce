@@ -39,6 +39,7 @@ import { runWorkflow, type WorkflowLog, type WorkflowStep } from '../workflow/ru
 import { lockCartOrReplay } from './cart-replay'
 import { clearOrderForAnotherMethod, orderAwaitingAnotherMethod } from './checkout-reopen'
 import { enforceCheckoutRepeats } from './duplicate-checkout'
+import { splitByDeliveryRoutes } from './parcel-rule-split'
 import { createOrder } from './place-order-create'
 import { planCheckoutDraft, prepareDraft } from './place-order-draft'
 import { loadCart, mixedCartOf } from './place-order-load'
@@ -223,7 +224,7 @@ const assessRisk: WorkflowStep<State> = {
  */
 const reserveStock: WorkflowStep<State> = {
   name: 'reserveStock',
-  async run({ ctx, input, lines, draft }) {
+  async run({ ctx, input, lines, draft, delivery }) {
     const { parcels, reserved } = await routeAndReserve(ctx, {
       lines: lines.map((l, i) => ({
         key: String(i),
@@ -246,8 +247,10 @@ const reserveStock: WorkflowStep<State> = {
     // pre-order parcel does (`on_hold`: ships when it arrives), so nothing goes out first.
     const verdict = mixedCartOf(lines)
     const together = verdict.kind === 'ok' && verdict.holdTogether
+    const held = together ? parcels.map((p) => ({ ...p, status: 'on_hold' as const })) : parcels
     return {
-      parcels: together ? parcels.map((p) => ({ ...p, status: 'on_hold' as const })) : parcels,
+      // A location's goods checkout priced as several parcels (product rules) stay several.
+      parcels: splitByDeliveryRoutes(held, delivery, (key) => lines[Number(key)]?.variantId),
       reserved,
     }
   },

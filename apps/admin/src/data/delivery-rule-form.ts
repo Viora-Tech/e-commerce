@@ -120,11 +120,13 @@ export const deliveryRuleFormContent = {
     },
     named: (name: string, kind: string) => `${name} (${kind})`,
     warnings: {
-      title: 'Rules that can block delivery',
+      title: 'Rules to check',
       oneCourier: (name: string, courier: string) =>
         `${name} allows only ${courier}: shoppers get no choice, and these products can’t be delivered where ${courier} doesn’t go.`,
       allOneCourier: (name: string, courier: string) =>
         `${name} is for all products and allows only ${courier}: no order can be delivered where ${courier} doesn’t go.`,
+      separateParcels: (rule: string, other: string) =>
+        `${rule} and ${other} have no courier in common: a cart with both ships as separate parcels, each with its own courier and shipping charge.`,
       twin: (rule: string, ruled: string, other: string, n: number) =>
         `${rule} names the collection “${ruled}” but not “${other}”: ${n === 1 ? '1 product' : `${n} products`} there don’t follow the rule.`,
     },

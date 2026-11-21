@@ -119,11 +119,13 @@ export default [
       },
       named: (name: string, kind: string) => `${name} (${kind})`,
       warnings: {
-        title: 'नियम जो डिलीवरी रोक सकते हैं',
+        title: 'जाँचने लायक नियम',
         oneCourier: (name: string, courier: string) =>
           `${name} सिर्फ़ ${courier} की अनुमति देता है: ग्राहकों के पास कोई विकल्प नहीं, और जहाँ ${courier} नहीं जाता वहाँ ये प्रोडक्ट डिलीवर नहीं हो सकते।`,
         allOneCourier: (name: string, courier: string) =>
           `${name} सभी प्रोडक्ट के लिए है और सिर्फ़ ${courier} की अनुमति देता है: जहाँ ${courier} नहीं जाता वहाँ कोई ऑर्डर डिलीवर नहीं हो सकता।`,
+        separateParcels: (rule: string, other: string) =>
+          `${rule} और ${other} में कोई कूरियर साझा नहीं है: दोनों वाला कार्ट अलग-अलग पार्सल में जाता है, हर पार्सल का अपना कूरियर और शिपिंग चार्ज।`,
         twin: (rule: string, ruled: string, other: string, n: number) =>
           `${rule} कलेक्शन “${ruled}” का नाम लेता है पर “${other}” का नहीं: वहाँ के ${n} प्रोडक्ट नियम नहीं मानते।`,
       },

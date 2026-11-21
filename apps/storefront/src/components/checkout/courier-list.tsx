@@ -33,6 +33,8 @@ type CourierListProps = {
   preferred?: boolean
   /** Every row shows its own full price (the option charges a faster courier in full). */
   fullPrices?: boolean
+  /** The radio group's name: each parcel's list is its own group (a cart split by rule). */
+  group?: string
 }
 
 /** Rows shown before "Show N more couriers". */
@@ -111,6 +113,7 @@ export default function CourierList({
   heading,
   preferred = false,
   fullPrices = false,
+  group = 'shipping-rate',
 }: CourierListProps) {
   // Hooks
   const [open, setOpen] = useState(false)
@@ -140,7 +143,7 @@ export default function CourierList({
             >
               <input
                 type="radio"
-                name="shipping-rate"
+                name={group}
                 value={`${optionId}:${c.routeKey}`}
                 checked={on}
                 onChange={() => onPick(c.routeKey)}

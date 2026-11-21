@@ -85,7 +85,17 @@ async function parcelBookings(
 }
 
 /** A fulfilment order as booking matches it to a saved parcel route. */
-export type ParcelRef = { id?: string | null | undefined; locationId: string; status: string }
+export type ParcelRef = {
+  id?: string | null | undefined
+  locationId: string
+  status: string
+  /** The variants it carries: tells apart two parcels at one location (a rule split). */
+  variantIds?: readonly string[] | undefined
+}
+
+/** Both name variants and none in common: not the same parcel. Otherwise no objection. */
+const sameGoods = (a: readonly string[] | undefined, b: readonly string[] | undefined) =>
+  !a?.length || !b?.length || a.some((v) => b.includes(v))
 
 /**
  * The route to book for one parcel of the order: the courier checkout quoted for that parcel
@@ -128,7 +138,8 @@ export function withParcelIds(
         m.id &&
         !taken.has(m.id) &&
         m.locationId === p.locationId &&
-        (m.status === 'on_hold') === p.onHold,
+        (m.status === 'on_hold') === p.onHold &&
+        sameGoods(m.variantIds, p.variantIds),
     )
     if (!fo?.id) return p
     taken.add(fo.id)

@@ -43,7 +43,7 @@ import { repeatCheckoutResult, tooManyFromIp } from './checkout-repeat'
 import type { CheckoutResult } from './checkout-result'
 import { currentCustomer } from './customer-session'
 import { db } from './db'
-import { deliveryForOrder } from './delivery-options'
+import { cleanParcelKeys, deliveryForOrder, type ParcelKeysForm } from './delivery-options'
 import { discoveryVisitor, recordDiscoveryCartAdd } from './discovery-events'
 import { hasChatCookie, postChatCartLine } from './inbox'
 import { requestMarketId } from './market-catalog'
@@ -216,7 +216,7 @@ export type CheckoutForm = {
    * Delivery options app: the quote the cards came from, the sub-choice ("Blue Dart Air") and
    * the insurance tick. Priced on the server from the quote snapshot, never from the client.
    */
-  deliveryQuote?: { quoteId: string; routeKey: string | null; insured: boolean }
+  deliveryQuote?: { quoteId: string; routeKey: string | null; insured: boolean } & ParcelKeysForm
   /** Business buyer's GSTIN and name, when the store shows the field (Settings → Checkout). */
   gstin?: string
   businessName?: string
@@ -342,6 +342,7 @@ export async function checkoutAction(submitted: CheckoutForm): Promise<CheckoutR
             optionId: form.shippingRate as string,
             routeKey: typeof appQuote.routeKey === 'string' ? appQuote.routeKey : null,
             insured: appQuote.insured !== false,
+            ...cleanParcelKeys(appQuote.parcelRouteKeys),
           }),
         )
       : null

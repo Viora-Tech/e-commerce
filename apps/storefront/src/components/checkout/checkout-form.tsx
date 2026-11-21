@@ -344,6 +344,8 @@ export default function CheckoutForm(props: CheckoutFormProps) {
               onSelect={ck.handleRate}
               routeKey={ck.deliveryApp.routeKey}
               onRoute={ck.deliveryApp.setRouteKey}
+              parcelKeys={ck.deliveryApp.parcelKeys}
+              onParcelRoute={ck.deliveryApp.setParcelRoute}
               insurance={ck.deliveryApp.insurance}
               onInsurance={ck.deliveryApp.toggleInsurance}
               courierRequest={ck.deliveryApp.courierRequest}

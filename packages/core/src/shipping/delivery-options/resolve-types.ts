@@ -149,6 +149,13 @@ export type ResolvedOption = {
   }
   /** On backup, the zone rate charged. */
   backupRate: ShippingRateOption | null
+  /**
+   * A split cart whose parcels share no courier choice (a cart split by product rules, owner
+   * 21 Nov 2026): each parcel's own card for this option, in parcel order, so the shopper picks
+   * a courier per parcel (`DeliveryChoice.parcelRouteKeys`). The card's price is their sum.
+   * Absent: one parcel, or the sub-choices above cover every parcel.
+   */
+  parcelOptions?: ResolvedOption[] | undefined
 }
 
 export type TraceRoute = {

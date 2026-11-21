@@ -2,7 +2,12 @@ import { type RouteRule, RouteRuleInputSchema } from '@commerce/core/delivery-op
 import { describe, expect, it } from 'vitest'
 import { blockingRules, orderAdvice, sortBySpecificity } from './rule-order'
 
-const rule = (id: string, kind: RouteRule['target']['kind'], carriers: string[], position: number) => ({
+const rule = (
+  id: string,
+  kind: RouteRule['target']['kind'],
+  carriers: string[],
+  position: number,
+) => ({
   ...RouteRuleInputSchema.parse({
     name: id,
     target: { kind, values: kind === 'all' ? [] : ['x'] },
@@ -32,5 +37,16 @@ describe('the Product rules page’s order advice', () => {
       ['Every', 'allOneCourier'],
       ['Pad', 'oneCourier'],
     ])
+  })
+
+  it('says rules with no courier in common ship a cart as separate parcels, not blocked', () => {
+    const AIR = rule('Air mice', 'collections', ['bluedart'], 3)
+    const ANY = rule('Any', 'tags', ['any'], 4)
+    const out = blockingRules([PAD, MICE, AIR, ANY])
+    expect(
+      out
+        .filter((w) => w.kind === 'separateParcels')
+        .map((w) => [w.rule.id, w.kind === 'separateParcels' && w.other.id]),
+    ).toEqual([['Pad', 'Air mice']])
   })
 })

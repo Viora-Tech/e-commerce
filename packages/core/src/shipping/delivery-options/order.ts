@@ -91,7 +91,13 @@ export async function priceOrderDelivery(
     split?.map((p) => p.key),
   )
   if (out.ok) {
-    return { shipping: out.shipping, delivery: out.delivery, backupRateId: out.backupRateId }
+    // Each parcel's variants, so placing the order makes one parcel per route (rule splits).
+    const routes = out.delivery.parcels?.map((p, i) => ({
+      ...p,
+      variantIds: split?.[i]?.lines.map((l) => l.variantId) ?? [],
+    }))
+    const delivery = routes ? { ...out.delivery, parcels: routes } : out.delivery
+    return { shipping: out.shipping, delivery, backupRateId: out.backupRateId }
   }
   if (out.problem === 'prepaid_only') {
     throw new CheckoutRuleViolation('cod_prepaid_only_option', { storeId: ctx.storeId })

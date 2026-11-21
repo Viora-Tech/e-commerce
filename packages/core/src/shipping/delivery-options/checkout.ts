@@ -9,6 +9,7 @@ import type { OrderDeliveryParcelRoute, OrderDeliveryRoute } from '@commerce/db'
 import type { ShippingProvider } from '@commerce/shipping'
 import type { ShippingRateOption } from '../rates'
 import type { DeliveryConfig } from './config'
+import { choiceKey, codFeeOf, parcelChoice, parcelShownPrices } from './parcel-choice'
 import { type DeliveryParcelInput, resolveParcelDeliveries } from './parcels'
 import { type CheckoutQuoteQuery, gatherProviderAnswers, type QuoteCache } from './quotes'
 import { chosenRoute, resolveDeliveryOptions } from './resolve'
@@ -46,14 +47,13 @@ export type DeliveryChoice = {
   routeKey: string | null
   /** The shopper's tick; a rule that requires insurance keeps it on whatever this says. */
   insured: boolean
+  /**
+   * A cart split by product rules: the courier picked for each parcel (`ResolvedOption.
+   * parcelOptions`, in parcel order; null or missing: that parcel's own pick). Absent: one
+   * route for the whole cart (`routeKey`), as before.
+   */
+  parcelRouteKeys?: Array<string | null> | undefined
 }
-
-const choiceKey = (
-  optionId: string,
-  routeKey: string | null,
-  insured: boolean,
-  payment: 'prepaid' | 'cod',
-): string => `${optionId}|${routeKey ?? ''}|${insured ? 'i' : '-'}|${payment}`
 
 export const deliverySnapshotKey = (storeId: string, quoteId: string): string =>
   `{shipping}:delivery-snapshot:${storeId}:${quoteId}`
@@ -97,17 +97,10 @@ export function shownPrices(result: DeliveryResolveResult): Record<string, numbe
           if (c.codFeePaise != null)
             out[`${choiceKey(o.optionId, c.route.key, insured, 'cod')}|fee`] = c.codFeePaise
     }
+    // A cart split by product rules: every parcel's own card, for a courier picked per parcel.
+    parcelShownPrices(o, out)
   }
   return out
-}
-
-/** The separate COD charge of a choice: a list card's own, else the option's COD pick's. */
-function codFeeOf(o: ResolvedOption, routeKey: string | null): number | null {
-  if (o.layout === 'list') {
-    const card = (routeKey && o.choices.find((c) => c.route.key === routeKey)) || o.choices[0]
-    if (card) return card.codFeePaise ?? null
-  }
-  return o.cod?.codFeePaise ?? null
 }
 
 export type QuoteDeliveryInput = Omit<ResolveInput, 'answers'> & {
@@ -171,42 +164,67 @@ export async function quoteParcelDeliveries(
     destinationPincode: string
     orderValuePaise: number
     parcels: readonly QuoteParcel[]
+    /** Answers already gathered for `parcels` (same order): not asked again. */
+    known?: readonly ProviderAnswer[][] | undefined
+    /**
+     * Splits a parcel whose products' rules share no courier (`ruleSplitter`); null keeps it
+     * whole. The new parcels are asked about in a second round.
+     */
+    splitByRule?:
+      | ((parcel: QuoteParcel, answers: readonly ProviderAnswer[]) => Promise<QuoteParcel[] | null>)
+      | undefined
   },
 ): Promise<{ result: DeliveryResolveResult; parcels: SnapshotParcel[] }> {
   const wantCod =
     input.policy.codAllowed &&
     input.config.options.some((o) => o.speed === 'standard' && o.cod.mode === 'allowed')
-  const answered = await Promise.all(
-    input.parcels.map((p) =>
-      gatherProviderAnswers(
-        input.providers,
-        {
-          originPincode: p.originPincode,
-          destinationPincode: input.destinationPincode,
-          weightGrams: p.weightGrams,
-          dimensionsCm: p.dimensionsCm,
-          valuePaise: p.valuePaise,
-          wantCod,
-        },
-        {
-          storeId: input.storeId,
-          cache: input.cache,
-          cacheOnly: input.cacheOnly,
-          deadlineMs: input.deadlineMs,
-          providerSettings: input.providerSettings,
-        },
-      ),
-    ),
-  )
+  const ask = (p: QuoteParcel) =>
+    gatherProviderAnswers(
+      input.providers,
+      {
+        originPincode: p.originPincode,
+        destinationPincode: input.destinationPincode,
+        weightGrams: p.weightGrams,
+        dimensionsCm: p.dimensionsCm,
+        valuePaise: p.valuePaise,
+        wantCod,
+      },
+      {
+        storeId: input.storeId,
+        cache: input.cache,
+        cacheOnly: input.cacheOnly,
+        deadlineMs: input.deadlineMs,
+        providerSettings: input.providerSettings,
+      },
+    )
+  let parcels: readonly QuoteParcel[] = input.parcels
+  let answered = await Promise.all(parcels.map((p, i) => input.known?.[i] ?? ask(p)))
+  const split = input.splitByRule
+    ? await Promise.all(parcels.map((p, i) => input.splitByRule?.(p, answered[i] ?? []) ?? null))
+    : []
+  if (split.some((s) => s && s.length > 1)) {
+    const next = parcels.flatMap((p, i) => {
+      const own = split[i]
+      return own && own.length > 1 ? own : [p]
+    })
+    // Each new parcel is its own box and weight: asked again (in parallel).
+    answered = await Promise.all(
+      next.map((p) => {
+        const was = parcels.indexOf(p)
+        return was >= 0 ? (answered[was] ?? []) : ask(p)
+      }),
+    )
+    parcels = next
+  }
   const { config, zone, policy, now, insure, declineInsurance } = input
   const result = resolveParcelDeliveries(
     { config, zone, policy, now, insure, declineInsurance },
-    input.parcels.map((p, i) => ({ cart: p.cart, answers: answered[i] ?? [] })),
+    parcels.map((p, i) => ({ cart: p.cart, answers: answered[i] ?? [] })),
     input.orderValuePaise,
   )
   return {
     result,
-    parcels: input.parcels.map((p, i) => ({
+    parcels: parcels.map((p, i) => ({
       key: p.key,
       lines: p.lines,
       valuePaise: p.valuePaise,
@@ -249,12 +267,14 @@ function parcelRoutes(
   choice: DeliveryChoice,
   payment: 'prepaid' | 'cod',
   keys: readonly string[] | undefined,
+  picked: readonly PricedRoute[] | null,
 ): OrderDeliveryParcelRoute[] | null {
   const parts = result.parcels
   if (!parts || parts.length <= 1 || !keys || keys.length !== parts.length) return null
   const routes = parts.map((part, i) => {
     const option = part.options.find((o) => o.optionId === choice.optionId)
-    const priced = option ? chosenRoute(option, choice.routeKey, payment) : null
+    // A courier picked per parcel (a cart split by product rules) is that parcel's route.
+    const priced = picked?.[i] ?? (option ? chosenRoute(option, choice.routeKey, payment) : null)
     const [locationId = '', status = 'open'] = (keys[i] ?? '').split(':')
     return {
       locationId,
@@ -292,7 +312,11 @@ export function orderDeliveryFor(
   )
   if (!option) return { ok: false, problem: 'option_gone' }
   if (payment === 'cod' && !option.codAllowed) return { ok: false, problem: 'prepaid_only' }
-  const priced = chosenRoute(option, choice.routeKey, payment)
+  // A courier picked per parcel: each parcel at the lower of now and its own card, added up.
+  const perParcel = choice.parcelRouteKeys
+    ? parcelChoice(option, choice.parcelRouteKeys, payment, shown)
+    : null
+  const priced = perParcel?.total ?? chosenRoute(option, choice.routeKey, payment)
   const nowPrice = priced?.pricePaise ?? option.pricePaise
   const shownKey = choiceKey(
     option.optionId,
@@ -300,19 +324,29 @@ export function orderDeliveryFor(
     option.insurance.on,
     payment,
   )
-  const was = shown?.[shownKey]
+  // Per parcel, each parcel was already held to its own card's price.
+  const was = perParcel ? undefined : shown?.[shownKey]
   const price = was === undefined ? nowPrice : Math.min(nowPrice, was)
   /* The courier's COD charge on its own line: the order's COD fee (it takes the place of the
      store's, `paymentAdjustmentFor`), never more than checkout showed. */
   const feeNow = payment === 'cod' ? codFeeOf(option, choice.routeKey) : null
   const feeWas = shown?.[`${shownKey}|fee`]
-  const codFee = feeNow === null ? null : feeWas === undefined ? feeNow : Math.min(feeNow, feeWas)
+  const codFee = perParcel
+    ? perParcel.codFeePaise
+    : feeNow === null
+      ? null
+      : feeWas === undefined
+        ? feeNow
+        : Math.min(feeNow, feeWas)
   const saved = config.options.find((o) => o.id === option.optionId)
-  const shopperPicked =
-    !!choice.routeKey && priced !== null && priced.route.key !== option.pick?.route.key
+  const shopperPicked = perParcel
+    ? perParcel.shopperPicked
+    : !!choice.routeKey && priced !== null && priced.route.key !== option.pick?.route.key
   const backup = option.backupRate
   const r = priced?.route ?? null
-  const parcels = r ? parcelRoutes(result, choice, payment, parcelKeys) : null
+  const parcels = r
+    ? parcelRoutes(result, choice, payment, parcelKeys, perParcel?.routes ?? null)
+    : null
   return {
     ok: true,
     backupRateId: backup?.rateId ?? null,

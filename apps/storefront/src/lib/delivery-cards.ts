@@ -1,6 +1,7 @@
 import 'server-only'
 import {
   type DeliveryResolveResult,
+  type PricedRoute,
   type ResolvedOption,
   routeCardLabel,
   type toShippingPolicy,
@@ -69,6 +70,25 @@ export type DeliveryCardExtras = {
    * assumes (and what Pay sends); `extraPaise` is what ticking adds ("+₹20").
    */
   insurance?: { offered: boolean; on: boolean; extraPaise: number | null } | undefined
+  /**
+   * A cart split by product rules (owner, 21 Nov 2026): each parcel's own couriers, in parcel
+   * order, so the shopper picks one per parcel; the card's price is the picks added up. Absent:
+   * one courier choice for the whole cart (`choices`).
+   */
+  parcels?: DeliveryParcelCards[] | undefined
+}
+
+/** One parcel's own courier list on a card (a cart split by product rules). */
+export type DeliveryParcelCards = {
+  /** The parcel's key (`loc:open:2`), as `CheckoutShipping.parcels` names it. */
+  key: string
+  /** Its couriers, its own pick first. */
+  choices: DeliveryChoiceCard[]
+  /** Its rule's preferred courier comes first (Recommended, not Cheapest). */
+  preferred: boolean
+  fullPrices: boolean
+  /** What it costs on cash on delivery when its courier has no COD price of its own. */
+  codPricePaise: number | null
 }
 
 export type CourierLogo = {
@@ -203,13 +223,63 @@ export function optionCodFee(o: ResolvedOption): number | null {
   return o.cod?.codFeePaise ?? null
 }
 
+/** The cards a list of priced routes draws as (labels, dates, logos, COD prices). */
+function choiceCards(
+  choices: readonly PricedRoute[],
+  policy: ReturnType<typeof toShippingPolicy>,
+  now: Date,
+  afterDiscount: (paise: number) => number,
+): DeliveryChoiceCard[] {
+  return choices.map((c) => ({
+    routeKey: c.route.key,
+    // "Delhivery Express", "Delhivery Surface": never the same courier name twice.
+    label: routeCardLabel(c.route),
+    pricePaise: afterDiscount(c.pricePaise),
+    arrives: deliveryArrives(c, policy, now),
+    logo: courierLogo(c.route),
+    mode: deliveryMode(c.route),
+    earliest: c.etaEstimated ? null : c.earliest,
+    codPricePaise: c.codPricePaise != null ? afterDiscount(c.codPricePaise) : null,
+    codFeePaise: c.codFeePaise ?? null,
+  }))
+}
+
+/** Each parcel's own courier list, when the card is picked per parcel (`parcelOptions`). */
+function parcelCards(
+  o: ResolvedOption,
+  keys: readonly string[],
+  policy: ReturnType<typeof toShippingPolicy>,
+  now: Date,
+  afterDiscount: (paise: number) => number,
+): DeliveryParcelCards[] | null {
+  const parts = o.parcelOptions
+  if (!parts || parts.length !== keys.length) return null
+  return parts.map((part, i) => ({
+    key: keys[i] ?? '',
+    // A parcel with one courier still shows it, as a list of one.
+    choices: choiceCards(
+      part.choices.length ? part.choices : part.pick ? [part.pick] : [],
+      policy,
+      now,
+      afterDiscount,
+    ),
+    preferred: part.pickedBy.startsWith('rule:'),
+    fullPrices: part.fullPrices === true,
+    codPricePaise: part.cod ? afterDiscount(part.cod.pricePaise) : null,
+  }))
+}
+
 export function cardExtras(
   o: ResolvedOption,
   policy: ReturnType<typeof toShippingPolicy>,
   now: Date,
   afterDiscount: (paise: number) => number,
+  /** A split cart's parcel keys, in parcel order (`CheckoutDelivery.parcels`). */
+  parcelKeys: readonly string[] = [],
 ): DeliveryCardExtras {
+  const parcels = parcelCards(o, parcelKeys, policy, now, afterDiscount)
   return {
+    ...(parcels ? { parcels } : {}),
     codAllowed: o.codAllowed,
     // A courier list keeps the first card's courier on COD (its own COD price, no other carrier).
     ...(o.layout === 'list' && o.choices[0]?.codPricePaise != null
@@ -230,17 +300,6 @@ export function cardExtras(
       on: o.insurance.on,
       extraPaise: o.insurance.extraPaise ?? null,
     },
-    choices: o.choices.map((c) => ({
-      routeKey: c.route.key,
-      // "Delhivery Express", "Delhivery Surface": never the same courier name twice.
-      label: routeCardLabel(c.route),
-      pricePaise: afterDiscount(c.pricePaise),
-      arrives: deliveryArrives(c, policy, now),
-      logo: courierLogo(c.route),
-      mode: deliveryMode(c.route),
-      earliest: c.etaEstimated ? null : c.earliest,
-      codPricePaise: c.codPricePaise != null ? afterDiscount(c.codPricePaise) : null,
-      codFeePaise: c.codFeePaise ?? null,
-    })),
+    choices: choiceCards(o.choices, policy, now, afterDiscount),
   }
 }
