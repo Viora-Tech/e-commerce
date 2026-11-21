@@ -154,12 +154,15 @@ function addUpOption(parts: readonly ResolvedOption[], priceFromZone: boolean): 
     pick && cods.every((c): c is PricedRoute => c !== null) ? addRoutes(cods, fromZone) : null
   const insurances = parts.map((p) => p.insurance.pricePaise).filter((v): v is number => v !== null)
   const backup = parts.find((p) => p.source === 'backup')
-  // No courier every parcel offers, but some parcel has its own choice: pick per parcel.
+  // No courier every parcel offers, but some parcel has its own choice, or the parcels go by
+  // different couriers (glass pad by Delhivery, keyboard by Blue Dart, owner 21 Nov 2026): one
+  // card would wear the first parcel's courier name over both. Pick per parcel.
+  const carriers = new Set(picks.map((p) => p?.route.carrierKey))
   const perParcel =
     pick !== null &&
     !priceFromZone &&
     choices.length <= 1 &&
-    parts.some((p) => p.choices.length > 1)
+    (parts.some((p) => p.choices.length > 1) || carriers.size > 1)
   // Insurance inside each parcel's own price (a backup parcel has none).
   const partInsurance = parts.map((p) => p.pick?.insurancePaise ?? 0)
   return {

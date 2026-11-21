@@ -112,6 +112,32 @@ const base = (cfg: DeliveryConfig) => {
 }
 const cartOf = (valuePaise: number, items = [PAD]) => ({ valuePaise, weightGrams: 400, items })
 
+describe('a split where each parcel has a single courier', () => {
+  // Owner, 21 Nov 2026 localhost: glass pad (Delhivery only) + W60 keyboard (Blue Dart only)
+  // showed one "Delhivery Surface ₹139" card; each parcel must show its own courier.
+  it('still lists each parcel with its own courier', () => {
+    const one = [answer('delhivery', 'Delhivery', [quote('S', 'Surface', 4500, [3, 4])])]
+    const bd = [
+      answer('rapidshyp', 'RapidShyp', [
+        quote('71', 'Bluedart Surface', 7400, [2, 2], 'Bluedart Surface'),
+      ]),
+    ]
+    const result = resolveParcelDeliveries(
+      base(listConfig([pads({ mode: 'free' }), mice()])),
+      [
+        { cart: cartOf(50_000, [PAD]), answers: one },
+        { cart: cartOf(100_000, [MOUSE]), answers: bd },
+      ],
+      150_000,
+    )
+    const card = result.options[0]
+    expect(card?.parcelOptions?.map((p) => p.pick?.route.carrierKey)).toEqual([
+      'delhivery',
+      'bluedart',
+    ])
+  })
+})
+
 describe('a cart split by product rules', () => {
   const split = (cfg: DeliveryConfig) =>
     resolveParcelDeliveries(
