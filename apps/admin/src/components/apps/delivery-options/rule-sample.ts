@@ -5,6 +5,8 @@
  * WHY:   Owner, 20 Nov 2026: ticking "Delhivery Air" read as "mice ship free". The example puts
  *        a price next to every courier ("Delhivery Air · Free · Recommended", "Blue Dart Air ·
  *        + ₹49"). Labelled as an example; Try a PIN shows the real prices.
+ *        Owner, 21 Nov 2026: a courier given its own Fixed price shows that price (no difference),
+ *        and a packing charge is added to every card (not on Free), as the engine does.
  * WHERE: rule-preview-line.tsx. Pure.
  */
 import { roundPrice } from '@commerce/core/delivery-options'
@@ -26,6 +28,10 @@ export function exampleCost(index: number, speed: 'standard' | 'express'): numbe
   return (speed === 'express' ? 8600 : 5200) + index * 900
 }
 
+/** The packing charge every card carries: none on Free or when blank. */
+export const samplePackingPaise = (d: Pick<RuleDraft, 'priceMode' | 'packing'>): number =>
+  d.priceMode === 'free' ? 0 : (parseRupees(d.packing) ?? 0)
+
 /** The example cards, the included courier first; empty with no chip ticked. */
 export function sampleCards(d: RuleDraft): SampleCard[] {
   const carriers = [...new Set(d.chips.map((c) => splitChip(c).carrier))]
@@ -39,23 +45,33 @@ export function sampleCards(d: RuleDraft): SampleCard[] {
   const want = d.preferred ? splitChip(d.preferred) : null
   const first =
     (want &&
-      byCost.find((c) => c.carrier === want.carrier && (want.speed === 'any' || c.speed === want.speed))) ||
+      byCost.find(
+        (c) => c.carrier === want.carrier && (want.speed === 'any' || c.speed === want.speed),
+      )) ||
     byCost[0]
   if (!first) return []
   const normal = roundPrice(first.cost, 'nine')
   const base =
-    d.priceMode === 'free'
-      ? 0
-      : d.priceMode === 'fixed'
-        ? (parseRupees(d.fixed) ?? normal)
-        : normal
+    d.priceMode === 'free' ? 0 : d.priceMode === 'fixed' ? (parseRupees(d.fixed) ?? normal) : normal
+  const packing = samplePackingPaise(d)
   const card = (c: (typeof priced)[number]): SampleCard => {
+    const own = d.priceMode === 'fixed' ? parseRupees(d.courierFixed[c.carrier] ?? '') : null
+    if (own !== null) {
+      return {
+        id: c.id,
+        carrier: c.carrier,
+        speed: c.speed,
+        pricePaise: own + packing,
+        extraPaise: 0,
+        recommended: c === first,
+      }
+    }
     const extra = roundPrice(Math.max(0, c.cost - first.cost), 'nine')
     return {
       id: c.id,
       carrier: c.carrier,
       speed: c.speed,
-      pricePaise: base + extra,
+      pricePaise: base + extra + packing,
       extraPaise: extra,
       recommended: c === first,
     }

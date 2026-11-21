@@ -10,7 +10,7 @@ import type { DeliveryOption } from './config'
 import type { PricedRoute } from './resolve-types'
 import { type PriceRounding, roundPrice } from './rounding'
 import type { Route } from './routes'
-import { codExtraPaise } from './rule-price'
+import { type CardPricer, codExtraPaise } from './rule-price'
 
 /** A route that fits the option, priced for it. */
 export type Candidate = { route: Route; priced: PricedRoute }
@@ -125,6 +125,8 @@ export function courierList(
   preferred = false,
   /** The pick is priced by a product rule (`withRulePrice`). */
   rulePriced = false,
+  /** A Fixed rule names couriers' own prices (`ruleCardPricer`); null: all from the pick. */
+  cardPrice: CardPricer | null = null,
 ): PricedRoute[] {
   const base = withCod(winner.priced, winner.route, option, rulePriced)
   const seen = new Set<string>([`${winner.route.carrierKey}:${winner.route.speed}`])
@@ -134,7 +136,9 @@ export function courierList(
     if (c.route.key === winner.route.key || seen.has(id)) continue
     if (preferred && c.route.carrierKey === winner.route.carrierKey) continue
     seen.add(id)
-    rest.push(withCod(priceFromPick(c, winner, option), c.route, option, rulePriced))
+    const fromPick = priceFromPick(c, winner, option)
+    const card = cardPrice ? cardPrice(c, fromPick) : fromPick
+    rest.push(withCod(card, c.route, option, rulePriced))
   }
   const all = [base, ...rest]
   const max = option.couriers.max ?? Number.POSITIVE_INFINITY

@@ -20,7 +20,7 @@ import type {
   TraceRoute,
 } from './resolve-types'
 import { insurancePrice, type Route, routesFromAnswers } from './routes'
-import { cartRulePrices, type RulePriceContext } from './rule-price'
+import { cartRulePrices, type RulePriceContext, ruleCardPricer } from './rule-price'
 import { matchRules, poolAllows, rulePool } from './rules'
 
 function traceRoute(
@@ -175,15 +175,35 @@ export function resolveDeliveryOptions(
     }
 
     const { winner, why } = prepaid.picked
+    // A Fixed rule naming couriers' own prices prices those couriers' cards (21 Nov 2026).
+    const before = prepaid.fits.find((c) => c.route.key === winner.route.key)?.priced
+    const cardPrice =
+      rulePrice && before
+        ? ruleCardPricer(before, winner.priced, option, rulePrice, { insured, required })
+        : null
     // A forced route carries the parcel alone: no alternatives, no other courier cards.
     const alternatives = prepaid.forced
       ? []
-      : alternativesFor(prepaid.fits, pool.alternatives, option, winner, rulePrice !== null)
+      : alternativesFor(
+          prepaid.fits,
+          pool.alternatives,
+          option,
+          winner,
+          rulePrice !== null,
+          cardPrice,
+        )
     const codPick = codAllowed ? pickOf({ insured, cod: true }).picked : null
     const pick = winner.priced
     const listChoices =
       listed && !prepaid.forced
-        ? courierList(prepaid.fits, winner, option, why.kind === 'rule_default', rulePrice !== null)
+        ? courierList(
+            prepaid.fits,
+            winner,
+            option,
+            why.kind === 'rule_default',
+            rulePrice !== null,
+            cardPrice,
+          )
         : []
     /* The tick: priced both ways, so "+₹X" is what ticking really adds after rounding. A route
        with no insurance rate prices insurance at ₹0, and then no tick shows. */

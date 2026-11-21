@@ -1,7 +1,8 @@
 /** SOURCE OF TRUTH: the Product rule dialog's live line
  * WHAT:  What the rule being edited will do, in plain words, from the dialog's draft, price
  *        included: "Products in Mice ship free by Delhivery Air; shoppers can still pick Blue
- *        Dart Air or Amazon Surface".
+ *        Dart Air or Amazon Surface". Couriers' own Fixed prices and a packing charge are said
+ *        in brackets (21 Nov 2026): "(Blue Dart for ₹139, plus ₹20 for packing)".
  * WHY:   #1781 (owner, 17 Nov): the dialog should say what the rule does before it is saved;
  *        owner, 20 Nov: and what the shopper pays, so ticking a courier never reads as "free".
  * WHERE: rule-preview-line.tsx, under the rule's fields. Pure.
@@ -62,7 +63,13 @@ export function rulePreview(
   }
 
   const freeAbove = rule.price.freeAbovePaise
+  const courierPrices = Object.entries(rule.price.courierPaise ?? {}).map(([carrier, paise]) =>
+    p.courierPrice(carrierName(carrier, copy.routeDialog.anyCourier), money(paise)),
+  )
+  const packing = rule.price.packingPaise
   const extras = [
+    ...courierPrices,
+    packing ? p.packing(money(packing)) : null,
     freeAbove != null && rule.price.mode !== 'free' ? p.freeAbove(money(freeAbove)) : null,
     rule.insurance === 'required' ? p.insured : null,
     rule.optionIds === 'all'

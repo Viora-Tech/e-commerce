@@ -9,7 +9,7 @@ import { deliveryRuleFormContent } from '@/data/delivery-rule-form'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import type { RuleDraft } from './rule-draft'
 import { chipLabel, rulePreview } from './rule-preview'
-import { sampleCards } from './rule-sample'
+import { sampleCards, samplePackingPaise } from './rule-sample'
 
 type RulePreviewLineProps = {
   draft: RuleDraft
@@ -47,6 +47,7 @@ export default function RulePreviewLine({ draft, options }: RulePreviewLineProps
   const base = cards[0]?.pricePaise ?? 0
   const freeAbove =
     draft.priceMode !== 'free' && draft.freeAboveOn ? parseRupees(draft.freeAbove) : null
+  const packing = samplePackingPaise(draft)
 
   return (
     <section
@@ -74,7 +75,12 @@ export default function RulePreviewLine({ draft, options }: RulePreviewLineProps
       )}
       {cards.length > 0 ? (
         <span className="text-caption text-muted-foreground">
-          {[t.example, freeAbove != null ? t.freeAbove(fmt.money(freeAbove)) : null, t.express]
+          {[
+            t.example,
+            packing > 0 ? t.packing(fmt.money(packing)) : null,
+            freeAbove != null ? t.freeAbove(fmt.money(freeAbove)) : null,
+            t.express,
+          ]
             .filter(Boolean)
             .join(' ')}
         </span>

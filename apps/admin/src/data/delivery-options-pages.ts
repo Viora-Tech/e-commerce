@@ -301,6 +301,9 @@ export const deliveryPagesContent = {
     free: 'free',
     fixed: (amount: string) => `for ${amount}`,
     freeAbove: (amount: string) => `free from ${amount}`,
+    /** "Blue Dart Air for ₹139". */
+    courierPrice: (courier: string, amount: string) => `${courier} for ${amount}`,
+    packing: (amount: string) => `plus ${amount} for packing`,
     insured: 'always insured',
     inOptions: (names: string) => `in ${names}`,
     off: 'The rule is off, so checkout ignores it until you turn it on.',

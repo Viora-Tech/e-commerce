@@ -4,7 +4,9 @@
  *        courier included in the price (`defaultRoute`; "only this one" is `forceRoute`) and
  *        what it costs (`price`), plus Through, insurance and options under More. A rule whose
  *        routes can't be said as chips (a pinned service, two accounts) keeps the detailed
- *        route editor. `ruleInputOf` turns it back into the SAME rule schema.
+ *        route editor. `ruleInputOf` turns it back into the SAME rule schema. Owner, 21 Nov
+ *        2026: a Fixed price can differ per courier (`courierFixed`, keyed by carrier, any
+ *        speed: "Delhivery ₹99, Blue Dart ₹139") and a packing charge adds to any price but Free.
  * WHY:   The owner read the old courier list as "these are free". Prices now have their own
  *        step, and the engine still reads selectors, so chips map onto them.
  * WHERE: rule-dialog.tsx and its field components; presets in rule-presets.ts.
@@ -57,6 +59,10 @@ export type RuleDraft = {
   fixed: string
   freeAboveOn: boolean
   freeAbove: string
+  /** Fixed only: carrier -> its own price in rupees as typed; blank: the rule's price. */
+  courierFixed: Record<string, string>
+  /** Packing charge in rupees as typed; blank: none. Not charged on Free. */
+  packing: string
   enabled: boolean
 }
 
@@ -117,6 +123,8 @@ export function blankDraft(): RuleDraft {
     fixed: '',
     freeAboveOn: false,
     freeAbove: '',
+    courierFixed: {},
+    packing: '',
     enabled: true,
   }
 }
@@ -148,6 +156,13 @@ export function draftOf(rule: RouteRule | null): RuleDraft {
     fixed: toRupees(price.fixedPaise),
     freeAboveOn: price.freeAbovePaise != null,
     freeAbove: toRupees(price.freeAbovePaise),
+    courierFixed: Object.fromEntries(
+      Object.entries(price.courierPaise ?? {}).map(([carrier, paise]) => [
+        carrier,
+        toRupees(paise),
+      ]),
+    ),
+    packing: toRupees(price.packingPaise),
     enabled: rule.enabled,
   }
 }
@@ -177,6 +192,15 @@ export const typedValues = (text: string): string[] =>
 export const targetValues = (d: RuleDraft): string[] =>
   d.kind === 'all' ? [] : picks(d.kind) ? d.values : typedValues(d.text)
 
+/** The couriers the rule allows (carrier keys, any speed), for per-courier prices. */
+export function ruleCarriers(d: Pick<RuleDraft, 'custom' | 'chips' | 'routes'>): string[] {
+  const keys = d.custom ? d.routes.map((r) => r.carrier) : d.chips.map((c) => splitChip(c).carrier)
+  return [...new Set(keys)].filter((k) => k !== 'any')
+}
+
+/** A rupee field: blank is fine (none), anything typed must read as rupees. */
+const badOptional = (text: string) => text.trim() !== '' && parseRupees(text) === null
+
 export type RuleErrors = {
   name: boolean
   target: boolean
@@ -184,6 +208,9 @@ export type RuleErrors = {
   routes: boolean
   fixed: boolean
   freeAbove: boolean
+  /** A per-courier price typed that doesn't read as rupees. */
+  courierFixed: boolean
+  packing: boolean
 }
 
 export function ruleErrors(d: RuleDraft): RuleErrors {
@@ -194,7 +221,21 @@ export function ruleErrors(d: RuleDraft): RuleErrors {
     routes: d.custom && d.routes.length === 0,
     fixed: d.priceMode === 'fixed' && parseRupees(d.fixed) === null,
     freeAbove: d.priceMode !== 'free' && d.freeAboveOn && parseRupees(d.freeAbove) === null,
+    courierFixed:
+      d.priceMode === 'fixed' &&
+      ruleCarriers(d).some((carrier) => badOptional(d.courierFixed[carrier] ?? '')),
+    packing: d.priceMode !== 'free' && badOptional(d.packing),
   }
+}
+
+/** The per-courier prices to save: Fixed only, couriers still in the rule, blanks dropped. */
+function courierPaiseOf(d: RuleDraft): Record<string, number> | null {
+  if (d.priceMode !== 'fixed') return null
+  const entries = ruleCarriers(d).flatMap((carrier) => {
+    const paise = parseRupees(d.courierFixed[carrier] ?? '')
+    return paise === null ? [] : [[carrier, paise] as const]
+  })
+  return entries.length > 0 ? Object.fromEntries(entries) : null
 }
 
 /** The chips as selectors: one per courier, `any` when both of its speeds are ticked. */
@@ -216,6 +257,8 @@ function selectorsOf(chips: readonly string[], through: Through): RouteSelector[
 /** The draft as the API saves it. */
 export function ruleInputOf(d: RuleDraft): RouteRuleInput {
   const fixed = parseRupees(d.fixed)
+  const courierPaise = courierPaiseOf(d)
+  const packingPaise = d.priceMode === 'free' ? null : parseRupees(d.packing)
   const base = {
     name: d.name.trim(),
     target: { kind: d.kind, values: targetValues(d) },
@@ -225,6 +268,9 @@ export function ruleInputOf(d: RuleDraft): RouteRuleInput {
       mode: d.priceMode,
       fixedPaise: d.priceMode === 'fixed' ? fixed : null,
       freeAbovePaise: d.priceMode !== 'free' && d.freeAboveOn ? parseRupees(d.freeAbove) : null,
+      // Only when set, so a rule without them saves exactly as before.
+      ...(courierPaise ? { courierPaise } : {}),
+      ...(packingPaise ? { packingPaise } : {}),
     },
     enabled: d.enabled,
   }

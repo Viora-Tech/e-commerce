@@ -9,7 +9,12 @@ import { byCheapest, type Candidate, priceFromPick, storeCost } from './courier-
 import { datesFor, priceRoute } from './price'
 import type { DropReason, PricedRoute, ResolveInput, WhyPicked } from './resolve-types'
 import { type Route, selectorMatches } from './routes'
-import { type RulePriceContext, withRulePrice, withSeparateCodFee } from './rule-price'
+import {
+  type CardPricer,
+  type RulePriceContext,
+  withRulePrice,
+  withSeparateCodFee,
+} from './rule-price'
 import { poolAllows, type RulePool } from './rules'
 
 export const optionAllows = (option: DeliveryOption, route: Route): boolean => {
@@ -143,9 +148,7 @@ export function pickFor(
     /* A rule's price, or a COD charge shown on its own line, starts from the prepaid price:
        the charge is added once, after the pick (`finish`). */
     const codInPrice = need.cod && rulePrice === null && option.cod.fee !== 'separate'
-    const priced = forcedReason
-      ? null
-      : priceRoute(route, option, input, need.insured, codInPrice)
+    const priced = forcedReason ? null : priceRoute(route, option, input, need.insured, codInPrice)
     dropped.set(route.key, forcedReason ?? (priced ? null : 'no_price'))
     if (!priced) continue
     if (!reason) fits.push({ route, priced })
@@ -212,6 +215,8 @@ export function alternativesFor(
   winner: Candidate,
   /** The pick is priced by a product rule: each alternative is that price plus its difference. */
   rulePriced = false,
+  /** A Fixed rule names couriers' own prices (`ruleCardPricer`). */
+  cardPrice: CardPricer | null = null,
 ): PricedRoute[] {
   const out: PricedRoute[] = []
   for (const sel of selectors) {
@@ -219,9 +224,11 @@ export function alternativesFor(
       fits.filter((c) => selectorMatches(c.route, sel) && c.route.key !== winner.route.key),
       option,
     )
-    if (best && !out.some((p) => p.route.key === best.winner.route.key))
-      out.push(rulePriced ? priceFromPick(best.winner, winner, option) : best.winner.priced)
+    if (best && !out.some((p) => p.route.key === best.winner.route.key)) {
+      const fromPick = priceFromPick(best.winner, winner, option)
+      if (!rulePriced) out.push(best.winner.priced)
+      else out.push(cardPrice ? cardPrice(best.winner, fromPick) : fromPick)
+    }
   }
   return out
 }
-

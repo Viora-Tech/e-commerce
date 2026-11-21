@@ -188,6 +188,13 @@ export type DeliveryOption = DeliveryOptionInput & { id: string; position: numbe
  * plus what they cost the store more (`courierList`). Applies to the first enabled Standard
  * option (or the courier list's option); Express keeps its own price. A cart whose products
  * have different rule prices pays the highest (`rule-price.ts`).
+ *
+ * Owner, 21 Nov 2026: `courierPaise` (Fixed only) gives some couriers their own fixed price,
+ * keyed by carrier (`delhivery`, `bluedart`, the carrier half of the rule dialog's
+ * `carrier:speed` chips), any speed: "Delhivery ₹99, Blue Dart ₹139". A courier not named
+ * keeps Fixed's behaviour. `packingPaise` adds a packing charge on top of the delivery price
+ * (option's own or Fixed; never on Free, which includes everything); each rule in the cart
+ * adds its packing once.
  */
 export const RULE_PRICE_MODES = ['option', 'free', 'fixed'] as const
 export type RulePriceMode = (typeof RULE_PRICE_MODES)[number]
@@ -196,6 +203,10 @@ export const RulePriceSchema = z.object({
   mode: z.enum(RULE_PRICE_MODES).default('option'),
   fixedPaise: paise.nullish(),
   freeAbovePaise: paise.nullish(),
+  /** Fixed only: carrier key -> that courier's own fixed price. */
+  courierPaise: z.record(z.string().trim().min(1).max(40), paise).optional(),
+  /** Added for packing on top of the delivery price; not charged when the price is Free. */
+  packingPaise: paise.nullish(),
 })
 export type RulePrice = z.infer<typeof RulePriceSchema>
 

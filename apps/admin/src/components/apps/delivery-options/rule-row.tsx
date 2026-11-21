@@ -10,7 +10,7 @@ import { deliveryOptionsContent } from '@/data/delivery-options'
 import { deliveryPagesContent } from '@/data/delivery-options-pages'
 import { deliveryRuleFormContent } from '@/data/delivery-rule-form'
 import { useCopy, useFormat } from '@/hooks/use-copy'
-import { ruleRouteLabels, ruleTargetLabel } from './format'
+import { carrierName, ruleRouteLabels, ruleTargetLabel } from './format'
 import { chipLabel } from './rule-preview'
 
 type RuleRowProps = {
@@ -80,12 +80,21 @@ export default function RuleRow({
       : price.mode === 'fixed'
         ? p.fixed(fmt.money(price.fixedPaise ?? 0))
         : p.option
-  const priceChip =
-    price.mode === 'option' && price.freeAbovePaise == null
+  // Couriers' own Fixed prices and the packing charge (21 Nov 2026): "Fixed ₹99, Blue Dart ₹139".
+  const priceParts = [
+    price.mode === 'option' && price.freeAbovePaise == null && !price.packingPaise
       ? null
-      : price.freeAbovePaise != null && price.mode !== 'free'
-        ? `${priceMain}, ${p.freeAbove(fmt.money(price.freeAbovePaise))}`
-        : priceMain
+      : priceMain,
+    ...Object.entries(price.mode === 'fixed' ? (price.courierPaise ?? {}) : {}).map(
+      ([carrier, paise]) =>
+        p.courier(carrierName(carrier, copy.routeDialog.anyCourier), fmt.money(paise)),
+    ),
+    price.freeAbovePaise != null && price.mode !== 'free'
+      ? p.freeAbove(fmt.money(price.freeAbovePaise))
+      : null,
+    price.packingPaise && price.mode !== 'free' ? p.packing(fmt.money(price.packingPaise)) : null,
+  ].filter((x): x is string => x !== null)
+  const priceChip = priceParts.length > 0 ? priceParts.join(', ') : null
 
   return (
     <div
@@ -117,7 +126,12 @@ export default function RuleRow({
           <ArrowRight aria-hidden className="size-3.5 text-muted-foreground" />
           <span className={cn(CHIP, 'border-info/40 bg-info-soft text-info')}>{routesChip}</span>
           {throughText ? (
-            <span className={cn(CHIP, 'border-warning/30 bg-warning-soft text-warning-foreground dark:text-warning')}>
+            <span
+              className={cn(
+                CHIP,
+                'border-warning/30 bg-warning-soft text-warning-foreground dark:text-warning',
+              )}
+            >
               {throughText}
             </span>
           ) : null}

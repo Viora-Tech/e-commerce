@@ -276,6 +276,8 @@ export default [
       free: 'मुफ़्त',
       fixed: (amount: string) => `${amount} में`,
       freeAbove: (amount: string) => `${amount} से मुफ़्त`,
+      courierPrice: (courier: string, amount: string) => `${courier} ${amount} में`,
+      packing: (amount: string) => `साथ में ${amount} पैकिंग`,
       insured: 'हमेशा बीमे के साथ',
       inOptions: (names: string) => `${names} में`,
       off: 'नियम बंद है, इसलिए चालू करने तक चेकआउट इसे नहीं मानता।',

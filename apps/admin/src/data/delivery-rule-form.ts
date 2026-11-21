@@ -60,7 +60,19 @@ export const deliveryRuleFormContent = {
     freeAbove: 'Free above',
     freeAboveLabel: 'Free above this cart value, in rupees',
     freeAboveHelp: 'Cart value after discounts.',
-    errors: { fixed: 'Type the price.', freeAbove: 'Type the cart value.' },
+    courierPrices: 'Different price for some couriers',
+    courierPricesHelp: 'Leave a courier blank to use the price above.',
+    courierPriceLabel: (courier: string) => `${courier} price in rupees`,
+    packing: 'Packing charge',
+    packingLabel: 'Packing charge in rupees',
+    packingHelp:
+      'Added to the delivery price for these products, e.g. for switches packed in a box.',
+    errors: {
+      fixed: 'Type the price.',
+      freeAbove: 'Type the cart value.',
+      courierFixed: 'Type a price in rupees, or leave it blank.',
+      packing: 'Type the packing charge in rupees, or leave it blank.',
+    },
   },
   more: {
     through: 'Through',
@@ -73,6 +85,7 @@ export const deliveryRuleFormContent = {
     extra: (amount: string) => `+ ${amount}`,
     total: (total: string, extra: string) => `${total} (+ ${extra})`,
     freeAbove: (amount: string) => `Free for carts of ${amount} or more.`,
+    packing: (amount: string) => `Prices include ${amount} for packing.`,
     express: 'Express, when you offer it, keeps its own price.',
     empty: 'Tick a courier to see the example.',
   },
@@ -88,6 +101,8 @@ export const deliveryRuleFormContent = {
       fixed: (amount: string) => `Fixed ${amount}`,
       option: 'Normal price',
       freeAbove: (amount: string) => `free above ${amount}`,
+      courier: (courier: string, amount: string) => `${courier} ${amount}`,
+      packing: (amount: string) => `+ ${amount} packing`,
     },
   },
   order: {
