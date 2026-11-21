@@ -115,6 +115,16 @@ export function declaredValuePaise(p: {
 }
 
 /**
+ * Ship now with part of the parcel (the drawer's item picker): the drawer asks with the part's
+ * value, below the parcel's own total. The booking splits the parcel first and declares the
+ * part's own value, so the quote prices insurance on the part, not the whole order (owner,
+ * 22 Nov 2026: a ₹3,799 wrist rest showed insurance on ₹29,798).
+ */
+export function isPartOfParcel(parcelTotalPaise: number | null, askedPaise: number): boolean {
+  return parcelTotalPaise != null && askedPaise < parcelTotalPaise
+}
+
+/**
  * `declaredValuePaise` for the Create shipment quote, read as booking reads it, so the drawer's
  * insurance is priced on exactly the value the courier is sent. `fallback` (the value the
  * drawer asked with) stands in for a parcel with no total saved.
@@ -133,6 +143,7 @@ export async function quoteDeclaredValuePaise(
     .where(and(eq(fulfillmentOrder.orderId, orderId), ne(fulfillmentOrder.status, 'cancelled')))
     .limit(3)
   const own = live.find((f) => f.id === fulfillmentOrderId)
+  if (isPartOfParcel(own?.totalPaise ?? null, fallback)) return fallback
   return declaredValuePaise({
     parcelId: fulfillmentOrderId,
     parcelTotalPaise: own?.totalPaise ?? null,

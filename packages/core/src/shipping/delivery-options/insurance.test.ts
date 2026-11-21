@@ -3,7 +3,7 @@
  * a row whose quote itemised insurance / WHY: drawer, booking and margin share `rowInsurance`. */
 import { describe, expect, it } from 'vitest'
 import type { CourierRateRow } from '../courier-rates'
-import { type InsuranceFacts, rowCover, rowInsurance } from './insurance'
+import { type InsuranceFacts, isPartOfParcel, rowCover, rowInsurance } from './insurance'
 import {
   courierCover,
   coveredPaise,
@@ -175,5 +175,16 @@ describe('rowInsurance', () => {
       source: 'courier',
       pricePaise: 2500,
     })
+  })
+})
+
+describe('isPartOfParcel: insurance on the part that ships now (owner, 22 Nov 2026)', () => {
+  it('a ₹3,799 wrist rest out of a ₹29,798 parcel is priced on ₹3,799', () => {
+    expect(isPartOfParcel(2_979_800, 379_900)).toBe(true)
+  })
+  it('the whole parcel, or no parcel total saved, keeps the usual value', () => {
+    expect(isPartOfParcel(2_979_800, 2_979_800)).toBe(false)
+    expect(isPartOfParcel(2_979_800, 3_000_000)).toBe(false)
+    expect(isPartOfParcel(null, 379_900)).toBe(false)
   })
 })
