@@ -1,4 +1,4 @@
-/** SOURCE OF TRUTH: video posters — WHAT: link a video in Files to its poster picture, and find the poster for a video by its address / WHY: a video's first frame is often black (Waimers' hero videos, 16 Nov 2026), so the admin grabs a frame about 2 s in when a video is uploaded (`apps/admin/src/lib/video-poster.ts`) and Customize fills a video setting's poster from here */
+/** SOURCE OF TRUTH: video posters — WHAT: link a video in Files to its poster picture, and find the poster for a video by its address / WHY: a video's first frame is often black (Waimers' hero videos, 16 Nov 2026), so the admin grabs the first frame that is not black when a video is uploaded (opening shot, owner 21 Nov 2026) (`apps/admin/src/lib/video-poster.ts`) and Customize fills a video setting's poster from here */
 import type { StoreTx } from '@commerce/db'
 import { media } from '@commerce/db'
 import { eq } from 'drizzle-orm'
