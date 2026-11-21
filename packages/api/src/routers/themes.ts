@@ -163,6 +163,8 @@ type ThemeFacts = {
   sectionCount: number | null
   storePacks: ThemePackId[]
   cover: string | null
+  /** Every cover candidate, best first; the card tries the next when one fails to load. */
+  covers: string[]
 }
 
 const NO_FACTS: ThemeFacts = {
@@ -171,6 +173,7 @@ const NO_FACTS: ThemeFacts = {
   sectionCount: null,
   storePacks: [],
   cover: null,
+  covers: [],
 }
 
 /**
@@ -190,6 +193,7 @@ function present(storeId: string, t: ThemeRecord, facts: ThemeFacts = NO_FACTS) 
     packs: t.ownPacks ?? facts.storePacks,
     /** The saved home page's first picture (hero poster), shown until a screenshot exists. */
     cover: facts.cover,
+    covers: facts.covers,
     previewToken: signThemePreviewToken({ secret: settingsSecret(), storeId, themeId: t.id }),
   }
 }
@@ -210,7 +214,8 @@ async function libraryFacts(tx: LibraryTx, storeId: string): Promise<(id: string
     hasDraft: drafts.has(id),
     sectionCount: counts.get(id) ?? null,
     storePacks,
-    cover: covers.get(id) ?? null,
+    cover: covers.get(id)?.[0] ?? null,
+    covers: covers.get(id) ?? [],
   })
 }
 

@@ -36,19 +36,33 @@ function collect(value: unknown, out: { posters: string[]; images: string[] }, d
   }
 }
 
+/** How many cover candidates the Themes page gets to try. */
+const MAX_COVERS = 6
+
+/**
+ * Every cover candidate of a saved template, best first: section by section from the top, each
+ * section's video posters, then its images. The Themes page tries them in order, so one missing
+ * file (a hero slide's poster gone from storage) falls to the next slide's picture instead of the
+ * colour swatch (owner, 21 Nov 2026).
+ */
+export function templateCovers(data: unknown): string[] {
+  const content = (data as { content?: unknown } | null)?.content
+  if (!Array.isArray(content)) return []
+  const out: string[] = []
+  for (const section of content.slice(0, SECTIONS_LOOKED_AT)) {
+    if ((section as { props?: { _hidden?: unknown } })?.props?._hidden === true) continue
+    const found = { posters: [] as string[], images: [] as string[] }
+    collect(section, found)
+    for (const url of [...found.posters, ...found.images]) if (!out.includes(url)) out.push(url)
+    if (out.length >= MAX_COVERS) break
+  }
+  return out.slice(0, MAX_COVERS)
+}
+
 /**
  * The cover of a saved template: in the first section that has a picture, its first video
  * poster, else its first image. Null when the top of the page has no picture.
  */
 export function templateCover(data: unknown): string | null {
-  const content = (data as { content?: unknown } | null)?.content
-  if (!Array.isArray(content)) return null
-  for (const section of content.slice(0, SECTIONS_LOOKED_AT)) {
-    if ((section as { props?: { _hidden?: unknown } })?.props?._hidden === true) continue
-    const found = { posters: [] as string[], images: [] as string[] }
-    collect(section, found)
-    const cover = found.posters[0] ?? found.images[0]
-    if (cover) return cover
-  }
-  return null
+  return templateCovers(data)[0] ?? null
 }

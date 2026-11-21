@@ -104,4 +104,20 @@ describe('ThemePreviewStage', () => {
     complete.mockRestore()
     width.mockRestore()
   })
+  it('tries the next hero picture before the swatch when the cover fails', () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+    const NEXT = 'http://localhost:3200/uploads/stores/s/media/slide-2-poster.jpg'
+    render(
+      <ThemePreviewStage
+        name="Glide"
+        origin="https://shop.test"
+        settings={defaultTheme}
+        picture={null}
+        cover={COVER}
+        covers={[COVER, NEXT]}
+      />,
+    )
+    fireEvent.error(shown() as HTMLElement)
+    expect(shown()?.getAttribute('src')).toBe(NEXT)
+  })
 })

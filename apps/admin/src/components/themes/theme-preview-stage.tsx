@@ -21,6 +21,8 @@ type ThemePreviewStageProps = {
    * the swatch is the last resort.
    */
   cover?: string | null | undefined
+  /** Every cover candidate, best first: the next one shows when a picture fails to load. */
+  covers?: readonly string[] | undefined
 }
 
 /**
@@ -34,6 +36,7 @@ export default function ThemePreviewStage({
   settings,
   picture: stored,
   cover = null,
+  covers = [],
 }: ThemePreviewStageProps) {
   // Hooks
   const copy = useCopy(themesContent.library)
@@ -57,7 +60,8 @@ export default function ThemePreviewStage({
 
   // Render logic
   const shot = shown && !failed.includes(shown) ? shown : null
-  const usableCover = cover && !failed.includes(cover) ? cover : null
+  const usableCover =
+    [cover, ...covers].find((c): c is string => Boolean(c) && !failed.includes(c as string)) ?? null
   const picture = shot ?? usableCover
   // A cover is a photo, not a page: it fills both frames instead of shrinking into the phone.
   const isCover = !shot && Boolean(usableCover)

@@ -1,6 +1,6 @@
 /** SOURCE OF TRUTH: theme cover tests — WHAT: the saved home page's first picture / WHY: the Themes page shows it instead of a swatch */
 import { describe, expect, it } from 'vitest'
-import { templateCover } from './template-cover'
+import { templateCover, templateCovers } from './template-cover'
 import { comparableTemplate, stableTemplateJson } from './templates-data'
 
 const POSTER = 'http://localhost:3200/uploads/stores/s/media/hero-poster.jpg'
@@ -63,5 +63,25 @@ describe('comparableTemplate', () => {
   it('keeps zones that hold sections', () => {
     const draft = { root: { props: {} }, content: [], zones: { 'x:y': [hero] } }
     expect(comparableTemplate(draft).zones).toEqual({ 'x:y': [hero] })
+  })
+})
+
+describe('templateCovers', () => {
+  it('lists every slide picture, posters first, so a missing file falls to the next', () => {
+    const data = {
+      content: [
+        {
+          type: 'Hero',
+          props: {
+            slides: [
+              { video: { poster: '/m/a-poster.jpg' }, image: '/m/a.jpg' },
+              { video: { poster: '/m/b-poster.jpg' } },
+            ],
+          },
+        },
+      ],
+    }
+    expect(templateCovers(data)).toEqual(['/m/a-poster.jpg', '/m/b-poster.jpg', '/m/a.jpg'])
+    expect(templateCover(data)).toBe('/m/a-poster.jpg')
   })
 })

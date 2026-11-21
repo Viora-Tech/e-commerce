@@ -5,7 +5,7 @@ import { assertTemplateBindings, InvalidBindings } from '../dynamic-sources/serv
 import { sanitizeTemplateEmbeds } from './embeds'
 import { ThemeLibraryError } from './library'
 import { reassignTemplate } from './template-assignments'
-import { templateCover } from './template-cover'
+import { templateCovers } from './template-cover'
 import {
   type AlternateKind,
   comparableTemplate,
@@ -228,10 +228,10 @@ export async function themesWithDrafts(tx: StoreTx): Promise<Set<string>> {
 }
 
 /**
- * Each theme's cover (`templateCover`): the first picture of its SAVED home page, for the Themes
+ * Each theme's cover candidates (`templateCovers`): the first picture of its SAVED home page, for the Themes
  * page when no screenshot exists. Reads only the first sections' JSON, never the drafts.
  */
-export async function themeCovers(tx: StoreTx): Promise<Map<string, string>> {
+export async function themeCovers(tx: StoreTx): Promise<Map<string, string[]>> {
   const rows = await tx
     .select({
       themeId: themeTemplate.themeId,
@@ -239,10 +239,10 @@ export async function themeCovers(tx: StoreTx): Promise<Map<string, string>> {
     })
     .from(themeTemplate)
     .where(and(eq(themeTemplate.template, 'home'), eq(themeTemplate.suffix, '')))
-  const covers = new Map<string, string>()
+  const covers = new Map<string, string[]>()
   for (const row of rows) {
-    const cover = templateCover({ content: row.top })
-    if (cover) covers.set(row.themeId, cover)
+    const found = templateCovers({ content: row.top })
+    if (found.length > 0) covers.set(row.themeId, found)
   }
   return covers
 }
