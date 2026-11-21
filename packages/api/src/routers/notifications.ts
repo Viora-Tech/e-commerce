@@ -3,16 +3,20 @@ import {
   checkRateLimit,
   checkSenderEmail,
   createMemoryRateLimitStore,
+  EmailTemplateDesignSchema,
   MESSAGE_CATALOGUE,
+  messageDef,
   permissions,
   type RateLimitRule,
   rateLimitKey,
   removeSenderEmail,
+  resetTemplateDesign,
   retryAfterSeconds,
   SenderEmailError,
+  saveTemplateDesign,
   setSenderEmail,
 } from '@commerce/core'
-import type { TemplateId } from '@commerce/notifications'
+import { DESIGN_LIMITS, designableTemplate, type TemplateId } from '@commerce/notifications'
 import { logger } from '@commerce/observability/logging'
 import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
@@ -25,13 +29,29 @@ import {
 import {
   notificationsOverview,
   previewMessage,
+  previewTemplateDesign,
   sendTestMessage,
   setMessageOn,
+  templateDesignOverview,
 } from '../services/notifications.service'
 import { senderEmailDeps, senderEmailOverview } from '../services/sender-email.service'
 
 const MESSAGE_IDS = MESSAGE_CATALOGUE.map((m) => m.id) as [TemplateId, ...TemplateId[]]
 const messageId = z.enum(MESSAGE_IDS)
+
+/** Only store emails a merchant can redesign (not WhatsApp-only, team reports or platform mail). */
+const designId = messageId.refine(
+  (id) => designableTemplate(id) && (messageDef(id)?.channels.includes('email') ?? false),
+  'This message has no email to design',
+)
+
+/** An unsaved design for the live preview: any shape (half-filled blocks are dropped), bounded size. */
+const draftDesign = z
+  .unknown()
+  .refine((d) => JSON.stringify(d ?? null).length <= DESIGN_LIMITS.bytes, 'design is too large')
+
+/** Saves and previews per store: plenty for someone dragging blocks, not for a script. */
+const DESIGN_PREVIEW_RULE: RateLimitRule = { limit: 120, windowMs: 60_000 }
 
 /** A handful of test emails per store every ten minutes: enough to check each message, not a spam relay. */
 const TEST_SEND_RULE: RateLimitRule = { limit: 5, windowMs: 10 * 60_000 }
@@ -126,6 +146,43 @@ export const notificationsRouter = {
         previousSecrets: env.SETTINGS_SECRET_PREVIOUS,
       })
       return { ...result, to }
+    }),
+
+  /** Edit design: the saved design (or null), the default to start from, the locked blocks and variables. */
+  design: can(permissions.SETTINGS_READ)
+    .input(z.object({ id: designId }))
+    .handler(({ context, input }) =>
+      templateDesignOverview(context.tx, context.scope.storeId, input.id),
+    ),
+
+  /** Save the merchant's design; every email of this kind is drawn from it from now on. */
+  saveDesign: can(permissions.SETTINGS_MANAGE)
+    .input(z.object({ id: designId, design: EmailTemplateDesignSchema }))
+    .handler(async ({ context, input }) => {
+      await saveTemplateDesign(
+        context.tx,
+        context.scope.storeId,
+        input.id,
+        input.design,
+        context.session.user.email ?? null,
+      )
+      return templateDesignOverview(context.tx, context.scope.storeId, input.id)
+    }),
+
+  /** Reset to default: delete the saved design, so the built-in email goes out again. */
+  resetDesign: can(permissions.SETTINGS_MANAGE)
+    .input(z.object({ id: designId }))
+    .handler(async ({ context, input }) => {
+      await resetTemplateDesign(context.tx, context.scope.storeId, input.id)
+      return templateDesignOverview(context.tx, context.scope.storeId, input.id)
+    }),
+
+  /** The editor's live preview: an unsaved design filled with the sample order. Nothing is saved. */
+  previewDesign: can(permissions.SETTINGS_READ)
+    .input(z.object({ id: designId, design: draftDesign }))
+    .handler(async ({ context, input }) => {
+      await limitOrThrow(context, 'notifications-design-preview', DESIGN_PREVIEW_RULE)
+      return previewTemplateDesign(context.tx, context.scope.storeId, input.id, input.design)
     }),
 
   /** Settings → Notifications → Sender email: the address, its DNS records and what customers see. */

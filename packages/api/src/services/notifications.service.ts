@@ -1,4 +1,5 @@
 import {
+  designedTemplates,
   getPlatformEmail,
   isMessageOn,
   MESSAGE_CATALOGUE,
@@ -6,18 +7,24 @@ import {
   messageSwitchable,
   parseAppsSettings,
   parseNotificationSettings,
+  savedTemplateDesign,
   storeEmailBrand,
   storeNotificationChannels,
   withMessage,
 } from '@commerce/core'
 import type { StoreTx } from '@commerce/db'
 import {
+  defaultEmailDesign,
+  designableTemplate,
+  designSlots,
   type NotificationRegistry,
+  parseEmailDesign,
   renderEmail,
   renderWhatsapp,
   sampleTemplateDataFor,
   type TemplateData,
   type TemplateId,
+  variablesFor,
 } from '@commerce/notifications'
 import { getStore, updateStoreNotifications } from './store.service'
 
@@ -86,6 +93,7 @@ export async function notificationsOverview(tx: StoreTx, storeId: string) {
   const whatsapp = channelStatus('whatsapp', installed, enabled, settings.providers)
   // The platform's own SES account sends for every store without an email app.
   const platformEmail = getPlatformEmail().transport !== null
+  const designed = new Set(await designedTemplates(tx, storeId))
   return {
     messages: MESSAGE_CATALOGUE.map((m) => ({
       id: m.id,
@@ -95,6 +103,9 @@ export async function notificationsOverview(tx: StoreTx, storeId: string) {
       appId: m.appId ?? null,
       switchable: messageSwitchable(m.id),
       on: isMessageOn(settings, m.id),
+      /** Has an email a merchant can redesign (Edit design), and whether it has a saved one. */
+      designable: m.channels.includes('email') && designableTemplate(m.id),
+      designed: designed.has(m.id),
     })),
     channels: { email, whatsapp },
     /** Email goes out through the platform account even with no email app connected. */
@@ -172,4 +183,37 @@ export async function sendTestMessage(
     else error = r.error
   }
   return { ok: sent > 0, sent, error: sent > 0 ? undefined : error }
+}
+
+/**
+ * Edit design: the saved design (null when the email is still the built-in one), the design
+ * the editor starts from, the built-in blocks with their lock, and the variables it can fill.
+ */
+export async function templateDesignOverview(tx: StoreTx, storeId: string, template: TemplateId) {
+  return {
+    design: await savedTemplateDesign(tx, storeId, template),
+    defaultDesign: defaultEmailDesign(template),
+    slots: designSlots(template),
+    variables: variablesFor(template),
+  }
+}
+
+/**
+ * The email with a design that is not saved yet, filled with the sample order and the store's
+ * look, for the editor's live preview. Blocks the editor has half filled in are left out.
+ */
+export async function previewTemplateDesign(
+  tx: StoreTx,
+  storeId: string,
+  template: TemplateId,
+  design: unknown,
+) {
+  const s = await getStore(tx, storeId)
+  const data = {
+    ...sampleFor(template, s?.name),
+    brand: await storeEmailBrand(tx, storeId),
+    design: parseEmailDesign(design) ?? defaultEmailDesign(template),
+  }
+  const email = await renderEmail(template, data)
+  return { subject: email.subject, html: email.html }
 }

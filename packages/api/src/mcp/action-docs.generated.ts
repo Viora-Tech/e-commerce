@@ -487,13 +487,21 @@ export const ACTION_DOCS: Record<string, string> = {
     "Per menu handle, where the live theme's sections pick it (header, footer or a page).",
   'notifications.allowSuppressedEmail': '"Allow again" from the Sender email card\'s list.',
   'notifications.checkSenderEmail': '"Check now": ask SES again.',
+  'notifications.design':
+    'Edit design: the saved design (or null), the default to start from, the locked blocks and variables.',
   'notifications.emailSuppressions':
     'Addresses the store stopped emailing after a bounce or complaint (Sender email card).',
   'notifications.overview':
     'Settings → Notifications: every message the shop sends and how messages go out.',
   'notifications.preview': 'The message filled with a sample order, for the Preview dialog.',
+  'notifications.previewDesign':
+    "The editor's live preview: an unsaved design filled with the sample order.",
   'notifications.removeSenderEmail':
     'Stop sending from the address; customer email goes back to the platform sender.',
+  'notifications.resetDesign':
+    'Reset to default: delete the saved design, so the built-in email goes out again.',
+  'notifications.saveDesign':
+    "Save the merchant's design; every email of this kind is drawn from it from now on.",
   'notifications.senderEmail':
     'Settings → Notifications → Sender email: the address, its DNS records and what customers see.',
   'notifications.sendTest': "Email the sample message to the signed-in person's own address.",
@@ -816,6 +824,8 @@ export const ACTION_DOCS: Record<string, string> = {
     'Totals, searches, pages and the opportunity lists, from the stored numbers.',
   'searchConsole.view':
     "Connection state for the app's pages: account, property, last sync, refresh cooldown.",
+  'seo.agentReadiness':
+    "Settings → Store health › AI shopping agents: the store's live site checked as a browser and as AI bots (GET only); null without a live domain of its own.",
   'shipments.counts':
     "Rows per Shipments tab plus the summary line; provider: one courier's (its app's page).",
   'shipments.courierOverview':
