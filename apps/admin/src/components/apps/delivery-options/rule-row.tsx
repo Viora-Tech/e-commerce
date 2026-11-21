@@ -11,6 +11,7 @@ import { deliveryPagesContent } from '@/data/delivery-options-pages'
 import { deliveryRuleFormContent } from '@/data/delivery-rule-form'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { ruleRouteLabels, ruleTargetLabel } from './format'
+import { chipLabel } from './rule-preview'
 
 type RuleRowProps = {
   rule: RouteRule
@@ -22,7 +23,7 @@ type RuleRowProps = {
   onEdit: () => void
 }
 
-const CHIP = 'rounded-md border px-2 py-0.5 text-caption whitespace-nowrap'
+const CHIP = 'max-w-full rounded-md border px-2 py-0.5 text-caption'
 
 /**
  * One product rule (Figma 929:12840): its place, name, the chip chain target → options → routes
@@ -49,9 +50,14 @@ export default function RuleRow({
     rule.optionIds === 'all'
       ? null
       : rule.optionIds.map((id) => optionNames.get(id) ?? '?').join(', ')
-  // Every allowed route, the preferred one first and marked (#1781).
-  const routesText = ruleRouteLabels(rule, copy, (label, always) =>
-    always ? r.preferredAlways(label) : r.preferred(label),
+  // Every allowed route by its short name ("Delhivery Surface"), the preferred one first and
+  // marked (#1781). The full label with the courier's app made the row run off the page
+  // (owner, 21 Nov 2026).
+  const routesText = ruleRouteLabels(
+    rule,
+    copy,
+    (label, always) => (always ? r.preferredAlways(label) : r.preferred(label)),
+    (s) => chipLabel(s, copy, form),
   ).join(', ')
   const routesChip = `${r.only(routesText)}${rule.insurance === 'required' ? ` (${r.insured})` : ''}`
   const line = options ? r.lineOptions(options, routesText) : r.line(routesText)

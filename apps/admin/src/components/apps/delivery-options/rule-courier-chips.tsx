@@ -1,8 +1,18 @@
 'use client'
 
-import { CheckIcon } from '@commerce/ui/icons'
-import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
+import {
+  Combobox,
+  ComboboxChip,
+  ComboboxChips,
+  ComboboxChipsInput,
+  ComboboxContent,
+  ComboboxEmpty,
+  ComboboxItem,
+  ComboboxList,
+  ComboboxValue,
+  useComboboxAnchor,
+} from '@commerce/ui/shadcn/combobox'
 import { FieldError } from '@commerce/ui/shadcn/field'
 import { deliveryOptionsContent } from '@/data/delivery-options'
 import { deliveryRuleFormContent } from '@/data/delivery-rule-form'
@@ -21,13 +31,11 @@ type RuleCourierChipsProps = {
   onRetry: () => void
 }
 
-const CHIP =
-  'inline-flex h-8 items-center gap-1.5 rounded-full border px-3 text-body transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
-
 /**
- * Step 2 of the product rule dialog: one toggle chip per courier and speed the store has
- * connected ("Delhivery Air", "Blue Dart Surface"), which replaces the courier list and the
- * Speeds boxes. A chip a saved rule names that no app offers now still shows, marked.
+ * Step 2 of the product rule dialog: the couriers shoppers can choose, as one searchable
+ * multi-select (owner, 21 Nov 2026: a row of toggle chips gets unreadable when a store connects
+ * many couriers). The picked ones show as removable tags; typing filters the list. A courier a
+ * saved rule names that no app offers now still shows, marked "not connected".
  */
 export default function RuleCourierChips({
   chips,
@@ -40,13 +48,18 @@ export default function RuleCourierChips({
   // Hooks
   const copy = useCopy(deliveryOptionsContent)
   const form = useCopy(deliveryRuleFormContent)
-
-  // Event handlers
-  const handleToggle = (id: string) =>
-    onChange(ticked.includes(id) ? ticked.filter((t) => t !== id) : [...ticked, id])
+  const anchor = useComboboxAnchor()
 
   // Render logic
   const c = form.chips
+  const byId = new Map(chips.map((chip) => [chip.id, chip]))
+  const nameOf = (id: string) => {
+    const chip = byId.get(id)
+    if (!chip) return id
+    const name = chipLabel(chip, copy, form)
+    return chip.missing ? `${name} · ${c.notConnected}` : name
+  }
+  const ids = chips.map((chip) => chip.id)
 
   return (
     <div className="flex flex-col gap-2">
@@ -60,33 +73,39 @@ export default function RuleCourierChips({
           )}
         </p>
       ) : (
-        <div className="flex flex-wrap gap-2">
-          {chips.map((chip) => {
-            const on = ticked.includes(chip.id)
-            const name = chipLabel(chip, copy, form)
-            return (
-              <button
-                key={chip.id}
-                type="button"
-                aria-pressed={on}
-                aria-label={c.toggle(name)}
-                onClick={() => handleToggle(chip.id)}
-                className={cn(
-                  CHIP,
-                  on
-                    ? 'border-primary bg-primary/10 text-ink-strong'
-                    : 'border-hairline bg-card text-muted-foreground hover:text-ink-strong',
-                )}
-              >
-                {on ? <CheckIcon aria-hidden className="size-3.5" /> : null}
-                {name}
-                {chip.missing ? (
-                  <span className="text-caption text-muted-foreground">· {c.notConnected}</span>
-                ) : null}
-              </button>
-            )
-          })}
-        </div>
+        <Combobox
+          items={ids}
+          multiple
+          value={ticked.filter((id) => byId.has(id))}
+          onValueChange={(next: string[]) => onChange(next)}
+          itemToStringLabel={nameOf}
+        >
+          <ComboboxChips ref={anchor} aria-invalid={error || undefined}>
+            <ComboboxValue>
+              {(values: string[]) =>
+                values.map((id) => (
+                  <ComboboxChip key={id} aria-label={nameOf(id)}>
+                    {nameOf(id)}
+                  </ComboboxChip>
+                ))
+              }
+            </ComboboxValue>
+            <ComboboxChipsInput
+              aria-label={c.search}
+              placeholder={ticked.length === 0 ? c.search : c.add}
+            />
+          </ComboboxChips>
+          <ComboboxContent anchor={anchor}>
+            <ComboboxEmpty>{c.noMatch}</ComboboxEmpty>
+            <ComboboxList>
+              {(id: string) => (
+                <ComboboxItem key={id} value={id}>
+                  {nameOf(id)}
+                </ComboboxItem>
+              )}
+            </ComboboxList>
+          </ComboboxContent>
+        </Combobox>
       )}
       {error ? <FieldError>{copy.ruleDialog.errorsSimple.couriers}</FieldError> : null}
     </div>

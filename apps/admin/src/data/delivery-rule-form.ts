@@ -38,6 +38,10 @@ export const deliveryRuleFormContent = {
     none: 'No connected courier answered yet. Connect a courier app, or try again in a minute.',
     notConnected: 'not connected',
     retry: 'Try again',
+    search: 'Search couriers',
+    add: 'Add a courier',
+    noMatch: 'No courier matches',
+    remove: (name: string) => `Remove ${name}`,
   },
   included: {
     cheapest: 'The cheapest one',

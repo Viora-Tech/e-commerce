@@ -77,12 +77,14 @@ export function ruleRouteLabels(
   rule: RouteRule,
   copy: Copy,
   mark: (label: string, always: boolean) => string,
+  /** The name for one route; the full selector label unless a shorter one is given. */
+  labelOf: (r: RouteSelector) => string = (r) => selectorLabel(r, copy),
 ): string[] {
   const preferred = rule.defaultRoute ?? null
   const rest = rule.routes.filter((r) => !preferred || !sameSelector(r, preferred))
   return [
-    ...(preferred ? [mark(selectorLabel(preferred, copy), rule.forceRoute === true)] : []),
-    ...rest.map((r) => selectorLabel(r, copy)),
+    ...(preferred ? [mark(labelOf(preferred), rule.forceRoute === true)] : []),
+    ...rest.map(labelOf),
   ]
 }
 
