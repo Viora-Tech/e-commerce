@@ -32,6 +32,9 @@ export const deliveryOptionsContent = {
   /** Beside the tick when the store pays the insurance (a free delivery). */
   insureFree: 'Free',
   insureBody: 'Replaced or refunded if it’s lost or damaged on the way.',
+  /** Under the tick while it is off (owner, 21 Nov 2026): who carries the risk without it. */
+  insureOffNote:
+    'Insurance is off. By turning it off, you agree that if the parcel is lost or damaged on the way, the loss is yours: it won’t be replaced or refunded.',
   /** The Payment step, when cash on delivery ships another route at another price. */
   codRoute: (extra: string, carrier: string) =>
     `Cash on delivery: +${extra}, ships with ${carrier}`,

@@ -32,6 +32,11 @@ export default function InsuranceToggle({
           {appCopy.insureTitle}
         </span>
         <span className="text-[0.75rem] leading-snug text-ck-muted">{appCopy.insureBody}</span>
+        {on ? null : (
+          <span role="note" className="mt-1 text-[0.75rem] leading-snug font-medium text-ck-warn">
+            {appCopy.insureOffNote}
+          </span>
+        )}
       </span>
       {free ? (
         <span className="shrink-0 text-[0.875rem] font-semibold text-ck-success">
