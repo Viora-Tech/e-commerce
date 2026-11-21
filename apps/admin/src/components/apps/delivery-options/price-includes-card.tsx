@@ -88,7 +88,8 @@ export default function PriceIncludesCard({ option, onChange }: PriceIncludesCar
             }
           />
         </div>
-        <OptionExampleLine option={option} />
+        {/* The automatic courier list always offers every courier, whatever `couriers.show` says. */}
+        <OptionExampleLine option={{ ...option, couriers: { ...option.couriers, show: 'list' } }} />
       </OptionSection>
 
       <OptionSection title={s.couriers.title} help={s.couriers.help}>
