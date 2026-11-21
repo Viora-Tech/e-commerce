@@ -34,7 +34,9 @@ For each enabled option, in position order:
    above), `rounding.ts`, then the rule price (`rule-price.ts`: `cartRulePrices`,
    `withRulePrice`) on the courier list's option or the first enabled Standard option only.
 7. **Courier list**: `courier-list.ts` (`courierList`, three-card floor `MIN_LIST_CARDS`, other
-   couriers priced as the pick plus the difference). Titles: `labels.ts`.
+   couriers priced by `priceFromPick` per `couriers.extra`: the pick plus the difference, the
+   courier's own full price (`full`, flagged `fullPrices` so checkout shows the row's own price),
+   or the same). Titles: `labels.ts`.
 8. **Split carts**: `parcels.ts` (`resolveParcelDeliveries`) runs the engine per parcel and adds
    them up; `hideExpressNotFaster` runs after the sum.
 
