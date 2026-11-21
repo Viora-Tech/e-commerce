@@ -9,8 +9,8 @@
 import type { DeliveryOption } from './config'
 import type { PricedRoute } from './resolve-types'
 import { type PriceRounding, roundPrice } from './rounding'
-import { codExtraPaise } from './rule-price'
 import type { Route } from './routes'
+import { codExtraPaise } from './rule-price'
 
 /** A route that fits the option, priced for it. */
 export type Candidate = { route: Route; priced: PricedRoute }
@@ -79,7 +79,11 @@ export function fullPricePaise(c: Candidate, option: DeliveryOption): number {
  * 2026), costs its own full price but never less than the pick (`full`, owner 21 Nov 2026), or
  * costs what the pick costs (`none`).
  */
-export function priceFromPick(c: Candidate, winner: Candidate, option: DeliveryOption): PricedRoute {
+export function priceFromPick(
+  c: Candidate,
+  winner: Candidate,
+  option: DeliveryOption,
+): PricedRoute {
   const more = Math.max(0, storeCost(c) - storeCost(winner))
   const mode = option.couriers.extra
   if (mode === 'full' && more > 0) {

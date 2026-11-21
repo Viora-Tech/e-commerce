@@ -31,10 +31,7 @@ const answers = () => [
   ]),
 ]
 
-const listOption = (
-  extra: 'difference' | 'full' | 'none',
-  price: Record<string, unknown> = {},
-) =>
+const listOption = (extra: 'difference' | 'full' | 'none', price: Record<string, unknown> = {}) =>
   option('std', {
     name: 'Delivery',
     price: { source: 'route', rounding: 'nine', ...price },
