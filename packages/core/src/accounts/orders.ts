@@ -144,9 +144,12 @@ async function summarise(
         orderId: orderLine.orderId,
         quantity: orderLine.quantity,
         productId: variant.productId,
+        variantImage: media.url,
+        variantAlt: media.alt,
       })
       .from(orderLine)
       .innerJoin(variant, eq(variant.id, orderLine.variantId))
+      .leftJoin(media, eq(media.id, variant.mediaId))
       .where(inArray(orderLine.orderId, ids)),
     ctx.tx.select().from(payment).where(inArray(payment.orderId, ids)),
     ctx.tx.select().from(shipment).where(inArray(shipment.orderId, ids)),
@@ -164,7 +167,12 @@ async function summarise(
     : []
   return rows.map((o) => {
     const mine = lines.filter((l) => l.orderId === o.id)
-    const img = images.find((i) => mine.some((l) => l.productId === i.productId))
+    // The bought variant's own picture first (owner, 21 Nov 2026: #2476 showed the product's
+    // first picture, a PRX sleeve, for a Black one), else the product's first picture.
+    const withOwn = mine.find((l) => l.variantImage)
+    const img = withOwn
+      ? { url: withOwn.variantImage as string, alt: withOwn.variantAlt }
+      : images.find((i) => mine.some((l) => l.productId === i.productId))
     return {
       id: o.id,
       number: o.number,
