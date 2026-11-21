@@ -171,8 +171,6 @@ export const deliveryPagesContent = {
       freeAbove
         ? `Shoppers pay your normal delivery charge (or nothing above ${freeAbove}) for this one.`
         : 'Shoppers pay your normal delivery charge for this one.',
-    fasterCost: 'Faster couriers cost',
-    fasterItems: { difference: 'The difference in courier price', none: 'Nothing extra' },
     round: 'Round delivery prices',
     roundHelp:
       'Prices the app works out, and what faster couriers add. Your typed Shipping rates stay as they are.',

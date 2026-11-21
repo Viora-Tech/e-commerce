@@ -179,5 +179,22 @@ describe('DeliveryMethod', () => {
       expect(html).toContain('Show 1 more courier')
       expect(html).not.toContain('Amazon Shipping')
     })
+
+    it('a full-price list shows each courier’s own price, not what it adds', () => {
+      const full: CheckoutRate = {
+        ...list,
+        delivery: {
+          ...(list.delivery as NonNullable<CheckoutRate['delivery']>),
+          fullPrices: true,
+          choices: [
+            choice('d:S', 'Delhivery Surface', 4_900, 'surface', '2026-10-18'),
+            choice('d:E', 'Delhivery Air', 8_900, 'air', '2026-10-16'),
+          ],
+        },
+      }
+      const html = render({ rates: [full] })
+      expect(html).toContain('₹89')
+      expect(html).not.toContain('+ ₹')
+    })
   })
 })

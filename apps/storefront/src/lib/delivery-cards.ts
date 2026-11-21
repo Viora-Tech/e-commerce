@@ -60,6 +60,8 @@ export type DeliveryCardExtras = {
   layout: 'one' | 'list'
   /** The first card is a product rule's preferred courier, not just the cheapest. */
   preferred?: boolean | undefined
+  /** A list's other couriers show their own full price, not "+ ₹X" over the first. */
+  fullPrices?: boolean | undefined
   /** How the picked route travels; null on backup (no route). */
   mode: DeliveryMode | null
   /**
@@ -221,6 +223,7 @@ export function cardExtras(
     logo: o.pick ? courierLogo(o.pick.route) : null,
     layout: o.layout,
     preferred: o.pickedBy.startsWith('rule:'),
+    ...(o.fullPrices ? { fullPrices: true } : {}),
     mode: o.pick ? deliveryMode(o.pick.route) : null,
     insurance: {
       offered: o.insurance.offered,

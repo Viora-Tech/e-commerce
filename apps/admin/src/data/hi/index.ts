@@ -51,6 +51,7 @@ import customizeInboxEmbed from './customize-inbox-embed'
 import dateRange from './date-range'
 import dates from './dates'
 import delhivery from './delhivery'
+import deliveryOptionSections from './delivery-option-sections'
 import deliveryOptions from './delivery-options'
 import deliveryOptionsPages from './delivery-options-pages'
 import deliveryRuleForm from './delivery-rule-form'
@@ -220,6 +221,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...checkoutRules,
   ...checkoutSettings,
   ...codRto,
+  ...deliveryOptionSections,
   ...deliveryOptions,
   ...deliveryOptionsPages,
   ...deliveryRuleForm,

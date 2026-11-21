@@ -224,6 +224,7 @@ export function resolveDeliveryOptions(
           ? [pick, ...alternatives]
           : [],
       layout: listChoices.length ? 'list' : 'one',
+      ...(listChoices.length && option.couriers.extra === 'full' ? { fullPrices: true } : {}),
       pricePaise: pick.pricePaise,
       listPricePaise: pick.listPricePaise,
       earliest: pick.earliest,
