@@ -16,7 +16,7 @@ export default function OverviewPage() {
 
   // Helpers
   const connectedBody = () => (
-    <CourierShipmentsLink help={copy.goToShipmentsHelp} cta={copy.goToShipments} />
+    <CourierShipmentsLink courier="dtdc" help={copy.goToShipmentsHelp} cta={copy.goToShipments} />
   )
 
   // Render logic

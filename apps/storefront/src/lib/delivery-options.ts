@@ -23,6 +23,8 @@ import {
   recordCheckoutQuote,
   resolveParcelDeliveries,
   resolveShippingProviders,
+  ruleGroups,
+  ruleSplitter,
   type SnapshotParcel,
   shownPrices,
   toShippingPolicy,
@@ -30,10 +32,10 @@ import {
 import { registriesForStore } from '@commerce/core/registries'
 import type { StoreTx } from '@commerce/db'
 import { cacheGet, cacheSet, deliveryQuoteCache, sharedRedis } from '@commerce/queue'
-import { formatDeliveryRange } from '@commerce/shipping'
-import { deliveryOptionsContent } from '@/data/delivery-options'
-import { arrivalLabel } from './rate-dates'
+import { type ParcelDatesByCard, parcelDatesByCard } from './delivery-cards'
 import { loadShippingSettings } from './shipping'
+
+export * from './delivery-cards'
 
 /*
  * The Delivery options app at checkout: the cards come from the store's connected couriers
@@ -47,151 +49,20 @@ const env = () => loadEnv(process.env)
 /** Quotes, the circuit breaker and each app's health, on the shared Redis. */
 const redisCache = (): QuoteCache => deliveryQuoteCache(sharedRedis(env().REDIS_URL))
 
-/** One sub-choice under an option card ("Blue Dart Air"). */
-export type DeliveryChoiceCard = {
-  routeKey: string
-  label: string
-  pricePaise: number
-  arrives: string | null
-  /** The courier's logo when its name is shown (list cards). */
-  logo: CourierLogo | null
-  /** How the route travels, for the card's fact line ("By air"). */
-  mode: DeliveryMode
-  /** First day it can arrive, "YYYY-MM-DD"; null when unknown. Picks the fastest list card. */
-  earliest: string | null
-}
-
-/** How a route travels, read from its service: Blue Dart Apex and "Air" services fly. */
-export type DeliveryMode = 'air' | 'express' | 'surface'
-
-export function deliveryMode(route: { serviceLabel: string; speed: string }): DeliveryMode {
-  if (/\bair\b|apex/i.test(route.serviceLabel)) return 'air'
-  return route.speed === 'express' ? 'express' : 'surface'
-}
-
-/** What checkout needs beyond a plain rate card, per delivery option. */
-export type DeliveryCardExtras = {
-  /** The option refuses cash on delivery (Express). */
-  codAllowed: boolean
-  /** Shipping when the shopper pays on delivery (Standard's COD route); null: same price. */
-  codPricePaise: number | null
-  /** The carrier COD ships with, for the Payment step's note. */
-  codCarrier: string | null
-  /** Before free-above, struck through when the card is free. */
-  listPricePaise: number
-  choices: DeliveryChoiceCard[]
-  /** The option's own name ("Express"), for "Not available with Express delivery". */
-  optionName: string
-  /** The picked courier's logo, when the merchant shows its name; null otherwise. */
-  logo: CourierLogo | null
-  /** `list`: each choice is its own card (the option's Couriers setting). */
-  layout: 'one' | 'list'
-  /** How the picked route travels; null on backup (no route). */
-  mode: DeliveryMode | null
-}
-
-export type CourierLogo = {
-  src: string
-  alt: string /** Dark lettering: sits on a white tile. */
-  light: boolean
-}
-
-/** Logos shipped in `public/courier-logos/`, by the carrier key `normaliseCarrier` gives. */
-const COURIER_LOGOS: Record<string, { file: string; light?: boolean }> = {
-  delhivery: { file: 'delhivery.png' },
-  bluedart: { file: 'bluedart.svg', light: true },
-  dtdc: { file: 'dtdc.png' },
-  xpressbees: { file: 'xpressbees.png' },
-  ekart: { file: 'ekart.png' },
-  shadowfax: { file: 'shadowfax.png' },
-  'india-post': { file: 'india-post.png' },
-  dhl: { file: 'dhl.svg', light: true },
-  fedex: { file: 'fedex.svg', light: true },
-}
-
-export function courierLogo(route: {
-  carrierKey: string
-  carrier: string
-  showCarrier: boolean
-}): CourierLogo | null {
-  const logo = route.showCarrier ? COURIER_LOGOS[route.carrierKey] : undefined
-  return logo
-    ? { src: `/courier-logos/${logo.file}`, alt: route.carrier, light: logo.light === true }
-    : null
-}
-
 export type CheckoutDelivery = {
   quoteId: string
   status: DeliveryResolveResult['status']
   options: ResolvedOption[]
   /** The checkbox under the cards: offered and ticked, with what it adds. */
   insurance: { offered: boolean; on: boolean; pricePaise: number | null }
-}
-
-/** "Delhivery", "Blue Dart Air": the carrier, with Air when the service flies. */
-const choiceLabel = (route: {
-  carrier: string
-  showCarrier: boolean
-  serviceLabel: string
-}): string => {
-  const air = /\bair\b/i.test(route.serviceLabel)
-  // A courier the merchant hides is named by how it travels instead.
-  if (!route.showCarrier) return air ? 'Air' : 'Surface'
-  return air && !/\bair\b/i.test(route.carrier) ? `${route.carrier} Air` : route.carrier
-}
-
-/** The date line under a card or sub-choice. */
-export function deliveryArrives(
-  dates: { earliest: string | null; latest: string | null; etaEstimated: boolean },
-  policy: ReturnType<typeof toShippingPolicy>,
-  now: Date,
-): string | null {
-  if (dates.etaEstimated) {
-    return deliveryOptionsContent.usually(
-      policy.defaultMinTransitDays,
-      policy.defaultMaxTransitDays,
-    )
-  }
-  if (!dates.earliest || !dates.latest) return null
-  return arrivalLabel(
-    { earliest: dates.earliest, latest: dates.latest, source: 'courier' },
-    now,
-    policy.timeZone,
-  )
-}
-
-export function deliveryDateRange(o: {
-  earliest: string | null
-  latest: string | null
-}): string | null {
-  return o.earliest && o.latest ? formatDeliveryRange(o.earliest, o.latest) : null
-}
-
-export function cardExtras(
-  o: ResolvedOption,
-  policy: ReturnType<typeof toShippingPolicy>,
-  now: Date,
-  afterDiscount: (paise: number) => number,
-): DeliveryCardExtras {
-  return {
-    codAllowed: o.codAllowed,
-    codPricePaise: o.cod ? afterDiscount(o.cod.pricePaise) : null,
-    codCarrier: o.cod?.route.showCarrier ? o.cod.route.carrier : null,
-    listPricePaise: o.listPricePaise,
-    optionName: o.name,
-    logo: o.pick ? courierLogo(o.pick.route) : null,
-    layout: o.layout,
-    mode: o.pick ? deliveryMode(o.pick.route) : null,
-    choices: o.choices.map((c) => ({
-      routeKey: c.route.key,
-      label: choiceLabel(c.route),
-      pricePaise: afterDiscount(c.pricePaise),
-      arrives: deliveryArrives(c, policy, now),
-      logo: courierLogo(c.route),
-      mode: deliveryMode(c.route),
-      earliest: c.etaEstimated ? null : c.earliest,
-    })),
-  }
+  /** A split cart: each parcel's own dates per card (`parcelDatesByCard`); empty for one. */
+  parcelDates: ParcelDatesByCard
+  /**
+   * A split cart: each parcel's key and the variants in it, in parcel order (the order of
+   * `ResolvedOption.parcelOptions`). Empty for one parcel. A key with a third part
+   * (`loc:open:2`) is a parcel split by product rules.
+   */
+  parcels: Array<{ key: string; variantIds: string[] }>
 }
 
 async function readSnapshot(
@@ -256,6 +127,42 @@ async function splitParcels(
   )
 }
 
+/**
+ * A one-location cart whose products' rules share no courier (`ruleGroups` on the answers it
+ * already has): its one parcel, ready for `quoteParcelDeliveries` to split by rule. Null: keep
+ * pricing it whole, as before.
+ */
+async function wholeCartToSplit(
+  tx: StoreTx,
+  storeId: string,
+  cartId: string,
+  to: { pincode: string; stateCode: string },
+  whole: { valuePaise: number; parcel: Awaited<ReturnType<typeof cartParcelFor>> },
+  cart: QuoteParcel['cart'],
+  answers: readonly ProviderAnswer[],
+  ctx: { config: EngineBase['config']; settings: Settings; origin: string },
+): Promise<QuoteParcel | null> {
+  if (!ruleGroups(ctx.config, cart.items, answers, whole.parcel.billedGrams)) return null
+  const [one] = await cartDeliveryParcels(tx, storeId, cartId, {
+    buyerState: to.stateCode,
+    valuePaise: whole.valuePaise,
+    storePincode: ctx.origin,
+    boxPresets: ctx.settings.boxPresets,
+    keepOne: true,
+  })
+  if (!one) return null
+  // Asked from Settings › Shipping's PIN code, as the whole cart was.
+  return {
+    key: one.key,
+    lines: one.lines,
+    originPincode: ctx.origin,
+    valuePaise: whole.valuePaise,
+    weightGrams: whole.parcel.billedGrams,
+    dimensionsCm: whole.parcel.dimensionsCm,
+    cart,
+  }
+}
+
 /** A repeat ask (the insurance tick): the snapshot's answers, parcel by parcel when split. */
 async function fromSnapshot(
   tx: StoreTx,
@@ -294,7 +201,8 @@ export async function checkoutDelivery(
   storeId: string,
   cartId: string,
   to: { pincode: string; stateCode: string },
-  opts: { declineInsurance?: boolean | undefined; quoteId?: string | null | undefined } = {},
+  /** `insure`: the shopper's tick (omitted until they touch it: each option's default). */
+  opts: { insure?: boolean | undefined; quoteId?: string | null | undefined } = {},
 ): Promise<{
   delivery: CheckoutDelivery
   zone: Awaited<ReturnType<typeof quoteCartShipping>>
@@ -317,49 +225,65 @@ export async function checkoutDelivery(
       : null
   const { shipping } = await registriesForStore(tx, storeId)
   const providers = resolveShippingProviders(shipping, settings, env().SETTINGS_SECRET).providers
-  const base = { config, zone, policy, now: new Date(), declineInsurance: opts.declineInsurance }
+  const base = { config, zone, policy, now: new Date(), insure: opts.insure }
   const valuePaise = zone.measure.valuePaise
   // A cart that ships from two locations is two labels: each parcel is priced and added up.
   const split = reuse
     ? null
     : await splitParcels(tx, storeId, cartId, to, valuePaise, settings, policy.originPincode)
+  /* Products whose rules share no courier ship as separate parcels (owner, 21 Nov 2026): each
+     parcel is split by rule after its first answers, and the new parcels are asked again. */
+  const asParcels = (parcels: QuoteParcel[], known?: ProviderAnswer[][]) =>
+    quoteParcelDeliveries({
+      ...base,
+      storeId,
+      providers,
+      providerSettings: settings.providers,
+      cache: redisCache(),
+      destinationPincode: to.pincode,
+      orderValuePaise: valuePaise,
+      parcels,
+      known,
+      splitByRule: ruleSplitter(tx, { cartId, config, boxPresets: settings.boxPresets }),
+    }).then(({ result, parcels }) => ({
+      result,
+      answers: parcels[0]?.answers ?? [],
+      parcels: parcels.length > 1 ? parcels : null,
+    }))
+  const wholeCart = async () => {
+    const { parcel, cart } = await parcelCart(tx, lines, valuePaise, settings.boxPresets)
+    const quoted = await quoteDelivery({
+      ...base,
+      cart,
+      storeId,
+      providers,
+      providerSettings: settings.providers,
+      cache: redisCache(),
+      query: {
+        originPincode: policy.originPincode,
+        destinationPincode: to.pincode,
+        valuePaise,
+        weightGrams: parcel.billedGrams,
+        dimensionsCm: parcel.dimensionsCm,
+      },
+    })
+    const one = await wholeCartToSplit(
+      tx,
+      storeId,
+      cartId,
+      to,
+      { valuePaise, parcel },
+      cart,
+      quoted.answers,
+      { config, settings, origin: policy.originPincode },
+    )
+    return one ? asParcels([one], [quoted.answers]) : { ...quoted, parcels: null }
+  }
   const priced = reuse
     ? await fromSnapshot(tx, reuse, base, lines, valuePaise, settings.boxPresets)
     : split
-      ? await quoteParcelDeliveries({
-          ...base,
-          storeId,
-          providers,
-          providerSettings: settings.providers,
-          cache: redisCache(),
-          destinationPincode: to.pincode,
-          orderValuePaise: valuePaise,
-          parcels: split,
-        }).then(({ result, parcels }) => ({
-          result,
-          answers: parcels[0]?.answers ?? [],
-          parcels,
-        }))
-      : await parcelCart(tx, lines, valuePaise, settings.boxPresets).then(
-          async ({ parcel, cart }) => ({
-            ...(await quoteDelivery({
-              ...base,
-              cart,
-              storeId,
-              providers,
-              providerSettings: settings.providers,
-              cache: redisCache(),
-              query: {
-                originPincode: policy.originPincode,
-                destinationPincode: to.pincode,
-                valuePaise,
-                weightGrams: parcel.billedGrams,
-                dimensionsCm: parcel.dimensionsCm,
-              },
-            })),
-            parcels: null,
-          }),
-        )
+      ? await asParcels(split)
+      : await wholeCart()
   const { result, answers, parcels } = priced
   // For the app page's "share of checkouts on backup"; a repeat ask (insurance tick) is not counted.
   if (!reuse) void recordCheckoutQuote(redisCache(), storeId, result)
@@ -380,7 +304,8 @@ export async function checkoutDelivery(
     snapshot,
     DELIVERY_SNAPSHOT_TTL_SECONDS,
   )
-  const first = result.options[0]
+  // The tick under the cards: the first option that offers it says what it adds.
+  const offering = result.options.find((o) => o.insurance.offered)
   return {
     zone,
     delivery: {
@@ -388,12 +313,25 @@ export async function checkoutDelivery(
       status: result.status,
       options: result.options,
       insurance: {
-        offered: result.options.some((o) => o.insurance.offered),
-        on: result.options.some((o) => o.insurance.offered && o.insurance.on),
-        pricePaise: first?.insurance.pricePaise ?? null,
+        offered: offering !== undefined,
+        on: offering?.insurance.on ?? false,
+        pricePaise: offering?.insurance.extraPaise ?? offering?.insurance.pricePaise ?? null,
       },
+      parcelDates: parcelDatesByCard(result, parcels?.map((p) => p.key) ?? null),
+      parcels:
+        parcels?.map((p) => ({ key: p.key, variantIds: p.lines.map((l) => l.variantId) })) ?? [],
     },
   }
+}
+
+/** A cart split by product rules: the courier picked per parcel, as Pay's form sends it. */
+export type ParcelKeysForm = { parcelRouteKeys?: Array<string | null> | undefined }
+
+/** The per-parcel picks from the form, cleaned (strings or null, at most 20). */
+export function cleanParcelKeys(raw: unknown): Pick<DeliveryChoice, 'parcelRouteKeys'> {
+  if (!Array.isArray(raw)) return {}
+  const keys = raw.slice(0, 20).map((k) => (typeof k === 'string' ? k.slice(0, 120) : null))
+  return { parcelRouteKeys: keys }
 }
 
 /**
@@ -434,7 +372,7 @@ export async function deliveryForOrder(
   const { shipping } = await registriesForStore(tx, storeId)
   const providers = resolveShippingProviders(shipping, settings, env().SETTINGS_SECRET).providers
   const valuePaise = zone.measure?.valuePaise ?? 0
-  // Split by location as checkout would, read from cache only (no courier call at Pay).
+  // Split by location (and by rule) as checkout would, read from cache only (no courier call at Pay).
   const split = await splitParcels(
     tx,
     storeId,
@@ -444,8 +382,8 @@ export async function deliveryForOrder(
     settings,
     policy.originPincode,
   )
-  if (split) {
-    const { parcels } = await quoteParcelDeliveries({
+  const cachedParcels = async (parcels: QuoteParcel[], known?: ProviderAnswer[][]) => {
+    const quoted = await quoteParcelDeliveries({
       config,
       zone,
       policy,
@@ -457,10 +395,18 @@ export async function deliveryForOrder(
       cacheOnly: true,
       destinationPincode: to.pincode,
       orderValuePaise: valuePaise,
-      parcels: split,
+      parcels,
+      known,
+      splitByRule: ruleSplitter(tx, { cartId, config, boxPresets: settings.boxPresets }),
     })
-    return { choice: picked, answers: parcels[0]?.answers ?? [], shown: null, parcels }
+    return {
+      choice: picked,
+      answers: quoted.parcels[0]?.answers ?? [],
+      shown: null,
+      parcels: quoted.parcels.length > 1 ? quoted.parcels : null,
+    }
   }
+  if (split) return cachedParcels(split)
   // The same billed weight and box checkout asked with, so the cached answers are found.
   const parcel = await cartParcelFor(tx, lines, settings.boxPresets)
   const answers = await gatherProviderAnswers(
@@ -475,6 +421,22 @@ export async function deliveryForOrder(
     },
     { storeId, cache: redisCache(), cacheOnly: true, providerSettings: settings.providers },
   )
+  const { cart } = await parcelCart(tx, lines, valuePaise, settings.boxPresets)
+  const one = await wholeCartToSplit(
+    tx,
+    storeId,
+    cartId,
+    to,
+    { valuePaise, parcel },
+    cart,
+    answers,
+    {
+      config,
+      settings,
+      origin: policy.originPincode,
+    },
+  )
+  if (one) return cachedParcels([one], [answers])
   // A changed cart was never shown a price: it is charged what the cached answers say.
   return { choice: picked, answers, shown: null, parcels: null }
 }

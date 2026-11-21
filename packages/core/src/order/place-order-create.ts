@@ -3,10 +3,18 @@
  *        order lines and fulfillment orders, inside placeOrder's transaction.
  * WHY:   Split from place-order.ts (#973) to keep the workflow file readable; placeOrder runs it.
  */
-import { newId, order, orderLine, orderNote, type StoreTx, store } from '@commerce/db'
+import {
+  newId,
+  type OrderDeliveryRoute,
+  order,
+  orderLine,
+  orderNote,
+  type ParcelDeliveryEstimate,
+  type StoreTx,
+  store,
+} from '@commerce/db'
 import { eq, sql } from 'drizzle-orm'
 import { isAbroad, taxRegimeFor } from '../checkout/address-abroad'
-import { requestCodConfirmation } from '../cod-rto/confirm'
 import { tagsForRisk } from '../cod-rto/risk'
 import { applyDiscount } from '../discounts/evaluate'
 import { recordDiscountUses, releaseDiscountUses } from '../discounts/usage'
@@ -28,9 +36,11 @@ import { paysOnlineAtCheckout } from './aggregate-status'
 import { upsertCheckoutCustomer } from './checkout-customer'
 import { CHECKED_OUT_AGAIN_NOTE } from './checkout-draft'
 import { PAID_ANOTHER_WAY_NOTE } from './checkout-reopen'
+import { COURIER_REQUEST_TAG, cleanCourierRequest, courierRequestNote } from './courier-request'
 import { draftPlaceholder } from './draft-ref'
 import { createFulfillmentOrders, deleteFulfillmentOrders } from './fulfillment-orders'
 import { takeDraftNumber, takeOrderNumber } from './order-number'
+import { parcelRouteFor } from './parcel-rule-split'
 import { taxParcels } from './parcel-tax'
 import { lineGstRate, paymentAdjustmentFor, sumPaise } from './place-order-rules'
 import type { State } from './place-order-types'
@@ -39,6 +49,23 @@ import type { State } from './place-order-types'
  * Insert the order, its lines and its parcels (fulfillment orders) with the money and GST worked
  * out here on the server, plus the outbox event and the discount uses. Compensation deletes them.
  */
+/**
+ * A split cart's parcel window as the Delivery options engine priced it (the same dates the
+ * checkout card added up), so the order's parcels never disagree with the card (#1781 item 11).
+ * Null: no engine route for this parcel; the courier estimate checkout sent is used instead.
+ */
+function parcelPromise(
+  delivery: OrderDeliveryRoute | null | undefined,
+  parcel: State['parcels'][number],
+  variantOf: (key: string) => string | undefined,
+): ParcelDeliveryEstimate | null {
+  // Two parcels at one location (a split by product rules): each its own route's dates.
+  const p = parcelRouteFor(delivery, parcel, variantOf)
+  return p?.promisedEarliest && p.promisedLatest
+    ? { earliest: p.promisedEarliest, latest: p.promisedLatest }
+    : null
+}
+
 export const createOrder: WorkflowStep<State> = {
   name: 'createOrder',
   async run({
@@ -140,7 +167,11 @@ export const createOrder: WorkflowStep<State> = {
       )
       return sum + dep
     }, 0)
-    const tags = preorderLines.length > 0 ? ['pre-order'] : []
+    const courierRequest = cleanCourierRequest(input.checkout?.courierRequest)
+    const tags = [
+      ...(preorderLines.length > 0 ? ['pre-order'] : []),
+      ...(courierRequest ? [COURIER_REQUEST_TAG] : []),
+    ]
     const storeAddress = StoreAddressSchema.safeParse(s.address ?? {})
     // The GSTIN of the location the goods ship from decides CGST + SGST or IGST (tax/origin.ts).
     const grossOf = (key: string, quantity: number) =>
@@ -297,7 +328,6 @@ export const createOrder: WorkflowStep<State> = {
     if (!waitsForMoney && !draft) {
       await insertOutboxEvent(ctx.tx, ctx.storeId, 'order.placed', { orderId: o.id })
     }
-    if (risk?.verify) await requestCodConfirmation(ctx, o.id)
     const lineIds = lines.map(() => newId())
     await ctx.tx.insert(orderLine).values(
       lines.map((l, i) => ({
@@ -336,6 +366,15 @@ export const createOrder: WorkflowStep<State> = {
     if (draft && input.paymentProvider.id === 'manual' && (!draft.reuse || rewrite)) {
       await insertOutboxEvent(ctx.tx, ctx.storeId, 'order.transfer_requested', { orderId: o.id })
     }
+    // Once per order: checking out again on the same draft does not repeat it.
+    if (courierRequest && !(draft?.reuse || rewrite)) {
+      await ctx.tx.insert(orderNote).values({
+        storeId: ctx.storeId,
+        orderId: o.id,
+        body: courierRequestNote(courierRequest),
+        author: 'system',
+      })
+    }
     if (draft?.reuse || rewrite) {
       await ctx.tx.insert(orderNote).values({
         storeId: ctx.storeId,
@@ -347,6 +386,7 @@ export const createOrder: WorkflowStep<State> = {
     // The parcels routing chose, where reserveStock holds their stock. A draft has none yet:
     // they are routed again when it converts (checkout-draft.ts).
     if (!draft) {
+      const variantOf = (key: string) => lines[Number(key)]?.variantId
       const made = await createFulfillmentOrders(ctx, {
         orderId: o.id,
         plans: parcels.map((p, i) => ({
@@ -354,7 +394,10 @@ export const createOrder: WorkflowStep<State> = {
           status: p.status,
           needsTransfer: p.needsTransfer,
           money: billed.money[i],
-          deliveryEstimate: input.deliveryEstimates?.[p.locationId] ?? null,
+          deliveryEstimate:
+            parcelPromise(delivery, p, variantOf) ??
+            input.deliveryEstimates?.[p.locationId] ??
+            null,
           lines: p.lines.map((l) => ({
             orderLineId: lineIds[Number(l.key)] as string,
             quantity: l.quantity,
@@ -368,7 +411,12 @@ export const createOrder: WorkflowStep<State> = {
         await saveParcelIds(
           ctx.tx,
           o.id,
-          parcels.map((p, i) => ({ id: made[i], locationId: p.locationId, status: p.status })),
+          parcels.map((p, i) => ({
+            id: made[i],
+            locationId: p.locationId,
+            status: p.status,
+            variantIds: p.lines.flatMap((l) => variantOf(l.key) ?? []),
+          })),
         )
       }
     }

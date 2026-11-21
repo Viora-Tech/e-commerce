@@ -1,6 +1,9 @@
+export * from './design'
 export { withFallback } from './fallback'
 export { NotificationRegistry } from './registry'
-export { sampleTemplateDataByTemplate, sampleTemplateDataFor } from './samples'
+export type * from './report-types'
+export { sampleTemplateDataByTemplate } from './samples'
+export { sampleTemplateDataFor } from './samples-dated'
 export type * from './template-types'
 export {
   type EmailBody,
@@ -12,4 +15,5 @@ export {
   type WhatsappBody,
 } from './templates'
 export { sharedContent, templateContent } from './templates/content'
+export { reportCopy } from './templates/report-copy'
 export type * from './types'

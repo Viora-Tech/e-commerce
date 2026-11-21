@@ -1,6 +1,7 @@
 'use client'
 
 import { GROUP_SECTIONS, SINGLE_SECTIONS } from '@commerce/core/theme'
+import { LIQUID_SECTION } from '@commerce/core/theme-import'
 import { useGetPuck } from '@puckeditor/core'
 import { useReducedMotion } from 'motion/react'
 import { useEffect } from 'react'
@@ -21,7 +22,8 @@ const copy = customizeContent.clipboard
 /**
  * Shortcuts on top of Puck's own, for sections and nested blocks alike:
  *
- * - Cmd/Ctrl+D duplicates the selection (Puck doesn't wire this up itself);
+ * - Cmd/Ctrl+D duplicates the selection (Puck doesn't wire this up itself), except a section
+ *   there is one of per page (header, footer, main), which only moves and hides;
  * - Cmd/Ctrl+C copies it, children and all, and Cmd/Ctrl+V pastes a fresh copy
  *   (new ids) after the selection, or at the end of the template;
  * - Cmd/Ctrl+Shift+H hides it on the page, or shows it again (Figma 696:87006);
@@ -69,9 +71,11 @@ export default function CustomizeHotkeys() {
     const labelOf = (type: string) => getPuck().config.components[type]?.label ?? type
 
     const handleDuplicate = (e: KeyboardEvent) => {
-      const { selector, zone } = current()
-      if (!selector) return
+      const { selector, zone, block } = current()
+      if (!selector || !block) return
       e.preventDefault()
+      // The header, footer and main section are one per page: the menus offer no Duplicate.
+      if (SINGLE_SECTIONS.has(block.type)) return
       dispatch({ type: 'duplicate', sourceIndex: selector.index, sourceZone: zone })
     }
 
@@ -92,8 +96,9 @@ export default function CustomizeHotkeys() {
         ? { zone, index: selector.index + 1 }
         : { zone: MAIN_ZONE, index: zoneItems(data, MAIN_ZONE).length }
       const group = groupForZone(target.zone)
+      // An imported theme's own sections go in its groups as well as its templates.
       const allowed = group
-        ? GROUP_SECTIONS[group].includes(block.type)
+        ? GROUP_SECTIONS[group].includes(block.type) || block.type === LIQUID_SECTION
         : !SINGLE_SECTIONS.has(block.type)
       if (!allowed) {
         toast.error(copy.cannotPaste)

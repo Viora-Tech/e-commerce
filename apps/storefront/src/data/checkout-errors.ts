@@ -26,6 +26,9 @@ export const checkoutErrorsContent = {
   discountRefused: (code: string, why: string) =>
     `${code} can't be used on this order: ${why} Your order was not placed. Remove the code to pay the full price, or try another code.`,
   rateLimited: 'Too many attempts. Please wait a minute and try again.',
+  /** One order declined many times inside an hour (card testing guard, core attempt-cap.ts). */
+  tooManyPaymentTries:
+    'This order has had too many failed payments. Please wait an hour, or pick cash on delivery if it is offered.',
   cartLimit: (title: string, max: number) =>
     `You can buy up to ${max} of ${title || 'this item'} in one order. Lower the quantity in your cart and try again.`,
   /** A variant's pre-order limit is used up (#1539). */

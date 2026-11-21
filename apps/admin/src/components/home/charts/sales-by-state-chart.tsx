@@ -1,54 +1,47 @@
 'use client'
 
 import type { DashboardSummary } from '@commerce/api'
-import dynamic from 'next/dynamic'
-import ChartLoading from '@/components/layout/chart-loading'
 import DataCard from '@/components/layout/data-card'
 import EmptyState from '@/components/layout/empty-state'
 import { homeContent } from '@/data/home'
 import { stateName } from '@/data/india'
-import { useCopy } from '@/hooks/use-copy'
+import { useCopy, useFormat } from '@/hooks/use-copy'
+import LabelledBars from './labelled-bars'
 
 type SalesByStateChartProps = {
   salesByState: DashboardSummary['salesByState']
 }
 
-/* recharts is large: it loads only where a chart is drawn. */
-const SalesByStatePlot = dynamic(() => import('./sales-by-state-plot'), {
-  ssr: false,
-  loading: () => <ChartLoading />,
-})
-
-/** Top states by revenue over the last 30 days, reusing the same rows as the order map. */
+/** Top states by revenue over the last 30 days, as labelled bars (the order map's rows). */
 export default function SalesByStateChart({ salesByState }: SalesByStateChartProps) {
   // Hooks
   const copy = useCopy(homeContent)
+  const fmt = useFormat()
 
   // Render logic
   const c = copy.charts
-  const points = salesByState.map((s) => ({
-    code: s.stateCode,
+  const most = salesByState[0]?.revenuePaise ?? 0
+  const bars = salesByState.map((s) => ({
+    key: s.stateCode,
     label: stateName(s.stateCode),
-    revenuePaise: s.revenuePaise,
-    share: s.share,
+    value: fmt.moneyWhole(s.revenuePaise),
+    share: most > 0 ? s.revenuePaise / most : 0,
   }))
-  const top = points[0]
+  const top = salesByState[0]
 
   return (
-    <DataCard title={c.stateTitle}>
-      {points.length === 0 ? (
+    <DataCard title={c.stateTitle} bodyClassName="flex flex-1 flex-col gap-4">
+      {bars.length === 0 ? (
         <EmptyState variant="inline" body={c.stateEmpty} />
       ) : (
-        <div className="flex flex-col gap-3">
-          <div className="h-48 w-full">
-            <SalesByStatePlot points={points} />
-          </div>
+        <>
+          <LabelledBars bars={bars} label={c.stateTitle} />
           {top ? (
-            <p className="text-caption text-muted-foreground">
-              {c.stateLine(top.label, `${Math.round(top.share * 100)}%`)}
+            <p className="mt-auto text-caption text-muted-foreground">
+              {c.stateLine(stateName(top.stateCode), `${Math.round(top.share * 100)}%`)}
             </p>
           ) : null}
-        </div>
+        </>
       )}
     </DataCard>
   )

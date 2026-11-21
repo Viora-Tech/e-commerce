@@ -23,6 +23,8 @@ import {
   type MemberAlertPrefsInput,
   parseMemberAlertPrefs,
 } from './alert-prefs'
+import { performanceReport } from './report-figures'
+import { dailyPeriod } from './report-periods'
 
 /** A member's alert choices for this store; the defaults until they save. */
 export async function loadMemberAlertPrefs(
@@ -49,6 +51,9 @@ export async function saveMemberAlertPrefs(
   const before = await loadMemberAlertPrefs(tx, storeId, userId, isOwner)
   const next: MemberAlertPrefs = {
     ...input,
+    // The period each report last covered stays the server's, so saving never sends one twice.
+    weeklyReport: { ...input.weeklyReport, lastSentOn: before.weeklyReport.lastSentOn },
+    monthlyReport: { ...input.monthlyReport, lastSentOn: before.monthlyReport.lastSentOn },
     dailySummary: {
       ...input.dailySummary,
       // A new hour may fall later today: let it send today even if the old hour already did.
@@ -78,7 +83,7 @@ export type AlertMember = {
  * not hold `permission` is left out even if they asked: an order alert must not show order
  * details to someone who cannot open Orders.
  */
-async function alertMembers(
+export async function alertMembers(
   tx: StoreTx,
   storeId: string,
   alert: MemberAlert,
@@ -112,7 +117,7 @@ async function alertMembers(
  * WhatsApp to their mobile (only when the store has a WhatsApp channel). Logged like every
  * notification; nothing goes when the store switched the message off.
  */
-async function deliverToMember(
+export async function deliverToMember(
   ctx: StoreContext,
   template: TemplateId,
   member: Pick<AlertMember, 'email' | 'phone'>,
@@ -151,7 +156,7 @@ async function deliverToMember(
   return results
 }
 
-type AlertOptions = DeliverOptions & {
+export type AlertOptions = DeliverOptions & {
   /** The admin's own URL (`ADMIN_URL`), for the "Open the order" button. */
   adminUrl: string
 }
@@ -251,6 +256,11 @@ export async function sendDueDailySummaries(
       salesLabel: formatMoney(figures.salesPaise),
       toShip: figures.toShip,
     },
+    // The full report layout (bars, sellers, to-dos); `dailySummary` stays for WhatsApp.
+    report: await performanceReport(ctx, dailyPeriod(now), {
+      adminUrl: opts.adminUrl,
+      toShip: figures.toShip,
+    }),
   }
 
   let sent = 0

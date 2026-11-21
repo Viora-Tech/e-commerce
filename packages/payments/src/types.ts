@@ -16,6 +16,8 @@ export type PaymentCustomer = {
   email?: string | undefined
   phone?: string | undefined
   name?: string | undefined
+  /** The shopper's IP as checkout saw it; lenders (Snapmint) refuse a payment without it. */
+  ip?: string | undefined
 }
 
 export type CreatePaymentInput = {
@@ -34,6 +36,13 @@ export type CreatePaymentInput = {
   returnUrl?: string | undefined
   /** Delivery address; EMI/BNPL providers use it for risk checks. */
   shipping?: PaymentShipping | undefined
+  /** Billing address when the shopper gave a separate one; otherwise the delivery address. */
+  billing?: PaymentShipping | undefined
+  /**
+   * The store's own origin (`https://shop.example.in`, no trailing slash). Redirect gateways
+   * (Snapmint) send the shopper back to `<origin>/checkout/return/<provider id>`.
+   */
+  storefrontOrigin?: string | undefined
   /** Basket summary; gateways forward it to lenders and show it on their pages. */
   lines?: PaymentLine[] | undefined
   /**
@@ -62,6 +71,8 @@ export type PaymentShipping = {
   line2?: string | undefined
   city: string
   state: string
+  /** The state's full name ("Maharashtra") when `state` is a code; for gateways that want names. */
+  stateName?: string | undefined
   postalCode: string
   /** ISO 3166-1 alpha-2. */
   country: string
@@ -71,6 +82,8 @@ export type PaymentLine = {
   title: string
   quantity: number
   unitPricePaise: number
+  /** The variant's SKU, when it has one. */
+  sku?: string | undefined
 }
 
 /**
@@ -316,6 +329,27 @@ export interface PaymentProvider {
     providerRef: string
   }): Promise<'pending' | 'processed' | 'failed'>
 
+  /**
+   * Optional: what the gateway posted back with the shopper on a `redirect` session's return
+   * URL. Gives the attempt's reference and whether the post is signed by the gateway; null when
+   * it names no attempt. The storefront's return route asks `confirm` for the status either way
+   * and opens the order page only for a signed return.
+   */
+  parseReturn?(fields: Record<string, string>): { providerRef: string; verified: boolean } | null
+
+  /**
+   * Optional: re-check a verified webhook with the gateway before it is applied, and return
+   * the event to apply instead (Snapmint: its order status API is the truth). May throw when
+   * the gateway cannot be asked; the webhook then fails and the gateway sends it again.
+   */
+  confirmWebhookEvent?(event: WebhookEvent): Promise<WebhookEvent>
+
+  /**
+   * Optional: whether this shopper may be offered this way to pay at all (Snapmint's
+   * visibility check). Must not create anything and should answer true when unsure.
+   */
+  checkAvailability?(input: AvailabilityInput): Promise<boolean>
+
   /** Verify the signature and parse the body into a normalised event. Never throws on bad input. */
   parseWebhook(input: {
     rawBody: string
@@ -335,6 +369,12 @@ export interface PaymentProvider {
    * source is not possible. Needs the shopper's UPI ID.
    */
   refundViaPayout?(input: PayoutRefundInput): Promise<PayoutRefundResult>
+}
+
+export type AvailabilityInput = {
+  amountPaise: number
+  customer: PaymentCustomer
+  shipping?: PaymentShipping | undefined
 }
 
 export type PayoutRefundInput = {

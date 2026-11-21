@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import CheckoutIcon, { type CheckoutIconName } from '@/components/checkout/checkout-icon'
 import { accountContent } from '@/data/account'
 import { signOutAction } from '@/lib/account-actions'
 
@@ -13,38 +14,63 @@ type AccountNavProps = {
 
 const copy = accountContent.nav
 
-const LINKS = [
+type NavLink = {
+  href: string
+  label: string
+  icon: CheckoutIconName
+  match: (p: string) => boolean
+}
+
+const LINKS: NavLink[] = [
   {
     href: '/account',
     label: copy.orders,
-    match: (p: string) => p === '/account' || p.startsWith('/account/orders'),
+    icon: 'bag',
+    match: (p) => p === '/account' || p.startsWith('/account/orders'),
   },
   {
     href: '/account/addresses',
     label: copy.addresses,
-    match: (p: string) => p.startsWith('/account/addresses'),
+    icon: 'pin',
+    match: (p) => p.startsWith('/account/addresses'),
   },
   {
     href: '/account/profile',
     label: copy.profile,
-    match: (p: string) => p.startsWith('/account/profile'),
+    icon: 'user',
+    match: (p) => p.startsWith('/account/profile'),
   },
   {
     href: '/account/store-credit',
     label: copy.storeCredit,
-    match: (p: string) => p.startsWith('/account/store-credit'),
+    icon: 'gift',
+    match: (p) => p.startsWith('/account/store-credit'),
   },
   {
     href: '/account/privacy',
     label: copy.privacy,
-    match: (p: string) => p.startsWith('/account/privacy'),
+    icon: 'shield',
+    match: (p) => p.startsWith('/account/privacy'),
   },
 ]
 
+/*
+ * A phone shows the sections as a row of pills that scrolls sideways (the current one filled
+ * with the store's button colour); from `lg` they stack as a sidebar with the current one lit
+ * on the card surface, as the checkout's picked rows. Every row is a full 2.75rem tap.
+ */
+const LINK =
+  'inline-flex min-h-11 shrink-0 cursor-pointer items-center gap-2.5 whitespace-nowrap rounded-full border px-4 text-[0.875rem]! font-medium! no-underline outline-none touch-manipulation transition-colors duration-150 focus-visible:[box-shadow:0_0_0_3px_var(--ck-ring)] motion-reduce:transition-none lg:w-full lg:rounded-ck lg:border-transparent lg:px-3'
+
+/** A section not open: a quiet pill on a phone, a plain row in the sidebar. */
+const IDLE = `${LINK} border-ck-line bg-ck-bg text-ck-muted! hover:text-ck-ink! lg:bg-transparent`
+
+/** The open section: filled with the button colour on a phone, lit on the card in the sidebar. */
+const ACTIVE = `${LINK} border-ck-button bg-ck-button text-ck-button-ink! lg:bg-ck-bg lg:text-ck-ink! lg:[box-shadow:var(--ck-section-shadow)]`
+
 /**
- * Figma Pages · Account (705:114056): the sidebar - "Account", who is signed in, then the
- * sections as rows with the current one on the surface and Sign out last. On a phone the
- * rows run sideways above the page.
+ * The account's sections (Figma Pages · Account, 705:114056): who is signed in, then Orders,
+ * Addresses, Profile, Store credit, Your data and Sign out.
  */
 export default function AccountNav({ email, name }: AccountNavProps) {
   // Hooks
@@ -52,12 +78,16 @@ export default function AccountNav({ email, name }: AccountNavProps) {
 
   // Render logic
   return (
-    <aside className="account-nav">
-      <div className="account-nav__head">
-        <p className="account-nav__title">{accountContent.title}</p>
-        <p className="account-nav__who">{name ? `${name}, ${email}` : email}</p>
+    <aside className="flex min-w-0 flex-col gap-3 lg:sticky lg:top-6 lg:gap-5">
+      <div className="flex min-w-0 flex-col gap-0.5">
+        <p className="text-[0.75rem] font-medium text-ck-muted">{copy.signedInAs}</p>
+        <p className="truncate text-[0.9375rem] font-semibold text-ck-ink">{name || email}</p>
+        {name ? <p className="truncate text-[0.8125rem] text-ck-muted">{email}</p> : null}
       </div>
-      <nav className="account-nav__links" aria-label={accountContent.title}>
+      <nav
+        className="-mb-1 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] lg:mb-0 lg:flex-col lg:gap-0.5 lg:overflow-visible lg:pb-0"
+        aria-label={accountContent.title}
+      >
         {LINKS.map((l) => {
           const active = l.match(pathname)
           return (
@@ -65,17 +95,23 @@ export default function AccountNav({ email, name }: AccountNavProps) {
               key={l.href}
               href={l.href}
               aria-current={active ? 'page' : undefined}
-              className="account-nav__link flex! min-h-11 items-center"
+              className={active ? ACTIVE : IDLE}
             >
+              <CheckoutIcon name={l.icon} className="size-4 shrink-0" />
               {l.label}
             </Link>
           )
         })}
-        <form action={signOutAction}>
+        <form
+          action={signOutAction}
+          className="shrink-0 lg:mt-2 lg:border-t lg:border-ck-line lg:pt-2"
+        >
+          {/* `!` on the box: the theme's base rule strips a button's border and background. */}
           <button
             type="submit"
-            className="account-nav__link account-nav__sign-out flex! min-h-11 items-center"
+            className={`${IDLE} border! border-ck-line! bg-ck-bg! lg:border-transparent! lg:bg-transparent!`}
           >
+            <CheckoutIcon name="back" className="size-4 shrink-0" />
             {copy.signOut}
           </button>
         </form>

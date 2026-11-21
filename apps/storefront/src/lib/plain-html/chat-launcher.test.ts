@@ -1,6 +1,7 @@
 import { DEFAULT_INBOX_WIDGET } from '@commerce/core/inbox'
 import { describe, expect, it } from 'vitest'
 import { CHAT_FRAME_PATH } from '../inbox-frame'
+import { SAMPLE_ROWS } from '../launcher-lift'
 import { routeForStore } from '../routing'
 import { chatLauncherHtml, chatModuleSpec } from './chat-launcher'
 import { CHAT_MODULE } from './chat-module'
@@ -54,5 +55,13 @@ describe('plain page chat button', () => {
       kind: 'rewrite',
       path: '/-s/s1/inbox/photo',
     })
+  })
+})
+
+describe('plain page chat module', () => {
+  it('samples the same rows above the bottom edge as the React launcher', () => {
+    const spec = chatModuleSpec(DEFAULT_INBOX_WIDGET, 'Waimers')
+    expect(spec.config.rows).toEqual([...SAMPLE_ROWS])
+    expect(CHAT_MODULE).toContain('(c.rows || [2]).forEach')
   })
 })

@@ -41,6 +41,8 @@ export default function CurrentThemeCard({ theme, origin, busy, onAction }: Curr
         origin={origin}
         settings={theme.settings}
         picture={theme.thumbnailUrl}
+        cover={theme.cover}
+        covers={theme.covers}
       />
       <div className="flex flex-wrap items-center justify-between gap-4 px-4 py-4 md:px-6 md:py-5">
         <div className="flex min-w-0 flex-col gap-1">

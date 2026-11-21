@@ -96,6 +96,10 @@ export type AppHookContext = {
     template: TemplateId
     attachments?: Attachment[] | undefined
     documentLabel?: string | undefined
+    /** The document's number, the seller GSTIN on it and the PDF's file name, for the email. */
+    document?:
+      | { number?: string | undefined; gstin?: string | undefined; fileName?: string | undefined }
+      | undefined
     links?: OrderLink[] | undefined
   }): Promise<{ sent: number; errors: string[] }>
   /**

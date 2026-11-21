@@ -2,6 +2,8 @@ import { createHmac, timingSafeEqual } from 'node:crypto'
 import { cart, cartLine, order } from '@commerce/db'
 import { and, desc, eq, gte, isNotNull, isNull, lt, or, type SQL, sql } from 'drizzle-orm'
 import type { StoreContext } from '../context'
+import { MARKETING_CHANNELS, type MarketingChannel } from '../marketing/attribution'
+import { type ListTouch, listTouch } from '../marketing/list-touch'
 import { paymentNotFinished } from '../order/test-orders'
 import { notTestCartContact } from './test-contact'
 
@@ -29,6 +31,10 @@ export type AbandonedCart = {
   recoverySentAt: Date | null
   /** The cart converted after we asked; the whole point of the feature. */
   recovered: boolean
+  /** Where the shopper came from (`cart.attribution`); null when nothing was recorded. */
+  channel: MarketingChannel | null
+  /** The same touch with the UTM tags and referrer that name an AI agent or social channel. */
+  touch: ListTouch | null
 }
 
 export type AbandonedStats = {
@@ -62,6 +68,22 @@ const subtotal = sql<number>`(select coalesce(sum(cl.quantity * cl.unit_price_pa
 export const ABANDONED_CONTACTS = ['email', 'phone', 'both'] as const
 export type AbandonedContact = (typeof ABANDONED_CONTACTS)[number]
 
+/** The abandoned list's Source filter, as on Orders: a channel, or `untracked` (none recorded). */
+export const ABANDONED_CHANNELS = [...MARKETING_CHANNELS, 'untracked'] as const
+export type AbandonedChannel = (typeof ABANDONED_CHANNELS)[number]
+
+const cartChannel = sql<MarketingChannel | null>`${cart.attribution}->>'channel'`
+
+/** Any of the ticked channels; `untracked` is a cart with no channel recorded. */
+function channelWhere(picked: readonly AbandonedChannel[] | undefined) {
+  if (!picked?.length) return undefined
+  const named = picked.filter((c) => c !== 'untracked')
+  return or(
+    picked.includes('untracked') ? sql`${cartChannel} is null` : undefined,
+    named.length ? sql`${cartChannel} = any(${sql.param(named)}::text[])` : undefined,
+  )
+}
+
 /** The abandoned list's tab, search and filter panel. */
 export type AbandonedListFilters = {
   /** How far back the list looks when no `activeFrom` is given (default 30 days). */
@@ -75,6 +97,8 @@ export type AbandonedListFilters = {
   valueMinPaise?: number | undefined
   valueMaxPaise?: number | undefined
   contact?: AbandonedContact | undefined
+  /** Came from any of these channels. */
+  channels?: readonly AbandonedChannel[] | undefined
 }
 
 /**
@@ -106,6 +130,7 @@ function abandonedFilterWhere(input: AbandonedListFilters): (SQL | undefined)[] 
     input.valueMaxPaise !== undefined ? sql`${subtotal} <= ${input.valueMaxPaise}` : undefined,
     contact === 'email' || contact === 'both' ? isNotNull(cart.email) : undefined,
     contact === 'phone' || contact === 'both' ? isNotNull(cart.phone) : undefined,
+    channelWhere(input.channels),
   ]
 }
 
@@ -146,6 +171,8 @@ export async function listAbandoned(
       firstTitle,
       itemCount: lineCount,
       subtotalPaise: subtotal,
+      channel: cartChannel,
+      touch: listTouch(cart.attribution),
     })
     .from(cart)
     .where(where)

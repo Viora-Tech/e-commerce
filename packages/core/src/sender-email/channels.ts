@@ -5,6 +5,7 @@ import { eq } from 'drizzle-orm'
 import { withSuppressionGuard } from '../email-suppression/guard'
 import { activeSuppressions } from '../email-suppression/service'
 import { storeEmailBrand, withEmailBrand } from '../notifications/email-brand'
+import { savedTemplateDesign, withEmailDesigns } from '../notifications/email-template-design'
 import { parseNotificationSettings, resolveNotificationChannels } from '../notifications/settings'
 import { LogNotificationChannel } from '../providers/log-channel'
 import { type ChosenSender, chooseSender } from './client'
@@ -68,10 +69,14 @@ export async function storeNotificationChannels(
   // Addresses that bounced or complained are skipped on every email channel (core
   // `email-suppression`). Loaded now, not at send time: marketing sends after the transaction.
   const suppressed = await activeSuppressions(tx)
-  // Every email this store sends carries its own logo, colour and contact (loaded on first send).
+  // Every email this store sends carries its own logo, colour and contact (loaded on first send),
+  // and the store's saved design for that email when it has one (Edit design).
   const branded = (list: NotificationChannel[]) =>
     withSuppressionGuard(
-      withEmailBrand(list, () => storeEmailBrand(tx, storeId)),
+      withEmailDesigns(
+        withEmailBrand(list, () => storeEmailBrand(tx, storeId)),
+        (template) => savedTemplateDesign(tx, storeId, template),
+      ),
       suppressed,
     )
   const transport = (deps.platform ?? getPlatformEmail()).transport

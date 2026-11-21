@@ -5,6 +5,7 @@ import { eq } from 'drizzle-orm'
 import { richTextToText } from '../blog/text'
 import { suggestProducts } from '../catalog/browse'
 import { listPolicies } from '../policies/service'
+import { publishedKnowledge } from '../inbox/knowledge'
 import { buildChannelCatalog, type ChannelItem } from './catalog'
 import { parseSalesChannels } from './client'
 import { factLines, parseAgentKnowledge, publishedFacts } from './knowledge'
@@ -149,20 +150,25 @@ export async function agentStoreInfo(
   storeId: string,
   origin: string,
 ): Promise<AgentStoreInfo> {
-  const [[s], policies] = await Promise.all([
+  const [[s], policies, answers] = await Promise.all([
     tx
       .select({ name: store.name, preferences: store.preferences })
       .from(store)
       .where(eq(store.id, storeId)),
     listPolicies({ tx, storeId }),
+    publishedKnowledge(tx),
   ])
   const base = origin.replace(/\/$/, '')
   return {
     name: s?.name ?? '',
     url: base,
-    facts: publishedFacts(parseAgentKnowledge(s?.preferences)).flatMap(({ key, fact }) =>
-      factLines(key, fact),
-    ),
+    // One Knowledge base: the store facts, then the published Inbox answers.
+    facts: [
+      ...publishedFacts(parseAgentKnowledge(s?.preferences)).flatMap(({ key, fact }) =>
+        factLines(key, fact),
+      ),
+      ...answers.map((a) => `${a.title}: ${a.answer}`),
+    ],
     policies: policies
       .filter((p) => p.published && p.body)
       .map((p) => ({

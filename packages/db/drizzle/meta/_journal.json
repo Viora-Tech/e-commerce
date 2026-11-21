@@ -1660,6 +1660,69 @@
       "when": 1795280000000,
       "tag": "0252_waimers_export_vi_style",
       "breakpoints": true
+    },
+    {
+      "idx": 237,
+      "version": "7",
+      "when": 1795280100000,
+      "tag": "0253_media_compact_video",
+      "breakpoints": true
+    },
+    {
+      "idx": 238,
+      "version": "7",
+      "when": 1795280200000,
+      "tag": "0254_snapmint_refund_sync",
+      "breakpoints": true
+    },
+    {
+      "idx": 239,
+      "version": "7",
+      "when": 1795280300000,
+      "tag": "0255_gst_invoice_source",
+      "breakpoints": true
+    },
+    {
+      "idx": 240,
+      "version": "7",
+      "when": 1795280400000,
+      "tag": "0256_shipment_lost",
+      "breakpoints": true
+    },
+    {
+      "idx": 241,
+      "version": "7",
+      "when": 1795280500000,
+      "tag": "0257_invoice_printed_at",
+      "breakpoints": true
+    },
+    {
+      "idx": 242,
+      "version": "7",
+      "when": 1795280600000,
+      "tag": "0258_media_video_backfill",
+      "breakpoints": true
+    },
+    {
+      "idx": 243,
+      "version": "7",
+      "when": 1795280700000,
+      "tag": "0259_platform_domain_redirect",
+      "breakpoints": true
+    },
+    {
+      "idx": 244,
+      "version": "7",
+      "when": 1795280800000,
+      "tag": "0260_member_reports",
+      "breakpoints": true
+    },
+    {
+      "idx": 245,
+      "version": "7",
+      "when": 1795280900000,
+      "tag": "0261_email_template_design",
+      "breakpoints": true
     }
   ]
 }

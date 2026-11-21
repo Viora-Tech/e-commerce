@@ -55,7 +55,8 @@ export async function generateMetadata({ params, searchParams }: Params): Promis
   const image = found.imageUrl ? [{ url: found.imageUrl, alt: found.title }] : undefined
   return {
     title,
-    description,
+    // None of its own: the layout's store description stays, as Shopify's `page_description`.
+    ...(description ? { description } : {}),
     alternates: { canonical: url },
     openGraph: {
       type: 'website',

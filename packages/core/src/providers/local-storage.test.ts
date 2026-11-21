@@ -21,6 +21,16 @@ describe('LocalStorageProvider', () => {
     ).rejects.toThrow(/traversal/)
   })
 
+  it('streams a file in and out without reading it whole (video copies)', async () => {
+    const p = create()
+    const bytes = new Uint8Array(256 * 1024).fill(7)
+    const key = 'stores/streamed/media/clip.small.mp4'
+    await p.putStream({ key, body: new Response(bytes).body as ReadableStream<Uint8Array>, contentType: 'video/mp4' })
+    const stream = await p.getStream(key)
+    expect(new Uint8Array(await new Response(stream).arrayBuffer())).toEqual(bytes)
+    expect(await p.getStream('stores/streamed/media/missing.mp4')).toBeNull()
+  })
+
   it("deletePrefix removes one store's folder and leaves its neighbours", async () => {
     const p = create()
     const body = new Uint8Array([1])

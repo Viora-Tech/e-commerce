@@ -1,12 +1,33 @@
 'use client'
 
 import { useState, useTransition } from 'react'
+import CheckoutIcon from '@/components/checkout/checkout-icon'
 import { privacyContent } from '@/data/privacy'
+import {
+  ACCOUNT_CARD,
+  ACCOUNT_CARD_TITLE,
+  ACCOUNT_ERROR,
+  ACCOUNT_INTRO,
+} from '@/lib/account-classes'
+import {
+  CK_BUTTON_PRIMARY,
+  CK_BUTTON_SECONDARY,
+  CK_INPUT,
+  CK_INPUT_HEIGHT,
+  CK_LABEL,
+} from '@/lib/checkout-classes'
 import { confirmDeletionAction, requestDeletionCodeAction } from '@/lib/privacy-actions'
 
 type Step = 'intro' | 'explain' | 'code'
 
 const copy = privacyContent.deletion
+
+/* The danger versions swap the colour classes rather than stacking a second `!` over them. */
+const START = CK_BUTTON_SECONDARY.replace('text-ck-ink!', 'text-ck-danger!')
+const DANGER = CK_BUTTON_PRIMARY.replace('bg-ck-button!', 'bg-ck-danger!').replace(
+  'text-ck-button-ink!',
+  'text-white!',
+)
 
 /**
  * Delete my account, one step at a time: what happens, a code to prove it is
@@ -53,47 +74,73 @@ export default function DeleteAccount() {
 
   // Render logic
   const errorLine = error ? (
-    <p className="text-small text-danger" role="alert">
+    <p className={ACCOUNT_ERROR} role="alert">
+      <CheckoutIcon name="alert" className="mt-px size-3.5 shrink-0" />
       {error}
     </p>
   ) : null
+  const cancel = (
+    <button
+      type="button"
+      className={`${CK_BUTTON_SECONDARY} h-13! w-full sm:w-auto`}
+      onClick={handleCancel}
+      disabled={pending}
+    >
+      {copy.cancel}
+    </button>
+  )
 
   return (
-    <section className="flex flex-col gap-3 rounded-[var(--radius-card)] bg-surface p-6">
-      <h2 className="h3">{copy.heading}</h2>
+    <section className={`${ACCOUNT_CARD} gap-3!`} aria-labelledby="delete-account">
+      <h2 id="delete-account" className={ACCOUNT_CARD_TITLE}>
+        {copy.heading}
+      </h2>
       {step === 'intro' ? (
         <div>
-          <button type="button" className="btn btn--secondary" onClick={() => setStep('explain')}>
-            <span className="btn__label">{copy.start}</span>
+          <button
+            type="button"
+            className={`${START} w-full sm:w-auto`}
+            onClick={() => setStep('explain')}
+          >
+            <CheckoutIcon name="trash" className="size-4" />
+            {copy.start}
           </button>
         </div>
       ) : null}
       {step === 'explain' ? (
         <>
-          <p className="text-body text-muted">{copy.body}</p>
+          <p className={ACCOUNT_INTRO}>{copy.body}</p>
           {errorLine}
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-col-reverse gap-3 sm:flex-row">
+            {cancel}
             <button
               type="button"
-              className={`btn btn--primary${pending ? ' is-loading' : ''}`}
+              className={`${DANGER} sm:w-auto`}
               disabled={pending}
+              aria-busy={pending || undefined}
               onClick={sendCode}
             >
-              <span className="btn__label">{pending ? copy.sending : copy.sendCode}</span>
-            </button>
-            <button type="button" className="btn btn--secondary" onClick={handleCancel}>
-              <span className="btn__label">{copy.cancel}</span>
+              {pending ? (
+                <CheckoutIcon
+                  name="spinner"
+                  className="size-4 animate-spin motion-reduce:animate-none"
+                />
+              ) : null}
+              {pending ? copy.sending : copy.sendCode}
             </button>
           </div>
         </>
       ) : null}
       {step === 'code' ? (
         <form onSubmit={handleConfirm} className="flex flex-col gap-4">
-          <p className="text-body text-muted">{copy.codeSent(hint)}</p>
-          <label className="field">
-            <span className="field__label text-small">{copy.code}</span>
+          <p className={ACCOUNT_INTRO}>{copy.codeSent(hint)}</p>
+          <div className="flex flex-col gap-2">
+            <label htmlFor="delete-code" className={CK_LABEL}>
+              {copy.code}
+            </label>
             <input
-              className="field__input text-center tracking-[0.5em]"
+              id="delete-code"
+              className={`${CK_INPUT} ${CK_INPUT_HEIGHT} max-w-[14rem] text-center tracking-[0.5em] tabular-nums`}
               inputMode="numeric"
               autoComplete="one-time-code"
               pattern="[0-9]{6}"
@@ -102,28 +149,36 @@ export default function DeleteAccount() {
               value={code}
               onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
             />
-          </label>
-          <label className="field">
-            <span className="field__label text-small">{copy.reason}</span>
+          </div>
+          <div className="flex flex-col gap-2">
+            <label htmlFor="delete-reason" className={CK_LABEL}>
+              {copy.reason}
+            </label>
             <textarea
-              className="field__input"
+              id="delete-reason"
+              className={`${CK_INPUT} min-h-24 py-3`}
               rows={3}
               maxLength={2000}
               value={reason}
               onChange={(e) => setReason(e.target.value)}
             />
-          </label>
+          </div>
           {errorLine}
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-col-reverse gap-3 sm:flex-row">
+            {cancel}
             <button
               type="submit"
-              className={`btn btn--primary${pending ? ' is-loading' : ''}`}
+              className={`${DANGER} sm:w-auto`}
               disabled={pending || code.length !== 6}
+              aria-busy={pending || undefined}
             >
-              <span className="btn__label">{pending ? copy.confirming : copy.confirm}</span>
-            </button>
-            <button type="button" className="btn btn--secondary" onClick={handleCancel}>
-              <span className="btn__label">{copy.cancel}</span>
+              {pending ? (
+                <CheckoutIcon
+                  name="spinner"
+                  className="size-4 animate-spin motion-reduce:animate-none"
+                />
+              ) : null}
+              {pending ? copy.confirming : copy.confirm}
             </button>
           </div>
         </form>

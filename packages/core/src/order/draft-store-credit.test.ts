@@ -1,9 +1,8 @@
-/** SOURCE OF TRUTH: store credit on draft orders tests — WHAT: applying store credit to a draft, converting it (full and part cover, staff and online invoice), deleting or changing the draft, a balance spent elsewhere, and two converts at once / WHY: store credit is the customer's own money, so a draft must take it exactly once and never lose it */
+/** SOURCE OF TRUTH: store credit on draft orders tests — WHAT: applying store credit to a draft, converting it (full and part cover, staff and online invoice), deleting or changing the draft, a balance spent elsewhere (taken as it is now, never refused), and two converts at once / WHY: store credit is the customer's own money, so a draft must take it exactly once and never lose it */
 import {
   createDb,
   customer,
   inventoryLevel,
-  order,
   payment,
   product,
   store,
@@ -203,29 +202,72 @@ describe('converting a draft paid with store credit', () => {
     expect(await balanceOf(t.customerId)).toBe(0)
   })
 
-  it('a balance spent elsewhere since the save refuses the convert and changes nothing', async () => {
-    const t = await seed(100_000)
-    const d = await inStore(t, (ctx) =>
-      createDraft(ctx, draftInput(t, { storeCreditPaise: 100_000 })),
-    )
-    await inStore(t, (ctx) =>
+  const spendElsewhere = (t: Seeded, paise: number) =>
+    inStore(t, (ctx) =>
       changeStoreCredit(ctx, {
         customerId: t.customerId,
-        amountPaise: -30_000,
+        amountPaise: -paise,
         kind: 'adjustment',
         reason: 'Spent at checkout',
       }),
     )
-    await expect(inStore(t, (ctx) => convertDraft(ctx, d.id))).rejects.toMatchObject({
-      reason: 'insufficient',
+
+  it('a balance that fell since the save is taken as it is; the method collects the rest', async () => {
+    const t = await seed(100_000)
+    const d = await inStore(t, (ctx) =>
+      createDraft(ctx, draftInput(t, { storeCreditPaise: 100_000, paymentMethod: 'manual' })),
+    )
+    await spendElsewhere(t, 30_000)
+    const placed = await inStore(t, (ctx) => convertDraft(ctx, d.id))
+    expect(placed).toMatchObject({ status: 'open', paymentMethod: 'manual' })
+    expect(await balanceOf(t.customerId)).toBe(0)
+    const debits = (await ledger(t.customerId)).filter((e) => e.kind === 'payment')
+    expect(debits).toHaveLength(1)
+    expect(debits[0]).toMatchObject({ amountPaise: -70_000, orderId: d.id })
+    const rows = await paymentsOf(d.id)
+    expect(rows.find((p) => p.provider === STORE_CREDIT_PROVIDER)).toMatchObject({
+      status: 'captured',
+      amountPaise: 70_000,
     })
-    const [still] = await owner.select().from(order).where(eq(order.id, d.id))
-    expect(still?.status).toBe('draft')
-    expect(await balanceOf(t.customerId)).toBe(70_000)
-    expect((await creditRows(d.id))[0]?.status).toBe('created')
+    expect(rows.find((p) => p.provider === 'manual')).toMatchObject({
+      status: 'pending',
+      amountPaise: 2 * PRICE - 70_000,
+    })
   })
 
-  it('two drafts converting at once never spend the same credit', async () => {
+  it('an emptied balance takes nothing: no debit, no store credit payment', async () => {
+    const t = await seed(100_000)
+    const d = await inStore(t, (ctx) =>
+      createDraft(ctx, draftInput(t, { storeCreditPaise: 100_000, paymentMethod: 'manual' })),
+    )
+    await spendElsewhere(t, 100_000)
+    const placed = await inStore(t, (ctx) => convertDraft(ctx, d.id))
+    expect(placed?.paymentMethod).toBe('manual')
+    expect((await ledger(t.customerId)).filter((e) => e.kind === 'payment')).toHaveLength(0)
+    expect(await creditRows(d.id)).toHaveLength(0)
+    expect((await paymentsOf(d.id))[0]).toMatchObject({
+      provider: 'manual',
+      amountPaise: 2 * PRICE,
+    })
+  })
+
+  it('an edit after the balance fell keeps the amount; a new amount is checked', async () => {
+    const t = await seed(100_000)
+    const d = await inStore(t, (ctx) =>
+      createDraft(ctx, draftInput(t, { storeCreditPaise: 100_000 })),
+    )
+    await spendElsewhere(t, 30_000)
+    await inStore(t, (ctx) =>
+      updateDraft(ctx, d.id, draftInput(t, { storeCreditPaise: 100_000, note: 'Call first' })),
+    )
+    expect((await creditRows(d.id))[0]?.amountPaise).toBe(100_000)
+    await expect(
+      inStore(t, (ctx) => updateDraft(ctx, d.id, draftInput(t, { storeCreditPaise: 90_000 }))),
+    ).rejects.toMatchObject({ reason: 'insufficient' })
+    expect(await balanceOf(t.customerId)).toBe(70_000)
+  })
+
+  it('two drafts converting at once share the balance, never the same credit', async () => {
     const t = await seed(100_000)
     const a = await inStore(t, (ctx) =>
       createDraft(ctx, draftInput(t, { storeCreditPaise: 60_000 })),
@@ -237,10 +279,10 @@ describe('converting a draft paid with store credit', () => {
       inStore(t, (ctx) => convertDraft(ctx, a.id)),
       inStore(t, (ctx) => convertDraft(ctx, b.id)),
     ])
-    expect(results.filter((r) => r.status === 'fulfilled')).toHaveLength(1)
-    expect(await balanceOf(t.customerId)).toBe(40_000)
+    expect(results.filter((r) => r.status === 'fulfilled')).toHaveLength(2)
+    expect(await balanceOf(t.customerId)).toBe(0)
     const debits = (await ledger(t.customerId)).filter((e) => e.kind === 'payment')
-    expect(debits).toHaveLength(1)
+    expect(debits.map((e) => e.amountPaise).sort((x, y) => x - y)).toEqual([-60_000, -40_000])
   })
 
   it('converting the same draft twice takes the credit once', async () => {
@@ -290,6 +332,34 @@ describe('a draft invoice paid online with store credit', () => {
     await inStore(t, (ctx) => cancelOrder(ctx, d.id))
     expect(await balanceOf(t.customerId)).toBe(50_000)
     expect((await ledger(t.customerId)).map((e) => e.kind)).toContain('release')
+  })
+
+  it('asks the gateway for more when the balance fell since the credit was applied', async () => {
+    const t = await seed(2 * PRICE)
+    const d = await inStore(t, (ctx) =>
+      createDraft(ctx, draftInput(t, { storeCreditPaise: 2 * PRICE })),
+    )
+    await inStore(t, (ctx) =>
+      changeStoreCredit(ctx, {
+        customerId: t.customerId,
+        amountPaise: -50_000,
+        kind: 'adjustment',
+        reason: 'Spent at checkout',
+      }),
+    )
+    const invoice = await inStore(t, (ctx) => loadDraftInvoice(ctx, d.id))
+    expect(invoice).toMatchObject({ storeCreditPaise: 2 * PRICE - 50_000, duePaise: 50_000 })
+    const r = await inStore(t, (ctx) => convertDraftForOnlinePayment(ctx, d.id, 'razorpay'))
+    const [attempt] = await owner
+      .select()
+      .from(payment)
+      .where(eq(payment.id, r?.attemptId ?? ''))
+    expect(attempt?.amountPaise).toBe(50_000)
+    expect((await creditRows(d.id))[0]).toMatchObject({
+      status: 'pending',
+      amountPaise: 2 * PRICE - 50_000,
+    })
+    expect(await balanceOf(t.customerId)).toBe(0)
   })
 
   it('has nothing to pay online when store credit covers it all', async () => {

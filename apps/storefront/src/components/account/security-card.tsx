@@ -3,7 +3,18 @@
 import type { SocialProvider } from '@commerce/core/customer-accounts'
 import { startRegistration } from '@simplewebauthn/browser'
 import { useState, useTransition } from 'react'
+import CheckoutIcon from '@/components/checkout/checkout-icon'
 import { accountContent } from '@/data/account'
+import {
+  ACCOUNT_CARD,
+  ACCOUNT_CARD_TITLE,
+  ACCOUNT_ERROR,
+  ACCOUNT_INTRO,
+  ACCOUNT_LINK_DANGER,
+  ACCOUNT_ROW,
+  ACCOUNT_ROWS,
+} from '@/lib/account-classes'
+import { CK_BUTTON_SECONDARY } from '@/lib/checkout-classes'
 import {
   passkeyRegisterAction,
   passkeyRegisterOptionsAction,
@@ -28,6 +39,13 @@ type SecurityCardProps = {
 }
 
 const copy = accountContent.security
+
+/** "Passkeys", "Connected accounts": a small heading with its icon. */
+const SUB_TITLE =
+  'flex items-center gap-2 font-ck! normal-case! tracking-normal! text-[0.9375rem]! leading-snug! font-semibold! text-ck-ink! opacity-100! translate-none!'
+
+/** The bordered list the passkeys and connected accounts sit in. */
+const LIST = 'rounded-ck border border-ck-line'
 
 /** A short device label for the passkey list, from the browser. */
 function deviceName(): string {
@@ -88,34 +106,42 @@ export default function SecurityCard({
     })
   }
 
+  // Render logic
   return (
-    <section className="flex flex-col gap-6" aria-labelledby="security-title">
+    <section className={`${ACCOUNT_CARD} max-w-[40rem] gap-5!`} aria-labelledby="security-title">
       <div className="flex flex-col gap-1">
-        <h2 id="security-title" className="h4">
+        <h2 id="security-title" className={ACCOUNT_CARD_TITLE}>
           {copy.title}
         </h2>
-        <p className="text-body text-muted">{copy.intro}</p>
+        <p className={ACCOUNT_INTRO}>{copy.intro}</p>
       </div>
 
       {passkeysOn || passkeys.length > 0 ? (
-        <div className="flex flex-col gap-3">
-          <h3 className="text-body font-semibold">{copy.passkeysTitle}</h3>
-          <p className="text-small text-muted">{copy.passkeysIntro}</p>
+        <div className="flex flex-col gap-2">
+          <h3 className={SUB_TITLE}>
+            <CheckoutIcon name="key" className="size-4 text-ck-muted" />
+            {copy.passkeysTitle}
+          </h3>
+          <p className="text-[0.8125rem] text-ck-muted">{copy.passkeysIntro}</p>
           {passkeys.length === 0 ? (
-            <p className="text-small text-muted">{copy.noPasskeys}</p>
+            <p className="text-[0.8125rem] text-ck-muted">{copy.noPasskeys}</p>
           ) : (
-            <ul className="flex flex-col divide-y divide-line rounded-xl border border-line">
+            <ul className={`${ACCOUNT_ROWS} ${LIST}`}>
               {passkeys.map((p, i) => (
-                <li key={p.id} className="flex items-center justify-between gap-3 p-4">
-                  <span className="flex flex-col">
-                    <span className="text-body">{p.name || copy.passkeyName(i + 1)}</span>
+                <li key={p.id} className={`${ACCOUNT_ROW} px-4`}>
+                  <span className="flex min-w-0 flex-col">
+                    <span className="truncate text-[0.9375rem] text-ck-ink">
+                      {p.name || copy.passkeyName(i + 1)}
+                    </span>
                     {p.rpId !== hostname ? (
-                      <span className="text-small text-muted">{copy.otherDomain(p.rpId)}</span>
+                      <span className="text-[0.8125rem] text-ck-muted">
+                        {copy.otherDomain(p.rpId)}
+                      </span>
                     ) : null}
                   </span>
                   <button
                     type="button"
-                    className="text-small underline underline-offset-4 disabled:opacity-50"
+                    className={ACCOUNT_LINK_DANGER}
                     onClick={() => handleRemovePasskey(p.id)}
                     disabled={pending}
                   >
@@ -128,16 +154,21 @@ export default function SecurityCard({
           {passkeysOn ? (
             <button
               type="button"
-              className={`btn btn--secondary w-full sm:w-fit${pending ? ' is-loading' : ''}`}
+              className={`${CK_BUTTON_SECONDARY} w-full sm:w-fit`}
               onClick={handleAddPasskey}
               disabled={pending}
+              aria-busy={pending || undefined}
             >
-              <span className="btn__label">{pending ? copy.adding : copy.addPasskey}</span>
+              <CheckoutIcon
+                name={pending ? 'spinner' : 'plus'}
+                className={`size-4 ${pending ? 'animate-spin motion-reduce:animate-none' : ''}`}
+              />
+              {pending ? copy.adding : copy.addPasskey}
             </button>
           ) : null}
           {message ? (
             <p
-              className={`text-small ${message.tone === 'ok' ? 'text-muted' : 'text-danger'}`}
+              className={message.tone === 'ok' ? 'text-[0.8125rem] text-ck-success' : ACCOUNT_ERROR}
               role={message.tone === 'ok' ? 'status' : 'alert'}
             >
               {message.text}
@@ -147,20 +178,27 @@ export default function SecurityCard({
       ) : null}
 
       {identities.length > 0 || connectable.length > 0 ? (
-        <div className="flex flex-col gap-3">
-          <h3 className="text-body font-semibold">{copy.connectedTitle}</h3>
-          <p className="text-small text-muted">{copy.connectedIntro}</p>
+        <div className="flex flex-col gap-2 border-t border-ck-line pt-5">
+          <h3 className={SUB_TITLE}>
+            <CheckoutIcon name="user" className="size-4 text-ck-muted" />
+            {copy.connectedTitle}
+          </h3>
+          <p className="text-[0.8125rem] text-ck-muted">{copy.connectedIntro}</p>
           {identities.length > 0 ? (
-            <ul className="flex flex-col divide-y divide-line rounded-xl border border-line">
+            <ul className={`${ACCOUNT_ROWS} ${LIST}`}>
               {identities.map((i) => (
-                <li key={i.id} className="flex items-center justify-between gap-3 p-4">
-                  <span className="flex flex-col">
-                    <span className="text-body">{copy.providerNames[i.provider]}</span>
-                    {i.email ? <span className="text-small text-muted">{i.email}</span> : null}
+                <li key={i.id} className={`${ACCOUNT_ROW} px-4`}>
+                  <span className="flex min-w-0 flex-col">
+                    <span className="text-[0.9375rem] text-ck-ink">
+                      {copy.providerNames[i.provider]}
+                    </span>
+                    {i.email ? (
+                      <span className="truncate text-[0.8125rem] text-ck-muted">{i.email}</span>
+                    ) : null}
                   </span>
                   <button
                     type="button"
-                    className="text-small underline underline-offset-4 disabled:opacity-50"
+                    className={ACCOUNT_LINK_DANGER}
                     onClick={() => handleRemoveIdentity(i.id)}
                     disabled={pending}
                   >
@@ -173,14 +211,14 @@ export default function SecurityCard({
           {connectable.map((p) => (
             <a
               key={p}
-              className="btn btn--secondary w-full sm:w-fit"
+              className={`${CK_BUTTON_SECONDARY} w-full sm:w-fit`}
               href={socialStartHref(p, {
                 returnTo: '/account/profile',
                 remember: true,
                 connect: true,
               })}
             >
-              <span className="btn__label">{copy.connect(copy.providerNames[p])}</span>
+              {copy.connect(copy.providerNames[p])}
             </a>
           ))}
         </div>

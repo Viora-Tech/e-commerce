@@ -70,23 +70,34 @@ function pinnedAncestor(el: Element | null): Element | null {
 }
 
 /**
+ * How far above the window's bottom edge (px) `bottomBars` looks for a bar: at the edge, and up
+ * to `EDGE_PX`, so a dock that floats a little off the edge is found too. The Revamp theme floats
+ * its mobile dock `var(--rv-gutter)` (0.5 to 0.75rem) above the edge with round corners; sampled
+ * only at the edge, nothing was found, the button stayed put and covered the dock's Search tab
+ * (the header hides its own search icon on a phone when the dock is there).
+ */
+export const SAMPLE_ROWS = [2, EDGE_PX / 2, EDGE_PX - 2] as const
+
+/**
  * The fixed or sticky elements along the bottom edge of the window under the chat button's
- * column: sampled with `elementsFromPoint` at three points across the button, just above the
- * bottom edge, skipping the chat's own elements.
+ * column: sampled with `elementsFromPoint` at three points across the button on each of the
+ * `SAMPLE_ROWS`, skipping the chat's own elements.
  */
 export function bottomBars(launcher: Pick<Box, 'left' | 'right'>): Box[] {
   const found = new Set<Element>()
-  const y = window.innerHeight - 2
   const inset = Math.min(8, (launcher.right - launcher.left) / 4)
-  for (const x of [
-    launcher.left + inset,
-    (launcher.left + launcher.right) / 2,
-    launcher.right - inset,
-  ]) {
-    for (const el of document.elementsFromPoint(x, y)) {
-      if (el.closest(`[${CHAT_ROOT_ATTR}]`)) continue
-      const bar = pinnedAncestor(el)
-      if (bar && !bar.closest(`[${CHAT_ROOT_ATTR}]`)) found.add(bar)
+  for (const row of SAMPLE_ROWS) {
+    const y = window.innerHeight - row
+    for (const x of [
+      launcher.left + inset,
+      (launcher.left + launcher.right) / 2,
+      launcher.right - inset,
+    ]) {
+      for (const el of document.elementsFromPoint(x, y)) {
+        if (el.closest(`[${CHAT_ROOT_ATTR}]`)) continue
+        const bar = pinnedAncestor(el)
+        if (bar && !bar.closest(`[${CHAT_ROOT_ATTR}]`)) found.add(bar)
+      }
     }
   }
   return [...found].map((el) => el.getBoundingClientRect())

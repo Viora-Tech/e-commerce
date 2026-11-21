@@ -17,6 +17,7 @@ import PageHeader from '@/components/layout/page-header'
 import PageHeaderSkeleton from '@/components/layout/page-header-skeleton'
 import OrderChip from '@/components/orders/order-chip'
 import { appsContent } from '@/data/apps'
+import { gstAlreadyInvoicedContent } from '@/data/gst-already-invoiced'
 import { gstInvoiceRefreshContent as refreshCopy } from '@/data/gst-invoice-refresh'
 import { gstInvoicesContent } from '@/data/gst-invoices'
 import { useCopy } from '@/hooks/use-copy'
@@ -28,6 +29,7 @@ import { routes } from '@/lib/routes'
 import InvoiceLinesCard from './invoice-lines-card'
 import { saveFile } from './save-file'
 import TextField from './text-field'
+import UndoRecordedCard from './undo-recorded-card'
 
 type Doc = Awaited<ReturnType<typeof api.gstInvoices.get>>
 
@@ -54,6 +56,7 @@ const shippingOf = (doc: Doc): Shipping => ({
 export default function InvoiceDetail({ params }: AppPageProps) {
   // Hooks
   const apps = useCopy(appsContent)
+  const outsideCopy = useCopy(gstAlreadyInvoicedContent)
   const [ship, setShip] = useState<Shipping | null>(null)
   const {
     data: doc,
@@ -153,7 +156,11 @@ export default function InvoiceDetail({ params }: AppPageProps) {
 
   // Render logic
   const s = doc.snapshot
+  /** Recorded, invoiced outside Koomerce: no PDF to print or download. */
+  const outside = doc.source === 'external'
   const cancellable = doc.kind === 'tax_invoice' && doc.status === 'issued' && !doc.reportedPeriod
+  /** "Already invoiced" can be undone until the month is filed (the server checks it too). */
+  const undoable = outside && cancellable
   const facts = [
     { label: copy.fields.number, value: doc.number ?? '-' },
     { label: copy.fields.series, value: doc.seriesId ?? '-' },
@@ -177,26 +184,30 @@ export default function InvoiceDetail({ params }: AppPageProps) {
           ) : undefined
         }
         actions={
-          <>
-            <Button
-              variant="outline"
-              disabled={busy !== null}
-              onClick={handlePrint}
-              loading={busy === 'print'}
-            >
-              <Printer />
-              {copy.print}
-            </Button>
-            <Button
-              variant="outline"
-              disabled={busy !== null}
-              onClick={handleDownload}
-              loading={busy === 'download'}
-            >
-              <Download />
-              {copy.download}
-            </Button>
-          </>
+          outside ? (
+            <span className="text-body text-muted-foreground">{outsideCopy.outside}</span>
+          ) : (
+            <>
+              <Button
+                variant="outline"
+                disabled={busy !== null}
+                onClick={handlePrint}
+                loading={busy === 'print'}
+              >
+                <Printer />
+                {copy.print}
+              </Button>
+              <Button
+                variant="outline"
+                disabled={busy !== null}
+                onClick={handleDownload}
+                loading={busy === 'download'}
+              >
+                <Download />
+                {copy.download}
+              </Button>
+            </>
+          )
         }
       />
       <DataCard bodyClassName="flex flex-col" title={s.buyer.name}>
@@ -210,6 +221,9 @@ export default function InvoiceDetail({ params }: AppPageProps) {
         </dl>
         {s.exportSupply ? (
           <p className="mt-3 text-caption font-medium">{s.exportSupply.endorsement}</p>
+        ) : null}
+        {outside ? (
+          <p className="mt-3 text-caption text-muted-foreground">{outsideCopy.outsideBody}</p>
         ) : null}
         {doc.reportedPeriod ? (
           <p className="mt-3 text-caption text-muted-foreground">
@@ -273,6 +287,9 @@ export default function InvoiceDetail({ params }: AppPageProps) {
             {copy.saveShipping}
           </Button>
         </DataCard>
+      ) : null}
+      {undoable ? (
+        <UndoRecordedCard invoiceId={doc.id} number={doc.number ?? ''} disabled={busy !== null} />
       ) : null}
       {cancellable ? (
         <DataCard bodyClassName="flex flex-col" title={refreshCopy.title}>

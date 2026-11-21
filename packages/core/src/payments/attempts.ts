@@ -1,16 +1,30 @@
-import { address, type Db, order, orderLine, payment, store, withStore } from '@commerce/db'
+import {
+  address,
+  type Db,
+  order,
+  orderLine,
+  payment,
+  store,
+  variant,
+  withStore,
+} from '@commerce/db'
 import {
   type CheckoutSession,
   type CreatePaymentInput,
   isGatewayKeysRefused,
   keysRefusedError,
   type PaymentProvider,
+  type PaymentShipping,
   readableError,
 } from '@commerce/payments'
 import { and, desc, eq, isNull, notInArray } from 'drizzle-orm'
 import type { StoreContext } from '../context'
+import { storefrontOriginFor } from '../domains/origin'
 import { CommerceError } from '../errors'
 import { isOpenCheckoutDraft } from '../order/checkout-draft'
+import { INDIAN_STATE_NAMES } from '../tax/states'
+import { hasPaymentTriesLeft } from './attempt-cap'
+import { refundTaken } from './attempt-refund'
 import { captureModeFor } from './capture'
 import { applyPaymentStatus } from './confirm'
 import { type FallbackTry, runWithFallbacks } from './fallback'
@@ -106,6 +120,18 @@ export async function createPaymentAttempt(
   return row
 }
 
+/** An order address as the gateways take it; `stateName` for lenders that want names (Snapmint). */
+const paymentAddress = (a: typeof address.$inferSelect): PaymentShipping => ({
+  name: a.name,
+  line1: a.line1,
+  line2: a.line2 ?? undefined,
+  city: a.city,
+  state: a.stateCode,
+  stateName: INDIAN_STATE_NAMES[a.stateCode.toUpperCase()],
+  postalCode: a.pincode,
+  country: a.country,
+})
+
 /**
  * Claim the attempt (only one caller gets to ask the gateway), and gather what
  * the gateway needs from the order. Null when someone else already claimed it.
@@ -114,6 +140,7 @@ async function claimAttempt(
   ctx: StoreContext,
   attemptId: string,
   methodsOverride?: OnlineMethodId[] | undefined,
+  shopperIp?: string | undefined,
 ) {
   const [claimed] = await ctx.tx
     .update(payment)
@@ -129,10 +156,24 @@ async function claimAttempt(
   if (!claimed) return null
   const [o] = await ctx.tx.select().from(order).where(eq(order.id, claimed.orderId))
   if (!o) throw new Error(`order ${claimed.orderId} missing for payment ${attemptId}`)
-  const lines = await ctx.tx.select().from(orderLine).where(eq(orderLine.orderId, o.id))
+  const lines = await ctx.tx
+    .select({ line: orderLine, sku: variant.sku })
+    .from(orderLine)
+    .leftJoin(variant, eq(variant.id, orderLine.variantId))
+    .where(eq(orderLine.orderId, o.id))
   const [ship] = o.shippingAddressId
     ? await ctx.tx.select().from(address).where(eq(address.id, o.shippingAddressId))
     : []
+  const [bill] =
+    o.billingAddressId && o.billingAddressId !== o.shippingAddressId
+      ? await ctx.tx.select().from(address).where(eq(address.id, o.billingAddressId))
+      : []
+  // Redirect gateways send the shopper back to the store's own domain (`/checkout/return/...`).
+  const storefrontOrigin = await storefrontOriginFor(
+    ctx.tx,
+    ctx.storeId,
+    process.env.STOREFRONT_URL ?? 'http://localhost:3100',
+  )
   // A gateway's window offers only the methods the merchant turned on and routed to it, in
   // their order; a fallback try offers what the gateway that failed was going to.
   const gateway = isGatewayProvider(claimed.provider)
@@ -155,25 +196,20 @@ async function claimAttempt(
       email: o.email ?? undefined,
       phone: o.phone ?? undefined,
       name: ship?.name,
+      // The browser that placed the order; a retry from another place passes its own.
+      ip: shopperIp ?? o.tracking?.ip ?? undefined,
     },
-    shipping: ship
-      ? {
-          name: ship.name,
-          line1: ship.line1,
-          line2: ship.line2 ?? undefined,
-          city: ship.city,
-          state: ship.stateCode,
-          postalCode: ship.pincode,
-          country: ship.country,
-        }
-      : undefined,
-    lines: lines.map((l) => ({
+    shipping: ship ? paymentAddress(ship) : undefined,
+    billing: bill ? paymentAddress(bill) : undefined,
+    storefrontOrigin,
+    lines: lines.map(({ line: l, sku }) => ({
       title:
         l.variantTitle && l.variantTitle !== 'Default'
           ? `${l.title ?? ''} / ${l.variantTitle}`
           : (l.title ?? ''),
       quantity: l.quantity,
       unitPricePaise: l.unitPricePaise,
+      sku: sku ?? undefined,
     })),
     merchantName: gateway?.merchantName,
     methods,
@@ -246,6 +282,8 @@ export type StartOptions = {
   methods?: OnlineMethodId[] | undefined
   /** Give up on a gateway that has not opened the payment in this long. */
   timeoutMs?: number | undefined
+  /** The shopper's IP for this try (lenders such as Snapmint need it); else the order's own. */
+  shopperIp?: string | undefined
 }
 
 /**
@@ -267,7 +305,7 @@ export async function startPaymentAttempt(
   options: StartOptions = {},
 ): Promise<StartedPayment> {
   const claim = await withStore(db, storeId, (tx) =>
-    claimAttempt({ storeId, tx }, attemptId, options.methods),
+    claimAttempt({ storeId, tx }, attemptId, options.methods, options.shopperIp),
   )
   if (!claim) {
     const current = await withStore(
@@ -335,20 +373,21 @@ export async function startPaymentAttempt(
     })
   } catch (err) {
     log.error('[payments] could not record gateway answer', err)
+    let error = message(err)
     // Only money actually taken needs returning; providerRef doubles as the
     // payment id for providers that capture at creation.
     if (result.status !== 'pending' && result.status !== 'failed') {
-      await provider.refund(result.providerRef, claim.attempt.amountPaise, undefined, {
-        providerRef: result.providerRef,
-      })
+      const owed = await refundTaken(provider, attemptId, result.providerRef, claim.attempt, log)
+      if (owed) error = `${error}. ${owed}`
     }
-    await markFailed(db, storeId, attemptId, message(err))
+    // Always: an attempt left `created` with gateway_requested_at set can never be claimed again.
+    await markFailed(db, storeId, attemptId, error)
     return {
       attemptId,
       status: 'failed',
       session: null,
       becameCaptured: false,
-      error: message(err),
+      error,
     }
   }
 }
@@ -396,12 +435,16 @@ export async function startPaymentWithFallback(
   attemptId: string,
   provider: PaymentProvider,
   fallbacks: FallbackTry<PaymentProvider>[],
-  options: { timeoutMs?: number | undefined } = {},
+  options: { timeoutMs?: number | undefined; shopperIp?: string | undefined } = {},
   log: Pick<Console, 'error'> = console,
 ): Promise<StartedPayment> {
   return runWithFallbacks({ attemptId, provider }, fallbacks, {
     start: (id, p, methods) =>
-      startPaymentAttempt(db, storeId, id, p, log, { methods, timeoutMs: options.timeoutMs }),
+      startPaymentAttempt(db, storeId, id, p, log, {
+        methods,
+        timeoutMs: options.timeoutMs,
+        shopperIp: options.shopperIp,
+      }),
     reopen: (failedId, p) => reopenOnGateway(db, storeId, failedId, p.id),
   })
 }
@@ -431,6 +474,10 @@ export async function retryPayment(
   }
   if ((OPEN_ATTEMPT_STATUSES as readonly string[]).includes(latest.status)) {
     return { attempt: latest, created: false }
+  }
+  // Card testing guard (`attempt-cap.ts`): too many declines this hour, no new gateway order.
+  if (!(await hasPaymentTriesLeft(ctx, orderId))) {
+    throw new PaymentNotRetryable(orderId, 'too many failed payments', ctx.storeId)
   }
   const attempt = await createPaymentAttempt(ctx, {
     orderId,

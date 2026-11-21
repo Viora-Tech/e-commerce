@@ -218,6 +218,7 @@ export const NAV_GROUPS: NavGroup[] = [
         icon: AgenticSales,
         permission: permissions.ONLINE_STORE_READ,
         children: [
+          { href: routes.salesChannels.agenticKnowledge(), label: 'Knowledge base' },
           { href: routes.salesChannels.agenticReadiness(), label: 'Catalog readiness' },
           { href: routes.salesChannels.agenticControls(), label: 'Controls' },
         ],

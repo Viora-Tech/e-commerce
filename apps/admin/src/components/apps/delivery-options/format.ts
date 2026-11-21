@@ -6,6 +6,8 @@ export type Overview = Awaited<ReturnType<typeof api.deliveryOptions.overview>>
 export type TryPinResult = Awaited<ReturnType<typeof api.deliveryOptions.tryPin>>
 export type RouteCatalogue = Awaited<ReturnType<typeof api.deliveryOptions.routeCatalogue>>
 export type CatalogueRoute = RouteCatalogue['routes'][number]
+export type RuleSuggestion = Awaited<ReturnType<typeof api.deliveryOptions.ruleSuggestions>>[number]
+export type CollectionTwin = Awaited<ReturnType<typeof api.deliveryOptions.collectionTwins>>[number]
 type Copy = typeof deliveryOptionsContent
 
 /** Known couriers for the pickers: key and how the shopper reads it. */
@@ -51,25 +53,52 @@ export function channelLabel(channel: string, copy: Copy): string {
   return known[channel] ?? channel
 }
 
-/** "Glasspads → all options → Delhivery, insured". */
-export function ruleSummary(rule: RouteRule, optionNames: Map<string, string>, copy: Copy): string {
+/** Same courier, app and speed (a rule's default is one of its routes). */
+export const sameSelector = (a: RouteSelector, b: RouteSelector): boolean =>
+  a.carrier === b.carrier &&
+  (a.channel ?? 'any') === (b.channel ?? 'any') &&
+  (a.speed ?? 'any') === (b.speed ?? 'any')
+
+/** "1 collection", "All products", "Tagged “oversize”". */
+export function ruleTargetLabel(rule: Pick<RouteRule, 'target'>, copy: Copy): string {
   const t = rule.target
-  const target =
-    t.kind === 'tags'
-      ? copy.rules.targets.tags(t.values.join(', '))
-      : t.kind === 'types'
-        ? copy.rules.targets.types(t.values.join(', '))
-        : copy.rules.targets[t.kind](t.values.length)
+  if (t.kind === 'all') return copy.rules.targets.all()
+  if (t.kind === 'tags') return copy.rules.targets.tags(t.values.map((v) => `“${v}”`).join(', '))
+  if (t.kind === 'types') return copy.rules.targets.types(t.values.join(', '))
+  return copy.rules.targets[t.kind](t.values.length)
+}
+
+/**
+ * Every route a rule allows, the preferred one first and marked (#1781: the Mouse rule allows
+ * Delhivery Air and Surface but read "only Delhivery Express / Air"). `mark` words the
+ * preferred route, e.g. "Delhivery Express / Air (preferred)".
+ */
+export function ruleRouteLabels(
+  rule: RouteRule,
+  copy: Copy,
+  mark: (label: string, always: boolean) => string,
+  /** The name for one route; the full selector label unless a shorter one is given. */
+  labelOf: (r: RouteSelector) => string = (r) => selectorLabel(r, copy),
+): string[] {
+  const preferred = rule.defaultRoute ?? null
+  const rest = rule.routes.filter((r) => !preferred || !sameSelector(r, preferred))
+  return [
+    ...(preferred ? [mark(labelOf(preferred), rule.forceRoute === true)] : []),
+    ...rest.map(labelOf),
+  ]
+}
+
+/** "Glasspads: 1 collection → all options → Delhivery, Blue Dart, insured". */
+export function ruleSummary(rule: RouteRule, optionNames: Map<string, string>, copy: Copy): string {
   const options =
     rule.optionIds === 'all'
       ? copy.rules.allOptions
       : rule.optionIds.map((id) => optionNames.get(id) ?? '?').join(', ')
-  const main = rule.defaultRoute
-    ? selectorLabel(rule.defaultRoute, copy)
-    : rule.routes.map((r) => selectorLabel(r, copy)).join(' / ')
+  const routes = ruleRouteLabels(rule, copy, (label) => label).join(', ')
   const alts = rule.alternatives.length
     ? copy.rules.orAlt(rule.alternatives.map((r) => selectorLabel(r, copy)).join(', '))
     : ''
   const insured = rule.insurance === 'required' ? `, ${copy.rules.insured}` : ''
-  return `${rule.name}: ${copy.rules.summary(target, options, `${main}${alts}${insured}`)}`
+  const target = ruleTargetLabel(rule, copy)
+  return `${rule.name}: ${copy.rules.summary(target, options, `${routes}${alts}${insured}`)}`
 }

@@ -1,6 +1,7 @@
 import { type AppBlockOwner, type CardProduct, createBlocksConfig } from '@commerce/blocks/puck'
 import { applyBindings, isBinding } from '@commerce/core/dynamic-sources'
 import { GROUP_SECTIONS, SINGLE_SECTIONS } from '@commerce/core/theme'
+import { LIQUID_SECTION } from '@commerce/core/theme-import'
 import { type ComponentConfig, type Config, DropZone } from '@puckeditor/core'
 import Image from '@tiptap/extension-image'
 import type { ReactNode } from 'react'
@@ -180,15 +181,17 @@ export function createCustomizeConfig(
     }),
   )
 
+  // An imported theme's header and footer groups hold its own sections (`LiquidSection`): without
+  // it here, dragging them on the canvas found no zone that would take them.
   return {
     ...base,
     components,
     root: {
       render: ({ children }: { children: ReactNode }) => (
         <>
-          <DropZone zone="header" allow={[...GROUP_SECTIONS.header]} />
+          <DropZone zone="header" allow={[...GROUP_SECTIONS.header, LIQUID_SECTION]} />
           {children}
-          <DropZone zone="footer" allow={[...GROUP_SECTIONS.footer]} />
+          <DropZone zone="footer" allow={[...GROUP_SECTIONS.footer, LIQUID_SECTION]} />
         </>
       ),
     },

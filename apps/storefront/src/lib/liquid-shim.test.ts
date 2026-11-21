@@ -103,3 +103,43 @@ describe('section rendering through the shim', () => {
     expect(url.searchParams.get('path')).toBe('/products/mat')
   })
 })
+
+describe('consent through the shim', () => {
+  it('keeps the answer for a listener that is not there yet, and still sends the event', () => {
+    const sent: unknown[] = []
+    const win = {
+      Node: FakeNode,
+      fetch: () => Promise.resolve(new Response('{}')),
+      dispatchEvent: (e: CustomEvent) => sent.push(e.detail),
+    } as unknown as Window & {
+      Shopify: { customerPrivacy: { setTrackingConsent: (c: unknown, d: () => void) => void } }
+      __commerceConsentAnswer?: unknown
+    }
+    const location = new URL('https://shop.example/')
+    new Function('window', 'location', liquidShim({ askConsent: true }))(win, location)
+    win.Shopify.customerPrivacy.setTrackingConsent({ analytics: true, marketing: 0 }, () => {})
+    expect(win.__commerceConsentAnswer).toEqual({ analytics: true, marketing: false })
+    expect(sent).toEqual([{ analytics: true, marketing: false }])
+  })
+})
+
+describe("Customize's design mode", () => {
+  const shimmed = (designMode?: boolean) => {
+    const win = {
+      Node: FakeNode,
+      fetch: () => Promise.resolve(new Response('{}')),
+    } as unknown as Window & {
+      Shopify?: { designMode?: boolean }
+    }
+    const config =
+      designMode === undefined ? { askConsent: false } : { askConsent: false, designMode }
+    new Function('window', 'location', liquidShim(config))(win, new URL('https://shop.example/'))
+    return win.Shopify
+  }
+
+  it('sets Shopify.designMode only on the editor frame', () => {
+    expect(shimmed(true)?.designMode).toBe(true)
+    expect(shimmed(false)?.designMode).toBeUndefined()
+    expect(shimmed()?.designMode).toBeUndefined()
+  })
+})

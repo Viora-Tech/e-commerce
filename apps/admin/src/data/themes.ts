@@ -31,6 +31,8 @@ export const themesContent = {
     actions: 'Theme actions',
     thumbnail: (name: string) => `${name} on your storefront`,
     pictureHint: 'The picture updates each time you save the home page in Customize.',
+    coverHint:
+      'Your home page cover. A full picture is taken when you save the home page in Customize.',
     libraryHeading: 'Theme library',
     libraryBody: 'Themes you have added or copied. Publish one to make it live.',
     libraryEmpty: 'No other themes yet. Add one from a preset or duplicate the current theme.',

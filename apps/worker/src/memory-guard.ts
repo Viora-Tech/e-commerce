@@ -55,6 +55,8 @@ const CRITICAL = new Set([
 const BULK = new Set([
   'app-jobs',
   'media-process',
+  'media-video',
+  'media-video-backfill',
   'store-export',
   'theme-screenshot',
   'ai-bulk-write',
@@ -68,6 +70,7 @@ const BULK = new Set([
   'home-cards',
   'search-console-sweep',
   'member-daily-summary',
+  'member-reports',
   'affiliate-commissions',
   'api-activity-prune',
   'store-activity-prune',

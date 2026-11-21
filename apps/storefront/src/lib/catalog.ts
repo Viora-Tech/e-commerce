@@ -284,6 +284,8 @@ export async function getProductByHandle(
       variants: media.variants,
       thumbhash: media.thumbhash,
       width: media.width,
+      // A video's smaller copy: the gallery plays it, and `url` stays the key variants match on.
+      compactUrl: media.compactUrl,
     })
     .from(productMedia)
     .innerJoin(media, eq(media.id, productMedia.mediaId))
@@ -316,6 +318,7 @@ export async function getProductByHandle(
       id: variant.id,
       title: variant.title,
       sku: variant.sku,
+      barcode: variant.barcode,
       pricePaise: variant.pricePaise,
       mrpPaise: variant.mrpPaise,
       onHand: sellableStock.onHand,
@@ -450,6 +453,7 @@ export async function getProductByHandle(
       id: v.id,
       title: v.title,
       sku: v.sku,
+      barcode: v.barcode,
       pricePaise: v.pricePaise,
       mrpPaise: v.mrpPaise,
       available: availableFor(v),

@@ -1,13 +1,17 @@
 /**
- * A poster picture for an uploaded video, made in the browser: the frame about 2 s in, or the
- * next one that is not black or flat (a fade-in, a title card), so a hero video never shows a
- * black first frame before it plays (owner 16 Nov 2026). No server work: the browser already
+ * A poster picture for an uploaded video, made in the browser: the FIRST frame that shows
+ * something, from the very start, skipping only black or flat frames (a fade-in), so the poster
+ * is the video's opening shot (owner, 21 Nov 2026: a frame 2 s in picked a random mid-video shot
+ * instead of the "World's First" title) and never a black first frame (owner, 16 Nov 2026). No server work: the browser already
  * decodes the video, and the frame is uploaded like any picture.
  */
 import { isBlankPixels, isFeatureless } from './blank-image'
 
-/** Seconds tried in order; the first that shows something wins. */
-const TRIES = [2, 4, 1, 6, 0.5, 8]
+/**
+ * Seconds tried in order; the first that shows something wins. Starts just after 0, because
+ * seeking to the time the video already shows fires no `seeked`.
+ */
+const TRIES = [0.05, 0.25, 0.5, 1, 2, 4, 6, 8]
 
 /** The poster's long edge at most this many pixels: sharp on a full-width hero, not huge. */
 const MAX_EDGE = 1920
@@ -18,7 +22,7 @@ const SAMPLE_WIDTH = 64
 /** Give up on a video the browser cannot open or seek within this long. */
 const WAIT_MS = 15_000
 
-/** The times to try for a video this long: inside it, without repeats, the 2 s frame first. */
+/** The times to try for a video this long: inside it, without repeats, the opening frame first. */
 export function posterTimes(duration: number): number[] {
   if (!Number.isFinite(duration) || duration <= 0) return [0]
   const last = Math.max(0, duration - 0.1)
@@ -83,7 +87,7 @@ export const posterName = (videoName: string) =>
 
 /**
  * The poster for a video file, as a JPEG ready to upload; null when the browser cannot read the
- * video. A video that is dark all through still gets its 2 s frame rather than nothing.
+ * video. A video that is dark all through still gets its opening frame rather than nothing.
  */
 export async function grabVideoPoster(file: File): Promise<File | null> {
   const src = URL.createObjectURL(file)

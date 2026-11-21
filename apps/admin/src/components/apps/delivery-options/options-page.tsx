@@ -1,10 +1,6 @@
 'use client'
 
-import {
-  courierId,
-  type DeliveryLayout,
-  type DeliveryOption,
-} from '@commerce/core/delivery-options'
+import type { DeliveryLayout, DeliveryOption } from '@commerce/core/delivery-options'
 import { Plus } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
@@ -12,6 +8,7 @@ import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import LoadFailedState from '@/components/apps/shared/load-failed-state'
 import EmptyState from '@/components/layout/empty-state'
+import SaveBar from '@/components/layout/save-bar'
 import SectionHead from '@/components/layout/section-head'
 import SectionPageSkeleton from '@/components/layout/section-page-skeleton'
 import SortableStack from '@/components/layout/sortable-stack'
@@ -22,14 +19,14 @@ import { deliveryPagesContent } from '@/data/delivery-options-pages'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
-import CheckoutPreviewList from './checkout-preview-list'
+import CourierListPreview from './courier-list-preview'
 import { courierRows } from './courier-rows'
 import CourierSwitchesCard from './courier-switches-card'
 import DeliveryWarnings from './delivery-warnings'
 import LayoutPicker from './layout-picker'
+import ListQuestionsCard from './list-questions-card'
 import OptionEditCard from './option-edit-card'
-import PriceIncludesCard from './price-includes-card'
-import { PREVIEW_CART, PREVIEW_PIN, useCheckoutPreview } from './use-checkout-preview'
+import RulesDefaultNote from './rules-default-note'
 import { useDeliveryOverview, useRouteCatalogue } from './use-delivery-overview'
 
 const APP = 'delivery-options'
@@ -46,9 +43,10 @@ const listOptionOf = (drafts: DeliveryOption[] | null) =>
 
 /**
  * Apps → Delivery options → Options: how checkout shows delivery, edited in place and saved
- * together. Courier list (Figma 938:12101): the couriers shoppers may see, what the price
- * includes and a live preview of the unsaved edits. Fixed options (Figma 929:11812): one card per
- * option, dragged into order. Each option's own page keeps the advanced settings.
+ * together. Courier list (Figma 938:12101): the 3 delivery price questions with one collapsed
+ * "More settings" (owner, 21 Nov 2026), the couriers shoppers may see and a live preview of the
+ * unsaved edits. Fixed options (Figma 929:11812): one card per
+ * option with a one-line summary, dragged into order; each option's own page asks the questions.
  */
 export default function DeliveryOptionsPage() {
   // Hooks
@@ -63,31 +61,27 @@ export default function DeliveryOptionsPage() {
   /** Which action is running, so only its button spins. */
   const [busy, setBusy] = useState<'preset' | 'save' | null>(null)
   const { catalogue, loading } = useRouteCatalogue(layout === 'list')
-  const preview = useCheckoutPreview(
-    { layout, options: positionedOf(drafts) },
-    PREVIEW_PIN,
-    layout === 'list',
-  )
-
-  useEffect(() => {
-    if (!overview) return
-    const saved = overview.layout ?? 'fixed'
-    setLayout(saved)
-    setDrafts(overview.options)
-    setSavedKey(JSON.stringify({ layout: saved, options: overview.options }))
-  }, [overview])
 
   // Helpers
+  /** Puts the page back to what is saved: on load, after a save, and on Discard. */
+  const resetToSaved = (saved: NonNullable<typeof overview>) => {
+    const savedLayout = saved.layout ?? 'fixed'
+    setLayout(savedLayout)
+    setDrafts(saved.options)
+    setSavedKey(JSON.stringify({ layout: savedLayout, options: saved.options }))
+  }
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: resets only when the saved settings change.
+  useEffect(() => {
+    if (overview) resetToSaved(overview)
+  }, [overview])
+
   const rowsNow = () => courierRows(catalogue?.routes ?? [])
   const idsNow = () => rowsNow().map((r) => r.id)
   const allowNow = () => listOptionOf(drafts)?.couriers.allow ?? null
   const isOn = (id: string) => allowNow()?.includes(id) ?? true
   const isNew = (id: string) =>
     allowNow() !== null && !(listOptionOf(drafts)?.couriers.known ?? []).includes(id)
-  const nameOf = (id: string) => {
-    const row = rowsNow().find((r) => r.id === id)
-    return row ? `${row.carrier} ${pages.routeTable.speeds[row.speed]}` : id
-  }
   const update = (next: DeliveryOption) =>
     setDrafts((list) => (list ?? []).map((o) => (o.id === next.id ? next : o)))
 
@@ -106,6 +100,9 @@ export default function DeliveryOptionsPage() {
         known: union(listOption.couriers.known, allIds),
       },
     })
+  }
+  const handleDiscard = () => {
+    if (overview) resetToSaved(overview)
   }
   const handlePreset = async () => {
     setBusy('preset')
@@ -160,26 +157,24 @@ export default function DeliveryOptionsPage() {
   // Render logic
   const listed = layout === 'list'
   const rows = rowsNow()
-  const allIds = rows.map((r) => r.id)
   const listOption = listOptionOf(drafts)
   const page = pages.pages.options
   const dirty = JSON.stringify({ layout, options: drafts }) !== savedKey
   const firstShown = drafts.find((o) => o.enabled)
   const backupName = drafts.find((o) => o.enabled && o.speed === 'standard')?.name
-  const pick = preview.result?.options[0]?.pick?.route
-  const includedId = pick ? courierId(pick.carrierKey, pick.speed) : null
-  const shownIds = new Set(
-    (preview.result?.options[0]?.choices ?? []).map((c) =>
-      courierId(c.route.carrierKey, c.route.speed),
-    ),
-  )
-  const off = allIds.filter((id) => !isOn(id)).map(nameOf)
-  const hidden = preview.result
-    ? allIds.filter((id) => isOn(id) && !shownIds.has(id) && id !== includedId).map(nameOf)
-    : []
 
   return (
     <div className="flex flex-col gap-5">
+      {/* Every change on this page waits for Save: the bar shows as soon as one is made. */}
+      <SaveBar
+        open={dirty}
+        message={copy.option.unsaved}
+        saveLabel={copy.save}
+        discardLabel={copy.option.discard}
+        onSave={handleSave}
+        onDiscard={handleDiscard}
+        saving={busy === 'save'}
+      />
       <SectionHead
         title={page.title}
         intro={listed ? page.introList : page.intro}
@@ -195,18 +190,12 @@ export default function DeliveryOptionsPage() {
                 {copy.options.add}
               </Button>
             )}
-            <Button
-              onClick={handleSave}
-              disabled={!dirty || busy !== null}
-              loading={busy === 'save'}
-            >
-              {copy.save}
-            </Button>
           </div>
         }
       />
       <DeliveryWarnings warnings={overview.warnings} />
       <LayoutPicker value={layout} onChange={setLayout} />
+      <RulesDefaultNote />
 
       {drafts.length === 0 ? (
         <div className="flex flex-col items-start gap-2 rounded-lg border border-panel-border bg-card p-4">
@@ -220,35 +209,21 @@ export default function DeliveryOptionsPage() {
         listOption ? (
           <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[minmax(0,1.65fr)_minmax(0,1fr)]">
             <div className="flex flex-col gap-4">
+              <ListQuestionsCard option={listOption} onChange={update} />
               <CourierSwitchesCard
                 rows={rows}
                 loading={loading}
                 isOn={isOn}
                 isNew={isNew}
-                includedId={includedId}
                 onToggle={handleToggle}
               />
-              <PriceIncludesCard option={listOption} onChange={update} />
             </div>
-            <section className="flex flex-col gap-3 rounded-lg border border-panel-border bg-card p-4 lg:sticky lg:top-4">
-              <div className="flex flex-col gap-0.5">
-                <h2 className="text-card-title text-ink-strong">{pages.preview.previewTitle}</h2>
-                <p className="text-caption text-muted-foreground">
-                  {pages.preview.previewFor(PREVIEW_PIN, String(PREVIEW_CART.weightGrams / 1000))}
-                </p>
-              </div>
-              <CheckoutPreviewList {...preview} look="logos" />
-              {hidden.length || off.length ? (
-                <p className="text-caption text-muted-foreground">
-                  {[
-                    hidden.length ? pages.preview.hidden(hidden.join(', ')) : null,
-                    off.length ? pages.preview.off(off.join(', ')) : null,
-                  ]
-                    .filter(Boolean)
-                    .join(' ')}
-                </p>
-              ) : null}
-            </section>
+            <CourierListPreview
+              draft={{ layout, options: positionedOf(drafts) }}
+              rows={rows}
+              isOn={isOn}
+              fastest={listOption.strategy === 'fastest'}
+            />
           </div>
         ) : (
           <p className="text-body text-muted-foreground">{pages.layout.needsOption}</p>

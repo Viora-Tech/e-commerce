@@ -56,8 +56,11 @@ export default function CheckoutPreviewList({
       title: c.route.showCarrier ? c.route.carrier : o.name,
       logo: c.route.showCarrier ? c.route.carrier : null,
       lines: [`${speedWord(c.route.speed)} · ${by(c.latest, c.etaEstimated)}`],
+      // A full-price list shows each courier's own price (owner, 21 Nov 2026), as checkout does.
       price:
-        i === 0 ? money(c.pricePaise) : pages.preview.extra(fmt.money(c.pricePaise - o.pricePaise)),
+        i === 0 || o.fullPrices || c.pricePaise <= o.pricePaise
+          ? money(c.pricePaise)
+          : pages.preview.extra(fmt.money(c.pricePaise - o.pricePaise)),
     }))
   const optionCard = (o: Option): Card => {
     const route = o.pick?.route

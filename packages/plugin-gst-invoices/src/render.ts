@@ -5,7 +5,7 @@ import {
   type InvoiceSettings,
 } from '@commerce/invoices'
 import type { StorageProvider } from '@commerce/storage'
-import { eq } from 'drizzle-orm'
+import { and, eq } from 'drizzle-orm'
 import { getDocument, InvoiceError, type InvoiceRow, loadSettings } from './issue'
 import { invoice } from './schema'
 
@@ -58,12 +58,38 @@ export async function renderSnapshot(
   return renderDocumentToBuffer({ doc, settings: s, assets: { logo, signature } })
 }
 
-/** Render a stored document and keep the file; records the failure instead of throwing it away. */
+/** The snapshot to print: an issued document always carries its row's number (#1784). */
+export function printableSnapshot(row: Pick<InvoiceRow, 'number' | 'snapshot'>): DocumentSnapshot {
+  const doc = DocumentSnapshotSchema.parse(row.snapshot)
+  return row.number && !doc.number ? { ...doc, number: row.number } : doc
+}
+
+/** Tries before giving up when the document keeps changing while it renders. */
+const RENDER_ATTEMPTS = 3
+
+/**
+ * Render a stored document and keep the file; records the failure instead of throwing it away.
+ * The file is marked ready only if the document did not change while it rendered (same
+ * `updatedAt`): a render that read a queued draft just before it was issued drew the draft, with
+ * no number, and that file was then served for good (#1784). A changed document renders again.
+ */
 export async function renderAndStore(deps: RenderDeps, invoiceId: string): Promise<InvoiceRow> {
+  for (let attempt = 1; ; attempt++) {
+    const done = await renderOnce(deps, invoiceId)
+    if (done || attempt === RENDER_ATTEMPTS) {
+      if (done) return done
+      throw new Error(`invoice ${invoiceId} kept changing while its PDF rendered`)
+    }
+  }
+}
+
+async function renderOnce(deps: RenderDeps, invoiceId: string): Promise<InvoiceRow | null> {
   const row = await deps.inStore((tx) => getDocument(tx, invoiceId))
   if (!row) throw new InvoiceError('not_found', `invoice ${invoiceId} not found`)
+  // Recorded, invoiced outside Koomerce: there is no PDF of ours to draw.
+  if (row.source === 'external') return row
   try {
-    const bytes = await renderSnapshot(deps, DocumentSnapshotSchema.parse(row.snapshot))
+    const bytes = await renderSnapshot(deps, printableSnapshot(row))
     const storage = await deps.storage()
     const key = row.pdfKey ?? pdfKeyFor(deps.storeId)
     await storage.put({ key, body: bytes, contentType: 'application/pdf' })
@@ -71,10 +97,11 @@ export async function renderAndStore(deps: RenderDeps, invoiceId: string): Promi
       tx
         .update(invoice)
         .set({ pdfKey: key, pdfStatus: 'ready', pdfError: null, updatedAt: new Date() })
-        .where(eq(invoice.id, invoiceId))
+        .where(and(eq(invoice.id, invoiceId), eq(invoice.updatedAt, row.updatedAt)))
         .returning(),
     )
-    return updated ?? row
+    // Changed while it rendered: the file drew an older version, so draw it again.
+    return updated ?? null
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
     await deps.inStore((tx) =>
@@ -91,6 +118,12 @@ export async function renderAndStore(deps: RenderDeps, invoiceId: string): Promi
 export async function pdfBytes(deps: RenderDeps, invoiceId: string): Promise<Uint8Array> {
   let row = await deps.inStore((tx) => getDocument(tx, invoiceId))
   if (!row) throw new InvoiceError('not_found', `invoice ${invoiceId} not found`)
+  if (row.source === 'external') {
+    throw new InvoiceError(
+      'invalid',
+      `${row.number ?? 'This invoice'} was issued outside Koomerce, so there is no PDF here`,
+    )
+  }
   if (row.pdfStatus === 'ready' && row.pdfKey) {
     const stored = await (await deps.storage()).get(row.pdfKey)
     if (stored) return stored

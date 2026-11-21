@@ -1,5 +1,5 @@
 /** SOURCE OF TRUTH: rendering an imported Shopify theme — WHAT: the section, theme-block and layout renders the storefront and the editor canvas call (synchronous passes over the request's data cache), Shopify's section wrappers and the layout split around `<main>` / WHY: every imported section, on every page and in Customize, renders through this one path */
-import { appBlockHtml } from './app-blocks'
+import { appBlockHtml, liquidBlockType } from './app-blocks'
 import { parsed, type ThemeBundle } from './bundle'
 import type { FontDrop } from './drops'
 import { BLOCK_SCOPE, type EngineRuntime, renderBounded } from './engine'
@@ -30,7 +30,7 @@ function sectionBlocks(
     const blockSchema = local?.settings ?? themeBlock?.settings
     return {
       id: b.id,
-      type: b.type,
+      ...liquidBlockType(b.type),
       settings: liquidSettings(blockSchema, b.settings, ctx.cache, themeSettings),
       shopify_attributes: `data-block-id="${escapeAttr(b.id)}"`,
       static: b.static === true,
@@ -223,6 +223,7 @@ function withHooks(ctx: LiquidPageContext): EngineRuntime {
       )
       return `<${wrapper.tag} id="${wrapper.id}" class="${wrapper.className}">${html}</${wrapper.tag}>`
     },
+    renderAppBlock: (block) => appBlockHtml(ctx, block as { type?: unknown }),
     renderThemeBlock: (block, section, liquidCtx, depth, extras) => {
       const b = block as {
         type?: string

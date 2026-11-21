@@ -1,0 +1,77 @@
+/** SOURCE OF TRUTH: the Product rules page's order advice and delivery warnings
+ * WHAT:  Which rule should sit above which (a more specific rule above a broader one: "Mice (a
+ *        collection) above All products"), the order "Sort by most specific" saves, and rules
+ *        that can block delivery: one allowing a single courier, worse when it is for all
+ *        products; and pairs of rules with no courier in common, whose products ship as
+ *        separate parcels when bought together (owner, 21 Nov 2026: a split, not a block).
+ * WHY:   Owner, 20 Nov 2026: the list should read in the order checkout applies rules
+ *        (`RULE_SPECIFICITY`), and a one-courier rule leaves PIN codes with no delivery.
+ * WHERE: rule-order-card.tsx on rules-page.tsx. Pure.
+ */
+import { type RouteRule, RULE_SPECIFICITY } from '@commerce/core/delivery-options'
+
+const rank = (r: Pick<RouteRule, 'target'>) => RULE_SPECIFICITY[r.target.kind] ?? 0
+
+/** Most specific first; rules of the same kind keep their order. */
+export function sortBySpecificity<T extends Pick<RouteRule, 'target' | 'position'>>(
+  rules: readonly T[],
+): T[] {
+  return rules
+    .map((r, i) => ({ r, i }))
+    .sort((a, b) => rank(b.r) - rank(a.r) || a.i - b.i)
+    .map((x) => x.r)
+}
+
+export type OrderAdvice = { specific: RouteRule; broad: RouteRule }
+
+/** Each broader rule placed above a more specific one, nearest pair first. */
+export function orderAdvice(rules: readonly RouteRule[]): OrderAdvice[] {
+  const out: OrderAdvice[] = []
+  rules.forEach((broad, i) => {
+    for (const specific of rules.slice(i + 1)) {
+      if (rank(specific) > rank(broad)) out.push({ specific, broad })
+    }
+  })
+  return out
+}
+
+export type RuleWarning =
+  | { rule: RouteRule; kind: 'oneCourier' | 'allOneCourier'; carrier: string }
+  /** `rule` and `other` share no courier: a cart with both ships as separate parcels. */
+  | { rule: RouteRule; kind: 'separateParcels'; other: RouteRule }
+
+/** A rule's couriers; null when it allows any courier. */
+function carriersOf(rule: RouteRule): Set<string> | null {
+  const carriers = new Set(rule.routes.map((r) => r.carrier))
+  return carriers.has('any') ? null : carriers
+}
+
+const shareOption = (a: RouteRule, b: RouteRule) =>
+  a.optionIds === 'all' ||
+  b.optionIds === 'all' ||
+  a.optionIds.some((id) => b.optionIds.includes(id))
+
+/** Pairs of enabled rules (for a common option) whose couriers have nothing in common. */
+function separateParcels(rules: readonly RouteRule[]): RuleWarning[] {
+  const live = rules.filter((r) => r.enabled)
+  return live.flatMap((rule, i) =>
+    live.slice(i + 1).flatMap((other) => {
+      const a = carriersOf(rule)
+      const b = carriersOf(other)
+      if (!a || !b || !shareOption(rule, other) || [...a].some((c) => b.has(c))) return []
+      return [{ rule, kind: 'separateParcels' as const, other }]
+    }),
+  )
+}
+
+/** Enabled rules that allow a single courier, then pairs that split a cart into parcels. */
+export function blockingRules(rules: readonly RouteRule[]): RuleWarning[] {
+  const single = rules.flatMap((rule): RuleWarning[] => {
+    if (!rule.enabled) return []
+    const carriers = [...new Set(rule.routes.map((r) => r.carrier))]
+    const [carrier] = carriers
+    if (carriers.length !== 1 || !carrier || carrier === 'any') return []
+    return [{ rule, kind: rule.target.kind === 'all' ? 'allOneCourier' : 'oneCourier', carrier }]
+  })
+  return [...single, ...separateParcels(rules)]
+}

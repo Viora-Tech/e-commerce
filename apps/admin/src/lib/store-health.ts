@@ -63,7 +63,11 @@ export function healthText(
     case 'zone_no_rates':
       return { ...c.zone_no_rates, title: c.zone_no_rates.title(issue.zoneName) }
     case 'zones_overlap':
-      return { ...c.zones_overlap, title: c.zones_overlap.title(issue.zoneNames.join(', ')) }
+      return {
+        ...c.zones_overlap,
+        // `place` is new (19 Nov); an older saved report reads it as unknown.
+        title: c.zones_overlap.title(issue.place ?? null, issue.zoneNames, issue.zoneIds.length),
+      }
     case 'states_uncovered':
       return {
         title: c.states_uncovered.title(issue.stateCodes.length),

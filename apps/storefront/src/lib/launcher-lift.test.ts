@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest'
-import { isOverlay, launcherLift } from './launcher-lift'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { bottomBars, EDGE_PX, isOverlay, launcherLift, SAMPLE_ROWS } from './launcher-lift'
 
 // A 390x844 phone with the chat button at x 318-374 (the live Glide report).
 const VH = 844
@@ -48,5 +48,43 @@ describe('isOverlay', () => {
   it('tells a drawer from a bar', () => {
     expect(isOverlay({ top: 0, bottom: 844, left: 40, right: 390 }, VH)).toBe(true)
     expect(isOverlay({ top: 780, bottom: 844, left: 0, right: 390 }, VH)).toBe(false)
+  })
+})
+
+describe('bottomBars', () => {
+  // The Revamp dock: fixed, floated var(--rv-gutter) (0.75rem) off the bottom edge, 58 high.
+  const dockBox = { top: VH - 12 - 58, bottom: VH - 12, left: 12, right: 378 }
+
+  function stubPage() {
+    const dock = {
+      closest: () => null,
+      parentElement: null,
+      getBoundingClientRect: () => dockBox,
+    }
+    const page = { closest: () => null, parentElement: null }
+    vi.stubGlobal('window', { innerHeight: VH })
+    vi.stubGlobal('getComputedStyle', (el: unknown) => ({
+      position: el === dock ? 'fixed' : 'static',
+    }))
+    vi.stubGlobal('document', {
+      body: {},
+      documentElement: {},
+      // Only points inside the dock's box hit the dock; below it is the page.
+      elementsFromPoint: (_x: number, y: number) =>
+        y >= dockBox.top && y <= dockBox.bottom ? [dock] : [page],
+    })
+  }
+  afterEach(() => vi.unstubAllGlobals())
+
+  it('finds a dock floated a little off the bottom edge, so the button lifts over it', () => {
+    stubPage()
+    const bars = bottomBars(BUTTON)
+    expect(bars).toEqual([dockBox])
+    expect(launcherLift(bars, BUTTON, VH)).toBe(70)
+  })
+
+  it('samples up to EDGE_PX from the edge', () => {
+    expect(Math.max(...SAMPLE_ROWS)).toBeLessThanOrEqual(EDGE_PX)
+    expect(Math.max(...SAMPLE_ROWS)).toBeGreaterThan(12)
   })
 })

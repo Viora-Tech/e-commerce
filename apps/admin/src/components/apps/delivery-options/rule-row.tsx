@@ -8,8 +8,10 @@ import type { ReactNode } from 'react'
 import StatusChip from '@/components/layout/status-chip'
 import { deliveryOptionsContent } from '@/data/delivery-options'
 import { deliveryPagesContent } from '@/data/delivery-options-pages'
-import { useCopy } from '@/hooks/use-copy'
-import { selectorLabel } from './format'
+import { deliveryRuleFormContent } from '@/data/delivery-rule-form'
+import { useCopy, useFormat } from '@/hooks/use-copy'
+import { carrierName, ruleRouteLabels, ruleTargetLabel } from './format'
+import { chipLabel } from './rule-preview'
 
 type RuleRowProps = {
   rule: RouteRule
@@ -21,7 +23,7 @@ type RuleRowProps = {
   onEdit: () => void
 }
 
-const CHIP = 'rounded-md border px-2 py-0.5 text-caption whitespace-nowrap'
+const CHIP = 'max-w-full rounded-md border px-2 py-0.5 text-caption'
 
 /**
  * One product rule (Figma 929:12840): its place, name, the chip chain target → options → routes
@@ -38,24 +40,61 @@ export default function RuleRow({
   // Hooks
   const copy = useCopy(deliveryOptionsContent)
   const pages = useCopy(deliveryPagesContent)
+  const form = useCopy(deliveryRuleFormContent)
+  const fmt = useFormat()
 
   // Render logic
   const r = pages.ruleRows
-  const t = rule.target
-  const target =
-    t.kind === 'tags'
-      ? copy.rules.targets.tags(t.values.map((v) => `“${v}”`).join(', '))
-      : t.kind === 'types'
-        ? copy.rules.targets.types(t.values.join(', '))
-        : copy.rules.targets[t.kind](t.values.length)
+  const target = ruleTargetLabel(rule, copy)
   const options =
     rule.optionIds === 'all'
       ? null
       : rule.optionIds.map((id) => optionNames.get(id) ?? '?').join(', ')
-  const main = rule.defaultRoute ? [rule.defaultRoute, ...rule.alternatives] : rule.routes
-  const routesText = main.map((s) => selectorLabel(s, copy)).join(', ')
+  // Every allowed route by its short name ("Delhivery Surface"), the preferred one first and
+  // marked (#1781). The full label with the courier's app made the row run off the page
+  // (owner, 21 Nov 2026).
+  const routesText = ruleRouteLabels(
+    rule,
+    copy,
+    (label, always) => (always ? r.preferredAlways(label) : r.preferred(label)),
+    (s) => chipLabel(s, copy, form),
+  ).join(', ')
   const routesChip = `${r.only(routesText)}${rule.insurance === 'required' ? ` (${r.insured})` : ''}`
   const line = options ? r.lineOptions(options, routesText) : r.line(routesText)
+  // A rule that takes its couriers through one app only ("Your own account") hides every courier
+  // that app doesn't carry: said on the row, since the short names above don't show it.
+  const channels = new Set(rule.routes.map((s) => s.channel ?? 'any'))
+  const [onlyChannel] = channels.size === 1 ? [...channels] : []
+  const throughText =
+    onlyChannel && onlyChannel !== 'any' && onlyChannel in copy.ruleDialog.throughItems
+      ? r.through(
+          copy.ruleDialog.throughItems[onlyChannel as keyof typeof copy.ruleDialog.throughItems],
+        )
+      : null
+  // The rule's price (20 Nov 2026), when it changes the option's own.
+  const p = form.suggestions.price
+  const price = rule.price ?? { mode: 'option' }
+  const priceMain =
+    price.mode === 'free'
+      ? p.free
+      : price.mode === 'fixed'
+        ? p.fixed(fmt.money(price.fixedPaise ?? 0))
+        : p.option
+  // Couriers' own Fixed prices and the packing charge (21 Nov 2026): "Fixed ₹99, Blue Dart ₹139".
+  const priceParts = [
+    price.mode === 'option' && price.freeAbovePaise == null && !price.packingPaise
+      ? null
+      : priceMain,
+    ...Object.entries(price.mode === 'fixed' ? (price.courierPaise ?? {}) : {}).map(
+      ([carrier, paise]) =>
+        p.courier(carrierName(carrier, copy.routeDialog.anyCourier), fmt.money(paise)),
+    ),
+    price.freeAbovePaise != null && price.mode !== 'free'
+      ? p.freeAbove(fmt.money(price.freeAbovePaise))
+      : null,
+    price.packingPaise && price.mode !== 'free' ? p.packing(fmt.money(price.packingPaise)) : null,
+  ].filter((x): x is string => x !== null)
+  const priceChip = priceParts.length > 0 ? priceParts.join(', ') : null
 
   return (
     <div
@@ -86,6 +125,21 @@ export default function RuleRow({
           </span>
           <ArrowRight aria-hidden className="size-3.5 text-muted-foreground" />
           <span className={cn(CHIP, 'border-info/40 bg-info-soft text-info')}>{routesChip}</span>
+          {throughText ? (
+            <span
+              className={cn(
+                CHIP,
+                'border-warning/30 bg-warning-soft text-warning-foreground dark:text-warning',
+              )}
+            >
+              {throughText}
+            </span>
+          ) : null}
+          {priceChip ? (
+            <span className={cn(CHIP, 'border-success-border bg-success-soft text-success')}>
+              {priceChip}
+            </span>
+          ) : null}
         </span>
         <span className="text-caption text-muted-foreground">{line}</span>
       </div>

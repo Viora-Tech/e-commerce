@@ -1,4 +1,5 @@
 import {
+  appBlockName,
   type LiquidBlockItem,
   type ShopifySectionSchema,
   schemaText,
@@ -94,7 +95,8 @@ export function liquidBlockRows(
 ): LiquidBlockRow[] {
   const names = new Map(types.map((t) => [t.type, t.name]))
   return itemsOf(props).map((item, index) => {
-    const typeName = names.get(item.type) ?? item.type
+    // An app block (`shopify://apps/…`) by its app's name, never its URL.
+    const typeName = names.get(item.type) ?? (appBlockName(item.type) || item.type)
     const text =
       TITLE_KEYS.map((k) => item.settings?.[k])
         .filter((v): v is string => typeof v === 'string')

@@ -16,6 +16,7 @@ import {
   ShippingRateUnavailable,
   ShippingUnavailable,
   StoreCreditError,
+  TooManyPaymentTries,
   VariantHidden,
 } from '@commerce/core'
 import { formatMoney } from '@commerce/money'
@@ -57,6 +58,8 @@ export function checkoutErrorMessage(err: unknown, pincode: string): string | nu
   if (err instanceof PreorderMixedCart) return err.shopperMessage ?? e.preorderMixedCart
   // Settings → Payments → Payment rules (#150): this way to pay is not offered for this order.
   if (err instanceof PaymentMethodHidden) return e.paymentMethodHidden
+  // Card testing guard (core payments/attempt-cap.ts): this order declined too often this hour.
+  if (err instanceof TooManyPaymentTries) return e.tooManyPaymentTries
   // Settings → Checkout, re-checked by placeOrder whatever the form showed.
   if (err instanceof CheckoutRuleViolation) return checkoutRuleMessage(err, pincode)
   return null

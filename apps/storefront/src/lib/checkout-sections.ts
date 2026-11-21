@@ -24,19 +24,47 @@ const DIGITAL_SECTIONS: readonly CheckoutSection[] = ['contact', 'address', 'pay
 export const sectionsFor = (digitalOnly: boolean): readonly CheckoutSection[] =>
   digitalOnly ? DIGITAL_SECTIONS : CHECKOUT_SECTIONS
 
-/** The query parameter a link keeps its step in (`?step=payment`). */
-export const LEGACY_STEP_PARAM = 'step'
+/** The query parameter the step on screen lives in (`/checkout?step=payment`). */
+export const STEP_PARAM = 'step'
+
+/** Each step's word in the URL: the shopper reads Shipping as "Delivery", so the link does too. */
+export const stepParam = (section: CheckoutSection): string =>
+  section === 'shipping' ? 'delivery' : section
 
 /**
- * The section a `?step=` link points at, or null. Anything else (unknown, empty, a section this
- * basket has not got) is ignored. It never decides what the shopper may do.
+ * The section a `?step=` value points at, or null. `delivery` is Shipping; older links saying
+ * `shipping` still work. Anything else (unknown, empty, a section this basket has not got) is
+ * ignored. It never decides what the shopper may do: `resolveStep` does.
  */
 export function sectionFromParam(
   raw: string | null | undefined,
   sections: readonly CheckoutSection[],
 ): CheckoutSection | null {
   const value = raw?.trim().toLowerCase() ?? ''
-  return (sections as readonly string[]).includes(value) ? (value as CheckoutSection) : null
+  const section = value === 'delivery' ? 'shipping' : value
+  return (sections as readonly string[]).includes(section) ? (section as CheckoutSection) : null
+}
+
+/**
+ * Where a step the URL asks for may open. `show`: every step before it is finished. `wait`: one
+ * is still on its way (the courier is quoting the address a reload brought back), so the page
+ * holds instead of bouncing. `fall-back`: one is not finished, so the first unfinished step opens
+ * and the URL follows it. A link never skips a step.
+ */
+export function resolveStep(
+  asked: CheckoutSection,
+  gates: SectionGates,
+  sections: readonly CheckoutSection[],
+): { kind: 'show' | 'wait' | 'fall-back'; step: CheckoutSection } {
+  let waiting = false
+  for (const s of sections.slice(0, Math.max(0, sections.indexOf(asked)))) {
+    if (s === 'payment') continue
+    if (gates[s] === 'blocked') {
+      return { kind: 'fall-back', step: firstOpenSection(gates, sections) ?? s }
+    }
+    if (gates[s] === 'pending') waiting = true
+  }
+  return { kind: waiting ? 'wait' : 'show', step: asked }
 }
 
 /** The card's DOM id, which a scroll or a skip link targets. */

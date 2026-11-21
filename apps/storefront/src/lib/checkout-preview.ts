@@ -68,7 +68,7 @@ function methodRank(m: CheckoutMethod): number {
   if (m.id === 'cod') return 4
   if (m.id === 'decentro') return 0
   if (takesUpi(m)) return 1
-  if (m.id === 'razorpay' || m.id === 'cashfree') return 2
+  if (m.id === 'razorpay' || m.id === 'cashfree' || m.id === 'snapmint') return 2
   return 3
 }
 
@@ -129,6 +129,13 @@ export function methodView(m: CheckoutMethod): MethodView {
       hint: content.methods.upiHint,
       icon: 'phone',
       brand: content.upiBrand,
+    }
+  if (m.id === 'snapmint')
+    return {
+      title: content.methods.snapmint,
+      hint: content.methods.snapmintHint,
+      icon: 'card',
+      brand: null,
     }
   if (m.id === 'manual') {
     const kinds = m.manualKinds
@@ -224,29 +231,66 @@ export function checkoutTotals(input: CheckoutTotalsInput) {
       !coveredByCardsBefore(giftCards, discounted + shippingPaise - credit)) ||
     !codRule.allowed
   const pickedGone = !offered.some((m) => m.id === input.picked)
-  const payment =
+  let payment =
     (input.picked === 'cod' && codBlocked) || pickedGone
       ? (offered.find((m) => m.id !== 'cod' || !codBlocked)?.id ?? input.picked)
       : input.picked
-  const adjustment = previewAdjustment(
-    methods.find((m) => m.id === payment),
-    rate,
-  )
-  const { adjustmentPaise, totalPaise: goodsPaise } = applyPaymentAdjustment(discounted, adjustment)
   // Standard's COD route can cost more than its prepaid one: paying on delivery charges that.
   const codShippingPaise = rate?.delivery?.codPricePaise ?? null
-  const chargedShippingPaise =
-    payment === 'cod' && codShippingPaise !== null && !digitalOnly
-      ? codShippingPaise
-      : shippingPaise
-  const totalPaise = goodsPaise + chargedShippingPaise
-  const { rows: cardRows, duePaise: afterCards } = spendCards(giftCards, totalPaise)
-  // Store credit pays what is due today after gift cards; a deposit's later balance is not touched.
-  const storeCreditUsedPaise = Math.min(credit, Math.max(0, afterCards - input.laterPaise))
-  const duePaise = afterCards - storeCreditUsedPaise
-  const coveredByCards =
-    (giftCards.length > 0 && afterCards === 0) ||
-    (storeCreditUsedPaise > 0 && duePaise - input.laterPaise <= 0)
+  // The order priced as paid with `id`: its payment fee and shipping, then gift cards and store
+  // credit on what is due now (a deposit's later balance is not touched).
+  const priceWith = (id: string) => {
+    const adjustment = previewAdjustment(
+      methods.find((m) => m.id === id),
+      rate,
+    )
+    const { adjustmentPaise, totalPaise: goodsPaise } = applyPaymentAdjustment(
+      discounted,
+      adjustment,
+    )
+    const chargedShippingPaise =
+      id === 'cod' && codShippingPaise !== null && !digitalOnly ? codShippingPaise : shippingPaise
+    const totalPaise = goodsPaise + chargedShippingPaise
+    const { rows: cardRows, duePaise: afterCards } = spendCards(giftCards, totalPaise)
+    const storeCreditUsedPaise = Math.min(credit, Math.max(0, afterCards - input.laterPaise))
+    const duePaise = afterCards - storeCreditUsedPaise
+    const coveredByCards =
+      (giftCards.length > 0 && afterCards === 0) ||
+      (storeCreditUsedPaise > 0 && duePaise - input.laterPaise <= 0)
+    return {
+      adjustment,
+      adjustmentPaise,
+      totalPaise,
+      cardRows,
+      storeCreditUsedPaise,
+      duePaise,
+      coveredByCards,
+    }
+  }
+  let priced = priceWith(payment)
+  // Store credit or gift cards that pay it all leave nothing to collect on delivery: the order is
+  // prepaid, so it takes the cheapest online way to pay they cover (no COD fee or COD route, and
+  // no COD confirmation). Only a store with no online way to pay keeps COD here.
+  if (payment === 'cod' && (giftCards.length > 0 || credit > 0)) {
+    const prepaid = offered
+      .filter((m) => m.id !== 'cod')
+      .map((m) => ({ id: m.id, priced: priceWith(m.id) }))
+      .filter((p) => p.priced.coveredByCards)
+      .sort((a, b) => a.priced.totalPaise - b.priced.totalPaise)[0]
+    if (prepaid) {
+      payment = prepaid.id
+      priced = prepaid.priced
+    }
+  }
+  const {
+    adjustment,
+    adjustmentPaise,
+    totalPaise,
+    cardRows,
+    storeCreditUsedPaise,
+    duePaise,
+    coveredByCards,
+  } = priced
   const codExtraPaise = codShippingPaise === null ? 0 : codShippingPaise - shippingPaise
   const codNote =
     (giftCards.length > 0 || storeCreditUsedPaise > 0) && !coveredByCards
@@ -256,8 +300,10 @@ export function checkoutTotals(input: CheckoutTotalsInput) {
       : optionPrepaid
         ? appCopy.codPrepaidOnly(rate?.delivery?.optionName ?? '')
         : codRule.allowed
-          ? codExtraPaise > 0 && rate?.delivery?.codCarrier
-            ? appCopy.codRoute(formatMoney(codExtraPaise), rate.delivery.codCarrier)
+          ? codExtraPaise > 0 && rate?.delivery
+            ? rate.delivery.codCarrier
+              ? appCopy.codRoute(formatMoney(codExtraPaise), rate.delivery.codCarrier)
+              : appCopy.codExtra(formatMoney(codExtraPaise))
             : null
           : codRule.reason === 'blocked_pincode'
             ? content.codRules.blockedPincode
@@ -285,6 +331,7 @@ export function trustMethodNames(methods: CheckoutMethod[]): string[] {
   const names = methods.flatMap((m): string[] => {
     if (m.id === 'decentro') return [content.methods.upi]
     if (m.id === 'cod') return [content.methods.cod]
+    if (m.id === 'snapmint') return [content.onlineMethodNames.emi ?? '']
     if (m.id === 'razorpay' || m.id === 'cashfree') {
       return m.methods?.length
         ? m.methods.flatMap((id) => content.onlineMethodNames[id] ?? [])

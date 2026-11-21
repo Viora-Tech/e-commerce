@@ -37,10 +37,13 @@ export async function cartDeliveryParcels(
     valuePaise: number
     storePincode: string
     boxPresets: ShippingSettings['boxPresets']
+    /** A cart from one location gives its one parcel too (a split by product rules needs its
+     *  `locationId:status` key), instead of `[]`. */
+    keepOne?: boolean | undefined
   },
 ): Promise<CartDeliveryParcel[]> {
   const previews = await previewCartParcels({ storeId, tx }, cartId, input.buyerState)
-  if (previews.length <= 1) return []
+  if (previews.length === 0 || (previews.length === 1 && !input.keepOne)) return []
   const [places, prices] = await Promise.all([
     tx
       .select()

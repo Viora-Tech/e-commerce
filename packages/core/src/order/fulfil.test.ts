@@ -16,6 +16,7 @@ import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import { updateShipmentTracking } from '../shipping/tracking-edit'
 import { FulfilTooMany, fulfilAllLines, fulfilOrderLines, NothingToFulfil } from './fulfil'
 import { undoPacked } from './undo-packed'
+import { undoPackedLine } from './undo-packed-line'
 import { TrackingNumberOnAnotherOrder } from './waybill-owner'
 
 const owner = createDb(process.env.DATABASE_URL_OWNER as string)
@@ -341,5 +342,42 @@ describe('a tracking number already on another order (#2462/#2464, 15 Nov 2026)'
         ),
       ),
     ).rejects.toThrow('Tracking number AWB-A is already on order #1.')
+  })
+})
+
+describe('Mark as unfulfilled on one line (owner, 22 Nov 2026)', () => {
+  it('puts that line back to To ship and leaves the other packed line shipped', async () => {
+    const { storeId, orderId, lines } = await seed()
+    const [first, second] = lines
+    if (!first || !second) throw new Error('seed')
+    await withStore(app, storeId, (tx) =>
+      fulfilOrderLines(
+        { tx, storeId },
+        {
+          orderId,
+          lines: [
+            { lineId: first.id, quantity: first.quantity },
+            { lineId: second.id, quantity: second.quantity },
+          ],
+          courier: 'Delhivery',
+          trackingNumber: 'AWB-HAND',
+        },
+      ),
+    )
+    const r = await withStore(app, storeId, (tx) =>
+      undoPackedLine({ tx, storeId }, orderId, second.id, 'staff@example.com'),
+    )
+    expect(r).toEqual({ undone: true, units: second.quantity })
+    const after = await owner.select().from(orderLine).where(eq(orderLine.orderId, orderId))
+    expect(after.find((l) => l.id === first.id)?.fulfilledQuantity).toBe(first.quantity)
+    expect(after.find((l) => l.id === second.id)?.fulfilledQuantity).toBe(0)
+    // The hand-typed tracking number still carries the first line.
+    const [row] = await owner.select().from(shipment).where(eq(shipment.waybill, 'AWB-HAND'))
+    expect(row?.status).not.toBe('cancelled')
+    // Again: nothing packed on that line any more.
+    const again = await withStore(app, storeId, (tx) =>
+      undoPackedLine({ tx, storeId }, orderId, second.id),
+    )
+    expect(again).toEqual({ undone: false, reason: 'not_packed' })
   })
 })

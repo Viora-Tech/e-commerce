@@ -1,5 +1,6 @@
 import { customerDataRequests } from '@commerce/core'
 import type { Metadata } from 'next'
+import AccountPageHead from '@/components/account/account-page-head'
 import DataRequests from '@/components/account/data-requests'
 import DeleteAccount from '@/components/account/delete-account'
 import { privacyContent } from '@/data/privacy'
@@ -22,10 +23,12 @@ export default async function PrivacyPage({ params }: PrivacyPageProps) {
     (r) => r.kind === 'delete' && (r.status === 'open' || r.status === 'in_progress'),
   )
   return (
-    <div className="flex max-w-[36rem] flex-col gap-8">
-      <p className="text-body text-muted">{privacyContent.intro}</p>
-      <DataRequests requests={requests} timeZone={timeZone} />
-      {deletionPending ? null : <DeleteAccount />}
-    </div>
+    <>
+      <AccountPageHead title={privacyContent.title} intro={privacyContent.intro} />
+      <div className="flex max-w-[40rem] flex-col gap-4 sm:gap-5">
+        <DataRequests requests={requests} timeZone={timeZone} />
+        {deletionPending ? null : <DeleteAccount />}
+      </div>
+    </>
   )
 }

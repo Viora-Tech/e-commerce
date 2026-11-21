@@ -17,6 +17,7 @@ import {
   draftIncompleteBilling,
   draftMissingAddress,
   draftStoreCreditProblem,
+  draftStoreCreditUsable,
   draftToForm,
   draftToPay,
   draftTotals,
@@ -39,6 +40,7 @@ import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
 import StatusChip from '@/components/layout/status-chip'
 import WhatsappChatDialog from '@/components/layout/whatsapp-chat-dialog'
+import SaleSourceCard from '@/components/orders/sale-source-card'
 import SendMessageDialog, { type CustomMessage } from '@/components/orders/send-message-dialog'
 import { draftStoreCreditContent } from '@/data/draft-store-credit'
 import { draftEditorContent, draftsContent } from '@/data/drafts'
@@ -198,9 +200,9 @@ export default function DraftForm({ draft, invoiceSent = false, initial }: Draft
     form,
     form.discountCode === saved.discountCode ? savedCodeCheck(draft) : null,
   )
-  const creditProblem = draftStoreCreditProblem(form, totalPaise, creditBalance)
-  const paidByCredit =
-    form.storeCreditPaise > 0 && draftToPay(totalPaise, form.storeCreditPaise) === 0
+  const creditProblem = draftStoreCreditProblem(form, totalPaise)
+  const creditPaise = draftStoreCreditUsable(form.storeCreditPaise, creditBalance)
+  const paidByCredit = creditPaise > 0 && draftToPay(totalPaise, creditPaise) === 0
   // Why Convert is off, shown on the button and in the Actions card; core refuses the same.
   const convertHint = creditProblem
     ? creditCopy.problems[creditProblem]
@@ -234,7 +236,8 @@ export default function DraftForm({ draft, invoiceSent = false, initial }: Draft
     .join(' · ')
 
   return (
-    <PageBody>
+    /* Centred at 75rem like the order and abandoned checkout pages (owner, 18 Nov 2026). */
+    <PageBody width="detail">
       <SaveBar
         open={dirty}
         message={copy.unsaved}
@@ -313,6 +316,7 @@ export default function DraftForm({ draft, invoiceSent = false, initial }: Draft
               tax={draftTax(draft)}
               savedCheck={savedCodeCheck(draft)}
               onChange={patch}
+              creditBalancePaise={creditBalance}
             />
             <DataCard title={copy.note.heading} bodyClassName="flex flex-col gap-3">
               <Textarea
@@ -350,6 +354,13 @@ export default function DraftForm({ draft, invoiceSent = false, initial }: Draft
               dirty={dirty}
               heldUntil={draft?.reservedUntil ? new Date(draft.reservedUntil) : null}
             />
+            {/* Staff made it in the admin: who, from the activity log. */}
+            {draft ? (
+              <SaleSourceCard
+                attribution={draft.attribution}
+                staffDraft={{ createdBy: draft.createdBy }}
+              />
+            ) : null}
           </>
         }
       />

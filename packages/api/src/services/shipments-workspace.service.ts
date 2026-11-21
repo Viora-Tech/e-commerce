@@ -9,6 +9,7 @@ import {
   type ShippingRegistry,
   shipmentLabelUrl,
 } from '@commerce/core'
+import { daysWithoutScan } from '@commerce/core/shipment-lost-state'
 import { SHIPMENT_TAB_STATUSES } from '@commerce/core/shipment-tabs'
 import { startOfDay } from '@commerce/dates'
 import type { StoreTx } from '@commerce/db'
@@ -141,12 +142,19 @@ export async function listShipments(
       provider: shipment.provider,
       waybill: shipment.waybill,
       status: shipment.status,
+      pickupId: shipment.pickupId,
       ndrStatus: shipment.ndrStatus,
       insured: shipment.insured,
       labelUrl: shipment.labelUrl,
       trackingUrl: shipment.trackingUrl,
       createdAt: shipment.createdAt,
       updatedAt: shipment.updatedAt,
+      tracking: shipment.tracking,
+      lostAt: shipment.lostAt,
+      reshippedAt: shipment.reshippedAt,
+      claimStatus: shipment.claimStatus,
+      claimAmountPaise: shipment.claimAmountPaise,
+      claimNote: shipment.claimNote,
     })
     .from(shipment)
     .innerJoin(order, eq(order.id, shipment.orderId))
@@ -167,8 +175,12 @@ export async function listShipments(
   /* A label link that needs the courier's key (Delhivery, booked before the label route) is
      served by the admin's route instead; the courier app's own say on cancelling hides the
      row's Cancel for a courier that can't. */
-  const items = rows.map((r) => ({
+  const now = new Date()
+  /* The full tracking answer stays on the server: the list needs only how long it has been quiet
+     ("Check with courier" after STUCK_DAYS, shipment-lost-state). */
+  const items = rows.map(({ tracking, ...r }) => ({
     ...r,
+    daysWithoutScan: daysWithoutScan({ ...r, tracking }, now),
     labelUrl: shipmentLabelUrl(r),
     courierCancels: registry?.get(r.provider)?.capabilities.includes('cancel') ?? true,
   }))
@@ -193,6 +205,7 @@ export async function shipmentCounts(tx: StoreTx, now = new Date(), provider?: s
       inTransit: inGroup(SHIPMENT_TAB_STATUSES.inTransit),
       delivered: inGroup(SHIPMENT_TAB_STATUSES.delivered),
       rto: inGroup(SHIPMENT_TAB_STATUSES.rto),
+      lost: inGroup(SHIPMENT_TAB_STATUSES.lost),
       needsAttention: sql<number>`count(*) filter (where ${and(
         inArray(shipment.status, SHIPMENT_TAB_STATUSES.inTransit as never[]),
         eq(shipment.ndrStatus, 'pending'),
@@ -208,6 +221,7 @@ export async function shipmentCounts(tx: StoreTx, now = new Date(), provider?: s
     inTransit: Number(row?.inTransit ?? 0),
     delivered: Number(row?.delivered ?? 0),
     rto: Number(row?.rto ?? 0),
+    lost: Number(row?.lost ?? 0),
     needsAttention: Number(row?.needsAttention ?? 0),
     bookedToday: Number(row?.bookedToday ?? 0),
   }

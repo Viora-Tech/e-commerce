@@ -5,6 +5,7 @@ import type { TemplateData, TemplateId } from '@commerce/notifications'
 import { and, desc, eq, inArray } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 import { spendableStoreCredit } from '../customers/store-credit-expiry'
+import { draftStoreCreditDue } from '../order/draft-store-credit'
 import { STORE_CREDIT_PROVIDER } from '../payments/split-tender'
 
 /** "−₹500.00": store credit taken off a total. */
@@ -68,10 +69,13 @@ export async function storeCreditTemplateData(
           and(
             eq(payment.orderId, input.orderId),
             eq(payment.provider, STORE_CREDIT_PROVIDER),
-            inArray(payment.status, ['created', 'pending', 'captured']),
+            inArray(payment.status, ['pending', 'captured']),
           ),
         )
-      const applied = rows.reduce((sum, r) => sum + r.amountPaise, 0)
+      // Still a draft: the applied credit as the convert will take it (capped at the balance now).
+      const applied =
+        rows.reduce((sum, r) => sum + r.amountPaise, 0) +
+        (await draftStoreCreditDue(ctx, input.orderId))
       if (applied <= 0) return null
       const [o] = await ctx.tx
         .select({ totalPaise: order.totalPaise })

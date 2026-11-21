@@ -20,7 +20,7 @@ import { DEFERRED_TYPE } from './liquid-defer'
 export const DEFAULT_EAGER_SECTIONS = 3
 
 /** An opening tag; quoted attribute values may hold `>`. Group 1 is the name, 2 the attributes. */
-const tag = (names: string) =>
+export const tag = (names: string) =>
   new RegExp(`<(${names})\\b((?:[^>"']|"[^"]*"|'[^']*')*?)\\s*/?>`, 'gi')
 
 const MEDIA = tag('img|iframe|video')
@@ -29,13 +29,13 @@ const SCRIPT = tag('script')
 /** One attribute as written: its lower-cased name and its raw text (`name` or `name="value"`). */
 const ATTR = /([^\s=/>]+)(?:\s*=\s*(?:"[^"]*"|'[^']*'|[^\s"'>]+))?/g
 
-type Attr = { name: string; raw: string }
+export type Attr = { name: string; raw: string }
 
-function attributes(source: string): Attr[] {
+export function attributes(source: string): Attr[] {
   return [...source.matchAll(ATTR)].map((m) => ({ name: (m[1] ?? '').toLowerCase(), raw: m[0] }))
 }
 
-function openTag(name: string, attrs: Attr[]): string {
+export function openTag(name: string, attrs: Attr[]): string {
   return `<${name}${attrs.map((a) => ` ${a.raw}`).join('')}>`
 }
 

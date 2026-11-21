@@ -46,6 +46,7 @@ export const inspectorContent = {
     draftFailed: 'Could not keep your draft. Check your connection.',
     discard: 'Discard',
     discarded: 'Changes discarded',
+    discardFailed: 'Could not discard your changes. They are still here; try again.',
     more: 'More actions',
     editCode: 'Edit code',
     versions: 'Version history',

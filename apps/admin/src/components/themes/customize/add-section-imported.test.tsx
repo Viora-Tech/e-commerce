@@ -47,6 +47,11 @@ const THEME: ImportedTheme = {
       presets: [{ name: 'Marquee strip' }],
     },
     header: { name: 'Header' },
+    'zd-announcement': {
+      name: 'Announcement',
+      presets: [{ name: 'Announcement' }],
+      enabled_on: { groups: ['header'] },
+    },
   },
 }
 
@@ -81,9 +86,16 @@ describe('AddSectionBrowser: imported Shopify sections', () => {
     expect(screen.queryByRole('button', { name: imported.title })).toBeNull()
   })
 
-  it('has none in a header or footer group', () => {
+  it('offers in a group only the sections the schema lets in, as Shopify does', () => {
     setup(THEME, { group: 'header' })
-    expect(screen.queryByRole('button', { name: imported.title })).toBeNull()
+    expect(screen.getByRole('button', { name: imported.cardLabel('Announcement') })).toBeTruthy()
+    // No enabled_on / disabled_on: allowed everywhere, header group included.
+    expect(screen.getByRole('button', { name: imported.cardLabel('Marquee strip') })).toBeTruthy()
+  })
+
+  it('keeps a group-only section out of a template', () => {
+    setup(THEME)
+    expect(screen.queryByRole('button', { name: imported.cardLabel('Announcement') })).toBeNull()
   })
 
   it('adds the section from its preset where the panel was opened', async () => {

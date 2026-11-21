@@ -1,0 +1,37 @@
+{
+  "name": "koomerce-skills",
+  "description": "Agent skills for Koomerce: run a store through its MCP server, build Koomerce apps, and bring Shopify Liquid themes to Koomerce.",
+  "owner": {
+    "name": "Viora-Tech",
+    "url": "https://github.com/Viora-Tech"
+  },
+  "plugins": [
+    {
+      "name": "koomerce-store-agent",
+      "description": "Use a Koomerce store's MCP tools safely for orders, products, shipping and discounts, confirming before every change.",
+      "source": "./",
+      "strict": false,
+      "skills": ["./koomerce-store-agent"],
+      "category": "commerce",
+      "tags": ["koomerce", "mcp", "merchant"]
+    },
+    {
+      "name": "koomerce-app-developer",
+      "description": "Build Koomerce apps: manifests, access declarations, providers, admin pages, hooks and app blocks.",
+      "source": "./",
+      "strict": false,
+      "skills": ["./koomerce-app-developer"],
+      "category": "development",
+      "tags": ["koomerce", "plugins", "apps"]
+    },
+    {
+      "name": "koomerce-theme-developer",
+      "description": "Import and test Shopify Liquid themes on Koomerce, and know what works and what is swapped.",
+      "source": "./",
+      "strict": false,
+      "skills": ["./koomerce-theme-developer"],
+      "category": "development",
+      "tags": ["koomerce", "liquid", "themes", "shopify"]
+    }
+  ]
+}

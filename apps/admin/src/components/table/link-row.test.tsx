@@ -47,6 +47,17 @@ describe('LinkRow', () => {
     expect(push).not.toHaveBeenCalled()
   })
 
+  it('cancels a middle press so auto-scroll does not swallow the middle click', () => {
+    renderRow()
+    const press = (el: HTMLElement) => {
+      const e = new MouseEvent('mousedown', { bubbles: true, cancelable: true, button: 1 })
+      el.dispatchEvent(e)
+      return e.defaultPrevented
+    }
+    expect(press(screen.getByText('Mouse'))).toBe(true)
+    expect(press(screen.getByText('Menu'))).toBe(false)
+  })
+
   it('leaves a control inside the row and a right click alone', () => {
     const open = vi.spyOn(window, 'open').mockReturnValue(null)
     renderRow()

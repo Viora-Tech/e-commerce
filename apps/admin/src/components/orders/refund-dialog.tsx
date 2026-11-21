@@ -51,6 +51,7 @@ const PROVIDER_NAMES: Record<string, string> = {
   razorpay: 'Razorpay',
   cashfree: 'Cashfree',
   decentro: 'Decentro',
+  snapmint: 'Snapmint',
 }
 
 export default function RefundDialog({

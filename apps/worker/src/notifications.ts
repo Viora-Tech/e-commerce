@@ -249,6 +249,8 @@ export function createNotificationWorker(
                     : `${base}/`
                   : undefined,
                 reply: r.reply,
+                rating: r.rating,
+                text: r.body || undefined,
               },
             },
             {

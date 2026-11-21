@@ -420,11 +420,27 @@ export const media = pgTable(
     posterMediaId: uuid('poster_media_id').references((): AnyPgColumn => media.id, {
       onDelete: 'set null',
     }),
+    /**
+     * A video's smaller copy, re-encoded by the worker (`apps/worker/src/video-compact.ts`): H.264
+     * at a lower bitrate, at most 1080p, beside the original under `compact_key`. The storefront
+     * plays it instead of `url`. Null for images and for a video not yet done; `compact_size` 0
+     * (url and key null) marks a video looked at that keeps its original (already small, the
+     * copy not smaller, or every attempt failed), so the backfill skips it.
+     */
+    compactUrl: text('compact_url'),
+    compactKey: text('compact_key'),
+    compactSize: integer('compact_size'),
     createdAt: createdAt(),
   },
   (t) => [
     index('media_store_created').on(t.storeId, t.createdAt),
     index('media_in_folder').on(t.folderId),
+    // Videos not yet looked at for a smaller copy: the worker's hourly backfill (migration 0258).
+    index('media_video_needs_copy_idx')
+      .on(t.storeId)
+      .where(
+        sql`${t.compactSize} is null and ${t.key} is not null and ${t.contentType} in ('video/mp4', 'video/quicktime', 'video/webm', 'video/x-m4v')`,
+      ),
   ],
 )
 

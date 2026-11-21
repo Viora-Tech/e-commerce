@@ -1,5 +1,6 @@
 import { shopperStoreCredit } from '@commerce/core'
 import type { Metadata } from 'next'
+import AccountPageHead from '@/components/account/account-page-head'
 import StoreCreditHistory from '@/components/account/store-credit-history'
 import { accountContent } from '@/data/account'
 import { storeTimeZone } from '@/lib/account'
@@ -20,7 +21,7 @@ export default async function StoreCreditPage({ params }: StoreCreditPageProps) 
   }))
   return (
     <>
-      <h1 className="account-page__title">{accountContent.storeCredit.title}</h1>
+      <AccountPageHead title={accountContent.storeCredit.title} />
       <StoreCreditHistory
         balancePaise={credit.balancePaise}
         entries={credit.entries}

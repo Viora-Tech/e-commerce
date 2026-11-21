@@ -196,6 +196,7 @@ const READ_PATHS = new Set([
   'automations.catalogue',
   'automations.templates',
   'automations.testRun',
+  'notifications.design',
   'notifications.senderEmail',
   'salesChannels.social',
   'shopifyImport.preflight',

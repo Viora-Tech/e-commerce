@@ -25,7 +25,17 @@ type Base = {
 export type HealthIssue = Base &
   (
     | { code: 'zone_no_rates'; zoneId: string; zoneName: string }
-    | { code: 'zones_overlap'; zoneIds: string[]; zoneNames: string[] }
+    | {
+        code: 'zones_overlap'
+        zoneIds: string[]
+        /** Each name once, in zone order: two zones both called "India" read "India" once. */
+        zoneNames: string[]
+        /**
+         * The place they all cover, in plain words: "India" for the whole country, state names
+         * for a state list; null when the zones are drawn by PIN code.
+         */
+        place: string | null
+      }
     | { code: 'states_uncovered'; stateCodes: string[] }
     | { code: 'no_origin_pincode' }
     | { code: 'no_courier' }
@@ -82,6 +92,26 @@ const inIndia = (z: HealthZone) => z.countryCodes.length === 0 || z.countryCodes
 const coversEverywhere = (z: HealthZone) =>
   z.stateCodes.length === 0 && !z.pincodeRules.some((r) => r.mode === 'include')
 
+/** How many state names `overlapPlace` spells out before "+N". */
+const PLACE_STATES = 3
+
+const COUNTRY_NAMES: Record<string, string> = { IN: 'India' }
+
+/** The place a group of same-coverage zones covers ("India", "Karnataka, Kerala"); null for PIN rules. */
+function overlapPlace(z: HealthZone): string | null {
+  if (z.pincodeRules.some((r) => r.mode === 'include')) return null
+  if (z.stateCodes.length === 0) {
+    const countries = z.countryCodes.length ? z.countryCodes : ['IN']
+    return countries.map((c) => COUNTRY_NAMES[c.toUpperCase()] ?? c.toUpperCase()).join(', ')
+  }
+  const names = [...z.stateCodes]
+    .map((s) => s.toUpperCase())
+    .sort()
+    .map((s) => INDIAN_STATE_NAMES[s] ?? s)
+  if (names.length <= PLACE_STATES) return names.join(', ')
+  return `${names.slice(0, PLACE_STATES).join(', ')} +${names.length - PLACE_STATES}`
+}
+
 /** Two zones with the same key cover exactly the same addresses. */
 function coverageKey(z: HealthZone): string {
   const states = [...z.stateCodes].map((s) => s.toUpperCase()).sort()
@@ -122,7 +152,8 @@ export function shippingChecks(facts: ShippingHealthFacts): HealthIssue[] {
       severity: 'should_fix',
       code: 'zones_overlap',
       zoneIds: same.map((z) => z.id),
-      zoneNames: same.map((z) => z.name),
+      zoneNames: [...new Set(same.map((z) => z.name))],
+      place: same[0] ? overlapPlace(same[0]) : null,
     })
   }
 

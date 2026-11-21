@@ -16,8 +16,12 @@
  * - Free-above and insure-above read the whole order's value (`orderValuePaise`).
  * - Dates: the last parcel to arrive. Any parcel on backup puts the option on backup (no route
  *   saved; booking uses the courier rule). Sub-choices: the couriers every parcel offers, summed.
+ * - No courier every parcel offers, but a parcel has choices of its own (a cart split by product
+ *   rules, owner 21 Nov 2026): the card carries each parcel's own card (`parcelOptions`) and the
+ *   shopper picks per parcel; each parcel's rule price, COD and insurance stay that parcel's.
+ *   Not on backup, nor for an option priced from the Shipping rate (charged once, not summed).
  */
-import { resolveDeliveryOptions } from './resolve'
+import { hideExpressNotFaster, resolveDeliveryOptions } from './resolve'
 import type {
   DeliveryResolveResult,
   PricedRoute,
@@ -81,6 +85,15 @@ function addUp(
   return own + (insured > 0 ? roundUpToTen(rate + insured) : rate)
 }
 
+/** Parcels' own routes added up as one (no Shipping rate among them): a per-parcel pick. */
+export function sumParcelRoutes(routes: readonly PricedRoute[]): PricedRoute | null {
+  if (routes.length === 0) return null
+  return addRoutes(
+    routes,
+    routes.map(() => false),
+  )
+}
+
 function addRoutes(routes: readonly PricedRoute[], fromZone: readonly boolean[]): PricedRoute {
   const first = routes[0] as PricedRoute
   const insurances = routes.map((r) => r.insurancePaise)
@@ -109,6 +122,10 @@ function addRoutes(routes: readonly PricedRoute[], fromZone: readonly boolean[])
     earliest: routes.reduce<string | null>((d, r) => later(d, r.earliest), first.earliest),
     latest: routes.reduce<string | null>((d, r) => later(d, r.latest), first.latest),
     etaEstimated: routes.some((r) => r.etaEstimated),
+    // A COD charge on its own line: every parcel's, added up.
+    ...(routes.some((r) => r.codFeePaise != null)
+      ? { codFeePaise: routes.reduce((sum, r) => sum + (r.codFeePaise ?? 0), 0) }
+      : {}),
   }
 }
 
@@ -137,6 +154,15 @@ function addUpOption(parts: readonly ResolvedOption[], priceFromZone: boolean): 
     pick && cods.every((c): c is PricedRoute => c !== null) ? addRoutes(cods, fromZone) : null
   const insurances = parts.map((p) => p.insurance.pricePaise).filter((v): v is number => v !== null)
   const backup = parts.find((p) => p.source === 'backup')
+  // No courier every parcel offers, but some parcel has its own choice, or the parcels go by
+  // different couriers (glass pad by Delhivery, keyboard by Blue Dart, owner 21 Nov 2026): one
+  // card would wear the first parcel's courier name over both. Pick per parcel.
+  const carriers = new Set(picks.map((p) => p?.route.carrierKey))
+  const perParcel =
+    pick !== null &&
+    !priceFromZone &&
+    choices.length <= 1 &&
+    (parts.some((p) => p.choices.length > 1) || carriers.size > 1)
   // Insurance inside each parcel's own price (a backup parcel has none).
   const partInsurance = parts.map((p) => p.pick?.insurancePaise ?? 0)
   return {
@@ -172,8 +198,13 @@ function addUpOption(parts: readonly ResolvedOption[], priceFromZone: boolean): 
       required: parts.some((p) => p.insurance.required),
       on: parts.some((p) => p.insurance.on),
       pricePaise: insurances.length ? insurances.reduce((s, v) => s + v, 0) : null,
+      // What the tick adds across the parcels; null when no parcel offers it.
+      extraPaise: parts.some((p) => p.insurance.extraPaise != null)
+        ? parts.reduce((s, p) => s + (p.insurance.extraPaise ?? 0), 0)
+        : null,
     },
     backupRate: backup?.backupRate ?? null,
+    ...(perParcel ? { parcelOptions: [...parts] } : {}),
   }
 }
 
@@ -194,8 +225,12 @@ export function resolveParcelDeliveries(
       answers: only?.answers ?? [],
     })
   }
+  // Express is compared with Standard once the parcels are added up, not parcel by parcel.
   const results = parcels.map((p) =>
-    resolveDeliveryOptions({ ...base, cart: p.cart, answers: p.answers, orderValuePaise }),
+    resolveDeliveryOptions(
+      { ...base, cart: p.cart, answers: p.answers, orderValuePaise },
+      { compareSpeeds: false },
+    ),
   )
   const [first, ...rest] = results as [DeliveryResolveResult, ...DeliveryResolveResult[]]
   const options = first.options.flatMap((o) => {
@@ -204,6 +239,8 @@ export function resolveParcelDeliveries(
     const saved = base.config.options.find((c) => c.id === o.optionId)
     return [addUpOption(parts as ResolvedOption[], saved?.price.source === 'zone')]
   })
+  const traces = first.trace.options.map((t) => ({ ...t }))
+  hideExpressNotFaster(options, traces, base.config.layout === 'list')
   const status = options.length
     ? 'options'
     : results.some((r) => r.status === 'unserviceable')
@@ -214,7 +251,7 @@ export function resolveParcelDeliveries(
     options,
     parcels: results,
     trace: {
-      options: first.trace.options,
+      options: traces,
       providers: results.flatMap((r) => r.trace.providers),
     },
   }

@@ -195,6 +195,10 @@ export const notificationsSettingsContent = {
       name: 'Confirm newsletter signup',
       when: 'When someone signs up for your emails. They only get marketing after they confirm.',
     },
+    welcome_coupon: {
+      name: 'Welcome coupon',
+      when: 'When someone joins your newsletter, with their welcome code (Automations app).',
+    },
     gift_card_issued: {
       name: 'Gift card',
       when: 'When a gift card is bought or you send one. Carries the code.',
@@ -278,6 +282,14 @@ export const notificationsSettingsContent = {
     staff_daily_summary: {
       name: 'Daily summary (team)',
       when: 'Once a day, at the hour each team member chose in Account → Notifications.',
+    },
+    staff_weekly_report: {
+      name: 'Weekly report (team)',
+      when: 'Every Monday morning, to each team member who turned it on in Account → Notifications.',
+    },
+    staff_monthly_report: {
+      name: 'Monthly report (team)',
+      when: 'On the 1st of every month, to each team member who turned it on in Account → Notifications.',
     },
     account_deletion_code: {
       name: 'Account deletion code',

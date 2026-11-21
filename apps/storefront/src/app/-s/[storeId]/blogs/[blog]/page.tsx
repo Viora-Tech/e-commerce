@@ -21,10 +21,11 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const found = await inStore(storeId, (tx) => getBlogByHandle(tx, handle))
   if (!found) return {}
   const title = found.seoTitle ?? found.title
-  const description = found.seoDescription ?? undefined
+  const description = found.seoDescription || undefined
   return {
     title,
-    description,
+    // None of its own: the layout's store description stays, as Shopify's `page_description`.
+    ...(description ? { description } : {}),
     alternates: { canonical: await marketCanonical(`/blogs/${found.handle}`) },
     openGraph: { type: 'website', title, description, images: await storeShareImages(storeId) },
   }

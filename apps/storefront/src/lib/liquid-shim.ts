@@ -32,6 +32,8 @@
  *
  * Inline, before any theme script, with the request's CSP nonce.
  */
+
+import { VIDEO_FALLBACK_SCRIPT } from './liquid-video-fallback'
 export type LiquidShimConfig = {
   /** No consent stored yet (or for an older banner version): the theme's banner may ask. */
   askConsent: boolean
@@ -40,10 +42,19 @@ export type LiquidShimConfig = {
    * (`lib/liquid-market-links.ts`), so its calls do too: they are matched without it.
    */
   prefix?: string
+  /**
+   * Customize's "Theme scripts" canvas (`?theme-design-mode=1`): `Shopify.designMode` is true, as
+   * in Shopify's editor, so the theme's scripts skip what they skip there (popups opening on
+   * their own, a cookie banner) and listen for the editor's section events.
+   */
+  designMode?: boolean
 }
 
 export function liquidShim(config: LiquidShimConfig): string {
-  return SHIM.replace('__CONFIG__', JSON.stringify(config).replace(/</g, '\\u003c'))
+  return (
+    SHIM.replace('__CONFIG__', JSON.stringify(config).replace(/</g, '\\u003c')) +
+    VIDEO_FALLBACK_SCRIPT
+  )
 }
 
 const SHIM = `(function () {
@@ -54,15 +65,18 @@ const SHIM = `(function () {
     shouldShowBanner: function () { return config.askConsent; },
     setTrackingConsent: function (choice, done) {
       config.askConsent = false;
-      window.dispatchEvent(new CustomEvent('commerce:consent', {
-        detail: { analytics: !!(choice && choice.analytics), marketing: !!(choice && choice.marketing) }
-      }));
+      var detail = { analytics: !!(choice && choice.analytics), marketing: !!(choice && choice.marketing) };
+      // Kept until a listener takes it: a shopper can answer before the page's listener exists
+      // (the plain page's island script, or ConsentManager before React hydrates).
+      window.__commerceConsentAnswer = detail;
+      window.dispatchEvent(new CustomEvent('commerce:consent', { detail: detail }));
       if (typeof done === 'function') done();
     },
     analyticsProcessingAllowed: function () { return false; },
     marketingAllowed: function () { return false; }
   };
   window.Shopify = window.Shopify || {};
+  if (config.designMode) window.Shopify.designMode = true;
   var prefix = config.prefix || '';
   window.Shopify.routes = window.Shopify.routes || { root: prefix + '/' };
   function unprefixed(pathname) {

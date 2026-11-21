@@ -1,6 +1,7 @@
 'use client'
 
 import type { Theme } from '@commerce/core/theme'
+import { useState } from 'react'
 import { themesContent } from '@/data/themes'
 import { useCopy } from '@/hooks/use-copy'
 import { useShownPicture } from '@/lib/use-shown-picture'
@@ -15,6 +16,13 @@ type ThemePreviewStageProps = {
    * when the stored picture is blank.
    */
   picture: string | null
+  /**
+   * The saved home page's first picture (the hero's poster), shown while there is no screenshot;
+   * the swatch is the last resort.
+   */
+  cover?: string | null | undefined
+  /** Every cover candidate, best first: the next one shows when a picture fails to load. */
+  covers?: readonly string[] | undefined
 }
 
 /**
@@ -27,12 +35,40 @@ export default function ThemePreviewStage({
   origin,
   settings,
   picture: stored,
+  cover = null,
+  covers = [],
 }: ThemePreviewStageProps) {
   // Hooks
   const copy = useCopy(themesContent.library)
-  const picture = useShownPicture(stored)
+  const shown = useShownPicture(stored)
+  // Addresses that failed to load (a file missing from storage, a host that cannot serve it
+  // here): each one drops to the next picture, so the stage never shows a broken image.
+  const [failed, setFailed] = useState<readonly string[]>([])
+
+  // Handlers
+  const handleError = (src: string) => {
+    console.warn('Theme picture did not load, showing the next one:', src)
+    setFailed((list) => (list.includes(src) ? list : [...list, src]))
+  }
+  // A picture that failed while the page was still loading (before React attached onError)
+  // never fires the event again: it is complete with no size, so treat it as failed here.
+  const handlePictureRef = (img: HTMLImageElement | null) => {
+    if (img?.complete && img.naturalWidth === 0 && img.getAttribute('src')) {
+      handleError(img.getAttribute('src') ?? '')
+    }
+  }
 
   // Render logic
+  const shot = shown && !failed.includes(shown) ? shown : null
+  const usableCover =
+    [cover, ...covers].find((c): c is string => Boolean(c) && !failed.includes(c as string)) ?? null
+  const picture = shot ?? usableCover
+  // A cover is a photo, not a page: it fills both frames instead of shrinking into the phone.
+  const isCover = !shot && Boolean(usableCover)
+  // The phone shows the hero poster filling its frame: a desktop screenshot shrunk to phone
+  // width left a thin strip on top and an empty frame below (owner, 21 Nov 2026).
+  const phonePicture = usableCover ?? shot
+  const hint = isCover ? copy.coverHint : copy.pictureHint
   const host = origin.replace(/^https?:\/\//, '')
 
   return (
@@ -55,13 +91,15 @@ export default function ThemePreviewStage({
               <img
                 src={picture}
                 alt={copy.thumbnail(name)}
-                title={copy.pictureHint}
+                title={hint}
+                ref={handlePictureRef}
+                onError={() => handleError(picture)}
                 loading="lazy"
                 decoding="async"
-                className="size-full object-cover object-top"
+                className={isCover ? 'size-full object-cover' : 'size-full object-cover object-top'}
               />
             ) : (
-              <span role="img" aria-label={copy.thumbnail(name)} title={copy.pictureHint}>
+              <span role="img" aria-label={copy.thumbnail(name)} title={hint}>
                 <ThemeSwatch
                   theme={settings}
                   name={name}
@@ -76,14 +114,20 @@ export default function ThemePreviewStage({
           aria-hidden="true"
         >
           <div className="relative aspect-[390/800] overflow-hidden">
-            {picture ? (
+            {phonePicture ? (
               // biome-ignore lint/performance/noImgElement: a small stored webp from the store's storage.
               <img
-                src={picture}
+                src={phonePicture}
                 alt=""
+                ref={handlePictureRef}
+                onError={() => handleError(phonePicture)}
                 loading="lazy"
                 decoding="async"
-                className="size-full bg-card object-contain object-top"
+                className={
+                  phonePicture === shot
+                    ? 'size-full bg-card object-cover object-top'
+                    : 'size-full bg-card object-cover'
+                }
               />
             ) : (
               <ThemeSwatch theme={settings} name={name} className="absolute inset-0 border-0 p-4" />

@@ -1,6 +1,9 @@
 import { siteConfig } from '@commerce/config/site'
-import { formatInZone } from '@commerce/dates'
+import { figmaOrder, figmaProducts } from './samples-order'
+import { sampleDailyReport, sampleMonthlyReport, sampleWeeklyReport } from './samples-reports'
 import type { TemplateData, TemplateId } from './types'
+
+export { sampleEmailBrand } from './samples-order'
 
 /** Sample order used by the conformance suite, the dev preview and the admin's message preview. */
 export const sampleTemplateData: TemplateData = {
@@ -30,25 +33,38 @@ const base = sampleTemplateData
 
 /** One representative TemplateData per TemplateId, for /dev/emails and Settings → Notifications → Preview. */
 export const sampleTemplateDataByTemplate: Record<TemplateId, TemplateData> = {
-  order_placed: { ...base, orderUrl: 'https://waimers.example/orders/42' },
-  payment_received: { ...base, orderUrl: 'https://waimers.example/orders/42' },
+  // The Figma "Order placed · paid" frame: made-up shopper, two lines, a code discount.
+  order_placed: { ...base, ...figmaOrder, orderUrl: 'https://waimers.example/orders/1042' },
+  payment_received: { ...base, ...figmaOrder, orderUrl: 'https://waimers.example/orders/1042' },
   order_shipped: {
     ...base,
+    ...figmaOrder,
+    courierLabel: 'Delhivery',
     waybill: 'AWB123456789',
     trackingUrl: 'https://waimers.example/track/42',
   },
   out_for_delivery: {
     ...base,
+    ...figmaOrder,
+    paymentState: 'cod',
+    paymentMethodLabel: 'Cash on delivery',
+    courierLabel: 'Delhivery',
     waybill: 'AWB123456789',
     trackingUrl: 'https://waimers.example/track/42',
   },
-  delivered: { ...base, orderUrl: 'https://waimers.example/account/orders/42' },
+  delivered: { ...base, ...figmaOrder, courierLabel: 'Delhivery', orderUrl: 'https://waimers.example/account/orders/42' },
   delivery_failed: {
     ...base,
+    ...figmaOrder,
     trackingUrl: 'https://waimers.example/track/42',
     deliveryIssue: { reasonLabel: 'Consignee not available' },
   },
-  order_cancelled: { ...base, orderUrl: 'https://waimers.example/account/orders/42' },
+  order_cancelled: {
+    ...base,
+    ...figmaOrder,
+    orderUrl: 'https://waimers.example/account/orders/1042',
+    refund: { amountLabel: '₹7,018', methodLabel: 'your UPI', etaLabel: '5–7 working days' },
+  },
   refund_issued: {
     ...base,
     orderUrl: 'https://waimers.example/account/orders/42',
@@ -72,7 +88,7 @@ export const sampleTemplateDataByTemplate: Record<TemplateId, TemplateData> = {
   },
   order_link: { ...base, orderUrl: 'https://waimers.example/orders/42' },
   order_split: { ...base, orderUrl: 'https://waimers.example/orders/42' },
-  cod_pay_online: { ...base, orderUrl: 'https://waimers.example/orders/42' },
+  cod_pay_online: { ...base, ...figmaOrder, orderUrl: 'https://waimers.example/orders/42' },
   draft_invoice: { ...base, draftNumber: 12, actionUrl: 'https://waimers.example/pay/42' },
   checkout_recovery: {
     ...base,
@@ -138,6 +154,16 @@ export const sampleTemplateDataByTemplate: Record<TemplateId, TemplateData> = {
       expiresLabel: '31 Mar 2027',
       message: 'Happy birthday Asha, enjoy!',
     },
+    products: figmaProducts,
+  },
+  welcome_coupon: {
+    ...base,
+    orderNumber: undefined,
+    lines: [],
+    taxBreakdown: undefined,
+    totalLabel: '',
+    welcome: { code: 'WELCOME10', valueLabel: '10%', terms: 'Min. order ₹999 · valid till 30 November' },
+    products: figmaProducts,
   },
   balance_request: {
     ...base,
@@ -307,15 +333,17 @@ export const sampleTemplateDataByTemplate: Record<TemplateId, TemplateData> = {
       unsubscribeUrl: 'https://waimers.example/back-in-stock/unsubscribe/abc',
     },
   },
-  cod_confirm: { ...base, actionUrl: 'https://waimers.example/cod/abc' },
+  cod_confirm: { ...base, ...figmaOrder, actionUrl: 'https://waimers.example/cod/abc' },
   return_requested: {
     ...base,
+    route: figmaOrder.route,
     taxBreakdown: undefined,
     orderUrl: 'https://waimers.example/account/orders/42',
     returnInfo: { label: 'R-3', reasonLabel: 'It arrived damaged or broken' },
   },
   return_approved: {
     ...base,
+    route: figmaOrder.route,
     taxBreakdown: undefined,
     orderUrl: 'https://waimers.example/account/orders/42',
     returnInfo: { label: 'R-3', pickup: 'courier', pickupWaybill: 'RVP123456789' },
@@ -331,6 +359,7 @@ export const sampleTemplateDataByTemplate: Record<TemplateId, TemplateData> = {
   },
   return_received: {
     ...base,
+    route: figmaOrder.route,
     taxBreakdown: undefined,
     orderUrl: 'https://waimers.example/account/orders/42',
     returnInfo: { label: 'R-3' },
@@ -343,6 +372,7 @@ export const sampleTemplateDataByTemplate: Record<TemplateId, TemplateData> = {
   },
   return_exchanged: {
     ...base,
+    route: figmaOrder.route,
     orderNumber: 57,
     taxBreakdown: undefined,
     orderUrl: 'https://waimers.example/account/orders/57',
@@ -380,6 +410,7 @@ export const sampleTemplateDataByTemplate: Record<TemplateId, TemplateData> = {
   },
   staff_new_order: {
     ...base,
+    ...figmaOrder,
     actionUrl: `https://admin.${siteConfig.brand.domain}/orders/sample`,
   },
   staff_daily_summary: {
@@ -390,7 +421,10 @@ export const sampleTemplateDataByTemplate: Record<TemplateId, TemplateData> = {
     totalLabel: '',
     actionUrl: `https://admin.${siteConfig.brand.domain}/`,
     dailySummary: { periodLabel: 'Today so far', orders: 14, salesLabel: '₹28,640', toShip: 6 },
+    report: sampleDailyReport,
   },
+  staff_weekly_report: { ...base, lines: [], totalLabel: '', report: sampleWeeklyReport },
+  staff_monthly_report: { ...base, lines: [], totalLabel: '', report: sampleMonthlyReport },
   email_change_code: {
     ...base,
     storeName: siteConfig.brand.name,
@@ -440,39 +474,4 @@ export const sampleTemplateDataByTemplate: Record<TemplateId, TemplateData> = {
       message: 'Please pack the sleeves separately.',
     },
   },
-}
-
-const DAY = 86_400_000
-
-/** "10 Oct 2026" (or "30 November 2026" with `long`), the way the templates print dates. */
-function dateLabel(now: Date, days: number, long = false): string {
-  return formatInZone(
-    now.getTime() + days * DAY,
-    { day: 'numeric', month: long ? 'long' : 'short', year: 'numeric' },
-    { locale: 'en-GB' },
-  )
-}
-
-/**
- * The sample for one template with its dates a few days after `now`, so the admin's preview
- * never shows a deadline that is already past (#116). The conformance suite keeps the fixed
- * `sampleTemplateDataByTemplate` so its output stays the same from run to run.
- */
-export function sampleTemplateDataFor(template: TemplateId, now: Date = new Date()): TemplateData {
-  const s = sampleTemplateDataByTemplate[template]
-  return {
-    ...s,
-    ...(s.balance ? { balance: { ...s.balance, payByLabel: dateLabel(now, 7) } } : {}),
-    ...(s.deadlineLabel ? { deadlineLabel: dateLabel(now, 2) } : {}),
-    ...(s.giftCard?.expiresLabel
-      ? { giftCard: { ...s.giftCard, expiresLabel: dateLabel(now, 365) } }
-      : {}),
-    ...(s.review?.rewardUntil
-      ? { review: { ...s.review, rewardUntil: dateLabel(now, 30, true) } }
-      : {}),
-    ...(s.planBill?.dueLabel ? { planBill: { ...s.planBill, dueLabel: dateLabel(now, 5) } } : {}),
-    ...(s.purchaseOrder?.expectedLabel
-      ? { purchaseOrder: { ...s.purchaseOrder, expectedLabel: dateLabel(now, 14) } }
-      : {}),
-  }
 }

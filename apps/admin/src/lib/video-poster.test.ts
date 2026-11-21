@@ -11,8 +11,8 @@ const frame = (rgb: (i: number) => [number, number, number], n = 64 * 36) => {
 }
 
 describe('posterTimes', () => {
-  it('tries 2 s first and stays inside the video', () => {
-    expect(posterTimes(30)[0]).toBe(2)
+  it('tries the opening frame first and stays inside the video', () => {
+    expect(posterTimes(30)[0]).toBe(0.05)
     expect(posterTimes(1.5).every((t) => t <= 1.4)).toBe(true)
     expect(new Set(posterTimes(1.5)).size).toBe(posterTimes(1.5).length)
   })

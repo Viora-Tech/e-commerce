@@ -6,6 +6,7 @@ import activityLog from './activity-log'
 import affiliateCreatives from './affiliate-creatives'
 import affiliateFilters from './affiliate-filters'
 import affiliates from './affiliates'
+import agentReadiness from './agent-readiness'
 import ai from './ai'
 import analytics from './analytics'
 import appInstall from './app-install'
@@ -25,6 +26,7 @@ import bulkShip from './bulk-ship'
 import businessGst from './business-gst'
 import catalogs from './catalogs'
 import chatwoot from './chatwoot'
+import checkoutDraftEdit from './checkout-draft-edit'
 import checkoutRules from './checkout-rules'
 import checkoutSettings from './checkout-settings'
 import codRto from './cod-rto'
@@ -49,8 +51,11 @@ import customizeInboxEmbed from './customize-inbox-embed'
 import dateRange from './date-range'
 import dates from './dates'
 import delhivery from './delhivery'
+import deliveryOptionQuestions from './delivery-option-questions'
+import deliveryOptionSections from './delivery-option-sections'
 import deliveryOptions from './delivery-options'
 import deliveryOptionsPages from './delivery-options-pages'
+import deliveryRuleForm from './delivery-rule-form'
 import dhlExpress from './dhl-express'
 import discounts from './discounts'
 import documentTemplates from './document-templates'
@@ -61,6 +66,7 @@ import dtdc from './dtdc'
 import dynamicSources from './dynamic-sources'
 import ekart from './ekart'
 import emailBuilder from './email-builder'
+import emailDesign from './email-design'
 import emailSuppression from './email-suppression'
 import fedex from './fedex'
 import filterPanel from './filter-panel'
@@ -70,9 +76,11 @@ import growth from './growth'
 import growthHome from './growth-home'
 import growthReport from './growth-report'
 import growthbook from './growthbook'
+import gstAlreadyInvoiced from './gst-already-invoiced'
 import gstInvoices from './gst-invoices'
 import gstQueuePage from './gst-queue-page'
 import home from './home'
+import homeSections from './home-sections'
 import honoProduct from './hono-product'
 import imageEditor from './image-editor'
 import inbox from './inbox'
@@ -85,6 +93,7 @@ import labelSheet from './label-sheet'
 import layout from './layout'
 import localDelivery from './local-delivery'
 import login from './login'
+import manifestSheet from './manifest-sheet'
 import marketingAutomations from './marketing-automations'
 import marketingCampaigns from './marketing-campaigns'
 import markets from './markets'
@@ -114,6 +123,7 @@ import pixels from './pixels'
 import platform from './platform'
 import preorders from './preorders'
 import productBulkShipping from './product-bulk-shipping'
+import productFeed from './product-feed'
 import productForm from './product-form'
 import productPage from './product-page'
 import productShipping from './product-shipping'
@@ -128,6 +138,7 @@ import returns from './returns'
 import reviewTools from './review-tools'
 import reviews from './reviews'
 import rollouts from './rollouts'
+import saleSource from './sale-source'
 import salesChannels from './sales-channels'
 import searchApp from './search-app'
 import searchConsole from './search-console'
@@ -141,6 +152,7 @@ import settingsRows from './settings-rows'
 import shadowfax from './shadowfax'
 import sharedParcel from './shared-parcel'
 import shipglobal from './shipglobal'
+import shipmentLost from './shipment-lost'
 import shipments from './shipments'
 import shipping from './shipping'
 import shippingRates from './shipping-rates'
@@ -149,6 +161,7 @@ import shopifyImport from './shopify-import'
 import shopifyImportFiles from './shopify-import-files'
 import shopifyImportRun from './shopify-import-run'
 import shopifyImportSettings from './shopify-import-settings'
+import snapmint from './snapmint'
 import staff from './staff'
 import staffInvites from './staff-invites'
 import states from './states'
@@ -160,6 +173,7 @@ import storeData from './store-data'
 import storeHealth from './store-health'
 import table from './table'
 import themeCode from './theme-code'
+import themeEditorApps from './theme-editor-apps'
 import themeImport from './theme-import'
 import themes from './themes'
 import umami from './umami'
@@ -209,8 +223,11 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...checkoutRules,
   ...checkoutSettings,
   ...codRto,
+  ...deliveryOptionQuestions,
+  ...deliveryOptionSections,
   ...deliveryOptions,
   ...deliveryOptionsPages,
+  ...deliveryRuleForm,
   ...common,
   ...resourcePicker,
   ...connectAside,
@@ -225,6 +242,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...customizeAi,
   ...customizeAppEmbeds,
   ...customizeInboxEmbed,
+  ...themeEditorApps,
   ...dates,
   ...delhivery,
   ...dhlExpress,
@@ -234,8 +252,10 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...giftCards,
   ...drafts,
   ...draftStoreCredit,
+  ...checkoutDraftEdit,
   ...domains,
   ...emailBuilder,
+  ...emailDesign,
   ...dtdc,
   ...analytics,
   ...discounts,
@@ -245,10 +265,13 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...growth,
   ...growthHome,
   ...growthReport,
+  ...gstAlreadyInvoiced,
   ...gstInvoices,
   ...gstQueuePage,
   ...home,
+  ...homeSections,
   ...honoProduct,
+  ...productFeed,
   ...imageEditor,
   ...indiaPost,
   ...installedApps,
@@ -287,6 +310,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...commandPalette,
   ...inventory,
   ...labelSheet,
+  ...manifestSheet,
   ...productForm,
   ...productBulkShipping,
   ...productShipping,
@@ -309,6 +333,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...reviews,
   ...settings,
   ...settingsRows,
+  ...shipmentLost,
   ...shipments,
   ...shipping,
   ...shippingRates,
@@ -323,6 +348,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...stepUp,
   ...storeData,
   ...storeHealth,
+  ...agentReadiness,
   ...storageWarning,
   ...table,
   ...themeCode,
@@ -341,9 +367,11 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...ekart,
   ...emailSuppression,
   ...shadowfax,
+  ...snapmint,
   ...growthbook,
   ...whatsappSignup,
   ...whatsappChat,
   ...whatsappApp,
   ...salesChannels,
+  ...saleSource,
 ]

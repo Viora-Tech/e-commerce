@@ -18,7 +18,7 @@ import { refundedPaise } from '../order/refund'
  * `captured` when a failed refund leaves part of it unreturned. Other statuses are left alone.
  * The caller holds the order's row lock.
  */
-async function syncRefundedStatus(ctx: StoreContext, paymentId: string): Promise<void> {
+export async function syncRefundedStatus(ctx: StoreContext, paymentId: string): Promise<void> {
   const [p] = await ctx.tx
     .select({ status: payment.status, amountPaise: payment.amountPaise })
     .from(payment)

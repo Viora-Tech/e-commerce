@@ -183,7 +183,13 @@ export async function recomputeOrderStatuses(
       .from(orderLine)
       .where(eq(orderLine.orderId, orderId)),
     // Its own shipments and any box it shares with another order (shipping/shared-parcel.ts).
-    ctx.tx.select({ status: shipment.status }).from(shipment).where(carriesOrder(orderId)),
+    ctx.tx
+      .select({
+        status: shipment.status,
+        reshipped: sql<boolean>`${shipment.reshippedAt} is not null`,
+      })
+      .from(shipment)
+      .where(carriesOrder(orderId)),
     // Units customers sent back that reached the merchant (RTOs count through the shipment).
     ctx.tx
       .select({ units: sql<number>`coalesce(sum(${returnRequestLine.quantity}), 0)::int` })

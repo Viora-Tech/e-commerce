@@ -10,6 +10,7 @@ export const accountContent = {
     storeCredit: 'Store credit',
     privacy: 'Your data',
     signOut: 'Sign out',
+    signedInAs: 'Signed in as',
   },
   login: {
     title: 'Sign in',
@@ -140,6 +141,10 @@ export const accountContent = {
       n ? `Returned: order #${n} was not paid` : 'Returned from an unpaid order',
     expired: 'Expired',
     expiresOn: (day: string) => `use by ${day}`,
+    /** The card on the Orders page when there is a balance to spend. */
+    summaryTitle: 'Store credit to spend',
+    summaryBody: 'It comes off your next order at checkout.',
+    seeHistory: 'See history',
   },
   orders: {
     title: 'Orders',
@@ -204,6 +209,7 @@ export const accountContent = {
   },
   addresses: {
     title: 'Addresses',
+    intro: 'Pick one at checkout in a tap instead of typing it again.',
     add: 'Add address',
     emptyTitle: 'No saved addresses',
     emptyBody: 'Save an address to check out faster next time.',
@@ -228,9 +234,12 @@ export const accountContent = {
       pincode: 'PIN code',
     },
     pincodeHint: 'Six digits, for example 110001',
+    stateRequired: 'Pick your state',
   },
   profile: {
     title: 'Profile',
+    intro: 'Your details, and how the shop may reach you.',
+    detailsTitle: 'Your details',
     email: 'Email',
     emailNote: 'Your email is how you sign in, so it cannot be changed here.',
     name: 'Name',

@@ -39,6 +39,8 @@ export function useOrderUndo(
     restore: () => run(() => api.orders.restore({ id: orderId }), copy.actions.restored),
     markNotShipped: () =>
       run(() => api.orders.markNotShipped({ id: orderId }), copy.actions.markedNotShipped),
+    markLineNotShipped: (lineId: string) =>
+      run(() => api.orders.markLineNotShipped({ id: orderId, lineId }), copy.items.unfulfilledLine),
     markNotDelivered: () =>
       run(() => api.orders.markNotDelivered({ id: orderId }), copy.actions.markedNotDelivered),
     archive: (archived: boolean) =>

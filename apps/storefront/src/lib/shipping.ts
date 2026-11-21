@@ -1,6 +1,7 @@
 import 'server-only'
 import { loadEnv } from '@commerce/config'
 import {
+  activeDeliveryConfig,
   cartShippingHintFor,
   type DeliveryEstimate,
   domesticShippingProvider,
@@ -42,8 +43,10 @@ import {
   type DeliveryCardExtras,
   deliveryDateRange,
   deliveryArrives as optionArrives,
+  optionCodFee,
+  type ParcelDatesByCard,
 } from './delivery-options'
-import { itemTitle, parcelFrom, type ShopperParcel } from './parcels'
+import { itemTitle, parcelFrom, pricedParcels, type ShopperParcel } from './parcels'
 import { arrivalLabel, fastestRate, type RateWindow, rateWindow } from './rate-dates'
 
 const env = () => loadEnv(process.env)
@@ -127,8 +130,13 @@ export async function estimateForPincode(
  */
 export async function cartShippingHint(
   tx: StoreTx,
+  storeId: string,
   cartId: string | null,
 ): Promise<{ charged: boolean; freeAbovePaise: number | null }> {
+  /* With the Delivery options app on, checkout prices by its product rules, not by the shipping
+     rates' zones: the cart promises nothing ("Calculated at checkout") rather than "Free" while
+     checkout charges (owner, 21 Nov 2026, a keyboard). */
+  if (await activeDeliveryConfig(tx, storeId)) return { charged: true, freeAbovePaise: null }
   return cartShippingHintFor(tx, cartId)
 }
 
@@ -164,6 +172,11 @@ export type CheckoutShipping = {
   arrives: string | null
   /** Delivery options app: the quote Pay prices from, and the insurance checkbox. */
   deliveryQuote?: Pick<CheckoutDelivery, 'quoteId' | 'insurance'> | undefined
+  /**
+   * Delivery options app, a split cart: each parcel's own dates per card, from the engine run
+   * that priced the cards, so "Parcel 1 arrives" agrees with the card (#1781 item 11).
+   */
+  parcelDates?: ParcelDatesByCard | undefined
   /** Nothing in the cart needs shipping (services, downloads): no charge, no courier asked. */
   nothingShips?: true | undefined
   /**
@@ -277,7 +290,7 @@ export async function checkoutShipping(
   storeId: string,
   cartId: string,
   to: { pincode: string; stateCode: string; countryCode?: string | undefined },
-  opts: { declineInsurance?: boolean | undefined; quoteId?: string | null | undefined } = {},
+  opts: { insure?: boolean | undefined; quoteId?: string | null | undefined } = {},
 ): Promise<CheckoutShipping> {
   // A service or a download: the address is kept for the invoice, but nothing is quoted.
   if (await cartNothingShips(tx, storeId, cartId)) {
@@ -391,7 +404,7 @@ async function deliveryOptionsShipping(
   storeId: string,
   cartId: string,
   to: { pincode: string; stateCode: string },
-  opts: { declineInsurance?: boolean | undefined; quoteId?: string | null | undefined },
+  opts: { insure?: boolean | undefined; quoteId?: string | null | undefined },
 ): Promise<CheckoutShipping | null> {
   const app = await checkoutDelivery(tx, storeId, cartId, to, opts)
   if (!app || app.delivery.status === 'none') return null
@@ -419,7 +432,8 @@ async function deliveryOptionsShipping(
   })
   if (quote.status === 'unserviceable')
     return { delivery, rates: { kind: 'none' }, parcels: [], arrives: null }
-  const split = await checkoutParcels(tx, storeId, cartId, to)
+  // By location, then as checkout priced them (one location split by product rules).
+  const split = pricedParcels(await checkoutParcels(tx, storeId, cartId, to), quote.parcels)
   const afterDiscount = zone.afterDiscount ?? ((p: number) => p)
   const latest = options.map((o) => o.latest ?? '9999')
   const first = [...latest].sort()[0]
@@ -429,10 +443,17 @@ async function deliveryOptionsShipping(
     name: o.title,
     pricePaise: afterDiscount(o.pricePaise),
     dateRange: deliveryDateRange(o),
-    codSurchargePaise: null,
+    // The courier's COD charge on its own line (the option's "shown as a separate charge").
+    codSurchargePaise: optionCodFee(o),
     arrives: optionArrives(o, policy, now),
     fastest: fastestAlone && latest[i] === first,
-    delivery: cardExtras(o, policy, now, afterDiscount),
+    delivery: cardExtras(
+      o,
+      policy,
+      now,
+      afterDiscount,
+      quote.parcels.map((p) => p.key),
+    ),
   }))
   return {
     delivery,
@@ -440,6 +461,7 @@ async function deliveryOptionsShipping(
     parcels: split.length > 1 ? split : [],
     arrives: rates[0]?.arrives ?? null,
     deliveryQuote: { quoteId: quote.quoteId, insurance: quote.insurance },
+    parcelDates: quote.parcelDates,
     dispatchCutoffAt: dispatchCutoffAt(delivery, policy, now),
   }
 }
@@ -466,6 +488,7 @@ export async function checkoutParcels(
       items: p.lines.map((l) => ({
         title: itemTitle(l.title, l.variantTitle),
         quantity: l.quantity,
+        variantId: l.variantId,
       })),
       dateRange: ok ? e.dateRange : null,
       onHold: p.status === 'on_hold',

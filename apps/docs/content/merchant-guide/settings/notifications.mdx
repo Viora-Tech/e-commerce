@@ -1,6 +1,6 @@
 ---
 title: Notifications
-description: Every message your customers get, how to preview it, send yourself a test, switch messages off, and connect email or WhatsApp.
+description: Every message your customers get, how to preview it, change its design, send yourself a test, switch messages off, and connect email or WhatsApp.
 ---
 
 # Notifications
@@ -56,7 +56,8 @@ From top to bottom:
   **Connect** button.
 
 Each message shows which channels it can use (**Email**, **WhatsApp**), an on/off switch when
-it can be switched off, **Preview** and **Send me a test**.
+it can be switched off, **Edit design** (the pencil, for messages with an email), **Preview**
+and **Send me a test**. A message you redesigned shows **Own design** next to its name.
 
 ## Set up customer messages
 
@@ -105,6 +106,29 @@ it only reaches people who messaged your shop in the last day.
 Select **Preview** on any message. You see the email filled with a sample order, and the
 WhatsApp text if it has one. Nothing is sent.
 
+### Change how an email looks
+
+Select **Edit design** (the pencil) on a message. The editor opens with the email exactly as
+customers get it today, as a list of blocks on the left and a live preview with a sample order
+on the right (switch between **Desktop** and **Mobile**).
+
+- **Add a block**: Logo and menu, Heading, Text, Image, Button, Divider, Spacer, Social links,
+  Questions box or Footer. It goes under the block you picked.
+- **Move a block**: drag it by its handle, or pick the handle and use the arrow keys.
+- **Change a block**: select it and edit its settings under the list. **Title and opening
+  line** keeps the built-in words while its fields are empty.
+- **Remove a block**: the bin button. Blocks with a **lock** (the order route, items and
+  totals, address and payment, the sign-in code, the coupon, the main button) carry the real
+  order: you can move them but not remove or change them, and every email fills them in.
+- **Words that fill in**: type `{{customer_name}}`, `{{order_number}}`, `{{store_name}}` and the
+  others listed under the editor into any text, button or the **Subject line**. A word this email
+  cannot fill in is flagged in red and left out of the email.
+- Links must start with `https://`, `http://` or `mailto:` (or be a word like `{{order_url}}`);
+  **Link to a page** picks one of your products or collections.
+
+Select **Save design**. From then on every email of that kind uses it, including tests.
+**Reset to default** brings back the built-in email. WhatsApp messages do not change.
+
 ### Send yourself a test
 
 Select **Send me a test**. The email goes to the email address you sign in with, never to a
@@ -147,6 +171,13 @@ new orders, a daily summary, and more. See
 [Your account](/merchant-guide/settings/your-account#notifications). The **New order alert
 (team)** and **Daily summary (team)** switches under *Messages you get* here turn them off for
 the whole team.
+
+</FaqItem>
+
+<FaqItem question="Can a design break my order emails?">
+
+No. The order details always come from the real order, and if a saved design ever cannot be
+read, the built-in email goes out instead.
 
 </FaqItem>
 

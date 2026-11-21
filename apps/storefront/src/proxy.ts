@@ -3,8 +3,10 @@ import { readHonoPreviewToken } from '@commerce/core/hono-preview'
 import { CONSENT_COOKIE } from '@commerce/core/preferences'
 import { withQuery } from '@commerce/core/redirects'
 import { THEME_PREVIEW_PARAM } from '@commerce/core/theme'
+import { THEME_DESIGN_MODE_PARAM } from '@commerce/core/theme-design-mode'
 import { type HostRoute, resolveHost, type StoreMarketRoute, storeMarkets } from '@commerce/db'
 import { type NextRequest, NextResponse } from 'next/server'
+import { FEED_FILES } from './data/product-feed'
 import { SEO_FILES } from './data/seo'
 import { accountsHostname } from './lib/accounts-host'
 import { analyticsAllowed } from './lib/consent-cookie'
@@ -212,7 +214,9 @@ async function routeRequest(
     primaryHostname: redirectHost,
     redirect: hostRoute.redirect,
     inFrame: request.headers.get('sec-fetch-dest') === 'iframe',
-    previewing: request.nextUrl.searchParams.has(THEME_PREVIEW_PARAM),
+    // A theme preview link, or a tab still previewing (its cookie is on this host only).
+    previewing:
+      request.nextUrl.searchParams.has(THEME_PREVIEW_PARAM) || request.cookies.has(PREVIEW_COOKIE),
     dev: process.env.NODE_ENV !== 'production',
   })
   if (target) return NextResponse.redirect(target, 301)
@@ -329,6 +333,9 @@ async function routeRequest(
   // theme, for this page only. Only with a valid preview; the renderer checks the theme too.
   const version = request.nextUrl.searchParams.get('theme-version')
   if (preview && token && version && UUID.test(version)) headers.set('x-theme-version', version)
+  // Customize's Theme scripts view (`lib/liquid-design-mode.ts`): a valid preview, in a frame.
+  const design = inFrame && request.nextUrl.searchParams.get(THEME_DESIGN_MODE_PARAM) === '1'
+  if (preview && token && design) headers.set('x-theme-design-mode', '1')
 
   // Password page: while it is on, every page renders it unless the visitor has the
   // signed pass or a valid preview token.
@@ -431,8 +438,10 @@ async function routeRequest(
   // drop, so it is done here). Without analytics consent no visitor id is set at all. Never
   // on robots.txt, sitemap.xml or llms.txt: they answer `cache-control: public`, and a
   // shared cache that stored a Set-Cookie would hand one visitor id to every shopper after.
+  // The product feeds (`/feeds/products.xml`, `.csv`) are public and cacheable for the same reason.
   if (
     !seoFile &&
+    !(FEED_FILES as readonly string[]).includes(pick.pathname) &&
     analyticsAllowed(request.cookies.get(CONSENT_COOKIE)?.value) &&
     !parseVisitorId(request.cookies.get(VISITOR_COOKIE)?.value)
   ) {
@@ -487,6 +496,8 @@ export const config = {
   // /api/health is excluded: it's an infra liveness/readiness probe (Docker HEALTHCHECK,
   // deploy/docker-compose.prod.yml), not tied to any store's host, so it must answer even
   // when the request's Host header ("localhost" inside the container, no store configured
-  // for it) would otherwise 404 here.
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|flags/|api/health).*)'],
+  // for it) would otherwise 404 here. `flags/` and `courier-logos/` are files in `public/`:
+  // through the proxy they were rewritten into the store's pages and 404ed (checkout's
+  // Delhivery logo showed as a broken image).
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|flags/|courier-logos/|api/health).*)'],
 }

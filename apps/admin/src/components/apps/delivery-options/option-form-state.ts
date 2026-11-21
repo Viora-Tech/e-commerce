@@ -3,6 +3,7 @@ import {
   type DeliveryOptionInput,
   DeliveryOptionInputSchema,
   type OptionRoutes,
+  type PriceRounding,
   type RouteSelector,
 } from '@commerce/core/delivery-options'
 import { parseRupees } from '@commerce/money'
@@ -25,6 +26,8 @@ export type OptionForm = {
   freeAbove: string
   min: string
   max: string
+  /** How a price the engine makes is rounded up (`price.rounding`). */
+  rounding: PriceRounding
   insurance: DeliveryOptionInput['insurance']['default']
   insuranceAbove: string
   etaSource: DeliveryOptionInput['eta']['source']
@@ -34,8 +37,11 @@ export type OptionForm = {
   processing: string
   maxDays: string
   cod: DeliveryOptionInput['cod']['mode']
+  /** The courier's COD charge: in the delivery price, or its own fee line (`cod.fee`). */
+  codFee: DeliveryOptionInput['cod']['fee']
   /** Every allowed courier as its own card at checkout (the Couriers card). */
   couriersList: boolean
+  /** A number of cards, or `ALL_COURIERS` (`couriers.max: null`). */
   couriersMax: string
   roundTo9: boolean
   hideSlowerDearer: boolean
@@ -48,6 +54,9 @@ export type OptionForm = {
 }
 
 const days = (n: number | null | undefined) => (n == null ? '' : String(n))
+
+/** The "Show at most" value for every courier: `couriers.max` null. */
+export const ALL_COURIERS = 'all'
 
 export function formOf(o: DeliveryOption | null): OptionForm {
   const x = o ?? { ...DeliveryOptionInputSchema.parse({ name: '-' }), name: '' }
@@ -66,6 +75,7 @@ export function formOf(o: DeliveryOption | null): OptionForm {
     freeAbove: toRupees(x.price.freeAbovePaise),
     min: toRupees(x.price.minPaise),
     max: toRupees(x.price.maxPaise),
+    rounding: x.price.rounding,
     insurance: x.insurance.default,
     insuranceAbove: toRupees(x.insurance.onlyAbovePaise),
     etaSource: x.eta.source,
@@ -75,8 +85,10 @@ export function formOf(o: DeliveryOption | null): OptionForm {
     processing: x.eta.processingDays ? String(x.eta.processingDays) : '',
     maxDays: days(x.eta.maxDays),
     cod: x.cod.mode,
+    codFee: x.cod.fee,
     couriersList: x.couriers.show === 'list',
-    couriersMax: String(x.couriers.max),
+    // A new option shows every courier (owner, 20 Nov); a saved one keeps its number.
+    couriersMax: o === null || x.couriers.max == null ? ALL_COURIERS : String(x.couriers.max),
     roundTo9: x.couriers.roundTo9,
     hideSlowerDearer: x.couriers.hideSlowerDearer,
     showNames: x.couriers.showNames,
@@ -113,6 +125,7 @@ export function inputOf(f: OptionForm): DeliveryOptionInput {
       freeAbovePaise: parseRupees(f.freeAbove),
       minPaise: parseRupees(f.min),
       maxPaise: parseRupees(f.max),
+      rounding: f.rounding,
     },
     insurance: { default: f.insurance, onlyAbovePaise: parseRupees(f.insuranceAbove) },
     eta: {
@@ -123,10 +136,11 @@ export function inputOf(f: OptionForm): DeliveryOptionInput {
       processingDays: whole(f.processing) ?? 0,
       maxDays: whole(f.maxDays),
     },
-    cod: { mode: f.speed === 'express' ? 'prepaid_only' : f.cod },
+    cod: { mode: f.speed === 'express' ? 'prepaid_only' : f.cod, fee: f.codFee },
     couriers: {
       show: f.couriersList ? 'list' : 'one',
-      max: Math.min(8, Math.max(2, whole(f.couriersMax) ?? 3)),
+      max:
+        f.couriersMax === ALL_COURIERS ? null : Math.min(8, Math.max(1, whole(f.couriersMax) ?? 5)),
       roundTo9: f.roundTo9,
       hideSlowerDearer: f.hideSlowerDearer,
       showNames: f.showNames,
@@ -136,4 +150,14 @@ export function inputOf(f: OptionForm): DeliveryOptionInput {
     },
     enabled: f.enabled,
   })
+}
+
+/** The form as an option for the live checkout example; null while a field cannot be read
+ *  (a markup over 100 %), so the example waits instead of the page failing. */
+export function exampleOptionOf(f: OptionForm): DeliveryOptionInput | null {
+  try {
+    return inputOf({ ...f, name: f.name.trim() || '-' })
+  } catch {
+    return null
+  }
 }

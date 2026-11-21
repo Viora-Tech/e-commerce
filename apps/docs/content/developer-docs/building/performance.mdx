@@ -376,6 +376,22 @@ The origin is ready for it; switching DNS is a separate, owner-run step.
    The cookie conditions repeat the origin's rule: Cloudflare keys by URL only, so a visitor with
    a cart must never be answered from it. The origin already marks those pages private; the rule
    is the second lock.
+   **Ad clicks** (`?fbclid=`, `?gclid=`, `utm_*`, `ttclid`, `msclkid`): every click carries a
+   unique id, so keyed by the full URL each ad visitor misses the cache and waits on the origin.
+   Cache Rules can only drop query params from the key on Enterprise, so a URL rewrite takes them
+   out before the cache instead (Rules → Transform Rules → Rewrite URL → Create rule), named
+   "Ad-click params out of the cache key":
+   - When: the `expression` from `cloudflareTrackingRewrite()` in
+     `apps/storefront/src/lib/tracking-params.ts` (page GETs whose query has one of the params;
+     never `/api/`, `/_next/`, `/webhooks/`).
+   - Then: Path **Preserve**; Query **Rewrite to → Dynamic**, the `query` value from the same
+     function (`remove_query_args(http.request.uri.query, "fbclid", "gclid", …)`).
+
+   Print both with
+   `bun -e "import {cloudflareTrackingRewrite as r} from './apps/storefront/src/lib/tracking-params.ts'; console.log(r())"`.
+   The shopper's address bar keeps the params: the beacon and the pixels read `location.href`,
+   so attribution, `_fbc` and campaign sessions are unchanged. `ref` (affiliate links) is not
+   removed; the proxy reads it and keeps that page out of the cache.
 5. **Static files**: `/_next/static/*` and `/theme-assets/…?v=` already send `immutable` for a
    year; Cloudflare caches them by default.
 6. **Purge**: not needed for correctness with the default 30-second TTL. For a longer one, give

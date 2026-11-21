@@ -14,4 +14,8 @@ export const transferDraftContent = {
   expiredHeading: 'This checkout has expired',
   expiredBody:
     'We did not see a payment within 7 days, so the items are no longer held. If you have paid, contact the shop with your reference; otherwise please check out again.',
+  /** Staff took the checkout over to change it: this page's payment stopped. */
+  takenOverHeading: 'The shop is updating this order',
+  takenOverBody:
+    'This payment link no longer works. The shop will send you a new link with the updated order; please pay with that one.',
 }

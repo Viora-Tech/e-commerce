@@ -146,6 +146,14 @@ export const accountContent = {
         label: 'Daily summary',
         help: 'Orders, sales and what waits to ship, once a day.',
       },
+      weeklyReport: {
+        label: 'Weekly report',
+        help: 'Last week’s sales, best sellers and what to look at, every Monday at 9:00. Email only.',
+      },
+      monthlyReport: {
+        label: 'Monthly report',
+        help: 'Last month’s sales, best sellers and what to look at, on the 1st at 9:00. Email only.',
+      },
       appErrors: {
         label: 'App or integration error',
         help: 'When a connected app or courier stops working.',

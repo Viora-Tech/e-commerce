@@ -145,6 +145,7 @@ export const STATUS = {
     delivered: entry(shipmentPanelContent.status.delivered ?? 'Delivered', 'success', PackageCheck),
     rto: entry(shipmentPanelContent.status.rto ?? 'Returning', 'error', CancelCircle),
     cancelled: entry(shipmentPanelContent.status.cancelled ?? 'Cancelled', 'error', CancelCircle),
+    lost: entry(shipmentPanelContent.status.lost ?? 'Lost', 'error', CancelCircle),
   },
   /** A customer return or an RTO task: amber when it waits on the merchant. */
   return: {

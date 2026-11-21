@@ -166,6 +166,19 @@ export const KNOWLEDGE_LABELS: Record<KnowledgeKey, string> = {
 }
 
 /** One fact as plain lines, for llms.txt and the store endpoint. */
+/**
+ * Published store facts as question-and-answer entries, for the store chat AI (one Knowledge
+ * base for both readers, owner 18 Nov 2026): each FAQ pair as its own entry, any other fact
+ * under its label.
+ */
+export function factEntries(k: AgentKnowledge): { title: string; answer: string }[] {
+  return publishedFacts(k).flatMap(({ key, fact }) => {
+    if (fact.faq.length) return fact.faq.map((f) => ({ title: f.q, answer: f.a }))
+    const answer = fact.tags.length ? fact.tags.join(', ') : fact.text
+    return answer ? [{ title: KNOWLEDGE_LABELS[key], answer }] : []
+  })
+}
+
 export function factLines(key: KnowledgeKey, fact: KnowledgeValue): string[] {
   const label = KNOWLEDGE_LABELS[key]
   if (fact.faq.length) return fact.faq.flatMap((f) => [`Q: ${f.q}`, `A: ${f.a}`])

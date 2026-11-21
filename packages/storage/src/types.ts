@@ -83,6 +83,12 @@ export type StorageProvider = {
   /** Server-side read; resolves null for a missing key. Used to stream private files. */
   get(key: string): Promise<Uint8Array | null>
   /**
+   * Optional streaming read, for objects too big to hold whole (the worker copies a video to a
+   * temp file before re-encoding it). Resolves null for a missing key. `signal` ends the read;
+   * an aborted or broken read errors the stream. Without it callers use `get`.
+   */
+  getStream?(key: string, signal?: AbortSignal): Promise<ReadableStream<Uint8Array> | null>
+  /**
    * Metadata without the body: the real size on confirm (a browser can lie
    * about `Content-Length` at presign time), and what the worker needs
    * before deciding whether to download the whole object. Resolves null for

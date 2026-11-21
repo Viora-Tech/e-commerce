@@ -169,14 +169,6 @@ export const shipmentDetailsContent = {
   created: 'Booked',
   printLabel: 'Print label',
   track: 'Track',
-  cancel: 'Cancel shipment',
-  cancelTitle: 'Cancel this shipment?',
-  cancelBody: (courier: string, awb: string) =>
-    `${courier} cancels AWB ${awb}. Its items go back to To ship and back in stock, so you can book it again with any courier.`,
-  cancelConfirm: 'Cancel shipment',
-  keep: 'Keep shipment',
-  cancelled: 'Shipment cancelled. You can book this order again.',
-  cancelFailed: 'Could not cancel the shipment.',
   /** Why Cancel is not offered, by `cancelBlock`. */
   blocked: {
     not_supported:
@@ -225,6 +217,7 @@ export const shipmentPanelContent = {
     delivered: 'Delivered',
     rto: 'Returning to origin',
     cancelled: 'Cancelled',
+    lost: 'Lost by courier',
   } as Record<string, string>,
 } as const
 

@@ -1,8 +1,10 @@
 import StatusChip from '@/components/layout/status-chip'
 import type { ResourceColumnSpec } from '@/components/table/resource-table'
 import type { abandonedContent } from '@/data/drafts'
+import type { saleSourceContent } from '@/data/sale-source'
 import type { api } from '@/lib/api-client'
 import type { Formatters } from '@/lib/format'
+import { saleSourceLabel } from '@/lib/sale-source'
 
 type Item = Awaited<ReturnType<typeof api.orders.listAbandoned>>['items'][number]
 
@@ -11,10 +13,11 @@ const STATUS_TONE = { open: 'attention', sent: 'neutral', recovered: 'success' }
 
 const statusOf = (c: Item) => (c.recovered ? 'recovered' : c.recoverySentAt ? 'sent' : 'open')
 
-/** The abandoned checkouts table: who, what was in the cart, its value, when, and recovery. */
+/** The abandoned checkouts table: who, what was in the cart, its value, when, where from, and recovery. */
 export function abandonedColumns(
   copy: typeof abandonedContent,
   fmt: Formatters,
+  source: typeof saleSourceContent,
 ): ResourceColumnSpec<Item>[] {
   return [
     {
@@ -62,6 +65,16 @@ export function abandonedColumns(
       title: copy.columns.activity,
       sortValue: (c) => new Date(c.updatedAt).getTime(),
       render: (c) => <span className="tabular-nums">{fmt.when(c.updatedAt)}</span>,
+    },
+    {
+      id: 'source',
+      title: source.column,
+      sortValue: (c) => saleSourceLabel(c.touch, source),
+      render: (c) => (
+        <span className="block truncate text-caption text-muted-foreground">
+          {saleSourceLabel(c.touch, source)}
+        </span>
+      ),
     },
     {
       id: 'status',

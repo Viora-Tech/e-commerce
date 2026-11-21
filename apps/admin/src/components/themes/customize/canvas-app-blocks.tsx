@@ -1,10 +1,12 @@
 'use client'
 
 import { ReviewsCarousel, type StoreReviews } from '@commerce/blocks'
-import { APP_BLOCK_SLOT_ATTR } from '@commerce/core/theme-import'
+import { APP_BLOCK_MISSING_ATTR, APP_BLOCK_SLOT_ATTR } from '@commerce/core/theme-import'
 import { type RefObject, useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { canvasAppBlocksContent as copy } from '@/data/canvas-app-blocks'
+import { themeEditorAppsContent } from '@/data/theme-editor-apps'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 
 type CanvasAppBlocksProps = {
@@ -21,12 +23,14 @@ const CAROUSEL_REVIEWS = 12
  * Our widgets in the slots an imported section's Shopify app blocks left (Judge.me's reviews
  * carousel), as the storefront draws them. The canvas renders only the theme's Liquid, so
  * without this the slot is an empty band. Draws nothing when the Reviews app has no reviews,
- * like the storefront.
+ * like the storefront. An app block we have no app for shows the server's placeholder, labelled
+ * here in the merchant's language.
  */
 export default function CanvasAppBlocks({ box, html }: CanvasAppBlocksProps) {
   // Hooks
   const [slot, setSlot] = useState<HTMLElement | null>(null)
   const [reviews, setReviews] = useState<StoreReviews | null>(null)
+  const apps = useCopy(themeEditorAppsContent)
 
   useEffect(() => {
     const found =
@@ -35,6 +39,12 @@ export default function CanvasAppBlocks({ box, html }: CanvasAppBlocksProps) {
         : null
     setSlot(found)
   }, [box, html])
+
+  useEffect(() => {
+    if (!html || !box.current) return
+    for (const el of box.current.querySelectorAll<HTMLElement>(`[${APP_BLOCK_MISSING_ATTR}]`))
+      el.textContent = apps.missingBlock(el.getAttribute(APP_BLOCK_MISSING_ATTR) ?? '')
+  }, [box, html, apps])
 
   useEffect(() => {
     if (!slot || reviews) return

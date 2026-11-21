@@ -16,6 +16,8 @@ export type MediaImage = {
   thumbhash?: string | null | undefined
   /** The original file's pixel width: `<Picture>` offers it when it beats the widest variant. */
   width?: number | null | undefined
+  /** A video's smaller copy (worker-made); a video plays it when set, else `url`. */
+  compactUrl?: string | null | undefined
 }
 
 export type CardProduct = {
@@ -68,6 +70,8 @@ export type ProductDetail = {
     id: string
     title: string
     sku: string | null
+    /** GTIN / EAN / UPC (the variant's barcode), for structured data; absent in older data. */
+    barcode?: string | null | undefined
     /** Null: listed before the price is confirmed; shown as "Price coming soon", never purchasable. */
     pricePaise: number | null
     mrpPaise: number | null

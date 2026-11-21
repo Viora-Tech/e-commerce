@@ -52,7 +52,7 @@ describe('template specs', () => {
       name: 'order_placed',
       category: 'UTILITY',
       body: 'Hi {{1}}, {{2}} has received order #{{3}} for {{4}}. We will update you when it ships.',
-      examples: ['Asha', 'Waimers', '42', '₹2,048'],
+      examples: ['Asha', 'Waimers', '1042', '₹7,018'],
     })
     // The sample AWB is not a parameter of order_shipped, so it must not be fixed in the body.
     const shipped = whatsappTemplateSpec('order_shipped', 'Waimers')
@@ -185,7 +185,7 @@ describe('submitting a template', () => {
         {
           type: 'BODY',
           text: spec.body,
-          example: { body_text: [['Asha', 'Waimers', '42', '₹2,048']] },
+          example: { body_text: [['Asha', 'Waimers', '1042', '₹7,018']] },
         },
       ],
     })

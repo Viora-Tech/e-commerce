@@ -46,6 +46,7 @@ import ConsentManager from '@/components/privacy/consent-manager'
 import PredictiveSearch from '@/components/search/predictive-search'
 import AppEmbeds from '@/components/theme/app-embeds'
 import LiquidBoot from '@/components/theme/liquid-boot'
+import LiquidDesignMode from '@/components/theme/liquid-design-mode'
 import LiquidHtml from '@/components/theme/liquid-html'
 import LiquidReviewsCarousel from '@/components/theme/liquid-reviews-carousel'
 import PreviewBar from '@/components/theme/preview-bar'
@@ -395,6 +396,8 @@ export default async function StoreLayout({ children, params }: Props) {
   const page = (await themedRerender()) ? <Suspense fallback={null}>{children}</Suspense> : children
 
   if (liquid) {
+    // Customize's "Theme scripts" canvas: Shopify's design mode and the editor's section events.
+    const designMode = preview !== null && (await headers()).get('x-theme-design-mode') === '1'
     // An imported theme may branch on `request.experiments` anywhere, so every experiment the
     // shopper is in counts as viewed on its pages (sections with an A/B test setting report
     // their own in `renderTemplate`).
@@ -410,7 +413,7 @@ export default async function StoreLayout({ children, params }: Props) {
         </head>
         <body {...reactAttrs(liquid.bodyAttrs)} suppressHydrationWarning>
           <LiquidHtml
-            html={`<script${nonce ? ` nonce="${nonce}"` : ''}>${liquidShim({ askConsent: currentConsent(consent.initial, consent.bannerVersion) === null, prefix: (await headers()).get(MARKET_HEADERS.prefix) ?? '' })}</script>${liquid.head}`}
+            html={`<script${nonce ? ` nonce="${nonce}"` : ''}>${liquidShim({ askConsent: currentConsent(consent.initial, consent.bannerVersion) === null, prefix: (await headers()).get(MARKET_HEADERS.prefix) ?? '', designMode })}</script>${liquid.head}`}
           />
           {previewName && !preview?.inFrame ? <PreviewBar themeName={previewName} /> : null}
           <LiquidHtml html={liquid.beforeHeader} />
@@ -435,6 +438,7 @@ export default async function StoreLayout({ children, params }: Props) {
           <AppEmbeds storeId={storeId} appEmbeds={theme.appEmbeds} />
           {tested.length ? <ExperimentBeacon seen={tested} /> : null}
           <ThemePreviewBridge adminOrigin={adminOrigin} />
+          {designMode ? <LiquidDesignMode adminOrigin={adminOrigin} /> : null}
           {preview ? null : <ConsentManager {...consent} themeBanner={themedConsent} />}
           {suggestMarket ? <MarketSuggestion /> : null}
           {marketPrefix ? <MarketLinks prefix={marketPrefix} /> : null}

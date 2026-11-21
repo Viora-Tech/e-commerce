@@ -128,6 +128,23 @@ because their docs site is blocked from our build machines; sources are listed a
   codes. The EMI & pay later app and the older product-page EMI hint both treat Cashfree like
   Razorpay (`gatewayOffersEmi` in `@commerce/core/payment-methods`).
 
+Snapmint (`packages/payments-snapmint`, direct cardless EMI) is the worked example of a
+`redirect` session and of three optional provider members:
+
+- `parseReturn(fields)`: the gateway posts the shopper back to
+  `<store origin>/checkout/return/<provider id>` (`CreatePaymentInput.storefrontOrigin`). The
+  storefront route asks `confirm` for the status either way and opens the thank-you page with a
+  fresh view token only when the post is signed (Snapmint's SHA-512 `checksum_hash`).
+- `confirmWebhookEvent(event)`: runs after `parseWebhook` and before anything is stored; Snapmint
+  replaces the posted status with what its order status API says, and throws while the order is
+  still pending so the gateway's retry is processed in full.
+- `checkAvailability(input)`: checkout asks whether to show the method to this shopper
+  (Snapmint's visibility API, 1.5 s, fails open).
+
+`CreatePaymentInput.customer.ip` carries the shopper's IP (`placeOrder`'s `shopperIp`, else the
+order's tracking snapshot) and `billing` a separate billing address. Snapmint's create-checkout
+call is only accepted from server IPs Snapmint has allow-listed.
+
 ```ts filename="src/fedex.ts"
 import {
   CourierError,

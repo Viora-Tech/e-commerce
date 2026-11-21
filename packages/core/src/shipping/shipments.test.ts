@@ -2,12 +2,13 @@ import {
   address,
   courierOrder,
   createDb,
+  fulfillmentOrder,
+  fulfillmentOrderLine,
   order,
   orderLine,
   orderNote,
   product,
   shipment,
-  shipmentManifest,
   shipmentPickup,
   store,
   variant,
@@ -18,6 +19,7 @@ import { FakeShippingProvider, type Tracking } from '@commerce/shipping'
 import { eq, sql } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { buildTemplateData } from '../notifications/deliver'
+import { ensureFulfillmentOrders } from '../order/fulfillment-orders'
 import { pushPendingOrders } from './order-push'
 import { listUnpickedShipments, schedulePickup } from './pickup'
 import {
@@ -335,7 +337,7 @@ describe('shipments', () => {
     expect(notes[0]?.author).toBe('kuldeep@example.com')
   })
 
-  it('refuses a cancel once the parcel left, is on a manifest, or the courier has no cancel', async () => {
+  it('refuses a cancel once the parcel left or the courier has no cancel', async () => {
     const { storeId, orderId } = await seedOrder()
     const provider = new FakeShippingProvider()
     let asked = 0
@@ -352,13 +354,6 @@ describe('shipments', () => {
       code: 'SHIPMENT_NOT_CANCELLABLE',
       block: 'not_supported',
     })
-
-    const [m] = await owner
-      .insert(shipmentManifest)
-      .values({ storeId, provider: 'fake', shipmentIds: [row.id] })
-      .returning()
-    await expect(cancel()).rejects.toMatchObject({ block: 'in_manifest' })
-    await owner.delete(shipmentManifest).where(eq(shipmentManifest.id, m?.id as string))
 
     await owner.update(shipment).set({ status: 'picked_up' }).where(eq(shipment.id, row.id))
     await expect(cancel()).rejects.toMatchObject({ block: 'picked_up' })
@@ -404,6 +399,46 @@ describe('shipments', () => {
     // The cancelled booking keeps its id at the courier: this one is the order's second (2471-2).
     expect(captured[0]?.shipmentNumber).toBe(2)
     expect(await withStore(app, storeId, (tx) => rebookableParcels(tx, orderId))).toEqual(new Set())
+  })
+
+  it('a unit shipped before the booking stays shipped when the label is cancelled (#2073)', async () => {
+    const { storeId, orderId } = await seedOrder()
+    // One of the two pads was marked shipped by hand (or shipped before the import).
+    await withStore(app, storeId, (tx) => ensureFulfillmentOrders({ storeId, tx }, orderId))
+    const [fo] = await owner
+      .select()
+      .from(fulfillmentOrder)
+      .where(eq(fulfillmentOrder.orderId, orderId))
+    await owner
+      .update(fulfillmentOrderLine)
+      .set({ fulfilledQuantity: 1 })
+      .where(eq(fulfillmentOrderLine.fulfillmentOrderId, fo?.id as string))
+    await owner
+      .update(orderLine)
+      .set({ fulfilledQuantity: 1 })
+      .where(eq(orderLine.orderId, orderId))
+
+    const provider = new FakeShippingProvider()
+    const booked = vi.spyOn(provider, 'createShipment')
+    const row = await withStore(app, storeId, (tx) =>
+      createShipmentForOrder({ storeId, tx }, provider, orderId, {
+        fulfillmentOrderId: fo?.id as string,
+      }),
+    )
+    // The label carries only the unit not shipped yet, in a parcel of its own.
+    expect(booked.mock.calls[0]?.[0].lines.map((l) => l.quantity)).toEqual([1])
+    expect(row.fulfillmentOrderId).not.toBe(fo?.id)
+
+    await withStore(app, storeId, (tx) => cancelShipment({ storeId, tx }, provider, row.id))
+    // The unit shipped before is still shipped; only the label's unit is back to To ship.
+    const [line] = await owner.select().from(orderLine).where(eq(orderLine.orderId, orderId))
+    expect(line?.fulfilledQuantity).toBe(1)
+    const parcels = await owner
+      .select()
+      .from(fulfillmentOrder)
+      .where(eq(fulfillmentOrder.orderId, orderId))
+    expect(parcels.find((p) => p.id === fo?.id)?.status).toBe('fulfilled')
+    expect(parcels.find((p) => p.id === row.fulfillmentOrderId)?.status).toBe('open')
   })
 
   it('keeps the booking facts, and a keyed label points at the admin route', async () => {

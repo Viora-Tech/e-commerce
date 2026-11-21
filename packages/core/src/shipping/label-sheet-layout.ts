@@ -1,7 +1,9 @@
-/** SOURCE OF TRUTH: LABEL_SHEET_FORMATS, LABEL_SHEET_MAX, labelSheetSize, sheetCells, fitInBox, layoutLabelPages
+/** SOURCE OF TRUTH: LABEL_SHEET_FORMATS, LABEL_SHEET_MAX, labelSheetSize, sheetCells, fitInBox, layoutLabelPages, trimsToContent, trimToContent
  * WHAT:  where each courier label page lands when a batch is printed as one file: one per
- *        4 × 6 in thermal page, or four to an A4 sheet (2 × 2), scaled to fit and never
- *        stretched; "Courier's own size" keeps every page as the courier sent it.
+ *        4 × 6 in thermal page, or four to an A4 sheet (2 × 2), scaled up or down to fit and
+ *        never stretched; "Courier's own size" keeps every page as the courier sent it. On
+ *        4 × 6 the white around the label is cut away first (`trimToContent`), so an A4 slip
+ *        with the label in one part prints the label across the whole 4 × 6 page.
  * WHY:   couriers send labels in their own sizes (A4 slips, 4 × 6, 4 × 4); a desk printing
  *        a batch wants one file on one paper. Pure maths, so it is tested without a PDF.
  * WHERE: `mergeLabelSheet` (label-sheet.ts) draws the pages; the admin reads the format ids
@@ -9,7 +11,12 @@
  */
 
 /** The merchant's paper: thermal 4 × 6 in, A4 with four labels, or the courier's own pages. */
-export const LABEL_SHEET_FORMATS = ['thermal4x6', 'a4x4', 'original'] as const
+/**
+ * `thermal100x150` is the metric roll most Indian "4 × 6" thermal labels really are (100 × 150
+ * mm): printing 152.4 mm pages on it leaves 2.4 mm over on every label, so each print lands a
+ * little lower than the last (owner, 18 Nov 2026).
+ */
+export const LABEL_SHEET_FORMATS = ['thermal4x6', 'thermal100x150', 'a4x4', 'original'] as const
 export type LabelSheetFormat = (typeof LABEL_SHEET_FORMATS)[number]
 export const DEFAULT_LABEL_SHEET_FORMAT: LabelSheetFormat = 'thermal4x6'
 /** Labels in one file at most: about 25 A4 sheets, and a bounded wait on the couriers. */
@@ -24,11 +31,25 @@ const mm = (n: number) => n * PT_PER_MM
 
 /** 101.6 × 152.4 mm. */
 const THERMAL = { width: mm(101.6), height: mm(152.4) }
+/** 100 × 150 mm, the metric thermal roll. */
+const THERMAL_METRIC = { width: mm(100), height: mm(150) }
+
+/** The one-label-per-page thermal sizes. */
+const THERMAL_SIZE: Partial<Record<LabelSheetFormat, Size>> = {
+  thermal4x6: THERMAL,
+  thermal100x150: THERMAL_METRIC,
+}
 /** 210 × 297 mm. */
 const A4 = { width: mm(210), height: mm(297) }
 /** A4's outer margin and the gap between its four labels: room to cut them apart. */
 const A4_MARGIN = mm(5)
 const A4_GAP = mm(5)
+/** 4 × 6's safe edge: thermal heads skip the last millimetre or so, and rolls drift. */
+const THERMAL_MARGIN = mm(2)
+/** White kept around trimmed content, so ink that touches its edge is never cut. */
+export const LABEL_TRIM_PAD = mm(1)
+/** Content smaller than this on both sides is a stray mark, not a label: keep the page. */
+const TRIM_MIN = mm(20)
 
 export type Size = { width: number; height: number }
 /** PDF coordinates: origin at the page's bottom-left, points. */
@@ -36,14 +57,25 @@ export type Box = { x: number; y: number; width: number; height: number }
 
 /** The sheet page size in points; null for "Courier's own size" (each page keeps its own). */
 export function labelSheetSize(format: LabelSheetFormat): Size | null {
-  if (format === 'thermal4x6') return THERMAL
+  const thermal = THERMAL_SIZE[format]
+  if (thermal) return thermal
   if (format === 'a4x4') return A4
   return null
 }
 
 /** The label slots on one sheet, in print order (A4: top-left, top-right, bottom-left, bottom-right). */
 export function sheetCells(format: LabelSheetFormat): Box[] {
-  if (format === 'thermal4x6') return [{ x: 0, y: 0, ...THERMAL }]
+  const thermal = THERMAL_SIZE[format]
+  if (thermal) {
+    return [
+      {
+        x: THERMAL_MARGIN,
+        y: THERMAL_MARGIN,
+        width: thermal.width - 2 * THERMAL_MARGIN,
+        height: thermal.height - 2 * THERMAL_MARGIN,
+      },
+    ]
+  }
   if (format === 'a4x4') {
     const width = (A4.width - 2 * A4_MARGIN - A4_GAP) / 2
     const height = (A4.height - 2 * A4_MARGIN - A4_GAP) / 2
@@ -91,10 +123,30 @@ export function fitInBox(page: Size, box: Box): Fit {
   }
 }
 
+/** Whether a format cuts the white around each label page before fitting it (the thermal ones). */
+export const trimsToContent = (format: LabelSheetFormat): boolean =>
+  THERMAL_SIZE[format] !== undefined
+
+/**
+ * The part of a label page to print: the drawn area (`content`, from labelContentBounds) with
+ * `pad` of white around it, kept inside the page. The whole page when nothing was found or
+ * the find is a stray mark (under 20 mm both ways), so a label is never lost to a bad read.
+ */
+export function trimToContent(page: Box, content: Box | null, pad = LABEL_TRIM_PAD): Box {
+  if (!content || (content.width < TRIM_MIN && content.height < TRIM_MIN)) return page
+  const x0 = Math.max(page.x, content.x - pad)
+  const y0 = Math.max(page.y, content.y - pad)
+  const x1 = Math.min(page.x + page.width, content.x + content.width + pad)
+  const y1 = Math.min(page.y + page.height, content.y + content.height + pad)
+  if (x1 <= x0 || y1 <= y0) return page
+  return { x: x0, y: y0, width: x1 - x0, height: y1 - y0 }
+}
+
 export type Placement = Fit & { sheet: number }
 
 /**
- * Every label page's sheet and fit, in order: one per thermal page, four per A4 sheet. Empty
+ * Every label page's sheet and fit, in order: one per thermal page (inside a 2 mm safe
+ * edge), four per A4 sheet. On 4 × 6, pass each page's trimmed size (`trimToContent`). Empty
  * for "Courier's own size", which copies the pages unchanged.
  */
 export function layoutLabelPages(

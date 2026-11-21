@@ -266,11 +266,17 @@ export const ACTION_DOCS: Record<string, string> = {
     'Hide one smart card for 30 days for the whole store; dismissed: false is Undo.',
   'dashboard.summary':
     'Stat windows, weekly report, recent orders, top products, live visitors and quick lists for the home page.',
+  'dashboard.summaryExtras':
+    "Home's extra counts: orders to ship older than 30 days, products out of stock and the real payment methods of the last 30 days.",
   'dashboard.tiles': 'Which metric this member keeps in each Home tile (Customize).',
   'dashboard.todos':
     'Which to-do cards this store hides on Home ("Edit to-dos"); one setting for the whole store.',
+  'deliveryOptions.collectionTwins':
+    'Collections named like one a rule targets that the rule misses (two "Glasspads").',
   'deliveryOptions.routeCatalogue':
     "Routes: every courier x app x service the connected apps offer, asked on two long lanes from the store's origin through checkout's answer cache (live only when nothing is cached), with the route sett…",
+  'deliveryOptions.ruleSuggestions':
+    'Product rules suggested from Settings → Shipping rates (a "Skates" profile at ₹99 becomes "Skates, Fixed ₹99").',
   'deliveryOptions.saveOptions':
     "The Options page's Save: every edited option, the card order and the checkout layout in one transaction, so a half-saved page never reaches checkout.",
   'deliveryOptions.saveProtect':
@@ -299,6 +305,7 @@ export const ACTION_DOCS: Record<string, string> = {
   'gstInvoices.bulkEmail': 'Queue an email of each document to its buyer; poll batch for progress.',
   'gstInvoices.bulkPrint': 'One merged PDF for the printer.',
   'gstInvoices.cancel': 'Cancel an issued invoice that has not been reported in a filed GSTR-1.',
+  'gstInvoices.download': "One document's PDF.",
   'gstInvoices.forOrder': 'Documents and refunds for the order card.',
   'gstInvoices.generate':
     '"Generate GST invoice": queue and issue one order at once (./gst-invoices-order-actions).',
@@ -312,6 +319,8 @@ export const ACTION_DOCS: Record<string, string> = {
   'gstInvoices.queue.issue':
     'Review, Issue: numbers are assigned here and never change afterwards.',
   'gstInvoices.queue.preview': 'The numbers a batch would get, in the order it would get them.',
+  'gstInvoices.queue.recordExternal':
+    '"Already invoiced", and its undo while the month is not filed (./gst-invoices-record).',
   'gstInvoices.queue.stats':
     'The four figures above the queue: issued this month and its taxable value, credit notes this month, and the next invoice number with the day its series starts again.',
   'gstInvoices.returns.gstr1Csv': 'The GSTR-1 totals per table, as a CSV for Excel.',
@@ -478,13 +487,21 @@ export const ACTION_DOCS: Record<string, string> = {
     "Per menu handle, where the live theme's sections pick it (header, footer or a page).",
   'notifications.allowSuppressedEmail': '"Allow again" from the Sender email card\'s list.',
   'notifications.checkSenderEmail': '"Check now": ask SES again.',
+  'notifications.design':
+    'Edit design: the saved design (or null), the default to start from, the locked blocks and variables.',
   'notifications.emailSuppressions':
     'Addresses the store stopped emailing after a bounce or complaint (Sender email card).',
   'notifications.overview':
     'Settings → Notifications: every message the shop sends and how messages go out.',
   'notifications.preview': 'The message filled with a sample order, for the Preview dialog.',
+  'notifications.previewDesign':
+    "The editor's live preview: an unsaved design filled with the sample order.",
   'notifications.removeSenderEmail':
     'Stop sending from the address; customer email goes back to the platform sender.',
+  'notifications.resetDesign':
+    'Reset to default: delete the saved design, so the built-in email goes out again.',
+  'notifications.saveDesign':
+    "Save the merchant's design; every email of this kind is drawn from it from now on.",
   'notifications.senderEmail':
     'Settings → Notifications → Sender email: the address, its DNS records and what customers see.',
   'notifications.sendTest': "Email the sample message to the signed-in person's own address.",
@@ -501,7 +518,7 @@ export const ACTION_DOCS: Record<string, string> = {
   'orders.cancel':
     '"Cancel order": a reason, restock on or off, tell the customer or not, and how the money goes back (original payment, recorded by hand, or not at all).',
   'orders.cancelShipment':
-    'Cancel a booked shipment with its courier, before it is collected or put on a manifest.',
+    'Cancel a booked shipment with its courier, before it is collected (also from a pickup or manifest).',
   'orders.capture':
     '"Capture payment" (#150): take the money a manual-capture checkout only authorised.',
   'orders.changeCustomer':
@@ -559,6 +576,8 @@ export const ACTION_DOCS: Record<string, string> = {
     '"Mark as not delivered": undo a "Mark as delivered" pressed by mistake.',
   'orders.markNotShipped':
     '"Mark as not shipped": packed items back to To ship when no courier booking is live.',
+  'orders.markShipmentCancelled':
+    "Cancelled on the courier's own app: record it here only, the order goes back to To ship.",
   'orders.neighbours':
     'Order numbers either side of this one, for the arrows in the detail header.',
   'orders.notePaymentReminderChat':
@@ -587,10 +606,14 @@ export const ACTION_DOCS: Record<string, string> = {
   'orders.restore': '"Restore order": a cancel pressed by mistake; refused once money went back.',
   'orders.retryCourierPush':
     "Send the order to a courier's panel again after it refused (order push).",
+  'orders.returnShipmentToBooked':
+    'Take a booked shipment off its pickup and manifest, back to Booked; the label stays live.',
   'orders.sameBoxChoices':
     '"Same box as #A" on Fulfil items: the same customer\'s other orders with a live parcel.',
   'orders.saveDraft':
     "Create a draft order (no id) or replace an existing draft's lines, customer and addresses.",
+  'orders.sendBackShipment':
+    'After pickup: ask the courier to bring the parcel back; it moves to Returned (RTO).',
   'orders.sendInvoice': 'Email the shopper a pay link for the draft.',
   'orders.sendInvoices':
     'The list\'s bulk "Send invoices": each selected draft with an email gets its pay link.',
@@ -610,6 +633,8 @@ export const ACTION_DOCS: Record<string, string> = {
     'The list\'s bulk "Add tags" / "Remove tags": every given tag on (or off) every order.',
   'orders.takeOver':
     '"Manage this order" (Imported card): an imported order that is still open becomes one worked here (ship, cancel, edit).',
+  'orders.takeOverCheckoutDraft':
+    '"Edit" on a shopper\'s unpaid checkout draft: it becomes a staff draft the draft form edits.',
   'orders.tiles': 'The stat cards above the Orders list.',
   'orders.toShipCount': 'How many orders are waiting to ship.',
   'orders.updateContact':
@@ -799,6 +824,8 @@ export const ACTION_DOCS: Record<string, string> = {
     'Totals, searches, pages and the opportunity lists, from the stored numbers.',
   'searchConsole.view':
     "Connection state for the app's pages: account, property, last sync, refresh cooldown.",
+  'seo.agentReadiness':
+    "Settings → Store health › AI shopping agents: the store's live site checked as a browser and as AI bots (GET only); null without a live domain of its own.",
   'shipments.counts':
     "Rows per Shipments tab plus the summary line; provider: one courier's (its app's page).",
   'shipments.courierOverview':
@@ -815,14 +842,21 @@ export const ACTION_DOCS: Record<string, string> = {
     "A batch's labels as one PDF in the merchant's paper (Figma 909:9249, the bulk result's Print card; also Shipments › Booked's selection): 4 × 6 in thermal one per page, A4 four per sheet, or each cour…",
   'shipments.listPickupOptions':
     'The Create pickup drawer: per courier and place, the parcels still without a pickup and the pickups already booked there (Figma 905:8280, 906:8464).',
+  'shipments.manifestSheet':
+    'The pickup manifest as one A4 PDF (Shipments › To be picked up, "Print manifest"): one page per courier pickup listing AWB, order, ship-to, city and PIN, weight and COD or Prepaid, with the count and…',
+  'shipments.markLost': '"Mark as lost": the courier said so but its feed did not.',
   'shipments.quote':
     "Create shipment, step 2: every connected courier's price, delivery date and COD support per parcel, with Cheapest / Fastest / Recommended.",
   'shipments.readyToShip':
     'Ready to ship tab: paid, unfulfilled orders - the main Shopify-style booking flow.',
   'shipments.recordStatus':
     "A status set by hand, for a courier with no tracking feed (India Post): appended to the shipment's timeline and applied like a scan (delivered closes the order, RTO opens its task).",
+  'shipments.reship':
+    '"Reship": the same order back to To ship to book a new label; its items leave stock again.',
   'shipments.splitParcel':
     'Partial shipment: the parcel keeps keep; the rest becomes a new parcel (Part 2).',
+  'shipments.updateClaim':
+    'The courier claim on a lost parcel: not filed, filed, paid or rejected, its amount and note.',
   'shipments.updateTracking':
     "Correct a hand-entered shipment's tracking number, courier or tracking link.",
   'shipments.wallets': 'One card per connected courier - each has its own account and balance.',

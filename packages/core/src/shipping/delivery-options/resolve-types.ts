@@ -28,7 +28,12 @@ export type ResolveInput = {
     codAllowed: boolean
   }
   now: Date
-  /** The shopper unticked "Insure this shipment". Never overrides a rule that requires it. */
+  /**
+   * The shopper's "Insure this parcel" tick: true ticked, false unticked, omitted: the option's
+   * own default (`insurance.default`). Never overrides a rule that requires insurance.
+   */
+  insure?: boolean | undefined
+  /** Older callers: true is `insure: false`. `insure` wins when both are given. */
   declineInsurance?: boolean | undefined
 }
 
@@ -78,13 +83,21 @@ export type PricedRoute = {
   latest: string | null
   /** True when the dates come from the store's usual transit days, not the courier. */
   etaEstimated: boolean
+  /** A courier list card: what it costs when the shopper pays on delivery (its own COD
+   *  charge on top); null: this courier takes no cash on delivery. Absent on other routes. */
+  codPricePaise?: number | null | undefined
+  /** The option shows the courier's COD charge as its own line (`cod.fee: 'separate'`): that
+   *  charge on cash on delivery, the delivery price staying the prepaid one. Null or absent:
+   *  none (or it is in the price). */
+  codFeePaise?: number | null | undefined
 }
 
 export type WhyPicked =
   | { kind: 'cheapest' }
   | { kind: 'fastest' }
   | { kind: 'prefer_direct'; withinPaise: number }
-  | { kind: 'rule_default'; ruleId: string; ruleName: string }
+  /** `forced`: the rule's `forceRoute`; the route carries the option at the option's price. */
+  | { kind: 'rule_default'; ruleId: string; ruleName: string; forced?: boolean | undefined }
   | { kind: 'backup' }
 
 export type ResolvedOption = {
@@ -103,6 +116,11 @@ export type ResolvedOption = {
   choices: PricedRoute[]
   /** `list`: checkout draws each choice as its own card (the option's Couriers setting). */
   layout: 'one' | 'list'
+  /**
+   * A list whose other couriers cost their own full price (`couriers.extra: 'full'`): checkout
+   * shows each card's price, not "+ ₹X" over the first. Absent: the difference.
+   */
+  fullPrices?: boolean | undefined
   pricePaise: number
   listPricePaise: number
   earliest: string | null
@@ -113,15 +131,31 @@ export type ResolvedOption = {
   /** Standard picked again with "COD needed": what the order books and charges on COD. */
   cod: PricedRoute | null
   insurance: {
-    /** Show the checkbox (offered and not required by a rule). */
+    /**
+     * Show the "Insure this parcel" tick: offered for this order value, not required by a rule,
+     * a route that insures can carry it, and insurance costs more than ₹0 (a route with no
+     * insurance rate shows no tick).
+     */
     offered: boolean
     required: boolean
     on: boolean
-    /** Insurance in the price; null when the route's rate is not filled in. */
+    /** What insurance itself costs on the insured pick; null when the rate is not filled in. */
     pricePaise: number | null
+    /**
+     * What the tick changes the card's price by (insured price less uninsured, after the ₹10
+     * rounding): the "+₹X" beside the tick. Null when the tick is not offered.
+     */
+    extraPaise?: number | null | undefined
   }
   /** On backup, the zone rate charged. */
   backupRate: ShippingRateOption | null
+  /**
+   * A split cart whose parcels share no courier choice (a cart split by product rules, owner
+   * 21 Nov 2026): each parcel's own card for this option, in parcel order, so the shopper picks
+   * a courier per parcel (`DeliveryChoice.parcelRouteKeys`). The card's price is their sum.
+   * Absent: one parcel, or the sub-choices above cover every parcel.
+   */
+  parcelOptions?: ResolvedOption[] | undefined
 }
 
 export type TraceRoute = {
@@ -151,7 +185,15 @@ export type OptionTrace = {
   winner: string | null
   why: WhyPicked | null
   /** Shown as "hidden: …" in Try a PIN. */
-  hidden: 'no_route' | 'couriers_down' | 'no_zone_rate' | 'disabled' | 'list_layout' | null
+  hidden:
+    | 'no_route'
+    | 'couriers_down'
+    | 'no_zone_rate'
+    | 'disabled'
+    | 'list_layout'
+    /** Fixed options: Express's pick would not arrive earlier than Standard's. */
+    | 'not_faster'
+    | null
 }
 
 export type DeliveryResolveResult = {

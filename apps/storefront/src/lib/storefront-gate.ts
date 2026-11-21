@@ -30,6 +30,8 @@ type Lock = {
   plainHtml: boolean
   /** The product page is drawn by the Bun + Hono service (`lib/hono-island`); off by default. */
   honoProduct: boolean
+  /** Preferences › Product feeds: `/feeds/products.xml` and `.csv` answer; off by default. */
+  productFeed: boolean
 }
 
 const LOCK_TTL_MS = 10_000
@@ -66,6 +68,7 @@ export async function storefrontLock(storeId: string): Promise<Lock> {
     ai: search && prefs.indexing.aiCrawlers,
     plainHtml: prefs.delivery.plainHtml,
     honoProduct: prefs.delivery.honoProduct,
+    productFeed: prefs.feeds.products,
   }
   locks.set(storeId, { lock, expiresAt: Date.now() + LOCK_TTL_MS })
   return lock

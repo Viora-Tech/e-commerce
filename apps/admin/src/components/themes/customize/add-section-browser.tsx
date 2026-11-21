@@ -22,8 +22,14 @@ import { type CustomizeDoc, MAIN_ZONE, zoneSections } from '@/lib/customize-doc'
 import { insertActions } from '@/lib/customize-insert'
 import { useCustomizePuck } from '@/lib/customize-puck'
 import { insertCopyActions } from '@/lib/customize-slots'
-import { useImportedTheme } from '@/lib/customize-theme-context'
-import { importedSections, matchesImported, newImportedSection } from '@/lib/imported-sections'
+import { useImportedTheme, useOpenTemplate } from '@/lib/customize-theme-context'
+import {
+  importedSections,
+  matchesImported,
+  newImportedSection,
+  sectionTypeCounts,
+  shopifyTemplateName,
+} from '@/lib/imported-sections'
 import AppsTab from './add-section-apps-tab'
 import AddSectionGroup from './add-section-group'
 import ImportedTab from './add-section-imported-tab'
@@ -85,6 +91,7 @@ export default function AddSectionBrowser({
   const components = useCustomizePuck((s) => s.config.components)
   const data = useCustomizePuck((s) => s.appState.data as unknown as CustomizeDoc)
   const importedTheme = useImportedTheme()
+  const template = useOpenTemplate()
   const importedCopy = useCopy(themeImportContent.addPanel)
 
   // Helpers
@@ -129,9 +136,9 @@ export default function AddSectionBrowser({
     finish()
   }
 
-  /** A section of the imported Shopify theme, started from its first preset. */
-  const handleAddImported = (type: string, name: string) => {
-    const block = importedTheme ? newImportedSection(importedTheme, type) : null
+  /** A section of the imported Shopify theme, started from the preset that was picked. */
+  const handleAddImported = (type: string, name: string, preset: number) => {
+    const block = importedTheme ? newImportedSection(importedTheme, type, preset) : null
     if (!block) return
     for (const action of insertCopyActions({ zone, index }, block, count)) dispatch(action)
     toast.success(importedCopy.added(name))
@@ -167,12 +174,16 @@ export default function AddSectionBrowser({
   }
 
   // Render logic
-  // The store's imported theme: its own sections, only while the Sections switch is on and the
-  // panel is not scoped to a header or footer group. The same search filters them.
+  // The store's imported theme: its own sections while the Sections switch is on, each where its
+  // schema lets it go (a template, or the header or footer group) and up to its `limit` there.
+  // The same search filters them.
   const needle = query.trim().toLowerCase()
   const imported =
-    importedTheme && kind === 'sections' && !group
-      ? importedSections(importedTheme).filter((s) => matchesImported(s, needle))
+    importedTheme && kind === 'sections'
+      ? importedSections(importedTheme, {
+          place: group ? { group } : { template: shopifyTemplateName(template ?? 'home') },
+          counts: sectionTypeCounts(zoneSections(data, zone)),
+        }).filter((s) => matchesImported(s, needle))
       : []
   // A full page takes no more sections until one is removed or hidden (Figma 698:92403).
   const shown =

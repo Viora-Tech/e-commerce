@@ -69,6 +69,27 @@ describe('shippingChecks', () => {
         code: 'zones_overlap',
         zoneIds: ['a', 'b'],
         zoneNames: ['South', 'South 2'],
+        place: 'Karnataka, Tamil Nadu',
+      }),
+    ])
+  })
+
+  it('names each zone and the place once (live 19 Nov: "Domestic, India, India")', () => {
+    const issues = shippingChecks(
+      shipping({
+        zones: [
+          zone({ id: 'a', name: 'Domestic' }),
+          zone({ id: 'b', name: 'India' }),
+          zone({ id: 'c', name: 'India' }),
+        ],
+      }),
+    )
+    expect(issues).toEqual([
+      expect.objectContaining({
+        code: 'zones_overlap',
+        zoneIds: ['a', 'b', 'c'],
+        zoneNames: ['Domestic', 'India'],
+        place: 'India',
       }),
     ])
   })

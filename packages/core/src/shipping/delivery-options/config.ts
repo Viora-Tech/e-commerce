@@ -7,6 +7,9 @@
  */
 import { z } from 'zod'
 import type { ProtectCard } from './protect'
+import { PRICE_ROUNDINGS } from './rounding'
+
+export { PRICE_ROUNDINGS, type PriceRounding, roundPrice } from './rounding'
 
 export const DELIVERY_OPTIONS_APP_ID = 'delivery-options'
 
@@ -43,19 +46,34 @@ export const OptionRoutesSchema = z.discriminatedUnion('mode', [
 ])
 export type OptionRoutes = z.infer<typeof OptionRoutesSchema>
 
+export const OPTION_PRICE_SOURCES = ['route', 'zone', 'free'] as const
+export type OptionPriceSource = (typeof OPTION_PRICE_SOURCES)[number]
+
 export const OptionPriceSchema = z.object({
-  /** `route`: route cost + markup + insurance, rounded up to ₹10. `zone`: Shipping rates. */
-  source: z.enum(['route', 'zone']).default('route'),
+  /**
+   * `route`: route cost + markup + insurance, rounded up (`rounding`). `zone`: Shipping rates.
+   * `free`: the option's own card (the base card of a courier list) costs the shopper ₹0, the
+   * store pays the courier; other couriers in a list still show "+₹ difference", and insurance
+   * the shopper ticks is still charged.
+   */
+  source: z.enum(OPTION_PRICE_SOURCES).default('route'),
   markupPaise: paise.default(0),
   markupPercent: percent.default(0),
   freeAbovePaise: paise.nullish(),
   minPaise: paise.nullish(),
   maxPaise: paise.nullish(),
+  /**
+   * How a price the engine makes is rounded up (`rounding.ts`): `nine` ₹43 → ₹49, `fifty`
+   * ₹58 → ₹99, `ten` ₹43 → ₹50 (the rule before 20 Nov 2026, so saved options keep it), `off`
+   * whole rupees. A Shipping rate the merchant typed is never rounded.
+   */
+  rounding: z.enum(PRICE_ROUNDINGS).default('ten'),
 })
 
 export const OptionInsuranceSchema = z.object({
+  /** Whether checkout's "Insure this parcel" tick starts ticked. Off still offers it. */
   default: z.enum(['on', 'off']).default('off'),
-  /** Offered (and on by default) only from this order value up; null: every order. */
+  /** Offered only from this order value up; null: every order. */
   onlyAbovePaise: paise.nullish(),
 })
 
@@ -71,6 +89,10 @@ export const OptionEtaSchema = z.object({
   maxDays: days.nullish(),
 })
 
+/** How a list's other couriers are priced; see `OptionCouriersSchema.extra`. */
+export const COURIER_EXTRAS = ['difference', 'full', 'none'] as const
+export type CourierExtra = (typeof COURIER_EXTRAS)[number]
+
 /**
  * How the option shows its couriers at checkout. `one`: one card, the strategy's pick. `list`:
  * every allowed courier (any speed) as its own card, like the Delivery promise Shopify app: the
@@ -78,11 +100,18 @@ export const OptionEtaSchema = z.object({
  */
 export const OptionCouriersSchema = z.object({
   show: z.enum(['one', 'list']).default('one'),
-  /** Cards at most, the pick included. */
-  max: z.number().int().min(2).max(8).default(3),
+  /**
+   * Cards at most, the pick included; null: every courier that fits (the default from 20 Nov
+   * 2026). Options saved earlier keep their number (2 to 8 then). 1: only the included courier
+   * shows, the admin's "Can shoppers pick a faster courier? No" (owner, 21 Nov 2026).
+   */
+  max: z.number().int().min(1).max(20).nullable().default(null),
   /** +₹37 shows as +₹39. */
   roundTo9: z.boolean().default(true),
-  /** Drop a courier another one beats on both price and date. */
+  /**
+   * Drop a courier another one beats on both price and date, but never below three cards when
+   * three couriers can deliver (`MIN_LIST_CARDS` in courier-list.ts).
+   */
   hideSlowerDearer: z.boolean().default(true),
   /**
    * Off, checkout shows only the delivery promise ("Standard", the date): no courier name or
@@ -97,15 +126,31 @@ export const OptionCouriersSchema = z.object({
   allow: z.array(z.string().trim().min(1).max(80)).max(100).nullish(),
   /** Every `courierId` the merchant has seen in that list; one not here is tagged New. */
   known: z.array(z.string().trim().min(1).max(80)).max(200).default([]),
-  /** `difference`: a list card costs the pick's price plus what it costs the store more;
-   *  `none`: every card at the pick's price. */
-  extra: z.enum(['difference', 'none']).default('difference'),
+  /**
+   * What a dearer (faster) courier costs the shopper (`priceFromPick` in courier-list.ts).
+   * `difference`: the pick's price plus what it costs the store more; `none`: every card at the
+   * pick's price; `full` (owner, 21 Nov 2026): the courier's own full price (its cost, markup
+   * and insurance, rounded the option's way), never below the pick's price. A cheaper courier
+   * always costs what the pick costs.
+   */
+  extra: z.enum(COURIER_EXTRAS).default('difference'),
 })
 export type OptionCouriers = z.infer<typeof OptionCouriersSchema>
+
+export const OPTION_COD_FEES = ['included', 'separate'] as const
+export type OptionCodFee = (typeof OPTION_COD_FEES)[number]
 
 export const OptionCodSchema = z.object({
   /** Express is always prepaid only, whatever is saved here. */
   mode: z.enum(['prepaid_only', 'allowed']).default('allowed'),
+  /**
+   * What the courier's own cash on delivery charge does at checkout (`codExtraPaise`):
+   * `included` (as before 20 Nov 2026): the delivery price on COD is higher by it;
+   * `separate`: the delivery price stays the prepaid one and the charge shows as its own
+   * "Cash on delivery fee" line (the rate's `codSurchargePaise`, which takes the place of the
+   * store's COD fee from Settings → Payments, as a Shipping rate's own COD fee does).
+   */
+  fee: z.enum(OPTION_COD_FEES).default('included'),
 })
 
 export const DeliveryOptionInputSchema = z.object({
@@ -131,24 +176,87 @@ export const DeliveryOptionInputSchema = z.object({
 export type DeliveryOptionInput = z.infer<typeof DeliveryOptionInputSchema>
 export type DeliveryOption = DeliveryOptionInput & { id: string; position: number }
 
-export const RULE_TARGET_KINDS = ['products', 'collections', 'tags', 'types'] as const
+/**
+ * What a rule matches. `all`: every product (`values` is `[]`). When rules of different kinds
+ * match one product, the most specific wins (`products` > `collections`/`tags`/`types` > `all`,
+ * `RULE_SPECIFICITY` below); rules of the same kind intersect as before.
+ */
+/**
+ * What a rule's products cost the shopper on the first (Recommended) courier, owner 20 Nov
+ * 2026. `option`: the option's own price (as before). `free`: ₹0. `fixed`: `fixedPaise`.
+ * `freeAbovePaise`: ₹0 once the order value is at least this. Other couriers cost that price
+ * plus what they cost the store more (`courierList`). Applies to the first enabled Standard
+ * option (or the courier list's option); Express keeps its own price. A cart whose products
+ * have different rule prices pays the highest (`rule-price.ts`).
+ *
+ * Owner, 21 Nov 2026: `courierPaise` (Fixed only) gives some couriers their own fixed price,
+ * keyed by carrier (`delhivery`, `bluedart`, the carrier half of the rule dialog's
+ * `carrier:speed` chips), any speed: "Delhivery ₹99, Blue Dart ₹139". A courier not named
+ * keeps Fixed's behaviour. `packingPaise` adds a packing charge on top of the delivery price
+ * (option's own or Fixed; never on Free, which includes everything); each rule in the cart
+ * adds its packing once.
+ */
+export const RULE_PRICE_MODES = ['option', 'free', 'fixed'] as const
+export type RulePriceMode = (typeof RULE_PRICE_MODES)[number]
+
+export const RulePriceSchema = z.object({
+  mode: z.enum(RULE_PRICE_MODES).default('option'),
+  fixedPaise: paise.nullish(),
+  freeAbovePaise: paise.nullish(),
+  /** Fixed only: carrier key -> that courier's own fixed price. */
+  courierPaise: z.record(z.string().trim().min(1).max(40), paise).optional(),
+  /** Added for packing on top of the delivery price; not charged when the price is Free. */
+  packingPaise: paise.nullish(),
+})
+export type RulePrice = z.infer<typeof RulePriceSchema>
+
+export const RULE_TARGET_KINDS = ['products', 'collections', 'tags', 'types', 'all'] as const
 export type RuleTargetKind = (typeof RULE_TARGET_KINDS)[number]
 
-export const RouteRuleInputSchema = z.object({
-  name: z.string().trim().min(1).max(80),
-  target: z.object({
-    kind: z.enum(RULE_TARGET_KINDS),
-    /** Product or collection ids, or tag / product type values. */
-    values: z.array(z.string().trim().min(1).max(120)).min(1).max(500),
-  }),
-  /** `all`, or the ids of the options it applies to. */
-  optionIds: z.union([z.literal('all'), z.array(z.string().min(1)).min(1).max(20)]).default('all'),
-  routes: z.array(RouteSelectorSchema).min(1).max(20),
-  defaultRoute: RouteSelectorSchema.nullish(),
-  alternatives: z.array(RouteSelectorSchema).max(10).default([]),
-  insurance: z.enum(['follow_option', 'required']).default('follow_option'),
-  enabled: z.boolean().default(true),
-})
+/** Higher wins: a rule naming the product beats a group rule, which beats an every-product rule. */
+export const RULE_SPECIFICITY: Readonly<Record<RuleTargetKind, number>> = {
+  products: 3,
+  collections: 2,
+  tags: 2,
+  types: 2,
+  all: 1,
+}
+
+export const RouteRuleInputSchema = z
+  .object({
+    name: z.string().trim().min(1).max(80),
+    target: z.object({
+      kind: z.enum(RULE_TARGET_KINDS),
+      /** Product or collection ids, or tag / product type values; `[]` for `all`. */
+      values: z.array(z.string().trim().min(1).max(120)).max(500),
+    }),
+    /** `all`, or the ids of the options it applies to. */
+    optionIds: z
+      .union([z.literal('all'), z.array(z.string().min(1)).min(1).max(20)])
+      .default('all'),
+    routes: z.array(RouteSelectorSchema).min(1).max(20),
+    defaultRoute: RouteSelectorSchema.nullish(),
+    /**
+     * On, and `defaultRoute` serves the PIN code: that route carries the parcel for every
+     * option the rule applies to, even one of another speed ("ship mice by Air at the
+     * Standard price"). The shopper pays the option's normal price; the store covers the
+     * difference, which shows in the order's shipping margin. Booking uses that route.
+     */
+    forceRoute: z.boolean().default(false),
+    alternatives: z.array(RouteSelectorSchema).max(10).default([]),
+    insurance: z.enum(['follow_option', 'required']).default('follow_option'),
+    /** Omitted (every rule saved before 20 Nov 2026): the option's own price. */
+    price: RulePriceSchema.default({ mode: 'option' }),
+    enabled: z.boolean().default(true),
+  })
+  .refine((r) => r.target.kind === 'all' || r.target.values.length > 0, {
+    path: ['target', 'values'],
+    message: 'Pick at least one',
+  })
+  .refine((r) => r.price.mode !== 'fixed' || r.price.fixedPaise != null, {
+    path: ['price', 'fixedPaise'],
+    message: 'Type the price',
+  })
 export type RouteRuleInput = z.infer<typeof RouteRuleInputSchema>
 export type RouteRule = RouteRuleInput & { id: string; position: number }
 

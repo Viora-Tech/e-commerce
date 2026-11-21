@@ -40,6 +40,7 @@ export default function OverviewPage() {
       copy={copy.overview}
       connectedBody={() => (
         <CourierShipmentsLink
+          courier="india-post"
           help={copy.overview.goToShipmentsHelp}
           cta={copy.overview.goToShipments}
         />

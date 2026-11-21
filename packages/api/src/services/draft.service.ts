@@ -7,7 +7,6 @@ import {
   captureCartContact,
   checkDraftDiscountCode,
   convertDraft,
-  convertedToSale,
   createDraft,
   DiscountCodeRefused,
   DiscountUnavailable,
@@ -20,6 +19,7 @@ import {
   deleteDraft,
   deleteDrafts,
   deliverCartRecovery,
+  draftStoreCreditDue,
   duplicateOrderAsDraft,
   listAbandoned,
   listDrafts,
@@ -38,16 +38,13 @@ import type { StoreTx } from '@commerce/db'
 import {
   address,
   cart,
-  cartLine,
   customer,
-  media,
   notification,
   order,
   orderLine,
   orderNote,
   payment,
   product,
-  productMedia,
   variant,
 } from '@commerce/db'
 import type { CustomMessage, NotificationRegistry } from '@commerce/notifications'
@@ -237,7 +234,7 @@ export async function saveDraft(
         .where(eq(order.id, input.id))
       if (head?.draftSource === 'checkout') {
         throw new ORPCError('BAD_REQUEST', {
-          message: 'A shopper’s unpaid checkout cannot be edited. Convert it to an order first.',
+          message: 'Choose Edit on this unpaid checkout first: it stops the old payment link.',
         })
       }
       const row = await updateDraft(ctxOf(tx, storeId), input.id, input.draft)
@@ -397,75 +394,19 @@ export async function sendRecovery(
 }
 
 /**
- * One abandoned checkout for its detail page: the contact, each line with its photo and
- * price, the timestamps the activity list needs, and a fresh signed recovery link.
- */
-export async function getStoreAbandoned(
-  tx: StoreTx,
-  storeId: string,
-  cartId: string,
-  link: { settingsSecret: string; storefrontUrl: string },
-) {
-  const [found] = await tx
-    .select({ row: cart, recovered: convertedToSale })
-    .from(cart)
-    .where(eq(cart.id, cartId))
-  if (!found) throw new ORPCError('NOT_FOUND', { message: 'Checkout not found' })
-  const { row, recovered } = found
-  const lines = await tx
-    .select({
-      id: cartLine.id,
-      quantity: cartLine.quantity,
-      unitPricePaise: cartLine.unitPricePaise,
-      productTitle: product.title,
-      variantTitle: variant.title,
-      image: sql<string | null>`coalesce(${media.url}, (
-        select m.url from ${productMedia} pm join ${media} m on m.id = pm.media_id
-        where pm.product_id = ${variant.productId} order by pm.position limit 1))`,
-    })
-    .from(cartLine)
-    .innerJoin(variant, eq(variant.id, cartLine.variantId))
-    .innerJoin(product, eq(product.id, variant.productId))
-    .leftJoin(media, eq(media.id, variant.mediaId))
-    .where(eq(cartLine.cartId, cartId))
-    .orderBy(asc(cartLine.id))
-  const origin = await storefrontOriginFor(tx, storeId, link.storefrontUrl)
-  return {
-    id: row.id,
-    email: row.email,
-    phone: row.phone,
-    customerName: row.customerName,
-    discountCode: row.discountCode,
-    source: row.attribution?.source ?? row.attribution?.channel ?? null,
-    createdAt: row.createdAt,
-    updatedAt: row.updatedAt,
-    recoverySentAt: row.recoverySentAt,
-    recovered,
-    lines: lines.map((l) => ({ ...l, totalPaise: l.quantity * l.unitPricePaise })),
-    itemCount: lines.reduce((n, l) => n + l.quantity, 0),
-    subtotalPaise: lines.reduce((n, l) => n + l.quantity * l.unitPricePaise, 0),
-    /** Not offered for a cart that already became an order: the link would show an empty basket. */
-    recoveryUrl: recovered ? null : recoveryUrl(row.id, link.settingsSecret, origin),
-  }
-}
-
-/**
  * The email on a draft, for a bulk invoice send; null when it is not a draft, has none, or store
- * credit pays all of it (nothing to invoice).
+ * credit pays all of it (nothing to invoice). The credit counts as the convert would take it:
+ * capped at the customer's balance now.
  */
-export async function draftEmail(tx: StoreTx, id: string): Promise<string | null> {
+export async function draftEmail(tx: StoreTx, storeId: string, id: string): Promise<string | null> {
   const [o] = await tx
-    .select({
-      email: order.email,
-      totalPaise: order.totalPaise,
-      creditPaise: sql<number>`coalesce((select sum(p.amount_paise) from payment p
-        where p.order_id = ${order.id} and p.provider = ${STORE_CREDIT_PROVIDER}
-        and p.status = 'created'), 0)::int`,
-    })
+    .select({ email: order.email, totalPaise: order.totalPaise })
     .from(order)
     .where(and(eq(order.id, id), eq(order.status, 'draft')))
-  if (o && o.creditPaise > 0 && o.creditPaise >= o.totalPaise) return null
-  return o?.email ?? null
+  if (!o) return null
+  const creditPaise = await draftStoreCreditDue(ctxOf(tx, storeId), id)
+  if (creditPaise > 0 && creditPaise >= o.totalPaise) return null
+  return o.email ?? null
 }
 
 /** The abandoned checkout's reminder as the shopper would get it, for the "Review email" dialog. */

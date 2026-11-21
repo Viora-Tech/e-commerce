@@ -9,6 +9,8 @@ export const MEMBER_ALERTS = [
   'lowStock',
   'paymentProblem',
   'dailySummary',
+  'weeklyReport',
+  'monthlyReport',
   'appErrors',
   'bugReports',
 ] as const
@@ -38,14 +40,30 @@ export type PushAlert = (typeof PUSH_ALERTS)[number]
 export const isPushAlert = (alert: MemberAlert): alert is PushAlert =>
   (PUSH_ALERTS as readonly MemberAlert[]).includes(alert)
 
-export type MemberAlertPrefs = Record<Exclude<MemberAlert, 'dailySummary'>, AlertSwitches> & {
-  dailySummary: AlertSwitches & {
-    /** IST hour (0–23) the summary goes out. */
-    hour: number
-    /** IST day (YYYY-MM-DD) the last summary went, so a day never gets two. Server-owned. */
-    lastSentOn: string | null
-  }
+/** The performance reports that go on a fixed day: Monday 9:00 and the 1st at 9:00 (IST). */
+export const MEMBER_REPORTS = ['weeklyReport', 'monthlyReport'] as const
+export type MemberReport = (typeof MEMBER_REPORTS)[number]
+
+/** Alerts that go by email only: the reports are long, laid-out emails with no WhatsApp form. */
+export const EMAIL_ONLY_ALERTS: ReadonlySet<MemberAlert> = new Set<MemberAlert>(MEMBER_REPORTS)
+
+/** Alerts with only on/off switches per channel. */
+type PlainAlert = Exclude<MemberAlert, 'dailySummary' | MemberReport>
+
+export type ReportSwitches = AlertSwitches & {
+  /** The period the last report covered (`2026-11-09` week start, `2026-10` month). Server-owned. */
+  lastSentOn: string | null
 }
+
+export type MemberAlertPrefs = Record<PlainAlert, AlertSwitches> &
+  Record<MemberReport, ReportSwitches> & {
+    dailySummary: AlertSwitches & {
+      /** IST hour (0–23) the summary goes out. */
+      hour: number
+      /** IST day (YYYY-MM-DD) the last summary went, so a day never gets two. Server-owned. */
+      lastSentOn: string | null
+    }
+  }
 
 /** Evening, after most orders are in. */
 const DAILY_SUMMARY_DEFAULT_HOUR = 20
@@ -62,7 +80,7 @@ const pushDefault = (alert: MemberAlert): boolean => isPushAlert(alert)
 /**
  * Before a member has saved anything: the owner hears about new orders, payment problems and
  * app errors by email; everyone else starts quiet, so a store with ten staff does not send ten
- * copies of every order. The daily summary is opt-in for all. News on a bug the member reported
+ * copies of every order. The daily summary and the weekly and monthly reports are opt-in for all. News on a bug the member reported
  * themselves reaches everyone by email: it is only ever about their own report.
  */
 function defaultMemberAlertPrefs(isOwner: boolean): MemberAlertPrefs {
@@ -78,6 +96,8 @@ function defaultMemberAlertPrefs(isOwner: boolean): MemberAlertPrefs {
     lowStock: withPush(off, 'lowStock'),
     paymentProblem: withPush(owner, 'paymentProblem'),
     dailySummary: { ...off, hour: DAILY_SUMMARY_DEFAULT_HOUR, lastSentOn: null },
+    weeklyReport: { ...off, lastSentOn: null },
+    monthlyReport: { ...off, lastSentOn: null },
     appErrors: withPush(owner, 'appErrors'),
     bugReports: byEmail,
   }
@@ -93,6 +113,8 @@ export const MemberAlertPrefsInputSchema = z.object({
   lowStock: switches,
   paymentProblem: switches,
   dailySummary: switches.extend({ hour: z.number().int().min(0).max(23) }),
+  weeklyReport: switches,
+  monthlyReport: switches,
   appErrors: switches,
   bugReports: switches,
 })
@@ -109,6 +131,7 @@ const storedSwitches = z.object({
   whatsapp: z.boolean(),
   push: z.boolean().optional(),
 })
+const storedReport = storedSwitches.extend({ lastSentOn: z.string().nullable().optional() })
 const stored = z.object({
   newOrder: storedSwitches,
   inboxMessage: storedSwitches.optional(),
@@ -119,6 +142,8 @@ const stored = z.object({
     hour: z.number().int().min(0).max(23),
     lastSentOn: z.string().nullable().optional(),
   }),
+  weeklyReport: storedReport.optional(),
+  monthlyReport: storedReport.optional(),
   appErrors: storedSwitches,
   bugReports: storedSwitches.optional(),
 })
@@ -129,13 +154,18 @@ export function parseMemberAlertPrefs(raw: unknown, isOwner: boolean): MemberAle
   const parsed = stored.safeParse(raw)
   if (!parsed.success) return defaults
   const p = parsed.data
-  const fill = (
-    alert: Exclude<MemberAlert, 'dailySummary'>,
-    s: z.infer<typeof storedSwitches> | undefined,
-  ): AlertSwitches =>
+  const fill = (alert: PlainAlert, s: z.infer<typeof storedSwitches> | undefined): AlertSwitches =>
     s
       ? { email: s.email, whatsapp: s.whatsapp, push: s.push ?? pushDefault(alert) }
       : defaults[alert]
+  // Email only: a WhatsApp switch saved by hand never sends, so it is stored off.
+  const report = (
+    s: z.infer<typeof storedReport> | undefined,
+    fallback: ReportSwitches,
+  ): ReportSwitches =>
+    s
+      ? { email: s.email, whatsapp: false, push: false, lastSentOn: s.lastSentOn ?? null }
+      : fallback
   return {
     newOrder: fill('newOrder', p.newOrder),
     inboxMessage: fill('inboxMessage', p.inboxMessage),
@@ -149,6 +179,8 @@ export function parseMemberAlertPrefs(raw: unknown, isOwner: boolean): MemberAle
       hour: p.dailySummary.hour,
       lastSentOn: p.dailySummary.lastSentOn ?? null,
     },
+    weeklyReport: report(p.weeklyReport, defaults.weeklyReport),
+    monthlyReport: report(p.monthlyReport, defaults.monthlyReport),
     appErrors: fill('appErrors', p.appErrors),
     bugReports: fill('bugReports', p.bugReports),
   }

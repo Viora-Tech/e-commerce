@@ -5,6 +5,7 @@ import {
   sameBoxChoices,
   undoDelivered,
   undoPacked,
+  undoPackedLine,
 } from '@commerce/core'
 import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
@@ -71,6 +72,21 @@ export const orderUndoRoutes = {
       const r = await undoPacked(
         { tx: context.tx, storeId: context.scope.storeId },
         input.id,
+        context.session.user.email,
+      )
+      if (r.undone) return r
+      throw new ORPCError('BAD_REQUEST', { message: NOT_SHIPPED_REFUSED[r.reason] })
+    }),
+
+  /** Fulfilled card › a line's ⋯ › "Mark as unfulfilled": that line only (owner, 22 Nov 2026). */
+  markLineNotShipped: can(permissions.ORDERS_FULFIL)
+    .input(z.object({ id: z.uuid(), lineId: z.guid() }))
+    .handler(async ({ context, input }) => {
+      await assertNotImported(context.tx, { orderId: input.id })
+      const r = await undoPackedLine(
+        { tx: context.tx, storeId: context.scope.storeId },
+        input.id,
+        input.lineId,
         context.session.user.email,
       )
       if (r.undone) return r

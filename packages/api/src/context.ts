@@ -34,6 +34,8 @@ export type ApiContext = {
   appJobs?: AppJobQueue | undefined
   /** Upload-time image pipeline job (worker). Absent in tests that do not exercise media confirm; the row is then left `processing` for the backfill script to pick up. */
   mediaProcess?: MediaProcessQueue | undefined
+  /** Smaller storefront copies of uploaded videos (worker, one encode at a time). Absent in tests: nothing is queued, and the worker's hourly backfill makes the copy later. */
+  mediaVideo?: MediaProcessQueue | undefined
   /** Full store exports, built by the worker. Absent in tests: the export is then built in the request. */
   storeExport?: StoreExportQueue | undefined
   /** Home page pictures of themes, taken by the worker after Publish and Save. Absent in tests: nothing is queued. */

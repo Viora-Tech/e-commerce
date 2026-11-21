@@ -92,6 +92,12 @@ export async function storesWithMemberDailySummaries(db: Db): Promise<string[]> 
   return rows.map((r) => r.id)
 }
 
+/** Store ids where a member turned on the weekly or monthly report (Account → Notifications). SECURITY DEFINER backed. */
+export async function storesWithMemberReports(db: Db): Promise<string[]> {
+  const rows = await db.execute<{ id: string }>(sql`select stores_with_member_reports() as id`)
+  return rows.map((r) => r.id)
+}
+
 /** Store ids whose sender email domain is pending, or verified but due its daily re-check. SECURITY DEFINER backed. */
 export async function storesWithSenderEmailChecks(db: Db): Promise<string[]> {
   const rows = await db.execute<{ id: string }>(sql`select stores_with_sender_email_checks() as id`)
@@ -111,7 +117,7 @@ export async function storesWithUnknownPaymentFees(db: Db): Promise<string[]> {
 
 /**
  * Store ids with a gateway refund still pending on a gateway without refund webhooks
- * (Decentro), for the worker's refund sync. SECURITY DEFINER backed (0241).
+ * (Decentro, Snapmint), for the worker's refund sync. SECURITY DEFINER backed (0241, 0254).
  */
 export async function storesWithPendingGatewayRefunds(db: Db): Promise<string[]> {
   const rows = await db.execute<{ id: string }>(

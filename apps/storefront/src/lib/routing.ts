@@ -1,4 +1,5 @@
 import { CHAT_FRAME_PATH } from './inbox-frame'
+import { shopifyJsonPath } from './shopify-json/paths'
 
 /**
  * Internal route segment every store page lives under. Never appears in a
@@ -41,7 +42,8 @@ export function routeForStore(storeId: string, pathname: string): Route {
   }
   if (pathname === CHAT_FRAME_PATH)
     return { kind: 'rewrite', path: `${CHAT_FRAME_PREFIX}/${storeId}` }
-  const rest = pathname === '/' ? '' : pathname
+  // Shopify's `/products/<h>.json` / `.js` and `/collections/<h>.json` (`lib/shopify-json`).
+  const rest = shopifyJsonPath(pathname) ?? (pathname === '/' ? '' : pathname)
   return { kind: 'rewrite', path: `${INTERNAL_PREFIX}/${storeId}${rest}` }
 }
 
@@ -86,6 +88,8 @@ export const DERIVED_HEADERS = [
   'x-visitor-country',
   'x-theme-preview',
   'x-theme-version',
+  // Customize's design-mode frame (`?theme-design-mode=1` with a valid preview, in a frame).
+  'x-theme-design-mode',
   'x-form-posted',
   'x-pathname',
   'x-listing',

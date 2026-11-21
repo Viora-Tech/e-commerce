@@ -232,6 +232,7 @@ export async function removeDomain(tx: StoreTx, storeId: string, id: string): Pr
  * Make a live domain the one every redirect points at. Only a domain with a
  * working certificate qualifies, or shoppers would be sent to a browser warning.
  * With `apexRedirectOnly` an apex never qualifies: its traffic stops at a redirect to www.
+ * A custom primary turns on the platform subdomain's redirect to it.
  */
 export async function setPrimaryDomain(
   tx: StoreTx,
@@ -261,6 +262,15 @@ export async function setPrimaryDomain(
     .where(eq(storeDomain.id, id))
     .returning()
   if (!row) throw new DomainError('Domain not found', storeId)
+  // A custom primary takes the store's traffic: its platform subdomain (`<store>.koomerce.app`)
+  // sends visitors there from now on, path and query kept (the storefront proxy's 301). The
+  // merchant can switch that off on the domain's page; frames and theme previews never move.
+  if (row.kind === 'custom') {
+    await tx
+      .update(storeDomain)
+      .set({ redirectToPrimary: true })
+      .where(and(eq(storeDomain.kind, 'platform'), eq(storeDomain.isPrimary, false)))
+  }
   return row
 }
 

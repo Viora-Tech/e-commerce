@@ -43,7 +43,7 @@ import { repeatCheckoutResult, tooManyFromIp } from './checkout-repeat'
 import type { CheckoutResult } from './checkout-result'
 import { currentCustomer } from './customer-session'
 import { db } from './db'
-import { deliveryForOrder } from './delivery-options'
+import { cleanParcelKeys, deliveryForOrder, type ParcelKeysForm } from './delivery-options'
 import { discoveryVisitor, recordDiscoveryCartAdd } from './discovery-events'
 import { hasChatCookie, postChatCartLine } from './inbox'
 import { requestMarketId } from './market-catalog'
@@ -58,6 +58,7 @@ import { inStore } from './store-context'
 
 const CHECKOUT_CART_RULE = { limit: 10, windowMs: 60_000 }
 const CHECKOUT_IP_RULE = { limit: 30, windowMs: 60_000 }
+const MAX_GIFT_CARDS = 5 // per checkout; a longer list is code guessing (audit 2026-11-20)
 
 /** Server actions for the cart. The store id comes from the request's hostname, never the client. */
 
@@ -142,7 +143,7 @@ export async function cartDrawerAction() {
   return inStore(storeId, async (tx) => {
     const cart = cartId ? await getCart({ storeId, tx }, cartId) : null
     const open = cart?.status === 'open' ? cart : null
-    const hint = await cartShippingHint(tx, open?.id ?? null)
+    const hint = await cartShippingHint(tx, storeId, open?.id ?? null)
     return {
       lines: (open?.lines ?? []).map((l) => ({
         id: l.id,
@@ -207,10 +208,7 @@ export type CheckoutForm = {
   payment: string
   /** Gift card codes applied in the summary; each is re-checked here before it is spent. */
   giftCards?: string[]
-  /**
-   * Spend the signed-in shopper's store credit. Whose balance comes from the session, never the
-   * form; a guest's submit with this set uses nothing.
-   */
+  /** Spend the signed-in shopper's store credit (whose: the session, never the form; guest: none). */
   useStoreCredit?: boolean
   /** The shipping rate picked in the summary; re-priced on the server. */
   shippingRate?: string
@@ -218,12 +216,13 @@ export type CheckoutForm = {
    * Delivery options app: the quote the cards came from, the sub-choice ("Blue Dart Air") and
    * the insurance tick. Priced on the server from the quote snapshot, never from the client.
    */
-  deliveryQuote?: { quoteId: string; routeKey: string | null; insured: boolean }
+  deliveryQuote?: { quoteId: string; routeKey: string | null; insured: boolean } & ParcelKeysForm
   /** Business buyer's GSTIN and name, when the store shows the field (Settings → Checkout). */
   gstin?: string
   businessName?: string
-  /** Order note, when the store turned notes on. */
+  /** Order note (store turned notes on); "Want a different courier?" from the Delivery step. */
   note?: string
+  courierRequest?: string
   /** Home, Office or Other: the tag a signed-in shopper's new address is saved with. */
   label?: string
   /** The marketing ticks under Contact; unticked sends nothing. */
@@ -236,7 +235,6 @@ export type CheckoutForm = {
 
 export type { CheckoutResult } from './checkout-result'
 
-/** Each unpaid checkout counts per IP for an hour, against the store's cap (0: no cap). */
 /** Unpaid checkouts one IP may start in an hour: high enough for a shared mobile-network IP. */
 const IP_UNPAID_CHECKOUTS_PER_HOUR = 20
 const UNPAID_CHECKOUT_WINDOW_MS = 3_600_000
@@ -344,6 +342,7 @@ export async function checkoutAction(submitted: CheckoutForm): Promise<CheckoutR
             optionId: form.shippingRate as string,
             routeKey: typeof appQuote.routeKey === 'string' ? appQuote.routeKey : null,
             insured: appQuote.insured !== false,
+            ...cleanParcelKeys(appQuote.parcelRouteKeys),
           }),
         )
       : null
@@ -396,7 +395,8 @@ export async function checkoutAction(submitted: CheckoutForm): Promise<CheckoutR
     // Several gateways on: who to try next if this one cannot open the payment.
     const fallbacks = await storePaymentFallbacks(tx, storeId, providers, provider.id)
     const giftCardIds: string[] = []
-    for (const code of form.giftCards ?? []) {
+    const codes = Array.isArray(form.giftCards) ? form.giftCards.slice(0, MAX_GIFT_CARDS) : []
+    for (const code of codes) {
       giftCardIds.push((await findRedeemableGiftCard({ storeId, tx }, code)).id)
     }
     return { provider, fallbacks, giftCardIds }
@@ -414,6 +414,7 @@ export async function checkoutAction(submitted: CheckoutForm): Promise<CheckoutR
         cartId,
         paymentProvider: provider,
         paymentFallbacks: fallbacks,
+        shopperIp: ip,
         giftCardIds,
         // Store credit only ever comes from the signed-in customer's own balance.
         ...(me && form.useStoreCredit === true ? { storeCredit: { customerId: me.id } } : {}),
@@ -433,6 +434,7 @@ export async function checkoutAction(submitted: CheckoutForm): Promise<CheckoutR
           gstin: form.gstin ?? null,
           businessName: form.businessName ?? null,
           note: form.note ?? null,
+          courierRequest: form.courierRequest ?? null,
           marketing: form.marketing,
           address: {
             line1: form.line1,

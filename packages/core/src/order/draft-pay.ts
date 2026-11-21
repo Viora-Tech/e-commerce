@@ -6,14 +6,14 @@ import { insertOutboxEvent } from '../outbox/write'
 import { createPaymentAttempt } from '../payments/attempts'
 import { STORE_CREDIT_PROVIDER } from '../payments/split-tender'
 import { orderRef } from './draft-ref'
-import { DraftPaidByStoreCredit, draftStoreCredit } from './draft-store-credit'
+import { DraftPaidByStoreCredit, draftStoreCreditDue } from './draft-store-credit'
 import { convertDraft } from './drafts'
 
 /**
  * The customer pays a draft invoice online: the draft becomes an order on that gateway (stock
  * held, GST billed, exactly as the admin's convert), and gets a fresh payment attempt for its
- * total (less any store credit applied, held until it is paid), ready to start with the
- * gateway. The convert's placeholder "pending" payment is
+ * total (less the store credit applied, capped at the customer's balance now, held until it is
+ * paid), ready to start with the gateway. The convert's placeholder "pending" payment is
  * replaced by the attempt, so retries and the webhook see a normal online order.
  * Throws what `convertDraft` throws (out of stock, not a draft, empty).
  */
@@ -29,8 +29,9 @@ export async function convertDraftForOnlinePayment(
     .where(eq(order.id, draftId))
   if (head?.draftSource === 'checkout') return null
   // Store credit staff applied: held until the gateway pays the rest, the attempt asks only for
-  // the rest. Credit covering it all leaves nothing to pay online: staff convert that one.
-  const credit = (await draftStoreCredit(ctx, draftId))?.amountPaise ?? 0
+  // the rest. Credit covering it all leaves nothing to pay online: staff convert that one. The
+  // check uses what the balance holds now, as the convert caps the credit at it.
+  const credit = await draftStoreCreditDue(ctx, draftId)
   if (head && credit > 0 && head.totalPaise - credit <= 0) {
     throw new DraftPaidByStoreCredit(ctx.storeId)
   }
@@ -39,13 +40,16 @@ export async function convertDraftForOnlinePayment(
     holdStoreCredit: true,
   })
   if (!converted) return null
-  await ctx.tx
+  // The convert's placeholder holds exactly what store credit left (it took the credit under
+  // the account lock), so the attempt asks for that, never a stale figure from before.
+  const [rest] = await ctx.tx
     .delete(payment)
     .where(and(eq(payment.orderId, draftId), eq(payment.providerRef, `draft_${draftId}`)))
+    .returning({ amountPaise: payment.amountPaise })
   const attempt = await createPaymentAttempt(ctx, {
     orderId: draftId,
     provider: providerId,
-    amountPaise: converted.totalPaise - credit,
+    amountPaise: rest?.amountPaise ?? converted.totalPaise - credit,
   })
   await insertOutboxEvent(ctx.tx, ctx.storeId, 'order.placed', { orderId: draftId })
   return { orderId: draftId, orderNumber: converted.number, attemptId: attempt.id }
@@ -101,7 +105,8 @@ export async function loadDraftInvoice(ctx: StoreContext, orderId: string) {
     .from(orderLine)
     .where(eq(orderLine.orderId, o.id))
     .orderBy(asc(orderLine.id))
-  // Store credit staff applied (still a draft), held or taken (once it is an order).
+  // Store credit staff applied (still a draft: capped at the balance now, as the convert will),
+  // held or taken (once it is an order).
   const [credit] = await ctx.tx
     .select({ paise: sql<number>`coalesce(sum(${payment.amountPaise}), 0)::int` })
     .from(payment)
@@ -109,10 +114,11 @@ export async function loadDraftInvoice(ctx: StoreContext, orderId: string) {
       and(
         eq(payment.orderId, o.id),
         eq(payment.provider, STORE_CREDIT_PROVIDER),
-        inArray(payment.status, ['created', 'pending', 'captured']),
+        inArray(payment.status, ['pending', 'captured']),
       ),
     )
-  const storeCreditPaise = credit?.paise ?? 0
+  const storeCreditPaise =
+    o.status === 'draft' ? await draftStoreCreditDue(ctx, o.id) : (credit?.paise ?? 0)
   return {
     id: o.id,
     number: o.number,

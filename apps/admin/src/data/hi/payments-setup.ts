@@ -47,6 +47,16 @@ export default [
       available: true,
     },
     {
+      id: 'snapmint',
+      name: 'बिना क्रेडिट कार्ड के EMI (Snapmint)',
+      monogram: 'Sm',
+      blurb:
+        'ग्राहक UPI या डेबिट कार्ड से महीने की किस्तों में पेमेंट करते हैं। यह सिर्फ़ उन ग्राहकों को दिखता है जिन्हें Snapmint मंज़ूरी दे सकता है।',
+      methods: ['emi'],
+      fees: 'Snapmint तय करता है।',
+      available: true,
+    },
+    {
       id: 'phonepe',
       name: 'PhonePe',
       monogram: 'Pe',

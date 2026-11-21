@@ -113,6 +113,7 @@ export default function ClassicTemplate(props: TemplateProps & { fontFamily: str
                 key={c.key}
                 style={{
                   width: `${c.width}%`,
+                  paddingHorizontal: 3,
                   textAlign: c.align,
                   color: '#ffffff',
                   fontWeight: 700,
@@ -136,7 +137,7 @@ export default function ClassicTemplate(props: TemplateProps & { fontFamily: str
               }}
             >
               {cols.map((c) => (
-                <View key={c.key} style={{ width: `${c.width}%` }}>
+                <View key={c.key} style={{ width: `${c.width}%`, paddingHorizontal: 3 }}>
                   <Text
                     style={{
                       textAlign: c.align,
@@ -220,7 +221,10 @@ export default function ClassicTemplate(props: TemplateProps & { fontFamily: str
             ) : null}
             {f.signature && view.taxDocument ? (
               <View style={{ alignItems: 'flex-end', marginTop: 10, gap: 3 }}>
-                <Text style={{ fontSize: 6.5, color: MUTED }}>For {doc.seller.name}</Text>
+                {/* A signature stamp already says "For <seller>"; print it only without one. */}
+                {assets.signature ? null : (
+                  <Text style={{ fontSize: 6.5, color: MUTED }}>For {doc.seller.name}</Text>
+                )}
                 {assets.signature ? (
                   <Image
                     src={assets.signature}

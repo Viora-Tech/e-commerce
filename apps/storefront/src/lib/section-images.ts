@@ -164,3 +164,61 @@ export function withVideoPosters<T>(value: T, posters: ReadonlyMap<string, Poste
   }
   return map(value) as T
 }
+
+/** An address that names an MP4/MOV/M4V/WebM file (as `isVideoUrl` in `@commerce/core`). */
+const VIDEO_URL = /^https?:\/\/[^\s]+\.(mp4|mov|m4v|webm)(\?|#|$)/i
+
+/**
+ * Every video address in a template's section props (deduplicated, capped), whatever the
+ * setting is called (`url`, `videoUrl`, `file`, `video`, `videoSrc`...): any string that names a
+ * video file. Each may have a smaller copy in Files (`@commerce/core` compact-video).
+ */
+export function collectVideoUrls(value: unknown): string[] {
+  const found = new Set<string>()
+  const walk = (v: unknown): void => {
+    if (found.size >= MAX_LOOKUP_URLS) return
+    if (typeof v === 'string') {
+      if (VIDEO_URL.test(v)) found.add(v)
+      return
+    }
+    if (Array.isArray(v)) {
+      for (const item of v) walk(item)
+      return
+    }
+    if (isRecord(v)) for (const child of Object.values(v)) walk(child)
+  }
+  walk(value)
+  return [...found]
+}
+
+/**
+ * The same value with every string equal to a video address that has a smaller copy swapped
+ * for the copy. Copies only along the paths it changes. A video without a copy (not made yet,
+ * or not worth it) keeps its original address, so it always plays.
+ */
+export function withSmallVideos<T>(value: T, copies: ReadonlyMap<string, string>): T {
+  if (copies.size === 0) return value
+  const map = (v: unknown): unknown => {
+    if (typeof v === 'string') return copies.get(v) ?? v
+    if (Array.isArray(v)) {
+      let changed = false
+      const next = v.map((item) => {
+        const mapped = map(item)
+        if (mapped !== item) changed = true
+        return mapped
+      })
+      return changed ? next : v
+    }
+    if (!isRecord(v)) return v
+    let out: Record<string, unknown> = v
+    for (const [key, child] of Object.entries(v)) {
+      const mapped = map(child)
+      if (mapped !== child) {
+        if (out === v) out = { ...v }
+        out[key] = mapped
+      }
+    }
+    return out
+  }
+  return map(value) as T
+}

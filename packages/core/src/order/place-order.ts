@@ -7,6 +7,7 @@ import {
   checkoutRuleSubtotalPaise,
   parseCheckoutSettings,
 } from '../checkout/settings'
+import { requestCodConfirmation } from '../cod-rto/confirm'
 import { assessCheckoutRisk } from '../cod-rto/risk'
 import type { StoreContext } from '../context'
 import { applyDiscount } from '../discounts/evaluate'
@@ -20,6 +21,7 @@ import {
   ShippingUnavailable,
 } from '../errors'
 import { GIFT_CARD_PROVIDER } from '../gift-cards/service'
+import { hasPaymentTriesLeft, TooManyPaymentTries } from '../payments/attempt-cap'
 import {
   createPaymentAttempt,
   startPaymentAttempt,
@@ -37,6 +39,7 @@ import { runWorkflow, type WorkflowLog, type WorkflowStep } from '../workflow/ru
 import { lockCartOrReplay } from './cart-replay'
 import { clearOrderForAnotherMethod, orderAwaitingAnotherMethod } from './checkout-reopen'
 import { enforceCheckoutRepeats } from './duplicate-checkout'
+import { splitByDeliveryRoutes } from './parcel-rule-split'
 import { createOrder } from './place-order-create'
 import { planCheckoutDraft, prepareDraft } from './place-order-draft'
 import { loadCart, mixedCartOf } from './place-order-load'
@@ -221,7 +224,7 @@ const assessRisk: WorkflowStep<State> = {
  */
 const reserveStock: WorkflowStep<State> = {
   name: 'reserveStock',
-  async run({ ctx, input, lines, draft }) {
+  async run({ ctx, input, lines, draft, delivery }) {
     const { parcels, reserved } = await routeAndReserve(ctx, {
       lines: lines.map((l, i) => ({
         key: String(i),
@@ -244,8 +247,10 @@ const reserveStock: WorkflowStep<State> = {
     // pre-order parcel does (`on_hold`: ships when it arrives), so nothing goes out first.
     const verdict = mixedCartOf(lines)
     const together = verdict.kind === 'ok' && verdict.holdTogether
+    const held = together ? parcels.map((p) => ({ ...p, status: 'on_hold' as const })) : parcels
     return {
-      parcels: together ? parcels.map((p) => ({ ...p, status: 'on_hold' as const })) : parcels,
+      // A location's goods checkout priced as several parcels (product rules) stay several.
+      parcels: splitByDeliveryRoutes(held, delivery, (key) => lines[Number(key)]?.variantId),
       reserved,
     }
   },
@@ -270,9 +275,15 @@ const reserveStock: WorkflowStep<State> = {
  */
 const recordPaymentAttempt: WorkflowStep<State> = {
   name: 'recordPaymentAttempt',
-  async run({ ctx, input, totalPaise, balanceDuePaise, giftCardPaise, storeCreditPaise, orderId }) {
+  async run(state) {
+    const { ctx, input, totalPaise, balanceDuePaise, giftCardPaise, storeCreditPaise, orderId } =
+      state
     if (!orderId) throw new Error('recordPaymentAttempt before createOrder')
     const tender = { giftCardPaise, storeCreditPaise, totalPaise, balanceDuePaise }
+    // COD & RTO app: ask a cash on delivery shopper to confirm, once nothing else paid it all. A
+    // COD pick that store credit or gift cards covered has nothing to collect on delivery: no
+    // "confirm your COD order" message, and no unanswered-confirmation auto-cancel of a paid order.
+    if (state.risk?.verify && !paidByCards(tender)) await requestCodConfirmation(ctx, orderId)
     if (paidByCards(tender)) {
       await ctx.tx
         .update(order)
@@ -283,6 +294,10 @@ const recordPaymentAttempt: WorkflowStep<State> = {
       // payments and writes order.paid.
       await recomputeOrderStatuses(ctx, orderId)
       return {}
+    }
+    // A reused order (checkout draft, another way to pay) keeps its declines: card testing guard.
+    if (!(await hasPaymentTriesLeft(ctx, orderId))) {
+      throw new TooManyPaymentTries(orderId, ctx.storeId)
     }
     const attempt = await createPaymentAttempt(ctx, {
       orderId,
@@ -431,9 +446,11 @@ export async function placeOrderAndPay(
         placed.attemptId,
         input.paymentProvider,
         fallbacks,
-        { timeoutMs: GATEWAY_START_TIMEOUT_MS },
+        { timeoutMs: GATEWAY_START_TIMEOUT_MS, shopperIp: input.shopperIp },
       )
-    : await startPaymentAttempt(db, storeId, placed.attemptId, input.paymentProvider)
+    : await startPaymentAttempt(db, storeId, placed.attemptId, input.paymentProvider, console, {
+        shopperIp: input.shopperIp,
+      })
   return {
     ...placed,
     paymentStatus: started.status,

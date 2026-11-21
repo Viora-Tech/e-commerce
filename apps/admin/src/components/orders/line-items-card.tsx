@@ -22,6 +22,8 @@ type LineItemsCardProps = {
   unfulfilledShown: boolean
   /** Where "Edit order" goes (change items, prices, shipping, discount); undefined hides it. */
   editHref?: string | undefined
+  /** The Fulfilled card's row ⋯ › Mark as unfulfilled (that line only); undefined hides it. */
+  onUnfulfilLine?: ((lineId: string) => void) | undefined
 }
 
 /**
@@ -34,6 +36,7 @@ export default function LineItemsCard({
   payment,
   unfulfilledShown,
   editHref,
+  onUnfulfilLine,
 }: LineItemsCardProps) {
   // Hooks
   const copy = useCopy(orderDetailContent)
@@ -65,7 +68,7 @@ export default function LineItemsCard({
           title={copy.unfulfilled.fulfilled}
           icon={<PackageCheck aria-hidden="true" />}
         >
-          <OrderLinesTable rows={packed} />
+          <OrderLinesTable rows={packed} onUnfulfil={onUnfulfilLine} />
         </DataCard>
       ) : null}
       {waiting.length > 0 ? (

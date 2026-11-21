@@ -42,7 +42,8 @@ const PRODUCT = /^\/products\/([^/]+)\/?$/
 /** The product handle on a `/products/<handle>` path, decoded; null for any other path. */
 export function honoProductHandle(pathname: string): string | null {
   const raw = PRODUCT.exec(pathname)?.[1]
-  if (!raw) return null
+  // Shopify's `/products/<h>.json` and `.js` are the product's JSON, not its page.
+  if (!raw || /\.(json|js)$/.test(raw)) return null
   try {
     return decodeURIComponent(raw)
   } catch {

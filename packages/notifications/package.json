@@ -6,7 +6,8 @@
   "description": "Notification channel contract, registry, templates and conformance suite. No runtime dependencies.",
   "exports": {
     ".": "./src/index.ts",
-    "./testing": "./src/testing.ts"
+    "./testing": "./src/testing.ts",
+    "./design": "./src/design/client.ts"
   },
   "scripts": {
     "test": "vitest run",

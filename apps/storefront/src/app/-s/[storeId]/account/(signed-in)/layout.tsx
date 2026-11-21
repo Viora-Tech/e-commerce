@@ -20,9 +20,11 @@ export default async function SignedInLayout({ children, params }: SignedInLayou
     renderers: {
       MainAccount: () => (
         <AccountFrame storeId={storeId}>
-          <div className="account-layout">
+          {/* `account-layout` keeps headings out of the theme's scroll reveal (base.css); the
+              sidebar column starts at lg, with the nav's own breakpoint. */}
+          <div className="account-layout max-lg:grid-cols-[minmax(0,1fr)]! lg:gap-10!">
             {me ? <AccountNav email={me.email ?? me.phone ?? ''} name={me.name} /> : null}
-            <div className="account-layout__main">{children}</div>
+            <div className="account-layout__main min-w-0">{children}</div>
           </div>
         </AccountFrame>
       ),

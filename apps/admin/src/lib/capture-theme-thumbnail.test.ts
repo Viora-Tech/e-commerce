@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, expect, it } from 'vitest'
-import { keeper, stillPosters, withinTime } from './capture-theme-thumbnail'
+import { coverOf, keeper, stillPosters, withinTime } from './capture-theme-thumbnail'
 
 /** A body like an imported theme's hero: a slide with a poster video, one without a poster. */
 function hero(): HTMLElement {
@@ -51,6 +51,17 @@ describe('stillPosters', () => {
 
     posters.restore()
     expect(body.querySelector('[data-screenshot-posters]')).toBeNull()
+  })
+
+  it('reads the cover the live storefront moved to data-cover, or a lazy data-poster', () => {
+    const video = (attrs: string) => {
+      document.body.innerHTML = `<video ${attrs}></video>`
+      return document.body.querySelector('video') as HTMLVideoElement
+    }
+    expect(coverOf(video('poster="https://cdn.test/p.jpg"'))).toBe('https://cdn.test/p.jpg')
+    expect(coverOf(video('data-cover="https://cdn.test/c.jpg"'))).toBe('https://cdn.test/c.jpg')
+    expect(coverOf(video('data-poster="https://cdn.test/d.jpg"'))).toBe('https://cdn.test/d.jpg')
+    expect(coverOf(video('muted'))).toBe('')
   })
 
   it('ignores a clone that is not an element', () => {

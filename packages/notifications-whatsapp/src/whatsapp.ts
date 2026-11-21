@@ -88,6 +88,8 @@ export function templateParams(template: TemplateId, d: TemplateData): string[] 
     case 'purchase_order':
     case 'plan_bill':
       return [d.storeName, d.actionUrl ?? '-']
+    case 'welcome_coupon':
+      return [d.customerName, d.storeName, d.welcome?.code ?? '-']
     case 'gift_card_issued':
       return [d.customerName, d.storeName, d.giftCard?.balanceLabel ?? '-', d.giftCard?.code ?? '-']
     case 'balance_request':
@@ -144,6 +146,10 @@ export function templateParams(template: TemplateId, d: TemplateData): string[] 
         d.dailySummary?.salesLabel ?? '-',
         String(d.dailySummary?.toShip ?? 0),
       ]
+    // Email only in the catalogue; listed so the switch stays complete.
+    case 'staff_weekly_report':
+    case 'staff_monthly_report':
+      return [d.storeName, d.report?.netLabel ?? '-', d.actionUrl ?? '-']
     case 'back_in_stock_confirm':
       return [d.backInStock?.productTitle ?? '-', d.backInStock?.confirmUrl ?? '-']
     case 'back_in_stock_alert':

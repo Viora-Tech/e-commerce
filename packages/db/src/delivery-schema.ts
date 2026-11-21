@@ -117,6 +117,12 @@ export type OrderDeliveryParcelRoute = {
    * has another parcel. Absent on orders saved before it was stamped.
    */
   fulfillmentOrderId?: string | undefined
+  /**
+   * The variants this parcel carries, as checkout priced it. Several parcels at one location
+   * (a cart split by product rules, owner 21 Nov 2026) are told apart by these: placing the
+   * order makes one fulfilment order per route. Absent on orders saved before 21 Nov 2026.
+   */
+  variantIds?: string[] | undefined
   /** Same shape as `OrderDeliveryRoute.route`. */
   route: {
     key: string

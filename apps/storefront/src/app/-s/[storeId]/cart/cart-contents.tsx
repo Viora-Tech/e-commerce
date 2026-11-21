@@ -59,7 +59,7 @@ export default async function CartContents({ storeId, reorderSkipped }: CartCont
   const discount = await cartDiscountView(cart.id, cart.discountCode)
   const discountPaise = discount?.amountPaise ?? 0
   const total = Math.max(0, cart.subtotalPaise - discountPaise)
-  const india = await inStore(storeId, (tx) => cartShippingHint(tx, cart.id))
+  const india = await inStore(storeId, (tx) => cartShippingHint(tx, storeId, cart.id))
   // The hint is India's rates; a market abroad ships on its own zone's rates, priced at checkout.
   const abroad = isAbroad(requestHeaders.get(MARKET_HEADERS.country) ?? 'IN')
   const hint = abroad ? { charged: true, freeAbovePaise: null } : india

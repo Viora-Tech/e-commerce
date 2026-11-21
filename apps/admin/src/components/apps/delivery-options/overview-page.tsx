@@ -24,8 +24,8 @@ import { useDeliveryOverview, useRouteCatalogue } from './use-delivery-overview'
 const APP = 'delivery-options'
 
 /**
- * Apps → Delivery options → Overview (Figma 929:11373): the four health tiles, what checkout
- * shows a Bengaluru shopper now, how each courier app answers, and Try a PIN.
+ * Apps → Delivery options → Overview (Figma 929:11373): the four health tiles, how each courier
+ * app answers, what checkout shows a Bengaluru shopper now, and Try a PIN.
  */
 export default function DeliveryOptionsOverviewPage() {
   // Hooks
@@ -44,13 +44,11 @@ export default function DeliveryOptionsOverviewPage() {
         {failed ? (
           <LoadFailedState size="page" heading={apps.couldNotLoad.overview} onRetry={reload} />
         ) : (
-          // The four tiles, the checkout preview beside the courier apps, and Try a PIN.
+          // The four tiles, the courier apps, the checkout preview and Try a PIN.
           <>
             <StatStrip tiles={[]} loading placeholders={4} />
-            <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[minmax(0,1.65fr)_minmax(0,1fr)]">
-              <DataCardSkeleton fields={0} lines={4} />
-              <DataCardSkeleton fields={0} lines={3} />
-            </div>
+            <DataCardSkeleton fields={0} lines={2} />
+            <DataCardSkeleton fields={0} lines={4} />
             <DataCardSkeleton fields={1} />
           </>
         )}
@@ -66,25 +64,25 @@ export default function DeliveryOptionsOverviewPage() {
       <SectionHead title={pages.pages.overview.title} intro={pages.pages.overview.intro} />
       <DeliveryWarnings warnings={overview.warnings} />
       <OverviewTiles overview={overview} />
-      <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[minmax(0,1.65fr)_minmax(0,1fr)]">
-        <DataCard
-          title={pages.preview.atCheckout}
-          subtitle={pages.preview.forPin(PREVIEW_PIN, kg)}
-          action={
-            <Button
-              variant="ghost"
-              size="sm"
-              nativeButton={false}
-              render={<Link href={routes.apps.page(APP, 'options')} />}
-            >
-              {pages.preview.editOptions}
-            </Button>
-          }
-        >
-          <CheckoutPreviewList {...preview} />
-        </DataCard>
-        <CourierAppsCard overview={overview} catalogue={catalogue} />
-      </div>
+      {/* Courier apps on their own row: beside the checkout preview its two or three rows left a
+          large empty column under it (#1781). */}
+      <CourierAppsCard overview={overview} catalogue={catalogue} />
+      <DataCard
+        title={pages.preview.atCheckout}
+        subtitle={pages.preview.forPin(PREVIEW_PIN, kg)}
+        action={
+          <Button
+            variant="ghost"
+            size="sm"
+            nativeButton={false}
+            render={<Link href={routes.apps.page(APP, 'options')} />}
+          >
+            {pages.preview.editOptions}
+          </Button>
+        }
+      >
+        <CheckoutPreviewList {...preview} />
+      </DataCard>
       <TryPinCard result={tried} onResult={setTried} />
     </div>
   )

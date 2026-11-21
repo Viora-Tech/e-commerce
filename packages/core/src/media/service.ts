@@ -375,6 +375,8 @@ export async function deleteMedia(tx: StoreTx, id: string, provider: StorageProv
   await syncFeaturedMedia(tx, variants)
   await tx.delete(media).where(eq(media.id, id))
   if (row.key && row.provider === provider.id) await provider.delete(row.key)
+  // A video's smaller copy goes with it (`./compact-video.ts`).
+  if (row.compactKey && row.provider === provider.id) await provider.delete(row.compactKey)
   return row
 }
 

@@ -13,11 +13,13 @@ import EmptyState from '@/components/layout/empty-state'
 import PageHeader from '@/components/layout/page-header'
 import ProoflyDetailPage from '@/components/layout/proofly-detail-page'
 import StatusChip from '@/components/layout/status-chip'
+import SaleSourceCard from '@/components/orders/sale-source-card'
 import SendMessageDialog, { type CustomMessage } from '@/components/orders/send-message-dialog'
 import { checkoutDraftContent, draftsContent } from '@/data/drafts'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
+import CheckoutDraftEditButton from './checkout-draft-edit-button'
 import { type LinkChannel, linkTooSoon } from './checkout-draft-send-link'
 
 type Draft = NonNullable<Awaited<ReturnType<typeof api.orders.getDraft>>>
@@ -66,6 +68,9 @@ type CheckoutDraftViewProps = {
 
 type Asking = 'paid' | 'convert' | 'delete' | 'link' | null
 
+/** Attempt statuses that mean money came in or is held: such a checkout cannot be edited. */
+const MONEY_IN: ReadonlySet<string> = new Set(['authorized', 'captured', 'refunded'])
+
 /** The latest attempt still waiting on a transfer: "Mark as paid" captures it. */
 const openTransfer = (d: Draft) =>
   d.paymentMethod === 'manual' &&
@@ -73,8 +78,9 @@ const openTransfer = (d: Draft) =>
 
 /**
  * A shopper's unpaid checkout (#D57): what they checked out, how they tried to pay and when they
- * last came back. It is kept as the shopper checked it out (no editing); it becomes an order when
- * the payment arrives, when the merchant marks a transfer paid, or by "Convert to order (unpaid)".
+ * last came back. It is kept as the shopper checked it out; it becomes an order when the payment
+ * arrives, when the merchant marks a transfer paid, or by "Convert to order (unpaid)". "Edit"
+ * stops the shopper's link and turns it into an ordinary staff draft (the draft form).
  */
 export default function CheckoutDraftView({ draft: d }: CheckoutDraftViewProps) {
   // Hooks
@@ -154,6 +160,8 @@ export default function CheckoutDraftView({ draft: d }: CheckoutDraftViewProps) 
   const method = copy.methods[d.paymentMethod === 'manual' ? 'manual' : 'online']
   const held = d.draftReserved?.length && d.reservedUntil ? d.reservedUntil : null
   const canMarkPaid = openTransfer(d) && !d.draftExpiredAt
+  // Money in or on its way: the API refuses Edit anyway, so it is not offered.
+  const canEdit = !refundNeeded && !d.attempts.some((a) => MONEY_IN.has(a.status))
   const canSendLink = Boolean(d.payLink && !d.draftExpiredAt && (d.email || d.phone))
 
   return (
@@ -181,6 +189,7 @@ export default function CheckoutDraftView({ draft: d }: CheckoutDraftViewProps) 
                   {copy.sendLink}
                 </Button>
               ) : null}
+              {canEdit ? <CheckoutDraftEditButton draftId={d.id} /> : null}
               <Button variant="outline" onClick={() => setAsking('convert')}>
                 {copy.convert}
               </Button>
@@ -268,26 +277,30 @@ export default function CheckoutDraftView({ draft: d }: CheckoutDraftViewProps) 
         </>
       }
       side={
-        <DataCard title={copy.summary}>
-          <dl className="flex flex-col gap-3 text-body">
-            <div>
-              <dt className="text-muted-foreground">{copy.contact}</dt>
-              <dd>{[d.customer?.name, d.email, d.phone].filter(Boolean).join(' · ')}</dd>
-            </div>
-            <div>
-              <dt className="text-muted-foreground">{copy.method}</dt>
-              <dd>{method}</dd>
-            </div>
-            <div>
-              <dt className="text-muted-foreground">{copy.lastActivity}</dt>
-              <dd className="tabular-nums">{fmt.when(d.lastActivityAt ?? d.placedAt)}</dd>
-            </div>
-            <div>
-              <dt className="text-muted-foreground">{held ? copy.held : copy.items}</dt>
-              <dd className="tabular-nums">{held ? fmt.when(held) : copy.notHeld}</dd>
-            </div>
-          </dl>
-        </DataCard>
+        <>
+          <DataCard title={copy.summary}>
+            <dl className="flex flex-col gap-3 text-body">
+              <div>
+                <dt className="text-muted-foreground">{copy.contact}</dt>
+                <dd>{[d.customer?.name, d.email, d.phone].filter(Boolean).join(' · ')}</dd>
+              </div>
+              <div>
+                <dt className="text-muted-foreground">{copy.method}</dt>
+                <dd>{method}</dd>
+              </div>
+              <div>
+                <dt className="text-muted-foreground">{copy.lastActivity}</dt>
+                <dd className="tabular-nums">{fmt.when(d.lastActivityAt ?? d.placedAt)}</dd>
+              </div>
+              <div>
+                <dt className="text-muted-foreground">{held ? copy.held : copy.items}</dt>
+                <dd className="tabular-nums">{held ? fmt.when(held) : copy.notHeld}</dd>
+              </div>
+            </dl>
+          </DataCard>
+          {/* The shopper's visit, as it will stay on the order once paid. */}
+          <SaleSourceCard attribution={d.attribution} />
+        </>
       }
     >
       {/* Email and WhatsApp as the store and the draft allow; no hand-sent chat fallback here. */}

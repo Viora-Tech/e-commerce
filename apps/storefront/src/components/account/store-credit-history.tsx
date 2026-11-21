@@ -1,6 +1,14 @@
 import { formatPaise } from '@commerce/blocks'
 import type { ShopperStoreCreditEntry } from '@commerce/core'
+import CheckoutIcon from '@/components/checkout/checkout-icon'
 import { accountContent, formatAccountDate } from '@/data/account'
+import {
+  ACCOUNT_CARD,
+  ACCOUNT_CARD_TITLE,
+  ACCOUNT_INTRO,
+  ACCOUNT_ROW,
+  ACCOUNT_ROWS,
+} from '@/lib/account-classes'
 
 type StoreCreditHistoryProps = {
   balancePaise: number
@@ -14,7 +22,7 @@ const copy = accountContent.storeCredit
 const lastDay = (day: string) => formatAccountDate(`${day}T12:00:00Z`, 'UTC')
 
 /** What a change was, in the shopper's words: never the reason staff typed. */
-function describe(e: ShopperStoreCreditEntry): string {
+export function describeStoreCredit(e: ShopperStoreCreditEntry): string {
   if (e.kind === 'payment') return copy.used(e.orderNumber)
   if (e.kind === 'refund') return copy.refund(e.orderNumber)
   if (e.kind === 'release') return copy.returned(e.orderNumber)
@@ -22,9 +30,14 @@ function describe(e: ShopperStoreCreditEntry): string {
   return e.amountPaise > 0 ? copy.added : copy.removed
 }
 
+/** A change as a signed amount: "+₹500.00" in the success colour, "−₹200.00" in ink. */
+export function signedStoreCredit(amountPaise: number): string {
+  return `${amountPaise > 0 ? '+' : '−'}${formatPaise(Math.abs(amountPaise))}`
+}
+
 /**
- * The account's Store credit page: the balance the shop holds for the shopper, then each change
- * with its order and day. Read-only; it is spent at checkout.
+ * The account's Store credit page: the balance the shop holds for the shopper on a card, then
+ * each change with its order and day. Read-only; it is spent at checkout.
  */
 export default function StoreCreditHistory({
   balancePaise,
@@ -33,30 +46,42 @@ export default function StoreCreditHistory({
 }: StoreCreditHistoryProps) {
   // Render logic
   return (
-    <div className="flex max-w-[36rem] flex-col gap-8">
-      <section className="flex flex-col gap-2 rounded-[var(--radius-card)] bg-surface p-6">
-        <p className="text-small text-muted">{copy.balance}</p>
-        <p className="h2 tabular-nums">{formatPaise(balancePaise)}</p>
-        <p className="text-body text-muted">{copy.intro}</p>
+    <div className="flex max-w-[40rem] flex-col gap-4">
+      <section className={`${ACCOUNT_CARD} gap-2!`} aria-labelledby="credit-balance">
+        <div className="flex items-center gap-3">
+          <span className="grid size-10 shrink-0 place-items-center rounded-full bg-ck-accent-soft text-ck-accent">
+            <CheckoutIcon name="gift" className="size-5" />
+          </span>
+          <p id="credit-balance" className="text-[0.875rem] font-medium text-ck-muted">
+            {copy.balance}
+          </p>
+        </div>
+        <p className="text-[2rem] font-bold leading-tight tabular-nums text-ck-ink">
+          {formatPaise(balancePaise)}
+        </p>
+        <p className={ACCOUNT_INTRO}>{copy.intro}</p>
       </section>
-      <section className="flex flex-col gap-3">
-        <h2 className="h4">{copy.history}</h2>
+      <section className={`${ACCOUNT_CARD} gap-1!`} aria-labelledby="credit-history">
+        <h2 id="credit-history" className={ACCOUNT_CARD_TITLE}>
+          {copy.history}
+        </h2>
         {entries.length === 0 ? (
-          <p className="text-body text-muted">{copy.empty}</p>
+          <p className={`${ACCOUNT_INTRO} py-2`}>{copy.empty}</p>
         ) : (
-          <ul className="flex flex-col divide-y divide-line rounded-[var(--radius-card)] bg-surface">
+          <ul className={ACCOUNT_ROWS}>
             {entries.map((e) => (
-              <li key={e.id} className="flex items-center justify-between gap-3 px-5 py-4">
-                <span className="flex min-w-0 flex-col">
-                  <span className="text-body">{describe(e)}</span>
-                  <span className="text-small text-muted">
+              <li key={e.id} className={ACCOUNT_ROW}>
+                <span className="flex min-w-0 flex-col gap-0.5">
+                  <span className="text-[0.9375rem] text-ck-ink">{describeStoreCredit(e)}</span>
+                  <span className="text-[0.8125rem] text-ck-muted">
                     {formatAccountDate(e.createdAt, timeZone)}
                     {e.expiresOn ? ` · ${copy.expiresOn(lastDay(e.expiresOn))}` : ''}
                   </span>
                 </span>
-                <span className="shrink-0 text-body font-medium tabular-nums">
-                  {e.amountPaise > 0 ? '+' : '−'}
-                  {formatPaise(Math.abs(e.amountPaise))}
+                <span
+                  className={`shrink-0 text-[0.9375rem] font-semibold tabular-nums ${e.amountPaise > 0 ? 'text-ck-success' : 'text-ck-ink'}`}
+                >
+                  {signedStoreCredit(e.amountPaise)}
                 </span>
               </li>
             ))}

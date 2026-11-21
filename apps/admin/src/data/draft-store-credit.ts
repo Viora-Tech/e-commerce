@@ -9,6 +9,9 @@ export const draftStoreCreditContent = {
   apply: 'Apply store credit',
   applied: (amount: string) => `${amount} applied`,
   appliedNote: 'Taken from the balance when the draft is converted to an order.',
+  /** The balance fell below the applied amount: the convert uses what is left. */
+  capped: (amount: string) =>
+    `The balance is now ${amount}, so only ${amount} will be used when the draft is converted. The payment method collects the rest.`,
   edit: 'Change',
   remove: 'Remove',
   loadFailed: 'Could not load store credit.',
@@ -28,7 +31,6 @@ export const draftStoreCreditContent = {
   problems: {
     no_customer: 'Pick a customer to use store credit, or remove it.',
     over_total: 'Store credit is more than the total. Lower it.',
-    over_balance: "Store credit is more than the customer's balance. Lower it.",
   },
   /** Send invoice is off when store credit pays it all. */
   nothingToInvoice: 'Store credit pays all of it. Convert it to an order instead.',

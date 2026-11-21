@@ -3,7 +3,7 @@ export const inboxKnowledgeContent = {
   failed: 'Something went wrong. Try again.',
   title: 'Knowledge base',
   subtitle:
-    'Short answers the AI agent gives shoppers: shipping time, warranty, returns, COD. Only published answers are used.',
+    'What AI tells shoppers about your store, in your store chat and in AI assistants. Only published items are used.',
   publishedOf: (published: number, total: number) => `${published} of ${total} published`,
   add: 'Add answer',
   edit: 'Edit',

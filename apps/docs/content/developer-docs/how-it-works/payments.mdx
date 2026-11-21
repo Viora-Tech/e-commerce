@@ -14,6 +14,7 @@ money module (the `money-format` sweep keeps it there).
 | --- | --- | --- |
 | Cards, UPI, net banking, wallets, EMI, pay later | A gateway app: Razorpay (`tested`), Cashfree | The gateway's signed webhook, or the browser's return checked with the gateway |
 | UPI by QR code or link | Razorpay QR, Decentro | Automatically, by the gateway's webhook (`qr-attempts.ts`, `upi-qr`) |
+| Cardless EMI | Snapmint (direct, `packages/payments-snapmint`; also offered inside Razorpay Checkout) | The checksummed webhook or return post, always re-checked with Snapmint's order status API |
 | UPI to the merchant's own UPI ID, bank transfer | Core `manual` provider (`packages/core/src/providers/manual.ts`) | By staff (**Mark as paid**) once the money shows in their bank; the checkout is kept as a draft until then |
 | Cash on delivery | Core `cod` provider | On delivery; optional COD fee, rules per cart, and the COD & RTO app's confirm link and risk score |
 
@@ -77,6 +78,6 @@ Profit.
 ## Where the code is
 
 `packages/payments` (contract, registry, conformance suite), `packages/payments-razorpay`,
-`payments-cashfree`, `payments-decentro`, `packages/core/src/payments/` (everything above),
+`payments-cashfree`, `payments-decentro`, `payments-snapmint`, `packages/core/src/payments/` (everything above),
 `packages/core/src/providers/` (COD and manual). Adding a gateway:
 [Plugins SDK](/developer-docs/building/plugins).

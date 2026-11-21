@@ -30,6 +30,7 @@ export const gstQueuePageContent = {
   chips: { all: 'All', ready: 'Ready', fix: 'Needs fixing' },
   columns: {
     order: 'Order',
+    products: 'Products',
     customer: 'Customer',
     gstin: 'GSTIN',
     taxable: 'Taxable',
@@ -54,6 +55,7 @@ export const gstQueuePageContent = {
   issueMany: (n: number) => (n === 1 ? 'Issue 1 invoice' : `Issue ${n} invoices`),
   selectAll: 'Select every order shown',
   selectRow: (order: string) => `Select ${order}`,
+  moreItems: (n: number) => `+ ${n} more`,
   selected: (n: number) => `${n} selected`,
   more: 'More queue actions',
   addByNumber: 'Add orders by number',

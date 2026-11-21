@@ -21,12 +21,20 @@
  * still goes through the shim to `ConsentManager`, and no tag loads before a yes. The script only
  * ever reveals; when in doubt (no shim, a theme preview, a `#cookie-settings` link the theme
  * opens itself) it leaves the banner to the theme.
+ *
+ * Its buttons work at once too. The theme's script, which binds them, is one of the parked
+ * scripts the shim runs one after another (about 24th of 36 on the Revamp home page): on a slow
+ * phone network, or an in-app browser (Instagram, Facebook, Gmail) that stalls one file, the
+ * banner sat on screen for seconds, or for good, and "Accept all" did nothing. Until the theme
+ * defines `<cookie-banner>`, a click on Accept, Decline, Save or Choose cookies is answered here
+ * the way the theme's `record()` does it: stamp, hide, `setTrackingConsent`. Once the theme has
+ * defined the element this handler steps aside, so nothing is answered twice.
  */
 
 const BANNER_END = '</cookie-banner>'
 
 /** Runs in the browser, as the element's next sibling; plain ES5 like the theme's own code. */
-const REVEAL = `(function(){try{var s=document.currentScript,b=s&&s.previousElementSibling;if(!b||b.localName!=='cookie-banner'||!b.hidden)return;var S=window.Shopify,p=S&&S.customerPrivacy;if(!p||S.designMode||location.hash==='#cookie-settings'||!p.shouldShowBanner())return;try{localStorage.removeItem(b.getAttribute('data-storage-key')||'glide:cookie-consent')}catch(e){}b.hidden=false;var r=b.querySelector('[data-cookie-region]');if(r)r.focus({preventScroll:true})}catch(e){}})()`
+const REVEAL = `(function(){try{var s=document.currentScript,b=s&&s.previousElementSibling;if(!b||b.localName!=='cookie-banner'||!b.hidden)return;var S=window.Shopify,p=S&&S.customerPrivacy;if(!p||S.designMode||location.hash==='#cookie-settings'||!p.shouldShowBanner())return;try{localStorage.removeItem(b.getAttribute('data-storage-key')||'glide:cookie-consent')}catch(e){}b.hidden=false;var r=b.querySelector('[data-cookie-region]');if(r)r.focus({preventScroll:true});b.addEventListener('click',function(e){var w=window.customElements;if(w&&w.get('cookie-banner'))return;var t=e.target,k=t&&t.closest?function(q){return t.closest(q)}:function(){return null},a,m;if(k('[data-cookie-accept]'))a=m=true;else if(k('[data-cookie-decline]'))a=m=false;else if(k('[data-cookie-save]')){var x=b.querySelector('[data-cookie-analytics]'),y=b.querySelector('[data-cookie-marketing]');a=!!(x&&x.checked);m=!!(y&&y.checked)}else{var f=k('[data-cookie-preferences]'),g=b.querySelector('[data-cookie-panel]');if(f&&g){g.hidden=!g.hidden;f.setAttribute('aria-expanded',String(!g.hidden))}return}try{localStorage.setItem(b.getAttribute('data-storage-key')||'glide:cookie-consent',String(Date.now()))}catch(z){}b.hidden=true;p.setTrackingConsent({analytics:a,marketing:m,preferences:a,sale_of_data:m},function(){})})}catch(e){}})()`
 
 /**
  * Section HTML with the reveal script after each theme cookie banner. `nonceMark` is what the

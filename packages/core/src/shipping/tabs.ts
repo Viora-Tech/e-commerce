@@ -9,6 +9,7 @@ export const SHIPMENT_TABS = [
   'inTransit',
   'delivered',
   'rto',
+  'lost',
 ] as const
 
 export type ShipmentTab = (typeof SHIPMENT_TABS)[number]
@@ -21,6 +22,7 @@ export type ShipmentStatus =
   | 'delivered'
   | 'rto'
   | 'cancelled'
+  | 'lost'
 
 export const SHIPMENT_TAB_STATUSES: Record<Exclude<ShipmentTab, 'toBook'>, ShipmentStatus[]> = {
   booked: ['created'],
@@ -28,6 +30,7 @@ export const SHIPMENT_TAB_STATUSES: Record<Exclude<ShipmentTab, 'toBook'>, Shipm
   inTransit: ['picked_up', 'in_transit', 'out_for_delivery'],
   delivered: ['delivered'],
   rto: ['rto'],
+  lost: ['lost'],
 }
 
 /**

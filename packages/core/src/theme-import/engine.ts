@@ -17,6 +17,7 @@ import {
   type ValueToken,
 } from 'liquidjs'
 import { CommerceError } from '../errors'
+import { AppBlockRenderTag } from './app-block-render-tag'
 import { AssignTag } from './assign-tag'
 import { escapeAttr, type LiquidRuntime, registerShopifyFilters, stringifyLiquid } from './filters'
 import { MAX_BLOCK_DEPTH } from './schema'
@@ -46,6 +47,8 @@ export type LiquidHooks = {
         extras: Record<string, unknown>,
       ) => string)
     | undefined
+  /** `{% render block %}` on an app block (`app-blocks.ts`): our widget's slot, or nothing. */
+  renderAppBlock?: ((block: unknown) => string) | undefined
   /** `?form_posted=<type>` on the request, so `form.posted_successfully?` is true after a post. */
   postedForm?: string | null | undefined
   /** False when the Forms app is not installed: `{% form 'contact' %}` shows a plain notice instead. */
@@ -511,6 +514,7 @@ export function createThemeEngine(snippets: Map<string, string>): Liquid {
   })
   registerShopifyFilters(engine)
   engine.registerTag('assign', AssignTag)
+  engine.registerTag('render', AppBlockRenderTag)
   engine.registerTag('form', FormTag)
   engine.registerTag('paginate', PaginateTag)
   engine.registerTag('section', SectionTag)

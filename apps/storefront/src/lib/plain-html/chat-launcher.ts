@@ -3,7 +3,14 @@ import { CHAT_ICON_PATHS } from '@/components/inbox/chat-icon'
 import { inboxChatContent as copy } from '@/data/inbox'
 import { CHAT_ACTIVE_KEY, CHAT_FRAME_PATH } from '../inbox-frame'
 import { chatFontFamily } from '../inbox-guard'
-import { CHAT_ROOT_ATTR, EDGE_PX, LAUNCHER_BOTTOM, LIFT_GAP, MAX_BAR_SHARE } from '../launcher-lift'
+import {
+  CHAT_ROOT_ATTR,
+  EDGE_PX,
+  LAUNCHER_BOTTOM,
+  LIFT_GAP,
+  MAX_BAR_SHARE,
+  SAMPLE_ROWS,
+} from '../launcher-lift'
 import { islandModuleUrl } from './modules'
 
 /**
@@ -106,6 +113,7 @@ export function chatModuleSpec(w: InboxWidget, storeName: string) {
       base: baseBottom(w),
       gap: LIFT_GAP,
       edge: EDGE_PX,
+      rows: [...SAMPLE_ROWS],
       share: MAX_BAR_SHARE,
       root: CHAT_ROOT_ATTR,
     },

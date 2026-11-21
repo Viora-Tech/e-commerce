@@ -464,20 +464,27 @@ export const draftStoreCreditMax = (balancePaise: number, totalPaise: number): n
 export const draftToPay = (totalPaise: number, storeCreditPaise: number): number =>
   Math.max(0, totalPaise - storeCreditPaise)
 
-export type DraftStoreCreditProblem = 'no_customer' | 'over_total' | 'over_balance'
+/**
+ * What the convert will take: the applied amount, capped at the customer's balance now (a
+ * balance that fell since it was applied is used as it is, never a refusal). A null balance
+ * (not loaded yet, or not readable) leaves the applied amount.
+ */
+export const draftStoreCreditUsable = (appliedPaise: number, balancePaise: number | null): number =>
+  balancePaise === null ? appliedPaise : Math.max(0, Math.min(appliedPaise, balancePaise))
+
+export type DraftStoreCreditProblem = 'no_customer' | 'over_total'
 
 /**
  * Why the applied store credit cannot stand (the server refuses the same on save and convert);
- * null when it is fine or none is applied. A null balance (not loaded yet) is not checked.
+ * null when it is fine or none is applied. A balance below it is not a problem: the convert
+ * takes what the balance holds then (`draftStoreCreditUsable`).
  */
 export function draftStoreCreditProblem(
   f: DraftFormState,
   totalPaise: number,
-  balancePaise: number | null,
 ): DraftStoreCreditProblem | null {
   if (f.storeCreditPaise <= 0) return null
   if (!f.customerId) return 'no_customer'
   if (f.storeCreditPaise > totalPaise) return 'over_total'
-  if (balancePaise !== null && f.storeCreditPaise > balancePaise) return 'over_balance'
   return null
 }

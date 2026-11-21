@@ -189,6 +189,8 @@ export type ShipmentStatus =
   | 'delivered'
   | 'rto'
   | 'cancelled'
+  /** The courier lost the parcel (its scan, or marked by hand); see core shipping/shipment-lost. */
+  | 'lost'
 
 export type TrackingEvent = {
   /** ISO instant. */

@@ -34,7 +34,8 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const images = await storeShareImages(storeId)
   return {
     title,
-    description,
+    // None of its own: the layout's store description stays, as Shopify's `page_description`.
+    ...(description ? { description } : {}),
     alternates: { canonical: url },
     // An unpublished page only renders in a theme preview.
     ...(found.publishedAt ? {} : { robots: NO_INDEX }),

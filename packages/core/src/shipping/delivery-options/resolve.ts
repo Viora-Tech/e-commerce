@@ -5,8 +5,11 @@
  * `placeOrder` (from the quote snapshot) and the admin's Try a PIN must compute the same answer.
  * Pure: no database, no network, the clock is passed in.
  */
-import { courierId, type DeliveryOption, type RouteSelector } from './config'
-import { cartProtect, cheapestZoneRate, datesFor, priceRoute } from './price'
+import type { DeliveryOption } from './config'
+import { courierList } from './courier-list'
+import { optionCardTitle } from './labels'
+import { alternativesFor, optionAllows, pickFor } from './pick'
+import { cartProtect, cheapestZoneRate, datesFor } from './price'
 import type {
   DeliveryResolveResult,
   DropReason,
@@ -15,156 +18,10 @@ import type {
   ResolvedOption,
   ResolveInput,
   TraceRoute,
-  WhyPicked,
 } from './resolve-types'
-import { insurancePrice, type Route, routesFromAnswers, selectorMatches } from './routes'
-import { matchingRules, poolAllows, type RulePool, rulePool } from './rules'
-
-const optionAllows = (option: DeliveryOption, route: Route): boolean => {
-  // The courier list's switches: a courier not turned on (new ones start off) never shows.
-  const allow = option.couriers.allow
-  if (allow != null && !allow.includes(courierId(route.carrierKey, route.speed))) return false
-  const r = option.routes
-  if (r.mode === 'any') return true
-  const hit = r.selectors.some((s) => selectorMatches(route, s))
-  return r.mode === 'allow' ? hit : !hit
-}
-
-/** Why this route cannot carry the option, or null when it can. Order matters for the trace. */
-function dropReason(
-  route: Route,
-  option: DeliveryOption,
-  pool: RulePool,
-  input: ResolveInput,
-  need: { insured: boolean; cod: boolean },
-): DropReason | null {
-  if (!optionAllows(option, route)) return 'not_allowed'
-  if (route.speed !== option.speed && option.couriers.show !== 'list') return 'wrong_speed'
-  if (!poolAllows(pool, route)) return 'rule'
-  if (!route.enabled) return 'disabled'
-  if (!route.serviceable) return 'not_serviceable'
-  if (route.costPaise === null && option.price.source === 'route') return 'no_price'
-  if (need.insured && !route.insures) return 'no_insurance'
-  if (need.cod && route.codAvailable === false) return 'no_cod'
-  const max = option.eta.maxDays
-  if (max != null && datesFor(route, option, input).transitMax > max) return 'over_max_eta'
-  return null
-}
-
-type Candidate = { route: Route; priced: PricedRoute }
-
-/** Cheapest: lowest cost to the store (insurance included), tie → direct. */
-function byCheapest(a: Candidate, b: Candidate): number {
-  const cost = (c: Candidate) => c.priced.courierCostPaise + (c.priced.insurancePaise ?? 0)
-  return (
-    cost(a) - cost(b) ||
-    Number(a.route.channel !== 'direct') - Number(b.route.channel !== 'direct') ||
-    a.route.key.localeCompare(b.route.key)
-  )
-}
-
-/** Fastest: earliest latest-arrival, a real ETA beats an estimate, then cheapest. */
-function byFastest(a: Candidate, b: Candidate): number {
-  const latest = (c: Candidate) => c.priced.latest ?? '9999-12-31'
-  return (
-    latest(a).localeCompare(latest(b)) ||
-    Number(a.priced.etaEstimated) - Number(b.priced.etaEstimated) ||
-    byCheapest(a, b)
-  )
-}
-
-function pickByStrategy(
-  fits: Candidate[],
-  option: DeliveryOption,
-): { winner: Candidate; why: WhyPicked } | null {
-  const order = option.strategy === 'fastest' ? byFastest : byCheapest
-  const sorted = [...fits].sort(order)
-  const first = sorted[0]
-  if (!first) return null
-  // The shopper sees one price per option: among the routes that charge them the same as the
-  // first, the one that arrives first wins (Waimers saw Amazon Shipping on Thursday picked over
-  // Delhivery on Wednesday at the same ₹0); the merchant's preferred courier wins only when the
-  // price and the date are both equal (owner, 11 Nov). The store may pay a little more for it.
-  // Fastest keeps its date: only same-day equals are swapped.
-  const latest = (c: Candidate) => c.priced.latest ?? '9999-12-31'
-  const preferred = (c: Candidate) =>
-    option.preferCarrier ? Number(c.route.carrierKey !== option.preferCarrier) : 0
-  const ties = sorted.filter(
-    (c) =>
-      c.priced.pricePaise === first.priced.pricePaise &&
-      (option.strategy !== 'fastest' || c.priced.latest === first.priced.latest),
-  )
-  const best =
-    ties.sort(
-      (a, b) =>
-        latest(a).localeCompare(latest(b)) || preferred(a) - preferred(b) || byFastest(a, b),
-    )[0] ?? first
-  const within = option.preferDirectWithinPaise
-  if (within != null && best.route.channel === 'aggregator') {
-    const cost = (c: Candidate) => c.priced.courierCostPaise + (c.priced.insurancePaise ?? 0)
-    const direct = sorted.find(
-      (c) =>
-        c.route.channel === 'direct' &&
-        cost(c) <= cost(best) + within &&
-        (option.strategy !== 'fastest' || c.priced.latest === best.priced.latest),
-    )
-    if (direct) return { winner: direct, why: { kind: 'prefer_direct', withinPaise: within } }
-  }
-  return { winner: best, why: { kind: option.strategy } }
-}
-
-/** One option's pick (prepaid or COD), the rule default first when it fits. */
-function pickFor(
-  routes: Route[],
-  option: DeliveryOption,
-  pool: RulePool,
-  input: ResolveInput,
-  need: { insured: boolean; cod: boolean },
-  ruleNames: Map<string, string>,
-) {
-  const dropped = new Map<string, DropReason | null>()
-  const fits: Candidate[] = []
-  for (const route of routes) {
-    const reason = dropReason(route, option, pool, input, need)
-    const priced = reason ? null : priceRoute(route, option, input, need.insured, need.cod)
-    if (!reason && !priced) dropped.set(route.key, 'no_price')
-    else dropped.set(route.key, reason)
-    if (priced) fits.push({ route, priced })
-  }
-  const def = pool.defaultRoute
-  const defaults = def ? fits.filter((c) => selectorMatches(c.route, def.selector)) : []
-  const fromRule = defaults.length ? pickByStrategy(defaults, option) : null
-  const picked = fromRule
-    ? {
-        winner: fromRule.winner,
-        why: {
-          kind: 'rule_default' as const,
-          ruleId: def?.ruleId ?? '',
-          ruleName: ruleNames.get(def?.ruleId ?? '') ?? '',
-        },
-      }
-    : pickByStrategy(fits, option)
-  return { fits, dropped, picked }
-}
-
-/** The best route for each alternative the rule offers, not the pick itself. */
-function alternativesFor(
-  fits: Candidate[],
-  selectors: readonly RouteSelector[],
-  option: DeliveryOption,
-  winnerKey: string,
-): PricedRoute[] {
-  const out: PricedRoute[] = []
-  for (const sel of selectors) {
-    const best = pickByStrategy(
-      fits.filter((c) => selectorMatches(c.route, sel) && c.route.key !== winnerKey),
-      option,
-    )
-    if (best && !out.some((p) => p.route.key === best.winner.route.key))
-      out.push(best.winner.priced)
-  }
-  return out
-}
+import { insurancePrice, type Route, routesFromAnswers } from './routes'
+import { cartRulePrices, type RulePriceContext, ruleCardPricer } from './rule-price'
+import { matchRules, poolAllows, rulePool } from './rules'
 
 function traceRoute(
   route: Route,
@@ -197,55 +54,28 @@ function traceRoute(
 
 const asRef = (r: { id: string; name: string }) => ({ id: r.id, name: r.name })
 
-/** Rupees rounded up so they end in 9 (₹37 → ₹39, ₹40 → ₹49); paise in, paise out. */
-function upToNine(paise: number): number {
-  if (paise <= 0) return 0
-  const rupees = Math.ceil(paise / 100)
-  return (rupees + ((9 - (rupees % 10) + 10) % 10)) * 100
+/** The shopper's tick, else the option's default. */
+function wantsInsurance(option: DeliveryOption, input: ResolveInput): boolean {
+  if (input.insure !== undefined) return input.insure
+  if (input.declineInsurance === true) return false
+  return option.insurance.default === 'on'
+}
+
+/** Whether `a` arrives strictly earlier than `b` (latest date, then earliest). */
+function arrivesEarlier(a: ResolvedOption, b: ResolvedOption): boolean {
+  if (!a.latest || !b.latest) return true
+  if (a.latest !== b.latest) return a.latest < b.latest
+  return !!a.earliest && !!b.earliest && a.earliest < b.earliest
 }
 
 /**
- * The cards of a `list` option: the pick at its own price, every other allowed courier at that
- * price plus what it costs the store more (rounded to ₹…9 when asked). One card per courier and
- * speed (a carrier offered by two apps keeps the cheaper); couriers beaten on both price and
- * date are dropped when asked; at most `max`, cheapest first.
+ * `compareSpeeds: false` leaves Express in even when it is not faster: a split cart's parcels
+ * are resolved one by one and compared once added up (`resolveParcelDeliveries`).
  */
-function courierList(fits: Candidate[], winner: Candidate, option: DeliveryOption): PricedRoute[] {
-  const cost = (c: Candidate) => c.priced.courierCostPaise + (c.priced.insurancePaise ?? 0)
-  const base = winner.priced
-  const seen = new Set<string>([`${winner.route.carrierKey}:${winner.route.speed}`])
-  const rest: PricedRoute[] = []
-  for (const c of [...fits].sort(byCheapest)) {
-    const id = `${c.route.carrierKey}:${c.route.speed}`
-    if (c.route.key === winner.route.key || seen.has(id)) continue
-    seen.add(id)
-    const more = option.couriers.extra === 'none' ? 0 : Math.max(0, cost(c) - cost(winner))
-    const extra = option.couriers.roundTo9 ? upToNine(more) : Math.ceil(more / 100) * 100
-    rest.push({
-      ...c.priced,
-      pricePaise: base.pricePaise + extra,
-      listPricePaise: base.listPricePaise + extra,
-    })
-  }
-  const later = (p: PricedRoute) => p.latest ?? '9999-12-31'
-  const all = [base, ...rest]
-  const kept = option.couriers.hideSlowerDearer
-    ? all.filter(
-        (p) =>
-          p === base ||
-          !all.some(
-            (q) =>
-              q !== p &&
-              q.pricePaise <= p.pricePaise &&
-              later(q) <= later(p) &&
-              (q.pricePaise < p.pricePaise || later(q) < later(p)),
-          ),
-      )
-    : all
-  return kept.slice(0, option.couriers.max)
-}
-
-export function resolveDeliveryOptions(input: ResolveInput): DeliveryResolveResult {
+export function resolveDeliveryOptions(
+  input: ResolveInput,
+  opts: { compareSpeeds?: boolean } = {},
+): DeliveryResolveResult {
   const { config, cart, answers } = input
   const allRoutes = routesFromAnswers(answers, config.routeSettings, cart.weightGrams)
   const anyFailed = answers.length === 0 || answers.some((a) => a.status === 'failed')
@@ -256,6 +86,10 @@ export function resolveDeliveryOptions(input: ResolveInput): DeliveryResolveResu
   const sorted = [...config.options].sort((a, b) => a.position - b.position)
   // The courier list layout: the first enabled option alone, as a list of couriers.
   const listOptionId = config.layout === 'list' ? (sorted.find((o) => o.enabled)?.id ?? null) : null
+  /* A product rule's price (Free, Fixed ₹, free above) is the price of the courier list's option,
+     else of the first enabled Standard option; Express and any other option keep their own. */
+  const priceOptionId =
+    listOptionId ?? sorted.find((o) => o.enabled && o.speed === 'standard')?.id ?? null
   for (const saved of sorted) {
     const option: DeliveryOption =
       saved.id === listOptionId && saved.couriers.show !== 'list'
@@ -287,19 +121,27 @@ export function resolveDeliveryOptions(input: ResolveInput): DeliveryResolveResu
     const candidates = routes.filter(
       (r) => optionAllows(option, r) && (listed || r.speed === option.speed),
     )
-    const pool = rulePool(matchingRules(config.rules, option.id, cart.items), candidates)
+    const match = matchRules(config.rules, option.id, cart.items)
+    const pool = rulePool(match.winners, candidates, match.outranked)
     const ins = option.insurance
     const offered =
-      ins.default === 'on' &&
-      (ins.onlyAbovePaise == null ||
-        (input.orderValuePaise ?? cart.valuePaise) >= ins.onlyAbovePaise)
+      ins.onlyAbovePaise == null || (input.orderValuePaise ?? cart.valuePaise) >= ins.onlyAbovePaise
     const required = pool.insuranceRequired
-    const insured = required || (offered && !input.declineInsurance)
+    const insured = required || (offered && wantsInsurance(option, input))
     const codAllowed =
       option.speed === 'standard' && option.cod.mode === 'allowed' && input.policy.codAllowed
 
-    const prepaid = pickFor(routes, option, pool, input, { insured, cod: false }, ruleNames)
+    const prices =
+      option.id === priceOptionId ? cartRulePrices(config.rules, option.id, cart.items) : null
+    const rulePrice: RulePriceContext | null = prices
+      ? { prices, orderValuePaise: input.orderValuePaise ?? cart.valuePaise }
+      : null
+    const pickOf = (need: { insured: boolean; cod: boolean }) =>
+      pickFor(routes, option, pool, input, { ...need, required }, ruleNames, rulePrice)
+    const prepaid = pickOf({ insured, cod: false })
     const pricedByKey = new Map(prepaid.fits.map((c) => [c.route.key, c.priced]))
+    const won = prepaid.picked?.winner
+    if (won) pricedByKey.set(won.route.key, won.priced)
     const trace: OptionTrace = {
       ...base,
       rulesApplied: pool.applied.map(asRef),
@@ -333,17 +175,57 @@ export function resolveDeliveryOptions(input: ResolveInput): DeliveryResolveResu
     }
 
     const { winner, why } = prepaid.picked
-    const alternatives = alternativesFor(prepaid.fits, pool.alternatives, option, winner.route.key)
-    const codPick = codAllowed
-      ? pickFor(routes, option, pool, input, { insured, cod: true }, ruleNames).picked
-      : null
+    // A Fixed rule naming couriers' own prices prices those couriers' cards (21 Nov 2026).
+    const before = prepaid.fits.find((c) => c.route.key === winner.route.key)?.priced
+    const cardPrice =
+      rulePrice && before
+        ? ruleCardPricer(before, winner.priced, option, rulePrice, { insured, required })
+        : null
+    // A forced route carries the parcel alone: no alternatives, no other courier cards.
+    const alternatives = prepaid.forced
+      ? []
+      : alternativesFor(
+          prepaid.fits,
+          pool.alternatives,
+          option,
+          winner,
+          rulePrice !== null,
+          cardPrice,
+        )
+    const codPick = codAllowed ? pickOf({ insured, cod: true }).picked : null
     const pick = winner.priced
-    const listChoices = listed ? courierList(prepaid.fits, winner, option) : []
+    const listChoices =
+      listed && !prepaid.forced
+        ? courierList(
+            prepaid.fits,
+            winner,
+            option,
+            why.kind === 'rule_default',
+            rulePrice !== null,
+            cardPrice,
+          )
+        : []
+    /* The tick: priced both ways, so "+₹X" is what ticking really adds after rounding. A route
+       with no insurance rate prices insurance at ₹0, and then no tick shows. */
+    const flipped = offered && !required ? pickOf({ insured: !insured, cod: false }).picked : null
+    const insuredPick = insured ? pick : (flipped?.winner.priced ?? null)
+    const insurancePaise = insuredPick ? insuredPick.insurancePaise : null
+    const extra = flipped
+      ? Math.max(
+          0,
+          insured
+            ? pick.pricePaise - flipped.winner.priced.pricePaise
+            : flipped.winner.priced.pricePaise - pick.pricePaise,
+        )
+      : null
+    // A free rule covers the insurance: the tick still shows (the shopper can turn it off), and
+    // adds ₹0 (owner, 21 Nov 2026).
+    const tick = flipped !== null && insuredPick !== null && (insurancePaise ?? 0) > 0
     options.push({
       optionId: option.id,
       name: option.name,
       description: option.description ?? null,
-      title: pick.route.showCarrier ? `${option.name} · ${pick.route.carrier}` : option.name,
+      title: optionCardTitle(option, pick.route, listChoices.length > 0),
       speed: option.speed,
       source: winner.route.source,
       pick,
@@ -355,6 +237,7 @@ export function resolveDeliveryOptions(input: ResolveInput): DeliveryResolveResu
           ? [pick, ...alternatives]
           : [],
       layout: listChoices.length ? 'list' : 'one',
+      ...(listChoices.length && option.couriers.extra === 'full' ? { fullPrices: true } : {}),
       pricePaise: pick.pricePaise,
       listPricePaise: pick.listPricePaise,
       earliest: pick.earliest,
@@ -363,15 +246,18 @@ export function resolveDeliveryOptions(input: ResolveInput): DeliveryResolveResu
       codAllowed: codAllowed && codPick !== null,
       cod: codPick?.winner.priced ?? null,
       insurance: {
-        offered: offered && !required,
+        offered: tick,
         required,
         on: insured,
-        pricePaise: pick.insurancePaise,
+        pricePaise: insured ? pick.insurancePaise : insurancePaise,
+        extraPaise: tick ? extra : null,
       },
       backupRate: null,
     })
     traces.push({ ...trace, winner: winner.route.key, why })
   }
+
+  if (opts.compareSpeeds !== false) hideExpressNotFaster(options, traces, listOptionId !== null)
 
   const providers = answers.map((a) => ({
     providerId: a.providerId,
@@ -386,6 +272,28 @@ export function resolveDeliveryOptions(input: ResolveInput): DeliveryResolveResu
     answers.length > 0 && answers.every((a) => a.status === 'ok' && a.serviceable === false)
   const status = options.length ? 'options' : allSaidNo ? 'unserviceable' : 'none'
   return { status, options, trace: { options: traces, providers } }
+}
+
+/**
+ * Fixed options: an Express card whose pick does not arrive earlier than Standard's pick is
+ * hidden (it would be the same promise at a higher price, e.g. PIN 131001 with a mouse, #1781).
+ * The trace says `not_faster`. Backup cards and the list layout are left alone.
+ */
+export function hideExpressNotFaster(
+  options: ResolvedOption[],
+  traces: OptionTrace[],
+  listLayout: boolean,
+): void {
+  if (listLayout) return
+  const standard = options.find((o) => o.speed === 'standard' && o.pick !== null)
+  if (!standard) return
+  for (const o of [...options]) {
+    if (o.speed !== 'express' || o.pick === null || o.layout === 'list') continue
+    if (arrivesEarlier(o, standard)) continue
+    options.splice(options.indexOf(o), 1)
+    const t = traces.find((x) => x.optionId === o.optionId)
+    if (t) t.hidden = 'not_faster'
+  }
 }
 
 /** Standard when couriers are down: the store's zone rate and usual transit days. */
@@ -417,7 +325,7 @@ function backupOption(
     etaEstimated: true,
     codAllowed,
     cod: null,
-    insurance: { offered: false, required: false, on: false, pricePaise: null },
+    insurance: { offered: false, required: false, on: false, pricePaise: null, extraPaise: null },
     backupRate: rate,
   }
 }
@@ -428,6 +336,15 @@ export function chosenRoute(
   routeKey: string | null | undefined,
   payment: 'prepaid' | 'cod',
 ): PricedRoute | null {
+  // A courier list: paying on delivery keeps the picked courier at its own COD price.
+  if (payment === 'cod' && option.layout === 'list') {
+    const card =
+      (routeKey && option.choices.find((c) => c.route.key === routeKey)) || option.choices[0]
+    if (card && card.codPricePaise != null) {
+      const cod = card.codPricePaise
+      return { ...card, pricePaise: cod, listPricePaise: Math.max(card.listPricePaise, cod) }
+    }
+  }
   if (payment === 'cod' && option.cod) return option.cod
   if (routeKey) {
     const sub = option.choices.find((c) => c.route.key === routeKey)

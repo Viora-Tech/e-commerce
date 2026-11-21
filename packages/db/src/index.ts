@@ -11,6 +11,7 @@ export * from './content-schema'
 export { seedWaimersShipping } from './default-shipping'
 export * from './delivery-schema'
 export * from './discovery-schema'
+export * from './email-design-schema'
 export * from './email-suppression-schema'
 export { isUniqueViolation } from './errors'
 export * from './finance-schema'
@@ -51,6 +52,7 @@ export {
   storesWithHomeCardsDue,
   storesWithMarketingWork,
   storesWithMemberDailySummaries,
+  storesWithMemberReports,
   storesWithOldApiActivity,
   storesWithOldAutomationRuns,
   storesWithOldPixelData,
@@ -75,6 +77,7 @@ export {
   storesWithUnknownPaymentFees,
   storesWithUnpaidOnlineOrders,
   storesWithUnroutedPlatformDomains,
+  storesWithVideosNeedingCopy,
 } from './resolve-store'
 export * from './returns-schema'
 export * from './rollout-schema'

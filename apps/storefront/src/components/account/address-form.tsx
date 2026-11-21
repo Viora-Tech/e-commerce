@@ -3,9 +3,15 @@
 import type { SavedAddress } from '@commerce/core'
 import { isPincode } from '@commerce/core/account-patterns'
 import { useState, useTransition } from 'react'
+import CheckoutField from '@/components/checkout/checkout-field'
+import CheckoutSelect from '@/components/checkout/checkout-select'
+import CheckoutToggle from '@/components/checkout/checkout-toggle'
 import { accountContent } from '@/data/account'
 import { INDIAN_STATES } from '@/data/indian-states'
 import { saveAddressAction } from '@/lib/account-actions'
+import { ACCOUNT_CARD_TITLE, ACCOUNT_ERROR, ACCOUNT_TOGGLES } from '@/lib/account-classes'
+import { CK_BUTTON_SECONDARY, CK_LIFT, CK_PANEL } from '@/lib/checkout-classes'
+import AccountSubmit from './account-submit'
 
 type AddressFormProps = {
   /** The address being edited; null adds a new one. */
@@ -29,6 +35,23 @@ type Values = {
   isDefault: boolean
 }
 
+type TextKey = Exclude<keyof Values, 'isDefault' | 'stateCode'>
+
+const STATE_OPTIONS: readonly (readonly [string, string])[] = [['', f.state], ...INDIAN_STATES]
+
+/**
+ * What the form can tell before the server does: a PIN code that is not six digits, or no
+ * state picked (the select's blank first row). Null when both are fine.
+ */
+export function checkAddress(
+  v: Pick<Values, 'pincode' | 'stateCode'>,
+): Record<string, string> | null {
+  const errors: Record<string, string> = {}
+  if (!isPincode(v.pincode)) errors.pincode = copy.pincodeHint
+  if (!v.stateCode) errors.stateCode = copy.stateRequired
+  return Object.keys(errors).length > 0 ? errors : null
+}
+
 const initial = (a: SavedAddress | null, isDefault: boolean): Values => ({
   name: a?.name ?? '',
   phone: a?.phone ?? '',
@@ -40,7 +63,11 @@ const initial = (a: SavedAddress | null, isDefault: boolean): Values => ({
   isDefault: a?.isDefault ?? isDefault,
 })
 
-/** Add or edit one address; errors come back per field from the server. */
+/**
+ * Add or edit one address, drawn as the checkout's address panel (CheckoutField,
+ * CheckoutSelect); errors come back per field from the server. The PIN code is checked here
+ * first so a typo does not wait for a round trip.
+ */
 export default function AddressForm({ address, defaultChecked, onDone }: AddressFormProps) {
   // Hooks
   const [pending, start] = useTransition()
@@ -48,38 +75,19 @@ export default function AddressForm({ address, defaultChecked, onDone }: Address
   const [errors, setErrors] = useState<Record<string, string>>({})
 
   // Helpers
-  const set = (k: keyof Values) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
-    setValues((prev) => ({
-      ...prev,
-      [k]:
-        e.target instanceof HTMLInputElement && e.target.type === 'checkbox'
-          ? e.target.checked
-          : e.target.value,
-    }))
-
-  const field = (
-    k: Exclude<keyof Values, 'isDefault' | 'stateCode'>,
-    label: string,
-    extra: React.InputHTMLAttributes<HTMLInputElement> = {},
-  ) => (
-    <label className="field">
-      <span className="field__label text-small">{label}</span>
-      <input
-        className="field__input"
-        value={values[k]}
-        onChange={set(k)}
-        aria-invalid={errors[k] ? true : undefined}
-        {...extra}
-      />
-      {errors[k] ? <span className="text-small text-danger">{errors[k]}</span> : null}
-    </label>
-  )
+  const setText = (k: TextKey) => (e: React.ChangeEvent<HTMLInputElement>) =>
+    setValues((prev) => ({ ...prev, [k]: e.target.value }))
 
   // Event handlers
+  const handleState = (stateCode: string) => setValues((prev) => ({ ...prev, stateCode }))
+
+  const handleDefault = (isDefault: boolean) => setValues((prev) => ({ ...prev, isDefault }))
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!isPincode(values.pincode)) {
-      setErrors({ pincode: copy.pincodeHint })
+    const local = checkAddress(values)
+    if (local) {
+      setErrors(local)
       return
     }
     setErrors({})
@@ -91,83 +99,116 @@ export default function AddressForm({ address, defaultChecked, onDone }: Address
   }
 
   // Render logic
+  const idPrefix = `address-${address?.id ?? 'new'}`
+
   return (
     <form
       onSubmit={handleSubmit}
-      className="flex flex-col gap-4 rounded-[var(--radius-card)] bg-surface p-6"
+      className={`${CK_PANEL} ${CK_LIFT} flex flex-col gap-4 p-5 sm:p-6`}
+      aria-labelledby={`${idPrefix}-title`}
     >
-      <h3 className="h4">{address ? copy.formEdit : copy.formAdd}</h3>
+      <h2 id={`${idPrefix}-title`} className={ACCOUNT_CARD_TITLE}>
+        {address ? copy.formEdit : copy.formAdd}
+      </h2>
       <div className="grid gap-4 md:grid-cols-2">
-        {field('name', f.name, { required: true, autoComplete: 'name' })}
-        {field('phone', f.phone, {
-          required: true,
-          type: 'tel',
-          inputMode: 'tel',
-          autoComplete: 'tel',
-        })}
+        <CheckoutField
+          id={`${idPrefix}-name`}
+          label={f.name}
+          value={values.name}
+          onChange={setText('name')}
+          error={errors.name}
+          required
+          autoComplete="name"
+        />
+        <CheckoutField
+          id={`${idPrefix}-phone`}
+          label={f.phone}
+          value={values.phone}
+          onChange={setText('phone')}
+          error={errors.phone}
+          required
+          type="tel"
+          inputMode="tel"
+          autoComplete="tel"
+        />
       </div>
-      {field('line1', f.line1, { required: true, autoComplete: 'address-line1' })}
-      {field('line2', f.line2, { autoComplete: 'address-line2' })}
-      <div className="grid gap-4 md:grid-cols-3">
-        {field('city', f.city, { required: true, autoComplete: 'address-level2' })}
-        <label className="field">
-          <span className="field__label text-small">{f.state}</span>
-          <select
-            className="field__input"
+      <CheckoutField
+        id={`${idPrefix}-line1`}
+        label={f.line1}
+        value={values.line1}
+        onChange={setText('line1')}
+        error={errors.line1}
+        required
+        autoComplete="address-line1"
+      />
+      <CheckoutField
+        id={`${idPrefix}-line2`}
+        label={f.line2}
+        value={values.line2}
+        onChange={setText('line2')}
+        error={errors.line2}
+        autoComplete="address-line2"
+      />
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
+        <CheckoutField
+          id={`${idPrefix}-pincode`}
+          label={f.pincode}
+          value={values.pincode}
+          onChange={setText('pincode')}
+          error={errors.pincode}
+          required
+          inputMode="numeric"
+          maxLength={6}
+          autoComplete="postal-code"
+        />
+        <CheckoutField
+          id={`${idPrefix}-city`}
+          label={f.city}
+          value={values.city}
+          onChange={setText('city')}
+          error={errors.city}
+          required
+          autoComplete="address-level2"
+        />
+        <div className="col-span-2 md:col-span-1">
+          <CheckoutSelect
+            id={`${idPrefix}-state`}
+            label={f.state}
             value={values.stateCode}
-            onChange={set('stateCode')}
+            options={STATE_OPTIONS}
+            onChange={handleState}
+            error={errors.stateCode}
             required
             autoComplete="address-level1"
-          >
-            <option value="" disabled>
-              {f.state}
-            </option>
-            {INDIAN_STATES.map(([code, name]) => (
-              <option key={code} value={code}>
-                {name}
-              </option>
-            ))}
-          </select>
-          {errors.stateCode ? (
-            <span className="text-small text-danger">{errors.stateCode}</span>
-          ) : null}
-        </label>
-        {field('pincode', f.pincode, {
-          required: true,
-          inputMode: 'numeric',
-          pattern: '[1-9][0-9]{5}',
-          maxLength: 6,
-          autoComplete: 'postal-code',
-          title: copy.pincodeHint,
-        })}
+          />
+        </div>
       </div>
       {address?.isDefault ? null : (
-        <label className="flex items-center gap-3 text-body">
-          <input
-            type="checkbox"
+        <div className={ACCOUNT_TOGGLES}>
+          <CheckoutToggle
+            label={copy.setDefault}
             checked={values.isDefault}
-            onChange={set('isDefault')}
-            className="size-4"
+            onChange={handleDefault}
           />
-          {copy.setDefault}
-        </label>
+        </div>
       )}
       {errors.form ? (
-        <p className="text-small text-danger" role="alert">
+        <p className={ACCOUNT_ERROR} role="alert">
           {errors.form}
         </p>
       ) : null}
-      <div className="flex flex-wrap gap-3">
+      <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center">
         <button
-          type="submit"
-          className={`btn btn--primary${pending ? ' is-loading' : ''}`}
+          type="button"
+          className={`${CK_BUTTON_SECONDARY} h-13! w-full sm:w-auto`}
+          onClick={onDone}
           disabled={pending}
         >
-          <span className="btn__label">{pending ? copy.saving : copy.save}</span>
-        </button>
-        <button type="button" className="btn btn--secondary" onClick={onDone} disabled={pending}>
           {copy.cancel}
         </button>
+        <div className="sm:ms-auto sm:min-w-[12rem]">
+          <AccountSubmit label={copy.save} pendingLabel={copy.saving} pending={pending} />
+        </div>
       </div>
     </form>
   )

@@ -45,6 +45,7 @@ export const shipment = pgTable(
         'delivered',
         'rto',
         'cancelled',
+        'lost',
       ],
     })
       .notNull()
@@ -95,6 +96,16 @@ export const shipment = pgTable(
     carrier: text('carrier'),
     /** When the courier's delivered scan landed; null until then (and on older rows). */
     deliveredAt: timestamp('delivered_at', { withTimezone: true }),
+    /** When the parcel was marked lost (courier scan or by hand, 0255); null otherwise. */
+    lostAt: timestamp('lost_at', { withTimezone: true }),
+    /** When a lost parcel was sent again: the order went back to To ship and stock left again. */
+    reshippedAt: timestamp('reshipped_at', { withTimezone: true }),
+    /** The courier claim for a lost parcel; null until it is lost. */
+    claimStatus: text('claim_status', { enum: ['not_filed', 'filed', 'paid', 'rejected'] }),
+    /** What the claim asks for, or what the courier paid once `paid`. */
+    claimAmountPaise: integer('claim_amount_paise'),
+    /** The courier's claim or ticket number, and any note. */
+    claimNote: text('claim_note'),
     createdAt: createdAt(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },

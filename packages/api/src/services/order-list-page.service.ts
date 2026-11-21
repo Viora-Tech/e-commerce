@@ -193,8 +193,8 @@ const readyToShipWhere = () =>
 const labelsAllCancelled = () =>
   and(
     eq(order.fulfillmentStatus, 'fulfilled'),
-    sql`exists (select 1 from ${shipment} where ${shipment.orderId} = ${order.id} and ${shipment.status} = 'cancelled')`,
-    sql`not exists (select 1 from ${shipment} where ${shipment.orderId} = ${order.id} and ${shipment.status} not in ('cancelled', 'rto'))`,
+    sql`exists (select 1 from ${shipment} where ${shipment.orderId} = ${order.id} and (${shipment.status} = 'cancelled' or (${shipment.status} = 'lost' and ${shipment.reshippedAt} is not null)))`,
+    sql`not exists (select 1 from ${shipment} where ${shipment.orderId} = ${order.id} and ${shipment.status} not in ('cancelled', 'rto') and not (${shipment.status} = 'lost' and ${shipment.reshippedAt} is not null))`,
   )
 
 /** How many orders wait to ship: the count pill on the sidebar's Orders row (Figma). */
