@@ -54,7 +54,7 @@ export default function OptionEditCard({
   const summary = [
     t.pays[option.price.source],
     listed ? t.faster[faster ?? 'same'] : null,
-    rounding === 'off' ? t.notRounded : t.rounded(copy.round.items[rounding]),
+    t.rounding[rounding],
   ].filter((x) => x !== null)
 
   return (

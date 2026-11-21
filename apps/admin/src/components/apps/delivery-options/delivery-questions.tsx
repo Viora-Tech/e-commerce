@@ -1,11 +1,14 @@
 'use client'
 
-import type { DeliveryOption, PriceRounding } from '@commerce/core/delivery-options'
+import {
+  type DeliveryOption,
+  PRICE_ROUNDINGS,
+  type PriceRounding,
+} from '@commerce/core/delivery-options'
 import { deliveryOptionQuestionsContent } from '@/data/delivery-option-questions'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { type FasterAnswer, fasterAmounts, type WhoPays } from './option-answers'
 import OptionExampleLine from './option-example-line'
-import RoundingSegments from './rounding-segments'
 import RuleStep from './rule-step'
 import TickCards from './tick-cards'
 
@@ -96,7 +99,13 @@ export default function DeliveryQuestions({
         </RuleStep>
       ) : null}
       <RuleStep step={roundStep} id={ids.round} title={copy.round.title}>
-        <RoundingSegments labelledBy={ids.round} value={rounding} onChange={onRounding} />
+        <TickCards
+          name={ids.round}
+          labelledBy={ids.round}
+          value={rounding}
+          items={PRICE_ROUNDINGS.map((v) => ({ value: v, ...copy.round.items[v] }))}
+          onChange={onRounding}
+        />
         {example ? <OptionExampleLine option={example} /> : null}
       </RuleStep>
     </div>

@@ -8,6 +8,7 @@ import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import LoadFailedState from '@/components/apps/shared/load-failed-state'
 import EmptyState from '@/components/layout/empty-state'
+import SaveBar from '@/components/layout/save-bar'
 import SectionHead from '@/components/layout/section-head'
 import SectionPageSkeleton from '@/components/layout/section-page-skeleton'
 import SortableStack from '@/components/layout/sortable-stack'
@@ -61,15 +62,20 @@ export default function DeliveryOptionsPage() {
   const [busy, setBusy] = useState<'preset' | 'save' | null>(null)
   const { catalogue, loading } = useRouteCatalogue(layout === 'list')
 
+  // Helpers
+  /** Puts the page back to what is saved: on load, after a save, and on Discard. */
+  const resetToSaved = (saved: NonNullable<typeof overview>) => {
+    const savedLayout = saved.layout ?? 'fixed'
+    setLayout(savedLayout)
+    setDrafts(saved.options)
+    setSavedKey(JSON.stringify({ layout: savedLayout, options: saved.options }))
+  }
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: resets only when the saved settings change.
   useEffect(() => {
-    if (!overview) return
-    const saved = overview.layout ?? 'fixed'
-    setLayout(saved)
-    setDrafts(overview.options)
-    setSavedKey(JSON.stringify({ layout: saved, options: overview.options }))
+    if (overview) resetToSaved(overview)
   }, [overview])
 
-  // Helpers
   const rowsNow = () => courierRows(catalogue?.routes ?? [])
   const idsNow = () => rowsNow().map((r) => r.id)
   const allowNow = () => listOptionOf(drafts)?.couriers.allow ?? null
@@ -94,6 +100,9 @@ export default function DeliveryOptionsPage() {
         known: union(listOption.couriers.known, allIds),
       },
     })
+  }
+  const handleDiscard = () => {
+    if (overview) resetToSaved(overview)
   }
   const handlePreset = async () => {
     setBusy('preset')
@@ -156,6 +165,16 @@ export default function DeliveryOptionsPage() {
 
   return (
     <div className="flex flex-col gap-5">
+      {/* Every change on this page waits for Save: the bar shows as soon as one is made. */}
+      <SaveBar
+        open={dirty}
+        message={copy.option.unsaved}
+        saveLabel={copy.save}
+        discardLabel={copy.option.discard}
+        onSave={handleSave}
+        onDiscard={handleDiscard}
+        saving={busy === 'save'}
+      />
       <SectionHead
         title={page.title}
         intro={listed ? page.introList : page.intro}
@@ -171,13 +190,6 @@ export default function DeliveryOptionsPage() {
                 {copy.options.add}
               </Button>
             )}
-            <Button
-              onClick={handleSave}
-              disabled={!dirty || busy !== null}
-              loading={busy === 'save'}
-            >
-              {copy.save}
-            </Button>
           </div>
         }
       />
