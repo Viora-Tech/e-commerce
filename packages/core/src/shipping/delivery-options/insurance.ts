@@ -143,7 +143,9 @@ export async function quoteDeclaredValuePaise(
     .where(and(eq(fulfillmentOrder.orderId, orderId), ne(fulfillmentOrder.status, 'cancelled')))
     .limit(3)
   const own = live.find((f) => f.id === fulfillmentOrderId)
-  if (isPartOfParcel(own?.totalPaise ?? null, fallback)) return fallback
+  /* A parcel with no total of its own (imported orders, parcels made without money shares) is
+     measured against the order: #2073's wrist rest priced on ₹28,649 (owner, 22 Nov 2026). */
+  if (isPartOfParcel(own ? (own.totalPaise ?? orderTotalPaise) : null, fallback)) return fallback
   return declaredValuePaise({
     parcelId: fulfillmentOrderId,
     parcelTotalPaise: own?.totalPaise ?? null,
