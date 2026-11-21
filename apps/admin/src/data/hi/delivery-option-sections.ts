@@ -1,0 +1,50 @@
+import { deliveryOptionSectionsContent } from '@/data/delivery-option-sections'
+import { translation } from '@/lib/i18n'
+
+export default [
+  translation(deliveryOptionSectionsContent, {
+    sections: {
+      basics: { title: 'नाम और स्थिति' },
+      pays: {
+        title: 'ग्राहक क्या देता है',
+        help: 'चेकआउट पर डिलीवरी कीमत और उसे कैसे राउंड किया जाता है।',
+      },
+      couriers: {
+        title: 'कौन-से कूरियर दिखते हैं',
+        help: 'ग्राहक के पिनकोड के लिए कौन-सा कूरियर चुना जाता है, और क्या वे दूसरा चुन सकते हैं।',
+      },
+      extras: {
+        title: 'बीमा और कैश ऑन डिलीवरी',
+        help: 'डिलीवरी कीमत के ऊपर क्या जुड़ सकता है।',
+      },
+      dates: {
+        title: 'डिलीवरी तारीख',
+        help: 'चेकआउट पर दिखने वाली तारीख कैसे निकाली जाती है।',
+      },
+    },
+    faster: {
+      label: 'तेज़ कूरियर की कीमत',
+      items: {
+        difference: 'आपकी कीमत और अंतर',
+        full: 'कूरियर की पूरी कीमत',
+        none: 'आपकी कीमत, कुछ अतिरिक्त नहीं',
+      },
+      help: {
+        difference: 'जो कूरियर आपको ₹30 ज़्यादा पड़ता है, वह चेकआउट पर “+ ₹30” दिखाता है।',
+        full: 'हर तेज़ कूरियर अपनी डिलीवरी कीमत दिखाता है, जैसे “₹99”, पहले कूरियर से कभी कम नहीं। फ़्री कीमत या प्रोडक्ट नियम की कीमत सिर्फ़ पहले कूरियर पर लागू होती है।',
+        none: 'हर कूरियर ग्राहक को एक ही कीमत पर मिलता है। तेज़ कूरियर का अतिरिक्त खर्च आप देते हैं।',
+      },
+    },
+    example: {
+      title: 'चेकआउट पर, उदाहरण के लिए',
+      note: (surface: string, air: string) =>
+        `कूरियर की कीमतें उदाहरण के लिए: Surface ${surface}, Air ${air}। असली कीमतें 'पिनकोड आज़माएं' में दिखती हैं।`,
+      free: 'फ़्री',
+      extra: (amount: string) => `+ ${amount}`,
+      zone: 'आपका शिपिंग रेट',
+      freeAbove: (amount: string) => `${amount} से फ़्री`,
+      carrier: 'Delhivery',
+      speeds: { standard: 'Surface', express: 'Air' },
+    },
+  }),
+]

@@ -151,3 +151,13 @@ export function inputOf(f: OptionForm): DeliveryOptionInput {
     enabled: f.enabled,
   })
 }
+
+/** The form as an option for the live checkout example; null while a field cannot be read
+ *  (a markup over 100 %), so the example waits instead of the page failing. */
+export function exampleOptionOf(f: OptionForm): DeliveryOptionInput | null {
+  try {
+    return inputOf({ ...f, name: f.name.trim() || '-' })
+  } catch {
+    return null
+  }
+}

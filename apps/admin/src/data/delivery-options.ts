@@ -348,7 +348,7 @@ export const deliveryOptionsContent = {
       title: 'Price',
       source: 'Price from',
       sources: {
-        route: 'Courier cost + markup + insurance, rounded up to the next ₹10',
+        route: 'Courier cost + markup + insurance, rounded your way',
         zone: 'Your Shipping rates',
         free: 'Free (you pay the courier)',
       },
