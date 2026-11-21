@@ -285,6 +285,13 @@ export const deliveryPagesContent = {
   /** The rule dialog's live line: what the rule will do, in plain words (#1781). */
   rulePreview: {
     label: 'What this rule does',
+    /** Before any product, collection, tag or type is picked: "Products in the collections you pick…". */
+    nothingPicked: {
+      products: 'the list you pick',
+      collections: 'the collections you pick',
+      tags: 'the tags you pick',
+      types: 'the product types you pick',
+    },
     /** "Delhivery, Blue Dart or Ekart". */
     either: (items: string[]) =>
       items.length < 2 ? (items[0] ?? '') : `${items.slice(0, -1).join(', ')} or ${items.at(-1)}`,

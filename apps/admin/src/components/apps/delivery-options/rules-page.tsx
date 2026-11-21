@@ -2,6 +2,7 @@
 
 import type { RouteRule } from '@commerce/core/delivery-options'
 import { Button } from '@commerce/ui/shadcn/button'
+import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import LoadFailedState from '@/components/apps/shared/load-failed-state'
@@ -34,6 +35,7 @@ export default function DeliveryRulesPage() {
   const copy = useCopy(deliveryOptionsContent)
   const pages = useCopy(deliveryPagesContent)
   const sortLabels = useCopy(reorderLabels)
+  const router = useRouter()
   const { overview, failed: overviewFailed, reload } = useDeliveryOverview()
   const [rules, setRules] = useState<RouteRule[]>([])
   const [editing, setEditing] = useState<RouteRule | null>(null)
@@ -61,6 +63,8 @@ export default function DeliveryRulesPage() {
   const handleSaved = () => {
     reload()
     setVersion((v) => v + 1)
+    // The sidebar's "Product rules N" comes from the layout: refresh it too (owner, 22 Nov 2026).
+    router.refresh()
   }
   const handleEdit = (rule: RouteRule) => {
     setEditing(rule)

@@ -262,6 +262,12 @@ export default [
     },
     rulePreview: {
       label: 'यह नियम क्या करता है',
+      nothingPicked: {
+        products: 'आपकी चुनी हुई सूची',
+        collections: 'आपके चुने हुए कलेक्शन',
+        tags: 'आपके चुने हुए टैग',
+        types: 'आपके चुने हुए प्रोडक्ट टाइप',
+      },
       either: (items: string[]) =>
         items.length < 2 ? (items[0] ?? '') : `${items.slice(0, -1).join(', ')} या ${items.at(-1)}`,
       prefers: (who: string, route: string, price: string | null) =>

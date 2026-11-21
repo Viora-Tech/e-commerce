@@ -41,7 +41,14 @@ export function rulePreview(
   if (rule.routes.length === 0) return null
   const p = pages.rulePreview
   const label = (s: RouteSelector) => chipLabel(s, copy, form)
-  const who = rule.name || draft.titles.join(', ') || ruleTargetLabel(rule, copy)
+  // Nothing picked yet: "the products you pick", never "0 collections" (owner, 22 Nov 2026).
+  const kind = rule.target.kind
+  const who =
+    rule.name ||
+    draft.titles.join(', ') ||
+    (kind !== 'all' && rule.target.values.length === 0
+      ? p.nothingPicked[kind]
+      : ruleTargetLabel(rule, copy))
   const preferred = rule.defaultRoute ?? null
   const price =
     rule.price.mode === 'free'

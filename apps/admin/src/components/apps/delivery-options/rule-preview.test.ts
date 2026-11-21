@@ -54,6 +54,13 @@ describe('the rule dialog’s live line (#1781, prices 20 Nov 2026)', () => {
     )
   })
 
+  it('a blank rule names what is to be picked, never "0 collections" (owner, 22 Nov 2026)', () => {
+    const d = mice({ name: '', values: [], chips: ['delhivery:standard'] })
+    expect(line(d)?.text).toBe(
+      'Products in the collections you pick ship only with Delhivery Surface.',
+    )
+  })
+
   it('a single speed shows in each courier', () => {
     const d = mice({ chips: ['delhivery:standard'] })
     expect(line(d)?.text).toBe('Products in Mice ship only with Delhivery Surface.')
