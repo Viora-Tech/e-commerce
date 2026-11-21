@@ -16,8 +16,8 @@ describe('the insurance tick', () => {
     expect(render(true)).not.toContain(appCopy.insureOffNote.slice(0, 30))
   })
 
-  it('shows Free in place of the price when the store pays it', () => {
-    expect(render(true, true)).toContain(appCopy.insureFree)
+  it('shows no price when the store pays it (a free delivery)', () => {
+    expect(render(true, true)).not.toContain('Free')
     expect(render(true, true)).not.toContain('+ ₹61')
     expect(render(true)).toContain('+ ₹61')
   })

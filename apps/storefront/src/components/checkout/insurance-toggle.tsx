@@ -7,7 +7,7 @@ type InsuranceToggleProps = {
   on: boolean
   /** What insurance adds ("₹25"); null when the route's rate is not filled in. */
   price: string | null
-  /** The store pays the insurance (a free delivery): "Free" in place of the price. */
+  /** The store pays the insurance (a free delivery): no price beside the tick. */
   free?: boolean | undefined
   onChange: (on: boolean) => void
 }
@@ -38,11 +38,9 @@ export default function InsuranceToggle({
           </span>
         )}
       </span>
-      {free ? (
-        <span className="shrink-0 text-[0.875rem] font-semibold text-ck-success">
-          {appCopy.insureFree}
-        </span>
-      ) : price ? (
+      {/* A free delivery covers the insurance: no price beside the tick. A "Free" there read as
+          if every insurance were free (owner, 21 Nov 2026). */}
+      {free ? null : price ? (
         <span className="shrink-0 text-[0.875rem] font-semibold tabular-nums text-ck-ink">
           + {price}
         </span>

@@ -29,8 +29,6 @@ export const deliveryOptionsContent = {
   insure: (price: string | null) =>
     price ? `Insure this shipment (+${price})` : 'Insure this shipment',
   insureTitle: 'Insure this parcel',
-  /** Beside the tick when the store pays the insurance (a free delivery). */
-  insureFree: 'Free',
   insureBody: 'Replaced or refunded if it’s lost or damaged on the way.',
   /** Under the tick while it is off (owner, 21 Nov 2026): who carries the risk without it. */
   insureOffNote:
