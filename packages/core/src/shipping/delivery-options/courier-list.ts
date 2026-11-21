@@ -1,6 +1,6 @@
 /** SOURCE OF TRUTH: a courier list option's cards — WHAT: `courierList` turns the routes that fit
  * a `list` option into its cards: the pick at the option's price, every other courier at that
- * price plus what it costs the store more, one card per courier and speed, couriers beaten on
+ * price plus what it costs the store more (or its own full price), one card per courier and speed, couriers beaten on
  * both price and date dropped (but never below three when three deliver, a different courier
  * coming back before the same courier's other speed), at most `couriers.max` (null: all) /
  * WHY: the shopper must be able to choose from every courier that delivers (owner, 20 Nov 2026).
@@ -65,11 +65,32 @@ function withCod(
   return { ...priced, codPricePaise: free ? priced.pricePaise : priced.pricePaise + extra }
 }
 
-/** A card priced from the pick: a cheaper courier costs what the pick costs (free when it is
- *  free), a dearer one adds the difference, rounded the option's way (owner, 20 Nov 2026). */
+/** What a courier costs the shopper on its own: its cost and insurance plus the option's markup,
+ *  rounded the option's way (the full price a `full` list charges for a dearer courier). */
+export function fullPricePaise(c: Candidate, option: DeliveryOption): number {
+  const cost = c.priced.courierCostPaise
+  const markup = option.price.markupPaise + Math.ceil((cost * option.price.markupPercent) / 100)
+  return roundPrice(storeCost(c) + markup, option.price.rounding)
+}
+
+/**
+ * A card priced from the pick: a cheaper courier costs what the pick costs (free when it is
+ * free). A dearer one adds the difference rounded the option's way (`difference`, owner 20 Nov
+ * 2026), costs its own full price but never less than the pick (`full`, owner 21 Nov 2026), or
+ * costs what the pick costs (`none`).
+ */
 export function priceFromPick(c: Candidate, winner: Candidate, option: DeliveryOption): PricedRoute {
-  const more = option.couriers.extra === 'none' ? 0 : Math.max(0, storeCost(c) - storeCost(winner))
-  const extra = roundPrice(more, extraRounding(option))
+  const more = Math.max(0, storeCost(c) - storeCost(winner))
+  const mode = option.couriers.extra
+  if (mode === 'full' && more > 0) {
+    const own = fullPricePaise(c, option)
+    return {
+      ...c.priced,
+      pricePaise: Math.max(winner.priced.pricePaise, own),
+      listPricePaise: Math.max(winner.priced.listPricePaise, own),
+    }
+  }
+  const extra = mode === 'difference' ? roundPrice(more, extraRounding(option)) : 0
   return {
     ...c.priced,
     pricePaise: winner.priced.pricePaise + extra,
@@ -86,8 +107,8 @@ const beats = (q: PricedRoute, p: PricedRoute) =>
   (q.pricePaise < p.pricePaise || later(q) < later(p))
 
 /**
- * The cards of a `list` option: the pick at its own price, every other allowed courier at that
- * price plus what it costs the store more (rounded to ₹…9 when asked). One card per courier and
+ * The cards of a `list` option: the pick at its own price, every other allowed courier priced
+ * from it (`priceFromPick`: plus the difference, its own full price, or the same). One card per courier and
  * speed (a carrier offered by two apps keeps the cheaper); couriers beaten on both price and
  * date are dropped when asked; at most `max` (null: every one), cheapest first.
  */

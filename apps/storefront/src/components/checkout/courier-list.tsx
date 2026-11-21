@@ -31,6 +31,8 @@ type CourierListProps = {
   heading: string | null
   /** The first row is a product rule's preferred courier: tagged Recommended, not Cheapest. */
   preferred?: boolean
+  /** Every row shows its own full price (the option charges a faster courier in full). */
+  fullPrices?: boolean
 }
 
 /** Rows shown before "Show N more couriers". */
@@ -47,17 +49,19 @@ export function fastestIndex(rows: ReadonlyArray<{ earliest?: string | null | un
   return known.indexOf(first)
 }
 
-/** The right-hand side: the first (included) courier's price, then what each other one adds. */
+/** The right-hand side: the first (included) courier's price, then what each other one adds,
+ *  or (`full`, owner 21 Nov 2026) each courier's own full price. */
 export function rowPrice(
   i: number,
   pricePaise: number,
   basePaise: number,
   price: (paise: number) => string,
   money: (paise: number) => string,
+  full = false,
 ): string {
   // Owner, 20 Nov 2026: a courier at the included price shows that price, not "Same price".
   const extra = pricePaise - basePaise
-  return i > 0 && extra > 0 ? `+ ${money(extra)}` : price(pricePaise)
+  return !full && i > 0 && extra > 0 ? `+ ${money(extra)}` : price(pricePaise)
 }
 
 function Tag({ children }: { children: string }) {
@@ -106,6 +110,7 @@ export default function CourierList({
   note,
   heading,
   preferred = false,
+  fullPrices = false,
 }: CourierListProps) {
   // Hooks
   const [open, setOpen] = useState(false)
@@ -156,7 +161,7 @@ export default function CourierList({
                 </span>
               </span>
               <span className="shrink-0 text-right text-[0.875rem] font-semibold tabular-nums text-ck-ink">
-                {rowPrice(i, c.pricePaise, base, price, money)}
+                {rowPrice(i, c.pricePaise, base, price, money, fullPrices)}
               </span>
             </label>
           )

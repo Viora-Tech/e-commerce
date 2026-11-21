@@ -89,6 +89,10 @@ export const OptionEtaSchema = z.object({
   maxDays: days.nullish(),
 })
 
+/** How a list's other couriers are priced; see `OptionCouriersSchema.extra`. */
+export const COURIER_EXTRAS = ['difference', 'full', 'none'] as const
+export type CourierExtra = (typeof COURIER_EXTRAS)[number]
+
 /**
  * How the option shows its couriers at checkout. `one`: one card, the strategy's pick. `list`:
  * every allowed courier (any speed) as its own card, like the Delivery promise Shopify app: the
@@ -121,9 +125,14 @@ export const OptionCouriersSchema = z.object({
   allow: z.array(z.string().trim().min(1).max(80)).max(100).nullish(),
   /** Every `courierId` the merchant has seen in that list; one not here is tagged New. */
   known: z.array(z.string().trim().min(1).max(80)).max(200).default([]),
-  /** `difference`: a list card costs the pick's price plus what it costs the store more;
-   *  `none`: every card at the pick's price. */
-  extra: z.enum(['difference', 'none']).default('difference'),
+  /**
+   * What a dearer (faster) courier costs the shopper (`priceFromPick` in courier-list.ts).
+   * `difference`: the pick's price plus what it costs the store more; `none`: every card at the
+   * pick's price; `full` (owner, 21 Nov 2026): the courier's own full price (its cost, markup
+   * and insurance, rounded the option's way), never below the pick's price. A cheaper courier
+   * always costs what the pick costs.
+   */
+  extra: z.enum(COURIER_EXTRAS).default('difference'),
 })
 export type OptionCouriers = z.infer<typeof OptionCouriersSchema>
 
