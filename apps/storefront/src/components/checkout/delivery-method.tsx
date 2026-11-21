@@ -314,6 +314,7 @@ export default function DeliveryMethod({
         <InsuranceToggle
           on={insurance.on}
           price={insurance.pricePaise ? money(insurance.pricePaise) : null}
+          free={insurance.pricePaise === 0}
           onChange={onInsurance}
         />
       ) : null}

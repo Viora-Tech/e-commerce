@@ -7,6 +7,8 @@ type InsuranceToggleProps = {
   on: boolean
   /** What insurance adds ("₹25"); null when the route's rate is not filled in. */
   price: string | null
+  /** The store pays the insurance (a free delivery): "Free" in place of the price. */
+  free?: boolean | undefined
   onChange: (on: boolean) => void
 }
 
@@ -15,7 +17,12 @@ type InsuranceToggleProps = {
  * price beside it. Starts off; the shopper turns it on. What it adds shows in the summary's
  * Delivery line, because the option's price already includes it.
  */
-export default function InsuranceToggle({ on, price, onChange }: InsuranceToggleProps) {
+export default function InsuranceToggle({
+  on,
+  price,
+  free = false,
+  onChange,
+}: InsuranceToggleProps) {
   return (
     <label
       className={`flex cursor-pointer items-center gap-3 rounded-ck border px-4 py-3.5 ${CK_UNPICKED}`}
@@ -26,7 +33,11 @@ export default function InsuranceToggle({ on, price, onChange }: InsuranceToggle
         </span>
         <span className="text-[0.75rem] leading-snug text-ck-muted">{appCopy.insureBody}</span>
       </span>
-      {price ? (
+      {free ? (
+        <span className="shrink-0 text-[0.875rem] font-semibold text-ck-success">
+          {appCopy.insureFree}
+        </span>
+      ) : price ? (
         <span className="shrink-0 text-[0.875rem] font-semibold tabular-nums text-ck-ink">
           + {price}
         </span>

@@ -183,20 +183,11 @@ export function resolveDeliveryOptions(
     const pick = winner.priced
     const listChoices =
       listed && !prepaid.forced
-        ? courierList(
-            prepaid.fits,
-            winner,
-            option,
-            why.kind === 'rule_default',
-            rulePrice !== null,
-          )
+        ? courierList(prepaid.fits, winner, option, why.kind === 'rule_default', rulePrice !== null)
         : []
     /* The tick: priced both ways, so "+₹X" is what ticking really adds after rounding. A route
        with no insurance rate prices insurance at ₹0, and then no tick shows. */
-    const flipped =
-      offered && !required
-        ? pickOf({ insured: !insured, cod: false }).picked
-        : null
+    const flipped = offered && !required ? pickOf({ insured: !insured, cod: false }).picked : null
     const insuredPick = insured ? pick : (flipped?.winner.priced ?? null)
     const insurancePaise = insuredPick ? insuredPick.insurancePaise : null
     const extra = flipped
@@ -207,9 +198,9 @@ export function resolveDeliveryOptions(
             : flipped.winner.priced.pricePaise - pick.pricePaise,
         )
       : null
-    // No tick when ticking changes nothing the shopper pays (a free rule covers the insurance).
-    const tick =
-      flipped !== null && insuredPick !== null && (insurancePaise ?? 0) > 0 && (extra ?? 0) > 0
+    // A free rule covers the insurance: the tick still shows (the shopper can turn it off), and
+    // adds ₹0 (owner, 21 Nov 2026).
+    const tick = flipped !== null && insuredPick !== null && (insurancePaise ?? 0) > 0
     options.push({
       optionId: option.id,
       name: option.name,
