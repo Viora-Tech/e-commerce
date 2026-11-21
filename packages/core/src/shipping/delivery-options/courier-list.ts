@@ -140,7 +140,16 @@ export function courierList(
     const card = cardPrice ? cardPrice(c, fromPick) : fromPick
     rest.push(withCod(card, c.route, option, rulePriced))
   }
-  const all = [base, ...rest]
+  /* Another speed of the same courier that costs no less and arrives no sooner is never a choice
+     worth showing: Blue Dart Air at ₹139 arriving after Blue Dart Surface at ₹139 (owner, 21 Nov
+     2026). Dropped always, and never brought back to fill the list. */
+  const all = [base, ...rest].filter(
+    (p) =>
+      p === base ||
+      ![base, ...rest].some(
+        (q) => q !== p && q.route.carrierKey === p.route.carrierKey && beats(q, p),
+      ),
+  )
   const max = option.couriers.max ?? Number.POSITIVE_INFINITY
   const kept = option.couriers.hideSlowerDearer
     ? all.filter((p) => p === base || !all.some((q) => q !== p && beats(q, p)))
