@@ -80,7 +80,13 @@ describe('DeliveryMethod', () => {
     expect(render({ unserviceable: true, estimate: 'We cannot deliver to 744101 yet.' })).toContain(
       'role="alert"',
     )
-    expect(render({ checking: true })).toContain('Checking delivery')
+    expect(render({ checking: true, shipping: null })).toContain('Checking delivery')
+  })
+
+  it('asking again (the insurance tick) keeps the cards on screen, dimmed', () => {
+    const html = render({ checking: true })
+    expect(html).not.toContain('Checking delivery')
+    expect(html).toContain('aria-busy="true"')
   })
 
   describe('the courier list (Figma 942:513)', () => {

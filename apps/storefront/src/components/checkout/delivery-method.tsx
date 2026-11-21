@@ -133,7 +133,10 @@ export default function DeliveryMethod({
   }
 
   // Early returns
-  if (checking || !shipping) {
+  // Only a first answer (a new PIN clears the old one) shows the "Checking…" box. Asking again
+  // for the same address (the insurance tick) keeps the cards on screen, dimmed, so the section
+  // does not collapse and jump back (owner, 21 Nov 2026).
+  if (!shipping) {
     return (
       <div className="flex min-h-16 items-center gap-3 rounded-ck border border-dashed border-ck-line-strong bg-ck-bg px-4 text-[0.875rem] text-ck-muted">
         {checking ? (
@@ -170,7 +173,10 @@ export default function DeliveryMethod({
   const minutesLeft = minutesUntil(shipping.dispatchCutoffAt, nowMs)
 
   return (
-    <div className="flex flex-col gap-3">
+    <div
+      aria-busy={checking}
+      className={`flex flex-col gap-3 transition-opacity${checking ? ' pointer-events-none opacity-60' : ''}`}
+    >
       <fieldset className="flex flex-col gap-3 border-0! p-0!">
         <legend className="sr-only">{content.deliveryMethod}</legend>
         {free ? (
