@@ -16,6 +16,7 @@ import type { StoreContext } from '../context'
 import { fulfilParcelLines, fulfilRemainingLines } from '../order/fulfil'
 import { assertNotHeld } from '../order/fulfillment-hold'
 import { ensureFulfillmentOrders, soleFulfillmentOrder } from '../order/fulfillment-orders'
+import { separateShippedUnits } from '../order/parcel-split'
 import { recomputeOrderStatuses } from '../order/recompute'
 import { assertWaybillFree } from '../order/waybill-owner'
 import { insertOutboxEvent } from '../outbox/write'
@@ -212,8 +213,16 @@ export async function createShipmentForOrder(
   /* The parcel's location (the order's, when it ships whole) when it has courier pickup on,
      else Settings › Shipping - unless the merchant picked where it leaves from. */
   await ensureFulfillmentOrders(ctx, o.id)
-  const named = parcelOnly ? await loadParcel(ctx, o.id, parcelOnly) : null
+  let named = parcelOnly ? await loadParcel(ctx, o.id, parcelOnly) : null
   const sole = await soleFulfillmentOrder(ctx, o.id)
+  /* Some of the parcel already left (marked shipped by hand, or before an import): its unsent
+     units book as a parcel of their own, so this label never carries, or on cancel unpacks,
+     what shipped before it. A parcel whose packed units wait on a cancelled label is left as is. */
+  const target = named?.id ?? sole
+  if (target && !(await rebookableParcels(ctx.tx, o.id)).has(target)) {
+    const fresh = await separateShippedUnits(ctx, o.id, target)
+    if (fresh) named = await loadParcel(ctx, o.id, fresh)
+  }
   const parcelId = named?.id ?? sole
   const [parcel] = named
     ? [named]

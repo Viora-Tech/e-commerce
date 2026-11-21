@@ -177,3 +177,84 @@ async function tellCustomer(
     .where(eq(fulfillmentOrder.id, restId))
   return at
 }
+
+/**
+ * A parcel that already sent some units (marked shipped by hand, or shipped before the order
+ * was imported) books its unsent units as a parcel of their own: they move to a new parcel at
+ * the same location, and the sent units stay behind as a fulfilled parcel. One label then
+ * carries exactly one parcel, so cancelling it unpacks only what it carried (owner, 22 Nov
+ * 2026: cancelling the wrist rest's label on #2073 un-shipped the keyboard shipped before it).
+ * Returns the new parcel's id, or null when there is nothing to separate.
+ */
+export async function separateShippedUnits(
+  ctx: StoreContext,
+  orderId: string,
+  fulfillmentOrderId: string,
+  opts: { author?: string | undefined } = {},
+): Promise<string | null> {
+  const [fo] = await ctx.tx
+    .select()
+    .from(fulfillmentOrder)
+    .where(and(eq(fulfillmentOrder.id, fulfillmentOrderId), eq(fulfillmentOrder.orderId, orderId)))
+    .for('update')
+  if (!fo || fo.status === 'cancelled') return null
+  const lines = await ctx.tx
+    .select()
+    .from(fulfillmentOrderLine)
+    .where(eq(fulfillmentOrderLine.fulfillmentOrderId, fo.id))
+    .for('update')
+  const unsent = lines.filter((l) => l.quantity > l.fulfilledQuantity)
+  if (unsent.length === 0 || !lines.some((l) => l.fulfilledQuantity > 0)) return null
+
+  const [last] = await ctx.tx
+    .select({ position: fulfillmentOrder.position })
+    .from(fulfillmentOrder)
+    .where(eq(fulfillmentOrder.orderId, orderId))
+    .orderBy(desc(fulfillmentOrder.position))
+    .limit(1)
+  const [rest] = await ctx.tx
+    .insert(fulfillmentOrder)
+    .values({
+      storeId: ctx.storeId,
+      orderId,
+      locationId: fo.locationId,
+      gstRegistrationId: fo.gstRegistrationId,
+      position: (last?.position ?? fo.position) + 1,
+      status: 'open',
+      needsTransfer: fo.needsTransfer,
+      taxOrigin: fo.taxOrigin,
+      deliveryEstimate: fo.deliveryEstimate,
+    })
+    .returning({ id: fulfillmentOrder.id })
+  if (!rest) throw new Error('fulfilment order insert returned nothing')
+  await ctx.tx.insert(fulfillmentOrderLine).values(
+    unsent.map((l) => ({
+      storeId: ctx.storeId,
+      fulfillmentOrderId: rest.id,
+      orderLineId: l.orderLineId,
+      quantity: l.quantity - l.fulfilledQuantity,
+    })),
+  )
+  for (const l of unsent) {
+    if (l.fulfilledQuantity === 0) {
+      await ctx.tx.delete(fulfillmentOrderLine).where(eq(fulfillmentOrderLine.id, l.id))
+    } else {
+      await ctx.tx
+        .update(fulfillmentOrderLine)
+        .set({ quantity: l.fulfilledQuantity })
+        .where(eq(fulfillmentOrderLine.id, l.id))
+    }
+  }
+  await ctx.tx
+    .update(fulfillmentOrder)
+    .set({ ...NO_SHARES, status: 'fulfilled', updatedAt: new Date() })
+    .where(eq(fulfillmentOrder.id, fo.id))
+  const moved = unsent.reduce((n, l) => n + l.quantity - l.fulfilledQuantity, 0)
+  await ctx.tx.insert(orderNote).values({
+    storeId: ctx.storeId,
+    orderId,
+    body: `The ${moved} item${moved === 1 ? '' : 's'} not shipped yet now ship as their own parcel; the items already shipped stay in theirs.`,
+    author: opts.author ?? null,
+  })
+  return rest.id
+}
