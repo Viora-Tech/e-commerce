@@ -49,10 +49,9 @@ export default function SaleSourceCard({ attribution, staffDraft }: SaleSourceCa
   const creator = staffDraft?.createdBy ?? null
   const rows: (SaleSourceRow & { hidden?: boolean })[] =
     !attribution && !staffDraft
-      ? [
-          { key: 'channel', label: copy.channel, value: copy.online },
-          { key: 'cameFrom', label: copy.cameFrom, value: copy.notRecorded },
-        ]
+      ? // One row: "Channel: Online store" and "Came from: Direct" read as a duplicate (owner,
+        // 21 Nov 2026).
+        [{ key: 'channel', label: copy.channel, value: copy.onlineDirect }]
       : attribution
         ? [
             ...saleSourceRows(attribution, copy),

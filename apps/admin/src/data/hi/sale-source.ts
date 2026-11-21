@@ -14,6 +14,7 @@ export default [
     visited: 'विज़िट',
     online: 'ऑनलाइन स्टोर',
     notRecorded: 'सीधे आया, या रिकॉर्ड नहीं हुआ',
+    onlineDirect: 'ऑनलाइन स्टोर, सीधे आया या रिकॉर्ड नहीं हुआ',
     channels: {
       direct: 'सीधे',
       organic_search: 'सर्च (फ़्री)',

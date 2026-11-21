@@ -18,6 +18,8 @@ export const saleSourceContent = {
   /** Nothing was saved about the visit (direct, or before tracking). */
   online: 'Online store',
   notRecorded: 'Direct, or not recorded',
+  /** One row when nothing about the visit was saved: "Channel" and "Came from" said the same. */
+  onlineDirect: 'Online store, direct visit or not recorded',
   /** The same names as the Orders list's Channel column and filter. */
   channels: CHANNEL_LABELS,
   admin: {
