@@ -229,6 +229,9 @@ export const orderDetailContent = {
     openProduct: 'Open product in a new tab',
     viewProduct: 'View product',
     stockForSku: 'Stock for this SKU',
+    /** Fulfilled card: this line only back to To ship (owner, 22 Nov 2026). */
+    unfulfilLine: 'Mark as unfulfilled',
+    unfulfilledLine: 'Marked as unfulfilled: this item is back to To ship',
     paymentSummary: 'Payment summary',
     groups: (n: number) => `${n} fulfilment ${n === 1 ? 'group' : 'groups'}`,
     subtotal: 'Subtotal',

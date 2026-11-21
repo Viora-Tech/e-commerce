@@ -14,6 +14,8 @@ type LineRow = {
 
 type OrderLinesTableProps = {
   rows: LineRow[]
+  /** Fulfilled card: "Mark as unfulfilled" in each row's ⋯; undefined hides it. */
+  onUnfulfil?: ((lineId: string) => void) | undefined
 }
 
 function variantOf(line: OrderLine): string {
@@ -25,7 +27,7 @@ function variantOf(line: OrderLine): string {
  * no column header. A 36px thumb, the title over "variant · SKU", then "price × qty" muted and
  * the line total on the right; rows split by the border colour, edge to edge in the card.
  */
-export default function OrderLinesTable({ rows }: OrderLinesTableProps) {
+export default function OrderLinesTable({ rows, onUnfulfil }: OrderLinesTableProps) {
   // Hooks
   const copy = useCopy(orderDetailContent)
   const fmt = useFormat()
@@ -75,16 +77,24 @@ export default function OrderLinesTable({ rows }: OrderLinesTableProps) {
             <span className="w-20 shrink-0 text-right text-body font-medium text-ink-strong tabular-nums">
               {fmt.money(line.unitPricePaise * quantity)}
             </span>
-            {line.productId && line.sku ? (
+            {(line.productId && line.sku) || onUnfulfil ? (
               <RowMenu
                 items={[
                   {
                     label: copy.items.viewProduct,
-                    href: routes.products.detail(line.productId),
+                    href: line.productId ? routes.products.detail(line.productId) : undefined,
+                    hidden: !line.productId || !line.sku,
                   },
                   {
                     label: copy.items.stockForSku,
-                    href: `${routes.stock.inventory()}?query=${encodeURIComponent(line.sku)}`,
+                    href: `${routes.stock.inventory()}?query=${encodeURIComponent(line.sku ?? '')}`,
+                    hidden: !line.productId || !line.sku,
+                  },
+                  {
+                    label: copy.items.unfulfilLine,
+                    onSelect: onUnfulfil ? () => onUnfulfil(line.id) : undefined,
+                    hidden: !onUnfulfil,
+                    separatorBefore: Boolean(line.productId && line.sku),
                   },
                 ]}
               />

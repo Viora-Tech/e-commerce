@@ -366,6 +366,7 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
             payment={pay}
             unfulfilledShown={!readOnly && order.status !== 'cancelled'}
             editHref={canEdit ? routes.orders.edit(order.id) : undefined}
+            onUnfulfilLine={canFulfilOrders && !readOnly ? undo.markLineNotShipped : undefined}
           />
           <PaymentCard
             order={order}

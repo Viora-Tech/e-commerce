@@ -447,12 +447,15 @@ export async function unpackFulfillmentOrder(
   ctx: StoreContext,
   orderId: string,
   fulfillmentOrderId: string | null,
+  /** Only this order line's units (Fulfilled card › Mark as unfulfilled on one line). */
+  orderLineId?: string | undefined,
 ): Promise<number> {
   const rows = (await lockParcelLines(ctx, orderId)).filter(
     (r) =>
       r.fulfilledQuantity > 0 &&
       r.status !== 'cancelled' &&
-      (fulfillmentOrderId === null || r.fulfillmentOrderId === fulfillmentOrderId),
+      (fulfillmentOrderId === null || r.fulfillmentOrderId === fulfillmentOrderId) &&
+      (!orderLineId || r.orderLineId === orderLineId),
   )
   let units = 0
   for (const row of rows) {

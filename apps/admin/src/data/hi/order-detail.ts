@@ -207,6 +207,8 @@ export default [
       openProduct: 'प्रोडक्ट नए टैब में खोलें',
       viewProduct: 'प्रोडक्ट देखें',
       stockForSku: 'इस SKU का स्टॉक',
+      unfulfilLine: 'अनफ़ुलफ़िल्ड मार्क करें',
+      unfulfilledLine: 'अनफ़ुलफ़िल्ड मार्क किया: यह आइटम फिर से भेजने के लिए',
       paymentSummary: 'पेमेंट का हिसाब',
       groups: (n) => `${n} पैकिंग ग्रुप`,
       subtotal: 'सबटोटल',
