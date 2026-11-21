@@ -197,9 +197,10 @@ describe('CheckoutForm', () => {
     expect(page).not.toContain('Express checkout')
   })
 
-  it('opens the one form for ?step= links, whatever they say', () => {
+  it('keeps the one form for ?step= links, whatever they say', () => {
     for (const at of [
       '?step=payment',
+      '?step=delivery',
       '?step=shipping',
       '?step=contact',
       '?step=bogus',
@@ -209,8 +210,41 @@ describe('CheckoutForm', () => {
       expect(page.match(/<form/g)).toHaveLength(1)
       expect(page).toContain('id="checkout-section-contact"')
       expect(page).toContain('id="checkout-section-payment"')
+      expect(page.match(/aria-current="step"/g)).toHaveLength(1)
     }
     expect(render('?step=payment').match(/<form/g)).toHaveLength(1)
+  })
+
+  // The step lives in the URL so the phone's Back moves between steps (owner, 21 Nov 2026).
+  const shows = (page: string, id: string) =>
+    new RegExp(`id="checkout-section-${id}"[^>]*class="flex `).test(page)
+
+  it('opens the step the URL names when the steps before it are done', () => {
+    const signedIn = { customer, addresses: [address], signIn }
+    // The courier is still quoting: Payment holds rather than bouncing back to Delivery.
+    expect(shows(render('?step=payment', signedIn), 'payment')).toBe(true)
+    expect(shows(render('?step=delivery', signedIn), 'shipping')).toBe(true)
+    // Older links said `shipping`.
+    expect(shows(render('?step=shipping', signedIn), 'shipping')).toBe(true)
+    expect(shows(render('?step=contact', signedIn), 'contact')).toBe(true)
+  })
+
+  it('never lets a link skip a step that is not done', () => {
+    for (const at of ['?step=payment', '?step=delivery', '?step=address']) {
+      const page = render(at)
+      expect(shows(page, 'contact')).toBe(true)
+      expect(shows(page, 'payment')).toBe(false)
+    }
+  })
+
+  it('has no Delivery step for a basket of gift cards, so ?step=delivery opens the first', () => {
+    const giftCart = {
+      ...cart,
+      lines: cart.lines.map((l) => ({ ...l, giftCard: true, requiresShipping: false })),
+    }
+    const page = render('?step=delivery', { cart: giftCart })
+    expect(shows(page, 'contact')).toBe(true)
+    expect(page).not.toContain('id="checkout-section-shipping"')
   })
 
   it('pays the exact amount, UPI first, from the summary and the phone bar', () => {

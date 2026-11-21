@@ -29,16 +29,14 @@ import {
   checkoutTotals,
   deliveryBy,
   deliveryLine,
-  isDigitalOnly,
   offeredMethods,
   payView,
   takesUpi,
 } from '@/lib/checkout-preview'
 import { readRemembered, writeRemembered } from '@/lib/checkout-remember'
 import type { CheckoutProblem } from '@/lib/checkout-result'
-import { bringIntoView, followLegacyStep, pressSendCode } from '@/lib/checkout-scroll'
+import { bringIntoView, pressSendCode } from '@/lib/checkout-scroll'
 import {
-  type CheckoutSection,
   firstOpenSection,
   type SectionGates,
   sectionDomId,
@@ -53,8 +51,8 @@ import {
   fieldOrder,
 } from '@/lib/checkout-validation'
 import { isQuotable, useCheckoutShipping } from '@/lib/use-checkout-shipping'
+import { useCheckoutStep } from '@/lib/use-checkout-step'
 import { useCheckoutTender } from '@/lib/use-checkout-tender'
-import { useHeldStep } from '@/lib/use-held-step'
 import { useLenderVisibility } from '@/lib/use-lender-visibility'
 import { useUnavailableMethods } from '@/lib/use-unavailable-methods'
 import {
@@ -105,8 +103,6 @@ export function useCheckoutForm(input: CheckoutFormInput) {
   const [touched, setTouched] = useState<Partial<Record<CheckoutFieldKey, true>>>({})
   const [attempted, setAttempted] = useState(false)
   const [expressNote, setExpressNote] = useState<string | null>(null)
-  /** The step the shopper chose; until then, the first one that still needs something. */
-  const [pickedStep, setPickedStep] = useState<CheckoutSection | null>(null)
   /** Signing in with a code comes first, every time; a guest link leads to the contact fields. */
   const [guest, setGuest] = useState(false)
   /** The saved address being edited in place, or null. */
@@ -149,7 +145,6 @@ export function useCheckoutForm(input: CheckoutFormInput) {
       checkPincode(opened.pincode, opened.stateCode, opened.countryCode)
     }
     setSettled(true)
-    followLegacyStep(sectionsFor(isDigitalOnly(cart)))
   }, [])
   useEffect(() => {
     if (!settled) return
@@ -204,7 +199,7 @@ export function useCheckoutForm(input: CheckoutFormInput) {
     shipping: ship.gate,
   }
   const sections = sectionsFor(digitalOnly)
-  const step = useHeldStep(pickedStep, gates, sections)
+  const { step, go, pick, hold } = useCheckoutStep(gates, sections, settled)
   /** Each card's own work, for the tick on its number; Delivery does not wait on Contact. */
   const done = {
     contact: gates.contact === 'ok',
@@ -232,11 +227,9 @@ export function useCheckoutForm(input: CheckoutFormInput) {
           ? SAVE_ADDRESS_ID
           : null
     const home = signInFirst || (first && CONTACT_KEYS.includes(first)) ? 'contact' : 'address'
-    setPickedStep(home)
+    pick(home)
     if (target) requestAnimationFrame(() => bringIntoView(target))
   }
-  /** The first touch of a field holds the step, so it never moves on by itself. */
-  const handleStayOnStep = () => setPickedStep((picked) => picked ?? step)
   const handleContinue = () => {
     const move = stepMove({ step, sections, done, shipping: gates.shipping })
     if (move.kind === 'pick-shipping') setError(content.errors.pickShipping)
@@ -244,8 +237,8 @@ export function useCheckoutForm(input: CheckoutFormInput) {
     if (move.kind !== 'next') return
     setError(null)
     setAttempted(false)
-    if (move.to) setPickedStep(move.to)
-    requestAnimationFrame(() => window.scrollTo({ top: 0 }))
+    // Forward is a new history entry, so the phone's Back comes back here (`useCheckoutStep`).
+    if (move.to) go(move.to)
   }
   /** Place the order with this way to pay, or point at the first field that needs fixing. */
   const submit = (paymentId: string, orderAgain = false): boolean => {
@@ -257,7 +250,7 @@ export function useCheckoutForm(input: CheckoutFormInput) {
     // waits until there is one (the courier is still quoting, or nothing covers the address).
     if (firstOpenSection(gates, sections) === 'shipping') {
       if (gates.shipping === 'blocked') setError(content.errors.pickShipping)
-      setPickedStep('shipping')
+      pick('shipping')
       requestAnimationFrame(() => bringIntoView(sectionDomId('shipping')))
       return false
     }
@@ -275,7 +268,7 @@ export function useCheckoutForm(input: CheckoutFormInput) {
       })
       const next = dropUnavailable(r)
       if (next) setForm((prev) => ({ ...prev, payment: next }))
-      if (next) setPickedStep('payment')
+      if (next) pick('payment')
       if (r) setError(r)
     })
     return true
@@ -494,8 +487,8 @@ export function useCheckoutForm(input: CheckoutFormInput) {
     handleRate: setRateId,
     handleSubmit,
     handleOrderAgain: () => submit(form.payment, true),
-    handleStep: setPickedStep,
-    handleStayOnStep,
+    handleStep: go,
+    handleStayOnStep: hold,
     handleExpress,
     handleGiftCardApply: tender.handleGiftCardApply,
     handleGiftCardRemove: tender.handleGiftCardRemove,
