@@ -1716,6 +1716,13 @@
       "when": 1795280800000,
       "tag": "0260_member_reports",
       "breakpoints": true
+    },
+    {
+      "idx": 245,
+      "version": "7",
+      "when": 1795280900000,
+      "tag": "0261_email_template_design",
+      "breakpoints": true
     }
   ]
 }
