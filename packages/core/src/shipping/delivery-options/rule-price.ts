@@ -46,9 +46,11 @@ export function cartRulePrices(
 
 type Charge = { paise: number; kind: 'option' | 'free' | 'fixed' }
 
+/** Free includes everything, insurance too: the store pays it (owner, 21 Nov 2026: "if I say a
+ *  delivery is free then I am including everything"). Fixed ₹X adds the insurance ticked. */
 function chargeFor(p: RulePrice, normal: PricedRoute, insurance: number, value: number): Charge {
-  if (p.freeAbovePaise != null && value >= p.freeAbovePaise) return { paise: insurance, kind: 'free' }
-  if (p.mode === 'free') return { paise: insurance, kind: 'free' }
+  if (p.freeAbovePaise != null && value >= p.freeAbovePaise) return { paise: 0, kind: 'free' }
+  if (p.mode === 'free') return { paise: 0, kind: 'free' }
   if (p.mode === 'fixed') return { paise: (p.fixedPaise ?? 0) + insurance, kind: 'fixed' }
   return { paise: normal.pricePaise, kind: 'option' }
 }
@@ -76,7 +78,7 @@ export function withSeparateCodFee(priced: PricedRoute, route: Route): PricedRou
  * The first courier's price under the cart's rule prices: each price's charge (Free: ₹0, Fixed:
  * its amount, free above ₹X: ₹0 from X, the option's own: as priced), the highest winning
  * (owner, 20 Nov 2026: a free mouse with paid skates pays the skates' price). Insurance the
- * shopper ticks is added to Free and Fixed; insurance a rule requires is the store's. On COD
+ * shopper ticks is added to Fixed; Free covers it (the store pays); insurance a rule requires is the store's. On COD
  * (`priced` is then the prepaid price) the courier's COD charge is added, or kept as its own fee
  * when the option shows it separately; a free rule still charges it.
  */

@@ -127,6 +127,14 @@ describe('a rule’s price', () => {
     expect(priceOf(r, 'rapidshyp:70')).toBe(4900)
   })
 
+  it('Free covers the insurance: an insured free courier is ₹0, with no insurance tick', () => {
+    const opt = listOption({ insurance: { default: 'on' } })
+    const r = run([mice({ mode: 'free' })], { opt })
+    expect(find(r, 'std')?.insurance.on).toBe(true)
+    expect(priceOf(r, 'delhivery:E')).toBe(0)
+    expect(find(r, 'std')?.insurance.offered).toBe(false)
+  })
+
   it('Fixed ₹99: the first courier costs ₹99, a dearer one ₹99 plus the difference', () => {
     const r = run([mice({ mode: 'fixed', fixedPaise: 9900 })])
     expect(priceOf(r, 'delhivery:E')).toBe(9900)

@@ -199,7 +199,6 @@ export function resolveDeliveryOptions(
         : null
     const insuredPick = insured ? pick : (flipped?.winner.priced ?? null)
     const insurancePaise = insuredPick ? insuredPick.insurancePaise : null
-    const tick = flipped !== null && insuredPick !== null && (insurancePaise ?? 0) > 0
     const extra = flipped
       ? Math.max(
           0,
@@ -208,6 +207,9 @@ export function resolveDeliveryOptions(
             : flipped.winner.priced.pricePaise - pick.pricePaise,
         )
       : null
+    // No tick when ticking changes nothing the shopper pays (a free rule covers the insurance).
+    const tick =
+      flipped !== null && insuredPick !== null && (insurancePaise ?? 0) > 0 && (extra ?? 0) > 0
     options.push({
       optionId: option.id,
       name: option.name,
