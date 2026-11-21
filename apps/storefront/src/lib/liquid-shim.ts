@@ -32,6 +32,8 @@
  *
  * Inline, before any theme script, with the request's CSP nonce.
  */
+
+import { VIDEO_FALLBACK_SCRIPT } from './liquid-video-fallback'
 export type LiquidShimConfig = {
   /** No consent stored yet (or for an older banner version): the theme's banner may ask. */
   askConsent: boolean
@@ -49,7 +51,10 @@ export type LiquidShimConfig = {
 }
 
 export function liquidShim(config: LiquidShimConfig): string {
-  return SHIM.replace('__CONFIG__', JSON.stringify(config).replace(/</g, '\\u003c'))
+  return (
+    SHIM.replace('__CONFIG__', JSON.stringify(config).replace(/</g, '\\u003c')) +
+    VIDEO_FALLBACK_SCRIPT
+  )
 }
 
 const SHIM = `(function () {
