@@ -107,7 +107,8 @@ const attemptsOf = (orderId: string) =>
 
 /** The webhook for the shopper's first gateway try. */
 async function gatewayReports(shop: Shop, status: PaymentStatus) {
-  const [a] = await attemptsOf(shop.orderId)
+  // The gateway try, not a payment staff recorded on converting (rows come back in no order).
+  const a = (await attemptsOf(shop.orderId)).find((p) => p.provider !== 'manual')
   if (!a) throw new Error('no attempt')
   return withStore(app, shop.storeId, (tx) =>
     applyPaymentStatus(
