@@ -62,6 +62,31 @@ describe('one courier, two speeds', () => {
     expect(keys(run([5, 5]))).toEqual(['delhivery:standard', 'bluedart:standard'])
   })
 
+  it('keeps a dearer speed even when its date is later', () => {
+    // Option price: Blue Dart Air pays its own ₹122 against Surface's ₹74 (no rule prices).
+    const r = resolveDeliveryOptions(
+      input({
+        config: config({
+          options: [
+            option('std', {
+              name: 'Delivery',
+              price: { source: 'route', rounding: 'nine' },
+              couriers: { show: 'list', hideSlowerDearer: false },
+            }),
+          ],
+        }),
+        cart: { valuePaise: 249_900, weightGrams: 500, items: [SLEEVE] },
+        answers: [
+          answer('rapidshyp', 'RapidShyp', [
+            quote('71', 'Bluedart Surface', 7400, [6, 6], 'Bluedart Surface'),
+            quote('72', 'Bluedart Air', 12200, [9, 9], 'Bluedart Air'),
+          ]),
+        ],
+      }),
+    )
+    expect(keys(r)).toContain('bluedart:express')
+  })
+
   it('keeps a faster speed', () => {
     // Same ₹139, but Air arrives the next day: a real choice.
     expect(keys(run([1, 1]))).toContain('bluedart:express')
