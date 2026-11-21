@@ -1,3 +1,4 @@
+export * from './design'
 export { withFallback } from './fallback'
 export { NotificationRegistry } from './registry'
 export type * from './report-types'

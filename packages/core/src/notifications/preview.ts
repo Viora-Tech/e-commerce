@@ -14,6 +14,7 @@ import { balanceUrl } from '../preorder/balance-link'
 import { buildCartTemplateData, buildTemplateData, messageOn } from './deliver'
 import { draftInvoiceLink } from './draft-invoice-link'
 import { storeEmailBrand } from './email-brand'
+import { savedTemplateDesign } from './email-template-design'
 import { messageDef } from './messages'
 import { storeCreditTemplateData } from './store-credit-data'
 
@@ -66,9 +67,12 @@ export async function previewOrderMessage(
   }
   // A draft invoice paid partly by store credit shows it, as the sent one does.
   const credit = await storeCreditTemplateData(ctx, input)
+  // The store's saved design (Edit design), as the sent email will carry it.
+  const design = (await savedTemplateDesign(ctx.tx, ctx.storeId, input.template)) ?? undefined
   const data = {
     ...built.data,
     ...credit,
+    design,
     brand: await storeEmailBrand(ctx.tx, ctx.storeId),
     ...(actionUrl ? { actionUrl } : {}),
     ...(reminder ? { reminder: true } : {}),
@@ -81,6 +85,7 @@ export async function previewOrderMessage(
         await renderEmail(input.template, {
           ...built.data,
           ...credit,
+          design,
           ...(reminder ? { reminder } : {}),
         })
       ).subject
@@ -118,10 +123,11 @@ export async function previewCartRecovery(
   const built = await buildCartTemplateData(ctx, input.cartId, opts.actionUrl)
   if (!built) return null
   const brand = await storeEmailBrand(ctx.tx, ctx.storeId)
-  const data = { ...built.data, brand, ...(input.custom ? { custom: input.custom } : {}) }
+  const design = (await savedTemplateDesign(ctx.tx, ctx.storeId, template)) ?? undefined
+  const data = { ...built.data, brand, design, ...(input.custom ? { custom: input.custom } : {}) }
   const email = await renderEmail(template, data)
   const defaultSubject = input.custom?.subject
-    ? (await renderEmail(template, built.data)).subject
+    ? (await renderEmail(template, { ...built.data, design })).subject
     : email.subject
   return {
     to: built.to,
