@@ -1,6 +1,7 @@
 import 'server-only'
 import { loadEnv } from '@commerce/config'
 import {
+  activeDeliveryConfig,
   cartShippingHintFor,
   type DeliveryEstimate,
   domesticShippingProvider,
@@ -129,8 +130,13 @@ export async function estimateForPincode(
  */
 export async function cartShippingHint(
   tx: StoreTx,
+  storeId: string,
   cartId: string | null,
 ): Promise<{ charged: boolean; freeAbovePaise: number | null }> {
+  /* With the Delivery options app on, checkout prices by its product rules, not by the shipping
+     rates' zones: the cart promises nothing ("Calculated at checkout") rather than "Free" while
+     checkout charges (owner, 21 Nov 2026, a keyboard). */
+  if (await activeDeliveryConfig(tx, storeId)) return { charged: true, freeAbovePaise: null }
   return cartShippingHintFor(tx, cartId)
 }
 
