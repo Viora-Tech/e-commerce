@@ -1,6 +1,7 @@
 'use client'
 
 import type { Theme } from '@commerce/core/theme'
+import { useState } from 'react'
 import { themesContent } from '@/data/themes'
 import { useCopy } from '@/hooks/use-copy'
 import { useShownPicture } from '@/lib/use-shown-picture'
@@ -36,12 +37,23 @@ export default function ThemePreviewStage({
 }: ThemePreviewStageProps) {
   // Hooks
   const copy = useCopy(themesContent.library)
-  const shot = useShownPicture(stored)
+  const shown = useShownPicture(stored)
+  // Addresses that failed to load (a file missing from storage, a host that cannot serve it
+  // here): each one drops to the next picture, so the stage never shows a broken image.
+  const [failed, setFailed] = useState<readonly string[]>([])
+
+  // Handlers
+  const handleError = (src: string) => {
+    console.warn('Theme picture did not load, showing the next one:', src)
+    setFailed((list) => (list.includes(src) ? list : [...list, src]))
+  }
 
   // Render logic
-  const picture = shot ?? cover
+  const shot = shown && !failed.includes(shown) ? shown : null
+  const usableCover = cover && !failed.includes(cover) ? cover : null
+  const picture = shot ?? usableCover
   // A cover is a photo, not a page: it fills both frames instead of shrinking into the phone.
-  const isCover = !shot && Boolean(cover)
+  const isCover = !shot && Boolean(usableCover)
   const hint = isCover ? copy.coverHint : copy.pictureHint
   const host = origin.replace(/^https?:\/\//, '')
 
@@ -66,6 +78,7 @@ export default function ThemePreviewStage({
                 src={picture}
                 alt={copy.thumbnail(name)}
                 title={hint}
+                onError={() => handleError(picture)}
                 loading="lazy"
                 decoding="async"
                 className={isCover ? 'size-full object-cover' : 'size-full object-cover object-top'}
@@ -91,6 +104,7 @@ export default function ThemePreviewStage({
               <img
                 src={picture}
                 alt=""
+                onError={() => handleError(picture)}
                 loading="lazy"
                 decoding="async"
                 className={

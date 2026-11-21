@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { defaultTheme } from '@commerce/core/theme'
-import { cleanup, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { themesContent } from '@/data/themes'
 
@@ -51,6 +51,42 @@ describe('ThemePreviewStage', () => {
     vi.spyOn(console, 'warn').mockImplementation(() => undefined)
     stage(SHOT, COVER)
     await waitFor(() => expect(shown()?.getAttribute('src')).toBe(COVER))
+  })
+
+  it('falls back to the cover when the screenshot does not load', async () => {
+    isBlank.mockResolvedValue(null)
+    vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+    stage(SHOT, COVER)
+    fireEvent.error(shown() as HTMLElement)
+    await waitFor(() => expect(shown()?.getAttribute('src')).toBe(COVER))
+    expect(shown()?.getAttribute('title')).toBe(copy.coverHint)
+  })
+
+  it('falls back to the swatch when the cover does not load (a file missing from storage)', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+    stage(null, COVER)
+    fireEvent.error(shown() as HTMLElement)
+    await waitFor(() => expect(shown()?.tagName).toBe('SPAN'))
+    expect(shown()?.getAttribute('title')).toBe(copy.pictureHint)
+  })
+
+  it('falls back to the swatch when the phone frame picture fails too', async () => {
+    isBlank.mockResolvedValue(null)
+    vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+    const { container } = render(
+      <ThemePreviewStage
+        name="Glide"
+        origin="https://shop.test"
+        settings={defaultTheme}
+        picture={SHOT}
+        cover={COVER}
+      />,
+    )
+    const phone = () => container.querySelector('img[alt=""]') as HTMLElement
+    fireEvent.error(phone())
+    await waitFor(() => expect(phone()?.getAttribute('src')).toBe(COVER))
+    fireEvent.error(phone())
+    await waitFor(() => expect(container.querySelector('img')).toBeNull())
   })
 
   it('keeps the swatch only when there is neither', () => {
