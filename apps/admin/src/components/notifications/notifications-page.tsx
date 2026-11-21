@@ -23,6 +23,7 @@ import { useLoad } from '@/hooks/use-load'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
 import AdvancedSection from './advanced-section'
+import DesignEditorDialog from './design/design-editor-dialog'
 import MessageRow from './message-row'
 import PreviewDialog from './preview-dialog'
 import SenderEmailCard from './sender-email-card'
@@ -66,6 +67,7 @@ export default function NotificationsPage() {
   const [saving, setSaving] = useState<string | null>(null)
   const [testing, setTesting] = useState<string | null>(null)
   const [previewing, setPreviewing] = useState<string | null>(null)
+  const [designing, setDesigning] = useState<string | null>(null)
   const [senderEmail, setSenderEmail] = useState<SenderEmailOverview | null>(null)
   const [openRow] = useQueryState('open')
 
@@ -88,9 +90,9 @@ export default function NotificationsPage() {
     setData(await api.notifications.overview())
   }
 
-  const patchMessage = (id: string, on: boolean) =>
+  const patchMessage = (id: string, patch: Partial<MessageRowData>) =>
     setData((d) =>
-      d ? { ...d, messages: d.messages.map((m) => (m.id === id ? { ...m, on } : m)) } : d,
+      d ? { ...d, messages: d.messages.map((m) => (m.id === id ? { ...m, ...patch } : m)) } : d,
     )
 
   const rows = (group: MessageGroupId) => (data?.messages ?? []).filter((m) => m.group === group)
@@ -115,6 +117,7 @@ export default function NotificationsPage() {
           onToggle={(on) => handleToggle(m, on)}
           onPreview={() => setPreviewing(m.id)}
           onTest={() => handleTest(m)}
+          onEditDesign={() => setDesigning(m.id)}
         />
       ))}
     </SettingsTable>
@@ -123,12 +126,12 @@ export default function NotificationsPage() {
   // Event handlers
   const handleToggle = async (m: MessageRowData, on: boolean) => {
     setSaving(m.id)
-    patchMessage(m.id, on)
+    patchMessage(m.id, { on })
     try {
       await api.notifications.setMessage({ id: m.id as MessageId, on })
       toast.success(copy.list.saved(copy.messages[m.id]?.name ?? m.id, on))
     } catch {
-      patchMessage(m.id, !on)
+      patchMessage(m.id, { on: !on })
       toast.error(copy.list.saveFailed)
     } finally {
       setSaving(null)
@@ -155,6 +158,8 @@ export default function NotificationsPage() {
   }
 
   const handleClosePreview = () => setPreviewing(null)
+
+  const handleDesignSaved = (id: string, designed: boolean) => patchMessage(id, { designed })
 
   const handlePreviewTest = () => {
     const m = data?.messages.find((row) => row.id === previewing)
@@ -282,6 +287,12 @@ export default function NotificationsPage() {
         onClose={handleClosePreview}
         onTest={handlePreviewTest}
         testing={previewing !== null && testing === previewing}
+      />
+
+      <DesignEditorDialog
+        messageId={designing}
+        onClose={() => setDesigning(null)}
+        onSaved={handleDesignSaved}
       />
     </div>
   )

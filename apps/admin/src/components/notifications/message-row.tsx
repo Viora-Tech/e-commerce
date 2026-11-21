@@ -1,6 +1,6 @@
 'use client'
 
-import { Eye, Send } from '@commerce/ui/icons'
+import { Eye, Pencil, Send } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Switch } from '@commerce/ui/shadcn/switch'
 import Link from 'next/link'
@@ -8,6 +8,7 @@ import StatusChip from '@/components/layout/status-chip'
 import SettingsTableCell from '@/components/settings/settings-table-cell'
 import SettingsTableRow from '@/components/settings/settings-table-row'
 import RowActionsCell from '@/components/table/row-actions-cell'
+import { emailDesignContent } from '@/data/email-design'
 import { notificationsSettingsContent } from '@/data/notifications'
 import { useCopy } from '@/hooks/use-copy'
 import { routes } from '@/lib/routes'
@@ -20,6 +21,8 @@ type MessageRowProps = {
   onToggle: (on: boolean) => void
   onPreview: () => void
   onTest: () => void
+  /** Opens Edit design; only for messages with an email a merchant can redesign. */
+  onEditDesign: () => void
 }
 
 /** One message as a table row: name and when it goes, channels, the switch, Preview and Test. */
@@ -30,9 +33,11 @@ export default function MessageRow({
   onToggle,
   onPreview,
   onTest,
+  onEditDesign,
 }: MessageRowProps) {
   // Hooks
   const copy = useCopy(notificationsSettingsContent)
+  const designCopy = useCopy(emailDesignContent)
 
   // Render logic
   const name = copy.messages[m.id]?.name ?? m.id
@@ -49,7 +54,10 @@ export default function MessageRow({
       {/* Wraps, so the switch stays in view; the name is not a label for it, so clicking the
           row's text never turns a customer message off by accident. */}
       <SettingsTableCell className="whitespace-normal">
-        <span className="block font-semibold text-ink-strong">{name}</span>
+        <span className="flex flex-wrap items-center gap-2 font-semibold text-ink-strong">
+          {name}
+          {m.designed ? <StatusChip tone="info">{designCopy.row.customised}</StatusChip> : null}
+        </span>
         <p className="text-caption font-normal text-muted-foreground">
           {copy.messages[m.id]?.when}
         </p>
@@ -84,8 +92,19 @@ export default function MessageRow({
           <StatusChip>{badge}</StatusChip>
         ) : null}
       </SettingsTableCell>
-      <SettingsTableCell className="w-24 p-0 last:pr-2 md:last:pr-2">
+      <SettingsTableCell className="w-32 p-0 last:pr-2 md:last:pr-2">
         <RowActionsCell>
+          {m.designable ? (
+            <Button
+              size="icon"
+              variant="ghost"
+              aria-label={designCopy.row.edit}
+              title={designCopy.row.edit}
+              onClick={onEditDesign}
+            >
+              <Pencil aria-hidden="true" className="size-4" />
+            </Button>
+          ) : null}
           <Button size="icon" variant="ghost" aria-label={copy.list.preview} onClick={onPreview}>
             <Eye aria-hidden="true" className="size-4" />
           </Button>
