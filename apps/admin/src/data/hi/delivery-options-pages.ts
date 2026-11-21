@@ -250,6 +250,7 @@ export default [
       allOptions: 'सभी विकल्प',
       only: (names: string) => `सिर्फ़ ${names}`,
       insured: 'बीमे के साथ',
+      through: (how: string) => `किसके ज़रिए: ${how}`,
       preferred: (route: string) => `${route} (पसंदीदा)`,
       preferredAlways: (route: string) => `${route} (हमेशा, विकल्प की कीमत पर)`,
       line: (routes: string) => `इन प्रोडक्ट वाले कार्ट में सिर्फ़ ${routes} की कीमतें दिखती हैं`,

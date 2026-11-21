@@ -61,6 +61,16 @@ export default function RuleRow({
   ).join(', ')
   const routesChip = `${r.only(routesText)}${rule.insurance === 'required' ? ` (${r.insured})` : ''}`
   const line = options ? r.lineOptions(options, routesText) : r.line(routesText)
+  // A rule that takes its couriers through one app only ("Your own account") hides every courier
+  // that app doesn't carry: said on the row, since the short names above don't show it.
+  const channels = new Set(rule.routes.map((s) => s.channel ?? 'any'))
+  const [onlyChannel] = channels.size === 1 ? [...channels] : []
+  const throughText =
+    onlyChannel && onlyChannel !== 'any' && onlyChannel in copy.ruleDialog.throughItems
+      ? r.through(
+          copy.ruleDialog.throughItems[onlyChannel as keyof typeof copy.ruleDialog.throughItems],
+        )
+      : null
   // The rule's price (20 Nov 2026), when it changes the option's own.
   const p = form.suggestions.price
   const price = rule.price ?? { mode: 'option' }
@@ -106,6 +116,11 @@ export default function RuleRow({
           </span>
           <ArrowRight aria-hidden className="size-3.5 text-muted-foreground" />
           <span className={cn(CHIP, 'border-info/40 bg-info-soft text-info')}>{routesChip}</span>
+          {throughText ? (
+            <span className={cn(CHIP, 'border-warning/30 bg-warning-soft text-warning-foreground dark:text-warning')}>
+              {throughText}
+            </span>
+          ) : null}
           {priceChip ? (
             <span className={cn(CHIP, 'border-success-border bg-success-soft text-success')}>
               {priceChip}

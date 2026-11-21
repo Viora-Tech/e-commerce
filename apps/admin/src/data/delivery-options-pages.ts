@@ -272,6 +272,7 @@ export const deliveryPagesContent = {
     allOptions: 'All options',
     only: (names: string) => `${names} only`,
     insured: 'insured',
+    through: (how: string) => `Through: ${how}`,
     preferred: (route: string) => `${route} (preferred)`,
     preferredAlways: (route: string) => `${route} (always, at the option’s price)`,
     line: (routes: string) => `Carts with these products show only ${routes} prices`,
